@@ -19,8 +19,9 @@ import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { parseHTML } from "linkedom";
 import { mathBoxView, stubCodeMirrorDom } from "../math-box-dom.ts";
+import { newCheatSheet } from "../cheat-sheet-fixture.ts";
 import { SELECT } from "../../src/frontend/components/ui/field.ts";
-import { newCheatSheet, type CheatSheetView, type SpaceSheetsView, type SheetCard, type SheetVersion } from "../../src/shared/core/index.ts";
+import { type CheatSheetView, type SpaceSheetsView, type SheetCard, type SheetVersion } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
 stubCodeMirrorDom(dom);

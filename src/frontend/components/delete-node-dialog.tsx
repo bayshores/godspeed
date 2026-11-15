@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { spaceQuery, useSpaces } from "@/frontend/components/space-context";
+import { DeleteFoot, FailureRow } from "@/frontend/components/ui/delete-dialog-parts";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 
 type Node = { id: string; name: string };
@@ -106,17 +107,7 @@ export function DeleteNodeBody({
 			busy={busy}
 			onClose={onClose}
 			className="w-[540px]"
-			foot={
-				<>
-					<span className="flex-1" />
-					<button type="button" data-testid="node-delete-cancel" onClick={onClose} disabled={busy} className="lh-btn text-[15px]">
-						Cancel
-					</button>
-					<button type="button" data-testid="node-delete-confirm" onClick={onRun} disabled={busy} className="lh-btn lh-btn-danger text-[15px]">
-						{busy ? "Deleting…" : "Delete"}
-					</button>
-				</>
-			}
+			foot={<DeleteFoot cancelTestid="node-delete-cancel" confirmTestid="node-delete-confirm" busy={busy} onClose={onClose} onRun={onRun} />}
 		>
 			{/* Many names stop at 8; the title has the full count. */}
 			<p data-testid={one ? "node-name-code" : "node-names-code"} className="font-count text-lg break-words text-ink">
@@ -125,14 +116,7 @@ export function DeleteNodeBody({
 			<p data-testid="node-permanence-line" className="text-lg text-ink">
 				{one ? "This permanently deletes the fact. This cannot be undone." : `This permanently deletes all ${nodes.length} facts. This cannot be undone.`}
 			</p>
-			{failure && (
-				<div role="alert" data-testid="node-delete-failure" className="flex flex-wrap items-center gap-2.5">
-					<span className="min-w-0 flex-1 basis-[200px] text-[15px] text-ans-wrong">{failure}</span>
-					<button type="button" data-testid="node-delete-retry" onClick={onRun} disabled={busy} className="lh-btn text-[15px]">
-						Try again
-					</button>
-				</div>
-			)}
+			{failure && <FailureRow testid="node-delete-failure" retryTestid="node-delete-retry" failure={failure} busy={busy} onRun={onRun} />}
 		</DialogSheet>
 	);
 }

@@ -13,7 +13,7 @@ use gs_base::locks::{LockKey, Locks};
 use gs_base::re::Re;
 use gs_core::contracts::space::is_space_id;
 use gs_core::study::cheat_sheet::{CHEAT_SHEET_FORMAT, ParsedSheet, parse_cheat_sheet};
-use gs_json::{Json, Obj, stringify_pretty};
+use gs_json::{Json, Obj};
 
 /// Built once by `Stores::new`; keep this constructor's signature.
 pub struct CheatSheetStore {
@@ -72,14 +72,14 @@ impl CheatSheetStore {
 
 	/// Saves the sheet, stamped with the record format.
 	pub fn write_cheat_sheet(&self, space_id: &str, sheet: &Json) -> Result<(), String> {
-		let file = self.sheet_file(space_id, sheet["deadlineId"].as_str().unwrap_or(""))?;
+		let file = self.sheet_file(space_id, sheet["deadlineId"].str_or_empty())?;
 		let mut record = Obj::new();
 		record.insert("version", CHEAT_SHEET_FORMAT);
 		for (key, value) in sheet.as_obj().into_iter().flatten() {
 			record.insert(key.as_str(), value.clone());
 		}
 		let _guard = self.locks.lock(LockKey::Space(space_id));
-		fsx::write_text_atomic(&file, &stringify_pretty(&Json::Obj(record), "\t")).map_err(|err| fsx::node_error_message(&err, "open", &file))
+		fsx::write_json_atomic(&file, &Json::Obj(record))
 	}
 
 	/// A picture or PDF sent with a message, kept for the chat and the agent; returns its path.
@@ -112,7 +112,7 @@ impl CheatSheetStore {
 	pub fn remove_sheet_pdfs(&self, space_id: &str, deadline_id: &str, ns: &[f64]) -> Result<(), String> {
 		let _guard = self.locks.lock(LockKey::Space(space_id));
 		for n in ns {
-			remove_file(&self.version_file(space_id, deadline_id, *n)?)?;
+			fsx::remove_if_present(&self.version_file(space_id, deadline_id, *n)?, "rm")?;
 		}
 		Ok(())
 	}
@@ -120,15 +120,10 @@ impl CheatSheetStore {
 	/// The sheet's record, its sent files and its versions.
 	pub fn remove_cheat_sheet(&self, space_id: &str, deadline_id: &str) -> Result<(), String> {
 		let _guard = self.locks.lock(LockKey::Space(space_id));
-		remove_file(&self.sheet_file(space_id, deadline_id)?)?;
+		fsx::remove_if_present(&self.sheet_file(space_id, deadline_id)?, "rm")?;
 		remove_dir(&self.files_dir(space_id, deadline_id)?)?;
 		remove_dir(&self.versions_dir(space_id, deadline_id)?)
 	}
-}
-
-/// `fs.rmSync(path, { force: true })`.
-fn remove_file(file: &Path) -> Result<(), String> {
-	ignore_missing(std::fs::remove_file(file)).map_err(|err| fsx::node_error_message(&err, "rm", file))
 }
 
 /// `fs.rmSync(path, { recursive: true, force: true })`.

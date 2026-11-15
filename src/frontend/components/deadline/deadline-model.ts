@@ -4,9 +4,9 @@
  * the days before it that it neither covers nor leaves out, and the
  * ones left out on purpose. Pure and unit-tested.
  */
-import { dateInName, extensionOf, rightWords, type SpaceDeadline, type SpaceFile, type DeadlineKind, type FileCoverage, type TopicProgress } from "@/shared/core";
+import { dateInName, extensionOf, longDay, rightWords, type SpaceDeadline, type SpaceFile, type DeadlineKind, type FileCoverage, type TopicProgress } from "@/shared/core";
 import { clockLabel, kindLabel } from "@/frontend/components/space-deadlines-model";
-import { longDay } from "@/frontend/components/home-page/home-page-model";
+import { plural } from "@/frontend/lib/plural";
 
 export type DayState = "ready" | "reading" | "failed" | "info";
 
@@ -191,19 +191,12 @@ export function deadlineMaterial(
 	};
 }
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
-
 /** "11 days, 34 files, 2 still being read". */
 export function materialSummary(m: Material): string {
 	const parts = [m.dayCount > 0 ? plural(m.dayCount, "day") : null, plural(m.files, "file")];
 	if (m.reading > 0) parts.push(`${m.reading} still being read`);
 	if (m.failed > 0) parts.push(`${m.failed} couldn't be read`);
 	return parts.filter(Boolean).join(", ");
-}
-
-/** "Sep 25" from "2026-09-25". */
-export function shortDate(date: string): string {
-	return new Date(`${date}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 /** The message Ask sends the teacher. */

@@ -19,6 +19,7 @@
  * Well-formed args pass through UNTOUCHED (same reference); unhealable
  * values stay for validation to reject honestly.
  */
+import { isRecord } from "./is-record.ts";
 
 /** One property schema of a TypeBox object (the shapes this fork emits:
  * literal unions carry anyOf[{const}], scalars carry type). */
@@ -55,12 +56,12 @@ export function healEncodedArguments(
 	args: unknown,
 	schema: { properties?: Record<string, PropSchema> },
 ): unknown {
-	if (typeof args !== "object" || args === null || Array.isArray(args)) return args;
+	if (!isRecord(args)) return args;
 	const properties = schema.properties;
 	if (!properties) return args;
 	let healed: Record<string, unknown> | null = null;
 	for (const [key, prop] of Object.entries(properties)) {
-		const raw = (args as Record<string, unknown>)[key];
+		const raw = args[key];
 		if (typeof raw !== "string") continue;
 		const parsed = tryParse(raw);
 		let fixed: unknown;

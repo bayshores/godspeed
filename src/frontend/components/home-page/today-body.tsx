@@ -1,8 +1,8 @@
-import { localDay, type DeadlineProgress, type ProgressPayload, type SpaceSummary } from "@/shared/core";
+import { localDay, longDay, type DeadlineProgress, type ProgressPayload, type SpaceSummary } from "@/shared/core";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { AddDeadline } from "./add-deadline";
-import { longDay, todaySections, type TodayLists } from "./home-page-model";
+import { todaySections, type TodayLists } from "./home-page-model";
 import { NextCard } from "./next-card";
 import { SpaceList } from "./space-list";
 import { ROW_LIST, SECTION_TITLE } from "./styles";

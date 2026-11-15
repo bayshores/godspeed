@@ -11,12 +11,13 @@ use std::path::PathBuf;
 use gs_base::config::Paths;
 use gs_base::events::{EventKind, Events};
 use gs_base::locks::{LockKey, Locks};
-use gs_base::{fsx, ids, locale, text, time};
+use gs_base::{fsx, ids, text, time};
 use gs_core::contracts::chat::{CURRENT_CHAT_VERSION, TALK_CHAT_ID};
 use gs_core::graph::ports::ChatListing;
+use gs_core::records::newer_first;
 use gs_core::messages::native_messages::{active_problem_of, dangling_question_of, summary_folds_throw};
 use gs_core::messages::phases::{first_phase, phase_at3_lh};
-use gs_json::{Json, Obj, js_number, json, parse, stringify_pretty};
+use gs_json::{Json, Obj, js_number, json, parse};
 use parking_lot::Mutex;
 
 const UNTITLED: &str = "Untitled session";
@@ -40,8 +41,7 @@ impl ChatStore {
 	/// The lesson's folder for files the learner sent. The id becomes a file name, so it may hold
 	/// only letters, digits, `_` and `-`.
 	fn chat_dir(&self, id: &str) -> Result<PathBuf, String> {
-		let valid = !id.is_empty() && id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-');
-		if valid { Ok(self.dir.join(id)) } else { Err(format!("Invalid chat id: {id}")) }
+		if ids::is_file_id(id) { Ok(self.dir.join(id)) } else { Err(format!("Invalid chat id: {id}")) }
 	}
 
 	fn chat_file(&self, id: &str) -> Result<PathBuf, String> {
@@ -79,12 +79,15 @@ impl ChatStore {
 	/// Every record persist goes through here and carries the current version stamp: existing
 	/// files only get stamped on their next write.
 	fn write_chat(&self, record: &Json) -> Result<(), String> {
-		let id = record["id"].as_str().unwrap_or_default();
+		let id = record["id"].str_or_empty();
 		self.summaries.lock().remove(id);
 		let file = self.chat_file(id)?;
+		if record["version"].as_f64() == Some(CURRENT_CHAT_VERSION as f64) {
+			return fsx::write_json_atomic(&file, record);
+		}
 		let mut stamped = record.clone();
 		set_field(&mut stamped, "version", CURRENT_CHAT_VERSION);
-		fsx::write_text_atomic(&file, &stringify_pretty(&stamped, "\t")).map_err(|err| fsx::node_error_message(&err, "open", &file))
+		fsx::write_json_atomic(&file, &stamped)
 	}
 
 	/// The record, or None when it is missing, unreadable, malformed, or stamped by a newer build
@@ -121,16 +124,11 @@ impl ChatStore {
 
 	/// Every lesson's summary, newest activity first. Talk is not a lesson and never shows.
 	pub fn list_chats(&self) -> Vec<Json> {
-		if std::fs::create_dir_all(&self.dir).is_err() {
-			return Vec::new();
-		}
-		let Ok(entries) = std::fs::read_dir(&self.dir) else { return Vec::new() };
-		let mut names: Vec<String> = entries.flatten().filter_map(|e| e.file_name().to_string_lossy().strip_suffix(".json").map(str::to_owned)).collect();
-		names.sort();
+		let names = crate::json_ids_in(&self.dir);
 		let present: HashSet<&String> = names.iter().collect();
 		self.summaries.lock().retain(|cached, _| present.contains(cached));
 		let mut summaries: Vec<Json> = names.iter().filter_map(|id| self.summary_of(id)).collect();
-		summaries.sort_by(|a, b| locale::compare(b["updatedAt"].as_str().unwrap_or_default(), a["updatedAt"].as_str().unwrap_or_default()));
+		summaries.sort_by(newer_first);
 		summaries
 	}
 
@@ -251,7 +249,7 @@ fn summarize(id: &str, record: &Json) -> Option<Json> {
 	if record["kind"].as_str() == Some("talk") {
 		return None;
 	}
-	let messages = record["messages"].as_arr().map_or(&[][..], Vec::as_slice);
+	let messages = record["messages"].items();
 	let start = first_phase(record["kind"].as_str());
 	if summary_folds_throw(messages, start) {
 		eprintln!("[chat {id}] summary projection failed");

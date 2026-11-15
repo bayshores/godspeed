@@ -18,7 +18,6 @@ use gs_agent::subagents::aborts::{fire_job_abort, is_job_live};
 use gs_base::clock;
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
-use gs_core::messages::input_events::messages_of;
 use gs_core::messages::native_messages::{dangling_question_of, ends_in_dismissal, open_question_held};
 use gs_core::session::jobs::{build_abort_steer, build_subagent_steer, is_subagent_failure, steer_delivered};
 use gs_engine::turn::agent::Agent;
@@ -112,7 +111,7 @@ fn job_id_of(steer: &Json) -> Option<&str> {
 }
 
 fn steer_id(steer: &Json) -> &str {
-	steer["id"].as_str().unwrap_or_default()
+	steer["id"].str_or_empty()
 }
 
 /// The chat handler wires its adapter around `handle_chat_input` here.
@@ -335,7 +334,7 @@ pub fn abort_job(app: &Arc<App>, job_id: &str) -> Result<Result<(), AbortRefusal
 /// A probe handoff names its chat; a job steer's chat is on its job record.
 fn chat_id_of(app: &App, steer: &Json) -> String {
 	if is_probe_handoff(steer) {
-		return steer["details"]["chatId"].as_str().unwrap_or_default().to_owned();
+		return steer["details"]["chatId"].str_or_empty().to_owned();
 	}
 	job_id_of(steer).and_then(|id| app.stores.jobs.get_job(id)).and_then(|job| job["chatId"].as_str().map(str::to_owned)).unwrap_or_default()
 }
@@ -380,7 +379,7 @@ async fn run_pump(app: &Arc<App>, chat_id: &str) -> bool {
 			continue;
 		};
 		// Markers already in the transcript resolve without firing anything.
-		note_steers_durable(app, chat_id, messages_of(&record));
+		note_steers_durable(app, chat_id, record["messages"].items());
 		let still_pending: Vec<u64> = app.jobs.wake.lock().queue(chat_id).iter().filter(|e| !e.waking && !e.deferred).map(|e| e.seq).collect();
 		if still_pending.is_empty() {
 			return true;
@@ -419,13 +418,13 @@ async fn run_pump(app: &Arc<App>, chat_id: &str) -> bool {
 			return true;
 		};
 		// A live run may have delivered some while the gates were closed.
-		note_steers_durable(app, chat_id, messages_of(&fresh));
+		note_steers_durable(app, chat_id, fresh["messages"].items());
 		let fire: Vec<u64> = app.jobs.wake.lock().queue(chat_id).iter().filter(|e| !e.waking && !e.deferred && e.handed_to.is_none()).map(|e| e.seq).collect();
 		if fire.is_empty() {
 			return false;
 		}
 		// A record ending in a dismissal waits for the learner: their next send carries the markers.
-		if ends_in_dismissal(messages_of(&fresh)) {
+		if ends_in_dismissal(fresh["messages"].items()) {
 			return true;
 		}
 		let steers: Vec<Json> = {
@@ -440,7 +439,7 @@ async fn run_pump(app: &Arc<App>, chat_id: &str) -> bool {
 		};
 		let status = runner(chat_id.to_owned(), json!({ "type": "steers", "steers": steers })).await;
 		if let Some(saved) = app.stores.chats.get_chat(chat_id) {
-			note_steers_durable(app, chat_id, messages_of(&saved));
+			note_steers_durable(app, chat_id, saved["messages"].items());
 		}
 		let owned: Vec<u64> = {
 			let wake = app.jobs.wake.lock();
@@ -521,13 +520,13 @@ fn normalize_legacy_result(app: &App, job: Json) -> Result<Json, String> {
 	if job["delivery"].truthy() || job["status"].as_str() != Some("running") || !job["result"].truthy() {
 		return Ok(job);
 	}
-	let failed = is_subagent_failure(job["kind"].as_str().unwrap_or_default(), &job["result"]);
+	let failed = is_subagent_failure(job["kind"].str_or_empty(), &job["result"]);
 	let patch = json!({
 		"status": if failed { "error" } else { "done" },
 		"activity": if failed { "failed" } else { "finished" },
 		"delivery": { "kind": "result", "status": "pending" },
 	});
-	let id = job["id"].as_str().unwrap_or_default().to_owned();
+	let id = job["id"].str_or_empty().to_owned();
 	Ok(app.stores.jobs.update_job(&id, &patch)?.unwrap_or(job))
 }
 
@@ -535,11 +534,11 @@ fn normalize_legacy_result(app: &App, job: Json) -> Result<Json, String> {
 /// delivery metadata are never replayed.
 fn restore_pending_deliveries(app: &App, chat_id: &str) -> Result<(), String> {
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(()) };
-	let messages = messages_of(&record);
+	let messages = record["messages"].items();
 	note_steers_durable(app, chat_id, messages);
 	for stored in app.stores.jobs.list_jobs(chat_id) {
 		let stored = (*stored).clone();
-		let job = if is_job_live(&app.jobs.aborts, stored["id"].as_str().unwrap_or_default()) { stored } else { normalize_legacy_result(app, stored)? };
+		let job = if is_job_live(&app.jobs.aborts, stored["id"].str_or_empty()) { stored } else { normalize_legacy_result(app, stored)? };
 		if job["delivery"]["status"].as_str() != Some("pending") {
 			continue;
 		}
@@ -571,7 +570,7 @@ async fn wait_for_idle(app: &Arc<App>, chat_id: &str) {
 		let version = app.stores.chats.chat_version(chat_id)?;
 		if seen.as_ref().is_none_or(|(v, _, _)| *v != version) {
 			let record = app.stores.chats.get_chat(chat_id)?;
-			let messages = messages_of(&record);
+			let messages = record["messages"].items();
 			seen = Some((version, dangling_question_of(messages).is_some(), open_question_held(messages)));
 		}
 		seen.as_ref().map(|(_, dangling, held)| (*dangling, *held))
@@ -616,7 +615,7 @@ fn show_held_artifacts(app: &App, chat_id: &str) -> bool {
 			return false;
 		}
 		let Some(record) = app.stores.chats.get_chat(chat_id) else { return false };
-		let mut messages = messages_of(&record).to_vec();
+		let mut messages = record["messages"].items().to_vec();
 		if !open_question_held(&messages) {
 			return false;
 		}
@@ -656,8 +655,8 @@ fn sweep(app: &Arc<App>) -> Result<(), String> {
 	let chat_ids: HashSet<String> = app.stores.chats.list_chats().iter().filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
 	for stored in app.stores.jobs.list_all_jobs() {
 		let job = (*stored).clone();
-		let id = job["id"].as_str().unwrap_or_default();
-		let chat_id = job["chatId"].as_str().unwrap_or_default();
+		let id = job["id"].str_or_empty();
+		let chat_id = job["chatId"].str_or_empty();
 		let running = job["status"].as_str() == Some("running");
 		if !running && job["delivery"]["status"].as_str() != Some("pending") {
 			continue;

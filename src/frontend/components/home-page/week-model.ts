@@ -1,6 +1,7 @@
 /** Today's "This week": the local days from Monday to Sunday with an answer
  *  in any open space or in a lesson with no space. Pure. */
 import { localDay, type ProgressPayload } from "@/shared/core";
+import { plural } from "@/frontend/lib/plural";
 import { joinAnd } from "@/frontend/components/overview/overview-model";
 
 interface WeekDay {
@@ -21,8 +22,6 @@ interface Week {
 	/** What the squares show, for a screen reader. */
 	label: string;
 }
-
-const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
 
 /** The week holding `nowMs`, from the answers in every payload. A lesson
  *  listed twice counts once. */

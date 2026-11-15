@@ -103,5 +103,10 @@ opt-level = 3
 
 [profile.release]
 panic = "unwind"
-lto = "thin"
-codegen-units = 4
+lto = "fat"
+codegen-units = 1
+# The shipped binaries carry no symbols; the line tables go to a separate file (.dSYM, .pdb, .dwp)
+# that the release job keeps, so a crash log can still be read.
+strip = true
+debug = "line-tables-only"
+split-debuginfo = "packed"

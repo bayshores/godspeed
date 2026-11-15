@@ -15,13 +15,14 @@ use std::sync::Once;
 use gs_base::config::Paths;
 use gs_base::events::{EventKind, Events};
 use gs_base::locks::{LockKey, Locks};
-use gs_base::{clock, fsx, ids, locale, time};
+use gs_base::{clock, fsx, ids, time};
 use gs_core::spaces::space_deadlines::{changed_deadline, file_ids_of, new_deadline};
 use gs_core::contracts::space::{CURRENT_SPACE_VERSION, SpaceDeadlineError, compare_deadlines, is_space_color, is_space_id, next_space_color};
 use gs_core::spaces::space_record::{clean_name, newer_version, read_space_record, summarize};
 use gs_core::spaces::space_work::{work_after_deadline, work_after_files};
+use gs_core::records::newer_first;
 use gs_core::records::teaching_areas::sanitize_rules;
-use gs_json::{Json, Obj, json, parse, stringify_pretty};
+use gs_json::{Json, Obj, json, parse};
 use parking_lot::Mutex;
 
 /// Why a space change was refused: a deadline that is wrong or missing, or anything else
@@ -96,18 +97,6 @@ fn adopt_old_folder(old: &Path, spaces: &Path) {
 	}
 }
 
-/// The record's round of work, or none.
-fn set_work(record: &mut Obj, work: Option<Json>) {
-	match work {
-		Some(work) => {
-			record.insert("lastWork", work);
-		}
-		None => {
-			record.remove("lastWork");
-		}
-	}
-}
-
 pub struct SpaceStore {
 	root: PathBuf,
 	/// data/classes, moved over once, before the store first reads (`adopt_old_folder`).
@@ -173,11 +162,15 @@ impl SpaceStore {
 	/// Every write stamps the current version and goes through a temp file and a rename, so a torn
 	/// write never replaces the record.
 	fn write_space(&self, record: &Json) -> Result<(), String> {
-		let id = record["id"].as_str().unwrap_or("");
+		let id = record["id"].str_or_empty();
 		let file = self.record_file(id)?;
-		let mut stamped = record.as_obj().cloned().unwrap_or_default();
-		stamped.insert("version", CURRENT_SPACE_VERSION);
-		fsx::write_text_atomic(&file, &stringify_pretty(&Json::Obj(stamped), "\t")).map_err(|e| fsx::node_error_message(&e, "open", &file))?;
+		if record.as_obj().is_some() && record["version"].as_f64() == Some(CURRENT_SPACE_VERSION as f64) {
+			fsx::write_json_atomic(&file, record)?;
+		} else {
+			let mut stamped = record.as_obj().cloned().unwrap_or_default();
+			stamped.insert("version", CURRENT_SPACE_VERSION);
+			fsx::write_json_atomic(&file, &Json::Obj(stamped))?;
+		}
 		let old = self.old_record_file(id)?;
 		fsx::remove_if_present(&old, "rm")
 	}
@@ -247,8 +240,8 @@ impl SpaceStore {
 		let id = ids::timed("spc");
 		let mut record = Obj::new();
 		record.insert("id", id.clone());
-		record.insert("name", clean_name(init["name"].as_str().unwrap_or("")));
-		record.insert("description", gs_base::text::trim(init["description"].as_str().unwrap_or("")));
+		record.insert("name", clean_name(init["name"].str_or_empty()));
+		record.insert("description", gs_base::text::trim(init["description"].str_or_empty()));
 		record.insert("createdAt", now.clone());
 		record.insert("updatedAt", now);
 		record.insert("closed", false);
@@ -276,7 +269,7 @@ impl SpaceStore {
 		let mut names: Vec<String> = entries.filter_map(|e| e.ok()?.file_name().into_string().ok()).filter(|n| is_space_id(n)).collect();
 		names.sort();
 		let mut records: Vec<Json> = names.iter().filter_map(|name| self.get_space(name)).collect();
-		records.sort_by(|a, b| locale::compare(b["updatedAt"].as_str().unwrap_or(""), a["updatedAt"].as_str().unwrap_or("")));
+		records.sort_by(newer_first);
 		records
 	}
 
@@ -321,9 +314,7 @@ impl SpaceStore {
 			}
 		}
 		for key in ["icon", "color", "note"] {
-			if let Some(value) = patch.get(key) {
-				obj.insert(key, value.clone());
-			}
+			obj.insert_present(key, patch.get(key));
 		}
 		// A new note alone doesn't count as an edit: the space list is ordered by updatedAt and
 		// shouldn't reshuffle after every lesson.
@@ -351,7 +342,7 @@ impl SpaceStore {
 		let before = record["files"].as_arr().cloned().unwrap_or_default();
 		let work = work_after_files(record.get("lastWork"), &before, &files, &time::iso_now());
 		let obj = record.as_obj_mut().ok_or_else(|| format!("Space not found: {id}"))?;
-		set_work(obj, work);
+		obj.set_or_remove("lastWork", work);
 		obj.insert("files", Json::Arr(files));
 		if !removed.is_empty() {
 			let mut all = obj.get("removedFiles").and_then(Json::as_arr).cloned().unwrap_or_default();
@@ -413,9 +404,9 @@ impl SpaceStore {
 			None => (init.clone(), ids::uuid_hex("ddl", 12)),
 		};
 		let deadline = new_deadline(&file_ids_of(&record), &init, deadline_id)?;
-		let work = work_after_deadline(record.get("lastWork"), deadline["id"].as_str().unwrap_or(""));
+		let work = work_after_deadline(record.get("lastWork"), deadline["id"].str_or_empty());
 		if let Some(obj) = record.as_obj_mut() {
-			set_work(obj, work);
+			obj.set_or_remove("lastWork", work);
 			if waiting.is_some() {
 				obj.remove("waitingDeadline");
 			}
@@ -432,13 +423,15 @@ impl SpaceStore {
 	pub fn update_deadline(&self, id: &str, deadline_id: &str, patch: &Json) -> Result<Json, SpaceError> {
 		let _guard = self.locks.lock(LockKey::Space(id));
 		let mut record = self.require_space(id)?;
-		let deadlines = record["deadlines"].as_arr().cloned().unwrap_or_default();
+		let mut deadlines = record["deadlines"].as_arr().cloned().unwrap_or_default();
 		let Some(prev) = deadlines.iter().find(|d| d["id"].as_str() == Some(deadline_id)) else {
 			return Err(SpaceDeadlineError { code: "deadline_not_found", message: format!("No deadline \"{deadline_id}\" in this space") }.into());
 		};
 		let next = changed_deadline(&file_ids_of(&record), prev, patch, &time::iso_now())?;
-		let replaced = deadlines.iter().map(|d| if d["id"].as_str() == Some(deadline_id) { next.clone() } else { d.clone() }).collect();
-		self.save_deadlines(&mut record, replaced)?;
+		for d in deadlines.iter_mut().filter(|d| d["id"].as_str() == Some(deadline_id)) {
+			*d = next.clone();
+		}
+		self.save_deadlines(&mut record, deadlines)?;
 		Ok(next)
 	}
 
@@ -446,12 +439,13 @@ impl SpaceStore {
 	pub fn remove_deadline(&self, id: &str, deadline_id: &str) -> Result<bool, String> {
 		let _guard = self.locks.lock(LockKey::Space(id));
 		let mut record = self.require_space(id)?;
-		let deadlines = record["deadlines"].as_arr().cloned().unwrap_or_default();
-		if !deadlines.iter().any(|d| d["id"].as_str() == Some(deadline_id)) {
+		let mut deadlines = record["deadlines"].as_arr().cloned().unwrap_or_default();
+		let before = deadlines.len();
+		deadlines.retain(|d| d["id"].as_str() != Some(deadline_id));
+		if deadlines.len() == before {
 			return Ok(false);
 		}
-		let kept = deadlines.into_iter().filter(|d| d["id"].as_str() != Some(deadline_id)).collect();
-		self.save_deadlines(&mut record, kept)?;
+		self.save_deadlines(&mut record, deadlines)?;
 		Ok(true)
 	}
 

@@ -3,9 +3,8 @@
 //! the model retries; every fact in exactly one topic is repaired after (core topics); the
 //! scheduling lives in the graph service.
 
-use std::sync::LazyLock;
 
-use gs_base::re::Re;
+use gs_base::re::collapse_spaces;
 use gs_base::{ids, text};
 use gs_core::contracts::graph::TOPIC_MATERIALS;
 use gs_core::graph::topics::{TopicDraft, repair_topics, topic_name_problem};
@@ -63,11 +62,10 @@ pub struct TopicGrouperInput {
 	pub abort: Option<Abort>,
 }
 
-static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
 
 /// The facts one per line, then the current topics as JSON.
 pub fn topic_grouper_prompt(space_name: &str, facts: &[Json], current: &[Json]) -> String {
-	let lines: Vec<String> = facts.iter().map(|f| format!("{} | {} | {}", f["id"].str_or_empty(), f["name"].str_or_empty(), SPACES.replace(f["statement"].str_or_empty(), " "))).collect();
+	let lines: Vec<String> = facts.iter().map(|f| format!("{} | {} | {}", f["id"].str_or_empty(), f["name"].str_or_empty(), collapse_spaces(f["statement"].str_or_empty()))).collect();
 	let current = if current.is_empty() {
 		"(none yet \u{2014} this is the first grouping)".to_owned()
 	} else {
@@ -79,7 +77,7 @@ pub fn topic_grouper_prompt(space_name: &str, facts: &[Json], current: &[Json]) 
 
 /// Names that are empty or longer than 4 words, and an empty grouping, go back to the model.
 fn grouping_problem(value: &Json) -> Option<String> {
-	let topics = value["topics"].as_arr().map_or(&[][..], Vec::as_slice);
+	let topics = value["topics"].items();
 	let mut problems: Vec<String> = topics.iter().filter_map(|t| topic_name_problem(t["name"].str_or_empty())).collect();
 	if topics.is_empty() {
 		problems.push("Submit at least one topic.".to_owned());
@@ -96,7 +94,7 @@ fn drafts(submitted: &Json) -> Vec<TopicDraft> {
 		.map(|t| TopicDraft {
 			id: t["id"].as_str().map(str::to_owned),
 			name: t["name"].str_or_empty().to_owned(),
-			members: t["members"].as_arr().into_iter().flatten().map(|m| m.str_or_empty().to_owned()).collect(),
+			members: t["members"].items().iter().map(|m| m.str_or_empty().to_owned()).collect(),
 			material: t["material"].as_str().and_then(|m| {
 				let m = text::trim(m).to_lowercase();
 				TOPIC_MATERIALS.iter().find(|known| **known == m).map(|known| (*known).to_owned())

@@ -84,17 +84,15 @@ export interface QuestionDockProps {
 
 export function QuestionDock(props: QuestionDockProps) {
 	const { toolName, input } = props;
-	// The probe-phase names canonicalize onto their teach twins for parsing:
-	// the probe quiz is quiz-shaped, the probe recall is explain-shaped.
-	const canonical = toolName === "probe" ? "quiz" : toolName === "recall" ? "explain" : toolName;
 	// Parse, don't cast: the model authored this input. Anything that slips
 	// past the bridge's validation renders the quiet fallback, never a crash.
+	const kind = toolQuestionKind(toolName);
 	const parsed =
-		canonical === "quiz"
+		kind === "quiz"
 			? parseQuizInput(input)
-			: canonical === "explain"
+			: kind === "explain"
 				? parseExplainInput(input)
-				: canonical === "write_code"
+				: kind === "code"
 					? parseWriteCodeInput(input)
 					: parseAskInput(input);
 	if (!parsed) {
@@ -104,7 +102,7 @@ export function QuestionDock(props: QuestionDockProps) {
 			</div>
 		);
 	}
-	if (canonical === "write_code") return <CodeQuestion {...props} input={parsed as WriteCodeInput} />;
+	if (kind === "code") return <CodeQuestion {...props} input={parsed as WriteCodeInput} />;
 	return <QuestionDockForm {...props} input={parsed as QuizDisplayInput | AskToolInput | ExplainDisplayInput} />;
 }
 
@@ -149,16 +147,8 @@ function QuestionDockForm({
 		const askInput = kind === "ask" ? (input as AskToolInput) : null;
 		const explainInput = kind === "explain" ? (input as ExplainDisplayInput) : null;
 		const multi = input instanceof Object && "multiSelect" in input ? input.multiSelect === true : false;
-		const mode: QuestionMode =
-			kind === "quiz"
-				? multi
-					? "multi-select"
-					: "single-select"
-				: askInput?.options?.length
-					? multi
-						? "multi-select"
-						: "single-select"
-					: "text";
+		const hasChoices = kind === "quiz" || Boolean(askInput?.options?.length);
+		const mode: QuestionMode = !hasChoices ? "text" : multi ? "multi-select" : "single-select";
 		const options = normalizeOptions((quizInput?.options ?? askInput?.options ?? []) as { label: string; value?: string }[]);
 		const ordered = kind === "quiz" && options.length > 0 ? shuffleOptions(options, seededRandom(toolCallId)) : options;
 		const q: QuestionData = {

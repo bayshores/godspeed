@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { SpaceFile, FolderStatus } from "../../src/shared/core/contracts.ts";
-import { folderName, folderSource, isGoogleDriveFolder } from "../../src/shared/core/linked-folder.ts";
+import { folderName, isGoogleDriveFolder } from "../../src/shared/core/linked-folder.ts";
 import { folderStatusLine, newSince, skippedLines } from "../../src/frontend/components/files/folder-status-model.ts";
 
 const DRIVE = "/Users/me/Library/CloudStorage/GoogleDrive-me@gmail.com/My Drive/CSE 21";
@@ -19,7 +19,6 @@ describe("linked folder names", () => {
 		assert.equal(isGoogleDriveFolder(LOCAL), false);
 		assert.equal(isGoogleDriveFolder("/Users/me/Library/CloudStorage/Dropbox/CSE 21"), false);
 		assert.equal(folderName(LOCAL), "CSE 21");
-		assert.deepEqual([folderSource(DRIVE), folderSource(LOCAL)], ["Google Drive", "CSE 21"]);
 	});
 });
 

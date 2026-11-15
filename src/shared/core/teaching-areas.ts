@@ -4,6 +4,7 @@
  * cleanup and the "learner's rules" section added to every agent's prompt.
  * Browser-safe: pure data and string building.
  */
+import { isRecord } from "./is-record.ts";
 
 export type AreaId = "voice" | "teaching" | "questions" | "facts" | "demos" | "files";
 
@@ -106,9 +107,9 @@ export type AreaRules = Partial<Record<AreaId, string[]>>;
 /** Area rules made safe to store: known areas only, empty lists dropped. */
 export function sanitizeAreaRules(raw: unknown): AreaRules {
 	const out: AreaRules = {};
-	if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return out;
+	if (!isRecord(raw)) return out;
 	for (const area of TEACHING_AREAS) {
-		const rules = sanitizeRules((raw as Record<string, unknown>)[area.id]);
+		const rules = sanitizeRules(raw[area.id]);
 		if (rules.length) out[area.id] = rules;
 	}
 	return out;

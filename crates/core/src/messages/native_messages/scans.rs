@@ -7,6 +7,7 @@ use gs_json::Json;
 
 use super::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL};
 use crate::messages::lesson_markers::is_ui_only;
+use crate::messages::tool_calls;
 use crate::messages::pending::is_question_tool;
 use crate::messages::phases::refused_probe;
 
@@ -26,12 +27,7 @@ pub struct ActiveProblem {
 }
 
 fn role(m: &Json) -> &str {
-	m["role"].as_str().unwrap_or("")
-}
-
-/// The tool calls in an assistant message, in order.
-pub(super) fn tool_calls(m: &Json) -> impl DoubleEndedIterator<Item = &Json> {
-	m["content"].as_arr().into_iter().flatten().filter(|b| b["type"].as_str() == Some("toolCall"))
+	m["role"].str_or_empty()
 }
 
 /// A user message asked while a question or problem waits.
@@ -93,7 +89,7 @@ pub fn active_problem_of(messages: &[Json]) -> Option<ActiveProblem> {
 					match call["name"].as_str() {
 						Some(PRACTICE_CONCLUDE_TOOL) if is_clean(&clean, call) => return None,
 						Some(PRACTICE_PROBLEM_TOOL) if is_clean(&clean, call) => {
-							return Some(ActiveProblem { tool_call_id: call["id"].as_str().unwrap_or_default().to_owned(), input: call["arguments"].clone() });
+							return Some(ActiveProblem { tool_call_id: call["id"].str_or_empty().to_owned(), input: call["arguments"].clone() });
 						}
 						_ => {}
 					}
@@ -147,7 +143,7 @@ pub fn dangling_question_of(messages: &[Json]) -> Option<DanglingQuestion> {
 		let answered = result_ids_from(&messages[mi + 1..]);
 		let open = tool_calls(m).find(|b| b["name"].as_str().is_some_and(is_question_tool) && !b["id"].as_str().is_some_and(|id| answered.contains(id)));
 		if let Some(call) = open {
-			return Some(DanglingQuestion { tool_call_id: call["id"].as_str().unwrap_or_default().to_owned(), tool: call["name"].as_str().unwrap_or_default().to_owned(), input: call["arguments"].clone() });
+			return Some(DanglingQuestion { tool_call_id: call["id"].str_or_empty().to_owned(), tool: call["name"].str_or_empty().to_owned(), input: call["arguments"].clone() });
 		}
 		if !replies_to_side_question(messages, mi) {
 			return None;

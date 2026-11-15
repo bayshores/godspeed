@@ -14,7 +14,7 @@ pub fn sheet_cards(deadlines: &[Json], sheet_of: impl Fn(&str) -> Option<ParsedS
 		.iter()
 		.filter(|d| d["kind"].as_str() != Some("interview"))
 		.map(|d| {
-			let id = d["id"].as_str().unwrap_or("");
+			let id = d["id"].str_or_empty();
 			let sheet = sheet_of(id);
 			let version = match &sheet {
 				Some(ParsedSheet::Sheet(s)) => current_version(s).cloned(),
@@ -31,7 +31,7 @@ pub fn sheet_cards(deadlines: &[Json], sheet_of: impl Fn(&str) -> Option<ParsedS
 			} else {
 				"none"
 			};
-			let past = d["done"].truthy() || cmp16(today, d["date"].as_str().unwrap_or("")).is_gt();
+			let past = d["done"].truthy() || cmp16(today, d["date"].str_or_empty()).is_gt();
 			let mut o = Obj::new();
 			o.insert("deadlineId", d["id"].clone());
 			o.insert("name", d["name"].clone());
@@ -46,7 +46,7 @@ pub fn sheet_cards(deadlines: &[Json], sheet_of: impl Fn(&str) -> Option<ParsedS
 			(Json::Obj(o), past)
 		})
 		.collect();
-	let when = |c: &Json| format!("{} {}", c["date"].as_str().unwrap_or(""), c["time"].as_str().unwrap_or("23:59"));
+	let when = |c: &Json| format!("{} {}", c["date"].str_or_empty(), c["time"].as_str().unwrap_or("23:59"));
 	let mut upcoming: Vec<Json> = cards.iter().filter(|c| !c.1).map(|c| c.0.clone()).collect();
 	upcoming.sort_by(|a, b| locale::compare(&when(a), &when(b)));
 	let mut past: Vec<Json> = cards.into_iter().filter(|c| c.1).map(|c| c.0).collect();

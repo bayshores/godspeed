@@ -27,6 +27,7 @@
 
 import { isVersion } from "./changelog.ts";
 import { isSpaceId } from "./contracts/space.ts";
+import { isRecord } from "./is-record.ts";
 import { oneLine, sanitizeAreaRules, type AreaRules } from "./teaching-areas.ts";
 
 /** The schema version this code understands. Bump ONLY when stored records need
@@ -197,7 +198,7 @@ function sanitizeGeneral(raw: Record<string, unknown>): GeneralSettings {
 }
 
 function sanitizeBooleanMap(raw: unknown): Record<string, boolean> | undefined {
-	if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+	if (!isRecord(raw)) return undefined;
 	const out: Record<string, boolean> = {};
 	for (const [key, value] of Object.entries(raw)) {
 		if (typeof value === "boolean") out[key] = value;
@@ -214,8 +215,8 @@ function sanitizeAgent(raw: Record<string, unknown>): AgentSettings {
 	// Prober graph tools: its own agent-section subsection —
 	// lenient read side (a bad shape drops the key and the default ON
 	// resumes; the write side's parser is strict).
-	if (raw.graphTools !== null && typeof raw.graphTools === "object" && !Array.isArray(raw.graphTools)) {
-		const enabled = (raw.graphTools as Record<string, unknown>).enabled;
+	if (isRecord(raw.graphTools)) {
+		const enabled = raw.graphTools.enabled;
 		if (enabled === undefined) out.graphTools = {};
 		else if (typeof enabled === "boolean") out.graphTools = { enabled };
 	}
@@ -256,22 +257,22 @@ function sanitizeGraph(raw: Record<string, unknown>): GraphSettings {
  * app). Never throws. Non-objects → null.
  */
 export function sanitizeUserSettings(raw: unknown): UserSettings | null {
-	if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
-	const r = raw as Record<string, unknown>;
+	if (!isRecord(raw)) return null;
+	const r = raw;
 	const out: UserSettings = {
 		version: typeof r.version === "number" && Number.isInteger(r.version) && r.version >= 1 ? r.version : CURRENT_SETTINGS_VERSION,
 	};
-	if (r.general !== null && typeof r.general === "object" && !Array.isArray(r.general)) {
-		out.general = sanitizeGeneral(r.general as Record<string, unknown>);
+	if (isRecord(r.general)) {
+		out.general = sanitizeGeneral(r.general);
 	}
-	if (r.agent !== null && typeof r.agent === "object" && !Array.isArray(r.agent)) {
-		out.agent = sanitizeAgent(r.agent as Record<string, unknown>);
+	if (isRecord(r.agent)) {
+		out.agent = sanitizeAgent(r.agent);
 	}
-	if (r.appearance !== null && typeof r.appearance === "object" && !Array.isArray(r.appearance)) {
-		out.appearance = sanitizeAppearance(r.appearance as Record<string, unknown>);
+	if (isRecord(r.appearance)) {
+		out.appearance = sanitizeAppearance(r.appearance);
 	}
-	if (r.graph !== null && typeof r.graph === "object" && !Array.isArray(r.graph)) {
-		out.graph = sanitizeGraph(r.graph as Record<string, unknown>);
+	if (isRecord(r.graph)) {
+		out.graph = sanitizeGraph(r.graph);
 	}
 	// Unknown top-level keys ride along untouched (forward-compat). Removed
 	// sections (`chat`, `models`, `compaction`) are hidden from the window,

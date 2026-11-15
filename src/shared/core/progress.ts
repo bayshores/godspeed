@@ -16,10 +16,7 @@
  */
 import type { DeadlineKind, LessonKind, TopicMaterial } from "./contracts.ts";
 import { type ContinueStudy } from "./continue-study.ts";
-import type { LhMessage } from "./native-messages.ts";
-import { isGradedTool, isQuestionTool } from "./pending.ts";
-import { confidenceLevel, normalizeQuizType, type ConfidenceLevel, type QuestionAnswerData } from "./question-core.ts";
-import { practiceOutcomes, type ConcludeOutcome } from "./practice-outcomes.ts";
+import { type ConfidenceLevel, type QuestionAnswerData } from "./question-core.ts";
 
 // ─── the color ramp + statuses ──────────────────────────────────────────────
 
@@ -57,31 +54,6 @@ export type AnswerOutcome = "right" | "hinted" | "wrong" | "dontKnow";
 /** How much a problem solved with hints counts toward a rate: one alone reads shaky, not strong. */
 const HINTED_WEIGHT = 0.6;
 
-/** One graded answer from a lesson: a quiz or probe answer, or a practice problem's outcome. */
-interface AnsweredQuestion {
-	chatId: string;
-	/** The assistant message that asked (holds the quiz tool call). */
-	messageId: string;
-	/** Earlier assistant messages of the same turn, nearest first — the
-	 *  fallback anchors when the asking message itself made no facts (the
-	 *  teaching prose came a step before the quiz call). */
-	contextMessageIds: string[];
-	toolCallId: string;
-	/** "quiz" (teach), "probe" (probe phase) or "problem" (practice). */
-	tool: string;
-	/** The facts it names itself (a practice problem's targets). */
-	factIds?: string[];
-	/** The plan node it is about (teach quizzes, study problems). */
-	nodeId?: string;
-	question: string;
-	outcome: AnswerOutcome;
-	/** Stored percentage (0–100), when the learner gave one. */
-	confidence?: number;
-	/** confidence as the 1–5 meter level. */
-	level?: ConfidenceLevel;
-	answeredAt: string;
-}
-
 /** A compact reference to one answer (what the UI's answer blocks need). */
 export interface AnswerRef {
 	chatId: string;
@@ -102,100 +74,6 @@ export function answerOutcome(ad: Pick<QuestionAnswerData, "kind" | "dontKnow" |
 
 export function isAnswerData(v: unknown): v is QuestionAnswerData {
 	return typeof v === "object" && v !== null && typeof (v as { kind?: unknown }).kind === "string";
-}
-
-/** A practice outcome as an answer: solved is right, solved with hints is
- *  "hinted", giving up or moving on is wrong. */
-const PRACTICE_OUTCOME: Partial<Record<ConcludeOutcome, AnswerOutcome>> = { solved: "right", solvedWithHints: "hinted", movedOn: "wrong", surrendered: "wrong" };
-
-/** Every graded quiz/probe answer in one lesson (predictions aside), in transcript order, then its practice problems' outcomes. */
-export function collectAnswers(chatId: string, messages: readonly LhMessage[]): AnsweredQuestion[] {
-	const calls = new Map<string, { messageId: string; context: string[]; tool: string; args: Record<string, unknown> }>();
-	const out: AnsweredQuestion[] = [];
-	// Assistant messages of the current turn, newest last (reset at a user
-	// message or a question's answer — a new turn starts there).
-	let turn: string[] = [];
-	for (const m of messages) {
-		const role = (m as { role?: string }).role;
-		if (role === "user") {
-			turn = [];
-			continue;
-		}
-		if (role === "assistant") {
-			const content = (m as { content?: unknown }).content;
-			if (Array.isArray(content)) {
-				for (const block of content as Array<{ type?: string; id?: string; name?: string; arguments?: unknown }>) {
-					if (block.type !== "toolCall" || !block.id || !block.name || !isGradedTool(block.name)) continue;
-					calls.set(block.id, {
-						messageId: m.id,
-						context: [...turn].reverse(),
-						tool: block.name,
-						args: (block.arguments && typeof block.arguments === "object" ? block.arguments : {}) as Record<string, unknown>,
-					});
-				}
-			}
-			turn.push(m.id);
-			continue;
-		}
-		if (role !== "toolResult") continue;
-		const result = m as { toolCallId?: string; toolName?: string; details?: unknown };
-		// Any question's answer is the learner speaking: a new turn starts.
-		if (isQuestionTool(result.toolName ?? "")) turn = [];
-		const call = result.toolCallId ? calls.get(result.toolCallId) : undefined;
-		if (!call) continue;
-		turn = [];
-		if (!isAnswerData(result.details)) continue;
-		const ad = result.details;
-		const outcome = answerOutcome(ad);
-		if (!outcome) continue;
-		// A prediction is a guess at what hasn't been taught yet: no evidence either way.
-		if (normalizeQuizType(ad.questionType ?? call.args.type) === "predict") continue;
-		const nodeId = typeof call.args.nodeId === "string" ? call.args.nodeId : undefined;
-		const confidence = typeof ad.confidence === "number" && outcome !== "dontKnow" ? ad.confidence : undefined;
-		out.push({
-			chatId,
-			messageId: call.messageId,
-			contextMessageIds: call.context,
-			toolCallId: result.toolCallId!,
-			tool: ad.tool ?? call.tool,
-			...(nodeId ? { nodeId } : {}),
-			question: ad.questionText ?? (typeof call.args.question === "string" ? call.args.question : ""),
-			outcome,
-			...(confidence !== undefined ? { confidence, level: confidenceLevel(confidence) } : {}),
-			answeredAt: ad.answeredAt ?? "",
-		});
-	}
-	for (const p of practiceOutcomes(messages)) {
-		const outcome = PRACTICE_OUTCOME[p.outcome];
-		if (!outcome) continue;
-		out.push({
-			chatId,
-			messageId: p.messageId,
-			contextMessageIds: [],
-			toolCallId: p.problemCallId,
-			tool: "problem",
-			...(p.targets.length > 0 ? { factIds: p.targets } : {}),
-			...(p.nodeId ? { nodeId: p.nodeId } : {}),
-			question: p.statement,
-			outcome,
-			answeredAt: p.at,
-		});
-	}
-	return out;
-}
-
-const pointKey = (chatId: string, messageId: string) => `${chatId}\u0000${messageId}`;
-
-/** The facts an answer counts for: the ones it names itself; else those
- *  made from (or tested at) the message that asked it; when that message
- *  has none, the nearest earlier teacher message of the same turn that does. */
-export function factsForAnswer(answer: Pick<AnsweredQuestion, "chatId" | "messageId" | "contextMessageIds" | "factIds">, index: ReadonlyMap<string, string[]>): string[] {
-	if (answer.factIds?.length) return answer.factIds;
-	for (const messageId of [answer.messageId, ...answer.contextMessageIds]) {
-		const hit = index.get(pointKey(answer.chatId, messageId));
-		if (hit && hit.length > 0) return hit;
-	}
-	return [];
 }
 
 // ─── tallies ────────────────────────────────────────────────────────────────

@@ -115,7 +115,7 @@ fn build_tree(root: &Path, nodes: &[Json]) {
 	let mut locked = Vec::new();
 	for n in nodes {
 		let names: Vec<String> = match n["count"].as_i64() {
-			Some(count) => (0..count).map(|i| format!("{}{i:03}{}", s(&n["p"]), n["ext"].as_str().unwrap_or(""))).collect(),
+			Some(count) => (0..count).map(|i| format!("{}{i:03}{}", s(&n["p"]), n["ext"].str_or_empty())).collect(),
 			None => vec![s(&n["p"]).to_owned()],
 		};
 		for name in names {
@@ -126,7 +126,7 @@ fn build_tree(root: &Path, nodes: &[Json]) {
 			} else if let Some(link) = n["link"].as_str() {
 				symlink(link, &target).unwrap();
 			} else {
-				write(&target, unhex(n["hex"].as_str().unwrap_or("")));
+				write(&target, unhex(n["hex"].str_or_empty()));
 			}
 		}
 		if let Some(mode) = n["mode"].as_i64() {

@@ -189,7 +189,7 @@ pub fn classify(body: &Json, headers: &HeaderMap) -> Route {
 		return Route::Legacy;
 	}
 	let id = echoable_id(body);
-	let method = body["method"].as_str().unwrap_or_default();
+	let method = body["method"].str_or_empty();
 	if body.as_obj().is_some() && is_request(body) {
 		if method == "initialize" && !valid_modern_claim(body) {
 			if let Some(h) = version_header.filter(|_| header_modern) {
@@ -280,7 +280,7 @@ pub fn check_modern(message: &Json, revision: Option<&str>, headers: &HeaderMap)
 	if !is_request(message) {
 		return None;
 	}
-	let method = message["method"].as_str().unwrap_or_default();
+	let method = message["method"].str_or_empty();
 	if header(headers, "mcp-protocol-version").is_none() {
 		let body = format!("the body envelope names protocol version {MODERN} but the required MCP-Protocol-Version header is absent");
 		return Some(mismatch("(missing)", body, id));

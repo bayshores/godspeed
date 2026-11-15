@@ -17,7 +17,6 @@ use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::{clock, ids, text, time};
 use gs_core::messages::compaction_marks::active_compaction_of;
-use gs_core::messages::input_events::messages_of;
 use gs_core::messages::native_messages::to_llm_messages;
 use gs_core::session::compaction::{
 	KEEP_RECENT_TOKENS, build_compaction_prompt, compaction_cut_index, compaction_span, estimate_context_tokens, estimate_tokens, local_summary, new_compaction_marker, plan_tree_to_text,
@@ -73,7 +72,7 @@ fn shorten(app: &App, deps: &CompactionDeps, chat_id: &str) -> Result<(), String
 		return Ok(());
 	}
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(()) };
-	let messages = messages_of(&record);
+	let messages = record["messages"].items();
 	let tokens_before = projected_context_tokens(messages, deps.system_prompt_tokens);
 	if tokens_before <= deps.threshold_tokens {
 		return Ok(());
@@ -94,7 +93,7 @@ fn shorten(app: &App, deps: &CompactionDeps, chat_id: &str) -> Result<(), String
 		return Ok(());
 	}
 	let start = prev_kept.filter(|&kept| kept > 0);
-	let prior_summary = start.and(previous).map(|p| p["content"].as_str().unwrap_or_default());
+	let prior_summary = start.and(previous).map(|p| p["content"].str_or_empty());
 	let tree = record.get("tree").filter(|t| !t.is_null());
 	let summary = local_summary(&messages[start.unwrap_or(0)..cut], prior_summary, plan_tree_to_text(tree, messages).as_deref());
 	let details = json!({ "firstKeptMessageId": messages[cut]["id"], "tokensBefore": tokens_before, "at": time::iso_now(), "local": true });
@@ -167,7 +166,7 @@ impl Drop for Refining<'_> {
 /// record as it is when the summary fails or comes back empty, or when a newer marker took over.
 pub async fn refine(app: &Arc<App>, deps: &CompactionDeps, chat_id: &str) {
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return };
-	let messages = messages_of(&record);
+	let messages = record["messages"].items();
 	let Some(marker) = active_compaction_of(messages).filter(|m| m["details"]["local"].truthy()).cloned() else { return };
 	let Some(covered) = compaction_span(messages, &marker) else { return };
 	let span_text = serialize_for_summary(covered.span);
@@ -198,7 +197,7 @@ async fn summarize_and_replace(app: &Arc<App>, deps: &CompactionDeps, chat_id: &
 		let _guard = app.locks.lock(LockKey::Chat(chat_id));
 		// Turns and other writers save while the summary is written.
 		let Some(fresh) = app.stores.chats.get_chat(chat_id) else { return Ok(()) };
-		let messages = messages_of(&fresh);
+		let messages = fresh["messages"].items();
 		if active_compaction_of(messages).map(|m| &m["id"]) != Some(&marker["id"]) {
 			return Ok(());
 		}
@@ -280,15 +279,15 @@ mod tests {
 	}
 
 	fn markers(app: &App, chat_id: &str) -> Vec<Json> {
-		messages_of(&app.stores.chats.get_chat(chat_id).unwrap()).iter().filter(|m| m["customType"].as_str() == Some("compaction")).cloned().collect()
+		app.stores.chats.get_chat(chat_id).unwrap()["messages"].items().iter().filter(|m| m["customType"].as_str() == Some("compaction")).cloned().collect()
 	}
 
 	fn active(app: &App, chat_id: &str) -> Option<Json> {
-		active_compaction_of(messages_of(&app.stores.chats.get_chat(chat_id).unwrap())).cloned()
+		active_compaction_of(app.stores.chats.get_chat(chat_id).unwrap()["messages"].items()).cloned()
 	}
 
 	fn add(app: &App, chat_id: &str, more: &[Json]) {
-		let mut messages = messages_of(&app.stores.chats.get_chat(chat_id).unwrap()).to_vec();
+		let mut messages = app.stores.chats.get_chat(chat_id).unwrap()["messages"].items().to_vec();
 		messages.extend(more.iter().cloned());
 		app.stores.chats.save_messages(chat_id, &messages).unwrap();
 	}
@@ -304,7 +303,7 @@ mod tests {
 		assert_eq!(marker["details"]["local"], Json::Bool(true));
 		assert!(marker["content"].as_str().unwrap().contains("godspeed shortened the earlier part"));
 		assert!(marker["details"]["tokensBefore"].as_f64().unwrap() > 40_000.0);
-		assert!(projected_context_tokens(messages_of(&app.stores.chats.get_chat(&chat_id).unwrap()), 100.0) < 40_000.0);
+		assert!(projected_context_tokens(app.stores.chats.get_chat(&chat_id).unwrap()["messages"].items(), 100.0) < 40_000.0);
 		let changed: Vec<Json> = std::iter::from_fn(|| events.try_recv().ok()).filter(|e| e.kind == EventKind::RecordChanged).map(|e| e.payload).collect();
 		assert_eq!(changed, [json!({ "chatId": chat_id })]);
 	}

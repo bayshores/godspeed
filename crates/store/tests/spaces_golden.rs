@@ -144,14 +144,14 @@ fn the_scenario_matches_node() {
 		// Read before `$now` resolves, so that time falls inside this step's window too.
 		let first = clock::now_ms();
 		let step = resolve(raw, &aliases);
-		let id = step["id"].as_str().unwrap_or("");
+		let id = step["id"].str_or_empty();
 		let result = match s(&step["op"]) {
 			"list" => outcome(Ok(Json::Arr(store.list_spaces()))),
 			"records" => outcome(Ok(Json::Arr(store.list_space_records()))),
 			"create" => other(store.create_space(&step["init"])),
 			"get" => outcome(Ok(store.get_space(id).unwrap_or(Json::Null))),
 			"update" => other(store.update_space(id, &step["patch"])),
-			"saveFiles" => other(store.save_files(id, step["files"].as_arr().unwrap().clone(), step["removed"].as_arr().map_or(&[][..], Vec::as_slice))),
+			"saveFiles" => other(store.save_files(id, step["files"].as_arr().unwrap().clone(), step["removed"].items())),
 			"add" => outcome(store.add_deadline(id, &step["init"])),
 			"updateDeadline" => outcome(store.update_deadline(id, s(&step["deadline"]), &step["patch"])),
 			"removeDeadline" => other(store.remove_deadline(id, s(&step["deadline"])).map(Json::Bool)),

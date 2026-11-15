@@ -21,7 +21,7 @@ pub struct UnlinkedDeadline {
 }
 
 fn text_of(value: &Json) -> String {
-	value.as_str().unwrap_or("").to_owned()
+	value.str_or_empty().to_owned()
 }
 
 /// Open deadlines (not done, not past) with no files linked, in spaces that aren't closed and
@@ -33,11 +33,11 @@ pub fn unlinked_deadlines(spaces: &[Json], today: &str, asked: &HashSet<String>)
 		if c["closed"].truthy() || !has_ready_study {
 			continue;
 		}
-		for d in c["deadlines"].as_arr().map_or(&[][..], Vec::as_slice) {
+		for d in c["deadlines"].items() {
 			let open = !d["done"].truthy()
-				&& cmp16(d["date"].as_str().unwrap_or(""), today).is_ge()
+				&& cmp16(d["date"].str_or_empty(), today).is_ge()
 				&& d["fileIds"].as_arr().is_some_and(Vec::is_empty)
-				&& !asked.contains(d["id"].as_str().unwrap_or(""));
+				&& !asked.contains(d["id"].str_or_empty());
 			if open {
 				out.push(UnlinkedDeadline {
 					id: text_of(&d["id"]),
@@ -66,7 +66,7 @@ pub fn talk_quiet(talk: Option<&Json>, now: i64) -> bool {
 /// The deadlines godspeed already asked about in this chat.
 pub fn asked_deadline_ids(messages: &[Json]) -> HashSet<String> {
 	let requests = messages.iter().filter(|m| m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("app-request"));
-	requests.flat_map(|m| m["details"]["deadlines"].as_arr().map_or(&[][..], Vec::as_slice)).map(|d| text_of(&d["id"])).collect()
+	requests.flat_map(|m| m["details"]["deadlines"].items()).map(|d| text_of(&d["id"])).collect()
 }
 
 /// The request for the agent: work out what each deadline covers from the space's files.

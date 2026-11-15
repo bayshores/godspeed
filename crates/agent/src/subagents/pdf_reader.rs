@@ -17,12 +17,14 @@ use gs_base::ids;
 use gs_base::num::to_fixed;
 use gs_base::re::Re;
 use gs_base::text::{len16, slice16, trim};
+use gs_core::session::schema::{boolean, no_arguments, object, string};
 use gs_core::spaces::kept_pages::with_kept_pages;
 use gs_engine::turn::messages::tool_calls;
 use gs_json::js_text::js_string;
 use gs_json::{Json, js_number, json};
 use gs_pdf::{Pdf, ops};
 
+use super::declare;
 use super::pi_run::{JobAgentOptions, RunError};
 use super::stream_once::{message_text, png_message, stream_once, tool_text, user_text};
 use crate::fs_tools::fs_shared::resolve_source_path;
@@ -88,48 +90,42 @@ const UNREAD_FINISH_MESSAGE: &str = "You finished without consulting any page of
 /// The wire declarations: this loop runs the tools itself, so they carry no execute.
 fn pdf_tools(keeping: bool) -> Vec<Json> {
 	let mut tools = vec![
-		json!({
-			"name": "pdf_info",
-			"description": "Metadata + per-page triage signals for the PDF (page count, text length, image count, math density). ALWAYS call this first.",
-			"parameters": { "type": "object", "properties": {} },
-		}),
-		json!({
-			"name": "pdf_extract",
-			"description": "Extract text from pages (spec: 'all', '1-5', '1,3,7', '3'). Use pdf_info first; narrow the spec for big documents.",
-			"parameters": { "type": "object", "required": ["pages"], "properties": { "pages": { "type": "string", "description": "Page spec, e.g. 'all', '1-5', '1,3,7'" } } },
-		}),
-		json!({
-			"name": "pdf_render",
-			"description": "Render pages to images and show them to you for visual reading (equations, diagrams, layout). DPI: 100 text, 150 default, 200 dense small print. Max 6 pages per call.",
-			"parameters": {
-				"type": "object",
-				"required": ["pages"],
-				"properties": {
-					"pages": { "type": "string", "description": "Page spec, e.g. '1-3' or '2,5,8'" },
-					"dpi": { "type": "integer", "minimum": 72, "maximum": 300, "description": "Render DPI (100 text / 150 default / 200 dense)" },
-				},
-			},
-		}),
-		json!({
-			"name": "pdf_search",
-			"description": "Search the PDF's text by keyword or regex (case-insensitive); returns hits with context lines. Use for long documents before reading anything at length.",
-			"parameters": {
-				"type": "object",
-				"required": ["query"],
-				"properties": {
-					"query": { "type": "string", "description": "Keyword or regex" },
-					"context_lines": { "type": "integer", "minimum": 0, "maximum": 8, "description": "Context lines around each hit (default 3)" },
-					"literal": { "type": "boolean", "description": "true = treat the query literally (no regex; default false)" },
-				},
-			},
-		}),
+		declare("pdf_info", "Metadata + per-page triage signals for the PDF (page count, text length, image count, math density). ALWAYS call this first.", no_arguments()),
+		declare(
+			"pdf_extract",
+			"Extract text from pages (spec: 'all', '1-5', '1,3,7', '3'). Use pdf_info first; narrow the spec for big documents.",
+			object(&["pages"], vec![("pages", string("Page spec, e.g. 'all', '1-5', '1,3,7'"))]),
+		),
+		declare(
+			"pdf_render",
+			"Render pages to images and show them to you for visual reading (equations, diagrams, layout). DPI: 100 text, 150 default, 200 dense small print. Max 6 pages per call.",
+			object(
+				&["pages"],
+				vec![
+					("pages", string("Page spec, e.g. '1-3' or '2,5,8'")),
+					("dpi", json!({ "type": "integer", "minimum": 72, "maximum": 300, "description": "Render DPI (100 text / 150 default / 200 dense)" })),
+				],
+			),
+		),
+		declare(
+			"pdf_search",
+			"Search the PDF's text by keyword or regex (case-insensitive); returns hits with context lines. Use for long documents before reading anything at length.",
+			object(
+				&["query"],
+				vec![
+					("query", string("Keyword or regex")),
+					("context_lines", json!({ "type": "integer", "minimum": 0, "maximum": 8, "description": "Context lines around each hit (default 3)" })),
+					("literal", boolean("true = treat the query literally (no regex; default false)")),
+				],
+			),
+		),
 	];
 	if keeping {
-		tools.push(json!({
-			"name": "save_page",
-			"description": "Keep a whole page you rendered in this job as Markdown with LaTeX. At most 3 pages a job, 6000 characters each.",
-			"parameters": { "type": "object", "required": ["page", "markdown"], "properties": { "page": { "type": "integer", "minimum": 1 }, "markdown": { "type": "string" } } },
-		}));
+		tools.push(declare(
+			"save_page",
+			"Keep a whole page you rendered in this job as Markdown with LaTeX. At most 3 pages a job, 6000 characters each.",
+			object(&["page", "markdown"], vec![("page", json!({ "type": "integer", "minimum": 1 })), ("markdown", json!({ "type": "string" }))]),
+		));
 	}
 	tools
 }
@@ -238,7 +234,7 @@ impl Reader<'_> {
 	/// Runs one tool call: its text, or the error it threw.
 	async fn call(&mut self, call: &Json, rendered: &mut Vec<(i64, Vec<u8>)>, opts: &JobAgentOptions) -> Result<String, String> {
 		let args = &call["arguments"];
-		let name = call["name"].as_str().unwrap_or_default();
+		let name = call["name"].str_or_empty();
 		match name {
 			"pdf_info" => {
 				opts.activity("pdf_info: triaging");
@@ -313,7 +309,7 @@ impl Reader<'_> {
 		if self.saved >= SAVE_CAP {
 			return Ok(format!("ERROR: this job already saved {SAVE_CAP} pages, the most one job may save."));
 		}
-		let markdown = trim(args["markdown"].as_str().unwrap_or_default());
+		let markdown = trim(args["markdown"].str_or_empty());
 		if let Some(refusal) = page_text_refusal(markdown) {
 			return Ok(format!("ERROR: {refusal}"));
 		}
@@ -478,8 +474,8 @@ fn arg_text(v: &Json, fallback: &str) -> String {
 
 /// A cheap check that the file can be read; real parsing happens in the tools.
 async fn probe_readable(pdf: &Pdf, path: &Path) -> Result<(), String> {
-	// Node awaited an import, then fs.stat on its thread pool: the check goes on in the
-	// background, after the turn that started it (see job_host's run_job).
+	// Yields first, so the check goes on in the background after the turn that started it (see
+	// job_host's run_job).
 	tokio::task::yield_now().await;
 	let meta = tokio::fs::metadata(path).await.map_err(|e| node_error_message(&e, "stat", path))?;
 	if !meta.is_file() {

@@ -826,6 +826,11 @@ mod tests {
 
 	#[cfg(unix)]
 	fn running(pid: &str) -> bool {
+		// Where nothing reaps orphans (a container with no init), a killed one stays a zombie that still takes a signal.
+		#[cfg(target_os = "linux")]
+		if std::fs::read_to_string(format!("/proc/{pid}/stat")).is_ok_and(|stat| stat.rsplit(')').next().is_some_and(|rest| rest.trim_start().starts_with('Z'))) {
+			return false;
+		}
 		std::process::Command::new("/bin/kill").args(["-0", pid]).stderr(std::process::Stdio::null()).status().is_ok_and(|status| status.success())
 	}
 

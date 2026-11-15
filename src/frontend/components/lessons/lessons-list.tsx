@@ -5,6 +5,7 @@ import { useSpaces } from "@/frontend/components/space-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { useRiseOnChange } from "@/frontend/components/motion";
+import { renameLesson } from "@/frontend/components/lesson/use-title-rename";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { DEFAULT_TEACHER_NAME, type ChatDeleteMode, type ChatListItem } from "@/shared/core";
 import { DeleteLessonDialog } from "./delete-lesson-dialog";
@@ -75,13 +76,7 @@ export function LessonsList() {
 		const t = next.trim();
 		if (t === "") return;
 		try {
-			const res = await fetch(`/api/chats/${id}`, {
-				method: "PUT",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ title: t }),
-			});
-			if (!res.ok) throw new Error(`rename failed: ${res.status}`);
-			window.dispatchEvent(new CustomEvent("lh:chat-renamed", { detail: { id, title: t } }));
+			await renameLesson(id, t);
 		} catch {
 			setRenameFailedId(id);
 		}

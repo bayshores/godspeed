@@ -7,12 +7,14 @@ use axum::http::{HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use bytes::{Bytes, BytesMut};
 use gs_json::Json;
+use gs_services::outcome::{Outcome, Stop};
 use http_body_util::BodyExt;
 
 /// The largest request body a route reads (210 MiB); a bigger one is cut here.
 const BODY_LIMIT: usize = 210 * 1024 * 1024;
 
-fn with_type(status: u16, body: impl Into<Body>, content_type: &'static str) -> Response {
+/// A response with the given content type.
+pub fn typed(status: u16, body: impl Into<Body>, content_type: &'static str) -> Response {
 	let mut res = Response::new(body.into());
 	*res.status_mut() = StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
 	res.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
@@ -21,7 +23,7 @@ fn with_type(status: u16, body: impl Into<Body>, content_type: &'static str) -> 
 
 /// `Response.json(body, { status })`.
 pub fn json(status: u16, body: &Json) -> Response {
-	with_type(status, gs_json::stringify(body), "application/json")
+	typed(status, gs_json::stringify(body), "application/json")
 }
 
 /// `Response.json` with `Cache-Control: no-store`.
@@ -31,7 +33,7 @@ pub fn json_no_store(status: u16, body: &Json) -> Response {
 
 /// `new Response(text, { status })`.
 pub fn text(status: u16, body: impl Into<String>) -> Response {
-	with_type(status, body.into(), "text/plain;charset=UTF-8")
+	typed(status, body.into(), "text/plain;charset=UTF-8")
 }
 
 /// `new Response(null, { status })`.
@@ -44,6 +46,30 @@ pub fn empty(status: u16) -> Response {
 pub fn no_store(mut res: Response) -> Response {
 	res.headers_mut().insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
 	res
+}
+
+/// A service outcome as a response: a refusal answers `{ error }` with its status, a throw is
+/// the route's empty 500.
+pub fn answer<T>(outcome: Outcome<T>, ok: impl FnOnce(T) -> Response) -> Result<Response, Unhandled> {
+	match outcome {
+		Ok(value) => Ok(ok(value)),
+		Err(Stop::Refuse(status, message)) => Ok(error(status, &message)),
+		Err(Stop::Throw(message)) => Err(Unhandled::from(message)),
+	}
+}
+
+/// `{ ok: true }`.
+pub fn ok() -> Response {
+	json(200, &gs_json::json!({ "ok": true }))
+}
+
+/// `{ error, code }` with `status`.
+pub fn coded(status: u16, message: &str, code: &str) -> Response {
+	json(status, &gs_json::json!({ "error": message, "code": code }))
+}
+
+pub fn no_such_space() -> Response {
+	error(404, "No such space")
 }
 
 /// The catch-all's 404 for a file or /api path nothing answers.

@@ -11,6 +11,7 @@ use gs_core::messages::native_messages::active_problem_of;
 use gs_base::clock;
 use gs_core::study::homework::conclude_marks_done;
 use gs_core::study::topic_end::long_problem_stop;
+use gs_engine::turn::messages::text_block;
 use gs_engine::turn::tool_execute::{conclude_result, invalid_input_result, problem_result};
 use gs_json::{Json, js_number, json, quote};
 use parking_lot::Mutex;
@@ -45,7 +46,7 @@ pub struct HomeworkToolContext {
 /// The number of the problem open in the stored record, as the pose wrote it.
 fn open_problem_of(ctx: &HomeworkToolContext) -> Option<String> {
 	let record = ctx.chat_store.get_chat(&ctx.chat_id)?;
-	let active = active_problem_of(record["messages"].as_arr().map_or(&[][..], Vec::as_slice))?;
+	let active = active_problem_of(record["messages"].items())?;
 	Some(match &active.input["number"] {
 		Json::Str(number) => number.clone(),
 		Json::Num(number) => js_number(*number),
@@ -67,11 +68,11 @@ fn post_problems_tool(homework: Arc<dyn HomeworkDeadline>) -> FnTool {
 	let parameters = object(&["problems"], vec![("problems", json!({ "type": "array", "items": problem, "minItems": 1, "maxItems": MAX_HOMEWORK_PROBLEMS }))]);
 	let description = "Save the assignment's problems, all of them in order, in one call. The learner sees them as the session's list with how many are done. Calling it again replaces the list; a problem keeps its done mark by number.";
 	FnTool::immediate("post_problems", description, parameters, move |args| {
-		let problems = args["problems"].as_arr().map(Vec::as_slice).unwrap_or_default();
+		let problems = args["problems"].items();
 		if let Some(refused) = homework.post(problems) {
 			return invalid_input_result("post_problems", &[refused]);
 		}
-		json!({ "content": [{ "type": "text", "text": format!("Saved {} problems.", problems.len()) }], "details": null })
+		json!({ "content": [text_block(&format!("Saved {} problems.", problems.len()))], "details": null })
 	})
 	.sequential()
 }
@@ -91,11 +92,11 @@ fn problem_tool(homework: Arc<dyn HomeworkDeadline>, open: &Arc<Mutex<Option<Str
 		if let Some(number) = open.as_ref() {
 			return invalid_input_result("problem", &[format!("problem {number} is still open \u{2014} conclude it first")]);
 		}
-		let numbers: Vec<String> = homework.problems().iter().map(|p| p["number"].as_str().unwrap_or_default().to_owned()).collect();
+		let numbers: Vec<String> = homework.problems().iter().map(|p| p["number"].str_or_empty().to_owned()).collect();
 		if numbers.is_empty() {
 			return invalid_input_result("problem", &["no problems are posted yet \u{2014} post them with post_problems first".to_owned()]);
 		}
-		let number = args["number"].as_str().unwrap_or_default();
+		let number = args["number"].str_or_empty();
 		if !numbers.iter().any(|n| n == number) {
 			return invalid_input_result("problem", &[format!("no problem numbered {}; the numbers are {}", quote(number), numbers.join(", "))]);
 		}
@@ -113,7 +114,7 @@ fn part_tool(open: &Arc<Mutex<Option<String>>>) -> FnTool {
 		if open.lock().is_none() {
 			return invalid_input_result("part", &["no problem is open".to_owned()]);
 		}
-		json!({ "content": [{ "type": "text", "text": "Marked." }], "details": null })
+		json!({ "content": [text_block("Marked.")], "details": null })
 	})
 	.sequential()
 }
@@ -163,7 +164,7 @@ mod tests {
 	use gs_engine::turn::tool::{Tool, ToolContext};
 
 	use super::*;
-	use crate::tools::practice::LessonRecord;
+	use crate::tools::plan::PlanContext;
 	use crate::tools::test_record::{learner_at, record};
 
 	struct Deadline(Mutex<Vec<Json>>);
@@ -187,7 +188,7 @@ mod tests {
 		let posed = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "h1", "name": "problem", "arguments": { "number": "1", "statement": "s" } }], "timestamp": clock::now_ms() - 26 * 60_000 });
 		let result = json!({ "role": "toolResult", "toolCallId": "h1", "toolName": "problem", "details": null, "isError": false, "timestamp": clock::now_ms() - 26 * 60_000 });
 		let worked: Vec<Json> = (0..6).map(|i| learner_at(22 - 4 * i)).collect();
-		let LessonRecord { chat_id, chat_store } = record([vec![posed, result], worked].concat());
+		let PlanContext { chat_id, chat_store } = record([vec![posed, result], worked].concat());
 		let homework = Arc::new(Deadline(Mutex::new(problems.as_arr().unwrap().clone())));
 		let ctx = HomeworkToolContext { chat_id, chat_store, homework, graph: None, jobs: None, side: LessonSide::default() };
 		let tool = homework_tools(&ctx, None).into_iter().find(|t| t.name() == "conclude").unwrap();

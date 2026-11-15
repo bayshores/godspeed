@@ -7,6 +7,7 @@ import { SendButton } from "@/frontend/components/ui/send-button";
 import { MathBox } from "@/frontend/components/math-box";
 import { savedDay } from "@/frontend/components/rule-chips";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { cn } from "@/frontend/lib/utils";
 import type { Pointed } from "./canvas-model";
 import { sheetFilePath } from "./use-cheat-sheet";
@@ -23,22 +24,11 @@ export function pointedLabel(region: SheetRegion, pages: number): string {
 function useSheetDraft(deadlineId: string): [string, (text: string) => void] {
 	const key = `lh:sheet-draft:${deadlineId}`;
 	const [text, setText] = useState("");
-	useEffect(() => {
-		try {
-			setText(localStorage.getItem(key) ?? "");
-		} catch {
-			/* no storage: start empty */
-		}
-	}, [key]);
+	useEffect(() => setText(readStorage(key) ?? ""), [key]);
 	const save = useCallback(
 		(next: string) => {
 			setText(next);
-			try {
-				if (next) localStorage.setItem(key, next);
-				else localStorage.removeItem(key);
-			} catch {
-				/* no storage or full: the draft stays in memory */
-			}
+			writeStorage(key, next || null);
 		},
 		[key],
 	);

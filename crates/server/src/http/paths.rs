@@ -2,6 +2,8 @@
 //! backslashes, `//` and a trailing slash redirect (308), `.`/`..` segments (also as `%2e`) are
 //! resolved like a URL parser does, and a segment that is not valid percent-encoded UTF-8 is a 500.
 
+use axum::http::Uri;
+
 /// What to do with a request target (`/path?query`).
 #[derive(Debug, PartialEq)]
 pub enum Target {
@@ -124,6 +126,11 @@ pub fn search_params(query: &str) -> Vec<(String, String)> {
 			(decode(k), decode(v))
 		})
 		.collect()
+}
+
+/// The request's query as `URLSearchParams` reads it.
+pub fn query(uri: &Uri) -> Vec<(String, String)> {
+	search_params(uri.query().unwrap_or_default())
 }
 
 /// `URLSearchParams.get`: the first value for `key`.

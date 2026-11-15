@@ -39,7 +39,7 @@ use gs_services::turns::talk::{clear_talk, open_talk};
 use gs_services::turns::turn_liveness::is_turn_running;
 use gs_services::turns::turn_runs::{attach_turn, settled_turn_frames, turn_failure};
 
-use crate::http::paths::{param, search_params};
+use crate::http::paths::{param, query};
 use crate::http::reply::{self, Unhandled, error, fields, json_body};
 use crate::http::route::ApiRoute;
 
@@ -58,10 +58,6 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/chats/{id}/steer", ApiRoute::new().post(steer).into_route())
 		.route("/api/chats/{id}/stream", ApiRoute::new().get(stream).into_route())
 		.route("/api/talk", ApiRoute::new().post(talk_open).delete(talk_clear).into_route())
-}
-
-fn coded(status: u16, message: &str, code: &str) -> Response {
-	reply::json(status, &json!({ "error": message, "code": code }))
 }
 
 fn chat_reply(r: ChatReply) -> Response {
@@ -90,7 +86,7 @@ async fn chat(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhan
 /// GET /api/chats[?space=<id|none>]: the session picker's list with liveness merged in.
 async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandled> {
 	start_space_scanner(&app);
-	let params = search_params(uri.query().unwrap_or_default());
+	let params = query(&uri);
 	let scope = match param(&params, "space") {
 		None => None,
 		Some(raw) => match parse_space_scope(Some(raw)) {
@@ -126,7 +122,7 @@ async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unh
 		let (Some(space_id), Some(deadline_id)) = (space_id.as_deref(), deadline_id) else { return Ok(error(400, "homework needs a spaceId and a deadlineId")) };
 		return Ok(match create_homework(&app, space_id, deadline_id)? {
 			Ok(created) => reply::json(200, &json!({ "id": created.chat["id"], "title": created.title })),
-			Err(not_found) => coded(404, not_found.error, not_found.code),
+			Err(not_found) => reply::coded(404, not_found.error, not_found.code),
 		});
 	}
 	let start = if let Some(deadline_id) = deadline_id {
@@ -140,7 +136,7 @@ async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unh
 	};
 	Ok(match create_lesson(&app, CreateLessonInput { space_id, start })? {
 		Ok(created) => reply::json(200, &json!({ "id": created.chat["id"], "title": created.title })),
-		Err(not_found) => coded(404, not_found.error, not_found.code),
+		Err(not_found) => reply::coded(404, not_found.error, not_found.code),
 	})
 }
 
@@ -188,11 +184,11 @@ async fn rename(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body)
 /// DELETE /api/chats/{id}?mode=preserve-graph|delete-nodes. The mode is required: the two differ
 /// in what they destroy.
 async fn remove(State(app): State<Arc<App>>, Path(id): Path<String>, uri: Uri) -> Result<Response, Unhandled> {
-	let params = search_params(uri.query().unwrap_or_default());
+	let params = query(&uri);
 	let (mode, name) = match param(&params, "mode") {
 		Some("preserve-graph") => (ChatDeleteMode::PreserveGraph, "preserve-graph"),
 		Some("delete-nodes") => (ChatDeleteMode::DeleteNodes, "delete-nodes"),
-		_ => return Ok(coded(400, "mode is required and must be \"preserve-graph\" or \"delete-nodes\"", "bad_mode")),
+		_ => return Ok(reply::coded(400, "mode is required and must be \"preserve-graph\" or \"delete-nodes\"", "bad_mode")),
 	};
 	Ok(match delete_chat_session(&app, &id, mode).await? {
 		Err(refusal) => reply::json(refusal.status, &refusal.to_json()),
@@ -210,13 +206,13 @@ async fn artifact_ui(State(app): State<Arc<App>>, Path(id): Path<String>, body: 
 	let (Some(message_id), Some(inverted)) = (input["messageId"].as_str(), input["inverted"].as_bool()) else {
 		return Ok(error(400, "input must be { messageId: string, inverted: boolean }"));
 	};
-	let messages = chat["messages"].as_arr().map_or(&[][..], Vec::as_slice);
+	let messages = chat["messages"].items();
 	let target = messages.iter().find(|m| m["id"].as_str() == Some(message_id));
 	if !target.is_some_and(|m| matches!(m["details"]["kind"].as_str(), Some("demo" | "visual"))) {
 		return Ok(error(400, "No demo/figure steer with that message id"));
 	}
 	app.stores.chats.save_messages(&id, &set_steer_ui_inverted(messages, message_id, inverted))?;
-	Ok(reply::json(200, &json!({ "ok": true })))
+	Ok(reply::ok())
 }
 
 /// PUT /api/chats/{id}/space: moves a lesson to another space (`"none"`: no space).
@@ -225,7 +221,7 @@ async fn move_space(State(app): State<Arc<App>>, Path(id): Path<String>, body: B
 	let target = parse_space_scope(body["spaceId"].as_str());
 	let (Some(target), Some(_)) = (target, body.get("spaceId")) else { return Ok(error(400, "spaceId must be a space id or \"none\"")) };
 	Ok(match move_chat_to_space(&app, &id, target.as_deref()).await {
-		Err(failure) => coded(failure.status, &failure.error, &failure.code),
+		Err(failure) => reply::coded(failure.status, &failure.error, &failure.code),
 		Ok(space_id) => reply::json(200, &json!({ "ok": true, "spaceId": space_id })),
 	})
 }
@@ -254,7 +250,7 @@ async fn dismiss(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body
 		app.stores.chats.save_messages(&id, &messages)?;
 	}
 	app.events.emit(EventKind::RecordChanged, json!({ "chatId": id }));
-	Ok(reply::json(200, &json!({ "ok": true })))
+	Ok(reply::ok())
 }
 
 /// POST /api/chats/{id}/keep-going: `{input: {stopOf}}`, Keep going at the stop that call carries.
@@ -292,7 +288,7 @@ async fn kept(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -
 		return Ok(error(400, "input must be { of: string, part: \"analogy\" | \"phrase\", back?: true }"));
 	};
 	Ok(match drop_kept_part(&app, &id, of, part, back)? {
-		KeptDrop::Done => reply::json(200, &json!({ "ok": true })),
+		KeptDrop::Done => reply::ok(),
 		KeptDrop::UnknownLesson => error(404, "Unknown chat"),
 		KeptDrop::NoSuchPart => error(400, "No kept sentence with that part on that call"),
 	})
@@ -316,7 +312,7 @@ async fn review(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body)
 	};
 	Ok(match reply {
 		ReviewReply::Next(question) => reply::json(200, &json!({ "question": question.unwrap_or(Json::Null) })),
-		ReviewReply::Done => reply::json(200, &json!({ "ok": true })),
+		ReviewReply::Done => reply::ok(),
 		ReviewReply::UnknownLesson => error(404, "Unknown chat"),
 		ReviewReply::NotOpen => error(400, REVIEW_NOT_OPEN),
 		ReviewReply::NotAnAnswer => error(400, "An answer is a graded quiz answer with a pick, or I don't know"),
@@ -327,11 +323,9 @@ async fn review(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body)
 async fn markdown(State(app): State<Arc<App>>, Path(id): Path<String>) -> Response {
 	let Some(record) = app.stores.chats.get_chat(&id) else { return error(404, "Unknown chat") };
 	let title = record["title"].as_str().unwrap_or_default();
-	let mut res = Response::new(Body::from(session_markdown(record["messages"].as_arr().map_or(&[][..], Vec::as_slice), Some(title))));
-	let headers = res.headers_mut();
-	headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/markdown; charset=utf-8"));
+	let mut res = reply::typed(200, session_markdown(record["messages"].items(), Some(title)), "text/markdown; charset=utf-8");
 	if let Ok(value) = HeaderValue::from_str(&format!("attachment; filename=\"{}.md\"", slugify(title))) {
-		headers.insert(header::CONTENT_DISPOSITION, value);
+		res.headers_mut().insert(header::CONTENT_DISPOSITION, value);
 	}
 	res
 }
@@ -350,7 +344,7 @@ async fn steer(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) 
 	if !steer_live_chat(&app, &id, new_user_steer(&input.text, &input.id)) {
 		return error(409, "no live turn to steer");
 	}
-	reply::json(200, &json!({ "ok": true }))
+	reply::ok()
 }
 
 /// A turn stream pings once this long after its last frame. WebKit can hold the last bytes it got
@@ -400,7 +394,7 @@ async fn talk_open(State(app): State<Arc<App>>) -> Result<Response, Unhandled> {
 /// DELETE /api/talk: Clear (409 while the teacher is replying).
 async fn talk_clear(State(app): State<Arc<App>>) -> Result<Response, Unhandled> {
 	Ok(match clear_talk(&app).await? {
-		Ok(()) => reply::json(200, &json!({ "ok": true })),
+		Ok(()) => reply::ok(),
 		Err(refusal) => error(refusal.status, refusal.error),
 	})
 }

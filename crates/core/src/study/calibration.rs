@@ -14,12 +14,12 @@ pub fn calibration(answers: &[&Json], title_of: impl Fn(&str) -> String) -> Json
 		})
 		.collect();
 	let mut wrong: Vec<&&Json> = answers.iter().filter(|a| a["outcome"].as_str() == Some("wrong") && a["level"].as_i64().is_some_and(|l| l >= 4)).collect();
-	wrong.sort_by(|a, b| locale::compare(b["answeredAt"].as_str().unwrap_or(""), a["answeredAt"].as_str().unwrap_or("")));
+	wrong.sort_by(|a, b| locale::compare(b["answeredAt"].str_or_empty(), a["answeredAt"].str_or_empty()));
 	let sure_but_wrong: Vec<Json> = wrong
 		.into_iter()
 		.take(5)
 		.map(|a| {
-			let chat_id = a["chatId"].as_str().unwrap_or("");
+			let chat_id = a["chatId"].str_or_empty();
 			let mut o = Obj::new();
 			o.insert("chatId", a["chatId"].clone());
 			o.insert("lessonTitle", title_of(chat_id));
@@ -48,7 +48,7 @@ mod tests {
 		let got = calibration(&refs, |id| format!("Lesson {id}"));
 		assert_eq!(stringify(&got["levels"][4]), r#"{"level":5,"target":100,"answered":2,"right":1,"rate":0.5}"#);
 		assert_eq!(stringify(&got["levels"][0]), r#"{"level":1,"target":20,"answered":0,"right":0,"rate":null}"#);
-		let missed: Vec<_> = super::super::items(&got["sureButWrong"]).iter().map(|m| m["answeredAt"].as_str().unwrap()).collect();
+		let missed: Vec<_> = got["sureButWrong"].items().iter().map(|m| m["answeredAt"].as_str().unwrap()).collect();
 		assert_eq!(missed, ["2026-01-03", "2026-01-02"]);
 		assert_eq!(got["sureButWrong"][0]["lessonTitle"], Json::from("Lesson c"));
 	}

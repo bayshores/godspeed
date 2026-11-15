@@ -71,14 +71,14 @@ fn read_list(app: &App, place: &Json) -> Result<Option<Vec<String>>, String> {
 		return Ok(app.stores.spaces.get_space(id).map(|space| strings(&space["rules"])));
 	}
 	let record = app.stores.settings.read_settings()?;
-	Ok(Some(record.map(|record| strings(&record["agent"]["rules"][place["area"].as_str().unwrap_or_default()])).unwrap_or_default()))
+	Ok(Some(record.map(|record| strings(&record["agent"]["rules"][place["area"].str_or_empty()])).unwrap_or_default()))
 }
 
 fn write_list(app: &App, place: &Json, rules: &[String]) -> Result<(), String> {
 	if let Some(id) = place["spaceId"].as_str() {
 		return app.stores.spaces.update_space(id, &json!({ "rules": rules })).map(|_| ());
 	}
-	let area = place["area"].as_str().unwrap_or_default();
+	let area = place["area"].str_or_empty();
 	let mut record = record_or_new(app.stores.settings.read_settings()?);
 	let mut agent = record["agent"].as_obj().cloned().unwrap_or_default();
 	let mut area_rules = agent.get("rules").and_then(Json::as_obj).cloned().unwrap_or_default();
@@ -124,7 +124,7 @@ fn save(app: &App, text: &str, place: &Json, agent: Option<&str>) -> Result<Json
 	if list.contains(&rule) {
 		return Ok(saved);
 	}
-	let label = saved["where"].as_str().unwrap_or_default();
+	let label = saved["where"].str_or_empty();
 	if list.len() >= RULES_MAX {
 		return Err(RuleFailure::Refused(format!("{label} already has {RULES_MAX} rules, the most it can hold. Tell the learner, and ask which one to remove in Settings.")));
 	}
@@ -189,7 +189,7 @@ pub fn agent_saved_rules(app: &App) -> Result<Vec<Json>, String> {
 	let saved = app.stores.agent_rules.read_saved_rules();
 	let mut kept = Vec::new();
 	for mark in &saved {
-		let text = mark["text"].as_str().unwrap_or_default();
+		let text = mark["text"].str_or_empty();
 		if read_list(app, &mark["where"])?.is_some_and(|list| list.iter().any(|rule| rule == text)) {
 			kept.push(mark.clone());
 		}

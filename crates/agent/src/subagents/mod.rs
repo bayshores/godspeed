@@ -18,3 +18,8 @@ pub mod visual_maker;
 
 #[cfg(test)]
 mod test_support;
+
+/// A tool declaration for a job loop that runs its tools itself, so it carries no execute.
+fn declare(name: &str, description: &str, parameters: gs_json::Json) -> gs_json::Json {
+	gs_json::json!({ "name": name, "description": description, "parameters": parameters })
+}

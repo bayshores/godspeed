@@ -35,8 +35,8 @@ use super::researcher::{ResearcherRunOptions, run_researcher_agent};
 use super::visual_maker::run_visual_maker;
 use crate::fs_tools::fs_shared::resolve_source_path;
 
-/// What the runner needs from the server: the TS `JobRunnerDeps` (stores, `deliver`,
-/// `engineFor`) and the server state the TS reached through modules.
+/// What the runner needs from the server: its stores, `deliver`, the engine for a job, and the
+/// server state the runner reads.
 pub trait JobHost: Send + Sync {
 	fn job_store(&self) -> &JobStore;
 	fn chat_store(&self) -> &ChatStore;
@@ -102,7 +102,7 @@ impl JobRunner {
 		self.host.job_store()
 	}
 
-	/// A merge patch on the job; a failed write is logged, as the TS let it throw past.
+	/// A merge patch on the job; a failed write is logged and the job goes on.
 	fn update(&self, job_id: &str, patch: Json) {
 		if let Err(e) = self.jobs().update_job(job_id, &patch) {
 			eprintln!("[job {job_id}] update failed: {e}");
@@ -147,7 +147,7 @@ impl JobRunner {
 		if job["status"] != Json::from("running") {
 			return;
 		}
-		let kind = job["kind"].as_str().unwrap_or_default().to_owned();
+		let kind = job["kind"].str_or_empty().to_owned();
 		let Some(role) = kind_role(&kind) else {
 			// `${job.kind}`.
 			let shown = match job.get("kind") {
@@ -197,8 +197,8 @@ impl JobRunner {
 			return Some(saved.clone());
 		}
 		let chat = self.host.chat_store().get_chat(job["chatId"].as_str()?)?;
-		for m in chat["messages"].as_arr().into_iter().flatten().filter(|m| m["role"] == Json::from("assistant")) {
-			for block in m["content"].as_arr().into_iter().flatten() {
+		for m in chat["messages"].items().iter().filter(|m| m["role"] == Json::from("assistant")) {
+			for block in m["content"].items().iter() {
 				if block["type"] == Json::from("toolCall") && block["id"] == job["toolCallId"] {
 					return block.get("arguments").cloned();
 				}
@@ -214,7 +214,7 @@ impl JobRunner {
 		if job["status"] != Json::from("running") {
 			return;
 		}
-		let failed = is_subagent_failure(job["kind"].as_str().unwrap_or_default(), &result);
+		let failed = is_subagent_failure(job["kind"].str_or_empty(), &result);
 		let steer = build_subagent_steer(&job, &result);
 		let patch = json!({
 			"result": result,
@@ -240,7 +240,7 @@ impl JobRunner {
 	/// The running job, or None; a job whose lesson is gone fails here.
 	fn job_context(&self, job_id: &str) -> Option<Arc<Json>> {
 		let job = self.jobs().get_job(job_id).filter(|j| j["status"] == Json::from("running"))?;
-		let chat_id = job["chatId"].as_str().unwrap_or_default();
+		let chat_id = job["chatId"].str_or_empty();
 		if self.host.chat_store().get_chat(chat_id).is_none() {
 			self.update(job_id, json!({ "status": "error", "error": format!("Chat not found: {chat_id}"), "activity": "failed" }));
 			return None;
@@ -293,7 +293,7 @@ impl JobRunner {
 		parts.push("Produce your final brief in the required format.".to_owned());
 		let prompt = parts.join("\n\n");
 
-		// Node made this folder with an await, so a spawned job goes on in the background here.
+		// Yields first, so a spawned job goes on in the background after the turn that started it.
 		tokio::task::yield_now().await;
 		// The job's PDF folder: web_fetch_pdf downloads land here, every PDF tool is scoped to
 		// it, and it goes with the job.
@@ -347,36 +347,39 @@ impl JobRunner {
 		let _ = std::fs::remove_dir_all(&pdf_dir);
 	}
 
+	/// Stores a built job's result. A build whose `product` field is empty also records why on a job
+	/// still running, as `failed` when it left no notes.
+	fn finish_built(&self, job_id: &str, result: Json, product: &str, failed: &str) {
+		if result[product].as_str().is_none_or(str::is_empty) && self.still_running(job_id) {
+			self.update(job_id, json!({ "error": notes_or(&result, failed) }));
+		}
+		self.finish_job(job_id, result);
+	}
+
 	async fn run_demo_job(self: &Arc<Self>, job_id: &str, engine: Engine, passed: Option<Json>, ctx: &LoopContext) {
 		let Some(job) = self.job_context(job_id) else { return };
 		let input = self.resolve_input(&job, passed).unwrap_or(Json::Null);
 		let title = input["title"].as_str().filter(|t| !trim(t).is_empty()).unwrap_or("Interactive demo");
-		let brief = input["brief"].as_str().unwrap_or_default();
+		let brief = input["brief"].str_or_empty();
 		self.update(job_id, json!({ "activity": "building demo" }));
 		let result = run_demo_builder(title, brief, &self.job_agent_options(job_id, engine, ctx)).await;
-		if result["html"].as_str().is_none_or(str::is_empty) && self.still_running(job_id) {
-			self.update(job_id, json!({ "error": notes_or(&result, "demo build failed") }));
-		}
-		self.finish_job(job_id, result);
+		self.finish_built(job_id, result, "html", "demo build failed");
 	}
 
 	async fn run_visual_job(self: &Arc<Self>, job_id: &str, engine: Engine, passed: Option<Json>, ctx: &LoopContext) {
 		let Some(job) = self.job_context(job_id) else { return };
 		let input = self.resolve_input(&job, passed).unwrap_or(Json::Null);
-		let brief = input["brief"].as_str().unwrap_or_default();
+		let brief = input["brief"].str_or_empty();
 		self.update(job_id, json!({ "activity": "drawing figure" }));
 		let result = run_visual_maker(brief, &self.job_agent_options(job_id, engine, ctx)).await;
-		if result["svg"].as_str().is_none_or(str::is_empty) && self.still_running(job_id) {
-			self.update(job_id, json!({ "error": notes_or(&result, "visual build failed") }));
-		}
-		self.finish_job(job_id, result);
+		self.finish_built(job_id, result, "svg", "visual build failed");
 	}
 
 	async fn run_pdf_job(self: &Arc<Self>, job_id: &str, engine: Engine, passed: Option<Json>, ctx: &LoopContext) {
 		let Some(job) = self.job_context(job_id) else { return };
 		let input = self.resolve_input(&job, passed).unwrap_or(Json::Null);
 		let path = input["path"].as_str().map(trim).unwrap_or_default();
-		let question = input["question"].as_str().unwrap_or_default();
+		let question = input["question"].str_or_empty();
 		self.update(job_id, json!({ "activity": "reading pdf" }));
 		let keeper = self.host.kept_pages(&resolve_source_path(Some(path))).await.map(|mut file| {
 			let host = self.host.clone();
@@ -384,7 +387,7 @@ impl JobRunner {
 		});
 		let result = run_pdf_reader_agent(path, question, self.host.pdf(), keeper, &self.job_agent_options(job_id, engine, ctx)).await;
 		static FAILED: std::sync::LazyLock<Re> = std::sync::LazyLock::new(|| Re::new(r"^PDF failed:\s*", "i"));
-		let brief = result["brief"].as_str().unwrap_or_default();
+		let brief = result["brief"].str_or_empty();
 		if FAILED.test(brief) && self.still_running(job_id) {
 			self.update(job_id, json!({ "error": FAILED.replace(brief, "") }));
 		}
@@ -404,7 +407,7 @@ fn failure_result(kind: &str, input: Option<&Json>, reason: &str) -> Json {
 		"visual" => json!({ "svg": "", "notes": format!("FAILED: {reason}") }),
 		_ => json!({
 			"path": input["path"].as_str().map(trim).unwrap_or_default(),
-			"question": input["question"].as_str().unwrap_or_default(),
+			"question": input["question"].str_or_empty(),
 			"brief": format!("PDF failed: {reason}"),
 			"pagesRead": [],
 			"pagesConsulted": [],
@@ -413,13 +416,13 @@ fn failure_result(kind: &str, input: Option<&Json>, reason: &str) -> Json {
 }
 
 /// The activity line the window shows: `web_fetch: <host>`, else the tool's name. An `Err` is
-/// what the TS threw for a URL that is not text.
+/// a URL that is not text.
 fn activity_line(tool_name: &str, args: &Json) -> Result<String, String> {
 	if tool_name == "web_fetch" { Ok(format!("web_fetch: {}", host_of(&args["url"])?)) } else { Ok(tool_name.to_owned()) }
 }
 
 /// `new URL(url).hostname`, else the first 40 characters. A value that is not text has no
-/// `slice`, so it throws like the TS did.
+/// `slice`, so it fails with that message.
 fn host_of(url: &Json) -> Result<String, String> {
 	let text = match url {
 		Json::Null | Json::Bool(false) => return Ok("(no url)".to_owned()),

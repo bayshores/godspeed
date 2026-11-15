@@ -9,17 +9,17 @@ use super::plan::{derive_plan_statuses_lh, derived_node_status};
 use crate::study::topic_end::opener_nodes;
 
 fn id_of(node: &Json) -> &str {
-	node["id"].as_str().unwrap_or_default()
+	node["id"].str_or_empty()
 }
 
 /// Plan node ids in learning order: prerequisites first, ties in authored order. A malformed
 /// tree (a cycle) keeps the rest in authored order. A duplicated id resolves to its last node.
 pub(crate) fn ordered_plan_ids(tree: &Json) -> Vec<&str> {
-	let nodes: &[Json] = tree["nodes"].as_arr().map_or(&[], Vec::as_slice);
+	let nodes: &[Json] = tree["nodes"].items();
 	let index: HashMap<&str, usize> = nodes.iter().enumerate().map(|(i, n)| (id_of(n), i)).collect();
 	let mut indegree: HashMap<&str, usize> = nodes.iter().map(|n| (id_of(n), 0)).collect();
 	let mut next: HashMap<&str, Vec<&str>> = HashMap::new();
-	for edge in tree["edges"].as_arr().into_iter().flatten() {
+	for edge in tree["edges"].items().iter() {
 		let (Some(from), Some(to)) = (edge["from"].as_str(), edge["to"].as_str()) else { continue };
 		if !index.contains_key(from) || !index.contains_key(to) {
 			continue;

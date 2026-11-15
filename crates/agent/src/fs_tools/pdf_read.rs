@@ -63,7 +63,7 @@ pub fn create_pdf_read_tools(pdf: &Pdf, dir: &Path) -> Vec<Arc<dyn Tool>> {
 			),
 			pdf.clone(),
 			dir.to_owned(),
-			|pdf, file, args| async move { Ok(Json::Str(pdf.pdf_extract(&file, args["pages"].as_str().unwrap_or_default()).await?)) },
+			|pdf, file, args| async move { Ok(Json::Str(pdf.pdf_extract(&file, args["pages"].str_or_empty()).await?)) },
 		),
 		path_tool(
 			"pdf_search",
@@ -75,7 +75,7 @@ pub fn create_pdf_read_tools(pdf: &Pdf, dir: &Path) -> Vec<Arc<dyn Tool>> {
 			pdf.clone(),
 			dir.to_owned(),
 			|pdf, file, args| async move {
-				let hits = pdf.pdf_search(&file, args["query"].as_str().unwrap_or_default(), None, true).await?;
+				let hits = pdf.pdf_search(&file, args["query"].str_or_empty(), None, true).await?;
 				Ok(json!({ "hits": hits.iter().map(|h| h.to_json()).collect::<Vec<_>>() }))
 			},
 		),
@@ -92,7 +92,7 @@ where
 	FnTool::server(name, description, parameters, move |args, _ctx| {
 		let (pdf, dir, run) = (pdf.clone(), dir.clone(), run.clone());
 		async move {
-			let Some(file) = scoped_path(&dir, args["path"].as_str().unwrap_or_default()) else {
+			let Some(file) = scoped_path(&dir, args["path"].str_or_empty()) else {
 				return Ok(Json::Str(format!("{name} failed: path must stay inside this job's download dir")));
 			};
 			Ok(run(pdf, file, args).await.unwrap_or_else(|message| Json::Str(format!("{name} failed: {message}"))))
@@ -108,7 +108,7 @@ fn fetch_tool(pdf: Pdf, dir: PathBuf) -> Arc<dyn Tool> {
 		move |args, ctx| {
 			let (pdf, dir) = (pdf.clone(), dir.clone());
 			async move {
-				let url = args["url"].as_str().unwrap_or_default().to_owned();
+				let url = args["url"].str_or_empty().to_owned();
 				if !is_http_url(&url) {
 					return Ok(Json::Str(format!("web_fetch_pdf failed: invalid URL \"{url}\"")));
 				}

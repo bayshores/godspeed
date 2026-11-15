@@ -3,7 +3,6 @@ use std::collections::{HashMap, HashSet};
 use gs_base::text::cmp16;
 use gs_json::{Json, json};
 
-use super::ledger_lines::strs;
 use crate::messages::value_debris::strip_model_value_debris;
 
 /// The stored chains filtered to a selection: a chain rides along iff its conclusion and every
@@ -15,7 +14,7 @@ pub fn chains_for_selection(nodes: &[Json], chains: &[Json]) -> Vec<Json> {
 	let mut included: Vec<(String, Json)> = Vec::new();
 	for chain in chains {
 		let (Some(id), Some(conclusion)) = (chain["id"].as_str(), chain["conclusion"].as_str()) else { continue };
-		let premises = strs(&chain["premises"]);
+		let premises = chain["premises"].strs();
 		if !selected.contains(conclusion) || !premises.iter().all(|p| selected.contains(p)) {
 			continue;
 		}

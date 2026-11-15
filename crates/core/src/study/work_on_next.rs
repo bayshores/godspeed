@@ -22,8 +22,8 @@ pub struct TopicView {
 impl TopicView {
 	pub fn of(topic: &Json) -> TopicView {
 		TopicView {
-			id: topic["id"].as_str().unwrap_or("").to_owned(),
-			name: topic["name"].as_str().unwrap_or("").to_owned(),
+			id: topic["id"].str_or_empty().to_owned(),
+			name: topic["name"].str_or_empty().to_owned(),
 			status: topic["status"].as_str().and_then(TopicStatus::parse).unwrap_or(TopicStatus::Untested),
 			rate: topic["rate"].as_f64(),
 			column: topic["column"].as_i64().unwrap_or(0),

@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { SpaceFile } from "../../src/shared/core/contracts.ts";
-import { changeDay, recentChanges, removedLately } from "../../src/frontend/components/files/recent-changes-model.ts";
+import { recentChanges, removedLately } from "../../src/frontend/components/files/recent-changes-model.ts";
 
 const DAY = 86_400_000;
 const NOW = Date.parse("2026-11-06T18:00:00.000Z");
@@ -41,10 +41,5 @@ describe("recent changes", () => {
 	it("counts files removed in the last few days", () => {
 		assert.equal(removedLately([{ id: "a", name: "a", at: ago(1) }, { id: "b", name: "b", at: ago(2) }, { id: "c", name: "c", at: ago(5) }], NOW), "2 removed");
 		assert.equal(removedLately([], NOW), null);
-	});
-
-	it("gives a change's local day", () => {
-		const at = new Date(2026, 10, 4, 23, 30).toISOString();
-		assert.equal(changeDay(at), "2026-11-04");
 	});
 });

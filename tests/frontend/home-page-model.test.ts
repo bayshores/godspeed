@@ -7,7 +7,6 @@ import {
 	countLeft,
 	foldSpacesProgress,
 	laterRow,
-	longDay,
 	todayLists,
 	mainRowId,
 	nextCard,
@@ -132,13 +131,6 @@ describe("countLeft", () => {
 		assert.deepEqual(countLeft(at(11, 15, 40), NOW), { count: "1", unit: "hour" });
 		assert.deepEqual(countLeft(at(11, 14, 44), NOW), { count: "12", unit: "min" });
 		assert.deepEqual(countLeft(NOW, NOW), { count: "late", unit: "" });
-	});
-});
-
-describe("longDay", () => {
-	it("the weekday in full, then the month and day", () => {
-		assert.equal(longDay("2026-11-11"), "Wednesday Nov 11");
-		assert.equal(longDay("2026-12-08"), "Tuesday Dec 8");
 	});
 });
 

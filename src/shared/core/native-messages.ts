@@ -127,12 +127,6 @@ declare module "@earendil-works/pi-agent-core" {
  *  the wire like `id`). */
 export type LhMessage = ((UserMessage & { side?: true }) | AssistantMessage | ToolResultMessage | LhMarkerMessage) & { id: string };
 
-/** A record message list is assignable to the agent's context — that IS
- *  the replay (ui-stream/chat-handler assign it to initialState.messages). */
-export function asAgentMessages(messages: readonly LhMessage[]): AgentMessage[] {
-	return messages as unknown as AgentMessage[];
-}
-
 // ─── explicit learner-facing output ─────────────────────────────────────────
 
 export const SEND_TO_USER_TOOL = "send_to_user";
@@ -270,24 +264,6 @@ export function newAnswerResult(
 	};
 }
 
-/** The plan presentation block: pure UI history (a frozen snapshot), no
- *  model face — toLlmMessages filters it. `planCallId` keys idempotent
- *  emission (one block per successful plan_init call). */
-export function newPlanBlockMessage(
-	planCallId: string,
-	block: unknown,
-): LhMarkerMessage {
-	return {
-		id: `pb_${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`,
-		role: "custom",
-		customType: "plan-block",
-		content: "",
-		display: true,
-		details: { planCallId, block },
-		timestamp: Date.now(),
-	};
-}
-
 // ─── practice sessions ───────────────────────────────────────────────────────
 
 /** The practice agent's two tools (the conclude-before-next-problem gate's
@@ -301,43 +277,6 @@ export interface GraphContextPick {
 	id: string;
 	name: string;
 	statement: string;
-}
-
-/** The session's map context: a SEPARATE custom
- *  message BEFORE the learner's first user message — the picked
- *  propositions plus the reasoning chains among them (pre-formatted
- *  lines, formatChainLine shape). The model reads `content` (flattened
- *  to a user message by toLlmMessages like every marker); `details`
- *  feeds the transcript's collapsible GraphContextCard. */
-export function newGraphContextMessage(picks: readonly GraphContextPick[], chains: readonly string[]): LhMarkerMessage {
-	// IDS FIRST (the mastery-trace contract):
-	// each proposition is introduced ONCE with its id, name, and statement;
-	// the problem tool's `target` field takes these ids (names normalize to
-	// ids at the seam). Chains below stay NAMES — they are comprehension
-	// context, not tags; names read, ids reference.
-	const lines = [
-		// PREAMBLE LAW: custom markers flatten to
-		// USER-role messages on the wire (toLlmMessages) — this text arrives
-		// in the learner's voice channel, so it must not read like a system
-		// broadcast. The bracket convention (NEXT_PROBLEM_TEXT's kin) marks
-		// it honestly as injected session context, not learner speech.
-		"[Session context] — picked from the learner's knowledge map when starting this session:",
-		"",
-		"Propositions (id — name: statement; the problem tool's target field uses these ids):",
-		...picks.map((p) => `- [${p.id}] ${p.name}: ${p.statement}`),
-	];
-	if (chains.length > 0) {
-		lines.push("", "Reasoning chains among them (premises → conclusion):", ...chains.map((c) => `- ${c}`));
-	}
-	return {
-		id: newMessageId(),
-		role: "custom",
-		customType: "graph-context",
-		content: lines.join("\n"),
-		display: true,
-		details: { propositions: picks, chains },
-		timestamp: Date.now(),
-	};
 }
 
 // ─── spaces ─────────────────────────────────────────────────────────────────

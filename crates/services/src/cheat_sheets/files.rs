@@ -6,7 +6,7 @@ use gs_base::hash::sha256_hex;
 use gs_core::messages::attachments::{ChatAttachment, pdf_file_name, pdf_note, pdf_note_of};
 use gs_json::{Json, json};
 
-use super::{Outcome, Stop};
+use crate::outcome::{Outcome, Stop};
 use crate::App;
 use crate::turns::attachments::{AttachmentError, store_attachments};
 
@@ -37,7 +37,7 @@ pub(super) fn files_for_agent(app: &App, space_id: &str, deadline_id: &str, file
 			let file = f["file"].as_str().filter(|file| !file.is_empty())?;
 			let (path, bytes) = app.stores.cheat_sheets.read_cheat_sheet_file(space_id, deadline_id, file)?;
 			if is_pdf_name(file) {
-				return Some(pdf_note(f["name"].as_str().unwrap_or(""), &path.to_string_lossy()));
+				return Some(pdf_note(f["name"].str_or_empty(), &path.to_string_lossy()));
 			}
 			let mime_type = picture_type(extension(file)).unwrap_or("image/png");
 			Some(json!({ "type": "image", "data": gs_base::base64::encode(&bytes), "mimeType": mime_type }))
@@ -65,12 +65,12 @@ pub(super) fn keep_files(app: &App, space_id: &str, deadline_id: &str, attachmen
 	for (part, attachment) in parts.iter().zip(attachments) {
 		let name = &attachment.name;
 		if part["type"].as_str() == Some("text") {
-			let path = pdf_note_of(part["text"].as_str().unwrap_or("")).map(|(_, path)| path).unwrap_or_default();
+			let path = pdf_note_of(part["text"].str_or_empty()).map(|(_, path)| path).unwrap_or_default();
 			let file = Path::new(&path).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
 			kept.push(json!({ "name": name, "file": file }));
 			continue;
 		}
-		let bytes = gs_base::base64::decode(part["data"].as_str().unwrap_or(""));
+		let bytes = gs_base::base64::decode(part["data"].str_or_empty());
 		// Named like a kept PDF (content hash, cleaned name), with the picture's own type.
 		let named = pdf_file_name(without_extension(name), &sha256_hex(&bytes));
 		let end = if part["mimeType"].as_str() == Some("image/png") { ".png" } else { ".jpg" };

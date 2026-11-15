@@ -104,10 +104,6 @@ pub struct MockRequest {
 	pub signal: Abort,
 }
 
-fn items(list: &Json) -> &[Json] {
-	list.as_arr().map_or(&[], Vec::as_slice)
-}
-
 /// Writes a mock's questions for its `format`, keeping only `fact_ids` the request gave. Fails
 /// when the agent never sends usable ones.
 pub async fn write_mock_questions(bridge: &Bridge, input: MockRequest, format: &Json, fact_ids: HashSet<String>) -> Result<Vec<Json>, RunError> {
@@ -124,7 +120,7 @@ pub async fn write_mock_questions(bridge: &Bridge, input: MockRequest, format: &
 	opts.validate = Some(Box::new({
 		let (taken, format) = (taken.clone(), format.clone());
 		move |written: &Json| {
-			let problem = match take_questions(items(written), &format, &fact_ids) {
+			let problem = match take_questions(written.items(), &format, &fact_ids) {
 				Ok(questions) => {
 					*taken.lock() = questions;
 					None
@@ -156,7 +152,7 @@ pub async fn grade_mock(bridge: &Bridge, input: MockRequest, mock: &Json) -> Res
 	opts.validate = Some(Box::new({
 		let (graded, mock) = (graded.clone(), mock.clone());
 		move |written: &Json| {
-			let problem = match with_grades(&mock, items(written)) {
+			let problem = match with_grades(&mock, written.items()) {
 				Ok(taken) => {
 					*graded.lock() = taken;
 					None

@@ -11,7 +11,6 @@
  */
 // ─── Knowledge graph (vision §1 — global, cross-session) ────────────────────
 
-
 /** One relation of the DERIVED view. Chains are the stored truth, and
  *  the snapshot derives UNTYPED arrows from them: every premise → the
  *  chain's implication node, the implication node → the conclusion.
@@ -155,25 +154,3 @@ export interface GraphSnapshot {
 	clusters: Cluster[];
 }
 
-/** The auto-title's character cap: long enough to stay informative in
- *  the lesson list and the top bar, short enough that a first message never
- *  reads as a paragraph. */
-export const TITLE_MAX_CHARS = 72;
-
-/** Derive a short chat title from the learner's first message (pure).
- *  The cut snaps to a word boundary
- *  AT OR UNDER the cap — a title never ends mid-word. The one exception
- *  is a single word longer than the cap (rare, but real: identifiers,
- *  URLs): it cuts at the cap, splitting the word. Whitespace collapses to
- *  single spaces first, so boundaries are always single-space boundaries.
- *  Used on chat creation; deterministic so tests can pin it. */
-export function titleFromPrompt(prompt: string): string {
-	const oneLine = prompt.replace(/\s+/g, " ").trim();
-	if (oneLine.length <= TITLE_MAX_CHARS) return oneLine;
-	// Last space at or before the cap. A space at index TITLE_MAX_CHARS means the first TITLE_MAX_CHARS chars are whole words.
-	const space = oneLine.lastIndexOf(" ", TITLE_MAX_CHARS);
-	let cut = space > 0 ? space : TITLE_MAX_CHARS;
-	// One long word: don't split a surrogate pair.
-	if (space <= 0 && /[\uD800-\uDBFF]/.test(oneLine[cut - 1]!)) cut--;
-	return `${oneLine.slice(0, cut)}…`;
-}

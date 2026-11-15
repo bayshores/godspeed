@@ -6,7 +6,7 @@
 //! length the way transformers.js rounds (f32 sums of f64 squares).
 //!
 //! A batch's rows change each other's numbers (the model quantizes each layer's input over the whole
-//! batch), so batches are never regrouped: that keeps the vectors equal to the Node server's.
+//! batch), so a batch is embedded exactly as the caller grouped it.
 
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;

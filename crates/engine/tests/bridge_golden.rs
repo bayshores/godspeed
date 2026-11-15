@@ -98,7 +98,7 @@ fn park_as(bridge: &Bridge, messages: Vec<Json>, conversation: &str) -> Parked {
 fn reply_of(s: &Json) -> AgentReply {
 	AgentReply {
 		text: s["text"].as_str().map(str::to_owned),
-		tool_calls: s["toolCalls"].as_arr().into_iter().flatten().map(|c| ReplyCall { name: c["name"].as_str().unwrap().to_owned(), arguments: c["arguments"].clone() }).collect(),
+		tool_calls: s["toolCalls"].items().iter().map(|c| ReplyCall { name: c["name"].as_str().unwrap().to_owned(), arguments: c["arguments"].clone() }).collect(),
 	}
 }
 
@@ -133,7 +133,7 @@ async fn the_bridge_matches_agent_bridge_ts() {
 	let wanted_steps = want["steps"].as_arr().unwrap();
 	for wanted in wanted_steps {
 		let s = &wanted["step"];
-		let text = |k: &str| s[k].as_str().unwrap_or_default().to_owned();
+		let text = |k: &str| s[k].str_or_empty().to_owned();
 		let work = || works[&text("work")].clone();
 		let mut result = Json::Null;
 		match s["op"].as_str().unwrap() {

@@ -58,7 +58,7 @@ where
 pub fn to_tool_result(value: &Json) -> Json {
 	if let Some(text) = value["text"].as_str().filter(|_| value.as_obj().is_some()) {
 		let mut content = vec![text_block(text)];
-		content.extend(value["images"].as_arr().into_iter().flatten().map(|img| json!({ "type": "image", "data": img["data"].clone(), "mimeType": img["mimeType"].clone() })));
+		content.extend(value["images"].items().iter().map(|img| json!({ "type": "image", "data": img["data"].clone(), "mimeType": img["mimeType"].clone() })));
 		return json!({ "content": content, "details": value["details"].clone() });
 	}
 	let text = value.as_str().map_or_else(|| stringify(value), str::to_owned);

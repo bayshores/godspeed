@@ -13,7 +13,7 @@ use crate::keyword::KeywordIndex;
 use crate::table::Table;
 
 fn aliases(node: &Json) -> Vec<&str> {
-	node["aliases"].as_arr().map(|a| a.iter().map(|x| x.as_str().unwrap_or_default()).collect()).unwrap_or_default()
+	node["aliases"].as_arr().map(|a| a.iter().map(|x| x.str_or_empty()).collect()).unwrap_or_default()
 }
 
 /// What a fact's vector is made from.

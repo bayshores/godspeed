@@ -7,7 +7,7 @@ use gs_json::{Json, json};
 use parking_lot::Mutex;
 
 use super::ports::ChatPort;
-use super::practice::LessonRecord;
+use super::plan::PlanContext;
 
 struct Record(Mutex<Vec<Json>>);
 
@@ -27,8 +27,8 @@ impl ChatPort for Record {
 }
 
 /// The lesson "c" holding `messages`.
-pub fn record(messages: Vec<Json>) -> LessonRecord {
-	LessonRecord { chat_id: "c".to_owned(), chat_store: Arc::new(Record(Mutex::new(messages))) }
+pub fn record(messages: Vec<Json>) -> PlanContext {
+	PlanContext { chat_id: "c".to_owned(), chat_store: Arc::new(Record(Mutex::new(messages))) }
 }
 
 /// A learner message `minutes_ago` minutes before the app clock's now.

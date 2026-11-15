@@ -82,7 +82,7 @@ impl DemoTool {
 	}
 
 	fn write_demo(&self, args: &Json) -> String {
-		let html = args["html"].as_str().unwrap_or_default();
+		let html = args["html"].str_or_empty();
 		if trim(html).is_empty() {
 			return "ERROR: empty document — write the full HTML.".to_owned();
 		}

@@ -19,7 +19,8 @@ use super::cheat_sheet_pdf::take_sheet_pdf;
 use super::context::{Context, Saved, context_for, read_saved, sheet_now};
 use super::files::{files_for_agent, keep_files};
 use super::folder::working_folder;
-use super::{BUSY, Failed, NEWER, Outcome, Running, Stop, changed, refuse};
+use super::{BUSY, Failed, NEWER, Running, changed};
+use crate::outcome::{Outcome, Stop, refuse};
 use crate::App;
 use crate::spaces::citations::check_cites;
 use crate::spaces::space_search::space_search;
@@ -29,10 +30,6 @@ pub struct AskInput {
 	pub text: String,
 	pub attachments: Option<Vec<ChatAttachment>>,
 	pub region: Option<Json>,
-}
-
-fn items(v: &Json) -> &[Json] {
-	v.as_arr().map_or(&[], |a| a.as_slice())
 }
 
 /// A message in the sheet's chat: kept, then the agent answers it. Pictures go to the agent as
@@ -59,7 +56,7 @@ pub fn ask(app: &Arc<App>, space_id: &str, deadline_id: &str, input: AskInput) -
 		return refuse(409, BUSY);
 	}
 	let sheet = sheet_now(app, &ctx)?;
-	if let Some(wrong) = input.region.as_ref().and_then(|r| region_problem(r, items(&sheet["versions"]))) {
+	if let Some(wrong) = input.region.as_ref().and_then(|r| region_problem(r, sheet["versions"].items())) {
 		return refuse(400, wrong);
 	}
 	let files = keep_files(app, space_id, deadline_id, &attachments)?;
@@ -77,7 +74,7 @@ pub fn ask(app: &Arc<App>, space_id: &str, deadline_id: &str, input: AskInput) -
 	let message = Json::Obj(message);
 	app.stores.cheat_sheets.write_cheat_sheet(space_id, &with_message(&sheet, &message))?;
 	ctx.saved = read_saved(app, space_id, deadline_id)?;
-	start_run(app, &ctx, message["id"].as_str().unwrap_or(""))
+	start_run(app, &ctx, message["id"].str_or_empty())
 }
 
 /// Try again: the message the last request failed on, sent again.
@@ -137,7 +134,7 @@ fn start_run(app: &Arc<App>, ctx: &Context, message_id: &str) -> Outcome<()> {
 	if folder.sheet["folder"].as_str() != ctx.saved.folder() {
 		app.stores.cheat_sheets.write_cheat_sheet(&ctx.space_id, &folder.sheet)?;
 	}
-	let messages = items(&folder.sheet["messages"]);
+	let messages = folder.sheet["messages"].items();
 	let index = messages.iter().position(|m| m["id"].as_str() == Some(message_id));
 	let Some((index, message)) = index.map(|i| (i, &messages[i])).filter(|(_, m)| m["role"].as_str() == Some("you")) else { return refuse(409, "That message is gone.") };
 	let abort = Abort::new();
@@ -159,7 +156,7 @@ fn start_run(app: &Arc<App>, ctx: &Context, message_id: &str) -> Outcome<()> {
 		"earlier": &messages[..index],
 		"message": message,
 	}));
-	let parts = files_for_agent(app, &ctx.space_id, &id, items(&message["files"]));
+	let parts = files_for_agent(app, &ctx.space_id, &id, message["files"].items());
 	let prompt = if parts.is_empty() { Json::from(text) } else { Json::from([vec![json!({ "type": "text", "text": text })], parts].concat()) };
 	let (task_app, folder_path) = (app.clone(), folder.path.clone());
 	let request = SheetRequest {
@@ -181,7 +178,7 @@ fn start_run(app: &Arc<App>, ctx: &Context, message_id: &str) -> Outcome<()> {
 		engine: agent_engine(&app.bridge),
 		signal: abort.clone(),
 	};
-	let answer = Answer { app: app.clone(), space_id: ctx.space_id.clone(), deadline_id: id, message_id: message_id.to_owned(), asked: message["text"].as_str().unwrap_or("").to_owned() };
+	let answer = Answer { app: app.clone(), space_id: ctx.space_id.clone(), deadline_id: id, message_id: message_id.to_owned(), asked: message["text"].str_or_empty().to_owned() };
 	tokio::spawn(async move {
 		let _end = RunEnd { app: answer.app.clone(), deadline_id: answer.deadline_id.clone() };
 		let done = match reply_on_sheet(&answer.app.bridge, request).await {

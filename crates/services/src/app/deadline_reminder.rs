@@ -39,8 +39,8 @@ fn reminder_text(deadlines: &[Json], now_ms: i64, ready_of: impl FnOnce(&Json) -
 		let days = days_between(&today, d["date"].as_str()?);
 		(days <= MOST_DAYS_AWAY).then_some((d, days))
 	})?;
-	let title = format!("{} is {}", deadline["name"].as_str().unwrap_or(""), relative_day(days));
-	let space = deadline["spaceName"].as_str().unwrap_or("");
+	let title = format!("{} is {}", deadline["name"].str_or_empty(), relative_day(days));
+	let space = deadline["spaceName"].str_or_empty();
 	// As the app counts it: problems first, readiness for a deadline without problems.
 	let body = if let Some(problems) = problems_done(&deadline["problems"]) {
 		format!("{space}. {} of {} problems done.", problems["done"].as_i64().unwrap_or(0), problems["total"].as_i64().unwrap_or(0))

@@ -16,7 +16,7 @@ fn ui_only_markers_match_the_window() {
 		let messages = case["aroundSideQuestion"].as_arr().unwrap();
 		assert_eq!(is_ui_only(Some(name)), case["uiOnly"].as_bool().unwrap(), "{name}");
 		let mut held: Vec<Json> = side_held_questions(messages).into_iter().map(|(id, h)| json!([id, { "callAt": h.call_at, "sideAt": h.side_at }])).collect();
-		held.sort_by_key(|h| h[0].as_str().unwrap_or_default().to_owned());
+		held.sort_by_key(|h| h[0].str_or_empty().to_owned());
 		assert_eq!(Json::Arr(held), case["held"], "{name}: held");
 		assert_eq!(dangling_question_of(messages).map(|d| Json::from(d.tool_call_id)).unwrap_or(Json::Null), case["dangling"], "{name}: dangling");
 		// A UI-only marker never reaches the model.

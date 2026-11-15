@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import type { DeadlineProgress } from "@/shared/core";
+import { monthDay, type DeadlineProgress } from "@/shared/core";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { Tip } from "@/frontend/components/ui/tooltip";
 import { cn } from "@/frontend/lib/utils";
-import { materialSummary, shortDate, type Day, type DayState, type Material } from "./deadline-model";
+import { materialSummary, type Day, type DayState, type Material } from "./deadline-model";
 import { RULE, SHEET, SHEET_TITLE } from "./styles";
 
 const SMALL = "lh-btn h-[29px] px-2.5 text-[15px]";
@@ -191,7 +191,7 @@ function DayRow({ day, open = false, children }: { day: Day; open?: boolean; chi
 	return (
 		<li data-testid="deadline-day-row" data-state={open ? "open" : day.state} className="flex min-w-0 items-center gap-2.5 py-[5px]">
 			<DayMark state={day.state} open={open} />
-			{day.date && <span className="w-14 shrink-0 font-count text-base text-ink-2">{shortDate(day.date)}</span>}
+			{day.date && <span className="w-14 shrink-0 font-count text-base text-ink-2">{monthDay(day.date)}</span>}
 			<Tip title={day.title} body={<span className="text-sm text-ink-2">{`${day.names.join(", ")}, ${STATE_WORD[day.state]}`}</span>}>
 				<span tabIndex={0} className="min-w-0 truncate text-[15px] text-ink">
 					{day.title}

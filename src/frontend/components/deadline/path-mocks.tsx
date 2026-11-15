@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { localDay, type MockSummary } from "@/shared/core";
+import { localDay, monthDay, type MockSummary } from "@/shared/core";
 import { mockHref, mockLine, openMock, openMockLabel } from "@/frontend/components/mock/mock-model";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
-import { shortDate } from "./deadline-model";
 import { MockBox } from "./mock-box";
 
 const WIDE = "lh-btn h-11 w-full justify-center text-[15px]";
@@ -150,7 +149,7 @@ function MockRow({ spaceId, mock: m, nowMs, onRemove }: { spaceId: string; mock:
 				<>
 					<Link to={mockHref(spaceId, m.id)} className="lh-press flex min-w-0 flex-1 items-center gap-2.5 py-2 hover:text-ink">
 						<span className="w-[64px] shrink-0 text-[15px] text-ink">Mock {m.n}</span>
-						<span className="min-w-0 flex-1 truncate font-count text-base text-ink-2">{shortDate(localDay(new Date(m.endedAt ?? m.createdAt)))}</span>
+						<span className="min-w-0 flex-1 truncate font-count text-base text-ink-2">{monthDay(localDay(new Date(m.endedAt ?? m.createdAt)))}</span>
 						<span data-testid="deadline-mock-line" className="shrink-0 text-[15px] text-ink">
 							{mockLine(m, nowMs)}
 						</span>

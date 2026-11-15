@@ -120,7 +120,7 @@ async fn play(scenario: &Json, declared: &[Json]) -> Json {
 		.collect();
 	let model = faux_model("godspeed-agent", "agent", "outside-agent", "Outside agent (MCP)", 200_000.0, 32_000.0);
 	let mut options = AgentOptions::new(Engine { model, respond: scripted });
-	options.system_prompt = scenario["systemPrompt"].as_str().unwrap_or_default().to_owned();
+	options.system_prompt = scenario["systemPrompt"].str_or_empty().to_owned();
 	options.tools = tools;
 	options.messages = scenario["messages"].as_arr().cloned().unwrap_or_default();
 	options.session_id = Some("chat_golden".to_owned());
@@ -136,10 +136,10 @@ async fn play(scenario: &Json, declared: &[Json]) -> Json {
 	}
 	let agent = Agent::new(options);
 	slot.set(Arc::downgrade(&agent)).unwrap();
-	for m in scenario["steer"].as_arr().into_iter().flatten() {
+	for m in scenario["steer"].items().iter() {
 		agent.steer(m.clone());
 	}
-	for m in scenario["followUp"].as_arr().into_iter().flatten() {
+	for m in scenario["followUp"].items().iter() {
 		agent.follow_up(m.clone());
 	}
 	let events = Arc::new(Mutex::new(Vec::<Json>::new()));

@@ -8,6 +8,7 @@
 //! Message-id anchors are not ported: every caller asked for the document without them.
 
 use std::collections::{HashMap, HashSet};
+use std::sync::LazyLock;
 
 use gs_base::re::Re;
 use gs_json::{Json, Obj};
@@ -16,6 +17,7 @@ use super::code_question::fenced_code;
 use gs_json::js_text::{field_text, js_string, or_empty};
 use crate::contracts::chat::TOPIC_DONE_TOOL;
 use crate::messages::native_messages::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, SEND_TO_USER_TOOL, failed_output_call_ids, problem_input_for_conclude, user_facing_text_of};
+use crate::messages::tool_calls;
 use crate::study::topic_end::shown_openers;
 
 /// What the practice blocks join: practice tool results are acks, and the statement, outcome and
@@ -31,8 +33,8 @@ struct MarkdownContext<'a> {
 fn markdown_context(messages: &[Json]) -> MarkdownContext<'_> {
 	let mut calls = HashMap::new();
 	for message in messages.iter().filter(|m| m["role"].as_str() == Some("assistant")) {
-		for block in message["content"].as_arr().into_iter().flatten() {
-			if let (Some("toolCall"), Some(id)) = (block["type"].as_str(), block["id"].as_str()) {
+		for block in tool_calls(message) {
+			if let Some(id) = block["id"].as_str() {
 				calls.insert(id, block);
 			}
 		}
@@ -42,7 +44,8 @@ fn markdown_context(messages: &[Json]) -> MarkdownContext<'_> {
 
 /// solvedWithHints becomes "Solved with hints": the outcome enum read as prose.
 fn outcome_label(outcome: &str) -> String {
-	let spaced = Re::new("([a-z])([A-Z])", "g").replace_with(outcome, |c| format!("{} {}", c.get(1).unwrap_or_default(), c.get(2).unwrap_or_default().to_lowercase()));
+	static CAMEL_HUMP: LazyLock<Re> = LazyLock::new(|| Re::new("([a-z])([A-Z])", "g"));
+	let spaced = CAMEL_HUMP.replace_with(outcome, |c| format!("{} {}", c.get(1).unwrap_or_default(), c.get(2).unwrap_or_default().to_lowercase()));
 	let mut chars = spaced.chars();
 	match chars.next() {
 		// The first UTF-16 unit of an astral character is half a pair and has no case.
@@ -166,7 +169,7 @@ fn tool_result_body(result: &Json, ctx: &MarkdownContext) -> (&'static str, Vec<
 	if tool == Some("ask_user_question") {
 		let question = if details["questionText"].as_str().is_some_and(|q| !q.is_empty()) { &details["questionText"] } else { &Json::Null };
 		let mut body = vec![question_line(question)];
-		let mut chosen: Vec<String> = details["answers"].as_arr().into_iter().flatten().map(|a| or_empty(a.get("label"))).collect();
+		let mut chosen: Vec<String> = details["answers"].items().iter().map(|a| or_empty(a.get("label"))).collect();
 		chosen.extend(trimmed(&details["other"]).map(str::to_owned));
 		if let Some(text) = trimmed(&details["text"]) {
 			body.push(format!("The learner answered: {text}"));

@@ -1,6 +1,8 @@
 //! Sub-agent job usage and the steer messages
 //! that hand a finished (or aborted) job's result back to the teacher.
 
+use std::sync::LazyLock;
+
 use gs_base::{clock, re::Re};
 use gs_json::{Json, Obj, json};
 
@@ -101,12 +103,14 @@ pub fn set_steer_ui_inverted(messages: &[Json], message_id: &str, inverted: bool
 
 /// Whether a job's result is the failure shape (nothing built, or a failure brief).
 pub fn is_subagent_failure(kind: &str, result: &Json) -> bool {
-	let failed_brief = |prefix: &str| Re::new(&format!("^{prefix}"), "i").test(&field_text(result, "brief"));
+	static RESEARCH_FAILED: LazyLock<Re> = LazyLock::new(|| Re::new("^Research failed:", "i"));
+	static PDF_FAILED: LazyLock<Re> = LazyLock::new(|| Re::new("^PDF failed:", "i"));
+	let failed_brief = |prefix: &Re| prefix.test(&field_text(result, "brief"));
 	let empty = |key: &str| result[key].as_str().is_none_or(str::is_empty);
 	match kind {
-		"research" => result["sources"].as_arr().is_some_and(Vec::is_empty) && failed_brief("Research failed:"),
+		"research" => result["sources"].as_arr().is_some_and(Vec::is_empty) && failed_brief(&RESEARCH_FAILED),
 		"demo" => empty("html"),
-		"pdf" => failed_brief("PDF failed:"),
+		"pdf" => failed_brief(&PDF_FAILED),
 		_ => empty("svg"),
 	}
 }
@@ -153,54 +157,33 @@ fn abort_text(kind: &str) -> &'static str {
 	}
 }
 
-/// A job field kept only when the job has it.
-fn put_field(out: &mut Obj, job: &Json, key: &str) {
-	if let Some(v) = job.get(key) {
-		out.insert(key, v.clone());
-	}
-}
-
-/// The steer for a finished job. Its id is per job (`steer_<jobId>`), so a second delivery is
-/// recognized by `steer_delivered`.
-pub fn build_subagent_steer(job: &Json, result: &Json) -> Json {
-	let kind = job["kind"].as_str().unwrap_or_default();
+/// A custom message for the teacher about a job; its id is per job (`steer_<jobId>`), so a second
+/// delivery is recognized by `steer_delivered`. `last` is the details field that ends the message.
+fn steer(job: &Json, custom_type: &str, content: String, last: (&str, Json)) -> Json {
 	let mut details = Obj::new();
-	if let Some(id) = job.get("id") {
-		details.insert("jobId", id.clone());
-	}
-	put_field(&mut details, job, "kind");
-	put_field(&mut details, job, "toolCallId");
-	details.insert("result", result.clone());
+	details.insert_present("jobId", job.get("id"));
+	details.insert_present("kind", job.get("kind"));
+	details.insert_present("toolCallId", job.get("toolCallId"));
+	details.insert(last.0, last.1);
 	json!({
 		"id": format!("steer_{}", field_text(job, "id")),
 		"role": "custom",
-		"customType": "subagent-steer",
-		"content": steer_text(kind, result),
+		"customType": custom_type,
+		"content": content,
 		"display": true,
 		"details": Json::Obj(details),
 		"timestamp": clock::now_ms(),
 	})
+}
+
+/// The steer for a finished job.
+pub fn build_subagent_steer(job: &Json, result: &Json) -> Json {
+	steer(job, "subagent-steer", steer_text(job["kind"].str_or_empty(), result), ("result", result.clone()))
 }
 
 /// The steer for an aborted job, in the same id space as the result steer so exactly one lands.
 pub fn build_abort_steer(job: &Json) -> Json {
-	let kind = job["kind"].as_str().unwrap_or_default();
-	let mut details = Obj::new();
-	if let Some(id) = job.get("id") {
-		details.insert("jobId", id.clone());
-	}
-	put_field(&mut details, job, "kind");
-	put_field(&mut details, job, "toolCallId");
-	details.insert("aborted", true);
-	json!({
-		"id": format!("steer_{}", field_text(job, "id")),
-		"role": "custom",
-		"customType": "subagent-abort",
-		"content": abort_text(kind),
-		"display": true,
-		"details": Json::Obj(details),
-		"timestamp": clock::now_ms(),
-	})
+	steer(job, "subagent-abort", abort_text(job["kind"].str_or_empty()).to_owned(), ("aborted", Json::Bool(true)))
 }
 
 /// Whether the transcript already carries this steer.
