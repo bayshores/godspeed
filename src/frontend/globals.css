@@ -577,6 +577,17 @@ body {
 	}
 }
 
+/* A conversation too short to hold the key that jumps to its end shows no key:
+   the key would cover all of it. */
+.lh-log {
+	container: lh-log / size;
+}
+@container lh-log (max-height: 95px) {
+	.lh-log-jump {
+		display: none;
+	}
+}
+
 /* The block cursor at the end of the text the teacher is writing. */
 .lh-streaming > :is(p, h1, h2, h3, h4, blockquote):last-child::after,
 .lh-streaming > :is(ul, ol):last-child > li:last-child::after {

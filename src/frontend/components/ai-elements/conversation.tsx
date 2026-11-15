@@ -10,7 +10,7 @@ type ConversationProps = ComponentProps<typeof StickToBottom>;
 
 export const Conversation = ({ className, ...props }: ConversationProps) => (
   <StickToBottom
-    className={cn("relative flex-1 overflow-y-hidden", className)}
+    className={cn("lh-log relative flex-1 overflow-y-hidden", className)}
     initial="smooth"
     resize="smooth"
     role="log"
@@ -88,13 +88,13 @@ export const ConversationScrollButton = ({
             you are reading (right-3 leaves the scrollbar clear). */}
         <div
           aria-hidden
-          className="lh-fade pointer-events-none absolute left-0 right-3 bottom-0 h-24 bg-gradient-to-t from-background from-35% to-transparent"
+          className="lh-log-jump lh-fade pointer-events-none absolute left-0 right-3 bottom-0 h-24 bg-gradient-to-t from-background from-35% to-transparent"
           data-state={presence.state}
         />
         <Button
           aria-label="Scroll to the bottom"
           className={cn(
-            "lh-fade absolute bottom-4 left-[50%] translate-x-[-50%] bg-background hover:bg-muted",
+            "lh-log-jump lh-fade absolute bottom-4 left-[50%] translate-x-[-50%] bg-background hover:bg-muted",
             className
           )}
           data-state={presence.state}
