@@ -21,6 +21,15 @@ Each feature or topic has its own pen.dev file in `docs/design/`, named after it
 - Code comments don't point at design boards or exports. The code is the reference once it's built.
 - Save the file with the pen.dev tool after drawing, then tell the user which file and which boards to look at.
 
+# One app, not a pile of features
+
+Every feature is designed as a part of the whole app, never by itself.
+
+- Before designing anything, list what the app already has that does part of the job (a screen, a control, a stored thing, an agent tool) and build on it. A new screen, tab, setting, tool or data file needs a reason the existing ones can't serve.
+- A feature uses the names, controls, looks and flows the rest of the app uses for the same idea. One way per action, one home per thing.
+- When a new feature overlaps an old one, merge them or remove the old one in the same change. Two features never do the same job.
+- A plan says where the feature touches the rest of the app (Today, spaces, lessons, deadlines, the agent's pane, the agent's tools, the godspeed folder) and what changes there.
+
 # Say it once
 
 Nothing is said twice on one screen.
