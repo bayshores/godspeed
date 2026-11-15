@@ -117,7 +117,7 @@ It never creates a release or uploads to one, and the verify job is skipped. The
 Push the tag `v<package.json version>`.
 
 1. `quality` checks that the tag matches `package.json`, then runs `npm run check`.
-2. `draft` makes or reuses a **single draft release** with the download table and the notes from `src/shared/changelog.json`. A version with no notes, a published release or two matching releases fail this job.
+2. `draft` makes or reuses a **single draft release** with the alpha line, the download table and the notes from `src/shared/changelog.json`. A version with no notes, a published release or two matching releases fail this job.
 3. The four `package` jobs check that every secret is set, then build, sign, check and upload their downloads to the draft.
 4. `feeds` writes the four feeds from all downloads and uploads them.
 5. `verify` checks the draft, read-only.
