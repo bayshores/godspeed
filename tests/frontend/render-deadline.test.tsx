@@ -93,19 +93,18 @@ function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentP
 const count = (html: string, needle: string) => html.split(needle).length - 1;
 
 describe("the deadline page", () => {
-	it("head: the days left on the space's color, kind and when, the name, how ready, and its two buttons", () => {
+	it("head: the days left on the space's color, the name, then kind and when with how ready as a chip, and its two buttons", () => {
 		const html = render();
 		assert.match(html, /background:var\(--lh-space-1\)[^>]*><span[^>]*>4<\/span><span[^>]*>days</);
-		assert.match(html, /data-testid="deadline-when"[^>]*>Exam, Friday Nov 6, 7:00 PM</);
-		assert.match(html, /data-testid="deadline-name"[^>]*>Midterm</);
-		assert.match(html, /data-testid="deadline-progress".*width:38%.*>38% ready</);
+		assert.match(html, /data-testid="deadline-name"[^>]*>Midterm<.*data-testid="deadline-when"[^>]*>Exam, Friday Nov 6, 7:00 PM</, "nothing above the name");
+		assert.match(html, /data-testid="deadline-progress"[^>]*bg-highlight[^>]*>38% ready</);
 		assert.match(html, /data-testid="deadline-cheat-sheet"[^>]*>Cheat sheet<\/button>/);
 		assert.match(html, /data-testid="deadline-edit"[^>]*>Edit deadline<\/button>/);
 	});
 	it("a homework's head counts its problems", () => {
 		const html = render(deadline({ kind: "homework", problems: { done: 2, total: 8 } }));
 		assert.match(html, /data-testid="deadline-when"[^>]*>Homework, Friday Nov 6, 7:00 PM</);
-		assert.match(html, /data-testid="deadline-progress".*width:25%.*>2 of 8 problems done</);
+		assert.match(html, /data-testid="deadline-progress"[^>]*>2 of 8 problems done</);
 	});
 	it("one strip segment per topic and counts for the statuses it has", () => {
 		const html = render();
@@ -176,7 +175,7 @@ describe("the deadline page", () => {
 		assert.match(html, /data-testid="deadline-ask"[^>]*lh-btn-main[^>]*>Ask marco<\/button>.*>Pick files</);
 		assert.ok(!html.includes('data-testid="deadline-day-row"'), "no list of every file");
 		assert.match(html, /A plan shows up once it knows what&#x27;s on it\./);
-		assert.match(html, /data-testid="deadline-progress"[^>]*><span[^>]*>Not measured yet</);
+		assert.match(html, /data-testid="deadline-progress"[^>]*>Not measured yet</);
 		assert.ok(!html.includes('data-testid="deadline-topics"'));
 	});
 	it("a request: Ask waits while it runs, and one that changed nothing says why in place of the offer", () => {

@@ -51,16 +51,13 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 	} else if (view.working) {
 		body = (
 			<>
-				{state === "grading" && endedByTime(mock) && (
-					<p data-testid="mock-time-up" className="text-[17px] text-ink-2">
-						The time is up, so Mock {mock.n} ended.
-					</p>
-				)}
 				<p className="flex items-center gap-3 text-[23px] leading-snug text-ink">
 					<BrailleSpinner className="h-5" label={state === "writing" ? "Writing the mock" : "Grading the mock"} />
 					{state === "writing" ? `${teacher} is writing Mock ${mock.n}` : `${teacher} is grading Mock ${mock.n}`}
 				</p>
-				<p className="text-[17px] text-ink-2">{state === "writing" ? `${size}. ` : ""}This takes a few minutes. You can leave this page and come back.</p>
+				<p className="text-[17px] text-ink-2">
+					{state === "writing" ? `${size}. ` : endedByTime(mock) ? <span data-testid="mock-time-up">The time is up. </span> : ""}This takes a few minutes. You can leave this page and come back.
+				</p>
 				<NoAgentLine />
 			</>
 		);

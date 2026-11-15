@@ -1,8 +1,7 @@
 import { memo, type ReactNode } from "react";
 import { rampColor, type DeadlineProgress, type PlanDay } from "@/shared/core";
 import { isOverdue } from "@/frontend/components/deadlines-model";
-import { STATUS_LEGEND, progressShare, progressWords } from "@/frontend/components/overview/overview-model";
-import { ProgressBar } from "@/frontend/components/ui/progress-bar";
+import { STATUS_LEGEND, progressWords } from "@/frontend/components/overview/overview-model";
 import { Tip } from "@/frontend/components/ui/tooltip";
 import { CoversSheet } from "./covers-sheet";
 import { DeadlineBlock } from "./deadline-block";
@@ -12,9 +11,9 @@ import type { RequestKind } from "./request-model";
 
 /**
  * ONE DEADLINE'S PAGE (pure view, the render-test seam): the time left,
- * when, the name and how far it is; its topics as a strip colored by how
- * you do; what it's like; a homework's problems; What's on it and the path
- * to it with its mocks. An interview has no cheat sheet, and no What's on
+ * the name, and under it when and how far it is (a chip); its topics as a
+ * strip colored by how you do; what it's like; a homework's problems; What's
+ * on it and the path to it with its mocks. An interview has no cheat sheet, and no What's on
  * it until files are linked.
  */
 
@@ -60,23 +59,23 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 	const { deadline: d, nowMs } = props;
 	const past = !d.done && isOverdue(d, nowMs);
 	const tallies = new Map(props.topics.map((t) => [t.id, t]));
-	const share = progressShare(d);
 	const interview = d.kind === "interview";
 	return (
 		<div data-testid="deadline-page" className="@container flex w-full flex-col gap-[22px]">
 			<header className="flex flex-wrap items-center gap-x-6 gap-y-3">
 				<DeadlineBlock deadline={d} color={props.color} nowMs={nowMs} size="head" />
-				<div className="flex min-w-0 flex-1 basis-[280px] flex-col gap-1.5">
-					<p data-testid="deadline-when" className="font-count text-lg text-ink-2">
-						{whenLine(d)}
-					</p>
+				<div className="flex min-w-0 flex-1 basis-[280px] flex-col gap-2">
 					<h1 data-testid="deadline-name" className="text-[44px] leading-[1.2] break-words text-ink">
 						{d.name}
 					</h1>
-					<div data-testid="deadline-progress" className="flex items-center gap-3">
-						{share !== null && <ProgressBar share={share} className="w-[320px] max-w-[50%] shrink-0" />}
-						<span className="text-[15px] text-ink-2">{progressWords(d) ?? "Not measured yet"}</span>
-					</div>
+					<p className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+						<span data-testid="deadline-when" className="font-count text-lg text-ink-2">
+							{whenLine(d)}
+						</span>
+						<span data-testid="deadline-progress" className="bg-highlight px-2 py-0.5 text-[15px] leading-snug text-ink">
+							{progressWords(d) ?? "Not measured yet"}
+						</span>
+					</p>
 				</div>
 				{!interview && (
 					<button type="button" data-testid="deadline-cheat-sheet" onClick={props.onCheatSheet} className="lh-btn shrink-0 text-[15px]">

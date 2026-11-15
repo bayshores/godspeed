@@ -211,9 +211,9 @@ describe("The teacher's note", () => {
 // ─── the next deadline ──────────────────────────────────────────────────────
 
 describe("The next deadline", () => {
-	it("the soonest open deadline still ahead: days left, day, name, how far, and its page", () => {
+	it("the soonest open deadline still ahead: days left, name, then day and how far, and its page", () => {
 		const html = section(render(), "next-deadline");
-		assert.match(text(html), /2 days Thursday Oct 29 HW 5 2 of 7 problems done\./);
+		assert.match(text(html), /2 days HW 5 Thursday Oct 29 2 of 7 problems done/);
 		assert.match(tag(html, "next-deadline-open"), /href="\/space\/deadline\/d1"/);
 		assert.match(html, /width:28\.57/, "the bar is as far as the problems done");
 		assert.match(html, /data-teacher-target="deadline:d1"/);
@@ -223,12 +223,12 @@ describe("The next deadline", () => {
 		assert.match(text(section(render(), "next-deadline-start", "</button>")), /Work on HW 5/);
 		const exam = render({ data: { ...PAYLOAD, deadlines: [DEADLINES[0]!] } });
 		assert.match(text(section(exam, "next-deadline-start", "</button>")), /Study for Midterm 2/);
-		assert.match(text(section(exam, "next-deadline")), /72% ready\./);
+		assert.match(text(section(exam, "next-deadline")), /72% ready/);
 	});
 
 	it("nothing to measure: says so, with no bar", () => {
 		const html = section(render({ data: { ...PAYLOAD, deadlines: [deadline("d3", "Reading", "2026-11-06", { kind: "exam", topics: [], ready: null })] } }), "next-deadline");
-		assert.match(text(html), /Not measured yet\./);
+		assert.match(text(html), /Not measured yet/);
 		assert.ok(!html.includes("lh-grow"));
 	});
 

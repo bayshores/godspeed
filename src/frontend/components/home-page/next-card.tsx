@@ -11,10 +11,11 @@ import { blockColor } from "./today-row";
 
 /**
  * The next thing to do, the biggest band in Today's deadlines card: the
- * time left as a big block in its space's color, its space, what to do as
- * the title (which opens the deadline's page), when it is with how far as
- * a chip, what is left of it today, "Mark done" and the page's one main
- * button. A narrow card puts the block above the words as a strip.
+ * time left as a big block in its space's color, what to do as the title
+ * (which opens the deadline's page), one line under it with its space and
+ * when and how far as a chip, what is left of it today, "Mark done" and the
+ * page's one main button. A narrow card puts the block above the words as
+ * a strip.
  */
 export function NextCard({
 	deadline: d,
@@ -46,15 +47,12 @@ export function NextCard({
 				/>
 				<div className="flex min-w-0 flex-1 flex-col justify-between gap-5 px-6 py-6 @min-[540px]:px-7">
 					<div className="flex flex-col gap-2">
-						<p title={d.spaceName} className="truncate text-base text-ink-2">
-							{d.spaceName}
-						</p>
 						<h2 className="text-[34px] leading-tight break-words text-ink">
 							<Link to={deadlineHref(d.id)} state={openedFrom("today")} data-testid="today-card-open" className="hover:underline">
 								{words.title}
 							</Link>
 						</h2>
-						<p className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[17px] text-ink">
+						<p className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[17px] text-ink-2">
 							{words.when}
 							{words.ready && (
 								<span data-testid="today-card-ready" className={CHIP}>

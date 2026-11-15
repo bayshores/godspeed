@@ -292,11 +292,10 @@ describe("The card", () => {
 		</MemoryRouter>,
 	);
 
-	it("its space, the action as the title opening the deadline's page, when and how ready", () => {
+	it("the action as the title opening the deadline's page, then its space and when, and how ready", () => {
 		assert.match(tag(html, "today-card-open"), /href="\/space\/deadline\/mid"/);
 		assert.match(section(html, "today-card-open", "</a>"), />Study for Midterm 2$/);
-		assert.ok(html.includes(">CSE 21<"));
-		assert.ok(html.includes("The test is on Thursday at 7:00 PM."));
+		assert.ok(html.indexOf("Study for Midterm 2") < html.indexOf("CSE 21, Thursday at 7:00 PM"), "nothing above the title");
 		assert.match(tag(html, "today-card-ready"), /bg-highlight/);
 		assert.match(section(html, "today-card-ready", "</span>"), />40% ready$/);
 		assert.ok(html.includes("background:var(--lh-space-2)"), "the big block in the space's color");
