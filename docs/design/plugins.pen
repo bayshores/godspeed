@@ -4497,6 +4497,53 @@
               ]
             }
           ]
+        },
+        {
+          "type": "frame",
+          "id": "v583B",
+          "name": "H2 built in the app: A with lip, B no lip",
+          "fill": "#000000",
+          "layout": "vertical",
+          "gap": 24,
+          "padding": 24,
+          "children": [
+            {
+              "type": "text",
+              "id": "q772C",
+              "name": "caption",
+              "fill": "#d8d8d8",
+              "content": "H2 built in the real app. A keeps the lip, B has none.",
+              "fontFamily": "Zen Kaku Gothic New",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "rectangle",
+              "id": "vq84n",
+              "name": "box-corners-settings.png",
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "plugins/box-corners-settings.png?v=1",
+                "mode": "stretch"
+              },
+              "width": 2140,
+              "height": 980
+            },
+            {
+              "type": "rectangle",
+              "id": "mE2j6",
+              "name": "box-corners-today.png",
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "plugins/box-corners-today.png?v=1",
+                "mode": "stretch"
+              },
+              "width": 1740,
+              "height": 1040
+            }
+          ]
         }
       ]
     },
