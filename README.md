@@ -67,7 +67,7 @@ Two things the GIF doesn't get to. Questions from earlier lessons come back when
 | **Progress** | How ready you are for each deadline, how each lesson went, and whether your confidence matches your results. |
 | **Cheat sheets** | Your agent makes a PDF cheat sheet for a deadline. Point at the part you mean, say what to change, and the rules you give it stick for that sheet. |
 | **Calculator** | In any box you write in, end a calculation with `=` and the answer shows in grey after it. It does numbers, algebra, `solve 2x + 3 = 11`, derivatives and integrals, all on your computer. |
-| **Talk** | Click the teacher in the top bar to have your agent set up spaces, add deadlines or answer questions about them. |
+| **Talk** | Click the pill in the top bar that says what your teacher is doing, then Talk, to have your agent set up spaces, add deadlines or answer questions about them. |
 
 ## How it works
 
