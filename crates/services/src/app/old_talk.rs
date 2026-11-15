@@ -5,7 +5,7 @@
 use std::io;
 use std::path::Path;
 
-use gs_base::config::VERSION;
+use gs_base::config::{Paths, VERSION};
 use gs_base::fsx;
 use gs_core::contracts::chat::TALK_CHAT_ID;
 use gs_core::messages::talk_export::{TALK_FILES, talk_export};
@@ -16,10 +16,11 @@ use crate::App;
 const BACKUP_PREFIX: &str = "talk-backup-";
 const TALK_MD: &str = "Talk.md";
 
-/// At start-up: copies the Talk record and its folder to `data/talk-backup-<version>/`, once ever
-/// (an existing backup from any version counts), and only when there is a record.
-pub fn back_up_talk(app: &App) {
-	if let Err(err) = back_up(&app.paths.data, &app.paths.chats, VERSION) {
+/// First thing at start-up, before anything can read or change the record: copies it and its
+/// folder to `data/talk-backup-<version>/`, once ever (an existing backup from any version
+/// counts), and only when there is a record.
+pub fn back_up_talk(paths: &Paths) {
+	if let Err(err) = back_up(&paths.data, &paths.chats, VERSION) {
 		eprintln!("[talk] backup failed: {err}");
 	}
 }
@@ -66,9 +67,10 @@ fn copy_dir(from: &Path, to: &Path) -> io::Result<()> {
 	Ok(())
 }
 
-/// Writes `Talk.md` and `Talk files/` into `folder` unless `Talk.md` is already there. Answers
-/// whether `Talk.md` is there now (false: no Talk record, or nothing in it was ever shown).
-/// Files already in `Talk files/` are left as they are.
+/// Writes `Talk.md` and `Talk files/` into `folder` unless `Talk.md` is already there (then
+/// nothing is written). Answers whether `Talk.md` is there now (false: no Talk record, or nothing
+/// in it was ever shown). Files already in `Talk files/` are left as they are; `Talk.md` is
+/// renamed into place last, so it is there only once everything beside it is.
 pub(super) fn export_talk(app: &App, folder: &Path) -> io::Result<bool> {
 	let file = folder.join(TALK_MD);
 	if file.exists() {
@@ -92,12 +94,22 @@ pub(super) fn export_talk(app: &App, folder: &Path) -> io::Result<bool> {
 			let target = files.join(entry.file_name());
 			if entry.file_type()?.is_file() && !target.exists() {
 				std::fs::create_dir_all(&files)?;
-				std::fs::copy(entry.path(), target)?;
+				let partial = partial_of(&target);
+				std::fs::copy(entry.path(), &partial)?;
+				std::fs::rename(&partial, target)?;
 			}
 		}
 	}
-	fsx::write_text_atomic(&file, &export.text)?;
+	let partial = partial_of(&file);
+	fsx::write_text_atomic(&partial, &export.text)?;
+	std::fs::rename(&partial, &file)?;
 	Ok(true)
+}
+
+/// A file is written under this name and renamed when whole, so a crash never leaves half of it
+/// under the real name (and the next start makes it again).
+fn partial_of(file: &Path) -> std::path::PathBuf {
+	file.with_file_name(format!("{}.partial", file.file_name().map(|n| n.to_string_lossy()).unwrap_or_default()))
 }
 
 #[cfg(test)]
@@ -183,6 +195,20 @@ mod tests {
 		assert!(export_talk(&app, &folder).unwrap());
 		assert_eq!(std::fs::read_to_string(folder.join(TALK_MD)).unwrap(), "my own notes");
 		assert!(!folder.join(TALK_FILES).exists());
+	}
+
+	#[test]
+	fn an_export_cut_off_halfway_is_made_again_whole() {
+		let root = scratch_dir("old-talk-cut");
+		let app = test_app(&root);
+		old_talk(&app);
+		let folder = root.join("home/godspeed");
+		fsx::write_text_atomic(&folder.join("Talk.md.partial"), "# Ta").unwrap();
+		fsx::write_text_atomic(&folder.join("Talk files/0123456789ab-Syllabus.pdf.partial"), "%PD").unwrap();
+		assert!(export_talk(&app, &folder).unwrap());
+		assert!(std::fs::read_to_string(folder.join(TALK_MD)).unwrap().starts_with("# Talk\n\nYour Talk chat"));
+		assert_eq!(std::fs::read(folder.join("Talk files/0123456789ab-Syllabus.pdf")).unwrap(), b"%PDF-1.4 made up");
+		assert!(!snapshot(&folder).keys().any(|name| name.to_string_lossy().ends_with(".partial")));
 	}
 
 	#[test]

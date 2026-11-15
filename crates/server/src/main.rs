@@ -32,6 +32,7 @@ async fn main() -> ExitCode {
 		eprintln!("another godspeed server is using {}", paths.data.display());
 		return ExitCode::FAILURE;
 	};
+	gs_services::app::old_talk::back_up_talk(&paths);
 	// The one stdout writer.
 	#[allow(clippy::disallowed_methods)]
 	let shell = (std::env::var("LH_SHELL").as_deref() == Ok("1")).then(|| ShellLink::new(std::io::stdout()));
@@ -52,7 +53,6 @@ async fn main() -> ExitCode {
 	}
 	let access = http::access::Access::from_env();
 	let app = App::new(paths, shell.clone());
-	gs_services::app::old_talk::back_up_talk(&app);
 	if let Some(shell) = &shell {
 		listen_for_terminals(&app, shell);
 		// Weak: the app holds the link, so the link must not hold the app.

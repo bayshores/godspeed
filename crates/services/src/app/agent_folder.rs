@@ -405,6 +405,20 @@ mod tests {
 	}
 
 	#[test]
+	fn the_learners_own_talk_md_is_kept_and_counts_as_exported() {
+		let root = scratch_dir("folder-talk-mine");
+		let app = test_app(&root);
+		let folder = agent_folder(&app);
+		app.stores.chats.create_chat("Talk", Some("talk"), None, None).unwrap();
+		app.stores.chats.save_messages("chat_talk", &[json!({ "id": "m1", "role": "user", "content": "hi" })]).unwrap();
+		let talk = Path::new(&folder).join("Talk.md");
+		fsx::write_text_atomic(&talk, "my own notes").unwrap();
+		export_old_talk(&app, &folder);
+		assert_eq!(std::fs::read_to_string(&talk).unwrap(), "my own notes");
+		assert_eq!(std::fs::read_to_string(state_file(&app)).unwrap(), "{\n\t\"talkExported\": true\n}\n");
+	}
+
+	#[test]
 	fn an_unusable_folder_is_refused_before_anything_is_written() {
 		let root = scratch_dir("folder-unusable");
 		let app = test_app(&root);
