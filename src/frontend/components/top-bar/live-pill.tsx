@@ -3,6 +3,7 @@ import { Countdown } from "@/frontend/components/countdown";
 import { usePillMounted } from "@/frontend/components/notice-store";
 import { announceDelay } from "@/frontend/components/teacher/follow-status";
 import { cn } from "@/frontend/lib/utils";
+import { BAR_TAB, BAR_WORD_ON, barTabState } from "./bar-look";
 import { firstWord, noticeCount, shortName, type PillThing } from "./live-pill-model";
 import { NOTICE_STACK_ID } from "./pill-panel";
 import { usePill } from "./pill-provider";
@@ -19,8 +20,9 @@ const OWN_FIT = "min-w-auto shrink-[1000]";
 
 /**
  * THE LIVE PILL, in every top bar: what is happening now, in one line. A
- * click opens the teacher's panel on the agent's screen (pill-provider.tsx).
- * It lights up on the highlighter while something is live, its square
+ * click opens the teacher's panel on the agent's screen (pill-provider.tsx);
+ * while the panel is open the pill is lit as the bar's other words are, and
+ * a click closes it. It is the bar's button, as Menu is. It lights up on the highlighter while something is live, its square
  * breathes while the teacher works, and a reply waiting in another lesson
  * brings its Open along. Folded notices wait as a count that shows them
  * again. `own`: it sits in a page's own bar, where it shows only while it
@@ -41,8 +43,9 @@ export function LivePill({ own = false, named = false }: { own?: boolean; named?
 	if (!pill || !line || gone) return null;
 	const thing = line.thing;
 	const tag = line.tag;
+	const on = pill.on;
 	// In a page's own bar the idle words are the count already.
-	const waiting = own && line.idle ? 0 : pill.waiting;
+	const waiting = own && line.idle && !on ? 0 : pill.waiting;
 	const place = { own, named };
 	const spoken = [line.head, line.thing?.detail, line.thing?.count].filter(Boolean).join(" ");
 	const words = (
@@ -63,28 +66,28 @@ export function LivePill({ own = false, named = false }: { own?: boolean; named?
 		</>
 	);
 	return (
-		<div data-live-pill="" className={cn("lh-no-drag flex items-center gap-1 self-center px-1", own ? OWN_FIT : PILL_FIT)}>
-			<div className={cn("flex h-8 items-center rounded-[2px] transition-colors duration-(--lh-dur) ease-(--lh-ease-out)", line.lit ? "bg-highlight text-ink" : "text-bar-ink hover:bg-bar-ink/10")}>
+		<div data-live-pill="" className={cn("lh-no-drag flex items-center gap-1 self-stretch", own ? OWN_FIT : PILL_FIT)}>
+			<div className={cn("flex items-center self-stretch transition-colors duration-(--lh-dur) ease-(--lh-ease-out)", on ? (own ? BAR_WORD_ON : barTabState(true)) : line.lit ? "bg-highlight text-ink" : barTabState(false))}>
 				{pill.clickable(place) ? (
 					<button
 						type="button"
 						data-testid="live-pill"
 						data-teacher-panel-toggle=""
-						aria-expanded={pill.open(place)}
-						aria-controls={own && !thing?.needs ? NOTICE_STACK_ID : undefined}
+						aria-expanded={on || pill.open(place)}
+						aria-controls={own && !on && !thing?.needs ? NOTICE_STACK_ID : undefined}
 						title={spoken}
 						onClick={(e) => pill.click(e.currentTarget, place)}
-						className="lh-press flex h-full items-center gap-2.5 px-3 text-[15px] whitespace-nowrap"
+						className={cn(BAR_TAB, "h-full gap-2.5")}
 					>
 						{words}
 					</button>
 				) : (
-					<span data-testid="live-pill" title={spoken} className="flex h-full items-center gap-2.5 px-3 text-[15px] whitespace-nowrap">
+					<span data-testid="live-pill" title={spoken} className="flex h-full items-center gap-2.5 px-4 text-[15px] whitespace-nowrap">
 						{words}
 					</span>
 				)}
 				{thing?.action && (
-					<button type="button" data-testid="live-pill-act" onClick={() => pill.act(thing)} className="lh-btn mr-0.5 h-7 shrink-0 px-3 [--lh-key-hover:var(--foreground)] [--lh-key:var(--foreground)] text-background">
+					<button type="button" data-testid="live-pill-act" onClick={() => pill.act(thing)} className="lh-btn mr-2 h-7 shrink-0 px-3 [--lh-key-hover:var(--foreground)] [--lh-key:var(--foreground)] text-background">
 						Open
 					</button>
 				)}

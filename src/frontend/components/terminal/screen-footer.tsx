@@ -4,7 +4,8 @@ import { usePresence } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
 import type { TerminalFooter } from "./terminal-model";
 
-const KEY = "lh-btn h-8 shrink-0 px-3 text-[14px]";
+/** In the screen's font, so the row reads as part of the screen. */
+const KEY = "lh-btn h-8 shrink-0 font-mono text-[13px]";
 
 /**
  * The slim row under a screen: Attach and Paste at the left, the sentence
@@ -37,16 +38,16 @@ export function ScreenFooter({ text, onAttach, onPaste, onStop, get, assist, onS
 					e.target.value = "";
 				}}
 			/>
-			<Key testid="terminal-attach" onClick={onAttach && (() => picker.current?.click())}>
+			<Key testid="terminal-attach" onClick={onAttach && (() => picker.current?.click())} quiet>
 				Attach
 			</Key>
-			<Key testid="terminal-paste" onClick={onPaste}>
+			<Key testid="terminal-paste" onClick={onPaste} quiet>
 				Paste
 			</Key>
-			<p data-testid="terminal-footer" role="status" className={cn("min-w-0 flex-1 px-1.5 text-[15px] leading-snug text-ink", text && "min-w-56")}>
+			<p data-testid="terminal-footer" role="status" className={cn("min-w-0 flex-1 px-1.5 font-mono text-[13px] leading-snug text-ink", text && "min-w-56")}>
 				{text}
 			</p>
-			<Key testid="terminal-stop" onClick={onStop}>
+			<Key testid="terminal-stop" onClick={onStop} quiet>
 				Stop
 			</Key>
 			<Key testid="terminal-get" onClick={get && (() => void window.lh?.openLink?.(get.url))}>
@@ -62,15 +63,16 @@ export function ScreenFooter({ text, onAttach, onPaste, onStop, get, assist, onS
 	);
 }
 
-/** A key that is there while it can act (`onClick`), fading in and out. */
-function Key({ testid, onClick, main = false, children }: { testid: string; onClick: (() => void) | null; main?: boolean; children: ReactNode }) {
+/** A key that is there while it can act (`onClick`), fading in and out. The
+ *  everyday ones are plain words (`quiet`); the one to press now is bright (`main`). */
+function Key({ testid, onClick, main = false, quiet = false, children }: { testid: string; onClick: (() => void) | null; main?: boolean; quiet?: boolean; children: ReactNode }) {
 	const shown = usePresence(!!onClick);
 	// While it fades out it keeps its last words and does nothing.
 	const last = useRef(children);
 	if (onClick) last.current = children;
 	if (!shown.mounted) return null;
 	return (
-		<button type="button" data-testid={testid} data-state={shown.state} onClick={() => onClick?.()} className={cn(KEY, "lh-fade", main && "lh-btn-main")}>
+		<button type="button" data-testid={testid} data-state={shown.state} onClick={() => onClick?.()} className={cn(KEY, "lh-fade", quiet ? "lh-btn-quiet" : "px-3", main && "lh-btn-main")}>
 			{last.current}
 		</button>
 	);

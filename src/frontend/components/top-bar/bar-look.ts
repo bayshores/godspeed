@@ -3,6 +3,9 @@
 export const BAR_TAB = "lh-press flex min-w-0 items-center gap-2 px-4 text-[15px] whitespace-nowrap";
 export const barTabState = (lit: boolean) => (lit ? "bg-background font-medium text-ink" : "text-bar-ink hover:bg-bar-ink/10");
 
+/** A word in a bar whose panel is open: a block of the bar's ink. */
+export const BAR_WORD_ON = "bg-bar-ink font-medium text-bar hover:bg-bar-ink";
+
 /** The bars a pop-up can hang from: the app's top bar, or a page's own. */
 export const BARS = ".lh-app-bar, .lh-own-bar";
 

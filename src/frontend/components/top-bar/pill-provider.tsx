@@ -23,6 +23,8 @@ interface PillApi {
 	lineAt: (place: PillPlace) => PillLine;
 	/** What the pill opens is open: the teacher's panel, or in a page's own bar the notices. */
 	open: (place: PillPlace) => boolean;
+	/** The teacher's panel is open: the pill is its key, held down. */
+	on: boolean;
 	/** How many notices wait folded in the pill. */
 	waiting: number;
 	notices: boolean;
@@ -90,11 +92,12 @@ export function PillProvider({ children }: { children: ReactNode }) {
 	const said = notices.said?.title ?? null;
 	const known = notices.known.length;
 	// The teacher's open panel says in its head what the teacher does and
-	// that background work needs the learner.
+	// that background work needs the learner: the pill, in every bar, is
+	// the name alone, and closes it.
 	const panelOpen = teacher?.panelOpen ?? false;
 	const shownAt = useCallback((at: PillPlace) => (panelOpen ? things.filter((t) => t.kind !== "teacher" && t.kind !== "background") : thingsAt(things, at)), [things, panelOpen]);
 	const lineAt = useCallback(
-		(at: PillPlace) => pillLine({ things: shownAt(at), notice: said, idle: panelOpen && !at.own ? name : idleWords({ name, agent, notices: known, own: at.own }) }),
+		(at: PillPlace) => pillLine({ things: shownAt(at), notice: said, idle: panelOpen ? name : idleWords({ name, agent, notices: known, own: at.own }) }),
 		[shownAt, said, name, agent, known, panelOpen],
 	);
 
@@ -143,8 +146,8 @@ export function PillProvider({ children }: { children: ReactNode }) {
 	);
 
 	const api = useMemo(
-		() => ({ lineAt, open, waiting: notices.waiting, notices: noticesOpen, click, clickable, showNotices, closeNotices, act }),
-		[lineAt, open, notices.waiting, noticesOpen, click, clickable, showNotices, closeNotices, act],
+		() => ({ lineAt, open, on: panelOpen, waiting: notices.waiting, notices: noticesOpen, click, clickable, showNotices, closeNotices, act }),
+		[lineAt, open, panelOpen, notices.waiting, noticesOpen, click, clickable, showNotices, closeNotices, act],
 	);
 	if (!teacher) return <>{children}</>;
 	return <PillContext.Provider value={api}>{children}</PillContext.Provider>;
