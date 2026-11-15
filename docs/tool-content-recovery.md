@@ -30,6 +30,16 @@ Three separate steps:
 
 Code and inline-code ranges come from the CommonMark parser with its math extension (fences, indentation, quotes, lists, no separate container rules). The projection copies them as they are and never turns a syntax tree back into Markdown.
 
+### Code fences with one extra layer
+
+A complete fence that arrived with its line breaks and quotes escaped once more, such as a whole fence on one line with `\n` between its lines, is decoded as one unit and shown as code.
+
+- Only a complete fence qualifies: opening and closing fence of the same kind, every line break encoded, and the text decodes as one JSON string into exactly one code block.
+- The decode is one layer for the whole fence. Quotes and backslashes inside the program are never replaced one by one.
+- A fence with mixed real and encoded line breaks, an invalid escape, a missing close or two extra layers stays as written, and so does everything inside it.
+- Real fences, inline code and fences inside an outer code example are never decoded.
+- A valid encoding is evidence, not proof: a program with a literal `\n` in a single-quoted string can look the same as a misplaced line break, and that case is decoded. There is no per-language repair.
+
 ### Document escapes
 
 A literal two-character `\n` differs from a real newline.
@@ -78,6 +88,7 @@ Unbalanced, unsupported or ambiguous content is not rewritten into new math. Thi
 
 - `tests/shared/content-recovery.test.ts`: recovery and preservation rules, with hard row, comment and code examples.
 - `tests/frontend/tool-content-presentation.test.tsx`: labeled synthetic corpus, saved-answer joins, ambiguity.
+- `tests/frontend/escaped-code-recovery.test.tsx`: extra-layer fence profiles, what must stay as written, and the copy, submit and saved-answer flow for a recovered fence.
 - `tests/frontend/tool-content-interaction.test.tsx`: select, submit, save and reveal flow, paragraph structure.
 - `tests/frontend/repair-math-display.test.tsx`: `repairMathForDisplay` in the renderer.
 - Existing Markdown, card, practice, tool-shape and grading suites still apply.

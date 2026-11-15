@@ -47,7 +47,13 @@ Earlier lessons hold the learner's work as `practice-thinking` markers, which st
 
 ### The plan tree
 
-Written once. In a teach lesson the teacher writes it with one `plan_init` call: a mermaid-subset graph, parsed with line-numbered errors (`agent::tools::mermaid_plan`) and checked to be a DAG. In a study session the app writes it when the lesson starts (§7).
+The agent writes a plan tree with `plan_init`: a mermaid-subset graph, parsed with line-numbered errors (`agent::tools::mermaid_plan`) and checked to be a DAG. A later `plan_init` call replaces the tree. Who writes it depends on the lesson:
+
+| Lesson | Who writes the plan tree |
+|---|---|
+| Older teach lesson | the teacher, with `plan_init` after the probe |
+| Study session on space topics | the app, when the lesson starts (§7) |
+| Study session with no space topics | the agent, with `plan_init` in its first reply (§7) |
 
 Progress is never written into the tree. Statuses (`current`, `visited`, upcoming) derive from tagged `quiz`, `explain` and `problem` calls in the transcript. The plan row (`src/frontend/components/lesson/plan-row.tsx`, steps from `src/shared/core/plan-step-bar.ts`) and plan blocks (`src/frontend/components/plan-block-model.ts`) draw that. The row names every step; a branching plan also gets a small map there that opens the plan dialog.
 

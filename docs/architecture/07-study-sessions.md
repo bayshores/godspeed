@@ -18,15 +18,24 @@ Older `teach` and `practice` lessons on disk keep working with their own agents.
 `create_lesson` (`services::turns::lessons`) writes the opening markers:
 
 1. Picked facts become a `graph-context` marker through `chains_for_selection` (`core::graph::chains`). A chain is included when its conclusion and every premise are picked; a picked fact in no included chain stands alone.
-2. Picks are grouped into topics in space order (`core::study::study`). Each topic has its material when it has one, and learner's standing: untested, weak, shaky or strong, with "(latest wrong)" on a weak topic whose latest answer was wrong. A typed topic with no picks is one untested topic with no material.
+2. Picks are grouped into topics in space order (`core::study::study`). Each topic has its material when it has one, and learner's standing: untested, weak, shaky or strong, with "(latest wrong)" on a weak topic whose latest answer was wrong.
 3. These go into a `study-context` marker. The move for each material and standing pair is a table in `crates/agent/prompts/study/10-study.md`, so a prompt override can change it.
 4. App saves matching plan tree, so plan row lists topics from start.
 
-A session started from a deadline records `deadlineId`. While the latest such session is unfinished, the deadline's Study button reopens it as "Continue studying, 1 of 4 topics" (`core::study::continue_study`); the progress payload carries it as `continueStudy`. A deadline topic with a topic stop in a Study session on the learner's day carries `finishedToday: true` in the progress payload. The plan (`core::study::deadline_plan`, `deadline-plan.ts`) never puts such a topic on today: it moves to tomorrow, or out of the plan when tomorrow is the due day. When that empties today, Today has nothing planned and the deadline's Study button takes all its topics.
+A typed subject (also MCP `start_lesson`) or a deadline with no space topics for it starts differently:
+
+1. The `study-context` marker holds the no-topics note (`no_topics_text`) instead of a topic list. It tells the agent to look up what the learner holds with `search_graph`, then write a plan of at most 8 nodes with `plan_init` in its first reply and start the first node.
+2. The app saves no tree, so the plan row stays hidden until that `plan_init` call.
+3. The agent calls `plan_init` again, with the same slugs for nodes already worked on, when answers show the map is wrong or the learner asks for a change.
+4. The note tells the agent to leave `review` out of `topic_done`, since questions from earlier come only from space topics.
+
+The lesson keeps its own plan when files are added to the space later. A mock question gone over with no topic of its own is one weak topic (`FREE_TOPIC_ID`).
+
+A session started from a deadline records `deadlineId`. While the latest such session is unfinished, the deadline's Study button reopens it as "Continue studying, 1 of 4 topics" (`core::study::continue_study`). A session whose plan the agent has not written yet reopens as "Continue studying" with no count. The progress payload carries it as `continueStudy`. A deadline topic with a topic stop in a Study session on the learner's day carries `finishedToday: true` in the progress payload. The plan (`core::study::deadline_plan`, `deadline-plan.ts`) never puts such a topic on today: it moves to tomorrow, or out of the plan when tomorrow is the due day. When that empties today, Today has nothing planned and the deadline's Study button takes all its topics.
 
 ### The study agent
 
-The teacher's prompt and tools, without the deadline changes (the learner makes those outside lessons), plus:
+The teacher's prompt and tools, without the planning part (`teacher/10-planning.md`) and the deadline changes (the learner makes those outside lessons). `plan_init` is in the list only when `agent_writes_plan` is true (`core::session::plan_blocks`): the app made no tree, or the agent already wrote one. That is fixed for the whole lesson, so the tool list stays the same every turn. It adds:
 
 - `problem` and `conclude` (`agent::tools::practice`; `problem` carries topic's `nodeId`)
 - `topic_done`

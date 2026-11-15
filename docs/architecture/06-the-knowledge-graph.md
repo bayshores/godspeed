@@ -22,7 +22,7 @@ A failure at any step checkpoints nothing; the next trigger reruns it.
 
 Teacher prose only: plain paragraphs under the session title, no learner messages, thinking, tool calls, tool results or quiz blocks. Coverage fingerprints, slot tokens and batch budgets come from the same selection (`message_view_lines`, `core::graph::coverage`), so "covered" means "what the extractor saw". A quiz answer or learner edit never opens a run; only an edit to teacher prose reopens its message.
 
-The prompt is one shared `EXTRACTION_CORE` plus a short `SESSION_PREAMBLE` or `NOTES_PREAMBLE`, assembled in `agent::extraction::findings`. Beside the text it lists:
+The prompt is a short `SESSION_PREAMBLE` or `NOTES_PREAMBLE`, then a goal and a selection rule of its own, then the chain, graph and submit rules both share, assembled in `agent::extraction::findings`. Notes keep definitions, formulas and claims even with no derivation, and make chains only for reasoning the notes give; a session keeps its own goal. Beside the text it lists:
 
 - `THE GRAPH SO FAR`: this source's merged propositions and chains, ids as they are (none for a source's first stretch).
 - `RELATED IDEAS`: about 25 existing ideas from other sources, picked by local search (`related_facts`, embedding and BM25 search in `crates/search`).
@@ -102,9 +102,15 @@ The same pipeline reads notes and space files:
 - Deleting an implication node (any `arg_` id) removes exactly that stored chain.
 - One confirm dialog (`src/frontend/components/delete-node-dialog.tsx`) opens from a fact's right-click menu and from chain table's Delete.
 
-### The teacher's graph tools
+### The teacher's graph tool
 
-The teacher reads the graph only through `list_sessions` (birth sessions, the learner's files) and `list_propositions` (facts a session covered), in `agent::tools::graph`. The `agent.graphTools` setting turns them off. No topic embedding, no top-K pick, no start-of-lesson injection.
+Every lesson kind has one graph tool, `search_graph` (`agent::tools::graph`):
+
+1. It searches only the lesson's own graph: its space's, or "No space" for a lesson with no space.
+2. With a query it ranks facts by meaning and keywords (`search_facts`, `crates/search`); without one it gives the newest facts.
+3. It returns at most 8 facts (id, name, statement) and at most 8 chains whose conclusion or a premise is among them, as "premises → conclusion".
+
+Its body is `services::graph::graph::search_graph`, shared with the MCP tool of the same name (§8.1). The `agent.graphTools` setting, or the graph switched off, removes it from every lesson (`graph_tools_enabled`). Besides the tool, a study lesson starts with the `[Session context]` and `[Study plan]` notes (§7).
 
 ### The Graph page
 

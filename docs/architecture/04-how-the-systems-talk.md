@@ -6,7 +6,7 @@ Each system writes only its own store. Three protocols connect them:
 - Ack-and-steer: a job tool answers at once, Workbench runs job, result returns into lesson (§5.1).
 - Extraction trigger: Classroom tells Library to read new teacher prose (§6).
 
-Study, practice and homework are lesson kinds inside the Classroom, not separate systems (§7). The teacher reads the graph through two read-only tools, `list_sessions` and `list_propositions` (§6). Nothing pushes graph context into a lesson.
+Study, practice and homework are lesson kinds inside the Classroom, not separate systems (§7). Every lesson reads its own graph through one read-only tool, `search_graph` (§6). A study lesson also starts with the picked facts and their chains in a `[Session context]` note and its topics in a `[Study plan]` note (§7).
 
 ```mermaid
 flowchart TB

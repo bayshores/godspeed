@@ -9,7 +9,7 @@ Each seam is the one place a future change should touch.
 | Turn composition | `services::turns::chat_handler` | what a turn consists of |
 | Extraction trigger | `services::turns::turn_service` (`trigger_extraction`) | when Library runs |
 | Outside-agent boundary | `server::mcp` (tools, access check), `engine::bridge` (work items) | what agents can do and how work reaches them |
-| Teacher's graph access | `agent::tools::graph` (`list_sessions`, `list_propositions`) | what teacher can read of graph |
+| Teacher's graph access | `agent::tools::graph` (`search_graph`), filled in by `services::turns::lesson_agent` | what teacher can read of graph |
 | Steer delivery | `services::jobs` (`deliver_job_result`, `set_turn_runner`, `set_job_respawn`) | how background results re-enter lessons |
 | Push events | `Events` in `crates/base`, `server::http::events`, `src/frontend/components/server-events.tsx`; vocabulary in `src/shared/core/events.ts` | change notification, end to end |
 | Agent construction | `AgentBuildOptions` in `agent::teacher::teacher_agent` | scripted engines and tool registries in tests |
