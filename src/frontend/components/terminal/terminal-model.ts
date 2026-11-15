@@ -5,6 +5,7 @@
  */
 import type { FolderAgent } from "@/shared/core";
 import { AGENT_LABEL } from "@/frontend/components/agent-folder/agent-folder-model";
+import { LINE_HEIGHT } from "./terminal-theme";
 
 export type TerminalRole = "teacher" | "helper";
 
@@ -38,19 +39,20 @@ export const CHECK_IN_WAIT_MS = 20_000;
 export const TEACH_WAIT_MS = 30_000;
 
 /** The screen's fixed size; the font scales to fit it. */
-export const COLS = 100;
+export const COLS = 80;
 export const ROWS = 30;
 const MIN_FONT = 8;
 const MAX_FONT = 14;
-/** A monospace cell, in ems, rounded up so the last column and row fit. */
+/** A monospace cell, in ems, rounded up so the last column and row fit
+ *  (xterm rounds a row's height up to whole pixels: 20 px at 12 px). */
 const CELL_WIDTH = 0.62;
-const CELL_HEIGHT = 1.2;
+const CELL_HEIGHT = 1.24 * LINE_HEIGHT;
 
 /** The screen's width at a font size, and at the largest (the room the panel makes for it). */
 export const screenWidth = (font: number): number => Math.ceil(COLS * CELL_WIDTH * font);
 export const FULL_SCREEN_WIDTH = screenWidth(MAX_FONT);
 
-/** The largest font from 8 to 14 px whose whole 100 by 30 screen fits the
+/** The largest font from 8 to 14 px whose whole 80 by 30 screen fits the
  *  box. A box too small even at 8 px scrolls inside, never cuts. */
 export function fitFontSize(width: number, height: number): number {
 	const fit = Math.floor(Math.min(width / (COLS * CELL_WIDTH), height / (ROWS * CELL_HEIGHT)));

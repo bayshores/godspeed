@@ -83,7 +83,13 @@ export function PillProvider({ children }: { children: ReactNode }) {
 	);
 	const said = notices.said?.title ?? null;
 	const known = notices.known.length;
-	const lineAt = useCallback((at: PillPlace) => pillLine({ things: thingsAt(things, at), notice: said, idle: idleWords({ name, agent, notices: known, own: at.own }) }), [things, said, name, agent, known]);
+	// The teacher's open panel says what the teacher does in its head.
+	const panelOpen = teacher?.panelOpen ?? false;
+	const shownAt = useCallback((at: PillPlace) => (panelOpen ? things.filter((t) => t.kind !== "teacher") : thingsAt(things, at)), [things, panelOpen]);
+	const lineAt = useCallback(
+		(at: PillPlace) => pillLine({ things: shownAt(at), notice: said, idle: panelOpen && !at.own ? name : idleWords({ name, agent, notices: known, own: at.own }) }),
+		[shownAt, said, name, agent, known, panelOpen],
+	);
 
 	const open = notices.open;
 	const pillRef = useRef<HTMLElement | null>(null);
@@ -130,7 +136,7 @@ export function PillProvider({ children }: { children: ReactNode }) {
 			{card &&
 				createPortal(
 					<PillCard
-						things={thingsAt(things, place)}
+						things={shownAt(place)}
 						main={lineAt(place).thing}
 						name={teacher.name}
 						panel={!place.own}

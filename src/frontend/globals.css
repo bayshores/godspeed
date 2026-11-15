@@ -460,6 +460,20 @@ body {
 	}
 }
 
+/* A space file name or passage id in the agent's screen: a dotted
+   highlighter line while in view, solid while the pointer is on it. */
+.lh-screen-link {
+	border-bottom: 1px dotted var(--lh-highlight);
+	pointer-events: none;
+}
+/* xterm keeps its scrollbar's height from the last font size: never let it scroll the card. */
+.lh-screen .xterm {
+	overflow: hidden;
+}
+.lh-screen .xterm-rows span[style*="underline"] {
+	text-decoration-color: var(--lh-highlight) !important;
+}
+
 /* The small raised number after a sentence the teacher backed with a source. */
 .lh-cite {
 	display: inline-block;

@@ -117,7 +117,7 @@ describe("the panel", () => {
 	it("docks on the right edge as a solid panel with no blur", () => {
 		const html = renderToStaticMarkup(panel());
 		assert.match(html, /data-testid="teacher-panel"[^>]*class="[^"]*fixed top-12 right-0 bottom-0[^"]*border-l-2[^"]*border-line[^"]*bg-panel/);
-		assert.doesNotMatch(html, /lh-popup|rounded|blur/);
+		assert.doesNotMatch(/<section[^>]*>/.exec(html)![0], /lh-popup|rounded|blur/);
 	});
 	it("the status line says Not connected with no agent, and shows the waiting notice once while work waits", () => {
 		assert.equal(agentLine(IDLE), "Not connected");
@@ -128,7 +128,7 @@ describe("the panel", () => {
 		assert.equal(agentLine({ ...IDLE, connected: true, name: "Codex", pendingWork: 1 }), waitingNotice("Codex"));
 		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true, helperCovering: true }), "Tidying my memory. My helper is answering for a minute.");
 		const html = renderToStaticMarkup(panel({ agent: { ...IDLE, pendingWork: 2 } }));
-		assert.equal(html.split(waitingNotice()).length - 1, 1, "in the head, not again in Activity");
+		assert.equal(html.split(`>${waitingNotice()}<`).length - 1, 1, "in the head, not again in Activity");
 	});
 	it("Activity and a screen not shown yet: 400 wide, pushing the page while it keeps 480 px; the whole window when narrow", () => {
 		assert.deepEqual(dockLayout(1440, 1440, "activity", false, false), { width: 400, push: 400, wide: false });
@@ -154,23 +154,23 @@ describe("the panel", () => {
 		assert.equal(shownScreen("helper", true), "helper");
 	});
 	it("Terminal: the whole screen at 14 px where the page keeps 480 px", () => {
-		assert.equal(fitFontSize(TERMINAL_DOCK_WIDTH - 26, 10_000), 14, "the screen's box: the width less its padding and the border");
+		assert.equal(fitFontSize(TERMINAL_DOCK_WIDTH - 62, 10_000), 14, "the screen's box: the width less the card's margins and padding and the border");
 		assert.deepEqual(dockLayout(1440, 1440, "terminal", true, false), { width: TERMINAL_DOCK_WIDTH, push: TERMINAL_DOCK_WIDTH, wide: true });
 	});
 	it("Terminal: narrower, still pushing, while the screen keeps 12 px", () => {
-		assert.equal(fitFontSize(TERMINAL_PUSH_MIN - 26, 10_000), 12);
-		assert.deepEqual(dockLayout(1280, 1280, "terminal", true, false), { width: 800, push: 800, wide: true });
-		assert.equal(fitFontSize(800 - 26, 10_000), 12);
+		assert.equal(fitFontSize(TERMINAL_PUSH_MIN - 62, 10_000), 12);
+		assert.deepEqual(dockLayout(1200, 1200, "terminal", true, false), { width: 720, push: 720, wide: true });
+		assert.equal(fitFontSize(720 - 62, 10_000), 13);
 		assert.deepEqual(dockLayout(480 + TERMINAL_PUSH_MIN, 480 + TERMINAL_PUSH_MIN, "terminal", true, false).push, TERMINAL_PUSH_MIN);
 	});
 	it("Terminal: below 12 px it covers the page at full width and keeps the narrow push, so swapping to the screen never widens the page", () => {
 		assert.deepEqual(dockLayout(1100, 1100, "terminal", true, false), { width: TERMINAL_DOCK_WIDTH, push: 400, wide: true });
-		assert.deepEqual(dockLayout(800, 800, "terminal", true, false), { width: 800, push: 0, wide: true }, "the font fit does the rest");
+		assert.deepEqual(dockLayout(800, 800, "terminal", true, false), { width: TERMINAL_DOCK_WIDTH, push: 0, wide: true }, "the font fit does the rest");
 		assert.deepEqual(dockLayout(600, 600, "terminal", true, false), { width: 600, push: 0, wide: true });
 		for (let w = 640; w <= 2000; w += 10) {
 			const { push } = dockLayout(w, w, "terminal", true, false);
 			assert.ok(push === 0 || w - push >= 480, `${w}: the page never under 480`);
-			assert.ok(push <= 400 || fitFontSize(push - 26, 10_000) >= 12, `${w}: a pushing screen keeps 12 px`);
+			assert.ok(push <= 400 || fitFontSize(push - 62, 10_000) >= 12, `${w}: a pushing screen keeps 12 px`);
 		}
 	});
 	it("covers a lesson instead of pushing it (the lesson draws its own top bar)", () => {

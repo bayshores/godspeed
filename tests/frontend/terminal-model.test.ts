@@ -191,16 +191,15 @@ describe("which start is allowed", () => {
 });
 
 describe("the screen's font", () => {
-	it("fits the whole 100 by 30 screen between 8 and 14 px, in width and height", () => {
+	it("fits the whole 80 by 30 screen between 8 and 14 px, in width and height", () => {
 		assert.equal(fitFontSize(2000, 1000), 14);
-		assert.equal(fitFontSize(920, 480), 13);
+		assert.equal(fitFontSize(920, 700), 13);
 		assert.equal(fitFontSize(2000, 300), 8, "the height decides too");
 		assert.equal(fitFontSize(300, 200), 8, "too small even at 8 px: it scrolls inside");
-		// The overlay's screen box (inside its padding), measured at a 640x600 and a 520x500 window,
-		// where the screen measured 542x300 and 482x270: whole in both.
-		assert.equal(fitFontSize(580, 378), 9);
-		assert.ok(9 * 0.62 * 100 <= 580 && 9 * 1.2 * 30 <= 378, "at 640x600 the whole screen fits");
-		assert.equal(fitFontSize(484, 286), 8);
+		// The screen box inside its padding, measured in the window at 1100x800 and 800x700, where
+		// xterm drew the screen 593x600 at 12 px and 495x480 at 10 px: whole in both.
+		assert.equal(fitFontSize(695, 610), 12);
+		assert.equal(fitFontSize(695, 510), 10);
 	});
 });
 

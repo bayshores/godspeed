@@ -10,7 +10,7 @@ use portable_pty::{Child, CommandBuilder, MasterPty, PtySize};
 
 /// Every view shows the same fixed size, so the agent never redraws for a resize.
 pub const ROWS: u16 = 30;
-pub const COLS: u16 = 100;
+pub const COLS: u16 = 80;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Role {

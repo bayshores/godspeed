@@ -237,25 +237,25 @@ describe("opening by itself", () => {
 		}
 	});
 
-	it("an open panel on Activity stays there: the Terminal key is marked and the status line says what is needed", async () => {
+	it("an open panel on Activity stays there: the status chip lights up and says what is needed", async () => {
 		const shell = fakeShell([teacher()]);
 		try {
 			await mounted(access({ teaching: true, terminals: [{ id: "t1", here: true }] }), async (render) => {
 				await click("open-activity");
 				assert.equal(text("teacher-panel-view"), "Terminal");
-				assert.ok(q("teacher-panel-view-mark") === null, "nothing needed yet");
+				const lit = () => q("teacher-panel-agent")?.classList.contains("bg-highlight") === true;
+				assert.ok(!lit(), "nothing needed yet");
 				await act(async () => shell.push({ id: "t1", ended: null, prompt: "enter", url: false }));
 				await settle();
 				assert.ok(q("activity-list") !== null, "the learner stays on Activity");
-				assert.ok(q("teacher-panel-view-mark") !== null, "the Terminal key is marked");
-				assert.equal(q("teacher-panel-view")?.getAttribute("aria-description"), "Ada needs you here");
+				assert.ok(lit(), "the chip is lit");
 				assert.equal(text("teacher-panel-agent"), "Claude Code is asking you to continue.");
 				await click("teacher-panel-close");
 				await render(access({ teaching: true, terminals: [{ id: "t1", here: true }] }));
 				assert.ok(q("teacher-panel") === null, "closing it does not bring the same need back");
 				await click("open-activity");
 				await click("teacher-panel-view");
-				assert.ok(onTerminal() && q("teacher-panel-view-mark") === null, "the screen shows it, unmarked");
+				assert.ok(onTerminal(), "the screen shows it");
 				assert.deepEqual(bright(), ["Continue"]);
 			});
 		} finally {
@@ -371,7 +371,7 @@ describe("the screens", () => {
 				assert.equal(q("open-agent")?.textContent, "Start Codex", "the agent last started here");
 				await click("open-agent");
 				assert.ok(shell.calls.includes("start teacher codex"));
-				assert.equal(q("teacher-panel")?.style.width, "894px", "its screen shows: wide");
+				assert.equal(q("teacher-panel")?.style.width, "757px", "its screen shows: wide");
 				assert.ok(settling(), "hidden while the panel grows, so nothing shows cut off");
 				await act(() => new Promise((r) => setTimeout(r, 300)));
 				assert.ok(!settling(), "shown once the width settled");
