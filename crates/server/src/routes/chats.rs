@@ -186,8 +186,11 @@ async fn rename(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body)
 }
 
 /// DELETE /api/chats/{id}?mode=preserve-graph|delete-nodes. The mode is required: the two differ
-/// in what they destroy.
+/// in what they destroy. An older build's Talk chat is not a lesson and is never deleted here.
 async fn remove(State(app): State<Arc<App>>, Path(id): Path<String>, uri: Uri) -> Result<Response, Unhandled> {
+	if app.stores.chats.get_chat(&id).is_some_and(|chat| chat["kind"].as_str() == Some("talk")) {
+		return Ok(coded(404, "No such lesson", "not_found"));
+	}
 	let params = search_params(uri.query().unwrap_or_default());
 	let (mode, name) = match param(&params, "mode") {
 		Some("preserve-graph") => (ChatDeleteMode::PreserveGraph, "preserve-graph"),

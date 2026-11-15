@@ -52,6 +52,7 @@ async fn main() -> ExitCode {
 	}
 	let access = http::access::Access::from_env();
 	let app = App::new(paths, shell.clone());
+	gs_services::app::old_talk::back_up_talk(&app);
 	if let Some(shell) = &shell {
 		listen_for_terminals(&app, shell);
 		// Weak: the app holds the link, so the link must not hold the app.

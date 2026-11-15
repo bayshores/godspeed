@@ -18,6 +18,7 @@ pub mod deadline_reminder;
 pub(crate) mod disk;
 mod folder_files;
 pub mod old_setup;
+pub mod old_talk;
 mod onboarding;
 pub mod prompt_segments;
 pub mod reading_pages;
