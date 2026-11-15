@@ -784,6 +784,17 @@ body {
 	}
 }
 
+/* The Shimmer's highlight sweeps right to left once a second (ai-elements/shimmer.tsx). */
+@keyframes lh-shimmer {
+	from {
+		background-position: 100% center;
+	}
+
+	to {
+		background-position: 0% center;
+	}
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    Desktop chrome. On the Mac the title bar is transparent over the page and the
    app's bands are the drag surface (the shell's shim moves the window, see

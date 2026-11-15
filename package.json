@@ -55,7 +55,6 @@
 		"mdast-util-math": "3.0.0",
 		"mermaid": "^11.17.0",
 		"micromark-extension-math": "3.1.0",
-		"motion": "^13.1.1",
 		"pdfjs-dist": "^6.3.289",
 		"radix-ui": "^1.6.7",
 		"react": "^19.2.8",
