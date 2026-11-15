@@ -29,8 +29,8 @@ pub const READING_NOTE: &str = "The reading work comes to you through wait_for_w
 /// Sends a lesson's first message (chat id, text); Err holds the refusal's body text.
 pub type SendFirstMessage = Arc<dyn Fn(String, String) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>> + Send + Sync>;
 
-/// The space tools for one caller. `open_started`: the learner asked for the lesson or the space in
-/// Talk, so the window opens it even with Follow off.
+/// The space tools for one caller. `open_started`: the learner asked for the lesson or the space
+/// (in Talk, or in godspeed's own teacher terminal), so the window opens it even with Follow off.
 pub fn space_actions(app: &Arc<App>, caller: Option<&str>, send: SendFirstMessage, open_started: bool) -> SpaceActions {
 	SpaceActions { app: app.clone(), caller: caller.map(str::to_owned), send, open_started }
 }
@@ -111,7 +111,7 @@ fn signature_arg(args: &Json) -> Result<Option<Json>, ()> {
 }
 
 impl SpaceActions {
-	/// The change marked `open` when the learner asked for it in Talk.
+	/// The change marked `open` when the learner asked for it.
 	fn opened(&self, mut change: Json) -> Json {
 		if self.open_started
 			&& let Some(obj) = change.as_obj_mut()

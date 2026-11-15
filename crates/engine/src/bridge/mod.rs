@@ -104,8 +104,8 @@ struct State {
 	held: HashMap<String, i64>,
 	/// Background conversations whose run has not ended.
 	background_runs: HashSet<String>,
-	/// The teachers' waits under way (helpers' are left out): id, and the lesson each stays on.
-	waiting: Vec<(u64, Option<String>)>,
+	/// The teachers' waits under way (helpers' are left out).
+	waiting: Vec<Wait>,
 	/// Counts waits, so each has its own id.
 	waits: u64,
 	/// agent ("" = no id) → the lesson its waiter stays on.
@@ -122,6 +122,13 @@ struct State {
 	typed: HashMap<String, i64>,
 	/// The last request from an agent outside the app's terminals.
 	outside_contact: i64,
+}
+
+/// A teacher's wait under way: the lesson it stays on, and the agent that waits.
+struct Wait {
+	id: u64,
+	on: Option<String>,
+	agent: Option<String>,
 }
 
 /// Lessons use their chat id as the conversation; everything else is a background job.

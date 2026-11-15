@@ -11,7 +11,7 @@ use super::helper::{self, compacting_now, someone_compacting};
 use super::terminals::{closed, typed_lately};
 use super::render::{instructions_and_tools, prints_of};
 use super::view::{WorkView, remember_seen};
-use super::{Bridge, State, WorkItem, is_background};
+use super::{Bridge, State, Wait, WorkItem, is_background};
 use crate::turn::messages::faux_assistant_message;
 
 /// A claimed item with no reply after this long goes back in the queue (the agent crashed or
@@ -100,7 +100,7 @@ fn oldest(state: &State, now: i64, opts: &WaitOptions, keep: impl Fn(&WorkItem) 
 
 /// No other wait is under way for this lesson: none stays on it, and none takes any work.
 fn unwaited(state: &State, lesson: &str) -> bool {
-	!state.waiting.iter().any(|(_, on)| on.as_deref().is_none_or(|on| on == lesson))
+	!state.waiting.iter().any(|wait| wait.on.as_deref().is_none_or(|on| on == lesson))
 }
 
 /// The next item. A teacher: any, or its conversation's (a lesson also takes Talk's, oldest first,
@@ -131,18 +131,18 @@ struct Waiting<'a> {
 }
 
 impl<'a> Waiting<'a> {
-	fn start(bridge: &'a Bridge, on: Option<String>) -> Waiting<'a> {
+	fn start(bridge: &'a Bridge, opts: &WaitOptions) -> Waiting<'a> {
 		let mut s = bridge.0.state.lock();
 		s.waits += 1;
 		let id = s.waits;
-		s.waiting.push((id, on));
+		s.waiting.push(Wait { id, on: opts.conversation.clone(), agent: opts.agent.clone() });
 		Waiting { bridge, id }
 	}
 }
 
 impl Drop for Waiting<'_> {
 	fn drop(&mut self) {
-		self.bridge.0.state.lock().waiting.retain(|(id, _)| *id != self.id);
+		self.bridge.0.state.lock().waiting.retain(|wait| wait.id != self.id);
 	}
 }
 
@@ -191,7 +191,7 @@ impl Bridge {
 		let opts = WaitOptions { conversation: opts.conversation.filter(|c| !c.is_empty()), ..opts };
 		let deadline = clock::now_ms() + timeout_ms;
 		// A helper's wait does not count: it takes lessons only while it covers for a teacher.
-		let _waiting = (!opts.helper).then(|| Waiting::start(self, opts.conversation.clone()));
+		let _waiting = (!opts.helper).then(|| Waiting::start(self, &opts));
 		// Held from a wake until this waiter's claim is done, so woken waiters claim in line.
 		let mut ticket = None;
 		loop {
@@ -221,6 +221,12 @@ impl Bridge {
 			}
 			ticket = Some(self.0.waiters.wait(seen, clock::sleep(remaining.min(WAIT_SLICE_MS)), shutdown::wait()).await);
 		}
+	}
+
+	/// This agent has a wait under way (Claude Code's waiter runs while the agent talks to the
+	/// learner), so it needs no second one for a lesson it starts.
+	pub fn agent_waiting(&self, agent: Option<&str>) -> bool {
+		agent.is_some_and(|agent| self.0.state.lock().waiting.iter().any(|wait| wait.agent.as_deref() == Some(agent)))
 	}
 
 	/// Answers a work item. The conversation's next item is held for the answering agent for
