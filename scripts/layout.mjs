@@ -295,6 +295,7 @@ async function main() {
 			for (const width of WIDTHS) {
 				await app.value(`size ${width} ${HEIGHT}`);
 				await sleep(SETTLE_MS);
+				if (screen.eachWidth) await app.run(fill(screen.eachWidth, ids));
 				// A screen smaller than the window squeezes it, and the check would judge another size.
 				const [shownWidth, shownHeight] = await app.value("eval [innerWidth, innerHeight]");
 				const problem = misfit({ width, height: HEIGHT }, { width: shownWidth, height: shownHeight });
