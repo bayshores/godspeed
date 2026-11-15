@@ -9,11 +9,24 @@
 import { useEffect, useRef } from "react";
 import { Terminal } from "@xterm/xterm";
 import { WebLinksAddon } from "@xterm/addon-web-links";
+import { WebglAddon } from "@xterm/addon-webgl";
 import "@xterm/xterm/css/xterm.css";
 import { COLS, ROWS, fitFontSize } from "./terminal-model";
 import { screenLook } from "./terminal-theme";
 import type { LinkFile, ScreenLink } from "./terminal-links-model";
 import { linkScreen, type Linking } from "./screen-links";
+
+/** Block and line characters drawn cell to cell, as a terminal app draws them: the font
+ *  leaves gaps between them at this line height. Without WebGL the font draws them. */
+function drawBlocks(t: Terminal) {
+	try {
+		const gl = new WebglAddon();
+		gl.onContextLoss(() => gl.dispose());
+		t.loadAddon(gl);
+	} catch {
+		// No WebGL here: xterm keeps its own renderer.
+	}
+}
 
 /** The box's width and height inside its padding, where the screen goes. */
 function inside(box: HTMLElement): [number, number] {
@@ -78,6 +91,7 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }
 		const links = linkScreen(t, linking);
 		relink.current = links.refresh;
 		t.open(el);
+		drawBlocks(t);
 		term.current = t;
 		// A key the shell refuses (the window lost focus, the agent ended) is dropped.
 		const typed = t.onData((data) => lh.write(id, data).catch(() => {}));
