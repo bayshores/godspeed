@@ -1,7 +1,7 @@
 //! Where each teaching line of the guess, keep, stop and come-back work lands in the composed
 //! instructions: a line naming a Study-only tool, field, stop or note only in Study; the case-first,
 //! analogy and prediction lines in Study and ordinary lessons; the marks line in every lesson
-//! agent; the broken formulas line beside the work plan; the voice line in every agent, Talk too;
+//! agent; the broken formulas line beside the work plan; the voice line in every agent;
 //! the deadline tools sentence in every lesson agent but Study. Each line is said once, and the sentences it replaced are gone. No size is
 //! pinned, so later prompt edits do not trip it.
 
@@ -10,9 +10,9 @@ use gs_agent::teacher::teacher_agent::compose_instructions;
 use gs_base::config::Paths;
 use gs_store::prompt_overrides::PromptOverrides;
 
-use AgentKind::{Homework, Practice, Prober, Study, Talk, Teacher};
+use AgentKind::{Homework, Practice, Prober, Study, Teacher};
 
-const EVERY: [AgentKind; 6] = [Prober, Teacher, Practice, Study, Homework, Talk];
+const EVERY: [AgentKind; 5] = [Prober, Teacher, Practice, Study, Homework];
 
 /// S, the place to stop.
 const S: &str = "godspeed offers a place to stop at the end of each topic and of a long problem; stopping there costs him nothing.";
@@ -92,7 +92,7 @@ fn the_case_analogy_and_prediction_lines_reach_study_and_ordinary_lessons() {
 
 #[test]
 fn the_marks_line_reaches_every_lesson_agent_and_the_voice_line_every_agent() {
-	lands_in(M, &[Prober, Teacher, Practice, Study, Homework]);
+	lands_in(M, &EVERY);
 	lands_in(E, &EVERY);
 }
 

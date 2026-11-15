@@ -422,29 +422,6 @@ export function planTreeToText(tree: PlanTree | undefined, messages: readonly Lh
 	return lines.join("\n");
 }
 
-/** The Talk chat's summary: what the learner asked for and what was done,
- *  so a later "yes, add them too" still makes sense. */
-function talkCompactionPrompt(spanText: string): string {
-	return `You are compacting the earlier part of the learner's Talk chat with their teacher in a learning app (outside lessons: setting up spaces, files and deadlines, quick questions). Write the summary your future self will read INSTEAD of that transcript. The transcript labels the learner as [LEARNER], you as [TUTOR], tool traffic as [RESULT …]/[SYSTEM NOTE].
-
-Write the summary with EXACTLY these sections, in this order:
-
-## Done
-What the learner asked for and what you did about it: spaces created or changed, folders linked, files added or switched, deadlines added, moved or removed. Keep every space id, file id, deadline id, name, date and path exact.
-
-## Learned about the learner
-Facts they told you that matter later (their spaces, schedule, preferences).
-
-## Open
-Anything still waiting: a question you asked them, a promise you made, a request not finished.
-
-Rules: no filler, no speculation beyond the transcript. Keep it short.
-
-TRANSCRIPT TO SUMMARIZE:
-
-${spanText}`;
-}
-
 /**
  * The summarizer prompt. The summary's REQUIRED SHAPE: the learner's
  * understanding AND its evolution, the teaching arc, the plan tree
@@ -457,10 +434,7 @@ export function buildCompactionPrompt(input: {
 	spanText: string;
 	/** The plan tree rendered (planTreeToText) or null. */
 	planTreeText: string | null;
-	/** The session kind (wording: tutor vs practice agent; Talk has its own shape). */
-	kind: "teach" | "practice" | "probe" | "talk";
 }): string {
-	if (input.kind === "talk") return talkCompactionPrompt(input.spanText);
 	const planSection =
 		input.planTreeText ?? "No plan tree exists in this session (nothing was persisted).";
 	return `You are compacting the earlier part of a tutoring session — writing the summary your future self will read INSTEAD of that transcript. Everything before the cut is replaced by what you write; everything after stays verbatim. The learner's transcript below labels the learner as [LEARNER], the tutoring agent as [TUTOR], tool traffic as [RESULT …]/[SYSTEM NOTE].

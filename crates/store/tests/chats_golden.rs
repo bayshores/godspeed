@@ -137,7 +137,6 @@ fn created_lessons_match_node() {
 	let made = [
 		lab.store.create_chat("  Limits  ", None, Some("cls_1"), Some("")),
 		lab.store.create_chat("", None, None, Some("deadline_1")),
-		lab.store.create_chat("Quick chat", Some("talk"), None, None),
 		lab.store.create_chat("Study", Some("study"), Some("cls_2"), Some("d2")),
 	];
 	let want = golden("created lessons");

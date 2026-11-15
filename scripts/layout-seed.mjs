@@ -59,7 +59,7 @@ function inDays(days) {
 /** The stand-in's answer to a work item, or null for one it does not expect. The lesson's first
  *  turn presents the plan; its second, after the plan's result, is the sourced reply with an open
  *  quiz, so the reply ends the reading pane. */
-function answerFor(work, ids, date, lessonTurn) {
+function answerFor(work, ids, lessonTurn) {
 	if (work.task?.startsWith("Graph extraction")) {
 		return { tool_calls: [{ name: "submit_findings", arguments: { propositions: [{ id: "p1", name: "Undo in reverse", statement: "To solve ax + b = c, subtract b from both sides, then divide by a." }], chains: [], reteaches: [] } }] };
 	}
@@ -87,9 +87,9 @@ function answerFor(work, ids, date, lessonTurn) {
 			],
 		};
 	}
-	// godspeed's own deadline request still reaches the agent as a Talk turn.
-	if (work.lessonId === "chat_talk") {
-		return { text: `${DEADLINE} is on ${date} at 10:00. It covers solving linear equations by graphing and by moving terms across the equals sign. [[${ids.passage}]] ${WEB_SOURCE}\n\nStart with the lesson on solving linear equations by graphing; it has a short quiz.` };
+	// godspeed's own request about a deadline with no files linked: the stand-in links none.
+	if (work.task?.startsWith("Deadline: ")) {
+		return { text: "The space's files don't say what it covers yet." };
 	}
 	return null;
 }
@@ -137,7 +137,7 @@ export async function seed(dataDir, log) {
 		const texts = [...reply];
 		for (let n = 2; n <= (header.pages ?? 1); n++) texts.push(...(await agent.call("read_work", { work_id: header.workId, page: n })));
 		const work = workOf(texts.slice(header.pages > 1 ? 1 : 0).join(""));
-		const answer = answerFor(work, { lesson: lessonId, passage }, date, lessonTurns);
+		const answer = answerFor(work, { lesson: lessonId, passage }, lessonTurns);
 		if (work.lessonId === lessonId) lessonTurns++;
 		if (!answer) throw new Error(`the stand-in agent got work it does not expect: ${work.task ?? work.lessonId}`);
 		reply = await agent.call("respond", { work_id: header.workId, ...answer, wait_seconds: 0 });

@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use gs_agent::subagents::deadline_request::{DeadlineRequest, run_deadline_request};
 use gs_agent::tools::fn_tool::FnTool;
-use gs_agent::tools::talk::{SpaceActions, deadline_request_tools};
+use gs_agent::tools::space_actions::{SpaceActions, deadline_request_tools};
 use gs_base::events::EventKind;
 use gs_base::{clock, fsx};
 use gs_core::contracts::chat::TALK_CHAT_ID;

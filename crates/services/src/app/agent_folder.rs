@@ -386,6 +386,12 @@ mod tests {
 		assert_eq!(std::fs::read_to_string(state_file(&app)).unwrap(), "{\n\t\"noticeSeen\": true\n}\n");
 	}
 
+	/// The Talk chat an older build left, with one message.
+	fn old_talk_saying_hi(app: &App) {
+		let record = r#"{"id":"chat_talk","title":"Talk","createdAt":"2026-11-01T10:00:00.000Z","updatedAt":"2026-11-01T10:00:00.000Z","kind":"talk","messages":[{"id":"m1","role":"user","content":"hi"}]}"#;
+		fsx::write_text_atomic(&app.paths.chats.join("chat_talk.json"), record).unwrap();
+	}
+
 	#[test]
 	fn the_old_talk_chat_is_exported_once() {
 		let root = scratch_dir("folder-talk");
@@ -393,8 +399,7 @@ mod tests {
 		let folder = agent_folder(&app);
 		export_old_talk(&app, &folder);
 		assert!(!state_file(&app).exists(), "no Talk chat, nothing to remember");
-		app.stores.chats.create_chat("Talk", Some("talk"), None, None).unwrap();
-		app.stores.chats.save_messages("chat_talk", &[json!({ "id": "m1", "role": "user", "content": "hi" })]).unwrap();
+		old_talk_saying_hi(&app);
 		export_old_talk(&app, &folder);
 		let talk = Path::new(&folder).join("Talk.md");
 		assert!(std::fs::read_to_string(&talk).unwrap().ends_with("\n**You**\n\nhi\n"));
@@ -409,8 +414,7 @@ mod tests {
 		let root = scratch_dir("folder-talk-mine");
 		let app = test_app(&root);
 		let folder = agent_folder(&app);
-		app.stores.chats.create_chat("Talk", Some("talk"), None, None).unwrap();
-		app.stores.chats.save_messages("chat_talk", &[json!({ "id": "m1", "role": "user", "content": "hi" })]).unwrap();
+		old_talk_saying_hi(&app);
 		let talk = Path::new(&folder).join("Talk.md");
 		fsx::write_text_atomic(&talk, "my own notes").unwrap();
 		export_old_talk(&app, &folder);
@@ -426,8 +430,7 @@ mod tests {
 		let root = scratch_dir("folder-talk-locked");
 		let app = test_app(&root);
 		let folder = agent_folder(&app);
-		app.stores.chats.create_chat("Talk", Some("talk"), None, None).unwrap();
-		app.stores.chats.save_messages("chat_talk", &[json!({ "id": "m1", "role": "user", "content": "hi" })]).unwrap();
+		old_talk_saying_hi(&app);
 		let record = std::fs::read(app.paths.chats.join("chat_talk.json")).unwrap();
 		std::fs::create_dir_all(&folder).unwrap();
 		std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o555)).unwrap();

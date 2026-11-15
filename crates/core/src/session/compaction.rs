@@ -352,39 +352,10 @@ pub fn plan_tree_to_text(tree: Option<&Json>, messages: &[Json]) -> Option<Strin
 	Some(lines.join("\n"))
 }
 
-/// The Talk chat's summary: what the learner asked for and what was done, so a later "yes, add
-/// them too" still makes sense.
-fn talk_compaction_prompt(span_text: &str) -> String {
-	format!(
-		"You are compacting the earlier part of the learner's Talk chat with their teacher in a learning app (outside lessons: setting up spaces, files and deadlines, quick questions). Write the summary your future self will read INSTEAD of that transcript. The transcript labels the learner as [LEARNER], you as [TUTOR], tool traffic as [RESULT \u{2026}]/[SYSTEM NOTE].
-
-Write the summary with EXACTLY these sections, in this order:
-
-## Done
-What the learner asked for and what you did about it: spaces created or changed, folders linked, files added or switched, deadlines added, moved or removed. Keep every space id, file id, deadline id, name, date and path exact.
-
-## Learned about the learner
-Facts they told you that matter later (their spaces, schedule, preferences).
-
-## Open
-Anything still waiting: a question you asked them, a promise you made, a request not finished.
-
-Rules: no filler, no speculation beyond the transcript. Keep it short.
-
-TRANSCRIPT TO SUMMARIZE:
-
-{span_text}"
-	)
-}
-
 /// The summarizer prompt, written for the session's own model as its future self: the summary
 /// replaces everything before the cut. Required shape, in order of stress: the learner's
 /// understanding and how it evolved, the teaching arc, the plan tree verbatim, the current moment.
-/// `kind` is the session kind ("teach", "practice", "probe" or "talk"); Talk has its own shape.
-pub fn build_compaction_prompt(span_text: &str, plan_tree_text: Option<&str>, kind: &str) -> String {
-	if kind == "talk" {
-		return talk_compaction_prompt(span_text);
-	}
+pub fn build_compaction_prompt(span_text: &str, plan_tree_text: Option<&str>) -> String {
 	let plan_section = plan_tree_text.unwrap_or("No plan tree exists in this session (nothing was persisted).");
 	format!(
 		"You are compacting the earlier part of a tutoring session \u{2014} writing the summary your future self will read INSTEAD of that transcript. Everything before the cut is replaced by what you write; everything after stays verbatim. The learner's transcript below labels the learner as [LEARNER], the tutoring agent as [TUTOR], tool traffic as [RESULT \u{2026}]/[SYSTEM NOTE].
@@ -547,10 +518,9 @@ mod tests {
 
 	#[test]
 	fn prompts_embed_the_transcript_and_plan() {
-		let teach = build_compaction_prompt("SPAN", Some("- plan"), "teach");
+		let teach = build_compaction_prompt("SPAN", Some("- plan"));
 		assert!(teach.contains("## The plan dependency tree\nReproduce the session's current plan tree verbatim from the structure below \u{2014} do not drop nodes, edges, or statuses.\n\n- plan\n\n## The current moment"));
 		assert!(teach.ends_with("TRANSCRIPT TO SUMMARIZE:\n\nSPAN"));
-		assert!(build_compaction_prompt("S", None, "practice").contains("No plan tree exists in this session (nothing was persisted)."));
-		assert!(build_compaction_prompt("S", None, "talk").starts_with("You are compacting the earlier part of the learner's Talk chat"));
+		assert!(build_compaction_prompt("S", None).contains("No plan tree exists in this session (nothing was persisted)."));
 	}
 }

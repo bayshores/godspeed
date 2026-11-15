@@ -74,7 +74,7 @@ fn the_prompt_segment_list_matches_node() {
 		.map(|s| json!({ "path": s["path"], "shared": s["shared"], "sourceSha": sha256_hex(s["sourceText"].as_str().unwrap().as_bytes()) }))
 		.collect();
 	assert_eq!(stringify(&Json::Arr(segments)), stringify(&expected["segments"]));
-	let (_, refused) = save_prompt_segment(&app, "talk/00-base.md", &json!({ "text": "x" })).unwrap();
+	let (_, refused) = save_prompt_segment(&app, "teacher/98-gone.md", &json!({ "text": "x" })).unwrap();
 	assert_eq!(stringify(&refused["supported"]), stringify(&expected["supported"]));
 	let _ = std::fs::remove_dir_all(dir);
 }

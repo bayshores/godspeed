@@ -263,20 +263,6 @@ async fn another_lessons_turn_goes_to_a_waiter_that_takes_any_work() {
 	staying.abort();
 }
 
-#[tokio::test]
-async fn an_agent_staying_on_a_lesson_still_takes_talk() {
-	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
-	let waiter = waiting(&bridge, staying_on("main-1", "chat_l1"));
-	let other = waiting(&bridge, staying_on("main-2", "chat_l2"));
-	clock::sleep(50).await;
-	let call = park(&bridge, vec![user("a quick question")], "chat_talk", &Abort::new());
-	let view = waiter.await.unwrap().unwrap();
-	assert_eq!(view.conversation, "chat_talk");
-	bridge.respond_to_work(&view.work_id, reply("Sure."), 0).unwrap();
-	call.await.unwrap();
-	other.abort();
-}
-
 const TERMINAL: &str = "0123456789abcdef0123456789abcdef";
 
 fn in_terminal() -> WaitOptions {

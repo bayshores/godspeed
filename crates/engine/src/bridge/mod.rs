@@ -108,8 +108,6 @@ struct State {
 	waiting: Vec<Wait>,
 	/// Counts waits, so each has its own id.
 	waits: u64,
-	/// agent ("" = no id) → the lesson its waiter stays on.
-	staying_on: HashMap<String, String>,
 	/// agent → when it started compacting its context.
 	compacting: HashMap<String, i64>,
 	/// helper session (`UNNAMED_HELPER` when its client sends no id) → its last check-in.
@@ -177,24 +175,9 @@ impl Bridge {
 		self.0.state.lock().items.len()
 	}
 
-	/// How many of those are lesson or Talk turns; the rest are background jobs.
+	/// How many of those are lesson turns; the rest are background jobs.
 	pub fn pending_turn_count(&self) -> usize {
 		self.0.state.lock().items.iter().filter(|item| !is_background(&item.conversation)).count()
-	}
-
-	/// Remembers the lesson an agent's waiter stays on (none: any work), so a Talk reply can
-	/// send it back there.
-	pub fn stay_on(&self, agent: Option<&str>, lesson_id: Option<&str>) {
-		let mut s = self.0.state.lock();
-		let key = agent.unwrap_or_default().to_owned();
-		match lesson_id.filter(|l| !l.is_empty()) {
-			Some(lesson) => s.staying_on.insert(key, lesson.to_owned()),
-			None => s.staying_on.remove(&key),
-		};
-	}
-
-	pub fn staying_on(&self, agent: Option<&str>) -> Option<String> {
-		self.0.state.lock().staying_on.get(agent.unwrap_or_default()).cloned()
 	}
 
 	/// Ends a `respond_to_work` hold (the answering agent stopped waiting).

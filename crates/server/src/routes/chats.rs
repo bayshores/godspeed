@@ -1,4 +1,4 @@
-//! /api/chat, /api/chats, /api/chats/{id} and everything under it, /api/talk.
+//! /api/chat, /api/chats, /api/chats/{id} and everything under it.
 
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -35,7 +35,6 @@ use gs_services::turns::homework::create_homework;
 use gs_services::turns::lesson_events::{KeepGoing, KeptDrop, drop_kept_part, keep_going};
 use gs_services::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
 use gs_services::turns::review::{ReviewReply, answer_review, next_review, skip_review};
-use gs_services::turns::talk::{clear_talk, open_talk};
 use gs_services::turns::turn_liveness::is_turn_running;
 use gs_services::turns::turn_runs::{attach_turn, settled_turn_frames, turn_failure};
 
@@ -57,7 +56,6 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/chats/{id}/review", ApiRoute::new().post(review).into_route())
 		.route("/api/chats/{id}/steer", ApiRoute::new().post(steer).into_route())
 		.route("/api/chats/{id}/stream", ApiRoute::new().get(stream).into_route())
-		.route("/api/talk", ApiRoute::new().post(talk_open).delete(talk_clear).into_route())
 }
 
 fn chat_reply(r: ChatReply) -> Response {
@@ -389,15 +387,3 @@ async fn stream(State(app): State<Arc<App>>, Path(id): Path<String>) -> Response
 	res
 }
 
-/// POST /api/talk: the Talk chat, made on first use.
-async fn talk_open(State(app): State<Arc<App>>) -> Result<Response, Unhandled> {
-	Ok(reply::json(200, &open_talk(&app)?))
-}
-
-/// DELETE /api/talk: Clear (409 while the teacher is replying).
-async fn talk_clear(State(app): State<Arc<App>>) -> Result<Response, Unhandled> {
-	Ok(match clear_talk(&app).await? {
-		Ok(()) => reply::ok(),
-		Err(refusal) => error(refusal.status, refusal.error),
-	})
-}

@@ -1,4 +1,4 @@
-//! Lessons, turns, questions from earlier, Talk and catch-up. One module per TS file; the live registries the TS kept on `globalThis` are
+//! Lessons, turns, questions from earlier and catch-up. One module per TS file; the live registries the TS kept on `globalThis` are
 //! the fields of `TurnsState`.
 
 pub mod agent_catch_up;
@@ -14,7 +14,6 @@ pub mod lesson_events;
 pub mod lessons;
 pub mod reply_nudges;
 pub mod review;
-pub mod talk;
 pub mod turn_liveness;
 pub mod turn_runs;
 pub mod turn_service;
