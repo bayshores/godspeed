@@ -2,6 +2,8 @@
 
 How to write a godspeed plugin. [architecture.md](architecture.md#82-plugins) says how the app hosts one.
 
+godspeed is in alpha, so the plugin format can still change between updates.
+
 ## What a plugin is
 
 A plugin is a folder with a `manifest.json` and a web page. godspeed shows the page in a frame in a lesson (a panel beside it) or in a space (a tab). The page talks to godspeed with messages in the MCP Apps format (protocol `2026-01-26`, JSON-RPC 2.0 over `postMessage`). A plugin needs no build step and no server.
