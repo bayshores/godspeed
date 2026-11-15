@@ -20,6 +20,7 @@ const { chipText } = await import("../../src/frontend/components/top-bar/top-bar
 const { teacherTile } = await import("../../src/frontend/components/settings/agent-windows-model.ts");
 const { teacherTerminalState } = await import("../../src/frontend/components/terminal/terminal-model.ts");
 const { useChatSession } = await import("../../src/frontend/components/session.ts");
+const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 type Api = NonNullable<ReturnType<typeof useTerminals>>;
 
@@ -86,9 +87,11 @@ describe("Start Claude Code", () => {
 	it("in the desktop app, starts the teacher's terminal and shows its screen in the step until it connects", async () => {
 		const shell = fakeShell();
 		const page = (status: Access) => (
-			<TerminalsProvider status={status}>
-				<AgentLauncher />
-			</TerminalsProvider>
+			<ServerEventsProvider connect={(() => ({ onEvent() {}, onOpen() {}, close() {} })) as never}>
+				<TerminalsProvider status={status}>
+					<AgentLauncher />
+				</TerminalsProvider>
+			</ServerEventsProvider>
 		);
 		let root: ReturnType<typeof createRoot> | null = null;
 		try {
