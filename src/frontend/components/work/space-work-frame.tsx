@@ -17,7 +17,7 @@ export function SpaceWorkFrame({ wide = false, children }: { wide?: boolean; chi
 	const { active } = useSpaces();
 	const { record } = useSpaceRecord(active);
 	const nowMs = useMinute();
-	const { worker, teacher } = useWorker();
+	const { worker } = useWorker();
 	const { feed } = useActivity();
 	/** The round whose summary was closed here. */
 	const [closed, setClosed] = useState<string | null>(null);
@@ -33,7 +33,7 @@ export function SpaceWorkFrame({ wide = false, children }: { wide?: boolean; chi
 				void fetch(`/api/spaces/${encodeURIComponent(record.id)}/work`, { method: "DELETE" });
 			};
 			frame = {
-				...spaceFrame(state, worker ?? teacher),
+				...spaceFrame(state),
 				actions:
 					state.kind === "waiting" ? (
 						<StartAgentAction />

@@ -27,7 +27,7 @@ describe("the screen in a small box", () => {
 		document.body.append(host);
 		const root = createRoot(host);
 		try {
-			await act(async () => root.render(<TerminalView id="0123456789abcdef0123456789abcdef" ended={false} focusOnOpen={false} focusKey={0} />));
+			await act(async () => root.render(<TerminalView id="0123456789abcdef0123456789abcdef" ended={false} focusOnOpen={false} focusKey={0} files={[]} onLink={() => {}} />));
 			const box = host.querySelector("[data-testid=terminal-screen]") as HTMLElement;
 			Object.defineProperty(box, "scrollHeight", { value: 420 });
 			box.scrollTop = 0;

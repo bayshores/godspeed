@@ -1,6 +1,6 @@
 /**
  * The welcome screen's start lines under the logo: the version, the agent,
- * and the next deadline ("godspeed 0.5.50", "Claude Code is connected",
+ * and the next deadline ("Version 0.5.50", "Claude Code is connected",
  * "Midterm 2 is due in 3 days"). The first launch after updating from the
  * old look says so instead. Pure and unit-tested.
  */
@@ -23,7 +23,7 @@ export function bootLines(
 	nowMs: number,
 	upgraded: boolean,
 ): string[] {
-	const head = `godspeed ${version}`;
+	const head = `Version ${version}`;
 	if (upgraded) return [head, "New look", "Loading your spaces"];
 	const who = agent.connected ? `${agent.name?.trim() || "Your agent"} is connected` : "No agent is connected";
 	if (!next) return [head, who];

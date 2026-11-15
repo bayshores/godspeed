@@ -27,6 +27,8 @@ declare global {
 				answer: (id: string, kind: "trust" | "enter") => Promise<void>;
 				/** The shell reads the clipboard itself and types it in. */
 				paste: (id: string) => Promise<void>;
+				/** Attach: a picture or a PDF as base64; answers the saved path. */
+				addFile: (id: string, name: string, data: string) => Promise<string>;
 				stop: (id: string) => Promise<void>;
 				list: () => Promise<TerminalRecord[]>;
 				/** Base64 screen bytes: `snapshot` replaces the screen, `data` adds to it. */

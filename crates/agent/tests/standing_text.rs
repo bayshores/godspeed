@@ -1,7 +1,7 @@
 //! Where each teaching line of the guess, keep, stop and come-back work lands in the composed
 //! instructions: a line naming a Study-only tool, field, stop or note only in Study; the case-first,
 //! analogy and prediction lines in Study and ordinary lessons; the marks line in every lesson
-//! agent; the broken formulas line beside the work plan; the voice line in every agent, Talk too;
+//! agent; the broken formulas line beside the work plan; the voice line in every agent;
 //! the deadline tools sentence in every lesson agent but Study. Each line is said once, and the sentences it replaced are gone. No size is
 //! pinned, so later prompt edits do not trip it.
 
@@ -10,9 +10,9 @@ use gs_agent::teacher::teacher_agent::compose_instructions;
 use gs_base::config::Paths;
 use gs_store::prompt_overrides::PromptOverrides;
 
-use AgentKind::{Homework, Practice, Prober, Study, Talk, Teacher};
+use AgentKind::{Homework, Practice, Prober, Study, Teacher};
 
-const EVERY: [AgentKind; 6] = [Prober, Teacher, Practice, Study, Homework, Talk];
+const EVERY: [AgentKind; 5] = [Prober, Teacher, Practice, Study, Homework];
 
 /// S, the place to stop.
 const S: &str = "godspeed offers a place to stop at the end of each topic and of a long problem; stopping there costs him nothing.";
@@ -25,7 +25,7 @@ const F_RESUMED: &str = "A [Resumed] line means he came back to a stopped sessio
 /// Decision 3, the strong topic's extra question.
 const EXTRA_QUESTION: &str = "A strong topic's extra question is a `quiz` before the `conclude`, and he may skip it; skip it yourself when a deadline is 2 days away or less.";
 /// Decision 1, the line Study gets in place of the deadline tools.
-const TALK_DEADLINES: &str = "Deadline changes happen in Talk: when he asks for one, say so in one line and go back to the lesson.";
+const OUTSIDE_DEADLINES: &str = "Deadline changes happen outside lessons, in your terminal: when he asks for one, say so in one line and go back to the lesson.";
 const F3: &str = "A [From earlier] line lists earlier questions godspeed just asked him again. Do not reteach a miss now unless it is on the topic you are teaching; godspeed brings it back.";
 const G: &str = "Set `standalone: true` on a quiz that makes sense with no lesson around it: name the setting, never \"above\", \"the plot\" or \"the slide\". godspeed may ask it again weeks later.";
 const I: &str = "To point at exact words, add a few words copied from the passage in quotes after the id: `[[f_1a2b3c4d5e6f:7 \"degree 12\"]]`. godspeed marks them on his page. Do it in every topic, once, in the message that opens it or in topic_done's opener.lead. A quote is 2 or more words, or on code the exact expression from the line, found once in the passage, at most 80 characters, without [ ] backtick or $.";
@@ -78,7 +78,7 @@ fn lands_in(line: &str, readers: &[AgentKind]) {
 
 #[test]
 fn the_study_only_lines_reach_study_alone() {
-	for line in [S, F, F_VERDICT, F_RESUMED, EXTRA_QUESTION, TALK_DEADLINES, F3, G, I, K, PLOT, PROBLEMS, PHRASE] {
+	for line in [S, F, F_VERDICT, F_RESUMED, EXTRA_QUESTION, OUTSIDE_DEADLINES, F3, G, I, K, PLOT, PROBLEMS, PHRASE] {
 		lands_in(line, &[Study]);
 	}
 }
@@ -92,7 +92,7 @@ fn the_case_analogy_and_prediction_lines_reach_study_and_ordinary_lessons() {
 
 #[test]
 fn the_marks_line_reaches_every_lesson_agent_and_the_voice_line_every_agent() {
-	lands_in(M, &[Prober, Teacher, Practice, Study, Homework]);
+	lands_in(M, &EVERY);
 	lands_in(E, &EVERY);
 }
 

@@ -10,6 +10,9 @@ export type LaunchChoice = FolderAgent | "other";
 
 export const AGENT_LABEL: Record<FolderAgent, string> = { claude: "Claude Code", codex: "Codex" };
 
+/** The key that starts the picked agent: "Start Claude Code". */
+export const startLabel = (choice: LaunchChoice): string => (choice === "other" ? "Show the setup" : `Start ${AGENT_LABEL[choice]}`);
+
 /** What the server says about the folder (GET /api/agent-folder). */
 export interface FolderView {
 	folder: string;
@@ -44,7 +47,7 @@ export function logLines(launch: Launch, status: { connected: boolean; teaching:
 		{ text: `Made ${short}`, state: "done" },
 		{ text: "Copy the command and run it in your terminal", state: status.connected ? "done" : "wait" },
 	];
-	if (launch.helperOnly) return [...lines, status.helperHere ? { text: "Started the helper", state: "done" } : { text: "Waiting for the helper to start…", state: "wait" }];
+	if (launch.helperOnly) return [...lines, status.helperHere ? { text: "Started background work", state: "done" } : { text: "Waiting for background work to start…", state: "wait" }];
 	if (!status.connected) {
 		lines.push({ text: `Waiting for ${name} to start…`, state: "wait" });
 		lines.push({ text: `If ${name} asks whether to trust the folder, choose Yes.`, state: "note" });

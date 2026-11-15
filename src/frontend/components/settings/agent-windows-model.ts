@@ -1,6 +1,6 @@
 /**
- * Settings → Connection, "Your agent": the headline and what the Teacher
- * and Helper tiles say. Pure.
+ * Settings → Connection, "Your agent": what the Teacher and Helper tiles
+ * say. Pure.
  */
 import type { SpaceSummary } from "@/shared/core";
 import { teachStep, type AgentStatus } from "@/frontend/components/agent-status";
@@ -26,17 +26,11 @@ export type TermState = "starting" | "ended" | null;
 /** The teacher runs: it teaches, or it connected and has not started. */
 const teacherRuns = (agent: Agent) => agent.teaching || (agent.connected && !agent.helperHere);
 
-/** `name`: the teacher's name. `starting`: godspeed's terminal for it runs and has not checked in. */
-export function agentHeadline(agent: Agent, name: string, starting: boolean): string {
-	if (teacherRuns(agent)) return `${name} is running`;
-	if (starting) return `${name} is starting`;
-	return agent.helperHere ? "The helper is running" : "No agent is running";
-}
-
-/** `outside`: the agent here was started outside godspeed. */
-export function teacherTile(agent: Agent, doing: AgentDoing | null, i: { outside: boolean; term: TermState }): AgentTile {
+/** `outside`: the agent here was started outside godspeed. `start`: the
+ *  start key's label, the same as the start pair's (startLabel). */
+export function teacherTile(agent: Agent, doing: AgentDoing | null, i: { outside: boolean; term: TermState; start: string }): AgentTile {
 	const note = i.outside ? "Connected from outside godspeed." : "Teaches and answers you";
-	if (agent.helperCovering) return { tone: "on", chip: "Teaching", line: "Tidying its memory", note: "The helper answers for a minute", start: null };
+	if (agent.helperCovering) return { tone: "on", chip: "Teaching", line: "Tidying its memory", note: "A backup answers for a minute", start: null };
 	// "Teaching" only while it works on something; idle in its work loop it is just running.
 	if (agent.teaching) return { tone: "on", chip: doing?.working ? "Teaching" : "Running", line: doing?.working ? doing.text : "Nothing to do right now", note, start: null };
 	if (teacherRuns(agent)) return { tone: "on", chip: "Running", line: teachStep(agent.name), note, start: null };
@@ -46,7 +40,7 @@ export function teacherTile(agent: Agent, doing: AgentDoing | null, i: { outside
 		chip: i.term === "ended" ? "Stopped" : "Not running",
 		line: agent.pendingTurns > 0 ? "Your lesson is waiting" : "",
 		note: "Start it and it teaches you",
-		start: "Start teacher",
+		start: i.start,
 	};
 }
 
@@ -84,7 +78,7 @@ export function helperTile(i: {
 			chip: "Not running",
 			line,
 			note: waiting && !agent.teaching ? "Start it and it reads them" : agent.teaching ? `${i.teacher} does the reading between your messages` : note,
-			start: "Start helper",
+			start: "Start background work",
 		};
 	}
 	if (agent.helperCovering) return { tone: "busy", chip: "Covering", line: `Answering for ${i.teacher} for a minute`, note: `${i.teacher} is tidying its memory`, start: null };

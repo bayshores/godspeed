@@ -4,6 +4,7 @@ import { SPACE_FILE_ACCEPT } from "@/frontend/components/files/files-model";
 import { FIELD } from "@/frontend/components/ui/field";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { cn } from "@/frontend/lib/utils";
+import { AgentNeed } from "./agent-need";
 import { pickedLabel, type Picked } from "./space-step-model";
 import { StepSheet } from "./step-sheet";
 import { useReturn } from "./use-return";
@@ -18,6 +19,7 @@ export function SpaceStep({ onDone }: { onDone: (spaceId: string | null) => void
 	const [error, setError] = useState<string | null>(null);
 	// Set when the space was made but some files failed: Continue goes on.
 	const [madeId, setMadeId] = useState<string | null>(null);
+	const [screen, setScreen] = useState(false);
 	const fileInput = useRef<HTMLInputElement>(null);
 	const canSave = (name.trim() !== "" || madeId !== null) && !busy;
 
@@ -85,7 +87,8 @@ export function SpaceStep({ onDone }: { onDone: (spaceId: string | null) => void
 
 	const summary = pickedLabel(picked);
 	return (
-		<StepSheet at={2} title="Add your first space" sub="Each space gets its own lessons and knowledge graph. You can add more later.">
+		<StepSheet at={2} wide={screen} title="Add your first space" sub="Each space gets its own lessons and knowledge graph. You can add more later.">
+			<AgentNeed open={screen} onOpen={() => setScreen(true)} />
 			<div className="flex flex-col gap-1.5">
 				<label className={LABEL_TEXT} htmlFor="onboarding-space-name">
 					Space name
@@ -125,8 +128,8 @@ export function SpaceStep({ onDone }: { onDone: (spaceId: string | null) => void
 					onDragLeave={() => setOver(false)}
 					onDrop={(e) => void onDrop(e)}
 					className={cn(
-						"lh-press flex h-[150px] w-full flex-col items-center justify-center gap-1.5 rounded border-2 bg-background px-6 text-center",
-						over ? "border-ink" : "border-line hover:border-ink-3",
+						"lh-press lh-well flex h-[150px] w-full flex-col items-center justify-center gap-1.5 rounded px-6 text-center",
+						over ? "bg-highlight" : "hover:bg-tone",
 					)}
 				>
 					<span className="text-[17px] text-ink">{summary ? "Drop to replace, or click to choose again" : "Drop files or a folder here"}</span>

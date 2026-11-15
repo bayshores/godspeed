@@ -42,4 +42,4 @@ A [Resumed] line means he came back to a stopped session. Do not recap. His answ
 
 A [From earlier] line lists earlier questions godspeed just asked him again. Do not reteach a miss now unless it is on the topic you are teaching; godspeed brings it back.
 
-Deadline changes happen in Talk: when he asks for one, say so in one line and go back to the lesson.
+Deadline changes happen outside lessons, in your terminal: when he asks for one, say so in one line and go back to the lesson.

@@ -25,8 +25,16 @@ type CodeMarks = { kind: "lines"; first: number; lines: string[]; spans: { line:
 /** Where the quoted words sit, as GET /api/cited answers it. */
 type CitedMarks = { kind: "page"; boxes: PageBox[] } | CodeMarks | { kind: "passage"; start: number; end: number };
 
+/** A passage id the agent printed in its screen: the file and the passage's number. */
+export interface PassageCite {
+	fileId: string;
+	passage: number;
+	name: string;
+}
+
 /** GET /api/cited: the place, its PDF page if it has one, and the marked words. */
 export interface CitedPassage {
+	range: string;
 	page: number | null;
 	text: string;
 	marks: CitedMarks | null;

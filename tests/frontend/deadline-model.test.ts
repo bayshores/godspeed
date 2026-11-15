@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { aboutMessage, coverageMessage, deadlineMaterial, guideMessage, materialSummary, rightLabel, whenLine } from "../../src/frontend/components/deadline/deadline-model.ts";
+import { deadlineMaterial, materialSummary, rightLabel, whenLine } from "../../src/frontend/components/deadline/deadline-model.ts";
 
 type Kind = "study" | "info";
 type Status = "pending" | "extracting" | "ready" | "failed" | "needs-whisper";
@@ -84,18 +84,13 @@ describe("what a deadline covers", () => {
 		assert.deepEqual(deadlineMaterial(FILES, onsite, [onsite], []).notIncluded, []);
 	});
 
-	it("labels, dates and the message Ask sends", () => {
+	it("labels and dates", () => {
 		assert.equal(rightLabel({ right: 2, answered: 5 }), "2 of 5 right");
 		assert.equal(rightLabel({ right: 0, answered: 0 }), "not tested");
 		assert.equal(rightLabel({ right: 0, hinted: 1, answered: 1 }), "0 of 1 right, 1 solved with hints");
 		assert.equal(rightLabel(undefined), "not tested");
 		assert.equal(whenLine({ kind: "exam", date: "2026-12-08", time: "23:59" }), "Exam, Tuesday Dec 8, 11:59 PM");
 		assert.equal(whenLine({ kind: "homework", date: "2026-11-13" }), "Homework, Friday Nov 13");
-		const msg = coverageMessage("CSE 21", { name: "Midterm", when: "Wed Nov 4, 6:30 PM" });
-		assert.match(msg, /^Work out what Midterm \(Wed Nov 4, 6:30 PM\) in CSE 21 covers from my files/);
-		assert.match(msg, /tell me which file you went by/);
 		assert.equal(whenLine({ kind: "interview", date: "2026-11-24", time: "14:00" }), "Interview, Tuesday Nov 24, 2:00 PM");
-		assert.equal(aboutMessage("Larkspur", "Onsite interview"), "Rewrite what Onsite interview in Larkspur is like.");
-		assert.equal(guideMessage("Larkspur", "Onsite interview"), "Write a study guide for Onsite interview in Larkspur and link it to the deadline.");
 	});
 });

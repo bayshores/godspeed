@@ -1,14 +1,14 @@
 /**
- * Settings → Connection, "Your agent" (agent-windows-model.ts): the
- * headline and what the Teacher and Helper tiles say, plus the helper's
+ * Settings → Connection, "Your agent" (agent-windows-model.ts): what the
+ * Teacher and Helper tiles say, plus the helper's
  * lines in the launch log outside the desktop app.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { agentHeadline, filesLine, helperTile, teacherTile } from "../../src/frontend/components/settings/agent-windows-model.ts";
+import { filesLine, helperTile, teacherTile } from "../../src/frontend/components/settings/agent-windows-model.ts";
 import { logLines, type Launch } from "../../src/frontend/components/agent-folder/agent-folder-model.ts";
 
-const agent = (over: Partial<Parameters<typeof agentHeadline>[0]> = {}) => ({
+const agent = (over: Partial<Parameters<typeof teacherTile>[0]> = {}) => ({
 	connected: false,
 	teaching: false,
 	helperHere: false,
@@ -17,18 +17,11 @@ const agent = (over: Partial<Parameters<typeof agentHeadline>[0]> = {}) => ({
 	...over,
 });
 
-const own = { outside: false, term: null };
+const own = { outside: false, term: null, start: "Start Codex" };
 const helper = (over: Partial<Parameters<typeof helperTile>[0]> = {}) =>
 	helperTile({ agent: agent(), background: null, files: null, filesLeft: 0, teacher: "Teacher", term: null, autoStart: false, ...over });
 
 describe("the teacher and the helper", () => {
-	it("the headline says whether the teacher runs or starts", () => {
-		assert.equal(agentHeadline(agent(), "Ada", false), "No agent is running");
-		assert.equal(agentHeadline(agent(), "Ada", true), "Ada is starting");
-		assert.equal(agentHeadline(agent({ connected: true, teaching: true }), "Ada", false), "Ada is running");
-		assert.equal(agentHeadline(agent({ connected: true, helperHere: true }), "Ada", false), "The helper is running");
-	});
-
 	it("the teacher's tile: teaching, running and not started, starting, or not running with a button", () => {
 		const teaching = agent({ connected: true, teaching: true });
 		assert.deepEqual(teacherTile(teaching, { text: "Teaching Graphs", working: true }, own), {
@@ -44,11 +37,11 @@ describe("the teacher and the helper", () => {
 		const running = teacherTile(agent({ connected: true, name: "Codex" }), null, own);
 		assert.equal(running.chip, "Running");
 		assert.equal(running.line, "Tell Codex to start teaching.");
-		assert.deepEqual(teacherTile(agent(), null, own), { tone: "off", chip: "Not running", line: "", note: "Start it and it teaches you", start: "Start teacher" });
-		assert.deepEqual(teacherTile(agent(), null, { outside: false, term: "starting" }), { tone: "off", chip: "Starting", line: "", note: "Teaches and answers you", start: null });
-		assert.equal(teacherTile(agent(), null, { outside: false, term: "ended" }).chip, "Stopped");
+		assert.deepEqual(teacherTile(agent(), null, own), { tone: "off", chip: "Not running", line: "", note: "Start it and it teaches you", start: "Start Codex" }, "the start pair's label");
+		assert.deepEqual(teacherTile(agent(), null, { ...own, term: "starting" as const }), { tone: "off", chip: "Starting", line: "", note: "Teaches and answers you", start: null });
+		assert.equal(teacherTile(agent(), null, { ...own, term: "ended" as const }).chip, "Stopped");
 		assert.equal(teacherTile(agent({ pendingTurns: 1 }), null, own).line, "Your lesson is waiting");
-		assert.equal(teacherTile(agent({ connected: true, teaching: true }), null, { outside: true, term: null }).note, "Connected from outside godspeed.");
+		assert.equal(teacherTile(agent({ connected: true, teaching: true }), null, { ...own, outside: true }).note, "Connected from outside godspeed.");
 	});
 
 	it("a helper alone does not count as the teacher running", () => {
@@ -66,7 +59,7 @@ describe("the teacher and the helper", () => {
 	});
 
 	it("when godspeed can't start the helper, its tile says what waits and who reads meanwhile", () => {
-		assert.deepEqual(helper(), { tone: "off", chip: "Not running", line: "", note: "Reads your files so the teacher stays free", start: "Start helper" });
+		assert.deepEqual(helper(), { tone: "off", chip: "Not running", line: "", note: "Reads your files so the teacher stays free", start: "Start background work" });
 		const waiting = helper({ filesLeft: 3 });
 		assert.equal(waiting.line, "3 files are waiting");
 		assert.equal(waiting.note, "Start it and it reads them");
@@ -120,7 +113,7 @@ describe("the launch log outside the desktop app", () => {
 			"Started Claude Code",
 			"Claude Code is teaching",
 		]);
-		assert.deepEqual(texts({ ...launch, helperOnly: true }, { connected: false, teaching: false, helperHere: true }), ["Made ~/godspeed", "Copy the command and run it in your terminal", "Started the helper"]);
+		assert.deepEqual(texts({ ...launch, helperOnly: true }, { connected: false, teaching: false, helperHere: true }), ["Made ~/godspeed", "Copy the command and run it in your terminal", "Started background work"]);
 		assert.deepEqual(texts({ agent: "codex", made: { error: "Couldn't reach godspeed. Try again." } }, { connected: false, teaching: false, helperHere: false }), ["Couldn't reach godspeed. Try again."]);
 	});
 });

@@ -1,12 +1,11 @@
-//! The space tools of the Talk chat: the learner's spaces, files
-//! and deadlines, running the same actions the outside agent's MCP tools run. Nothing here deletes
-//! a space or a file. Each result's details carry the changes it made, shown as rows in Talk.
+//! Space tools that run the same space actions as the outside agent's MCP tools: a lesson's
+//! deadline changes, and what a deadline request reads and writes. Nothing here deletes a space
+//! or a file. Each result's details carry the changes it made.
 
 use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
 use gs_core::spaces::space_tools::{SPACE_ARG_TEXT, SPACE_TOOL_TEXT, SpaceArgText, DEADLINE_KINDS, FILE_KINDS, ToolOutcome};
-use gs_core::contracts::space::{SPACE_ICONS, SIGNATURE_MAX};
 use gs_json::{Json, json, stringify};
 
 use super::fn_tool::FnTool;
@@ -16,7 +15,8 @@ use gs_core::session::schema::{boolean, no_arguments, object, one_of_literals, s
 pub type SpaceActions = Arc<dyn Fn(&str, Json) -> BoxFuture<'static, ToolOutcome> + Send + Sync>;
 
 /// What a lesson adds to its own space tools: the deadline changes a learner asks for
-/// mid-lesson. Each definition costs the agent tokens, so the rest stays in Talk.
+/// mid-lesson. Each definition costs the agent tokens, so the other space changes happen
+/// outside lessons.
 const LESSON_CHANGES: [&str; 4] = ["list_spaces", "add_space_deadline", "update_space_deadline", "remove_space_deadline"];
 
 fn space_id() -> Json {
@@ -25,23 +25,6 @@ fn space_id() -> Json {
 
 fn optional_text(description: &str) -> Json {
 	string(description)
-}
-
-fn signature(text: &SpaceArgText) -> Json {
-	json!({
-		"type": "object",
-		"required": ["kind", "value"],
-		"properties": {
-			"kind": { "anyOf": [{ "type": "string", "const": "math" }, { "type": "string", "const": "code" }, { "type": "string", "const": "text" }] },
-			"value": { "type": "string", "minLength": 1, "maxLength": SIGNATURE_MAX },
-		},
-		"description": text.signature,
-	})
-}
-
-fn icon(text: &SpaceArgText) -> Json {
-	let names: Vec<&str> = SPACE_ICONS.iter().map(|(name, _)| *name).collect();
-	one_of_literals(&names, &text.icon)
 }
 
 fn file_kind(text: &SpaceArgText) -> Json {
@@ -64,23 +47,7 @@ fn schema_of(name: &str) -> Json {
 			vec![id(), ("query", string_min(1, t.query)), ("limit", json!({ "type": "integer", "minimum": 1, "maximum": 20, "description": t.limit }))],
 		),
 		"read_passage" => object(&["space_id"], vec![id(), ("passage_id", optional_text(t.passage_id)), ("file_id", optional_text(t.file_id)), ("range", optional_text(t.range))]),
-		"create_space" => object(&["name", "icon"], vec![("name", string_min(1, t.name)), ("description", optional_text(t.description)), ("signature", signature(t)), ("icon", icon(t))]),
-		"update_space" => object(
-			&["space_id"],
-			vec![
-				id(),
-				("name", json!({ "type": "string", "minLength": 1 })),
-				("description", json!({ "type": "string" })),
-				("signature", signature(t)),
-				("icon", icon(t)),
-				("closed", json!({ "type": "boolean" })),
-			],
-		),
 		"add_space_file" => object(&["space_id", "kind"], vec![id(), ("path", string(t.file_path)), ("name", string(t.file_name)), ("text", string(t.file_text)), ("kind", file_kind(t))]),
-		"set_space_file_kind" => object(
-			&["space_id", "file_ids", "kind"],
-			vec![id(), ("file_ids", json!({ "type": "array", "items": { "type": "string" }, "minItems": 1, "description": t.file_ids })), ("kind", file_kind(t))],
-		),
 		"add_space_deadline" => {
 			let deadline = object(
 				&["kind", "name", "date"],
@@ -116,9 +83,7 @@ fn schema_of(name: &str) -> Json {
 			],
 		),
 		"remove_space_deadline" => object(&["space_id", "deadline_id"], vec![id(), ("deadline_id", space_id())]),
-		"link_space_folder" => object(&["space_id", "path"], vec![id(), ("path", string(t.folder_path))]),
-		"start_lesson" => object(&["topic"], vec![("topic", string_min(1, t.topic)), ("space_id", string(t.lesson_space))]),
-		_ => unreachable!("every space tool name has a schema"),
+		_ => unreachable!("only the space tools named here are built"),
 	}
 }
 
@@ -149,7 +114,8 @@ pub fn lesson_space_change_tools(actions: &SpaceActions) -> Vec<FnTool> {
 	LESSON_CHANGES.iter().map(|name| space_tool(actions, name)).collect()
 }
 
-/// Every space tool, the Talk chat's whole set.
-pub fn talk_tools(actions: &SpaceActions) -> Vec<FnTool> {
-	SPACE_TOOL_TEXT.iter().map(|(name, _)| space_tool(actions, name)).collect()
+/// What a deadline request reads and changes: the deadline, and with `files` the files it writes.
+pub fn deadline_request_tools(actions: &SpaceActions, files: bool) -> Vec<FnTool> {
+	let writes: &[&'static str] = if files { &["update_space_deadline", "add_space_file"] } else { &["update_space_deadline"] };
+	["read_space", "search_space_files", "read_passage"].iter().chain(writes).copied().map(|name| space_tool(actions, name)).collect()
 }

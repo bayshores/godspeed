@@ -1,7 +1,7 @@
 /**
  * Starting the agent: the web version keeps the copy-command path, the
  * desktop app starts the teacher's terminal and shows its screen in
- * onboarding's step, and Start lesson or a Talk send start the agent last
+ * onboarding's step, and Start lesson or a lesson's send start the agent last
  * started here, hidden.
  */
 import { dom, fakeShell } from "../terminal-dom.ts";
@@ -17,9 +17,10 @@ const { lessonAgentWaiting, useAgentStatus } = await import("../../src/frontend/
 const { agentDoing } = await import("../../src/frontend/components/teacher/follow-status.ts");
 const { agentLine } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
 const { idleWords, pillLine, pillThings } = await import("../../src/frontend/components/top-bar/live-pill-model.ts");
-const { agentHeadline, teacherTile } = await import("../../src/frontend/components/settings/agent-windows-model.ts");
+const { teacherTile } = await import("../../src/frontend/components/settings/agent-windows-model.ts");
 const { teacherTerminalState } = await import("../../src/frontend/components/terminal/terminal-model.ts");
 const { useChatSession } = await import("../../src/frontend/components/session.ts");
+const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 type Api = NonNullable<ReturnType<typeof useTerminals>>;
 
@@ -86,9 +87,11 @@ describe("Start Claude Code", () => {
 	it("in the desktop app, starts the teacher's terminal and shows its screen in the step until it connects", async () => {
 		const shell = fakeShell();
 		const page = (status: Access) => (
-			<TerminalsProvider status={status}>
-				<AgentLauncher />
-			</TerminalsProvider>
+			<ServerEventsProvider connect={(() => ({ onEvent() {}, onOpen() {}, close() {} })) as never}>
+				<TerminalsProvider status={status}>
+					<AgentLauncher />
+				</TerminalsProvider>
+			</ServerEventsProvider>
 		);
 		let root: ReturnType<typeof createRoot> | null = null;
 		try {
@@ -146,7 +149,7 @@ describe("Start with an agent outside godspeed connected", () => {
 					await settle();
 					assert.ok(posts.some((b) => b.includes('"setup"')), "the folder was set up");
 					assert.ok(!shell.calls.some((c) => c.startsWith("start")), "no second teacher");
-					assert.match(document.body.textContent!, /An agent started outside godspeed is already connected\. Close it there, then start one here\./);
+					assert.match(document.body.textContent!, /An agent outside godspeed is connected\. Close it first\./);
 				},
 			);
 		} finally {
@@ -190,7 +193,7 @@ describe("the shell's list", () => {
 	});
 });
 
-describe("Start lesson and a Talk send", () => {
+describe("Start lesson and a lesson's send", () => {
 	it("start the agent last started here, hidden, only when no agent is here", async () => {
 		const shell = fakeShell();
 		let api: Api | null = null;
@@ -226,7 +229,6 @@ describe("Start lesson and a Talk send", () => {
 					});
 					await settle();
 					assert.equal(shell.calls.filter((c) => c === "start teacher codex").length, 1, "two sends close together start one teacher");
-					assert.ok(api!.overlay === null, "it starts hidden");
 					assert.ok(status()?.connected === false && status()?.teaching === false, "every surface reads no agent until the new one checks in");
 					await act(async () => root!.render(page(access({ connected: true, teaching: true, terminals: [{ id: "teacher-new", here: true }] }))));
 					assert.ok(status()?.teaching === true, "checked in: the server's word again");
@@ -344,10 +346,9 @@ describe("after godspeed's teacher ended, though the server still says connected
 			const doing = agentDoing({ agent, fresh: null, lesson: { streaming: true, working: true }, extractions: [], jobs: [] });
 			const facts = api!.facts.teacher;
 			return {
-				pill: pillWords(pillLine({ things: pillThings({ name: "Teacher", doing, agent, terminal: teacherTerminalState(facts), work: null, ready: [], due: null, offer: null }), notice: null, idle: idleWords({ name: "Teacher", agent, notices: 0, own: false }) })),
+				pill: pillWords(pillLine({ things: pillThings({ name: "Teacher", doing, agent, terminal: teacherTerminalState(facts), background: false, work: null, ready: [], due: null, offer: null }), notice: null, idle: idleWords({ name: "Teacher", agent, notices: 0, own: false }) })),
 				panel: agentLine(agent, doing),
-				headline: agentHeadline(agent, "Teacher", false),
-				tile: teacherTile(agent, doing, { outside: false, term: facts?.term.ended ? "ended" : null }).chip,
+				tile: teacherTile(agent, doing, { outside: false, term: facts?.term.ended ? "ended" : null, start: "Start Claude Code" }).chip,
 				lessonWaits: lessonAgentWaiting(agent),
 			};
 		};
@@ -360,10 +361,10 @@ describe("after godspeed's teacher ended, though the server still says connected
 					await act(async () => r.render(page(access({ ...busy, terminals: [{ id: "t1", here: true }] }))));
 				},
 				async () => {
-					assert.deepEqual(words(), { pill: "Teacher, writing the lesson", panel: "Writing the lesson", headline: "Teacher is running", tile: "Teaching", lessonWaits: false });
+					assert.deepEqual(words(), { pill: "Teacher, writing the lesson", panel: "Writing the lesson", tile: "Teaching", lessonWaits: false });
 					await act(async () => shell.push({ id: "t1", ended: { stopped: true, code: null }, prompt: null, url: false }));
 					await act(async () => root!.render(page(access(busy))));
-					assert.deepEqual(words(), { pill: "Waiting for your agent", panel: "Start your agent to begin.", headline: "No agent is running", tile: "Stopped", lessonWaits: true });
+					assert.deepEqual(words(), { pill: "Waiting for your agent", panel: "Start your agent to begin.", tile: "Stopped", lessonWaits: true });
 				},
 			);
 		} finally {

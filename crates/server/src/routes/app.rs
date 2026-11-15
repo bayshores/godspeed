@@ -20,7 +20,7 @@ use gs_services::app::old_setup::remove_old_setup;
 use gs_services::app::prompt_segments::{prompt_segments, reset_prompt_segment, save_prompt_segment};
 use gs_services::app::reading_pages::{ReadingError, parse_page, reading_document, reading_pdf_page};
 use gs_services::app::{agent_actions::recent_agent_actions, put_settings_section};
-use gs_services::spaces::citations::{cited_page, cited_passage};
+use gs_services::spaces::citations::{cited_page, cited_passage, passage_range};
 
 use crate::http::paths::{param, query};
 use crate::http::reply::{self, Unhandled, error, fields, json_body};
@@ -200,12 +200,20 @@ fn page_png(outcome: Result<Arc<Vec<u8>>, ReadingError>) -> Result<Response, Unh
 	}
 }
 
-/// What a space file source in a teacher message shows: `{ name, range, page, text }`.
+/// What a space file source shows: `{ name, range, page, text, marks }`, at `range`, or at
+/// `passage` n (the passage id `<file_id>:<n>` an agent prints).
 async fn cited(State(app): State<Arc<App>>, Path(file_id): Path<String>, uri: Uri) -> Result<Response, Unhandled> {
 	let params = query(&uri);
-	let Some(range) = param(&params, "range").filter(|range| !range.is_empty()) else { return Ok(error(400, "range is required")) };
+	let range = match (param(&params, "range").filter(|range| !range.is_empty()), param(&params, "passage")) {
+		(Some(range), _) => range.to_owned(),
+		(None, Some(n)) => match passage_range(&app, &file_id, n) {
+			Some(range) => range,
+			None => return Ok(error(404, "No passage at that place")),
+		},
+		(None, None) => return Ok(error(400, "range or passage is required")),
+	};
 	let quote = param(&params, "quote").filter(|quote| !quote.is_empty());
-	match cited_passage(&app, &file_id, range, quote).await {
+	match cited_passage(&app, &file_id, &range, quote).await {
 		Ok(passage) => Ok(reply::json_no_store(200, &passage)),
 		Err(ReadingError::Refused(status, message)) => Ok(error(status, message)),
 		Err(ReadingError::Failed(message)) => Err(Unhandled::from(message)),

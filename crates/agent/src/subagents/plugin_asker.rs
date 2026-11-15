@@ -26,7 +26,7 @@ pub struct PluginAsk {
 	pub signal: Abort,
 }
 
-/// The work item's label, the same in the agent's pane and the live pill.
+/// The work item's label.
 fn ask_label(name: &str) -> String {
 	format!("{name} asked for…")
 }

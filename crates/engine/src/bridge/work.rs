@@ -3,15 +3,15 @@
 use gs_base::events::EventKind;
 use gs_base::text::trim;
 use gs_base::{clock, ids, shutdown};
-use gs_core::contracts::chat::{CHAT_ID_PREFIX, TALK_CHAT_ID};
+use gs_core::contracts::chat::CHAT_ID_PREFIX;
 use gs_core::records::agent_seen::seen_mark;
 use gs_json::Json;
 
 use super::helper::{self, compacting_now, someone_compacting};
-use super::terminals::closed;
+use super::terminals::{closed, typed_lately};
 use super::render::{instructions_and_tools, prints_of};
 use super::view::{WorkView, remember_seen};
-use super::{Bridge, State, WorkItem, is_background};
+use super::{Bridge, State, Wait, WorkItem, is_background};
 use crate::turn::messages::faux_assistant_message;
 
 /// A claimed item with no reply after this long goes back in the queue (the agent crashed or
@@ -24,7 +24,7 @@ const WAIT_SLICE_MS: i64 = 15_000;
 /// Who asks for work.
 #[derive(Clone, Default)]
 pub struct WaitOptions {
-	/// Stay on this conversation: its items (and Talk's, for a lesson) first.
+	/// Stay on this conversation: its items first.
 	pub conversation: Option<String>,
 	/// The asking agent's session id, when its client sends one.
 	pub agent: Option<String>,
@@ -76,7 +76,7 @@ fn claimable(state: &State, item: &WorkItem, now: i64, taker: &WaitOptions) -> b
 		return false;
 	}
 	let held = Some(item.conversation.as_str()) != taker.conversation.as_deref() && state.held.get(&item.conversation).is_some_and(|until| *until > now);
-	// The helper answers a compacting teacher's lessons and Talk, so those holds do not count.
+	// The helper answers a compacting teacher's lessons, so those holds do not count.
 	let covers = taker.helper && !is_background(&item.conversation) && someone_compacting(state, now);
 	if held && !covers {
 		return false;
@@ -100,16 +100,16 @@ fn oldest(state: &State, now: i64, opts: &WaitOptions, keep: impl Fn(&WorkItem) 
 
 /// No other wait is under way for this lesson: none stays on it, and none takes any work.
 fn unwaited(state: &State, lesson: &str) -> bool {
-	!state.waiting.iter().any(|(_, on)| on.as_deref().is_none_or(|on| on == lesson))
+	!state.waiting.iter().any(|wait| wait.on.as_deref().is_none_or(|on| on == lesson))
 }
 
-/// The next item. A teacher: any, or its conversation's (a lesson also takes Talk's, oldest first,
-/// so Talk never waits on a lesson, and when asked another lesson's no one else waits for, so one
-/// agent takes turns), then background jobs when asked; it leaves background jobs to a helper that
+/// The next item. A teacher: any, or its conversation's (a lesson, when asked, also another
+/// lesson's no one else waits for, oldest first, so one agent takes turns), then background jobs
+/// when asked; it leaves background jobs to a helper that
 /// is here. A helper: background jobs, and what it began.
 fn pick(state: &State, now: i64, opts: &WaitOptions) -> Option<usize> {
 	if opts.helper {
-		// A compacting teacher's lesson and Talk turns come first, so they wait one job step at most.
+		// A compacting teacher's lesson turns come first, so they wait one job step at most.
 		let covered = if someone_compacting(state, now) { oldest(state, now, opts, |i| !is_background(&i.conversation)) } else { None };
 		return covered.or_else(|| match opts.conversation.as_deref() {
 			Some(conversation) => oldest(state, now, opts, |i| i.conversation == conversation),
@@ -118,9 +118,8 @@ fn pick(state: &State, now: i64, opts: &WaitOptions) -> Option<usize> {
 	}
 	let alone = !helper::here(state, now);
 	let Some(conversation) = opts.conversation.as_deref() else { return oldest(state, now, opts, |i| alone || !is_background(&i.conversation)) };
-	let with_talk = conversation.starts_with(CHAT_ID_PREFIX);
-	let others = with_talk && opts.and_others;
-	oldest(state, now, opts, |i| i.conversation == conversation || (with_talk && i.conversation == TALK_CHAT_ID) || (others && !is_background(&i.conversation) && unwaited(state, &i.conversation)))
+	let others = conversation.starts_with(CHAT_ID_PREFIX) && opts.and_others;
+	oldest(state, now, opts, |i| i.conversation == conversation || (others && !is_background(&i.conversation) && unwaited(state, &i.conversation)))
 		.or_else(|| if opts.and_others && alone { oldest(state, now, opts, |i| is_background(&i.conversation)) } else { None })
 }
 
@@ -131,18 +130,18 @@ struct Waiting<'a> {
 }
 
 impl<'a> Waiting<'a> {
-	fn start(bridge: &'a Bridge, on: Option<String>) -> Waiting<'a> {
+	fn start(bridge: &'a Bridge, opts: &WaitOptions) -> Waiting<'a> {
 		let mut s = bridge.0.state.lock();
 		s.waits += 1;
 		let id = s.waits;
-		s.waiting.push((id, on));
+		s.waiting.push(Wait { id, on: opts.conversation.clone(), agent: opts.agent.clone() });
 		Waiting { bridge, id }
 	}
 }
 
 impl Drop for Waiting<'_> {
 	fn drop(&mut self) {
-		self.bridge.0.state.lock().waiting.retain(|(id, _)| *id != self.id);
+		self.bridge.0.state.lock().waiting.retain(|wait| wait.id != self.id);
 	}
 }
 
@@ -151,6 +150,8 @@ enum Claim {
 	/// The background run this waiter stays on ended, or the waiter's terminal did: it sends
 	/// nothing more.
 	Ended,
+	/// The learner typed to this waiter's agent in its terminal: it answers them first.
+	Typed,
 	Nothing,
 }
 
@@ -160,6 +161,9 @@ impl Bridge {
 		let mut s = self.0.state.lock();
 		if closed(&s, opts.terminal.as_deref()) {
 			return Claim::Ended;
+		}
+		if typed_lately(&s, opts.terminal.as_deref(), now) {
+			return Claim::Typed;
 		}
 		let Some(i) = pick(&s, now, opts) else {
 			let ended = opts.conversation.as_deref().is_some_and(|c| is_background(c) && !s.background_runs.contains(c));
@@ -179,13 +183,14 @@ impl Bridge {
 	}
 
 	/// Waits up to `timeout_ms` for a request, claims it and presents it. None when nothing
-	/// came, its background run or its terminal ended, or the server is stopping.
+	/// came, its background run or its terminal ended, the learner typed in its terminal, or the
+	/// server is stopping.
 	pub async fn wait_for_work(&self, timeout_ms: i64, opts: WaitOptions) -> Option<WorkView> {
 		// An empty lesson_id is no conversation in the TS (a falsy string).
 		let opts = WaitOptions { conversation: opts.conversation.filter(|c| !c.is_empty()), ..opts };
 		let deadline = clock::now_ms() + timeout_ms;
 		// A helper's wait does not count: it takes lessons only while it covers for a teacher.
-		let _waiting = (!opts.helper).then(|| Waiting::start(self, opts.conversation.clone()));
+		let _waiting = (!opts.helper).then(|| Waiting::start(self, &opts));
 		// Held from a wake until this waiter's claim is done, so woken waiters claim in line.
 		let mut ticket = None;
 		loop {
@@ -206,7 +211,7 @@ impl Bridge {
 			drop(ticket.take());
 			match claimed {
 				Claim::Taken(view) => return Some(*view),
-				Claim::Ended => return None,
+				Claim::Ended | Claim::Typed => return None,
 				Claim::Nothing => {}
 			}
 			let remaining = deadline - now;
@@ -215,6 +220,12 @@ impl Bridge {
 			}
 			ticket = Some(self.0.waiters.wait(seen, clock::sleep(remaining.min(WAIT_SLICE_MS)), shutdown::wait()).await);
 		}
+	}
+
+	/// This agent has a wait under way (Claude Code's waiter runs while the agent talks to the
+	/// learner), so it needs no second one for a lesson it starts.
+	pub fn agent_waiting(&self, agent: Option<&str>) -> bool {
+		agent.is_some_and(|agent| self.0.state.lock().waiting.iter().any(|wait| wait.agent.as_deref() == Some(agent)))
 	}
 
 	/// Answers a work item. The conversation's next item is held for the answering agent for

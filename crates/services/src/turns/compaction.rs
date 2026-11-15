@@ -41,8 +41,6 @@ pub struct CompactionDeps {
 	pub engine: Engine,
 	/// `provider:id` of the engine.
 	pub model_id: String,
-	/// "teach", "practice", "probe" or "talk" (the summary's wording).
-	pub kind: &'static str,
 	/// min(the fixed threshold, context window - reserve).
 	pub threshold_tokens: f64,
 	/// The composed system prompt's estimate (chars / 4).
@@ -175,7 +173,7 @@ pub async fn refine(app: &Arc<App>, deps: &CompactionDeps, chat_id: &str) {
 		None => span_text,
 	};
 	let tree = record.get("tree").filter(|t| !t.is_null());
-	let prompt = build_compaction_prompt(&full_span, plan_tree_to_text(tree, messages).as_deref(), deps.kind);
+	let prompt = build_compaction_prompt(&full_span, plan_tree_to_text(tree, messages).as_deref());
 	if !app.turns.refining.lock().insert(chat_id.to_owned()) {
 		return;
 	}
@@ -271,7 +269,7 @@ mod tests {
 
 	fn deps(threshold_tokens: f64, script: &Arc<Scripted>) -> CompactionDeps {
 		let engine = Engine { model: faux_model("faux", "faux", "test", "Test", 1_000_000.0, 32_000.0), respond: script.clone() };
-		CompactionDeps { engine, model_id: "faux:test".to_owned(), kind: "teach", threshold_tokens, system_prompt_tokens: 100.0 }
+		CompactionDeps { engine, model_id: "faux:test".to_owned(), threshold_tokens, system_prompt_tokens: 100.0 }
 	}
 
 	fn summary_reply(script: &Arc<Scripted>, summary: &str) {

@@ -198,7 +198,7 @@ Everything under `data/` is plain JSON or JSONL and is never tracked by git. You
 
 | Path | What it holds |
 |---|---|
-| `chats/` | Lesson and Talk records, one JSON file each. `chats/<id>/` holds a lesson's attached PDFs. |
+| `chats/` | Lesson records, one JSON file each, and an older build's Talk chat, kept as it was. `chats/<id>/` holds a lesson's attached PDFs. |
 | `graph/` | The "No space" graph: `nodes.jsonl`, `chains.jsonl`, `sessions.jsonl`, `coverage.jsonl`, `topics.jsonl`, `sources.json` and `format.json`. |
 | `spaces/<id>/` | `space.json`, `files/` (with `texts/` and `transcripts/`), `graph/`, `search/`, `cheat-sheets/` (one record per deadline, with its versions) and `mocks/` (one file per mock). |
 | `search/` | The search index for "No space" facts. |

@@ -1,7 +1,7 @@
 /**
  * The teacher's Activity list, its words and its rows. Pure.
  *
- * Background jobs: the feed's sub-agent jobs and fact-building runs, merged
+ * Background jobs: the feed's sub-agent jobs, fact-building runs and deadline requests, merged
  * into one oldest-first list (stable order, so refreshes land in place).
  * The context line is the LAST model call's footprint against the model's
  * limit, never a running sum. Absent data shows "–", never zero.
@@ -9,11 +9,12 @@
 import type { JobKind } from "@/shared/core";
 import type { ActivityFeed } from "@/frontend/components/activity-dock";
 
-/** One running background job: a sub-agent job or a fact-building run. */
+/** One running background job: a sub-agent job, a fact-building run or a deadline request. */
 export interface ActivityBlob {
-	/** job.id, or the run's row id (source id, or "src#i" for chunk jobs). */
+	/** job.id, the run's row id (source id, or "src#i" for chunk jobs), or the request's. */
 	id: string;
-	process: "job" | "extraction";
+	/** A request has no Stop. */
+	process: "job" | "extraction" | "request";
 	/** Sub-agent kind (fact-building runs have none). */
 	jobKind?: JobKind;
 	/** Fact-building phase (waiting/extracting/merging/grouping). */
@@ -80,6 +81,9 @@ export function toBlobs(feed: ActivityFeed): ActivityBlob[] {
 			activity: "",
 		});
 	}
+	for (const request of feed.requests ?? []) {
+		blobs.push({ id: request.id, process: "request", title: request.title, chatId: "", opensLesson: false, startedAt: request.startedAt, context: null, activity: "" });
+	}
 	blobs.sort((a, b) => a.startedAt - b.startedAt);
 	return blobs;
 }
@@ -103,6 +107,7 @@ const JOB_LABEL: Record<JobKind, string> = {
 /** What a background job is: "Building facts", "Research agent". */
 export function blobLabel(blob: Pick<ActivityBlob, "process" | "jobKind">): string {
 	if (blob.process === "extraction") return "Building facts";
+	if (blob.process === "request") return "Your agent";
 	return (blob.jobKind && JOB_LABEL[blob.jobKind]) || "Sub-agent";
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useActivity } from "@/frontend/components/activity-dock";
-import { AGENT_LABEL, rememberedAgent, type LaunchChoice } from "@/frontend/components/agent-folder/agent-folder-model";
+import { AGENT_LABEL, rememberedAgent, startLabel, type LaunchChoice } from "@/frontend/components/agent-folder/agent-folder-model";
 import { Log, OtherAppSetup } from "@/frontend/components/agent-folder/agent-launcher";
 import { FolderLine } from "@/frontend/components/agent-folder/folder-line";
 import { OldSetupWarning } from "@/frontend/components/agent-folder/old-setup";
@@ -17,7 +17,7 @@ import { TeacherStatus } from "@/frontend/components/terminal/teacher-status";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { HELPER_NAME, filesProgress } from "@/frontend/components/work/work-model";
 import { cn } from "@/frontend/lib/utils";
-import { agentHeadline, filesLine, helperTile, teacherTile, type AgentTile, type TermState } from "./agent-windows-model";
+import { filesLine, helperTile, teacherTile, type AgentTile, type TermState } from "./agent-windows-model";
 
 /**
  * "Your agent": whether the teacher and the helper run and what each is
@@ -46,7 +46,7 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 	const teacherTerm: TermState = !ownTeacher ? null : ownTeacher.ended ? "ended" : terminals?.facts.teacher?.checkedIn ? null : "starting";
 	// A helper that ended with its teacher starts again by itself with the next one.
 	const helperTerm: TermState = !ownHelper ? null : !ownHelper.ended ? (agent.helperHere ? null : "starting") : teacherLive ? "ended" : null;
-	const teacher = teacherTile(agent, panel?.doing ?? null, { outside, term: teacherTerm });
+	const teacher = teacherTile(agent, panel?.doing ?? null, { outside, term: teacherTerm, start: startLabel(choice) });
 	const helper = helperTile({
 		agent,
 		background: backgroundLine(feed.extractions, feed.jobs),
@@ -58,13 +58,13 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 	});
 
 	return (
-		<section data-testid="agent-windows" className="flex flex-col gap-5 lh-sheet p-6">
+		<section data-testid="agent-windows" className="@container flex flex-col gap-5 lh-sheet p-6">
 			<div className="flex flex-wrap items-start gap-x-4 gap-y-2">
 				<div className="min-w-0 flex-1">
+					{/* Each tile's chip says whether it runs; the headline names the agent. */}
 					<h2 data-testid="agent-status" className="text-[28px] leading-tight text-ink">
-						{agentHeadline(agent, teacherName, teacherTerm === "starting")}
+						Your agent is {agent.name ?? (folderAgent ? AGENT_LABEL[folderAgent] : "another app")}
 					</h2>
-					<p className="text-[15px] text-ink-2">Your agent is {agent.name ?? (folderAgent ? AGENT_LABEL[folderAgent] : "another app")}</p>
 				</div>
 				<AgentMenu
 					choice={choice}
@@ -75,8 +75,18 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 					className="shrink-0"
 				/>
 			</div>
-			<div className="grid gap-4 min-[860px]:grid-cols-2">
-				<Tile id="teacher" name="Teacher" icon="window" tile={teacher} onOpen={folderAgent && (() => void open(folderAgent))} busy={busy} status={teacherName} />
+			{/* Side by side only while the section is wide: the teacher's panel can narrow the page. */}
+			<div className="grid gap-4 @min-[640px]:grid-cols-2">
+				<Tile
+					id="teacher"
+					name="Teacher"
+					icon="window"
+					tile={teacher}
+					onOpen={folderAgent && !panel?.panelStarts ? () => void open(folderAgent) : null}
+					busy={busy}
+					status={teacherName}
+					said={!!panel?.panelOpen}
+				/>
 				<Tile id="helper" name={HELPER_NAME} icon="pages" tile={helper} onOpen={folderAgent && (() => void openHelper(folderAgent))} busy={busy} quiet />
 			</div>
 			<OldSetupWarning />
@@ -105,6 +115,8 @@ const CHIP: Record<string, string> = {
 
 /** One agent: its icon, name and status chip, then what it is doing.
  *  `status`: the teacher's name, for its status line (TeacherStatus).
+ *  `said`: the teacher's open panel beside it says its status, so the
+ *  tile leaves out its chip and line. 
  *  `quiet`: its button is a plain word (the helper is never the main thing). */
 function Tile({
 	id,
@@ -114,6 +126,7 @@ function Tile({
 	onOpen,
 	busy,
 	status,
+	said = false,
 	quiet = false,
 }: {
 	id: string;
@@ -123,24 +136,27 @@ function Tile({
 	onOpen: (() => void) | null;
 	busy: boolean;
 	status?: string;
+	said?: boolean;
 	quiet?: boolean;
 }) {
 	const off = tile.tone === "off";
 	return (
-		<div data-testid={`agent-window-${id}`} data-tone={tile.tone} className={cn("flex min-w-0 flex-col border-2", off ? "border-edge" : "border-line bg-background")}>
+		<div data-testid={`agent-window-${id}`} data-tone={tile.tone} className="lh-well flex min-w-0 flex-col overflow-hidden rounded">
 			<div aria-hidden data-state={tile.tone === "busy" ? "working" : undefined} className={cn("h-3 shrink-0", tile.tone === "busy" ? "lh-work-stripes" : off ? "bg-tone-2" : "bg-ink")} />
 			<div className="flex min-w-0 items-start gap-4 p-4">
 				<span aria-hidden className={cn("flex size-16 shrink-0 items-center justify-center", tile.tone === "busy" ? "bg-highlight text-ink" : off ? "bg-tone text-ink-2" : "bg-ink text-background")}>
 					<PixelIcon name={icon} className="h-9" />
 				</span>
 				<div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
-					<div className="flex items-center gap-2.5">
+					<div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
 						<h3 className={cn("text-[22px] leading-tight", off ? "text-ink-2" : "text-ink")}>{name}</h3>
-						<span data-testid={`agent-window-${id}-chip`} className={cn("px-2 py-0.5 text-sm", CHIP[tile.chip] ?? "bg-highlight text-ink")}>
-							{tile.chip}
-						</span>
+						{!said && (
+							<span data-testid={`agent-window-${id}-chip`} className={cn("px-2 py-0.5 text-sm", CHIP[tile.chip] ?? "bg-highlight text-ink")}>
+								{tile.chip}
+							</span>
+						)}
 					</div>
-					{status ? (
+					{said ? null : status ? (
 						<TeacherStatus name={status} line={tile.line} testid={`agent-window-${id}-line`} className={cn("max-w-full truncate text-base", off ? "text-ink-2" : "text-ink")} />
 					) : (
 						tile.line && (

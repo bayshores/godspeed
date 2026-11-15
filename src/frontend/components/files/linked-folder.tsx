@@ -17,8 +17,8 @@ const PROBLEM_LINE: Record<FolderProblem, string> = {
 export const ROW_BUTTON = "lh-btn shrink-0";
 
 /**
- * "Linked folder" (Files page): opens a box with the full path, what the
- * folder does (or what is wrong with it), which files it can't read, and
+ * "Linked folder" (Files page): opens a box with the full path, what is
+ * wrong with the folder (when something is), which files it can't read, and
  * its buttons: Pick folder again (the safe way to switch folders), Open
  * in Finder (desktop app, while the folder can be read) and Unlink, which
  * asks first.
@@ -76,12 +76,10 @@ export function LinkedFolderButton({
 			>
 				<h2 className="text-xl text-ink">Linked folder</h2>
 				<p className="font-count text-base break-all text-ink">{path}</p>
-				{problem ? (
+				{problem && (
 					<p data-testid="space-folder-problem" className="text-[15px] text-ans-wrong">
 						{PROBLEM_LINE[problem]}
 					</p>
-				) : (
-					<p className="text-[15px] text-ink-2">New files in it are added and sorted into study material or space info as your agent reads them.</p>
 				)}
 				{skipped.length > 0 && (
 					<p data-testid="space-folder-skipped" className="text-[15px] break-words text-ink-2">

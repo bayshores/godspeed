@@ -4,7 +4,8 @@ import { useSpaceColor } from "@/frontend/components/space-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { TeacherActivity } from "@/frontend/components/teacher/teacher-activity";
 import { TeacherHead } from "@/frontend/components/teacher/teacher-head";
-import { FollowButton } from "@/frontend/components/top-bar/follow-button";
+import { useTerminals } from "@/frontend/components/terminal/use-terminals";
+import { FollowButton } from "@/frontend/components/teacher/follow-button";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { ResizeHandle } from "@/frontend/components/ui/resize-handle";
@@ -16,7 +17,8 @@ export const COLUMN_WIDTH = { initial: 480, min: 340, max: 720 };
 
 /**
  * THE TEACHER COLUMN, the lesson's right side (below the text in a narrow
- * window): the teacher's head (what it is doing, Follow, Activity), then
+ * window): the teacher's head (what it is doing, Follow, Terminal in the
+ * desktop app, Activity), then
  * "Your turn" with the one writing box. "Activity" swaps the column for
  * the teacher's activity list until "Back to your turn".
  */
@@ -42,6 +44,7 @@ export function TeacherColumn({
 }) {
 	const { pending, busy } = turn;
 	const teacher = useTeacher();
+	const terminals = useTerminals();
 	const name = teacher?.name ?? DEFAULT_TEACHER_NAME;
 	const color = useSpaceColor(spaceId);
 	const [activityOpen, setActivityOpen] = useState(false);
@@ -76,7 +79,13 @@ export function TeacherColumn({
 			</div>
 			<Pane className="flex min-h-0 flex-1 flex-col overflow-hidden">
 				<TeacherHead name={name} color={color} doing={doing}>
-					<FollowButton />
+					<FollowButton look="lh-btn shrink-0" />
+					{/* The way to the teacher's screen while its status line has nothing to say. */}
+					{terminals?.available && (
+						<button type="button" data-testid="teacher-terminal-open" onClick={() => teacher?.showTerminal()} className="lh-btn lh-btn-quiet shrink-0">
+							Terminal
+						</button>
+					)}
 					{activityOpen ? (
 						<button type="button" data-testid="teacher-activity-back" onClick={() => setActivityOpen(false)} className="lh-btn shrink-0">
 							<PixelIcon name="chevron" className="-scale-x-100" />

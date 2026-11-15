@@ -11,7 +11,7 @@ use gs_base::re::Re;
 /// A prompt fragment: numeric order key + .md (e.g. 20-teaching.md). Nothing else loads.
 pub static FRAGMENT_RE: LazyLock<Re> = LazyLock::new(|| Re::new(r"^\d+-[\w.-]+\.md$", ""));
 
-static SEGMENT_RE: LazyLock<Re> = LazyLock::new(|| Re::new(r"^(prober|teacher|practice|study|homework|talk|shared)/([\w.-]+\.md)$", ""));
+static SEGMENT_RE: LazyLock<Re> = LazyLock::new(|| Re::new(r"^(prober|teacher|practice|study|homework|shared)/([\w.-]+\.md)$", ""));
 
 /// Whether a segment path follows the layout rules.
 pub fn is_valid_segment_path(segment_path: &str) -> bool {
@@ -27,10 +27,10 @@ mod tests {
 
 	#[test]
 	fn only_mirror_layout_paths_are_valid() {
-		for ok in ["system-prompt.md", "shared/30-learner-files.md", "teacher/20-teaching.md", "talk/1-a.b.md"] {
+		for ok in ["system-prompt.md", "shared/30-learner-files.md", "teacher/20-teaching.md", "study/1-a.b.md"] {
 			assert!(is_valid_segment_path(ok), "{ok}");
 		}
-		for bad in ["", "teacher/teaching.md", "teacher/20-teaching.txt", "other/20-a.md", "teacher/../20-a.md", "teacher/x/20-a.md", "/system-prompt.md", "teacher/20-a.md\n"] {
+		for bad in ["", "teacher/teaching.md", "teacher/20-teaching.txt", "other/20-a.md", "talk/00-base.md", "teacher/../20-a.md", "teacher/x/20-a.md", "/system-prompt.md", "teacher/20-a.md\n"] {
 			assert!(!is_valid_segment_path(bad), "{bad}");
 		}
 	}

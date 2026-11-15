@@ -15,7 +15,7 @@ use super::space::{SpaceToolContext, space_tools};
 use super::fn_tool::FnTool;
 use super::graph::{GraphToolContext, prober_graph_tools};
 use super::rules::{SaveRule, save_rule_tool};
-use super::talk::{SpaceActions, lesson_space_change_tools};
+use super::space_actions::{SpaceActions, lesson_space_change_tools};
 
 #[derive(Clone, Default)]
 pub struct LessonSide {

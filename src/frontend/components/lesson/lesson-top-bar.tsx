@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
 import { SessionFind } from "@/frontend/components/session-find";
 import type { SessionScrollContext } from "@/frontend/components/session-navigation";
+import { BAR_WORD_ON } from "@/frontend/components/top-bar/bar-look";
 import { LivePill } from "@/frontend/components/top-bar/live-pill";
 import { Hint } from "@/frontend/components/ui/hint";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
@@ -14,7 +15,6 @@ import type { useTitleRename } from "./use-title-rename";
 const BAR_BUTTON = "lh-btn lh-btn-bar lh-no-drag";
 /** A plain word on the bar, as tall as the bar; lit when its panel is open. */
 const NAV_WORD = "lh-no-drag h-12 shrink-0 px-4 text-[15px] text-bar-ink hover:bg-bar-ink/10";
-const LIT_WORD = "bg-bar-ink font-medium text-bar hover:bg-bar-ink";
 
 /**
  * THE LESSON'S OWN BAR, in place of the app's top bar: the way back to the
@@ -69,12 +69,12 @@ export function LessonTopBar({
 			)}
 			<SessionFind scopeRef={scopeRef} scrollContextRef={scrollContextRef}>
 				{plugins.words.map((w) => (
-					<button key={w.id} type="button" data-testid={`lesson-plugin-${w.id}`} aria-pressed={plugins.open === w.id} onClick={() => plugins.onToggle(w.id)} className={cn(NAV_WORD, plugins.open === w.id && LIT_WORD)}>
+					<button key={w.id} type="button" data-testid={`lesson-plugin-${w.id}`} aria-pressed={plugins.open === w.id} onClick={() => plugins.onToggle(w.id)} className={cn(NAV_WORD, plugins.open === w.id && BAR_WORD_ON)}>
 						{w.label}
 					</button>
 				))}
 				{sheet && (
-					<button type="button" data-testid="lesson-cheat-sheet" aria-pressed={sheet.open} onClick={sheet.onToggle} className={cn(NAV_WORD, sheet.open && LIT_WORD)}>
+					<button type="button" data-testid="lesson-cheat-sheet" aria-pressed={sheet.open} onClick={sheet.onToggle} className={cn(NAV_WORD, sheet.open && BAR_WORD_ON)}>
 						Cheat sheet
 					</button>
 				)}

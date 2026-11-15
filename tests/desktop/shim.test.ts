@@ -92,6 +92,7 @@ test("the terminal members name a role, an agent and an id, and hear their pushe
 	await terminals.write!("a1", "y");
 	await terminals.answer!("a1", "trust");
 	await terminals.paste!("a1");
+	await terminals.addFile!("a1", "week 3.png", "iVBO");
 	await terminals.detach!("a1");
 	await terminals.stop!("a1");
 	await terminals.list!();
@@ -102,6 +103,7 @@ test("the terminal members name a role, an agent and an id, and hear their pushe
 		["terminal_write", { id: "a1", data: "y" }],
 		["terminal_answer", { id: "a1", kind: "trust" }],
 		["terminal_paste", { id: "a1" }],
+		["terminal_add_file", { id: "a1", name: "week 3.png", data: "iVBO" }],
 		["terminal_detach", { id: "a1" }],
 		["terminal_stop", { id: "a1" }],
 		["terminal_list"],

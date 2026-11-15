@@ -37,12 +37,21 @@ pub const NOT_SET_UP: &str = "The godspeed folder isn't set up yet.";
 const NO_START: &str = "godspeed couldn't start the terminal.";
 const NOT_THERE: &str = "That terminal isn't running.";
 const NOT_SHOWN: &str = "Show the terminal and click in it first.";
+/// The largest file Attach takes.
+const ATTACH_MAX: usize = 20 * 1024 * 1024;
+const ATTACH_TOO_BIG: &str = "That file is over 20 MB.";
+const ATTACH_KINDS: &str = "Attach takes pictures (PNG, JPEG, GIF or WebP) and PDFs.";
+const ATTACH_TEACHER: &str = "Attach is for the teacher's screen.";
+const ATTACH_NOT_SAVED: &str = "godspeed couldn't save that file in its folder.";
+const ATTACH_UNTYPABLE: &str = "godspeed's folder has a line break in its path, so Attach can't type it.";
 
 /// Where a terminal's news goes: the page, the server and the log.
 pub trait Outlet: Send + Sync + 'static {
 	fn push(&self, channel: &str, payload: Value);
-	/// The live terminal ids changed.
-	fn live(&self, ids: Vec<String>);
+	/// The live terminal ids changed; `teacher` is the teacher's among them.
+	fn live(&self, ids: Vec<String>, teacher: Option<String>);
+	/// The learner sent a message to the agent in this terminal.
+	fn typed(&self, id: &str);
 	fn log(&self, line: &str);
 }
 
@@ -215,16 +224,19 @@ fn state_ended(state: &State) -> bool {
 
 type List = Mutex<Vec<Arc<Terminal>>>;
 
-/// The ids of the terminals that run and were not stopped.
-fn live_ids(list: &[Arc<Terminal>]) -> Vec<String> {
-	list.iter().filter(|t| !state_ended(&t.state())).map(|t| t.id.clone()).collect()
+/// The ids of the terminals that run and were not stopped, and the teacher's among them.
+fn live_ids(list: &[Arc<Terminal>]) -> (Vec<String>, Option<String>) {
+	let live: Vec<&Arc<Terminal>> = list.iter().filter(|t| !state_ended(&t.state())).collect();
+	let teacher = live.iter().find(|t| t.role == Role::Teacher).map(|t| t.id.clone());
+	(live.into_iter().map(|t| t.id.clone()).collect(), teacher)
 }
 
 /// Tells the server the live ids. Sent under the list's lock, so two changes at once reach it
 /// in the order they happened.
 fn tell_live(list: &List, outlet: &dyn Outlet) {
 	let list = lock(list);
-	outlet.live(live_ids(&list));
+	let (ids, teacher) = live_ids(&list);
+	outlet.live(ids, teacher);
 }
 
 /// The terminals (managed state).
@@ -242,7 +254,7 @@ impl Terminals {
 		lock(&self.list).iter().find(|t| t.id == id).cloned().ok_or_else(|| NOT_THERE.to_owned())
 	}
 
-	pub fn live(&self) -> Vec<String> {
+	pub fn live(&self) -> (Vec<String>, Option<String>) {
 		live_ids(&lock(&self.list))
 	}
 
@@ -307,7 +319,8 @@ impl Terminals {
 		// An ended record stays until the next start for its role.
 		list.retain(|t| t.role != role);
 		list.push(terminal.clone());
-		self.outlet.live(live_ids(&list));
+		let (ids, teacher) = live_ids(&list);
+		self.outlet.live(ids, teacher);
 		drop(list);
 		self.outlet.log(&format!("terminal started: {} {} pid {}", role.name(), agent.name(), terminal.pid.unwrap_or_default()));
 		self.run(terminal, spawned.reader, spawned.child);
@@ -380,7 +393,15 @@ impl Terminals {
 		if screen::is_reply(data) {
 			return Ok(());
 		}
-		terminal.write(data.as_bytes())
+		// Only Enter on its own sends the learner's message: Alt or Shift with Enter adds a line,
+		// and a paste is not sent yet. With no question on the screen the server hears it, so the
+		// agent's wait for work ends and it can answer the learner.
+		let message = data == "\r" && terminal.state().screen.seen().prompt.is_none();
+		terminal.write(data.as_bytes())?;
+		if message {
+			self.outlet.typed(&terminal.id);
+		}
+		Ok(())
 	}
 
 	/// The trust or Enter button, only while the shell itself still sees that question. Trust
@@ -417,6 +438,41 @@ impl Terminals {
 		let text = text.replace('\x1b', "");
 		let pasted = if bracketed { format!("\x1b[200~{text}\x1b[201~") } else { text };
 		terminal.write(pasted.as_bytes())
+	}
+
+	/// Attach: a picture or a PDF saved in the godspeed folder, where the agent reads it without
+	/// asking, and its path typed into the teacher's input like a paste (escaped as a Finder drag
+	/// types it), then a space and no Enter, so the learner adds words and sends. Answers the
+	/// saved path. The terminal must be shown, but the window need not have the focus: a file
+	/// dropped from Finder leaves Finder in front, and what is typed is only a path the shell
+	/// saved itself.
+	pub fn add_file(&self, id: &str, name: &str, bytes: &[u8], folder: &Path) -> Result<String, String> {
+		let terminal = self.find(id)?;
+		if terminal.role != Role::Teacher {
+			return Err(ATTACH_TEACHER.to_owned());
+		}
+		let attached = terminal.state().attached;
+		// Shown, but no focus check: a Finder drop leaves Finder in front. Safe, since only a path
+		// the shell saved itself is typed, never a line break.
+		if !attached {
+			return Err(NOT_SHOWN.to_owned());
+		}
+		if bytes.len() > ATTACH_MAX {
+			return Err(ATTACH_TOO_BIG.to_owned());
+		}
+		if !attachable(bytes) {
+			return Err(ATTACH_KINDS.to_owned());
+		}
+		let dir = folder.join(".godspeed").join("attachments");
+		let file = dir.join(attachment_name(name, bytes));
+		let path = file.to_string_lossy().into_owned();
+		if path.chars().any(char::is_control) {
+			return Err(ATTACH_UNTYPABLE.to_owned());
+		}
+		let existed = file.exists();
+		std::fs::create_dir_all(&dir).and_then(|()| gs_base::fsx::write_atomic(&file, bytes, None)).map_err(|_| ATTACH_NOT_SAVED.to_owned())?;
+		send_attachment(&terminal, &file, existed)?;
+		Ok(path)
 	}
 
 	pub fn stop(&self, id: &str) -> Result<(), String> {
@@ -543,6 +599,62 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 	mutex.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
+/// An attached file's bytes from the page's base64 text. The text's length bounds the bytes, so
+/// a file over the limit is refused before it is decoded.
+pub fn attachment_bytes(data: &str) -> Result<Vec<u8>, String> {
+	if data.len() / 4 * 3 > ATTACH_MAX + 2 {
+		return Err(ATTACH_TOO_BIG.to_owned());
+	}
+	Ok(gs_base::base64::decode(data))
+}
+
+/// Types a saved attachment's path, if the terminal is still shown and running: the save took a
+/// while, off the main thread. When it is not, a copy this attach made goes again.
+fn send_attachment(terminal: &Terminal, file: &Path, existed: bool) -> Result<(), String> {
+	let typed = typed_path(&file.to_string_lossy());
+	let sent = {
+		let state = terminal.state();
+		let typed = if state.screen.bracketed_paste() { format!("\x1b[200~{typed}\x1b[201~ ") } else { format!("{typed} ") };
+		if state.attached { state.io.as_ref().filter(|_| !state_ended(&state)).ok_or(NOT_THERE).and_then(|io| io.input.send(typed.into_bytes()).map_err(|_| NOT_THERE)) } else { Err(NOT_SHOWN) }
+	};
+	if sent.is_err() && !existed {
+		let _ = std::fs::remove_file(file);
+	}
+	sent.map_err(str::to_owned)
+}
+
+/// A path as a drag from the file manager types it into a terminal: on Windows in quotes when it
+/// has a space, elsewhere with a backslash before each space and character a shell reads.
+fn typed_path(path: &str) -> String {
+	if cfg!(windows) {
+		return if path.contains(' ') { format!("\"{path}\"") } else { path.to_owned() };
+	}
+	let mut typed = String::with_capacity(path.len());
+	for c in path.chars() {
+		if c.is_whitespace() || "\\!\"#$&'()*;<>?[]^`{|}~".contains(c) {
+			typed.push('\\');
+		}
+		typed.push(c);
+	}
+	typed
+}
+
+/// A picture (PNG, JPEG, GIF, WebP) or a PDF, by its first bytes.
+fn attachable(bytes: &[u8]) -> bool {
+	let webp = bytes.starts_with(b"RIFF") && bytes.get(8..12) == Some(b"WEBP".as_slice());
+	webp || [b"\x89PNG\r\n\x1a\n".as_slice(), b"\xff\xd8\xff", b"GIF8", b"%PDF-"].iter().any(|magic| bytes.starts_with(magic))
+}
+
+/// `<sha12>-<name>`: the name's last part, every character but letters, digits, `.`, `-` and `_`
+/// as `_`, so the typed path needs no quotes in any agent or shell. The same file keeps its name.
+fn attachment_name(name: &str, bytes: &[u8]) -> String {
+	let last = name.rsplit(['/', '\\']).next().unwrap_or_default();
+	let clean: String = last.chars().map(|c| if c.is_alphanumeric() || matches!(c, '.' | '-' | '_') { c } else { '_' }).collect();
+	let clean = clean.trim_start_matches('.');
+	let hash = gs_base::hash::sha256_hex(bytes);
+	format!("{}-{}", &hash[..12], if clean.is_empty() { "file" } else { clean })
+}
+
 #[cfg(test)]
 mod tests {
 	use std::path::PathBuf;
@@ -555,6 +667,9 @@ mod tests {
 	struct Heard {
 		pushes: Mutex<Vec<(String, Value)>>,
 		live: Mutex<Vec<Vec<String>>>,
+		/// The teacher's id in the last live message.
+		teacher: Mutex<Option<String>>,
+		typed: Mutex<Vec<String>>,
 		log: Mutex<Vec<String>>,
 		/// The next live message takes a while to send, and `sending` says when it began.
 		slow: AtomicBool,
@@ -566,12 +681,17 @@ mod tests {
 			lock(&self.pushes).push((channel.to_owned(), payload));
 		}
 
-		fn live(&self, ids: Vec<String>) {
+		fn live(&self, ids: Vec<String>, teacher: Option<String>) {
 			if self.slow.swap(false, Ordering::SeqCst) {
 				self.sending.store(true, Ordering::SeqCst);
 				std::thread::sleep(Duration::from_millis(300));
 			}
 			lock(&self.live).push(ids);
+			*lock(&self.teacher) = teacher;
+		}
+
+		fn typed(&self, id: &str) {
+			lock(&self.typed).push(id.to_owned());
 		}
 
 		fn log(&self, line: &str) {
@@ -657,8 +777,12 @@ mod tests {
 		assert_eq!(terminals.write(&id, SECRET, true), Err(NOT_SHOWN.to_owned()), "not shown yet");
 		terminals.attach(&id).unwrap();
 		assert_eq!(terminals.write(&id, SECRET, false), Err(NOT_SHOWN.to_owned()), "the window is not focused");
-		terminals.write(&id, &format!("{SECRET}\r"), true).unwrap();
-		until("the echo", || text(&terminals, &id).contains(&format!("got {SECRET}")));
+		terminals.write(&id, "a", true).unwrap();
+		terminals.write(&id, SECRET, true).unwrap();
+		assert!(lock(&heard.typed).is_empty(), "keys without Enter send nothing yet");
+		terminals.write(&id, "\r", true).unwrap();
+		assert_eq!(*lock(&heard.typed), vec![id.clone()], "Enter with no question on the screen is a message to the agent");
+		until("the echo", || text(&terminals, &id).contains(&format!("got a{SECRET}")));
 		until("the end", || ended_of(&terminals, &id) == Some(Ended::Exited(0)));
 
 		let pushes = lock(&heard.pushes);
@@ -667,12 +791,94 @@ mod tests {
 		let drawn = String::from_utf8(gs_base::base64::decode(snapshot["snapshot"].as_str().unwrap())).unwrap();
 		assert!(drawn.contains("ready"), "the snapshot redraws the screen");
 		let output: Vec<u8> = pushes.iter().filter_map(|(_, p)| p["data"].as_str()).flat_map(gs_base::base64::decode).collect();
-		assert!(String::from_utf8_lossy(&output).contains(&format!("got {SECRET}")), "output after the attach");
+		assert!(String::from_utf8_lossy(&output).contains(&format!("got a{SECRET}")), "output after the attach");
 		let last = &pushes.iter().rfind(|(channel, _)| channel == "terminal-state").unwrap().1;
 		assert_eq!(last["ended"], json!({ "stopped": false, "code": 0 }));
 		assert_eq!(lock(&heard.live).last(), Some(&Vec::new()), "the server hears it ended");
 		assert_eq!(terminals.write(&id, "x", true), Err(NOT_THERE.to_owned()));
 		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[test]
+	fn attach_saves_a_picture_in_the_folder_and_types_its_path_without_enter() {
+		let dir = folder("attach", ECHO);
+		let terminals = Terminals::new(Arc::new(Heard::default()));
+		let id = start(&terminals, &dir);
+		until("ready", || text(&terminals, &id).contains("ready"));
+		let png = b"\x89PNG\r\n\x1a\nmade-up picture";
+		assert_eq!(terminals.add_file(&id, "week 3.png", png, &dir), Err(NOT_SHOWN.to_owned()), "not shown yet");
+		terminals.attach(&id).unwrap();
+		assert_eq!(terminals.add_file(&id, "notes.txt", b"plain words", &dir), Err(ATTACH_KINDS.to_owned()));
+		assert_eq!(terminals.add_file(&id, "big.pdf", &[b"%PDF-".as_slice(), &vec![0; ATTACH_MAX]].concat(), &dir), Err(ATTACH_TOO_BIG.to_owned()));
+
+		let odd = dir.join("line\nbreak");
+		assert_eq!(terminals.add_file(&id, "a.png", png, &odd), Err(ATTACH_UNTYPABLE.to_owned()), "a path with a line break is never typed");
+		assert!(!odd.exists(), "nor saved");
+		let spaced = dir.join("Lab folder");
+		let path = terminals.add_file(&id, "../week 3.png", png, &spaced).unwrap();
+		let saved = spaced.join(".godspeed").join("attachments").join(format!("{}-week_3.png", &gs_base::hash::sha256_hex(png)[..12]));
+		assert_eq!(Path::new(&path), saved, "inside the folder, the name's last part, spaces as _");
+		assert_eq!(std::fs::read(&saved).unwrap(), png);
+		std::thread::sleep(Duration::from_millis(300));
+		assert!(!text(&terminals, &id).contains("got "), "no Enter: the line is still being typed");
+		terminals.write(&id, "\r", true).unwrap();
+		until("the echo", || text(&terminals, &id).contains("-week_3.png"));
+		assert!(text(&terminals, &id).contains("Lab\\ folder"), "the folder's space typed as a drag types it");
+		until("the end", || ended_of(&terminals, &id).is_some());
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[test]
+	fn an_attachment_saved_after_its_screen_was_hidden_or_ended_is_not_typed_and_goes() {
+		let dir = folder("attach-late", ECHO);
+		let terminals = Terminals::new(Arc::new(Heard::default()));
+		let id = start(&terminals, &dir);
+		until("ready", || text(&terminals, &id).contains("ready"));
+		let terminal = terminals.find(&id).unwrap();
+		let saved = dir.join("late.png");
+		gs_base::fsx::write_atomic(&saved, b"made-up", None).unwrap();
+		assert_eq!(send_attachment(&terminal, &saved, true), Err(NOT_SHOWN.to_owned()));
+		assert!(saved.exists(), "a copy an earlier attach made stays");
+		assert_eq!(send_attachment(&terminal, &saved, false), Err(NOT_SHOWN.to_owned()), "hidden while it was saved");
+		assert!(!saved.exists(), "this attach's copy goes");
+		terminals.attach(&id).unwrap();
+		terminals.stop(&id).unwrap();
+		gs_base::fsx::write_atomic(&saved, b"made-up", None).unwrap();
+		assert_eq!(send_attachment(&terminal, &saved, false), Err(NOT_THERE.to_owned()), "stopped while it was saved");
+		assert!(!saved.exists());
+		until("the end", || ended_of(&terminals, &id).is_some());
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[test]
+	fn attach_knows_pictures_and_pdfs_by_their_first_bytes() {
+		for file in [b"\x89PNG\r\n\x1a\n".as_slice(), b"\xff\xd8\xff\xe0", b"GIF89a", b"RIFF\0\0\0\0WEBPVP8 ", b"%PDF-1.7"] {
+			assert!(attachable(file), "{file:?}");
+		}
+		for file in [b"".as_slice(), b"RIFF\0\0\0\0WAVE", b"<svg>", b"PK\x03\x04"] {
+			assert!(!attachable(file), "{file:?}");
+		}
+		assert_eq!(&attachment_name("C:\\Users\\ada\\Lab $1 (final).pdf", b"x")[12..], "-Lab__1__final_.pdf");
+		assert_eq!(&attachment_name("..", b"x")[12..], "-file");
+		assert_eq!(&attachment_name("notes\r\nrm -rf ~.png", b"x")[12..], "-notes__rm_-rf__.png", "no line break reaches the input");
+		assert_eq!(attachment_name("a.png", b"x"), attachment_name("a.png", b"x"), "the same file keeps its name");
+	}
+
+	#[test]
+	fn an_attached_path_is_typed_as_a_drag_types_it() {
+		let path = "/Users/ada/God Speed/.godspeed/attachments/0123456789ab-a.png";
+		if cfg!(windows) {
+			assert_eq!(typed_path(path), format!("\"{path}\""));
+		} else {
+			assert_eq!(typed_path(path), "/Users/ada/God\\ Speed/.godspeed/attachments/0123456789ab-a.png");
+			assert_eq!(typed_path("/a/$x (1)'s;b"), "/a/\\$x\\ \\(1\\)\\'s\\;b");
+		}
+	}
+
+	#[test]
+	fn an_attachment_over_the_limit_is_refused_before_it_is_decoded() {
+		assert_eq!(attachment_bytes(&"A".repeat(ATTACH_MAX / 3 * 4 + 8)), Err(ATTACH_TOO_BIG.to_owned()));
+		assert_eq!(attachment_bytes(&gs_base::base64::encode(b"%PDF-")), Ok(b"%PDF-".to_vec()));
 	}
 
 	#[test]
@@ -684,6 +890,7 @@ mod tests {
 		terminals.attach(&id).unwrap();
 		until("ready", || text(&terminals, &id).contains("ready"));
 		terminals.paste(&id, &format!("{SECRET}\r"), true).unwrap();
+		assert!(lock(&heard.typed).is_empty(), "a paste is not a message yet, even with a line break");
 		until("the end", || ended_of(&terminals, &id).is_some());
 		let log = lock(&heard.log).join("\n");
 		assert!(log.contains("terminal started: teacher claude pid ") && log.contains(" code 0"), "{log}");
@@ -724,12 +931,14 @@ mod tests {
 
 		let teacher = start(&terminals, &dir);
 		let helper = start_helper();
+		assert_eq!(*lock(&heard.teacher), Some(teacher.clone()), "the server hears which one is the teacher's");
 		until("ready", || text(&terminals, &teacher).contains("ready") && text(&terminals, &helper).contains("ready"));
 		terminals.attach(&teacher).unwrap();
 		terminals.write(&teacher, "bye\r", true).unwrap();
 		until("the teacher's own end", || ended_of(&terminals, &teacher) == Some(Ended::Exited(0)));
 		until("the helper's stop", || ended_of(&terminals, &helper) == Some(Ended::Stopped));
 		assert_eq!(lock(&heard.live).last(), Some(&Vec::new()), "the server hears both ended");
+		assert_eq!(*lock(&heard.teacher), None);
 
 		let teacher = start(&terminals, &dir);
 		let helper = start_helper();
@@ -737,6 +946,26 @@ mod tests {
 		terminals.stop(&teacher).unwrap();
 		until("the helper's stop", || ended_of(&terminals, &helper) == Some(Ended::Stopped));
 		assert_eq!(lock(&heard.live).last(), Some(&Vec::new()));
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[test]
+	fn only_enter_on_its_own_is_a_message_to_the_agent() {
+		let dir = folder("enter", WAITS);
+		let heard = Arc::new(Heard::default());
+		let terminals = Terminals::new(heard.clone());
+		let id = start(&terminals, &dir);
+		terminals.attach(&id).unwrap();
+		until("ready", || text(&terminals, &id).contains("ready"));
+		terminals.write(&id, "\x1b\r", true).unwrap();
+		assert!(lock(&heard.typed).is_empty(), "Alt or Shift with Enter adds a line");
+		terminals.write(&id, "\x1b[200~two\rlines\x1b[201~", true).unwrap();
+		assert!(lock(&heard.typed).is_empty(), "a bracketed paste the page typed");
+		terminals.paste(&id, "two\rlines", true).unwrap();
+		assert!(lock(&heard.typed).is_empty(), "a paste");
+		terminals.write(&id, "\r", true).unwrap();
+		assert_eq!(*lock(&heard.typed), vec![id.clone()]);
+		terminals.stop(&id).unwrap();
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 
@@ -913,7 +1142,8 @@ mod tests {
 			draw("  ", " \\342\\235\\257"),
 		);
 		let dir = folder("trust", &question);
-		let terminals = Terminals::new(Arc::new(Heard::default()));
+		let heard = Arc::new(Heard::default());
+		let terminals = Terminals::new(heard.clone());
 		let id = start(&terminals, &dir);
 		until("the question", || terminals.find(&id).unwrap().state().screen.trust() == Some(Trust::OnNo));
 		assert!(terminals.answer(&id, Prompt::Enter).is_err(), "no Press Enter line");
@@ -921,6 +1151,25 @@ mod tests {
 		terminals.answer(&id, Prompt::Trust).unwrap();
 		until("the answer", || text(&terminals, &id).contains("trusted"));
 		assert!(terminals.answer(&id, Prompt::Trust).is_err(), "the question is gone");
+		assert!(lock(&heard.typed).is_empty(), "godspeed's own answer is not the learner talking");
+		terminals.stop(&id).unwrap();
+		until("the stop", || ended_of(&terminals, &id).is_some());
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn enter_on_a_menu_answers_it_and_is_no_message() {
+		let menu = "#!/bin/sh\nprintf ' Select a model\\r\\n\\r\\n \\342\\235\\257 1. Default (recommended)\\r\\n   2. Opus\\r\\n'\nsleep 30\n";
+		let dir = folder("menu", menu);
+		let heard = Arc::new(Heard::default());
+		let terminals = Terminals::new(heard.clone());
+		let id = start(&terminals, &dir);
+		terminals.attach(&id).unwrap();
+		until("the menu", || terminals.find(&id).unwrap().state().screen.seen().prompt == Some(Prompt::Menu));
+		terminals.write(&id, "\r", true).unwrap();
+		terminals.paste(&id, "2\n", true).unwrap();
+		assert!(lock(&heard.typed).is_empty());
 		terminals.stop(&id).unwrap();
 		until("the stop", || ended_of(&terminals, &id).is_some());
 		std::fs::remove_dir_all(dir).unwrap();

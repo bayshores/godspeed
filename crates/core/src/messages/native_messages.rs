@@ -167,11 +167,6 @@ pub fn new_today_context_message(note: &str, day: &str) -> Json {
 	Json::Obj(marker(new_message_id(), "today-context", note, false, json!({ "day": day })))
 }
 
-/// A request from the app itself (not the learner), shown in the chat.
-pub fn new_app_request_message(request: &str, deadlines: Vec<Json>) -> Json {
-	Json::Obj(marker(new_message_id(), "app-request", format!("[From godspeed, not the learner] {request}"), true, json!({ "deadlines": deadlines })))
-}
-
 /// The learner's explicit move-on signal between problems.
 pub fn new_next_message() -> Json {
 	Json::Obj(marker(new_message_id(), "practice-next", NEXT_PROBLEM_TEXT, true, json!({})))
@@ -236,7 +231,6 @@ mod tests {
 		assert_eq!(failed, HashSet::from(["c1".to_owned(), "c2".to_owned()]));
 		let content = json!([{ "type": "text", "text": "hi" }, { "type": "toolCall", "id": "c1", "name": "send_to_user", "arguments": { "message": "lost" } }, { "type": "toolCall", "id": "c3", "name": "send_to_user", "arguments": { "message": "kept" } }, { "type": "text", "text": "  " }]);
 		assert_eq!(user_facing_text_of(&content, Some(&failed)), ["hi", "kept"]);
-		assert_eq!(new_app_request_message("x", vec![])["content"], json!("[From godspeed, not the learner] x"));
 	}
 
 	fn keys(v: &Json) -> Vec<&str> {

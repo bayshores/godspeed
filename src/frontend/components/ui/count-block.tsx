@@ -17,11 +17,26 @@ const SIZES = {
  * on the space's color. `pale` washes the color out, for a row that can
  * wait.
  */
-export function CountBlock({ color, pale, count, unit, size = "row" }: { color: string; pale?: boolean; count: string; unit: string; size?: keyof typeof SIZES }) {
+export function CountBlock({
+	color,
+	pale,
+	count,
+	unit,
+	size = "row",
+	className,
+}: {
+	color: string;
+	pale?: boolean;
+	count: string;
+	unit: string;
+	size?: keyof typeof SIZES;
+	/** Changes to its box, such as a narrow card's strip. */
+	className?: string;
+}) {
 	const s = SIZES[size];
 	return (
 		<span
-			className={cn("flex shrink-0 flex-col items-center justify-center self-stretch font-count", s.box, pale ? "text-ink" : "text-on-space")}
+			className={cn("flex shrink-0 flex-col items-center justify-center self-stretch font-count", s.box, pale ? "text-ink" : "text-on-space", className)}
 			style={{ background: pale ? `color-mix(in srgb, ${color} 57%, var(--lh-space-wash))` : color }}
 		>
 			{/* A word ("late") is set smaller than a number so it fits. The digits sit low in their

@@ -61,7 +61,7 @@ export function cutOf(ink, clip) {
 
 const clips = (style) => style.overflowX !== "visible" || style.overflowY !== "visible";
 const CONTROLS = "button, input, select, textarea";
-const PICTURES = "img, svg, canvas, video, .katex";
+const PICTURES = "img, svg, canvas, video, .katex, .xterm";
 
 /** A number per element, kept on the window, so a finding is matched by its elements across
  *  reads. */
@@ -155,9 +155,16 @@ const shown = (el) => el.checkVisibility({ opacityProperty: true, visibilityProp
 function overlaps() {
 	const items = [];
 	for (const el of document.body.querySelectorAll("*")) {
-		// Math is drawn by KaTeX and SVG by its own geometry: each is one picture. What the app
-		// marks aria-hidden is decoration (a backdrop, an icon in a button), not content.
-		if ((el.closest(".katex") && !el.matches(".katex")) || (el.closest("svg") && el.localName !== "svg") || el.closest("[aria-hidden=true]") || !shown(el)) continue;
+		// Math is drawn by KaTeX, SVG by its own geometry and the agent's screen by xterm on
+		// stacked canvases: each is one picture. What the app marks aria-hidden is decoration (a
+		// backdrop, an icon in a button), not content.
+		if (
+			(el.closest(".katex, .xterm") && !el.matches(".katex, .xterm")) ||
+			(el.closest("svg") && el.localName !== "svg") ||
+			el.closest("[aria-hidden=true]") ||
+			!shown(el)
+		)
+			continue;
 		const boxes = ownBoxes(el)
 			.map((box) => visiblePart(el, box))
 			.filter((box) => box && box.right - box.left > SLACK && box.bottom - box.top > SLACK);

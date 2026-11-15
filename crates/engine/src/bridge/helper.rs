@@ -1,7 +1,7 @@
 //! The helper: a second agent session whose waiter says it is the helper. It does the background
 //! jobs (file reading, graph work, sheets), so the teacher stays free for the learner. While a
 //! teacher compacts its context (its PreCompact hook says so), the helper also takes the lesson
-//! and Talk turns, including the one the teacher held.
+//! turns, including the one the teacher held.
 
 use gs_base::clock;
 use gs_base::events::EventKind;
@@ -46,7 +46,7 @@ impl Bridge {
 		here(&self.0.state.lock(), now)
 	}
 
-	/// The helper is answering lessons and Talk: a teacher is compacting and a helper is here.
+	/// The helper is answering lessons: a teacher is compacting and a helper is here.
 	pub fn helper_covering(&self, now: i64) -> bool {
 		let s = self.0.state.lock();
 		someone_compacting(&s, now) && here(&s, now)
@@ -58,7 +58,7 @@ impl Bridge {
 	}
 
 	/// The agent started compacting its context (its PreCompact hook). With a helper here, the
-	/// lesson and Talk turns it held go back in the queue for the helper; its late reply is then
+	/// lesson turns it held go back in the queue for the helper; its late reply is then
 	/// refused (the claim count).
 	pub fn agent_compacting(&self, agent: &str, now: i64) {
 		let mut s = self.0.state.lock();

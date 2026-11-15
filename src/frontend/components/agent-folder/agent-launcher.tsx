@@ -6,11 +6,10 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { FirstRunScreen } from "@/frontend/components/terminal/first-run-screen";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
-import { rememberedAgent, type LaunchChoice, type LogLine } from "./agent-folder-model";
-import { savedAgent } from "./agent-folder-api";
+import type { LogLine } from "./agent-folder-model";
 import { FolderLine } from "./folder-line";
 import { StartAgentButton } from "./start-agent-button";
-import { useAgentFolder } from "./use-agent-folder";
+import { useAgentChoice, useAgentFolder } from "./use-agent-folder";
 
 /**
  * Start your agent in the godspeed folder: "Start Claude Code" and "Use
@@ -22,9 +21,8 @@ import { useAgentFolder } from "./use-agent-folder";
  */
 export function AgentLauncher() {
 	const { view, lines, busy, error: startError, open, change, setStartCommand } = useAgentFolder();
-	const [choice, setChoice] = useState<LaunchChoice>("claude");
+	const [choice, setChoice] = useAgentChoice();
 	const [error, setError] = useState<string | null>(null);
-	useEffect(() => setChoice(rememberedAgent(savedAgent())), []);
 
 	const agent = choice === "other" ? null : choice;
 	// While the agent's screen runs, its footer leads (Stop is the way
@@ -43,6 +41,7 @@ export function AgentLauncher() {
 					onStart={() => agent && void open(agent)}
 					busy={busy}
 					quiet={!!teacher}
+					big
 				/>
 			)}
 			{choice === "other" ? <OtherAppSetup /> : lines.length > 0 ? <Log lines={lines} /> : <FirstRunScreen />}
@@ -101,9 +100,9 @@ export function OtherAppSetup() {
 		<div className="flex w-full flex-col gap-3 text-left">
 			<p className="text-[15px] text-ink-2">
 				Add a Streamable HTTP MCP server with this address and header, then ask your app to teach you with the godspeed tools. Let it use
-				them without asking your permission. For a helper, start a second session and tell it "Start as the helper".
+				them without asking your permission. For background work, start a second session and tell it "Start as the helper".
 			</p>
-			<div className="rounded border-[1.5px] border-ink bg-background">
+			<div className="lh-well rounded">
 				<div className="flex items-center justify-between border-b border-line px-4 py-2.5">
 					<span className="text-[15px] text-ink-2">MCP server</span>
 					<CopyButton

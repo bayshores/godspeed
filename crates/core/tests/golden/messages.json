@@ -4651,25 +4651,6 @@
 				}
 			},
 			{
-				"name": "app request",
-				"built": {
-					"id": "<id>",
-					"role": "custom",
-					"customType": "app-request",
-					"content": "[From godspeed, not the learner] Add the deadlines",
-					"display": true,
-					"details": {
-						"deadlines": [
-							{
-								"id": "d1",
-								"title": "Quiz"
-							}
-						]
-					},
-					"timestamp": 0
-				}
-			},
-			{
 				"name": "next",
 				"built": {
 					"id": "<id>",

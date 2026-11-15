@@ -164,8 +164,9 @@ pub enum Trust {
 const TRUST_QUESTION: &str = "is this a project you created or one you trust?";
 const TRUST_ITEMS: [&str; 2] = ["No, exit", "Yes, I trust this folder"];
 const TRUST_FOOTER: &str = "Enter to confirm · Esc to cancel";
-/// How far above the items the question may sit (its note and a link come between).
-const QUESTION_ROWS: usize = 8;
+/// How far above the items the question may sit (its note and a link come between, wrapped to
+/// the 80 columns).
+const QUESTION_ROWS: usize = 12;
 
 /// A row's text without its pointer, and whether it had one.
 fn pointed(row: &str) -> (bool, &str) {

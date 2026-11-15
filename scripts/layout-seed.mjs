@@ -3,8 +3,8 @@
  *
  * A small stand-in agent talks to the app over MCP, as Claude Code would: it makes the space
  * "Lab Algebra" with a deadline and one file, reads the file into one fact, starts a lesson and
- * answers it with a plan, then a sourced reply and an open quiz, and answers a Talk message with
- * a sourced reply. The window installs the plugin "Flashcards". No model runs; every word is fixed here.
+ * answers it with a plan, then a sourced reply and an open quiz. The window installs the plugin
+ * "Flashcards". No model runs; every word is fixed here.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -62,7 +62,7 @@ function inDays(days) {
 /** The stand-in's answer to a work item, or null for one it does not expect. The lesson's first
  *  turn presents the plan; its second, after the plan's result, is the sourced reply with an open
  *  quiz, so the reply ends the reading pane. */
-function answerFor(work, ids, date, lessonTurn) {
+function answerFor(work, ids, lessonTurn) {
 	if (work.task?.startsWith("Graph extraction")) {
 		return { tool_calls: [{ name: "submit_findings", arguments: { propositions: [{ id: "p1", name: "Undo in reverse", statement: "To solve ax + b = c, subtract b from both sides, then divide by a." }], chains: [], reteaches: [] } }] };
 	}
@@ -90,16 +90,17 @@ function answerFor(work, ids, date, lessonTurn) {
 			],
 		};
 	}
-	if (work.lessonId === "chat_talk") {
-		return { text: `${DEADLINE} is on ${date} at 10:00. It covers solving linear equations by graphing and by moving terms across the equals sign. [[${ids.passage}]] ${WEB_SOURCE}\n\nStart with the lesson on solving linear equations by graphing; it has a short quiz.` };
+	// godspeed's own request to work out what a deadline covers, a background job.
+	if (work.task?.startsWith("Deadline: ")) {
+		return { text: `${DEADLINE} covers solving linear equations by graphing and by moving terms across the equals sign.` };
 	}
 	return null;
 }
 
 /**
  * Writes the made-up data into the running app. `page.fetch(path, init)` runs fetch in the
- * window, as the page itself would, and answers the status; `page.start` only starts it. `log`
- * keeps a line per step. Answers the ids the screens' addresses use.
+ * window, as the page itself would, and answers the status. `log` keeps a line per step. Answers the ids the
+ * screens' addresses use.
  */
 export async function seed(dataDir, page, log) {
 	const agent = standIn(dataDir, log);
@@ -115,9 +116,6 @@ export async function seed(dataDir, page, log) {
 	await agent.call("add_space_file", { space_id: space.id, kind: "study", name: "Graphing quiz prep.md", text: "# Solving by graphing\n\nTo solve ax + b = c, subtract b from both sides, then divide by a. Graphing y = ax + b and y = c gives the same x where the lines cross." });
 	const { lessonId } = await agent.json("start_lesson", { topic: "Solving linear equations by graphing", space_id: space.id });
 	await page.fetch("/api/plugins", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ from: "folder", folder: PLUGIN_FOLDER }) });
-	await page.fetch("/api/talk", { method: "POST" });
-	// The Talk turn's request stays open until the stand-in answers it.
-	await page.start("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: "chat_talk", input: { type: "text", text: "When is my pop quiz, and what does it cover?" } }) });
 
 	// The file's passage, found and read as an agent would before citing it.
 	let passage;
@@ -144,7 +142,7 @@ export async function seed(dataDir, page, log) {
 		const texts = [...reply];
 		for (let n = 2; n <= (header.pages ?? 1); n++) texts.push(...(await agent.call("read_work", { work_id: header.workId, page: n })));
 		const work = workOf(texts.slice(header.pages > 1 ? 1 : 0).join(""));
-		const answer = answerFor(work, { lesson: lessonId, passage }, date, lessonTurns);
+		const answer = answerFor(work, { lesson: lessonId, passage }, lessonTurns);
 		if (work.lessonId === lessonId) lessonTurns++;
 		if (!answer) throw new Error(`the stand-in agent got work it does not expect: ${work.task ?? work.lessonId}`);
 		reply = await agent.call("respond", { work_id: header.workId, ...answer, wait_seconds: 0 });

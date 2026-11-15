@@ -1,6 +1,8 @@
 /**
- * The teacher's screens: the panel (head, the Talk and Activity tabs:
- * Now, Recent, Background jobs) and the teacher name setting.
+ * The teacher's screens: the panel (head, the Activity list: Recent and
+ * Background jobs; what it shows and how wide it is) and the teacher name
+ * setting. The agent's screen in the panel has its own file
+ * (terminal-panel.test.tsx).
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -10,11 +12,9 @@ import { afterEach, describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import { mathBoxView, stubCodeMirrorDom } from "../math-box-dom.ts";
 import type { AgentAction } from "../../src/shared/core/events.ts";
 
 const dom = parseHTML("<html><body></body></html>");
-stubCodeMirrorDom(dom);
 Object.assign(globalThis, {
 	window: dom.window,
 	document: dom.document,
@@ -30,13 +30,12 @@ Object.assign(globalThis, {
 		disconnect() {}
 	},
 });
-// The Talk thread scrolls to its end.
-(dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
+// The start pair asks for the agent folder; these tests never answer.
+globalThis.fetch = (() => new Promise(() => {})) as typeof fetch;
 
 const { TeacherPanel, agentLine } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
-const { dockPush, dockWidth } = await import("../../src/frontend/components/teacher/dock-model.ts");
-const { draftWithAsk, startsTurn } = await import("../../src/frontend/components/teacher/talk-model.ts");
-const { askTeacher, useAskTeacher } = await import("../../src/frontend/components/teacher/ask-teacher.ts");
+const { TERMINAL_DOCK_WIDTH, TERMINAL_PUSH_MIN, dockLayout, panelBody, panelStarts, shownScreen } = await import("../../src/frontend/components/teacher/dock-model.ts");
+const { fitFontSize } = await import("../../src/frontend/components/terminal/terminal-model.ts");
 const { waitingNotice } = await import("../../src/frontend/components/agent-status.tsx");
 const { ActivityList, TeacherActivity } = await import("../../src/frontend/components/teacher/teacher-activity.tsx");
 const { DEFAULT_TEACHER_NAME, sanitizeTeacherName, sanitizeUserSettings, TEACHER_NAME_MAX } = await import("../../src/shared/core/settings.ts");
@@ -67,294 +66,132 @@ const ACTIONS: AgentAction[] = [
 ];
 const names = (id: string | null) => (id === "cls_29" ? "CSE 29" : null);
 
+const IDLE = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [] };
+const TEACHING = { ...IDLE, connected: true, teaching: true, name: "Claude Code" };
+
+type PanelProps = React.ComponentProps<typeof TeacherPanel>;
+/** The panel as a browser has it: Activity alone. */
+const panel = (over: Partial<PanelProps> = {}) => (
+	<TeacherPanel
+		name="Ada"
+		agent={TEACHING}
+		view="activity"
+		listable
+		list={false}
+		onList={() => {}}
+		overLesson={false}
+		screen="teacher"
+		onScreen={() => {}}
+		focus={false}
+		{...over}
+	/>
+);
+
 describe("the panel", () => {
-	const panel = (over: Partial<React.ComponentProps<typeof TeacherPanel>> = {}) => (
-		<TeacherPanel
-			name="Ada"
-			agent={{ connected: true, teaching: true, name: "Claude Code", helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [] }}
-			onClose={() => {}}
-			recent={ACTIONS}
-			onPick={() => {}}
-			{...over}
-		/>
-	);
-
-	// The Talk tab opens the chat on mount; most tests don't need it to answer.
-	const talkCalls: string[] = [];
-	let talkChat: unknown = null;
-	globalThis.fetch = ((url: string, init?: RequestInit) => {
-		talkCalls.push(`${init?.method ?? "GET"} ${url}${typeof init?.body === "string" ? ` ${init.body}` : ""}`);
-		if (url === "/api/talk" && init?.method === "POST" && talkChat) return Promise.resolve(new Response(JSON.stringify(talkChat)));
-		return new Promise(() => {});
-	}) as typeof fetch;
-	const settle = () =>
-		act(async () => {
-			for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
-		});
-	const talkText = async (el: HTMLElement) => (await mathBoxView(el, `Message Ada`)).state.doc.toString();
-
-	it("opens on Talk, which opens the chat; Activity is the other tab, the teacher's Activity list", () => {
-		talkCalls.length = 0;
+	it("in a browser it is the Activity list alone, and its chip drops nothing", () => {
 		const el = mount(panel());
-		assert.equal(el.querySelector("[data-testid='teacher-tab-talk']")?.getAttribute("aria-selected"), "true");
-		assert.deepEqual(talkCalls, ["POST /api/talk"]);
-		assert.ok(el.querySelector("[data-testid='activity-list']") === null);
-		act(() => (el.querySelector("[data-testid='teacher-tab-activity']") as HTMLElement).click());
-		assert.equal(el.querySelector("[data-testid='teacher-tab-activity']")?.getAttribute("aria-selected"), "true");
-		// Outside the app shell there is no teacher state: the list says what will show there.
-		assert.ok(el.querySelector("[data-testid='activity-list'] [data-testid='activity-empty']"));
+		assert.ok(el.querySelector("[data-testid='activity-list'] [data-testid='activity-empty']"), "outside the app shell the list says what will show there");
+		assert.ok(el.querySelector("[aria-expanded]") === null);
+		assert.ok(el.querySelector("[data-testid='no-agent']") === null, "an agent is here: no start pair");
+		assert.ok(el.querySelector("[role='tablist'], [role='tab']") === null, "no tabs");
 	});
-	it("head: the name, the teacher's status and a Close button (Follow is the top bar's chip)", () => {
+	it("in a browser with no agent, the start pair sits above Activity", () => {
+		const el = mount(panel({ agent: IDLE }));
+		const start = el.querySelector("[data-testid='no-agent']");
+		const list = el.querySelector("[data-testid='activity-list']");
+		assert.ok(start !== null && list !== null);
+		assert.ok(start.nextElementSibling === list, "the start pair, then the list");
+		assert.equal(el.querySelector("[data-testid='open-agent']")?.textContent, "Start Claude Code");
+	});
+	it("head: the teacher's status alone, in the screen's font; the pill names the panel and closes it", () => {
 		const html = renderToStaticMarkup(panel());
-		assert.match(html, /data-testid="teacher-panel-name"[^>]*>Ada</);
-		assert.match(html, /data-testid="teacher-panel-agent"[^>]*>Teaching, idle</);
-		assert.match(html, /data-testid="teacher-panel-close"[^>]*>[\s\S]*Close</);
-		assert.doesNotMatch(html, /role="switch"/);
-		const closes: number[] = [];
-		const el = mount(panel({ onClose: () => closes.push(1) }));
-		act(() => (el.querySelector("[data-testid='teacher-panel-close']") as HTMLElement).click());
-		assert.deepEqual(closes, [1]);
+		assert.match(html, /data-testid="teacher-panel-agent"[^>]*class="[^"]*font-mono[^"]*"[^>]*>(<[^>]*>)*Ready</);
+		assert.doesNotMatch(html, /teacher-panel-name|teacher-panel-close|role="switch"/);
 	});
-	it("docks on the right edge as a solid panel with no blur", () => {
-		const html = renderToStaticMarkup(panel());
-		assert.match(html, /data-testid="teacher-panel"[^>]*class="[^"]*fixed top-12 right-0 bottom-0[^"]*border-l-2[^"]*border-line[^"]*bg-panel/);
-		assert.doesNotMatch(html, /lh-popup|rounded|blur/);
+	it("docks on the right edge as a square sheet of the top bar, with no blur", () => {
+		const section = /<section[^>]*>/.exec(renderToStaticMarkup(panel()))![0];
+		assert.match(section, /data-testid="teacher-panel"/);
+		assert.match(section, /class="[^"]*fixed top-12 right-0 bottom-0[^"]*lh-popup/);
+		assert.match(section, /border-radius:0/);
+		assert.doesNotMatch(section, /border-l|bg-panel|blur/);
 	});
-	it("Talk reads like a script: the speaker's name above each turn, no bubbles, Send in the box", async () => {
-		talkChat = {
-			id: "chat_talk",
-			turnInFlight: false,
-			messages: [
-				{ id: "u1", role: "user", content: [{ type: "text", text: "add the CSE 21 midterm on Nov 6 at 7pm" }], timestamp: 1 },
-				{ id: "u2", role: "user", content: [{ type: "text", text: "and the final" }], timestamp: 2 },
-			],
-		};
-		const el = mount(panel());
-		await settle();
-		const who = [...el.querySelectorAll("[data-testid='talk-who']")].map((n) => n.textContent);
-		assert.deepEqual(who, ["You"], "the second message of a turn has no name of its own");
-		assert.equal(el.querySelector("[data-testid='talk-you']")?.className.includes("bg-"), false, "no bubbles");
-		assert.ok(el.querySelector("[data-testid='talk-send']"));
-		talkChat = null;
-	});
-	it("Clear chat sits on the tab row, and only once there is something to clear", async () => {
-		talkChat = { id: "chat_talk", turnInFlight: false, messages: [] };
-		const empty = mount(panel());
-		await settle();
-		assert.ok(empty.querySelector("[data-testid='talk-clear']") === null);
-		act(() => root?.unmount());
-		talkChat = { id: "chat_talk", turnInFlight: false, messages: [{ id: "u1", role: "user", content: "add my midterm", timestamp: 1 }] };
-		const el = mount(panel());
-		await settle();
-		const clear = el.querySelector("[data-testid='talk-clear']")!;
-		assert.equal(clear.textContent, "Clear chat");
-		assert.ok(clear.closest("[role='tablist']") === null && clear.parentElement?.previousElementSibling?.getAttribute("role") === "tablist", "beside the tabs, not inside the thread");
-		act(() => (el.querySelector("[data-testid='teacher-tab-activity']") as HTMLElement).click());
-		assert.ok(el.querySelector("[data-testid='talk-clear']") === null, "Talk only");
-		talkChat = null;
-	});
-	it("with no agent connected the thread says so in the teacher's words, with the button that opens one", async () => {
-		talkChat = { id: "chat_talk", turnInFlight: false, messages: [] };
-		const idle = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [] };
-		const el = mount(panel({ agent: idle }));
-		await settle();
-		assert.match(el.querySelector("[data-testid='teacher-panel-agent']")?.textContent ?? "", /^Not connected$/);
-		assert.match(el.querySelector("[data-testid='no-agent']")?.textContent ?? "", /I'm not connected yet\. Start Claude Code and I'll begin\./);
-		assert.equal(el.querySelector("[data-testid='no-agent-open']")?.textContent, "Start Claude Code");
-		assert.ok(el.querySelector("[data-testid='talk-empty']"), "the prompt stays below it");
-		act(() => root?.unmount());
-		assert.ok(mount(panel()).querySelector("[data-testid='no-agent']") === null, "gone while an agent teaches");
-		talkChat = null;
-	});
-	it("Talk takes pictures and PDFs like the lesson box, and shows them under your message", async () => {
-		talkChat = {
-			id: "chat_talk",
-			turnInFlight: false,
-			messages: [
-				{
-					id: "u1",
-					role: "user",
-					content: [
-						{ type: "text", text: "here is the syllabus" },
-						{ type: "image", data: "QUJD", mimeType: "image/png" },
-						{ type: "text", text: "[Attached PDF] syllabus.pdf\nPath: /data/chats/chat_talk/abc-syllabus.pdf\nRead it with the pdf tool when you need its content." },
-					],
-					timestamp: 1,
-				},
-				{ id: "u2", role: "user", content: [{ type: "image", data: "REVG", mimeType: "image/png" }], timestamp: 2 },
-			],
-		};
-		const el = mount(panel());
-		await settle();
-		const rows = [...el.querySelectorAll("[data-testid='talk-row']")];
-		assert.equal(rows.length, 2);
-		assert.equal(rows[0]!.querySelector("[data-testid='talk-you']")?.textContent, "here is the syllabus");
-		assert.ok(rows[0]!.querySelector("[data-testid='message-image']"));
-		assert.equal(rows[0]!.querySelector("[data-testid='message-pdf']")?.textContent, "syllabus.pdf");
-		assert.ok(!el.textContent!.includes("[Attached PDF]"), "the note never shows as text");
-		assert.ok(rows[1]!.querySelector("[data-testid='talk-you']") === null, "a message with only files has no empty line");
-		assert.ok(rows[1]!.querySelector("[data-testid='message-image']"));
-		const box = el.querySelector("[data-testid='talk-box']")!;
-		const button = box.querySelector("[data-testid='attach-button']");
-		assert.equal(button?.textContent, "Add pictures or PDFs");
-		assert.equal(box.querySelector("[data-testid='attachment-input']")?.getAttribute("accept"), "image/png,image/jpeg,image/gif,image/webp,application/pdf");
-		assert.ok(box.innerHTML.indexOf('data-testid="talk-send"') < box.innerHTML.indexOf('data-testid="attach-button"'), "under the box that holds Send");
-		talkChat = null;
-	});
-	it("a turn starts when the speaker changes; a change row is the teacher's", () => {
-		const rows = [
-			{ kind: "you" as const, id: "1", text: "a", files: [] },
-			{ kind: "you" as const, id: "2", text: "b", files: [] },
-			{ kind: "change" as const, id: "3", change: { label: "Adding HW 5", page: "/" } },
-			{ kind: "teacher" as const, id: "4", text: "c" },
-		];
-		assert.deepEqual(rows.map((_, i) => startsTurn(rows, i)), [true, false, true, false]);
-	});
-	it("a message asked from elsewhere is sent in Talk once, or left in the box while the teacher replies", async () => {
-		talkCalls.length = 0;
-		talkChat = { id: "chat_talk", turnInFlight: false, messages: [] };
-		const asked: number[] = [];
-		mount(panel({ ask: { id: 1, text: "Check my CSE 21 files against the syllabus" }, onAsked: (id) => asked.push(id) }));
-		await settle();
-		assert.equal(talkCalls.filter((c) => c.startsWith("POST /api/chat ") && c.includes("Check my CSE 21 files")).length, 1);
-		assert.deepEqual(asked, [1]);
-		act(() => root?.unmount());
-		talkChat = { id: "chat_talk", turnInFlight: true, messages: [] };
-		const busy = mount(panel({ ask: { id: 2, text: "Check again" }, onAsked: (id) => asked.push(id) }));
-		await settle();
-		assert.equal(await talkText(busy), "Check again");
-		assert.deepEqual(asked, [1, 2]);
-		talkChat = null;
-	});
-	it("Talk keeps its unsent text like the lesson box, and its waiting files while the tab is closed", async () => {
-		const store = new Map<string, string>();
-		const g = globalThis as Record<string, unknown>;
-		g.localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) };
-		g.FileReader = class {
-			result: string | null = null;
-			onload: (() => void) | null = null;
-			readAsDataURL() {
-				this.result = "data:image/png;base64,QUJD";
-				setTimeout(() => this.onload?.(), 0);
-			}
-		};
-		try {
-			talkChat = { id: "chat_talk", turnInFlight: false, messages: [] };
-			const el = mount(panel());
-			await settle();
-			const view = await mathBoxView(el, "Message Ada");
-			await act(async () => view.dispatch({ changes: { from: 0, insert: "add my lab" } }));
-			await act(async () => {
-				const paste = new window.Event("paste", { bubbles: true });
-				Object.defineProperty(paste, "clipboardData", { value: { files: [new File(["x"], "lab.png", { type: "image/png" })] } });
-				el.querySelector("[data-testid='talk-box']")!.dispatchEvent(paste);
-			});
-			await settle();
-			assert.ok(el.querySelector("[data-testid='draft-image']"));
-			assert.match(store.get("lh:lesson-draft:chat_talk") ?? "", /"composer":"add my lab"/);
-
-			act(() => (el.querySelector("[data-testid='teacher-tab-activity']") as HTMLElement).click());
-			act(() => (el.querySelector("[data-testid='teacher-tab-talk']") as HTMLElement).click());
-			await settle();
-			assert.equal(await talkText(el), "add my lab");
-			assert.ok(el.querySelector("[data-testid='draft-image']"), "the picture still waits");
-			act(() => (el.querySelector("[aria-label='Remove lab.png']") as HTMLElement).click());
-		} finally {
-			delete g.localStorage;
-			delete g.FileReader;
-			talkChat = null;
-		}
-	});
-	it("a message asked while the teacher replies waits after the learner's own text, never over it", async () => {
-		assert.equal(draftWithAsk("", "Check again"), "Check again");
-		assert.equal(draftWithAsk("  ", "Check again"), "Check again");
-		assert.equal(draftWithAsk("my note\n", "Check again"), "my note\n\nCheck again");
-		const store = new Map([["lh:lesson-draft:chat_talk", JSON.stringify({ composer: "my note", questions: {}, problems: {} })]]);
-		const g = globalThis as Record<string, unknown>;
-		g.localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) };
-		try {
-			talkChat = { id: "chat_talk", turnInFlight: true, messages: [] };
-			const el = mount(panel({ ask: { id: 3, text: "Check again" } }));
-			await settle();
-			assert.equal(await talkText(el), "my note\n\nCheck again");
-		} finally {
-			delete g.localStorage;
-			talkChat = null;
-		}
-	});
-	it("a failed Talk reply offers Try again, which sends the last message again, as in the lesson", async () => {
-		talkCalls.length = 0;
-		talkChat = { id: "chat_talk", turnInFlight: false, turnError: "The model is overloaded", messages: [{ id: "u1", role: "user", content: "add my midterm", timestamp: 1 }] };
-		const el = mount(panel());
-		await settle();
-		assert.match(el.querySelector("[data-testid='talk-failed']")?.textContent ?? "", /The model is overloaded/);
-		await act(async () => (el.querySelector("[data-testid='talk-retry']") as HTMLElement).click());
-		await settle();
-		assert.equal(talkCalls.filter((c) => c.startsWith("POST /api/chat ") && c.includes("add my midterm")).length, 1);
-		talkChat = null;
-	});
-	it("Esc in Talk stops a running reply on the server and leaves the panel open", async () => {
-		talkCalls.length = 0;
-		talkChat = { id: "chat_talk", turnInFlight: true, messages: [{ id: "u1", role: "user", content: "add my midterm", timestamp: 1 }] };
-		const el = mount(panel());
-		await settle();
-		const closes: string[] = [];
-		const onDocKey = () => closes.push("panel");
-		document.addEventListener("keydown", onDocKey);
-		try {
-			// On the Stop bar (a text field's keys take React's input polyfill here).
-			const field = el.querySelector("[data-testid='talk-stop']") as HTMLElement;
-			const esc = new window.Event("keydown", { bubbles: true });
-			Object.defineProperty(esc, "key", { value: "Escape" });
-			await act(async () => field.dispatchEvent(esc));
-			await settle();
-			assert.ok(talkCalls.includes('POST /api/activity/abort {"kind":"turn","id":"chat_talk"}'));
-			assert.deepEqual(closes, [], "the panel's Esc never sees it");
-			assert.ok(el.querySelector("[data-testid='talk-send']"), "Stop is Send again");
-		} finally {
-			document.removeEventListener("keydown", onDocKey);
-			talkChat = null;
-		}
-	});
-	it("the status line says Not connected with no agent, and shows the waiting notice while work waits", () => {
-		const idle = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [] };
-		assert.equal(agentLine(idle), "Not connected");
+	it("the status line says Not connected with no agent, and shows the waiting notice once while work waits", () => {
+		assert.equal(agentLine(IDLE), "Not connected");
 		assert.equal(agentLine(null), null, "nothing until the first read");
-		assert.equal(agentLine({ ...idle, connected: true, teaching: true }), "Teaching, idle");
-		assert.equal(agentLine({ ...idle, connected: true, teaching: true }, { text: "Reading a PDF", working: true }), "Reading a PDF");
-		assert.equal(agentLine({ ...idle, connected: true, name: "Codex" }), "Codex connected, not teaching");
-		assert.equal(agentLine({ ...idle, connected: true, name: "Codex", pendingWork: 1 }), waitingNotice("Codex"));
-		assert.equal(agentLine({ ...idle, connected: true, teaching: true, helperCovering: true }), "Tidying my memory. My helper is answering for a minute.");
-		assert.ok(renderToStaticMarkup(panel({ agent: { ...idle, pendingWork: 2 } })).includes(waitingNotice()));
+		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true }), "Ready");
+		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true }, { text: "Reading a PDF", working: true }), "Reading a PDF");
+		assert.equal(agentLine({ ...IDLE, connected: true, name: "Codex" }), "Codex connected, not teaching");
+		assert.equal(agentLine({ ...IDLE, connected: true, name: "Codex", pendingWork: 1 }), waitingNotice("Codex"));
+		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true, helperCovering: true }), "Tidying my memory. A backup is answering for a minute.");
+		const html = renderToStaticMarkup(panel({ agent: { ...IDLE, pendingWork: 2 } }));
+		assert.equal(html.split(`>${waitingNotice()}<`).length - 1, 1, "in the head, not again in Activity");
 	});
-	it("a Talk message no agent has taken says it waits once, in the head", async () => {
-		talkChat = { id: "chat_talk", turnInFlight: true, messages: [{ id: "u1", role: "user", content: "add my midterm", timestamp: 1 }] };
-		const el = mount(panel({ agent: { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 1, pendingTurns: 0, claimedLessons: [] } }));
-		await settle();
-		assert.ok(el.querySelector("[data-testid='talk-you']"), "the thread is open");
-		assert.equal(el.textContent!.split(waitingNotice()).length - 1, 1);
-		talkChat = null;
+	it("Activity and a screen not shown yet: 400 wide, pushing the page while it keeps 480 px; the whole window when narrow", () => {
+		assert.deepEqual(dockLayout(1440, 1440, "activity", false, false), { width: 400, push: 400, wide: false });
+		assert.deepEqual(dockLayout(1000, 1000, "activity", false, false), { width: 400, push: 400, wide: false });
+		assert.deepEqual(dockLayout(800, 800, "activity", false, false), { width: 400, push: 0, wide: false }, "a page too narrow to push is covered instead");
+		assert.deepEqual(dockLayout(600, 600, "activity", false, false), { width: 600, push: 0, wide: false }, "the whole window: no push");
+		assert.deepEqual(dockLayout(1440, 1440, "terminal", false, false), { width: 400, push: 400, wide: false }, "before a start: a sentence and the start keys");
+		assert.deepEqual(dockLayout(1100, 1100, "terminal", false, false), { width: 400, push: 400, wide: false });
+		assert.deepEqual(dockLayout(1440, 1440, "activity", true, false), { width: 400, push: 400, wide: false }, "a running screen does not widen Activity");
 	});
-	it("is 400 wide, and the whole window when narrow", () => {
-		assert.equal(dockWidth(1440), 400);
-		assert.equal(dockWidth(600), 600);
+	it("shows a key that starts the teacher: the start pair before any start, Start again once it ended, and in a browser above Activity", () => {
+		const ended = { id: "t1", role: "teacher" as const, agent: "claude" as const, startedAt: 0, ended: { stopped: true as const, code: null }, prompt: null, url: false };
+		const p = { view: "terminal" as const, screen: "teacher" as const, terminals: true, noAgent: true, teacher: null, outside: false };
+		assert.equal(panelStarts(p), true, "the start pair before any start");
+		assert.equal(panelStarts({ ...p, outside: true }), false, "an agent from outside: no start key");
+		assert.equal(panelStarts({ ...p, teacher: ended }), true, "Start again");
+		assert.equal(panelStarts({ ...p, teacher: { ...ended, ended: null } }), false, "a live screen");
+		assert.equal(panelStarts({ ...p, teacher: ended, screen: "helper" }), false, "the helper's screen starts the helper");
+		assert.equal(panelStarts({ ...p, view: "activity" }), false, "the app's Activity has no start key");
+		assert.equal(panelStarts({ ...p, view: "activity", terminals: false }), true, "a browser's Activity with no agent");
+		assert.equal(panelStarts({ ...p, view: "activity", terminals: false, noAgent: false }), false);
+		assert.equal(shownScreen("helper", false), "teacher", "no helper: the teacher's screen");
+		assert.equal(shownScreen("helper", true), "helper");
 	});
-	it("pushes the page left by its width", () => {
-		assert.equal(dockPush(1440, 1184), 400);
-		assert.equal(dockPush(600, 600), 0, "the whole window: no push");
-		assert.equal(dockPush(1000, 1000), 400);
-		assert.equal(dockPush(800, 544), 0, "a page too narrow to push is covered instead");
+	it("Terminal: the whole screen at 14 px where the page keeps 480 px", () => {
+		assert.equal(fitFontSize(TERMINAL_DOCK_WIDTH - 62, 10_000), 14, "the screen's box: the width less the card's margins and padding and the border");
+		assert.deepEqual(dockLayout(1440, 1440, "terminal", true, false), { width: TERMINAL_DOCK_WIDTH, push: TERMINAL_DOCK_WIDTH, wide: true });
 	});
-	it("askTeacher reaches the panel's listener with the text", () => {
-		const heard: string[] = [];
-		function Listener() {
-			useAskTeacher((t) => heard.push(t));
-			return null;
+	it("Terminal: narrower, still pushing, while the screen keeps 12 px", () => {
+		assert.equal(fitFontSize(TERMINAL_PUSH_MIN - 62, 10_000), 12);
+		assert.deepEqual(dockLayout(1200, 1200, "terminal", true, false), { width: 720, push: 720, wide: true });
+		assert.equal(fitFontSize(720 - 62, 10_000), 13);
+		assert.deepEqual(dockLayout(480 + TERMINAL_PUSH_MIN, 480 + TERMINAL_PUSH_MIN, "terminal", true, false).push, TERMINAL_PUSH_MIN);
+	});
+	it("Terminal: below 12 px it covers the page at full width and keeps the narrow push, so swapping to the screen never widens the page", () => {
+		assert.deepEqual(dockLayout(1100, 1100, "terminal", true, false), { width: TERMINAL_DOCK_WIDTH, push: 400, wide: true });
+		assert.deepEqual(dockLayout(800, 800, "terminal", true, false), { width: TERMINAL_DOCK_WIDTH, push: 0, wide: true }, "the font fit does the rest");
+		assert.deepEqual(dockLayout(600, 600, "terminal", true, false), { width: 600, push: 0, wide: true });
+		for (let w = 640; w <= 2000; w += 10) {
+			const { push } = dockLayout(w, w, "terminal", true, false);
+			assert.ok(push === 0 || w - push >= 480, `${w}: the page never under 480`);
+			assert.ok(push <= 400 || fitFontSize(push - 62, 10_000) >= 12, `${w}: a pushing screen keeps 12 px`);
 		}
-		mount(<Listener />);
-		askTeacher("Check my files");
-		askTeacher("   ");
-		assert.deepEqual(heard, ["Check my files"]);
+	});
+	it("covers a lesson instead of pushing it (the lesson draws its own top bar)", () => {
+		assert.deepEqual(dockLayout(1800, 1800, "terminal", true, true), { width: TERMINAL_DOCK_WIDTH, push: 0, wide: true });
+		assert.equal(dockLayout(1800, 1800, "terminal", false, true).push, 0);
+	});
+	it("is the screen in the desktop app (Activity hangs from its chip), Activity in a browser, and over a lesson the screen or nothing", () => {
+		assert.equal(panelBody(false, true), "terminal");
+		assert.equal(panelBody(false, false), "activity");
+		assert.equal(panelBody(true, true), "terminal");
+		assert.equal(panelBody(true, false), null);
+	});
+	it("dims the page only where it covers it, and the dimming takes no clicks", () => {
+		const wasWidth = window.innerWidth;
+		try {
+			Object.assign(window, { innerWidth: 800 });
+			const scrim = mount(panel()).querySelector<HTMLElement>("[data-testid='teacher-panel-scrim']");
+			assert.ok(scrim !== null, "800 wide: the panel covers the page");
+			assert.equal(scrim.style.right, "400px", "the page beside the panel");
+			assert.ok(scrim.classList.contains("pointer-events-none"));
+			Object.assign(window, { innerWidth: 1440 });
+			assert.ok(mount(panel()).querySelector("[data-testid='teacher-panel-scrim']") === null, "1440 wide: it pushes the page");
+		} finally {
+			Object.assign(window, { innerWidth: wasWidth });
+		}
 	});
 });
 
@@ -404,7 +241,7 @@ describe("the teacher's Activity", () => {
 		assert.ok(rows[1]!.querySelector("svg") === null);
 		assert.equal(rows[1]!.hasAttribute("disabled"), true, "a page that isn't the app's is never followed");
 	});
-	it("Recent lists every row the server sent, scrolling inside the tab", () => {
+	it("Recent lists every row the server sent, scrolling inside the list", () => {
 		const many = Array.from({ length: 12 }, (_, i) => ({ ...ACTIONS[0]!, id: `a${i}` }));
 		const el = mount(list({ recent: many }));
 		assert.equal(el.querySelectorAll("[data-testid='activity-recent-row']").length, 12);

@@ -99,7 +99,7 @@ describe("before and after the answering", () => {
 	});
 	it("ended by its time says so while it is graded", () => {
 		const html = page(<MockWaiting view={view({ startedAt: iso(-45), endsAt: iso(0), endedAt: iso(0) }, { working: true })} state="grading" />);
-		assert.match(html, /data-testid="mock-time-up"[^>]*>The time is up, so Mock 2 ended\.<.*Teacher is grading Mock 2/);
+		assert.match(html, /Teacher is grading Mock 2.*data-testid="mock-time-up"[^>]*>The time is up\. </);
 	});
 	it("graded: how many were right, in how long, how often it was paused, and Go over it per question", () => {
 		const graded = view({

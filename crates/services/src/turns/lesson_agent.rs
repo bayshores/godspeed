@@ -1,11 +1,11 @@
 //! The turn's agent, built from the record (the agent-construction branch of chat-handler.ts):
-//! Talk, practice, homework, study, or a lesson's prober until its probe is done and its teacher
+//! practice, homework, study, or a lesson's prober until its probe is done and its teacher
 //! after. Every kind shares the turn composition; only the agent differs.
 
 use std::sync::Arc;
 
 use gs_agent::extraction::ledgers;
-use gs_agent::teacher::teacher_agent::{AgentBuildOptions, create_homework_agent, create_practice_agent, create_prober_agent, create_study_agent, create_talk_agent, create_teacher_agent};
+use gs_agent::teacher::teacher_agent::{AgentBuildOptions, create_homework_agent, create_practice_agent, create_prober_agent, create_study_agent, create_teacher_agent};
 use gs_agent::tools::space::SpaceToolContext;
 use gs_agent::tools::graph::{GraphToolContext, ScopedGraph};
 use gs_agent::tools::homework::HomeworkToolContext;
@@ -17,7 +17,7 @@ use gs_agent::tools::practice::{GraphNodes, PracticeToolContext};
 use gs_agent::tools::probe::ProbeDoneContext;
 use gs_agent::tools::rules::SaveRule;
 use gs_agent::tools::side::LessonSide;
-use gs_agent::tools::talk::SpaceActions;
+use gs_agent::tools::space_actions::SpaceActions;
 use gs_base::{clock, text, time};
 use gs_core::spaces::space_tools::ToolOutcome;
 use gs_core::graph::ports::GraphStore;
@@ -123,7 +123,7 @@ fn save_rule(app: &Arc<App>, lesson_scope: Option<&str>) -> SaveRule {
 	})
 }
 
-/// Talk's space actions, named for the agent; lessons take the deadline changes too.
+/// The space actions a lesson's deadline changes run, named for the agent.
 fn agent_space_actions(app: &Arc<App>) -> SpaceActions {
 	let agent = app.bridge.agent_name(clock::now_ms());
 	let actions = Arc::new(space_actions(app, agent.as_deref(), send_first_message(app), true));
@@ -157,13 +157,11 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 		Arc::new(move |job: &Json, input: &Json| run_job(&app, job["id"].str_or_empty(), Some(input.clone())))
 	};
 	let jobs = JobToolContext { chat_id: chat_id.clone(), job_store: app.stores.jobs.clone(), spawn };
-	let space_actions = agent_space_actions(app);
-	let side = LessonSide { space: lesson_scope.map(|id| space_tools(app, id, pdf_on)), save_rule: Some(save_rule(app, lesson_scope)), space_actions: Some(space_actions.clone()) };
+	let side = LessonSide { space: lesson_scope.map(|id| space_tools(app, id, pdf_on)), save_rule: Some(save_rule(app, lesson_scope)), space_actions: Some(agent_space_actions(app)) };
 	let teacher = || TeacherToolContext { plan: PlanContext { chat_id: chat_id.clone(), chat_store: chats.clone() }, jobs: jobs.clone(), side: side.clone() };
 
 	let kind = record["kind"].as_str();
 	match (kind, lesson_scope, record["deadlineId"].as_str()) {
-		(Some("talk"), ..) => create_talk_agent(&space_actions, AgentBuildOptions { learner_rules: None, ..opts }),
 		(Some("practice"), ..) => {
 			let ctx = PracticeToolContext { chat_id, chat_store: chats, graph_nodes: Some(graph_nodes(app, lesson_scope)), graph: graph_tools(app, effective, lesson_scope), jobs: Some(jobs), side };
 			create_practice_agent(&ctx, opts)
@@ -175,7 +173,7 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 		(Some("study"), ..) => {
 			let marks_app = app.clone();
 			let check_marks = Arc::new(move |text: &str| check_cites(&marks_app, text));
-			// Study sends deadline changes to Talk, so it has no deadline tools.
+			// Study sends deadline changes outside lessons, so it has no deadline tools.
 			let teacher = TeacherToolContext { side: LessonSide { space_actions: None, ..side.clone() }, ..teacher() };
 			create_study_agent(&StudyToolContext { teacher, graph_nodes: Some(graph_nodes(app, lesson_scope)), check_marks }, opts)
 		}
@@ -204,7 +202,7 @@ mod tests {
 	}
 
 	#[test]
-	fn study_sends_deadline_changes_to_talk_and_other_lessons_keep_the_tools() {
+	fn study_sends_deadline_changes_outside_lessons_and_other_lessons_keep_the_tools() {
 		let root = scratch_dir("lesson-agent");
 		let app = test_app(&root);
 		let study = tool_names(&app, "study");

@@ -6,8 +6,8 @@ function StepMark({ n, label, here }: { n: 1 | 2; label: string; here: boolean }
 		<div className="flex items-center gap-2.5">
 			<span
 				className={cn(
-					"flex size-7 items-center justify-center rounded border-2 border-ink font-count text-base leading-none",
-					here ? "bg-ink text-background" : "text-ink",
+					"flex size-7 items-center justify-center rounded font-count text-base leading-none",
+					here ? "bg-ink text-background" : "lh-well text-ink",
 				)}
 			>
 				{n}

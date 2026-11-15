@@ -139,7 +139,7 @@ fn check_chat(chat: &Json, want: &Json) {
 	check("serialized", serialized.clone().into());
 	check("planText", plan_text.clone().into());
 	let span = text::slice16(&serialized, 0, Some(300));
-	check("prompts", ["teach", "practice", "probe", "talk"].iter().map(|kind| build_compaction_prompt(&span, plan_text.as_deref(), kind)).collect());
+	check("prompt", build_compaction_prompt(&span, plan_text.as_deref()).into());
 	check("markdown", session_markdown(messages, None).into());
 	check("markdownTitled", text::slice16(&session_markdown(messages, chat["title"].as_str()), 0, Some(200)).into());
 	check("outcomes", practice_outcomes(messages).into());
@@ -239,7 +239,7 @@ fn compaction_text_matches_node() {
 	same(&serialize_for_summary(arr(&case["messages"])).into(), &case["serialized"], "serialized");
 	same(&serialize_for_summary(&[]).into(), &case["empty"], "empty");
 	each(&case["plans"], "plan text", |i| plan_tree_to_text(present(&i[0]), arr(&i[1])).into());
-	each(&case["prompts"], "prompt", |i| build_compaction_prompt(s(&i["spanText"]), i["planTreeText"].as_str(), s(&i["kind"])).into());
+	each(&case["prompts"], "prompt", |i| build_compaction_prompt(s(&i["spanText"]), i["planTreeText"].as_str()).into());
 }
 
 #[test]

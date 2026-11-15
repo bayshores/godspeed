@@ -13,7 +13,7 @@ import {
 } from "./lesson-drafts-model";
 
 /**
- * The lesson's unsent drafts (and Talk's text), saved to localStorage on
+ * The lesson's unsent drafts, saved to localStorage on
  * every change. The draft is null until the stored copy is read after
  * mount, so the first render never depends on storage; saves before then
  * are ignored. Storage can be missing or full: the draft still lives in

@@ -4,9 +4,9 @@ import { cn } from "@/frontend/lib/utils";
 import { useStartAgent } from "./use-agent-folder";
 
 /**
- * Next to a control that needs the agent (Talk's Send, Start lesson,
- * Submit answer): "No agent connected" and the button that starts it, while
- * none is. Nothing otherwise.
+ * Next to a control that needs the agent (Start lesson, Submit answer):
+ * "No agent connected" and the button that starts it, while none is.
+ * Nothing otherwise.
  */
 export function NoAgentLine({ className }: { className?: string }) {
 	if (agentHereNow(useAgentStatus(), useTerminals()) !== false) return null;

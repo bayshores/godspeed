@@ -20,6 +20,8 @@ export function PathSheet({
 	busy,
 	startError,
 	teacherName,
+	requesting,
+	guideLine,
 	onStart,
 	onAskGuide,
 	mocks,
@@ -34,6 +36,10 @@ export function PathSheet({
 	/** Why the last Study start failed. */
 	startError: string | null;
 	teacherName: string;
+	/** A request to the agent runs on this deadline. */
+	requesting: boolean;
+	/** Why the last study guide request changed nothing. */
+	guideLine: string | null;
 	onStart: () => void;
 	/** Asks the teacher for a study guide (an interview with nothing to plan from). */
 	onAskGuide: () => void;
@@ -54,9 +60,14 @@ export function PathSheet({
 				</p>
 			)}
 			{needsGuide && (
-				<button type="button" data-testid="deadline-ask-guide" onClick={onAskGuide} className="lh-btn mt-1 h-11 w-full justify-center text-[15px]">
+				<button type="button" data-testid="deadline-ask-guide" disabled={requesting} onClick={onAskGuide} className="lh-btn mt-1 h-11 w-full justify-center text-[15px]">
 					<span className="min-w-0 truncate">Ask {teacherName} for a study guide</span>
 				</button>
+			)}
+			{needsGuide && guideLine && (
+				<p role="alert" data-testid="deadline-request-line" className="text-[15px] text-ink">
+					{guideLine}
+				</p>
 			)}
 			{ahead && plan.length > 0 && (
 				<>

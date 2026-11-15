@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { readBase64 } from "@/frontend/lib/read-base64";
 import { cn } from "@/frontend/lib/utils";
 import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS, attachmentType, isPdfType, pickAttachments, type ChatAttachment } from "@/shared/core";
 
 /**
- * The files waiting in a message box (a lesson's, Talk's, a cheat sheet's
- * and the Study page's): paste, drop or "Add pictures or PDFs" add them,
+ * The files waiting in a message box (a lesson's, a cheat sheet's and the
+ * Study page's): paste, drop or "Add pictures or PDFs" add them,
  * small chips show them above the text, and the send carries them.
  */
 
@@ -26,18 +27,6 @@ export interface AttachmentDraft {
 }
 
 let draftSeq = 0;
-
-function readBase64(file: File): Promise<string> {
-	return new Promise((resolve, reject) => {
-		const reader = new FileReader();
-		reader.onload = () => {
-			const url = String(reader.result);
-			resolve(url.slice(url.indexOf(",") + 1));
-		};
-		reader.onerror = () => reject(reader.error);
-		reader.readAsDataURL(file);
-	});
-}
 
 /** Waiting files by box, for this app run: leaving a lesson and coming back
  *  keeps them. Never stored on disk (they can be large); a reload drops them. */

@@ -38,7 +38,8 @@ impl Waiter {
 #[derive(Clone)]
 pub struct ShellLink(Arc<Inner>);
 
-type OnTerminals = Box<dyn Fn(Vec<String>) + Send + Sync>;
+type OnTerminals = Box<dyn Fn(Vec<String>, Option<String>) + Send + Sync>;
+type OnTyped = Box<dyn Fn(String) + Send + Sync>;
 type AgentFolder = Box<dyn Fn() -> Option<String> + Send + Sync>;
 
 struct Inner {
@@ -47,13 +48,14 @@ struct Inner {
 	pending: Mutex<HashMap<u64, Waiter>>,
 	login_tokens: LoginTokens,
 	on_terminals: Mutex<Option<OnTerminals>>,
+	on_typed: Mutex<Option<OnTyped>>,
 	agent_folder: Mutex<Option<AgentFolder>>,
 }
 
 impl ShellLink {
 	/// `out` is the server's stdout in the app; nothing else may write there.
 	pub fn new(out: impl Write + Send + 'static) -> ShellLink {
-		ShellLink(Arc::new(Inner { out: Mutex::new(Box::new(out)), last_id: AtomicU64::new(0), pending: Mutex::default(), login_tokens: LoginTokens::default(), on_terminals: Mutex::default(), agent_folder: Mutex::default() }))
+		ShellLink(Arc::new(Inner { out: Mutex::new(Box::new(out)), last_id: AtomicU64::new(0), pending: Mutex::default(), login_tokens: LoginTokens::default(), on_terminals: Mutex::default(), on_typed: Mutex::default(), agent_folder: Mutex::default() }))
 	}
 
 	pub fn send(&self, msg: &ToShell) {
@@ -93,9 +95,14 @@ impl ShellLink {
 		}
 	}
 
-	/// Who hears the shell's live terminal ids.
-	pub fn on_terminals(&self, hear: impl Fn(Vec<String>) + Send + Sync + 'static) {
+	/// Who hears the shell's live terminal ids and the teacher's among them.
+	pub fn on_terminals(&self, hear: impl Fn(Vec<String>, Option<String>) + Send + Sync + 'static) {
 		*lock(&self.0.on_terminals) = Some(Box::new(hear));
+	}
+
+	/// Who hears that the learner typed to the agent in a terminal.
+	pub fn on_typed(&self, hear: impl Fn(String) + Send + Sync + 'static) {
+		*lock(&self.0.on_typed) = Some(Box::new(hear));
 	}
 
 	/// Who says where the godspeed folder is, when it is set up.
@@ -144,9 +151,14 @@ impl ShellLink {
 					let _ = tx.send(Ok(shown));
 				}
 			}
-			ToServer::Terminals { live } => {
+			ToServer::Terminals { live, teacher } => {
 				if let Some(hear) = &*lock(&self.0.on_terminals) {
-					hear(live);
+					hear(live, teacher);
+				}
+			}
+			ToServer::Typed { terminal } => {
+				if let Some(hear) = &*lock(&self.0.on_typed) {
+					hear(terminal);
 				}
 			}
 			ToServer::AgentFolder { id } => {

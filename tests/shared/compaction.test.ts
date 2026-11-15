@@ -354,7 +354,7 @@ describe("serializeForSummary + buildCompactionPrompt", () => {
 	});
 
 	it("the prompt demands the four sections in order and carries the plan tree verbatim", () => {
-		const prompt = buildCompactionPrompt({ spanText: "TRANSCRIPT", planTreeText: "- [done] A (a1)\n- A → B", kind: "teach" });
+		const prompt = buildCompactionPrompt({ spanText: "TRANSCRIPT", planTreeText: "- [done] A (a1)\n- A → B" });
 		const order = ["The learner's understanding", "The teaching arc", "The plan dependency tree", "The current moment"].map(
 			(s) => prompt.indexOf(s),
 		);
