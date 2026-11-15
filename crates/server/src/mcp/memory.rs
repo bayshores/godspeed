@@ -11,14 +11,14 @@ pub fn remember(call: &ToolCall<'_>, args: &Json) -> Json {
 		Ok(scope) => scope,
 		Err(error) => return failure(&error),
 	};
-	match call.app.stores.agent_notes.add_agent_note(args["text"].as_str().unwrap_or_default(), scope.as_deref()) {
+	match call.app.stores.agent_notes.add_agent_note(args["text"].str_or_empty(), scope.as_deref()) {
 		Ok(note) => result(&json!({ "note": note })),
 		Err(error) => failure(&error),
 	}
 }
 
 pub fn forget(call: &ToolCall<'_>, args: &Json) -> Json {
-	let id = args["note_id"].as_str().unwrap_or_default();
+	let id = args["note_id"].str_or_empty();
 	match call.app.stores.agent_notes.remove_agent_note(id) {
 		Ok(true) => result(&json!({ "removed": id })),
 		Ok(false) => failure(&format!("No note \"{id}\".")),
@@ -35,7 +35,7 @@ pub fn save_rule(call: &ToolCall<'_>, args: &Json) -> Json {
 		Some(space_id) => json!({ "spaceId": space_id }),
 		None => json!({ "area": args["area"].as_str().unwrap_or("teaching") }),
 	};
-	let rule = args["rule"].as_str().unwrap_or_default();
+	let rule = args["rule"].str_or_empty();
 	match gs_services::app::agent_rules::save_rule_by_agent(call.app, rule, &place, Some(call.caller.unwrap_or("Your agent"))) {
 		Ok(saved) => result(&json!({ "saved": saved["rule"], "for": saved["for"], "note": "The learner sees it in the godspeed window and can undo or edit it." })),
 		Err(error) => failure(&error),

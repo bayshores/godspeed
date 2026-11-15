@@ -7,7 +7,7 @@ use gs_base::{fsx, locale};
 use gs_engine::turn::tool::Tool;
 use gs_json::Json;
 
-use super::fs_shared::{MAX_OUTPUT_BYTES, cap_output, format_size, read_dir_items, resolve_source_path, off_thread};
+use super::fs_shared::{cap_output, existing_dir, off_thread, output_limit, read_dir_items, resolve_source_path};
 use crate::tools::fn_tool::FnTool;
 use gs_core::session::schema::{self, integer, string};
 
@@ -25,7 +25,7 @@ pub fn ls_tool() -> Arc<dyn Tool> {
 		"ls",
 		format!(
 			"List directory contents. Returns entries sorted alphabetically, with '/' suffix for directories. Includes dotfiles. Output is truncated to {DEFAULT_LIMIT} entries or {} (whichever is hit first).",
-			format_size(MAX_OUTPUT_BYTES as u64)
+			output_limit()
 		),
 		parameters,
 		|args, _ctx| async move {
@@ -37,11 +37,7 @@ pub fn ls_tool() -> Arc<dyn Tool> {
 }
 
 fn list(dir: &Path, limit: usize) -> Result<Json, String> {
-	let shown = dir.display();
-	let meta = std::fs::metadata(dir).map_err(|_| format!("Path not found: {shown}"))?;
-	if !meta.is_dir() {
-		return Err(format!("Not a directory: {shown}"));
-	}
+	existing_dir(dir)?;
 	let mut entries = read_dir_items(dir).map_err(|e| format!("Cannot read directory: {}", fsx::node_error_message(&e, "scandir", dir)))?;
 	// Case-insensitive; names that differ only in case keep their byte order.
 	entries.sort_by(|a, b| locale::compare(&a.name.to_lowercase(), &b.name.to_lowercase()));
@@ -67,7 +63,7 @@ fn list(dir: &Path, limit: usize) -> Result<Json, String> {
 		notices.push(format!("{limit} entries limit"));
 	}
 	if truncated {
-		notices.push(format!("{} limit", format_size(MAX_OUTPUT_BYTES as u64)));
+		notices.push(format!("{} limit", output_limit()));
 	}
 	Ok(Json::Str(if notices.is_empty() { content } else { format!("{content}\n\n[Truncated: {}]", notices.join(", ")) }))
 }

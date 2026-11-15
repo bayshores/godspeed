@@ -77,7 +77,7 @@ fn names_colors_and_rules_match_node() {
 fn learner_rules_section_matches_node() {
 	for row in rows("learnerRulesSection") {
 		let space = &row["lessonSpace"];
-		let space_rules: Vec<String> = space["rules"].as_arr().into_iter().flatten().map(|r| r.as_str().unwrap().to_owned()).collect();
+		let space_rules: Vec<String> = space["rules"].items().iter().map(|r| r.as_str().unwrap().to_owned()).collect();
 		let lesson_space = space.as_obj().map(|_| (space["name"].as_str().unwrap(), space_rules.as_slice()));
 		assert_eq!(learner_rules_section(&row["rules"], lesson_space), row["output"].as_str().unwrap(), "{}", stringify(&row["rules"]));
 	}

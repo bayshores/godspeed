@@ -3,11 +3,11 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
-use gs_base::{locale, re::Re, text};
+use gs_base::re::{Re, collapse_spaces};
+use gs_base::{locale, text};
 use gs_json::{Json, js_number, json};
 
 use super::cheat_sheet::{page_size_label, region_text};
-use super::items;
 
 /// Most mistakes sent to the agent, and their length.
 const MISTAKES_MAX: usize = 6;
@@ -22,8 +22,7 @@ const EARLIER_CHARS: i64 = 500;
 
 /// One line of at most `max` UTF-16 units, cut with an ellipsis.
 fn one_line(raw: &str, max: i64) -> String {
-	static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
-	let line = text::trim(&SPACES.replace(raw, " ")).to_owned();
+	let line = text::trim(&collapse_spaces(raw)).to_owned();
 	if text::len16(&line) as i64 <= max { line } else { format!("{}\u{2026}", text::slice16(&line, 0, Some(max - 1))) }
 }
 
@@ -35,15 +34,14 @@ fn topic_in<'a>(topic_ids: &'a [Json], wanted: &HashSet<&str>) -> Option<&'a str
 /// `answers` are `{ text, kind: "wrong" | "hint", at, topicIds }`; a mistake is `{ topicId, text,
 /// kind, at }`.
 pub fn sheet_mistakes(answers: &[Json], topic_ids: &[String]) -> Vec<Json> {
-	static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
 	let wanted: HashSet<&str> = topic_ids.iter().map(String::as_str).collect();
 	let mut seen: HashSet<String> = HashSet::new();
 	let mut newest_first: Vec<&Json> = answers.iter().collect();
-	newest_first.sort_by(|x, y| locale::compare(y["at"].as_str().unwrap_or(""), x["at"].as_str().unwrap_or("")));
+	newest_first.sort_by(|x, y| locale::compare(y["at"].str_or_empty(), x["at"].str_or_empty()));
 	let mut out = Vec::new();
 	for a in newest_first {
-		let line = text::trim(&SPACES.replace(a["text"].as_str().unwrap_or(""), " ")).to_owned();
-		let Some(topic_id) = topic_in(items(&a["topicIds"]), &wanted) else { continue };
+		let line = text::trim(&collapse_spaces(a["text"].str_or_empty())).to_owned();
+		let Some(topic_id) = topic_in(a["topicIds"].items(), &wanted) else { continue };
 		if line.is_empty() || !seen.insert(line.clone()) {
 			continue;
 		}
@@ -59,7 +57,7 @@ pub fn mistake_counts(answers: &[Json], topic_ids: &[String]) -> HashMap<String,
 	let wanted: HashSet<&str> = topic_ids.iter().map(String::as_str).collect();
 	let mut out = HashMap::new();
 	for a in answers {
-		if let Some(topic_id) = topic_in(items(&a["topicIds"]), &wanted) {
+		if let Some(topic_id) = topic_in(a["topicIds"].items(), &wanted) {
 			*out.entry(topic_id.to_owned()).or_default() += 1;
 		}
 	}
@@ -90,15 +88,15 @@ fn info_file_list(files: &[&str]) -> String {
 }
 
 fn folder_text(r: &Json, current: Option<&Json>) -> String {
-	let names: Vec<&str> = items(&r["folder"]["files"]).iter().filter_map(Json::as_str).collect();
+	let names: Vec<&str> = r["folder"]["files"].items().iter().filter_map(Json::as_str).collect();
 	let files = if names.is_empty() { "It is empty.".to_owned() } else { format!("It has: {}.", named_list(&names, FOLDER_FILES_NAMED)) };
-	let path = r["folder"]["path"].as_str().unwrap_or("");
+	let path = r["folder"]["path"].str_or_empty();
 	match current {
 		None => format!("Working folder: {path}\n{files} There is no sheet yet. Keep its source here so later changes can edit it."),
 		Some(v) => format!(
 			"Working folder: {path}\n{files} The sheet now is version {} ({}), made from the source here. To change it, edit that source and keep the rest as it is.",
 			number(&v["n"]),
-			page_size_label(items(&v["pages"]))
+			page_size_label(v["pages"].items())
 		),
 	}
 }
@@ -111,7 +109,7 @@ fn earlier_text(messages: &[Json]) -> String {
 	let lines: Vec<String> = messages[messages.len().saturating_sub(EARLIER_SENT)..]
 		.iter()
 		.map(|m| {
-			let said = one_line(m["text"].as_str().unwrap_or(""), EARLIER_CHARS);
+			let said = one_line(m["text"].str_or_empty(), EARLIER_CHARS);
 			if m["role"].as_str() == Some("you") {
 				return format!("Learner: {}", if said.is_empty() { "(files only)" } else { &said });
 			}
@@ -123,7 +121,7 @@ fn earlier_text(messages: &[Json]) -> String {
 }
 
 fn region_line(r: &Json, versions: &[Json], current: Option<&Json>) -> String {
-	let pages = versions.iter().find(|v| v["n"] == r["n"]).map_or(1, |v| items(&v["pages"]).len());
+	let pages = versions.iter().find(|v| v["n"] == r["n"]).map_or(1, |v| v["pages"].items().len());
 	let older = match current {
 		Some(c) if r["n"] != c["n"] => format!(" That is an older version; the sheet now is version {}.", number(&c["n"])),
 		_ => String::new(),
@@ -134,10 +132,10 @@ fn region_line(r: &Json, versions: &[Json], current: Option<&Json>) -> String {
 fn topic_lines(t: &Json, first_sheet: bool) -> String {
 	let mistakes = t["mistakes"].as_f64().unwrap_or(0.0);
 	let count = if mistakes > 0.0 { format!(", {} {}", js_number(mistakes), if mistakes == 1.0 { "mistake" } else { "mistakes" }) } else { String::new() };
-	let mut lines = vec![format!("{} | {}{count}", t["name"].as_str().unwrap_or(""), status_words(t["status"].as_str().unwrap_or("")))];
+	let mut lines = vec![format!("{} | {}{count}", t["name"].str_or_empty(), status_words(t["status"].str_or_empty()))];
 	// Facts go with the first sheet only: after that the sheet holds them, and each message stays short.
 	if first_sheet {
-		lines.extend(items(&t["facts"]).iter().map(|f| format!("  - {}: {}", f["name"].as_str().unwrap_or(""), one_line(f["statement"].as_str().unwrap_or(""), 140))));
+		lines.extend(t["facts"].items().iter().map(|f| format!("  - {}: {}", f["name"].str_or_empty(), one_line(f["statement"].str_or_empty(), 140))));
 	}
 	lines.join("\n")
 }
@@ -150,15 +148,15 @@ fn topic_lines(t: &Json, first_sheet: bool) -> String {
 /// versions, earlier, message }`; a topic is `{ id, name, status, mistakes, facts: [{ name,
 /// statement }] }`.
 pub fn cheat_sheet_request_text(r: &Json) -> String {
-	let names: HashMap<&str, &str> = items(&r["topics"]).iter().filter_map(|t| Some((t["id"].as_str()?, t["name"].as_str()?))).collect();
-	let versions = items(&r["versions"]);
+	let names: HashMap<&str, &str> = r["topics"].items().iter().filter_map(|t| Some((t["id"].as_str()?, t["name"].as_str()?))).collect();
+	let versions = r["versions"].items();
 	let current = versions.last();
 	let m = &r["message"];
-	let info_files: Vec<&str> = items(&r["infoFiles"]).iter().filter_map(Json::as_str).collect();
+	let info_files: Vec<&str> = r["infoFiles"].items().iter().filter_map(Json::as_str).collect();
 	let space_notes = r["spaceNotes"].as_str().filter(|n| !n.is_empty());
 
 	let header = [
-		format!("Cheat sheet for: {} on {}", r["title"].as_str().unwrap_or(""), r["date"].as_str().unwrap_or("")),
+		format!("Cheat sheet for: {} on {}", r["title"].str_or_empty(), r["date"].str_or_empty()),
 		space_notes.map(|n| format!("About the space: {}", one_line(n, 300))).unwrap_or_default(),
 		if info_files.is_empty() { "The space has no space info files; search all its files for the rules.".to_owned() } else { format!("Space info files (the rules are likely here): {}", info_file_list(&info_files)) },
 	]
@@ -167,12 +165,12 @@ pub fn cheat_sheet_request_text(r: &Json) -> String {
 	.collect::<Vec<_>>()
 	.join("\n");
 
-	let rules = items(&r["rules"]);
-	let topics = items(&r["topics"]);
-	let mistakes = items(&r["mistakes"]);
+	let rules = r["rules"].items();
+	let topics = r["topics"].items();
+	let mistakes = r["mistakes"].items();
 	let sections = [
 		header,
-		if rules.is_empty() { String::new() } else { format!("This sheet's rules (follow every one):\n{}", rules.iter().map(|x| format!("- {}", x["text"].as_str().unwrap_or(""))).collect::<Vec<_>>().join("\n")) },
+		if rules.is_empty() { String::new() } else { format!("This sheet's rules (follow every one):\n{}", rules.iter().map(|x| format!("- {}", x["text"].str_or_empty())).collect::<Vec<_>>().join("\n")) },
 		if topics.is_empty() {
 			String::new()
 		} else {
@@ -186,16 +184,16 @@ pub fn cheat_sheet_request_text(r: &Json) -> String {
 			String::new()
 		} else {
 			let line = |x: &Json| {
-				let topic_id = x["topicId"].as_str().unwrap_or("");
-				format!("- {} ({}): \"{}\"", if x["kind"].as_str() == Some("hint") { "needed hints" } else { "answered wrong" }, names.get(topic_id).copied().unwrap_or(topic_id), x["text"].as_str().unwrap_or(""))
+				let topic_id = x["topicId"].str_or_empty();
+				format!("- {} ({}): \"{}\"", if x["kind"].as_str() == Some("hint") { "needed hints" } else { "answered wrong" }, names.get(topic_id).copied().unwrap_or(topic_id), x["text"].str_or_empty())
 			};
 			format!("Mistakes from practice:\n{}", mistakes.iter().map(line).collect::<Vec<_>>().join("\n"))
 		},
 		folder_text(r, current),
-		earlier_text(items(&r["earlier"])),
+		earlier_text(r["earlier"].items()),
 		if m["region"].truthy() { region_line(&m["region"], versions, current) } else { String::new() },
 		{
-			let said = text::trim(m["text"].as_str().unwrap_or(""));
+			let said = text::trim(m["text"].str_or_empty());
 			format!("The learner says:\n{}", if said.is_empty() { "(no words, only the files)" } else { said })
 		},
 	];

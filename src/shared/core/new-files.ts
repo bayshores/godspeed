@@ -1,9 +1,7 @@
 /**
- * Files new to a space: the kind one gets when it arrives, and how long a
- * file a folder scan found counts as new.
+ * Files new to a space: how long a file a folder scan found counts as new.
  */
-import type { SpaceFile, SpaceFileKind } from "./contracts.ts";
-import { groupFileSeries } from "./file-series.ts";
+import type { SpaceFile } from "./contracts.ts";
 
 /** How long an arrived file counts as new (the Files page's New mark and the
  *  agent's [Today] note). */
@@ -29,25 +27,3 @@ export function isNewFolderFile(file: Pick<SpaceFile, "foundByScan" | "addedAt">
 	return file.foundByScan === true && isRecent(file.addedAt, now);
 }
 
-/**
- * The kind a file new to a space gets: the kind of the series it joins
- * (HW5 joins HW1–4, which are space info), when that series' files all
- * share one kind. Otherwise study material.
- */
-export function kindsForNewFiles(
-	existing: readonly { id: string; name: string; kind: SpaceFileKind }[],
-	added: readonly { id: string; name: string }[],
-): Map<string, SpaceFileKind> {
-	const kinds = new Map<string, SpaceFileKind>(added.map((f) => [f.id, "study"]));
-	if (added.length === 0) return kinds;
-	const known = new Map(existing.map((f) => [f.id, f.kind]));
-	const { series } = groupFileSeries([...existing, ...added]);
-	for (const s of series) {
-		const members = s.items.flatMap((i) => i.files);
-		const old = new Set(members.flatMap((f) => (known.has(f.id) ? [known.get(f.id)!] : [])));
-		if (old.size !== 1) continue;
-		const [kind] = old;
-		for (const f of members) if (kinds.has(f.id)) kinds.set(f.id, kind!);
-	}
-	return kinds;
-}

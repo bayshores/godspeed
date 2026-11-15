@@ -7,12 +7,13 @@
 use gs_json::{Json, json};
 use gs_json::js_text::js_string;
 
-use super::input_events::{About, ChatInput, messages_of};
+use super::input_events::{About, ChatInput};
 use super::lesson_markers::{ANALOGY_DROP, new_app_note_marker};
 use crate::session::question_core::{confidence_level, keep_of};
 use crate::study::kept::{KEEP_NOTE, KeptPart, dropped, keep_notes};
 use crate::study::topic_end::{resume_due, shown_openers};
 use crate::study::topic_parts::{NO_PLOT_YET, first_topic, has_plot};
+use super::tool_calls;
 
 const RESUMED_LINE: &str = "[Resumed] He came back to this session after a stop.";
 const FROM_EARLIER: &str = "[From earlier]";
@@ -27,7 +28,7 @@ pub fn opener_answer_text(record: &Json, topic_done_call_id: &str, answer: &Json
 	let node_id = opener_node(record, topic_done_call_id);
 	let topic = node_title(record, &node_id);
 	let line = if answer.is_null() { format!("[Opener] {topic}: he skipped it.") } else { format!("[Opener] {topic}: {}", picked_words(answer)) };
-	let messages = messages_of(record);
+	let messages = record["messages"].items();
 	let resumed = resume_due(messages).then_some(RESUMED_LINE.to_owned());
 	let no_plot = (!has_plot(messages, first_topic(record.get("tree")), &node_id)).then_some(NO_PLOT_YET.to_owned());
 	resumed.into_iter().chain(std::iter::once(line)).chain(no_plot).chain(from_earlier_line(messages)).chain(analogy_dropped_lines(record)).collect::<Vec<_>>().join("\n")
@@ -39,7 +40,7 @@ pub fn app_note_for(record: &Json, input: &ChatInput, asked: Option<&Json>) -> O
 	if matches!(input, ChatInput::Continue | ChatInput::OpenerAnswer { .. }) {
 		return None;
 	}
-	let messages = messages_of(record);
+	let messages = record["messages"].items();
 	let mut lines = Vec::new();
 	if resume_due(messages) {
 		lines.push(RESUMED_LINE.to_owned());
@@ -85,7 +86,7 @@ fn answered_since_keep_note<'a>(messages: &'a [Json], answered: &'a str) -> Vec<
 /// `[Analogy dropped] Regularization: "The leash fits one part"`, one per kept sentence whose
 /// analogy he dropped after the last note that told the agent, unless he brought it back since.
 fn analogy_dropped_lines(record: &Json) -> Vec<String> {
-	let messages = messages_of(record);
+	let messages = record["messages"].items();
 	let told = |m: &Json| matches!(m["customType"].as_str(), Some("app-note" | "opener-answer")) && m["content"].as_str().is_some_and(|c| c.lines().any(|l| l.starts_with(ANALOGY_DROPPED)));
 	let since = messages.iter().rposition(told).map_or(0, |i| i + 1);
 	let mut changed: Vec<&str> = Vec::new();
@@ -98,9 +99,9 @@ fn analogy_dropped_lines(record: &Json) -> Vec<String> {
 		.into_iter()
 		.filter(|of| dropped(messages, KeptPart::Analogy, of))
 		.filter_map(|of| {
-			let args = messages.iter().flat_map(|m| m["content"].as_arr().into_iter().flatten()).find(|b| b["type"].as_str() == Some("toolCall") && b["id"].as_str() == Some(of))?.get("arguments")?;
+			let args = messages.iter().flat_map(tool_calls).find(|b| b["id"].as_str() == Some(of))?.get("arguments")?;
 			let fits = keep_of(args)?["fits"].as_str().map(first_words)?;
-			Some(format!("{ANALOGY_DROPPED} {}: \"{fits}\"", node_title(record, args["nodeId"].as_str().unwrap_or_default())))
+			Some(format!("{ANALOGY_DROPPED} {}: \"{fits}\"", node_title(record, args["nodeId"].str_or_empty())))
 		})
 		.collect()
 }
@@ -146,7 +147,7 @@ fn review_words(details: &Json) -> String {
 	if answer["correct"].as_bool() == Some(true) {
 		return format!("{topic} right{sure}.");
 	}
-	let picks: Vec<String> = answer["answers"].as_arr().into_iter().flatten().map(|a| js_string(a.get("label"))).collect();
+	let picks: Vec<String> = answer["answers"].items().iter().map(|a| js_string(a.get("label"))).collect();
 	format!("{topic} wrong{sure}, picked {}.", picks.join(" and "))
 }
 
@@ -159,7 +160,7 @@ fn review_topic(item: &Json) -> String {
 /// its options, what he picked so far and the stored explanation.
 fn review_ask_line(item: &Json, picked: &[String]) -> String {
 	let quiz = &item["quiz"];
-	let options: Vec<String> = quiz["options"].as_arr().into_iter().flatten().map(|o| js_string(o.get("label"))).collect();
+	let options: Vec<String> = quiz["options"].items().iter().map(|o| js_string(o.get("label"))).collect();
 	let pick = if picked.is_empty() { "He has not picked yet.".to_owned() } else { format!("He picked {} so far.", picked.join(" and ")) };
 	format!(
 		"{FROM_EARLIER} He asked about this question from earlier before answering; it stays open and godspeed grades his answer. {}: {} Options: {}. {pick} Explanation: {} Answer his question without giving the answer away, and end your turn.",
@@ -176,12 +177,12 @@ fn opener_topic(record: &Json, topic_done_call_id: &str) -> String {
 }
 
 fn opener_node(record: &Json, topic_done_call_id: &str) -> String {
-	shown_openers(messages_of(record)).get(topic_done_call_id).and_then(|o| o["quiz"]["nodeId"].as_str()).unwrap_or_default().to_owned()
+	shown_openers(record["messages"].items()).get(topic_done_call_id).and_then(|o| o["quiz"]["nodeId"].as_str()).unwrap_or_default().to_owned()
 }
 
 /// A plan node's title, else its id.
 fn node_title(record: &Json, id: &str) -> String {
-	let title = record["tree"]["nodes"].as_arr().into_iter().flatten().find(|n| n["id"].as_str() == Some(id)).map(|n| &n["title"]).filter(|t| !t.is_null());
+	let title = record["tree"]["nodes"].items().iter().find(|n| n["id"].as_str() == Some(id)).map(|n| &n["title"]).filter(|t| !t.is_null());
 	title.map_or_else(|| id.to_owned(), |t| js_string(Some(t)))
 }
 

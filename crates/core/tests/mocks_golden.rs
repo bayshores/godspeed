@@ -21,10 +21,6 @@ fn golden(case: &str) -> Json {
 	found["output"].clone()
 }
 
-fn items(v: &Json) -> &[Json] {
-	v.as_arr().map_or(&[], Vec::as_slice)
-}
-
 fn same(got: &Json, want: &Json, what: &str) {
 	assert_eq!(stringify(got), stringify(want), "{what}");
 }
@@ -52,8 +48,8 @@ fn number(n: Option<f64>) -> Json {
 
 #[test]
 fn take_questions_matches() {
-	for case in items(&golden("take questions")) {
-		let got = match take_questions(items(&case["written"]), &case["format"], &facts()) {
+	for case in golden("take questions").items() {
+		let got = match take_questions(case["written"].items(), &case["format"], &facts()) {
 			Ok(questions) => Json::from(questions),
 			Err(problem) => Json::from(problem),
 		};
@@ -70,7 +66,7 @@ fn starter_code_matches() {
 #[test]
 fn states_and_clock_match() {
 	let want = golden("states and clock");
-	let mocks: Vec<Json> = items(&want["mocks"]).iter().map(read).collect();
+	let mocks: Vec<Json> = want["mocks"].items().iter().map(read).collect();
 	let states: Vec<&str> = mocks.iter().map(|m| mock_state(m).as_str()).collect();
 	same(&json!(states), &want["states"], "states");
 	let (live, over, ready) = (&mocks[2], &mocks[3], &mocks[1]);
@@ -78,20 +74,20 @@ fn states_and_clock_match() {
 	same(&start_mock(live, later), &want["started"], "start twice");
 	same(&end_mock(over, later), &want["ended"], "end twice");
 	let t0 = ms("2026-11-12T09:00:00.000Z") as f64;
-	let left: Vec<Json> = items(&want["offsets"]).iter().map(|offset| number(seconds_left(live, t0 + offset.as_f64().unwrap()))).collect();
+	let left: Vec<Json> = want["offsets"].items().iter().map(|offset| number(seconds_left(live, t0 + offset.as_f64().unwrap()))).collect();
 	same(&Json::from(left), &want["left"], "seconds left");
 	same(&number(seconds_left(ready, t0)), &want["notStarted"], "not started");
 	let mut used = vec![number(minutes_used(live))];
-	used.extend(items(&want["ends"]).iter().map(|end| number(minutes_used(&end_mock(live, ms(end.as_str().unwrap()))))));
+	used.extend(want["ends"].items().iter().map(|end| number(minutes_used(&end_mock(live, ms(end.as_str().unwrap()))))));
 	same(&Json::from(used), &want["used"], "minutes used");
 }
 
 #[test]
 fn answers_match() {
-	for case in items(&golden("answers kept")) {
+	for case in golden("answers kept").items() {
 		same(&with_answer(&case["mock"], case["id"].as_str().unwrap(), &case["answer"]), &case["output"], &stringify(&case["answer"]));
 	}
-	for case in items(&golden("answers refused")) {
+	for case in golden("answers refused").items() {
 		same(&with_answer(&case["mock"], "q1", &json!({ "text": "a", "seconds": 1, "submitted": true })), &case["output"], "refused");
 	}
 }
@@ -99,8 +95,8 @@ fn answers_match() {
 #[test]
 fn grades_match() {
 	let want = golden("grades");
-	for case in items(&want["tries"]) {
-		let got = match with_grades(&case["mock"], items(&case["written"])) {
+	for case in want["tries"].items() {
+		let got = match with_grades(&case["mock"], case["written"].items()) {
 			Ok(mock) => mock,
 			Err(problem) => Json::from(problem),
 		};
@@ -118,7 +114,7 @@ fn grades_match() {
 
 #[test]
 fn saved_mocks_read_back_like_node() {
-	for case in items(&golden("parse")) {
+	for case in golden("parse").items() {
 		let got = match parse_mock(&case["raw"]) {
 			Some(ParsedMock::Mock(mock)) => mock,
 			Some(ParsedMock::Newer) => Json::from("newer"),
@@ -130,7 +126,7 @@ fn saved_mocks_read_back_like_node() {
 
 #[test]
 fn runner_source_matches() {
-	let examples = items(&golden("read run")["examples"]).to_vec();
+	let examples = golden("read run")["examples"].items().to_vec();
 	let mut got = Vec::new();
 	for language in MockLanguage::ALL {
 		got.push(Json::from(runner_source("def x():\n  pass", &json!({ "name": "pairSum", "params": ["nums", "target"] }), &examples, language, "__godspeed_mark__")));
@@ -142,8 +138,8 @@ fn runner_source_matches() {
 #[test]
 fn read_run_matches() {
 	let want = golden("read run");
-	let examples = items(&want["examples"]);
-	for case in items(&want["cases"]) {
+	let examples = want["examples"].items();
+	for case in want["cases"].items() {
 		same(&read_run(case["stdout"].as_str().unwrap(), case["stderr"].as_str().unwrap(), "@@", examples), &case["output"], &stringify(case));
 	}
 }
@@ -151,7 +147,7 @@ fn read_run_matches() {
 #[test]
 fn requests_match() {
 	let want = golden("requests");
-	let topics = items(&want["topics"]);
+	let topics = want["topics"].items();
 	let asked = ["Pair sums".to_owned(), "Hash maps".to_owned()];
 	let deadline = json!({ "name": "Larkspur backend intern test", "kind": "exam" });
 	let other = json!({ "name": "g", "kind": "quiz" });

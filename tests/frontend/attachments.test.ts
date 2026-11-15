@@ -16,15 +16,13 @@ import {
 	contentText,
 	draftAttachmentParts,
 	HEIC_REFUSAL,
-	keepsPng,
-	pdfFileName,
 	pdfNote,
 	pdfNoteOf,
 	pickAttachments,
 	TOO_MANY_REFUSAL,
 	type AttachmentPart,
 } from "../../src/shared/core/attachments.ts";
-import { ChatInputError, inputAppends, parseChatInput } from "../../src/shared/core/input-events.ts";
+import { inputAppends } from "../../src/shared/core/input-events.ts";
 import { newAnswerResult, newSideQuestion, newUserMessage, PRACTICE_PROBLEM_TOOL, toLlmMessages, type LhMessage } from "../../src/shared/core/native-messages.ts";
 import { answerTakesFiles } from "../../src/shared/core/pending.ts";
 import { projectView } from "../../src/shared/core/view.ts";
@@ -75,20 +73,6 @@ describe("attachment rules", () => {
 		assert.equal(base64Bytes("QQ=="), 1);
 	});
 
-	it("keeps PNG for transparency or a small PNG screenshot, JPEG otherwise", () => {
-		assert.equal(keepsPng({ transparent: true, sourcePng: false, pngBytes: 9 * MB }), true);
-		assert.equal(keepsPng({ transparent: false, sourcePng: true, pngBytes: 1 * MB }), true);
-		assert.equal(keepsPng({ transparent: false, sourcePng: true, pngBytes: 2 * MB }), false);
-		assert.equal(keepsPng({ transparent: false, sourcePng: false, pngBytes: 1 }), false);
-	});
-
-	it("names a saved PDF by hash and a cleaned name", () => {
-		assert.equal(pdfFileName("Lecture 3.pdf", "0123456789abcdef"), "0123456789ab-Lecture 3.pdf");
-		assert.equal(pdfFileName("../../etc/passwd.PDF", "ff".repeat(8)), "ffffffffffff-_.._etc_passwd.pdf", "no slashes survive");
-		assert.equal(pdfFileName("ñ.pdf", "aa".repeat(8)), "aaaaaaaaaaaa-_.pdf");
-		assert.equal(pdfFileName(".pdf", "bb".repeat(8)), "bbbbbbbbbbbb-document.pdf");
-	});
-
 	it("the PDF note names the file and its path, and reads back", () => {
 		assert.equal(pdf.text, "[Attached PDF] notes.pdf\nPath: /data/chats/chat_1/abc-notes.pdf\nRead it with the pdf tool when you need its content.");
 		assert.deepEqual(pdfNoteOf(pdf.text), { name: "notes.pdf", path: "/data/chats/chat_1/abc-notes.pdf" });
@@ -109,37 +93,6 @@ describe("attachment rules", () => {
 	it("content as text marks pictures and never carries their base64", () => {
 		assert.equal(contentText("hi"), "hi");
 		assert.equal(contentText([{ type: "text", text: "look" }, image]), "look\n[image]");
-	});
-});
-
-describe("the input parse", () => {
-	const att = { name: "a.png", mimeType: "image/png", data: PNG };
-
-	it("text may carry files, and then may have no text", () => {
-		assert.deepEqual(parseChatInput({ type: "text", text: "", attachments: [att] }), { type: "text", text: "", attachments: [att] });
-		assert.deepEqual(parseChatInput({ type: "text", text: "hi" }), { type: "text", text: "hi" });
-	});
-
-	it("bad shapes are a 400 (ChatInputError)", () => {
-		const bad: unknown[] = [
-			{ type: "text", text: "" },
-			{ type: "text", text: "hi", attachments: [] },
-			{ type: "text", text: "hi", attachments: "x" },
-			{ type: "text", text: "hi", attachments: Array(6).fill(att) },
-			{ type: "text", text: "hi", attachments: [{ ...att, name: "" }] },
-			{ type: "text", text: "hi", attachments: [{ ...att, mimeType: undefined }] },
-			{ type: "text", text: "hi", attachments: [{ ...att, data: "not base64!" }] },
-			{ type: "text", text: "hi", attachments: [{ ...att, data: "QUJ" }] },
-			{ type: "text", text: "hi", attachments: [{ ...att, mimeType: "image/heic" }] },
-			{ type: "text", text: "hi", attachments: [{ ...att, mimeType: "text/plain" }] },
-			{ type: "text", text: "hi", attachments: [null] },
-		];
-		for (const input of bad) assert.throws(() => parseChatInput(input), ChatInputError, JSON.stringify(input));
-	});
-
-	it("an oversized file is refused by its decoded size", () => {
-		const big = { name: "big.png", mimeType: "image/png", data: "A".repeat(Math.ceil((20 * MB + 3) / 3) * 4) };
-		assert.throws(() => parseChatInput({ type: "text", text: "", attachments: [big] }), /too big/);
 	});
 });
 
@@ -224,21 +177,10 @@ describe("an answer's files", () => {
 			timestamp: 0,
 		}) as unknown as LhMessage;
 	const explained = { kind: "explain", questionText: "Show your work.", dontKnow: false, answers: [], text: "see the picture" } as never;
-	const att = { name: "work.png", mimeType: "image/png", data: PNG };
 
 	it("explain, recall and ask answers take files; quiz, probe and code answers don't", () => {
 		for (const tool of ["explain", "recall", "ask_user_question"]) assert.equal(answerTakesFiles(tool), true, tool);
 		for (const tool of ["quiz", "probe", "write_code"]) assert.equal(answerTakesFiles(tool), false, tool);
-	});
-
-	it("the parse keeps them on the answer", () => {
-		assert.deepEqual(parseChatInput({ type: "answer", toolCallId: "q1", answer: explained, attachments: [att] }), {
-			type: "answer",
-			toolCallId: "q1",
-			answer: explained,
-			attachments: [att],
-		});
-		assert.throws(() => parseChatInput({ type: "answer", toolCallId: "q1", answer: explained, attachments: [] }), ChatInputError);
 	});
 
 	it("they follow the answer record in the call's result, and a question that takes none refuses them", () => {

@@ -13,9 +13,10 @@ use gs_core::messages::input_events::parse_attachments;
 use gs_core::study::cheat_sheet::sheet_region_of;
 use gs_json::{Json, json};
 use gs_services::App;
-use gs_services::cheat_sheets::{AskInput, Outcome, Stop, ask, cheat_sheet_file, cheat_sheet_pdf, cheat_sheet_view, space_sheets_view, remove_rule, retry, sheet_pdf_file, stop};
+use gs_services::cheat_sheets::{AskInput, ask, cheat_sheet_file, cheat_sheet_pdf, cheat_sheet_view, space_sheets_view, remove_rule, retry, sheet_pdf_file, stop};
+use gs_services::outcome::Outcome;
 
-use crate::http::reply::{Unhandled, error, json, json_body};
+use crate::http::reply::{self, Unhandled, error, json, json_body};
 use crate::http::route::ApiRoute;
 
 const SHEET: &str = "/api/spaces/{id}/deadlines/{deadline_id}/cheat-sheet";
@@ -28,21 +29,12 @@ pub fn routes() -> Router<Arc<App>> {
 		.route(&format!("{SHEET}/files/{{file}}"), ApiRoute::new().get(get_file).into_route())
 }
 
-fn not_a_space() -> Response {
-	error(404, "No such space")
-}
-
-/// A refusal answers with its status; a throw is the route's empty 500.
 fn answer(outcome: Outcome<Json>) -> Result<Response, Unhandled> {
-	match outcome {
-		Ok(body) => Ok(json(200, &body)),
-		Err(Stop::Refuse(status, message)) => Ok(error(status, &message)),
-		Err(Stop::Throw(message)) => Err(Unhandled::from(message)),
-	}
+	reply::answer(outcome, |body| json(200, &body))
 }
 
 fn done(outcome: Outcome<()>) -> Result<Response, Unhandled> {
-	answer(outcome.map(|()| json!({ "ok": true })))
+	reply::answer(outcome, |()| reply::ok())
 }
 
 /// A kept file never changes, so the browser may keep it.
@@ -55,21 +47,21 @@ fn kept(bytes: Vec<u8>, kind: &'static str) -> Response {
 
 async fn get_space_sheets(State(app): State<Arc<App>>, Path(id): Path<String>) -> Result<Response, Unhandled> {
 	if !is_space_id(&id) {
-		return Ok(not_a_space());
+		return Ok(reply::no_such_space());
 	}
 	answer(space_sheets_view(&app, &id))
 }
 
 async fn get_sheet(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(String, String)>) -> Result<Response, Unhandled> {
 	if !is_space_id(&id) {
-		return Ok(not_a_space());
+		return Ok(reply::no_such_space());
 	}
 	answer(cheat_sheet_view(&app, &id, &deadline_id).await)
 }
 
 async fn post_sheet(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(String, String)>, body: Body) -> Result<Response, Unhandled> {
 	if !is_space_id(&id) {
-		return Ok(not_a_space());
+		return Ok(reply::no_such_space());
 	}
 	let body = json_body(body).await.unwrap_or_else(|| json!({}));
 	if body.is_null() {
@@ -100,7 +92,7 @@ async fn post_sheet(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(
 		},
 		Some("stop") => {
 			stop(&app, &deadline_id);
-			Ok(json(200, &json!({ "ok": true })))
+			Ok(reply::ok())
 		}
 		_ => Ok(error(400, "Unknown action.")),
 	}

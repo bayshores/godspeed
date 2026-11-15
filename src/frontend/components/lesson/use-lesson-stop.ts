@@ -3,6 +3,7 @@ import type { StickToBottomContext } from "use-stick-to-bottom";
 import { useNavigate, useSearchParams } from "react-router";
 import { lessonStop, type HomeworkProblem, type LessonKind, type LhMessage, type PlanTree } from "@/shared/core";
 import { highlight, isInView } from "@/frontend/components/teacher/dom";
+import { useStableValue } from "@/frontend/lib/use-stable-value";
 import { stopCard, stopLightSelector, type StopAction } from "./stop-card-model";
 
 /** How long the reading pane takes to stick to its bottom on open. */
@@ -38,8 +39,7 @@ export function useLessonStop({
 		[nativeMessages, kind, tree, problems],
 	);
 	// Stable while nothing in it changed, so streaming never redraws the plan row.
-	const key = fresh ? JSON.stringify(fresh) : "";
-	const stop = useMemo(() => fresh, [key]);
+	const stop = useStableValue(fresh);
 
 	const navigate = useNavigate();
 	const onAction = useCallback(

@@ -23,7 +23,7 @@ pub fn write_code_input_schema() -> Json {
 
 /// The authoring contract: a task must exist.
 pub fn write_code_input_problems(input: &Json) -> Vec<String> {
-	if text::trim(input["question"].as_str().unwrap_or_default()).is_empty() {
+	if text::trim(input["question"].str_or_empty()).is_empty() {
 		return vec!["question is empty: write the task he should code.".to_owned()];
 	}
 	Vec::new()

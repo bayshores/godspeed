@@ -156,9 +156,7 @@ fn sanitize_appearance(raw: &Json) -> Json {
 		out.insert("proseFontSize", clamp(num::math_round(size), PROSE_FONT_MIN, PROSE_FONT_MAX));
 	}
 	// Retired: an old file's heading weight and bold and italic colors stay as stored and are never read.
-	if let Some(md) = raw.get("mdRendering") {
-		out.insert("mdRendering", md.clone());
-	}
+	out.insert_present("mdRendering", raw.get("mdRendering"));
 	Json::Obj(out)
 }
 
@@ -168,9 +166,7 @@ fn sanitize_graph(raw: &Json) -> Json {
 		out.insert("enabled", enabled);
 	}
 	// A retired knob: an old file's value stays as stored and is never read.
-	if let Some(tokens) = raw.get("extractionChunkTokens") {
-		out.insert("extractionChunkTokens", tokens.clone());
-	}
+	out.insert_present("extractionChunkTokens", raw.get("extractionChunkTokens"));
 	Json::Obj(out)
 }
 

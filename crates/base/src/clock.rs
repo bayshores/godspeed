@@ -10,6 +10,7 @@
 //! (clippy.toml refuses the others), or a jump would not reach that timer.
 
 use std::collections::BTreeMap;
+use std::future::Future;
 use std::path::PathBuf;
 use std::sync::LazyLock;
 use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
@@ -64,6 +65,14 @@ pub fn advance(by_ms: i64) {
 pub async fn sleep(ms: i64) {
 	let delay = if (1..=2_147_483_647).contains(&ms) { ms } else { 1 };
 	sleep_until(now_ms() + delay).await;
+}
+
+/// `work`'s output, or None when it takes longer than `ms`.
+pub async fn within<T>(ms: i64, work: impl Future<Output = T>) -> Option<T> {
+	tokio::select! {
+		out = work => Some(out),
+		() = sleep(ms) => None,
+	}
 }
 
 /// Ends once the app clock reaches `due` (ms since the epoch).

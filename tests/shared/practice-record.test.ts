@@ -10,10 +10,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
 import {
 	activeProblemOf,
-	asAgentMessages,
 	concludedByDismissalPair,
 	newProblemDismissedMarker,
 	newNextMessage,
@@ -26,12 +26,14 @@ import {
 	type LhMessage,
 } from "../../src/shared/core/native-messages.ts";
 import { CONCLUDE_ACK_TEXT } from "../../src/shared/core/contracts/chat.ts";
-import { dismissAppends, inputAppends, parseChatInput, parseDismissInput } from "../../src/shared/core/input-events.ts";
+import { inputAppends } from "../../src/shared/core/input-events.ts";
 import { problemInputForConclude } from "../../src/shared/core/native-messages.ts";
 import { projectView } from "../../src/shared/core/index.ts";
 import { oldThinkingMessage } from "../old-records.ts";
 
 // ── builders (native-shaped test fixtures) ───────────────────────────────────
+
+const asAgentMessages = (messages: readonly LhMessage[]) => messages as unknown as AgentMessage[];
 
 const STAMPS = {
 	api: "faux",
@@ -195,7 +197,7 @@ describe("pendingProblemDismissalOf (the marker waiting for its synthesis)", () 
 
 describe("work on an open problem", () => {
 	it("is a plain text input: a normal user message, the problem stays active", () => {
-		const input = parseChatInput({ type: "text", text: "I think the inactivity constraint applies here" });
+		const input = { type: "text" as const, text: "I think the inactivity constraint applies here" };
 		const appends = inputAppends({ messages: problemPose() }, input);
 		assert.equal(appends.length, 1);
 		const message = appends[0] as { role: string; content: string; customType?: string };
@@ -204,19 +206,13 @@ describe("work on an open problem", () => {
 		assert.equal(message.customType, undefined);
 		assert.equal(activeProblemOf([...problemPose(), ...appends])?.toolCallId, "call_p1");
 	});
-
-	it("the old thinking input is no longer accepted", () => {
-		assert.throws(() => parseChatInput({ type: "thinking", problemCallId: "call_p1", text: "x" }), /unknown input type: thinking/);
-	});
 });
 
 // ── the move-on signal ─────────────────────────
 
 describe("the next input", () => {
-	it("parses bare and appends the practice-next marker in an idle practice session", () => {
-		const input = parseChatInput({ type: "next" });
-		assert.deepEqual(input, { type: "next" });
-		const appends = inputAppends({ messages: [], kind: "practice" }, input);
+	it("appends the practice-next marker in an idle practice session", () => {
+		const appends = inputAppends({ messages: [], kind: "practice" }, { type: "next" });
 		assert.equal(appends.length, 1);
 		const marker = appends[0] as { customType: string; content: string };
 		assert.equal(marker.customType, "practice-next");
@@ -267,22 +263,6 @@ describe("the dismissal's conclude synthesis rides the next input", () => {
 	it("with nothing pending, text appends only the user message", () => {
 		const appends = inputAppends({ messages: problemPose() }, { type: "text", text: "hello" });
 		assert.equal(appends.length, 1);
-	});
-});
-
-describe("the dismiss-problem input (ask-style discard)", () => {
-	it("parses and appends the UI-only marker against the active problem", () => {
-		const input = parseDismissInput({ type: "dismiss-problem", problemCallId: "call_p1" });
-		assert.deepEqual(input, { type: "dismiss-problem", problemCallId: "call_p1" });
-		const appends = dismissAppends({ messages: problemPose() }, input);
-		assert.equal(appends.length, 1);
-		assert.equal((appends[0] as { customType: string }).customType, "problem-dismissed");
-	});
-
-	it("400s when nothing active or a stale id", () => {
-		assert.throws(() => dismissAppends({ messages: [] }, { type: "dismiss-problem", problemCallId: "x" }), /no active problem/);
-		const concluded = [...problemPose(), ...concludeCall("solved")];
-		assert.throws(() => dismissAppends({ messages: concluded }, { type: "dismiss-problem", problemCallId: "call_p1" }), /no active problem/);
 	});
 });
 

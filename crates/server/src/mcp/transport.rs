@@ -46,9 +46,9 @@ fn modern_result(mut result: Json, cached: bool) -> Json {
 /// One request's result, or its JSON-RPC error.
 async fn dispatch(exchange: &Exchange<'_>, message: &Json, modern: bool) -> Result<Json, (i64, String)> {
 	let params = &message["params"];
-	match message["method"].as_str().unwrap_or_default() {
+	match message["method"].str_or_empty() {
 		"initialize" if !modern => {
-			let requested = params["protocolVersion"].as_str().unwrap_or_default();
+			let requested = params["protocolVersion"].str_or_empty();
 			let version = LEGACY_VERSIONS.into_iter().find(|v| *v == requested).unwrap_or(LEGACY_VERSIONS[0]);
 			Ok(json!({ "protocolVersion": version, "capabilities": capabilities(), "serverInfo": { "name": "godspeed", "version": VERSION }, "instructions": exchange.instructions }))
 		}

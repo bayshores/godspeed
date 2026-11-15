@@ -13,9 +13,10 @@ use gs_base::{text, time};
 use gs_json::{Json, Obj, json};
 
 use super::review::item_key;
-use super::topic_parts::{calls, kept_calls, visits};
+use super::topic_parts::{kept_calls, visits};
 use crate::messages::citations::MARK_MAX;
 use crate::messages::lesson_markers::{ANALOGY_DROP, KEEP_CHECK, PHRASE_DROP};
+use crate::messages::tool_calls;
 use crate::session::question_core::{keep_fields_note, keep_of, keep_phrase_note, normalize_quiz_type};
 
 /// At most this many kept sentences a topic.
@@ -56,9 +57,9 @@ pub fn keep_verdicts(messages: &[Json], first_topic: Option<&str>, check_source:
 		// Whether this reply already stores a keep: a second one is crowded out, so it never
 		// reaches the topic's count either.
 		let mut stores_one = false;
-		for call in calls(m).filter(|c| c["name"].as_str() == Some("quiz") && c["arguments"].get("keep").is_some_and(|k| !k.is_null())) {
-			let id = call["id"].as_str().unwrap_or_default();
-			let node = call["arguments"]["nodeId"].as_str().unwrap_or_default();
+		for call in tool_calls(m).filter(|c| c["name"].as_str() == Some("quiz") && c["arguments"].get("keep").is_some_and(|k| !k.is_null())) {
+			let id = call["id"].str_or_empty();
+			let node = call["arguments"]["nodeId"].str_or_empty();
 			if kept.contains(id) {
 				seen.push((at, node, checked.get(id).is_some_and(|v| v["fits"] == Json::Bool(true))));
 			}
@@ -182,8 +183,8 @@ pub fn kept_sentences(chat_id: &str, messages: &[Json]) -> Vec<KeptSentence> {
 	let answered: HashMap<&str, i64> = messages.iter().filter(|m| m["role"].as_str() == Some("toolResult")).filter_map(|m| Some((m["toolCallId"].as_str()?, answer_time(m)))).collect();
 	let mut out = Vec::new();
 	for m in messages.iter().filter(|m| m["role"].as_str() == Some("assistant")) {
-		for call in calls(m) {
-			let id = call["id"].as_str().unwrap_or_default();
+		for call in tool_calls(m) {
+			let id = call["id"].str_or_empty();
 			let (Some(verdict), Some(keep)) = (verdicts.get(id).filter(|_| kept.contains(id)), keep_of(&call["arguments"])) else { continue };
 			let mut sentence: Obj = [("of", json!({ "chatId": chat_id, "messageId": m["id"], "toolCallId": id })), ("text", keep["text"].clone())].into_iter().collect();
 			if verdict["source"].as_str() == Some("ok") {
@@ -192,7 +193,7 @@ pub fn kept_sentences(chat_id: &str, messages: &[Json]) -> Vec<KeptSentence> {
 			if verdict["phrase"] == Json::Bool(true) && !dropped(messages, KeptPart::Phrase, id) {
 				sentence.insert("phrase", keep["phrase"].clone());
 			}
-			let node_id = call["arguments"]["nodeId"].as_str().unwrap_or_default().to_owned();
+			let node_id = call["arguments"]["nodeId"].str_or_empty().to_owned();
 			out.push(KeptSentence { node_id, sentence: Json::Obj(sentence), answered_at: answered.get(id).copied().unwrap_or(0) });
 		}
 	}

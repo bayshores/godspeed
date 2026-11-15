@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use gs_base::locale;
 use gs_json::Json;
 
-use super::ledger_lines::{chain_key_of, strs};
+use super::ledger_lines::chain_key_of;
 
 /// One logical chain: the first line of its key stands.
 struct Logical<'a> {
@@ -31,12 +31,12 @@ pub fn simplify_chains(lines: &[Json]) -> Vec<Json> {
 			continue;
 		}
 		let mut premises: Vec<&str> = Vec::new();
-		for premise in strs(&line["premises"]) {
+		for premise in line["premises"].strs() {
 			if !premises.contains(&premise) {
 				premises.push(premise);
 			}
 		}
-		chains.push(Logical { key, premises, conclusion: line["conclusion"].as_str().unwrap_or(""), created_at: line["createdAt"].as_str().unwrap_or("") });
+		chains.push(Logical { key, premises, conclusion: line["conclusion"].str_or_empty(), created_at: line["createdAt"].str_or_empty() });
 	}
 	// premise id -> the chains that need it, in chain order
 	let mut used_by: HashMap<&str, Vec<usize>> = HashMap::new();

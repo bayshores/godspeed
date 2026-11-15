@@ -4,6 +4,7 @@ pub mod settings;
 pub mod settings_resolution;
 pub mod teaching_areas;
 pub mod agent_notes;
+pub mod agent_actions;
 pub mod agent_rules;
 pub mod agent_seen;
 pub mod prompt_segments;
@@ -18,6 +19,16 @@ pub fn entries(value: &Json) -> Vec<(String, &Json)> {
 		Json::Arr(items) => items.iter().enumerate().map(|(i, v)| (i.to_string(), v)).collect(),
 		_ => Vec::new(),
 	}
+}
+
+/// The id of the space a saved entry belongs to (`classId` is the field's name before the rename).
+pub(crate) fn space_id_of(entry: &Json) -> &Json {
+	if entry["spaceId"].is_null() { &entry["classId"] } else { &entry["spaceId"] }
+}
+
+/// Orders two records with an `updatedAt` stamp, the more recently updated first.
+pub fn newer_first(a: &Json, b: &Json) -> std::cmp::Ordering {
+	gs_base::locale::compare(b["updatedAt"].str_or_empty(), a["updatedAt"].str_or_empty())
 }
 
 #[cfg(test)]

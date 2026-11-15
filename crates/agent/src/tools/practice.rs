@@ -18,7 +18,9 @@ use parking_lot::Mutex;
 use super::fn_tool::FnTool;
 use super::graph::GraphToolContext;
 use super::heal::heal_tool_record;
-use super::jobs::{JobToolContext, job_tools};
+use super::jobs::{JobToolContext, pdf_tool, research_tool};
+use super::plan::PlanContext;
+use super::questions::node_id_problem;
 use super::ports::ChatPort;
 use gs_core::session::schema::{literals_or_null, object, one_of_literals, string};
 use super::side::{LessonSide, file_tools, filter_enabled, graph_and_side};
@@ -26,8 +28,8 @@ use super::side::{LessonSide, file_tools, filter_enabled, graph_and_side};
 /// The whole graph's nodes (id and name), read fresh per pose.
 pub type GraphNodes = Arc<dyn Fn() -> Vec<Json> + Send + Sync>;
 
-/// Checks a plan node id; the problem it names, or none.
-pub type NodeCheck = Arc<dyn Fn(&str) -> Option<String> + Send + Sync>;
+/// The plan's node ids, read fresh per call.
+pub type PlanNodes = Arc<dyn Fn() -> Vec<String> + Send + Sync>;
 
 /// What the practice tools close over.
 #[derive(Clone)]
@@ -148,8 +150,8 @@ fn normalize_target(mut args: Json, graph_nodes: Option<&GraphNodes>) -> Json {
 	args
 }
 
-/// The pose, with its extra checks for a study session (`node_check`).
-fn problem_tool(gate: &Arc<TurnGate>, graph_nodes: Option<GraphNodes>, parameters: Json, node_check: Option<NodeCheck>) -> FnTool {
+/// The pose, with its extra checks for a study session (`plan_nodes`).
+fn problem_tool(gate: &Arc<TurnGate>, graph_nodes: Option<GraphNodes>, parameters: Json, plan_nodes: Option<PlanNodes>) -> FnTool {
 	let description = "Pose one practice problem. Ends the turn \u{2014} the problem stays in view beside the lesson, and the \
 		learner's work and questions on it arrive back as their messages. The modelSolution rides this call's \
 		arguments and stays hidden from the learner until you conclude (conclude shows it verbatim \u{2014} the \
@@ -157,7 +159,7 @@ fn problem_tool(gate: &Arc<TurnGate>, graph_nodes: Option<GraphNodes>, parameter
 	let (gate, run_nodes, prepare_nodes) = (gate.clone(), graph_nodes.clone(), graph_nodes);
 	let plain = problem_parameters();
 	FnTool::immediate("problem", description, parameters, move |args| {
-		if let Some(problem) = node_check.as_ref().and_then(|check| check(args["nodeId"].as_str().unwrap_or_default())) {
+		if let Some(problem) = plan_nodes.as_ref().and_then(|nodes| node_id_problem(&nodes(), args["nodeId"].str_or_empty())) {
 			return invalid_input_result("problem", &[problem]);
 		}
 		let mut active = gate.problem_active.lock();
@@ -228,16 +230,9 @@ fn conclude_description(turn_end: &str) -> String {
 	)
 }
 
-/// Where the lesson record is, for the stop a conclude makes.
-#[derive(Clone)]
-pub struct LessonRecord {
-	pub chat_id: String,
-	pub chat_store: Arc<dyn ChatPort>,
-}
-
 /// Concludes under the gate; `result` gives the result for the record's messages as they were
 /// before this turn.
-fn gated_conclude(description: String, gate: &Arc<TurnGate>, record: LessonRecord, result: impl Fn(&Json, &[Json]) -> Json + Send + Sync + 'static) -> FnTool {
+fn gated_conclude(description: String, gate: &Arc<TurnGate>, record: PlanContext, result: impl Fn(&Json, &[Json]) -> Json + Send + Sync + 'static) -> FnTool {
 	let gate = gate.clone();
 	FnTool::immediate("conclude", description, conclude_parameters(), move |args| {
 		{
@@ -253,13 +248,13 @@ fn gated_conclude(description: String, gate: &Arc<TurnGate>, record: LessonRecor
 }
 
 /// Practice's conclude: a problem that took long ends on a stop; the text is unchanged.
-fn conclude_tool(gate: &Arc<TurnGate>, record: LessonRecord) -> FnTool {
+fn conclude_tool(gate: &Arc<TurnGate>, record: PlanContext) -> FnTool {
 	gated_conclude(conclude_description(" \u{2014} no further tool calls."), gate, record, |_, messages| conclude_result(long_problem_stop(messages, clock::now_ms())))
 }
 
 /// Study's conclude: one that finishes its problem's topic ends on that topic's stop and tells the
 /// agent to call topic_done; otherwise it is practice's.
-fn study_conclude_tool(gate: &Arc<TurnGate>, record: LessonRecord) -> FnTool {
+fn study_conclude_tool(gate: &Arc<TurnGate>, record: PlanContext) -> FnTool {
 	let description = conclude_description(
 		", with no further tool calls. When this conclude finishes a topic, the verdict is your closing words: write no other prose, then read what the next topic needs and call topic_done in its own reply.",
 	);
@@ -279,15 +274,15 @@ fn study_conclude_tool(gate: &Arc<TurnGate>, record: LessonRecord) -> FnTool {
 
 /// A study session's problem and conclude, under the turn gate topic_done shares. The problem
 /// names its plan node like a quiz does.
-pub fn study_problem_tools(gate: &Arc<TurnGate>, record: LessonRecord, graph_nodes: Option<GraphNodes>, node_check: NodeCheck) -> Vec<FnTool> {
-	vec![problem_tool(gate, graph_nodes, study_problem_parameters(), Some(node_check)), study_conclude_tool(gate, record)]
+pub fn study_problem_tools(gate: &Arc<TurnGate>, record: PlanContext, graph_nodes: Option<GraphNodes>, plan_nodes: PlanNodes) -> Vec<FnTool> {
+	vec![problem_tool(gate, graph_nodes, study_problem_parameters(), Some(plan_nodes)), study_conclude_tool(gate, record)]
 }
 
 /// The practice agent's whole registry. Any side tool `enabled` sets to false is dropped;
 /// problem and conclude are the session, so they never are.
 pub fn practice_tools(ctx: &PracticeToolContext, enabled: Option<&Json>) -> Vec<FnTool> {
 	let gate = TurnGate::new(problem_is_active(&ctx.chat_store, &ctx.chat_id));
-	let record = LessonRecord { chat_id: ctx.chat_id.clone(), chat_store: ctx.chat_store.clone() };
+	let record = PlanContext { chat_id: ctx.chat_id.clone(), chat_store: ctx.chat_store.clone() };
 	let mut tools = vec![problem_tool(&gate, ctx.graph_nodes.clone(), problem_parameters(), None), conclude_tool(&gate, record)];
 	tools.extend(practice_side_tools(ctx.jobs.as_ref(), ctx.graph.as_ref(), &ctx.side, enabled));
 	heal_tool_record(tools)
@@ -299,8 +294,7 @@ pub fn practice_tools(ctx: &PracticeToolContext, enabled: Option<&Json>) -> Vec<
 pub fn practice_side_tools(jobs: Option<&JobToolContext>, graph: Option<&GraphToolContext>, side: &LessonSide, enabled: Option<&Json>) -> Vec<FnTool> {
 	let mut tools = file_tools();
 	if let Some(jobs) = jobs {
-		let jobs = job_tools(jobs);
-		tools.extend([jobs.research, jobs.pdf]);
+		tools.extend([research_tool(jobs), pdf_tool(jobs)]);
 	}
 	tools.extend(graph_and_side(graph, side));
 	filter_enabled(tools, enabled)
@@ -329,7 +323,7 @@ mod tests {
 
 	fn study_conclude(minutes: i64) -> (FnTool, Arc<TurnGate>) {
 		let gate = TurnGate::new(true);
-		let tools = study_problem_tools(&gate, record(worked(minutes)), None, Arc::new(|_| None));
+		let tools = study_problem_tools(&gate, record(worked(minutes)), None, Arc::new(|| vec!["reg".to_owned()]));
 		(tools.into_iter().find(|t| t.name() == "conclude").unwrap(), gate)
 	}
 
@@ -352,7 +346,7 @@ mod tests {
 		assert!(gate.topic_ended().is_none());
 
 		let practice = |minutes| {
-			let LessonRecord { chat_id, chat_store } = record(worked(minutes));
+			let PlanContext { chat_id, chat_store } = record(worked(minutes));
 			let ctx = PracticeToolContext { chat_id, chat_store, graph_nodes: None, graph: None, jobs: None, side: LessonSide::default() };
 			practice_tools(&ctx, None).into_iter().find(|t| t.name() == "conclude").unwrap()
 		};

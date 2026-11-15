@@ -10,11 +10,9 @@
 //! - format.json: the format stamp, written with the first write. A family stamped newer than
 //!   this build refuses every read, because a store must never rewrite what it does not understand.
 
-use std::collections::HashMap;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::SystemTime;
 
 use gs_base::config::{GraphFiles, Paths};
 use gs_base::locks::{LockKey, Locks};
@@ -22,8 +20,8 @@ use gs_base::{fsx, text};
 use gs_core::contracts::space::is_space_id;
 use gs_core::contracts::graph::{CURRENT_GRAPH_FORMAT_VERSION, TOPIC_MATERIALS};
 use gs_core::records::entries;
+use crate::file_cache::FileCache;
 use gs_json::{Json, Obj, js_number, json, parse, stringify, stringify_pretty};
-use parking_lot::Mutex;
 
 /// The ledgers of a graph family.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -59,23 +57,17 @@ impl Ledger {
 	}
 }
 
-/// The valid lines of a ledger, kept while its file's modified time and size are unchanged, so a
-/// graph read does not parse whole files again.
-struct Cached {
-	version: (Option<SystemTime>, u64),
-	lines: Arc<Vec<Json>>,
-}
-
 pub struct GraphStores {
 	paths: Paths,
 	locks: Locks,
-	cache: Mutex<HashMap<PathBuf, Cached>>,
+	/// The valid lines of each ledger.
+	cache: FileCache<PathBuf, Arc<Vec<Json>>>,
 }
 
 impl GraphStores {
 	pub fn new(paths: &Paths, locks: &Locks) -> GraphStores {
 		purge_legacy_ledgers(&paths.graph);
-		GraphStores { paths: paths.clone(), locks: locks.clone(), cache: Mutex::new(HashMap::new()) }
+		GraphStores { paths: paths.clone(), locks: locks.clone(), cache: FileCache::new() }
 	}
 
 	/// A scope's files; Err for a space id that could be a path.
@@ -97,7 +89,7 @@ impl GraphStores {
 			std::fs::create_dir_all(dir).map_err(|err| fsx::node_error_message(&err, "mkdir", dir))?;
 		}
 		ensure_graph_format(&files.format)?;
-		self.cache.lock().remove(file);
+		self.cache.remove(file);
 		let line = format!("{}\n", stringify(record));
 		let appended = std::fs::OpenOptions::new().create(true).append(true).open(file).and_then(|mut f| f.write_all(&text::utf8_bytes(&line)));
 		appended.map_err(|err| fsx::node_error_message(&err, "open", file))
@@ -109,17 +101,7 @@ impl GraphStores {
 		let files = self.files(scope)?;
 		assert_graph_format(&files.format)?;
 		let file = ledger.file(&files);
-		let Ok(meta) = std::fs::metadata(file) else {
-			self.cache.lock().remove(file);
-			return Ok(Arc::default());
-		};
-		let version = (meta.modified().ok(), meta.len());
-		if let Some(hit) = self.cache.lock().get(file).filter(|hit| hit.version == version) {
-			return Ok(hit.lines.clone());
-		}
-		let lines = Arc::new(parse_ledger(file, ledger));
-		self.cache.lock().insert(file.to_path_buf(), Cached { version, lines: lines.clone() });
-		Ok(lines)
+		Ok(self.cache.load(file, file, || Some(Arc::new(parse_ledger(file, ledger)))).unwrap_or_default())
 	}
 
 	/// The newest topic snapshot, if any.
@@ -134,7 +116,7 @@ impl GraphStores {
 		let files = self.files(scope)?;
 		for (ledger, records) in ledgers {
 			let file = ledger.file(&files);
-			self.cache.lock().remove(file);
+			self.cache.remove(file);
 			let lines: Vec<String> = records.iter().map(stringify).collect();
 			// One record per line with a trailing newline, exactly what append would have written.
 			let content = if lines.is_empty() { String::new() } else { format!("{}\n", lines.join("\n")) };
@@ -151,18 +133,15 @@ impl GraphStores {
 		let mut all = read_source_map(&files)?;
 		let mut next = source.clone();
 		if let (Some(prev), Some(record)) = (all.get(id), next.as_obj_mut()) {
-			match prev.get("extractions") {
-				Some(extractions) => record.insert("extractions", extractions.clone()),
-				None => record.remove("extractions"),
-			};
+			record.set_or_remove("extractions", prev.get("extractions").cloned());
 		}
 		all.insert(id, next);
-		write_source_map(&files, &all)
+		write_source_map(&files, all)
 	}
 
 	/// Every imported-notes record.
 	pub fn read_sources(&self, scope: Option<&str>) -> Result<Vec<Json>, String> {
-		Ok(read_source_map(&self.files(scope)?)?.values().cloned().collect())
+		Ok(read_source_map(&self.files(scope)?)?.into_iter().map(|(_, source)| source).collect())
 	}
 
 	/// False when no record has that id.
@@ -173,7 +152,7 @@ impl GraphStores {
 		if all.remove(id).is_none() {
 			return Ok(false);
 		}
-		write_source_map(&files, &all)?;
+		write_source_map(&files, all)?;
 		Ok(true)
 	}
 
@@ -184,22 +163,23 @@ impl GraphStores {
 		let files = self.files(scope)?;
 		let mut all = read_source_map(&files)?;
 		let Some(source) = all.get_mut(id) else { return Ok(()) };
-		let mut runs = source["extractions"].as_arr().cloned().unwrap_or_default();
-		if !runs.iter().any(|run| run["startedAt"] == entry["startedAt"]) {
-			runs.push(entry.clone());
-			if let Some(record) = source.as_obj_mut() {
-				record.insert("extractions", runs);
+		let seen = source["extractions"].items().iter().any(|run| run["startedAt"] == entry["startedAt"]);
+		if !seen && let Some(record) = source.as_obj_mut() {
+			match record.get_mut("extractions").and_then(Json::as_arr_mut) {
+				Some(runs) => runs.push(entry.clone()),
+				None => {
+					record.insert("extractions", vec![entry.clone()]);
+				}
 			}
 		}
-		write_source_map(&files, &all)
+		write_source_map(&files, all)
 	}
 
 	/// Drops a deleted space's parsed ledgers: nothing reads them again.
 	pub fn forget_graph_store(&self, space_id: &str) {
 		let Ok(files) = self.files(Some(space_id)) else { return };
-		let mut cache = self.cache.lock();
 		for file in [&files.nodes, &files.chains, &files.sessions, &files.coverage, &files.sources, &files.format, &files.topics] {
-			cache.remove(file);
+			self.cache.remove(file);
 		}
 	}
 }
@@ -268,7 +248,7 @@ fn is_notes_source(value: &Json) -> bool {
 /// The family's stamped format version; None when there is no sidecar or it is unusable (a
 /// corrupt sidecar reads as unstamped, not fatal).
 fn stamped_version(file: &Path) -> Option<f64> {
-	let parsed = parse(&fsx::read_text(file).ok()?).ok()?;
+	let parsed = fsx::read_json(file)?;
 	parsed["version"].as_f64().filter(|v| v.is_finite() && v.fract() == 0.0)
 }
 
@@ -296,7 +276,7 @@ fn ensure_graph_format(file: &Path) -> Result<(), String> {
 /// is lost, as in JS, where assigning it sets the prototype instead of a key.
 fn read_source_map(files: &GraphFiles) -> Result<Obj, String> {
 	assert_graph_format(&files.format)?;
-	let parsed = fsx::read_text(&files.sources).ok().and_then(|raw| parse(&raw).ok()).unwrap_or(Json::Null);
+	let parsed = fsx::read_json(&files.sources).unwrap_or(Json::Null);
 	let mut map = Obj::new();
 	for (id, value) in entries(&parsed) {
 		if is_notes_source(value) && id != "__proto__" {
@@ -306,9 +286,9 @@ fn read_source_map(files: &GraphFiles) -> Result<Obj, String> {
 	Ok(map)
 }
 
-fn write_source_map(files: &GraphFiles, map: &Obj) -> Result<(), String> {
+fn write_source_map(files: &GraphFiles, map: Obj) -> Result<(), String> {
 	ensure_graph_format(&files.format)?;
-	fsx::write_text_atomic(&files.sources, &stringify_pretty(&Json::Obj(map.clone()), "\t")).map_err(|err| fsx::node_error_message(&err, "open", &files.sources))
+	fsx::write_json_atomic(&files.sources, &Json::Obj(map))
 }
 
 #[cfg(test)]

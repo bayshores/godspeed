@@ -7,7 +7,7 @@
 use std::sync::LazyLock;
 
 use gs_base::events::EventKind;
-use gs_base::re::Re;
+use gs_base::re::{Re, collapse_spaces};
 use gs_base::{clock, ids, text, time};
 use gs_json::{Json, Obj, json};
 
@@ -38,8 +38,7 @@ fn save(app: &App, list: &[Json]) {
 
 /// A label cut to a readable length.
 fn short_label(raw: &str) -> String {
-	static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
-	let spaced = SPACES.replace(raw, " ");
+	let spaced = collapse_spaces(raw);
 	let one = text::trim(&spaced);
 	if text::len16(one) > LABEL_MAX { format!("{}…", text::trim_end(&text::slice16(one, 0, Some(LABEL_MAX as i64 - 1)))) } else { one.to_owned() }
 }
@@ -74,7 +73,7 @@ fn update_newest(app: &App, list: &mut [Json], label: Option<&str>, now: i64) ->
 /// target, within `COALESCE_MS`) only refreshes its time and is not announced again. `input` has
 /// `label`, `spaceId`, `target`, `page` and optionally `removed` and `open`.
 fn record_agent_action(app: &App, agent: Option<&str>, input: &Json, now: i64) -> Json {
-	let label = short_label(input["label"].as_str().unwrap_or_default());
+	let label = short_label(input["label"].str_or_empty());
 	let agent = agent.map(text::trim).filter(|a| !a.is_empty()).unwrap_or("Your agent");
 	let removed = input["removed"].truthy();
 	with_list(app, |list| {
@@ -128,7 +127,7 @@ pub fn record_folder_files(app: &App, space_id: &str, count: usize, from: &str) 
 	let merged = with_list(app, |list| {
 		let last = list.last()?;
 		let found = (last["agent"].as_str() == Some(APP_SOURCE) && last["spaceId"].as_str() == Some(space_id) && is_recent(last, now))
-			.then(|| LABEL.captures(last["label"].as_str().unwrap_or_default()))
+			.then(|| LABEL.captures(last["label"].str_or_empty()))
 			.flatten()?;
 		(found.get(2).as_deref() == Some(from)).then(|| found.get(1).and_then(|n| n.parse::<usize>().ok()).map(|n| n + count))?
 	});
@@ -162,11 +161,11 @@ pub fn record_answer(app: &App, lesson: &Json, answer: &Json) {
 	let dont_know = answer["dontKnow"].truthy();
 	let right = !dont_know && answer["correct"].as_bool() == Some(true);
 	let now = clock::now_ms();
-	let lesson_id = lesson["id"].as_str().unwrap_or_default();
+	let lesson_id = lesson["id"].str_or_empty();
 	let target = json!({ "kind": "lesson", "id": lesson_id });
 	let sum = with_list(app, |list| {
 		let last = list.last()?;
-		(last["agent"].as_str() == Some(LEARNER_SOURCE) && same_target(&last["target"], &target) && is_recent(last, now)).then(|| answer_tally(last["label"].as_str().unwrap_or_default())).flatten()
+		(last["agent"].as_str() == Some(LEARNER_SOURCE) && same_target(&last["target"], &target) && is_recent(last, now)).then(|| answer_tally(last["label"].str_or_empty())).flatten()
 	});
 	if let Some((so_far, total)) = sum {
 		extend_newest(app, &format!("Answered {} of {} right", so_far + usize::from(right), total + 1), now);
@@ -185,7 +184,7 @@ pub fn record_answer(app: &App, lesson: &Json, answer: &Json) {
 /// A deadline the learner saved in the app, with the verbs the agent's entries use: "Added Test
 /// 2", "Moved Test 2", "Marked Test 2 done". `change` is "added" or the saved patch.
 pub fn record_deadline_change(app: &App, space_id: &str, deadline: &Json, change: &Json) {
-	let name = deadline["name"].as_str().unwrap_or_default();
+	let name = deadline["name"].str_or_empty();
 	let label = match change.as_obj() {
 		None => format!("Added {name}"),
 		Some(patch) if patch.contains_key("done") => format!("Marked {name} {}", if patch.get("done").is_some_and(Json::truthy) { "done" } else { "not done" }),
@@ -211,7 +210,7 @@ mod tests {
 	use crate::app::test_support::{scratch_dir, test_app};
 
 	fn labels(app: &App) -> Vec<String> {
-		recent_agent_actions(app).iter().map(|a| a["label"].as_str().unwrap_or_default().to_owned()).collect()
+		recent_agent_actions(app).iter().map(|a| a["label"].str_or_empty().to_owned()).collect()
 	}
 
 	fn lesson_action(label: &str) -> Json {

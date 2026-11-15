@@ -9,12 +9,12 @@ use std::collections::{HashMap, HashSet};
 use gs_base::time;
 use gs_json::{Json, Obj, json};
 
-use super::items;
 use super::progress::{answer_outcome, days_between};
 use super::topic_end::{ended_topics, lesson_stop, shown_openers, sitting_start};
 use crate::contracts::chat::TOPIC_DONE_TOOL;
 use crate::messages::native_messages::{active_problem_of, dangling_question_of};
 use crate::messages::pending::is_question_tool;
+use crate::messages::tool_calls;
 use crate::session::question_core::normalize_quiz_type;
 use crate::spaces::today_note::local_day;
 
@@ -120,7 +120,7 @@ fn counted_answers(answers: &[Json], outcomes: &[Json]) -> HashMap<String, Vec<(
 
 /// The key of a question from earlier: the lesson and the call it came from.
 pub fn item_key(of: &Json) -> String {
-	format!("{}:{}", of["chatId"].as_str().unwrap_or_default(), of["toolCallId"].as_str().unwrap_or_default())
+	format!("{}:{}", of["chatId"].str_or_empty(), of["toolCallId"].str_or_empty())
 }
 
 /// The fields a question from earlier keeps of its quiz.
@@ -144,12 +144,12 @@ pub fn review_items(chat_id: &str, messages: &[Json]) -> Vec<Json> {
 	for m in messages {
 		match m["role"].as_str() {
 			Some("assistant") => {
-				for block in m["content"].as_arr().into_iter().flatten().filter(|b| b["type"].as_str() == Some("toolCall")) {
-					calls.insert(block["id"].as_str().unwrap_or_default(), (&m["id"], &block["arguments"]));
+				for block in tool_calls(m) {
+					calls.insert(block["id"].str_or_empty(), (&m["id"], &block["arguments"]));
 				}
 			}
 			Some("toolResult") if !m["isError"].truthy() => {
-				let call_id = m["toolCallId"].as_str().unwrap_or_default();
+				let call_id = m["toolCallId"].str_or_empty();
 				let Some(&(message_id, args)) = calls.get(call_id) else { continue };
 				let (node, quiz) = match m["toolName"].as_str() {
 					Some(TOPIC_DONE_TOOL) if args["review"].as_obj().is_some() => (args["review"]["nodeId"].as_str().or(args["nodeId"].as_str()), &args["review"]),
@@ -168,8 +168,8 @@ pub fn review_items(chat_id: &str, messages: &[Json]) -> Vec<Json> {
 
 /// The topics a Study lesson will still teach: its plan's nodes that did not end on a topic stop.
 pub fn teaching_topics(record: &Json) -> HashSet<String> {
-	let ended = ended_topics(items(&record["messages"]));
-	items(&record["tree"]["nodes"]).iter().filter_map(|n| n["id"].as_str()).filter(|id| !ended.contains(*id)).map(str::to_owned).collect()
+	let ended = ended_topics(record["messages"].items());
+	record["tree"]["nodes"].items().iter().filter_map(|n| n["id"].as_str()).filter(|id| !ended.contains(*id)).map(str::to_owned).collect()
 }
 
 /// What the schedule reads about one space.
@@ -234,9 +234,9 @@ pub fn pick_reviews(space: &ReviewSpace, sitting: &ReviewSitting) -> Vec<Json> {
 		.deadline_id
 		.and_then(|id| space.deadlines.iter().filter(open).find(|d| d["id"].as_str() == Some(id)))
 		.filter(|d| d["daysUntil"].as_i64().is_some_and(|n| (0..=CLOSE_DEADLINE_DAYS).contains(&n)))
-		.map(|d| items(&d["topicIds"]).iter().filter_map(Json::as_str).collect());
+		.map(|d| d["topicIds"].items().iter().filter_map(Json::as_str).collect());
 	let covering = |id: &str| -> Option<i64> {
-		space.deadlines.iter().filter(open).filter(|d| items(&d["topicIds"]).iter().any(|t| t.as_str() == Some(id))).filter_map(|d| d["daysUntil"].as_i64()).filter(|n| *n >= 1).min()
+		space.deadlines.iter().filter(open).filter(|d| d["topicIds"].items().iter().any(|t| t.as_str() == Some(id))).filter_map(|d| d["daysUntil"].as_i64()).filter(|n| *n >= 1).min()
 	};
 	let mut picks: Vec<Pick> = Vec::new();
 	for (order, topic) in space.topics.iter().enumerate() {
@@ -308,7 +308,7 @@ fn usable_item<'a>(items: &'a [Json], node: &str, today: &str, shown: &HashMap<S
 /// start, or after his first input on a return, until the teacher's reply to it lands), with no
 /// question, problem, opener or stop open.
 pub fn review_window_open(record: &Json, now_ms: i64, busy: bool) -> bool {
-	let messages = items(&record["messages"]);
+	let messages = record["messages"].items();
 	if !busy || record["kind"].as_str() != Some("study") || dangling_question_of(messages).is_some() || active_problem_of(messages).is_some() {
 		return false;
 	}
@@ -328,7 +328,7 @@ pub fn review_window_open(record: &Json, now_ms: i64, busy: bool) -> bool {
 fn is_input(m: &Json) -> bool {
 	match m["role"].as_str() {
 		Some("user") => true,
-		Some("toolResult") => is_question_tool(m["toolName"].as_str().unwrap_or_default()),
+		Some("toolResult") => is_question_tool(m["toolName"].str_or_empty()),
 		Some("custom") => matches!(m["customType"].as_str(), Some("practice-next" | "opener-answer")),
 		_ => false,
 	}

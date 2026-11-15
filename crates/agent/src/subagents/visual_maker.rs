@@ -14,9 +14,11 @@
 use gs_base::ids;
 use gs_base::num::to_fixed;
 use gs_base::text::{is_js_space, len16, slice16, trim};
+use gs_core::session::schema::{no_arguments, object, string};
 use gs_engine::turn::messages::tool_calls;
 use gs_json::{Json, json};
 
+use super::declare;
 use super::pi_run::{JobAgentOptions, RunError};
 use super::stream_once::{message_text, png_message, stream_once, tool_text, user_text};
 
@@ -72,28 +74,23 @@ const UNLOOKED_FINISH_MESSAGE: &str = "You finished without looking at a render 
 /// The wire declarations: this loop runs the tools itself, so they carry no execute.
 fn visual_tools() -> Vec<Json> {
 	vec![
-		json!({
-			"name": "write_svg",
-			"description": "Write the complete SVG source for the figure (overwrites any previous version).",
-			"parameters": { "type": "object", "required": ["svg"], "properties": { "svg": { "type": "string", "description": "Complete <svg xmlns=\"…\">…</svg> markup." } } },
-		}),
-		json!({
-			"name": "edit_svg",
-			"description": "Replace one exact spot in the current SVG: old_text must appear EXACTLY ONCE and is replaced by new_text. Call write_svg first. For larger changes, write_svg the whole document.",
-			"parameters": {
-				"type": "object",
-				"required": ["old_text", "new_text"],
-				"properties": {
-					"old_text": { "type": "string", "description": "The exact text to replace — must match exactly once in the current SVG." },
-					"new_text": { "type": "string", "description": "The replacement text." },
-				},
-			},
-		}),
-		json!({
-			"name": "render_svg",
-			"description": "Render the current SVG to a PNG and show it to you for inspection. No arguments.",
-			"parameters": { "type": "object", "properties": {} },
-		}),
+		declare(
+			"write_svg",
+			"Write the complete SVG source for the figure (overwrites any previous version).",
+			object(&["svg"], vec![("svg", string("Complete <svg xmlns=\"…\">…</svg> markup."))]),
+		),
+		declare(
+			"edit_svg",
+			"Replace one exact spot in the current SVG: old_text must appear EXACTLY ONCE and is replaced by new_text. Call write_svg first. For larger changes, write_svg the whole document.",
+			object(
+				&["old_text", "new_text"],
+				vec![
+					("old_text", string("The exact text to replace — must match exactly once in the current SVG.")),
+					("new_text", string("The replacement text.")),
+				],
+			),
+		),
+		declare("render_svg", "Render the current SVG to a PNG and show it to you for inspection. No arguments.", no_arguments()),
 	]
 }
 
@@ -187,7 +184,7 @@ impl Figure {
 	/// Runs one tool call; its text result.
 	async fn call(&mut self, call: &Json, render_png: &mut Option<Vec<u8>>, opts: &JobAgentOptions) -> String {
 		let args = &call["arguments"];
-		match call["name"].as_str().unwrap_or_default() {
+		match call["name"].str_or_empty() {
 			"write_svg" => {
 				let Some(svg) = args["svg"].as_str().filter(|svg| svg.contains("<svg")) else {
 					return "ERROR: expected a complete <svg>…</svg> document in the `svg` field.".to_owned();

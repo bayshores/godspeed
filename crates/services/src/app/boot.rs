@@ -40,14 +40,10 @@ pub fn boot_info(app: &Arc<App>) -> Json {
 		let active = general["activeSpace"].as_str().filter(|id| !id.is_empty() && *id != "none" && app.stores.spaces.get_space(id).is_some());
 		fields.insert("activeSpace", active);
 		fields.insert("spaces", app.stores.spaces.list_spaces());
-		if let Some(name) = general.get("teacherName") {
-			fields.insert("teacherName", name.clone());
-		}
+		fields.insert_present("teacherName", general.get("teacherName"));
 		fields.insert("sounds", general["sounds"].as_bool() != Some(false));
 		// The saved look, so the first paint already has its colors.
-		if let Some(appearance) = record.as_ref().and_then(|r| r.get("appearance")) {
-			fields.insert("appearance", appearance.clone());
-		}
+		fields.insert_present("appearance", record.as_ref().and_then(|r| r.get("appearance")));
 	}
 	boot
 }

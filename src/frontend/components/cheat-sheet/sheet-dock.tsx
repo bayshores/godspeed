@@ -5,28 +5,13 @@ import { LoadFailed } from "@/frontend/components/load-failed";
 import { SELECT, SELECT_ARROW } from "@/frontend/components/ui/field";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { DOCK_DEFAULT_W, dockStateKey, dockWidth, makeTarget, parseDockState, pickSheet, sheetChoices, type DockState } from "./dock-model";
 import { SheetCanvas } from "./sheet-canvas";
 import { versionLabel } from "./studio-states";
 import { sheetPdfPath, studioPath, useCheatSheet, useSpaceSheets } from "./use-cheat-sheet";
 
 const WIDTH_KEY = "lh:sheet-dock-width";
-
-function readStorage(key: string): string | null {
-	try {
-		return localStorage.getItem(key);
-	} catch {
-		return null;
-	}
-}
-
-function writeStorage(key: string, value: string): void {
-	try {
-		localStorage.setItem(key, value);
-	} catch {
-		/* no storage or full: it lasts for this visit */
-	}
-}
 
 /** Whether a session's sheet is open and which one, kept per session in
  *  this browser. It starts closed and reads storage after mount. */

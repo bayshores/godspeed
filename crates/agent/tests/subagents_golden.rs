@@ -37,7 +37,7 @@ struct Stand {
 }
 
 fn strings(v: &Json) -> Vec<String> {
-	v.as_arr().into_iter().flatten().map(|s| s.as_str().unwrap().to_owned()).collect()
+	v.items().iter().map(|s| s.as_str().unwrap().to_owned()).collect()
 }
 
 impl HeadlessApi for Stand {
@@ -76,7 +76,7 @@ impl HeadlessApi for Stand {
 /// The case's script: each step's tool calls (ids `call_<step>_<n>`) or text.
 fn script(steps: &Json, last: &Arc<Mutex<Vec<Json>>>) -> Arc<Scripted> {
 	let script = Scripted::new();
-	for (i, step) in steps.as_arr().into_iter().flatten().enumerate() {
+	for (i, step) in steps.items().iter().enumerate() {
 		let reply = match step.get("calls") {
 			Some(calls) => {
 				let content = calls.as_arr().unwrap().iter().enumerate().map(|(k, c)| json!({ "type": "toolCall", "id": format!("call_{i}_{k}"), "name": c[0].clone(), "arguments": c[1].clone() })).collect();
@@ -130,7 +130,7 @@ async fn the_loops_match_the_typescript() {
 		let brief = config["brief"].as_str().unwrap();
 		let result = match config["kind"].as_str().unwrap() {
 			"visual" => run_visual_maker(brief, &opts).await,
-			_ => run_demo_builder(config["title"].as_str().unwrap_or_default(), brief, &opts).await,
+			_ => run_demo_builder(config["title"].str_or_empty(), brief, &opts).await,
 		};
 		assert_eq!(result, want["result"], "{name}: result");
 		assert_eq!(shown(&last.lock()), want["shown"], "{name}: what the model was shown");

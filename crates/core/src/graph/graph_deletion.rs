@@ -11,7 +11,7 @@ use std::collections::HashSet;
 
 use gs_json::{Json, json};
 
-use super::ledger_lines::{strs, touches};
+use super::ledger_lines::touches;
 use super::ports::{GraphStore, LedgerRewrite};
 
 /// Whether the graph keeps what a deleted chat taught.
@@ -54,12 +54,12 @@ pub struct NodeDeletionStats {
 
 /// Whether a line holds a point from some other source.
 fn survives(line: &Json, chat_id: &str) -> bool {
-	line["provenance"].as_arr().into_iter().flatten().any(|pt| pt["chatId"].as_str() != Some(chat_id))
+	line["provenance"].items().iter().any(|pt| pt["chatId"].as_str() != Some(chat_id))
 }
 
 /// The line's points that are not this chat's.
 fn points_without(line: &Json, chat_id: &str) -> Vec<Json> {
-	line["provenance"].as_arr().into_iter().flatten().filter(|pt| pt["chatId"].as_str() != Some(chat_id)).cloned().collect()
+	line["provenance"].items().iter().filter(|pt| pt["chatId"].as_str() != Some(chat_id)).cloned().collect()
 }
 
 fn point_count(line: &Json) -> usize {
@@ -80,7 +80,7 @@ fn with_fields(line: &Json, fields: impl IntoIterator<Item = (&'static str, Json
 /// The chain's conclusion followed by its premises.
 fn members_of(chain: &Json) -> Vec<&str> {
 	let mut ids: Vec<&str> = chain["conclusion"].as_str().into_iter().collect();
-	ids.extend(strs(&chain["premises"]));
+	ids.extend(chain["premises"].strs());
 	ids
 }
 

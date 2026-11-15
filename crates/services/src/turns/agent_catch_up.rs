@@ -38,7 +38,7 @@ fn catch_up_lessons(app: &Arc<App>, now: i64) -> Result<(), String> {
 		if uncovered_tokens(app, id, scope)? == 0.0 {
 			continue;
 		}
-		let idle_for = time::parse_date(record["updatedAt"].as_str().unwrap_or_default()).map(|at| now - at);
+		let idle_for = time::parse_date(record["updatedAt"].str_or_empty()).map(|at| now - at);
 		match idle_for {
 			Some(idle) if idle < LEFTOVER_IDLE_MS => extract_when_idle(app, id, scope, LEFTOVER_IDLE_MS - idle),
 			// NaN compares false in the TS, so an unreadable time extracts now.

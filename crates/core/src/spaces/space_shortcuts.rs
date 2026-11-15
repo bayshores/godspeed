@@ -66,9 +66,9 @@ pub fn space_dirs(spaces: &[Json]) -> HashMap<String, Vec<String>> {
 	let mut closed = HashSet::new();
 	for space in spaces {
 		let is_closed = space["closed"].truthy();
-		let dir = unique_name(&safe_entry_name(space["name"].as_str().unwrap_or("")), if is_closed { &mut closed } else { &mut top });
+		let dir = unique_name(&safe_entry_name(space["name"].str_or_empty()), if is_closed { &mut closed } else { &mut top });
 		let path = if is_closed { vec![CLOSED_DIR.to_owned(), dir] } else { vec![dir] };
-		out.insert(space["id"].as_str().unwrap_or("").to_owned(), path);
+		out.insert(space["id"].str_or_empty().to_owned(), path);
 	}
 	out
 }
@@ -79,9 +79,9 @@ pub fn shortcut_layout(spaces: &[Json]) -> Vec<Shortcut> {
 	let mut out = Vec::new();
 	let dirs = space_dirs(spaces);
 	for space in spaces {
-		let base = &dirs[space["id"].as_str().unwrap_or("")];
+		let base = &dirs[space["id"].str_or_empty()];
 		let mut groups = HashSet::new();
-		let files = space["files"].as_arr().map_or(&[][..], Vec::as_slice);
+		let files = space["files"].items();
 		for group in file_groups(files) {
 			let group_dir = unique_name(&safe_entry_name(&group.label), &mut groups);
 			let mut names = HashSet::new();
@@ -89,8 +89,8 @@ pub fn shortcut_layout(spaces: &[Json]) -> Vec<Shortcut> {
 				for file in &item.files {
 					let mut at = base.clone();
 					at.push(group_dir.clone());
-					at.push(unique_name(&safe_entry_name(file["name"].as_str().unwrap_or("")), &mut names));
-					out.push(Shortcut { at, file_id: file["id"].as_str().unwrap_or("").to_owned() });
+					at.push(unique_name(&safe_entry_name(file["name"].str_or_empty()), &mut names));
+					out.push(Shortcut { at, file_id: file["id"].str_or_empty().to_owned() });
 				}
 			}
 		}

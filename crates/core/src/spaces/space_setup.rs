@@ -12,7 +12,7 @@ pub fn missing_setup(space: &Json) -> Vec<&'static str> {
 	let checks = [
 		("icon", !space["icon"].truthy()),
 		("signature", !space["signature"].truthy()),
-		("description", text::trim(space["description"].as_str().unwrap_or("")).is_empty()),
+		("description", text::trim(space["description"].str_or_empty()).is_empty()),
 	];
 	checks.into_iter().filter(|(_, missing)| *missing).map(|(item, _)| item).collect()
 }

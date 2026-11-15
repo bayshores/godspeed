@@ -20,7 +20,9 @@ use gs_engine::turn::validate::argument_problems;
 use gs_json::{Json, Obj, json, stringify};
 
 use super::fn_tool::FnTool;
-use super::practice::{LessonRecord, NodeCheck, TurnGate, record_messages};
+use super::plan::PlanContext;
+use super::questions::node_id_problem;
+use super::practice::{PlanNodes, TurnGate, record_messages};
 
 /// Checks the source marks in a text: the text with its marks in stored form, each mark that
 /// points at no passage (taken out of the text) and each quote that does not hold.
@@ -113,16 +115,23 @@ fn heal_at(parent: &mut Json, key: &str, schema: &Json) {
 	}
 }
 
+/// A nested quiz's problems under its `path`: the quiz's authoring rules, then its nodeId when it
+/// is in no plan node (a missing one the schema check reports).
+fn nested_quiz_problems(path: &str, quiz: &Json, known: &[String]) -> Vec<String> {
+	let node = quiz["nodeId"].as_str().and_then(|id| node_id_problem(known, id)).into_iter().collect();
+	at_path(path, quiz_input_problems(quiz)).chain(at_path(path, node)).collect()
+}
+
 struct TopicDone {
 	description: String,
 	parameters: Json,
 	check_schema: Json,
 	multiple_choice: bool,
-	record: LessonRecord,
+	record: PlanContext,
 	gate: Arc<TurnGate>,
 	check_marks: CheckMarks,
-	/// The quiz's plan-node check, for the nested quizzes' nodeId.
-	node_check: NodeCheck,
+	/// The plan's node ids, for the nested quizzes' nodeId.
+	plan_nodes: PlanNodes,
 }
 
 impl TopicDone {
@@ -136,14 +145,14 @@ impl TopicDone {
 				heal_at(opener, "quiz", &quiz);
 			}
 		}
+		let known = (self.plan_nodes)();
 		let mut problems = argument_problems(&self.check_schema, &args);
 		let review = &args["review"];
 		if review.as_obj().is_some() {
 			if review["type"].as_str() != Some("check") {
 				problems.push("review: must be type \"check\".".to_owned());
 			}
-			problems.extend(at_path("review", quiz_input_problems(review)));
-			problems.extend(at_path("review", self.node_problem(review)));
+			problems.extend(nested_quiz_problems("review", review, &known));
 		}
 		let opener = &args["opener"];
 		if let Some(lead) = opener["lead"].as_str() {
@@ -160,22 +169,15 @@ impl TopicDone {
 			if let Some(node_id) = quiz["nodeId"].as_str().filter(|n| Some(*n) == args["nodeId"].as_str()) {
 				problems.push(format!("opener.quiz.nodeId: \"{node_id}\" is the topic you just finished; use the next topic's node."));
 			}
-			problems.extend(at_path("opener.quiz", quiz_input_problems(quiz)));
-			problems.extend(at_path("opener.quiz", self.node_problem(quiz)));
+			problems.extend(nested_quiz_problems("opener.quiz", quiz, &known));
 		}
 		if problems.is_empty() { Ok(args) } else { Err(problems.join("\n")) }
-	}
-
-	/// The quiz's refusal when a nested quiz's nodeId is in no plan node (a missing one the schema
-	/// check reports).
-	fn node_problem(&self, quiz: &Json) -> Vec<String> {
-		quiz["nodeId"].as_str().and_then(|id| (self.node_check)(id)).into_iter().collect()
 	}
 
 	/// The turn gate and the lead's marks, then the stored result that ends the turn.
 	fn run(&self, args: &Json) -> Result<Json, String> {
 		let messages = record_messages(&self.record.chat_store, &self.record.chat_id);
-		let node_id = args["nodeId"].as_str().unwrap_or_default();
+		let node_id = args["nodeId"].str_or_empty();
 		// The topic this turn's conclude finished, else the one the record's newest graded event did.
 		let this_turn = self.gate.topic_ended();
 		let finished = this_turn.as_ref().map(|t| (t.node_id.clone(), false)).or_else(|| finished_topic(&messages));
@@ -239,9 +241,9 @@ impl Tool for TopicDone {
 }
 
 /// The tool for one Study turn, under the gate the study problem and conclude share.
-pub fn topic_done_tool(record: LessonRecord, gate: &Arc<TurnGate>, check_marks: CheckMarks, node_check: NodeCheck, multiple_choice: bool) -> FnTool {
+pub fn topic_done_tool(record: PlanContext, gate: &Arc<TurnGate>, check_marks: CheckMarks, plan_nodes: PlanNodes, multiple_choice: bool) -> FnTool {
 	let (parameters, check_schema) = (parameters(multiple_choice, false), parameters(multiple_choice, true));
-	FnTool::from_tool(Arc::new(TopicDone { description: description(multiple_choice), parameters, check_schema, multiple_choice, record, gate: gate.clone(), check_marks, node_check }))
+	FnTool::from_tool(Arc::new(TopicDone { description: description(multiple_choice), parameters, check_schema, multiple_choice, record, gate: gate.clone(), check_marks, plan_nodes }))
 }
 
 #[cfg(test)]
@@ -278,13 +280,13 @@ mod tests {
 	}
 
 	/// The plan holds n3, n4 and n5 (the example's n3 and n4 too).
-	fn node_check() -> NodeCheck {
-		Arc::new(|id: &str| (!["n3", "n4", "n5"].contains(&id)).then(|| format!("nodeId \"{id}\" matches no node in this session's plan map. Copy one of the plan's node ids exactly (n3, n4, n5).")))
+	fn plan_nodes() -> PlanNodes {
+		Arc::new(|| ["n3", "n4", "n5"].map(str::to_owned).to_vec())
 	}
 
 	fn tool_on(messages: Vec<Json>, multiple_choice: bool) -> (FnTool, Arc<TurnGate>) {
 		let gate = TurnGate::new(false);
-		(topic_done_tool(record(messages), &gate, check_marks(), node_check(), multiple_choice), gate)
+		(topic_done_tool(record(messages), &gate, check_marks(), plan_nodes(), multiple_choice), gate)
 	}
 
 	async fn call(tool: &FnTool, args: Json) -> Result<Json, String> {

@@ -31,7 +31,7 @@ pub async fn search_graph(call: &ToolCall<'_>, args: &Json) -> Json {
 	let max = args["limit"].as_i64().unwrap_or(30) as usize;
 	let found: Vec<&Json> = match args["query"].as_str().filter(|q| !gs_base::text::trim(q).is_empty()) {
 		Some(query) => {
-			let by_id: HashMap<&str, &Json> = graph.nodes.iter().map(|n| (n["id"].as_str().unwrap_or_default(), n)).collect();
+			let by_id: HashMap<&str, &Json> = graph.nodes.iter().map(|n| (n["id"].str_or_empty(), n)).collect();
 			match app.search.search_facts(scope.as_deref(), &graph.nodes, query, max).await {
 				Ok(ids) => ids.iter().filter_map(|id| by_id.get(id.as_str()).copied()).collect(),
 				Err(error) => return failure(&error),
@@ -39,7 +39,7 @@ pub async fn search_graph(call: &ToolCall<'_>, args: &Json) -> Json {
 		}
 		None => {
 			let mut newest: Vec<&Json> = graph.nodes.iter().collect();
-			newest.sort_by(|a, b| locale::compare(b["createdAt"].as_str().unwrap_or_default(), a["createdAt"].as_str().unwrap_or_default()));
+			newest.sort_by(|a, b| locale::compare(b["createdAt"].str_or_empty(), a["createdAt"].str_or_empty()));
 			newest.truncate(max);
 			newest
 		}
@@ -47,15 +47,15 @@ pub async fn search_graph(call: &ToolCall<'_>, args: &Json) -> Json {
 	let picked: HashSet<&str> = found.iter().filter_map(|n| n["id"].as_str()).collect();
 	let names: HashMap<&str, &str> = graph.nodes.iter().filter_map(|n| Some((n["id"].as_str()?, n["name"].as_str()?))).collect();
 	let name_of = |id: &str| names.get(id).copied().unwrap_or(id).to_owned();
-	let ids = |c: &Json| -> Vec<String> { c["premises"].as_arr().into_iter().flatten().filter_map(|p| p.as_str().map(str::to_owned)).collect() };
+	let ids = |c: &Json| -> Vec<String> { c["premises"].items().iter().filter_map(|p| p.as_str().map(str::to_owned)).collect() };
 	let chains: Vec<String> = graph
 		.chains
 		.iter()
-		.filter(|c| picked.contains(c["conclusion"].as_str().unwrap_or_default()) || ids(c).iter().any(|p| picked.contains(p.as_str())))
+		.filter(|c| picked.contains(c["conclusion"].str_or_empty()) || ids(c).iter().any(|p| picked.contains(p.as_str())))
 		.take(100)
 		.map(|c| {
 			let premises: Vec<String> = ids(c).iter().map(|p| name_of(p)).collect();
-			format!("{} ⟹ {}", premises.join(" + "), name_of(c["conclusion"].as_str().unwrap_or_default()))
+			format!("{} ⟹ {}", premises.join(" + "), name_of(c["conclusion"].str_or_empty()))
 		})
 		.collect();
 	let facts: Vec<Json> = found.iter().map(|n| json!({ "id": n["id"], "name": n["name"], "statement": n["statement"] })).collect();
@@ -68,8 +68,8 @@ pub fn import_notes(call: &ToolCall<'_>, args: &Json) -> Json {
 		Ok(scope) => scope,
 		Err(error) => return failure(&error),
 	};
-	let name = args["name"].as_str().unwrap_or_default();
-	let text = args["text"].as_str().unwrap_or_default();
+	let name = args["name"].str_or_empty();
+	let text = args["text"].str_or_empty();
 	let Some(space_id) = scope else {
 		note_agent_action(app, call.caller, &json!({ "label": format!("Reading {name}"), "spaceId": null, "target": null, "page": "/graph" }));
 		import_in_background(app, name, text);

@@ -147,7 +147,7 @@ fn check_chat(chat: &Json, want: &Json) {
 	let statuses = tree.map(|t| derive_plan_statuses_lh(t, messages, &HashMap::new()));
 	check("current", statuses.as_ref().and_then(|st| st.current.clone()).into());
 	let node_statuses = match (tree, &statuses) {
-		(Some(t), Some(st)) => arr(&t["nodes"]).iter().map(|n| derived_node_status(st, n["id"].as_str().unwrap_or_default())).collect(),
+		(Some(t), Some(st)) => arr(&t["nodes"]).iter().map(|n| derived_node_status(st, n["id"].str_or_empty())).collect(),
 		_ => Json::Null,
 	};
 	check("nodeStatuses", node_statuses);

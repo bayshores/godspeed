@@ -94,12 +94,12 @@ fn option_problems(options: &[Json]) -> (Vec<String>, Vec<String>) {
 	let mut problems = Vec::new();
 	let mut keys: Vec<String> = Vec::new();
 	for (i, option) in options.iter().enumerate() {
-		let label = text::trim(option["label"].as_str().unwrap_or_default());
+		let label = text::trim(option["label"].str_or_empty());
 		if label.is_empty() {
 			problems.push(format!("options[{i}].label is empty \u{2014} every option needs a label."));
 			continue;
 		}
-		let value = text::trim(option["value"].as_str().unwrap_or_default());
+		let value = text::trim(option["value"].str_or_empty());
 		let key = if value.is_empty() { label } else { value };
 		if keys.iter().any(|k| k == key) {
 			problems.push(format!("Two options resolve to the same value \"{key}\" \u{2014} options must be distinct."));
@@ -124,7 +124,7 @@ pub fn coerce_correct_answer(correct_answer: &Json, option_values: &[String]) ->
 		if option_values.iter().any(|v| v == trimmed) { trimmed.to_owned() } else { strip_model_value_debris(value) }
 	};
 	match correct_answer {
-		Json::Arr(items) => items.iter().map(|v| clean(v.as_str().unwrap_or_default())).collect(),
+		Json::Arr(items) => items.iter().map(|v| clean(v.str_or_empty())).collect(),
 		Json::Str(raw) => {
 			let trimmed = text::trim(raw);
 			// An exact string key can itself look like a JSON array.
@@ -146,7 +146,7 @@ pub fn coerce_correct_answer(correct_answer: &Json, option_values: &[String]) ->
 /// The quiz authoring contract: option sanity plus a correctAnswer that can be graded. Empty
 /// means a quiz the dock can arm and grade faithfully.
 pub fn quiz_input_problems(input: &Json) -> Vec<String> {
-	let (mut problems, keys) = option_problems(input["options"].as_arr().map_or(&[], Vec::as_slice));
+	let (mut problems, keys) = option_problems(input["options"].items());
 	let mut unique: Vec<String> = Vec::new();
 	for entry in coerce_correct_answer(&input["correctAnswer"], &keys) {
 		if !unique.contains(&entry) {
@@ -176,7 +176,7 @@ pub fn quiz_input_problems(input: &Json) -> Vec<String> {
 
 /// The explain authoring contract: the commitment must exist.
 pub fn explain_input_problems(input: &Json) -> Vec<String> {
-	if text::trim(input["correctAnswer"].as_str().unwrap_or_default()).is_empty() {
+	if text::trim(input["correctAnswer"].str_or_empty()).is_empty() {
 		return vec!["correctAnswer is required \u{2014} commit to the full correct answer BEFORE posing the question.".to_owned()];
 	}
 	Vec::new()

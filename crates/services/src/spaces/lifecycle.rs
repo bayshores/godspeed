@@ -11,7 +11,7 @@ use gs_core::graph::graph_deletion::ChatDeleteMode;
 use gs_json::Json;
 
 use super::space_card::apply_space_card;
-use super::files::{files_of, source_id_for, str_of};
+use super::files::{source_id_for};
 use super::{SpaceFailure, SpaceOutcome, fail, no_space};
 use crate::App;
 use crate::graph::extraction::extraction;
@@ -70,13 +70,13 @@ pub async fn delete_space(app: &Arc<App>, id: &str) -> SpaceOutcome<Vec<String>>
 async fn run_delete_space(app: &Arc<App>, id: &str) -> SpaceOutcome<Vec<String>> {
 	let Some(record) = app.stores.spaces.get_space(id) else { return no_space() };
 	for lesson in lessons_of(app, id) {
-		if let Some(blocker) = quiesce_chat_for_rewrite(app, str_of(&lesson, "id")).await {
-			return fail(blocker.status, blocker.code, format!("{}: {}", str_of(&lesson, "title"), blocker.error));
+		if let Some(blocker) = quiesce_chat_for_rewrite(app, lesson["id"].str_or_empty()).await {
+			return fail(blocker.status, blocker.code, format!("{}: {}", lesson["title"].str_or_empty(), blocker.error));
 		}
 	}
 	// The space's file imports: abort and wait them out. Aborted again on every pass, since the
 	// queue can start the next file during the wait.
-	let source_ids: HashSet<String> = files_of(&record).iter().map(|f| source_id_for(id, str_of(f, "id"))).collect();
+	let source_ids: HashSet<String> = record["files"].items().iter().map(|f| source_id_for(id, f["id"].str_or_empty())).collect();
 	let deadline = clock::now_ms() + IMPORT_WIND_DOWN_MS;
 	while extraction_statuses(app).iter().any(|run| run["chatId"].as_str().is_some_and(|c| source_ids.contains(c))) {
 		for sid in &source_ids {
@@ -96,21 +96,21 @@ async fn run_delete_space(app: &Arc<App>, id: &str) -> SpaceOutcome<Vec<String>>
 		// waits above: read them again and hold each one's lock (a turn begins under it, a move
 		// runs under it) through the removal. Taken in id order, as the lock order asks.
 		let mut current = lessons_of(app, id);
-		let mut lock_order: Vec<&str> = current.iter().map(|lesson| str_of(lesson, "id")).collect();
+		let mut lock_order: Vec<&str> = current.iter().map(|lesson| lesson["id"].str_or_empty()).collect();
 		lock_order.sort_unstable();
 		let _lessons: Vec<_> = lock_order.into_iter().map(|lesson_id| app.locks.lock(LockKey::Chat(lesson_id))).collect();
-		current.retain(|lesson| app.stores.chats.get_chat(str_of(lesson, "id")).is_some_and(|now| now["spaceId"].as_str() == Some(id)));
+		current.retain(|lesson| app.stores.chats.get_chat(lesson["id"].str_or_empty()).is_some_and(|now| now["spaceId"].as_str() == Some(id)));
 		for lesson in &current {
-			let lesson_id = str_of(lesson, "id");
+			let lesson_id = lesson["id"].str_or_empty();
 			if let Some(busy) = rewrite_blocker(app, lesson_id) {
-				return fail(busy.status, busy.code, format!("{}: {}", str_of(lesson, "title"), busy.error));
+				return fail(busy.status, busy.code, format!("{}: {}", lesson["title"].str_or_empty(), busy.error));
 			}
 		}
 		app.spaces.cancelled.lock().insert(id.to_owned());
 		cancel_topic_grouping(app, id);
 		cancel_mock_runs(app, id);
 		for lesson in &current {
-			let lesson_id = str_of(lesson, "id");
+			let lesson_id = lesson["id"].str_or_empty();
 			app.stores.jobs.delete_jobs_for_chat(lesson_id);
 			if app.stores.chats.delete_chat(lesson_id) {
 				discard_chat_deliveries(app, lesson_id);

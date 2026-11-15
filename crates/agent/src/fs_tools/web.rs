@@ -22,7 +22,7 @@ pub fn web_tools() -> Vec<Arc<dyn Tool>> {
 		"Fetch a web page and extract its readable content as markdown (Readability). Handles HTML pages and plain text; JS-rendered pages fall back to a reader service.".to_owned(),
 		schema::object(&["url"], vec![("url", string("The URL to fetch"))]),
 		|args, ctx| async move {
-			let url = args["url"].as_str().unwrap_or_default().to_owned();
+			let url = args["url"].str_or_empty().to_owned();
 			if !is_http_url(&url) {
 				return Ok(Json::Str(format!("web_fetch failed: invalid URL \"{url}\"")));
 			}

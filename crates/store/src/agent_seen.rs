@@ -9,7 +9,7 @@ use gs_base::config::Paths;
 use gs_base::locks::{LockKey, Locks};
 use gs_base::{fsx, time};
 use gs_core::records::agent_seen::{SeenMark, SeenStore, parse_agent_seen, with_seen};
-use gs_json::{Json, json, parse, stringify_pretty};
+use gs_json::{Json, json, stringify_pretty};
 
 const FILE_NAME: &str = "agent-seen.json";
 const VERSION: i64 = 1;
@@ -25,7 +25,7 @@ impl AgentSeenStore {
 	}
 
 	fn read(&self) -> Json {
-		let parsed = fsx::read_text(&self.file).ok().and_then(|raw| parse(&raw).ok());
+		let parsed = fsx::read_json(&self.file);
 		parse_agent_seen(&parsed.unwrap_or(Json::Null))
 	}
 

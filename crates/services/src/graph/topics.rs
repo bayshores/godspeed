@@ -112,7 +112,7 @@ async fn group_once(app: &Arc<App>, space_id: &str) -> Result<(), String> {
 		return Ok(());
 	}
 	// Grouping reads the whole graph, so a space importing many files groups once, at the end.
-	if record["files"].as_arr().into_iter().flatten().any(|f| matches!(f["status"].as_str(), Some("pending" | "extracting"))) {
+	if record["files"].items().iter().any(|f| matches!(f["status"].as_str(), Some("pending" | "extracting"))) {
 		return Ok(());
 	}
 	let scope = Some(space_id);

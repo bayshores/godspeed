@@ -7,7 +7,7 @@ use gs_base::config::Paths;
 use gs_base::fsx;
 use gs_base::locks::{LockKey, Locks};
 use gs_core::records::agent_rules::parse_saved_rules;
-use gs_json::{Json, json, stringify_pretty};
+use gs_json::{Json, json};
 
 const FILE_NAME: &str = "agent-rules.json";
 const VERSION: i64 = 1;
@@ -30,6 +30,6 @@ impl AgentRulesStore {
 	pub fn write_saved_rules(&self, rules: &[Json]) -> Result<(), String> {
 		let _guard = self.locks.lock(LockKey::AppFile(FILE_NAME));
 		let record = json!({ "version": VERSION, "rules": rules.to_vec() });
-		fsx::write_text_atomic(&self.file, &stringify_pretty(&record, "\t")).map_err(|err| fsx::node_error_message(&err, "open", &self.file))
+		fsx::write_json_atomic(&self.file, &record)
 	}
 }

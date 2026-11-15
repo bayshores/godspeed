@@ -132,7 +132,7 @@ fn stream_blocks(model: &Json, message: Json, abort: &Abort, on_partial: &mut (d
 		return aborted(&partial);
 	}
 	on_partial(Partial::Start(partial.clone()));
-	for block in message["content"].as_arr().into_iter().flatten() {
+	for block in message["content"].items().iter() {
 		if abort.is_aborted() {
 			return aborted(&partial);
 		}

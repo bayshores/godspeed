@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { RECENT_CHANGE_DAYS } from "@/shared/core";
+import { RECENT_CHANGE_DAYS, dayLabel, localDay } from "@/shared/core";
 import { cn } from "@/frontend/lib/utils";
-import { shortDate } from "./files-model";
 import { SectionToggle } from "./files-sections";
-import { changeDay, type RecentChange } from "./recent-changes-model";
+import type { RecentChange } from "./recent-changes-model";
 
 export const RECENT_CHANGES_KEY = "recent-changes";
 /** Changes shown before "Show N more" (a space set up by hand brings dozens at once). */
@@ -38,7 +37,7 @@ export function RecentChanges({ changes, collapsed, onToggle }: { changes: reado
 									{c.name}
 								</span>
 								<span className={cn("w-[70px] shrink-0 text-base", removed ? "text-ans-wrong" : "text-ink")}>{removed ? "Removed" : "Added"}</span>
-								<span className="font-count w-24 shrink-0 text-base text-ink-2">{shortDate(changeDay(c.at))}</span>
+								<span className="font-count w-24 shrink-0 text-base text-ink-2">{dayLabel(localDay(new Date(c.at)))}</span>
 							</li>
 						);
 					})}

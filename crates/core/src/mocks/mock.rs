@@ -147,10 +147,6 @@ fn without(mock: Json, keys: &[&str]) -> Json {
 	Json::Obj(out)
 }
 
-fn items(list: &Json) -> &[Json] {
-	list.as_arr().map_or(&[], Vec::as_slice)
-}
-
 // ─── where a mock is ─────────────────────────────────────────────────────────
 
 /// Writing: the teacher is writing the questions. Ready: written, not started. Running: being
@@ -180,7 +176,7 @@ impl MockState {
 }
 
 pub fn mock_state(mock: &Json) -> MockState {
-	if items(&mock["questions"]).is_empty() {
+	if mock["questions"].items().is_empty() {
 		MockState::Writing
 	} else if !mock["startedAt"].truthy() {
 		MockState::Ready
@@ -242,7 +238,7 @@ fn example_problem(e: &Json, params: usize) -> Option<String> {
 }
 
 fn strings(list: &Json) -> Vec<&str> {
-	items(list).iter().map(Json::str_or_empty).collect()
+	list.items().iter().map(Json::str_or_empty).collect()
 }
 
 /// The teacher's questions (each `{ title, statement, kind, fact_ids?, function_name?, params?,
@@ -283,9 +279,9 @@ pub fn take_questions(written: &[Json], format: &Json, fact_ids: &HashSet<String
 			out.push(Json::Obj(q));
 			continue;
 		}
-		let name = w["function_name"].as_str().unwrap_or("");
+		let name = w["function_name"].str_or_empty();
 		let params = strings(&w["params"]);
-		let examples = items(&w["examples"]);
+		let examples = w["examples"].items();
 		if !is_function_name(name) {
 			return Err(format!(
 				"{at}: function_name must be one plain name (letters, digits, _, not starting with __) that works in JavaScript and Python: not a keyword of either, and not require, module or exports."
@@ -346,7 +342,7 @@ pub fn pause_mock(mock: &Json, now_ms: i64) -> Json {
 
 /// The open pause as ended at `now_ms`, added to the mock's pauses.
 fn closed_pause(mock: &Json, now_ms: i64) -> Json {
-	let mut pauses = items(&mock["pauses"]).to_vec();
+	let mut pauses = mock["pauses"].items().to_vec();
 	pauses.push(json!({ "from": mock["paused"]["at"], "to": time::iso(now_ms) }));
 	without(with(mock, "pauses", Json::Arr(pauses)), &["paused"])
 }
@@ -377,7 +373,7 @@ pub fn parse_mock_code(raw: &Json) -> Json {
 /// graded is what was picked; with nothing written in it, the language that has code is graded
 /// instead, so looking at the other one never blanks an answer.
 pub fn with_answer(mock: &Json, question_id: &str, answer: &Json) -> Json {
-	let question = items(&mock["questions"]).iter().find(|q| q["id"].as_str() == Some(question_id));
+	let question = mock["questions"].items().iter().find(|q| q["id"].as_str() == Some(question_id));
 	let Some(question) = question.filter(|_| mock_state(mock) == MockState::Running) else { return mock.clone() };
 	let seconds = at_least(0.0, num::math_round(answer["seconds"].as_f64().unwrap_or(f64::NAN)));
 	let submitted = answer["submitted"].clone();
@@ -424,7 +420,7 @@ pub fn is_answered(answer: &Json) -> bool {
 /// can't be kept: every answered question needs one (blank ones are never graded).
 pub fn with_grades(mock: &Json, written: &[Json]) -> Result<Json, String> {
 	let mut grades = Obj::new();
-	for q in items(&mock["questions"]) {
+	for q in mock["questions"].items() {
 		let id = q["id"].str_or_empty();
 		if !is_answered(&mock["answers"][id]) {
 			continue;
@@ -452,9 +448,9 @@ pub fn question_result<'a>(mock: &'a Json, question_id: &str) -> Option<&'a str>
 /// id, toolCallId: question id, tool: "mock", factIds, outcome, answeredAt }`), given when it
 /// ended: right is right, a blank one is "I don't know", anything else is wrong.
 pub fn mock_answers(mock: &Json) -> Vec<Json> {
-	items(&mock["questions"])
+	mock["questions"].items()
 		.iter()
-		.filter(|q| !items(&q["factIds"]).is_empty())
+		.filter(|q| !q["factIds"].items().is_empty())
 		.filter_map(|q| {
 			let result = question_result(mock, q["id"].str_or_empty())?;
 			let ended = mock["endedAt"].as_str().filter(|e| !e.is_empty())?;
@@ -471,7 +467,7 @@ pub fn mock_answers(mock: &Json) -> Vec<Json> {
 /// How many times the mock was paused and for how long in all (ms), an open pause up to
 /// `now_ms`.
 pub fn pause_total(mock: &Json, now_ms: i64) -> (usize, f64) {
-	let mut spans: Vec<(f64, f64)> = items(&mock["pauses"]).iter().map(|p| (date_ms(&p["from"]), date_ms(&p["to"]))).collect();
+	let mut spans: Vec<(f64, f64)> = mock["pauses"].items().iter().map(|p| (date_ms(&p["from"]), date_ms(&p["to"]))).collect();
 	if mock["paused"].truthy() {
 		spans.push((date_ms(&mock["paused"]["at"]), now_ms as f64));
 	}
@@ -496,7 +492,7 @@ pub fn minutes_used(mock: &Json) -> Option<f64> {
 
 /// How many questions a graded mock got right.
 pub fn solved_count(mock: &Json) -> usize {
-	items(&mock["questions"]).iter().filter(|q| question_result(mock, q["id"].str_or_empty()) == Some("right")).count()
+	mock["questions"].items().iter().filter(|q| question_result(mock, q["id"].str_or_empty()) == Some("right")).count()
 }
 
 // ─── what the pages show ─────────────────────────────────────────────────────
@@ -664,7 +660,7 @@ pub fn parse_mock(raw: &Json) -> Option<ParsedMock> {
 	if raw["fromAbout"] == Json::Bool(true) {
 		mock.insert("fromAbout", true);
 	}
-	mock.insert("questions", items(&raw["questions"]).iter().filter_map(parse_question).collect::<Vec<_>>());
+	mock.insert("questions", raw["questions"].items().iter().filter_map(parse_question).collect::<Vec<_>>());
 	mock.insert("answers", parse_answers(&raw["answers"]));
 	let (started, ended) = (raw["startedAt"].as_str(), raw["endedAt"].as_str());
 	if let Some(at) = started {
@@ -682,7 +678,7 @@ pub fn parse_mock(raw: &Json) -> Option<ParsedMock> {
 			mock.insert("paused", json!({ "at": at, "left": left.max(0.0) }));
 		}
 	}
-	mock.insert("pauses", items(&raw["pauses"]).iter().filter_map(parse_pause).collect::<Vec<_>>());
+	mock.insert("pauses", raw["pauses"].items().iter().filter_map(parse_pause).collect::<Vec<_>>());
 	if let Some(at) = ended {
 		mock.insert("endedAt", at);
 	}

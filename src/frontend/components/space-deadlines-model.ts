@@ -4,7 +4,7 @@
  * differs from the deadline it opened with, so an agent's change made
  * meanwhile is never undone. Pure and unit-tested.
  */
-import { clockLabel as coreClockLabel, dateInName, dayLabel, isCalendarDate, isClockTime, type SpaceDeadline, type DeadlineKind, type WaitingDeadline } from "@/shared/core";
+import { clockLabel as coreClockLabel, dateInName, dayLabel, isCalendarDate, isClockTime, monthDay, type SpaceDeadline, type DeadlineKind, type WaitingDeadline } from "@/shared/core";
 
 export interface DeadlineDraft {
 	kind: DeadlineKind;
@@ -147,7 +147,7 @@ export function dueLabel(date: string, time: string | undefined): string {
 /** A file's day from its name, "Oct 27"; "" for an undated file. */
 export function fileDayLabel(name: string): string {
 	const date = dateInName(name);
-	return date ? dayLabel(date).split(" ").slice(1).join(" ") : "";
+	return date ? monthDay(date) : "";
 }
 
 /** The deadline's file list shows a filter box from this many files. */

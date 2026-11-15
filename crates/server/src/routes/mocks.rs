@@ -14,29 +14,15 @@ use gs_core::mocks::mock::{ANSWER_MAX, MockLanguage, is_mock_id, parse_mock_code
 use gs_json::{Json, Obj, json};
 use gs_services::App;
 use gs_services::mocks::mocks::{MockAction, change_mock, create_mock, delete_mock, list_mocks, mock_view, run_mock_examples};
-use gs_services::mocks::{Outcome, Stop};
 
-use crate::http::paths::{param, search_params};
-use crate::http::reply::{self, Unhandled, error, fields};
+use crate::http::paths::{param, query};
+use crate::http::reply::{self, Unhandled, answer, error, fields};
 use crate::http::route::ApiRoute;
 
 pub fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/spaces/{id}/mocks", ApiRoute::new().get(list).post(create).into_route())
 		.route("/api/spaces/{id}/mocks/{mock_id}", ApiRoute::new().get(view).post(act).delete(remove).into_route())
-}
-
-/// A refusal as `{ error }` with its status; a throw as the empty 500.
-fn answer<T>(outcome: Outcome<T>, ok: impl FnOnce(T) -> Response) -> Result<Response, Unhandled> {
-	match outcome {
-		Ok(value) => Ok(ok(value)),
-		Err(Stop::Refuse(status, message)) => Ok(error(status, &message)),
-		Err(Stop::Throw(message)) => Err(Unhandled::from(message)),
-	}
-}
-
-fn ok(_: ()) -> Response {
-	reply::json(200, &json!({ "ok": true }))
 }
 
 fn no_such_mock() -> Response {
@@ -47,17 +33,13 @@ fn known(id: &str, mock_id: &str) -> bool {
 	is_space_id(id) && is_mock_id(mock_id)
 }
 
-fn no_such_space() -> Response {
-	error(404, "No such space")
-}
-
 /// GET /api/spaces/{id}/mocks?deadline=<id>: `{ mocks }`, the deadline's (or the space's) mocks as
 /// summaries, newest first.
 async fn list(State(app): State<Arc<App>>, Path(id): Path<String>, uri: Uri) -> Result<Response, Unhandled> {
 	if !is_space_id(&id) {
-		return Ok(no_such_space());
+		return Ok(reply::no_such_space());
 	}
-	let params = search_params(uri.query().unwrap_or_default());
+	let params = query(&uri);
 	answer(list_mocks(&app, &id, param(&params, "deadline")), |mocks| reply::json(200, &json!({ "mocks": mocks })))
 }
 
@@ -66,7 +48,7 @@ async fn list(State(app): State<Arc<App>>, Path(id): Path<String>, uri: Uri) -> 
 /// while its last mock is unfinished.
 async fn create(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
 	if !is_space_id(&id) {
-		return Ok(no_such_space());
+		return Ok(reply::no_such_space());
 	}
 	let body = fields(body).await?;
 	let Some(deadline_id) = body["deadlineId"].as_str() else { return Ok(error(400, "Give deadlineId.")) };
@@ -93,7 +75,7 @@ async fn act(State(app): State<Arc<App>>, Path((id, mock_id)): Path<(String, Str
 		return Ok(no_such_mock());
 	}
 	let body = fields(body).await?;
-	let change = |action: MockAction| answer(change_mock(&app, &id, &mock_id, action), ok);
+	let change = |action: MockAction| answer(change_mock(&app, &id, &mock_id, action), |()| reply::ok());
 	match body["action"].as_str() {
 		Some("start") => change(MockAction::Start),
 		Some("pause") => change(MockAction::Pause),
@@ -130,7 +112,7 @@ async fn remove(State(app): State<Arc<App>>, Path((id, mock_id)): Path<(String, 
 	if !known(&id, &mock_id) {
 		return Ok(no_such_mock());
 	}
-	answer(delete_mock(&app, &id, &mock_id), ok)
+	answer(delete_mock(&app, &id, &mock_id), |()| reply::ok())
 }
 
 #[cfg(test)]

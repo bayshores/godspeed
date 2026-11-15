@@ -1,9 +1,10 @@
 //! Notes an outside agent saves about the learner.
 
-use std::sync::LazyLock;
-
-use gs_base::{re::Re, text};
+use gs_base::re::collapse_spaces;
+use gs_base::text;
 use gs_json::{Json, Obj};
+
+use super::space_id_of;
 
 pub const NOTE_MAX_CHARS: usize = 200;
 /// Kept small so the briefing stays cheap for every agent that connects.
@@ -11,8 +12,7 @@ pub const NOTES_MAX: usize = 30;
 
 /// The note as one trimmed line; None when empty or too long.
 pub fn clean_note_text(raw: &str) -> Option<String> {
-	static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
-	let line = SPACES.replace(raw, " ");
+	let line = collapse_spaces(raw);
 	let line = text::trim(&line);
 	(!line.is_empty() && text::len16(line) <= NOTE_MAX_CHARS).then(|| line.to_owned())
 }
@@ -26,9 +26,7 @@ pub fn parse_agent_notes(raw: &Json) -> Vec<Json> {
 			let mut out = Obj::new();
 			out.insert("id", id);
 			out.insert("text", note);
-			// classId: the field's name before the rename.
-			let space_id = if entry["spaceId"].is_null() { &entry["classId"] } else { &entry["spaceId"] };
-			if let Some(space_id) = space_id.as_str() {
+			if let Some(space_id) = space_id_of(entry).as_str() {
 				out.insert("spaceId", space_id);
 			}
 			out.insert("createdAt", created_at);

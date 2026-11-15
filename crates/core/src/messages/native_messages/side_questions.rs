@@ -5,8 +5,9 @@ use std::collections::HashMap;
 
 use gs_json::{Json, quote};
 
-use super::scans::{dangling_question_of, is_bookkeeping, is_side_question, retry_context, rides_ahead, tool_calls};
+use super::scans::{dangling_question_of, is_bookkeeping, is_side_question, retry_context, rides_ahead};
 use crate::messages::pending::is_question_tool;
+use crate::messages::tool_calls;
 
 /// The model's result for a question the learner asked a side question around: providers need a
 /// result right after the call, and the real answer comes later.

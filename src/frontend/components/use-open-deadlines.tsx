@@ -12,6 +12,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { DoneNotice } from "@/frontend/components/done-notice";
+import { jsonInit } from "@/frontend/components/files/space-files-api";
 
 interface Fetched {
 	open: OpenDeadline[];
@@ -64,11 +65,7 @@ export function OpenDeadlinesProvider({ children }: { children: React.ReactNode 
 			setNotice(null);
 			void (async () => {
 				try {
-					const res = await fetch(`/api/spaces/${encodeURIComponent(d.spaceId)}/deadlines/${encodeURIComponent(d.id)}`, {
-						method: "PUT",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ done }),
-					});
+					const res = await fetch(`/api/spaces/${encodeURIComponent(d.spaceId)}/deadlines/${encodeURIComponent(d.id)}`, jsonInit("PUT", { done }));
 					if (!res.ok) throw new Error(`HTTP ${res.status}`);
 					await load();
 				} catch {

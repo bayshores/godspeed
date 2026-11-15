@@ -2,11 +2,12 @@
 //! reply before it is stored, and serves what a click on a space file source shows (the passage
 //! text and the PDF page). The marks themselves are core `messages::citations`.
 
+use std::cell::LazyCell;
 use std::path::Path;
 use std::sync::Arc;
 
 use gs_core::messages::citations::{CheckedMarks, CiteMark, DroppedQuote, MARK_MAX, cut_unreadable_quotes, file_cite_mark, replace_cite_marks};
-use gs_base::text;
+use gs_base::{fsx, text};
 use gs_core::contracts::space::{extension_of, plain_text_extensions};
 use gs_core::messages::quote_find::{QuoteMiss, check_quote, find_once};
 use gs_json::lone::{from_utf16, to_utf16};
@@ -16,23 +17,23 @@ use gs_search::index::PassageRef;
 
 use super::space_card::space_file_path;
 use crate::App;
-use crate::app::reading_pages::{CACHE_LIMIT, ReadingError, TEXT_MAX_BYTES, is_pdf, mtime_ms, parse_page, render_pdf_page};
+use crate::app::reading_pages::{CACHE_LIMIT, ReadingError, TEXT_MAX_BYTES, is_pdf, parse_page, render_pdf_page};
 
 /// Whose file this is: the space record that holds it and the file itself.
-fn find_file(app: &App, file_id: &str) -> Option<(Json, Json)> {
-	app.stores.spaces.list_space_records().into_iter().find_map(|record| {
-		let file = record["files"].as_arr()?.iter().find(|f| f["id"].as_str() == Some(file_id))?.clone();
+fn find_file<'a>(records: &'a [Json], file_id: &str) -> Option<(&'a Json, &'a Json)> {
+	records.iter().find_map(|record| {
+		let file = record["files"].as_arr()?.iter().find(|f| f["id"].as_str() == Some(file_id))?;
 		Some((record, file))
 	})
 }
 
 fn name_of(file: &Json) -> &str {
-	file["name"].as_str().unwrap_or_default()
+	file["name"].str_or_empty()
 }
 
 /// The text of the passages at `at`, joined as a click shows them.
 fn passage_text(passages: &[Json]) -> String {
-	passages.iter().map(|p| p["text"].as_str().unwrap_or_default().to_owned()).collect::<Vec<_>>().join("\n")
+	passages.iter().map(|p| p["text"].str_or_empty().to_owned()).collect::<Vec<_>>().join("\n")
 }
 
 /// The text with every space file mark checked. A passage id becomes the stored mark (file, place,
@@ -43,6 +44,7 @@ fn passage_text(passages: &[Json]) -> String {
 pub fn check_cites(app: &App, text: &str) -> CheckedMarks {
 	let (text, mut dropped) = cut_unreadable_quotes(text);
 	let mut removed: Vec<String> = Vec::new();
+	let records = LazyCell::new(|| app.stores.spaces.list_space_records());
 	let checked = replace_cite_marks(&text, |mark| {
 		let (file_id, at, quote) = match mark {
 			CiteMark::Web { url } => return format!("[[{url}]]"),
@@ -53,11 +55,11 @@ pub fn check_cites(app: &App, text: &str) -> CheckedMarks {
 			PassageRef::Passage(id) => id.clone(),
 			PassageRef::Place { range, .. } => format!("{file_id}/{range}"),
 		};
-		if let Some((record, file)) = find_file(app, &file_id) {
-			let passages = app.search.passages_at(record["id"].as_str().unwrap_or_default(), &at);
+		if let Some((record, file)) = find_file(&records, &file_id) {
+			let passages = app.search.passages_at(record["id"].str_or_empty(), &at);
 			if let Some(passage) = passages.first() {
 				let range = match &at {
-					PassageRef::Passage(_) => passage["range"].as_str().unwrap_or_default().to_owned(),
+					PassageRef::Passage(_) => passage["range"].str_or_empty().to_owned(),
 					PassageRef::Place { range, .. } => range.clone(),
 				};
 				let mut note_drop = |quote: &str, miss| {
@@ -68,13 +70,13 @@ pub fn check_cites(app: &App, text: &str) -> CheckedMarks {
 				};
 				let quote = quote.filter(|quote| check_quote(&passage_text(&passages), quote).map_err(|miss| note_drop(quote, miss)).is_ok());
 				let quote = quote.map(|q| q.split_whitespace().collect::<Vec<_>>().join(" "));
-				let stored = file_cite_mark(&file_id, &range, name_of(&file), quote.as_deref());
+				let stored = file_cite_mark(&file_id, &range, name_of(file), quote.as_deref());
 				// A long name plus the quote would no longer read as a mark; the plain one may.
 				if let Some(quote) = &quote
 					&& text::len16(&stored) > MARK_MAX + 4
 				{
 					note_drop(quote, QuoteMiss::Shape);
-					return file_cite_mark(&file_id, &range, name_of(&file), None);
+					return file_cite_mark(&file_id, &range, name_of(file), None);
 				}
 				return stored;
 			}
@@ -92,11 +94,12 @@ pub fn check_cites(app: &App, text: &str) -> CheckedMarks {
 /// text ("" when the file is not indexed), and `marks` where `quote` sits (null without a quote or
 /// when it is not found once).
 pub async fn cited_passage(app: &App, file_id: &str, range: &str, quote: Option<&str>) -> Result<Json, ReadingError> {
-	let (record, file) = find_file(app, file_id).ok_or(ReadingError::Refused(404, "No space has that file"))?;
-	let on_disk = space_file_path(app, &record, &file).filter(|p| Path::new(p).exists());
-	let page = if is_pdf(Path::new(name_of(&file))) && on_disk.is_some() { range_point(range) } else { None };
+	let records = app.stores.spaces.list_space_records();
+	let (record, file) = find_file(&records, file_id).ok_or(ReadingError::Refused(404, "No space has that file"))?;
+	let on_disk = space_file_path(app, record, file).filter(|p| Path::new(p).exists());
+	let page = if is_pdf(Path::new(name_of(file))) && on_disk.is_some() { range_point(range) } else { None };
 	let at = PassageRef::Place { file_id: file_id.to_owned(), range: range.to_owned() };
-	let passages = app.search.passages_at(record["id"].as_str().unwrap_or_default(), &at);
+	let passages = app.search.passages_at(record["id"].str_or_empty(), &at);
 	let text = passage_text(&passages);
 	if page.is_none() && text.is_empty() {
 		return Err(ReadingError::Refused(404, "No passage at that place"));
@@ -104,7 +107,7 @@ pub async fn cited_passage(app: &App, file_id: &str, range: &str, quote: Option<
 	let marks = match (quote, on_disk) {
 		(None, _) => None,
 		(Some(quote), Some(on_disk)) if page.is_some() => page_marks(app, Path::new(&on_disk), page.unwrap_or_default() as u32, quote).await,
-		(Some(quote), on_disk) if reads_as_lines(name_of(&file)) => match on_disk {
+		(Some(quote), on_disk) if reads_as_lines(name_of(file)) => match on_disk {
 			Some(on_disk) => line_marks(Path::new(&on_disk), &passages, quote).await,
 			None => None,
 		},
@@ -123,7 +126,7 @@ fn reads_as_lines(name: &str) -> bool {
 /// cached, so the next ask tries again.
 async fn page_marks(app: &App, on_disk: &Path, page: u32, quote: &str) -> Option<Json> {
 	let meta = tokio::fs::metadata(on_disk).await.ok()?;
-	let key = format!("{}:{}:{page}:{quote}", on_disk.display(), mtime_ms(&meta));
+	let key = format!("{}:{}:{page}:{quote}", on_disk.display(), fsx::modified_ms(&meta));
 	if let Some((_, marks)) = app.misc.quote_boxes.lock().iter().find(|(cached, _)| *cached == key) {
 		return Some(marks.clone()).filter(|m| !m.is_null());
 	}
@@ -225,10 +228,11 @@ async fn line_marks(on_disk: &Path, passages: &[Json], quote: &str) -> Option<Js
 /// One page of a cited space PDF as a PNG; `page` is the address's text, read like `Number`.
 pub async fn cited_page(app: &App, file_id: &str, page: &str) -> Result<Arc<Vec<u8>>, ReadingError> {
 	let Some(page) = parse_page(page) else { return Err(ReadingError::Refused(400, "page must be a whole number from 1")) };
-	let on_disk = find_file(app, file_id).filter(|(_, file)| is_pdf(Path::new(name_of(file)))).and_then(|(record, file)| space_file_path(app, &record, &file));
+	let records = app.stores.spaces.list_space_records();
+	let on_disk = find_file(&records, file_id).filter(|(_, file)| is_pdf(Path::new(name_of(file)))).and_then(|(record, file)| space_file_path(app, record, file));
 	let Some(on_disk) = on_disk else { return Err(ReadingError::Refused(404, "No PDF for that file")) };
 	let meta = tokio::fs::metadata(&on_disk).await.ok().filter(std::fs::Metadata::is_file).ok_or(ReadingError::Refused(404, "No PDF for that file"))?;
-	render_pdf_page(app, Path::new(&on_disk), mtime_ms(&meta), page).await
+	render_pdf_page(app, Path::new(&on_disk), fsx::modified_ms(&meta), page).await
 }
 
 #[cfg(test)]

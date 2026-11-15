@@ -23,10 +23,6 @@ fn number(n: &Json) -> String {
 	js_number(n.as_f64().unwrap_or(f64::NAN))
 }
 
-fn items(list: &Json) -> &[Json] {
-	list.as_arr().map_or(&[], Vec::as_slice)
-}
-
 /// What the mock is for: the deadline's name and kind.
 fn for_line(deadline: &Json) -> String {
 	format!("They are preparing for: {} ({}).", deadline["name"].str_or_empty(), deadline["kind"].str_or_empty())
@@ -56,7 +52,7 @@ pub fn mock_request_text(deadline: &Json, about: Option<&str>, format: &Json, to
 		lines.extend([String::new(), "Its topics, the ones that most need work first, with their facts (fact_id: statement). Give each question the fact_ids it tests:".to_owned()]);
 		for t in topics {
 			lines.push(format!("## {} ({})", t["name"].str_or_empty(), status_note(t["status"].str_or_empty())));
-			lines.extend(items(&t["facts"]).iter().map(|f| format!("- {}: {}", f["id"].str_or_empty(), f["statement"].str_or_empty())));
+			lines.extend(t["facts"].items().iter().map(|f| format!("- {}: {}", f["id"].str_or_empty(), f["statement"].str_or_empty())));
 		}
 	}
 	if !asked.is_empty() {
@@ -76,7 +72,7 @@ fn run_line(run: &Json) -> String {
 	if let Some(error) = run["error"].as_str().filter(|e| !e.is_empty()) {
 		return format!("It did not run on the examples here: {error}");
 	}
-	let lines: Vec<String> = items(&run["examples"])
+	let lines: Vec<String> = run["examples"].items()
 		.iter()
 		.enumerate()
 		.map(|(i, e)| {
@@ -101,15 +97,15 @@ fn question_block(mock: &Json, q: &Json, run: Option<&Json>, facts: &HashMap<Str
 	let answer = &mock["answers"][id];
 	let code = q["kind"].as_str() == Some("code");
 	let mut block = vec![format!("## {id}: {} ({})", q["title"].str_or_empty(), if code { "code" } else { "written" }), q["statement"].str_or_empty().to_owned()];
-	let tests: Vec<&String> = items(&q["factIds"]).iter().filter_map(|f| facts.get(f.str_or_empty())).collect();
+	let tests: Vec<&String> = q["factIds"].items().iter().filter_map(|f| facts.get(f.str_or_empty())).collect();
 	if !tests.is_empty() {
 		block.push("It tests:".to_owned());
 		block.extend(tests.iter().map(|statement| format!("- {statement}")));
 	}
 	if code {
-		let params: Vec<&str> = items(&q["fn"]["params"]).iter().map(Json::str_or_empty).collect();
+		let params: Vec<&str> = q["fn"]["params"].items().iter().map(Json::str_or_empty).collect();
 		block.push(format!("Function: {}({}). Examples (arguments, then what it returns):", q["fn"]["name"].str_or_empty(), params.join(", ")));
-		block.extend(items(&q["examples"]).iter().map(|e| format!("- {} returns {}", e["args"].str_or_empty(), e["expected"].str_or_empty())));
+		block.extend(q["examples"].items().iter().map(|e| format!("- {} returns {}", e["args"].str_or_empty(), e["expected"].str_or_empty())));
 	}
 	if !is_answered(answer) {
 		block.push(BLANK_NOTE.to_owned());
@@ -130,7 +126,7 @@ fn question_block(mock: &Json, q: &Json, run: Option<&Json>, facts: &HashMap<Str
 /// What a session that goes over one graded question starts from: the question, the learner's
 /// answer and the grade. None when the mock has no such question.
 pub fn go_over_text(mock: &Json, question_id: &str) -> Option<String> {
-	let question = items(&mock["questions"]).iter().find(|q| q["id"].as_str() == Some(question_id))?;
+	let question = mock["questions"].items().iter().find(|q| q["id"].as_str() == Some(question_id))?;
 	let grade = &mock["grades"][question_id];
 	let mut lines = vec![
 		format!(
@@ -168,7 +164,7 @@ pub fn grade_request_text(deadline: &Json, mock: &Json, runs: &Json, facts: &Has
 		}
 	}
 	let mut lines = vec![for_line(deadline), head];
-	for q in items(&mock["questions"]) {
+	for q in mock["questions"].items() {
 		lines.push(String::new());
 		lines.extend(question_block(mock, q, runs.get(q["id"].str_or_empty()), facts));
 	}

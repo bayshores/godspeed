@@ -19,7 +19,7 @@ use gs_json::Json;
 use gs_transcribe::run::{TranscribeError, transcribe_recording};
 
 use super::space_card::{space_file_path, transcript_path_of};
-use super::files::{drop_from_search, drop_source_facts, file_in, files_of, patch_file, source_id_for, str_of};
+use super::files::{drop_from_search, drop_source_facts, file_in, patch_file, source_id_for};
 use super::folder::{scan_linked_folder, stat_sig};
 use super::text_cache::{drop_file_texts, read_cached_text, read_kept_pages, write_cached_text};
 use crate::App;
@@ -98,8 +98,8 @@ async fn process_file(app: Arc<App>, space_id: String, file_id: String) {
 	let Some(file) = file_in(&record, file_id).cloned() else { return };
 	// First, before the file is even looked for: hashing a video on Google Drive would download
 	// it, and a covered recording needs no file at all.
-	if let Some(transcript) = transcript_for(&file, files_of(&record)) {
-		use_transcript(app, &record, &file, str_of(transcript, "id"));
+	if let Some(transcript) = transcript_for(&file, record["files"].items()) {
+		use_transcript(app, &record, &file, transcript["id"].str_or_empty());
 		return;
 	}
 	let Some(abs) = space_file_path(app, &record, &file).filter(|p| Path::new(p).exists()) else {
@@ -124,14 +124,14 @@ async fn process_file(app: Arc<App>, space_id: String, file_id: String) {
 
 /// `process_file` past the checks; Err is what the TS's outer catch saw.
 async fn read_and_import(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path, stat: &mut Option<String>) -> Result<(), String> {
-	let file_id = str_of(file, "id");
+	let file_id = file["id"].str_or_empty();
 	let sig = stat_sig(abs).map_err(|err| fsx::node_error_message(&err, "stat", abs))?;
 	*stat = Some(sig.clone());
 	let fp = fingerprint_file(abs).await?;
 	let sig = Some(Json::from(sig));
 	let fp_json = Some(Json::from(fp.as_str()));
 
-	if str_of(file, "kind") == "info" {
+	if file["kind"].str_or_empty() == "info" {
 		if let Some(source_id) = file["sourceId"].as_str().filter(|s| !s.is_empty()) {
 			drop_source_facts(app, space_id, source_id)?;
 		}
@@ -139,7 +139,7 @@ async fn read_and_import(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path
 		index_for_search(app, space_id, file, abs, &fp, None).await;
 		return Ok(());
 	}
-	if str_of(file, "contentFp") == fp && str_of(file, "status") == "ready" && file["sourceId"].truthy() {
+	if file["contentFp"].str_or_empty() == fp && file["status"].str_or_empty() == "ready" && file["sourceId"].truthy() {
 		// Touched, not changed.
 		if file["statSig"] != sig.clone().unwrap_or_default() {
 			patch_file(app, space_id, file_id, &[("statSig", sig)]);
@@ -183,8 +183,8 @@ async fn read_and_import(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path
 	drop_source_facts(app, space_id, &source_id)?;
 	// Only a linked file's first read sorts it, and never a lecture's transcript or recording
 	// (whose sort would undo other files' work).
-	let name = str_of(file, "name");
-	let may_be_space_info = str_of(file, "origin") == "linked" && !file["kindChosen"].truthy() && !file["contentFp"].truthy() && !is_transcript_file(name) && !is_recording_file(name);
+	let name = file["name"].str_or_empty();
+	let may_be_space_info = file["origin"].str_or_empty() == "linked" && !file["kindChosen"].truthy() && !file["contentFp"].truthy() && !is_transcript_file(name) && !is_recording_file(name);
 	let import = NotesImportInput { file_path: name.to_owned(), text, scope: Some(space_id.to_owned()), source_id: Some(source_id.clone()), may_be_space_info };
 	match extraction(app).import_notes(import).await {
 		Ok(result) if result["spaceInfo"].truthy() => {
@@ -192,7 +192,7 @@ async fn read_and_import(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path
 			let now = app.stores.spaces.get_space(space_id).and_then(|r| file_in(&r, file_id).cloned());
 			match now {
 				// Logistics: space info, which the teacher reads but never quizzes.
-				Some(now) if str_of(&now, "kind") == "study" && !now["kindChosen"].truthy() => {
+				Some(now) if now["kind"].str_or_empty() == "study" && !now["kindChosen"].truthy() => {
 					patch_file(
 						app,
 						space_id,
@@ -201,7 +201,7 @@ async fn read_and_import(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path
 					);
 				}
 				// Picked as study material by hand during the read: read it again as that.
-				Some(now) if str_of(&now, "kind") == "study" => {
+				Some(now) if now["kind"].str_or_empty() == "study" => {
 					patch_file(app, space_id, file_id, &[("status", Some("pending".into())), ("error", None)]);
 					enqueue_file(app, space_id, file_id);
 				}
@@ -229,8 +229,8 @@ async fn read_and_import(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path
 /// earlier transcription go, so nothing is in the graph twice). Its saved transcript stays in case
 /// it is needed again.
 fn use_transcript(app: &Arc<App>, record: &Json, file: &Json, transcript_id: &str) {
-	let space_id = str_of(record, "id");
-	let file_id = str_of(file, "id");
+	let space_id = record["id"].str_or_empty();
+	let file_id = file["id"].str_or_empty();
 	if let Some(source_id) = file["sourceId"].as_str().filter(|s| !s.is_empty())
 		&& let Err(err) = drop_source_facts(app, space_id, source_id)
 	{
@@ -247,7 +247,7 @@ fn use_transcript(app: &Arc<App>, record: &Json, file: &Json, transcript_id: &st
 /// A file's text for the notes pipeline: a recording's or document's saved (or freshly made)
 /// text, the file itself otherwise.
 async fn file_text(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path, fp: &str) -> Result<String, TextError> {
-	let (name, file_id) = (str_of(file, "name"), str_of(file, "id"));
+	let (name, file_id) = (file["name"].str_or_empty(), file["id"].str_or_empty());
 	let recording = is_recording_file(name);
 	let read = || async { file_to_text(&app.pdf, abs).await.map_err(|err| TextError::Failed(err.to_string())) };
 	if !recording && !DOCUMENT_EXTENSIONS.contains(&extension_of(name).as_str()) {
@@ -277,7 +277,7 @@ async fn file_text(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path, fp: 
 /// their times); a recording only once its transcript exists (never transcribed for search alone).
 /// Best effort: a failure is logged and the file goes on.
 async fn index_for_search(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path, fp: &str, text: Option<&str>) {
-	let (name, file_id) = (str_of(file, "name"), str_of(file, "id"));
+	let (name, file_id) = (file["name"].str_or_empty(), file["id"].str_or_empty());
 	let kept = if extension_of(name) == ".pdf" { read_kept_pages(app, space_id, file_id, fp) } else { BTreeMap::new() };
 	let indexed_fp = indexed_fp(fp, &kept);
 	if app.search.is_file_indexed(space_id, file_id, &indexed_fp) {
@@ -330,7 +330,7 @@ pub(super) fn reindex_kept_pages(app: &Arc<App>, space_id: &str, file_id: &str) 
 	let (app, space_id) = (app.clone(), space_id.to_owned());
 	tokio::spawn(async move {
 		let _turn = ONE_AT_A_TIME.lock().await;
-		index_for_search(&app, &space_id, &file, Path::new(&abs), str_of(&file, "contentFp"), None).await;
+		index_for_search(&app, &space_id, &file, Path::new(&abs), file["contentFp"].str_or_empty(), None).await;
 	});
 }
 
@@ -341,14 +341,14 @@ async fn index_unindexed_files(app: &Arc<App>) {
 		if summary["closed"].truthy() {
 			continue;
 		}
-		let Some(record) = app.stores.spaces.get_space(str_of(&summary, "id")) else { continue };
-		for file in files_of(&record) {
-			let status = str_of(file, "status");
+		let Some(record) = app.stores.spaces.get_space(summary["id"].str_or_empty()) else { continue };
+		for file in record["files"].items() {
+			let status = file["status"].str_or_empty();
 			if (status != "ready" && status != "failed") || !file["contentFp"].truthy() {
 				continue;
 			}
 			if let Some(abs) = space_file_path(app, &record, file).filter(|p| Path::new(p).exists()) {
-				index_for_search(app, str_of(&record, "id"), file, Path::new(&abs), str_of(file, "contentFp"), None).await;
+				index_for_search(app, record["id"].str_or_empty(), file, Path::new(&abs), file["contentFp"].str_or_empty(), None).await;
 			}
 		}
 	}
@@ -360,9 +360,9 @@ pub fn queue_waiting_files(app: &Arc<App>) {
 		if record["closed"].truthy() {
 			continue;
 		}
-		for file in files_of(&record) {
-			if matches!(str_of(file, "status"), "pending" | "extracting") {
-				enqueue_file(app, str_of(&record, "id"), str_of(file, "id"));
+		for file in record["files"].items() {
+			if matches!(file["status"].str_or_empty(), "pending" | "extracting") {
+				enqueue_file(app, record["id"].str_or_empty(), file["id"].str_or_empty());
 			}
 		}
 	}
@@ -383,7 +383,7 @@ pub fn start_space_scanner(app: &Arc<App>) {
 			due = clock::now_ms() + SCAN_PERIOD_MS;
 			for summary in timer.stores.spaces.list_spaces() {
 				if !summary["closed"].truthy() && summary["linkedFolder"].truthy() {
-					scan_linked_folder(&timer, str_of(&summary, "id"), false);
+					scan_linked_folder(&timer, summary["id"].str_or_empty(), false);
 				}
 			}
 		}
@@ -394,7 +394,7 @@ pub fn start_space_scanner(app: &Arc<App>) {
 		queue_waiting_files(&startup);
 		for record in startup.stores.spaces.list_space_records() {
 			if !record["closed"].truthy() {
-				scan_linked_folder(&startup, str_of(&record, "id"), false);
+				scan_linked_folder(&startup, record["id"].str_or_empty(), false);
 			}
 		}
 		index_unindexed_files(&startup).await;
@@ -445,7 +445,7 @@ mod tests {
 		for _ in 0..600 {
 			let record = app.stores.spaces.get_space(&space_id).unwrap();
 			let file = file_in(&record, &file_id).unwrap();
-			fp = str_of(file, "contentFp").to_owned();
+			fp = file["contentFp"].str_or_empty().to_owned();
 			if !fp.is_empty() && app.search.is_file_indexed(&space_id, &file_id, &fp) {
 				break;
 			}

@@ -49,13 +49,13 @@ fn save_turn(app: &App, chat_id: &str, base_count: usize, turn_messages: &[Json]
 	let record = app.stores.chats.get_chat(chat_id).ok_or_else(|| format!("Chat not found: {chat_id}"))?;
 	let mut stamped = Vec::new();
 	for message in turn_messages.iter().skip(base_count) {
-		let placeholder = message["role"].as_str() == Some("toolResult") && is_question_tool(message["toolName"].as_str().unwrap_or_default()) && !message["isError"].truthy();
+		let placeholder = message["role"].as_str() == Some("toolResult") && is_question_tool(message["toolName"].str_or_empty()) && !message["isError"].truthy();
 		if placeholder {
 			continue;
 		}
 		stamped.push(if message["id"].truthy() { message.clone() } else { with_id(message) });
 	}
-	let messages = record["messages"].as_arr().map_or(&[][..], Vec::as_slice);
+	let messages = record["messages"].items();
 	let transcript: Vec<Json> = messages.iter().chain(&stamped).cloned().collect();
 	let tree = record.get("tree").filter(|t| !t.is_null());
 	let blocks = plan_blocks_for(messages, &stamped, tree, &transcript);
@@ -152,7 +152,7 @@ fn leftover(app: &Arc<App>, chat_id: &str, scope: Option<&str>) -> Result<(), St
 pub(super) fn uncovered_tokens(app: &App, chat_id: &str, scope: Option<&str>) -> Result<f64, String> {
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(0.0) };
 	let entries = app.stores.graphs.read(scope, Ledger::Coverage)?;
-	let messages = record["messages"].as_arr().map_or(&[][..], Vec::as_slice);
+	let messages = record["messages"].items();
 	Ok(coverage_of(messages, &entries, chat_id).uncovered_tokens as f64)
 }
 

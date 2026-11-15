@@ -1,9 +1,9 @@
 import { memo, useState, type DragEvent } from "react";
-import type { FileCoverage, FileGroup } from "@/shared/core";
+import { dayLabel, type FileCoverage, type FileGroup } from "@/shared/core";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { FileRow, type FileRowActions } from "./file-row";
-import { dropTitle, kindNote, shortDate } from "./files-model";
+import { dropTitle, kindNote } from "./files-model";
 
 /** The line above a section of the file list (from listRules). */
 type ListRule = "solid" | "dotted" | null;
@@ -90,7 +90,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 									<span title={item.label} className="truncate text-[15px] font-medium text-ink">
 										{item.label}
 									</span>
-									{item.date && <span className="font-count text-sm text-ink-2">{shortDate(item.date)}</span>}
+									{item.date && <span className="font-count text-sm text-ink-2">{dayLabel(item.date)}</span>}
 								</div>
 								<ul className="flex min-w-0 flex-1 flex-col">{item.files.map(row)}</ul>
 							</li>

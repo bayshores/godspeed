@@ -15,12 +15,25 @@ pub mod spaces;
 pub mod cheat_sheets;
 pub mod mocks;
 pub mod reminders;
+mod file_cache;
 
+use std::path::Path;
 use std::sync::Arc;
 
 use gs_base::config::Paths;
 use gs_base::events::Events;
 use gs_base::locks::Locks;
+
+/// The ids of the `<id>.json` files in `dir` (made if missing), sorted.
+pub(crate) fn json_ids_in(dir: &Path) -> Vec<String> {
+	if std::fs::create_dir_all(dir).is_err() {
+		return Vec::new();
+	}
+	let Ok(entries) = std::fs::read_dir(dir) else { return Vec::new() };
+	let mut ids: Vec<String> = entries.flatten().filter_map(|e| e.file_name().to_string_lossy().strip_suffix(".json").map(str::to_owned)).collect();
+	ids.sort();
+	ids
+}
 
 /// Every store, built once at start-up and shared by the services.
 pub struct Stores {

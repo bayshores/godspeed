@@ -1,8 +1,8 @@
 /** The space's Deadlines tab: which list a deadline goes in and each row's words. Pure. */
-import { hasProblems, type DeadlineKind, type DeadlineProgress } from "@/shared/core";
+import { hasProblems, longDay, type DeadlineKind, type DeadlineProgress } from "@/shared/core";
 import { kindLabel } from "@/frontend/components/space-deadlines-model";
 import { byDue, isOverdue } from "@/frontend/components/deadlines-model";
-import { longDay, progressNote } from "@/frontend/components/home-page/home-page-model";
+import { progressNote } from "@/frontend/components/home-page/home-page-model";
 
 interface Listed {
 	kind: DeadlineKind;

@@ -7,7 +7,7 @@ use gs_engine::turn::abort::Abort;
 use gs_engine::turn::tool::Tool;
 use gs_json::Json;
 
-use super::fs_shared::{MAX_OUTPUT_BYTES, cap_output, format_size, resolve_source_path, off_thread};
+use super::fs_shared::{cap_output, existing_dir, off_thread, output_limit, resolve_source_path};
 use super::glob::GlobMatcher;
 use crate::tools::fn_tool::FnTool;
 use gs_core::session::schema::{self, integer, string, string_min};
@@ -28,7 +28,7 @@ pub fn find_tool() -> Arc<dyn Tool> {
 		"find",
 		format!(
 			"Search for files by glob pattern. Returns matching file paths relative to the search directory. Ignores node_modules, .git, and Library directories. Output is truncated to {DEFAULT_LIMIT} results or {} (whichever is hit first).",
-			format_size(MAX_OUTPUT_BYTES as u64)
+			output_limit()
 		),
 		parameters,
 		|args, ctx| async move {
@@ -36,7 +36,7 @@ pub fn find_tool() -> Arc<dyn Tool> {
 				return Ok(Json::Str("Operation aborted".to_owned()));
 			}
 			let dir = resolve_source_path(args["path"].as_str());
-			let pattern = args["pattern"].as_str().unwrap_or_default().to_owned();
+			let pattern = args["pattern"].str_or_empty().to_owned();
 			let limit = args["limit"].as_i64().map_or(DEFAULT_LIMIT, |l| l.max(0) as usize);
 			off_thread(move || find(&dir, &pattern, limit, &ctx.abort)).await
 		},
@@ -44,11 +44,7 @@ pub fn find_tool() -> Arc<dyn Tool> {
 }
 
 fn find(dir: &Path, pattern: &str, limit: usize, abort: &Abort) -> Result<Json, String> {
-	let shown = dir.display();
-	let meta = std::fs::metadata(dir).map_err(|_| format!("Path not found: {shown}"))?;
-	if !meta.is_dir() {
-		return Err(format!("Not a directory: {shown}"));
-	}
+	existing_dir(dir)?;
 	let matcher = GlobMatcher::new(pattern);
 	let mut matches: Vec<String> = Vec::new();
 	let mut limit_reached = false;
@@ -84,7 +80,7 @@ fn find(dir: &Path, pattern: &str, limit: usize, abort: &Abort) -> Result<Json, 
 		notices.push(format!("{limit} results limit reached"));
 	}
 	if truncated {
-		notices.push(format!("{} limit reached", format_size(MAX_OUTPUT_BYTES as u64)));
+		notices.push(format!("{} limit reached", output_limit()));
 	}
 	if walked.timed_out {
 		notices.push("search timed out after 10s \u{2014} partial results, narrow the directory".to_owned());

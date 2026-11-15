@@ -14,13 +14,13 @@ use gs_json::Json;
 use super::fn_tool::FnTool;
 use super::graph::GraphToolContext;
 use super::heal::heal_tool_record;
-use super::jobs::{JobToolContext, job_tools};
+use super::jobs::{JobToolContext, demo_tool, pdf_tool, research_tool, visual_tool};
 use super::lesson_parts::LessonParts;
 use super::plan::{PlanContext, plan_init_tool};
 use super::plot::plot_tool;
-use super::practice::{GraphNodes, LessonRecord, NodeCheck, TurnGate, problem_is_active, study_problem_tools};
+use super::practice::{GraphNodes, PlanNodes, TurnGate, problem_is_active, study_problem_tools};
 use super::probe::{ProbeDoneContext, ProbeGate, probe_done_tool};
-use super::questions::{ask_user_question_tool, node_id_problem, probe_explain_tool, probe_quiz_tool, study_quiz_tool, teach_explain_tool, teach_quiz_tool, write_code_tool};
+use super::questions::{ask_user_question_tool, plan_node_ids, probe_explain_tool, probe_quiz_tool, study_quiz_tool, teach_explain_tool, teach_quiz_tool, write_code_tool};
 use super::side::{LessonSide, file_tools, filter_enabled, graph_and_side};
 use super::topic_done::{CheckMarks, topic_done_tool};
 use super::work_plan::work_plan_tool;
@@ -103,8 +103,7 @@ pub fn prober_tools(ctx: &ProberToolContext, enabled: Option<&Json>) -> Vec<FnTo
 	let mut tools = vec![if free_recall(enabled) { probe_explain_tool() } else { probe_quiz_tool() }, ask_user_question_tool(), write_code_tool()];
 	tools.extend(file_tools());
 	tools.push(work_plan_tool());
-	let jobs = job_tools(&ctx.jobs);
-	tools.extend([jobs.research, jobs.pdf]);
+	tools.extend([research_tool(&ctx.jobs), pdf_tool(&ctx.jobs)]);
 	tools.extend(graph_and_side(ctx.graph.as_ref(), &ctx.side));
 	let mut tools = filter_enabled(tools, without_mechanics(enabled).as_ref());
 	tools.push(probe_done_tool(&ctx.probe, &gate));
@@ -115,18 +114,17 @@ pub fn prober_tools(ctx: &ProberToolContext, enabled: Option<&Json>) -> Vec<FnTo
 /// files. `enabled` drops any tool explicitly off.
 pub fn teacher_tools(ctx: &TeacherToolContext, enabled: Option<&Json>) -> Vec<FnTool> {
 	let question = if free_recall(enabled) { teach_explain_tool(&ctx.plan) } else { teach_quiz_tool(&ctx.plan) };
-	teacher_tools_asking(ctx, enabled, question)
+	heal_tool_record(teacher_tools_asking(ctx, enabled, question))
 }
 
-/// The teacher's tools with `question` as the graded question tool.
+/// The teacher's tools with `question` as the graded question tool, not yet healed.
 fn teacher_tools_asking(ctx: &TeacherToolContext, enabled: Option<&Json>, question: FnTool) -> Vec<FnTool> {
 	let mut tools = vec![question, ask_user_question_tool(), write_code_tool()];
 	tools.extend(file_tools());
 	tools.extend([plan_init_tool(&ctx.plan), work_plan_tool()]);
-	let jobs = job_tools(&ctx.jobs);
-	tools.extend([jobs.research, jobs.demo, jobs.visual, jobs.pdf]);
+	tools.extend([research_tool(&ctx.jobs), demo_tool(&ctx.jobs), visual_tool(&ctx.jobs), pdf_tool(&ctx.jobs)]);
 	tools.extend(ctx.side.tools());
-	heal_tool_record(filter_enabled(tools, without_mechanics(enabled).as_ref()))
+	filter_enabled(tools, without_mechanics(enabled).as_ref())
 }
 
 /// A study session's tools: the teacher's (its quiz takes `standalone` and `onPlot`) plus
@@ -135,15 +133,16 @@ fn teacher_tools_asking(ctx: &TeacherToolContext, enabled: Option<&Json>, questi
 /// topic.
 pub fn study_tools(ctx: &StudyToolContext, enabled: Option<&Json>, parts: &Arc<LessonParts>) -> Vec<FnTool> {
 	let plan = ctx.teacher.plan.clone();
-	let node_check: NodeCheck = Arc::new(move |node_id| node_id_problem(&plan, node_id));
-	let record = LessonRecord { chat_id: ctx.teacher.plan.chat_id.clone(), chat_store: ctx.teacher.plan.chat_store.clone() };
+	let plan_nodes: PlanNodes = Arc::new(move || plan_node_ids(&plan));
+	let record = ctx.teacher.plan.clone();
 	let gate = TurnGate::new(problem_is_active(&record.chat_store, &record.chat_id));
-	let question = if free_recall(enabled) { teach_explain_tool(&ctx.teacher.plan) } else { study_quiz_tool(&ctx.teacher.plan) };
+	let recall = free_recall(enabled);
+	let question = if recall { teach_explain_tool(&ctx.teacher.plan) } else { study_quiz_tool(&ctx.teacher.plan) };
 	let mut tools = teacher_tools_asking(&ctx.teacher, enabled, question);
-	tools.extend(study_problem_tools(&gate, record.clone(), ctx.graph_nodes.clone(), node_check.clone()));
-	if !free_recall(enabled) {
+	tools.extend(study_problem_tools(&gate, record.clone(), ctx.graph_nodes.clone(), plan_nodes.clone()));
+	if !recall {
 		tools.push(plot_tool(record.clone(), parts));
 	}
-	tools.push(topic_done_tool(record, &gate, ctx.check_marks.clone(), node_check, !free_recall(enabled)));
+	tools.push(topic_done_tool(record, &gate, ctx.check_marks.clone(), plan_nodes, !recall));
 	heal_tool_record(tools)
 }

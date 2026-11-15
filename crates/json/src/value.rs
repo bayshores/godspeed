@@ -61,6 +61,16 @@ impl Json {
 		self.as_str().unwrap_or("")
 	}
 
+	/// The array's elements, or none for any other value.
+	pub fn items(&self) -> &[Json] {
+		self.as_arr().map_or(&[], Vec::as_slice)
+	}
+
+	/// The string elements of an array; other elements and non-arrays give nothing.
+	pub fn strs(&self) -> Vec<&str> {
+		self.items().iter().filter_map(Json::as_str).collect()
+	}
+
 	pub fn as_arr(&self) -> Option<&Vec<Json>> {
 		match self {
 			Json::Arr(a) => Some(a),

@@ -5,7 +5,8 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
-use gs_base::{locale, re::Re, text};
+use gs_base::re::{Re, collapse_spaces};
+use gs_base::{locale, text};
 use gs_json::Json;
 
 use crate::contracts::space::extension_of;
@@ -70,7 +71,6 @@ struct Candidate {
 fn candidates(name: &str) -> Vec<Candidate> {
 	static DIGITS: LazyLock<Re> = LazyLock::new(|| Re::new(r"\d+", "g"));
 	static EDGES: LazyLock<Re> = LazyLock::new(|| Re::new(r"^[\s_\-.]+|[\s_\-.]+$", "g"));
-	static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
 	let (rest, _) = split_date(&stem(name));
 	DIGITS
 		.captures_iter(&rest)
@@ -79,7 +79,7 @@ fn candidates(name: &str) -> Vec<Candidate> {
 			let range = m.range();
 			let prefix = text::slice16(&rest, 0, Some(range.start as i64));
 			Candidate {
-				key: SPACES.replace(&EDGES.replace(&prefix.to_lowercase(), ""), " "),
+				key: collapse_spaces(&EDGES.replace(&prefix.to_lowercase(), "")),
 				prefix,
 				number: m.as_string().parse().unwrap_or(f64::NAN),
 				remainder: text::slice16(&rest, range.end as i64, None),
@@ -122,7 +122,7 @@ fn distinct_numbers(list: &[(usize, &Candidate)]) -> usize {
 }
 
 fn name_of(files: &[Json], at: usize) -> &str {
-	files[at]["name"].as_str().unwrap_or("")
+	files[at]["name"].str_or_empty()
 }
 
 /// Groups files into numbered series. A series needs at least two files whose numbers differ;

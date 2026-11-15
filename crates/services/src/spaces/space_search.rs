@@ -8,7 +8,6 @@ use gs_agent::tools::space::SpaceSearch;
 use gs_json::Json;
 use gs_pdf::may_hold_broken_formulas;
 
-use super::files::{files_of, str_of};
 use super::space_card::space_file_path;
 use super::text_cache::read_kept_pages;
 use crate::App;
@@ -44,13 +43,13 @@ pub fn space_search(app: &Arc<App>, space_id: &str, formula_notes: bool) -> Spac
 fn with_formula_notes(app: &App, space_id: &str, text: String, passages: &[Json]) -> String {
 	let Some(record) = app.stores.spaces.get_space(space_id) else { return text };
 	let mut out = text;
-	for file in files_of(&record).iter().filter(|f| is_pdf(Path::new(str_of(f, "name")))) {
-		let kept = read_kept_pages(app, space_id, str_of(file, "id"), str_of(file, "contentFp"));
+	for file in record["files"].items().iter().filter(|f| is_pdf(Path::new(f["name"].str_or_empty()))) {
+		let kept = read_kept_pages(app, space_id, file["id"].str_or_empty(), file["contentFp"].str_or_empty());
 		let unkept = |p: &Json| (p["from"].as_f64().unwrap_or(0.0) as u32..=p["to"].as_f64().unwrap_or(0.0) as u32).any(|page| !kept.contains_key(&page));
-		let mut pages: Vec<&str> = passages.iter().filter(|p| p["fileId"].as_str() == Some(str_of(file, "id")) && unkept(p) && may_hold_broken_formulas(str_of(p, "text"))).map(|p| str_of(p, "range")).collect();
+		let mut pages: Vec<&str> = passages.iter().filter(|p| p["fileId"].as_str() == Some(file["id"].str_or_empty()) && unkept(p) && may_hold_broken_formulas(p["text"].str_or_empty())).map(|p| p["range"].str_or_empty()).collect();
 		pages.dedup();
 		let Some(path) = space_file_path(app, &record, file).filter(|_| !pages.is_empty()) else { continue };
-		out.push_str(&format!("\n\nFormulas on {} of {} may read broken here. Before you teach from them, have the page looked at with `pdf` (path: {path}).", pages.join(", "), str_of(file, "name")));
+		out.push_str(&format!("\n\nFormulas on {} of {} may read broken here. Before you teach from them, have the page looked at with `pdf` (path: {path}).", pages.join(", "), file["name"].str_or_empty()));
 	}
 	out
 }

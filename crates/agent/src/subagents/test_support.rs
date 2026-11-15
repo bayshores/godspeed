@@ -110,5 +110,5 @@ pub fn job_agent_options(script: &Arc<Scripted>, headless: Arc<dyn HeadlessApi>)
 
 /// The text of every tool result in a request, in order.
 pub fn result_texts(messages: &[Json]) -> Vec<String> {
-	messages.iter().filter(|m| m["role"] == Json::from("toolResult")).map(|m| m["content"][0]["text"].as_str().unwrap_or_default().to_owned()).collect()
+	messages.iter().filter(|m| m["role"] == Json::from("toolResult")).map(|m| m["content"][0]["text"].str_or_empty().to_owned()).collect()
 }
