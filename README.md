@@ -66,6 +66,7 @@ Two things the GIF doesn't get to. Questions from earlier lessons come back when
 | **Interviews and mocks** | Tell your teacher what you're preparing for and add files like the job posting. It sets up a space with an Interview deadline, a "What it's like" page and a study guide. Take a mock on any exam, quiz or interview deadline, timed or not (code questions run their examples on your computer), then study what you got wrong. |
 | **Progress** | How ready you are for each deadline, how each lesson went, and whether your confidence matches your results. |
 | **Cheat sheets** | Your agent makes a PDF cheat sheet for a deadline. Point at the part you mean, say what to change, and the rules you give it stick for that sheet. |
+| **Plugins** | Small add-ons that show in a lesson or as a tab in a space, like one that turns the question you're on into a meme. Your own agent does a plugin's thinking, and a plugin can't open your files. Add one in Settings, under Plugins, or [make your own](docs/plugins.md). They're new, so how they work can still change. |
 | **Calculator** | In any box you write in, end a calculation with `=` and the answer shows in grey after it. It does numbers, algebra, `solve 2x + 3 = 11`, derivatives and integrals, all on your computer. |
 | **Your agent's screen** | Your agent runs in its own screen in the side pane. Open it from the pill in the top bar and type there to have it set up spaces, add deadlines or answer questions about them. |
 
