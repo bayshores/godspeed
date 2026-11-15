@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { AGENT_LABEL } from "@/frontend/components/agent-folder/agent-folder-model";
 import { FirstRunScreen } from "@/frontend/components/terminal/first-run-screen";
-import { teacherStatusLine, teacherTerminalState } from "@/frontend/components/terminal/terminal-model";
+import { screenStatusLine, teacherTerminalState } from "@/frontend/components/terminal/terminal-model";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 
 /** The steps after the agent step: when the agent started there needs the
@@ -11,7 +11,7 @@ import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 export function AgentNeed({ open, onOpen }: { open: boolean; onOpen: () => void }) {
 	const api = useTerminals();
 	const facts = api?.facts.teacher ?? null;
-	const line = teacherTerminalState(facts) === "needsYou" ? teacherStatusLine(facts, AGENT_LABEL[facts!.term.agent]) : null;
+	const line = teacherTerminalState(facts) === "needsYou" ? screenStatusLine(facts, AGENT_LABEL[facts!.term.agent]) : null;
 	const calling = api?.calling;
 	const heard = api?.heard;
 	useEffect(() => {

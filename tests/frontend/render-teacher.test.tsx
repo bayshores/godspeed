@@ -34,7 +34,7 @@ Object.assign(globalThis, {
 globalThis.fetch = (() => new Promise(() => {})) as typeof fetch;
 
 const { TeacherPanel, agentLine } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
-const { TERMINAL_DOCK_WIDTH, TERMINAL_PUSH_MIN, dockLayout, panelStarts, panelViews, shownScreen, viewIn } = await import("../../src/frontend/components/teacher/dock-model.ts");
+const { TERMINAL_DOCK_WIDTH, TERMINAL_PUSH_MIN, dockLayout, panelBody, panelStarts, shownScreen } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { fitFontSize } = await import("../../src/frontend/components/terminal/terminal-model.ts");
 const { waitingNotice } = await import("../../src/frontend/components/agent-status.tsx");
 const { ActivityList, TeacherActivity } = await import("../../src/frontend/components/teacher/teacher-activity.tsx");
@@ -75,9 +75,10 @@ const panel = (over: Partial<PanelProps> = {}) => (
 	<TeacherPanel
 		name="Ada"
 		agent={TEACHING}
-		views={["activity"]}
 		view="activity"
-		onView={() => {}}
+		listable
+		list={false}
+		onList={() => {}}
 		overLesson={false}
 		screen="teacher"
 		onScreen={() => {}}
@@ -88,10 +89,10 @@ const panel = (over: Partial<PanelProps> = {}) => (
 );
 
 describe("the panel", () => {
-	it("in a browser it is the Activity list alone, with no key to swap to a screen", () => {
+	it("in a browser it is the Activity list alone, and its chip drops nothing", () => {
 		const el = mount(panel());
 		assert.ok(el.querySelector("[data-testid='activity-list'] [data-testid='activity-empty']"), "outside the app shell the list says what will show there");
-		assert.ok(el.querySelector("[data-testid='teacher-panel-view']") === null);
+		assert.ok(el.querySelector("[aria-expanded]") === null);
 		assert.ok(el.querySelector("[data-testid='no-agent']") === null, "an agent is here: no start pair");
 		assert.ok(el.querySelector("[role='tablist'], [role='tab']") === null, "no tabs");
 	});
@@ -106,7 +107,7 @@ describe("the panel", () => {
 	it("head: the name, the teacher's status and a Close button (Follow is the top bar's chip)", () => {
 		const html = renderToStaticMarkup(panel());
 		assert.match(html, /data-testid="teacher-panel-name"[^>]*>Ada</);
-		assert.match(html, /data-testid="teacher-panel-agent"[^>]*>Teaching, idle</);
+		assert.match(html, /data-testid="teacher-panel-agent"[^>]*>(<[^>]*>)*Teaching, idle</);
 		assert.match(html, /data-testid="teacher-panel-close"[^>]*>[\s\S]*Close</);
 		assert.doesNotMatch(html, /role="switch"/);
 		const closes: number[] = [];
@@ -126,7 +127,7 @@ describe("the panel", () => {
 		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true }, { text: "Reading a PDF", working: true }), "Reading a PDF");
 		assert.equal(agentLine({ ...IDLE, connected: true, name: "Codex" }), "Codex connected, not teaching");
 		assert.equal(agentLine({ ...IDLE, connected: true, name: "Codex", pendingWork: 1 }), waitingNotice("Codex"));
-		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true, helperCovering: true }), "Tidying my memory. My helper is answering for a minute.");
+		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true, helperCovering: true }), "Tidying my memory. Background work is answering for a minute.");
 		const html = renderToStaticMarkup(panel({ agent: { ...IDLE, pendingWork: 2 } }));
 		assert.equal(html.split(`>${waitingNotice()}<`).length - 1, 1, "in the head, not again in Activity");
 	});
@@ -177,14 +178,25 @@ describe("the panel", () => {
 		assert.deepEqual(dockLayout(1800, 1800, "terminal", true, true), { width: TERMINAL_DOCK_WIDTH, push: 0, wide: true });
 		assert.equal(dockLayout(1800, 1800, "terminal", false, true).push, 0);
 	});
-	it("shows the screen and Activity in the desktop app, Activity alone in a browser, and over a lesson the screen alone", () => {
-		assert.deepEqual(panelViews(false, true), ["terminal", "activity"]);
-		assert.deepEqual(panelViews(false, false), ["activity"]);
-		assert.deepEqual(panelViews(true, true), ["terminal"]);
-		assert.deepEqual(panelViews(true, false), []);
-		assert.equal(viewIn(["terminal", "activity"], "activity"), "activity");
-		assert.equal(viewIn(["activity"], "terminal"), "activity", "a browser opens on Activity");
-		assert.equal(viewIn([], "terminal"), null, "no panel");
+	it("is the screen in the desktop app (Activity hangs from its chip), Activity in a browser, and over a lesson the screen or nothing", () => {
+		assert.equal(panelBody(false, true), "terminal");
+		assert.equal(panelBody(false, false), "activity");
+		assert.equal(panelBody(true, true), "terminal");
+		assert.equal(panelBody(true, false), null);
+	});
+	it("dims the page only where it covers it, and the dimming takes no clicks", () => {
+		const wasWidth = window.innerWidth;
+		try {
+			Object.assign(window, { innerWidth: 800 });
+			const scrim = mount(panel()).querySelector<HTMLElement>("[data-testid='teacher-panel-scrim']");
+			assert.ok(scrim !== null, "800 wide: the panel covers the page");
+			assert.equal(scrim.style.right, "400px", "the page beside the panel");
+			assert.ok(scrim.classList.contains("pointer-events-none"));
+			Object.assign(window, { innerWidth: 1440 });
+			assert.ok(mount(panel()).querySelector("[data-testid='teacher-panel-scrim']") === null, "1440 wide: it pushes the page");
+		} finally {
+			Object.assign(window, { innerWidth: wasWidth });
+		}
 	});
 });
 

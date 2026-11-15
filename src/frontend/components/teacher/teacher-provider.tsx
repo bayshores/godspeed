@@ -30,7 +30,7 @@ import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-te
 import { TeacherPanel } from "./teacher-panel";
 import { TeacherContext, useTeacher, type TeacherApi, type LessonPresence } from "./teacher-context";
 import { useTeacherPanel } from "./use-teacher-panel";
-import { panelStarts, panelViews, shownScreen, viewIn } from "./dock-model";
+import { panelBody, panelStarts, shownScreen } from "./dock-model";
 import { STEP_MS, nextStep } from "./tour";
 import { FOLLOW_DEFAULT, FOLLOW_KEY, GO_OFFER_MS, followMoves, followReady, followReducer, goOffer, parseFollow, safePage, type FollowEvent, type FollowState } from "./follow";
 import { agentDoing, freshAction } from "./follow-status";
@@ -303,8 +303,7 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 		if (inLesson) setPanelOpen(false);
 	}, [inLesson, setPanelOpen]);
 	const terminals = useTerminals();
-	const views = panelViews(inLesson, !!terminals?.available);
-	const view = viewIn(views, panel.view);
+	const view = panelBody(inLesson, !!terminals?.available);
 	const starts =
 		panelOpen &&
 		!!view &&
@@ -333,12 +332,13 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 					<TeacherPanel
 						name={name}
 						agent={agent}
-						views={views}
-						overLesson={inLesson}
 						view={view}
-						onView={panel.setView}
+						listable={!inLesson}
+						list={panel.list}
+						onList={panel.setList}
+						overLesson={inLesson}
 						screen={panel.role}
-						onScreen={panel.setRole}
+						onScreen={showTerminal}
 						focus={panel.focus}
 						onClose={() => setPanelOpen(false)}
 					/>

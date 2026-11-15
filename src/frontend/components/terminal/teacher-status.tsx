@@ -1,7 +1,7 @@
 import { cn } from "@/frontend/lib/utils";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { teacherStatusLine } from "./terminal-model";
+import { screenStatusLine } from "./terminal-model";
 import { useTerminals } from "./use-terminals";
 
 /** The teacher's status line under its name. While godspeed runs the
@@ -17,7 +17,7 @@ export function TeacherStatus({ name, line, testid, className }: {
 }) {
 	const api = useTerminals();
 	const panel = useTeacher();
-	const text = teacherStatusLine(api?.facts.teacher ?? null, name) ?? line;
+	const text = screenStatusLine(api?.facts.teacher ?? null, name) ?? line;
 	if (!text) return null;
 	if (!api?.teacher || !panel)
 		return (

@@ -35,9 +35,12 @@ export function TerminalPane({ api, role, foot, focusOnOpen }: {
 	// A refusal shows until what the footer says changes.
 	useEffect(() => setError(null), [term.id, foot.text]);
 	const live = !term.ended;
+	// Running: it reached godspeed. Asked: it waits for the learner (a question, a sign-in).
+	const running = live && !!api.facts[role]?.checkedIn;
+	const asked = live && (!!term.prompt || !!term.url);
 	const refocus = () => setFocusKey((n) => n + 1);
 	const startAgain = async () => setError(await api.start(role, term.agent));
-	const attaches = role === "teacher" && live;
+	const attaches = role === "teacher" && running;
 	// Each file's path goes in after the one before, then the screen takes the keys again.
 	const attach = async (files: readonly File[]) => {
 		for (const file of files) {
@@ -77,7 +80,7 @@ export function TerminalPane({ api, role, foot, focusOnOpen }: {
 				text={error ?? foot.text}
 				onAttach={attaches ? (files) => void attach(files) : null}
 				onPaste={
-					live
+					running || asked
 						? () => {
 								void api.paste(role).then(setError);
 								refocus();

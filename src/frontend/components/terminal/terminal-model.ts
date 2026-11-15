@@ -135,7 +135,7 @@ function screenWords(f: TerminalFacts, name: string): ScreenWords {
 	const ended = term.ended;
 	const again = { startAgain: true };
 	// The shell also stops the helper when the teacher ends.
-	if (ended?.stopped) return { need: null, rest: teacher ? `You stopped ${name}.` : "The helper stopped.", more: again };
+	if (ended?.stopped) return { need: null, rest: teacher ? `You stopped ${name}.` : "Background work stopped.", more: again };
 	if (ended) {
 		if (ended.code === EXIT_NOT_INSTALLED) return { need: `${agent} isn't installed on this computer.`, rest: null, more: { get: GET_AGENT[term.agent], ...again } };
 		if (ended.code === EXIT_NO_NODE) return { need: `godspeed needs Node.js to connect ${agent}.`, rest: null, more: { get: GET_NODE, ...again } };
@@ -152,15 +152,15 @@ function screenWords(f: TerminalFacts, name: string): ScreenWords {
 	if (why === "no-check-in" || why === "not-teaching") return { need: `${name} hasn't started teaching yet.`, rest: "Check the screen for a question." };
 	if (!f.checkedIn) return { need: `${agent} is starting.`, rest: `If ${agent} asks you something, answer it here.`, starting: true };
 	if (teacher) return { need: null, rest: null };
-	return { need: null, rest: f.helperBusy ? "The helper is reading your files." : "The helper is waiting for files to read." };
+	return { need: null, rest: f.helperBusy ? "Background work is reading your files." : "Background work is waiting for files to read." };
 }
 
-/** The footer under a screen. `underStatus`: the teacher's status line
- *  shows above it (the teacher's panel), so the teacher's footer leaves out
- *  what that line already says. */
+/** The footer under a screen. `underStatus`: the screen's status line
+ *  shows above it (the teacher's panel), so the footer leaves out what that
+ *  line already says. */
 export function terminalFooter(f: TerminalFacts, name: string, underStatus: boolean): TerminalFooter {
 	const w = screenWords(f, name);
-	const state = underStatus && f.term.role === "teacher" ? teacherTerminalState(f) : null;
+	const state = underStatus ? teacherTerminalState(f) : null;
 	const said = state !== null && state === (w.starting ? "starting" : "needsYou");
 	const text = said ? w.rest : [w.need, w.rest].filter(Boolean).join(" ") || null;
 	return footer(text, w.more);
@@ -178,9 +178,9 @@ export function teacherTerminalState(f: TerminalFacts | null): TeacherTerminalSt
 	return null;
 }
 
-/** The teacher's status line while its terminal starts or needs the
- *  learner (what it needs); null leaves the usual line. */
-export function teacherStatusLine(f: TerminalFacts | null, name: string): string | null {
+/** A screen's status line while its terminal starts or needs the learner
+ *  (what it needs); null leaves the usual line. `name` names whose screen. */
+export function screenStatusLine(f: TerminalFacts | null, name: string): string | null {
 	const state = teacherTerminalState(f);
 	if (state === "needsYou") return screenWords(f!, name).need ?? `${name} needs you.`;
 	if (state === "starting") return `${name} is starting.`;

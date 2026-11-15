@@ -9,15 +9,13 @@ import { FULL_SCREEN_WIDTH, screenWidth, type TerminalRecord, type TerminalRole 
 /** The panel's body: the agent's screen or the Activity list. */
 export type PanelView = "terminal" | "activity";
 
-/** What the panel can show: the screen only in the desktop app. A lesson
- *  has its own Activity, so there the panel is the screen alone. */
-export function panelViews(inLesson: boolean, terminals: boolean): PanelView[] {
-	if (inLesson) return terminals ? ["terminal"] : [];
-	return terminals ? ["terminal", "activity"] : ["activity"];
+/** What the panel's body is: the screen in the desktop app (Activity then
+ *  hangs from the status chip), Activity in a browser. A lesson has its own
+ *  Activity, so there the panel is the screen alone, or nothing. */
+export function panelBody(inLesson: boolean, terminals: boolean): PanelView | null {
+	if (terminals) return "terminal";
+	return inLesson ? null : "activity";
 }
-
-/** The view the panel opens on: the one picked, while it can show it. */
-export const viewIn = (views: readonly PanelView[], picked: PanelView): PanelView | null => (views.includes(picked) ? picked : (views[0] ?? null));
 
 /** The screen the panel shows: the helper's only while there is one. */
 export const shownScreen = (picked: TerminalRole, helper: boolean): TerminalRole => (picked === "helper" && helper ? "helper" : "teacher");

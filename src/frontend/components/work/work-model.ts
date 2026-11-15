@@ -9,7 +9,7 @@ import type { AgentStatus } from "@/frontend/components/agent-status";
 /** A finished round shows for a day. */
 const SHOWN_MS = 24 * 60 * 60 * 1000;
 
-export const HELPER_NAME = "Helper";
+export const HELPER_NAME = "Background work";
 
 /** Who does the background work: the helper when one is open, else the
  *  teacher; null when no agent takes work. Before the first read of the
@@ -109,7 +109,7 @@ export interface WorkProgress {
 }
 
 /**
- * The background work under way on every page: "Helper reading files, 6
+ * The background work under way on every page: "Background work reading files, 6
  * of 17" while files are read, else the number of jobs. Null when nothing
  * runs or no agent takes the work.
  */
