@@ -59560,7 +59560,7 @@
                   "type": "text",
                   "id": "R7Sgd",
                   "fill": "#e6e6e6",
-                  "content": "1  Settings, Plugins",
+                  "content": "1  A plugin picked",
                   "fontFamily": "Zen Kaku Gothic New",
                   "fontSize": 22,
                   "fontWeight": "normal"
@@ -59570,21 +59570,21 @@
                   "id": "AtlLA",
                   "name": "crop",
                   "clip": true,
-                  "width": 1440,
+                  "width": 1040,
                   "height": 800,
                   "cornerRadius": 10,
                   "layout": "none",
                   "children": [
                     {
                       "type": "rectangle",
-                      "id": "suhja",
-                      "x": 0,
-                      "y": 0,
-                      "name": "plugins-list.png",
+                      "id": "fifFp",
+                      "x": -200,
+                      "y": -60,
+                      "name": "plugin-sheet.png",
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/plugins-list.png",
+                        "url": "plugins/plugin-sheet.png",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59604,7 +59604,7 @@
                   "type": "text",
                   "id": "mMoMC",
                   "fill": "#e6e6e6",
-                  "content": "2  Options open under its row",
+                  "content": "2  One with no settings, turned off",
                   "fontFamily": "Zen Kaku Gothic New",
                   "fontSize": 22,
                   "fontWeight": "normal"
@@ -59614,21 +59614,56 @@
                   "id": "UFsnN",
                   "name": "crop",
                   "clip": true,
-                  "width": 1440,
-                  "height": 800,
+                  "width": 1040,
+                  "height": 270,
                   "cornerRadius": 10,
                   "layout": "none",
                   "children": [
                     {
                       "type": "rectangle",
-                      "id": "v7lo9",
-                      "x": 0,
-                      "y": 0,
-                      "name": "plugins-open.png",
+                      "id": "HY6p8",
+                      "x": -200,
+                      "y": -250,
+                      "name": "plugin-off.png",
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/plugins-open.png",
+                        "url": "plugins/plugin-off.png",
+                        "mode": "stretch"
+                      },
+                      "width": 1440,
+                      "height": 900
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "h89Fd",
+                  "fill": "#e6e6e6",
+                  "content": "3  Add a plugin",
+                  "fontFamily": "Zen Kaku Gothic New",
+                  "fontSize": 22,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "Z6aFOh",
+                  "name": "crop",
+                  "clip": true,
+                  "width": 1040,
+                  "height": 370,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "id": "qv5Rh",
+                      "x": -200,
+                      "y": -250,
+                      "name": "plugin-add.png",
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "plugins/plugin-add.png",
                         "mode": "stretch"
                       },
                       "width": 1440,
