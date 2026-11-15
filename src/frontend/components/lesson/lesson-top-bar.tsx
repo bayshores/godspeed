@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
 import { SessionFind } from "@/frontend/components/session-find";
 import type { SessionScrollContext } from "@/frontend/components/session-navigation";
+import { BAR_WORD_ON } from "@/frontend/components/top-bar/bar-look";
 import { LivePill } from "@/frontend/components/top-bar/live-pill";
 import { Hint } from "@/frontend/components/ui/hint";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
@@ -65,7 +66,7 @@ export function LessonTopBar({
 			)}
 			<SessionFind scopeRef={scopeRef} scrollContextRef={scrollContextRef}>
 				{sheet && (
-					<button type="button" data-testid="lesson-cheat-sheet" aria-pressed={sheet.open} onClick={sheet.onToggle} className={cn(NAV_WORD, sheet.open && "bg-bar-ink font-medium text-bar hover:bg-bar-ink")}>
+					<button type="button" data-testid="lesson-cheat-sheet" aria-pressed={sheet.open} onClick={sheet.onToggle} className={cn(NAV_WORD, sheet.open && BAR_WORD_ON)}>
 						Cheat sheet
 					</button>
 				)}

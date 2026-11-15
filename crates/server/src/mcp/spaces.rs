@@ -8,35 +8,48 @@ use gs_services::spaces::space_actions::{space_actions, folder_name};
 use gs_services::spaces::{AGENT_FILE_READING_REFUSAL, unlink_folder};
 use gs_services::turns::send_first_message;
 
-use super::caller::in_claude_code;
+use super::caller::{agent_id_of, in_claude_code};
 use super::reply::{failure, outcome, result};
 use super::tools::ToolCall;
 
 /// Runs one space tool; None for a name that is not one.
 pub async fn space_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Option<Json> {
-	let actions = space_actions(call.app, call.caller, send_first_message(call.app), false);
+	// From godspeed's own teacher terminal the learner asked for it there, so the window opens
+	// what it starts even with Follow off.
+	let agent = agent_id_of(call.meta);
+	let asked_here = call.app.bridge.is_teacher_terminal(call.terminal);
+	let actions = space_actions(call.app, call.caller, send_first_message(call.app), asked_here);
 	match name {
-		"start_lesson" => Some(started(call, actions.start_lesson(args).await)),
+		"start_lesson" => {
+			// Asked first: the waiter may take the new lesson's first turn before the call returns.
+			let waiting = call.app.bridge.agent_waiting(agent.as_deref());
+			Some(started(call, actions.start_lesson(args).await, waiting))
+		}
 		"unlink_space_folder" => Some(unlink_space_folder(call, args)),
 		_ => actions.run(name, args).await.map(outcome),
 	}
 }
 
-/// start_lesson's answer also says how to begin teaching.
-fn started(call: &ToolCall<'_>, done: ToolOutcome) -> Json {
+/// Where the new lesson is: the window opens it itself, or Follow does, or the learner does.
+const IN_WINDOW: &str = "The lesson is in the godspeed window.";
+
+/// start_lesson's answer also says how to begin teaching, unless the agent's waiter already runs.
+fn started(call: &ToolCall<'_>, done: ToolOutcome, waiting: bool) -> Json {
 	let value = match done {
 		ToolOutcome::Ok { value, .. } => value,
 		ToolOutcome::Err(error) => return failure(&error),
 	};
 	let lesson_id = value["lessonId"].str_or_empty();
-	let next = if in_claude_code(call.caller) {
-		super::work::waiter_hint(Some(lesson_id), false)
+	let note = if waiting {
+		format!("{IN_WINDOW} Your waiter already running brings its turns.")
+	} else if in_claude_code(call.caller) {
+		format!("{IN_WINDOW} {}", super::work::waiter_hint(Some(lesson_id), false))
 	} else {
-		format!("Call wait_for_work with lesson_id \"{lesson_id}\" to begin teaching.")
+		format!("{IN_WINDOW} Call wait_for_work with lesson_id \"{lesson_id}\" to begin teaching.")
 	};
 	let mut answer = value.clone();
 	if let Some(fields) = answer.as_obj_mut() {
-		fields.insert("note", format!("Open the lesson in the godspeed window. {next}"));
+		fields.insert("note", note);
 	}
 	result(&answer)
 }

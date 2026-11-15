@@ -9,6 +9,7 @@
 //! are re-exported here, so callers write `spaces::add_copied_file`.
 
 pub mod citations;
+pub mod deadline_requests;
 pub mod space_actions;
 pub mod space_card;
 pub mod space_search;

@@ -14,11 +14,12 @@ import { agoLabel } from "./activity-model";
  * The teacher's Activity: the jobs running in the background and its
  * recent changes (click one to go there). What it is doing now, and
  * Follow, sit beside its name instead. Shared by the lesson's teacher
- * column and the teacher panel.
+ * column and the teacher panel; `underStatus` in the panel, whose status
+ * line already says that work waits for the agent.
  * It scrolls inside its parent, which pads it.
  */
 
-export function TeacherActivity() {
+export function TeacherActivity({ underStatus = false }: { underStatus?: boolean }) {
 	const teacher = useTeacher();
 	const { feed } = useActivity();
 	const agent = useAgentStatus();
@@ -29,7 +30,7 @@ export function TeacherActivity() {
 			onPick={(a) => teacher?.go(a)}
 			spaceNameOf={teacher?.spaceNameOf ?? (() => null)}
 			feed={feed}
-			waiting={agentWaiting(agent) ? waitingNotice(agent?.name) : null}
+			waiting={!underStatus && agentWaiting(agent) ? waitingNotice(agent?.name) : null}
 		/>
 	);
 }

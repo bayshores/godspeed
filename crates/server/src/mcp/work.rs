@@ -10,7 +10,6 @@ use std::task::Poll;
 use gs_base::clock;
 use gs_base::text::len16;
 use gs_core::messages::citations::CheckedMarks;
-use gs_core::spaces::space_tools::lesson_started_last_turn;
 use gs_core::session::work_pages::{WORK_PAGE_BYTES, page_blocks};
 use gs_engine::bridge::{AgentReply, ReplyCall, UNNAMED_HELPER, WaitOptions, WorkView};
 use gs_json::{Json, Obj, json, stringify};
@@ -53,6 +52,13 @@ pub(super) fn waiter_hint(lesson_id: Option<&str>, helper: bool) -> String {
 /// How an agent without the waiter asks for more; a helper has to say it is one each time.
 fn call_again(helper: bool) -> &'static str {
 	if helper { "Call wait_for_work with helper: true" } else { "Call wait_for_work" }
+}
+
+/// What the agent is told when the learner's typing in its terminal ended its wait.
+const TYPED: &str = "The learner typed to you in your terminal. Answer them there";
+
+fn typed_note(helper: bool) -> String {
+	format!("{TYPED}, then {} again.", if helper { "call wait_for_work with helper: true" } else { "call wait_for_work" })
 }
 
 fn idle(caller: Option<&str>, helper: bool) -> Json {
@@ -172,7 +178,6 @@ pub async fn wait_for_work(call: &ToolCall<'_>, args: &Json) -> Json {
 			None => ended_or_idle(call, true),
 		};
 	}
-	app.bridge.stay_on(agent.as_deref(), lesson_id);
 	let opts = WaitOptions { conversation: lesson_id.map(str::to_owned), agent, full, and_others: true, helper: false, terminal };
 	// Waiting counts the agent as working at once, so what godspeed queues for it now (catch-up)
 	// reaches this same wait.
@@ -184,10 +189,15 @@ pub async fn wait_for_work(call: &ToolCall<'_>, args: &Json) -> Json {
 	}
 }
 
-/// A wait that found nothing: its terminal was closed in the app, or nothing came.
+/// A wait that found nothing: its terminal was closed in the app, the learner typed in it, or
+/// nothing came.
 fn ended_or_idle(call: &ToolCall<'_>, helper: bool) -> Json {
 	if call.terminal.is_some_and(|id| !call.app.bridge.terminal_live(id)) {
 		return failure(TERMINAL_CLOSED);
+	}
+	if call.app.bridge.take_typed(call.terminal, clock::now_ms()) {
+		let note = if in_claude_code(call.caller) { format!("{TYPED}. {}", waiter_hint(None, helper)) } else { typed_note(helper) };
+		return result(&json!({ "status": "idle", "note": note }));
 	}
 	result(&idle(call.caller, helper))
 }
@@ -223,8 +233,7 @@ pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 		Ok(answered) => answered,
 		Err(error) => return failure(&with_removed(error)),
 	};
-	// The Talk chat has no page to go to; its replies show in the panel.
-	if let Some(lesson) = app.stores.chats.get_chat(&answered.conversation).filter(|l| l["kind"].as_str() != Some("talk")) {
+	if let Some(lesson) = app.stores.chats.get_chat(&answered.conversation) {
 		note_replying(app, call.caller, &lesson);
 	}
 	let helper = app.bridge.is_helper_agent(answered.agent.as_deref());
@@ -242,8 +251,23 @@ pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 		}
 		return work;
 	}
-	let note = turn_complete_note(app, call.caller, &answered.conversation, answered.agent.as_deref(), helper);
+	let note = if app.bridge.take_typed(call.terminal, clock::now_ms()) {
+		typed_turn_note(app, call.caller, &answered.conversation, helper)
+	} else {
+		turn_complete_note(app, call.caller, &answered.conversation, helper)
+	};
 	result(&json!({ "status": "turn_complete", "note": with_removed(note) }))
+}
+
+/// The note when the learner's typing ended respond's wait for a follow-up.
+fn typed_turn_note(app: &App, caller: Option<&str>, conversation: &str, helper: bool) -> String {
+	let chat = app.stores.chats.get_chat(conversation);
+	let done = if chat.is_some() { "Your turn is done." } else { "The task step is done." };
+	if in_claude_code(caller) {
+		let lesson = chat.as_ref().and_then(|c| c["id"].as_str());
+		return format!("{done} {TYPED}. {}", waiter_hint(lesson, helper));
+	}
+	format!("{done} {}", typed_note(helper))
 }
 
 /// What the agent is told about the marks its reply lost: removed marks, then dropped quotes.
@@ -265,27 +289,18 @@ fn note_replying(app: &Arc<App>, caller: Option<&str>, lesson: &Json) {
 }
 
 /// The note when no follow-up came: where the agent goes next. The helper stays on no lesson.
-fn turn_complete_note(app: &App, caller: Option<&str>, conversation: &str, agent: Option<&str>, helper: bool) -> String {
+fn turn_complete_note(app: &App, caller: Option<&str>, conversation: &str, helper: bool) -> String {
 	let chat = app.stores.chats.get_chat(conversation);
 	let claude_code = in_claude_code(caller);
-	// A Talk reply goes on to the lesson it just started, else back to the lesson the agent was
-	// staying on, not to Talk alone.
-	let talk = chat.as_ref().is_some_and(|c| c["kind"].as_str() == Some("talk"));
-	let started = chat.as_ref().filter(|_| talk).and_then(|c| lesson_started_last_turn(c["messages"].as_arr().map_or(&[][..], Vec::as_slice)));
-	if let Some(started) = started.as_deref().filter(|_| !helper) {
-		app.bridge.stay_on(agent, Some(started));
-	}
-	let lesson_id = if talk { started.clone().or_else(|| app.bridge.staying_on(agent)) } else { chat.as_ref().and_then(|c| c["id"].as_str().map(str::to_owned)) };
-	let lesson_id = lesson_id.filter(|l| !l.is_empty());
+	let lesson_id = chat.as_ref().and_then(|c| c["id"].as_str()).filter(|l| !l.is_empty());
 	let wait = if claude_code {
-		waiter_hint(lesson_id.as_deref(), helper)
+		waiter_hint(lesson_id, helper)
 	} else {
-		let stay = lesson_id.as_deref().filter(|_| !helper).map(|l| format!(" (lesson_id \"{l}\" to stay on this lesson)")).unwrap_or_default();
+		let stay = lesson_id.filter(|_| !helper).map(|l| format!(" (lesson_id \"{l}\" to stay on this lesson)")).unwrap_or_default();
 		format!("{} to continue{stay}.", call_again(helper))
 	};
 	match &chat {
 		None => format!("The task step is done. {}", if claude_code { waiter_hint(None, helper) } else { format!("{} for more.", call_again(helper)) }),
-		Some(_) if talk => format!("Your reply is in Talk.{} {wait}", if started.is_some() { " The lesson you started is waiting for you." } else { "" }),
 		Some(_) => format!("Your turn is done. The learner is reading and will answer in the godspeed window. {wait}"),
 	}
 }
@@ -359,6 +374,12 @@ mod tests {
 		assert!(waiter_hint(Some("chat_a"), true).contains("wait-for-work.mjs --helper in the background"));
 		assert!(idle(Some("Claude Code"), true)["note"].as_str().unwrap().starts_with("Nothing to do right now. Wait with the waiter, not by calling wait_for_work yourself: run node .godspeed/wait-for-work.mjs --helper in"));
 		assert_eq!(idle(Some("Codex"), true)["note"], json!("Nothing to do right now. Call wait_for_work with helper: true again to keep waiting (the learner may be reading or answering)."));
+	}
+
+	#[test]
+	fn the_typed_notes_send_the_agent_back_to_waiting() {
+		assert_eq!(stringify(&json!({ "status": "idle", "note": typed_note(false) })), r#"{"status":"idle","note":"The learner typed to you in your terminal. Answer them there, then call wait_for_work again."}"#);
+		assert_eq!(typed_note(true), "The learner typed to you in your terminal. Answer them there, then call wait_for_work with helper: true again.");
 	}
 
 	#[tokio::test]

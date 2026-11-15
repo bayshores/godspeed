@@ -1,6 +1,5 @@
 //! The agents: study (every new session), the prober and the
-//! teacher (older teach lessons), practice (older practice sessions), homework and talk (the
-//! teacher's panel, outside lessons). A prober and a teacher share one transcript with different
+//! teacher (older teach lessons), practice (older practice sessions) and homework. A prober and a teacher share one transcript with different
 //! prompts and tools. Each turn builds its agent fresh from the record and drops it at turn end.
 
 use std::collections::HashSet;
@@ -25,7 +24,6 @@ use crate::tools::lesson_parts::LessonParts;
 use crate::tools::lesson::{ProberToolContext, StudyToolContext, TeacherToolContext, prober_tools, study_tools, teacher_tools};
 use crate::tools::practice::{PracticeToolContext, practice_tools};
 use crate::tools::questions::bare_question_tools;
-use crate::tools::talk::{SpaceActions, talk_tools};
 
 use super::prompt_segments::{AgentKind, effective_prompt_segments};
 
@@ -38,7 +36,6 @@ fn switches(kind: AgentKind) -> &'static [&'static str] {
 	match kind {
 		AgentKind::Prober | AgentKind::Practice | AgentKind::Homework => &["research", "pdf"],
 		AgentKind::Teacher | AgentKind::Study => &TOGGLEABLE_TOOLS,
-		AgentKind::Talk => &[],
 	}
 }
 
@@ -190,11 +187,4 @@ pub fn create_study_agent(ctx: &StudyToolContext, mut opts: AgentBuildOptions) -
 pub fn create_homework_agent(ctx: &HomeworkToolContext, mut opts: AgentBuildOptions) -> Arc<Agent> {
 	let tools = registry(&mut opts, |enabled| homework_tools(ctx, enabled));
 	build_agent(AgentKind::Homework, opts, tools, None)
-}
-
-/// Talk (the teacher's panel): one ongoing chat outside any lesson, for setting up spaces, files
-/// and deadlines and quick questions. Its tools are the space actions.
-pub fn create_talk_agent(actions: &SpaceActions, mut opts: AgentBuildOptions) -> Arc<Agent> {
-	let tools = registry(&mut opts, |_| talk_tools(actions));
-	build_agent(AgentKind::Talk, opts, tools, None)
 }

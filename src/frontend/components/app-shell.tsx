@@ -7,9 +7,6 @@ import { QuietNotice } from "@/frontend/components/quiet-notice";
 import { replayRise } from "@/frontend/components/motion";
 import { OpenDeadlinesProvider } from "@/frontend/components/use-open-deadlines";
 import { TeacherProvider } from "@/frontend/components/teacher/teacher-provider";
-import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { TerminalOverlay } from "@/frontend/components/terminal/terminal-overlay";
-import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { Welcome } from "@/frontend/components/welcome/welcome";
 import { AppBar } from "@/frontend/components/app-bar";
 import { PillProvider } from "@/frontend/components/top-bar/pill-provider";
@@ -32,11 +29,6 @@ function ViewSwap({ children }: { children: React.ReactNode }) {
 			{children}
 		</div>
 	);
-}
-
-/** The agents' screens, under the teacher's live name. */
-function Terminals() {
-	return <TerminalOverlay name={useTeacher()?.name ?? DEFAULT_TEACHER_NAME} />;
 }
 
 /** The app frame: the top bar over the page, and the welcome screen over
@@ -68,7 +60,6 @@ export function AppShell({
 							<ViewSwap>{children}</ViewSwap>
 						</main>
 					</PillProvider>
-					<Terminals />
 				</TeacherProvider>
 			</OpenDeadlinesProvider>
 			{/* The single document-level keydown listener: window-level, so its

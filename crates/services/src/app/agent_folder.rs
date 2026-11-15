@@ -1,8 +1,9 @@
 //! The godspeed folder on disk (gs_core's agent_folder has the pure parts). Setting it up writes
 //! the agent's instructions, its connection and its start scripts there, plus spaces/ with
 //! shortcuts to the space files; the app refreshes them once per start, so an update reaches
-//! them. Which folder is used, the learner's own start commands, and whether the one-time
-//! "godspeed has its own folder now" notice was seen, live in <data>/agent-folder.json.
+//! them. Which folder is used, the learner's own start commands, whether the one-time
+//! "godspeed has its own folder now" notice was seen, and whether the old Talk chat was exported
+//! there, live in <data>/agent-folder.json.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -18,6 +19,7 @@ use gs_json::{Json, Obj, json, stringify_pretty};
 use super::disk::write_file_atomic;
 use super::folder_files::write_folder;
 use super::old_setup::{OldSetup, old_setup, remove_old_setup};
+use super::old_talk::export_talk;
 use crate::App;
 use crate::spaces::space_shortcuts::{sync_shortcuts_safely, watch_shortcuts};
 
@@ -48,7 +50,8 @@ fn state_file(app: &App) -> PathBuf {
 	app.paths.data.join("agent-folder.json")
 }
 
-/// The usable parts of the state file, in this order: `folder`, `noticeSeen`, `startCommands`.
+/// The usable parts of the state file, in this order: `folder`, `noticeSeen`, `startCommands`,
+/// `talkExported`.
 /// Writes spread it and set keys on top, so the file keeps that order with new keys last.
 fn read_state(app: &App) -> Obj {
 	let mut state = Obj::new();
@@ -62,6 +65,9 @@ fn read_state(app: &App) -> Obj {
 	let commands = saved_start_commands(&raw["startCommands"]);
 	if !commands.is_empty() {
 		state.insert("startCommands", commands.to_json());
+	}
+	if raw["talkExported"] == Json::Bool(true) {
+		state.insert("talkExported", true);
 	}
 	state
 }
@@ -173,6 +179,7 @@ pub fn set_up_agent_folder(app: &Arc<App>, folder: Option<&str>) -> Result<Json,
 	}
 	sync_shortcuts_safely(app, &tidy(&folder), false);
 	watch_space_shortcuts(app);
+	export_old_talk(app, &folder);
 	if let Err(err) = remove_old_setup(app) {
 		eprintln!("[agent-folder] removing the old setup failed: {err}");
 	}
@@ -222,6 +229,27 @@ pub fn refresh_agent_folder(app: &Arc<App>) {
 	}
 	sync_shortcuts_safely(app, &tidy(&folder), false);
 	watch_space_shortcuts(app);
+	export_old_talk(app, &folder);
+}
+
+/// The old Talk chat goes into the first folder set up after the update, once: a `Talk.md` the
+/// learner later moves or deletes does not come back.
+fn export_old_talk(app: &App, folder: &str) {
+	if read_state(app).contains_key("talkExported") {
+		return;
+	}
+	match export_talk(app, Path::new(folder)) {
+		Ok(false) => {}
+		Ok(true) => {
+			let _held = app.locks.lock(STATE);
+			let mut state = read_state(app);
+			state.insert("talkExported", true);
+			if let Err(err) = write_state(app, state) {
+				eprintln!("[agent-folder] saving the Talk export failed: {err}");
+			}
+		}
+		Err(err) => eprintln!("[agent-folder] exporting Talk failed: {err}"),
+	}
 }
 
 /// Why a file or folder can't be added from `path`: it's inside the godspeed folder's spaces/,
@@ -356,6 +384,62 @@ mod tests {
 		assert_eq!(std::fs::read_to_string(state_file(&app)).unwrap(), "{\n\t\"noticeSeen\": true,\n\t\"startCommands\": {}\n}\n");
 		dismiss_folder_notice(&app).unwrap();
 		assert_eq!(std::fs::read_to_string(state_file(&app)).unwrap(), "{\n\t\"noticeSeen\": true\n}\n");
+	}
+
+	/// The Talk chat an older build left, with one message.
+	fn old_talk_saying_hi(app: &App) {
+		let record = r#"{"id":"chat_talk","title":"Talk","createdAt":"2026-11-01T10:00:00.000Z","updatedAt":"2026-11-01T10:00:00.000Z","kind":"talk","messages":[{"id":"m1","role":"user","content":"hi"}]}"#;
+		fsx::write_text_atomic(&app.paths.chats.join("chat_talk.json"), record).unwrap();
+	}
+
+	#[test]
+	fn the_old_talk_chat_is_exported_once() {
+		let root = scratch_dir("folder-talk");
+		let app = test_app(&root);
+		let folder = agent_folder(&app);
+		export_old_talk(&app, &folder);
+		assert!(!state_file(&app).exists(), "no Talk chat, nothing to remember");
+		old_talk_saying_hi(&app);
+		export_old_talk(&app, &folder);
+		let talk = Path::new(&folder).join("Talk.md");
+		assert!(std::fs::read_to_string(&talk).unwrap().ends_with("\n**You**\n\nhi\n"));
+		assert_eq!(std::fs::read_to_string(state_file(&app)).unwrap(), "{\n\t\"talkExported\": true\n}\n");
+		std::fs::remove_file(&talk).unwrap();
+		export_old_talk(&app, &folder);
+		assert!(!talk.exists(), "a Talk.md the learner deleted stays deleted");
+	}
+
+	#[test]
+	fn the_learners_own_talk_md_is_kept_and_the_export_goes_beside_it() {
+		let root = scratch_dir("folder-talk-mine");
+		let app = test_app(&root);
+		let folder = agent_folder(&app);
+		old_talk_saying_hi(&app);
+		let talk = Path::new(&folder).join("Talk.md");
+		fsx::write_text_atomic(&talk, "my own notes").unwrap();
+		export_old_talk(&app, &folder);
+		assert_eq!(std::fs::read_to_string(&talk).unwrap(), "my own notes");
+		assert!(std::fs::read_to_string(Path::new(&folder).join("Talk (godspeed).md")).unwrap().ends_with("\n**You**\n\nhi\n"));
+		assert_eq!(std::fs::read_to_string(state_file(&app)).unwrap(), "{\n\t\"talkExported\": true\n}\n");
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn an_export_that_fails_is_tried_again_next_start() {
+		use std::os::unix::fs::PermissionsExt;
+		let root = scratch_dir("folder-talk-locked");
+		let app = test_app(&root);
+		let folder = agent_folder(&app);
+		old_talk_saying_hi(&app);
+		let record = std::fs::read(app.paths.chats.join("chat_talk.json")).unwrap();
+		std::fs::create_dir_all(&folder).unwrap();
+		std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o555)).unwrap();
+		export_old_talk(&app, &folder);
+		std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o755)).unwrap();
+		assert!(!state_file(&app).exists(), "the flag is not set");
+		assert_eq!(std::fs::read(app.paths.chats.join("chat_talk.json")).unwrap(), record);
+		export_old_talk(&app, &folder);
+		assert!(Path::new(&folder).join("Talk.md").exists());
 	}
 
 	#[test]

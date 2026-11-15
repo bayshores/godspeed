@@ -120,13 +120,13 @@ function StepsRow({ steps, edges, color, onJump, onOpenPlan }: { steps: RowStep[
 	);
 }
 
-/** One step: its mark, number and name over a bar in its tone (compact:
- *  the number alone). A done step that can go back is a button. */
+/** One step: its number and name over a bar in its tone, a check when done
+ *  (compact: the number alone). A done step that can go back is a button. */
 function StepCell({ step, compact, color, onJump }: { step: RowStep; compact: boolean; color: string; onJump: (toolCallId: string) => void }) {
 	const body = (
 		<>
 			<span className="flex min-w-0 items-center gap-2">
-				{!compact && step.tone !== "later" && <PixelIcon name={step.tone === "done" ? "check" : "chevron"} />}
+				{!compact && step.tone === "done" && <PixelIcon name="check" />}
 				<span className="shrink-0 font-count">{step.number}</span>
 				{!compact && <span className="min-w-0 truncate">{step.name}</span>}
 			</span>

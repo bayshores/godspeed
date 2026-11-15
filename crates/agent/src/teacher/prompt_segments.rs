@@ -1,7 +1,7 @@
 //! Which parts of the shipped prompt each agent composes, and the learner's saved version of each
 //!
 //! The shared base comes first, then the agent's own numbered fragments in file order, then the
-//! shared fragments as a trailing appendix. Practice, homework and talk skip the base (their own
+//! shared fragments as a trailing appendix. Practice and homework skip the base (their own
 //! 00-base.md plays that role) and take only a curated shared set. Study is the teacher plus the
 //! practice hint rules plus its own fragment, without the deadline changes. A saved version is used in place of the source; one
 //! keyed to a part the app no longer ships stops composing by itself.
@@ -18,18 +18,14 @@ pub enum AgentKind {
 	Practice,
 	Study,
 	Homework,
-	Talk,
 }
 
 /// Voice, the learner's question first, accuracy and the mental model are one law across every
 /// agent, and formatting too (practice writes the same LaTeX and markdown). The question,
 /// confidence and file mechanics stay out: practice has no such tools.
 const PRACTICE_SHARED: [&str; 8] = ["10-voice.md", "11-learner-first.md", "12-space-context.md", "13-source-marks.md", "14-deadline-changes.md", "15-accuracy.md", "16-mental-model.md", "40-formatting.md"];
-/// Study has no deadline tools: its own text sends deadline changes to Talk.
+/// Study has no deadline tools: its own text sends deadline changes outside lessons.
 const STUDY_SKIPPED_SHARED: &str = "shared/14-deadline-changes.md";
-/// Talk is a small side panel: the voice and the learner's question first (its own base sets
-/// short replies).
-const TALK_SHARED: [&str; 2] = ["10-voice.md", "11-learner-first.md"];
 /// The hint and claimed-answer rules study and homework problems run on.
 const HINT_RULES: [&str; 1] = ["20-hints.md"];
 
@@ -53,13 +49,12 @@ fn folder(dir: &str, only: Option<&[&str]>) -> Vec<Source> {
 }
 
 fn source_segments(kind: AgentKind) -> Vec<Source> {
-	let own = matches!(kind, AgentKind::Practice | AgentKind::Homework | AgentKind::Talk);
+	let own = matches!(kind, AgentKind::Practice | AgentKind::Homework);
 	let mut parts = if own { Vec::new() } else { vec![SOURCES[0]] };
 	match kind {
 		AgentKind::Prober => parts.extend(folder("prober", None)),
 		AgentKind::Teacher => parts.extend(folder("teacher", None)),
 		AgentKind::Practice => parts.extend(folder("practice", None)),
-		AgentKind::Talk => parts.extend(folder("talk", None)),
 		AgentKind::Study => {
 			parts.extend(folder("teacher", None));
 			parts.extend(folder("practice", Some(&HINT_RULES)));
@@ -72,7 +67,6 @@ fn source_segments(kind: AgentKind) -> Vec<Source> {
 	}
 	let allowed: Option<&[&str]> = match kind {
 		AgentKind::Practice | AgentKind::Homework => Some(&PRACTICE_SHARED),
-		AgentKind::Talk => Some(&TALK_SHARED),
 		_ => None,
 	};
 	parts.extend(folder("shared", allowed).into_iter().filter(|(path, _)| kind != AgentKind::Study || *path != STUDY_SKIPPED_SHARED));

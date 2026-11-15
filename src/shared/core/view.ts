@@ -622,15 +622,6 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 			// The [Today] note, the study plan and the homework note are for
 			// the model only: the plan row shows the topics or problems.
 			return;
-		case "app-request": {
-			// godspeed's own request in Talk: a line from the app, not the learner.
-			out.push({
-				id: marker.id,
-				role: "user",
-				parts: [{ type: "data-app-request", id: `ar_${marker.id}`, data: marker.details }],
-			});
-			return;
-		}
 		case "problem-dismissed":
 			// UI-only (the ask-style dismissal): the synthesized conclude
 			// pair — which rides the NEXT input — carries the record's face.

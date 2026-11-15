@@ -200,8 +200,6 @@ async fn the_bridge_matches_agent_bridge_ts() {
 				parked[&text("of")].abort.abort();
 				clock::sleep(5).await;
 			}
-			"stay" => bridge.stay_on(s["agent"].as_str(), s["lesson"].as_str()),
-			"staying" => result = bridge.staying_on(s["agent"].as_str()).map_or(Json::Null, Json::from),
 			"forgetConversation" => bridge.forget_conversation(&text("conversation")),
 			"compacting" => bridge.agent_compacting(&text("agent"), clock::now_ms()),
 			"status" => {

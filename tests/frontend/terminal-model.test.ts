@@ -10,7 +10,7 @@ import {
 	restartAsks,
 	statusFromTerminals,
 	teacherStartRefused,
-	teacherStatusLine,
+	screenStatusLine,
 	terminalFooter,
 	wakeAgent,
 	type TerminalFacts,
@@ -20,8 +20,9 @@ import {
 const T0 = 1_000_000;
 const term = (over: Partial<TerminalRecord> = {}): TerminalRecord => ({ id: "t1", role: "teacher", agent: "claude", startedAt: T0, ended: null, prompt: null, url: false, ...over });
 const facts = (over: Partial<TerminalFacts> = {}, t: Partial<TerminalRecord> = {}): TerminalFacts => ({ term: term(t), checkedIn: true, outsideHere: false, teaching: true, now: T0 + 1000, quietSince: null, helperBusy: false, ...over });
-const names = { name: "Ada", folder: "~/godspeed" };
-const words = (f: TerminalFacts) => terminalFooter(f, names);
+/** The full words (the helper, onboarding), and the panel's under the status line. */
+const words = (f: TerminalFacts) => terminalFooter(f, "Ada", false);
+const tab = (f: TerminalFacts) => terminalFooter(f, "Ada", true);
 
 describe("when the screen opens by itself", () => {
 	it("a question on the screen, a crash and a missing agent open it", () => {
@@ -53,8 +54,8 @@ describe("when the screen opens by itself", () => {
 		const later = { checkedIn: true, now: T0 + 10 * 60_000 };
 		assert.equal(needsYou(facts(later)), null, "10 minutes into one wait_for_work");
 		assert.equal(needsYou(facts({ ...later, teaching: false })), null, "idle, no turn waits");
-		assert.equal(words(facts(later)).text, "Ada is running in ~/godspeed.");
-		assert.equal(teacherStatusLine(facts(later), "Ada"), null);
+		assert.equal(tab(facts(later)).text, null);
+		assert.equal(screenStatusLine(facts(later), "Ada"), null);
 	});
 
 	it("the timers count only for the teacher", () => {
@@ -64,39 +65,53 @@ describe("when the screen opens by itself", () => {
 });
 
 describe("the footer's words", () => {
-	it("starting, then running", () => {
-		assert.equal(words(facts({ checkedIn: false })).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.");
-		assert.equal(words(facts()).text, "Ada is running in ~/godspeed.");
+	it("starting, then running: under the status line, only what it adds", () => {
+		assert.equal(words(facts({ checkedIn: false })).text, "Claude Code is starting.");
+		assert.equal(tab(facts({ checkedIn: false })).text, null);
+		assert.equal(tab(facts()).text, null, "the status line says it runs");
 	});
 
 	it("the trust question gets the one assist key", () => {
 		const f = words(facts({ checkedIn: false }, { prompt: "trust" }));
-		assert.equal(f.text, "Claude Code asks whether it may work in ~/godspeed. godspeed made this folder for it.");
-		assert.deepEqual(f.assist, { kind: "trust", label: "Yes, trust this folder" });
+		assert.equal(f.text, "Claude Code asks to trust its folder.");
+		assert.equal(tab(facts({ checkedIn: false }, { prompt: "trust" })).text, null);
+		assert.deepEqual(f.assist, { kind: "trust", label: "Trust folder" });
 		assert.equal(f.startAgain, false);
 	});
 
+	it("Continue says it all: under the status line, no sentence", () => {
+		assert.equal(tab(facts({}, { prompt: "enter" })).text, null);
+		assert.equal(words(facts({}, { prompt: "enter" })).text, "Claude Code is asking you to continue.");
+	});
+
 	it("a sign-in: a link or a menu before the first check-in", () => {
-		const signIn = "Finish signing in to Codex in your browser. If it gives you a code, copy it and click Paste.";
+		const signIn = "Finish signing in to Codex. Got a code? Click Paste.";
 		assert.equal(words(facts({ checkedIn: false }, { agent: "codex", url: true })).text, signIn);
 		assert.equal(words(facts({ checkedIn: false }, { agent: "codex", prompt: "menu" })).text, signIn);
-		assert.equal(words(facts({}, { prompt: "menu" })).text, "Claude Code is asking you something. Answer it on the screen.");
+		assert.equal(tab(facts({ checkedIn: false }, { agent: "codex", prompt: "menu" })).text, "Got a code? Click Paste.");
+		assert.equal(tab(facts({ checkedIn: false }, { url: true })).text, "Finish signing in to Claude Code. Got a code? Click Paste.", "the status line still says it starts");
+		assert.equal(words(facts({}, { prompt: "menu" })).text, "Claude Code is asking you something.");
+		assert.equal(tab(facts({}, { prompt: "menu" })).text, null);
 	});
 
 	it("the timers", () => {
-		const late = "Ada hasn't started teaching yet. It may be waiting for you on the screen.";
+		const late = "Ada hasn't started teaching yet.";
 		assert.equal(words(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })).text, late);
 		assert.equal(words(facts({ teaching: false, quietSince: T0, now: T0 + TEACH_WAIT_MS })).text, late);
+		assert.equal(tab(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })).text, null);
 	});
 
 	it("stopped, crashed, not installed, no Node", () => {
-		const stopped = words(facts({}, { ended: { stopped: true, code: null } }));
-		assert.equal(stopped.text, "You stopped Ada.");
+		const stopped = tab(facts({}, { ended: { stopped: true, code: null } }));
+		assert.equal(stopped.text, "You stopped Ada.", "the status line says only that none is connected");
 		assert.equal(stopped.startAgain, true);
-		assert.equal(words(facts({}, { ended: { stopped: false, code: 1 } })).text, "Claude Code closed with an error. The last lines are above.");
+		assert.equal(words(facts({}, { ended: { stopped: false, code: 1 } })).text, "Claude Code closed with an error.");
+		assert.equal(tab(facts({}, { ended: { stopped: false, code: 1 } })).text, null);
+		assert.equal(tab(facts({}, { ended: { stopped: false, code: 0 } })).text, "Claude Code closed.");
 		const missing = words(facts({}, { agent: "codex", ended: { stopped: false, code: 3 } }));
 		assert.equal(missing.text, "Codex isn't installed on this computer.");
 		assert.deepEqual(missing.get, { label: "Get Codex", url: "https://developers.openai.com/codex" });
+		assert.equal(tab(facts({}, { agent: "codex", ended: { stopped: false, code: 3 } })).text, null);
 		assert.equal(words(facts({}, { ended: { stopped: false, code: 3 } })).get?.url, "https://claude.com/claude-code");
 		const node = words(facts({}, { ended: { stopped: false, code: 4 } }));
 		assert.equal(node.text, "godspeed needs Node.js to connect Claude Code.");
@@ -104,10 +119,16 @@ describe("the footer's words", () => {
 		assert.equal(node.startAgain, true);
 	});
 
-	it("the helper", () => {
-		assert.equal(words(facts({ helperBusy: true }, { role: "helper" })).text, "The helper is reading your files.");
-		assert.equal(words(facts({}, { role: "helper" })).text, "The helper is waiting for files to read.");
-		assert.equal(words(facts({}, { role: "helper", ended: { stopped: true, code: null } })).text, "The helper stopped.");
+	it("background work's footer leaves out what its own status chip says", () => {
+		assert.equal(tab(facts({ helperBusy: true }, { role: "helper" })).text, "Reading your files.");
+		assert.equal(tab(facts({}, { role: "helper" })).text, "Waiting for files.");
+		assert.equal(tab(facts({}, { role: "helper", ended: { stopped: true, code: null } })).text, "Stopped.");
+		assert.equal(tab(facts({}, { role: "helper", prompt: "trust" })).text, null);
+		assert.equal(screenStatusLine(facts({}, { role: "helper", prompt: "trust" }), "Background work"), "Claude Code asks to trust its folder.");
+	});
+
+	it("an agent outside godspeed teaches: the status line says nothing of the old screen, so its footer says it all", () => {
+		assert.equal(tab(facts({ outsideHere: true }, { ended: { stopped: false, code: 1 } })).text, "Claude Code closed with an error.");
 	});
 
 	it("no sentence has an em-dash or a dot divider", () => {
@@ -123,21 +144,27 @@ describe("the footer's words", () => {
 			facts({}, { ended: { stopped: false, code: 0 } }),
 			facts({}, { ended: { stopped: false, code: 3 } }),
 			facts({}, { ended: { stopped: false, code: 4 } }),
-		].map((f) => words(f).text);
-		for (const text of all) assert.ok(!text.includes("—") && !text.includes(" · "), text);
+		].flatMap((f) => [words(f).text, tab(f).text]);
+		for (const text of all) assert.ok(!text?.includes("—") && !text?.includes(" · "), text ?? "");
 	});
 });
 
 describe("the teacher's status line", () => {
-	it("starting, needs you, else the usual line", () => {
-		assert.equal(teacherStatusLine(null, "Ada"), null);
-		assert.equal(teacherStatusLine(facts({ checkedIn: false }), "Ada"), "Ada is starting.");
-		assert.equal(teacherStatusLine(facts({}, { prompt: "trust" }), "Ada"), "Ada needs you.");
-		assert.equal(teacherStatusLine(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS }), "Ada"), "Ada needs you.");
-		assert.equal(teacherStatusLine(facts({}, { ended: { stopped: false, code: 1 } }), "Ada"), "Ada needs you.");
-		assert.equal(teacherStatusLine(facts(), "Ada"), null);
-		assert.equal(teacherStatusLine(facts({}, { ended: { stopped: true, code: null } }), "Ada"), null);
-		assert.equal(teacherStatusLine(facts({ outsideHere: true }, { ended: { stopped: false, code: 1 } }), "Ada"), null, "an agent outside godspeed teaches now");
+	it("starting, what it needs from the learner, else the usual line", () => {
+		assert.equal(screenStatusLine(null, "Ada"), null);
+		assert.equal(screenStatusLine(facts({ checkedIn: false }), "Ada"), "Ada is starting.");
+		assert.equal(screenStatusLine(facts({}, { prompt: "trust" }), "Ada"), "Claude Code asks to trust its folder.");
+		assert.equal(screenStatusLine(facts({}, { prompt: "enter" }), "Ada"), "Claude Code is asking you to continue.");
+		assert.equal(screenStatusLine(facts({}, { prompt: "menu" }), "Ada"), "Claude Code is asking you something.");
+		assert.equal(screenStatusLine(facts({ checkedIn: false }, { prompt: "menu" }), "Ada"), "Finish signing in to Claude Code.");
+		assert.equal(screenStatusLine(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS }), "Ada"), "Ada hasn't started teaching yet.");
+		assert.equal(screenStatusLine(facts({ teaching: false, quietSince: T0, now: T0 + TEACH_WAIT_MS }), "Ada"), "Ada hasn't started teaching yet.");
+		assert.equal(screenStatusLine(facts({}, { ended: { stopped: false, code: 1 } }), "Ada"), "Claude Code closed with an error.");
+		assert.equal(screenStatusLine(facts({}, { ended: { stopped: false, code: 3 } }), "Ada"), "Claude Code isn't installed on this computer.");
+		assert.equal(screenStatusLine(facts({}, { ended: { stopped: false, code: 4 } }), "Ada"), "godspeed needs Node.js to connect Claude Code.");
+		assert.equal(screenStatusLine(facts(), "Ada"), null);
+		assert.equal(screenStatusLine(facts({}, { ended: { stopped: true, code: null } }), "Ada"), null);
+		assert.equal(screenStatusLine(facts({ outsideHere: true }, { ended: { stopped: false, code: 1 } }), "Ada"), null, "an agent outside godspeed teaches now");
 	});
 });
 
@@ -165,34 +192,33 @@ describe("which start is allowed", () => {
 });
 
 describe("the screen's font", () => {
-	it("fits the whole 100 by 30 screen between 8 and 14 px, in width and height", () => {
+	it("fits the whole 80 by 30 screen between 8 and 14 px, in width and height", () => {
 		assert.equal(fitFontSize(2000, 1000), 14);
-		assert.equal(fitFontSize(920, 480), 13);
+		assert.equal(fitFontSize(920, 700), 13);
 		assert.equal(fitFontSize(2000, 300), 8, "the height decides too");
 		assert.equal(fitFontSize(300, 200), 8, "too small even at 8 px: it scrolls inside");
-		// The overlay's screen box (inside its padding), measured at a 640x600 and a 520x500 window,
-		// where the screen measured 542x300 and 482x270: whole in both.
-		assert.equal(fitFontSize(580, 378), 9);
-		assert.ok(9 * 0.62 * 100 <= 580 && 9 * 1.2 * 30 <= 378, "at 640x600 the whole screen fits");
-		assert.equal(fitFontSize(484, 286), 8);
+		// The screen box inside its padding, measured in the window at 1100x800 and 800x700, where
+		// xterm drew the screen 593x600 at 12 px and 495x480 at 10 px: whole in both.
+		assert.equal(fitFontSize(695, 610), 12);
+		assert.equal(fitFontSize(695, 510), 10);
 	});
 });
 
 describe("onboarding's first start", () => {
-	it("says the agent is starting, then connected; a question or an end uses the overlay's words", () => {
+	it("says the agent is starting, then connected; a question or an end uses the panel's full words", () => {
 		const first = (over: Partial<TerminalFacts>, t: Partial<TerminalRecord> = {}) => firstRunFooter(facts(over, t), "~/godspeed");
 		assert.equal(first({ checkedIn: false }).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.");
 		assert.equal(first({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS + 1 }).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.", "no timer words here");
 		assert.equal(first({ checkedIn: true }).text, "Claude Code is connected.");
 		const trust = first({ checkedIn: false }, { prompt: "trust" });
-		assert.equal(trust.assist?.label, "Yes, trust this folder");
-		assert.match(first({ checkedIn: false }, { url: true }).text, /^Finish signing in to Claude Code/);
+		assert.equal(trust.assist?.label, "Trust folder");
+		assert.match(first({ checkedIn: false }, { url: true }).text ?? "", /^Finish signing in to Claude Code/);
 		assert.equal(first({}, { ended: { stopped: true, code: null } }).text, "You stopped Claude Code.");
 	});
 });
 
 describe("starting the teacher hidden, and restarting", () => {
-	it("Start lesson and Talk start the agent last started here, only when nothing is here, runs or starts", () => {
+	it("Start lesson and a lesson's send start the agent last started here, only when nothing is here, runs or starts", () => {
 		const base = { teacher: null, agentHere: false, outsideHere: false, saved: "codex" };
 		assert.equal(wakeAgent(base), "codex");
 		assert.equal(wakeAgent({ ...base, saved: null }), null, "never started in godspeed: the no-agent line offers Start");

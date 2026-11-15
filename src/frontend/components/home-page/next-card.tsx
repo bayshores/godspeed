@@ -5,17 +5,17 @@ import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { openedFrom } from "@/frontend/components/deadline/deadline-back";
 import { CountBlock } from "@/frontend/components/ui/count-block";
-import { Pane } from "@/frontend/components/ui/pane";
 import { countLeft, nextCard } from "./home-page-model";
 import { CHIP } from "./styles";
 import { blockColor } from "./today-row";
 
 /**
- * The next thing to do, first on Today and the only sheet on it: the time
- * left as a big block in its space's color, its space, what to do as the
- * title (which opens the deadline's page), when it is with how far as a
- * chip, what is left of it today, "Mark done" and the page's one main
- * button.
+ * The next thing to do, the biggest band in Today's deadlines card: the
+ * time left as a big block in its space's color, what to do as the title
+ * (which opens the deadline's page), one line under it with its space and
+ * when and how far as a chip, what is left of it today, "Mark done" and the
+ * page's one main button. A narrow card puts the block above the words as
+ * a strip.
  */
 export function NextCard({
 	deadline: d,
@@ -38,19 +38,21 @@ export function NextCard({
 	const words = nextCard(d, progress, nowMs);
 	return (
 		<div data-testid="today-card" data-teacher-target={`deadline:${d.id}`}>
-			<Pane className="flex min-h-[208px] overflow-hidden">
-				<CountBlock size="card" color={blockColor(color)} {...countLeft(dueAtMs(d), nowMs)} />
-				<div className="flex min-w-0 flex-1 flex-col justify-between gap-5 px-7 pt-6 pb-6">
+			<div className="flex min-h-[208px] flex-col border-t-2 border-line @min-[540px]:flex-row">
+				<CountBlock
+					size="card"
+					color={blockColor(color)}
+					{...countLeft(dueAtMs(d), nowMs)}
+					className="@max-[539px]:w-full @max-[539px]:flex-row @max-[539px]:items-baseline @max-[539px]:gap-3 @max-[539px]:pt-2"
+				/>
+				<div className="flex min-w-0 flex-1 flex-col justify-between gap-5 px-6 py-6 @min-[540px]:px-7">
 					<div className="flex flex-col gap-2">
-						<p title={d.spaceName} className="truncate text-base text-ink-2">
-							{d.spaceName}
-						</p>
 						<h2 className="text-[34px] leading-tight break-words text-ink">
 							<Link to={deadlineHref(d.id)} state={openedFrom("today")} data-testid="today-card-open" className="hover:underline">
 								{words.title}
 							</Link>
 						</h2>
-						<p className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[17px] text-ink">
+						<p className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[17px] text-ink-2">
 							{words.when}
 							{words.ready && (
 								<span data-testid="today-card-ready" className={CHIP}>
@@ -73,7 +75,7 @@ export function NextCard({
 						</span>
 					</div>
 				</div>
-			</Pane>
+			</div>
 		</div>
 	);
 }

@@ -93,14 +93,16 @@ export function progressNote(p: DeadlineProgress | undefined): string {
 const EVENT_WORD: Partial<Record<DeadlineKind, string>> = { quiz: "quiz", interview: "interview" };
 
 /** When an open deadline is due, after its space: "due Friday", "the test
- *  is on Tuesday at 7:00 PM", "was due Tue Oct 27". */
-function dueWords(d: OpenDeadline, nowMs: number): string {
+ *  is on Tuesday at 7:00 PM", "was due Tue Oct 27". `short` drops "the test
+ *  is on" where the title already says what it is. */
+function dueWords(d: OpenDeadline, nowMs: number, short = false): string {
 	const dueMs = dueAtMs(d);
 	if (dueMs <= nowMs) return `was due ${deadlineDateLabel(d.date)}`;
 	const days = calendarDays(nowMs, dueMs);
 	const day = days === 0 ? "today" : days === 1 ? "tomorrow" : new Date(dueMs).toLocaleDateString("en-US", { weekday: "long" });
 	const at = d.time ? ` at ${clockLabel(d.time)}` : "";
 	if (hasProblems(d.kind)) return `due ${day}${at}`;
+	if (short) return `${day}${at}`;
 	return `the ${EVENT_WORD[d.kind] ?? "test"} is ${days > 1 ? "on " : ""}${day}${at}`;
 }
 
@@ -142,10 +144,11 @@ export function todayRow(d: OpenDeadline, progress: DeadlineProgress | undefined
 	return { title: `Study for ${d.name}`, line: when, button: "Start" };
 }
 
-/** Today's card: what to do as its title, when it is, how far (its chip),
- *  and what is left of it today. */
+/** Today's card: what to do as its title, its space and when (the one line
+ *  under it), how far (its chip), and what is left of it today. */
 interface CardWords {
 	title: string;
+	/** "CSE 21, Thursday at 7:00 PM". */
 	when: string;
 	/** "40% ready", "2 of 7 problems done"; null with nothing to count. */
 	ready: string | null;
@@ -159,7 +162,7 @@ const sentence = (words: string) => `${words[0]!.toUpperCase()}${words.slice(1)}
 /** The card's words, for the row mainRowId picks. */
 export function nextCard(d: OpenDeadline, progress: DeadlineProgress | undefined, nowMs: number): CardWords {
 	const row = todayRow(d, progress, nowMs);
-	const base = { when: sentence(dueWords(d, nowMs)), ready: (progress && progressWords(progress)) ?? null, button: row.button };
+	const base = { when: `${d.spaceName}, ${dueWords(d, nowMs, true)}`, ready: (progress && progressWords(progress)) ?? null, button: row.button };
 	if (hasProblems(d.kind)) return { ...base, title: `Work on ${d.name}`, left: null };
 	const next = progress?.continueStudy;
 	const where = next && continueWords(next);
@@ -184,7 +187,7 @@ export function todaySections(lists: TodayLists, progress: ReadonlyMap<string, D
 		lists.today.length + lists.done.length > 0
 			? null
 			: lists.later.length === 0
-				? "No deadlines yet. Your agent can add them from your files."
+				? "None yet. Your agent can add them from your files."
 				: "Nothing is due in the next 7 days.";
 	return { card: lists.today.find((d) => d.id === mainId) ?? null, due: lists.today.filter((d) => d.id !== mainId), empty };
 }

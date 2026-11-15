@@ -1148,14 +1148,7 @@
 						"id": "chat_talk",
 						"title": "Talk"
 					},
-					"ok": {
-						"id": "chat_talk",
-						"title": "Talk",
-						"createdAt": "2026-01-01T00:00:00.000Z",
-						"updatedAt": "2026-04-01T00:00:00.000Z",
-						"messages": [],
-						"kind": "talk"
-					},
+					"error": "The Talk chat is kept as it was and can't be changed",
 					"files": {
 						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 3,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
 						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 3\n}",
@@ -1165,7 +1158,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -1234,7 +1227,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -1303,7 +1296,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -1372,7 +1365,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -1441,7 +1434,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -1512,7 +1505,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -1583,7 +1576,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -1652,7 +1645,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -1720,7 +1713,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -1787,7 +1780,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -1843,7 +1836,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -1899,7 +1892,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -1954,7 +1947,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -2011,7 +2004,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -2068,7 +2061,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -2125,7 +2118,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -2179,7 +2172,7 @@
 						"chat_dir": null,
 						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 4\n}",
 						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
-						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
 						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
 					},
 					"list": [
@@ -2256,27 +2249,6 @@
 					"version"
 				],
 				"text": "{\n\t\"id\": \"<id>\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"<time>\",\n\t\"updatedAt\": \"<time>\",\n\t\"messages\": [],\n\t\"deadlineId\": \"deadline_1\",\n\t\"version\": 3\n}"
-			},
-			{
-				"masked": {
-					"id": "chat_talk",
-					"title": "Quick chat",
-					"createdAt": "<time>",
-					"updatedAt": "<time>",
-					"messages": [],
-					"kind": "talk",
-					"version": 3
-				},
-				"keys": [
-					"id",
-					"title",
-					"createdAt",
-					"updatedAt",
-					"messages",
-					"kind",
-					"version"
-				],
-				"text": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Quick chat\",\n\t\"createdAt\": \"<time>\",\n\t\"updatedAt\": \"<time>\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 3\n}"
 			},
 			{
 				"masked": {

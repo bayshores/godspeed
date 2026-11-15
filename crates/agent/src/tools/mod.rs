@@ -17,7 +17,7 @@ pub mod probe;
 pub mod questions;
 pub mod rules;
 pub mod side;
-pub mod talk;
+pub mod space_actions;
 #[cfg(test)]
 mod test_record;
 pub mod topic_done;

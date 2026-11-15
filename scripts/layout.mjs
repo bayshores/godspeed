@@ -119,6 +119,17 @@ function freePort() {
 	});
 }
 
+/** A Start in the check runs layout-agent.mjs, never a real agent: its `claude` and `codex` are
+ *  first on the throwaway home's PATH. It throws when it can't write them, so the run stops
+ *  before the window starts. */
+export function standInAgent(home) {
+	const bin = path.join(home, "bin");
+	fs.mkdirSync(bin);
+	const run = `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(import.meta.dirname, "layout-agent.mjs"))}\n`;
+	for (const name of ["claude", "codex"]) fs.writeFileSync(path.join(bin, name), run, { mode: 0o755 });
+	fs.writeFileSync(path.join(home, ".zshrc"), `export PATH=${JSON.stringify(bin)}:$PATH\n`);
+}
+
 /** The app with its control channel: one command line in, one answer line out. */
 async function startApp(port, name) {
 	// An app that quit a moment ago gives the port back late.
@@ -139,6 +150,8 @@ async function startApp(port, name) {
 			LH_PORT: String(port),
 			LH_DATA_DIR: path.join(RUN, "data"),
 			HOME: path.join(RUN, "home"),
+			// The agent's start script runs in zsh, which reads the home's .zshrc (standInAgent).
+			SHELL: "/bin/zsh",
 			TMPDIR: path.join(RUN, "tmp"),
 			LH_SCREENS_CTL: ctl,
 			LH_SCREENS_OUT: out,
@@ -230,6 +243,7 @@ async function main() {
 
 	fs.rmSync(RUN, { recursive: true, force: true });
 	for (const dir of ["data", "home", "tmp"]) fs.mkdirSync(path.join(RUN, dir), { recursive: true });
+	standInAgent(path.join(RUN, "home"));
 	const port = await freePort();
 	const pageCheck = `(() => { ${fs.readFileSync(path.join(import.meta.dirname, "layout-page.mjs"), "utf8").replace(/^export /gm, "")}; return checkPage(); })()`;
 
@@ -248,12 +262,8 @@ async function main() {
 				log(`page got ${status} for ${url}`);
 				return status;
 			},
-			start: (url, init) => {
-				log(`page starts ${init.method} ${url}`);
-				return app.value(`eval void fetch(${JSON.stringify(url)}, ${JSON.stringify(init)})`);
-			},
 		};
-		ids = await seed(path.join(RUN, "data"), page, log).catch((err) => {
+		ids = await seed(path.join(RUN, "data"), log).catch((err) => {
 			throw new Error(`${err.message}; steps: ${seedLog}`);
 		});
 		const { settings } = JSON.parse(await app.run(`return fetch("/api/settings")${HTTP_OK}.then((r) => r.text())`));

@@ -199,21 +199,6 @@ export function materialSummary(m: Material): string {
 	return parts.filter(Boolean).join(", ");
 }
 
-/** The message Ask sends the teacher. */
-export function coverageMessage(spaceName: string, deadline: { name: string; when: string }): string {
-	return `Work out what ${deadline.name} (${deadline.when}) in ${spaceName} covers from my files, like a practice exam, a review sheet or the syllabus. Link those files to it, leave out the earlier ones it doesn't cover, and tell me which file you went by.`;
-}
-
-/** The message "Ask {teacher} to rewrite" sends, under What it's like. */
-export function aboutMessage(spaceName: string, deadlineName: string): string {
-	return `Rewrite what ${deadlineName} in ${spaceName} is like.`;
-}
-
-/** The message "Ask {teacher} for a study guide" sends. */
-export function guideMessage(spaceName: string, deadlineName: string): string {
-	return `Write a study guide for ${deadlineName} in ${spaceName} and link it to the deadline.`;
-}
-
 /** A topic's answers so far. */
 export type TopicTally = Pick<TopicProgress, "id" | "right" | "hinted" | "answered">;
 

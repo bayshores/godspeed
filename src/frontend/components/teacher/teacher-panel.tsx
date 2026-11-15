@@ -1,37 +1,34 @@
 /**
- * The teacher's panel: click the teacher in the top bar.
- * Docked to the window's right edge, under the top bar. It pushes the page
- * left to make room. Never open over a lesson (the lesson has its own
- * teacher column). The head (name, the teacher's status, Close), then two
- * tabs: Talk (a chat outside lessons, talk-view.tsx, with Clear chat on
- * the tab row) and Activity (teacher-activity.tsx).
+ * The teacher's panel, opened and closed from the pill. Docked to the window's right edge, under the top bar. It pushes the page
+ * left to make room, and dims the page where it covers it instead. One head
+ * row (panel-head.tsx), then the agent's screen (panel-screen.tsx), which
+ * grows the panel to fit the whole screen, or in a browser Activity
+ * (teacher-activity.tsx).
  */
-import { useEffect, useId, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/frontend/lib/utils";
-import type { AgentAction } from "@/shared/core";
 import { agentWaiting, agentStatusLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
-import { tabListKeys } from "@/frontend/components/ui/tab-list";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { TeacherStatus } from "@/frontend/components/terminal/teacher-status";
+import { needsYou, screenStatusLine, teacherTerminalState, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
+import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
+import { HELPER_NAME } from "@/frontend/components/work/work-model";
 import { useTeacher } from "./teacher-context";
 import type { AgentDoing } from "./follow-status";
-import { TalkView, type TalkAsk } from "./talk-view";
 import { TeacherActivity } from "./teacher-activity";
-import { DOCK_WIDTH, dockPush, dockWidth } from "./dock-model";
+import { PanelHead } from "./panel-head";
+import { PanelScreen } from "./panel-screen";
+import { StartTeacher } from "./start-teacher";
+import { DOCK_WIDTH, dockLayout, shownScreen, type PanelView } from "./dock-model";
 
-const TABS = ["talk", "activity"] as const;
-type Tab = (typeof TABS)[number];
-
-/** The status line under the name: the helper notice while the agent
- *  compacts, the waiting notice while work waits, what the agent is doing
- *  while it works, then whether it is teaching. Nothing until the first
- *  read of the agent. */
+/** The status line under the name: the notice while the agent compacts,
+ *  the waiting notice while work waits, what the agent is doing while it
+ *  works, then whether it is teaching. Nothing until the first read of the
+ *  agent. */
 export function agentLine(agent: AgentStatus | null, doing: AgentDoing | null = null): string | null {
 	if (!agent) return null;
-	if (agent.helperCovering) return "Tidying my memory. My helper is answering for a minute.";
+	if (agent.helperCovering) return "Tidying my memory. A backup is answering for a minute.";
 	if (agentWaiting(agent)) return waitingNotice(agent.name);
 	if (doing?.working) return doing.text;
-	if (agent.teaching) return "Teaching, idle";
+	if (agent.teaching) return "Ready";
 	return agent.connected ? agentStatusLabel(agent) : "Not connected";
 }
 
@@ -41,109 +38,149 @@ const PUSH_VAR = "--lh-dock-push";
 export function TeacherPanel({
 	name,
 	agent,
-	startTab = "talk",
-	onClose,
-	recent,
-	onPick,
-	ask,
-	onAsked,
+	view,
+	listable,
+	list,
+	onList,
+	overLesson,
+	screen,
+	onScreen,
+	focus,
 }: {
 	name: string;
 	agent: AgentStatus | null;
-	/** The tab it opens on, and switches to when this changes. */
-	startTab?: Tab;
-	onClose: () => void;
-	recent: readonly AgentAction[];
-	onPick: (action: AgentAction) => void;
-	/** A message to send in Talk (askTeacher); the panel switches to Talk. */
-	ask?: TalkAsk | null;
-	onAsked?: (id: number) => void;
+	view: PanelView;
+	/** The status chip drops the Activity list (not in a lesson, which has its own). */
+	listable: boolean;
+	list: boolean;
+	onList: (open: boolean) => void;
+	/** It opened over a lesson: it covers the page instead of pushing it. */
+	overLesson: boolean;
+	/** The screen picked (background work's only while it needs the learner), and the way to one. */
+	screen: TerminalRole;
+	onScreen: (role: TerminalRole) => void;
+	/** The learner opened the screen: it takes the keyboard. */
+	focus: boolean;
 }) {
-	const [tab, setTab] = useState<Tab>(startTab);
-	useEffect(() => setTab(startTab), [startTab]);
-	const [clearSlot, setClearSlot] = useState<HTMLElement | null>(null);
 	const teacher = useTeacher();
-	const line = agentLine(agent, teacher?.doing ?? null);
-	const tabsId = useId();
-	const [width, setWidth] = useState(DOCK_WIDTH);
-	useEffect(() => {
+	const terminals = useTerminals();
+	const onScreenView = view === "terminal";
+	const shown = shownScreen(screen, !!terminals?.helper);
+	const background = onScreenView && shown === "helper";
+	const hasScreen = !!terminals?.facts[shown];
+	const teacherFacts = terminals?.facts.teacher ?? null;
+	const helperFacts = terminals?.facts.helper ?? null;
+	const helperCalls = !!helperFacts && !!needsYou(helperFacts);
+	const doing = teacher?.doing ?? null;
+	const line = agentLine(agent, doing);
+	const teacherStatus = screenStatusLine(teacherFacts, name);
+	const [{ width, wide, covers }, setDock] = useState({ width: DOCK_WIDTH, wide: false, covers: false });
+	const section = useRef<HTMLElement>(null);
+	const lastWidth = useRef(DOCK_WIDTH);
+	// While the panel grows to a new width the screen, laid out at the
+	// final width, would show cut off on its left: it waits, then fades in.
+	const [settling, setSettling] = useState(false);
+	// Before paint, so a screen that just appeared is never fitted to the narrow width first.
+	useLayoutEffect(() => {
 		const root = document.documentElement;
-		const measure = () => {
-			setWidth(dockWidth(window.innerWidth));
+		let settled: ReturnType<typeof setTimeout> | undefined;
+		const measure = (changed: boolean) => {
 			const page = document.querySelector("main")?.getBoundingClientRect().width ?? window.innerWidth;
-			root.style.setProperty(PUSH_VAR, `${dockPush(window.innerWidth, page)}px`);
+			const dock = dockLayout(window.innerWidth, page, view, hasScreen, overLesson);
+			if (changed) {
+				// No width animation under reduced motion: 0s, shown at once.
+				const moves = dock.wide && dock.width !== lastWidth.current && !!section.current;
+				const ms = moves ? parseFloat(getComputedStyle(section.current!).transitionDuration) * 1000 : 0;
+				const grows = ms > 0;
+				setSettling(grows);
+				// The width's transitionend shows it; the timer only if that never comes.
+				if (grows) settled = setTimeout(() => setSettling(false), ms + 100);
+			}
+			lastWidth.current = dock.width;
+			setDock({ width: dock.width, wide: dock.wide, covers: dock.push < dock.width });
+			root.style.setProperty(PUSH_VAR, `${dock.push}px`);
 		};
-		measure();
-		window.addEventListener("resize", measure);
+		measure(true);
+		const onResize = () => measure(false);
+		window.addEventListener("resize", onResize);
 		return () => {
-			window.removeEventListener("resize", measure);
-			root.style.removeProperty(PUSH_VAR);
+			clearTimeout(settled);
+			window.removeEventListener("resize", onResize);
 		};
-	}, []);
-	useEffect(() => {
-		if (ask) setTab("talk");
-	}, [ask]);
+	}, [view, hasScreen, overLesson]);
+	useEffect(
+		() => () => {
+			document.documentElement.style.removeProperty(PUSH_VAR);
+		},
+		[],
+	);
 
 	return (
-		<section
-			data-teacher-panel=""
-			data-testid="teacher-panel"
-			aria-label={name}
-			style={{ width }}
-			className="lh-slide-in fixed top-12 right-0 bottom-0 z-[41] flex max-w-full flex-col border-l-2 border-line bg-panel font-ui"
-		>
-			<div className="flex shrink-0 items-center gap-3 pt-4 pr-3.5 pb-3 pl-5">
-				<span className="flex min-w-0 flex-1 flex-col gap-px">
-					<span data-testid="teacher-panel-name" className="truncate text-xl leading-snug font-medium text-ink">
-						{name}
-					</span>
-					<TeacherStatus name={name} line={line} testid="teacher-panel-agent" className="text-base text-ink-2" />
-				</span>
-				<button type="button" data-testid="teacher-panel-close" onClick={onClose} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
-					<PixelIcon name="close" />
-					Close
-				</button>
-			</div>
+		<>
+			{/* Where it covers the page, the page dims under it, as under a drawer. */}
+			{covers && <div aria-hidden data-testid="teacher-panel-scrim" data-state="open" style={{ right: width }} className="lh-fade pointer-events-none fixed top-12 bottom-0 left-0 z-40 bg-bar/25" />}
+			<section
+				ref={section}
+				onTransitionEnd={(e) => e.target === e.currentTarget && e.propertyName === "width" && setSettling(false)}
+				data-teacher-panel=""
+				data-testid="teacher-panel"
+				aria-label={name}
+				style={{ width, borderRadius: 0 }}
+				className="lh-slide-in fixed top-12 right-0 bottom-0 z-[41] flex max-w-full flex-col overflow-hidden lh-popup font-ui motion-safe:transition-[width] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)"
+			>
+				{background ? (
+					<PanelHead
+						title={HELPER_NAME}
+						status={screenStatusLine(helperFacts, HELPER_NAME)}
+						lit={helperCalls}
+						working={false}
+						list={null}
+						follow={false}
+						need={null}
+						back={() => onScreen("teacher")}
+						wide={wide}
+					/>
+				) : (
+					<PanelHead
+						title={null}
+						status={teacherStatus ?? line}
+						lit={teacherTerminalState(teacherFacts) === "needsYou"}
+						working={!teacherStatus && !!doing?.working && line === doing.text}
+						list={listable && onScreenView ? { open: list, onOpen: onList } : null}
+						follow={listable}
+						need={onScreenView && helperCalls ? () => onScreen("helper") : null}
+						back={null}
+						wide={wide}
+					/>
+				)}
 
-			<div className="flex shrink-0 items-center border-b border-tone-2 px-3.5">
+				{/* The screen is laid out at the panel's final width, against its
+				    right edge, so its font is fitted once, not every frame. It is
+				    hidden at once while the panel grows and fades in after. */}
 				<div
-					role="tablist"
-					aria-label={name}
-					onKeyDown={tabListKeys(TABS.indexOf(tab), TABS.length, (i) => setTab(TABS[i]!))}
-					className="flex gap-1.5"
+					data-testid="teacher-panel-body"
+					data-settling={settling || undefined}
+					style={wide ? { width } : undefined}
+					className={cn(
+						"flex min-h-0 flex-1 flex-col",
+						!onScreenView && "gap-[18px] px-[18px] pt-1.5 pb-[18px]",
+						wide && "self-end",
+						settling ? "opacity-0" : "motion-safe:transition-opacity motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)",
+						// The Activity list drops over the screen: the screen steps back under it.
+						!settling && list && onScreenView && "opacity-40",
+					)}
 				>
-					{TABS.map((t) => (
-						<button
-							key={t}
-							type="button"
-							role="tab"
-							id={`${tabsId}-${t}`}
-							aria-selected={tab === t}
-							aria-controls={`${tabsId}-panel`}
-							tabIndex={tab === t ? 0 : -1}
-							data-testid={`teacher-tab-${t}`}
-							onClick={() => setTab(t)}
-							className={cn(
-								"lh-press -mb-px border-b-2 px-3.5 py-2.5 text-lg",
-								tab === t ? "border-ink font-medium text-ink" : "border-transparent text-ink-2 hover:text-ink",
-							)}
-						>
-							{t === "talk" ? "Talk" : "Activity"}
-						</button>
-					))}
+					{onScreenView ? (
+						<PanelScreen name={background ? HELPER_NAME : name} role={shown} focus={focus} />
+					) : (
+						<>
+							{/* In a browser there is no screen to start from. */}
+							{!terminals?.available && noAgentHere(agent, terminals) && <StartTeacher />}
+							<TeacherActivity underStatus />
+						</>
+					)}
 				</div>
-				{tab === "talk" && <span ref={setClearSlot} className="ml-auto" />}
-			</div>
-
-			{tab === "talk" ? (
-				<div role="tabpanel" id={`${tabsId}-panel`} aria-labelledby={`${tabsId}-talk`} className="flex min-h-0 flex-1 flex-col">
-					<TalkView name={name} agent={agent} recent={recent} onPick={onPick} ask={ask ?? null} onAsked={onAsked} clearSlot={clearSlot} />
-				</div>
-			) : (
-				<div role="tabpanel" id={`${tabsId}-panel`} aria-labelledby={`${tabsId}-activity`} className="flex min-h-0 flex-1 flex-col px-5 py-[18px]">
-					<TeacherActivity />
-				</div>
-			)}
-		</section>
+			</section>
+		</>
 	);
 }

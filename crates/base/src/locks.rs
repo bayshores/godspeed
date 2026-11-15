@@ -18,7 +18,7 @@ use parking_lot::{Mutex, RawMutex, RawThreadId, ReentrantMutex};
 pub enum LockKey<'a> {
 	/// A space record, its files and cheat sheets.
 	Space(&'a str),
-	/// A lesson record (or Talk) and its folder.
+	/// A lesson record and its folder.
 	Chat(&'a str),
 	/// One graph family: None is "No space".
 	Graph(Option<&'a str>),

@@ -78,8 +78,9 @@ function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentP
 				source="Midterm practice exam.pdf"
 				teacherName="marco"
 				saving={false}
-				onAsk={() => {}}
-				onAskGuide={() => {}}
+				requesting={false}
+				requestLine={() => null}
+				onRequest={() => {}}
 				onAdd={() => {}}
 				onLeaveOut={() => {}}
 				onCheatSheet={() => {}}
@@ -92,19 +93,18 @@ function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentP
 const count = (html: string, needle: string) => html.split(needle).length - 1;
 
 describe("the deadline page", () => {
-	it("head: the days left on the space's color, kind and when, the name, how ready, and its two buttons", () => {
+	it("head: the days left on the space's color, the name, then kind and when with how ready as a chip, and its two buttons", () => {
 		const html = render();
 		assert.match(html, /background:var\(--lh-space-1\)[^>]*><span[^>]*>4<\/span><span[^>]*>days</);
-		assert.match(html, /data-testid="deadline-when"[^>]*>Exam, Friday Nov 6, 7:00 PM</);
-		assert.match(html, /data-testid="deadline-name"[^>]*>Midterm</);
-		assert.match(html, /data-testid="deadline-progress".*width:38%.*>38% ready</);
+		assert.match(html, /data-testid="deadline-name"[^>]*>Midterm<.*data-testid="deadline-when"[^>]*>Exam, Friday Nov 6, 7:00 PM</, "nothing above the name");
+		assert.match(html, /data-testid="deadline-progress"[^>]*bg-highlight[^>]*>38% ready</);
 		assert.match(html, /data-testid="deadline-cheat-sheet"[^>]*>Cheat sheet<\/button>/);
 		assert.match(html, /data-testid="deadline-edit"[^>]*>Edit deadline<\/button>/);
 	});
 	it("a homework's head counts its problems", () => {
 		const html = render(deadline({ kind: "homework", problems: { done: 2, total: 8 } }));
 		assert.match(html, /data-testid="deadline-when"[^>]*>Homework, Friday Nov 6, 7:00 PM</);
-		assert.match(html, /data-testid="deadline-progress".*width:25%.*>2 of 8 problems done</);
+		assert.match(html, /data-testid="deadline-progress"[^>]*>2 of 8 problems done</);
 	});
 	it("one strip segment per topic and counts for the statuses it has", () => {
 		const html = render();
@@ -175,8 +175,18 @@ describe("the deadline page", () => {
 		assert.match(html, /data-testid="deadline-ask"[^>]*lh-btn-main[^>]*>Ask marco<\/button>.*>Pick files</);
 		assert.ok(!html.includes('data-testid="deadline-day-row"'), "no list of every file");
 		assert.match(html, /A plan shows up once it knows what&#x27;s on it\./);
-		assert.match(html, /data-testid="deadline-progress"[^>]*><span[^>]*>Not measured yet</);
+		assert.match(html, /data-testid="deadline-progress"[^>]*>Not measured yet</);
 		assert.ok(!html.includes('data-testid="deadline-topics"'));
+	});
+	it("a request: Ask waits while it runs, and one that changed nothing says why in place of the offer", () => {
+		const empty = deadline({ files: [], topics: [], topicIds: [], ready: null, counts: { strong: 0, shaky: 0, weak: 0, untested: 0 } });
+		assert.match(render(empty, { requesting: true }), /data-testid="deadline-ask" disabled=""/);
+		const line = (kind: string) => (kind === "coverage" ? "marco: The syllabus doesn't list the midterm's days." : null);
+		const html = render(empty, { requestLine: line });
+		assert.match(html, /role="alert" data-testid="deadline-request-line"[^>]*>marco: The syllabus doesn&#x27;t list the midterm&#x27;s days\.</);
+		assert.ok(!html.includes("Nothing is linked yet"), "said once");
+		assert.match(render(deadline(), { requestLine: line }), /Ask marco to check<\/button><\/div><p role="alert" data-testid="deadline-request-line"/);
+		assert.equal(count(render(deadline(), { requestLine: () => null }), "deadline-request-line"), 0);
 	});
 	it("every topic strong: study them all", () => {
 		const strong = TOPICS.map((t) => ({ ...t, rate: 0.95 }));
@@ -258,7 +268,9 @@ const { AboutSheet } = await import("../../src/frontend/components/deadline/abou
 const { PathMocks } = await import("../../src/frontend/components/deadline/path-mocks.tsx");
 type Summary = React.ComponentProps<typeof PathMocks>["mocks"];
 
-const about = (state: React.ComponentProps<typeof AboutSheet>["about"]) => <AboutSheet about={state} teacherName="marco" onAsk={() => {}} onRetry={() => {}} />;
+const about = (state: React.ComponentProps<typeof AboutSheet>["about"], requestLine: string | null = null) => (
+	<AboutSheet about={state} teacherName="marco" requesting={false} requestLine={requestLine} onAsk={() => {}} onRetry={() => {}} />
+);
 
 const MOCKS: NonNullable<Summary> = [
 	{ id: "mock_2", deadlineId: "mid", n: 2, state: "graded", format: { questions: 5 }, createdAt: "2026-11-01T09:00:00.000Z", endedAt: "2026-11-01T10:00:00.000Z", solved: 4, working: false },
@@ -288,6 +300,9 @@ describe("an interview's page", () => {
 		assert.match(html, /data-testid="deadline-path-note"[^>]*>Nothing is planned yet\. A plan needs study files, and the posting only tells marco about the interview\.</);
 		assert.match(html, /data-testid="deadline-ask-guide"[^>]*>.*Ask marco for a study guide</);
 		assert.doesNotMatch(html, /data-testid="deadline-ask-guide"[^>]*lh-btn-main/);
+		const guide = render(interview(), { requestLine: (kind) => (kind === "guide" ? "marco couldn't finish: aborted" : null) });
+		assert.match(guide, /Ask marco for a study guide<\/span><\/button><p role="alert" data-testid="deadline-request-line"[^>]*>marco couldn&#x27;t finish: aborted</);
+		assert.match(renderToStaticMarkup(about({ state: "ready", text: "Two rounds." }, "marco: The posting says nothing more.")), /Ask marco to rewrite<\/button><p role="alert" data-testid="deadline-request-line"[^>]*>marco: The posting says nothing more\.</);
 	});
 	it("with files linked, What's on it shows but checks no class days before it", () => {
 		const html = render(interview({ files: [{ id: "d1", name: "2026-10-26 Day1.pdf" }] }));

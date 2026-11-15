@@ -4,6 +4,9 @@
 //! Only create, rename, delete and the space change announce `chats-changed`: those change the
 //! list's shape. The content writers stay silent, because every list-visible change they cause
 //! is already announced by turn-started and turn-settled.
+//!
+//! The Talk chat an older build kept (`chat_talk.json`, kind "talk", and its folder) is the
+//! learner's: it is only read here, never written, made or deleted, and it is not a lesson.
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -21,6 +24,14 @@ use gs_json::{Json, Obj, js_number, json, parse};
 use parking_lot::Mutex;
 
 const UNTITLED: &str = "Untitled session";
+
+/// What a write to the old Talk chat answers.
+pub const TALK_KEPT: &str = "The Talk chat is kept as it was and can't be changed";
+
+/// The old Talk chat, by its id or (in a record) its kind.
+fn is_old_talk(id: &str, record: Option<&Json>) -> bool {
+	id == TALK_CHAT_ID || record.is_some_and(|r| r["kind"].as_str() == Some("talk"))
+}
 
 /// A summary kept while its record file's version (modified time and size) is unchanged, so a
 /// lesson list refresh does not parse every lesson again. None is a record that is not a lesson.
@@ -48,12 +59,15 @@ impl ChatStore {
 		Ok(self.chat_dir(id)?.with_extension("json"))
 	}
 
-	/// Starts a lesson (or the Talk chat, for kind "talk"). `kind` is absent for a teach lesson,
-	/// and `space_id` for "No space". Returns the record as it landed on disk.
+	/// Starts a lesson. `kind` is absent for a teach lesson, and `space_id` for "No space".
+	/// Returns the record as it landed on disk.
 	pub fn create_chat(&self, title: &str, kind: Option<&str>, space_id: Option<&str>, deadline_id: Option<&str>) -> Result<Json, String> {
 		let now = time::iso_now();
 		let kind = kind.filter(|k| !k.is_empty());
-		let id = if kind == Some("talk") { TALK_CHAT_ID.to_owned() } else { ids::timed("chat") };
+		if kind == Some("talk") {
+			return Err(TALK_KEPT.to_owned());
+		}
+		let id = ids::timed("chat");
 		let title = text::trim(title);
 		let mut record = Obj::new();
 		record.insert("id", id.as_str());
@@ -80,6 +94,9 @@ impl ChatStore {
 	/// files only get stamped on their next write.
 	fn write_chat(&self, record: &Json) -> Result<(), String> {
 		let id = record["id"].str_or_empty();
+		if is_old_talk(id, Some(record)) {
+			return Err(TALK_KEPT.to_owned());
+		}
 		self.summaries.lock().remove(id);
 		let file = self.chat_file(id)?;
 		if record["version"].as_f64() == Some(CURRENT_CHAT_VERSION as f64) {
@@ -194,6 +211,9 @@ impl ChatStore {
 	/// and jobs are the route's job.
 	pub fn delete_chat(&self, id: &str) -> bool {
 		let _guard = self.locks.lock(LockKey::Chat(id));
+		if is_old_talk(id, self.get_chat(id).as_ref()) {
+			return false;
+		}
 		self.summaries.lock().remove(id);
 		let (Ok(file), Ok(dir)) = (self.chat_file(id), self.chat_dir(id)) else { return false };
 		if std::fs::remove_file(&file).is_err() {
@@ -218,6 +238,9 @@ impl ChatStore {
 	pub fn save_attachment(&self, id: &str, file_name: &str, data: &[u8]) -> Result<PathBuf, String> {
 		if file_name.contains('/') {
 			return Err(format!("Invalid attachment name: {file_name}"));
+		}
+		if is_old_talk(id, self.get_chat(id).as_ref()) {
+			return Err(TALK_KEPT.to_owned());
 		}
 		let file = self.chat_dir(id)?.join(file_name);
 		let _guard = self.locks.lock(LockKey::Chat(id));
@@ -419,13 +442,40 @@ mod tests {
 	}
 
 	#[test]
-	fn talk_has_a_fixed_id_and_blank_titles_get_a_name() {
+	fn blank_titles_get_a_name() {
 		let fx = Fixture::new();
-		let talk = fx.store.create_chat(" ", Some("talk"), None, None).unwrap();
-		assert_eq!((talk["id"].as_str(), talk["title"].as_str(), talk["kind"].as_str()), (Some("chat_talk"), Some("Untitled session"), Some("talk")));
-		let renamed = fx.store.rename_chat("chat_talk", "  ").unwrap();
-		assert_eq!(renamed["title"], json!("Untitled session"));
-		assert!(fx.store.list_chats().is_empty());
+		let lesson = fx.store.create_chat(" ", None, None, None).unwrap();
+		assert_eq!(lesson["title"], json!("Untitled session"));
+		let id = lesson["id"].as_str().unwrap();
+		assert_eq!(fx.store.rename_chat(id, "  ").unwrap()["title"], json!("Untitled session"));
+	}
+
+	#[test]
+	fn the_old_talk_chat_is_only_read() {
+		let fx = Fixture::new();
+		let text = r#"{"id":"chat_talk","title":"Talk","createdAt":"x","updatedAt":"2026-02-01T00:00:00.000Z","kind":"talk","messages":[{"role":"user","content":"hi"}]}"#;
+		fsx::write_text_atomic(&fx.file("chat_talk"), text).unwrap();
+		fsx::write_atomic(&fx.store.dir.join("chat_talk/0123456789ab-Notes.pdf"), b"%PDF-1.4 made up", None).unwrap();
+		assert_eq!(fx.store.get_chat("chat_talk").unwrap()["messages"].as_arr().map(Vec::len), Some(1));
+		assert!(fx.store.list_chats().is_empty(), "not a lesson");
+		let kept = Err(TALK_KEPT.to_owned());
+		assert_eq!(fx.store.create_chat("Talk", Some("talk"), None, None).map(drop), kept);
+		assert_eq!(fx.store.save_messages("chat_talk", &[]), kept);
+		assert_eq!(fx.store.save_tree("chat_talk", &json!({})), kept);
+		assert_eq!(fx.store.append_turn_usage("chat_talk", &json!({ "id": "t" })), kept);
+		assert_eq!(fx.store.append_extraction_usage("chat_talk", &json!({ "startedAt": 1 })), kept);
+		assert_eq!(fx.store.rename_chat("chat_talk", "Mine").map(drop), kept);
+		assert_eq!(fx.store.set_chat_space("chat_talk", Some("sp_1")).map(drop), kept);
+		assert_eq!(fx.store.save_attachment("chat_talk", "x.pdf", b"%PDF").map(drop), kept);
+		assert!(!fx.store.delete_chat("chat_talk"));
+		assert_eq!(std::fs::read_to_string(fx.file("chat_talk")).unwrap(), text);
+		assert_eq!(std::fs::read_dir(fx.store.dir.join("chat_talk")).unwrap().count(), 1);
+		assert_eq!(std::fs::read(fx.store.dir.join("chat_talk/0123456789ab-Notes.pdf")).unwrap(), b"%PDF-1.4 made up");
+
+		// A lesson whose file was given the kind by hand is kept the same way.
+		fsx::write_text_atomic(&fx.file("chat_other"), r#"{"id":"chat_other","updatedAt":"x","kind":"talk","messages":[]}"#).unwrap();
+		assert_eq!(fx.store.rename_chat("chat_other", "Mine").map(drop), kept);
+		assert!(!fx.store.delete_chat("chat_other"));
 	}
 
 	#[test]
@@ -482,7 +532,7 @@ mod tests {
 		set_field(&mut newer, "turns", vec![json!({ "id": "t" })]);
 		set_field(&mut newer, "messages", vec![json!({ "role": "user", "content": "hi" })]);
 		fx.seed(newer);
-		fx.seed(json!({ "id": "chat_talk", "title": "Talk", "createdAt": "x", "updatedAt": "2026-02-01T00:00:00.000Z", "kind": "talk", "messages": [] }));
+		fsx::write_text_atomic(&fx.file("chat_talk"), r#"{"id":"chat_talk","title":"Talk","createdAt":"x","updatedAt":"2026-02-01T00:00:00.000Z","kind":"talk","messages":[]}"#).unwrap();
 		fsx::write_text_atomic(&fx.file("not valid"), "x").unwrap();
 		let list = fx.store.list_chats();
 		assert_eq!(list.iter().map(|s| s["id"].as_str().unwrap()).collect::<Vec<_>>(), ["chat_b", "chat_a"]);

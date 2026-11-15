@@ -3,6 +3,7 @@
  *  cycle. */
 import { createContext, useContext } from "react";
 import type { AgentAction } from "@/shared/core";
+import type { TerminalRole } from "@/frontend/components/terminal/terminal-model";
 import type { AgentDoing } from "./follow-status";
 
 export interface LessonPresence {
@@ -19,9 +20,13 @@ export interface TeacherApi {
 	follow: boolean;
 	setFollow: (on: boolean) => void;
 	panelOpen: boolean;
+	/** The open panel shows a key that starts the teacher (panelStarts). */
+	panelStarts: boolean;
 	setPanelOpen: (open: boolean) => void;
-	/** Open the panel on its Activity list. */
-	showActivity: () => void;
+	/** Open the panel on the agent's screen, that one (the teacher's
+	 *  when none is named; background work's shows as its own view with
+	 *  Back), which takes the keyboard. */
+	showTerminal: (role?: TerminalRole) => void;
 	/** Newest first. */
 	recent: AgentAction[];
 	/** What the agent is doing now; null while no agent is connected. */

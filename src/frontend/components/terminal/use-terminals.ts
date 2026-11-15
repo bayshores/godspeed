@@ -1,11 +1,8 @@
 /**
  * The agents' terminals in the desktop app, shared by every surface: the
- * teacher's and the helper's latest terminal, starting and stopping them,
- * and the overlay that shows their screens. The overlay opens by itself
- * when the learner is needed (terminal-model.ts), never over a dialog,
- * once per reason, and without taking the keyboard: keys the learner was
- * typing elsewhere never reach an agent's question. The helper starts by itself once the teacher has
- * checked in and background jobs wait; the shell stops it with the teacher.
+ * teacher's and the helper's latest terminal, and starting and stopping
+ * them. The helper starts by itself once the teacher has checked in and
+ * background jobs wait; the shell stops it with the teacher.
  * Outside the desktop app `available` is false and nothing here runs.
  */
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
@@ -13,12 +10,14 @@ import type { FolderAgent } from "@/shared/core";
 import { postAgentFolder, savedAgent } from "@/frontend/components/agent-folder/agent-folder-api";
 import type { FolderView } from "@/frontend/components/agent-folder/agent-folder-model";
 import { AgentStatusContext, type AgentStatus } from "@/frontend/components/agent-status";
+import { readBase64 } from "@/frontend/lib/read-base64";
 import {
+	ATTACH_MAX_BYTES,
+	ATTACH_TOO_BIG,
 	CHECK_IN_WAIT_MS,
 	OUTSIDE_REFUSAL,
 	TEACH_WAIT_MS,
 	helperShouldStart,
-	needsYou,
 	statusFromTerminals,
 	teacherStartRefused,
 	wakeAgent,
@@ -44,25 +43,15 @@ export interface TerminalsApi {
 	agentHere: boolean;
 	/** The shell's first list of terminals has answered. */
 	loaded: boolean;
-	/** The overlay's tab, or null while it is hidden. */
-	overlay: TerminalRole | null;
-	/** The learner opened it: the screen takes the keyboard. Opened by
-	 *  itself, it waits for a click in the screen. */
-	focusOnOpen: boolean;
-	/** Onboarding shows the teacher's screen in its step instead. */
-	inline: boolean;
-	/** The learner opens a screen. */
-	show: (role: TerminalRole) => void;
-	/** Onboarding's step shows the teacher's screen (on) or stops (off). */
-	showInline: (on: boolean) => void;
-	hide: () => void;
 	/** Resolves to why it couldn't start, or null. */
 	start: (role: TerminalRole, agent: FolderAgent) => Promise<string | null>;
 	stop: (role: TerminalRole) => void;
 	/** These resolve to why the shell refused, or null. */
 	answer: (role: TerminalRole, kind: "trust" | "enter") => Promise<string | null>;
 	paste: (role: TerminalRole) => Promise<string | null>;
-	/** Start lesson and a Talk send: start the teacher hidden when it may (wakeAgent). */
+	/** Attach on the teacher's screen: the file's path typed into its input. */
+	addFile: (file: File) => Promise<string | null>;
+	/** Start lesson and a lesson's send: start the teacher hidden when it may (wakeAgent). */
 	wake: () => void;
 }
 
@@ -72,11 +61,10 @@ const ROLES: readonly TerminalRole[] = ["teacher", "helper"];
 /** A start's error: the shell rejects with a sentence. */
 const reason = (err: unknown): string => (typeof err === "string" && err ? err : err instanceof Error && err.message ? err.message : UNSTARTED);
 
+const ATTACH_UNREAD = "godspeed couldn't read that file.";
+
 /** A shell refusal's sentence, or null when it went through. */
 const refusal = (p: Promise<void> | undefined): Promise<string | null> => (p ?? Promise.resolve()).then(() => null, (err: unknown) => (typeof err === "string" ? err : null));
-
-/** Another modal dialog is open: the overlay waits for it to close. */
-const dialogOpen = () => !!document.querySelector('[aria-modal="true"]:not([data-terminal-overlay])');
 
 function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const lh = typeof window === "undefined" ? undefined : window.lh?.terminals;
@@ -84,8 +72,6 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	// The first list has answered: before it, no record says whether an agent runs.
 	const [loaded, setLoaded] = useState(false);
 	const [folder, setFolder] = useState("~/godspeed");
-	const [shown, setShown] = useState<{ role: TerminalRole; focus: boolean; inline: boolean } | null>(null);
-	const overlay = shown?.role ?? null;
 	// The terminals that have checked in at least once.
 	const [checked, setChecked] = useState<ReadonlySet<string>>(new Set());
 	const [quietSince, setQuietSince] = useState<number | null>(null);
@@ -151,7 +137,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const teacherCheckedIn = checkedIn(teacher?.id);
 	const outsideHere = !!status?.outsideHere;
 
-	// The teacher checked in and is not teaching while a lesson or Talk turn waits.
+	// The teacher checked in and is not teaching while a lesson turn waits.
 	const quiet = teacherLive && teacherCheckedIn && !!status && !status.teaching && status.pendingTurns > 0;
 	useEffect(() => setQuietSince((since) => (quiet ? (since ?? Date.now()) : null)), [quiet]);
 
@@ -193,29 +179,6 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		return () => clearTimeout(t);
 	}, [teacher, teacherLive, teacherCheckedIn, quietSince]);
 
-	// The overlay opens by itself once per reason, never over a dialog. A
-	// reason that shows while its screen is open counts as seen.
-	const fired = useRef(new Set<string>());
-	useEffect(() => {
-		const reasons = new Map<string, TerminalRole>();
-		for (const role of ROLES) {
-			const f = facts[role];
-			const why = f && needsYou(f);
-			if (f && why) reasons.set(`${f.term.id}:${why}`, role);
-		}
-		for (const key of fired.current) if (!reasons.has(key)) fired.current.delete(key);
-		for (const [key, role] of reasons) if (overlay === role) fired.current.add(key);
-		const next = [...reasons].find(([key]) => !fired.current.has(key));
-		if (!next || overlay) return;
-		if (dialogOpen()) {
-			const t = setTimeout(bump, 1000);
-			return () => clearTimeout(t);
-		}
-		fired.current.add(next[0]);
-		// Never over what shows already (onboarding's step may have just shown its screen).
-		setShown((cur) => cur ?? { role: next[1], focus: false, inline: false });
-	}, [facts, overlay]);
-
 	const start = useCallback(
 		async (role: TerminalRole, agent: FolderAgent): Promise<string | null> => {
 			if (!lh) return UNSTARTED;
@@ -240,10 +203,8 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const refused = teacherStartRefused(teacher, !!status?.outsideHere);
 	const startRole = useCallback(
 		async (role: TerminalRole, agent: FolderAgent) => {
-			if (role === "teacher" && refused === "running") {
-				setShown({ role: "teacher", focus: true, inline: false });
-				return null;
-			}
+			// Its screen shows where the start was asked for.
+			if (role === "teacher" && refused === "running") return null;
 			if (role === "teacher" && refused === "outside") {
 				// The folder is still set up: "Set up my folder" does its part.
 				try {
@@ -297,9 +258,15 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		},
 		[idOf, lh],
 	);
-	const show = useCallback((role: TerminalRole) => setShown({ role, focus: true, inline: false }), []);
-	const showInline = useCallback((on: boolean) => setShown(on ? { role: "teacher", focus: false, inline: true } : null), []);
-	const hide = useCallback(() => setShown(null), []);
+	const addFile = useCallback(
+		(file: File) => {
+			const id = idOf("teacher");
+			if (!id || !lh) return Promise.resolve(null);
+			if (file.size > ATTACH_MAX_BYTES) return Promise.resolve(ATTACH_TOO_BIG);
+			return refusal(readBase64(file).then((data) => lh.addFile(id, file.name, data).then(() => undefined), () => Promise.reject(ATTACH_UNREAD)));
+		},
+		[idOf, lh],
+	);
 	// The server's `connected` lasts up to 3 minutes after a terminal ended; the terminals know at once.
 	const agentHere = outsideHere || (teacherLive && teacherCheckedIn);
 	// Two sends close together start one teacher: the second comes before the first start's record.
@@ -313,11 +280,9 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		});
 	}, [lh, loaded, teacher, agentHere, outsideHere, start]);
 
-	const focusOnOpen = !!shown?.focus;
-	const inline = !!shown?.inline;
 	return useMemo(
-		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, overlay, focusOnOpen, inline, show, showInline, hide, start: startRole, stop, answer, paste, wake }),
-		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, overlay, focusOnOpen, inline, show, showInline, hide, startRole, stop, answer, paste, wake],
+		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, start: startRole, stop, answer, paste, addFile, wake }),
+		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, startRole, stop, answer, paste, addFile, wake],
 	);
 }
 
@@ -328,6 +293,10 @@ export function agentHereNow(status: AgentStatus | null, terminals: TerminalsApi
 	if (!terminals?.available) return status.connected || status.teaching;
 	return terminals.loaded ? terminals.agentHere : null;
 }
+
+/** No agent is here and godspeed is not starting one: the start pair shows. */
+export const noAgentHere = (status: AgentStatus | null, terminals: TerminalsApi | null): boolean =>
+	agentHereNow(status, terminals) === false && !(terminals?.teacher && !terminals.teacher.ended);
 
 const TerminalsContext = createContext<TerminalsApi | null>(null);
 

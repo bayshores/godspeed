@@ -12,7 +12,8 @@ import { openedFrom } from "@/frontend/components/deadline/deadline-back";
 
 /**
  * THE NEXT DEADLINE (Progress): the space's soonest open deadline with
- * the time left, how far it is and the one button that works on it. Its
+ * the time left, its day and how far it is (a chip) under its name, and the
+ * one button that works on it. Its
  * name opens its page. With none: one line and "Add a deadline".
  */
 export const NextDeadline = memo(function NextDeadline({
@@ -53,12 +54,14 @@ export const NextDeadline = memo(function NextDeadline({
 			<div className="flex gap-7">
 				<CountBlock size="square" color={color} {...countLeft(dueAtMs(d), nowMs)} />
 				<div className="flex min-w-0 flex-1 flex-col gap-1.5">
-					<p className="font-count text-lg text-ink-2">{longDay(d.date)}</p>
 					<Link to={deadlineHref(d.id)} state={openedFrom("progress")} data-testid="next-deadline-open" title={d.name} className="truncate text-[40px] leading-[1.2] text-ink hover:underline">
 						{d.name}
 					</Link>
-					<p data-testid="next-deadline-progress" className="text-[17px] text-ink-2">
-						{progressWords(d) ?? "Not measured yet"}.
+					<p className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+						<span className="font-count text-lg text-ink-2">{longDay(d.date)}</span>
+						<span data-testid="next-deadline-progress" className="bg-highlight px-2 py-0.5 text-[15px] leading-snug text-ink">
+							{progressWords(d) ?? "Not measured yet"}
+						</span>
 					</p>
 					{share !== null && <ProgressBar share={share} className="w-full max-w-[480px]" />}
 				</div>

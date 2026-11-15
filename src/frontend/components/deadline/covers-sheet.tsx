@@ -20,6 +20,8 @@ export function CoversSheet({
 	source,
 	teacherName,
 	saving,
+	requesting,
+	requestLine,
 	onEdit,
 	onAsk,
 	onAdd,
@@ -31,6 +33,10 @@ export function CoversSheet({
 	source: string | undefined;
 	teacherName: string;
 	saving: boolean;
+	/** A request to the agent runs on this deadline. */
+	requesting: boolean;
+	/** Why the last Ask changed nothing. */
+	requestLine: string | null;
 	onEdit: () => void;
 	onAsk: () => void;
 	onAdd: (fileIds: string[]) => void;
@@ -43,11 +49,16 @@ export function CoversSheet({
 			<Pane data-testid="deadline-material" className={SHEET}>
 				<h2 className={SHEET_TITLE}>What&apos;s on it</h2>
 				<div data-testid="deadline-no-files" className="flex flex-col items-start gap-4">
-					<p className="text-lg text-ink-2">
-						Nothing is linked yet. {teacherName} can work it out from your files, like a practice exam or the syllabus.
-					</p>
+					{requestLine ? (
+						<p role="alert" data-testid="deadline-request-line" className="text-lg text-ink">
+							{requestLine}
+						</p>
+					) : (
+						// While a request runs, the work frame says what happens.
+						!requesting && <p className="text-lg text-ink-2">Nothing is linked yet. {teacherName} can work it out from your files, like a practice exam or the syllabus.</p>
+					)}
 					<div className="flex flex-wrap gap-2.5">
-						<button type="button" data-testid="deadline-ask" onClick={onAsk} className="lh-btn lh-btn-main px-[18px] text-[15px]">
+						<button type="button" data-testid="deadline-ask" disabled={requesting} onClick={onAsk} className="lh-btn lh-btn-main px-[18px] text-[15px]">
 							Ask {teacherName}
 						</button>
 						<button type="button" data-testid="deadline-edit-files" onClick={onEdit} className="lh-btn text-[15px]">
@@ -128,10 +139,15 @@ export function CoversSheet({
 						<Link to="/space/files" data-testid="deadline-add-files" className="lh-btn text-[15px]">
 							Add files
 						</Link>
-						<button type="button" data-testid="deadline-ask" onClick={onAsk} className="lh-btn text-[15px]">
+						<button type="button" data-testid="deadline-ask" disabled={requesting} onClick={onAsk} className="lh-btn text-[15px]">
 							Ask {teacherName} to check
 						</button>
 					</div>
+					{requestLine && (
+						<p role="alert" data-testid="deadline-request-line" className="text-[15px] text-ink">
+							{requestLine}
+						</p>
+					)}
 					{showLeftOut && m.leftOut.length > 0 && (
 						<ul data-testid="deadline-left-out">
 							{m.leftOut.map((day) => (
