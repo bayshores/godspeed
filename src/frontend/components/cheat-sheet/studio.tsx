@@ -133,12 +133,12 @@ function Studio({
 			<div className="min-h-0 flex-1">
 				<JobFrame doing={view.running ? (current ? "changing your sheet" : "making your sheet") : null}>
 					<div className="flex h-full gap-6 px-8 pt-6 pb-7">
-						<div className="flex min-h-0 min-w-0 flex-1 flex-col border border-border">
+						<div className="lh-well flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded">
 							{current ? (
 								<SheetCanvas versions={view.sheet.versions} pdfUrl={pdfUrl} labelFor={versionLabel} focus={focus} onPoint={setPointed} />
 							) : (
 								<div data-testid="cheat-sheet-empty" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[18px] overflow-y-auto p-6 text-center">
-									<div aria-hidden className="h-[220px] w-[170px] shrink-0 border border-border bg-background" />
+									<div aria-hidden className="h-[220px] w-[170px] shrink-0 bg-background" />
 									<h2 className="text-[28px] leading-tight text-ink">What do you want on your cheat sheet?</h2>
 									<p className="max-w-[520px] text-lg leading-[1.45] text-ink-2">{emptyChatLine(teacherName, false)}</p>
 									{view.sheet.olderFormat && !view.running && <OlderSheet onRemake={() => void remakeSheet(spaceId, deadlineId).then(setFailed)} />}

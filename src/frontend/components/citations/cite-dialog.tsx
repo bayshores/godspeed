@@ -46,7 +46,7 @@ function CiteSheet({ cite, state, onClose }: { cite: FileCite; state: "open" | "
 					) : marks?.kind === "lines" ? (
 						<CodeLines name={cite.name} marks={marks} />
 					) : (
-						<div data-testid="cite-text" className="border border-line p-3.5 text-[15px] whitespace-pre-wrap text-ink">
+						<div data-testid="cite-text" className="lh-well rounded p-3.5 text-[15px] whitespace-pre-wrap text-ink">
 							{marks?.kind === "passage" ? <MarkedText before={found.text.slice(0, marks.start)} marked={found.text.slice(marks.start, marks.end)} after={found.text.slice(marks.end)} /> : found.text}
 						</div>
 					)}

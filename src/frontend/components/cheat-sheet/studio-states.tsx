@@ -18,7 +18,7 @@ export function teacherDoing(view: CheatSheetView, agentGone: boolean): string |
  *  without the agent: one click asks for it again. */
 export function OlderSheet({ onRemake }: { onRemake: () => void }) {
 	return (
-		<div data-testid="cheat-sheet-older" className="flex max-w-[520px] flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded border border-border bg-background px-3.5 py-3 text-[15px] text-ink">
+		<div data-testid="cheat-sheet-older" className="flex max-w-[520px] flex-wrap items-center justify-center gap-x-3 gap-y-2 lh-well rounded px-3.5 py-3 text-[15px] text-ink">
 			<span>Your sheet was made by an older godspeed and can&apos;t be shown anymore.</span>
 			<button type="button" data-testid="cheat-sheet-remake" onClick={onRemake} className="lh-btn text-[15px]">
 				Make it again

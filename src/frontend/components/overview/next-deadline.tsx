@@ -40,7 +40,7 @@ export const NextDeadline = memo(function NextDeadline({
 		return (
 			<Pane data-testid="next-deadline-none" className="flex flex-wrap items-center gap-4 px-5 py-4">
 				<p className="min-w-0 flex-1 text-[17px] text-ink-2">{none}</p>
-				<button type="button" data-testid="next-deadline-add" onClick={onAddDeadline} className="lh-btn h-[38px] shrink-0 text-[15px]">
+				<button type="button" data-testid="next-deadline-add" onClick={onAddDeadline} className="lh-btn shrink-0">
 					<PixelIcon name="plus" />
 					Add a deadline
 				</button>

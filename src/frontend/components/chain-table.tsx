@@ -267,7 +267,7 @@ function ChainBlock({
 								) : (
 									<LatexGlyph cmd="\land" testid={`chain-and-${chain.id}-${i}`} className="px-1.5 text-ink" />
 								))}
-							<span data-testid={`prop-chip-${id}`} className="rounded-sm border border-edge bg-background px-1.5 py-0.5">
+							<span data-testid={`prop-chip-${id}`} className="lh-well rounded-sm px-1.5 py-0.5">
 								{nameOf(id)}
 							</span>
 						</span>

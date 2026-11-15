@@ -225,7 +225,7 @@ export function CommitInput({
 					e.currentTarget.blur();
 				}
 			}}
-			className="h-[38px] w-[200px] lh-well rounded px-3 font-ui text-[15px] text-ink placeholder:text-ink-3"
+			className="h-10 w-[200px] lh-well rounded px-3 font-ui text-[15px] text-ink placeholder:text-ink-3"
 		/>
 	);
 }

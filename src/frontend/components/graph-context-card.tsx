@@ -43,7 +43,7 @@ export function GraphContextCard({ data }: { data: GraphContextData }) {
 			{fold.mounted && (
 				<div className="lh-collapse" data-state={fold.state}>
 				<div>
-				<div data-testid="graph-context-body" className="mt-1 space-y-1 rounded border border-border bg-background px-4 py-3 text-[15px]">
+				<div data-testid="graph-context-body" className="mt-1 space-y-1 lh-well rounded px-4 py-3 text-[15px]">
 					{propositions.map((p) => (
 						<div key={p.id} data-testid={`graph-context-prop-${p.id}`} className="leading-relaxed">
 							<span className="text-ink">{p.name}</span>
@@ -104,7 +104,7 @@ export function SpaceContextCard({ data }: { data: SpaceContextData }) {
 			{fold.mounted && (
 				<div className="lh-collapse" data-state={fold.state}>
 				<div>
-				<div data-testid="space-context-body" className="mt-1 space-y-2 rounded border border-border bg-background px-4 py-3 text-[15px]">
+				<div data-testid="space-context-body" className="mt-1 space-y-2 lh-well rounded px-4 py-3 text-[15px]">
 					{description.trim() && <p className="font-prose whitespace-pre-wrap text-base leading-relaxed text-ink-2">{description}</p>}
 					{files.map((f, i) => (
 						<div key={i} className="leading-relaxed">

@@ -71,7 +71,7 @@ export function LivePill({ own = false, named = false }: { own?: boolean; named?
 					{words}
 				</button>
 				{thing?.action && (
-					<button type="button" data-testid="live-pill-act" onClick={() => pill.act(thing)} className="lh-btn mr-0.5 h-7 shrink-0 px-3 [--lh-key-hover:var(--foreground)] [--lh-key:var(--foreground)] text-background">
+					<button type="button" data-testid="live-pill-act" onClick={() => pill.act(thing)} className="lh-btn mr-0.5 h-7 shrink-0 px-3 [--lh-key-hover:var(--foreground)] [--lh-key:var(--foreground)] font-medium text-background">
 						{OWN_BUTTON[thing.action]}
 					</button>
 				)}

@@ -392,7 +392,7 @@ describe("Today, as a whole page", () => {
 		assert.ok(html.includes('data-testid="later-row-fin"'));
 		for (const title of ["Due this week", "Your spaces", "Later"]) assert.ok(html.includes(`>${title}</h2>`), title);
 		assert.ok(!html.includes(">This week<"), "the week is a quiet line under the title, not a section");
-		assert.equal(count(html, "border-line"), 2, "the card and the Due this week frame, nothing else");
+		assert.equal(count(html, "lh-sheet") + count(html, "border-line"), 2, "the card and the Due this week frame, nothing else");
 	});
 
 	it("no spaces: the sentence and Add a space, nothing else", () => {

@@ -411,28 +411,29 @@ body {
 	}
 }
 
-/* Buttons are keycaps: a rounded face on a darker bottom edge, which
+/* Buttons are keycaps: a hard-cornered face on a darker bottom edge, which
    sinks while pressed. .lh-btn-main is the one bright key of a view;
    .lh-btn-quiet is a plain word. In the components layer, so a size
    utility on one button wins. */
 @layer components {
 	.lh-btn {
-		--lh-key: color-mix(in srgb, var(--foreground) 22%, var(--background));
-		--lh-key-hover: color-mix(in srgb, var(--foreground) 30%, var(--background));
+		--lh-key: color-mix(in srgb, var(--foreground) 26%, var(--background));
+		--lh-key-hover: color-mix(in srgb, var(--foreground) 34%, var(--background));
 		--lh-lip: 4px;
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
-		height: 36px;
-		padding: 0 16px;
+		height: 40px;
+		padding: 0 18px;
 		/* The bottom edge is a border, so the label centers on the face. */
 		border: 0 solid transparent;
-		border-bottom: var(--lh-lip) solid color-mix(in srgb, var(--lh-key) 60%, #000);
-		border-radius: 10px;
+		border-bottom: var(--lh-lip) solid color-mix(in srgb, var(--lh-key) 48%, #000);
+		border-radius: 5px;
 		background: var(--lh-key) padding-box;
 		font-family: var(--font-ui);
-		font-size: 14px;
-		font-weight: 500;
+		font-size: 15px;
+		font-weight: 400;
+		letter-spacing: 0.01em;
 		line-height: 1.4;
 		white-space: nowrap;
 		color: var(--foreground);
@@ -453,11 +454,13 @@ body {
 	.lh-btn-danger {
 		--lh-key: var(--color-ans-wrong);
 		--lh-key-hover: var(--color-ans-wrong-hover);
+		font-weight: 500;
 		color: var(--background);
 	}
 	.lh-btn-main {
 		--lh-key: var(--lh-tint);
 		--lh-key-hover: color-mix(in srgb, var(--lh-tint) 88%, #fff);
+		font-weight: 500;
 		color: var(--background);
 	}
 	.lh-btn-quiet {
@@ -470,12 +473,17 @@ body {
 	.lh-btn-quiet:hover {
 		color: var(--foreground);
 	}
+	/* Beside a key the word keeps the key's lip, unseen, so both read on one line. */
+	.lh-btn:not(.lh-btn-quiet) ~ .lh-btn-quiet,
+	.lh-btn-quiet:has(~ .lh-btn:not(.lh-btn-quiet)) {
+		--lh-lip: 4px;
+		border-bottom-color: transparent;
+	}
 	/* A button on the dark bar of a lesson or a cheat sheet. */
 	.lh-btn-bar {
-		--lh-key: color-mix(in srgb, var(--lh-bar-ink) 22%, var(--lh-bar));
-		--lh-key-hover: color-mix(in srgb, var(--lh-bar-ink) 32%, var(--lh-bar));
+		--lh-key: color-mix(in srgb, var(--lh-bar-ink) 26%, var(--lh-bar));
+		--lh-key-hover: color-mix(in srgb, var(--lh-bar-ink) 34%, var(--lh-bar));
 		flex-shrink: 0;
-		font-size: 15px;
 		color: var(--lh-bar-ink);
 	}
 }

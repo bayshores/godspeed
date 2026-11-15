@@ -137,7 +137,7 @@ export function WebSearch() {
 /** One of the two ways to search: the one in use is filled and ticked. */
 function Choice({ testid, name, picked, children }: { testid: string; name: string; picked: boolean; children: ReactNode }) {
 	return (
-		<div data-testid={testid} data-picked={picked || undefined} className={cn("flex min-w-0 flex-col gap-3 border-2 p-4", picked ? "border-line bg-background" : "border-edge")}>
+		<div data-testid={testid} data-picked={picked || undefined} className="lh-well flex min-w-0 flex-col gap-3 rounded p-4">
 			<div className="flex items-center gap-2.5">
 				<span aria-hidden className={cn("flex size-[18px] shrink-0 items-center justify-center border-2", picked ? "border-ink bg-ink text-background" : "border-edge")}>
 					{picked && <PixelIcon name="check" className="h-2" />}

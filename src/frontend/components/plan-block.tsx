@@ -180,7 +180,7 @@ export function PlanBlock({ data, onOpen }: { data: PlanBlockData; onOpen: () =>
 				data-testid="plan-block-full"
 				aria-label="Open the full plan"
 				onClick={onOpen}
-				className="block w-full rounded border border-edge bg-background px-4 py-3 text-left"
+				className="block w-full lh-well rounded px-4 py-3 text-left"
 			>
 				<PlanDiagram nodes={data.nodes} edges={data.edges} statusOf={statusOf} markerId={markerId} pad={GRAPH_PAD} textCapScale={TEXT_CAP_SCALE} monochrome />
 			</button>
@@ -284,7 +284,7 @@ export function PlanPopup({
 			{tree ? (
 				<div
 					ref={viewportRef}
-					className={cn("relative h-[420px] shrink-0 touch-none overflow-hidden border border-edge bg-background select-none", atFloor ? "cursor-default" : "cursor-grab")}
+					className={cn("relative h-[420px] shrink-0 touch-none lh-well overflow-hidden rounded select-none", atFloor ? "cursor-default" : "cursor-grab")}
 					onPointerDown={startDrag}
 					onPointerMove={moveDrag}
 					onPointerUp={endDrag}
