@@ -208,7 +208,7 @@ Sends one request to the learner's own agent, as a work item labelled "<name> as
 | At a time | One request per plugin. A second one while the first runs is refused with "Your agent is still on this plugin's last request." |
 | Waiting | godspeed sets no time limit. While the page waits, it sends `notifications/progress` every 20 seconds if the request had `_meta.progressToken`, so a client library that gives up after a silent minute keeps waiting. |
 
-While a request runs, godspeed shows it under the plugin's name, as it shows other background work: a row in the teacher's Activity list, the agent's status line, and the top bar when it is the only work.
+While a request runs, godspeed shows it under the plugin's name, as it shows a deadline request: a row in the teacher's Activity list, and the top bar's pill when it is the only work.
 
 The agent is told the request comes from a plugin and to answer it and do nothing else. Don't put anything in a prompt you wouldn't show the learner. A failed ask comes back as a tool error whose text says why.
 

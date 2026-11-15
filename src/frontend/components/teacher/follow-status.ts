@@ -4,7 +4,7 @@
  *
  * In order: its newest change while fresh, whether it is teaching at all,
  * the lesson on screen, a file or lesson it is reading for facts, a
- * background job, a request (a deadline's, a plugin's), other work, idle. No agent connected: nothing.
+ * background job, other work, idle. No agent connected: nothing.
  */
 import { isAgentEntry, type AgentAction, type JobKind } from "@/shared/core";
 
@@ -38,8 +38,6 @@ interface DoingInputs {
 	/** Oldest first, as the activity feed lists them. */
 	extractions: readonly Extraction[];
 	jobs: readonly { kind: JobKind }[];
-	/** A deadline's or a plugin's request, by its name in the activity feed. */
-	requests: readonly { title: string }[];
 }
 
 const JOB_TEXT: Record<JobKind, string> = {
@@ -87,19 +85,18 @@ export function agentDoing(i: DoingInputs): AgentDoing | null {
 	if (i.lesson?.streaming) return { text: "Writing the lesson", working: true };
 	if (i.lesson?.working) return { text: "Working on the lesson", working: true };
 	// A helper does the background work, so the teacher's line leaves it out.
-	const background = agent.helperHere ? null : backgroundLine(i.extractions, i.jobs, i.requests);
+	const background = agent.helperHere ? null : backgroundLine(i.extractions, i.jobs);
 	if (background) return { ...background, working: true };
 	if ((agent.helperHere ? agent.pendingTurns : agent.pendingWork) > 0) return { text: "Working", working: true };
 	return { text: "Idle", working: false };
 }
 
 /** The background work under way, in words: a file or lesson read for
- *  facts, else a job, else a request by its name. Null when none runs. */
-export function backgroundLine(extractions: readonly Extraction[], jobs: readonly { kind: JobKind }[], requests: readonly { title: string }[]): Omit<AgentDoing, "working"> | null {
+ *  facts, else a job. Null when none runs. */
+export function backgroundLine(extractions: readonly Extraction[], jobs: readonly { kind: JobKind }[]): Omit<AgentDoing, "working"> | null {
 	// The run in progress first; the rest wait their turn behind it.
 	const run = extractions.find((r) => r.phase !== "waiting") ?? extractions[0];
 	if (run) return readingLine(run);
 	const job = jobs[0];
-	if (job) return { text: JOB_TEXT[job.kind] };
-	return requests[0] ? { text: requests[0].title } : null;
+	return job ? { text: JOB_TEXT[job.kind] } : null;
 }

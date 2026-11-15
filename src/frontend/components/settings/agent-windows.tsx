@@ -49,7 +49,7 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 	const teacher = teacherTile(agent, panel?.doing ?? null, { outside, term: teacherTerm, start: startLabel(choice) });
 	const helper = helperTile({
 		agent,
-		background: backgroundLine(feed.extractions, feed.jobs, feed.requests ?? []),
+		background: backgroundLine(feed.extractions, feed.jobs),
 		files: filesLine(spaces),
 		filesLeft,
 		teacher: teacherName,
