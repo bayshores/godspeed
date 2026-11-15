@@ -15,7 +15,7 @@ export const HTTP_OK = `.then((r) => { if (!r.ok) throw new Error(r.url + " answ
 
 const pause = `await new Promise((done) => setTimeout(done, 100))`;
 const openTeacher = `document.querySelector("[data-testid=live-pill]").click()`;
-// Opening a dock narrows the reading pane and leaves it above its end, where the floating "Scroll to the bottom" button rightly sits over the text. This scrolls back to the end.
+// The walk clicks while the window is still the last screen's 800 wide, where the reading pane is a few points tall. Each width the walk then sets clamps the pane's scroll, which the lesson reads as the learner scrolling up, so it lets go of the end and the floating "Scroll to the bottom" button rightly sits over the text. This scrolls back to the end first.
 const scrollToEnd = (click) => `document.querySelector("${click}").click(); ${pause}; let pane = document.querySelector("[data-testid=cite-row]"); while (pane && !["auto", "scroll"].includes(getComputedStyle(pane).overflowY)) pane = pane.parentElement; pane.scrollTop = pane.scrollHeight; ${pause}`;
 const deadlineCard = "[data-teacher-target='deadline:{deadline}']";
 /** Today's every group at once: the next deadline, three more this week, one ticked done, two
