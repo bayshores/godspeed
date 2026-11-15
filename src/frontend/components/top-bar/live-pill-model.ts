@@ -7,6 +7,7 @@ import { agentStatusLabel, type AgentStatus } from "@/frontend/components/agent-
 import { DAY, dueAtMs } from "@/frontend/components/countdown-model";
 import type { AgentDoing } from "@/frontend/components/teacher/follow-status";
 import type { TeacherTerminalState } from "@/frontend/components/terminal/terminal-model";
+import { plural } from "@/frontend/lib/plural";
 import type { WorkProgress } from "@/frontend/components/work/work-model";
 
 /** A lesson whose reply came while another page was open. */
@@ -201,7 +202,7 @@ export function firstWord(detail: string): string {
 
 /** "2 notices". */
 export function noticeCount(notices: number): string {
-	return `${notices} notice${notices === 1 ? "" : "s"}`;
+	return plural(notices, "notice");
 }
 
 /**
