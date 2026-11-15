@@ -298,8 +298,10 @@ describe("the screens", () => {
 		}
 	});
 
-	it("before any start: what shows here and the start pair, which starts the teacher here; beside an agent from outside godspeed, where its screen is", async () => {
+	it("before any start: what shows here and the start pair at Talk's width, which starts the teacher here and widens for its screen; beside an agent from outside godspeed, where its screen is", async () => {
 		const shell = fakeShell();
+		const wasWidth = dom.window.innerWidth;
+		Object.assign(dom.window, { innerWidth: 1440 });
 		try {
 			stored.set("lh-folder-agent", "codex");
 			await mounted(access(), async () => {
@@ -307,13 +309,16 @@ describe("the screens", () => {
 				await click("teacher-tab-terminal");
 				assert.equal(text("terminal-none"), "Ada's screen shows here once it starts.Start CodexUse another agent");
 				assert.ok(!/not connected/i.test(text("terminal-none") ?? ""), "the status line says that");
+				assert.equal(q("teacher-panel")?.style.width, "400px", "nothing to show yet: Talk's width");
 				assert.equal(q("open-agent")?.textContent, "Start Codex", "the agent last started here");
 				await click("open-agent");
 				assert.ok(shell.calls.includes("start teacher codex"));
+				assert.equal(q("teacher-panel")?.style.width, "894px", "its screen shows: wide");
 				assert.equal(text("status"), "Ada is starting.");
 				assert.equal(text("terminal-footer"), "If Codex asks you something, answer it here.");
 			});
 		} finally {
+			Object.assign(dom.window, { innerWidth: wasWidth });
 			shell.remove();
 		}
 		const outside = fakeShell();

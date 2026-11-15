@@ -9,7 +9,7 @@
  * the switch between its screen and the teacher's. A screen that needs the
  * learner marks the Terminal tab while another tab shows.
  */
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useState } from "react";
 import { cn } from "@/frontend/lib/utils";
 import type { AgentAction } from "@/shared/core";
 import { agentWaiting, agentStatusLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
@@ -86,9 +86,14 @@ export function TeacherPanel({
 	const terminals = useTerminals();
 	const line = agentLine(agent, teacher?.doing ?? null);
 	const tabsId = useId();
-	const wide = tab === "terminal";
+	// A screen that needs the learner, and the one the Terminal tab shows.
+	const calls = (role: TerminalRole) => !!terminals?.facts[role] && !!needsYou(terminals.facts[role]!);
+	const shown: TerminalRole = screen === "helper" && terminals?.helper ? "helper" : "teacher";
+	// Wide only while there is a screen to show; before a start the tab is a sentence and two keys.
+	const wide = tab === "terminal" && !!terminals?.facts[shown];
 	const [width, setWidth] = useState(DOCK_WIDTH);
-	useEffect(() => {
+	// Before paint, so a screen that just appeared is never fitted to the narrow width first.
+	useLayoutEffect(() => {
 		const root = document.documentElement;
 		const measure = () => {
 			const page = document.querySelector("main")?.getBoundingClientRect().width ?? window.innerWidth;
@@ -106,9 +111,6 @@ export function TeacherPanel({
 		},
 		[],
 	);
-	// A screen that needs the learner, and the one the Terminal tab shows.
-	const calls = (role: TerminalRole) => !!terminals?.facts[role] && !!needsYou(terminals.facts[role]!);
-	const shown: TerminalRole = screen === "helper" && terminals?.helper ? "helper" : "teacher";
 
 	return (
 		<section
