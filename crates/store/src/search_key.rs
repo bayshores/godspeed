@@ -28,6 +28,8 @@ impl SearchKeyStore {
 
 	/// Removing a key that is not there is fine.
 	pub fn remove_search_key(&self) -> Result<(), String> {
-		fsx::remove_if_present(&self.file, "unlink")
+		fsx::remove_if_present(&self.file, "unlink")?;
+		fsx::remove_leftover_temps(&self.file);
+		Ok(())
 	}
 }

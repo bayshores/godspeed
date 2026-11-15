@@ -15,8 +15,8 @@ pub fn make_dir(dir: &Path) -> Result<(), String> {
 	})
 }
 
-/// write-file-atomic.ts: a temp file beside the target, then a rename. The temp file's name is
-/// in the error text, which `fsx::write_atomic` does not give.
+/// write-file-atomic.ts: a temp file beside the target, synced, then a rename. The temp file's
+/// name is in the error text, which `fsx::write_atomic` does not give.
 pub fn write_file_atomic(file: &Path, content: &str) -> Result<(), String> {
 	if let Some(dir) = file.parent() {
 		make_dir(dir)?;
@@ -24,10 +24,10 @@ pub fn write_file_atomic(file: &Path, content: &str) -> Result<(), String> {
 	let name = file.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
 	let temp = file.with_file_name(format!("{name}.tmp-{}", &ids::uuid()[..8]));
 	let written = std::fs::File::create(&temp)
-		.and_then(|mut open| open.write_all(&text::utf8_bytes(content)))
+		.and_then(|mut open| open.write_all(&text::utf8_bytes(content)).and_then(|()| open.sync_all()))
 		.map_err(|err| fsx::node_error_message(&err, "open", &temp))
 		.and_then(|()| {
-			std::fs::rename(&temp, file).map_err(|err| format!("{} -> '{}'", fsx::node_error_message(&err, "rename", &temp), file.display()))
+			fsx::rename_over(&temp, file).map_err(|err| format!("{} -> '{}'", fsx::node_error_message(&err, "rename", &temp), file.display()))
 		});
 	if written.is_err() {
 		let _ = std::fs::remove_file(&temp);

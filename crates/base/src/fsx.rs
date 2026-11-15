@@ -58,13 +58,52 @@ pub fn make_temp_dir(tmp: &Path, prefix: &str) -> Result<PathBuf, String> {
 	}
 }
 
-/// Writes through `<file>.tmp-<8 hex>` and a rename, so a crash leaves the old file whole.
+/// Writes through `<file>.tmp-<8 hex>` and a rename, so a crash leaves the old file whole. The
+/// temp file reaches the disk before the rename, so a power cut cannot leave an empty file.
 /// `mode` applies to a new file (Unix permissions, e.g. 0o600).
 pub fn write_atomic(file: &Path, data: &[u8], mode: Option<u32>) -> io::Result<()> {
 	let tmp = write_temp(file, mode, |out| out.write_all(data))?;
-	std::fs::rename(&tmp, file).inspect_err(|_| {
+	rename_over(&tmp, file).inspect_err(|_| {
 		let _ = std::fs::remove_file(&tmp);
 	})
+}
+
+/// Renames `from` over `to`. Windows refuses while an antivirus scanner or indexer holds the
+/// target, so a refusal is retried for about 100 ms.
+#[cfg(windows)]
+pub fn rename_over(from: &Path, to: &Path) -> io::Result<()> {
+	// ERROR_ACCESS_DENIED, ERROR_SHARING_VIOLATION and ERROR_LOCK_VIOLATION.
+	const HELD: [i32; 3] = [5, 32, 33];
+	let deadline = std::time::Instant::now() + std::time::Duration::from_millis(100);
+	let mut wait = 5;
+	loop {
+		match std::fs::rename(from, to) {
+			Err(err) if err.raw_os_error().is_some_and(|code| HELD.contains(&code)) && std::time::Instant::now() < deadline => {
+				std::thread::sleep(std::time::Duration::from_millis(wait));
+				wait = (wait * 2).min(40);
+			}
+			done => return done,
+		}
+	}
+}
+
+#[cfg(not(windows))]
+pub fn rename_over(from: &Path, to: &Path) -> io::Result<()> {
+	std::fs::rename(from, to)
+}
+
+/// Deletes the `<file>.tmp-<8 hex>` leftovers a crashed write can leave beside `file`. Call it
+/// after deleting a record, so a leftover does not keep the record's newest bytes on disk.
+pub fn remove_leftover_temps(file: &Path) {
+	let (Some(dir), Some(name)) = (file.parent(), file.file_name()) else { return };
+	let prefix = format!("{}.tmp-", name.to_string_lossy());
+	let Ok(entries) = std::fs::read_dir(dir) else { return };
+	for entry in entries.flatten() {
+		let is_temp = entry.file_name().to_string_lossy().strip_prefix(&prefix).is_some_and(|rest| rest.len() == 8 && rest.bytes().all(|b| b.is_ascii_hexdigit()));
+		if is_temp {
+			let _ = std::fs::remove_file(entry.path());
+		}
+	}
 }
 
 /// `write_atomic` for two files that go together, each written piece by piece so a big file is
@@ -73,7 +112,7 @@ pub fn write_atomic(file: &Path, data: &[u8], mode: Option<u32>) -> io::Result<(
 pub fn write_atomic_pair(first: &Path, write_first: impl FnOnce(&mut dyn Write) -> io::Result<()>, second: &Path, write_second: impl FnOnce(&mut dyn Write) -> io::Result<()>) -> io::Result<()> {
 	let first_tmp = write_temp(first, None, write_first)?;
 	let placed = write_temp(second, None, write_second).and_then(|second_tmp| {
-		std::fs::rename(&first_tmp, first).and_then(|()| std::fs::rename(&second_tmp, second)).inspect_err(|_| {
+		rename_over(&first_tmp, first).and_then(|()| rename_over(&second_tmp, second)).inspect_err(|_| {
 			let _ = std::fs::remove_file(&second_tmp);
 		})
 	});
@@ -120,7 +159,8 @@ fn write_new(file: &Path, mode: Option<u32>, write: impl FnOnce(&mut dyn Write) 
 	let _ = mode;
 	let mut out = io::BufWriter::new(options.open(file)?);
 	write(&mut out)?;
-	out.flush()
+	out.flush()?;
+	out.get_ref().sync_all()
 }
 
 /// Deletes a file; one that is not there counts as done. Other failures read like Node's
@@ -219,6 +259,20 @@ mod tests {
 		assert!(!f.exists());
 		let aside = std::fs::read_dir(d.join("sub")).unwrap().next().unwrap().unwrap().file_name();
 		assert!(aside.to_string_lossy().starts_with("a.json.corrupt-"));
+		std::fs::remove_dir_all(d).unwrap();
+	}
+
+	#[test]
+	fn leftover_temps_of_one_file_go_and_other_files_stay() {
+		let d = dir("leftovers");
+		for name in ["a.json", "a.json.tmp-0123abcd", "a.json.tmp-ffffffff", "a.json.tmp-xyz", "a.json.tmp-0123abcdef", "a.json.corrupt-1", "b.json", "b.json.tmp-0123abcd", "a.jsonx.tmp-0123abcd"] {
+			write_text_atomic(&d.join(name), "x").unwrap();
+		}
+		remove_leftover_temps(&d.join("a.json"));
+		let mut left: Vec<String> = std::fs::read_dir(&d).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+		left.sort();
+		assert_eq!(left, ["a.json", "a.json.corrupt-1", "a.json.tmp-0123abcdef", "a.json.tmp-xyz", "a.jsonx.tmp-0123abcd", "b.json", "b.json.tmp-0123abcd"]);
+		remove_leftover_temps(&d.join("gone/a.json"));
 		std::fs::remove_dir_all(d).unwrap();
 	}
 

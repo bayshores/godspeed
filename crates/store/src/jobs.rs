@@ -143,7 +143,14 @@ impl JobStore {
 			let id = job["id"].str_or_empty();
 			// An update running at the same time must not write the file back.
 			let _guard = self.locks.lock(LockKey::AppFile(&format!("jobs/{id}.json")));
-			if self.job_file(id).is_some_and(|file| std::fs::remove_file(file).is_ok()) {
+			let deleted = self.job_file(id).is_some_and(|file| {
+				let gone = std::fs::remove_file(&file).is_ok();
+				if gone {
+					fsx::remove_leftover_temps(&file);
+				}
+				gone
+			});
+			if deleted {
 				self.cache.remove(id);
 				removed += 1;
 			}

@@ -219,6 +219,7 @@ impl ChatStore {
 		if std::fs::remove_file(&file).is_err() {
 			return false;
 		}
+		fsx::remove_leftover_temps(&file);
 		// Like rmSync(dir, { recursive, force }): a missing folder is fine, and a file or link in
 		// its place goes too.
 		let removed = match std::fs::symlink_metadata(&dir) {

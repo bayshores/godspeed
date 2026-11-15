@@ -112,7 +112,9 @@ impl CheatSheetStore {
 	pub fn remove_sheet_pdfs(&self, space_id: &str, deadline_id: &str, ns: &[f64]) -> Result<(), String> {
 		let _guard = self.locks.lock(LockKey::Space(space_id));
 		for n in ns {
-			fsx::remove_if_present(&self.version_file(space_id, deadline_id, *n)?, "rm")?;
+			let version = self.version_file(space_id, deadline_id, *n)?;
+			fsx::remove_if_present(&version, "rm")?;
+			fsx::remove_leftover_temps(&version);
 		}
 		Ok(())
 	}
@@ -120,7 +122,9 @@ impl CheatSheetStore {
 	/// The sheet's record, its sent files and its versions.
 	pub fn remove_cheat_sheet(&self, space_id: &str, deadline_id: &str) -> Result<(), String> {
 		let _guard = self.locks.lock(LockKey::Space(space_id));
-		fsx::remove_if_present(&self.sheet_file(space_id, deadline_id)?, "rm")?;
+		let sheet = self.sheet_file(space_id, deadline_id)?;
+		fsx::remove_if_present(&sheet, "rm")?;
+		fsx::remove_leftover_temps(&sheet);
 		remove_dir(&self.files_dir(space_id, deadline_id)?)?;
 		remove_dir(&self.versions_dir(space_id, deadline_id)?)
 	}

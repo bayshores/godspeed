@@ -88,7 +88,9 @@ impl MockStore {
 	pub fn remove_mock(&self, space_id: &str, mock_id: &str) -> Result<(), String> {
 		let file = self.mock_file(space_id, mock_id)?;
 		let _guard = self.locks.lock(LockKey::Space(space_id));
-		fsx::remove_if_present(&file, "rm")
+		fsx::remove_if_present(&file, "rm")?;
+		fsx::remove_leftover_temps(&file);
+		Ok(())
 	}
 }
 
