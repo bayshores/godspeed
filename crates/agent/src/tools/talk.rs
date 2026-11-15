@@ -149,6 +149,12 @@ pub fn lesson_space_change_tools(actions: &SpaceActions) -> Vec<FnTool> {
 	LESSON_CHANGES.iter().map(|name| space_tool(actions, name)).collect()
 }
 
+/// What a deadline request reads and changes: the deadline, and with `files` the files it writes.
+pub fn deadline_request_tools(actions: &SpaceActions, files: bool) -> Vec<FnTool> {
+	let writes: &[&'static str] = if files { &["update_space_deadline", "add_space_file"] } else { &["update_space_deadline"] };
+	["read_space", "search_space_files", "read_passage"].iter().chain(writes).copied().map(|name| space_tool(actions, name)).collect()
+}
+
 /// Every space tool, the Talk chat's whole set.
 pub fn talk_tools(actions: &SpaceActions) -> Vec<FnTool> {
 	SPACE_TOOL_TEXT.iter().map(|(name, _)| space_tool(actions, name)).collect()

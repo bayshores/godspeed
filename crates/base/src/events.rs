@@ -23,6 +23,7 @@ pub enum EventKind {
 	RulesChanged,
 	CheatSheetChanged,
 	MocksChanged,
+	DeadlineRequestChanged,
 	FilesAdded,
 	FilesRemoved,
 }
@@ -42,6 +43,7 @@ impl EventKind {
 			EventKind::RulesChanged => "rules-changed",
 			EventKind::CheatSheetChanged => "cheat-sheet-changed",
 			EventKind::MocksChanged => "mocks-changed",
+			EventKind::DeadlineRequestChanged => "deadline-request-changed",
 			EventKind::FilesAdded => "files-added",
 			EventKind::FilesRemoved => "files-removed",
 		}

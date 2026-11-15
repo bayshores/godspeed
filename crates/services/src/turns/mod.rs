@@ -59,8 +59,6 @@ pub struct TurnsState {
 	leftover_count: Mutex<u64>,
 	/// Catch-up ran its lesson pass this run.
 	lessons_caught_up: AtomicBool,
-	/// A deadline request to Talk is on its way.
-	asking_deadlines: AtomicBool,
 	/// The questions from earlier skipped in each lesson's sitting (review).
 	review_skips: Mutex<HashMap<String, review::Skips>>,
 	/// The reply nudges each Study lesson was sent, by chat and topic (reply-nudges).
