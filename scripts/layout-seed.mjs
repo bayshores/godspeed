@@ -3,8 +3,8 @@
  *
  * A small stand-in agent talks to the app over MCP, as Claude Code would: it makes the space
  * "Lab Algebra" with a deadline and one file, reads the file into one fact, starts a lesson and
- * answers its first turn with a plan, a sourced reply and an open quiz, then answers a Talk
- * message with a sourced reply. No model runs; every word is fixed here.
+ * answers it with a plan, then a sourced reply and an open quiz, and answers a Talk message with
+ * a sourced reply. No model runs; every word is fixed here.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -26,7 +26,7 @@ function standIn(dataDir) {
 		if (body.error) throw new Error(`${method}: ${body.error.message}`);
 		return body.result;
 	};
-	/** A tool's text blocks, and its first JSON object. */
+	/** A tool's text blocks; `json` parses the first. */
 	const call = async (name, args) => {
 		const result = await rpc("tools/call", { name, arguments: args });
 		const text = (result.content ?? []).filter((block) => block.type === "text").map((block) => block.text);
@@ -41,7 +41,7 @@ function standIn(dataDir) {
  *  JSON starts with these fields, so they are read off the text. */
 export function workOf(text) {
 	const field = (name) => new RegExp(`"${name}":"([^"\\\\]+)"`).exec(text)?.[1];
-	return { workId: field("workId"), lessonId: field("lessonId"), task: field("task") };
+	return { lessonId: field("lessonId"), task: field("task") };
 }
 
 /** The day `days` from now on this computer's calendar, as YYYY-MM-DD. */

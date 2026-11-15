@@ -81,7 +81,7 @@ describe("the walk", () => {
 describe("the stand-in agent", () => {
 	it("reads what a work item is for off its text, even when cut", () => {
 		const text = '{"status":"work","workId":"work_1","lessonId":"chat_talk","lessonTitle":"Talk","kind":"talk","tools":[{"name":"x"';
-		assert.deepEqual(workOf(text), { workId: "work_1", lessonId: "chat_talk", task: undefined });
+		assert.deepEqual(workOf(text), { lessonId: "chat_talk", task: undefined });
 		assert.equal(workOf('{"status":"work","workId":"w","kind":"background task","task":"Graph extraction: a.md"}').task, "Graph extraction: a.md");
 	});
 });
