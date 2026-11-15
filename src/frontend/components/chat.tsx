@@ -613,7 +613,7 @@ export function Chat({
 										)}
 										{openPlugin && (
 											<div className="flex min-h-0 [grid-area:dock]">
-												<PluginDock key={openPlugin.id} plugin={openPlugin} context={pluginContext} onClose={() => setPluginId(null)} />
+												<PluginDock key={openPlugin.id} plugin={openPlugin} context={pluginContext} />
 											</div>
 										)}
 										<TeacherColumn
