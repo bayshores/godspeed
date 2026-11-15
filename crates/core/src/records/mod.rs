@@ -9,6 +9,7 @@ pub mod agent_rules;
 pub mod agent_seen;
 pub mod prompt_segments;
 pub mod changelog;
+pub mod plugin_settings;
 
 use gs_json::Json;
 

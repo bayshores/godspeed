@@ -23,6 +23,7 @@ Two rules hold everywhere:
 | Spaces | `data/spaces/<id>/space.json`, `files/`, `cheat-sheets/`, `mocks/` | space records and files, linked folders, deadlines, cheat sheets, interviews and mocks (§6.1, §6.2) |
 | Search index | `data/search/` and `data/spaces/<id>/search/` | `crates/search` (`app.search`): the facts and passages index for local search |
 | Stage | nothing on the server | the window: Today, space pages, the lesson screen, the Graph page, the teacher panel. It reads and writes only through `/api` |
+| Plugins | `data/plugins/<id>/` (a plugin's files, its stored JSON in `data/`) | install, remove, storage and `ask_agent` (§8.2). On/off and setting values are the `plugins` section of `settings.json` |
 | Machine room | `settings.json`, `prompts/`, `mcp-token`, `search-key`, `agent-notes.json`, `agent-seen.json`, `agent-rules.json`, `agent-actions.json`, `reminders.json`, `agent-folder.json` | the server process, `gs_base::config` (`Paths`), the outside-agent boundary (§8.1). The shell writes `mcp-endpoint.json` |
 
 ---
@@ -962,6 +963,19 @@ By default the outside agent looks things up with its own web search. A learner 
 - It is sent to `api.tavily.com` alone (`web::tavily`). Saving checks the key with Tavily first, and the page shows the searches used this month.
 - With a key, the research job gets a `web_search` tool (5 results a search).
 - `web_fetch` turns a page into markdown with Readability, with r.jina.ai as the fallback (`crates/web`). `web::guard` refuses an address on this computer or a private network, as written, after every redirect and for every resolved address.
+
+### 8.2 Plugins
+
+A plugin is a folder with a `manifest.json` (`services::plugins::manifest`), its page and its files. The window shows the page in an iframe sandboxed without `allow-same-origin`, so the page has an opaque origin and reaches godspeed only by messages to the window.
+
+| Part | How |
+|---|---|
+| Install | from a local folder (a copy) or one tag of a GitHub repository (`codeload.github.com/<owner>/<repo>/zip/refs/tags/<tag>`). Files go to a staging folder, the manifest is checked there, then it takes the plugin's place and keeps its `data/`. Links, `..`, roots, drives and backslashes are refused; hidden files are left out; at most 1000 files and 20 MB |
+| State | `settings.json` `plugins.<id>`: `enabled` (absent is on) and `values`, checked against the manifest's settings. A stale value reads as the default |
+| Files | `GET /plugin-files/<id>/<path>`, outside /api, only while the plugin is on and never from `data/`. Each answer carries a CSP from the manifest (`services::plugins::csp`): code only from the plugin's own folder, the network only at its `network` hosts, `sandbox allow-scripts` even when opened on its own. `Access-Control-Allow-Origin: *` lets module scripts and fonts load from the opaque origin |
+| /api | the frame's requests are `Sec-Fetch-Site: cross-site` (WebKit still attaches the cookie to its image and style loads), so the access gate refuses them, and the CSP blocks them first |
+| Storage | `GET` and `PUT /api/plugins/<id>/storage/<key>`: one JSON file per key in `data/`, a key of letters, digits, `_` and `-`, at most 1 MB |
+| `ask_agent` | `POST /api/plugins/<id>/ask`: one submit job for the learner's agent (`agent::subagents::plugin_asker`), labelled "<name> asked for…". Only with `uses: ["agent"]`, while on, one at a time per plugin, prompt and schema at most 4 KB each. The answer is wrapped as one field, since a tool's parameters must be an object |
 
 ---
 

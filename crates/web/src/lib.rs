@@ -1,5 +1,5 @@
 //! Web pages to markdown (Readability + Turndown, with the r.jina.ai fallback), PDF downloads,
-//! and Tavily search.
+//! Tavily search, and plugin zips from GitHub.
 
 pub mod download;
 pub mod fetch;
@@ -8,6 +8,7 @@ mod http;
 mod jina;
 mod markdown;
 pub mod tavily;
+pub mod zip_download;
 
 #[cfg(test)]
 mod fetch_tests;

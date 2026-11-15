@@ -20,7 +20,7 @@ struct Entry {
 	local: usize,
 }
 
-pub(crate) struct Zip {
+pub struct Zip {
 	buf: Vec<u8>,
 	broken: &'static str,
 	/// Names in the order they first appear; a repeated name keeps its place and takes the later entry.
@@ -37,7 +37,7 @@ fn le32(buf: &[u8], at: usize) -> usize {
 }
 
 impl Zip {
-	pub(crate) fn open(buf: Vec<u8>, broken: &'static str) -> Result<Zip, String> {
+	pub fn open(buf: Vec<u8>, broken: &'static str) -> Result<Zip, String> {
 		// Office files with a password are not zips but OLE compound files.
 		if buf.starts_with(&[0xd0, 0xcf, 0x11, 0xe0]) {
 			return Err(LOCKED.to_owned());
@@ -66,12 +66,12 @@ impl Zip {
 		self.entries.contains_key(name)
 	}
 
-	pub(crate) fn names(&self) -> impl Iterator<Item = &str> {
+	pub fn names(&self) -> impl Iterator<Item = &str> {
 		self.names.iter().map(String::as_str)
 	}
 
 	/// The file's bytes, or None when the archive has no such file.
-	pub(crate) fn read(&self, name: &str) -> Result<Option<Vec<u8>>, String> {
+	pub fn read(&self, name: &str) -> Result<Option<Vec<u8>>, String> {
 		let Some(entry) = self.entries.get(name) else { return Ok(None) };
 		if entry.flags & 1 != 0 {
 			return Err(LOCKED.to_owned());

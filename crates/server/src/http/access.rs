@@ -68,6 +68,7 @@ fn cookies(headers: &HeaderMap) -> impl Iterator<Item = &str> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::http::paths::{Target, normalize};
 
 	fn secret() -> String {
 		"a".repeat(64)
@@ -143,6 +144,20 @@ mod tests {
 		assert!(desktop().allows("/graph", &HeaderMap::new()));
 		assert!(desktop().allows("/API/settings", &HeaderMap::new()));
 		assert!(!desktop().allows("/api.json", &HeaderMap::new()));
+	}
+
+	#[test]
+	fn a_plugin_frame_is_refused_even_with_the_cookie() {
+		// An opaque-origin frame's fetch: cross-site, `Origin: null`, and WebKit may attach the cookie.
+		let mut frame = request(Some(&format!("{COOKIE}={}", secret())), Some("cross-site"));
+		frame.insert(header::ORIGIN, "null".parse().unwrap());
+		assert!(!desktop().allows("/api/plugins/memes/storage/score", &frame));
+		assert!(!desktop().allows("/api/settings", &request(None, None)));
+		// A path that climbs out of the plugin's folder is resolved before the check.
+		let Target::Route { path, .. } = normalize("/plugin-files/memes/%2e%2e/%2e%2e/api/settings") else { panic!("not resolved in place") };
+		assert_eq!(path, "/api/settings");
+		assert!(!desktop().allows(&path, &frame));
+		assert!(desktop().allows("/plugin-files/memes/index.html", &frame));
 	}
 
 	#[test]
