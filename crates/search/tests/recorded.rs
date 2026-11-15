@@ -1,6 +1,6 @@
 //! The index replays the contract scenario search-vectors without a server: the same files and
 //! facts, indexed in the same order, must give the recorded tables byte for byte (passages.json,
-//! facts.json and the hashes of every stored vector) and the recorded search answers
+//! facts.json and the hashes of every stored vector, embedded one text per run) and the recorded search answers
 //! (tests/fixtures/search-vectors.json, taken from the recording). Needs models/ at the repo root.
 
 mod common;

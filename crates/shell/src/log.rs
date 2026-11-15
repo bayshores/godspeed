@@ -38,11 +38,31 @@ pub fn line(text: &str) {
 }
 
 /// A panic is logged with its backtrace before the default hook runs, so it can be found after
-/// the window is gone.
+/// the window is gone. Release builds carry no symbols, so the backtrace keeps raw addresses and
+/// the load address; `docs/desktop-release.md` says how to turn them back into names.
 pub fn catch_panics() {
 	let default = std::panic::take_hook();
 	std::panic::set_hook(Box::new(move |info| {
-		line(&format!("uncaught: {info}\n{}", std::backtrace::Backtrace::force_capture()));
+		let trace = std::backtrace::Backtrace::force_capture();
+		line(&format!("uncaught: {info}\nload address {:#x}\n{trace:#}", load_address()));
 		default(info);
 	}));
+}
+
+/// Where this program's image starts in memory, from the symbol each linker defines for it.
+#[allow(unsafe_code)]
+fn load_address() -> usize {
+	unsafe extern "C" {
+		#[cfg(target_os = "macos")]
+		#[link_name = "_mh_execute_header"]
+		static IMAGE_START: u8;
+		#[cfg(target_os = "linux")]
+		#[link_name = "__executable_start"]
+		static IMAGE_START: u8;
+		#[cfg(windows)]
+		#[link_name = "__ImageBase"]
+		static IMAGE_START: u8;
+	}
+	// Only the symbol's address is taken; it is never read.
+	(&raw const IMAGE_START) as usize
 }
