@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { QuestionAnswerData, ReviewQuestion } from "@/shared/core";
-import { jsonInit } from "@/frontend/components/files/space-files-api";
+import { jsonInit } from "@/frontend/lib/api";
 import { fromEarlierAsk } from "./from-earlier-ask-model";
 
 /** One request to the lesson's review route. */

@@ -12,7 +12,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { DoneNotice } from "@/frontend/components/done-notice";
-import { jsonInit } from "@/frontend/components/files/space-files-api";
+import { jsonInit } from "@/frontend/lib/api";
 
 interface Fetched {
 	open: OpenDeadline[];

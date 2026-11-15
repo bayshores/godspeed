@@ -14,7 +14,7 @@ import { useNavigate, useLocation } from "react-router";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useSpaces } from "@/frontend/components/space-context";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
-import { NOTICE_STACK_ID } from "@/frontend/components/notice-stack";
+import { NOTICE_STACK_ID } from "@/frontend/components/top-bar/pill-panel";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { changeNames, changeTitle, mergeChange, type FolderChange } from "./files-notice-model";
 

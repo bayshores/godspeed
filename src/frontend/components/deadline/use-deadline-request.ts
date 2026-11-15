@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { jsonInit, send } from "@/frontend/components/files/space-files-api";
+import { jsonInit, send } from "@/frontend/lib/api";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
 import type { AskError, RequestKind, RequestState } from "./request-model";
 

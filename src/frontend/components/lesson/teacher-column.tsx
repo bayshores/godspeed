@@ -79,7 +79,7 @@ export function TeacherColumn({
 			</div>
 			<Pane className="flex min-h-0 flex-1 flex-col overflow-hidden">
 				<TeacherHead name={name} color={color} doing={doing}>
-					<FollowButton tone="sheet" />
+					<FollowButton />
 					{/* The way to the teacher's screen while its status line has nothing to say. */}
 					{terminals?.available && (
 						<button type="button" data-testid="teacher-terminal-open" onClick={() => teacher?.showTerminal()} className="lh-btn lh-btn-quiet shrink-0">

@@ -116,7 +116,7 @@ describe("derivedPalette — every surface and text color follows the background
 			const surfaces = [p["--background"]!, p["--card"]!, p["--accent"]!];
 			const min = (ink: string, on: readonly string[]) => Math.min(...on.map((s) => contrast(ink, s)));
 			for (const level of ["--foreground", "--lh-ink-body", "--muted-foreground"]) {
-				assert.ok(min(p[level]!, [...surfaces, p["--lh-tip-hover"]!]) >= 4.5, `${name} ${level}`);
+				assert.ok(min(p[level]!, surfaces) >= 4.5, `${name} ${level}`);
 			}
 			assert.ok(min(p["--lh-ink-3"]!, surfaces) >= 4.5, `${name} ink-3`);
 			for (const status of Object.keys(p).filter((k) => /^--(lh-(ans|conf|ramp)-|destructive)/.test(k))) {

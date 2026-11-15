@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MockView } from "@/shared/core";
-import { jsonInit, send } from "@/frontend/components/files/space-files-api";
+import { jsonInit, send } from "@/frontend/lib/api";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
 
 const mockUrl = (spaceId: string, mockId: string) => `/api/spaces/${encodeURIComponent(spaceId)}/mocks/${encodeURIComponent(mockId)}`;

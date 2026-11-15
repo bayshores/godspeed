@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import type { MockView } from "@/shared/core";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
+import { LivePill } from "@/frontend/components/top-bar/live-pill";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
 /** A mock's own bar, in place of the app's top bar (so it is the window's
@@ -16,6 +17,7 @@ export function MockBar({ view, children }: { view: MockView; children?: ReactNo
 			</Link>
 			<h1 className="shrink-0 text-lg font-medium">Mock {view.mock.n}</h1>
 			{children ?? <div className="flex-1" aria-hidden />}
+			<LivePill own />
 		</div>
 	);
 }

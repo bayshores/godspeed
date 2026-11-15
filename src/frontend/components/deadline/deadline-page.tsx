@@ -7,7 +7,7 @@ import { DeadlineDialog } from "@/frontend/components/space-page/deadline-dialog
 import { studioPath } from "@/frontend/components/cheat-sheet/use-cheat-sheet";
 import { useMinute } from "@/frontend/components/countdown";
 import { spaceFilePathOf, useSpaceRecord } from "@/frontend/components/files/space-files-api";
-import { jsonInit } from "@/frontend/components/files/space-files-api";
+import { jsonInit } from "@/frontend/lib/api";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { LoadFailed } from "@/frontend/components/load-failed";

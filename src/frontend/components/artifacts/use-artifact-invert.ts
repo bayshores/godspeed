@@ -1,6 +1,6 @@
 import { useContext, useState } from "react";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
-import { jsonInit } from "@/frontend/components/files/space-files-api";
+import { jsonInit } from "@/frontend/lib/api";
 
 /** An artifact card's brightness-inversion switch. The state persists on
  *  the steer record (details.ui.inverted): seeded from `initialInverted`,

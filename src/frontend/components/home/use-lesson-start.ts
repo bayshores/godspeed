@@ -4,7 +4,7 @@ import { lessonStop, type ChatAttachment, type DeadlineProgress, type GraphConte
 import { useSpaces } from "@/frontend/components/space-context";
 import { holdStartFiles } from "@/frontend/components/lesson/start-files";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
-import { jsonInit } from "@/frontend/components/files/space-files-api";
+import { jsonInit } from "@/frontend/lib/api";
 
 const LESSON_START_FAILED = "Couldn't start the lesson. Try again.";
 

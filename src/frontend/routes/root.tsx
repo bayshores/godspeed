@@ -13,7 +13,7 @@ import { SpaceProvider } from "@/frontend/components/space-context";
 import { SoundProvider } from "@/frontend/components/sounds";
 import { Onboarding } from "@/frontend/components/onboarding/onboarding";
 import { RestartNotice } from "@/frontend/components/restart-notice";
-import { NoticeStack } from "@/frontend/components/notice-stack";
+import { PillPanel } from "@/frontend/components/top-bar/pill-panel";
 import { WhatsNew } from "@/frontend/components/whats-new";
 import { FolderNotice } from "@/frontend/components/agent-folder/folder-notice";
 import { OldSetupNotice } from "@/frontend/components/agent-folder/old-setup";
@@ -63,11 +63,11 @@ export function Root() {
 							</AppearanceProvider>
 						</SpaceProvider>
 						{/* Auto-update banner (pushed by the desktop shell) and the restart notice. */}
-						<NoticeStack>
+						<PillPanel>
 							<UpdateBanner teacherName={boot.teacherName ?? DEFAULT_TEACHER_NAME} />
 							{boot.firstLoad === "restarted" && <RestartNotice />}
 							{!boot.onboarding && <OldSetupNotice />}
-						</NoticeStack>
+						</PillPanel>
 						{/* "What's new" after an update (after the welcome screen when it
 						    shows); Settings reopens it. */}
 						{!boot.onboarding && <WhatsNew since={welcome ? null : boot.whatsNewSince} />}
