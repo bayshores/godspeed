@@ -100,15 +100,24 @@ fn common_folder<'a>(names: &[&'a str]) -> &'a str {
 	if names.iter().all(|n| n.split_once('/').is_some_and(|(head, _)| head == first)) { first } else { "" }
 }
 
-/// Unpacks the zip's files into `dst`, without its one top folder. A name that would land outside
-/// (`..`, a root, a drive, a backslash) refuses the whole zip; hidden files are left out.
-fn unpack_zip(bytes: Vec<u8>, dst: &Path) -> Result<(), String> {
+/// Unpacks the files of the zip's `folder` (the whole zip when it is "") into `dst`, without the
+/// zip's one top folder. A name that would land outside (`..`, a root, a drive, a backslash)
+/// refuses the whole zip; hidden files and, with a folder, everything outside it are left out.
+fn unpack_zip(bytes: Vec<u8>, dst: &Path, folder: &str) -> Result<(), String> {
 	let zip = Zip::open(bytes, NOT_A_ZIP)?;
 	let names: Vec<&str> = zip.names().collect();
 	let top = common_folder(&names);
 	let mut budget = Budget::default();
 	for name in &names {
 		let inner = if top.is_empty() { *name } else { &name[top.len() + 1..] };
+		let inner = if folder.is_empty() {
+			inner
+		} else {
+			match inner.strip_prefix(folder).and_then(|rest| rest.strip_prefix('/')) {
+				Some(rest) => rest,
+				None => continue,
+			}
+		};
 		let hidden = inner.split('/').any(|part| part.starts_with('.') && part != "." && part != "..");
 		if inner.is_empty() || inner.ends_with('/') || hidden {
 			continue;
@@ -119,6 +128,9 @@ fn unpack_zip(bytes: Vec<u8>, dst: &Path) -> Result<(), String> {
 		let data = zip.read(name)?.unwrap_or_default();
 		budget.take(data.len() as u64)?;
 		write_file(dst, inner, &data)?;
+	}
+	if budget.files == 0 && !folder.is_empty() {
+		return Err(format!("The tag has no folder {folder}."));
 	}
 	Ok(())
 }
@@ -166,14 +178,19 @@ pub fn install_from_folder(app: &App, folder: &str) -> Outcome<Json> {
 	finish(app, staged)
 }
 
-/// Installs the listed plugin in a zip of its tag. Its manifest must have what the entry was
-/// reviewed with, and the entry's repo and tag are kept beside the plugin.
+/// Installs the listed plugin in a zip of its tag, from the entry's `path` folder when it has one.
+/// Its manifest must have what the entry was reviewed with, and the entry's repo, tag and path are
+/// kept beside the plugin.
 fn install_listed_zip(app: &App, entry: &Json, bytes: Vec<u8>) -> Outcome<Json> {
 	let staged = staging(app)?;
-	unpack_zip(bytes, &staged.0).map_err(refused)?;
+	unpack_zip(bytes, &staged.0, entry["path"].str_or_empty()).map_err(refused)?;
 	let manifest = read_manifest(&staged.0).map_err(refused)?;
 	same_as_reviewed(entry, &manifest).map_err(refused)?;
-	fsx::write_json_atomic(&staged.0.join(SOURCE_FILE), &json!({ "repo": entry["repo"], "tag": entry["tag"] }))?;
+	let mut source = json!({ "repo": entry["repo"], "tag": entry["tag"] });
+	if let (Some(fields), Some(path)) = (source.as_obj_mut(), entry["path"].as_str()) {
+		fields.insert("path", path);
+	}
+	fsx::write_json_atomic(&staged.0.join(SOURCE_FILE), &source)?;
 	finish(app, staged)
 }
 
@@ -204,6 +221,21 @@ mod tests {
 
 	fn install_zip(app: &App, bytes: Vec<u8>) -> Outcome<Json> {
 		install_listed_zip(app, &entry("v0.2.0"), bytes)
+	}
+
+	/// The list repo's zip of `tag`, the test plugin in its folder `memes/` beside another plugin.
+	fn list_repo_zip(tag: &str, page: &[u8]) -> Vec<u8> {
+		let manifest = manifest_text(&json!({}));
+		let names = ["plugins.json", "memes/manifest.json", "memes/index.html", "memes/js/app.js", "quiz/manifest.json"].map(|path| format!("godspeed-plugins-{tag}/{path}"));
+		let bodies: [&[u8]; 5] = [b"{}", manifest.as_bytes(), page, b"go()", b"{}"];
+		let entries: Vec<(&str, &[u8])> = names.iter().map(String::as_str).zip(bodies).collect();
+		zip_of(&entries)
+	}
+
+	fn in_folder(tag: &str) -> Json {
+		let mut entry = entry(tag);
+		entry.as_obj_mut().unwrap().insert("path", "memes");
+		entry
 	}
 
 	fn plugin_zip(overrides: &Json, page: &[u8]) -> Vec<u8> {
@@ -336,5 +368,46 @@ mod tests {
 		assert_eq!(install_from_list(&app, "memes").await, not_listed);
 		listed_plugins(&app).await;
 		assert_eq!(install_from_list(&app, "other").await, not_listed);
+	}
+
+	#[test]
+	fn a_plugin_in_a_folder_of_the_list_repo_installs_that_folder_only() {
+		let root = scratch_dir("plugin-folder-zip");
+		let app = test_app(&root);
+		let view = install_listed_zip(&app, &in_folder("memes-v1"), list_repo_zip("memes-v1", b"v1")).unwrap();
+		let dir = plugin_dir(&app, "memes");
+		assert!(dir.join("js/app.js").is_file() && !dir.join("plugins.json").exists() && !dir.join("quiz").exists() && !dir.join("memes").exists());
+		assert_eq!(view["source"], json!({ "repo": "808arc/meme-plugin", "tag": "memes-v1", "path": "memes" }));
+	}
+
+	#[test]
+	fn a_missing_folder_or_a_name_escaping_it_is_refused_and_nothing_is_kept() {
+		let root = scratch_dir("plugin-folder-bad");
+		let app = test_app(&root);
+		let mut elsewhere = in_folder("v1");
+		elsewhere.as_obj_mut().unwrap().insert("path", "cards");
+		assert_eq!(refusal(install_listed_zip(&app, &elsewhere, list_repo_zip("v1", b"x"))), "The tag has no folder cards.");
+		let manifest = manifest_text(&json!({}));
+		let no_manifest = zip_of(&[("top/memes/index.html", b"x"), ("top/plugins.json", b"{}")]);
+		assert_eq!(refusal(install_listed_zip(&app, &in_folder("v1"), no_manifest)), "The folder has no manifest.json.");
+		for evil in ["top/memes/../evil.js", "top/memes/../../evil.js", "top/memes/a/../../x.js", "top/memes/data/score.json"] {
+			let zip = zip_of(&[("top/memes/manifest.json", manifest.as_bytes()), ("top/memes/index.html", b"x"), ("top/plugins.json", b"{}"), (evil, b"x")]);
+			assert!(refusal(install_listed_zip(&app, &in_folder("v1"), zip)).starts_with("The zip has a file that would land outside"), "{evil}");
+		}
+		assert_eq!(std::fs::read_dir(plugins_root(&app)).unwrap().count(), 0);
+		assert!(!root.join("data/evil.js").exists() && !root.join("data/plugins/evil.js").exists());
+	}
+
+	#[test]
+	fn an_update_of_a_plugin_in_a_folder_keeps_its_state_when_only_the_tag_moves() {
+		let root = scratch_dir("plugin-folder-update");
+		let app = test_app(&root);
+		let manifest = install_listed_zip(&app, &in_folder("memes-v1"), list_repo_zip("memes-v1", b"v1")).unwrap()["manifest"].clone();
+		set_state(&app, "memes", &manifest, &json!({ "enabled": false })).unwrap();
+		storage_set(&app, "memes", "score", &json!(3)).unwrap();
+		let view = install_listed_zip(&app, &in_folder("memes-v2"), list_repo_zip("memes-v2", b"v2")).unwrap();
+		assert_eq!(std::fs::read_to_string(plugin_dir(&app, "memes").join("index.html")).unwrap(), "v2");
+		assert_eq!((view["enabled"].clone(), view["source"]["tag"].clone()), (json!(false), json!("memes-v2")));
+		assert_eq!(storage_get(&app, "memes", "score"), Ok(json!(3)));
 	}
 }

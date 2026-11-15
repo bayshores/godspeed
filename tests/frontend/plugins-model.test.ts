@@ -64,10 +64,13 @@ describe("adding from godspeed's list", () => {
 		assert.equal(addAction(0, false), null);
 	});
 
-	it("Update shows only for a plugin from the list whose listed repo or tag moved", () => {
+	it("Update shows only for a plugin from the list whose listed repo, tag or folder moved", () => {
 		const from = (tag: string, repo = "ann/quiz") => installed({ source: { repo, tag } });
 		assert.equal(updateFor(from("v0.9.0"), [LISTED]), LISTED);
 		assert.equal(updateFor(from("v1.0.0", "old/quiz"), [LISTED]), LISTED);
+		const inFolder = { ...LISTED, path: "quiz" };
+		assert.equal(updateFor(from("v1.0.0"), [inFolder]), inFolder, "the list moved it into a folder");
+		assert.equal(updateFor(installed({ source: { repo: "ann/quiz", tag: "v1.0.0", path: "quiz" } }), [inFolder]), null);
 		assert.equal(updateFor(from("v1.0.0"), [LISTED]), null);
 		assert.equal(updateFor(installed({}), [LISTED]), null, "added from a folder");
 		assert.equal(updateFor(from("v0.9.0"), []), null, "no longer listed");

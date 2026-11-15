@@ -39,7 +39,8 @@ fn no_list(problem: &str) -> Json {
 	json!([])
 }
 
-/// `{ id, repo, tag, name, description, lesson?, space?, network, uses }`.
+/// `{ id, repo, tag, path?, name, description, lesson?, space?, network, uses }`; `path` is the one
+/// folder of the repo the plugin is in, when it isn't at the top.
 fn check_entry(raw: &Json) -> Result<Json, String> {
 	static OWNER: LazyLock<Re> = LazyLock::new(|| Re::new(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$", ""));
 	static NAME: LazyLock<Re> = LazyLock::new(|| Re::new(r"^[A-Za-z0-9_][A-Za-z0-9._+-]{0,99}$", ""));
@@ -48,9 +49,17 @@ fn check_entry(raw: &Json) -> Result<Json, String> {
 		return Err("repo must be owner/name".to_owned());
 	}
 	let Some(tag) = raw["tag"].as_str().filter(|t| NAME.test(t)) else { return Err("tag must be one tag, like v1.0.0".to_owned()) };
+	static FOLDER: LazyLock<Re> = LazyLock::new(|| Re::new(r"^[a-z0-9-]{1,64}$", ""));
+	let path = match &raw["path"] {
+		Json::Null => None,
+		path => Some(path.as_str().filter(|p| FOLDER.test(p)).ok_or("path must be one folder name of a-z, 0-9 and -")?),
+	};
 	let mut entry = check_listed(raw)?;
 	entry.insert("repo", repo);
 	entry.insert("tag", tag);
+	if let Some(path) = path {
+		entry.insert("path", path);
+	}
 	Ok(Json::Obj(entry))
 }
 
@@ -126,6 +135,9 @@ mod tests {
 			r#"[{"id":"memes","name":"Memes","description":"Turns the question into a meme.","lesson":{"label":"Memes"},"network":["api.memegen.link"],"uses":["agent"],"repo":"808arc/meme-plugin","tag":"v0.2.0"}]"#
 		);
 		assert_eq!(parse_list(r#"{ "version": 1, "plugins": [] }"#), json!([]));
+		let in_folder = MEMES.replace(r#""tag": "v0.2.0","#, r#""tag": "memes-v1", "path": "memes-2","#);
+		assert_eq!(parse_list(&list_of(&[&in_folder]))[0]["path"], json!("memes-2"));
+		assert_eq!(parse_list(&list_of(&[&MEMES.replace(r#""stars": 5"#, r#""path": null"#)]))[0].get("path"), None);
 	}
 
 	#[test]
@@ -151,6 +163,14 @@ mod tests {
 			bad_entry("lesson", "null"),
 			bad_entry("uses", r#"["files"]"#),
 			bad_entry("network", r#"["localhost"]"#),
+			bad_entry("repo", r#""808arc/meme-plugin", "path": "a/b""#),
+			bad_entry("repo", r#""808arc/meme-plugin", "path": "..""#),
+			bad_entry("repo", r#""808arc/meme-plugin", "path": ".memes""#),
+			bad_entry("repo", r#""808arc/meme-plugin", "path": "Memes""#),
+			bad_entry("repo", r#""808arc/meme-plugin", "path": "a\\b""#),
+			bad_entry("repo", r#""808arc/meme-plugin", "path": """#),
+			bad_entry("repo", r#""808arc/meme-plugin", "path": 3"#),
+			bad_entry("repo", &format!(r#""808arc/meme-plugin", "path": "{}""#, "a".repeat(65))),
 		];
 		let later = MEMES.replace("v0.2.0", "v0.3.0");
 		let quiz = MEMES.replace(r#""id": "memes""#, r#""id": "quiz""#);
