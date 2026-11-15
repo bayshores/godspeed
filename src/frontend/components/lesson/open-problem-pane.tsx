@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { prefersReducedMotion } from "@/frontend/components/presence";
+import { escapeRegex } from "@/shared/core";
 import { proseVars } from "./question-parts";
 
 /**
@@ -47,7 +48,7 @@ export function OpenProblemPane({
 
 /** The block that starts the part: "(b) …", "b) …", "b. …" or "Part b …". */
 function partElement(root: HTMLElement, part: string): HTMLElement | null {
-	const p = part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	const p = escapeRegex(part);
 	const start = new RegExp(`^\\s*(\\(${p}\\)|${p}[).:]|part\\s+\\(?${p}\\b)`, "i");
 	for (const el of root.querySelectorAll<HTMLElement>("p, li, h1, h2, h3, h4")) {
 		if (start.test(el.textContent ?? "")) return el;

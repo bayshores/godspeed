@@ -7,8 +7,7 @@
  * With no open deadline that has files, the lower sheet covers the whole space.
  */
 import { memo, useCallback, useRef, useState } from "react";
-import { deadlineStudyLabel, type DeadlineProgress, type TopicProgress, type WorkOnNextItem } from "@/shared/core";
-import { longDay } from "@/frontend/components/home-page/home-page-model";
+import { deadlineStudyLabel, longDay, type DeadlineProgress, type TopicProgress, type WorkOnNextItem } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { Pane } from "@/frontend/components/ui/pane";

@@ -10,6 +10,7 @@
 import type { LhMessage } from "./native-messages.ts";
 import type { KeepCheckDetails, KeptDropDetails } from "./contracts/chat.ts";
 import type { LhViewMessage } from "./view.ts";
+import { isRecord } from "./is-record.ts";
 
 /** What a kept card shows. Flat, so an unchanged card compares equal and
  *  its row skips the redraw. `source` is a stored source mark. */
@@ -33,7 +34,7 @@ function keepOf(args: unknown): Record<string, unknown> | null {
 			return null;
 		}
 	}
-	return keep && typeof keep === "object" && !Array.isArray(keep) ? (keep as Record<string, unknown>) : null;
+	return isRecord(keep) ? keep : null;
 }
 
 const textOf = (value: unknown): string | undefined => (typeof value === "string" && value.trim() !== "" ? value : undefined);

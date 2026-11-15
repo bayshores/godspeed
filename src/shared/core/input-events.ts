@@ -38,20 +38,18 @@ import {
 	danglingQuestionOf,
 	newAnswerResult,
 	newNextMessage,
-	newProblemDismissedMarker,
+	
 	newSideQuestion,
 	newUserMessage,
-	pendingProblemDismissalOf,
-} from "./native-messages.ts";
-import { answerTakesFiles, toolQuestionKind } from "./pending.ts";
+	pendingProblemDismissalOf } from "./native-messages.ts";
+import { answerTakesFiles } from "./pending.ts";
 import {
-	attachmentRefusal,
-	base64Bytes,
-	MAX_ATTACHMENTS,
-	TOO_MANY_REFUSAL,
+	
+	
+	
+	
 	type AttachmentPart,
-	type ChatAttachment,
-} from "./attachments.ts";
+	type ChatAttachment } from "./attachments.ts";
 
 /** One client-originated input event (the POST body's `input`). */
 export type ChatInput =
@@ -71,126 +69,8 @@ export type ChatInput =
 	 *  its own; null is Skip question. */
 	| { type: "opener-answer"; topicDoneCallId: string; answer: QuestionAnswerData | null };
 
-/** The dismissal event: NEVER composes a
- *  turn — the silent route appends + persists and wakes nothing. The
- *  answer rides the event (mirroring the answer event) but must actually
- *  BE a dismissal: the silent path must never inject a live answer
- *  wake-free. Parallel question calls each get their own dismiss event;
- *  results reference their calls by id, so the appends stay independent. */
-type DismissInput =
-	| { type: "dismiss"; toolCallId: string; answer: QuestionAnswerData }
-	/** The problem discard (practice): ask-style — the
-	 *  silent route appends the UI-only marker and wakes nothing; the
-	 *  conclude pair rides the user's NEXT input (inputAppends). */
-	| { type: "dismiss-problem"; problemCallId: string };
-
-/** Parse and validate a dismissal event off a request body. */
-export function parseDismissInput(input: unknown): DismissInput {
-	if (typeof input !== "object" || input === null) throw new ChatInputError("input must be an object");
-	const i = input as Record<string, unknown>;
-	if (i.type === "dismiss-problem") {
-		if (typeof i.problemCallId !== "string" || i.problemCallId.length === 0) {
-			throw new ChatInputError("dismiss-problem input requires problemCallId");
-		}
-		return { type: "dismiss-problem", problemCallId: i.problemCallId };
-	}
-	if (i.type !== "dismiss") throw new ChatInputError(`unknown input type: ${String(i.type)}`);
-	if (typeof i.toolCallId !== "string" || i.toolCallId.length === 0) {
-		throw new ChatInputError("dismiss input requires toolCallId");
-	}
-	const answer = i.answer as QuestionAnswerData | undefined;
-	if (typeof answer !== "object" || answer === null) {
-		throw new ChatInputError("dismiss input requires the dismissal answer object");
-	}
-	if (answer.dismissed !== true) {
-		throw new ChatInputError("dismiss input's answer must be a dismissal (dismissed: true)");
-	}
-	return { type: "dismiss", toolCallId: i.toolCallId, answer };
-}
-
-/** The native appends a dismissal makes (pure — same orphan discipline
- *  as answers: the call must be a DANGLING question call, or — the
- *  practice variant — the ACTIVE problem). */
-export function dismissAppends(record: { messages: LhMessage[] }, input: DismissInput): LhMessage[] {
-	if (input.type === "dismiss-problem") {
-		const active = activeProblemOf(record.messages);
-		if (!active || active.toolCallId !== input.problemCallId) {
-			throw new ChatInputError("dismiss-problem input targets no active problem");
-		}
-		return [newProblemDismissedMarker(input.problemCallId)];
-	}
-	const pending = danglingQuestionOf(record.messages);
-	if (!pending || pending.toolCallId !== input.toolCallId) {
-		throw new ChatInputError("dismiss input targets no pending question call");
-	}
-	if (input.answer.kind !== toolQuestionKind(pending.tool)) {
-		throw new ChatInputError("dismiss input's answer kind does not match the question");
-	}
-	return [newAnswerResult(input.toolCallId, pending.tool, input.answer)];
-}
-
 /** A malformed input event (the honest 400 — the orphan-trap discipline). */
-export class ChatInputError extends Error {}
-
-/** Parse and validate an input event off a request body. */
-export function parseChatInput(input: unknown): ChatInput {
-	if (typeof input !== "object" || input === null) throw new ChatInputError("input must be an object");
-	const i = input as Record<string, unknown>;
-	switch (i.type) {
-		case "text": {
-			const attachments = parseAttachments(i.attachments);
-			if (typeof i.text !== "string" || (i.text.trim().length === 0 && !attachments)) {
-				throw new ChatInputError("text input requires non-empty text or attachments");
-			}
-			return { type: "text", text: i.text, ...(attachments ? { attachments } : {}) };
-		}
-		case "answer": {
-			if (typeof i.toolCallId !== "string" || i.toolCallId.length === 0) {
-				throw new ChatInputError("answer input requires toolCallId");
-			}
-			if (typeof i.answer !== "object" || i.answer === null) {
-				throw new ChatInputError("answer input requires the graded answer object");
-			}
-			const attachments = parseAttachments(i.attachments);
-			return { type: "answer", toolCallId: i.toolCallId, answer: i.answer as QuestionAnswerData, ...(attachments ? { attachments } : {}) };
-		}
-		case "continue":
-			return { type: "continue" };
-		case "side": {
-			const attachments = parseAttachments(i.attachments);
-			if (typeof i.text !== "string" || (i.text.trim().length === 0 && !attachments)) {
-				throw new ChatInputError("side input requires non-empty text or attachments");
-			}
-			return { type: "side", text: i.text, ...(attachments ? { attachments } : {}) };
-		}
-		case "next":
-			return { type: "next" };
-		default:
-			throw new ChatInputError(`unknown input type: ${String(i.type)}`);
-	}
-}
-
-const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
-
-/** An input's files: absent, or 1 to MAX_ATTACHMENTS well-formed files the
- *  composer would have accepted. Anything else is a 400. */
-function parseAttachments(raw: unknown): ChatAttachment[] | undefined {
-	if (raw === undefined) return undefined;
-	if (!Array.isArray(raw) || raw.length === 0) throw new ChatInputError("attachments must be a non-empty list");
-	if (raw.length > MAX_ATTACHMENTS) throw new ChatInputError(TOO_MANY_REFUSAL);
-	return raw.map((a: unknown) => {
-		const { name, mimeType, data } = (a ?? {}) as Record<string, unknown>;
-		if (typeof name !== "string" || !name.trim() || typeof mimeType !== "string" || !mimeType) {
-			throw new ChatInputError("each attachment requires a name and a mimeType");
-		}
-		if (typeof data !== "string" || data.length % 4 !== 0 || !BASE64.test(data)) {
-			throw new ChatInputError(`${name} is not valid base64`);
-		}
-		const refusal = attachmentRefusal({ name, type: mimeType, size: base64Bytes(data) });
-		if (refusal) throw new ChatInputError(refusal);
-		return { name, mimeType, data };
-	});
-}
+class ChatInputError extends Error {}
 
 /**
  * The native appends an input event makes to the record (pure). The caller

@@ -76,17 +76,3 @@ export function resolveSettings(record: UserSettings | null): EffectiveSettings 
 
 // ─── Graph tools gate ────────────────────────────────────────────────────────
 
-/**
- * The PROBER GRAPH TOOLS gate: the
- * toggle is an agent-capability switch (it gates tool registration), but
- * the tools only mean anything when the graph itself runs — so the
- * effective gate composes the graph master switch AND the toggle.
- * Teacher's tool factories consume this at registration time.
- */
-export function graphToolsEnabled(effective: {
-	graph: { enabled: boolean };
-	agent: { graphTools: { enabled?: boolean } };
-}): boolean {
-	return effective.graph.enabled && (effective.agent.graphTools.enabled ?? true);
-}
-

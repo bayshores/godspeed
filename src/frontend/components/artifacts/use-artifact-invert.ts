@@ -1,5 +1,6 @@
 import { useContext, useState } from "react";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
+import { jsonInit } from "@/frontend/components/files/space-files-api";
 
 /** An artifact card's brightness-inversion switch. The state persists on
  *  the steer record (details.ui.inverted): seeded from `initialInverted`,
@@ -11,11 +12,7 @@ export function useArtifactInvert(messageId: string | undefined, initialInverted
 	const toggleInverted = (next: boolean) => {
 		setInverted(next);
 		if (!actions?.chatId || !messageId) return;
-		void fetch(`/api/chats/${actions.chatId}/artifact-ui`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ input: { messageId, inverted: next } }),
-		}).catch(() => {});
+		void fetch(`/api/chats/${actions.chatId}/artifact-ui`, jsonInit("POST", { input: { messageId, inverted: next } })).catch(() => {});
 	};
 	return [inverted, toggleInverted];
 }

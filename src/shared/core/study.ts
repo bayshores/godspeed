@@ -8,11 +8,9 @@
  * The topics become the study context the agent reads and the plan the
  * step bar shows (one node per topic). Pure and browser-safe.
  */
-import { daysBetween, topicFacts, type AnswerOutcome, type DeadlineProgress, type FactProgress, type TopicProgress, type TopicStatus } from "./progress.ts";
-import type { PlanTree, TopicMaterial } from "./contracts.ts";
+import { daysBetween, type AnswerOutcome, type DeadlineProgress, type TopicProgress, type TopicStatus } from "./progress.ts";
+import type { TopicMaterial } from "./contracts.ts";
 import { planDays } from "./deadline-plan.ts";
-import { dateInName } from "./file-series.ts";
-import { createTree } from "./plan-tree.ts";
 import { localDay } from "./today-note.ts";
 
 interface StudyTopic {
@@ -46,30 +44,6 @@ function studyTopic(t: StudiedTopic, factIds: string[]): StudyTopic {
 		...(latestWrong ? { latestWrong: true as const } : {}),
 		factIds,
 	};
-}
-
-/**
- * Each fact's place in the space's order: the files sorted the way the
- * deadline page lists days (dated files by date, then undated ones
- * by name), and a fact sits where the file it came from sits. Facts born
- * in a lesson have no place.
- */
-export function factSpaceOrder(
-	facts: ReadonlyArray<{ id: string; born: string | null }>,
-	files: ReadonlyArray<{ name: string; sourceId: string }>,
-): Map<string, number> {
-	const dated = files.map((f) => ({ f, date: dateInName(f.name) }));
-	const sorted = [
-		...dated.filter((d) => d.date !== null).sort((a, b) => a.date!.localeCompare(b.date!)),
-		...dated.filter((d) => d.date === null).sort((a, b) => a.f.name.localeCompare(b.f.name, undefined, { numeric: true })),
-	];
-	const rankOf = new Map(sorted.map((d, i) => [d.f.sourceId, i]));
-	const out = new Map<string, number>();
-	for (const fact of facts) {
-		const rank = fact.born === null ? undefined : rankOf.get(fact.born);
-		if (rank !== undefined) out.set(fact.id, rank);
-	}
-	return out;
 }
 
 /**
@@ -107,80 +81,6 @@ function inSpaceOrder(topics: readonly StudyTopic[], spaceOrder: ReadonlyMap<str
 		.map((t) => ({ t, rank: rank(t) }))
 		.sort((a, b) => a.rank - b.rank)
 		.map((r) => r.t);
-}
-
-/** A session holds at most this many facts. */
-export const MAX_STUDY_FACTS = 64;
-
-/**
- * A session on space topics (a Study start on topics or on a deadline):
- * each topic with its facts, the ones to fix first. Whole topics fill the
- * session until the next one would pass MAX_STUDY_FACTS facts (always at
- * least one; one bigger than that keeps its first MAX_STUDY_FACTS facts),
- * and the kept ones are listed in space order.
- *
- * Topics fill in space order. A deadline start passes `studiedToday`, so
- * each Study click moves on: first the topics that are not strong and
- * were not studied today, then not strong but studied today, then strong,
- * each group in space order.
- */
-export function topicStudy(input: {
-	topicIds: readonly string[];
-	topics: readonly StudiedTopic[];
-	facts: readonly FactProgress[];
-	spaceOrder: ReadonlyMap<string, number>;
-	/** Deadline starts: the topics that are plan nodes of today's study sessions. */
-	studiedToday?: ReadonlySet<string>;
-}): StudyTopic[] {
-	const byId = new Map(input.topics.map((t) => [t.id, t]));
-	const candidates = inSpaceOrder(
-		[...new Set(input.topicIds)].flatMap((id) => {
-			const t = byId.get(id);
-			return t ? [studyTopic(t, topicFacts(input.facts, t).map((f) => f.id))] : [];
-		}),
-		input.spaceOrder,
-	);
-	const today = input.studiedToday;
-	const tier = (t: StudyTopic) => (!today ? 0 : t.status === "strong" ? 2 : today.has(t.id) ? 1 : 0);
-	const kept = new Set<StudyTopic>();
-	let count = 0;
-	for (const t of [...candidates].sort((a, b) => tier(a) - tier(b))) {
-		if (kept.size > 0 && count + t.factIds.length > MAX_STUDY_FACTS) break;
-		kept.add(t);
-		count += t.factIds.length;
-	}
-	return candidates.filter((t) => kept.has(t)).map((t) => ({ ...t, factIds: t.factIds.slice(0, MAX_STUDY_FACTS) }));
-}
-
-/** A Study start's title and first message on space topics. */
-export function studyTitle(topics: readonly Pick<StudyTopic, "name">[]): string {
-	return `Study: ${topics.map((t) => t.name).join(", ")}`;
-}
-
-/** "procedure, weak (latest wrong)": what the study prompt's move table reads. */
-function materialAndStanding(t: StudyTopic): string {
-	return `${t.material ? `${t.material}, ` : ""}${t.status}${t.latestWrong ? " (latest wrong)" : ""}`;
-}
-
-/** The study context's model-facing text: names, standings and fact ids
- *  only (the graph context above it carries the statements). */
-export function studyContextText(topics: readonly StudyTopic[]): string {
-	return [
-		"[Study plan] — this session's topics, in the order the space covered them, each with its plan node, its material and where he stands from his track record:",
-		...topics.map(
-			(t, i) =>
-				`${i + 1}. ${t.name} — node ${t.id}, ${materialAndStanding(t)}${t.factIds.length > 0 ? `, facts ${t.factIds.join(", ")}` : ", no facts in the space graph yet"}`,
-		),
-	].join("\n");
-}
-
-/** The plan the app writes for a study session: one node per topic, in
- *  space order (the step bar keeps authored order when there are no edges). */
-export function studyPlanTree(topics: readonly StudyTopic[]): PlanTree {
-	return createTree(
-		topics.map((t) => ({ id: t.id, title: t.name })),
-		[],
-	);
 }
 
 /** A strong topic is checked again once its newest answer is this many days old. */

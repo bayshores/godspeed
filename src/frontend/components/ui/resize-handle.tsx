@@ -1,30 +1,20 @@
 import { useEffect, useRef, useState } from "react";
+import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { draggedWidth, keyedWidth, storedWidth, type PaneBounds } from "./pane-width-model";
 
 const storageKey = (key: string) => `lh:pane-width:${key}`;
+
+function saveWidth(key: string, width: number | null) {
+	writeStorage(storageKey(key), width === null ? null : String(width));
+}
 
 /** A pane's width, remembered across restarts. Starts at the default so the
  *  server render matches, then picks up the stored width. `bounds` must be
  *  a module constant. */
 export function usePaneWidth(key: string, bounds: PaneBounds): [number, (width: number) => void] {
 	const [width, setWidth] = useState(bounds.initial);
-	useEffect(() => {
-		try {
-			setWidth(storedWidth(localStorage.getItem(storageKey(key)), bounds));
-		} catch {
-			// No storage: the default width stands.
-		}
-	}, [key, bounds]);
+	useEffect(() => setWidth(storedWidth(readStorage(storageKey(key)), bounds)), [key, bounds]);
 	return [width, setWidth];
-}
-
-function saveWidth(key: string, width: number | null) {
-	try {
-		if (width === null) localStorage.removeItem(storageKey(key));
-		else localStorage.setItem(storageKey(key), String(width));
-	} catch {
-		// No storage: the width lasts until the window closes.
-	}
 }
 
 /**

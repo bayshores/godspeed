@@ -19,7 +19,6 @@ import {
 	filterGroups,
 	kindNote,
 	listRules,
-	shortDate,
 	fileBrowserName,
 	studiedFill,
 } from "../../src/frontend/components/files/files-model.ts";
@@ -220,11 +219,6 @@ describe("files-model", () => {
 		assert.deepEqual(filterGroups(groups, "  SYLLABUS ").map((g) => g.label), ["Other"]);
 		assert.deepEqual(filterGroups(groups, "nothing like this"), []);
 		assert.equal(filterGroups(groups, " ").length, groups.length);
-	});
-
-	it("shortDate is a calendar day with its weekday", () => {
-		assert.equal(shortDate("2026-09-25"), "Fri Sep 25");
-		assert.equal(shortDate("2026-11-01"), "Sun Nov 1");
 	});
 
 	it("filesSummary counts files by kind", () => {

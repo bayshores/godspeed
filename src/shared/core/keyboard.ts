@@ -132,10 +132,6 @@ export function isTypingSurface(e: KeyboardEvent): boolean {
 export const IS_MAC =
 	typeof navigator !== "undefined" && /mac/i.test(navigator.platform || navigator.userAgent);
 
-const MOD_GLYPH = IS_MAC ? "⌘" : "Ctrl+";
-const ALT_GLYPH = IS_MAC ? "⌥" : "Alt+";
-const SHIFT_GLYPH = IS_MAC ? "⇧" : "Shift+";
-
 const KEY_GLYPH: Record<string, string> = {
 	arrowup: "↑",
 	arrowdown: "↓",
@@ -155,18 +151,6 @@ function splitBinding(binding: string): { mods: string[]; key: string } {
 	const parts = binding.split("+");
 	const key = parts.pop()!; // last part is always the key
 	return { mods: parts, key: key === " " ? "space" : key };
-}
-
-/** Format a binding for display: "mod+shift+f" → "⌘⇧F". */
-export function formatBinding(binding: string): string {
-	const { mods, key } = splitBinding(binding);
-	const glyphs: string[] = [];
-	for (const part of mods) {
-		if (part === "mod") glyphs.push(MOD_GLYPH);
-		else if (part === "alt") glyphs.push(ALT_GLYPH);
-		else if (part === "shift") glyphs.push(SHIFT_GLYPH);
-	}
-	return glyphs.join("") + (KEY_GLYPH[key] ?? key.toUpperCase());
 }
 
 const KEY_NAME: Record<string, string> = { mod: IS_MAC ? "⌘" : "Ctrl", alt: IS_MAC ? "⌥" : "Alt", shift: "Shift", enter: IS_MAC ? "Return" : "Enter", tab: "Tab" };

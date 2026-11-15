@@ -17,7 +17,6 @@ import { describe, it } from "node:test";
 import { OpenProblemPane } from "../../src/frontend/components/lesson/open-problem-pane.tsx";
 import { ConcludeCard, ProblemCard, ThinkingCard } from "../../src/frontend/components/practice-cards.tsx";
 import { GraphContextCard } from "../../src/frontend/components/graph-context-card.tsx";
-import { newGraphContextMessage } from "../../src/shared/core/native-messages.ts";
 import { projectView } from "../../src/shared/core/view.ts";
 import type { ArtifactPartProps } from "../../src/shared/core";
 import { PRACTICE_PROBLEM_TOOL, type LhMessage } from "../../src/shared/core/native-messages.ts";
@@ -210,9 +209,8 @@ describe("GraphContextCard", () => {
 	});
 
 	it("the marker projects to the card's part (projectView fold)", () => {
-		const view = projectView([newGraphContextMessage(
-			[{ id: "n1", name: "A", statement: "S." }], [],
-		) as unknown as LhMessage]);
+		const marker = { id: "g1", role: "custom", customType: "graph-context", content: "", display: true, details: { propositions: [{ id: "n1", name: "A", statement: "S." }], chains: [] }, timestamp: 1 };
+		const view = projectView([marker as unknown as LhMessage]);
 		assert.equal((view[0]!.parts[0] as { type: string }).type, "data-graph-context");
 	});
 });

@@ -130,28 +130,25 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 		model.onSent = wake;
 	}, [model, wake]);
 
-	const send = useCallback((input: ChatInput) => model.send(input), [model]);
-	const continueIfOwed = useCallback((record: readonly LhMessage[]) => void model.continueIfOwed(record), [model]);
-	const steer = useCallback((text: string) => model.steer(text), [model]);
-	const submitAnswer = useCallback(
-		(toolCallId: string, output: QuestionAnswerData, attachments: ChatAttachment[]) => model.submitAnswer(toolCallId, output, attachments),
+	// Stable for the model's life, so a consumer's effects don't re-run on every render.
+	const api = useMemo(
+		() => ({
+			send: (input: ChatInput) => model.send(input),
+			continueIfOwed: (record: readonly LhMessage[]) => void model.continueIfOwed(record),
+			steer: (text: string) => model.steer(text),
+			submitAnswer: (toolCallId: string, output: QuestionAnswerData, attachments: ChatAttachment[]) => model.submitAnswer(toolCallId, output, attachments),
+			dismissQuestion: (toolCallId: string, answer: QuestionAnswerData) => void model.dismissQuestion(toolCallId, answer),
+			keepGoing: (stopOf: string) => void model.keepGoing(stopOf),
+			dropKept: (of: string, part: KeptPart, back: boolean) => void model.dropKept(of, part, back),
+			dismissProblem: (problemCallId: string) => void model.dismissProblem(problemCallId),
+			setMessages: (record: LhMessage[], turnError?: string) => model.setMessages(record, turnError),
+			adoptRecord: (record: LhMessage[]) => model.adoptRecord(record),
+			stop: () => model.stop(),
+			clearError: () => model.clearError(),
+			resumeStream: () => void model.resumeStream(),
+		}),
 		[model],
 	);
-	const dismissQuestion = useCallback(
-		(toolCallId: string, answer: QuestionAnswerData) => void model.dismissQuestion(toolCallId, answer),
-		[model],
-	);
-	const keepGoing = useCallback((stopOf: string) => void model.keepGoing(stopOf), [model]);
-	const dropKept = useCallback((of: string, part: KeptPart, back: boolean) => void model.dropKept(of, part, back), [model]);
-	const dismissProblem = useCallback(
-		(problemCallId: string) => void model.dismissProblem(problemCallId),
-		[model],
-	);
-	const setMessages = useCallback((record: LhMessage[], turnError?: string) => model.setMessages(record, turnError), [model]);
-	const adoptRecord = useCallback((record: LhMessage[]) => model.adoptRecord(record), [model]);
-	const stop = useCallback(() => model.stop(), [model]);
-	const clearError = useCallback(() => model.clearError(), [model]);
-	const resumeStream = useCallback(() => void model.resumeStream(), [model]);
 
 	return {
 		messages: state.messages,
@@ -160,19 +157,7 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 		status: state.status,
 		error: state.error,
 		steerQueue: state.steerQueue,
-		send,
-		continueIfOwed,
-		steer,
-		submitAnswer,
-		dismissQuestion,
-		dismissProblem,
-		keepGoing,
-		dropKept,
-		setMessages,
-		adoptRecord,
-		stop,
-		clearError,
-		resumeStream,
+		...api,
 		setReattachSettled,
 	};
 }
