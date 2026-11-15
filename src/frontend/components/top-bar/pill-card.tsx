@@ -13,8 +13,8 @@ const ROW_BUTTON = {
 /**
  * The pill's open card: a row per live thing with its button, then the
  * way to the teacher. `main` is the thing the pill itself names. A page
- * with a bar of its own has no teacher panel, so it shows neither Talk nor
- * Activity; a lesson has Follow beside its teacher, so its card has none.
+ * with a bar of its own has no teacher panel, so it shows neither the way
+ * to the teacher nor Activity; a lesson has Follow beside its teacher, so its card has none.
  */
 export function PillCard({ things, main, name, panel, follow, onAct, onTalk }: { things: readonly PillThing[]; main: PillThing | null; name: string; panel: boolean; follow: boolean; onAct: (thing: PillThing) => void; onTalk: () => void }) {
 	return (

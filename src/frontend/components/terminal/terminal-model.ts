@@ -189,11 +189,11 @@ export function teacherStatusLine(f: TerminalFacts | null, name: string): string
 
 const live = (term: TerminalRecord | null): boolean => !!term && !term.ended;
 
-/** Why the teacher doesn't start while an agent outside godspeed is here. */
 /** The largest file Attach takes, as the shell says too: a bigger one is not even read. */
 export const ATTACH_MAX_BYTES = 20 * 1024 * 1024;
 export const ATTACH_TOO_BIG = "That file is over 20 MB.";
 
+/** Why the teacher doesn't start while an agent outside godspeed is here. */
 export const OUTSIDE_REFUSAL = "An agent started outside godspeed is already connected. Close it there, then start one here.";
 
 /** Why a teacher start is refused: its terminal runs, or an agent outside
