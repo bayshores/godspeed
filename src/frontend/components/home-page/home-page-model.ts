@@ -1,5 +1,5 @@
 /** Pure helpers for Today (home-page.tsx): per-space progress, which list a deadline goes in, the card's and each row's words. */
-import { hasProblems, localDay, nothingMorePlannedLine, planDays, type ContinueStudy, type DeadlineKind, type DeadlineProgress, type ProgressPayload } from "@/shared/core";
+import { hasProblems, localDay, longDay, nothingMorePlannedLine, planDays, type ContinueStudy, type DeadlineKind, type DeadlineProgress, type ProgressPayload } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
 import { DAY, HOUR, MINUTE, calendarDays, dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
@@ -80,13 +80,6 @@ export function countLeft(dueMs: number, nowMs: number): { count: string; unit: 
 		return { count: String(hours), unit: hours === 1 ? "hour" : "hours" };
 	}
 	return { count: String(Math.ceil(left / MINUTE)), unit: "min" };
-}
-
-/** "Wednesday Nov 11" for 2026-11-11. */
-export function longDay(day: string): string {
-	const [y, m, d] = day.split("-").map(Number) as [number, number, number];
-	const date = new Date(y, m - 1, d);
-	return `${date.toLocaleDateString("en-US", { weekday: "long" })} ${date.toLocaleDateString("en-US", { month: "short" })} ${d}`;
 }
 
 /** ". 2 of 7 problems done", or ". 19% ready" for one with no problems;

@@ -28,8 +28,6 @@ export const MAX_ATTACHMENTS = 5;
 const MB = 1024 * 1024;
 const MAX_IMAGE_BYTES = 20 * MB;
 const MAX_PDF_BYTES = 30 * MB;
-/** A PNG this small after resizing is likely a screenshot: PNG keeps its text sharp. */
-const SCREENSHOT_PNG_MAX_BYTES = 1.5 * MB;
 
 const PDF_TYPE = "application/pdf";
 const IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
@@ -91,25 +89,6 @@ export function pickAttachments<T extends { name: string; type: string; size: nu
 export function base64Bytes(data: string): number {
 	const padding = data.endsWith("==") ? 2 : data.endsWith("=") ? 1 : 0;
 	return Math.floor((data.length * 3) / 4) - padding;
-}
-
-/** Keep a resized picture as PNG (transparency, or a small screenshot);
- *  everything else is stored as JPEG. */
-export function keepsPng(image: { transparent: boolean; sourcePng: boolean; pngBytes: number }): boolean {
-	return image.transparent || (image.sourcePng && image.pngBytes <= SCREENSHOT_PNG_MAX_BYTES);
-}
-
-/** A saved PDF's file name: a content hash keeps it unique (and a resend
- *  idempotent), the cleaned name keeps it recognizable. */
-export function pdfFileName(name: string, hash: string): string {
-	const stem =
-		name
-			.replace(/\.pdf$/i, "")
-			.replace(/[^A-Za-z0-9._ -]+/g, "_")
-			.replace(/^[.\s]+/, "")
-			.slice(0, 80)
-			.trim() || "document";
-	return `${hash.slice(0, 12)}-${stem}.pdf`;
 }
 
 const PDF_NOTE_HEAD = "[Attached PDF] ";

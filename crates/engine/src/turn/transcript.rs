@@ -38,7 +38,7 @@ pub fn normalize_context(system_prompt: &str, messages: &[Json], declarations: &
 fn content_text(content: &Json) -> String {
 	match content {
 		Json::Str(s) => s.clone(),
-		Json::Arr(blocks) => blocks.iter().filter(|b| b["type"] == Json::from("text")).map(|b| b["text"].as_str().unwrap_or_default()).collect::<Vec<_>>().join("\n"),
+		Json::Arr(blocks) => blocks.iter().filter(|b| b["type"] == Json::from("text")).map(|b| b["text"].str_or_empty()).collect::<Vec<_>>().join("\n"),
 		_ => String::new(),
 	}
 }
@@ -54,11 +54,11 @@ pub fn system_message_text(message: &Json) -> String {
 }
 
 fn named<'a>(list: &'a Json, key: &str) -> impl Iterator<Item = &'a Json> {
-	list[key].as_arr().into_iter().flatten()
+	list[key].items().iter()
 }
 
 fn name_of(tool: &Json) -> &str {
-	tool["name"].as_str().unwrap_or_default()
+	tool["name"].str_or_empty()
 }
 
 /// `getCurrentTools`: every system message's removals and additions, replayed in order.

@@ -40,7 +40,7 @@ pub fn new_study_context_message(text: &str, custom_type: &str) -> Json {
 /// It counts the files; read_space lists them (`space_files_text`).
 pub fn space_card_text(card: &Json) -> String {
 	let mut lines = vec!["[Space context] — this lesson belongs to one of the learner's spaces:".to_owned(), String::new(), format!("Space: {}", js_string(card.get("name")))];
-	let description = text::trim(card["description"].as_str().unwrap_or(""));
+	let description = text::trim(card["description"].str_or_empty());
 	if !description.is_empty() {
 		lines.extend(["".to_owned(), "About the space (the learner's own words):".to_owned(), description.to_owned()]);
 	}
@@ -61,7 +61,7 @@ pub fn space_card_text(card: &Json) -> String {
 
 /// The files the teacher can read: a file without a path (not readable) is left out.
 fn readable_files(card: &Json) -> Vec<&Json> {
-	card["files"].as_arr().into_iter().flatten().filter(|f| !matches!(f.get("path"), Some(Json::Null))).collect()
+	card["files"].items().iter().filter(|f| !matches!(f.get("path"), Some(Json::Null))).collect()
 }
 
 /// The space's readable files, one line each with its path. Only read_space shows it: the card

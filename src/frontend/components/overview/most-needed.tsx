@@ -15,7 +15,7 @@ export const MostNeeded = memo(function MostNeeded({ needed, busy, onStudy }: { 
 					</span>
 					<span className="truncate text-base text-ink-2">On {joinAnd(needed.deadlines)}</span>
 				</span>
-				<button type="button" data-testid="most-needed-study" disabled={busy} onClick={() => onStudy(needed.topicId)} className="lh-btn h-[38px] shrink-0 text-[15px]">
+				<button type="button" data-testid="most-needed-study" disabled={busy} onClick={() => onStudy(needed.topicId)} className="lh-btn shrink-0">
 					Study
 				</button>
 			</div>

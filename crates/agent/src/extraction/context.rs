@@ -2,15 +2,13 @@
 //! chunks, and the prompt's graph context (what this source already gave and related ideas).
 
 use std::collections::{HashMap, HashSet};
-use std::sync::LazyLock;
 
-use gs_base::re::Re;
+use gs_base::re::collapse_spaces;
 use gs_base::text;
 use gs_core::graph::coverage::message_view_lines;
 use gs_core::graph::graph::DerivedGraph;
 use gs_json::Json;
 
-static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
 
 /// A message's id as a template literal writes it.
 pub fn message_id(message: &Json) -> &str {
@@ -54,11 +52,11 @@ pub fn chunk_notes(source: &str, budget: f64) -> Vec<String> {
 }
 
 fn is_ours(line: &Json, source_id: &str) -> bool {
-	line["provenance"].as_arr().into_iter().flatten().any(|pt| pt["chatId"].as_str() == Some(source_id))
+	line["provenance"].items().iter().any(|pt| pt["chatId"].as_str() == Some(source_id))
 }
 
 fn node_line(n: &Json) -> String {
-	format!("  {} | {} | {}", n["id"].str_or_empty(), n["name"].str_or_empty(), SPACES.replace(n["statement"].str_or_empty(), " "))
+	format!("  {} | {} | {}", n["id"].str_or_empty(), n["name"].str_or_empty(), collapse_spaces(n["statement"].str_or_empty()))
 }
 
 /// THE GRAPH SO FAR (this source's ideas and chains) and RELATED IDEAS (other sources' ideas the
@@ -77,7 +75,7 @@ pub fn graph_context(graph: &DerivedGraph, source_id: &str, related_ids: &[Strin
 		if !our_chains.is_empty() {
 			lines.push("DERIVATIONS ALREADY RECORDED (build on these; do not re-derive them):".to_owned());
 			for c in our_chains {
-				let premises: Vec<&str> = c["premises"].as_arr().into_iter().flatten().map(Json::str_or_empty).collect();
+				let premises: Vec<&str> = c["premises"].items().iter().map(Json::str_or_empty).collect();
 				let conclusion = c["conclusion"].str_or_empty();
 				let names: Vec<String> = premises.iter().map(|p| name(p)).collect();
 				lines.push(format!("  [{} \u{21d2} {conclusion}]  {} \u{21d2} {}", premises.join(" + "), names.join(" \u{2227} "), name(conclusion)));

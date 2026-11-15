@@ -7,6 +7,7 @@ use crate::contracts::chat::TOPIC_DONE_TOOL;
 use crate::messages::citations::cites_in_words;
 use crate::messages::native_messages::{failed_output_call_ids, user_facing_text_of};
 use crate::messages::pending::is_graded_tool;
+use crate::messages::tool_calls_in;
 use crate::session::question_core::{keep_fields_note, keep_of};
 
 /// The extraction-relevant lines of one message: for a teacher message, one line per prose block,
@@ -36,7 +37,7 @@ pub fn message_view_lines(message: &Json, mid: &str, failed: Option<&HashSet<Str
 /// The sentence each quiz call offers him to keep, as its question counts, when its fields hold
 /// (a keep that breaks them is never shown, at any length).
 fn kept_texts(content: &Json) -> Vec<String> {
-	let quizzes = content.as_arr().into_iter().flatten().filter(|b| b["type"].as_str() == Some("toolCall") && b["name"].as_str() == Some("quiz"));
+	let quizzes = tool_calls_in(content).filter(|b| b["name"].as_str() == Some("quiz"));
 	quizzes
 		.filter_map(|b| keep_of(&b["arguments"]).filter(|k| keep_fields_note(k).is_none()))
 		.filter_map(|k| k["text"].as_str().map(|t| text::trim(t).to_owned()))
@@ -48,7 +49,7 @@ fn topic_done_texts(content: &Json) -> (Vec<String>, Vec<String>) {
 	let text_of = |t: &str| Some(text::trim(t).to_owned()).filter(|t| !t.is_empty());
 	let mut leads = Vec::new();
 	let mut questions = Vec::new();
-	for block in content.as_arr().into_iter().flatten().filter(|b| b["type"].as_str() == Some("toolCall") && b["name"].as_str() == Some(TOPIC_DONE_TOOL)) {
+	for block in tool_calls_in(content).filter(|b| b["name"].as_str() == Some(TOPIC_DONE_TOOL)) {
 		let args = &block["arguments"];
 		leads.extend(args["opener"]["lead"].as_str().and_then(|lead| text_of(&cites_in_words(lead))));
 		questions.extend([&args["opener"]["quiz"]["question"], &args["review"]["question"]].into_iter().filter_map(|q| q.as_str().and_then(text_of)));
@@ -58,11 +59,8 @@ fn topic_done_texts(content: &Json) -> (Vec<String>, Vec<String>) {
 
 /// The question text of each graded question call in a message's content.
 fn graded_questions_of(content: &Json) -> Vec<String> {
-	content
-		.as_arr()
-		.into_iter()
-		.flatten()
-		.filter(|block| block["type"].as_str() == Some("toolCall") && is_graded_tool(block["name"].as_str().unwrap_or("")))
+	tool_calls_in(content)
+		.filter(|block| is_graded_tool(block["name"].str_or_empty()))
 		.filter_map(|block| block["arguments"]["question"].as_str().map(text::trim).filter(|q| !q.is_empty()).map(str::to_owned))
 		.collect()
 }

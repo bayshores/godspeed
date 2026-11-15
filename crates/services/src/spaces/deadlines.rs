@@ -76,7 +76,7 @@ fn deadlines_where(app: &App, keep: impl Fn(&Json) -> bool) -> Vec<Json> {
 		if record["closed"].truthy() {
 			continue;
 		}
-		for d in record["deadlines"].as_arr().into_iter().flatten() {
+		for d in record["deadlines"].items().iter() {
 			if !keep(d) {
 				continue;
 			}
@@ -88,7 +88,7 @@ fn deadlines_where(app: &App, keep: impl Fn(&Json) -> bool) -> Vec<Json> {
 			out.push(open);
 		}
 	}
-	out.sort_by(|a, b| compare_deadlines(a, b).then_with(|| locale::compare(a["spaceName"].as_str().unwrap_or(""), b["spaceName"].as_str().unwrap_or(""))));
+	out.sort_by(|a, b| compare_deadlines(a, b).then_with(|| locale::compare(a["spaceName"].str_or_empty(), b["spaceName"].str_or_empty())));
 	out
 }
 

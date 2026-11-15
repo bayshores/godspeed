@@ -12,6 +12,7 @@ use super::citations::cites_in_words;
 use super::message_id::new_message_id;
 use crate::contracts::chat::{CONCLUDE_ACK_TEXT, HANDOFF_TEXT, NEXT_PROBLEM_TEXT};
 use crate::session::question_core::compact_answer_for_model;
+use super::tool_calls;
 
 mod context_cards;
 mod scans;
@@ -74,9 +75,8 @@ pub fn failed_output_call_ids(messages: &[Json]) -> HashSet<String> {
 				}
 			}
 			Some("assistant") if matches!(m["stopReason"].as_str(), Some("error" | "aborted")) => {
-				for b in m["content"].as_arr().into_iter().flatten() {
-					if b["type"].as_str() == Some("toolCall")
-						&& b["name"].as_str() == Some(SEND_TO_USER_TOOL)
+				for b in tool_calls(m) {
+					if b["name"].as_str() == Some(SEND_TO_USER_TOOL)
 						&& let Some(id) = b["id"].as_str()
 					{
 						failed.insert(id.to_owned());

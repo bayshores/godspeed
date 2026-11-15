@@ -12,7 +12,7 @@ fn kept_cards_match_the_window() {
 	for case in cases.as_arr().unwrap() {
 		let messages = case["output"]["args"]["messages"].as_arr().unwrap();
 		let kept = kept_sentences("c", messages);
-		let calls = messages.iter().flat_map(|m| m["content"].as_arr().into_iter().flatten()).filter(|b| b["type"].as_str() == Some("toolCall") && b["name"].as_str() == Some("quiz"));
+		let calls = messages.iter().flat_map(|m| m["content"].items().iter()).filter(|b| b["type"].as_str() == Some("toolCall") && b["name"].as_str() == Some("quiz"));
 		let got: Obj = calls
 			.map(|call| {
 				let id = call["id"].as_str().unwrap();

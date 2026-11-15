@@ -1,7 +1,6 @@
-import { DEFAULT_TEACHER_NAME, MOCK_LANGUAGES, localDay, minutesUsed, pauseTotal, questionResult, solvedCount, type MockQuestion, type MockView } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, MOCK_LANGUAGES, localDay, longDay, minutesUsed, pauseTotal, questionResult, solvedCount, type MockQuestion, type MockView } from "@/shared/core";
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
-import { longDay } from "@/frontend/components/home-page/home-page-model";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { TITLE } from "@/frontend/components/overview/styles";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -88,7 +87,7 @@ function QuestionRow({ n, question: q, view, teacher, busy, onGoOver }: { n: num
 				{grade && answer && (
 					<details className="text-[15px] text-ink-2">
 						<summary className="lh-press cursor-pointer select-none hover:text-ink">What you wrote{q.kind === "code" && answer.language ? ` in ${MOCK_LANGUAGES[answer.language]}` : ""}</summary>
-						<pre className={cn("mt-1.5 overflow-x-auto rounded-sm border border-border bg-background px-3 py-2 leading-relaxed whitespace-pre-wrap text-ink", q.kind === "code" ? "font-mono text-[13.5px]" : "font-prose text-[15px]")}>{answer.text}</pre>
+						<pre className={cn("mt-1.5 overflow-x-auto lh-well rounded-sm px-3 py-2 leading-relaxed whitespace-pre-wrap text-ink", q.kind === "code" ? "font-mono text-[13.5px]" : "font-prose text-[15px]")}>{answer.text}</pre>
 					</details>
 				)}
 				<button type="button" data-testid="mock-go-over" disabled={busy} onClick={onGoOver} className="lh-btn self-start text-[15px]">

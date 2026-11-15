@@ -33,16 +33,8 @@ pub fn source_id_for(space_id: &str, file_id: &str) -> String {
 	format!("src_{}", &sha256_text(&format!("{space_id}:{file_id}"))[..12])
 }
 
-pub(super) fn files_of(record: &Json) -> &[Json] {
-	record["files"].as_arr().map_or(&[], Vec::as_slice)
-}
-
 pub(super) fn file_in<'a>(record: &'a Json, file_id: &str) -> Option<&'a Json> {
-	files_of(record).iter().find(|f| f["id"].as_str() == Some(file_id))
-}
-
-pub(super) fn str_of<'a>(v: &'a Json, key: &str) -> &'a str {
-	v[key].as_str().unwrap_or("")
+	record["files"].items().iter().find(|f| f["id"].as_str() == Some(file_id))
 }
 
 pub(super) fn new_file_id() -> String {
@@ -56,7 +48,7 @@ pub(super) fn mutate_files(app: &Arc<App>, space_id: &str, change: impl FnOnce(V
 	let (next, recheck) = {
 		let _guard = app.locks.lock(LockKey::Space(space_id));
 		let record = app.stores.spaces.get_space(space_id)?;
-		let mut files = change(files_of(&record).to_vec());
+		let mut files = change(record["files"].items().to_vec());
 		let recheck = recordings_to_recheck(&files);
 		for file in &mut files {
 			if file["id"].as_str().is_some_and(|id| recheck.iter().any(|r| r == id))
@@ -133,9 +125,9 @@ pub fn add_copied_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8],
 /// replaced; Err is the words for the agent.
 pub fn write_agent_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: &str) -> Result<(Json, bool), String> {
 	let record = app.stores.spaces.get_space(space_id);
-	let same = record.as_ref().and_then(|r| r["files"].as_arr()?.iter().find(|f| str_of(f, "name") == name).cloned());
+	let same = record.as_ref().and_then(|r| r["files"].as_arr()?.iter().find(|f| f["name"].str_or_empty() == name).cloned());
 	let written = match same {
-		Some(file) if file["written"] == Json::Bool(true) => replace_copied_file(app, space_id, str_of(&file, "id"), bytes, kind).map(|f| (f, true)),
+		Some(file) if file["written"] == Json::Bool(true) => replace_copied_file(app, space_id, file["id"].str_or_empty(), bytes, kind).map(|f| (f, true)),
 		Some(_) => return Err(format!("This space already has a file named {name} that this tool can't replace. Pick another name, or ask the learner to remove the old one.")),
 		None => add_file(app, space_id, name, bytes, kind, true).map(|f| (f, false)),
 	};
@@ -189,7 +181,7 @@ pub fn replace_copied_file(app: &Arc<App>, space_id: &str, file_id: &str, bytes:
 	let _held = app.locks.lock(LockKey::Space(space_id));
 	let record = app.stores.spaces.get_space(space_id);
 	let file = record.as_ref().and_then(|r| file_in(r, file_id)).cloned();
-	let (Some(record), Some(file)) = (record, file.filter(|f| str_of(f, "origin") == "copied")) else {
+	let (Some(record), Some(file)) = (record, file.filter(|f| f["origin"].str_or_empty() == "copied")) else {
 		return fail(404, "not_found", "No such copied space file");
 	};
 	if import_running(app, space_id, &file) {
@@ -232,7 +224,7 @@ pub fn set_file_kind(app: &Arc<App>, space_id: &str, file_id: &str, kind: &str) 
 		return fail(404, "not_found", "No such space file");
 	};
 	let chosen = [("kindChosen", Some(Json::from(true))), ("sortedAsInfo", None)];
-	if str_of(&file, "kind") == kind {
+	if file["kind"].str_or_empty() == kind {
 		return Ok(patch_file(app, space_id, file_id, &chosen).unwrap_or(file));
 	}
 	let patch = [
@@ -266,7 +258,7 @@ pub fn remove_file(app: &Arc<App>, space_id: &str, file_id: &str) -> SpaceOutcom
 	let Some((record, file)) = record.and_then(|r| file_in(&r, file_id).cloned().map(|f| (r, f))) else {
 		return fail(404, "not_found", "No such space file");
 	};
-	if str_of(&file, "origin") == "linked" {
+	if file["origin"].str_or_empty() == "linked" {
 		return fail(409, "linked_file", "This file is in your linked folder. Remove it from the folder (or switch it to space info) instead.");
 	}
 	if import_running(app, space_id, &file) {
@@ -279,7 +271,7 @@ pub fn remove_file(app: &Arc<App>, space_id: &str, file_id: &str) -> SpaceOutcom
 /// A file's import runs under `source_id_for`, which a first import has not saved on the file
 /// yet.
 pub(super) fn import_running(app: &Arc<App>, space_id: &str, file: &Json) -> bool {
-	let source_id = source_id_for(space_id, str_of(file, "id"));
+	let source_id = source_id_for(space_id, file["id"].str_or_empty());
 	extraction_statuses(app).iter().any(|run| run["chatId"].as_str() == Some(source_id.as_str()))
 }
 
@@ -303,14 +295,14 @@ pub(super) fn drop_from_search(app: &Arc<App>, space_id: &str, file_id: &str) {
 /// that never saved its id leaves nothing. `listed` puts it in the Recent changes (not when a
 /// folder is unlinked).
 pub(super) fn drop_file(app: &Arc<App>, record: &Json, file: &Json, listed: bool) {
-	let space_id = str_of(record, "id");
-	let file_id = str_of(file, "id");
+	let space_id = record["id"].str_or_empty();
+	let file_id = file["id"].str_or_empty();
 	if let Err(err) = drop_source_facts(app, space_id, &source_id_for(space_id, file_id)) {
 		eprintln!("[spaces] could not drop the facts of {file_id}: {err}");
 	}
 	drop_file_texts(app, space_id, file_id);
 	drop_from_search(app, space_id, file_id);
-	if str_of(file, "origin") == "copied"
+	if file["origin"].str_or_empty() == "copied"
 		&& let Ok(dir) = app.stores.spaces.files_dir(space_id)
 	{
 		let _ = std::fs::remove_dir_all(dir.join(file_id));

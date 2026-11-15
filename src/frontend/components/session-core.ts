@@ -36,6 +36,7 @@ import {
 	type ChatAttachment,
 	type QuestionAnswerData,
 } from "../../shared/core";
+import { jsonInit } from "@/frontend/lib/api";
 import { keepGoingOwesNext } from "./lesson/stop-card-model";
 
 type SessionStatus = "ready" | "submitted" | "streaming" | "error";
@@ -181,14 +182,16 @@ export function absorbed(m: LhMessage, record: readonly LhMessage[]): boolean {
 		// Markers: without this an optimistic marker is never absorbed and
 		// renders beside the write-ahead's server copy for the whole turn.
 		// TOTAL over roles by identity key — a
-		// marker is itself when its customType AND structured details match;
+		// marker is itself when its customType AND structured details match
+		// (compared as JSON: the constructors mint plain data);
 		// types that never appear optimistically simply never reach here.
 		const marker = m as LhMarkerMessage;
+		const detailsKey = JSON.stringify(marker.details);
 		return record.some(
 			(r) =>
 				(r as { role?: string }).role === "custom" &&
 				(r as LhMarkerMessage).customType === marker.customType &&
-				sameDetails((r as LhMarkerMessage).details, marker.details),
+				JSON.stringify((r as LhMarkerMessage).details) === detailsKey,
 		);
 	}
 	return false;
@@ -200,12 +203,6 @@ export function absorbed(m: LhMessage, record: readonly LhMessage[]): boolean {
 function userContentKey(content: UserMessage["content"]): string {
 	if (typeof content === "string") return content;
 	return JSON.stringify(content.map((c) => (c.type === "image" ? "image" : (pdfNoteOf(c.text)?.name ?? c.text))));
-}
-
-/** Structural deep-equal for marker details (JSON-stable payloads — the
- *  constructors mint plain data). */
-function sameDetails(a: unknown, b: unknown): boolean {
-	return JSON.stringify(a) === JSON.stringify(b);
 }
 
 export interface SessionState {
@@ -598,13 +595,7 @@ export class SessionModel {
 		// whole refetch. The refetch block below swaps base+tail ATOMICALLY when the record
 		// arrives (and clears on failure — the clean-slate guard holds on
 		// every path that actually replays onto a stale tail).
-		if (!refetchRecordFirst) {
-			this.mutate(() => {
-				this.incompleteUsageIds.clear();
-				this.tail = [];
-				this.streamingMessageId = null;
-			});
-		}
+		if (!refetchRecordFirst) this.mutate(() => this.resetTail());
 		this.setStatus("submitted");
 		try {
 			if (refetchRecordFirst) {
@@ -621,26 +612,11 @@ export class SessionModel {
 					// contract bug, not a connection-drop diagnostic.
 					const record = JSON.parse(text) as { messages?: LhMessage[]; turnError?: string };
 					if (this.consumeAbort !== controller) return;
-					if (Array.isArray(record.messages)) {
-						this.mutate(() => {
-							this.base = record.messages!;
-							if (record.turnError !== undefined) {
-								this.errorValue = { message: record.turnError };
-								this.automaticContinuationBlocked = true;
-							}
-							this.forgetResolvedAnswers(record.messages!);
-							this.incompleteUsageIds.clear();
-							this.tail = [];
-						});
-					}
+					if (Array.isArray(record.messages)) this.setMessages(record.messages, record.turnError);
 				} else {
 					// The record did not land — restore the clean-slate guard
 					// before the replay (no atomic swap is coming).
-					this.mutate(() => {
-						this.incompleteUsageIds.clear();
-						this.tail = [];
-						this.streamingMessageId = null;
-					});
+					this.mutate(() => this.resetTail());
 				}
 			}
 			const res = await this.fetchView(`/api/chats/${encodeURIComponent(this.chatId)}/stream`, controller.signal, !allowRecovery);
@@ -812,11 +788,7 @@ export class SessionModel {
 			this.onChange?.();
 		};
 		try {
-			const res = await this.fetch(`/api/chats/${this.chatId}/steer`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ input: { type: "steer", id, text: t } }),
-			});
+			const res = await this.postRoute("steer", { type: "steer", id, text: t });
 			if (res.ok) {
 				// A turn godspeed started by itself may still wait for a teacher.
 				this.onSent?.();
@@ -856,19 +828,7 @@ export class SessionModel {
 	 * refetch) replaces the optimistic append with truth. */
 	async dismissQuestion(toolCallId: string, answer: QuestionAnswerData): Promise<void> {
 		const tool = pendingCallTool([...this.base, ...this.tail], toolCallId) ?? "quiz";
-		this.mutate(() => {
-			this.tail = [...this.tail, { ...newAnswerResult(toolCallId, tool, answer), id: localId() }];
-		});
-		try {
-			const res = await this.fetch(`/api/chats/${this.chatId}/dismiss`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ input: { type: "dismiss", toolCallId, answer } }),
-			});
-			if (!res.ok) throw new Error(`The dismissal failed (${res.status}).`);
-		} catch (err) {
-			this.setError((err as Error).message);
-		}
+		await this.dismiss(newAnswerResult(toolCallId, tool, answer), { type: "dismiss", toolCallId, answer });
 	}
 
 	/** Keep going at a stop: the UI-only marker lands optimistically (the
@@ -883,11 +843,7 @@ export class SessionModel {
 			this.tail = [...this.tail, marker];
 		});
 		try {
-			const res = await this.fetch(`/api/chats/${this.chatId}/keep-going`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ input: { stopOf } }),
-			});
+			const res = await this.postRoute("keep-going", { stopOf });
 			// The server's refusal words are for logs; he sees that Keep going didn't save.
 			if (!res.ok) throw new Error(`status ${res.status}`);
 			const { opener, running } = (await res.json()) as { opener?: boolean; running?: boolean };
@@ -919,11 +875,7 @@ export class SessionModel {
 
 	private async storeKept(of: string, part: KeptPart, back: boolean, marker: LhMessage): Promise<void> {
 		try {
-			const res = await this.fetch(`/api/chats/${this.chatId}/kept`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ input: { of, part, ...(back ? { back: true } : {}) } }),
-			});
+			const res = await this.postRoute("kept", { of, part, ...(back ? { back: true } : {}) });
 			if (!res.ok) throw new Error(`status ${res.status}`);
 		} catch (err) {
 			this.mutate(() => {
@@ -938,19 +890,25 @@ export class SessionModel {
 	 *  persists it (no turn, no wake; parked mid-turn). The composer
 	 *  returns; the conclude synthesis rides the user's next input. */
 	async dismissProblem(problemCallId: string): Promise<void> {
+		await this.dismiss(newProblemDismissedMarker(problemCallId), { type: "dismiss-problem", problemCallId });
+	}
+
+	/** Land `optimistic` in the tail, then store the dismissal. */
+	private async dismiss(optimistic: LhMessage, input: unknown): Promise<void> {
 		this.mutate(() => {
-			this.tail = [...this.tail, { ...newProblemDismissedMarker(problemCallId), id: localId() }];
+			this.tail = [...this.tail, { ...optimistic, id: localId() }];
 		});
 		try {
-			const res = await this.fetch(`/api/chats/${this.chatId}/dismiss`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ input: { type: "dismiss-problem", problemCallId } }),
-			});
+			const res = await this.postRoute("dismiss", input);
 			if (!res.ok) throw new Error(`The dismissal failed (${res.status}).`);
 		} catch (err) {
 			this.setError((err as Error).message);
 		}
+	}
+
+	/** POST `{ input }` to one of the chat's silent routes. */
+	private postRoute(route: string, input: unknown): Promise<Response> {
+		return this.fetch(`/api/chats/${this.chatId}/${route}`, jsonInit("POST", { input }));
 	}
 
 	/** Local detach: cancel the consume, keep the partial tail. The page's
@@ -980,10 +938,15 @@ export class SessionModel {
 				this.automaticContinuationBlocked = true;
 			}
 			this.forgetResolvedAnswers(record);
-			this.incompleteUsageIds.clear();
-			this.tail = [];
-			this.streamingMessageId = null; // the tail (and its slot) is gone
+			this.resetTail();
 		});
+	}
+
+	/** Empty the live tail and its streaming slot (call inside mutate). */
+	private resetTail(): void {
+		this.incompleteUsageIds.clear();
+		this.tail = [];
+		this.streamingMessageId = null;
 	}
 
 	/**

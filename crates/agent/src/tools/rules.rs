@@ -42,6 +42,6 @@ pub fn save_rule_tool(save_rule: SaveRule) -> FnTool {
 		Don't ask first: the learner sees it in the chat and can undo or edit it, so just mention it in a few words.";
 	FnTool::server("save_rule", description, parameters, move |args, _ctx| {
 		let save_rule = save_rule.clone();
-		async move { Ok(save_rule(args["rule"].as_str().unwrap_or_default(), args["for"].as_str().unwrap_or_default(), args["area"].as_str())) }
+		async move { Ok(save_rule(args["rule"].str_or_empty(), args["for"].str_or_empty(), args["area"].as_str())) }
 	})
 }

@@ -1,4 +1,5 @@
 /** A lesson list's words and its search. Pure. */
+import { plural } from "@/frontend/lib/plural";
 import { fuzzyScore, type ChatListItem } from "@/shared/core";
 
 /** A lesson's age: "now", "5 minutes ago", "yesterday", "3 days ago",
@@ -7,14 +8,13 @@ export function lessonAge(iso: string, now = new Date()): string {
 	const at = new Date(iso);
 	const ms = now.getTime() - at.getTime();
 	if (ms < 60_000) return "now";
-	const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"} ago`;
 	const min = Math.floor(ms / 60_000);
-	if (min < 60) return plural(min, "minute");
+	if (min < 60) return `${plural(min, "minute")} ago`;
 	const h = Math.floor(min / 60);
-	if (h < 24) return plural(h, "hour");
+	if (h < 24) return `${plural(h, "hour")} ago`;
 	const d = Math.floor(h / 24);
 	if (d === 1) return "yesterday";
-	if (d < 7) return plural(d, "day");
+	if (d < 7) return `${plural(d, "day")} ago`;
 	return at.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(at.getFullYear() !== now.getFullYear() && { year: "numeric" }) });
 }
 

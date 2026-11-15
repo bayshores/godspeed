@@ -102,7 +102,7 @@ impl Bridge {
 		for tool in tools {
 			let tool_hash = print_hash(&stringify(&tool));
 			if !force_full && known.tools.contains(&tool_hash) {
-				as_before.push(tool["name"].as_str().unwrap_or_default().to_owned());
+				as_before.push(tool["name"].str_or_empty().to_owned());
 			} else {
 				new_tools.push(tool);
 			}

@@ -8,6 +8,7 @@ use gs_base::time;
 use gs_json::{Json, Obj};
 
 use gs_json::js_text::js_string;
+use crate::messages::tool_calls;
 
 const OUTCOMES: [&str; 5] = ["solved", "solvedWithHints", "movedOn", "surrendered", "dismissed"];
 
@@ -40,7 +41,7 @@ fn iso_of(timestamp: Option<&Json>) -> String {
 /// Strings of the `target` list, each once, in first-seen order.
 fn targets_of(args: &Json) -> Json {
 	let mut seen: Vec<&str> = Vec::new();
-	for target in args["target"].as_arr().into_iter().flatten().filter_map(Json::as_str) {
+	for target in args["target"].items().iter().filter_map(Json::as_str) {
 		if !seen.contains(&target) {
 			seen.push(target);
 		}
@@ -57,11 +58,9 @@ pub fn practice_outcomes(messages: &[Json]) -> Vec<Json> {
 	let mut open: Option<OpenProblem> = None;
 	for m in messages {
 		if m["role"].as_str() == Some("assistant") {
-			for block in m["content"].as_arr().into_iter().flatten() {
+			for block in tool_calls(m) {
 				let (Some(name @ ("problem" | "conclude")), Some(id)) = (block["name"].as_str(), block["id"].as_str()) else { continue };
-				if block["type"].as_str() == Some("toolCall") {
-					calls.insert(id, Call { message_id: m.get("id"), name, args: &block["arguments"] });
-				}
+				calls.insert(id, Call { message_id: m.get("id"), name, args: &block["arguments"] });
 			}
 			continue;
 		}
@@ -81,7 +80,7 @@ pub fn practice_outcomes(messages: &[Json]) -> Vec<Json> {
 			entry.insert("messageId", id.clone());
 		}
 		entry.insert("problemCallId", problem.call_id);
-		entry.insert("statement", problem.args["statement"].as_str().unwrap_or_default());
+		entry.insert("statement", problem.args["statement"].str_or_empty());
 		entry.insert("targets", targets_of(problem.args));
 		if let Some(node_id) = problem.args["nodeId"].as_str().filter(|n| !n.is_empty()) {
 			entry.insert("nodeId", node_id);

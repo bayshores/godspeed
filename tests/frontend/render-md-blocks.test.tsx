@@ -234,7 +234,7 @@ describe("ThinkingBlock — the document band + ⌘T sync", () => {
 
 	it("the row is a card", () => {
 		const html = renderToStaticMarkup(<ThinkingBlock text="banded" defaultOpen />);
-		assert.ok(html.includes("bg-background") && html.includes("border-border"), "a card of its own");
+		assert.ok(html.includes("lh-well"), "a card of its own");
 		assert.ok(html.includes("border-l-2"), "the text carries a quote rule");
 		assert.ok(html.includes("w-full"), "full width — no chat side");
 		assert.match(html, /aria-expanded="true"/);
@@ -243,7 +243,7 @@ describe("ThinkingBlock — the document band + ⌘T sync", () => {
 
 	it("in-card rows take no card of their own", () => {
 		const html = renderToStaticMarkup(<ThinkingBlock text="in card" inCard />);
-		assert.ok(!html.includes("bg-background") && !html.includes("border-border"), "no card of its own inside a card");
+		assert.ok(!html.includes("lh-well"), "no card of its own inside a card");
 	});
 
 	it("⌘T sets every row — explicit sets stomp individual state, late mounts honor the last set", () => {

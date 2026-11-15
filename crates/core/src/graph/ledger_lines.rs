@@ -3,12 +3,6 @@
 use gs_base::text::cmp16;
 use gs_json::Json;
 
-
-/// The string items of an array; anything else yields none.
-pub fn strs(v: &Json) -> Vec<&str> {
-	v.as_arr().into_iter().flatten().filter_map(Json::as_str).collect()
-}
-
 /// A chain's merge key: sorted premises + conclusion, the identity a re-stated argument merges
 /// under.
 pub fn chain_key(premises: &[&str], conclusion: &str) -> String {
@@ -18,7 +12,7 @@ pub fn chain_key(premises: &[&str], conclusion: &str) -> String {
 }
 
 pub fn chain_key_of(line: &Json) -> String {
-	chain_key(&strs(&line["premises"]), line["conclusion"].as_str().unwrap_or(""))
+	chain_key(&line["premises"].strs(), line["conclusion"].str_or_empty())
 }
 
 fn same_point(a: &Json, b: &Json) -> bool {
@@ -27,15 +21,15 @@ fn same_point(a: &Json, b: &Json) -> bool {
 
 /// True when one of the line's provenance points is in this chat (or notes source).
 pub fn touches(line: &Json, chat_id: &str) -> bool {
-	line["provenance"].as_arr().into_iter().flatten().any(|pt| pt["chatId"].as_str() == Some(chat_id))
+	line["provenance"].items().iter().any(|pt| pt["chatId"].as_str() == Some(chat_id))
 }
 
 /// Adds the points of `incoming` that `target` does not hold yet, in order.
 pub fn union_points(target: &mut Json, incoming: &Json) {
 	let fresh: Vec<Json> = {
-		let mut held: Vec<&Json> = target["provenance"].as_arr().into_iter().flatten().collect();
+		let mut held: Vec<&Json> = target["provenance"].items().iter().collect();
 		let mut fresh = Vec::new();
-		for pt in incoming["provenance"].as_arr().into_iter().flatten() {
+		for pt in incoming["provenance"].items().iter() {
 			if !held.iter().any(|q| same_point(q, pt)) {
 				held.push(pt);
 				fresh.push(pt.clone());

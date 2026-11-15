@@ -10,7 +10,7 @@ use crate::graph::session_clusters::birth_session_of;
 
 /// A fact's mark: its latest answer's outcome, or None when untested.
 fn fact_mark(fact: &Json) -> Option<&str> {
-	super::items(&fact["answers"]).last().and_then(|a| a["outcome"].as_str())
+	fact["answers"].items().last().and_then(|a| a["outcome"].as_str())
 }
 
 /// Latest answer wrong first, then "I don't know", then solved with hints, then right, then
@@ -27,17 +27,17 @@ fn mark_order(mark: Option<&str>) -> u8 {
 
 /// A topic's facts, the ones to fix first; ties by name.
 pub fn topic_facts<'a>(facts: &'a [Json], topic: &Json) -> Vec<&'a Json> {
-	let members: HashSet<&str> = super::items(&topic["members"]).iter().filter_map(Json::as_str).collect();
+	let members: HashSet<&str> = topic["members"].items().iter().filter_map(Json::as_str).collect();
 	let mut out: Vec<&Json> = facts.iter().filter(|f| f["id"].as_str().is_some_and(|id| members.contains(id))).collect();
 	out.sort_by(|a, b| {
-		mark_order(fact_mark(a)).cmp(&mark_order(fact_mark(b))).then_with(|| locale::compare(a["name"].as_str().unwrap_or(""), b["name"].as_str().unwrap_or("")))
+		mark_order(fact_mark(a)).cmp(&mark_order(fact_mark(b))).then_with(|| locale::compare(a["name"].str_or_empty(), b["name"].str_or_empty()))
 	});
 	out
 }
 
 /// A provenance point from a lesson (not a notes or file source).
 pub fn from_lesson(point: &Json) -> bool {
-	!point["chatId"].as_str().unwrap_or("").starts_with("src_")
+	!point["chatId"].str_or_empty().starts_with("src_")
 }
 
 /// Coverage for every study file, in the space's file order: `{ fileId, name, facts, inLessons,
@@ -48,7 +48,7 @@ pub fn file_coverage(files: &[Json], facts: &[Json]) -> Vec<Json> {
 		let Some(born) = birth_session_of(fact).filter(|b| !b.is_empty()) else { continue };
 		let entry = by_source.entry(born).or_default();
 		entry.0 += 1;
-		if super::items(&fact["provenance"]).iter().any(from_lesson) {
+		if fact["provenance"].items().iter().any(from_lesson) {
 			entry.1 += 1;
 		}
 	}

@@ -10,7 +10,7 @@ use super::file_series::date_in_name;
 use crate::contracts::space::{FILE_NOT_FOUND, is_recording_file, is_transcript_file};
 
 fn name_of(file: &Json) -> &str {
-	file["name"].as_str().unwrap_or("")
+	file["name"].str_or_empty()
 }
 
 /// Captions, or another file (a PDF, notes) whose name says "transcript".
@@ -66,7 +66,7 @@ pub fn recordings_to_recheck(files: &[Json]) -> Vec<String> {
 			}
 			!matches!(f["status"].as_str(), Some("pending" | "extracting")) && f["error"].as_str() != Some(FILE_NOT_FOUND) && transcript_for(f, files).is_some()
 		})
-		.map(|f| f["id"].as_str().unwrap_or("").to_owned())
+		.map(|f| f["id"].str_or_empty().to_owned())
 		.collect()
 }
 

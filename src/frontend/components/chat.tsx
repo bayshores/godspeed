@@ -59,10 +59,13 @@ import { usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
 import { useTeacherLesson } from "@/frontend/components/teacher/teacher-provider";
+import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
+import { jsonInit } from "@/frontend/lib/api";
+import { useStableValue } from "@/frontend/lib/use-stable-value";
+import { useNow } from "@/frontend/components/use-now";
 
 /** The lesson size where it gets summarized (the size meter's end). */
 const SUMMARIZE_AT = effectiveThresholdTokens(OUTSIDE_AGENT_CONTEXT_WINDOW);
-import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
 
 // The plan popup (and dagre, its layout engine) loads on first open.
 const PlanPopup = lazyComponent(() => import("@/frontend/components/plan-block").then((m) => m.PlanPopup));
@@ -190,24 +193,14 @@ export function Chat({
 	// An agent took this turn and hasn't answered for a while: offer to stop
 	// it (the minutes refresh while the line shows).
 	const claimedAt = agentStatus?.claimedLessons.find((c) => c.lessonId === chatId)?.claimedAt;
-	const [now, setNow] = useState(() => Date.now());
-	useEffect(() => {
-		if (!claimedAt) return;
-		setNow(Date.now());
-		const t = setInterval(() => setNow(Date.now()), 30_000);
-		return () => clearInterval(t);
-	}, [claimedAt]);
+	const now = useNow(Boolean(claimedAt), 30_000);
 	const stuckMinutes = busy ? stuckClaimMinutes(claimedAt, now) : null;
 
 	// The abort is always the remote kill (turns are server processes); a
 	// local view also detaches at once and keeps the partial.
 	const abortInFlightTurn = useCallback(() => {
 		if (localStreamRef.current) stop();
-		void fetch("/api/activity/abort", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ kind: "turn", id: chatId }),
-		}).catch(() => {
+		void fetch("/api/activity/abort", jsonInit("POST", { kind: "turn", id: chatId })).catch(() => {
 			/* transient — the turn settles on its own */
 		});
 	}, [chatId, stop, localStreamRef]);
@@ -453,27 +446,22 @@ export function Chat({
 	const freshBar = useMemo(() => (kind === "practice" || kind === "homework" ? null : planStepBar(planTree, messages)), [kind, planTree, messages]);
 	// A homework lesson's problems: the deadline's list plus this lesson's posts and done marks.
 	const freshProblems = useMemo(() => (kind === "homework" ? homeworkProblems(homework?.problems ?? [], messages) : null), [kind, homework, messages]);
-	const problemsKey = freshProblems ? JSON.stringify(freshProblems) : "";
-	const problems = useMemo(() => freshProblems, [problemsKey]);
+	const problems = useStableValue(freshProblems);
 	const openProblem = problems?.open ? problems.problems.find((p) => p.number === problems.open) : undefined;
 	const homeworkName = homework?.name ?? title;
 	const planHomework = useMemo(() => (problems ? { problems: problems.problems, open: problems.open, cards: problems.cards } : null), [problems]);
 	// Stable while nothing in it changed, so streaming never redraws the bar.
-	const barKey = freshBar ? JSON.stringify(freshBar) : "";
-	const stepBar = useMemo(() => freshBar, [barKey]);
-	const edgesKey = planTree ? JSON.stringify(planTree.edges) : "";
-	const planEdges = useMemo(() => planTree?.edges ?? null, [edgesKey]);
+	const stepBar = useStableValue(freshBar);
+	const planEdges = useStableValue(planTree?.edges ?? null);
 	const stepIdsKey = stepBar ? stepBar.steps.map((s) => s.id).join("\n") : "";
 	const stepNumbers = useMemo(() => new Map(stepBar?.steps.map((s, i) => [s.id, i + 1]) ?? []), [stepIdsKey]);
 	// Problem numbers (and practice's plan row blocks).
 	const practice = useMemo(() => (kind === "teach" ? null : practiceProgress(messages, activeProblem !== null)), [kind, messages, activeProblem]);
-	const practiceKey = practice ? JSON.stringify(practice) : "";
-	const stablePractice = useMemo(() => practice, [practiceKey]);
+	const stablePractice = useStableValue(practice);
 	// Each Study topic's page mark; stable while none changed.
 	const firstTopic = planTree?.nodes[0]?.id ?? null;
 	const freshPageMarks = useMemo(() => (kind === "study" ? topicPageMarks(topicParts(nativeMessages, firstTopic)) : NO_PAGES), [kind, nativeMessages, firstTopic]);
-	const pageMarksKey = JSON.stringify([...freshPageMarks]);
-	const pageMarks = useMemo(() => freshPageMarks, [pageMarksKey]);
+	const pageMarks = useStableValue(freshPageMarks, JSON.stringify([...freshPageMarks]));
 	const lessonStop = useLessonStop({
 		nativeMessages,
 		kind,
@@ -570,7 +558,7 @@ export function Chat({
 										className="lh-dots lh-lesson-body relative h-full"
 										style={{ "--lh-turn-w": `${columnWidth}px` } as React.CSSProperties}
 									>
-										<Pane className="@container/reading flex min-h-0 min-w-0 flex-col [grid-area:reading]">
+										<Pane className="@container/reading flex min-h-0 min-w-0 flex-col overflow-hidden [grid-area:reading]">
 											<div className="shrink-0 px-14 pt-[26px] pb-3 empty:hidden @max-[640px]/reading:px-7">
 												<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={planHomework ? jumpToProblem : jumpToAnswer} onOpenPlan={openPlan} />
 											</div>

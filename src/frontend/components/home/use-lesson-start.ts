@@ -4,6 +4,7 @@ import { lessonStop, type ChatAttachment, type DeadlineProgress, type GraphConte
 import { useSpaces } from "@/frontend/components/space-context";
 import { holdStartFiles } from "@/frontend/components/lesson/start-files";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
+import { jsonInit } from "@/frontend/lib/api";
 
 const LESSON_START_FAILED = "Couldn't start the lesson. Try again.";
 
@@ -41,11 +42,7 @@ export function useLessonStart() {
 			setBusy(true);
 			setError(null);
 			try {
-				const res = await fetch("/api/chats", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ ...body, ...(spaceId ? { spaceId } : {}) }),
-				});
+				const res = await fetch("/api/chats", jsonInit("POST", { ...body, ...(spaceId ? { spaceId } : {}) }));
 				if (!res.ok) throw new Error(`HTTP ${res.status}`);
 				const { id, title } = (await res.json()) as { id: string; title: string };
 				holdStartFiles(id, files);
@@ -106,11 +103,7 @@ export function useLessonStart() {
 				if (!res.ok) throw new Error(`HTTP ${res.status}`);
 				const stop = lessonStop(((await res.json()) as { messages: LhMessage[] }).messages, null);
 				if (!stop || stop.keptGoing) throw new Error("no stop to go on from");
-				const kept = await fetch(`/api/chats/${encodeURIComponent(chatId)}/keep-going`, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ input: { stopOf: stop.stopOf } }),
-				});
+				const kept = await fetch(`/api/chats/${encodeURIComponent(chatId)}/keep-going`, jsonInit("POST", { input: { stopOf: stop.stopOf } }));
 				if (!kept.ok) throw new Error(`HTTP ${kept.status}`);
 				navigate(`${lesson}?lit=stop`);
 			} catch {

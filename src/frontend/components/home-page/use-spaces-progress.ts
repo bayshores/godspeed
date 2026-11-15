@@ -9,19 +9,14 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { localDay, type ProgressPayload } from "@/shared/core";
-import { spaceQuery } from "@/frontend/components/space-context";
-import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
+import { fetchProgress, useProgressRefresh } from "@/frontend/components/use-progress";
 import { foldSpacesProgress, type SpacesProgress, type ProgressRead } from "./home-page-model";
-
-const REFRESH_DEBOUNCE_MS = 400;
 
 /** `reload`: read every space again now (Try again). */
 export function useSpacesProgress(spaceIds: readonly string[]): SpacesProgress & { reload: () => void } {
 	const [state, setState] = useState<SpacesProgress>({ progress: new Map(), errors: new Map(), noSpace: null });
 	const key = spaceIds.join(",");
 	const request = useRef(0);
-	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const load = useCallback(() => {
 		const id = ++request.current;
@@ -29,10 +24,7 @@ export function useSpacesProgress(spaceIds: readonly string[]): SpacesProgress &
 		void Promise.all(
 			[...ids, null].map(async (spaceId): Promise<ProgressRead> => {
 				try {
-					const res = await fetch(`/api/progress${spaceQuery(spaceId)}&today=${localDay()}`);
-					const body = await res.json();
-					if (!res.ok) throw new Error(typeof body?.error === "string" ? body.error : `HTTP ${res.status}`);
-					return { spaceId, payload: body as ProgressPayload };
+					return { spaceId, payload: await fetchProgress(spaceId) };
 				} catch (err) {
 					return { spaceId, error: err instanceof Error ? err.message : String(err) };
 				}
@@ -43,22 +35,10 @@ export function useSpacesProgress(spaceIds: readonly string[]): SpacesProgress &
 		});
 	}, [key]);
 
-	const refresh = useCallback(() => {
-		if (timer.current) clearTimeout(timer.current);
-		timer.current = setTimeout(load, REFRESH_DEBOUNCE_MS);
-	}, [load]);
-
+	useProgressRefresh(load);
 	useEffect(() => {
 		load();
-		return () => {
-			if (timer.current) clearTimeout(timer.current);
-		};
 	}, [load]);
-
-	useServerEvent("turn-settled", refresh);
-	useServerEvent("activity-changed", refresh);
-	useServerEvent("spaces-changed", refresh);
-	useServerResync(refresh);
 
 	return useMemo(() => ({ ...state, reload: load }), [state, load]);
 }

@@ -8,6 +8,7 @@ import { studioPath } from "@/frontend/components/cheat-sheet/use-cheat-sheet";
 import { dueLabel } from "@/frontend/components/space-deadlines-model";
 import { useMinute } from "@/frontend/components/countdown";
 import { spaceFilePathOf, useSpaceRecord } from "@/frontend/components/files/space-files-api";
+import { jsonInit } from "@/frontend/lib/api";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { askTeacher } from "@/frontend/components/teacher/ask-teacher";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
@@ -65,11 +66,7 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 			setSaving(true);
 			setSaveError(null);
 			try {
-				const res = await fetch(`/api/spaces/${encodeURIComponent(spaceId)}/deadlines/${encodeURIComponent(deadlineId)}`, {
-					method: "PUT",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(patch),
-				});
+				const res = await fetch(`/api/spaces/${encodeURIComponent(spaceId)}/deadlines/${encodeURIComponent(deadlineId)}`, jsonInit("PUT", patch));
 				if (!res.ok) throw new Error();
 				await Promise.all([reload(), refresh()]);
 			} catch {

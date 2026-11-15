@@ -1,11 +1,8 @@
 import { data, useLoaderData, type LoaderFunctionArgs } from "react-router";
-import type { ChatRecord, HomeworkView, LessonKind } from "@/shared/core";
+import type { HomeworkView, LessonKind } from "@/shared/core";
 import { Chat } from "@/frontend/components/chat";
+import type { ChatRead } from "@/frontend/components/lesson/use-lesson-server";
 import { PageTitle } from "./page-title";
-
-/** GET /api/chats/[id]: the record plus whether a turn is running and the
- *  last turn's failure. */
-type ChatRead = ChatRecord & { turnInFlight: boolean; turnError?: string };
 
 /** One lesson: its record (and a homework lesson's deadline) is read before
  *  the page shows, so a navigation keeps the old page until it's ready. */

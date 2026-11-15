@@ -1,6 +1,5 @@
 //! The speech model, downloaded once (ensureWhisperModel in transcribe.ts).
 
-use std::future::Future;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -85,7 +84,7 @@ async fn download(url: &str, file: &Path) -> Outcome {
 	// stdout is the desktop shell's protocol; a closed stderr is not an error.
 	let _ = writeln!(std::io::stderr(), "[transcribe] downloading {WHISPER_MODEL_NAME} (~150 MB, one time)");
 	let client = reqwest::Client::builder().redirect(Policy::limited(20)).connect_timeout(CONNECT_TIMEOUT).no_proxy().build().map_err(|_| "fetch failed".to_owned())?;
-	let Some(Ok(response)) = within(client.get(url).send()).await else {
+	let Some(Ok(response)) = clock::within(SILENCE_LIMIT_MS, client.get(url).send()).await else {
 		return Err("fetch failed".to_owned());
 	};
 	let status = response.status().as_u16();
@@ -111,7 +110,7 @@ async fn save(mut response: reqwest::Response, tmp: &Path) -> Result<(), String>
 		message.strip_suffix(&format!(" '{}'", tmp.display())).unwrap_or(&message).to_owned()
 	};
 	loop {
-		match within(response.chunk()).await {
+		match clock::within(SILENCE_LIMIT_MS, response.chunk()).await {
 			Some(Ok(Some(chunk))) => out.write_all(&chunk).await.map_err(write_error)?,
 			Some(Ok(None)) => return out.flush().await.map_err(write_error),
 			_ => return Err("terminated".to_owned()),
@@ -119,10 +118,3 @@ async fn save(mut response: reqwest::Response, tmp: &Path) -> Result<(), String>
 	}
 }
 
-/// `work`, or None once the server has been silent for SILENCE_LIMIT_MS.
-async fn within<T>(work: impl Future<Output = T>) -> Option<T> {
-	tokio::select! {
-		out = work => Some(out),
-		() = clock::sleep(SILENCE_LIMIT_MS) => None,
-	}
-}

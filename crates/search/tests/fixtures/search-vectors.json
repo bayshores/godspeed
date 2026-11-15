@@ -1,7 +1,7 @@
 {
 	"source": "contract recording search-vectors (rewrite-lab/contract/recordings/search-vectors.json)",
 	"passages": {
-		"fileSha256": "1db2fd165ddde3bb",
+		"fileSha256": "734b87157a9bab0c",
 		"rows": [
 			[
 				"<f#1>:1",
@@ -45,11 +45,11 @@
 			],
 			[
 				"<f#11>:1",
-				"ad8ea42b5a6c0489"
+				"ee33f8320e3040ea"
 			],
 			[
 				"<f#11>:2",
-				"dec86bac8e8041f3"
+				"cc5ff66315ca7781"
 			]
 		]
 	},
@@ -116,27 +116,27 @@
 		}
 	],
 	"facts": {
-		"fileSha256": "055cbaf954cb521a",
+		"fileSha256": "b47fcf0763669e51",
 		"rows": [
 			[
 				"<n#1>",
-				"0d1ab9ca33313323"
+				"94fc74be9af0d693"
 			],
 			[
 				"<n#2>",
-				"84708c1e72fc4b11"
+				"a3b7a106c0e4082a"
 			],
 			[
 				"<n#5>",
-				"c42077cdf50a91fa"
+				"f781b150f87df6dc"
 			],
 			[
 				"<n#3>",
-				"c75f7d34eb99e2c2"
+				"b76e240fca9f1374"
 			],
 			[
 				"<n#4>",
-				"55e992f30a7db092"
+				"f3391d93f1cdd26d"
 			]
 		]
 	},

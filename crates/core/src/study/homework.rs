@@ -2,7 +2,7 @@
 
 use gs_json::{Json, Obj, json};
 
-use super::{items, latest_session};
+use super::latest_session;
 
 /// The kinds of deadline that have problems to work on.
 pub fn has_problems(kind: &str) -> bool {
@@ -25,7 +25,7 @@ pub fn merge_problems(previous: &[Json], posted: &[Json]) -> Vec<Json> {
 
 /// How many problems are done, `{ done, total }`; None with none posted.
 pub fn problems_done(problems: &Json) -> Option<Json> {
-	let list = items(problems);
+	let list = problems.items();
 	if list.is_empty() {
 		return None;
 	}

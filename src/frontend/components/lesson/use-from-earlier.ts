@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import type { QuestionAnswerData, ReviewQuestion } from "@/shared/core";
+import { jsonInit } from "@/frontend/lib/api";
 import { fromEarlierAsk } from "./from-earlier-ask-model";
 
 /** One request to the lesson's review route. */
 function postReview(chatId: string, input: unknown): Promise<Response> {
-	return fetch(`/api/chats/${encodeURIComponent(chatId)}/review`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ input }),
-	});
+	return fetch(`/api/chats/${encodeURIComponent(chatId)}/review`, jsonInit("POST", { input }));
 }
 
 /**

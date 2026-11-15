@@ -173,6 +173,10 @@ jobs:
     env:
       # No FUSE in containers; the AppImage tools unpack themselves instead.
       APPIMAGE_EXTRACT_AND_RUN: "1"
+      # Macs ship stripped binaries and keep a .dSYM. A Windows .exe holds no symbols, and
+      # stripping there would also skip the .pdb. Linux keeps its symbols in the binary, as before.
+      CARGO_PROFILE_RELEASE_STRIP: ${{ startsWith(matrix.platform, 'mac') && 'true' || 'false' }}
+      CARGO_PROFILE_RELEASE_DEBUG: ${{ matrix.platform == 'linux' && 'false' || 'line-tables-only' }}
     defaults:
       run:
         shell: bash
@@ -346,6 +350,18 @@ jobs:
           retention-days: 7
           if-no-files-found: error
           path: dist/
+
+      # Not a release asset: the verify job expects exactly the twelve downloads.
+      - name: Save the symbols for reading crash logs
+        if: matrix.platform != 'linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: symbols-${{ matrix.platform }}
+          retention-days: 90
+          if-no-files-found: error
+          path: |
+            target/${{ matrix.triple }}/release/*.dSYM
+            target/${{ matrix.triple }}/release/*.pdb
 
       - name: Upload the downloads to the draft
         if: github.event_name == 'push'

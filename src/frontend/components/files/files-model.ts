@@ -3,6 +3,7 @@
  * record (src/shared/core/contracts/space.ts) and the progress payload's file
  * coverage (src/shared/core/progress.ts).
  */
+import { plural } from "@/frontend/lib/plural";
 import { SPEECH_TOOL_INSTALL, SUPPORTED_SPACE_FILE_EXTENSIONS, type SpaceFile, type FileCoverage, type FileGroup } from "@/shared/core";
 
 /** Accepted by "Add files" (files with no extension can still be dropped). */
@@ -81,16 +82,11 @@ export function kindNote(kind: "study" | "info"): string {
 	return kind === "study" ? "Turned into facts" : "Read by the teacher only";
 }
 
-/** "1 fact", "31 facts". */
-function count(n: number, one: string, many: string): string {
-	return `${n} ${n === 1 ? one : many}`;
-}
-
 /** What "Move to Space info" does to a study file's facts (null: not
  *  known yet). A file with no facts loses nothing, so it says nothing. */
 function factsLeave(facts: number | null): string {
 	if (facts === 0) return "";
-	return `${facts === null ? "Its facts leave" : `Its ${count(facts, "fact leaves", "facts leave")}`} the graph. `;
+	return `${facts === null ? "Its facts leave" : `Its ${plural(facts, "fact leaves", "facts leave")}`} the graph. `;
 }
 
 /** A change on the Files page that waits for the learner's OK. */
@@ -121,11 +117,11 @@ export function confirmCopy(
 	const known = coverage.size > 0;
 	const factsOf = (list: readonly SpaceFile[]) => (known ? list.reduce((sum, f) => sum + (coverage.get(f.id)?.facts ?? 0), 0) : null);
 	const withFacts = (facts: number | null, from: string) =>
-		facts === 0 ? "" : `, along with ${facts === null ? "the facts" : `the ${count(facts, "fact", "facts")}`} built from ${from}`;
+		facts === 0 ? "" : `, along with ${facts === null ? "the facts" : `the ${plural(facts, "fact")}`} built from ${from}`;
 	switch (change.kind) {
 		case "unlink": {
 			const linked = files.filter((f) => f.origin === "linked");
-			const leave = linked.length > 0 ? `Its ${count(linked.length, "file leaves", "files leave")} ${spaceName}${withFacts(factsOf(linked), "them")}. ` : "";
+			const leave = linked.length > 0 ? `Its ${plural(linked.length, "file leaves", "files leave")} ${spaceName}${withFacts(factsOf(linked), "them")}. ` : "";
 			return {
 				title: "Unlink this folder?",
 				body: `${leave}The folder on your computer is not touched. This cannot be undone.`,
@@ -155,7 +151,7 @@ export function confirmCopy(
 
 /** A drop target's line while files from Finder are dragged over the page. */
 export function dropTitle(kind: "study" | "info", count: number): string {
-	const what = count > 0 ? `${count} ${count === 1 ? "file" : "files"}` : "files";
+	const what = count > 0 ? plural(count, "file") : "files";
 	return `Add ${what} as ${kindTitle(kind).toLowerCase()}`;
 }
 
@@ -172,16 +168,6 @@ export function filterGroups(groups: readonly FileGroup[], query: string): FileG
 	return out;
 }
 
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-/** "2026-09-25" → "Fri Sep 25" (a calendar day, no time zone). */
-export function shortDate(iso: string): string {
-	const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
-	const day = new Date(Date.UTC(y, m - 1, d));
-	return `${DAYS[day.getUTCDay()]} ${MONTHS[m - 1]} ${d}`;
-}
-
 /** The line above each section of the file list, given whether each is
  *  open (Recent changes counts as open): solid beside an open section,
  *  dotted between two folded ones, none above the first. */
@@ -192,7 +178,7 @@ export function listRules(open: readonly boolean[]): ("solid" | "dotted" | null)
 /** "46 files, 27 study material, 19 space info". */
 export function filesSummary(files: readonly SpaceFile[]): string {
 	const info = files.filter((f) => f.kind === "info").length;
-	const parts = [count(files.length, "file", "files")];
+	const parts = [plural(files.length, "file")];
 	if (files.length > 0) parts.push(`${files.length - info} study material`, `${info} space info`);
 	return parts.join(", ");
 }

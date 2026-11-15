@@ -1,9 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
 import type { useChatSession } from "@/frontend/components/session";
-import type { JobRecord, LhMessage, SessionPricing, TurnUsage } from "@/shared/core";
+import type { ChatRecord, JobRecord, SessionPricing, TurnUsage } from "@/shared/core";
 
 type Session = ReturnType<typeof useChatSession>;
+
+/** GET /api/chats/[id]: the record plus its pricing, whether a turn is
+ *  running and the last turn's failure. */
+export type ChatRead = ChatRecord & { pricing?: SessionPricing; turnInFlight: boolean; turnError?: string };
+
+/** The chat's record, or null when it can't be read right now (the next
+ *  event or send heals). */
+async function readRecord(chatId: string): Promise<ChatRead | null> {
+	try {
+		const res = await fetch(`/api/chats/${chatId}`);
+		return res.ok ? ((await res.json()) as ChatRead) : null;
+	} catch {
+		return null;
+	}
+}
 
 /**
  * The lesson's server seams (split out of src/frontend/components/chat.tsx): record
@@ -56,38 +71,30 @@ export function useLessonServer({
 	// ── the session usage log (the stats row) ──
 	const [turns, setTurns] = useState<TurnUsage[]>([]);
 	const [pricing, setPricing] = useState<SessionPricing | undefined>();
+	const applyStats = useCallback((record: ChatRead) => {
+		if (Array.isArray(record.turns)) setTurns(record.turns);
+		setPricing(record.pricing);
+	}, []);
+	// A failed read leaves the stats on the last known figures.
 	const syncTurns = useCallback(async () => {
-		try {
-			const res = await fetch(`/api/chats/${chatId}`);
-			if (!res.ok) return;
-			const record = (await res.json()) as { turns?: TurnUsage[]; pricing?: SessionPricing };
-			if (Array.isArray(record.turns)) setTurns(record.turns);
-			setPricing(record.pricing);
-		} catch {
-			// transient: stats stay on the last known figures
-		}
-	}, [chatId]);
+		const record = await readRecord(chatId);
+		if (record) applyStats(record);
+	}, [chatId, applyStats]);
 	useEffect(() => {
 		void syncTurns();
 	}, [syncTurns]);
 
 	const syncFromServer = useCallback(async () => {
-		let record: { messages?: LhMessage[]; turns?: TurnUsage[]; pricing?: SessionPricing; turnError?: string };
-		try {
-			const res = await fetch(`/api/chats/${chatId}`);
-			if (!res.ok) return;
-			record = await res.json();
-		} catch {
-			return; // transient: the next record-changed / turn-settled event re-syncs
-		}
-		if (Array.isArray(record.turns)) setTurns(record.turns);
-		setPricing(record.pricing);
+		// A failed read: the next record-changed / turn-settled event re-syncs.
+		const record = await readRecord(chatId);
+		if (!record) return;
+		applyStats(record);
 		if (!Array.isArray(record.messages)) return;
 		setMessages(record.messages, record.turnError);
 		// A job result landing in the record leaves the agent owing a
 		// continuation (the native fold decides).
 		continueIfOwed(record.messages);
-	}, [chatId, setMessages, continueIfOwed]);
+	}, [chatId, applyStats, setMessages, continueIfOwed]);
 
 	// The reattach stream's settled terminal: drop the fallback and adopt.
 	setReattachSettled(() => {
@@ -98,16 +105,10 @@ export function useLessonServer({
 	// Append-only adoption: server-delivered content (sub-agent artifacts,
 	// abort notes, answers to questions from earlier) shows the moment it
 	// persists, mid-turn included.
+	// A failed read is covered by the idle full sync.
 	const adoptAppendOnly = useCallback(async () => {
-		try {
-			const res = await fetch(`/api/chats/${chatId}`);
-			if (!res.ok) return;
-			const record = (await res.json()) as { messages?: LhMessage[] };
-			if (!Array.isArray(record.messages)) return;
-			adoptRecord(record.messages);
-		} catch {
-			/* transient — the idle full sync is the net */
-		}
+		const record = await readRecord(chatId);
+		if (Array.isArray(record?.messages)) adoptRecord(record.messages);
 	}, [chatId, adoptRecord]);
 
 	// Turn-start window: the server inserts claimed steers right after our
@@ -162,16 +163,11 @@ export function useLessonServer({
 		if (was === "error" || status !== "error") return;
 		let cancelled = false;
 		void (async () => {
-			try {
-				const res = await fetch(`/api/chats/${chatId}`);
-				if (!res.ok || cancelled) return;
-				const record = (await res.json()) as { turnInFlight?: boolean };
-				if (cancelled) return;
-				if (record.turnInFlight === true) setTurnInFlight(true);
-				else void syncFromServer();
-			} catch {
-				/* transient — the banner stands; the next send heals */
-			}
+			// A failed read: the banner stands; the next send heals.
+			const record = await readRecord(chatId);
+			if (!record || cancelled) return;
+			if (record.turnInFlight === true) setTurnInFlight(true);
+			else void syncFromServer();
 		})();
 		return () => {
 			cancelled = true;

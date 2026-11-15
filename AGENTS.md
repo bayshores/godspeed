@@ -10,14 +10,25 @@ Rules:
 - When an app change affects what the site says (features, supported agents, platforms, download file names, version numbers, screenshots), tell the user the site may need the same update.
 - Before cleaning up, merging or reporting that "everything is committed", check both repos.
 
-# Keep the design files clean
+# One design file per topic
 
-The pen.dev files hold only what someone still needs to look at, so they never pile up into old mockups.
+Each feature or topic has its own pen.dev file in `docs/design/`, named after it (`live-pill.pen`). A file stays small, and its name says what is in it.
 
-- A board stays only while it is waiting for the user's pick or being built. Once it is rejected or built, delete its boards in the same change: the code and the live page are the reference from then on.
-- Delete any image, shader or export in the design folders that no remaining board, README or code uses.
+- Start a file by copying `docs/design/blank.pen` to the new name. A pen.dev file can't be written by hand, and the pen.dev tool only opens a file that exists.
+- Boards stay in their file after a round, picked or not. Never clear a canvas to make room. A later round on the same topic goes in the same file, to the right of the earlier one, and the picked board gets "(picked)" in its name.
+- Delete a design file only when the user says so.
+- Delete any image, shader or export in the design folders that no board, README or code uses.
 - Code comments don't point at design boards or exports. The code is the reference once it's built.
-- pen.dev saves on ⌘S; ask the user to save after a cleanup.
+- Save the file with the pen.dev tool after drawing, then tell the user which file and which boards to look at.
+
+# One app, not a pile of features
+
+Every feature is designed as a part of the whole app, never by itself.
+
+- Before designing anything, list what the app already has that does part of the job (a screen, a control, a stored thing, an agent tool) and build on it. A new screen, tab, setting, tool or data file needs a reason the existing ones can't serve.
+- A feature uses the names, controls, looks and flows the rest of the app uses for the same idea. One way per action, one home per thing.
+- When a new feature overlaps an old one, merge them or remove the old one in the same change. Two features never do the same job.
+- A plan says where the feature touches the rest of the app (Today, spaces, lessons, deadlines, the agent's pane, the agent's tools, the godspeed folder) and what changes there.
 
 # Say it once
 
@@ -28,12 +39,31 @@ Nothing is said twice on one screen.
 - Help for when something fails shows when it fails, not all the time.
 - Before calling a UI change finished, read every word on the changed screen in each of its states (empty, working, failed) and cut what is said twice.
 
+# No button behind a button
+
+A click does the thing. It does not open a box that holds the button for the thing.
+
+- A control never opens a pop-up, menu, card or dialog that holds only one action. The control does that action itself.
+- A pop-up is for a choice between two or more things, or for something that arrives by itself (a notice, a question).
+- This holds in every state: a menu that is down to one entry in some state does that entry on the first click.
+- Before calling a UI change finished, click every control on the changed screen in each of its states and count what opens. One action inside means the pop-up goes.
+
+# No label sandwich
+
+A big title does not sit between a small line above it and a small line below it.
+
+- Nothing small sits above a title. No eyebrow, no category line, no date line on top.
+- A title gets at most one supporting line, under it or beside it. More facts go into that one line or a chip beside the title, or are cut.
+- This holds everywhere a title shows: page heads, cards, rows, pop-ups and empty states.
+- Before calling a UI change finished, look at every title on the changed screen for a small line above it.
+
 # Look at the real window
 
 The Mac app draws its pages with WebKit, not Chrome, and the two lay pages out differently. A page that looks right in a browser can overlap in the app.
 
 - A UI change is looked at in the real app window (the debug shell) before it is called finished, at 1440, 1100 and 800 points wide. A browser screenshot does not count.
 - Look at each state the change touches, and at the screen's scroll end, for text on top of text, content spilling out of its box and sideways scrolling.
+- `npm run layout` checks the screens in `scripts/layout-screens.mjs` in the real window at all three widths for overlapping text, spills, sideways scrolling, hidden text and cut-off letters. It runs in CI on the Mac and is not part of `npm run check`: run it yourself before calling a UI change finished. A new screen or state gets an entry there.
 
 # No guessing
 

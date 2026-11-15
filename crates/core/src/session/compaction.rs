@@ -92,7 +92,7 @@ fn text_chars_of_content(content: &Json) -> f64 {
 pub fn estimate_message_tokens(message: &Json) -> f64 {
 	let mut chars = 0.0;
 	if message["role"].as_str() == Some("assistant") {
-		for block in message["content"].as_arr().into_iter().flatten() {
+		for block in message["content"].items().iter() {
 			match block["type"].as_str() {
 				Some("text") => chars += len_of(&block["text"]),
 				Some("thinking") => chars += len_of(&block["thinking"]),
@@ -232,7 +232,7 @@ fn summary_lines(messages: &[Json]) -> Vec<String> {
 			Some("user") => lines.push(format!("[LEARNER] {}", content_text(&m["content"]))),
 			Some("assistant") => {
 				let mut blocks: Vec<String> = Vec::new();
-				for b in m["content"].as_arr().into_iter().flatten() {
+				for b in m["content"].items().iter() {
 					match b["type"].as_str() {
 						Some("text") => blocks.push(or_empty(b.get("text"))),
 						// Thinking blocks are the model's scratch; its conclusions land in text.
@@ -331,20 +331,20 @@ pub fn compaction_span<'a>(messages: &'a [Json], marker: &Json) -> Option<Compac
 /// statuses derived from the transcript. An empty tree has no section.
 pub fn plan_tree_to_text(tree: Option<&Json>, messages: &[Json]) -> Option<String> {
 	let tree = tree?;
-	let nodes: &[Json] = tree["nodes"].as_arr().map_or(&[], Vec::as_slice);
+	let nodes: &[Json] = tree["nodes"].items();
 	if nodes.is_empty() {
 		return None;
 	}
 	let statuses: PlanStatuses = derive_plan_statuses_lh(tree, messages, &HashMap::new());
 	let mut lines: Vec<String> = Vec::new();
 	for node in nodes {
-		let id = node["id"].as_str().unwrap_or_default();
+		let id = node["id"].str_or_empty();
 		let summary = if node["summary"].truthy() { format!(" \u{2014} {}", js_string(Some(&node["summary"]))) } else { String::new() };
 		lines.push(format!("- [{}] {} ({}){summary}", derived_node_status(&statuses, id), field_text(node, "title"), field_text(node, "id")));
 	}
 	// Two nodes sharing an id resolve to the later one, as a Map built from the list does.
 	let by_id = |id: &Json| id.as_str().and_then(|id| nodes.iter().rfind(|n| n["id"].as_str() == Some(id)));
-	for edge in tree["edges"].as_arr().into_iter().flatten() {
+	for edge in tree["edges"].items().iter() {
 		if let (Some(from), Some(to)) = (by_id(&edge["from"]), by_id(&edge["to"])) {
 			lines.push(format!("- {} \u{2192} {} ({} \u{2192} {})", field_text(from, "title"), field_text(to, "title"), field_text(from, "id"), field_text(to, "id")));
 		}

@@ -7,6 +7,7 @@ use axum::body::Body;
 use axum::extract::{Path, State};
 use axum::http::{HeaderValue, Uri, header};
 use axum::response::Response;
+use bytes::Bytes;
 use gs_core::records::agent_rules::parse_where;
 use gs_json::{Json, json};
 use gs_services::App;
@@ -21,7 +22,7 @@ use gs_services::app::reading_pages::{ReadingError, parse_page, reading_document
 use gs_services::app::{agent_actions::recent_agent_actions, put_settings_section};
 use gs_services::spaces::citations::{cited_page, cited_passage};
 
-use crate::http::paths::{param, search_params};
+use crate::http::paths::{param, query};
 use crate::http::reply::{self, Unhandled, error, fields, json_body};
 use crate::http::route::ApiRoute;
 
@@ -80,7 +81,7 @@ async fn change_agent_folder(State(app): State<Arc<App>>, body: Body) -> Result<
 	match body["action"].as_str() {
 		Some("dismiss-notice") => {
 			dismiss_folder_notice(&app)?;
-			Ok(reply::json_no_store(200, &json!({ "ok": true })))
+			Ok(reply::no_store(reply::ok()))
 		}
 		Some("remove-old-setup") => Ok(match remove_old_setup(&app) {
 			Ok(()) => reply::json_no_store(200, &agent_folder_view(&app)),
@@ -123,7 +124,7 @@ async fn notes(State(app): State<Arc<App>>) -> Response {
 }
 
 async fn remove_note(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandled> {
-	let params = search_params(uri.query().unwrap_or_default());
+	let params = query(&uri);
 	let removed = match param(&params, "id").filter(|id| !id.is_empty()) {
 		Some(id) => app.stores.agent_notes.remove_agent_note(id)?,
 		None => false,
@@ -146,7 +147,7 @@ async fn change_rule(State(app): State<Arc<App>>, body: Body) -> Result<Response
 	let body = fields(body).await?;
 	let (Some(place), Some(text)) = (parse_where(&body["where"]), body["text"].as_str()) else { return Ok(error(400, "where and text are required")) };
 	match (body["action"].as_str(), body["newText"].as_str()) {
-		(Some("remove"), _) => Ok(if remove_rule(&app, &place, text)? { reply::json_no_store(200, &json!({ "ok": true })) } else { error(404, "That rule was already removed.") }),
+		(Some("remove"), _) => Ok(if remove_rule(&app, &place, text)? { reply::no_store(reply::ok()) } else { error(404, "That rule was already removed.") }),
 		(Some("edit"), Some(new_text)) => match edit_rule(&app, &place, text, new_text) {
 			Ok(edited) => Ok(reply::json_no_store(200, &edited)),
 			Err(RuleFailure::Disk(message)) => Err(Unhandled::from(message)),
@@ -164,7 +165,7 @@ async fn change_rule(State(app): State<Arc<App>>, body: Body) -> Result<Response
 }
 
 async fn reading(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandled> {
-	let params = search_params(uri.query().unwrap_or_default());
+	let params = query(&uri);
 	let Some(path) = param(&params, "path").filter(|path| !path.is_empty()) else { return Ok(error(400, "path is required")) };
 	let Some(page) = param(&params, "page") else {
 		return match reading_document(&app, path).await {
@@ -177,12 +178,20 @@ async fn reading(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unha
 	page_png(reading_pdf_page(&app, path, page).await)
 }
 
+/// The cached PNG's bytes, shared with the cache instead of copied.
+struct SharedPng(Arc<Vec<u8>>);
+
+impl AsRef<[u8]> for SharedPng {
+	fn as_ref(&self) -> &[u8] {
+		&self.0
+	}
+}
+
 /// A PDF page as a PNG the window may keep for five minutes, or why there is none.
 fn page_png(outcome: Result<Arc<Vec<u8>>, ReadingError>) -> Result<Response, Unhandled> {
 	match outcome {
 		Ok(png) => {
-			let mut res = Response::new(Body::from(png.as_ref().clone()));
-			res.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static("image/png"));
+			let mut res = reply::typed(200, Bytes::from_owner(SharedPng(png)), "image/png");
 			res.headers_mut().insert(header::CACHE_CONTROL, HeaderValue::from_static("private, max-age=300"));
 			Ok(res)
 		}
@@ -193,7 +202,7 @@ fn page_png(outcome: Result<Arc<Vec<u8>>, ReadingError>) -> Result<Response, Unh
 
 /// What a space file source in a teacher message shows: `{ name, range, page, text }`.
 async fn cited(State(app): State<Arc<App>>, Path(file_id): Path<String>, uri: Uri) -> Result<Response, Unhandled> {
-	let params = search_params(uri.query().unwrap_or_default());
+	let params = query(&uri);
 	let Some(range) = param(&params, "range").filter(|range| !range.is_empty()) else { return Ok(error(400, "range is required")) };
 	let quote = param(&params, "quote").filter(|quote| !quote.is_empty());
 	match cited_passage(&app, &file_id, range, quote).await {

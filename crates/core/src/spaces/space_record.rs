@@ -46,9 +46,7 @@ fn clean_problem(p: &Json) -> Json {
 	for key in ["number", "title", "text"] {
 		out.insert(key, p[key].clone());
 	}
-	if let Some(page) = p.get("page") {
-		out.insert("page", page.clone());
-	}
+	out.insert_present("page", p.get("page"));
 	out.insert("done", p["done"].clone());
 	Json::Obj(out)
 }
@@ -59,9 +57,7 @@ fn read_deadline(d: &Json) -> Json {
 	for key in ["id", "kind", "name", "date"] {
 		out.insert(key, d[key].clone());
 	}
-	if let Some(time) = d.get("time") {
-		out.insert("time", time.clone());
-	}
+	out.insert_present("time", d.get("time"));
 	out.insert("fileIds", d["fileIds"].clone());
 	if id_list(&d["leftOutIds"]).is_some_and(|l| !l.is_empty()) {
 		out.insert("leftOutIds", d["leftOutIds"].clone());
@@ -114,7 +110,7 @@ fn read_deadlines(parsed: &Json) -> Option<Vec<Json>> {
 /// persists that).
 fn recent_removed(list: &Json, now: i64) -> Vec<Json> {
 	let valid = |r: &&Json| is_str(&r["id"]) && is_str(&r["name"]) && is_str(&r["at"]);
-	let recent = |r: &&Json| is_recent_change(r["at"].as_str().unwrap_or(""), now);
+	let recent = |r: &&Json| is_recent_change(r["at"].str_or_empty(), now);
 	let rebuilt = |r: &Json| {
 		let mut out = Obj::new();
 		for key in ["id", "name", "at"] {
@@ -122,7 +118,7 @@ fn recent_removed(list: &Json, now: i64) -> Vec<Json> {
 		}
 		Json::Obj(out)
 	};
-	list.as_arr().into_iter().flatten().filter(valid).filter(recent).map(rebuilt).collect()
+	list.items().iter().filter(valid).filter(recent).map(rebuilt).collect()
 }
 
 /// A record's deadline (or waiting deadline) without its assignment or about file once that file
@@ -173,7 +169,7 @@ fn read_work(v: &Json) -> Option<Json> {
 pub fn read_space_record(parsed: &Json, now: i64, fresh_color: impl FnOnce() -> i64) -> Option<Json> {
 	let (id, name) = (parsed["id"].as_str()?, parsed["name"].as_str()?);
 	let (created_at, updated_at) = (parsed["createdAt"].as_str()?, parsed["updatedAt"].as_str()?);
-	let files: Vec<Json> = parsed["files"].as_arr().into_iter().flatten().filter(|f| is_space_file(f)).cloned().collect();
+	let files: Vec<Json> = parsed["files"].items().iter().filter(|f| is_space_file(f)).cloned().collect();
 	let removed = recent_removed(&parsed["removedFiles"], now);
 	// A removed file drops out of every deadline that covered it; the next write persists that.
 	let known: HashSet<&str> = files.iter().filter_map(|f| f["id"].as_str()).collect();
@@ -196,7 +192,7 @@ pub fn read_space_record(parsed: &Json, now: i64, fresh_color: impl FnOnce() -> 
 	let mut out = Obj::new();
 	out.insert("id", id);
 	out.insert("name", name);
-	out.insert("description", parsed["description"].as_str().unwrap_or(""));
+	out.insert("description", parsed["description"].str_or_empty());
 	out.insert("createdAt", created_at);
 	out.insert("updatedAt", updated_at);
 	// A space closed before the rename was saved as `archived`.
@@ -254,7 +250,7 @@ pub fn newer_version(parsed: &Json) -> Option<f64> {
 /// The newest `addedAt` among the files `pick` says yes to.
 fn newest(files: &[Json], pick: impl Fn(&Json) -> bool) -> Option<&str> {
 	files.iter().fold(None, |at: Option<&str>, f| {
-		let added = f["addedAt"].as_str().unwrap_or("");
+		let added = f["addedAt"].str_or_empty();
 		if pick(f) && at.is_none_or(|a| a.is_empty() || cmp16(added, a).is_gt()) { Some(added) } else { at }
 	})
 }
@@ -267,7 +263,7 @@ pub fn clean_name(name: &str) -> String {
 
 /// A space's line in the space list.
 pub fn summarize(record: &Json) -> Json {
-	let files = record["files"].as_arr().map_or(&[][..], Vec::as_slice);
+	let files = record["files"].items();
 	let last_found = newest(files, |f| f["foundByScan"].as_bool() == Some(true)).filter(|s| !s.is_empty());
 	let last_folder_file = newest(files, |f| f["origin"].as_str() == Some("linked")).filter(|s| !s.is_empty());
 	let mut out = Obj::new();

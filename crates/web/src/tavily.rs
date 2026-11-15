@@ -88,8 +88,8 @@ fn results_text(answer: &Json, query: &str) -> String {
 		.iter()
 		.filter_map(|result| {
 			let url = result["url"].as_str().filter(|url| !url.is_empty())?;
-			let title = cut(result["title"].as_str().unwrap_or_default(), TITLE_CHARS);
-			let snippet = cut(result["content"].as_str().unwrap_or_default(), SNIPPET_CHARS);
+			let title = cut(result["title"].str_or_empty(), TITLE_CHARS);
+			let snippet = cut(result["content"].str_or_empty(), SNIPPET_CHARS);
 			Some([title.as_str(), url, snippet.as_str()].into_iter().filter(|line| !line.is_empty()).collect::<Vec<_>>().join("\n"))
 		})
 		.take(MAX_RESULTS)

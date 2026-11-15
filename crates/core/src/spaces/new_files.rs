@@ -30,12 +30,12 @@ pub fn is_recent(at: Option<&str>, now: i64) -> bool {
 /// which are space info), when that series' files all share one kind. Otherwise study
 /// material. Keyed by file id.
 pub fn kinds_for_new_files(existing: &[Json], added: &[Json]) -> HashMap<String, String> {
-	let id_of = |f: &Json| f["id"].as_str().unwrap_or("").to_owned();
+	let id_of = |f: &Json| f["id"].str_or_empty().to_owned();
 	let mut kinds: HashMap<String, String> = added.iter().map(|f| (id_of(f), "study".to_owned())).collect();
 	if added.is_empty() {
 		return kinds;
 	}
-	let known: HashMap<String, &str> = existing.iter().map(|f| (id_of(f), f["kind"].as_str().unwrap_or(""))).collect();
+	let known: HashMap<String, &str> = existing.iter().map(|f| (id_of(f), f["kind"].str_or_empty())).collect();
 	let all: Vec<Json> = existing.iter().chain(added).cloned().collect();
 	let (series, _) = group_file_series(&all);
 	for s in series {

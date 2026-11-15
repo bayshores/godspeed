@@ -47,7 +47,7 @@ impl Agent {
 				}
 				let message = self.stream_response(&mut context, abort).await;
 				new_messages.push(message.clone());
-				let stop = message["stopReason"].as_str().unwrap_or_default();
+				let stop = message["stopReason"].str_or_empty();
 				if stop == "error" || stop == "aborted" {
 					self.finish(&message, &[]);
 					self.emit(AgentEvent::TurnEnd { message, tool_results: Vec::new() });

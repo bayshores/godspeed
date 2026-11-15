@@ -35,7 +35,7 @@ async fn answers_like_the_ts_handler() {
 		for (key, value) in request["headers"].as_obj().unwrap().iter() {
 			headers.insert(HeaderName::from_bytes(key.as_bytes()).unwrap(), HeaderValue::from_str(value.as_str().unwrap()).unwrap());
 		}
-		let body = request["body"].as_str().unwrap_or_default();
+		let body = request["body"].str_or_empty();
 		let res = handle_mcp_request(&app, &method, &headers, body.as_bytes()).await;
 		let header = |key: &str| res.headers().get(key).map_or(Json::Null, |v| Json::from(v.to_str().unwrap()));
 		let (status, kind, allow) = (res.status().as_u16(), header("content-type"), header("allow"));

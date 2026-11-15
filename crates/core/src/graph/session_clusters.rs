@@ -3,7 +3,6 @@ use std::collections::{HashMap, HashSet};
 use gs_base::text::cmp16;
 use gs_json::Json;
 
-use super::ledger_lines::strs;
 use super::ordered::OrderedMap;
 
 /// The lesson a fact was first said in (its first provenance point's chat), if any.
@@ -48,7 +47,7 @@ pub fn birth_session_partition(nodes: &[Json]) -> Vec<BirthSessionCluster> {
 /// ties to the chain's own birth (its first provenance point), then to the first session by id.
 pub fn imp_cluster_key<'a>(chain: &Json, birth_of: impl Fn(&str) -> Option<&'a str>) -> Option<String> {
 	let mut counts: OrderedMap<usize> = OrderedMap::default();
-	for premise in strs(&chain["premises"]) {
+	for premise in chain["premises"].strs() {
 		if let Some(birth) = birth_of(premise) {
 			*counts.get_or_insert_with(birth, || 0) += 1;
 		}
@@ -72,7 +71,7 @@ pub fn imp_cluster_key<'a>(chain: &Json, birth_of: impl Fn(&str) -> Option<&'a s
 pub fn attach_imp_to_communities(communities: &mut [BirthSessionCluster], propositions: &[Json], chains: &[Json]) {
 	let birth_by_id: HashMap<&str, Option<&str>> = propositions.iter().filter_map(|n| n["id"].as_str().map(|id| (id, birth_session_of(n)))).collect();
 	for chain in chains {
-		let premises = strs(&chain["premises"]);
+		let premises = chain["premises"].strs();
 		let Some(conclusion) = chain["conclusion"].as_str() else { continue };
 		if premises.len() < 2 || !birth_by_id.contains_key(conclusion) || !premises.iter().all(|p| birth_by_id.contains_key(p)) {
 			continue;

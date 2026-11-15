@@ -11,7 +11,7 @@ use gs_engine::turn::abort::Abort;
 use gs_engine::turn::tool::Tool;
 use gs_json::Json;
 
-use super::fs_shared::{GREP_MAX_LINE_LENGTH, MAX_OUTPUT_BYTES, WALK_TIMEOUT_MS, byte_len, format_size, is_binary_file, resolve_source_path, truncate_grep_line, off_thread};
+use super::fs_shared::{GREP_MAX_LINE_LENGTH, MAX_OUTPUT_BYTES, WALK_TIMEOUT_MS, byte_len, format_size, is_binary_file, off_thread, output_limit, resolve_source_path, truncate_grep_line};
 use super::glob::GlobMatcher;
 use crate::tools::fn_tool::FnTool;
 use gs_core::session::schema::{self, boolean, integer, string, string_min};
@@ -38,7 +38,7 @@ pub fn grep_tool() -> Arc<dyn Tool> {
 		"grep",
 		format!(
 			"Search file contents for a pattern. Returns matching lines with file paths and line numbers. Ignores node_modules, .git, and Library directories. Output is truncated to {DEFAULT_LIMIT} matches or {} (whichever is hit first). Long lines are truncated to {GREP_MAX_LINE_LENGTH} chars.",
-			format_size(MAX_OUTPUT_BYTES as u64)
+			output_limit()
 		),
 		parameters,
 		|args, ctx| async move {
@@ -47,7 +47,7 @@ pub fn grep_tool() -> Arc<dyn Tool> {
 			}
 			let request = Request {
 				path: resolve_source_path(args["path"].as_str()),
-				pattern: args["pattern"].as_str().unwrap_or_default().to_owned(),
+				pattern: args["pattern"].str_or_empty().to_owned(),
 				glob: args["glob"].as_str().filter(|g| !g.is_empty()).map(str::to_owned),
 				ignore_case: args["ignoreCase"].truthy(),
 				literal: args["literal"].truthy(),
@@ -194,7 +194,7 @@ impl Scan<'_> {
 			notices.push(format!("Some lines truncated to {GREP_MAX_LINE_LENGTH} chars. Use read tool to see full lines"));
 		}
 		if self.output_capped {
-			notices.push(format!("{} limit reached", format_size(MAX_OUTPUT_BYTES as u64)));
+			notices.push(format!("{} limit reached", output_limit()));
 		}
 		if timed_out {
 			notices.push("search timed out after 10s \u{2014} partial results, narrow the directory".to_owned());

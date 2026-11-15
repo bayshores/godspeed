@@ -32,17 +32,17 @@ pub fn compose_feed<J: Borrow<Json>>(now: i64, chats: &[Json], all_jobs: &[J], r
 	// Every job runs on the outside agent: one context window.
 	let model = agent_model();
 	let agent_window = model["contextWindow"].clone();
-	let agent_model_id = format!("{}:{}", model["provider"].as_str().unwrap_or_default(), model["id"].as_str().unwrap_or_default());
+	let agent_model_id = format!("{}:{}", model["provider"].str_or_empty(), model["id"].str_or_empty());
 	let mut by_chat: HashMap<&str, Vec<&Json>> = HashMap::new();
 	for job in all_jobs.iter().map(Borrow::borrow) {
-		by_chat.entry(job["chatId"].as_str().unwrap_or_default()).or_default().push(job);
+		by_chat.entry(job["chatId"].str_or_empty()).or_default().push(job);
 	}
 	let mut jobs = Vec::new();
 	let mut failed = Vec::new();
 	for chat in chats {
 		let title = title_or_id(chat);
-		for job in by_chat.get(chat["id"].as_str().unwrap_or_default()).map_or(&[][..], Vec::as_slice) {
-			let updated_at = job["updatedAt"].as_str().unwrap_or_default();
+		for job in by_chat.get(chat["id"].str_or_empty()).map_or(&[][..], Vec::as_slice) {
+			let updated_at = job["updatedAt"].str_or_empty();
 			let recent = time::parse_date(updated_at).is_some_and(|at| now - at < FAILED_JOB_WINDOW_MS);
 			if job["status"].as_str() == Some("error") && recent {
 				let error = job["error"].as_str().map(text::trim).filter(|e| !e.is_empty()).unwrap_or("Something went wrong");
@@ -59,9 +59,9 @@ pub fn compose_feed<J: Borrow<Json>>(now: i64, chats: &[Json], all_jobs: &[J], r
 	}
 	let titles: HashMap<&str, &Json> = chats.iter().filter_map(|c| Some((c["id"].as_str()?, &c["title"]))).collect();
 	let mut extractions: Vec<Json> = runs.iter().map(|run| extraction_row(run, &titles)).collect();
-	jobs.sort_by(|a, b| locale::compare(a["updatedAt"].as_str().unwrap_or_default(), b["updatedAt"].as_str().unwrap_or_default()));
+	jobs.sort_by(|a, b| locale::compare(a["updatedAt"].str_or_empty(), b["updatedAt"].str_or_empty()));
 	extractions.sort_by(|a, b| a["startedAt"].as_f64().unwrap_or(0.0).total_cmp(&b["startedAt"].as_f64().unwrap_or(0.0)));
-	failed.sort_by(|a, b| locale::compare(b["at"].as_str().unwrap_or_default(), a["at"].as_str().unwrap_or_default()));
+	failed.sort_by(|a, b| locale::compare(b["at"].str_or_empty(), a["at"].str_or_empty()));
 	json!({ "jobs": jobs, "extractions": extractions, "failed": failed })
 }
 
@@ -76,7 +76,7 @@ fn title_or_id(chat: &Json) -> Json {
 /// One extraction job's row: its id carries the chunk (`src#i`), its title is the run's own
 /// label, else the lesson's title, else the id, with the `(i/N)` suffix when the source fanned out.
 fn extraction_row(run: &Json, titles: &HashMap<&str, &Json>) -> Json {
-	let chat_id = run["chatId"].as_str().unwrap_or_default();
+	let chat_id = run["chatId"].str_or_empty();
 	let part = run.get("part").filter(|p| !p.is_null());
 	let mut row = Obj::new();
 	row.insert("id", match part {
@@ -90,7 +90,7 @@ fn extraction_row(run: &Json, titles: &HashMap<&str, &Json>) -> Json {
 	}
 	let label = match &run["label"] {
 		Json::Null => titles.get(chat_id).filter(|t| !t.is_null()).and_then(|t| t.as_str()).unwrap_or(chat_id).to_owned(),
-		label => label.as_str().unwrap_or_default().to_owned(),
+		label => label.str_or_empty().to_owned(),
 	};
 	let suffix = part.map_or(String::new(), |p| format!(" ({}/{})", gs_json::js_number(p["i"].as_f64().unwrap_or(0.0)), gs_json::js_number(p["n"].as_f64().unwrap_or(0.0))));
 	row.insert("title", format!("{label}{suffix}"));

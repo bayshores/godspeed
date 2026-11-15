@@ -2,7 +2,8 @@
 
 use std::sync::LazyLock;
 
-use gs_base::{re::Re, text};
+use gs_base::re::{Re, collapse_spaces};
+use gs_base::text;
 use gs_json::{Json, Obj};
 
 /// Longest rule, in characters (code points).
@@ -29,8 +30,7 @@ pub const TEACHING_AREAS: [TeachingArea; 6] = [
 /// spaces, runs of whitespace one space, trimmed.
 pub fn one_line(raw: &str, max: usize) -> String {
 	static INVISIBLE: LazyLock<Re> = LazyLock::new(|| Re::new(r"[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]", "gu"));
-	static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
-	let line = SPACES.replace(&INVISIBLE.replace(raw, " "), " ");
+	let line = collapse_spaces(&INVISIBLE.replace(raw, " "));
 	let cut: String = gs_json::lone::pair_up(text::trim(&line)).chars().take(max).collect();
 	text::trim(&cut).to_owned()
 }
@@ -38,7 +38,7 @@ pub fn one_line(raw: &str, max: usize) -> String {
 /// A rule list as stored: strings only, one line each, no repeats, at most RULES_MAX.
 pub fn sanitize_rules(raw: &Json) -> Vec<String> {
 	let mut out: Vec<String> = Vec::new();
-	for entry in raw.as_arr().into_iter().flatten() {
+	for entry in raw.items().iter() {
 		let Some(entry) = entry.as_str() else { continue };
 		let rule = one_line(entry, RULE_MAX_CHARS);
 		if !rule.is_empty() && !out.contains(&rule) {
@@ -76,7 +76,7 @@ pub fn learner_rules_section(rules: &Json, lesson_space: Option<(&str, &[String]
 	for area in &TEACHING_AREAS {
 		let list = rules[area.id].as_arr().filter(|l| !l.is_empty());
 		if let Some(list) = list {
-			blocks.push(block(area.label, list.iter().map(|r| r.as_str().unwrap_or_default().to_owned())));
+			blocks.push(block(area.label, list.iter().map(|r| r.str_or_empty().to_owned())));
 		}
 	}
 	if let Some((name, space_rules)) = lesson_space.filter(|(_, r)| !r.is_empty()) {

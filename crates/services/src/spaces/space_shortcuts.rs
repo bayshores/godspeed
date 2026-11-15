@@ -13,10 +13,9 @@ use std::sync::atomic::Ordering;
 use gs_base::events::EventKind;
 use gs_base::{clock, fsx, text};
 use gs_core::spaces::space_shortcuts::{README_NAME, readme_text, shortcut_layout};
-use gs_json::{Json, Obj, json, parse, stringify_pretty};
+use gs_json::{Json, Obj, json, stringify_pretty};
 
 use super::space_card::space_file_path;
-use super::files::{files_of, str_of};
 use crate::App;
 
 /// How long after the last space change a sync waits (a burst of changes syncs once).
@@ -28,14 +27,14 @@ fn manifest_path(folder: &Path) -> PathBuf {
 
 /// The links (`{ path, target, ino? }`, kept as read) and folders the last sync made.
 fn read_manifest(folder: &Path) -> (Vec<Json>, Vec<String>) {
-	let Some(m) = fsx::read_text(&manifest_path(folder)).ok().and_then(|t| parse(&t).ok()) else { return (Vec::new(), Vec::new()) };
+	let Some(m) = fsx::read_json(&manifest_path(folder)) else { return (Vec::new(), Vec::new()) };
 	let links = m["links"].as_arr().cloned().unwrap_or_default();
-	let dirs = m["dirs"].as_arr().map(|d| d.iter().map(|v| v.as_str().unwrap_or("").to_owned()).collect()).unwrap_or_default();
+	let dirs = m["dirs"].as_arr().map(|d| d.iter().map(|v| v.str_or_empty().to_owned()).collect()).unwrap_or_default();
 	(links, dirs)
 }
 
 fn path_of(made: &Json) -> &str {
-	made["path"].as_str().unwrap_or("")
+	made["path"].str_or_empty()
 }
 
 /// Still the link this made (not something the learner put there since).
@@ -49,7 +48,7 @@ fn still_ours(made: &Json) -> bool {
 
 /// A hard link whose target was replaced (an edited linked file) is stale.
 fn up_to_date(made: &Json) -> Result<bool, String> {
-	let target = made["target"].as_str().unwrap_or("");
+	let target = made["target"].str_or_empty();
 	match made["ino"].as_f64() {
 		None => {
 			let at = Path::new(path_of(made));
@@ -123,12 +122,12 @@ fn current_spaces(app: &App) -> (Vec<Json>, HashMap<String, Target>) {
 	let mut spaces = Vec::new();
 	let mut targets = HashMap::new();
 	for summary in app.stores.spaces.list_spaces() {
-		let Some(record) = app.stores.spaces.get_space(str_of(&summary, "id")) else { continue };
-		let files: Vec<Json> = files_of(&record)
+		let Some(record) = app.stores.spaces.get_space(summary["id"].str_or_empty()) else { continue };
+		let files: Vec<Json> = record["files"].items()
 			.iter()
 			.filter(|f| {
 				let Some(p) = space_file_path(app, &record, f).filter(|p| Path::new(p).exists()) else { return false };
-				targets.insert(str_of(f, "id").to_owned(), Target { path: p, copied: str_of(f, "origin") == "copied" });
+				targets.insert(f["id"].str_or_empty().to_owned(), Target { path: p, copied: f["origin"].str_or_empty() == "copied" });
 				true
 			})
 			.cloned()

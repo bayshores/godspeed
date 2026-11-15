@@ -4,7 +4,6 @@ use gs_base::{text, time};
 use gs_json::{Json, Obj, json};
 
 use super::cheat_sheet::CHEAT_SHEET_FORMAT;
-use super::items;
 
 /// What a saved record reads as.
 #[derive(Debug, PartialEq)]
@@ -20,14 +19,14 @@ fn is_number(v: &Json) -> bool {
 
 /// `list(v, read)`: the items `read` accepts; none when `v` is not an array.
 fn list(v: &Json, read: impl Fn(&Json) -> Option<Json>) -> Vec<Json> {
-	items(v).iter().filter_map(read).collect()
+	v.items().iter().filter_map(read).collect()
 }
 
 fn read_version(v: &Json) -> Option<Json> {
 	if v.as_obj().is_none() || !is_number(&v["n"]) || v["prompt"].as_str().is_none() || v["at"].as_str().is_none() || v["pages"].as_arr().is_none() {
 		return None;
 	}
-	let pages: Vec<Json> = items(&v["pages"]).iter().filter(|p| is_number(&p["widthPt"]) && is_number(&p["heightPt"])).map(|p| json!({ "widthPt": p["widthPt"], "heightPt": p["heightPt"] })).collect();
+	let pages: Vec<Json> = v["pages"].items().iter().filter(|p| is_number(&p["widthPt"]) && is_number(&p["heightPt"])).map(|p| json!({ "widthPt": p["widthPt"], "heightPt": p["heightPt"] })).collect();
 	if pages.is_empty() {
 		return None;
 	}
@@ -88,7 +87,7 @@ fn read_message(v: &Json) -> Option<Json> {
 			if is_number(&v["version"]) {
 				o.insert("version", v["version"].clone());
 			}
-			let rules: Vec<Json> = items(&v["rules"]).iter().filter(|r| r.as_str().is_some()).cloned().collect();
+			let rules: Vec<Json> = v["rules"].items().iter().filter(|r| r.as_str().is_some()).cloned().collect();
 			if !rules.is_empty() {
 				o.insert("rules", rules);
 			}
@@ -111,7 +110,7 @@ fn asked_before(prompts: &Json, versions: &[Json]) -> Vec<Json> {
 	let mut out = Vec::new();
 	for (i, p) in asks.iter().enumerate() {
 		let mut ask = json!({ "id": format!("asked-{i}"), "role": "you", "text": p["text"], "at": p["at"] });
-		if let (false, Some(o)) = (items(&p["files"]).is_empty(), ask.as_obj_mut()) {
+		if let (false, Some(o)) = (p["files"].items().is_empty(), ask.as_obj_mut()) {
 			o.insert("files", p["files"].clone());
 		}
 		out.push(ask);
@@ -147,7 +146,7 @@ pub fn parse_cheat_sheet(raw: &Json) -> Option<ParsedSheet> {
 	let (versions, messages, rules, folder, older_format) = if version == Some(2.0) {
 		(vec![], asked_before(&raw["prompts"], &[]), vec![], None, raw["doc"].truthy())
 	} else if !current {
-		(vec![], block_sheet_asks(raw, &updated_at), vec![], None, !items(&raw["blocks"]).is_empty())
+		(vec![], block_sheet_asks(raw, &updated_at), vec![], None, !raw["blocks"].items().is_empty())
 	} else {
 		let versions = list(&raw["versions"], read_version);
 		let messages = if version == Some(3.0) { asked_before(&raw["prompts"], &versions) } else { list(&raw["messages"], read_message) };

@@ -31,7 +31,7 @@ pub struct FileGroup<'a> {
 }
 
 fn name_of(file: &Json) -> &str {
-	file["name"].as_str().unwrap_or("")
+	file["name"].str_or_empty()
 }
 
 /// "Day", "Week" from a series label ("Week, Discussion"); None when the names start with the
@@ -120,7 +120,7 @@ fn series_group<'a>(files: &'a [Json], series: &FileSeries, partner: Option<&Fil
 fn folder_groups<'a>(other: &[&'a Json]) -> (Vec<FileGroup<'a>>, Vec<&'a Json>) {
 	let mut by_dir: Vec<(String, Vec<&'a Json>)> = Vec::new();
 	for &f in other {
-		let path = f["path"].as_str().unwrap_or("");
+		let path = f["path"].str_or_empty();
 		let dir = if f["origin"].as_str() == Some("linked") && path.contains('/') { &path[..path.rfind('/').unwrap_or(0)] } else { "" };
 		match by_dir.iter_mut().find(|(d, _)| d == dir) {
 			Some((_, list)) => list.push(f),
@@ -135,7 +135,7 @@ fn folder_groups<'a>(other: &[&'a Json]) -> (Vec<FileGroup<'a>>, Vec<&'a Json>) 
 			continue;
 		}
 		let mut items: Vec<FileItem<'a>> =
-			files.iter().map(|&f| FileItem { key: f["id"].as_str().unwrap_or("").to_owned(), label: None, date: date_in_name(name_of(f)), files: vec![f] }).collect();
+			files.iter().map(|&f| FileItem { key: f["id"].str_or_empty().to_owned(), label: None, date: date_in_name(name_of(f)), files: vec![f] }).collect();
 		items.sort_by(|a, b| {
 			locale::compare(a.date.as_deref().unwrap_or("9"), b.date.as_deref().unwrap_or("9"))
 				.then_with(|| locale::compare_numeric(name_of(a.files[0]), name_of(b.files[0])))
@@ -162,7 +162,7 @@ pub fn file_groups(files: &[Json]) -> Vec<FileGroup<'_>> {
 	groups.sort_by_key(|g| !has_study(g));
 	rest.sort_by(|a, b| locale::compare_numeric(name_of(a), name_of(b)));
 	if !rest.is_empty() {
-		let items = rest.iter().map(|&f| FileItem { key: f["id"].as_str().unwrap_or("").to_owned(), label: None, date: None, files: vec![f] }).collect();
+		let items = rest.iter().map(|&f| FileItem { key: f["id"].str_or_empty().to_owned(), label: None, date: None, files: vec![f] }).collect();
 		groups.push(FileGroup { key: "other".to_owned(), label: "Other".to_owned(), count: rest.len(), items });
 	}
 	groups

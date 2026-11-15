@@ -7,6 +7,7 @@ import { SendButton } from "@/frontend/components/ui/send-button";
 import { MathBox } from "@/frontend/components/math-box";
 import { savedDay } from "@/frontend/components/rule-chips";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { cn } from "@/frontend/lib/utils";
 import type { Pointed } from "./canvas-model";
 import { sheetFilePath } from "./use-cheat-sheet";
@@ -23,22 +24,11 @@ export function pointedLabel(region: SheetRegion, pages: number): string {
 function useSheetDraft(deadlineId: string): [string, (text: string) => void] {
 	const key = `lh:sheet-draft:${deadlineId}`;
 	const [text, setText] = useState("");
-	useEffect(() => {
-		try {
-			setText(localStorage.getItem(key) ?? "");
-		} catch {
-			/* no storage: start empty */
-		}
-	}, [key]);
+	useEffect(() => setText(readStorage(key) ?? ""), [key]);
 	const save = useCallback(
 		(next: string) => {
 			setText(next);
-			try {
-				if (next) localStorage.setItem(key, next);
-				else localStorage.removeItem(key);
-			} catch {
-				/* no storage or full: the draft stays in memory */
-			}
+			writeStorage(key, next || null);
 		},
 		[key],
 	);
@@ -46,7 +36,7 @@ function useSheetDraft(deadlineId: string): [string, (text: string) => void] {
 }
 
 /** A small boxed note in the chat (a version made, a part pointed at). */
-const NOTE = "flex items-center gap-2.5 self-start rounded border border-border bg-background px-2.5 py-1.5 text-base text-ink";
+const NOTE = "flex items-center gap-2.5 lh-well self-start rounded px-2.5 py-1.5 text-base text-ink";
 
 /**
  * THE SHEET'S CHAT: the sheet's rules (each with a remove ✕), then the
@@ -174,7 +164,7 @@ export function SheetChat({
 				)}
 				{pointed && <PointedChip pointed={pointed} pages={pagesOf(pointed.region.n)} onClear={onClearPointed} />}
 				<AttachmentTray draft={attachments} />
-				<div className="flex min-h-[130px] flex-col rounded border-[1.5px] border-ink bg-background">
+				<div className="flex min-h-[130px] flex-col lh-well rounded">
 					<div className="flex max-h-32 min-h-0 flex-1">
 						<MathBox
 							value={text}
@@ -223,7 +213,7 @@ function YouBody({ message, spaceId, deadlineId, pages }: { message: Extract<She
 						f.file && !/\.pdf$/i.test(f.file) ? (
 							<img key={i} data-testid="sheet-picture" src={sheetFilePath(spaceId, deadlineId, f.file)} alt={f.name} className="block max-h-[160px] w-auto max-w-full rounded border border-border" />
 						) : (
-							<span key={i} data-testid="sheet-file" className="flex h-8 max-w-56 items-center rounded border border-border bg-background px-3 text-base text-ink">
+							<span key={i} data-testid="sheet-file" className="flex h-8 max-w-56 lh-well items-center rounded px-3 text-base text-ink">
 								<span className="truncate" title={f.name}>
 									{f.name}
 								</span>
@@ -278,7 +268,7 @@ function SheetRules({ rules, agentName, onRemove }: { rules: readonly SheetRule[
 			{open && (
 				<ul className="flex flex-col items-start gap-1.5">
 					{rules.map((rule) => (
-						<li key={rule.text} data-testid="sheet-rule" className="flex max-w-full items-center gap-2.5 rounded border border-border bg-background py-1.5 pr-2 pl-3 text-base text-ink">
+						<li key={rule.text} data-testid="sheet-rule" className="flex max-w-full items-center lh-well gap-2.5 rounded py-1.5 pr-2 pl-3 text-base text-ink">
 							<span className="min-w-0 break-words">{rule.text}</span>
 							<span title={savedDay(rule.at)} className="shrink-0 text-sm whitespace-nowrap text-ink-2">
 								Saved by {agentName}
@@ -298,7 +288,7 @@ function SheetRules({ rules, agentName, onRemove }: { rules: readonly SheetRule[
 /** The part of the sheet pointed at, waiting to go with the next message. */
 function PointedChip({ pointed, pages, onClear }: { pointed: Pointed; pages: number; onClear: () => void }) {
 	return (
-		<div data-testid="sheet-pointed-chip" className="flex max-w-full items-center gap-2.5 self-start rounded border border-border bg-background py-1.5 pr-2 pl-1.5">
+		<div data-testid="sheet-pointed-chip" className="flex max-w-full items-center gap-2.5 lh-well self-start rounded py-1.5 pr-2 pl-1.5">
 			<img src={`data:${pointed.picture.mimeType};base64,${pointed.picture.data}`} alt="" className="block h-6 w-auto max-w-12 border border-border bg-white object-contain" />
 			<span className="min-w-0 truncate text-base text-ink">Pointing at {pointedLabel(pointed.region, pages)}</span>
 			<button type="button" aria-label="Don't send the part you pointed at" onClick={onClear} className="lh-press shrink-0 p-0.5 text-ink-2 hover:text-ink">

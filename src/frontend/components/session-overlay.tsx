@@ -151,7 +151,7 @@ export function MermaidOverlay({
 			<div
 				ref={viewportRef}
 				className={cn(
-					"relative min-h-0 flex-1 touch-none overflow-hidden border border-border select-none",
+					"relative min-h-0 flex-1 touch-none lh-well overflow-hidden rounded select-none",
 					atFloor ? "cursor-default" : "cursor-grab",
 				)}
 				onPointerDown={startDrag}

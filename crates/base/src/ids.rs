@@ -18,7 +18,16 @@ pub fn random_bytes(n: usize) -> Vec<u8> {
 }
 
 pub fn hex(bytes: &[u8]) -> String {
-	bytes.iter().map(|b| format!("{b:02x}")).collect()
+	use std::fmt::Write;
+	bytes.iter().fold(String::with_capacity(bytes.len() * 2), |mut out, b| {
+		let _ = write!(out, "{b:02x}");
+		out
+	})
+}
+
+/// True for a non-empty id of letters, digits, `_` and `-`: safe to use as a file name.
+pub fn is_file_id(id: &str) -> bool {
+	!id.is_empty() && id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
 }
 
 /// `crypto.randomUUID()`: a version 4 UUID in lowercase.

@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { parseWhere, type RuleWhere } from "@/shared/core";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
-import { NOTICE_STACK_ID } from "@/frontend/components/notice-stack";
+import { NOTICE_STACK_ID } from "@/frontend/components/top-bar/pill-panel";
 import { RuleEditBox, useSavedRule } from "@/frontend/components/saved-rule";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { useHeld } from "@/frontend/components/use-held";
@@ -50,6 +50,7 @@ function Card({ saved, onDone }: { saved: Saved; onDone: () => void }) {
 		<NoticeCard
 			data-testid="rule-notice"
 			role="status"
+			timed
 			{...handlers}
 			title={mode.kind === "removed" ? "Rule removed" : `${saved.agent} saved a rule`}
 			actions={
@@ -71,7 +72,7 @@ function Card({ saved, onDone }: { saved: Saved; onDone: () => void }) {
 				</div>
 			) : (
 				<>
-					<p className={cn("border border-border bg-tone px-2.5 py-2 text-[15px] text-ink", mode.kind === "removed" && "text-ink-2 line-through")}>{api.rule}</p>
+					<p className={cn("lh-well rounded px-2.5 py-2 text-[15px] text-ink", mode.kind === "removed" && "text-ink-2 line-through")}>{api.rule}</p>
 					<NoticeText>{saved.label}</NoticeText>
 				</>
 			)}

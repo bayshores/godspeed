@@ -113,7 +113,7 @@ impl Tool for SubmitTool {
 
 /// The names of an assistant message's tool calls, or "(none)".
 fn called_tools(message: &Json) -> String {
-	let names: Vec<&str> = message["content"].as_arr().into_iter().flatten().filter(|c| c["type"] == Json::from("toolCall")).filter_map(|c| c["name"].as_str()).collect();
+	let names: Vec<&str> = message["content"].items().iter().filter(|c| c["type"] == Json::from("toolCall")).filter_map(|c| c["name"].as_str()).collect();
 	if names.is_empty() { "(none)".to_owned() } else { names.join(", ") }
 }
 
@@ -134,7 +134,7 @@ pub async fn run_submit_agent(bridge: &Bridge, opts: SubmitAgentOptions) -> Resu
 			// pi reports the bare model id; usage stamps carry provider:id.
 			let model = format!("{}:{}", message["provider"].as_str().unwrap_or("undefined"), message["model"].as_str().unwrap_or("undefined"));
 			on_step(&message["usage"], &model);
-			eprintln!("[submit-agent] step {step}: {}, tools: {}", message["stopReason"].as_str().unwrap_or(""), called_tools(message));
+			eprintln!("[submit-agent] step {step}: {}, tools: {}", message["stopReason"].str_or_empty(), called_tools(message));
 		}));
 	}
 	run.should_stop = Some(Box::new(move |_message, results| results.iter().any(|r| r["toolName"].as_str() == Some(tool_name.as_str()) && r["isError"] != Json::Bool(true))));

@@ -217,7 +217,7 @@ export function YourTurn({
 				</div>
 			)}
 			{error && (
-				<div className="flex shrink-0 flex-col items-start gap-2.5 border-[1.5px] border-line bg-panel px-3.5 py-3 text-base">
+				<div className="flex shrink-0 flex-col items-start gap-2.5 lh-sheet px-3.5 py-3 text-base">
 					<span data-testid="lesson-error" title={error.detail} className="text-ans-wrong">
 						{error.text}
 					</span>

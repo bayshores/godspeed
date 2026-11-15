@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LhMessage, QuestionDraft } from "@/shared/core";
+import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import {
 	lessonDraftKey,
 	parseLessonDraft,
@@ -25,24 +26,12 @@ export function useLessonDrafts(chatId: string, record: readonly LhMessage[]) {
 	recordRef.current = record;
 
 	useEffect(() => {
-		let raw: string | null = null;
-		try {
-			raw = localStorage.getItem(key);
-		} catch {
-			/* no storage: start empty */
-		}
-		setDraft(withoutEndedQuestions(parseLessonDraft(raw), recordRef.current));
+		setDraft(withoutEndedQuestions(parseLessonDraft(readStorage(key)), recordRef.current));
 	}, [key]);
 
 	useEffect(() => {
 		if (!draft) return;
-		const value = serializeLessonDraft(draft);
-		try {
-			if (value === null) localStorage.removeItem(key);
-			else localStorage.setItem(key, value);
-		} catch {
-			/* no storage or full: the draft stays in memory */
-		}
+		writeStorage(key, serializeLessonDraft(draft));
 	}, [key, draft]);
 
 	const loaded = draft !== null;
@@ -58,9 +47,5 @@ export function useLessonDrafts(chatId: string, record: readonly LhMessage[]) {
 
 /** A deleted lesson's drafts go with it. */
 export function forgetLessonDraft(chatId: string): void {
-	try {
-		localStorage.removeItem(lessonDraftKey(chatId));
-	} catch {
-		/* no storage: nothing was saved */
-	}
+	writeStorage(lessonDraftKey(chatId), null);
 }

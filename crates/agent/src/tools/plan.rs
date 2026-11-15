@@ -47,7 +47,7 @@ pub fn plan_init_tool(ctx: &PlanContext) -> FnTool {
 			if ctx.chat_store.get_chat(&ctx.chat_id).is_none() {
 				return Ok(json!({ "ok": false, "error": format!("Chat not found: {}", ctx.chat_id) }));
 			}
-			let plan = match parse_mermaid_plan(args["mermaid"].as_str().unwrap_or_default()) {
+			let plan = match parse_mermaid_plan(args["mermaid"].str_or_empty()) {
 				Ok(plan) => plan,
 				// The model needs the problems, not its own map back.
 				Err(problems) => return Ok(json!({ "ok": false, "error": problems.join("\n") })),
@@ -57,7 +57,7 @@ pub fn plan_init_tool(ctx: &PlanContext) -> FnTool {
 				Err(message) => return Ok(json!({ "ok": false, "error": message })),
 			};
 			ctx.chat_store.save_tree(&ctx.chat_id, &tree)?;
-			let node_ids: Vec<Json> = tree["nodes"].as_arr().into_iter().flatten().map(|n| n["id"].clone()).collect();
+			let node_ids: Vec<Json> = tree["nodes"].items().iter().map(|n| n["id"].clone()).collect();
 			let text = stringify(&json!({ "ok": true, "nodeIds": node_ids, "reminder": PLAN_NODE_IDS_REMINDER }));
 			Ok(json!({ "text": text, "details": { "ok": true, "tree": tree } }))
 		}

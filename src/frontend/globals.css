@@ -64,7 +64,6 @@
 	--lh-edge: #6d6b62;
 	/* A pop-up's box, and a hovered row in it. */
 	--lh-tip: #dddbd1;
-	--lh-tip-hover: #cfcdc3;
 	/* The top bar and the text on it. */
 	--lh-bar: #24231f;
 	--lh-bar-ink: #d7d5cb;
@@ -101,8 +100,13 @@
 	--lh-space-wash: #ffffff;
 	/* The Done stamp. */
 	--lh-stamp: #b3665c;
-	/* A sheet's outline: ink on Paper, a grey on a dark background. */
+	/* The work frame's line: ink on Paper, a grey on a dark background. */
 	--lh-line: #24231f;
+	/* A sheet's fill and the lip under it. A well is a field's fill: the
+	   sheet color on the page, the page color on a sheet. */
+	--lh-sheet: #d7d5cb;
+	--lh-sheet-lip: #b0aea5;
+	--lh-well: var(--lh-sheet);
 	/* The code editor's syntax colors (Shiki's github-light; .dark below
 	   swaps in github-dark, as the code blocks do). */
 	--lh-code-keyword: #b31d28;
@@ -145,14 +149,58 @@
 	--lh-code-comment: #8b949e;
 }
 
-/* Pop-ups (menus, the teacher's bubble, notices) are solid sheets with a
-   2px ink outline: no blur, no shadow. Rows that hover with bg-tone get a
-   tone that still shows on the box. */
+/* Pop-ups (menus, notices, dialogs) are made of the top bar: its color and
+   its ink, round corners, no outline, no blur, no shadow. What sits inside
+   reads the surface and text colors, so they are set again here for the
+   bar. */
 .lh-popup {
-	--accent: var(--lh-tip-hover);
-	background-color: var(--lh-tip);
-	border: 2px solid var(--foreground);
-	border-radius: 2px;
+	--background: var(--lh-bar);
+	--foreground: var(--lh-bar-ink);
+	--card: color-mix(in srgb, var(--lh-bar-ink) 8%, var(--lh-bar));
+	--accent: color-mix(in srgb, var(--lh-bar-ink) 14%, var(--lh-bar));
+	--border: color-mix(in srgb, var(--lh-bar-ink) 22%, var(--lh-bar));
+	--input: color-mix(in srgb, var(--lh-bar-ink) 22%, var(--lh-bar));
+	--muted-foreground: color-mix(in srgb, var(--lh-bar-ink) 76%, var(--lh-bar));
+	--ring: color-mix(in srgb, var(--lh-bar-ink) 76%, var(--lh-bar));
+	--lh-ink-3: color-mix(in srgb, var(--lh-bar-ink) 76%, var(--lh-bar));
+	--lh-ink-body: var(--lh-bar-ink);
+	--lh-ink-strong: var(--lh-bar-ink);
+	--lh-ink-italic: var(--lh-bar-ink);
+	--lh-ink-max: #ffffff;
+	--lh-edge: color-mix(in srgb, var(--lh-bar-ink) 50%, var(--lh-bar));
+	--lh-line: color-mix(in srgb, var(--lh-bar-ink) 22%, var(--lh-bar));
+	--lh-tint: var(--lh-bar-ink);
+	--lh-mark-bg: var(--lh-highlight);
+	--lh-well: var(--card);
+	border-radius: 12px;
+	background-color: var(--lh-bar);
+	color: var(--lh-bar-ink);
+}
+/* On Paper the page's status colors and highlighter are made for a light
+   sheet; a pop-up takes the ones that read on the bar. */
+:root:not(.dark) .lh-popup {
+	--lh-highlight: #5a5332;
+	--lh-ans-right: #8fb09a;
+	--lh-ans-wrong: #d09a92;
+	--destructive: #d09a92;
+	--lh-conf-1: #d09a92;
+	--lh-conf-2: #cc9c78;
+	--lh-conf-3: #c2aa5c;
+	--lh-conf-4: #a3a984;
+	--lh-conf-5: #8fb09a;
+	--lh-ramp-1: #d09a92;
+	--lh-ramp-2: #cc9c78;
+	--lh-ramp-3: #c2aa5c;
+	--lh-ramp-4: #a3a984;
+	--lh-ramp-5: #8fb09a;
+}
+/* A dark page is close to the bar's color: a floating pop-up gets a thin
+   line so its edge shows. */
+.dark .lh-popup:not(.lh-hang-body) {
+	box-shadow: inset 0 0 0 1px var(--border);
+}
+.lh-popup [role="menuitem"] {
+	border-radius: 8px;
 }
 
 /* A right-edge panel slides in (the teacher's panel, the graph's panel). */
@@ -330,29 +378,85 @@ body {
 	line-height: 1.25;
 }
 
-/* Buttons are keycaps: a rounded face on a darker bottom edge, which
+/* truncate cuts text short sideways only. Clipped top and bottom too, a
+   tight line height in the UI font slices the tails of g, j, p, q and y.
+   Unlayered, so it beats Tailwind's utility; old WebKit keeps hidden. A
+   clip box is no scroll container, so it gets back the min-width of 0 a
+   flex or grid item had, where an explicit min-w utility still wins.
+   Variant forms such as @min-[620px]:truncate are other class names and
+   still clip all round; npm run layout catches one that cuts letters. */
+@supports (overflow-x: clip) {
+	.truncate {
+		overflow-x: clip;
+		overflow-y: visible;
+	}
+}
+@layer components {
+	.truncate {
+		min-width: 0;
+	}
+}
+
+/* A box is a sheet: a flat fill with pixel corners (two 4px steps) and a
+   lip under it, no outline. A field is a well: a fill that differs from
+   what it sits on, no outline. */
+@layer components {
+	/* Drawn as fills, not clipped, so a menu inside a sheet can hang past its edge. */
+	.lh-sheet {
+		--lh-well: var(--background);
+		--lh-sheet-fill: linear-gradient(var(--lh-sheet), var(--lh-sheet));
+		--lh-sheet-edge: linear-gradient(var(--lh-sheet-lip), var(--lh-sheet-lip));
+		border-bottom: 4px solid transparent;
+		background:
+			var(--lh-sheet-edge) 8px 100% / calc(100% - 16px) 4px,
+			var(--lh-sheet-edge) left 4px bottom 4px / 4px 4px,
+			var(--lh-sheet-edge) right 4px bottom 4px / 4px 4px,
+			var(--lh-sheet-edge) left 0 bottom 8px / 4px 4px,
+			var(--lh-sheet-edge) right 0 bottom 8px / 4px 4px,
+			var(--lh-sheet-fill) 8px 0 / calc(100% - 16px) 100%,
+			var(--lh-sheet-fill) 4px 4px / calc(100% - 8px) calc(100% - 8px),
+			var(--lh-sheet-fill) 0 8px / 100% calc(100% - 16px);
+		background-repeat: no-repeat;
+		background-origin: border-box;
+		background-clip: border-box;
+	}
+	/* A sheet that cuts its content cuts it to the same corners. */
+	.lh-sheet.overflow-hidden {
+		clip-path: polygon(
+			0 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0,
+			calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 8px, 100% 8px,
+			100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px), calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%,
+			8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0 calc(100% - 8px)
+		);
+	}
+	.lh-well {
+		background-color: var(--lh-well);
+	}
+}
+
+/* Buttons are keycaps: a hard-cornered face on a darker bottom edge, which
    sinks while pressed. .lh-btn-main is the one bright key of a view;
    .lh-btn-quiet is a plain word. In the components layer, so a size
    utility on one button wins. */
 @layer components {
 	.lh-btn {
-		--lh-key: color-mix(in srgb, var(--foreground) 22%, var(--background));
-		--lh-key-hover: color-mix(in srgb, var(--foreground) 30%, var(--background));
+		--lh-key: color-mix(in srgb, var(--foreground) 26%, var(--background));
+		--lh-key-hover: color-mix(in srgb, var(--foreground) 34%, var(--background));
 		--lh-lip: 4px;
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
-		height: 36px;
-		padding: 0 16px;
+		height: 40px;
+		padding: 0 18px;
 		/* The bottom edge is a border, so the label centers on the face. */
 		border: 0 solid transparent;
-		border-bottom: var(--lh-lip) solid color-mix(in srgb, var(--lh-key) 60%, #000);
-		border-radius: 10px;
+		border-bottom: var(--lh-lip) solid color-mix(in srgb, var(--lh-key) 48%, #000);
+		border-radius: 5px;
 		background: var(--lh-key) padding-box;
 		font-family: var(--font-ui);
-		font-size: 14px;
-		font-weight: 500;
-		/* Room for descenders: a truncated label clips at its line box. */
+		font-size: 15px;
+		font-weight: 400;
+		letter-spacing: 0.01em;
 		line-height: 1.4;
 		white-space: nowrap;
 		color: var(--foreground);
@@ -373,11 +477,13 @@ body {
 	.lh-btn-danger {
 		--lh-key: var(--color-ans-wrong);
 		--lh-key-hover: var(--color-ans-wrong-hover);
+		font-weight: 500;
 		color: var(--background);
 	}
 	.lh-btn-main {
 		--lh-key: var(--lh-tint);
 		--lh-key-hover: color-mix(in srgb, var(--lh-tint) 88%, #fff);
+		font-weight: 500;
 		color: var(--background);
 	}
 	.lh-btn-quiet {
@@ -390,12 +496,17 @@ body {
 	.lh-btn-quiet:hover {
 		color: var(--foreground);
 	}
+	/* Beside a key the word keeps the key's lip, unseen, so both read on one line. */
+	.lh-btn:not(.lh-btn-quiet) ~ .lh-btn-quiet,
+	.lh-btn-quiet:has(~ .lh-btn:not(.lh-btn-quiet)) {
+		--lh-lip: 4px;
+		border-bottom-color: transparent;
+	}
 	/* A button on the dark bar of a lesson or a cheat sheet. */
 	.lh-btn-bar {
-		--lh-key: color-mix(in srgb, var(--lh-bar-ink) 22%, var(--lh-bar));
-		--lh-key-hover: color-mix(in srgb, var(--lh-bar-ink) 32%, var(--lh-bar));
+		--lh-key: color-mix(in srgb, var(--lh-bar-ink) 26%, var(--lh-bar));
+		--lh-key-hover: color-mix(in srgb, var(--lh-bar-ink) 34%, var(--lh-bar));
 		flex-shrink: 0;
-		font-size: 15px;
 		color: var(--lh-bar-ink);
 	}
 }
@@ -729,6 +840,7 @@ body:has(.lh-own-bar) .lh-app-bar {
    src/frontend/components/presence.ts keeps an element mounted through its exit):
    - .lh-pop       menus/popovers: fade + 2% scale + 4px travel toward the
                    anchor (--lh-pop-y: +4px opens down, -4px opens up)
+   - .lh-hang      a pop-up out of the top bar: grows down, rows after it
    - .lh-dialog    dialog panels: fade + 2% scale
    - .lh-fade      backdrops and anything that only fades
    - .lh-rise      one-shot arrival (messages, cards, view content):
@@ -804,6 +916,172 @@ body:has(.lh-own-bar) .lh-app-bar {
 	pointer-events: none;
 }
 
+/* A pop-up that opens from the top bar is part of it: flush under the
+   bar, square where the two meet, with the bar curving out into it on
+   both sides. It grows down out of the bar, and what is inside arrives
+   after it, top first. The body is clipped while it grows, so the two
+   curves sit on .lh-hang, around it. */
+.lh-hang {
+	--lh-hang-r: 14px;
+}
+.lh-hang::before,
+.lh-hang::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	width: var(--lh-hang-r);
+	height: var(--lh-hang-r);
+	pointer-events: none;
+	transform-origin: top;
+	animation: lh-curve-in var(--lh-dur-fast) var(--lh-ease-out) both;
+}
+.lh-hang::before {
+	right: 100%;
+	background: radial-gradient(circle at 0 100%, transparent calc(var(--lh-hang-r) - 0.5px), var(--lh-bar) var(--lh-hang-r));
+}
+.lh-hang::after {
+	left: 100%;
+	background: radial-gradient(circle at 100% 100%, transparent calc(var(--lh-hang-r) - 0.5px), var(--lh-bar) var(--lh-hang-r));
+}
+.lh-hang[data-state="closed"]::before,
+.lh-hang[data-state="closed"]::after {
+	animation: lh-curve-out var(--lh-dur-fast) var(--lh-ease-in) both;
+}
+.lh-hang-body {
+	border-radius: 0 0 var(--lh-hang-r) var(--lh-hang-r);
+	animation: lh-hang-in var(--lh-dur-slow) var(--lh-ease-out) both;
+}
+.lh-hang[data-state="closed"] > .lh-hang-body {
+	animation: lh-hang-out var(--lh-dur-fast) var(--lh-ease-in) both;
+	pointer-events: none;
+}
+.lh-hang-body > * {
+	animation: lh-row-in var(--lh-dur) var(--lh-ease-out) 50ms both;
+}
+.lh-hang-body > :nth-child(2) {
+	animation-delay: 78ms;
+}
+.lh-hang-body > :nth-child(3) {
+	animation-delay: 106ms;
+}
+.lh-hang-body > :nth-child(4) {
+	animation-delay: 134ms;
+}
+.lh-hang-body > :nth-child(n + 5) {
+	animation-delay: 162ms;
+}
+.lh-hang[data-state="closed"] > .lh-hang-body > * {
+	animation: lh-fade-out 70ms var(--lh-ease-in) both;
+}
+/* The pill's panel: its rows are the notices and the rows of the card,
+   with a line between two. */
+.lh-hang-body > .lh-notices,
+.lh-hang-body > .lh-pill-card {
+	animation: none;
+}
+.lh-hang[data-state="open"] .lh-notices > *,
+.lh-hang[data-state="open"] .lh-pill-card > * {
+	animation: lh-row-in var(--lh-dur) var(--lh-ease-out) 50ms both;
+}
+.lh-hang[data-state="open"] .lh-pill-card > :nth-child(2) {
+	animation-delay: 78ms;
+}
+.lh-hang[data-state="open"] .lh-pill-card > :nth-child(3) {
+	animation-delay: 106ms;
+}
+.lh-hang[data-state="open"] .lh-pill-card > :nth-child(n + 4) {
+	animation-delay: 134ms;
+}
+.lh-notice[data-shown] ~ .lh-notice[data-shown],
+.lh-pill-row + .lh-pill-row,
+.lh-notices:has(.lh-notice[data-shown]) + .lh-pill-card:not(:empty) {
+	border-top: 1px solid var(--border);
+}
+/* The pill's new line rolls in from below. */
+.lh-pill-line {
+	animation: lh-pill-in var(--lh-dur) var(--lh-ease-out) both;
+}
+@keyframes lh-pill-in {
+	from {
+		opacity: 0;
+		transform: translateY(9px);
+	}
+}
+@keyframes lh-hang-in {
+	from {
+		clip-path: inset(0 0 100% 0 round 0 0 var(--lh-hang-r) var(--lh-hang-r));
+	}
+	to {
+		clip-path: inset(0 0 0 0 round 0 0 var(--lh-hang-r) var(--lh-hang-r));
+	}
+}
+@keyframes lh-hang-out {
+	from {
+		clip-path: inset(0 0 0 0 round 0 0 var(--lh-hang-r) var(--lh-hang-r));
+	}
+	to {
+		clip-path: inset(0 0 100% 0 round 0 0 var(--lh-hang-r) var(--lh-hang-r));
+	}
+}
+@keyframes lh-curve-in {
+	from {
+		transform: scaleY(0);
+	}
+}
+@keyframes lh-curve-out {
+	to {
+		transform: scaleY(0);
+	}
+}
+@keyframes lh-row-in {
+	from {
+		opacity: 0;
+		transform: translateY(-8px);
+	}
+}
+
+/* A dialog is a sheet out of the middle of the top bar, over the dimmed
+   page; the bar itself is not dimmed. A screen with no bar (the first
+   steps) shows it in the middle, with every corner round. */
+.lh-sheet-wrap {
+	position: fixed;
+	inset: 0;
+	z-index: 50;
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	padding-top: 3rem;
+}
+.lh-sheet-wrap::before {
+	content: "";
+	position: absolute;
+	inset: 3rem 0 0;
+	background: rgb(0 0 0 / 0.4);
+	pointer-events: none;
+	animation: lh-fade-in var(--lh-dur) var(--lh-ease-out) both;
+}
+.lh-sheet-wrap[data-state="closed"]::before {
+	animation: lh-fade-out var(--lh-dur-fast) var(--lh-ease-in) both;
+}
+body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap {
+	align-items: center;
+	padding-top: 0;
+}
+body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap::before {
+	inset: 0;
+}
+body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang::before,
+body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang::after {
+	display: none;
+}
+body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang > .lh-hang-body {
+	border-radius: var(--lh-hang-r);
+	animation: lh-dialog-in var(--lh-dur-slow) var(--lh-ease-out) both;
+}
+body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="closed"] > .lh-hang-body {
+	animation: lh-dialog-out var(--lh-dur-fast) var(--lh-ease-in) both;
+}
+
 .lh-dialog,
 .lh-dialog[data-state="open"] {
 	animation: lh-dialog-in var(--lh-dur-slow) var(--lh-ease-out) both;
@@ -865,7 +1143,15 @@ body:has(.lh-own-bar) .lh-app-bar {
 	.lh-dialog,
 	.lh-fade,
 	.lh-rise,
-	.lh-draw-in {
+	.lh-draw-in,
+	.lh-hang::before,
+	.lh-hang::after,
+	.lh-hang-body,
+	.lh-hang-body > *,
+	.lh-notices > *,
+	.lh-pill-card > *,
+	.lh-pill-line,
+	.lh-sheet-wrap::before {
 		animation: none !important;
 	}
 	.lh-press,

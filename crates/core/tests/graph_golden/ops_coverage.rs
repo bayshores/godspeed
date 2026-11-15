@@ -7,7 +7,7 @@ use gs_json::{Json, json};
 use crate::ledgers::transcript;
 
 fn id_of(message: &Json) -> &str {
-	message["id"].as_str().unwrap_or("")
+	message["id"].str_or_empty()
 }
 
 pub fn run(input: &Json) -> Json {

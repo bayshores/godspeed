@@ -36,7 +36,7 @@ fn session_facts(session: &Json) -> String {
 	let count = session["propositions"].as_f64().unwrap_or(0.0);
 	let born = session["createdAt"].as_str().unwrap_or("unknown date");
 	let active = session["updatedAt"].as_str().filter(|s| !s.is_empty()).map(|u| format!(", last active {u}")).unwrap_or_default();
-	format!("{} ({}, {} proposition{}, born {born}{active})", session["name"].as_str().unwrap_or_default(), session["kind"].as_str().unwrap_or_default(), js_number(count), if count == 1.0 { "" } else { "s" })
+	format!("{} ({}, {} proposition{}, born {born}{active})", session["name"].str_or_empty(), session["kind"].str_or_empty(), js_number(count), if count == 1.0 { "" } else { "s" })
 }
 
 fn sessions_of(chat_store: &Arc<dyn ChatPort>, graph_store: &Arc<dyn GraphStore>) -> Result<Vec<Json>, String> {
@@ -55,7 +55,7 @@ fn list_across_spaces(chat_store: &Arc<dyn ChatPort>, graphs: &[ScopedGraph]) ->
 	for g in ordered {
 		for s in sessions_of(chat_store, &g.graph_store)? {
 			let own = if g.own { " (this lesson's space)" } else { "" };
-			lines.push(format!("{}. {} \u{2014} space: {}{own} \u{2014} id: {}", lines.len() + 1, session_facts(&s), g.space_name, s["id"].as_str().unwrap_or_default()));
+			lines.push(format!("{}. {} \u{2014} space: {}{own} \u{2014} id: {}", lines.len() + 1, session_facts(&s), g.space_name, s["id"].str_or_empty()));
 		}
 	}
 	if lines.is_empty() {
@@ -79,7 +79,7 @@ fn list_sessions_tool(ctx: &GraphToolContext) -> FnTool {
 			if sessions.is_empty() {
 				return Ok(Json::from(EMPTY_GRAPH));
 			}
-			let lines: Vec<String> = sessions.iter().enumerate().map(|(i, s)| format!("{}. {} \u{2014} id: {}", i + 1, session_facts(s), s["id"].as_str().unwrap_or_default())).collect();
+			let lines: Vec<String> = sessions.iter().enumerate().map(|(i, s)| format!("{}. {} \u{2014} id: {}", i + 1, session_facts(s), s["id"].str_or_empty())).collect();
 			Ok(Json::from(format!("{} session(s) in the knowledge graph, most recent first:\n{}", sessions.len(), lines.join("\n"))))
 		}
 	})
@@ -93,7 +93,7 @@ fn list_propositions_tool(ctx: &GraphToolContext) -> FnTool {
 	FnTool::server("list_propositions", description, parameters, move |args, _ctx| {
 		let ctx = ctx.clone();
 		async move {
-			let session = args["session"].as_str().unwrap_or_default();
+			let session = args["session"].str_or_empty();
 			// The session lives in exactly one space graph.
 			let mut propositions: Vec<Json> = Vec::new();
 			for g in ctx.graphs.iter().flat_map(|graphs| graphs()) {
@@ -108,7 +108,7 @@ fn list_propositions_tool(ctx: &GraphToolContext) -> FnTool {
 			if propositions.is_empty() {
 				return Ok(Json::from(format!("No propositions born in session \"{session}\". Call list_sessions for the current ids.")));
 			}
-			let lines: Vec<String> = propositions.iter().map(|p| format!("- {}", p["name"].as_str().unwrap_or_default())).collect();
+			let lines: Vec<String> = propositions.iter().map(|p| format!("- {}", p["name"].str_or_empty())).collect();
 			Ok(Json::from(format!("{} proposition(s) covered in this session:\n{}", propositions.len(), lines.join("\n"))))
 		}
 	})

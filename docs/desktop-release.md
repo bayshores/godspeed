@@ -100,7 +100,7 @@ It then fetches the model and pdfium, compiles the icon, runs `tauri build` with
 `.github/workflows/ci.yml` runs on pushes to main and on pull requests. Changes to `docs/**` and `README.md` alone skip it.
 
 - `quality` (Ubuntu 24.04): fetches the model and ONNX Runtime, runs `npm run check` (typecheck, tests, lint, knip, then cargo test, clippy and cargo machete) and the skill's Python tests.
-- `desktop` (macOS 15, Windows, Ubuntu 22.04 container): build pipeline steps 1 to 4, then `stage-app.mjs` and `smoke-server.mjs`, `cargo test -p gs-shell` and the self-test. It does not compile the Mac icon.
+- `desktop` (macOS 15, Windows, Ubuntu 22.04 container): build pipeline steps 1 to 4, then `stage-app.mjs` and `smoke-server.mjs`, `cargo test -p gs-shell` and the self-test, and on the Mac `npm run layout` (the screens in the real app window, see [development.md](development.md)). It does not compile the Mac icon.
 
 ## Release workflow
 
@@ -172,6 +172,16 @@ It then downloads the four feeds and checks them:
 | `latest.json` | The version, a valid `pub_date`, exactly the keys `darwin-aarch64-app`, `darwin-x86_64-app`, `windows-x86_64-nsis`, `linux-x86_64-appimage` and `linux-x86_64-deb`. Each URL is `https://github.com/bayshores/godspeed/releases/download/v<v>/<asset>` for an asset the draft holds, and each signature is one the bundler wrote for this version. |
 | `latest-mac.yml` | The version, the zip first and the DMG second, bare names only, sizes equal to the uploaded sizes, the top-level `path` and `sha512` equal to the zip's, `minimumSystemVersion: 23.0.0`, and either no `stagingPercentage` or a whole number from 0 to 99. No other fields. |
 | `latest.yml`, `latest-linux.yml` | Exactly the committed templates in `crates/shell/release/` plus `newApp: <v>`. The templates point only at `../v0.5.51/<file>`. |
+
+### Reading a crash log
+
+Mac release binaries ship without symbols, so a panic in `logs/main.log` lists raw addresses after a `load address` line. The panic's own message, file and line stay readable. Each package job keeps the symbols for 90 days as the `symbols-<platform>` artifact: a `.dSYM` on Mac and a `.pdb` on Windows. Linux binaries keep their symbols.
+
+| Step | Command |
+|---|---|
+| 1. Download the artifact for that version and platform | `gh run download <run id> -n symbols-mac -R bayshores/godspeed` |
+| 2. Find the symbol file | `find godspeed.dSYM -path '*DWARF*' -type f` |
+| 3. Turn the addresses into names | `atos -o <that file> -l <load address> <address> <address> ...` |
 
 ## Secrets
 

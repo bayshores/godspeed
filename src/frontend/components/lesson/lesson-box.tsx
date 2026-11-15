@@ -45,7 +45,7 @@ export function LessonBox({
 		<div data-testid="composer" className="flex min-h-[112px] flex-1 flex-col gap-2" {...attachmentInputProps(attachments)}>
 			{queuedSteers.length > 0 && <QueuedSteersBody steers={queuedSteers} />}
 			<AttachmentTray draft={attachments} note={view.note ?? undefined} />
-			<div className="flex min-h-0 flex-1 flex-col rounded-[2px] border-[1.5px] border-ink bg-background">
+			<div className="flex min-h-0 flex-1 flex-col lh-well rounded-[2px]">
 				<MathBox
 					ref={boxRef}
 					value={value}

@@ -7,6 +7,7 @@ import { LoadFailed } from "@/frontend/components/load-failed";
 import { fileBrowserName } from "@/frontend/components/files/files-model";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { Pane } from "@/frontend/components/ui/pane";
+import { LivePill } from "@/frontend/components/top-bar/live-pill";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { printPdf } from "./print-pdf";
 import { SheetCanvas } from "./sheet-canvas";
@@ -53,7 +54,9 @@ function StudioBar({ deadlineId, deadlineName, status, children }: { deadlineId:
 				<PixelIcon name="chevron" className="-scale-x-100" />
 				<span className="truncate">{deadlineName}</span>
 			</Link>
-			<h1 className="min-w-0 flex-1 truncate text-lg font-medium">Cheat sheet for {deadlineName}</h1>
+			<h1 className="min-w-0 truncate text-lg font-medium">Cheat sheet for {deadlineName}</h1>
+			<div className="flex-1" aria-hidden />
+			<LivePill own named />
 			{status && (
 				<span data-testid="cheat-sheet-status" className="shrink-0 text-base">
 					{status}
@@ -130,12 +133,12 @@ function Studio({
 			<div className="min-h-0 flex-1">
 				<JobFrame doing={view.running ? (current ? "changing your sheet" : "making your sheet") : null}>
 					<div className="flex h-full gap-6 px-8 pt-6 pb-7">
-						<div className="flex min-h-0 min-w-0 flex-1 flex-col border border-border">
+						<div className="lh-well flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded">
 							{current ? (
 								<SheetCanvas versions={view.sheet.versions} pdfUrl={pdfUrl} labelFor={versionLabel} focus={focus} onPoint={setPointed} />
 							) : (
 								<div data-testid="cheat-sheet-empty" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[18px] overflow-y-auto p-6 text-center">
-									<div aria-hidden className="h-[220px] w-[170px] shrink-0 border border-border bg-background" />
+									<div aria-hidden className="h-[220px] w-[170px] shrink-0 bg-background" />
 									<h2 className="text-[28px] leading-tight text-ink">What do you want on your cheat sheet?</h2>
 									<p className="max-w-[520px] text-lg leading-[1.45] text-ink-2">{emptyChatLine(teacherName, false)}</p>
 									{view.sheet.olderFormat && !view.running && <OlderSheet onRemake={() => void remakeSheet(spaceId, deadlineId).then(setFailed)} />}

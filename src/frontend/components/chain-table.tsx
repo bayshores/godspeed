@@ -136,7 +136,7 @@ export function ChainTableBody({
 						})}
 					</div>
 
-					<div className="rounded border-2 border-line bg-panel px-6 py-2.5">
+					<div className="lh-sheet px-6 py-2.5">
 						{groups.length === 0 && (
 							<p data-testid="chain-table-nomatch" className="py-2.5 text-[15px] text-ink-2">
 								No matching facts.
@@ -267,7 +267,7 @@ function ChainBlock({
 								) : (
 									<LatexGlyph cmd="\land" testid={`chain-and-${chain.id}-${i}`} className="px-1.5 text-ink" />
 								))}
-							<span data-testid={`prop-chip-${id}`} className="rounded-sm border border-edge bg-background px-1.5 py-0.5">
+							<span data-testid={`prop-chip-${id}`} className="lh-well rounded-sm px-1.5 py-0.5">
 								{nameOf(id)}
 							</span>
 						</span>

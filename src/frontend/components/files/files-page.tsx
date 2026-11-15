@@ -8,6 +8,8 @@ import { Hint } from "@/frontend/components/ui/hint";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useProgress } from "@/frontend/components/use-progress";
+import type { WriteResult } from "@/frontend/lib/api";
+import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { AddFilesButton } from "./add-files";
 import {
 	spaceFilePathOf,
@@ -18,7 +20,6 @@ import {
 	unlinkSpaceFolder,
 	uploadSpaceFiles,
 	useSpaceRecord,
-	type WriteResult,
 } from "./space-files-api";
 import { ConfirmDialog } from "./confirm-dialog";
 import type { FileRowActions } from "./file-row";
@@ -58,7 +59,7 @@ function useCollapsed(spaceId: string | null) {
 	const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => {
 		if (!spaceId) return new Set();
 		try {
-			const saved: unknown = JSON.parse(window.localStorage.getItem(collapsedKey(spaceId)) ?? "[]");
+			const saved: unknown = JSON.parse(readStorage(collapsedKey(spaceId)) ?? "[]");
 			return new Set(Array.isArray(saved) ? saved.filter((k): k is string => typeof k === "string") : []);
 		} catch {
 			return new Set();
@@ -69,11 +70,7 @@ function useCollapsed(spaceId: string | null) {
 			setCollapsed((prev) => {
 				const next = new Set(prev);
 				if (!next.delete(key)) next.add(key);
-				try {
-					if (spaceId) window.localStorage.setItem(collapsedKey(spaceId), JSON.stringify([...next]));
-				} catch {
-					// Only a convenience: the page works without it.
-				}
+				if (spaceId) writeStorage(collapsedKey(spaceId), JSON.stringify([...next]));
 				return next;
 			}),
 		[spaceId],
@@ -303,7 +300,7 @@ function FilesPageBody() {
 
 function SearchBox({ value, onChange }: { value: string; onChange: (value: string) => void }) {
 	return (
-		<label className="flex h-10 min-w-[200px] flex-1 items-center gap-2 rounded border-[1.5px] border-ink bg-background px-3 text-ink-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink">
+		<label className="flex h-10 min-w-[200px] flex-1 items-center gap-2 lh-well rounded px-3 text-ink-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink">
 			<input
 				type="search"
 				data-testid="files-search"

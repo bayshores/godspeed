@@ -25,9 +25,3 @@ export function removedLately(removed: readonly RemovedFile[], now: number): str
 	const n = removed.filter((r) => isRecent(r.at, now)).length;
 	return n > 0 ? `${n} removed` : null;
 }
-
-/** The change's local day as YYYY-MM-DD (for shortDate). */
-export function changeDay(at: string): string {
-	const d = new Date(at);
-	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}

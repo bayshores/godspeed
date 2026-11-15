@@ -196,7 +196,7 @@ fn messages(app: &App, chat_id: &str) -> Vec<Json> {
 
 /// The newest call named `name` in the record.
 fn last_call(record: &[Json], name: &str) -> Json {
-	record.iter().rev().flat_map(|m| m["content"].as_arr().into_iter().flatten()).find(|b| b["type"].as_str() == Some("toolCall") && b["name"].as_str() == Some(name)).unwrap().clone()
+	record.iter().rev().flat_map(|m| m["content"].items().iter()).find(|b| b["type"].as_str() == Some("toolCall") && b["name"].as_str() == Some(name)).unwrap().clone()
 }
 
 fn id_of(call: &Json) -> String {

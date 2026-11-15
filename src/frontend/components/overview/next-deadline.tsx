@@ -1,8 +1,8 @@
 import { memo } from "react";
 import { Link } from "react-router";
-import type { DeadlineProgress } from "@/shared/core";
+import { longDay, type DeadlineProgress } from "@/shared/core";
 import { dueAtMs } from "@/frontend/components/countdown-model";
-import { countLeft, longDay } from "@/frontend/components/home-page/home-page-model";
+import { countLeft } from "@/frontend/components/home-page/home-page-model";
 import { CountBlock } from "@/frontend/components/ui/count-block";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
@@ -40,7 +40,7 @@ export const NextDeadline = memo(function NextDeadline({
 		return (
 			<Pane data-testid="next-deadline-none" className="flex flex-wrap items-center gap-4 px-5 py-4">
 				<p className="min-w-0 flex-1 text-[17px] text-ink-2">{none}</p>
-				<button type="button" data-testid="next-deadline-add" onClick={onAddDeadline} className="lh-btn h-[38px] shrink-0 text-[15px]">
+				<button type="button" data-testid="next-deadline-add" onClick={onAddDeadline} className="lh-btn shrink-0">
 					<PixelIcon name="plus" />
 					Add a deadline
 				</button>

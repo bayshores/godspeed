@@ -10,7 +10,7 @@ use gs_json::{Json, js_number, json};
 use super::context::{Saved, context_for, read_saved};
 use super::files::{extension, is_pdf_name, picture_type};
 use super::folder::take_folder_pdf;
-use super::{Outcome, refuse};
+use crate::outcome::{Outcome, refuse};
 use crate::App;
 use crate::app::agent_folder::cheat_sheets_dir;
 use crate::app::disk::make_dir;
@@ -46,7 +46,7 @@ pub async fn cheat_sheet_view(app: &App, space_id: &str, deadline_id: &str) -> O
 /// The space's Cheat sheets page: each deadline and where its sheet is.
 pub fn space_sheets_view(app: &App, space_id: &str) -> Outcome<Json> {
 	let Some(record) = app.stores.spaces.get_space(space_id) else { return refuse(404, "No such space") };
-	let deadlines: &[Json] = record["deadlines"].as_arr().map_or(&[], |a| a.as_slice());
+	let deadlines: &[Json] = record["deadlines"].items();
 	// A space's own deadline ids are valid sheet ids, so a read can't fail here.
 	let sheet_of = |id: &str| app.stores.cheat_sheets.read_cheat_sheet(space_id, id).ok().flatten();
 	let running = |id: &str| app.cheat_sheets.runs.lock().contains_key(id);

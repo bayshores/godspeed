@@ -26,10 +26,6 @@ use crate::spaces::space_card::space_card_for;
 use crate::graph::graph::graph_store_for;
 use crate::graph::progress::{deadline_study_for, study_topics_for, topic_study_for};
 
-fn items(v: &Json) -> &[Json] {
-	v.as_arr().map_or(&[], Vec::as_slice)
-}
-
 /// What a lesson starts from.
 pub enum LessonStart {
 	/// A typed topic (its title), with any facts picked for it (`{id, name, statement}`).
@@ -91,7 +87,7 @@ pub fn create_lesson(app: &Arc<App>, input: CreateLessonInput) -> Result<Result<
 	};
 	let space_id = cls.as_ref().and_then(|c| c["id"].as_str());
 	let chat = app.stores.chats.create_chat(&title_from_prompt(&start.title), Some("study"), space_id, deadline_id)?;
-	let chat_id = chat["id"].as_str().unwrap_or_default().to_owned();
+	let chat_id = chat["id"].str_or_empty().to_owned();
 	let mut messages = Vec::new();
 	if let Some(cls) = &cls {
 		messages.push(new_space_context_message(&space_card_for(app, cls)?));
@@ -100,13 +96,13 @@ pub fn create_lesson(app: &Arc<App>, input: CreateLessonInput) -> Result<Result<
 		// The picks carry what the learner saw; the chains come from the lesson's own space graph.
 		let graph = get_graph(graph_store_for(app, scope).as_ref())?;
 		let by_id: HashMap<&str, &Json> = graph.nodes.iter().filter_map(|n| Some((n["id"].as_str()?, n))).collect();
-		let names: HashMap<String, String> = by_id.iter().map(|(id, n)| ((*id).to_owned(), n["name"].as_str().unwrap_or_default().to_owned())).collect();
+		let names: HashMap<String, String> = by_id.iter().map(|(id, n)| ((*id).to_owned(), n["name"].str_or_empty().to_owned())).collect();
 		let picked: Vec<Json> = start.picks.iter().filter_map(|p| by_id.get(p["id"].as_str()?).map(|n| (*n).clone())).collect();
 		let lines: Vec<String> = chains_for_selection(&picked, &graph.chains)
 			.iter()
 			.map(|c| {
-				let premises: Vec<&str> = c["premises"].as_arr().into_iter().flatten().filter_map(Json::as_str).collect();
-				format_chain_line(&premises, c["conclusion"].as_str().unwrap_or_default(), &names)
+				let premises: Vec<&str> = c["premises"].items().iter().filter_map(Json::as_str).collect();
+				format_chain_line(&premises, c["conclusion"].str_or_empty(), &names)
 			})
 			.collect();
 		messages.push(new_graph_context_message(&start.picks, &lines));
@@ -139,15 +135,15 @@ fn start_of(app: &Arc<App>, scope: Option<&str>, start: &LessonStart) -> Result<
 				Some(space_id) => app.stores.mocks.read_mock(space_id, mock_id)?,
 				None => None,
 			};
-			let question = mock.as_ref().and_then(|m| items(&m["questions"]).iter().find(|q| q["id"].as_str() == Some(question_id.as_str())));
+			let question = mock.as_ref().and_then(|m| m["questions"].items().iter().find(|q| q["id"].as_str() == Some(question_id.as_str())));
 			let note = mock.as_ref().and_then(|m| go_over_text(m, question_id));
 			let (Some(mock), Some(question), Some(note)) = (&mock, question, note) else {
 				return Ok(Err(NotFound { code: "topics_not_found", error: "No such question" }));
 			};
 			// The topics of the facts it tested are the plan; a question with none is its own topic,
 			// weak, since it is being gone over, and latest wrong unless it was right.
-			let title = question["title"].as_str().unwrap_or("");
-			let fact_ids: Vec<String> = items(&question["factIds"]).iter().filter_map(|f| f.as_str().map(str::to_owned)).collect();
+			let title = question["title"].str_or_empty();
+			let fact_ids: Vec<String> = question["factIds"].items().iter().filter_map(|f| f.as_str().map(str::to_owned)).collect();
 			let tested = if fact_ids.is_empty() { Vec::new() } else { study_topics_for(app, scope, &fact_ids, title)? };
 			let topics = if tested.is_empty() {
 				let mut own = Obj::new();

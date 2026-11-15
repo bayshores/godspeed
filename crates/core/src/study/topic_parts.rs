@@ -11,13 +11,13 @@ use std::collections::HashSet;
 
 use gs_json::{Json, json};
 
-use super::items;
 use super::progress::answer_outcome;
 use super::topic_end::shown_openers;
 use crate::messages::citations::{CiteMark, replace_cite_marks};
 use crate::messages::lesson_markers::KEEP_CHECK;
 use crate::messages::native_messages::{active_problem_of, dangling_question_of};
 use crate::messages::pending::is_question_tool;
+use crate::messages::tool_calls;
 use crate::session::plot::{PLOT_TOOL, Plot, Shape, check_plot, number, option_names_value, short};
 use crate::session::question_core::{coerce_correct_answer, normalize_quiz_type, parse_options_if_string};
 
@@ -96,7 +96,7 @@ fn walk(messages: &[Json], first_topic: Option<&str>, reply: Option<&Json>) -> (
 			&& reached(&out, node_id).is_none()
 		{
 			let lead_of = opener["topicDoneCallId"].clone();
-			let page = first_quoted(opener["lead"].as_str().unwrap_or_default(), Json::Null, lead_of);
+			let page = first_quoted(opener["lead"].str_or_empty(), Json::Null, lead_of);
 			visits.push(Visit { at: index, node_id: node_id.to_owned(), plot: false, keep: false });
 			out.push(json!({ "nodeId": node_id, "page": page }));
 			current = Some(node_id.to_owned());
@@ -115,10 +115,10 @@ fn walk(messages: &[Json], first_topic: Option<&str>, reply: Option<&Json>) -> (
 			out.len() - 1
 		});
 		if opened.insert(node_id.clone()) {
-			let page = items(&m["content"])
+			let page = m["content"].items()
 				.iter()
 				.filter(|b| b["type"].as_str() == Some("text"))
-				.map(|b| first_quoted(b["text"].as_str().unwrap_or_default(), m["id"].clone(), Json::Null))
+				.map(|b| first_quoted(b["text"].str_or_empty(), m["id"].clone(), Json::Null))
 				.find(|page| !page.is_null());
 			if let Some(page) = page.filter(|_| out[at]["page"].is_null())
 				&& let Some(parts) = out[at].as_obj_mut()
@@ -127,27 +127,23 @@ fn walk(messages: &[Json], first_topic: Option<&str>, reply: Option<&Json>) -> (
 			}
 		}
 		if seen {
-			let plot = calls(m).any(|c| c["name"].as_str() == Some(PLOT_TOOL) && !c["id"].as_str().is_some_and(|id| refused.contains(id)));
-			let keep = calls(m).any(|c| c["id"].as_str().is_some_and(|id| kept.contains(id)));
+			let plot = tool_calls(m).any(|c| c["name"].as_str() == Some(PLOT_TOOL) && !c["id"].as_str().is_some_and(|id| refused.contains(id)));
+			let keep = tool_calls(m).any(|c| c["id"].as_str().is_some_and(|id| kept.contains(id)));
 			visits.push(Visit { at: index, node_id, plot, keep });
 		}
 	}
 	(out, visits)
 }
 
-pub(super) fn calls(m: &Json) -> impl Iterator<Item = &Json> {
-	items(&m["content"]).iter().filter(|b| b["type"].as_str() == Some("toolCall"))
-}
-
 /// A reply the learner sees: words, or a question or a plot that was not refused.
 fn is_seen(m: &Json, refused: &HashSet<&str>) -> bool {
-	items(&m["content"]).iter().any(|b| b["type"].as_str() == Some("text") && b["text"].as_str().is_some_and(|t| !t.trim().is_empty()))
-		|| calls(m).any(|c| c["name"].as_str().is_some_and(|name| name == PLOT_TOOL || is_question_tool(name)) && !c["id"].as_str().is_some_and(|id| refused.contains(id)))
+	m["content"].items().iter().any(|b| b["type"].as_str() == Some("text") && b["text"].as_str().is_some_and(|t| !t.trim().is_empty()))
+		|| tool_calls(m).any(|c| c["name"].as_str().is_some_and(|name| name == PLOT_TOOL || is_question_tool(name)) && !c["id"].as_str().is_some_and(|id| refused.contains(id)))
 }
 
 /// The topic a reply's calls name: the first call with a nodeId that was not refused.
 fn call_topic(m: &Json, refused: &HashSet<&str>) -> Option<String> {
-	calls(m).filter(|b| !b["id"].as_str().is_some_and(|id| refused.contains(id))).find_map(|b| b["arguments"]["nodeId"].as_str().map(str::to_owned))
+	tool_calls(m).filter(|b| !b["id"].as_str().is_some_and(|id| refused.contains(id))).find_map(|b| b["arguments"]["nodeId"].as_str().map(str::to_owned))
 }
 
 fn first_quoted(text: &str, message_id: Json, lead_of: Json) -> Json {
@@ -179,7 +175,7 @@ pub struct PartsVerdict {
 /// Whether a question or problem waits for the learner in the stored record, other than one the
 /// reply itself asks.
 pub fn question_open(stored: &[Json], reply: &Json) -> bool {
-	let own: HashSet<&str> = calls(reply).filter_map(|c| c["id"].as_str()).collect();
+	let own: HashSet<&str> = tool_calls(reply).filter_map(|c| c["id"].as_str()).collect();
 	dangling_question_of(stored).is_some_and(|q| !own.contains(q.tool_call_id.as_str())) || active_problem_of(stored).is_some_and(|p| !own.contains(p.tool_call_id.as_str()))
 }
 
@@ -192,10 +188,10 @@ pub fn question_open(stored: &[Json], reply: &Json) -> bool {
 /// them is left to them. A plot that fails its own checks is refused by its preparation; this
 /// only refuses its guess with it.
 pub fn reply_parts_problems(lesson_messages: &[Json], first_topic: Option<&str>, reply: &Json, question_open: bool, quiz_call: &dyn Fn(&Json) -> (Json, bool)) -> PartsVerdict {
-	let id = |c: &Json| c["id"].as_str().unwrap_or_default().to_owned();
-	let plots: Vec<&Json> = calls(reply).filter(|c| c["name"].as_str() == Some(PLOT_TOOL)).collect();
+	let id = |c: &Json| c["id"].str_or_empty().to_owned();
+	let plots: Vec<&Json> = tool_calls(reply).filter(|c| c["name"].as_str() == Some(PLOT_TOOL)).collect();
 	// Each guess's call id, its prepared arguments, and whether they pass the quiz's checks.
-	let guesses: Vec<(String, Json, bool)> = calls(reply)
+	let guesses: Vec<(String, Json, bool)> = tool_calls(reply)
 		.filter(|c| c["name"].as_str() == Some("quiz"))
 		.map(|c| {
 			let (args, passes) = quiz_call(&c["arguments"]);
@@ -246,7 +242,7 @@ pub fn reply_parts_problems(lesson_messages: &[Json], first_topic: Option<&str>,
 
 /// A plot with no guess opens at once, so it holds no line back.
 fn no_guess_problems(plot: &Json) -> Vec<String> {
-	items(&plot["lines"]).iter().enumerate().filter(|(_, l)| l["hidden"] == Json::Bool(true)).map(|(i, _)| format!("lines[{i}].hidden: needs a guess on the plot. Leave hidden out.")).collect()
+	plot["lines"].items().iter().enumerate().filter(|(_, l)| l["hidden"] == Json::Bool(true)).map(|(i, _)| format!("lines[{i}].hidden: needs a guess on the plot. Leave hidden out.")).collect()
 }
 
 fn four_figures(v: f64) -> f64 {
@@ -260,7 +256,7 @@ fn guess_value(plot: &Plot, quiz: &Json, problems: &mut Vec<String>) -> Option<f
 		problems.push("onPlot: the guess on a plot is type \"predict\".".to_owned());
 	}
 	let on = &quiz["onPlot"];
-	let label = on["line"].as_str().unwrap_or_default();
+	let label = on["line"].str_or_empty();
 	let line = plot.line(label);
 	if line.is_none() {
 		let lines = plot.lines.iter().map(|l| format!("\"{}\"", l.label)).collect::<Vec<_>>().join(", ");
@@ -315,15 +311,15 @@ fn guess_value(plot: &Plot, quiz: &Json, problems: &mut Vec<String>) -> Option<f
 		return None;
 	}
 	let options = parse_options_if_string(Some(&quiz["options"])).unwrap_or(Json::Null);
-	let options = items(&options);
+	let options = options.items();
 	let key = |o: &Json| {
 		let value = o["value"].as_str().map(str::trim).unwrap_or_default();
-		if value.is_empty() { o["label"].as_str().unwrap_or_default().trim().to_owned() } else { value.to_owned() }
+		if value.is_empty() { o["label"].str_or_empty().trim().to_owned() } else { value.to_owned() }
 	};
 	let keys: Vec<String> = options.iter().map(key).collect();
 	for right in coerce_correct_answer(&quiz["correctAnswer"], &keys) {
 		let Some(option) = options.iter().find(|o| key(o) == right) else { continue };
-		let words = option["label"].as_str().unwrap_or_default();
+		let words = option["label"].str_or_empty();
 		if !option_names_value(words, value) {
 			let which = if option["value"].as_str().is_some_and(|v| !v.trim().is_empty()) { format!("option {right}") } else { "the right option".to_owned() };
 			problems.push(format!("correctAnswer: {which} reads \"{words}\" but {label} at {at} is {}. Fix the option or onPlot.", short(value)));

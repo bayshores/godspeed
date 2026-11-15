@@ -26,16 +26,6 @@ export interface DeadlineSession {
 
 export type ContinueStudy = Pick<DeadlineSession, "chatId" | "done" | "total" | "stop" | "inTopic">;
 
-/** The session a deadline's Study button reopens: the latest one started
- *  from it, while unfinished. A count at its last topic still continues at
- *  a stop, since a skipped topic may be left. */
-export function continueStudyFor(deadlineId: string, sessions: readonly DeadlineSession[]): ContinueStudy | null {
-	let latest: DeadlineSession | null = null;
-	for (const s of sessions) if (s.deadlineId === deadlineId && (!latest || s.createdAt > latest.createdAt)) latest = s;
-	if (!latest || latest.endedAt || (latest.done >= latest.total && !latest.stop)) return null;
-	return { chatId: latest.chatId, done: latest.done, total: latest.total, ...(latest.stop ? { stop: latest.stop } : {}), ...(latest.inTopic ? { inTopic: latest.inTopic } : {}) };
-}
-
 /** What Today's row and the deadline's path say when today's plan is empty
  *  after its session ended: with the space name on Today, alone as a
  *  sentence on the path. */

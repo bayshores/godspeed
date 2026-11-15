@@ -16,7 +16,7 @@ use super::events::AgentEvent;
 use super::messages::role;
 
 fn call_ids(message: &Json) -> impl Iterator<Item = &str> {
-	message["content"].as_arr().into_iter().flatten().filter(|b| b["type"] == Json::from("toolCall")).filter_map(|b| b["id"].as_str())
+	message["content"].items().iter().filter(|b| b["type"] == Json::from("toolCall")).filter_map(|b| b["id"].as_str())
 }
 
 /// Every call id and result id in a message list (the chat record, duplicates included).

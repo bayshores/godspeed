@@ -17,7 +17,8 @@ use gs_json::{Json, json};
 
 use super::fn_tool::FnTool;
 use super::lesson_parts::LessonParts;
-use super::practice::{LessonRecord, record_messages};
+use super::plan::PlanContext;
+use super::practice::record_messages;
 
 const DESCRIPTION: &str = "Draws one or two lines over x, instead of demo, when the idea is a curve: a formula with one slider, or measured points. Send it with a prediction on it (quiz.onPlot) in the same reply; it stays locked until he answers. While a question is open, send it with no prediction. Leave one plain reply after a keep.";
 
@@ -58,7 +59,7 @@ fn parameters() -> Json {
 
 struct Plot {
 	parameters: Json,
-	record: LessonRecord,
+	record: PlanContext,
 	parts: Arc<LessonParts>,
 	/// Plots drawn in this turn, for the next one's id.
 	drawn: AtomicUsize,
@@ -107,7 +108,7 @@ impl Tool for Plot {
 }
 
 /// The tool for one Study turn, sharing the hook's passed guesses.
-pub fn plot_tool(record: LessonRecord, parts: &Arc<LessonParts>) -> FnTool {
+pub fn plot_tool(record: PlanContext, parts: &Arc<LessonParts>) -> FnTool {
 	FnTool::from_tool(Arc::new(Plot { parameters: parameters(), record, parts: parts.clone(), drawn: AtomicUsize::new(0) }))
 }
 
@@ -121,7 +122,6 @@ mod tests {
 
 	use super::*;
 	use crate::tools::heal::heal_tool_record;
-	use crate::tools::plan::PlanContext;
 	use crate::tools::test_record::record;
 
 	fn leash() -> Json {
@@ -140,7 +140,7 @@ mod tests {
 	}
 
 	/// A lesson whose plan holds `reg`, already holding one stored plot, then `after`.
-	fn lesson(after: Vec<Json>) -> LessonRecord {
+	fn lesson(after: Vec<Json>) -> PlanContext {
 		let stored = vec![
 			json!({ "role": "toolResult", "toolCallId": "p0", "toolName": "plot", "isError": false, "details": { "part": "plot", "v": 1, "id": "p1" } }),
 			json!({ "role": "toolResult", "toolCallId": "px", "toolName": "plot", "isError": true, "details": null }),
@@ -158,7 +158,7 @@ mod tests {
 		run_in(lesson(Vec::new()), calls, hooked).await
 	}
 
-	async fn run_in(record: LessonRecord, calls: Vec<Json>, hooked: bool) -> Vec<Json> {
+	async fn run_in(record: PlanContext, calls: Vec<Json>, hooked: bool) -> Vec<Json> {
 		let plan = PlanContext { chat_id: record.chat_id.clone(), chat_store: Arc::new(Planned(record.chat_store.clone())) };
 		let parts = LessonParts::new(&plan);
 		let scripted = Scripted::new();

@@ -126,13 +126,6 @@ function isCalcToken(tok: Token): boolean {
 	return true;
 }
 
-/** Turns plain typing into LaTeX: 2^10 → 2^{10}, sqrt(2) → \sqrt{2},
- *  sin(30°) → \sin(30^{\circ}), d/dx → \frac{d}{dx}, int x dx → \int x\,dx.
- *  Null when it isn't a calculation (an unknown word, unbalanced brackets). */
-export function plainToLatex(text: string): string | null {
-	return convert(tokenize(text), true);
-}
-
 function convert(tokens: Token[], allowEquals: boolean): string | null {
 	const out: string[] = [];
 	let depth = 0;

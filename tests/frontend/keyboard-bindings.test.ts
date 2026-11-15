@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { actionForBinding, bindingForAction, bindingKeys, formatBinding, IS_MAC, kbdEventForAction, KEYBOARD_ACTIONS, KEY_SCOPES } from "../../src/shared/core/keyboard.ts";
+import { actionForBinding, bindingForAction, bindingKeys, IS_MAC, kbdEventForAction, KEYBOARD_ACTIONS, KEY_SCOPES } from "../../src/shared/core/keyboard.ts";
 
 describe("a keypress reaches its action's event", () => {
 	it("mod+t is the toggle-user-thinking action", () => {
@@ -53,19 +53,6 @@ describe("the shortcut groups", () => {
 		assert.deepEqual(KEY_SCOPES.map((s) => s.label), ["Everywhere", "In a lesson"]);
 		const scopes = new Set(KEY_SCOPES.map((s) => s.scope as string));
 		for (const a of KEYBOARD_ACTIONS) assert.ok(scopes.has(a.scope), `${a.id} has a group`);
-	});
-});
-
-describe("formatBinding", () => {
-	it("one line per platform", () => {
-		assert.equal(formatBinding("shift+tab"), IS_MAC ? "⇧⇥" : "Shift+⇥");
-	});
-	it("a + key keeps its glyph, with or without modifiers", () => {
-		assert.equal(formatBinding("mod+shift++"), IS_MAC ? "⌘⇧+" : "Ctrl+Shift++");
-		assert.equal(formatBinding("+"), "+");
-	});
-	it("a space key reads as Space", () => {
-		assert.equal(formatBinding("mod+ "), IS_MAC ? "⌘Space" : "Ctrl+Space");
 	});
 });
 

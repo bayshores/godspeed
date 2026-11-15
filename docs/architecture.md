@@ -856,7 +856,7 @@ In a browser there is no `window.lh.terminals`: Start makes the folder and the l
 
 A learner who starts an agent through a launcher sets its command with Change command under the Start button: one line of at most 300 characters (`usable_start_command`). An empty one goes back to `claude` or `codex`.
 
-`services::app::old_setup` finds and removes what is left of the retired Claude Code plugin and the old Codex config block. A corner notice and a line in Settings, Connection offer Remove.
+`services::app::old_setup` finds and removes what is left of the retired Claude Code plugin and the old Codex config block. A notice under the pill and a line in Settings, Connection offer Remove.
 
 #### The spaces folder
 
@@ -888,7 +888,7 @@ Every model request (a lesson turn, a background job, an extraction run, topic g
 - The teacher takes lesson and Talk turns, and background items only while no helper is here.
 - A helper is here when it checked in within 3 minutes or holds an item whose claim has not run out. It never counts as teaching.
 
-The window shows who works (`src/frontend/components/work/`): a striped frame around a page being worked on, a yellow chip in the top bar on every page, and Teacher and Helper tiles under Settings, Connection. The teacher's tile has a Start button while it isn't running; the helper's has one only when godspeed can't start it by itself (the browser, or a teacher started outside godspeed) or after it stopped while the teacher runs.
+The window shows who works (`src/frontend/components/work/`): a striped frame around a page being worked on, the live pill in every top bar, and Teacher and Helper tiles under Settings, Connection. The pill (`src/frontend/components/top-bar/live-pill.tsx`, words in `live-pill-model.ts`) says the first live thing in one line: the teacher needing an answer, a lesson whose reply came while another page was open, the teacher at work, background work, then a deadline in its last 24 hours. It leaves out what the page already says: the teacher beside a lesson's or cheat sheet's teacher head (unless it needs an answer), a deadline on Today and on its own page, and in a page's own bar it shows only while it has something to say. A click opens its card under the bar with a row and a button per thing, Follow, and Talk. A notice (update, restart, new files, a saved rule) shows in the same panel for 12 seconds, with its title on the pill, then folds into the pill as a count until the card is opened; a notice with its own timer closes by itself instead (`notice-store.ts`). The teacher's tile has a Start button while it isn't running; the helper's has one only when godspeed can't start it by itself (the browser, or a teacher started outside godspeed) or after it stopped while the teacher runs.
 
 #### The work item
 
@@ -951,7 +951,7 @@ When the learner states a lasting preference, the teacher calls `save_rule` (`ag
 
 - The rule joins the learner's own list (Settings, Teaching for every lesson; Edit space for one space), within the usual 20 rules of 200 characters.
 - `data/agent-rules.json` (`services::app::agent_rules`) marks it as the agent's, so the lists say "Saved by" and the teacher's name.
-- A lesson shows the save as one line with Undo and Edit (`rule-saved-line.tsx`). A save from the terminal sends `rules-changed` with the rule, and the window shows a corner notice (`rule-notice.tsx`). Both go through `/api/rules`.
+- A lesson shows the save as one line with Undo and Edit (`rule-saved-line.tsx`). A save from the terminal sends `rules-changed` with the rule, and the window shows a notice under the pill (`rule-notice.tsx`). Both go through `/api/rules`.
 - Editing a rule makes it the learner's. Marks of rules the learner removed are dropped when the list is read.
 
 #### Web search

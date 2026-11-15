@@ -11,7 +11,7 @@ import { useNavigate } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useMinute } from "@/frontend/components/countdown";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
-import { NOTICE_STACK_ID } from "@/frontend/components/notice-stack";
+import { NOTICE_STACK_ID } from "@/frontend/components/top-bar/pill-panel";
 import { quietSpaces, quietLine, quietTitle, snoozeEnd, type QuietSpace } from "./quiet-notice-model";
 
 const SNOOZED_KEY = "lh:quiet-snoozed";
@@ -80,7 +80,7 @@ export function QuietNoticeView({
 				<NoticeCard
 					key={entry.spaceId}
 					data-testid="quiet-notice"
-					data-notice="quiet"
+					kind="quiet"
 					role="status"
 					title={quietTitle(entry, now)}
 					close={{ onClick: () => onDismiss(entry), testId: "quiet-notice-close" }}

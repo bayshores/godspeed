@@ -17,7 +17,7 @@ fn text_of(content: &Json, mut images: Option<&mut Vec<Json>>) -> String {
 	let parts: Vec<String> = blocks
 		.iter()
 		.map(|c| match c["type"].as_str() {
-			Some("text") => c["text"].as_str().unwrap_or_default().to_owned(),
+			Some("text") => c["text"].str_or_empty().to_owned(),
 			Some("image") => match (images.as_deref_mut(), c["data"].as_str(), c["mimeType"].as_str()) {
 				(Some(images), Some(data), Some(mime_type)) => {
 					images.push(json!({ "data": data, "mimeType": mime_type }));
@@ -57,8 +57,8 @@ pub fn render_message(m: &Json, images: Option<&mut Vec<Json>>) -> Option<Json> 
 			out.insert("text", text_of(&m["content"], images));
 		}
 		"assistant" => {
-			let blocks = m["content"].as_arr().map_or(&[][..], Vec::as_slice);
-			let text: Vec<&str> = blocks.iter().filter(|c| c["type"] == Json::from("text")).map(|c| c["text"].as_str().unwrap_or_default()).collect();
+			let blocks = m["content"].items();
+			let text: Vec<&str> = blocks.iter().filter(|c| c["type"] == Json::from("text")).map(|c| c["text"].str_or_empty()).collect();
 			let calls: Vec<Json> = blocks
 				.iter()
 				.filter(|c| c["type"] == Json::from("toolCall"))
@@ -99,9 +99,9 @@ pub fn instructions_and_tools(messages: &[Json]) -> (String, Vec<Json>) {
 	let mut tools: Vec<Json> = Vec::new();
 	for m in messages.iter().filter(|m| role(m) == "system") {
 		if instructions.is_empty() {
-			instructions = render_message(m, None).map(|r| r["text"].as_str().unwrap_or_default().to_owned()).unwrap_or_default();
+			instructions = render_message(m, None).map(|r| r["text"].str_or_empty().to_owned()).unwrap_or_default();
 		}
-		for t in m["toolsAdded"].as_arr().into_iter().flatten() {
+		for t in m["toolsAdded"].items().iter() {
 			let mut tool = Obj::new();
 			for key in ["name", "description", "parameters"] {
 				put(&mut tool, key, t.get(key));
@@ -117,7 +117,7 @@ pub fn instructions_and_tools(messages: &[Json]) -> (String, Vec<Json>) {
 }
 
 fn sorted_names(tools: &Json) -> Vec<Json> {
-	let mut names: Vec<String> = tools.as_arr().into_iter().flatten().filter_map(|t| t["name"].as_str().map(str::to_owned)).collect();
+	let mut names: Vec<String> = tools.items().iter().filter_map(|t| t["name"].as_str().map(str::to_owned)).collect();
 	names.sort_by_key(|n| to_utf16(n));
 	names.into_iter().map(Json::from).collect()
 }

@@ -7,7 +7,7 @@ use std::collections::{HashMap, HashSet};
 use gs_base::{ids, time};
 use gs_json::{Json, Obj, json};
 
-use super::ledger_lines::{chain_key, chain_key_of, strs, touches};
+use super::ledger_lines::{chain_key, chain_key_of, touches};
 use super::ports::{GraphStore, LedgerRewrite};
 use super::simplify::simplify_chains;
 
@@ -55,8 +55,8 @@ pub fn merge_findings(chat_id: &str, findings: &Json, ledgers: &dyn GraphStore, 
 	let mut created: HashMap<String, Json> = HashMap::new();
 	let now = time::iso_now();
 
-	for p in findings["propositions"].as_arr().into_iter().flatten() {
-		let local = p["id"].as_str().unwrap_or("");
+	for p in findings["propositions"].items().iter() {
+		let local = p["id"].str_or_empty();
 		if mapping.contains_key(local) {
 			continue; // duplicate id within this submit: the first resolution stands
 		}
@@ -86,7 +86,7 @@ pub fn merge_findings(chat_id: &str, findings: &Json, ledgers: &dyn GraphStore, 
 			credited.insert(id);
 		}
 	}
-	for id in unique(strs(&findings["reteaches"]).into_iter()) {
+	for id in unique(findings["reteaches"].strs().into_iter()) {
 		let Some(node) = first_line.get(id) else { continue };
 		if credited.contains(id) {
 			continue;
@@ -98,13 +98,13 @@ pub fn merge_findings(chat_id: &str, findings: &Json, ledgers: &dyn GraphStore, 
 	//     learner's answer counts for it.
 	let mut anchored: HashSet<String> = HashSet::new();
 	for line in nodes.iter().chain(created.values()) {
-		for pt in line["provenance"].as_arr().into_iter().flatten().filter(|pt| pt["chatId"].as_str() == Some(chat_id)) {
+		for pt in line["provenance"].items().iter().filter(|pt| pt["chatId"].as_str() == Some(chat_id)) {
 			anchored.insert(format!("{} {}", line["id"].as_str().unwrap_or("undefined"), pt["messageId"].as_str().unwrap_or("undefined")));
 		}
 	}
-	for test in findings["tests"].as_arr().into_iter().flatten() {
+	for test in findings["tests"].items().iter() {
 		let message_id = test["messageId"].as_str();
-		for local in unique(strs(&test["ids"]).into_iter()) {
+		for local in unique(test["ids"].strs().into_iter()) {
 			let id = mapping.get(local).map(String::as_str).or_else(|| existing_ids.contains(local).then_some(local));
 			let node = id.and_then(|id| first_line.get(id).copied().or_else(|| created.get(id)));
 			let (Some(id), Some(node)) = (id.filter(|id| !id.is_empty()), node) else { continue };
@@ -130,11 +130,11 @@ pub fn merge_findings(chat_id: &str, findings: &Json, ledgers: &dyn GraphStore, 
 		}
 	}
 	let resolve = |endpoint: &str| -> Option<String> { mapping.get(endpoint).cloned().or_else(|| existing_ids.contains(endpoint).then(|| endpoint.to_owned())) };
-	for chain in findings["chains"].as_arr().into_iter().flatten() {
+	for chain in findings["chains"].items().iter() {
 		let Some(conclusion) = chain["conclusion"].as_str().and_then(resolve) else { continue };
 		// Two phrasings of one premise collapse; a premise equal to the conclusion is dropped.
 		let mut premises: Vec<String> = Vec::new();
-		for p in strs(&chain["premises"]).into_iter().filter_map(resolve) {
+		for p in chain["premises"].strs().into_iter().filter_map(resolve) {
 			if p != conclusion && !premises.contains(&p) {
 				premises.push(p);
 			}

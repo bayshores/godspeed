@@ -106,7 +106,7 @@ fn results(record: &[Json], name: &str) -> Vec<Json> {
 }
 
 fn call_of<'a>(record: &'a [Json], name: &str) -> &'a Json {
-	record.iter().rev().flat_map(|m| m["content"].as_arr().into_iter().flatten()).find(|b| b["type"].as_str() == Some("toolCall") && b["name"].as_str() == Some(name)).unwrap()
+	record.iter().rev().flat_map(|m| m["content"].items().iter()).find(|b| b["type"].as_str() == Some("toolCall") && b["name"].as_str() == Some(name)).unwrap()
 }
 
 #[tokio::test(flavor = "multi_thread")]

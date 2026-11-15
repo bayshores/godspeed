@@ -2,9 +2,8 @@
 //! changed. The store adds the space record, the lock and the write.
 
 use std::collections::HashSet;
-use std::sync::LazyLock;
 
-use gs_base::re::Re;
+use gs_base::re::collapse_spaces;
 use gs_base::text;
 use gs_json::{Json, Obj, stringify};
 
@@ -21,8 +20,7 @@ fn shown(value: Option<&Json>) -> String {
 
 /// Trimmed, whitespace runs one space, cut to `max` UTF-16 units.
 pub(super) fn squash(raw: &str, max: i64) -> String {
-	static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
-	text::slice16(&SPACES.replace(text::trim(raw), " "), 0, Some(max))
+	text::slice16(&collapse_spaces(text::trim(raw)), 0, Some(max))
 }
 
 /// A list whose entries are all strings.
@@ -40,21 +38,21 @@ fn deadline_name(name: Option<&Json>) -> Result<String, SpaceDeadlineError> {
 
 fn deadline_kind(kind: Option<&Json>) -> Result<String, SpaceDeadlineError> {
 	match kind {
-		Some(k) if is_deadline_kind(k) => Ok(k.as_str().unwrap_or_default().to_owned()),
+		Some(k) if is_deadline_kind(k) => Ok(k.str_or_empty().to_owned()),
 		_ => Err(refuse("bad_kind", format!("The kind must be exam, homework, quiz, project or interview (got {})", shown(kind)))),
 	}
 }
 
 fn deadline_date(date: Option<&Json>) -> Result<String, SpaceDeadlineError> {
 	match date {
-		Some(d) if is_calendar_date(d) => Ok(d.as_str().unwrap_or_default().to_owned()),
+		Some(d) if is_calendar_date(d) => Ok(d.str_or_empty().to_owned()),
 		_ => Err(refuse("bad_date", format!("The date must be a calendar date written YYYY-MM-DD (got {})", shown(date)))),
 	}
 }
 
 fn deadline_time(time: Option<&Json>) -> Result<String, SpaceDeadlineError> {
 	match time {
-		Some(t) if is_clock_time(t) => Ok(t.as_str().unwrap_or_default().to_owned()),
+		Some(t) if is_clock_time(t) => Ok(t.str_or_empty().to_owned()),
 		_ => Err(refuse("bad_time", format!("The time must be a 24-hour time written HH:MM (got {})", shown(time)))),
 	}
 }
@@ -134,7 +132,7 @@ pub(super) fn with_files(mut d: Json, file_ids: Vec<String>, left_out: Option<Ve
 
 /// The ids of a space record's files.
 pub fn file_ids_of(record: &Json) -> HashSet<String> {
-	record["files"].as_arr().into_iter().flatten().filter_map(|f| f["id"].as_str().map(str::to_owned)).collect()
+	record["files"].items().iter().filter_map(|f| f["id"].as_str().map(str::to_owned)).collect()
 }
 
 /// A new deadline from `init`: `id` is its new id, `known` the space's file ids.

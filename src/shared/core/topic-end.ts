@@ -12,6 +12,7 @@ import { TOPIC_DONE_TOOL, type KeepGoingDetails, type OpenerAnswerDetails, type 
 import { derivePlanStatusesLh, orderedPlanNodes, TAGGING_TOOLS, type PlanTree } from "./contracts/plan.ts";
 import { PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, type LhMessage } from "./native-messages.ts";
 import type { QuestionAnswerData } from "./question-core.ts";
+import { isRecord } from "./is-record.ts";
 
 /** The stop a lesson is at: its newest stop, with what comes next.
  *  `kind` "end" is a topic stop with no topic left. `nodeId` is the topic
@@ -119,7 +120,7 @@ export function shownOpeners(messages: readonly LhMessage[]): Map<string, ShownO
 		if (m.role !== "toolResult" || m.toolName !== TOPIC_DONE_TOOL || m.isError || !isTopicDoneDetails(m.details)) return;
 		const args = calls.get(m.toolCallId);
 		const quiz = (args?.opener as { quiz?: unknown } | undefined)?.quiz;
-		if (!isObject(quiz)) return;
+		if (!isRecord(quiz)) return;
 		// Its stop: its own (a quiz ended the topic) or the conclude that ended it.
 		const stopOf = m.details.stop
 			? m.toolCallId
@@ -169,7 +170,7 @@ function recordStops(messages: readonly LhMessage[]): RecordStop[] {
 
 function stopIn(result: ToolResultMessage): StopDetails | null {
 	const stop = (result.details as { stop?: unknown } | null | undefined)?.stop;
-	if (!isObject(stop) || typeof stop.at !== "string" || typeof stop.activeMinutes !== "number") return null;
+	if (!isRecord(stop) || typeof stop.at !== "string" || typeof stop.activeMinutes !== "number") return null;
 	if (stop.kind === "problem") return stop as StopDetails;
 	return stop.kind === "topic" && typeof stop.nodeId === "string" ? (stop as StopDetails) : null;
 }
@@ -194,9 +195,6 @@ function keepGoingMarkers(messages: readonly LhMessage[]): KeepGoingDetails[] {
 }
 
 function isTopicDoneDetails(details: unknown): details is TopicDoneDetails {
-	return isObject(details) && details.part === "topic_done";
+	return isRecord(details) && details.part === "topic_done";
 }
 
-function isObject(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
-}

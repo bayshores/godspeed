@@ -9,11 +9,11 @@ use axum::http::{HeaderValue, Uri, header};
 use axum::response::Response;
 use gs_services::App;
 
-use super::paths::{param, search_params};
+use super::paths::{param, query};
 use super::reply;
 
 pub async fn login(app: Arc<App>, uri: Uri, cookie: Option<HeaderValue>) -> Response {
-	let params = search_params(uri.query().unwrap_or_default());
+	let params = query(&uri);
 	let token = param(&params, "token").unwrap_or_default();
 	let (Some(shell), Some(cookie)) = (&app.shell, cookie) else { return super::refused() };
 	if !shell.take_login(token) {

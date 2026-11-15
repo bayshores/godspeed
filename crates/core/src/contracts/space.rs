@@ -3,7 +3,8 @@
 use std::cmp::Ordering;
 use std::sync::LazyLock;
 
-use gs_base::{locale, re::Re, text};
+use gs_base::re::{Re, collapse_spaces};
+use gs_base::{locale, text};
 use gs_json::{Json, json};
 
 pub const SPEECH_TOOL_INSTALL: &str = "brew install whisper-cpp ffmpeg";
@@ -61,8 +62,7 @@ pub fn next_space_color(taken: &[i64]) -> i64 {
 /// unknown or the value empty or longer than SIGNATURE_MAX.
 pub fn clean_signature(raw: &Json) -> Option<Json> {
 	let kind = raw["kind"].as_str().filter(|k| ["math", "code", "text"].contains(k))?;
-	static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
-	let value = SPACES.replace(raw["value"].as_str()?, " ");
+	let value = collapse_spaces(raw["value"].as_str()?);
 	let value = text::trim(&value);
 	(!value.is_empty() && text::len16(value) <= SIGNATURE_MAX).then(|| json!({ "kind": kind, "value": value }))
 }
@@ -95,7 +95,7 @@ pub fn is_deadline_kind(kind: &Json) -> bool {
 
 /// When a deadline is due: its time, or 23:59.
 pub fn deadline_due_at(deadline: &Json) -> (String, String) {
-	(deadline["date"].as_str().unwrap_or("").to_owned(), deadline["time"].as_str().unwrap_or("23:59").to_owned())
+	(deadline["date"].str_or_empty().to_owned(), deadline["time"].as_str().unwrap_or("23:59").to_owned())
 }
 
 /// Soonest first, then by time, then by name (`compareDeadlines`).
@@ -104,7 +104,7 @@ pub fn compare_deadlines(a: &Json, b: &Json) -> Ordering {
 	let (db, tb) = deadline_due_at(b);
 	locale::compare(&da, &db)
 		.then_with(|| locale::compare(&ta, &tb))
-		.then_with(|| locale::compare(a["name"].as_str().unwrap_or(""), b["name"].as_str().unwrap_or("")))
+		.then_with(|| locale::compare(a["name"].str_or_empty(), b["name"].str_or_empty()))
 }
 
 pub fn is_space_id(id: &str) -> bool {
