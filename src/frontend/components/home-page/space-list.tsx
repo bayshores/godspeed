@@ -34,7 +34,7 @@ export function SpaceList({
 	onOpen: (spaceId: string) => void;
 }) {
 	return (
-		<Pane data-testid="today-spaces" className="@container border-edge">
+		<Pane data-testid="today-spaces" className="@container">
 			<div className={CARD_HEAD}>
 				<h2 className={CARD_TITLE}>Your spaces</h2>
 			</div>
