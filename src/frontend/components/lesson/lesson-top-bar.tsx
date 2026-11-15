@@ -9,6 +9,7 @@ import { Hint } from "@/frontend/components/ui/hint";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { kbdEventForAction } from "@/shared/core";
+import { pluginWordTestId } from "./plugin-window";
 import type { useTitleRename } from "./use-title-rename";
 
 /** A button on the dark lesson bar: outlined in the bar's own ink. */
@@ -35,7 +36,7 @@ export function LessonTopBar({
 	spaceId: string | undefined;
 	/** The cheat sheet beside the session (a session in a space). */
 	sheet?: { open: boolean; onToggle: () => void };
-	/** The plugins that show in lessons, each a word left of the cheat sheet; `open` is the one in the dock. */
+	/** The plugins that show in lessons, each a word left of the cheat sheet; `open` is the one whose window hangs under it. */
 	plugins: { words: readonly { id: string; label: string }[]; open: string | null; onToggle: (id: string) => void };
 	/** A homework lesson's assignment file, opened on the desktop. */
 	file?: { name: string; path: string | null };
@@ -69,7 +70,7 @@ export function LessonTopBar({
 			)}
 			<SessionFind scopeRef={scopeRef} scrollContextRef={scrollContextRef}>
 				{plugins.words.map((w) => (
-					<button key={w.id} type="button" data-testid={`lesson-plugin-${w.id}`} aria-pressed={plugins.open === w.id} onClick={() => plugins.onToggle(w.id)} className={cn(NAV_WORD, plugins.open === w.id && BAR_WORD_ON)}>
+					<button key={w.id} type="button" data-testid={pluginWordTestId(w.id)} aria-pressed={plugins.open === w.id} onClick={() => plugins.onToggle(w.id)} className={cn(NAV_WORD, plugins.open === w.id && BAR_WORD_ON)}>
 						{w.label}
 					</button>
 				))}

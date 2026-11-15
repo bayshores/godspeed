@@ -6,7 +6,7 @@ godspeed is in alpha, so the plugin format can still change between updates.
 
 ## What a plugin is
 
-A plugin is a folder with a `manifest.json` and a web page. godspeed shows the page in a frame in a lesson (a panel beside it) or in a space (a tab). The page talks to godspeed with messages in the MCP Apps format (protocol `2026-01-26`, JSON-RPC 2.0 over `postMessage`). A plugin needs no build step and no server.
+A plugin is a folder with a `manifest.json` and a web page. godspeed shows the page in a frame in a lesson (a window under its word in the lesson's top bar) or in a space (a tab). The page talks to godspeed with messages in the MCP Apps format (protocol `2026-01-26`, JSON-RPC 2.0 over `postMessage`). A plugin needs no build step and no server.
 
 | A plugin can | How |
 |---|---|
@@ -51,6 +51,14 @@ Make a folder `hello/` with these two files. It shows in lessons and prints the 
 	<head>
 		<meta charset="utf-8" />
 		<title>Hello</title>
+		<style>
+			body {
+				margin: 0;
+				padding: 16px;
+				background: var(--color-background-primary);
+				color: var(--color-text-primary);
+			}
+		</style>
 	</head>
 	<body>
 		<p id="out">Waiting for godspeed.</p>
@@ -74,8 +82,12 @@ Make a folder `hello/` with these two files. It shows in lessons and prints the 
 			}
 
 			async function start() {
-				await request("ui/initialize", { appInfo: { name: "hello", version: "1.0.0" }, appCapabilities: {}, protocolVersion: "2026-01-26" });
+				const init = await request("ui/initialize", { appInfo: { name: "hello", version: "1.0.0" }, appCapabilities: {}, protocolVersion: "2026-01-26" });
+				for (const [name, value] of Object.entries(init.result.hostContext.styles?.variables ?? {})) document.documentElement.style.setProperty(name, value);
 				send({ method: "ui/notifications/initialized" });
+				// The lesson's window is as tall as the page says.
+				const root = document.documentElement;
+				new ResizeObserver(() => send({ method: "ui/notifications/size-changed", params: { width: root.clientWidth, height: Math.ceil(root.getBoundingClientRect().height) } })).observe(root);
 				const reply = await request("tools/call", { name: "get_context", arguments: {} });
 				document.getElementById("out").textContent = reply.error ? reply.error.message : (reply.result.structuredContent.topic ?? "No lesson is open.");
 			}
@@ -96,8 +108,8 @@ Always check `event.source === parent`. The page can't name godspeed's origin, s
 This example is not one of the fixture folders byte for byte, and no automated test runs it. It was checked by hand.
 
 - The manifest has only the required fields, the shape the `bare` case in `crates/services/src/plugins/manifest.rs` tests. The whole folder also installed into a debug server on scratch data.
-- The page ran in a Node script with a stand-in host and sent the three messages in the order above. It has not run in a real frame.
-- `tests/fixtures/plugins/layout/` is the same handshake without the tool call. `npm run layout` installs it and loads it in the real app window.
+- The page ran in a lesson's window in the debug app on scratch data, in the app's colors and as tall as its one line.
+- `tests/fixtures/plugins/layout/` is the same handshake, look and size message without the tool call. `npm run layout` installs it and loads it in the real app window.
 
 ## The manifest
 
@@ -235,7 +247,7 @@ The result of `ui/initialize` holds these.
 | `protocolVersion` | `"2026-01-26"`. |
 | `hostInfo` | `{ name: "godspeed", version }`. |
 | `hostCapabilities` | `{ openLinks: {}, serverTools: {} }`. |
-| `hostContext.theme` | `"light"` or `"dark"`, as the app is when the page starts. |
+| `hostContext.theme` | `"light"` or `"dark"`, as the app is when the page starts. Always `"dark"` in a lesson's window, which is made of the top bar. |
 | `hostContext.styles.variables` | The CSS variables below, as text values. |
 | `hostContext.styles.css.fonts` | The `@font-face` rules for the fonts in `--font-sans`. |
 | `hostContext.settings` | The plugin's setting values by `key`, such as `{ "emphasis": true }`. |
@@ -262,10 +274,10 @@ document.head.append(fonts);
 
 | Variable | What it is |
 |---|---|
-| `--color-background-primary` | The sheet the page sits on. Use it as the page's ground, so the page and its sheet are one surface. |
-| `--color-background-secondary` | A field or card on that sheet. |
+| `--color-background-primary` | What the page sits on: the top bar's color in a lesson's window, the sheet in a space's tab. Use it as the page's ground, so the page and its box are one surface. |
+| `--color-background-secondary` | A field or card on that ground. |
 | `--color-background-tertiary` | A hovered or chosen row, or a chip. |
-| `--color-background-inverse` | The top bar's color. |
+| `--color-background-inverse` | The ground's opposite: the top bar's text color in a lesson's window, the top bar's color in a space's tab. |
 | `--color-text-primary` | Text on the ground. |
 | `--color-text-secondary` | Quieter text. |
 | `--color-text-tertiary` | The quietest text. |
@@ -279,8 +291,6 @@ document.head.append(fonts);
 
 The variables hold the app's colors as they were when the page started. godspeed does not send the new ones when the learner switches the theme, so a page that wants to follow a theme switch has to be opened again.
 
-The page fills its box and gets no title of its own, since godspeed shows its label already. The box can be narrow, so lay the page out to fit its width.
-
 Follow the app's look so the plugin reads as part of it. godspeed does not check these, but a plugin that breaks them stands out.
 
 - Flat fills. No shadows, no gradients, no blur.
@@ -289,12 +299,29 @@ Follow the app's look so the plugin reads as part of it. godspeed does not check
 - Text color follows its background: pair `--color-text-primary` with the ground and `--color-text-inverse` with the inverse background.
 - Short words. A label is one or two words, and there is no sentence to explain a control.
 
+## Where the page shows
+
+The page gets no title of its own, since godspeed shows its label already.
+
+| Place | The page's box |
+|---|---|
+| A lesson | A window that hangs from the lesson's top bar under the plugin's word and lies over the lesson. It is 360 px wide and as tall as the page says it is, from 48 px up to the room under the top bar less 16 px. A taller page scrolls inside it. Before the page says, it is 120 px tall. The word closes it again, and so do Escape, opening the cheat sheet and opening the Teacher's window. |
+| A space | A tab that fills the space's page under its tabs. |
+
+In a lesson, tell godspeed the page's height:
+
+1. Leave `html` and `body` at the height of what they hold. A page set to `height: 100%` measures the window, not itself, and never grows.
+2. After `initialized`, watch `document.documentElement` with a `ResizeObserver`.
+3. Each time it fires, send the notification `ui/notifications/size-changed` with `{ width, height }` in px, `height` from `document.documentElement.getBoundingClientRect()`. godspeed takes the height and keeps the width at 360.
+
+A page that never sends it stays 120 px tall and scrolls inside that. In a space's tab the message changes nothing.
+
 ## Trying a plugin
 
 1. Open Settings, then Plugins.
 2. Click Add and pick your plugin's folder. Add is in the desktop app only. godspeed copies the folder. If something is wrong, a red message under Add says what, for example `manifest.json: id must be lowercase letters, digits and dashes, like meme-cards`.
 3. The new plugin is picked in the list, and its sheet shows the switch, its settings, Show folder and Remove. A plugin that is off is not shown anywhere, its files are not served, and `ask_agent` is refused.
-4. Open it. A lesson plugin is a word in the lesson's top bar, left of the cheat sheet. Click it to open the page in a panel beside the lesson, and click it again to close it. A space plugin is a tab after the space's own tabs, and shows only in a real space.
+4. Open it. A lesson plugin is a word in the lesson's top bar, left of the cheat sheet. Click it to open the page in a window under it, and click it again to close it. A space plugin is a tab after the space's own tabs, and shows only in a real space.
 5. After changing a file, click Add and pick the same folder again. godspeed replaces the copy and keeps the plugin's stored JSON and settings. Open the page again to see the change.
 
 A plugin whose folder can no longer load shows in the list with its error and a Remove button.

@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PluginFrame } from "../../src/frontend/components/plugins/plugin-frame.tsx";
-import { createBridge, hostFonts, PROTOCOL_VERSION, type HostCalls, type PluginContext } from "../../src/frontend/components/plugins/plugin-frame-model.ts";
+import { createBridge, hostFonts, PROTOCOL_VERSION, styleTokens, type HostCalls, type PluginContext } from "../../src/frontend/components/plugins/plugin-frame-model.ts";
 import type { PluginManifest } from "../../src/frontend/lib/plugins-api.ts";
 
 /** The plugin frame and the MCP Apps host behind it: what a page can reach and what it can't. */
@@ -28,6 +28,7 @@ function harness(manifest: PluginManifest = PROBE, overrides: Partial<HostCalls>
 	const posted: Record<string, unknown>[] = [];
 	const asked: unknown[][] = [];
 	let ready = 0;
+	const sizes: number[] = [];
 	const calls: HostCalls = {
 		readStored: (key) => ok({ stored: key }),
 		writeStored: (...args) => {
@@ -54,6 +55,7 @@ function harness(manifest: PluginManifest = PROBE, overrides: Partial<HostCalls>
 		look: () => ({ theme: "light", variables: { "--color-text-primary": "#24231f" }, fonts: "@font-face { font-family: Zen; }" }),
 		calls,
 		onReady: () => ready++,
+		onSize: (height) => sizes.push(height),
 	});
 	let id = 0;
 	const settle = () => new Promise((done) => setImmediate(done));
@@ -70,7 +72,7 @@ function harness(manifest: PluginManifest = PROBE, overrides: Partial<HostCalls>
 		return init;
 	};
 	const tool = (name: string, args: object = {}) => request("tools/call", { name, arguments: args });
-	return { frame, bridge, posted, asked, request, start, tool, settle, now, ready: () => ready };
+	return { frame, bridge, posted, asked, request, start, tool, settle, now, sizes, ready: () => ready };
 }
 
 describe("PluginFrame", () => {
@@ -83,6 +85,20 @@ describe("PluginFrame", () => {
 		assert.match(html, /src="http:\/\/localhost:4100\/plugin-files\/probe\/app\/start%20page\.html"/);
 		assert.match(html, /title="Probe"/);
 		assert.match(html, /data-state="loading"[^>]*class="[^"]*invisible/);
+	});
+});
+
+describe("the colors a plugin's page gets", () => {
+	it("is the sheet on a space's tab and the bar in a lesson's window, with the same text tokens on both", () => {
+		const sheet = styleTokens(false);
+		const bar = styleTokens(true);
+		assert.equal(sheet["--color-background-primary"], "--lh-sheet");
+		assert.equal(sheet["--color-background-secondary"], "--background");
+		assert.equal(bar["--color-background-primary"], "--background");
+		assert.equal(bar["--color-background-secondary"], "--card");
+		assert.equal(bar["--color-background-inverse"], "--lh-bar-ink");
+		assert.deepEqual(Object.keys(bar).sort(), Object.keys(sheet).sort());
+		assert.equal(bar["--color-text-primary"], sheet["--color-text-primary"]);
 	});
 });
 
@@ -158,12 +174,26 @@ describe("what the host hears", () => {
 		await h.start();
 		const before = h.posted.length;
 		h.bridge.receive(h.frame, { jsonrpc: "2.0", method: "ui/notifications/whatever" });
-		h.bridge.receive(h.frame, { jsonrpc: "2.0", method: "ui/notifications/size-changed", params: { width: 300, height: 9000 } });
 		await h.settle();
 		assert.equal(h.posted.length, before);
 		for (const method of ["ui/message", "ui/update-model-context", "sampling/createMessage", "resources/read"]) {
 			assert.equal((await h.request(method, {}))?.error?.code, -32601, method);
 		}
+	});
+});
+
+describe("the page's size", () => {
+	it("hands on the height a page reports once it is initialized, and drops a size that isn't one", async () => {
+		const h = harness();
+		const size = (params: object) => h.bridge.receive(h.frame, { jsonrpc: "2.0", method: "ui/notifications/size-changed", params });
+		size({ width: 360, height: 200 });
+		await h.start();
+		const before = h.posted.length;
+		size({ width: 360, height: 314 });
+		for (const height of [-1, Number.NaN, Infinity, "300", undefined]) size({ width: 360, height });
+		await h.settle();
+		assert.deepEqual(h.sizes, [314]);
+		assert.equal(h.posted.length, before);
 	});
 });
 

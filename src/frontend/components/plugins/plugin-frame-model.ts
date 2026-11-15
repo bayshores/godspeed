@@ -32,6 +32,38 @@ export interface PluginContext {
 	teacherMessage: string | null;
 }
 
+/** The tokens every surface shares, under their MCP Apps names. Each is read where the frame
+ *  sits, so in a pop-up they are the pop-up's own. */
+const SHARED_TOKENS: Record<string, string> = {
+	"--color-background-tertiary": "--accent",
+	"--color-text-primary": "--foreground",
+	"--color-text-secondary": "--muted-foreground",
+	"--color-text-tertiary": "--lh-ink-3",
+	"--color-text-danger": "--destructive",
+	"--color-text-success": "--lh-ans-right",
+	"--color-border-primary": "--border",
+	"--color-ring-primary": "--ring",
+	"--font-sans": "--font-sans",
+	"--font-mono": "--font-mono",
+	"--border-radius-xs": "--radius",
+	"--border-radius-sm": "--radius",
+	"--border-radius-md": "--radius",
+	"--border-radius-lg": "--radius",
+};
+
+/**
+ * godspeed's tokens under their MCP Apps names, so a plugin's page matches what it sits on. On a
+ * sheet (a space's tab) the background is the sheet and a well on it is the page color. In a
+ * window hanging from the top bar (a lesson's) the page is made of the bar, as every pop-up is:
+ * its background is the bar and a well on it the pop-up's well. The tone is a hovered row's.
+ */
+export function styleTokens(onBar: boolean): Record<string, string> {
+	const surface = onBar
+		? { "--color-background-primary": "--background", "--color-background-secondary": "--card", "--color-background-inverse": "--lh-bar-ink", "--color-text-inverse": "--lh-bar" }
+		: { "--color-background-primary": "--lh-sheet", "--color-background-secondary": "--background", "--color-background-inverse": "--lh-bar", "--color-text-inverse": "--lh-bar-ink" };
+	return { ...surface, ...SHARED_TOKENS };
+}
+
 /** A `@font-face` rule of the app's, and the address its relative URLs are read from. */
 interface FontFaceText {
 	css: string;
@@ -89,6 +121,8 @@ interface BridgeOptions {
 	calls: HostCalls;
 	/** The plugin finished the handshake. */
 	onReady: () => void;
+	/** The page's content height, from `ui/notifications/size-changed`; only where the frame is as tall as its page. */
+	onSize?: (height: number) => void;
 }
 
 type Params = Record<string, unknown>;
@@ -240,12 +274,13 @@ export function createBridge(options: BridgeOptions) {
 		throw new RpcError(METHOD_NOT_FOUND, `godspeed doesn't handle ${method}.`);
 	}
 
-	function notice(method: string) {
+	function notice(method: string, params: Params) {
 		if (method === "ui/notifications/initialized" && initialized) {
 			ready = true;
 			options.onReady();
 		}
-		// ui/notifications/size-changed: the host sizes the frame, so nothing changes.
+		// The width is the host's to set; only the height follows the page.
+		if (method === "ui/notifications/size-changed" && initialized && typeof params.height === "number" && Number.isFinite(params.height) && params.height >= 0) options.onSize?.(params.height);
 	}
 
 	return {
@@ -271,7 +306,7 @@ export function createBridge(options: BridgeOptions) {
 			if (!message) return;
 			const { id, method, params } = message;
 			if (id === undefined) {
-				notice(method);
+				notice(method, params);
 				return;
 			}
 			answer(method, params).then(

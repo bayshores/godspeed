@@ -6,10 +6,9 @@ import { SELECT, SELECT_ARROW } from "@/frontend/components/ui/field";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
-import { dockStateKey, dockWidth, makeTarget, parseDockState, pickSheet, sheetChoices, type DockState } from "./dock-model";
+import { DOCK_DEFAULT_W, dockStateKey, dockWidth, makeTarget, parseDockState, pickSheet, sheetChoices, type DockState } from "./dock-model";
 import { SheetCanvas } from "./sheet-canvas";
 import { versionLabel } from "./studio-states";
-import { useDockWidth } from "./use-dock-width";
 import { sheetPdfPath, studioPath, useCheatSheet, useSpaceSheets } from "./use-cheat-sheet";
 
 const WIDTH_KEY = "lh:sheet-dock-width";
@@ -54,7 +53,11 @@ export function SheetDock({
 	onPick: (deadlineId: string) => void;
 	onClose: () => void;
 }) {
-	const [width, setWidth] = useDockWidth(WIDTH_KEY);
+	const [width, setWidth] = useState(DOCK_DEFAULT_W);
+	useEffect(() => {
+		const saved = Number(readStorage(WIDTH_KEY));
+		setWidth(dockWidth(saved > 0 ? saved : DOCK_DEFAULT_W, window.innerWidth));
+	}, []);
 	const drag = useRef<{ x: number; w: number } | null>(null);
 
 	const { view: cards, failed, reload } = useSpaceSheets(spaceId);
