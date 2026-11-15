@@ -10,10 +10,10 @@ use gs_base::time;
 use gs_json::js_text::js_string;
 use gs_json::{Json, Obj, json};
 
-use super::items;
 use super::progress::answer_outcome;
 use crate::contracts::chat::TOPIC_DONE_TOOL;
 use crate::messages::native_messages::{ActiveProblem, PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL};
+use crate::messages::tool_calls;
 use crate::session::plan::{TAGGING_TOOLS, derive_plan_statuses_lh};
 use crate::session::plan_step_bar::ordered_plan_ids;
 use crate::session::question_core::normalize_quiz_type;
@@ -108,12 +108,12 @@ pub fn ends_topic(conclude_args: &Json, open_problem: Option<&ActiveProblem>) ->
 pub fn lesson_stop(messages: &[Json], tree: Option<&Json>, homework: Option<&[Json]>) -> Option<Json> {
 	let stops = record_stops(messages);
 	let last = stops.last()?;
-	let mut kind = last.stop["kind"].as_str().unwrap_or_default();
+	let mut kind = last.stop["kind"].str_or_empty();
 	let mut next = Json::Null;
 	if let Some(homework) = homework {
 		let open = homework.iter().find(|p| !p["done"].truthy())?;
 		next = Json::from(format!("problem {}", js_string(open.get("number"))));
-	} else if let Some(tree) = tree.filter(|t| !items(&t["nodes"]).is_empty()) {
+	} else if let Some(tree) = tree.filter(|t| !t["nodes"].items().is_empty()) {
 		let node_id = last.stop["nodeId"].as_str();
 		if let (Some(node_id), "topic") = (node_id, kind) {
 			let ended: HashSet<&str> = stops.iter().filter(|s| s.stop["kind"].as_str() == Some("topic")).filter_map(|s| s.stop["nodeId"].as_str()).collect();
@@ -123,7 +123,7 @@ pub fn lesson_stop(messages: &[Json], tree: Option<&Json>, homework: Option<&[Js
 			}
 		} else {
 			let current = derive_plan_statuses_lh(tree, messages, &HashMap::new()).current;
-			next = items(&tree["nodes"]).iter().find(|n| n["id"].as_str().is_some_and(|id| current.as_deref() == Some(id))).map_or(Json::Null, |n| n["title"].clone());
+			next = tree["nodes"].items().iter().find(|n| n["id"].as_str().is_some_and(|id| current.as_deref() == Some(id))).map_or(Json::Null, |n| n["title"].clone());
 		}
 	}
 	let kept_going = keep_going_markers(messages).any(|(_, k)| k["stopOf"].as_str() == Some(last.stop_of)) || moved_past(messages, last);
@@ -145,9 +145,8 @@ fn moved_past(messages: &[Json], stop: &RecordStop) -> bool {
 	let Some(node_id) = stop.node_id.as_deref() else { return false };
 	let after = &messages[stop.index + 1..];
 	let refused: HashSet<&str> = after.iter().filter(|m| m["role"].as_str() == Some("toolResult") && m["isError"].truthy()).filter_map(|m| m["toolCallId"].as_str()).collect();
-	after.iter().filter(|m| m["role"].as_str() == Some("assistant")).flat_map(|m| m["content"].as_arr().into_iter().flatten()).any(|b| {
-		b["type"].as_str() == Some("toolCall")
-			&& b["name"].as_str().is_some_and(|name| TAGGING_TOOLS.contains(&name))
+	after.iter().filter(|m| m["role"].as_str() == Some("assistant")).flat_map(tool_calls).any(|b| {
+		b["name"].as_str().is_some_and(|name| TAGGING_TOOLS.contains(&name))
 			&& !b["id"].as_str().is_some_and(|id| refused.contains(id))
 			&& b["arguments"]["nodeId"].as_str().is_some_and(|n| n != node_id)
 	})
@@ -164,7 +163,7 @@ fn next_topic(tree: &Json, node_id: &str, ended: &HashSet<&str>) -> Option<Json>
 		None => order.iter().copied().find(open),
 	}?;
 	// A duplicated id resolves to its last node, as the learning order does.
-	let title = &items(&tree["nodes"]).iter().rev().find(|n| n["id"].as_str() == Some(id))?["title"];
+	let title = &tree["nodes"].items().iter().rev().find(|n| n["id"].as_str() == Some(id))?["title"];
 	(!title.is_null()).then(|| title.clone())
 }
 
@@ -175,7 +174,7 @@ pub fn finished_topic(messages: &[Json]) -> Option<(String, bool)> {
 	let calls = call_args(messages);
 	let mut finished = None;
 	for m in messages.iter().filter(|m| m["role"].as_str() == Some("toolResult") && !m["isError"].truthy()) {
-		let args = calls.get(m["toolCallId"].as_str().unwrap_or_default()).copied().unwrap_or(&Json::Null);
+		let args = calls.get(m["toolCallId"].str_or_empty()).copied().unwrap_or(&Json::Null);
 		match m["toolName"].as_str() {
 			Some(PRACTICE_PROBLEM_TOOL) => finished = None,
 			Some(PRACTICE_CONCLUDE_TOOL) => finished = stop_in(m).filter(|s| s["kind"].as_str() == Some("topic")).and_then(|s| s["nodeId"].as_str()).map(|n| (n.to_owned(), false)),
@@ -198,7 +197,7 @@ pub fn finished_topic(messages: &[Json]) -> Option<(String, bool)> {
 pub fn topic_done_stored(messages: &[Json], node_id: &str) -> bool {
 	let calls = call_args(messages);
 	messages.iter().any(|m| {
-		m["role"].as_str() == Some("toolResult") && m["toolName"].as_str() == Some(TOPIC_DONE_TOOL) && !m["isError"].truthy() && calls.get(m["toolCallId"].as_str().unwrap_or_default()).is_some_and(|args| args["nodeId"].as_str() == Some(node_id))
+		m["role"].as_str() == Some("toolResult") && m["toolName"].as_str() == Some(TOPIC_DONE_TOOL) && !m["isError"].truthy() && calls.get(m["toolCallId"].str_or_empty()).is_some_and(|args| args["nodeId"].as_str() == Some(node_id))
 	})
 }
 
@@ -273,7 +272,7 @@ fn stored_openers(messages: &[Json]) -> Vec<StoredOpener<'_>> {
 		if m["role"].as_str() != Some("toolResult") || m["toolName"].as_str() != Some(TOPIC_DONE_TOOL) || m["isError"].truthy() || details["part"].as_str() != Some("topic_done") || details.as_obj().is_none() {
 			continue;
 		}
-		let id = m["toolCallId"].as_str().unwrap_or_default();
+		let id = m["toolCallId"].str_or_empty();
 		let args = calls.get(id).copied().unwrap_or(&Json::Null);
 		let quiz = &args["opener"]["quiz"];
 		if quiz.as_obj().is_none() {
@@ -339,7 +338,7 @@ fn record_stops(messages: &[Json]) -> Vec<RecordStop<'_>> {
 		if m["role"].as_str() != Some("toolResult") || m["isError"].truthy() {
 			continue;
 		}
-		let id = m["toolCallId"].as_str().unwrap_or_default();
+		let id = m["toolCallId"].str_or_empty();
 		match m["toolName"].as_str() {
 			Some(PRACTICE_PROBLEM_TOOL) => {
 				problem_node = calls.get(id).and_then(|args| args["nodeId"].as_str()).map(str::to_owned);
@@ -376,8 +375,8 @@ fn stop_in(result: &Json) -> Option<&Json> {
 fn call_args(messages: &[Json]) -> HashMap<&str, &Json> {
 	let mut out = HashMap::new();
 	for m in messages.iter().filter(|m| m["role"].as_str() == Some("assistant")) {
-		for block in m["content"].as_arr().into_iter().flatten().filter(|b| b["type"].as_str() == Some("toolCall")) {
-			out.insert(block["id"].as_str().unwrap_or_default(), &block["arguments"]);
+		for block in tool_calls(m) {
+			out.insert(block["id"].str_or_empty(), &block["arguments"]);
 		}
 	}
 	out

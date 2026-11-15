@@ -151,9 +151,9 @@ async fn run_delete(app: &Arc<App>, chat_id: &str, mode: ChatDeleteMode) -> Resu
 
 /// The sidebar menu's coverage block for one lesson, derived per request.
 pub fn session_coverage(app: &Arc<App>, record: &Json) -> Result<Json, String> {
-	let chat_id = record["id"].as_str().unwrap_or_default();
+	let chat_id = record["id"].str_or_empty();
 	let entries = app.stores.graphs.read(record["spaceId"].as_str(), Ledger::Coverage)?;
-	let messages = record["messages"].as_arr().map_or(&[][..], Vec::as_slice);
+	let messages = record["messages"].items();
 	// Node's walk reads every message's role, so a null message fails the whole read.
 	if messages.iter().any(Json::is_null) {
 		return Err("Cannot read properties of null (reading 'role')".to_owned());
@@ -161,7 +161,7 @@ pub fn session_coverage(app: &Arc<App>, record: &Json) -> Result<Json, String> {
 	let cov = coverage_of(messages, &entries, chat_id);
 	let mut last_folded_at: Option<&str> = None;
 	for entry in entries.iter().filter(|e| e["chatId"].as_str() == Some(chat_id)) {
-		let folded_at = entry["foldedAt"].as_str().unwrap_or_default();
+		let folded_at = entry["foldedAt"].str_or_empty();
 		if last_folded_at.is_none_or(|last| folded_at > last) {
 			last_folded_at = Some(folded_at);
 		}

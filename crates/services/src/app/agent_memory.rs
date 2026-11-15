@@ -17,8 +17,8 @@ pub fn current_agent_briefing(app: &App, max_chars: usize) -> String {
 		.list_space_records()
 		.iter()
 		.map(|record| BriefingSpace {
-			id: record["id"].as_str().unwrap_or_default().to_owned(),
-			name: record["name"].as_str().unwrap_or_default().to_owned(),
+			id: record["id"].str_or_empty().to_owned(),
+			name: record["name"].str_or_empty().to_owned(),
 			closed: record["closed"].truthy(),
 			deadlines: record["deadlines"].as_arr().cloned().unwrap_or_default(),
 			missing_setup: missing_setup(record).into_iter().map(str::to_owned).collect(),
@@ -30,10 +30,10 @@ pub fn current_agent_briefing(app: &App, max_chars: usize) -> String {
 		.list_chats()
 		.iter()
 		.map(|chat| BriefingLesson {
-			id: chat["id"].as_str().unwrap_or_default().to_owned(),
-			title: chat["title"].as_str().unwrap_or_default().to_owned(),
+			id: chat["id"].str_or_empty().to_owned(),
+			title: chat["title"].str_or_empty().to_owned(),
 			space_id: chat["spaceId"].as_str().filter(|id| !id.is_empty()).map(str::to_owned),
-			updated_at: chat["updatedAt"].as_str().unwrap_or_default().to_owned(),
+			updated_at: chat["updatedAt"].str_or_empty().to_owned(),
 			waiting: chat["pendingQuestion"].truthy() || chat["pendingProblem"].truthy(),
 		})
 		.collect();

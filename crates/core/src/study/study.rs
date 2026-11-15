@@ -14,7 +14,6 @@ use std::collections::{HashMap, HashSet};
 use gs_base::{locale, time};
 use gs_json::{Json, Obj, json};
 
-use super::items;
 use super::progress::{days_between, topic_facts};
 use super::deadline_plan::plan_days;
 use crate::spaces::file_series::date_in_name;
@@ -35,7 +34,7 @@ pub fn is_latest_wrong(status: &str, latest: Option<&str>) -> bool {
 
 /// A progress topic (`{ id, name[, material], status, answers }`) as a study topic over `fact_ids`.
 fn study_topic(t: &Json, fact_ids: Vec<Json>) -> Json {
-	let status = t["status"].as_str().unwrap_or("");
+	let status = t["status"].str_or_empty();
 	let mut o = Obj::new();
 	o.insert("id", t["id"].clone());
 	o.insert("name", t["name"].clone());
@@ -43,7 +42,7 @@ fn study_topic(t: &Json, fact_ids: Vec<Json>) -> Json {
 		o.insert("material", material);
 	}
 	o.insert("status", t["status"].clone());
-	if is_latest_wrong(status, items(&t["answers"]).last().and_then(|a| a["outcome"].as_str())) {
+	if is_latest_wrong(status, t["answers"].items().last().and_then(|a| a["outcome"].as_str())) {
 		o.insert("latestWrong", true);
 	}
 	o.insert("factIds", fact_ids);
@@ -54,11 +53,11 @@ fn study_topic(t: &Json, fact_ids: Vec<Json>) -> Json {
 /// space days (dated files by date, then undated ones by name), and a fact sits where the file it
 /// came from sits. Facts born in a lesson have no place.
 pub fn fact_space_order(facts: &[Json], files: &[Json]) -> HashMap<String, usize> {
-	let dated: Vec<(&Json, Option<String>)> = files.iter().map(|f| (f, date_in_name(f["name"].as_str().unwrap_or("")))).collect();
+	let dated: Vec<(&Json, Option<String>)> = files.iter().map(|f| (f, date_in_name(f["name"].str_or_empty()))).collect();
 	let mut with_date: Vec<&(&Json, Option<String>)> = dated.iter().filter(|d| d.1.is_some()).collect();
 	with_date.sort_by(|a, b| locale::compare(a.1.as_deref().unwrap_or(""), b.1.as_deref().unwrap_or("")));
 	let mut without: Vec<&(&Json, Option<String>)> = dated.iter().filter(|d| d.1.is_none()).collect();
-	without.sort_by(|a, b| locale::compare_numeric(a.0["name"].as_str().unwrap_or(""), b.0["name"].as_str().unwrap_or("")));
+	without.sort_by(|a, b| locale::compare_numeric(a.0["name"].str_or_empty(), b.0["name"].str_or_empty()));
 	let mut rank_of: HashMap<&str, usize> = HashMap::new();
 	for (i, d) in with_date.into_iter().chain(without).enumerate() {
 		if let Some(source) = d.0["sourceId"].as_str() {
@@ -75,7 +74,7 @@ pub fn fact_space_order(facts: &[Json], files: &[Json]) -> HashMap<String, usize
 }
 
 fn fact_ids(topic: &Json) -> Vec<&str> {
-	items(&topic["factIds"]).iter().filter_map(Json::as_str).collect()
+	topic["factIds"].items().iter().filter_map(Json::as_str).collect()
 }
 
 /// Topics sorted by their earliest fact's place in the space; facts from no space file go last
@@ -95,7 +94,7 @@ fn in_space_order(topics: Vec<Json>, space_order: &HashMap<String, usize>) -> Ve
 pub fn study_topics(picked: &[String], topics: &[Json], space_order: &HashMap<String, usize>, free_topic: &str) -> Vec<Json> {
 	let mut topic_of: HashMap<&str, &Json> = HashMap::new();
 	for t in topics {
-		for id in items(&t["members"]).iter().filter_map(Json::as_str) {
+		for id in t["members"].items().iter().filter_map(Json::as_str) {
 			topic_of.insert(id, t);
 		}
 	}
@@ -103,7 +102,7 @@ pub fn study_topics(picked: &[String], topics: &[Json], space_order: &HashMap<St
 	let mut group_at: HashMap<&str, usize> = HashMap::new();
 	for id in picked {
 		let Some(topic) = topic_of.get(id.as_str()) else { continue };
-		let topic_id = topic["id"].as_str().unwrap_or("");
+		let topic_id = topic["id"].str_or_empty();
 		match group_at.get(topic_id) {
 			None => {
 				group_at.insert(topic_id, groups.len());
@@ -136,7 +135,7 @@ pub fn study_topics(picked: &[String], topics: &[Json], space_order: &HashMap<St
 pub fn topic_study(topic_ids: &[String], topics: &[Json], facts: &[Json], space_order: &HashMap<String, usize>, studied_today: Option<&HashSet<String>>) -> Vec<Json> {
 	let mut by_id: HashMap<&str, &Json> = HashMap::new();
 	for t in topics {
-		by_id.insert(t["id"].as_str().unwrap_or(""), t);
+		by_id.insert(t["id"].str_or_empty(), t);
 	}
 	let mut seen: HashSet<&str> = HashSet::new();
 	let mut found = Vec::new();
@@ -185,7 +184,7 @@ pub fn topic_study(topic_ids: &[String], topics: &[Json], facts: &[Json], space_
 
 /// A Study start's title and first message on space topics.
 pub fn study_title(topics: &[Json]) -> String {
-	let names: Vec<&str> = topics.iter().map(|t| t["name"].as_str().unwrap_or("")).collect();
+	let names: Vec<&str> = topics.iter().map(|t| t["name"].str_or_empty()).collect();
 	format!("Study: {}", names.join(", "))
 }
 
@@ -193,7 +192,7 @@ pub fn study_title(topics: &[Json]) -> String {
 fn material_and_standing(t: &Json) -> String {
 	let material = t["material"].as_str().filter(|m| !m.is_empty()).map_or_else(String::new, |m| format!("{m}, "));
 	let latest = if t["latestWrong"].truthy() { " (latest wrong)" } else { "" };
-	format!("{material}{}{latest}", t["status"].as_str().unwrap_or(""))
+	format!("{material}{}{latest}", t["status"].str_or_empty())
 }
 
 /// The study context's model-facing text: names, standings and fact ids only (the graph context
@@ -203,7 +202,7 @@ pub fn study_context_text(topics: &[Json]) -> String {
 	for (i, t) in topics.iter().enumerate() {
 		let ids = fact_ids(t);
 		let facts = if ids.is_empty() { ", no facts in the space graph yet".to_owned() } else { format!(", facts {}", ids.join(", ")) };
-		lines.push(format!("{}. {} \u{2014} node {}, {}{facts}", i + 1, t["name"].as_str().unwrap_or(""), t["id"].as_str().unwrap_or(""), material_and_standing(t)));
+		lines.push(format!("{}. {} \u{2014} node {}, {}{facts}", i + 1, t["name"].str_or_empty(), t["id"].str_or_empty(), material_and_standing(t)));
 	}
 	lines.join("\n")
 }
@@ -226,19 +225,19 @@ const RECHECK_DAYS: i64 = 7;
 /// `{ id, name, rate }`); `topics` are the progress topics (`id`, `status`, `answers` oldest
 /// first).
 pub fn deadline_study_topic_ids(today: &str, deadline: &Json, topics: &[Json], reviewed: &HashSet<String>) -> Vec<String> {
-	let deadline_topics = items(&deadline["topics"]);
-	let id_of = |t: &Json| t["id"].as_str().unwrap_or("").to_owned();
-	let plan = plan_days(today, deadline["date"].as_str().unwrap_or(""), deadline_topics);
+	let deadline_topics = deadline["topics"].items();
+	let id_of = |t: &Json| t["id"].str_or_empty().to_owned();
+	let plan = plan_days(today, deadline["date"].str_or_empty(), deadline_topics);
 	// Today is empty once every topic left was finished today: Study takes them all again.
-	let Some(day) = plan.first().filter(|d| !items(&d["topics"]).is_empty()) else { return deadline_topics.iter().map(id_of).collect() };
+	let Some(day) = plan.first().filter(|d| !d["topics"].items().is_empty()) else { return deadline_topics.iter().map(id_of).collect() };
 	let in_deadline: HashSet<&str> = deadline_topics.iter().filter_map(|t| t["id"].as_str()).collect();
 	let due_again = |t: &&Json| {
-		let newest = items(&t["answers"]).last().and_then(|a| a["answeredAt"].as_str()).filter(|at| !at.is_empty());
+		let newest = t["answers"].items().last().and_then(|a| a["answeredAt"].as_str()).filter(|at| !at.is_empty());
 		// An unreadable time is NaN days old in JS, which never reaches the limit.
 		let old_enough = newest.and_then(time::parse_date).is_some_and(|ms| days_between(&local_day(ms), today) >= RECHECK_DAYS);
 		t["id"].as_str().is_some_and(|id| in_deadline.contains(id) && !reviewed.contains(id)) && t["status"].as_str() == Some("strong") && old_enough
 	};
-	items(&day["topics"]).iter().chain(topics.iter().filter(due_again)).map(id_of).collect()
+	day["topics"].items().iter().chain(topics.iter().filter(due_again)).map(id_of).collect()
 }
 
 #[cfg(test)]

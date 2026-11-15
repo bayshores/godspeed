@@ -138,7 +138,7 @@ pub fn parse_user_steer_input(input: &Json) -> Result<UserSteerInput, ChatInputE
 /// The native appends a dismissal makes: the call must be a waiting question call, or (for a
 /// problem) the active problem.
 pub fn dismiss_appends(record: &Json, input: &DismissInput) -> Result<Vec<Json>, ChatInputError> {
-	let messages = messages_of(record);
+	let messages = record["messages"].items();
 	match input {
 		DismissInput::DismissProblem { problem_call_id } => match active_problem_of(messages) {
 			Some(active) if active.tool_call_id == *problem_call_id => Ok(vec![new_problem_dismissed_marker(problem_call_id)]),
@@ -246,18 +246,13 @@ pub fn parse_attachments(raw: Option<&Json>) -> Result<Option<Vec<ChatAttachment
 	Ok(Some(out))
 }
 
-/// A chat record's messages (none when it has no list).
-pub fn messages_of(record: &Json) -> &[Json] {
-	record["messages"].as_arr().map_or(&[], Vec::as_slice)
-}
-
 /// The native appends an input event makes to the record. `attachments` are the input's files as
 /// the server stored them (pictures resized, PDFs saved); they join the learner's message.
 ///
 /// A question's answer must target a waiting question call, and anything else is refused instead
 /// of silently interrupting a question or answering one twice.
 pub fn input_appends(record: &Json, input: &ChatInput, attachments: &[Json]) -> Result<Vec<Json>, ChatInputError> {
-	let messages = messages_of(record);
+	let messages = record["messages"].items();
 	match input {
 		ChatInput::Text { text, about, .. } => {
 			if let Some(About::Opener(opener)) = about {

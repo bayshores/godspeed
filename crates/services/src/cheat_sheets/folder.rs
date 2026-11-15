@@ -16,7 +16,7 @@ use gs_json::{Json, js_number, json};
 
 use super::cheat_sheet_pdf::take_sheet_pdf;
 use super::context::{Context, Saved, sheet_now};
-use super::Outcome;
+use crate::outcome::Outcome;
 use crate::App;
 use crate::app::agent_folder::cheat_sheets_dir;
 use crate::app::disk::make_dir;

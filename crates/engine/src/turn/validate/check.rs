@@ -65,7 +65,7 @@ fn check_type(schema_type: &Json, value: &Json, path: &str, errors: &mut Errors)
 			(names.iter().any(|n| type_matches(n, value)), format!("must be either {}", names.join(" or ")))
 		}
 		other => {
-			let name = other.as_str().unwrap_or_default();
+			let name = other.str_or_empty();
 			(type_matches(name, value), format!("must be {name}"))
 		}
 	};

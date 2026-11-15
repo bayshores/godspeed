@@ -58,7 +58,7 @@ pub fn tool_result_message(call: &Json, result: &Json, is_error: bool, duration_
 }
 
 pub fn role(message: &Json) -> &str {
-	message["role"].as_str().unwrap_or("")
+	message["role"].str_or_empty()
 }
 
 /// The assistant message's tool-call blocks, in order.

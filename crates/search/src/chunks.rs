@@ -4,7 +4,7 @@
 
 use std::sync::LazyLock;
 
-use gs_base::re::Re;
+use gs_base::re::{Re, collapse_spaces};
 use gs_base::{num, text};
 use gs_core::contracts::space::{extension_of, is_transcript_file};
 use gs_json::js_number as finite_number;
@@ -281,9 +281,8 @@ const SNIPPET_CHARS: i64 = 200;
 /// About two lines of a passage around the first query word it holds (its start when none),
 /// whitespace collapsed.
 pub fn snippet_of(text: &str, query: &str) -> String {
-	static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
 	static NON_WORD: LazyLock<Re> = LazyLock::new(|| Re::new(r"\W+", ""));
-	let collapsed = SPACES.replace(text, " ");
+	let collapsed = collapse_spaces(text);
 	let flat = text::trim(&collapsed);
 	let len = text::len16(flat) as i64;
 	if len <= SNIPPET_CHARS {

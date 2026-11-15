@@ -28,7 +28,7 @@ pub fn topic_links(chains: &[Json], topic_of_fact: &HashMap<String, String>) -> 
 	for chain in chains {
 		let Some(to) = chain["conclusion"].as_str().and_then(|c| topic_of_fact.get(c)) else { continue };
 		let mut froms: Vec<&String> = Vec::new();
-		for premise in super::items(&chain["premises"]) {
+		for premise in chain["premises"].items() {
 			let Some(from) = premise.as_str().and_then(|p| topic_of_fact.get(p)) else { continue };
 			if from != to && !froms.contains(&from) {
 				froms.push(from);

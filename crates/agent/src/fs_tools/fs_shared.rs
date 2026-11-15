@@ -45,6 +45,18 @@ pub fn format_size(bytes: u64) -> String {
 	if bytes >= 1024 { format!("{}KB", num::to_fixed(bytes as f64 / 1024.0, 1)) } else { format!("{bytes}B") }
 }
 
+/// The output ceiling as the tools print it, "50.0KB".
+pub fn output_limit() -> String {
+	format_size(MAX_OUTPUT_BYTES as u64)
+}
+
+/// Refuses a path that is not a directory, in the words ls and find share.
+pub fn existing_dir(dir: &Path) -> Result<(), String> {
+	let shown = dir.display();
+	let meta = std::fs::metadata(dir).map_err(|_| format!("Path not found: {shown}"))?;
+	if meta.is_dir() { Ok(()) } else { Err(format!("Not a directory: {shown}")) }
+}
+
 /// `Buffer.byteLength(s, "utf-8")`.
 pub fn byte_len(s: &str) -> usize {
 	text::utf8_bytes(s).len()

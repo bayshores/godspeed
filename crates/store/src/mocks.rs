@@ -8,7 +8,7 @@ use gs_base::fsx;
 use gs_base::locks::{LockKey, Locks};
 use gs_core::contracts::space::is_space_id;
 use gs_core::mocks::mock::{MOCK_FORMAT_VERSION, ParsedMock, is_mock_id, parse_mock};
-use gs_json::{Json, Obj, stringify_pretty};
+use gs_json::{Json, Obj};
 
 /// Built once by `Stores::new`.
 pub struct MockStore {
@@ -53,7 +53,7 @@ impl MockStore {
 	/// after it. Every write is a temp file and a rename, so no half-written mock is read; a broken
 	/// file is left for a locked read to set aside.
 	pub fn list_mocks_unlocked(&self, space_id: &str) -> Result<Vec<Json>, String> {
-		self.mocks_in(space_id, |file| fsx::read_text(file).ok().and_then(|text| gs_json::parse(&text).ok()))
+		self.mocks_in(space_id, fsx::read_json)
 	}
 
 	fn mocks_in(&self, space_id: &str, read: impl Fn(&Path) -> Option<Json>) -> Result<Vec<Json>, String> {
@@ -75,14 +75,14 @@ impl MockStore {
 	}
 
 	pub fn write_mock(&self, space_id: &str, mock: &Json) -> Result<(), String> {
-		let file = self.mock_file(space_id, mock["id"].as_str().unwrap_or(""))?;
+		let file = self.mock_file(space_id, mock["id"].str_or_empty())?;
 		let mut record = Obj::new();
 		record.insert("version", MOCK_FORMAT_VERSION);
 		for (key, value) in mock.as_obj().into_iter().flatten() {
 			record.insert(key.as_str(), value.clone());
 		}
 		let _guard = self.locks.lock(LockKey::Space(space_id));
-		fsx::write_text_atomic(&file, &stringify_pretty(&Json::Obj(record), "\t")).map_err(|err| fsx::node_error_message(&err, "open", &file))
+		fsx::write_json_atomic(&file, &Json::Obj(record))
 	}
 
 	pub fn remove_mock(&self, space_id: &str, mock_id: &str) -> Result<(), String> {

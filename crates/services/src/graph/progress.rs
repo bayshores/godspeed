@@ -49,7 +49,7 @@ fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 		return Some(hit.clone());
 	}
 	let record = app.stores.chats.get_chat(chat_id)?;
-	let messages = items(&record["messages"]);
+	let messages = record["messages"].items();
 	let session = (record["deadlineId"].truthy() && record["tree"].truthy()).then(|| deadline_session(&record["tree"], messages));
 	let readout = Arc::new(Readout {
 		version,
@@ -80,10 +80,6 @@ fn deadline_session(tree: &Json, messages: &[Json]) -> Obj {
 		out.insert(key, value);
 	}
 	out
-}
-
-fn items(v: &Json) -> &[Json] {
-	v.as_arr().map_or(&[], Vec::as_slice)
 }
 
 /// The lessons of one space (`spaceId` equal to `space_id`).
@@ -134,7 +130,7 @@ pub fn hinted_problems(app: &App, space_id: &str) -> Vec<Json> {
 /// topics its facts are in (the cheat sheet's Watch out block).
 pub fn space_mistakes(app: &App, space_id: &str, progress: &Json) -> Result<Vec<Json>, String> {
 	let index = facts_by_message(&get_graph(graph_store_for(app, Some(space_id)).as_ref())?.nodes);
-	let topic_of: HashMap<&str, &Json> = items(&progress["facts"]).iter().map(|f| (f["id"].str_or_empty(), &f["topicId"])).collect();
+	let topic_of: HashMap<&str, &Json> = progress["facts"].items().iter().map(|f| (f["id"].str_or_empty(), &f["topicId"])).collect();
 	let topics_of = |fact_ids: &[String]| -> Vec<Json> {
 		let mut seen = HashSet::new();
 		fact_ids.iter().filter_map(|id| topic_of.get(id.as_str()).and_then(|t| t.as_str())).filter(|t| !t.is_empty() && seen.insert(*t)).map(Json::from).collect()
@@ -146,7 +142,7 @@ pub fn space_mistakes(app: &App, space_id: &str, progress: &Json) -> Result<Vec<
 			out.push(json!({ "text": a["question"], "kind": "wrong", "at": a["answeredAt"], "topicIds": topics_of(&facts_for_answer(a, &index)) }));
 		}
 		for o in readout.outcomes.iter().filter(|o| o["outcome"].as_str() == Some("solvedWithHints")) {
-			let targets: Vec<String> = items(&o["targets"]).iter().map(|t| t.str_or_empty().to_owned()).collect();
+			let targets: Vec<String> = o["targets"].items().iter().map(|t| t.str_or_empty().to_owned()).collect();
 			out.push(json!({ "text": o["statement"], "kind": "hint", "at": o["at"], "topicIds": topics_of(&targets) }));
 		}
 	}
@@ -157,7 +153,7 @@ pub fn space_mistakes(app: &App, space_id: &str, progress: &Json) -> Result<Vec<
 fn progress_files(record: Option<&Json>) -> Vec<Json> {
 	let Some(record) = record else { return Vec::new() };
 	let space_id = record["id"].str_or_empty();
-	items(&record["files"])
+	record["files"].items()
 		.iter()
 		.map(|f| {
 			let source_id = f["sourceId"].as_str().map_or_else(|| source_id_for(space_id, f["id"].str_or_empty()), str::to_owned);
@@ -169,16 +165,14 @@ fn progress_files(record: Option<&Json>) -> Vec<Json> {
 /// Each fact's place in the space's order.
 pub fn space_order_for(app: &App, space_id: &str, progress: &Json) -> HashMap<String, usize> {
 	let record = app.stores.spaces.get_space(space_id);
-	fact_space_order(items(&progress["facts"]), &progress_files(record.as_ref()))
+	fact_space_order(progress["facts"].items(), &progress_files(record.as_ref()))
 }
 
 /// Copies the keys the summary has (an absent key stays absent, as `undefined` does in JSON).
 fn picked(from: &Json, keys: &[&str]) -> Obj {
 	let mut out = Obj::new();
 	for key in keys {
-		if let Some(v) = from.get(key) {
-			out.insert(*key, v.clone());
-		}
+		out.insert_present(key, from.get(key));
 	}
 	out
 }
@@ -217,9 +211,7 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 			let mut session = Obj::new();
 			session.insert("chatId", c["id"].clone());
 			session.insert("deadlineId", c["deadlineId"].clone());
-			if let Some(created) = c.get("createdAt") {
-				session.insert("createdAt", created.clone());
-			}
+			session.insert_present("createdAt", c.get("createdAt"));
 			session.extend(stands.clone());
 			deadline_sessions.push(Json::Obj(session));
 		}
@@ -247,8 +239,8 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 pub fn study_topics_for(app: &App, scope: Option<&str>, fact_ids: &[String], free_topic: &str) -> Result<Vec<Json>, String> {
 	let progress = if fact_ids.is_empty() { None } else { progress_for(app, scope, None)? };
 	let record = scope.and_then(|id| app.stores.spaces.get_space(id));
-	let space_order = progress.as_ref().map_or_else(HashMap::new, |p| fact_space_order(items(&p["facts"]), &progress_files(record.as_ref())));
-	let topics = progress.as_ref().map_or(&[][..], |p| items(&p["topics"]));
+	let space_order = progress.as_ref().map_or_else(HashMap::new, |p| fact_space_order(p["facts"].items(), &progress_files(record.as_ref())));
+	let topics = progress.as_ref().map_or(&[][..], |p| p["topics"].items());
 	Ok(study_topics(fact_ids, topics, &space_order, free_topic))
 }
 
@@ -260,13 +252,13 @@ pub struct TopicStudy {
 
 fn topic_study_in(app: &App, scope: Option<&str>, progress: &Json, topic_ids: &[String], studied_today: Option<&HashSet<String>>) -> TopicStudy {
 	let record = scope.and_then(|id| app.stores.spaces.get_space(id));
-	let facts = items(&progress["facts"]);
+	let facts = progress["facts"].items();
 	let space_order = fact_space_order(facts, &progress_files(record.as_ref()));
-	let topics = topic_study(topic_ids, items(&progress["topics"]), facts, &space_order, studied_today);
+	let topics = topic_study(topic_ids, progress["topics"].items(), facts, &space_order, studied_today);
 	let fact_by_id: HashMap<&str, &Json> = facts.iter().map(|f| (f["id"].str_or_empty(), f)).collect();
 	let picks = topics
 		.iter()
-		.flat_map(|t| items(&t["factIds"]).iter())
+		.flat_map(|t| t["factIds"].items().iter())
 		.filter_map(|id| fact_by_id.get(id.str_or_empty()).map(|f| json!({ "id": id, "name": f["name"], "statement": f["statement"] })))
 		.collect();
 	TopicStudy { topics, picks }
@@ -291,12 +283,12 @@ pub struct DeadlineStudy {
 /// None when the space has no such deadline.
 pub fn deadline_study_for(app: &App, space_id: &str, deadline_id: &str) -> Result<Option<DeadlineStudy>, String> {
 	let Some(progress) = progress_for(app, space_id, None)? else { return Ok(None) };
-	let Some(deadline) = items(&progress["deadlines"]).iter().find(|d| d["id"].as_str() == Some(deadline_id)) else { return Ok(None) };
+	let Some(deadline) = progress["deadlines"].items().iter().find(|d| d["id"].as_str() == Some(deadline_id)) else { return Ok(None) };
 	let today = progress["today"].str_or_empty();
 	let studied = studied_on(app, space_id, today);
 	let reviews = space_reviews(app, space_id);
 	let reviewed = reviewable_topics(&reviews.answers, &reviews.items);
-	let topic_ids = deadline_study_topic_ids(today, deadline, items(&progress["topics"]), &reviewed);
+	let topic_ids = deadline_study_topic_ids(today, deadline, progress["topics"].items(), &reviewed);
 	let study = topic_study_in(app, Some(space_id), &progress, &topic_ids, Some(&studied));
 	Ok(Some(DeadlineStudy { name: deadline["name"].str_or_empty().to_owned(), topics: study.topics, picks: study.picks }))
 }
@@ -310,7 +302,7 @@ fn studied_on(app: &App, space_id: &str, day: &str) -> HashSet<String> {
 			continue;
 		}
 		let record = app.stores.chats.get_chat(c["id"].str_or_empty());
-		for node in record.iter().flat_map(|r| items(&r["tree"]["nodes"])) {
+		for node in record.iter().flat_map(|r| r["tree"]["nodes"].items()) {
 			ids.insert(node["id"].str_or_empty().to_owned());
 		}
 	}
@@ -353,7 +345,7 @@ mod tests {
 
 	fn midterm(app: &App, space_id: &str, deadline_id: &str) -> Json {
 		let progress = progress_for(app, space_id, None).unwrap().unwrap();
-		items(&progress["deadlines"]).iter().find(|d| d["id"].as_str() == Some(deadline_id)).unwrap().clone()
+		progress["deadlines"].items().iter().find(|d| d["id"].as_str() == Some(deadline_id)).unwrap().clone()
 	}
 
 	#[test]
@@ -497,7 +489,7 @@ mod tests {
 		study_session(&app, &space_id, &deadline_id, &["tpc_cv", "tpc_gd"], &[hinted("1", "tpc_cv", "n_cv"), hinted("2", "tpc_gd", "n_gd")].concat());
 
 		let progress = progress_for(&app, space_id.as_str(), None).unwrap().unwrap();
-		let status = |id: &str| items(&progress["topics"]).iter().find(|t| t["id"].as_str() == Some(id)).unwrap()["status"].clone();
+		let status = |id: &str| progress["topics"].items().iter().find(|t| t["id"].as_str() == Some(id)).unwrap()["status"].clone();
 		assert_eq!((status("tpc_cv"), status("tpc_gd")), (json!("shaky"), json!("shaky")), "solved with hints: shaky, not untested");
 		assert_eq!(planned(&app, &space_id, &deadline_id), ["tpc_ms", "tpc_of"], "Study again moves on to the next untested topics");
 	}
@@ -514,15 +506,15 @@ mod tests {
 		study_session(&app, &space_id, &deadline_id, &all[4..], &hinted_at("y", "tpc_rg", "n_rg", clock::now_ms() - 86_400_000));
 		let today_plan = |app: &App| {
 			let progress = progress_for(app, space_id.as_str(), None).unwrap().unwrap();
-			let deadline = items(&progress["deadlines"])[0].clone();
-			let plan = gs_core::study::deadline_plan::plan_days(progress["today"].str_or_empty(), deadline["date"].str_or_empty(), items(&deadline["topics"]));
-			let flagged: Vec<String> = items(&deadline["topics"]).iter().filter(|t| t.get("finishedToday").is_some()).map(|t| t["id"].str_or_empty().to_owned()).collect();
+			let deadline = progress["deadlines"].items()[0].clone();
+			let plan = gs_core::study::deadline_plan::plan_days(progress["today"].str_or_empty(), deadline["date"].str_or_empty(), deadline["topics"].items());
+			let flagged: Vec<String> = deadline["topics"].items().iter().filter(|t| t.get("finishedToday").is_some()).map(|t| t["id"].str_or_empty().to_owned()).collect();
 			(plan, flagged, deadline)
 		};
 		let (plan, flagged, _) = today_plan(&app);
 		assert_eq!(flagged.len(), 4, "absent on the topic finished yesterday: {flagged:?}");
 		assert_eq!(plan.len(), 1, "due tomorrow: today is the only day");
-		assert_eq!(items(&plan[0]["topics"]).iter().map(|t| t["id"].str_or_empty()).collect::<Vec<_>>(), ["tpc_rg"]);
+		assert_eq!(plan[0]["topics"].items().iter().map(|t| t["id"].str_or_empty()).collect::<Vec<_>>(), ["tpc_rg"]);
 
 		study_session(&app, &space_id, &deadline_id, &all[4..], &finish(&all[4..]));
 		let (plan, flagged, deadline) = today_plan(&app);
@@ -530,7 +522,7 @@ mod tests {
 		assert_eq!(deadline["counts"]["shaky"], json!(5), "the topics still count");
 		assert!(deadline["ready"].as_f64().is_some_and(|r| (r - 0.6).abs() < 1e-9), "readiness keeps them: {:?}", deadline["ready"]);
 		assert_eq!(plan.len(), 1);
-		assert!(items(&plan[0]["topics"]).is_empty(), "nothing left for today");
+		assert!(plan[0]["topics"].items().is_empty(), "nothing left for today");
 		let mut again = planned(&app, &space_id, &deadline_id);
 		again.sort();
 		assert_eq!(again, all, "Study from the deadline page still takes its topics");

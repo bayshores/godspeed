@@ -10,7 +10,7 @@ use gs_engine::turn::tool::Tool;
 use gs_engine::turn::tool_execute::{Image, ImageFileResult};
 use gs_json::Json;
 
-use super::fs_shared::{MAX_OUTPUT_BYTES, format_size, is_binary_file, read_error, resolve_source_path, off_thread};
+use super::fs_shared::{MAX_OUTPUT_BYTES, format_size, is_binary_file, off_thread, output_limit, read_error, resolve_source_path};
 use crate::tools::fn_tool::FnTool;
 use gs_core::session::schema::{self, integer, string_min};
 
@@ -40,7 +40,7 @@ pub fn read_tool() -> Arc<dyn Tool> {
 	);
 	FnTool::server(
 		"read",
-		"Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50.0KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.".to_owned(),
+		format!("Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to {MAX_LINES} lines or {} (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.", output_limit()),
 		parameters,
 		|args, _ctx| async move {
 			let file = resolve_source_path(args["path"].as_str());
@@ -104,7 +104,7 @@ fn read_text_slice(content: &str, offset: Option<i64>, limit: Option<i64>) -> Re
 		selected = &selected[..keep];
 		truncated_by = Some("bytes");
 	}
-	let limit_text = format_size(MAX_OUTPUT_BYTES as u64);
+	let limit_text = output_limit();
 	if selected.is_empty() {
 		// One line is over the cap by itself: show its head (cut on a UTF-8 boundary) and point
 		// past it, so the next read never repeats.

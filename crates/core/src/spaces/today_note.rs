@@ -8,9 +8,8 @@
 //! The time zone is the computer's (`TZ`), which is the only one the app ever passes.
 
 use std::collections::HashMap;
-use std::sync::LazyLock;
 
-use gs_base::re::Re;
+use gs_base::re::collapse_spaces;
 use gs_base::text::cmp16;
 use gs_base::{locale, text, time};
 use gs_json::Json;
@@ -130,7 +129,7 @@ pub fn clock_label(time: &str) -> String {
 
 /// "Fri Oct 30 11:59 PM", or just "Fri Oct 30" when the deadline has no time.
 pub fn when_label(deadline: &Json) -> String {
-	let day = day_label(deadline["date"].as_str().unwrap_or(""));
+	let day = day_label(deadline["date"].str_or_empty());
 	match deadline["time"].as_str().filter(|t| !t.is_empty()) {
 		Some(time) => format!("{day} {}", clock_label(time)),
 		None => day,
@@ -186,7 +185,7 @@ pub fn today_note_text(now_ms: i64, space: Option<&Json>) -> String {
 		format!("{date}T{time}:00")
 	};
 	let (overdue, upcoming): (Vec<&Json>, Vec<&Json>) = open.into_iter().partition(|d| cmp16(&due_stamp(d), &now_stamp).is_lt());
-	let names: HashMap<&str, &str> = list("files").iter().map(|f| (f["id"].as_str().unwrap_or(""), f["name"].as_str().unwrap_or(""))).collect();
+	let names: HashMap<&str, &str> = list("files").iter().map(|f| (f["id"].str_or_empty(), f["name"].str_or_empty())).collect();
 
 	let mut lines = vec![head, String::new(), "Coming up in this space (not marked done):".to_owned()];
 	let mut push = |line: String, d: &Json| {
@@ -195,13 +194,13 @@ pub fn today_note_text(now_ms: i64, space: Option<&Json>) -> String {
 			lines.push(covers);
 		}
 	};
-	let field = |d: &Json, key: &str| d[key].as_str().unwrap_or("").to_owned();
+	let field = |d: &Json, key: &str| d[key].str_or_empty().to_owned();
 	for d in overdue {
 		let due = if is_sitting(d) { "" } else { "due " };
 		push(format!("- Overdue: {} ({}), was {due}{}", field(d, "name"), field(d, "kind"), when_label(d)), d);
 	}
 	for d in upcoming {
-		let rel = relative_day(days_between(&clock.day, d["date"].as_str().unwrap_or("")));
+		let rel = relative_day(days_between(&clock.day, d["date"].str_or_empty()));
 		let due = if is_sitting(d) { "" } else { "due " };
 		push(format!("- {} ({}), {due}{}, {rel}.", field(d, "name"), field(d, "kind"), when_label(d)), d);
 	}
@@ -218,23 +217,22 @@ pub fn today_note_text(now_ms: i64, space: Option<&Json>) -> String {
 
 /// The practice problems the learner needed hints on lately, newest first; None when none.
 fn hinted_part(hinted: &[Json], now_ms: i64) -> Option<String> {
-	static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
 	let mut recent: Vec<&Json> =
 		hinted.iter().filter(|h| h["at"].as_str().and_then(time::parse_date).is_some_and(|at| now_ms - at <= HINTED_DAYS * 86_400_000)).collect();
-	recent.sort_by(|a, b| locale::compare(a["at"].as_str().unwrap_or(""), b["at"].as_str().unwrap_or("")).reverse());
+	recent.sort_by(|a, b| locale::compare(a["at"].str_or_empty(), b["at"].str_or_empty()).reverse());
 	recent.truncate(MAX_HINTED);
 	if recent.is_empty() {
 		return None;
 	}
 	let short = |statement: &str| {
-		let collapsed = SPACES.replace(statement, " ");
+		let collapsed = collapse_spaces(statement);
 		let line = text::trim(&collapsed);
 		if text::len16(line) <= HINTED_CHARS { line.to_owned() } else { format!("{}…", text::slice16(line, 0, Some(HINTED_CHARS as i64 - 1))) }
 	};
 	let mut lines = vec![format!("Practice problems the learner solved only with hints (last {HINTED_DAYS} days), worth coming back to:")];
 	lines.extend(recent.iter().map(|h| {
 		let day = h["at"].as_str().and_then(time::parse_date).map_or_else(String::new, |at| day_label(&wall_clock(at).day));
-		format!("- \"{}\" ({day})", short(h["statement"].as_str().unwrap_or("")))
+		format!("- \"{}\" ({day})", short(h["statement"].str_or_empty()))
 	}));
 	Some(lines.join("\n"))
 }
@@ -248,7 +246,7 @@ fn new_files_part(files: &[Json], now_ms: i64) -> Option<String> {
 	let list = |names: &[&str]| {
 		if names.len() <= MAX_NEW_FILES { names.join(", ") } else { format!("{}, and {} more", names[..MAX_NEW_FILES].join(", "), names.len() - MAX_NEW_FILES) }
 	};
-	let names_of = |info: bool| -> Vec<&str> { fresh.iter().filter(|f| (f["kind"].as_str() == Some("info")) == info).map(|f| f["name"].as_str().unwrap_or("")).collect() };
+	let names_of = |info: bool| -> Vec<&str> { fresh.iter().filter(|f| (f["kind"].as_str() == Some("info")) == info).map(|f| f["name"].str_or_empty()).collect() };
 	let (study, info) = (names_of(false), names_of(true));
 	let mut lines = Vec::new();
 	if !study.is_empty() {
@@ -273,7 +271,7 @@ pub fn today_note_to_append(messages: &[Json], text: &str, day: &str) -> Option<
 		let last = &messages[at];
 		let kept = active_compaction_of(messages).and_then(|active| kept_index_for(messages, active));
 		let in_view = kept.is_none_or(|k| k == 0 || at >= k);
-		if in_view && last["details"]["day"].as_str() == Some(day) && deadline_part_of(last["content"].as_str().unwrap_or("")) == deadline_part_of(text) {
+		if in_view && last["details"]["day"].as_str() == Some(day) && deadline_part_of(last["content"].str_or_empty()) == deadline_part_of(text) {
 			return None;
 		}
 	}

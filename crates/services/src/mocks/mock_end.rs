@@ -42,13 +42,13 @@ pub fn deadline_of(app: &App, space_id: &str, mock: &Json) -> Option<Json> {
 /// Every fact statement of the space's graph, by id.
 pub fn fact_statements(app: &App, space_id: &str) -> Result<HashMap<String, String>, String> {
 	let Some(progress) = progress_for(app, space_id, None)? else { return Ok(HashMap::new()) };
-	Ok(progress["facts"].as_arr().into_iter().flatten().filter_map(|f| Some((f["id"].as_str()?.to_owned(), f["statement"].str_or_empty().to_owned()))).collect())
+	Ok(progress["facts"].items().iter().filter_map(|f| Some((f["id"].as_str()?.to_owned(), f["statement"].str_or_empty().to_owned()))).collect())
 }
 
 /// Asks the teacher for an ended mock's grades. With nothing answered there is nothing to ask.
 pub fn ask_grades(app: &Arc<App>, space_id: &str, mock: &Json) -> Result<(), String> {
 	let Some(deadline) = deadline_of(app, space_id, mock) else { return Ok(()) };
-	let answered: Vec<Json> = mock["questions"].as_arr().into_iter().flatten().filter(|q| is_answered(&mock["answers"][q["id"].str_or_empty()])).cloned().collect();
+	let answered: Vec<Json> = mock["questions"].items().iter().filter(|q| is_answered(&mock["answers"][q["id"].str_or_empty()])).cloned().collect();
 	if answered.is_empty() {
 		app.stores.mocks.write_mock(space_id, &with_grades_field(mock, Json::Obj(Obj::new())))?;
 		changed(app, space_id);

@@ -43,7 +43,7 @@ pub fn ask_user_question_tool() -> FnTool {
 	})
 	.sequential()
 	.prepared(prepare_question_arguments)
-	// The schema check rejects such a call before it runs; called bare, the TypeScript throws.
+	// The schema check rejects such a call before it runs; called bare, it fails with this message.
 	.with_run(|run| {
 		Arc::new(move |args, ctx| {
 			let run = run.clone();
@@ -89,7 +89,8 @@ fn quiz_description(name: &str, with_node: bool) -> String {
 	);
 	if with_node {
 		text.push_str("Every call declares `type` \u{2014} the question's role in the teaching cycle; the field's own description says when each kind fires. ");
-		text.push_str("Set `nodeId` (required) to the plan node this question is about \u{2014} validated at call time against the session's plan map. For off-map checks use ask_user_question. ");
+		text.push_str(NODE_ID_RULE);
+		text.push_str("For off-map checks use ask_user_question. ");
 	}
 	text.push_str(&format!("ONE question per turn: call a single {name}, then end your turn \u{2014} his answer determines the next."));
 	// The teach example leads with the required pair models drop most; the probe one carries none.
@@ -110,13 +111,11 @@ fn quiz_description(name: &str, with_node: bool) -> String {
 	text
 }
 
+const NODE_ID_RULE: &str = "Set `nodeId` (required) to the plan node this question is about \u{2014} validated at call time against the session's plan map. ";
+
 /// The explain mechanics (free-recall quizzing): the commitment rule is the grading contract.
 fn explain_description(name: &str, with_node: bool) -> String {
-	let node = if with_node {
-		"Set `nodeId` (required) to the plan node this question is about \u{2014} validated at call time against the session's plan map. "
-	} else {
-		""
-	};
+	let node = if with_node { NODE_ID_RULE } else { "" };
 	format!(
 		"Ask the learner to EXPLAIN something in his own words \u{2014} a graded check with NO options: he types a free-text \
 		answer. Unlike ask_user_question (no right answer), {name} always has one. THE COMMITMENT RULE: \
@@ -147,10 +146,18 @@ pub fn write_code_tool() -> FnTool {
 	FnTool::immediate("write_code", description, write_code_input_schema(), |args| verdict("write_code", &write_code_input_problems(&args))).sequential()
 }
 
-/// The plan's node-id check, read from the live chat record so mid-turn rewrites count.
-pub fn node_id_problem(ctx: &PlanContext, node_id: &str) -> Option<String> {
-	let record = ctx.chat_store.get_chat(&ctx.chat_id);
-	let known: Vec<String> = record.iter().flat_map(|r| r["tree"]["nodes"].as_arr().into_iter().flatten()).filter_map(|n| n["id"].as_str().map(str::to_owned)).collect();
+/// The plan's node ids in a chat record.
+pub fn node_ids_in(record: Option<&Json>) -> Vec<String> {
+	record.iter().flat_map(|r| r["tree"]["nodes"].items().iter()).filter_map(|n| n["id"].as_str().map(str::to_owned)).collect()
+}
+
+/// The plan's node ids, read from the live chat record so mid-turn rewrites count.
+pub fn plan_node_ids(ctx: &PlanContext) -> Vec<String> {
+	node_ids_in(ctx.chat_store.get_chat(&ctx.chat_id).as_ref())
+}
+
+/// The refusal for a nodeId that is in none of the plan's `known` ids.
+pub fn node_id_problem(known: &[String], node_id: &str) -> Option<String> {
 	if known.iter().any(|id| id == node_id) {
 		return None;
 	}
@@ -183,36 +190,33 @@ fn prepare_study_quiz(args: Json) -> Result<Json, String> {
 /// A Study quiz call as its tool takes it: the arguments after its preparation (and validation,
 /// when they pass it), and whether they pass every check. The lesson-parts hook reads a plot's
 /// guess this way.
-pub fn study_quiz_call(ctx: &PlanContext, sent: &Json) -> (Json, bool) {
+pub fn study_quiz_call(known: &[String], sent: &Json) -> (Json, bool) {
 	let Ok(prepared) = prepare_study_quiz(sent.clone()) else { return (sent.clone(), false) };
 	match validate_tool_arguments("quiz", &study_quiz_input_object(), &prepared) {
 		Ok(args) => {
-			let passes = node_quiz_problems(ctx, &args).is_empty();
+			let passes = with_node_check(quiz_input_problems(&args), known, &args).is_empty();
 			(args, passes)
 		}
 		Err(_) => (prepared, false),
 	}
 }
 
-/// The quiz's authoring rules and its plan-node check.
-fn node_quiz_problems(ctx: &PlanContext, args: &Json) -> Vec<String> {
-	let mut problems = quiz_input_problems(args);
-	problems.extend(node_id_problem(ctx, args["nodeId"].as_str().unwrap_or_default()));
+/// A question's authoring problems with its plan-node check added.
+fn with_node_check(mut problems: Vec<String>, known: &[String], args: &Json) -> Vec<String> {
+	problems.extend(node_id_problem(known, args["nodeId"].str_or_empty()));
 	problems
 }
 
 fn node_quiz_tool(ctx: &PlanContext, schema: Json) -> FnTool {
 	let ctx = ctx.clone();
-	FnTool::immediate("quiz", quiz_description("quiz", true), schema, move |args| verdict("quiz", &node_quiz_problems(&ctx, &args))).sequential().prepared(prepare_question_arguments)
+	FnTool::immediate("quiz", quiz_description("quiz", true), schema, move |args| verdict("quiz", &with_node_check(quiz_input_problems(&args), &plan_node_ids(&ctx), &args))).sequential().prepared(prepare_question_arguments)
 }
 
 /// The teach free-recall tool, with the same plan-node check.
 pub fn teach_explain_tool(ctx: &PlanContext) -> FnTool {
 	let ctx = ctx.clone();
 	FnTool::immediate("explain", explain_description("explain", true), explain_input_object(), move |args| {
-		let mut problems = explain_input_problems(&args);
-		problems.extend(node_id_problem(&ctx, args["nodeId"].as_str().unwrap_or_default()));
-		verdict("explain", &problems)
+		verdict("explain", &with_node_check(explain_input_problems(&args), &plan_node_ids(&ctx), &args))
 	})
 	.sequential()
 	.prepared(prepare_question_arguments)

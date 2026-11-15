@@ -2,7 +2,6 @@
 //! Private and local addresses are refused (crate::guard). Dropping the future cancels the
 //! request, which is how the tool guard's timeout and Stop work.
 
-use std::future::Future;
 use std::time::Duration;
 
 use gs_base::clock;
@@ -22,13 +21,6 @@ const BODY_CUT_SHORT: &str = "terminated";
 /// What Node's fetch sends when the caller does not set these (Accept is reqwest's own default).
 const NODE_DEFAULTS: [(&str, &str); 3] = [("user-agent", "node"), ("accept-language", "*"), ("sec-fetch-mode", "cors")];
 
-async fn within<T>(ms: i64, work: impl Future<Output = T>) -> Option<T> {
-	tokio::select! {
-		out = work => Some(out),
-		() = clock::sleep(ms) => None,
-	}
-}
-
 pub async fn get(url: &str, headers: &[(&str, &str)]) -> Result<Response, String> {
 	let parsed = Url::parse(url).map_err(|_| format!("Failed to parse URL from {url}"))?;
 	if !parsed.username().is_empty() || parsed.password().is_some() {
@@ -45,7 +37,7 @@ pub async fn get(url: &str, headers: &[(&str, &str)]) -> Result<Response, String
 			request = request.header(name, value);
 		}
 	}
-	match within(SILENCE_LIMIT_MS, request.send()).await {
+	match clock::within(SILENCE_LIMIT_MS, request.send()).await {
 		Some(Ok(response)) => Ok(response),
 		Some(Err(err)) if guard::was_refused(&err) => Err(guard::REFUSED.to_owned()),
 		_ => Err(FETCH_FAILED.to_owned()),
@@ -79,7 +71,7 @@ pub fn content_length(response: &Response) -> u64 {
 pub async fn read_body(mut response: Response) -> Result<Vec<u8>, String> {
 	let mut body = Vec::new();
 	loop {
-		match within(SILENCE_LIMIT_MS, response.chunk()).await {
+		match clock::within(SILENCE_LIMIT_MS, response.chunk()).await {
 			Some(Ok(Some(chunk))) => body.extend_from_slice(&chunk),
 			Some(Ok(None)) => return Ok(body),
 			_ => return Err(BODY_CUT_SHORT.to_owned()),

@@ -6,6 +6,7 @@
 use std::collections::{HashMap, HashSet};
 
 use gs_json::Json;
+use crate::messages::tool_calls;
 
 /// The tools whose calls tag position.
 pub(crate) const TAGGING_TOOLS: [&str; 3] = ["quiz", "explain", "problem"];
@@ -34,13 +35,10 @@ pub fn derived_node_status(statuses: &PlanStatuses, node_id: &str) -> &'static s
 /// `opener_nodes` maps each topic_done whose opener is shown to the opener question's node: that
 /// call tags it, as the opener's question does in the window.
 pub fn derive_plan_statuses_lh(tree: &Json, messages: &[Json], opener_nodes: &HashMap<String, String>) -> PlanStatuses {
-	let ids: HashSet<&str> = tree["nodes"].as_arr().into_iter().flatten().filter_map(|n| n["id"].as_str()).collect();
+	let ids: HashSet<&str> = tree["nodes"].items().iter().filter_map(|n| n["id"].as_str()).collect();
 	let mut stays: Vec<&str> = Vec::new();
 	for m in messages.iter().filter(|m| m["role"].as_str() == Some("assistant")) {
-		for block in m["content"].as_arr().into_iter().flatten() {
-			if block["type"].as_str() != Some("toolCall") {
-				continue;
-			}
+		for block in tool_calls(m) {
 			let tag = if block["name"].as_str().is_some_and(|n| TAGGING_TOOLS.contains(&n)) {
 				block["arguments"]["nodeId"].as_str()
 			} else {

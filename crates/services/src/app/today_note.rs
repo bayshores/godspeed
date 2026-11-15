@@ -16,7 +16,7 @@ fn hinted_problems(app: &App, space_id: &str) -> Vec<Json> {
 		.iter()
 		.filter(|chat| chat["spaceId"].as_str() == Some(space_id))
 		.filter_map(|chat| app.stores.chats.get_chat(chat["id"].as_str()?))
-		.flat_map(|chat| practice_outcomes(chat["messages"].as_arr().map_or(&[][..], Vec::as_slice)))
+		.flat_map(|chat| practice_outcomes(chat["messages"].items()))
 		.filter(|outcome| outcome["outcome"].as_str() == Some("solvedWithHints"))
 		.map(|outcome| json!({ "statement": outcome["statement"], "at": outcome["at"] }))
 		.collect()
@@ -42,7 +42,7 @@ pub fn current_today_note(app: &App, space_id: Option<&str>) -> String {
 pub fn today_note_for(app: &App, record: &Json) -> Option<Json> {
 	let now = clock::now_ms();
 	let text = today_note_text(now, note_space(app, record["spaceId"].as_str()).as_ref());
-	today_note_to_append(record["messages"].as_arr().map_or(&[][..], Vec::as_slice), &text, &wall_clock(now).day)
+	today_note_to_append(record["messages"].items(), &text, &wall_clock(now).day)
 }
 
 #[cfg(test)]

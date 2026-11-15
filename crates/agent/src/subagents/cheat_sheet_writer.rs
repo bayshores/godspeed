@@ -112,7 +112,7 @@ pub async fn reply_on_sheet(bridge: &Bridge, input: SheetRequest) -> Result<Shee
 		let (pdf, text, check_text, take_pdf) = (pdf.clone(), text.clone(), input.check_text, input.take_pdf);
 		move |value: &Json| {
 			*pdf.lock() = None;
-			let (checked, removed) = check_text(value["text"].as_str().unwrap_or_default());
+			let (checked, removed) = check_text(value["text"].str_or_empty());
 			if !removed.is_empty() {
 				let problem = format!("These source marks don't point at a passage of a space file: {}. Use ids from search_space_files, or leave them out.", removed.join(", "));
 				return Box::pin(async move { Some(problem) });
@@ -137,7 +137,7 @@ pub async fn reply_on_sheet(bridge: &Bridge, input: SheetRequest) -> Result<Shee
 	opts.engine = Some(input.engine);
 	opts.abort = Some(input.signal);
 	let reply = run_submit_agent(bridge, opts).await?;
-	let rules = reply["rules"].as_arr().into_iter().flatten().filter_map(|r| r.as_str().map(str::to_owned)).collect();
+	let rules = reply["rules"].items().iter().filter_map(|r| r.as_str().map(str::to_owned)).collect();
 	let pdf = pdf.lock().take();
 	let text = std::mem::take(&mut *text.lock());
 	Ok(SheetReply { text, pdf, rules })

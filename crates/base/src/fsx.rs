@@ -5,7 +5,7 @@
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-use gs_json::{Json, parse};
+use gs_json::{Json, parse, stringify_pretty};
 
 use crate::{clock, ids, text};
 
@@ -88,6 +88,12 @@ pub fn write_text_atomic(file: &Path, content: &str) -> io::Result<()> {
 	write_atomic(file, &text::utf8_bytes(content), None)
 }
 
+/// A data file's JSON saved as the app writes every data file: tab-indented, by temp file and
+/// rename, with Node's error text on failure.
+pub fn write_json_atomic(file: &Path, value: &Json) -> Result<(), String> {
+	write_text_atomic(file, &stringify_pretty(value, "\t")).map_err(|err| node_error_message(&err, "open", file))
+}
+
 /// `file`'s new content in a temp file beside it, removed again if the write fails.
 fn write_temp(file: &Path, mode: Option<u32>, write: impl FnOnce(&mut dyn Write) -> io::Result<()>) -> io::Result<PathBuf> {
 	if let Some(dir) = file.parent() {
@@ -133,6 +139,11 @@ pub fn set_aside_corrupt(file: &Path) {
 	if std::fs::rename(file, aside).is_ok() {
 		eprintln!("[store] {} was not valid JSON; kept it aside", file.display());
 	}
+}
+
+/// A data file's parsed JSON; a missing, unreadable or invalid file reads as None.
+pub fn read_json(file: &Path) -> Option<Json> {
+	parse(&read_text(file).ok()?).ok()
 }
 
 /// A data file's parsed JSON. A missing or unreadable file reads as None; one that is not valid

@@ -462,7 +462,7 @@ fn plan_result(mermaid: &str) -> Json {
 
 fn agent_facts(agent: &Agent) -> Json {
 	let messages = agent.messages();
-	let tools: Vec<String> = messages[0]["toolsAdded"].as_arr().into_iter().flatten().map(|t| t["name"].as_str().unwrap().to_owned()).collect();
+	let tools: Vec<String> = messages[0]["toolsAdded"].items().iter().map(|t| t["name"].as_str().unwrap().to_owned()).collect();
 	json!({ "systemPrompt": messages[0]["content"].clone(), "tools": tools, "messages": messages.len() })
 }
 

@@ -61,7 +61,7 @@ fn convert_properties(schema: &Json, value: &mut Json) {
 fn convert(schema: &Json, value: Json) -> Json {
 	match kind(schema) {
 		Kind::Union => {
-			let members = schema["anyOf"].as_arr().map_or(&[][..], Vec::as_slice);
+			let members = schema["anyOf"].items();
 			if members.iter().any(|m| check(m, &value)) {
 				return value;
 			}

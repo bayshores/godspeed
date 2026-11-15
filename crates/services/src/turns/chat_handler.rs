@@ -213,7 +213,7 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 
 	// The wake carries every queued marker; one already in the record is a re-fire.
 	let mut appends = match input {
-		TurnInput::Steers(steers) => steers.iter().filter(|s| !steer_delivered(&messages, s["id"].as_str().unwrap_or_default())).cloned().collect(),
+		TurnInput::Steers(steers) => steers.iter().filter(|s| !steer_delivered(&messages, s["id"].str_or_empty())).cloned().collect(),
 		TurnInput::Chat(chat) => input_appends(&record, chat, attachments).map_err(|ChatInputError(message)| ChatReply::error(400, &message))?,
 	};
 
@@ -342,7 +342,7 @@ fn settlement_error_text(err: &str) -> &str {
 }
 
 fn model_id_of(model: &Json) -> String {
-	format!("{}:{}", model["provider"].as_str().unwrap_or_default(), model["id"].as_str().unwrap_or_default())
+	format!("{}:{}", model["provider"].str_or_empty(), model["id"].str_or_empty())
 }
 
 /// One model call's usage as the turn log stores it; optional counts are saved as 0.
@@ -442,7 +442,7 @@ fn agent_kind_of(record: &Json) -> AgentKind {
 		Some("talk") => AgentKind::Talk,
 		Some("study") => AgentKind::Study,
 		Some("homework") => AgentKind::Homework,
-		_ if has_probe_done(record["messages"].as_arr().map_or(&[][..], Vec::as_slice)) => AgentKind::Teacher,
+		_ if has_probe_done(record["messages"].items()) => AgentKind::Teacher,
 		_ => AgentKind::Prober,
 	}
 }

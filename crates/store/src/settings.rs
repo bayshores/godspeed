@@ -10,7 +10,7 @@ use gs_base::locks::{LockKey, Locks};
 use gs_core::contracts::space::is_space_id;
 use gs_core::records::settings::sanitize_user_settings;
 use gs_core::records::settings_resolution::resolve_settings;
-use gs_json::{Json, stringify_pretty};
+use gs_json::Json;
 
 use crate::prompt_overrides::PromptOverrides;
 
@@ -50,7 +50,7 @@ impl SettingsStore {
 		let settings = sanitize_user_settings(raw).ok_or("settings record must be a JSON object")?;
 		let _guard = self.locks.lock(LockKey::AppFile(FILE_LOCK));
 		let file = &self.paths.settings_file;
-		fsx::write_text_atomic(file, &stringify_pretty(&settings, "\t")).map_err(|err| fsx::node_error_message(&err, "open", file))?;
+		fsx::write_json_atomic(file, &settings)?;
 		Ok(settings)
 	}
 

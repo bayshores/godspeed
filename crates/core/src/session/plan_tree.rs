@@ -77,7 +77,7 @@ pub fn create_tree(nodes: &[Json], edges: &[Json]) -> Result<Json, String> {
 	let mut ids: HashSet<&str> = HashSet::new();
 	for node in nodes {
 		assert_valid_node(node)?;
-		let id = node["id"].as_str().unwrap_or_default();
+		let id = node["id"].str_or_empty();
 		if !ids.insert(id) {
 			return Err(format!("Duplicate node id \"{id}\" \u{2014} node ids must be unique."));
 		}

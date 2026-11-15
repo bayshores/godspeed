@@ -8,6 +8,7 @@ use axum::body::Body;
 use axum::extract::State;
 use axum::http::Uri;
 use axum::response::Response;
+use gs_base::ids;
 use gs_base::re::Re;
 use gs_json::{Json, json};
 use gs_services::App;
@@ -17,7 +18,7 @@ use gs_services::jobs::observability::activity_feed;
 use gs_services::turns::turn_liveness::is_turn_running;
 use gs_services::turns::turn_runs::abort_turn;
 
-use crate::http::paths::{param, search_params};
+use crate::http::paths::{param, query};
 use crate::http::reply::{Unhandled, error, json, json_body};
 use crate::http::route::ApiRoute;
 
@@ -29,12 +30,11 @@ pub fn routes() -> Router<Arc<App>> {
 }
 
 async fn get_jobs(State(app): State<Arc<App>>, uri: Uri) -> Response {
-	static CHAT_ID: LazyLock<Re> = LazyLock::new(|| Re::new(r"^[A-Za-z0-9_-]+$", ""));
-	let params = search_params(uri.query().unwrap_or_default());
+	let params = query(&uri);
 	let Some(chat_id) = param(&params, "chatId").filter(|id| !id.is_empty()) else {
 		return error(400, "chatId query parameter is required");
 	};
-	if !CHAT_ID.test(chat_id) {
+	if !ids::is_file_id(chat_id) {
 		return error(400, "Invalid chatId");
 	}
 	let jobs: Vec<Json> = list_jobs(&app, chat_id).iter().map(|job| (**job).clone()).collect();

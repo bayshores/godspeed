@@ -18,7 +18,7 @@ use crate::graph::graph::graph_store_for;
 
 /// Absolute path of a space file on this computer (None when its linked folder is gone).
 pub fn space_file_path(app: &App, record: &Json, file: &Json) -> Option<String> {
-	let rel = file["path"].as_str().unwrap_or("");
+	let rel = file["path"].str_or_empty();
 	let abs = if file["origin"].as_str() == Some("copied") {
 		resolve(&app.stores.spaces.files_dir(record["id"].as_str()?).ok()?.join(rel))
 	} else {
@@ -37,10 +37,10 @@ pub fn transcript_path_of(app: &App, space_id: &str, file_id: &str) -> Option<Pa
 /// lecture's transcript file, or the one made from it); unreadable files are listed without a
 /// path. Err when the space's graph cannot be read.
 pub fn space_card_for(app: &App, record: &Json) -> Result<Json, String> {
-	let id = record["id"].as_str().unwrap_or("");
+	let id = record["id"].str_or_empty();
 	let sizes = app.search.file_extents(id);
 	let topics = space_topics(app, id)?;
-	let files = record["files"].as_arr().map_or(&[][..], Vec::as_slice);
+	let files = record["files"].items();
 	let listed: Vec<Json> = files
 		.iter()
 		.map(|file| {
@@ -48,14 +48,14 @@ pub fn space_card_for(app: &App, record: &Json) -> Result<Json, String> {
 			let covering = file["transcriptId"].as_str().filter(|t| !t.is_empty()).and_then(|t| files.iter().find(|f| f["id"].as_str() == Some(t)));
 			if let Some(covering) = covering {
 				p = space_file_path(app, record, covering);
-			} else if p.is_some() && is_recording_file(file["name"].as_str().unwrap_or("")) {
-				p = transcript_path_of(app, id, file["id"].as_str().unwrap_or("")).filter(|t| t.exists()).map(|t| t.to_string_lossy().into_owned());
+			} else if p.is_some() && is_recording_file(file["name"].str_or_empty()) {
+				p = transcript_path_of(app, id, file["id"].str_or_empty()).filter(|t| t.exists()).map(|t| t.to_string_lossy().into_owned());
 			}
 			let mut entry = Obj::new();
 			entry.insert("name", file["name"].clone());
 			entry.insert("kind", file["kind"].clone());
 			entry.insert("path", p.map_or(Json::Null, Json::from));
-			if let Some(size) = sizes.get(file["id"].as_str().unwrap_or("")).filter(|s| s.truthy()) {
+			if let Some(size) = sizes.get(file["id"].str_or_empty()).filter(|s| s.truthy()) {
 				entry.insert("size", size.clone());
 			}
 			entry.insert("status", file["status"].clone());

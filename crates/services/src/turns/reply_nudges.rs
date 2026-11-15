@@ -42,7 +42,7 @@ pub fn reply_refusal(app: &App, chat_id: &str, text: Option<&str>, calls: &[Repl
 	let mut due: Vec<(String, Nudge)> = openers.into_iter().map(|topic| (topic.to_owned(), Nudge::CurveTable)).collect();
 	if !words.is_empty() {
 		let content: Vec<Json> = text.map(|t| json!({ "type": "text", "text": t })).into_iter().chain(calls.iter().map(|c| json!({ "type": "toolCall", "id": "", "name": c.name, "arguments": c.arguments }))).collect();
-		let messages = lesson["messages"].as_arr().map_or(&[][..], Vec::as_slice);
+		let messages = lesson["messages"].items();
 		let topic = reply_topic(messages, first_topic(lesson.get("tree").filter(|t| !t.is_null())), &json!({ "role": "assistant", "content": content })).unwrap_or_default();
 		due.extend(words.into_iter().map(|n| (topic.clone(), n)));
 	}
