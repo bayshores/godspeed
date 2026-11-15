@@ -5,8 +5,8 @@ import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
-/** "Add a deadline": one space opens its dialog at once; several open
- *  a menu of spaces first. */
+/** The deadlines card's "Add" key: one space opens its dialog at once;
+ *  several open a menu of spaces first. */
 export function AddDeadline({ spaces, onPick }: { spaces: readonly SpaceSummary[]; onPick: (spaceId: string) => void }) {
 	const [open, setOpen] = useState(false);
 	const anchorRef = useRef<HTMLButtonElement>(null);
@@ -20,13 +20,14 @@ export function AddDeadline({ spaces, onPick }: { spaces: readonly SpaceSummary[
 				ref={anchorRef}
 				type="button"
 				data-testid="home-add-deadline"
+				aria-label="Add a deadline"
 				aria-haspopup={single ? undefined : "menu"}
 				aria-expanded={single ? undefined : open}
 				onClick={() => (single ? onPick(single.id) : setOpen((v) => !v))}
-				className="lh-btn lh-btn-quiet -mr-[7.5px] h-[38px] text-[15px]"
+				className="lh-btn h-[38px] text-[15px]"
 			>
 				<PixelIcon name="plus" />
-				Add a deadline
+				Add
 			</button>
 			{!single && (
 				<MenuShell open={open} anchorRef={anchorRef} testid="home-add-deadline-menu" preferredSide="down" align="right" menuClass="lh-popup flex w-[236px] flex-col gap-0.5 p-1.5">
