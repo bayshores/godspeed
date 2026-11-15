@@ -87,6 +87,7 @@ function answerFor(work, ids, date, lessonTurn) {
 			],
 		};
 	}
+	// godspeed's own deadline request still reaches the agent as a Talk turn.
 	if (work.lessonId === "chat_talk") {
 		return { text: `${DEADLINE} is on ${date} at 10:00. It covers solving linear equations by graphing and by moving terms across the equals sign. [[${ids.passage}]] ${WEB_SOURCE}\n\nStart with the lesson on solving linear equations by graphing; it has a short quiz.` };
 	}

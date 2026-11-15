@@ -32,6 +32,13 @@ export const SCREENS = [
 	{ name: "Settings, Teaching", url: "/settings?section=teaching", ready: "[data-testid^=area-][data-testid$=-instructions]:not(:disabled)" },
 	{ name: "Settings, Appearance", url: "/settings?section=appearance", ready: "[data-testid=appearance-preview]" },
 	{ name: "Settings, General", url: "/settings?section=general", ready: "[data-testid=teacher-name-row]" },
+	{
+		name: "The agent's screen",
+		url: "/",
+		ready: deadlineCard,
+		setup: `${openTeacher}; await new Promise((done) => setTimeout(done, 100)); document.querySelector("[data-testid=open-agent]").click()`,
+		shows: "[data-testid=terminal-stop]",
+	},
 	{ name: "Today with no deadline", before: `await fetch("/api/spaces/{space}/deadlines/{deadline}", { method: "DELETE" })${HTTP_OK}`, url: "/", ready: "[data-testid=today-empty]" },
 	{
 		name: "Onboarding",
