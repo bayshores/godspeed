@@ -110,14 +110,19 @@ export interface WorkProgress {
 
 /**
  * The background work under way on every page: "Helper reading files, 6
- * of 17" while files are read, else the number of jobs. Null when nothing
- * runs or no agent takes the work.
+ * of 17" while files are read, a deadline request's name when it is the
+ * only work, else the number of jobs. `requests`: the deadline requests'
+ * names ("Deadline: Wave Optics Final"), not counted in `jobs`. Null when
+ * nothing runs or no agent takes the work.
  */
-export function workProgress(i: { worker: string | null; spaces: readonly ProgressSpace[]; jobs: number }): WorkProgress | null {
+export function workProgress(i: { worker: string | null; spaces: readonly ProgressSpace[]; jobs: number; requests: readonly string[] }): WorkProgress | null {
 	if (!i.worker) return null;
 	const { live, read, left } = filesProgress(i.spaces);
 	if (live.length > 0) return { worker: i.worker, doing: "reading files", count: `${read} of ${read + left}`, tag: `${read} of ${files(read + left)}` };
-	if (i.jobs === 0) return null;
-	const jobs = `${i.jobs} job${i.jobs === 1 ? "" : "s"}`;
+	const [request, ...more] = i.requests;
+	if (i.jobs === 0 && request !== undefined && more.length === 0) return { worker: i.worker, doing: request, count: null, tag: request };
+	const all = i.jobs + i.requests.length;
+	if (all === 0) return null;
+	const jobs = `${all} job${all === 1 ? "" : "s"}`;
 	return { worker: i.worker, doing: `working on ${jobs}`, count: null, tag: jobs };
 }

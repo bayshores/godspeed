@@ -2,6 +2,7 @@
 //! learner's agent on one or more deadlines. One request at a time per deadline; each start and
 //! end goes out as "deadline-request-changed". godspeed asks about each unlinked deadline once:
 //! the ids asked are kept in `data/deadline-requests.json`, with those the old Talk chat asked.
+//! A running request is background work: the activity feed lists it.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -39,6 +40,8 @@ pub(crate) const BUSY: &str = "Your agent is still working on this deadline.";
 #[derive(Default)]
 pub struct DeadlineRequestsState {
 	running: Mutex<HashMap<String, RequestKind>>,
+	/// Each running request's row in the activity feed, by its first deadline's id.
+	rows: Mutex<Vec<Json>>,
 	/// The last request from the page that changed nothing, and why.
 	failed: Mutex<HashMap<String, (RequestKind, Why)>>,
 	/// godspeed's own request is on its way.
@@ -118,10 +121,16 @@ fn remember_asked(app: &App, ids: &[String]) {
 	}
 }
 
+/// The running requests as activity feed rows, `{ id, title, startedAt }`, oldest first.
+pub fn deadline_request_rows(app: &App) -> Vec<Json> {
+	app.spaces.requests.rows.lock().clone()
+}
+
 fn changed(app: &App, deadlines: &[RequestedDeadline]) {
 	for d in deadlines {
 		app.events.emit(EventKind::DeadlineRequestChanged, json!({ "spaceId": d.space_id, "deadlineId": d.id }));
 	}
+	app.events.emit(EventKind::ActivityChanged, json!({}));
 }
 
 /// Starts the run unless one already runs on one of the deadlines. `from_page`: the learner
@@ -139,14 +148,15 @@ fn start(app: &Arc<App>, kind: RequestKind, deadlines: Vec<RequestedDeadline>, f
 		failed.remove(&d.id);
 	}
 	drop(failed);
-	changed(app, &deadlines);
-
-	let wrote = Arc::new(AtomicBool::new(false));
-	let tools = deadline_request_tools(&writing_actions(app, wrote.clone()), kind != RequestKind::Coverage);
 	let label = match deadlines.as_slice() {
 		[one] => format!("Deadline: {} {}", one.space_name, one.name),
 		many => format!("Deadlines: {}", many.len()),
 	};
+	app.spaces.requests.rows.lock().push(json!({ "id": deadlines[0].id, "title": label, "startedAt": clock::now_ms() }));
+	changed(app, &deadlines);
+
+	let wrote = Arc::new(AtomicBool::new(false));
+	let tools = deadline_request_tools(&writing_actions(app, wrote.clone()), kind != RequestKind::Coverage);
 	let request = DeadlineRequest { label, prompt: request_text(kind, &deadlines), tools: tools.into_iter().map(FnTool::into_arc).collect() };
 	let end = RequestEnd { app: app.clone(), deadlines, from_page };
 	tokio::spawn(async move {
@@ -199,6 +209,7 @@ impl Drop for RequestEnd {
 			running.remove(&d.id);
 		}
 		drop(running);
+		state.rows.lock().retain(|row| row["id"].as_str() != Some(&self.deadlines[0].id));
 		if !self.from_page {
 			state.asking.store(false, Ordering::SeqCst);
 		}
@@ -236,6 +247,8 @@ mod tests {
 		ask_about_unlinked(&app, clock::now_ms());
 		let running: Vec<String> = app.spaces.requests.running.lock().keys().cloned().collect();
 		assert_eq!(running, [deadlines[2].clone()]);
+		let rows = deadline_request_rows(&app);
+		assert_eq!((rows.len(), rows[0]["id"].as_str(), rows[0]["title"].as_str()), (1, Some(deadlines[2].as_str()), Some("Deadline: Wave Optics Final")));
 		assert_eq!(asked(&app), deadlines.iter().cloned().collect());
 		assert_eq!(std::fs::read(&record).unwrap(), before, "the old Talk chat is only read");
 		ask_about_unlinked(&app, clock::now_ms());
