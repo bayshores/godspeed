@@ -100,8 +100,13 @@
 	--lh-space-wash: #ffffff;
 	/* The Done stamp. */
 	--lh-stamp: #b3665c;
-	/* A sheet's outline: ink on Paper, a grey on a dark background. */
+	/* The work frame's line: ink on Paper, a grey on a dark background. */
 	--lh-line: #24231f;
+	/* A sheet's fill and the lip under it. A well is a field's fill: the
+	   sheet color on the page, the page color on a sheet. */
+	--lh-sheet: #d7d5cb;
+	--lh-sheet-lip: #b0aea5;
+	--lh-well: var(--lh-sheet);
 	/* The code editor's syntax colors (Shiki's github-light; .dark below
 	   swaps in github-dark, as the code blocks do). */
 	--lh-code-keyword: #b31d28;
@@ -166,6 +171,7 @@
 	--lh-line: color-mix(in srgb, var(--lh-bar-ink) 22%, var(--lh-bar));
 	--lh-tint: var(--lh-bar-ink);
 	--lh-mark-bg: var(--lh-highlight);
+	--lh-well: var(--card);
 	border-radius: 12px;
 	background-color: var(--lh-bar);
 	color: var(--lh-bar-ink);
@@ -388,6 +394,20 @@ body {
 @layer components {
 	.truncate {
 		min-width: 0;
+	}
+}
+
+/* A box is a sheet: a flat fill with a lip under it, no outline. A field
+   is a well: a fill that differs from what it sits on, no outline. */
+@layer components {
+	.lh-sheet {
+		--lh-well: var(--background);
+		border-bottom: 4px solid var(--lh-sheet-lip);
+		border-radius: 4px;
+		background: var(--lh-sheet) padding-box;
+	}
+	.lh-well {
+		background-color: var(--lh-well);
 	}
 }
 

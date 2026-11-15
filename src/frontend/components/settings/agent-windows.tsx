@@ -58,7 +58,7 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 	});
 
 	return (
-		<section data-testid="agent-windows" className="flex flex-col gap-5 rounded border-2 border-line bg-panel p-6">
+		<section data-testid="agent-windows" className="flex flex-col gap-5 lh-sheet p-6">
 			<div className="flex flex-wrap items-start gap-x-4 gap-y-2">
 				<div className="min-w-0 flex-1">
 					<h2 data-testid="agent-status" className="text-[28px] leading-tight text-ink">

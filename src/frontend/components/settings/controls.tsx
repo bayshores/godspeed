@@ -9,7 +9,6 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import { cn } from "@/frontend/lib/utils";
-import { RULE } from "@/frontend/components/deadline/styles";
 
 /** A section block: the page's tab names the section, so the block is
  *  just its groups. */
@@ -44,11 +43,10 @@ export function SettingsGroup({
 	testid?: string;
 }) {
 	return (
-		<section data-testid={testid} className="rounded border-2 border-line bg-panel px-6 pt-4 pb-1.5">
-			<h2 className={cn("text-xl leading-tight text-ink", about ? "pb-0.5" : "pb-2")}>{label}</h2>
-			{about && <p className="pb-2 text-[15px] text-ink-2">{about}</p>}
-			<div className={RULE} />
-			<div className="flex flex-col divide-y divide-dotted divide-edge [&>p]:py-2.5 [&>p]:text-base">{children}</div>
+		<section data-testid={testid} className="lh-sheet px-8 pt-7 pb-5">
+			<h2 className="text-[26px] leading-tight text-ink">{label}</h2>
+			{about && <p className="pt-1.5 text-base text-ink-2">{about}</p>}
+			<div className="flex flex-col pt-4 [&>p]:py-3 [&>p]:text-base">{children}</div>
 		</section>
 	);
 }
@@ -67,10 +65,10 @@ export function SettingsRow({
 	testid?: string;
 }) {
 	return (
-		<div data-testid={testid} className="flex items-center justify-between gap-4 py-2">
+		<div data-testid={testid} className="flex items-center justify-between gap-6 py-3.5">
 			<span className="min-w-0">
-				<span className="block text-lg font-medium text-ink">{label}</span>
-				{hint && <span className="block text-base text-ink-2">{hint}</span>}
+				<span className="block text-[17px] leading-snug text-ink">{label}</span>
+				{hint && <span className="block pt-0.5 text-[15px] text-ink-2">{hint}</span>}
 			</span>
 			{children}
 		</div>
@@ -227,7 +225,7 @@ export function CommitInput({
 					e.currentTarget.blur();
 				}
 			}}
-			className="h-[38px] w-[200px] rounded border-[1.5px] border-ink bg-background px-3 font-ui text-[15px] text-ink placeholder:text-ink-3"
+			className="h-[38px] w-[200px] lh-well rounded px-3 font-ui text-[15px] text-ink placeholder:text-ink-3"
 		/>
 	);
 }

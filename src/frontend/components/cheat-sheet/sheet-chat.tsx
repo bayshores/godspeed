@@ -164,7 +164,7 @@ export function SheetChat({
 				)}
 				{pointed && <PointedChip pointed={pointed} pages={pagesOf(pointed.region.n)} onClear={onClearPointed} />}
 				<AttachmentTray draft={attachments} />
-				<div className="flex min-h-[130px] flex-col rounded border-[1.5px] border-ink bg-background">
+				<div className="flex min-h-[130px] flex-col lh-well rounded">
 					<div className="flex max-h-32 min-h-0 flex-1">
 						<MathBox
 							value={text}
