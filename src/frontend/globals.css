@@ -397,14 +397,37 @@ body {
 	}
 }
 
-/* A box is a sheet: a flat fill with a lip under it, no outline. A field
-   is a well: a fill that differs from what it sits on, no outline. */
+/* A box is a sheet: a flat fill with pixel corners (two 4px steps) and a
+   lip under it, no outline. A field is a well: a fill that differs from
+   what it sits on, no outline. */
 @layer components {
+	/* Drawn as fills, not clipped, so a menu inside a sheet can hang past its edge. */
 	.lh-sheet {
 		--lh-well: var(--background);
-		border-bottom: 4px solid var(--lh-sheet-lip);
-		border-radius: 4px;
-		background: var(--lh-sheet) padding-box;
+		--lh-sheet-fill: linear-gradient(var(--lh-sheet), var(--lh-sheet));
+		--lh-sheet-edge: linear-gradient(var(--lh-sheet-lip), var(--lh-sheet-lip));
+		border-bottom: 4px solid transparent;
+		background:
+			var(--lh-sheet-edge) 8px 100% / calc(100% - 16px) 4px,
+			var(--lh-sheet-edge) left 4px bottom 4px / 4px 4px,
+			var(--lh-sheet-edge) right 4px bottom 4px / 4px 4px,
+			var(--lh-sheet-edge) left 0 bottom 8px / 4px 4px,
+			var(--lh-sheet-edge) right 0 bottom 8px / 4px 4px,
+			var(--lh-sheet-fill) 8px 0 / calc(100% - 16px) 100%,
+			var(--lh-sheet-fill) 4px 4px / calc(100% - 8px) calc(100% - 8px),
+			var(--lh-sheet-fill) 0 8px / 100% calc(100% - 16px);
+		background-repeat: no-repeat;
+		background-origin: border-box;
+		background-clip: border-box;
+	}
+	/* A sheet that cuts its content cuts it to the same corners. */
+	.lh-sheet.overflow-hidden {
+		clip-path: polygon(
+			0 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0,
+			calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 8px, 100% 8px,
+			100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px), calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%,
+			8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0 calc(100% - 8px)
+		);
 	}
 	.lh-well {
 		background-color: var(--lh-well);
