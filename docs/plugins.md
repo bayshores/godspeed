@@ -206,6 +206,8 @@ Sends one request to the learner's own agent, as a work item labelled "<name> as
 | At a time | One request per plugin. A second one while the first runs is refused with "Your agent is still on this plugin's last request." |
 | Waiting | godspeed sets no time limit. While the page waits, it sends `notifications/progress` every 20 seconds if the request had `_meta.progressToken`, so a client library that gives up after a silent minute keeps waiting. |
 
+While a request runs, godspeed shows it under the plugin's name, as it shows other background work: a row in the teacher's Activity list, the agent's status line, and the top bar when it is the only work.
+
 The agent is told the request comes from a plugin and to answer it and do nothing else. Don't put anything in a prompt you wouldn't show the learner. A failed ask comes back as a tool error whose text says why.
 
 ### read_space
@@ -233,6 +235,7 @@ The result of `ui/initialize` holds these.
 | `hostCapabilities` | `{ openLinks: {}, serverTools: {} }`. |
 | `hostContext.theme` | `"light"` or `"dark"`, as the app is when the page starts. |
 | `hostContext.styles.variables` | The CSS variables below, as text values. |
+| `hostContext.styles.css.fonts` | The `@font-face` rules for the fonts in `--font-sans`. |
 | `hostContext.settings` | The plugin's setting values by `key`, such as `{ "emphasis": true }`. |
 | `hostContext.displayMode`, `availableDisplayModes` | `"inline"` and `["inline"]`. |
 | `hostContext.platform`, `locale`, `timeZone` | `"desktop"`, the browser's language, the learner's time zone. |
@@ -245,16 +248,21 @@ The page gets godspeed's colors, fonts and corner size under MCP Apps variable n
 
 ```js
 const result = await request("ui/initialize", { ... });
-for (const [name, value] of Object.entries(result.result.hostContext.styles?.variables ?? {})) {
+const styles = result.result.hostContext.styles ?? {};
+for (const [name, value] of Object.entries(styles.variables ?? {})) {
 	document.documentElement.style.setProperty(name, value);
 }
+// The app's fonts (what ext-apps' applyHostFonts does).
+const fonts = document.createElement("style");
+fonts.textContent = styles.css?.fonts ?? "";
+document.head.append(fonts);
 ```
 
 | Variable | What it is |
 |---|---|
-| `--color-background-primary` | The page's ground. |
-| `--color-background-secondary` | A raised card or field. |
-| `--color-background-tertiary` | A stronger fill, for a button or a chosen item. |
+| `--color-background-primary` | The sheet the page sits on. Use it as the page's ground, so the page and its sheet are one surface. |
+| `--color-background-secondary` | A field or card on that sheet. |
+| `--color-background-tertiary` | A hovered or chosen row, or a chip. |
 | `--color-background-inverse` | The top bar's color. |
 | `--color-text-primary` | Text on the ground. |
 | `--color-text-secondary` | Quieter text. |
@@ -264,7 +272,7 @@ for (const [name, value] of Object.entries(result.result.hostContext.styles?.var
 | `--color-text-success` | A right state. |
 | `--color-border-primary` | The app's border color. See the rules below before drawing a line with it. |
 | `--color-ring-primary` | The focus ring. |
-| `--font-sans`, `--font-mono` | The app's font lists. The app's font files aren't available to the page, so text falls back to the system font unless your folder ships the font. |
+| `--font-sans`, `--font-mono` | The app's font lists. Add `hostContext.styles.css.fonts` to the page, as above, and text in `--font-sans` uses the app's font. |
 | `--border-radius-xs`, `-sm`, `-md`, `-lg` | The app's one corner size, the same for all four. |
 
 The variables hold the app's colors as they were when the page started. godspeed does not send the new ones when the learner switches the theme, so a page that wants to follow a theme switch has to be opened again.
@@ -296,7 +304,7 @@ Every file is served with a policy that limits the page. If a request is blocked
 | Policy | Effect |
 |---|---|
 | Scripts and styles | Only from your folder, plus inline ones. No `eval`. |
-| Images, fonts, audio and video | Your folder, `data:` and `blob:` addresses, and the `network` hosts. |
+| Images, fonts, audio and video | Your folder, `data:` and `blob:` addresses, and the `network` hosts. Fonts also from the app's own font files, the ones `hostContext.styles.css.fonts` names. |
 | `fetch` and other requests | Only the `network` hosts, over https. With none, no requests at all. |
 | Frames, forms and a changed base address | Not allowed. |
 
