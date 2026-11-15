@@ -570,7 +570,7 @@ A space can have deadlines (`SpaceDeadline` in `core::contracts::space`): a kind
 
 #### Deadline requests
 
-A deadline request is one background run of the learner's agent on one or more deadlines (`services::spaces::deadline_requests`, `agent::subagents::deadline_request`). It gets a short fixed prompt, the request (`core::spaces::deadline_requests`) and the space tools it needs: `read_space`, `search_space_files`, `read_passage` and `update_space_deadline`, plus `add_space_file` for a study guide or What it's like. The helper takes it when one is open. Its changes go into the activity log, so Follow opens the deadline page.
+A deadline request is one background run of the learner's agent on one or more deadlines (`services::spaces::deadline_requests`, `agent::subagents::deadline_request`). It gets a short fixed prompt, the request (`core::spaces::deadline_requests`) and the space tools it needs: `read_space`, `search_space_files`, `read_passage` and `update_space_deadline`, plus `add_space_file` for a study guide or What it's like. The helper takes it when one is open. Its changes go into the activity log, so Follow opens the deadline page. While it runs it is background work: the activity feed lists it as `{id, title, startedAt}` under `requests`, titled "Deadline: {space} {name}" (or "Deadlines: {n}"), and Activity shows it with no Stop. The pill names it when it is the only background work and counts it with the jobs otherwise.
 
 | Kind | Started by | It |
 |---|---|---|
@@ -961,7 +961,7 @@ An older build's Talk chat (kind `"talk"`, the fixed id `chat_talk`, `TALK_CHAT_
 - The chat store refuses to make, write or delete it (`TALK_KEPT` in `store::chats`): every writer, `delete_chat` and `save_attachment`. `POST /api/chat` to it answers 404 "Talk was replaced by your agent's screen", and `DELETE /api/chats/{id}` answers 404 "No such lesson".
 - The store leaves it out of every lesson list, so Today, Progress, search, `list_lessons` and extraction never see it, and the lesson page 404s for it.
 - Its old deadline requests still count as asked (see [Deadline requests](#deadline-requests)).
-- On a start with a Talk record and no `data/talk-backup-*` yet, the server first (right after taking the data lock, before anything else reads the record) copies `chat_talk.json` and `chat_talk/` to `data/talk-backup-<version>` (`services::app::old_talk`). Once, into the first godspeed folder set up after that, it writes `Talk.md` (who said what, each change as one line, math as written; `core::messages::talk_export`) with its pictures and PDFs in `Talk files/`. Each picture and PDF is written under a `.partial` name, flushed to disk and renamed, `Talk.md` last, and `talkExported` is set only after that, so a start cut off halfway makes it again. A `Talk.md` already there with other text is the learner's and is never changed: the export goes beside it as `Talk (godspeed).md` with `Talk files (godspeed)/`. The backup's files are flushed to disk before its folder is renamed, and neither the backup nor the export follows a link. A failed export leaves `talkExported` unset, so the next start tries again.
+- On a start with a Talk record and no `data/talk-backup-*` yet, the server first (right after taking the data lock, before anything else reads the record) copies `chat_talk.json` and `chat_talk/` to `data/talk-backup-<version>` (`services::app::old_talk`). Once, into the first godspeed folder set up after that, it writes `Talk.md` (who said what, each change as one line, math as written; `core::messages::talk_export`) with its pictures and PDFs in `Talk files/`. Each picture and PDF is written under a `.partial` name, flushed to disk and renamed, `Talk.md` last, and `talkExported` is set only after that, so a start cut off halfway makes it again. A `Talk.md` already there with other text is the learner's and is never changed: the export goes beside it under the first free name of `Talk (godspeed).md`, `Talk (godspeed) 2.md` and on, with `Talk files (godspeed)/`, `Talk files (godspeed) 2/` and on. The backup's files are flushed to disk before its folder is renamed, and neither the backup nor the export follows a link. A failed export leaves `talkExported` unset, so the next start tries again.
 
 While a lesson is open, the panel shows only the screen: the lesson is the chat, and its teacher column has Activity and, in the desktop app, a Terminal key that opens it. Lessons get `list_spaces` and the three deadline tools (`lesson_space_change_tools`), so "add HW 4, due Friday" works mid-lesson.
 
@@ -1024,7 +1024,7 @@ By default the outside agent looks things up with its own web search. A learner 
 
 Logging is one tagged line per event on stderr, for example `[chat <id>]` on turn services, `[extraction <id>]` on the pipeline and `[job <id>]` on runners.
 
-The activity feed is where running work shows: `services::jobs::observability` feeds `GET /api/activity`, which the teacher panel's Activity tab shows. It lists running jobs, extraction runs, recently failed jobs and per-run usage in tokens. `POST /api/activity/abort` takes `{kind: "job" | "extraction" | "turn", id}`.
+The activity feed is where running work shows: `services::jobs::observability` feeds `GET /api/activity`, which the teacher panel's Activity tab shows. It lists running jobs, extraction runs, deadline requests, recently failed jobs and per-run usage in tokens. `POST /api/activity/abort` takes `{kind: "job" | "extraction" | "turn", id}`.
 
 ### 10.1 The events channel
 
@@ -1046,7 +1046,7 @@ The list is `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/
 | `turn-started` | `{chatId}` | `begin_turn` succeeds, for every turn. The 409 path is silent |
 | `turn-settled` | `{chatId}` | `end_turn` on a live entry, after `persist_turn`, so fetches read saved data |
 | `jobs-changed` | `{chatId?}` | every job-store write that changed something |
-| `activity-changed` | `{}` | an extraction run changed phase, or a background work item was queued, taken or dropped (`engine::bridge`, `agent::extraction::extraction_runs`) |
+| `activity-changed` | `{}` | an extraction run changed phase, a deadline request started or ended, or a background work item was queued, taken or dropped (`engine::bridge`, `agent::extraction::extraction_runs`, `services::spaces::deadline_requests`) |
 | `chats-changed` | `{}` | a lesson was created, renamed or deleted |
 | `spaces-changed` | `{}` | a space was created, edited, closed or deleted, or its files changed |
 | `agent-changed` | `{}` | the outside agent connected, started or stopped teaching, was renamed or lapsed, a helper arrived, or compacting started or lapsed |
