@@ -22,8 +22,8 @@ const CONTEXT: PluginContext = {
 const ok = (value: unknown) => Promise.resolve({ error: null, value });
 
 function harness(manifest: PluginManifest = PROBE, overrides: Partial<HostCalls> = {}, startContext: PluginContext = CONTEXT) {
-	// What the screen holds now; a test changes these as the lesson or Settings would.
-	const now = { context: startContext, values: { loud: true } as Record<string, boolean> };
+	// What the screen holds now; a test changes it as the lesson would.
+	const now = { context: startContext };
 	const frame = { name: "the plugin's window" };
 	const posted: Record<string, unknown>[] = [];
 	const asked: unknown[][] = [];
@@ -47,7 +47,7 @@ function harness(manifest: PluginManifest = PROBE, overrides: Partial<HostCalls>
 	};
 	const bridge = createBridge({
 		manifest,
-		values: () => now.values,
+		values: { loud: true },
 		frame: () => frame,
 		post: (message) => posted.push(message as Record<string, unknown>),
 		context: () => now.context,
@@ -175,7 +175,6 @@ describe("telling the page of changes", () => {
 		h.bridge.changed();
 		h.bridge.receive(h.frame, { jsonrpc: "2.0", method: "ui/notifications/initialized" });
 		h.now.context = structuredClone(h.now.context);
-		h.now.values = { loud: true };
 		h.bridge.changed();
 		assert.deepEqual(notices(h), []);
 	});
@@ -190,20 +189,12 @@ describe("telling the page of changes", () => {
 		assert.deepEqual((await h.tool("get_context"))?.result?.structuredContent, { ...CONTEXT, question: null });
 	});
 
-	it("a settings change sends the new setting values", async () => {
-		const h = harness();
-		await h.start();
-		h.now.values = { loud: false };
-		h.bridge.changed();
-		assert.deepEqual(notices(h), [{ settings: { loud: false } }]);
-	});
-
 	it("a stopped frame hears no notices", async () => {
 		const h = harness();
 		await h.start();
 		h.bridge.loaded();
 		h.bridge.loaded();
-		h.now.values = { loud: false };
+		h.now.context = { ...CONTEXT, topic: "Recursion" };
 		h.bridge.changed();
 		assert.deepEqual(notices(h), []);
 	});

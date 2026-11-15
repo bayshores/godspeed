@@ -67,7 +67,7 @@ export function PluginFrame({ manifest, values, context, className }: { manifest
 	useEffect(() => {
 		const bridge = createBridge({
 			manifest: latest.current.manifest,
-			values: () => latest.current.values,
+			values: latest.current.values,
 			frame: () => frameRef.current?.contentWindow,
 			// The frame's origin is opaque, so it can't be named; the window is this frame's own.
 			post: (message) => frameRef.current?.contentWindow?.postMessage(message, "*"),
@@ -99,12 +99,11 @@ export function PluginFrame({ manifest, values, context, className }: { manifest
 	}, [id, attempt]);
 
 	// Compared as values: a new object with the same contents is no change.
-	const valuesKey = JSON.stringify(values);
 	const contextKey = JSON.stringify(context);
 	useEffect(() => {
 		const timer = setTimeout(() => bridgeRef.current?.changed(), NOTICE_AFTER_MS);
 		return () => clearTimeout(timer);
-	}, [valuesKey, contextKey]);
+	}, [contextKey]);
 
 	if (state === "failed") {
 		return (

@@ -44,8 +44,7 @@ export interface HostCalls {
 
 interface BridgeOptions {
 	manifest: PluginManifest;
-	/** The plugin's setting values, read at initialize and at each `changed`. */
-	values: () => Record<string, SettingValue>;
+	values: Record<string, SettingValue>;
 	/** The frame's window, the only sender heard. */
 	frame: () => unknown;
 	post: (message: object) => void;
@@ -110,7 +109,6 @@ export function createBridge(options: BridgeOptions) {
 	// The page may hear of changes once it said it is initialized.
 	let ready = false;
 	// What the page last got, to tell it only of real changes.
-	let sentValues = "";
 	let sentContext = "";
 	let loads = 0;
 	// After a navigation the frame holds another page: it hears nothing more, answers included.
@@ -176,7 +174,7 @@ export function createBridge(options: BridgeOptions) {
 				locale: navigator.language,
 				timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 				// The plugin's own setting values, by setting key.
-				settings: { ...options.values() },
+				settings: { ...options.values },
 			},
 		};
 	};
@@ -185,7 +183,6 @@ export function createBridge(options: BridgeOptions) {
 		if (method === "ping") return {};
 		if (method === "ui/initialize") {
 			initialized = true;
-			sentValues = JSON.stringify(options.values());
 			sentContext = JSON.stringify(options.context());
 			return initializeResult();
 		}
@@ -225,18 +222,14 @@ export function createBridge(options: BridgeOptions) {
 			if (loads > 1) stopped = true;
 			return !stopped;
 		},
-		/** Tells the page when its setting values or what get_context gives changed since it last
-		 *  heard: `ui/notifications/host-context-changed` with the new `settings`, or with nothing
-		 *  for the context, which the page reads again with get_context. */
+		/** Tells the page when what get_context gives changed since it last heard:
+		 *  `ui/notifications/host-context-changed` with empty params, so it reads it again. */
 		changed() {
 			if (!ready || stopped) return;
-			const values = JSON.stringify(options.values());
 			const context = JSON.stringify(options.context());
-			if (values === sentValues && context === sentContext) return;
-			const params = values === sentValues ? {} : { settings: { ...options.values() } };
-			sentValues = values;
+			if (context === sentContext) return;
 			sentContext = context;
-			post({ jsonrpc: "2.0", method: "ui/notifications/host-context-changed", params });
+			post({ jsonrpc: "2.0", method: "ui/notifications/host-context-changed", params: {} });
 		},
 		receive(source: unknown, data: unknown) {
 			if (stopped || source === null || source === undefined || source !== options.frame()) return;
