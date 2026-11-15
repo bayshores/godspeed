@@ -1,6 +1,6 @@
 /**
- * Settings → Connection, "Your agent": the headline and what the Teacher
- * and Helper tiles say. Pure.
+ * Settings → Connection, "Your agent": what the Teacher and Helper tiles
+ * say. Pure.
  */
 import type { SpaceSummary } from "@/shared/core";
 import { teachStep, type AgentStatus } from "@/frontend/components/agent-status";
@@ -25,13 +25,6 @@ export type TermState = "starting" | "ended" | null;
 
 /** The teacher runs: it teaches, or it connected and has not started. */
 const teacherRuns = (agent: Agent) => agent.teaching || (agent.connected && !agent.helperHere);
-
-/** `name`: the teacher's name. `starting`: godspeed's terminal for it runs and has not checked in. */
-export function agentHeadline(agent: Agent, name: string, starting: boolean): string {
-	if (teacherRuns(agent)) return `${name} is running`;
-	if (starting) return `${name} is starting`;
-	return agent.helperHere ? "The helper is running" : "No agent is running";
-}
 
 /** `outside`: the agent here was started outside godspeed. */
 export function teacherTile(agent: Agent, doing: AgentDoing | null, i: { outside: boolean; term: TermState }): AgentTile {

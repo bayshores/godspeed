@@ -17,7 +17,7 @@ const { lessonAgentWaiting, useAgentStatus } = await import("../../src/frontend/
 const { agentDoing } = await import("../../src/frontend/components/teacher/follow-status.ts");
 const { agentLine } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
 const { chipText } = await import("../../src/frontend/components/top-bar/top-bar-model.ts");
-const { agentHeadline, teacherTile } = await import("../../src/frontend/components/settings/agent-windows-model.ts");
+const { teacherTile } = await import("../../src/frontend/components/settings/agent-windows-model.ts");
 const { teacherTerminalState } = await import("../../src/frontend/components/terminal/terminal-model.ts");
 const { useChatSession } = await import("../../src/frontend/components/session.ts");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
@@ -345,7 +345,6 @@ describe("after godspeed's teacher ended, though the server still says connected
 			return {
 				chip: chipText({ name: "Teacher", doing, agent, terminal: teacherTerminalState(facts) }),
 				panel: agentLine(agent, doing),
-				headline: agentHeadline(agent, "Teacher", false),
 				tile: teacherTile(agent, doing, { outside: false, term: facts?.term.ended ? "ended" : null }).chip,
 				lessonWaits: lessonAgentWaiting(agent),
 			};
@@ -359,10 +358,10 @@ describe("after godspeed's teacher ended, though the server still says connected
 					await act(async () => r.render(page(access({ ...busy, terminals: [{ id: "t1", here: true }] }))));
 				},
 				async () => {
-					assert.deepEqual(words(), { chip: "Teacher, writing the lesson", panel: "Writing the lesson", headline: "Teacher is running", tile: "Teaching", lessonWaits: false });
+					assert.deepEqual(words(), { chip: "Teacher, writing the lesson", panel: "Writing the lesson", tile: "Teaching", lessonWaits: false });
 					await act(async () => shell.push({ id: "t1", ended: { stopped: true, code: null }, prompt: null, url: false }));
 					await act(async () => root!.render(page(access(busy))));
-					assert.deepEqual(words(), { chip: "Waiting for your agent", panel: "Start your agent to begin.", headline: "No agent is running", tile: "Stopped", lessonWaits: true });
+					assert.deepEqual(words(), { chip: "Waiting for your agent", panel: "Start your agent to begin.", tile: "Stopped", lessonWaits: true });
 				},
 			);
 		} finally {

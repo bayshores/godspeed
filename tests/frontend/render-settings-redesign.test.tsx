@@ -39,6 +39,7 @@ const { RememberedNotes } = await import("../../src/frontend/components/settings
 const { maskToken } = await import("../../src/frontend/components/mcp-access.ts");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { AgentStatusProvider } = await import("../../src/frontend/components/agent-status.tsx");
+const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 /** The section with the live agent status it reads. */
 const Connection = () => (
@@ -137,7 +138,7 @@ describe("settings restyle", () => {
 		assert.ok(q("web-search") === null);
 		assert.equal(q("agent-token")!.textContent, "••••••••••••a91f");
 		assert.ok(!text.includes("tok_secret_a91f"), "the token is never shown whole");
-		assert.equal(q("agent-status")!.textContent, "Teacher is running");
+		assert.equal(q("agent-status")!.textContent, "Your agent is Claude Code", "the tiles' chips say what runs");
 		assert.equal(q("agent-window-teacher-chip")!.textContent, "Running", "teaching with nothing to do");
 		assert.ok(q("agent-window-teacher-open") === null);
 		assert.equal(q("agent-window-helper-chip")!.textContent, "Not running");
@@ -145,6 +146,19 @@ describe("settings restyle", () => {
 		assert.equal(q("agent-folder-path")!.textContent, "~/godspeed");
 		assert.ok(!text.includes("/plugin"), "no plugin to install");
 		assert.ok(q("old-setup-warning") === null, "nothing old left: no warning");
+	});
+
+	it("beside the teacher's open panel, the teacher's tile leaves its status to the panel's head", async () => {
+		globalThis.fetch = connectionFetch({ token: "tok_p", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, agentTeaching: true, pendingWork: 1 });
+		const panel = { name: "Teacher", panelOpen: true, doing: null, showTerminal: () => {} } as unknown as React.ContextType<typeof TeacherContext>;
+		await mount(
+			<TeacherContext.Provider value={panel}>
+				<Connection />
+			</TeacherContext.Provider>,
+		);
+		assert.ok(q("agent-window-teacher") !== null);
+		assert.ok(q("agent-window-teacher-chip") === null && q("agent-window-teacher-line") === null);
+		assert.equal(q("agent-window-helper-chip")!.textContent, "Not running", "the head speaks for the teacher only");
 	});
 
 	it("the section's line says godspeed starts the helper only in the desktop app", () => {
@@ -155,7 +169,6 @@ describe("settings restyle", () => {
 	it("both running: the helper covers while the teacher tidies its memory", async () => {
 		globalThis.fetch = connectionFetch({ token: "tok_h", agentConnected: true, agentTeaching: true, helperHere: true, helperCovering: true, pendingWork: 1 });
 		await mount(<Connection />);
-		assert.equal(q("agent-status")!.textContent, "Teacher is running");
 		assert.equal(q("agent-window-helper")!.getAttribute("data-tone"), "busy");
 		assert.equal(q("agent-window-helper-chip")!.textContent, "Covering");
 		assert.equal(q("agent-window-helper-line")!.textContent, "Answering for Teacher for a minute");
@@ -192,7 +205,6 @@ describe("settings restyle", () => {
 		const el = await mount(<Connection />);
 		assert.ok(!el.textContent!.includes("Let outside agents connect"));
 		assert.ok(el.querySelector('[role="switch"]') === null);
-		assert.equal(q("agent-status")!.textContent, "No agent is running");
 		assert.equal(q("agent-window-teacher-open")!.textContent, "Start teacher");
 		assert.equal(q("agent-window-helper-open")!.textContent, "Start helper");
 	});
