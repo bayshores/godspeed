@@ -5,18 +5,21 @@ import { PluginFrame } from "@/frontend/components/plugins/plugin-frame";
 import type { PluginContext } from "@/frontend/components/plugins/plugin-frame-model";
 import { usePresence } from "@/frontend/components/presence";
 import { sessionFindHasForegroundLayer } from "@/frontend/components/session-find";
-import { BARS } from "@/frontend/components/top-bar/bar-look";
 import { BarWindow } from "@/frontend/components/ui/bar-window";
 import type { ShownPlugin } from "@/frontend/lib/use-plugins-at";
-import { pluginWindowBox } from "./plugin-window-model";
+import { pluginWindowBox, windowEdge } from "./plugin-window-model";
 
-/** The plugin's word in the lesson bar, which the window hangs under. */
+/** The plugin's word in the lesson bar. */
 export const pluginWordTestId = (id: string) => `lesson-plugin-${id}`;
+/** The lesson's sheet and the "Your turn" column beside or under it. */
+const READING = '[data-testid="lesson-reading"]';
+const TURN = '[data-testid="teacher-column"]';
 
 /**
- * A lesson plugin's page, in a window hanging from the lesson bar under the plugin's lit word and
- * lying over the page, as tall as the page says it is. The word opens and closes it, and Escape
- * closes it; it stays while the learner works in the lesson.
+ * A lesson plugin's page, in a window hanging from the lesson bar over the page, as tall as the page
+ * says it is: over the lesson's sheet while "Your turn" sits beside it, under the plugin's lit word
+ * when they are stacked. The word opens and closes it, and Escape closes it; it stays while the
+ * learner works in the lesson.
  */
 export function PluginWindow({ plugin, context, onClose }: { plugin: ShownPlugin | null; context: PluginContext; onClose: () => void }) {
 	const presence = usePresence(plugin !== null);
@@ -30,20 +33,24 @@ export function PluginWindow({ plugin, context, onClose }: { plugin: ShownPlugin
 
 function Window({ plugin, context, state, onClose }: { plugin: ShownPlugin; context: PluginContext; state: "open" | "closed"; onClose: () => void }) {
 	const [reported, setReported] = useState<number | null>(null);
-	const [at, setAt] = useState<{ wordRight: number; width: number; height: number } | null>(null);
+	const [at, setAt] = useState<{ edge: number; width: number; height: number } | null>(null);
 
-	// Before paint, so it opens under its word. The bar narrows when the Teacher's window docks.
+	// Before paint, so it opens in place. The lesson's columns change with the cheat sheet, a
+	// dragged column and the Teacher's window docking.
 	useLayoutEffect(() => {
-		const word = () => document.querySelector(`[data-testid="${pluginWordTestId(plugin.id)}"]`);
+		const rect = (selector: string) => document.querySelector(selector)?.getBoundingClientRect();
 		const place = () => {
-			const right = word()?.getBoundingClientRect().right;
+			const word = rect(`[data-testid="${pluginWordTestId(plugin.id)}"]`)?.right;
 			// While Find has the bar the word is gone, and the window stays where it was.
-			setAt((now) => ({ wordRight: right ?? now?.wordRight ?? window.innerWidth, width: window.innerWidth, height: window.innerHeight }));
+			setAt((now) => {
+				const fallback = word ?? now?.edge ?? window.innerWidth;
+				return { edge: windowEdge(fallback, rect(READING), rect(TURN)), width: window.innerWidth, height: window.innerHeight };
+			});
 		};
 		place();
 		const watch = new ResizeObserver(place);
-		const bar = word()?.closest(BARS);
-		if (bar) watch.observe(bar);
+		const reading = document.querySelector(READING);
+		if (reading) watch.observe(reading);
 		window.addEventListener("resize", place);
 		return () => {
 			watch.disconnect();
@@ -65,7 +72,7 @@ function Window({ plugin, context, state, onClose }: { plugin: ShownPlugin; cont
 	}, [state, onClose]);
 
 	if (!at) return null;
-	const box = pluginWindowBox(at.wordRight, at, reported);
+	const box = pluginWindowBox(at.edge, at, reported);
 	return (
 		<BarWindow
 			right={box.right}

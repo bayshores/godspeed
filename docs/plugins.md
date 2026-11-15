@@ -6,7 +6,7 @@ godspeed is in alpha, so the plugin format can still change between updates.
 
 ## What a plugin is
 
-A plugin is a folder with a `manifest.json` and a web page. godspeed shows the page in a frame in a lesson (a window under its word in the lesson's top bar) or in a space (a tab). The page talks to godspeed with messages in the MCP Apps format (protocol `2026-01-26`, JSON-RPC 2.0 over `postMessage`). A plugin needs no build step and no server.
+A plugin is a folder with a `manifest.json` and a web page. godspeed shows the page in a frame in a lesson (a window hanging from the lesson's top bar) or in a space (a tab). The page talks to godspeed with messages in the MCP Apps format (protocol `2026-01-26`, JSON-RPC 2.0 over `postMessage`). A plugin needs no build step and no server.
 
 | A plugin can | How |
 |---|---|
@@ -305,7 +305,7 @@ The page gets no title of its own, since godspeed shows its label already.
 
 | Place | The page's box |
 |---|---|
-| A lesson | A window that hangs from the lesson's top bar under the plugin's word and lies over the lesson. It is 360 px wide and as tall as the page says it is, from 48 px up to the room under the top bar less 16 px. A taller page scrolls inside it. Before the page says, it is 120 px tall. The word closes it again, and so do Escape, opening the cheat sheet and opening the Teacher's window. |
+| A lesson | A window that hangs from the lesson's top bar and lies over the lesson's sheet, its right edge on the sheet's, so it never covers "Your turn" beside it. In a narrow window, where "Your turn" sits under the lesson, it hangs under the plugin's word instead. It is 360 px wide and as tall as the page says it is, from 48 px up to the room under the top bar less 16 px. A taller page scrolls inside it. Before the page says, it is 120 px tall. The word closes it again, and so do Escape, opening the cheat sheet and opening the Teacher's window. |
 | A space | A tab that fills the space's page under its tabs. |
 
 In a lesson, tell godspeed the page's height:
@@ -321,7 +321,7 @@ A page that never sends it stays 120 px tall and scrolls inside that. In a space
 1. Open Settings, then Plugins.
 2. Click Add and pick your plugin's folder. Add is in the desktop app only. godspeed copies the folder. If something is wrong, a red message under Add says what, for example `manifest.json: id must be lowercase letters, digits and dashes, like meme-cards`.
 3. The new plugin is picked in the list, and its sheet shows the switch, its settings, Show folder and Remove. A plugin that is off is not shown anywhere, its files are not served, and `ask_agent` is refused.
-4. Open it. A lesson plugin is a word in the lesson's top bar, left of the cheat sheet. Click it to open the page in a window under it, and click it again to close it. A space plugin is a tab after the space's own tabs, and shows only in a real space.
+4. Open it. A lesson plugin is a word in the lesson's top bar, left of the cheat sheet. Click it to open the page in a window over the lesson, and click it again to close it. A space plugin is a tab after the space's own tabs, and shows only in a real space.
 5. After changing a file, click Add and pick the same folder again. godspeed replaces the copy and keeps the plugin's stored JSON and settings. Open the page again to see the change.
 
 A plugin whose folder can no longer load shows in the list with its error and a Remove button.
