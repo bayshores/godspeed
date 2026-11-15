@@ -59571,7 +59571,7 @@
                   "name": "crop",
                   "clip": true,
                   "width": 1040,
-                  "height": 640,
+                  "height": 820,
                   "cornerRadius": 10,
                   "layout": "none",
                   "children": [
@@ -59584,7 +59584,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/plugin-sheet.png?v=2",
+                        "url": "plugins/plugin-sheet.png?v=4",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59615,7 +59615,7 @@
                   "name": "crop",
                   "clip": true,
                   "width": 1040,
-                  "height": 300,
+                  "height": 330,
                   "cornerRadius": 10,
                   "layout": "none",
                   "children": [
@@ -59628,7 +59628,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/plugin-off.png?v=2",
+                        "url": "plugins/plugin-off.png?v=4",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59651,7 +59651,7 @@
                   "name": "crop",
                   "clip": true,
                   "width": 1040,
-                  "height": 290,
+                  "height": 320,
                   "layout": "none",
                   "children": [
                     {
@@ -59663,7 +59663,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/plugin-add.png?v=2",
+                        "url": "plugins/plugin-add.png?v=4",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59714,7 +59714,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/lesson-plugin.png?v=2",
+                        "url": "plugins/lesson-plugin.png?v=4",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59758,7 +59758,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/lesson-plugin-working.png?v=2",
+                        "url": "plugins/lesson-plugin-working.png?v=4",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59781,19 +59781,19 @@
                   "name": "crop",
                   "clip": true,
                   "width": 350,
-                  "height": 210,
+                  "height": 230,
                   "layout": "none",
                   "children": [
                     {
                       "type": "rectangle",
                       "id": "iqE9e",
                       "x": -560,
-                      "y": -96,
+                      "y": -60,
                       "name": "lesson-plugin-failed.png",
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/lesson-plugin-failed.png?v=2",
+                        "url": "plugins/lesson-plugin-failed.png?v=4",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59836,7 +59836,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/space-plugin-tab.png?v=2",
+                        "url": "plugins/space-plugin-tab.png?v=4",
                         "mode": "stretch"
                       },
                       "width": 1440,
