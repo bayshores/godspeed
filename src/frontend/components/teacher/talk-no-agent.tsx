@@ -1,7 +1,7 @@
 import { useStartAgent } from "@/frontend/components/agent-folder/use-agent-folder";
 
-/** In the Talk thread while no agent is connected: the teacher says so and
- *  the button starts one. */
+/** In the Talk thread while no agent is connected, and on the Terminal tab
+ *  before any start: the teacher says so and the button starts one. */
 export function TalkNoAgent() {
 	const agent = useStartAgent();
 	return (

@@ -1,8 +1,8 @@
 /**
  * One agent's live screen and, under it, the sentence about what is
  * happening with its buttons: Paste and Stop stay quiet, and the assist
- * key or Start again is the one bright key. The overlay and onboarding's
- * first start show it.
+ * key or Start again is the one bright key. The teacher's panel (its
+ * Terminal tab) and onboarding's first start show it.
  */
 import { useEffect, useState } from "react";
 import { lazyComponent } from "@/frontend/lib/lazy-component";
@@ -12,7 +12,14 @@ import type { TerminalsApi } from "./use-terminals";
 /** xterm loads with the first screen shown. */
 const TerminalView = lazyComponent(() => import("./terminal-view").then((m) => m.TerminalView));
 
-export function TerminalPane({ api, role, foot }: { api: TerminalsApi; role: TerminalRole; foot: TerminalFooter }) {
+export function TerminalPane({ api, role, foot, focusOnOpen }: {
+	api: TerminalsApi;
+	role: TerminalRole;
+	foot: TerminalFooter;
+	/** The learner opened it: the screen takes the keyboard. Opened by
+	 *  itself, it waits for a click in the screen. */
+	focusOnOpen: boolean;
+}) {
 	const term = api[role]!;
 	const [focusKey, setFocusKey] = useState(0);
 	const [error, setError] = useState<string | null>(null);
@@ -24,7 +31,7 @@ export function TerminalPane({ api, role, foot }: { api: TerminalsApi; role: Ter
 
 	return (
 		<>
-			<TerminalView key={term.id} id={term.id} ended={!live} focusOnOpen={api.focusOnOpen} focusKey={focusKey} />
+			<TerminalView key={term.id} id={term.id} ended={!live} focusOnOpen={focusOnOpen} focusKey={focusKey} />
 			{/* In a narrow window the buttons move under the sentence. */}
 			<div className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-2 border-t border-border py-3.5 pr-3.5 pl-6">
 				<p data-testid="terminal-footer" role="status" className="min-w-64 flex-1 text-lg text-ink">

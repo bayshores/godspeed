@@ -6,8 +6,9 @@
  *    changed item (data-teacher-target) lights up (tour.ts paces it). On
  *    by default; the learner turns it on and off, and the status line
  *    says what the agent is doing (follow-status.ts).
- *  - The panel: Talk, and Activity (teacher-activity.tsx). It never opens
- *    over a lesson: the lesson's teacher column shows the same Activity.
+ *  - The panel: Talk, Activity (teacher-activity.tsx) and, in the desktop
+ *    app, Terminal (use-teacher-panel.ts). Over a lesson it is Terminal
+ *    alone: the lesson is the chat and its teacher column has Activity.
  *
  * The name is the learner's choice (Settings → General → Teacher name) and
  * only ever shown on screen.
@@ -24,10 +25,11 @@ import { useActivity } from "@/frontend/components/activity-dock";
 import { useSpaces } from "@/frontend/components/space-context";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { useSettingsSaved } from "@/frontend/components/settings-signal";
+import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { TeacherPanel } from "./teacher-panel";
 import { TeacherContext, useTeacher, type TeacherApi, type LessonPresence } from "./teacher-context";
-import { useAskTeacher } from "./ask-teacher";
-import type { TalkAsk } from "./talk-view";
+import { useTeacherPanel } from "./use-teacher-panel";
+import { panelTabs } from "./dock-model";
 import { STEP_MS, nextStep } from "./tour";
 import { FOLLOW_DEFAULT, FOLLOW_KEY, GO_OFFER_MS, followMoves, followReady, followReducer, goOffer, parseFollow, safePage, type FollowEvent, type FollowState } from "./follow";
 import { agentDoing, freshAction } from "./follow-status";
@@ -178,24 +180,8 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 	);
 
 	// ── the panel ──
-	const [panelOpen, setPanelOpen] = useState(false);
-	const [showsActivity, setShowsActivity] = useState(false);
-	const openPanel = useCallback((open: boolean) => {
-		setShowsActivity(false);
-		setPanelOpen(open);
-	}, []);
-	const showActivity = useCallback(() => {
-		setShowsActivity(true);
-		setPanelOpen(true);
-	}, []);
-	// A message asked from elsewhere (askTeacher), until Talk sends it.
-	const [ask, setAsk] = useState<TalkAsk | null>(null);
-	const askCount = useRef(0);
-	useAskTeacher((text) => {
-		setAsk({ id: ++askCount.current, text });
-		setPanelOpen(true);
-	});
-	const onAsked = useCallback((id: number) => setAsk((a) => (a?.id === id ? null : a)), []);
+	const panel = useTeacherPanel();
+	const { open: panelOpen, setOpen: setPanelOpen, showActivity, showTerminal } = panel;
 
 	// ── the tour ──
 	const queue = useRef<AgentAction[]>([]);
@@ -307,29 +293,45 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 			forced.current.add(action.id);
 			void run();
 		},
-		[run],
+		[run, setPanelOpen],
 	);
 
 	// A lesson has its own teacher column: the panel shuts when one opens.
 	const inLesson = lesson !== null;
 	useEffect(() => {
 		if (inLesson) setPanelOpen(false);
-	}, [inLesson]);
+	}, [inLesson, setPanelOpen]);
+	const tabs = panelTabs(inLesson, !!useTerminals()?.available);
 
 	const spaceList = spaces.spaces;
 	const spaceNameOf = useCallback((id: string | null) => (id ? (spaceList.find((c) => c.id === id)?.name ?? null) : null), [spaceList]);
 
 	const api = useMemo<TeacherApi>(
-		() => ({ name, follow: followOn, setFollow, panelOpen, setPanelOpen: openPanel, showActivity, recent, doing, setLesson, go, offer, spaceNameOf }),
-		[name, followOn, setFollow, panelOpen, openPanel, showActivity, recent, doing, setLesson, go, offer, spaceNameOf],
+		() => ({ name, follow: followOn, setFollow, panelOpen, setPanelOpen, showActivity, showTerminal, recent, doing, setLesson, go, offer, spaceNameOf }),
+		[name, followOn, setFollow, panelOpen, setPanelOpen, showActivity, showTerminal, recent, doing, setLesson, go, offer, spaceNameOf],
 	);
 
 	return (
 		<TeacherContext.Provider value={api}>
 			{children}
-			{panelOpen && !inLesson && (
+			{panelOpen && tabs.includes(panel.tab) && (
 				<PanelPortal>
-					<TeacherPanel name={name} agent={agent} startTab={showsActivity ? "activity" : "talk"} onClose={() => setPanelOpen(false)} recent={recent} onPick={go} ask={ask} onAsked={onAsked} />
+					<TeacherPanel
+						name={name}
+						agent={agent}
+						tabs={tabs}
+						overLesson={inLesson}
+						tab={panel.tab}
+						onTab={panel.setTab}
+						screen={panel.role}
+						onScreen={panel.setRole}
+						focus={panel.focus}
+						onClose={() => setPanelOpen(false)}
+						recent={recent}
+						onPick={go}
+						ask={panel.ask}
+						onAsked={panel.onAsked}
+					/>
 				</PanelPortal>
 			)}
 		</TeacherContext.Provider>

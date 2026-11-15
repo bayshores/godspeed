@@ -1,6 +1,7 @@
 /**
  * The teacher's screens: the panel (head, the Talk and Activity tabs:
- * Now, Recent, Background jobs) and the teacher name setting.
+ * Now, Recent, Background jobs; its tabs and width) and the teacher name
+ * setting. The Terminal tab has its own file (terminal-tab.test.tsx).
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -34,7 +35,8 @@ Object.assign(globalThis, {
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
 const { TeacherPanel, agentLine } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
-const { dockPush, dockWidth } = await import("../../src/frontend/components/teacher/dock-model.ts");
+const { TERMINAL_DOCK_WIDTH, dockPush, dockWidth, panelTabs } = await import("../../src/frontend/components/teacher/dock-model.ts");
+const { fitFontSize } = await import("../../src/frontend/components/terminal/terminal-model.ts");
 const { draftWithAsk, startsTurn } = await import("../../src/frontend/components/teacher/talk-model.ts");
 const { askTeacher, useAskTeacher } = await import("../../src/frontend/components/teacher/ask-teacher.ts");
 const { waitingNotice } = await import("../../src/frontend/components/agent-status.tsx");
@@ -67,17 +69,31 @@ const ACTIONS: AgentAction[] = [
 ];
 const names = (id: string | null) => (id === "cls_29" ? "CSE 29" : null);
 
-describe("the panel", () => {
-	const panel = (over: Partial<React.ComponentProps<typeof TeacherPanel>> = {}) => (
+type PanelProps = React.ComponentProps<typeof TeacherPanel>;
+/** The panel with its tab held here, as the provider holds it. */
+function Panel(over: Partial<PanelProps>) {
+	const [tab, setTab] = React.useState(over.tab ?? "talk");
+	return (
 		<TeacherPanel
 			name="Ada"
 			agent={{ connected: true, teaching: true, name: "Claude Code", helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [] }}
+			tabs={["talk", "activity"]}
+			overLesson={false}
+			screen="teacher"
+			onScreen={() => {}}
+			focus={false}
 			onClose={() => {}}
 			recent={ACTIONS}
 			onPick={() => {}}
 			{...over}
+			tab={tab}
+			onTab={setTab}
 		/>
 	);
+}
+
+describe("the panel", () => {
+	const panel = (over: Partial<PanelProps> = {}) => <Panel {...over} />;
 
 	// The Talk tab opens the chat on mount; most tests don't need it to answer.
 	const talkCalls: string[] = [];
@@ -336,14 +352,37 @@ describe("the panel", () => {
 		talkChat = null;
 	});
 	it("is 400 wide, and the whole window when narrow", () => {
-		assert.equal(dockWidth(1440), 400);
-		assert.equal(dockWidth(600), 600);
+		assert.equal(dockWidth(1440, false), 400);
+		assert.equal(dockWidth(600, false), 600);
 	});
 	it("pushes the page left by its width", () => {
-		assert.equal(dockPush(1440, 1184), 400);
-		assert.equal(dockPush(600, 600), 0, "the whole window: no push");
-		assert.equal(dockPush(1000, 1000), 400);
-		assert.equal(dockPush(800, 544), 0, "a page too narrow to push is covered instead");
+		assert.equal(dockPush(1440, 1184, false, false), 400);
+		assert.equal(dockPush(600, 600, false, false), 0, "the whole window: no push");
+		assert.equal(dockPush(1000, 1000, false, false), 400);
+		assert.equal(dockPush(800, 544, false, false), 0, "a page too narrow to push is covered instead");
+	});
+	it("on Terminal, is wide enough for the agent's whole screen at 14 px, as far as the window allows", () => {
+		assert.equal(fitFontSize(TERMINAL_DOCK_WIDTH - 26, 10_000), 14, "the screen's box: the width less its padding and the border");
+		assert.equal(dockWidth(1440, true), TERMINAL_DOCK_WIDTH);
+		assert.equal(dockWidth(800, true), 800, "the whole window, the font fit does the rest");
+		assert.equal(dockWidth(600, true), 600);
+	});
+	it("on Terminal, pushes the page by its width only while the page keeps 480 px; else as Talk, covering the rest", () => {
+		assert.equal(dockPush(1440, 1440, true, false), TERMINAL_DOCK_WIDTH);
+		assert.equal(dockPush(1100, 1100, true, false), 400, "switching from Talk never widens the page");
+		assert.equal(dockPush(800, 800, true, false), 0);
+		assert.equal(dockPush(600, 600, true, false), 0);
+		for (const w of [700, 900, 1100, 1300, 1440, 1800]) assert.ok(w - dockPush(w, w, true, false) >= 480 || dockPush(w, w, true, false) === 0, `${w}: the page never under 480`);
+	});
+	it("covers a lesson instead of pushing it (the lesson draws its own top bar)", () => {
+		assert.equal(dockPush(1800, 1800, true, true), 0);
+		assert.equal(dockPush(1800, 1800, false, true), 0);
+	});
+	it("has Terminal in the desktop app only, and over a lesson Terminal alone", () => {
+		assert.deepEqual(panelTabs(false, true), ["talk", "activity", "terminal"]);
+		assert.deepEqual(panelTabs(false, false), ["talk", "activity"]);
+		assert.deepEqual(panelTabs(true, true), ["terminal"]);
+		assert.deepEqual(panelTabs(true, false), []);
 	});
 	it("askTeacher reaches the panel's listener with the text", () => {
 		const heard: string[] = [];

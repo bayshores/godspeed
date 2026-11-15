@@ -226,7 +226,7 @@ describe("Start lesson and a Talk send", () => {
 					});
 					await settle();
 					assert.equal(shell.calls.filter((c) => c === "start teacher codex").length, 1, "two sends close together start one teacher");
-					assert.ok(api!.overlay === null, "it starts hidden");
+					assert.ok(api!.calling === null, "it starts hidden: nothing calls the learner");
 					assert.ok(status()?.connected === false && status()?.teaching === false, "every surface reads no agent until the new one checks in");
 					await act(async () => root!.render(page(access({ connected: true, teaching: true, terminals: [{ id: "teacher-new", here: true }] }))));
 					assert.ok(status()?.teaching === true, "checked in: the server's word again");

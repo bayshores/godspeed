@@ -1,10 +1,10 @@
 /**
  * The agents' terminals in the desktop app, shared by every surface: the
  * teacher's and the helper's latest terminal, starting and stopping them,
- * and the overlay that shows their screens. The overlay opens by itself
- * when the learner is needed (terminal-model.ts), never over a dialog,
- * once per reason, and without taking the keyboard: keys the learner was
- * typing elsewhere never reach an agent's question. The helper starts by itself once the teacher has
+ * and when the learner is needed at a screen (terminal-model.ts): `calling`
+ * names it once per reason, never while a dialog is open, until a surface
+ * hears it or shows that screen (the teacher's panel opens its Terminal
+ * tab, teacher-panel.tsx). The helper starts by itself once the teacher has
  * checked in and background jobs wait; the shell stops it with the teacher.
  * Outside the desktop app `available` is false and nothing here runs.
  */
@@ -29,6 +29,12 @@ import {
 
 type Records = Record<TerminalRole, TerminalRecord | null>;
 
+/** One reason a screen needs the learner. */
+export interface TerminalCall {
+	key: string;
+	role: TerminalRole;
+}
+
 export interface TerminalsApi {
 	/** The desktop app runs terminals; false in a browser. */
 	available: boolean;
@@ -44,18 +50,14 @@ export interface TerminalsApi {
 	agentHere: boolean;
 	/** The shell's first list of terminals has answered. */
 	loaded: boolean;
-	/** The overlay's tab, or null while it is hidden. */
-	overlay: TerminalRole | null;
-	/** The learner opened it: the screen takes the keyboard. Opened by
-	 *  itself, it waits for a click in the screen. */
-	focusOnOpen: boolean;
-	/** Onboarding shows the teacher's screen in its step instead. */
-	inline: boolean;
-	/** The learner opens a screen. */
-	show: (role: TerminalRole) => void;
-	/** Onboarding's step shows the teacher's screen (on) or stops (off). */
-	showInline: (on: boolean) => void;
-	hide: () => void;
+	/** The screen on view now (the panel's Terminal tab, onboarding's
+	 *  step): what it needs counts as seen. */
+	onScreen: TerminalRole | null;
+	setOnScreen: (role: TerminalRole | null) => void;
+	/** A screen needs the learner and no surface has heard it yet. */
+	calling: TerminalCall | null;
+	/** A surface took the call: it opened the screen or marked it. */
+	heard: (key: string) => void;
 	/** Resolves to why it couldn't start, or null. */
 	start: (role: TerminalRole, agent: FolderAgent) => Promise<string | null>;
 	stop: (role: TerminalRole) => void;
@@ -75,8 +77,8 @@ const reason = (err: unknown): string => (typeof err === "string" && err ? err :
 /** A shell refusal's sentence, or null when it went through. */
 const refusal = (p: Promise<void> | undefined): Promise<string | null> => (p ?? Promise.resolve()).then(() => null, (err: unknown) => (typeof err === "string" ? err : null));
 
-/** Another modal dialog is open: the overlay waits for it to close. */
-const dialogOpen = () => !!document.querySelector('[aria-modal="true"]:not([data-terminal-overlay])');
+/** A modal dialog is open: a call waits for it to close. */
+const dialogOpen = () => !!document.querySelector('[aria-modal="true"]');
 
 function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const lh = typeof window === "undefined" ? undefined : window.lh?.terminals;
@@ -84,8 +86,8 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	// The first list has answered: before it, no record says whether an agent runs.
 	const [loaded, setLoaded] = useState(false);
 	const [folder, setFolder] = useState("~/godspeed");
-	const [shown, setShown] = useState<{ role: TerminalRole; focus: boolean; inline: boolean } | null>(null);
-	const overlay = shown?.role ?? null;
+	const [onScreen, setOnScreen] = useState<TerminalRole | null>(null);
+	const [calling, setCalling] = useState<TerminalCall | null>(null);
 	// The terminals that have checked in at least once.
 	const [checked, setChecked] = useState<ReadonlySet<string>>(new Set());
 	const [quietSince, setQuietSince] = useState<number | null>(null);
@@ -193,8 +195,8 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		return () => clearTimeout(t);
 	}, [teacher, teacherLive, teacherCheckedIn, quietSince]);
 
-	// The overlay opens by itself once per reason, never over a dialog. A
-	// reason that shows while its screen is open counts as seen.
+	// Each reason calls once, never over a dialog. A reason that shows
+	// while its screen is on view counts as heard.
 	const fired = useRef(new Set<string>());
 	useEffect(() => {
 		const reasons = new Map<string, TerminalRole>();
@@ -204,17 +206,18 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 			if (f && why) reasons.set(`${f.term.id}:${why}`, role);
 		}
 		for (const key of fired.current) if (!reasons.has(key)) fired.current.delete(key);
-		for (const [key, role] of reasons) if (overlay === role) fired.current.add(key);
+		for (const [key, role] of reasons) if (onScreen === role) fired.current.add(key);
 		const next = [...reasons].find(([key]) => !fired.current.has(key));
-		if (!next || overlay) return;
-		if (dialogOpen()) {
-			const t = setTimeout(bump, 1000);
-			return () => clearTimeout(t);
-		}
-		fired.current.add(next[0]);
-		// Never over what shows already (onboarding's step may have just shown its screen).
-		setShown((cur) => cur ?? { role: next[1], focus: false, inline: false });
-	}, [facts, overlay]);
+		const waits = !!next && dialogOpen();
+		setCalling((cur) => (!next || waits ? null : cur?.key === next[0] ? cur : { key: next[0], role: next[1] }));
+		if (!waits) return;
+		const t = setTimeout(bump, 1000);
+		return () => clearTimeout(t);
+	}, [facts, onScreen]);
+	const heard = useCallback((key: string) => {
+		fired.current.add(key);
+		setCalling((cur) => (cur?.key === key ? null : cur));
+	}, []);
 
 	const start = useCallback(
 		async (role: TerminalRole, agent: FolderAgent): Promise<string | null> => {
@@ -240,10 +243,8 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const refused = teacherStartRefused(teacher, !!status?.outsideHere);
 	const startRole = useCallback(
 		async (role: TerminalRole, agent: FolderAgent) => {
-			if (role === "teacher" && refused === "running") {
-				setShown({ role: "teacher", focus: true, inline: false });
-				return null;
-			}
+			// Its screen shows where the start was asked for.
+			if (role === "teacher" && refused === "running") return null;
 			if (role === "teacher" && refused === "outside") {
 				// The folder is still set up: "Set up my folder" does its part.
 				try {
@@ -297,9 +298,6 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		},
 		[idOf, lh],
 	);
-	const show = useCallback((role: TerminalRole) => setShown({ role, focus: true, inline: false }), []);
-	const showInline = useCallback((on: boolean) => setShown(on ? { role: "teacher", focus: false, inline: true } : null), []);
-	const hide = useCallback(() => setShown(null), []);
 	// The server's `connected` lasts up to 3 minutes after a terminal ended; the terminals know at once.
 	const agentHere = outsideHere || (teacherLive && teacherCheckedIn);
 	// Two sends close together start one teacher: the second comes before the first start's record.
@@ -313,11 +311,9 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		});
 	}, [lh, loaded, teacher, agentHere, outsideHere, start]);
 
-	const focusOnOpen = !!shown?.focus;
-	const inline = !!shown?.inline;
 	return useMemo(
-		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, overlay, focusOnOpen, inline, show, showInline, hide, start: startRole, stop, answer, paste, wake }),
-		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, overlay, focusOnOpen, inline, show, showInline, hide, startRole, stop, answer, paste, wake],
+		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, onScreen, setOnScreen, calling, heard, start: startRole, stop, answer, paste, wake }),
+		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, onScreen, calling, heard, startRole, stop, answer, paste, wake],
 	);
 }
 

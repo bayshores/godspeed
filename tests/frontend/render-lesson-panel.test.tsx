@@ -67,6 +67,7 @@ const marco: TeacherApi = {
 	panelOpen: false,
 	setPanelOpen: () => {},
 	showActivity: () => {},
+	showTerminal: () => {},
 	recent: [],
 	doing: null,
 	setLesson: () => {},

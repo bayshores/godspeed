@@ -8,19 +8,19 @@ import { useTerminals } from "./use-terminals";
 export function FirstRunScreen() {
 	const api = useTerminals();
 	const id = api?.teacher?.id;
-	const showInline = api?.showInline;
-	// This screen stands in for the overlay: what shows here counts as seen.
-	// It takes the keyboard only once the learner clicks in it.
+	const setOnScreen = api?.setOnScreen;
+	// What shows here counts as seen. It takes the keyboard only once the
+	// learner clicks in it.
 	useEffect(() => {
-		if (!id || !showInline) return;
-		showInline(true);
-		return () => showInline(false);
-	}, [id, showInline]);
+		if (!id || !setOnScreen) return;
+		setOnScreen("teacher");
+		return () => setOnScreen(null);
+	}, [id, setOnScreen]);
 	const facts = api?.facts.teacher;
 	if (!api || !facts) return null;
 	return (
 		<div data-testid="first-run-screen" className="flex h-[460px] w-full flex-col overflow-hidden rounded border-2 border-line bg-panel">
-			<TerminalPane api={api} role="teacher" foot={firstRunFooter(facts, api.folder)} />
+			<TerminalPane api={api} role="teacher" foot={firstRunFooter(facts, api.folder)} focusOnOpen={false} />
 		</div>
 	);
 }

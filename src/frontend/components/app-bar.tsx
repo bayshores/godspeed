@@ -84,7 +84,8 @@ function WorkChip() {
 	);
 }
 
-/** The teacher's name with what it is doing; a click opens its panel. */
+/** The teacher's name with what it is doing; a click opens its panel, on
+ *  Terminal while godspeed's teacher starts or needs the learner. */
 function TeacherChip() {
 	const teacher = useTeacher();
 	const agent = useAgentStatus();
@@ -98,7 +99,7 @@ function TeacherChip() {
 				data-testid="bar-teacher"
 				data-teacher-panel-toggle=""
 				aria-expanded={teacher.panelOpen}
-				onClick={() => teacher.setPanelOpen(!teacher.panelOpen)}
+				onClick={() => (teacher.panelOpen ? teacher.setPanelOpen(false) : terminal ? teacher.showTerminal() : teacher.setPanelOpen(true))}
 				title={text}
 				className={cn(BAR_TAB, "ml-1", CHIP_FIT, barTabState(teacher.panelOpen))}
 			>

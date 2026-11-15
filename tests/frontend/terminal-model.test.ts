@@ -129,12 +129,18 @@ describe("the footer's words", () => {
 });
 
 describe("the teacher's status line", () => {
-	it("starting, needs you, else the usual line", () => {
+	it("starting, what it needs from the learner, else the usual line", () => {
 		assert.equal(teacherStatusLine(null, "Ada"), null);
 		assert.equal(teacherStatusLine(facts({ checkedIn: false }), "Ada"), "Ada is starting.");
-		assert.equal(teacherStatusLine(facts({}, { prompt: "trust" }), "Ada"), "Ada needs you.");
-		assert.equal(teacherStatusLine(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS }), "Ada"), "Ada needs you.");
-		assert.equal(teacherStatusLine(facts({}, { ended: { stopped: false, code: 1 } }), "Ada"), "Ada needs you.");
+		assert.equal(teacherStatusLine(facts({}, { prompt: "trust" }), "Ada"), "Claude Code asks to trust its folder.");
+		assert.equal(teacherStatusLine(facts({}, { prompt: "enter" }), "Ada"), "Claude Code is asking you to continue.");
+		assert.equal(teacherStatusLine(facts({}, { prompt: "menu" }), "Ada"), "Claude Code is asking you something.");
+		assert.equal(teacherStatusLine(facts({ checkedIn: false }, { prompt: "menu" }), "Ada"), "Finish signing in to Claude Code.");
+		assert.equal(teacherStatusLine(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS }), "Ada"), "Ada may be waiting for you.");
+		assert.equal(teacherStatusLine(facts({ teaching: false, quietSince: T0, now: T0 + TEACH_WAIT_MS }), "Ada"), "Ada may be waiting for you.");
+		assert.equal(teacherStatusLine(facts({}, { ended: { stopped: false, code: 1 } }), "Ada"), "Claude Code closed with an error.");
+		assert.equal(teacherStatusLine(facts({}, { ended: { stopped: false, code: 3 } }), "Ada"), "Claude Code isn't installed on this computer.");
+		assert.equal(teacherStatusLine(facts({}, { ended: { stopped: false, code: 4 } }), "Ada"), "godspeed needs Node.js to connect Claude Code.");
 		assert.equal(teacherStatusLine(facts(), "Ada"), null);
 		assert.equal(teacherStatusLine(facts({}, { ended: { stopped: true, code: null } }), "Ada"), null);
 		assert.equal(teacherStatusLine(facts({ outsideHere: true }, { ended: { stopped: false, code: 1 } }), "Ada"), null, "an agent outside godspeed teaches now");

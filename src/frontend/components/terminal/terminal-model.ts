@@ -46,6 +46,9 @@ const MAX_FONT = 14;
 const CELL_WIDTH = 0.62;
 const CELL_HEIGHT = 1.2;
 
+/** The screen's width at the largest font: the room the Terminal tab makes. */
+export const FULL_SCREEN_WIDTH = Math.ceil(COLS * CELL_WIDTH * MAX_FONT);
+
 /** The largest font from 8 to 14 px whose whole 100 by 30 screen fits the
  *  box. A box too small even at 8 px scrolls inside, never cuts. */
 export function fitFontSize(width: number, height: number): number {
@@ -106,7 +109,7 @@ const GET_AGENT: Record<FolderAgent, GetLink> = {
 };
 const GET_NODE: GetLink = { label: "Get Node.js", url: "https://nodejs.org" };
 
-/** The overlay's footer: one sentence, an assist key, a page to get
+/** The footer under the screen: one sentence, an assist key, a page to get
  *  something, and whether Start again shows. The assist key, else Start
  *  again, is the bright one. */
 export interface TerminalFooter {
@@ -143,7 +146,7 @@ export function terminalFooter(f: TerminalFacts, names: TerminalNames): Terminal
 	return footer(f.helperBusy ? "The helper is reading your files." : "The helper is waiting for files to read.");
 }
 
-/** While an agent starts and has not checked in (the overlay and onboarding). */
+/** While an agent starts and has not checked in (the Terminal tab and onboarding). */
 function startingLine(agent: FolderAgent, folder: string): string {
 	return `${AGENT_LABEL[agent]} is starting in ${folder}. If it asks you something, answer it here.`;
 }
@@ -168,10 +171,26 @@ export function teacherStateWords(state: TeacherTerminalState | null, name: stri
 	return null;
 }
 
+/** What the teacher's terminal needs from the learner, in short: the
+ *  footer under the screen says it in full. */
+function needLine(f: TerminalFacts, name: string): string {
+	const { term } = f;
+	const agent = AGENT_LABEL[term.agent];
+	if (term.ended?.code === EXIT_NOT_INSTALLED) return `${agent} isn't installed on this computer.`;
+	if (term.ended?.code === EXIT_NO_NODE) return `godspeed needs Node.js to connect ${agent}.`;
+	if (term.ended) return `${agent} closed with an error.`;
+	if (term.prompt === "trust") return `${agent} asks to trust its folder.`;
+	if (term.prompt === "enter") return `${agent} is asking you to continue.`;
+	if (!f.checkedIn && (term.url || term.prompt === "menu")) return `Finish signing in to ${agent}.`;
+	if (term.prompt === "menu") return `${agent} is asking you something.`;
+	return `${name} may be waiting for you.`;
+}
+
 /** The teacher's status line while its terminal starts or needs the
- *  learner; null leaves the usual line. */
+ *  learner (what it needs); null leaves the usual line. */
 export function teacherStatusLine(f: TerminalFacts | null, name: string): string | null {
-	return teacherStateWords(teacherTerminalState(f), name, "line");
+	const state = teacherTerminalState(f);
+	return state === "needsYou" ? needLine(f!, name) : teacherStateWords(state, name, "line");
 }
 
 const live = (term: TerminalRecord | null): boolean => !!term && !term.ended;
@@ -201,7 +220,7 @@ export function helperShouldStart(i: {
 	return !helper || (!!helper.ended && helper.startedAt < teacher.startedAt);
 }
 
-/** Onboarding's footer under the screen: the overlay's words while the
+/** Onboarding's footer under the screen: the Terminal tab's words while the
  *  agent asks something or has ended, else whether it has connected. */
 export function firstRunFooter(f: TerminalFacts, folder: string): TerminalFooter {
 	const { term } = f;
