@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { evalLine, fill, findingLine, readAnswer, snapName, stableFindings } from "../../scripts/layout.mjs";
-import { cross, cutOf, inkOf, lineBox, meet, sticksOut } from "../../scripts/layout-page.mjs";
+import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, snapName } from "../../scripts/layout.mjs";
+import { cross, cutOf, inkOf, lineBox, meet, outside, sticksOut } from "../../scripts/layout-page.mjs";
 import { workOf } from "../../scripts/layout-seed.mjs";
 import { SCREENS } from "../../scripts/layout-screens.mjs";
 
@@ -31,6 +31,18 @@ describe("the page check's boxes", () => {
 		assert.deepEqual(lineBox(box(0, 0, 50, 40), 20), box(0, 10, 50, 30));
 		assert.deepEqual(lineBox(box(0, 0, 50, 20), 30), box(0, 0, 50, 20));
 		assert.deepEqual(lineBox(box(0, 0, 50, 20), Number.NaN), box(0, 0, 50, 20), "line-height: normal");
+	});
+});
+
+describe("hidden", () => {
+	const card = { ...box(0, 0, 200, 100), x: false, y: true };
+
+	it("a box more than 2 pixels outside counts only along the axes the clip clips", () => {
+		assert.ok(outside(box(10, 90, 80, 130), card), "a button pushed out of the bottom");
+		assert.ok(outside(box(10, -20, 80, 0), card), "a line above the top");
+		assert.ok(!outside(box(10, 80, 80, 102), card), "2 pixels is rounding");
+		assert.ok(!outside(box(150, 10, 400, 30), card), "sideways is not clipped here");
+		assert.ok(outside(box(150, 10, 400, 30), { ...card, x: true }));
 	});
 });
 
@@ -68,11 +80,17 @@ describe("the channel", () => {
 });
 
 describe("the walk", () => {
-	it("keeps only findings seen in both reads", () => {
-		const a = { check: "overlap", what: "a and b" };
-		const b = { check: "spill", what: "c sticks out of d" };
-		assert.deepEqual(stableFindings([a, b], [b]), [b]);
-		assert.deepEqual(stableFindings([a], [b]), []);
+	it("two reads agree when they find the same things on the same elements, whatever the words", () => {
+		const clock = { check: "overlap", key: "overlap 3 7", what: "clock \"19:02\" and b" };
+		const spill = { check: "spill", key: "spill 4 5", what: "c sticks out of d" };
+		assert.ok(sameFindings([clock, spill], [spill, { ...clock, what: "clock \"19:03\" and b" }]));
+		assert.ok(!sameFindings([clock], [clock, spill]), "a finding drawn late");
+		assert.ok(sameFindings([], []));
+	});
+
+	it("says why the window is not the size asked for", () => {
+		assert.equal(misfit({ width: 1440, height: 900 }, { width: 1440, height: 900 }), null);
+		assert.equal(misfit({ width: 1440, height: 900 }, { width: 1280, height: 900 }), "the window is 1280 by 900 points, not 1440 by 900");
 	});
 
 	it("fills the made-up data's ids into an address and refuses a missing one", () => {

@@ -7,8 +7,13 @@
  * - spill: an element sticks out of its parent's box, up or down, while the parent neither
  *   scrolls nor clips.
  * - sideways: the page, or a panel at least half the window tall, scrolls sideways.
+ * - hidden: text or a control lies outside a box that clips it without scrolling, such as a
+ *   button pushed out of the bottom of an overflow-hidden card.
  * - cut-off letters: a box that clips (truncate, line-clamp, overflow-hidden) cuts off the top or
  *   bottom of letters it shows, such as the tail of a "g".
+ *
+ * Each finding has a `key` naming its elements, the same from one read to the next while its
+ * words (a clock) may change.
  */
 
 /** Pixels two boxes may cross, or a box may stick out, before it counts: rounding and
@@ -43,6 +48,11 @@ export function inkOf(box, metrics) {
 	return { top: baseline - metrics.actualBoundingBoxAscent, bottom: baseline + metrics.actualBoundingBoxDescent };
 }
 
+/** Whether `box` reaches more than SLACK outside `clip` along the axes it clips. */
+export function outside(box, clip) {
+	return (clip.x && (box.left < clip.left - SLACK || box.right > clip.right + SLACK)) || (clip.y && (box.top < clip.top - SLACK || box.bottom > clip.bottom + SLACK));
+}
+
 /** Whole pixels of ink cut off by a clip box at the top and the bottom; under 1 px is rounding. */
 export function cutOf(ink, clip) {
 	const cut = (px) => (px >= 1 ? Math.round(px) : 0);
@@ -50,6 +60,18 @@ export function cutOf(ink, clip) {
 }
 
 const clips = (style) => style.overflowX !== "visible" || style.overflowY !== "visible";
+const CONTROLS = "button, input, select, textarea";
+const PICTURES = "img, svg, canvas, video, .katex";
+
+/** A number per element, kept on the window, so a finding is matched by its elements across
+ *  reads. */
+function idOf(el) {
+	window.__layoutIds ??= new WeakMap();
+	if (!window.__layoutIds.has(el)) window.__layoutIds.set(el, (window.__layoutNext = (window.__layoutNext ?? 0) + 1));
+	return window.__layoutIds.get(el);
+}
+
+const finding = (check, els, what) => ({ check, key: `${check} ${els.map(idOf).join(" ")}`, what });
 
 /** How a finding names an element: its test id (or the nearest one above it) and first words. */
 function label(el) {
@@ -96,7 +118,7 @@ export function lineBox(box, lineHeight) {
 /** The boxes `el` draws as its own: one per line of its own text, or its border box for a
  *  control or picture. */
 function ownBoxes(el) {
-	if (el.matches("button, input, select, textarea, img, svg, canvas, video, .katex")) return [el.getBoundingClientRect()];
+	if (el.matches(`${CONTROLS}, ${PICTURES}`)) return [el.getBoundingClientRect()];
 	const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
 	const boxes = [];
 	for (const node of el.childNodes) {
@@ -108,12 +130,15 @@ function ownBoxes(el) {
 	return boxes;
 }
 
-/** A box that draws on its own layer over the page: fixed or sticky bars, and positioned
- *  boxes with a z-index (popovers, tooltips, the dim behind a dialog). */
+const OVERLAYS = "[role=dialog], [role=alertdialog], [role=menu], [role=listbox], [role=tooltip], [popover]";
+
+/** A box that draws on its own layer over the page: a fixed or sticky bar, or a true overlay (a
+ *  dialog, a menu, a tooltip). A positioned box in the page's flow stays in the page's layer, z-index
+ *  or not, so text it draws over other text is an overlap. */
 function layerOf(el) {
 	for (let node = el; node; node = node.parentElement) {
 		const style = getComputedStyle(node);
-		if (style.position === "fixed" || style.position === "sticky" || (style.position !== "static" && style.zIndex !== "auto")) return node;
+		if (style.position === "fixed" || style.position === "sticky" || node.matches(OVERLAYS)) return node;
 	}
 	return document.documentElement;
 }
@@ -150,7 +175,7 @@ function overlaps() {
 		for (let j = i + 1; j < items.length && items[j].top < a.bottom; j++) {
 			const b = items[j];
 			if (a.layer !== b.layer || a.el.contains(b.el) || b.el.contains(a.el)) continue;
-			if (a.boxes.some((x) => b.boxes.some((y) => cross(x, y)))) found.push({ check: "overlap", what: `${label(a.el)} and ${label(b.el)}` });
+			if (a.boxes.some((x) => b.boxes.some((y) => cross(x, y)))) found.push(finding("overlap", [a.el, b.el], `${label(a.el)} and ${label(b.el)}`));
 		}
 	}
 	return found;
@@ -158,8 +183,9 @@ function overlaps() {
 
 /**
  * Spill: an in-flow block box whose parent neither scrolls nor clips, sticking out of that
- * parent up or down. Out-of-flow boxes (absolute, fixed) are placed on purpose, and inline
- * boxes follow the line, so neither is measured.
+ * parent up or down (what a clipping parent cuts away is the hidden check's). Out-of-flow boxes
+ * (absolute, fixed) are placed on purpose, and inline boxes follow the line, so neither is
+ * measured.
  */
 function spills() {
 	const found = [];
@@ -172,7 +198,7 @@ function spills() {
 		if (!parent || parent === document.documentElement || clips(getComputedStyle(parent))) continue;
 		const box = el.getBoundingClientRect();
 		if (box.height === 0) continue;
-		if (sticksOut(box, parent.getBoundingClientRect())) found.push({ check: "spill", what: `${label(el)} sticks out of ${label(parent)}` });
+		if (sticksOut(box, parent.getBoundingClientRect())) found.push(finding("spill", [el, parent], `${label(el)} sticks out of ${label(parent)}`));
 	}
 	return found;
 }
@@ -182,37 +208,75 @@ function spills() {
 function sideways() {
 	const found = [];
 	const page = document.scrollingElement;
-	if (page.scrollWidth > page.clientWidth + 1) found.push({ check: "sideways", what: `the page is ${page.scrollWidth} wide in ${page.clientWidth}` });
+	if (page.scrollWidth > page.clientWidth + 1) found.push(finding("sideways", [page], `the page is ${page.scrollWidth} wide in ${page.clientWidth}`));
 	for (const el of document.body.querySelectorAll("*")) {
 		const style = getComputedStyle(el);
 		if (!["auto", "scroll"].includes(style.overflowX) || el.clientHeight < innerHeight / 2 || !shown(el)) continue;
-		if (el.scrollWidth > el.clientWidth + 1) found.push({ check: "sideways", what: `${label(el)} is ${el.scrollWidth} wide in ${el.clientWidth}` });
+		if (el.scrollWidth > el.clientWidth + 1) found.push(finding("sideways", [el], `${label(el)} is ${el.scrollWidth} wide in ${el.clientWidth}`));
 	}
 	return found;
 }
 
-/** The boxes that clip `el`'s text top and bottom: it and its ancestors with overflow hidden or
- *  clip, up to the first scroller. A scroller cuts what is scrolled out of view on purpose. */
-function textClips(el) {
+const SCROLLS = ["auto", "scroll"];
+const CLIPS = ["hidden", "clip"];
+
+/** The boxes that clip `el` without scrolling, nearest first: its own, then those of the
+ *  ancestors in its containing-block chain, up to the first scroller (what a scroller hides is
+ *  scrolled away on purpose). Each says which axes it clips. */
+function clipBoxes(el) {
 	const found = [];
-	for (let node = el; node && node !== document.body; node = node.parentElement) {
+	let position = null;
+	let skipTo = null;
+	for (let node = el; node && node !== document.body && position !== "fixed"; node = node.parentElement) {
+		if (skipTo && node !== skipTo) continue;
+		skipTo = null;
 		const style = getComputedStyle(node);
-		if (style.overflowY === "auto" || style.overflowY === "scroll") break;
-		if (style.overflowY === "hidden" || style.overflowY === "clip") {
+		if (SCROLLS.includes(style.overflowX) || SCROLLS.includes(style.overflowY)) break;
+		const x = CLIPS.includes(style.overflowX);
+		const y = CLIPS.includes(style.overflowY);
+		// Overflow does nothing on an inline box.
+		if ((x || y) && style.display !== "inline") {
 			const box = node.getBoundingClientRect();
+			const left = box.left + node.clientLeft;
 			const top = box.top + node.clientTop;
-			found.push({ node, left: box.left, right: box.right, top, bottom: top + node.clientHeight });
+			found.push({ node, style, x, y, left, top, right: left + node.clientWidth, bottom: top + node.clientHeight });
 		}
-		if (style.position === "fixed") break;
+		position = style.position;
+		if (position === "absolute") skipTo = node.offsetParent;
+	}
+	return found;
+}
+
+/**
+ * Hidden: text or a control that lies outside a box that clips it. What is cut away on purpose
+ * does not count: the tail truncate replaces with "..." (text-overflow), the lines line-clamp
+ * drops, and everything in a box collapsed to nothing (a closed panel, text for screen readers
+ * only). A picture cropped by its frame is not measured.
+ */
+function hiddens() {
+	const found = [];
+	for (const el of document.body.querySelectorAll("*")) {
+		if (el.closest("svg, .katex, [aria-hidden=true]") || el.matches(PICTURES) || !shown(el)) continue;
+		const control = el.matches(CONTROLS);
+		const boxes = ownBoxes(el);
+		if (boxes.length === 0) continue;
+		for (const clip of clipBoxes(el)) {
+			if (clip.right - clip.left <= SLACK || clip.bottom - clip.top <= SLACK) break;
+			// A control's own overflow clips its label, not the control.
+			if (control && clip.node === el) continue;
+			const axes = { ...clip, x: clip.x && clip.style.textOverflow !== "ellipsis", y: clip.y && !(Number(clip.style.webkitLineClamp) > 0) };
+			if (!boxes.some((box) => outside(box, axes))) continue;
+			found.push(finding("hidden", [el, clip.node], `${label(el)} lies outside ${clip.node === el ? "its own box" : label(clip.node)}`));
+			break;
+		}
 	}
 	return found;
 }
 
 /**
  * Cut-off letters. For each line of text a box clips, the letters' ink (inkOf) must stay inside
- * it. A line whose middle is outside the box is hidden on purpose (the lines line-clamp drops,
- * the letters truncate replaces with "..."), so only lines the box shows are measured. A line
- * that may be cut is measured again letter by letter, to name the letter.
+ * it. Only lines whose middle the box shows are measured; the others are the hidden check's. A
+ * line that may be cut is measured again letter by letter, to name the letter.
  */
 function cutOffs() {
 	const found = [];
@@ -229,7 +293,7 @@ function cutOffs() {
 		const texts = [...el.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE && node.data.trim());
 		// Text for screen readers only is clipped to nothing on purpose.
 		if (texts.length === 0 || el.closest("svg, .katex") || !shown(el) || !visiblePart(el, el.getBoundingClientRect())) continue;
-		const clipping = textClips(el);
+		const clipping = clipBoxes(el).filter((clip) => clip.y);
 		if (clipping.length === 0) continue;
 		const style = getComputedStyle(el);
 		const range = document.createRange();
@@ -255,14 +319,14 @@ function cutOffs() {
 				}
 			}
 		}
-		if (worst) found.push({ check: "cut-off letters", what: `${label(el)}: the "${worst.letter}" loses ${worst.px} px at the ${worst.side}, clipped by ${worst.clip === el ? "its own box" : label(worst.clip)}` });
+		if (worst) found.push(finding("cut-off letters", [el], `${label(el)}: the "${worst.letter}" loses ${worst.px} px at the ${worst.side}, clipped by ${worst.clip === el ? "its own box" : label(worst.clip)}`));
 	}
 	return found;
 }
 
 /** Every finding on the page as it is now, each once. */
 export function checkPage() {
-	const all = [...overlaps(), ...spills(), ...sideways(), ...cutOffs()];
+	const all = [...overlaps(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs()];
 	const seen = new Set();
-	return all.filter((f) => !seen.has(f.check + f.what) && seen.add(f.check + f.what));
+	return all.filter((f) => !seen.has(f.key) && seen.add(f.key));
 }

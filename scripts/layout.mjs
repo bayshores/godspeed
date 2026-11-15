@@ -8,14 +8,15 @@
  * (layout-seed.mjs). It then starts the app again with no agent connected, opens each screen in
  * layout-screens.mjs at each width, and runs layout-page.mjs in the page. A finding prints the
  * screen, the width, the check and the two elements, and saves a picture beside the report in
- * target/layout/. Mac only: elsewhere it passes at once.
+ * target/layout/. Mac only: elsewhere it passes at once. Two runs in one worktree share that
+ * folder, so run one at a time.
  */
 import { execFileSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as net from "node:net";
 import * as path from "node:path";
 import { seed } from "./layout-seed.mjs";
-import { SCREENS, WIDTHS } from "./layout-screens.mjs";
+import { HTTP_OK, SCREENS, WIDTHS } from "./layout-screens.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const RUN = path.join(ROOT, "target", "layout");
@@ -23,9 +24,20 @@ const APP = path.join(ROOT, "target", "debug", "godspeed");
 const HEIGHT = 900;
 const POLL_MS = 20;
 const READY_MS = 60_000;
-/** The page is checked twice this far apart, and only findings seen both times count, so a
- *  screen still animating in is not a failure. */
-const SETTLE_MS = 700;
+/** The page is read this far apart until two reads in a row agree, at most READS times. */
+const SETTLE_MS = 400;
+const READS = 6;
+/** Animations and transitions end at once, so a read never sees a screen mid-move. */
+const STILL = `if (!document.getElementById("layout-still")) {
+	const style = document.createElement("style");
+	style.id = "layout-still";
+	style.textContent = "*, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition-duration: 0s !important; transition-delay: 0s !important; }";
+	document.head.append(style);
+}
+for (const animation of document.getAnimations()) {
+	try { animation.finish(); } catch {}
+}
+null`;
 
 /** The channel's answer as a value: JSON, or an Error for `error: <why>`. */
 export function readAnswer(line) {
@@ -38,10 +50,16 @@ export function evalLine(source) {
 	return `eval (0, eval)(${JSON.stringify(source)})`;
 }
 
-/** The findings seen in both reads, in the order of the second. */
-export function stableFindings(first, second) {
-	const seen = new Set(first.map((f) => JSON.stringify(f)));
-	return second.filter((f) => seen.has(JSON.stringify(f)));
+/** Whether two reads found the same things on the same elements; words may differ (a clock). */
+export function sameFindings(first, second) {
+	const keys = (findings) => findings.map((f) => f.key).sort().join("\n");
+	return keys(first) === keys(second);
+}
+
+/** Why the window is not the size asked for, or null when it is. */
+export function misfit(asked, shown) {
+	if (asked.width === shown.width && asked.height === shown.height) return null;
+	return `the window is ${shown.width} by ${shown.height} points, not ${asked.width} by ${asked.height}`;
 }
 
 /** One finding as the report line: screen, width, check, the elements. */
@@ -64,6 +82,32 @@ export function snapName(screen, width) {
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
+/** The app now running, so a signal can stop it. */
+let running = null;
+
+/** A run stopped from outside quits the app it started, and only that one, then fails. */
+function stopOnSignals() {
+	for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
+		process.on(signal, async () => {
+			const app = running;
+			if (app) {
+				fs.appendFileSync(app.ctl, "quit\n");
+				for (const end = Date.now() + 5_000; running === app && Date.now() < end; ) await sleep(100);
+				if (running === app) process.kill(app.pid, "SIGKILL");
+			}
+			console.error(`layout: stopped by ${signal}`);
+			process.exit(1);
+		});
+	}
+}
+
+function portFree(port) {
+	return new Promise((done) => {
+		const server = net.createServer().once("error", () => done(false));
+		server.listen(port, "127.0.0.1", () => server.close(() => done(true)));
+	});
+}
+
 function freePort() {
 	return new Promise((done, fail) => {
 		const server = net.createServer().listen(0, "127.0.0.1", () => {
@@ -76,6 +120,10 @@ function freePort() {
 
 /** The app with its control channel: one command line in, one answer line out. */
 async function startApp(port, name) {
+	// An app that quit a moment ago gives the port back late.
+	for (const end = Date.now() + 5_000; !(await portFree(port)); await sleep(100)) {
+		if (Date.now() > end) throw new Error(`port ${port} is in use`);
+	}
 	const dir = path.join(RUN, name);
 	fs.mkdirSync(dir, { recursive: true });
 	const ctl = path.join(dir, "ctl");
@@ -96,8 +144,11 @@ async function startApp(port, name) {
 		},
 	});
 	let exited = false;
+	const saved = { pid: child.pid, ctl };
+	running = saved;
 	child.on("exit", () => {
 		exited = true;
+		if (running === saved) running = null;
 	});
 	let answered = 0;
 	const send = async (line) => {
@@ -148,12 +199,18 @@ async function startApp(port, name) {
 	return app;
 }
 
-/** Runs the page check: the findings seen twice, SETTLE_MS apart. */
+/** Reads the page until two reads in a row agree, so what is drawn late is checked too; a page
+ *  that never settles answers its last read. */
 async function checkScreen(app, pageCheck) {
-	const first = await app.value(evalLine(pageCheck));
-	if (first.length === 0) return first;
-	await sleep(SETTLE_MS);
-	return stableFindings(first, await app.value(evalLine(pageCheck)));
+	let last = null;
+	for (let read = 0; read < READS; read++) {
+		if (read > 0) await sleep(SETTLE_MS);
+		await app.value(evalLine(STILL));
+		const findings = await app.value(evalLine(pageCheck));
+		if (last && sameFindings(last, findings)) return findings;
+		last = findings;
+	}
+	return last;
 }
 
 async function main() {
@@ -161,6 +218,7 @@ async function main() {
 		console.log("npm run layout runs on a Mac only (it needs the app's WebKit window); skipped.");
 		return;
 	}
+	stopOnSignals();
 	const started = Date.now();
 	const step = (cmd, args) => execFileSync(cmd, args, { cwd: ROOT, stdio: "inherit" });
 	step("npm", ["run", "build", "--silent", "--", "--logLevel", "error"]);
@@ -170,7 +228,7 @@ async function main() {
 
 	fs.rmSync(RUN, { recursive: true, force: true });
 	for (const dir of ["data", "home", "tmp"]) fs.mkdirSync(path.join(RUN, dir), { recursive: true });
-	const port = Number(process.env.LH_PORT) || (await freePort());
+	const port = await freePort();
 	const pageCheck = `(() => { ${fs.readFileSync(path.join(import.meta.dirname, "layout-page.mjs"), "utf8").replace(/^export /gm, "")}; return checkPage(); })()`;
 
 	// The first launch: the stand-in agent writes the data, then the app quits, so the second
@@ -180,11 +238,11 @@ async function main() {
 	try {
 		await app.ready();
 		const page = {
-			fetch: (url, init = {}) => app.run(`return fetch(${JSON.stringify(url)}, ${JSON.stringify(init)}).then((r) => r.status)`),
+			fetch: (url, init = {}) => app.run(`return fetch(${JSON.stringify(url)}, ${JSON.stringify(init)})${HTTP_OK}.then((r) => r.status)`),
 			start: (url, init) => app.value(`eval void fetch(${JSON.stringify(url)}, ${JSON.stringify(init)})`),
 		};
 		ids = await seed(path.join(RUN, "data"), page);
-		const { settings } = JSON.parse(await app.run(`return fetch("/api/settings").then((r) => r.text())`));
+		const { settings } = JSON.parse(await app.run(`return fetch("/api/settings")${HTTP_OK}.then((r) => r.text())`));
 		const version = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).version;
 		const general = { ...settings.general, onboarded: true, lastSeenVersion: version, activeSpace: ids.space, sounds: false, teacherName: "Quigley" };
 		await page.fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(general) });
@@ -193,6 +251,7 @@ async function main() {
 	}
 
 	const failures = [];
+	const warnings = [];
 	app = await startApp(port, "walk");
 	try {
 		await app.ready();
@@ -201,9 +260,9 @@ async function main() {
 				if (screen.before) await app.run(fill(screen.before, ids));
 				await app.value("eval window.__layoutLeft = true");
 				await app.value(`nav ${app.origin}${fill(screen.url, ids)}`);
-				await app.ready(screen.ready);
+				await app.ready(fill(screen.ready, ids));
 				if (screen.setup) await app.run(fill(screen.setup, ids));
-				if (screen.shows) await app.ready(screen.shows);
+				if (screen.shows) await app.ready(fill(screen.shows, ids));
 			} catch (err) {
 				const snap = path.join(RUN, snapName(`${screen.name} not shown`, WIDTHS[0]));
 				await app.send(`snap ${snap}`);
@@ -212,9 +271,15 @@ async function main() {
 			for (const width of WIDTHS) {
 				await app.value(`size ${width} ${HEIGHT}`);
 				await sleep(SETTLE_MS);
-				// A screen smaller than the window would squeeze it and check another width.
-				const shown = await app.value("eval innerWidth");
-				if (shown !== width) throw new Error(`the window is ${shown} points wide, not ${width}: is the screen too small?`);
+				// A screen smaller than the window squeezes it, and the check would judge another size.
+				const [shownWidth, shownHeight] = await app.value("eval [innerWidth, innerHeight]");
+				const problem = misfit({ width, height: HEIGHT }, { width: shownWidth, height: shownHeight });
+				if (problem && width === Math.min(...WIDTHS)) throw new Error(`${problem}: the screen is too small for the narrowest width`);
+				if (problem) {
+					warnings.push(`WARNING: ${screen.name} at ${width} was NOT checked: ${problem}; the screen is too small`);
+					console.warn(warnings.at(-1));
+					continue;
+				}
 				const findings = await checkScreen(app, pageCheck);
 				if (findings.length === 0) continue;
 				const snap = path.join(RUN, snapName(screen.name, width));
@@ -229,12 +294,12 @@ async function main() {
 
 	const report = path.join(RUN, "report.txt");
 	const checked = `${SCREENS.length} screens at ${WIDTHS.join(", ")} points in ${Math.round((Date.now() - built) / 1000)} s (${Math.round((built - started) / 1000)} s to build)`;
-	fs.writeFileSync(report, `${[...failures, checked].join("\n")}\n`);
+	fs.writeFileSync(report, `${[...failures, ...warnings, checked].join("\n")}\n`);
 	if (failures.length > 0) {
 		console.error(`${failures.join("\n")}\nlayout: broken layout found; ${checked}. Report: ${report}`);
 		process.exit(1);
 	}
-	console.log(`layout: no broken layout in ${checked}.`);
+	console.log(`layout: no broken layout in ${checked}.${warnings.length > 0 ? ` ${warnings.length} WARNINGS above: some widths were not checked.` : ""}`);
 }
 
 if (import.meta.main) await main();

@@ -25,6 +25,7 @@ function standIn(dataDir) {
 			headers: { authorization: `Bearer ${token}`, accept: "application/json, text/event-stream", "content-type": "application/json" },
 			body: JSON.stringify({ jsonrpc: "2.0", id: ++id, method, params }),
 		});
+		if (!res.ok) throw new Error(`${method}: the app answered ${res.status}`);
 		const body = await res.json();
 		if (body.error) throw new Error(`${method}: ${body.error.message}`);
 		return body.result;
