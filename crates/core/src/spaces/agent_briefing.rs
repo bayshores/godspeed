@@ -105,7 +105,7 @@ pub fn agent_briefing(input: &BriefingInput) -> Result<String, String> {
 		.map(|(d, space_name)| {
 			let (date, time) = deadline_due_at(d);
 			let overdue = cmp16(&format!("{date}T{time}:00"), &now_stamp).is_lt();
-			format!("- {space_name}: {} ({}), {} {}", d["name"].as_str().unwrap_or(""), d["kind"].as_str().unwrap_or(""), if overdue { "overdue, was due" } else { "due" }, when_label(d))
+			format!("- {space_name}: {} ({}), {} {}", d["name"].str_or_empty(), d["kind"].str_or_empty(), if overdue { "overdue, was due" } else { "due" }, when_label(d))
 		})
 		.collect();
 
@@ -113,7 +113,7 @@ pub fn agent_briefing(input: &BriefingInput) -> Result<String, String> {
 		.iter()
 		.map(|n| {
 			let space = name_of(&names, n["spaceId"].as_str()).map_or_else(String::new, |c| format!("{c}, "));
-			Ok(format!("- {} ({space}saved {}, note_id \"{}\")", n["text"].as_str().unwrap_or(""), day(n["createdAt"].as_str().unwrap_or(""))?, n["id"].as_str().unwrap_or("")))
+			Ok(format!("- {} ({space}saved {}, note_id \"{}\")", n["text"].str_or_empty(), day(n["createdAt"].str_or_empty())?, n["id"].str_or_empty()))
 		})
 		.collect::<Result<Vec<String>, String>>()?;
 

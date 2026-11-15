@@ -36,26 +36,6 @@ export function mergeProblems(previous: readonly HomeworkProblem[], posted: read
 	return posted.map((p) => ({ ...p, done: done.get(p.number) ?? false }));
 }
 
-/** How many problems are done; null with none posted. */
-export function problemsDone(problems: readonly HomeworkProblem[] | undefined): { done: number; total: number } | null {
-	if (!problems || problems.length === 0) return null;
-	return { done: problems.filter((p) => p.done).length, total: problems.length };
-}
-
-/** A homework session on a deadline. */
-interface HomeworkSession {
-	chatId: string;
-	deadlineId: string;
-	createdAt: string;
-}
-
-/** The latest homework session on a deadline, which Work on reopens. */
-export function latestHomework(deadlineId: string, sessions: readonly HomeworkSession[]): string | null {
-	let latest: HomeworkSession | null = null;
-	for (const s of sessions) if (s.deadlineId === deadlineId && (!latest || s.createdAt > latest.createdAt)) latest = s;
-	return latest?.chatId ?? null;
-}
-
 const SOLVED = new Set(["solved", "solvedWithHints"]);
 
 /** Whether a conclude outcome marks the problem done. */
@@ -103,24 +83,3 @@ export function homeworkProblems(
 	return { problems, open, part, cards };
 }
 
-/** What the teacher knows when a homework session starts (a hidden
- *  message at its top). */
-export function homeworkContextText(
-	spaceId: string,
-	deadline: Pick<SpaceDeadline, "id" | "name" | "kind" | "date" | "time">,
-	assignment: { id: string; name: string; path: string | null } | null,
-	problems: readonly HomeworkProblem[],
-): string {
-	const lines = [`[Homework] The learner is working on ${deadline.name} (${deadline.kind}), due ${deadline.date}${deadline.time ? ` ${deadline.time}` : ""}.`];
-	lines.push(
-		assignment
-			? `Its assignment is the space file ${assignment.name} (file id ${assignment.id})${assignment.path ? `, at ${assignment.path}` : ""}.`
-			: `No assignment file is attached yet. Find it in the space files (search_space_files) and attach it with update_space_deadline (space_id ${spaceId}, deadline_id ${deadline.id}, assignment_file_id) before you post its problems. Ask the learner only when you can't find it, or work from the problems they paste.`,
-	);
-	if (problems.length > 0) {
-		lines.push("Its problems, posted before:", ...problems.map((p) => `- ${p.number}: ${p.title}${p.done ? " (done)" : ""}`), "Open the first one not done unless the learner picks another.");
-	} else {
-		lines.push("No problems are posted yet. Read the assignment and post them all with post_problems first.");
-	}
-	return lines.join("\n");
-}

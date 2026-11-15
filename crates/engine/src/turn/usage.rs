@@ -20,11 +20,11 @@ fn template_json(v: Option<&Json>) -> String {
 /// TypeScript throws (a block without data).
 fn content_to_text(content: &Json) -> Result<String, String> {
 	let Some(blocks) = content.as_arr() else {
-		return Ok(content.as_str().unwrap_or_default().to_owned());
+		return Ok(content.str_or_empty().to_owned());
 	};
 	let parts = blocks.iter().map(|b| {
 		if b["type"] == Json::from("text") {
-			return Ok(b["text"].as_str().unwrap_or_default().to_owned());
+			return Ok(b["text"].str_or_empty().to_owned());
 		}
 		let len = match b.get("data") {
 			None => return Err("Cannot read properties of undefined (reading 'length')".to_owned()),
@@ -40,13 +40,13 @@ fn content_to_text(content: &Json) -> Result<String, String> {
 
 /// `assistantContentToText`.
 pub(crate) fn assistant_text(content: &Json) -> String {
-	let blocks = content.as_arr().map_or(&[][..], Vec::as_slice);
+	let blocks = content.items();
 	blocks
 		.iter()
 		.map(|b| match b["type"].as_str() {
 			// Array.join writes a missing text as "".
-			Some("text") => b["text"].as_str().unwrap_or_default().to_owned(),
-			Some("thinking") => b["thinking"].as_str().unwrap_or_default().to_owned(),
+			Some("text") => b["text"].str_or_empty().to_owned(),
+			Some("thinking") => b["thinking"].str_or_empty().to_owned(),
 			_ => format!("{}:{}", b["name"].as_str().unwrap_or("undefined"), template_json(b.get("arguments"))),
 		})
 		.collect::<Vec<_>>()
@@ -58,8 +58,8 @@ fn message_text(m: &Json) -> Result<String, String> {
 	Ok(match m["role"].as_str() {
 		Some("system") => {
 			let mut parts = vec![system_message_text(m)];
-			parts.extend(m["toolsRemoved"].as_arr().into_iter().flatten().map(|t| format!("tool-:{}", stringify(t))));
-			parts.extend(m["toolsAdded"].as_arr().into_iter().flatten().map(|t| format!("tool+:{}", stringify(t))));
+			parts.extend(m["toolsRemoved"].items().iter().map(|t| format!("tool-:{}", stringify(t))));
+			parts.extend(m["toolsAdded"].items().iter().map(|t| format!("tool+:{}", stringify(t))));
 			parts.retain(|p| !p.is_empty());
 			parts.join("\n")
 		}
@@ -67,7 +67,7 @@ fn message_text(m: &Json) -> Result<String, String> {
 		Some("assistant") => assistant_text(&m["content"]),
 		_ => {
 			let mut parts = vec![m["toolName"].as_str().unwrap_or("undefined").to_owned()];
-			for block in m["content"].as_arr().into_iter().flatten() {
+			for block in m["content"].items().iter() {
 				parts.push(content_to_text(&Json::Arr(vec![block.clone()]))?);
 			}
 			parts.join("\n")

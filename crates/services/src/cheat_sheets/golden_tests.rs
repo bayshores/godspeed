@@ -18,8 +18,9 @@ use gs_pdf::test_support::pdfium_dir;
 
 use gs_base::base64::decode;
 use super::cheat_sheet_pdf::take_sheet_pdf;
-use super::{AskInput, Outcome, Stop, ask, cheat_sheet_file, cheat_sheet_pdf, cheat_sheet_view, space_sheets_view, remove_rule, retry, sheet_pdf_file, stop};
+use super::{AskInput, ask, cheat_sheet_file, cheat_sheet_pdf, cheat_sheet_view, space_sheets_view, remove_rule, retry, sheet_pdf_file, stop};
 use crate::App;
+use crate::outcome::{Outcome, Stop};
 
 fn is_iso(s: &str) -> bool {
 	let b = s.as_bytes();
@@ -109,7 +110,7 @@ fn ask_input(body: &Json) -> AskInput {
 }
 
 async fn replay(app: &Arc<App>, mask: &Mask, home: &Path, data: &Path, step: &Json) -> Json {
-	let (cls, ddl) = (step["cls"].as_str().unwrap_or(""), step["ddl"].as_str().unwrap_or(""));
+	let (cls, ddl) = (step["cls"].str_or_empty(), step["ddl"].str_or_empty());
 	let sheets_home = home.join("godspeed").join("cheat-sheets");
 	let n = step["n"].as_f64().unwrap_or(0.0);
 	let out = match step["op"].as_str().unwrap() {

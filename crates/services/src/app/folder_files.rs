@@ -68,8 +68,7 @@ fn drop_old_images(folder: &Path) -> Result<(), String> {
 	for name in names {
 		let file = dir.join(&name);
 		let meta = std::fs::metadata(&file).map_err(|err| fsx::node_error_message(&err, "stat", &file))?;
-		let modified = meta.modified().ok().and_then(|at| at.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0.0, |d| d.as_secs_f64() * 1000.0);
-		if modified < cutoff {
+		if fsx::modified_ms(&meta) < cutoff {
 			if meta.is_dir() {
 				return Err(format!("Path is a directory: rm returned EISDIR (is a directory) {}", file.display()));
 			}

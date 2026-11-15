@@ -18,14 +18,6 @@ pub struct JobToolContext {
 	pub spawn: Spawn,
 }
 
-/// The four tools, built over one context.
-pub struct JobTools {
-	pub research: FnTool,
-	pub demo: FnTool,
-	pub visual: FnTool,
-	pub pdf: FnTool,
-}
-
 /// Creates the job (once per tool call id), starts its runner, and returns the ack.
 fn dispatch(ctx: &JobToolContext, kind: &str, tool_call_id: &str, ack: &str, input: &Json) -> Result<Json, String> {
 	let existing = ctx.job_store.find_job_by_tool_call_id(&ctx.chat_id, tool_call_id);
@@ -36,7 +28,7 @@ fn dispatch(ctx: &JobToolContext, kind: &str, tool_call_id: &str, ack: &str, inp
 	if existing.is_none() {
 		(ctx.spawn)(&job, input);
 	}
-	Ok(Json::from(format!("Dispatched (job {}). {ack}", job["id"].as_str().unwrap_or_default())))
+	Ok(Json::from(format!("Dispatched (job {}). {ack}", job["id"].str_or_empty())))
 }
 
 const FIRE_AND_FORGET: &str = "This call is fire-and-forget: continue your turn and keep teaching \u{2014} do not wait, poll, or mention waiting. ";
@@ -49,8 +41,8 @@ fn job_tool(ctx: &JobToolContext, kind: &'static str, description: &str, paramet
 	})
 }
 
-pub fn job_tools(ctx: &JobToolContext) -> JobTools {
-	let research = job_tool(
+pub fn research_tool(ctx: &JobToolContext) -> FnTool {
+	job_tool(
 		ctx,
 		"research",
 		"Dispatch a background web-research agent: fact verification, current data, or niche specifics you are not certain about. \
@@ -65,8 +57,11 @@ pub fn job_tools(ctx: &JobToolContext) -> JobTools {
 			],
 		),
 		format!("{FIRE_AND_FORGET}The researched brief arrives as a new message when ready and the lesson resumes from it; cite its sources when you use them."),
-	);
-	let demo = job_tool(
+	)
+}
+
+pub fn demo_tool(ctx: &JobToolContext) -> FnTool {
+	job_tool(
 		ctx,
 		"demo",
 		"Dispatch a background sub-agent that BUILDS and headlessly TESTS an interactive teaching instrument \u{2014} a single-file HTML \
@@ -88,8 +83,11 @@ pub fn job_tools(ctx: &JobToolContext) -> JobTools {
 			],
 		),
 		format!("{FIRE_AND_FORGET}The tested demo arrives as a new message when ready and is rendered in the lesson; teach with it then."),
-	);
-	let visual = job_tool(
+	)
+}
+
+pub fn visual_tool(ctx: &JobToolContext) -> FnTool {
+	job_tool(
 		ctx,
 		"visual",
 		"Dispatch a background sub-agent that hand-authors ONE precise SVG figure, renders it, LOOKS at the render, and iterates \
@@ -108,8 +106,11 @@ pub fn job_tools(ctx: &JobToolContext) -> JobTools {
 			)],
 		),
 		format!("{FIRE_AND_FORGET}The verified figure arrives as a new message when ready and is rendered in the lesson; reference it then."),
-	);
-	let pdf = job_tool(
+	)
+}
+
+pub fn pdf_tool(ctx: &JobToolContext) -> FnTool {
+	job_tool(
 		ctx,
 		"pdf",
 		"Dispatch a background sub-agent that READS a PDF on your behalf (triage, targeted extraction, visual page reading for \
@@ -131,6 +132,5 @@ pub fn job_tools(ctx: &JobToolContext) -> JobTools {
 			],
 		),
 		format!("{FIRE_AND_FORGET}The document brief arrives as a new message when ready; weave it into the lesson and cite its pages."),
-	);
-	JobTools { research, demo, visual, pdf }
+	)
 }

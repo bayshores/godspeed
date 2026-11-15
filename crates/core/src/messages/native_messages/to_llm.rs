@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use gs_json::{Json, Obj, json};
 
-use super::scans::tool_calls;
+use crate::messages::tool_calls;
 use super::side_questions::{SIDE_PENDING_TEXT, side_answer_lead, side_held_questions};
 use crate::messages::compaction_marks::{active_compaction_of, kept_index_for};
 use crate::messages::lesson_markers::is_ui_only;
@@ -22,15 +22,8 @@ fn text_content(text: impl Into<Json>) -> Json {
 /// A user message for the wire; the timestamp is copied only when the source has one.
 fn user_message(content: Json, source: &Json) -> Json {
 	let mut out: Obj = [("role", Json::from("user")), ("content", content)].into_iter().collect();
-	set_present(&mut out, "timestamp", source.get("timestamp"));
+	out.insert_present("timestamp", source.get("timestamp"));
 	Json::Obj(out)
-}
-
-/// Sets `key` when the source property exists, as JavaScript leaves an undefined one out.
-fn set_present(out: &mut Obj, key: &str, value: Option<&Json>) {
-	if let Some(v) = value {
-		out.insert(key, v.clone());
-	}
 }
 
 /// The record's messages as the provider protocol needs them.
@@ -78,7 +71,7 @@ pub fn to_llm_messages(messages: &[Json]) -> Vec<Json> {
 				if custom_type == Some("compaction") && has_head && active.is_some_and(|a| a["id"] == m["id"]) {
 					continue;
 				}
-				let files = m["attachments"].as_arr().into_iter().flatten().cloned();
+				let files = m["attachments"].items().iter().cloned();
 				let content = std::iter::once(json!({ "type": "text", "text": m["content"].clone() })).chain(files).collect();
 				out.push(user_message(content, m));
 				continue;
@@ -87,8 +80,8 @@ pub fn to_llm_messages(messages: &[Json]) -> Vec<Json> {
 				let held = m["toolCallId"].as_str().and_then(|id| side_held.get(id)).filter(|h| i > h.side_at);
 				if let Some(held) = held {
 					// The answer record first, then its files.
-					let parts = m["content"].as_arr().map_or(&[][..], Vec::as_slice);
-					let lead = side_answer_lead(&messages[held.call_at], m["toolCallId"].as_str().unwrap_or_default());
+					let parts = m["content"].items();
+					let lead = side_answer_lead(&messages[held.call_at], m["toolCallId"].str_or_empty());
 					let answer = parts.first().filter(|a| a["type"].as_str() == Some("text")).map_or_else(String::new, |a| js_string(a.get("text")));
 					let content = std::iter::once(json!({ "type": "text", "text": format!("{lead}{answer}") })).chain(parts.iter().skip(1).cloned()).collect();
 					out.push(user_message(content, m));
@@ -111,11 +104,11 @@ pub fn to_llm_messages(messages: &[Json]) -> Vec<Json> {
 					continue;
 				}
 				let mut result: Obj = [("role", Json::from("toolResult"))].into_iter().collect();
-				set_present(&mut result, "toolCallId", call.get("id"));
-				set_present(&mut result, "toolName", call.get("name"));
+				result.insert_present("toolCallId", call.get("id"));
+				result.insert_present("toolName", call.get("name"));
 				result.insert("content", text_content(if held { SIDE_PENDING_TEXT } else { INTERRUPTED_TEXT }));
 				result.insert("isError", false);
-				set_present(&mut result, "timestamp", m.get("timestamp"));
+				result.insert_present("timestamp", m.get("timestamp"));
 				out.push(Json::Obj(result));
 			}
 		}

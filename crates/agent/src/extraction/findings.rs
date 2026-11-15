@@ -153,10 +153,6 @@ pub fn session_findings_schema() -> Json {
 
 // ── the submit seam ──
 
-fn items(v: &Json) -> &[Json] {
-	v.as_arr().map_or(&[], Vec::as_slice)
-}
-
 /// The notes door's boundary: a stray messageId (extra properties pass the schema) is dropped, so
 /// notes provenance stays file-level.
 pub fn fill_notes_findings(raw: Json) -> Json {
@@ -173,12 +169,12 @@ pub fn fill_notes_findings(raw: Json) -> Json {
 /// conclusion is never its own premise, and reteaches name existing ideas only. A problem goes
 /// back to the model as an error result; identical chains are not errors (the merge dedupes them).
 pub fn validate_findings_chains(value: &Json, existing: &HashSet<String>) -> Option<String> {
-	if let Some(unknown) = items(&value["reteaches"]).iter().map(Json::str_or_empty).find(|id| !existing.contains(*id)) {
+	if let Some(unknown) = value["reteaches"].items().iter().map(Json::str_or_empty).find(|id| !existing.contains(*id)) {
 		return Some(format!("reteaches: \"{unknown}\" is not an existing idea id from THE GRAPH SO FAR or RELATED IDEAS \u{2014} list only ids shown there."));
 	}
-	let ids: HashSet<&str> = items(&value["propositions"]).iter().map(|p| p["id"].str_or_empty()).collect();
-	for chain in items(&value["chains"]) {
-		let premises: Vec<&str> = items(&chain["premises"]).iter().map(Json::str_or_empty).collect();
+	let ids: HashSet<&str> = value["propositions"].items().iter().map(|p| p["id"].str_or_empty()).collect();
+	for chain in value["chains"].items() {
+		let premises: Vec<&str> = chain["premises"].items().iter().map(Json::str_or_empty).collect();
 		let conclusion = chain["conclusion"].str_or_empty();
 		if premises.is_empty() {
 			return Some("chains: premises must name at least one proposition \u{2014} a proposition with no argument stays in the propositions list alone.".to_owned());
@@ -196,17 +192,17 @@ pub fn validate_findings_chains(value: &Json, existing: &HashSet<String>) -> Opt
 /// The session anchor law: every proposition, and every question test, names a passage of the
 /// batch being read (`batch_ids`), never one of another batch, chat or kind of message.
 pub fn validate_session_anchors(value: &Json, batch_ids: &HashSet<String>, existing: &HashSet<String>) -> Option<String> {
-	let local: HashSet<&str> = items(&value["propositions"]).iter().map(|p| p["id"].str_or_empty()).collect();
-	for test in items(&value["tests"]) {
+	let local: HashSet<&str> = value["propositions"].items().iter().map(|p| p["id"].str_or_empty()).collect();
+	for test in value["tests"].items() {
 		let message_id = test["messageId"].str_or_empty();
 		if !batch_ids.contains(message_id) {
 			return Some(format!("tests: messageId \"{message_id}\" is not a passage of THIS stretch \u{2014} copy the id from the brackets of one of this stretch's own QUESTION [id] passages."));
 		}
-		if let Some(unknown) = items(&test["ids"]).iter().map(Json::str_or_empty).find(|id| !local.contains(id) && !existing.contains(*id)) {
+		if let Some(unknown) = test["ids"].items().iter().map(Json::str_or_empty).find(|id| !local.contains(id) && !existing.contains(*id)) {
 			return Some(format!("tests: \"{unknown}\" is neither a submitted proposition id nor an existing idea id from THE GRAPH SO FAR or RELATED IDEAS."));
 		}
 	}
-	for p in items(&value["propositions"]) {
+	for p in value["propositions"].items() {
 		let (id, message_id) = (p["id"].str_or_empty(), p["messageId"].str_or_empty());
 		if text::trim(message_id).is_empty() {
 			return Some(format!("propositions: \"{id}\" is missing its messageId \u{2014} copy the message id from the brackets of the passage (TEACHER [id]) that most directly states or explains it."));
@@ -220,7 +216,7 @@ pub fn validate_session_anchors(value: &Json, batch_ids: &HashSet<String>, exist
 
 /// The submit as the merger takes it: omitted aliases become `[]`, `tests` rides along when sent.
 pub fn as_session_findings(raw: &Json) -> Json {
-	let propositions: Vec<Json> = items(&raw["propositions"])
+	let propositions: Vec<Json> = raw["propositions"].items()
 		.iter()
 		.map(|p| {
 			let mut p = p.clone();

@@ -68,6 +68,26 @@ impl Obj {
 		None
 	}
 
+	/// Sets `key` to a copy of `value` when there is one, as JavaScript leaves an undefined
+	/// property out.
+	pub fn insert_present(&mut self, key: &str, value: Option<&Json>) {
+		if let Some(v) = value {
+			self.insert(key, v.clone());
+		}
+	}
+
+	/// Sets `key`, or removes it when there is no value.
+	pub fn set_or_remove(&mut self, key: &str, value: Option<Json>) {
+		match value {
+			Some(v) => {
+				self.insert(key, v);
+			}
+			None => {
+				self.remove(key);
+			}
+		}
+	}
+
 	/// Removes `key` keeping the order of the rest (`delete obj.key`).
 	pub fn remove(&mut self, key: &str) -> Option<Json> {
 		let (at, _, value) = self.map.shift_remove_full(key)?;

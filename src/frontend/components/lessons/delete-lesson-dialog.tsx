@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { forgetLessonDraft } from "@/frontend/components/lesson/use-lesson-drafts";
 import { CheckRow } from "@/frontend/components/ui/check-row";
+import { DeleteFoot, FailureRow } from "@/frontend/components/ui/delete-dialog-parts";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import type { ChatDeleteMode, ChatListItem } from "@/shared/core";
 
@@ -114,17 +115,7 @@ export function DeleteLessonBody({
 			testid="delete-lesson-dialog"
 			busy={busy}
 			onClose={onClose}
-			foot={
-				<>
-					<span className="flex-1" />
-					<button type="button" data-testid="delete-cancel" onClick={onClose} disabled={busy} className="lh-btn text-[15px]">
-						Cancel
-					</button>
-					<button type="button" data-testid="delete-confirm" onClick={onRun} disabled={busy} className="lh-btn lh-btn-danger text-[15px]">
-						{busy ? "Deleting…" : "Delete"}
-					</button>
-				</>
-			}
+			foot={<DeleteFoot cancelTestid="delete-cancel" confirmTestid="delete-confirm" busy={busy} onClose={onClose} onRun={onRun} />}
 		>
 			<p data-testid="delete-lesson-name" title={chat.title} className="truncate text-lg text-ink">
 				{chat.title}
@@ -134,14 +125,7 @@ export function DeleteLessonBody({
 			</p>
 			<CheckRow testid={TRACES_COPY.checkbox} label={TRACES_COPY.title} checked={traces} disabled={busy} onToggle={() => onTraces(!traces)} />
 			<p className="text-[15px] text-ink-2">{TRACES_COPY.body}</p>
-			{failure && (
-				<div role="alert" data-testid="delete-failure" className="flex flex-wrap items-center gap-2.5">
-					<span className="min-w-0 flex-1 basis-[200px] text-[15px] text-ans-wrong">{failure}</span>
-					<button type="button" data-testid="delete-retry" onClick={onRun} disabled={busy} className="lh-btn text-[15px]">
-						Try again
-					</button>
-				</div>
-			)}
+			{failure && <FailureRow testid="delete-failure" retryTestid="delete-retry" failure={failure} busy={busy} onRun={onRun} />}
 		</DialogSheet>
 	);
 }

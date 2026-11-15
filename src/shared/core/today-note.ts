@@ -15,11 +15,23 @@ import { type SpaceDeadline } from "./contracts/space.ts";
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+/** "Oct 30" for 2026-10-30. */
+export function monthDay(day: string): string {
+	const [, m, d] = day.split("-").map(Number) as [number, number, number];
+	return `${MONTHS[m - 1]} ${d}`;
+}
+
 /** "Fri Oct 30" for 2026-10-30. */
 export function dayLabel(day: string): string {
 	const [y, m, d] = day.split("-").map(Number) as [number, number, number];
-	const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-	return `${WEEKDAYS[weekday]} ${MONTHS[m - 1]} ${d}`;
+	return `${WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]} ${monthDay(day)}`;
+}
+
+/** "Wednesday Nov 11" for 2026-11-11. */
+export function longDay(day: string): string {
+	const [y, m, d] = day.split("-").map(Number) as [number, number, number];
+	const date = new Date(y, m - 1, d);
+	return `${date.toLocaleDateString("en-US", { weekday: "long" })} ${date.toLocaleDateString("en-US", { month: "short" })} ${d}`;
 }
 
 /** The local calendar day of a moment, YYYY-MM-DD (the app runs on the

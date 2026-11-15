@@ -53,7 +53,7 @@ fn queued(app: &App, to: Option<&Arc<Agent>>) -> Vec<(String, bool, bool, bool)>
 }
 
 fn delivery_status(app: &App, job_id: &str) -> String {
-	app.stores.jobs.get_job(job_id).unwrap()["delivery"]["status"].as_str().unwrap_or_default().to_owned()
+	app.stores.jobs.get_job(job_id).unwrap()["delivery"]["status"].str_or_empty().to_owned()
 }
 
 /// A turn runner that saves every steer into the record like the chat handler, and answers `status`.
@@ -343,7 +343,7 @@ fn side_question_record() -> Vec<Json> {
 }
 
 fn ids_on_disk(app: &App) -> Vec<String> {
-	messages_of(&app.stores.chats.get_chat(CHAT).unwrap()).iter().map(|m| m["id"].as_str().unwrap_or_default().to_owned()).collect()
+	app.stores.chats.get_chat(CHAT).unwrap()["messages"].items().iter().map(|m| m["id"].str_or_empty().to_owned()).collect()
 }
 
 #[tokio::test]
@@ -365,9 +365,9 @@ async fn a_figure_made_while_a_side_question_holds_the_question_shows_at_once_wi
 	// After a reload the figure is there and the same question is still open.
 	let reloaded = test_app(&root);
 	let record = reloaded.stores.chats.get_chat(CHAT).unwrap();
-	assert_eq!(messages_of(&record)[4]["details"]["result"]["svg"], json!("<svg/>"));
-	assert_eq!(dangling_question_of(messages_of(&record)).unwrap().tool_call_id, "q1");
-	assert!(open_question_held(messages_of(&record)), "another side question still finds it held");
+	assert_eq!(record["messages"].items()[4]["details"]["result"]["svg"], json!("<svg/>"));
+	assert_eq!(dangling_question_of(record["messages"].items()).unwrap().tool_call_id, "q1");
+	assert!(open_question_held(record["messages"].items()), "another side question still finds it held");
 }
 
 #[tokio::test]
@@ -437,5 +437,5 @@ async fn a_demo_shows_at_once_too_but_a_research_brief_waits_for_the_answer() {
 	assert!(calls.lock().is_empty() && !is_turn_running(&app, CHAT), "no teacher turn");
 	assert_eq!((delivery_status(&app, "job_d"), delivery_status(&app, "job_r")), ("delivered".into(), "pending".into()));
 	assert_eq!(queued(&app, None), [("steer_job_r".into(), false, false, false)], "the brief rides the answer turn");
-	assert_eq!(dangling_question_of(messages_of(&app.stores.chats.get_chat(CHAT).unwrap())).unwrap().tool_call_id, "q1");
+	assert_eq!(dangling_question_of(app.stores.chats.get_chat(CHAT).unwrap()["messages"].items()).unwrap().tool_call_id, "q1");
 }

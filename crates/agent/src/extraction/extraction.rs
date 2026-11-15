@@ -423,7 +423,7 @@ impl Extraction {
 		let record = record.ok_or_else(|| format!("Chat not found: {chat_id}"))?;
 		// The lesson's graph, fixed for the whole run (a space move is refused while it runs).
 		let scope = record["spaceId"].as_str().map(str::to_owned);
-		let messages = record["messages"].as_arr().map_or(&[][..], Vec::as_slice);
+		let messages = record["messages"].items();
 		let entries = ScopedGraph::new(self.0.graphs(), scope.as_deref()).read_coverage()?;
 		let covered = coverage_of(messages, &entries, chat_id);
 		if covered.uncovered.is_empty() {

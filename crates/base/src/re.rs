@@ -4,7 +4,7 @@
 //! JavaScript does (without the `u` flag an emoji is two units), so offsets are UTF-16 indices.
 
 use std::ops::Range;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use gs_json::lone::{from_utf16, to_utf16};
 use regress::Regex;
@@ -81,10 +81,14 @@ impl Re {
 
 	/// Every match (`text.matchAll(re)`); after an empty match the search moves on one unit.
 	pub fn captures_iter(&self, text: &str) -> Vec<Caps> {
-		let units: Arc<[u16]> = to_utf16(text).into();
+		self.matches_in(to_utf16(text).into(), usize::MAX)
+	}
+
+	/// At most `limit` matches in order, each sharing `units`.
+	fn matches_in(&self, units: Arc<[u16]>, limit: usize) -> Vec<Caps> {
 		let mut out = Vec::new();
 		let mut from = 0;
-		while from <= units.len() {
+		while from <= units.len() && out.len() < limit {
 			let Some(m) = self.next_match(&units, from) else { break };
 			let r = m.range();
 			from = if r.is_empty() { self.advance(&units, r.end) } else { r.end };
@@ -101,14 +105,13 @@ impl Re {
 
 	/// `text.replace(re, f)`: every match with `g`, else the first.
 	pub fn replace_with(&self, text: &str, mut f: impl FnMut(&Caps) -> String) -> String {
-		let units = to_utf16(text);
+		let units: Arc<[u16]> = to_utf16(text).into();
 		let mut out = Vec::with_capacity(units.len());
 		let mut last = 0;
-		let all = self.captures_iter(text);
-		for caps in all.iter().take(if self.global { usize::MAX } else { 1 }) {
+		for caps in self.matches_in(units.clone(), if self.global { usize::MAX } else { 1 }) {
 			let r = caps.range();
 			out.extend_from_slice(&units[last..r.start]);
-			out.extend(to_utf16(&f(caps)));
+			out.extend(to_utf16(&f(&caps)));
 			last = r.end;
 		}
 		out.extend_from_slice(&units[last..]);
@@ -162,6 +165,12 @@ pub fn escape(s: &str) -> String {
 		out.push(c);
 		out
 	})
+}
+
+/// `text.replace(/\s+/g, " ")`: every run of whitespace becomes one space.
+pub fn collapse_spaces(text: &str) -> String {
+	static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
+	SPACES.replace(text, " ")
 }
 
 /// GetSubstitution: the replacement text for one match.
@@ -260,6 +269,8 @@ mod tests {
 		assert_eq!(Re::new("o", "g").replace("fo", "$9$<"), "f$9$<");
 		assert_eq!(Re::new("x*", "g").replace("ab", "-"), "-a-b-");
 		assert_eq!(Re::new("[^a]", "g").replace("a😀", "?"), "a??");
+		assert_eq!(Re::new("x*", "").replace("ab", "-"), "-ab");
+		assert_eq!(Re::new("b", "").replace_with("abab", |_| "X".into()), "aXab");
 	}
 
 	#[test]

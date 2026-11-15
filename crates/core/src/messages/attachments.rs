@@ -3,7 +3,7 @@
 
 use std::sync::LazyLock;
 
-use gs_base::re::Re;
+use gs_base::re::{Re, collapse_spaces};
 use gs_base::text;
 use gs_json::{Json, json};
 
@@ -111,8 +111,7 @@ const PDF_NOTE_TAIL: &str = "Read it with the pdf tool when you need its content
 /// The text part that stands for a saved PDF: the teacher reads its name and path, the view turns
 /// it back into a chip (`pdf_note_of`).
 pub fn pdf_note(name: &str, file_path: &str) -> Json {
-	static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
-	json!({ "type": "text", "text": format!("{PDF_NOTE_HEAD}{}\n{PDF_NOTE_PATH}{file_path}\n{PDF_NOTE_TAIL}", SPACES.replace(name, " ")) })
+	json!({ "type": "text", "text": format!("{PDF_NOTE_HEAD}{}\n{PDF_NOTE_PATH}{file_path}\n{PDF_NOTE_TAIL}", collapse_spaces(name)) })
 }
 
 /// The name and path a `pdf_note` text holds, or None for any other text.
@@ -129,7 +128,7 @@ pub fn pdf_note_of(note: &str) -> Option<(String, String)> {
 pub fn content_text(content: &Json) -> String {
 	match content {
 		Json::Str(s) => s.clone(),
-		Json::Arr(parts) => parts.iter().map(|p| if p["type"].as_str() == Some("text") { p["text"].as_str().unwrap_or("").to_owned() } else { "[image]".to_owned() }).collect::<Vec<_>>().join("\n"),
+		Json::Arr(parts) => parts.iter().map(|p| if p["type"].as_str() == Some("text") { p["text"].str_or_empty().to_owned() } else { "[image]".to_owned() }).collect::<Vec<_>>().join("\n"),
 		_ => String::new(),
 	}
 }

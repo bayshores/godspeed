@@ -43,7 +43,7 @@ pub enum ReviewReply {
 }
 
 fn times(record: &Json) -> Vec<f64> {
-	record["messages"].as_arr().into_iter().flatten().filter_map(|m| m["timestamp"].as_f64()).collect()
+	record["messages"].items().iter().filter_map(|m| m["timestamp"].as_f64()).collect()
 }
 
 /// The questions skipped in this sitting; ones from an ended sitting are forgotten.
@@ -75,7 +75,7 @@ fn sitting_picks(app: &App, chat_id: &str, record: &Json) -> Result<Vec<Json>, S
 	let Some(space_id) = record["spaceId"].as_str().filter(|_| record["kind"].as_str() == Some("study")) else { return Ok(Vec::new()) };
 	let Some(progress) = progress_for(app, space_id, None)? else { return Ok(Vec::new()) };
 	let order = space_order_for(app, space_id, &progress);
-	let rank = |t: &Json| t["members"].as_arr().into_iter().flatten().filter_map(|m| m.as_str().and_then(|id| order.get(id))).min().copied().unwrap_or(usize::MAX);
+	let rank = |t: &Json| t["members"].items().iter().filter_map(|m| m.as_str().and_then(|id| order.get(id))).min().copied().unwrap_or(usize::MAX);
 	let mut topics: Vec<Json> = progress["topics"].as_arr().cloned().unwrap_or_default();
 	topics.sort_by_key(rank);
 	let reviews = space_reviews(app, space_id);
@@ -83,8 +83,8 @@ fn sitting_picks(app: &App, chat_id: &str, record: &Json) -> Result<Vec<Json>, S
 	let space = ReviewSpace {
 		today: progress["today"].str_or_empty(),
 		topics: &topics,
-		links: progress["topicLinks"].as_arr().map_or(&[], Vec::as_slice),
-		deadlines: progress["deadlines"].as_arr().map_or(&[], Vec::as_slice),
+		links: progress["topicLinks"].items(),
+		deadlines: progress["deadlines"].items(),
 		answers: &reviews.answers,
 		outcomes: &reviews.outcomes,
 		items: &reviews.items,
@@ -115,7 +115,7 @@ pub fn next_review(app: &App, chat_id: &str) -> Result<ReviewReply, String> {
 /// skipped it is no longer askable.
 fn asked_this_sitting(record: &Json, now: i64) -> Option<&Json> {
 	let start = sitting_start(&times(record), now as f64);
-	let sitting = record["messages"].as_arr().into_iter().flatten().rev().take_while(|m| m["timestamp"].as_f64().is_some_and(|t| t >= start));
+	let sitting = record["messages"].items().iter().rev().take_while(|m| m["timestamp"].as_f64().is_some_and(|t| t >= start));
 	sitting.filter(|m| m["customType"].as_str() == Some("app-note")).map(|m| &m["details"]["reviewOf"]).find(|of| of.as_obj().is_some())
 }
 

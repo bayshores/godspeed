@@ -13,10 +13,6 @@ fn open(work: Option<&Json>) -> Option<&Json> {
 	work.filter(|w| !w["endedAt"].truthy())
 }
 
-fn ids(list: &Json) -> Vec<&str> {
-	list.as_arr().into_iter().flatten().filter_map(Json::as_str).collect()
-}
-
 /// The round with these fields set (its other fields keep their place).
 fn with(work: &Json, fields: &[(&str, Json)]) -> Json {
 	let mut out = work.as_obj().cloned().unwrap_or_default();
@@ -35,7 +31,7 @@ pub fn work_after_files(work: Option<&Json>, before: &[Json], after: &[Json], no
 	};
 	let waited: Vec<&str> = before.iter().filter(|f| is_waiting_file(f)).filter_map(|f| f["id"].as_str()).collect();
 	let mut file_ids: Vec<Json> = round["fileIds"].as_arr().cloned().unwrap_or_default();
-	let read_before = ids(&round["fileIds"]);
+	let read_before = round["fileIds"].strs();
 	for f in after {
 		let Some(id) = f["id"].as_str() else { continue };
 		if waited.contains(&id) && !is_waiting_file(f) && !read_before.contains(&id) {
@@ -45,7 +41,7 @@ pub fn work_after_files(work: Option<&Json>, before: &[Json], after: &[Json], no
 	if waiting {
 		return Some(with(round, &[("fileIds", Json::Arr(file_ids))]));
 	}
-	let made_something = !file_ids.is_empty() || !ids(&round["deadlineIds"]).is_empty();
+	let made_something = !file_ids.is_empty() || !round["deadlineIds"].strs().is_empty();
 	made_something.then(|| with(round, &[("fileIds", Json::Arr(file_ids)), ("endedAt", Json::from(now))]))
 }
 
@@ -60,7 +56,7 @@ pub fn work_after_deadline(work: Option<&Json>, deadline_id: &str) -> Option<Jso
 /// True while every study file read so far was read in this round: the teacher is building the
 /// space, not adding to it.
 pub fn is_first_round(files: &[Json], work: Option<&Json>) -> bool {
-	let read_now = work.map(|w| ids(&w["fileIds"])).unwrap_or_default();
+	let read_now = work.map(|w| w["fileIds"].strs()).unwrap_or_default();
 	!files.iter().any(|f| f["kind"].as_str() == Some("study") && f["status"].as_str() == Some("ready") && f["id"].as_str().is_none_or(|id| !read_now.contains(&id)))
 }
 

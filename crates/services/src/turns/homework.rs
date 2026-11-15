@@ -32,15 +32,15 @@ pub fn create_homework(app: &Arc<App>, space_id: &str, deadline_id: &str) -> Res
 	let Some(space) = app.stores.spaces.get_space(space_id) else {
 		return Ok(Err(NotFound { code: "space_not_found", error: "No such space" }));
 	};
-	let Some(deadline) = deadline_of(&space, deadline_id).filter(|d| has_problems(d["kind"].as_str().unwrap_or_default())) else {
+	let Some(deadline) = deadline_of(&space, deadline_id).filter(|d| has_problems(d["kind"].str_or_empty())) else {
 		return Ok(Err(NotFound { code: "deadline_not_found", error: "No such homework or project" }));
 	};
 	let assignment = file_of(&space, deadline).map_or(Json::Null, |file| json!({ "id": file["id"], "name": file["name"], "path": space_file_path(app, &space, file) }));
-	let title = format!("Work on {}", deadline["name"].as_str().unwrap_or_default());
-	let space_id = space["id"].as_str().unwrap_or_default();
+	let title = format!("Work on {}", deadline["name"].str_or_empty());
+	let space_id = space["id"].str_or_empty();
 	let chat = app.stores.chats.create_chat(&title, Some("homework"), Some(space_id), deadline["id"].as_str())?;
-	let chat_id = chat["id"].as_str().unwrap_or_default().to_owned();
-	let problems = deadline["problems"].as_arr().map_or(&[][..], Vec::as_slice);
+	let chat_id = chat["id"].str_or_empty().to_owned();
+	let problems = deadline["problems"].items();
 	let messages = [new_space_context_message(&space_card_for(app, &space)?), new_study_context_message(&homework_context_text(space_id, deadline, &assignment, problems), "homework-context")];
 	app.stores.chats.save_messages(&chat_id, &messages)?;
 	let chat = app.stores.chats.get_chat(&chat_id).unwrap_or(chat);

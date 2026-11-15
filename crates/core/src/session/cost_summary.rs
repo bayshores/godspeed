@@ -126,9 +126,7 @@ fn fold_run(run: &Json, title: Option<&Json>, extraction: &mut StageCost, audit:
 	if unpriced_runs > 0 {
 		out.insert("unpricedRuns", unpriced_runs as f64);
 	}
-	if let Some(at) = run.get("startedAt") {
-		out.insert("startedAt", at.clone());
-	}
+	out.insert_present("startedAt", run.get("startedAt"));
 	if let Some(title) = title {
 		out.insert("title", title.clone());
 	}
@@ -164,9 +162,9 @@ pub fn graph_cost_summary(input: &Json) -> Json {
 	let mut audit = StageCost::default();
 	let mut runs: Vec<RecentRun> = Vec::new();
 	for (list, title_key) in [("chats", "title"), ("sources", "filePath")] {
-		for owner in input[list].as_arr().into_iter().flatten() {
+		for owner in input[list].items().iter() {
 			let title = owner.get(title_key);
-			for run in owner["extractions"].as_arr().into_iter().flatten() {
+			for run in owner["extractions"].items().iter() {
 				fold_run(run, title, &mut extraction, &mut audit, &mut runs);
 			}
 		}

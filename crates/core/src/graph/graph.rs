@@ -12,7 +12,7 @@ pub use super::simplify::simplify_chains;
 
 use super::chains::format_chain_line;
 use super::clusters::MIN_CLUSTER_SIZE;
-use super::ledger_lines::{chain_key_of, strs, union_points};
+use super::ledger_lines::{chain_key_of, union_points};
 use super::ordered::OrderedMap;
 use super::ports::{GraphDeps, GraphStore};
 use super::session_clusters::{BirthSessionCluster, attach_imp_to_communities, birth_session_of, birth_session_partition};
@@ -36,10 +36,10 @@ pub fn get_graph(store: &dyn GraphStore) -> Result<DerivedGraph, String> {
 			continue;
 		};
 		// A later line's statement is a phrasing, not a replacement.
-		let phrasings = std::iter::once(&line["statement"]).chain(line["aliases"].as_arr().into_iter().flatten()).filter_map(Json::as_str);
+		let phrasings = std::iter::once(&line["statement"]).chain(line["aliases"].items().iter()).filter_map(Json::as_str);
 		let mut fresh: Vec<&str> = Vec::new();
 		for phrasing in phrasings {
-			let held = existing["aliases"].as_arr().into_iter().flatten().any(|a| a.as_str() == Some(phrasing)) || fresh.contains(&phrasing);
+			let held = existing["aliases"].items().iter().any(|a| a.as_str() == Some(phrasing)) || fresh.contains(&phrasing);
 			if !phrasing.is_empty() && existing["statement"].as_str() != Some(phrasing) && !held {
 				fresh.push(phrasing);
 			}
@@ -91,7 +91,7 @@ pub fn derive_view(graph: &DerivedGraph) -> DerivedView {
 	let mut logical_edges = Vec::new();
 	let mut logical_seen: HashSet<(&str, &str)> = HashSet::new();
 	for chain in &graph.chains {
-		let premises = strs(&chain["premises"]);
+		let premises = chain["premises"].strs();
 		let Some(conclusion) = chain["conclusion"].as_str().filter(|c| live.contains(c)) else { continue };
 		if !premises.iter().all(|p| live.contains(p)) {
 			continue;
@@ -138,7 +138,7 @@ pub fn graph_snapshot(deps: &GraphDeps) -> Result<Json, String> {
 	let mut node_chats: OrderedMap<Vec<String>> = OrderedMap::default();
 	for node in &view.nodes {
 		let Some(id) = node["id"].as_str() else { continue };
-		for chat_id in node["provenance"].as_arr().into_iter().flatten().filter_map(|pt| pt["chatId"].as_str()) {
+		for chat_id in node["provenance"].items().iter().filter_map(|pt| pt["chatId"].as_str()) {
 			let chats = node_chats.get_or_insert_with(id, Vec::new);
 			if !chats.iter().any(|c| c == chat_id) {
 				chats.push(chat_id.to_owned());
@@ -227,9 +227,9 @@ pub fn graph_session_index(deps: &GraphDeps) -> Result<Vec<Json>, String> {
 			entries.push(json!({ "id": id, "name": name, "kind": "file", "createdAt": imported, "updatedAt": imported, "propositions": propositions }));
 		}
 	}
-	let text = |entry: &Json, key: &str| -> String { entry[key].as_str().unwrap_or("").to_owned() };
+	let text = |entry: &Json, key: &str| -> String { entry[key].str_or_empty().to_owned() };
 	entries.sort_by(|a, b| {
-		let ids = || cmp16(a["id"].as_str().unwrap_or(""), b["id"].as_str().unwrap_or(""));
+		let ids = || cmp16(a["id"].str_or_empty(), b["id"].str_or_empty());
 		locale::compare(&text(b, "updatedAt"), &text(a, "updatedAt")).then_with(|| locale::compare(&text(b, "createdAt"), &text(a, "createdAt"))).then_with(ids)
 	});
 	Ok(entries)
@@ -238,7 +238,7 @@ pub fn graph_session_index(deps: &GraphDeps) -> Result<Vec<Json>, String> {
 /// The propositions born in one session, as `{ nodeId, name }` sorted by node id.
 pub fn graph_session_propositions(deps: &GraphDeps, session_id: &str) -> Result<Vec<Json>, String> {
 	let mut born: Vec<Json> = get_graph(deps.graph_store)?.nodes.iter().filter(|node| birth_session_of(node) == Some(session_id)).map(|node| json!({ "nodeId": node["id"], "name": node["name"] })).collect();
-	born.sort_by(|a, b| cmp16(a["nodeId"].as_str().unwrap_or(""), b["nodeId"].as_str().unwrap_or("")));
+	born.sort_by(|a, b| cmp16(a["nodeId"].str_or_empty(), b["nodeId"].str_or_empty()));
 	Ok(born)
 }
 

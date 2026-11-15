@@ -3,13 +3,14 @@
 //! (single-node deletion) and /api/progress (the Overview and topic Graph payload).
 
 use std::collections::VecDeque;
-use std::sync::{Arc, Mutex, PoisonError};
+use std::sync::Arc;
 
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, Uri, header};
 use axum::response::Response;
+use futures_util::StreamExt;
 use gs_core::contracts::space::is_calendar_date;
 use gs_json::{Json, Obj, json};
 use gs_services::App;
@@ -20,7 +21,7 @@ use gs_services::graph::graph::{delete_graph_node, graph_costs, graph_view};
 use gs_services::graph::progress::progress_for;
 
 use crate::http::form;
-use crate::http::paths::{param, search_params};
+use crate::http::paths::{param, query};
 use crate::http::reply::{self, Unhandled, body_text, error, json, json_body, read_body};
 use crate::http::route::ApiRoute;
 
@@ -35,32 +36,31 @@ pub fn routes() -> Router<Arc<App>> {
 }
 
 /// `?space=<id|none>` (absent is No space); None for a malformed or unknown space.
-fn scope_of(app: &App, uri: &Uri) -> Option<Option<String>> {
-	let params = search_params(uri.query().unwrap_or_default());
-	request_space_scope(app, param(&params, "space"))
+fn scope_of(app: &App, params: &[(String, String)]) -> Option<Option<String>> {
+	request_space_scope(app, param(params, "space"))
 }
 
 async fn get_graph(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandled> {
-	let Some(scope) = scope_of(&app, &uri) else { return Ok(error(404, "No such space")) };
+	let Some(scope) = scope_of(&app, &query(&uri)) else { return Ok(reply::no_such_space()) };
 	Ok(json(200, &graph_view(&app, scope.as_deref())?))
 }
 
 async fn get_costs(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandled> {
-	let Some(scope) = scope_of(&app, &uri) else { return Ok(error(404, "No such space")) };
+	let Some(scope) = scope_of(&app, &query(&uri)) else { return Ok(reply::no_such_space()) };
 	Ok(json(200, &graph_costs(&app, scope.as_deref())?))
 }
 
 /// `?today=YYYY-MM-DD` sets the deadlines' days left; absent is this computer's day.
 async fn get_progress(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandled> {
-	let Some(scope) = scope_of(&app, &uri) else { return Ok(error(404, "No such space")) };
-	let params = search_params(uri.query().unwrap_or_default());
+	let params = query(&uri);
+	let Some(scope) = scope_of(&app, &params) else { return Ok(reply::no_such_space()) };
 	let today = param(&params, "today");
 	if today.is_some_and(|day| !is_calendar_date(&Json::from(day))) {
 		return Ok(error(400, "today must be YYYY-MM-DD"));
 	}
 	match progress_for(&app, scope.as_deref(), today)? {
 		Some(payload) => Ok(json(200, &payload)),
-		None => Ok(error(404, "No such space")),
+		None => Ok(reply::no_such_space()),
 	}
 }
 
@@ -107,43 +107,37 @@ async fn post_import(State(app): State<Arc<App>>, headers: HeaderMap, body: Body
 	}
 }
 
-/// One notes import per file through a pool of three workers; results in the order they end.
+/// One notes import per file, three at a time; results in the order they end.
 async fn import_files(app: Arc<App>, files: VecDeque<(usize, String, String)>) -> Vec<Json> {
-	let workers = files.len().min(3);
-	let (queue, results) = (Mutex::new(files), Mutex::new(Vec::new()));
-	let worker = || async {
-		loop {
-			let next = queue.lock().unwrap_or_else(PoisonError::into_inner).pop_front();
-			let Some((request_index, file_path, text)) = next else { return };
-			let input = NotesImportInput { file_path: file_path.clone(), text, scope: None, source_id: None, may_be_space_info: false };
-			let mut result = Obj::new();
-			result.insert("filePath", file_path);
-			result.insert("requestIndex", request_index);
-			match extraction(&app).import_notes(input).await {
-				Ok(stats) => {
-					result.insert("outcome", "completed");
-					result.insert("ok", true);
-					result.insert("stats", stats);
-				}
-				Err(err) => {
-					result.insert("ok", false);
-					result.insert("outcome", err.outcome.as_str());
-					result.insert("stats", err.partial_stats);
-					result.insert("error", err.message);
-				}
-			}
-			results.lock().unwrap_or_else(PoisonError::into_inner).push(Json::Obj(result));
+	futures_util::stream::iter(files).map(|(request_index, file_path, text)| import_file(&app, request_index, file_path, text)).buffer_unordered(3).collect().await
+}
+
+async fn import_file(app: &Arc<App>, request_index: usize, file_path: String, text: String) -> Json {
+	let input = NotesImportInput { file_path: file_path.clone(), text, scope: None, source_id: None, may_be_space_info: false };
+	let mut result = Obj::new();
+	result.insert("filePath", file_path);
+	result.insert("requestIndex", request_index);
+	match extraction(app).import_notes(input).await {
+		Ok(stats) => {
+			result.insert("outcome", "completed");
+			result.insert("ok", true);
+			result.insert("stats", stats);
 		}
-	};
-	futures_util::future::join_all((0..workers).map(|_| worker())).await;
-	results.into_inner().unwrap_or_else(PoisonError::into_inner)
+		Err(err) => {
+			result.insert("ok", false);
+			result.insert("outcome", err.outcome.as_str());
+			result.insert("stats", err.partial_stats);
+			result.insert("error", err.message);
+		}
+	}
+	Json::Obj(result)
 }
 
 /// Deletes one node and every chain naming it ("full death"); refused while extraction runs.
 async fn delete_node(State(app): State<Arc<App>>, Path(id): Path<String>, uri: Uri) -> Result<Response, Unhandled> {
-	let Some(scope) = scope_of(&app, &uri) else { return Ok(error(404, "No such space")) };
+	let Some(scope) = scope_of(&app, &query(&uri)) else { return Ok(reply::no_such_space()) };
 	Ok(match delete_graph_node(&app, &id, scope.as_deref())? {
 		Ok(deleted) => json(200, &deleted),
-		Err(refusal) => json(refusal.status, &json!({ "error": refusal.error, "code": refusal.code })),
+		Err(refusal) => reply::coded(refusal.status, refusal.error, refusal.code),
 	})
 }

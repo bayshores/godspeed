@@ -79,7 +79,7 @@ async fn main() -> ExitCode {
 /// then each change; and each Enter the learner typed to an agent there.
 fn listen_for_terminals(app: &App, shell: &ShellLink) {
 	let at_start = std::env::var("LH_TERMINALS").ok().and_then(|text| gs_json::parse(&text).ok());
-	let ids = at_start.iter().flat_map(|list| list.as_arr().into_iter().flatten()).filter_map(|id| id.as_str().map(str::to_owned)).collect();
+	let ids = at_start.iter().flat_map(|list| list.items().iter()).filter_map(|id| id.as_str().map(str::to_owned)).collect();
 	app.bridge.set_live_terminals(ids);
 	let bridge = app.bridge.clone();
 	shell.on_terminals(move |live| bridge.set_live_terminals(live));

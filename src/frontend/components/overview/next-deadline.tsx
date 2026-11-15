@@ -1,8 +1,8 @@
 import { memo } from "react";
 import { Link } from "react-router";
-import type { DeadlineProgress } from "@/shared/core";
+import { longDay, type DeadlineProgress } from "@/shared/core";
 import { dueAtMs } from "@/frontend/components/countdown-model";
-import { countLeft, longDay } from "@/frontend/components/home-page/home-page-model";
+import { countLeft } from "@/frontend/components/home-page/home-page-model";
 import { CountBlock } from "@/frontend/components/ui/count-block";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";

@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use gs_base::config::Paths;
 use gs_base::fsx;
-use gs_json::{json, parse, stringify_pretty};
+use gs_json::json;
 
 const FILE_NAME: &str = "reminders.json";
 const VERSION: i64 = 1;
@@ -21,13 +21,13 @@ impl RemindersStore {
 
 	/// The day (YYYY-MM-DD) of the last reminder.
 	pub fn last_reminder_day(&self) -> Option<String> {
-		let record = parse(&fsx::read_text(&self.file).ok()?).ok()?;
+		let record = fsx::read_json(&self.file)?;
 		record["lastDay"].as_str().map(str::to_owned)
 	}
 
 	pub fn set_last_reminder_day(&self, day: &str) -> Result<(), String> {
 		let record = json!({ "version": VERSION, "lastDay": day });
-		fsx::write_text_atomic(&self.file, &stringify_pretty(&record, "\t")).map_err(|err| fsx::node_error_message(&err, "open", &self.file))
+		fsx::write_json_atomic(&self.file, &record)
 	}
 }
 

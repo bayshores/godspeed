@@ -1,24 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { SmallSwitch } from "@/frontend/components/ui/small-switch";
+import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { cn } from "@/frontend/lib/utils";
 import type { CodeEditorHandle } from "./code-editor-view";
 import { VIM_KEY, languageLabel, parseVim } from "./code-editor-model";
-
-function readVim(): boolean {
-	try {
-		return parseVim(localStorage.getItem(VIM_KEY));
-	} catch {
-		return false;
-	}
-}
-
-function saveVim(on: boolean): void {
-	try {
-		localStorage.setItem(VIM_KEY, on ? "1" : "0");
-	} catch {
-		/* private window: not remembered */
-	}
-}
 
 /** Keys typed in the editor belong to it (and to Vim): Esc must not stop
  *  the turn, Tab must not jump fields, Ctrl keys are Vim's. Only ⌘ shortcuts
@@ -60,7 +45,7 @@ export function CodeEditor({
 
 	// Mount once per question (the form remounts for each one).
 	useEffect(() => {
-		vimRef.current = readVim();
+		vimRef.current = parseVim(readStorage(VIM_KEY));
 		setVim(vimRef.current);
 		let gone = false;
 		void import("./code-editor-view").then(({ mountCodeEditor }) => {
@@ -84,7 +69,7 @@ export function CodeEditor({
 	const toggleVim = (on: boolean) => {
 		vimRef.current = on;
 		setVim(on);
-		saveVim(on);
+		writeStorage(VIM_KEY, on ? "1" : "0");
 		handleRef.current?.setVim(on);
 	};
 

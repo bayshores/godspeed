@@ -218,7 +218,7 @@ impl Drop for Release<'_> {
 pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 	let app = call.app;
 	let follow_up_ms = (args["wait_seconds"].as_f64().unwrap_or(RESPOND_DEFAULT_WAIT_S) * 1000.0) as i64;
-	let tool_calls = args["tool_calls"].as_arr().into_iter().flatten().map(|c| ReplyCall { name: c["name"].as_str().unwrap_or_default().to_owned(), arguments: c["arguments"].clone() });
+	let tool_calls = args["tool_calls"].items().iter().map(|c| ReplyCall { name: c["name"].as_str().unwrap_or_default().to_owned(), arguments: c["arguments"].clone() });
 	// Checked before it is stored, so the stored text and the seen-mark fingerprint agree.
 	let checked = args["text"].as_str().map(|text| check_cites(app, text));
 	let removed_marks = checked.as_ref().map(mark_notes).unwrap_or_default();

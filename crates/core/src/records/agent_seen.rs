@@ -98,7 +98,7 @@ pub fn with_seen(file: &Json, agent: &str, conversation: &str, mark: &SeenMark, 
 	let mut agents = file["agents"].as_obj().cloned().unwrap_or_default();
 	agents.insert(agent, json!({ "at": at, "conversations": Json::Obj(conversations) }));
 	let mut newest: Vec<(String, Json)> = agents.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
-	newest.sort_by(|(_, a), (_, b)| locale::compare(b["at"].as_str().unwrap_or(""), a["at"].as_str().unwrap_or("")));
+	newest.sort_by(|(_, a), (_, b)| locale::compare(b["at"].str_or_empty(), a["at"].str_or_empty()));
 	newest.truncate(SEEN_AGENTS_MAX);
 	json!({ "agents": Json::Obj(newest.into_iter().collect()) })
 }

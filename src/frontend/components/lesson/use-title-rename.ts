@@ -1,4 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { jsonInit } from "@/frontend/components/files/space-files-api";
+
+/** PUT a lesson's title, then tell every listener (the lesson list and an
+ *  open lesson header) through lh:chat-renamed. Throws when the server says no. */
+export async function renameLesson(id: string, title: string): Promise<void> {
+	const res = await fetch(`/api/chats/${id}`, jsonInit("PUT", { title }));
+	if (!res.ok) throw new Error(`rename failed: ${res.status}`);
+	window.dispatchEvent(new CustomEvent("lh:chat-renamed", { detail: { id, title } }));
+}
 
 /**
  * The lesson title and its rename: F2 or a click on
@@ -24,14 +33,8 @@ export function useTitleRename(chatId: string, initialTitle: string) {
 			const t = next.trim();
 			if (t === "" || t === title) return; // empty commit = discard
 			try {
-				const res = await fetch(`/api/chats/${chatId}`, {
-					method: "PUT",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ title: t }),
-				});
-				if (!res.ok) throw new Error(`rename failed: ${res.status}`);
+				await renameLesson(chatId, t);
 				setTitle(t);
-				window.dispatchEvent(new CustomEvent("lh:chat-renamed", { detail: { id: chatId, title: t } }));
 			} catch (err) {
 				console.error("rename failed:", err); // keep the old title
 			}

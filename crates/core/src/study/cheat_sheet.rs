@@ -13,7 +13,6 @@ use std::sync::LazyLock;
 use gs_base::{num, re::Re, time};
 use gs_json::{Json, Obj, js_number, json};
 
-use super::items;
 use crate::spaces::space_shortcuts::safe_entry_name;
 use crate::records::teaching_areas::{RULE_MAX_CHARS, RULES_MAX, one_line};
 
@@ -55,7 +54,7 @@ fn last_of(list: &[Json], max: usize) -> Vec<Json> {
 
 /// The sheet with one more message in its chat.
 pub fn with_message(sheet: &Json, message: &Json) -> Json {
-	let mut all = items(&sheet["messages"]).to_vec();
+	let mut all = sheet["messages"].items().to_vec();
 	all.push(message.clone());
 	with_field(sheet, "messages", Json::from(last_of(&all, MESSAGES_KEPT)))
 }
@@ -63,8 +62,8 @@ pub fn with_message(sheet: &Json, message: &Json) -> Json {
 /// The sheet with new rules kept (cleaned, each once, at most `RULES_MAX`), and the ones that
 /// were new.
 pub fn with_rules(sheet: &Json, texts: &[String], at: &str) -> (Json, Vec<String>) {
-	let mut have: Vec<String> = items(&sheet["rules"]).iter().map(|r| r["text"].as_str().unwrap_or("").to_lowercase()).collect();
-	let kept = items(&sheet["rules"]).len();
+	let mut have: Vec<String> = sheet["rules"].items().iter().map(|r| r["text"].str_or_empty().to_lowercase()).collect();
+	let kept = sheet["rules"].items().len();
 	let mut added: Vec<String> = Vec::new();
 	for raw in texts {
 		let text = one_line(raw, RULE_MAX_CHARS);
@@ -77,26 +76,26 @@ pub fn with_rules(sheet: &Json, texts: &[String], at: &str) -> (Json, Vec<String
 	if added.is_empty() {
 		return (sheet.clone(), added);
 	}
-	let mut rules = items(&sheet["rules"]).to_vec();
+	let mut rules = sheet["rules"].items().to_vec();
 	rules.extend(added.iter().map(|text| json!({ "text": text, "at": at })));
 	(with_field(sheet, "rules", Json::from(rules)), added)
 }
 
 pub fn without_rule(sheet: &Json, text: &str) -> Json {
-	let rules: Vec<Json> = items(&sheet["rules"]).iter().filter(|r| r["text"].as_str() != Some(text)).cloned().collect();
+	let rules: Vec<Json> = sheet["rules"].items().iter().filter(|r| r["text"].as_str() != Some(text)).cloned().collect();
 	with_field(sheet, "rules", Json::from(rules))
 }
 
 /// The newest version, or None before the first.
 pub fn current_version(sheet: &Json) -> Option<&Json> {
-	items(&sheet["versions"]).last()
+	sheet["versions"].items().last()
 }
 
 /// The sheet with a new version (`{ prompt, at, pages[, file][, fromFolder] }`) as its newest,
 /// and the numbers of the versions that no longer fit (their files go).
 pub fn with_version(sheet: &Json, version: &Json) -> (Json, Vec<f64>) {
 	let n = current_version(sheet).and_then(|v| v["n"].as_f64()).unwrap_or(0.0) + 1.0;
-	let mut all = items(&sheet["versions"]).to_vec();
+	let mut all = sheet["versions"].items().to_vec();
 	all.push(with_field(version, "n", Json::from(n)));
 	let cut = all.len().saturating_sub(VERSIONS_KEPT);
 	let dropped: Vec<f64> = all[..cut].iter().filter_map(|v| v["n"].as_f64()).collect();
@@ -154,7 +153,7 @@ pub fn newer_folder_pdf(files: &[(String, f64)], current_at: Option<&str>) -> Op
 /// Why a box isn't on a kept version's page, or None.
 pub fn region_problem(region: &Json, versions: &[Json]) -> Option<&'static str> {
 	let page = region["page"].as_f64().filter(|p| p.fract() == 0.0);
-	let pages = versions.iter().find(|v| v["n"] == region["n"]).map(|v| items(&v["pages"]).len());
+	let pages = versions.iter().find(|v| v["n"] == region["n"]).map(|v| v["pages"].items().len());
 	let (Some(pages), Some(page)) = (pages, page) else { return Some("That version of the sheet is gone. Point at it again.") };
 	if page < 1.0 || page > pages as f64 {
 		return Some("That version of the sheet is gone. Point at it again.");
@@ -242,7 +241,7 @@ mod tests {
 			sheet = next;
 			dropped_all.extend(dropped);
 		}
-		let ns: Vec<f64> = items(&sheet["versions"]).iter().map(|v| v["n"].as_f64().unwrap()).collect();
+		let ns: Vec<f64> = sheet["versions"].items().iter().map(|v| v["n"].as_f64().unwrap()).collect();
 		assert_eq!(ns, [3.0, 4.0, 5.0, 6.0, 7.0]);
 		assert_eq!(dropped_all, [1.0, 2.0]);
 		assert!(sheet.get("olderFormat").is_none());
@@ -257,7 +256,7 @@ mod tests {
 		for i in 0..105 {
 			sheet = with_message(&sheet, &json!({ "id": format!("m{i}"), "role": "you", "text": "x", "at": "t" }));
 		}
-		assert_eq!(items(&sheet["messages"]).len(), 100);
+		assert_eq!(sheet["messages"].items().len(), 100);
 		assert_eq!(sheet["messages"][0]["id"], Json::from("m5"));
 	}
 
@@ -271,7 +270,7 @@ mod tests {
 		let (same, none) = with_rules(&sheet, &["big font".to_owned()], "later");
 		assert!(none.is_empty());
 		assert_eq!(same, sheet);
-		assert_eq!(items(&without_rule(&sheet, "Big font")["rules"]).len(), 1);
+		assert_eq!(without_rule(&sheet, "Big font")["rules"].items().len(), 1);
 		let many: Vec<String> = (0..30).map(|i| format!("rule {i}")).collect();
 		assert_eq!(with_rules(&new_cheat_sheet("d", "t"), &many, "now").1.len(), RULES_MAX);
 	}

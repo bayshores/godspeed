@@ -2,11 +2,11 @@
 //! revision stamp, and deleting one node with everything that names it.
 
 use std::path::PathBuf;
-use std::time::UNIX_EPOCH;
 
 use gs_agent::extraction::extraction_runs::RunKind;
 use gs_agent::extraction::ledgers::ScopedGraph;
 use gs_base::config::GraphFiles;
+use gs_base::fsx;
 use gs_base::locks::LockKey;
 use gs_core::graph::graph::graph_snapshot;
 use gs_core::graph::graph_deletion::{ChatDeleteMode, ChatDeletionStats, delete_chat_traces, delete_node_traces};
@@ -74,9 +74,8 @@ pub fn graph_revision(app: &App, scope: Option<&str>) -> f64 {
 	let files = GraphFiles::new(&dir);
 	[&files.nodes, &files.chains, &files.sessions, &files.coverage, &files.topics]
 		.into_iter()
-		.filter_map(|file| std::fs::metadata(file).and_then(|meta| meta.modified()).ok())
-		.filter_map(|modified| modified.duration_since(UNIX_EPOCH).ok())
-		.map(|d| d.as_secs() as f64 * 1e3 + f64::from(d.subsec_nanos()) / 1e6)
+		.filter_map(|file| std::fs::metadata(file).ok())
+		.map(|meta| fsx::modified_ms(&meta))
 		.fold(0.0, f64::max)
 }
 

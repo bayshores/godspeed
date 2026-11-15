@@ -14,7 +14,7 @@ use gs_base::fsx;
 use gs_base::locks::LockKey;
 use gs_core::spaces::agent_folder::{FolderAgent, Platform, StartCommands, StartTarget, copy_command, saved_start_commands, short_folder, usable_folder, usable_start_command};
 use gs_core::spaces::space_shortcuts::space_dirs;
-use gs_json::{Json, Obj, json, parse, stringify_pretty};
+use gs_json::{Json, Obj, json, stringify_pretty};
 
 use super::disk::write_file_atomic;
 use super::folder_files::write_folder;
@@ -55,7 +55,7 @@ fn state_file(app: &App) -> PathBuf {
 /// Writes spread it and set keys on top, so the file keeps that order with new keys last.
 fn read_state(app: &App) -> Obj {
 	let mut state = Obj::new();
-	let Some(raw) = fsx::read_text(&state_file(app)).ok().and_then(|text| parse(&text).ok()) else { return state };
+	let Some(raw) = fsx::read_json(&state_file(app)) else { return state };
 	if let Some(folder) = raw["folder"].as_str().filter(|f| usable_folder(f)) {
 		state.insert("folder", folder);
 	}

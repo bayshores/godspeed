@@ -25,11 +25,11 @@ fn snapshot(tree: &Json, messages: &[Json]) -> Json {
 		.flatten()
 		.map(|n| {
 			let mut node = pick(n, &["id", "title"]);
-			node.insert("status", derived_node_status(&statuses, n["id"].as_str().unwrap_or_default()));
+			node.insert("status", derived_node_status(&statuses, n["id"].str_or_empty()));
 			Json::Obj(node)
 		})
 		.collect();
-	let edges: Json = tree["edges"].as_arr().into_iter().flatten().map(|e| Json::Obj(pick(e, &["from", "to"]))).collect();
+	let edges: Json = tree["edges"].items().iter().map(|e| Json::Obj(pick(e, &["from", "to"]))).collect();
 	let mut out = Obj::new();
 	out.insert("kind", "full");
 	out.insert("at", iso_now());

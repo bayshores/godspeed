@@ -16,7 +16,7 @@ pub fn summary_folds_throw(messages: &[Json], start: Phase3) -> bool {
 }
 
 fn role(m: &Json) -> &str {
-	m["role"].as_str().unwrap_or("")
+	m["role"].str_or_empty()
 }
 
 /// `for (const block of content)`: only arrays and strings iterate, and a string's characters

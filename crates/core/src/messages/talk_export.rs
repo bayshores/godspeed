@@ -36,16 +36,16 @@ enum Speaker {
 pub fn talk_export(record: &Json, teacher: &str) -> Option<TalkExport> {
 	let mut pictures = Vec::new();
 	let mut rows: Vec<(Speaker, Option<i64>, String)> = Vec::new();
-	for m in record["messages"].as_arr().into_iter().flatten() {
+	for m in record["messages"].items() {
 		if m["display"] == Json::Bool(false) {
 			continue;
 		}
 		let at = m["timestamp"].as_f64().map(|t| t as i64);
 		match (m["role"].as_str(), m["customType"].as_str()) {
 			(Some("user"), _) => rows.extend(learner_lines(&m["content"], &mut pictures).into_iter().map(|line| (Speaker::You, at, line))),
-			(Some("assistant"), _) => rows.extend(parts(&m["content"]).filter(|p| p["type"].as_str() == Some("text")).filter_map(|p| shown(&p["text"])).map(|text| (Speaker::Teacher, at, text))),
+			(Some("assistant"), _) => rows.extend(m["content"].items().iter().filter(|p| p["type"].as_str() == Some("text")).filter_map(|p| shown(&p["text"])).map(|text| (Speaker::Teacher, at, text))),
 			(Some("toolResult"), _) => {
-				let labels = m["details"]["changes"].as_arr().into_iter().flatten().filter_map(|c| c["label"].as_str());
+				let labels = m["details"]["changes"].items().iter().filter_map(|c| c["label"].as_str());
 				rows.extend(labels.map(|label| (Speaker::Teacher, at, format!("- {label}"))));
 			}
 			(Some("custom"), Some("app-request")) => rows.push((Speaker::Godspeed, at, asked_text(teacher, &m["details"]["deadlines"]))),
@@ -79,10 +79,6 @@ pub fn talk_export(record: &Json, teacher: &str) -> Option<TalkExport> {
 	Some(TalkExport { text, pictures })
 }
 
-fn parts(content: &Json) -> impl Iterator<Item = &Json> {
-	content.as_arr().into_iter().flatten()
-}
-
 fn shown(text: &Json) -> Option<String> {
 	text.as_str().map(trim).filter(|t| !t.is_empty()).map(str::to_owned)
 }
@@ -93,7 +89,7 @@ fn learner_lines(content: &Json, pictures: &mut Vec<Picture>) -> Vec<String> {
 		return vec![text];
 	}
 	let mut lines = Vec::new();
-	for part in parts(content) {
+	for part in content.items() {
 		match part["type"].as_str() {
 			Some("text") => {
 				let Some(text) = shown(&part["text"]) else { continue };
@@ -103,7 +99,7 @@ fn learner_lines(content: &Json, pictures: &mut Vec<Picture>) -> Vec<String> {
 				});
 			}
 			Some("image") => {
-				let bytes = base64::decode(part["data"].as_str().unwrap_or_default());
+				let bytes = base64::decode(part["data"].str_or_empty());
 				let name = format!("{}.{}", slice16(&sha256_hex(&bytes), 0, Some(12)), extension(part["mimeType"].as_str()));
 				lines.push(format!("![Picture](<{TALK_FILES}/{name}>)"));
 				if !pictures.iter().any(|p| p.name == name) {
@@ -132,7 +128,7 @@ fn extension(mime: Option<&str>) -> &'static str {
 
 /// As the Talk panel showed it: "Asked Marco to work out what's on Midterm (CSE 21) from your files."
 fn asked_text(teacher: &str, deadlines: &Json) -> String {
-	let names: Vec<String> = deadlines.as_arr().into_iter().flatten().map(|d| format!("{} ({})", d["name"].as_str().unwrap_or_default(), d["spaceName"].as_str().unwrap_or_default())).collect();
+	let names: Vec<String> = deadlines.items().iter().map(|d| format!("{} ({})", d["name"].str_or_empty(), d["spaceName"].str_or_empty())).collect();
 	let list = match names.split_last() {
 		Some((last, rest)) if rest.len() >= 2 => format!("{} and {last}", rest.join(", ")),
 		_ => names.join(" and "),

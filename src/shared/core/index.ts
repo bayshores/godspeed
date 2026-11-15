@@ -12,7 +12,6 @@ export * from "./code-question.ts";
 // for every layer; the browser shell consumes the types + the runtime names
 // through this barrel (shell law: pure core via @/shared/core only).
 export * from "./events.ts";
-export * from "./plan-tree.ts";
 // The godspeed folder's agents (the "Start Claude Code" button).
 export type { FolderAgent, OldSetup, StartCommands } from "./agent-folder.ts";
 export * from "./phases.ts";
@@ -39,6 +38,8 @@ export * from "./prices.ts";
 export * from "./context-usage.ts";
 export * from "./cost-summary.ts";
 export * from "./fuzzy.ts";
+export * from "./escape-regex.ts";
+export * from "./is-record.ts";
 // settings.ts + settings-resolution.ts: the user-settings record's
 // shape/sanitizer (pure) and its fully-resolved view. Browser-safe — the
 // settings panel imports these directly.

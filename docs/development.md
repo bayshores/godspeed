@@ -35,17 +35,24 @@ You need Node, a Rust toolchain (`rust-toolchain.toml` pins it) and `cargo-mache
 | `npm run dev` | Vite serves the screens at http://localhost:3000, and the debug Rust server serves `/api` on port 4000. |
 | `npm run dev:fresh` | A fresh instance with empty data at http://localhost:3005, for testing onboarding. Its data folder is `.fresh-data/`, wiped each launch unless you pass `--keep`. |
 | `npm run build` | `vite build`: the screens into `dist-ui/`. |
-| `npm run check` | The done gate: typecheck, tests, lint, deadcode and `rust:check`. CI runs the same. |
+| `npm run check` | The done gate: typecheck, tests, lint, deadcode and `rust:check`. CI runs the same, plus `layout` on the Mac. |
 | `npm test` | The frontend, shared and desktop tests (node:test through tsx). |
 | `npm run lint` | ESLint, including the import law. |
 | `npm run typecheck` | `tsc --noEmit`. Unused variables and parameters are errors. |
 | `npm run deadcode` | knip: unused files, exports, types and npm packages. |
 | `npm run rust:check` | `cargo test --workspace`, the shell's `screens` tests, clippy with `-D warnings` (also with the shell's `screens` and `self-test` features), and `cargo machete`. |
+| `npm run layout` | Mac only: opens the debug app window on made-up data, walks the screens in `scripts/layout-screens.mjs` at 1440, 1100 and 800 points, and fails on text drawn over text, a box spilling out of its parent, sideways scrolling, text or a control a clipping box hides, or letters it cuts off. Findings and pictures go to `target/layout/`. Not part of `check`: it builds the app and opens a window, so run it yourself before calling a UI change finished, one run at a time. |
 | `npm run desktop:dev` | Vite, the debug Rust server and the Tauri shell pointed at Vite. |
 | `npm run desktop:local` | An unsigned local Mac app in `target/release/bundle/macos/`. |
 | `npm run desktop:dist` | The signed, notarized Mac app and DMG. `scripts/mac-dist.sh` says what it needs. |
 
 A change is done when `npm run check` passes.
+
+To check a new screen or state with `npm run layout`:
+
+1. Add one entry to `scripts/layout-screens.mjs`: a name, its `url`, and a `ready` selector for something drawn from the screen's data (not its frame, which shows before the data).
+2. For a state the URL does not reach, add `setup` (a page script that clicks) and `shows` (the selector it waits for), or `before` (a page script that changes the data first).
+3. If the state needs data that is not there, have the stand-in agent in `scripts/layout-seed.mjs` write it through MCP.
 
 Release builds run on the target OS, not as cross-builds from macOS. See [desktop-release.md](desktop-release.md) for Windows and Linux packages and the release flow.
 
@@ -121,7 +128,7 @@ Single files in `components/` include `boot.tsx` (the boot info for the whole ap
 |---|---|
 | `changelog.json` | Release notes shown in What's new. |
 | `core/contracts/` | The contracts the screens read, one file per domain: `boot`, `chat`, `space`, `graph`, `jobs`, `plan`, `probe`. |
-| `core/` | The pure logic, all exported through `index.ts`. For example `native-messages.ts` (the record), `input-events.ts` (what `POST /api/chat` accepts), `question-core.ts`, `code-question.ts`, `plan-tree.ts`, `plan-step-bar.ts`, `progress.ts`, `study.ts`, `citations.ts`, `attachments.ts`, `tool-parts.ts`, `mock.ts` and `mock-run.ts`. |
+| `core/` | The pure logic, all exported through `index.ts`. For example `native-messages.ts` (the record), `input-events.ts` (what `POST /api/chat` accepts), `question-core.ts`, `code-question.ts`, `plan-step-bar.ts`, `progress.ts`, `study.ts`, `citations.ts`, `attachments.ts`, `tool-parts.ts`, `mock.ts` and `mock-run.ts`. |
 
 ### tests
 
@@ -129,7 +136,7 @@ Single files in `components/` include `boot.tsx` (the boot info for the whole ap
 |---|---|
 | `tests/frontend/` | Screen tests, many through React server-side rendering. |
 | `tests/shared/` | Tests for `src/shared/core`. |
-| `tests/desktop/` | The shell shim and the release scripts. |
+| `tests/desktop/` | The shell shim, the release scripts and the layout check. |
 | `tests/fixtures/` | Fixtures. `golden-data/` is a real data folder, never edited by hand. |
 | `tests/skills/` | The skill's Python tests. |
 | `tests/perf/` | The lesson-stream benchmark. |
@@ -153,6 +160,7 @@ Shared helpers sit in `tests/` itself.
 | `release-assets.mjs` | Gives the bundler's outputs the file names people download. |
 | `release-feeds.mjs` | Writes the update feeds a release publishes. |
 | `verify-release.ts` | The last check in the release workflow. |
+| `layout.mjs`, `layout-page.mjs`, `layout-screens.mjs`, `layout-seed.mjs` | `npm run layout`: the walk, the check that runs in the page, the screen list, and the stand-in agent that writes the made-up data. |
 
 ## Where to read about what
 

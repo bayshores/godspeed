@@ -93,7 +93,7 @@ pub fn sum_steps(steps: &[CallUsage]) -> CallUsage {
 
 /// `sessionCost`: `{unpriced, [subscription, subscriptionProviders]}` for a chat record.
 pub fn session_cost(record: &Json) -> Json {
-	let turns: &[Json] = record["turns"].as_arr().map_or(&[], Vec::as_slice);
+	let turns: &[Json] = record["turns"].items();
 	let models: Vec<Option<&str>> = turns.iter().map(|t| t["model"].as_str()).collect();
 	let subscription = models.iter().filter(|m| is_subscription_model(**m)).count();
 	let mut out = Obj::new();

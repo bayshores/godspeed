@@ -1,25 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { answerEdit, findCalculation, pieceCalculation, plainToLatex } from "../../src/shared/core/calculator.ts";
+import { answerEdit, findCalculation, pieceCalculation } from "../../src/shared/core/calculator.ts";
 
 const at = (text: string) => findCalculation(text, text.length);
-
-describe("plain typing to LaTeX", () => {
-	it("powers, roots, functions and integrals", () => {
-		assert.equal(plainToLatex("2^10"), "2^{10}");
-		assert.equal(plainToLatex("sqrt(2)"), "\\sqrt{2}");
-		assert.equal(plainToLatex("sin(x)"), "\\sin (x)");
-		assert.equal(plainToLatex("abs(-4)"), "\\left|-4\\right|");
-		assert.equal(plainToLatex("d/dx x^3"), "\\frac{d}{dx} x^{3}");
-		assert.equal(plainToLatex("int x^2 dx"), "\\int  x^{2} \\,dx");
-		assert.equal(plainToLatex("int_0^1 x dx"), "\\int_{0}^{1}  x \\,dx");
-		assert.equal(plainToLatex("30°"), "30^{\\circ}");
-	});
-
-	it("ordinary words aren't math", () => {
-		assert.equal(plainToLatex("hello"), null);
-	});
-});
 
 describe("finding a calculation", () => {
 	it("the expression before a closing =", () => {

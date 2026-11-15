@@ -46,7 +46,7 @@ fn order(diff: f64) -> Ordering {
 
 /// The entries newer than `since` and no newer than `current`, newest first.
 pub fn entries_since(since: &str, current: &str, all: &[Json]) -> Vec<Json> {
-	let version = |e: &Json| e["version"].as_str().unwrap_or("").to_owned();
+	let version = |e: &Json| e["version"].str_or_empty().to_owned();
 	let mut kept: Vec<Json> = all.iter().filter(|e| compare_versions(&version(e), since) > 0.0 && compare_versions(&version(e), current) <= 0.0).cloned().collect();
 	kept.sort_by(|a, b| order(compare_versions(&version(b), &version(a))));
 	kept

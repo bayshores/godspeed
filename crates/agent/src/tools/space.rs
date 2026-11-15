@@ -66,7 +66,7 @@ fn read_space_tool(ctx: &SpaceToolContext) -> FnTool {
 	})
 }
 
-fn set_space_note_tool(set_note: Arc<dyn Fn(&str) -> String + Send + Sync>) -> FnTool {
+fn set_space_note_tool(set_note: SetNote) -> FnTool {
 	let parameters = object(&["text"], vec![("text", json!({ "type": "string", "minLength": 1, "maxLength": NOTE_MAX, "description": "Two short sentences in plain words, to the learner." }))]);
 	let description = format!(
 		"Replace the note on this space's cover page: two short sentences to the learner about where they stand in this space and what's next. \
@@ -74,7 +74,7 @@ fn set_space_note_tool(set_note: Arc<dyn Fn(&str) -> String + Send + Sync>) -> F
 	);
 	FnTool::server("set_space_note", description, parameters, move |args, _ctx| {
 		let set_note = set_note.clone();
-		async move { Ok(Json::from(set_note(args["text"].as_str().unwrap_or_default()))) }
+		async move { Ok(Json::from(set_note(args["text"].str_or_empty()))) }
 	})
 }
 
@@ -97,7 +97,7 @@ fn search_fn_tools(search: Arc<SpaceSearch>) -> Vec<FnTool> {
 	let search_tool = FnTool::server("search_space_files", search_description, search_input, move |args, _ctx| {
 		let search = search_files.clone();
 		async move {
-			let query = args["query"].as_str().unwrap_or_default().to_owned();
+			let query = args["query"].str_or_empty().to_owned();
 			let limit = args["limit"].as_f64().map_or(8, |n| n as usize);
 			(search.search_files)(query, limit).await.map(Json::from)
 		}

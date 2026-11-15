@@ -63,7 +63,7 @@ pub fn user_text(text: &str) -> Json {
 
 /// The assistant message's text blocks, joined (the loops' final answer).
 pub fn message_text(message: &Json) -> String {
-	message["content"].as_arr().into_iter().flatten().filter(|c| c["type"] == Json::from("text")).filter_map(|c| c["text"].as_str()).collect()
+	message["content"].items().iter().filter(|c| c["type"] == Json::from("text")).filter_map(|c| c["text"].as_str()).collect()
 }
 
 #[cfg(test)]

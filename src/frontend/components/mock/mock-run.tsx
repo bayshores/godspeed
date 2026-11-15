@@ -6,6 +6,7 @@ import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { TITLE } from "@/frontend/components/overview/styles";
 import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { cn } from "@/frontend/lib/utils";
 import { CodeAnswer } from "./mock-answer";
 import { MockBar } from "./mock-bar";
@@ -14,14 +15,6 @@ import { postMock } from "./use-mock";
 
 /** How often what is typed is saved. */
 const SAVE_EVERY_MS = 4000;
-
-function readLanguage(): MockLanguage {
-	try {
-		return parseMockLanguage(localStorage.getItem(MOCK_LANGUAGE_KEY));
-	} catch {
-		return "javascript";
-	}
-}
 
 /**
  * THE MOCK WHILE IT IS ANSWERED: the question on the left, the answer on
@@ -39,7 +32,7 @@ export function MockRun({ view }: { view: MockView }) {
 	const paused = mock.paused !== undefined;
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const [works, setWorks] = useState<Record<string, Work>>(() => {
-		const preferred = readLanguage();
+		const preferred = parseMockLanguage(readStorage(MOCK_LANGUAGE_KEY));
 		return Object.fromEntries(questions.map((q) => [q.id, workOf(q, mock.answers[q.id], preferred)]));
 	});
 	const [at, setAt] = useState(() => Math.max(0, questions.findIndex((q) => !mock.answers[q.id]?.submitted)));
@@ -154,11 +147,7 @@ export function MockRun({ view }: { view: MockView }) {
 	};
 
 	const pickLanguage = (language: MockLanguage) => {
-		try {
-			localStorage.setItem(MOCK_LANGUAGE_KEY, language);
-		} catch {
-			/* private window: not remembered */
-		}
+		writeStorage(MOCK_LANGUAGE_KEY, language);
 		change({ language });
 	};
 

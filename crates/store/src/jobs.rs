@@ -3,18 +3,17 @@
 //!
 //! Every write announces `jobs-changed` after it lands, so the window can skip polling.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::SystemTime;
 
 use gs_base::config::Paths;
 use gs_base::events::{EventKind, Events};
 use gs_base::locks::{LockKey, Locks};
-use gs_base::re::Re;
-use gs_base::{fsx, ids, locale, time};
-use gs_json::{Json, Obj, json, parse, stringify_pretty};
-use parking_lot::Mutex;
+use gs_base::{fsx, ids, time};
+use crate::file_cache::FileCache;
+use gs_core::records::newer_first;
+use gs_json::{Json, Obj, json};
 
 /// A job's identity never changes after it is made.
 const IDENTITY_KEYS: [&str; 5] = ["id", "kind", "chatId", "toolCallId", "createdAt"];
@@ -30,29 +29,23 @@ pub struct CreateJobInit<'a> {
 	pub input: Option<Json>,
 }
 
-/// A parsed record, kept while its file's modified time and size are unchanged: the activity
-/// feed and every turn start list every job of every lesson, and a record holds its whole result.
-struct Cached {
-	version: (Option<SystemTime>, u64),
-	job: Option<Arc<Json>>,
-}
-
 pub struct JobStore {
 	dir: PathBuf,
 	events: Events,
 	locks: Locks,
-	cache: Mutex<HashMap<String, Cached>>,
+	/// The activity feed and every turn start list every job of every lesson, and a record holds
+	/// its whole result. A record that is not a job is kept as None.
+	cache: FileCache<String, Option<Arc<Json>>>,
 }
 
 impl JobStore {
 	pub fn new(paths: &Paths, events: &Events, locks: &Locks) -> JobStore {
-		JobStore { dir: paths.data.join("jobs"), events: events.clone(), locks: locks.clone(), cache: Mutex::new(HashMap::new()) }
+		JobStore { dir: paths.data.join("jobs"), events: events.clone(), locks: locks.clone(), cache: FileCache::new() }
 	}
 
 	/// The file of a job; None when the id could be a path.
 	fn job_file(&self, id: &str) -> Option<PathBuf> {
-		static SHAPE: std::sync::LazyLock<Re> = std::sync::LazyLock::new(|| Re::new(r"^[A-Za-z0-9_-]+$", ""));
-		SHAPE.test(id).then(|| self.dir.join(format!("{id}.json")))
+		ids::is_file_id(id).then(|| self.dir.join(format!("{id}.json")))
 	}
 
 	/// A new running job, saved and announced.
@@ -81,22 +74,16 @@ impl JobStore {
 	/// before changing one.
 	pub fn get_job(&self, id: &str) -> Option<Arc<Json>> {
 		let Some(file) = self.job_file(id) else {
-			self.cache.lock().remove(id);
+			self.cache.remove(id);
 			return None;
 		};
-		let Ok(meta) = std::fs::metadata(&file) else {
-			self.cache.lock().remove(id);
-			return None;
-		};
-		let version = (meta.modified().ok(), meta.len());
-		if let Some(hit) = self.cache.lock().get(id).filter(|hit| hit.version == version) {
-			return hit.job.clone();
-		}
-		let parsed = parse(&fsx::read_text(&file).ok()?).ok()?;
-		let valid = ["id", "chatId", "updatedAt", "status"].iter().all(|key| parsed[*key].as_str().is_some());
-		let job = valid.then(|| Arc::new(parsed));
-		self.cache.lock().insert(id.to_owned(), Cached { version, job: job.clone() });
-		job
+		self.cache
+			.load(id, &file, || {
+				let parsed = fsx::read_json(&file)?;
+				let valid = ["id", "chatId", "updatedAt", "status"].iter().all(|key| parsed[*key].as_str().is_some());
+				Some(valid.then(|| Arc::new(parsed)))
+			})
+			.flatten()
 	}
 
 	/// Merges a patch into the job (its identity fields are skipped) and bumps `updatedAt`, unless
@@ -123,7 +110,7 @@ impl JobStore {
 		let next = Json::Obj(next);
 		self.write_job(id, &next)?;
 		// A same-size write within the clock's tick keeps the file's version.
-		self.cache.lock().remove(id);
+		self.cache.remove(id);
 		// Every write, not just status changes: progress lines must reach the dispatch cards.
 		self.events.emit(EventKind::JobsChanged, json!({ "chatId": next["chatId"].clone() }));
 		Ok(Some(next))
@@ -131,16 +118,11 @@ impl JobStore {
 
 	/// Every job across all chats, newest activity first.
 	pub fn list_all_jobs(&self) -> Vec<Arc<Json>> {
-		if std::fs::create_dir_all(&self.dir).is_err() {
-			return Vec::new();
-		}
-		let Ok(entries) = std::fs::read_dir(&self.dir) else { return Vec::new() };
-		let mut names: Vec<String> = entries.flatten().filter_map(|e| e.file_name().to_string_lossy().strip_suffix(".json").map(str::to_owned)).collect();
-		names.sort();
+		let names = crate::json_ids_in(&self.dir);
 		let present: HashSet<&String> = names.iter().collect();
-		self.cache.lock().retain(|cached, _| present.contains(cached));
+		self.cache.retain_keys(|cached| present.contains(cached));
 		let mut jobs: Vec<Arc<Json>> = names.iter().filter_map(|id| self.get_job(id)).collect();
-		jobs.sort_by(|a, b| locale::compare(b["updatedAt"].as_str().unwrap_or(""), a["updatedAt"].as_str().unwrap_or("")));
+		jobs.sort_by(|a, b| newer_first(a, b));
 		jobs
 	}
 
@@ -158,11 +140,11 @@ impl JobStore {
 	pub fn delete_jobs_for_chat(&self, chat_id: &str) -> usize {
 		let mut removed = 0;
 		for job in self.list_jobs(chat_id) {
-			let id = job["id"].as_str().unwrap_or_default();
+			let id = job["id"].str_or_empty();
 			// An update running at the same time must not write the file back.
 			let _guard = self.locks.lock(LockKey::AppFile(&format!("jobs/{id}.json")));
 			if self.job_file(id).is_some_and(|file| std::fs::remove_file(file).is_ok()) {
-				self.cache.lock().remove(id);
+				self.cache.remove(id);
 				removed += 1;
 			}
 		}
@@ -175,6 +157,6 @@ impl JobStore {
 
 	fn write_job(&self, id: &str, record: &Json) -> Result<(), String> {
 		let file = self.job_file(id).ok_or_else(|| format!("Invalid job id: {id}"))?;
-		fsx::write_text_atomic(&file, &stringify_pretty(record, "\t")).map_err(|err| fsx::node_error_message(&err, "open", &file))
+		fsx::write_json_atomic(&file, record)
 	}
 }

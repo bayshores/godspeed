@@ -1,10 +1,8 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::LazyLock;
 
-use gs_base::{re::Re, text};
+use gs_base::re::collapse_spaces;
+use gs_base::text;
 use gs_json::{Json, Obj, json};
-
-use super::ledger_lines::strs;
 
 pub const UNGROUPED_TOPIC_ID: &str = "ungrouped";
 const UNGROUPED_TOPIC_NAME: &str = "Ungrouped";
@@ -26,7 +24,7 @@ pub fn resolve_topics(snapshot: Option<&Json>, fact_ids: &[String]) -> Vec<Json>
 	let mut placed: HashSet<String> = HashSet::new();
 	let mut out = Vec::new();
 	for topic in snapshot.and_then(|s| s["topics"].as_arr()).into_iter().flatten() {
-		let members: Vec<String> = topic["members"].as_arr().into_iter().flatten().filter_map(Json::as_str).filter(|id| live.contains(id) && !placed.contains(*id)).map(str::to_owned).collect();
+		let members: Vec<String> = topic["members"].items().iter().filter_map(Json::as_str).filter(|id| live.contains(id) && !placed.contains(*id)).map(str::to_owned).collect();
 		placed.extend(members.iter().cloned());
 		if !members.is_empty() {
 			out.push(topic_json(topic["id"].clone(), topic["name"].clone(), members, topic["material"].as_str()));
@@ -54,15 +52,14 @@ fn topic_json(id: Json, name: Json, members: Vec<String>, material: Option<&str>
 /// True when the snapshot names exactly these facts (the grouper's "nothing changed" skip).
 pub fn same_fact_set(snapshot: Option<&Json>, fact_ids: &[String]) -> bool {
 	let Some(snapshot) = snapshot else { return false };
-	let named: HashSet<&str> = snapshot["topics"].as_arr().into_iter().flatten().flat_map(|topic| strs(&topic["members"])).collect();
+	let named: HashSet<&str> = snapshot["topics"].items().iter().flat_map(|topic| topic["members"].strs()).collect();
 	let current: HashSet<&str> = fact_ids.iter().map(String::as_str).collect();
 	named.len() == current.len() && current.iter().all(|id| named.contains(id))
 }
 
 /// Trims and collapses whitespace; empty when nothing is left.
 fn clean_topic_name(name: &str) -> String {
-	static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
-	SPACES.replace(text::trim(name), " ")
+	collapse_spaces(text::trim(name))
 }
 
 /// Why a submitted name is unusable, or None when it is fine.
@@ -161,7 +158,7 @@ pub fn repair_topics(drafts: &[TopicDraft], fact_ids: &[String], chains: &[Json]
 	// Place the facts the draft left out by their chain neighbors.
 	let mut neighbors: HashMap<&str, HashSet<&str>> = HashMap::new();
 	for chain in chains {
-		let mut members = strs(&chain["premises"]);
+		let mut members = chain["premises"].strs();
 		members.extend(chain["conclusion"].as_str());
 		for a in &members {
 			for b in &members {

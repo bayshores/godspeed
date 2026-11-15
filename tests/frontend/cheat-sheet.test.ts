@@ -1,35 +1,16 @@
 /**
- * The cheat sheet's pure core: the saved record (format 3's asks as the
- * chat's first messages, the HTML and block sheets of older builds read
- * as "made in an older format"), its chat, rules and versions, a newer PDF
- * in the working folder, pointing at a page, checking the agent's PDF, the
- * page size, the request's text, and the canvas's artboards and camera.
+ * The cheat sheet's pure core: pointing at a page, the page size, a space's
+ * sheet cards, and the canvas's artboards and camera.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-	CHEAT_SHEET_FORMAT,
-	cheatSheetRequestText,
-	currentVersion,
-	mistakeCounts,
-	newCheatSheet,
 	pageCaption,
 	pageSizeLabel,
-	parseCheatSheet,
-	pdfProblem,
 	sheetCards,
-	sheetFolderName,
-	newerFolderPdf,
-	regionProblem,
 	regionText,
-	sheetMistakes,
-	withMessage,
-	withRules,
-	withVersion,
-	withoutRule,
 	type CheatSheet,
 	type SheetPage,
-	type YouMessage,
 } from "../../src/shared/core/cheat-sheet.ts";
 import {
 	artboards,
@@ -46,152 +27,16 @@ import {
 	zoomLabel,
 	zoomStep,
 } from "../../src/frontend/components/cheat-sheet/canvas-model.ts";
+import { newCheatSheet } from "../cheat-sheet-fixture.ts";
 import { DOCK_MIN_W, dockWidth, makeTarget, parseDockState, pickSheet } from "../../src/frontend/components/cheat-sheet/dock-model.ts";
 
 const A4: SheetPage = { widthPt: 595.28, heightPt: 841.89 };
 const LETTER: SheetPage = { widthPt: 612, heightPt: 792 };
 
-describe("cheat sheet: the saved record", () => {
-	it("reads its versions, chat, rules and folder, drops broken entries, and refuses a newer record", () => {
-		const region = { n: 1, page: 2, x: 0.1, y: 0.2, w: 0.3, h: 0.1 };
-		const saved = {
-			version: CHEAT_SHEET_FORMAT,
-			deadlineId: "ddl_1",
-			versions: [{ n: 1, prompt: "A4", at: "t", pages: [A4, A4], fromFolder: true }, { n: 2, prompt: "x", at: "t", pages: [] }, { n: "3" }],
-			messages: [
-				{ id: "m1", role: "you", text: "A4", at: "t", files: [{ name: "a.png", file: "abc-a.png" }], region },
-				{ id: "m2", role: "agent", text: "Done.", at: "t", version: 1, rules: ["A4"] },
-				{ id: "m3", role: "teacher", text: "x", at: "t" },
-				{ id: "m4", role: "you", text: 3 },
-			],
-			rules: [{ text: "A4, both sides", at: "t" }, { text: 1 }],
-			folder: "CSE 21 Midterm",
-			updatedAt: "u",
-		};
-		assert.deepEqual(parseCheatSheet(saved), {
-			deadlineId: "ddl_1",
-			versions: [{ n: 1, prompt: "A4", at: "t", pages: [A4, A4], fromFolder: true }],
-			messages: [
-				{ id: "m1", role: "you", text: "A4", at: "t", files: [{ name: "a.png", file: "abc-a.png" }], region },
-				{ id: "m2", role: "agent", text: "Done.", at: "t", version: 1, rules: ["A4"] },
-			],
-			rules: [{ text: "A4, both sides", at: "t" }],
-			folder: "CSE 21 Midterm",
-			updatedAt: "u",
-		});
-		assert.equal(parseCheatSheet({ ...saved, version: CHEAT_SHEET_FORMAT + 1 }), "newer");
-		assert.equal(parseCheatSheet({ version: 3 }), null);
-	});
-
-	it("turns format 3's asks into the chat's first messages, each followed by the version made for it", () => {
-		const v3 = {
-			version: 3,
-			deadlineId: "ddl_1",
-			versions: [{ n: 1, prompt: "A4", at: "t1", pages: [A4] }],
-			prompts: [{ text: "A4", at: "t1", files: ["a.png"] }, { text: "bigger", at: "t2" }],
-			folder: "CSE 21 Midterm",
-			updatedAt: "u",
-		};
-		const sheet = parseCheatSheet(v3) as CheatSheet;
-		assert.deepEqual(sheet.messages, [
-			{ id: "asked-0", role: "you", text: "A4", at: "t1", files: [{ name: "a.png" }] },
-			{ id: "made-0", role: "agent", text: "", at: "t1", version: 1 },
-			{ id: "asked-1", role: "you", text: "bigger", at: "t2" },
-		]);
-		assert.deepEqual([sheet.rules, sheet.folder], [[], "CSE 21 Midterm"]);
-	});
-
-	it("keeps an HTML sheet's asks and says it was made in an older format", () => {
-		const html = { version: 2, deadlineId: "ddl_1", doc: { widthIn: 8.27, heightIn: 11.69, css: "", pages: ["<p>x</p>"] }, prompts: [{ text: "A4", at: "t" }], updatedAt: "u" };
-		assert.deepEqual(parseCheatSheet(html), { deadlineId: "ddl_1", versions: [], messages: [{ id: "asked-0", role: "you", text: "A4", at: "t" }], rules: [], olderFormat: true, updatedAt: "u" });
-		assert.equal((parseCheatSheet({ ...html, doc: null }) as CheatSheet).olderFormat, undefined, "nothing was made");
-	});
-
-	it("keeps a block sheet's instructions as its first message", () => {
-		const blocks = { version: 1, deadlineId: "ddl_1", prefs: { instructions: " both sides " }, blocks: [{ title: "Counting", body: "x" }], confirmedAt: "c", updatedAt: "u" };
-		assert.deepEqual(parseCheatSheet(blocks), { deadlineId: "ddl_1", versions: [], messages: [{ id: "asked-0", role: "you", text: "both sides", at: "c" }], rules: [], olderFormat: true, updatedAt: "u" });
-		assert.deepEqual((parseCheatSheet({ deadlineId: "ddl_1", blocks: [] }) as CheatSheet).messages, [], "no version is version 1");
-	});
-
-	it("keeps the last 100 messages", () => {
-		let sheet = newCheatSheet("ddl_1", "t");
-		for (let i = 0; i < 105; i++) sheet = withMessage(sheet, { id: `m${i}`, role: "you", text: `ask ${i}`, at: "t" });
-		assert.equal(sheet.messages.length, 100);
-		assert.equal(sheet.messages[0]!.text, "ask 5");
-	});
-
-	it("keeps rules once each, cleaned, at most 20, says which were new, and deletes one", () => {
-		const first = withRules(newCheatSheet("ddl_1", "t"), ["A4,  both sides", "American spelling", "a4, both sides", "  "], "t1");
-		assert.deepEqual(first.added, ["A4, both sides", "American spelling"]);
-		assert.deepEqual(first.sheet.rules, [{ text: "A4, both sides", at: "t1" }, { text: "American spelling", at: "t1" }]);
-		const again = withRules(first.sheet, ["American spelling"], "t2");
-		assert.equal(again.sheet, first.sheet, "nothing new, nothing changed");
-		const full = withRules(first.sheet, Array.from({ length: 30 }, (_, i) => `rule ${i}`), "t3");
-		assert.equal(full.sheet.rules.length, 20);
-		assert.deepEqual(withoutRule(first.sheet, "A4, both sides").rules.map((r) => r.text), ["American spelling"]);
-	});
-
-	it("numbers each version, keeps the last 5, says which went, and leaves the older format behind", () => {
-		let sheet: CheatSheet = { ...newCheatSheet("ddl_1", "t"), olderFormat: true };
-		assert.equal(currentVersion(sheet), null);
-		const dropped: number[] = [];
-		for (let i = 1; i <= 7; i++) {
-			const next = withVersion(sheet, { prompt: `ask ${i}`, at: `t${i}`, pages: [A4] });
-			sheet = next.sheet;
-			dropped.push(...next.dropped);
-		}
-		assert.deepEqual(sheet.versions.map((v) => v.n), [3, 4, 5, 6, 7]);
-		assert.deepEqual(dropped, [1, 2]);
-		assert.deepEqual([currentVersion(sheet)!.prompt, sheet.updatedAt, sheet.olderFormat], ["ask 7", "t7", undefined]);
-	});
-});
-
-describe("cheat sheet: a newer PDF in the working folder", () => {
-	const at = "2026-11-04T10:00:00.000Z";
-	const t = Date.parse(at);
-	it("is the newest PDF there when it was written after the current version, never godspeed's own copies", () => {
-		const files = [
-			{ name: "sheet.tex", mtimeMs: t + 9000 },
-			{ name: "sheet.pdf", mtimeMs: t + 5000 },
-			{ name: "old.pdf", mtimeMs: t - 5000 },
-			{ name: "cheat sheet v3.pdf", mtimeMs: t + 8000 },
-		];
-		assert.equal(newerFolderPdf(files, { at }), "sheet.pdf");
-		assert.equal(newerFolderPdf(files.filter((f) => f.name !== "sheet.pdf"), { at }), null, "older than the version");
-		assert.equal(newerFolderPdf([{ name: "old.pdf", mtimeMs: 1 }], null), "old.pdf", "any PDF when there is no version yet");
-		assert.equal(newerFolderPdf([{ name: "sheet.tex", mtimeMs: t + 1 }], null), null);
-	});
-});
-
 describe("cheat sheet: pointing at a page", () => {
-	const versions = [{ n: 3, prompt: "", at: "t", pages: [A4, A4] }];
-	it("must be on a kept version's page, inside it", () => {
-		assert.equal(regionProblem({ n: 3, page: 2, x: 0.1, y: 0.2, w: 0.5, h: 0.3 }, versions), null);
-		assert.match(regionProblem({ n: 2, page: 1, x: 0, y: 0, w: 0.5, h: 0.5 }, versions)!, /version of the sheet is gone/);
-		assert.match(regionProblem({ n: 3, page: 3, x: 0, y: 0, w: 0.5, h: 0.5 }, versions)!, /gone/);
-		assert.match(regionProblem({ n: 3, page: 1, x: 0.8, y: 0, w: 0.5, h: 0.5 }, versions)!, /isn't on the page/);
-		assert.match(regionProblem({ n: 3, page: 1, x: 0, y: 0, w: 0, h: 0.5 }, versions)!, /isn't on the page/);
-	});
-
 	it("says which page and where in plain percents", () => {
 		assert.equal(regionText({ n: 3, page: 2, x: 0.1, y: 0.2, w: 0.3, h: 0.15 }, 2), "page 2 (the back), from 10% to 40% across and 20% to 35% down");
 		assert.equal(regionText({ n: 3, page: 1, x: 0, y: 0, w: 1, h: 1 }, 1), "page 1, from 0% to 100% across and 0% to 100% down");
-	});
-});
-
-describe("cheat sheet: the agent's PDF", () => {
-	it("must be a PDF under 20 MB with 1 to 4 pages of a sane size", () => {
-		assert.equal(pdfProblem({ bytes: 1000 }), null, "the size alone, before reading");
-		assert.match(pdfProblem({ bytes: 21 * 1024 * 1024 })!, /21 MB; keep it under 20 MB/);
-		assert.match(pdfProblem({ bytes: 10, head: "\\docum" })!, /not a PDF/);
-		assert.equal(pdfProblem({ bytes: 10, head: "%PDF-1.5", pages: [A4, A4] }), null);
-		assert.match(pdfProblem({ bytes: 10, head: "%PDF-", pages: [] })!, /0 pages; a cheat sheet has 1 to 4/);
-		assert.match(pdfProblem({ bytes: 10, head: "%PDF-", pages: [A4, A4, A4, A4, A4] })!, /5 pages/);
-		assert.match(pdfProblem({ bytes: 10, head: "%PDF-", pages: [{ widthPt: 72, heightPt: 792 }] })!, /between 2 and 17 inches/);
-	});
-
-	it("is made in a working folder named for the space and deadline", () => {
-		assert.equal(sheetFolderName("CSE 21", "Midterm: part 1"), "CSE 21 Midterm- part 1");
 	});
 });
 
@@ -206,90 +51,6 @@ describe("cheat sheet: the page size", () => {
 
 	it("labels two pages Front and Back, the rest by number", () => {
 		assert.deepEqual([pageCaption(0, 2), pageCaption(1, 2), pageCaption(0, 1), pageCaption(2, 3)], ["Front", "Back", "Page 1", "Page 3"]);
-	});
-});
-
-describe("cheat sheet: the request", () => {
-	const topics = [
-		{ id: "tpc_a", name: "Counting", status: "weak" as const, mistakes: 2, facts: [{ name: "Permutations", statement: "P(n,k) = n!/(n-k)!" }] },
-		{ id: "tpc_b", name: "Sums", status: "strong" as const, mistakes: 0, facts: [] },
-	];
-	const message: YouMessage = { id: "m9", role: "you", text: "double sided A4, and a flowchart", at: "t" };
-	const base = {
-		title: "CSE 21 Midterm",
-		date: "2026-11-04",
-		spaceNotes: "Rosen's notation.",
-		infoFiles: ["syllabus.txt"],
-		rules: [],
-		topics,
-		mistakes: [{ topicId: "tpc_a", text: "7 students, 3 sections", kind: "wrong" as const, at: "t" }],
-		folder: { path: "/home/me/godspeed/cheat-sheets/CSE 21 Midterm", files: [] },
-		versions: [],
-		earlier: [],
-		message,
-	};
-
-	it("says where the space's rules are, the topics with readiness and facts, the mistakes, the working folder, and the message last", () => {
-		const text = cheatSheetRequestText(base);
-		assert.match(text, /^Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: Rosen's notation\.\nSpace info files \(the rules are likely here\): syllabus\.txt/);
-		assert.match(text, /Counting \| weak, 2 mistakes\n {2}- Permutations: P\(n,k\) = n!\/\(n-k\)!\nSums \| knows it well/);
-		assert.match(text, /answered wrong \(Counting\): "7 students, 3 sections"/);
-		assert.match(text, /Working folder: \/home\/me\/godspeed\/cheat-sheets\/CSE 21 Midterm\nIt is empty\. There is no sheet yet\. Keep its source here so later changes can edit it\./);
-		assert.match(text, /\n\nThe learner says:\ndouble sided A4, and a flowchart$/);
-		assert.doesNotMatch(text, /rules \(follow|chat so far|pointed at|is on this/);
-	});
-
-	it("carries the sheet's rules, the sheet now, the last few messages and the part they point at", () => {
-		const versions = [
-			{ n: 1, prompt: "A4", at: "t", pages: [A4] },
-			{ n: 2, prompt: "A4", at: "t", pages: [A4, A4] },
-		];
-		const earlier = [
-			...Array.from({ length: 8 }, (_, i): YouMessage => ({ id: `o${i}`, role: "you", text: `old ${i}`, at: "t" })),
-			{ id: "a1", role: "agent" as const, text: "Made it bigger.", at: "t", version: 2 },
-			{ id: "a2", role: "agent" as const, text: "", at: "t", version: 1 },
-		];
-		const text = cheatSheetRequestText({
-			...base,
-			infoFiles: [],
-			rules: [
-				{ text: "A4, both sides", at: "t" },
-				{ text: "American spelling", at: "t" },
-			],
-			folder: { ...base.folder, files: ["sheet.pdf", "sheet.tex"] },
-			versions,
-			earlier,
-			message: {
-				...message,
-				text: "according to the cheat sheet that's what I did",
-				region: { n: 1, page: 1, x: 0.1, y: 0.2, w: 0.3, h: 0.1 },
-			},
-		});
-		assert.match(text, /no space info files; search all its files/);
-		assert.match(text, /This sheet's rules \(follow every one\):\n- A4, both sides\n- American spelling/);
-		assert.match(text, /Topics on this exam \(name \| how the learner does\):\nCounting \| weak, 2 mistakes\nSums/, "facts go with the first sheet only");
-		assert.match(text, /It has: sheet\.pdf, sheet\.tex\. The sheet now is version 2 \(A4, front and back\), made from the source here\. To change it, edit that source/);
-		assert.match(text, /The chat so far, oldest first:\nLearner: old 2\n.*Learner: old 7\nYou: Made it bigger\. \[made version 2\]\nYou: \[made version 1\]/s);
-		assert.doesNotMatch(text, /old 1\n/, "only the last 8 messages");
-		assert.match(text, /They pointed at version 1, page 1, from 10% to 40% across and 20% to 30% down\. The first picture shows that part\. That is an older version; the sheet now is version 2\./);
-		assert.match(text, /The learner says:\naccording to the cheat sheet that's what I did$/);
-		const many = cheatSheetRequestText({ ...base, infoFiles: ["HW1.pdf", ...Array.from({ length: 9 }, (_, i) => `n${i}.txt`), "syllabus.txt"] });
-		assert.match(many, /likely here\): syllabus\.txt, HW1\.pdf, n0\.txt, .*, n5\.txt, and 3 more\n/);
-		assert.match(cheatSheetRequestText({ ...base, message: { ...message, text: "" } }), /The learner says:\n\(no words, only the files\)$/);
-	});
-
-	it("takes the newest mistakes in the deadline's topics, each question once, and counts them", () => {
-		const answers = [
-			{ text: "How many 5-card hands?", kind: "wrong" as const, at: "2026-10-01", topicIds: ["counting"] },
-			{ text: "  How many 5-card   hands? ", kind: "wrong" as const, at: "2026-10-03", topicIds: ["counting"] },
-			{ text: "E[X^2] for a die", kind: "hint" as const, at: "2026-10-02", topicIds: ["other", "probability"] },
-			{ text: "Off topic", kind: "wrong" as const, at: "2026-10-04", topicIds: ["other"] },
-		];
-		assert.deepEqual(sheetMistakes(answers, ["counting", "probability"]).map((m) => [m.topicId, m.text, m.kind]), [
-			["counting", "How many 5-card hands?", "wrong"],
-			["probability", "E[X^2] for a die", "hint"],
-		]);
-		assert.deepEqual([...mistakeCounts(answers, ["counting", "probability"])], [["counting", 2], ["probability", 1]]);
 	});
 });
 

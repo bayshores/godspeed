@@ -3,7 +3,7 @@
  * writing box, each waiting question's picks and reading thoughts). Saved
  * per lesson so leaving the lesson or a window reload never loses it. Pure.
  */
-import { answeredCallIds, danglingQuestionOf, type LhMessage, type QuestionDraft, type QuestionFormDraft } from "@/shared/core";
+import { answeredCallIds, danglingQuestionOf, isRecord, type LhMessage, type QuestionDraft, type QuestionFormDraft } from "@/shared/core";
 import { isLocalMessage } from "@/frontend/components/session-core";
 
 export interface LessonDraft {
@@ -85,7 +85,6 @@ export function serializeLessonDraft(d: LessonDraft): string | null {
 	return JSON.stringify({ composer: d.composer, questions });
 }
 
-const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 
 function parseForm(v: unknown): QuestionFormDraft | undefined {

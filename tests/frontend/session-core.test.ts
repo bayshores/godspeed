@@ -25,7 +25,7 @@ import { absorbed, errorBodyMessage, pendingCallTool, SessionModel } from "../..
 import type { ChatInput } from "../../src/shared/core/input-events.ts";
 import type { LhMessage } from "../../src/shared/core/native-messages.ts";
 import { newUserMessage, newAnswerResult, newSideQuestion, newNextMessage, newProblemDismissedMarker, needsContinuation, endsInDismissal } from "../../src/shared/core/native-messages.ts";
-import { newCompactionMarker, newPlanBlockMessage, projectView } from "../../src/shared/core/index.ts";
+import { newCompactionMarker, projectView } from "../../src/shared/core/index.ts";
 import { dismissedAnswer } from "../../src/shared/core/question-core.ts";
 import { oldThinkingMessage } from "../old-records.ts";
 import { buildAnswer, type QuestionAnswerData, type QuestionData } from "../../src/shared/core/question-core.ts";
@@ -694,7 +694,7 @@ describe("provider-error banner (live and saved)", () => {
 			{ ...assistantMsg("aborted", ""), stopReason: "aborted", errorMessage: "Aborted" } as LhMessage,
 			oldThinkingMessage("problem", "my attempt"),
 			resultMsg("call"),
-			newPlanBlockMessage("plan", { kind: "full", nodes: [], edges: [], current: null }),
+			{ id: "pb_1", role: "custom", customType: "plan-block", content: "", display: true, details: { planCallId: "plan", block: { kind: "full", nodes: [], edges: [], current: null } }, timestamp: 1 } as LhMessage,
 			newCompactionMarker("summary", { firstKeptMessageId: failure.id, tokensBefore: 100, model: "fixture", at: "2026-01-01T00:00:00Z" }),
 		];
 		for (const entry of later) {

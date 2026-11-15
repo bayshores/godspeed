@@ -14,7 +14,7 @@ use gs_json::Json;
 use parking_lot::Mutex;
 
 use super::plan::PlanContext;
-use super::questions::study_quiz_call;
+use super::questions::{node_ids_in, study_quiz_call};
 
 pub struct LessonParts {
 	plan: PlanContext,
@@ -36,19 +36,20 @@ impl LessonParts {
 	pub fn hook(self: &Arc<Self>) -> BeforeToolCallFn {
 		let parts = self.clone();
 		Box::new(move |ctx| {
-			let name = ctx.call["name"].as_str().unwrap_or_default();
+			let name = ctx.call["name"].str_or_empty();
 			if name != PLOT_TOOL && !(name == "quiz" && ctx.args["onPlot"].as_obj().is_some()) {
 				return None;
 			}
 			let record = parts.plan.chat_store.get_chat(&parts.plan.chat_id);
+			let known = node_ids_in(record.as_ref());
 			// The model's view answers a question at once around a side question; the record knows it is open.
 			let stored = record.as_ref().and_then(|r| r["messages"].as_arr()).map_or(&[][..], Vec::as_slice);
 			let open = question_open(stored, ctx.message);
-			let verdict = reply_parts_problems(ctx.messages, first_topic(record.as_ref().map(|r| &r["tree"])), ctx.message, open, &|quiz| study_quiz_call(&parts.plan, quiz));
+			let verdict = reply_parts_problems(ctx.messages, first_topic(record.as_ref().map(|r| &r["tree"])), ctx.message, open, &|quiz| study_quiz_call(&known, quiz));
 			if let Some((plot_call_id, guess)) = verdict.on_plot {
 				parts.passed.lock().insert(plot_call_id, guess);
 			}
-			let id = ctx.call["id"].as_str().unwrap_or_default();
+			let id = ctx.call["id"].str_or_empty();
 			verdict.refused.into_iter().find(|(call_id, _)| call_id == id).map(|(_, refusal)| refusal)
 		})
 	}

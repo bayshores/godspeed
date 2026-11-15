@@ -49,19 +49,19 @@ pub fn collect_answers(chat_id: &str, messages: &[Json]) -> Vec<Json> {
 		match m["role"].as_str() {
 			Some("user") => turn.clear(),
 			Some("assistant") => {
-				for block in m["content"].as_arr().into_iter().flatten() {
+				for block in m["content"].items().iter() {
 					let (Some(id), Some(name)) = (block["id"].as_str().filter(|s| !s.is_empty()), block["name"].as_str().filter(|s| !s.is_empty())) else { continue };
 					if block["type"].as_str() != Some("toolCall") || !is_graded_tool(name) {
 						continue;
 					}
 					calls.insert(id, Call { message_id: &m["id"], context: turn.iter().rev().copied().collect(), tool: name, args: &block["arguments"] });
 				}
-				turn.push(m["id"].as_str().unwrap_or(""));
+				turn.push(m["id"].str_or_empty());
 			}
 			Some("custom") if m["customType"].as_str() == Some("review") => out.extend(review_answer(&m["details"])),
 			Some("toolResult") => {
 				// Any question's answer is the learner speaking: a new turn starts.
-				if is_question_tool(m["toolName"].as_str().unwrap_or("")) {
+				if is_question_tool(m["toolName"].str_or_empty()) {
 					turn.clear();
 				}
 				let Some(call_id) = m["toolCallId"].as_str().filter(|s| !s.is_empty()) else { continue };
@@ -88,9 +88,7 @@ pub fn collect_answers(chat_id: &str, messages: &[Json]) -> Vec<Json> {
 		if p["targets"].as_arr().is_some_and(|t| !t.is_empty()) {
 			a.insert("factIds", p["targets"].clone());
 		}
-		if let Some(node_id) = p.get("nodeId") {
-			a.insert("nodeId", node_id.clone());
-		}
+		a.insert_present("nodeId", p.get("nodeId"));
 		a.insert("question", p["statement"].clone());
 		a.insert("outcome", outcome);
 		a.insert("answeredAt", p["at"].clone());
@@ -114,7 +112,7 @@ fn review_answer(details: &Json) -> Option<Json> {
 	if let Some(node_id) = details["nodeId"].as_str().filter(|s| !s.is_empty()) {
 		a.insert("nodeId", node_id);
 	}
-	a.insert("question", details["quiz"]["question"].as_str().unwrap_or(""));
+	a.insert("question", details["quiz"]["question"].str_or_empty());
 	a.insert("outcome", outcome);
 	if let Some(c) = answer["confidence"].as_f64().filter(|_| outcome != "dontKnow") {
 		a.insert("confidence", c);
@@ -142,7 +140,7 @@ fn graded_answer(chat_id: &str, call_id: &str, call: &Call, ad: &Json) -> Option
 	if let Some(node_id) = node_id {
 		a.insert("nodeId", node_id);
 	}
-	a.insert("question", or_json(&ad["questionText"], call.args["question"].as_str().unwrap_or("")));
+	a.insert("question", or_json(&ad["questionText"], call.args["question"].str_or_empty()));
 	a.insert("outcome", outcome);
 	if let Some(c) = confidence {
 		a.insert("confidence", c);
@@ -161,9 +159,9 @@ pub fn facts_by_message(facts: &[Json]) -> HashMap<String, Vec<String>> {
 	let mut index: HashMap<String, Vec<String>> = HashMap::new();
 	for fact in facts {
 		let Some(id) = fact["id"].as_str() else { continue };
-		for p in super::items(&fact["provenance"]) {
+		for p in fact["provenance"].items() {
 			let Some(message_id) = p["messageId"].as_str().filter(|s| !s.is_empty()) else { continue };
-			let list = index.entry(point_key(p["chatId"].as_str().unwrap_or(""), message_id)).or_default();
+			let list = index.entry(point_key(p["chatId"].str_or_empty(), message_id)).or_default();
 			if !list.iter().any(|f| f == id) {
 				list.push(id.to_owned());
 			}
@@ -176,13 +174,13 @@ pub fn facts_by_message(facts: &[Json]) -> HashMap<String, Vec<String>> {
 /// the message that asked it; when that message has none, the nearest earlier teacher message
 /// of the same turn that does.
 pub fn facts_for_answer(answer: &Json, index: &HashMap<String, Vec<String>>) -> Vec<String> {
-	let named = super::items(&answer["factIds"]);
+	let named = answer["factIds"].items();
 	if !named.is_empty() {
 		return named.iter().filter_map(|f| f.as_str().map(str::to_owned)).collect();
 	}
-	let chat_id = answer["chatId"].as_str().unwrap_or("");
+	let chat_id = answer["chatId"].str_or_empty();
 	let asked = answer["messageId"].as_str().into_iter();
-	let context = super::items(&answer["contextMessageIds"]).iter().filter_map(Json::as_str);
+	let context = answer["contextMessageIds"].items().iter().filter_map(Json::as_str);
 	for message_id in asked.chain(context) {
 		if let Some(hit) = index.get(&point_key(chat_id, message_id)).filter(|h| !h.is_empty()) {
 			return hit.clone();

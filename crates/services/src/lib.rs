@@ -7,6 +7,7 @@ pub mod cheat_sheets;
 pub mod graph;
 pub mod app;
 pub mod mocks;
+pub mod outcome;
 
 use std::sync::Arc;
 

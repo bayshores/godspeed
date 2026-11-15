@@ -22,9 +22,9 @@ use gs_json::{Json, js_number, json};
 use super::mock_end::{ask_grades, current_mocks, deadline_of, end_if_over, finish, is_over, mock_label};
 use super::mock_runner::run_examples;
 use super::mock_runs::{cancel_run, changed, is_running, mock_run_key, run_error, start_run};
-use super::{Outcome, Stop, fail};
 use crate::App;
 use crate::graph::progress::progress_for;
+use crate::outcome::{Outcome, Stop, refuse};
 use crate::spaces::deadline_about;
 
 /// The most of "what it is like" a questions request carries.
@@ -32,10 +32,6 @@ const ABOUT_MAX: i64 = 4000;
 /// Facts per topic, and in all, a questions request names.
 const FACTS_PER_TOPIC: usize = 5;
 const FACTS_MAX: usize = 60;
-
-fn items(list: &Json) -> &[Json] {
-	list.as_arr().map_or(&[], Vec::as_slice)
-}
 
 fn done() -> Outcome<()> {
 	Ok(())
@@ -45,7 +41,7 @@ fn done() -> Outcome<()> {
 fn mock_of(app: &App, space_id: &str, mock_id: &str) -> Outcome<Json> {
 	match app.stores.mocks.read_mock(space_id, mock_id)? {
 		Some(mock) => Ok(mock),
-		None => fail(404, "No such mock"),
+		None => refuse(404, "No such mock"),
 	}
 }
 
@@ -62,7 +58,7 @@ fn summary(app: &App, space_id: &str, mock: &Json) -> Json {
 /// A space's mocks (one deadline's, when given) as rows, newest first.
 pub fn list_mocks(app: &Arc<App>, space_id: &str, deadline_id: Option<&str>) -> Outcome<Vec<Json>> {
 	if app.stores.spaces.get_space(space_id).is_none() {
-		return fail(404, "No such space");
+		return refuse(404, "No such space");
 	}
 	let mut mocks = current_mocks(app, space_id);
 	mocks.retain(|m| deadline_id.is_none_or(|d| m["deadlineId"].as_str() == Some(d)));
@@ -75,14 +71,14 @@ pub fn list_mocks(app: &Arc<App>, space_id: &str, deadline_id: Option<&str>) -> 
 /// all).
 fn deadline_topics(app: &App, space_id: &str, deadline_id: &str) -> Result<Vec<Json>, String> {
 	let Some(progress) = progress_for(app, space_id, None)? else { return Ok(Vec::new()) };
-	let Some(deadline) = items(&progress["deadlines"]).iter().find(|d| d["id"].as_str() == Some(deadline_id)) else { return Ok(Vec::new()) };
-	let topics: HashMap<&str, &Json> = items(&progress["topics"]).iter().map(|t| (t["id"].str_or_empty(), t)).collect();
-	let statements: HashMap<&str, &Json> = items(&progress["facts"]).iter().map(|f| (f["id"].str_or_empty(), &f["statement"])).collect();
+	let Some(deadline) = progress["deadlines"].items().iter().find(|d| d["id"].as_str() == Some(deadline_id)) else { return Ok(Vec::new()) };
+	let topics: HashMap<&str, &Json> = progress["topics"].items().iter().map(|t| (t["id"].str_or_empty(), t)).collect();
+	let statements: HashMap<&str, &Json> = progress["facts"].items().iter().map(|f| (f["id"].str_or_empty(), &f["statement"])).collect();
 	let mut left = FACTS_MAX;
 	let mut out = Vec::new();
-	for t in items(&deadline["topics"]) {
+	for t in deadline["topics"].items() {
 		let Some(topic) = topics.get(t["id"].str_or_empty()) else { continue };
-		let facts: Vec<Json> = items(&topic["members"])
+		let facts: Vec<Json> = topic["members"].items()
 			.iter()
 			.filter_map(|id| Some(json!({ "id": id, "statement": statements.get(id.as_str()?)? })))
 			.take(FACTS_PER_TOPIC.min(left))
@@ -100,25 +96,25 @@ fn deadline_topics(app: &App, space_id: &str, deadline_id: &str) -> Result<Vec<J
 /// limit) and asks the teacher for its questions; the new mock's id.
 pub fn create_mock(app: &Arc<App>, space_id: &str, deadline_id: &str, questions: &Json, minutes: Option<&Json>) -> Outcome<String> {
 	let _guard = app.locks.lock(LockKey::Space(space_id));
-	let Some(record) = app.stores.spaces.get_space(space_id) else { return fail(404, "No such space") };
-	let Some(deadline) = items(&record["deadlines"]).iter().find(|d| d["id"].as_str() == Some(deadline_id)) else { return fail(404, "No such deadline") };
+	let Some(record) = app.stores.spaces.get_space(space_id) else { return refuse(404, "No such space") };
+	let Some(deadline) = record["deadlines"].items().iter().find(|d| d["id"].as_str() == Some(deadline_id)) else { return refuse(404, "No such deadline") };
 	if !takes_mocks(&deadline["kind"]) {
-		return fail(400, "Mocks are for exams, quizzes and interviews.");
+		return refuse(400, "Mocks are for exams, quizzes and interviews.");
 	}
 	// The window offers none on a deadline marked done.
 	if deadline["done"].truthy() {
-		return fail(409, "This deadline is done.");
+		return refuse(409, "This deadline is done.");
 	}
 	let format = match mock_format(questions, minutes) {
 		Ok(format) => format,
-		Err(problem) => return fail(400, problem),
+		Err(problem) => return refuse(400, problem),
 	};
 	let mocks = deadline_mocks(app, space_id, deadline_id);
 	if let Some(open) = mocks.iter().find(|m| mock_state(m) != MockState::Graded) {
-		return fail(409, format!("Finish Mock {} first.", js_number(open["n"].as_f64().unwrap_or(f64::NAN))));
+		return refuse(409, format!("Finish Mock {} first.", js_number(open["n"].as_f64().unwrap_or(f64::NAN))));
 	}
 	if deadline_about(app, space_id, deadline_id).is_none() && deadline_topics(app, space_id, deadline_id)?.is_empty() {
-		return fail(409, "This deadline has no study facts and no \"What it's like\" yet.");
+		return refuse(409, "This deadline has no study facts and no \"What it's like\" yet.");
 	}
 	let n = mocks.iter().filter_map(|m| m["n"].as_f64()).fold(0.0, f64::max) + 1.0;
 	let mock = new_mock(&ids::uuid_hex("mock", 8), deadline_id, n, &format, &time::iso_now());
@@ -132,9 +128,9 @@ fn ask_questions(app: &Arc<App>, space_id: &str, mock: &Json) -> Result<(), Stri
 	let Some(deadline) = deadline_of(app, space_id, mock) else { return Ok(()) };
 	let topics = deadline_topics(app, space_id, deadline_id)?;
 	let about = deadline_about(app, space_id, deadline_id).map(|a| text::slice16(a["text"].str_or_empty(), 0, Some(ABOUT_MAX)));
-	let asked: Vec<String> = app.stores.mocks.list_mocks(space_id)?.iter().filter(|m| m["deadlineId"].as_str() == Some(deadline_id)).flat_map(|m| items(&m["questions"]).iter().map(|q| q["title"].str_or_empty().to_owned()).collect::<Vec<_>>()).collect();
+	let asked: Vec<String> = app.stores.mocks.list_mocks(space_id)?.iter().filter(|m| m["deadlineId"].as_str() == Some(deadline_id)).flat_map(|m| m["questions"].items().iter().map(|q| q["title"].str_or_empty().to_owned()).collect::<Vec<_>>()).collect();
 	let prompt = mock_request_text(&deadline, about.as_deref(), &mock["format"], &topics, &asked);
-	let fact_ids: HashSet<String> = topics.iter().flat_map(|t| items(&t["facts"]).iter().filter_map(|f| f["id"].as_str().map(str::to_owned))).collect();
+	let fact_ids: HashSet<String> = topics.iter().flat_map(|t| t["facts"].items().iter().filter_map(|f| f["id"].as_str().map(str::to_owned))).collect();
 	let (task_app, id, mock) = (app.clone(), space_id.to_owned(), mock.clone());
 	start_run(app, space_id, &mock_run_key(space_id, mock["id"].str_or_empty()), move |signal| async move {
 		let from_about = fact_ids.is_empty();
@@ -187,7 +183,7 @@ pub fn ask_waiting_mocks(app: &Arc<App>) {
 pub fn mock_view(app: &Arc<App>, space_id: &str, mock_id: &str) -> Outcome<Json> {
 	let _guard = app.locks.lock(LockKey::Space(space_id));
 	let saved = mock_of(app, space_id, mock_id)?;
-	let Some(mock) = end_if_over(app, space_id, saved)? else { return fail(404, "No such mock") };
+	let Some(mock) = end_if_over(app, space_id, saved)? else { return refuse(404, "No such mock") };
 	let key = mock_run_key(space_id, mock_id);
 	let deadline_name = deadline_of(app, space_id, &mock).map_or(Json::Null, |d| d["name"].clone());
 	let view = MockView { space_id: space_id.to_owned(), deadline_name, mock, working: is_running(app, &key), error: run_error(app, &key) };
@@ -209,16 +205,16 @@ pub enum MockAction {
 /// A running mock reached past its time: it ends now, and what came is refused.
 fn time_is_up<T>(app: &Arc<App>, space_id: &str, mock: &Json) -> Outcome<T> {
 	finish(app, space_id, mock)?;
-	fail(409, "Time is up.")
+	refuse(409, "Time is up.")
 }
 
 /// Answers and code runs need a running mock with time left.
 fn taking(app: &Arc<App>, space_id: &str, mock: &Json) -> Outcome<()> {
 	match mock_state(mock) {
-		MockState::Paused => fail(409, "This mock is paused."),
+		MockState::Paused => refuse(409, "This mock is paused."),
 		MockState::Running if is_over(mock) => time_is_up(app, space_id, mock),
 		MockState::Running => done(),
-		_ => fail(409, "This mock isn't running."),
+		_ => refuse(409, "This mock isn't running."),
 	}
 }
 
@@ -230,7 +226,7 @@ pub fn change_mock(app: &Arc<App>, space_id: &str, mock_id: &str, change: MockAc
 	match change {
 		MockAction::Start => {
 			if state != MockState::Ready {
-				return fail(409, "This mock can't be started.");
+				return refuse(409, "This mock can't be started.");
 			}
 			app.stores.mocks.write_mock(space_id, &start_mock(&mock, now))?;
 			changed(app, space_id);
@@ -241,7 +237,7 @@ pub fn change_mock(app: &Arc<App>, space_id: &str, mock_id: &str, change: MockAc
 		}
 		MockAction::Pause => {
 			if !is_timed(&mock) {
-				return fail(409, "This mock has no time limit.");
+				return refuse(409, "This mock has no time limit.");
 			}
 			taking(app, space_id, &mock)?;
 			app.stores.mocks.write_mock(space_id, &pause_mock(&mock, now))?;
@@ -249,25 +245,25 @@ pub fn change_mock(app: &Arc<App>, space_id: &str, mock_id: &str, change: MockAc
 		}
 		MockAction::Resume => {
 			if state != MockState::Paused {
-				return fail(409, "This mock isn't paused.");
+				return refuse(409, "This mock isn't paused.");
 			}
 			app.stores.mocks.write_mock(space_id, &resume_mock(&mock, now))?;
 			changed(app, space_id);
 		}
 		MockAction::End => {
 			if !matches!(state, MockState::Running | MockState::Paused) {
-				return fail(409, "This mock isn't running.");
+				return refuse(409, "This mock isn't running.");
 			}
 			finish(app, space_id, &mock)?;
 		}
 		MockAction::Retry => {
 			if is_running(app, &mock_run_key(space_id, mock_id)) {
-				return fail(409, "Your agent is still working on this mock.");
+				return refuse(409, "Your agent is still working on this mock.");
 			}
 			match state {
 				MockState::Writing => ask_questions(app, space_id, &mock)?,
 				MockState::Grading => ask_grades(app, space_id, &mock)?,
-				_ => return fail(409, "There is nothing to try again."),
+				_ => return refuse(409, "There is nothing to try again."),
 			}
 		}
 	}
@@ -312,9 +308,9 @@ pub async fn run_mock_examples(app: &Arc<App>, space_id: &str, mock_id: &str, qu
 		let _guard = app.locks.lock(LockKey::Space(space_id));
 		let mock = mock_of(app, space_id, mock_id)?;
 		taking(app, space_id, &mock)?;
-		let question = items(&mock["questions"]).iter().find(|q| q["id"].as_str() == Some(question_id)).filter(|q| q["kind"].as_str() == Some("code")).cloned();
-		let Some(question) = question else { return fail(404, "No such code question") };
-		let Some(language) = MockLanguage::parse(language) else { return fail(400, "Pick JavaScript or Python.") };
+		let question = mock["questions"].items().iter().find(|q| q["id"].as_str() == Some(question_id)).filter(|q| q["kind"].as_str() == Some("code")).cloned();
+		let Some(question) = question else { return refuse(404, "No such code question") };
+		let Some(language) = MockLanguage::parse(language) else { return refuse(400, "Pick JavaScript or Python.") };
 		(question, language)
 	};
 	run_examples(&app.paths.tmp, &question, code, language, None).await.map_err(Stop::Throw)

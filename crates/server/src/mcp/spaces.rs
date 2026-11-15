@@ -36,7 +36,7 @@ fn started(call: &ToolCall<'_>, done: ToolOutcome, waiting: bool) -> Json {
 		ToolOutcome::Ok { value, .. } => value,
 		ToolOutcome::Err(error) => return failure(&error),
 	};
-	let lesson_id = value["lessonId"].as_str().unwrap_or_default();
+	let lesson_id = value["lessonId"].str_or_empty();
 	let note = if waiting {
 		"Open in the godspeed window. Your waiter already running brings its turns.".to_owned()
 	} else if in_claude_code(call.caller) {
@@ -53,7 +53,7 @@ fn started(call: &ToolCall<'_>, done: ToolOutcome, waiting: bool) -> Json {
 
 fn unlink_space_folder(call: &ToolCall<'_>, args: &Json) -> Json {
 	let app = call.app;
-	let space_id = args["space_id"].as_str().unwrap_or_default();
+	let space_id = args["space_id"].str_or_empty();
 	let Some(before) = app.stores.spaces.get_space(space_id) else {
 		return failure(&format!("No space \"{space_id}\". Use list_spaces."));
 	};
@@ -68,7 +68,7 @@ fn unlink_space_folder(call: &ToolCall<'_>, args: &Json) -> Json {
 		"page": "/space/files",
 	});
 	note_agent_action(app, call.caller, &action);
-	let removed = before["files"].as_arr().into_iter().flatten().filter(|f| f["origin"].as_str() == Some("linked")).count();
+	let removed = before["files"].items().iter().filter(|f| f["origin"].as_str() == Some("linked")).count();
 	let mut answer = json!({ "spaceId": space_id });
 	if let (Some(fields), Some(folder)) = (answer.as_obj_mut(), before.get("linkedFolder")) {
 		fields.insert("unlinked", folder.clone());

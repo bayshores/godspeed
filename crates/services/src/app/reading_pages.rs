@@ -44,12 +44,7 @@ async fn servable(app: &App, raw_path: &str) -> Result<Servable, ReadingError> {
 		return Err(ReadingError::Refused(403, "Not a file the teacher can show"));
 	}
 	let meta = tokio::fs::metadata(&absolute).await.ok().filter(std::fs::Metadata::is_file).ok_or(ReadingError::Refused(404, "No such file"))?;
-	Ok(Servable { absolute, mtime_ms: mtime_ms(&meta), size: meta.len() })
-}
-
-/// `stat.mtimeMs`.
-pub(crate) fn mtime_ms(meta: &std::fs::Metadata) -> f64 {
-	meta.modified().ok().and_then(|at| at.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0.0, |d| d.as_secs_f64() * 1000.0)
+	Ok(Servable { absolute, mtime_ms: fsx::modified_ms(&meta), size: meta.len() })
 }
 
 pub(crate) fn is_pdf(file: &Path) -> bool {

@@ -20,7 +20,7 @@ use gs_files::walk::{SkippedFiles, walk_linked_folder};
 use gs_json::{Json, Obj, json};
 
 use super::space_card::space_file_path;
-use super::files::{drop_file, file_in, files_of, import_running, mutate_files, new_file_id, str_of};
+use super::files::{drop_file, file_in, import_running, mutate_files, new_file_id};
 use super::pipeline::enqueue_file;
 use super::state::SeenFile;
 use super::{SpaceFailure, SpaceOutcome, fail, no_space};
@@ -75,7 +75,7 @@ pub fn unlink_folder(app: &Arc<App>, space_id: &str) -> SpaceOutcome<Json> {
 	if !record["linkedFolder"].truthy() {
 		return fail(400, "no_folder", "This space has no linked folder");
 	}
-	let linked: Vec<Json> = files_of(&record).iter().filter(|f| str_of(f, "origin") == "linked").cloned().collect();
+	let linked: Vec<Json> = record["files"].items().iter().filter(|f| f["origin"].str_or_empty() == "linked").cloned().collect();
 	if linked.iter().any(|f| import_running(app, space_id, f)) {
 		return fail(409, "extraction_running", "A linked file is being turned into facts. Try again when it finishes.");
 	}
@@ -170,7 +170,7 @@ pub fn scan_linked_folder(app: &Arc<App>, space_id: &str, linking: bool) {
 		return;
 	}
 	let Some(record) = app.stores.spaces.get_space(space_id).filter(|record| scanned_folder(record) == Some(root)) else { return };
-	let linked: Vec<&Json> = files_of(&record).iter().filter(|f| str_of(f, "origin") == "linked").collect();
+	let linked: Vec<&Json> = record["files"].items().iter().filter(|f| f["origin"].str_or_empty() == "linked").collect();
 	// A synced folder (Google Drive starting up, signed out) can look empty for a while: that is
 	// never taken as every file deleted.
 	if !linking && walk.files.is_empty() && !linked.is_empty() {
@@ -195,7 +195,7 @@ pub fn scan_linked_folder(app: &Arc<App>, space_id: &str, linking: bool) {
 	// Like `new Map(linked.map(f => [f.path, f]))`: first place, last file.
 	let mut known: Vec<(&str, &Json)> = Vec::new();
 	for file in &linked {
-		let rel = str_of(file, "path");
+		let rel = file["path"].str_or_empty();
 		match known.iter_mut().find(|(k, _)| *k == rel) {
 			Some(slot) => slot.1 = file,
 			None => known.push((rel, file)),
@@ -230,8 +230,8 @@ pub fn scan_linked_folder(app: &Arc<App>, space_id: &str, linking: bool) {
 			continue;
 		}
 		if let Some(file) = known_file(rel) {
-			if file["statSig"].as_str() != Some(sig.as_str()) && str_of(file, "status") != "extracting" {
-				to_process.push(str_of(file, "id").to_owned());
+			if file["statSig"].as_str() != Some(sig.as_str()) && file["status"].str_or_empty() != "extracting" {
+				to_process.push(file["id"].str_or_empty().to_owned());
 			}
 			continue;
 		}
@@ -258,15 +258,15 @@ pub fn scan_linked_folder(app: &Arc<App>, space_id: &str, linking: bool) {
 		drop_gone(app, space_id, &gone, !linking);
 		return;
 	}
-	let existing = app.stores.spaces.get_space(space_id).map(|r| files_of(&r).to_vec()).unwrap_or_default();
+	let existing = app.stores.spaces.get_space(space_id).map(|r| r["files"].items().to_vec()).unwrap_or_default();
 	let kinds = kinds_for_new_files(&existing, &added);
 	for file in &mut added {
-		let kind = kinds.get(str_of(file, "id")).cloned().unwrap_or_else(|| "study".to_owned());
+		let kind = kinds.get(file["id"].str_or_empty()).cloned().unwrap_or_else(|| "study".to_owned());
 		if let Some(obj) = file.as_obj_mut() {
 			obj.insert("kind", kind);
 		}
 	}
-	let ids: Vec<String> = added.iter().map(|f| str_of(f, "id").to_owned()).collect();
+	let ids: Vec<String> = added.iter().map(|f| f["id"].str_or_empty().to_owned()).collect();
 	mutate_files(
 		app,
 		space_id,
@@ -347,7 +347,7 @@ impl RecordCache {
 async fn triage_files(app: Arc<App>, space_id: String, added_ids: Vec<String>, gone: Vec<Json>, announce: bool) {
 	let app = &app;
 	let space_id = space_id.as_str();
-	let mut unmatched: HashSet<String> = gone.iter().map(|f| str_of(f, "id").to_owned()).collect();
+	let mut unmatched: HashSet<String> = gone.iter().map(|f| f["id"].str_or_empty().to_owned()).collect();
 	let mut fresh: Vec<Json> = Vec::new();
 	let mut cache = RecordCache::new(app);
 	for id in &added_ids {
@@ -355,7 +355,7 @@ async fn triage_files(app: Arc<App>, space_id: String, added_ids: Vec<String>, g
 		let Some(file) = file_in(record, id).cloned() else { continue };
 		let Some(abs) = space_file_path(app, record, &file) else { continue };
 		// A covered recording is never read (on Google Drive that would download the video).
-		if transcript_for(&file, files_of(record)).is_some() {
+		if transcript_for(&file, record["files"].items()).is_some() {
 			fresh.push(file);
 			continue;
 		}
@@ -369,14 +369,14 @@ async fn triage_files(app: Arc<App>, space_id: String, added_ids: Vec<String>, g
 			continue;
 		};
 		let matched = cache.get(app, space_id).and_then(|r| {
-			files_of(r).iter().find(|f| str_of(f, "contentFp") == fp && (str_of(f, "origin") == "copied" || unmatched.contains(str_of(f, "id")))).cloned()
+			r["files"].items().iter().find(|f| f["contentFp"].str_or_empty() == fp && (f["origin"].str_or_empty() == "copied" || unmatched.contains(f["id"].str_or_empty()))).cloned()
 		});
 		let Some(matched) = matched else {
 			fresh.push(file);
 			continue;
 		};
-		let matched_id = str_of(&matched, "id").to_owned();
-		let was_copied = str_of(&matched, "origin") == "copied";
+		let matched_id = matched["id"].str_or_empty().to_owned();
+		let was_copied = matched["origin"].str_or_empty() == "copied";
 		unmatched.remove(&matched_id);
 		mutate_files(
 			app,
@@ -411,8 +411,8 @@ async fn triage_files(app: Arc<App>, space_id: String, added_ids: Vec<String>, g
 	let still: Vec<Json> = gone
 		.into_iter()
 		.filter(|file| {
-			unmatched.contains(str_of(file, "id"))
-				&& app.stores.spaces.get_space(space_id).is_some_and(|r| file_in(&r, str_of(file, "id")).is_some())
+			unmatched.contains(file["id"].str_or_empty())
+				&& app.stores.spaces.get_space(space_id).is_some_and(|r| file_in(&r, file["id"].str_or_empty()).is_some())
 				&& !import_running(app, space_id, file)
 		})
 		.collect();
@@ -424,7 +424,7 @@ async fn triage_files(app: Arc<App>, space_id: String, added_ids: Vec<String>, g
 		record_folder_files(app, space_id, fresh.len(), &folder_source(&folder));
 	}
 	for file in &fresh {
-		enqueue_file(app, space_id, str_of(file, "id"));
+		enqueue_file(app, space_id, file["id"].str_or_empty());
 	}
 }
 
@@ -485,6 +485,6 @@ mod tests {
 		drop(held);
 		scans.into_iter().for_each(|scan| scan.join().unwrap());
 		let record = app.stores.spaces.get_space(&id).unwrap();
-		assert_eq!(files_of(&record).iter().filter(|f| str_of(f, "path") == "week1.md").count(), 1);
+		assert_eq!(record["files"].items().iter().filter(|f| f["path"].str_or_empty() == "week1.md").count(), 1);
 	}
 }

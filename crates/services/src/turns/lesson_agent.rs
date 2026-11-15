@@ -54,8 +54,8 @@ pub(super) struct TurnAgent {
 /// The lesson's space name and rules, for the learner's-rules section.
 fn lesson_space_rules(app: &App, space_id: Option<&str>) -> Option<(String, Vec<String>)> {
 	let cls = app.stores.spaces.get_space(space_id?)?;
-	let rules = cls["rules"].as_arr().into_iter().flatten().filter_map(|r| r.as_str().map(str::to_owned)).collect();
-	Some((cls["name"].as_str().unwrap_or_default().to_owned(), rules))
+	let rules = cls["rules"].items().iter().filter_map(|r| r.as_str().map(str::to_owned)).collect();
+	Some((cls["name"].str_or_empty().to_owned(), rules))
 }
 
 fn graph_of(app: &Arc<App>, scope: Option<&str>) -> Arc<dyn GraphStore> {
@@ -68,7 +68,7 @@ fn scoped_graphs(app: &Arc<App>, lesson_scope: Option<&str>) -> Arc<dyn Fn() -> 
 	let (app, lesson_scope) = (app.clone(), lesson_scope.map(str::to_owned));
 	Arc::new(move || {
 		let spaces = app.stores.spaces.list_spaces();
-		let scopes = std::iter::once((None, "No space")).chain(spaces.iter().map(|c| (c["id"].as_str(), c["name"].as_str().unwrap_or_default())));
+		let scopes = std::iter::once((None, "No space")).chain(spaces.iter().map(|c| (c["id"].as_str(), c["name"].str_or_empty())));
 		scopes.map(|(scope, name)| ScopedGraph { space_name: name.to_owned(), graph_store: graph_of(&app, scope), own: scope == lesson_scope.as_deref() }).collect()
 	})
 }
@@ -154,7 +154,7 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 	let chats: Arc<dyn ChatPort> = app.stores.chats.clone();
 	let spawn: Spawn = {
 		let app = app.clone();
-		Arc::new(move |job: &Json, input: &Json| run_job(&app, job["id"].as_str().unwrap_or_default(), Some(input.clone())))
+		Arc::new(move |job: &Json, input: &Json| run_job(&app, job["id"].str_or_empty(), Some(input.clone())))
 	};
 	let jobs = JobToolContext { chat_id: chat_id.clone(), job_store: app.stores.jobs.clone(), spawn };
 	let space_actions = agent_space_actions(app);

@@ -40,17 +40,13 @@ fn fixed_id(prefix: &str, space_id: &str, part: &str) -> String {
 	format!("{prefix}_{}", &sha256_text(&format!("{space_id}:{part}"))[..12])
 }
 
-fn items(v: &Json) -> &[Json] {
-	v.as_arr().map_or(&[], Vec::as_slice)
-}
-
 /// The old sheet's "what it is like" and its sources, as Markdown.
 fn about_text(prep: &Json) -> Option<String> {
 	let about = trim(prep["about"].str_or_empty());
 	if about.is_empty() {
 		return None;
 	}
-	let sources: Vec<String> = items(&prep["sources"])
+	let sources: Vec<String> = prep["sources"].items()
 		.iter()
 		.filter_map(|s| {
 			let url = s["url"].as_str()?;
@@ -63,7 +59,7 @@ fn about_text(prep: &Json) -> Option<String> {
 
 /// The old sheet's topics, one heading each with the line on why it is there.
 fn guide_text(prep: &Json) -> Option<String> {
-	let topics: Vec<String> = items(&prep["topics"])
+	let topics: Vec<String> = prep["topics"].items()
 		.iter()
 		.filter_map(|t| {
 			let name = trim(t["name"].as_str()?);
@@ -112,14 +108,14 @@ fn file_entry(file: &UpgradeFile, now: &str) -> Json {
 pub fn upgraded_record(record: &Json, upgrade: &PrepUpgrade, now: &str) -> Json {
 	let mut out = record.as_obj().cloned().unwrap_or_default();
 	let prep = out.remove("prep").unwrap_or(Json::Null);
-	let mut files = items(&record["files"]).to_vec();
+	let mut files = record["files"].items().to_vec();
 	let have: HashSet<String> = file_ids_of(record);
 	files.extend(upgrade.files.iter().filter(|f| !have.contains(&f.id)).map(|f| file_entry(f, now)));
 	out.insert("files", Json::Arr(files));
 	let about = upgrade.files.iter().find(|f| f.name == ABOUT_FILE_NAME).map(|f| f.id.as_str());
 	let guide: Vec<&str> = upgrade.files.iter().filter(|f| f.name == GUIDE_FILE_NAME).map(|f| f.id.as_str()).collect();
 	let name = record["name"].str_or_empty();
-	let mut deadlines = items(&record["deadlines"]).to_vec();
+	let mut deadlines = record["deadlines"].items().to_vec();
 	let made = deadlines.iter().any(|d| d["id"].as_str() == Some(upgrade.deadline_id.as_str()));
 	if !made {
 		let deadline = is_calendar_date(&prep["date"]).then(|| {

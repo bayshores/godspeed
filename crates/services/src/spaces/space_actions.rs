@@ -16,7 +16,7 @@ use gs_json::{Json, Obj, json};
 use gs_search::index::PassageRef;
 
 use super::space_card::{space_file_path, space_topics};
-use super::files::{file_in, files_of, str_of};
+use super::files::{file_in};
 use super::{add_file_from_path, add_space_deadline, link_folder, remove_space_deadline, set_file_kind, update_space, update_space_deadline, write_agent_file};
 use crate::App;
 use crate::app::agent_actions::note_agent_action;
@@ -87,7 +87,6 @@ fn deadline_page(deadline_id: &str) -> String {
 	format!("/space/deadline/{deadline_id}")
 }
 
-/// A written file's name as stored: Markdown unless it says it is plain text.
 /// The longest text add_space_file writes.
 const WRITTEN_TEXT_MAX: usize = 20_000;
 
@@ -130,7 +129,7 @@ impl SpaceActions {
 		for change in &changes {
 			note_agent_action(&self.app, self.caller.as_deref(), change);
 		}
-		let changes = changes.iter().map(|c| SpaceChange { label: str_of(c, "label").to_owned(), page: str_of(c, "page").to_owned() }).collect();
+		let changes = changes.iter().map(|c| SpaceChange { label: c["label"].str_or_empty().to_owned(), page: c["page"].str_or_empty().to_owned() }).collect();
 		ToolOutcome::Ok { value, changes }
 	}
 
@@ -141,11 +140,11 @@ impl SpaceActions {
 	fn space_view(&self, space_id: &str, with_files: bool) -> Result<Option<Json>, String> {
 		let app = &self.app;
 		let Some(record) = app.stores.spaces.get_space(space_id) else { return Ok(None) };
-		let files = files_of(&record);
+		let files = record["files"].items();
 		let sizes = if with_files { app.search.file_extents(space_id) } else { Obj::new() };
 		let mut counts = Obj::new();
 		for f in files {
-			let status = str_of(f, "status");
+			let status = f["status"].str_or_empty();
 			let n = counts.get(status).and_then(Json::as_f64).unwrap_or(0.0);
 			counts.insert(status, n + 1.0);
 		}
@@ -173,7 +172,7 @@ impl SpaceActions {
 					if f["error"].truthy() {
 						entry.insert("error", f["error"].clone());
 					}
-					if let Some(size) = sizes.get(str_of(f, "id")).filter(|s| s.truthy()) {
+					if let Some(size) = sizes.get(f["id"].str_or_empty()).filter(|s| s.truthy()) {
 						entry.insert("size", size.clone());
 					}
 					entry.insert("path", space_file_path(app, &record, f).map_or(Json::Null, Json::from));
@@ -184,7 +183,7 @@ impl SpaceActions {
 		} else {
 			let failed: Vec<Json> = files
 				.iter()
-				.filter(|f| matches!(str_of(f, "status"), "failed" | "needs-whisper"))
+				.filter(|f| matches!(f["status"].str_or_empty(), "failed" | "needs-whisper"))
 				.map(|f| {
 					let mut entry = Obj::new();
 					for key in ["id", "name", "status"] {
@@ -246,9 +245,7 @@ impl SpaceActions {
 			.map(|c| {
 				let mut entry = Obj::new();
 				for key in ["id", "title", "kind", "updatedAt"] {
-					if let Some(v) = c.get(key) {
-						entry.insert(key, v.clone());
-					}
+					entry.insert_present(key, c.get(key));
 				}
 				Json::Obj(entry)
 			})
@@ -284,7 +281,7 @@ impl SpaceActions {
 	}
 
 	pub fn read_space(&self, args: &Json) -> ToolOutcome {
-		let space_id = str_of(args, "space_id");
+		let space_id = args["space_id"].str_or_empty();
 		match self.space_view(space_id, args["files"].truthy()) {
 			Ok(Some(view)) => self.done(view, Vec::new()),
 			Ok(None) => no_space(space_id),
@@ -293,26 +290,26 @@ impl SpaceActions {
 	}
 
 	pub async fn search_space_files(&self, args: &Json) -> ToolOutcome {
-		let space_id = str_of(args, "space_id");
+		let space_id = args["space_id"].str_or_empty();
 		let Some(record) = self.app.stores.spaces.get_space(space_id) else { return no_space(space_id) };
 		let limit = args["limit"].as_f64().map_or(8, |l| l as usize);
-		match self.app.search.search_space_files(space_id, files_of(&record), str_of(args, "query"), limit).await {
+		match self.app.search.search_space_files(space_id, record["files"].items(), args["query"].str_or_empty(), limit).await {
 			Ok((found, _)) => self.done(Json::from(found), Vec::new()),
 			Err(err) => ToolOutcome::Err(err),
 		}
 	}
 
 	pub fn read_passage(&self, args: &Json) -> ToolOutcome {
-		let space_id = str_of(args, "space_id");
+		let space_id = args["space_id"].str_or_empty();
 		let Some(record) = self.app.stores.spaces.get_space(space_id) else { return no_space(space_id) };
 		let at = if args["passage_id"].truthy() {
-			PassageRef::Passage(str_of(args, "passage_id").to_owned())
+			PassageRef::Passage(args["passage_id"].str_or_empty().to_owned())
 		} else if args["file_id"].truthy() && args["range"].truthy() {
-			PassageRef::Place { file_id: str_of(args, "file_id").to_owned(), range: str_of(args, "range").to_owned() }
+			PassageRef::Place { file_id: args["file_id"].str_or_empty().to_owned(), range: args["range"].str_or_empty().to_owned() }
 		} else {
 			return ToolOutcome::Err("Give passage_id, or file_id with range.".to_owned());
 		};
-		self.done(Json::from(self.app.search.read_passage(space_id, files_of(&record), &at)), Vec::new())
+		self.done(Json::from(self.app.search.read_passage(space_id, record["files"].items(), &at)), Vec::new())
 	}
 
 	pub fn create_space(&self, args: &Json) -> ToolOutcome {
@@ -330,8 +327,8 @@ impl SpaceActions {
 			Ok(created) => created,
 			Err(err) => return ToolOutcome::Err(err),
 		};
-		let id = str_of(&created, "id");
-		let label = format!("Creating {}", str_of(&created, "name"));
+		let id = created["id"].str_or_empty();
+		let label = format!("Creating {}", created["name"].str_or_empty());
 		let view = match self.space_view(id, false) {
 			Ok(view) => view,
 			Err(err) => return ToolOutcome::Err(err),
@@ -340,7 +337,7 @@ impl SpaceActions {
 	}
 
 	pub fn update_space(&self, args: &Json) -> ToolOutcome {
-		let space_id = str_of(args, "space_id");
+		let space_id = args["space_id"].str_or_empty();
 		if !self.space_exists(space_id) {
 			return no_space(space_id);
 		}
@@ -373,15 +370,15 @@ impl SpaceActions {
 				changed.insert(key, value.clone());
 			}
 		}
-		let label = format!("{verb} {}", str_of(&space, "name"));
+		let label = format!("{verb} {}", space["name"].str_or_empty());
 		self.done(json!({ "spaceId": space_id, "changed": Json::Obj(changed) }), vec![change(label, &Json::from(space_id), "space", space_id, "/space")])
 	}
 
 	pub fn add_space_file(&self, args: &Json) -> ToolOutcome {
-		let (space_id, path, kind) = (str_of(args, "space_id"), str_of(args, "path"), str_of(args, "kind"));
+		let (space_id, path, kind) = (args["space_id"].str_or_empty(), args["path"].str_or_empty(), args["kind"].str_or_empty());
 		let Some(record) = self.app.stores.spaces.get_space(space_id) else { return no_space(space_id) };
 		let (file, verb) = if args["name"].truthy() && args.get("text").is_some_and(|t| t.as_str().is_some()) {
-			match self.write_space_file(&record, str_of(args, "name"), str_of(args, "text"), kind) {
+			match self.write_space_file(&record, args["name"].str_or_empty(), args["text"].str_or_empty(), kind) {
 				Ok(written) => written,
 				Err(error) => return ToolOutcome::Err(error),
 			}
@@ -397,8 +394,8 @@ impl SpaceActions {
 			return ToolOutcome::Err("Give path, or name and text.".to_owned());
 		};
 		let note = if kind == "study" { format!("Added. {READING_NOTE}") } else { "Added.".to_owned() };
-		let label = format!("{verb} {}", str_of(&file, "name"));
-		let change = change(label, &Json::from(space_id), "file", str_of(&file, "id"), "/space/files");
+		let label = format!("{verb} {}", file["name"].str_or_empty());
+		let change = change(label, &Json::from(space_id), "file", file["id"].str_or_empty(), "/space/files");
 		self.done(json!({ "file": file, "note": note }), vec![change])
 	}
 
@@ -412,18 +409,18 @@ impl SpaceActions {
 		if text.chars().count() > WRITTEN_TEXT_MAX {
 			return Err("The text is longer than 20,000 characters. Shorten it or split it into two files.".to_owned());
 		}
-		let (file, replaced) = write_agent_file(&self.app, str_of(record, "id"), &file_name, &gs_base::text::utf8_bytes(text), kind)?;
+		let (file, replaced) = write_agent_file(&self.app, record["id"].str_or_empty(), &file_name, &gs_base::text::utf8_bytes(text), kind)?;
 		Ok((file, if replaced { "Changing" } else { "Adding" }))
 	}
 
 	pub fn set_space_file_kind(&self, args: &Json) -> ToolOutcome {
-		let (space_id, kind) = (str_of(args, "space_id"), str_of(args, "kind"));
+		let (space_id, kind) = (args["space_id"].str_or_empty(), args["kind"].str_or_empty());
 		if !self.space_exists(space_id) {
 			return no_space(space_id);
 		}
 		let (mut files, mut refused, mut changes) = (Vec::new(), Vec::new(), Vec::new());
-		for file_id in args["file_ids"].as_arr().into_iter().flatten() {
-			let file_id = file_id.as_str().unwrap_or("");
+		for file_id in args["file_ids"].items().iter() {
+			let file_id = file_id.str_or_empty();
 			let file = match set_file_kind(&self.app, space_id, file_id, kind) {
 				Ok(file) => file,
 				Err(failure) => {
@@ -432,11 +429,11 @@ impl SpaceActions {
 				}
 			};
 			files.push(json!({ "id": file["id"], "name": file["name"], "kind": kind, "status": file["status"] }));
-			let label = format!("Marking {} as {}", str_of(&file, "name"), if kind == "study" { "study material" } else { "space info" });
-			changes.push(change(label, &Json::from(space_id), "file", str_of(&file, "id"), "/space/files"));
+			let label = format!("Marking {} as {}", file["name"].str_or_empty(), if kind == "study" { "study material" } else { "space info" });
+			changes.push(change(label, &Json::from(space_id), "file", file["id"].str_or_empty(), "/space/files"));
 		}
 		if files.is_empty() {
-			return ToolOutcome::Err(refused.iter().map(|r| format!("{}: {}", str_of(r, "fileId"), str_of(r, "error"))).collect::<Vec<_>>().join("\n"));
+			return ToolOutcome::Err(refused.iter().map(|r| format!("{}: {}", r["fileId"].str_or_empty(), r["error"].str_or_empty())).collect::<Vec<_>>().join("\n"));
 		}
 		let mut value = json!({ "files": files });
 		if !refused.is_empty()
@@ -448,12 +445,12 @@ impl SpaceActions {
 	}
 
 	pub fn add_space_deadline(&self, args: &Json) -> ToolOutcome {
-		let space_id = str_of(args, "space_id");
+		let space_id = args["space_id"].str_or_empty();
 		if !self.space_exists(space_id) {
 			return no_space(space_id);
 		}
 		let (mut added, mut refused) = (Vec::new(), Vec::new());
-		for d in args["deadlines"].as_arr().into_iter().flatten() {
+		for d in args["deadlines"].items().iter() {
 			let mut init = Obj::new();
 			for key in ["kind", "name", "date"] {
 				if given(d, key) {
@@ -488,18 +485,16 @@ impl SpaceActions {
 				Ok(deadline) => added.push(deadline),
 				Err(failure) => {
 					let mut entry = Obj::new();
-					if let Some(name) = d.get("name") {
-						entry.insert("name", name.clone());
-					}
+					entry.insert_present("name", d.get("name"));
 					entry.insert("error", failure.error);
 					refused.push(Json::Obj(entry));
 				},
 			}
 		}
 		if added.is_empty() {
-			return ToolOutcome::Err(refused.iter().map(|r| format!("{}: {}", template_text(r.get("name")), str_of(r, "error"))).collect::<Vec<_>>().join("\n"));
+			return ToolOutcome::Err(refused.iter().map(|r| format!("{}: {}", template_text(r.get("name")), r["error"].str_or_empty())).collect::<Vec<_>>().join("\n"));
 		}
-		let changes = added.iter().map(|d| change(format!("Adding {}", str_of(d, "name")), &Json::from(space_id), "deadline", str_of(d, "id"), &deadline_page(str_of(d, "id")))).collect();
+		let changes = added.iter().map(|d| change(format!("Adding {}", d["name"].str_or_empty()), &Json::from(space_id), "deadline", d["id"].str_or_empty(), &deadline_page(d["id"].str_or_empty()))).collect();
 		let mut value = json!({ "deadlines": added });
 		if !refused.is_empty()
 			&& let Some(obj) = value.as_obj_mut()
@@ -510,7 +505,7 @@ impl SpaceActions {
 	}
 
 	pub fn update_space_deadline(&self, args: &Json) -> ToolOutcome {
-		let (space_id, deadline_id) = (str_of(args, "space_id"), str_of(args, "deadline_id"));
+		let (space_id, deadline_id) = (args["space_id"].str_or_empty(), args["deadline_id"].str_or_empty());
 		if !self.space_exists(space_id) {
 			return no_space(space_id);
 		}
@@ -537,7 +532,7 @@ impl SpaceActions {
 		};
 		let others = ["kind", "name", "file_ids", "left_out_ids", "source", "assignment_file_id", "about_file_id", "done"];
 		let moved = (given(args, "date") || given(args, "time")) && !others.iter().any(|k| given(args, k));
-		let name = str_of(&deadline, "name");
+		let name = deadline["name"].str_or_empty();
 		let label = match args["done"].as_bool() {
 			Some(true) => format!("Marking {name} done"),
 			Some(false) => format!("Marking {name} not done"),
@@ -547,9 +542,9 @@ impl SpaceActions {
 	}
 
 	pub fn remove_space_deadline(&self, args: &Json) -> ToolOutcome {
-		let (space_id, deadline_id) = (str_of(args, "space_id"), str_of(args, "deadline_id"));
+		let (space_id, deadline_id) = (args["space_id"].str_or_empty(), args["deadline_id"].str_or_empty());
 		let Some(record) = self.app.stores.spaces.get_space(space_id) else { return no_space(space_id) };
-		let removed_name = record["deadlines"].as_arr().into_iter().flatten().find(|d| d["id"].as_str() == Some(deadline_id)).and_then(|d| d["name"].as_str()).unwrap_or("a deadline").to_owned();
+		let removed_name = record["deadlines"].items().iter().find(|d| d["id"].as_str() == Some(deadline_id)).and_then(|d| d["name"].as_str()).unwrap_or("a deadline").to_owned();
 		let mocks = match remove_space_deadline(&self.app, space_id, deadline_id) {
 			Ok(mocks) => mocks,
 			Err(failure) => return ToolOutcome::Err(failure.error),
@@ -568,7 +563,7 @@ impl SpaceActions {
 	}
 
 	pub fn link_space_folder(&self, args: &Json) -> ToolOutcome {
-		let (space_id, path) = (str_of(args, "space_id"), str_of(args, "path"));
+		let (space_id, path) = (args["space_id"].str_or_empty(), args["path"].str_or_empty());
 		if !self.space_exists(space_id) {
 			return no_space(space_id);
 		}
@@ -587,7 +582,7 @@ impl SpaceActions {
 	}
 
 	pub async fn start_lesson(&self, args: &Json) -> ToolOutcome {
-		let topic = str_of(args, "topic");
+		let topic = args["topic"].str_or_empty();
 		let raw = args["space_id"].as_str();
 		let Some(scope) = parse_space_scope(raw) else {
 			return ToolOutcome::Err(format!("\"{}\" is not a space id. Use list_spaces.", template_text(args.get("space_id"))));
@@ -608,7 +603,7 @@ impl SpaceActions {
 			Ok(Err(not_found)) => return ToolOutcome::Err(not_found.error.to_owned()),
 			Err(err) => return ToolOutcome::Err(err),
 		};
-		let (chat_id, title) = (str_of(&chat, "id").to_owned(), str_of(&chat, "title").to_owned());
+		let (chat_id, title) = (chat["id"].str_or_empty().to_owned(), chat["title"].str_or_empty().to_owned());
 		if let Err(body) = (self.send)(chat_id.clone(), topic.to_owned()).await {
 			return ToolOutcome::Err(format!("The lesson was created but could not start: {body}"));
 		}

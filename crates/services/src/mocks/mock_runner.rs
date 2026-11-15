@@ -232,7 +232,7 @@ pub async fn run_examples(tmp: &Path, question: &Json, code: &str, language: Moc
 		Ok(command) => command,
 		Err(missing) => return Ok(stopped(missing)),
 	};
-	let examples = question["examples"].as_arr().map_or(&[][..], Vec::as_slice);
+	let examples = question["examples"].items();
 	let mark = format!("__godspeed_{}__", ids::uuid());
 	let dir = make_run_dir(tmp)?;
 	let file = dir.join(run_file(language));
