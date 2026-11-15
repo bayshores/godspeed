@@ -109,9 +109,9 @@ export interface WorkProgress {
 
 /**
  * The background work under way on every page: "Reading files", "6 of 17"
- * while files are read, a deadline request's name when it is the
- * only work, else the number of jobs. `requests`: the deadline requests'
- * names ("Deadline: Wave Optics Final"), not counted in `jobs`. Null when
+ * while files are read, a request's name when it is the
+ * only work, else the number of jobs. `requests`: the deadline and plugin
+ * requests' names ("Deadline: Wave Optics Final", "Memes"), not counted in `jobs`. Null when
  * nothing runs or no agent takes the work.
  */
 export function workProgress(i: { worker: string | null; spaces: readonly ProgressSpace[]; jobs: number; requests: readonly string[] }): WorkProgress | null {

@@ -3,17 +3,19 @@ import { LoadFailed } from "@/frontend/components/load-failed";
 import { askAgent, readSpace, readStored, writeStored } from "@/frontend/lib/plugin-host-api";
 import type { PluginManifest, SettingValue } from "@/frontend/lib/plugins-api";
 import { cn } from "@/frontend/lib/utils";
-import { createBridge, type PluginContext } from "./plugin-frame-model";
+import { createBridge, hostFonts, type PluginContext } from "./plugin-frame-model";
 
 /** A page that hasn't finished the handshake by then didn't load. */
 const READY_WITHIN_MS = 10_000;
 /** A change is told once things hold still this long, so a streaming reply is one notice, not one per word. */
 const NOTICE_AFTER_MS = 500;
 
-/** godspeed's tokens under their MCP Apps names, so a plugin can match the app. */
+/** godspeed's tokens under their MCP Apps names, so a plugin can match the app. A plugin's page
+ *  always sits on a sheet (the dock, a space's tab): its background is the sheet, a well on it
+ *  is the page color, as on any sheet, and the tone is a hovered row's. */
 const STYLE_VARIABLES: Record<string, string> = {
-	"--color-background-primary": "--background",
-	"--color-background-secondary": "--card",
+	"--color-background-primary": "--lh-sheet",
+	"--color-background-secondary": "--background",
 	"--color-background-tertiary": "--accent",
 	"--color-background-inverse": "--lh-bar",
 	"--color-text-primary": "--foreground",
@@ -40,7 +42,16 @@ function look() {
 		const value = css.getPropertyValue(token).trim();
 		if (value) variables[name] = value;
 	}
-	return { theme: root.classList.contains("dark") ? ("dark" as const) : ("light" as const), variables };
+	const rules = [...document.styleSheets].flatMap((sheet) => {
+		try {
+			return [...sheet.cssRules].filter((rule) => rule instanceof CSSFontFaceRule).map((rule) => ({ css: rule.cssText, base: sheet.href ?? document.baseURI }));
+		} catch {
+			// Another origin's sheet can't be read; the app's own fonts are never in one.
+			return [];
+		}
+	});
+	const fonts = hostFonts(rules, css.getPropertyValue("--font-sans"), location);
+	return { theme: root.classList.contains("dark") ? ("dark" as const) : ("light" as const), variables, fonts };
 }
 
 /** At `localhost` on the window's port: the window is on 127.0.0.1, the only host the shell's

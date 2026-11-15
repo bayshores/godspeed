@@ -343,7 +343,7 @@ describe("after godspeed's teacher ended, though the server still says connected
 		// What each surface shows, from the status every surface reads.
 		const words = () => {
 			const agent = status()!;
-			const doing = agentDoing({ agent, fresh: null, lesson: { streaming: true, working: true }, extractions: [], jobs: [] });
+			const doing = agentDoing({ agent, fresh: null, lesson: { streaming: true, working: true }, extractions: [], jobs: [], requests: [] });
 			const facts = api!.facts.teacher;
 			return {
 				pill: pillWords(pillLine({ things: pillThings({ name: "Teacher", doing, agent, terminal: teacherTerminalState(facts), background: false, work: null, ready: [], due: null, offer: null }), notice: null, idle: idleWords({ name: "Teacher", agent, notices: 0, own: false }) })),

@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PluginFrame } from "../../src/frontend/components/plugins/plugin-frame.tsx";
-import { createBridge, PROTOCOL_VERSION, type HostCalls, type PluginContext } from "../../src/frontend/components/plugins/plugin-frame-model.ts";
+import { createBridge, hostFonts, PROTOCOL_VERSION, type HostCalls, type PluginContext } from "../../src/frontend/components/plugins/plugin-frame-model.ts";
 import type { PluginManifest } from "../../src/frontend/lib/plugins-api.ts";
 
 /** The plugin frame and the MCP Apps host behind it: what a page can reach and what it can't. */
@@ -51,7 +51,7 @@ function harness(manifest: PluginManifest = PROBE, overrides: Partial<HostCalls>
 		frame: () => frame,
 		post: (message) => posted.push(message as Record<string, unknown>),
 		context: () => now.context,
-		look: () => ({ theme: "light", variables: { "--color-text-primary": "#24231f" } }),
+		look: () => ({ theme: "light", variables: { "--color-text-primary": "#24231f" }, fonts: "@font-face { font-family: Zen; }" }),
 		calls,
 		onReady: () => ready++,
 	});
@@ -86,6 +86,30 @@ describe("PluginFrame", () => {
 	});
 });
 
+describe("the app's fonts for a plugin's page", () => {
+	const at = { origin: "http://127.0.0.1:4100", port: "4100" };
+	const base = "http://127.0.0.1:4100/assets/index-a1.css";
+	it("points the families in --font-sans at /plugin-fonts/ on localhost, and leaves out other families and files", () => {
+		const fonts = hostFonts(
+			[
+				{ css: '@font-face { font-family: "Zen Kaku Gothic New"; src: url("./zen-400-B2c.woff2") format("woff2"); }', base },
+				{ css: '@font-face { font-family: Zen Kaku Gothic New; src: url("data:font/woff2;base64,d09G") format("woff2"); }', base },
+				{ css: '@font-face { font-family: "Zen fallback"; src: local("Arial"); size-adjust: 98%; }', base },
+				{ css: '@font-face { font-family: KaTeX_Main; src: url("./KaTeX_Main-x.woff2"); }', base },
+				{ css: '@font-face { font-family: "Zen Kaku Gothic New"; src: url("https://evil.example/assets/z.woff2"); }', base },
+				{ css: '@font-face { font-family: "Zen Kaku Gothic New"; src: url("/src/frontend/fonts/zen.woff2"); }', base },
+				{ css: '@font-face { font-family: "Zen Kaku Gothic New"; src: url("./zen.ttf"); }', base },
+			],
+			' "Zen Kaku Gothic New", "Zen fallback", sans-serif',
+			at,
+		);
+		assert.equal(
+			fonts,
+			'@font-face { font-family: "Zen Kaku Gothic New"; src: url("http://localhost:4100/plugin-fonts/zen-400-B2c.woff2") format("woff2"); }\n@font-face { font-family: Zen Kaku Gothic New; src: url("data:font/woff2;base64,d09G") format("woff2"); }\n@font-face { font-family: "Zen fallback"; src: local("Arial"); size-adjust: 98%; }',
+		);
+	});
+});
+
 describe("the MCP Apps handshake", () => {
 	it("answers ui/initialize with the protocol, the look and the plugin's setting values, and is ready once initialized", async () => {
 		const h = harness();
@@ -94,7 +118,7 @@ describe("the MCP Apps handshake", () => {
 		assert.deepEqual(init?.result?.hostCapabilities, { openLinks: {}, serverTools: {} });
 		const context = init?.result?.hostContext as Record<string, unknown>;
 		assert.equal(context.theme, "light");
-		assert.deepEqual(context.styles, { variables: { "--color-text-primary": "#24231f" } });
+		assert.deepEqual(context.styles, { variables: { "--color-text-primary": "#24231f" }, css: { fonts: "@font-face { font-family: Zen; }" } });
 		assert.deepEqual(context.settings, { loud: true });
 		assert.equal(h.ready(), 1);
 	});

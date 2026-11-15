@@ -18,7 +18,7 @@ const action = (over: Partial<AgentAction> = {}): AgentAction => ({
 	...over,
 });
 const teaching = { connected: true, teaching: true, helperHere: false, pendingWork: 0, pendingTurns: 0 };
-const none = { fresh: null, lesson: null, extractions: [], jobs: [] };
+const none = { fresh: null, lesson: null, extractions: [], jobs: [], requests: [] };
 
 describe("freshAction", () => {
 	it("the agent's newest change, while it is fresh", () => {
@@ -68,6 +68,7 @@ describe("agentDoing", () => {
 		assert.equal(agentDoing({ ...none, agent: teaching, extractions: [{ kind: "chat", phase: "extracting", title: "Counting" }] })?.text, "Saving facts from “Counting”");
 		assert.equal(agentDoing({ ...none, agent: teaching, extractions: [{ kind: "topics", phase: "grouping", title: "CSE 21" }] })?.text, "Grouping topics");
 		assert.equal(agentDoing({ ...none, agent: teaching, jobs: [{ kind: "visual" }] })?.text, "Drawing a figure");
+		assert.deepEqual(agentDoing({ ...none, agent: { ...teaching, pendingWork: 1 }, requests: [{ title: "Memes" }] }), { text: "Memes", working: true });
 		assert.deepEqual(agentDoing({ ...none, agent: { ...teaching, pendingWork: 1 } }), { text: "Working", working: true });
 	});
 	it("leaves the background work to an open helper", () => {

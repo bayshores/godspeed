@@ -1,11 +1,15 @@
 //! The Content-Security-Policy every plugin file is served with. The page is sandboxed even when
 //! opened on its own (`sandbox allow-scripts`: an opaque origin, no popups, no top navigation).
-//! It loads code only from its own folder, and reaches the network only at the manifest's hosts.
+//! It loads code only from its own folder, fonts from there and the app's own font files, and
+//! reaches the network only at the manifest's hosts.
 //! Host sources name the folder itself, because how `'self'` matches in a document with an opaque
 //! origin differs between browsers.
 
 /// Where plugin files are served: `/plugin-files/<id>/<path>`.
 pub const FILES_PREFIX: &str = "/plugin-files";
+
+/// Where the app's own font files are served to plugin pages: `/plugin-fonts/<name>.woff2`.
+pub const FONTS_PREFIX: &str = "/plugin-fonts";
 
 /// The port when `host` (the request's Host header) is `localhost:<port>`, the one host plugin
 /// files are served at. The window is on `127.0.0.1`, the only host the shell's Tauri
@@ -28,7 +32,7 @@ pub fn plugin_csp(port: &str, id: &str, network: &[&str]) -> String {
 		format!("script-src {own} 'unsafe-inline'"),
 		format!("style-src {own} 'unsafe-inline'"),
 		format!("img-src {own} data: blob:{hosts}"),
-		format!("font-src {own} data:{hosts}"),
+		format!("font-src {own} http://localhost:{port}{FONTS_PREFIX}/ data:{hosts}"),
 		format!("media-src {own} data: blob:{hosts}"),
 		format!("connect-src{connect}"),
 		"form-action 'none'".to_owned(),
@@ -47,7 +51,7 @@ mod tests {
 	fn the_policy_names_the_plugin_s_folder_and_its_hosts_only() {
 		assert_eq!(
 			plugin_csp("4000", "memes", &["api.memegen.link"]),
-			"default-src 'none'; script-src http://localhost:4000/plugin-files/memes/ 'unsafe-inline'; style-src http://localhost:4000/plugin-files/memes/ 'unsafe-inline'; img-src http://localhost:4000/plugin-files/memes/ data: blob: https://api.memegen.link; font-src http://localhost:4000/plugin-files/memes/ data: https://api.memegen.link; media-src http://localhost:4000/plugin-files/memes/ data: blob: https://api.memegen.link; connect-src https://api.memegen.link; form-action 'none'; base-uri 'none'; frame-ancestors http://127.0.0.1:4000 http://localhost:4000; sandbox allow-scripts"
+			"default-src 'none'; script-src http://localhost:4000/plugin-files/memes/ 'unsafe-inline'; style-src http://localhost:4000/plugin-files/memes/ 'unsafe-inline'; img-src http://localhost:4000/plugin-files/memes/ data: blob: https://api.memegen.link; font-src http://localhost:4000/plugin-files/memes/ http://localhost:4000/plugin-fonts/ data: https://api.memegen.link; media-src http://localhost:4000/plugin-files/memes/ data: blob: https://api.memegen.link; connect-src https://api.memegen.link; form-action 'none'; base-uri 'none'; frame-ancestors http://127.0.0.1:4000 http://localhost:4000; sandbox allow-scripts"
 		);
 		let offline = plugin_csp("3000", "quiz", &[]);
 		assert!(offline.contains("connect-src 'none';"));

@@ -37,7 +37,7 @@ export interface FeedExtraction {
 	startedAt: number;
 }
 
-/** A deadline request the agent works on ("Deadline: Wave Optics Final"); it has no Stop. */
+/** A deadline's or a plugin's request the agent works on ("Deadline: Wave Optics Final", "Memes"); it has no Stop. */
 interface FeedRequest {
 	/** Its first deadline's id. */
 	id: string;
@@ -60,7 +60,7 @@ export interface ActivityFeed {
 	extractions: FeedExtraction[];
 	/** Jobs that failed in the last few minutes (absent on older payloads). */
 	failed?: FeedFailedJob[];
-	/** Deadline requests running (absent on older payloads). */
+	/** Deadline and plugin requests running (absent on older payloads). */
 	requests?: FeedRequest[];
 }
 

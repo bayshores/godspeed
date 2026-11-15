@@ -1,6 +1,6 @@
 //! The activity feed: the dock's one poll for every background process in every view. Running
 //! sub-agent jobs of listed lessons (with their lesson's title and the model's context limit),
-//! the extraction runs, the deadline requests, and jobs that failed in the last 10 minutes.
+//! the extraction runs, the deadline and plugin requests, and jobs that failed in the last 10 minutes.
 //! Teacher turns stay out: sessions show their own.
 
 use std::borrow::Borrow;
@@ -14,6 +14,7 @@ use gs_json::{Json, Obj, json};
 use super::jobs::list_all_jobs;
 use crate::App;
 use crate::graph::extraction_runs::extraction_statuses;
+use crate::plugins::plugin_ask_rows;
 use crate::spaces::deadline_requests::deadline_request_rows;
 
 /// Failed jobs stay in the feed this long.
@@ -26,7 +27,9 @@ pub fn activity_feed(app: &Arc<App>) -> Json {
 	let jobs = list_all_jobs(app);
 	let mut feed = compose_feed(now, &chats, &jobs, &extraction_statuses(app));
 	if let Json::Obj(fields) = &mut feed {
-		fields.insert("requests", Json::from(deadline_request_rows(app)));
+		let mut requests = deadline_request_rows(app);
+		requests.extend(plugin_ask_rows(app));
+		fields.insert("requests", Json::from(requests));
 	}
 	feed
 }

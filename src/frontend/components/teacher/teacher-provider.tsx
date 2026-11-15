@@ -176,8 +176,8 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 
 	// ── what it's doing ──
 	const doing = useMemo(
-		() => agentDoing({ agent, fresh, lesson, extractions: feed.extractions, jobs: feed.jobs }),
-		[agent, fresh, lesson, feed.extractions, feed.jobs],
+		() => agentDoing({ agent, fresh, lesson, extractions: feed.extractions, jobs: feed.jobs, requests: feed.requests ?? [] }),
+		[agent, fresh, lesson, feed.extractions, feed.jobs, feed.requests],
 	);
 
 	// ── the panel ──

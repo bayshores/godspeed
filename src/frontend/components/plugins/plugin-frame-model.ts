@@ -32,6 +32,40 @@ export interface PluginContext {
 	teacherMessage: string | null;
 }
 
+/** A `@font-face` rule of the app's, and the address its relative URLs are read from. */
+interface FontFaceText {
+	css: string;
+	base: string;
+}
+
+const BUILT_FONT = /^\/assets\/([\w.-]+\.woff2)$/;
+
+/**
+ * The app's `@font-face` rules for the families in `stack` (the `--font-sans` value), with each
+ * built file at `/plugin-fonts/` on `localhost`, the one place a plugin's page may load the app's
+ * fonts from, and each inlined one as it is. A rule with any other file is left out; so is every
+ * rule in `npm run dev`, which serves the fonts unbuilt.
+ */
+export function hostFonts(rules: readonly FontFaceText[], stack: string, at: { origin: string; port: string }): string {
+	const families = new Set(stack.split(",").map((f) => f.trim().replace(/^["']|["']$/g, "")));
+	const shown: string[] = [];
+	for (const rule of rules) {
+		const family = /font-family:\s*(["']?)([^;"']+)\1/.exec(rule.css)?.[2]?.trim();
+		if (!family || !families.has(family)) continue;
+		let built = true;
+		const css = rule.css.replace(/url\(\s*(["']?)([^"')]+)\1\s*\)/g, (whole: string, _quote: string, href: string) => {
+			// A small font the build inlined travels in the rule itself.
+			if (href.startsWith("data:font/")) return whole;
+			const url = new URL(href, rule.base);
+			const file = url.origin === at.origin ? BUILT_FONT.exec(url.pathname)?.[1] : undefined;
+			if (!file) built = false;
+			return `url("http://localhost:${at.port}/plugin-fonts/${file}")`;
+		});
+		if (built) shown.push(css);
+	}
+	return shown.join("\n");
+}
+
 /** The server and window calls the host tools make. */
 export interface HostCalls {
 	readStored(key: string): Promise<HostAnswer>;
@@ -50,8 +84,8 @@ interface BridgeOptions {
 	post: (message: object) => void;
 	/** Read when the plugin asks, so it is always the current one. */
 	context: () => PluginContext;
-	/** Theme and CSS variables, read at initialize. */
-	look: () => { theme: "light" | "dark"; variables: Record<string, string> };
+	/** Theme, CSS variables and `@font-face` rules (hostFonts), read at initialize. */
+	look: () => { theme: "light" | "dark"; variables: Record<string, string>; fonts: string };
 	calls: HostCalls;
 	/** The plugin finished the handshake. */
 	onReady: () => void;
@@ -167,7 +201,7 @@ export function createBridge(options: BridgeOptions) {
 			hostCapabilities: { openLinks: {}, serverTools: {} },
 			hostContext: {
 				theme: look.theme,
-				styles: { variables: look.variables },
+				styles: look.fonts ? { variables: look.variables, css: { fonts: look.fonts } } : { variables: look.variables },
 				displayMode: "inline",
 				availableDisplayModes: ["inline"],
 				platform: "desktop",

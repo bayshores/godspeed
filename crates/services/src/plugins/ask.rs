@@ -1,13 +1,16 @@
 //! `ask_agent`: a plugin's request for model work, sent to the learner's own agent as one submit
 //! job, as a cheat sheet message is. One request at a time per plugin, so a plugin can't queue up
-//! the agent's work.
+//! the agent's work. A running request is background work: the activity feed lists it under the
+//! plugin's name, as it lists a deadline request.
 
 use std::sync::Arc;
 
 use gs_agent::subagents::plugin_asker::{PluginAsk, ask_for_plugin};
+use gs_base::clock;
+use gs_base::events::EventKind;
 use gs_engine::turn::abort::Abort;
 use gs_engine::turn::models::agent_engine;
-use gs_json::{Json, stringify};
+use gs_json::{Json, json, stringify};
 
 use super::installed::installed_manifest;
 use super::manifest::uses;
@@ -30,7 +33,13 @@ impl Drop for Asking {
 	fn drop(&mut self) {
 		self.abort.abort();
 		self.app.plugins.asking.lock().remove(&self.id);
+		self.app.events.emit(EventKind::ActivityChanged, json!({}));
 	}
+}
+
+/// The running requests, as the activity feed's request rows: `{ id, title, startedAt }`.
+pub fn plugin_ask_rows(app: &App) -> Vec<Json> {
+	app.plugins.asking.lock().values().cloned().collect()
 }
 
 /// The agent's answer, matching `schema`.
@@ -51,11 +60,17 @@ pub async fn ask_agent(app: &Arc<App>, id: &str, prompt: &str, schema: &Json) ->
 	if schema.as_obj().is_none() || stringify(schema).len() > ASK_MAX_BYTES {
 		return refuse(400, "The answer's schema must be a JSON Schema object of at most 4 KB.");
 	}
-	if !app.plugins.asking.lock().insert(id.to_owned()) {
-		return refuse(409, "Your agent is still on this plugin's last request.");
+	let name = manifest["name"].str_or_empty().to_owned();
+	{
+		let mut asking = app.plugins.asking.lock();
+		if asking.contains_key(id) {
+			return refuse(409, "Your agent is still on this plugin's last request.");
+		}
+		asking.insert(id.to_owned(), json!({ "id": format!("plugin:{id}"), "title": name.clone(), "startedAt": clock::now_ms() }));
 	}
+	app.events.emit(EventKind::ActivityChanged, json!({}));
 	let asking = Asking { app: app.clone(), id: id.to_owned(), abort: Abort::new() };
-	let ask = PluginAsk { name: manifest["name"].str_or_empty().to_owned(), prompt: prompt.to_owned(), schema: schema.clone(), engine: agent_engine(&app.bridge), signal: asking.abort.clone() };
+	let ask = PluginAsk { name, prompt: prompt.to_owned(), schema: schema.clone(), engine: agent_engine(&app.bridge), signal: asking.abort.clone() };
 	let answer = ask_for_plugin(&app.bridge, ask).await.map_err(|e| Stop::Refuse(502, e.to_string()));
 	drop(asking);
 	answer
@@ -90,9 +105,20 @@ mod tests {
 		assert_eq!(refusal(ask_agent(&app, "memes", &"x".repeat(4097), &schema).await), (400, "A request can be at most 4 KB.".to_owned()));
 		assert_eq!(refusal(ask_agent(&app, "memes", "hi", &json!("string")).await).0, 400);
 		assert_eq!(refusal(ask_agent(&app, "memes", "hi", &json!({ "description": "x".repeat(4096) })).await).0, 400);
-		app.plugins.asking.lock().insert("memes".to_owned());
+		app.plugins.asking.lock().insert("memes".to_owned(), json!({}));
 		assert_eq!(refusal(ask_agent(&app, "memes", "hi", &schema).await).0, 409);
 		set_state(&app, "memes", &manifest, &json!({ "enabled": false })).unwrap();
 		assert_eq!(refusal(ask_agent(&app, "memes", "hi", &schema).await), (409, "This plugin is off.".to_owned()));
+	}
+
+	#[test]
+	fn a_running_request_is_in_the_activity_feed_until_it_ends() {
+		let app = test_app(&scratch_dir("plugin-ask-feed"));
+		let row = json!({ "id": "plugin:memes", "title": "Memes", "startedAt": 1 });
+		app.plugins.asking.lock().insert("memes".to_owned(), row.clone());
+		let asking = Asking { app: app.clone(), id: "memes".to_owned(), abort: Abort::new() };
+		assert_eq!(crate::jobs::observability::activity_feed(&app)["requests"], json!([row]));
+		drop(asking);
+		assert_eq!(crate::jobs::observability::activity_feed(&app)["requests"], json!([]));
 	}
 }

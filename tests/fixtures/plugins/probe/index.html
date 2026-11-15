@@ -75,7 +75,25 @@
 				const init = await request("ui/initialize", { appInfo: { name: "probe", version: "1.0.0" }, appCapabilities: {}, protocolVersion: "2026-01-26" });
 				send({ method: "ui/notifications/initialized" });
 				const context = await request("tools/call", { name: "get_context", arguments: {} });
-				document.getElementById("out").textContent = JSON.stringify({ settings: init.result?.hostContext?.settings, context: context.result?.structuredContent ?? context.error });
+
+				// The app's fonts as the standard hands them over, then what else their address opens.
+				const styles = init.result?.hostContext?.styles ?? {};
+				const style = document.createElement("style");
+				style.textContent = `${styles.css?.fonts ?? ""}\nbody { font-family: ${styles.variables?.["--font-sans"] ?? "serif"}; background: ${styles.variables?.["--color-background-primary"] ?? "none"}; }`;
+				document.head.append(style);
+				const fontUrl = /url\("(http[^"]+)"\)/.exec(styles.css?.fonts ?? "")?.[1] ?? "";
+				const asFont = (url) => new FontFace("probe", `url("${url}")`).load().then(() => "loaded", (err) => `blocked: ${err?.name ?? err}`);
+				const fonts = {
+					rules: (styles.css?.fonts ?? "").split("@font-face").length - 1,
+					appFont: await document.fonts.load('16px "Zen Kaku Gothic New"').then((faces) => `${faces.length} faces, check ${document.fonts.check('16px "Zen Kaku Gothic New"')}`),
+					fontReadAsData: await fetch(fontUrl).then((r) => `status ${r.status}`, (err) => `threw ${err?.name ?? err}`),
+					apiAsFont: await asFont(`http://localhost:${location.port}/api/settings`),
+					pageAsFont: await asFont(`http://localhost:${location.port}/plugin-fonts/index.html`),
+					appOriginFont: await asFont(fontUrl.replace("localhost", "127.0.0.1")),
+					assetsAsFont: await asFont(fontUrl.replace("/plugin-fonts/", "/assets/")),
+				};
+				send({ method: "notifications/message", params: { level: "info", logger: "probe-fonts", data: fonts } });
+				document.getElementById("out").textContent = JSON.stringify({ settings: init.result?.hostContext?.settings, context: context.result?.structuredContent ?? context.error, fonts });
 			})();
 		</script>
 	</body>
