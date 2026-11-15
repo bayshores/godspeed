@@ -950,6 +950,8 @@ Every `initialize` or `server/discover` hands over instructions in this order:
 3. a "Where you left off" briefing (`services::app::agent_memory`, `core::spaces::agent_briefing`): the setup each space still lacks, the spaces, the last lessons, the next deadlines and the saved notes
 4. the Memory and Spaces paragraphs
 
+The texts only agents read (these instructions, the prompts in `crates/agent/prompts`, the godspeed folder's `CLAUDE.md`, `AGENTS.md` and setup-spaces skill, the background agents' prompts, the tool descriptions and the notes tools return) are written short to save tokens: no articles or filler, fragments where they stay clear. Each one that leads to writing for the learner says to write to the learner in full, plain sentences, and the rules about the teacher's tone, praise and reading level stay in full sentences.
+
 The setup check (`core::spaces::space_setup`) lists a missing icon, signature or description, so older spaces catch up when an agent next connects. Claude Code cuts server instructions at 4096 characters, so the briefing has a length budget. It drops lessons first, then deadlines, then the oldest notes, then spaces, then setup, and says what it left out.
 
 #### Talking to the agent outside lessons
