@@ -506,7 +506,7 @@ While study files wait to be read, the space shows it where the learner is:
 - a line on the space's row under "Your spaces" on Today
 - a tag on the space's tab in the top bar ("15 left")
 
-The record keeps the newest round of work as `lastWork` (`core::spaces::space_work`, applied by the spaces store on every file write). A round opens when a study file starts waiting, collects each file that finishes or fails and each deadline added meanwhile, and ends when nothing waits. The frame then shows what the round made until the learner closes it (`DELETE /api/spaces/{id}/work`), new work starts, or a day passes. The space list carries `filesLeft` and `building` for Today and the top bar, and `filesRead` while a round is open. A space the teacher makes from Talk opens by itself.
+The record keeps the newest round of work as `lastWork` (`core::spaces::space_work`, applied by the spaces store on every file write). A round opens when a study file starts waiting, collects each file that finishes or fails and each deadline added meanwhile, and ends when nothing waits. The frame then shows what the round made until the learner closes it (`DELETE /api/spaces/{id}/work`), new work starts, or a day passes. The space list carries `filesLeft` and `building` for Today and the top bar, and `filesRead` while a round is open. A space the teacher makes from its terminal in godspeed opens by itself.
 
 #### Source marks
 
