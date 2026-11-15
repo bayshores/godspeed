@@ -12,6 +12,7 @@ import { TerminalOverlay } from "@/frontend/components/terminal/terminal-overlay
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { Welcome } from "@/frontend/components/welcome/welcome";
 import { AppBar } from "@/frontend/components/app-bar";
+import { PillProvider } from "@/frontend/components/top-bar/pill-provider";
 import { SearchLessons } from "@/frontend/components/search-lessons";
 
 /** The view swap: switching between pages (Today, a lesson, Progress…)
@@ -56,14 +57,17 @@ export function AppShell({
 			<OpenDeadlinesProvider>
 				<Welcome initialOpen={welcome} whatsNewSince={whatsNewSince} />
 				<TeacherProvider initialName={teacherName}>
-					<a href="#lh-page" className="lh-btn sr-only focus:not-sr-only focus:fixed focus:top-1.5 focus:left-1.5 focus:z-50">
-						Skip to the page
-					</a>
-					<AppBar />
-					{/* The teacher's open panel pushes the page left (teacher-panel.tsx sets the var). */}
-					<main id="lh-page" tabIndex={-1} className="lh-dots min-h-0 min-w-0 flex-1 pr-(--lh-dock-push,0px) motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)">
-						<ViewSwap>{children}</ViewSwap>
-					</main>
+					{/* Around the page too: a lesson, a mock and a cheat sheet draw the pill in their own bar. */}
+					<PillProvider>
+						<a href="#lh-page" className="lh-btn sr-only focus:not-sr-only focus:fixed focus:top-1.5 focus:left-1.5 focus:z-50">
+							Skip to the page
+						</a>
+						<AppBar />
+						{/* The teacher's open panel pushes the page left (teacher-panel.tsx sets the var). */}
+						<main id="lh-page" tabIndex={-1} className="lh-dots min-h-0 min-w-0 flex-1 pr-(--lh-dock-push,0px) motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)">
+							<ViewSwap>{children}</ViewSwap>
+						</main>
+					</PillProvider>
 					<Terminals />
 				</TeacherProvider>
 			</OpenDeadlinesProvider>

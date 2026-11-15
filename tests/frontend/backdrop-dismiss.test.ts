@@ -232,7 +232,7 @@ describe("backdrop dismissal requires a whole primary gesture on the scrim", () 
 			}));
 		});
 		const sheet = element("abort-turn-dialog");
-		const backdrop = sheet.parentElement!;
+		const backdrop = sheet.closest<HTMLElement>(".lh-sheet-wrap")!;
 		dispatch(sheet, "pointerdown");
 		dispatch(backdrop, "pointerup");
 		dispatch(backdrop, "click");

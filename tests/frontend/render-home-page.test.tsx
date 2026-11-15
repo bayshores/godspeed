@@ -35,7 +35,7 @@ const { todayLists } = await import("../../src/frontend/components/home-page/hom
 const { SpaceFacts } = await import("../../src/frontend/components/overview/space-facts.tsx");
 const { OpenDeadlinesProvider, useOpenDeadlines } = await import("../../src/frontend/components/use-open-deadlines.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
-const { NoticeStack } = await import("../../src/frontend/components/notice-stack.tsx");
+const { PillPanel } = await import("../../src/frontend/components/top-bar/pill-panel.tsx");
 
 // Wed Oct 28 2026, 4:12 PM local.
 const NOW = new Date(2026, 9, 28, 16, 12).getTime();
@@ -119,7 +119,9 @@ describe("Ticking a deadline done", () => {
 		const connect = () => ({ onEvent() {}, onOpen() {}, close() {} });
 		await mount(
 			<ServerEventsProvider connect={connect as never}>
-				<NoticeStack>{null}</NoticeStack>
+				<MemoryRouter>
+					<PillPanel>{null}</PillPanel>
+				</MemoryRouter>
 				<OpenDeadlinesProvider>
 					<Harness />
 				</OpenDeadlinesProvider>

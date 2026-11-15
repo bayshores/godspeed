@@ -7,6 +7,7 @@ import { LoadFailed } from "@/frontend/components/load-failed";
 import { fileBrowserName } from "@/frontend/components/files/files-model";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { Pane } from "@/frontend/components/ui/pane";
+import { LivePill } from "@/frontend/components/top-bar/live-pill";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { printPdf } from "./print-pdf";
 import { SheetCanvas } from "./sheet-canvas";
@@ -53,7 +54,9 @@ function StudioBar({ deadlineId, deadlineName, status, children }: { deadlineId:
 				<PixelIcon name="chevron" className="-scale-x-100" />
 				<span className="truncate">{deadlineName}</span>
 			</Link>
-			<h1 className="min-w-0 flex-1 truncate text-lg font-medium">Cheat sheet for {deadlineName}</h1>
+			<h1 className="min-w-0 truncate text-lg font-medium">Cheat sheet for {deadlineName}</h1>
+			<div className="flex-1" aria-hidden />
+			<LivePill own named />
 			{status && (
 				<span data-testid="cheat-sheet-status" className="shrink-0 text-base">
 					{status}

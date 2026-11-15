@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { NoticeCard } from "@/frontend/components/notice-card";
-import { NOTICE_STACK_ID } from "@/frontend/components/notice-stack";
+import { NOTICE_STACK_ID } from "@/frontend/components/top-bar/pill-panel";
 import { useHeld } from "@/frontend/components/use-held";
 
 /** How long the notice stays (it waits while the pointer or focus is on it). */
@@ -20,7 +20,7 @@ export function DoneNotice({ text, onExpire }: { text: string; onExpire: () => v
 		return () => clearTimeout(timer);
 	}, [text, held, onExpire]);
 	return createPortal(
-		<NoticeCard data-testid="done-notice" {...handlers} role="alert" title={text} />,
+		<NoticeCard data-testid="done-notice" {...handlers} role="alert" timed title={text} />,
 		document.getElementById(NOTICE_STACK_ID) ?? document.body,
 	);
 }

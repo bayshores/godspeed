@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
 import { SessionFind } from "@/frontend/components/session-find";
 import type { SessionScrollContext } from "@/frontend/components/session-navigation";
+import { LivePill } from "@/frontend/components/top-bar/live-pill";
 import { Hint } from "@/frontend/components/ui/hint";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
@@ -56,6 +57,7 @@ export function LessonTopBar({
 			<h1 className="sr-only">{rename.title}</h1>
 			<div className="flex min-w-0 shrink text-lg font-medium">{rename.renaming ? <RenameInput rename={rename} /> : <TitleButton rename={rename} />}</div>
 			<div className="flex-1" aria-hidden />
+			<LivePill own named />
 			{file && openFile && (
 				<button type="button" data-testid="lesson-assignment" title={file.name} onClick={() => void openFile(file.path!)} className={`${BAR_BUTTON} max-w-[24ch]`}>
 					<span className="truncate">{file.name}</span>
