@@ -59571,7 +59571,7 @@
                   "name": "crop",
                   "clip": true,
                   "width": 1040,
-                  "height": 800,
+                  "height": 640,
                   "cornerRadius": 10,
                   "layout": "none",
                   "children": [
@@ -59584,7 +59584,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/plugin-sheet.png",
+                        "url": "plugins/plugin-sheet.png?v=2",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59615,7 +59615,7 @@
                   "name": "crop",
                   "clip": true,
                   "width": 1040,
-                  "height": 270,
+                  "height": 300,
                   "cornerRadius": 10,
                   "layout": "none",
                   "children": [
@@ -59628,7 +59628,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/plugin-off.png",
+                        "url": "plugins/plugin-off.png?v=2",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59651,7 +59651,7 @@
                   "name": "crop",
                   "clip": true,
                   "width": 1040,
-                  "height": 370,
+                  "height": 290,
                   "layout": "none",
                   "children": [
                     {
@@ -59663,7 +59663,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/plugin-add.png",
+                        "url": "plugins/plugin-add.png?v=2",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59690,7 +59690,7 @@
                   "type": "text",
                   "id": "CyXbx",
                   "fill": "#e6e6e6",
-                  "content": "3  Lesson, after pressing Meme this beside Why",
+                  "content": "4  In a lesson: its word in the bar, its panel beside the lesson",
                   "fontFamily": "Zen Kaku Gothic New",
                   "fontSize": 22,
                   "fontWeight": "normal"
@@ -59700,21 +59700,21 @@
                   "id": "SlLTc",
                   "name": "crop",
                   "clip": true,
-                  "width": 925,
+                  "width": 1440,
                   "height": 900,
                   "cornerRadius": 10,
                   "layout": "none",
                   "children": [
                     {
                       "type": "rectangle",
-                      "id": "yMvhL",
+                      "id": "CU9O5",
                       "x": 0,
                       "y": 0,
-                      "name": "lesson-meme.png",
+                      "name": "lesson-plugin.png",
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/lesson-meme.png",
+                        "url": "plugins/lesson-plugin.png?v=2",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59734,7 +59734,7 @@
                   "type": "text",
                   "id": "mWBDa",
                   "fill": "#e6e6e6",
-                  "content": "4  While Claude writes it",
+                  "content": "5  While Claude works on it",
                   "fontFamily": "Zen Kaku Gothic New",
                   "fontSize": 22,
                   "fontWeight": "normal"
@@ -59744,21 +59744,99 @@
                   "id": "TV2xg",
                   "name": "crop",
                   "clip": true,
-                  "width": 925,
-                  "height": 900,
+                  "width": 660,
+                  "height": 540,
                   "cornerRadius": 10,
                   "layout": "none",
                   "children": [
                     {
                       "type": "rectangle",
-                      "id": "IgF0W",
-                      "x": 0,
+                      "id": "Gguy3",
+                      "x": -560,
                       "y": 0,
-                      "name": "lesson-meme-writing.png",
+                      "name": "lesson-plugin-working.png",
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/lesson-meme-writing.png",
+                        "url": "plugins/lesson-plugin-working.png?v=2",
+                        "mode": "stretch"
+                      },
+                      "width": 1440,
+                      "height": 900
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "PFTit",
+                  "fill": "#e6e6e6",
+                  "content": "6  If the plugin doesn't load",
+                  "fontFamily": "Zen Kaku Gothic New",
+                  "fontSize": 22,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "eZXxA",
+                  "name": "crop",
+                  "clip": true,
+                  "width": 350,
+                  "height": 210,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "id": "iqE9e",
+                      "x": -560,
+                      "y": -96,
+                      "name": "lesson-plugin-failed.png",
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "plugins/lesson-plugin-failed.png?v=2",
+                        "mode": "stretch"
+                      },
+                      "width": 1440,
+                      "height": 900
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "fa4D8",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "F7ma5J",
+                  "fill": "#e6e6e6",
+                  "content": "7  A plugin's own tab on a space's page",
+                  "fontFamily": "Zen Kaku Gothic New",
+                  "fontSize": 22,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "UB4XO",
+                  "name": "crop",
+                  "clip": true,
+                  "width": 900,
+                  "height": 400,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "id": "z8YMh2",
+                      "x": -270,
+                      "y": -60,
+                      "name": "space-plugin-tab.png",
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "plugins/space-plugin-tab.png?v=2",
                         "mode": "stretch"
                       },
                       "width": 1440,
