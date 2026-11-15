@@ -126,7 +126,7 @@ Requests run in parallel, so every read-modify-write of a file takes a lock from
 | Key | Covers |
 |---|---|
 | `LockKey::Space(id)` | a space record, its files and cheat sheets |
-| `LockKey::Chat(id)` | a lesson or Talk record and its folder |
+| `LockKey::Chat(id)` | a lesson record and its folder |
 | `LockKey::Graph(scope)` | one graph family; `None` is "No space" |
 | `LockKey::AppFile(name)` | one file under data/, like `"settings.json"` or `"agent-notes.json"` |
 
