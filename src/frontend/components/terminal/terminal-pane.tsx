@@ -32,8 +32,8 @@ export function TerminalPane({ api, role, foot, focusOnOpen }: {
 	const term = api[role]!;
 	const [focusKey, setFocusKey] = useState(0);
 	const [error, setError] = useState<string | null>(null);
-	// A refusal shows until what the footer says changes.
-	useEffect(() => setError(null), [term.id, foot.text]);
+	// A refusal shows until the screen asks something else or the footer changes.
+	useEffect(() => setError(null), [term.id, term.prompt, foot.text, foot.assist?.kind, foot.startAgain]);
 	const live = !term.ended;
 	// Running: it reached godspeed. Asked: it waits for the learner (a question, a sign-in).
 	const running = live && !!api.facts[role]?.checkedIn;

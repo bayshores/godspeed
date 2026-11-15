@@ -149,7 +149,7 @@ describe("Start with an agent outside godspeed connected", () => {
 					await settle();
 					assert.ok(posts.some((b) => b.includes('"setup"')), "the folder was set up");
 					assert.ok(!shell.calls.some((c) => c.startsWith("start")), "no second teacher");
-					assert.match(document.body.textContent!, /An agent started outside godspeed is already connected\. Close it there, then start one here\./);
+					assert.match(document.body.textContent!, /An agent outside godspeed is connected\. Close it first\./);
 				},
 			);
 		} finally {
@@ -229,7 +229,6 @@ describe("Start lesson and a lesson's send", () => {
 					});
 					await settle();
 					assert.equal(shell.calls.filter((c) => c === "start teacher codex").length, 1, "two sends close together start one teacher");
-					assert.ok(api!.calling === null, "it starts hidden: nothing calls the learner");
 					assert.ok(status()?.connected === false && status()?.teaching === false, "every surface reads no agent until the new one checks in");
 					await act(async () => root!.render(page(access({ connected: true, teaching: true, terminals: [{ id: "teacher-new", here: true }] }))));
 					assert.ok(status()?.teaching === true, "checked in: the server's word again");
@@ -347,7 +346,7 @@ describe("after godspeed's teacher ended, though the server still says connected
 			const doing = agentDoing({ agent, fresh: null, lesson: { streaming: true, working: true }, extractions: [], jobs: [] });
 			const facts = api!.facts.teacher;
 			return {
-				pill: pillWords(pillLine({ things: pillThings({ name: "Teacher", doing, agent, terminal: teacherTerminalState(facts), work: null, ready: [], due: null, offer: null }), notice: null, idle: idleWords({ name: "Teacher", agent, notices: 0, own: false }) })),
+				pill: pillWords(pillLine({ things: pillThings({ name: "Teacher", doing, agent, terminal: teacherTerminalState(facts), background: false, work: null, ready: [], due: null, offer: null }), notice: null, idle: idleWords({ name: "Teacher", agent, notices: 0, own: false }) })),
 				panel: agentLine(agent, doing),
 				tile: teacherTile(agent, doing, { outside: false, term: facts?.term.ended ? "ended" : null, start: "Start Claude Code" }).chip,
 				lessonWaits: lessonAgentWaiting(agent),

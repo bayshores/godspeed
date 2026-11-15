@@ -30,7 +30,7 @@ const teacherRuns = (agent: Agent) => agent.teaching || (agent.connected && !age
  *  start key's label, the same as the start pair's (startLabel). */
 export function teacherTile(agent: Agent, doing: AgentDoing | null, i: { outside: boolean; term: TermState; start: string }): AgentTile {
 	const note = i.outside ? "Connected from outside godspeed." : "Teaches and answers you";
-	if (agent.helperCovering) return { tone: "on", chip: "Teaching", line: "Tidying its memory", note: "Background work answers for a minute", start: null };
+	if (agent.helperCovering) return { tone: "on", chip: "Teaching", line: "Tidying its memory", note: "A backup answers for a minute", start: null };
 	// "Teaching" only while it works on something; idle in its work loop it is just running.
 	if (agent.teaching) return { tone: "on", chip: doing?.working ? "Teaching" : "Running", line: doing?.working ? doing.text : "Nothing to do right now", note, start: null };
 	if (teacherRuns(agent)) return { tone: "on", chip: "Running", line: teachStep(agent.name), note, start: null };

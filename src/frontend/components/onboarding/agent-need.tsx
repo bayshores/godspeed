@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { AGENT_LABEL } from "@/frontend/components/agent-folder/agent-folder-model";
 import { FirstRunScreen } from "@/frontend/components/terminal/first-run-screen";
 import { screenStatusLine, teacherTerminalState } from "@/frontend/components/terminal/terminal-model";
@@ -6,17 +5,11 @@ import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 
 /** The steps after the agent step: when the agent started there needs the
  *  learner, one line says what, and its button shows the agent's screen
- *  here, as the agent step does. The line counts as heard, so the panel
- *  does not open for it again after onboarding. */
+ *  here, as the agent step does. */
 export function AgentNeed({ open, onOpen }: { open: boolean; onOpen: () => void }) {
 	const api = useTerminals();
 	const facts = api?.facts.teacher ?? null;
 	const line = teacherTerminalState(facts) === "needsYou" ? screenStatusLine(facts, AGENT_LABEL[facts!.term.agent]) : null;
-	const calling = api?.calling;
-	const heard = api?.heard;
-	useEffect(() => {
-		if (line && calling?.role === "teacher") heard?.(calling.key);
-	}, [line, calling, heard]);
 
 	if (open)
 		return (

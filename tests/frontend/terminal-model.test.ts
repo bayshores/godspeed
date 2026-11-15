@@ -66,16 +66,16 @@ describe("when the screen opens by itself", () => {
 
 describe("the footer's words", () => {
 	it("starting, then running: under the status line, only what it adds", () => {
-		assert.equal(words(facts({ checkedIn: false })).text, "Claude Code is starting. If Claude Code asks you something, answer it here.");
-		assert.equal(tab(facts({ checkedIn: false })).text, "If Claude Code asks you something, answer it here.");
+		assert.equal(words(facts({ checkedIn: false })).text, "Claude Code is starting.");
+		assert.equal(tab(facts({ checkedIn: false })).text, null);
 		assert.equal(tab(facts()).text, null, "the status line says it runs");
 	});
 
 	it("the trust question gets the one assist key", () => {
 		const f = words(facts({ checkedIn: false }, { prompt: "trust" }));
-		assert.equal(f.text, "Claude Code asks to trust its folder. godspeed made the folder for it.");
-		assert.equal(tab(facts({ checkedIn: false }, { prompt: "trust" })).text, "godspeed made the folder for it.");
-		assert.deepEqual(f.assist, { kind: "trust", label: "Yes, trust this folder" });
+		assert.equal(f.text, "Claude Code asks to trust its folder.");
+		assert.equal(tab(facts({ checkedIn: false }, { prompt: "trust" })).text, null);
+		assert.deepEqual(f.assist, { kind: "trust", label: "Trust folder" });
 		assert.equal(f.startAgain, false);
 	});
 
@@ -85,28 +85,28 @@ describe("the footer's words", () => {
 	});
 
 	it("a sign-in: a link or a menu before the first check-in", () => {
-		const signIn = "Finish signing in to Codex. If your browser gives you a code, copy it and click Paste.";
+		const signIn = "Finish signing in to Codex. Got a code? Click Paste.";
 		assert.equal(words(facts({ checkedIn: false }, { agent: "codex", url: true })).text, signIn);
 		assert.equal(words(facts({ checkedIn: false }, { agent: "codex", prompt: "menu" })).text, signIn);
-		assert.equal(tab(facts({ checkedIn: false }, { agent: "codex", prompt: "menu" })).text, "If your browser gives you a code, copy it and click Paste.");
-		assert.equal(tab(facts({ checkedIn: false }, { url: true })).text, "Finish signing in to Claude Code. If your browser gives you a code, copy it and click Paste.", "the status line still says it starts");
-		assert.equal(words(facts({}, { prompt: "menu" })).text, "Claude Code is asking you something. Answer it on the screen.");
-		assert.equal(tab(facts({}, { prompt: "menu" })).text, "Answer it on the screen.");
+		assert.equal(tab(facts({ checkedIn: false }, { agent: "codex", prompt: "menu" })).text, "Got a code? Click Paste.");
+		assert.equal(tab(facts({ checkedIn: false }, { url: true })).text, "Finish signing in to Claude Code. Got a code? Click Paste.", "the status line still says it starts");
+		assert.equal(words(facts({}, { prompt: "menu" })).text, "Claude Code is asking you something.");
+		assert.equal(tab(facts({}, { prompt: "menu" })).text, null);
 	});
 
 	it("the timers", () => {
-		const late = "Ada hasn't started teaching yet. Check the screen for a question.";
+		const late = "Ada hasn't started teaching yet.";
 		assert.equal(words(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })).text, late);
 		assert.equal(words(facts({ teaching: false, quietSince: T0, now: T0 + TEACH_WAIT_MS })).text, late);
-		assert.equal(tab(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })).text, "Check the screen for a question.");
+		assert.equal(tab(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })).text, null);
 	});
 
 	it("stopped, crashed, not installed, no Node", () => {
 		const stopped = tab(facts({}, { ended: { stopped: true, code: null } }));
 		assert.equal(stopped.text, "You stopped Ada.", "the status line says only that none is connected");
 		assert.equal(stopped.startAgain, true);
-		assert.equal(words(facts({}, { ended: { stopped: false, code: 1 } })).text, "Claude Code closed with an error. The last lines are above.");
-		assert.equal(tab(facts({}, { ended: { stopped: false, code: 1 } })).text, "The last lines are above.");
+		assert.equal(words(facts({}, { ended: { stopped: false, code: 1 } })).text, "Claude Code closed with an error.");
+		assert.equal(tab(facts({}, { ended: { stopped: false, code: 1 } })).text, null);
 		assert.equal(tab(facts({}, { ended: { stopped: false, code: 0 } })).text, "Claude Code closed.");
 		const missing = words(facts({}, { agent: "codex", ended: { stopped: false, code: 3 } }));
 		assert.equal(missing.text, "Codex isn't installed on this computer.");
@@ -120,15 +120,15 @@ describe("the footer's words", () => {
 	});
 
 	it("background work's footer leaves out what its own status chip says", () => {
-		assert.equal(tab(facts({ helperBusy: true }, { role: "helper" })).text, "Background work is reading your files.");
-		assert.equal(tab(facts({}, { role: "helper" })).text, "Background work is waiting for files to read.");
-		assert.equal(tab(facts({}, { role: "helper", ended: { stopped: true, code: null } })).text, "Background work stopped.");
-		assert.equal(tab(facts({}, { role: "helper", prompt: "trust" })).text, "godspeed made the folder for it.");
+		assert.equal(tab(facts({ helperBusy: true }, { role: "helper" })).text, "Reading your files.");
+		assert.equal(tab(facts({}, { role: "helper" })).text, "Waiting for files.");
+		assert.equal(tab(facts({}, { role: "helper", ended: { stopped: true, code: null } })).text, "Stopped.");
+		assert.equal(tab(facts({}, { role: "helper", prompt: "trust" })).text, null);
 		assert.equal(screenStatusLine(facts({}, { role: "helper", prompt: "trust" }), "Background work"), "Claude Code asks to trust its folder.");
 	});
 
 	it("an agent outside godspeed teaches: the status line says nothing of the old screen, so its footer says it all", () => {
-		assert.equal(tab(facts({ outsideHere: true }, { ended: { stopped: false, code: 1 } })).text, "Claude Code closed with an error. The last lines are above.");
+		assert.equal(tab(facts({ outsideHere: true }, { ended: { stopped: false, code: 1 } })).text, "Claude Code closed with an error.");
 	});
 
 	it("no sentence has an em-dash or a dot divider", () => {
@@ -211,7 +211,7 @@ describe("onboarding's first start", () => {
 		assert.equal(first({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS + 1 }).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.", "no timer words here");
 		assert.equal(first({ checkedIn: true }).text, "Claude Code is connected.");
 		const trust = first({ checkedIn: false }, { prompt: "trust" });
-		assert.equal(trust.assist?.label, "Yes, trust this folder");
+		assert.equal(trust.assist?.label, "Trust folder");
 		assert.match(first({ checkedIn: false }, { url: true }).text ?? "", /^Finish signing in to Claude Code/);
 		assert.equal(first({}, { ended: { stopped: true, code: null } }).text, "You stopped Claude Code.");
 	});

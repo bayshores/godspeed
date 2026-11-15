@@ -14,8 +14,7 @@ export const WIDTHS = [1440, 1100, 800];
 export const HTTP_OK = `.then((r) => { if (!r.ok) throw new Error(r.url + " answered " + r.status); return r; })`;
 
 const pause = `await new Promise((done) => setTimeout(done, 100))`;
-const openPill = `document.querySelector("[data-testid=live-pill]").click()`;
-const openTeacher = `${openPill}; ${pause}; document.querySelector("[data-testid=pill-talk]").click()`;
+const openTeacher = `document.querySelector("[data-testid=live-pill]").click()`;
 const deadlineCard = "[data-teacher-target='deadline:{deadline}']";
 /** Today's every group at once: the next deadline, three more this week, one ticked done, two
  *  later. Dates count from the day the check runs. */
@@ -43,7 +42,6 @@ export const SCREENS = [
 	{ name: "Deadlines", url: "/space/deadlines", ready: "[data-testid=deadline-open]" },
 	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-name]" },
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
-	{ name: "The pill's card", url: "/", ready: deadlineCard, setup: openPill, shows: "[data-testid=pill-panel] [data-testid=pill-talk]" },
 	{ name: "Teacher's panel with no agent", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
 	{ name: "Teacher's Activity", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-panel-agent]").click()`, shows: "[data-testid=teacher-panel-list] [data-testid=activity-list] > *" },
 	{ name: "Settings, Connection", url: "/settings?section=connection", ready: "[data-testid=agent-status]" },

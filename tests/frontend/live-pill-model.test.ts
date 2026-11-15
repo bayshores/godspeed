@@ -1,17 +1,17 @@
 /**
  * The live pill's words (live-pill-model.ts): the live things in order,
- * what the closed pill says, the rows of its card, the lessons whose
- * reply waits and the deadline in its last day.
+ * what the pill says, the lessons whose reply waits and the deadline in
+ * its last day.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { dueSoon, firstWord, idleWords, keepReady, pillLine, pillThings, rowWords, shortName, thingsAt } from "../../src/frontend/components/top-bar/live-pill-model.ts";
+import { dueSoon, firstWord, idleWords, keepReady, pillClick, pillLine, pillThings, shortName, thingsAt } from "../../src/frontend/components/top-bar/live-pill-model.ts";
 
 const off = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [] };
 const teaching = { ...off, connected: true, teaching: true, name: "Claude Code" };
 const reading = { text: "Reading Lecture 14 notes", count: "3 of 12", working: true };
-const nothing = { name: "marco", doing: null, agent: teaching, terminal: null, work: null, ready: [], due: null, offer: null };
-const helper = { worker: "Helper", doing: "reading files", count: "6 of 17", tag: "6 of 17 files" };
+const nothing = { name: "marco", doing: null, agent: teaching, terminal: null, background: false, work: null, ready: [], due: null, offer: null };
+const helper = { doing: "Reading files", count: "6 of 17", tag: "6 of 17 files" };
 const homework = { id: "hw5", spaceId: "c21", name: "Homework 5", date: "2026-11-15", time: "23:59" };
 const words = (i: Parameters<typeof pillThings>[0]) => pillThings(i).map((t) => [t.head, t.detail, t.count].filter(Boolean).join(" "));
 
@@ -24,14 +24,20 @@ describe("the live things", () => {
 
 	it("the teacher at work: what it does and how far it is, on the highlighter, its square breathing", () => {
 		const [thing] = pillThings({ ...nothing, doing: reading });
-		assert.deepEqual(thing, { kind: "teacher", key: "teacher", head: "marco", detail: "reading Lecture 14 notes", count: "3 of 12", due: null, lit: true, working: true, tag: null, action: null });
+		assert.deepEqual(thing, { kind: "teacher", key: "teacher", head: "marco", detail: "reading Lecture 14 notes", count: "3 of 12", due: null, lit: true, working: true, tag: null, needs: false, action: null });
 	});
 
-	it("godspeed's own terminal: starting, or needing the learner, with Answer", () => {
+	it("godspeed's own terminal: starting, or needing the learner", () => {
 		assert.deepEqual(words({ ...nothing, agent: off, terminal: "starting" }), ["marco starting"]);
 		assert.deepEqual(words({ ...nothing, agent: null, terminal: "starting" }), ["marco starting"]);
 		const [needs] = pillThings({ ...nothing, doing: reading, terminal: "needsYou" });
-		assert.deepEqual([needs!.detail, needs!.action, needs!.lit, needs!.working], ["needs you", "answer", true, false]);
+		assert.deepEqual([needs!.detail, needs!.needs, needs!.action, needs!.lit, needs!.working], ["needs you", true, null, true, false]);
+	});
+
+	it("background work needing the learner, by its name, after the teacher's own need", () => {
+		const [first, second] = pillThings({ ...nothing, doing: reading, terminal: "needsYou", background: true });
+		assert.deepEqual([first!.kind, second!.kind, second!.head, second!.detail, second!.needs, second!.lit], ["teacher", "background", "Background work", "needs you", true, true]);
+		assert.deepEqual(words({ ...nothing, doing: reading, background: true }), ["Background work needs you", "marco reading Lecture 14 notes 3 of 12"]);
 	});
 
 	it("says so while the helper answers", () => {
@@ -45,18 +51,18 @@ describe("the live things", () => {
 
 	it("what waits for the learner first, then what works, then the deadline", () => {
 		const all = { ...nothing, doing: reading, work: helper, ready: [{ id: "l1", title: "Counting" }], due: homework };
-		assert.deepEqual(words(all), ["Counting your turn", "marco reading Lecture 14 notes 3 of 12", "Helper reading files 6 of 17", "Homework 5 due in"]);
-		assert.deepEqual(words({ ...all, terminal: "needsYou" }), ["marco needs you", "Counting your turn", "Helper reading files 6 of 17", "Homework 5 due in"]);
+		assert.deepEqual(words(all), ["Counting your turn", "marco reading Lecture 14 notes 3 of 12", "Reading files 6 of 17", "Homework 5 due in"]);
+		assert.deepEqual(words({ ...all, terminal: "needsYou" }), ["marco needs you", "Counting your turn", "Reading files 6 of 17", "Homework 5 due in"]);
 	});
 
 	it("a lesson and a deadline open with a click; their key is their id", () => {
 		const [lesson, due] = pillThings({ ...nothing, ready: [{ id: "l1", title: "Counting" }], due: homework });
 		assert.deepEqual([lesson!.kind, lesson!.key, lesson!.action], ["ready", "l1", "open"]);
-		assert.deepEqual([due!.kind, due!.key, due!.due], ["due", "hw5", homework]);
+		assert.deepEqual([due!.kind, due!.key, due!.due, due!.action], ["due", "hw5", homework, "open"]);
 	});
 });
 
-describe("the closed pill", () => {
+describe("the pill", () => {
 	const things = pillThings({ ...nothing, doing: reading, work: helper, due: homework });
 
 	it("says the first live thing, with background work as a tag", () => {
@@ -106,32 +112,26 @@ describe("the closed pill", () => {
 	});
 });
 
-describe("the card's rows", () => {
-	const [lesson, teacher, work, due] = pillThings({ ...nothing, doing: reading, work: helper, ready: [{ id: "l1", title: "Counting" }], due: homework });
-
-	it("the pill's own thing leaves its name out", () => {
-		assert.deepEqual(rowWords(teacher!, teacher!), { title: "Reading Lecture 14 notes", sub: "Part 3 of 12" });
-		assert.deepEqual(rowWords(work!, work!), { title: "Reading files", sub: "6 of 17" });
-		assert.deepEqual(rowWords(lesson!, lesson!), { title: "Your turn", sub: null });
-		assert.deepEqual(rowWords(due!, due!), { title: "Due in", sub: null });
+describe("a click on the pill", () => {
+	const app = { own: false, named: false };
+	const lesson = { own: true, named: true };
+	const [work] = pillThings({ ...nothing, work: helper });
+	it("opens the teacher's panel on the agent's screen, or closes it; it never holds one key in a card", () => {
+		assert.deepEqual(pillClick({ main: null, place: app, panelOpen: false, notices: 2 }), { open: "teacher" });
+		assert.deepEqual(pillClick({ main: work!, place: app, panelOpen: false, notices: 0 }), { open: "teacher" });
+		assert.equal(pillClick({ main: work!, place: app, panelOpen: true, notices: 0 }), "close");
 	});
-
-	it("the others name theirs", () => {
-		assert.deepEqual(rowWords(teacher!, lesson!), { title: "Reading Lecture 14 notes", sub: "marco, 3 of 12" });
-		assert.deepEqual(rowWords(work!, teacher!), { title: "Reading files", sub: "Helper, 6 of 17" });
-		assert.deepEqual(rowWords(lesson!, null), { title: "Counting", sub: "Your turn" });
-		assert.deepEqual(rowWords(due!, teacher!), { title: "Homework 5", sub: "Due in" });
+	it("background work's need opens its own view, in the app's bar and in a lesson's", () => {
+		const [need] = pillThings({ ...nothing, background: true });
+		assert.ok(need!.lit, "the pill lights");
+		assert.deepEqual(pillClick({ main: need!, place: app, panelOpen: false, notices: 0 }), { open: "helper" });
+		assert.deepEqual(pillClick({ main: need!, place: lesson, panelOpen: false, notices: 0 }), { open: "helper" });
+		const [teacher] = pillThings({ ...nothing, terminal: "needsYou", background: true });
+		assert.deepEqual(pillClick({ main: teacher!, place: lesson, panelOpen: false, notices: 0 }), { open: "teacher" }, "the teacher's own need first");
 	});
-
-	it("a deadline request reads by its name", () => {
-		const request = { worker: "Helper", doing: "Deadline: Wave Optics Final", count: null, tag: "Deadline: Wave Optics Final" };
-		const [, work] = pillThings({ ...nothing, doing: reading, work: request });
-		assert.deepEqual(rowWords(work!, null), { title: "Deadline: Wave Optics Final", sub: "Helper" });
-	});
-
-	it("background work by the teacher the pill names leaves the name out too", () => {
-		const [own, files] = pillThings({ ...nothing, doing: reading, work: { ...helper, worker: "marco" } });
-		assert.deepEqual(rowWords(files!, own!), { title: "Reading files", sub: "6 of 17" });
+	it("in a page's own bar: the folded notices, or nothing to do", () => {
+		assert.equal(pillClick({ main: work!, place: lesson, panelOpen: false, notices: 1 }), "notices");
+		assert.equal(pillClick({ main: work!, place: lesson, panelOpen: false, notices: 0 }), null);
 	});
 });
 

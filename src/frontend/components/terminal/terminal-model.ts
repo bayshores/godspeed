@@ -135,24 +135,24 @@ function screenWords(f: TerminalFacts, name: string): ScreenWords {
 	const ended = term.ended;
 	const again = { startAgain: true };
 	// The shell also stops the helper when the teacher ends.
-	if (ended?.stopped) return { need: null, rest: teacher ? `You stopped ${name}.` : "Background work stopped.", more: again };
+	if (ended?.stopped) return { need: null, rest: teacher ? `You stopped ${name}.` : "Stopped.", more: again };
 	if (ended) {
 		if (ended.code === EXIT_NOT_INSTALLED) return { need: `${agent} isn't installed on this computer.`, rest: null, more: { get: GET_AGENT[term.agent], ...again } };
 		if (ended.code === EXIT_NO_NODE) return { need: `godspeed needs Node.js to connect ${agent}.`, rest: null, more: { get: GET_NODE, ...again } };
 		if (ended.code === 0) return { need: null, rest: `${agent} closed.`, more: again };
-		return { need: `${agent} closed with an error.`, rest: "The last lines are above.", more: again };
+		return { need: `${agent} closed with an error.`, rest: null, more: again };
 	}
 	if (term.prompt === "trust")
-		return { need: `${agent} asks to trust its folder.`, rest: "godspeed made the folder for it.", more: { assist: { kind: "trust", label: "Yes, trust this folder" } } };
+		return { need: `${agent} asks to trust its folder.`, rest: null, more: { assist: { kind: "trust", label: "Trust folder" } } };
 	if (term.prompt === "enter") return { need: `${agent} is asking you to continue.`, rest: null, more: { assist: { kind: "enter", label: "Continue" } } };
 	if (!f.checkedIn && (term.url || term.prompt === "menu"))
-		return { need: `Finish signing in to ${agent}.`, rest: "If your browser gives you a code, copy it and click Paste." };
-	if (term.prompt === "menu") return { need: `${agent} is asking you something.`, rest: "Answer it on the screen." };
+		return { need: `Finish signing in to ${agent}.`, rest: "Got a code? Click Paste." };
+	if (term.prompt === "menu") return { need: `${agent} is asking you something.`, rest: null };
 	const why = needsYou(f);
-	if (why === "no-check-in" || why === "not-teaching") return { need: `${name} hasn't started teaching yet.`, rest: "Check the screen for a question." };
-	if (!f.checkedIn) return { need: `${agent} is starting.`, rest: `If ${agent} asks you something, answer it here.`, starting: true };
+	if (why === "no-check-in" || why === "not-teaching") return { need: `${name} hasn't started teaching yet.`, rest: null };
+	if (!f.checkedIn) return { need: `${agent} is starting.`, rest: null, starting: true };
 	if (teacher) return { need: null, rest: null };
-	return { need: null, rest: f.helperBusy ? "Background work is reading your files." : "Background work is waiting for files to read." };
+	return { need: null, rest: f.helperBusy ? "Reading your files." : "Waiting for files." };
 }
 
 /** The footer under a screen. `underStatus`: the screen's status line
@@ -194,7 +194,7 @@ export const ATTACH_MAX_BYTES = 20 * 1024 * 1024;
 export const ATTACH_TOO_BIG = "That file is over 20 MB.";
 
 /** Why the teacher doesn't start while an agent outside godspeed is here. */
-export const OUTSIDE_REFUSAL = "An agent started outside godspeed is already connected. Close it there, then start one here.";
+export const OUTSIDE_REFUSAL = "An agent outside godspeed is connected. Close it first.";
 
 /** Why a teacher start is refused: its terminal runs, or an agent outside
  *  godspeed is here. Null when it may start. */

@@ -38,15 +38,15 @@ describe("the work frame of a space", () => {
 	it("no agent: the files wait", () => {
 		const state = workState({ ...base, working: false, files: [file("a", "pending"), file("b", "pending")], work: undefined });
 		assert.deepEqual(state, { kind: "waiting", left: 2 });
-		assert.deepEqual(spaceFrame(state!, "Teacher"), { state: "waiting", text: "2 files are waiting. Start your agent to read them.", count: null });
-		assert.equal(spaceFrame({ kind: "waiting", left: 1 }, "Teacher").text, "1 file is waiting. Start your agent to read it.");
+		assert.deepEqual(spaceFrame(state!), { state: "waiting", text: "2 files are waiting. Start your agent to read them.", count: null });
+		assert.equal(spaceFrame({ kind: "waiting", left: 1 }).text, "1 file is waiting. Start your agent to read it.");
 	});
 
 	it("reading: how many of the round's files are finished", () => {
 		const work = { startedAt: "x", fileIds: ["a"], deadlineIds: [] };
 		const state = workState({ ...base, files: [file("old", "ready"), file("a", "ready"), file("b", "extracting"), file("c", "pending")], work });
 		assert.deepEqual(state, { kind: "reading", read: 1, total: 3 });
-		assert.deepEqual(spaceFrame(state!, "Helper"), { state: "working", text: "Helper is working on this page", count: "1 of 3 files" });
+		assert.deepEqual(spaceFrame(state!), { state: "working", text: "Working on this page", count: "1 of 3 files" });
 	});
 
 	it("before a round is recorded, none is read yet", () => {
@@ -55,7 +55,7 @@ describe("the work frame of a space", () => {
 
 	it("grouping the facts into topics", () => {
 		const state = workState({ ...base, grouping: true, files: [file("a", "ready")], work: undefined });
-		assert.deepEqual(spaceFrame(state!, "Marco"), { state: "working", text: "Marco is working on this page", count: "grouping facts into topics" });
+		assert.deepEqual(spaceFrame(state!), { state: "working", text: "Working on this page", count: "grouping facts into topics" });
 		assert.equal(workState({ ...base, grouping: true, working: false, files: [file("a", "ready")], work: undefined }), null);
 	});
 
@@ -64,14 +64,14 @@ describe("the work frame of a space", () => {
 		const input = { ...base, files: [file("a", "ready"), file("b", "ready"), file("bad", "failed"), file("other", "ready")], work };
 		const state = workState(input);
 		assert.deepEqual(state, { kind: "done", read: 2, failed: 1 });
-		assert.deepEqual(spaceFrame(state!, "Helper"), { state: "done", text: "Your agent read 2 files.", count: "1 could not be read" });
+		assert.deepEqual(spaceFrame(state!), { state: "done", text: "Your agent read 2 files.", count: "1 could not be read" });
 		assert.equal(workState({ ...input, nowMs: ENDED.getTime() + 25 * 60 * 60 * 1000 }), null);
 	});
 
 	it("every file failed", () => {
 		const work = { startedAt: "x", endedAt: ENDED.toISOString(), fileIds: ["a"], deadlineIds: [] };
 		const state = workState({ ...base, files: [file("a", "failed")], work });
-		assert.deepEqual(spaceFrame(state!, "Teacher"), { state: "done", text: "Your agent could not read 1 file.", count: null });
+		assert.deepEqual(spaceFrame(state!), { state: "done", text: "Your agent could not read 1 file.", count: null });
 	});
 
 	it("nothing going on and nothing finished: no frame", () => {
@@ -81,7 +81,7 @@ describe("the work frame of a space", () => {
 
 describe("the work frame of a page one job works on", () => {
 	it("says who and what, or that it waits", () => {
-		assert.deepEqual(jobFrame("Helper", "making your sheet"), { state: "working", text: "Helper is working on this page", count: "making your sheet" });
+		assert.deepEqual(jobFrame("Helper", "making your sheet"), { state: "working", text: "Working on this page", count: "making your sheet" });
 		assert.deepEqual(jobFrame(null, "making your sheet"), { state: "waiting", text: "This page is waiting. Start your agent to carry on.", count: null });
 	});
 });
@@ -90,8 +90,8 @@ describe("elsewhere", () => {
 	const space = (over: Partial<SpaceSummary>): SpaceSummary => ({ id: "spc_ml", name: "Machine Learning", description: "", createdAt: "", updatedAt: "", closed: false, fileCount: 18, color: 1, filesLeft: 0, ...over });
 
 	it("Today names the space and how many files are left", () => {
-		assert.equal(todayWorkLine(space({ filesLeft: 15, building: true }), "Helper"), "Helper is building it, 15 left");
-		assert.equal(todayWorkLine(space({ filesLeft: 2 }), "Teacher"), "Teacher is reading new files, 2 left");
+		assert.equal(todayWorkLine(space({ filesLeft: 15, building: true }), "Helper"), "Building, 15 left");
+		assert.equal(todayWorkLine(space({ filesLeft: 2 }), "Teacher"), "Reading new files, 2 left");
 		assert.equal(todayWorkLine(space({ filesLeft: 18, building: true }), null), "18 files are waiting for your agent");
 		assert.equal(todayWorkLine(space({ filesLeft: 1 }), null), "1 file is waiting for your agent");
 		assert.equal(todayWorkLine(space({}), "Teacher"), null);
@@ -114,14 +114,14 @@ describe("elsewhere", () => {
 
 	it("the top bar pill counts the files of every space being read, else the jobs", () => {
 		const spaces = [space({ filesLeft: 11, filesRead: 6 }), space({ filesLeft: 2 }), space({ filesLeft: 4, closed: true })];
-		assert.deepEqual(workProgress({ worker: "Helper", spaces, jobs: 3, requests: [] }), { worker: "Helper", doing: "reading files", count: "6 of 19", tag: "6 of 19 files" });
-		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 1, requests: [] }), { worker: "Marco", doing: "working on 1 job", count: null, tag: "1 job" });
-		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 2, requests: [] }), { worker: "Marco", doing: "working on 2 jobs", count: null, tag: "2 jobs" });
+		assert.deepEqual(workProgress({ worker: "Helper", spaces, jobs: 3, requests: [] }), { doing: "Reading files", count: "6 of 19", tag: "6 of 19 files" });
+		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 1, requests: [] }), { doing: "Working on 1 job", count: null, tag: "1 job" });
+		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 2, requests: [] }), { doing: "Working on 2 jobs", count: null, tag: "2 jobs" });
 		assert.equal(workProgress({ worker: "Marco", spaces: [space({})], jobs: 0, requests: [] }), null);
 		assert.equal(workProgress({ worker: null, spaces, jobs: 3, requests: [] }), null, "no agent takes the work");
 		const request = "Deadline: Wave Optics Final";
-		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 0, requests: [request] }), { worker: "Marco", doing: request, count: null, tag: request }, "a deadline request alone says its name");
-		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 1, requests: [request] }), { worker: "Marco", doing: "working on 2 jobs", count: null, tag: "2 jobs" });
-		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 0, requests: [request, "Deadlines: 3"] }), { worker: "Marco", doing: "working on 2 jobs", count: null, tag: "2 jobs" });
+		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 0, requests: [request] }), { doing: request, count: null, tag: request }, "a deadline request alone says its name");
+		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 1, requests: [request] }), { doing: "Working on 2 jobs", count: null, tag: "2 jobs" });
+		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 0, requests: [request, "Deadlines: 3"] }), { doing: "Working on 2 jobs", count: null, tag: "2 jobs" });
 	});
 });

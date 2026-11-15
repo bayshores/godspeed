@@ -181,8 +181,8 @@ describe("settings restyle", () => {
 	});
 
 	it("the section's line says godspeed starts the helper only in the desktop app", () => {
-		assert.ok(connectionHint(true).endsWith("build the graph, and godspeed starts it when there is reading to do."));
-		assert.ok(connectionHint(false).endsWith("build the graph."));
+		assert.ok(connectionHint(true).endsWith("builds the graph, and godspeed starts it when there is reading to do."));
+		assert.ok(connectionHint(false).endsWith("builds the graph."));
 	});
 
 	it("both running: the helper covers while the teacher tidies its memory", async () => {

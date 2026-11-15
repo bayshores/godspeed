@@ -1,14 +1,13 @@
 /**
  * The live pill's words: the live things in order of what needs the
- * learner first, what the closed pill says of them, and the words of its
- * card's rows. Pure.
+ * learner first, and what the pill says of them. Pure.
  */
 import { agentStatusLabel, type AgentStatus } from "@/frontend/components/agent-status";
 import { DAY, dueAtMs } from "@/frontend/components/countdown-model";
 import type { AgentDoing } from "@/frontend/components/teacher/follow-status";
 import type { TeacherTerminalState } from "@/frontend/components/terminal/terminal-model";
 import { plural } from "@/frontend/lib/plural";
-import type { WorkProgress } from "@/frontend/components/work/work-model";
+import { HELPER_NAME, type WorkProgress } from "@/frontend/components/work/work-model";
 
 /** A lesson whose reply came while another page was open. */
 export interface ReadyLesson {
@@ -25,12 +24,9 @@ export interface DueSoon {
 	time?: string;
 }
 
-/**
- * One live thing. The pill says `head` then `detail`; while its card is
- * open it keeps `head` only, and the thing's row says the rest.
- */
+/** One live thing. The pill says `head` then `detail`. */
 export interface PillThing {
-	kind: "teacher" | "work" | "ready" | "due";
+	kind: "teacher" | "background" | "work" | "ready" | "due";
 	/** The lesson's or the deadline's id; the kind for the other two. */
 	key: string;
 	head: string;
@@ -45,8 +41,10 @@ export interface PillThing {
 	working: boolean;
 	/** Its words as a tag after the pill; null for a thing that is never one. */
 	tag: string | null;
-	/** The pill's own button, for the two things that wait for the learner. */
-	action: "answer" | "open" | null;
+	/** An agent's screen waits for the learner: a click on the pill shows it. */
+	needs: boolean;
+	/** The pill's own Open: the lesson whose reply waits, or the deadline. */
+	action: "open" | null;
 }
 
 interface PillInputs {
@@ -54,6 +52,8 @@ interface PillInputs {
 	doing: AgentDoing | null;
 	agent: AgentStatus | null;
 	terminal: TeacherTerminalState | null;
+	/** Background work's screen waits for the learner. */
+	background: boolean;
 	work: WorkProgress | null;
 	ready: readonly ReadyLesson[];
 	due: DueSoon | null;
@@ -92,7 +92,6 @@ export function dueSoon(deadlines: readonly DueSoon[], nowMs: number, pathname: 
 }
 
 const lowerFirst = (text: string) => text.slice(0, 1).toLowerCase() + text.slice(1);
-const upperFirst = (text: string) => text.slice(0, 1).toUpperCase() + text.slice(1);
 
 /** The teacher as a live thing, or null while it has nothing to say. */
 function teacherThing(i: PillInputs): PillThing | null {
@@ -106,11 +105,12 @@ function teacherThing(i: PillInputs): PillThing | null {
 		lit: false,
 		working: false,
 		tag: null,
+		needs: false,
 		action: null,
 		...more,
 	});
 	// godspeed's own terminal knows first that the teacher starts or needs the learner.
-	if (i.terminal === "needsYou") return thing("needs you", { lit: true, action: "answer" });
+	if (i.terminal === "needsYou") return thing("needs you", { lit: true, needs: true });
 	if (i.terminal === "starting") return thing("starting");
 	if (i.agent?.helperCovering) return thing("tidying its memory");
 	if (i.agent && i.doing?.working)
@@ -124,12 +124,15 @@ function teacherThing(i: PillInputs): PillThing | null {
 
 /**
  * The live things, first what waits for the learner (the teacher's
- * question, a reply in another lesson), then what works (the teacher,
- * background work), then a deadline in its last day.
+ * question, background work's, a reply in another lesson), then what works
+ * (the teacher, background work), then a deadline in its last day.
  */
 export function pillThings(i: PillInputs): PillThing[] {
 	const teacher = teacherThing(i);
-	const needs = teacher?.action === "answer";
+	const needs = teacher?.needs ?? false;
+	const background: PillThing | null = i.background
+		? { kind: "background", key: "background", head: HELPER_NAME, detail: "needs you", count: null, due: null, lit: true, working: false, tag: null, needs: true, action: null }
+		: null;
 	const ready = i.ready.map(
 		(l): PillThing => ({
 			kind: "ready",
@@ -141,19 +144,21 @@ export function pillThings(i: PillInputs): PillThing[] {
 			lit: true,
 			working: false,
 			tag: null,
+			needs: false,
 			action: "open",
 		}),
 	);
 	const work: PillThing | null = i.work && {
 		kind: "work",
 		key: "work",
-		head: i.work.worker,
-		detail: i.work.doing,
+		head: i.work.doing,
+		detail: "",
 		count: i.work.count,
 		due: null,
 		lit: true,
 		working: false,
 		tag: i.work.tag,
+		needs: false,
 		action: null,
 	};
 	const due: PillThing | null = i.due && {
@@ -166,9 +171,10 @@ export function pillThings(i: PillInputs): PillThing[] {
 		lit: true,
 		working: false,
 		tag: i.due.name,
-		action: null,
+		needs: false,
+		action: "open",
 	};
-	return [needs ? teacher : null, ...ready, needs ? null : teacher, work, due].filter((t) => t !== null);
+	return [needs ? teacher : null, background, ...ready, needs ? null : teacher, work, due].filter((t) => t !== null);
 }
 
 /** Where a pill sits. `own`: in a page's own bar. `named`: beside a teacher
@@ -181,7 +187,7 @@ export interface PillPlace {
 /** The live things a pill shows where it sits: beside a teacher head, the
  *  teacher only while it needs the learner (the head says the rest). */
 export function thingsAt(things: readonly PillThing[], place: PillPlace): PillThing[] {
-	return things.filter((t) => !place.named || t.kind !== "teacher" || t.action !== null);
+	return things.filter((t) => !place.named || t.kind !== "teacher" || t.needs);
 }
 
 /** The letters of a name that stay when the bar runs out of room. */
@@ -217,7 +223,7 @@ export function idleWords(i: { name: string; agent: AgentStatus | null; notices:
 	return i.agent.teaching ? i.name : agentStatusLabel(i.agent);
 }
 
-/** What the closed pill shows. */
+/** What the pill shows. */
 export interface PillLine {
 	head: string;
 	/** Null for a notice and while nothing is live. */
@@ -231,7 +237,7 @@ export interface PillLine {
 }
 
 /**
- * The closed pill: a notice that just came first, else the first live
+ * The pill: a notice that just came first, else the first live
  * thing, else the idle words. Background work or a deadline that is not
  * the pill's own line shows as a tag.
  */
@@ -249,21 +255,14 @@ export function pillLine(i: { things: readonly PillThing[]; notice: string | nul
 }
 
 /**
- * A row of the card. `main` is the thing the pill names: a row with that
- * name leaves it out (the pill says it), the others name theirs. A
- * deadline's countdown follows `sub`, or `title` when there is no `sub`.
+ * What a click on the pill does: an agent's screen it says needs the
+ * learner opens in the teacher's panel (background work's own view for its
+ * need); else in the app's bar the panel opens on the teacher's screen or
+ * closes, and in a page's own bar, which has no panel, the folded notices
+ * show. Null: the pill has nothing to do there.
  */
-export function rowWords(thing: PillThing, main: PillThing | null): { title: string; sub: string | null } {
-	const detail = upperFirst(thing.detail);
-	const said = thing.head === main?.head;
-	if (thing.kind === "ready" || thing.kind === "due") return said ? { title: detail, sub: null } : { title: thing.head, sub: detail };
-	if (said)
-		return {
-			title: detail,
-			sub: thing.count && (thing.kind === "teacher" ? `Part ${thing.count}` : thing.count),
-		};
-	return {
-		title: detail,
-		sub: [thing.head, thing.count].filter(Boolean).join(", "),
-	};
+export function pillClick(i: { main: PillThing | null; place: PillPlace; panelOpen: boolean; notices: number }): { open: "teacher" | "helper" } | "close" | "notices" | null {
+	if (i.main?.needs) return { open: i.main.kind === "background" ? "helper" : "teacher" };
+	if (i.place.own) return i.notices > 0 ? "notices" : null;
+	return i.panelOpen ? "close" : { open: "teacher" };
 }

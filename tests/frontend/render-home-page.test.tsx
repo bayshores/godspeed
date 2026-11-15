@@ -507,10 +507,10 @@ describe("Your spaces", () => {
 		const html = page({ spaces: [LA, building], spacesProgress: progress });
 		assert.match(section(html, "today-space-spc_la", "</li>"), />No study files yet\.</);
 		const os = section(html, "today-space-spc_os", "</li>");
-		assert.match(os, /data-testid="today-space-work"[^>]*class="[^"]*bg-highlight[^"]*"><span class="truncate">Teacher is building it, 4 left</);
+		assert.match(os, /data-testid="today-space-work"[^>]*class="[^"]*bg-highlight[^"]*"><span class="truncate">Building, 4 left</);
 		assert.match(os, />No facts yet\.</);
 		const counted = page({ spaces: [LA, { ...OS, filesLeft: 2 }] });
-		assert.match(section(counted, "today-space-spc_os", "</li>"), /data-testid="today-space-work"[^>]*><span class="truncate">Teacher is reading new files, 2 left</);
+		assert.match(section(counted, "today-space-spc_os", "</li>"), /data-testid="today-space-work"[^>]*><span class="truncate">Reading new files, 2 left</);
 	});
 
 	it("a space still loading is quiet; only a failed read says so", () => {

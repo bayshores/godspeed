@@ -1,11 +1,8 @@
 /**
  * The agents' terminals in the desktop app, shared by every surface: the
- * teacher's and the helper's latest terminal, starting and stopping them,
- * and when the learner is needed at a screen (terminal-model.ts): `calling`
- * names it once per reason, never while a dialog is open, until a surface
- * hears it or shows that screen (the teacher's panel opens its Terminal
- * tab, teacher-panel.tsx). The helper starts by itself once the teacher has
- * checked in and background jobs wait; the shell stops it with the teacher.
+ * teacher's and the helper's latest terminal, and starting and stopping
+ * them. The helper starts by itself once the teacher has checked in and
+ * background jobs wait; the shell stops it with the teacher.
  * Outside the desktop app `available` is false and nothing here runs.
  */
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
@@ -21,7 +18,6 @@ import {
 	OUTSIDE_REFUSAL,
 	TEACH_WAIT_MS,
 	helperShouldStart,
-	needsYou,
 	statusFromTerminals,
 	teacherStartRefused,
 	wakeAgent,
@@ -31,12 +27,6 @@ import {
 } from "./terminal-model";
 
 type Records = Record<TerminalRole, TerminalRecord | null>;
-
-/** One reason a screen needs the learner. */
-export interface TerminalCall {
-	key: string;
-	role: TerminalRole;
-}
 
 export interface TerminalsApi {
 	/** The desktop app runs terminals; false in a browser. */
@@ -53,14 +43,6 @@ export interface TerminalsApi {
 	agentHere: boolean;
 	/** The shell's first list of terminals has answered. */
 	loaded: boolean;
-	/** The screen on view now (the teacher's panel, onboarding's
-	 *  step): what it needs counts as seen. */
-	onScreen: TerminalRole | null;
-	setOnScreen: (role: TerminalRole | null) => void;
-	/** A screen needs the learner and no surface has heard it yet. */
-	calling: TerminalCall | null;
-	/** A surface took the call: it opened the screen or marked it. */
-	heard: (key: string) => void;
 	/** Resolves to why it couldn't start, or null. */
 	start: (role: TerminalRole, agent: FolderAgent) => Promise<string | null>;
 	stop: (role: TerminalRole) => void;
@@ -84,17 +66,12 @@ const ATTACH_UNREAD = "godspeed couldn't read that file.";
 /** A shell refusal's sentence, or null when it went through. */
 const refusal = (p: Promise<void> | undefined): Promise<string | null> => (p ?? Promise.resolve()).then(() => null, (err: unknown) => (typeof err === "string" ? err : null));
 
-/** A modal dialog is open: a call waits for it to close. */
-const dialogOpen = () => !!document.querySelector('[aria-modal="true"]');
-
 function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const lh = typeof window === "undefined" ? undefined : window.lh?.terminals;
 	const [records, setRecords] = useState<Records>({ teacher: null, helper: null });
 	// The first list has answered: before it, no record says whether an agent runs.
 	const [loaded, setLoaded] = useState(false);
 	const [folder, setFolder] = useState("~/godspeed");
-	const [onScreen, setOnScreen] = useState<TerminalRole | null>(null);
-	const [calling, setCalling] = useState<TerminalCall | null>(null);
 	// The terminals that have checked in at least once.
 	const [checked, setChecked] = useState<ReadonlySet<string>>(new Set());
 	const [quietSince, setQuietSince] = useState<number | null>(null);
@@ -202,30 +179,6 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		return () => clearTimeout(t);
 	}, [teacher, teacherLive, teacherCheckedIn, quietSince]);
 
-	// Each reason calls once, never over a dialog. A reason that shows
-	// while its screen is on view counts as heard.
-	const fired = useRef(new Set<string>());
-	useEffect(() => {
-		const reasons = new Map<string, TerminalRole>();
-		for (const role of ROLES) {
-			const f = facts[role];
-			const why = f && needsYou(f);
-			if (f && why) reasons.set(`${f.term.id}:${why}`, role);
-		}
-		for (const key of fired.current) if (!reasons.has(key)) fired.current.delete(key);
-		for (const [key, role] of reasons) if (onScreen === role) fired.current.add(key);
-		const next = [...reasons].find(([key]) => !fired.current.has(key));
-		const waits = !!next && dialogOpen();
-		setCalling((cur) => (!next || waits ? null : cur?.key === next[0] ? cur : { key: next[0], role: next[1] }));
-		if (!waits) return;
-		const t = setTimeout(bump, 1000);
-		return () => clearTimeout(t);
-	}, [facts, onScreen]);
-	const heard = useCallback((key: string) => {
-		fired.current.add(key);
-		setCalling((cur) => (cur?.key === key ? null : cur));
-	}, []);
-
 	const start = useCallback(
 		async (role: TerminalRole, agent: FolderAgent): Promise<string | null> => {
 			if (!lh) return UNSTARTED;
@@ -328,8 +281,8 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	}, [lh, loaded, teacher, agentHere, outsideHere, start]);
 
 	return useMemo(
-		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, onScreen, setOnScreen, calling, heard, start: startRole, stop, answer, paste, addFile, wake }),
-		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, onScreen, calling, heard, startRole, stop, answer, paste, addFile, wake],
+		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, start: startRole, stop, answer, paste, addFile, wake }),
+		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, startRole, stop, answer, paste, addFile, wake],
 	);
 }
 

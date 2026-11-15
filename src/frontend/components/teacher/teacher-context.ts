@@ -23,8 +23,6 @@ export interface TeacherApi {
 	/** The open panel shows a key that starts the teacher (panelStarts). */
 	panelStarts: boolean;
 	setPanelOpen: (open: boolean) => void;
-	/** Open the panel with its Activity list showing. */
-	showActivity: () => void;
 	/** Open the panel on the agent's screen, that one (the teacher's
 	 *  when none is named; background work's shows as its own view with
 	 *  Back), which takes the keyboard. */
