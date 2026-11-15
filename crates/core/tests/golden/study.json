@@ -60433,8 +60433,7 @@
 					"n_4a9414c8756c",
 					"n_bf1833e68e15",
 					"n_c4d844a88fab"
-				],
-				"freeTopic": "Typed topic"
+				]
 			},
 			"result": [
 				{
@@ -60472,8 +60471,7 @@
 					"n_e4f74c656d84",
 					"n_6ff483c56a97",
 					"n_78635b648acc"
-				],
-				"freeTopic": "Typed topic"
+				]
 			},
 			"result": [
 				{
@@ -60505,8 +60503,7 @@
 					"n_bf1833e68e15",
 					"n_cd929b10ad6b",
 					"n_4a9414c8756c"
-				],
-				"freeTopic": "Typed topic"
+				]
 			},
 			"result": [
 				{
@@ -60546,8 +60543,7 @@
 					"n_4a9414c8756c",
 					"n_nope",
 					"n_other"
-				],
-				"freeTopic": "Typed topic"
+				]
 			},
 			"result": [
 				{
@@ -60575,17 +60571,9 @@
 		"output": {
 			"args": {
 				"from": "derive CSE 21 on 2026-11-10",
-				"factIds": [],
-				"freeTopic": "Typed topic"
+				"factIds": []
 			},
-			"result": [
-				{
-					"id": "topic",
-					"name": "Typed topic",
-					"status": "untested",
-					"factIds": []
-				}
-			]
+			"result": []
 		}
 	},
 	{
@@ -60978,8 +60966,7 @@
 					"n_806791231ee4",
 					"n_34ce35c092b6",
 					"n_a45c784db026"
-				],
-				"freeTopic": "Typed topic"
+				]
 			},
 			"result": [
 				{
@@ -63969,8 +63956,7 @@
 					"n_4823464e96fa",
 					"n_34d7d201d1b3",
 					"n_576063dcf605"
-				],
-				"freeTopic": "Typed topic"
+				]
 			},
 			"result": [
 				{
@@ -64001,8 +63987,7 @@
 					"n_576063dcf605",
 					"n_09f912a0c1c8",
 					"n_3a84093934a2"
-				],
-				"freeTopic": "Typed topic"
+				]
 			},
 			"result": [
 				{
@@ -64034,8 +64019,7 @@
 					"n_00cba9ef87d8",
 					"n_b148c29aefa5",
 					"n_94eac092af1e"
-				],
-				"freeTopic": "Typed topic"
+				]
 			},
 			"result": [
 				{
@@ -64075,8 +64059,7 @@
 					"n_4823464e96fa",
 					"n_nope",
 					"n_other"
-				],
-				"freeTopic": "Typed topic"
+				]
 			},
 			"result": [
 				{
@@ -64097,17 +64080,9 @@
 		"output": {
 			"args": {
 				"from": "derive CSE 29 on 2026-11-10",
-				"factIds": [],
-				"freeTopic": "Typed topic"
+				"factIds": []
 			},
-			"result": [
-				{
-					"id": "topic",
-					"name": "Typed topic",
-					"status": "untested",
-					"factIds": []
-				}
-			]
+			"result": []
 		}
 	},
 	{
@@ -64449,8 +64424,7 @@
 					"n_3040dc410447",
 					"n_638d4f1d8375",
 					"n_b3d5c20d43a4"
-				],
-				"freeTopic": "Typed topic"
+				]
 			},
 			"result": [
 				{
@@ -66926,8 +66900,7 @@
 					"f3",
 					"f4",
 					"f5"
-				],
-				"freeTopic": "Typed topic"
+				]
 			},
 			"result": [
 				{
@@ -66979,8 +66952,7 @@
 				"factIds": [
 					"f1",
 					"f2"
-				],
-				"freeTopic": "Typed topic"
+				]
 			},
 			"result": [
 				{
@@ -67005,8 +66977,7 @@
 					"f2",
 					"f1",
 					"f3"
-				],
-				"freeTopic": "Typed topic"
+				]
 			},
 			"result": [
 				{
@@ -67045,8 +67016,7 @@
 					"f3",
 					"n_nope",
 					"n_other"
-				],
-				"freeTopic": "Typed topic"
+				]
 			},
 			"result": [
 				{
@@ -67076,17 +67046,9 @@
 		"output": {
 			"args": {
 				"from": "derive a made-up space with every branch",
-				"factIds": [],
-				"freeTopic": "Typed topic"
+				"factIds": []
 			},
-			"result": [
-				{
-					"id": "topic",
-					"name": "Typed topic",
-					"status": "untested",
-					"factIds": []
-				}
-			]
+			"result": []
 		}
 	},
 	{
@@ -67101,8 +67063,7 @@
 					"f4",
 					"f5",
 					"f6"
-				],
-				"freeTopic": "Typed topic"
+				]
 			},
 			"result": [
 				{
@@ -68289,7 +68250,7 @@
 					}
 				]
 			},
-			"result": "[Study plan] — this session's topics, in the order the space covered them, each with its plan node, its material and where he stands from his track record:\n1. Counting — node tpc_a, procedure, weak (latest wrong), facts n_1, n_2\n2. Probability — node tpc_b, shaky, no facts in the space graph yet\n3. Typed topic — node topic, untested, facts n_3\n4. Induction — node tpc_c, proof, strong, facts n_4"
+			"result": "[Study plan] — this session's topics, in the order the space covered them, each with its plan node, its material and where he stands from his track record:\n1. Counting — node tpc_a, procedure, weak (latest wrong), facts n_1, n_2\n2. Probability — node tpc_b, shaky, no facts picked\n3. Typed topic — node topic, untested, facts n_3\n4. Induction — node tpc_c, proof, strong, facts n_4"
 		}
 	},
 	{

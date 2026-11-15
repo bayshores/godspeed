@@ -47,6 +47,8 @@ pub struct StudyToolContext {
 	pub teacher: TeacherToolContext,
 	pub graph_nodes: Option<GraphNodes>,
 	pub check_marks: CheckMarks,
+	/// The app made no plan for this lesson, so the agent writes it with plan_init.
+	pub writes_plan: bool,
 }
 
 /// `explain: true` in the resolved settings arms free-recall checks (explain or recall, quiz or
@@ -111,23 +113,27 @@ pub fn prober_tools(ctx: &ProberToolContext, enabled: Option<&Json>) -> Vec<FnTo
 /// files. `enabled` drops any tool explicitly off.
 pub fn teacher_tools(ctx: &TeacherToolContext, enabled: Option<&Json>) -> Vec<FnTool> {
 	let question = if free_recall(enabled) { teach_explain_tool(&ctx.plan) } else { teach_quiz_tool(&ctx.plan) };
-	heal_tool_record(teacher_tools_asking(ctx, enabled, question))
+	heal_tool_record(teacher_tools_asking(ctx, enabled, question, true))
 }
 
-/// The teacher's tools with `question` as the graded question tool, not yet healed.
-fn teacher_tools_asking(ctx: &TeacherToolContext, enabled: Option<&Json>, question: FnTool) -> Vec<FnTool> {
+/// The teacher's tools with `question` as the graded question tool, not yet healed; plan_init
+/// only when `writes_plan`.
+fn teacher_tools_asking(ctx: &TeacherToolContext, enabled: Option<&Json>, question: FnTool, writes_plan: bool) -> Vec<FnTool> {
 	let mut tools = vec![question, ask_user_question_tool(), write_code_tool()];
 	tools.extend(file_tools());
-	tools.extend([plan_init_tool(&ctx.plan), work_plan_tool()]);
+	if writes_plan {
+		tools.push(plan_init_tool(&ctx.plan));
+	}
+	tools.push(work_plan_tool());
 	tools.extend([research_tool(&ctx.jobs), demo_tool(&ctx.jobs), visual_tool(&ctx.jobs), pdf_tool(&ctx.jobs)]);
 	tools.extend(ctx.side.tools());
 	filter_enabled(tools, without_mechanics(enabled).as_ref())
 }
 
-/// A study session's tools: the teacher's (its quiz takes `standalone` and `onPlot`) plus
-/// practice's problem and conclude, the problem naming its plan node like a quiz, the plot in
-/// multiple-choice lessons (its guess checked by `parts`' hook), and topic_done after a finished
-/// topic.
+/// A study session's tools: the teacher's (its quiz takes `standalone` and `onPlot`; plan_init
+/// only when the agent writes the plan) plus practice's problem and conclude, the problem naming
+/// its plan node like a quiz, the plot in multiple-choice lessons (its guess checked by `parts`'
+/// hook), and topic_done after a finished topic.
 pub fn study_tools(ctx: &StudyToolContext, enabled: Option<&Json>, parts: &Arc<LessonParts>) -> Vec<FnTool> {
 	let plan = ctx.teacher.plan.clone();
 	let plan_nodes: PlanNodes = Arc::new(move || plan_node_ids(&plan));
@@ -135,7 +141,7 @@ pub fn study_tools(ctx: &StudyToolContext, enabled: Option<&Json>, parts: &Arc<L
 	let gate = TurnGate::new(problem_is_active(&record.chat_store, &record.chat_id));
 	let recall = free_recall(enabled);
 	let question = if recall { teach_explain_tool(&ctx.teacher.plan) } else { study_quiz_tool(&ctx.teacher.plan) };
-	let mut tools = teacher_tools_asking(&ctx.teacher, enabled, question);
+	let mut tools = teacher_tools_asking(&ctx.teacher, enabled, question, ctx.writes_plan);
 	tools.extend(study_problem_tools(&gate, record.clone(), ctx.graph_nodes.clone(), plan_nodes.clone()));
 	if !recall {
 		tools.push(plot_tool(record.clone(), parts));

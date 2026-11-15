@@ -1,7 +1,7 @@
 //! Lesson creation (lessons.ts): the one place a new lesson record is born (POST /api/chats and
 //! MCP start_lesson), so a lesson in a space always opens with its space card. Every new lesson
 //! is a study session: on a typed topic, picked facts, some of the space's topics, one question
-//! of a graded mock, or a deadline.
+//! of a graded mock, or a deadline. With no space topics for it, the agent writes the plan.
 //!
 //! Message order at birth: space card, graph-context picks, study plan; the caller then sends the
 //! learner's first message. A start from a deadline is recorded on the chat so that deadline's
@@ -17,7 +17,7 @@ use gs_core::graph::graph::get_graph;
 use gs_core::messages::native_messages::{new_space_context_message, new_graph_context_message, new_study_context_message};
 use gs_core::mocks::mock::question_result;
 use gs_core::mocks::mock_requests::go_over_text;
-use gs_core::study::study::{FREE_TOPIC_ID, MAX_STUDY_FACTS, study_context_text, study_plan_tree, study_title};
+use gs_core::study::study::{FREE_TOPIC_ID, MAX_STUDY_FACTS, no_topics_text, study_context_text, study_plan_tree, study_title};
 use gs_core::study::topic_parts::NO_PLOT_YET;
 use gs_json::{Json, Obj};
 
@@ -107,15 +107,19 @@ pub fn create_lesson(app: &Arc<App>, input: CreateLessonInput) -> Result<Result<
 			.collect();
 		messages.push(new_graph_context_message(&start.picks, &lines));
 	}
-	// The first topic starts here, with no plot yet.
-	let plan = format!("{}\n\n{NO_PLOT_YET}", study_context_text(&start.topics));
+	// The first topic starts here, with no plot yet. With no topics the agent's plan_init writes
+	// the tree.
+	let topics = if start.topics.is_empty() { no_topics_text(&start.title) } else { study_context_text(&start.topics) };
+	let plan = format!("{topics}\n\n{NO_PLOT_YET}");
 	let context = match &start.note {
 		Some(note) => format!("{plan}\n\n{note}"),
 		None => plan,
 	};
 	messages.push(new_study_context_message(&context, "study-context"));
 	app.stores.chats.save_messages(&chat_id, &messages)?;
-	app.stores.chats.save_tree(&chat_id, &study_plan_tree(&start.topics)?)?;
+	if !start.topics.is_empty() {
+		app.stores.chats.save_tree(&chat_id, &study_plan_tree(&start.topics)?)?;
+	}
 	let chat = app.stores.chats.get_chat(&chat_id).unwrap_or(chat);
 	Ok(Ok(Created { chat, title: start.title }))
 }
@@ -140,11 +144,11 @@ fn start_of(app: &Arc<App>, scope: Option<&str>, start: &LessonStart) -> Result<
 			let (Some(mock), Some(question), Some(note)) = (&mock, question, note) else {
 				return Ok(Err(NotFound { code: "topics_not_found", error: "No such question" }));
 			};
-			// The topics of the facts it tested are the plan; a question with none is its own topic,
-			// weak, since it is being gone over, and latest wrong unless it was right.
+			// The topics of the facts it tested are the plan; a question with none in a topic is its
+			// own topic, weak, since it is being gone over, and latest wrong unless it was right.
 			let title = question["title"].str_or_empty();
 			let fact_ids: Vec<String> = question["factIds"].items().iter().filter_map(|f| f.as_str().map(str::to_owned)).collect();
-			let tested = if fact_ids.is_empty() { Vec::new() } else { study_topics_for(app, scope, &fact_ids, title)? };
+			let tested = if fact_ids.is_empty() { Vec::new() } else { study_topics_for(app, scope, &fact_ids)? };
 			let topics = if tested.is_empty() {
 				let mut own = Obj::new();
 				own.insert("id", FREE_TOPIC_ID);
@@ -178,14 +182,14 @@ fn start_of(app: &Arc<App>, scope: Option<&str>, start: &LessonStart) -> Result<
 	})
 }
 
-/// A typed topic: its picked facts grouped into topics, or the one topic it names. Picked facts
-/// with nothing typed are titled after their topics.
+/// A typed topic: its picked facts grouped into topics, or none when no picked fact is in one.
+/// Picked facts with nothing typed are titled after their topics.
 fn typed(app: &Arc<App>, scope: Option<&str>, title: &str, picks: Vec<Json>) -> Result<Start, String> {
 	let fact_ids: Vec<String> = picks.iter().filter_map(|p| p["id"].as_str().map(str::to_owned)).collect();
-	let topics = study_topics_for(app, scope, &fact_ids, &title_from_prompt(if title.is_empty() { "Untitled session" } else { title }))?;
+	let topics = study_topics_for(app, scope, &fact_ids)?;
 	let title = if !title.is_empty() {
 		title.to_owned()
-	} else if !picks.is_empty() {
+	} else if !topics.is_empty() {
 		study_title(&topics)
 	} else {
 		"Untitled session".to_owned()
@@ -240,6 +244,24 @@ mod tests {
 		assert_eq!(start(&app, &space_id, go_over("q9")).unwrap_err(), NotFound { code: "topics_not_found", error: "No such question" });
 		let (free, _) = start(&app, &space_id, go_over("q3")).unwrap();
 		assert!(study_plan(&free).contains("1. Big O of a loop — node topic, weak (latest wrong)"), "a question with no topic is its own, gone over because it went wrong");
+	}
+
+	#[test]
+	fn with_no_space_topics_the_agent_writes_the_plan() {
+		let root = scratch_dir("lesson-no-topics");
+		let app = test_app(&root);
+		let space_id = graded_mock(&app);
+		let (typed, title) = start(&app, &space_id, LessonStart::Typed { title: "Bayes' rule".to_owned(), picks: Vec::new() }).unwrap();
+		assert_eq!(title, "Bayes' rule");
+		assert!(typed["tree"].is_null(), "no tree until the agent's plan_init: {:?}", typed["tree"]);
+		assert_eq!(study_plan(&typed), format!("{}\n\n{NO_PLOT_YET}", no_topics_text("Bayes' rule")));
+
+		let deadline_id = app.stores.spaces.get_space(&space_id).unwrap()["deadlines"][0]["id"].as_str().unwrap().to_owned();
+		let (by_deadline, title) = start(&app, &space_id, LessonStart::Deadline(deadline_id.clone())).unwrap();
+		assert_eq!(title, "Study for Onsite");
+		assert_eq!(by_deadline["deadlineId"].as_str(), Some(deadline_id.as_str()));
+		assert!(by_deadline["tree"].is_null());
+		assert!(study_plan(&by_deadline).starts_with("[Study plan] \u{2014} no space topics for this: Study for Onsite."));
 	}
 
 	#[test]

@@ -11,10 +11,12 @@ export interface DeadlineSession {
 	chatId: string;
 	deadlineId: string;
 	createdAt: string;
-	/** The step bar's count (plan-step-bar.ts stepPosition). */
-	done: number;
-	/** The session's plan topics. */
-	total: number;
+	/** The step bar's count (plan-step-bar.ts stepPosition); absent until
+	 *  the session has a plan (the agent writes it when the space has no
+	 *  topics for it). */
+	done?: number;
+	/** The session's plan topics; absent with `done`. */
+	total?: number;
 	/** Set while it waits at a stop he has not kept going from: when, and
 	 *  what is next. */
 	stop?: { at: string; next: string | null };
@@ -38,5 +40,6 @@ export function nothingMorePlannedLine(spaceName?: string): string {
 export function deadlineStudyLabel(next: ContinueStudy | undefined, name?: string): string {
 	const forName = name ? ` for ${name}` : "";
 	if (!next) return `Study${forName}`;
+	if (next.total === undefined) return `Continue studying${forName}`;
 	return `Continue studying${forName}, ${next.done} of ${next.total} ${next.total === 1 ? "topic" : "topics"}`;
 }

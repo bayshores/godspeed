@@ -3,8 +3,9 @@
 //! The shared base comes first, then the agent's own numbered fragments in file order, then the
 //! shared fragments as a trailing appendix. Practice and homework skip the base (their own
 //! 00-base.md plays that role) and take only a curated shared set. Study is the teacher plus the
-//! practice hint rules plus its own fragment, without the deadline changes. A saved version is used in place of the source; one
-//! keyed to a part the app no longer ships stops composing by itself.
+//! practice hint rules plus its own fragment, without the planning part and the deadline changes.
+//! A saved version is used in place of the source; one keyed to a part the app no longer ships
+//! stops composing by itself.
 
 use gs_store::prompt_overrides::PromptOverrides;
 
@@ -24,8 +25,9 @@ pub enum AgentKind {
 /// agent, and formatting too (practice writes the same LaTeX and markdown). The question,
 /// confidence and file mechanics stay out: practice has no such tools.
 const PRACTICE_SHARED: [&str; 8] = ["10-voice.md", "11-learner-first.md", "12-space-context.md", "13-source-marks.md", "14-deadline-changes.md", "15-accuracy.md", "16-mental-model.md", "40-formatting.md"];
-/// Study has no deadline tools: its own text sends deadline changes outside lessons.
-const STUDY_SKIPPED_SHARED: &str = "shared/14-deadline-changes.md";
+/// Study plans by its own note, and has no deadline tools: its own text sends deadline changes
+/// outside lessons.
+const STUDY_SKIPPED: [&str; 2] = ["teacher/10-planning.md", "shared/14-deadline-changes.md"];
 /// The hint and claimed-answer rules study and homework problems run on.
 const HINT_RULES: [&str; 1] = ["20-hints.md"];
 
@@ -69,7 +71,10 @@ fn source_segments(kind: AgentKind) -> Vec<Source> {
 		AgentKind::Practice | AgentKind::Homework => Some(&PRACTICE_SHARED),
 		_ => None,
 	};
-	parts.extend(folder("shared", allowed).into_iter().filter(|(path, _)| kind != AgentKind::Study || *path != STUDY_SKIPPED_SHARED));
+	parts.extend(folder("shared", allowed));
+	if kind == AgentKind::Study {
+		parts.retain(|(path, _)| !STUDY_SKIPPED.contains(path));
+	}
 	parts
 }
 

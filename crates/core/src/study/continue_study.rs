@@ -8,10 +8,11 @@ use gs_json::{Json, Obj};
 use super::latest_session;
 use crate::spaces::today_note::local_day;
 
-/// The session a deadline's Study button reopens, `{ chatId, done, total, stop?, inTopic? }`: the
-/// latest one started from it, while unfinished. A count at its last topic still continues at a
-/// stop, since a skipped topic may be left. `sessions` are `{ chatId, deadlineId, createdAt,
-/// done, total, stop?, endedAt?, inTopic? }`: `stop` (`{at, next}`) is set while it waits at a stop
+/// The session a deadline's Study button reopens, `{ chatId, done?, total?, stop?, inTopic? }`:
+/// the latest one started from it, while unfinished. A count at its last topic still continues at
+/// a stop, since a skipped topic may be left. `sessions` are `{ chatId, deadlineId, createdAt,
+/// done?, total?, stop?, endedAt?, inTopic? }`: the count is missing until the session has a plan,
+/// `stop` (`{at, next}`) is set while it waits at a stop
 /// he has not kept going from, `endedAt` once it reached its end, `inTopic` while it is in the
 /// middle of a topic.
 pub fn continue_study_for(deadline_id: &str, sessions: &[Json]) -> Option<Json> {
@@ -23,8 +24,10 @@ pub fn continue_study_for(deadline_id: &str, sessions: &[Json]) -> Option<Json> 
 		return None;
 	}
 	let mut out = Obj::new();
-	for key in ["chatId", "done", "total"] {
-		out.insert(key, latest[key].clone());
+	out.insert("chatId", latest["chatId"].clone());
+	// A session whose plan the agent has not written yet has no count.
+	for key in ["done", "total"] {
+		out.insert_present(key, latest.get(key));
 	}
 	for key in ["stop", "inTopic"] {
 		if latest[key].truthy() {
@@ -54,6 +57,8 @@ mod tests {
 		assert_eq!(continue_study_for("d1", &sessions), Some(json!({ "chatId": "b", "done": 2, "total": 3 })));
 		assert_eq!(continue_study_for("d1", &[s("a", "2026-01-01", 3)]), None);
 		assert_eq!(continue_study_for("nope", &sessions), None);
+		let unplanned = json!({ "chatId": "u", "deadlineId": "d1", "createdAt": "2026-01-04" });
+		assert_eq!(continue_study_for("d1", &[unplanned]), Some(json!({ "chatId": "u" })), "no plan yet: reopened with no count");
 	}
 
 	#[test]

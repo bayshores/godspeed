@@ -153,6 +153,11 @@ describe("the deadline page", () => {
 		const html = render(deadline({ continueStudy: { chatId: "chat_1", done: 1, total: 4 } }));
 		assert.match(html, /data-testid="deadline-start".*>Continue studying, 1 of 4 topics</);
 	});
+	it("an unfinished session whose plan the agent has not written yet: Continue studying, with no count", () => {
+		const html = render(deadline({ continueStudy: { chatId: "chat_1" } }));
+		assert.match(html, /data-testid="deadline-start".*>Continue studying</);
+		assert.doesNotMatch(html, /of 0 topics/);
+	});
 	it("due today puts everything on today", () => {
 		const html = render(deadline({ date: "2026-11-02", daysUntil: 0, time: "23:00" }));
 		assert.equal(count(html, 'data-testid="deadline-day"'), 1);

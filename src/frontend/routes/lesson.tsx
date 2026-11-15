@@ -36,7 +36,8 @@ export function LessonPage() {
 				chatId={chat.id}
 				title={chat.title}
 				kind={chat.kind ?? "teach"}
-				// A study session's plan is written at birth, not by a plan_init call.
+				// A study session's plan is written at birth, or by the agent's
+				// plan_init when the space has no topics for it.
 				initialTree={chat.tree}
 				spaceId={chat.spaceId}
 				deadlineId={chat.deadlineId}

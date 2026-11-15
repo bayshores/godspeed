@@ -1,12 +1,13 @@
 //! One session over the picked topics (study.ts). At the start the picked facts become the
 //! session's topics, in the order the space covered them, each with its material (from the topic
 //! grouper) and where the learner stands on it; the study prompt's move table picks each topic's
-//! move from that pair.
+//! move from that pair. A session with no space topics gets the no-topics note instead, and the
+//! agent writes its plan.
 //!
 //! A study topic (TS `StudyTopic`) is `{ id, name[, material], status[, latestWrong: true],
-//! factIds }`: the plan node id (the space topic's id, or `FREE_TOPIC_ID`), its name, its
-//! material, its status from the learner's track record, whether it is weak with a wrong newest
-//! answer, and the picked facts in it.
+//! factIds }`: the plan node id (the space topic's id, or `FREE_TOPIC_ID` for a mock question
+//! with no topic), its name, its material, its status from the learner's track record, whether it
+//! is weak with a wrong newest answer, and the picked facts in it.
 
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
@@ -20,7 +21,7 @@ use crate::spaces::file_series::date_in_name;
 use crate::spaces::today_note::local_day;
 use crate::session::plan_tree::create_tree;
 
-/// The plan node of a typed topic that matches no fact.
+/// The plan node of a mock question gone over with no topic of its own.
 pub const FREE_TOPIC_ID: &str = "topic";
 
 /// A session holds at most this many facts.
@@ -88,10 +89,10 @@ fn in_space_order(topics: Vec<Json>, space_order: &HashMap<String, usize>) -> Ve
 
 /// The session's topics: the picked facts grouped by their space topic, in space order (a topic
 /// sits at its earliest fact; facts from no space file go last; ties keep the order the facts were
-/// picked in). When no picked fact is in a topic, the typed topic is the one untested topic.
+/// picked in). Empty when no picked fact is in a topic.
 ///
 /// `topics` are progress topics: `{ id, name, members[, material], status, answers }`.
-pub fn study_topics(picked: &[String], topics: &[Json], space_order: &HashMap<String, usize>, free_topic: &str) -> Vec<Json> {
+pub fn study_topics(picked: &[String], topics: &[Json], space_order: &HashMap<String, usize>) -> Vec<Json> {
 	let mut topic_of: HashMap<&str, &Json> = HashMap::new();
 	for t in topics {
 		for id in t["members"].items().iter().filter_map(Json::as_str) {
@@ -116,9 +117,6 @@ pub fn study_topics(picked: &[String], topics: &[Json], space_order: &HashMap<St
 				}
 			}
 		}
-	}
-	if groups.is_empty() {
-		return vec![json!({ "id": FREE_TOPIC_ID, "name": free_topic, "status": "untested", "factIds": [] })];
 	}
 	in_space_order(groups, space_order)
 }
@@ -201,10 +199,19 @@ pub fn study_context_text(topics: &[Json]) -> String {
 	let mut lines = vec!["[Study plan] \u{2014} this session's topics, in the order the space covered them, each with its plan node, its material and where he stands from his track record:".to_owned()];
 	for (i, t) in topics.iter().enumerate() {
 		let ids = fact_ids(t);
-		let facts = if ids.is_empty() { ", no facts in the space graph yet".to_owned() } else { format!(", facts {}", ids.join(", ")) };
+		let facts = if ids.is_empty() { ", no facts picked".to_owned() } else { format!(", facts {}", ids.join(", ")) };
 		lines.push(format!("{}. {} \u{2014} node {}, {}{facts}", i + 1, t["name"].str_or_empty(), t["id"].str_or_empty(), material_and_standing(t)));
 	}
 	lines.join("\n")
+}
+
+/// The study context of a session with no space topics: the agent writes the plan for `subject`.
+pub fn no_topics_text(subject: &str) -> String {
+	format!(
+		"[Study plan] \u{2014} no space topics for this: {subject}. You write the plan. `search_graph` if you have it: what he already holds. Then `plan_init` in first reply and start its first node. \
+		Map from what he holds to his goal, max 8 nodes, `-->` = must come first. Every node untested, no material named. \
+		Answers show map wrong, or he asks to change it: `plan_init` again, same slugs for nodes he worked on. No `review` in `topic_done`."
+	)
 }
 
 /// The plan the app writes for a study session: one node per topic, in space order (the step bar
@@ -271,25 +278,31 @@ mod tests {
 		let topics = [weak, topic("t2", "strong", &["c"]), topic("t3", "untested", &["d"])];
 		let order: HashMap<String, usize> = [("c", 0), ("a", 1)].map(|(k, v)| (k.to_owned(), v)).into();
 		let picked = ["a", "b", "a", "c", "d", "zzz"].map(String::from);
-		let got = study_topics(&picked, &topics, &order, "Free");
+		let got = study_topics(&picked, &topics, &order);
 		assert_eq!(ids(&got), ["t2", "t1", "t3"]);
 		assert_eq!(stringify(&got[1]), r#"{"id":"t1","name":"T1","material":"procedure","status":"weak","latestWrong":true,"factIds":["a","b"]}"#);
 		assert_eq!(stringify(&got[0]), r#"{"id":"t2","name":"T2","status":"strong","factIds":["c"]}"#);
-		let free = study_topics(&["nope".to_owned()], &topics, &order, "Free");
-		assert_eq!(free, vec![json!({ "id": "topic", "name": "Free", "status": "untested", "factIds": [] })]);
+		assert!(study_topics(&["nope".to_owned()], &topics, &order).is_empty());
 	}
 
 	#[test]
 	fn the_text_lists_each_topic_with_its_material_and_standing() {
 		let got = [
 			json!({ "id": "t1", "name": "Sums", "material": "procedure", "status": "weak", "latestWrong": true, "factIds": ["a", "b"] }),
-			json!({ "id": "topic", "name": "Free", "status": "untested", "factIds": [] }),
+			json!({ "id": "topic", "name": "Free", "status": "weak", "factIds": [] }),
 		];
 		assert_eq!(study_title(&got), "Study: Sums, Free");
 		assert_eq!(
 			study_context_text(&got),
-			"[Study plan] \u{2014} this session's topics, in the order the space covered them, each with its plan node, its material and where he stands from his track record:\n1. Sums \u{2014} node t1, procedure, weak (latest wrong), facts a, b\n2. Free \u{2014} node topic, untested, no facts in the space graph yet"
+			"[Study plan] \u{2014} this session's topics, in the order the space covered them, each with its plan node, its material and where he stands from his track record:\n1. Sums \u{2014} node t1, procedure, weak (latest wrong), facts a, b\n2. Free \u{2014} node topic, weak, no facts picked"
 		);
+	}
+
+	#[test]
+	fn with_no_topics_the_agent_writes_the_plan() {
+		let text = no_topics_text("Bayes' rule");
+		assert!(text.starts_with("[Study plan] \u{2014} no space topics for this: Bayes' rule. You write the plan."), "{text}");
+		assert!(text.contains("`plan_init` in first reply") && text.contains("max 8 nodes") && text.ends_with("No `review` in `topic_done`."), "{text}");
 	}
 
 	#[test]

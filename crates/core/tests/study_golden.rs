@@ -120,7 +120,7 @@ fn replay(cases: &[Json], c: &Json) {
 	} else if name.starts_with("study topics ") {
 		let order = space_order(cases, text(&args["from"]));
 		let topics = from_progress("topics");
-		same(name, Json::Arr(study::study_topics(&strings(&args["factIds"]), &topics, &order, text(&args["freeTopic"]))), want);
+		same(name, Json::Arr(study::study_topics(&strings(&args["factIds"]), &topics, &order)), want);
 	} else if name.starts_with("topic study ") {
 		let order = space_order(cases, text(&args["from"]));
 		let (topics, facts) = (from_progress("topics"), from_progress("facts"));

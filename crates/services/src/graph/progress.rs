@@ -50,7 +50,8 @@ fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 	}
 	let record = app.stores.chats.get_chat(chat_id)?;
 	let messages = record["messages"].items();
-	let session = (record["deadlineId"].truthy() && record["tree"].truthy()).then(|| deadline_session(&record["tree"], messages));
+	// A lesson whose agent has not written its plan yet is the deadline's session too, uncounted.
+	let session = record["deadlineId"].truthy().then(|| if record["tree"].truthy() { deadline_session(&record["tree"], messages) } else { Obj::new() });
 	let readout = Arc::new(Readout {
 		version,
 		answers: collect_answers(chat_id, messages),
@@ -65,10 +66,10 @@ fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 	Some(readout)
 }
 
-/// Where a Study session started from a deadline stands: its step bar's count (`done`, `total`),
-/// the stop it waits at until he keeps going (`stop`: `{at, next}`), when it reached its end
-/// (`endedAt`), and otherwise the topic it is in the middle of (`inTopic`, the current step's
-/// title).
+/// Where a Study session started from a deadline with a plan stands: its step bar's count
+/// (`done`, `total`), the stop it waits at until he keeps going (`stop`: `{at, next}`), when it
+/// reached its end (`endedAt`), and otherwise the topic it is in the middle of (`inTopic`, the
+/// current step's title).
 fn deadline_session(tree: &Json, messages: &[Json]) -> Obj {
 	let mut out = picked(&plan_position_lh(tree, messages), &["done", "total"]);
 	let (key, value) = match lesson_stop(messages, Some(tree), None) {
@@ -236,12 +237,12 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 }
 
 /// A study session's topics from its picked facts: grouped by space topic, in space order.
-pub fn study_topics_for(app: &App, scope: Option<&str>, fact_ids: &[String], free_topic: &str) -> Result<Vec<Json>, String> {
+pub fn study_topics_for(app: &App, scope: Option<&str>, fact_ids: &[String]) -> Result<Vec<Json>, String> {
 	let progress = if fact_ids.is_empty() { None } else { progress_for(app, scope, None)? };
 	let record = scope.and_then(|id| app.stores.spaces.get_space(id));
 	let space_order = progress.as_ref().map_or_else(HashMap::new, |p| fact_space_order(p["facts"].items(), &progress_files(record.as_ref())));
 	let topics = progress.as_ref().map_or(&[][..], |p| p["topics"].items());
-	Ok(study_topics(fact_ids, topics, &space_order, free_topic))
+	Ok(study_topics(fact_ids, topics, &space_order))
 }
 
 /// A study session on space topics: its topics and their facts as the graph-context picks.
@@ -427,6 +428,18 @@ mod tests {
 		assert_eq!(d.get("continueStudy"), None, "a session that reached its end is not continued");
 		assert_eq!(d["studyEndedToday"], json!(true));
 	}
+	#[test]
+	fn a_deadline_session_with_no_plan_yet_is_continued_uncounted_until_the_agent_writes_one() {
+		let root = scratch_dir("progress-agent-plan");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Machine Learning Foundations" })).unwrap()["id"].str_or_empty().to_owned();
+		let deadline_id = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "Midterm", "kind": "exam", "date": "2099-01-15" })).unwrap()["id"].str_or_empty().to_owned();
+		let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned();
+		assert_eq!(midterm(&app, &space_id, &deadline_id)["continueStudy"], json!({ "chatId": chat_id }), "no plan yet: reopened, nothing to count");
+		app.stores.chats.save_tree(&chat_id, &tree()).unwrap();
+		assert_eq!(midterm(&app, &space_id, &deadline_id)["continueStudy"], json!({ "chatId": chat_id, "done": 0, "total": 3 }));
+	}
+
 	/// A problem on `node` the learner solved with hints, ending the topic now.
 	fn hinted(n: &str, node: &str, fact: &str) -> Vec<Json> {
 		hinted_at(n, node, fact, clock::now_ms())

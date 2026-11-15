@@ -114,7 +114,8 @@ export function Chat({
 	 *  lessons start teaching at once, with problems too. */
 	kind?: LessonKind;
 	/** The record's plan: the step bar's plan until a plan_init call
-	 *  writes a newer one (a study session's plan has no such call). */
+	 *  writes a newer one. A study session with no space topics has
+	 *  none until the agent's plan_init. */
 	initialTree?: PlanTree;
 	initialPrompt?: string;
 	/** A teacher turn is running server-side with no client attached. */

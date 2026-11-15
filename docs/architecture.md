@@ -250,7 +250,13 @@ Lessons saved earlier hold the learner's work as `practice-thinking` markers, wh
 
 ### The plan tree
 
-The plan tree is written once. In a teach lesson the teacher writes it with one `plan_init` call: a mermaid-subset graph, parsed with line-numbered errors (`agent::tools::mermaid_plan`) and checked to be a DAG. In a study session the app writes it when the lesson starts (§7).
+The agent writes a plan tree with `plan_init`: a mermaid-subset graph, parsed with line-numbered errors (`agent::tools::mermaid_plan`) and checked to be a DAG. A later `plan_init` call replaces the tree. Who writes the tree depends on the lesson:
+
+| Lesson | Who writes the plan tree |
+|---|---|
+| Teach lesson | the teacher, with `plan_init` after the probe |
+| Study session on space topics | the app, when the lesson starts (§7) |
+| Study session with no space topics | the agent, with `plan_init` in its first reply (§7) |
 
 Progress is never written into the tree. Statuses (`current`, `visited`, upcoming) are derived from tagged `quiz`, `explain` and `problem` calls in the transcript. The plan row (`src/frontend/components/lesson/plan-row.tsx`, steps from `src/shared/core/plan-step-bar.ts`) and the plan blocks (`src/frontend/components/plan-block-model.ts`) draw that derivation. The row names every step; a plan that branches also gets a small map there that opens the plan dialog.
 
@@ -351,7 +357,7 @@ A failure at any step checkpoints nothing, and the next trigger runs it again.
 
 The extractor reads teacher prose only: plain paragraphs under the session title, with no learner messages, thinking, tool calls, tool results or quiz blocks. Coverage fingerprints, slot tokens and batch budgets come from the same selection (`message_view_lines` in `core::graph::coverage`). So "covered" means "what the extractor saw". A quiz answer or a learner edit never opens a run, and only an edit to teacher prose reopens its message.
 
-The prompt is one shared `EXTRACTION_CORE` plus a short `SESSION_PREAMBLE` or `NOTES_PREAMBLE`, assembled in `agent::extraction::findings`. Next to the text, it lists two things:
+The prompt is a short `SESSION_PREAMBLE` or `NOTES_PREAMBLE`, then a goal and a selection rule of its own (notes keep definitions, formulas and claims even with no derivation, and make chains only for reasoning the notes give), then the chain, graph and submit rules both share. It is assembled in `agent::extraction::findings`. Next to the text, it lists two things:
 
 - `THE GRAPH SO FAR`: this source's merged propositions and chains, ids as they are. The first stretch of a source has none.
 - `RELATED IDEAS`: about 25 existing ideas from other sources, picked by local search (`related_facts`, the embedding and BM25 search in `crates/search`).
@@ -674,15 +680,24 @@ Older `teach` and `practice` lessons on disk keep working with their own agents.
 `create_lesson` (`services::turns::lessons`) writes the opening markers:
 
 1. The picked facts become a `graph-context` marker through `chains_for_selection` (`core::graph::chains`). A chain is included when its conclusion and every premise are picked, and a picked fact in no included chain stands alone.
-2. The picks are grouped into topics in space order (`core::study::study`). Each topic has its material when it has one, and the learner's standing: untested, weak, shaky or strong, with "(latest wrong)" on a weak topic whose latest answer was wrong. A typed topic with no picks is one untested topic with no material.
+2. The picks are grouped into topics in space order (`core::study::study`). Each topic has its material when it has one, and the learner's standing: untested, weak, shaky or strong, with "(latest wrong)" on a weak topic whose latest answer was wrong.
 3. These go into a `study-context` marker. The move for each material and standing pair is a table in `crates/agent/prompts/study/10-study.md`, so a prompt override can change it.
 4. The app saves the matching plan tree, so the plan row lists the topics from the start.
 
-A session started from a deadline records it as `deadlineId`. While the latest such session is unfinished, the deadline's Study button reopens it as "Continue studying, 1 of 4 topics" (`core::study::continue_study`). The progress payload carries it as `continueStudy`. A deadline topic with a topic stop in a Study session on the learner's day carries `finishedToday: true` in the progress payload. The plan (`core::study::deadline_plan`, `deadline-plan.ts`) never puts such a topic on today: it moves to tomorrow, or out of the plan when tomorrow is the due day. When that empties today, Today has nothing planned and the deadline's Study button takes all its topics.
+A typed subject (also MCP `start_lesson`) or a deadline with no space topics for it starts differently:
+
+1. The `study-context` marker holds the no-topics note (`no_topics_text`) instead of a topic list. It tells the agent to look up what the learner holds with `search_graph`, then write a plan of at most 8 nodes with `plan_init` in its first reply and start the first node.
+2. The app saves no tree, so the plan row stays hidden until that `plan_init` call.
+3. The agent calls `plan_init` again when answers show the map is wrong or the learner asks for a change, keeping the slugs of nodes he worked on.
+4. The note tells the agent to leave `review` out of `topic_done`, since questions from earlier come only from space topics.
+
+The lesson keeps its own plan when files are added to the space later. A mock question gone over with no topic of its own is one weak topic (`FREE_TOPIC_ID`).
+
+A session started from a deadline records it as `deadlineId`. While the latest such session is unfinished, the deadline's Study button reopens it as "Continue studying, 1 of 4 topics" (`core::study::continue_study`). A session whose plan the agent has not written yet reopens as "Continue studying", with no count. The progress payload carries it as `continueStudy`. A deadline topic with a topic stop in a Study session on the learner's day carries `finishedToday: true` in the progress payload. The plan (`core::study::deadline_plan`, `deadline-plan.ts`) never puts such a topic on today: it moves to tomorrow, or out of the plan when tomorrow is the due day. When that empties today, Today has nothing planned and the deadline's Study button takes all its topics.
 
 ### The study agent
 
-The study agent has the teacher's prompt and tools, without the deadline changes (the learner makes those outside lessons). It adds:
+The study agent has the teacher's prompt and tools, without the planning part (`teacher/10-planning.md`) and the deadline changes (the learner makes those outside lessons). It has `plan_init` only when the app made no plan tree for the lesson or the agent already wrote one (`agent_writes_plan`, `core::session::plan_blocks`), so the tool list stays the same for the whole lesson. It adds:
 
 - `problem` and `conclude` (`agent::tools::practice`; `problem` carries the topic's `nodeId`)
 - `topic_done`

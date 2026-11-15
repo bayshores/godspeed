@@ -37,9 +37,9 @@ pub fn plan_init_tool(ctx: &PlanContext) -> FnTool {
 		)],
 	);
 	let description = "Write or REWRITE this session's plan map \u{2014} the dependency graph the learner follows live in the plan window. \
-		Call once right after the probe concludes, to present the map; re-call whenever the map is wrong (the new block replaces the old tree). \
+		Call once before teaching; re-call whenever the map is wrong (the new block replaces the old tree). \
 		A mermaid graph block (any direction): one node per line (`slug[Short Title]` \u{2014} slugs are permanent lowercase ids: a-z, 0-9, hyphens/underscores), \
-		`-->` edges meaning 'from must be understood before to' (chains fine). 5\u{2013}15 nodes: a map, not a syllabus \u{2014} one reasoning step per node, compress. \
+		`-->` edges meaning 'from must be understood before to' (chains fine). A map, not a syllabus \u{2014} one reasoning step per node, compress. \
 		Every check you fire names the node it assesses via `nodeId`; where the lesson stands derives from those tags.";
 	FnTool::server("plan_init", description, parameters, move |args, _ctx| {
 		let ctx = ctx.clone();

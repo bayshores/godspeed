@@ -19,6 +19,7 @@ use gs_agent::tools::rules::SaveRule;
 use gs_agent::tools::side::LessonSide;
 use gs_agent::tools::space_actions::SpaceActions;
 use gs_base::{clock, text, time};
+use gs_core::session::plan_blocks::agent_writes_plan;
 use gs_core::spaces::space_tools::ToolOutcome;
 use gs_core::graph::ports::GraphStore;
 use gs_core::records::settings_resolution::graph_tools_enabled;
@@ -170,7 +171,7 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 			let check_marks = Arc::new(move |text: &str| check_cites(&marks_app, text));
 			// Study sends deadline changes outside lessons, so it has no deadline tools.
 			let teacher = TeacherToolContext { side: LessonSide { space_actions: None, ..side.clone() }, ..teacher() };
-			create_study_agent(&StudyToolContext { teacher, graph_nodes: Some(graph_nodes(app, lesson_scope)), check_marks }, opts)
+			create_study_agent(&StudyToolContext { teacher, graph_nodes: Some(graph_nodes(app, lesson_scope)), check_marks, writes_plan: agent_writes_plan(record) }, opts)
 		}
 		_ if teaching => create_teacher_agent(Some(&teacher()), opts),
 		_ => {
@@ -228,5 +229,18 @@ mod tests {
 		off.get_mut("graph").and_then(Json::as_obj_mut).unwrap().insert("enabled", false);
 		let study = names_for(&app, &json!({ "id": "chat_a", "kind": "study", "messages": [] }), &off);
 		assert!(!study.contains(&"search_graph".to_owned()), "{study:?}");
+	}
+
+	#[test]
+	fn a_study_lesson_has_plan_init_only_when_the_agent_writes_its_plan() {
+		let root = scratch_dir("lesson-agent-plan");
+		let app = test_app(&root);
+		let effective = app.stores.settings.effective_settings().unwrap();
+		let tree = json!({ "nodes": [{ "id": "t1", "title": "Sums" }], "edges": [] });
+		let has_plan_init = |record: Json| names_for(&app, &record, &effective).contains(&"plan_init".to_owned());
+		assert!(has_plan_init(json!({ "id": "chat_a", "kind": "study", "messages": [] })), "no plan from the app");
+		assert!(!has_plan_init(json!({ "id": "chat_a", "kind": "study", "tree": tree, "messages": [] })), "the app's plan");
+		let written = json!({ "role": "toolResult", "toolCallId": "p1", "toolName": "plan_init", "details": { "ok": true }, "timestamp": 1 });
+		assert!(has_plan_init(json!({ "id": "chat_a", "kind": "study", "tree": tree, "messages": [written] })), "the agent's own plan");
 	}
 }

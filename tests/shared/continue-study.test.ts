@@ -9,5 +9,8 @@ describe("deadlineStudyLabel", () => {
 		assert.equal(deadlineStudyLabel({ chatId: "c", done: 0, total: 4 }, "Midterm"), "Continue studying for Midterm, 0 of 4 topics");
 		assert.equal(deadlineStudyLabel({ chatId: "c", done: 2, total: 4 }), "Continue studying, 2 of 4 topics");
 		assert.equal(deadlineStudyLabel({ chatId: "c", done: 0, total: 1 }), "Continue studying, 0 of 1 topic");
+		// No plan yet: nothing to count.
+		assert.equal(deadlineStudyLabel({ chatId: "c" }, "Midterm"), "Continue studying for Midterm");
+		assert.equal(deadlineStudyLabel({ chatId: "c" }), "Continue studying");
 	});
 });
