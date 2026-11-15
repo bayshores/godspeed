@@ -41,9 +41,9 @@ export function addAction(rows: number, canPickFolder: boolean): "sheet" | "choo
 }
 
 /** The entry an installed plugin can update to: it came from the list, and the list now names
- *  another repo or tag for it. */
+ *  another repo, tag or folder for it. */
 export function updateFor(plugin: InstalledPlugin, listed: ListedPlugin[]): ListedPlugin | null {
 	const source = "manifest" in plugin ? plugin.source : undefined;
 	const entry = listed.find((e) => e.id === plugin.id);
-	return source && entry && (entry.repo !== source.repo || entry.tag !== source.tag) ? entry : null;
+	return source && entry && (entry.repo !== source.repo || entry.tag !== source.tag || entry.path !== source.path) ? entry : null;
 }

@@ -30,12 +30,12 @@ export type SettingValue = boolean | number | string;
 /** An installed plugin: its manifest, switch and setting values, and where it came from when that
  *  was godspeed's list; or why the manifest failed. */
 export type InstalledPlugin =
-	| { id: string; folder: string; manifest: PluginManifest; enabled: boolean; values: Record<string, SettingValue>; source?: { repo: string; tag: string } }
+	| { id: string; folder: string; manifest: PluginManifest; enabled: boolean; values: Record<string, SettingValue>; source?: { repo: string; tag: string; path?: string } }
 	| { id: string; folder: string; error: string };
 
-/** A plugin on godspeed's checked list: its GitHub repo and tag, and a copy of fields of its
- *  manifest at that tag. */
-export type ListedPlugin = Pick<PluginManifest, "id" | "name" | "description" | "lesson" | "space" | "network" | "uses"> & { repo: string; tag: string };
+/** A plugin on godspeed's checked list: its GitHub repo and tag, the repo's folder it is in when
+ *  it isn't at the top, and a copy of fields of its manifest at that tag. */
+export type ListedPlugin = Pick<PluginManifest, "id" | "name" | "description" | "lesson" | "space" | "network" | "uses"> & { repo: string; tag: string; path?: string };
 
 export type PluginResult = { error: string; plugin: null } | { error: null; plugin: InstalledPlugin };
 

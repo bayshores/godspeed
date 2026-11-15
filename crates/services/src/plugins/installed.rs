@@ -25,7 +25,7 @@ pub fn plugin_lock(id: &str) -> String {
 	format!("plugins/{id}")
 }
 
-/// Beside a plugin installed from godspeed's list: `{ repo, tag }`. Hidden, so no install copies
+/// Beside a plugin installed from godspeed's list: `{ repo, tag, path? }`. Hidden, so no install copies
 /// one in from a plugin's own files and no file route serves it.
 pub const SOURCE_FILE: &str = ".source.json";
 
@@ -50,7 +50,7 @@ pub fn plugin_view(app: &App, manifest: &Json) -> Result<Json, String> {
 	let (enabled, values) = resolve_state(manifest, &saved_entry(app, id)?);
 	let mut view = json!({ "id": id, "folder": dir.to_string_lossy(), "manifest": manifest, "enabled": enabled, "values": values });
 	if let (Some(fields), Some(source)) = (view.as_obj_mut(), gs_base::fsx::read_json(&dir.join(SOURCE_FILE))) {
-		fields.insert("source", json!({ "repo": source["repo"], "tag": source["tag"] }));
+		fields.insert("source", source);
 	}
 	Ok(view)
 }
