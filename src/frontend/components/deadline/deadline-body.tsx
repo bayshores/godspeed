@@ -8,6 +8,7 @@ import { CoversSheet } from "./covers-sheet";
 import { DeadlineBlock } from "./deadline-block";
 import { rightLabel, whenLine, type Material, type TopicTally } from "./deadline-model";
 import { PathSheet } from "./path-sheet";
+import type { RequestKind } from "./request-model";
 
 /**
  * ONE DEADLINE'S PAGE (pure view, the render-test seam): the time left,
@@ -38,9 +39,11 @@ interface DeadlineBodyProps {
 	teacherName: string;
 	/** An Add or Leave out is being saved. */
 	saving: boolean;
-	onAsk: () => void;
-	/** Asks the teacher for a study guide (an interview with nothing to plan from). */
-	onAskGuide: () => void;
+	/** A request to the agent runs on this deadline. */
+	requesting: boolean;
+	/** The line beside each Ask button after its request changed nothing. */
+	requestLine: (kind: RequestKind) => string | null;
+	onRequest: (kind: RequestKind) => void;
 	onAdd: (fileIds: string[]) => void;
 	onLeaveOut: (fileIds: string[]) => void;
 	/** Opens the cheat sheet studio. */
@@ -98,8 +101,10 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 							source={props.source}
 							teacherName={props.teacherName}
 							saving={props.saving}
+							requesting={props.requesting}
+							requestLine={props.requestLine("coverage")}
 							onEdit={props.onEdit}
-							onAsk={props.onAsk}
+							onAsk={() => props.onRequest("coverage")}
 							onAdd={props.onAdd}
 							onLeaveOut={props.onLeaveOut}
 						/>
@@ -115,8 +120,10 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 						busy={props.busy}
 						startError={props.startError}
 						teacherName={props.teacherName}
+						requesting={props.requesting}
+						guideLine={props.requestLine("guide")}
 						onStart={props.onStart}
-						onAskGuide={props.onAskGuide}
+						onAskGuide={() => props.onRequest("guide")}
 						mocks={props.mocks}
 					/>
 				</div>

@@ -10,7 +10,23 @@ const ABOUT_TEXT = "font-prose text-[17px] leading-relaxed text-ink [--lh-headin
  * WHAT IT'S LIKE: what the teacher wrote about the deadline (its file
  * "What it's like.md"), as Markdown, and a quiet way to ask for it again.
  */
-export function AboutSheet({ about, teacherName, onAsk, onRetry }: { about: About; teacherName: string; onAsk: () => void; onRetry: () => void }) {
+export function AboutSheet({
+	about,
+	teacherName,
+	requesting,
+	requestLine,
+	onAsk,
+	onRetry,
+}: {
+	about: About;
+	teacherName: string;
+	/** A request to the agent runs on this deadline. */
+	requesting: boolean;
+	/** Why the last rewrite changed nothing. */
+	requestLine: string | null;
+	onAsk: () => void;
+	onRetry: () => void;
+}) {
 	return (
 		<Pane data-testid="deadline-about" className={SHEET}>
 			<h2 className={SHEET_TITLE}>What it&apos;s like</h2>
@@ -29,9 +45,14 @@ export function AboutSheet({ about, teacherName, onAsk, onRetry }: { about: Abou
 			) : (
 				<div className="h-24 w-full bg-tone" aria-hidden />
 			)}
-			<button type="button" data-testid="deadline-about-ask" onClick={onAsk} className="lh-btn lh-btn-quiet -ml-1 self-start text-[15px]">
+			<button type="button" data-testid="deadline-about-ask" disabled={requesting} onClick={onAsk} className="lh-btn lh-btn-quiet -ml-1 self-start text-[15px]">
 				Ask {teacherName} to rewrite
 			</button>
+			{requestLine && (
+				<p role="alert" data-testid="deadline-request-line" className="text-[15px] text-ink">
+					{requestLine}
+				</p>
+			)}
 		</Pane>
 	);
 }

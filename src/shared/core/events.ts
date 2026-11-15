@@ -94,6 +94,8 @@ export interface ServerEvents {
 	"cheat-sheet-changed": { deadlineId: string };
 	/** A space's mocks or one of their agent requests changed. */
 	"mocks-changed": { spaceId: string };
+	/** A request from the deadline page or godspeed to the learner's agent started or ended. */
+	"deadline-request-changed": { spaceId: string; deadlineId: string };
 }
 
 export type ServerEventType = keyof ServerEvents;
@@ -114,6 +116,7 @@ export const SERVER_EVENT_TYPES = [
 	"rules-changed",
 	"cheat-sheet-changed",
 	"mocks-changed",
+	"deadline-request-changed",
 	"files-added",
 	"files-removed",
 ] as const satisfies readonly ServerEventType[];
