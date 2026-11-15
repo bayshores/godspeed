@@ -60,6 +60,10 @@ import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
 import { useTeacherLesson } from "@/frontend/components/teacher/teacher-provider";
 import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
+import { lessonPluginContext } from "@/frontend/components/lesson/lesson-plugins-model";
+import { PluginDock } from "@/frontend/components/lesson/plugin-dock";
+import { useSpaces } from "@/frontend/components/space-context";
+import { usePluginsAt } from "@/frontend/lib/use-plugins-at";
 import { jsonInit } from "@/frontend/lib/api";
 import { useStableValue } from "@/frontend/lib/use-stable-value";
 import { useNow } from "@/frontend/components/use-now";
@@ -520,7 +524,25 @@ export function Chat({
 	);
 
 	const sheet = useSheetDock(chatId);
-	const sheetOpen = !!spaceId && sheet.state.open;
+	// One dock at a time: a plugin's page and the cheat sheet each close the other.
+	const { plugins: lessonPlugins } = usePluginsAt("lesson");
+	const { spaces } = useSpaces();
+	const [pluginId, setPluginId] = useState<string | null>(null);
+	const openPlugin = lessonPlugins?.find((p) => p.id === pluginId);
+	const sheetOpen = !!spaceId && sheet.state.open && !openPlugin;
+	const toggleSheet = () => {
+		setPluginId(null);
+		sheet.update({ open: !sheetOpen });
+	};
+	const togglePlugin = (id: string) => {
+		setPluginId(pluginId === id ? null : id);
+		if (sheet.state.open) sheet.update({ open: false });
+	};
+	const space = spaces.find((s) => s.id === spaceId);
+	const pluginContext = useMemo(
+		() => lessonPluginContext({ space: space ? { id: space.id, name: space.name } : null, title: rename.title, messages, pending, requiresReveal }),
+		[space, rename.title, messages, pending, requiresReveal],
+	);
 	const [columnWidth, setColumnWidth] = usePaneWidth("your-turn", COLUMN_WIDTH);
 
 	const problem = activeProblem && {
@@ -545,7 +567,8 @@ export function Chat({
 							<LessonTopBar
 								rename={rename}
 								spaceId={spaceId}
-								sheet={spaceId ? { open: sheet.state.open, onToggle: () => sheet.update({ open: !sheet.state.open }) } : undefined}
+								sheet={spaceId ? { open: sheetOpen, onToggle: toggleSheet } : undefined}
+								plugins={{ words: lessonPlugins ?? [], open: openPlugin?.id ?? null, onToggle: togglePlugin }}
 								file={homework?.assignment ?? undefined}
 								scopeRef={sessionFindScopeRef}
 								scrollContextRef={scrollContextRef}
@@ -554,7 +577,7 @@ export function Chat({
 								<LessonWorkFrame chatId={chatId}>
 									<div
 										ref={sessionFindScopeRef}
-										data-dock={sheetOpen ? "" : undefined}
+										data-dock={sheetOpen || openPlugin ? "" : undefined}
 										className="lh-dots lh-lesson-body relative h-full"
 										style={{ "--lh-turn-w": `${columnWidth}px` } as React.CSSProperties}
 									>
@@ -586,6 +609,11 @@ export function Chat({
 													onPick={(id) => sheet.update({ deadlineId: id })}
 													onClose={() => sheet.update({ open: false })}
 												/>
+											</div>
+										)}
+										{openPlugin && (
+											<div className="flex min-h-0 [grid-area:dock]">
+												<PluginDock key={openPlugin.id} plugin={openPlugin} context={pluginContext} onClose={() => setPluginId(null)} />
 											</div>
 										)}
 										<TeacherColumn

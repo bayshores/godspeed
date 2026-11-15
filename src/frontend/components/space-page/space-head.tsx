@@ -10,6 +10,7 @@ import { useUnseenFiles } from "@/frontend/components/files/files-seen";
 import { useLessonList } from "@/frontend/components/lessons/use-lesson-list";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { useProgress } from "@/frontend/components/use-progress";
+import type { ShownPlugin } from "@/frontend/lib/use-plugins-at";
 import { cn } from "@/frontend/lib/utils";
 import { HeadSignature } from "./head-signature";
 import { spaceTabs, sheetCount, studiedShare, tabCount, type TabCounts } from "./space-head-model";
@@ -20,7 +21,7 @@ import { spaceTabs, sheetCount, studiedShare, tabCount, type TabCounts } from ".
  * leaves, then the tabs with their counts and "Edit space" at the end of
  * their row. With no space picked it names the lessons that belong to none.
  */
-export function SpaceHead() {
+export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 	const { pathname } = useLocation();
 	const { active, activeSpace } = useSpaces();
 	/** The space Edit opened for: it stays open while that space is deleted. */
@@ -43,7 +44,7 @@ export function SpaceHead() {
 			{/* When the tabs and Edit space don't fit one line, Edit space goes above the tabs. */}
 			<div className="mt-[22px] flex flex-wrap-reverse items-center shadow-[inset_0_-2px_0_var(--border)]">
 				<nav aria-label={activeSpace?.name ?? "Lessons with no space"} className="flex min-w-0 flex-[1_1_auto] gap-1.5 overflow-x-auto">
-					{spaceTabs(activeSpace ? "space" : "none").map((t) => {
+					{spaceTabs(activeSpace ? "space" : "none", plugins).map((t) => {
 						const selected = t.href === pathname;
 						const count = tabCount(t, counts);
 						return (
