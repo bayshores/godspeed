@@ -33,6 +33,7 @@ export const SCREENS = [
 	{ name: "Activity", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-tab-activity]").click()`, shows: "[data-testid=activity-list] > *" },
 	{ name: "Settings, Connection", url: "/settings?section=connection", ready: "[data-testid=agent-status]" },
 	{ name: "Settings, Teaching", url: "/settings?section=teaching", ready: "[data-testid^=area-][data-testid$=-instructions]:not(:disabled)" },
+	{ name: "Settings, Plugins", url: "/settings?section=plugins", ready: "[data-testid=plugins-list]" },
 	{ name: "Settings, Appearance", url: "/settings?section=appearance", ready: "[data-testid=appearance-preview]" },
 	{ name: "Settings, General", url: "/settings?section=general", ready: "[data-testid=teacher-name-row]" },
 	{ name: "Talk empty", before: `await fetch("/api/talk", { method: "DELETE" })${HTTP_OK}`, url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=talk-empty]" },
