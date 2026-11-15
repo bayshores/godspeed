@@ -3,7 +3,7 @@
  * pushes the page left so nothing sits under it. The Terminal tab is wide
  * enough for the agent's whole screen at its largest font. Pure.
  */
-import { FULL_SCREEN_WIDTH, screenWidth } from "@/frontend/components/terminal/terminal-model";
+import { FULL_SCREEN_WIDTH, screenWidth, type TerminalRecord, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
 
 export type PanelTab = "talk" | "activity" | "terminal";
 
@@ -12,6 +12,21 @@ export type PanelTab = "talk" | "activity" | "terminal";
 export function panelTabs(inLesson: boolean, terminals: boolean): PanelTab[] {
 	if (inLesson) return terminals ? ["terminal"] : [];
 	return terminals ? ["talk", "activity", "terminal"] : ["talk", "activity"];
+}
+
+/** The screen the Terminal tab shows: the helper's only while there is one. */
+export const shownScreen = (picked: TerminalRole, helper: boolean): TerminalRole => (picked === "helper" && helper ? "helper" : "teacher");
+
+/**
+ * The open panel shows a key that starts the teacher: Talk's start pair
+ * while no agent is here, or on the Terminal tab's teacher screen, the
+ * empty tab's start pair or an ended screen's Start again. Nothing
+ * elsewhere repeats that key while it shows.
+ */
+export function panelStarts(p: { tab: PanelTab; screen: TerminalRole; noAgent: boolean; teacher: TerminalRecord | null; outside: boolean }): boolean {
+	if (p.tab === "talk") return p.noAgent;
+	if (p.tab !== "terminal" || p.screen !== "teacher") return false;
+	return p.teacher ? !!p.teacher.ended : !p.outside;
 }
 
 export const DOCK_WIDTH = 400;
@@ -27,23 +42,32 @@ const DOCK_FULL_BELOW = 640;
 const MIN_PAGE = 480;
 
 /**
- * How wide the open panel is and how far it pushes the page left. Talk and
- * Activity are 400 and push while the page keeps 480. The Terminal tab
- * pushes too, as wide as the page allows up to the whole screen at 14 px,
+ * How wide the open panel is, how far it pushes the page left, and whether
+ * it is wide. Talk and Activity are 400 and push while the page keeps 480,
+ * and so is the Terminal tab until it has a screen to show (`screen`: a
+ * live or ended terminal); before a start it is a sentence and two keys.
+ * With a screen it pushes too, as wide as the page allows up to the whole screen at 14 px,
  * as long as the screen keeps 12 px (the font fit shrinks it); below that
  * it covers the page at its full width and keeps Talk's push, so switching
  * tabs never widens the page. A lesson draws its own top bar, which a push
  * would cut short above the panel: there the panel covers. A narrow
  * window gets the whole width.
  */
-export function dockLayout(viewportWidth: number, pageWidth: number, terminal: boolean, overLesson: boolean): { width: number; push: number } {
-	if (viewportWidth < DOCK_FULL_BELOW) return { width: viewportWidth, push: 0 };
+export function dockLayout(
+	viewportWidth: number,
+	pageWidth: number,
+	tab: PanelTab,
+	screen: boolean,
+	overLesson: boolean,
+): { width: number; push: number; wide: boolean } {
+	const wide = tab === "terminal" && screen;
+	if (viewportWidth < DOCK_FULL_BELOW) return { width: viewportWidth, push: 0, wide };
 	const room = overLesson ? 0 : pageWidth - MIN_PAGE;
 	const talkPush = room >= DOCK_WIDTH ? DOCK_WIDTH : 0;
-	if (!terminal) return { width: DOCK_WIDTH, push: talkPush };
+	if (!wide) return { width: DOCK_WIDTH, push: talkPush, wide };
 	if (room >= TERMINAL_PUSH_MIN) {
 		const width = Math.min(TERMINAL_DOCK_WIDTH, room);
-		return { width, push: width };
+		return { width, push: width, wide };
 	}
-	return { width: Math.min(TERMINAL_DOCK_WIDTH, viewportWidth), push: talkPush };
+	return { width: Math.min(TERMINAL_DOCK_WIDTH, viewportWidth), push: talkPush, wide };
 }

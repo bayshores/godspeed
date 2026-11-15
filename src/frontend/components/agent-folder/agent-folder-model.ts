@@ -10,6 +10,9 @@ export type LaunchChoice = FolderAgent | "other";
 
 export const AGENT_LABEL: Record<FolderAgent, string> = { claude: "Claude Code", codex: "Codex" };
 
+/** The key that starts the picked agent: "Start Claude Code". */
+export const startLabel = (choice: LaunchChoice): string => (choice === "other" ? "Show the setup" : `Start ${AGENT_LABEL[choice]}`);
+
 /** What the server says about the folder (GET /api/agent-folder). */
 export interface FolderView {
 	folder: string;

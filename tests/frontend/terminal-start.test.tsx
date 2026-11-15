@@ -345,7 +345,7 @@ describe("after godspeed's teacher ended, though the server still says connected
 			return {
 				chip: chipText({ name: "Teacher", doing, agent, terminal: teacherTerminalState(facts) }),
 				panel: agentLine(agent, doing),
-				tile: teacherTile(agent, doing, { outside: false, term: facts?.term.ended ? "ended" : null }).chip,
+				tile: teacherTile(agent, doing, { outside: false, term: facts?.term.ended ? "ended" : null, start: "Start Claude Code" }).chip,
 				lessonWaits: lessonAgentWaiting(agent),
 			};
 		};

@@ -26,8 +26,9 @@ export type TermState = "starting" | "ended" | null;
 /** The teacher runs: it teaches, or it connected and has not started. */
 const teacherRuns = (agent: Agent) => agent.teaching || (agent.connected && !agent.helperHere);
 
-/** `outside`: the agent here was started outside godspeed. */
-export function teacherTile(agent: Agent, doing: AgentDoing | null, i: { outside: boolean; term: TermState }): AgentTile {
+/** `outside`: the agent here was started outside godspeed. `start`: the
+ *  start key's label, the same as the start pair's (startLabel). */
+export function teacherTile(agent: Agent, doing: AgentDoing | null, i: { outside: boolean; term: TermState; start: string }): AgentTile {
 	const note = i.outside ? "Connected from outside godspeed." : "Teaches and answers you";
 	if (agent.helperCovering) return { tone: "on", chip: "Teaching", line: "Tidying its memory", note: "The helper answers for a minute", start: null };
 	// "Teaching" only while it works on something; idle in its work loop it is just running.
@@ -39,7 +40,7 @@ export function teacherTile(agent: Agent, doing: AgentDoing | null, i: { outside
 		chip: i.term === "ended" ? "Stopped" : "Not running",
 		line: agent.pendingTurns > 0 ? "Your lesson is waiting" : "",
 		note: "Start it and it teaches you",
-		start: "Start teacher",
+		start: i.start,
 	};
 }
 

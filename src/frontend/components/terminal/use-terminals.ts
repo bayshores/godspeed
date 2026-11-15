@@ -325,6 +325,10 @@ export function agentHereNow(status: AgentStatus | null, terminals: TerminalsApi
 	return terminals.loaded ? terminals.agentHere : null;
 }
 
+/** No agent is here and godspeed is not starting one: the start pair shows. */
+export const noAgentHere = (status: AgentStatus | null, terminals: TerminalsApi | null): boolean =>
+	agentHereNow(status, terminals) === false && !(terminals?.teacher && !terminals.teacher.ended);
+
 const TerminalsContext = createContext<TerminalsApi | null>(null);
 
 /** Every surface below reads the agent's status as the terminals correct it. */

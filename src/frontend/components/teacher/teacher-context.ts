@@ -20,6 +20,8 @@ export interface TeacherApi {
 	follow: boolean;
 	setFollow: (on: boolean) => void;
 	panelOpen: boolean;
+	/** The open panel shows a key that starts the teacher (panelStarts). */
+	panelStarts: boolean;
 	setPanelOpen: (open: boolean) => void;
 	/** Open the panel on its Activity list. */
 	showActivity: () => void;

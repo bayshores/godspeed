@@ -23,7 +23,7 @@ import type { AgentDoing } from "./follow-status";
 import { TalkView, type TalkAsk } from "./talk-view";
 import { TeacherActivity } from "./teacher-activity";
 import { TerminalTab } from "./terminal-tab";
-import { DOCK_WIDTH, dockLayout, type PanelTab } from "./dock-model";
+import { DOCK_WIDTH, dockLayout, shownScreen, type PanelTab } from "./dock-model";
 
 const TAB_LABEL: Record<PanelTab, string> = { talk: "Talk", activity: "Activity", terminal: "Terminal" };
 
@@ -88,23 +88,22 @@ export function TeacherPanel({
 	const tabsId = useId();
 	// A screen that needs the learner, and the one the Terminal tab shows.
 	const calls = (role: TerminalRole) => !!terminals?.facts[role] && !!needsYou(terminals.facts[role]!);
-	const shown: TerminalRole = screen === "helper" && terminals?.helper ? "helper" : "teacher";
-	// Wide only while there is a screen to show; before a start the tab is a sentence and two keys.
-	const wide = tab === "terminal" && !!terminals?.facts[shown];
-	const [width, setWidth] = useState(DOCK_WIDTH);
+	const shown = shownScreen(screen, !!terminals?.helper);
+	const hasScreen = !!terminals?.facts[shown];
+	const [{ width, wide }, setDock] = useState({ width: DOCK_WIDTH, wide: false });
 	// Before paint, so a screen that just appeared is never fitted to the narrow width first.
 	useLayoutEffect(() => {
 		const root = document.documentElement;
 		const measure = () => {
 			const page = document.querySelector("main")?.getBoundingClientRect().width ?? window.innerWidth;
-			const dock = dockLayout(window.innerWidth, page, wide, overLesson);
-			setWidth(dock.width);
+			const dock = dockLayout(window.innerWidth, page, tab, hasScreen, overLesson);
+			setDock({ width: dock.width, wide: dock.wide });
 			root.style.setProperty(PUSH_VAR, `${dock.push}px`);
 		};
 		measure();
 		window.addEventListener("resize", measure);
 		return () => window.removeEventListener("resize", measure);
-	}, [wide, overLesson]);
+	}, [tab, hasScreen, overLesson]);
 	useEffect(
 		() => () => {
 			document.documentElement.style.removeProperty(PUSH_VAR);

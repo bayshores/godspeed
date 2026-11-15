@@ -4,7 +4,7 @@ import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
-import { AGENT_LABEL, type LaunchChoice } from "./agent-folder-model";
+import { AGENT_LABEL, startLabel, type LaunchChoice } from "./agent-folder-model";
 
 const CHOICES: { id: LaunchChoice; label: string }[] = [
 	{ id: "claude", label: AGENT_LABEL.claude },
@@ -30,12 +30,11 @@ export function StartAgentButton({
 	quiet?: boolean;
 	big?: boolean;
 }) {
-	const label = choice === "other" ? "Show the setup" : `Start ${AGENT_LABEL[choice]}`;
 	const size = big ? BIG_BUTTON : "text-[15px]";
 	return (
 		<div className="flex flex-wrap items-center gap-2.5">
 			<button type="button" data-testid="open-agent" disabled={busy} onClick={onStart} className={cn("lh-btn", !quiet && "lh-btn-main", size)}>
-				{label}
+				{startLabel(choice)}
 			</button>
 			<AgentMenu choice={choice} onChoose={onChoose} className={size} />
 		</div>

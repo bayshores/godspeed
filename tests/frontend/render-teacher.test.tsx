@@ -35,7 +35,7 @@ Object.assign(globalThis, {
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
 const { TeacherPanel, agentLine } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
-const { TERMINAL_DOCK_WIDTH, TERMINAL_PUSH_MIN, dockLayout, panelTabs } = await import("../../src/frontend/components/teacher/dock-model.ts");
+const { TERMINAL_DOCK_WIDTH, TERMINAL_PUSH_MIN, dockLayout, panelStarts, panelTabs, shownScreen } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { fitFontSize } = await import("../../src/frontend/components/terminal/terminal-model.ts");
 const { draftWithAsk, startsTurn } = await import("../../src/frontend/components/teacher/talk-model.ts");
 const { askTeacher, useAskTeacher } = await import("../../src/frontend/components/teacher/ask-teacher.ts");
@@ -351,34 +351,53 @@ describe("the panel", () => {
 		talkChat = null;
 	});
 	it("Talk and Activity: 400 wide, pushing the page while it keeps 480 px; the whole window when narrow", () => {
-		assert.deepEqual(dockLayout(1440, 1440, false, false), { width: 400, push: 400 });
-		assert.deepEqual(dockLayout(1000, 1000, false, false), { width: 400, push: 400 });
-		assert.deepEqual(dockLayout(800, 800, false, false), { width: 400, push: 0 }, "a page too narrow to push is covered instead");
-		assert.deepEqual(dockLayout(600, 600, false, false), { width: 600, push: 0 }, "the whole window: no push");
+		assert.deepEqual(dockLayout(1440, 1440, "talk", false, false), { width: 400, push: 400, wide: false });
+		assert.deepEqual(dockLayout(1000, 1000, "talk", false, false), { width: 400, push: 400, wide: false });
+		assert.deepEqual(dockLayout(800, 800, "talk", false, false), { width: 400, push: 0, wide: false }, "a page too narrow to push is covered instead");
+		assert.deepEqual(dockLayout(600, 600, "talk", false, false), { width: 600, push: 0, wide: false }, "the whole window: no push");
+	});
+	it("Terminal with no screen yet (a sentence and the start keys): Talk's width, not wide", () => {
+		assert.deepEqual(dockLayout(1440, 1440, "terminal", false, false), { width: 400, push: 400, wide: false });
+		assert.deepEqual(dockLayout(1100, 1100, "terminal", false, false), { width: 400, push: 400, wide: false });
+		assert.deepEqual(dockLayout(1440, 1440, "talk", true, false), { width: 400, push: 400, wide: false }, "a screen elsewhere does not widen Talk");
+	});
+	it("shows a key that starts the teacher: Talk with no agent, the empty Terminal tab, an ended teacher screen", () => {
+		const ended = { id: "t1", role: "teacher" as const, agent: "claude" as const, startedAt: 0, ended: { stopped: true as const, code: null }, prompt: null, url: false };
+		const p = { tab: "terminal" as const, screen: "teacher" as const, noAgent: true, teacher: null, outside: false };
+		assert.equal(panelStarts({ ...p, tab: "talk" }), true);
+		assert.equal(panelStarts({ ...p, tab: "talk", noAgent: false }), false);
+		assert.equal(panelStarts({ ...p, tab: "activity" }), false);
+		assert.equal(panelStarts(p), true, "the empty tab's start pair");
+		assert.equal(panelStarts({ ...p, outside: true }), false, "an agent from outside: no start key");
+		assert.equal(panelStarts({ ...p, teacher: ended }), true, "Start again");
+		assert.equal(panelStarts({ ...p, teacher: { ...ended, ended: null } }), false, "a live screen");
+		assert.equal(panelStarts({ ...p, teacher: ended, screen: "helper" }), false, "the helper's screen starts the helper");
+		assert.equal(shownScreen("helper", false), "teacher", "no helper: the teacher's screen");
+		assert.equal(shownScreen("helper", true), "helper");
 	});
 	it("Terminal: the whole screen at 14 px where the page keeps 480 px", () => {
 		assert.equal(fitFontSize(TERMINAL_DOCK_WIDTH - 26, 10_000), 14, "the screen's box: the width less its padding and the border");
-		assert.deepEqual(dockLayout(1440, 1440, true, false), { width: TERMINAL_DOCK_WIDTH, push: TERMINAL_DOCK_WIDTH });
+		assert.deepEqual(dockLayout(1440, 1440, "terminal", true, false), { width: TERMINAL_DOCK_WIDTH, push: TERMINAL_DOCK_WIDTH, wide: true });
 	});
 	it("Terminal: narrower, still pushing, while the screen keeps 12 px", () => {
 		assert.equal(fitFontSize(TERMINAL_PUSH_MIN - 26, 10_000), 12);
-		assert.deepEqual(dockLayout(1280, 1280, true, false), { width: 800, push: 800 });
+		assert.deepEqual(dockLayout(1280, 1280, "terminal", true, false), { width: 800, push: 800, wide: true });
 		assert.equal(fitFontSize(800 - 26, 10_000), 12);
-		assert.deepEqual(dockLayout(480 + TERMINAL_PUSH_MIN, 480 + TERMINAL_PUSH_MIN, true, false).push, TERMINAL_PUSH_MIN);
+		assert.deepEqual(dockLayout(480 + TERMINAL_PUSH_MIN, 480 + TERMINAL_PUSH_MIN, "terminal", true, false).push, TERMINAL_PUSH_MIN);
 	});
 	it("Terminal: below 12 px it covers the page at full width and keeps Talk's push, so switching tabs never widens the page", () => {
-		assert.deepEqual(dockLayout(1100, 1100, true, false), { width: TERMINAL_DOCK_WIDTH, push: 400 });
-		assert.deepEqual(dockLayout(800, 800, true, false), { width: 800, push: 0 }, "the font fit does the rest");
-		assert.deepEqual(dockLayout(600, 600, true, false), { width: 600, push: 0 });
+		assert.deepEqual(dockLayout(1100, 1100, "terminal", true, false), { width: TERMINAL_DOCK_WIDTH, push: 400, wide: true });
+		assert.deepEqual(dockLayout(800, 800, "terminal", true, false), { width: 800, push: 0, wide: true }, "the font fit does the rest");
+		assert.deepEqual(dockLayout(600, 600, "terminal", true, false), { width: 600, push: 0, wide: true });
 		for (let w = 640; w <= 2000; w += 10) {
-			const { push } = dockLayout(w, w, true, false);
+			const { push } = dockLayout(w, w, "terminal", true, false);
 			assert.ok(push === 0 || w - push >= 480, `${w}: the page never under 480`);
 			assert.ok(push <= 400 || fitFontSize(push - 26, 10_000) >= 12, `${w}: a pushing screen keeps 12 px`);
 		}
 	});
 	it("covers a lesson instead of pushing it (the lesson draws its own top bar)", () => {
-		assert.deepEqual(dockLayout(1800, 1800, true, true), { width: TERMINAL_DOCK_WIDTH, push: 0 });
-		assert.equal(dockLayout(1800, 1800, false, true).push, 0);
+		assert.deepEqual(dockLayout(1800, 1800, "terminal", true, true), { width: TERMINAL_DOCK_WIDTH, push: 0, wide: true });
+		assert.equal(dockLayout(1800, 1800, "talk", false, true).push, 0);
 	});
 	it("has Terminal in the desktop app only, and over a lesson Terminal alone", () => {
 		assert.deepEqual(panelTabs(false, true), ["talk", "activity", "terminal"]);

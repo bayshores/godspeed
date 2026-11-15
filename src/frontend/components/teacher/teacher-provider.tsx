@@ -25,11 +25,11 @@ import { useActivity } from "@/frontend/components/activity-dock";
 import { useSpaces } from "@/frontend/components/space-context";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { useSettingsSaved } from "@/frontend/components/settings-signal";
-import { useTerminals } from "@/frontend/components/terminal/use-terminals";
+import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { TeacherPanel } from "./teacher-panel";
 import { TeacherContext, useTeacher, type TeacherApi, type LessonPresence } from "./teacher-context";
 import { useTeacherPanel } from "./use-teacher-panel";
-import { panelTabs } from "./dock-model";
+import { panelStarts, panelTabs, shownScreen } from "./dock-model";
 import { STEP_MS, nextStep } from "./tour";
 import { FOLLOW_DEFAULT, FOLLOW_KEY, GO_OFFER_MS, followMoves, followReady, followReducer, goOffer, parseFollow, safePage, type FollowEvent, type FollowState } from "./follow";
 import { agentDoing, freshAction } from "./follow-status";
@@ -301,14 +301,24 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 	useEffect(() => {
 		if (inLesson) setPanelOpen(false);
 	}, [inLesson, setPanelOpen]);
-	const tabs = panelTabs(inLesson, !!useTerminals()?.available);
+	const terminals = useTerminals();
+	const tabs = panelTabs(inLesson, !!terminals?.available);
+	const starts =
+		panelOpen &&
+		panelStarts({
+			tab: panel.tab,
+			screen: shownScreen(panel.role, !!terminals?.helper),
+			noAgent: noAgentHere(agent, terminals),
+			teacher: terminals?.teacher ?? null,
+			outside: !!terminals?.outsideHere,
+		});
 
 	const spaceList = spaces.spaces;
 	const spaceNameOf = useCallback((id: string | null) => (id ? (spaceList.find((c) => c.id === id)?.name ?? null) : null), [spaceList]);
 
 	const api = useMemo<TeacherApi>(
-		() => ({ name, follow: followOn, setFollow, panelOpen, setPanelOpen, showActivity, showTerminal, recent, doing, setLesson, go, offer, spaceNameOf }),
-		[name, followOn, setFollow, panelOpen, setPanelOpen, showActivity, showTerminal, recent, doing, setLesson, go, offer, spaceNameOf],
+		() => ({ name, follow: followOn, setFollow, panelOpen, panelStarts: starts, setPanelOpen, showActivity, showTerminal, recent, doing, setLesson, go, offer, spaceNameOf }),
+		[name, followOn, setFollow, panelOpen, starts, setPanelOpen, showActivity, showTerminal, recent, doing, setLesson, go, offer, spaceNameOf],
 	);
 
 	return (

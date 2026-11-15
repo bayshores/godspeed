@@ -161,6 +161,25 @@ describe("settings restyle", () => {
 		assert.equal(q("agent-window-helper-chip")!.textContent, "Not running", "the head speaks for the teacher only");
 	});
 
+	it("while the open panel shows a key that starts the teacher, the tile leaves that key to it", async () => {
+		globalThis.fetch = connectionFetch({ token: "tok_s", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 });
+		const panel = (panelStarts: boolean) => ({ name: "Teacher", panelOpen: true, panelStarts, doing: null, showTerminal: () => {} }) as unknown as React.ContextType<typeof TeacherContext>;
+		await mount(
+			<TeacherContext.Provider value={panel(true)}>
+				<Connection />
+			</TeacherContext.Provider>,
+		);
+		assert.ok(q("agent-window-teacher-open") === null);
+		await act(async () => root!.unmount());
+		host!.remove();
+		await mount(
+			<TeacherContext.Provider value={panel(false)}>
+				<Connection />
+			</TeacherContext.Provider>,
+		);
+		assert.equal(q("agent-window-teacher-open")!.textContent, "Start Claude Code", "the panel shows no start key on its tab");
+	});
+
 	it("the section's line says godspeed starts the helper only in the desktop app", () => {
 		assert.ok(connectionHint(true).endsWith("build the graph, and godspeed starts it when there is reading to do."));
 		assert.ok(connectionHint(false).endsWith("build the graph."));
@@ -205,7 +224,7 @@ describe("settings restyle", () => {
 		const el = await mount(<Connection />);
 		assert.ok(!el.textContent!.includes("Let outside agents connect"));
 		assert.ok(el.querySelector('[role="switch"]') === null);
-		assert.equal(q("agent-window-teacher-open")!.textContent, "Start teacher");
+		assert.equal(q("agent-window-teacher-open")!.textContent, "Start Claude Code", "the start pair's label");
 		assert.equal(q("agent-window-helper-open")!.textContent, "Start helper");
 	});
 

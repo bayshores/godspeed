@@ -18,7 +18,7 @@ import { useWorker } from "@/frontend/components/work/use-worker";
 import { talkWorkLine } from "@/frontend/components/work/work-model";
 import { actionFor, appRequestText, draftWithAsk, speakerOf, startsTurn, talkRows } from "./talk-model";
 import { StartTeacher } from "./start-teacher";
-import { agentHereNow, useTerminals } from "@/frontend/components/terminal/use-terminals";
+import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { pastLabel } from "./tour";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { cn } from "@/frontend/lib/utils";
@@ -254,7 +254,7 @@ function TalkThread({
 	};
 
 	// While godspeed's own teacher starts, its status line says so.
-	const noAgent = agentHereNow(agent, terminals) === false && !(terminals?.teacher && !terminals.teacher.ended);
+	const noAgent = noAgentHere(agent, terminals);
 	const turnGap = (first: boolean, i: number) => (i === 0 ? "" : first ? "mt-[18px]" : "mt-2");
 	const lastSpeaker = rows.length > 0 ? speakerOf(rows[rows.length - 1]!) : null;
 

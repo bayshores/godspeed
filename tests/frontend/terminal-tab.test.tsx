@@ -52,6 +52,7 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 		follow: false,
 		setFollow: () => {},
 		panelOpen: panel.open,
+		panelStarts: false,
 		setPanelOpen: panel.setOpen,
 		showActivity: panel.showActivity,
 		showTerminal: panel.showTerminal,

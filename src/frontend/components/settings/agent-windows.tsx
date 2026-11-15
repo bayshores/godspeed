@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useActivity } from "@/frontend/components/activity-dock";
-import { AGENT_LABEL, rememberedAgent, type LaunchChoice } from "@/frontend/components/agent-folder/agent-folder-model";
+import { AGENT_LABEL, rememberedAgent, startLabel, type LaunchChoice } from "@/frontend/components/agent-folder/agent-folder-model";
 import { Log, OtherAppSetup } from "@/frontend/components/agent-folder/agent-launcher";
 import { FolderLine } from "@/frontend/components/agent-folder/folder-line";
 import { OldSetupWarning } from "@/frontend/components/agent-folder/old-setup";
@@ -46,7 +46,7 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 	const teacherTerm: TermState = !ownTeacher ? null : ownTeacher.ended ? "ended" : terminals?.facts.teacher?.checkedIn ? null : "starting";
 	// A helper that ended with its teacher starts again by itself with the next one.
 	const helperTerm: TermState = !ownHelper ? null : !ownHelper.ended ? (agent.helperHere ? null : "starting") : teacherLive ? "ended" : null;
-	const teacher = teacherTile(agent, panel?.doing ?? null, { outside, term: teacherTerm });
+	const teacher = teacherTile(agent, panel?.doing ?? null, { outside, term: teacherTerm, start: startLabel(choice) });
 	const helper = helperTile({
 		agent,
 		background: backgroundLine(feed.extractions, feed.jobs),
@@ -82,7 +82,7 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 					name="Teacher"
 					icon="window"
 					tile={teacher}
-					onOpen={folderAgent && (() => void open(folderAgent))}
+					onOpen={folderAgent && !panel?.panelStarts ? () => void open(folderAgent) : null}
 					busy={busy}
 					status={teacherName}
 					said={!!panel?.panelOpen}
