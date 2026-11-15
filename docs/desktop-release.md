@@ -100,7 +100,7 @@ It then fetches the model and pdfium, compiles the icon, runs `tauri build` with
 `.github/workflows/ci.yml` runs on pushes to main and on pull requests. Changes to `docs/**` and `README.md` alone skip it.
 
 - `quality` (Ubuntu 24.04): fetches the model and ONNX Runtime, runs `npm run check` (typecheck, tests, lint, knip, then cargo test, clippy and cargo machete) and the skill's Python tests.
-- `desktop` (macOS 15, Windows, Ubuntu 22.04 container): build pipeline steps 1 to 4, then `stage-app.mjs` and `smoke-server.mjs`, `cargo test -p gs-shell` and the self-test. It does not compile the Mac icon.
+- `desktop` (macOS 15, Windows, Ubuntu 22.04 container): build pipeline steps 1 to 4, then `stage-app.mjs` and `smoke-server.mjs`, `cargo test -p gs-shell` and the self-test, and on the Mac `npm run layout` (the screens in the real app window, see [development.md](development.md)). It does not compile the Mac icon.
 
 ## Release workflow
 
