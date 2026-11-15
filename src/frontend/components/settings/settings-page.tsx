@@ -25,9 +25,9 @@ import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 const SECTIONS = [
 	{ id: "connection", label: "Connection", hint: connectionHint },
 	{ id: "teaching", label: "Teaching" },
-	{ id: "plugins", label: "Plugins" },
 	{ id: "appearance", label: "Appearance" },
 	{ id: "general", label: "General" },
+	{ id: "plugins", label: "Plugins" },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]["id"];
 const DEFAULT_SECTION: SectionId = "connection";
