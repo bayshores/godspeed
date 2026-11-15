@@ -299,10 +299,14 @@ describe("the screens", () => {
 		}
 	});
 
-	it("before any start: what shows here and the start pair at Talk's width, which starts the teacher here and widens for its screen; beside an agent from outside godspeed, where its screen is", async () => {
+	it("before any start: what shows here and the start pair at Talk's width, which starts the teacher here and widens for its screen, shown once it stops growing; beside an agent from outside godspeed, where its screen is", async () => {
 		const shell = fakeShell();
 		const wasWidth = dom.window.innerWidth;
 		Object.assign(dom.window, { innerWidth: 1440 });
+		const g = globalThis as unknown as { getComputedStyle: (el: Element) => object };
+		const wasStyle = g.getComputedStyle;
+		g.getComputedStyle = (el) => ({ ...wasStyle(el), transitionDuration: "0.16s" });
+		const settling = () => q("teacher-panel")?.querySelector("[role='tabpanel']")?.hasAttribute("data-settling");
 		try {
 			stored.set("lh-folder-agent", "codex");
 			await mounted(access(), async () => {
@@ -315,11 +319,15 @@ describe("the screens", () => {
 				await click("open-agent");
 				assert.ok(shell.calls.includes("start teacher codex"));
 				assert.equal(q("teacher-panel")?.style.width, "894px", "its screen shows: wide");
+				assert.ok(settling(), "hidden while the panel grows, so nothing shows cut off");
+				await act(() => new Promise((r) => setTimeout(r, 300)));
+				assert.ok(!settling(), "shown once the width settled");
 				assert.equal(text("status"), "Ada is starting.");
 				assert.equal(text("terminal-footer"), "If Codex asks you something, answer it here.");
 			});
 		} finally {
 			Object.assign(dom.window, { innerWidth: wasWidth });
+			g.getComputedStyle = wasStyle;
 			shell.remove();
 		}
 		const outside = fakeShell();
