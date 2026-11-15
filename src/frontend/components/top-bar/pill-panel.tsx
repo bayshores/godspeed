@@ -7,8 +7,6 @@ import { BARS } from "./bar-look";
 
 /** Where the notices outside the panel portal into. */
 export const NOTICE_STACK_ID = "lh-notices";
-/** Where the pill's card portals into, under the notices. */
-export const PILL_CARD_ID = "lh-pill-card";
 
 /** With no pill on screen (the first steps): the window's top right corner. */
 const FLOATING = { top: 12, right: 16, hang: false };
@@ -22,9 +20,9 @@ function visiblePill(): Element | null {
 /**
  * The pill's panel, one for the whole window: it hangs from the top bar
  * under the pill and holds the notices (update, restart, files, rules, a
- * quiet space, a deadline that didn't save) over the pill's card. It is
- * open while a notice shows by itself or the card is open; a notice waits
- * while the pointer or focus is on the panel.
+ * quiet space, a deadline that didn't save). It is open while a notice
+ * shows by itself or the folded ones were asked for; a notice waits while
+ * the pointer or focus is on the panel.
  */
 export function PillPanel({ children }: { children: ReactNode }) {
 	const { up } = useNotices();
@@ -66,10 +64,9 @@ export function PillPanel({ children }: { children: ReactNode }) {
 			}}
 		>
 			<div data-state={presence.state} className={cn("lh-popup flex max-h-[calc(100dvh-4rem)] w-[400px] max-w-[calc(100vw-2rem)] flex-col overflow-y-auto", at.hang ? "lh-hang-body" : "lh-pop rounded-[14px]")}>
-				<div id={NOTICE_STACK_ID} className="lh-notices flex flex-col">
+				<div id={NOTICE_STACK_ID} tabIndex={-1} className="lh-notices flex flex-col outline-none">
 					{children}
 				</div>
-				<div id={PILL_CARD_ID} tabIndex={-1} className="lh-pill-card flex flex-col outline-none" />
 			</div>
 		</div>
 	);

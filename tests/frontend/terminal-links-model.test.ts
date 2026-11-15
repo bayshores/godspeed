@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { rowLinks, screenLinks, type LinkFile, type Row } from "../../src/frontend/components/terminal/terminal-links-model.ts";
 
-const NOTES: LinkFile = { id: "f_0123456789ab", name: "notes.pdf", spaceId: "spc_a" };
-const WEEK: LinkFile = { id: "f_aaaaaaaaaaaa", name: "week 3 notes.pdf", spaceId: "spc_a" };
-const README: LinkFile = { id: "f_bbbbbbbbbbbb", name: "README", spaceId: "spc_b" };
+const NOTES: LinkFile = { id: "f_0123456789ab", name: "notes.pdf", spaceId: "spc_a", space: "Lab Algebra" };
+const WEEK: LinkFile = { id: "f_aaaaaaaaaaaa", name: "week 3 notes.pdf", spaceId: "spc_a", space: "Lab Algebra" };
+const README: LinkFile = { id: "f_bbbbbbbbbbbb", name: "README", spaceId: "spc_b", space: "Old" };
 const FILES = [NOTES, WEEK, README];
 
 /** Each link as the words it covers and what it opens. */
@@ -22,8 +22,16 @@ describe("screenLinks", () => {
 
 	it("links a whole shortcut path, and no other path", () => {
 		assert.deepEqual(shown("Open spaces/Lab Algebra/Lectures/notes.pdf now"), ["spaces/Lab Algebra/Lectures/notes.pdf -> f_0123456789ab"]);
-		assert.deepEqual(shown("~/godspeed/spaces/Closed/Old/Week 1/notes.pdf"), ["spaces/Closed/Old/Week 1/notes.pdf -> f_0123456789ab"]);
+		assert.deepEqual(shown("~/godspeed/spaces/Closed/Lab Algebra/Week 1/notes.pdf"), ["spaces/Closed/Lab Algebra/Week 1/notes.pdf -> f_0123456789ab"]);
 		assert.deepEqual(shown("/Users/me/Downloads/notes.pdf"), []);
+	});
+
+	it("takes a name two spaces share from the space its path names, and leaves the bare name", () => {
+		const twin: LinkFile = { id: "f_cccccccccccc", name: "notes.pdf", spaceId: "spc_c", space: "Lab: Physics" };
+		const links = (text: string) => screenLinks(text, [NOTES, twin]).map((l) => `${text.slice(l.start, l.end)} -> ${l.file.id}`);
+		assert.deepEqual(links("See spaces/Lab- Physics/Week 1/notes.pdf"), ["spaces/Lab- Physics/Week 1/notes.pdf -> f_cccccccccccc"]);
+		assert.deepEqual(links("See spaces/lab algebra/Week 1/notes.pdf"), ["spaces/lab algebra/Week 1/notes.pdf -> f_0123456789ab"]);
+		assert.deepEqual(links("See notes.pdf or spaces/Other/Week 1/notes.pdf"), []);
 	});
 
 	it("links passage ids of known files only", () => {

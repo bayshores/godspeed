@@ -182,7 +182,7 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 
 	// ── the panel ──
 	const panel = useTeacherPanel();
-	const { open: panelOpen, setOpen: setPanelOpen, showActivity, showTerminal } = panel;
+	const { open: panelOpen, setOpen: setPanelOpen, showTerminal } = panel;
 
 	// ── the tour ──
 	const queue = useRef<AgentAction[]>([]);
@@ -320,8 +320,8 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 	const spaceNameOf = useCallback((id: string | null) => (id ? (spaceList.find((c) => c.id === id)?.name ?? null) : null), [spaceList]);
 
 	const api = useMemo<TeacherApi>(
-		() => ({ name, follow: followOn, setFollow, panelOpen, panelStarts: starts, setPanelOpen, showActivity, showTerminal, recent, doing, setLesson, go, offer, spaceNameOf }),
-		[name, followOn, setFollow, panelOpen, starts, setPanelOpen, showActivity, showTerminal, recent, doing, setLesson, go, offer, spaceNameOf],
+		() => ({ name, follow: followOn, setFollow, panelOpen, panelStarts: starts, setPanelOpen, showTerminal, recent, doing, setLesson, go, offer, spaceNameOf }),
+		[name, followOn, setFollow, panelOpen, starts, setPanelOpen, showTerminal, recent, doing, setLesson, go, offer, spaceNameOf],
 	);
 
 	return (

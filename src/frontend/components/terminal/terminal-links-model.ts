@@ -10,6 +10,8 @@ export interface LinkFile {
 	id: string;
 	name: string;
 	spaceId: string;
+	/** Its space's name, as the space's folder under `spaces/` is named. */
+	space: string;
 }
 
 export interface ScreenLink {
@@ -47,6 +49,18 @@ const BEFORE = /[\s"'`([<]/;
 const AFTER = /[\s"'`)\]>.,;:!?]/;
 /** The shortcut folders before a name: `spaces/<space>/<group>/`, or `spaces/Closed/<space>/<group>/`. */
 const SHORTCUT = /(?:^|[\s"'`([</])(spaces\/(?:[^/]+\/){2,3})$/;
+/** What the godspeed folder puts in place of characters a folder name can't hold. */
+const UNSAFE = /[\\/:*?"<>|\u0000-\u001f]/g;
+
+/** A space's folder name, as the godspeed folder makes it (without the " (2)" of a twin). */
+const folderOf = (space: string) => space.replace(UNSAFE, "-").replace(/[. ]+$/, "").trim().toLowerCase();
+
+/** The space a shortcut path names, or null when it names none. */
+function pathSpace(path: string): string | null {
+	const parts = path.split("/");
+	if (parts.length === 4) return parts[1]!.toLowerCase();
+	return parts.length === 5 && parts[1] === "Closed" ? parts[2]!.toLowerCase() : null;
+}
 
 const opens = (text: string, at: number) => at === 0 || BEFORE.test(text[at - 1]!);
 const closes = (text: string, end: number) => end === text.length || AFTER.test(text[end]!);
@@ -63,15 +77,21 @@ export function screenLinks(text: string, files: readonly LinkFile[]): ScreenLin
 	}
 	// A name without an extension ("notes") is too often a plain word. Longer
 	// names go first, so "week 3 notes.pdf" wins over "notes.pdf".
-	const named = files.filter((f) => f.name.includes(".")).sort((a, b) => b.name.length - a.name.length);
-	for (const file of named) {
-		for (let at = text.indexOf(file.name); at >= 0; at = text.indexOf(file.name, at + 1)) {
-			const end = at + file.name.length;
+	const byName = new Map<string, LinkFile[]>();
+	for (const f of files) if (f.name.includes(".")) byName.set(f.name, [...(byName.get(f.name) ?? []), f]);
+	for (const [name, same] of [...byName].sort(([a], [b]) => b.length - a.length)) {
+		for (let at = text.indexOf(name); at >= 0; at = text.indexOf(name, at + 1)) {
+			const end = at + name.length;
 			if (!closes(text, end)) continue;
-			// After a slash, only a shortcut path counts, and the whole path links.
+			// After a slash, only a shortcut path counts, and the whole path links
+			// to the file in the space it names. A bare name links only when one
+			// file has it.
 			const path = text[at - 1] === "/" ? SHORTCUT.exec(text.slice(0, at)) : null;
+			if (!path && !opens(text, at)) continue;
+			const space = path && pathSpace(path[1]!);
+			const file = path ? same.find((f) => folderOf(f.space) === space) : same.length === 1 ? same[0] : undefined;
 			const start = path ? at - path[1]!.length : at;
-			if ((path || opens(text, at)) && !taken(start, end)) links.push({ start, end, file });
+			if (file && !taken(start, end)) links.push({ start, end, file });
 		}
 	}
 	return links.sort((a, b) => a.start - b.start);

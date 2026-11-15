@@ -451,10 +451,7 @@ impl Terminals {
 		if terminal.role != Role::Teacher {
 			return Err(ATTACH_TEACHER.to_owned());
 		}
-		let (attached, bracketed) = {
-			let state = terminal.state();
-			(state.attached, state.screen.bracketed_paste())
-		};
+		let attached = terminal.state().attached;
 		// Shown, but no focus check: a Finder drop leaves Finder in front. Safe, since only a path
 		// the shell saved itself is typed, never a line break.
 		if !attached {
@@ -472,10 +469,9 @@ impl Terminals {
 		if path.chars().any(char::is_control) {
 			return Err(ATTACH_UNTYPABLE.to_owned());
 		}
+		let existed = file.exists();
 		std::fs::create_dir_all(&dir).and_then(|()| gs_base::fsx::write_atomic(&file, bytes, None)).map_err(|_| ATTACH_NOT_SAVED.to_owned())?;
-		let typed = typed_path(&path);
-		let typed = if bracketed { format!("\x1b[200~{typed}\x1b[201~ ") } else { format!("{typed} ") };
-		terminal.write(typed.as_bytes())?;
+		send_attachment(&terminal, &file, existed)?;
 		Ok(path)
 	}
 
@@ -610,6 +606,21 @@ pub fn attachment_bytes(data: &str) -> Result<Vec<u8>, String> {
 		return Err(ATTACH_TOO_BIG.to_owned());
 	}
 	Ok(gs_base::base64::decode(data))
+}
+
+/// Types a saved attachment's path, if the terminal is still shown and running: the save took a
+/// while, off the main thread. When it is not, a copy this attach made goes again.
+fn send_attachment(terminal: &Terminal, file: &Path, existed: bool) -> Result<(), String> {
+	let typed = typed_path(&file.to_string_lossy());
+	let sent = {
+		let state = terminal.state();
+		let typed = if state.screen.bracketed_paste() { format!("\x1b[200~{typed}\x1b[201~ ") } else { format!("{typed} ") };
+		if state.attached { state.io.as_ref().filter(|_| !state_ended(&state)).ok_or(NOT_THERE).and_then(|io| io.input.send(typed.into_bytes()).map_err(|_| NOT_THERE)) } else { Err(NOT_SHOWN) }
+	};
+	if sent.is_err() && !existed {
+		let _ = std::fs::remove_file(file);
+	}
+	sent.map_err(str::to_owned)
 }
 
 /// A path as a drag from the file manager types it into a terminal: on Windows in quotes when it
@@ -813,6 +824,28 @@ mod tests {
 		terminals.write(&id, "\r", true).unwrap();
 		until("the echo", || text(&terminals, &id).contains("-week_3.png"));
 		assert!(text(&terminals, &id).contains("Lab\\ folder"), "the folder's space typed as a drag types it");
+		until("the end", || ended_of(&terminals, &id).is_some());
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[test]
+	fn an_attachment_saved_after_its_screen_was_hidden_or_ended_is_not_typed_and_goes() {
+		let dir = folder("attach-late", ECHO);
+		let terminals = Terminals::new(Arc::new(Heard::default()));
+		let id = start(&terminals, &dir);
+		until("ready", || text(&terminals, &id).contains("ready"));
+		let terminal = terminals.find(&id).unwrap();
+		let saved = dir.join("late.png");
+		gs_base::fsx::write_atomic(&saved, b"made-up", None).unwrap();
+		assert_eq!(send_attachment(&terminal, &saved, true), Err(NOT_SHOWN.to_owned()));
+		assert!(saved.exists(), "a copy an earlier attach made stays");
+		assert_eq!(send_attachment(&terminal, &saved, false), Err(NOT_SHOWN.to_owned()), "hidden while it was saved");
+		assert!(!saved.exists(), "this attach's copy goes");
+		terminals.attach(&id).unwrap();
+		terminals.stop(&id).unwrap();
+		gs_base::fsx::write_atomic(&saved, b"made-up", None).unwrap();
+		assert_eq!(send_attachment(&terminal, &saved, false), Err(NOT_THERE.to_owned()), "stopped while it was saved");
+		assert!(!saved.exists());
 		until("the end", || ended_of(&terminals, &id).is_some());
 		std::fs::remove_dir_all(dir).unwrap();
 	}

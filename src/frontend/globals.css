@@ -938,28 +938,14 @@ body:has(.lh-own-bar) .lh-app-bar {
 .lh-hang[data-state="closed"] > .lh-hang-body > * {
 	animation: lh-fade-out 70ms var(--lh-ease-in) both;
 }
-/* The pill's panel: its rows are the notices and the rows of the card,
-   with a line between two. */
-.lh-hang-body > .lh-notices,
-.lh-hang-body > .lh-pill-card {
+/* The pill's panel: its rows are the notices, with a line between two. */
+.lh-hang-body > .lh-notices {
 	animation: none;
 }
-.lh-hang[data-state="open"] .lh-notices > *,
-.lh-hang[data-state="open"] .lh-pill-card > * {
+.lh-hang[data-state="open"] .lh-notices > * {
 	animation: lh-row-in var(--lh-dur) var(--lh-ease-out) 50ms both;
 }
-.lh-hang[data-state="open"] .lh-pill-card > :nth-child(2) {
-	animation-delay: 78ms;
-}
-.lh-hang[data-state="open"] .lh-pill-card > :nth-child(3) {
-	animation-delay: 106ms;
-}
-.lh-hang[data-state="open"] .lh-pill-card > :nth-child(n + 4) {
-	animation-delay: 134ms;
-}
-.lh-notice[data-shown] ~ .lh-notice[data-shown],
-.lh-pill-row + .lh-pill-row,
-.lh-notices:has(.lh-notice[data-shown]) + .lh-pill-card:not(:empty) {
+.lh-notice[data-shown] ~ .lh-notice[data-shown] {
 	border-top: 1px solid var(--border);
 }
 /* The pill's new line rolls in from below. */
@@ -1114,7 +1100,6 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	.lh-hang-body,
 	.lh-hang-body > *,
 	.lh-notices > *,
-	.lh-pill-card > *,
 	.lh-pill-line,
 	.lh-sheet-wrap::before {
 		animation: none !important;

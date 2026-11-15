@@ -135,7 +135,7 @@ function screenWords(f: TerminalFacts, name: string): ScreenWords {
 	const ended = term.ended;
 	const again = { startAgain: true };
 	// The shell also stops the helper when the teacher ends.
-	if (ended?.stopped) return { need: null, rest: teacher ? `You stopped ${name}.` : "Background work stopped.", more: again };
+	if (ended?.stopped) return { need: null, rest: teacher ? `You stopped ${name}.` : "Stopped.", more: again };
 	if (ended) {
 		if (ended.code === EXIT_NOT_INSTALLED) return { need: `${agent} isn't installed on this computer.`, rest: null, more: { get: GET_AGENT[term.agent], ...again } };
 		if (ended.code === EXIT_NO_NODE) return { need: `godspeed needs Node.js to connect ${agent}.`, rest: null, more: { get: GET_NODE, ...again } };
@@ -146,7 +146,7 @@ function screenWords(f: TerminalFacts, name: string): ScreenWords {
 		return { need: `${agent} asks to trust its folder.`, rest: null, more: { assist: { kind: "trust", label: "Trust folder" } } };
 	if (term.prompt === "enter") return { need: `${agent} is asking you to continue.`, rest: null, more: { assist: { kind: "enter", label: "Continue" } } };
 	if (!f.checkedIn && (term.url || term.prompt === "menu"))
-		return { need: `Finish signing in to ${agent}.`, rest: null };
+		return { need: `Finish signing in to ${agent}.`, rest: "Got a code? Click Paste." };
 	if (term.prompt === "menu") return { need: `${agent} is asking you something.`, rest: null };
 	const why = needsYou(f);
 	if (why === "no-check-in" || why === "not-teaching") return { need: `${name} hasn't started teaching yet.`, rest: null };

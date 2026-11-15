@@ -85,11 +85,11 @@ describe("the footer's words", () => {
 	});
 
 	it("a sign-in: a link or a menu before the first check-in", () => {
-		const signIn = "Finish signing in to Codex.";
+		const signIn = "Finish signing in to Codex. Got a code? Click Paste.";
 		assert.equal(words(facts({ checkedIn: false }, { agent: "codex", url: true })).text, signIn);
 		assert.equal(words(facts({ checkedIn: false }, { agent: "codex", prompt: "menu" })).text, signIn);
-		assert.equal(tab(facts({ checkedIn: false }, { agent: "codex", prompt: "menu" })).text, null);
-		assert.equal(tab(facts({ checkedIn: false }, { url: true })).text, "Finish signing in to Claude Code.", "the status line still says it starts");
+		assert.equal(tab(facts({ checkedIn: false }, { agent: "codex", prompt: "menu" })).text, "Got a code? Click Paste.");
+		assert.equal(tab(facts({ checkedIn: false }, { url: true })).text, "Finish signing in to Claude Code. Got a code? Click Paste.", "the status line still says it starts");
 		assert.equal(words(facts({}, { prompt: "menu" })).text, "Claude Code is asking you something.");
 		assert.equal(tab(facts({}, { prompt: "menu" })).text, null);
 	});
@@ -122,7 +122,7 @@ describe("the footer's words", () => {
 	it("background work's footer leaves out what its own status chip says", () => {
 		assert.equal(tab(facts({ helperBusy: true }, { role: "helper" })).text, "Reading your files.");
 		assert.equal(tab(facts({}, { role: "helper" })).text, "Waiting for files.");
-		assert.equal(tab(facts({}, { role: "helper", ended: { stopped: true, code: null } })).text, "Background work stopped.");
+		assert.equal(tab(facts({}, { role: "helper", ended: { stopped: true, code: null } })).text, "Stopped.");
 		assert.equal(tab(facts({}, { role: "helper", prompt: "trust" })).text, null);
 		assert.equal(screenStatusLine(facts({}, { role: "helper", prompt: "trust" }), "Background work"), "Claude Code asks to trust its folder.");
 	});

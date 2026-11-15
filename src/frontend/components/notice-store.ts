@@ -1,7 +1,7 @@
 /**
  * The notices on screen, shared by the cards (notice-card.tsx), the pill
  * and its panel: each card adds itself, shows by itself for a while, then
- * folds into the pill until the pill's card is opened. The time stands
+ * folds into the pill until its count is clicked. The time stands
  * still while the pointer or focus is on the panel.
  */
 
@@ -18,7 +18,7 @@ interface NoticeState {
 	known: string[];
 	/** How many wait folded in the pill, for its count. */
 	waiting: number;
-	/** The pill's card is open. */
+	/** The folded notices were asked for. */
 	open: boolean;
 	/** The pill says this notice's title in its place: its id and the title. */
 	said: { id: string; title: string } | null;
@@ -67,7 +67,7 @@ function update() {
 	for (const notify of listeners) notify();
 }
 
-/** The pill's card opens or closes. Closing it folds every notice. */
+/** The folded notices show, or fold again. Folding folds every notice. */
 export function setNoticesOpen(next: boolean) {
 	if (open === next) return;
 	open = next;

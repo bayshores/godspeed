@@ -22,7 +22,7 @@ export function useSpaceFiles(): LinkFile[] {
 			),
 		);
 		if (id !== request.current) return;
-		setFiles(records.flatMap((r) => r?.space.files.map((f) => ({ id: f.id, name: f.name, spaceId: r.space.id })) ?? []));
+		setFiles(records.flatMap((r) => r?.space.files.map((f) => ({ id: f.id, name: f.name, spaceId: r.space.id, space: r.space.name })) ?? []));
 	}, [ids]);
 	useEffect(() => {
 		void load();

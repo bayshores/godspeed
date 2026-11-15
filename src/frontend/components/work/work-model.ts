@@ -61,28 +61,28 @@ interface FrameWords {
 	count: string | null;
 }
 
-const working = (worker: string, count: string): FrameWords => ({ state: "working", text: `${worker} is working on this page`, count });
+const working = (count: string): FrameWords => ({ state: "working", text: "Working on this page", count });
 
-/** The frame of a space page; `worker` is who reads. A finished round names no window: the
- *  teacher and the helper may each have read some of it. */
-export function spaceFrame(state: WorkState, worker: string): FrameWords {
+/** The frame of a space page. It names no reader: the teacher and the
+ *  helper may each read some of it. */
+export function spaceFrame(state: WorkState): FrameWords {
 	switch (state.kind) {
 		case "waiting":
 			return { state: "waiting", text: `${files(state.left)} ${state.left === 1 ? "is" : "are"} waiting. Start your agent to read ${state.left === 1 ? "it" : "them"}.`, count: null };
 		case "reading":
-			return working(worker, `${state.read} of ${files(state.total)}`);
+			return working(`${state.read} of ${files(state.total)}`);
 		case "grouping":
-			return working(worker, "grouping facts into topics");
+			return working("grouping facts into topics");
 		case "done":
 			if (state.read === 0) return { state: "done", text: `Your agent could not read ${files(state.failed)}.`, count: null };
 			return { state: "done", text: `Your agent read ${files(state.read)}.`, count: state.failed > 0 ? `${state.failed} could not be read` : null };
 	}
 }
 
-/** The frame of a page one job works on (a lesson, a cheat sheet): who
- *  and what, or that it waits for an agent. */
+/** The frame of a page one job works on (a lesson, a cheat sheet): what,
+ *  or that it waits for an agent. */
 export function jobFrame(worker: string | null, doing: string): FrameWords {
-	return worker ? working(worker, doing) : { state: "waiting", text: "This page is waiting. Start your agent to carry on.", count: null };
+	return worker ? working(doing) : { state: "waiting", text: "This page is waiting. Start your agent to carry on.", count: null };
 }
 
 type LiveSpace = Pick<SpaceSummary, "filesLeft" | "building">;
@@ -91,7 +91,7 @@ type LiveSpace = Pick<SpaceSummary, "filesLeft" | "building">;
 export function todayWorkLine(space: LiveSpace, worker: string | null): string | null {
 	if (space.filesLeft === 0) return null;
 	if (!worker) return `${files(space.filesLeft)} ${space.filesLeft === 1 ? "is" : "are"} waiting for your agent`;
-	return `${worker} is ${space.building ? "building it" : "reading new files"}, ${space.filesLeft} left`;
+	return `${space.building ? "Building" : "Reading new files"}, ${space.filesLeft} left`;
 }
 
 /** The tag on the space's tab in the top bar. */
@@ -99,18 +99,17 @@ export function tabWorkTag(space: Pick<SpaceSummary, "filesLeft">): string | nul
 	return space.filesLeft > 0 ? `${space.filesLeft} left` : null;
 }
 
-/** Background work, for the pill: who does it, what it is, how far it is,
- *  and its short form as a tag. */
+/** Background work, for the pill: what it is, how far it is, and its
+ *  short form as a tag. */
 export interface WorkProgress {
-	worker: string;
 	doing: string;
 	count: string | null;
 	tag: string;
 }
 
 /**
- * The background work under way on every page: "Background work reading files, 6
- * of 17" while files are read, a deadline request's name when it is the
+ * The background work under way on every page: "Reading files", "6 of 17"
+ * while files are read, a deadline request's name when it is the
  * only work, else the number of jobs. `requests`: the deadline requests'
  * names ("Deadline: Wave Optics Final"), not counted in `jobs`. Null when
  * nothing runs or no agent takes the work.
@@ -118,11 +117,11 @@ export interface WorkProgress {
 export function workProgress(i: { worker: string | null; spaces: readonly ProgressSpace[]; jobs: number; requests: readonly string[] }): WorkProgress | null {
 	if (!i.worker) return null;
 	const { live, read, left } = filesProgress(i.spaces);
-	if (live.length > 0) return { worker: i.worker, doing: "reading files", count: `${read} of ${read + left}`, tag: `${read} of ${files(read + left)}` };
+	if (live.length > 0) return { doing: "Reading files", count: `${read} of ${read + left}`, tag: `${read} of ${files(read + left)}` };
 	const [request, ...more] = i.requests;
-	if (i.jobs === 0 && request !== undefined && more.length === 0) return { worker: i.worker, doing: request, count: null, tag: request };
+	if (i.jobs === 0 && request !== undefined && more.length === 0) return { doing: request, count: null, tag: request };
 	const all = i.jobs + i.requests.length;
 	if (all === 0) return null;
 	const jobs = `${all} job${all === 1 ? "" : "s"}`;
-	return { worker: i.worker, doing: `working on ${jobs}`, count: null, tag: jobs };
+	return { doing: `Working on ${jobs}`, count: null, tag: jobs };
 }

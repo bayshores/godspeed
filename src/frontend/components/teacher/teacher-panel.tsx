@@ -26,7 +26,7 @@ import { DOCK_WIDTH, dockLayout, shownScreen, type PanelView } from "./dock-mode
  *  agent. */
 export function agentLine(agent: AgentStatus | null, doing: AgentDoing | null = null): string | null {
 	if (!agent) return null;
-	if (agent.helperCovering) return "Tidying my memory.";
+	if (agent.helperCovering) return "Tidying my memory. A backup is answering for a minute.";
 	if (agentWaiting(agent)) return waitingNotice(agent.name);
 	if (doing?.working) return doing.text;
 	if (agent.teaching) return "Teaching, idle";
@@ -141,6 +141,7 @@ export function TeacherPanel({
 						lit={helperCalls}
 						working={false}
 						list={null}
+						follow={false}
 						need={null}
 						back={() => onScreen("teacher")}
 						wide={wide}
@@ -153,6 +154,7 @@ export function TeacherPanel({
 						lit={teacherTerminalState(teacherFacts) === "needsYou"}
 						working={!teacherStatus && !!doing?.working && line === doing.text}
 						list={listable && onScreenView ? { open: list, onOpen: onList } : null}
+						follow={listable}
 						need={onScreenView && helperCalls ? () => onScreen("helper") : null}
 						back={null}
 						wide={wide}

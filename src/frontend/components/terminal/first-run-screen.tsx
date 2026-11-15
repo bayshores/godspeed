@@ -1,21 +1,12 @@
-import { useEffect } from "react";
 import { firstRunFooter } from "./terminal-model";
 import { TerminalPane } from "./terminal-pane";
 import { useTerminals } from "./use-terminals";
 
 /** Onboarding's first start: the teacher's live screen right in the step,
- *  with its sentence and buttons under it. Nothing until it starts. */
+ *  with its sentence and buttons under it. Nothing until it starts. It
+ *  takes the keyboard only once the learner clicks in it. */
 export function FirstRunScreen() {
 	const api = useTerminals();
-	const id = api?.teacher?.id;
-	const setOnScreen = api?.setOnScreen;
-	// What shows here counts as seen. It takes the keyboard only once the
-	// learner clicks in it.
-	useEffect(() => {
-		if (!id || !setOnScreen) return;
-		setOnScreen("teacher");
-		return () => setOnScreen(null);
-	}, [id, setOnScreen]);
 	const facts = api?.facts.teacher;
 	if (!api || !facts) return null;
 	return (
