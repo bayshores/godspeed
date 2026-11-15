@@ -155,5 +155,5 @@ async fn typing_while_respond_waits_for_a_follow_up_ends_the_turn_with_a_note() 
 	let (status, body) = responding.await.unwrap();
 	assert_eq!(status, 200);
 	// The session id comes as Claude Code sends it, and its waiter ended when it took the turn.
-	assert!(body.contains(r#"{\"status\":\"turn_complete\",\"note\":\"Your turn is done. The learner typed to you in your terminal. Answer them there. Wait with the waiter"#), "{body}");
+	assert!(body.contains(r#"{\"status\":\"turn_complete\",\"note\":\"Turn done. The learner typed to you in your terminal. Answer them there. Wait with the waiter"#), "{body}");
 }

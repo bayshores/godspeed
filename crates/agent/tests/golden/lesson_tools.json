@@ -653,7 +653,7 @@
 			},
 			{
 				"name": "read_passage",
-				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
+				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading.",
 				"parameters": {
 					"type": "object",
 					"properties": {
@@ -737,7 +737,7 @@
 			},
 			{
 				"name": "list_spaces",
-				"description": "List the learner's spaces, closed ones included, with file and lesson counts.",
+				"description": "List learner's spaces, closed ones included, with file and lesson counts.",
 				"parameters": {
 					"type": "object",
 					"properties": {}
@@ -746,7 +746,7 @@
 			},
 			{
 				"name": "add_space_deadline",
-				"description": "Add one or more deadlines to a space (send all of a space's deadlines in one call): exams, homework, quizzes, projects and interviews, each with its date, its time if it has one, and which of the space's files (notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times from the space info files (a syllabus, a schedule), and never make up a date or time. Work out what a deadline covers from the space's own files first: a practice exam or review sheet, the schedule, announcements (search_space_files). Link the files they point to (file_ids), list files from before it that it doesn't cover in left_out_ids, and say in source which file it came from. Ask only when the files don't settle it. File ids come from read_space with files: true. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again. For an interview: add the posting as space info, the interview with its date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
+				"description": "Add one or more deadlines to a space (all of a space's deadlines in one call): exams, homework, quizzes, projects, interviews, each with date, time if any, and which space files (notes, readings) it covers. godspeed uses it to show the learner what's due and what to work on first. Take deadlines, dates and times from space info files (syllabus, schedule); never make up a date or time. Work out coverage from the space's own files first: practice exam or review sheet, schedule, announcements (search_space_files). Link files they point to (file_ids), list earlier files it doesn't cover in left_out_ids, name in source the file it came from. Ask only when files don't settle it. File ids from read_space with files: true. Refused deadlines are listed under refused with the reason; others still get added, so resend only refused ones. Interview: add the posting as space info, the interview with date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -799,11 +799,11 @@
 									},
 									"date": {
 										"type": "string",
-										"description": "The due day as YYYY-MM-DD."
+										"description": "Due day as YYYY-MM-DD."
 									},
 									"time": {
 										"type": "string",
-										"description": "The due time as 24-hour \"HH:MM\" on this computer's clock. Leave it out when there is none (it then counts as due at the end of the day)."
+										"description": "Due time as 24-hour \"HH:MM\" on this computer's clock. Omit when none (then due at end of day)."
 									},
 									"file_ids": {
 										"type": "array",
@@ -817,19 +817,19 @@
 										"items": {
 											"type": "string"
 										},
-										"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing."
+										"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing."
 									},
 									"source": {
 										"type": "string",
-										"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it."
+										"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it."
 									},
 									"assignment_file_id": {
 										"type": "string",
-										"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed."
+										"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed."
 									},
 									"about_file_id": {
 										"type": "string",
-										"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read."
+										"description": "Exams, quizzes, interviews: id of a space info file on what it's like (\"What it's like.md\", written with add_space_file). Search space files and the web first; under 200 words; name only sources you read."
 									}
 								}
 							},
@@ -841,7 +841,7 @@
 			},
 			{
 				"name": "update_space_deadline",
-				"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick it done (done: true) or not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from the space's own files as add_space_deadline says; ask the learner when the files don't settle it.",
+				"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick done (done: true) / not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from space's own files as add_space_deadline says; ask the learner when files don't settle it.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -911,7 +911,7 @@
 							"items": {
 								"type": "string"
 							},
-							"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing."
+							"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing."
 						},
 						"source": {
 							"anyOf": [
@@ -922,7 +922,7 @@
 									"type": "null"
 								}
 							],
-							"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it."
+							"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it."
 						},
 						"assignment_file_id": {
 							"anyOf": [
@@ -933,7 +933,7 @@
 									"type": "null"
 								}
 							],
-							"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed."
+							"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed."
 						},
 						"about_file_id": {
 							"anyOf": [
@@ -944,7 +944,7 @@
 									"type": "null"
 								}
 							],
-							"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it."
+							"description": "Id of the space info file on what it's like (see add_space_deadline), or null to remove it."
 						},
 						"done": {
 							"type": "boolean"
@@ -955,7 +955,7 @@
 			},
 			{
 				"name": "remove_space_deadline",
-				"description": "Remove one deadline from a space (its files and facts are not touched).",
+				"description": "Remove one deadline from a space (its files and facts untouched).",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -1250,7 +1250,7 @@
 			},
 			{
 				"name": "read_passage",
-				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
+				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading.",
 				"parameters": {
 					"type": "object",
 					"properties": {
@@ -1334,7 +1334,7 @@
 			},
 			{
 				"name": "list_spaces",
-				"description": "List the learner's spaces, closed ones included, with file and lesson counts.",
+				"description": "List learner's spaces, closed ones included, with file and lesson counts.",
 				"parameters": {
 					"type": "object",
 					"properties": {}
@@ -1343,7 +1343,7 @@
 			},
 			{
 				"name": "add_space_deadline",
-				"description": "Add one or more deadlines to a space (send all of a space's deadlines in one call): exams, homework, quizzes, projects and interviews, each with its date, its time if it has one, and which of the space's files (notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times from the space info files (a syllabus, a schedule), and never make up a date or time. Work out what a deadline covers from the space's own files first: a practice exam or review sheet, the schedule, announcements (search_space_files). Link the files they point to (file_ids), list files from before it that it doesn't cover in left_out_ids, and say in source which file it came from. Ask only when the files don't settle it. File ids come from read_space with files: true. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again. For an interview: add the posting as space info, the interview with its date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
+				"description": "Add one or more deadlines to a space (all of a space's deadlines in one call): exams, homework, quizzes, projects, interviews, each with date, time if any, and which space files (notes, readings) it covers. godspeed uses it to show the learner what's due and what to work on first. Take deadlines, dates and times from space info files (syllabus, schedule); never make up a date or time. Work out coverage from the space's own files first: practice exam or review sheet, schedule, announcements (search_space_files). Link files they point to (file_ids), list earlier files it doesn't cover in left_out_ids, name in source the file it came from. Ask only when files don't settle it. File ids from read_space with files: true. Refused deadlines are listed under refused with the reason; others still get added, so resend only refused ones. Interview: add the posting as space info, the interview with date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -1396,11 +1396,11 @@
 									},
 									"date": {
 										"type": "string",
-										"description": "The due day as YYYY-MM-DD."
+										"description": "Due day as YYYY-MM-DD."
 									},
 									"time": {
 										"type": "string",
-										"description": "The due time as 24-hour \"HH:MM\" on this computer's clock. Leave it out when there is none (it then counts as due at the end of the day)."
+										"description": "Due time as 24-hour \"HH:MM\" on this computer's clock. Omit when none (then due at end of day)."
 									},
 									"file_ids": {
 										"type": "array",
@@ -1414,19 +1414,19 @@
 										"items": {
 											"type": "string"
 										},
-										"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing."
+										"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing."
 									},
 									"source": {
 										"type": "string",
-										"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it."
+										"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it."
 									},
 									"assignment_file_id": {
 										"type": "string",
-										"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed."
+										"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed."
 									},
 									"about_file_id": {
 										"type": "string",
-										"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read."
+										"description": "Exams, quizzes, interviews: id of a space info file on what it's like (\"What it's like.md\", written with add_space_file). Search space files and the web first; under 200 words; name only sources you read."
 									}
 								}
 							},
@@ -1438,7 +1438,7 @@
 			},
 			{
 				"name": "update_space_deadline",
-				"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick it done (done: true) or not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from the space's own files as add_space_deadline says; ask the learner when the files don't settle it.",
+				"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick done (done: true) / not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from space's own files as add_space_deadline says; ask the learner when files don't settle it.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -1508,7 +1508,7 @@
 							"items": {
 								"type": "string"
 							},
-							"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing."
+							"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing."
 						},
 						"source": {
 							"anyOf": [
@@ -1519,7 +1519,7 @@
 									"type": "null"
 								}
 							],
-							"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it."
+							"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it."
 						},
 						"assignment_file_id": {
 							"anyOf": [
@@ -1530,7 +1530,7 @@
 									"type": "null"
 								}
 							],
-							"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed."
+							"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed."
 						},
 						"about_file_id": {
 							"anyOf": [
@@ -1541,7 +1541,7 @@
 									"type": "null"
 								}
 							],
-							"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it."
+							"description": "Id of the space info file on what it's like (see add_space_deadline), or null to remove it."
 						},
 						"done": {
 							"type": "boolean"
@@ -1552,7 +1552,7 @@
 			},
 			{
 				"name": "remove_space_deadline",
-				"description": "Remove one deadline from a space (its files and facts are not touched).",
+				"description": "Remove one deadline from a space (its files and facts untouched).",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -2288,7 +2288,7 @@
 			},
 			{
 				"name": "read_passage",
-				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
+				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading.",
 				"parameters": {
 					"type": "object",
 					"properties": {
@@ -2372,7 +2372,7 @@
 			},
 			{
 				"name": "list_spaces",
-				"description": "List the learner's spaces, closed ones included, with file and lesson counts.",
+				"description": "List learner's spaces, closed ones included, with file and lesson counts.",
 				"parameters": {
 					"type": "object",
 					"properties": {}
@@ -2381,7 +2381,7 @@
 			},
 			{
 				"name": "add_space_deadline",
-				"description": "Add one or more deadlines to a space (send all of a space's deadlines in one call): exams, homework, quizzes, projects and interviews, each with its date, its time if it has one, and which of the space's files (notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times from the space info files (a syllabus, a schedule), and never make up a date or time. Work out what a deadline covers from the space's own files first: a practice exam or review sheet, the schedule, announcements (search_space_files). Link the files they point to (file_ids), list files from before it that it doesn't cover in left_out_ids, and say in source which file it came from. Ask only when the files don't settle it. File ids come from read_space with files: true. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again. For an interview: add the posting as space info, the interview with its date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
+				"description": "Add one or more deadlines to a space (all of a space's deadlines in one call): exams, homework, quizzes, projects, interviews, each with date, time if any, and which space files (notes, readings) it covers. godspeed uses it to show the learner what's due and what to work on first. Take deadlines, dates and times from space info files (syllabus, schedule); never make up a date or time. Work out coverage from the space's own files first: practice exam or review sheet, schedule, announcements (search_space_files). Link files they point to (file_ids), list earlier files it doesn't cover in left_out_ids, name in source the file it came from. Ask only when files don't settle it. File ids from read_space with files: true. Refused deadlines are listed under refused with the reason; others still get added, so resend only refused ones. Interview: add the posting as space info, the interview with date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -2434,11 +2434,11 @@
 									},
 									"date": {
 										"type": "string",
-										"description": "The due day as YYYY-MM-DD."
+										"description": "Due day as YYYY-MM-DD."
 									},
 									"time": {
 										"type": "string",
-										"description": "The due time as 24-hour \"HH:MM\" on this computer's clock. Leave it out when there is none (it then counts as due at the end of the day)."
+										"description": "Due time as 24-hour \"HH:MM\" on this computer's clock. Omit when none (then due at end of day)."
 									},
 									"file_ids": {
 										"type": "array",
@@ -2452,19 +2452,19 @@
 										"items": {
 											"type": "string"
 										},
-										"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing."
+										"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing."
 									},
 									"source": {
 										"type": "string",
-										"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it."
+										"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it."
 									},
 									"assignment_file_id": {
 										"type": "string",
-										"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed."
+										"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed."
 									},
 									"about_file_id": {
 										"type": "string",
-										"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read."
+										"description": "Exams, quizzes, interviews: id of a space info file on what it's like (\"What it's like.md\", written with add_space_file). Search space files and the web first; under 200 words; name only sources you read."
 									}
 								}
 							},
@@ -2476,7 +2476,7 @@
 			},
 			{
 				"name": "update_space_deadline",
-				"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick it done (done: true) or not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from the space's own files as add_space_deadline says; ask the learner when the files don't settle it.",
+				"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick done (done: true) / not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from space's own files as add_space_deadline says; ask the learner when files don't settle it.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -2546,7 +2546,7 @@
 							"items": {
 								"type": "string"
 							},
-							"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing."
+							"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing."
 						},
 						"source": {
 							"anyOf": [
@@ -2557,7 +2557,7 @@
 									"type": "null"
 								}
 							],
-							"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it."
+							"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it."
 						},
 						"assignment_file_id": {
 							"anyOf": [
@@ -2568,7 +2568,7 @@
 									"type": "null"
 								}
 							],
-							"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed."
+							"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed."
 						},
 						"about_file_id": {
 							"anyOf": [
@@ -2579,7 +2579,7 @@
 									"type": "null"
 								}
 							],
-							"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it."
+							"description": "Id of the space info file on what it's like (see add_space_deadline), or null to remove it."
 						},
 						"done": {
 							"type": "boolean"
@@ -2590,7 +2590,7 @@
 			},
 			{
 				"name": "remove_space_deadline",
-				"description": "Remove one deadline from a space (its files and facts are not touched).",
+				"description": "Remove one deadline from a space (its files and facts untouched).",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -2890,7 +2890,7 @@
 			},
 			{
 				"name": "read_passage",
-				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
+				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading.",
 				"parameters": {
 					"type": "object",
 					"properties": {
@@ -2974,7 +2974,7 @@
 			},
 			{
 				"name": "list_spaces",
-				"description": "List the learner's spaces, closed ones included, with file and lesson counts.",
+				"description": "List learner's spaces, closed ones included, with file and lesson counts.",
 				"parameters": {
 					"type": "object",
 					"properties": {}
@@ -2983,7 +2983,7 @@
 			},
 			{
 				"name": "add_space_deadline",
-				"description": "Add one or more deadlines to a space (send all of a space's deadlines in one call): exams, homework, quizzes, projects and interviews, each with its date, its time if it has one, and which of the space's files (notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times from the space info files (a syllabus, a schedule), and never make up a date or time. Work out what a deadline covers from the space's own files first: a practice exam or review sheet, the schedule, announcements (search_space_files). Link the files they point to (file_ids), list files from before it that it doesn't cover in left_out_ids, and say in source which file it came from. Ask only when the files don't settle it. File ids come from read_space with files: true. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again. For an interview: add the posting as space info, the interview with its date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
+				"description": "Add one or more deadlines to a space (all of a space's deadlines in one call): exams, homework, quizzes, projects, interviews, each with date, time if any, and which space files (notes, readings) it covers. godspeed uses it to show the learner what's due and what to work on first. Take deadlines, dates and times from space info files (syllabus, schedule); never make up a date or time. Work out coverage from the space's own files first: practice exam or review sheet, schedule, announcements (search_space_files). Link files they point to (file_ids), list earlier files it doesn't cover in left_out_ids, name in source the file it came from. Ask only when files don't settle it. File ids from read_space with files: true. Refused deadlines are listed under refused with the reason; others still get added, so resend only refused ones. Interview: add the posting as space info, the interview with date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -3036,11 +3036,11 @@
 									},
 									"date": {
 										"type": "string",
-										"description": "The due day as YYYY-MM-DD."
+										"description": "Due day as YYYY-MM-DD."
 									},
 									"time": {
 										"type": "string",
-										"description": "The due time as 24-hour \"HH:MM\" on this computer's clock. Leave it out when there is none (it then counts as due at the end of the day)."
+										"description": "Due time as 24-hour \"HH:MM\" on this computer's clock. Omit when none (then due at end of day)."
 									},
 									"file_ids": {
 										"type": "array",
@@ -3054,19 +3054,19 @@
 										"items": {
 											"type": "string"
 										},
-										"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing."
+										"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing."
 									},
 									"source": {
 										"type": "string",
-										"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it."
+										"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it."
 									},
 									"assignment_file_id": {
 										"type": "string",
-										"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed."
+										"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed."
 									},
 									"about_file_id": {
 										"type": "string",
-										"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read."
+										"description": "Exams, quizzes, interviews: id of a space info file on what it's like (\"What it's like.md\", written with add_space_file). Search space files and the web first; under 200 words; name only sources you read."
 									}
 								}
 							},
@@ -3078,7 +3078,7 @@
 			},
 			{
 				"name": "update_space_deadline",
-				"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick it done (done: true) or not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from the space's own files as add_space_deadline says; ask the learner when the files don't settle it.",
+				"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick done (done: true) / not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from space's own files as add_space_deadline says; ask the learner when files don't settle it.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -3148,7 +3148,7 @@
 							"items": {
 								"type": "string"
 							},
-							"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing."
+							"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing."
 						},
 						"source": {
 							"anyOf": [
@@ -3159,7 +3159,7 @@
 									"type": "null"
 								}
 							],
-							"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it."
+							"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it."
 						},
 						"assignment_file_id": {
 							"anyOf": [
@@ -3170,7 +3170,7 @@
 									"type": "null"
 								}
 							],
-							"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed."
+							"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed."
 						},
 						"about_file_id": {
 							"anyOf": [
@@ -3181,7 +3181,7 @@
 									"type": "null"
 								}
 							],
-							"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it."
+							"description": "Id of the space info file on what it's like (see add_space_deadline), or null to remove it."
 						},
 						"done": {
 							"type": "boolean"
@@ -3192,7 +3192,7 @@
 			},
 			{
 				"name": "remove_space_deadline",
-				"description": "Remove one deadline from a space (its files and facts are not touched).",
+				"description": "Remove one deadline from a space (its files and facts untouched).",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -3631,7 +3631,7 @@
 			},
 			{
 				"name": "read_passage",
-				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
+				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading.",
 				"parameters": {
 					"type": "object",
 					"properties": {
@@ -3715,7 +3715,7 @@
 			},
 			{
 				"name": "list_spaces",
-				"description": "List the learner's spaces, closed ones included, with file and lesson counts.",
+				"description": "List learner's spaces, closed ones included, with file and lesson counts.",
 				"parameters": {
 					"type": "object",
 					"properties": {}
@@ -3724,7 +3724,7 @@
 			},
 			{
 				"name": "add_space_deadline",
-				"description": "Add one or more deadlines to a space (send all of a space's deadlines in one call): exams, homework, quizzes, projects and interviews, each with its date, its time if it has one, and which of the space's files (notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times from the space info files (a syllabus, a schedule), and never make up a date or time. Work out what a deadline covers from the space's own files first: a practice exam or review sheet, the schedule, announcements (search_space_files). Link the files they point to (file_ids), list files from before it that it doesn't cover in left_out_ids, and say in source which file it came from. Ask only when the files don't settle it. File ids come from read_space with files: true. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again. For an interview: add the posting as space info, the interview with its date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
+				"description": "Add one or more deadlines to a space (all of a space's deadlines in one call): exams, homework, quizzes, projects, interviews, each with date, time if any, and which space files (notes, readings) it covers. godspeed uses it to show the learner what's due and what to work on first. Take deadlines, dates and times from space info files (syllabus, schedule); never make up a date or time. Work out coverage from the space's own files first: practice exam or review sheet, schedule, announcements (search_space_files). Link files they point to (file_ids), list earlier files it doesn't cover in left_out_ids, name in source the file it came from. Ask only when files don't settle it. File ids from read_space with files: true. Refused deadlines are listed under refused with the reason; others still get added, so resend only refused ones. Interview: add the posting as space info, the interview with date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -3777,11 +3777,11 @@
 									},
 									"date": {
 										"type": "string",
-										"description": "The due day as YYYY-MM-DD."
+										"description": "Due day as YYYY-MM-DD."
 									},
 									"time": {
 										"type": "string",
-										"description": "The due time as 24-hour \"HH:MM\" on this computer's clock. Leave it out when there is none (it then counts as due at the end of the day)."
+										"description": "Due time as 24-hour \"HH:MM\" on this computer's clock. Omit when none (then due at end of day)."
 									},
 									"file_ids": {
 										"type": "array",
@@ -3795,19 +3795,19 @@
 										"items": {
 											"type": "string"
 										},
-										"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing."
+										"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing."
 									},
 									"source": {
 										"type": "string",
-										"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it."
+										"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it."
 									},
 									"assignment_file_id": {
 										"type": "string",
-										"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed."
+										"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed."
 									},
 									"about_file_id": {
 										"type": "string",
-										"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read."
+										"description": "Exams, quizzes, interviews: id of a space info file on what it's like (\"What it's like.md\", written with add_space_file). Search space files and the web first; under 200 words; name only sources you read."
 									}
 								}
 							},
@@ -3819,7 +3819,7 @@
 			},
 			{
 				"name": "update_space_deadline",
-				"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick it done (done: true) or not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from the space's own files as add_space_deadline says; ask the learner when the files don't settle it.",
+				"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick done (done: true) / not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from space's own files as add_space_deadline says; ask the learner when files don't settle it.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -3889,7 +3889,7 @@
 							"items": {
 								"type": "string"
 							},
-							"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing."
+							"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing."
 						},
 						"source": {
 							"anyOf": [
@@ -3900,7 +3900,7 @@
 									"type": "null"
 								}
 							],
-							"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it."
+							"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it."
 						},
 						"assignment_file_id": {
 							"anyOf": [
@@ -3911,7 +3911,7 @@
 									"type": "null"
 								}
 							],
-							"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed."
+							"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed."
 						},
 						"about_file_id": {
 							"anyOf": [
@@ -3922,7 +3922,7 @@
 									"type": "null"
 								}
 							],
-							"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it."
+							"description": "Id of the space info file on what it's like (see add_space_deadline), or null to remove it."
 						},
 						"done": {
 							"type": "boolean"
@@ -3933,7 +3933,7 @@
 			},
 			{
 				"name": "remove_space_deadline",
-				"description": "Remove one deadline from a space (its files and facts are not touched).",
+				"description": "Remove one deadline from a space (its files and facts untouched).",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -4744,7 +4744,7 @@
 			},
 			{
 				"name": "read_passage",
-				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
+				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading.",
 				"parameters": {
 					"type": "object",
 					"properties": {
@@ -4828,7 +4828,7 @@
 			},
 			{
 				"name": "list_spaces",
-				"description": "List the learner's spaces, closed ones included, with file and lesson counts.",
+				"description": "List learner's spaces, closed ones included, with file and lesson counts.",
 				"parameters": {
 					"type": "object",
 					"properties": {}
@@ -4837,7 +4837,7 @@
 			},
 			{
 				"name": "add_space_deadline",
-				"description": "Add one or more deadlines to a space (send all of a space's deadlines in one call): exams, homework, quizzes, projects and interviews, each with its date, its time if it has one, and which of the space's files (notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times from the space info files (a syllabus, a schedule), and never make up a date or time. Work out what a deadline covers from the space's own files first: a practice exam or review sheet, the schedule, announcements (search_space_files). Link the files they point to (file_ids), list files from before it that it doesn't cover in left_out_ids, and say in source which file it came from. Ask only when the files don't settle it. File ids come from read_space with files: true. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again. For an interview: add the posting as space info, the interview with its date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
+				"description": "Add one or more deadlines to a space (all of a space's deadlines in one call): exams, homework, quizzes, projects, interviews, each with date, time if any, and which space files (notes, readings) it covers. godspeed uses it to show the learner what's due and what to work on first. Take deadlines, dates and times from space info files (syllabus, schedule); never make up a date or time. Work out coverage from the space's own files first: practice exam or review sheet, schedule, announcements (search_space_files). Link files they point to (file_ids), list earlier files it doesn't cover in left_out_ids, name in source the file it came from. Ask only when files don't settle it. File ids from read_space with files: true. Refused deadlines are listed under refused with the reason; others still get added, so resend only refused ones. Interview: add the posting as space info, the interview with date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -4890,11 +4890,11 @@
 									},
 									"date": {
 										"type": "string",
-										"description": "The due day as YYYY-MM-DD."
+										"description": "Due day as YYYY-MM-DD."
 									},
 									"time": {
 										"type": "string",
-										"description": "The due time as 24-hour \"HH:MM\" on this computer's clock. Leave it out when there is none (it then counts as due at the end of the day)."
+										"description": "Due time as 24-hour \"HH:MM\" on this computer's clock. Omit when none (then due at end of day)."
 									},
 									"file_ids": {
 										"type": "array",
@@ -4908,19 +4908,19 @@
 										"items": {
 											"type": "string"
 										},
-										"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing."
+										"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing."
 									},
 									"source": {
 										"type": "string",
-										"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it."
+										"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it."
 									},
 									"assignment_file_id": {
 										"type": "string",
-										"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed."
+										"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed."
 									},
 									"about_file_id": {
 										"type": "string",
-										"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read."
+										"description": "Exams, quizzes, interviews: id of a space info file on what it's like (\"What it's like.md\", written with add_space_file). Search space files and the web first; under 200 words; name only sources you read."
 									}
 								}
 							},
@@ -4932,7 +4932,7 @@
 			},
 			{
 				"name": "update_space_deadline",
-				"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick it done (done: true) or not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from the space's own files as add_space_deadline says; ask the learner when the files don't settle it.",
+				"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick done (done: true) / not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from space's own files as add_space_deadline says; ask the learner when files don't settle it.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -5002,7 +5002,7 @@
 							"items": {
 								"type": "string"
 							},
-							"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing."
+							"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing."
 						},
 						"source": {
 							"anyOf": [
@@ -5013,7 +5013,7 @@
 									"type": "null"
 								}
 							],
-							"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it."
+							"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it."
 						},
 						"assignment_file_id": {
 							"anyOf": [
@@ -5024,7 +5024,7 @@
 									"type": "null"
 								}
 							],
-							"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed."
+							"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed."
 						},
 						"about_file_id": {
 							"anyOf": [
@@ -5035,7 +5035,7 @@
 									"type": "null"
 								}
 							],
-							"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it."
+							"description": "Id of the space info file on what it's like (see add_space_deadline), or null to remove it."
 						},
 						"done": {
 							"type": "boolean"
@@ -5046,7 +5046,7 @@
 			},
 			{
 				"name": "remove_space_deadline",
-				"description": "Remove one deadline from a space (its files and facts are not touched).",
+				"description": "Remove one deadline from a space (its files and facts untouched).",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -5328,7 +5328,7 @@
 			},
 			{
 				"name": "read_passage",
-				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
+				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading.",
 				"parameters": {
 					"type": "object",
 					"properties": {
@@ -5412,7 +5412,7 @@
 			},
 			{
 				"name": "list_spaces",
-				"description": "List the learner's spaces, closed ones included, with file and lesson counts.",
+				"description": "List learner's spaces, closed ones included, with file and lesson counts.",
 				"parameters": {
 					"type": "object",
 					"properties": {}
@@ -5421,7 +5421,7 @@
 			},
 			{
 				"name": "add_space_deadline",
-				"description": "Add one or more deadlines to a space (send all of a space's deadlines in one call): exams, homework, quizzes, projects and interviews, each with its date, its time if it has one, and which of the space's files (notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times from the space info files (a syllabus, a schedule), and never make up a date or time. Work out what a deadline covers from the space's own files first: a practice exam or review sheet, the schedule, announcements (search_space_files). Link the files they point to (file_ids), list files from before it that it doesn't cover in left_out_ids, and say in source which file it came from. Ask only when the files don't settle it. File ids come from read_space with files: true. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again. For an interview: add the posting as space info, the interview with its date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
+				"description": "Add one or more deadlines to a space (all of a space's deadlines in one call): exams, homework, quizzes, projects, interviews, each with date, time if any, and which space files (notes, readings) it covers. godspeed uses it to show the learner what's due and what to work on first. Take deadlines, dates and times from space info files (syllabus, schedule); never make up a date or time. Work out coverage from the space's own files first: practice exam or review sheet, schedule, announcements (search_space_files). Link files they point to (file_ids), list earlier files it doesn't cover in left_out_ids, name in source the file it came from. Ask only when files don't settle it. File ids from read_space with files: true. Refused deadlines are listed under refused with the reason; others still get added, so resend only refused ones. Interview: add the posting as space info, the interview with date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -5474,11 +5474,11 @@
 									},
 									"date": {
 										"type": "string",
-										"description": "The due day as YYYY-MM-DD."
+										"description": "Due day as YYYY-MM-DD."
 									},
 									"time": {
 										"type": "string",
-										"description": "The due time as 24-hour \"HH:MM\" on this computer's clock. Leave it out when there is none (it then counts as due at the end of the day)."
+										"description": "Due time as 24-hour \"HH:MM\" on this computer's clock. Omit when none (then due at end of day)."
 									},
 									"file_ids": {
 										"type": "array",
@@ -5492,19 +5492,19 @@
 										"items": {
 											"type": "string"
 										},
-										"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing."
+										"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing."
 									},
 									"source": {
 										"type": "string",
-										"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it."
+										"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it."
 									},
 									"assignment_file_id": {
 										"type": "string",
-										"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed."
+										"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed."
 									},
 									"about_file_id": {
 										"type": "string",
-										"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read."
+										"description": "Exams, quizzes, interviews: id of a space info file on what it's like (\"What it's like.md\", written with add_space_file). Search space files and the web first; under 200 words; name only sources you read."
 									}
 								}
 							},
@@ -5516,7 +5516,7 @@
 			},
 			{
 				"name": "update_space_deadline",
-				"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick it done (done: true) or not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from the space's own files as add_space_deadline says; ask the learner when the files don't settle it.",
+				"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick done (done: true) / not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from space's own files as add_space_deadline says; ask the learner when files don't settle it.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -5586,7 +5586,7 @@
 							"items": {
 								"type": "string"
 							},
-							"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing."
+							"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing."
 						},
 						"source": {
 							"anyOf": [
@@ -5597,7 +5597,7 @@
 									"type": "null"
 								}
 							],
-							"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it."
+							"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it."
 						},
 						"assignment_file_id": {
 							"anyOf": [
@@ -5608,7 +5608,7 @@
 									"type": "null"
 								}
 							],
-							"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed."
+							"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed."
 						},
 						"about_file_id": {
 							"anyOf": [
@@ -5619,7 +5619,7 @@
 									"type": "null"
 								}
 							],
-							"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it."
+							"description": "Id of the space info file on what it's like (see add_space_deadline), or null to remove it."
 						},
 						"done": {
 							"type": "boolean"
@@ -5630,7 +5630,7 @@
 			},
 			{
 				"name": "remove_space_deadline",
-				"description": "Remove one deadline from a space (its files and facts are not touched).",
+				"description": "Remove one deadline from a space (its files and facts untouched).",
 				"parameters": {
 					"type": "object",
 					"required": [

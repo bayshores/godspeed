@@ -10,52 +10,51 @@ use gs_json::{Json, Obj, json};
 /// The session-only anchor instruction. Approved word for word: keep the wording.
 pub const SESSION_MESSAGE_ID_RULE: &str = "For each new proposition, copy the message ID of the passage that most directly states or explains it into messageId.";
 
-pub const SESSION_PREAMBLE: &str = "You are the extraction stage of a learning application. You read one stretch of a source \u{2014} a teaching session, rendered as the teacher's prose in reading order \u{2014} and report what it teaches as findings for the learner's global knowledge graph, building on everything already extracted from this source.";
+pub const SESSION_PREAMBLE: &str = "You are the extraction stage of a learning app. You read one stretch of a source (a teaching session, rendered as the teacher's prose in reading order) and report what it teaches as findings for the learner's global knowledge graph, building on everything already extracted from this source.";
 
-pub const NOTES_PREAMBLE: &str = "You are the extraction stage of a learning application. You read one stretch of a source \u{2014} the author's personal notes, rendered in reading order \u{2014} and report what it teaches as findings for the learner's global knowledge graph, building on everything already extracted from this source.";
+pub const NOTES_PREAMBLE: &str = "You are the extraction stage of a learning app. You read one stretch of a source (the author's personal notes, rendered in reading order) and report what it teaches as findings for the learner's global knowledge graph, building on everything already extracted from this source.";
 
 pub const EXTRACTION_CORE: &str = "THE GOAL: uncover the source's CORE IDEAS and show how everything derives from the foundations. The
-source teaches by arguing \u{2014} ideas worked out from other ideas, down to a foundation the rest stands on.
-Your deliverable is twofold: the core ideas themselves, and the chains of reasoning that derive them.
-Each chain is premises that JOINTLY entail a conclusion. Entailment is the only link that earns a
-chain \u{2014} where the real connection is historical or narrative (who argued what, how a debate or
-exposition unfolds), there is no chain; keep the pieces as bare ideas or drop them. The direction of
-the graph is upward: foundational ideas at the bottom, derived ideas above them, each chain showing
-how its conclusion follows from what is more established \u{2014} do not submit connections that carry no
-derivation.
+source teaches by arguing: ideas worked out from other ideas, down to a foundation the rest stands on.
+Deliverable is twofold: the core ideas, and the chains of reasoning deriving them. Each chain =
+premises that JOINTLY entail a conclusion. Entailment is the only link earning a chain. Real connection
+historical or narrative (who argued what, how a debate or exposition unfolds): no chain; keep pieces as
+bare ideas or drop them. Graph points upward: foundational ideas at bottom, derived ideas above, each
+chain showing how its conclusion follows from what is more established. Never submit connections
+carrying no derivation.
 
-The graph holds TRUE ideas about the world, nothing else \u{2014} never anything about the learner, the
-teacher, or this reading: not \"the learner understands X\" but X. A misconception enters as its TRUE
-correction. Each statement is one self-contained idea at full precision.
+Graph holds TRUE ideas about the world, nothing else. Never anything about the learner, the teacher or
+this reading: not \"the learner understands X\" but X. A misconception enters as its TRUE correction.
+Each statement = one self-contained idea at full precision.
 
-Extract the load-bearing ideas of the subject \u{2014} what a reference on it would teach \u{2014} not the full run
-of the discourse. An idea earns its place only when the source's arguments run through it \u{2014} examples,
-notation glosses, and restatements that no argument needs are not core ideas. Every idea must stand
-alone for a reader who never saw this source: names and statements may not lean on the source's own
-scaffolding (claim numbering, axiom tags, arc labels); a claim that only matters as part of how this
-document is organized is not knowledge \u{2014} drop it.
+Extract the subject's load-bearing ideas (what a reference on it would teach), not the full run of the
+discourse. An idea earns its place only when the source's arguments run through it: examples, notation
+glosses and restatements no argument needs are not core ideas. Every idea stands alone for a reader who
+never saw this source: names and statements never lean on the source's own scaffolding (claim
+numbering, axiom tags, arc labels). A claim mattering only to how this document is organized is not
+knowledge: drop it.
 
-When the prompt carries THE GRAPH SO FAR, you are continuing a source already partly extracted; when
-it carries RELATED IDEAS, other sources already taught those ideas. Build on both. An idea either list
-already holds \u{2014} even worded differently \u{2014} is never submitted again: reference it by its id (\"n_\u{2026}\"),
-and list its id in reteaches when this stretch teaches it. Prefer chains that lean on established
-conclusions as premises \u{2014} derive new material from what is already derived. Do not re-derive a
-conclusion the graph already holds unless the route is genuinely different.
+Prompt carries THE GRAPH SO FAR: you continue a source already partly extracted. Carries RELATED IDEAS:
+other sources already taught those. Build on both. An idea either list already holds (even worded
+differently) is never submitted again: reference it by id (\"n_\u{2026}\"), and list its id in reteaches when
+this stretch teaches it. Prefer chains leaning on established conclusions as premises: derive new
+material from what's already derived. Don't re-derive a conclusion the graph holds unless the route is
+genuinely different.
 
-SUBMIT with one submit_findings call: every NEW core idea with a short name and a precise statement,
-every chain as premises + conclusion, and in reteaches the ids of existing ideas this stretch also
-teaches. A chain's premises and conclusion may be ids from this submission OR existing ids from THE
-GRAPH SO FAR or RELATED IDEAS, verbatim. Premises within one chain are used TOGETHER \u{2014} independent
-arguments for the same conclusion are separate chains. A conclusion may reappear, by id, as a premise
-of later chains. A bare idea that no argument uses rides the propositions list alone. Include every
-field even when empty \u{2014} \"chains\": [] when the source makes no arguments, \"reteaches\": [] when it
-re-teaches nothing. The tool's field descriptions carry the details.";
+SUBMIT with one submit_findings call: every NEW core idea with a short name and precise statement, every
+chain as premises + conclusion, and in reteaches the ids of existing ideas this stretch also teaches. A
+chain's premises and conclusion may be ids from this submission OR existing ids from THE GRAPH SO FAR or
+RELATED IDEAS, verbatim. Premises in one chain are used TOGETHER; independent arguments for the same
+conclusion are separate chains. A conclusion may reappear, by id, as a premise of later chains. A bare
+idea no argument uses rides the propositions list alone. Include every field even when empty: \"chains\":
+[] when the source makes no arguments, \"reteaches\": [] when it re-teaches nothing. The tool's field
+descriptions carry the details.";
 
 /// Lessons: questions the learner answered arrive as "QUESTION [id]" lines.
-const SESSION_QUESTION_RULE: &str = "QUESTION [id] passages are questions the learner was asked. They teach nothing themselves; for each one, list in tests the ideas it asks about (new or existing ids) under its message id, so the learner's answer counts for them.";
+const SESSION_QUESTION_RULE: &str = "QUESTION [id] passages are questions the learner was asked. They teach nothing themselves. For each, list in tests the ideas it asks about (new or existing ids) under its message id, so the learner's answer counts for them.";
 
 /// Added for space files godspeed may sort by itself.
-const SPACE_INFO_RULE: &str = "This file is from a space folder. If it is logistics rather than material to learn from (announcements, emails, grade or submission notices, schedules, forum digests), submit spaceInfo: true with empty propositions, chains and reteaches.";
+const SPACE_INFO_RULE: &str = "This file is from a space folder. Logistics rather than material to learn from (announcements, emails, grade or submission notices, schedules, forum digests): submit spaceInfo: true with empty propositions, chains and reteaches.";
 
 pub fn extractor_instructions() -> String {
 	format!("{SESSION_PREAMBLE}\n\n{EXTRACTION_CORE}\n\n{SESSION_MESSAGE_ID_RULE}\n\n{SESSION_QUESTION_RULE}")

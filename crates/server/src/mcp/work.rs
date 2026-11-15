@@ -45,7 +45,7 @@ pub(super) fn waiter_hint(lesson_id: Option<&str>, helper: bool) -> String {
 		None => String::new(),
 	};
 	format!(
-		"Wait with the waiter, not by calling wait_for_work yourself: run node .godspeed/wait-for-work.mjs{flags} in the background (CLAUDE.md in the godspeed folder has the exact command) and end your turn. It costs no tokens and wakes you when work arrives."
+		"Wait with the waiter, not wait_for_work yourself: run node .godspeed/wait-for-work.mjs{flags} in the background (exact command in the godspeed folder's CLAUDE.md), end your turn. Costs no tokens, wakes you when work arrives."
 	)
 }
 
@@ -65,7 +65,7 @@ fn idle(caller: Option<&str>, helper: bool) -> Json {
 	let note = if in_claude_code(caller) {
 		format!("Nothing to do right now. {}", waiter_hint(None, helper))
 	} else {
-		format!("Nothing to do right now. {} again to keep waiting (the learner may be reading or answering).", call_again(helper))
+		format!("Nothing to do right now. {} again to keep waiting (learner may be reading or answering).", call_again(helper))
 	};
 	json!({ "status": "idle", "note": note })
 }
@@ -118,7 +118,7 @@ fn describe(app: &App, view: &WorkView) -> Vec<String> {
 		envelope.insert("imageCount", images.len());
 	}
 	if view.instructions_as_in.is_some() || view.tools_as_before.is_some() {
-		envelope.insert("note", "You already have what instructionsAsIn and toolsAsBefore point at. If you lost it, call read_work with this workId and full: true.");
+		envelope.insert("note", "You have what instructionsAsIn and toolsAsBefore point at. Lost it: read_work with this workId and full: true.");
 	}
 	let mut blocks = vec![stringify(&Json::Obj(envelope))];
 	if let Some(instructions) = view.instructions.as_deref().filter(|i| !i.is_empty()) {
@@ -137,7 +137,7 @@ fn work_result(app: &App, view: &WorkView) -> Json {
 	let count = pages.len();
 	let mut content: Vec<Json> = Vec::new();
 	if count > 1 {
-		let note = format!("This work item is long, so it comes in {count} pages. Below is page 1. Read pages 2 to {count} with read_work before you respond.");
+		let note = format!("Long item: {count} pages. Page 1 below. Read pages 2 to {count} with read_work before responding.");
 		let header = json!({ "status": "work", "workId": view.work_id, "page": 1, "pages": count, "note": note });
 		content.push(text_block(&stringify(&header)));
 	}
@@ -262,7 +262,7 @@ pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 /// The note when the learner's typing ended respond's wait for a follow-up.
 fn typed_turn_note(app: &App, caller: Option<&str>, conversation: &str, helper: bool) -> String {
 	let chat = app.stores.chats.get_chat(conversation);
-	let done = if chat.is_some() { "Your turn is done." } else { "The task step is done." };
+	let done = if chat.is_some() { "Turn done." } else { "Task step done." };
 	if in_claude_code(caller) {
 		let lesson = chat.as_ref().and_then(|c| c["id"].as_str());
 		return format!("{done} {TYPED}. {}", waiter_hint(lesson, helper));
@@ -300,8 +300,8 @@ fn turn_complete_note(app: &App, caller: Option<&str>, conversation: &str, helpe
 		format!("{} to continue{stay}.", call_again(helper))
 	};
 	match &chat {
-		None => format!("The task step is done. {}", if claude_code { waiter_hint(None, helper) } else { format!("{} for more.", call_again(helper)) }),
-		Some(_) => format!("Your turn is done. The learner is reading and will answer in the godspeed window. {wait}"),
+		None => format!("Task step done. {}", if claude_code { waiter_hint(None, helper) } else { format!("{} for more.", call_again(helper)) }),
+		Some(_) => format!("Turn done. Learner is reading, will answer in the godspeed window. {wait}"),
 	}
 }
 
@@ -366,14 +366,14 @@ mod tests {
 	fn hints_name_the_lesson() {
 		assert!(waiter_hint(Some("chat_a"), false).contains("wait-for-work.mjs --lesson chat_a in the background"));
 		assert!(waiter_hint(None, false).contains("wait-for-work.mjs in the background"));
-		assert_eq!(idle(Some("Codex"), false)["note"], json!("Nothing to do right now. Call wait_for_work again to keep waiting (the learner may be reading or answering)."));
+		assert_eq!(idle(Some("Codex"), false)["note"], json!("Nothing to do right now. Call wait_for_work again to keep waiting (learner may be reading or answering)."));
 	}
 
 	#[test]
 	fn the_helper_waits_as_the_helper_never_on_a_lesson() {
 		assert!(waiter_hint(Some("chat_a"), true).contains("wait-for-work.mjs --helper in the background"));
-		assert!(idle(Some("Claude Code"), true)["note"].as_str().unwrap().starts_with("Nothing to do right now. Wait with the waiter, not by calling wait_for_work yourself: run node .godspeed/wait-for-work.mjs --helper in"));
-		assert_eq!(idle(Some("Codex"), true)["note"], json!("Nothing to do right now. Call wait_for_work with helper: true again to keep waiting (the learner may be reading or answering)."));
+		assert!(idle(Some("Claude Code"), true)["note"].as_str().unwrap().starts_with("Nothing to do right now. Wait with the waiter, not wait_for_work yourself: run node .godspeed/wait-for-work.mjs --helper in"));
+		assert_eq!(idle(Some("Codex"), true)["note"], json!("Nothing to do right now. Call wait_for_work with helper: true again to keep waiting (learner may be reading or answering)."));
 	}
 
 	#[test]

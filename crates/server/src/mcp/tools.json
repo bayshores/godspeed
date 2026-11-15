@@ -2,27 +2,27 @@
 	{
 		"name": "wait_for_work",
 		"title": "Wait for work",
-		"description": "Wait for the next request from godspeed (a lesson turn, a background job, or a knowledge-graph run). Returns a work item, or status \"idle\" if nothing arrived in time — then call again.",
+		"description": "Wait for godspeed's next request (lesson turn, background job or knowledge-graph run). Returns a work item, or status \"idle\" if nothing arrived in time; then call again.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
 			"properties": {
 				"timeout_seconds": {
-					"description": "How long to wait in seconds (default 45, at most 600). Stay under your client's tool timeout: for Codex that is its tool_timeout_sec (60 unless raised; the godspeed folder's start command sets 620).",
+					"description": "Seconds to wait (default 45, max 600). Stay under your client's tool timeout: for Codex its tool_timeout_sec (60 unless raised; the godspeed folder's start command sets 620).",
 					"type": "integer",
 					"minimum": 1,
 					"maximum": 600
 				},
 				"lesson_id": {
-					"description": "Stay on this lesson: take its turns, plus other lessons' turns no one else waits for and background jobs (file reading, graph building, research) while no helper is open, so they never get stuck.",
+					"description": "Stay on this lesson: its turns, plus turns of other lessons nobody waits for and background jobs (file reading, graph building, research) while no helper is open, so none get stuck.",
 					"type": "string"
 				},
 				"full_context": {
-					"description": "Send the whole conversation and instructions again, even if you saw them before (use after losing your context).",
+					"description": "Resend whole conversation and instructions, even if seen before (after losing your context).",
 					"type": "boolean"
 				},
 				"helper": {
-					"description": "Send true on every call when you are the helper: a second session beside the teacher, started when the user says \"Start as the helper\". A helper takes the background jobs (file reading, graph building, sheets), and lesson turns only while the teacher tidies its memory.",
+					"description": "true on every call when you are the helper: second session beside the teacher, started when the user says \"Start as the helper\". Helper takes background jobs (file reading, graph building, sheets), and lesson turns only while the teacher tidies its memory.",
 					"type": "boolean"
 				}
 			}
@@ -37,7 +37,7 @@
 	{
 		"name": "respond",
 		"title": "Respond to work",
-		"description": "Answer a work item the way a model would: text for the learner (or the task), and/or calls to the tools listed in the work item. Returns the next work item in the same conversation when the app needs you again right away (for example with tool results), or status \"turn_complete\".",
+		"description": "Answer a work item as a model would: text for the learner (or the task) and/or calls to tools listed in the item. Returns next work item in the same conversation when the app needs you again at once (e.g. tool results), or status \"turn_complete\".",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -51,7 +51,7 @@
 					"type": "string"
 				},
 				"tool_calls": {
-					"description": "Tool calls, run in order. Use only tools listed in the work item.",
+					"description": "Tool calls, run in order. Only tools listed in the work item.",
 					"type": "array",
 					"items": {
 						"type": "object",
@@ -74,7 +74,7 @@
 					}
 				},
 				"wait_seconds": {
-					"description": "How long to wait for the follow-up (default 30).",
+					"description": "Seconds to wait for the follow-up (default 30).",
 					"type": "integer",
 					"minimum": 0,
 					"maximum": 55
@@ -94,7 +94,7 @@
 	{
 		"name": "read_work",
 		"title": "Read more of a work item",
-		"description": "Read one page of a long work item, or (full: true) get the item again in full: its instructions, every tool and the whole conversation, for when you lost track of it. When a work item says it has several pages, read all of them before you respond.",
+		"description": "Read one page of a long work item, or (full: true) get the whole item again: instructions, every tool, whole conversation, for when you lost track. Item says it has several pages: read all before responding.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -110,7 +110,7 @@
 					"maximum": 9007199254740991
 				},
 				"full": {
-					"description": "Send the whole item again instead of one page (after your context was compacted, or when you no longer have the instructions or tools it refers to).",
+					"description": "Resend whole item instead of one page (after context compaction, or when you lack the instructions or tools it refers to).",
 					"type": "boolean"
 				}
 			},
@@ -128,13 +128,13 @@
 	{
 		"name": "list_lessons",
 		"title": "List lessons",
-		"description": "List the learner's lessons, newest first, each with its space and kind (study or homework; older ones teach or practice). total says how many match.",
+		"description": "List learner's lessons, newest first, each with space and kind (study or homework; older ones teach or practice). total = how many match.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
 			"properties": {
 				"space_id": {
-					"description": "Only the lessons of this space (from list_spaces), or \"none\" for lessons without a space. Leave it out for all lessons.",
+					"description": "Only this space's lessons (from list_spaces), or \"none\" for lessons without a space. Omit for all.",
 					"type": "string"
 				},
 				"limit": {
@@ -155,7 +155,7 @@
 	{
 		"name": "read_lesson",
 		"title": "Read a lesson",
-		"description": "Read one lesson as markdown: everything the teacher and learner said, quizzes and answers included. A long lesson comes in pages; each page says which page it is and how many there are.",
+		"description": "Read one lesson as markdown: everything teacher and learner said, quizzes and answers included. Long lesson comes in pages; each page says which and how many.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -184,13 +184,13 @@
 	{
 		"name": "search_graph",
 		"title": "Search the knowledge graph",
-		"description": "Search one space's knowledge graph (each space has its own): the facts (propositions) the learner has learned and the reasoning chains connecting them. Without a query, returns the most recent facts.",
+		"description": "Search one space's knowledge graph (each space has its own): facts (propositions) the learner learned and reasoning chains connecting them. No query: most recent facts.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
 			"properties": {
 				"query": {
-					"description": "What to look for, in plain words (matched by meaning and by keywords).",
+					"description": "What to look for, plain words (matched by meaning and keywords).",
 					"type": "string"
 				},
 				"limit": {
@@ -215,14 +215,14 @@
 	{
 		"name": "import_notes",
 		"title": "Import notes",
-		"description": "Add notes to a knowledge graph. godspeed turns them into facts in the background; that work arrives through wait_for_work. Returns right away. With space_id the notes become a study file of that space (to add a file from disk, use add_space_file).",
+		"description": "Add notes to a knowledge graph. godspeed turns them into facts in the background; that work arrives through wait_for_work. Returns at once. With space_id the notes become a study file of that space (file from disk: add_space_file).",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
 			"properties": {
 				"name": {
 					"type": "string",
-					"description": "A file-like name for the notes, e.g. \"biology-ch3.md\". In a space, re-importing the same name replaces the notes you imported before and rebuilds their facts; in No space it is processed again and adds to that import. A file this tool can't replace (the learner's own, or notes from an older version) is refused: pick another name or ask the learner to remove it."
+					"description": "File-like name for the notes, e.g. \"biology-ch3.md\". In a space, re-importing a name replaces notes imported before and rebuilds their facts; in No space it is processed again and adds to that import. A file this tool can't replace (learner's own, or notes from an older version) is refused: pick another name or ask the learner to remove it."
 				},
 				"text": {
 					"type": "string",
@@ -249,7 +249,7 @@
 	{
 		"name": "remember",
 		"title": "Remember a note",
-		"description": "Save a short note about the learner. Every agent that connects to godspeed later sees it under \"Where you left off\", in any folder. Save what the learner tells you outside lessons that will matter next time: an exam that is over, what they plan to study next, how they like to learn. One fact per note, at most 200 characters. Never save passwords or private details. The learner can see and delete notes in Settings → Connection.",
+		"description": "Save a short note about the learner. Every agent connecting to godspeed later sees it under \"Where you left off\", in any folder. Save what the learner tells you outside lessons that matters next time: an exam that's over, what they plan to study next, how they like to learn. One fact per note, max 200 characters. Never passwords or private details. Learner can see and delete notes in Settings → Connection.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -261,7 +261,7 @@
 					"description": "The note, one line."
 				},
 				"space_id": {
-					"description": "The space the note is about, if one (from list_spaces).",
+					"description": "Space the note is about, if any (from list_spaces).",
 					"type": "string"
 				}
 			},
@@ -279,7 +279,7 @@
 	{
 		"name": "forget",
 		"title": "Forget a note",
-		"description": "Delete a saved note by its note_id (from \"Where you left off\" or from remember). Use it when a note is out of date or the learner asks.",
+		"description": "Delete a saved note by note_id (from \"Where you left off\" or remember). Use when a note is out of date or the learner asks.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -302,7 +302,7 @@
 	{
 		"name": "save_rule",
 		"title": "Save a teaching rule",
-		"description": "Save a rule about how godspeed's teacher teaches this learner, when they tell you a lasting preference (\"use Python for code examples\", \"shorter answers\"). It joins the learner's rules in Settings, for every lesson or for one space's lessons, and applies from the next turn. Not for one-off requests or facts about the learner (use remember for those). Don't ask first: the godspeed window shows it with Undo and Edit.",
+		"description": "Save a rule on how godspeed's teacher teaches this learner when they state a lasting preference (\"use Python for code examples\", \"shorter answers\"). Joins learner's rules in Settings, for every lesson or one space's lessons; applies from next turn. Not for one-off requests or facts about the learner (remember for those). Don't ask first: the godspeed window shows it with Undo and Edit.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -314,11 +314,11 @@
 					"description": "One line, an instruction to the teacher, e.g. \"Use Python for code examples.\""
 				},
 				"space_id": {
-					"description": "Only for this space's lessons (from list_spaces). Leave it out for every lesson.",
+					"description": "Only this space's lessons (from list_spaces). Omit for every lesson.",
 					"type": "string"
 				},
 				"area": {
-					"description": "For every lesson, the part of teaching it is about: \"voice\", \"teaching\" (the default), \"questions\", \"facts\", \"demos\" or \"files\" (files, formatting and code).",
+					"description": "For every lesson, the part of teaching it's about: \"voice\", \"teaching\" (default), \"questions\", \"facts\", \"demos\" or \"files\" (files, formatting and code).",
 					"type": "string",
 					"enum": [
 						"voice",
@@ -344,7 +344,7 @@
 	{
 		"name": "list_spaces",
 		"title": "List spaces",
-		"description": "List the learner's spaces, closed ones included, with file and lesson counts.",
+		"description": "List learner's spaces, closed ones included, with file and lesson counts.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -360,7 +360,7 @@
 	{
 		"name": "read_space",
 		"title": "Read a space",
-		"description": "Read one space: its description, how many files are in each status (pending, extracting, ready, failed, needs-whisper) and the files that could not be read, the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. With files: true it lists every file instead (id, kind, status, size, path on disk). To find something inside the files, use search_space_files.",
+		"description": "Read one space: description, file counts per status (pending, extracting, ready, failed, needs-whisper) and files that couldn't be read, knowledge-graph topics with fact counts, deadlines (kind, date, time, done, files each covers), lessons, today's local date and time. files: true lists every file instead (id, kind, status, size, path on disk). To find something inside files: search_space_files.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -387,7 +387,7 @@
 	{
 		"name": "search_space_files",
 		"title": "Search a space's files",
-		"description": "Search all of a space's files (readings, slides, transcripts, syllabus, assignments) by meaning and keywords. Returns the best passages, each with its id, file, place (page, slide, time or lines) and a short snippet. Open the ones you need with read_passage instead of reading whole files.",
+		"description": "Search all of a space's files (readings, slides, transcripts, syllabus, assignments) by meaning and keywords. Returns best passages, each with id, file, place (page, slide, time or lines) and short snippet. Open needed ones with read_passage, not whole files.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -422,7 +422,7 @@
 	{
 		"name": "read_passage",
 		"title": "Read a passage of a space file",
-		"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
+		"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -457,7 +457,7 @@
 	{
 		"name": "create_space",
 		"title": "Create a space",
-		"description": "Create a space for one thing the learner is studying (a university course, a certification, a language). The description is shown to the teacher in every lesson of the space: level, the book or source they follow, its notation, what they are working toward (a course's exams, an interview). Add the space's deadlines with add_space_deadline.",
+		"description": "Create a space for one thing the learner studies (university course, certification, language). Description is shown to the teacher in every lesson of the space: level, book or source they follow, its notation, what they work toward (a course's exams, an interview). Add deadlines with add_space_deadline.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -472,7 +472,7 @@
 					"type": "string"
 				},
 				"signature": {
-					"description": "The space's signature: ONE line that sums up the subject, shown huge on the space's cover. kind \"math\" = LaTeX without $ (math, physics, chemistry, economics), \"code\" = a line of code (programming spaces), \"text\" = anything else (a line from a primary source, a sequence, a date). At most 60 characters. Pick something iconic for the subject; ask the learner when unsure.",
+					"description": "Space's signature: ONE line summing up the subject, shown huge on the space's cover. kind \"math\" = LaTeX without $ (math, physics, chemistry, economics), \"code\" = a line of code (programming spaces), \"text\" = anything else (a line from a primary source, a sequence, a date). Max 60 characters. Pick something iconic; ask the learner when unsure.",
 					"type": "object",
 					"properties": {
 						"kind": {
@@ -514,7 +514,7 @@
 						"palette",
 						"music"
 					],
-					"description": "The space's subject icon in the space switcher: \"cpu\" Computer science, \"code\" Programming, \"sigma\" Math, \"chart-line\" Statistics, \"atom\" Physics, \"flask-conical\" Chemistry, \"dna\" Biology, \"brain\" Psychology, \"landmark\" History, \"scale\" Law and politics, \"trending-up\" Economics, \"globe\" Geography, \"languages\" Languages, \"book-open\" Literature, \"palette\" Art, \"music\" Music. Pick the closest subject."
+					"description": "Space's subject icon in the space switcher: \"cpu\" Computer science, \"code\" Programming, \"sigma\" Math, \"chart-line\" Statistics, \"atom\" Physics, \"flask-conical\" Chemistry, \"dna\" Biology, \"brain\" Psychology, \"landmark\" History, \"scale\" Law and politics, \"trending-up\" Economics, \"globe\" Geography, \"languages\" Languages, \"book-open\" Literature, \"palette\" Art, \"music\" Music. Pick the closest subject."
 				}
 			},
 			"required": [
@@ -532,7 +532,7 @@
 	{
 		"name": "update_space",
 		"title": "Update a space",
-		"description": "Rename a space, change its description, signature or icon, or close / reopen it (closing hides its tab but keeps everything; a closed space takes no new lessons).",
+		"description": "Rename a space, change description, signature or icon, or close / reopen it (closing hides its tab, keeps everything; closed space takes no new lessons).",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -548,7 +548,7 @@
 					"type": "string"
 				},
 				"signature": {
-					"description": "The space's signature: ONE line that sums up the subject, shown huge on the space's cover. kind \"math\" = LaTeX without $ (math, physics, chemistry, economics), \"code\" = a line of code (programming spaces), \"text\" = anything else (a line from a primary source, a sequence, a date). At most 60 characters. Pick something iconic for the subject; ask the learner when unsure.",
+					"description": "Space's signature: ONE line summing up the subject, shown huge on the space's cover. kind \"math\" = LaTeX without $ (math, physics, chemistry, economics), \"code\" = a line of code (programming spaces), \"text\" = anything else (a line from a primary source, a sequence, a date). Max 60 characters. Pick something iconic; ask the learner when unsure.",
 					"type": "object",
 					"properties": {
 						"kind": {
@@ -590,7 +590,7 @@
 						"palette",
 						"music"
 					],
-					"description": "The space's subject icon in the space switcher: \"cpu\" Computer science, \"code\" Programming, \"sigma\" Math, \"chart-line\" Statistics, \"atom\" Physics, \"flask-conical\" Chemistry, \"dna\" Biology, \"brain\" Psychology, \"landmark\" History, \"scale\" Law and politics, \"trending-up\" Economics, \"globe\" Geography, \"languages\" Languages, \"book-open\" Literature, \"palette\" Art, \"music\" Music. Pick the closest subject."
+					"description": "Space's subject icon in the space switcher: \"cpu\" Computer science, \"code\" Programming, \"sigma\" Math, \"chart-line\" Statistics, \"atom\" Physics, \"flask-conical\" Chemistry, \"dna\" Biology, \"brain\" Psychology, \"landmark\" History, \"scale\" Law and politics, \"trending-up\" Economics, \"globe\" Geography, \"languages\" Languages, \"book-open\" Literature, \"palette\" Art, \"music\" Music. Pick the closest subject."
 				},
 				"closed": {
 					"type": "boolean"
@@ -610,7 +610,7 @@
 	{
 		"name": "add_space_file",
 		"title": "Add a file to a space",
-		"description": "Copy a file from this computer into a space, or write one with name and text instead of path (one you wrote before by that name is replaced and keeps its id). Supported: .md .txt, code files (.c .py .java .js and the like), plain text with no extension, .pdf .docx .pptx .epub, .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Google Docs links (.gdoc) need saving as PDF or Word first. Study files are turned into facts by you, through wait_for_work.",
+		"description": "Copy a file from this computer into a space, or write one with name and text instead of path (one you wrote before by that name is replaced, keeps its id). Supported: .md .txt, code files (.c .py .java .js and the like), plain text with no extension, .pdf .docx .pptx .epub, .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Google Docs links (.gdoc) need saving as PDF or Word first. Study files are turned into facts by you, through wait_for_work.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -636,7 +636,7 @@
 						"study",
 						"info"
 					],
-					"description": "\"study\" = study material turned into graph facts (notes, readings, transcripts, recordings); \"info\" = space info the teacher can read but that never becomes facts (a syllabus, a schedule, logistics)."
+					"description": "\"study\" = study material turned into graph facts (notes, readings, transcripts, recordings); \"info\" = space info the teacher can read, never facts (syllabus, schedule, logistics)."
 				}
 			},
 			"required": [
@@ -654,7 +654,7 @@
 	{
 		"name": "set_space_file_kind",
 		"title": "Set space files' kind",
-		"description": "Switch one or more space files between study material and space info. Study → info removes their facts; info → study builds them. A file that can't be switched is listed under refused; the others still switch.",
+		"description": "Switch space files between study material and space info. Study → info removes their facts; info → study builds them. File that can't switch is listed under refused; others still switch.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -676,7 +676,7 @@
 						"study",
 						"info"
 					],
-					"description": "\"study\" = study material turned into graph facts (notes, readings, transcripts, recordings); \"info\" = space info the teacher can read but that never becomes facts (a syllabus, a schedule, logistics)."
+					"description": "\"study\" = study material turned into graph facts (notes, readings, transcripts, recordings); \"info\" = space info the teacher can read, never facts (syllabus, schedule, logistics)."
 				}
 			},
 			"required": [
@@ -695,7 +695,7 @@
 	{
 		"name": "add_space_deadline",
 		"title": "Add deadlines to a space",
-		"description": "Add one or more deadlines to a space (send all of a space's deadlines in one call): exams, homework, quizzes, projects and interviews, each with its date, its time if it has one, and which of the space's files (notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times from the space info files (a syllabus, a schedule), and never make up a date or time. Work out what a deadline covers from the space's own files first: a practice exam or review sheet, the schedule, announcements (search_space_files). Link the files they point to (file_ids), list files from before it that it doesn't cover in left_out_ids, and say in source which file it came from. Ask only when the files don't settle it. File ids come from read_space with files: true. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again. For an interview: add the posting as space info, the interview with its date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
+		"description": "Add one or more deadlines to a space (all of a space's deadlines in one call): exams, homework, quizzes, projects, interviews, each with date, time if any, and which space files (notes, readings) it covers. godspeed uses it to show the learner what's due and what to work on first. Take deadlines, dates and times from space info files (syllabus, schedule); never make up a date or time. Work out coverage from the space's own files first: practice exam or review sheet, schedule, announcements (search_space_files). Link files they point to (file_ids), list earlier files it doesn't cover in left_out_ids, name in source the file it came from. Ask only when files don't settle it. File ids from read_space with files: true. Refused deadlines are listed under refused with the reason; others still get added, so resend only refused ones. Interview: add the posting as space info, the interview with date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -727,10 +727,10 @@
 							},
 							"date": {
 								"type": "string",
-								"description": "The due day as YYYY-MM-DD."
+								"description": "Due day as YYYY-MM-DD."
 							},
 							"time": {
-								"description": "The due time as 24-hour \"HH:MM\" on this computer's clock. Leave it out when there is none (it then counts as due at the end of the day).",
+								"description": "Due time as 24-hour \"HH:MM\" on this computer's clock. Omit when none (then due at end of day).",
 								"type": "string"
 							},
 							"file_ids": {
@@ -741,22 +741,22 @@
 								}
 							},
 							"left_out_ids": {
-								"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing.",
+								"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing.",
 								"type": "array",
 								"items": {
 									"type": "string"
 								}
 							},
 							"source": {
-								"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it.",
+								"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it.",
 								"type": "string"
 							},
 							"assignment_file_id": {
-								"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed.",
+								"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed.",
 								"type": "string"
 							},
 							"about_file_id": {
-								"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read.",
+								"description": "Exams, quizzes, interviews: id of a space info file on what it's like (\"What it's like.md\", written with add_space_file). Search space files and the web first; under 200 words; name only sources you read.",
 								"type": "string"
 							}
 						},
@@ -783,7 +783,7 @@
 	{
 		"name": "update_space_deadline",
 		"title": "Update a space deadline",
-		"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick it done (done: true) or not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from the space's own files as add_space_deadline says; ask the learner when the files don't settle it.",
+		"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick done (done: true) / not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from space's own files as add_space_deadline says; ask the learner when files don't settle it.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -828,28 +828,28 @@
 					}
 				},
 				"left_out_ids": {
-					"description": "Ids of space files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing.",
+					"description": "Ids of earlier space files it does NOT cover (e.g. lectures after the practice exam's last topic). Learner's page stops flagging them as missing.",
 					"type": "array",
 					"items": {
 						"type": "string"
 					}
 				},
 				"source": {
-					"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it.",
+					"description": "Where you found what it covers, e.g. the practice exam's file name. Learner sees it.",
 					"type": [
 						"string",
 						"null"
 					]
 				},
 				"assignment_file_id": {
-					"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed.",
+					"description": "Homework and projects: id of the space file with its problems (assignment sheet). Learner works on its problems in godspeed.",
 					"type": [
 						"string",
 						"null"
 					]
 				},
 				"about_file_id": {
-					"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it.",
+					"description": "Id of the space info file on what it's like (see add_space_deadline), or null to remove it.",
 					"type": [
 						"string",
 						"null"
@@ -874,7 +874,7 @@
 	{
 		"name": "remove_space_deadline",
 		"title": "Remove a space deadline",
-		"description": "Remove one deadline from a space (its files and facts are not touched).",
+		"description": "Remove one deadline from a space (its files and facts untouched).",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -901,7 +901,7 @@
 	{
 		"name": "link_space_folder",
 		"title": "Link a folder to a space",
-		"description": "Link a folder on this computer to a space. Its supported files are added, and from then on new files dropped there are added automatically and edited files are rebuilt (checked every minute while godspeed is open). godspeed sorts them into study material and space info itself while reading them, and never changes the folder. Use set_space_file_kind only to correct a kind.",
+		"description": "Link a folder on this computer to a space. Supported files are added; from then on new files dropped there are added automatically and edited ones rebuilt (checked every minute while godspeed is open). godspeed sorts them into study material and space info itself while reading, never changes the folder. set_space_file_kind only to correct a kind.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -929,7 +929,7 @@
 	{
 		"name": "start_lesson",
 		"title": "Start a lesson",
-		"description": "Start a new study session in godspeed taught by you: you teach what is new and give problems on what needs practice. The topic becomes the learner's first message. With space_id the lesson belongs to that space: it opens with the space's card and its facts go into that space's graph. You teach it through wait_for_work; the learner follows along in the godspeed window.",
+		"description": "Start a new study session in godspeed taught by you: teach what's new, give problems on what needs practice. Topic becomes the learner's first message. With space_id the lesson belongs to that space: opens with the space's card, its facts go to that space's graph. You teach it through wait_for_work; learner follows in the godspeed window.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -958,7 +958,7 @@
 	{
 		"name": "unlink_space_folder",
 		"title": "Unlink a space's folder",
-		"description": "Unlink the space's folder: its files leave the space together with their facts. The folder itself is not touched.",
+		"description": "Unlink the space's folder: its files leave the space with their facts. Folder itself untouched.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
