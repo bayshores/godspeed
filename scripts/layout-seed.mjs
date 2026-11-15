@@ -14,8 +14,8 @@ const WEB_SOURCE = "[[https://example.com/lab-algebra/linear-equations]]";
  *  cut-off letters has something to catch. */
 const DEADLINE = "Pop quiz: graphing";
 
-/** The stand-in agent: tool calls to the app's MCP endpoint. */
-function standIn(dataDir) {
+/** The stand-in agent: tool calls to the app's MCP endpoint, each logged when sent and answered. */
+function standIn(dataDir, log) {
 	const { url } = JSON.parse(fs.readFileSync(path.join(dataDir, "mcp-endpoint.json"), "utf8"));
 	const token = fs.readFileSync(path.join(dataDir, "mcp-token"), "utf8").trim();
 	let id = 0;
@@ -32,8 +32,10 @@ function standIn(dataDir) {
 	};
 	/** A tool's text blocks; `json` parses the first. */
 	const call = async (name, args) => {
+		log(`agent sends ${name}`);
 		const result = await rpc("tools/call", { name, arguments: args });
 		const text = (result.content ?? []).filter((block) => block.type === "text").map((block) => block.text);
+		log(`agent got ${name}: ${(text[0] ?? "").slice(0, 80)}`);
 		if (result.isError) throw new Error(`${name}: ${text.join(" ")}`);
 		return text;
 	};
@@ -93,11 +95,11 @@ function answerFor(work, ids, date, lessonTurn) {
 
 /**
  * Writes the made-up data into the running app. `page.fetch(path, init)` runs fetch in the
- * window, as the page itself would, and answers the status; `page.start` only starts it.
- * Answers the ids the screens' addresses use.
+ * window, as the page itself would, and answers the status; `page.start` only starts it. `log`
+ * keeps a line per step. Answers the ids the screens' addresses use.
  */
-export async function seed(dataDir, page) {
-	const agent = standIn(dataDir);
+export async function seed(dataDir, page, log) {
+	const agent = standIn(dataDir, log);
 	await agent.init();
 	const date = inDays(3);
 	const { space } = await agent.json("create_space", {

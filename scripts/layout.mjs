@@ -173,12 +173,13 @@ async function startApp(port, name) {
 		run: async (body) => {
 			await value(evalLine(`window.__layout = null; Promise.resolve().then(async () => { ${body} }).then((v) => { window.__layout = { v: v ?? null }; }, (e) => { window.__layout = { e: String(e) }; }); null`));
 			for (const end = Date.now() + READY_MS; Date.now() < end; await sleep(POLL_MS)) {
-				const got = await send("eval window.__layout");
+				const got = await send(`eval window.__layout === undefined ? "reloaded" : window.__layout`);
+				if (got === "reloaded") throw new Error(`the page reloaded before it answered ${body}`);
 				if (got instanceof Error || !got) continue;
 				if ("e" in got) throw new Error(got.e);
 				return got.v;
 			}
-			throw new Error(`no answer from the page for ${body}`);
+			throw new Error(`no answer from the page (at ${await send("eval location.href")}) for ${body}`);
 		},
 		/** Waits until the window shows an app page that has rendered `selector`. */
 		ready: async (selector = "#root > *") => {
@@ -237,11 +238,23 @@ async function main() {
 	let ids;
 	try {
 		await app.ready();
+		const seedLog = path.join(RUN, "seed", "seed.log");
+		const log = (line) => fs.appendFileSync(seedLog, `${new Date().toISOString()} ${line}\n`);
 		const page = {
-			fetch: (url, init = {}) => app.run(`return fetch(${JSON.stringify(url)}, ${JSON.stringify(init)})${HTTP_OK}.then((r) => r.status)`),
-			start: (url, init) => app.value(`eval void fetch(${JSON.stringify(url)}, ${JSON.stringify(init)})`),
+			fetch: async (url, init = {}) => {
+				log(`page fetches ${init.method ?? "GET"} ${url}`);
+				const status = await app.run(`return fetch(${JSON.stringify(url)}, ${JSON.stringify(init)})${HTTP_OK}.then((r) => r.status)`);
+				log(`page got ${status} for ${url}`);
+				return status;
+			},
+			start: (url, init) => {
+				log(`page starts ${init.method} ${url}`);
+				return app.value(`eval void fetch(${JSON.stringify(url)}, ${JSON.stringify(init)})`);
+			},
 		};
-		ids = await seed(path.join(RUN, "data"), page);
+		ids = await seed(path.join(RUN, "data"), page, log).catch((err) => {
+			throw new Error(`${err.message}; steps: ${seedLog}`);
+		});
 		const { settings } = JSON.parse(await app.run(`return fetch("/api/settings")${HTTP_OK}.then((r) => r.text())`));
 		const version = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).version;
 		const general = { ...settings.general, onboarded: true, lastSeenVersion: version, activeSpace: ids.space, sounds: false, teacherName: "Quigley" };
