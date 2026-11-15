@@ -33,5 +33,5 @@ Rules for adding a fragment:
 - `shared/` fragments compose into the prober and the teacher (and into practice when listed), so they hold cross-agent doctrine only and stay phase-neutral. `20-question-tools.md` covers tool mechanics only; what to ask is each phase's own doctrine. A shared fragment may only cover tools every agent that composes it actually holds.
 - One fragment per workstream. Your brief tells you which filename you own.
 - Document your agent's tools and behaviors exactly, and use tool input field names verbatim (they must match the tool schemas in `crates/agent/src/tools`).
-- Keep it tight: fragments are always in context. Don't restate the base prompt.
+- Keep it tight: fragments are always in context. Don't restate the base prompt. Write in the short style the others use (no articles or filler, fragments are fine); `system-prompt.md`, `practice/00-base.md` and `homework/00-base.md` open by telling the agent to write to the learner in full sentences. Rules about the teacher's tone, praise and reading level, and quoted examples of how the teacher sounds, stay in full sentences.
 - The agents' tools differ even where they share a transcript. Never reference another agent's tools as if you had them.

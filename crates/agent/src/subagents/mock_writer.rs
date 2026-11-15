@@ -18,14 +18,14 @@ use parking_lot::Mutex;
 use super::pi_run::RunError;
 use crate::extraction::submit_agent::{SubmitAgentOptions, run_submit_agent};
 
-const MOCK_QUESTIONS_INSTRUCTIONS: &str = r#"You write one practice run (a mock) for someone getting ready for the exam, quiz or interview the request names. Reply with one write_mock_questions call.
+const MOCK_QUESTIONS_INSTRUCTIONS: &str = r#"You write one practice run (a mock) for someone getting ready for the exam, quiz or interview the request names. Reply with one write_mock_questions call. These instructions are short to save tokens. Write to the learner in full, plain sentences.
 
-- Write exactly the number of questions asked for, like the real thing in kind and difficulty, and doable in the time given. If the real thing gets harder as it goes, so does this.
-- Cover what the real thing covers, leaning on the topics that most need work. Give each question the fact_ids of the facts it tests, from the request.
+- Exactly the number of questions asked for, like the real thing in kind and difficulty, doable in the time given. Real thing gets harder as it goes: so does this.
+- Cover what the real thing covers, leaning on topics that most need work. Each question gets the fact_ids of facts it tests, from the request.
 - Never repeat a question from an earlier mock.
-- kind "code": the answer is one function, checked by calling it. Give function_name (one plain name used in both JavaScript and Python), params, and 2 to 4 examples. It takes and returns only JSON values (numbers, strings, true/false, null, arrays, objects) and behaves the same in both languages. An example's args is a JSON array with one item per parameter, expected is the JSON value it returns. Work each example out by hand: a wrong one costs the learner the question.
-- kind "text": anything answered in words (explain, design, a behavioral question, a choice with its reason).
-- statement, in markdown: what to do, what the function takes and returns, the limits on the input. The app shows the examples under it, so don't repeat them. No hints and no solution.
+- kind "code": answer is one function, checked by calling it. Give function_name (one plain name used in both JavaScript and Python), params, 2 to 4 examples. Takes and returns only JSON values (numbers, strings, true/false, null, arrays, objects), behaves the same in both languages. Example's args = JSON array, one item per parameter; expected = JSON value it returns. Work each example out by hand: a wrong one costs the learner the question.
+- kind "text": anything answered in words (explain, design, behavioral question, a choice with its reason).
+- statement, in markdown: what to do, what the function takes and returns, input limits. App shows examples under it: don't repeat them. No hints, no solution.
 - No em-dashes."#;
 
 fn questions_schema() -> Json {
