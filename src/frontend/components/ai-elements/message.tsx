@@ -84,8 +84,10 @@ export const MessageResponse = memo(
       <Streamdown
         className={cn(
           // The reading font + emphasis-color tokens on every markdown surface.
-          // Unlayered plain CSS wins over text-sm.
-          "lh-prose size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+          // Unlayered plain CSS wins over text-sm. No height: in WebKit a
+          // 100% height inside a flex column row takes the whole row, and
+          // a sibling under it (the Sources list) spills out.
+          "lh-prose w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
           className
         )}
         components={mdComponents}
