@@ -46,8 +46,9 @@ const MAX_FONT = 14;
 const CELL_WIDTH = 0.62;
 const CELL_HEIGHT = 1.2;
 
-/** The screen's width at the largest font: the room the Terminal tab makes. */
-export const FULL_SCREEN_WIDTH = Math.ceil(COLS * CELL_WIDTH * MAX_FONT);
+/** The screen's width at a font size, and at the largest (the room the Terminal tab makes). */
+export const screenWidth = (font: number): number => Math.ceil(COLS * CELL_WIDTH * font);
+export const FULL_SCREEN_WIDTH = screenWidth(MAX_FONT);
 
 /** The largest font from 8 to 14 px whose whole 100 by 30 screen fits the
  *  box. A box too small even at 8 px scrolls inside, never cuts. */

@@ -23,7 +23,7 @@ import type { AgentDoing } from "./follow-status";
 import { TalkView, type TalkAsk } from "./talk-view";
 import { TeacherActivity } from "./teacher-activity";
 import { TerminalTab } from "./terminal-tab";
-import { DOCK_WIDTH, dockPush, dockWidth, type PanelTab } from "./dock-model";
+import { DOCK_WIDTH, dockLayout, type PanelTab } from "./dock-model";
 
 const TAB_LABEL: Record<PanelTab, string> = { talk: "Talk", activity: "Activity", terminal: "Terminal" };
 
@@ -91,9 +91,10 @@ export function TeacherPanel({
 	useEffect(() => {
 		const root = document.documentElement;
 		const measure = () => {
-			setWidth(dockWidth(window.innerWidth, wide));
 			const page = document.querySelector("main")?.getBoundingClientRect().width ?? window.innerWidth;
-			root.style.setProperty(PUSH_VAR, `${dockPush(window.innerWidth, page, wide, overLesson)}px`);
+			const dock = dockLayout(window.innerWidth, page, wide, overLesson);
+			setWidth(dock.width);
+			root.style.setProperty(PUSH_VAR, `${dock.push}px`);
 		};
 		measure();
 		window.addEventListener("resize", measure);
