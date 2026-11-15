@@ -14,9 +14,29 @@ pub const SESSION_PREAMBLE: &str = "You are the extraction stage of a learning a
 
 pub const NOTES_PREAMBLE: &str = "You are the extraction stage of a learning app. You read one stretch of a source (the author's personal notes, rendered in reading order) and report what it teaches as findings for the learner's global knowledge graph, building on everything already extracted from this source.";
 
-pub const EXTRACTION_CORE: &str = "THE GOAL: uncover the source's CORE IDEAS and show how everything derives from the foundations. The
+/// What notes and lessons say differently: the goal and which ideas to select.
+const SESSION_GOAL: &str = "THE GOAL: uncover the source's CORE IDEAS and show how everything derives from the foundations. The
 source teaches by arguing: ideas worked out from other ideas, down to a foundation the rest stands on.
-Deliverable is twofold: the core ideas, and the chains of reasoning deriving them. Each chain =
+Deliverable is twofold: the core ideas, and the chains of reasoning deriving them.";
+
+const SESSION_SELECTION: &str = "Extract the subject's load-bearing ideas (what a reference on it would teach), not the full run of the
+discourse. An idea earns its place only when the source's arguments run through it: examples, notation
+glosses and restatements no argument needs are not core ideas.";
+
+const NOTES_GOAL: &str = "THE GOAL: bring the knowledge in these notes into the learner's knowledge graph. Notes may hold
+definitions, formulas, facts, arguments or outlines without forming a complete lesson. Report the
+substantive ideas and the reasoning the notes support. A useful representation of this material is the
+deliverable, not a reconstruction of the subject from its foundations.";
+
+const NOTES_SELECTION: &str = "Keep the meaningful definitions, formulas, claims and explanations, including ideas with no
+derivation. Use chains for reasoning the notes give, including direct inferences from their stated
+relationships. A sketch need not spell out every intermediate step, but a topic outline or component
+dependency alone is not a derivation. Where the notes just state an idea, record it as a proposition,
+not as an argument built for it. Keep enough detail to preserve the knowledge, without expanding the
+notes into a full treatment of the subject.";
+
+/// What both share: how chains and ideas are written, then how to build on the graph and submit.
+const CHAIN_AND_GRAPH_RULES: &str = "Each chain =
 premises that JOINTLY entail a conclusion. Entailment is the only link earning a chain. Real connection
 historical or narrative (who argued what, how a debate or exposition unfolds): no chain; keep pieces as
 bare ideas or drop them. Graph points upward: foundational ideas at bottom, derived ideas above, each
@@ -25,11 +45,9 @@ carrying no derivation.
 
 Graph holds TRUE ideas about the world, nothing else. Never anything about the learner, the teacher or
 this reading: not \"the learner understands X\" but X. A misconception enters as its TRUE correction.
-Each statement = one self-contained idea at full precision.
+Each statement = one self-contained idea at full precision.";
 
-Extract the subject's load-bearing ideas (what a reference on it would teach), not the full run of the
-discourse. An idea earns its place only when the source's arguments run through it: examples, notation
-glosses and restatements no argument needs are not core ideas. Every idea stands alone for a reader who
+const STANDALONE_AND_SUBMIT_RULES: &str = "Every idea stands alone for a reader who
 never saw this source: names and statements never lean on the source's own scaffolding (claim
 numbering, axiom tags, arc labels). A claim mattering only to how this document is organized is not
 knowledge: drop it.
@@ -50,6 +68,10 @@ idea no argument uses rides the propositions list alone. Include every field eve
 [] when the source makes no arguments, \"reteaches\": [] when it re-teaches nothing. The tool's field
 descriptions carry the details.";
 
+fn extraction_core(goal: &str, selection: &str) -> String {
+	format!("{goal} {CHAIN_AND_GRAPH_RULES}\n\n{selection} {STANDALONE_AND_SUBMIT_RULES}")
+}
+
 /// Lessons: questions the learner answered arrive as "QUESTION [id]" lines.
 const SESSION_QUESTION_RULE: &str = "QUESTION [id] passages are questions the learner was asked. They teach nothing themselves. For each, list in tests the ideas it asks about (new or existing ids) under its message id, so the learner's answer counts for them.";
 
@@ -57,11 +79,11 @@ const SESSION_QUESTION_RULE: &str = "QUESTION [id] passages are questions the le
 const SPACE_INFO_RULE: &str = "This file is from a space folder. Logistics rather than material to learn from (announcements, emails, grade or submission notices, schedules, forum digests): submit spaceInfo: true with empty propositions, chains and reteaches.";
 
 pub fn extractor_instructions() -> String {
-	format!("{SESSION_PREAMBLE}\n\n{EXTRACTION_CORE}\n\n{SESSION_MESSAGE_ID_RULE}\n\n{SESSION_QUESTION_RULE}")
+	format!("{SESSION_PREAMBLE}\n\n{}\n\n{SESSION_MESSAGE_ID_RULE}\n\n{SESSION_QUESTION_RULE}", extraction_core(SESSION_GOAL, SESSION_SELECTION))
 }
 
 pub fn notes_extractor_instructions(may_be_space_info: bool) -> String {
-	let base = format!("{NOTES_PREAMBLE}\n\n{EXTRACTION_CORE}");
+	let base = format!("{NOTES_PREAMBLE}\n\n{}", extraction_core(NOTES_GOAL, NOTES_SELECTION));
 	if may_be_space_info { format!("{base}\n\n{SPACE_INFO_RULE}") } else { base }
 }
 
