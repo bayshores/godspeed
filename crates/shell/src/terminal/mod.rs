@@ -43,6 +43,7 @@ const ATTACH_TOO_BIG: &str = "That file is over 20 MB.";
 const ATTACH_KINDS: &str = "Attach takes pictures (PNG, JPEG, GIF or WebP) and PDFs.";
 const ATTACH_TEACHER: &str = "Attach is for the teacher's screen.";
 const ATTACH_NOT_SAVED: &str = "godspeed couldn't save that file in its folder.";
+const ATTACH_UNTYPABLE: &str = "godspeed's folder has a line break in its path, so Attach can't type it.";
 
 /// Where a terminal's news goes: the page, the server and the log.
 pub trait Outlet: Send + Sync + 'static {
@@ -454,6 +455,8 @@ impl Terminals {
 			let state = terminal.state();
 			(state.attached, state.screen.bracketed_paste())
 		};
+		// Shown, but no focus check: a Finder drop leaves Finder in front. Safe, since only a path
+		// the shell saved itself is typed, never a line break.
 		if !attached {
 			return Err(NOT_SHOWN.to_owned());
 		}
@@ -465,8 +468,11 @@ impl Terminals {
 		}
 		let dir = folder.join(".godspeed").join("attachments");
 		let file = dir.join(attachment_name(name, bytes));
-		std::fs::create_dir_all(&dir).and_then(|()| gs_base::fsx::write_atomic(&file, bytes, None)).map_err(|_| ATTACH_NOT_SAVED.to_owned())?;
 		let path = file.to_string_lossy().into_owned();
+		if path.chars().any(char::is_control) {
+			return Err(ATTACH_UNTYPABLE.to_owned());
+		}
+		std::fs::create_dir_all(&dir).and_then(|()| gs_base::fsx::write_atomic(&file, bytes, None)).map_err(|_| ATTACH_NOT_SAVED.to_owned())?;
 		let typed = if bracketed { format!("\x1b[200~{path}\x1b[201~ ") } else { format!("{path} ") };
 		terminal.write(typed.as_bytes())?;
 		Ok(path)
@@ -764,6 +770,9 @@ mod tests {
 		assert_eq!(terminals.add_file(&id, "notes.txt", b"plain words", &dir), Err(ATTACH_KINDS.to_owned()));
 		assert_eq!(terminals.add_file(&id, "big.pdf", &[b"%PDF-".as_slice(), &vec![0; ATTACH_MAX]].concat(), &dir), Err(ATTACH_TOO_BIG.to_owned()));
 
+		let odd = dir.join("line\nbreak");
+		assert_eq!(terminals.add_file(&id, "a.png", png, &odd), Err(ATTACH_UNTYPABLE.to_owned()), "a path with a line break is never typed");
+		assert!(!odd.exists(), "nor saved");
 		let path = terminals.add_file(&id, "../week 3.png", png, &dir).unwrap();
 		let saved = dir.join(".godspeed").join("attachments").join(format!("{}-week_3.png", &gs_base::hash::sha256_hex(png)[..12]));
 		assert_eq!(Path::new(&path), saved, "inside the folder, the name's last part, spaces as _");
@@ -786,6 +795,7 @@ mod tests {
 		}
 		assert_eq!(&attachment_name("C:\\Users\\ada\\Lab $1 (final).pdf", b"x")[12..], "-Lab__1__final_.pdf");
 		assert_eq!(&attachment_name("..", b"x")[12..], "-file");
+		assert_eq!(&attachment_name("notes\r\nrm -rf ~.png", b"x")[12..], "-notes__rm_-rf__.png", "no line break reaches the input");
 		assert_eq!(attachment_name("a.png", b"x"), attachment_name("a.png", b"x"), "the same file keeps its name");
 	}
 
