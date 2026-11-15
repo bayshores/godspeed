@@ -1,31 +1,28 @@
 /**
  * The teacher's panel: click the teacher in the top bar.
  * Docked to the window's right edge, under the top bar. It pushes the page
- * left to make room. The head (name, the teacher's status, Close), then
- * the tabs (dock-model.ts panelTabs): Talk (a chat outside lessons,
- * talk-view.tsx, with Clear chat on the tab row), Activity
- * (teacher-activity.tsx) and Terminal (terminal-tab.tsx), which grows the
- * panel to fit the agent's whole screen and, while a helper runs, carries
- * the switch between its screen and the teacher's. A screen that needs the
- * learner marks the Terminal tab while another tab shows.
+ * left to make room. One head row: the name and the teacher's status, the
+ * Teacher and Helper switch while a helper runs, a key that swaps the body
+ * between the agent's screen (panel-screen.tsx), which grows the panel to
+ * fit the whole screen, and Activity (teacher-activity.tsx), then Close.
+ * A screen that needs the learner marks that key while Activity shows.
  */
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/frontend/lib/utils";
-import type { AgentAction } from "@/shared/core";
 import { agentWaiting, agentStatusLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
-import { tabListKeys } from "@/frontend/components/ui/tab-list";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { TeacherStatus } from "@/frontend/components/terminal/teacher-status";
 import { needsYou, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
-import { useTerminals } from "@/frontend/components/terminal/use-terminals";
+import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useTeacher } from "./teacher-context";
 import type { AgentDoing } from "./follow-status";
-import { TalkView, type TalkAsk } from "./talk-view";
 import { TeacherActivity } from "./teacher-activity";
-import { TerminalTab } from "./terminal-tab";
-import { DOCK_WIDTH, dockLayout, shownScreen, type PanelTab } from "./dock-model";
+import { PanelScreen } from "./panel-screen";
+import { StartTeacher } from "./start-teacher";
+import { DOCK_WIDTH, dockLayout, shownScreen, type PanelView } from "./dock-model";
 
-const TAB_LABEL: Record<PanelTab, string> = { talk: "Talk", activity: "Activity", terminal: "Terminal" };
+/** The swap key names where it goes, the same word the lesson's teacher column uses. */
+const VIEW_LABEL: Record<PanelView, string> = { activity: "Activity", terminal: "Terminal" };
 
 /** The status line under the name: the helper notice while the agent
  *  compacts, the waiting notice while work waits, what the agent is doing
@@ -49,51 +46,44 @@ const PUSH_VAR = "--lh-dock-push";
 export function TeacherPanel({
 	name,
 	agent,
-	tabs,
-	tab,
-	onTab,
+	views,
+	view,
+	onView,
 	overLesson,
 	screen,
 	onScreen,
 	focus,
 	onClose,
-	recent,
-	onPick,
-	ask,
-	onAsked,
 }: {
 	name: string;
 	agent: AgentStatus | null;
-	tabs: readonly PanelTab[];
-	tab: PanelTab;
-	onTab: (tab: PanelTab) => void;
+	views: readonly PanelView[];
+	view: PanelView;
+	onView: (view: PanelView) => void;
 	/** It opened over a lesson: it covers the page instead of pushing it. */
 	overLesson: boolean;
-	/** The screen the Terminal tab shows, and the learner's pick of one. */
+	/** The screen the panel shows, and the learner's pick of one. */
 	screen: TerminalRole;
 	onScreen: (role: TerminalRole) => void;
-	/** The learner opened the Terminal tab: its screen takes the keyboard. */
+	/** The learner opened the screen: it takes the keyboard. */
 	focus: boolean;
 	onClose: () => void;
-	recent: readonly AgentAction[];
-	onPick: (action: AgentAction) => void;
-	/** A message to send in Talk (askTeacher). */
-	ask?: TalkAsk | null;
-	onAsked?: (id: number) => void;
 }) {
-	const [clearSlot, setClearSlot] = useState<HTMLElement | null>(null);
 	const teacher = useTeacher();
 	const terminals = useTerminals();
 	const line = agentLine(agent, teacher?.doing ?? null);
-	const tabsId = useId();
-	// A screen that needs the learner, and the one the Terminal tab shows.
+	const bodyId = useId();
+	const onScreenView = view === "terminal";
+	const other = views.find((v) => v !== view) ?? null;
+	// A screen that needs the learner, and the one the panel shows.
 	const calls = (role: TerminalRole) => !!terminals?.facts[role] && !!needsYou(terminals.facts[role]!);
 	const shown = shownScreen(screen, !!terminals?.helper);
 	const hasScreen = !!terminals?.facts[shown];
+	const marked = calls("teacher") || calls("helper");
 	const [{ width, wide }, setDock] = useState({ width: DOCK_WIDTH, wide: false });
 	const section = useRef<HTMLElement>(null);
 	const lastWidth = useRef(DOCK_WIDTH);
-	// While the panel grows to a new width the Terminal tab, laid out at the
+	// While the panel grows to a new width the screen, laid out at the
 	// final width, would show cut off on its left: it waits, then fades in.
 	const [settling, setSettling] = useState(false);
 	// Before paint, so a screen that just appeared is never fitted to the narrow width first.
@@ -102,7 +92,7 @@ export function TeacherPanel({
 		let settled: ReturnType<typeof setTimeout> | undefined;
 		const measure = (changed: boolean) => {
 			const page = document.querySelector("main")?.getBoundingClientRect().width ?? window.innerWidth;
-			const dock = dockLayout(window.innerWidth, page, tab, hasScreen, overLesson);
+			const dock = dockLayout(window.innerWidth, page, view, hasScreen, overLesson);
 			if (changed) {
 				// No width animation under reduced motion: 0s, shown at once.
 				const moves = dock.wide && dock.width !== lastWidth.current && !!section.current;
@@ -123,7 +113,7 @@ export function TeacherPanel({
 			clearTimeout(settled);
 			window.removeEventListener("resize", onResize);
 		};
-	}, [tab, hasScreen, overLesson]);
+	}, [view, hasScreen, overLesson]);
 	useEffect(
 		() => () => {
 			document.documentElement.style.removeProperty(PUSH_VAR);
@@ -141,54 +131,15 @@ export function TeacherPanel({
 			style={{ width }}
 			className="lh-slide-in fixed top-12 right-0 bottom-0 z-[41] flex max-w-full flex-col overflow-hidden border-l-2 border-line bg-panel font-ui motion-safe:transition-[width] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)"
 		>
-			<div className="flex shrink-0 items-center gap-3 pt-4 pr-3.5 pb-3 pl-5">
+			<div className="flex shrink-0 items-center gap-3 border-b border-tone-2 pt-4 pr-3.5 pb-3 pl-5">
 				<span className="flex min-w-0 flex-1 flex-col gap-px">
 					<span data-testid="teacher-panel-name" className="truncate text-xl leading-snug font-medium text-ink">
 						{name}
 					</span>
 					<TeacherStatus name={name} line={line} testid="teacher-panel-agent" className="max-w-full text-base text-ink-2" />
 				</span>
-				<button type="button" data-testid="teacher-panel-close" onClick={onClose} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
-					<PixelIcon name="close" />
-					Close
-				</button>
-			</div>
-
-			<div className="flex shrink-0 items-center border-b border-tone-2 px-3.5">
-				<div
-					role="tablist"
-					aria-label={name}
-					onKeyDown={tabListKeys(tabs.indexOf(tab), tabs.length, (i) => onTab(tabs[i]!))}
-					className="flex gap-1.5"
-				>
-					{tabs.map((t) => {
-						const marked = t === "terminal" && tab !== "terminal" && (calls("teacher") || calls("helper"));
-						return (
-							<button
-								key={t}
-								type="button"
-								role="tab"
-								id={`${tabsId}-${t}`}
-								aria-selected={tab === t}
-								aria-controls={`${tabsId}-panel`}
-								aria-description={marked ? `${name} needs you here` : undefined}
-								tabIndex={tab === t ? 0 : -1}
-								data-testid={`teacher-tab-${t}`}
-								onClick={() => onTab(t)}
-								className={cn(
-									"lh-press -mb-px flex items-center gap-2 border-b-2 px-3.5 py-2.5 text-lg",
-									tab === t ? "border-ink font-medium text-ink" : "border-transparent text-ink-2 hover:text-ink",
-								)}
-							>
-								{TAB_LABEL[t]}
-								{marked && <NeedsMark testid="teacher-tab-terminal-mark" />}
-							</button>
-						);
-					})}
-				</div>
-				{tab === "talk" && <span ref={setClearSlot} className="ml-auto" />}
-				{tab === "terminal" && terminals?.helper && (
-					<div role="group" aria-label="Screen" className="ml-auto flex shrink-0 gap-1">
+				{onScreenView && terminals?.helper && (
+					<div role="group" aria-label="Screen" className="flex shrink-0 gap-1">
 						{(["teacher", "helper"] as const).map((role) => (
 							<button
 								key={role}
@@ -204,30 +155,48 @@ export function TeacherPanel({
 						))}
 					</div>
 				)}
+				{other && (
+					<button
+						type="button"
+						data-testid="teacher-panel-view"
+						aria-controls={bodyId}
+						aria-description={other === "terminal" && marked ? `${name} needs you here` : undefined}
+						onClick={() => onView(other)}
+						className="lh-btn lh-btn-quiet shrink-0 text-[15px]"
+					>
+						{VIEW_LABEL[other]}
+						{other === "terminal" && marked && <NeedsMark testid="teacher-panel-view-mark" />}
+					</button>
+				)}
+				<button type="button" data-testid="teacher-panel-close" onClick={onClose} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
+					<PixelIcon name="close" />
+					Close
+				</button>
 			</div>
 
-			{/* The Terminal tab is laid out at the panel's final width, against its
+			{/* The screen is laid out at the panel's final width, against its
 			    right edge, so its font is fitted once, not every frame. It is
 			    hidden at once while the panel grows and fades in after. */}
 			<div
-				role="tabpanel"
-				id={`${tabsId}-panel`}
-				aria-labelledby={`${tabsId}-${tab}`}
+				id={bodyId}
+				data-testid="teacher-panel-body"
 				data-settling={settling || undefined}
 				style={wide ? { width: width - PANEL_BORDER } : undefined}
 				className={cn(
 					"flex min-h-0 flex-1 flex-col",
-					tab === "activity" && "px-5 py-[18px]",
+					!onScreenView && "gap-[18px] px-5 py-[18px]",
 					wide && "self-end",
 					settling ? "opacity-0" : "motion-safe:transition-opacity motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)",
 				)}
 			>
-				{tab === "talk" ? (
-					<TalkView name={name} agent={agent} recent={recent} onPick={onPick} ask={ask ?? null} onAsked={onAsked} clearSlot={clearSlot} />
-				) : tab === "activity" ? (
-					<TeacherActivity underStatus />
+				{onScreenView ? (
+					<PanelScreen name={name} role={shown} focus={focus} />
 				) : (
-					<TerminalTab name={name} role={shown} focus={focus} />
+					<>
+						{/* In a browser there is no screen to start from. */}
+						{!terminals?.available && noAgentHere(agent, terminals) && <StartTeacher />}
+						<TeacherActivity underStatus />
+					</>
 				)}
 			</div>
 		</section>

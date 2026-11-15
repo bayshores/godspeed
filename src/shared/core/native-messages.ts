@@ -97,7 +97,6 @@ export interface LhMarkerMessage {
 		| "practice-next"
 		| "problem-dismissed"
 		| "compaction"
-		| "app-request"
 		| "keep-going"
 		| "opener-answer"
 		| "app-note"
@@ -280,13 +279,6 @@ export interface GraphContextPick {
 }
 
 // ─── spaces ─────────────────────────────────────────────────────────────────
-
-/** A deadline an app request asks about. */
-export interface AppRequestDeadline {
-	id: string;
-	name: string;
-	spaceName: string;
-}
 
 /** The learner's explicit move-on signal: appended by
  *  the next input (the composer band's chip, or Enter on an empty

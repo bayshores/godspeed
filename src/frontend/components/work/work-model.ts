@@ -1,9 +1,9 @@
 /**
  * Background work on a space, in words: what the work frame on a space
- * page, Today, the space's tab, the top bar chip and Talk say while its
+ * page, Today, the space's tab and the top bar chip say while its
  * files are read and after. Pure.
  */
-import { isWaitingFile, type AgentAction, type SpaceFile, type SpaceSummary, type SpaceWork } from "@/shared/core";
+import { isWaitingFile, type SpaceFile, type SpaceSummary, type SpaceWork } from "@/shared/core";
 import type { AgentStatus } from "@/frontend/components/agent-status";
 
 /** A finished round shows for a day. */
@@ -109,13 +109,4 @@ export function workChip(i: { worker: string | null; spaces: readonly ProgressSp
 	const { live, read, left } = filesProgress(i.spaces);
 	if (live.length > 0) return `${i.worker}, ${read} of ${files(read + left)}`;
 	return i.jobs > 0 ? `${i.worker}, ${i.jobs} job${i.jobs === 1 ? "" : "s"}` : null;
-}
-
-/** The line under Talk's "Created <space>" row while that space is read;
- *  `action` is the row's change as the panel knows it. */
-export function talkWorkLine(action: AgentAction | null, spaces: readonly SpaceSummary[], working: boolean): string | null {
-	if (action?.target?.kind !== "space" || !action.label.startsWith("Creating ")) return null;
-	const left = spaces.find((s) => s.id === action.target?.id)?.filesLeft ?? 0;
-	if (left === 0) return null;
-	return working ? `Reading its files, ${left} left` : `${files(left)} ${left === 1 ? "is" : "are"} waiting for your agent`;
 }

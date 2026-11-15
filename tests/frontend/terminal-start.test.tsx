@@ -1,7 +1,7 @@
 /**
  * Starting the agent: the web version keeps the copy-command path, the
  * desktop app starts the teacher's terminal and shows its screen in
- * onboarding's step, and Start lesson or a Talk send start the agent last
+ * onboarding's step, and Start lesson or a lesson's send start the agent last
  * started here, hidden.
  */
 import { dom, fakeShell } from "../terminal-dom.ts";
@@ -190,7 +190,7 @@ describe("the shell's list", () => {
 	});
 });
 
-describe("Start lesson and a Talk send", () => {
+describe("Start lesson and a lesson's send", () => {
 	it("start the agent last started here, hidden, only when no agent is here", async () => {
 		const shell = fakeShell();
 		let api: Api | null = null;

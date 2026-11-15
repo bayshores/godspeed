@@ -5,13 +5,13 @@ import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { StartTeacher } from "./start-teacher";
 
 /**
- * The Terminal tab: the agent's live screen (the teacher's, or the
- * helper's when the switch on the tab row picks it) with its sentence and
- * buttons under it. Before godspeed has started an agent: what shows here
- * and the start buttons, as in Talk, or where an agent started outside
- * godspeed shows its screen.
+ * The panel's screen: the agent's live screen (the teacher's, or the
+ * helper's when the switch in the panel's head picks it) with its sentence
+ * and buttons under it. Before godspeed has started an agent: what shows
+ * here and the start buttons, or where an agent started outside godspeed
+ * shows its screen.
  */
-export function TerminalTab({ name, role, focus }: { name: string; role: TerminalRole; focus: boolean }) {
+export function PanelScreen({ name, role, focus }: { name: string; role: TerminalRole; focus: boolean }) {
 	const api = useTerminals();
 	const facts = api?.facts[role] ?? null;
 	const setOnScreen = api?.setOnScreen;

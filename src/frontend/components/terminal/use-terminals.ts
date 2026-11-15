@@ -50,7 +50,7 @@ export interface TerminalsApi {
 	agentHere: boolean;
 	/** The shell's first list of terminals has answered. */
 	loaded: boolean;
-	/** The screen on view now (the panel's Terminal tab, onboarding's
+	/** The screen on view now (the teacher's panel, onboarding's
 	 *  step): what it needs counts as seen. */
 	onScreen: TerminalRole | null;
 	setOnScreen: (role: TerminalRole | null) => void;
@@ -64,7 +64,7 @@ export interface TerminalsApi {
 	/** These resolve to why the shell refused, or null. */
 	answer: (role: TerminalRole, kind: "trust" | "enter") => Promise<string | null>;
 	paste: (role: TerminalRole) => Promise<string | null>;
-	/** Start lesson and a Talk send: start the teacher hidden when it may (wakeAgent). */
+	/** Start lesson and a lesson's send: start the teacher hidden when it may (wakeAgent). */
 	wake: () => void;
 }
 
@@ -153,7 +153,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const teacherCheckedIn = checkedIn(teacher?.id);
 	const outsideHere = !!status?.outsideHere;
 
-	// The teacher checked in and is not teaching while a lesson or Talk turn waits.
+	// The teacher checked in and is not teaching while a lesson turn waits.
 	const quiet = teacherLive && teacherCheckedIn && !!status && !status.teaching && status.pendingTurns > 0;
 	useEffect(() => setQuietSince((since) => (quiet ? (since ?? Date.now()) : null)), [quiet]);
 

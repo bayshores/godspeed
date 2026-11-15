@@ -15,8 +15,8 @@ import type { QuestionAnswerData } from "../question-core.ts";
  *  teacher; ABSENT on old records, absence reads as teach) and "practice"
  *  (the practice agent, its two tools, no extraction) are older sessions
  *  that keep working as they were. "homework" works on one deadline's
- *  problems with hints only (core/homework.ts). "talk" is the one Talk
- *  chat in the teacher's panel (TALK_CHAT_ID), never a lesson. */
+ *  problems with hints only (core/homework.ts). "talk" is an older
+ *  build's Talk chat (TALK_CHAT_ID): kept on disk, never shown. */
 export type ChatKind = "teach" | "practice" | "study" | "homework" | "talk";
 
 /** A lesson's kind: every kind but Talk. */

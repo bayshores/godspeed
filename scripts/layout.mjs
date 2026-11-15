@@ -247,12 +247,8 @@ async function main() {
 				log(`page got ${status} for ${url}`);
 				return status;
 			},
-			start: (url, init) => {
-				log(`page starts ${init.method} ${url}`);
-				return app.value(`eval void fetch(${JSON.stringify(url)}, ${JSON.stringify(init)})`);
-			},
 		};
-		ids = await seed(path.join(RUN, "data"), page, log).catch((err) => {
+		ids = await seed(path.join(RUN, "data"), log).catch((err) => {
 			throw new Error(`${err.message}; steps: ${seedLog}`);
 		});
 		const { settings } = JSON.parse(await app.run(`return fetch("/api/settings")${HTTP_OK}.then((r) => r.text())`));

@@ -6,9 +6,10 @@
  *    changed item (data-teacher-target) lights up (tour.ts paces it). On
  *    by default; the learner turns it on and off, and the status line
  *    says what the agent is doing (follow-status.ts).
- *  - The panel: Talk, Activity (teacher-activity.tsx) and, in the desktop
- *    app, Terminal (use-teacher-panel.ts). Over a lesson it is Terminal
- *    alone: the lesson is the chat and its teacher column has Activity.
+ *  - The panel (use-teacher-panel.ts): in the desktop app the agent's
+ *    screen, where the learner talks to it outside lessons, and Activity
+ *    (teacher-activity.tsx); in a browser Activity alone. Over a lesson it
+ *    is the screen alone: the lesson's teacher column has Activity.
  *
  * The name is the learner's choice (Settings → General → Teacher name) and
  * only ever shown on screen.
@@ -29,7 +30,7 @@ import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-te
 import { TeacherPanel } from "./teacher-panel";
 import { TeacherContext, useTeacher, type TeacherApi, type LessonPresence } from "./teacher-context";
 import { useTeacherPanel } from "./use-teacher-panel";
-import { panelStarts, panelTabs, shownScreen } from "./dock-model";
+import { panelStarts, panelViews, shownScreen, viewIn } from "./dock-model";
 import { STEP_MS, nextStep } from "./tour";
 import { FOLLOW_DEFAULT, FOLLOW_KEY, GO_OFFER_MS, followMoves, followReady, followReducer, goOffer, parseFollow, safePage, type FollowEvent, type FollowState } from "./follow";
 import { agentDoing, freshAction } from "./follow-status";
@@ -302,12 +303,15 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 		if (inLesson) setPanelOpen(false);
 	}, [inLesson, setPanelOpen]);
 	const terminals = useTerminals();
-	const tabs = panelTabs(inLesson, !!terminals?.available);
+	const views = panelViews(inLesson, !!terminals?.available);
+	const view = viewIn(views, panel.view);
 	const starts =
 		panelOpen &&
+		!!view &&
 		panelStarts({
-			tab: panel.tab,
+			view,
 			screen: shownScreen(panel.role, !!terminals?.helper),
+			terminals: !!terminals?.available,
 			noAgent: noAgentHere(agent, terminals),
 			teacher: terminals?.teacher ?? null,
 			outside: !!terminals?.outsideHere,
@@ -324,23 +328,19 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 	return (
 		<TeacherContext.Provider value={api}>
 			{children}
-			{panelOpen && tabs.includes(panel.tab) && (
+			{panelOpen && view && (
 				<PanelPortal>
 					<TeacherPanel
 						name={name}
 						agent={agent}
-						tabs={tabs}
+						views={views}
 						overLesson={inLesson}
-						tab={panel.tab}
-						onTab={panel.setTab}
+						view={view}
+						onView={panel.setView}
 						screen={panel.role}
 						onScreen={panel.setRole}
 						focus={panel.focus}
 						onClose={() => setPanelOpen(false)}
-						recent={recent}
-						onPick={go}
-						ask={panel.ask}
-						onAsked={panel.onAsked}
 					/>
 				</PanelPortal>
 			)}

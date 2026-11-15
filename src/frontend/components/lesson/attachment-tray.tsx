@@ -4,8 +4,8 @@ import { cn } from "@/frontend/lib/utils";
 import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS, attachmentType, isPdfType, pickAttachments, type ChatAttachment } from "@/shared/core";
 
 /**
- * The files waiting in a message box (a lesson's, Talk's, a cheat sheet's
- * and the Study page's): paste, drop or "Add pictures or PDFs" add them,
+ * The files waiting in a message box (a lesson's, a cheat sheet's and the
+ * Study page's): paste, drop or "Add pictures or PDFs" add them,
  * small chips show them above the text, and the send carries them.
  */
 

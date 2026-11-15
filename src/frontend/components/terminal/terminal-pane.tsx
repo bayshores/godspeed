@@ -1,8 +1,8 @@
 /**
  * One agent's live screen and, under it, the sentence about what is
  * happening with its buttons: Paste and Stop stay quiet, and the assist
- * key or Start again is the one bright key. The teacher's panel (its
- * Terminal tab) and onboarding's first start show it.
+ * key or Start again is the one bright key. The teacher's panel and
+ * onboarding's first start show it.
  */
 import { useEffect, useState } from "react";
 import { lazyComponent } from "@/frontend/lib/lazy-component";

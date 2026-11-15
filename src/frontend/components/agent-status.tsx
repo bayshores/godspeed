@@ -22,7 +22,7 @@ export interface AgentStatus {
 	helperCovering: boolean;
 	/** Requests waiting for (or being handled by) the agent. */
 	pendingWork: number;
-	/** Those that are lesson or Talk turns; the rest are background jobs. */
+	/** Those that are lesson turns; the rest are background jobs. */
 	pendingTurns: number;
 	/** Lessons whose current request an agent took and hasn't answered, with the ISO claim time. */
 	claimedLessons: { lessonId: string; claimedAt: string }[];
