@@ -106,6 +106,9 @@ describe("the panel", () => {
 		assert.match(html, /data-testid="teacher-panel-agent"[^>]*class="[^"]*font-mono[^"]*"[^>]*>(<[^>]*>)*Ready</);
 		assert.doesNotMatch(html, /teacher-panel-name|teacher-panel-close|role="switch"/);
 	});
+	it("in a lesson the head leaves what the teacher is doing to the lesson's teacher column", () => {
+		assert.doesNotMatch(renderToStaticMarkup(panel({ listable: false })), /teacher-panel-agent/);
+	});
 	it("docks on the right edge as a square sheet of the top bar, with no blur", () => {
 		const section = /<section[^>]*>/.exec(renderToStaticMarkup(panel()))![0];
 		assert.match(section, /data-testid="teacher-panel"/);

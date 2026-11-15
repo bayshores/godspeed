@@ -406,7 +406,8 @@ describe("the screens", () => {
 				await click("open-agent");
 				assert.ok(shell.calls.includes("start teacher codex"));
 				assert.equal(q("teacher-panel")?.style.width, "440px", "its screen shows in the same panel");
-				assert.equal(text("status"), "Ada is starting.");
+				assert.equal(text("teacher-panel-agent"), "Ada is starting.");
+				assert.equal(text("status"), "Ready", "the open panel's head says it: the line beside it does not say it again");
 				assert.equal(text("terminal-footer"), "");
 			});
 		} finally {

@@ -54,7 +54,7 @@ export function TeacherPanel({
 	name: string;
 	agent: AgentStatus | null;
 	view: PanelView;
-	/** The status chip drops the Activity list (not in a lesson, which has its own). */
+	/** Not in a lesson, whose teacher column has Activity and says what the teacher is doing. */
 	listable: boolean;
 	list: boolean;
 	onList: (open: boolean) => void;
@@ -73,7 +73,7 @@ export function TeacherPanel({
 	const helperFacts = terminals?.facts.helper ?? null;
 	const helperCalls = !!helperFacts && !!needsYou(helperFacts);
 	const doing = teacher?.doing ?? null;
-	const line = agentLine(agent, doing);
+	const line = listable ? agentLine(agent, doing) : null;
 	const teacherStatus = screenStatusLine(teacherFacts, name);
 	const [wanted, setWanted] = usePaneWidth("teacher", PANEL_WIDTH);
 	const [{ width, whole }, setDock] = useState({ width: wanted, whole: false });
