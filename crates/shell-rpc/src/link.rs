@@ -38,7 +38,7 @@ impl Waiter {
 #[derive(Clone)]
 pub struct ShellLink(Arc<Inner>);
 
-type OnTerminals = Box<dyn Fn(Vec<String>) + Send + Sync>;
+type OnTerminals = Box<dyn Fn(Vec<String>, Option<String>) + Send + Sync>;
 type OnTyped = Box<dyn Fn(String) + Send + Sync>;
 type AgentFolder = Box<dyn Fn() -> Option<String> + Send + Sync>;
 
@@ -95,8 +95,8 @@ impl ShellLink {
 		}
 	}
 
-	/// Who hears the shell's live terminal ids.
-	pub fn on_terminals(&self, hear: impl Fn(Vec<String>) + Send + Sync + 'static) {
+	/// Who hears the shell's live terminal ids and the teacher's among them.
+	pub fn on_terminals(&self, hear: impl Fn(Vec<String>, Option<String>) + Send + Sync + 'static) {
 		*lock(&self.0.on_terminals) = Some(Box::new(hear));
 	}
 
@@ -151,9 +151,9 @@ impl ShellLink {
 					let _ = tx.send(Ok(shown));
 				}
 			}
-			ToServer::Terminals { live } => {
+			ToServer::Terminals { live, teacher } => {
 				if let Some(hear) = &*lock(&self.0.on_terminals) {
-					hear(live);
+					hear(live, teacher);
 				}
 			}
 			ToServer::Typed { terminal } => {

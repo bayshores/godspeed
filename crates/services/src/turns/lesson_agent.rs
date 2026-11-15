@@ -175,7 +175,7 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 		(Some("study"), ..) => {
 			let marks_app = app.clone();
 			let check_marks = Arc::new(move |text: &str| check_cites(&marks_app, text));
-			// Study sends deadline changes to Talk, so it has no deadline tools.
+			// Study sends deadline changes outside lessons, so it has no deadline tools.
 			let teacher = TeacherToolContext { side: LessonSide { space_actions: None, ..side.clone() }, ..teacher() };
 			create_study_agent(&StudyToolContext { teacher, graph_nodes: Some(graph_nodes(app, lesson_scope)), check_marks }, opts)
 		}

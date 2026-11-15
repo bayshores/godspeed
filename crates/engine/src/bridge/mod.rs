@@ -116,6 +116,8 @@ struct State {
 	helpers: HashMap<String, i64>,
 	/// The app's terminals that run now, as the shell says.
 	live_terminals: HashSet<String>,
+	/// The teacher's terminal among them; the helper's is the other.
+	teacher_terminal: Option<String>,
 	/// terminal id → its last request.
 	terminal_contact: HashMap<String, i64>,
 	/// terminal id → when the learner last typed to its agent, until a wait from it reads that.

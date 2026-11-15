@@ -41,8 +41,8 @@ const NOT_SHOWN: &str = "Show the terminal and click in it first.";
 /// Where a terminal's news goes: the page, the server and the log.
 pub trait Outlet: Send + Sync + 'static {
 	fn push(&self, channel: &str, payload: Value);
-	/// The live terminal ids changed.
-	fn live(&self, ids: Vec<String>);
+	/// The live terminal ids changed; `teacher` is the teacher's among them.
+	fn live(&self, ids: Vec<String>, teacher: Option<String>);
 	/// The learner sent a message to the agent in this terminal.
 	fn typed(&self, id: &str);
 	fn log(&self, line: &str);
@@ -217,16 +217,19 @@ fn state_ended(state: &State) -> bool {
 
 type List = Mutex<Vec<Arc<Terminal>>>;
 
-/// The ids of the terminals that run and were not stopped.
-fn live_ids(list: &[Arc<Terminal>]) -> Vec<String> {
-	list.iter().filter(|t| !state_ended(&t.state())).map(|t| t.id.clone()).collect()
+/// The ids of the terminals that run and were not stopped, and the teacher's among them.
+fn live_ids(list: &[Arc<Terminal>]) -> (Vec<String>, Option<String>) {
+	let live: Vec<&Arc<Terminal>> = list.iter().filter(|t| !state_ended(&t.state())).collect();
+	let teacher = live.iter().find(|t| t.role == Role::Teacher).map(|t| t.id.clone());
+	(live.into_iter().map(|t| t.id.clone()).collect(), teacher)
 }
 
 /// Tells the server the live ids. Sent under the list's lock, so two changes at once reach it
 /// in the order they happened.
 fn tell_live(list: &List, outlet: &dyn Outlet) {
 	let list = lock(list);
-	outlet.live(live_ids(&list));
+	let (ids, teacher) = live_ids(&list);
+	outlet.live(ids, teacher);
 }
 
 /// The terminals (managed state).
@@ -244,7 +247,7 @@ impl Terminals {
 		lock(&self.list).iter().find(|t| t.id == id).cloned().ok_or_else(|| NOT_THERE.to_owned())
 	}
 
-	pub fn live(&self) -> Vec<String> {
+	pub fn live(&self) -> (Vec<String>, Option<String>) {
 		live_ids(&lock(&self.list))
 	}
 
@@ -309,7 +312,8 @@ impl Terminals {
 		// An ended record stays until the next start for its role.
 		list.retain(|t| t.role != role);
 		list.push(terminal.clone());
-		self.outlet.live(live_ids(&list));
+		let (ids, teacher) = live_ids(&list);
+		self.outlet.live(ids, teacher);
 		drop(list);
 		self.outlet.log(&format!("terminal started: {} {} pid {}", role.name(), agent.name(), terminal.pid.unwrap_or_default()));
 		self.run(terminal, spawned.reader, spawned.child);
@@ -382,13 +386,10 @@ impl Terminals {
 		if screen::is_reply(data) {
 			return Ok(());
 		}
-		self.sent(&terminal, data, data.contains('\r'))
-	}
-
-	/// Writes what the learner sent. When it submits (Enter) while the screen shows no question,
-	/// the server hears it: the learner is talking to the agent, so its wait for work ends.
-	fn sent(&self, terminal: &Terminal, data: &str, submits: bool) -> Result<(), String> {
-		let message = submits && terminal.state().screen.seen().prompt.is_none();
+		// Only Enter on its own sends the learner's message: Alt or Shift with Enter adds a line,
+		// and a paste is not sent yet. With no question on the screen the server hears it, so the
+		// agent's wait for work ends and it can answer the learner.
+		let message = data == "\r" && terminal.state().screen.seen().prompt.is_none();
 		terminal.write(data.as_bytes())?;
 		if message {
 			self.outlet.typed(&terminal.id);
@@ -428,10 +429,8 @@ impl Terminals {
 			return Err(NOT_SHOWN.to_owned());
 		}
 		let text = text.replace('\x1b', "");
-		// Only an unbracketed paste submits at its line breaks.
-		let submits = !bracketed && text.contains(['\r', '\n']);
 		let pasted = if bracketed { format!("\x1b[200~{text}\x1b[201~") } else { text };
-		self.sent(&terminal, &pasted, submits)
+		terminal.write(pasted.as_bytes())
 	}
 
 	pub fn stop(&self, id: &str) -> Result<(), String> {
@@ -570,6 +569,8 @@ mod tests {
 	struct Heard {
 		pushes: Mutex<Vec<(String, Value)>>,
 		live: Mutex<Vec<Vec<String>>>,
+		/// The teacher's id in the last live message.
+		teacher: Mutex<Option<String>>,
 		typed: Mutex<Vec<String>>,
 		log: Mutex<Vec<String>>,
 		/// The next live message takes a while to send, and `sending` says when it began.
@@ -582,12 +583,13 @@ mod tests {
 			lock(&self.pushes).push((channel.to_owned(), payload));
 		}
 
-		fn live(&self, ids: Vec<String>) {
+		fn live(&self, ids: Vec<String>, teacher: Option<String>) {
 			if self.slow.swap(false, Ordering::SeqCst) {
 				self.sending.store(true, Ordering::SeqCst);
 				std::thread::sleep(Duration::from_millis(300));
 			}
 			lock(&self.live).push(ids);
+			*lock(&self.teacher) = teacher;
 		}
 
 		fn typed(&self, id: &str) {
@@ -678,8 +680,9 @@ mod tests {
 		terminals.attach(&id).unwrap();
 		assert_eq!(terminals.write(&id, SECRET, false), Err(NOT_SHOWN.to_owned()), "the window is not focused");
 		terminals.write(&id, "a", true).unwrap();
+		terminals.write(&id, SECRET, true).unwrap();
 		assert!(lock(&heard.typed).is_empty(), "keys without Enter send nothing yet");
-		terminals.write(&id, &format!("{SECRET}\r"), true).unwrap();
+		terminals.write(&id, "\r", true).unwrap();
 		assert_eq!(*lock(&heard.typed), vec![id.clone()], "Enter with no question on the screen is a message to the agent");
 		until("the echo", || text(&terminals, &id).contains(&format!("got a{SECRET}")));
 		until("the end", || ended_of(&terminals, &id) == Some(Ended::Exited(0)));
@@ -707,7 +710,7 @@ mod tests {
 		terminals.attach(&id).unwrap();
 		until("ready", || text(&terminals, &id).contains("ready"));
 		terminals.paste(&id, &format!("{SECRET}\r"), true).unwrap();
-		assert_eq!(*lock(&heard.typed), vec![id.clone()], "an unbracketed paste with a line break submits");
+		assert!(lock(&heard.typed).is_empty(), "a paste is not a message yet, even with a line break");
 		until("the end", || ended_of(&terminals, &id).is_some());
 		let log = lock(&heard.log).join("\n");
 		assert!(log.contains("terminal started: teacher claude pid ") && log.contains(" code 0"), "{log}");
@@ -748,12 +751,14 @@ mod tests {
 
 		let teacher = start(&terminals, &dir);
 		let helper = start_helper();
+		assert_eq!(*lock(&heard.teacher), Some(teacher.clone()), "the server hears which one is the teacher's");
 		until("ready", || text(&terminals, &teacher).contains("ready") && text(&terminals, &helper).contains("ready"));
 		terminals.attach(&teacher).unwrap();
 		terminals.write(&teacher, "bye\r", true).unwrap();
 		until("the teacher's own end", || ended_of(&terminals, &teacher) == Some(Ended::Exited(0)));
 		until("the helper's stop", || ended_of(&terminals, &helper) == Some(Ended::Stopped));
 		assert_eq!(lock(&heard.live).last(), Some(&Vec::new()), "the server hears both ended");
+		assert_eq!(*lock(&heard.teacher), None);
 
 		let teacher = start(&terminals, &dir);
 		let helper = start_helper();
@@ -761,6 +766,26 @@ mod tests {
 		terminals.stop(&teacher).unwrap();
 		until("the helper's stop", || ended_of(&terminals, &helper) == Some(Ended::Stopped));
 		assert_eq!(lock(&heard.live).last(), Some(&Vec::new()));
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[test]
+	fn only_enter_on_its_own_is_a_message_to_the_agent() {
+		let dir = folder("enter", WAITS);
+		let heard = Arc::new(Heard::default());
+		let terminals = Terminals::new(heard.clone());
+		let id = start(&terminals, &dir);
+		terminals.attach(&id).unwrap();
+		until("ready", || text(&terminals, &id).contains("ready"));
+		terminals.write(&id, "\x1b\r", true).unwrap();
+		assert!(lock(&heard.typed).is_empty(), "Alt or Shift with Enter adds a line");
+		terminals.write(&id, "\x1b[200~two\rlines\x1b[201~", true).unwrap();
+		assert!(lock(&heard.typed).is_empty(), "a bracketed paste the page typed");
+		terminals.paste(&id, "two\rlines", true).unwrap();
+		assert!(lock(&heard.typed).is_empty(), "a paste");
+		terminals.write(&id, "\r", true).unwrap();
+		assert_eq!(*lock(&heard.typed), vec![id.clone()]);
+		terminals.stop(&id).unwrap();
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 

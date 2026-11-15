@@ -198,7 +198,8 @@ fn ended_or_idle(call: &ToolCall<'_>, helper: bool) -> Json {
 		return failure(TERMINAL_CLOSED);
 	}
 	if call.app.bridge.take_typed(call.terminal, clock::now_ms()) {
-		return result(&json!({ "status": "idle", "note": typed_note(helper) }));
+		let note = if in_claude_code(call.caller) { format!("{TYPED}. {}", waiter_hint(None, helper)) } else { typed_note(helper) };
+		return result(&json!({ "status": "idle", "note": note }));
 	}
 	result(&idle(call.caller, helper))
 }

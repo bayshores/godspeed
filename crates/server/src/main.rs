@@ -75,14 +75,14 @@ async fn main() -> ExitCode {
 	ExitCode::from(143)
 }
 
-/// The shell's live terminal ids: those at the start (a restarted server knows them at once),
-/// then each change; and each Enter the learner typed to an agent there.
+/// The shell's live terminal ids and the teacher's among them: those at the start (a restarted
+/// server knows them at once), then each change; and each Enter the learner typed to an agent there.
 fn listen_for_terminals(app: &App, shell: &ShellLink) {
-	let at_start = std::env::var("LH_TERMINALS").ok().and_then(|text| gs_json::parse(&text).ok());
-	let ids = at_start.iter().flat_map(|list| list.items().iter()).filter_map(|id| id.as_str().map(str::to_owned)).collect();
-	app.bridge.set_live_terminals(ids);
+	let at_start = std::env::var("LH_TERMINALS").ok().and_then(|text| gs_json::parse(&text).ok()).unwrap_or_default();
+	let ids = at_start["live"].items().iter().filter_map(|id| id.as_str().map(str::to_owned)).collect();
+	app.bridge.set_live_terminals(ids, at_start["teacher"].as_str().map(str::to_owned));
 	let bridge = app.bridge.clone();
-	shell.on_terminals(move |live| bridge.set_live_terminals(live));
+	shell.on_terminals(move |live, teacher| bridge.set_live_terminals(live, teacher));
 	let bridge = app.bridge.clone();
 	shell.on_typed(move |terminal| bridge.typed(&terminal, clock::now_ms()));
 }

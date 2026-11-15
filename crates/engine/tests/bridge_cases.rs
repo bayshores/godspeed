@@ -286,11 +286,11 @@ fn in_terminal() -> WaitOptions {
 #[tokio::test]
 async fn a_wait_from_a_stopped_terminal_ends_and_claims_nothing() {
 	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
-	bridge.set_live_terminals(vec![TERMINAL.to_owned()]);
+	bridge.set_live_terminals(vec![TERMINAL.to_owned()], Some(TERMINAL.to_owned()));
 	let wait = waiting(&bridge, in_terminal());
 	clock::sleep(5).await;
 	let stopped = Instant::now();
-	bridge.set_live_terminals(Vec::new());
+	bridge.set_live_terminals(Vec::new(), None);
 	assert!(wait.await.unwrap().is_none());
 	assert!(stopped.elapsed().as_millis() < 1_000, "ended at the stop, not at the next slice");
 
@@ -306,13 +306,13 @@ async fn a_wait_from_a_stopped_terminal_ends_and_claims_nothing() {
 #[tokio::test]
 async fn what_a_stopped_terminal_claimed_goes_back_at_once() {
 	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
-	bridge.set_live_terminals(vec![TERMINAL.to_owned()]);
+	bridge.set_live_terminals(vec![TERMINAL.to_owned()], Some(TERMINAL.to_owned()));
 	let lesson = park(&bridge, vec![user("hi")], "chat_l1", &Abort::new());
 	clock::sleep(5).await;
 	let taken = bridge.wait_for_work(0, in_terminal()).await.unwrap();
 	assert_eq!(bridge.claimed_lessons().len(), 1);
 	assert!(bridge.wait_for_work(0, agent_a()).await.is_none(), "held while the terminal runs");
-	bridge.set_live_terminals(Vec::new());
+	bridge.set_live_terminals(Vec::new(), None);
 	assert!(bridge.claimed_lessons().is_empty());
 	let view = bridge.wait_for_work(0, agent_a()).await.expect("free well before the 10 minute hold");
 	assert_eq!(view.messages, taken.messages);
@@ -324,7 +324,7 @@ async fn what_a_stopped_terminal_claimed_goes_back_at_once() {
 fn each_live_terminal_says_whether_its_agent_checked_in() {
 	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
 	let other = "f".repeat(32);
-	bridge.set_live_terminals(vec![other.clone(), TERMINAL.to_owned()]);
+	bridge.set_live_terminals(vec![other.clone(), TERMINAL.to_owned()], Some(TERMINAL.to_owned()));
 	let now = 10_000_000;
 	assert!(!bridge.outside_here(now));
 	bridge.record_terminal_contact(Some(TERMINAL), now);
@@ -334,7 +334,7 @@ fn each_live_terminal_says_whether_its_agent_checked_in() {
 	assert!(bridge.outside_here(now + 1000));
 	assert_eq!(bridge.terminals_here(now + 3 * 60_000)[0], (TERMINAL.to_owned(), false), "three minutes later it is not here");
 	assert!(!bridge.outside_here(now + 3 * 60_000));
-	bridge.set_live_terminals(vec![other.clone()]);
+	bridge.set_live_terminals(vec![other.clone()], None);
 	assert!(!bridge.terminal_live(TERMINAL) && bridge.terminal_live(&other));
 	assert_eq!(bridge.terminals_here(now), vec![(other, false)]);
 }
@@ -342,7 +342,7 @@ fn each_live_terminal_says_whether_its_agent_checked_in() {
 #[tokio::test]
 async fn typing_in_the_terminal_ends_its_wait_and_leaves_the_turn_queued() {
 	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
-	bridge.set_live_terminals(vec![TERMINAL.to_owned()]);
+	bridge.set_live_terminals(vec![TERMINAL.to_owned()], Some(TERMINAL.to_owned()));
 	let wait = waiting(&bridge, in_terminal());
 	clock::sleep(5).await;
 	let typed = Instant::now();
@@ -367,7 +367,7 @@ async fn typing_in_the_terminal_ends_its_wait_and_leaves_the_turn_queued() {
 async fn typing_ends_only_that_terminals_wait_and_goes_stale() {
 	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
 	let other = "f".repeat(32);
-	bridge.set_live_terminals(vec![TERMINAL.to_owned(), other.clone()]);
+	bridge.set_live_terminals(vec![TERMINAL.to_owned(), other.clone()], Some(TERMINAL.to_owned()));
 	bridge.typed(&other, clock::now_ms());
 	let lesson = park(&bridge, vec![user("hi")], "chat_l1", &Abort::new());
 	clock::sleep(5).await;
@@ -389,7 +389,7 @@ async fn typing_ends_only_that_terminals_wait_and_goes_stale() {
 #[tokio::test]
 async fn typing_ends_respond_s_wait_for_a_follow_up() {
 	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
-	bridge.set_live_terminals(vec![TERMINAL.to_owned()]);
+	bridge.set_live_terminals(vec![TERMINAL.to_owned()], Some(TERMINAL.to_owned()));
 	let follow_up = WaitOptions { conversation: Some("chat_l1".to_owned()), terminal: Some(TERMINAL.to_owned()), ..WaitOptions::default() };
 	let wait = waiting(&bridge, follow_up);
 	clock::sleep(5).await;
@@ -398,14 +398,23 @@ async fn typing_ends_respond_s_wait_for_a_follow_up() {
 }
 
 #[tokio::test]
-async fn a_typed_message_counts_as_the_teacher_being_here_for_three_minutes() {
+async fn typing_says_the_teacher_is_here_only_once_the_teachers_own_wait_reads_it() {
 	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
-	bridge.set_live_terminals(vec![TERMINAL.to_owned()]);
+	let helper = "f".repeat(32);
+	bridge.set_live_terminals(vec![TERMINAL.to_owned(), helper.clone()], Some(TERMINAL.to_owned()));
 	let now = 10_000_000;
-	assert!(!bridge.agent_teaching(now));
 	bridge.typed(TERMINAL, now);
-	assert!(bridge.agent_teaching(now + 3 * 60_000 - 1));
-	assert_eq!(bridge.terminals_here(now + 3 * 60_000 - 1), vec![(TERMINAL.to_owned(), true)]);
-	assert!(!bridge.agent_teaching(now + 3 * 60_000));
-	assert_eq!(bridge.terminals_here(now + 3 * 60_000), vec![(TERMINAL.to_owned(), false)]);
+	assert!(!bridge.agent_teaching(now) && !bridge.agent_connected(now), "an Enter alone says nothing about the agent");
+	assert_eq!(bridge.terminals_here(now), vec![(TERMINAL.to_owned(), false), (helper.clone(), false)]);
+
+	bridge.typed(&helper, now);
+	assert!(bridge.take_typed(Some(&helper), now), "the helper's wait still ends");
+	assert!(!bridge.agent_teaching(now), "the helper is not the teacher");
+
+	bridge.typed("gone", now);
+	assert!(!bridge.take_typed(Some("gone"), now), "a terminal that is not live is not kept");
+
+	assert!(bridge.take_typed(Some(TERMINAL), now + 1000));
+	assert!(bridge.agent_teaching(now + 1000 + 3 * 60_000 - 1), "busy with the learner for three minutes");
+	assert!(!bridge.agent_teaching(now + 1000 + 3 * 60_000));
 }

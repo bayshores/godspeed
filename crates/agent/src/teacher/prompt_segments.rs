@@ -25,7 +25,7 @@ pub enum AgentKind {
 /// agent, and formatting too (practice writes the same LaTeX and markdown). The question,
 /// confidence and file mechanics stay out: practice has no such tools.
 const PRACTICE_SHARED: [&str; 8] = ["10-voice.md", "11-learner-first.md", "12-space-context.md", "13-source-marks.md", "14-deadline-changes.md", "15-accuracy.md", "16-mental-model.md", "40-formatting.md"];
-/// Study has no deadline tools: its own text sends deadline changes to Talk.
+/// Study has no deadline tools: its own text sends deadline changes outside lessons.
 const STUDY_SKIPPED_SHARED: &str = "shared/14-deadline-changes.md";
 /// Talk is a small side panel: the voice and the learner's question first (its own base sets
 /// short replies).

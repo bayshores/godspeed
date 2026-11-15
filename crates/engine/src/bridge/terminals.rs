@@ -2,7 +2,7 @@
 //! agent started in one sends its id with every request. A request from an ended terminal is
 //! refused, its wait ends, and what it had claimed goes back to the queue at once. When the
 //! learner types to the agent in its terminal, the terminal's wait ends too, so the agent can
-//! answer them there.
+//! answer them there. The shell also says which live terminal is the teacher's.
 
 use std::collections::HashSet;
 
@@ -33,9 +33,9 @@ pub(super) fn typed_lately(state: &State, terminal: Option<&str>, now: i64) -> b
 }
 
 impl Bridge {
-	/// The shell's live terminal ids. Items claimed through an ended terminal are released, and
-	/// every waiter looks again, so a stopped terminal's wait ends.
-	pub fn set_live_terminals(&self, live: Vec<String>) {
+	/// The shell's live terminal ids and the teacher's among them. Items claimed through an ended
+	/// terminal are released, and every waiter looks again, so a stopped terminal's wait ends.
+	pub fn set_live_terminals(&self, live: Vec<String>, teacher: Option<String>) {
 		let live: HashSet<String> = live.into_iter().collect();
 		let mut s = self.0.state.lock();
 		let mut released = false;
@@ -46,6 +46,7 @@ impl Bridge {
 		}
 		s.terminal_contact.retain(|id, _| live.contains(id));
 		s.typed.retain(|id, _| live.contains(id));
+		s.teacher_terminal = teacher.filter(|id| live.contains(id));
 		s.live_terminals = live;
 		drop(s);
 		if released {
@@ -56,6 +57,11 @@ impl Bridge {
 
 	pub fn terminal_live(&self, id: &str) -> bool {
 		self.0.state.lock().live_terminals.contains(id)
+	}
+
+	/// The request came from godspeed's own teacher terminal, not the helper's or an outside one.
+	pub fn is_teacher_terminal(&self, terminal: Option<&str>) -> bool {
+		terminal.is_some_and(|id| self.0.state.lock().teacher_terminal.as_deref() == Some(id))
 	}
 
 	/// A request came from this terminal, or (None) from an agent outside the app.
@@ -71,22 +77,31 @@ impl Bridge {
 		touch(&mut self.0.state.lock(), terminal, now);
 	}
 
-	/// The learner pressed Enter in this terminal with no question on its screen: its agent is
-	/// here and busy with them for the next minutes, and its wait (now or next) ends with nothing.
+	/// The learner pressed Enter in this live terminal with no question on its screen: its wait
+	/// (now or next) ends with nothing. It says nothing about the agent until that wait reads it.
 	pub fn typed(&self, terminal: &str, now: i64) {
-		self.0.state.lock().typed.insert(terminal.to_owned(), now);
-		self.record_terminal_contact(Some(terminal), now);
-		self.record_check_in(None, true, now);
+		let mut s = self.0.state.lock();
+		if !s.live_terminals.contains(terminal) {
+			return;
+		}
+		s.typed.insert(terminal.to_owned(), now);
+		drop(s);
 		self.0.waiters.wake_all();
 	}
 
 	/// Whether the learner typed in this terminal lately; the wait that asks says so to the agent,
-	/// so the next one waits again.
+	/// so the next one waits again. When the teacher's own wait reads it, the teacher is busy with
+	/// the learner there for the next minutes, so the window does not say it isn't teaching.
 	pub fn take_typed(&self, terminal: Option<&str>, now: i64) -> bool {
 		let mut s = self.0.state.lock();
 		let lately = typed_lately(&s, terminal, now);
 		if let Some(id) = terminal {
 			s.typed.remove(id);
+		}
+		let teacher = lately && terminal.is_some() && s.teacher_terminal.as_deref() == terminal;
+		drop(s);
+		if teacher {
+			self.record_check_in(None, true, now);
 		}
 		lately
 	}
