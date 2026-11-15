@@ -21,7 +21,8 @@ import { HTTP_OK, SCREENS, WIDTHS } from "./layout-screens.mjs";
 const ROOT = path.resolve(import.meta.dirname, "..");
 const RUN = path.join(ROOT, "target", "layout");
 const APP = path.join(ROOT, "target", "debug", "godspeed");
-const HEIGHT = 900;
+// Short enough for the screen of GitHub's Mac runner, so the laptop and CI judge the same window.
+const HEIGHT = 680;
 const POLL_MS = 20;
 const READY_MS = 60_000;
 /** The page is read this far apart until two reads in a row agree, at most READS times. */
