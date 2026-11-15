@@ -1,5 +1,22 @@
 [
 	{
+		"version": "0.6.7",
+		"date": "2026-11-15",
+		"changes": [
+			"Talk is gone. You type to your agent in its own screen and it answers there. Your old Talk chat is saved in your godspeed folder as Talk.md, with its pictures and PDFs.",
+			"Click your teacher's name in the top bar to open your agent's screen as a window. Drag its edges to resize it, or drag it to the bottom to dock it beside the page. Only that button closes it.",
+			"A pill in every top bar says what is happening now, like a reply that waits for you, background work or a deadline in its last day.",
+			"Drop a picture or PDF on your agent's screen to attach it. The names of your files there are links.",
+			"The Ask buttons on a deadline page run in the background, and the page shows what your agent said.",
+			"Today shows your deadlines with the next one big, and your spaces under it.",
+			"godspeed has plugins, in an early form. A plugin is a small add-on that shows in a lesson or as a tab in a space, and your own agent does its thinking. A plugin can't open your files.",
+			"Settings has a Plugins tab. Add a plugin from a folder there, turn it on or off and change its settings. In a lesson a plugin opens as a small window under the top bar.",
+			"A new look. Boxes have pixel corners and no outlines, and buttons look like keys.",
+			"The texts your agent reads are shorter, so a lesson uses fewer tokens.",
+			"godspeed is smaller and uses less memory when it reads a new file."
+		]
+	},
+	{
 		"version": "0.6.6",
 		"date": "2026-11-14",
 		"changes": [
