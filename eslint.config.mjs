@@ -3,7 +3,7 @@ import tsParser from "@typescript-eslint/parser";
 import importPlugin from "eslint-plugin-import";
 
 /**
- * ESLint with one job here: enforce the import law (docs/architecture.md).
+ * ESLint with one job here: enforce the import law (docs/architecture/02-layers-and-the-import-law.md).
  * It is not a style linter.
  *
  *   src/frontend/**   imports only "@/shared/core" (the pure core barrel)
@@ -12,7 +12,7 @@ import importPlugin from "eslint-plugin-import";
  */
 
 const FRONTEND_MESSAGE =
-	"The frontend imports ONLY the pure core barrel: `from \"@/shared/core\"` (architecture: docs/architecture.md).";
+	"The frontend imports ONLY the pure core barrel: `from \"@/shared/core\"` (architecture: docs/architecture/02-layers-and-the-import-law.md).";
 
 export default defineConfig([
 	globalIgnores(["node_modules/**", "data/**", "scripts/**", "dist/**", "dist-ui/**", ".claude/**", "crates/**", "target/**"]),
