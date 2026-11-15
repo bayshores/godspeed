@@ -15,9 +15,16 @@ use gs_core::records::settings::DEFAULT_TEACHER_NAME;
 use crate::App;
 
 const BACKUP_PREFIX: &str = "talk-backup-";
-/// The export and the folder of files beside it; the second names when the learner has a
-/// `Talk.md` of their own.
-const EXPORT_NAMES: [(&str, &str); 2] = [("Talk.md", "Talk files"), ("Talk (godspeed).md", "Talk files (godspeed)")];
+
+/// The export and the folder of files beside it under its `n`th name: `Talk.md` with `Talk files`,
+/// then `Talk (godspeed).md`, `Talk (godspeed) 2.md` and so on when those already hold other text.
+fn export_names(n: usize) -> (String, String) {
+	match n {
+		0 => ("Talk.md".into(), "Talk files".into()),
+		1 => ("Talk (godspeed).md".into(), "Talk files (godspeed)".into()),
+		_ => (format!("Talk (godspeed) {n}.md"), format!("Talk files (godspeed) {n}")),
+	}
+}
 
 /// First thing at start-up, before anything can read or change the record: copies it and its
 /// folder to `data/talk-backup-<version>/`, once ever (an existing backup from any version
@@ -81,16 +88,16 @@ fn copy_synced(from: &Path, to: &Path) -> io::Result<()> {
 	File::open(to)?.sync_all()
 }
 
-/// Writes the export into `folder` as `Talk.md` with `Talk files/`, or, when the learner has a
-/// `Talk.md` of their own, as `Talk (godspeed).md` with `Talk files (godspeed)/`; an existing file
-/// is never changed. Answers whether the chat is readable there now (false: no Talk record, or
-/// nothing in it was ever shown).
+/// Writes the export into `folder` under the first of its names that is free or already holds
+/// this export; an existing file is never changed. Answers whether the chat is readable there now
+/// (false: no Talk record, or nothing in it was ever shown).
 pub(super) fn export_talk(app: &App, folder: &Path) -> io::Result<bool> {
 	let Some(record) = app.stores.chats.get_chat(TALK_CHAT_ID) else { return Ok(false) };
 	let settings = app.stores.settings.read_settings().ok().flatten();
 	let teacher = settings.as_ref().and_then(|s| s["general"]["teacherName"].as_str()).filter(|n| !n.trim().is_empty()).unwrap_or(DEFAULT_TEACHER_NAME);
-	for (name, files) in EXPORT_NAMES {
-		let Some(export) = talk_export(&record, teacher, files) else { return Ok(false) };
+	for n in 0.. {
+		let (name, files) = export_names(n);
+		let Some(export) = talk_export(&record, teacher, &files) else { return Ok(false) };
 		let file = folder.join(name);
 		match std::fs::read(&file) {
 			Ok(bytes) if bytes[..] == *text::utf8_bytes(&export.text) => return Ok(true),
@@ -102,8 +109,7 @@ pub(super) fn export_talk(app: &App, folder: &Path) -> io::Result<bool> {
 			Err(err) => return Err(err),
 		}
 	}
-	// Both names hold other text: the second is an export made before the teacher was renamed.
-	Ok(true)
+	unreachable!("names never run out")
 }
 
 /// The pictures and PDFs first, then the text, so the text is there only once its files are.
@@ -243,6 +249,25 @@ mod tests {
 		assert_eq!(std::fs::read(folder.join("Talk files (godspeed)/0123456789ab-Syllabus.pdf")).unwrap(), b"%PDF-1.4 made up");
 		let exported = snapshot(&folder);
 		assert!(export_talk(&app, &folder).unwrap(), "the export under the second name counts");
+		assert_eq!(snapshot(&folder), exported);
+	}
+
+	#[test]
+	fn when_both_names_hold_other_text_the_next_free_number_is_taken() {
+		let root = scratch_dir("old-talk-taken");
+		let app = test_app(&root);
+		old_talk(&app);
+		let folder = root.join("home/godspeed");
+		fsx::write_text_atomic(&folder.join("Talk.md"), "my own notes").unwrap();
+		fsx::write_text_atomic(&folder.join("Talk (godspeed).md"), "an export under an older teacher name").unwrap();
+		assert!(export_talk(&app, &folder).unwrap());
+		assert_eq!(std::fs::read(folder.join("Talk.md")).unwrap(), b"my own notes");
+		assert_eq!(std::fs::read(folder.join("Talk (godspeed).md")).unwrap(), b"an export under an older teacher name");
+		let text = std::fs::read_to_string(folder.join("Talk (godspeed) 2.md")).unwrap();
+		assert!(text.starts_with("# Talk\n") && text.contains("**You**"));
+		assert_eq!(std::fs::read(folder.join("Talk files (godspeed) 2/0123456789ab-Syllabus.pdf")).unwrap(), b"%PDF-1.4 made up");
+		let exported = snapshot(&folder);
+		assert!(export_talk(&app, &folder).unwrap());
 		assert_eq!(snapshot(&folder), exported);
 	}
 
