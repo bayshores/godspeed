@@ -37,9 +37,11 @@ function tab(path: string, pluginsAt: Partial<PluginsAt>, active: string | null 
 
 describe("a plugin's tab", () => {
 	it("shows the plugin's page in a frame that fills the area", () => {
+		// The window's port: the frame loads from localhost on it.
+		Object.defineProperty(globalThis, "location", { value: { port: "4100" }, configurable: true });
 		const html = tab("/space/plugin/cards", { plugins: [CARDS] });
 		assert.match(html, /data-testid="plugin-frame"/);
-		assert.match(html, /src="\/plugin-files\/cards\/index\.html"/);
+		assert.match(html, /src="http:\/\/localhost:4100\/plugin-files\/cards\/index\.html"/);
 	});
 	it("shows nothing while the list loads", () => {
 		assert.equal(tab("/space/plugin/cards", { plugins: undefined }), "");

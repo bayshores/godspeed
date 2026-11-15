@@ -7,6 +7,8 @@ import { createBridge, type PluginContext } from "./plugin-frame-model";
 
 /** A page that hasn't finished the handshake by then didn't load. */
 const READY_WITHIN_MS = 10_000;
+/** A change is told once things hold still this long, so a streaming reply is one notice, not one per word. */
+const NOTICE_AFTER_MS = 500;
 
 /** godspeed's tokens under their MCP Apps names, so a plugin can match the app. */
 const STYLE_VARIABLES: Record<string, string> = {
@@ -63,10 +65,9 @@ export function PluginFrame({ manifest, values, context, className }: { manifest
 	const id = manifest.id;
 
 	useEffect(() => {
-		const { manifest, values } = latest.current;
 		const bridge = createBridge({
-			manifest,
-			values,
+			manifest: latest.current.manifest,
+			values: () => latest.current.values,
 			frame: () => frameRef.current?.contentWindow,
 			// The frame's origin is opaque, so it can't be named; the window is this frame's own.
 			post: (message) => frameRef.current?.contentWindow?.postMessage(message, "*"),
@@ -96,6 +97,14 @@ export function PluginFrame({ manifest, values, context, className }: { manifest
 			clearTimeout(timer);
 		};
 	}, [id, attempt]);
+
+	// Compared as values: a new object with the same contents is no change.
+	const valuesKey = JSON.stringify(values);
+	const contextKey = JSON.stringify(context);
+	useEffect(() => {
+		const timer = setTimeout(() => bridgeRef.current?.changed(), NOTICE_AFTER_MS);
+		return () => clearTimeout(timer);
+	}, [valuesKey, contextKey]);
 
 	if (state === "failed") {
 		return (

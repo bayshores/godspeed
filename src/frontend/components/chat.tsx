@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 import { useChatSession } from "@/frontend/components/session";
 import { visibleQueuedSteers } from "@/frontend/components/session-core";
@@ -538,6 +538,14 @@ export function Chat({
 		setPluginId(pluginId === id ? null : id);
 		if (sheet.state.open) sheet.update({ open: false });
 	};
+	// A dock opening or closing reflows the reading pane: a learner at the
+	// lesson's end stays there. The pane hasn't heard of the reflow yet when
+	// this runs, so its at-end state is still the one from before.
+	const dock = openPlugin?.id ?? (sheetOpen ? "sheet" : null);
+	useLayoutEffect(() => {
+		const scroll = scrollContextRef.current;
+		if (scroll?.state.isAtBottom) void scroll.scrollToBottom("instant");
+	}, [dock]);
 	const space = spaces.find((s) => s.id === spaceId);
 	const pluginContext = useMemo(
 		() => lessonPluginContext({ space: space ? { id: space.id, name: space.name } : null, title: rename.title, messages, pending, requiresReveal }),

@@ -14,13 +14,16 @@ const PROBE = JSON.parse(readFileSync(new URL("../fixtures/plugins/probe/manifes
 const CONTEXT: PluginContext = {
 	space: { id: "cse21", name: "CSE 21" },
 	topic: "Induction",
-	question: { text: "Which step comes first?", options: ["Base case", "Inductive step"] },
+	question: { id: "q2", text: "Which step comes first?", options: ["Base case", "Inductive step"] },
+	lastAnswered: { id: "q1", text: "What is n at the start?", options: ["0", "1"], answer: "1", correct: true },
 	teacherMessage: "Start from n = 1.",
 };
 
 const ok = (value: unknown) => Promise.resolve({ error: null, value });
 
-function harness(manifest: PluginManifest = PROBE, overrides: Partial<HostCalls> = {}, context: PluginContext = CONTEXT) {
+function harness(manifest: PluginManifest = PROBE, overrides: Partial<HostCalls> = {}, startContext: PluginContext = CONTEXT) {
+	// What the screen holds now; a test changes these as the lesson or Settings would.
+	const now = { context: startContext, values: { loud: true } as Record<string, boolean> };
 	const frame = { name: "the plugin's window" };
 	const posted: Record<string, unknown>[] = [];
 	const asked: unknown[][] = [];
@@ -44,10 +47,10 @@ function harness(manifest: PluginManifest = PROBE, overrides: Partial<HostCalls>
 	};
 	const bridge = createBridge({
 		manifest,
-		values: { loud: true },
+		values: () => now.values,
 		frame: () => frame,
 		post: (message) => posted.push(message as Record<string, unknown>),
-		context: () => context,
+		context: () => now.context,
 		look: () => ({ theme: "light", variables: { "--color-text-primary": "#24231f" } }),
 		calls,
 		onReady: () => ready++,
@@ -67,7 +70,7 @@ function harness(manifest: PluginManifest = PROBE, overrides: Partial<HostCalls>
 		return init;
 	};
 	const tool = (name: string, args: object = {}) => request("tools/call", { name, arguments: args });
-	return { frame, bridge, posted, asked, request, start, tool, settle, ready: () => ready };
+	return { frame, bridge, posted, asked, request, start, tool, settle, now, ready: () => ready };
 }
 
 describe("PluginFrame", () => {
@@ -158,6 +161,51 @@ describe("a frame that navigates", () => {
 		assert.equal(h.posted.length, before);
 		assert.equal(h.ready(), 1);
 		assert.equal(h.bridge.loaded(), false);
+	});
+});
+
+describe("telling the page of changes", () => {
+	const notices = (h: ReturnType<typeof harness>) => h.posted.filter((m) => m.method === "ui/notifications/host-context-changed").map((m) => m.params);
+
+	it("says nothing before the page is initialized, nor when nothing changed by value", async () => {
+		const h = harness();
+		h.now.context = { ...CONTEXT, topic: "Recursion" };
+		h.bridge.changed();
+		await h.request("ui/initialize", { appInfo: { name: "p", version: "1" }, appCapabilities: {}, protocolVersion: PROTOCOL_VERSION });
+		h.bridge.changed();
+		h.bridge.receive(h.frame, { jsonrpc: "2.0", method: "ui/notifications/initialized" });
+		h.now.context = structuredClone(h.now.context);
+		h.now.values = { loud: true };
+		h.bridge.changed();
+		assert.deepEqual(notices(h), []);
+	});
+
+	it("a lesson change is an empty notice, so the page calls get_context again; once per change", async () => {
+		const h = harness();
+		await h.start();
+		h.now.context = { ...CONTEXT, question: null };
+		h.bridge.changed();
+		h.bridge.changed();
+		assert.deepEqual(notices(h), [{}]);
+		assert.deepEqual((await h.tool("get_context"))?.result?.structuredContent, { ...CONTEXT, question: null });
+	});
+
+	it("a settings change sends the new setting values", async () => {
+		const h = harness();
+		await h.start();
+		h.now.values = { loud: false };
+		h.bridge.changed();
+		assert.deepEqual(notices(h), [{ settings: { loud: false } }]);
+	});
+
+	it("a stopped frame hears no notices", async () => {
+		const h = harness();
+		await h.start();
+		h.bridge.loaded();
+		h.bridge.loaded();
+		h.now.values = { loud: false };
+		h.bridge.changed();
+		assert.deepEqual(notices(h), []);
 	});
 });
 

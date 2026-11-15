@@ -11,13 +11,23 @@ import type { HostAnswer } from "@/frontend/lib/plugin-host-api";
 
 export const PROTOCOL_VERSION = "2026-01-26";
 
+/** A question in the lesson; `id` stays the same for as long as the question lives. */
+export interface PluginQuestion {
+	id: string;
+	text: string;
+	options: string[];
+}
+
 /** What the plugin can read with get_context. On a space's page only `space` is set. */
 export interface PluginContext {
 	space: { id: string; name: string } | null;
-	/** What the open lesson is about. */
+	/** The open lesson's title. */
 	topic: string | null;
-	/** The open question. `answer` is set only once the learner has seen it. */
-	question: { text: string; options: string[]; answer?: string } | null;
+	/** The open question on screen. Never carries its answer. */
+	question: PluginQuestion | null;
+	/** The last question the learner answered or skipped: its right answer and whether he got it
+	 *  right only as far as the lesson showed them to him. */
+	lastAnswered: (PluginQuestion & { answer?: string; correct?: boolean }) | null;
 	/** The teacher's last message, as text. */
 	teacherMessage: string | null;
 }
@@ -34,7 +44,8 @@ export interface HostCalls {
 
 interface BridgeOptions {
 	manifest: PluginManifest;
-	values: Record<string, SettingValue>;
+	/** The plugin's setting values, read at initialize and at each `changed`. */
+	values: () => Record<string, SettingValue>;
 	/** The frame's window, the only sender heard. */
 	frame: () => unknown;
 	post: (message: object) => void;
@@ -96,6 +107,11 @@ const text = (params: Params, key: string): string => {
 export function createBridge(options: BridgeOptions) {
 	const { manifest, calls } = options;
 	let initialized = false;
+	// The page may hear of changes once it said it is initialized.
+	let ready = false;
+	// What the page last got, to tell it only of real changes.
+	let sentValues = "";
+	let sentContext = "";
 	let loads = 0;
 	// After a navigation the frame holds another page: it hears nothing more, answers included.
 	let stopped = false;
@@ -160,7 +176,7 @@ export function createBridge(options: BridgeOptions) {
 				locale: navigator.language,
 				timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 				// The plugin's own setting values, by setting key.
-				settings: { ...options.values },
+				settings: { ...options.values() },
 			},
 		};
 	};
@@ -169,6 +185,8 @@ export function createBridge(options: BridgeOptions) {
 		if (method === "ping") return {};
 		if (method === "ui/initialize") {
 			initialized = true;
+			sentValues = JSON.stringify(options.values());
+			sentContext = JSON.stringify(options.context());
 			return initializeResult();
 		}
 		if (!initialized) throw new RpcError(INVALID_REQUEST, "Send ui/initialize first.");
@@ -192,7 +210,10 @@ export function createBridge(options: BridgeOptions) {
 	}
 
 	function notice(method: string) {
-		if (method === "ui/notifications/initialized" && initialized) options.onReady();
+		if (method === "ui/notifications/initialized" && initialized) {
+			ready = true;
+			options.onReady();
+		}
 		// ui/notifications/size-changed: the host sizes the frame, so nothing changes.
 	}
 
@@ -203,6 +224,19 @@ export function createBridge(options: BridgeOptions) {
 			loads += 1;
 			if (loads > 1) stopped = true;
 			return !stopped;
+		},
+		/** Tells the page when its setting values or what get_context gives changed since it last
+		 *  heard: `ui/notifications/host-context-changed` with the new `settings`, or with nothing
+		 *  for the context, which the page reads again with get_context. */
+		changed() {
+			if (!ready || stopped) return;
+			const values = JSON.stringify(options.values());
+			const context = JSON.stringify(options.context());
+			if (values === sentValues && context === sentContext) return;
+			const params = values === sentValues ? {} : { settings: { ...options.values() } };
+			sentValues = values;
+			sentContext = context;
+			post({ jsonrpc: "2.0", method: "ui/notifications/host-context-changed", params });
 		},
 		receive(source: unknown, data: unknown) {
 			if (stopped || source === null || source === undefined || source !== options.frame()) return;

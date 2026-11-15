@@ -28,7 +28,7 @@ export function PluginTab() {
 		<div className="mx-auto h-full w-full max-w-[908px] px-6 py-6">
 			<PageTitle page={plugin.label} />
 			<Pane className="h-full overflow-hidden">
-				<PluginFrame key={plugin.id} manifest={plugin.manifest} values={plugin.values} context={{ space: { id: activeSpace.id, name: activeSpace.name }, topic: null, question: null, teacherMessage: null }} />
+				<PluginFrame key={plugin.id} manifest={plugin.manifest} values={plugin.values} context={{ space: { id: activeSpace.id, name: activeSpace.name }, topic: null, question: null, lastAnswered: null, teacherMessage: null }} />
 			</Pane>
 		</div>
 	);
