@@ -93,6 +93,9 @@ export function bindingForAction(id: KeyAction): string {
  * Normalize a KeyboardEvent to a canonical binding string. Rules:
  * - mod matches BOTH meta (⌘) and ctrl — Ctrl+K works on a Mac keyboard too.
  * - a printable key ("?") bakes its shift in: "shift+/?" collapses to "?".
+ * - with mod or alt held, a single non-ASCII character falls back to its physical A-Z or comma
+ *   position (Russian Ctrl+"л" is mod+k). ASCII characters follow `key`, so AZERTY and Dvorak
+ *   keep working.
  */
 export function eventBinding(e: KeyboardEvent): string {
 	const mod = e.metaKey || e.ctrlKey;
@@ -105,7 +108,18 @@ export function eventBinding(e: KeyboardEvent): string {
 	if (mod) mods.push("mod");
 	if (e.altKey) mods.push("alt");
 	if (e.shiftKey) mods.push("shift");
-	return [...mods, e.key.toLowerCase()].join("+");
+	return [...mods, modifiedKey(e)].join("+");
+}
+
+/** The key part of a modified binding. A non-ASCII `key` (the layout's own letter) falls back
+ *  to `code` (KeyK is "k", Comma is ","), the only keys the shortcuts bind by character. */
+function modifiedKey(e: KeyboardEvent): string {
+	const key = e.key.toLowerCase();
+	// Look at the reported character: lowercasing can make it longer.
+	if (e.key.length !== 1 || e.key <= "\x7f" || !(e.metaKey || e.ctrlKey || e.altKey)) return key;
+	if (e.code === "Comma") return ",";
+	const letter = /^Key([A-Z])$/.exec(e.code);
+	return letter?.[1] ? letter[1].toLowerCase() : key;
 }
 
 /** The window event name a registry action dispatches/answers on —
