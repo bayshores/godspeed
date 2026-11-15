@@ -10,14 +10,16 @@ Rules:
 - When an app change affects what the site says (features, supported agents, platforms, download file names, version numbers, screenshots), tell the user the site may need the same update.
 - Before cleaning up, merging or reporting that "everything is committed", check both repos.
 
-# Keep the design files clean
+# One design file per topic
 
-The pen.dev files hold only what someone still needs to look at, so they never pile up into old mockups.
+Each feature or topic has its own pen.dev file in `docs/design/`, named after it (`live-pill.pen`). A file stays small, and its name says what is in it.
 
-- A board stays only while it is waiting for the user's pick or being built. Once it is rejected or built, delete its boards in the same change: the code and the live page are the reference from then on.
-- Delete any image, shader or export in the design folders that no remaining board, README or code uses.
+- Start a file by copying `docs/design/blank.pen` to the new name. A pen.dev file can't be written by hand, and the pen.dev tool only opens a file that exists.
+- Boards stay in their file after a round, picked or not. Never clear a canvas to make room. A later round on the same topic goes in the same file, to the right of the earlier one, and the picked board gets "(picked)" in its name.
+- Delete a design file only when the user says so.
+- Delete any image, shader or export in the design folders that no board, README or code uses.
 - Code comments don't point at design boards or exports. The code is the reference once it's built.
-- pen.dev saves on ⌘S; ask the user to save after a cleanup.
+- Save the file with the pen.dev tool after drawing, then tell the user which file and which boards to look at.
 
 # Say it once
 
