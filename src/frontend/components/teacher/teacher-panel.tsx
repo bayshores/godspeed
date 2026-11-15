@@ -1,6 +1,5 @@
 /**
- * The teacher's panel, opened from the pill's card ("Talk to <name>").
- * Docked to the window's right edge, under the top bar. It pushes the page
+ * The teacher's panel, opened and closed from the pill. Docked to the window's right edge, under the top bar. It pushes the page
  * left to make room, and dims the page where it covers it instead. One head
  * row (panel-head.tsx), then the agent's screen (panel-screen.tsx), which
  * grows the panel to fit the whole screen, or in a browser Activity
@@ -29,12 +28,9 @@ export function agentLine(agent: AgentStatus | null, doing: AgentDoing | null = 
 	if (agent.helperCovering) return "Tidying my memory. A backup is answering for a minute.";
 	if (agentWaiting(agent)) return waitingNotice(agent.name);
 	if (doing?.working) return doing.text;
-	if (agent.teaching) return "Teaching, idle";
+	if (agent.teaching) return "Ready";
 	return agent.connected ? agentStatusLabel(agent) : "Not connected";
 }
-
-/** The panel's left border (border-l-2). */
-const PANEL_BORDER = 2;
 
 /** The page's push while the panel is open (main's padding reads it). */
 const PUSH_VAR = "--lh-dock-push";
@@ -50,7 +46,6 @@ export function TeacherPanel({
 	screen,
 	onScreen,
 	focus,
-	onClose,
 }: {
 	name: string;
 	agent: AgentStatus | null;
@@ -66,7 +61,6 @@ export function TeacherPanel({
 	onScreen: (role: TerminalRole) => void;
 	/** The learner opened the screen: it takes the keyboard. */
 	focus: boolean;
-	onClose: () => void;
 }) {
 	const teacher = useTeacher();
 	const terminals = useTerminals();
@@ -131,8 +125,8 @@ export function TeacherPanel({
 				data-teacher-panel=""
 				data-testid="teacher-panel"
 				aria-label={name}
-				style={{ width }}
-				className="lh-slide-in fixed top-12 right-0 bottom-0 z-[41] flex max-w-full flex-col overflow-hidden border-l-2 border-line bg-panel font-ui motion-safe:transition-[width] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)"
+				style={{ width, borderRadius: 0 }}
+				className="lh-slide-in fixed top-12 right-0 bottom-0 z-[41] flex max-w-full flex-col overflow-hidden lh-popup font-ui motion-safe:transition-[width] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)"
 			>
 				{background ? (
 					<PanelHead
@@ -145,11 +139,10 @@ export function TeacherPanel({
 						need={null}
 						back={() => onScreen("teacher")}
 						wide={wide}
-						onClose={onClose}
 					/>
 				) : (
 					<PanelHead
-						title={name}
+						title={null}
 						status={teacherStatus ?? line}
 						lit={teacherTerminalState(teacherFacts) === "needsYou"}
 						working={!teacherStatus && !!doing?.working && line === doing.text}
@@ -158,7 +151,6 @@ export function TeacherPanel({
 						need={onScreenView && helperCalls ? () => onScreen("helper") : null}
 						back={null}
 						wide={wide}
-						onClose={onClose}
 					/>
 				)}
 
@@ -168,12 +160,14 @@ export function TeacherPanel({
 				<div
 					data-testid="teacher-panel-body"
 					data-settling={settling || undefined}
-					style={wide ? { width: width - PANEL_BORDER } : undefined}
+					style={wide ? { width } : undefined}
 					className={cn(
 						"flex min-h-0 flex-1 flex-col",
-						!onScreenView && "gap-[18px] px-3 pt-1.5 pb-[18px]",
+						!onScreenView && "gap-[18px] px-[18px] pt-1.5 pb-[18px]",
 						wide && "self-end",
 						settling ? "opacity-0" : "motion-safe:transition-opacity motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)",
+						// The Activity list drops over the screen: the screen steps back under it.
+						!settling && list && onScreenView && "opacity-40",
 					)}
 				>
 					{onScreenView ? (

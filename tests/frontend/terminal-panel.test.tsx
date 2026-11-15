@@ -65,7 +65,7 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 	};
 	return (
 		<TeacherContext.Provider value={api}>
-			<TeacherStatus name="Ada" line="Teaching, idle" testid="status" />
+			<TeacherStatus name="Ada" line="Ready" testid="status" />
 			<button type="button" data-testid="open-panel" onClick={() => panel.setOpen(true)} />
 			<button type="button" data-testid="open-terminal" onClick={() => panel.showTerminal()} />
 			{children}
@@ -81,7 +81,6 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 					screen={panel.role}
 					onScreen={panel.showTerminal}
 					focus={panel.focus}
-					onClose={() => panel.setOpen(false)}
 				/>
 			)}
 		</TeacherContext.Provider>
@@ -137,7 +136,7 @@ describe("the web version", () => {
 		await mounted(access({ teaching: true }), async () => {
 			const status = q("status");
 			assert.ok(status?.tagName === "SPAN", "plain text, not a button");
-			assert.equal(status?.textContent, "Teaching, idle");
+			assert.equal(status?.textContent, "Ready");
 			await click("open-panel");
 			assert.ok(q("activity-list") !== null, "Activity is the panel's body");
 			assert.ok(document.querySelector("[data-testid='teacher-panel'] [aria-expanded]") === null, "no list to drop");
@@ -164,7 +163,7 @@ describe("never opening by itself", () => {
 		}
 	});
 
-	it("Escape in the screen belongs to the agent; Close closes the panel", async () => {
+	it("Escape in the screen belongs to the agent", async () => {
 		const shell = fakeShell([teacher({ prompt: "menu" })]);
 		try {
 			await mounted(access(), async () => {
@@ -177,8 +176,6 @@ describe("never opening by itself", () => {
 				press(screen, "Escape", 27);
 				document.removeEventListener("keydown", spy);
 				assert.ok(!escaped, "Escape stays in the screen");
-				await click("teacher-panel-close");
-				assert.ok(q("teacher-panel") === null, "Close closed it");
 			});
 		} finally {
 			shell.remove();
@@ -234,13 +231,13 @@ describe("never opening by itself", () => {
 		}
 	});
 
-	it("an open Activity list stays while the status chip lights up and says what is needed", async () => {
+	it("an open Activity list stays while the status lights up and says what is needed", async () => {
 		const shell = fakeShell([teacher()]);
 		try {
 			await mounted(access(), async () => {
 				await click("open-terminal");
-				await click("teacher-panel-agent");
-				assert.ok(q("teacher-panel-list")?.querySelector("[data-testid='activity-list']"), "the list hangs from the chip");
+				await click("teacher-panel-activity");
+				assert.ok(q("teacher-panel-list")?.querySelector("[data-testid='activity-list']"), "the list hangs from the head");
 				const lit = () => q("teacher-panel-agent")?.classList.contains("bg-highlight") === true;
 				assert.ok(!lit(), "nothing needed yet");
 				await act(async () => shell.push({ id: "t1", ended: null, prompt: "enter", url: false }));
@@ -248,9 +245,9 @@ describe("never opening by itself", () => {
 				assert.ok(q("teacher-panel-list") !== null, "the list stays open");
 				assert.ok(lit(), "the chip is lit");
 				assert.equal(text("teacher-panel-agent"), "Claude Code is asking you to continue.");
-				await click("teacher-panel-agent");
+				await click("teacher-panel-activity");
 				await faded();
-				assert.ok(q("teacher-panel-list") === null, "the chip closes the list");
+				assert.ok(q("teacher-panel-list") === null, "Activity closes the list");
 				assert.deepEqual(bright(), ["Continue"]);
 			});
 		} finally {
@@ -258,7 +255,7 @@ describe("never opening by itself", () => {
 		}
 	});
 
-	it("the chip drops the Activity list over the screen with the keyboard in it; Esc gives it back to the chip, a click outside just closes it", async () => {
+	it("Activity drops its list over the screen with the keyboard in it; Esc gives it back to Activity, a click outside just closes it", async () => {
 		const shell = fakeShell([teacher()]);
 		const proto = dom.window.HTMLElement.prototype as { focus: () => void };
 		const realFocus = proto.focus;
@@ -271,10 +268,11 @@ describe("never opening by itself", () => {
 				await click("open-terminal");
 				assert.equal(text("teacher-panel-agent"), "Ada is starting.");
 				assert.ok(q("teacher-panel-list") === null);
-				const chip = q("teacher-panel-agent")!;
+				assert.equal(q("teacher-panel-agent")!.tagName, "SPAN", "the status only tells");
+				const chip = q("teacher-panel-activity")!;
 				assert.equal(chip.getAttribute("aria-expanded"), "false");
 				assert.ok(!chip.hasAttribute("aria-controls"), "names no list while there is none");
-				await click("teacher-panel-agent");
+				await click("teacher-panel-activity");
 				const list = q("teacher-panel-list");
 				assert.ok(list !== null && q("terminal-footer") !== null, "over the screen, which stays");
 				assert.equal(chip.getAttribute("aria-controls"), list.id);
@@ -282,8 +280,8 @@ describe("never opening by itself", () => {
 				await act(async () => void document.dispatchEvent(Object.assign(new dom.window.Event("keydown", { bubbles: true }), { key: "Escape" })));
 				await faded();
 				assert.ok(q("teacher-panel-list") === null);
-				assert.ok(focused === chip, "Esc gives the keyboard back to the chip");
-				await click("teacher-panel-agent");
+				assert.ok(focused === chip, "Esc gives the keyboard back to Activity");
+				await click("teacher-panel-activity");
 				focused = null;
 				await act(async () => void document.body.dispatchEvent(new dom.window.Event("pointerdown", { bubbles: true })));
 				await faded();
@@ -302,11 +300,11 @@ describe("the screens", () => {
 		const shell = fakeShell([teacher(), teacher({ id: "h1", role: "helper" })]);
 		try {
 			await mounted(access({ teaching: true, terminals: [{ id: "t1", here: true }, { id: "h1", here: true }] }), async () => {
-				assert.equal(text("status"), "Teaching, idle");
+				assert.equal(text("status"), "Ready");
 				await click("status");
 				assert.equal(text("terminal-footer"), "", "the status line says it teaches");
 				assert.deepEqual(bright(), []);
-				assert.equal(text("teacher-panel-name"), "Ada");
+				assert.equal(text("teacher-panel-name"), null);
 				assert.ok(q("teacher-panel-need") === null && q("teacher-panel-back") === null);
 				assert.ok(!/helper/i.test(q("teacher-panel")?.textContent ?? ""), "the panel never says helper");
 				await click("terminal-stop");
@@ -324,7 +322,7 @@ describe("the screens", () => {
 				await click("status");
 				await act(async () => shell.push({ id: "h1", ended: null, prompt: "menu", url: false }));
 				await settle();
-				assert.equal(text("teacher-panel-name"), "Ada", "the learner stays on the teacher's screen");
+				assert.equal(text("teacher-panel-name"), null, "the learner stays on the teacher's screen");
 				assert.equal(text("teacher-panel-need"), "Background work needs you");
 				await click("teacher-panel-need");
 				await faded();
@@ -334,11 +332,11 @@ describe("the screens", () => {
 				assert.equal(text("terminal-footer"), "", "the chip already says what");
 				assert.ok(q("teacher-panel-need") === null && q("terminal-attach") === null);
 				await click("teacher-panel-back");
-				assert.equal(text("teacher-panel-name"), "Ada");
+				assert.equal(text("teacher-panel-name"), null);
 				await click("teacher-panel-need");
 				await act(async () => shell.push({ id: "h1", ended: null, prompt: null, url: false }));
 				await settle();
-				assert.equal(text("teacher-panel-name"), "Ada", "answered: back on the teacher's screen");
+				assert.equal(text("teacher-panel-name"), null, "answered: back on the teacher's screen");
 				await faded();
 				assert.ok(q("teacher-panel-need") === null && q("teacher-panel-back") === null);
 			});
@@ -529,7 +527,7 @@ describe("the keyboard", () => {
 				await act(async () => shell.push({ id: "h1", ended: null, prompt: null, url: false }));
 				await settle();
 				for (let i = 0; i < 10 && !screen(); i++) await settle();
-				assert.equal(text("teacher-panel-name"), "Ada", "back on the teacher's screen by itself");
+				assert.equal(text("teacher-panel-name"), null, "back on the teacher's screen by itself");
 				assert.ok(focused === box, "which leaves the keyboard in the box");
 			});
 		} finally {

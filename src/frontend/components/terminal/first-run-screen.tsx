@@ -10,7 +10,7 @@ export function FirstRunScreen() {
 	const facts = api?.facts.teacher;
 	if (!api || !facts) return null;
 	return (
-		<div data-testid="first-run-screen" className="flex h-[460px] w-full flex-col overflow-hidden rounded border-2 border-line bg-panel">
+		<div data-testid="first-run-screen" className="lh-popup flex h-[460px] w-full flex-col overflow-hidden">
 			<TerminalPane api={api} role="teacher" foot={firstRunFooter(facts, api.folder)} focusOnOpen={false} />
 		</div>
 	);

@@ -340,7 +340,6 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 						screen={panel.role}
 						onScreen={showTerminal}
 						focus={panel.focus}
-						onClose={() => setPanelOpen(false)}
 					/>
 				</PanelPortal>
 			)}

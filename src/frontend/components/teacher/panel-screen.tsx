@@ -18,7 +18,7 @@ export function PanelScreen({ name, role, focus }: { name: string; role: Termina
 	if (!facts)
 		return (
 			// Where the screen will be, with what starts it.
-			<div data-testid="terminal-none" className="mx-3 mb-3 flex min-h-0 flex-1 flex-col items-center justify-center gap-4 overflow-auto rounded-[10px] bg-tone px-6 py-8 text-center">
+			<div data-testid="terminal-none" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 overflow-auto px-6 py-8 text-center">
 				<PixelIcon name="window" className="h-7 text-ink-2" />
 				<p className="max-w-80 text-[15px] leading-[22px] text-ink">
 					{api.outsideHere ? "Your agent runs in its own window." : `${name}'s screen shows here.`}

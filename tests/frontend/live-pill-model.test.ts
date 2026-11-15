@@ -133,6 +133,9 @@ describe("a click on the pill", () => {
 		assert.equal(pillClick({ main: work!, place: lesson, panelOpen: false, notices: 1 }), "notices");
 		assert.equal(pillClick({ main: work!, place: lesson, panelOpen: false, notices: 0 }), null);
 	});
+	it("the open panel closes from a page's own bar too", () => {
+		assert.equal(pillClick({ main: null, place: lesson, panelOpen: true, notices: 1 }), "close");
+	});
 });
 
 describe("the lessons whose reply waits", () => {

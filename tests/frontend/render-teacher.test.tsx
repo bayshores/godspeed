@@ -83,7 +83,6 @@ const panel = (over: Partial<PanelProps> = {}) => (
 		screen="teacher"
 		onScreen={() => {}}
 		focus={false}
-		onClose={() => {}}
 		{...over}
 	/>
 );
@@ -104,26 +103,22 @@ describe("the panel", () => {
 		assert.ok(start.nextElementSibling === list, "the start pair, then the list");
 		assert.equal(el.querySelector("[data-testid='open-agent']")?.textContent, "Start Claude Code");
 	});
-	it("head: the name, the teacher's status and a Close button (Follow is the top bar's chip)", () => {
+	it("head: the teacher's status alone, in the screen's font; the pill names the panel and closes it", () => {
 		const html = renderToStaticMarkup(panel());
-		assert.match(html, /data-testid="teacher-panel-name"[^>]*>Ada</);
-		assert.match(html, /data-testid="teacher-panel-agent"[^>]*>(<[^>]*>)*Teaching, idle</);
-		assert.match(html, /data-testid="teacher-panel-close"[^>]*>[\s\S]*Close</);
-		assert.doesNotMatch(html, /role="switch"/);
-		const closes: number[] = [];
-		const el = mount(panel({ onClose: () => closes.push(1) }));
-		act(() => (el.querySelector("[data-testid='teacher-panel-close']") as HTMLElement).click());
-		assert.deepEqual(closes, [1]);
+		assert.match(html, /data-testid="teacher-panel-agent"[^>]*class="[^"]*font-mono[^"]*"[^>]*>(<[^>]*>)*Ready</);
+		assert.doesNotMatch(html, /teacher-panel-name|teacher-panel-close|role="switch"/);
 	});
-	it("docks on the right edge as a solid panel with no blur", () => {
-		const html = renderToStaticMarkup(panel());
-		assert.match(html, /data-testid="teacher-panel"[^>]*class="[^"]*fixed top-12 right-0 bottom-0[^"]*border-l-2[^"]*border-line[^"]*bg-panel/);
-		assert.doesNotMatch(/<section[^>]*>/.exec(html)![0], /lh-popup|rounded|blur/);
+	it("docks on the right edge as a square sheet of the top bar, with no blur", () => {
+		const section = /<section[^>]*>/.exec(renderToStaticMarkup(panel()))![0];
+		assert.match(section, /data-testid="teacher-panel"/);
+		assert.match(section, /class="[^"]*fixed top-12 right-0 bottom-0[^"]*lh-popup/);
+		assert.match(section, /border-radius:0/);
+		assert.doesNotMatch(section, /border-l|bg-panel|blur/);
 	});
 	it("the status line says Not connected with no agent, and shows the waiting notice once while work waits", () => {
 		assert.equal(agentLine(IDLE), "Not connected");
 		assert.equal(agentLine(null), null, "nothing until the first read");
-		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true }), "Teaching, idle");
+		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true }), "Ready");
 		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true }, { text: "Reading a PDF", working: true }), "Reading a PDF");
 		assert.equal(agentLine({ ...IDLE, connected: true, name: "Codex" }), "Codex connected, not teaching");
 		assert.equal(agentLine({ ...IDLE, connected: true, name: "Codex", pendingWork: 1 }), waitingNotice("Codex"));

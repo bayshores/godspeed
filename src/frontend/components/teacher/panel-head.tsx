@@ -1,25 +1,23 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef } from "react";
 import { usePresence } from "@/frontend/components/presence";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { FollowButton } from "./follow-button";
 import { TeacherActivity } from "./teacher-activity";
 
-const KEY = "lh-btn h-8 shrink-0 px-3 text-[14px]";
+/** The head's words are in the screen's font; its keys are plain words. */
+const TYPE = "font-mono text-[13px]";
+const KEY = cn("lh-btn lh-btn-quiet h-8 shrink-0", TYPE);
 /** A key that needs the learner: lit like the chip that says so. */
 const LIT_KEY = "[--lh-key:var(--lh-highlight)] [--lh-key-hover:color-mix(in_srgb,var(--lh-highlight)_85%,#fff)] text-ink";
-/** The hanging list keeps this far from the panel's sides, so its curves show. */
-const LIST_INSET = 26;
-const LIST_WIDTH = 440;
 
 /**
- * The panel's one head row: whose screen it is, its status as a chip (lit
- * while it needs the learner, its words fading from one to the next, a
- * breathing square while the teacher works) with Follow beside it, then
- * the key to background work's screen while that needs the learner, or
- * Back from it, and Close.
- * On the teacher's screen the chip also drops the Activity list over the
- * top of the screen. In the narrow panel the chip takes its own row.
+ * The panel's one head row: the screen's status (lit while it needs the
+ * learner, its words fading from one to the next, a breathing square while
+ * the teacher works) with Follow beside it, then the key to background
+ * work's screen while that needs the learner, and Activity, which drops
+ * the Activity list over the top of the screen. Background work's screen
+ * has its name first, and Back. The pill that opened the panel closes it.
+ * Under a name in the narrow panel the status takes its own row.
  */
 export function PanelHead({
 	title,
@@ -31,13 +29,13 @@ export function PanelHead({
 	need,
 	back,
 	wide,
-	onClose,
 }: {
-	title: string;
+	/** Null on the teacher's screen: the pill above names it. */
+	title: string | null;
 	status: string | null;
 	lit: boolean;
 	working: boolean;
-	/** The Activity list the chip drops; null where the chip only tells. */
+	/** The Activity list its key drops; null where there is none. */
 	list: { open: boolean; onOpen: (open: boolean) => void } | null;
 	/** Follow and Go to show beside the chip while they can act. */
 	follow: boolean;
@@ -45,50 +43,31 @@ export function PanelHead({
 	need: (() => void) | null;
 	back: (() => void) | null;
 	wide: boolean;
-	onClose: () => void;
 }) {
-	const head = useRef<HTMLDivElement>(null);
-	const chip = useRef<HTMLButtonElement>(null);
+	const listKey = useRef<HTMLButtonElement>(null);
 	const card = useRef<HTMLDivElement>(null);
 	const listId = useId();
 	const listOpen = !!list?.open;
 	const hang = usePresence(listOpen);
 	const needKey = usePresence(!!need);
-	const [at, setAt] = useState({ left: LIST_INSET, width: LIST_WIDTH });
-	// Placed under the chip, and again whenever the panel changes width.
-	useLayoutEffect(() => {
-		const box = head.current;
-		if (!listOpen || !box) return;
-		const place = () => {
-			if (!chip.current) return;
-			const room = box.clientWidth;
-			const width = Math.min(LIST_WIDTH, room - 2 * LIST_INSET);
-			const chipLeft = chip.current.getBoundingClientRect().left - box.getBoundingClientRect().left;
-			setAt({ width, left: Math.max(LIST_INSET, Math.min(chipLeft, room - LIST_INSET - width)) });
-		};
-		place();
-		const watch = new ResizeObserver(place);
-		watch.observe(box);
-		return () => watch.disconnect();
-	}, [listOpen]);
 	// Opened, the keyboard goes into it, as into a menu.
 	useEffect(() => {
 		if (listOpen) card.current?.focus({ preventScroll: true });
 	}, [listOpen]);
 	// It closes on a click outside it, or on Esc, which goes no further and
-	// gives the keyboard back to the chip.
+	// gives the keyboard back to its key.
 	const onOpen = list?.onOpen;
 	useEffect(() => {
 		if (!listOpen || !onOpen) return;
 		const onDown = (e: PointerEvent) => {
 			const t = e.target as Node | null;
-			if (!card.current?.contains(t) && !chip.current?.contains(t)) onOpen(false);
+			if (!card.current?.contains(t) && !listKey.current?.contains(t)) onOpen(false);
 		};
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key !== "Escape") return;
 			e.stopPropagation();
 			onOpen(false);
-			chip.current?.focus();
+			listKey.current?.focus();
 		};
 		document.addEventListener("pointerdown", onDown);
 		document.addEventListener("keydown", onKey, true);
@@ -103,39 +82,19 @@ export function PanelHead({
 			{status}
 		</span>
 	);
+	// Plain words; on the highlighter only while the agent needs the learner.
 	const chipLook = cn(
-		"flex min-w-0 items-center gap-2 rounded-[10px] px-2.5 py-1 text-left text-[14px] leading-5 transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
-		lit ? "bg-highlight text-ink" : "bg-tone text-ink-2",
+		"flex min-w-0 items-center gap-2 text-left leading-5 transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
+		TYPE,
+		lit ? "rounded-[10px] bg-highlight px-2.5 py-1 text-ink" : "text-ink-2",
 		!wide && "flex-1",
 	);
-	const chipInside = (
-		<>
+	const statusChip = status && (
+		<span data-testid="teacher-panel-agent" title={status} className={chipLook}>
 			{working && <span aria-hidden className="ob-pulse size-2 shrink-0 bg-current" />}
 			{words}
-		</>
+		</span>
 	);
-	const statusChip =
-		status &&
-		(list ? (
-			<button
-				ref={chip}
-				type="button"
-				data-testid="teacher-panel-agent"
-				title={status}
-				aria-expanded={listOpen}
-				aria-controls={listOpen ? listId : undefined}
-				aria-label={`${status} Activity`}
-				onClick={() => list.onOpen(!listOpen)}
-				className={cn(chipLook, "lh-press hover:text-ink")}
-			>
-				{chipInside}
-				<PixelIcon name="chevron" className={cn("h-2.5 shrink-0 transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", listOpen ? "-rotate-90" : "rotate-90")} />
-			</button>
-		) : (
-			<span data-testid="teacher-panel-agent" title={status} className={chipLook}>
-				{chipInside}
-			</span>
-		));
 
 	const beside = (
 		<>
@@ -144,16 +103,33 @@ export function PanelHead({
 		</>
 	);
 
+	const inRow = wide || !title;
 	return (
-		<div ref={head} className="relative z-10 flex shrink-0 flex-col gap-2 py-3 pr-3 pl-[15px]">
+		<div className="relative z-10 flex shrink-0 flex-col gap-2 pt-2.5 pb-1.5 pr-3 pl-[18px]">
 			<div className="flex min-h-8 items-center gap-2.5">
-				<span data-testid="teacher-panel-name" className="max-w-[40%] shrink-0 truncate text-xl leading-snug font-medium text-ink">
-					{title}
-				</span>
-				<div className="flex min-w-0 flex-1 items-center gap-2">{wide && beside}</div>
+				{title && (
+					<span data-testid="teacher-panel-name" className={cn("max-w-[40%] shrink-0 truncate font-medium text-ink", TYPE)}>
+						{title}
+					</span>
+				)}
+				<div className="flex min-w-0 flex-1 items-center gap-2">{inRow && beside}</div>
 				{needKey.mounted && (
-					<button type="button" data-testid="teacher-panel-need" data-state={needKey.state} onClick={() => need?.()} className={cn(KEY, LIT_KEY, "lh-pop")}>
+					<button type="button" data-testid="teacher-panel-need" data-state={needKey.state} onClick={() => need?.()} className={cn("lh-btn h-8 shrink-0 px-3", TYPE, LIT_KEY, "lh-pop")}>
 						Background work needs you
+					</button>
+				)}
+				{list && (
+					<button
+						ref={listKey}
+						type="button"
+						data-testid="teacher-panel-activity"
+						aria-expanded={listOpen}
+						aria-controls={listOpen ? listId : undefined}
+						onClick={() => list.onOpen(!listOpen)}
+						// Held down while its list is open.
+						className={cn(KEY, listOpen && "text-ink [--lh-key:var(--lh-key-hover)]")}
+					>
+						Activity
 					</button>
 				)}
 				{back && (
@@ -161,15 +137,11 @@ export function PanelHead({
 						Back
 					</button>
 				)}
-				<button type="button" data-testid="teacher-panel-close" onClick={onClose} className={KEY}>
-					<PixelIcon name="close" />
-					Close
-				</button>
 			</div>
-			{!wide && (statusChip || follow) && <div className="flex min-w-0 items-center gap-2">{beside}</div>}
+			{!inRow && (statusChip || follow) && <div className="flex min-w-0 items-center gap-2">{beside}</div>}
 			{hang.mounted && (
-				<div data-state={hang.state} className="lh-hang absolute top-full" style={{ ...at, ["--lh-hang-fill" as string]: "var(--color-panel)" }}>
-					<div ref={card} id={listId} role="dialog" aria-label="Activity" tabIndex={-1} data-state={hang.state} data-testid="teacher-panel-list" className="lh-hang-body flex outline-none max-h-[calc((100dvh-3rem)*0.6)] flex-col overflow-y-auto bg-panel px-4 pt-1 pb-4">
+				<div data-state={hang.state} className="lh-hang absolute inset-x-0 top-full">
+					<div ref={card} id={listId} role="dialog" aria-label="Activity" tabIndex={-1} data-state={hang.state} data-testid="teacher-panel-list" className="lh-hang-body flex outline-none max-h-[calc((100dvh-3rem)*0.6)] flex-col overflow-y-auto bg-bar px-[18px] pt-1 pb-5">
 						<TeacherActivity underStatus />
 					</div>
 				</div>

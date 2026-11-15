@@ -135,10 +135,10 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }
 		if (!ended && (focusOnOpen || focusKey > 0)) term.current?.focus();
 	}, [focusKey, focusOnOpen, ended, id]);
 
-	// A card on the panel's paper. Its padding is the screen's only inset:
-	// the font fit reads it, so text, cursor and links share one column.
+	// The box's padding is the screen's only inset: the font fit reads it,
+	// so text, cursor and links share one column.
 	return (
-		<div className="mx-3 mb-3 flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-[10px] bg-bar">
+		<div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-bar">
 			<div ref={box} data-testid="terminal-screen" className="lh-screen min-h-0 min-w-0 flex-1 overflow-auto px-[18px] py-3.5 max-[600px]:px-3">
 				<div ref={host} data-terminal-screen="" className={ended ? "w-max opacity-60" : "w-max"} />
 			</div>

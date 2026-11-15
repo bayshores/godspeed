@@ -257,12 +257,13 @@ export function pillLine(i: { things: readonly PillThing[]; notice: string | nul
 /**
  * What a click on the pill does: an agent's screen it says needs the
  * learner opens in the teacher's panel (background work's own view for its
- * need); else in the app's bar the panel opens on the teacher's screen or
- * closes, and in a page's own bar, which has no panel, the folded notices
- * show. Null: the pill has nothing to do there.
+ * need); else the open panel closes, in any bar; else in the app's bar the
+ * panel opens on the teacher's screen, and in a page's own bar the folded
+ * notices show. Null: the pill has nothing to do there.
  */
 export function pillClick(i: { main: PillThing | null; place: PillPlace; panelOpen: boolean; notices: number }): { open: "teacher" | "helper" } | "close" | "notices" | null {
 	if (i.main?.needs) return { open: i.main.kind === "background" ? "helper" : "teacher" };
+	if (i.panelOpen) return "close";
 	if (i.place.own) return i.notices > 0 ? "notices" : null;
-	return i.panelOpen ? "close" : { open: "teacher" };
+	return { open: "teacher" };
 }
