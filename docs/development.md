@@ -41,7 +41,7 @@ You need Node, a Rust toolchain (`rust-toolchain.toml` pins it) and `cargo-mache
 | `npm run typecheck` | `tsc --noEmit`. Unused variables and parameters are errors. |
 | `npm run deadcode` | knip: unused files, exports, types and npm packages. |
 | `npm run rust:check` | `cargo test --workspace`, the shell's `screens` tests, clippy with `-D warnings` (also with the shell's `screens` and `self-test` features), and `cargo machete`. |
-| `npm run layout` | Mac only: opens the debug app window on made-up data, walks the screens in `scripts/layout-screens.mjs` at 1440, 1100 and 800 points, and fails on text drawn over text, a box spilling out of its parent, or sideways scrolling. Findings and pictures go to `target/layout/`. |
+| `npm run layout` | Mac only: opens the debug app window on made-up data, walks the screens in `scripts/layout-screens.mjs` at 1440, 1100 and 800 points, and fails on text drawn over text, a box spilling out of its parent, sideways scrolling, or letters a clipping box cuts off. Findings and pictures go to `target/layout/`. |
 | `npm run desktop:dev` | Vite, the debug Rust server and the Tauri shell pointed at Vite. |
 | `npm run desktop:local` | An unsigned local Mac app in `target/release/bundle/macos/`. |
 | `npm run desktop:dist` | The signed, notarized Mac app and DMG. `scripts/mac-dist.sh` says what it needs. |
