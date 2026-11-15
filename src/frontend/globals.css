@@ -334,7 +334,9 @@ body {
    tight line height in the UI font slices the tails of g, j, p, q and y.
    Unlayered, so it beats Tailwind's utility; old WebKit keeps hidden. A
    clip box is no scroll container, so it gets back the min-width of 0 a
-   flex or grid item had, where an explicit min-w utility still wins. */
+   flex or grid item had, where an explicit min-w utility still wins.
+   Variant forms such as @min-[620px]:truncate are other class names and
+   still clip all round; npm run layout catches one that cuts letters. */
 @supports (overflow-x: clip) {
 	.truncate {
 		overflow-x: clip;
@@ -369,7 +371,6 @@ body {
 		font-family: var(--font-ui);
 		font-size: 14px;
 		font-weight: 500;
-		/* Room for descenders: a truncated label clips at its line box. */
 		line-height: 1.4;
 		white-space: nowrap;
 		color: var(--foreground);
