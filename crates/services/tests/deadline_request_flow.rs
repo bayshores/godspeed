@@ -50,9 +50,9 @@ async fn answer(app: &App, reply: AgentReply) -> gs_engine::bridge::WorkView {
 	view
 }
 
-async fn ended(app: &App, deadline_id: &str) -> Json {
+async fn ended(app: &App, space_id: &str, deadline_id: &str) -> Json {
 	for _ in 0..2000 {
-		let view = deadline_request_view(app, deadline_id);
+		let view = deadline_request_view(app, space_id, deadline_id);
 		if view["running"].is_null() {
 			return view;
 		}
@@ -66,7 +66,7 @@ async fn a_request_that_links_files_ends_quietly_and_one_that_changes_nothing_sa
 	let f = Fixture::new();
 	let (space_id, deadline_id) = exam(&f.app);
 	request_deadline(&f.app, &space_id, &deadline_id, RequestKind::Coverage).unwrap();
-	assert_eq!(stringify(&deadline_request_view(&f.app, &deadline_id)), r#"{"running":"coverage","failed":null}"#);
+	assert_eq!(stringify(&deadline_request_view(&f.app, &space_id, &deadline_id)), r#"{"running":"coverage","failed":null}"#);
 	assert!(request_deadline(&f.app, &space_id, &deadline_id, RequestKind::Guide).is_err(), "one request at a time");
 
 	let change = ReplyCall { name: "update_space_deadline".to_owned(), arguments: json!({ "space_id": space_id, "deadline_id": deadline_id, "source": "Syllabus.pdf" }) };
@@ -76,7 +76,7 @@ async fn a_request_that_links_files_ends_quietly_and_one_that_changes_nothing_sa
 	assert_eq!(tools, ["read_space", "search_space_files", "read_passage", "update_space_deadline"]);
 	assert!(stringify(&Json::Arr(first.messages)).contains("Work out what this deadline covers from the space's own files"));
 	answer(&f.app, AgentReply { text: Some("Linked it from the syllabus.".to_owned()), tool_calls: Vec::new() }).await;
-	assert_eq!(stringify(&ended(&f.app, &deadline_id).await), r#"{"running":null,"failed":null}"#);
+	assert_eq!(stringify(&ended(&f.app, &space_id, &deadline_id).await), r#"{"running":null,"failed":null}"#);
 	let saved = f.app.stores.spaces.get_space(&space_id).unwrap();
 	assert_eq!(saved["deadlines"][0]["source"], json!("Syllabus.pdf"));
 	let asked = std::fs::read_to_string(f.app.paths.data.join("deadline-requests.json")).unwrap();
@@ -85,6 +85,6 @@ async fn a_request_that_links_files_ends_quietly_and_one_that_changes_nothing_sa
 	request_deadline(&f.app, &space_id, &deadline_id, RequestKind::About).unwrap();
 	let about = answer(&f.app, AgentReply { text: Some("I read the files.\nThey don't say what the midterm is like.".to_owned()), tool_calls: Vec::new() }).await;
 	assert!(about.tools.iter().flatten().any(|t| t["name"] == json!("add_space_file")));
-	let view = ended(&f.app, &deadline_id).await;
+	let view = ended(&f.app, &space_id, &deadline_id).await;
 	assert_eq!(stringify(&view["failed"]), r#"{"kind":"about","said":"They don't say what the midterm is like."}"#);
 }

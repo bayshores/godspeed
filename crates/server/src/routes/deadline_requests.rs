@@ -19,8 +19,8 @@ pub fn routes() -> Router<Arc<App>> {
 }
 
 /// GET: `{ running: kind | null, failed: { kind, said } | { kind, error } | null }`.
-async fn view(State(app): State<Arc<App>>, Path((_, deadline_id)): Path<(String, String)>) -> Response {
-	reply::no_store(reply::json(200, &deadline_request_view(&app, &deadline_id)))
+async fn view(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(String, String)>) -> Response {
+	reply::no_store(reply::json(200, &deadline_request_view(&app, &id, &deadline_id)))
 }
 
 /// POST `{ kind: "coverage" | "guide" | "about" }`: starts the request; 409 while one runs on it.

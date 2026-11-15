@@ -5,7 +5,9 @@ import type { AskError, RequestKind, RequestState } from "./request-model";
 
 /**
  * The request on a deadline (GET /api/spaces/:id/deadlines/:did/request),
- * read again whenever it starts or ends; null until read. `ask` starts one;
+ * read again whenever it starts or ends, and on a space change while a
+ * request that changed nothing shows (linking files by hand clears it);
+ * null until read. `ask` starts one;
  * `askError` is the last start that failed.
  */
 export function useDeadlineRequest(spaceId: string, deadlineId: string) {
@@ -25,6 +27,9 @@ export function useDeadlineRequest(spaceId: string, deadlineId: string) {
 	}, [reload]);
 	useServerEvent("deadline-request-changed", (e) => {
 		if (e.deadlineId === deadlineId) void reload();
+	});
+	useServerEvent("spaces-changed", () => {
+		if (state?.failed) void reload();
 	});
 	useServerResync(() => void reload());
 
