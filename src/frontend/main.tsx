@@ -21,7 +21,7 @@ const pageRead = new Promise<void>((resolve) => {
 	});
 });
 
-void Promise.all([fetchBoot(), pageRead]).then(([boot]) => {
+void Promise.all([fetchBoot(window.bootRequest), pageRead]).then(([boot]) => {
 	createRoot(document.getElementById("root")!).render(
 		<StrictMode>
 			<BootProvider initial={boot}>

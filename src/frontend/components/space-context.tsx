@@ -77,9 +77,10 @@ export function SpaceProvider({
 		}
 	}, []);
 
+	// Boot already read the list when it could.
 	useEffect(() => {
-		void refresh();
-	}, [refresh]);
+		if (initialSpaces === undefined) void refresh();
+	}, [refresh, initialSpaces]);
 	useServerEvent("spaces-changed", () => void refresh());
 
 	const setActive = useCallback((id: string | null) => {

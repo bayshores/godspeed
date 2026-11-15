@@ -11,10 +11,17 @@ import type { BootInfo } from "@/shared/core";
 /** What the app shows when the server couldn't answer: the app, No space. */
 const UNREAD: BootInfo = { onboarding: false, firstLoad: null, whatsNewSince: null, folderNotice: null, activeSpace: null, sounds: true };
 
-export async function fetchBoot(): Promise<BootInfo> {
+declare global {
+	interface Window {
+		/** The first /api/boot request, sent by index.html before the app's code loads. */
+		bootRequest?: Promise<Response | null>;
+	}
+}
+
+export async function fetchBoot(request: Promise<Response | null> = fetch("/api/boot", { cache: "no-store" })): Promise<BootInfo> {
 	try {
-		const res = await fetch("/api/boot", { cache: "no-store" });
-		return res.ok ? ((await res.json()) as BootInfo) : UNREAD;
+		const res = await request;
+		return res?.ok ? ((await res.json()) as BootInfo) : UNREAD;
 	} catch {
 		return UNREAD;
 	}

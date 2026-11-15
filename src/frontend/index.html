@@ -9,6 +9,10 @@
 		<link rel="preload" href="./fonts/literata-latin.woff2" as="font" type="font/woff2" crossorigin />
 		<link rel="preload" href="./fonts/dotgothic16-latin.woff2" as="font" type="font/woff2" crossorigin />
 		<!-- No <title>: each page renders its own (routes/page-title.tsx). -->
+		<!-- Asks for /api/boot while the app's code still loads (main.tsx reads the answer). -->
+		<script>
+			window.bootRequest = fetch("/api/boot", { cache: "no-store" }).catch(() => null);
+		</script>
 	</head>
 	<body class="min-h-dvh antialiased">
 		<!-- display: contents keeps the app's elements laid out as the body's own children. -->

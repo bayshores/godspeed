@@ -64,12 +64,13 @@ async fn main() -> ExitCode {
 		let app = Arc::downgrade(&app);
 		shell.on_agent_folder(move || app.upgrade().and_then(|app| gs_services::app::agent_folder::set_up_folder(&app)));
 	}
+	// Before the scans below, so the shell's login round trip runs while they do.
+	watch_for_stop(shell);
 	gs_services::spaces::upgrade_old_preps(&app);
 	gs_services::mocks::mocks::ask_waiting_mocks(&app);
 	start_deadline_reminders(&app);
 	let router = http::server(app, &access);
 	let service = axum::middleware::from_fn_with_state(access, http::front).layer(router);
-	watch_for_stop(shell);
 	eprintln!("godspeed-server {} on http://127.0.0.1:{port}", gs_base::config::VERSION);
 	let served = axum::serve(listener, ServiceExt::<Request>::into_make_service(service)).with_graceful_shutdown(shutdown::wait()).await;
 	if let Err(err) = served {
