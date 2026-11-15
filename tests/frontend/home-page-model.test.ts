@@ -298,7 +298,7 @@ describe("todaySections", () => {
 
 	it("nothing due this week says why", () => {
 		assert.equal(todaySections(todayLists([far], [], NOW), new Map(), NOW).empty, "Nothing is due in the next 7 days.");
-		assert.equal(todaySections(todayLists([], [], NOW), new Map(), NOW).empty, "No deadlines yet. Your agent can add them from your files.");
+		assert.equal(todaySections(todayLists([], [], NOW), new Map(), NOW).empty, "None yet. Your agent can add them from your files.");
 		const done = d("PS1", "homework", "2026-11-10", { done: true, doneAt: new Date(NOW - 60_000).toISOString() });
 		assert.equal(todaySections(todayLists([], [done], NOW), new Map(), NOW).empty, null, "a row done today is still under Due this week");
 	});

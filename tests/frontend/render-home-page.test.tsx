@@ -1,8 +1,8 @@
 /**
  * Today: ticking a deadline done and undoing it (the shared read), the
- * card, a row under "Due this week" (count block, words, Mark done, its
- * button), a row stamped Done, a row under Later, the whole page in each
- * of its states, and a space's fact grid on Progress.
+ * next deadline's band, a row due this week (count block, words, Mark
+ * done, its button), a row stamped Done, a row under Later, the whole page
+ * in each of its states, and a space's fact grid on Progress.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -193,7 +193,7 @@ function todayRow(props: Partial<React.ComponentProps<typeof TodayRow>> = {}) {
 	);
 }
 
-describe("A row under Due this week", () => {
+describe("A row due this week", () => {
 	it("the count block in the space's color, days left", () => {
 		const html = todayRow();
 		assert.match(html, /background:var\(--lh-space-3\)/);
@@ -381,23 +381,25 @@ describe("Today, as a whole page", () => {
 		assert.ok(!html.includes('data-testid="today-week"'));
 	});
 
-	it("with deadlines: the week line, the card, the rest due this week, the spaces, then Later, with one main button", () => {
+	it("with deadlines: the week line, then one deadlines card (the next, the rest of this week, Later), then the spaces, with one main button", () => {
 		const html = page({ lists: todayLists(LA_OPEN, [{ ...OPEN[2]!, done: true, doneAt: new Date(NOW).toISOString() }], NOW) });
-		const order = ["today-week", "today-card", "today-list", "today-spaces", "later-list"].map((id) => html.indexOf(`data-testid="${id}"`));
+		const order = ["today-week", "today-deadlines", "today-card", "today-list", "later-list", "today-spaces"].map((id) => html.indexOf(`data-testid="${id}"`));
 		assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1]!)), `sections in order: ${order.join(", ")}`);
 		assert.equal(count(html, "lh-btn-main"), 1);
 		assert.match(section(html, "today-card", "</h2>"), /Study for Quiz 2/);
 		assert.ok(html.includes('data-testid="today-row-hw4"'));
 		assert.ok(html.includes('data-testid="today-done-row-hw5"'));
 		assert.ok(html.includes('data-testid="later-row-fin"'));
-		for (const title of ["Due this week", "Your spaces", "Later"]) assert.ok(html.includes(`>${title}</h2>`), title);
+		for (const title of ["Deadlines", "Your spaces"]) assert.ok(html.includes(`>${title}</h2>`), title);
+		assert.ok(html.includes(">Later</h3>"));
 		assert.ok(!html.includes(">This week<"), "the week is a quiet line under the title, not a section");
-		assert.equal(count(html, "border-line"), 2, "the card and the Due this week frame, nothing else");
+		assert.match(section(html, "home-add-deadline", "</button>"), /Add$/);
+		assert.match(tag(html, "home-add-deadline"), /aria-label="Add a deadline"/);
 	});
 
 	it("no spaces: the sentence and Add a space, nothing else", () => {
 		const html = page({ spaces: [], spacesProgress: new Map() });
-		assert.match(section(html, "today-empty", "</p>"), /No spaces yet\. Add one, then add its deadlines\./);
+		assert.match(section(html, "today-empty", "</p>"), /None yet\. A space holds one subject&#x27;s files, deadlines and lessons\./);
 		assert.ok(tag(html, "today-add-space").includes("lh-btn-main"));
 		for (const id of ["today-week", "today-spaces", "home-add-deadline"]) assert.ok(!html.includes(`data-testid="${id}"`), id);
 	});
@@ -405,8 +407,8 @@ describe("Today, as a whole page", () => {
 	it("spaces but no deadlines: no card, the sentence, this week, the spaces and Add a deadline", () => {
 		const html = page();
 		assert.ok(!html.includes('data-testid="today-card"'));
-		assert.match(section(html, "today-empty", "</p>"), /No deadlines yet\. Your agent can add them from your files\./);
-		assert.ok(!html.includes(">Due this week<"));
+		assert.match(section(html, "today-empty", "</p>"), /None yet\. Your agent can add them from your files\./);
+		assert.ok(!html.includes('data-testid="today-list"'));
 		assert.ok(!html.includes(">Later<"));
 		assert.ok(html.includes('data-testid="home-add-deadline"'));
 		assert.equal(count(html, "lh-btn-main"), 0);

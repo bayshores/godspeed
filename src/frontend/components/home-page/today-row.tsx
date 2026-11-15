@@ -42,7 +42,7 @@ export function TodayRow({
 	const words = todayRow(d, progress, nowMs);
 	return (
 		<li data-testid={`today-row-${d.id}`} data-teacher-target={`deadline:${d.id}`}>
-			<div className="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-2 py-1">
+			<div className="flex min-h-[76px] flex-wrap items-center gap-x-4 gap-y-2 py-2.5">
 				<CountBlock size="today" color={blockColor(color)} {...countLeft(dueAtMs(d), nowMs)} />
 				<span className="flex min-w-0 flex-1 basis-[220px] flex-col gap-0.5">
 					<Link to={deadlineHref(d.id)} state={openedFrom("today")} data-testid="today-open" title={words.title} className="truncate text-[17px] leading-snug text-ink hover:underline">
@@ -70,9 +70,9 @@ export function TodayRow({
 export function DoneRow({ deadline: d, onUndo }: { deadline: OpenDeadline; onUndo: (d: OpenDeadline) => void }) {
 	return (
 		<li data-testid={`today-done-row-${d.id}`}>
-			<div className="flex min-h-12 items-center gap-4">
+			<div className="flex min-h-14 items-center gap-4">
 				<span aria-hidden className="w-14 shrink-0" />
-				<span className="flex min-w-0 flex-1 items-baseline gap-3">
+				<span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3">
 					<span className="truncate text-[15px] text-ink-3 line-through">
 						<span className="sr-only">Done, </span>
 						{d.name}
@@ -93,7 +93,7 @@ export function LaterRow({ deadline: d, progress, nowMs }: { deadline: OpenDeadl
 	const words = laterRow(d, progress, nowMs);
 	return (
 		<li data-testid={`later-row-${d.id}`} data-teacher-target={`deadline:${d.id}`}>
-			<Link to={deadlineHref(d.id)} state={openedFrom("today")} className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 px-1 py-2 text-[15px] transition-colors hover:bg-tone">
+			<Link to={deadlineHref(d.id)} state={openedFrom("today")} className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-1 px-1 py-2.5 text-[15px] transition-colors hover:bg-tone">
 				<span title={d.name} className="min-w-0 truncate font-medium text-ink">
 					{d.name}
 				</span>
