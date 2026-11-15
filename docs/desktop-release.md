@@ -173,6 +173,16 @@ It then downloads the four feeds and checks them:
 | `latest-mac.yml` | The version, the zip first and the DMG second, bare names only, sizes equal to the uploaded sizes, the top-level `path` and `sha512` equal to the zip's, `minimumSystemVersion: 23.0.0`, and either no `stagingPercentage` or a whole number from 0 to 99. No other fields. |
 | `latest.yml`, `latest-linux.yml` | Exactly the committed templates in `crates/shell/release/` plus `newApp: <v>`. The templates point only at `../v0.5.51/<file>`. |
 
+### Reading a crash log
+
+Mac release binaries ship without symbols, so a panic in `logs/main.log` lists raw addresses after a `load address` line. The panic's own message, file and line stay readable. Each package job keeps the symbols for 90 days as the `symbols-<platform>` artifact: a `.dSYM` on Mac and a `.pdb` on Windows. Linux binaries keep their symbols.
+
+| Step | Command |
+|---|---|
+| 1. Download the artifact for that version and platform | `gh run download <run id> -n symbols-mac -R bayshores/godspeed` |
+| 2. Find the symbol file | `find godspeed.dSYM -path '*DWARF*' -type f` |
+| 3. Turn the addresses into names | `atos -o <that file> -l <load address> <address> <address> ...` |
+
 ## Secrets
 
 Add these under the repository's **Settings → Secrets and variables → Actions**. The workflow gives each one to the bundler under the name in the second column, and only in the build step that needs it.
