@@ -120,13 +120,14 @@ function freePort() {
 }
 
 /** A Start in the check runs layout-agent.mjs, never a real agent: its `claude` and `codex` are
- *  first on the throwaway home's PATH. */
-function standInAgent() {
-	const bin = path.join(RUN, "home", "bin");
+ *  first on the throwaway home's PATH. It throws when it can't write them, so the run stops
+ *  before the window starts. */
+export function standInAgent(home) {
+	const bin = path.join(home, "bin");
 	fs.mkdirSync(bin);
 	const run = `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(import.meta.dirname, "layout-agent.mjs"))}\n`;
 	for (const name of ["claude", "codex"]) fs.writeFileSync(path.join(bin, name), run, { mode: 0o755 });
-	fs.writeFileSync(path.join(RUN, "home", ".zshrc"), `export PATH=${JSON.stringify(bin)}:$PATH\n`);
+	fs.writeFileSync(path.join(home, ".zshrc"), `export PATH=${JSON.stringify(bin)}:$PATH\n`);
 }
 
 /** The app with its control channel: one command line in, one answer line out. */
@@ -242,9 +243,8 @@ async function main() {
 
 	fs.rmSync(RUN, { recursive: true, force: true });
 	for (const dir of ["data", "home", "tmp"]) fs.mkdirSync(path.join(RUN, dir), { recursive: true });
-	standInAgent();
-	// LAYOUT_PORT holds a run to one port, beside other apps on fixed ports.
-	const port = Number(process.env.LAYOUT_PORT) || (await freePort());
+	standInAgent(path.join(RUN, "home"));
+	const port = await freePort();
 	const pageCheck = `(() => { ${fs.readFileSync(path.join(import.meta.dirname, "layout-page.mjs"), "utf8").replace(/^export /gm, "")}; return checkPage(); })()`;
 
 	// The first launch: the stand-in agent writes the data, then the app quits, so the second

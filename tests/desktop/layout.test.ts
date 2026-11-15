@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, snapName } from "../../scripts/layout.mjs";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, snapName, standInAgent } from "../../scripts/layout.mjs";
 import { cross, cutOf, inkOf, lineBox, meet, outside, sticksOut } from "../../scripts/layout-page.mjs";
 import { workOf } from "../../scripts/layout-seed.mjs";
 import { SCREENS } from "../../scripts/layout-screens.mjs";
@@ -115,8 +118,37 @@ describe("the walk", () => {
 
 describe("the stand-in agent", () => {
 	it("reads what a work item is for off its text, even when cut", () => {
-		const text = '{"status":"work","workId":"work_1","lessonId":"chat_talk","lessonTitle":"Talk","kind":"talk","tools":[{"name":"x"';
-		assert.deepEqual(workOf(text), { lessonId: "chat_talk", task: undefined });
+		const text = '{"status":"work","workId":"work_1","lessonId":"chat_lab","lessonTitle":"Slope","kind":"lesson","tools":[{"name":"x"';
+		assert.deepEqual(workOf(text), { lessonId: "chat_lab", task: undefined });
 		assert.equal(workOf('{"status":"work","workId":"w","kind":"background task","task":"Graph extraction: a.md"}').task, "Graph extraction: a.md");
+	});
+});
+
+describe("the stand-in agent", () => {
+	it("puts its claude and codex first on the throwaway home's PATH", () => {
+		const home = fs.mkdtempSync(path.join(os.tmpdir(), "layout-home-"));
+		try {
+			standInAgent(home);
+			for (const name of ["claude", "codex"]) {
+				const shim = path.join(home, "bin", name);
+				assert.match(fs.readFileSync(shim, "utf8"), /layout-agent\.mjs/);
+				assert.ok((fs.statSync(shim).mode & 0o111) !== 0, `${name} runs`);
+			}
+			assert.equal(fs.readFileSync(path.join(home, ".zshrc"), "utf8"), `export PATH=${JSON.stringify(path.join(home, "bin"))}:$PATH\n`);
+		} finally {
+			fs.rmSync(home, { recursive: true, force: true });
+		}
+	});
+
+	it("throws when it can't write them, so the run stops before the window starts", () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "layout-home-"));
+		try {
+			// A file where the home's bin folder should go.
+			fs.writeFileSync(path.join(dir, "bin"), "");
+			assert.throws(() => standInAgent(dir));
+			assert.ok(!fs.existsSync(path.join(dir, ".zshrc")), "no PATH that points at nothing");
+		} finally {
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
 	});
 });

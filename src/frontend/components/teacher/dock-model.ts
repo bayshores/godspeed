@@ -35,8 +35,8 @@ export function panelStarts(p: { view: PanelView; screen: TerminalRole; terminal
 }
 
 export const DOCK_WIDTH = 400;
-/** The screen's padding on both sides and the panel's left border. */
-const SCREEN_FRAME = 2 * 12 + 2;
+/** The screen card's margins and padding on both sides, and the panel's left border. */
+const SCREEN_FRAME = 2 * 12 + 2 * 18 + 2;
 /** The whole screen at 14 px. */
 export const TERMINAL_DOCK_WIDTH = FULL_SCREEN_WIDTH + SCREEN_FRAME;
 /** The narrowest screen panel that pushes the page: the whole screen at 12 px. */

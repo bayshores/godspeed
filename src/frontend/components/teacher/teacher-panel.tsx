@@ -1,28 +1,22 @@
 /**
- * The teacher's panel: click the teacher in the top bar.
+ * The teacher's panel, opened from the pill's card ("Talk to <name>").
  * Docked to the window's right edge, under the top bar. It pushes the page
- * left to make room. One head row: the name and the teacher's status, the
- * Teacher and Helper switch while a helper runs, a key that swaps the body
- * between the agent's screen (panel-screen.tsx), which grows the panel to
- * fit the whole screen, and Activity (teacher-activity.tsx), then Close.
- * A screen that needs the learner marks that key while Activity shows.
+ * left to make room. One head row (panel-head.tsx), then the agent's
+ * screen (panel-screen.tsx), which grows the panel to fit the whole screen,
+ * or Activity (teacher-activity.tsx).
  */
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/frontend/lib/utils";
 import { agentWaiting, agentStatusLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { TeacherStatus } from "@/frontend/components/terminal/teacher-status";
-import { needsYou, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
+import { needsYou, teacherStatusLine, teacherTerminalState, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
 import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useTeacher } from "./teacher-context";
 import type { AgentDoing } from "./follow-status";
 import { TeacherActivity } from "./teacher-activity";
+import { PanelHead } from "./panel-head";
 import { PanelScreen } from "./panel-screen";
 import { StartTeacher } from "./start-teacher";
 import { DOCK_WIDTH, dockLayout, shownScreen, type PanelView } from "./dock-model";
-
-/** The swap key names where it goes, the same word the lesson's teacher column uses. */
-const VIEW_LABEL: Record<PanelView, string> = { activity: "Activity", terminal: "Terminal" };
 
 /** The status line under the name: the helper notice while the agent
  *  compacts, the waiting notice while work waits, what the agent is doing
@@ -79,7 +73,7 @@ export function TeacherPanel({
 	const calls = (role: TerminalRole) => !!terminals?.facts[role] && !!needsYou(terminals.facts[role]!);
 	const shown = shownScreen(screen, !!terminals?.helper);
 	const hasScreen = !!terminals?.facts[shown];
-	const marked = calls("teacher") || calls("helper");
+	const teacherFacts = terminals?.facts.teacher ?? null;
 	const [{ width, wide }, setDock] = useState({ width: DOCK_WIDTH, wide: false });
 	const section = useRef<HTMLElement>(null);
 	const lastWidth = useRef(DOCK_WIDTH);
@@ -131,48 +125,16 @@ export function TeacherPanel({
 			style={{ width }}
 			className="lh-slide-in fixed top-12 right-0 bottom-0 z-[41] flex max-w-full flex-col overflow-hidden border-l-2 border-line bg-panel font-ui motion-safe:transition-[width] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)"
 		>
-			<div className="flex shrink-0 items-center gap-3 border-b border-tone-2 pt-4 pr-3.5 pb-3 pl-5">
-				<span className="flex min-w-0 flex-1 flex-col gap-px">
-					<span data-testid="teacher-panel-name" className="truncate text-xl leading-snug font-medium text-ink">
-						{name}
-					</span>
-					<TeacherStatus name={name} line={line} testid="teacher-panel-agent" className="max-w-full text-base text-ink-2" />
-				</span>
-				{onScreenView && terminals?.helper && (
-					<div role="group" aria-label="Screen" className="flex shrink-0 gap-1">
-						{(["teacher", "helper"] as const).map((role) => (
-							<button
-								key={role}
-								type="button"
-								aria-pressed={shown === role}
-								data-testid={`terminal-screen-${role}`}
-								onClick={() => onScreen(role)}
-								className={cn("lh-btn text-[15px]", shown !== role && "lh-btn-quiet")}
-							>
-								<span className="max-w-32 truncate">{role === "teacher" ? name : "Helper"}</span>
-								{shown !== role && calls(role) && <NeedsMark testid={`terminal-screen-${role}-mark`} />}
-							</button>
-						))}
-					</div>
-				)}
-				{other && (
-					<button
-						type="button"
-						data-testid="teacher-panel-view"
-						aria-controls={bodyId}
-						aria-description={other === "terminal" && marked ? `${name} needs you here` : undefined}
-						onClick={() => onView(other)}
-						className="lh-btn lh-btn-quiet shrink-0 text-[15px]"
-					>
-						{VIEW_LABEL[other]}
-						{other === "terminal" && marked && <NeedsMark testid="teacher-panel-view-mark" />}
-					</button>
-				)}
-				<button type="button" data-testid="teacher-panel-close" onClick={onClose} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
-					<PixelIcon name="close" />
-					Close
-				</button>
-			</div>
+			<PanelHead
+				name={name}
+				status={teacherStatusLine(teacherFacts, name) ?? line}
+				needsYou={teacherTerminalState(teacherFacts) === "needsYou"}
+				screens={onScreenView && terminals?.helper ? { shown, calls, onPick: onScreen } : null}
+				other={other}
+				bodyId={bodyId}
+				onView={onView}
+				onClose={onClose}
+			/>
 
 			{/* The screen is laid out at the panel's final width, against its
 			    right edge, so its font is fitted once, not every frame. It is
@@ -184,7 +146,7 @@ export function TeacherPanel({
 				style={wide ? { width: width - PANEL_BORDER } : undefined}
 				className={cn(
 					"flex min-h-0 flex-1 flex-col",
-					!onScreenView && "gap-[18px] px-5 py-[18px]",
+					!onScreenView && "gap-[18px] px-3 pt-1.5 pb-[18px]",
 					wide && "self-end",
 					settling ? "opacity-0" : "motion-safe:transition-opacity motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)",
 				)}
@@ -201,9 +163,4 @@ export function TeacherPanel({
 			</div>
 		</section>
 	);
-}
-
-/** A screen needs the learner: a square in the bright key's color. */
-function NeedsMark({ testid }: { testid: string }) {
-	return <span aria-hidden data-testid={testid} className="size-2.5 shrink-0 bg-tint" />;
 }

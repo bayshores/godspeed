@@ -87,9 +87,9 @@ function answerFor(work, ids, lessonTurn) {
 			],
 		};
 	}
-	// godspeed's own request about a deadline with no files linked: the stand-in links none.
+	// godspeed's own request to work out what a deadline covers, a background job.
 	if (work.task?.startsWith("Deadline: ")) {
-		return { text: "The space's files don't say what it covers yet." };
+		return { text: `${DEADLINE} covers solving linear equations by graphing and by moving terms across the equals sign.` };
 	}
 	return null;
 }

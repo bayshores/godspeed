@@ -1,19 +1,19 @@
 /**
  * One terminal's live screen (xterm.js, loaded with this file only when a
- * screen first shows). Fixed at 100 by 30; the font scales to the box.
+ * screen first shows). Fixed at 80 by 30; the font scales to the box.
  * While it has focus every key goes to the agent: none reaches the app's
  * shortcuts (Escape never stops a turn, Tab never leaves), except the
  * Mac's Command keys. Web links open in the browser; space file names
  * and passage ids go to `onLink`.
  */
 import { useEffect, useRef } from "react";
-import { Terminal, type ITheme } from "@xterm/xterm";
+import { Terminal } from "@xterm/xterm";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import "@xterm/xterm/css/xterm.css";
 import { COLS, ROWS, fitFontSize } from "./terminal-model";
-import { lineText, screenLinks, type LinkFile, type ScreenLink } from "./terminal-links-model";
-
-const MONO = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
+import { screenLook } from "./terminal-theme";
+import type { LinkFile, ScreenLink } from "./terminal-links-model";
+import { linkScreen, type Linking } from "./screen-links";
 
 /** The box's width and height inside its padding, where the screen goes. */
 function inside(box: HTMLElement): [number, number] {
@@ -27,34 +27,6 @@ function bytes(base64: string): Uint8Array {
 	const out = new Uint8Array(raw.length);
 	for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
 	return out;
-}
-
-/** The app's colors as xterm needs them: the top bar's ink and paper,
- *  and the space colors where the agent's own output uses color. */
-function screenTheme(style: CSSStyleDeclaration): ITheme {
-	const v = (name: string) => style.getPropertyValue(name).trim();
-	const bar = v("--lh-bar");
-	const ink = v("--lh-bar-ink");
-	const space = (n: number) => v(`--lh-space-${n}`);
-	const colors = { red: space(4), green: space(3), yellow: space(5), blue: space(1), magenta: space(2), cyan: space(6) };
-	return {
-		background: bar,
-		foreground: ink,
-		cursor: ink,
-		cursorAccent: bar,
-		selectionBackground: `${ink}55`,
-		black: bar,
-		white: ink,
-		brightBlack: v("--border"),
-		brightWhite: ink,
-		...colors,
-		brightRed: colors.red,
-		brightGreen: colors.green,
-		brightYellow: colors.yellow,
-		brightBlue: colors.blue,
-		brightMagenta: colors.magenta,
-		brightCyan: colors.cyan,
-	};
 }
 
 /** Keeps a key in the screen; the Mac's Command keys still reach the app (copy, zoom). */
@@ -79,10 +51,12 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }
 	const box = useRef<HTMLDivElement>(null);
 	const host = useRef<HTMLDivElement>(null);
 	const term = useRef<Terminal | null>(null);
-	// The screen lives as long as its id; the provider reads the newest list and handler.
-	const linking = useRef({ files, onLink });
+	// The screen lives as long as its id; its links read the newest list and handler.
+	const linking = useRef<Linking>({ files, onLink });
+	const relink = useRef<(() => void) | null>(null);
 	useEffect(() => {
 		linking.current = { files, onLink };
+		relink.current?.();
 	}, [files, onLink]);
 
 	useEffect(() => {
@@ -90,36 +64,19 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }
 		const el = host.current;
 		const frame = box.current;
 		if (!lh || !el || !frame) return;
-		const style = getComputedStyle(document.documentElement);
 		const t = new Terminal({
+			...screenLook(),
 			cols: COLS,
 			rows: ROWS,
 			scrollback: 1000,
-			fontFamily: style.getPropertyValue("--font-mono").trim() || MONO,
+			// The links' dotted lines are decorations, still proposed API in xterm 6.
+			allowProposedApi: true,
 			fontSize: fitFontSize(...inside(frame)),
-			theme: screenTheme(style),
-			minimumContrastRatio: 4.5,
 			linkHandler: { activate: (_e, url) => void window.lh?.openLink?.(url) },
 		});
 		t.loadAddon(new WebLinksAddon((_e, url) => void window.lh?.openLink?.(url)));
-		// Asked per line on hover only.
-		const names = t.registerLinkProvider({
-			provideLinks(y, done) {
-				const line = t.buffer.active.getLine(y - 1);
-				const cells = line ? Array.from({ length: line.length }, (_, x) => line.getCell(x)).map((c) => ({ chars: c?.getChars() ?? "", width: c?.getWidth() ?? 1 })) : [];
-				const { text, columns } = lineText(cells);
-				const found = screenLinks(text, linking.current.files);
-				done(
-					found.length === 0
-						? undefined
-						: found.map((link) => ({
-								range: { start: { x: columns[link.start]!, y }, end: { x: columns[link.end - 1]!, y } },
-								text: text.slice(link.start, link.end),
-								activate: () => linking.current.onLink(link),
-							})),
-				);
-			},
-		});
+		const links = linkScreen(t, linking);
+		relink.current = links.refresh;
 		t.open(el);
 		term.current = t;
 		// A key the shell refuses (the window lost focus, the agent ended) is dropped.
@@ -142,7 +99,8 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }
 		fit.observe(frame);
 		return () => {
 			fit.disconnect();
-			names.dispose();
+			links.dispose();
+			relink.current = null;
 			el.removeEventListener("keydown", keepKey);
 			offOutput();
 			typed.dispose();
@@ -163,9 +121,13 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }
 		if (!ended && (focusOnOpen || focusKey > 0)) term.current?.focus();
 	}, [focusKey, focusOnOpen, ended, id]);
 
+	// A card on the panel's paper. Its padding is the screen's only inset:
+	// the font fit reads it, so text, cursor and links share one column.
 	return (
-		<div ref={box} data-testid="terminal-screen" className="min-h-0 min-w-0 flex-1 overflow-auto bg-bar p-3 max-[600px]:p-2">
-			<div ref={host} data-terminal-screen="" className={ended ? "w-max opacity-60" : "w-max"} />
+		<div className="mx-3 mb-3 flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-[10px] bg-bar">
+			<div ref={box} data-testid="terminal-screen" className="lh-screen min-h-0 min-w-0 flex-1 overflow-auto px-[18px] py-3.5 max-[600px]:px-3">
+				<div ref={host} data-terminal-screen="" className={ended ? "w-max opacity-60" : "w-max"} />
+			</div>
 		</div>
 	);
 }
