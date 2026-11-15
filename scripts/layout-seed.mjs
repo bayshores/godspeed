@@ -3,11 +3,15 @@
  *
  * A small stand-in agent talks to the app over MCP, as Claude Code would: it makes the space
  * "Lab Algebra" with a deadline and one file, reads the file into one fact, starts a lesson and
- * answers it with a plan, then a sourced reply and an open quiz. No model runs; every word is
- * fixed here.
+ * answers it with a plan, then a sourced reply and an open quiz. The window installs the plugin
+ * "Flashcards", marked as from the made-up plugin list (tests/fixtures/plugins/layout-list.json)
+ * at an older tag, so its sheet shows Update. No model runs; every word is fixed here.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
+
+/** The made-up plugin that shows in a lesson and in a space, installed from this folder. */
+const PLUGIN_FOLDER = path.resolve(import.meta.dirname, "..", "tests", "fixtures", "plugins", "layout");
 
 const WEB_SOURCE = "[[https://example.com/lab-algebra/linear-equations]]";
 /** Every made-up name has letters that hang below the line (g, j, p, q, y), so the check for
@@ -95,10 +99,11 @@ function answerFor(work, ids, lessonTurn) {
 }
 
 /**
- * Writes the made-up data into the running app. `log` keeps a line per step. Answers the ids the
+ * Writes the made-up data into the running app. `page.fetch(path, init)` runs fetch in the
+ * window, as the page itself would, and answers the status. `log` keeps a line per step. Answers the ids the
  * screens' addresses use.
  */
-export async function seed(dataDir, log) {
+export async function seed(dataDir, page, log) {
 	const agent = standIn(dataDir, log);
 	await agent.init();
 	const date = inDays(3);
@@ -111,6 +116,8 @@ export async function seed(dataDir, log) {
 	await agent.call("add_space_deadline", { space_id: space.id, deadlines: [{ kind: "exam", name: DEADLINE, date, time: "10:00" }] });
 	await agent.call("add_space_file", { space_id: space.id, kind: "study", name: "Graphing quiz prep.md", text: "# Solving by graphing\n\nTo solve ax + b = c, subtract b from both sides, then divide by a. Graphing y = ax + b and y = c gives the same x where the lines cross." });
 	const { lessonId } = await agent.json("start_lesson", { topic: "Solving linear equations by graphing", space_id: space.id });
+	await page.fetch("/api/plugins", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ from: "folder", folder: PLUGIN_FOLDER }) });
+	fs.writeFileSync(path.join(dataDir, "plugins", "flashcards", ".source.json"), JSON.stringify({ repo: "example/flashcards", tag: "v1.0.0" }));
 
 	// The file's passage, found and read as an agent would before citing it.
 	let passage;

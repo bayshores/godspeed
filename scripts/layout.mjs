@@ -155,6 +155,8 @@ async function startApp(port, name) {
 			TMPDIR: path.join(RUN, "tmp"),
 			LH_SCREENS_CTL: ctl,
 			LH_SCREENS_OUT: out,
+			// godspeed's plugin list, made up, so the run never reads GitHub's.
+			LH_PLUGIN_LIST: path.join(ROOT, "tests", "fixtures", "plugins", "layout-list.json"),
 		},
 	});
 	let exited = false;
@@ -263,7 +265,7 @@ async function main() {
 				return status;
 			},
 		};
-		ids = await seed(path.join(RUN, "data"), log).catch((err) => {
+		ids = await seed(path.join(RUN, "data"), page, log).catch((err) => {
 			throw new Error(`${err.message}; steps: ${seedLog}`);
 		});
 		const { settings } = JSON.parse(await app.run(`return fetch("/api/settings")${HTTP_OK}.then((r) => r.text())`));

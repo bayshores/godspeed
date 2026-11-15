@@ -1,0 +1,12 @@
+{
+	"id": "probe",
+	"name": "Probe",
+	"version": "1.0.0",
+	"description": "Checks what a plugin's page can and can't reach.",
+	"author": "godspeed tests",
+	"entry": "index.html",
+	"lesson": { "label": "Probe" },
+	"settings": [{ "key": "loud", "label": "Loud", "kind": "toggle", "default": false }],
+	"network": [],
+	"uses": []
+}

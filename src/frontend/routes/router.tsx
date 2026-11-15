@@ -15,6 +15,7 @@ import { SettingsRoute } from "./settings";
 import { LessonPage, lessonLoader } from "./lesson";
 import { CheatSheetRoute, DeadlineRoute, deadlineLoader } from "./deadline";
 import { MockRoute, mockLoader } from "./mock";
+import { PluginTab } from "./plugin-tab";
 
 /** Every screen. A page that needs data first (a lesson, a deadline, a
  *  mock) has a loader: a navigation keeps the old page until it is read,
@@ -59,6 +60,7 @@ export const routes: RouteObject[] = [
 									</div>
 								),
 							},
+							{ path: "space/plugin/:id", element: <PluginTab /> },
 						],
 					},
 					{ path: "space/deadline/:id", loader: deadlineLoader, element: <DeadlineRoute />, errorElement: <PageError page="Deadline" /> },

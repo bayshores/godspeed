@@ -63,7 +63,7 @@ async function mount(props: Partial<React.ComponentProps<typeof LessonTopBar>> =
 			<MemoryRouter initialEntries={["/chat/ses_1"]}>
 				<ServerEventsProvider connect={quietEvents as never}>
 					<SpaceProvider initialActive={active} initialSpaces={SPACES}>
-						<LessonTopBar rename={rename()} spaceId="c21" scopeRef={{ current: null }} scrollContextRef={{ current: null }} {...props} />
+						<LessonTopBar rename={rename()} spaceId="c21" plugins={{ words: [], open: null, onToggle() {} }} scopeRef={{ current: null }} scrollContextRef={{ current: null }} {...props} />
 						<ActiveSpace />
 					</SpaceProvider>
 				</ServerEventsProvider>
@@ -110,6 +110,19 @@ describe("the lesson's own bar", () => {
 		assert.equal(q("page-back")!.textContent, "Lessons");
 		assert.ok(q("lesson-cheat-sheet") === null);
 		assert.ok(q("lesson-find"));
+	});
+
+	it("a plugin's word sits left of Cheat sheet, lit while its page is open, and a click reports it", async () => {
+		const clicked: string[] = [];
+		const plugins = { words: [{ id: "memes", label: "Memes" }, { id: "cards", label: "Cards" }], open: "memes", onToggle: (id: string) => void clicked.push(id) };
+		await mount({ sheet: { open: false, onToggle() {} }, plugins });
+		const words = [...document.querySelectorAll("[data-testid='lesson-bar'] button")].map((b) => b.textContent?.trim());
+		assert.deepEqual(words.slice(-4), ["Memes", "Cards", "Cheat sheet", "Find"]);
+		assert.equal(q("lesson-plugin-memes")!.getAttribute("aria-pressed"), "true");
+		assert.equal(q("lesson-plugin-cards")!.getAttribute("aria-pressed"), "false");
+		assert.ok(q("lesson-plugin-memes")!.className.includes("bg-bar-ink"));
+		await click(q("lesson-plugin-cards")!);
+		assert.deepEqual(clicked, ["cards"]);
 	});
 
 	it("Cheat sheet toggles and reports whether it is open", async () => {

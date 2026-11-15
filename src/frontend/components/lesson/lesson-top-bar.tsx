@@ -9,6 +9,7 @@ import { Hint } from "@/frontend/components/ui/hint";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { kbdEventForAction } from "@/shared/core";
+import { pluginWordTestId } from "./plugin-window";
 import type { useTitleRename } from "./use-title-rename";
 
 /** A button on the dark lesson bar: outlined in the bar's own ink. */
@@ -19,13 +20,14 @@ const NAV_WORD = "lh-no-drag h-12 shrink-0 px-4 text-[15px] text-bar-ink hover:b
 /**
  * THE LESSON'S OWN BAR, in place of the app's top bar: the way back to the
  * space's lessons, the lesson's name (renames in place on a click, or F2),
- * then the homework file, the cheat sheet and Find. Opening Find swaps the
+ * then the homework file, the plugins' words, the cheat sheet and Find. Opening Find swaps the
  * cheat sheet and Find words for the find field.
  */
 export function LessonTopBar({
 	rename,
 	spaceId,
 	sheet,
+	plugins,
 	file,
 	scopeRef,
 	scrollContextRef,
@@ -34,6 +36,8 @@ export function LessonTopBar({
 	spaceId: string | undefined;
 	/** The cheat sheet beside the session (a session in a space). */
 	sheet?: { open: boolean; onToggle: () => void };
+	/** The plugins that show in lessons, each a word left of the cheat sheet; `open` is the one whose window hangs under it. */
+	plugins: { words: readonly { id: string; label: string }[]; open: string | null; onToggle: (id: string) => void };
 	/** A homework lesson's assignment file, opened on the desktop. */
 	file?: { name: string; path: string | null };
 	scopeRef: RefObject<HTMLDivElement | null>;
@@ -65,6 +69,11 @@ export function LessonTopBar({
 				</button>
 			)}
 			<SessionFind scopeRef={scopeRef} scrollContextRef={scrollContextRef}>
+				{plugins.words.map((w) => (
+					<button key={w.id} type="button" data-testid={pluginWordTestId(w.id)} aria-pressed={plugins.open === w.id} onClick={() => plugins.onToggle(w.id)} className={cn(NAV_WORD, plugins.open === w.id && BAR_WORD_ON)}>
+						{w.label}
+					</button>
+				))}
 				{sheet && (
 					<button type="button" data-testid="lesson-cheat-sheet" aria-pressed={sheet.open} onClick={sheet.onToggle} className={cn(NAV_WORD, sheet.open && BAR_WORD_ON)}>
 						Cheat sheet

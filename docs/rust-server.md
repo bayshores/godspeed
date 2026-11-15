@@ -19,7 +19,7 @@ All Rust lives in `crates/`, a Cargo workspace with `Cargo.toml` at the repo roo
 | `pdf` | pdfium on one thread: text, shape, search, page images |
 | `files` | space files to text, linked folder walks, fingerprints |
 | `search` | embedding model (ort), MiniSearch BM25+, fusion, index tables |
-| `web` | web page to markdown, PDF downloads |
+| `web` | web page to markdown, PDF downloads, plugin zips and godspeed's plugin list from GitHub |
 | `transcribe` | recordings to captions with brew's ffmpeg and whisper |
 | `engine` | the turn loop and the work bridge to the outside agent |
 | `agent` | prompts, lesson tools, file tools, background jobs, extraction |
@@ -115,7 +115,7 @@ The desktop access rule is covered by the `access` unit tests and `crates/server
 - `route::ApiRoute::new().get(h).post(h).put(h).delete(h).into_route()` builds one route path. Register every route with it. OPTIONS answers 204 with Next's sorted `Allow`, other methods an empty 405, HEAD runs GET without the body, and a panic answers an empty 500.
 - `reply`: `json(status, &v)`, `json_no_store`, `text`, `empty`, `no_store`, `not_found`, `Unhandled`, `json_body(body)` (`await req.json()`, None where it throws), `read_body` (cut at 210 MiB like `proxyClientMaxBodySize`), `body_text`.
 - `paths::search_params(query)` and `paths::param` read a query like `URLSearchParams`. `paths::decode_component` decodes one segment.
-- `ui` serves `ui/` and `/pdfjs/*`. `events` is `GET /api/events`.
+- `ui` serves `ui/` and `/pdfjs/*`. `plugin_files` serves `/plugin-files/<id>/<path>` with the plugin's CSP, only for a Host on 127.0.0.1, localhost or [::1]. `events` is `GET /api/events`.
 
 Handlers take axum extractors: `State<Arc<App>>`, `Path<String>` (or `Path<(String, String)>`), `Uri` for the query, `HeaderMap`, and `Body` last. Path params are decoded per segment like Next. Use the same param names on shared prefixes: `{id}` for a space or chat, `{deadline_id}`, `{file_id}`, `{section}`, `{*segment}`, `{n}`, `{file}`.
 
@@ -128,7 +128,7 @@ Requests run in parallel, so every read-modify-write of a file takes a lock from
 | `LockKey::Space(id)` | a space record, its files and cheat sheets |
 | `LockKey::Chat(id)` | a lesson record and its folder |
 | `LockKey::Graph(scope)` | one graph family; `None` is "No space" |
-| `LockKey::AppFile(name)` | one file under data/, like `"settings.json"` or `"agent-notes.json"` |
+| `LockKey::AppFile(name)` | one file under data/, like `"settings.json"` or `"agent-notes.json"`; `"plugins/<id>"` is one plugin's folder |
 
 ### Order
 
@@ -173,6 +173,7 @@ Requests run in parallel, so every read-modify-write of a file takes a lock from
 | `LH_PDFIUM_PATH` | pdfium's library file, when it is not in the working directory. |
 | `LH_SERVER_RESTARTED` | `1` after the shell restarted a crashed server. The welcome screen then shows the "restarted" notice. |
 | `LH_TERMINALS` | The desktop app's live terminal ids and the teacher's, `{"live":[…],"teacher":…}`. The shell's `terminals` message updates them. |
+| `LH_PLUGIN_LIST` | Debug builds only: a file read as godspeed's plugin list, each time the list is asked for, in place of GitHub's (`npm run layout` names `tests/fixtures/plugins/layout-list.json`). |
 | `GODSPEED_CONTRACT_NOW`, `GODSPEED_CONTRACT_CLOCK_FILE` | The contract suite's clock. |
 | `CLAUDE_CONFIG_DIR`, `CODEX_HOME` | Read where the TypeScript read them. |
 
@@ -217,7 +218,7 @@ With `LH_SHELL=1` the server speaks the line protocol of `gs-shell-rpc`, which [
 - `LH_DESKTOP_SERVER=1` without a secret refuses them all.
 - Browser mode (neither set) allows everything.
 
-Demo iframes in the window send `Sec-Fetch-Site: cross-site`, so their requests are refused even where WebKit attaches the cookie.
+Demo iframes and plugin frames in the window send `Sec-Fetch-Site: cross-site`, so their requests are refused even where WebKit attaches the cookie. `/plugin-files/` is outside /api, so a plugin frame loads its own files.
 
 ## Checking against the recordings
 

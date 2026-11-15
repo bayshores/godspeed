@@ -259,7 +259,7 @@ describe("Search lessons", () => {
 
 describe("a space page's head", () => {
 	it("the space's name and signature, then its tabs with their counts and Edit space", async () => {
-		await mount(<SpaceHead />, { pathname: "/space/files" });
+		await mount(<SpaceHead plugins={[]} />, { pathname: "/space/files" });
 		assert.equal(q("space-head-name")!.textContent, "CSE 29");
 		assert.doesNotMatch(q("space-head")!.textContent!, /Systems programming/, "the description is the teacher's, not the head's");
 		assert.match(q("space-signature-ink")!.getAttribute("style")!, /--ink:\s*25%/, "inked as far as studied, on every tab");
@@ -272,7 +272,7 @@ describe("a space page's head", () => {
 		assert.equal(q("nav-progress")!.hasAttribute("aria-current"), false, "/space/files is Files, not Progress");
 	});
 	it("with no space it names the lessons that belong to none: no Edit space, files, cheat sheets or deadlines", async () => {
-		await mount(<SpaceHead />, { pathname: "/space/lessons", active: null });
+		await mount(<SpaceHead plugins={[]} />, { pathname: "/space/lessons", active: null });
 		assert.equal(q("space-head-name")!.textContent, "Lessons with no space");
 		assert.ok(q("space-edit") === null);
 		assert.ok(q("space-signature") === null);

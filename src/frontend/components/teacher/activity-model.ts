@@ -1,7 +1,7 @@
 /**
  * The teacher's Activity list, its words and its rows. Pure.
  *
- * Background jobs: the feed's sub-agent jobs, fact-building runs and deadline requests, merged
+ * Background jobs: the feed's sub-agent jobs, fact-building runs and requests, merged
  * into one oldest-first list (stable order, so refreshes land in place).
  * The context line is the LAST model call's footprint against the model's
  * limit, never a running sum. Absent data shows "–", never zero.
@@ -9,7 +9,7 @@
 import type { JobKind } from "@/shared/core";
 import type { ActivityFeed } from "@/frontend/components/activity-dock";
 
-/** One running background job: a sub-agent job, a fact-building run or a deadline request. */
+/** One running background job: a sub-agent job, a fact-building run or a deadline's or plugin's request. */
 export interface ActivityBlob {
 	/** job.id, the run's row id (source id, or "src#i" for chunk jobs), or the request's. */
 	id: string;

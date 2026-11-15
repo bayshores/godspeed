@@ -1,5 +1,5 @@
 //! The background jobs: the job runner, the researcher, the PDF
-//! reader, the demo builder, the visual maker, the cheat sheet writer, the mock writer, and what
+//! reader, the demo builder, the visual maker, the cheat sheet writer, the mock writer, a plugin's ask, and what
 //! they share (the job-agent runner, one raw model call, job aborts, the background-model
 //! permits and the headless checks).
 
@@ -12,6 +12,7 @@ pub mod headless;
 pub mod mock_writer;
 pub mod pdf_reader;
 pub mod pi_run;
+pub mod plugin_asker;
 pub mod researcher;
 pub mod runner;
 pub mod stream_once;

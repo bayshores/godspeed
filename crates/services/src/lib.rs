@@ -7,6 +7,7 @@ pub mod cheat_sheets;
 pub mod graph;
 pub mod app;
 pub mod mocks;
+pub mod plugins;
 pub mod outcome;
 
 use std::sync::Arc;
@@ -33,6 +34,7 @@ pub struct App {
 	pub graph: graph::GraphState,
 	pub misc: app::MiscState,
 	pub mocks: mocks::MocksState,
+	pub plugins: plugins::PluginsState,
 	/// The desktop shell, when it started us (`LH_SHELL=1`): demo checks and window logins go through it.
 	pub shell: Option<gs_shell_rpc::ShellLink>,
 }
@@ -54,6 +56,7 @@ impl App {
 			graph: Default::default(),
 			misc: Default::default(),
 			mocks: Default::default(),
+			plugins: Default::default(),
 			shell,
 			paths,
 			events,

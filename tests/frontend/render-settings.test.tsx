@@ -44,7 +44,7 @@ describe("the Settings page (SSR)", () => {
 		assert.ok(!html.includes('role="dialog"'));
 		assert.ok(!html.includes("settings-close"), "nothing to close");
 		const ids = [...html.matchAll(/data-testid="settings-nav-(\w+)"/g)].map((m) => m[1]);
-		assert.deepEqual(ids, ["connection", "teaching", "appearance", "general"], "no Keyboard tab");
+		assert.deepEqual(ids, ["connection", "teaching", "appearance", "general", "plugins"], "no Keyboard tab");
 		assert.ok(tagOf(html, "settings-nav-connection").includes('aria-current="true"'));
 		assert.ok(tagOf(html, "settings-nav-general").includes('aria-current="false"'));
 		// Fetches don't run under SSR: the loading state is the SSR state.

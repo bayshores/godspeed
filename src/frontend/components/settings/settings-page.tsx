@@ -16,6 +16,7 @@ import { MENU_CLOSE_EVENT, MENU_OPEN_EVENT } from "@/frontend/components/menu-sh
 import { notifySettingsSaved } from "@/frontend/components/settings-signal";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { cn } from "@/frontend/lib/utils";
+import { PluginsSection } from "./plugins-section.tsx";
 import { AppearanceSection } from "./appearance-section.tsx";
 import { ConnectionSection, connectionHint } from "./connection-section.tsx";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
@@ -26,6 +27,7 @@ const SECTIONS = [
 	{ id: "teaching", label: "Teaching" },
 	{ id: "appearance", label: "Appearance" },
 	{ id: "general", label: "General" },
+	{ id: "plugins", label: "Plugins" },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]["id"];
 const DEFAULT_SECTION: SectionId = "connection";
@@ -214,6 +216,11 @@ export function SettingsPage({ section }: { section?: string }) {
 										onSectionChange={(next) => void write("agent", next)}
 										onFullPage={setFullPage}
 									/>
+								</SettingsSection>
+							)}
+							{active === "plugins" && (
+								<SettingsSection title="Plugins" testid="section-plugins">
+									<PluginsSection />
 								</SettingsSection>
 							)}
 							{active === "appearance" && (

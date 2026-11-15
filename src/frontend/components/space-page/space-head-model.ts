@@ -26,10 +26,18 @@ const TABS: readonly (SpaceTab & { spaceOnly?: boolean })[] = [
 	{ href: "/space/deadlines", label: "Deadlines", testid: "nav-deadlines", count: "deadlines", spaceOnly: true },
 ];
 
+/** The page of a plugin's tab. */
+function pluginTabHref(id: string): string {
+	return `/space/plugin/${encodeURIComponent(id)}`;
+}
+
 /** The head's tabs. Lessons with no space have no files, cheat sheets or
- *  deadlines. */
-export function spaceTabs(kind: HeadKind): readonly SpaceTab[] {
-	return TABS.filter((t) => kind === "space" || !t.spaceOnly);
+ *  deadlines; a space also has a tab for each plugin that shows in spaces,
+ *  after Deadlines. */
+export function spaceTabs(kind: HeadKind, plugins: readonly { id: string; label: string }[]): readonly SpaceTab[] {
+	const own = TABS.filter((t) => kind === "space" || !t.spaceOnly);
+	if (kind !== "space") return own;
+	return [...own, ...plugins.map((p) => ({ href: pluginTabHref(p.id), label: p.label, testid: `nav-plugin-${p.id}` }))];
 }
 
 /** A tab's count as shown: the studied share reads "19%". */

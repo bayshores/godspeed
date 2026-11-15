@@ -158,7 +158,7 @@ enum Route {
 }
 
 fn route(url: &Url, origin: &str) -> Route {
-	if url.origin().ascii_serialization() == origin || is_boot_page(url) || is_frame_document(url) {
+	if url.origin().ascii_serialization() == origin || is_boot_page(url) || is_frame_document(url) || is_plugin_page(url, origin) {
 		Route::Stay
 	// The OS would hand any other scheme to whatever app registered it.
 	} else if matches!(url.scheme(), "http" | "https" | "mailto") {
@@ -176,6 +176,12 @@ fn is_boot_page(url: &Url) -> bool {
 /// A demo card's iframe loads its `srcdoc` as `about:srcdoc`, and an empty frame is `about:blank`.
 fn is_frame_document(url: &Url) -> bool {
 	url.scheme() == "about" && matches!(url.path(), "srcdoc" | "blank")
+}
+
+/// A plugin's frame loads its files from `localhost` at the app's port, a host no Tauri
+/// capability names, so the frame can't pass Tauri's capability check (`services::plugins::csp`).
+fn is_plugin_page(url: &Url, origin: &str) -> bool {
+	url.scheme() == "http" && url.host_str() == Some("localhost") && url.port().is_some_and(|port| origin.ends_with(&format!(":{port}"))) && url.path().starts_with("/plugin-files/")
 }
 
 /// Blob downloads (demo and visual cards, Export as Markdown) ask where to save, as Electron
@@ -354,6 +360,15 @@ mod tests {
 		assert_eq!(route(&url("about:srcdoc"), origin), Route::Stay);
 		assert_eq!(route(&url("about:blank"), origin), Route::Stay);
 		assert_eq!(route(&url("about:config"), origin), Route::Nowhere);
+	}
+
+	#[test]
+	fn a_plugin_frame_keeps_its_files_at_localhost_on_the_app_s_port() {
+		let origin = "http://127.0.0.1:48061";
+		assert_eq!(route(&url("http://localhost:48061/plugin-files/memes/index.html"), origin), Route::Stay);
+		assert_eq!(route(&url("http://localhost:48062/plugin-files/memes/index.html"), origin), Route::Browser);
+		assert_eq!(route(&url("http://localhost:48061/space/x"), origin), Route::Browser);
+		assert_eq!(route(&url("http://localhost:48061/plugin-files/../api/settings"), origin), Route::Browser);
 	}
 
 	#[test]

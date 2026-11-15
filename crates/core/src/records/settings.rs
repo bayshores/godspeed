@@ -9,6 +9,7 @@ use gs_base::{num, re::Re};
 use gs_json::{Json, Obj, json};
 
 use super::changelog::is_version;
+use super::plugin_settings::sanitize_plugin_settings;
 use super::teaching_areas::{one_line, sanitize_area_rules};
 use crate::contracts::space::is_space_id;
 
@@ -181,7 +182,7 @@ pub fn sanitize_user_settings(raw: &Json) -> Option<Json> {
 	let version = raw["version"].as_f64().filter(|v| v.is_finite() && v.fract() == 0.0 && *v >= 1.0);
 	out.insert("version", version.unwrap_or(CURRENT_SETTINGS_VERSION as f64));
 	// `compaction` held only a retired knob: an old file's section rides along as stored.
-	let sections: [(&str, Section); 4] = [("general", sanitize_general), ("agent", sanitize_agent), ("appearance", sanitize_appearance), ("graph", sanitize_graph)];
+	let sections: [(&str, Section); 5] = [("general", sanitize_general), ("agent", sanitize_agent), ("appearance", sanitize_appearance), ("graph", sanitize_graph), ("plugins", sanitize_plugin_settings)];
 	for (key, sanitize) in sections {
 		if raw[key].as_obj().is_some() {
 			out.insert(key, sanitize(&raw[key]));
@@ -224,6 +225,7 @@ mod tests {
 		assert!(sanitize_user_settings(&parse("[1]").unwrap()).is_none());
 		assert!(sanitize_user_settings(&Json::Null).is_none());
 		assert_eq!(clean(r#"{"agent":{"graphTools":{}}}"#), r#"{"version":3,"agent":{"graphTools":{}}}"#);
+		assert_eq!(clean(r#"{"plugins":{"memes":{"enabled":false},"Bad Id":{}}}"#), r#"{"version":3,"plugins":{"memes":{"enabled":false}}}"#);
 		assert_eq!(clean(r#"{"agent":{"graphTools":{"enabled":false}}}"#), r#"{"version":3,"agent":{"graphTools":{"enabled":false}}}"#);
 	}
 

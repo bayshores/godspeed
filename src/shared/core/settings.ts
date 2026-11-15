@@ -116,6 +116,13 @@ export interface GraphSettings {
 	enabled?: boolean;
 }
 
+/** One installed plugin's switch (absent = on) and the values set for its
+ *  manifest's settings, keyed by the plugin's id. */
+interface PluginSettings {
+	enabled?: boolean;
+	values?: Record<string, boolean | number | string>;
+}
+
 /** THE record. Every section optional (delta); unknown top-level keys are
  *  preserved verbatim by the sanitizer (forward-compat with newer records). */
 export interface UserSettings {
@@ -124,6 +131,7 @@ export interface UserSettings {
 	agent?: AgentSettings;
 	appearance?: AppearanceSettings;
 	graph?: GraphSettings;
+	plugins?: Record<string, PluginSettings>;
 	[key: string]: unknown;
 }
 

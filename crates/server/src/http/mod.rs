@@ -7,6 +7,7 @@ pub mod events;
 pub mod form;
 mod login;
 pub mod paths;
+mod plugin_files;
 pub mod reply;
 pub mod route;
 pub mod ui;
@@ -41,6 +42,8 @@ pub fn server(app: Arc<App>, access: &Access) -> Router {
 		.merge(api)
 		.route("/api/desktop/login", ApiRoute::new().get(move |State(app): State<Arc<App>>, uri: Uri| login::login(app, uri, cookie.clone())).into_route())
 		.route("/pdfjs/{*file}", ApiRoute::new().get(ui::pdfjs).into_route())
+		.route(&format!("{}/{{id}}/{{*file}}", gs_services::plugins::FILES_PREFIX), ApiRoute::new().get(plugin_files::plugin_file).into_route())
+		.route(&format!("{}/{{file}}", gs_services::plugins::FONTS_PREFIX), ApiRoute::new().get(plugin_files::plugin_font).into_route())
 		.fallback(ApiRoute::new().get(ui::page).into_route())
 		.layer(DefaultBodyLimit::disable())
 		.with_state(app)

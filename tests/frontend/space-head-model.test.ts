@@ -4,7 +4,7 @@ import { headSignatureScale, sheetCount, spaceTabs, studiedShare, tabCount } fro
 
 describe("a space's tabs", () => {
 	it("Progress, Lessons, Files, Graph, Cheat sheets, Deadlines", () => {
-		assert.deepEqual(spaceTabs("space").map((t) => [t.label, t.href]), [
+		assert.deepEqual(spaceTabs("space", []).map((t) => [t.label, t.href]), [
 			["Progress", "/space"],
 			["Lessons", "/space/lessons"],
 			["Files", "/space/files"],
@@ -13,14 +13,23 @@ describe("a space's tabs", () => {
 			["Deadlines", "/space/deadlines"],
 		]);
 	});
+	it("a plugin that shows in spaces gets a tab after Deadlines, and none in lessons with no space", () => {
+		const plugins = [{ id: "cards", label: "Cards" }, { id: "a b", label: "Notes" }];
+		assert.deepEqual(spaceTabs("space", plugins).slice(-3).map((t) => [t.label, t.href, t.testid]), [
+			["Deadlines", "/space/deadlines", "nav-deadlines"],
+			["Cards", "/space/plugin/cards", "nav-plugin-cards"],
+			["Notes", "/space/plugin/a%20b", "nav-plugin-a b"],
+		]);
+		assert.deepEqual(spaceTabs("none", plugins).map((t) => t.label), ["Progress", "Lessons", "Graph"]);
+	});
 	it("lessons with no space have no files, cheat sheets or deadlines", () => {
-		assert.deepEqual(spaceTabs("none").map((t) => t.label), ["Progress", "Lessons", "Graph"]);
+		assert.deepEqual(spaceTabs("none", []).map((t) => t.label), ["Progress", "Lessons", "Graph"]);
 	});
 	it("Progress, Lessons, Files, Cheat sheets and Deadlines show a count", () => {
-		assert.deepEqual(spaceTabs("space").map((t) => t.count), ["studied", "lessons", "files", undefined, "sheets", "deadlines"]);
+		assert.deepEqual(spaceTabs("space", []).map((t) => t.count), ["studied", "lessons", "files", undefined, "sheets", "deadlines"]);
 	});
 	it("a count reads as its number, the studied share as a percent, and nothing until it has loaded", () => {
-		const [progress, lessons, , graph] = spaceTabs("space");
+		const [progress, lessons, , graph] = spaceTabs("space", []);
 		const counts = { studied: 19, lessons: 0, files: 3, sheets: 1, deadlines: 2 };
 		assert.equal(tabCount(progress!, counts), "19%");
 		assert.equal(tabCount(lessons!, counts), "0");

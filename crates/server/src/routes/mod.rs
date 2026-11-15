@@ -10,6 +10,7 @@ mod graph;
 mod jobs;
 mod mcp;
 mod mocks;
+mod plugins;
 mod web_search;
 
 use std::sync::Arc;
@@ -28,5 +29,6 @@ pub fn api() -> Router<Arc<App>> {
 		.merge(graph::routes())
 		.merge(mcp::routes())
 		.merge(mocks::routes())
+		.merge(plugins::routes())
 		.merge(web_search::routes())
 }

@@ -24,7 +24,7 @@ pub mod prompt_segments;
 pub mod reading_pages;
 pub mod settings_body;
 mod settings_put;
-mod settings_record;
+pub(crate) mod settings_record;
 #[cfg(test)]
 pub(crate) mod test_support;
 pub mod today_note;

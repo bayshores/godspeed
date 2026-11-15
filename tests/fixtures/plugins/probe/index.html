@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Probe</title>
+	</head>
+	<body>
+		<p id="out">Probe</p>
+		<script>
+			// Tries everything a plugin's page must not reach, reports it as an MCP log message, then
+			// does the MCP Apps handshake by hand and shows what get_context gave.
+			const send = (message) => parent.postMessage({ jsonrpc: "2.0", ...message }, "*");
+			const waiting = new Map();
+			addEventListener("message", (event) => {
+				if (event.source !== parent) return;
+				// The live check hands over the window's real invoke key: Tauri must still refuse.
+				if (event.data?.probeKey) {
+					const { probeKey, callback, error } = event.data;
+					window.webkit?.messageHandlers?.ipc?.postMessage(JSON.stringify({ cmd: "set_zoom", callback, error, payload: { factor: 1.7 }, options: {}, __TAURI_INVOKE_KEY__: probeKey }));
+					return;
+				}
+				if (!waiting.has(event.data?.id)) return;
+				waiting.get(event.data.id)(event.data);
+				waiting.delete(event.data.id);
+			});
+			let next = 1;
+			const request = (method, params) => new Promise((done) => {
+				const id = next++;
+				waiting.set(id, done);
+				send({ id, method, params });
+			});
+
+			const probes = {
+				origin: () => String(self.origin),
+				tauriInternals: () => typeof window.__TAURI_INTERNALS__,
+				tauri: () => typeof window.__TAURI__,
+				ipc: () => typeof window.ipc,
+				webkitIpcHandler: () => typeof window.webkit?.messageHandlers?.ipc,
+				// A real command with a made-up key: the window's zoom shows whether it ran.
+				ipcPost: () => {
+					window.webkit.messageHandlers.ipc.postMessage(JSON.stringify({ cmd: "set_zoom", callback: 1, error: 2, payload: { factor: 1.7 }, options: {}, __TAURI_INVOKE_KEY__: "guess" }));
+					return "sent";
+				},
+				ipcFetch: () => fetch("ipc://localhost/get_zoom", { method: "POST", body: "{}" }).then((r) => `status ${r.status}`),
+				api: () => fetch("/api/settings").then((r) => `status ${r.status}`),
+				appApi: () => fetch(`http://127.0.0.1:${location.port}/api/settings`).then((r) => `status ${r.status}`),
+				apiImage: () => new Promise((done) => {
+					const img = new Image();
+					img.onload = () => done("loaded");
+					img.onerror = () => done("blocked");
+					img.src = "/api/settings";
+				}),
+				parentDocument: () => typeof window.parent.document.body,
+				topLocation: () => String(window.top.location.href),
+				cookie: () => `read ${document.cookie.length} characters`,
+				localStorage: () => `read ${localStorage.length} keys`,
+				indexedDB: () => new Promise((done) => {
+					const open = indexedDB.open("probe");
+					open.onsuccess = () => done("opened");
+					open.onerror = () => done(`refused: ${open.error?.name}`);
+				}),
+			};
+
+			(async () => {
+				const report = {};
+				for (const [name, probe] of Object.entries(probes)) {
+					try {
+						report[name] = await probe();
+					} catch (err) {
+						report[name] = `threw ${err?.name ?? err}`;
+					}
+				}
+				send({ method: "notifications/message", params: { level: "info", logger: "probe", data: report } });
+
+				const init = await request("ui/initialize", { appInfo: { name: "probe", version: "1.0.0" }, appCapabilities: {}, protocolVersion: "2026-01-26" });
+				send({ method: "ui/notifications/initialized" });
+				const context = await request("tools/call", { name: "get_context", arguments: {} });
+
+				// The app's fonts as the standard hands them over, then what else their address opens.
+				const styles = init.result?.hostContext?.styles ?? {};
+				const style = document.createElement("style");
+				style.textContent = `${styles.css?.fonts ?? ""}\nbody { font-family: ${styles.variables?.["--font-sans"] ?? "serif"}; background: ${styles.variables?.["--color-background-primary"] ?? "none"}; }`;
+				document.head.append(style);
+				const fontUrl = /url\("(http[^"]+)"\)/.exec(styles.css?.fonts ?? "")?.[1] ?? "";
+				const asFont = (url) => new FontFace("probe", `url("${url}")`).load().then(() => "loaded", (err) => `blocked: ${err?.name ?? err}`);
+				const fonts = {
+					rules: (styles.css?.fonts ?? "").split("@font-face").length - 1,
+					appFont: await document.fonts.load('16px "Zen Kaku Gothic New"').then((faces) => `${faces.length} faces, check ${document.fonts.check('16px "Zen Kaku Gothic New"')}`),
+					fontReadAsData: await fetch(fontUrl).then((r) => `status ${r.status}`, (err) => `threw ${err?.name ?? err}`),
+					apiAsFont: await asFont(`http://localhost:${location.port}/api/settings`),
+					pageAsFont: await asFont(`http://localhost:${location.port}/plugin-fonts/index.html`),
+					appOriginFont: await asFont(fontUrl.replace("localhost", "127.0.0.1")),
+					assetsAsFont: await asFont(fontUrl.replace("/plugin-fonts/", "/assets/")),
+				};
+				send({ method: "notifications/message", params: { level: "info", logger: "probe-fonts", data: fonts } });
+				document.getElementById("out").textContent = JSON.stringify({ settings: init.result?.hostContext?.settings, context: context.result?.structuredContent ?? context.error, fonts });
+			})();
+		</script>
+	</body>
+</html>

@@ -53,6 +53,11 @@ async fn main() -> ExitCode {
 	}
 	let access = http::access::Access::from_env();
 	let app = App::new(paths, shell.clone());
+	// A stand-in for godspeed's plugin list, so a debug run (npm run layout) never reads GitHub's.
+	#[cfg(debug_assertions)]
+	if let Some(file) = std::env::var_os("LH_PLUGIN_LIST") {
+		gs_services::plugins::read_list_from(&app, file.into());
+	}
 	if let Some(shell) = &shell {
 		listen_for_terminals(&app, shell);
 		// Weak: the app holds the link, so the link must not hold the app.

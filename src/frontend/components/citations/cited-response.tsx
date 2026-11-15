@@ -65,7 +65,7 @@ export function CitedResponse({
 	);
 }
 
-const ROW_LINK = "min-w-0 truncate text-left text-ink underline underline-offset-2 hover:text-ink-max";
+const ROW_LINK = "min-w-0 break-words text-left text-ink underline underline-offset-2 hover:text-ink-max";
 
 function CiteRowLink({ cite, open }: { cite: Cite; open: (cite: Cite) => void }) {
 	if (cite.kind === "web")
