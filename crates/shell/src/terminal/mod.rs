@@ -37,6 +37,12 @@ pub const NOT_SET_UP: &str = "The godspeed folder isn't set up yet.";
 const NO_START: &str = "godspeed couldn't start the terminal.";
 const NOT_THERE: &str = "That terminal isn't running.";
 const NOT_SHOWN: &str = "Show the terminal and click in it first.";
+/// The largest file Attach takes.
+const ATTACH_MAX: usize = 20 * 1024 * 1024;
+const ATTACH_TOO_BIG: &str = "That file is over 20 MB.";
+const ATTACH_KINDS: &str = "Attach takes pictures (PNG, JPEG, GIF or WebP) and PDFs.";
+const ATTACH_TEACHER: &str = "Attach is for the teacher's screen.";
+const ATTACH_NOT_SAVED: &str = "godspeed couldn't save that file in its folder.";
 
 /// Where a terminal's news goes: the page, the server and the log.
 pub trait Outlet: Send + Sync + 'static {
@@ -433,6 +439,38 @@ impl Terminals {
 		terminal.write(pasted.as_bytes())
 	}
 
+	/// Attach: a picture or a PDF saved in the godspeed folder, where the agent reads it without
+	/// asking, and its path typed into the teacher's input like a paste, then a space and no
+	/// Enter, so the learner adds words and sends. Answers the saved path. The terminal must be
+	/// shown, but the window need not have the focus: a file dropped from Finder leaves Finder
+	/// in front, and what is typed is only a path the shell saved itself.
+	pub fn add_file(&self, id: &str, name: &str, bytes: &[u8], folder: &Path) -> Result<String, String> {
+		let terminal = self.find(id)?;
+		if terminal.role != Role::Teacher {
+			return Err(ATTACH_TEACHER.to_owned());
+		}
+		let (attached, bracketed) = {
+			let state = terminal.state();
+			(state.attached, state.screen.bracketed_paste())
+		};
+		if !attached {
+			return Err(NOT_SHOWN.to_owned());
+		}
+		if bytes.len() > ATTACH_MAX {
+			return Err(ATTACH_TOO_BIG.to_owned());
+		}
+		if !attachable(bytes) {
+			return Err(ATTACH_KINDS.to_owned());
+		}
+		let dir = folder.join(".godspeed").join("attachments");
+		let file = dir.join(attachment_name(name, bytes));
+		std::fs::create_dir_all(&dir).and_then(|()| gs_base::fsx::write_atomic(&file, bytes, None)).map_err(|_| ATTACH_NOT_SAVED.to_owned())?;
+		let path = file.to_string_lossy().into_owned();
+		let typed = if bracketed { format!("\x1b[200~{path}\x1b[201~ ") } else { format!("{path} ") };
+		terminal.write(typed.as_bytes())?;
+		Ok(path)
+	}
+
 	pub fn stop(&self, id: &str) -> Result<(), String> {
 		stop(self.find(id)?, &*self.outlet, &self.list);
 		Ok(())
@@ -555,6 +593,22 @@ fn hang_up_then_kill(terminal: Arc<Terminal>) {
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 	mutex.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// A picture (PNG, JPEG, GIF, WebP) or a PDF, by its first bytes.
+fn attachable(bytes: &[u8]) -> bool {
+	let webp = bytes.starts_with(b"RIFF") && bytes.get(8..12) == Some(b"WEBP".as_slice());
+	webp || [b"\x89PNG\r\n\x1a\n".as_slice(), b"\xff\xd8\xff", b"GIF8", b"%PDF-"].iter().any(|magic| bytes.starts_with(magic))
+}
+
+/// `<sha12>-<name>`: the name's last part, every character but letters, digits, `.`, `-` and `_`
+/// as `_`, so the typed path needs no quotes in any agent or shell. The same file keeps its name.
+fn attachment_name(name: &str, bytes: &[u8]) -> String {
+	let last = name.rsplit(['/', '\\']).next().unwrap_or_default();
+	let clean: String = last.chars().map(|c| if c.is_alphanumeric() || matches!(c, '.' | '-' | '_') { c } else { '_' }).collect();
+	let clean = clean.trim_start_matches('.');
+	let hash = gs_base::hash::sha256_hex(bytes);
+	format!("{}-{}", &hash[..12], if clean.is_empty() { "file" } else { clean })
 }
 
 #[cfg(test)]
@@ -699,6 +753,43 @@ mod tests {
 		assert_eq!(lock(&heard.live).last(), Some(&Vec::new()), "the server hears it ended");
 		assert_eq!(terminals.write(&id, "x", true), Err(NOT_THERE.to_owned()));
 		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[test]
+	fn attach_saves_a_picture_in_the_folder_and_types_its_path_without_enter() {
+		let dir = folder("attach", ECHO);
+		let terminals = Terminals::new(Arc::new(Heard::default()));
+		let id = start(&terminals, &dir);
+		until("ready", || text(&terminals, &id).contains("ready"));
+		let png = b"\x89PNG\r\n\x1a\nmade-up picture";
+		assert_eq!(terminals.add_file(&id, "week 3.png", png, &dir), Err(NOT_SHOWN.to_owned()), "not shown yet");
+		terminals.attach(&id).unwrap();
+		assert_eq!(terminals.add_file(&id, "notes.txt", b"plain words", &dir), Err(ATTACH_KINDS.to_owned()));
+		assert_eq!(terminals.add_file(&id, "big.pdf", &[b"%PDF-".as_slice(), &vec![0; ATTACH_MAX]].concat(), &dir), Err(ATTACH_TOO_BIG.to_owned()));
+
+		let path = terminals.add_file(&id, "../week 3.png", png, &dir).unwrap();
+		let saved = dir.join(".godspeed").join("attachments").join(format!("{}-week_3.png", &gs_base::hash::sha256_hex(png)[..12]));
+		assert_eq!(Path::new(&path), saved, "inside the folder, the name's last part, spaces as _");
+		assert_eq!(std::fs::read(&saved).unwrap(), png);
+		std::thread::sleep(Duration::from_millis(300));
+		assert!(!text(&terminals, &id).contains("got "), "no Enter: the line is still being typed");
+		terminals.write(&id, "\r", true).unwrap();
+		until("the echo", || text(&terminals, &id).contains("-week_3.png"));
+		until("the end", || ended_of(&terminals, &id).is_some());
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[test]
+	fn attach_knows_pictures_and_pdfs_by_their_first_bytes() {
+		for file in [b"\x89PNG\r\n\x1a\n".as_slice(), b"\xff\xd8\xff\xe0", b"GIF89a", b"RIFF\0\0\0\0WEBPVP8 ", b"%PDF-1.7"] {
+			assert!(attachable(file), "{file:?}");
+		}
+		for file in [b"".as_slice(), b"RIFF\0\0\0\0WAVE", b"<svg>", b"PK\x03\x04"] {
+			assert!(!attachable(file), "{file:?}");
+		}
+		assert_eq!(&attachment_name("C:\\Users\\ada\\Lab $1 (final).pdf", b"x")[12..], "-Lab__1__final_.pdf");
+		assert_eq!(&attachment_name("..", b"x")[12..], "-file");
+		assert_eq!(attachment_name("a.png", b"x"), attachment_name("a.png", b"x"), "the same file keeps its name");
 	}
 
 	#[test]

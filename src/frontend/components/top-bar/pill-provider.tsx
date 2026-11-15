@@ -138,7 +138,7 @@ export function PillProvider({ children }: { children: ReactNode }) {
 						onAct={act}
 						onTalk={() => {
 							close();
-							teacher.setPanelOpen(true);
+							teacher.showTerminal();
 						}}
 					/>,
 					card,

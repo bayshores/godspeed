@@ -20,7 +20,7 @@ import {
 const T0 = 1_000_000;
 const term = (over: Partial<TerminalRecord> = {}): TerminalRecord => ({ id: "t1", role: "teacher", agent: "claude", startedAt: T0, ended: null, prompt: null, url: false, ...over });
 const facts = (over: Partial<TerminalFacts> = {}, t: Partial<TerminalRecord> = {}): TerminalFacts => ({ term: term(t), checkedIn: true, outsideHere: false, teaching: true, now: T0 + 1000, quietSince: null, helperBusy: false, ...over });
-/** The full words (the helper, onboarding), and the Terminal tab's under the status line. */
+/** The full words (the helper, onboarding), and the panel's under the status line. */
 const words = (f: TerminalFacts) => terminalFooter(f, "Ada", false);
 const tab = (f: TerminalFacts) => terminalFooter(f, "Ada", true);
 
@@ -205,7 +205,7 @@ describe("the screen's font", () => {
 });
 
 describe("onboarding's first start", () => {
-	it("says the agent is starting, then connected; a question or an end uses the Terminal tab's full words", () => {
+	it("says the agent is starting, then connected; a question or an end uses the panel's full words", () => {
 		const first = (over: Partial<TerminalFacts>, t: Partial<TerminalRecord> = {}) => firstRunFooter(facts(over, t), "~/godspeed");
 		assert.equal(first({ checkedIn: false }).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.");
 		assert.equal(first({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS + 1 }).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.", "no timer words here");
@@ -218,7 +218,7 @@ describe("onboarding's first start", () => {
 });
 
 describe("starting the teacher hidden, and restarting", () => {
-	it("Start lesson and Talk start the agent last started here, only when nothing is here, runs or starts", () => {
+	it("Start lesson and a lesson's send start the agent last started here, only when nothing is here, runs or starts", () => {
 		const base = { teacher: null, agentHere: false, outsideHere: false, saved: "codex" };
 		assert.equal(wakeAgent(base), "codex");
 		assert.equal(wakeAgent({ ...base, saved: null }), null, "never started in godspeed: the no-agent line offers Start");

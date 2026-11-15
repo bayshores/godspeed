@@ -3,13 +3,15 @@
  * screen first shows). Fixed at 100 by 30; the font scales to the box.
  * While it has focus every key goes to the agent: none reaches the app's
  * shortcuts (Escape never stops a turn, Tab never leaves), except the
- * Mac's Command keys. Links open in the browser.
+ * Mac's Command keys. Web links open in the browser; space file names
+ * and passage ids go to `onLink`.
  */
 import { useEffect, useRef } from "react";
 import { Terminal, type ITheme } from "@xterm/xterm";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import "@xterm/xterm/css/xterm.css";
 import { COLS, ROWS, fitFontSize } from "./terminal-model";
+import { lineText, screenLinks, type LinkFile, type ScreenLink } from "./terminal-links-model";
 
 const MONO = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
 
@@ -61,7 +63,7 @@ function keepKey(e: KeyboardEvent) {
 	e.stopPropagation();
 }
 
-export function TerminalView({ id, ended, focusOnOpen, focusKey }: {
+export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }: {
 	id: string;
 	/** The agent has ended: the screen stays, greyed, and takes no keys. */
 	ended: boolean;
@@ -70,10 +72,18 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey }: {
 	focusOnOpen: boolean;
 	/** Focus moves back to the screen whenever this goes up. */
 	focusKey: number;
+	/** The space files whose names link. */
+	files: readonly LinkFile[];
+	onLink: (link: ScreenLink) => void;
 }) {
 	const box = useRef<HTMLDivElement>(null);
 	const host = useRef<HTMLDivElement>(null);
 	const term = useRef<Terminal | null>(null);
+	// The screen lives as long as its id; the provider reads the newest list and handler.
+	const linking = useRef({ files, onLink });
+	useEffect(() => {
+		linking.current = { files, onLink };
+	}, [files, onLink]);
 
 	useEffect(() => {
 		const lh = window.lh?.terminals;
@@ -92,6 +102,24 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey }: {
 			linkHandler: { activate: (_e, url) => void window.lh?.openLink?.(url) },
 		});
 		t.loadAddon(new WebLinksAddon((_e, url) => void window.lh?.openLink?.(url)));
+		// Asked per line on hover only.
+		const names = t.registerLinkProvider({
+			provideLinks(y, done) {
+				const line = t.buffer.active.getLine(y - 1);
+				const cells = line ? Array.from({ length: line.length }, (_, x) => line.getCell(x)).map((c) => ({ chars: c?.getChars() ?? "", width: c?.getWidth() ?? 1 })) : [];
+				const { text, columns } = lineText(cells);
+				const found = screenLinks(text, linking.current.files);
+				done(
+					found.length === 0
+						? undefined
+						: found.map((link) => ({
+								range: { start: { x: columns[link.start]!, y }, end: { x: columns[link.end - 1]!, y } },
+								text: text.slice(link.start, link.end),
+								activate: () => linking.current.onLink(link),
+							})),
+				);
+			},
+		});
 		t.open(el);
 		term.current = t;
 		// A key the shell refuses (the window lost focus, the agent ended) is dropped.
@@ -114,6 +142,7 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey }: {
 		fit.observe(frame);
 		return () => {
 			fit.disconnect();
+			names.dispose();
 			el.removeEventListener("keydown", keepKey);
 			offOutput();
 			typed.dispose();

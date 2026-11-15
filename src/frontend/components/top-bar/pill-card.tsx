@@ -38,7 +38,7 @@ export function PillCard({ things, main, name, panel, follow, onAct, onTalk }: {
 						</div>
 						{thing.kind === "teacher" && follow && <FollowButton />}
 						{acts && (
-							<button type="button" data-testid={`pill-act-${thing.kind}`} data-teacher-panel-toggle={thing.kind === "work" ? "" : undefined} onClick={() => onAct(thing)} className="lh-btn shrink-0">
+							<button type="button" data-testid={`pill-act-${thing.kind}`} data-teacher-panel-toggle={thing.kind === "work" || thing.kind === "teacher" ? "" : undefined} onClick={() => onAct(thing)} className="lh-btn shrink-0">
 								{ROW_BUTTON[thing.kind]}
 							</button>
 						)}

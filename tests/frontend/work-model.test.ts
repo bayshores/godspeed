@@ -1,12 +1,12 @@
 /**
  * Background work on a space, in words (work-model.ts): who does it, the
- * work frame's states and tag, and the lines on Today, the space's tab,
- * the top bar pill and Talk.
+ * work frame's states and tag, and the lines on Today, the space's tab
+ * and the top bar pill.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { files, filesProgress, jobFrame, spaceFrame, tabWorkTag, talkWorkLine, todayWorkLine, workProgress, workerName, workState } from "../../src/frontend/components/work/work-model.ts";
-import type { AgentAction, SpaceFile, SpaceFileStatus, SpaceSummary } from "../../src/shared/core/index.ts";
+import { files, filesProgress, jobFrame, spaceFrame, tabWorkTag, todayWorkLine, workProgress, workerName, workState } from "../../src/frontend/components/work/work-model.ts";
+import type { SpaceFile, SpaceFileStatus, SpaceSummary } from "../../src/shared/core/index.ts";
 
 const file = (id: string, status: SpaceFileStatus, extra: Partial<SpaceFile> = {}): SpaceFile => ({
 	id,
@@ -119,15 +119,5 @@ describe("elsewhere", () => {
 		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 2 }), { worker: "Marco", doing: "working on 2 jobs", count: null, tag: "2 jobs" });
 		assert.equal(workProgress({ worker: "Marco", spaces: [space({})], jobs: 0 }), null);
 		assert.equal(workProgress({ worker: null, spaces, jobs: 3 }), null, "no agent takes the work");
-	});
-
-	it("Talk's line under the row that created the space", () => {
-		const action = (over: Partial<AgentAction>): AgentAction => ({ id: "a1", at: "", agent: "Claude Code", label: "Creating Machine Learning", spaceId: "spc_ml", target: { kind: "space", id: "spc_ml" }, page: "/space", ...over });
-		const spaces = [space({ filesLeft: 15 })];
-		assert.equal(talkWorkLine(action({}), spaces, true), "Reading its files, 15 left");
-		assert.equal(talkWorkLine(action({}), spaces, false), "15 files are waiting for your agent");
-		assert.equal(talkWorkLine(action({ label: "Renaming Machine Learning" }), spaces, true), null);
-		assert.equal(talkWorkLine(action({}), [space({})], true), null);
-		assert.equal(talkWorkLine(null, spaces, true), null);
 	});
 });

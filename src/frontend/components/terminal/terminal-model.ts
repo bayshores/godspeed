@@ -46,7 +46,7 @@ const MAX_FONT = 14;
 const CELL_WIDTH = 0.62;
 const CELL_HEIGHT = 1.2;
 
-/** The screen's width at a font size, and at the largest (the room the Terminal tab makes). */
+/** The screen's width at a font size, and at the largest (the room the panel makes for it). */
 export const screenWidth = (font: number): number => Math.ceil(COLS * CELL_WIDTH * font);
 export const FULL_SCREEN_WIDTH = screenWidth(MAX_FONT);
 
@@ -68,7 +68,7 @@ export interface TerminalFacts {
 	/** The teacher runs its work loop. */
 	teaching: boolean;
 	now: number;
-	/** Since when it has been here, not teaching, while a lesson or Talk turn waits; else null. */
+	/** Since when it has been here, not teaching, while a lesson turn waits; else null. */
 	quietSince: number | null;
 	/** Background jobs are being read. */
 	helperBusy: boolean;
@@ -154,7 +154,7 @@ function screenWords(f: TerminalFacts, name: string): ScreenWords {
 }
 
 /** The footer under a screen. `underStatus`: the teacher's status line
- *  shows above it (the Terminal tab), so the teacher's footer leaves out
+ *  shows above it (the teacher's panel), so the teacher's footer leaves out
  *  what that line already says. */
 export function terminalFooter(f: TerminalFacts, name: string, underStatus: boolean): TerminalFooter {
 	const w = screenWords(f, name);
@@ -188,6 +188,10 @@ export function teacherStatusLine(f: TerminalFacts | null, name: string): string
 const live = (term: TerminalRecord | null): boolean => !!term && !term.ended;
 
 /** Why the teacher doesn't start while an agent outside godspeed is here. */
+/** The largest file Attach takes, as the shell says too: a bigger one is not even read. */
+export const ATTACH_MAX_BYTES = 20 * 1024 * 1024;
+export const ATTACH_TOO_BIG = "That file is over 20 MB.";
+
 export const OUTSIDE_REFUSAL = "An agent started outside godspeed is already connected. Close it there, then start one here.";
 
 /** Why a teacher start is refused: its terminal runs, or an agent outside
@@ -212,7 +216,7 @@ export function helperShouldStart(i: {
 	return !helper || (!!helper.ended && helper.startedAt < teacher.startedAt);
 }
 
-/** Onboarding's footer under the screen: the Terminal tab's words while the
+/** Onboarding's footer under the screen: the panel's words while the
  *  agent asks something or has ended, else whether it has connected. */
 export function firstRunFooter(f: TerminalFacts, folder: string): TerminalFooter {
 	const { term } = f;
@@ -221,7 +225,7 @@ export function firstRunFooter(f: TerminalFacts, folder: string): TerminalFooter
 	return footer(f.checkedIn ? `${agent} is connected.` : `${agent} is starting in ${folder}. If it asks you something, answer it here.`);
 }
 
-/** Start lesson and a Talk send start the teacher hidden, with the agent
+/** Start lesson and a lesson's send start the teacher hidden, with the agent
  *  last started in godspeed, when no agent is here and none runs or
  *  starts. Null leaves it to the no-agent line. */
 export function wakeAgent(i: { teacher: TerminalRecord | null; agentHere: boolean; outsideHere: boolean; saved: string | null }): FolderAgent | null {
@@ -247,7 +251,7 @@ export function statusFromTerminals<S extends { connected: boolean; teaching: bo
 }
 
 /** Restart now asks first while the teacher's terminal runs and a lesson
- *  or Talk turn waits for it. */
+ *  turn waits for it. */
 export function restartAsks(teacher: TerminalRecord | null, pendingTurns: number): boolean {
 	return live(teacher) && pendingTurns > 0;
 }

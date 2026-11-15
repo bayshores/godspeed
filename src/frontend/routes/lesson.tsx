@@ -15,7 +15,7 @@ export async function lessonLoader({ params, request }: LoaderFunctionArgs) {
 	if (res.status === 404) throw data(null, { status: 404 });
 	if (!res.ok) throw new Error(`GET /api/chats/${params.id}: ${res.status}`);
 	const read = (await res.json()) as ChatRead;
-	// The Talk chat lives in the teacher's panel, never on a lesson page.
+	// An older build's Talk chat is kept on disk but never shown.
 	if (read.kind === "talk") throw data(null, { status: 404 });
 	const chat = { ...read, kind: read.kind as LessonKind | undefined };
 	let homework: HomeworkView | undefined;

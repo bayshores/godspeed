@@ -25,7 +25,7 @@ export interface TeacherApi {
 	setPanelOpen: (open: boolean) => void;
 	/** Open the panel on its Activity list. */
 	showActivity: () => void;
-	/** Open the panel on its Terminal tab, on that screen (the teacher's
+	/** Open the panel on the agent's screen, that one (the teacher's
 	 *  when none is named), which takes the keyboard. */
 	showTerminal: (role?: TerminalRole) => void;
 	/** Newest first. */

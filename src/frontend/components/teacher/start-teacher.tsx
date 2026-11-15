@@ -2,10 +2,10 @@ import { OtherAppSetup } from "@/frontend/components/agent-folder/agent-launcher
 import { StartAgentButton } from "@/frontend/components/agent-folder/start-agent-button";
 import { useAgentChoice, useAgentFolder } from "@/frontend/components/agent-folder/use-agent-folder";
 
-/** In Talk while no agent is connected, and on the Terminal tab before any
- *  start: "Start Claude Code" (the agent last started here) and "Use
- *  another agent". The panel's status line says it is not connected; the
- *  way around a failed start shows only once a start failed. */
+/** In the panel before any start (in a browser, above Activity while no
+ *  agent is connected): "Start Claude Code" (the agent last started here)
+ *  and "Use another agent". The panel's status line says it is not
+ *  connected; the way around a failed start shows only once a start failed. */
 export function StartTeacher() {
 	const { busy, error, manual, open } = useAgentFolder();
 	const [choice, setChoice] = useAgentChoice();

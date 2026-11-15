@@ -1,6 +1,6 @@
 /**
- * The teacher panel's Terminal tab and the teacher's status line: what
- * opens it by itself, the mark while another tab shows, its one bright
+ * The agent's screen in the teacher panel and the teacher's status line:
+ * what opens it by itself, the mark while Activity shows, its one bright
  * key, the Start buttons that open it, and the web version, which has no
  * terminals and keeps its plain status line.
  */
@@ -21,7 +21,9 @@ const { AgentNeed } = await import("../../src/frontend/components/onboarding/age
 const { TeacherPanel } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 const { useTeacherPanel } = await import("../../src/frontend/components/teacher/use-teacher-panel.ts");
+const { panelViews, viewIn } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { NoAgentLine } = await import("../../src/frontend/components/agent-folder/no-agent-line.tsx");
+const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 
 const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [], terminals: [], outsideHere: false, ...over });
@@ -42,11 +44,11 @@ afterEach(() => {
 	globalThis.fetch = realFetch;
 });
 
-/** The teacher's panel as the provider holds it, with Activity as the
- *  other tab (Talk needs the whole window to mount). */
+/** The teacher's panel as the provider holds it. */
 function PanelHost({ children }: { children?: React.ReactNode }) {
 	const panel = useTeacherPanel();
-	const tabs = useTerminals()?.available ? (["activity", "terminal"] as const) : (["activity"] as const);
+	const views = panelViews(false, !!useTerminals()?.available);
+	const view = viewIn(views, panel.view);
 	const api: TeacherApi = {
 		name: "Ada",
 		follow: false,
@@ -68,20 +70,18 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 			<TeacherStatus name="Ada" line="Teaching, idle" testid="status" />
 			<button type="button" data-testid="open-activity" onClick={panel.showActivity} />
 			{children}
-			{panel.open && (tabs as readonly string[]).includes(panel.tab) && (
+			{panel.open && view && (
 				<TeacherPanel
 					name="Ada"
 					agent={null}
-					tabs={tabs}
+					views={views}
 					overLesson={false}
-					tab={panel.tab}
-					onTab={panel.setTab}
+					view={view}
+					onView={panel.setView}
 					screen={panel.role}
 					onScreen={panel.setRole}
 					focus={panel.focus}
 					onClose={() => panel.setOpen(false)}
-					recent={[]}
-					onPick={() => {}}
 				/>
 			)}
 		</TeacherContext.Provider>
@@ -91,9 +91,8 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
 const q = (testid: string) => document.querySelector<HTMLElement>(`[data-testid="${testid}"]`);
 const text = (testid: string) => q(testid)?.textContent ?? null;
-const selected = (tab: string) => q(`teacher-tab-${tab}`)?.getAttribute("aria-selected") === "true";
-/** The panel open on its Terminal tab. */
-const onTerminal = () => q("teacher-panel") !== null && selected("terminal");
+/** The panel open on the agent's screen: its key swaps to Activity. */
+const onTerminal = () => q("teacher-panel") !== null && text("teacher-panel-view") === "Activity";
 const bright = () => [...document.querySelectorAll('[data-testid="teacher-panel"] .lh-btn-main')].map((b) => b.textContent);
 const click = async (testid: string) => {
 	const el = q(testid);
@@ -102,6 +101,8 @@ const click = async (testid: string) => {
 	await settle();
 };
 
+const noEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+
 async function mounted(status: Access, run: (render: (s: Access, extra?: React.ReactNode) => Promise<void>) => Promise<void>, extra?: React.ReactNode) {
 	const host = document.createElement("div");
 	document.body.append(host);
@@ -109,9 +110,11 @@ async function mounted(status: Access, run: (render: (s: Access, extra?: React.R
 	const render = async (s: Access, more: React.ReactNode = extra) => {
 		await act(async () =>
 			root.render(
-				<TerminalsProvider status={s}>
-					<PanelHost>{more}</PanelHost>
-				</TerminalsProvider>,
+				<ServerEventsProvider connect={noEvents as never}>
+					<TerminalsProvider status={s}>
+						<PanelHost>{more}</PanelHost>
+					</TerminalsProvider>
+				</ServerEventsProvider>,
 			),
 		);
 		await settle();
@@ -127,14 +130,14 @@ async function mounted(status: Access, run: (render: (s: Access, extra?: React.R
 }
 
 describe("the web version", () => {
-	it("has no terminals: the status line is plain text and no Terminal tab", async () => {
+	it("has no terminals: the status line is plain text and the panel is Activity alone", async () => {
 		delete (dom.window as { lh?: unknown }).lh;
 		await mounted(access({ teaching: true }), async () => {
 			const status = q("status");
 			assert.ok(status?.tagName === "SPAN", "plain text, not a button");
 			assert.equal(status?.textContent, "Teaching, idle");
 			await click("open-activity");
-			assert.ok(q("teacher-panel") !== null && q("teacher-tab-terminal") === null);
+			assert.ok(q("activity-list") !== null && q("teacher-panel-view") === null);
 		});
 	});
 });
@@ -234,24 +237,25 @@ describe("opening by itself", () => {
 		}
 	});
 
-	it("an open panel on another tab stays there: the Terminal tab is marked and the status line says what is needed", async () => {
+	it("an open panel on Activity stays there: the Terminal key is marked and the status line says what is needed", async () => {
 		const shell = fakeShell([teacher()]);
 		try {
 			await mounted(access({ teaching: true, terminals: [{ id: "t1", here: true }] }), async (render) => {
 				await click("open-activity");
-				assert.ok(q("teacher-tab-terminal-mark") === null, "nothing needed yet");
+				assert.equal(text("teacher-panel-view"), "Terminal");
+				assert.ok(q("teacher-panel-view-mark") === null, "nothing needed yet");
 				await act(async () => shell.push({ id: "t1", ended: null, prompt: "enter", url: false }));
 				await settle();
-				assert.ok(selected("activity"), "the learner stays on Activity");
-				assert.ok(q("teacher-tab-terminal-mark") !== null, "the Terminal tab is marked");
-				assert.equal(q("teacher-tab-terminal")?.getAttribute("aria-description"), "Ada needs you here");
+				assert.ok(q("activity-list") !== null, "the learner stays on Activity");
+				assert.ok(q("teacher-panel-view-mark") !== null, "the Terminal key is marked");
+				assert.equal(q("teacher-panel-view")?.getAttribute("aria-description"), "Ada needs you here");
 				assert.equal(text("teacher-panel-agent"), "Claude Code is asking you to continue.");
 				await click("teacher-panel-close");
 				await render(access({ teaching: true, terminals: [{ id: "t1", here: true }] }));
 				assert.ok(q("teacher-panel") === null, "closing it does not bring the same need back");
 				await click("open-activity");
-				await click("teacher-tab-terminal");
-				assert.ok(onTerminal() && q("teacher-tab-terminal-mark") === null, "the tab shows it, unmarked");
+				await click("teacher-panel-view");
+				assert.ok(onTerminal() && q("teacher-panel-view-mark") === null, "the screen shows it, unmarked");
 				assert.deepEqual(bright(), ["Continue"]);
 			});
 		} finally {
@@ -280,7 +284,7 @@ describe("opening by itself", () => {
 });
 
 describe("the screens", () => {
-	it("a running teacher: no bright key, Stop is there, and a helper gets the switch beside the tabs", async () => {
+	it("a running teacher: no bright key, Stop is there, and a helper gets the switch in the head", async () => {
 		const shell = fakeShell([teacher(), teacher({ id: "h1", role: "helper" })]);
 		try {
 			await mounted(access({ teaching: true, terminals: [{ id: "t1", here: true }, { id: "h1", here: true }] }), async () => {
@@ -299,22 +303,71 @@ describe("the screens", () => {
 		}
 	});
 
-	it("before any start: what shows here and the start pair at Talk's width, which starts the teacher here and widens for its screen, shown once it stops growing; beside an agent from outside godspeed, where its screen is", async () => {
+	it("Attach on the teacher's screen types each picked file's path; a refusal shows under the screen; the helper's screen has no Attach", async () => {
+		const shell = fakeShell([teacher(), teacher({ id: "h1", role: "helper" })]);
+		const terminals = (dom.window as unknown as { lh: { terminals: { addFile: (id: string, name: string, data: string) => Promise<string> } } }).lh.terminals;
+		const g = globalThis as Record<string, unknown>;
+		const hadReader = g.FileReader;
+		// Node has no FileReader: this one reads a Blob as a data URL, as WebKit does.
+		g.FileReader = class {
+			result: string | null = null;
+			onload: (() => void) | null = null;
+			onerror: (() => void) | null = null;
+			readAsDataURL(blob: Blob) {
+				void blob.arrayBuffer().then((b) => {
+					this.result = `data:${blob.type};base64,${Buffer.from(b).toString("base64")}`;
+					this.onload?.();
+				});
+			}
+		};
+		const pick = async (files: File[]) => {
+			const input = q("terminal-attach-input") as HTMLInputElement;
+			Object.defineProperty(input, "files", { configurable: true, value: files });
+			await act(async () => void input.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+			await settle();
+		};
+		try {
+			await mounted(access({ teaching: true, terminals: [{ id: "t1", here: true }, { id: "h1", here: true }] }), async () => {
+				await click("status");
+				assert.equal(text("terminal-attach"), "Attach");
+				await pick([new File(["png"], "week 3.png", { type: "image/png" }), new File(["%PDF-"], "lab.pdf", { type: "application/pdf" })]);
+				assert.deepEqual(
+					shell.calls.filter((c) => c.startsWith("add ")),
+					[`add t1 week 3.png ${btoa("png")}`, `add t1 lab.pdf ${btoa("%PDF-")}`],
+					"in order, as base64",
+				);
+				terminals.addFile = () => Promise.reject("Attach takes pictures (PNG, JPEG, GIF or WebP) and PDFs.");
+				await pick([new File(["x"], "notes.txt")]);
+				assert.equal(text("terminal-footer"), "Attach takes pictures (PNG, JPEG, GIF or WebP) and PDFs.");
+				const big = new File(["x"], "scan.pdf");
+				Object.defineProperty(big, "size", { value: 21 * 1024 * 1024 });
+				await pick([big]);
+				assert.equal(text("terminal-footer"), "That file is over 20 MB.", "refused before it is read");
+				await click("terminal-screen-helper");
+				assert.ok(q("terminal-attach") === null);
+			});
+		} finally {
+			g.FileReader = hadReader;
+			shell.remove();
+		}
+	});
+
+	it("before any start: what shows here and the start pair at the narrow width, which starts the teacher here and widens for its screen, shown once it stops growing; beside an agent from outside godspeed, where its screen is", async () => {
 		const shell = fakeShell();
 		const wasWidth = dom.window.innerWidth;
 		Object.assign(dom.window, { innerWidth: 1440 });
 		const g = globalThis as unknown as { getComputedStyle: (el: Element) => object };
 		const wasStyle = g.getComputedStyle;
 		g.getComputedStyle = (el) => ({ ...wasStyle(el), transitionDuration: "0.16s" });
-		const settling = () => q("teacher-panel")?.querySelector("[role='tabpanel']")?.hasAttribute("data-settling");
+		const settling = () => q("teacher-panel")?.querySelector("[data-testid='teacher-panel-body']")?.hasAttribute("data-settling");
 		try {
 			stored.set("lh-folder-agent", "codex");
 			await mounted(access(), async () => {
 				await click("open-activity");
-				await click("teacher-tab-terminal");
+				await click("teacher-panel-view");
 				assert.equal(text("terminal-none"), "Ada's screen shows here once it starts.Start CodexUse another agent");
 				assert.ok(!/not connected/i.test(text("terminal-none") ?? ""), "the status line says that");
-				assert.equal(q("teacher-panel")?.style.width, "400px", "nothing to show yet: Talk's width");
+				assert.equal(q("teacher-panel")?.style.width, "400px", "nothing to show yet: the narrow width");
 				assert.equal(q("open-agent")?.textContent, "Start Codex", "the agent last started here");
 				await click("open-agent");
 				assert.ok(shell.calls.includes("start teacher codex"));
@@ -334,7 +387,7 @@ describe("the screens", () => {
 		try {
 			await mounted(access({ connected: true, teaching: true, outsideHere: true }), async () => {
 				await click("open-activity");
-				await click("teacher-tab-terminal");
+				await click("teacher-panel-view");
 				assert.equal(text("terminal-none"), "Your agent was started outside godspeed, so its screen is in its own window.");
 			});
 		} finally {
@@ -349,7 +402,7 @@ describe("the screens", () => {
 		try {
 			await mounted(access(), async () => {
 				await click("open-activity");
-				await click("teacher-tab-terminal");
+				await click("teacher-panel-view");
 				assert.ok(!/run the command/.test(text("no-agent") ?? ""), "not before a start");
 				await click("open-agent");
 				assert.match(text("no-agent") ?? "", /If that does not work, run the command from Settings, Connection in your terminal\./);
@@ -454,7 +507,11 @@ describe("onboarding", () => {
 			const [open, setOpen] = React.useState(false);
 			return <AgentNeed open={open} onOpen={() => setOpen(true)} />;
 		}
-		const page = (done: boolean) => <TerminalsProvider status={status}>{done ? <PanelHost /> : <Step />}</TerminalsProvider>;
+		const page = (done: boolean) => (
+			<ServerEventsProvider connect={noEvents as never}>
+				<TerminalsProvider status={status}>{done ? <PanelHost /> : <Step />}</TerminalsProvider>
+			</ServerEventsProvider>
+		);
 		try {
 			await act(async () => root.render(page(false)));
 			await settle();
@@ -489,10 +546,12 @@ describe("onboarding", () => {
 		const root = createRoot(host);
 		const status = access({ terminals: [{ id: "t1", here: true }, { id: "h1", here: true }] });
 		const page = (step: "agent" | "next" | "done") => (
-			<TerminalsProvider status={status}>
-				{step === "agent" && <FirstRunScreen />}
-				{step === "done" && <PanelHost />}
-			</TerminalsProvider>
+			<ServerEventsProvider connect={noEvents as never}>
+				<TerminalsProvider status={status}>
+					{step === "agent" && <FirstRunScreen />}
+					{step === "done" && <PanelHost />}
+				</TerminalsProvider>
+			</ServerEventsProvider>
 		);
 		try {
 			await act(async () => root.render(page("agent")));
