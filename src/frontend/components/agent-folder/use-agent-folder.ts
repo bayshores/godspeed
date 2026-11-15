@@ -4,7 +4,7 @@ import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import type { TerminalRole } from "@/frontend/components/terminal/terminal-model";
-import { AGENT_LABEL, logLines, rememberedAgent, type FolderView, type Launch } from "./agent-folder-model";
+import { AGENT_LABEL, logLines, rememberedAgent, type FolderView, type Launch, type LaunchChoice } from "./agent-folder-model";
 import { postAgentFolder, saveAgent, savedAgent } from "./agent-folder-api";
 
 /**
@@ -96,6 +96,14 @@ export function useAgentFolder() {
 	const manual = launch?.made === "done";
 
 	return { view, lines, busy, error, manual, open, openHelper, change, setStartCommand };
+}
+
+/** The agent picked beside "Use another agent": the one last started
+ *  here (Claude Code when none) until the learner picks another. */
+export function useAgentChoice() {
+	const [choice, setChoice] = useState<LaunchChoice>("claude");
+	useEffect(() => setChoice(rememberedAgent(savedAgent())), []);
+	return [choice, setChoice] as const;
 }
 
 /** "Start Claude Code" for the agent last started here (Claude Code when

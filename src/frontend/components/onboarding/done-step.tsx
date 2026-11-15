@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSound } from "@/frontend/components/sounds";
 import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
+import { AgentNeed } from "./agent-need";
 import { useReturn } from "./use-return";
 
 /** The last screen: "You’re all set." with a connected agent, "You’re
@@ -26,6 +27,7 @@ export function DoneStep({
 	const play = useSound();
 	useEffect(() => play("all-set"), [play]);
 	useReturn(disabled ? null : onStart);
+	const [screen, setScreen] = useState(false);
 	return (
 		<div data-testid="onboarding-done" className="ob-step m-auto flex flex-col items-center gap-[30px] px-4 text-center">
 			<span className="flex size-14 items-center justify-center rounded border-2 border-ink bg-ans-right text-background">
@@ -44,6 +46,7 @@ export function DoneStep({
 					</p>
 				)}
 			</div>
+			<AgentNeed open={screen} onOpen={() => setScreen(true)} />
 			<div className="flex items-center gap-2.5">
 				{!agent && (
 					<button type="button" data-testid="onboarding-connect" className={cn("lh-btn", BIG_BUTTON)} onClick={onConnect}>

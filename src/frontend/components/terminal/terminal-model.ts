@@ -91,12 +91,6 @@ export function needsYou(f: TerminalFacts): NeedsYou | null {
 	return f.quietSince !== null && f.now - f.quietSince >= TEACH_WAIT_MS ? "not-teaching" : null;
 }
 
-/** The names in the words: the teacher's stored name and the short folder. */
-interface TerminalNames {
-	name: string;
-	folder: string;
-}
-
 /** A page to get what is missing. */
 export interface GetLink {
 	label: string;
@@ -109,46 +103,64 @@ const GET_AGENT: Record<FolderAgent, GetLink> = {
 };
 const GET_NODE: GetLink = { label: "Get Node.js", url: "https://nodejs.org" };
 
-/** The footer under the screen: one sentence, an assist key, a page to get
- *  something, and whether Start again shows. The assist key, else Start
- *  again, is the bright one. */
+/** The footer under the screen: a sentence (or none), an assist key, a
+ *  page to get something, and whether Start again shows. The assist key,
+ *  else Start again, is the bright one. */
 export interface TerminalFooter {
-	text: string;
+	text: string | null;
 	assist: { kind: "trust" | "enter"; label: string } | null;
 	get: GetLink | null;
 	startAgain: boolean;
 }
 
-const footer = (text: string, more: Partial<TerminalFooter> = {}): TerminalFooter => ({ text, assist: null, get: null, startAgain: false, ...more });
+const footer = (text: string | null, more: Partial<TerminalFooter> = {}): TerminalFooter => ({ text, assist: null, get: null, startAgain: false, ...more });
 
-export function terminalFooter(f: TerminalFacts, names: TerminalNames): TerminalFooter {
+/** What a screen says: `need` is the short form the teacher's status line
+ *  shows, `rest` what only the footer adds. `starting`: the status line
+ *  says the teacher starts instead. */
+interface ScreenWords {
+	need: string | null;
+	rest: string | null;
+	more?: Partial<TerminalFooter>;
+	starting?: boolean;
+}
+
+function screenWords(f: TerminalFacts, name: string): ScreenWords {
 	const { term } = f;
 	const agent = AGENT_LABEL[term.agent];
 	const teacher = term.role === "teacher";
 	const ended = term.ended;
+	const again = { startAgain: true };
 	// The shell also stops the helper when the teacher ends.
-	if (ended?.stopped) return footer(teacher ? `You stopped ${names.name}.` : "The helper stopped.", { startAgain: true });
+	if (ended?.stopped) return { need: null, rest: teacher ? `You stopped ${name}.` : "The helper stopped.", more: again };
 	if (ended) {
-		if (ended.code === EXIT_NOT_INSTALLED) return footer(`${agent} isn't installed on this computer.`, { get: GET_AGENT[term.agent], startAgain: true });
-		if (ended.code === EXIT_NO_NODE) return footer(`godspeed needs Node.js to connect ${agent}.`, { get: GET_NODE, startAgain: true });
-		if (ended.code === 0) return footer(`${agent} closed.`, { startAgain: true });
-		return footer(`${agent} closed with an error. The last lines are above.`, { startAgain: true });
+		if (ended.code === EXIT_NOT_INSTALLED) return { need: `${agent} isn't installed on this computer.`, rest: null, more: { get: GET_AGENT[term.agent], ...again } };
+		if (ended.code === EXIT_NO_NODE) return { need: `godspeed needs Node.js to connect ${agent}.`, rest: null, more: { get: GET_NODE, ...again } };
+		if (ended.code === 0) return { need: null, rest: `${agent} closed.`, more: again };
+		return { need: `${agent} closed with an error.`, rest: "The last lines are above.", more: again };
 	}
 	if (term.prompt === "trust")
-		return footer(`${agent} asks whether it may work in ${names.folder}. godspeed made this folder for it.`, { assist: { kind: "trust", label: "Yes, trust this folder" } });
-	if (term.prompt === "enter") return footer(`${agent} is asking you to continue.`, { assist: { kind: "enter", label: "Continue" } });
-	if (!f.checkedIn && (term.url || term.prompt === "menu")) return footer(`Finish signing in to ${agent} in your browser. If it gives you a code, copy it and click Paste.`);
-	if (term.prompt === "menu") return footer(`${agent} is asking you something. Answer it on the screen.`);
+		return { need: `${agent} asks to trust its folder.`, rest: "godspeed made the folder for it.", more: { assist: { kind: "trust", label: "Yes, trust this folder" } } };
+	if (term.prompt === "enter") return { need: `${agent} is asking you to continue.`, rest: null, more: { assist: { kind: "enter", label: "Continue" } } };
+	if (!f.checkedIn && (term.url || term.prompt === "menu"))
+		return { need: `Finish signing in to ${agent}.`, rest: "If your browser gives you a code, copy it and click Paste." };
+	if (term.prompt === "menu") return { need: `${agent} is asking you something.`, rest: "Answer it on the screen." };
 	const why = needsYou(f);
-	if (why === "no-check-in" || why === "not-teaching") return footer(`${names.name} hasn't started teaching yet. It may be waiting for you on the screen.`);
-	if (!f.checkedIn) return footer(startingLine(term.agent, names.folder));
-	if (teacher) return footer(`${names.name} is running in ${names.folder}.`);
-	return footer(f.helperBusy ? "The helper is reading your files." : "The helper is waiting for files to read.");
+	if (why === "no-check-in" || why === "not-teaching") return { need: `${name} hasn't started teaching yet.`, rest: "Check the screen for a question." };
+	if (!f.checkedIn) return { need: `${agent} is starting.`, rest: `If ${agent} asks you something, answer it here.`, starting: true };
+	if (teacher) return { need: null, rest: null };
+	return { need: null, rest: f.helperBusy ? "The helper is reading your files." : "The helper is waiting for files to read." };
 }
 
-/** While an agent starts and has not checked in (the Terminal tab and onboarding). */
-function startingLine(agent: FolderAgent, folder: string): string {
-	return `${AGENT_LABEL[agent]} is starting in ${folder}. If it asks you something, answer it here.`;
+/** The footer under a screen. `underStatus`: the teacher's status line
+ *  shows above it (the Terminal tab), so the teacher's footer leaves out
+ *  what that line already says. */
+export function terminalFooter(f: TerminalFacts, name: string, underStatus: boolean): TerminalFooter {
+	const w = screenWords(f, name);
+	const state = underStatus && f.term.role === "teacher" ? teacherTerminalState(f) : null;
+	const said = state !== null && state === (w.starting ? "starting" : "needsYou");
+	const text = said ? w.rest : [w.need, w.rest].filter(Boolean).join(" ") || null;
+	return footer(text, w.more);
 }
 
 /** What the teacher's terminal adds to its status (the status lines and
@@ -171,26 +183,12 @@ export function teacherStateWords(state: TeacherTerminalState | null, name: stri
 	return null;
 }
 
-/** What the teacher's terminal needs from the learner, in short: the
- *  footer under the screen says it in full. */
-function needLine(f: TerminalFacts, name: string): string {
-	const { term } = f;
-	const agent = AGENT_LABEL[term.agent];
-	if (term.ended?.code === EXIT_NOT_INSTALLED) return `${agent} isn't installed on this computer.`;
-	if (term.ended?.code === EXIT_NO_NODE) return `godspeed needs Node.js to connect ${agent}.`;
-	if (term.ended) return `${agent} closed with an error.`;
-	if (term.prompt === "trust") return `${agent} asks to trust its folder.`;
-	if (term.prompt === "enter") return `${agent} is asking you to continue.`;
-	if (!f.checkedIn && (term.url || term.prompt === "menu")) return `Finish signing in to ${agent}.`;
-	if (term.prompt === "menu") return `${agent} is asking you something.`;
-	return `${name} may be waiting for you.`;
-}
-
 /** The teacher's status line while its terminal starts or needs the
  *  learner (what it needs); null leaves the usual line. */
 export function teacherStatusLine(f: TerminalFacts | null, name: string): string | null {
 	const state = teacherTerminalState(f);
-	return state === "needsYou" ? needLine(f!, name) : teacherStateWords(state, name, "line");
+	if (state === "needsYou") return screenWords(f!, name).need ?? teacherStateWords(state, name, "line");
+	return teacherStateWords(state, name, "line");
 }
 
 const live = (term: TerminalRecord | null): boolean => !!term && !term.ended;
@@ -224,8 +222,9 @@ export function helperShouldStart(i: {
  *  agent asks something or has ended, else whether it has connected. */
 export function firstRunFooter(f: TerminalFacts, folder: string): TerminalFooter {
 	const { term } = f;
-	if (term.ended || term.prompt || (!f.checkedIn && term.url)) return terminalFooter(f, { name: AGENT_LABEL[term.agent], folder });
-	return footer(f.checkedIn ? `${AGENT_LABEL[term.agent]} is connected.` : startingLine(term.agent, folder));
+	const agent = AGENT_LABEL[term.agent];
+	if (term.ended || term.prompt || (!f.checkedIn && term.url)) return terminalFooter(f, agent, false);
+	return footer(f.checkedIn ? `${agent} is connected.` : `${agent} is starting in ${folder}. If it asks you something, answer it here.`);
 }
 
 /** Start lesson and a Talk send start the teacher hidden, with the agent

@@ -195,7 +195,7 @@ export function TeacherPanel({
 				{tab === "talk" ? (
 					<TalkView name={name} agent={agent} recent={recent} onPick={onPick} ask={ask ?? null} onAsked={onAsked} clearSlot={clearSlot} />
 				) : tab === "activity" ? (
-					<TeacherActivity />
+					<TeacherActivity underStatus />
 				) : (
 					<TerminalTab name={name} role={shown} focus={focus} />
 				)}

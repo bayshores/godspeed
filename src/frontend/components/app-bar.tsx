@@ -91,7 +91,9 @@ function TeacherChip() {
 	const agent = useAgentStatus();
 	const terminal = teacherTerminalState(useTerminals()?.facts.teacher ?? null);
 	if (!teacher) return null;
-	const text = chipText({ name: teacher.name, doing: teacher.doing, agent, terminal });
+	const said = chipText({ name: teacher.name, doing: teacher.doing, agent, terminal });
+	// The open panel's head says the status: the chip just names who it opened.
+	const text = teacher.panelOpen ? teacher.name : said;
 	return (
 		<>
 			<button
@@ -105,7 +107,7 @@ function TeacherChip() {
 			>
 				<ChipText text={text} widest="max-w-[308px]" />
 			</button>
-			{teacher.doing && <Announce text={text} />}
+			{teacher.doing && <Announce text={said} />}
 		</>
 	);
 }

@@ -169,14 +169,13 @@ describe("the panel", () => {
 		assert.ok(el.querySelector("[data-testid='talk-clear']") === null, "Talk only");
 		talkChat = null;
 	});
-	it("with no agent connected the thread says so in the teacher's words, with the button that opens one", async () => {
+	it("with no agent connected the head says so once, and the thread has only the start pair", async () => {
 		talkChat = { id: "chat_talk", turnInFlight: false, messages: [] };
 		const idle = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [] };
 		const el = mount(panel({ agent: idle }));
 		await settle();
 		assert.match(el.querySelector("[data-testid='teacher-panel-agent']")?.textContent ?? "", /^Not connected$/);
-		assert.match(el.querySelector("[data-testid='no-agent']")?.textContent ?? "", /I'm not connected yet\. Start Claude Code and I'll begin\./);
-		assert.equal(el.querySelector("[data-testid='no-agent-open']")?.textContent, "Start Claude Code");
+		assert.equal(el.querySelector("[data-testid='no-agent']")?.textContent, "Start Claude CodeUse another agent");
 		assert.ok(el.querySelector("[data-testid='talk-empty']"), "the prompt stays below it");
 		act(() => root?.unmount());
 		assert.ok(mount(panel()).querySelector("[data-testid='no-agent']") === null, "gone while an agent teaches");

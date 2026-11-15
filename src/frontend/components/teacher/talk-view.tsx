@@ -17,7 +17,7 @@ import { useSpaces } from "@/frontend/components/space-context";
 import { useWorker } from "@/frontend/components/work/use-worker";
 import { talkWorkLine } from "@/frontend/components/work/work-model";
 import { actionFor, appRequestText, draftWithAsk, speakerOf, startsTurn, talkRows } from "./talk-model";
-import { TalkNoAgent } from "./talk-no-agent";
+import { StartTeacher } from "./start-teacher";
 import { agentHereNow, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { pastLabel } from "./tour";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
@@ -158,10 +158,24 @@ function TalkThread({
 	const busy = session.status === "submitted" || session.status === "streaming";
 	const rows = talkRows(session.messages);
 	const endRef = useRef<HTMLDivElement>(null);
+	const threadRef = useRef<HTMLDivElement>(null);
+	const atEnd = useRef(true);
 
 	useEffect(() => {
 		endRef.current?.scrollIntoView({ block: "end" });
 	}, [rows.length, session.status]);
+	// Talk opens as the panel narrows from the Terminal tab's width, so the
+	// thread rewraps taller after it scrolled: keep the end in view while
+	// the learner is at it.
+	useEffect(() => {
+		const el = threadRef.current;
+		if (!el) return;
+		const keep = new ResizeObserver(() => {
+			if (atEnd.current) el.scrollTop = el.scrollHeight;
+		});
+		keep.observe(el);
+		return () => keep.disconnect();
+	}, []);
 
 	// A turn godspeed started by itself (a request it made): show it as it runs.
 	const { resumeStream } = session;
@@ -257,10 +271,18 @@ function TalkThread({
 				stopReply();
 			}}
 		>
-			<div data-testid="talk-thread" className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-[18px]">
+			<div
+				ref={threadRef}
+				data-testid="talk-thread"
+				onScroll={(e) => {
+					const el = e.currentTarget;
+					atEnd.current = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
+				}}
+				className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pt-[18px]"
+			>
 				{rows.length === 0 && noAgent && (
 					<>
-						<TalkNoAgent />
+						<StartTeacher />
 						<hr className="my-[18px] border-0 border-t-2 border-dotted border-edge" />
 					</>
 				)}
@@ -348,7 +370,7 @@ function TalkThread({
 				)}
 				{rows.length > 0 && noAgent && (
 					<div className="mt-[18px]">
-						<TalkNoAgent />
+						<StartTeacher />
 					</div>
 				)}
 				{session.error && !busy && (
@@ -364,7 +386,9 @@ function TalkThread({
 						{clearError}
 					</p>
 				)}
-				<div ref={endRef} />
+				{/* The bottom padding as a block: WebKit leaves a scrolling flex
+				    column's own padding out at the scroll end. */}
+				<div ref={endRef} className="h-[18px] shrink-0" />
 			</div>
 			<div data-testid="talk-box" className="flex shrink-0 flex-col gap-2 border-t border-edge px-3.5 pt-3 pb-3.5" {...attachmentInputProps(attachments)}>
 				<AttachmentTray draft={attachments} />

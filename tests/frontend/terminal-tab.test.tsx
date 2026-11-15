@@ -17,6 +17,7 @@ const { TerminalsProvider, useTerminals } = await import("../../src/frontend/com
 const { TeacherStatus } = await import("../../src/frontend/components/terminal/teacher-status.tsx");
 const { RestartDialog } = await import("../../src/frontend/components/terminal/restart-dialog.tsx");
 const { FirstRunScreen } = await import("../../src/frontend/components/terminal/first-run-screen.tsx");
+const { AgentNeed } = await import("../../src/frontend/components/onboarding/agent-need.tsx");
 const { TeacherPanel } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 const { useTeacherPanel } = await import("../../src/frontend/components/teacher/use-teacher-panel.ts");
@@ -143,9 +144,9 @@ describe("opening by itself", () => {
 		try {
 			await mounted(access(), async () => {
 				assert.ok(onTerminal(), "it opened on Terminal");
-				assert.equal(text("terminal-footer"), "Claude Code asks whether it may work in ~/godspeed. godspeed made this folder for it.");
-				assert.deepEqual(bright(), ["Yes, trust this folder"]);
 				assert.equal(text("status"), "Claude Code asks to trust its folder.");
+				assert.equal(text("terminal-footer"), "godspeed made the folder for it.", "the status line already asks");
+				assert.deepEqual(bright(), ["Yes, trust this folder"]);
 				await click("terminal-assist");
 				assert.ok(shell.calls.includes("answer trust"));
 			});
@@ -205,7 +206,7 @@ describe("opening by itself", () => {
 				await act(async () => void dom.window.dispatchEvent(new dom.window.Event("focus")));
 				await settle();
 				assert.ok(onTerminal(), "it opened");
-				assert.equal(text("status"), "Ada may be waiting for you.");
+				assert.equal(text("status"), "Ada hasn't started teaching yet.");
 			});
 		} finally {
 			Date.now = realNow;
@@ -221,7 +222,7 @@ describe("opening by itself", () => {
 				await act(async () => shell.push({ id: "t1", ended: { stopped: false, code: 1 }, prompt: null, url: false }));
 				await settle();
 				assert.ok(onTerminal(), "it opened");
-				assert.equal(text("terminal-footer"), "Claude Code closed with an error. The last lines are above.");
+				assert.equal(text("terminal-footer"), "The last lines are above.");
 				assert.ok(q("terminal-stop") === null, "nothing to stop");
 				assert.deepEqual(bright(), ["Start again"]);
 				await click("terminal-start-again");
@@ -284,7 +285,7 @@ describe("the screens", () => {
 			await mounted(access({ teaching: true, terminals: [{ id: "t1", here: true }, { id: "h1", here: true }] }), async () => {
 				assert.equal(text("status"), "Teaching, idle");
 				await click("status");
-				assert.equal(text("terminal-footer"), "Ada is running in ~/godspeed.");
+				assert.equal(text("terminal-footer"), "", "the status line says it teaches");
 				assert.deepEqual(bright(), []);
 				assert.equal(q("terminal-screen-teacher")?.getAttribute("aria-pressed"), "true");
 				await click("terminal-screen-helper");
@@ -297,16 +298,20 @@ describe("the screens", () => {
 		}
 	});
 
-	it("before any start: the start line, whose button starts the teacher here; beside an agent from outside godspeed, where its screen is", async () => {
+	it("before any start: what shows here and the start pair, which starts the teacher here; beside an agent from outside godspeed, where its screen is", async () => {
 		const shell = fakeShell();
 		try {
+			stored.set("lh-folder-agent", "codex");
 			await mounted(access(), async () => {
 				await click("open-activity");
 				await click("teacher-tab-terminal");
-				assert.equal(q("no-agent-open")?.textContent, "Start Claude Code");
-				await click("no-agent-open");
-				assert.ok(shell.calls.includes("start teacher claude"));
-				assert.equal(text("terminal-footer"), "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.");
+				assert.equal(text("terminal-none"), "Ada's screen shows here once it starts.Start CodexUse another agent");
+				assert.ok(!/not connected/i.test(text("terminal-none") ?? ""), "the status line says that");
+				assert.equal(q("open-agent")?.textContent, "Start Codex", "the agent last started here");
+				await click("open-agent");
+				assert.ok(shell.calls.includes("start teacher codex"));
+				assert.equal(text("status"), "Ada is starting.");
+				assert.equal(text("terminal-footer"), "If Codex asks you something, answer it here.");
 			});
 		} finally {
 			shell.remove();
@@ -320,6 +325,24 @@ describe("the screens", () => {
 			});
 		} finally {
 			outside.remove();
+		}
+	});
+
+	it("the way around a failed start shows only once a start failed, with why", async () => {
+		const shell = fakeShell();
+		const terminals = (dom.window as unknown as { lh: { terminals: { start: () => Promise<never> } } }).lh.terminals;
+		terminals.start = () => Promise.reject("The terminal could not start.");
+		try {
+			await mounted(access(), async () => {
+				await click("open-activity");
+				await click("teacher-tab-terminal");
+				assert.ok(!/run the command/.test(text("no-agent") ?? ""), "not before a start");
+				await click("open-agent");
+				assert.match(text("no-agent") ?? "", /If that does not work, run the command from Settings, Connection in your terminal\./);
+				assert.ok(q("no-agent")?.querySelector("[role='alert']"), "said as an alert");
+			});
+		} finally {
+			shell.remove();
 		}
 	});
 
@@ -403,6 +426,44 @@ describe("the keyboard", () => {
 });
 
 describe("onboarding", () => {
+	it("a step after the agent step says what the teacher needs, and its button shows the screen there without the keyboard; the panel does not open for it later", async () => {
+		const shell = fakeShell([teacher()]);
+		const proto = dom.window.HTMLElement.prototype as { focus: () => void };
+		const realFocus = proto.focus;
+		let focused = 0;
+		proto.focus = () => void focused++;
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		const status = access({ terminals: [{ id: "t1", here: true }] });
+		function Step() {
+			const [open, setOpen] = React.useState(false);
+			return <AgentNeed open={open} onOpen={() => setOpen(true)} />;
+		}
+		const page = (done: boolean) => <TerminalsProvider status={status}>{done ? <PanelHost /> : <Step />}</TerminalsProvider>;
+		try {
+			await act(async () => root.render(page(false)));
+			await settle();
+			assert.ok(q("onboarding-agent-need") === null, "nothing while it needs nothing");
+			await act(async () => shell.push({ id: "t1", ended: null, prompt: "trust", url: false }));
+			await settle();
+			assert.equal(text("onboarding-agent-need"), "Claude Code asks to trust its folder.Show its screen");
+			await click("onboarding-agent-need-show");
+			for (let i = 0; i < 10 && !document.querySelector("[data-terminal-screen] textarea"); i++) await settle();
+			assert.ok(q("first-run-screen") !== null, "the screen shows in the step");
+			assert.ok(focused === 0, "no focus until a click in it");
+			await act(async () => root.render(page(true)));
+			await settle();
+			assert.ok(q("teacher-panel") === null, "already seen in the step");
+		} finally {
+			proto.focus = realFocus;
+			await act(async () => root.unmount());
+			await settle();
+			host.remove();
+			shell.remove();
+		}
+	});
+
 	it("the step's own screen takes no keys and counts as seen; a question past the step opens the panel once there is one", async () => {
 		const shell = fakeShell([teacher({ prompt: "menu" }), teacher({ id: "h1", role: "helper" })]);
 		const proto = dom.window.HTMLElement.prototype as { focus: () => void };
@@ -453,7 +514,7 @@ describe("the footer", () => {
 				assert.equal(text("terminal-footer"), "Show the terminal and click in it first.");
 				await act(async () => shell.push({ id: "t1", ended: null, prompt: "trust", url: false }));
 				await settle();
-				assert.equal(text("terminal-footer"), "Claude Code asks whether it may work in ~/godspeed. godspeed made this folder for it.");
+				assert.equal(text("terminal-footer"), "godspeed made the folder for it.");
 			});
 		} finally {
 			shell.remove();
