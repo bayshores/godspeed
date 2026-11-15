@@ -441,10 +441,11 @@ impl Terminals {
 	}
 
 	/// Attach: a picture or a PDF saved in the godspeed folder, where the agent reads it without
-	/// asking, and its path typed into the teacher's input like a paste, then a space and no
-	/// Enter, so the learner adds words and sends. Answers the saved path. The terminal must be
-	/// shown, but the window need not have the focus: a file dropped from Finder leaves Finder
-	/// in front, and what is typed is only a path the shell saved itself.
+	/// asking, and its path typed into the teacher's input like a paste (escaped as a Finder drag
+	/// types it), then a space and no Enter, so the learner adds words and sends. Answers the
+	/// saved path. The terminal must be shown, but the window need not have the focus: a file
+	/// dropped from Finder leaves Finder in front, and what is typed is only a path the shell
+	/// saved itself.
 	pub fn add_file(&self, id: &str, name: &str, bytes: &[u8], folder: &Path) -> Result<String, String> {
 		let terminal = self.find(id)?;
 		if terminal.role != Role::Teacher {
@@ -472,7 +473,8 @@ impl Terminals {
 			return Err(ATTACH_UNTYPABLE.to_owned());
 		}
 		std::fs::create_dir_all(&dir).and_then(|()| gs_base::fsx::write_atomic(&file, bytes, None)).map_err(|_| ATTACH_NOT_SAVED.to_owned())?;
-		let typed = if bracketed { format!("\x1b[200~{path}\x1b[201~ ") } else { format!("{path} ") };
+		let typed = typed_path(&path);
+		let typed = if bracketed { format!("\x1b[200~{typed}\x1b[201~ ") } else { format!("{typed} ") };
 		terminal.write(typed.as_bytes())?;
 		Ok(path)
 	}
@@ -599,6 +601,31 @@ fn hang_up_then_kill(terminal: Arc<Terminal>) {
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 	mutex.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// An attached file's bytes from the page's base64 text. The text's length bounds the bytes, so
+/// a file over the limit is refused before it is decoded.
+pub fn attachment_bytes(data: &str) -> Result<Vec<u8>, String> {
+	if data.len() / 4 * 3 > ATTACH_MAX + 2 {
+		return Err(ATTACH_TOO_BIG.to_owned());
+	}
+	Ok(gs_base::base64::decode(data))
+}
+
+/// A path as a drag from the file manager types it into a terminal: on Windows in quotes when it
+/// has a space, elsewhere with a backslash before each space and character a shell reads.
+fn typed_path(path: &str) -> String {
+	if cfg!(windows) {
+		return if path.contains(' ') { format!("\"{path}\"") } else { path.to_owned() };
+	}
+	let mut typed = String::with_capacity(path.len());
+	for c in path.chars() {
+		if c.is_whitespace() || "\\!\"#$&'()*;<>?[]^`{|}~".contains(c) {
+			typed.push('\\');
+		}
+		typed.push(c);
+	}
+	typed
 }
 
 /// A picture (PNG, JPEG, GIF, WebP) or a PDF, by its first bytes.
@@ -776,14 +803,16 @@ mod tests {
 		let odd = dir.join("line\nbreak");
 		assert_eq!(terminals.add_file(&id, "a.png", png, &odd), Err(ATTACH_UNTYPABLE.to_owned()), "a path with a line break is never typed");
 		assert!(!odd.exists(), "nor saved");
-		let path = terminals.add_file(&id, "../week 3.png", png, &dir).unwrap();
-		let saved = dir.join(".godspeed").join("attachments").join(format!("{}-week_3.png", &gs_base::hash::sha256_hex(png)[..12]));
+		let spaced = dir.join("Lab folder");
+		let path = terminals.add_file(&id, "../week 3.png", png, &spaced).unwrap();
+		let saved = spaced.join(".godspeed").join("attachments").join(format!("{}-week_3.png", &gs_base::hash::sha256_hex(png)[..12]));
 		assert_eq!(Path::new(&path), saved, "inside the folder, the name's last part, spaces as _");
 		assert_eq!(std::fs::read(&saved).unwrap(), png);
 		std::thread::sleep(Duration::from_millis(300));
 		assert!(!text(&terminals, &id).contains("got "), "no Enter: the line is still being typed");
 		terminals.write(&id, "\r", true).unwrap();
 		until("the echo", || text(&terminals, &id).contains("-week_3.png"));
+		assert!(text(&terminals, &id).contains("Lab\\ folder"), "the folder's space typed as a drag types it");
 		until("the end", || ended_of(&terminals, &id).is_some());
 		std::fs::remove_dir_all(dir).unwrap();
 	}
@@ -800,6 +829,23 @@ mod tests {
 		assert_eq!(&attachment_name("..", b"x")[12..], "-file");
 		assert_eq!(&attachment_name("notes\r\nrm -rf ~.png", b"x")[12..], "-notes__rm_-rf__.png", "no line break reaches the input");
 		assert_eq!(attachment_name("a.png", b"x"), attachment_name("a.png", b"x"), "the same file keeps its name");
+	}
+
+	#[test]
+	fn an_attached_path_is_typed_as_a_drag_types_it() {
+		let path = "/Users/ada/God Speed/.godspeed/attachments/0123456789ab-a.png";
+		if cfg!(windows) {
+			assert_eq!(typed_path(path), format!("\"{path}\""));
+		} else {
+			assert_eq!(typed_path(path), "/Users/ada/God\\ Speed/.godspeed/attachments/0123456789ab-a.png");
+			assert_eq!(typed_path("/a/$x (1)'s;b"), "/a/\\$x\\ \\(1\\)\\'s\\;b");
+		}
+	}
+
+	#[test]
+	fn an_attachment_over_the_limit_is_refused_before_it_is_decoded() {
+		assert_eq!(attachment_bytes(&"A".repeat(ATTACH_MAX / 3 * 4 + 8)), Err(ATTACH_TOO_BIG.to_owned()));
+		assert_eq!(attachment_bytes(&gs_base::base64::encode(b"%PDF-")), Ok(b"%PDF-".to_vec()));
 	}
 
 	#[test]

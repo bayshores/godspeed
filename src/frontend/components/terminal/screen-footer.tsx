@@ -1,5 +1,6 @@
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import { ATTACHMENT_ACCEPT } from "@/shared/core";
+import { usePresence } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
 import type { TerminalFooter } from "./terminal-model";
 
@@ -8,7 +9,8 @@ const KEY = "lh-btn h-8 shrink-0 px-3 text-[14px]";
 /**
  * The slim row under a screen: Attach and Paste at the left, the sentence
  * when there is one, then Stop, and the one bright key (the assist key or
- * Start again) at the far right. A key shows only while it can act.
+ * Start again) at the far right. A key shows only while it can act, and
+ * fades in and out.
  */
 export function ScreenFooter({ text, onAttach, onPaste, onStop, get, assist, onStartAgain }: {
 	text: string | null;
@@ -22,54 +24,54 @@ export function ScreenFooter({ text, onAttach, onPaste, onStop, get, assist, onS
 	const picker = useRef<HTMLInputElement>(null);
 	return (
 		// In a narrow window the sentence takes its own line above the keys.
-		<div className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1.5 px-3 pb-2.5">
-			{onAttach && (
-				<>
-					<input
-						ref={picker}
-						type="file"
-						multiple
-						hidden
-						accept={ATTACHMENT_ACCEPT}
-						data-testid="terminal-attach-input"
-						onChange={(e) => {
-							onAttach(Array.from(e.target.files ?? []));
-							e.target.value = "";
-						}}
-					/>
-					<button type="button" data-testid="terminal-attach" onClick={() => picker.current?.click()} className={KEY}>
-						Attach
-					</button>
-				</>
-			)}
-			{onPaste && (
-				<button type="button" data-testid="terminal-paste" onClick={onPaste} className={KEY}>
-					Paste
-				</button>
-			)}
+		<div className="flex min-h-11 shrink-0 flex-wrap items-center gap-x-2 gap-y-1.5 px-3 pb-2.5">
+			<input
+				ref={picker}
+				type="file"
+				multiple
+				hidden
+				accept={ATTACHMENT_ACCEPT}
+				data-testid="terminal-attach-input"
+				onChange={(e) => {
+					onAttach?.(Array.from(e.target.files ?? []));
+					e.target.value = "";
+				}}
+			/>
+			<Key testid="terminal-attach" onClick={onAttach && (() => picker.current?.click())}>
+				Attach
+			</Key>
+			<Key testid="terminal-paste" onClick={onPaste}>
+				Paste
+			</Key>
 			<p data-testid="terminal-footer" role="status" className={cn("min-w-0 flex-1 px-1.5 text-[15px] leading-snug text-ink", text && "min-w-56")}>
 				{text}
 			</p>
-			{onStop && (
-				<button type="button" data-testid="terminal-stop" onClick={onStop} className={cn(KEY, "lh-btn-quiet")}>
-					Stop
-				</button>
-			)}
-			{get && (
-				<button type="button" data-testid="terminal-get" onClick={() => void window.lh?.openLink?.(get.url)} className={KEY}>
-					{get.label}
-				</button>
-			)}
-			{assist && (
-				<button type="button" data-testid="terminal-assist" onClick={assist.run} className={cn(KEY, "lh-btn-main")}>
-					{assist.label}
-				</button>
-			)}
-			{onStartAgain && (
-				<button type="button" data-testid="terminal-start-again" onClick={onStartAgain} className={cn(KEY, "lh-btn-main")}>
-					Start again
-				</button>
-			)}
+			<Key testid="terminal-stop" onClick={onStop}>
+				Stop
+			</Key>
+			<Key testid="terminal-get" onClick={get && (() => void window.lh?.openLink?.(get.url))}>
+				{get?.label}
+			</Key>
+			<Key testid="terminal-assist" onClick={assist?.run ?? null} main>
+				{assist?.label}
+			</Key>
+			<Key testid="terminal-start-again" onClick={onStartAgain} main>
+				Start again
+			</Key>
 		</div>
+	);
+}
+
+/** A key that is there while it can act (`onClick`), fading in and out. */
+function Key({ testid, onClick, main = false, children }: { testid: string; onClick: (() => void) | null; main?: boolean; children: ReactNode }) {
+	const shown = usePresence(!!onClick);
+	// While it fades out it keeps its last words and does nothing.
+	const last = useRef(children);
+	if (onClick) last.current = children;
+	if (!shown.mounted) return null;
+	return (
+		<button type="button" data-testid={testid} data-state={shown.state} onClick={() => onClick?.()} className={cn(KEY, "lh-fade", main && "lh-btn-main")}>
+			{last.current}
+		</button>
 	);
 }

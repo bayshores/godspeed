@@ -132,7 +132,7 @@ describe("settings restyle", () => {
 		globalThis.fetch = connectionFetch({ token: "tok_secret_a91f", url: "http://127.0.0.1:47613/api/mcp", agentConnected: true, agentTeaching: true, pendingWork: 1 });
 		const el = await mount(<Connection />);
 		const text = el.textContent!;
-		for (const label of ["Teacher", "Helper", "Access token", "Copy the command"]) {
+		for (const label of ["Teacher", "Background work", "Access token", "Copy the command"]) {
 			assert.ok(text.includes(label), label);
 		}
 		assert.ok(q("web-search") === null);
@@ -142,7 +142,7 @@ describe("settings restyle", () => {
 		assert.equal(q("agent-window-teacher-chip")!.textContent, "Running", "teaching with nothing to do");
 		assert.ok(q("agent-window-teacher-open") === null);
 		assert.equal(q("agent-window-helper-chip")!.textContent, "Not running");
-		assert.equal(q("agent-window-helper-open")!.textContent, "Start helper");
+		assert.equal(q("agent-window-helper-open")!.textContent, "Start background work");
 		assert.equal(q("agent-folder-path")!.textContent, "~/godspeed");
 		assert.ok(!text.includes("/plugin"), "no plugin to install");
 		assert.ok(q("old-setup-warning") === null, "nothing old left: no warning");
@@ -225,7 +225,7 @@ describe("settings restyle", () => {
 		assert.ok(!el.textContent!.includes("Let outside agents connect"));
 		assert.ok(el.querySelector('[role="switch"]') === null);
 		assert.equal(q("agent-window-teacher-open")!.textContent, "Start Claude Code", "the start pair's label");
-		assert.equal(q("agent-window-helper-open")!.textContent, "Start helper");
+		assert.equal(q("agent-window-helper-open")!.textContent, "Start background work");
 	});
 
 	it("a connected agent that isn't teaching says how to start it", async () => {

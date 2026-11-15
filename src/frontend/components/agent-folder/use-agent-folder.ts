@@ -45,7 +45,7 @@ export function useAgentFolder() {
 				setStarting(false);
 				setFailed(why);
 				if (!why) load();
-				if (!why && role === "teacher") showTerminal?.();
+				if (!why) showTerminal?.(role);
 				return !why;
 			}
 			const launch: Pick<Launch, "agent" | "helperOnly"> = role === "helper" ? { agent, helperOnly: true } : { agent };

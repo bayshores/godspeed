@@ -26,8 +26,8 @@ const base = { grouping: false, working: true, nowMs: NOW };
 
 describe("workerName", () => {
 	it("the helper when one is open, else the teacher, else nobody", () => {
-		assert.equal(workerName({ teaching: true, helperHere: true }, "Marco"), "Helper");
-		assert.equal(workerName({ teaching: false, helperHere: true }, "Marco"), "Helper");
+		assert.equal(workerName({ teaching: true, helperHere: true }, "Marco"), "Background work");
+		assert.equal(workerName({ teaching: false, helperHere: true }, "Marco"), "Background work");
 		assert.equal(workerName({ teaching: true, helperHere: false }, "Marco"), "Marco");
 		assert.equal(workerName({ teaching: false, helperHere: false }, "Marco"), null);
 		assert.equal(workerName(null, "Marco"), "Marco", "before the agent's state is read");

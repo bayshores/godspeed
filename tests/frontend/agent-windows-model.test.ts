@@ -59,7 +59,7 @@ describe("the teacher and the helper", () => {
 	});
 
 	it("when godspeed can't start the helper, its tile says what waits and who reads meanwhile", () => {
-		assert.deepEqual(helper(), { tone: "off", chip: "Not running", line: "", note: "Reads your files so the teacher stays free", start: "Start helper" });
+		assert.deepEqual(helper(), { tone: "off", chip: "Not running", line: "", note: "Reads your files so the teacher stays free", start: "Start background work" });
 		const waiting = helper({ filesLeft: 3 });
 		assert.equal(waiting.line, "3 files are waiting");
 		assert.equal(waiting.note, "Start it and it reads them");
@@ -113,7 +113,7 @@ describe("the launch log outside the desktop app", () => {
 			"Started Claude Code",
 			"Claude Code is teaching",
 		]);
-		assert.deepEqual(texts({ ...launch, helperOnly: true }, { connected: false, teaching: false, helperHere: true }), ["Made ~/godspeed", "Copy the command and run it in your terminal", "Started the helper"]);
+		assert.deepEqual(texts({ ...launch, helperOnly: true }, { connected: false, teaching: false, helperHere: true }), ["Made ~/godspeed", "Copy the command and run it in your terminal", "Started background work"]);
 		assert.deepEqual(texts({ agent: "codex", made: { error: "Couldn't reach godspeed. Try again." } }, { connected: false, teaching: false, helperHere: false }), ["Couldn't reach godspeed. Try again."]);
 	});
 });

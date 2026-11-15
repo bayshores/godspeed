@@ -12,8 +12,8 @@ function lessonOnScreen(pathname: string): string | null {
 
 /**
  * The lessons whose reply came while another page was open, oldest first.
- * A turn that settles in a lesson not on screen adds it (Talk and the
- * other chats are not in the lesson list, so theirs add nothing); opening
+ * A turn that settles in a lesson not on screen adds it (the other chats
+ * are not in the lesson list, so theirs add nothing); opening
  * the lesson or a new turn in it takes it out, and so does deleting it.
  */
 export function useReadyLessons(): ReadyLesson[] {

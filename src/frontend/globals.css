@@ -886,6 +886,8 @@ body:has(.lh-own-bar) .lh-app-bar {
    curves sit on .lh-hang, around it. */
 .lh-hang {
 	--lh-hang-r: 14px;
+	/* What it hangs from: the top bar, or the teacher panel's head. */
+	--lh-hang-fill: var(--lh-bar);
 }
 .lh-hang::before,
 .lh-hang::after {
@@ -900,11 +902,11 @@ body:has(.lh-own-bar) .lh-app-bar {
 }
 .lh-hang::before {
 	right: 100%;
-	background: radial-gradient(circle at 0 100%, transparent calc(var(--lh-hang-r) - 0.5px), var(--lh-bar) var(--lh-hang-r));
+	background: radial-gradient(circle at 0 100%, transparent calc(var(--lh-hang-r) - 0.5px), var(--lh-hang-fill) var(--lh-hang-r));
 }
 .lh-hang::after {
 	left: 100%;
-	background: radial-gradient(circle at 100% 100%, transparent calc(var(--lh-hang-r) - 0.5px), var(--lh-bar) var(--lh-hang-r));
+	background: radial-gradient(circle at 100% 100%, transparent calc(var(--lh-hang-r) - 0.5px), var(--lh-hang-fill) var(--lh-hang-r));
 }
 .lh-hang[data-state="closed"]::before,
 .lh-hang[data-state="closed"]::after {

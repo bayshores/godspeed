@@ -6,7 +6,7 @@
 use serde_json::{Value, json};
 use tauri::{AppHandle, Manager, State, Webview};
 
-use super::{Agent, NOT_SET_UP, Outlet, Prompt, Role, Terminals};
+use super::{Agent, NOT_SET_UP, Outlet, Prompt, Role, Terminals, attachment_bytes};
 use crate::commands::{AppOrigin, trusted};
 use crate::paths::Paths;
 use crate::server::Server;
@@ -94,12 +94,14 @@ pub fn terminal_paste(webview: Webview, origin: State<AppOrigin>, terminals: Sta
 }
 
 /// Attach: a picture or a PDF the learner picked or dropped on the teacher's screen, as base64.
-/// Without `async`, so its path lands in the input in order with the keys. Answers the path.
-#[tauri::command]
+/// Off the main thread: a 20 MB file is decoded, hashed and written, after a wait for the
+/// folder. Answers the path.
+#[tauri::command(async)]
 pub fn terminal_add_file(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, server: State<Server>, id: String, name: String, data: String) -> Result<String, String> {
 	trusted(&webview, &origin)?;
+	let bytes = attachment_bytes(&data)?;
 	let folder = server.agent_folder().flatten().ok_or(NOT_SET_UP)?;
-	terminals.add_file(&id, &name, &gs_base::base64::decode(&data), std::path::Path::new(&folder))
+	terminals.add_file(&id, &name, &bytes, std::path::Path::new(&folder))
 }
 
 #[tauri::command(async)]
