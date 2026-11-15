@@ -30,6 +30,15 @@ Nothing is said twice on one screen.
 - Help for when something fails shows when it fails, not all the time.
 - Before calling a UI change finished, read every word on the changed screen in each of its states (empty, working, failed) and cut what is said twice.
 
+# No button behind a button
+
+A click does the thing. It does not open a box that holds the button for the thing.
+
+- A control never opens a pop-up, menu, card or dialog that holds only one action. The control does that action itself.
+- A pop-up is for a choice between two or more things, or for something that arrives by itself (a notice, a question).
+- This holds in every state: a menu that is down to one entry in some state does that entry on the first click.
+- Before calling a UI change finished, click every control on the changed screen in each of its states and count what opens. One action inside means the pop-up goes.
+
 # Look at the real window
 
 The Mac app draws its pages with WebKit, not Chrome, and the two lay pages out differently. A page that looks right in a browser can overlap in the app.
