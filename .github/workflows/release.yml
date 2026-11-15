@@ -96,6 +96,8 @@ jobs:
             // scripts/release-assets.mjs gives the bundler's files.
             const link = name => `[${name}](https://github.com/${owner}/${repo}/releases/download/${tag}/${name})`;
             const body = [
+              "godspeed is in alpha. Things change fast between updates.",
+              "",
               "## Download",
               "",
               "| Your computer | Download |",
