@@ -176,7 +176,7 @@ export function recentLessons(lessons: readonly LessonProgress[]): LessonProgres
 }
 
 /** Under a lesson's title: "4 of 6 right", "4 of 6 right, 1 with hints";
- *  "No answers yet" before the first. */
+ *  "Waiting for your answer" before the first (as on the Lessons list). */
 export function scoreLine(l: Pick<LessonProgress, "right" | "hinted" | "answered">): string {
-	return l.answered > 0 ? rightWords(l) : "No answers yet";
+	return l.answered > 0 ? rightWords(l) : "Waiting for your answer";
 }

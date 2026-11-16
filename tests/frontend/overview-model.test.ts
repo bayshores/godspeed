@@ -163,7 +163,7 @@ describe("pick up where you left off", () => {
 
 	it("a lesson's score, or that it has no answers", () => {
 		assert.equal(scoreLine({ right: 4, answered: 6 }), "4 of 6 right");
-		assert.equal(scoreLine({ right: 0, answered: 0 }), "No answers yet");
+		assert.equal(scoreLine({ right: 0, answered: 0 }), "Waiting for your answer");
 		assert.equal(scoreLine({ right: 1, hinted: 1, answered: 2 }), "1 of 2 right, 1 solved with hints");
 	});
 });

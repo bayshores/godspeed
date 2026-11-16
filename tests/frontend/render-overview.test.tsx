@@ -308,7 +308,7 @@ describe("Pick up where you left off", () => {
 			{ ...lesson("c4", "Oldest", "r"), updatedAt: "2026-10-01T12:00:00" },
 		];
 		const html = section(render({ data: { ...PAYLOAD, lessons } }), "recent-lessons");
-		assert.match(text(html), /Tracing 2 of 2 right 2 hours ago .*Just started No answers yet yesterday .*Gradient descent 2 of 3 right Oct 20/);
+		assert.match(text(html), /Tracing 2 of 2 right 2 hours ago .*Just started Waiting for your answer yesterday .*Gradient descent 2 of 3 right Oct 20/);
 		assert.ok(!html.includes("Oldest"));
 		assert.match(tag(html, "recent-lesson-c2"), /href="\/chat\/c2"/);
 		assert.match(html, /background:var\(--lh-space-1\)/);
