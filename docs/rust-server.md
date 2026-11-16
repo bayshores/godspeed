@@ -233,4 +233,4 @@ CONTRACT_SERVER_CMD="/bin/sh <lab>/contract/lib/rust-server.sh" CONTRACT_PORTS=4
 - Search vectors: if Rust's vectors do not match the stored ones exactly, the tables are rebuilt from saved text.
 - PDFs read before the switch keep their saved text. Only new PDFs go through the Rust reader.
 - ONNX Runtime's KleidiAI kernels stay on. Turning them off (`mlas.disable_kleidiai`) saved about 200 MB but changed the vectors by up to 0.014.
-- The loaded search model keeps about 190 MiB after first use. Dropping it when idle would cost a reload on the next search.
+- The search model is dropped after 5 quiet minutes and loaded again on the next search (about 40 ms). On a Mac this frees about 15 MB; ONNX Runtime keeps the rest of its memory for the life of the process.

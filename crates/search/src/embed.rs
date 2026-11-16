@@ -25,6 +25,8 @@ const MAX_TOKENS: usize = 512;
 
 /// How long the model thread waits for a batch before shrinking its arena.
 const IDLE: Duration = Duration::from_secs(5);
+/// How long the model stays loaded with no batch; loading it again takes about 40 ms.
+const UNLOAD: Duration = Duration::from_secs(5 * 60);
 
 /// What a batch gets when the model thread is gone (the worker's exit message).
 const STOPPED: &str = "The search worker stopped (code 1)";
@@ -106,27 +108,34 @@ fn load_runtime(models: &Path) -> Result<(), String> {
 		.clone()
 }
 
-/// Loads once (a failed load answers every batch with its error, like the worker's rejected
-/// `ready`), then embeds what arrives. After a quiet spell it hands the arena's free memory back.
+/// Loads on the first batch (a failed load answers every batch with its error, like the worker's
+/// rejected `ready`), then embeds what arrives. After a quiet spell it hands the arena's free
+/// memory back; after a long one it drops the model, and the next batch loads it again.
 fn serve(dir: &Path, jobs: &mpsc::Receiver<Job>) {
-	let mut model = Model::load(dir);
+	let mut model: Option<Result<Model, String>> = None;
 	let mut grown = false;
+	let mut quiet = Duration::ZERO;
 	loop {
 		match jobs.recv_timeout(IDLE) {
 			Ok(job) => {
-				let out = match &mut model {
+				let out = match model.get_or_insert_with(|| Model::load(dir)) {
 					Ok(m) => m.embed(&job.texts, false),
 					Err(e) => Err(e.clone()),
 				};
 				grown = true;
+				quiet = Duration::ZERO;
 				let _ = job.reply.send(out);
 			}
 			Err(mpsc::RecvTimeoutError::Timeout) => {
-				if grown && let Ok(m) = &mut model {
+				if grown && let Some(Ok(m)) = &mut model {
 					// The arena shrinks only at the end of a run, so a one-token run does it.
 					let _ = m.embed(&[String::new()], true);
 				}
 				grown = false;
+				quiet += IDLE;
+				if quiet >= UNLOAD && matches!(model, Some(Ok(_))) {
+					model = None;
+				}
 			}
 			Err(mpsc::RecvTimeoutError::Disconnected) => return,
 		}
