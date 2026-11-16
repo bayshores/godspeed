@@ -166,7 +166,8 @@ function screenWords(f: TerminalFacts, name: string): ScreenWords {
 	if (term.prompt === "trust")
 		return { need: `${agent} asks to trust its folder.`, rest: null, more: { assist: { kind: "trust", label: "Trust folder" } } };
 	if (term.prompt === "enter") return { need: `${agent} is asking you to continue.`, rest: null, more: { assist: { kind: "enter", label: "Continue" } } };
-	if (!f.checkedIn && (term.url || term.prompt === "menu"))
+	// Only a link says signing in: a menu before the first check-in may be any question (Codex asks about new hooks).
+	if (!f.checkedIn && term.url)
 		return { need: `Finish signing in to ${agent}.`, rest: "Got a code? Click Paste." };
 	if (term.prompt === "menu") return { need: `${agent} is asking you something.`, rest: null };
 	const why = needsYou(f);

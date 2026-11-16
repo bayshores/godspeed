@@ -84,11 +84,9 @@ describe("the footer's words", () => {
 		assert.equal(words(facts({}, { prompt: "enter" })).text, "Claude Code is asking you to continue.");
 	});
 
-	it("a sign-in: a link or a menu before the first check-in", () => {
-		const signIn = "Finish signing in to Codex. Got a code? Click Paste.";
-		assert.equal(words(facts({ checkedIn: false }, { agent: "codex", url: true })).text, signIn);
-		assert.equal(words(facts({ checkedIn: false }, { agent: "codex", prompt: "menu" })).text, signIn);
-		assert.equal(tab(facts({ checkedIn: false }, { agent: "codex", prompt: "menu" })).text, "Got a code? Click Paste.");
+	it("a sign-in: a link before the first check-in; a menu then is a question like any other", () => {
+		assert.equal(words(facts({ checkedIn: false }, { agent: "codex", url: true })).text, "Finish signing in to Codex. Got a code? Click Paste.");
+		assert.equal(words(facts({ checkedIn: false }, { agent: "codex", prompt: "menu" })).text, "Codex is asking you something.");
 		assert.equal(tab(facts({ checkedIn: false }, { url: true })).text, "Finish signing in to Claude Code. Got a code? Click Paste.", "the status line still says it starts");
 		assert.equal(words(facts({}, { prompt: "menu" })).text, "Claude Code is asking you something.");
 		assert.equal(tab(facts({}, { prompt: "menu" })).text, null);
@@ -158,7 +156,7 @@ describe("the teacher's status line", () => {
 		assert.equal(screenStatusLine(facts({}, { prompt: "trust" }), "Ada"), "Claude Code asks to trust its folder.");
 		assert.equal(screenStatusLine(facts({}, { prompt: "enter" }), "Ada"), "Claude Code is asking you to continue.");
 		assert.equal(screenStatusLine(facts({}, { prompt: "menu" }), "Ada"), "Claude Code is asking you something.");
-		assert.equal(screenStatusLine(facts({ checkedIn: false }, { prompt: "menu" }), "Ada"), "Finish signing in to Claude Code.");
+		assert.equal(screenStatusLine(facts({ checkedIn: false }, { prompt: "menu" }), "Ada"), "Claude Code is asking you something.");
 		assert.equal(screenStatusLine(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS }), "Ada"), "Ada hasn't started teaching yet.");
 		assert.equal(screenStatusLine(facts({ teaching: false, quietSince: T0, now: T0 + TEACH_WAIT_MS }), "Ada"), "Ada hasn't started teaching yet.");
 		assert.equal(screenStatusLine(facts({}, { ended: { stopped: false, code: 1 } }), "Ada"), "Claude Code closed with an error.");
