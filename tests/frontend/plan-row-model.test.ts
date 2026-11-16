@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { homeworkProblemLine, homeworkRow, jumpTarget, planBranches, practiceRow, rightCountLabel, stepsRow } from "../../src/frontend/components/lesson/plan-row-model.ts";
+import { homeworkProblemLine, homeworkRow, jumpTarget, planBranches, practiceRow, rightCountLabel, rowColumns, stepsRow } from "../../src/frontend/components/lesson/plan-row-model.ts";
 import type { HomeworkProblem, LessonStop, PlanStepBar } from "../../src/shared/core/index.ts";
 
 const bar: PlanStepBar = {
@@ -87,5 +87,15 @@ describe("the plan row at a stop", () => {
 	it("after Keep going, and at a problem's stop, the step is current again", () => {
 		assert.deepEqual(stepsRow(bar, { ...stop, keptGoing: true })!.map((s) => s.tone), ["done", "current", "later"]);
 		assert.deepEqual(stepsRow(bar, { ...stop, kind: "problem" })!.map((s) => s.tone), ["done", "current", "later"]);
+	});
+});
+
+describe("rowColumns", () => {
+	it("fills the lines evenly: as few lines as fit, the cells spread over them", () => {
+		assert.equal(rowColumns(6, 4 * 150 + 3 * 12, 150, 12), 3, "room for 4: 3 and 3, not 4 and 2");
+		assert.equal(rowColumns(6, 6 * 150 + 5 * 12, 150, 12), 6, "room for all: one line");
+		assert.equal(rowColumns(7, 4 * 150 + 3 * 12, 150, 12), 4, "7 in room for 4: 4 and 3");
+		assert.equal(rowColumns(3, 100, 150, 12), 1, "too narrow for two: one a line");
+		assert.equal(rowColumns(5, null, 150, 12), 5, "unmeasured: one line");
 	});
 });

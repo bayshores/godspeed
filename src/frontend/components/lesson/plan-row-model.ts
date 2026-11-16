@@ -35,6 +35,15 @@ export interface RowStep extends RowBlock {
  *  to the hover), so it stays within three lines. */
 export const COMPACT_ABOVE = 12;
 
+/** How many cells go on a line of a row `width` px wide: as many as fit at
+ *  their least width, spread evenly over the lines that takes, so 6 cells
+ *  with room for 4 go 3 and 3, never 4 and 2. Unmeasured: one line. */
+export function rowColumns(n: number, width: number | null, min: number, gap: number): number {
+	if (width === null || n === 0) return Math.max(1, n);
+	const fit = Math.max(1, Math.floor((width + gap) / (min + gap)));
+	return Math.ceil(n / Math.ceil(n / fit));
+}
+
 /** "2 of 2 right" over the graded answers (explain answers are not graded). */
 export function rightCountLabel(answers: readonly StepAnswer[]): string | null {
 	const graded = answers.filter((a) => a.outcome !== "ungraded");
