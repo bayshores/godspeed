@@ -57,6 +57,8 @@ fn main() {
 	// The demo window's page on Windows; the Mac and Linux load it into the view themselves.
 	#[cfg(windows)]
 	let builder = builder.register_uri_scheme_protocol("demo", demo_webview::serve);
+	#[cfg(all(feature = "screens", target_os = "macos"))]
+	let builder = screens::stay_behind(builder);
 	let app = builder
 		.plugin(tauri_plugin_dialog::init())
 		.plugin(notify::Notifications::new())
@@ -98,6 +100,8 @@ fn main() {
 		.setup(setup)
 		.build(tauri::generate_context!())
 		.expect("the app could not start");
+	#[cfg(all(feature = "screens", target_os = "macos"))]
+	let app = screens::without_dock(app);
 	app.run(|app, event| match event {
 		RunEvent::ExitRequested { code, api, .. } => match code {
 			// The last window closed: the Mac keeps the app running.

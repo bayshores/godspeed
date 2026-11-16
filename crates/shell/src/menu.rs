@@ -175,7 +175,7 @@ fn check_for_updates(app: &AppHandle) {
 fn show_window(app: &AppHandle) {
 	window::reopen(app);
 	if let Some(main) = app.get_webview_window("main") {
-		let shown = main.unminimize().and_then(|()| main.set_focus());
+		let shown = main.unminimize().and_then(|()| window::focus(&main));
 		if let Err(err) = shown {
 			log::line(&format!("cannot bring the window forward: {err}"));
 		}

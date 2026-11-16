@@ -215,13 +215,33 @@ fn show_later(window: WebviewWindow) {
 	});
 }
 
+/// The screens lab drives the app without anyone seeing or being interrupted by it.
+#[cfg(all(feature = "screens", target_os = "macos"))]
+fn lab() -> bool {
+	crate::screens::active()
+}
+
+#[cfg(not(all(feature = "screens", target_os = "macos")))]
+fn lab() -> bool {
+	false
+}
+
 /// AppKit puts the traffic lights back in their default place when a hidden window first shows;
 /// setting the title again makes tao move them to ours.
 fn show(window: &WebviewWindow) -> tauri::Result<()> {
+	#[cfg(all(feature = "screens", target_os = "macos"))]
+	if lab() {
+		return crate::screens::appear(window);
+	}
 	window.show()?;
 	#[cfg(target_os = "macos")]
 	window.set_title(&window.title()?)?;
 	Ok(())
+}
+
+/// Brings the window to the front, except in the lab, where nothing may take the focus.
+pub fn focus(window: &WebviewWindow) -> tauri::Result<()> {
+	if lab() { Ok(()) } else { window.set_focus() }
 }
 
 /// Pushes to the page now if it has loaded, else once it has.
@@ -287,7 +307,7 @@ pub fn show_window(webview: Webview, origin: State<AppOrigin>) -> Result<(), Str
 	let main = main_window(&webview)?;
 	if !main.is_visible().map_err(|e| e.to_string())? {
 		show(&main).map_err(|e| e.to_string())?;
-		main.set_focus().map_err(|e| e.to_string())?;
+		focus(&main).map_err(|e| e.to_string())?;
 	}
 	Ok(())
 }

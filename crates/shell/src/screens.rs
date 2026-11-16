@@ -1,5 +1,4 @@
-//! The screenshot lab's control channel (Mac only: `snap` and `shot` need WKWebView and
-//! `screencapture`). The lab appends one command per line to the file named by
+//! The screenshot lab's control channel (Mac only: `snap` needs WKWebView). The lab appends one command per line to the file named by
 //! `LH_SCREENS_CTL`, and the shell answers each with one line appended to `LH_SCREENS_OUT`, in
 //! order:
 //!
@@ -9,21 +8,23 @@
 //! | `eval <js>` | the script's value as JSON (`null` for undefined; a promise is not awaited) |
 //! | `size <w> <h>` | `ok`, the window's inner size in points |
 //! | `snap <file>` | `ok` once the page is written as a PNG (two pixels a point, no title bar) |
-//! | `shot <file>` | `ok` once the whole window is written as the screen shows it |
-//! | `quit` | `ok`, then the app exits |
+//! //! | `quit` | `ok`, then the app exits |
 //!
 //! A command that fails answers `error: <why>`, a script that throws included. `LH_SCREENS_INIT`
 //! names a script that runs in the page before any of its own, for what the lab must set up
 //! before the app starts.
+//!
+//! While the lab drives the app, its window is never seen and never takes focus (`appear`), and
+//! the app has no Dock icon and never becomes the front app. WKWebView stops drawing in a window
+//! that is hidden, off screen or covered, so the window stays on screen, fully transparent.
 
 use std::fs::OpenOptions;
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::time::Duration;
 
-use tauri::{AppHandle, LogicalSize, Manager, Url, WebviewWindow};
+use tauri::{ActivationPolicy, App, AppHandle, Builder, LogicalSize, Manager, Url, WebviewWindow, Wry};
 
 use crate::log;
 
@@ -39,11 +40,38 @@ pub fn init_script() -> Option<String> {
 	std::fs::read_to_string(&path).inspect_err(|err| log::line(&format!("cannot read {}: {err}", Path::new(&path).display()))).ok()
 }
 
+/// The lab's two files; the app is under the lab when it has both.
+fn files() -> Option<(PathBuf, PathBuf)> {
+	Some((std::env::var_os("LH_SCREENS_CTL")?.into(), std::env::var_os("LH_SCREENS_OUT")?.into()))
+}
+
+pub fn active() -> bool {
+	files().is_some()
+}
+
+/// Keeps the app from taking the front at launch, before any window exists.
+pub fn stay_behind(builder: Builder<Wry>) -> Builder<Wry> {
+	if active() { builder.activate_ignoring_other_apps(false) } else { builder }
+}
+
+/// Takes the app out of the Dock and the ⌘Tab list, so nothing in it can become the front app.
+pub fn without_dock(mut app: App) -> App {
+	if active() {
+		app.set_activation_policy(ActivationPolicy::Accessory);
+	}
+	app
+}
+
+/// Shows the main window unseen: on screen so WebKit draws it, with no focus.
+pub fn appear(window: &WebviewWindow) -> tauri::Result<()> {
+	crate::mac::screens::appear(window)
+}
+
 /// Starts answering the lab, when it set both files.
 pub fn start(app: &AppHandle) {
-	let (Some(ctl), Some(out)) = (std::env::var_os("LH_SCREENS_CTL"), std::env::var_os("LH_SCREENS_OUT")) else { return };
+	let Some((ctl, out)) = files() else { return };
 	let app = app.clone();
-	std::thread::spawn(move || run(&app, &PathBuf::from(ctl), &PathBuf::from(out)));
+	std::thread::spawn(move || run(&app, &ctl, &out));
 }
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
@@ -52,7 +80,6 @@ enum Request<'a> {
 	Eval(&'a str),
 	Size(f64, f64),
 	Snap(&'a str),
-	Shot(&'a str),
 	Quit,
 }
 
@@ -66,7 +93,6 @@ fn parse(line: &str) -> Result<Request<'_>, String> {
 			size.map(|(width, height)| Request::Size(width, height)).ok_or_else(|| "size takes a width and a height".to_owned())
 		}
 		"snap" => Ok(Request::Snap(arg)),
-		"shot" => Ok(Request::Shot(arg)),
 		"quit" => Ok(Request::Quit),
 		other => Err(format!("unknown command {other}")),
 	}
@@ -106,7 +132,6 @@ fn answer(app: &AppHandle, request: Request) -> Result<String, String> {
 		Request::Eval(js) => eval(&main, js),
 		Request::Size(width, height) => main.set_size(LogicalSize::new(width, height)).map_err(|err| err.to_string()).map(|()| ok()),
 		Request::Snap(file) => crate::mac::screens::snapshot(&main, PathBuf::from(file)).map(|()| ok()),
-		Request::Shot(file) => shot(&main, file).map(|()| ok()),
 		Request::Quit => Ok(ok()),
 	}
 }
@@ -144,12 +169,6 @@ fn unwrap_answer(raw: &str) -> Result<String, String> {
 	}
 }
 
-fn shot(main: &WebviewWindow, file: &str) -> Result<(), String> {
-	let id = crate::mac::screens::window_number(main)?;
-	let status = Command::new("screencapture").args(["-x", "-o", "-l", &id.to_string(), file]).status().map_err(|err| err.to_string())?;
-	if status.success() { Ok(()) } else { Err(format!("screencapture failed ({status})")) }
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -159,7 +178,6 @@ mod tests {
 		assert_eq!(parse("nav http://127.0.0.1:48060/x?a=b"), Ok(Request::Nav("http://127.0.0.1:48060/x?a=b")));
 		assert_eq!(parse("eval document.title + ' x'"), Ok(Request::Eval("document.title + ' x'")));
 		assert_eq!(parse("snap /lab/a b.png"), Ok(Request::Snap("/lab/a b.png")));
-		assert_eq!(parse("shot /lab/a.png"), Ok(Request::Shot("/lab/a.png")));
 		assert_eq!(parse("quit"), Ok(Request::Quit));
 		assert_eq!(parse("jump"), Err("unknown command jump".to_owned()));
 	}

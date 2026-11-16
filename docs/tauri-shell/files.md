@@ -33,13 +33,13 @@
 | `demo.rs` | Shared demo constants and page recorder; `run` and `svg` come from `mac::demo` on the Mac, `demo_webview` elsewhere. |
 | `demo_webview.rs` | Windows and Linux demo runner, a hidden Tauri window labeled `demo`. |
 | `self_test.rs` | Only with cargo feature `self-test`: `godspeed --self-test`. |
-| `screens.rs` | Only with cargo feature `screens`, Mac only: the screenshot lab's control channel. |
+| `screens.rs` | Only with cargo feature `screens`, Mac only: the screenshot lab's control channel, and the lab's unseen window with no Dock icon. |
 
 ### Platform folders
 
 | Folder | Holds |
 |---|---|
-| `mac/` | `clipboard.rs` (Paste text), `demo.rs` (hidden WKWebView demo runner, SVG snapshot), `print.rs` (PDFKit printing), `window.rs` (drag pasteboard paths, title bar double-click setting, WebKit text defaults, traffic-light title fix), `fonts.rs` (`NSFontManager` families), `screens.rs` (lab snapshots). |
+| `mac/` | `clipboard.rs` (Paste text), `demo.rs` (hidden WKWebView demo runner, SVG snapshot), `print.rs` (PDFKit printing), `window.rs` (drag pasteboard paths, title bar double-click setting, WebKit text defaults, traffic-light title fix), `fonts.rs` (`NSFontManager` families), `screens.rs` (lab snapshots, the unseen window). |
 | `win/` | `drop.rs` (dropped file paths through WebView2 `WebMessageReceived`), `demo.rs` (demo window's browser arguments, SVG snapshot), `clipboard.rs` (Paste text), `job.rs` (Job Object holding a terminal's processes), `path.rs` (fresh registry `Path` for a terminal). |
 | `linux/` | `demo.rs` (WebKitGTK content filter for the demo window, via `webkit2gtk-sys`), `clipboard.rs` (GTK Paste text). |
 

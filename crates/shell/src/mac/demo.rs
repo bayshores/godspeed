@@ -176,6 +176,18 @@ fn invisible_window(mtm: MainThreadMarker, frame: NSRect, view: &WKWebView) -> R
 	// SAFETY: the Retained owns the window, so closing it must not release it a second time.
 	unsafe { window.setReleasedWhenClosed(false) };
 	window.setContentView(Some(view));
+	make_unseen(&window);
+	if let Some(screen) = NSScreen::mainScreen(mtm) {
+		let screen = screen.frame();
+		window.setFrameOrigin(NSPoint::new(screen.origin.x + 60.0, screen.origin.y + 60.0));
+	}
+	window.orderFrontRegardless();
+	window
+}
+
+/// Fully transparent, never clicked, and out of the Window menu, ⌘` and Mission Control, above
+/// the other windows so nothing covers it.
+pub(super) fn make_unseen(window: &NSWindow) {
 	window.setAlphaValue(0.0);
 	window.setIgnoresMouseEvents(true);
 	window.setExcludedFromWindowsMenu(true);
@@ -187,12 +199,6 @@ fn invisible_window(mtm: MainThreadMarker, frame: NSRect, view: &WKWebView) -> R
 			| NSWindowCollectionBehavior::Stationary
 			| NSWindowCollectionBehavior::FullScreenAuxiliary,
 	);
-	if let Some(screen) = NSScreen::mainScreen(mtm) {
-		let screen = screen.frame();
-		window.setFrameOrigin(NSPoint::new(screen.origin.x + 60.0, screen.origin.y + 60.0));
-	}
-	window.orderFrontRegardless();
-	window
 }
 
 /// Calls `fire(id)` after `seconds` unless the run moves on first. Common modes, so a menu held

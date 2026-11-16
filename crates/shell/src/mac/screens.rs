@@ -1,5 +1,5 @@
-//! What the screenshot lab needs from WebKit and AppKit: a picture of the page and the id of
-//! the window.
+//! What the screenshot lab needs from WebKit and AppKit: a picture of the page, and the window
+//! shown without being seen.
 
 use std::cell::Cell;
 use std::path::PathBuf;
@@ -14,7 +14,7 @@ use objc2_foundation::{NSError, NSNumber, NSSize};
 use objc2_web_kit::{WKSnapshotConfiguration, WKWebView};
 use tauri::WebviewWindow;
 
-use super::demo::{describe, exact_png};
+use super::demo::{describe, exact_png, make_unseen};
 
 const LIMIT: Duration = Duration::from_secs(30);
 
@@ -60,15 +60,13 @@ pub fn snapshot(window: &WebviewWindow, path: PathBuf) -> Result<(), String> {
 	rx.recv_timeout(LIMIT).map_err(|_| "the snapshot did not finish".to_owned())?
 }
 
-/// The window's id for `screencapture -l`.
-pub fn window_number(window: &WebviewWindow) -> Result<isize, String> {
-	let (tx, rx) = mpsc::channel();
-	window
-		.with_webview(move |platform| {
-			// SAFETY: Tauri hands over this window's NSWindow on the main thread.
-			let number = unsafe { Retained::retain(platform.ns_window().cast::<NSWindow>()) }.map(|window| window.windowNumber());
-			let _ = tx.send(number);
-		})
-		.map_err(|err| err.to_string())?;
-	rx.recv_timeout(LIMIT).ok().flatten().ok_or_else(|| "the window is gone".to_owned())
+/// Puts the main window on screen unseen, without making it the key window or the front app.
+pub fn appear(window: &WebviewWindow) -> tauri::Result<()> {
+	window.with_webview(|platform| {
+		// SAFETY: Tauri hands over this window's NSWindow on the main thread.
+		if let Some(window) = unsafe { Retained::retain(platform.ns_window().cast::<NSWindow>()) } {
+			make_unseen(&window);
+			window.orderFrontRegardless();
+		}
+	})
 }
