@@ -5,8 +5,8 @@ import type { ChatListItem } from "@/shared/core";
 import { lessonAge, lessonWaiting } from "./lessons-model";
 
 /**
- * ONE LESSON ROW: the title, under it "marco is writing" (or "Waiting for
- * your agent" while none teaches) or "Waiting for your answer" when either
+ * ONE LESSON ROW: the title, under it "marco is writing" (or "No agent
+ * connected" while none teaches) or "Waiting for your answer" when either
  * is true, and its age at the right. The whole
  * row opens the lesson. Hovering shows "More", which opens the lesson
  * menu, the same menu a right-click opens.
@@ -16,7 +16,7 @@ const ROW = "group relative flex items-center gap-4 border-b border-dotted borde
 
 /** Under the title: what the lesson is waiting on, if anything. */
 function StatusLine({ chat, teacher, noAgent }: { chat: ChatListItem; teacher: string; noAgent: boolean }) {
-	if (chat.busy) return <span className="text-sm text-ink-2">{noAgent ? "Waiting for your agent" : `${teacher} is writing`}</span>;
+	if (chat.busy) return <span className="text-sm text-ink-2">{noAgent ? "No agent connected" : `${teacher} is writing`}</span>;
 	if (!lessonWaiting(chat)) return null;
 	return (
 		<span data-waiting="" className="flex items-center gap-2 text-sm text-ink">

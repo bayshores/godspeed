@@ -54,7 +54,7 @@ describe("LessonRow", () => {
 
 	it("with no agent teaching, a lesson waiting on a reply says it waits for the agent", () => {
 		const html = render(item({ busy: true }), { noAgent: true });
-		assert.ok(html.includes("Waiting for your agent"));
+		assert.ok(html.includes("No agent connected"));
 		assert.ok(!html.includes("is writing"));
 	});
 

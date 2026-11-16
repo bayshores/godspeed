@@ -51,7 +51,7 @@ describe("files-model", () => {
 	it("fileState follows the pipeline status", () => {
 		assert.deepEqual(fileState(file({ status: "extracting" }), undefined, true), { kind: "building" });
 		assert.deepEqual(fileState(file({ status: "pending" }), undefined, true), { kind: "waiting", label: "Waiting" });
-		assert.deepEqual(fileState(file({ status: "pending" }), undefined, false), { kind: "waiting", label: "Waiting for your agent" }, "no agent is teaching");
+		assert.deepEqual(fileState(file({ status: "pending" }), undefined, false), { kind: "waiting", label: "No agent connected" }, "no agent is teaching");
 		assert.deepEqual(fileState(file({ status: "pending", kind: "info" }), undefined, false), { kind: "none" }, "space info has nothing to do");
 		assert.deepEqual(fileState(file({ status: "failed", error: "boom" }), undefined, true), { kind: "failed", label: "Failed", error: "boom" });
 		assert.deepEqual(fileState(file({ status: "needs-whisper", error: "Run brew" }), undefined, true), {

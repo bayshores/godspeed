@@ -348,7 +348,7 @@ describe("after godspeed's teacher ended, though the server still says connected
 			return {
 				pill: pillWords(pillLine({ things: pillThings({ name: "Teacher", doing, agent, terminal: teacherTerminalState(facts), background: false, work: null, ready: [], due: null, offer: null }), notice: null, idle: idleWords({ name: "Teacher", agent, notices: 0, own: false }) })),
 				panel: agentLine(agent, doing),
-				tile: teacherTile(agent, doing, { outside: false, term: facts?.term.ended ? "ended" : null, start: "Start Claude Code" }).chip,
+				tile: teacherTile(agent, doing, { outside: false, term: facts?.term.ended ? "ended" : null }).chip,
 				lessonWaits: lessonAgentWaiting(agent),
 			};
 		};

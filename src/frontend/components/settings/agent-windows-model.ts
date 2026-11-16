@@ -10,6 +10,7 @@ import { files, filesProgress } from "@/frontend/components/work/work-model";
 export interface AgentTile {
 	/** on: running. busy: working (striped edge). off: not running. */
 	tone: "on" | "busy" | "off";
+	/** Empty while nothing runs: the top bar says so. */
 	chip: string;
 	line: string;
 	note: string;
@@ -26,9 +27,9 @@ export type TermState = "starting" | "ended" | null;
 /** The teacher runs: it teaches, or it connected and has not started. */
 const teacherRuns = (agent: Agent) => agent.teaching || (agent.connected && !agent.helperHere);
 
-/** `outside`: the agent here was started outside godspeed. `start`: the
- *  start key's label, the same as the start pair's (startLabel). */
-export function teacherTile(agent: Agent, doing: AgentDoing | null, i: { outside: boolean; term: TermState; start: string }): AgentTile {
+/** `outside`: the agent here was started outside godspeed. The teacher
+ *  starts from its own window, so its tile has no button. */
+export function teacherTile(agent: Agent, doing: AgentDoing | null, i: { outside: boolean; term: TermState }): AgentTile {
 	const note = i.outside ? "Connected from outside godspeed." : "Teaches and answers you";
 	if (agent.helperCovering) return { tone: "on", chip: "Teaching", line: "Tidying its memory", note: "A backup answers for a minute", start: null };
 	// "Teaching" only while it works on something; idle in its work loop it is just running.
@@ -37,10 +38,10 @@ export function teacherTile(agent: Agent, doing: AgentDoing | null, i: { outside
 	if (i.term === "starting") return { tone: "off", chip: "Starting", line: "", note, start: null };
 	return {
 		tone: "off",
-		chip: i.term === "ended" ? "Stopped" : "Not running",
+		chip: i.term === "ended" ? "Stopped" : "",
 		line: agent.pendingTurns > 0 ? "Your lesson is waiting" : "",
 		note: "Start it and it teaches you",
-		start: i.start,
+		start: null,
 	};
 }
 
@@ -72,10 +73,10 @@ export function helperTile(i: {
 		if (i.term === "ended") return { tone: "off", chip: "Stopped", line: "", note, start: "Start again" };
 		const waiting = i.filesLeft > 0;
 		const line = waiting ? `${files(i.filesLeft)} ${i.filesLeft === 1 ? "is" : "are"} waiting` : "";
-		if (i.autoStart) return { tone: "off", chip: "Not running", line, note: "Starts by itself when there is reading to do", start: null };
+		if (i.autoStart) return { tone: "off", chip: "", line, note: "Starts by itself when there is reading to do", start: null };
 		return {
 			tone: "off",
-			chip: "Not running",
+			chip: "",
 			line,
 			note: waiting && !agent.teaching ? "Start it and it reads them" : agent.teaching ? `${i.teacher} does the reading between your messages` : note,
 			start: "Start background work",

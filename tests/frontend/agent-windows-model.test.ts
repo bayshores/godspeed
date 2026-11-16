@@ -17,12 +17,12 @@ const agent = (over: Partial<Parameters<typeof teacherTile>[0]> = {}) => ({
 	...over,
 });
 
-const own = { outside: false, term: null, start: "Start Codex" };
+const own = { outside: false, term: null };
 const helper = (over: Partial<Parameters<typeof helperTile>[0]> = {}) =>
 	helperTile({ agent: agent(), background: null, files: null, filesLeft: 0, teacher: "Teacher", term: null, autoStart: false, ...over });
 
 describe("the teacher and the helper", () => {
-	it("the teacher's tile: teaching, running and not started, starting, or not running with a button", () => {
+	it("the teacher's tile: teaching, running and not started, starting, or not running with no chip", () => {
 		const teaching = agent({ connected: true, teaching: true });
 		assert.deepEqual(teacherTile(teaching, { text: "Teaching Graphs", working: true }, own), {
 			tone: "on",
@@ -37,7 +37,7 @@ describe("the teacher and the helper", () => {
 		const running = teacherTile(agent({ connected: true, name: "Codex" }), null, own);
 		assert.equal(running.chip, "Running");
 		assert.equal(running.line, "Tell Codex to start teaching.");
-		assert.deepEqual(teacherTile(agent(), null, own), { tone: "off", chip: "Not running", line: "", note: "Start it and it teaches you", start: "Start Codex" }, "the start pair's label");
+		assert.deepEqual(teacherTile(agent(), null, own), { tone: "off", chip: "", line: "", note: "Start it and it teaches you", start: null }, "no chip and no button: the top bar says it, the teacher's window starts it");
 		assert.deepEqual(teacherTile(agent(), null, { ...own, term: "starting" as const }), { tone: "off", chip: "Starting", line: "", note: "Teaches and answers you", start: null });
 		assert.equal(teacherTile(agent(), null, { ...own, term: "ended" as const }).chip, "Stopped");
 		assert.equal(teacherTile(agent({ pendingTurns: 1 }), null, own).line, "Your lesson is waiting");
@@ -45,11 +45,11 @@ describe("the teacher and the helper", () => {
 	});
 
 	it("a helper alone does not count as the teacher running", () => {
-		assert.equal(teacherTile(agent({ connected: true, helperHere: true }), null, own).chip, "Not running");
+		assert.equal(teacherTile(agent({ connected: true, helperHere: true }), null, own).chip, "");
 	});
 
 	it("when godspeed starts the helper by itself, its tile has no button until it ended", () => {
-		assert.deepEqual(helper({ autoStart: true }), { tone: "off", chip: "Not running", line: "", note: "Starts by itself when there is reading to do", start: null });
+		assert.deepEqual(helper({ autoStart: true }), { tone: "off", chip: "", line: "", note: "Starts by itself when there is reading to do", start: null });
 		assert.equal(helper({ autoStart: true, filesLeft: 3 }).line, "3 files are waiting");
 		assert.equal(helper({ autoStart: true, term: "starting" }).chip, "Starting");
 		assert.equal(helper({ autoStart: true, term: "starting" }).start, null);
@@ -59,7 +59,7 @@ describe("the teacher and the helper", () => {
 	});
 
 	it("when godspeed can't start the helper, its tile says what waits and who reads meanwhile", () => {
-		assert.deepEqual(helper(), { tone: "off", chip: "Not running", line: "", note: "Reads your files so the teacher stays free", start: "Start background work" });
+		assert.deepEqual(helper(), { tone: "off", chip: "", line: "", note: "Reads your files so the teacher stays free", start: "Start background work" });
 		const waiting = helper({ filesLeft: 3 });
 		assert.equal(waiting.line, "3 files are waiting");
 		assert.equal(waiting.note, "Start it and it reads them");

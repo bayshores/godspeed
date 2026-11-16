@@ -225,7 +225,7 @@ describe("FilesPage", () => {
 		agentTeaching = false;
 		fakeFetch();
 		await mount();
-		assert.equal(q("space-file-status-f7")!.textContent, "Waiting for your agent");
+		assert.equal(q("space-file-status-f7")!.textContent, "No agent connected");
 	});
 
 	it("a waiting file just says Waiting while an agent is teaching", async () => {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useActivity } from "@/frontend/components/activity-dock";
-import { AGENT_LABEL, rememberedAgent, startLabel, type LaunchChoice } from "@/frontend/components/agent-folder/agent-folder-model";
+import { AGENT_LABEL, rememberedAgent, type LaunchChoice } from "@/frontend/components/agent-folder/agent-folder-model";
 import { Log, OtherAppSetup } from "@/frontend/components/agent-folder/agent-launcher";
 import { FolderLine } from "@/frontend/components/agent-folder/folder-line";
 import { OldSetupWarning } from "@/frontend/components/agent-folder/old-setup";
@@ -21,13 +21,13 @@ import { filesLine, helperTile, teacherTile, type AgentTile, type TermState } fr
 
 /**
  * "Your agent": whether the teacher and the helper run and what each is
- * doing. The teacher's tile carries the button that starts it; the
- * helper's only when godspeed can't start it by itself. The teacher's
- * line shows its screen while godspeed runs it. Under the tiles, the
- * folder they run in. "Other app" shows the setup for any MCP app.
+ * doing. The teacher starts from its own window, so only the helper's
+ * tile carries a button, and only when godspeed can't start it by itself.
+ * The teacher's line shows its screen while godspeed runs it. Under the
+ * tiles, the folder they run in. "Other app" shows the setup for any MCP app.
  */
 export function AgentWindows({ agent }: { agent: AgentStatus }) {
-	const { view, lines, busy, error: startError, open, openHelper, change, setStartCommand } = useAgentFolder();
+	const { view, lines, busy, error: startError, openHelper, change, setStartCommand } = useAgentFolder();
 	const terminals = useTerminals();
 	const outside = !!terminals?.outsideHere;
 	const panel = useTeacher();
@@ -46,7 +46,7 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 	const teacherTerm: TermState = !ownTeacher ? null : ownTeacher.ended ? "ended" : terminals?.facts.teacher?.checkedIn ? null : "starting";
 	// A helper that ended with its teacher starts again by itself with the next one.
 	const helperTerm: TermState = !ownHelper ? null : !ownHelper.ended ? (agent.helperHere ? null : "starting") : teacherLive ? "ended" : null;
-	const teacher = teacherTile(agent, panel?.doing ?? null, { outside, term: teacherTerm, start: startLabel(choice) });
+	const teacher = teacherTile(agent, panel?.doing ?? null, { outside, term: teacherTerm });
 	const helper = helperTile({
 		agent,
 		background: backgroundLine(feed.extractions, feed.jobs),
@@ -79,10 +79,9 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 			<div className="grid gap-4 @min-[640px]:grid-cols-2">
 				<Tile
 					id="teacher"
-					name="Teacher"
+					name={teacherName}
 					icon="window"
 					tile={teacher}
-					onOpen={folderAgent && !panel?.panelStarts ? () => void open(folderAgent) : null}
 					busy={busy}
 					status={teacherName}
 					said={!!panel?.panelOpen}
@@ -109,7 +108,6 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 const CHIP: Record<string, string> = {
 	Teaching: "bg-ans-right text-background",
 	Running: "bg-ans-right text-background",
-	"Not running": "bg-tone text-ink",
 	Stopped: "bg-tone text-ink",
 };
 
@@ -133,7 +131,7 @@ function Tile({
 	name: string;
 	icon: "window" | "pages";
 	tile: AgentTile;
-	onOpen: (() => void) | null;
+	onOpen?: (() => void) | null;
 	busy: boolean;
 	status?: string;
 	said?: boolean;
@@ -150,7 +148,7 @@ function Tile({
 				<div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
 					<div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
 						<h3 className={cn("text-[22px] leading-tight", off ? "text-ink-2" : "text-ink")}>{name}</h3>
-						{!said && (
+						{!said && tile.chip && (
 							<span data-testid={`agent-window-${id}-chip`} className={cn("px-2 py-0.5 text-sm", CHIP[tile.chip] ?? "bg-highlight text-ink")}>
 								{tile.chip}
 							</span>

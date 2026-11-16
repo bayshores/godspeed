@@ -26,7 +26,7 @@ export type FileState =
 /**
  * A row's state from its pipeline status and coverage:
  * - extracting → "Building facts"
- * - pending study file → "Waiting", or "Waiting for your agent" when no
+ * - pending study file → "Waiting", or "No agent connected" when no
  *   agent is teaching (a space-info file has nothing to do)
  * - failed → red label + Retry
  * - needs-whisper → "Needs a speech tool" + Retry, with the install command
@@ -42,7 +42,7 @@ export function fileState(file: SpaceFile, coverage: FileCoverage | undefined, a
 		case "extracting":
 			return { kind: "building" };
 		case "pending":
-			return file.kind === "study" ? { kind: "waiting", label: agentTeaching ? "Waiting" : "Waiting for your agent" } : { kind: "none" };
+			return file.kind === "study" ? { kind: "waiting", label: agentTeaching ? "Waiting" : "No agent connected" } : { kind: "none" };
 		case "failed":
 			return { kind: "failed", label: "Failed", ...(file.error ? { error: file.error } : {}) };
 		case "needs-whisper":
