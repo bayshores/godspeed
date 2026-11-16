@@ -100,7 +100,7 @@ export function LivePill({ own = false, named = false }: { own?: boolean; named?
 					aria-controls={NOTICE_STACK_ID}
 					title={noticeCount(waiting)}
 					onClick={(e) => pill.showNotices(e.currentTarget)}
-					className="lh-press font-count flex h-8 shrink-0 items-center bg-bar-ink/15 px-2 text-[15px] text-bar-ink hover:bg-bar-ink/25"
+					className="lh-press font-count flex self-stretch shrink-0 items-center bg-bar-ink/15 px-2 text-[15px] text-bar-ink hover:bg-bar-ink/25"
 				>
 					<span aria-hidden>{waiting}</span>
 					<span className="sr-only">{noticeCount(waiting)}</span>
@@ -131,7 +131,7 @@ function Fit({ text, least, className }: { text: string; least: string; classNam
 /** A second live thing, after the pill: background work's count, or a
  *  deadline with its countdown, which opens the deadline. */
 function Tag({ thing, onOpen }: { thing: PillThing; onOpen: (() => void) | null }) {
-	const look = cn("flex h-8 shrink-[1000] items-center gap-2 bg-bar-ink/15 px-2.5 text-[15px] whitespace-nowrap text-bar-ink max-[1000px]:hidden", !thing.due && "font-count");
+	const look = cn("flex self-stretch shrink-[1000] items-center gap-2 bg-bar-ink/15 px-2.5 text-[15px] whitespace-nowrap text-bar-ink max-[1000px]:hidden", !thing.due && "font-count");
 	const inside = (
 		<>
 			<Fit text={thing.tag ?? ""} least={shortName(thing.tag ?? "")} className="max-w-[18ch]" />

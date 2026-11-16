@@ -105,7 +105,12 @@ function ChangeCard({ check, onDone }: { check: SpaceCheck; onDone: () => void }
 					<NoticeText key={line}>{line}</NoticeText>
 				))}
 				{more > 0 && <NoticeText>{`and ${more} more`}</NoticeText>}
-				{check.said && <NoticeText>{check.said}</NoticeText>}
+				{/* The agent's own line mostly retells the change lines: two lines at most. */}
+				{check.said && (
+					<NoticeText title={check.said}>
+						<span className="line-clamp-2">{check.said}</span>
+					</NoticeText>
+				)}
 			</button>
 			{mode.kind === "error" && (
 				<p role="alert" className="text-[13px] text-ans-wrong">
