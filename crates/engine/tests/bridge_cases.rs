@@ -404,3 +404,23 @@ async fn typing_says_the_teacher_is_here_only_once_the_teachers_own_wait_reads_i
 	assert!(bridge.agent_teaching(now + 1000 + 3 * 60_000 - 1), "busy with the learner for three minutes");
 	assert!(!bridge.agent_teaching(now + 1000 + 3 * 60_000));
 }
+
+#[tokio::test]
+async fn only_the_agent_that_took_a_background_item_holds_it_until_it_answers() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	let lesson = park(&bridge, vec![user("hi")], "chat_l1", &Abort::new());
+	clock::sleep(5).await;
+	let view = bridge.wait_for_work(0, agent_a()).await.unwrap();
+	assert!(!bridge.holds_background_work(Some("agent-A")), "a lesson turn is not background work");
+	bridge.respond_to_work(&view.work_id, reply("Hi."), 0).unwrap();
+	lesson.await.unwrap();
+
+	let job = park(&bridge, vec![user("check this space")], "job_check", &Abort::new());
+	clock::sleep(5).await;
+	let view = bridge.wait_for_work(0, agent_a()).await.unwrap();
+	assert!(bridge.holds_background_work(Some("agent-A")));
+	assert!(!bridge.holds_background_work(Some("helper-1")) && !bridge.holds_background_work(None));
+	bridge.respond_to_work(&view.work_id, reply("Done."), 0).unwrap();
+	job.await.unwrap();
+	assert!(!bridge.holds_background_work(Some("agent-A")), "an answered item is let go");
+}

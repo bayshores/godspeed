@@ -12,7 +12,8 @@ use std::sync::Arc;
 use gs_agent::subagents::deadline_request::{DeadlineRequest, run_deadline_request};
 use gs_agent::subagents::pi_run::RunError;
 use gs_agent::tools::fn_tool::FnTool;
-use gs_agent::tools::space_actions::space_check_tools;
+use gs_agent::tools::space_actions::{SpaceActions, space_check_tool_names, space_check_tools};
+use gs_core::spaces::space_tools::ToolOutcome;
 use gs_base::events::EventKind;
 use gs_base::{clock, ids, time};
 use gs_core::spaces::check_lines::{DeadlineChange, FieldChange, change_lines};
@@ -75,6 +76,8 @@ pub struct SpaceChecksState {
 	runs: Mutex<VecDeque<CheckRun>>,
 	/// When the spaces were last scanned for reasons.
 	scanned_at: Mutex<Option<i64>>,
+	/// The running check's space, its actions and the tools it may use.
+	active: Mutex<Option<(String, SpaceActions, Vec<&'static str>)>>,
 }
 
 /// A check's writes: only to its space, only with the arguments `CHECK_WRITES` lists.
@@ -197,7 +200,9 @@ fn start_check(app: &Arc<App>, space: &Json, reasons: Vec<Reason>) {
 
 	let writes = Arc::new(RunWrites { check: Some(CheckWrites::new(&space_id)), ..RunWrites::default() });
 	let path = reasons.iter().any(|r| matches!(r, Reason::Path { .. }));
-	let tools = space_check_tools(&writing_actions(app, writes.clone(), Mark::Background), path);
+	let actions = writing_actions(app, writes.clone(), Mark::Background);
+	let tools = space_check_tools(&actions, path);
+	*app.spaces.checks.active.lock() = Some((space_id.clone(), actions, space_check_tool_names(path)));
 	let agent = app.bridge.agent_name(clock::now_ms()).unwrap_or_else(|| "Your agent".to_owned());
 	let request = DeadlineRequest { label, prompt: check_text(space, &reasons), tools: tools.into_iter().map(FnTool::into_arc).collect() };
 	let end = CheckEnd { app: app.clone(), space_id };
@@ -222,6 +227,21 @@ fn check_ended(end: &CheckEnd, reasons: &[Reason], outcome: Result<String, RunEr
 	if let Some(check) = &writes.check {
 		keep_run(&end.app, &end.space_id, std::mem::take(&mut *check.copies.lock()), agent, said);
 	}
+}
+
+/// An agent may call the app's own tools while it holds a check, not the check's: a call on the
+/// checked space from an agent holding background work goes through the check, so it is
+/// limited, marked background and kept for Undo. None: the call is not the check's.
+pub async fn as_check_call(app: &Arc<App>, agent: Option<&str>, name: &str, args: &Json) -> Option<ToolOutcome> {
+	let (actions, allowed) = {
+		let active = app.spaces.checks.active.lock();
+		let (space_id, actions, tools) = active.as_ref()?;
+		if args["space_id"].as_str() != Some(space_id.as_str()) || !app.bridge.holds_background_work(agent) {
+			return None;
+		}
+		(actions.clone(), tools.contains(&name))
+	};
+	Some(if allowed { actions(name, args.clone()).await } else { ToolOutcome::Err(format!("{name} is not for this check.")) })
 }
 
 /// A run that changed something is kept for Undo and announced with its lines.
@@ -302,6 +322,7 @@ impl Drop for CheckEnd {
 	fn drop(&mut self) {
 		let state = &self.app.spaces.requests;
 		state.running.lock().checking = None;
+		*self.app.spaces.checks.active.lock() = None;
 		state.rows.lock().retain(|row| row["id"].as_str() != Some(&self.space_id));
 		self.app.events.emit(EventKind::ActivityChanged, json!({}));
 	}
@@ -312,6 +333,8 @@ mod tests {
 	use gs_base::fsx;
 	use gs_core::spaces::deadline_requests::requested_deadline;
 	use gs_core::spaces::space_tools::ToolOutcome;
+
+	use gs_engine::bridge::{AgentReply, WaitOptions};
 
 	use super::*;
 	use crate::app::agent_actions::recent_agent_actions;
@@ -518,5 +541,24 @@ mod tests {
 		assert_eq!(undo_check(&app, &space_id, checked.payload["run"].str_or_empty()).unwrap()["undone"], json!(2));
 		let back = app.stores.spaces.get_space(&space_id).unwrap();
 		assert_eq!((back["path"]["topics"].items().len(), back["description"].clone()), (3, json!("")));
+	}
+
+	#[tokio::test]
+	async fn the_check_agents_own_calls_on_the_checked_space_go_through_the_check() {
+		let root = scratch_dir("space-checks-direct");
+		let app = test_app(&root);
+		let (space_id, exam) = space_with_exam(&app);
+		let other = app.stores.spaces.create_space(&json!({ "name": "Algebra" })).unwrap()["id"].str_or_empty().to_owned();
+		check_spaces(&app, clock::now_ms());
+		let link = json!({ "space_id": space_id, "deadline_id": exam, "file_ids": ["f1"] });
+		assert!(as_check_call(&app, Some("agent-A"), "update_space_deadline", &link).await.is_none(), "the agent holds no work yet");
+		let item = app.bridge.wait_for_work(10_000, WaitOptions { agent: Some("agent-A".to_owned()), ..WaitOptions::default() }).await.expect("the check's item");
+		assert!(as_check_call(&app, Some("agent-B"), "update_space_deadline", &link).await.is_none(), "another agent");
+		assert!(as_check_call(&app, Some("agent-A"), "update_space", &json!({ "space_id": other, "name": "x" })).await.is_none(), "another space");
+		assert_eq!(refusal(as_check_call(&app, Some("agent-A"), "rename_space", &json!({ "space_id": space_id, "name": "x" })).await.unwrap()), "rename_space is not for this check.");
+		assert_eq!(refusal(as_check_call(&app, Some("agent-A"), "update_space_deadline", &json!({ "space_id": space_id, "deadline_id": exam, "done": true })).await.unwrap()), "done is not for this check.");
+		assert!(matches!(as_check_call(&app, Some("agent-A"), "update_space_deadline", &link).await, Some(ToolOutcome::Ok { .. })));
+		assert_eq!(recent_agent_actions(&app)[0]["background"], json!(true));
+		app.bridge.respond_to_work(&item.work_id, AgentReply { text: Some("Linked Notes.md.".to_owned()), tool_calls: Vec::new() }, 0).unwrap();
 	}
 }

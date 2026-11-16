@@ -228,6 +228,11 @@ impl Bridge {
 		agent.is_some_and(|agent| self.0.state.lock().waiting.iter().any(|wait| wait.agent.as_deref() == Some(agent)))
 	}
 
+	/// This agent holds a background item it has not answered yet.
+	pub fn holds_background_work(&self, agent: Option<&str>) -> bool {
+		agent.is_some_and(|agent| self.0.state.lock().items.iter().any(|item| item.claimed_at.is_some() && item.agent.as_deref() == Some(agent) && is_background(&item.conversation)))
+	}
+
 	/// Answers a work item. The conversation's next item is held for the answering agent for
 	/// `hold_ms` (it waits for it right after; `release_conversation` ends the hold).
 	pub fn respond_to_work(&self, work_id: &str, reply: AgentReply, hold_ms: i64) -> Result<Answered, String> {

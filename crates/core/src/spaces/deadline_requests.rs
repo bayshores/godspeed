@@ -294,7 +294,7 @@ fn reason_lines(reasons: &[Reason]) -> Vec<String> {
 				Some((_, _, files)) => files.push(format!("{file_name} ({file_id})")),
 				None => unweighed.push((deadline_id, deadline_name, vec![format!("{file_name} ({file_id})")])),
 			},
-			Reason::Path { topics, left, .. } => lines.push(format!("- Path: {topics} topics, {left} not strong yet.")),
+			Reason::Path { topics, left, .. } => lines.push(format!("- Path running low: {topics} topics, only {left} not strong yet.")),
 		}
 	}
 	for (id, name, files) in unweighed {
@@ -307,7 +307,7 @@ fn reason_lines(reasons: &[Reason]) -> Vec<String> {
 /// and past ones too, so one the files name again is not added twice).
 pub fn check_text(space: &Json, reasons: &[Reason]) -> String {
 	let mut out = format!(
-		"Check space {} (space_id {}) for what changed in its files. Change only what files settle.\n\
+		"Check space {} (space_id {}): act on each reason below. Deadline changes: only what files settle.\n\
 		- Never add a deadline twice: check list below first. Never make up a date.\n\
 		- file_ids and left_out_ids replace whole list: keep current links (read_space).\n\
 		- Never remove a deadline. One that looks cancelled: say so in last line.\n",
@@ -315,7 +315,7 @@ pub fn check_text(space: &Json, reasons: &[Reason]) -> String {
 		space["id"].str_or_empty()
 	);
 	if reasons.iter().any(|r| matches!(r, Reason::Path { .. })) {
-		out.push_str("- Path: add up to 10 topics toward goal (40 at most) and refresh description, or say goal reached.\n");
+		out.push_str("- Path running low: with update_space, keep current topics and add up to 10 next ones toward goal (40 at most), refresh description. Goal already reached: add none, say so.\n");
 	}
 	out.push_str("Reasons:\n");
 	out.push_str(&reason_lines(reasons).join("\n"));
@@ -522,7 +522,7 @@ mod tests {
 		assert!(text.contains("- New study files for Final (deadline_id d_final): Week 7.pdf (f_w7)."));
 		assert!(text.ends_with("\nDeadlines:\n- Final (exam, deadline_id d_final, due 2026-12-10, 1 linked)\n- Quiz 1 (quiz, deadline_id d_quiz, due 2026-11-03)\n- Midterm (exam, deadline_id d_past, due 2026-10-20, 1 linked)\n- Quiz 2 (exam, deadline_id d_left, due 2026-11-20, 1 linked)"));
 		let path = check_text(&space, &[Reason::Path { asked: "spc_a:h".to_owned(), topics: 12, left: 3 }]);
-		assert!(path.contains("- Path: add up to 10 topics") && path.contains("Reasons:\n- Path: 12 topics, 3 not strong yet."));
+		assert!(path.contains("add up to 10 next ones toward goal") && path.contains("Reasons:\n- Path running low: 12 topics, only 3 not strong yet."));
 	}
 
 	#[test]

@@ -136,8 +136,13 @@ pub fn deadline_request_tools(actions: &SpaceActions, files: bool) -> Vec<FnTool
 }
 
 /// What a space check reads and changes: the space's deadlines, and with `path` its path and
-/// description. `actions` limits the arguments.
-pub fn space_check_tools(actions: &SpaceActions, path: bool) -> Vec<FnTool> {
+/// description.
+pub fn space_check_tool_names(path: bool) -> Vec<&'static str> {
 	let writes: &[&'static str] = if path { &["add_space_deadline", "update_space_deadline", "update_space"] } else { &["add_space_deadline", "update_space_deadline"] };
-	READS.iter().chain(writes).copied().map(|name| space_tool(actions, name)).collect()
+	READS.iter().chain(writes).copied().collect()
+}
+
+/// The space check's tools (`space_check_tool_names`); `actions` limits the arguments.
+pub fn space_check_tools(actions: &SpaceActions, path: bool) -> Vec<FnTool> {
+	space_check_tool_names(path).into_iter().map(|name| space_tool(actions, name)).collect()
 }
