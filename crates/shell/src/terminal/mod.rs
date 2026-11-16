@@ -1135,6 +1135,8 @@ mod tests {
 		terminals.write(&id, "\r", true).unwrap();
 		assert_eq!(*lock(&heard.typed), vec![id.clone()]);
 		terminals.stop(&id).unwrap();
+		// Windows keeps the folder in use until the stopped script is gone.
+		until("the end", || ended_of(&terminals, &id).is_some());
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 
