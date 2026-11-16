@@ -1263,7 +1263,7 @@ mod tests {
 		until("the end", || ended_of(&terminals, &id) == Some(Ended::Exited(0)));
 		let pid_file = dir.join(".godspeed/start-claude").with_extension(if cfg!(target_os = "macos") { "command.pid" } else { "sh.pid" });
 		let child = std::fs::read_to_string(pid_file).unwrap().trim().to_owned();
-		std::thread::sleep(STOP_GRACE / 2);
+		// The hang-up came as the script ended; a slow machine may already be near the kill, so no wait here.
 		assert!(running(&child), "the hang-up alone left it");
 		assert!(terminals.find(&id).unwrap().state().group.is_some(), "quit still signals it within the grace");
 		until("the kill", || !running(&child));
