@@ -91,6 +91,10 @@ function answerFor(work, ids, lessonTurn) {
 			],
 		};
 	}
+	// godspeed's own check of the space: it links the file to the deadline, so a change card shows.
+	if (work.task?.startsWith("Check: ")) {
+		return { text: "Linked the graphing notes to the quiz.", tool_calls: [{ name: "update_space_deadline", arguments: { space_id: ids.space, deadline_id: ids.deadline, file_ids: [ids.passage.split(":")[0]] } }] };
+	}
 	// godspeed's own request to work out what a deadline covers, a background job.
 	if (work.task?.startsWith("Deadline: ")) {
 		return { text: `${DEADLINE} covers solving linear equations by graphing and by moving terms across the equals sign.` };
@@ -131,6 +135,7 @@ export async function seed(dataDir, page, log) {
 	// Answer every item until the queue stays empty twice in a row. A respond answers with the
 	// next item when one waits.
 	let reply = await agent.call("wait_for_work", { timeout_seconds: 3 });
+	const { deadlines: seeded } = await agent.json("read_space", { space_id: space.id });
 	let lessonTurns = 0;
 	for (let idle = 0, tries = 0; idle < 2; tries++) {
 		if (tries > 20) throw new Error("the stand-in agent never ran out of work");
@@ -144,7 +149,7 @@ export async function seed(dataDir, page, log) {
 		const texts = [...reply];
 		for (let n = 2; n <= (header.pages ?? 1); n++) texts.push(...(await agent.call("read_work", { work_id: header.workId, page: n })));
 		const work = workOf(texts.slice(header.pages > 1 ? 1 : 0).join(""));
-		const answer = answerFor(work, { lesson: lessonId, passage }, lessonTurns);
+		const answer = answerFor(work, { lesson: lessonId, passage, space: space.id, deadline: seeded[0].id }, lessonTurns);
 		if (work.lessonId === lessonId) lessonTurns++;
 		if (!answer) throw new Error(`the stand-in agent got work it does not expect: ${work.task ?? work.lessonId}`);
 		reply = await agent.call("respond", { work_id: header.workId, ...answer, wait_seconds: 0 });

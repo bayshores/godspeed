@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from "react";
 import { useLocation } from "react-router";
 import { KeyboardShortcuts } from "@/frontend/components/keyboard-shortcuts";
 import { RuleNotice } from "@/frontend/components/rule-notice";
+import { SpaceNotice } from "@/frontend/components/space-notice";
 import { FilesNotice } from "@/frontend/components/files-notice";
 import { QuietNotice } from "@/frontend/components/quiet-notice";
 import { replayRise } from "@/frontend/components/motion";
@@ -61,6 +62,7 @@ export function AppShell({
 						</main>
 					</PillProvider>
 				</TeacherProvider>
+				<SpaceNotice />
 			</OpenDeadlinesProvider>
 			{/* The single document-level keydown listener: window-level, so its
 			    place in the tree only matters for the events it dispatches. */}

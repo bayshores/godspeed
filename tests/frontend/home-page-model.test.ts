@@ -10,6 +10,7 @@ import {
 	todayLists,
 	mainRowId,
 	nextCard,
+	overdueToAsk,
 	todayRow,
 	todaySections,
 	type SpacesProgress,
@@ -301,5 +302,23 @@ describe("todaySections", () => {
 		assert.equal(todaySections(todayLists([], [], NOW), new Map(), NOW).empty, "None yet. Your agent can add them from your files.");
 		const done = d("PS1", "homework", "2026-11-10", { done: true, doneAt: new Date(NOW - 60_000).toISOString() });
 		assert.equal(todaySections(todayLists([], [done], NOW), new Map(), NOW).empty, null, "a row done today is still under Due this week");
+	});
+});
+
+describe("overdueToAsk", () => {
+	const open = [d("old", "homework", "2026-11-06"), d("recent", "homework", "2026-11-10"), d("future", "homework", "2026-11-14"), d("ancient", "homework", "2026-10-20"), d("ticked", "homework", "2026-11-08", { done: true })];
+
+	it("is the oldest one past due by at most a week that is not done", () => {
+		assert.equal(overdueToAsk(open, [], NOW)?.id, "old");
+	});
+
+	it("goes on to the next after one is answered Not yet", () => {
+		assert.equal(overdueToAsk(open, ["old"], NOW)?.id, "recent");
+		assert.equal(overdueToAsk(open, ["old", "recent"], NOW), null);
+	});
+
+	it("skips one more than a week late, one not due yet and one with nothing open", () => {
+		assert.equal(overdueToAsk([open[2]!, open[3]!], [], NOW), null);
+		assert.equal(overdueToAsk([], [], NOW), null);
 	});
 });

@@ -49,6 +49,11 @@ function spaceScopedPage(page: string): boolean {
 	return page === "/space" || page.startsWith("/space/") || page === "/graph" || page.startsWith("/chat/");
 }
 
+/** The window stays where it is: on a mock, or on a lesson with unsent text. */
+export function followHeld(path: string, lessonDraft: boolean): boolean {
+	return path.startsWith("/space/mock/") || (lessonDraft && path.startsWith("/chat/"));
+}
+
 /** What Follow must do to show an action's page: switch space, go to the
  *  page, both, or nothing. A lesson with unsent text keeps the window, and
  *  so does a mock, unless the learner asked to go. */
@@ -56,8 +61,7 @@ export function followMoves(
 	action: { page: string; spaceId: string | null },
 	here: { path: string; activeSpace: string | null; lessonDraft: boolean; asked: boolean },
 ): { switchSpace: { to: string | null } | null; go: string | null } {
-	const held = here.path.startsWith("/space/mock/") || (here.lessonDraft && here.path.startsWith("/chat/"));
-	if (held && !here.asked) return { switchSpace: null, go: null };
+	if (followHeld(here.path, here.lessonDraft) && !here.asked) return { switchSpace: null, go: null };
 	const switchSpace = spaceScopedPage(action.page) && action.spaceId !== here.activeSpace ? { to: action.spaceId } : null;
 	return { switchSpace, go: action.page !== here.path ? action.page : null };
 }
