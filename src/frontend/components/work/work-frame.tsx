@@ -12,8 +12,9 @@ export interface Frame {
 }
 
 /**
- * A page that is being worked on sits in a striped frame, with a tag on
- * its top edge saying who works on it and how far it is. The page inside
+ * A page that is being worked on sits in a striped frame, with a tag in
+ * its top band saying who works on it and how far it is. The tag stays
+ * inside the band, so the page never scrolls over it. The page inside
  * stays as it is and stays usable. With no frame the page is drawn the
  * same way, so it keeps its state when work starts or ends. `column`: the
  * frame hugs the page's own column, which is wider on the Graph page.
@@ -24,10 +25,11 @@ export function WorkFrame({ frame, column, children }: { frame: Frame | null; co
 		<div className="flex h-full min-h-0 flex-col">
 			{frame && (
 				<div className={cn(width, "shrink-0 pt-[18px]")}>
-					<div data-testid="work-frame" data-state={frame.state} className="lh-work-stripes relative h-3.5 border-2 border-b-0 border-line">
+					<div data-testid="work-frame" data-state={frame.state} className="lh-work-stripes flex h-10 justify-end border-2 border-b-0 border-line pr-[22px]">
+						{/* Its right edge lines up with the page's column, where the space head ends its tabs. */}
 						<div
 							data-testid="work-frame-tag"
-							className={cn("absolute -top-4 right-4 flex h-11 max-w-[calc(100%-32px)] items-center gap-3 border-2 border-line px-3.5 text-ink", frame.state === "waiting" ? "bg-tone" : "bg-highlight")}
+							className={cn("flex min-w-0 items-center gap-3 border-x-2 border-line px-3.5 text-ink", frame.state === "waiting" ? "bg-tone" : "bg-highlight")}
 						>
 							<span title={frame.text} className="truncate text-[15px]">
 								{frame.text}
