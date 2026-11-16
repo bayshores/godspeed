@@ -75,7 +75,6 @@ const panel = (over: Partial<PanelProps> = {}) => (
 		name="Ada"
 		agent={TEACHING}
 		view="activity"
-		listable
 		list={false}
 		onList={() => {}}
 		screen="teacher"
@@ -107,9 +106,6 @@ describe("the panel", () => {
 		assert.match(html, /data-testid="teacher-panel-agent"[^>]*class="[^"]*font-mono[^"]*"[^>]*>(<[^>]*>)*Ready</);
 		assert.doesNotMatch(html, /teacher-panel-name|teacher-panel-close|role="switch"/);
 	});
-	it("in a lesson the head leaves what the teacher is doing to the lesson's teacher column", () => {
-		assert.doesNotMatch(renderToStaticMarkup(panel({ listable: false })), /teacher-panel-agent/);
-	});
 	it("hangs from the top bar at the window's right edge as a window of the bar's sheet, with no blur", () => {
 		const html = renderToStaticMarkup(panel());
 		assert.match(html, /^<div data-state="open" style="right:0" class="lh-hang fixed top-12 z-\[41\]"><section[^>]*data-testid="teacher-panel"/);
@@ -118,8 +114,8 @@ describe("the panel", () => {
 		assert.match(section, new RegExp(`width:${PANEL_WIDTH.initial}px;height:${PANEL_HEIGHT.initial}px`));
 		assert.doesNotMatch(section, /border-l|bg-panel|blur/);
 	});
-	it("the status line says Not connected with no agent, and shows the waiting notice once while work waits", () => {
-		assert.equal(agentLine(IDLE), "Not connected");
+	it("the status line says No agent connected with no agent, and shows the waiting notice once while work waits", () => {
+		assert.equal(agentLine(IDLE), "No agent connected");
 		assert.equal(agentLine(null), null, "nothing until the first read");
 		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true }), "Ready");
 		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true }, { text: "Reading a PDF", working: true }), "Reading a PDF");
@@ -187,11 +183,9 @@ describe("the panel", () => {
 		assert.equal(shownScreen("helper", false), "teacher", "no helper: the teacher's screen");
 		assert.equal(shownScreen("helper", true), "helper");
 	});
-	it("is the screen in the desktop app (Activity hangs from its key), Activity in a browser, and over a lesson the screen or nothing", () => {
-		assert.equal(panelBody(false, true), "terminal");
-		assert.equal(panelBody(false, false), "activity");
-		assert.equal(panelBody(true, true), "terminal");
-		assert.equal(panelBody(true, false), null);
+	it("is the screen in the desktop app (Activity hangs from its key), Activity in a browser, lessons too", () => {
+		assert.equal(panelBody(true), "terminal");
+		assert.equal(panelBody(false), "activity");
 	});
 	it("never dims the page, and has edges and a corner to drag unless it takes the whole window", () => {
 		const wasWidth = window.innerWidth;

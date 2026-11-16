@@ -57,10 +57,10 @@ export function sessionFindHasForegroundLayer(doc: Document): boolean {
 	});
 }
 
-/** Lives in the lesson's bar: shows its children (the bar's own buttons)
+/** Lives in the lesson's title line: shows its children (the line's own buttons)
  * until Find opens, then takes their place. Mounted for the lifetime of ONE
  * Chat (which is keyed by chatId). Closing keeps the query/reading position;
- * changing sessions resets all local state. The bar lives outside scopeRef,
+ * changing sessions resets all local state. The line lives outside scopeRef,
  * so it never finds its own query or count. */
 export function SessionFind({ scopeRef, scrollContextRef, children }: {
 	scopeRef: RefObject<HTMLDivElement | null>;
@@ -165,7 +165,7 @@ export function SessionFind({ scopeRef, scrollContextRef, children }: {
 			role="search"
 			aria-label="Find in lesson"
 			data-testid="session-find"
-			className="lh-no-drag flex items-center gap-4"
+			className="flex items-center gap-3"
 			onKeyDown={(event) => {
 				if (event.key === "Enter") {
 					event.stopPropagation(); // NEVER reach question/global Enter submits.
@@ -186,18 +186,18 @@ export function SessionFind({ scopeRef, scrollContextRef, children }: {
 				value={query}
 				onChange={(event) => setQuery(event.target.value)}
 				spellCheck={false}
-				className="h-[34px] w-[200px] rounded-[3px] border-[1.5px] border-bar bg-bar-ink px-3 text-[15px] text-bar outline-none placeholder:text-bar/60"
+				className="h-10 w-[200px] rounded-[2px] border-[1.5px] border-transparent bg-tone px-3 text-base text-ink outline-none placeholder:text-ink-3 focus:border-ink"
 			/>
 			<output aria-live="polite" data-testid="session-find-count" className="font-count min-w-[6ch] shrink-0 text-[15px]">
 				{query ? `${result.index + 1} of ${result.count}` : ""}
 			</output>
-			<button type="button" className="lh-btn lh-btn-bar lh-no-drag" disabled={!result.count} onMouseDown={(event) => event.preventDefault()} onClick={() => step(-1)}>
+			<button type="button" className="lh-btn" disabled={!result.count} onMouseDown={(event) => event.preventDefault()} onClick={() => step(-1)}>
 				Previous match
 			</button>
-			<button type="button" className="lh-btn lh-btn-bar lh-no-drag" disabled={!result.count} onMouseDown={(event) => event.preventDefault()} onClick={() => step(1)}>
+			<button type="button" className="lh-btn" disabled={!result.count} onMouseDown={(event) => event.preventDefault()} onClick={() => step(1)}>
 				Next match
 			</button>
-			<button type="button" className="lh-btn lh-btn-bar lh-no-drag" onClick={close}>
+			<button type="button" className="lh-btn lh-btn-quiet" onClick={close}>
 				<PixelIcon name="close" />
 				Close Find
 			</button>

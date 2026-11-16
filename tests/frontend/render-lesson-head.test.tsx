@@ -1,7 +1,7 @@
 /**
- * The lesson's own bar: the way back with the space's name, the lesson's
- * name, the homework file, "Cheat sheet" and "Find", and Find taking their
- * place in the bar.
+ * The lesson's title line under the app's bar: the lesson's name, the
+ * homework file, the plugins, "Cheat sheet", "Find" and the size, Find
+ * taking their place, and the bar marking the lesson's own space.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -30,7 +30,7 @@ Object.assign(globalThis, {
 (dom.window.HTMLElement.prototype as unknown as { select: () => void }).select = () => {};
 
 const { createRoot } = await import("react-dom/client");
-const { LessonTopBar } = await import("../../src/frontend/components/lesson/lesson-top-bar.tsx");
+const { LessonHead } = await import("../../src/frontend/components/lesson/lesson-head.tsx");
 const { SpaceProvider, useSpaces } = await import("../../src/frontend/components/space-context.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { MemoryRouter } = await import("react-router");
@@ -53,7 +53,7 @@ afterEach(() => {
 const rename = (over: Record<string, unknown> = {}) =>
 	({ title: "Study: counting", renaming: false, draft: "", setDraft() {}, inputRef: { current: null }, start() {}, commit: async () => {}, cancel() {}, ...over }) as never;
 
-async function mount(props: Partial<React.ComponentProps<typeof LessonTopBar>> = {}, active: string | null = "c21") {
+async function mount(props: Partial<React.ComponentProps<typeof LessonHead>> = {}, active: string | null = "c21") {
 	const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 	const host = document.createElement("div");
 	document.body.appendChild(host);
@@ -63,7 +63,7 @@ async function mount(props: Partial<React.ComponentProps<typeof LessonTopBar>> =
 			<MemoryRouter initialEntries={["/chat/ses_1"]}>
 				<ServerEventsProvider connect={quietEvents as never}>
 					<SpaceProvider initialActive={active} initialSpaces={SPACES}>
-						<LessonTopBar rename={rename()} spaceId="c21" plugins={{ words: [], open: null, onToggle() {} }} scopeRef={{ current: null }} scrollContextRef={{ current: null }} {...props} />
+						<LessonHead rename={rename()} spaceId="c21" plugins={{ words: [], open: null, onToggle() {} }} stats={<button type="button">3k</button>} scopeRef={{ current: null }} scrollContextRef={{ current: null }} {...props} />
 						<ActiveSpace />
 					</SpaceProvider>
 				</ServerEventsProvider>
@@ -76,38 +76,31 @@ const q = (testid: string) => document.querySelector<HTMLElement>(`[data-testid=
 const click = (el: HTMLElement) => act(async () => el.click());
 const buttons = () => [...document.querySelectorAll("button")].map((b) => b.textContent?.trim());
 
-describe("the lesson's own bar", () => {
-	it("goes back to the space's lessons under the space's name, and shows the lesson's name", async () => {
+describe("the lesson's title line", () => {
+	it("shows the lesson's name, with no bar or Back of its own", async () => {
 		await mount();
-		const back = q("page-back")!;
-		assert.equal(back.textContent, "CSE 21");
-		assert.equal(back.getAttribute("href"), "/space/lessons");
 		assert.equal(q("lesson-title")!.textContent, "Study: counting");
-		assert.ok(q("lesson-bar")!.className.includes("lh-own-bar"));
+		assert.ok(q("page-back") === null);
+		assert.ok(!document.querySelector(".lh-own-bar"), "the app's bar stays");
 	});
 
-	it("Back makes the lesson's own space the active one, and no space for a lesson without one", async () => {
+	it("marks the lesson's own space in the bar, and no space for a lesson without one", async () => {
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = (async () => Response.json({ spaces: SPACES })) as typeof fetch;
 		try {
 			await mount({}, "c29");
-			assert.equal(q("active-space")!.textContent, "c29");
-			await click(q("page-back")!);
 			assert.equal(q("active-space")!.textContent, "c21");
-
 			act(() => root?.unmount());
 			document.body.innerHTML = "";
 			await mount({ spaceId: undefined }, "c29");
-			await click(q("page-back")!);
 			assert.equal(q("active-space")!.textContent, "none");
 		} finally {
 			globalThis.fetch = originalFetch;
 		}
 	});
 
-	it("a lesson with no space goes back to Lessons and has no Cheat sheet", async () => {
+	it("a lesson with no space has no Cheat sheet", async () => {
 		await mount({ spaceId: undefined });
-		assert.equal(q("page-back")!.textContent, "Lessons");
 		assert.ok(q("lesson-cheat-sheet") === null);
 		assert.ok(q("lesson-find"));
 	});
@@ -116,11 +109,12 @@ describe("the lesson's own bar", () => {
 		const clicked: string[] = [];
 		const plugins = { words: [{ id: "memes", label: "Memes" }, { id: "cards", label: "Cards" }], open: "memes", onToggle: (id: string) => void clicked.push(id) };
 		await mount({ sheet: { open: false, onToggle() {} }, plugins });
-		const words = [...document.querySelectorAll("[data-testid='lesson-bar'] button")].map((b) => b.textContent?.trim());
-		assert.deepEqual(words.slice(-4), ["Memes", "Cards", "Cheat sheet", "Find"]);
+		const words = [...document.querySelectorAll("[data-testid='lesson-head'] button")].map((b) => b.textContent?.trim());
+		assert.deepEqual(words.slice(-5), ["Memes", "Cards", "Cheat sheet", "Find", "3k"]);
 		assert.equal(q("lesson-plugin-memes")!.getAttribute("aria-pressed"), "true");
 		assert.equal(q("lesson-plugin-cards")!.getAttribute("aria-pressed"), "false");
-		assert.ok(q("lesson-plugin-memes")!.className.includes("bg-bar-ink"));
+		assert.ok(!q("lesson-plugin-memes")!.className.includes("lh-btn-quiet"), "marked as a key");
+		assert.ok(q("lesson-plugin-cards")!.className.includes("lh-btn-quiet"));
 		await click(q("lesson-plugin-cards")!);
 		assert.deepEqual(clicked, ["cards"]);
 	});
@@ -147,7 +141,7 @@ describe("the lesson's own bar", () => {
 	});
 });
 
-describe("Find in the bar", () => {
+describe("Find in the title line", () => {
 	it("replaces Cheat sheet and Find with the find field, and Close Find brings them back", async () => {
 		await mount({ sheet: { open: false, onToggle() {} } });
 		assert.deepEqual(buttons().filter((b) => b === "Cheat sheet" || b === "Find"), ["Cheat sheet", "Find"]);

@@ -47,7 +47,7 @@ afterEach(() => {
 /** The teacher's panel as the provider holds it. */
 function PanelHost({ children }: { children?: React.ReactNode }) {
 	const panel = useTeacherPanel();
-	const view = panelBody(false, !!useTerminals()?.available);
+	const view = panelBody(!!useTerminals()?.available);
 	const api: TeacherApi = {
 		name: "Ada",
 		follow: false,
@@ -69,12 +69,11 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 			<button type="button" data-testid="open-panel" onClick={() => panel.setOpen(true)} />
 			<button type="button" data-testid="open-terminal" onClick={() => panel.showTerminal()} />
 			{children}
-			{panel.open && view && (
+			{panel.open && (
 				<TeacherPanel
 					name="Ada"
 					agent={null}
 					view={view}
-					listable
 					list={panel.list}
 					onList={panel.setList}
 					screen={panel.role}

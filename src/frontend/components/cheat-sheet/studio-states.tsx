@@ -6,14 +6,6 @@ export function sheetPaper(view: CheatSheetView): string {
 	return current ? pageSizeLabel(current.pages) : "Not made yet";
 }
 
-/** The line under the teacher's name while a request runs (or waits for
- *  an agent to run it); null when nothing runs. */
-export function teacherDoing(view: CheatSheetView, agentGone: boolean): string | null {
-	if (!view.running) return null;
-	if (agentGone) return "No agent connected";
-	return currentVersion(view.sheet) ? "is on your message" : "is making your sheet";
-}
-
 /** A sheet an older godspeed made (HTML or blocks) can't become a PDF
  *  without the agent: one click asks for it again. */
 export function OlderSheet({ onRemake }: { onRemake: () => void }) {
@@ -34,9 +26,10 @@ export function versionLabel(v: SheetVersion, newest: boolean): string {
 	return `${newest ? "Current" : when(v.at)}, ${v.fromFolder ? "From the working folder" : v.prompt || "From the files you sent"}`;
 }
 
-/** What an empty chat says, before and after the sheet is made. */
+/** What an empty chat says, before and after the sheet is made. The
+ *  learner writes in the teacher's terminal. */
 export function emptyChatLine(agentName: string, made: boolean): string {
 	return made
-		? `Ask ${agentName} anything about the sheet, point at a part that confuses you, or say what to change.`
-		: `Say what you want on it: the paper, one side or both, what to put first. ${agentName} reads the rules in your space info files, puts your weak topics and mistakes first, and makes it as a PDF.`;
+		? `Ask ${agentName} in the terminal about the sheet, point at a part that confuses you, or say what to change.`
+		: `Tell ${agentName} in the terminal what you want on it: the paper, one side or both, what to put first. ${agentName} reads the rules in your space info files, puts your weak topics and mistakes first, and makes it as a PDF.`;
 }

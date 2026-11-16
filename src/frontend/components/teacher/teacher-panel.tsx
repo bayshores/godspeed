@@ -1,7 +1,7 @@
 /**
  * The teacher's panel, opened and closed from the pill only: it stays
- * while the learner works on the page. It hangs from the top bar (the
- * app's, or a lesson's own) at the window's right edge as a window the
+ * while the learner works on the page, a lesson too. It hangs from the
+ * top bar at the window's right edge as a window the
  * shape of a terminal, lying over the page; the learner drags its left
  * and bottom edges, or its corner. Dragged to the window's bottom it
  * docks: as tall as the window, pushing the page left to make room, and
@@ -36,7 +36,7 @@ export function agentLine(agent: AgentStatus | null, doing: AgentDoing | null = 
 	if (agentWaiting(agent)) return waitingNotice(agent.name);
 	if (doing?.working) return doing.text;
 	if (agent.teaching) return "Ready";
-	return agent.connected ? agentStatusLabel(agent) : "Not connected";
+	return agent.connected ? agentStatusLabel(agent) : "No agent connected";
 }
 
 /** The page's push while the panel is open (main's padding reads it). */
@@ -52,7 +52,6 @@ export function TeacherPanel({
 	name,
 	agent,
 	view,
-	listable,
 	list,
 	onList,
 	screen,
@@ -63,8 +62,6 @@ export function TeacherPanel({
 	name: string;
 	agent: AgentStatus | null;
 	view: PanelView;
-	/** Not in a lesson, whose teacher column has Activity and says what the teacher is doing. */
-	listable: boolean;
 	list: boolean;
 	onList: (open: boolean) => void;
 	/** The screen picked (background work's only while it needs the learner), and the way to one. */
@@ -84,7 +81,7 @@ export function TeacherPanel({
 	const helperFacts = terminals?.facts.helper ?? null;
 	const helperCalls = !!helperFacts && !!needsYou(helperFacts);
 	const doing = teacher?.doing ?? null;
-	const line = listable ? agentLine(agent, doing) : null;
+	const line = agentLine(agent, doing);
 	const teacherStatus = screenStatusLine(teacherFacts, name);
 	const [wanted, setWanted] = usePaneWidth("teacher", PANEL_WIDTH);
 	const [tall, setTall] = usePanelHeight();
@@ -131,8 +128,8 @@ export function TeacherPanel({
 					status={teacherStatus ?? line}
 					lit={teacherTerminalState(teacherFacts) === "needsYou"}
 					working={!teacherStatus && !!doing?.working && line === doing.text}
-					list={listable && onScreenView ? { open: list, onOpen: onList } : null}
-					follow={listable}
+					list={onScreenView ? { open: list, onOpen: onList } : null}
+					follow
 					need={onScreenView && helperCalls ? () => onScreen("helper") : null}
 					back={null}
 				/>

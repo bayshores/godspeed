@@ -45,8 +45,8 @@ const draft = (over: Partial<AttachmentDraft> = {}): AttachmentDraft => ({
 
 function composer(over: { attachments?: AttachmentDraft; busy?: boolean; turn?: BoxTurn } = {}) {
 	const attachments = over.attachments ?? draft();
-	const view = lessonBox({ name: "Teacher", busy: over.busy ?? false, waitingForAgent: false, hasText: false, hasFiles: attachments.files.length > 0, turn: over.turn ?? { kind: "none" } });
-	return renderToStaticMarkup(<LessonBox view={view} value="" onChange={() => {}} onAct={() => {}} onFocus={() => {}} queuedSteers={[]} attachments={attachments} boxRef={null} />);
+	const view = lessonBox({ busy: over.busy ?? false, hasText: false, hasFiles: attachments.files.length > 0, turn: over.turn ?? { kind: "problem" } });
+	return renderToStaticMarkup(<LessonBox view={view} value="" onChange={() => {}} onAct={() => {}} onFocus={() => {}} attachments={attachments} boxRef={null} />);
 }
 
 describe("the lesson box's waiting files", () => {
@@ -57,7 +57,6 @@ describe("the lesson box's waiting files", () => {
 		assert.match(html, /aria-label="Remove graph\.png"/);
 		assert.match(html, /aria-label="Remove Week 3 notes\.pdf"/);
 		assert.ok(html.indexOf("attachment-tray") < html.indexOf('data-testid="math-box"'), "the tray sits above the box");
-		assert.ok(!html.includes("attachment-note"), "no hold while idle");
 	});
 
 	it("no files: no tray", () => {
@@ -75,11 +74,8 @@ describe("the lesson box's waiting files", () => {
 		assert.match(html, /data-testid="attachment-error"[^>]*>Can&#x27;t use HEIC photos yet\. Export as JPG\.</);
 	});
 
-	it("while the teacher writes, files wait with a hint and Send stays off", () => {
-		const html = composer({ busy: true });
-		assert.match(html, /data-testid="attachment-note"[^>]*>Send pictures after the teacher finishes</);
-		assert.match(html, /data-testid="composer-send"[^>]*disabled/);
-		assert.ok(!html.includes("—"), "no em-dashes");
+	it("while the teacher writes, a problem's work waits and Send stays off", () => {
+		assert.match(composer({ busy: true }), /data-testid="composer-send"[^>]*disabled/);
 	});
 });
 

@@ -8,8 +8,8 @@
  *    says what the agent is doing (follow-status.ts).
  *  - The panel (use-teacher-panel.ts): in the desktop app the agent's
  *    screen, where the learner talks to it outside lessons, and Activity
- *    (teacher-activity.tsx); in a browser Activity alone. Over a lesson it
- *    is the screen alone: the lesson's teacher column has Activity.
+ *    (teacher-activity.tsx); in a browser Activity alone. It stays open
+ *    across pages, lessons too.
  *
  * The name is the learner's choice (Settings → General → Teacher name) and
  * only ever shown on screen.
@@ -299,17 +299,11 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 		[run, setPanelOpen, setList],
 	);
 
-	// A lesson has its own teacher column: the panel shuts when one opens.
-	const inLesson = lesson !== null;
-	useEffect(() => {
-		if (inLesson) setPanelOpen(false);
-	}, [inLesson, setPanelOpen]);
 	const terminals = useTerminals();
-	const view = panelBody(inLesson, !!terminals?.available);
-	const shown = usePresence(panelOpen && !!view);
+	const view = panelBody(!!terminals?.available);
+	const shown = usePresence(panelOpen);
 	const starts =
 		panelOpen &&
-		!!view &&
 		panelStarts({
 			view,
 			screen: shownScreen(panel.role, !!terminals?.helper),
@@ -332,13 +326,11 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 			{children}
 			{/* On the page's top layer. Only the pill closes it. */}
 			{shown.mounted &&
-				view &&
 				createPortal(
 					<TeacherPanel
 						name={name}
 						agent={agent}
 						view={view}
-						listable={!inLesson}
 						list={panel.list}
 						onList={panel.setList}
 						screen={panel.role}

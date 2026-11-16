@@ -1,5 +1,4 @@
 import { MathBox } from "@/frontend/components/math-box";
-import { QueuedSteersBody, type QueuedSteerLine } from "@/frontend/components/queued-steers";
 import { cn } from "@/frontend/lib/utils";
 import { AttachmentTray, attachmentInputProps, type AttachmentDraft } from "./attachment-tray";
 import type { BoxAction, BoxButton, BoxView } from "./lesson-box-model";
@@ -8,14 +7,12 @@ const BUTTON_ID: Record<BoxButton["action"], string> = {
 	send: "composer-send",
 	submit: "question-submit",
 	reveal: "teach-check-reveal",
-	next: "next-problem-button",
 };
 
 /**
- * The lesson's one writing box, at the foot of the teacher column: every
- * message, answer in words, reasoning and piece of work is typed here.
- * Which buttons it shows and what Enter does come from lessonBox; this
- * only draws them.
+ * The lesson's answer box, at the foot of "Your turn": an answer in words,
+ * reasoning and a problem's work are typed here. Its button and what Enter
+ * does come from lessonBox; this only draws them.
  */
 export function LessonBox({
 	view,
@@ -23,7 +20,6 @@ export function LessonBox({
 	onChange,
 	onAct,
 	onFocus,
-	queuedSteers,
 	attachments,
 	boxRef,
 }: {
@@ -32,19 +28,13 @@ export function LessonBox({
 	onChange: (v: string) => void;
 	onAct: (action: BoxAction) => void;
 	onFocus: () => void;
-	queuedSteers: QueuedSteerLine[];
 	attachments: AttachmentDraft;
 	boxRef: React.Ref<{ focus(): void }>;
 }) {
-	const button = (b: BoxButton, className?: string) => (
-		<button type="button" data-testid={BUTTON_ID[b.action]} disabled={b.disabled} onClick={() => onAct(b.action)} className={cn("lh-btn shrink-0", b.filled && "lh-btn-main", b.hidden && "invisible", className)}>
-			{b.label}
-		</button>
-	);
+	const b = view.button;
 	return (
 		<div data-testid="composer" className="flex min-h-[112px] flex-1 flex-col gap-2" {...attachmentInputProps(attachments)}>
-			{queuedSteers.length > 0 && <QueuedSteersBody steers={queuedSteers} />}
-			<AttachmentTray draft={attachments} note={view.note ?? undefined} />
+			<AttachmentTray draft={attachments} />
 			<div className="flex min-h-0 flex-1 flex-col lh-well rounded-[2px]">
 				<MathBox
 					ref={boxRef}
@@ -59,10 +49,10 @@ export function LessonBox({
 					placeholder={view.placeholder}
 					ariaLabel={view.placeholder}
 				/>
-				<div className="flex shrink-0 flex-wrap items-center gap-2 pr-2.5 pb-2.5 pl-3.5">
-					{view.left && button(view.left)}
-					{/* Stays at the right edge when a narrow column wraps the row. */}
-					{button(view.right, "ml-auto")}
+				<div className="flex shrink-0 justify-end pr-2.5 pb-2.5 pl-3.5">
+					<button type="button" data-testid={BUTTON_ID[b.action]} disabled={b.disabled} onClick={() => onAct(b.action)} className={cn("lh-btn shrink-0", b.filled && "lh-btn-main")}>
+						{b.label}
+					</button>
 				</div>
 			</div>
 		</div>

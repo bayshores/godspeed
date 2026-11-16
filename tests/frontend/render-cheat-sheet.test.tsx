@@ -1,9 +1,9 @@
 /**
- * The cheat sheet's screens: the studio's status (the paper) and the
- * teacher's line (working, waiting for an agent), the older-sheet notice, the sheet's chat (its rules,
- * the learner's messages with what they pointed at, the agent's answers with "Made version N" and saved rules, the
- * working and failed lines; Send with the part pointed at,
- * a refused send kept, Stop, Try again, removing a rule, the kept draft),
+ * The cheat sheet's screens: the studio's status (the paper), the
+ * older-sheet notice, the sheet's chat (its rules, the learner's messages
+ * with what they pointed at, the agent's answers with "Made version N" and
+ * saved rules, the working and failed lines; a terminal line sent with the
+ * part pointed at, a refused one passed on, Stop, Try again, removing a rule),
  * the canvas (each version's pages as labeled artboards, the narrow layout,
  * the toolbar with Point at the sheet), the space's cards, the lesson top
  * bar's Cheat sheet button, and the sheet beside a session (which sheet,
@@ -18,7 +18,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { parseHTML } from "linkedom";
-import { mathBoxView, stubCodeMirrorDom } from "../math-box-dom.ts";
+import { stubCodeMirrorDom } from "../math-box-dom.ts";
 import { newCheatSheet } from "../cheat-sheet-fixture.ts";
 import { SELECT } from "../../src/frontend/components/ui/field.ts";
 import { type CheatSheetView, type SpaceSheetsView, type SheetCard, type SheetVersion } from "../../src/shared/core/index.ts";
@@ -44,15 +44,17 @@ Object.assign(globalThis, {
 // The chat scrolls to its end.
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
-const { TeacherHead } = await import("../../src/frontend/components/teacher/teacher-head.tsx");
-const { OlderSheet, emptyChatLine, sheetPaper, teacherDoing, versionLabel } = await import("../../src/frontend/components/cheat-sheet/studio-states.tsx");
+const { OlderSheet, emptyChatLine, sheetPaper, versionLabel } = await import("../../src/frontend/components/cheat-sheet/studio-states.tsx");
 const { SheetChat, pointedLabel } = await import("../../src/frontend/components/cheat-sheet/sheet-chat.tsx");
 const { SheetCanvas } = await import("../../src/frontend/components/cheat-sheet/sheet-canvas.tsx");
 const { SheetCardView, SpaceSheetsPage } = await import("../../src/frontend/components/cheat-sheet/space-sheets.tsx");
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { SheetDock } = await import("../../src/frontend/components/cheat-sheet/sheet-dock.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
-const noEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+// The window's events: a test sends one by name.
+const listeners = new Map<string, (data: string) => void>();
+const noEvents = () => ({ onEvent: (name: string, cb: (data: string) => void) => void listeners.set(name, cb), onOpen() {}, close() {} });
+const sendEvent = (name: string, payload: unknown) => act(async () => listeners.get(name)?.(JSON.stringify(payload)));
 const inEvents = (node: React.ReactNode) => <ServerEventsProvider connect={noEvents as never}>{node}</ServerEventsProvider>;
 
 let host: HTMLElement | null = null;
@@ -90,16 +92,6 @@ const view = (over: Partial<CheatSheetView> = {}): CheatSheetView => ({
 });
 
 describe("the studio's status", () => {
-	it("says what the teacher is doing under its name, or that no agent is connected", () => {
-		assert.equal(teacherDoing(view(), false), null);
-		assert.equal(teacherDoing(view({ running: { messageId: "m1" } }), false), "is making your sheet");
-		assert.equal(teacherDoing(view({ running: { messageId: "m1" }, sheet: { ...newCheatSheet("ddl_1", "t"), versions } }), false), "is on your message");
-		assert.equal(teacherDoing(view({ running: { messageId: "m1" } }), true), "No agent connected");
-		const head = renderToStaticMarkup(<TeacherHead name="marco" color={1} doing="is on your message" />);
-		assert.match(head, /var\(--lh-space-1\).*marco.*data-testid="teacher-head-doing"[^>]*>is on your message/);
-		assert.doesNotMatch(renderToStaticMarkup(<TeacherHead name="marco" color={undefined} doing={null} />), /teacher-head-doing/);
-	});
-
 	it("names the newest version's paper", () => {
 		assert.equal(sheetPaper(view()), "Not made yet");
 		assert.equal(sheetPaper(view({ sheet: { ...newCheatSheet("ddl_1", "t"), versions } })), "A4, front and back");
@@ -112,8 +104,8 @@ describe("the studio's status", () => {
 	it("labels each version by what made it, and an empty chat by whether there is a sheet", () => {
 		assert.match(versionLabel(versions[1]!, true), /^Current, double sided, and a flowchart$/);
 		assert.match(versionLabel({ ...versions[1]!, fromFolder: true }, false), /^Nov 3, .*, From the working folder$/);
-		assert.match(emptyChatLine("Claude Code", false), /^Say what you want on it.*Claude Code reads the rules in your space info files/);
-		assert.match(emptyChatLine("Claude Code", true), /point at a part that confuses you/);
+		assert.match(emptyChatLine("Claude Code", false), /^Tell Claude Code in the terminal what you want on it.*Claude Code reads the rules in your space info files/);
+		assert.match(emptyChatLine("Claude Code", true), /^Ask Claude Code in the terminal .*point at a part that confuses you/);
 	});
 });
 
@@ -146,16 +138,15 @@ describe("the sheet's chat", () => {
 		assert.match(html, /data-testid="sheet-agent".*<strong[^>]*>card 8<\/strong>/);
 		assert.match(html, /data-testid="sheet-made"[^>]*>.*Made version 2, the sheet now.*Show/);
 		assert.match(html, /Saved a rule for this sheet: .*American spelling/);
-		assert.match(html, /data-testid="sheet-send"/);
-		assert.match(render(view()), /data-testid="sheet-chat-empty"[^>]*>Say what you want on it\./);
+		assert.doesNotMatch(html, /sheet-send|math-box/, "the learner writes in the terminal");
+		assert.match(render(view()),/data-testid="sheet-chat-empty"[^>]*>Say what you want on it\./);
 		assert.doesNotMatch(render(view(), { empty: undefined }), /sheet-chat-empty/, "the studio says it on the canvas instead");
 	});
 
 	it("says the agent is on a message or waiting for one, why one failed with Try again, and shows Stop while it works", () => {
 		const working = render({ ...chatView, running: { messageId: "m3" } });
 		assert.match(working, /according to the cheat sheet.*Claude Code is on it/);
-		assert.match(working, /data-testid="sheet-stop"/);
-		assert.doesNotMatch(working, /data-testid="sheet-send"/);
+		assert.match(working, /Claude Code is on it<\/span><button[^>]*data-testid="sheet-stop"[^>]*>Stop</, "Stop beside the working line");
 		assert.match(render({ ...chatView, running: { messageId: "m3" } }, { agentGone: true }), /Waiting for an agent/);
 		const failed = render({ ...chatView, error: { messageId: "m3", text: "the agent never answered" } });
 		assert.match(failed, /according to the cheat sheet.*Claude Code couldn&#x27;t finish that\..*the agent never answered.*Try again/);
@@ -169,34 +160,65 @@ describe("the sheet's chat", () => {
 		assert.match(html, /data-testid="sheet-pointed-chip".*src="data:image\/png;base64,QUJD".*Pointing at the back of version 2/);
 	});
 
-	it("sends the words with the part pointed at first, keeps a refused message, and stops, retries and removes rules", async () => {
+	it("a line from the terminal is sent with the part pointed at first; a refused one goes on to the agent", async () => {
 		const posted: Record<string, unknown>[] = [];
+		const confirmed: { url: string; body: unknown }[] = [];
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = (async (url: string, init?: RequestInit) => {
+			confirmed.push({ url, body: init?.body ? JSON.parse(String(init.body)) : null });
+			return Response.json({});
+		}) as typeof fetch;
 		let answer: string | null = "Your agent is still answering your last message about this sheet.";
 		let cleared = 0;
-		const shown: number[] = [];
 		const pointed = { region: { n: 2, page: 2, x: 0.1, y: 0.2, w: 0.3, h: 0.1 }, picture: { name: "Version 2, Back.png", mimeType: "image/png", data: "QUJD" } };
 		const act_ = async (body: Record<string, unknown>) => {
 			posted.push(body);
-			return body.action === "ask" ? answer : null;
+			return answer;
 		};
+		try {
+			const el = mount(<SheetChat view={chatView} spaceId="cls_1" deadlineId="ddl_1" act={act_} agentName="Claude Code" agentGone={false} pointed={pointed} onClearPointed={() => cleared++} empty="" />);
+			await settle();
+			assert.deepEqual(confirmed.at(-1), { url: "/api/talk-page", body: { page: "cheat sheet" } }, "the page says it takes lines");
+			const picture = { name: "graph.png", mimeType: "image/png", data: "R1JB" };
+			await sendEvent("terminal-line", { id: 7, text: "that's what I did ", attachments: [picture] });
+			await settle();
+			assert.deepEqual(posted[0], { action: "ask", text: "that's what I did", attachments: [pointed.picture, picture], region: pointed.region });
+			assert.match(el.innerHTML, /role="alert"[^>]*>Your agent is still answering/);
+			assert.deepEqual(confirmed.at(-1), { url: "/api/terminal-lines/7", body: { sent: false } });
+			assert.equal(cleared, 0);
+			answer = null;
+			await sendEvent("terminal-line", { id: 8, text: "again", attachments: [] });
+			await settle();
+			assert.deepEqual(confirmed.at(-1), { url: "/api/terminal-lines/8", body: { sent: true } });
+			assert.equal(cleared, 1, "the part pointed at went with it");
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	it("while the agent works on the sheet a line goes on to the agent", async () => {
+		const posted: Record<string, unknown>[] = [];
+		const confirmed: unknown[] = [];
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = (async (_url: string, init?: RequestInit) => (confirmed.push(init?.body ? JSON.parse(String(init.body)) : null), Response.json({}))) as typeof fetch;
+		try {
+			mount(<SheetChat view={{ ...chatView, running: { messageId: "m3" } }} spaceId="cls_1" deadlineId="ddl_1" act={async (b) => (posted.push(b), null)} agentName="Claude Code" agentGone={false} pointed={null} onClearPointed={() => {}} empty="" />);
+			await settle();
+			await sendEvent("terminal-line", { id: 9, text: "hurry", attachments: [] });
+			await settle();
+			assert.equal(posted.length, 0);
+			assert.deepEqual(confirmed.at(-1), { sent: false });
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	it("removes rules and shows a version", async () => {
+		const posted: Record<string, unknown>[] = [];
+		const shown: number[] = [];
 		const el = mount(
-			<SheetChat view={chatView} spaceId="cls_1" deadlineId="ddl_1" act={act_} agentName="Claude Code" agentGone={false} pointed={pointed} onClearPointed={() => cleared++} onShowVersion={(n) => shown.push(n)} empty="" />,
+			<SheetChat view={chatView} spaceId="cls_1" deadlineId="ddl_1" act={async (b) => (posted.push(b), null)} agentName="Claude Code" agentGone={false} pointed={null} onClearPointed={() => {}} onShowVersion={(n) => shown.push(n)} empty="" />,
 		);
-		await settle();
-		const box = await mathBoxView(el);
-		await act(async () => box.dispatch({ changes: { from: 0, insert: "that's what I did" } }));
-		assert.equal(store.get("lh:sheet-draft:ddl_1"), "that's what I did", "the draft is kept");
-		await click(el.querySelector("[data-testid='sheet-send']"));
-		await settle();
-		assert.deepEqual(posted[0], { action: "ask", text: "that's what I did", attachments: [pointed.picture], region: pointed.region });
-		assert.match(el.innerHTML, /role="alert"[^>]*>Your agent is still answering/);
-		assert.equal(box.state.doc.toString(), "that's what I did", "a refused message stays in the box");
-		assert.equal(cleared, 0);
-		answer = null;
-		await click(el.querySelector("[data-testid='sheet-send']"));
-		await settle();
-		assert.equal(box.state.doc.toString(), "");
-		assert.equal(cleared, 1, "the part pointed at went with it");
 		await click(el.querySelector("[aria-label='Remove rule: American spelling']"));
 		await click(el.querySelector("[data-testid='sheet-made']"));
 		assert.deepEqual(posted.at(-1), { action: "remove-rule", text: "American spelling" });

@@ -1,50 +1,41 @@
 /**
- * The lesson's one writing box: for each state of the teacher column,
- * which buttons the box shows, what Enter does in it and which way out sits
- * beside "Your turn". Pure.
+ * The lesson's answer box: for each thing that waits for the learner, the
+ * box's button, what Enter does in it and the way out beside "Your turn".
+ * Talking to the teacher happens in its terminal (use-terminal-lines.ts), so
+ * the box takes only answers and work. Pure.
  */
 import { answerTakesFiles, parseAskInput, parseExplainInput, toolQuestionKind, type AppPosed } from "@/shared/core";
 
 /** What waits in the column. */
 export type BoxTurn =
-	/** Nothing to answer; `next` is the go-ahead in the pause between problems. */
-	| { kind: "none"; next?: string }
+	/** The open problem, worked on in the box. */
 	| { kind: "problem" }
-	/** The stop card: no way out beside "Your turn", since stopping the
-	 *  teacher's reading would lose the next topic's opener. */
-	| { kind: "stop" }
 	/** A check waits behind "Check your understanding". */
 	| { kind: "read-first" }
 	/** The answer is picked above the box (choices, or the code editor).
 	 *  `ownAnswer`: an ask whose box text is the answer when nothing is
 	 *  picked (then `picked` says there is text). `appPosed`: the app asked it (the next topic's opener, or a question
-	 *  from earlier), so no turn of its own runs and its way out stays
-	 *  "Skip question". */
+	 *  from earlier). */
 	| { kind: "choice"; picked: boolean; appPosed?: AppPosed["kind"]; ownAnswer?: true }
 	/** The box text is the answer. */
 	| { kind: "written"; takesFiles: boolean };
 
-export type BoxAction = "send" | "submit" | "reveal" | "next" | "stop";
+export type BoxAction = "send" | "submit" | "reveal";
 
 export interface BoxButton {
-	action: Exclude<BoxAction, "stop">;
+	action: BoxAction;
 	label: string;
 	filled: boolean;
 	disabled: boolean;
-	/** Kept in its place but not shown, so nothing beside it moves. */
-	hidden?: boolean;
 }
 
 export interface BoxView {
 	placeholder: string;
-	left: BoxButton | null;
-	right: BoxButton;
+	button: BoxButton;
 	/** What Enter in the box does; null makes a new line. */
 	enter: BoxAction | null;
 	/** The quiet button beside "Your turn". */
-	exit: "skip" | "discard" | "stop" | null;
-	/** A line over the box. */
-	note: string | null;
+	exit: "skip" | "discard";
 }
 
 /** A waiting question as the box sees it: written in the box, or picked
@@ -59,75 +50,28 @@ export function questionTurn(tool: string, input: unknown, picked: boolean, appP
 }
 
 export function lessonBox(s: {
-	/** The teacher's name. */
-	name: string;
 	/** A reply is being written (or waits for an agent). */
 	busy: boolean;
-	waitingForAgent: boolean;
 	hasText: boolean;
 	hasFiles: boolean;
 	turn: BoxTurn;
 }): BoxView {
 	const { turn } = s;
-	const canSend = s.hasText || s.hasFiles;
-	const empty = !canSend;
-
-	if (turn.kind === "none" || turn.kind === "problem" || turn.kind === "stop") {
-		const placeholder = turn.kind === "problem" ? `Message ${s.name}, or type your work` : `Message ${s.name}`;
-		if (s.busy) {
-			// Typed text steers the reply; a steer carries no files.
-			const canSteer = s.hasText && !s.hasFiles;
-			const canStop = turn.kind !== "stop";
-			return {
-				placeholder,
-				left: null,
-				right: { action: "send", label: s.waitingForAgent ? "Send" : "Send when ready", filled: false, disabled: !canSteer },
-				enter: canSteer ? "send" : empty && canStop ? "stop" : null,
-				exit: canStop ? "stop" : null,
-				note: s.hasFiles ? "Send pictures after the teacher finishes" : null,
-			};
-		}
-		const send: BoxButton = { action: "send", label: "Send", filled: canSend, disabled: !canSend };
-		const exit = turn.kind === "problem" ? "discard" : null;
-		if (turn.kind === "none" && turn.next !== undefined) {
-			return {
-				placeholder,
-				left: { ...send, filled: false },
-				right: { action: "next", label: turn.next, filled: true, disabled: false },
-				enter: canSend ? "send" : "next",
-				exit,
-				note: null,
-			};
-		}
-		return { placeholder, left: null, right: send, enter: canSend ? "send" : null, exit, note: null };
+	if (turn.kind === "problem") {
+		// Work goes in once the teacher is free.
+		const canSend = (s.hasText || s.hasFiles) && !s.busy;
+		return { placeholder: "Your work", button: { action: "send", label: "Send", filled: canSend, disabled: !canSend }, enter: canSend ? "send" : null, exit: "discard" };
 	}
-
-	// A question waits: the box can always ask about it instead, once the
-	// teacher is free. The button shows once there is something to send.
-	const ask: BoxButton = { action: "send", label: `Ask ${s.name}`, filled: false, disabled: s.busy || !canSend, hidden: !canSend };
-	const stoppable = s.busy && !(turn.kind === "choice" && turn.appPosed);
-	const exit = stoppable ? "stop" : "skip";
-	const idleEnter = stoppable && empty ? "stop" : null;
 	if (turn.kind === "read-first") {
-		return {
-			placeholder: "Whatever comes to mind as you read.",
-			left: ask,
-			right: { action: "reveal", label: "Check your understanding", filled: true, disabled: false },
-			enter: "reveal",
-			exit,
-			note: null,
-		};
+		return { placeholder: "Whatever comes to mind as you read.", button: { action: "reveal", label: "Check your understanding", filled: true, disabled: false }, enter: "reveal", exit: "skip" };
 	}
 	const ready = turn.kind === "choice" ? turn.picked : s.hasText || (turn.takesFiles && s.hasFiles);
 	// An answer to a question from earlier wakes nobody, so it goes in while the teacher writes.
 	const canSubmit = ready && (!s.busy || (turn.kind === "choice" && turn.appPosed === "review"));
 	return {
-		placeholder:
-			turn.kind === "written" ? `Type your answer, or a question for ${s.name}` : turn.ownAnswer && !turn.picked ? "Pick one above, or type your own answer" : `Your reasoning, or a question for ${s.name}`,
-		left: ask,
-		right: { action: "submit", label: "Submit answer", filled: true, disabled: !canSubmit },
-		enter: canSubmit ? "submit" : idleEnter,
-		exit,
-		note: null,
+		placeholder: turn.kind === "written" ? "Your answer" : turn.ownAnswer && !turn.picked ? "Pick one above, or type your own answer" : "Your reasoning",
+		button: { action: "submit", label: "Submit answer", filled: true, disabled: !canSubmit },
+		enter: canSubmit ? "submit" : null,
+		exit: "skip",
 	};
 }

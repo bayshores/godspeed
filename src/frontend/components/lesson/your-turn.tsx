@@ -1,12 +1,10 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type RefObject } from "react";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
-import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
-import type { QueuedSteerLine } from "@/frontend/components/queued-steers";
-import { DEFAULT_TEACHER_NAME, normalizeQuizType, questionKindLabel, type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
+import { type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
 import { AttachButton, type AttachmentDraft } from "./attachment-tray";
 import { LessonBox } from "./lesson-box";
-import { lessonBox, questionTurn, type BoxAction, type BoxTurn, type BoxView } from "./lesson-box-model";
+import { lessonBox, questionTurn, type BoxAction, type BoxView } from "./lesson-box-model";
 import { OpenProblemPane } from "./open-problem-pane";
 import { StopCard } from "./stop-card";
 import type { StopAction, StopCardView } from "./stop-card-model";
@@ -31,47 +29,40 @@ export interface YourTurnProps {
 	 *  made it. */
 	stop: { key: string; view: StopCardView; onAction: (action: StopAction) => void } | null;
 	busy: boolean;
-	/** The turn waits for an agent to take it. */
-	waitingForAgent: boolean;
-	/** Stops the running turn. */
-	onStop: () => void;
 	/** The go-ahead in the pause between problems ("Next problem", or
 	 *  "Continue" in a study session); absent outside that pause. */
 	next?: string;
 	onNext: () => void;
-	/** The writing box's text. */
+	/** The answer box's text. */
 	value: string;
 	onChange: (v: string) => void;
-	/** Sends the box; `picked` is the waiting question's option labels
-	 *  picked so far, for a question about it. */
-	onSend: (picked: string[]) => void;
-	queuedSteers: QueuedSteerLine[];
+	/** Sends the problem's work in the box. */
+	onSend: () => void;
 	attachments: AttachmentDraft;
+	/** The waiting question, for the lesson to read what is picked so far. */
+	questionRef: RefObject<QuestionHandle | null>;
 	/** An agent took the turn and went quiet: stop it and run it again. */
 	stuck: { minutes: number; label: string; onStop: () => void } | null;
 	/** The last send or reply failed. */
 	error: { text: string; detail: string; onRetry: () => void } | null;
-	/** The lesson size button. */
-	stats: React.ReactNode;
 }
 
-const EXIT: Record<NonNullable<BoxView["exit"]>, { label: string; testId: string }> = {
+const EXIT: Record<BoxView["exit"], { label: string; testId: string }> = {
 	skip: { label: "Skip question", testId: "skip-question" },
 	discard: { label: "Discard problem", testId: "discard-problem" },
-	stop: { label: "Stop", testId: "stop-turn" },
 };
 
 /**
- * YOUR TURN, the teacher column under its head: what waits for the
- * learner, then the one writing box. It holds one of:
+ * YOUR TURN, the lesson's right column, shown only while something waits
+ * for the learner (yourTurnShown). It holds one of:
  * - a check waiting behind "Check your understanding" (the learner reads
  *   first and can note thoughts in the box);
- * - a waiting question (QuestionDock);
- * - the open problem (worked on in the box);
+ * - a waiting question (QuestionDock) and the answer box;
+ * - the open problem, worked on in the box;
  * - a place to stop (the stop card);
- * - otherwise nothing to answer, with Next problem / Continue in the pause
- *   between problems.
- * The button beside "Your turn" is the way out of that state.
+ * - Next problem / Continue in the pause between problems.
+ * The button beside "Your turn" is the way out of that state. Talking to
+ * the teacher happens in its terminal.
  */
 export function YourTurn({
 	pending,
@@ -86,57 +77,43 @@ export function YourTurn({
 	onDiscardProblem,
 	stop,
 	busy,
-	waitingForAgent,
-	onStop,
 	next,
 	onNext,
 	value,
 	onChange,
 	onSend,
-	queuedSteers,
 	attachments,
+	questionRef,
 	stuck,
 	error,
-	stats,
 }: YourTurnProps & {
 	/** The waiting question is a check still behind "Check your understanding". */
 	revealPending: boolean;
 	onReveal: () => void;
 }) {
-	const name = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	// Whether the question above the box has an answer picked.
 	const [picked, setPicked] = useState(false);
-	const questionRef = useRef<QuestionHandle>(null);
 	const boxRef = useRef<{ focus(): void }>(null);
 
-	const turn: BoxTurn = revealPending
-		? { kind: "read-first" }
-		: pending
-			? questionTurn(pending.tool, pending.input, picked, pending.appPosed?.kind)
-			: problem
-				? { kind: "problem" }
-				: stop
-					? { kind: "stop" }
-					: { kind: "none", next };
-	const view = lessonBox({ name, busy, waitingForAgent, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
+	const turn = revealPending ? ({ kind: "read-first" } as const) : pending ? questionTurn(pending.tool, pending.input, picked, pending.appPosed?.kind) : problem ? ({ kind: "problem" } as const) : null;
+	const view = turn && lessonBox({ busy, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
+	const nextShown = !turn && !stop && next !== undefined;
 
 	const act = (action: BoxAction) => {
-		if (action === "send") onSend(questionRef.current?.picked() ?? []);
+		if (action === "send") onSend();
 		else if (action === "submit") questionRef.current?.submit();
-		else if (action === "reveal") onReveal();
-		else if (action === "next") onNext();
-		else onStop();
+		else onReveal();
 	};
 	// Enter away from the box presses the main button, unless that would
 	// send what is typed.
 	useEnterSubmits(() => {
-		if (view.right.action !== "send" && !view.right.disabled) act(view.right.action);
+		if (nextShown) onNext();
+		else if (view && view.button.action !== "send" && !view.button.disabled) act(view.button.action);
 	});
 
-	const exit = view.exit && EXIT[view.exit];
-	const onExit = view.exit === "skip" ? onSkipQuestion : view.exit === "discard" ? onDiscardProblem : onStop;
+	const exit = view && EXIT[view.exit];
+	const onExit = view?.exit === "skip" ? onSkipQuestion : onDiscardProblem;
 	const fromEarlier = pending?.appPosed?.kind === "review";
-	const kind = fromEarlier ? "From earlier" : pending ? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type)) : "Question";
 
 	const mode = revealPending
 		? `reveal:${pending?.toolCallId}`
@@ -146,14 +123,14 @@ export function YourTurn({
 				? `practice:${problem.toolCallId}`
 				: stop
 					? `stop:${stop.key}`
-					: "chat";
+					: "next";
 	// The opening state appears still; later states rise in.
 	const initialModeRef = useRef(mode);
 
 	return (
 		<div data-testid="your-turn" data-mode={mode.split(":")[0]} className="flex min-h-0 flex-1 flex-col gap-3.5 px-[22px] pt-[18px] pb-[22px]">
 			<div className="flex shrink-0 items-center justify-between gap-3">
-				<h2 className="text-[26px] leading-tight font-medium text-ink">Your turn</h2>
+				<h2 className="text-[26px] leading-tight font-medium text-ink">{fromEarlier ? "From earlier" : "Your turn"}</h2>
 				{exit && (
 					<button type="button" data-testid={exit.testId} onClick={onExit} className="lh-btn lh-btn-quiet shrink-0">
 						{exit.label}
@@ -169,11 +146,6 @@ export function YourTurn({
 
 			<div key={mode} className={`flex min-h-0 flex-initial flex-col${mode === initialModeRef.current ? "" : " lh-rise"}`}>
 				<div className="lh-scroll-fade flex min-h-0 flex-col gap-3.5 overflow-y-auto">
-					{pending && kind !== "Question" && (
-						<p data-testid="question-kind" className="shrink-0 font-count text-base text-ink-2">
-							{kind}
-						</p>
-					)}
 					{pending && !revealPending && (
 						<QuestionDock
 							ref={questionRef}
@@ -200,10 +172,10 @@ export function YourTurn({
 						</>
 					)}
 					{!pending && !problem && stop && <StopCard view={stop.view} onAction={stop.onAction} />}
-					{!pending && !problem && !stop && !busy && (
-						<p data-testid="nothing-to-answer" className="shrink-0 text-base text-ink-2">
-							Nothing to answer right now.
-						</p>
+					{nextShown && (
+						<button type="button" data-testid="next-problem-button" onClick={onNext} className="lh-btn lh-btn-main self-start">
+							{next}
+						</button>
 					)}
 				</div>
 			</div>
@@ -227,21 +199,12 @@ export function YourTurn({
 				</div>
 			)}
 
-			<LessonBox
-				view={view}
-				value={value}
-				onChange={onChange}
-				onAct={act}
-				onFocus={() => questionRef.current?.fold()}
-				queuedSteers={queuedSteers}
-				attachments={attachments}
-				boxRef={boxRef}
-			/>
-			<div className="flex shrink-0 items-center gap-2">
-				<AttachButton draft={attachments} />
-				<span className="flex-1" />
-				{stats}
-			</div>
+			{view && (
+				<>
+					<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
+					<AttachButton draft={attachments} />
+				</>
+			)}
 		</div>
 	);
 }

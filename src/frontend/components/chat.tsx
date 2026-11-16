@@ -33,6 +33,7 @@ import {
 	type LessonKind,
 	type LhMessage,
 	type PlanTree,
+	type ChatAttachment,
 	type QuestionAnswerData,
 	withOpenReview,
 } from "@/shared/core";
@@ -47,13 +48,15 @@ import { useLessonServer } from "@/frontend/components/lesson/use-lesson-server"
 import { useTitleRename } from "@/frontend/components/lesson/use-title-rename";
 import { useLessonStop } from "@/frontend/components/lesson/use-lesson-stop";
 import { useFromEarlier } from "@/frontend/components/lesson/use-from-earlier";
-import { LessonTopBar } from "@/frontend/components/lesson/lesson-top-bar";
+import { LessonHead } from "@/frontend/components/lesson/lesson-head";
 import { LessonWorkFrame } from "@/frontend/components/lesson/lesson-work-frame";
 import { PlanRow } from "@/frontend/components/lesson/plan-row";
 import { homeworkProblemLine } from "@/frontend/components/lesson/plan-row-model";
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
 import { topicPageMarks } from "@/frontend/components/citations/page-excerpt-model";
-import { COLUMN_WIDTH, TeacherColumn } from "@/frontend/components/lesson/teacher-column";
+import { COLUMN_WIDTH, TeacherColumn, yourTurnShown } from "@/frontend/components/lesson/teacher-column";
+import type { QuestionHandle } from "@/frontend/components/question-dock";
+import { useTerminalLines } from "@/frontend/components/terminal/use-terminal-lines";
 import { Pane } from "@/frontend/components/ui/pane";
 import { usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
@@ -79,9 +82,11 @@ const PlanPopup = lazyComponent(() => import("@/frontend/components/plan-block")
 const NO_PAGES: ReadonlyMap<string, string> = new Map();
 
 /**
- * THE LESSON: its own bar, the reading sheet on the left and the teacher
- * column with the one writing box on the right (below the text in a narrow
- * window), the cheat sheet between them when open. This component owns the
+ * THE LESSON: its title line, the reading sheet on the left and "Your
+ * turn" on the right (below the text in a narrow window) while something
+ * waits for the learner, the cheat sheet between them when open. The
+ * learner talks to the teacher in its terminal; those lines come here
+ * (useTerminalLines). This component owns the
  * lesson's state and wiring; the pieces live in
  * src/frontend/components/lesson/.
  */
@@ -326,7 +331,7 @@ export function Chat({
 		[abortInFlightTurn, dismissQuestion, dismissProblem, send, skipReview],
 	);
 
-	// ── the writing box ──
+	// ── the answer box ──
 	const [text, setText] = useState("");
 	const textRef = useRef("");
 	const applyText = useCallback((v: string) => {
@@ -352,11 +357,12 @@ export function Chat({
 	useTeacherLesson(status === "streaming", busy, draftHeld);
 	const attachments = useAttachmentDraft(chatId);
 
-	// A running turn never gates the box: a send while busy STEERS it (text
-	// only, so waiting files hold the send). Under a waiting question the
-	// box asks a side question, never while the teacher replies. An open
-	// problem is worked on in the box itself: plain messages.
+	// A line typed to the teacher while it writes STEERS the reply (text
+	// only). Under a waiting question it is a side question, never while
+	// the teacher replies. An open problem is worked on in the box: plain
+	// messages.
 	const sideOpen = pending !== null;
+	const questionRef = useRef<QuestionHandle>(null);
 	const sendBlocked = sendBlockedReason(sideOpen);
 
 	/* THE PRACTICE PAUSE (practice and study): between problems, once a
@@ -377,38 +383,38 @@ export function Chat({
 		void send({ type: "next" });
 	}, [nextReady, send]);
 
-	/* STEER VS SEND: a send while a turn runs (ours or
-	 * a wake) steers it; idle takes the plain send (a raced settle 409s and
-	 * falls back to exactly that). Under a waiting question it is a side
-	 * question. */
-	const onSend = (picked: string[] = []) => {
+	// The problem's work in the box, once the teacher is free.
+	const onSend = () => {
 		const t = textRef.current.trim();
-		const files = attachments.files.map((f) => f.attachment);
-		// A steer of the running turn is text only.
-		if (busy && !sideOpen) {
-			if (!t || files.length > 0) return;
-			editText("");
-			void steer(t).then((sent) => {
-				if (!sent) editText(restoreUnsent(t, textRef.current));
-			});
-			return;
-		}
-		if (busy || (!t && files.length === 0)) return;
+		if (busy || (!t && attachments.files.length === 0)) return;
 		const drafts = attachments.files;
 		editText("");
 		attachments.clear();
-		// A question about the opener or a question from earlier leaves it
-		// open, like a side question.
-		const posed = pending?.appPosed;
-		const about =
-			posed?.kind === "opener" ? { opener: posed.ref } : posed?.kind === "review" ? { reviewOf: posed.ref, ...(picked.length > 0 ? { picked } : {}) } : null;
-		const input = about ? ({ type: "text", text: t, about } as const) : ({ type: sideOpen ? "side" : "text", text: t } as const);
-		void send({ ...input, ...(files.length > 0 ? { attachments: files } : {}) }).then((sent) => {
+		void send({ type: "text", text: t, ...(drafts.length > 0 ? { attachments: drafts.map((f) => f.attachment) } : {}) }).then((sent) => {
 			if (sent) return;
 			editText(restoreUnsent(t, textRef.current));
 			attachments.restore(drafts);
 		});
 	};
+
+	/* A LINE FROM THE TERMINAL: while a turn runs (ours or a wake) it
+	 * steers it; idle it is the learner's next message (a raced settle 409s
+	 * and falls back to exactly that). Under a waiting question it is a
+	 * side question; about the opener or a question from earlier, it leaves
+	 * that open too. False when the lesson can't take it now: it goes on to
+	 * the agent. */
+	const sendLine = (line: string, files: ChatAttachment[]): Promise<boolean> => {
+		const t = line.trim();
+		if (busy && !sideOpen) return t && files.length === 0 ? steer(t) : Promise.resolve(false);
+		if (busy || (!t && files.length === 0)) return Promise.resolve(false);
+		const posed = pending?.appPosed;
+		const picked = questionRef.current?.picked() ?? [];
+		const about =
+			posed?.kind === "opener" ? { opener: posed.ref } : posed?.kind === "review" ? { reviewOf: posed.ref, ...(picked.length > 0 ? { picked } : {}) } : null;
+		const input = about ? ({ type: "text", text: t, about } as const) : ({ type: sideOpen ? "side" : "text", text: t } as const);
+		return send({ ...input, ...(files.length > 0 ? { attachments: files } : {}) });
+	};
+	useTerminalLines("lesson", sendLine);
 
 	// THE ANSWER IS THE QUESTION CALL'S TOOL RESULT: one input event, one
 	// turn. The reading thoughts ride along, and so do the box's files for
@@ -554,6 +560,9 @@ export function Chat({
 	);
 	const [columnWidth, setColumnWidth] = usePaneWidth("your-turn", COLUMN_WIDTH);
 
+	const next = nextReady ? (kind === "study" ? "Continue" : "Next problem") : undefined;
+	const stuckLine = stuck && stuckMinutes !== null ? { minutes: stuckMinutes, label: stuck.type === "text" ? "Stop and send again?" : "Stop and try again?", onStop: stopAndRetry } : null;
+	const errorLine = error && { text: lessonError(error.message).text, detail: error.message, onRetry: retry };
 	const problem = activeProblem && {
 		toolCallId: activeProblem.toolCallId,
 		statement: (activeProblem.input as { statement: string }).statement,
@@ -567,18 +576,21 @@ export function Chat({
 		part: openProblem ? (problems?.part ?? null) : null,
 	};
 
+	const turnShown = yourTurnShown({ pending: pending !== null, problem: problem !== null, stop: lessonStop.card !== null, next: next !== undefined, stuck: stuckLine !== null, error: errorLine !== null, reviewRefused });
+
 	return (
 		<ChatActionsContext.Provider value={chatActions}>
 			<SessionMermaidContext.Provider value={mermaidActions}>
 				<JobsContext.Provider value={jobs}>
 					<LessonStepsContext.Provider value={stepNumbers}>
 						<div className="@container/lesson flex h-full min-w-0 flex-1 flex-col">
-							<LessonTopBar
+							<LessonHead
 								rename={rename}
 								spaceId={spaceId}
 								sheet={spaceId ? { open: sheetOpen, onToggle: toggleSheet } : undefined}
 								plugins={{ words: lessonPlugins ?? [], open: openPlugin?.id ?? null, onToggle: togglePlugin }}
 								file={homework?.assignment ?? undefined}
+								stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={SUMMARIZE_AT} pricing={pricing} />}
 								scopeRef={sessionFindScopeRef}
 								scrollContextRef={scrollContextRef}
 							/>
@@ -588,6 +600,7 @@ export function Chat({
 									<div
 										ref={sessionFindScopeRef}
 										data-dock={sheetOpen ? "" : undefined}
+										data-solo={turnShown ? undefined : ""}
 										className="lh-dots lh-lesson-body relative h-full"
 										style={{ "--lh-turn-w": `${columnWidth}px` } as React.CSSProperties}
 									>
@@ -603,6 +616,8 @@ export function Chat({
 												busy={busy}
 												turnInFlight={turnInFlight}
 												waitingForAgent={waitingForAgent}
+												onStop={lessonStop.card ? null : abortInFlightTurn}
+												queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
 												arrivalsLive={arrivalsLive}
 												pageMarks={pageMarks}
 												arrive={arrive}
@@ -621,6 +636,7 @@ export function Chat({
 												/>
 											</div>
 										)}
+										{turnShown && (
 										<TeacherColumn
 											// Remounts once the saved drafts are read, so the question starts from them.
 											key={draftsLoaded ? "drafts" : "loading"}
@@ -629,7 +645,6 @@ export function Chat({
 											onWidth={setColumnWidth}
 											pending={pending}
 											requiresReveal={requiresReveal}
-											noAgent={noAgent}
 											onReveal={revealCheck}
 											initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
 											onSaveQuestionDraft={(form) => {
@@ -642,19 +657,17 @@ export function Chat({
 											onDiscardProblem={() => setAbortAsk("problem")}
 											stop={lessonStop.card}
 											busy={busy}
-											waitingForAgent={waitingForAgent}
-											onStop={abortInFlightTurn}
-											next={nextReady ? (kind === "study" ? "Continue" : "Next problem") : undefined}
+											next={next}
 											onNext={sendNext}
 											value={text}
 											onChange={editText}
 											onSend={onSend}
-											queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
 											attachments={attachments}
-											stuck={stuck && stuckMinutes !== null ? { minutes: stuckMinutes, label: stuck.type === "text" ? "Stop and send again?" : "Stop and try again?", onStop: stopAndRetry } : null}
-											error={error && { text: lessonError(error.message).text, detail: error.message, onRetry: retry }}
-											stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={SUMMARIZE_AT} pricing={pricing} />}
+											questionRef={questionRef}
+											stuck={stuckLine}
+											error={errorLine}
 										/>
+										)}
 
 										{/* The session-scoped focuses: absolute over the lesson area, below
 										    the lesson's bar; each fades out through usePresence. */}

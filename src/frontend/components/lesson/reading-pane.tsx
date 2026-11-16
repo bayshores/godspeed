@@ -8,6 +8,7 @@ import {
 } from "@/frontend/components/ai-elements/conversation";
 import { Shimmer } from "@/frontend/components/ai-elements/shimmer";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
+import { QueuedSteersBody, type QueuedSteerLine } from "@/frontend/components/queued-steers";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { JobsContext } from "@/frontend/components/jobs-context";
 import { SessionMessageNavigation } from "@/frontend/components/session-navigation";
@@ -22,6 +23,8 @@ import { cn } from "@/frontend/lib/utils";
 /**
  * THE READING PANE: the lesson as one document on the reading sheet, in
  * the reading type (.lh-reading in globals.css), answered cards inline.
+ * While the teacher writes, its foot holds the lines typed to it that wait
+ * for it, and Stop.
  * Each message is a memoized row, so streaming redraws only the message
  * being written.
  */
@@ -33,6 +36,8 @@ export function ReadingPane({
 	busy,
 	turnInFlight,
 	waitingForAgent,
+	onStop,
+	queuedSteers,
 	arrivalsLive,
 	pageMarks,
 	arrive,
@@ -47,8 +52,12 @@ export function ReadingPane({
 	status: "ready" | "submitted" | "streaming" | "error";
 	busy: boolean;
 	turnInFlight: boolean;
-	/** The turn waits for an agent to take it: the teacher column says so, and no Thinking… shows. */
+	/** The turn waits for an agent to take it: the pill says so, and no Thinking… shows. */
 	waitingForAgent: boolean;
+	/** Stops the running turn; null while the teacher reads ahead at a stop, which is not stopped. */
+	onStop: (() => void) | null;
+	/** Lines typed to the teacher that wait for its reply to end. */
+	queuedSteers: QueuedSteerLine[];
 	arrivalsLive: boolean;
 	/** Each Study topic's stored page mark, by the text it sits in. */
 	pageMarks: ReadonlyMap<string, string>;
@@ -100,6 +109,14 @@ export function ReadingPane({
 							<BrailleSpinner label="Thinking" />
 							<Shimmer>Thinking…</Shimmer>
 						</ArrivalRow>
+					)}
+					{busy && onStop && (
+						<div className="flex flex-col items-start gap-2 font-ui">
+							<QueuedSteersBody steers={queuedSteers} />
+							<button type="button" data-testid="stop-turn" onClick={onStop} className="lh-btn lh-btn-quiet">
+								Stop
+							</button>
+						</div>
 					)}
 				</div>
 			</ConversationContent>

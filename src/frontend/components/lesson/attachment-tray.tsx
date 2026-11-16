@@ -126,7 +126,7 @@ export function attachmentInputProps(draft: AttachmentDraft) {
 }
 
 /** The waiting files above the text, each with "Remove", and the last refusal. */
-export function AttachmentTray({ draft, note }: { draft: AttachmentDraft; note?: string }) {
+export function AttachmentTray({ draft }: { draft: AttachmentDraft }) {
 	if (draft.files.length === 0 && !draft.error) return null;
 	return (
 		<div data-testid="attachment-tray" className="flex shrink-0 flex-col gap-2 pt-3">
@@ -137,7 +137,6 @@ export function AttachmentTray({ draft, note }: { draft: AttachmentDraft; note?:
 					))}
 				</div>
 			)}
-			{note && <p data-testid="attachment-note" className="text-base text-ink-2">{note}</p>}
 			{draft.error && <p data-testid="attachment-error" className="text-base text-ink-2">{draft.error}</p>}
 		</div>
 	);

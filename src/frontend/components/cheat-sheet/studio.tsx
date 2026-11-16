@@ -7,22 +7,20 @@ import { LoadFailed } from "@/frontend/components/load-failed";
 import { fileBrowserName } from "@/frontend/components/files/files-model";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { Pane } from "@/frontend/components/ui/pane";
-import { LivePill } from "@/frontend/components/top-bar/live-pill";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { printPdf } from "./print-pdf";
 import { SheetCanvas } from "./sheet-canvas";
 import { SheetChat } from "./sheet-chat";
-import { TeacherHead } from "@/frontend/components/teacher/teacher-head";
 import { JobFrame } from "@/frontend/components/work/job-frame";
-import { OlderSheet, emptyChatLine, sheetPaper, teacherDoing, versionLabel } from "./studio-states";
+import { OlderSheet, emptyChatLine, sheetPaper, versionLabel } from "./studio-states";
 import { remakeSheet, sheetPdfFile, sheetPdfPath, showSheetPdf, useCheatSheet, useSheetFocus } from "./use-cheat-sheet";
 
 /**
- * THE CHEAT SHEET STUDIO: a page of its own under a dark bar (back to the
- * deadline, the sheet's paper, Show in Finder, Print). The canvas on the
- * left holds the PDF with the earlier versions beside it, or, before there
- * is a sheet, says what to ask for. The teacher side on the right is the
- * sheet's chat: ask about the sheet, point at part of it, or ask for a change.
+ * THE CHEAT SHEET STUDIO: a page under the app's bar with a title line
+ * (the sheet's deadline, its paper, Show in Finder, Print). The canvas on
+ * the left holds the PDF with the earlier versions beside it, or, before
+ * there is a sheet, says what to ask for. On the right is the sheet's
+ * chat: lines typed in the teacher's terminal ask about the sheet, a part
+ * pointed at, or a change.
  */
 export function CheatSheetStudio({ spaceId, deadlineId, deadlineName }: { spaceId: string; deadlineId: string; deadlineName: string }) {
 	const navigate = useNavigate();
@@ -45,20 +43,20 @@ export function CheatSheetStudio({ spaceId, deadlineId, deadlineName }: { spaceI
 	);
 }
 
-/** The studio's own bar, in place of the app's top bar (so it is the window's
- *  drag band too): the way back, the sheet's name, then its status and buttons. */
+/** The studio's title line under the app's bar: the sheet's name (its
+ *  deadline's name opens the deadline), then its paper and buttons. */
 function StudioBar({ deadlineId, deadlineName, status, children }: { deadlineId: string; deadlineName: string; status?: string; children?: ReactNode }) {
 	return (
-		<div data-testid="studio-bar" className="lh-own-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-12 shrink-0 select-none items-center gap-4 bg-bar px-6 text-bar-ink">
-			<Link to={`/space/deadline/${encodeURIComponent(deadlineId)}`} data-testid="page-back" className="lh-btn lh-btn-bar max-w-[28ch] px-3">
-				<PixelIcon name="chevron" className="-scale-x-100" />
-				<span className="truncate">{deadlineName}</span>
-			</Link>
-			<h1 className="min-w-0 truncate text-lg font-medium">Cheat sheet for {deadlineName}</h1>
+		<div data-testid="studio-bar" className="flex min-h-14 shrink-0 items-center gap-3 px-8 pt-3">
+			<h1 className="min-w-0 truncate text-[22px] font-medium text-ink">
+				Cheat sheet for{" "}
+				<Link to={`/space/deadline/${encodeURIComponent(deadlineId)}`} data-testid="studio-deadline" className="underline decoration-ink-3 underline-offset-4 hover:decoration-ink">
+					{deadlineName}
+				</Link>
+			</h1>
 			<div className="flex-1" aria-hidden />
-			<LivePill own named />
 			{status && (
-				<span data-testid="cheat-sheet-status" className="shrink-0 text-base">
+				<span data-testid="cheat-sheet-status" className="shrink-0 text-base text-ink-2">
 					{status}
 				</span>
 			)}
@@ -81,7 +79,6 @@ function Studio({
 	const agent = useAgentStatus();
 	const agentGone = !!agent && !agent.connected && !agent.teaching;
 	const teacherName = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
-	const { activeSpace } = useSpaces();
 	const [failed, setFailed] = useState<string | null>(null);
 	const [printing, setPrinting] = useState(false);
 	const { pointed, setPointed, focus, showVersion } = useSheetFocus();
@@ -90,7 +87,7 @@ function Studio({
 	const pdfUrl = useCallback((n: number) => sheetPdfPath(spaceId, deadlineId, n), [spaceId, deadlineId]);
 	const currentUrl = current ? pdfUrl(current.n) : null;
 	const desktop = typeof window !== "undefined" && !!window.lh?.showInFolder;
-	const fileButton = "lh-btn lh-btn-quiet shrink-0 px-2 text-[15px] font-normal text-bar-ink [--lh-key-hover:color-mix(in_srgb,var(--lh-bar-ink)_15%,transparent)] hover:text-bar-ink";
+	const fileButton = "lh-btn lh-btn-quiet shrink-0";
 	// The Mac prints the PDF file itself through the system's sheet; elsewhere pdf.js draws it.
 	const printVersion = async (n: number, url: string) => {
 		const printFile = window.lh?.printPdf;
@@ -121,7 +118,7 @@ function Studio({
 							Download PDF
 						</a>
 					))}
-				<button type="button" data-testid="cheat-sheet-print" disabled={!current || printing} onClick={print} className="lh-btn lh-btn-bar">
+				<button type="button" data-testid="cheat-sheet-print" disabled={!current || printing} onClick={print} className="lh-btn shrink-0">
 					Print
 				</button>
 			</StudioBar>
@@ -146,7 +143,6 @@ function Studio({
 							)}
 						</div>
 						<Pane data-testid="cheat-sheet-panel" className="flex w-[480px] shrink-0 flex-col overflow-hidden">
-							<TeacherHead name={teacherName} color={activeSpace?.id === spaceId ? activeSpace.color : undefined} doing={teacherDoing(view, agentGone)} />
 							<SheetChat
 								view={view}
 								spaceId={spaceId}

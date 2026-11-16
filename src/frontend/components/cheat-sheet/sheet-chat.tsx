@@ -1,13 +1,10 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import type { CheatSheetView, SheetMessage, SheetRegion, SheetRule } from "@/shared/core";
+import { Fragment, useEffect, useRef, useState } from "react";
+import type { ChatAttachment, CheatSheetView, SheetMessage, SheetRegion, SheetRule } from "@/shared/core";
 import { CitedResponse } from "@/frontend/components/citations/cited-response";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
-import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft, type AttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
-import { SendButton } from "@/frontend/components/ui/send-button";
-import { MathBox } from "@/frontend/components/math-box";
 import { savedDay } from "@/frontend/components/rule-chips";
+import { useTerminalLines } from "@/frontend/components/terminal/use-terminal-lines";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { cn } from "@/frontend/lib/utils";
 import type { Pointed } from "./canvas-model";
 import { sheetFilePath } from "./use-cheat-sheet";
@@ -19,22 +16,6 @@ export function pointedLabel(region: SheetRegion, pages: number): string {
 	return `${page} of version ${region.n}`;
 }
 
-/** What's typed in a sheet's box, kept in this browser so leaving the
- *  studio, closing the sheet beside a session or a reload never loses it. */
-function useSheetDraft(deadlineId: string): [string, (text: string) => void] {
-	const key = `lh:sheet-draft:${deadlineId}`;
-	const [text, setText] = useState("");
-	useEffect(() => setText(readStorage(key) ?? ""), [key]);
-	const save = useCallback(
-		(next: string) => {
-			setText(next);
-			writeStorage(key, next || null);
-		},
-		[key],
-	);
-	return [text, save];
-}
-
 /** A small boxed note in the chat (a version made, a part pointed at). */
 const NOTE = "flex items-center gap-2.5 lh-well self-start rounded px-2.5 py-1.5 text-base text-ink";
 
@@ -44,9 +25,9 @@ const NOTE = "flex items-center gap-2.5 lh-well self-start rounded px-2.5 py-1.5
  * messages with the part they pointed at, their pictures and the problem
  * they were on, the agent's answers (markdown and math) with a "Made
  * version N" note that shows that version on the canvas and the rules it
- * saved. The one box takes words, math, pictures and PDFs, and the part of
- * the sheet pointed at; Stop while the agent works, Try again when it
- * failed. The studio and the sheet beside a session both show it.
+ * saved. The learner writes in the teacher's terminal: each line comes
+ * here (useTerminalLines) with the part pointed at; Stop while the agent
+ * works, Try again when it failed.
  */
 export function SheetChat({
 	view,
@@ -77,9 +58,6 @@ export function SheetChat({
 	empty?: string;
 	className?: string;
 }) {
-	const [text, setText] = useSheetDraft(deadlineId);
-	const attachments = useAttachmentDraft(`cheat-sheet:${deadlineId}`);
-	const [sending, setSending] = useState(false);
 	const [failed, setFailed] = useState<string | null>(null);
 	const busy = view.running !== null;
 	const messages = view.sheet.messages;
@@ -89,34 +67,28 @@ export function SheetChat({
 	}, [messages.length, busy, view.error]);
 
 	const post = (body: Record<string, unknown>) => void act(body).then(setFailed);
-	const nothing = !text.trim() && attachments.files.length === 0 && !pointed;
-	const send = async () => {
-		if (nothing || busy || sending || view.newer) return;
-		const files = attachments.files;
-		const sent = text;
-		setSending(true);
-		setText("");
-		attachments.clear();
-		const all = [...(pointed ? [pointed.picture] : []), ...files.map((f) => f.attachment)];
+	// A line typed while the sheet is being worked on goes on to the agent.
+	const sendLine = async (line: string, files: ChatAttachment[]): Promise<boolean> => {
+		if (busy || view.newer || (!line.trim() && files.length === 0 && !pointed)) return false;
+		const all = [...(pointed ? [pointed.picture] : []), ...files];
 		const error = await act({
 			action: "ask",
-			text: sent.trim(),
+			text: line.trim(),
 			...(all.length > 0 ? { attachments: all } : {}),
 			...(pointed ? { region: pointed.region } : {}),
 		});
-		setSending(false);
 		setFailed(error);
-		if (error) {
-			setText(sent);
-			attachments.restore(files);
-		} else onClearPointed();
+		if (error) return false;
+		onClearPointed();
+		return true;
 	};
+	useTerminalLines("cheat sheet", sendLine);
 
 	const pagesOf = (n: number) => view.sheet.versions.find((v) => v.n === n)?.pages.length ?? 1;
 
 	return (
 		<div data-testid="sheet-chat" className={cn("flex min-h-0 flex-1 flex-col", className)}>
-			<div data-testid="sheet-thread" className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-[22px] pt-[18px]">
+			<div data-testid="sheet-thread" className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-[22px] pt-[18px] pb-[22px]">
 				<SheetRules rules={view.sheet.rules} agentName={agentName} onRemove={(rule) => post({ action: "remove-rule", text: rule })} />
 				{empty && messages.length === 0 && (
 					<p data-testid="sheet-chat-empty" className="text-[15px] leading-snug text-ink-2">
@@ -136,8 +108,11 @@ export function SheetChat({
 								)}
 							</div>
 							{view.running?.messageId === m.id && (
-								<p data-testid="sheet-working" className="text-[15px] text-ink-2">
-									{agentGone ? "Waiting for an agent" : `${agentName} is on it`}
+								<p data-testid="sheet-working" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
+									<span>{agentGone ? "Waiting for an agent" : `${agentName} is on it`}</span>
+									<button type="button" data-testid="sheet-stop" onClick={() => post({ action: "stop" })} className="lh-btn lh-btn-quiet text-[15px]">
+										Stop
+									</button>
 								</p>
 							)}
 							{!busy && view.error?.messageId === m.id && (
@@ -155,7 +130,7 @@ export function SheetChat({
 				})}
 				<div ref={endRef} />
 			</div>
-			<div data-testid="sheet-box" className="flex shrink-0 flex-col gap-2.5 px-[22px] pb-[22px]" {...attachmentInputProps(attachments)}>
+			<div data-testid="sheet-box" className="flex shrink-0 flex-col gap-2.5 px-[22px] pb-[22px] empty:hidden">
 				<NoAgentLine />
 				{(failed || view.newer) && (
 					<p role="alert" className="text-[15px] text-ans-wrong">
@@ -163,32 +138,7 @@ export function SheetChat({
 					</p>
 				)}
 				{pointed && <PointedChip pointed={pointed} pages={pagesOf(pointed.region.n)} onClear={onClearPointed} />}
-				<AttachmentTray draft={attachments} />
-				<div className="flex min-h-[130px] flex-col lh-well rounded">
-					<div className="flex max-h-32 min-h-0 flex-1">
-						<MathBox
-							value={text}
-							onChange={setText}
-							onEnter={() => {
-								void send();
-								return true;
-							}}
-							placeholder={view.sheet.versions.length > 0 ? "Ask about the sheet, or say what to change" : "What do you want on your cheat sheet?"}
-							ariaLabel={`Message ${agentName} about the cheat sheet`}
-						/>
-					</div>
-					<ComposerBar attachments={attachments} busy={busy} disabled={nothing || sending || !!view.newer} onSend={() => void send()} onStop={() => post({ action: "stop" })} />
-				</div>
 			</div>
-		</div>
-	);
-}
-
-function ComposerBar({ attachments, busy, disabled, onSend, onStop }: { attachments: AttachmentDraft; busy: boolean; disabled: boolean; onSend: () => void; onStop: () => void }) {
-	return (
-		<div className="flex items-center gap-2 pr-2.5 pb-2.5 pl-2">
-			<AttachButton draft={attachments} />
-			{busy ? <SendButton testId="sheet-stop" onClick={onStop} label="Stop" /> : <SendButton testId="sheet-send" onClick={onSend} disabled={disabled} label="Send" />}
 		</div>
 	);
 }
@@ -285,7 +235,7 @@ function SheetRules({ rules, agentName, onRemove }: { rules: readonly SheetRule[
 	);
 }
 
-/** The part of the sheet pointed at, waiting to go with the next message. */
+/** The part of the sheet pointed at, waiting to go with the next line typed in the terminal. */
 function PointedChip({ pointed, pages, onClear }: { pointed: Pointed; pages: number; onClear: () => void }) {
 	return (
 		<div data-testid="sheet-pointed-chip" className="flex max-w-full items-center gap-2.5 lh-well self-start rounded py-1.5 pr-2 pl-1.5">

@@ -10,12 +10,8 @@ import type { PaneBounds } from "@/frontend/components/ui/pane-width-model";
 export type PanelView = "terminal" | "activity";
 
 /** What the panel's body is: the screen in the desktop app (Activity then
- *  hangs from its key in the head), Activity in a browser. A lesson has its own
- *  Activity, so there the panel is the screen alone, or nothing. */
-export function panelBody(inLesson: boolean, terminals: boolean): PanelView | null {
-	if (terminals) return "terminal";
-	return inLesson ? null : "activity";
-}
+ *  hangs from its key in the head), Activity in a browser. */
+export const panelBody = (terminals: boolean): PanelView => (terminals ? "terminal" : "activity");
 
 /** The screen the panel shows: the helper's only while there is one. */
 export const shownScreen = (picked: TerminalRole, helper: boolean): TerminalRole => (picked === "helper" && helper ? "helper" : "teacher");
