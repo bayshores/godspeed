@@ -97,8 +97,11 @@ export function TeacherPanel({
 			document.documentElement.style.setProperty(PUSH_VAR, `${state === "open" ? layout.push : 0}px`);
 		};
 		measure();
-		window.addEventListener("resize", measure);
-		return () => window.removeEventListener("resize", measure);
+		// After layout, with the window's new size: a one-shot resize (zoom, a snap) can fire the
+		// window's resize event before its width changes.
+		const observer = new ResizeObserver(measure);
+		observer.observe(document.documentElement);
+		return () => observer.disconnect();
 	}, [wanted, tall, state]);
 	useEffect(
 		() => () => {
