@@ -15,7 +15,7 @@ use gs_json::{Json, json, stringify};
 use gs_services::App;
 use gs_services::spaces::add_space_deadline;
 use gs_services::spaces::deadline_requests::{deadline_request_view, request_deadline};
-use gs_services::spaces::space_checks::{check_spaces, undo_check};
+use gs_services::spaces::space_checks::{check_spaces, check_spaces_now, undo_check};
 
 struct Fixture {
 	app: Arc<App>,
@@ -107,7 +107,7 @@ async fn a_check_adds_and_links_in_one_run_and_undo_puts_both_back() {
 	files.extend([file("f_hw5", "HW5.md", "info", &now), file("f_w7", "Week 7.md", "study", &now)]);
 	f.app.stores.spaces.save_files(&space_id, files, &[]).unwrap();
 	let mut events = f.app.events.subscribe();
-	check_spaces(&f.app, gs_base::clock::now_ms());
+	check_spaces_now(&f.app, gs_base::clock::now_ms());
 	let add = ReplyCall { name: "add_space_deadline".to_owned(), arguments: json!({ "space_id": space_id, "deadlines": [{ "kind": "homework", "name": "HW 5", "date": "2099-01-20", "time": "23:59" }] }) };
 	let link = ReplyCall { name: "update_space_deadline".to_owned(), arguments: json!({ "space_id": space_id, "deadline_id": exam, "file_ids": ["f_w1", "f_w7"] }) };
 	let first = answer(&f.app, AgentReply { text: None, tool_calls: vec![add, link] }).await;

@@ -73,6 +73,8 @@ pub struct SpaceChecksState {
 	cooling: Mutex<HashMap<String, i64>>,
 	/// The newest runs that changed something, oldest first.
 	runs: Mutex<VecDeque<CheckRun>>,
+	/// When the spaces were last scanned for reasons.
+	scanned_at: Mutex<Option<i64>>,
 }
 
 /// A check's writes: only to its space, only with the arguments `CHECK_WRITES` lists.
@@ -125,12 +127,25 @@ impl CheckWrites {
 	}
 }
 
+/// An agent waits at every turn: the spaces are scanned at most this often for it.
+const SCAN_MS: i64 = 60_000;
+
+/// An agent started waiting: `check_spaces_now`, unless the spaces were scanned less than
+/// `SCAN_MS` ago.
+pub fn check_spaces(app: &Arc<App>, now: i64) {
+	if app.spaces.checks.scanned_at.lock().is_some_and(|at| now - at < SCAN_MS) {
+		return;
+	}
+	check_spaces_now(app, now);
+}
+
 /// godspeed checks the first space that has a reason, unless a check runs. The first call after
 /// this version came writes `since`, so files from before it are never checked.
-pub fn check_spaces(app: &Arc<App>, now: i64) {
+pub fn check_spaces_now(app: &Arc<App>, now: i64) {
 	if app.spaces.requests.running.lock().checking.is_some() {
 		return;
 	}
+	*app.spaces.checks.scanned_at.lock() = Some(now);
 	let mut record = read_record(app);
 	if record.since.is_none() {
 		change_record(app, |r| {
@@ -323,8 +338,28 @@ mod tests {
 		let rows = crate::spaces::deadline_requests::deadline_request_rows(&app);
 		assert_eq!((rows.len(), rows[0]["id"].as_str(), rows[0]["title"].as_str()), (1, Some(space_id.as_str()), Some("Check: Wave Optics")));
 		app.stores.spaces.add_deadline(&other, &json!({ "kind": "exam", "name": "Quiz", "date": "2099-03-02" })).unwrap();
-		check_spaces(&app, clock::now_ms());
+		check_spaces_now(&app, clock::now_ms());
 		assert_eq!(app.spaces.requests.running.lock().checking.as_deref(), Some(space_id.as_str()), "one check at a time");
+	}
+
+	#[tokio::test]
+	async fn waits_scan_at_most_once_a_minute_and_a_new_deadline_scans_at_once() {
+		let root = scratch_dir("space-checks-throttle");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Wave Optics" })).unwrap()["id"].str_or_empty().to_owned();
+		let t = clock::now_ms();
+		check_spaces(&app, t);
+		assert_eq!(*app.spaces.checks.scanned_at.lock(), Some(t), "nothing to check yet");
+		app.stores.spaces.save_files(&space_id, vec![json!({ "id": "f1", "origin": "copied", "name": "Notes.md", "path": "f1/Notes.md", "kind": "study", "contentFp": "x", "status": "ready", "addedAt": "2026-11-01T10:00:00.000Z" })], &[]).unwrap();
+		app.stores.spaces.add_deadline(&space_id, &json!({ "kind": "exam", "name": "Final", "date": "2099-03-02" })).unwrap();
+		check_spaces(&app, t + SCAN_MS - 1);
+		assert!(app.spaces.requests.running.lock().checking.is_none(), "a wait within the minute scans nothing");
+		check_spaces(&app, t + SCAN_MS);
+		assert_eq!(app.spaces.requests.running.lock().checking.as_deref(), Some(space_id.as_str()));
+		app.spaces.requests.running.lock().checking = None;
+		*app.spaces.checks.scanned_at.lock() = Some(t + SCAN_MS);
+		check_spaces_now(&app, t + SCAN_MS + 1);
+		assert_eq!(app.spaces.requests.running.lock().checking.as_deref(), Some(space_id.as_str()), "a new deadline scans at once");
 	}
 
 	#[test]
@@ -349,7 +384,7 @@ mod tests {
 		assert!(read_record(&app).asked.is_empty(), "a failed run marks nothing");
 		let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
 		runtime.block_on(async {
-			check_spaces(&app, clock::now_ms());
+			check_spaces_now(&app, clock::now_ms());
 			assert!(app.spaces.requests.running.lock().checking.is_none(), "the space cools for an hour");
 			check_spaces(&app, clock::now_ms() + COOL_MS);
 			assert_eq!(app.spaces.requests.running.lock().checking.as_deref(), Some(space_id.as_str()), "and is checked after it");

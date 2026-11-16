@@ -12,7 +12,7 @@ use gs_core::contracts::chat::extracts_facts;
 use super::turn_liveness::is_turn_running;
 use super::turn_service::{LEFTOVER_IDLE_MS, extract_when_idle, run_extraction, uncovered_tokens};
 use crate::App;
-use crate::spaces::space_checks::check_spaces;
+use crate::spaces::space_checks::{check_spaces, check_spaces_now};
 
 /// Once per app run: extract what each lesson has left, now when it already sits idle, else once
 /// it has (its timer died with the last run).
@@ -59,6 +59,6 @@ pub fn catch_up_for_agent(app: &Arc<App>, now: i64) {
 pub fn ask_about_new_deadlines(app: &Arc<App>) {
 	let now = clock::now_ms();
 	if app.bridge.agent_teaching(now) {
-		check_spaces(app, now);
+		check_spaces_now(app, now);
 	}
 }
