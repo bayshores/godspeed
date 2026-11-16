@@ -151,7 +151,7 @@ describe("FilesPage", () => {
 		assert.ok(q("space-add-files"));
 		assert.equal(q("space-folder-status")!.textContent, "Watching CSE 21");
 		const today = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()];
-		assert.equal(q("files-summary")!.textContent, `7 files, 6 study material, 1 space info, 1 new since ${today}`);
+		assert.equal(q("files-summary")!.textContent, `6 study material, 1 space info, 1 new since ${today}`);
 		assert.ok(q("space-file-new-f2"), "a file a scan just found is marked New");
 		assert.ok(q("space-file-new-f1") === null);
 		assert.deepEqual(

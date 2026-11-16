@@ -222,9 +222,10 @@ describe("files-model", () => {
 	});
 
 	it("filesSummary counts files by kind", () => {
-		assert.equal(filesSummary([file({ id: "a" }), file({ id: "b", kind: "info" }), file({ id: "c" })]), "3 files, 2 study material, 1 space info");
-		assert.equal(filesSummary([file({ id: "a" })]), "1 file, 1 study material, 0 space info");
-		assert.equal(filesSummary([]), "0 files");
+		assert.equal(filesSummary([file({ id: "a" }), file({ id: "b", kind: "info" }), file({ id: "c" })]), "2 study material, 1 space info");
+		assert.equal(filesSummary([file({ id: "a" })]), "1 study material");
+		assert.equal(filesSummary([file({ id: "a", kind: "info" })]), "1 space info");
+		assert.equal(filesSummary([]), "");
 	});
 
 

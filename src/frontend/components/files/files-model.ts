@@ -175,10 +175,10 @@ export function listRules(open: readonly boolean[]): ("solid" | "dotted" | null)
 	return open.map((o, i) => (i === 0 ? null : o || open[i - 1] ? "solid" : "dotted"));
 }
 
-/** "46 files, 27 study material, 19 space info". */
+/** "27 study material, 19 space info" (the Files tab already counts the
+ *  files); a kind with none is left out. */
 export function filesSummary(files: readonly SpaceFile[]): string {
 	const info = files.filter((f) => f.kind === "info").length;
-	const parts = [plural(files.length, "file")];
-	if (files.length > 0) parts.push(`${files.length - info} study material`, `${info} space info`);
-	return parts.join(", ");
+	const study = files.length - info;
+	return [study > 0 && `${study} study material`, info > 0 && `${info} space info`].filter(Boolean).join(", ");
 }
