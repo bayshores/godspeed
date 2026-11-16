@@ -9,7 +9,7 @@ import { QueuedSteersBody } from "../../src/frontend/components/queued-steers.ts
 import { visibleQueuedSteers } from "../../src/frontend/components/session-core.ts";
 
 describe("QueuedSteersBody (the quiet queue above the composer)", () => {
-	it("renders one truncated right-aligned line per queued steer — no background, no container chrome", () => {
+	it("renders one truncated line per queued steer, left at the foot of the lesson text, with no background or container", () => {
 		const html = renderToStaticMarkup(
 			<QueuedSteersBody
 				steers={[
@@ -21,7 +21,7 @@ describe("QueuedSteersBody (the quiet queue above the composer)", () => {
 		assert.match(html, /data-testid="queued-steers"/);
 		assert.equal(html.match(/<span/g)?.length, 2, "one span per steer");
 		assert.match(html, /truncate/, "single-line truncation with ellipsis");
-		assert.match(html, /items-end/, "right-aligned stack");
+		assert.doesNotMatch(html, /items-end/, "lined up with the lesson text");
 		assert.match(html, /max-w-\[240px\]/, "fixed-width stash");
 		assert.match(html, /text-ink-2/, "the quietest ink that still reads");
 		assert.doesNotMatch(html, /bg-|border|rounded/, "no background, no container");
