@@ -9,7 +9,7 @@ import { YourTurn, type YourTurnProps } from "./your-turn";
 export const COLUMN_WIDTH = { initial: 480, min: 340, max: 720 };
 
 /** Whether "Your turn" shows: only while something waits for the learner. */
-export function yourTurnShown(s: { pending: boolean; problem: boolean; stop: boolean; next: boolean; stuck: boolean; error: boolean; reviewRefused: boolean }): boolean {
+export function yourTurnShown(s: { pending: boolean; problem: boolean; stop: boolean; stuck: boolean; error: boolean; reviewRefused: boolean }): boolean {
 	return Object.values(s).some(Boolean);
 }
 

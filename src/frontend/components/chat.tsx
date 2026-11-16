@@ -565,7 +565,8 @@ export function Chat({
 	);
 	const [columnWidth, setColumnWidth] = usePaneWidth("your-turn", COLUMN_WIDTH);
 
-	const next = nextReady ? (startLabel ?? (kind === "study" ? "Continue" : "Next problem")) : undefined;
+	// The go-ahead waits for the learner at the foot of the lesson text, unless a stop card is up.
+	const goAhead = nextReady && !lessonStop.card ? { label: startLabel ?? (kind === "study" ? "Continue" : "Next problem"), onGo: sendNext } : null;
 	const stuckLine = stuck && stuckMinutes !== null ? { minutes: stuckMinutes, label: stuck.type === "text" ? "Stop and send again?" : "Stop and try again?", onStop: stopAndRetry } : null;
 	const errorLine = error && { text: lessonError(error.message).text, detail: error.message, onRetry: retry };
 	const problem = activeProblem && {
@@ -575,7 +576,7 @@ export function Chat({
 		part: openProblem ? (problems?.part ?? null) : null,
 	};
 
-	const turnShown = yourTurnShown({ pending: pending !== null, problem: problem !== null, stop: lessonStop.card !== null, next: next !== undefined, stuck: stuckLine !== null, error: errorLine !== null, reviewRefused });
+	const turnShown = yourTurnShown({ pending: pending !== null, problem: problem !== null, stop: lessonStop.card !== null, stuck: stuckLine !== null, error: errorLine !== null, reviewRefused });
 
 	return (
 		<ChatActionsContext.Provider value={chatActions}>
@@ -617,6 +618,7 @@ export function Chat({
 												turnInFlight={turnInFlight}
 												waitingForAgent={waitingForAgent}
 												onStop={lessonStop.card ? null : abortInFlightTurn}
+												goAhead={goAhead}
 												queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
 												arrivalsLive={arrivalsLive}
 												pageMarks={pageMarks}
@@ -657,8 +659,6 @@ export function Chat({
 											onDiscardProblem={() => setAbortAsk("problem")}
 											stop={lessonStop.card}
 											busy={busy}
-											next={next}
-											onNext={sendNext}
 											onTeach={kind === "homework" ? sendTeach : undefined}
 											value={text}
 											onChange={editText}

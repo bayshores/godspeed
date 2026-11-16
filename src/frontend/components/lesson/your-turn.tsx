@@ -32,10 +32,6 @@ export interface YourTurnProps {
 	 *  made it. */
 	stop: { key: string; view: StopCardView; onAction: (action: StopAction) => void } | null;
 	busy: boolean;
-	/** The go-ahead in the pause between problems ("Next problem", "Continue"
-	 *  in a study session, "Start problem 3" in homework); absent outside that pause. */
-	next?: string;
-	onNext: () => void;
 	/** The answer box's text. */
 	value: string;
 	onChange: (v: string) => void;
@@ -63,7 +59,6 @@ const EXIT: Record<BoxView["exit"], { label: string; testId: string }> = {
  * - a waiting question (QuestionDock) and the answer box;
  * - the open problem, worked on in the box;
  * - a place to stop (the stop card);
- * - Next problem / Continue / Start problem in the pause between problems.
  * The button beside "Your turn" is the way out of that state. Talking to
  * the teacher happens in its terminal.
  */
@@ -81,8 +76,6 @@ export function YourTurn({
 	onTeach,
 	stop,
 	busy,
-	next,
-	onNext,
 	value,
 	onChange,
 	onSend,
@@ -101,7 +94,6 @@ export function YourTurn({
 
 	const turn = revealPending ? ({ kind: "read-first" } as const) : pending ? questionTurn(pending.tool, pending.input, picked, pending.appPosed?.kind) : problem ? ({ kind: "problem" } as const) : null;
 	const view = turn && lessonBox({ busy, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
-	const nextShown = !turn && !stop && next !== undefined;
 
 	const act = (action: BoxAction) => {
 		if (action === "send") onSend();
@@ -111,8 +103,7 @@ export function YourTurn({
 	// Enter away from the box presses the main button, unless that would
 	// send what is typed.
 	useEnterSubmits(() => {
-		if (nextShown) onNext();
-		else if (view && view.button.action !== "send" && !view.button.disabled) act(view.button.action);
+		if (view && view.button.action !== "send" && !view.button.disabled) act(view.button.action);
 	});
 
 	const exit = view && EXIT[view.exit];
@@ -127,7 +118,7 @@ export function YourTurn({
 				? `practice:${problem.toolCallId}`
 				: stop
 					? `stop:${stop.key}`
-					: "next";
+					: "notice";
 	// The opening state appears still; later states rise in.
 	const initialModeRef = useRef(mode);
 	const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
@@ -179,11 +170,6 @@ export function YourTurn({
 						</>
 					)}
 					{!pending && !problem && stop && <StopCard view={stop.view} onAction={stop.onAction} />}
-					{nextShown && (
-						<button type="button" data-testid="next-problem-button" onClick={onNext} className="lh-btn lh-btn-main self-start">
-							{next}
-						</button>
-					)}
 				</div>
 			</div>
 

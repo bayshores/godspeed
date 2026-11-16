@@ -20,6 +20,7 @@ import { stopCard } from "../../src/frontend/components/lesson/stop-card-model.t
 import { TeacherColumn, yourTurnShown } from "../../src/frontend/components/lesson/teacher-column.tsx";
 import type { QuestionHandle } from "../../src/frontend/components/question-dock.tsx";
 import { practiceProgress } from "../../src/frontend/components/lesson/practice-progress.ts";
+import { GoAheadKey } from "../../src/frontend/components/lesson/go-ahead-key.tsx";
 import { ReadingPane } from "../../src/frontend/components/lesson/reading-pane.tsx";
 import { TeacherContext, type TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 import { SpaceProvider } from "../../src/frontend/components/space-context.tsx";
@@ -102,7 +103,6 @@ function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 		onDiscardProblem: () => {},
 		stop: null,
 		busy: false,
-		onNext: () => {},
 		value: "",
 		onChange: () => {},
 		onSend: () => {},
@@ -172,24 +172,9 @@ describe("Your turn in each state", () => {
 		assert.doesNotMatch(out, /data-testid="composer"|composer-send|Message/);
 	});
 
-	it("the pause between problems is one Next problem key; a study session's pause says Continue", async () => {
-		const out = html({ next: "Next problem" });
-		assert.match(out, /data-mode="next"/);
-		assert.match(out, /data-testid="next-problem-button"[^>]*>Next problem</);
-		assert.doesNotMatch(out, /data-testid="composer"/, "a message goes in the terminal");
-		assert.match(html({ next: "Continue" }), /data-testid="next-problem-button"[^>]*>Continue</);
-		assert.doesNotMatch(html({ next: "Continue" }), /Next problem/);
-		let next = 0;
-		await mounted(turn({ next: "Next problem", onNext: () => next++ }), async (host) => {
-			await click(host, "next-problem-button");
-			assert.equal(next, 1);
-		});
-	});
-
-	it("a homework lesson's pause says which problem starts", () => {
-		const out = html({ next: "Start problem 3" });
-		assert.match(out, /data-testid="next-problem-button"[^>]*>Start problem 3</);
-		assert.doesNotMatch(out, /Next problem/);
+	it("with only the go-ahead waiting, there is nothing in the column to draw", () => {
+		assert.doesNotMatch(html(), /next-problem-button/);
+		assert.equal(yourTurnShown({ pending: false, problem: false, stop: false, stuck: false, error: false, reviewRefused: false }), false);
 	});
 
 	it("a homework problem offers Teach me this while the teacher is idle, and the click asks for it", async () => {
@@ -668,7 +653,7 @@ describe("the teacher column", () => {
 	});
 
 	it("shows only while something waits for the learner", () => {
-		const none = { pending: false, problem: false, stop: false, next: false, stuck: false, error: false, reviewRefused: false };
+		const none = { pending: false, problem: false, stop: false, stuck: false, error: false, reviewRefused: false };
 		assert.equal(yourTurnShown(none), false);
 		for (const key of Object.keys(none)) assert.equal(yourTurnShown({ ...none, [key]: true }), true, key);
 	});
@@ -699,26 +684,25 @@ describe("the teacher column", () => {
 });
 
 describe("the reading pane", () => {
-	const pane = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}) =>
-		renderToStaticMarkup(
-			<ReadingPane
-				spaceId={undefined}
-				messages={[]}
-				phases={[]}
-				status="submitted"
-				busy
-				turnInFlight={false}
-				waitingForAgent={false}
-				onStop={() => {}}
-				queuedSteers={[]}
-				arrivalsLive={false}
-				pageMarks={new Map()}
-				arrive={() => undefined}
-				onOpenPlan={() => {}}
-				scrollContextRef={{ current: null }}
-				{...over}
-			/>,
-		);
+	const readingProps = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}): React.ComponentProps<typeof ReadingPane> => ({
+		spaceId: undefined,
+		messages: [],
+		phases: [],
+		status: "submitted",
+		busy: true,
+		turnInFlight: false,
+		waitingForAgent: false,
+		onStop: () => {},
+		goAhead: null,
+		queuedSteers: [],
+		arrivalsLive: false,
+		pageMarks: new Map(),
+		arrive: () => undefined,
+		onOpenPlan: () => {},
+		scrollContextRef: { current: null },
+		...over,
+	});
+	const pane = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}) => renderToStaticMarkup(<ReadingPane {...readingProps(over)} />);
 
 	it("Thinking… while the agent works", () => {
 		assert.match(pane(), /Thinking…/);
@@ -729,6 +713,19 @@ describe("the reading pane", () => {
 		assert.match(out, /Thinking…[\s\S]*data-testid="queued-steers"[\s\S]*?and the variance\?[\s\S]*data-testid="stop-turn"[^>]*>Stop</);
 		assert.doesNotMatch(pane({ busy: false, status: "ready" }), /stop-turn/);
 		assert.doesNotMatch(pane({ onStop: null }), /stop-turn/, "the teacher reading ahead at a stop is not stopped");
+	});
+
+	it("the go-ahead key sits at the foot once the teacher is done: Next problem, Continue or Start problem N", async () => {
+		const idle = { busy: false, status: "ready" as const, onStop: null };
+		for (const label of ["Next problem", "Continue", "Start problem 3"]) {
+			assert.match(pane({ ...idle, goAhead: { label, onGo: () => {} } }), new RegExp(`data-testid="next-problem-button"[^>]*>${label}<`));
+		}
+		assert.doesNotMatch(pane(idle), /next-problem-button/);
+		let went = 0;
+		await mounted(<GoAheadKey label="Continue" onGo={() => went++} />, async (host) => {
+			await click(host, "next-problem-button");
+			assert.equal(went, 1);
+		});
 	});
 
 	it("no Thinking… while no agent takes the turn; the pill says it instead", () => {
@@ -758,7 +755,7 @@ describe("the reading pane", () => {
 				</ServerEventsProvider>,
 			);
 		const bubble = inSpaces(
-			<ReadingPane spaceId="spc_lesson" messages={messages} phases={[]} status="ready" busy={false} turnInFlight={false} waitingForAgent={false} onStop={() => {}} queuedSteers={[]} arrivalsLive={false} pageMarks={new Map()} arrive={() => undefined} onOpenPlan={() => {}} scrollContextRef={{ current: null }} />,
+			<ReadingPane {...readingProps({ spaceId: "spc_lesson", messages, status: "ready", busy: false })} />,
 		);
 		assert.match(bubble, /data-testid="user-message"[^>]*style="[^"]*var\(--lh-space-5\)/);
 		assert.doesNotMatch(bubble, /--lh-space-3/);

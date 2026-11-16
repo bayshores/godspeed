@@ -16,6 +16,7 @@ import type { LhViewMessage, Phase3 } from "@/shared/core";
 import { AgentAtWork } from "./agent-at-work";
 import { agentWork } from "./agent-at-work-model";
 import { ArrivalRow, type Arrive } from "./arrivals";
+import { GoAheadKey } from "./go-ahead-key";
 import { MessageRow } from "./message-row";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { cn } from "@/frontend/lib/utils";
@@ -23,8 +24,9 @@ import { cn } from "@/frontend/lib/utils";
 /**
  * THE READING PANE: the lesson as one document on the reading sheet, in
  * the reading type (.lh-reading in globals.css), answered cards inline.
- * While the teacher writes, its foot holds the lines typed to it that wait
- * for it, and Stop.
+ * Its foot holds one thing at a time: while the teacher writes, the lines
+ * typed to it that wait for it and Stop; once it has finished, the
+ * go-ahead key, if the lesson waits for one.
  * Each message is a memoized row, so streaming redraws only the message
  * being written.
  */
@@ -37,6 +39,7 @@ export function ReadingPane({
 	turnInFlight,
 	waitingForAgent,
 	onStop,
+	goAhead,
 	queuedSteers,
 	arrivalsLive,
 	pageMarks,
@@ -56,6 +59,8 @@ export function ReadingPane({
 	waitingForAgent: boolean;
 	/** Stops the running turn; null while the teacher reads ahead at a stop, which is not stopped. */
 	onStop: (() => void) | null;
+	/** The key that moves the lesson on ("Next problem", "Continue", "Start problem 3"); null when none waits. */
+	goAhead: { label: string; onGo: () => void } | null;
 	/** Lines typed to the teacher that wait for its reply to end. */
 	queuedSteers: QueuedSteerLine[];
 	arrivalsLive: boolean;
@@ -118,6 +123,7 @@ export function ReadingPane({
 							</button>
 						</div>
 					)}
+					{goAhead && <GoAheadKey label={goAhead.label} onGo={goAhead.onGo} />}
 				</div>
 			</ConversationContent>
 			<ConversationScrollButton className="bottom-6 left-1/2" />
