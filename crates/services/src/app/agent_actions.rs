@@ -199,6 +199,12 @@ pub fn record_deadline_change(app: &App, space_id: &str, deadline: &Json, change
 	record_agent_action(app, Some(LEARNER_SOURCE), &json!({ "label": label, "spaceId": space_id, "target": target, "page": "/" }), clock::now_ms());
 }
 
+/// The learner undid what a space check changed: "Undid the check of CSE 21".
+pub fn record_check_undo(app: &App, space_id: &str, space_name: &str) {
+	let target = json!({ "kind": "space", "id": space_id });
+	record_agent_action(app, Some(LEARNER_SOURCE), &json!({ "label": format!("Undid the check of {space_name}"), "spaceId": space_id, "target": target, "page": "/space" }), clock::now_ms());
+}
+
 /// The saved actions, newest first.
 pub fn recent_agent_actions(app: &App) -> Vec<Json> {
 	with_list(app, |list| list.iter().rev().cloned().collect())

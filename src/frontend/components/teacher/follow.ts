@@ -65,9 +65,12 @@ export function followMoves(
 /** How long a change on another page keeps its "Go to" button. */
 export const GO_OFFER_MS = 10 * 60_000;
 
-/** The change to offer "Go to" for while Follow is off: the newest one,
- *  while it is fresh and its page isn't the one you're on. */
-export function goOffer<A extends { page: string; at: string }>(newest: A | undefined, here: { follow: boolean; path: string; now: number }): A | null {
+/** The change to offer "Go to" for while Follow is off: the newest one
+ *  that is not a background check's (its notice card is the tell), while
+ *  it is fresh and its page isn't the one you're on. `recent` is newest
+ *  first. */
+export function goOffer<A extends { page: string; at: string; background?: true }>(recent: readonly A[], here: { follow: boolean; path: string; now: number }): A | null {
+	const newest = recent.find((a) => !a.background);
 	if (!newest || here.follow) return null;
 	const page = safePage(newest.page);
 	if (!page || page === here.path) return null;

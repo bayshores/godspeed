@@ -296,12 +296,12 @@ mod tests {
 
 	#[tokio::test]
 	async fn a_goal_space_studies_its_path_one_topic_at_a_time() {
-		use crate::spaces::space_actions::{SendFirstMessage, space_actions};
+		use crate::spaces::space_actions::{Mark, SendFirstMessage, space_actions};
 		use gs_core::spaces::space_tools::ToolOutcome;
 		let root = scratch_dir("lesson-path");
 		let app = test_app(&root);
 		let send: SendFirstMessage = Arc::new(|_, _| Box::pin(async { Ok(()) }));
-		let actions = space_actions(&app, Some("Teacher"), send, true);
+		let actions = space_actions(&app, Some("Teacher"), send, Mark::Started);
 		let value = |outcome: ToolOutcome| match outcome {
 			ToolOutcome::Ok { value, .. } => value,
 			ToolOutcome::Err(error) => panic!("{error}"),

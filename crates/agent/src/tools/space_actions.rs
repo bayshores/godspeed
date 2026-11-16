@@ -9,7 +9,9 @@ use gs_core::spaces::space_tools::{SPACE_ARG_TEXT, SPACE_TOOL_TEXT, SpaceArgText
 use gs_json::{Json, json, stringify};
 
 use super::fn_tool::FnTool;
-use gs_core::session::schema::{boolean, no_arguments, object, one_of_literals, string, string_min, string_or_null, strings};
+use gs_core::contracts::space::{MAX_PATH_TOPICS, PATH_GOAL_MAX};
+use gs_core::session::schema::{boolean, described, no_arguments, object, one_of_literals, string, string_min, string_or_null, strings};
+use gs_core::spaces::space_path::PATH_COVERS_MAX;
 
 /// Runs one space tool by name over its validated arguments (server/space-actions.ts).
 pub type SpaceActions = Arc<dyn Fn(&str, Json) -> BoxFuture<'static, ToolOutcome> + Send + Sync>;
@@ -33,6 +35,15 @@ fn file_kind(text: &SpaceArgText) -> Json {
 
 fn deadline_kind(text: &SpaceArgText) -> Json {
 	one_of_literals(&DEADLINE_KINDS, text.deadline_kind)
+}
+
+/// A path as `update_space` takes it: a goal and its topics in order.
+fn path_schema(t: &SpaceArgText) -> Json {
+	let goal = json!({ "type": "string", "minLength": 1, "maxLength": PATH_GOAL_MAX, "description": t.path_goal });
+	let covers = json!({ "type": "string", "minLength": 1, "maxLength": PATH_COVERS_MAX, "description": t.path_covers });
+	let topic = object(&["name", "covers"], vec![("name", json!({ "type": "string", "minLength": 1 })), ("covers", covers)]);
+	let topics = json!({ "type": "array", "items": topic, "minItems": 1, "maxItems": MAX_PATH_TOPICS });
+	described(object(&["goal", "topics"], vec![("goal", goal), ("topics", topics)]), t.path)
 }
 
 /// The input schema of one space tool.
@@ -83,6 +94,8 @@ fn schema_of(name: &str) -> Json {
 			],
 		),
 		"remove_space_deadline" => object(&["space_id", "deadline_id"], vec![id(), ("deadline_id", space_id())]),
+		// A space check's own: only the path and the description.
+		"update_space" => object(&["space_id"], vec![id(), ("description", string(t.description)), ("path", path_schema(t))]),
 		_ => unreachable!("only the space tools named here are built"),
 	}
 }
@@ -122,7 +135,9 @@ pub fn deadline_request_tools(actions: &SpaceActions, files: bool) -> Vec<FnTool
 	READS.iter().chain(writes).copied().map(|name| space_tool(actions, name)).collect()
 }
 
-/// What a space check reads and changes: the space's deadlines. `actions` limits the arguments.
-pub fn space_check_tools(actions: &SpaceActions) -> Vec<FnTool> {
-	READS.iter().chain(&["add_space_deadline", "update_space_deadline"]).copied().map(|name| space_tool(actions, name)).collect()
+/// What a space check reads and changes: the space's deadlines, and with `path` its path and
+/// description. `actions` limits the arguments.
+pub fn space_check_tools(actions: &SpaceActions, path: bool) -> Vec<FnTool> {
+	let writes: &[&'static str] = if path { &["add_space_deadline", "update_space_deadline", "update_space"] } else { &["add_space_deadline", "update_space_deadline"] };
+	READS.iter().chain(writes).copied().map(|name| space_tool(actions, name)).collect()
 }

@@ -98,12 +98,19 @@ describe("follow", () => {
 	it("with Follow off, offers 'Go to' for a fresh change on another page", () => {
 		const t = Date.parse("2026-10-29T08:00:00Z");
 		const change = { page: "/chat/c1", at: new Date(t).toISOString() };
-		assert.equal(goOffer(change, { follow: false, path: "/", now: t + 1000 }), change);
-		assert.equal(goOffer(change, { follow: true, path: "/", now: t + 1000 }), null, "Follow on goes there itself");
-		assert.equal(goOffer(change, { follow: false, path: "/chat/c1", now: t + 1000 }), null, "already there");
-		assert.equal(goOffer(change, { follow: false, path: "/", now: t + GO_OFFER_MS }), null, "too old");
-		assert.equal(goOffer({ page: "/settings", at: change.at }, { follow: false, path: "/", now: t }), null);
-		assert.equal(goOffer(undefined, { follow: false, path: "/", now: t }), null);
+		assert.equal(goOffer([change], { follow: false, path: "/", now: t + 1000 }), change);
+		assert.equal(goOffer([change], { follow: true, path: "/", now: t + 1000 }), null, "Follow on goes there itself");
+		assert.equal(goOffer([change], { follow: false, path: "/chat/c1", now: t + 1000 }), null, "already there");
+		assert.equal(goOffer([change], { follow: false, path: "/", now: t + GO_OFFER_MS }), null, "too old");
+		assert.equal(goOffer([{ page: "/settings", at: change.at }], { follow: false, path: "/", now: t }), null);
+		assert.equal(goOffer([], { follow: false, path: "/", now: t }), null);
+	});
+	it("never offers a background check's change: its notice card is the tell", () => {
+		const t = Date.parse("2026-10-29T08:00:00Z");
+		const change = { page: "/chat/c1", at: new Date(t).toISOString() };
+		const checked = { page: "/space/deadline/ddl_1", at: new Date(t + 500).toISOString(), background: true as const };
+		assert.equal(goOffer([checked], { follow: false, path: "/", now: t + 1000 }), null);
+		assert.equal(goOffer([checked, change], { follow: false, path: "/", now: t + 1000 }), change, "the newest change of its own");
 	});
 	it("names the page on the button", () => {
 		assert.equal(pageName("/chat/c1"), "lesson");

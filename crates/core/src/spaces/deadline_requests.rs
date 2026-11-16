@@ -5,10 +5,11 @@
 use std::collections::{BTreeSet, HashSet};
 
 use gs_base::text::cmp16;
-use gs_base::time;
+use gs_base::{hash, time};
 use gs_json::{Json, Obj};
 
 use super::prep_upgrade::{ABOUT_FILE_NAME, GUIDE_FILE_NAME};
+use crate::contracts::space::MAX_PATH_TOPICS;
 use super::today_note::local_day;
 
 /// Files added this soon after a space's first file came with its setup, which handles them.
@@ -202,14 +203,33 @@ fn added_ms(file: &Json) -> Option<i64> {
 	time::parse_date(file["addedAt"].str_or_empty())
 }
 
+/// Rule 4: a path with fewer than `MAX_PATH_TOPICS` topics and at most this many not strong
+/// grows. With none left the agent may say the goal is reached.
+const PATH_LOW: usize = 3;
+
+/// Rule 4 for `path`, the progress payload's path (each topic with its `status`), unless this
+/// very list of topics was asked about.
+fn path_reason(space_id: &str, path: &Json, record: &AskedRecord) -> Option<Reason> {
+	let topics = path["topics"].items();
+	let left = topics.iter().filter(|t| t["status"].as_str() != Some("strong")).count();
+	if topics.is_empty() || topics.len() >= MAX_PATH_TOPICS || left > PATH_LOW {
+		return None;
+	}
+	let ids: Vec<&str> = topics.iter().map(|t| t["id"].str_or_empty()).collect();
+	let asked = format!("{space_id}:{}", &hash::sha256_text(&ids.join(","))[..12]);
+	(!record.path_asked.contains(&asked)).then_some(Reason::Path { asked, topics: topics.len(), left })
+}
+
 /// The space's reasons to be checked (none for a closed space): rule 1 with `asked` (the
-/// record's, the old Talk chat's and the running requests' deadline ids), rules 2 and 3 for
-/// files added after the record's `since`, leaving out those that came with the space's setup.
-pub fn space_reasons(space: &Json, today: &str, record: &AskedRecord, asked: &HashSet<String>) -> Vec<Reason> {
+/// record's, the old Talk chat's and the running requests' deadline ids), rule 4 for its `path`,
+/// and rules 2 and 3 for files added after the record's `since`, leaving out those that came with
+/// the space's setup. Files the agent wrote itself never count as info files.
+pub fn space_reasons(space: &Json, path: Option<&Json>, today: &str, record: &AskedRecord, asked: &HashSet<String>) -> Vec<Reason> {
 	if space["closed"].truthy() {
 		return Vec::new();
 	}
 	let mut reasons: Vec<Reason> = unlinked_deadlines(std::slice::from_ref(space), today, asked).into_iter().map(Reason::Unlinked).collect();
+	reasons.extend(path.and_then(|p| path_reason(space["id"].str_or_empty(), p, record)));
 	let Some(since) = record.since.as_deref().and_then(time::parse_date) else { return reasons };
 	let files = space["files"].items();
 	let Some(first) = files.iter().filter_map(added_ms).min() else { return reasons };
@@ -220,7 +240,7 @@ pub fn space_reasons(space: &Json, today: &str, record: &AskedRecord, asked: &Ha
 			(f["kind"].as_str() == Some(kind) && f["status"].as_str() == Some("ready") && at >= first + SETUP_MS).then_some((f, at))
 		})
 	};
-	for (f, at) in ready("info") {
+	for (f, at) in ready("info").filter(|(f, _)| !f["written"].truthy()) {
 		let (id, fp) = (f["id"].str_or_empty(), f["contentFp"].str_or_empty());
 		let prefix = format!("{id}:");
 		let counts = match record.checked_info.iter().find(|key| key.starts_with(&prefix)) {
@@ -413,35 +433,66 @@ mod tests {
 	#[test]
 	fn a_space_is_checked_for_unlinked_deadlines_and_files_added_after_its_setup_and_the_first_check() {
 		let space = checked_space();
-		let found = space_reasons(&space, "2026-11-02", &record("2026-11-01T11:00:00.000Z"), &HashSet::new());
+		let found = space_reasons(&space, None, "2026-11-02", &record("2026-11-01T11:00:00.000Z"), &HashSet::new());
 		assert_eq!(names(&found), ["unlinked d_quiz", "info f_hw5", "weigh f_w7 for d_final"], "setup files, pending files, past and left-out deadlines don't count");
-		let later = space_reasons(&space, "2026-11-02", &record("2026-11-01T13:00:00.000Z"), &HashSet::new());
+		let later = space_reasons(&space, None, "2026-11-02", &record("2026-11-01T13:00:00.000Z"), &HashSet::new());
 		assert_eq!(names(&later), ["unlinked d_quiz"], "files from before the first check are never checked");
-		assert_eq!(names(&space_reasons(&space, "2026-11-02", &AskedRecord::default(), &["d_quiz".to_owned()].into())), Vec::<String>::new(), "no first check yet");
+		assert_eq!(names(&space_reasons(&space, None, "2026-11-02", &AskedRecord::default(), &["d_quiz".to_owned()].into())), Vec::<String>::new(), "no first check yet");
 		let mut closed = space.clone();
 		closed.as_obj_mut().unwrap().insert("closed", true);
-		assert!(space_reasons(&closed, "2026-11-02", &record("2026-11-01T11:00:00.000Z"), &HashSet::new()).is_empty());
+		assert!(space_reasons(&closed, None, "2026-11-02", &record("2026-11-01T11:00:00.000Z"), &HashSet::new()).is_empty());
 	}
 
 	#[test]
 	fn a_study_file_counts_only_for_deadlines_due_on_or_after_the_day_it_came() {
 		let mut space = checked_space();
 		space.get_mut("deadlines").unwrap().as_arr_mut().unwrap()[0].as_obj_mut().unwrap().insert("date", "2026-10-31");
-		let found = space_reasons(&space, "2026-10-31", &record("2026-11-01T11:00:00.000Z"), &HashSet::new());
+		let found = space_reasons(&space, None, "2026-10-31", &record("2026-11-01T11:00:00.000Z"), &HashSet::new());
 		assert!(!names(&found).iter().any(|n| n.starts_with("weigh")), "{found:?}");
+	}
+
+	#[test]
+	fn a_file_the_agent_wrote_is_never_an_info_reason() {
+		let mut space = checked_space();
+		space.get_mut("files").unwrap().as_arr_mut().unwrap()[2].as_obj_mut().unwrap().insert("written", true);
+		let found = space_reasons(&space, None, "2026-11-02", &record("2026-11-01T11:00:00.000Z"), &HashSet::new());
+		assert!(!names(&found).contains(&"info f_hw5".to_owned()), "{found:?}");
+	}
+
+	/// A path of `n` topics, the first `strong` of them strong.
+	fn path(n: usize, strong: usize) -> Json {
+		let topics: Vec<Json> = (0..n).map(|i| json!({ "id": format!("pth_{i}"), "name": format!("Topic {i}"), "status": if i < strong { "strong" } else { "new" } })).collect();
+		json!({ "goal": "backend developer", "topics": topics })
+	}
+
+	#[test]
+	fn a_path_grows_once_three_or_fewer_topics_are_left_and_is_asked_once_per_list() {
+		let space = checked_space();
+		let reasons = |p: &Json, asked: &AskedRecord| space_reasons(&space, Some(p), "2026-11-02", asked, &["d_quiz".to_owned()].into());
+		let none = AskedRecord::default();
+		assert!(reasons(&path(10, 6), &none).is_empty(), "four left");
+		assert!(reasons(&path(40, 38), &none).is_empty(), "the path is full");
+		let low = reasons(&path(10, 7), &none);
+		let Some(Reason::Path { asked, topics: 10, left: 3 }) = low.first() else { panic!("{low:?}") };
+		assert!(asked.starts_with("spc_a:") && asked.len() == "spc_a:".len() + 12);
+		let mut marked = AskedRecord::default();
+		marked.mark(&low);
+		assert!(reasons(&path(10, 7), &marked).is_empty(), "the same list is asked once");
+		assert!(reasons(&path(10, 10), &marked).is_empty(), "the same list with all strong");
+		assert_eq!(reasons(&path(11, 9), &marked).len(), 1, "a list that grew counts again");
 	}
 
 	#[test]
 	fn reasons_asked_once_stay_asked_and_an_info_file_read_again_counts_again() {
 		let space = checked_space();
 		let mut asked = record("2026-11-01T11:00:00.000Z");
-		let found = space_reasons(&space, "2026-11-02", &asked, &HashSet::new());
+		let found = space_reasons(&space, None, "2026-11-02", &asked, &HashSet::new());
 		asked.mark(&found);
 		assert!(asked.asked.contains("d_quiz"));
-		assert!(space_reasons(&space, "2026-11-02", &asked, &asked.asked.iter().cloned().collect()).is_empty());
+		assert!(space_reasons(&space, None, "2026-11-02", &asked, &asked.asked.iter().cloned().collect()).is_empty());
 		let mut changed = space.clone();
 		changed.get_mut("files").unwrap().as_arr_mut().unwrap()[2].as_obj_mut().unwrap().insert("contentFp", "fp_new");
-		let again = space_reasons(&changed, "2026-11-02", &asked, &asked.asked.iter().cloned().collect());
+		let again = space_reasons(&changed, None, "2026-11-02", &asked, &asked.asked.iter().cloned().collect());
 		assert_eq!(names(&again), ["info f_hw5"]);
 		asked.mark(&again);
 		assert_eq!(asked.checked_info.iter().collect::<Vec<_>>(), ["f_hw5:fp_new"], "one entry per file");
@@ -462,7 +513,7 @@ mod tests {
 	#[test]
 	fn the_check_names_its_rules_reasons_and_every_deadline() {
 		let space = checked_space();
-		let found = space_reasons(&space, "2026-11-02", &record("2026-11-01T11:00:00.000Z"), &HashSet::new());
+		let found = space_reasons(&space, None, "2026-11-02", &record("2026-11-01T11:00:00.000Z"), &HashSet::new());
 		let text = check_text(&space, &found);
 		assert!(text.starts_with("Check space CSE 21 (space_id spc_a)"));
 		assert!(!text.contains("- Path:"), "the path rule only with a path reason");

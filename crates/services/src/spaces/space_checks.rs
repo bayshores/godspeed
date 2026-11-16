@@ -15,7 +15,7 @@ use gs_agent::tools::fn_tool::FnTool;
 use gs_agent::tools::space_actions::space_check_tools;
 use gs_base::events::EventKind;
 use gs_base::{clock, ids, time};
-use gs_core::spaces::check_lines::{DeadlineChange, change_lines};
+use gs_core::spaces::check_lines::{DeadlineChange, FieldChange, change_lines};
 use gs_core::spaces::deadline_requests::{Reason, check_text, space_reasons};
 use gs_core::spaces::today_note::local_day;
 use gs_json::{Json, Obj, json};
@@ -25,6 +25,8 @@ use super::deadline_requests::{RunWrites, asked, change_record, last_line, read_
 use super::lifecycle::update_space;
 use super::space_actions::Mark;
 use crate::App;
+use crate::app::agent_actions::record_check_undo;
+use crate::graph::progress::path_for;
 use crate::outcome::{Outcome, Stop, refuse};
 
 /// A space whose check failed is not checked again for this long.
@@ -32,22 +34,24 @@ const COOL_MS: i64 = 60 * 60_000;
 /// The newest runs kept for Undo.
 const RUNS_KEPT: usize = 20;
 
-/// What a check may write: each tool with the arguments it may give.
-const CHECK_WRITES: [(&str, &[&str]); 2] = [
+/// What a check may write: each tool with the arguments it may give. `update_space` is among its
+/// tools only when the path is a reason.
+const CHECK_WRITES: [(&str, &[&str]); 3] = [
 	("add_space_deadline", &["space_id", "deadlines"]),
 	("update_space_deadline", &["space_id", "deadline_id", "kind", "name", "date", "time", "file_ids", "left_out_ids", "source", "assignment_file_id", "about_file_id"]),
+	("update_space", &["space_id", "path", "description"]),
 ];
 
 /// The space fields a check may change, kept before and after like its deadlines.
-const CHECK_FIELDS: [&str; 1] = ["description"];
+const CHECK_FIELDS: [&str; 2] = ["path", "description"];
 
 const GONE: &str = "This change can no longer be undone.";
 
-/// What one run changed: each deadline by id, and each space field with its value before and after.
+/// What one run changed: each deadline by id, and each space field.
 #[derive(Default)]
 struct Copies {
 	deadlines: Vec<(String, DeadlineChange)>,
-	fields: Vec<(&'static str, Json, Json)>,
+	fields: Vec<FieldChange>,
 }
 
 impl Copies {
@@ -113,9 +117,9 @@ impl CheckWrites {
 			if before[key] == after[key] {
 				continue;
 			}
-			match copies.fields.iter_mut().find(|(seen, ..)| *seen == key) {
-				Some((_, _, now)) => *now = after[key].clone(),
-				None => copies.fields.push((key, before[key].clone(), after[key].clone())),
+			match copies.fields.iter_mut().find(|f| f.key == key) {
+				Some(change) => change.after = after[key].clone(),
+				None => copies.fields.push(FieldChange { key, before: before[key].clone(), after: after[key].clone() }),
 			}
 		}
 	}
@@ -147,7 +151,14 @@ pub fn check_spaces(app: &Arc<App>, now: i64) {
 		if busy.contains(id) || cooling.get(id).is_some_and(|until| now < *until) {
 			continue;
 		}
-		let reasons = space_reasons(&space, &today, &record, &skip);
+		let path = match path_for(app, id) {
+			Ok(path) => path,
+			Err(err) => {
+				eprintln!("[space-check] reading the path of {id} failed: {err}");
+				None
+			}
+		};
+		let reasons = space_reasons(&space, path.as_ref(), &today, &record, &skip);
 		if !reasons.is_empty() {
 			start_check(app, &space, reasons);
 			return;
@@ -170,7 +181,8 @@ fn start_check(app: &Arc<App>, space: &Json, reasons: Vec<Reason>) {
 	app.events.emit(EventKind::ActivityChanged, json!({}));
 
 	let writes = Arc::new(RunWrites { check: Some(CheckWrites::new(&space_id)), ..RunWrites::default() });
-	let tools = space_check_tools(&writing_actions(app, writes.clone(), Mark::Background));
+	let path = reasons.iter().any(|r| matches!(r, Reason::Path { .. }));
+	let tools = space_check_tools(&writing_actions(app, writes.clone(), Mark::Background), path);
 	let agent = app.bridge.agent_name(clock::now_ms()).unwrap_or_else(|| "Your agent".to_owned());
 	let request = DeadlineRequest { label, prompt: check_text(space, &reasons), tools: tools.into_iter().map(FnTool::into_arc).collect() };
 	let end = CheckEnd { app: app.clone(), space_id };
@@ -200,14 +212,14 @@ fn check_ended(end: &CheckEnd, reasons: &[Reason], outcome: Result<String, RunEr
 /// A run that changed something is kept for Undo and announced with its lines.
 fn keep_run(app: &App, space_id: &str, mut copies: Copies, agent: &str, said: Option<String>) {
 	copies.deadlines.retain(|(_, c)| c.before.as_ref() != Some(&c.after));
-	copies.fields.retain(|(_, before, after)| before != after);
+	copies.fields.retain(|f| f.before != f.after);
 	if copies.is_empty() {
 		return;
 	}
 	let record = app.stores.spaces.get_space(space_id).unwrap_or_default();
 	let names: HashMap<String, String> = record["files"].items().iter().map(|f| (f["id"].str_or_empty().to_owned(), f["name"].str_or_empty().to_owned())).collect();
 	let changes: Vec<DeadlineChange> = copies.deadlines.iter().map(|(_, c)| c.clone()).collect();
-	let lines = change_lines(&changes, &names);
+	let lines = change_lines(&changes, &copies.fields, &names);
 	let id = ids::uuid_hex("chk", 12);
 	let mut runs = app.spaces.checks.runs.lock();
 	runs.push_back(CheckRun { id: id.clone(), space_id: space_id.to_owned(), copies });
@@ -227,7 +239,8 @@ fn has_work(app: &App, space_id: &str, deadline_id: &str) -> Result<bool, String
 /// Undoes a check's changes that are still as it left them: a deadline it added is removed, any
 /// other goes back to its copy from before. `{ undone, changedSince, inUse }`: how many went
 /// back, the names of deadlines (or keys of fields) changed since, and the names of added
-/// deadlines kept for their mock or cheat sheet. A run is undone once.
+/// deadlines kept for their mock or cheat sheet. A run is undone once, and the activity log
+/// lists it as the learner's.
 pub fn undo_check(app: &Arc<App>, space_id: &str, run_id: &str) -> Outcome<Json> {
 	let run = {
 		let mut runs = app.spaces.checks.runs.lock();
@@ -248,7 +261,7 @@ pub fn undo_check(app: &Arc<App>, space_id: &str, run_id: &str) -> Outcome<Json>
 			changed_since.push(name);
 		}
 	}
-	for (key, before, after) in &run.copies.fields {
+	for FieldChange { key, before, after } in &run.copies.fields {
 		let now = app.stores.spaces.get_space(space_id).map(|s| s[*key].clone());
 		if now.as_ref() != Some(after) {
 			changed_since.push((*key).to_owned());
@@ -259,6 +272,8 @@ pub fn undo_check(app: &Arc<App>, space_id: &str, run_id: &str) -> Outcome<Json>
 		update_space(app, space_id, &Json::Obj(patch)).map_err(|f| Stop::Throw(f.error))?;
 		undone += 1;
 	}
+	let name = app.stores.spaces.get_space(space_id).map(|s| s["name"].str_or_empty().to_owned()).unwrap_or_default();
+	record_check_undo(app, space_id, &name);
 	Ok(json!({ "undone": undone, "changedSince": changed_since, "inUse": in_use }))
 }
 
@@ -426,17 +441,47 @@ mod tests {
 		let (space_id, _) = space_with_exam(&app);
 		app.stores.spaces.update_space(&space_id, &json!({ "description": "Grown" })).unwrap();
 		for n in 0..=RUNS_KEPT {
-			let copies = Copies { fields: vec![("description", json!(""), json!(format!("Grown {n}")))], ..Copies::default() };
+			let copies = Copies { fields: vec![FieldChange { key: "description", before: json!(""), after: json!(format!("Grown {n}")) }], ..Copies::default() };
 			keep_run(&app, &space_id, copies, "Claude Code", None);
 		}
 		let runs: Vec<String> = app.spaces.checks.runs.lock().iter().map(|r| r.id.clone()).collect();
 		assert_eq!(runs.len(), RUNS_KEPT);
-		let copies = Copies { fields: vec![("description", json!(""), json!("Grown"))], ..Copies::default() };
+		let copies = Copies { fields: vec![FieldChange { key: "description", before: json!(""), after: json!("Grown") }], ..Copies::default() };
 		keep_run(&app, &space_id, copies, "Claude Code", None);
 		let newest = app.spaces.checks.runs.lock().back().unwrap().id.clone();
 		assert_eq!(undo_check(&app, &space_id, &runs[0]), Err(Stop::Refuse(404, GONE.to_owned())), "the oldest went");
 		assert_eq!(undo_check(&app, &space_id, &runs[1]).unwrap(), json!({ "undone": 0, "changedSince": ["description"], "inUse": [] }));
 		assert_eq!(undo_check(&app, &space_id, &newest).unwrap(), json!({ "undone": 1, "changedSince": [], "inUse": [] }));
 		assert_eq!(app.stores.spaces.get_space(&space_id).unwrap()["description"], json!(""));
+		let logged = recent_agent_actions(&app).into_iter().filter(|a| a["label"].as_str() == Some("Undid the check of Wave Optics")).collect::<Vec<_>>();
+		assert_eq!(logged.len(), 1, "one entry per undo, as the learner's (repeats within minutes fold)");
+		assert_eq!(logged[0]["agent"], json!("you"));
+	}
+
+	#[tokio::test]
+	async fn a_path_running_low_is_checked_grown_and_undone() {
+		let root = scratch_dir("space-checks-path");
+		let app = test_app(&root);
+		let topic = |i: usize| json!({ "id": format!("pth_{i}"), "name": format!("Topic {i}"), "covers": "c" });
+		let path = json!({ "goal": "backend developer", "topics": (0..3).map(topic).collect::<Vec<_>>() });
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Backend", "path": path })).unwrap()["id"].str_or_empty().to_owned();
+		check_spaces(&app, clock::now_ms());
+		assert_eq!(app.spaces.requests.running.lock().checking.as_deref(), Some(space_id.as_str()), "3 topics, none strong");
+
+		let (writes, actions) = check_run(&app, &space_id);
+		let renamed = actions("update_space", json!({ "space_id": space_id, "name": "Backend 2" })).await;
+		assert_eq!(refusal(renamed), "name is not for this check.");
+		let grown = json!({ "goal": "backend developer", "topics": (0..5).map(|i| json!({ "name": format!("Topic {i}"), "covers": "c" })).collect::<Vec<_>>() });
+		let went = actions("update_space", json!({ "space_id": space_id, "path": grown, "description": "From roadmap.sh" })).await;
+		assert!(matches!(went, ToolOutcome::Ok { .. }));
+		let mut events = app.events.subscribe();
+		let end = CheckEnd { app: app.clone(), space_id: space_id.clone() };
+		check_ended(&end, &[], Ok("Added 2 topics.".to_owned()), &writes, "Claude Code");
+		drop(end);
+		let checked = std::iter::from_fn(|| events.try_recv().ok()).find(|e| e.kind == EventKind::SpaceChecked).expect("announced");
+		assert_eq!(checked.payload["lines"], json!(["Added 2 path topics", "Updated the description"]));
+		assert_eq!(undo_check(&app, &space_id, checked.payload["run"].str_or_empty()).unwrap()["undone"], json!(2));
+		let back = app.stores.spaces.get_space(&space_id).unwrap();
+		assert_eq!((back["path"]["topics"].items().len(), back["description"].clone()), (3, json!("")));
 	}
 }

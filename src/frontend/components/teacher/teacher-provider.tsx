@@ -166,8 +166,7 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 	// "Go to": with Follow off, the newest change on another page.
 	const [offer, setOffer] = useState<AgentAction | null>(null);
 	useEffect(() => {
-		const latest = recent[0];
-		const next = goOffer(latest, { follow: followOn, path: pathname, now: Date.now() });
+		const next = goOffer(recent, { follow: followOn, path: pathname, now: Date.now() });
 		setOffer(next);
 		if (!next) return;
 		const t = setTimeout(() => setOffer(null), GO_OFFER_MS - (Date.now() - Date.parse(next.at)));
