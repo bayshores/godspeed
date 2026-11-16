@@ -1,5 +1,14 @@
 [
 	{
+		"version": "0.6.72",
+		"date": "2026-11-15",
+		"changes": [
+			"When you press Ask Claude on a deadline, your own agent does it in its window, where you can watch.",
+			"Reading new files and checking your spaces run in the background helper, so they stay out of your chat.",
+			"The background helper starts only when a job is waiting that nobody took."
+		]
+	},
+	{
 		"version": "0.6.71",
 		"date": "2026-11-15",
 		"changes": [
