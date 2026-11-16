@@ -149,8 +149,9 @@ pub fn mcp_json(folder: &str, platform: Platform) -> String {
 }
 
 /// .godspeed/claude-settings.json: turns on the folder's server, lets the agent use godspeed's
-/// tools, the waiter and web search (what an interview is like is looked up online) without asking, and tells
-/// the app when the session starts compacting and when it lost its context. Fetching a page still
+/// tools, the waiter and web search (what an interview is like is looked up online) without asking, tells
+/// the app when the session starts compacting and when it lost its context, and hands each line the
+/// learner types to the app first (typed.mjs). Fetching a page still
 /// asks: text hidden in a space file could send the learner's data out.
 pub fn claude_settings(folder: &str, platform: Platform) -> String {
 	let hook = |script: &str| json!([{ "type": "command", "command": "node", "args": [join(folder, platform, &[".godspeed", script])], "timeout": 10 }]);
@@ -160,6 +161,7 @@ pub fn claude_settings(folder: &str, platform: Platform) -> String {
 		"permissions": { "allow": ["mcp__godspeed__*", format!("Bash({WAITER})"), format!("Bash({WAITER} *)"), "WebSearch"] },
 		"hooks": {
 			"PreCompact": [{ "hooks": hook("compacting.mjs") }],
+			"UserPromptSubmit": [{ "hooks": hook("typed.mjs") }],
 			"SessionStart": [{ "matcher": "compact", "hooks": forget.clone() }],
 			"SessionEnd": [{ "matcher": "clear", "hooks": forget }],
 		},
@@ -168,9 +170,10 @@ pub fn claude_settings(folder: &str, platform: Platform) -> String {
 }
 
 /// Codex's arguments: godspeed's server through the folder's connector, its tools pre-approved,
-/// a timeout longer than wait_for_work's 600 s, and the app terminal's id and data folder passed
-/// on to the connector (Codex gives a server only the variables it names). TOML literal strings
-/// ('...'), so no value needs escaping.
+/// a timeout longer than wait_for_work's 600 s, the app terminal's id and data folder passed
+/// on to the connector (Codex gives a server only the variables it names), and the prompt hook
+/// that hands each line the learner types to the app first (a hook given here needs no review).
+/// TOML literal strings ('...'), so no value needs escaping: the folder has no quotes in it.
 fn codex_args(folder: &str, platform: Platform, prompt: &str) -> Vec<String> {
 	let server = "mcp_servers.godspeed";
 	let connector = join(folder, platform, &[".godspeed", "connect.mjs"]);
@@ -185,6 +188,8 @@ fn codex_args(folder: &str, platform: Platform, prompt: &str) -> Vec<String> {
 		format!("{server}.default_tools_approval_mode='approve'"),
 		"-c".to_owned(),
 		format!("{server}.env_vars=['GODSPEED_TERMINAL','GODSPEED_DATA_DIR']"),
+		"-c".to_owned(),
+		format!("hooks.UserPromptSubmit=[{{hooks=[{{type='command',command='node \"{}\"',timeout=10}}]}}]", join(folder, platform, &[".godspeed", "typed.mjs"])),
 		prompt.to_owned(),
 	]
 }
@@ -199,8 +204,9 @@ fn posix_quote(arg: &str) -> String {
 	if plain_arg(arg) { arg.to_owned() } else { format!("\"{}\"", SPECIAL.replace(arg, "\\$&")) }
 }
 
+/// A quote inside reaches the program as `\"`, as Windows programs split their arguments.
 fn cmd_quote(arg: &str) -> String {
-	if plain_arg(arg) { arg.to_owned() } else { format!("\"{arg}\"") }
+	if plain_arg(arg) { arg.to_owned() } else { format!("\"{}\"", arg.replace('"', "\\\"")) }
 }
 
 fn claude_args() -> Vec<String> {
@@ -363,13 +369,17 @@ mod tests {
 		let settings = gs_json::parse(&claude_settings("/Users/me/godspeed", Platform::Darwin)).unwrap();
 		assert_eq!(gs_json::stringify(&settings["permissions"]["allow"]), r#"["mcp__godspeed__*","Bash(node .godspeed/wait-for-work.mjs)","Bash(node .godspeed/wait-for-work.mjs *)","WebSearch"]"#);
 		assert_eq!(gs_json::stringify(&settings["hooks"]["PreCompact"]), r#"[{"hooks":[{"type":"command","command":"node","args":["/Users/me/godspeed/.godspeed/compacting.mjs"],"timeout":10}]}]"#);
-		assert_eq!(settings["hooks"].as_obj().unwrap().keys().cloned().collect::<Vec<_>>(), ["PreCompact", "SessionStart", "SessionEnd"]);
+		assert_eq!(gs_json::stringify(&settings["hooks"]["UserPromptSubmit"]), r#"[{"hooks":[{"type":"command","command":"node","args":["/Users/me/godspeed/.godspeed/typed.mjs"],"timeout":10}]}]"#);
+		assert_eq!(settings["hooks"].as_obj().unwrap().keys().cloned().collect::<Vec<_>>(), ["PreCompact", "UserPromptSubmit", "SessionStart", "SessionEnd"]);
 	}
 
 	#[test]
 	fn the_helper_starts_each_agent_with_its_own_prompt() {
 		assert!(start_script(StartTarget::ClaudeHelper, "/Users/me/godspeed", Platform::Linux, &none()).ends_with("\nexec claude --settings .godspeed/claude-settings.json \"Start as the helper\"\n"));
-		assert!(start_script(StartTarget::CodexHelper, "/Users/me/godspeed", Platform::Linux, &none()).ends_with(" -c \"mcp_servers.godspeed.env_vars=['GODSPEED_TERMINAL','GODSPEED_DATA_DIR']\" \"Start as the helper\"\n"));
+		let codex = start_script(StartTarget::CodexHelper, "/Users/me/godspeed", Platform::Linux, &none());
+		assert!(codex.ends_with(concat!(r#" -c "hooks.UserPromptSubmit=[{hooks=[{type='command',command='node \"/Users/me/godspeed/.godspeed/typed.mjs\"',timeout=10}]}]" "Start as the helper""#, "\n")), "{codex}");
+		let win = start_script(StartTarget::CodexHelper, "C:\\Users\\me\\godspeed", Platform::Win32, &none());
+		assert!(win.contains(r#" -c "hooks.UserPromptSubmit=[{hooks=[{type='command',command='node \"C:\Users\me\godspeed\.godspeed\typed.mjs\"',timeout=10}]}]" "Start as the helper""#), "{win}");
 	}
 
 	#[test]

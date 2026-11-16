@@ -84,7 +84,7 @@ fn start_commands(app: &App) -> StartCommands {
 	saved_start_commands(&read_state(app).get("startCommands").cloned().unwrap_or(Json::Null))
 }
 
-fn agent_folder(app: &App) -> String {
+pub(crate) fn agent_folder(app: &App) -> String {
 	folder_of(&read_state(app)).unwrap_or_else(|| app.paths.default_agent_folder.to_string_lossy().into_owned())
 }
 

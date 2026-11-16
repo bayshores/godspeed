@@ -156,6 +156,21 @@ pub fn handle_agent_compacting(app: &App, headers: &HeaderMap, body: Option<Json
 	hook_request(app, headers, body, |agent, _| app.bridge.agent_compacting(agent, clock::now_ms()))
 }
 
+/// /api/mcp/line: the godspeed folder's prompt hook hands over a line the learner typed to the
+/// agent. `{ "sent": "lesson" }` when the page on screen took it (the hook then blocks it), else
+/// `{ "sent": null }`.
+pub async fn handle_terminal_line(app: &App, headers: &HeaderMap, body: Option<Json>) -> Response {
+	if let Some(refused) = refuse(app, headers) {
+		return refused;
+	}
+	let body = body.unwrap_or_default();
+	let Some(line) = body["line"].as_str().filter(|line| !line.trim().is_empty()) else {
+		return http_reply::json(400, &json!({ "error": "Send the typed line as \"line\"." }));
+	};
+	let sent = gs_services::app::terminal_lines::take_terminal_line(app, terminal_of(headers).as_deref(), line).await;
+	http_reply::json(200, &json!({ "sent": sent }))
+}
+
 /// Token and agent status for the window (GET /api/mcp-access), without the url.
 pub fn mcp_access_status(app: &App) -> Result<Json, String> {
 	let now = clock::now_ms();

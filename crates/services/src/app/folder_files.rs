@@ -22,12 +22,13 @@ const DOCS: [(&str, &str); 3] = [
 ];
 
 /// The waiter's and the hooks' scripts, copied into `.godspeed/` as they are.
-const SCRIPTS: [(&str, &str); 5] = [
+const SCRIPTS: [(&str, &str); 6] = [
 	("connect.mjs", include_str!("../../folder-files/connect.mjs")),
 	("target.mjs", include_str!("../../folder-files/target.mjs")),
 	("wait-for-work.mjs", include_str!("../../folder-files/wait-for-work.mjs")),
 	("forget.mjs", include_str!("../../folder-files/forget.mjs")),
 	("compacting.mjs", include_str!("../../folder-files/compacting.mjs")),
+	("typed.mjs", include_str!("../../folder-files/typed.mjs")),
 ];
 
 /// Write a file only when it changed, so a refresh leaves the folder alone.
@@ -125,7 +126,7 @@ mod tests {
 		let folder = root.join("godspeed");
 		let name = folder.to_string_lossy().into_owned();
 		write_folder(&name, platform(), &StartCommands::default()).unwrap();
-		for file in ["CLAUDE.md", "AGENTS.md", ".mcp.json", ".claude/skills/setup-spaces/SKILL.md", ".godspeed/connect.mjs", ".godspeed/target.mjs", ".godspeed/wait-for-work.mjs", ".godspeed/forget.mjs", ".godspeed/compacting.mjs", ".godspeed/package.json", ".godspeed/claude-settings.json", ".godspeed/start-claude.sh", ".godspeed/start-claude-helper.sh", ".godspeed/start-codex.sh", ".godspeed/start-codex-helper.sh"] {
+		for file in ["CLAUDE.md", "AGENTS.md", ".mcp.json", ".claude/skills/setup-spaces/SKILL.md", ".godspeed/connect.mjs", ".godspeed/target.mjs", ".godspeed/wait-for-work.mjs", ".godspeed/forget.mjs", ".godspeed/compacting.mjs", ".godspeed/typed.mjs", ".godspeed/package.json", ".godspeed/claude-settings.json", ".godspeed/start-claude.sh", ".godspeed/start-claude-helper.sh", ".godspeed/start-codex.sh", ".godspeed/start-codex-helper.sh"] {
 			assert!(folder.join(file).is_file(), "{file}");
 		}
 		let first = std::fs::metadata(folder.join("CLAUDE.md")).unwrap().modified().unwrap();

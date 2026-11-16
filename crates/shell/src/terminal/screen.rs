@@ -112,6 +112,12 @@ impl Screen {
 		seen(self.parser.screen())
 	}
 
+	/// The text in Claude Code's input box, or None while no box shows.
+	pub fn input(&self) -> Option<String> {
+		let rows: Vec<String> = self.parser.screen().rows(0, self.size().1).collect();
+		claude_input(&rows)
+	}
+
 	/// Where the pointer is on the trust question, while the screen shows exactly that.
 	pub fn trust(&self) -> Option<Trust> {
 		let rows: Vec<String> = self.parser.screen().rows(0, self.size().1).collect();
@@ -216,6 +222,17 @@ fn asks_for_enter(rows: &[String]) -> Option<String> {
 	}).map(|row| row.trim().to_owned())
 }
 
+/// Claude Code's input box: a `❯` row right under a rule, its wrapped rows, then a rule. The
+/// rows are joined, so a wrapped line comes back with its break as spaces. Earlier messages in
+/// the transcript also start with `❯`, but no rule sits right above them.
+fn claude_input(rows: &[String]) -> Option<String> {
+	let rule = |row: &String| row.trim_start().starts_with('─');
+	let first = (1..rows.len()).rev().find(|&i| rows[i].trim_start().starts_with('❯') && rule(&rows[i - 1]))?;
+	let end = first + rows[first..].iter().position(rule)?;
+	let text = rows[first..end].iter().map(|row| row.trim()).collect::<Vec<_>>().join(" ");
+	Some(text.trim_start_matches('❯').trim().to_owned())
+}
+
 fn seen(screen: &vt100::Screen) -> Seen {
 	let rows: Vec<String> = screen.rows(0, screen.size().1.get()).collect();
 	let url = rows.iter().any(|row| row.contains("https://") || row.contains("http://"));
@@ -272,6 +289,21 @@ mod tests {
 
 	fn prompt(lines: &[&str]) -> Option<Prompt> {
 		screen(lines).seen().prompt
+	}
+
+	#[test]
+	fn reads_claude_codes_input_box_and_not_earlier_messages() {
+		let rule = "─".repeat(60);
+		let box_rows = |input: &[&str]| {
+			let mut rows = vec!["❯ an earlier message", "⏺ UserPromptSubmit operation blocked by hook:", "  Sent to your lesson.", rule.as_str()];
+			rows.extend_from_slice(input);
+			rows.extend_from_slice(&[rule.as_str(), "  Haiku 5.5 | HEAD"]);
+			screen(&rows).input()
+		};
+		assert_eq!(box_rows(&["❯ why is step 2 true?"]).as_deref(), Some("why is step 2 true?"));
+		assert_eq!(box_rows(&["❯ a long line that", "  wraps onto the next row"]).as_deref(), Some("a long line that wraps onto the next row"));
+		assert_eq!(box_rows(&["❯ "]).as_deref(), Some(""));
+		assert_eq!(screen(&["❯ an earlier message", "", "  Haiku 5.5"]).input(), None, "no box");
 	}
 
 	/// Claude Code's trust question as it drew it, in a made-up folder.

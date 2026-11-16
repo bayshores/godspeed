@@ -49,6 +49,8 @@ pub struct SubmitAgentOptions {
 	pub never_submitted: String,
 	/// The task's name on the outside agent's work items.
 	pub task_label: Option<String>,
+	/// The learner asked for it: the teacher takes it before a helper.
+	pub asked: bool,
 	/// Tools to look things up before submitting.
 	pub lookups: Vec<Arc<dyn Tool>>,
 	/// Model calls allowed; the default (4) only leaves room for retries.
@@ -71,6 +73,7 @@ impl SubmitAgentOptions {
 			on_step: None,
 			never_submitted: never_submitted.to_owned(),
 			task_label: None,
+			asked: false,
 			lookups: Vec::new(),
 			max_turns: None,
 		}
@@ -147,6 +150,7 @@ pub async fn run_submit_agent(bridge: &Bridge, opts: SubmitAgentOptions) -> Resu
 	run.engine = opts.engine;
 	run.abort_signal = opts.abort;
 	run.task_label = opts.task_label;
+	run.asked = opts.asked;
 	if let Some(on_step) = opts.on_step {
 		run.on_assistant_message = Some(Arc::new(move |message: &Json, step: usize| {
 			// pi reports the bare model id; usage stamps carry provider:id.

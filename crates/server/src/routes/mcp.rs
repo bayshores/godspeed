@@ -1,5 +1,6 @@
 //! /api/mcp (the MCP endpoint for outside agents), /api/mcp/forget (an agent lost its context),
-//! /api/mcp/compacting (an agent started compacting it) and /api/mcp-access (Settings →
+//! /api/mcp/compacting (an agent started compacting it), /api/mcp/line (a line the learner typed
+//! to it, for the page on screen) and /api/mcp-access (Settings →
 //! Connection: the token, who is connected, rotating the token). The agents' routes check the
 //! token themselves; /api/mcp-access is for the desktop window only, like every other /api route.
 
@@ -22,6 +23,7 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/mcp", ApiRoute::new().get(endpoint).post(endpoint).delete(endpoint).into_route())
 		.route("/api/mcp/forget", ApiRoute::new().post(forget).into_route())
 		.route("/api/mcp/compacting", ApiRoute::new().post(compacting).into_route())
+		.route("/api/mcp/line", ApiRoute::new().post(line).into_route())
 		.route("/api/mcp-access", ApiRoute::new().get(access).post(rotate).into_route())
 }
 
@@ -36,6 +38,10 @@ async fn forget(State(app): State<Arc<App>>, headers: HeaderMap, body: Body) -> 
 
 async fn compacting(State(app): State<Arc<App>>, headers: HeaderMap, body: Body) -> Response {
 	mcp::handle_agent_compacting(&app, &headers, json_body(body).await)
+}
+
+async fn line(State(app): State<Arc<App>>, headers: HeaderMap, body: Body) -> Response {
+	mcp::handle_terminal_line(&app, &headers, json_body(body).await).await
 }
 
 /// The status with the endpoint's address. Node built it from its own host and port, never

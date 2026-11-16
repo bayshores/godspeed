@@ -28,6 +28,8 @@ const ROWS_RANGE: (u16, u16) = (10, 100);
 const STOP_GRACE: Duration = Duration::from_secs(2);
 /// How long the trust button waits for the pointer to reach "Yes" after its Down key.
 const TRUST_MOVE: Duration = Duration::from_secs(1);
+/// How long a blocked line has to come back into Claude Code's input.
+const LINE_BACK: Duration = Duration::from_secs(3);
 /// How long a shown terminal's output waits to go out with what follows it: a program that
 /// prints without pause costs the window one push a frame.
 const FRAME: Duration = Duration::from_millis(16);
@@ -444,6 +446,17 @@ impl Terminals {
 		}
 	}
 
+	/// The learner's line went to the page on screen, and Claude Code put it back in its input
+	/// after the prompt hook blocked it: clear it there, only once the input holds exactly that
+	/// line. Codex leaves its input empty.
+	pub fn clear_line(&self, id: &str, line: &str) {
+		let Ok(terminal) = self.find(id) else { return };
+		if terminal.role == Role::Teacher && terminal.agent == Agent::Claude {
+			let line = line.to_owned();
+			std::thread::spawn(move || clear_input(&terminal, &line));
+		}
+	}
+
 	/// Paste: the clipboard's text, bracketed when the program asked for that, without escape
 	/// characters that could end the bracket early.
 	pub fn paste(&self, id: &str, text: &str, focused: bool) -> Result<(), String> {
@@ -603,6 +616,31 @@ fn enter_on_yes(terminal: &Terminal) {
 			Some(Trust::OnNo) => {}
 			None => return,
 		}
+	}
+}
+
+/// Waits for the blocked line to come back into Claude Code's input, then takes it out a row at
+/// a time: Ctrl+U clears the row, Backspace joins the row above. Each key only while what is
+/// left is still the start of that line, so nothing the learner typed since is touched.
+fn clear_input(terminal: &Terminal, line: &str) {
+	let squash = |text: &str| text.split_whitespace().collect::<String>();
+	let line = squash(line);
+	let deadline = Instant::now() + LINE_BACK;
+	let mut cleared = false;
+	while Instant::now() < deadline {
+		std::thread::sleep(Duration::from_millis(30));
+		let Some(input) = terminal.state().screen.input().map(|input| squash(&input)) else { continue };
+		if !cleared {
+			if input == line {
+				let _ = terminal.write(b"\x15");
+				cleared = true;
+			}
+			continue;
+		}
+		if input.is_empty() || !line.starts_with(&input) {
+			return;
+		}
+		let _ = terminal.write(b"\x7f\x15");
 	}
 }
 

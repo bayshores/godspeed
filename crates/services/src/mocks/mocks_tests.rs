@@ -45,9 +45,10 @@ fn questions() -> Json {
 	})
 }
 
-/// As the helper, answers the next work item with one tool call (or words); what it was asked, as text.
+/// As the teacher (the learner asked for the mock), answers the next work item with one tool call
+/// (or words); what it was asked, as text.
 async fn agent(app: &App, call: Option<(&str, Json)>) -> String {
-	let view = app.bridge.wait_for_work(10_000, WaitOptions { helper: true, ..WaitOptions::default() }).await.expect("a work item");
+	let view = app.bridge.wait_for_work(10_000, WaitOptions { and_others: true, ..WaitOptions::default() }).await.expect("a work item");
 	let reply = match call {
 		Some((name, arguments)) => AgentReply { text: None, tool_calls: vec![ReplyCall { name: name.to_owned(), arguments }] },
 		None => AgentReply { text: Some("I can't.".to_owned()), tool_calls: Vec::new() },

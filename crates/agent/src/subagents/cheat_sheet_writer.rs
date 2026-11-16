@@ -134,6 +134,8 @@ pub async fn reply_on_sheet(bridge: &Bridge, input: SheetRequest) -> Result<Shee
 	opts.lookups = input.lookups;
 	opts.max_turns = Some(10);
 	opts.task_label = Some(format!("Cheat sheet: {}", input.title));
+	// The learner asked for it, so it runs in their own agent chat.
+	opts.asked = true;
 	opts.engine = Some(input.engine);
 	opts.abort = Some(input.signal);
 	let reply = run_submit_agent(bridge, opts).await?;

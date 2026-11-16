@@ -27,6 +27,7 @@ pub enum EventKind {
 	SpaceChecked,
 	FilesAdded,
 	FilesRemoved,
+	TerminalLine,
 }
 
 impl EventKind {
@@ -48,6 +49,7 @@ impl EventKind {
 			EventKind::SpaceChecked => "space-checked",
 			EventKind::FilesAdded => "files-added",
 			EventKind::FilesRemoved => "files-removed",
+			EventKind::TerminalLine => "terminal-line",
 		}
 	}
 }

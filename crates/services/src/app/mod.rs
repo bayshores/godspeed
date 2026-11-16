@@ -25,6 +25,7 @@ pub mod reading_pages;
 pub mod settings_body;
 mod settings_put;
 pub(crate) mod settings_record;
+pub mod terminal_lines;
 #[cfg(test)]
 pub(crate) mod test_support;
 pub mod today_note;
@@ -47,4 +48,6 @@ pub struct MiscState {
 	pages: Mutex<VecDeque<(String, Arc<Vec<u8>>)>>,
 	/// Where quoted words sit on cited PDF pages, oldest first.
 	pub(crate) quote_boxes: Mutex<VecDeque<(String, Json)>>,
+	/// Lines from the teacher's terminal waiting for the window to send them.
+	lines: terminal_lines::Lines,
 }

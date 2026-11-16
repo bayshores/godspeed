@@ -6,6 +6,7 @@
 
 use std::collections::HashSet;
 
+use gs_base::clock;
 use gs_base::events::EventKind;
 
 use super::checkin::recent;
@@ -13,6 +14,9 @@ use super::{Bridge, State};
 
 /// A typed message older than this no longer ends a wait: the agent read it some other way.
 const TYPED_FRESH_MS: i64 = 120_000;
+
+/// How long Enter on a talk page waits for its line to come through the prompt hook.
+pub const LINE_WAIT_MS: i64 = 3_000;
 
 /// The last contact before this one.
 fn touch(state: &mut State, terminal: Option<&str>, now: i64) -> Option<i64> {
@@ -46,6 +50,7 @@ impl Bridge {
 		}
 		s.terminal_contact.retain(|id, _| live.contains(id));
 		s.typed.retain(|id, _| live.contains(id));
+		s.entered.retain(|id, _| live.contains(id));
 		s.teacher_terminal = teacher.filter(|id| live.contains(id));
 		s.live_terminals = live;
 		drop(s);
@@ -79,13 +84,52 @@ impl Bridge {
 
 	/// The learner pressed Enter in this live terminal with no question on its screen: its wait
 	/// (now or next) ends with nothing. It says nothing about the agent until that wait reads it.
+	/// On a talk page the teacher's line goes to the page instead, so the wait hears of it only if
+	/// the line doesn't come through the prompt hook in time.
 	pub fn typed(&self, terminal: &str, now: i64) {
 		let mut s = self.0.state.lock();
 		if !s.live_terminals.contains(terminal) {
 			return;
 		}
+		if s.talk_page.is_some() && s.teacher_terminal.as_deref() == Some(terminal) {
+			s.entered.insert(terminal.to_owned(), now);
+			drop(s);
+			let (bridge, id) = (self.clone(), terminal.to_owned());
+			tokio::spawn(async move {
+				clock::sleep(LINE_WAIT_MS).await;
+				let mut s = bridge.0.state.lock();
+				if s.entered.get(&id) == Some(&now) {
+					s.entered.remove(&id);
+					drop(s);
+					bridge.line_unsent(&id, now);
+				}
+			});
+			return;
+		}
 		s.typed.insert(terminal.to_owned(), now);
 		drop(s);
+		self.0.waiters.wake_all();
+	}
+
+	/// What the window shows that takes the learner's lines, or None.
+	pub fn set_talk_page(&self, page: Option<String>) {
+		self.0.state.lock().talk_page = page;
+	}
+
+	/// The line from this terminal's prompt hook: the talk page it goes to, when the learner just
+	/// pressed Enter there on that page. One Enter gives one line.
+	pub fn take_line(&self, terminal: Option<&str>, now: i64) -> Option<String> {
+		let mut s = self.0.state.lock();
+		let at = s.entered.remove(terminal?)?;
+		if now - at > LINE_WAIT_MS {
+			return None;
+		}
+		s.talk_page.clone()
+	}
+
+	/// The line didn't reach the page: it was typed to the agent after all.
+	pub fn line_unsent(&self, terminal: &str, now: i64) {
+		self.0.state.lock().typed.insert(terminal.to_owned(), now);
 		self.0.waiters.wake_all();
 	}
 

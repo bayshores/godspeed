@@ -92,6 +92,8 @@ export interface ServerEvents {
 	"files-added": { spaceId: string; files: { id: string; name: string; kind: "study" | "info" }[] };
 	/** Files left a space's linked folder (the window shows a notice). */
 	"files-removed": { spaceId: string; files: { id: string; name: string }[] };
+	/** A line the learner typed in the agent's terminal for the page on screen (a lesson, a cheat sheet). */
+	"terminal-line": { id: number; text: string; attachments: { name: string; mimeType: string; data: string }[] };
 	/** A deadline's cheat sheet or its agent request changed. */
 	"cheat-sheet-changed": { deadlineId: string };
 	/** A space's mocks or one of their agent requests changed. */
@@ -125,5 +127,6 @@ export const SERVER_EVENT_TYPES = [
 	"space-checked",
 	"files-added",
 	"files-removed",
+	"terminal-line",
 ] as const satisfies readonly ServerEventType[];
 

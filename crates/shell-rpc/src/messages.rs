@@ -19,6 +19,9 @@ pub enum ToShell {
 	Notify { id: u64, title: String, body: String },
 	/// The answer to `ToServer::AgentFolder`: the godspeed folder, when it is set up.
 	AgentFolder { id: u64, folder: Option<String> },
+	/// The learner's line went to a page: clear it from the agent's input, where Claude Code puts
+	/// a line its prompt hook blocked.
+	ClearLine { terminal: String, line: String },
 }
 
 /// Shell to server.

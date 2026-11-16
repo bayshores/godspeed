@@ -131,6 +131,8 @@ pub async fn write_mock_questions(bridge: &Bridge, input: MockRequest, format: &
 		}
 	}));
 	opts.task_label = Some(format!("{}: questions", input.label));
+	// The learner asked for it, so it runs in their own agent chat.
+	opts.asked = true;
 	opts.engine = Some(input.engine);
 	opts.abort = Some(input.signal);
 	run_submit_agent(bridge, opts).await?;
@@ -163,6 +165,8 @@ pub async fn grade_mock(bridge: &Bridge, input: MockRequest, mock: &Json) -> Res
 		}
 	}));
 	opts.task_label = Some(format!("{}: grading", input.label));
+	// The learner asked for it, so it runs in their own agent chat.
+	opts.asked = true;
 	opts.engine = Some(input.engine);
 	opts.abort = Some(input.signal);
 	run_submit_agent(bridge, opts).await?;
