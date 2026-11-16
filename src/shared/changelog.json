@@ -1,5 +1,21 @@
 [
 	{
+		"version": "0.6.73",
+		"date": "2026-11-16",
+		"changes": [
+			"When the teacher's terminal opens, you can pick an earlier chat to pick up where you left off, or start a new one.",
+			"The teacher starts quietly. godspeed wakes it when a lesson or a job you asked for needs it, so nothing is sent that you didn't type.",
+			"You talk to the teacher only in its terminal, in lessons too. The lesson page keeps only what you answer.",
+			"A soft sound plays when the teacher finishes while you're looking away.",
+			"Follow sits in the top bar while the teacher works, and Activity is a plain log of what it did.",
+			"Shift+Enter adds a new line in the terminal.",
+			"A lesson's steps show their full names.",
+			"Each deadline on a space's Deadlines tab shows its cheat sheet, so the Cheat sheets tab is gone.",
+			"Fewer repeated labels and divider lines, and nothing is cut off or drawn over anymore.",
+			"The Mac menu bar has File and Go menus."
+		]
+	},
+	{
 		"version": "0.6.72",
 		"date": "2026-11-15",
 		"changes": [
