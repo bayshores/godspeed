@@ -3,8 +3,8 @@ import { describe, it } from "node:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, snapName, standInAgent } from "../../scripts/layout.mjs";
-import { cross, cutOf, inkOf, lineBox, meet, outside, sticksOut } from "../../scripts/layout-page.mjs";
+import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, scrolledWords, SCROLL_TO, snapName, standInAgent } from "../../scripts/layout.mjs";
+import { cross, cutOf, inkOf, lineBox, meet, outside, probes, sticksOut } from "../../scripts/layout-page.mjs";
 import { workOf } from "../../scripts/layout-seed.mjs";
 import { SCREENS } from "../../scripts/layout-screens.mjs";
 
@@ -34,6 +34,22 @@ describe("the page check's boxes", () => {
 		assert.deepEqual(lineBox(box(0, 0, 50, 40), 20), box(0, 10, 50, 30));
 		assert.deepEqual(lineBox(box(0, 0, 50, 20), 30), box(0, 0, 50, 20));
 		assert.deepEqual(lineBox(box(0, 0, 50, 20), Number.NaN), box(0, 0, 50, 20), "line-height: normal");
+	});
+});
+
+describe("covered", () => {
+	it("tests nine points inside a box, 3 pixels in from its sides", () => {
+		const points = probes(box(0, 0, 100, 40));
+		assert.equal(points.length, 9);
+		assert.deepEqual(points.slice(0, 3), [
+			{ x: 3, y: 10 },
+			{ x: 50, y: 10 },
+			{ x: 97, y: 10 },
+		]);
+		assert.deepEqual(
+			points.map((p) => p.y),
+			[10, 10, 10, 20, 20, 20, 30, 30, 30],
+		);
 	});
 });
 
@@ -104,6 +120,12 @@ describe("the walk", () => {
 	it("names a finding and its picture by screen and width", () => {
 		assert.equal(findingLine("Talk", 800, { check: "overlap", what: "a and b" }), "Talk at 800: overlap: a and b");
 		assert.equal(snapName("Settings, General", 1100), "settings-general-1100.png");
+	});
+
+	it("checks each screen as it opens, scrolled a little and at the end, and names where", () => {
+		assert.deepEqual(SCROLL_TO, [0, 80, "end"]);
+		assert.equal(scrolledWords(80), "scrolled 80 px");
+		assert.equal(scrolledWords("end"), "scrolled to the end");
 	});
 
 	it("every screen has a name, an address and a selector to wait for", () => {

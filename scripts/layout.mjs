@@ -6,7 +6,8 @@
  * builds the debug shell with its `screens` control channel (crates/shell/src/screens.rs), starts
  * it on a throwaway home and data folder, and has a stand-in agent write made-up data
  * (layout-seed.mjs). It then starts the app again with no agent connected, opens each screen in
- * layout-screens.mjs at each width, and runs layout-page.mjs in the page. A finding prints the
+ * layout-screens.mjs at each width, and runs layout-page.mjs in the page as it opens, scrolled a
+ * little and scrolled to the end. A finding prints the
  * screen, the width, the check and the two elements, and saves a picture beside the report in
  * target/layout/. Mac only: elsewhere it passes at once. Two runs in one worktree share that
  * folder, so run one at a time.
@@ -74,6 +75,15 @@ export function fill(template, ids) {
 		if (!ids[name]) throw new Error(`no ${name} id for ${template}`);
 		return ids[name];
 	});
+}
+
+/** Where each screen is checked: as it opens (0: not scrolled), scrolled a little (what hangs over the top of a
+ *  scroller shows only once content moves under it) and at the end. */
+export const SCROLL_TO = [0, 80, "end"];
+
+/** How a report names a scroll position. */
+export function scrolledWords(at) {
+	return at === "end" ? "scrolled to the end" : `scrolled ${at} px`;
 }
 
 /** A file name for a screen's picture. */
@@ -247,7 +257,9 @@ async function main() {
 	for (const dir of ["data", "home", "tmp"]) fs.mkdirSync(path.join(RUN, dir), { recursive: true });
 	standInAgent(path.join(RUN, "home"));
 	const port = await freePort();
-	const pageCheck = `(() => { ${fs.readFileSync(path.join(import.meta.dirname, "layout-page.mjs"), "utf8").replace(/^export /gm, "")}; return checkPage(); })()`;
+	const pageSource = fs.readFileSync(path.join(import.meta.dirname, "layout-page.mjs"), "utf8").replace(/^export /gm, "");
+	const pageCheck = `(() => { ${pageSource}; return checkPage(); })()`;
+	const scrollTo = (at) => `(() => { ${pageSource}; return scrollMain(${JSON.stringify(at)}); })()`;
 
 	// The first launch: the stand-in agent writes the data, then the app quits, so the second
 	// launch starts with no agent connected.
@@ -306,12 +318,17 @@ async function main() {
 					console.warn(warnings.at(-1));
 					continue;
 				}
-				const findings = await checkScreen(app, pageCheck);
-				if (findings.length === 0) continue;
-				const snap = path.join(RUN, snapName(screen.name, width));
-				await app.value(`snap ${snap}`);
-				for (const finding of findings) failures.push(findingLine(screen.name, width, finding));
-				failures.push(`  picture: ${snap}`);
+				for (const at of SCROLL_TO) {
+					if (at !== 0 && !(await app.value(evalLine(scrollTo(at))))) continue;
+					const findings = await checkScreen(app, pageCheck);
+					if (findings.length === 0) continue;
+					const name = at === 0 ? screen.name : `${screen.name}, ${scrolledWords(at)}`;
+					const snap = path.join(RUN, snapName(name, width));
+					await app.value(`snap ${snap}`);
+					for (const finding of findings) failures.push(findingLine(name, width, finding));
+					failures.push(`  picture: ${snap}`);
+				}
+				await app.value(evalLine(scrollTo(0)));
 			}
 		}
 	} finally {
@@ -319,7 +336,7 @@ async function main() {
 	}
 
 	const report = path.join(RUN, "report.txt");
-	const checked = `${SCREENS.length} screens at ${WIDTHS.join(", ")} points in ${Math.round((Date.now() - built) / 1000)} s (${Math.round((built - started) / 1000)} s to build)`;
+	const checked = `${SCREENS.length} screens at ${WIDTHS.join(", ")} points, each as it opens, ${SCROLL_TO.slice(1).map(scrolledWords).join(" and ")}, in ${Math.round((Date.now() - built) / 1000)} s (${Math.round((built - started) / 1000)} s to build)`;
 	fs.writeFileSync(report, `${[...failures, ...warnings, checked].join("\n")}\n`);
 	if (failures.length > 0) {
 		console.error(`${failures.join("\n")}\nlayout: broken layout found; ${checked}. Report: ${report}`);

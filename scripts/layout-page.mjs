@@ -4,6 +4,8 @@
  * answers a list of findings `{ check, what }`. The rect helpers are exported for the tests.
  *
  * - overlap: two elements that draw their own text, or are buttons, inputs or images, cross.
+ * - covered: another box of the page, one that draws something, lies over part of such an
+ *   element (a tag that hangs into a page whose cards scroll over it).
  * - spill: an element sticks out of its parent's box, up or down, while the parent neither
  *   scrolls nor clips.
  * - sideways: the page, or a panel at least half the window tall, scrolls sideways.
@@ -332,9 +334,83 @@ function cutOffs() {
 	return found;
 }
 
+/** Points inside a box to test for cover: three rows (a quarter, half and three quarters down)
+ *  of three (near the left, the middle, near the right), kept SLACK + 1 pixels in from the edges
+ *  so a neighbour's antialiasing never counts. */
+export function probes(box) {
+	const inset = SLACK + 1;
+	const xs = [box.left + inset, (box.left + box.right) / 2, box.right - inset];
+	const ys = [0.25, 0.5, 0.75].map((f) => box.top + (box.bottom - box.top) * f);
+	return ys.flatMap((y) => xs.map((x) => ({ x, y })));
+}
+
+const transparent = (color) => color === "transparent" || /^rgba\(.*,\s*0\)$/.test(color);
+
+/** Whether a box draws something of its own: a fill, a background picture, or is a control or
+ *  picture. An empty box laid over text (a stretched link, a drop zone) covers nothing. */
+function paints(el) {
+	const style = getComputedStyle(el);
+	return !transparent(style.backgroundColor) || style.backgroundImage !== "none" || el.matches(`${CONTROLS}, ${PICTURES}`);
+}
+
+/**
+ * Covered: text or a control with another box of the same layer drawn over part of it, such as a
+ * tag that hangs into a page whose cards scroll over it. Deliberate layers (a dialog, a menu, a
+ * fixed or sticky bar) are never compared with the page. A box over the text counts only when it,
+ * or a box around it that is not also around the text, draws something.
+ */
+function covereds() {
+	const found = [];
+	for (const el of document.body.querySelectorAll("*")) {
+		if ((el.closest(".katex, .xterm") && !el.matches(".katex, .xterm")) || (el.closest("svg") && el.localName !== "svg") || el.closest("[aria-hidden=true]") || !shown(el)) continue;
+		const layer = layerOf(el);
+		let over = null;
+		for (const own of ownBoxes(el)) {
+			const part = visiblePart(el, own);
+			if (!part || part.right - part.left <= 2 * SLACK + 2 || part.bottom - part.top <= SLACK) continue;
+			for (const { x, y } of probes(part)) {
+				const hit = document.elementFromPoint(x, y);
+				if (!hit || hit === el || el.contains(hit) || hit.contains(el) || !shown(hit) || layerOf(hit) !== layer) continue;
+				for (let node = hit; node && !node.contains(el); node = node.parentElement) {
+					if (paints(node)) {
+						over = node;
+						break;
+					}
+				}
+				if (over) break;
+			}
+			if (over) break;
+		}
+		if (over) found.push(finding("covered", [el, over], `${label(el)} is under ${label(over)}`));
+	}
+	return found;
+}
+
+/** The screen's scroller: the tallest box that scrolls up and down, or the page itself. */
+function mainScroller() {
+	let best = null;
+	for (const el of document.body.querySelectorAll("*")) {
+		const style = getComputedStyle(el);
+		if (!SCROLLS.includes(style.overflowY) || el.scrollHeight <= el.clientHeight + 1 || !shown(el)) continue;
+		if (!best || el.clientHeight > best.clientHeight) best = el;
+	}
+	const page = document.scrollingElement;
+	return best ?? (page.scrollHeight > page.clientHeight + 1 ? page : null);
+}
+
+/** Scrolls the screen's scroller to `top` pixels, or to its end for "end"; 0 goes back. Answers
+ *  whether it moved, so a screen that can't scroll that far is not checked twice. */
+export function scrollMain(top) {
+	const el = mainScroller();
+	if (!el) return false;
+	const before = el.scrollTop;
+	el.scrollTop = top === "end" ? el.scrollHeight : top;
+	return el.scrollTop !== before;
+}
+
 /** Every finding on the page as it is now, each once. */
 export function checkPage() {
-	const all = [...overlaps(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs()];
+	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs()];
 	const seen = new Set();
 	return all.filter((f) => !seen.has(f.key) && seen.add(f.key));
 }
