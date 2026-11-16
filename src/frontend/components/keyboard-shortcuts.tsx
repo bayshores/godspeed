@@ -16,10 +16,10 @@
  * event first and can claim it with stopPropagation.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
-import { actionForBinding, bindingForAction, bindingKeys, eventBinding, isTypingSurface, kbdEventForAction, KEYBOARD_ACTIONS, KEY_SCOPES } from "@/shared/core";
+import { actionForBinding, bindingForAction, bindingKeys, eventBinding, isTypingSurface, kbdEventForAction, KEYBOARD_ACTIONS, KEY_SCOPES, type KeyAction } from "@/shared/core";
 import { showFocusRingAfterTab, trapTabInDialog } from "@/frontend/components/focus-hygiene";
 import { usePresence } from "@/frontend/components/presence";
 import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
@@ -33,6 +33,28 @@ export function KeyboardShortcuts() {
 	// goes stale.
 	const navigateRef = useRef(navigate);
 	navigateRef.current = navigate;
+
+	// Global commands we own run here; surface commands ride the window
+	// event for the mounted surface to catch.
+	const run = useCallback((action: KeyAction) => {
+		switch (action) {
+			case "new-session":
+				navigateRef.current("/new");
+				break;
+			case "open-settings":
+				navigateRef.current("/settings");
+				break;
+			case "jump-graph":
+				navigateRef.current("/graph");
+				break;
+			case "cheat-sheet":
+				setShortcutsOpen(true);
+				break;
+			default:
+				// The mounted surface owns Find (session text / graph nodes) and the rest.
+				window.dispatchEvent(new CustomEvent(kbdEventForAction(action)));
+		}
+	}, []);
 
 	useEffect(() => {
 		const onKeyDown = (e: KeyboardEvent) => {
@@ -59,37 +81,29 @@ export function KeyboardShortcuts() {
 			// pass through so the field keeps them.
 			if (isTypingSurface(e) && !(e.metaKey || e.ctrlKey || e.altKey)) return;
 
-			// Dispatch: global commands we own run here; surface commands
-			// ride the window event for the mounted surface to catch.
-			switch (action) {
-				case "new-session":
-					navigateRef.current("/new");
-					break;
-				case "open-settings":
-					navigateRef.current("/settings");
-					break;
-				case "jump-graph":
-					navigateRef.current("/graph");
-					break;
-				case "cheat-sheet":
-					setShortcutsOpen(true);
-					break;
-				case "find":
-					// The mounted surface owns Find (session text / graph nodes).
-					// Claim Mod+F so Chromium's whole-window finder cannot open too.
-					e.preventDefault();
-					window.dispatchEvent(new CustomEvent(kbdEventForAction(action)));
-					break;
-				default:
-					window.dispatchEvent(new CustomEvent(kbdEventForAction(action)));
-			}
+			// Claim Mod+F so Chromium's whole-window finder cannot open too.
+			if (action === "find") e.preventDefault();
+			run(action);
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, []);
+	}, [run]);
 
 	// The desktop app's own menu opens Settings on a section.
 	useEffect(() => window.lh?.onOpenSettings?.((section) => navigateRef.current(`/settings?section=${encodeURIComponent(section)}`)), []);
+
+	// The Mac menu's File and Go items. Their keys never reach the page, so
+	// each runs once, from here.
+	useEffect(
+		() =>
+			window.lh?.onMenu?.((item) => {
+				if (item === "back") navigateRef.current(-1);
+				else if (item === "forward") navigateRef.current(1);
+				else if (item.startsWith("go:")) navigateRef.current(item.slice(3));
+				else run(item as KeyAction);
+			}),
+		[run],
+	);
 
 	useEffect(() => {
 		document.addEventListener("keydown", trapTabInDialog, true);

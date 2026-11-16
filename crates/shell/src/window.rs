@@ -42,18 +42,17 @@ const TRAFFIC_LIGHTS: tauri::LogicalPosition<f64> = tauri::LogicalPosition { x: 
 
 const SHIM: &str = include_str!("shim.js");
 
-/// The main page's load state and the settings section a menu asked for before the page could
-/// take it.
+/// The main page's load state and the push a menu sent before the page could take it.
 #[derive(Default)]
 pub struct Page {
 	loaded: AtomicBool,
-	open_settings: Mutex<Option<String>>,
+	waiting: Mutex<Option<(String, Value)>>,
 }
 
 /// Builds the main window on the boot page; `server::open_window` sends it to the app.
 pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 	let origin = app.state::<AppOrigin>().0.clone();
-	// A closed window's page is gone: a menu's open-settings now waits for the new one.
+	// A closed window's page is gone: a menu's push now waits for the new one.
 	app.state::<Page>().loaded.store(false, Ordering::SeqCst);
 	#[cfg(target_os = "macos")]
 	crate::mac::window::register_text_defaults();
@@ -105,7 +104,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 					page.loaded.store(true, Ordering::SeqCst);
 					let app = window.app_handle();
 					zoom::push_current(app);
-					flush_open_settings(app);
+					flush_waiting(app);
 					if show_armed.swap(false, Ordering::SeqCst) {
 						show_later(window);
 					}
@@ -225,18 +224,18 @@ fn show(window: &WebviewWindow) -> tauri::Result<()> {
 	Ok(())
 }
 
-/// Sends the page to a Settings section: now if it has loaded, else once it has.
-pub fn open_settings(app: &AppHandle, section: &str) {
-	*app.state::<Page>().open_settings.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(section.to_owned());
+/// Pushes to the page now if it has loaded, else once it has.
+pub fn push_when_loaded(app: &AppHandle, channel: &str, payload: Value) {
+	*app.state::<Page>().waiting.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some((channel.to_owned(), payload));
 	if app.state::<Page>().loaded.load(Ordering::SeqCst) {
-		flush_open_settings(app);
+		flush_waiting(app);
 	}
 }
 
-fn flush_open_settings(app: &AppHandle) {
-	let section = app.state::<Page>().open_settings.lock().unwrap_or_else(std::sync::PoisonError::into_inner).take();
-	if let Some(section) = section {
-		push(app, "open-settings", &Value::from(section));
+fn flush_waiting(app: &AppHandle) {
+	let waiting = app.state::<Page>().waiting.lock().unwrap_or_else(std::sync::PoisonError::into_inner).take();
+	if let Some((channel, payload)) = waiting {
+		push(app, &channel, &payload);
 	}
 }
 

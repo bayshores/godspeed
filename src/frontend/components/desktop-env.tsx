@@ -59,6 +59,8 @@ declare global {
 			/** The installed font families, sorted. */
 			listFonts?: () => Promise<string[]>;
 			onOpenSettings?: (cb: (section: string) => void) => () => void;
+			/** A Mac File or Go menu item: a keyboard action id, `go:<path>`, `back` or `forward`. */
+			onMenu?: (cb: (action: string) => void) => () => void;
 			/** Opens the system print sheet for a PDF in the data folder. Mac only. */
 			printPdf?: (path: string) => Promise<void>;
 		};

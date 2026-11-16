@@ -192,6 +192,7 @@
 		checkForUpdates: () => invoke("update_check"),
 		installUpdate: () => void invoke("update_install"),
 		onOpenSettings: (cb) => subscribe("open-settings", cb),
+		onMenu: (cb) => subscribe("menu", cb),
 	};
 	// Only the Mac prints through the system's own sheet.
 	if (PLATFORM === "darwin") window.lh.printPdf = (path) => invoke("print_pdf", { path });

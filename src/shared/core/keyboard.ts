@@ -18,7 +18,7 @@
  * Order is fixed: mod, alt, shift, then the key.
  */
 
-type KeyAction =
+export type KeyAction =
 	| "sessions-search"
 	| "jump-graph"
 	| "new-session"

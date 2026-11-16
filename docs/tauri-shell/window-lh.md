@@ -19,6 +19,7 @@ The shim (`crates/shell/src/shim.js`) is an initialization script on the main wi
 | `reportBug()` | `report_bug` | Opens the issue page. |
 | `listFonts()` | `list_fonts` | Mac: `NSFontManager` families. Windows and Linux: `fontdb` system fonts, each face's first family name. Drops `iconfont`, sorts with `gs_base::locale::compare`, removes repeats. |
 | `onOpenSettings(cb)` | push `open-settings` | The Settings section a menu item asked for. |
+| `onMenu(cb)` | push `menu` | A Mac File or Go item: a keyboard action id, `go:<path>`, `back` or `forward`. |
 | `printPdf(path)` | `print_pdf` | Mac only; absent on Windows and Linux. See [Printing](the-main-window.md#printing). |
 | `openLink(url)` | `open_link` | A web or mail link, as a link click sends it. |
 | `terminals.start(role, agent)` | `terminal_start` | `role` is `"teacher"` or `"helper"`, `agent` is `"claude"` or `"codex"`. Answers `{ id }`. See [Terminals](terminals.md#terminals). |
@@ -35,7 +36,7 @@ The shim (`crates/shell/src/shim.js`) is an initialization script on the main wi
 
 The shim also calls commands not on `window.lh`: `open_link` (link clicks), `set_zoom` (restores zoom at load), `zoom_step` and `zoom_reset` (key fallback), `start_drag` and `title_bar_double_click` (Mac), `toggle_menu` (Windows and Linux).
 
-Pushes arrive as `webview.eval("window.__lhPush(channel, payload)")`, so the page needs no Tauri event permissions. A channel with no listener keeps its last message for the first listener, because a menu's `open-settings` can arrive before React does.
+Pushes arrive as `webview.eval("window.__lhPush(channel, payload)")`, so the page needs no Tauri event permissions. A channel with no listener keeps its last message for the first listener, because a menu's push can arrive before React does.
 
 ### Trust check
 

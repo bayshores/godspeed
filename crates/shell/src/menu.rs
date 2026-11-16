@@ -1,10 +1,12 @@
 //! The application menu: the Edit items make ⌘C/⌘V work in the page, the View items own the
-//! zoom keys. Built once at setup.
+//! zoom keys, and on the Mac the File and Go items open the app's pages. Built once at setup.
 
+use serde_json::Value;
 use tauri::menu::{AboutMetadata, IsMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{AppHandle, Manager, Wry};
 
-use crate::{bug_report, log, update, window, zoom};
+use crate::server::Server;
+use crate::{bug_report, log, open, update, window, zoom};
 
 #[cfg(target_os = "macos")]
 const DEVTOOLS_KEYS: &str = "Alt+CmdOrCtrl+I";
@@ -78,16 +80,54 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 	#[cfg(target_os = "linux")]
 	let window_menu = Submenu::with_items(app, "Window", true, &[&item("minimize", "Minimize", None)?, &item("close-window", "Close Window", None)?])?;
 
+	// Windows and Linux leave these out: their keys would be Ctrl keys, which the agent's
+	// terminal needs (Ctrl+[ is Esc).
+	#[cfg(target_os = "macos")]
+	let file = Submenu::with_items(
+		app,
+		"File",
+		true,
+		&[&item("page:new-session", "Study", Some("CmdOrCtrl+N"))?, &item("page:sessions-search", "Search Lessons", Some("CmdOrCtrl+Shift+F"))?, &separator()?, &item("open-folder", "Open godspeed Folder", None)?],
+	)?;
+	#[cfg(target_os = "macos")]
+	let go = Submenu::with_items(
+		app,
+		"Go",
+		true,
+		&[
+			&item("page:back", "Back", Some("CmdOrCtrl+["))?,
+			&item("page:forward", "Forward", Some("CmdOrCtrl+]"))?,
+			&separator()?,
+			&item("page:go:/", "Today", None)?,
+			&item("page:jump-graph", "Graph", Some("CmdOrCtrl+G"))?,
+			&item("page:go:/space", "Progress", None)?,
+			&item("page:go:/space/files", "Files", None)?,
+			&item("page:go:/space/deadlines", "Deadlines", None)?,
+			&item("page:go:/space/cheat-sheets", "Cheat Sheets", None)?,
+		],
+	)?;
+
 	let help = Submenu::with_items(app, "Help", true, &[&item("report-bug", "Report a Bug…", None)?])?;
 	#[cfg(target_os = "macos")]
 	help.set_as_help_menu_for_nsapp()?;
 
+	#[cfg(target_os = "macos")]
+	return Menu::with_items(app, &[&app_menu, &file, &edit, &view, &go, &window_menu, &help]);
+	#[cfg(not(target_os = "macos"))]
 	Menu::with_items(app, &[&app_menu, &edit, &view, &window_menu, &help])
 }
 
 pub fn handle(app: &AppHandle, event: MenuEvent) {
+	let id = event.id().as_ref();
+	// The page runs a page item, as it does the same item's key in a browser.
+	if let Some(action) = id.strip_prefix("page:") {
+		show_window(app);
+		window::push_when_loaded(app, "menu", Value::from(action));
+		return;
+	}
 	let main = app.get_webview_window("main");
-	match event.id().as_ref() {
+	match id {
+		"open-folder" => open_folder(app),
 		"check-updates" => check_for_updates(app),
 		"quit" => app.exit(0),
 		"reload" => {
@@ -126,6 +166,13 @@ pub fn handle(app: &AppHandle, event: MenuEvent) {
 
 /// A manual check reports its result in Settings, General, so the window opens there.
 fn check_for_updates(app: &AppHandle) {
+	show_window(app);
+	window::push_when_loaded(app, "open-settings", Value::from("general"));
+	update::manual_check(app);
+}
+
+/// The main window, made again if it was closed, out of the Dock and in front.
+fn show_window(app: &AppHandle) {
 	window::reopen(app);
 	if let Some(main) = app.get_webview_window("main") {
 		let shown = main.unminimize().and_then(|()| main.set_focus());
@@ -133,6 +180,16 @@ fn check_for_updates(app: &AppHandle) {
 			log::line(&format!("cannot bring the window forward: {err}"));
 		}
 	}
-	window::open_settings(app, "general");
-	update::manual_check(app);
+}
+
+/// Asking the server for the folder waits on its answer, so it runs off the menu's thread.
+fn open_folder(app: &AppHandle) {
+	let app = app.clone();
+	std::thread::spawn(move || {
+		let folder = app.try_state::<Server>().and_then(|server| server.agent_folder()).flatten();
+		let Some(folder) = folder else { return log::line("the godspeed folder is not set up yet") };
+		if let Err(err) = open::open_path(&folder) {
+			log::line(&format!("cannot open the godspeed folder: {err}"));
+		}
+	});
 }
