@@ -2,16 +2,17 @@ import { followButtons } from "@/frontend/components/top-bar/top-bar-model";
 import { cn } from "@/frontend/lib/utils";
 import { useTeacher } from "./teacher-context";
 
-const MARKED = "[--lh-key:var(--lh-highlight)] [--lh-key-hover:var(--lh-highlight)]";
+/** A piece of the pill: the bar's ink, a shade over it on hover. */
+const PIECE = "lh-press lh-no-drag flex self-stretch shrink-0 items-center px-2.5 text-[15px] whitespace-nowrap";
+const QUIET = "bg-bar-ink/15 text-bar-ink hover:bg-bar-ink/25";
+const LIT = "bg-highlight text-ink";
 
 /**
- * Beside what the teacher does (the panel's status chip, a lesson's
- * teacher column) while it works: "Follow" (the window goes where the
- * teacher works) or "Following" in highlighter. With Follow off, a fresh
- * change on another page shows "Go to" its page. `look`: the keys' size
- * where they sit.
+ * Beside the pill while the teacher works: "Following" on the highlighter
+ * (the window goes where the teacher works; a click stops it) or "Follow".
+ * With Follow off, a fresh change on another page shows "Go to" its page.
  */
-export function FollowButton({ look }: { look: string }) {
+export function FollowButton() {
 	const teacher = useTeacher();
 	if (!teacher) return null;
 	const { go, follow } = followButtons({ following: teacher.follow, working: !!teacher.doing?.working, offer: teacher.offer });
@@ -19,7 +20,7 @@ export function FollowButton({ look }: { look: string }) {
 	return (
 		<>
 			{go && offer && (
-				<button type="button" data-testid="follow-go" title={offer.label} onClick={() => teacher.go(offer)} className={cn(look, MARKED)}>
+				<button type="button" data-testid="follow-go" title={offer.label} onClick={() => teacher.go(offer)} className={cn(PIECE, LIT)}>
 					{go}
 				</button>
 			)}
@@ -29,7 +30,7 @@ export function FollowButton({ look }: { look: string }) {
 					data-testid={teacher.follow ? "follow-stop" : "follow-start"}
 					aria-pressed={teacher.follow}
 					onClick={() => teacher.setFollow(!teacher.follow)}
-					className={cn(look, teacher.follow ? MARKED : "lh-btn-quiet")}
+					className={cn(PIECE, teacher.follow ? LIT : QUIET)}
 				>
 					{follow}
 				</button>

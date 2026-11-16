@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef } from "react";
 import { usePresence } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
-import { FollowButton } from "./follow-button";
 import { TeacherActivity } from "./teacher-activity";
 
 /** The head's words are in the screen's font; its keys are plain words. */
@@ -13,7 +12,7 @@ const LIT_KEY = "[--lh-key:var(--lh-highlight)] [--lh-key-hover:color-mix(in_srg
 /**
  * The panel's one head row: the screen's status (lit while it needs the
  * learner, its words fading from one to the next, a breathing square while
- * the teacher works) with Follow beside it, then the key to background
+ * the teacher works), then the key to background
  * work's screen while that needs the learner, and Activity, which drops
  * the Activity list over the top of the screen. Background work's screen
  * has its name first, and Back. The pill that opened the panel closes it.
@@ -25,7 +24,6 @@ export function PanelHead({
 	lit,
 	working,
 	list,
-	follow,
 	need,
 	back,
 }: {
@@ -36,8 +34,6 @@ export function PanelHead({
 	working: boolean;
 	/** The Activity list its key drops; null where there is none. */
 	list: { open: boolean; onOpen: (open: boolean) => void } | null;
-	/** Follow and Go to show beside the chip while they can act. */
-	follow: boolean;
 	/** Background work needs the learner: its key goes to its screen. */
 	need: (() => void) | null;
 	back: (() => void) | null;
@@ -93,13 +89,6 @@ export function PanelHead({
 		</span>
 	);
 
-	const beside = (
-		<>
-			{statusChip}
-			{follow && <FollowButton look={KEY} />}
-		</>
-	);
-
 	const inRow = !title;
 	return (
 		<div className="relative z-10 flex shrink-0 flex-col gap-2 pt-2.5 pb-1.5 pr-3 pl-[18px]">
@@ -109,7 +98,7 @@ export function PanelHead({
 						{title}
 					</span>
 				)}
-				<div className="flex min-w-0 flex-1 items-center gap-2">{inRow && beside}</div>
+				<div className="flex min-w-0 flex-1 items-center gap-2">{inRow && statusChip}</div>
 				{needKey.mounted && (
 					<button type="button" data-testid="teacher-panel-need" data-state={needKey.state} onClick={() => need?.()} className={cn("lh-btn h-8 shrink-0 px-3", TYPE, LIT_KEY, "lh-pop")}>
 						Background work needs you
@@ -135,7 +124,7 @@ export function PanelHead({
 					</button>
 				)}
 			</div>
-			{!inRow && (statusChip || follow) && <div className="flex min-w-0 items-center gap-2">{beside}</div>}
+			{!inRow && statusChip && <div className="flex min-w-0 items-center gap-2">{statusChip}</div>}
 			{hang.mounted && (
 				<div data-state={hang.state} className="lh-hang absolute inset-x-0 top-full">
 					<div ref={card} id={listId} role="dialog" aria-label="Activity" tabIndex={-1} data-state={hang.state} data-testid="teacher-panel-list" className="lh-hang-body flex outline-none max-h-[calc((100dvh-3rem)*0.6)] flex-col overflow-y-auto bg-bar px-[18px] pt-1 pb-5">

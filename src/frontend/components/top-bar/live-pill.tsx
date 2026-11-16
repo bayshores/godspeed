@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Countdown } from "@/frontend/components/countdown";
 import { usePillMounted } from "@/frontend/components/notice-store";
 import { announceDelay } from "@/frontend/components/teacher/follow-status";
+import { FollowButton } from "@/frontend/components/teacher/follow-button";
 import { cn } from "@/frontend/lib/utils";
 import { BAR_TAB, BAR_WORD_ON, barTabState } from "./bar-look";
 import { firstWord, noticeCount, shortName, type PillThing } from "./live-pill-model";
@@ -25,7 +26,7 @@ const OWN_FIT = "min-w-auto shrink-[1000]";
  * a click closes it. It is the bar's button, as Menu is. It lights up on the highlighter while something is live, its square
  * breathes while the teacher works, and a reply waiting in another lesson
  * brings its Open along. Folded notices wait as a count that shows them
- * again. `own`: it sits in a page's own bar, where it shows only while it
+ * again. Follow sits beside it while the teacher works. `own`: it sits in a page's own bar, where it shows only while it
  * has something to say. `named`: the page has a teacher head, so the pill
  * leaves what that says out.
  */
@@ -91,6 +92,7 @@ export function LivePill({ own = false, named = false }: { own?: boolean; named?
 					</button>
 				)}
 			</div>
+			<FollowButton />
 			{tag && <Tag thing={tag} onOpen={tag.due ? () => pill.act(tag) : null} />}
 			{waiting > 0 && (
 				<button

@@ -37,6 +37,9 @@ const { TeacherPanel, agentLine } = await import("../../src/frontend/components/
 const { PANEL_HEIGHT, PANEL_WIDTH, draggedHeight, keyedHeight, panelLayout, panelBody, panelStarts, shownScreen, storedHeight } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { waitingNotice } = await import("../../src/frontend/components/agent-status.tsx");
 const { ActivityList, TeacherActivity } = await import("../../src/frontend/components/teacher/teacher-activity.tsx");
+const { FollowButton } = await import("../../src/frontend/components/teacher/follow-button.tsx");
+const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
+import type { TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 const { DEFAULT_TEACHER_NAME, sanitizeTeacherName, sanitizeUserSettings, TEACHER_NAME_MAX } = await import("../../src/shared/core/settings.ts");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { MemoryRouter } = await import("react-router");
@@ -211,7 +214,6 @@ describe("the teacher's Activity", () => {
 		<ActivityList
 			name="Ada"
 			recent={ACTIONS}
-			onPick={() => {}}
 			spaceNameOf={names}
 			feed={EMPTY}
 			waiting={null}
@@ -240,28 +242,20 @@ describe("the teacher's Activity", () => {
 	it("Recent hides when there is nothing yet", () => {
 		assert.ok(mount(list({ recent: [] })).querySelector("[data-testid='activity-recent']") === null);
 	});
-	it("Recent: label, space, how long ago, and an arrow only where it can go", () => {
+	it("Recent is a log: label, space and how long ago, with nothing to click", () => {
 		const el = mount(list());
 		assert.match(el.textContent ?? "", /Recent/);
 		const rows = [...el.querySelectorAll("[data-testid='activity-recent-row']")];
 		assert.equal(rows.length, 2);
 		assert.match(rows[0]!.textContent ?? "", /Added Lab 4CSE 29/);
 		assert.match(rows[0]!.querySelector("[data-testid='activity-recent-time']")?.textContent ?? "", /^(Oct 2[89]|\d+ (min|hours?|days)|yesterday)$/);
-		assert.ok(rows[0]!.querySelector("svg"), "arrow");
-		assert.ok(rows[1]!.querySelector("svg") === null);
-		assert.equal(rows[1]!.hasAttribute("disabled"), true, "a page that isn't the app's is never followed");
+		assert.ok(el.querySelector("[data-testid='activity-recent'] button, [data-testid='activity-recent'] svg") === null);
 	});
 	it("Recent lists every row the server sent, scrolling inside the list", () => {
 		const many = Array.from({ length: 12 }, (_, i) => ({ ...ACTIONS[0]!, id: `a${i}` }));
 		const el = mount(list({ recent: many }));
 		assert.equal(el.querySelectorAll("[data-testid='activity-recent-row']").length, 12);
 		assert.match(el.querySelector("[data-testid='activity-list']")?.className ?? "", /overflow-y-auto/);
-	});
-	it("clicking a Recent row goes there", () => {
-		const picked: string[] = [];
-		const el = mount(list({ onPick: (a) => picked.push(a.id) }));
-		act(() => (el.querySelector("[data-testid='activity-recent-row']") as HTMLElement).click());
-		assert.deepEqual(picked, ["a2"]);
 	});
 	it("Running in the background sits above Recent, with failed jobs and the waiting line", () => {
 		const failed = [{ id: "j1", kind: "pdf" as const, chatId: "c1", title: "06_Counting.pdf", error: "The PDF could not be read", at: "2026-10-28T16:00:00Z" }];
@@ -300,5 +294,37 @@ describe("the teacher name setting", () => {
 		assert.equal(sanitizeUserSettings({ general: { teacherName: " Nova " } })?.general?.teacherName, "Nova");
 		assert.equal(sanitizeUserSettings({ general: { teacherName: "  " } })?.general?.teacherName, undefined);
 		assert.equal(sanitizeUserSettings({ general: { teacherName: 5 } })?.general?.teacherName, undefined);
+	});
+});
+
+describe("Follow beside the pill", () => {
+	const api = (over: Partial<TeacherApi>): TeacherApi => ({
+		name: "Ada",
+		follow: true,
+		setFollow: () => {},
+		panelOpen: false,
+		panelStarts: false,
+		setPanelOpen: () => {},
+		showTerminal: () => {},
+		recent: [],
+		doing: { working: true, text: "Adding Lab 4" } as TeacherApi["doing"],
+		setLesson: () => {},
+		go: () => {},
+		offer: null,
+		spaceNameOf: () => null,
+		...over,
+	});
+	const html = (over: Partial<TeacherApi>) =>
+		renderToStaticMarkup(
+			<TeacherContext.Provider value={api(over)}>
+				<FollowButton />
+			</TeacherContext.Provider>,
+		);
+	it("says Following while the teacher works, and Follow once stopped", () => {
+		assert.match(html({}), /data-testid="follow-stop"[^>]*>Following</);
+		assert.match(html({ follow: false }), /data-testid="follow-start"[^>]*>Follow</);
+	});
+	it("shows nothing while the teacher is idle", () => {
+		assert.equal(html({ doing: null }), "");
 	});
 });

@@ -118,7 +118,6 @@ export function TeacherPanel({
 					lit={helperCalls}
 					working={false}
 					list={null}
-					follow={false}
 					need={null}
 					back={() => onScreen("teacher")}
 				/>
@@ -129,7 +128,6 @@ export function TeacherPanel({
 					lit={teacherTerminalState(teacherFacts) === "needsYou"}
 					working={!teacherStatus && !!doing?.working && line === doing.text}
 					list={onScreenView ? { open: list, onOpen: onList } : null}
-					follow
 					need={onScreenView && helperCalls ? () => onScreen("helper") : null}
 					back={null}
 				/>
