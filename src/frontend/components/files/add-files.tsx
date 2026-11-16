@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
@@ -48,14 +48,11 @@ export function AddFilesButton({ disabled, onAdd }: { disabled?: boolean; onAdd:
 				Add files
 			</button>
 			<MenuShell open={open} anchorRef={anchorRef} testid="space-add-files-menu" preferredSide="down" menuClass="lh-popup flex w-[420px] flex-col gap-2.5 px-[18px] py-3.5">
-				{(["study", "info"] as const).map((kind, i) => (
-					<Fragment key={kind}>
-						{i > 0 && <span aria-hidden className="border-t-2 border-dotted border-edge" />}
-						<button role="menuitem" type="button" data-testid={`space-add-${kind}`} onClick={() => pick(kind)} className={ITEM}>
-							<span className="text-lg text-ink">{kindTitle(kind)}</span>
-							<span className="text-base text-ink-2">{kindNote(kind)}</span>
-						</button>
-					</Fragment>
+				{(["study", "info"] as const).map((kind) => (
+					<button key={kind} role="menuitem" type="button" data-testid={`space-add-${kind}`} onClick={() => pick(kind)} className={ITEM}>
+						<span className="text-lg text-ink">{kindTitle(kind)}</span>
+						<span className="text-base text-ink-2">{kindNote(kind)}</span>
+					</button>
 				))}
 			</MenuShell>
 		</>

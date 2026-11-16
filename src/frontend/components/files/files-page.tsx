@@ -24,7 +24,7 @@ import {
 import { ConfirmDialog } from "./confirm-dialog";
 import type { FileRowActions } from "./file-row";
 import { FileGroupSection, FinderDropTargets } from "./files-sections";
-import { confirmCopy, fileBrowserName, filesSummary, filterGroups, listRules, type FileConfirm } from "./files-model";
+import { confirmCopy, fileBrowserName, filesSummary, filterGroups, type FileConfirm } from "./files-model";
 import { newSince } from "./folder-status-model";
 import { FolderStatusLine, LinkedFolderButton, LinkFolderButton, LinkFolderField, ROW_BUTTON } from "./linked-folder";
 import { RECENT_CHANGES_KEY, RecentChanges } from "./recent-changes";
@@ -188,8 +188,6 @@ function FilesPageBody() {
 	};
 
 	const showRecent = !searching && changes.length > 0;
-	const rules = listRules([...(showRecent ? [true] : []), ...shown.map((g) => searching || !collapsed.has(g.key))]);
-	const groupRules = showRecent ? rules.slice(1) : rules;
 	const showInFinder = shortcuts && openPath && (
 		<Hint label="Shortcuts to these files in your godspeed folder, for you and your agent." side="bottom">
 			<button type="button" data-testid="files-show-shortcuts" onClick={() => void openPath(shortcuts)} className={ROW_BUTTON}>
@@ -272,14 +270,13 @@ function FilesPageBody() {
 								No file names have “{query.trim()}”.
 							</p>
 						)}
-						{rules.length > 0 && (
-							<div data-testid="files-list" className="flex flex-col border-y-[1.5px] border-ink">
+						{(showRecent || shown.length > 0) && (
+							<div data-testid="files-list" className="flex flex-col gap-3">
 								{showRecent && <RecentChanges changes={changes} collapsed={collapsed.has(RECENT_CHANGES_KEY)} onToggle={toggle} />}
-								{shown.map((group, i) => (
+								{shown.map((group) => (
 									<FileGroupSection
 										key={group.key}
 										group={group}
-										rule={groupRules[i] ?? null}
 										collapsed={!searching && collapsed.has(group.key)}
 										onToggle={toggle}
 										coverage={coverage}

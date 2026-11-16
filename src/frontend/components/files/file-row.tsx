@@ -245,7 +245,7 @@ function RowMenu({
 				)}
 				{remove && (
 					<>
-						<span className="mx-[18px] my-1 border-t-2 border-dotted border-edge" aria-hidden />
+						<span className="h-1.5" aria-hidden />
 						<button
 							role="menuitem"
 							type="button"

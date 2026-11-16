@@ -168,13 +168,6 @@ export function filterGroups(groups: readonly FileGroup[], query: string): FileG
 	return out;
 }
 
-/** The line above each section of the file list, given whether each is
- *  open (Recent changes counts as open): solid beside an open section,
- *  dotted between two folded ones, none above the first. */
-export function listRules(open: readonly boolean[]): ("solid" | "dotted" | null)[] {
-	return open.map((o, i) => (i === 0 ? null : o || open[i - 1] ? "solid" : "dotted"));
-}
-
 /** "27 study material, 19 space info" (the Files tab already counts the
  *  files); a kind with none is left out. */
 export function filesSummary(files: readonly SpaceFile[]): string {

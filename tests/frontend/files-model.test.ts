@@ -18,7 +18,6 @@ import {
 	fileState,
 	filterGroups,
 	kindNote,
-	listRules,
 	fileBrowserName,
 	studiedFill,
 } from "../../src/frontend/components/files/files-model.ts";
@@ -120,12 +119,6 @@ describe("files-model", () => {
 	it("kindNote says what each kind does", () => {
 		assert.equal(kindNote("study"), "Turned into facts");
 		assert.equal(kindNote("info"), "Read by the teacher only");
-	});
-
-	it("listRules: solid beside an open section, dotted between folded ones, none above the first", () => {
-		assert.deepEqual(listRules([]), []);
-		assert.deepEqual(listRules([true, true, false, false, false]), [null, "solid", "solid", "dotted", "dotted"]);
-		assert.deepEqual(listRules([false, false, true]), [null, "dotted", "solid"]);
 	});
 
 	it("dropTitle says what a drop will do", () => {

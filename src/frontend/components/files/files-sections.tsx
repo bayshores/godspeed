@@ -5,16 +5,8 @@ import { cn } from "@/frontend/lib/utils";
 import { FileRow, type FileRowActions } from "./file-row";
 import { dropTitle, kindNote } from "./files-model";
 
-/** The line above a section of the file list (from listRules). */
-type ListRule = "solid" | "dotted" | null;
-
-const RULE_ABOVE: Record<"solid" | "dotted", string> = {
-	solid: "border-t-[1.5px] border-ink",
-	dotted: "border-t-2 border-dotted border-edge",
-};
-
-/** A section's header: the chevron (right when folded), its name and a
- *  note after it ("28 files"). Clicking it folds the section. */
+/** A section's header, a shaded strip: the chevron (right when folded), its
+ *  name and a note after it ("28 files"). Clicking it folds the section. */
 export function SectionToggle({
 	label,
 	note,
@@ -31,7 +23,7 @@ export function SectionToggle({
 	onClick: () => void;
 }) {
 	return (
-		<button type="button" aria-expanded={!collapsed} data-testid={testid} onClick={onClick} className="lh-press flex w-full items-center gap-2.5 px-1 py-[9px] text-left">
+		<button type="button" aria-expanded={!collapsed} data-testid={testid} onClick={onClick} className="lh-press lh-well flex w-full items-center gap-2.5 px-3 py-[9px] text-left">
 			<PixelIcon name="chevron" className={cn("h-[10.5px] text-ink", !collapsed && "rotate-90")} />
 			<h2 className="text-[17px] font-medium text-ink">{label}</h2>
 			<span data-testid={noteTestid} className="font-count text-[15px] text-ink-2 tabular-nums">
@@ -49,7 +41,6 @@ export function SectionToggle({
  */
 export const FileGroupSection = memo(function FileGroupSection({
 	group,
-	rule,
 	collapsed,
 	onToggle,
 	coverage,
@@ -58,7 +49,6 @@ export const FileGroupSection = memo(function FileGroupSection({
 	actions,
 }: {
 	group: FileGroup;
-	rule: ListRule;
 	collapsed: boolean;
 	onToggle: (key: string) => void;
 	coverage: ReadonlyMap<string, FileCoverage>;
@@ -70,7 +60,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 		<FileRow key={file.id} file={file} coverage={coverage.get(file.id)} disabled={disabled} agentTeaching={agentTeaching} actions={actions} />
 	);
 	return (
-		<section data-testid={`files-group-${group.key}`} aria-label={group.label} className={cn("flex w-full flex-col", rule && RULE_ABOVE[rule])}>
+		<section data-testid={`files-group-${group.key}`} aria-label={group.label} className="flex w-full flex-col gap-1">
 			<SectionToggle
 				label={group.label}
 				note={`${group.count} ${group.count === 1 ? "file" : "files"}`}
@@ -80,12 +70,12 @@ export const FileGroupSection = memo(function FileGroupSection({
 				onClick={() => onToggle(group.key)}
 			/>
 			{!collapsed && (
-				<ul className={cn("flex flex-col", RULE_ABOVE.solid)}>
-					{group.items.map((item, i) =>
+				<ul className="flex flex-col">
+					{group.items.map((item) =>
 						item.label === null ? (
 							row(item.files[0]!)
 						) : (
-							<li key={item.key} data-testid={`files-item-${item.key}`} className={cn("flex items-start gap-3 px-1 py-[5px]", i > 0 && RULE_ABOVE.dotted)}>
+							<li key={item.key} data-testid={`files-item-${item.key}`} className="flex items-start gap-3 px-1 py-[5px]">
 								<div className="flex w-[110px] shrink-0 flex-col pt-1.5">
 									<span title={item.label} className="truncate text-[15px] font-medium text-ink">
 										{item.label}
