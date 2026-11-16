@@ -58,7 +58,7 @@ export const SCREENS = [
 		url: "/chat/{lesson}",
 		ready: "[data-testid=cite-list]",
 		// The height it opens at is read once, as it opens.
-		setup: `localStorage.setItem("lh:pane-height:teacher", "full"); document.querySelector("[data-testid=teacher-terminal-open]").click(); ${pause}; localStorage.removeItem("lh:pane-height:teacher")`,
+		setup: `localStorage.setItem("lh:pane-height:teacher", "full"); ${openTeacher}; ${pause}; localStorage.removeItem("lh:pane-height:teacher")`,
 		shows: "[data-testid=terminal-none] [data-testid=open-agent]",
 	},
 	{ name: "Teacher's Activity", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-panel-activity]").click()`, shows: "[data-testid=teacher-panel-list] [data-testid=activity-list] > *" },

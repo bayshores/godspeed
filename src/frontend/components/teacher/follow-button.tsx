@@ -2,8 +2,9 @@ import { followButtons } from "@/frontend/components/top-bar/top-bar-model";
 import { cn } from "@/frontend/lib/utils";
 import { useTeacher } from "./teacher-context";
 
-/** A piece of the pill: the bar's ink, a shade over it on hover. */
-const PIECE = "lh-press lh-no-drag flex self-stretch shrink-0 items-center px-2.5 text-[15px] whitespace-nowrap";
+/** A piece of the pill: the bar's ink, a shade over it on hover. Below 900px it gives way, so the
+ *  pill's words keep their room in a narrow window. */
+const PIECE = "lh-press lh-no-drag flex self-stretch shrink-0 items-center px-2.5 text-[15px] whitespace-nowrap max-[900px]:hidden";
 const QUIET = "bg-bar-ink/15 text-bar-ink hover:bg-bar-ink/25";
 const LIT = "bg-highlight text-ink";
 

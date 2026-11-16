@@ -130,7 +130,8 @@ function ownBoxes(el) {
 	return boxes;
 }
 
-const OVERLAYS = "[role=dialog], [role=alertdialog], [role=menu], [role=listbox], [role=tooltip], [popover]";
+// The lesson log's "Scroll to the bottom" key floats over the text on its own fade.
+const OVERLAYS = "[role=dialog], [role=alertdialog], [role=menu], [role=listbox], [role=tooltip], [popover], .lh-log-jump";
 
 /** A box that draws on its own layer over the page: a fixed or sticky bar, or a true overlay (a
  *  dialog, a menu, a tooltip). A positioned box in the page's flow stays in the page's layer, z-index
