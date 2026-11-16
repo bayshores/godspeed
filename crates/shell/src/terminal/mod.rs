@@ -412,7 +412,8 @@ impl Terminals {
 		if screen::is_reply(data) {
 			return Ok(());
 		}
-		// Only Enter on its own sends the learner's message: Alt or Shift with Enter adds a line,
+		// Only Enter on its own sends the learner's message: Alt+Enter and Shift+Enter (the screen
+		// sends it as a line feed) add a line,
 		// and a paste is not sent yet. With no question on the screen the server hears it, so the
 		// agent's wait for work ends and it can answer the learner.
 		let message = data == "\r" && terminal.state().screen.seen().prompt.is_none();

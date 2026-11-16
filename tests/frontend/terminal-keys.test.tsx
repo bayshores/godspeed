@@ -1,5 +1,6 @@
 /**
- * Every key in the terminal's screen goes to the agent: Escape and Ctrl+C
+ * Every key in the terminal's screen goes to the agent: Shift+Enter as a
+ * line feed (a new line, not a send), Escape and Ctrl+C
  * reach the terminal and never stop the teacher's turn, Tab stays in the
  * screen (the overlay's dialog does not take it), and no key reaches the
  * app's own shortcuts.
@@ -50,8 +51,10 @@ describe("keys in the terminal's screen", () => {
 			press(input, "Escape", 27);
 			press(input, "c", 67, true);
 			press(input, "Tab", 9);
+			press(input, "Enter", 13, false, true);
+			press(input, "Enter", 13);
 			const writes = shell.calls.filter((c) => c.startsWith("write ")).join("|");
-			assert.ok(writes === "write \x1b|write \x03|write \t", `the agent got ${JSON.stringify(writes)}`);
+			assert.ok(writes === "write \x1b|write \x03|write \t|write \n|write \r", `the agent got ${JSON.stringify(writes)}`);
 			assert.ok(aborts === 0, "Escape stopped no turn");
 			// The dialog's Tab trap leaves the screen's Tab alone (called
 			// directly: this DOM runs capture listeners after the target's).

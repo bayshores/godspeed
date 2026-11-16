@@ -87,9 +87,9 @@ export function fakeShell(list: TerminalRecord[] = []): FakeShell {
 }
 
 /** A dispatched keydown, as a keyboard sends it. */
-export function press(target: EventTarget, key: string, keyCode: number, ctrlKey = false): KeyboardEvent {
+export function press(target: EventTarget, key: string, keyCode: number, ctrlKey = false, shiftKey = false): KeyboardEvent {
 	const e = new dom.window.Event("keydown", { bubbles: true, cancelable: true }) as unknown as KeyboardEvent;
-	for (const [name, value] of Object.entries({ key, keyCode, which: keyCode, ctrlKey, metaKey: false, altKey: false, shiftKey: false })) Object.defineProperty(e, name, { value });
+	for (const [name, value] of Object.entries({ key, keyCode, which: keyCode, ctrlKey, metaKey: false, altKey: false, shiftKey })) Object.defineProperty(e, name, { value });
 	target.dispatchEvent(e);
 	return e;
 }

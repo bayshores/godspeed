@@ -43,6 +43,12 @@ function bytes(base64: string): Uint8Array {
 	return out;
 }
 
+/** Shift+Enter adds a line, as in a chat box: the agents read Ctrl+J (a line feed) so,
+ *  where xterm would send the same Enter as a send. Not while an input method composes. */
+function addsLine(e: KeyboardEvent): boolean {
+	return e.key === "Enter" && e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && !e.isComposing && e.keyCode !== 229;
+}
+
 /** Keeps a key in the screen; the Mac's Command keys still reach the app (copy, zoom). */
 function keepKey(e: KeyboardEvent) {
 	if (e.metaKey && document.documentElement.dataset.lhPlatform === "darwin") return;
@@ -96,6 +102,12 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }
 		term.current = t;
 		// A key the shell refuses (the window lost focus, the agent ended) is dropped.
 		const typed = t.onData((data) => lh.write(id, data).catch(() => {}));
+		// Its keypress and keyup are swallowed too, or xterm would send Enter after all.
+		t.attachCustomKeyEventHandler((e) => {
+			if (!addsLine(e)) return true;
+			if (e.type === "keydown") lh.write(id, "\n").catch(() => {});
+			return false;
+		});
 		const offOutput = lh.onOutput((out) => {
 			if (out.id !== id) return;
 			if (out.snapshot !== undefined) {
