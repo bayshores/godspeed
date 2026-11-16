@@ -146,6 +146,12 @@ describe("the deadline page", () => {
 		assert.match(html, /data-testid="deadline-start".*>Study</);
 		assert.ok(!render().includes('data-testid="deadline-day-empty"'), "a today with topics says nothing");
 	});
+	it("Study shows before there is a plan, and the sheet is titled Path", () => {
+		const html = render(deadline({ topics: [], topicIds: [], files: [] }));
+		assert.equal(count(html, 'data-testid="deadline-day"'), 0);
+		assert.match(html, /data-testid="deadline-start"[^>]*lh-btn-main.*>Study</);
+		assert.match(html, /<h2[^>]*>Path<\/h2>/);
+	});
 	it("a homework's Study is not the main button: Work on is", () => {
 		assert.doesNotMatch(render(deadline({ kind: "homework" })), /data-testid="deadline-start"[^>]*lh-btn-main/);
 	});
@@ -283,7 +289,7 @@ const MOCKS: NonNullable<Summary> = [
 
 function mocks(over: Partial<React.ComponentProps<typeof PathMocks>> = {}) {
 	return (
-		<PathMocks spaceId="spc_1" mocks={MOCKS} failed={false} done={false} offReason={null} nowMs={NOW} onRetry={() => {}} onWrite={async () => null} onRemove={async () => null} {...over} />
+		<PathMocks spaceId="spc_1" mocks={MOCKS} failed={false} done={false} canTake nowMs={NOW} onRetry={() => {}} onWrite={async () => null} onRemove={async () => null} {...over} />
 	);
 }
 
@@ -343,24 +349,23 @@ describe("a deadline's mocks", () => {
 		assert.match(html, /href="\/space\/mock\/spc_1\/mock_2".*>Mock 2<.*>Nov 1<.*data-testid="deadline-mock-line"[^>]*>4 of 5 right<.*<svg/);
 		assert.match(html, /aria-label="Remove Mock 2"/);
 	});
-	it("is off with its reason when there is nothing to write one from", () => {
-		const html = renderToStaticMarkup(mocks({ mocks: [], offReason: "A mock is written from this deadline's study files or from what it's like, and it has neither yet." }));
-		assert.match(html, /data-testid="deadline-mock-take"[^>]*disabled=""/);
-		assert.match(html, /data-testid="deadline-mock-off"[^>]*>A mock is written from this deadline&#x27;s study files/);
+	it("is left out when there is nothing to write one from", () => {
+		const html = renderToStaticMarkup(mocks({ mocks: [], canTake: false }));
+		assert.ok(!html.includes("deadline-mock-take") && !html.includes("deadline-mock-off"));
 		assert.ok(!html.includes("deadline-mock-list"), "no list before the first mock");
 	});
 	it("an open mock is continued, paused ones say their time left", () => {
 		const paused = { id: "mock_3", deadlineId: "mid", n: 3, state: "paused" as const, format: { questions: 5, minutes: 45 }, createdAt: "2026-11-02T09:00:00.000Z", paused: { at: "2026-11-02T09:20:00.000Z", left: 31 * 60 + 9 }, working: false };
-		const html = renderToStaticMarkup(<MemoryRouter>{mocks({ mocks: [paused, ...MOCKS], offReason: "unused" })}</MemoryRouter>);
+		const html = renderToStaticMarkup(<MemoryRouter>{mocks({ mocks: [paused, ...MOCKS], canTake: false })}</MemoryRouter>);
 		assert.match(html, /data-testid="deadline-mock-continue"[^>]*href="\/space\/mock\/spc_1\/mock_3"[^>]*>Continue Mock 3</);
-		assert.ok(!html.includes("deadline-mock-take") && !html.includes("deadline-mock-off"));
+		assert.ok(!html.includes("deadline-mock-take"));
 		assert.match(html, />Paused, 31:09 left</);
 	});
-	it("a done deadline takes no new mock but keeps its list; one still loading waits; one that failed offers Try again", () => {
+	it("a done deadline takes no new mock but keeps its list; one still loading shows no button yet; one that failed offers Try again", () => {
 		const done = renderToStaticMarkup(<MemoryRouter>{mocks({ done: true })}</MemoryRouter>);
 		assert.ok(!done.includes("deadline-mock-take"));
 		assert.match(done, /data-testid="deadline-mock-list"/);
-		assert.match(renderToStaticMarkup(mocks({ mocks: null })), /data-testid="deadline-mock-take"[^>]*disabled=""/);
+		assert.ok(!renderToStaticMarkup(mocks({ mocks: null })).includes("deadline-mock-take"));
 		assert.match(renderToStaticMarkup(mocks({ mocks: null, failed: true })), /role="alert".*Couldn&#x27;t load the mocks\..*data-testid="deadline-mocks-retry"/);
 	});
 	it("homework has no mocks slot filled, so none show", () => {

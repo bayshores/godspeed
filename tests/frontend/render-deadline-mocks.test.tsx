@@ -57,7 +57,7 @@ async function mount(mocks: readonly MockSummary[] = [GRADED]) {
 					mocks={mocks}
 					failed={false}
 					done={false}
-					offReason={null}
+					canTake
 					nowMs={Date.parse("2026-11-02T10:00:00")}
 					onRetry={() => {}}
 					onWrite={async (questions, minutes) => {

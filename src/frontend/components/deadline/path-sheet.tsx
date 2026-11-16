@@ -52,7 +52,7 @@ export function PathSheet({
 	const needsGuide = ahead && d.kind === "interview" && d.topics.length === 0 && !(material && material.reading > 0);
 	return (
 		<Pane data-testid="deadline-path" className={cn(SHEET, "pb-6")}>
-			<h2 className={SHEET_TITLE}>{ahead ? `Path to ${deadlineDateLabel(d.date)}` : "Path"}</h2>
+			<h2 className={SHEET_TITLE}>Path</h2>
 			{ahead && (
 				<p data-testid="deadline-path-note" className="text-base text-ink-2">
 					{needsGuide
@@ -103,7 +103,7 @@ export function PathSheet({
 					{startError}
 				</p>
 			)}
-			{ahead && (plan.length > 0 || allStrong) && (
+			{ahead && (
 				// A homework's one main button is "Work on" in its Problems sheet.
 				<button type="button" data-testid="deadline-start" disabled={busy} onClick={onStart} className={cn("lh-btn mt-1 h-11 w-full justify-center text-[15px]", !hasProblems(d.kind) && "lh-btn-main")}>
 					<span className="min-w-0 truncate">{studyLabel(d.continueStudy)}</span>

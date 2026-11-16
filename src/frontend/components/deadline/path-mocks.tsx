@@ -10,8 +10,8 @@ const WIDE = "lh-btn h-11 w-full justify-center text-[15px]";
 const SMALL = "lh-btn h-[29px] px-2.5 text-[15px]";
 
 /**
- * A DEADLINE'S MOCKS, under Study in its Path sheet: "Take a mock" (off,
- * with the reason, when there is nothing to write one from), or "Continue
+ * A DEADLINE'S MOCKS, under Study in its Path sheet: "Take a mock" (left
+ * out while there is nothing to write one from), or "Continue
  * Mock 3" while one is open; then every mock, newest first, with where it
  * is or how it went. A row opens the mock; its cross asks "Remove it?" in place.
  */
@@ -20,7 +20,7 @@ export function PathMocks({
 	mocks,
 	failed,
 	done,
-	offReason,
+	canTake,
 	nowMs,
 	onRetry,
 	onWrite,
@@ -33,8 +33,8 @@ export function PathMocks({
 	failed: boolean;
 	/** The deadline is done: no new mock. */
 	done: boolean;
-	/** Why "Take a mock" is off; null when it is on. */
-	offReason: string | null;
+	/** Whether there is anything to write a mock from. */
+	canTake: boolean;
 	nowMs: number;
 	onRetry: () => void;
 	onWrite: (questions: number, minutes: number | null) => Promise<string | null>;
@@ -57,25 +57,21 @@ export function PathMocks({
 					{openMockLabel(open)}
 				</Link>
 			) : (
-				!done && (
+				!done &&
+				canTake &&
+				mocks !== null && (
 					<button
 						ref={takeRef}
 						type="button"
 						data-testid="deadline-mock-take"
 						aria-haspopup="dialog"
 						aria-expanded={boxOpen}
-						disabled={mocks === null || offReason !== null}
 						onClick={() => setBoxOpen((v) => !v)}
 						className={WIDE}
 					>
 						Take a mock
 					</button>
 				)
-			)}
-			{!open && !done && offReason && (
-				<p data-testid="deadline-mock-off" className="text-base text-ink-2">
-					{offReason}
-				</p>
 			)}
 			{failed && (
 				<div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-2">

@@ -25,11 +25,10 @@ export function takesMocks(kind: DeadlineKind): boolean {
 	return kind === "exam" || kind === "quiz" || kind === "interview";
 }
 
-/** Why "Take a mock" is off, or null when it is on: a mock is written from
- *  the deadline's study facts or from what it's like, and with neither it
- *  would be made up. */
-export function mockOffReason(hasFacts: boolean, hasAbout: boolean): string | null {
-	return hasFacts || hasAbout ? null : "A mock is written from this deadline's study files or from what it's like, and it has neither yet.";
+/** Whether "Take a mock" shows: a mock is written from the deadline's
+ *  study facts or from what it's like, and with neither it would be made up. */
+export function canWriteMock(hasFacts: boolean, hasAbout: boolean): boolean {
+	return hasFacts || hasAbout;
 }
 
 /** What POST /api/spaces/:id/mocks sends: no minutes means no time limit. */

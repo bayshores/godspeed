@@ -17,7 +17,7 @@ import { AboutSheet } from "./about-sheet";
 import { DeadlineBody } from "./deadline-body";
 import { HomeworkCard } from "./homework-card";
 import { deadlineMaterial } from "./deadline-model";
-import { mockOffReason, takesMocks } from "./mocks-model";
+import { canWriteMock, takesMocks } from "./mocks-model";
 import { PathMocks } from "./path-mocks";
 import { requestDoing, requestFailedLine, type RequestKind } from "./request-model";
 import { useDeadlineAbout } from "./use-deadline-about";
@@ -160,7 +160,7 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 										mocks={mocks.mocks}
 										failed={mocks.failed}
 										done={deadline.done}
-										offReason={mockOffReason(deadline.topics.length > 0, about?.state === "ready")}
+										canTake={canWriteMock(deadline.topics.length > 0, about?.state === "ready")}
 										nowMs={nowMs}
 										onRetry={() => void mocks.reload()}
 										onWrite={mocks.write}

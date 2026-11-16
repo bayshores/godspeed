@@ -2,16 +2,16 @@
  *  mock" is off, the mock box's numbers and what it sends. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { MINUTES, QUESTIONS, clampTo, mockOffReason, mocksRemovedLine, newMockBody, takesMocks } from "../../src/frontend/components/deadline/mocks-model.ts";
+import { MINUTES, QUESTIONS, clampTo, canWriteMock, mocksRemovedLine, newMockBody, takesMocks } from "../../src/frontend/components/deadline/mocks-model.ts";
 
 describe("a deadline's mocks", () => {
 	it("belong to tests and interviews, not to homework or projects", () => {
 		assert.deepEqual((["exam", "quiz", "interview", "homework", "project"] as const).map(takesMocks), [true, true, true, false, false]);
 	});
-	it("are off, with the reason, only when there is nothing to write one from", () => {
-		assert.equal(mockOffReason(true, false), null);
-		assert.equal(mockOffReason(false, true), null);
-		assert.equal(mockOffReason(false, false), "A mock is written from this deadline's study files or from what it's like, and it has neither yet.");
+	it("show unless there is nothing to write one from", () => {
+		assert.equal(canWriteMock(true, false), true);
+		assert.equal(canWriteMock(false, true), true);
+		assert.equal(canWriteMock(false, false), false);
 	});
 	it("start at 5 questions and 45 minutes, kept in range as whole numbers", () => {
 		assert.deepEqual([QUESTIONS.start, QUESTIONS.min, QUESTIONS.max], [5, 1, 10]);
