@@ -5,8 +5,8 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { files, filesProgress, jobFrame, spaceFrame, tabWorkTag, todayWorkLine, workProgress, workerName, workState } from "../../src/frontend/components/work/work-model.ts";
-import type { SpaceFile, SpaceFileStatus, SpaceSummary } from "../../src/shared/core/index.ts";
+import { files, filesProgress, jobFrame, readNews, spaceFrame, tabWorkTag, todayWorkLine, workProgress, workerName, workState } from "../../src/frontend/components/work/work-model.ts";
+import type { SpaceFile, SpaceFileStatus, SpaceSummary, SpaceWork } from "../../src/shared/core/index.ts";
 
 const file = (id: string, status: SpaceFileStatus, extra: Partial<SpaceFile> = {}): SpaceFile => ({
 	id,
@@ -22,7 +22,7 @@ const file = (id: string, status: SpaceFileStatus, extra: Partial<SpaceFile> = {
 
 const ENDED = new Date(2026, 10, 11, 14, 3);
 const NOW = ENDED.getTime() + 60_000;
-const base = { grouping: false, working: true, nowMs: NOW };
+const base = { grouping: false, working: true };
 
 describe("workerName", () => {
 	it("the helper when one is open, else the teacher, else nobody", () => {
@@ -59,23 +59,33 @@ describe("the work frame of a space", () => {
 		assert.equal(workState({ ...base, grouping: true, working: false, files: [file("a", "ready")], work: undefined }), null);
 	});
 
-	it("done: what the round read, for a day", () => {
-		const work = { startedAt: "x", endedAt: ENDED.toISOString(), fileIds: ["a", "b", "bad", "gone"], deadlineIds: [] };
-		const input = { ...base, files: [file("a", "ready"), file("b", "ready"), file("bad", "failed"), file("other", "ready")], work };
-		const state = workState(input);
-		assert.deepEqual(state, { kind: "done", read: 2, failed: 1 });
-		assert.deepEqual(spaceFrame(state!), { state: "done", text: "Your agent read 2 files.", count: "1 could not be read" });
-		assert.equal(workState({ ...input, nowMs: ENDED.getTime() + 25 * 60 * 60 * 1000 }), null);
+	it("nothing going on: no frame, even right after a round ended", () => {
+		assert.equal(workState({ ...base, files: [file("a", "ready")], work: undefined }), null);
+		assert.equal(workState({ ...base, files: [file("a", "ready")], work: { startedAt: "x", endedAt: ENDED.toISOString(), fileIds: ["a"], deadlineIds: [] } }), null);
+	});
+});
+
+describe("what the last round read, for the pill's notice", () => {
+	const round = (ids: string[]): SpaceWork => ({ startedAt: "x", endedAt: ENDED.toISOString(), fileIds: ids, deadlineIds: [] });
+	const news = (fs: SpaceFile[], work: SpaceWork | undefined, nowMs = NOW) => readNews({ files: fs, work, nowMs }, "Quigley");
+
+	it("names the teacher, the files read and the ones that could not be, for a day", () => {
+		const work = round(["a", "b", "bad", "gone"]);
+		const fs = [file("a", "ready"), file("b", "ready"), file("bad", "failed"), file("other", "ready")];
+		assert.equal(news(fs, work), "Quigley read 2 files and could not read 1.");
+		assert.equal(news([file("a", "ready")], round(["a"])), "Quigley read 1 file.");
+		assert.equal(news(fs, work, ENDED.getTime() + 25 * 60 * 60 * 1000), null);
 	});
 
 	it("every file failed", () => {
-		const work = { startedAt: "x", endedAt: ENDED.toISOString(), fileIds: ["a"], deadlineIds: [] };
-		const state = workState({ ...base, files: [file("a", "failed")], work });
-		assert.deepEqual(spaceFrame(state!), { state: "done", text: "Your agent could not read 1 file.", count: null });
+		assert.equal(news([file("a", "failed")], round(["a"])), "Quigley could not read 1 file.");
 	});
 
-	it("nothing going on and nothing finished: no frame", () => {
-		assert.equal(workState({ ...base, files: [file("a", "ready")], work: undefined }), null);
+	it("nothing while files wait, before a round ended, or when the round has no file", () => {
+		assert.equal(news([file("a", "ready"), file("n", "pending")], round(["a"])), null);
+		assert.equal(news([file("a", "ready")], { startedAt: "x", fileIds: ["a"], deadlineIds: [] }), null);
+		assert.equal(news([file("a", "ready")], round(["gone"])), null);
+		assert.equal(news([file("a", "ready")], undefined), null);
 	});
 });
 

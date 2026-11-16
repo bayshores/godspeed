@@ -12,6 +12,7 @@ import { Welcome } from "@/frontend/components/welcome/welcome";
 import { AppBar } from "@/frontend/components/app-bar";
 import { PillProvider } from "@/frontend/components/top-bar/pill-provider";
 import { SearchLessons } from "@/frontend/components/search-lessons";
+import { ReadNotice } from "@/frontend/components/work/read-notice";
 
 /** The view swap: switching between pages (Today, a lesson, Progress…)
  *  rises the incoming page in once. */
@@ -60,6 +61,7 @@ export function AppShell({
 						<main id="lh-page" tabIndex={-1} className="lh-dots min-h-0 min-w-0 flex-1 pr-(--lh-dock-push,0px) motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)">
 							<ViewSwap>{children}</ViewSwap>
 						</main>
+						<ReadNotice />
 					</PillProvider>
 				</TeacherProvider>
 				<SpaceNotice />

@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import { cn } from "@/frontend/lib/utils";
 
 export interface Frame {
-	/** working: stripes slide. waiting: grey and still, no agent takes the work. done: a plain band. */
-	state: "working" | "waiting" | "done";
+	/** working: stripes slide. waiting: grey and still, no agent takes the work. */
+	state: "working" | "waiting";
 	text: string;
 	/** Beside the text: how far the work is ("6 of 17 files"). */
 	count?: string | null;

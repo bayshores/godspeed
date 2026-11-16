@@ -1,7 +1,7 @@
 /**
  * Background work on a space, in words: what the work frame on a space
  * page, Today, the space's tab and the top bar pill say while its
- * files are read and after. Pure.
+ * files are read, and the pill's notice after. Pure.
  */
 import { isWaitingFile, type SpaceFile, type SpaceSummary, type SpaceWork } from "@/shared/core";
 import type { AgentStatus } from "@/frontend/components/agent-status";
@@ -24,8 +24,7 @@ type WorkState =
 	| { kind: "waiting"; left: number }
 	/** `read`: the round's files finished so far; `total`: those and the ones still waiting. */
 	| { kind: "reading"; read: number; total: number }
-	| { kind: "grouping" }
-	| { kind: "done"; read: number; failed: number };
+	| { kind: "grouping" };
 
 export const files = (n: number) => `${n} file${n === 1 ? "" : "s"}`;
 
@@ -40,23 +39,31 @@ export function filesProgress<S extends ProgressSpace>(spaces: readonly S[]): { 
 
 const isFresh = (work: SpaceWork | undefined, nowMs: number): work is SpaceWork & { endedAt: string } => !!work?.endedAt && nowMs - Date.parse(work.endedAt) < SHOWN_MS;
 
-export function workState(i: { files: readonly SpaceFile[]; work: SpaceWork | undefined; grouping: boolean; working: boolean; nowMs: number }): WorkState | null {
+export function workState(i: { files: readonly SpaceFile[]; work: SpaceWork | undefined; grouping: boolean; working: boolean }): WorkState | null {
 	const waiting = i.files.filter(isWaitingFile).length;
 	if (waiting > 0) {
 		if (!i.working) return { kind: "waiting", left: waiting };
 		const read = i.work?.endedAt ? 0 : (i.work?.fileIds.length ?? 0);
 		return { kind: "reading", read, total: read + waiting };
 	}
-	if (i.grouping) return i.working ? { kind: "grouping" } : null;
-	if (!isFresh(i.work, i.nowMs)) return null;
+	return i.grouping && i.working ? { kind: "grouping" } : null;
+}
+
+/** What the last round read, for the pill's notice, for a day after it
+ *  ended; null while files wait or the round had no file. */
+export function readNews(i: { files: readonly SpaceFile[]; work: SpaceWork | undefined; nowMs: number }, teacher: string): string | null {
+	if (i.files.some(isWaitingFile) || !isFresh(i.work, i.nowMs)) return null;
 	const round = i.files.filter((f) => i.work!.fileIds.includes(f.id));
 	const read = round.filter((f) => f.status === "ready").length;
-	return { kind: "done", read, failed: round.length - read };
+	const failed = round.length - read;
+	if (round.length === 0) return null;
+	if (read === 0) return `${teacher} could not read ${files(failed)}.`;
+	return failed > 0 ? `${teacher} read ${files(read)} and could not read ${failed}.` : `${teacher} read ${files(read)}.`;
 }
 
 /** What the work frame says. */
 interface FrameWords {
-	state: "working" | "waiting" | "done";
+	state: "working" | "waiting";
 	text: string;
 	count: string | null;
 }
@@ -73,9 +80,6 @@ export function spaceFrame(state: WorkState): FrameWords {
 			return working(`${state.read} of ${files(state.total)}`);
 		case "grouping":
 			return working("grouping facts into topics");
-		case "done":
-			if (state.read === 0) return { state: "done", text: `Your agent could not read ${files(state.failed)}.`, count: null };
-			return { state: "done", text: `Your agent read ${files(state.read)}.`, count: state.failed > 0 ? `${state.failed} could not be read` : null };
 	}
 }
 

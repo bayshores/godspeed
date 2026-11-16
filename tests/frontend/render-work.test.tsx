@@ -24,6 +24,7 @@ Object.assign(globalThis, {
 
 const { createRoot } = await import("react-dom/client");
 const { SpaceWorkFrame } = await import("../../src/frontend/components/work/space-work-frame.tsx");
+const { ReadNotice } = await import("../../src/frontend/components/work/read-notice.tsx");
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { MemoryRouter } = await import("react-router");
@@ -91,17 +92,22 @@ describe("The work frame around a space's pages", () => {
 		assert.equal(host.querySelector('[data-testid="work-frame"]')?.getAttribute("data-state"), "working");
 		assert.equal(text(host, "work-frame-tag"), "Working on this page1 of 3 files");
 		assert.equal(text(host, "page"), "The page");
-		assert.ok(host.querySelector('[data-testid="work-frame-close"]') === null);
 	});
 
-	it("done: what the round read, and Close takes the frame off", async () => {
+	it("a finished round shows no frame; the pill's notice says what it read", async () => {
 		const lastWork = { startedAt: "x", endedAt: new Date().toISOString(), fileIds: ["a"], deadlineIds: [] };
 		const host = await mount(page, record({ files: [file("old", "ready"), file("a", "ready")], lastWork }));
-		assert.equal(host.querySelector('[data-testid="work-frame"]')?.getAttribute("data-state"), "done");
-		assert.match(text(host, "work-frame-tag")!, /^Your agent read 1 file\./);
-		await click(host, "work-frame-close");
 		assert.ok(host.querySelector('[data-testid="work-frame"]') === null);
 		assert.equal(text(host, "page"), "The page");
+	});
+
+	it("the notice says what the round read, and Close clears the round", async () => {
+		const lastWork = { startedAt: "x", endedAt: new Date().toISOString(), fileIds: ["a"], deadlineIds: [] };
+		await mount(<ReadNotice />, record({ files: [file("old", "ready"), file("a", "ready")], lastWork }));
+		// It hangs in the notice stack (the page body here), not inside the page.
+		assert.equal(text(document.body, "read-notice"), "Teacher read 1 file.");
+		await click(document.body, "read-notice-close");
+		assert.ok(document.querySelector('[data-testid="read-notice"]') === null);
 		assert.ok(requests.includes("DELETE /api/spaces/spc_ml/work"));
 	});
 

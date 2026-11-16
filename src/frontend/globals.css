@@ -1554,9 +1554,6 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 .lh-work-stripes[data-state="waiting"] {
 	background-image: repeating-linear-gradient(135deg, var(--lh-edge) 0 5.657px, var(--accent) 5.657px 11.314px);
 }
-.lh-work-stripes[data-state="done"] {
-	background: var(--lh-highlight);
-}
 @keyframes lh-work-slide {
 	to {
 		background-position: 16px 0;
