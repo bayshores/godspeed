@@ -228,7 +228,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 			teacherCheckedIn,
 			helper,
 			helperHere: !!status?.helperHere,
-			backgroundWaiting: status ? status.pendingWork - status.pendingTurns : 0,
+			helperWork: status?.helperWork ?? 0,
 		});
 	useEffect(() => {
 		if (!helperWanted || !teacher || helperTried.current === teacher.id) return;

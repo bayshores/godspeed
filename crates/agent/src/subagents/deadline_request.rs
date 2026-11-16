@@ -24,11 +24,14 @@ pub struct DeadlineRequest {
 	pub label: String,
 	pub prompt: String,
 	pub tools: Vec<Arc<dyn Tool>>,
+	/// The learner pressed Ask on the page; godspeed's own check is not.
+	pub asked: bool,
 }
 
 /// Runs the request to the end: its last text.
 pub async fn run_deadline_request(bridge: &Bridge, request: DeadlineRequest) -> Result<String, RunError> {
 	let mut run = SubagentRunOptions::new(INSTRUCTIONS, Json::from(request.prompt), MAX_TURNS);
 	run.task_label = Some(request.label);
+	run.asked = request.asked;
 	Ok(run_subagent(bridge, request.tools, run).await?.text)
 }

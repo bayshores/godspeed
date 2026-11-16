@@ -46,9 +46,10 @@ fn exam(app: &Arc<App>) -> (String, String) {
 	(space_id, added["id"].as_str().unwrap().to_owned())
 }
 
-/// Answers the next background work item with `reply`; the item.
-async fn answer(app: &App, reply: AgentReply) -> gs_engine::bridge::WorkView {
-	let view = app.bridge.wait_for_work(10_000, WaitOptions { full: true, ..WaitOptions::default() }).await.expect("a work item");
+/// Answers the next background work item with `reply`: a page's request as the teacher, which
+/// takes what the learner asked for, and godspeed's check as the helper. The item.
+async fn answer(app: &App, helper: bool, reply: AgentReply) -> gs_engine::bridge::WorkView {
+	let view = app.bridge.wait_for_work(10_000, WaitOptions { full: true, helper, ..WaitOptions::default() }).await.expect("a work item");
 	app.bridge.respond_to_work(&view.work_id, reply, 0).unwrap();
 	view
 }
@@ -73,12 +74,12 @@ async fn a_request_that_links_files_ends_quietly_and_one_that_changes_nothing_sa
 	assert!(request_deadline(&f.app, &space_id, &deadline_id, RequestKind::Guide).is_err(), "one request at a time");
 
 	let change = ReplyCall { name: "update_space_deadline".to_owned(), arguments: json!({ "space_id": space_id, "deadline_id": deadline_id, "source": "Syllabus.pdf" }) };
-	let first = answer(&f.app, AgentReply { text: None, tool_calls: vec![change] }).await;
+	let first = answer(&f.app, false, AgentReply { text: None, tool_calls: vec![change] }).await;
 	assert_eq!(first.label.as_deref(), Some("Deadline: Wave Optics Midterm"));
 	let tools: Vec<&str> = first.tools.iter().flatten().filter_map(|t| t["name"].as_str()).collect();
 	assert_eq!(tools, ["read_space", "search_space_files", "read_passage", "update_space_deadline"]);
 	assert!(stringify(&Json::Arr(first.messages)).contains("Work out what this deadline covers from the space's own files"));
-	answer(&f.app, AgentReply { text: Some("Linked it from the syllabus.".to_owned()), tool_calls: Vec::new() }).await;
+	answer(&f.app, false, AgentReply { text: Some("Linked it from the syllabus.".to_owned()), tool_calls: Vec::new() }).await;
 	assert_eq!(stringify(&ended(&f.app, &space_id, &deadline_id).await), r#"{"running":null,"failed":null}"#);
 	let saved = f.app.stores.spaces.get_space(&space_id).unwrap();
 	assert_eq!(saved["deadlines"][0]["source"], json!("Syllabus.pdf"));
@@ -86,7 +87,7 @@ async fn a_request_that_links_files_ends_quietly_and_one_that_changes_nothing_sa
 	assert_eq!(stringify(&asked), format!(r#"{{"version":2,"asked":["{deadline_id}"],"checkedInfo":[],"weighed":[],"pathAsked":[],"overdueAsked":[]}}"#));
 
 	request_deadline(&f.app, &space_id, &deadline_id, RequestKind::About).unwrap();
-	let about = answer(&f.app, AgentReply { text: Some("I read the files.\nThey don't say what the midterm is like.".to_owned()), tool_calls: Vec::new() }).await;
+	let about = answer(&f.app, false, AgentReply { text: Some("I read the files.\nThey don't say what the midterm is like.".to_owned()), tool_calls: Vec::new() }).await;
 	assert!(about.tools.iter().flatten().any(|t| t["name"] == json!("add_space_file")));
 	let view = ended(&f.app, &space_id, &deadline_id).await;
 	assert_eq!(stringify(&view["failed"]), r#"{"kind":"about","said":"They don't say what the midterm is like."}"#);
@@ -100,7 +101,7 @@ async fn a_check_adds_and_links_in_one_run_and_undo_puts_both_back() {
 	f.app.stores.spaces.save_files(&space_id, vec![file("f_w1", "Week 1.md", "study", "2026-11-01T10:00:00.000Z")], &[]).unwrap();
 	f.app.stores.spaces.update_deadline(&space_id, &exam, &json!({ "fileIds": ["f_w1"] })).unwrap();
 	check_spaces(&f.app, gs_base::clock::now_ms());
-	assert!(f.app.bridge.wait_for_work(50, WaitOptions::default()).await.is_none(), "files from before the first check are never checked");
+	assert!(f.app.bridge.wait_for_work(50, WaitOptions { helper: true, ..WaitOptions::default() }).await.is_none(), "files from before the first check are never checked");
 
 	let now = gs_base::time::iso_now();
 	let mut files = f.app.stores.spaces.get_space(&space_id).unwrap()["files"].as_arr().unwrap().clone();
@@ -110,14 +111,14 @@ async fn a_check_adds_and_links_in_one_run_and_undo_puts_both_back() {
 	check_spaces_now(&f.app, gs_base::clock::now_ms());
 	let add = ReplyCall { name: "add_space_deadline".to_owned(), arguments: json!({ "space_id": space_id, "deadlines": [{ "kind": "homework", "name": "HW 5", "date": "2099-01-20", "time": "23:59" }] }) };
 	let link = ReplyCall { name: "update_space_deadline".to_owned(), arguments: json!({ "space_id": space_id, "deadline_id": exam, "file_ids": ["f_w1", "f_w7"] }) };
-	let first = answer(&f.app, AgentReply { text: None, tool_calls: vec![add, link] }).await;
+	let first = answer(&f.app, true, AgentReply { text: None, tool_calls: vec![add, link] }).await;
 	assert_eq!(first.label.as_deref(), Some("Check: Wave Optics"));
 	let tools: Vec<&str> = first.tools.iter().flatten().filter_map(|t| t["name"].as_str()).collect();
 	assert_eq!(tools, ["read_space", "search_space_files", "read_passage", "add_space_deadline", "update_space_deadline"]);
 	let prompt = first.messages.iter().find_map(|m| m["content"].as_str().filter(|c| c.starts_with("Check space"))).map(str::to_owned);
 	let prompt = prompt.unwrap_or_else(|| stringify(&Json::Arr(first.messages.clone())));
 	assert!(prompt.contains("Info file HW5.md (file_id f_hw5)") && prompt.contains("New study files for Midterm (deadline_id"), "{prompt}");
-	answer(&f.app, AgentReply { text: Some("Added HW 5 and linked Week 7 to the midterm.".to_owned()), tool_calls: Vec::new() }).await;
+	answer(&f.app, true, AgentReply { text: Some("Added HW 5 and linked Week 7 to the midterm.".to_owned()), tool_calls: Vec::new() }).await;
 
 	let mut checked = None;
 	for _ in 0..2000 {

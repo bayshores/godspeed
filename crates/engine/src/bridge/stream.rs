@@ -11,6 +11,7 @@ use gs_core::records::settings::{OUTSIDE_AGENT_CONTEXT_WINDOW, OUTSIDE_AGENT_MOD
 use gs_json::Json;
 use tokio::sync::oneshot;
 
+use super::work::ASK_GRACE_MS;
 use super::{Bridge, WorkItem, is_background};
 use crate::turn::abort::Abort;
 use crate::turn::faux::{Request, Respond, faux_model};
@@ -46,7 +47,7 @@ impl Bridge {
 			return empty_reply();
 		}
 		let (tx, rx) = oneshot::channel();
-		{
+		let asked = {
 			let mut s = self.0.state.lock();
 			s.items.push(WorkItem {
 				id: id.clone(),
@@ -65,8 +66,17 @@ impl Bridge {
 			if session_id.is_some() && background {
 				s.background_runs.insert(conversation.clone());
 			}
-		}
+			s.asked.contains(&conversation)
+		};
 		self.emit(EventKind::AgentChanged);
+		if asked {
+			// Left untaken, it becomes the helper's: the window looks again to start one.
+			let events = self.0.events.clone();
+			tokio::spawn(async move {
+				clock::sleep(ASK_GRACE_MS + 1000).await;
+				events.emit(EventKind::AgentChanged, gs_json::json!({}));
+			});
+		}
 		if background {
 			self.emit(EventKind::ActivityChanged);
 		}

@@ -204,7 +204,7 @@ fn start_check(app: &Arc<App>, space: &Json, reasons: Vec<Reason>) {
 	let tools = space_check_tools(&actions, path);
 	*app.spaces.checks.active.lock() = Some((space_id.clone(), actions, space_check_tool_names(path)));
 	let agent = app.bridge.agent_name(clock::now_ms()).unwrap_or_else(|| "Your agent".to_owned());
-	let request = DeadlineRequest { label, prompt: check_text(space, &reasons), tools: tools.into_iter().map(FnTool::into_arc).collect() };
+	let request = DeadlineRequest { label, prompt: check_text(space, &reasons), tools: tools.into_iter().map(FnTool::into_arc).collect(), asked: false };
 	let end = CheckEnd { app: app.clone(), space_id };
 	tokio::spawn(async move {
 		let outcome = run_deadline_request(&end.app.bridge, request).await;
@@ -552,7 +552,7 @@ mod tests {
 		check_spaces(&app, clock::now_ms());
 		let link = json!({ "space_id": space_id, "deadline_id": exam, "file_ids": ["f1"] });
 		assert!(as_check_call(&app, Some("agent-A"), "update_space_deadline", &link).await.is_none(), "the agent holds no work yet");
-		let item = app.bridge.wait_for_work(10_000, WaitOptions { agent: Some("agent-A".to_owned()), ..WaitOptions::default() }).await.expect("the check's item");
+		let item = app.bridge.wait_for_work(10_000, WaitOptions { agent: Some("agent-A".to_owned()), helper: true, ..WaitOptions::default() }).await.expect("the check's item");
 		assert!(as_check_call(&app, Some("agent-B"), "update_space_deadline", &link).await.is_none(), "another agent");
 		assert!(as_check_call(&app, Some("agent-A"), "update_space", &json!({ "space_id": other, "name": "x" })).await.is_none(), "another space");
 		assert_eq!(refusal(as_check_call(&app, Some("agent-A"), "rename_space", &json!({ "space_id": space_id, "name": "x" })).await.unwrap()), "rename_space is not for this check.");

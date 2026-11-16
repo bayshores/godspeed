@@ -193,7 +193,12 @@ async fn the_bridge_matches_agent_bridge_ts() {
 			"full" => result = outcome(bridge.full_work_view(&work()), |v| vec![("view", view_json(&v))]),
 			"release" => bridge.release_conversation(&text("conversation")),
 			"forget" => bridge.forget_agent(&text("agent"), s["cleared"].truthy()),
-			"label" => bridge.label_conversation(&text("conversation"), &text("label")),
+			"label" => {
+				bridge.label_conversation(&text("conversation"), &text("label"));
+				// The TS bridge gave a teacher any background job at once, as godspeed now does
+				// only with one the learner asked for.
+				bridge.mark_asked(&text("conversation"));
+			}
 			"claimed" => result = Json::Arr(bridge.claimed_lessons()),
 			"pending" => result = Json::from(bridge.pending_work_count()),
 			"abort" => {

@@ -24,6 +24,8 @@ export interface AgentStatus {
 	pendingWork: number;
 	/** Those that are lesson turns; the rest are background jobs. */
 	pendingTurns: number;
+	/** Background jobs no one took that a helper would take now: the window starts one for them. */
+	helperWork: number;
 	/** Lessons whose current request an agent took and hasn't answered, with the ISO claim time. */
 	claimedLessons: { lessonId: string; claimedAt: string }[];
 	/** The live terminals godspeed runs, and whether each checked in within 3 minutes. Absent: none. */
@@ -56,7 +58,7 @@ export function lessonAgentWaiting(status: AgentStatus | null): boolean {
 /** Parse the /api/mcp-access body (pure — exported for tests). */
 export function parseAgentStatus(body: unknown): AgentStatus | null {
 	if (!body || typeof body !== "object") return null;
-	const b = body as { agentConnected?: unknown; agentTeaching?: unknown; agentName?: unknown; helperHere?: unknown; helperCovering?: unknown; pendingWork?: unknown; pendingTurns?: unknown; claimedLessons?: unknown; terminals?: unknown; outsideHere?: unknown };
+	const b = body as { agentConnected?: unknown; agentTeaching?: unknown; agentName?: unknown; helperHere?: unknown; helperCovering?: unknown; pendingWork?: unknown; pendingTurns?: unknown; helperWork?: unknown; claimedLessons?: unknown; terminals?: unknown; outsideHere?: unknown };
 	return {
 		connected: b.agentConnected === true,
 		teaching: b.agentTeaching === true,
@@ -65,6 +67,7 @@ export function parseAgentStatus(body: unknown): AgentStatus | null {
 		helperCovering: b.helperCovering === true,
 		pendingWork: typeof b.pendingWork === "number" && b.pendingWork > 0 ? b.pendingWork : 0,
 		pendingTurns: typeof b.pendingTurns === "number" && b.pendingTurns > 0 ? b.pendingTurns : 0,
+		helperWork: typeof b.helperWork === "number" && b.helperWork > 0 ? b.helperWork : 0,
 		claimedLessons: Array.isArray(b.claimedLessons)
 			? b.claimedLessons.filter((c): c is { lessonId: string; claimedAt: string } =>
 				!!c && typeof c.lessonId === "string" && typeof c.claimedAt === "string")
@@ -79,7 +82,7 @@ export function parseAgentStatus(body: unknown): AgentStatus | null {
 /** True when two statuses read the same, so a poll can keep the old object
  *  and consumers skip a render (pure — exported for tests). */
 export function sameAgentStatus(a: AgentStatus | null, b: AgentStatus): boolean {
-	return !!a && a.connected === b.connected && a.teaching === b.teaching && a.name === b.name && a.pendingWork === b.pendingWork && a.pendingTurns === b.pendingTurns
+	return !!a && a.connected === b.connected && a.teaching === b.teaching && a.name === b.name && a.pendingWork === b.pendingWork && a.pendingTurns === b.pendingTurns && a.helperWork === b.helperWork
 		&& a.helperHere === b.helperHere && a.helperCovering === b.helperCovering
 		&& JSON.stringify(a.claimedLessons) === JSON.stringify(b.claimedLessons)
 		&& a.outsideHere === b.outsideHere && JSON.stringify(a.terminals) === JSON.stringify(b.terminals);

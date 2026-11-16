@@ -57,6 +57,7 @@ async fn a_restarted_server_sends_only_what_the_agent_has_not_seen() {
 	let marks = Arc::new(Marks::default());
 	let system = json!({ "role": "system", "content": "Teach well.", "timestamp": 0 });
 	let before = Bridge::new(&events, marks.clone());
+	before.mark_asked("job_topics");
 	let lesson = park(&before, vec![system.clone(), user("hi")], "chat_l1", &Abort::new());
 	let job = park(&before, vec![user("group these")], "job_topics", &Abort::new());
 	clock::sleep(5).await;
@@ -94,6 +95,7 @@ async fn a_dropped_model_call_leaves_no_work_behind() {
 #[tokio::test]
 async fn an_empty_lesson_id_takes_any_work() {
 	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	bridge.mark_asked("job_topics");
 	let call = park(&bridge, vec![user("group these")], "job_topics", &Abort::new());
 	clock::sleep(5).await;
 	let opts = WaitOptions { conversation: Some(String::new()), ..agent_a() };
@@ -177,6 +179,7 @@ async fn a_helper_in_a_job_answers_a_compacting_teachers_lesson_first() {
 #[tokio::test]
 async fn the_helper_leaves_a_job_the_teacher_is_in_the_middle_of() {
 	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	bridge.mark_asked("job_read");
 	let step_one = park(&bridge, vec![user("read this file")], "job_read", &Abort::new());
 	clock::sleep(5).await;
 	let step = bridge.wait_for_work(0, teacher()).await.unwrap();
@@ -186,7 +189,7 @@ async fn the_helper_leaves_a_job_the_teacher_is_in_the_middle_of() {
 	clock::sleep(5).await;
 	assert!(bridge.wait_for_work(0, helper()).await.is_none(), "held for the teacher that just answered");
 	bridge.release_conversation("job_read");
-	let step = bridge.wait_for_work(0, helper()).await.unwrap();
+	let step = bridge.wait_for_work(0, teacher()).await.unwrap();
 	bridge.respond_to_work(&step.work_id, reply("Done."), 0).unwrap();
 	step_two.await.unwrap();
 }
@@ -415,6 +418,7 @@ async fn only_the_agent_that_took_a_background_item_holds_it_until_it_answers() 
 	bridge.respond_to_work(&view.work_id, reply("Hi."), 0).unwrap();
 	lesson.await.unwrap();
 
+	bridge.mark_asked("job_check");
 	let job = park(&bridge, vec![user("check this space")], "job_check", &Abort::new());
 	clock::sleep(5).await;
 	let view = bridge.wait_for_work(0, agent_a()).await.unwrap();

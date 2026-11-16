@@ -210,17 +210,18 @@ export function teacherStartRefused(teacher: TerminalRecord | null, outsideHere:
 }
 
 /** The helper starts by itself, once per teacher run: the teacher's
- *  terminal runs and checked in, background jobs wait, no helper is here,
- *  and none was started since this teacher started. */
+ *  terminal runs and checked in, background jobs wait that the teacher
+ *  leaves to a helper (`helperWork`), no helper is here, and none was
+ *  started since this teacher started. */
 export function helperShouldStart(i: {
 	teacher: TerminalRecord | null;
 	teacherCheckedIn: boolean;
 	helper: TerminalRecord | null;
 	helperHere: boolean;
-	backgroundWaiting: number;
+	helperWork: number;
 }): boolean {
 	const { teacher, helper } = i;
-	if (!teacher || teacher.ended || !i.teacherCheckedIn || i.backgroundWaiting <= 0 || i.helperHere) return false;
+	if (!teacher || teacher.ended || !i.teacherCheckedIn || i.helperWork <= 0 || i.helperHere) return false;
 	return !helper || (!!helper.ended && helper.startedAt < teacher.startedAt);
 }
 

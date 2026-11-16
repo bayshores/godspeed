@@ -8,7 +8,7 @@ import { formatTokens, pagesLabel } from "../../src/frontend/components/usage-fo
 import { agentWaiting, parseAgentStatus, sameAgentStatus, teachStep, waitingNotice, type AgentStatus } from "../../src/frontend/components/agent-status.tsx";
 
 describe("the waiting-for-your-agent notice", () => {
-	const status = (over: Partial<AgentStatus> = {}): AgentStatus => ({ connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [], ...over });
+	const status = (over: Partial<AgentStatus> = {}): AgentStatus => ({ connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [], ...over });
 	it("shows only while work waits and no agent is teaching", () => {
 		assert.equal(agentWaiting(status({ pendingWork: 1 })), true);
 		assert.equal(agentWaiting(status({ connected: true, teaching: true, pendingWork: 1 })), false);
@@ -24,7 +24,7 @@ describe("the waiting-for-your-agent notice", () => {
 	it("reads the /api/mcp-access body", () => {
 		assert.deepEqual(
 			parseAgentStatus({ agentConnected: true, agentTeaching: true, agentName: "Claude Code", helperHere: true, helperCovering: "yes", pendingWork: 2, pendingTurns: 1, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }, { lessonId: 3 }] }),
-			{ connected: true, teaching: true, name: "Claude Code", helperHere: true, helperCovering: false, pendingWork: 2, pendingTurns: 1, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }] },
+			{ connected: true, teaching: true, name: "Claude Code", helperHere: true, helperCovering: false, pendingWork: 2, pendingTurns: 1, helperWork: 0, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }] },
 		);
 		assert.deepEqual(parseAgentStatus({ agentConnected: false, agentName: null }), status());
 		assert.equal(parseAgentStatus(null), null);

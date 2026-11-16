@@ -178,10 +178,10 @@ describe("which start is allowed", () => {
 
 	it("the helper starts once per teacher run, after the check-in, while jobs wait", () => {
 		const teacher = term();
-		const base = { teacher, teacherCheckedIn: true, helper: null, helperHere: false, backgroundWaiting: 2 };
+		const base = { teacher, teacherCheckedIn: true, helper: null, helperHere: false, helperWork: 2 };
 		assert.equal(helperShouldStart(base), true);
 		assert.equal(helperShouldStart({ ...base, teacherCheckedIn: false }), false);
-		assert.equal(helperShouldStart({ ...base, backgroundWaiting: 0 }), false);
+		assert.equal(helperShouldStart({ ...base, helperWork: 0 }), false);
 		assert.equal(helperShouldStart({ ...base, helperHere: true }), false, "a helper from outside is here");
 		assert.equal(helperShouldStart({ ...base, teacher: term({ ended: { stopped: true, code: null } }) }), false);
 		const helper = term({ id: "h1", role: "helper", startedAt: T0 + 5 });

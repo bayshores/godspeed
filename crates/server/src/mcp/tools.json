@@ -14,7 +14,7 @@
 					"maximum": 600
 				},
 				"lesson_id": {
-					"description": "Stay on this lesson: its turns, plus turns of other lessons nobody waits for and background jobs (file reading, graph building, research) while no helper is open, so none get stuck.",
+					"description": "Stay on this lesson: its turns, plus turns of other lessons nobody waits for, jobs the learner asked for (a page's Ask), and godspeed's own background jobs (file reading, graph building) after a minute while no helper is open, so none get stuck.",
 					"type": "string"
 				},
 				"full_context": {
@@ -22,7 +22,7 @@
 					"type": "boolean"
 				},
 				"helper": {
-					"description": "true on every call when you are the helper: second session beside the teacher, started when the user says \"Start as the helper\". Helper takes background jobs (file reading, graph building, sheets), and lesson turns only while the teacher tidies its memory.",
+					"description": "true on every call when you are the helper: second session beside the teacher, started when the user says \"Start as the helper\". Helper takes godspeed's own background jobs (file reading, graph building, sheets), jobs the learner asked for only when the teacher left them 20 s, and lesson turns only while the teacher tidies its memory.",
 					"type": "boolean"
 				}
 			}

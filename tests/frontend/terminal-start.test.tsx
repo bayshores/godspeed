@@ -32,7 +32,7 @@ const FOLDER = {
 	startCommands: {},
 	oldSetup: { plugin: false, codex: false },
 };
-const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [], terminals: [], outsideHere: false, ...over });
+const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [], terminals: [], outsideHere: false, ...over });
 
 const stored = new Map<string, string>();
 const realFetch = globalThis.fetch;
@@ -377,7 +377,7 @@ describe("the helper", () => {
 	it("waits for the teacher's first check-in, though background jobs wait", async () => {
 		const shell = fakeShell([{ id: "t1", role: "teacher", agent: "claude", startedAt: Date.now() - 1000, ended: null, prompt: null, url: false }]);
 		const page = (here: boolean) => (
-			<TerminalsProvider status={access({ pendingWork: 2, terminals: [{ id: "t1", here }] })}>
+			<TerminalsProvider status={access({ pendingWork: 2, helperWork: 2, terminals: [{ id: "t1", here }] })}>
 				<span />
 			</TerminalsProvider>
 		);

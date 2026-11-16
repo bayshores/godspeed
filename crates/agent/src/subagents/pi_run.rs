@@ -68,6 +68,8 @@ pub struct SubagentRunOptions {
 	/// The task's name ("Topic grouping: CSE 21"): the outside agent sees it on the run's work
 	/// items, so it can tell which background job it is answering.
 	pub task_label: Option<String>,
+	/// The learner asked for this run (a page's Ask): the teacher takes it before a helper.
+	pub asked: bool,
 }
 
 impl SubagentRunOptions {
@@ -83,6 +85,7 @@ impl SubagentRunOptions {
 			on_assistant_message: None,
 			should_stop: None,
 			task_label: None,
+			asked: false,
 		}
 	}
 }
@@ -171,6 +174,9 @@ pub async fn run_subagent(bridge: &Bridge, tools: Vec<Arc<dyn Tool>>, opts: Suba
 	let session_id = ids::uuid();
 	if let Some(label) = &opts.task_label {
 		bridge.label_conversation(&session_id, label);
+	}
+	if opts.asked {
+		bridge.mark_asked(&session_id);
 	}
 	let max_turns = opts.max_turns;
 	let should_stop = opts.should_stop;

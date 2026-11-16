@@ -20,6 +20,23 @@ pub(super) const CLAIM_TIMEOUT_MS: i64 = 10 * 60_000;
 
 /// A wait wakes at least this often to look again.
 const WAIT_SLICE_MS: i64 = 15_000;
+/// A job the learner asked for goes to the teacher's chat; the helper takes it once it waited
+/// this long untaken (the teacher is busy or gone).
+pub(super) const ASK_GRACE_MS: i64 = 20_000;
+/// godspeed's own jobs go to the helper; with none here, the teacher takes one that waited this
+/// long, time enough for the window to start a helper.
+const OWN_GRACE_MS: i64 = 60_000;
+
+/// A background job the helper takes now: godspeed's own, or an asked one the teacher left.
+pub(super) fn for_helper(state: &State, item: &WorkItem, now: i64) -> bool {
+	is_background(&item.conversation) && (!state.asked.contains(&item.conversation) || now - item.created_at >= ASK_GRACE_MS)
+}
+
+/// A background job a teacher takes: one the learner asked for, or godspeed's own once it
+/// waited with no helper here.
+fn for_teacher(state: &State, item: &WorkItem, now: i64, alone: bool) -> bool {
+	is_background(&item.conversation) && (state.asked.contains(&item.conversation) || (alone && now - item.created_at >= OWN_GRACE_MS))
+}
 
 /// Who asks for work.
 #[derive(Clone, Default)]
@@ -105,22 +122,21 @@ fn unwaited(state: &State, lesson: &str) -> bool {
 
 /// The next item. A teacher: any, or its conversation's (a lesson, when asked, also another
 /// lesson's no one else waits for, oldest first, so one agent takes turns), then background jobs
-/// when asked; it leaves background jobs to a helper that
-/// is here. A helper: background jobs, and what it began.
+/// when asked (`for_teacher`). A helper: background jobs (`for_helper`), and what it began.
 fn pick(state: &State, now: i64, opts: &WaitOptions) -> Option<usize> {
 	if opts.helper {
 		// A compacting teacher's lesson turns come first, so they wait one job step at most.
 		let covered = if someone_compacting(state, now) { oldest(state, now, opts, |i| !is_background(&i.conversation)) } else { None };
 		return covered.or_else(|| match opts.conversation.as_deref() {
 			Some(conversation) => oldest(state, now, opts, |i| i.conversation == conversation),
-			None => oldest(state, now, opts, |i| is_background(&i.conversation)),
+			None => oldest(state, now, opts, |i| for_helper(state, i, now)),
 		});
 	}
 	let alone = !helper::here(state, now);
-	let Some(conversation) = opts.conversation.as_deref() else { return oldest(state, now, opts, |i| alone || !is_background(&i.conversation)) };
+	let Some(conversation) = opts.conversation.as_deref() else { return oldest(state, now, opts, |i| !is_background(&i.conversation) || for_teacher(state, i, now, alone)) };
 	let others = conversation.starts_with(CHAT_ID_PREFIX) && opts.and_others;
 	oldest(state, now, opts, |i| i.conversation == conversation || (others && !is_background(&i.conversation) && unwaited(state, &i.conversation)))
-		.or_else(|| if opts.and_others && alone { oldest(state, now, opts, |i| is_background(&i.conversation)) } else { None })
+		.or_else(|| if opts.and_others { oldest(state, now, opts, |i| for_teacher(state, i, now, alone)) } else { None })
 }
 
 /// A teacher's wait under way, in `State::waiting` until it ends however it ends.

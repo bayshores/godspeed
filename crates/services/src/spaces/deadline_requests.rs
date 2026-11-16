@@ -173,7 +173,7 @@ fn start(app: &Arc<App>, kind: RequestKind, deadline: RequestedDeadline) -> bool
 
 	let writes = Arc::new(RunWrites::default());
 	let tools = deadline_request_tools(&writing_actions(app, writes.clone(), Mark::Asked), kind != RequestKind::Coverage);
-	let request = DeadlineRequest { label, prompt: request_text(kind, std::slice::from_ref(&deadline)), tools: tools.into_iter().map(FnTool::into_arc).collect() };
+	let request = DeadlineRequest { label, prompt: request_text(kind, std::slice::from_ref(&deadline)), tools: tools.into_iter().map(FnTool::into_arc).collect(), asked: true };
 	let end = RequestEnd { app: app.clone(), deadline };
 	tokio::spawn(async move {
 		let outcome = run_deadline_request(&end.app.bridge, request).await;

@@ -168,6 +168,7 @@ pub fn mcp_access_status(app: &App) -> Result<Json, String> {
 		"helperCovering": app.bridge.helper_covering(now),
 		"pendingWork": app.bridge.pending_work_count(),
 		"pendingTurns": app.bridge.pending_turn_count(),
+		"helperWork": app.bridge.helper_work_count(now),
 		"claimedLessons": app.bridge.claimed_lessons(),
 		"terminals": app.bridge.terminals_here(now).into_iter().map(|(id, here)| json!({ "id": id, "here": here })).collect::<Vec<_>>(),
 		"outsideHere": app.bridge.outside_here(now),

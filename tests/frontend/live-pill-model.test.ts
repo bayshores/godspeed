@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { dueSoon, firstWord, idleWords, keepReady, pillClick, pillLine, pillThings, shortName, thingsAt } from "../../src/frontend/components/top-bar/live-pill-model.ts";
 
-const off = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [] };
+const off = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [] };
 const teaching = { ...off, connected: true, teaching: true, name: "Claude Code" };
 const reading = { text: "Reading Lecture 14 notes", count: "3 of 12", working: true };
 const nothing = { name: "marco", doing: null, agent: teaching, terminal: null, background: false, work: null, ready: [], due: null, offer: null };

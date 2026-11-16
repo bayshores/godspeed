@@ -100,6 +100,8 @@ struct State {
 	lapse_number: u64,
 	/// conversation → the background task's name.
 	labels: HashMap<String, String>,
+	/// Background conversations the learner asked for (a page's Ask): the teacher takes them first.
+	asked: HashSet<String>,
 	/// conversation → until when its next item is held for the agent that just answered it.
 	held: HashMap<String, i64>,
 	/// Background conversations whose run has not ended.
@@ -147,10 +149,16 @@ impl Bridge {
 		self.0.state.lock().labels.insert(conversation.to_owned(), label.to_owned());
 	}
 
+	/// The learner asked for this background conversation, so it goes to the teacher's chat.
+	pub fn mark_asked(&self, conversation: &str) {
+		self.0.state.lock().asked.insert(conversation.to_owned());
+	}
+
 	/// Drops a finished background run's state; a reply still waiting for its next item stops.
 	pub fn forget_conversation(&self, conversation: &str) {
 		let mut s = self.0.state.lock();
 		s.labels.remove(conversation);
+		s.asked.remove(conversation);
 		s.seen_by.remove(conversation);
 		s.held.remove(conversation);
 		let ended = s.background_runs.remove(conversation);

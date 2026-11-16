@@ -25,7 +25,7 @@ describe("agentStatusLabel", () => {
 });
 
 describe("lessonAgentWaiting: the lesson head says Waiting for your agent", () => {
-	const status = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [] };
+	const status = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [] };
 	it("with no agent connected, turn or no turn", () => {
 		assert.equal(lessonAgentWaiting(status), true);
 		assert.equal(lessonAgentWaiting({ ...status, pendingWork: 1 }), true);

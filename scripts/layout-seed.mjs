@@ -133,17 +133,20 @@ export async function seed(dataDir, page, log) {
 	}
 	await agent.call("read_passage", { space_id: space.id, passage_id: passage });
 
-	// Answer every item until the queue stays empty twice in a row. A respond answers with the
-	// next item when one waits.
-	let reply = await agent.call("wait_for_work", { timeout_seconds: 3 });
+	// Answer every item until the queue stays empty for two teacher and two helper waits in a row. A respond answers with the
+	// next item when one waits. godspeed's own jobs (the space check) go to a helper, so every
+	// other wait is the helper's.
+	let waits = 0;
+	const wait = () => agent.call("wait_for_work", { timeout_seconds: 3, ...(waits++ % 2 === 1 ? { helper: true } : {}) });
+	let reply = await wait();
 	const { deadlines: seeded } = await agent.json("read_space", { space_id: space.id });
 	let lessonTurns = 0;
-	for (let idle = 0, tries = 0; idle < 2; tries++) {
+	for (let idle = 0, tries = 0; idle < 4; tries++) {
 		if (tries > 20) throw new Error("the stand-in agent never ran out of work");
 		const header = JSON.parse(reply[0]);
 		if (header.status !== "work") {
 			idle++;
-			reply = await agent.call("wait_for_work", { timeout_seconds: 3 });
+			reply = await wait();
 			continue;
 		}
 		idle = 0;

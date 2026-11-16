@@ -65,7 +65,7 @@ const ACTIONS: AgentAction[] = [
 ];
 const names = (id: string | null) => (id === "cls_29" ? "CSE 29" : null);
 
-const IDLE = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [] };
+const IDLE = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [] };
 const TEACHING = { ...IDLE, connected: true, teaching: true, name: "Claude Code" };
 
 type PanelProps = React.ComponentProps<typeof TeacherPanel>;

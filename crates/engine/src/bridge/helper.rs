@@ -7,7 +7,7 @@ use gs_base::clock;
 use gs_base::events::EventKind;
 
 use super::checkin::recent;
-use super::work::CLAIM_TIMEOUT_MS;
+use super::work::{CLAIM_TIMEOUT_MS, for_helper};
 use super::{Bridge, State, is_background};
 
 /// A compaction that never reported its end stops counting after this long.
@@ -44,6 +44,12 @@ pub(super) fn here(state: &State, now: i64) -> bool {
 impl Bridge {
 	pub fn helper_here(&self, now: i64) -> bool {
 		here(&self.0.state.lock(), now)
+	}
+
+	/// Background jobs no one took that a helper would take now: the window starts one for them.
+	pub fn helper_work_count(&self, now: i64) -> usize {
+		let s = self.0.state.lock();
+		s.items.iter().filter(|i| i.claimed_at.is_none_or(|at| now - at > CLAIM_TIMEOUT_MS) && for_helper(&s, i, now)).count()
 	}
 
 	/// The helper is answering lessons: a teacher is compacting and a helper is here.
