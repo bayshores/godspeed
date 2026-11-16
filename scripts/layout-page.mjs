@@ -132,7 +132,8 @@ function ownBoxes(el) {
 	return boxes;
 }
 
-// The lesson log's "Scroll to the bottom" key floats over the text on its own fade.
+/** The reading pane's jump key (.lh-log-jump) floats over the lesson on purpose, with a fade under
+ *  it so it never sits on words being read. */
 const OVERLAYS = "[role=dialog], [role=alertdialog], [role=menu], [role=listbox], [role=tooltip], [popover], .lh-log-jump";
 
 /** A box that draws on its own layer over the page: a fixed or sticky bar, or a true overlay (a
@@ -346,11 +347,12 @@ export function probes(box) {
 
 const transparent = (color) => color === "transparent" || /^rgba\(.*,\s*0\)$/.test(color);
 
-/** Whether a box draws something of its own: a fill, a background picture, or is a control or
- *  picture. An empty box laid over text (a stretched link, a drop zone) covers nothing. */
+/** Whether a box draws something of its own over its whole area: a fill, a background picture,
+ *  or a picture. An empty box laid over text covers nothing, such as a row's button whose click
+ *  area stretches over the row. */
 function paints(el) {
 	const style = getComputedStyle(el);
-	return !transparent(style.backgroundColor) || style.backgroundImage !== "none" || el.matches(`${CONTROLS}, ${PICTURES}`);
+	return !transparent(style.backgroundColor) || style.backgroundImage !== "none" || el.matches(PICTURES);
 }
 
 /**

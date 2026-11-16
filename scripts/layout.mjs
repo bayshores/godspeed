@@ -304,7 +304,9 @@ async function main() {
 			} catch (err) {
 				const snap = path.join(RUN, snapName(`${screen.name} not shown`, WIDTHS[0]));
 				await app.send(`snap ${snap}`);
-				throw new Error(`${screen.name}: ${err.message}; picture: ${snap}`);
+				// What the screens before it found is still worth reading.
+				fs.writeFileSync(path.join(RUN, "report.txt"), `${[...failures, ...warnings].join("\n")}\n`);
+				throw new Error(`${screen.name}: ${err.message}; picture: ${snap}; findings so far: ${path.join(RUN, "report.txt")}`);
 			}
 			for (const width of WIDTHS) {
 				await app.value(`size ${width} ${HEIGHT}`);

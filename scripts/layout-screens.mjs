@@ -43,16 +43,12 @@ if (late) await fetch("/api/spaces/{space}/deadlines/" + late.id, { method: "DEL
 /** The work frame with its tag, whether the work waits for an agent or the window started a
  *  stand-in helper for it. */
 const waitingFrame = "[data-testid=work-frame] [data-testid=work-frame-tag]";
-/** A file added to the space with no agent to read it, so every tab of the space is framed. */
+/** A file added to the space with no agent to read it, so every tab of the space is framed. It
+ *  can't be removed while it waits, so the stand-in agent started later takes it. */
 const waitingFile = `const form = new FormData();
 form.append("kind", "study");
 form.append("files", new File(["# Slopes\\n\\nRise over run."], "waiting-notes.md", { type: "text/markdown" }));
 await fetch("/api/spaces/{space}/files", { method: "POST", body: form })${HTTP_OK};`;
-/** Takes that file away again, so no agent started later reads it. */
-const dropWaitingFile = `const { space } = await fetch("/api/spaces/{space}")${HTTP_OK}.then((r) => r.json());
-const file = space.files.find((f) => f.name === "waiting-notes.md");
-if (file) await fetch("/api/spaces/{space}/files/" + file.id, { method: "DELETE" })${HTTP_OK};
-`;
 /** The deadline asks for a study guide with no agent to make it. The deadline is deleted for
  *  "Today with no deadline", which ends the request. */
 const waitingRequest = `await fetch("/api/spaces/{space}/deadlines/{deadline}/request", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "guide" }) })${HTTP_OK};`;
@@ -86,7 +82,7 @@ export const SCREENS = [
 	{ name: "Settings, General", url: "/settings?section=general", ready: "[data-testid=teacher-name-row]" },
 	{ name: "Progress while a file waits for an agent", before: waitingFile, url: "/space", ready: waitingFrame },
 	{ name: "Graph while a file waits for an agent", url: "/graph", ready: waitingFrame },
-	{ name: "Deadline while its request waits for an agent", before: dropWaitingFile + waitingRequest, url: "/space/deadline/{deadline}", ready: waitingFrame },
+	{ name: "Deadline while its request waits for an agent", before: waitingRequest, url: "/space/deadline/{deadline}", ready: waitingFrame },
 	{
 		name: "The agent's screen",
 		url: "/",
