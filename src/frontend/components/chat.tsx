@@ -606,7 +606,7 @@ export function Chat({
 									>
 										<Pane data-testid="lesson-reading" className="@container/reading flex min-h-0 min-w-0 flex-col overflow-hidden [grid-area:reading]">
 											<div className="shrink-0 px-14 pt-[26px] pb-3 empty:hidden @max-[640px]/reading:px-7">
-												<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={planHomework ? jumpToProblem : jumpToAnswer} onOpenPlan={openPlan} />
+												<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={planHomework ? jumpToProblem : jumpToAnswer} onOpenPlan={openPlan} busy={busy} />
 											</div>
 											<ReadingPane
 												spaceId={spaceId}

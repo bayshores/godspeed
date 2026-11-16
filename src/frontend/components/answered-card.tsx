@@ -115,7 +115,8 @@ export function AnsweredCard({
 	if (answer.dismissed) {
 		return (
 			<div data-testid="answered-card" className={cn(CARD, "text-[15px] text-ink-2")}>
-				<span className="text-ink-2">{answer.questionText}</span> (skipped)
+				{/* The question's math and code draw as they did when it was asked. */}
+				<ToolContentResponse>{`${answer.questionText} (skipped)`}</ToolContentResponse>
 			</div>
 		);
 	}

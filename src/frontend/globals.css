@@ -548,6 +548,17 @@ body {
 .lh-lesson-body[data-dock] {
 	grid-template: "reading dock teacher" minmax(0, 1fr) / minmax(280px, 1fr) auto minmax(340px, var(--lh-turn-w));
 }
+/* Nothing waits for the learner: no right column, and the reading sheet sits centered at the
+   reading text's width (the cheat sheet, when docked, stays beside it). */
+.lh-lesson-body[data-solo] {
+	grid-template: "reading" minmax(0, 1fr) / minmax(0, 872px);
+	justify-content: center;
+}
+@container lesson (min-width: 1000px) {
+	.lh-lesson-body[data-solo][data-dock] {
+		grid-template: "reading dock" minmax(0, 1fr) / minmax(280px, 1fr) auto;
+	}
+}
 /* The docked cheat sheet is as wide as the learner dragged it. */
 .lh-sheet-dock {
 	width: var(--lh-dock-w);

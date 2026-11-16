@@ -57,6 +57,7 @@ impl Bridge {
 		s.tool_at.retain(|id, _| live.contains(id));
 		s.stop_at.retain(|id, _| live.contains(id));
 		s.nudged.retain(|id, _| live.contains(id));
+		s.waited.retain(|id, _| live.contains(id));
 		s.teacher_terminal = teacher.filter(|id| live.contains(id));
 		s.live_terminals = live;
 		drop(s);

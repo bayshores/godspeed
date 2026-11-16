@@ -41,6 +41,7 @@ export const PlanRow = memo(function PlanRow({
 	practice,
 	onJump,
 	onOpenPlan,
+	busy,
 }: {
 	kind: LessonKind;
 	spaceId: string | undefined;
@@ -54,16 +55,21 @@ export const PlanRow = memo(function PlanRow({
 	practice: PracticeProgress | null;
 	onJump: (toolCallId: string) => void;
 	onOpenPlan: () => void;
+	/** The teacher is writing in this lesson. */
+	busy: boolean;
 }) {
 	const { spaces } = useSpaces();
 	const space = spaces.find((c) => c.id === spaceId);
 	const color = space ? spaceColorVar(space.color) : "var(--color-ink)";
 
+	// No problems yet: the teacher is reading the assignment, or it said in the lesson why not.
 	if (homework?.problems.length === 0) {
 		return (
+			busy && (
 			<p data-testid="problems-none" className="text-[15px] text-ink-2">
 				The teacher is reading the assignment.
 			</p>
+			)
 		);
 	}
 	if (homework || kind !== "practice") {

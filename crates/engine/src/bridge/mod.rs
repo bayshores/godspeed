@@ -140,6 +140,9 @@ struct State {
 	/// teacher terminal → the nudge line godspeed sent it and when, until its prompt hook hands
 	/// it over.
 	nudged: HashMap<String, (String, i64)>,
+	/// terminal → when its last wait ended: Claude Code's waiter waits in slices, so between two
+	/// it holds no wait for a moment.
+	waited: HashMap<String, i64>,
 	/// The last request from an agent outside the app's terminals.
 	outside_contact: i64,
 }

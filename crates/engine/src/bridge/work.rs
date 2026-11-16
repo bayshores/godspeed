@@ -29,6 +29,9 @@ const OWN_GRACE_MS: i64 = 60_000;
 /// A nudge the quiet teacher never took is sent again after this long (the shell tries one for
 /// a minute while the learner types in the box or a question shows).
 const NUDGE_AGAIN_MS: i64 = 90_000;
+/// A turn waits this long untaken, and the teacher's terminal held no wait for this long,
+/// before godspeed nudges: a waiter between two slices takes the turn by itself.
+const NUDGE_AFTER_MS: i64 = 10_000;
 
 /// A background job the helper takes now: godspeed's own, or an asked one the teacher left.
 pub(super) fn for_helper(state: &State, item: &WorkItem, now: i64) -> bool {
@@ -160,7 +163,11 @@ impl<'a> Waiting<'a> {
 
 impl Drop for Waiting<'_> {
 	fn drop(&mut self) {
-		self.bridge.0.state.lock().waiting.retain(|wait| wait.id != self.id);
+		let mut s = self.bridge.0.state.lock();
+		let Some(i) = s.waiting.iter().position(|wait| wait.id == self.id) else { return };
+		if let Some(terminal) = s.waiting.remove(i).terminal {
+			s.waited.insert(terminal, clock::now_ms());
+		}
 	}
 }
 
@@ -244,21 +251,24 @@ impl Bridge {
 	/// What the teacher in godspeed's terminal should be told waits for it, while it sits quiet:
 	/// its terminal is live and has reached godspeed, its agent is not at work (a line, a tool
 	/// call since it last stopped, an item it holds), no wait runs from it, and its wait would
-	/// take something now. `Some((terminal, lesson))`, `lesson`
-	/// false for a job. Not again while the last nudge is not through, nor within `NUDGE_AGAIN_MS`.
+	/// take something that has waited `NUDGE_AFTER_MS`, with no wait from it in that time either.
+	/// `Some((terminal, lesson))`, `lesson` false for a job. Not again while the last nudge is not
+	/// through, nor within `NUDGE_AGAIN_MS`.
 	pub fn nudge_for_teacher(&self, now: i64) -> Option<(String, bool)> {
 		let s = self.0.state.lock();
 		let terminal = s.teacher_terminal.clone()?;
 		let mine = |t: Option<&String>| t.map(String::as_str) == Some(terminal.as_str());
 		let at_work = s.tool_at.get(&terminal).is_some_and(|tool| s.stop_at.get(&terminal).is_none_or(|stop| stop < tool));
 		let holds = s.items.iter().any(|item| item.claimed_at.is_some() && mine(item.terminal.as_ref()));
-		let quiet = s.terminal_contact.contains_key(&terminal) && !s.prompting.contains(&terminal) && !at_work && !holds && !s.waiting.iter().any(|w| mine(w.terminal.as_ref()));
+		let waited_lately = s.waited.get(&terminal).is_some_and(|at| now - at < NUDGE_AFTER_MS);
+		let quiet = s.terminal_contact.contains_key(&terminal) && !s.prompting.contains(&terminal) && !at_work && !holds && !waited_lately && !s.waiting.iter().any(|w| mine(w.terminal.as_ref()));
 		if !quiet || s.nudged.get(&terminal).is_some_and(|(_, at)| now - at < NUDGE_AGAIN_MS) {
 			return None;
 		}
 		let opts = WaitOptions { and_others: true, terminal: Some(terminal.clone()), ..WaitOptions::default() };
 		let i = pick(&s, now, &opts)?;
-		Some((terminal, !is_background(&s.items[i].conversation)))
+		let item = &s.items[i];
+		(now - item.created_at >= NUDGE_AFTER_MS).then(|| (terminal, !is_background(&item.conversation)))
 	}
 
 	/// This agent has a wait under way (Claude Code's waiter runs while the agent talks to the
