@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { prefersReducedMotion } from "@/frontend/components/presence";
-import { otherParts, partElement } from "./problem-parts";
+import { otherParts, partElement, scrollParent } from "./problem-parts";
 import { proseVars } from "./question-parts";
 
 /**
@@ -27,18 +27,23 @@ export function OpenProblemPane({
 				if (!others.includes(el as HTMLElement)) el.removeAttribute("data-other-part");
 			}
 			for (const el of others) el.setAttribute("data-other-part", "");
-			partElement(root, part)?.scrollIntoView({ block: "start", behavior });
+			const target = partElement(root, part);
+			if (!target) return;
+			target.scrollIntoView({ block: "start", behavior });
 		};
 		show(prefersReducedMotion() ? "auto" : "smooth");
-		// Code and math finish drawing after this, moving the part down.
+		// Code and math finish drawing after this, and a shorter window shrinks the scroller: both move the part.
 		const ro = new ResizeObserver(() => show("auto"));
 		ro.observe(root);
+		const scroller = scrollParent(root);
+		if (scroller) ro.observe(scroller);
 		return () => ro.disconnect();
 	}, [part]);
 
 	return (
 		<div data-testid="open-problem" className="flex shrink-0 flex-col gap-2">
-			<div ref={statementRef} data-testid="problem-statement" style={proseVars(18, 26)}>
+			{/* Holds a last-line fraction's denominator, which hangs 6px below its line box and would add a scroll range. */}
+			<div ref={statementRef} data-testid="problem-statement" className="pb-1.5" style={proseVars(18, 26)}>
 				<ToolContentResponse>{statement}</ToolContentResponse>
 			</div>
 		</div>

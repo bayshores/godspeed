@@ -313,14 +313,7 @@ body {
 
 /* A part of the open problem the learner is not on. */
 [data-other-part] {
-	--lh-ink-body: var(--muted-foreground);
-	--lh-ink-strong: var(--muted-foreground);
-	--lh-ink-italic: var(--muted-foreground);
-	color: var(--muted-foreground);
-}
-
-[data-other-part] [data-streamdown="code-block"] {
-	opacity: 0.7;
+	opacity: 0.6;
 }
 
 .lh-prose :where(strong, b) {
@@ -1385,44 +1378,13 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 }
 
 /* A scrolling column fades out at an edge while more sits past it, so a
-   cut-off list reads as cut off. The fades follow the scroll position and
-   are gone at each end, or when everything fits. */
-@property --lh-fade-top {
-	syntax: "<length>";
-	inherits: false;
-	initial-value: 0px;
-}
-
-@property --lh-fade-bottom {
-	syntax: "<length>";
-	inherits: false;
-	initial-value: 0px;
-}
-
-@keyframes lh-fade-top {
-	to {
-		--lh-fade-top: 48px;
-	}
-}
-
-@keyframes lh-fade-bottom {
-	from {
-		--lh-fade-bottom: 48px;
-	}
-}
-
+   cut-off list reads as cut off. useScrollFade sets the two lengths from
+   the scroll position, because WebKit mispaints a scroll-driven animation
+   here (a fade with nothing to scroll, no fade where text is cut). */
 .lh-scroll-fade {
+	--lh-fade-top: 0px;
+	--lh-fade-bottom: 0px;
 	mask-image: linear-gradient(transparent, #000 var(--lh-fade-top), #000 calc(100% - var(--lh-fade-bottom)), transparent);
-	animation:
-		lh-fade-top linear both,
-		lh-fade-bottom linear both;
-	/* The build writes the shorthand's missing duration as 0s, which would
-	   make the fades jump instead of follow the scroll. */
-	animation-duration: auto;
-	animation-timeline: scroll(self);
-	animation-range:
-		0px 48px,
-		calc(100% - 48px) 100%;
 }
 
 /* Space cover ink: the studied part of a space's signature, masked with a

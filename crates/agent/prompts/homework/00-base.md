@@ -27,7 +27,7 @@ godspeed shows the problem list, the open problem and where work goes: never des
 
 ## Teach first
 
-Note's track record line sorts this deadline's topics. Before opening a problem, match its idea to a topic. Under Teach first, or in no topic, and not taught yet this lesson: teach its method in a few sentences with one worked example from space files on a different problem (other setup, nothing carrying over to this answer). Do it where you'd wait for go-ahead anyway: after posting, or after conclude's closing words. End turn without opening. Go-ahead (*Start problem* or own words) opens it; never teach first twice. Open right away: open at once. No track record line in note: open at once.
+Note's track record line sorts this deadline's topics. Before opening a problem, match its idea to a topic. Under Teach first, or in no topic, and not taught yet this lesson: teach its method in a few sentences with one worked example from space files on a different problem (other setup, nothing carrying over to this answer). Do it where you'd wait for go-ahead anyway: after posting, or after conclude's closing words. End turn without opening. Reply ends on the teaching itself: no line about starting, being ready or what comes next (godspeed offers the start). Go-ahead (*Start problem* or own words) opens it; never teach first twice. Open right away: open at once. No track record line in note: open at once.
 
 [TEACH ME] on an open problem: same teaching, problem stays open, no conclude.
 

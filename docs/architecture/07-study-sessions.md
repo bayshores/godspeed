@@ -147,8 +147,8 @@ A homework session (`kind: "homework"`, `deadlineId` required) works on one home
 - It opens one problem at a time with `problem`, which has no solution field: homework is hints only. `conclude` marks a problem done when learner's own work is right.
 - Before opening a problem whose idea is under Teach first (or in no topic), the teacher teaches its method once per lesson with a worked example on a different problem, then ends its turn without opening (`prompts/homework/00-base.md`).
 - With no problem open, nothing waiting, the teacher idle, at least one teacher reply and a problem not done, the Your turn column shows "Start problem N". It sends the `next` input, and the teacher opens the problem.
-- An open problem has "Teach me this", which sends the `teach` input. The server saves a `teach-me` marker (`new_teach_message`), and refuses the input outside homework or with no open problem. The problem stays open.
-- The open problem draws its parts other than the one the teacher marked lighter (`otherParts`, `src/frontend/components/lesson/problem-parts.ts`). The lesson head's file link reads "file.pdf, page N"; no line repeats the deadline name, problem number or file.
+- An open problem has "Teach me this", in the row under the work box beside "Add pictures or PDFs" and disabled while the teacher works. It sends the `teach` input. The server saves a `teach-me` marker (`new_teach_message`), and refuses the input outside homework or with no open problem. The problem stays open.
+- The open problem draws its parts other than the one the teacher marked at 60% opacity (`otherParts`, `src/frontend/components/lesson/problem-parts.ts`). The lesson head's file link reads "file.pdf, page N"; no line repeats the deadline name, problem number or file.
 - The top bar's pill has no Open button for the deadline whose lesson is the open page.
 - Plan row names every problem over its bar, a done one going back to its card (`homeworkProblems`, `src/shared/core/homework.ts`); Today row says "2 of 7 problems done". Above 12 problems or plan steps row shows numbers only, names on hover.
 

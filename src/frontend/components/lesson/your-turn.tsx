@@ -8,6 +8,7 @@ import { lessonBox, questionTurn, type BoxAction, type BoxView } from "./lesson-
 import { OpenProblemPane } from "./open-problem-pane";
 import { StopCard } from "./stop-card";
 import type { StopAction, StopCardView } from "./stop-card-model";
+import { useScrollFade } from "./use-scroll-fade";
 
 type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
 
@@ -129,6 +130,8 @@ export function YourTurn({
 					: "next";
 	// The opening state appears still; later states rise in.
 	const initialModeRef = useRef(mode);
+	const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
+	useScrollFade(scroller);
 
 	return (
 		<div data-testid="your-turn" data-mode={mode.split(":")[0]} className="flex min-h-0 flex-1 flex-col gap-3.5 px-[22px] pt-[18px] pb-[22px]">
@@ -148,7 +151,8 @@ export function YourTurn({
 			)}
 
 			<div key={mode} className={`flex min-h-0 flex-initial flex-col${mode === initialModeRef.current ? "" : " lh-rise"}`}>
-				<div className="lh-scroll-fade flex min-h-0 flex-col gap-3.5 overflow-y-auto">
+				{/* The scroll padding is the fade's length (useScrollFade), so a part scrolled to starts below the top fade. */}
+				<div ref={setScroller} className="lh-scroll-fade flex min-h-0 scroll-pt-[min(48px,25%)] flex-col gap-3.5 overflow-y-auto">
 					{pending && !revealPending && (
 						<QuestionDock
 							ref={questionRef}
@@ -172,11 +176,6 @@ export function YourTurn({
 								</p>
 							)}
 							<OpenProblemPane statement={problem.statement} part={problem.part} />
-							{onTeach && !busy && (
-								<button type="button" data-testid="teach-me" onClick={onTeach} className="lh-btn lh-btn-quiet shrink-0 self-start">
-									Teach me this
-								</button>
-							)}
 						</>
 					)}
 					{!pending && !problem && stop && <StopCard view={stop.view} onAction={stop.onAction} />}
@@ -210,7 +209,14 @@ export function YourTurn({
 			{view && (
 				<>
 					<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
-					<AttachButton draft={attachments} />
+					<div className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+						<AttachButton draft={attachments} />
+						{onTeach && problem && !pending && (
+							<button type="button" data-testid="teach-me" disabled={busy} onClick={onTeach} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
+								Teach me this
+							</button>
+						)}
+					</div>
 				</>
 			)}
 		</div>

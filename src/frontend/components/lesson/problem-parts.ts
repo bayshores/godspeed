@@ -72,3 +72,11 @@ export function otherParts(root: HTMLElement, part: string): HTMLElement[] {
 	}
 	return others;
 }
+
+/** The nearest ancestor that scrolls. */
+export function scrollParent(el: HTMLElement): HTMLElement | null {
+	for (let parent = el.parentElement; parent; parent = parent.parentElement) {
+		if (/(auto|scroll)/.test(getComputedStyle(parent).overflowY)) return parent;
+	}
+	return null;
+}
