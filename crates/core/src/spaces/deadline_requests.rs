@@ -1,13 +1,18 @@
 //! What godspeed asks the learner's agent to do on deadlines: work out what they cover, write a
-//! study guide, or rewrite what one is like. godspeed asks about open deadlines with nothing
-//! linked by itself, each once; the deadline page asks for one deadline.
+//! study guide, or rewrite what one is like (the deadline page, one deadline), or check a space
+//! (godspeed itself, one space with every reason it has, each reason once).
 
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 
 use gs_base::text::cmp16;
-use gs_json::Json;
+use gs_base::time;
+use gs_json::{Json, Obj};
 
 use super::prep_upgrade::{ABOUT_FILE_NAME, GUIDE_FILE_NAME};
+use super::today_note::local_day;
+
+/// Files added this soon after a space's first file came with its setup, which handles them.
+const SETUP_MS: i64 = 60 * 60_000;
 
 /// What a request asks for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -104,6 +109,202 @@ fn line(d: &RequestedDeadline) -> String {
 	format!("- {} in {} (space_id {}, deadline_id {}, due {}{time}{linked})", d.name, d.space_name, d.space_id, d.id, d.date)
 }
 
+/// What godspeed already asked its agent about (`data/deadline-requests.json`).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct AskedRecord {
+	/// Deadlines asked about with nothing linked.
+	pub asked: BTreeSet<String>,
+	/// ISO time of the first check: only files added after it count.
+	pub since: Option<String>,
+	/// `<file id>:<contentFp>` of each info file checked.
+	pub checked_info: BTreeSet<String>,
+	/// `<deadline id>:<file id>` of each study file weighed for a deadline.
+	pub weighed: BTreeSet<String>,
+	/// `<space id>:<hash of the path's topic ids>` of each path asked to grow.
+	pub path_asked: BTreeSet<String>,
+	/// Overdue deadlines the learner said Not yet to.
+	pub overdue_asked: BTreeSet<String>,
+}
+
+pub const ASKED_VERSION: u32 = 2;
+
+fn string_set(value: &Json) -> BTreeSet<String> {
+	value.items().iter().filter_map(|v| v.as_str().map(str::to_owned)).collect()
+}
+
+impl AskedRecord {
+	/// The record as saved; version 1 had only `asked`.
+	pub fn read(saved: &Json) -> AskedRecord {
+		AskedRecord {
+			asked: string_set(&saved["asked"]),
+			since: saved["since"].as_str().map(str::to_owned),
+			checked_info: string_set(&saved["checkedInfo"]),
+			weighed: string_set(&saved["weighed"]),
+			path_asked: string_set(&saved["pathAsked"]),
+			overdue_asked: string_set(&saved["overdueAsked"]),
+		}
+	}
+
+	pub fn to_json(&self) -> Json {
+		let mut out = Obj::new();
+		out.insert("version", ASKED_VERSION);
+		out.insert("asked", self.asked.iter().cloned().collect::<Vec<_>>());
+		if let Some(since) = &self.since {
+			out.insert("since", since.as_str());
+		}
+		out.insert("checkedInfo", self.checked_info.iter().cloned().collect::<Vec<_>>());
+		out.insert("weighed", self.weighed.iter().cloned().collect::<Vec<_>>());
+		out.insert("pathAsked", self.path_asked.iter().cloned().collect::<Vec<_>>());
+		out.insert("overdueAsked", self.overdue_asked.iter().cloned().collect::<Vec<_>>());
+		Json::Obj(out)
+	}
+
+	/// A check that ended well: each of its reasons counts as asked.
+	pub fn mark(&mut self, reasons: &[Reason]) {
+		for reason in reasons {
+			match reason {
+				Reason::Unlinked(d) => {
+					self.asked.insert(d.id.clone());
+				}
+				Reason::Info { file_id, content_fp, .. } => {
+					let prefix = format!("{file_id}:");
+					self.checked_info.retain(|key| !key.starts_with(&prefix));
+					self.checked_info.insert(format!("{file_id}:{content_fp}"));
+				}
+				Reason::Unweighed { deadline_id, file_id, .. } => {
+					self.weighed.insert(format!("{deadline_id}:{file_id}"));
+				}
+				Reason::Path { asked, .. } => {
+					let space = asked.split(':').next().unwrap_or_default();
+					self.path_asked.retain(|key| key.split(':').next() != Some(space));
+					self.path_asked.insert(asked.clone());
+				}
+			}
+		}
+	}
+}
+
+/// Why godspeed checks a space.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Reason {
+	/// An open deadline with nothing linked.
+	Unlinked(RequestedDeadline),
+	/// A ready info file new since the first check, or read again after a change.
+	Info { file_id: String, name: String, content_fp: String },
+	/// A new ready study file not yet weighed for a deadline that has files.
+	Unweighed { deadline_id: String, deadline_name: String, file_id: String, file_name: String },
+	/// The goal path runs low: `topics` on it, `left` of them not strong yet. `asked` is its
+	/// `pathAsked` entry.
+	Path { asked: String, topics: usize, left: usize },
+}
+
+fn added_ms(file: &Json) -> Option<i64> {
+	time::parse_date(file["addedAt"].str_or_empty())
+}
+
+/// The space's reasons to be checked (none for a closed space): rule 1 with `asked` (the
+/// record's, the old Talk chat's and the running requests' deadline ids), rules 2 and 3 for
+/// files added after the record's `since`, leaving out those that came with the space's setup.
+pub fn space_reasons(space: &Json, today: &str, record: &AskedRecord, asked: &HashSet<String>) -> Vec<Reason> {
+	if space["closed"].truthy() {
+		return Vec::new();
+	}
+	let mut reasons: Vec<Reason> = unlinked_deadlines(std::slice::from_ref(space), today, asked).into_iter().map(Reason::Unlinked).collect();
+	let Some(since) = record.since.as_deref().and_then(time::parse_date) else { return reasons };
+	let files = space["files"].items();
+	let Some(first) = files.iter().filter_map(added_ms).min() else { return reasons };
+	// A ready file of `kind` added after setup, with the time it was added.
+	let ready = |kind: &'static str| {
+		files.iter().filter_map(move |f| {
+			let at = added_ms(f)?;
+			(f["kind"].as_str() == Some(kind) && f["status"].as_str() == Some("ready") && at >= first + SETUP_MS).then_some((f, at))
+		})
+	};
+	for (f, at) in ready("info") {
+		let (id, fp) = (f["id"].str_or_empty(), f["contentFp"].str_or_empty());
+		let prefix = format!("{id}:");
+		let counts = match record.checked_info.iter().find(|key| key.starts_with(&prefix)) {
+			Some(key) => key[prefix.len()..] != *fp,
+			None => at > since,
+		};
+		if counts {
+			reasons.push(Reason::Info { file_id: id.to_owned(), name: f["name"].str_or_empty().to_owned(), content_fp: fp.to_owned() });
+		}
+	}
+	for d in space["deadlines"].items() {
+		let linked = d["fileIds"].strs();
+		if d["done"].truthy() || cmp16(d["date"].str_or_empty(), today).is_lt() || linked.is_empty() {
+			continue;
+		}
+		let (left_out, deadline_id) = (d["leftOutIds"].strs(), d["id"].str_or_empty());
+		for (f, at) in ready("study") {
+			let id = f["id"].str_or_empty();
+			let weighed = linked.contains(&id) || left_out.contains(&id) || record.weighed.contains(&format!("{deadline_id}:{id}"));
+			if !weighed && at > since && cmp16(&local_day(at), d["date"].str_or_empty()).is_le() {
+				reasons.push(Reason::Unweighed {
+					deadline_id: deadline_id.to_owned(),
+					deadline_name: d["name"].str_or_empty().to_owned(),
+					file_id: id.to_owned(),
+					file_name: f["name"].str_or_empty().to_owned(),
+				});
+			}
+		}
+	}
+	reasons
+}
+
+/// A deadline as the check lists it.
+fn check_deadline_line(d: &Json) -> String {
+	let time = d["time"].as_str().filter(|t| !t.is_empty()).map_or_else(String::new, |t| format!(" {t}"));
+	let done = if d["done"].truthy() { ", done" } else { "" };
+	let linked = d["fileIds"].items().len();
+	let linked = if linked == 0 { String::new() } else { format!(", {linked} linked") };
+	format!("- {} ({}, deadline_id {}, due {}{time}{done}{linked})", d["name"].str_or_empty(), d["kind"].str_or_empty(), d["id"].str_or_empty(), d["date"].str_or_empty())
+}
+
+/// The reasons as lines; a deadline's unweighed files share one line.
+fn reason_lines(reasons: &[Reason]) -> Vec<String> {
+	let mut lines = Vec::new();
+	let mut unweighed: Vec<(&str, &str, Vec<String>)> = Vec::new();
+	for reason in reasons {
+		match reason {
+			Reason::Unlinked(d) => lines.push(format!("- {} (deadline_id {}) has nothing linked: work out what it covers, link with file_ids, left_out_ids, source.", d.name, d.id)),
+			Reason::Info { file_id, name, .. } => lines.push(format!("- Info file {name} (file_id {file_id}) new or changed: add deadlines it names, fix changed dates and times.")),
+			Reason::Unweighed { deadline_id, deadline_name, file_id, file_name } => match unweighed.iter_mut().find(|(id, ..)| id == deadline_id) {
+				Some((_, _, files)) => files.push(format!("{file_name} ({file_id})")),
+				None => unweighed.push((deadline_id, deadline_name, vec![format!("{file_name} ({file_id})")])),
+			},
+			Reason::Path { topics, left, .. } => lines.push(format!("- Path: {topics} topics, {left} not strong yet.")),
+		}
+	}
+	for (id, name, files) in unweighed {
+		lines.push(format!("- New study files for {name} (deadline_id {id}): {}. Covered: add to file_ids; not: add to left_out_ids.", files.join(", ")));
+	}
+	lines
+}
+
+/// The check's request for the agent: fixed rules, the space's reasons and every deadline (done
+/// and past ones too, so one the files name again is not added twice).
+pub fn check_text(space: &Json, reasons: &[Reason]) -> String {
+	let mut out = format!(
+		"Check space {} (space_id {}) for what changed in its files. Change only what files settle.\n\
+		- Never add a deadline twice: check list below first. Never make up a date.\n\
+		- file_ids and left_out_ids replace whole list: keep current links (read_space).\n\
+		- Never remove a deadline. One that looks cancelled: say so in last line.\n",
+		space["name"].str_or_empty(),
+		space["id"].str_or_empty()
+	);
+	if reasons.iter().any(|r| matches!(r, Reason::Path { .. })) {
+		out.push_str("- Path: add up to 10 topics toward goal (40 at most) and refresh description, or say goal reached.\n");
+	}
+	out.push_str("Reasons:\n");
+	out.push_str(&reason_lines(reasons).join("\n"));
+	let deadlines = space["deadlines"].items();
+	out.push_str("\nDeadlines:\n");
+	out.push_str(&if deadlines.is_empty() { "none".to_owned() } else { deadlines.iter().map(check_deadline_line).collect::<Vec<_>>().join("\n") });
+	out
+}
+
 /// The request for the agent.
 pub fn request_text(kind: RequestKind, deadlines: &[RequestedDeadline]) -> String {
 	let list = deadlines.iter().map(line).collect::<Vec<_>>().join("\n");
@@ -170,6 +371,107 @@ mod tests {
 	fn the_old_talk_chat_s_requests_count_as_asked() {
 		let request = json!({ "role": "custom", "customType": "app-request", "details": { "deadlines": [{ "id": "d1" }, { "id": "d4" }] } });
 		assert_eq!(asked_deadline_ids(&[request, json!({ "role": "user", "content": "hi" })]), HashSet::from(["d1".to_owned(), "d4".to_owned()]));
+	}
+
+	/// A space set up on Nov 1 at 10:00, with a syllabus from then and new files 2 hours later.
+	fn checked_space() -> Json {
+		let file = |id: &str, name: &str, kind: &str, at: &str| json!({ "id": id, "name": name, "kind": kind, "status": "ready", "contentFp": format!("fp_{id}"), "addedAt": at });
+		json!({
+			"id": "spc_a", "name": "CSE 21", "closed": false,
+			"files": [
+				file("f_syl", "Syllabus.pdf", "info", "2026-11-01T10:00:00.000Z"),
+				file("f_w1", "Week 1.pdf", "study", "2026-11-01T10:30:00.000Z"),
+				file("f_hw5", "HW5.md", "info", "2026-11-01T12:00:00.000Z"),
+				file("f_w7", "Week 7.pdf", "study", "2026-11-01T12:00:00.000Z"),
+				json!({ "id": "f_late", "name": "Week 9.pdf", "kind": "study", "status": "pending", "contentFp": "", "addedAt": "2026-11-01T12:00:00.000Z" }),
+			],
+			"deadlines": [
+				{ "id": "d_final", "kind": "exam", "name": "Final", "date": "2026-12-10", "fileIds": ["f_w1"] },
+				{ "id": "d_quiz", "kind": "quiz", "name": "Quiz 1", "date": "2026-11-03", "fileIds": [] },
+				{ "id": "d_past", "kind": "exam", "name": "Midterm", "date": "2026-10-20", "fileIds": ["f_w1"] },
+				{ "id": "d_left", "kind": "exam", "name": "Quiz 2", "date": "2026-11-20", "fileIds": ["f_w1"], "leftOutIds": ["f_w7"] },
+			],
+		})
+	}
+
+	fn record(since: &str) -> AskedRecord {
+		AskedRecord { since: Some(since.to_owned()), ..AskedRecord::default() }
+	}
+
+	fn names(reasons: &[Reason]) -> Vec<String> {
+		reasons
+			.iter()
+			.map(|r| match r {
+				Reason::Unlinked(d) => format!("unlinked {}", d.id),
+				Reason::Info { file_id, .. } => format!("info {file_id}"),
+				Reason::Unweighed { deadline_id, file_id, .. } => format!("weigh {file_id} for {deadline_id}"),
+				Reason::Path { asked, .. } => format!("path {asked}"),
+			})
+			.collect()
+	}
+
+	#[test]
+	fn a_space_is_checked_for_unlinked_deadlines_and_files_added_after_its_setup_and_the_first_check() {
+		let space = checked_space();
+		let found = space_reasons(&space, "2026-11-02", &record("2026-11-01T11:00:00.000Z"), &HashSet::new());
+		assert_eq!(names(&found), ["unlinked d_quiz", "info f_hw5", "weigh f_w7 for d_final"], "setup files, pending files, past and left-out deadlines don't count");
+		let later = space_reasons(&space, "2026-11-02", &record("2026-11-01T13:00:00.000Z"), &HashSet::new());
+		assert_eq!(names(&later), ["unlinked d_quiz"], "files from before the first check are never checked");
+		assert_eq!(names(&space_reasons(&space, "2026-11-02", &AskedRecord::default(), &["d_quiz".to_owned()].into())), Vec::<String>::new(), "no first check yet");
+		let mut closed = space.clone();
+		closed.as_obj_mut().unwrap().insert("closed", true);
+		assert!(space_reasons(&closed, "2026-11-02", &record("2026-11-01T11:00:00.000Z"), &HashSet::new()).is_empty());
+	}
+
+	#[test]
+	fn a_study_file_counts_only_for_deadlines_due_on_or_after_the_day_it_came() {
+		let mut space = checked_space();
+		space.get_mut("deadlines").unwrap().as_arr_mut().unwrap()[0].as_obj_mut().unwrap().insert("date", "2026-10-31");
+		let found = space_reasons(&space, "2026-10-31", &record("2026-11-01T11:00:00.000Z"), &HashSet::new());
+		assert!(!names(&found).iter().any(|n| n.starts_with("weigh")), "{found:?}");
+	}
+
+	#[test]
+	fn reasons_asked_once_stay_asked_and_an_info_file_read_again_counts_again() {
+		let space = checked_space();
+		let mut asked = record("2026-11-01T11:00:00.000Z");
+		let found = space_reasons(&space, "2026-11-02", &asked, &HashSet::new());
+		asked.mark(&found);
+		assert!(asked.asked.contains("d_quiz"));
+		assert!(space_reasons(&space, "2026-11-02", &asked, &asked.asked.iter().cloned().collect()).is_empty());
+		let mut changed = space.clone();
+		changed.get_mut("files").unwrap().as_arr_mut().unwrap()[2].as_obj_mut().unwrap().insert("contentFp", "fp_new");
+		let again = space_reasons(&changed, "2026-11-02", &asked, &asked.asked.iter().cloned().collect());
+		assert_eq!(names(&again), ["info f_hw5"]);
+		asked.mark(&again);
+		assert_eq!(asked.checked_info.iter().collect::<Vec<_>>(), ["f_hw5:fp_new"], "one entry per file");
+	}
+
+	#[test]
+	fn the_record_reads_version_one_and_writes_version_two() {
+		let old = AskedRecord::read(&json!({ "version": 1, "asked": ["d2", "d1"] }));
+		assert_eq!(old, AskedRecord { asked: ["d1".to_owned(), "d2".to_owned()].into(), ..AskedRecord::default() });
+		let mut full = record("2026-11-01T11:00:00.000Z");
+		full.mark(&[Reason::Path { asked: "spc_a:h1".to_owned(), topics: 12, left: 3 }]);
+		full.mark(&[Reason::Path { asked: "spc_a:h2".to_owned(), topics: 22, left: 2 }]);
+		full.overdue_asked.insert("d_quiz".to_owned());
+		assert_eq!(gs_json::stringify(&full.to_json()), r#"{"version":2,"asked":[],"since":"2026-11-01T11:00:00.000Z","checkedInfo":[],"weighed":[],"pathAsked":["spc_a:h2"],"overdueAsked":["d_quiz"]}"#);
+		assert_eq!(AskedRecord::read(&full.to_json()), full);
+	}
+
+	#[test]
+	fn the_check_names_its_rules_reasons_and_every_deadline() {
+		let space = checked_space();
+		let found = space_reasons(&space, "2026-11-02", &record("2026-11-01T11:00:00.000Z"), &HashSet::new());
+		let text = check_text(&space, &found);
+		assert!(text.starts_with("Check space CSE 21 (space_id spc_a)"));
+		assert!(!text.contains("- Path:"), "the path rule only with a path reason");
+		assert!(text.contains("\nReasons:\n- Quiz 1 (deadline_id d_quiz) has nothing linked"));
+		assert!(text.contains("- Info file HW5.md (file_id f_hw5) new or changed"));
+		assert!(text.contains("- New study files for Final (deadline_id d_final): Week 7.pdf (f_w7)."));
+		assert!(text.ends_with("\nDeadlines:\n- Final (exam, deadline_id d_final, due 2026-12-10, 1 linked)\n- Quiz 1 (quiz, deadline_id d_quiz, due 2026-11-03)\n- Midterm (exam, deadline_id d_past, due 2026-10-20, 1 linked)\n- Quiz 2 (exam, deadline_id d_left, due 2026-11-20, 1 linked)"));
+		let path = check_text(&space, &[Reason::Path { asked: "spc_a:h".to_owned(), topics: 12, left: 3 }]);
+		assert!(path.contains("- Path: add up to 10 topics") && path.contains("Reasons:\n- Path: 12 topics, 3 not strong yet."));
 	}
 
 	#[test]

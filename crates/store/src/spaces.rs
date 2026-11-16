@@ -449,6 +449,23 @@ impl SpaceStore {
 		Ok(true)
 	}
 
+	/// Puts a deadline back as it was, only while it still equals `now`: `back` replaces it, or
+	/// None removes it. False when it changed since or is gone.
+	pub fn restore_deadline(&self, id: &str, deadline_id: &str, now: &Json, back: Option<&Json>) -> Result<bool, String> {
+		let _guard = self.locks.lock(LockKey::Space(id));
+		let mut record = self.require_space(id)?;
+		let mut deadlines = record["deadlines"].as_arr().cloned().unwrap_or_default();
+		let Some(at) = deadlines.iter().position(|d| d["id"].as_str() == Some(deadline_id) && d == now) else { return Ok(false) };
+		match back {
+			Some(back) => deadlines[at] = back.clone(),
+			None => {
+				deadlines.remove(at);
+			}
+		}
+		self.save_deadlines(&mut record, deadlines)?;
+		Ok(true)
+	}
+
 	/// Deletes the space folder entirely (record, copied files, graph). False when unknown.
 	pub fn delete_space(&self, id: &str) -> Result<bool, String> {
 		let dir = self.space_dir(id)?;
@@ -530,6 +547,21 @@ mod tests {
 		}
 		assert!(store.remove_deadline(&id, late["id"].as_str().unwrap()).unwrap());
 		assert!(!store.remove_deadline(&id, late["id"].as_str().unwrap()).unwrap());
+	}
+
+	#[test]
+	fn a_deadline_goes_back_only_while_it_is_as_it_was_left() {
+		let (store, _, _) = store();
+		let id = store.create_space(&json!({ "name": "A" })).unwrap()["id"].as_str().unwrap().to_owned();
+		let before = store.add_deadline(&id, &json!({ "kind": "exam", "name": "Final", "date": "2026-12-01" })).unwrap();
+		let final_id = before["id"].as_str().unwrap().to_owned();
+		let after = store.update_deadline(&id, &final_id, &json!({ "date": "2026-12-03" })).unwrap();
+		assert!(!store.restore_deadline(&id, &final_id, &before, Some(&before)).unwrap(), "it is not as the check left it");
+		assert!(store.restore_deadline(&id, &final_id, &after, Some(&before)).unwrap());
+		assert_eq!(store.get_space(&id).unwrap()["deadlines"][0], before);
+		assert!(store.restore_deadline(&id, &final_id, &before, None).unwrap());
+		assert!(store.get_space(&id).unwrap()["deadlines"].items().is_empty());
+		assert!(!store.restore_deadline(&id, &final_id, &before, None).unwrap(), "gone");
 	}
 
 	#[test]

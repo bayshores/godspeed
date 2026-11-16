@@ -16,6 +16,7 @@ pub mod agent_briefing;
 pub mod today_note;
 pub mod time_zone_names;
 pub mod deadline_requests;
+pub mod check_lines;
 pub mod space_deadlines;
 pub mod prep_upgrade;
 pub mod space_record;

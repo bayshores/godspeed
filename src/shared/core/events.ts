@@ -41,6 +41,8 @@ export interface AgentAction {
 	/** The learner asked for it (a lesson they started): the
 	 *  window goes there even with Follow off. */
 	open?: true;
+	/** godspeed's own space check made it: listed, never visited. */
+	background?: true;
 }
 
 /** The `agent` of the app's own entries in that list (a linked folder's
@@ -96,6 +98,9 @@ export interface ServerEvents {
 	"mocks-changed": { spaceId: string };
 	/** A request from the deadline page or godspeed to the learner's agent started or ended. */
 	"deadline-request-changed": { spaceId: string; deadlineId: string };
+	/** godspeed's own check of a space changed something; `run` is what Undo
+	 *  names, `said` the agent's last line. */
+	"space-checked": { run: string; spaceId: string; agent: string; lines: string[]; said: string | null };
 }
 
 export type ServerEventType = keyof ServerEvents;
@@ -117,6 +122,7 @@ export const SERVER_EVENT_TYPES = [
 	"cheat-sheet-changed",
 	"mocks-changed",
 	"deadline-request-changed",
+	"space-checked",
 	"files-added",
 	"files-removed",
 ] as const satisfies readonly ServerEventType[];

@@ -14,7 +14,7 @@ use gs_base::{fsx, ids};
 use gs_core::spaces::space_tools::ToolOutcome;
 use gs_json::{Json, json, parse, stringify, stringify_pretty};
 use gs_services::App;
-use gs_services::spaces::space_actions::{SendFirstMessage, space_actions, folder_name};
+use gs_services::spaces::space_actions::{Mark, SendFirstMessage, space_actions, folder_name};
 use gs_services::spaces::space_card::space_card_for;
 use gs_services::spaces::space_shortcuts::sync_shortcuts_safely;
 use gs_services::spaces::source_id_for;
@@ -110,7 +110,7 @@ async fn cards_and_tools_match_node() {
 	assert_eq!(stringify(&mask(&Json::Arr(cards), &root)), stringify(&out["cards"]));
 
 	let send: SendFirstMessage = Arc::new(|_, _| Box::pin(async { Ok(()) }));
-	let actions = space_actions(&app, None, send, false);
+	let actions = space_actions(&app, None, send, Mark::Asked);
 	// "today" is the wall clock's minute, so only its shape is compared.
 	let read = |key: &str, space_id: &str| {
 		let Json::Obj(mut outcome) = outcome(actions.read_space(&json!({ "space_id": space_id }))) else { unreachable!() };

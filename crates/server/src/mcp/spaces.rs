@@ -4,7 +4,7 @@
 use gs_core::spaces::space_tools::ToolOutcome;
 use gs_json::{Json, json};
 use gs_services::app::agent_actions::note_agent_action;
-use gs_services::spaces::space_actions::{space_actions, folder_name};
+use gs_services::spaces::space_actions::{Mark, space_actions, folder_name};
 use gs_services::spaces::{AGENT_FILE_READING_REFUSAL, unlink_folder};
 use gs_services::turns::send_first_message;
 
@@ -18,7 +18,8 @@ pub async fn space_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Option<
 	// what it starts even with Follow off.
 	let agent = agent_id_of(call.meta);
 	let asked_here = call.app.bridge.is_teacher_terminal(call.terminal);
-	let actions = space_actions(call.app, call.caller, send_first_message(call.app), asked_here);
+	let mark = if asked_here { Mark::Started } else { Mark::Asked };
+	let actions = space_actions(call.app, call.caller, send_first_message(call.app), mark);
 	match name {
 		"start_lesson" => {
 			// Asked first: the waiter may take the new lesson's first turn before the call returns.

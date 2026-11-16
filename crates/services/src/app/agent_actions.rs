@@ -71,7 +71,7 @@ fn update_newest(app: &App, list: &mut [Json], label: Option<&str>, now: i64) ->
 
 /// Record one action and announce it. A repeat of the newest action (same label, agent and
 /// target, within `COALESCE_MS`) only refreshes its time and is not announced again. `input` has
-/// `label`, `spaceId`, `target`, `page` and optionally `removed` and `open`.
+/// `label`, `spaceId`, `target`, `page` and optionally `removed`, `open` and `background`.
 fn record_agent_action(app: &App, agent: Option<&str>, input: &Json, now: i64) -> Json {
 	let label = short_label(input["label"].str_or_empty());
 	let agent = agent.map(text::trim).filter(|a| !a.is_empty()).unwrap_or("Your agent");
@@ -93,8 +93,10 @@ fn record_agent_action(app: &App, agent: Option<&str>, input: &Json, now: i64) -
 		if removed {
 			action.insert("removed", true);
 		}
-		if input["open"].truthy() {
-			action.insert("open", true);
+		for mark in ["open", "background"] {
+			if input[mark].truthy() {
+				action.insert(mark, true);
+			}
 		}
 		let action = Json::Obj(action);
 		list.push(action.clone());
