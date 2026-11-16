@@ -1,5 +1,17 @@
 [
 	{
+		"version": "0.6.74",
+		"date": "2026-11-16",
+		"changes": [
+			"Before a homework problem, the teacher checks what you've practiced and teaches a method you haven't seen yet with a different example first.",
+			"Start problem and Next problem sit at the bottom of the lesson text, and an open homework problem has a Teach me this button.",
+			"The homework screen shows the open problem once, with the parts you're not on lighter.",
+			"With nothing waiting for your answer, the lesson text sits in the middle of the window.",
+			"The teacher is no longer woken while it is already picking up your lesson.",
+			"A skipped question's card shows its math."
+		]
+	},
+	{
 		"version": "0.6.73",
 		"date": "2026-11-16",
 		"changes": [
