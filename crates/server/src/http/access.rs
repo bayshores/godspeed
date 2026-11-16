@@ -10,7 +10,7 @@ const COOKIE: &str = "gs_desktop";
 
 /// Open in every mode: the agents' endpoint and hooks (bearer token in the route) and the
 /// window's login.
-const EXEMPT: [&str; 5] = ["/api/mcp", "/api/mcp/forget", "/api/mcp/compacting", "/api/mcp/line", "/api/desktop/login"];
+const EXEMPT: [&str; 6] = ["/api/mcp", "/api/mcp/forget", "/api/mcp/compacting", "/api/mcp/line", "/api/mcp/agent-event", "/api/desktop/login"];
 
 /// The desktop secret settings, read once at start-up. The default is browser mode.
 #[derive(Clone, Default)]
@@ -131,7 +131,7 @@ mod tests {
 
 	#[test]
 	fn mcp_and_login_are_exempt() {
-		for path in ["/api/mcp", "/api/mcp/forget", "/api/mcp/compacting", "/api/mcp/line", "/api/desktop/login"] {
+		for path in ["/api/mcp", "/api/mcp/forget", "/api/mcp/compacting", "/api/mcp/line", "/api/mcp/agent-event", "/api/desktop/login"] {
 			assert!(desktop().allows(path, &HeaderMap::new()), "{path}");
 		}
 		assert!(!desktop().allows("/api/mcp/other", &HeaderMap::new()));

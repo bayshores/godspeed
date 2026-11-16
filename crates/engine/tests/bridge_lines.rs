@@ -75,3 +75,18 @@ async fn a_line_on_a_talk_page_goes_to_the_page_unless_it_comes_late() {
 	bridge.typed(TEACHER, clock::now_ms());
 	assert!(bridge.take_typed(Some(TEACHER), clock::now_ms()));
 }
+
+#[test]
+fn only_the_teachers_stop_after_a_typed_line_is_an_answer_to_the_learner() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	bridge.set_live_terminals(vec![TEACHER.to_owned(), HELPER.to_owned()], Some(TEACHER.to_owned()));
+	assert!(!bridge.take_chat(TEACHER), "a stop with no line typed (a lesson's reply) is not one");
+	bridge.chat_line(TEACHER);
+	bridge.chat_line(HELPER);
+	assert!(bridge.take_chat(TEACHER));
+	assert!(!bridge.take_chat(TEACHER), "one line, one answer");
+	assert!(!bridge.take_chat(HELPER), "the helper's terminal never is");
+	bridge.chat_line(TEACHER);
+	bridge.set_live_terminals(vec![HELPER.to_owned()], None);
+	assert!(!bridge.take_chat(TEACHER), "a stopped terminal forgets it");
+}

@@ -127,6 +127,8 @@ struct State {
 	/// teacher terminal → when the learner pressed Enter there on a talk page, until the line comes
 	/// through the prompt hook or turns into a typed mark.
 	entered: HashMap<String, i64>,
+	/// Teacher terminals whose agent is answering a line the learner typed to it there.
+	chatting: HashSet<String>,
 	/// The last request from an agent outside the app's terminals.
 	outside_contact: i64,
 }

@@ -94,6 +94,8 @@ export interface ServerEvents {
 	"files-removed": { spaceId: string; files: { id: string; name: string }[] };
 	/** A line the learner typed in the agent's terminal for the page on screen (a lesson, a cheat sheet). */
 	"terminal-line": { id: number; text: string; attachments: { name: string; mimeType: string; data: string }[] };
+	/** The teacher in godspeed's terminal finished answering the learner there ("done") or stopped to ask them something ("needs"). */
+	"agent-event": { kind: "done" | "needs" };
 	/** A deadline's cheat sheet or its agent request changed. */
 	"cheat-sheet-changed": { deadlineId: string };
 	/** A space's mocks or one of their agent requests changed. */
@@ -128,5 +130,6 @@ export const SERVER_EVENT_TYPES = [
 	"files-added",
 	"files-removed",
 	"terminal-line",
+	"agent-event",
 ] as const satisfies readonly ServerEventType[];
 

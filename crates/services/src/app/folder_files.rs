@@ -22,13 +22,14 @@ const DOCS: [(&str, &str); 3] = [
 ];
 
 /// The waiter's and the hooks' scripts, copied into `.godspeed/` as they are.
-const SCRIPTS: [(&str, &str); 6] = [
+const SCRIPTS: [(&str, &str); 7] = [
 	("connect.mjs", include_str!("../../folder-files/connect.mjs")),
 	("target.mjs", include_str!("../../folder-files/target.mjs")),
 	("wait-for-work.mjs", include_str!("../../folder-files/wait-for-work.mjs")),
 	("forget.mjs", include_str!("../../folder-files/forget.mjs")),
 	("compacting.mjs", include_str!("../../folder-files/compacting.mjs")),
 	("typed.mjs", include_str!("../../folder-files/typed.mjs")),
+	("agent-event.mjs", include_str!("../../folder-files/agent-event.mjs")),
 ];
 
 /// Write a file only when it changed, so a refresh leaves the folder alone.

@@ -31,6 +31,16 @@ pub struct Lines {
 /// and the shell clears the line Claude Code puts back in its input. Otherwise None, and the
 /// agent reads the line as usual.
 pub async fn take_terminal_line(app: &App, terminal: Option<&str>, line: &str) -> Option<String> {
+	let page = to_page(app, terminal, line).await;
+	if page.is_none()
+		&& let Some(terminal) = terminal
+	{
+		app.bridge.chat_line(terminal);
+	}
+	page
+}
+
+async fn to_page(app: &App, terminal: Option<&str>, line: &str) -> Option<String> {
 	let page = app.bridge.take_line(terminal, clock::now_ms())?;
 	let terminal = terminal?;
 	let (text, names) = typed_attachments(line);

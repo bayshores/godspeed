@@ -24,6 +24,7 @@ use std::sync::Arc;
 use axum::http::{HeaderMap, Method};
 use axum::response::Response;
 use gs_base::clock;
+use gs_base::events::EventKind;
 use gs_json::{Json, json};
 use gs_services::App;
 
@@ -169,6 +170,28 @@ pub async fn handle_terminal_line(app: &App, headers: &HeaderMap, body: Option<J
 	};
 	let sent = gs_services::app::terminal_lines::take_terminal_line(app, terminal_of(headers).as_deref(), line).await;
 	http_reply::json(200, &json!({ "sent": sent }))
+}
+
+/// /api/mcp/agent-event: the godspeed folder's hook says the agent in a terminal stopped
+/// (`{ "event": "stop" }`) or waits for the learner's say (`"needs"`). The window then may play
+/// its sound: for a stop only when the teacher was answering a line typed to it there (a lesson's
+/// reply has its own turn), for a need only from the teacher's terminal.
+pub fn handle_agent_event(app: &App, headers: &HeaderMap, body: Option<Json>) -> Response {
+	if let Some(refused) = refuse(app, headers) {
+		return refused;
+	}
+	let body = body.unwrap_or_default();
+	let terminal = terminal_of(headers);
+	let kind = match (body["event"].as_str(), terminal.as_deref()) {
+		(Some("stop"), Some(id)) if app.bridge.take_chat(id) => Some("done"),
+		(Some("needs"), id) if app.bridge.is_teacher_terminal(id) => Some("needs"),
+		(Some("stop" | "needs"), _) => None,
+		_ => return http_reply::json(400, &json!({ "error": "Send \"event\": \"stop\" or \"needs\"." })),
+	};
+	if let Some(kind) = kind {
+		app.events.emit(EventKind::AgentEvent, json!({ "kind": kind }));
+	}
+	http_reply::json(200, &json!({ "ok": true }))
 }
 
 /// Token and agent status for the window (GET /api/mcp-access), without the url.

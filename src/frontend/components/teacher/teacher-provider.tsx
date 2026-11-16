@@ -21,6 +21,7 @@ import { useLocation, useNavigate } from "react-router";
 import type { AgentAction } from "@/shared/core";
 import { DEFAULT_TEACHER_NAME, isAgentEntry } from "@/shared/core";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
+import { useDoneSound } from "./use-done-sound";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useActivity } from "@/frontend/components/activity-dock";
 import { useSpaces } from "@/frontend/components/space-context";
@@ -182,6 +183,7 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 	// ── the panel ──
 	const panel = useTeacherPanel();
 	const { open: panelOpen, setOpen: setPanelOpen, showTerminal, setList } = panel;
+	useDoneSound(panelOpen);
 
 	// ── the tour ──
 	const queue = useRef<AgentAction[]>([]);

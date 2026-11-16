@@ -28,6 +28,7 @@ pub enum EventKind {
 	FilesAdded,
 	FilesRemoved,
 	TerminalLine,
+	AgentEvent,
 }
 
 impl EventKind {
@@ -50,6 +51,7 @@ impl EventKind {
 			EventKind::FilesAdded => "files-added",
 			EventKind::FilesRemoved => "files-removed",
 			EventKind::TerminalLine => "terminal-line",
+			EventKind::AgentEvent => "agent-event",
 		}
 	}
 }

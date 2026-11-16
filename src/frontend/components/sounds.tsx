@@ -6,7 +6,7 @@
 import { createContext, useCallback, useContext, useRef } from "react";
 import { useSettingsSaved } from "@/frontend/components/settings-signal";
 
-type SoundName = "startup" | "intro" | "connected" | "all-set" | "right" | "wrong";
+type SoundName = "startup" | "intro" | "connected" | "all-set" | "right" | "wrong" | "done";
 
 const PlayContext = createContext<(name: SoundName) => void>(() => {});
 

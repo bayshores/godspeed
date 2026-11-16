@@ -51,6 +51,7 @@ impl Bridge {
 		s.terminal_contact.retain(|id, _| live.contains(id));
 		s.typed.retain(|id, _| live.contains(id));
 		s.entered.retain(|id, _| live.contains(id));
+		s.chatting.retain(|id| live.contains(id));
 		s.teacher_terminal = teacher.filter(|id| live.contains(id));
 		s.live_terminals = live;
 		drop(s);
@@ -125,6 +126,20 @@ impl Bridge {
 			return None;
 		}
 		s.talk_page.clone()
+	}
+
+	/// A line the learner typed went to the agent in this terminal: when it is the teacher's, its
+	/// next stop is an answer to the learner there.
+	pub fn chat_line(&self, terminal: &str) {
+		let mut s = self.0.state.lock();
+		if s.teacher_terminal.as_deref() == Some(terminal) {
+			s.chatting.insert(terminal.to_owned());
+		}
+	}
+
+	/// The agent in this terminal stopped: whether it was answering the learner there.
+	pub fn take_chat(&self, terminal: &str) -> bool {
+		self.0.state.lock().chatting.remove(terminal)
 	}
 
 	/// The line didn't reach the page: it was typed to the agent after all.
