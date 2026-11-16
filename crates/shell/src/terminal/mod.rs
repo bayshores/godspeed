@@ -1256,8 +1256,8 @@ mod tests {
 	#[cfg(unix)]
 	#[test]
 	fn what_an_ended_script_left_running_is_killed_after_the_grace_and_then_never_signalled() {
-		// The child ignores the hang-up, as an agent may.
-		let dir = folder("leftover", "#!/bin/sh\n(trap '' HUP; exec sleep 300) &\necho $! > \"$0.pid\"\nprintf 'ready\\n'\n");
+		// The child ignores the hang-up, as an agent may. The script ends only once the child ignores it, or the hang-up can beat the trap.
+		let dir = folder("leftover", "#!/bin/sh\n(trap '' HUP; touch \"$0.trapped\"; exec sleep 300) &\necho $! > \"$0.pid\"\nuntil [ -e \"$0.trapped\" ]; do sleep 0.05; done\nprintf 'ready\\n'\n");
 		let terminals = Terminals::new(Arc::new(Heard::default()));
 		let id = start(&terminals, &dir);
 		until("the end", || ended_of(&terminals, &id) == Some(Ended::Exited(0)));
