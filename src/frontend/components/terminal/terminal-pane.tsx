@@ -11,7 +11,7 @@ import type { PassageCite } from "@/frontend/components/citations/page-excerpt-m
 import { spaceFilePathOf } from "@/frontend/components/files/space-files-api";
 import { lazyComponent } from "@/frontend/lib/lazy-component";
 import type { ScreenLink } from "./terminal-links-model";
-import type { TerminalFooter, TerminalRole } from "./terminal-model";
+import { chatGone, type TerminalFooter, type TerminalRole } from "./terminal-model";
 import { ScreenFooter } from "./screen-footer";
 import { useSpaceFiles } from "./use-space-files";
 import type { TerminalsApi } from "./use-terminals";
@@ -101,7 +101,7 @@ export function TerminalPane({ api, role, foot, focusOnOpen }: {
 					}
 				}
 				onStartAgain={foot.startAgain ? () => void startAgain(lastChat?.id) : null}
-				again={lastChat ? "Continue" : "Start again"}
+				again={lastChat ? "Continue" : chatGone(term.ended) ? "New chat" : "Start again"}
 				onNewChat={foot.startAgain && lastChat ? () => void startAgain() : null}
 			/>
 			<CiteDialog

@@ -230,6 +230,23 @@ describe("never opening by itself", () => {
 		}
 	});
 
+	it("a chat the agent says is gone ends with New chat as the bright key, which starts a new one", async () => {
+		const shell = fakeShell([teacher()]);
+		try {
+			await mounted(access({ terminals: [{ id: "t1", here: true }] }), async () => {
+				await act(async () => shell.push({ id: "t1", ended: { stopped: false, code: 5 }, prompt: null, url: false }));
+				await settle();
+				await click("status");
+				await faded();
+				assert.deepEqual(bright(), ["New chat"]);
+				await click("terminal-start-again");
+				assert.ok(shell.calls.includes("start teacher claude"));
+			});
+		} finally {
+			shell.remove();
+		}
+	});
+
 	it("an open Activity list stays while the status lights up and says what is needed", async () => {
 		const shell = fakeShell([teacher()]);
 		try {
