@@ -1,12 +1,11 @@
 /**
  * The Graph tab's bar under the space head: search (topics and facts),
- * then Graph costs, All facts (the chain table) and Add files, which
- * opens the space's Files tab (No space has no Files tab, so there it
- * picks notes files right here). Search and All facts only show once the
- * space has facts; Graph costs once a graph run has been recorded.
+ * then Graph costs, All facts (the chain table) and, with no space,
+ * Add files to pick notes files right here (a space adds files on its Files
+ * tab). Search and All facts only show once the space has facts; Graph costs
+ * once a graph run has been recorded.
  */
 import { useEffect, useRef, type RefObject } from "react";
-import { Link } from "react-router";
 import type { GraphCostSummary } from "@/shared/core";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { GraphCostControl } from "./cost-control.tsx";
@@ -27,7 +26,7 @@ export function GraphTopBar({
 	onOpenChains: () => void;
 	/** null until loaded. */
 	costs: GraphCostSummary | null;
-	/** No space's own file picker; null in a space (Add files opens Files). */
+	/** No space's own file picker; null in a space. */
 	importNotes: { importing: boolean; onImportFiles: (files: FileList | null) => void } | null;
 }) {
 	const searchRef = useRef<HTMLInputElement>(null);
@@ -48,14 +47,7 @@ export function GraphTopBar({
 					All facts
 				</button>
 			)}
-			{importNotes ? (
-				<ImportNotes {...importNotes} />
-			) : (
-				<Link to="/space/files" data-testid="add-notes" className={BUTTON}>
-					<PixelIcon name="plus" />
-					Add files
-				</Link>
-			)}
+			{importNotes && <ImportNotes {...importNotes} />}
 		</div>
 	);
 }

@@ -97,6 +97,7 @@ describe("panel helpers", () => {
 
 	it("countsLine: every status, in order", () => {
 		assert.equal(countsLine({ strong: 2, shaky: 3, weak: 1, untested: 8 }), "2 strong, 3 shaky, 1 weak, 8 not tested");
+		assert.equal(countsLine({ strong: 0, shaky: 0, weak: 0, untested: 0 }), null);
 	});
 
 	it("factCellLabel: the score, in a lesson, or not studied", () => {

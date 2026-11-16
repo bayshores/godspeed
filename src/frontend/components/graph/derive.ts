@@ -84,8 +84,9 @@ export function factCellLabel(f: Pick<FactProgress, "answers" | "inLessons">): s
 	return rightWords(tally(f.answers));
 }
 
-/** "2 strong, 3 shaky, 1 weak, 8 not tested". */
-export function countsLine(c: StatusCounts): string {
+/** "2 strong, 3 shaky, 1 weak, 8 not tested"; null when all are 0. */
+export function countsLine(c: StatusCounts): string | null {
+	if (STATUS_LEGEND.every((s) => c[s.key] === 0)) return null;
 	return STATUS_LEGEND.map((s) => `${c[s.key]} ${s.label}`).join(", ");
 }
 

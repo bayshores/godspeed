@@ -205,12 +205,15 @@ export function WorkOnNextPane({
 }) {
 	const byId = new Map(topics.map((t) => [t.id, t]));
 	const next = scope.workOnNext.slice(0, WORK_ON_NEXT_LIMIT);
+	const counts = countsLine(scope.counts);
 	return (
 		<Pane data-testid="work-on-next-pane" className="flex flex-col gap-2.5 p-5">
 			<h2 className={SIDE_TITLE}>Work on next</h2>
-			<p data-testid="status-counts" className="text-base text-ink-2">
-				{countsLine(scope.counts)}
-			</p>
+			{counts && (
+				<p data-testid="status-counts" className="text-base text-ink-2">
+					{counts}
+				</p>
+			)}
 			<span aria-hidden className="border-t-2 border-dotted border-edge" />
 			{next.length > 0 ? (
 				<ol className="flex flex-col" data-testid="work-on-next">

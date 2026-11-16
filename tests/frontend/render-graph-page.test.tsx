@@ -107,6 +107,12 @@ describe("the right side", () => {
 		assert.match(three, /data-testid="deadline-picker"[^>]*>Change deadline</);
 	});
 
+	it("work on next: no counts line while every count is 0", () => {
+		const bare = { ...deadline, counts: { strong: 0, shaky: 0, weak: 0, untested: 0 } };
+		const html = renderToStaticMarkup(<WorkOnNextPane scope={bare} topics={data.topics} onSelectTopic={noop} onStudy={noop} studying={false} studyError={null} />);
+		assert.ok(!html.includes("status-counts"));
+	});
+
 	it("work on next: the counts, the deadline's topics with status lines and reasons, and Study these", () => {
 		const html = renderToStaticMarkup(<WorkOnNextPane scope={deadline} topics={data.topics} onSelectTopic={noop} onStudy={noop} studying={false} studyError={null} />);
 		assert.equal(count(html, 'data-testid="work-on-next-row"'), 3);
@@ -217,14 +223,12 @@ describe("the picked fact", () => {
 });
 
 describe("the top bar", () => {
-	it("Add files opens the Files page in a space; No space picks files right there", () => {
+	it("a space has no Add files here (its Files tab has it); No space picks files right there", () => {
 		const inSpace = renderToStaticMarkup(inRouter(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} costs={null} importNotes={null} />));
-		assert.match(inSpace, /<a data-testid="add-notes"[^>]*href="\/space\/files"[^>]*>.*Add files<\/a>/);
-		assert.ok(!inSpace.includes("import-notes"));
+		assert.ok(!inSpace.includes("add-notes") && !inSpace.includes("import-notes") && !inSpace.includes("Add files"));
 		const noSpace = renderToStaticMarkup(inRouter(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} costs={null} importNotes={{ importing: false, onImportFiles: noop }} />));
 		assert.ok(noSpace.includes('data-testid="import-notes"'));
-		assert.ok(!noSpace.includes("add-notes"));
-	});
+			});
 
 	it("search and All facts once there are facts; Graph costs once a run is recorded", () => {
 		const tokens = { inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 };
