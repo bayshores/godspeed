@@ -61,12 +61,12 @@ export function PdfBriefCard({ output }: { output: unknown }) {
 				<MessageResponse>{result.brief}</MessageResponse>
 			</div>
 			{!failed && readList.length > 0 && (
-				<div className="border-t border-border pt-2 text-[15px] text-ink-2">
+				<div className="pt-2 text-[15px] text-ink-2">
 					Pages read: {readList.join(", ")}
 				</div>
 			)}
 			{!failed && consultedList.length > readList.length && (
-				<div className="border-t border-border pt-2 text-[15px] text-ink-2">
+				<div className="pt-2 text-[15px] text-ink-2">
 					Pages consulted: {consultedList.join(", ")}
 				</div>
 			)}
@@ -98,7 +98,7 @@ export function ResearchBriefCard({ output }: { output: unknown }) {
 				<MessageResponse>{result.brief}</MessageResponse>
 			</div>
 			{result.sources.length > 0 && (
-				<div className="flex flex-col gap-1 border-t border-border pt-2">
+				<div className="flex flex-col gap-1 pt-2">
 					<div className={LABEL_TEXT}>Sources</div>
 					<ul className="flex flex-col gap-0.5 text-[15px]">
 						{result.sources.map((s) => (

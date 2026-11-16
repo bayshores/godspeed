@@ -93,7 +93,7 @@ export function CodeAnswer({
 					onCode(next);
 				}}
 			/>
-			<section data-testid="mock-examples" aria-label="Examples" className="flex max-h-[40%] shrink-0 flex-col gap-2.5 overflow-y-auto border-t-2 border-line bg-panel px-5 py-3.5">
+			<section data-testid="mock-examples" aria-label="Examples" className="flex max-h-[40%] shrink-0 flex-col gap-2.5 overflow-y-auto bg-panel px-5 py-3.5">
 				<div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
 					<button type="button" data-testid="mock-run-examples" disabled={running} onClick={() => void run()} className="lh-btn shrink-0 text-[15px]">
 						{running ? "Running" : "Run examples"}
@@ -110,7 +110,7 @@ export function CodeAnswer({
 				{outcome && outcome.examples.length > 0 && (
 					<ul data-testid="mock-run-results" className="flex flex-col">
 						{outcome.examples.map((e, i) => (
-							<li key={i} className="flex items-baseline gap-3.5 border-b border-dotted border-edge py-1.5 text-[15px] last:border-b-0">
+							<li key={i} className="flex items-baseline gap-3.5 py-1.5 text-[15px]">
 								<span className="w-[86px] shrink-0 text-ink">Example {i + 1}</span>
 								<span className="min-w-0 flex-1 font-mono text-[13.5px] break-words text-ink-2">{exampleLine(e, question.examples[i]?.expected ?? "")}</span>
 								<span className={cn("shrink-0", e.passed ? "text-ans-right" : "text-ans-wrong")}>{e.passed ? "passed" : "not right yet"}</span>

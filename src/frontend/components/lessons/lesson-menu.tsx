@@ -6,7 +6,7 @@ import { dispositionFileName, saveBlob } from "@/frontend/components/artifacts/d
 /**
  * THE LESSON MENU (a lesson row's More button or a right-click): Rename,
  * Export as Markdown, Move to another space, Delete (the destructive
- * action last), then below a dotted rule the extraction coverage block. MenuShell owns
+ * action last), then below a gap the extraction coverage block. MenuShell owns
  * placement, focus and arrow keys; the list owns dismissal.
  */
 
@@ -69,7 +69,7 @@ export function LessonMenu({
 			<button role="menuitem" type="button" data-testid="ctx-delete" onClick={onDelete} className={`${ITEM} text-ans-wrong`}>
 				Delete
 			</button>
-			<div className="mx-3 my-1.5 border-t border-dotted border-edge" aria-hidden="true" />
+			<div className="h-1.5" aria-hidden="true" />
 			<CoverageMenuBlock chatId={chatId} />
 		</MenuShell>
 	);

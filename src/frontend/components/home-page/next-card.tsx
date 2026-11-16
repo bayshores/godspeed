@@ -38,7 +38,7 @@ export function NextCard({
 	const words = nextCard(d, progress, nowMs);
 	return (
 		<div data-testid="today-card" data-teacher-target={`deadline:${d.id}`}>
-			<div className="flex min-h-[208px] flex-col border-t-2 border-line @min-[540px]:flex-row">
+			<div className="flex min-h-[208px] flex-col @min-[540px]:flex-row">
 				<CountBlock
 					size="card"
 					color={blockColor(color)}

@@ -116,7 +116,6 @@ function ShortcutList() {
 			{KEY_SCOPES.map(({ scope, label }) => (
 				<div key={scope} className="flex flex-col gap-0.5">
 					<h3 className="text-lg text-ink">{label}</h3>
-					<div className="h-[1.5px] bg-ink" />
 					{KEYBOARD_ACTIONS.filter((a) => a.scope === scope).map((a) => (
 						<div key={a.id} className="flex items-center justify-between gap-4 py-1.5 text-[15px] text-ink">
 							{a.label}

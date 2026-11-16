@@ -107,7 +107,6 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 			    commitment, verbatim). */}
 			{reveal.length > 0 && (
 				<>
-					<div className="border-t border-border" />
 					<div className="flex flex-col gap-1">
 						<div className={LABEL_TEXT}>Model solution</div>
 						<div className="text-ink" style={{ ...PROSE_16, "--lh-ink-body": "var(--foreground)" } as React.CSSProperties}>

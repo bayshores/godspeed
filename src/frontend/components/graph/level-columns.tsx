@@ -69,7 +69,6 @@ export function LevelColumns({
 				{levels.map((level, i) => (
 					<section key={i} data-testid="level" className="flex min-w-0 flex-col gap-1">
 						<h2 className="text-[15px] font-medium text-ink">{levelName(i, levels.length)}</h2>
-						<span aria-hidden className="h-[1.5px] w-full bg-ink" />
 						<ul className="flex flex-col">
 							{level.map((t) => (
 								<TopicRow
@@ -86,7 +85,6 @@ export function LevelColumns({
 					</section>
 				))}
 			</div>
-			<span aria-hidden className="border-t-2 border-dotted border-edge" />
 			<CellKey />
 		</Pane>
 	);

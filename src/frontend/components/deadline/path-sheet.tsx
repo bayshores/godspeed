@@ -5,7 +5,7 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import type { Material, TopicTally } from "./deadline-model";
 import { RampRow } from "./ramp-row";
-import { RULE, SHEET, SHEET_TITLE } from "./styles";
+import { SHEET, SHEET_TITLE } from "./styles";
 
 /**
  * THE PATH TO A DEADLINE: the topics that need work, weakest first, one
@@ -72,7 +72,6 @@ export function PathSheet({
 			)}
 			{ahead && plan.length > 0 && (
 				<>
-					<span className={RULE} />
 					<ol className="flex flex-col">
 						{plan.map((day, i) => (
 							<li key={day.day} data-testid="deadline-day" className="flex flex-col gap-1 py-1">
@@ -91,7 +90,7 @@ export function PathSheet({
 								</ul>
 							</li>
 						))}
-						<li data-testid="deadline-day-due" className="mt-1.5 flex items-baseline gap-2.5 border-t-2 border-dotted border-edge pt-2.5 text-[15px] text-ink">
+						<li data-testid="deadline-day-due" className="mt-3 flex items-baseline gap-2.5 text-[15px] font-medium text-ink">
 							<span className="shrink-0 font-count">{deadlineDateLabel(d.date)}</span>
 							<span className="min-w-0 truncate">{d.time ? `${d.name}, ${clockLabel(d.time)}` : d.name}</span>
 						</li>

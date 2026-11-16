@@ -87,7 +87,7 @@ export function SheetDock({
 					writeStorage(WIDTH_KEY, String(width));
 				}}
 			/>
-			<header className="flex shrink-0 items-center gap-2 border-b border-border py-2.5 pr-2 pl-3">
+			<header className="flex shrink-0 items-center gap-2 py-2.5 pr-2 pl-3">
 				{choices.length > 1 && shown ? (
 					<div className="relative min-w-0 flex-1">
 						<select

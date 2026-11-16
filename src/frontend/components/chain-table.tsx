@@ -146,7 +146,7 @@ export function ChainTableBody({
 							const open = searching || expandedClusters.has(group.key);
 							const label = groupName(group);
 							return (
-								<div key={group.key} data-testid={`cluster-group-${group.key}`} className="border-b-2 border-dotted border-edge last:border-b-0">
+								<div key={group.key} data-testid={`cluster-group-${group.key}`} className="pb-2">
 									<div className="flex items-center gap-3 py-2.5">
 										<TickBox
 											{...tickState(group.nodeIds, selection)}

@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
 import type { PathProgress } from "@/shared/core";
 import { RampRow } from "@/frontend/components/deadline/ramp-row";
-import { RULE, SHEET, SHEET_TITLE } from "@/frontend/components/deadline/styles";
+import { SHEET, SHEET_TITLE } from "@/frontend/components/deadline/styles";
 import { Pane } from "@/frontend/components/ui/pane";
 import { pathBlockView } from "./path-block-model";
 
@@ -18,7 +18,6 @@ export const PathBlock = memo(function PathBlock({ path, busy, onStudy }: { path
 		<Pane data-testid="space-path" className={SHEET}>
 			<h2 className={SHEET_TITLE}>{view.title}</h2>
 			{view.allStrong && <p className="text-base text-ink-2">Every topic is strong. Study them to keep it that way.</p>}
-			<span className={RULE} />
 			{next && (
 				<>
 					<div data-testid="space-path-next" className="flex flex-col gap-0.5 py-1">

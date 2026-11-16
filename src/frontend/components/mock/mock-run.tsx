@@ -220,7 +220,7 @@ export function MockRun({ view }: { view: MockView }) {
 			) : (
 				<>
 					{confirmEnd && (
-						<div role="alertdialog" aria-label="End the mock" data-testid="mock-end-confirm" className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b-2 border-line bg-highlight px-6 py-2.5 text-[15px] text-ink">
+						<div role="alertdialog" aria-label="End the mock" data-testid="mock-end-confirm" className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 bg-highlight px-6 py-2.5 text-[15px] text-ink">
 							<p className="min-w-0 flex-1">
 								{submittedLine(questions.length, notSubmitted)} End Mock {mock.n} now? {teacher} grades what you have written.
 							</p>
@@ -256,7 +256,7 @@ export function MockRun({ view }: { view: MockView }) {
 									<MathBox key={question.id} value={work.text} onChange={(text) => change({ text })} onEnter={() => false} placeholder="Write your answer here." ariaLabel="Your answer" />
 								</div>
 							)}
-							<div className="flex shrink-0 flex-wrap items-center justify-end gap-2.5 border-t-2 border-line bg-panel px-5 py-3">
+							<div className="flex shrink-0 flex-wrap items-center justify-end gap-2.5 bg-panel px-5 py-3">
 								{errorLine}
 								{questions.length > 1 && (
 									<button type="button" data-testid="mock-skip" onClick={() => go(nextOpen(submitted, at) ?? (at + 1) % questions.length)} className="lh-btn text-[15px]">

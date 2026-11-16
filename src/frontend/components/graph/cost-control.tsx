@@ -44,7 +44,6 @@ function GraphCostPanel({ costs }: { costs: GraphCostSummary }) {
 				{planLine(costs)}
 				{unpriced > 0 && ` ${unpriced} ${unpriced === 1 ? "run" : "runs"} unpriced.`}
 			</p>
-			<span aria-hidden className="h-[1.5px] w-full bg-ink" />
 			{stages.map(([label, stage]) => (
 				<p key={label} className="flex items-baseline gap-2 py-1">
 					<span className="flex-1 text-[15px] text-ink">{label}</span>
@@ -55,7 +54,6 @@ function GraphCostPanel({ costs }: { costs: GraphCostSummary }) {
 			))}
 			{costs.runs.length > 0 && (
 				<>
-					<span aria-hidden className="border-t-2 border-dotted border-edge" />
 					<h3 className="text-[15px] text-ink-2">Latest runs</h3>
 					<ul className="flex flex-col">
 						{costs.runs.map((run) => (

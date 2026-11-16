@@ -29,8 +29,7 @@ export function SettingsSection({
 }
 
 /** A sheet inside a section ("Access", "Your agent"): its title (and a line
- *  saying what it is, when given) over an ink rule, then its rows with a
- *  dotted line between them. */
+ *  saying what it is, when given), then its rows. */
 export function SettingsGroup({
 	label,
 	about,

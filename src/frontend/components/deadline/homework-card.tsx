@@ -5,7 +5,7 @@ import { SELECT, SELECT_ARROW } from "@/frontend/components/ui/field";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
-import { RULE, SHEET, SHEET_TITLE } from "./styles";
+import { SHEET, SHEET_TITLE } from "./styles";
 
 /**
  * A homework or project deadline's problems: the problems themselves (the
@@ -46,7 +46,6 @@ export const HomeworkCard = memo(function HomeworkCard({
 					{d.done ? "Mark not done" : "Mark done"}
 				</button>
 			</div>
-			<span className={RULE} />
 			{problems.length > 0 ? (
 				<ol data-testid="homework-problems" className="flex flex-col">
 					{problems.map((p) => (
@@ -67,7 +66,6 @@ export const HomeworkCard = memo(function HomeworkCard({
 					{assignmentId ? "The teacher lists its problems when you start working on it." : "Pick its assignment file, and the teacher lists its problems when you start working on it."}
 				</p>
 			)}
-			<span className={RULE} />
 			<label className="flex items-center gap-2.5 text-[15px] text-ink">
 				<span className="min-w-0 flex-1">Assignment file</span>
 				<span className="relative w-[220px] max-w-[55%] shrink-0">

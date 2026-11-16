@@ -75,14 +75,12 @@ export function StatsBar({
 					<div data-testid="stats-detail" data-side="up" data-state={detail.state} className="lh-pop lh-popup absolute right-0 bottom-full z-40 mb-1.5 flex w-[340px] flex-col gap-1 px-4 py-3.5">
 						<h3 className="text-[17px] text-ink">Lesson stats</h3>
 						<p className="text-base text-ink-2">Summarizes here to keep the lesson small. Change it in Settings. Your agent&apos;s own context is separate.</p>
-						<span className={RULE} aria-hidden />
 						<StatRow label="Lesson size" value={contextLabel} />
 						<StatRow label={subscription ? "Usage" : "Total cost"} value={costLabel} testId="stats-cost" />
 						{unpriced > 0 && <StatRow label="Unpriced turns" value={String(unpriced)} />}
 						<StatRow label="Turns" value={String(turns.length)} />
 						{turns.length > 0 && (
 							<>
-								<span className={RULE} aria-hidden />
 								<ul className="flex max-h-56 flex-col overflow-y-auto">
 									{newestFirst.map(({ turn, n }) => (
 										<li key={`${turn.messageId}-${n}`}>
@@ -99,7 +97,6 @@ export function StatsBar({
 	);
 }
 
-const RULE = "my-1 h-0 border-t-2 border-dotted border-ink-3";
 
 function StatRow({ label, value, testId }: { label: string; value: string; testId?: string }) {
 	return (

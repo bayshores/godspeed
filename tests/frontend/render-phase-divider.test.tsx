@@ -13,16 +13,15 @@ import { PhaseDivider } from "../../src/frontend/components/phase-divider.tsx";
 import { teachStepIndex } from "../../src/shared/core/phases.ts";
 
 describe("PhaseDivider (transcript boundary)", () => {
-	it("the plan seam: monochrome dotted rules + label", () => {
+	it("the plan seam: shaded strip + label", () => {
 		const html = renderToStaticMarkup(<PhaseDivider phase="plan" />);
 		assert.ok(html.includes('data-testid="phase-divider-plan"'));
 		assert.match(html, /Planning/);
-		assert.ok(html.includes("border-dotted"), "dotted rule");
-		assert.ok(html.includes("border-edge"), "monochrome rule");
+		assert.ok(!html.includes("border-dotted"), "no dotted rule");
 		assert.ok(!html.includes("border-phase-"), "phase-colored rules are retired");
 	});
 
-	it("the teach seam: monochrome rule", () => {
+	it("the teach seam: no phase colors", () => {
 		const html = renderToStaticMarkup(<PhaseDivider phase="teach" />);
 		assert.ok(html.includes('data-testid="phase-divider-teach"'));
 		assert.match(html, /Teaching/);

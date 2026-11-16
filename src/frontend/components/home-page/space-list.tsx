@@ -41,7 +41,7 @@ export function SpaceList({
 			{/* Wide, the rows share two columns: the counts as wide as the longest, the names in the
 			    rest. Narrower, each row puts its counts under its name: a plain column, as WebKit
 			    sizes a wrapped row wrong inside a grid. */}
-			<ul className="flex flex-col divide-y-2 divide-dotted divide-edge px-6 pb-2 @min-[812px]:grid @min-[812px]:grid-cols-[minmax(15rem,1fr)_minmax(0,auto)]">
+			<ul className="flex flex-col gap-y-1 px-6 pb-2 @min-[812px]:grid @min-[812px]:grid-cols-[minmax(15rem,1fr)_minmax(0,auto)]">
 				{spaces.map((s) => (
 					<SpaceRow key={s.id} space={s} progress={progress.get(s.id)} failed={errors.has(s.id)} work={todayWorkLine(s, worker)} newFiles={newFiles.get(s.id) ?? null} onOpen={onOpen} />
 				))}

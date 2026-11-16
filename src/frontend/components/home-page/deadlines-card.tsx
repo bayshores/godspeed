@@ -10,11 +10,11 @@ import { NextCard } from "./next-card";
 import { CARD_HEAD, CARD_TITLE, ROW_LIST } from "./styles";
 import { DoneRow, LaterRow, TodayRow } from "./today-row";
 
-/** The solid rule that starts each group in the card. */
-const GROUP = "border-t-2 border-line";
+/** The space that starts each group in the card. */
+const GROUP = "pt-3";
 
 /**
- * Today's deadlines in one card, its groups split by solid rules: the next
+ * Today's deadlines in one card, its groups apart by space: the next
  * thing as a big band with the page's main button, the rest of this week
  * and what was ticked done today as rows with small buttons, then Later.
  * "Add" sits in the card's head; with nothing to show, a sentence takes the
@@ -75,7 +75,7 @@ export function DeadlinesCard({
 						/>
 					)}
 					{sections.due.length + lists.done.length > 0 && (
-						<ul data-testid="today-list" className={cn(ROW_LIST, GROUP, "py-1")}>
+						<ul data-testid="today-list" className={cn(ROW_LIST, GROUP, "pb-1")}>
 							{sections.due.map((d) => (
 								<TodayRow key={d.id} deadline={d} progress={progress.get(d.id)} color={color(d)} nowMs={nowMs} busy={busy} onStart={onStart} onDone={onDone} />
 							))}

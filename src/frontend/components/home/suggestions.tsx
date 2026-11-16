@@ -35,7 +35,7 @@ export const SuggestionList = memo(function SuggestionList({
 	if (suggestions.length === 0) return null;
 	return (
 		<section data-testid="home-suggestions" className="lh-rise flex w-full flex-col">
-			<h2 className="border-b-[1.5px] border-ink pb-1.5 text-xl leading-tight text-ink">{label ? `Suggested for ${label}` : "Suggested"}</h2>
+			<h2 className="pb-1.5 text-xl leading-tight text-ink">{label ? `Suggested for ${label}` : "Suggested"}</h2>
 			<ul className="flex w-full flex-col">
 				{suggestions.map((s) => (
 					<SuggestionRow key={suggestionKey(s)} suggestion={s} step={step} busy={busy} onStudyFile={onStudyFile} onStudyTopic={onStudyTopic} onStudyPath={onStudyPath} />
@@ -93,7 +93,7 @@ const SuggestionRow = memo(function SuggestionRow({
 		);
 	}
 	return (
-		<li data-testid={`home-suggestion-${s.kind}`} className="flex w-full items-center gap-3.5 border-b border-dotted border-edge px-1 py-[13px] last:border-b-0">
+		<li data-testid={`home-suggestion-${s.kind}`} className="flex w-full items-center gap-3.5 px-1 py-[13px]">
 			<span className="flex min-w-0 flex-1 flex-col gap-0.5">
 				<span className="truncate text-[17px] leading-tight text-ink">
 					<InlineMath text={title} />

@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useSpaces } from "@/frontend/components/space-context";
 import { CheckRow } from "@/frontend/components/ui/check-row";
@@ -70,12 +70,9 @@ function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; 
 			<p title={lesson.title} className="truncate text-lg text-ink">
 				{lesson.title}
 			</p>
-			<div role="radiogroup" aria-label="Space" className="flex flex-col border-y-[1.5px] border-ink">
-				{options.map((o, i) => (
-					<Fragment key={o.id ?? "none"}>
-						{i > 0 && <span aria-hidden className="border-t-2 border-dotted border-ink-3" />}
-						<CheckRow radio="move-target" label={o.name} note={o.id === from ? "current" : undefined} checked={target === o.id} disabled={busy} onToggle={() => setTarget(o.id)} />
-					</Fragment>
+			<div role="radiogroup" aria-label="Space" className="flex flex-col">
+				{options.map((o) => (
+					<CheckRow key={o.id ?? "none"} radio="move-target" label={o.name} note={o.id === from ? "current" : undefined} checked={target === o.id} disabled={busy} onToggle={() => setTarget(o.id)} />
 				))}
 			</div>
 			<p className="text-[15px] text-ink-2">

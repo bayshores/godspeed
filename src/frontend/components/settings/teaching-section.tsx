@@ -77,7 +77,6 @@ export function TeachingSection({
 					{TEACHING_AREAS.map((a) => (
 						<AreaButton key={a.id} id={a.id} label={a.label} on={pick === a.id} onPick={() => setPick(a.id)} />
 					))}
-					<div className="my-2 h-[1.5px] bg-ink" aria-hidden />
 					<AreaButton id="remembered" label="Remembered" on={pick === "remembered"} onPick={() => setPick("remembered")} />
 				</Pane>
 				<div className="min-w-0 flex-1">

@@ -36,7 +36,7 @@ export const ConfidenceCard = memo(function ConfidenceCard({ calibration }: { ca
 			</div>
 			{calibration.sureButWrong.length > 0 && (
 				<>
-					<h3 className="border-t-[1.5px] border-ink pt-3 text-[15px] text-ink">Sure but wrong</h3>
+					<h3 className="pt-3 text-[15px] text-ink">Sure but wrong</h3>
 					<ul className="flex flex-col">
 						{calibration.sureButWrong.map((q) => (
 							<SureButWrongRow key={`${q.chatId}:${q.toolCallId}`} q={q} />

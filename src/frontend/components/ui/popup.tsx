@@ -51,7 +51,7 @@ export function Popup({
 					data-testid={testid}
 					className="lh-popup lh-hang-body flex max-h-[76vh] w-full flex-col outline-none"
 				>
-					<div className="flex shrink-0 items-center justify-between gap-4 border-b border-border py-3 pr-3 pl-6">
+					<div className="flex shrink-0 items-center justify-between gap-4 py-3 pr-3 pl-6">
 						<h2 className="text-xl text-ink">{title}</h2>
 						<button type="button" data-testid={`${testid}-close`} onClick={onClose} className="lh-btn lh-btn-quiet">
 							<PixelIcon name="close" />

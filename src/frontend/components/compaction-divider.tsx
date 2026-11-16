@@ -28,16 +28,14 @@ export function CompactionMomentDivider({ data: _data }: { data: CompactionDivid
 
 /** The cut divider: the LONGER divider at the actual
  *  compaction cut — the seam where verbatim history ends and the kept
- *  recent tail begins. Phase-divider's geometry (dotted rules + centered
+ *  recent tail begins. Phase-divider's geometry (a shaded strip with centered
  *  words) so it reads as a transcript boundary, not a message. Inert: it
  *  shows the summarized length only. */
 export function CompactionCutDivider({ data }: { data: CompactionDividerData }) {
 	const length = data.details.tokensBefore > 0 ? `, ${pagesLabel(data.details.tokensBefore)}` : "";
 	return (
-		<div data-testid="compaction-cut-divider" className="my-4 flex w-full items-center gap-3">
-			<span className="h-0 flex-1 border-t-2 border-dotted border-edge" aria-hidden />
+		<div data-testid="compaction-cut-divider" className="my-4 flex w-full items-center justify-center bg-tone px-3 py-1">
 			<span className="text-sm text-ink-2">Earlier messages summarized{length}</span>
-			<span className="h-0 flex-1 border-t-2 border-dotted border-edge" aria-hidden />
 		</div>
 	);
 }

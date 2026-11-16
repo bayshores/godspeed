@@ -14,7 +14,6 @@ import { useAppearance } from "./appearance.tsx";
 import { BACKGROUND_PRESETS, PAPER, appearanceToWrite, derivedPalette, readableBackground } from "./appearance-model.ts";
 import { DEFAULT_READING_FONT, FontMenuList } from "./font-menu";
 import { Slider } from "./controls.tsx";
-import { RULE } from "@/frontend/components/deadline/styles";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
@@ -156,7 +155,6 @@ function Preview() {
 	return (
 		<Pane data-testid="appearance-preview" className="flex min-w-0 flex-1 flex-col gap-3 px-7 py-5">
 			<h2 className="text-xl leading-tight text-ink">Preview</h2>
-			<div className={RULE} />
 			<div className="lh-prose flex flex-col gap-2.5">
 				<h4 className="text-[1.4em]">Why a derivative is a slope</h4>
 				<p>

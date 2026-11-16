@@ -12,7 +12,7 @@ import { lessonAge, lessonWaiting } from "./lessons-model";
  * menu, the same menu a right-click opens.
  */
 
-const ROW = "group relative flex items-center gap-4 border-b border-dotted border-edge px-2 py-4 last:border-b-0";
+const ROW = "group relative flex items-center gap-4 px-2 py-4";
 
 /** Under the title: what the lesson is waiting on, if anything. */
 function StatusLine({ chat, teacher, noAgent }: { chat: ChatListItem; teacher: string; noAgent: boolean }) {

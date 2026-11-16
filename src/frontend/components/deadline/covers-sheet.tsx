@@ -6,7 +6,7 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { Tip } from "@/frontend/components/ui/tooltip";
 import { cn } from "@/frontend/lib/utils";
 import { materialSummary, type Day, type DayState, type Material } from "./deadline-model";
-import { RULE, SHEET, SHEET_TITLE } from "./styles";
+import { SHEET, SHEET_TITLE } from "./styles";
 
 const SMALL = "lh-btn h-[29px] px-2.5 text-[15px]";
 
@@ -90,8 +90,7 @@ export function CoversSheet({
 							</>
 						)}
 					</p>
-					<span className={RULE} />
-					<div className="flex flex-col divide-y-2 divide-dotted divide-edge">
+					<div className="flex flex-col gap-1">
 						{m.weeks.map((w) => (
 							<Days key={w.number} testid="deadline-week" label={`Week ${w.number}`} days={w.days} />
 						))}
@@ -121,7 +120,6 @@ export function CoversSheet({
 							</ul>
 						</div>
 					)}
-					<span className={RULE} />
 					{/* An interview's files aren't class days, so nothing is checked. */}
 					{m.notIncluded.length === 0 && d.kind !== "interview" && (
 						<p data-testid="deadline-all-accounted" className="flex items-center gap-2.5 text-[15px] text-ink-2">

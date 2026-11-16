@@ -214,7 +214,6 @@ export function WorkOnNextPane({
 					{counts}
 				</p>
 			)}
-			<span aria-hidden className="border-t-2 border-dotted border-edge" />
 			{next.length > 0 ? (
 				<ol className="flex flex-col" data-testid="work-on-next">
 					{next.map((item) => (

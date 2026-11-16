@@ -2,7 +2,7 @@
  * THE COMPACTION DIVIDERS — SSR render pins (inert). Two ruled surfaces from one marker: the
  * MOMENT divider (minimal centered small text, the retrying-message
  * register — no rule lines) where the user is when compaction lands, and
- * the CUT divider (the longer one — phase-divider geometry, dotted rules
+ * the CUT divider (the longer one — phase-divider geometry, a shaded strip
  * + a chip carrying the summarized token count) at the kept boundary.
  *
  * NOT VIEWABLE: the summary dialog is gone — the
@@ -46,10 +46,10 @@ describe("CompactionMomentDivider", () => {
 });
 
 describe("CompactionCutDivider", () => {
-	it("renders the longer seam — dotted rules + chip with the summarized length in pages", () => {
+	it("renders the longer seam — shaded strip + chip with the summarized length in pages", () => {
 		const html = renderToStaticMarkup(<CompactionCutDivider data={data} />);
 		assert.ok(html.includes('data-testid="compaction-cut-divider"'));
-		assert.ok(html.includes("border-t-2 border-dotted"));
+		assert.ok(!html.includes("border-dotted"));
 		assert.ok(html.includes("Earlier messages summarized"));
 		// 152000 tokens → 304 pages
 		assert.ok(html.includes("about 304 pages"));

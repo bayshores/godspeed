@@ -14,8 +14,8 @@ import { useAgentChoice, useAgentFolder } from "./use-agent-folder";
 /**
  * Start your agent in the godspeed folder: "Start Claude Code" and "Use
  * another agent" (hidden while the agent runs), then the agent's live screen (outside the desktop app, a
- * log of each step while the learner runs the command), and under a dotted
- * rule the folder with quiet buttons to change it, copy the command or
+ * log of each step while the learner runs the command), and under it
+ * the folder with quiet buttons to change it, copy the command or
  * change the command that starts the agent. "Other app" shows the address
  * and token for any MCP app. Onboarding (step 1) uses it.
  */
@@ -52,7 +52,7 @@ export function AgentLauncher() {
 			)}
 			{agent && (
 				// The line is drawn only when there is a folder to show or change.
-				<div className="flex w-full flex-col gap-4 border-t-2 border-dotted border-ink-3 pt-4 empty:hidden">
+				<div className="flex w-full flex-col gap-4 pt-4 empty:hidden">
 					<FolderLine key={agent} agent={agent} view={view} change={change} setStartCommand={setStartCommand} onError={setError}>
 						Folder: {view?.short}
 					</FolderLine>
@@ -103,7 +103,7 @@ export function OtherAppSetup() {
 				them without asking your permission. For background work, start a second session and tell it "Start as the helper".
 			</p>
 			<div className="lh-well rounded">
-				<div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+				<div className="flex items-center justify-between px-4 py-2.5">
 					<span className="text-[15px] text-ink-2">MCP server</span>
 					<CopyButton
 						text={`${access.url}\nAuthorization: Bearer ${access.token}`}

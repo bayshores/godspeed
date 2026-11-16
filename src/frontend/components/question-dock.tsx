@@ -107,9 +107,6 @@ export function QuestionDock(props: QuestionDockProps) {
 }
 
 const OPTION_ROW = cn(ANSWER_ROW, "items-start px-2.5 py-[9px]");
-/** The dotted rule between two rows. */
-const ROW_RULE = "border-t-2 border-dotted border-edge";
-
 /** A choice's box: its letter, filled once picked. */
 function OptionMark({ picked, children }: { picked: boolean; children?: React.ReactNode }) {
 	return (
@@ -387,7 +384,7 @@ function QuestionDockForm({
 								data-kbdrow={i}
 								data-testid="question-option"
 								onClick={() => toggle(i)}
-								className={cn(OPTION_ROW, i > 0 && ROW_RULE, isSel ? PICKED : "hover:bg-tone", walked(i, isSel))}
+								className={cn(OPTION_ROW, isSel ? PICKED : "hover:bg-tone", walked(i, isSel))}
 							>
 								<OptionMark picked={isSel}>{letter(i)}</OptionMark>
 								<span className="min-w-0 flex-1" style={proseVars(17, 26)}>

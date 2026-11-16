@@ -99,7 +99,7 @@ function Results({ onClose }: { onClose: () => void }) {
 								data-testid="search-lessons-row"
 								aria-current={i === walked}
 								onClick={() => openLesson(c.id)}
-								className={cn("lh-press flex items-center gap-4 border-b border-dotted border-edge px-2 py-3 text-left last:border-b-0 hover:bg-accent", i === walked && "bg-accent")}
+								className={cn("lh-press flex items-center gap-4 px-2 py-3 text-left hover:bg-accent", i === walked && "bg-accent")}
 							>
 								<span aria-hidden className="w-2 shrink-0 self-stretch bg-ink-3" style={space && { background: spaceColorVar(space.color) }} />
 								<span className="flex min-w-0 flex-1 flex-col gap-0.5">

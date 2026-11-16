@@ -103,7 +103,7 @@ function Source({ born, sources }: { born: string | null; sources: FactSources |
 	const desktop = typeof window !== "undefined" ? window.lh : undefined;
 	const pdf = !!file && /\.pdf$/i.test(file);
 	return (
-		<div data-testid="fact-source" className="flex flex-col gap-1.5 border-t-2 border-dotted border-edge pt-3.5">
+		<div data-testid="fact-source" className="flex flex-col gap-1.5 pt-3.5">
 			<span className="truncate text-base text-ink-2" title={name}>
 				From {file ? name : `the lesson ${name}`}
 			</span>

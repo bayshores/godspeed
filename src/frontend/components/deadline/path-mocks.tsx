@@ -82,7 +82,7 @@ export function PathMocks({
 				</div>
 			)}
 			{mocks && mocks.length > 0 && (
-				<ul data-testid="deadline-mock-list" className="mt-1 flex flex-col border-t-2 border-dotted border-edge pt-1">
+				<ul data-testid="deadline-mock-list" className="mt-2 flex flex-col">
 					{mocks.map((m) => (
 						<MockRow key={m.id} spaceId={spaceId} mock={m} nowMs={nowMs} onRemove={() => remove(m.id)} />
 					))}
@@ -113,7 +113,7 @@ function MockRow({ spaceId, mock: m, nowMs, onRemove }: { spaceId: string; mock:
 		wasAsking.current = asking;
 	}, [asking]);
 	return (
-		<li ref={rowRef} data-testid={`deadline-mock-${m.id}`} className="flex min-h-[38px] min-w-0 items-center gap-2.5 border-b border-dotted border-edge last:border-b-0">
+		<li ref={rowRef} data-testid={`deadline-mock-${m.id}`} className="flex min-h-[38px] min-w-0 items-center gap-2.5">
 			{asking ? (
 				<>
 					<span className="w-[64px] shrink-0 text-[15px] text-ink">Mock {m.n}</span>

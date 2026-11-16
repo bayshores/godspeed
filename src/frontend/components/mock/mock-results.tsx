@@ -67,7 +67,7 @@ function QuestionRow({ n, question: q, view, teacher, busy, onGoOver }: { n: num
 	const answer = mock.answers[q.id];
 	const grade = mock.grades?.[q.id];
 	return (
-		<li data-testid={`mock-result-${q.id}`} className="flex gap-3.5 border-b border-dotted border-edge px-1 py-4 last:border-b-0">
+		<li data-testid={`mock-result-${q.id}`} className="flex gap-3.5 px-1 py-4">
 			<span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-sm border-[1.5px] border-ink font-count text-lg leading-none text-ink">
 				{n}
 			</span>
