@@ -20,9 +20,10 @@ const LINE: &str = "Your lesson is waiting.";
 async fn the_quiet_teacher_is_nudged_only_while_it_sits_idle_with_work_waiting() {
 	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
 	bridge.set_live_terminals(vec![TEACHER.to_owned()], Some(TEACHER.to_owned()));
-	let now = clock::now_ms();
 	let _turn = park(&bridge, vec![json!({ "role": "user", "content": "why?", "timestamp": 1 })], "chat_n1", &Abort::new());
 	clock::sleep(5).await;
+	// Read after the turn exists, so the turn is never younger than these times say.
+	let now = clock::now_ms();
 	let later = now + 10_000;
 	assert_eq!(bridge.nudge_for_teacher(later), None, "its agent has not reached godspeed yet");
 
