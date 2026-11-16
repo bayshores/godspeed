@@ -20,6 +20,7 @@ use gs_services::spaces::{
 	deadline_about, list_open_deadlines, list_space_deadlines, remove_file, remove_space_deadline, retry_file, scan_linked_folder, set_file_kind, start_space_scanner, unlink_folder,
 	update_space, update_space_deadline,
 };
+use gs_services::spaces::deadline_requests::overdue_asked;
 use gs_services::spaces::space_card::space_file_path;
 use gs_services::turns::ask_about_new_deadlines;
 use gs_services::turns::homework::homework_view;
@@ -375,10 +376,11 @@ async fn about(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(Strin
 }
 
 /// GET /api/deadlines: from every space that is not closed, soonest due first, `deadlines` not
-/// yet done and `doneToday` ticked done today (Today).
+/// yet done and `doneToday` ticked done today (Today), and `overdueAsked`, the ids the learner
+/// said Not yet to.
 async fn open_deadlines(State(app): State<Arc<App>>) -> Response {
 	let today = local_day(clock::now_ms());
-	reply::json(200, &json!({ "deadlines": list_open_deadlines(&app), "doneToday": list_deadlines_done_on(&app, &today) }))
+	reply::json(200, &json!({ "deadlines": list_open_deadlines(&app), "doneToday": list_deadlines_done_on(&app, &today), "overdueAsked": overdue_asked(&app) }))
 }
 
 /// GET /api/deadlines/{id}: one deadline with its space id. 404 once it is gone.

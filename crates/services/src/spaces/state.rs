@@ -29,6 +29,7 @@ pub(super) struct Queue {
 #[derive(Default)]
 pub struct SpacesState {
 	pub(super) requests: super::deadline_requests::DeadlineRequestsState,
+	pub(super) checks: super::space_checks::SpaceChecksState,
 	pub(super) queues: Mutex<HashMap<String, Queue>>,
 	/// `<space>:<file>` keys waiting in a queue (a file is queued once).
 	pub(super) queued: Mutex<HashSet<String>>,

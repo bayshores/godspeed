@@ -31,17 +31,28 @@ pub const READING_NOTE: &str = "The reading work comes to you through wait_for_w
 /// Sends a lesson's first message (chat id, text); Err holds the refusal's body text.
 pub type SendFirstMessage = Arc<dyn Fn(String, String) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>> + Send + Sync>;
 
-/// The space tools for one caller. `open_started`: the learner asked for the lesson or the space
-/// (in a lesson, or in godspeed's own teacher terminal), so the window opens it even with Follow off.
-pub fn space_actions(app: &Arc<App>, caller: Option<&str>, send: SendFirstMessage, open_started: bool) -> SpaceActions {
-	SpaceActions { app: app.clone(), caller: caller.map(str::to_owned), send, open_started }
+/// How the window shows a caller's changes, by who asked for them.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Mark {
+	/// The learner, in a lesson or in godspeed's own teacher terminal: the window opens the lesson
+	/// or space it starts even with Follow off.
+	Started,
+	/// The outside agent or a page: Follow shows each change.
+	Asked,
+	/// godspeed's own check: each change is listed, marked `background`, and Follow stays put.
+	Background,
+}
+
+/// The space tools for one caller.
+pub fn space_actions(app: &Arc<App>, caller: Option<&str>, send: SendFirstMessage, mark: Mark) -> SpaceActions {
+	SpaceActions { app: app.clone(), caller: caller.map(str::to_owned), send, mark }
 }
 
 pub struct SpaceActions {
 	app: Arc<App>,
 	caller: Option<String>,
 	send: SendFirstMessage,
-	open_started: bool,
+	mark: Mark,
 }
 
 /// The last part of a folder path, or "a folder".
@@ -140,7 +151,7 @@ fn path_view(path: &Json) -> Json {
 impl SpaceActions {
 	/// The change marked `open` when the learner asked for it.
 	fn opened(&self, mut change: Json) -> Json {
-		if self.open_started
+		if self.mark == Mark::Started
 			&& let Some(obj) = change.as_obj_mut()
 		{
 			obj.insert("open", true);
@@ -153,8 +164,13 @@ impl SpaceActions {
 	}
 
 	/// Each change is recorded for the panel and returned for the chat.
-	fn done(&self, value: Json, changes: Vec<Json>) -> ToolOutcome {
-		for change in &changes {
+	fn done(&self, value: Json, mut changes: Vec<Json>) -> ToolOutcome {
+		for change in &mut changes {
+			if self.mark == Mark::Background
+				&& let Some(obj) = change.as_obj_mut()
+			{
+				obj.insert("background", true);
+			}
 			note_agent_action(&self.app, self.caller.as_deref(), change);
 		}
 		let changes = changes.iter().map(|c| SpaceChange { label: c["label"].str_or_empty().to_owned(), page: c["page"].str_or_empty().to_owned() }).collect();
@@ -697,21 +713,21 @@ mod tests {
 	use crate::app::test_support::{scratch_dir, test_app};
 
 	#[test]
-	fn a_space_the_learner_asked_for_opens_and_one_made_by_the_agent_alone_does_not() {
+	fn a_space_the_learner_asked_for_opens_one_made_by_the_agent_alone_does_not_and_a_check_s_is_marked_background() {
 		let root = scratch_dir("space-actions-open");
 		let app = test_app(&root);
 		let send: SendFirstMessage = Arc::new(|_, _| Box::pin(async { Ok(()) }));
-		for (name, open_started) in [("Algebra", true), ("Biology", false)] {
-			let made = space_actions(&app, Some("Teacher"), send.clone(), open_started).create_space(&json!({ "name": name }));
+		for (name, mark, open, background) in [("Algebra", Mark::Started, Some(true), None), ("Biology", Mark::Asked, None, None), ("Chemistry", Mark::Background, None, Some(true))] {
+			let made = space_actions(&app, Some("Teacher"), send.clone(), mark).create_space(&json!({ "name": name }));
 			assert!(matches!(made, ToolOutcome::Ok { .. }));
 			let action = recent_agent_actions(&app).into_iter().find(|a| a["label"].as_str() == Some(&format!("Creating {name}"))).unwrap();
-			assert_eq!(action["open"].as_bool(), open_started.then_some(true));
+			assert_eq!((action["open"].as_bool(), action["background"].as_bool()), (open, background), "{name}");
 		}
 	}
 
 	fn actions(app: &Arc<App>) -> SpaceActions {
 		let send: SendFirstMessage = Arc::new(|_, _| Box::pin(async { Ok(()) }));
-		space_actions(app, Some("Teacher"), send, true)
+		space_actions(app, Some("Teacher"), send, Mark::Started)
 	}
 
 	fn value(outcome: ToolOutcome) -> (Json, Vec<SpaceChange>) {

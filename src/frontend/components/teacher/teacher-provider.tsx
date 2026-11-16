@@ -279,8 +279,9 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 	useServerEvent("agent-action", (action) => {
 		if (!action || typeof action.id !== "string") return;
 		setRecent((list) => [action, ...list.filter((a) => a.id !== action.id)].slice(0, RECENT_LIMIT));
-		// The app's and the learner's own entries are listed, never visited.
-		if (!isAgentEntry(action)) return;
+		// The app's and the learner's own entries are listed, never visited, and so are a
+		// background check's.
+		if (!isAgentEntry(action) || action.background) return;
 		queue.current.push(action);
 		if (action.open) forced.current.add(action.id);
 		void run();

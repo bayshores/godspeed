@@ -36,7 +36,7 @@ use crate::App;
 use crate::graph::graph::search_graph;
 use crate::app::agent_rules::save_rule_by_agent;
 use crate::app::today_note::current_today_note;
-use crate::spaces::space_actions::space_actions;
+use crate::spaces::space_actions::{Mark, space_actions};
 use crate::spaces::citations::check_cites;
 use crate::spaces::space_card::space_card_for;
 use crate::spaces::space_search::space_search;
@@ -117,7 +117,7 @@ fn save_rule(app: &Arc<App>, lesson_scope: Option<&str>) -> SaveRule {
 /// The space actions a lesson's deadline changes run, named for the agent.
 fn agent_space_actions(app: &Arc<App>) -> SpaceActions {
 	let agent = app.bridge.agent_name(clock::now_ms());
-	let actions = Arc::new(space_actions(app, agent.as_deref(), send_first_message(app), true));
+	let actions = Arc::new(space_actions(app, agent.as_deref(), send_first_message(app), Mark::Started));
 	Arc::new(move |name: &str, args: Json| {
 		let (actions, name) = (actions.clone(), name.to_owned());
 		Box::pin(async move { actions.run(&name, &args).await.unwrap_or_else(|| ToolOutcome::Err(format!("{name} is not a space tool."))) })

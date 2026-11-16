@@ -1,6 +1,6 @@
 //! What godspeed hands an agent by itself once it waits for work: lessons whose last stretch
-//! never reached the graph (queued runs do not survive a restart), and deadlines with nothing
-//! linked (a background request).
+//! never reached the graph (queued runs do not survive a restart), and a space with something to
+//! check (a background run).
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -12,7 +12,7 @@ use gs_core::contracts::chat::extracts_facts;
 use super::turn_liveness::is_turn_running;
 use super::turn_service::{LEFTOVER_IDLE_MS, extract_when_idle, run_extraction, uncovered_tokens};
 use crate::App;
-use crate::spaces::deadline_requests::ask_about_unlinked;
+use crate::spaces::space_checks::check_spaces;
 
 /// Once per app run: extract what each lesson has left, now when it already sits idle, else once
 /// it has (its timer died with the last run).
@@ -47,7 +47,7 @@ fn catch_up_lessons(app: &Arc<App>, now: i64) -> Result<(), String> {
 pub fn catch_up_for_agent(app: &Arc<App>, now: i64) {
 	let run = || -> Result<(), String> {
 		catch_up_lessons(app, now)?;
-		ask_about_unlinked(app, now);
+		check_spaces(app, now);
 		Ok(())
 	};
 	if let Err(err) = run() {
@@ -55,10 +55,10 @@ pub fn catch_up_for_agent(app: &Arc<App>, now: i64) {
 	}
 }
 
-/// A deadline was added: ask about it now if an agent is working.
+/// A deadline was added: check its space now if an agent is working.
 pub fn ask_about_new_deadlines(app: &Arc<App>) {
 	let now = clock::now_ms();
 	if app.bridge.agent_teaching(now) {
-		ask_about_unlinked(app, now);
+		check_spaces(app, now);
 	}
 }

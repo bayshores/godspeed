@@ -12,6 +12,7 @@ pub mod citations;
 pub mod deadline_requests;
 pub mod space_actions;
 pub mod space_card;
+pub mod space_checks;
 pub mod space_search;
 pub mod space_shortcuts;
 mod deadlines;

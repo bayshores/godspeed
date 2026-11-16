@@ -1,6 +1,6 @@
 //! Space tools that run the same space actions as the outside agent's MCP tools: a lesson's
-//! deadline changes, and what a deadline request reads and writes. Nothing here deletes a space
-//! or a file. Each result's details carry the changes it made.
+//! deadline changes, and what a deadline request or a space check reads and writes. Nothing here
+//! deletes a space or a file. Each result's details carry the changes it made.
 
 use std::sync::Arc;
 
@@ -114,8 +114,15 @@ pub fn lesson_space_change_tools(actions: &SpaceActions) -> Vec<FnTool> {
 	LESSON_CHANGES.iter().map(|name| space_tool(actions, name)).collect()
 }
 
+const READS: [&str; 3] = ["read_space", "search_space_files", "read_passage"];
+
 /// What a deadline request reads and changes: the deadline, and with `files` the files it writes.
 pub fn deadline_request_tools(actions: &SpaceActions, files: bool) -> Vec<FnTool> {
 	let writes: &[&'static str] = if files { &["update_space_deadline", "add_space_file"] } else { &["update_space_deadline"] };
-	["read_space", "search_space_files", "read_passage"].iter().chain(writes).copied().map(|name| space_tool(actions, name)).collect()
+	READS.iter().chain(writes).copied().map(|name| space_tool(actions, name)).collect()
+}
+
+/// What a space check reads and changes: the space's deadlines. `actions` limits the arguments.
+pub fn space_check_tools(actions: &SpaceActions) -> Vec<FnTool> {
+	READS.iter().chain(&["add_space_deadline", "update_space_deadline"]).copied().map(|name| space_tool(actions, name)).collect()
 }
