@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { deadlineStudyLabel, hasProblems, nothingMorePlannedLine, topicStatus, type DeadlineProgress, type PlanDay } from "@/shared/core";
+import { hasProblems, studyLabel, nothingMorePlannedLine, topicStatus, type DeadlineProgress, type PlanDay } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
@@ -106,7 +106,7 @@ export function PathSheet({
 			{ahead && (plan.length > 0 || allStrong) && (
 				// A homework's one main button is "Work on" in its Problems sheet.
 				<button type="button" data-testid="deadline-start" disabled={busy} onClick={onStart} className={cn("lh-btn mt-1 h-11 w-full justify-center text-[15px]", !hasProblems(d.kind) && "lh-btn-main")}>
-					<span className="min-w-0 truncate">{deadlineStudyLabel(d.continueStudy)}</span>
+					<span className="min-w-0 truncate">{studyLabel(d.continueStudy)}</span>
 				</button>
 			)}
 			{mocks}

@@ -126,11 +126,11 @@ describe("deadlines on Progress", () => {
 		assert.equal(progressShare({ ready: null }), null);
 	});
 
-	it("the button: work on homework and projects, study for tests", () => {
+	it("the button: work on homework and projects, Study (or Continue) for tests", () => {
 		assert.equal(nextDeadlineButton({ kind: "homework", name: "HW6" }), "Work on HW6");
 		assert.equal(nextDeadlineButton({ kind: "project", name: "PA2" }), "Work on PA2");
-		assert.equal(nextDeadlineButton({ kind: "exam", name: "Final" }), "Study for Final");
-		assert.equal(nextDeadlineButton({ kind: "quiz", name: "Quiz 3" }), "Study for Quiz 3");
+		assert.equal(nextDeadlineButton({ kind: "exam", name: "Final" }), "Study");
+		assert.equal(nextDeadlineButton({ kind: "quiz", name: "Quiz 3", continueStudy: { chatId: "c" } }), "Continue");
 	});
 
 	it("links and numbers", () => {

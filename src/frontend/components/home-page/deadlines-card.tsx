@@ -1,6 +1,7 @@
-import type { DeadlineProgress, SpaceSummary } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, type DeadlineProgress, type SpaceSummary } from "@/shared/core";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import { AddDeadline } from "./add-deadline";
@@ -47,7 +48,8 @@ export function DeadlinesCard({
 	onAdd: (spaceId: string) => void;
 }) {
 	const color = (d: OpenDeadline) => spaces.find((s) => s.id === d.spaceId)?.color;
-	const sections = lists && todaySections(lists, progress, nowMs);
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
+	const sections = lists && todaySections(lists, progress, nowMs, teacher);
 	return (
 		<Pane data-testid="today-deadlines" className="@container overflow-hidden">
 			<div className={CARD_HEAD}>

@@ -94,7 +94,7 @@ describe("the right side", () => {
 		assert.match(html, /data-testid="deadline-countdown"[^>]*>in 9 days, Thursday Nov 5</);
 		assert.match(html, /data-testid="deadline-files"[^>]*>Covers 2 files</);
 		assert.match(html, /data-testid="deadline-ready"[^>]*>0 of 3 topics ready</);
-		assert.match(html, /data-testid="study-deadline"[^>]*class="[^"]*lh-btn-main[\s\S]*?>Study for Midterm 1</);
+		assert.match(html, /data-testid="study-deadline"[^>]*class="[^"]*lh-btn-main[\s\S]*?>Study</);
 		assert.ok(!html.includes("deadline-picker"), "one deadline: nothing to change to");
 		const two = renderToStaticMarkup(
 			<DeadlinePane deadlines={[deadline, { ...deadline, id: "ex-2" }]} deadline={deadline} topics={data.topics} onChange={noop} onStudy={noop} studying={false} studyError={null} />,

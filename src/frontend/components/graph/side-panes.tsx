@@ -7,7 +7,7 @@
  * With no open deadline that has files, the lower sheet covers the whole space.
  */
 import { memo, useCallback, useRef, useState } from "react";
-import { deadlineStudyLabel, longDay, type DeadlineProgress, type TopicProgress, type WorkOnNextItem } from "@/shared/core";
+import { longDay, studyLabel, type DeadlineProgress, type TopicProgress, type WorkOnNextItem } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -125,7 +125,7 @@ export function DeadlinePane({
 			)}
 			<StudyButton
 				testid="study-deadline"
-				label={deadlineStudyLabel(deadline.continueStudy, deadline.name)}
+				label={studyLabel(deadline.continueStudy)}
 				busy={studying}
 				error={studyError}
 				onClick={() => onStudy(deadline)}

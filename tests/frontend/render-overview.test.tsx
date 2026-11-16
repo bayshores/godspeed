@@ -223,7 +223,7 @@ describe("The next deadline", () => {
 	it("homework is worked on, a test is studied for", () => {
 		assert.match(text(section(render(), "next-deadline-start", "</button>")), /Work on HW 5/);
 		const exam = render({ data: { ...PAYLOAD, deadlines: [DEADLINES[0]!] } });
-		assert.match(text(section(exam, "next-deadline-start", "</button>")), /Study for Midterm 2/);
+		assert.match(text(section(exam, "next-deadline-start", "</button>")), /Study\s*$/);
 		assert.match(text(section(exam, "next-deadline")), /72% ready/);
 	});
 

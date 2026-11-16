@@ -224,14 +224,14 @@ describe("A row due this week", () => {
 		assert.ok(!tag(html, "today-start").includes("lh-btn-main"), "the card holds the main button");
 	});
 
-	it("a test: Study for it and Start; an unfinished session continues", () => {
+	it("a test: titled with its name and Study; an unfinished session continues", () => {
 		const topics = [1, 2, 3].map((n) => ({ id: `t${n}`, name: `t${n}`, rate: null }));
 		const html = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics }) });
-		assert.match(section(html, "today-open", "</a>"), />Study for Midterm 2$/);
+		assert.match(section(html, "today-open", "</a>"), />Midterm 2$/);
 		assert.ok(html.includes("CSE 21, the test is on Thursday at 7:00 PM"));
-		assert.match(section(html, "today-start", "</button>"), /Start$/);
+		assert.match(section(html, "today-start", "</button>"), /Study$/);
 		const cont = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics, continueStudy: { chatId: "c", done: 1, total: 3 } }) });
-		assert.match(section(cont, "today-open", "</a>"), />Continue studying for Midterm 2$/);
+		assert.match(section(cont, "today-open", "</a>"), />Midterm 2$/);
 		assert.match(section(cont, "today-start", "</button>"), /Continue$/);
 	});
 
@@ -300,10 +300,10 @@ describe("The card", () => {
 		</MemoryRouter>,
 	);
 
-	it("the action as the title opening the deadline's page, then its space and when, and how ready", () => {
+	it("the deadline's name as the title opening the deadline's page, then its space and when, and how ready", () => {
 		assert.match(tag(html, "today-card-open"), /href="\/space\/deadline\/mid"/);
-		assert.match(section(html, "today-card-open", "</a>"), />Study for Midterm 2$/);
-		assert.ok(html.indexOf("Study for Midterm 2") < html.indexOf("CSE 21, Thursday at 7:00 PM"), "nothing above the title");
+		assert.match(section(html, "today-card-open", "</a>"), />Midterm 2$/);
+		assert.ok(html.indexOf("Midterm 2") < html.indexOf("CSE 21, Thursday at 7:00 PM"), "nothing above the title");
 		assert.match(tag(html, "today-card-ready"), /bg-highlight/);
 		assert.match(section(html, "today-card-ready", "</span>"), />40% ready$/);
 		assert.ok(html.includes("background:var(--lh-space-2)"), "the big block in the space's color");
@@ -313,7 +313,7 @@ describe("The card", () => {
 
 	it("holds the page's one main button, beside a quiet Mark done", () => {
 		assert.ok(tag(html, "today-start").includes("lh-btn-main"));
-		assert.match(section(html, "today-start", "</button>"), />Start$/);
+		assert.match(section(html, "today-start", "</button>"), />Study$/);
 		assert.ok(tag(html, "today-done").includes("lh-btn-quiet"));
 	});
 });
@@ -394,7 +394,7 @@ describe("Today, as a whole page", () => {
 		const order = ["today-week", "today-deadlines", "today-card", "today-list", "later-list", "today-spaces"].map((id) => html.indexOf(`data-testid="${id}"`));
 		assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1]!)), `sections in order: ${order.join(", ")}`);
 		assert.equal(count(html, "lh-btn-main"), 1);
-		assert.match(section(html, "today-card", "</h2>"), /Study for Quiz 2/);
+		assert.match(section(html, "today-card", "</h2>"), /Quiz 2/);
 		assert.ok(html.includes('data-testid="today-row-hw4"'));
 		assert.ok(html.includes('data-testid="today-done-row-hw5"'));
 		assert.ok(html.includes('data-testid="later-row-fin"'));
@@ -415,7 +415,7 @@ describe("Today, as a whole page", () => {
 	it("spaces but no deadlines: no card, the sentence, this week, the spaces and Add a deadline", () => {
 		const html = page();
 		assert.ok(!html.includes('data-testid="today-card"'));
-		assert.match(section(html, "today-empty", "</p>"), /None yet\. Your agent can add them from your files\./);
+		assert.match(section(html, "today-empty", "</p>"), /None yet\. Teacher can add them from your files\./);
 		assert.ok(!html.includes('data-testid="today-list"'));
 		assert.ok(!html.includes(">Later<"));
 		assert.ok(html.includes('data-testid="home-add-deadline"'));

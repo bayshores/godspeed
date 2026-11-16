@@ -126,9 +126,8 @@ interface TodayRowWords {
 	/** Under the title: the space and when it is due. */
 	line: string;
 	/** The row's button. "Work on it" works on the assignment's
-	 *  problems; the others study ("Study more" starts a new session after
-	 *  one reached its end today). */
-	button: "Start" | "Continue" | "Study more" | "Work on it";
+	 *  problems; the others study ("Continue" reopens an unfinished session). */
+	button: "Study" | "Continue" | "Work on it";
 }
 
 /** Where an unfinished Study session is: "Recursion is next", "in the
@@ -153,10 +152,10 @@ export function todayRow(d: OpenDeadline, progress: DeadlineProgress | undefined
 	const next = progress?.continueStudy;
 	if (next) {
 		const where = continueWords(next);
-		return { title: `Continue studying for ${d.name}`, line: where ? `${d.spaceName}, ${where}.` : when, button: "Continue" };
+		return { title: d.name, line: where ? `${d.spaceName}, ${where}.` : when, button: "Continue" };
 	}
-	if (nothingMoreToday(progress, nowMs)) return { title: `Study for ${d.name}`, line: nothingMorePlannedLine(d.spaceName), button: "Study more" };
-	return { title: `Study for ${d.name}`, line: when, button: "Start" };
+	if (nothingMoreToday(progress, nowMs)) return { title: d.name, line: nothingMorePlannedLine(d.spaceName), button: "Study" };
+	return { title: d.name, line: when, button: "Study" };
 }
 
 /** Today's card: what to do as its title, its space and when (the one line
@@ -178,7 +177,7 @@ const sentence = (words: string) => `${words[0]!.toUpperCase()}${words.slice(1)}
 export function nextCard(d: OpenDeadline, progress: DeadlineProgress | undefined, nowMs: number): CardWords {
 	const row = todayRow(d, progress, nowMs);
 	const base = { when: `${d.spaceName}, ${dueWords(d, nowMs, true)}`, ready: (progress && progressWords(progress)) ?? null, button: row.button };
-	if (hasProblems(d.kind)) return { ...base, title: `Work on ${d.name}`, left: null };
+	if (hasProblems(d.kind)) return { ...base, title: row.title, left: null };
 	const next = progress?.continueStudy;
 	const where = next && continueWords(next);
 	if (where) return { ...base, title: row.title, left: sentence(where) };
@@ -196,13 +195,13 @@ interface TodaySections {
 }
 
 /** Splits Today's list into the card and the rows under "Due this week". */
-export function todaySections(lists: TodayLists, progress: ReadonlyMap<string, DeadlineProgress>, nowMs: number): TodaySections {
+export function todaySections(lists: TodayLists, progress: ReadonlyMap<string, DeadlineProgress>, nowMs: number, teacher: string): TodaySections {
 	const mainId = mainRowId(lists.today, progress, nowMs);
 	const empty =
 		lists.today.length + lists.done.length > 0
 			? null
 			: lists.later.length === 0
-				? "None yet. Your agent can add them from your files."
+				? `None yet. ${teacher} can add them from your files.`
 				: "Nothing is due in the next 7 days.";
 	return { card: lists.today.find((d) => d.id === mainId) ?? null, due: lists.today.filter((d) => d.id !== mainId), empty };
 }

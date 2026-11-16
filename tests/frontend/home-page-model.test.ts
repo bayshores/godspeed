@@ -143,40 +143,40 @@ describe("todayRow", () => {
 		{ id: "s", name: "s", rate: 1 },
 	];
 
-	it("a test or quiz: Study for it, and Start", () => {
+	it("a test or quiz: titled with its name, and Study", () => {
 		const test = d("Test 2", "exam", "2026-11-17", { spaceName: "CSE 29" });
-		assert.deepEqual(todayRow(test, progress({ topics }), NOW), { title: "Study for Test 2", line: "CSE 29, the test is on Tuesday", button: "Start" });
+		assert.deepEqual(todayRow(test, progress({ topics }), NOW), { title: "Test 2", line: "CSE 29, the test is on Tuesday", button: "Study" });
 		const quiz = d("Quiz 3", "quiz", "2026-11-11", { time: "17:00" });
-		assert.deepEqual(todayRow(quiz, undefined, NOW), { title: "Study for Quiz 3", line: "CSE 21, the quiz is today at 5:00 PM", button: "Start" });
+		assert.deepEqual(todayRow(quiz, undefined, NOW), { title: "Quiz 3", line: "CSE 21, the quiz is today at 5:00 PM", button: "Study" });
 	});
 
-	it("an interview: Study for it, and when the interview is", () => {
+	it("an interview: titled with its name, and when the interview is", () => {
 		const onsite = d("Onsite interview", "interview", "2026-11-17", { time: "14:00", spaceName: "Larkspur" });
-		assert.deepEqual(todayRow(onsite, undefined, NOW), { title: "Study for Onsite interview", line: "Larkspur, the interview is on Tuesday at 2:00 PM", button: "Start" });
+		assert.deepEqual(todayRow(onsite, undefined, NOW), { title: "Onsite interview", line: "Larkspur, the interview is on Tuesday at 2:00 PM", button: "Study" });
 	});
 
 	it("a session at a stop says what is next; one in the middle of a topic names it", () => {
 		const mid = d("Midterm", "exam", "2026-11-17", { spaceName: "Machine Learning Foundations" });
 		const stopped = todayRow(mid, progress({ continueStudy: { chatId: "c", done: 1, total: 3, stop: { at: "2026-11-11T21:48:00.000Z", next: "Cross-validation" } } }), NOW);
-		assert.deepEqual(stopped, { title: "Continue studying for Midterm", line: "Machine Learning Foundations, Cross-validation is next.", button: "Continue" });
+		assert.deepEqual(stopped, { title: "Midterm", line: "Machine Learning Foundations, Cross-validation is next.", button: "Continue" });
 		const inTopic = todayRow(mid, progress({ continueStudy: { chatId: "c", done: 1, total: 3, inTopic: "Regularization" } }), NOW);
-		assert.deepEqual(inTopic, { title: "Continue studying for Midterm", line: "Machine Learning Foundations, in the middle of Regularization.", button: "Continue" });
+		assert.deepEqual(inTopic, { title: "Midterm", line: "Machine Learning Foundations, in the middle of Regularization.", button: "Continue" });
 		const bare = todayRow(d("Test 2", "exam", "2026-11-17"), progress({ topics, continueStudy: { chatId: "c", done: 1, total: 3 } }), NOW);
-		assert.deepEqual([bare.title, bare.line, bare.button], ["Continue studying for Test 2", "CSE 21, the test is on Tuesday", "Continue"]);
+		assert.deepEqual([bare.title, bare.line, bare.button], ["Test 2", "CSE 21, the test is on Tuesday", "Continue"]);
 	});
 
-	it("after a session reached its end today: nothing more is planned, Study more", () => {
+	it("after a session reached its end today: nothing more is planned, still Study", () => {
 		const mid = d("Midterm", "exam", "2026-11-17", { spaceName: "Machine Learning Foundations" });
 		assert.deepEqual(todayRow(mid, progress({ studyEndedToday: true }), NOW), {
-			title: "Study for Midterm",
+			title: "Midterm",
 			line: "Machine Learning Foundations, nothing more is planned today.",
-			button: "Study more",
+			button: "Study",
 		});
 	});
 
-	it("a session that ended today, but a moved deadline put a topic on today: the usual row and Start", () => {
+	it("a session that ended today, but a moved deadline put a topic on today: the usual row and Study", () => {
 		const mid = d("Midterm", "exam", "2026-11-17");
-		assert.deepEqual(todayRow(mid, progress({ studyEndedToday: true, topics }), NOW), { title: "Study for Midterm", line: "CSE 21, the test is on Tuesday", button: "Start" });
+		assert.deepEqual(todayRow(mid, progress({ studyEndedToday: true, topics }), NOW), { title: "Midterm", line: "CSE 21, the test is on Tuesday", button: "Study" });
 	});
 
 	it("homework and projects say how far they are, and are worked on", () => {
@@ -243,14 +243,14 @@ describe("nextCard", () => {
 		{ id: "s", name: "s", rate: 1 },
 	];
 
-	it("a test: Study for it, its space and day, how ready, and the topics left today", () => {
+	it("a test: its name, its space and day, how ready, and the topics left today", () => {
 		const quiz = d("Quiz 2", "quiz", "2026-11-13", { spaceName: "Linear Algebra" });
 		assert.deepEqual(nextCard(quiz, progress({ date: "2026-11-13", topics, ready: 0.4 }), NOW), {
-			title: "Study for Quiz 2",
+			title: "Quiz 2",
 			when: "Linear Algebra, Friday",
 			ready: "40% ready",
 			left: "2 topics left today.",
-			button: "Start",
+			button: "Study",
 		});
 		const one = nextCard(quiz, progress({ date: "2026-11-11", topics: [topics[0]!] }), NOW);
 		assert.equal(one.left, "1 topic left today.");
@@ -258,21 +258,21 @@ describe("nextCard", () => {
 
 	it("nothing to plan or no progress yet: no line for today", () => {
 		const quiz = d("Quiz 2", "quiz", "2026-11-12", { time: "09:00" });
-		assert.deepEqual(nextCard(quiz, undefined, NOW), { title: "Study for Quiz 2", when: "CSE 21, tomorrow at 9:00 AM", ready: null, left: null, button: "Start" });
+		assert.deepEqual(nextCard(quiz, undefined, NOW), { title: "Quiz 2", when: "CSE 21, tomorrow at 9:00 AM", ready: null, left: null, button: "Study" });
 		assert.equal(nextCard(quiz, progress({ topics: [topics[3]!] }), NOW).left, null);
 	});
 
 	it("an unfinished session continues and says where it is", () => {
 		const mid = d("Midterm", "exam", "2026-11-17");
 		const stopped = nextCard(mid, progress({ topics, continueStudy: { chatId: "c", done: 1, total: 3, stop: { at: "2026-11-10T12:00:00.000Z", next: "Eigenvalues" } } }), NOW);
-		assert.deepEqual(stopped, { title: "Continue studying for Midterm", when: "CSE 21, Tuesday", ready: null, left: "Eigenvalues is next.", button: "Continue" });
+		assert.deepEqual(stopped, { title: "Midterm", when: "CSE 21, Tuesday", ready: null, left: "Eigenvalues is next.", button: "Continue" });
 		const inTopic = nextCard(mid, progress({ continueStudy: { chatId: "c", done: 1, total: 3, inTopic: "Determinants" } }), NOW);
 		assert.equal(inTopic.left, "In the middle of Determinants.");
 	});
 
 	it("homework: Work on it, due when and how far", () => {
 		const hw = d("PS4", "homework", "2026-11-13");
-		assert.deepEqual(nextCard(hw, progress({ problems: { done: 2, total: 7 } }), NOW), { title: "Work on PS4", when: "CSE 21, due Friday", ready: "2 of 7 problems done", left: null, button: "Work on it" });
+		assert.deepEqual(nextCard(hw, progress({ problems: { done: 2, total: 7 } }), NOW), { title: "PS4", when: "CSE 21, due Friday", ready: "2 of 7 problems done", left: null, button: "Work on it" });
 		assert.equal(nextCard(d("PS3", "homework", "2026-11-09"), undefined, NOW).when, "CSE 21, was due Mon Nov 9");
 	});
 });
@@ -283,7 +283,7 @@ describe("todaySections", () => {
 	const far = d("Final", "exam", "2026-12-08", { id: "far" });
 
 	it("the card takes the main row; the rest are due this week", () => {
-		const s = todaySections(todayLists([quiz, hw, far], [], NOW), new Map(), NOW);
+		const s = todaySections(todayLists([quiz, hw, far], [], NOW), new Map(), NOW, "Halley");
 		assert.equal(s.card?.id, "quiz");
 		assert.deepEqual(s.due.map((x) => x.id), ["hw"]);
 		assert.equal(s.empty, null);
@@ -291,17 +291,17 @@ describe("todaySections", () => {
 
 	it("no row for the card: every row stays under Due this week", () => {
 		const ended = new Map([["quiz", progress({ studyEndedToday: true })]]);
-		const s = todaySections(todayLists([quiz], [], NOW), ended, NOW);
+		const s = todaySections(todayLists([quiz], [], NOW), ended, NOW, "Halley");
 		assert.equal(s.card, null);
 		assert.deepEqual(s.due.map((x) => x.id), ["quiz"]);
 		assert.equal(s.empty, null);
 	});
 
 	it("nothing due this week says why", () => {
-		assert.equal(todaySections(todayLists([far], [], NOW), new Map(), NOW).empty, "Nothing is due in the next 7 days.");
-		assert.equal(todaySections(todayLists([], [], NOW), new Map(), NOW).empty, "None yet. Your agent can add them from your files.");
+		assert.equal(todaySections(todayLists([far], [], NOW), new Map(), NOW, "Halley").empty, "Nothing is due in the next 7 days.");
+		assert.equal(todaySections(todayLists([], [], NOW), new Map(), NOW, "Halley").empty, "None yet. Halley can add them from your files.");
 		const done = d("PS1", "homework", "2026-11-10", { done: true, doneAt: new Date(NOW - 60_000).toISOString() });
-		assert.equal(todaySections(todayLists([], [done], NOW), new Map(), NOW).empty, null, "a row done today is still under Due this week");
+		assert.equal(todaySections(todayLists([], [done], NOW), new Map(), NOW, "Halley").empty, null, "a row done today is still under Due this week");
 	});
 });
 

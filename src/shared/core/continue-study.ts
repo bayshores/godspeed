@@ -35,11 +35,16 @@ export function nothingMorePlannedLine(spaceName?: string): string {
 	return spaceName ? `${spaceName}, nothing more is planned today.` : "Nothing more is planned today.";
 }
 
-/** A deadline's Study button label. The deadline's own page passes no name
- *  (the page already names it). */
-export function deadlineStudyLabel(next: ContinueStudy | undefined, name?: string): string {
-	const forName = name ? ` for ${name}` : "";
-	if (!next) return `Study${forName}`;
-	if (next.total === undefined) return `Continue studying${forName}`;
-	return `Continue studying${forName}, ${next.done} of ${next.total} ${next.total === 1 ? "topic" : "topics"}`;
+/** The label of a Study button that sits by the deadline's own name:
+ *  "Study", or "Continue" once a session for it started. */
+export function studyLabel(next: ContinueStudy | undefined): string {
+	return next ? "Continue" : "Study";
+}
+
+/** The label of a Study button among several deadlines' buttons, which
+ *  names its deadline. */
+export function deadlineStudyLabel(next: ContinueStudy | undefined, name: string): string {
+	if (!next) return `Study for ${name}`;
+	if (next.total === undefined) return `Continue studying for ${name}`;
+	return `Continue studying for ${name}, ${next.done} of ${next.total} ${next.total === 1 ? "topic" : "topics"}`;
 }
