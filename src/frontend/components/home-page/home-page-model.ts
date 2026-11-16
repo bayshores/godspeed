@@ -110,7 +110,7 @@ const EVENT_WORD: Partial<Record<DeadlineKind, string>> = { quiz: "quiz", interv
 /** When an open deadline is due, after its space: "due Friday", "the test
  *  is on Tuesday at 7:00 PM", "was due Tue Oct 27". `short` drops "the test
  *  is on" where the title already says what it is. */
-export function dueWords(d: OpenDeadline, nowMs: number, short = false): string {
+function dueWords(d: OpenDeadline, nowMs: number, short = false): string {
 	const dueMs = dueAtMs(d);
 	if (dueMs <= nowMs) return `was due ${deadlineDateLabel(d.date)}`;
 	const days = calendarDays(nowMs, dueMs);
