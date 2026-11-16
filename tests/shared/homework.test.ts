@@ -3,7 +3,6 @@ import { describe, it } from "node:test";
 import {
 	homeworkProblems,
 	mergeProblems,
-	problemSource,
 } from "../../src/shared/core/homework.ts";
 
 const P = (number: string, done = false) => ({ number, title: `t${number}`, text: "…", done });
@@ -44,11 +43,5 @@ describe("homework problems", () => {
 		assert.equal(homeworkProblems([], [...opened, part("tool-conclude", { outcome: "movedOn", verdict: "x" })]).part, null);
 		assert.equal(homeworkProblems([], [...opened, part("tool-problem", { number: "2", statement: "…" })]).part, null);
 		assert.equal(homeworkProblems([], [part("tool-part", { part: "a" })]).part, null);
-	});
-
-	it("says where a problem is", () => {
-		assert.equal(problemSource({ name: "hw4.pdf" }, 2), "from hw4.pdf, page 2");
-		assert.equal(problemSource({ name: "hw4.pdf" }, undefined), "from hw4.pdf");
-		assert.equal(problemSource(null, 2), null);
 	});
 });

@@ -40,4 +40,6 @@ pub const TOPIC_DONE_NO_OPENER_TEXT: &str = "Stored. He sees the stop now.";
 
 pub const NEXT_PROBLEM_TEXT: &str = "[NEXT PROBLEM] — the learner's explicit go-ahead: pose the next problem now per the selection rules, or wrap the session in text if the arc is complete.";
 
+pub const TEACH_ME_TEXT: &str = "[TEACH ME] The learner asks you to teach the method of the open problem.";
+
 pub const COMPACTED_HISTORY_HEADER: &str = "[SESSION HISTORY COMPACTED] The transcript before this point was summarized to fit the context window; the summary below replaces it. Everything after this message is the verbatim recent transcript.";

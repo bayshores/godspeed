@@ -178,15 +178,22 @@ function MarkerPart({ part }: { part: LhViewPart }) {
 		case "data-from-earlier":
 			return <FromEarlierCard data={part.data as FromEarlierData} />;
 		case "data-practice-next":
-			return (
-				<div data-testid="practice-next-line" className={cn("my-4 flex items-center justify-center gap-2.5", LABEL_TEXT)}>
-					<PixelIcon name="chevron" />
-					Next problem
-				</div>
-			);
+			return <SignalLine testId="practice-next-line">{(part.data as { homework: boolean }).homework ? "Start problem" : "Next problem"}</SignalLine>;
+		case "data-teach-me":
+			return <SignalLine testId="teach-me-line">Teach me this</SignalLine>;
 		default:
 			return null;
 	}
+}
+
+/** The learner's go-ahead or request, as a compact centered line. */
+function SignalLine({ testId, children }: { testId: string; children: string }) {
+	return (
+		<div data-testid={testId} className={cn("my-4 flex items-center justify-center gap-2.5", LABEL_TEXT)}>
+			<PixelIcon name="chevron" />
+			{children}
+		</div>
+	);
 }
 
 /** Whether AssistantPart draws anything for this part (kept in step with it). */

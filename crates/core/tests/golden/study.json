@@ -70111,9 +70111,40 @@
 						"text": "Text of Counting",
 						"done": false
 					}
+				],
+				"topics": [
+					{
+						"id": "t_sets",
+						"name": "Sets",
+						"status": "untested",
+						"answers": []
+					},
+					{
+						"id": "t_logic",
+						"name": "Logic",
+						"status": "strong",
+						"answers": [
+							{
+								"outcome": "right"
+							}
+						]
+					},
+					{
+						"id": "t_counting",
+						"name": "Counting",
+						"status": "weak",
+						"answers": [
+							{
+								"outcome": "right"
+							},
+							{
+								"outcome": "wrong"
+							}
+						]
+					}
 				]
 			},
-			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09 23:59.\nIts assignment is the space file HW5.pdf (file id f_1), at Homework/HW5.pdf.\nIts problems, posted before:\n- 1: Binary search (done)\n- 2: Queues\n- 3: Counting\nOpen the first one not done unless the learner picks another."
+			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09 23:59.\nIts assignment is the space file HW5.pdf (file id f_1), at Homework/HW5.pdf.\nTrack record on its topics. Teach first: Sets, Counting. Open right away: Logic.\nIts problems, posted before:\n- 1: Binary search (done)\n- 2: Queues\n- 3: Counting\nNext is the first one not done unless the learner picks another."
 		}
 	},
 	{
@@ -70132,9 +70163,10 @@
 					"name": "HW5.pdf",
 					"path": null
 				},
-				"problems": []
+				"problems": [],
+				"topics": []
 			},
-			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09.\nIts assignment is the space file HW5.pdf (file id f_1).\nNo problems are posted yet. Read the assignment and post them all with post_problems first."
+			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09.\nIts assignment is the space file HW5.pdf (file id f_1).\nTrack record on its topics: none yet.\nNo problems are posted yet. Read the assignment and post them all with post_problems first."
 		}
 	},
 	{
@@ -70158,9 +70190,34 @@
 						"done": true,
 						"page": 2
 					}
+				],
+				"topics": [
+					{
+						"id": "t_logic",
+						"name": "Logic",
+						"status": "strong",
+						"answers": [
+							{
+								"outcome": "right"
+							}
+						]
+					},
+					{
+						"id": "t_counting",
+						"name": "Counting",
+						"status": "weak",
+						"answers": [
+							{
+								"outcome": "wrong"
+							},
+							{
+								"outcome": "right"
+							}
+						]
+					}
 				]
 			},
-			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09 23:59.\nNo assignment file is attached yet. Find it in the space files (search_space_files) and attach it with update_space_deadline (space_id spc_test_0000aaaa, deadline_id ddl_hw5, assignment_file_id) before you post its problems. Ask the learner only when you can't find it, or work from the problems they paste.\nIts problems, posted before:\n- 1: Binary search (done)\nOpen the first one not done unless the learner picks another."
+			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09 23:59.\nNo assignment file is attached yet. Find it in the space files (search_space_files) and attach it with update_space_deadline (space_id spc_test_0000aaaa, deadline_id ddl_hw5, assignment_file_id) before you post its problems. Ask the learner only when you can't find it, or work from the problems they paste.\nTrack record on its topics. Open right away: Logic, Counting.\nIts problems, posted before:\n- 1: Binary search (done)\nNext is the first one not done unless the learner picks another."
 		}
 	},
 	{

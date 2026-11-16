@@ -19,12 +19,6 @@ export interface HomeworkView {
 	assignment: { name: string; path: string | null } | null;
 }
 
-/** Where an open problem is in the assignment: "from hw4.pdf, page 2". */
-export function problemSource(assignment: { name: string } | null, page: number | undefined): string | null {
-	if (!assignment) return null;
-	return `from ${assignment.name}${page ? `, page ${page}` : ""}`;
-}
-
 /** The kinds of deadline that have problems to work on. */
 export function hasProblems(kind: SpaceDeadline["kind"]): boolean {
 	return kind === "homework" || kind === "project";

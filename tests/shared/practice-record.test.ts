@@ -17,6 +17,7 @@ import {
 	concludedByDismissalPair,
 	newProblemDismissedMarker,
 	newNextMessage,
+	newTeachMessage,
 	needsContinuation,
 	newUserMessage,
 	pendingProblemDismissalOf,
@@ -239,6 +240,28 @@ describe("the next input", () => {
 	});
 });
 
+describe("the teach input", () => {
+	it("appends the teach-me marker and leaves the problem open", () => {
+		const record = { messages: problemPose(), kind: "homework" };
+		const appends = inputAppends(record, { type: "teach" });
+		assert.equal(appends.length, 1);
+		const marker = appends[0] as { customType: string; content: string };
+		assert.equal(marker.customType, "teach-me");
+		assert.match(marker.content, /\[TEACH ME\]/);
+		assert.ok(activeProblemOf([...record.messages, ...appends]), "the problem is still open");
+	});
+
+	it("400s outside homework or with no open problem", () => {
+		assert.throws(() => inputAppends({ messages: problemPose(), kind: "practice" }, { type: "teach" }), /open homework problem/);
+		assert.throws(() => inputAppends({ messages: [], kind: "homework" }, { type: "teach" }), /open homework problem/);
+	});
+
+	it("projects a compact line", () => {
+		const parts = projectView([newTeachMessage()]).flatMap((m) => m.parts);
+		assert.ok(parts.some((p) => p.type === "data-teach-me"));
+	});
+});
+
 describe("the dismissal's conclude synthesis rides the next input", () => {
 	it("text after a dismissal prepends the conclude pair before the user message", () => {
 		const record = { messages: [...problemPose(), newProblemDismissedMarker("call_p1")] };
@@ -375,5 +398,12 @@ describe("projectView renders the move-on signal", () => {
 			parts.some((p) => p.type === "data-practice-next"),
 			"the data-practice-next part rides the view",
 		);
+	});
+
+	it("the line knows whether the lesson works an assignment", () => {
+		const note = { id: "h", role: "custom", customType: "homework-context", content: "…", display: false, timestamp: 1 } as unknown as LhMessage;
+		const dataOf = (messages: LhMessage[]) => projectView(messages).flatMap((m) => m.parts).find((p) => p.type === "data-practice-next")?.data;
+		assert.deepEqual(dataOf([note, newNextMessage()]), { homework: true });
+		assert.deepEqual(dataOf([newNextMessage()]), { homework: false });
 	});
 });

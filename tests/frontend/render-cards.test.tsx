@@ -105,7 +105,7 @@ describe("DispatchCard — failed jobs", () => {
 	const inJobs = (jobs: JobRecord[]) => (
 		<JobsContext.Provider value={jobs}>
 			<ChatActionsContext.Provider
-				value={{ chatId: "c1", sendBlocked: null, sendText: () => {}, dropKept: () => {} }}
+				value={{ chatId: "c1", sendBlocked: null, sendText: () => {}, dropKept: () => {}, openProblem: null }}
 			>
 				<DispatchCard toolCallId="t1" kind="research" />
 			</ChatActionsContext.Provider>

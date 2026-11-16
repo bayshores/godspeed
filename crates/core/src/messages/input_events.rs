@@ -10,7 +10,7 @@ use gs_json::{Json, json};
 use super::attachments::{ChatAttachment, MAX_ATTACHMENTS, TOO_MANY_REFUSAL, attachment_refusal, base64_bytes};
 use gs_json::js_text::js_string;
 use super::native_messages::{
-	concluded_by_dismissal_pair, dangling_question_of, active_problem_of, new_answer_result, new_next_message, new_problem_dismissed_marker, new_side_question, new_user_message,
+	concluded_by_dismissal_pair, dangling_question_of, active_problem_of, new_answer_result, new_next_message, new_problem_dismissed_marker, new_side_question, new_teach_message, new_user_message,
 	pending_problem_dismissal_of,
 };
 use super::app_notes::opener_answer_text;
@@ -57,6 +57,8 @@ pub enum ChatInput {
 	Side { text: String, attachments: Option<Vec<ChatAttachment>> },
 	/// The learner's go-ahead between problems.
 	Next,
+	/// The learner asks to be taught the open homework problem's method.
+	Teach,
 	/// His answer to the next topic's opener, which has no tool call of its own; none is Skip
 	/// question.
 	OpenerAnswer { topic_done_call_id: String, answer: Option<Json> },
@@ -177,6 +179,7 @@ pub fn parse_chat_input(input: &Json) -> Result<ChatInput, ChatInputError> {
 			Ok(ChatInput::Side { text: required_text(i, &attachments, "side input requires non-empty text or attachments")?, attachments })
 		}
 		Some("next") => Ok(ChatInput::Next),
+		Some("teach") => Ok(ChatInput::Teach),
 		Some("opener-answer") => {
 			let Some(topic_done_call_id) = non_empty_str(&i["topicDoneCallId"]) else { return refuse("opener-answer input requires topicDoneCallId") };
 			// A missing answer is not a skip: only null is.
@@ -288,6 +291,15 @@ pub fn input_appends(record: &Json, input: &ChatInput, attachments: &[Json]) -> 
 			}
 			Ok(with_dismissal_conclusion(messages, new_next_message()))
 		}
+		ChatInput::Teach => {
+			if record["kind"].as_str() != Some("homework") {
+				return refuse("teach input is a homework session affordance");
+			}
+			if active_problem_of(messages).is_none() {
+				return refuse("teach input requires an active problem");
+			}
+			Ok(vec![new_teach_message()])
+		}
 		ChatInput::OpenerAnswer { topic_done_call_id, answer } => {
 			open_opener(messages, topic_done_call_id)?;
 			let stamped = match answer {
@@ -345,6 +357,7 @@ mod tests {
 	use gs_json::json;
 
 	use super::*;
+	use crate::contracts::chat::TEACH_ME_TEXT;
 	use crate::study::topic_parts::NO_PLOT_YET;
 
 	fn error_of<T: fmt::Debug>(result: Result<T, ChatInputError>) -> String {
@@ -441,6 +454,18 @@ mod tests {
 		let teach = json!({ "kind": "teach", "messages": [] });
 		assert_eq!(error_of(input_appends(&teach, &ChatInput::Next, &[])), "next input is a practice, study or homework session affordance");
 		assert_eq!(error_of(input_appends(&teach, &ChatInput::Side { text: "q".into(), attachments: None }, &[])), "side input requires a waiting question");
+	}
+
+	#[test]
+	fn teach_needs_a_homework_lesson_with_an_open_problem() {
+		let open = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "p1", "name": "problem", "arguments": {} }] });
+		let posed = json!({ "role": "toolResult", "toolCallId": "p1", "isError": false });
+		let lesson = |kind: &str, messages: &[Json]| json!({ "kind": kind, "messages": messages });
+		assert_eq!(parse_chat_input(&json!({ "type": "teach" })).unwrap(), ChatInput::Teach);
+		let appends = input_appends(&lesson("homework", &[open.clone(), posed.clone()]), &ChatInput::Teach, &[]).unwrap();
+		assert_eq!((appends.len(), appends[0]["customType"].as_str(), appends[0]["content"].as_str()), (1, Some("teach-me"), Some(TEACH_ME_TEXT)));
+		assert_eq!(error_of(input_appends(&lesson("homework", &[]), &ChatInput::Teach, &[])), "teach input requires an active problem");
+		assert_eq!(error_of(input_appends(&lesson("study", &[open, posed]), &ChatInput::Teach, &[])), "teach input is a homework session affordance");
 	}
 
 	#[test]

@@ -2,7 +2,7 @@
 
 `handle_chat_input` (`services::turns::chat_handler`) is plain Rust over `App`. `AgentBuildOptions` is its test seam (scripted engines).
 
-1. Window posts `{chatId, input}` to `POST /api/chat`. Input is one event: `text`, `answer`, `continue`, `side`, `next` (practice) or `opener-answer` (`core::messages::input_events`). `dismiss` and `dismiss-problem` are dismissals.
+1. Window posts `{chatId, input}` to `POST /api/chat`. Input is one event: `text`, `answer`, `continue`, `side`, `next` (practice, study or homework), `teach` (homework with an open problem) or `opener-answer` (`core::messages::input_events`). `dismiss` and `dismiss-problem` are dismissals.
 2. Handler turns input, or queued steers, into record appends.
 3. `begin_turn(chatId)` registers turn in `turn_liveness` (in memory). A turn already running gives 409; window waits for it to end and posts same input again, giving up after 30 s.
 4. `save_messages` writes input before anything streams (write-ahead).
@@ -42,6 +42,7 @@ In study, practice and homework lessons, the open problem fills the teacher colu
 - Learner works in lesson's one box. Each message is a plain `text` input: work on problem or a question about it.
 - A message never ends problem (`active_problem_of`). Only teacher's `conclude` or learner's discard does.
 - Teacher may conclude one problem and pose the one learner asked for in same turn.
+- While a problem is open, its card in the transcript is not drawn (`openProblem` in `ChatActionsContext`). The card appears once the problem closes.
 
 Earlier lessons hold the learner's work as `practice-thinking` markers, which still read back (`projectView` in `src/shared/core/view.ts`, `to_llm_messages`).
 

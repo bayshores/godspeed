@@ -64,7 +64,7 @@ export const routes: RouteObject[] = [
 					{ path: "space/deadline/:id", loader: deadlineLoader, element: <DeadlineRoute />, errorElement: <PageError page="Deadline" /> },
 					{ path: "space/deadline/:id/cheat-sheet", loader: deadlineLoader, element: <CheatSheetRoute />, errorElement: <PageError page="Cheat sheet" /> },
 					{ path: "space/mock/:spaceId/:mockId", loader: mockLoader, element: <MockRoute />, errorElement: <PageError page="Mock" /> },
-					{ path: "chat/:id", loader: lessonLoader, element: <LessonPage />, errorElement: <PageError page="Lesson" /> },
+					{ id: "lesson", path: "chat/:id", loader: lessonLoader, element: <LessonPage />, errorElement: <PageError page="Lesson" /> },
 					{ path: "*", element: <NotFound /> },
 				],
 			},

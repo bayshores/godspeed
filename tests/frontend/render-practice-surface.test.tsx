@@ -16,6 +16,7 @@ import { describe, it } from "node:test";
 
 import { OpenProblemPane } from "../../src/frontend/components/lesson/open-problem-pane.tsx";
 import { ConcludeCard, ProblemCard, ThinkingCard } from "../../src/frontend/components/practice-cards.tsx";
+import { ChatActionsContext } from "../../src/frontend/components/chat-actions-context.ts";
 import { GraphContextCard } from "../../src/frontend/components/graph-context-card.tsx";
 import { projectView } from "../../src/shared/core/view.ts";
 import type { ArtifactPartProps } from "../../src/shared/core";
@@ -32,7 +33,7 @@ const part = (over: Partial<ArtifactPartProps["part"]>): ArtifactPartProps["part
 // ── the open problem pane ────────────────────────────────────────────────────
 
 const pane = (over: Partial<React.ComponentProps<typeof OpenProblemPane>> = {}) =>
-	renderToStaticMarkup(<OpenProblemPane statement="Show that the sum is even." source={null} part={null} {...over} />);
+	renderToStaticMarkup(<OpenProblemPane statement="Show that the sum is even." part={null} {...over} />);
 
 describe("OpenProblemPane", () => {
 	it("shows the whole statement and nothing to type into", () => {
@@ -41,11 +42,6 @@ describe("OpenProblemPane", () => {
 		assert.doesNotMatch(html, /problem-number/, "the statement names its own number");
 		assert.doesNotMatch(html, /practice-thinking-field|practice-send|data-testid="math-box"/);
 		assert.doesNotMatch(html, /discard-problem|stop-turn/, "the way out sits beside Your turn");
-	});
-
-	it("homework shows where the problem is in the file", () => {
-		assert.ok(!pane().includes("problem-source"), "no source line for a practice problem");
-		assert.match(pane({ source: "hw6.pdf, page 2" }), /data-testid="problem-source"[^>]*>hw6\.pdf, page 2</);
 	});
 });
 
@@ -71,6 +67,18 @@ describe("the practice transcript cards", () => {
 		assert.doesNotMatch(html, /Pair them\./, "the commitment stays hidden");
 		// No chevron, no collapsed bar.
 		assert.doesNotMatch(html, /<button/, "nothing collapsible");
+	});
+
+	it("ProblemCard: draws nothing while its problem is open (Your turn shows it), and again once it is not", () => {
+		const card = (openProblem: string | null) =>
+			renderToStaticMarkup(
+				<ChatActionsContext.Provider value={{ chatId: "c1", sendBlocked: null, sendText: () => {}, dropKept: () => {}, openProblem }}>
+					<ProblemCard part={part({ input: { statement: "Prove the parity claim." } })} />
+				</ChatActionsContext.Provider>,
+			);
+		assert.equal(card("call_p1"), "");
+		assert.match(card("call_p2"), /Prove the parity claim\./, "another problem is open");
+		assert.match(card(null), /Prove the parity claim\./, "no problem is open");
 	});
 
 	it("ConcludeCard: the SOLUTION is the hero (the pose's modelSolution via part.reveal); the verdict rides below, low-key", () => {

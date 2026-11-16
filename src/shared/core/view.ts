@@ -188,6 +188,8 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 	// was summarized away. Everything before it stays visible to the
 	// user (full history is never hidden); only the MODEL's context jumps.
 	const compaction = activeCompactionOf(messages);
+	// The lesson works an assignment: its go-ahead line says so.
+	const homework = messages.some((m) => (m as { customType?: string }).customType === "homework-context");
 
 	for (const m of messages) {
 		const role = (m as { role?: string }).role;
@@ -217,7 +219,7 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 		}
 
 		if (role === "custom") {
-			projectMarker(m as LhMarkerMessage, out);
+			projectMarker(m as LhMarkerMessage, out, homework);
 			continue;
 		}
 
@@ -526,7 +528,7 @@ function applyResultTo(part: LhViewPart | undefined, result: ToolResultMessage):
 }
 
 /** A marker's projected message (handoff/steers) or splice (plan block). */
-function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
+function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[], homework: boolean): void {
 	switch (marker.customType) {
 		case "graph-context": {
 			// The session's map context: user-side —
@@ -612,10 +614,18 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 			out.push({
 				id: marker.id,
 				role: "user",
-				parts: [{ type: "data-practice-next", id: `pn_${marker.id}`, data: null }],
+				parts: [{ type: "data-practice-next", id: `pn_${marker.id}`, data: { homework } }],
 			});
 			return;
 		}
+		case "teach-me":
+			// A compact centered line; the model reads the marker's content.
+			out.push({
+				id: marker.id,
+				role: "user",
+				parts: [{ type: "data-teach-me", id: `tm_${marker.id}`, data: null }],
+			});
+			return;
 		case "today-context":
 		case "study-context":
 		case "homework-context":

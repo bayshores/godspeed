@@ -289,10 +289,15 @@ pub struct DeadlineStudy {
 	pub picks: Vec<Json>,
 }
 
+/// A deadline's progress row.
+fn deadline_row<'a>(progress: &'a Json, deadline_id: &str) -> Option<&'a Json> {
+	progress["deadlines"].items().iter().find(|d| d["id"].as_str() == Some(deadline_id))
+}
+
 /// None when the space has no such deadline.
 pub fn deadline_study_for(app: &App, space_id: &str, deadline_id: &str) -> Result<Option<DeadlineStudy>, String> {
 	let Some(progress) = progress_for(app, space_id, None)? else { return Ok(None) };
-	let Some(deadline) = progress["deadlines"].items().iter().find(|d| d["id"].as_str() == Some(deadline_id)) else { return Ok(None) };
+	let Some(deadline) = deadline_row(&progress, deadline_id) else { return Ok(None) };
 	let today = progress["today"].str_or_empty();
 	let studied = studied_on(app, space_id, today);
 	let reviews = space_reviews(app, space_id);
@@ -300,6 +305,14 @@ pub fn deadline_study_for(app: &App, space_id: &str, deadline_id: &str) -> Resul
 	let topic_ids = deadline_study_topic_ids(today, deadline, progress["topics"].items(), &reviewed);
 	let study = topic_study_in(app, Some(space_id), &progress, &topic_ids, Some(&studied));
 	Ok(Some(DeadlineStudy { name: deadline["name"].str_or_empty().to_owned(), topics: study.topics, picks: study.picks }))
+}
+
+/// The progress topics a deadline covers (empty when the space or deadline is gone).
+pub fn deadline_topics_for(app: &App, space_id: &str, deadline_id: &str) -> Result<Vec<Json>, String> {
+	let Some(progress) = progress_for(app, space_id, None)? else { return Ok(Vec::new()) };
+	let Some(deadline) = deadline_row(&progress, deadline_id) else { return Ok(Vec::new()) };
+	let covered: HashSet<&str> = deadline["topicIds"].items().iter().filter_map(Json::as_str).collect();
+	Ok(progress["topics"].items().iter().filter(|t| covered.contains(t["id"].str_or_empty())).cloned().collect())
 }
 
 /// A space's path with where the learner stands on each topic and the topic Study takes next

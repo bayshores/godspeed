@@ -93,7 +93,7 @@ export function LivePill({ own = false, named = false }: { own?: boolean; named?
 				)}
 			</div>
 			<FollowButton />
-			{tag && <Tag thing={tag} onOpen={tag.due ? () => pill.act(tag) : null} />}
+			{tag && <Tag thing={tag} onOpen={tag.action ? () => pill.act(tag) : null} />}
 			{waiting > 0 && (
 				<button
 					type="button"

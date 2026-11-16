@@ -59,7 +59,7 @@ const quiz = { tool: "quiz", toolCallId: "q1", input: quizInput };
 const check = { tool: "quiz", toolCallId: "t1", input: { ...quizInput, type: "check" } };
 const written = { tool: "ask_user_question", toolCallId: "a1", input: { question: "Why does it converge?" } };
 const choice = { tool: "ask_user_question", toolCallId: "a2", input: { question: "How do you want to start?", options: [{ label: "From an example" }, { label: "From the definition" }] } };
-const problem = { toolCallId: "p1", statement: "Find E[N].", line: "Practice, problem 2", source: null, part: null };
+const problem = { toolCallId: "p1", statement: "Find E[N].", line: "Practice, problem 2", part: null };
 
 const marco: TeacherApi = {
 	name: "marco",
@@ -186,6 +186,25 @@ describe("Your turn in each state", () => {
 		});
 	});
 
+	it("a homework lesson's pause says which problem starts", () => {
+		const out = html({ next: "Start problem 3" });
+		assert.match(out, /data-testid="next-problem-button"[^>]*>Start problem 3</);
+		assert.doesNotMatch(out, /Next problem/);
+	});
+
+	it("a homework problem offers Teach me this while the teacher is idle, and the click asks for it", async () => {
+		const shown = html({ problem, onTeach: () => {} });
+		assert.match(shown, /data-testid="teach-me"[^>]*>Teach me this</);
+		assert.doesNotMatch(html({ problem, onTeach: () => {}, busy: true }), /teach-me/, "hidden while the teacher works");
+		assert.doesNotMatch(html({ problem }), /teach-me/, "practice and study problems have no onTeach");
+		assert.doesNotMatch(html({ onTeach: () => {} }), /teach-me/, "no problem open");
+		let taught = 0;
+		await mounted(turn({ problem, onTeach: () => taught++ }), async (host) => {
+			await click(host, "teach-me");
+			assert.equal(taught, 1);
+		});
+	});
+
 	it("a waiting quiz question sits above the box, with no text box or submit of its own", () => {
 		const out = html({ pending: quiz });
 		assert.match(out, /data-mode="question"/);
@@ -307,7 +326,7 @@ describe("Your turn in each state", () => {
 		assert.match(out, /data-testid="open-problem"[\s\S]*data-testid="problem-statement"[\s\S]*Find E\[N\]\./);
 		assert.match(out, /Your work/);
 		assert.match(out, /data-testid="discard-problem"[^>]*>Discard problem</);
-		assert.doesNotMatch(out, /problem-source|question-dock/);
+		assert.doesNotMatch(out, /question-dock/);
 		assert.equal(out.split('data-testid="math-box"').length - 1, 1);
 	});
 
@@ -316,10 +335,9 @@ describe("Your turn in each state", () => {
 		assert.match(html({ problem, value: "E[N] = 2" }), /data-testid="composer-send"(?![^>]*disabled)[^>]*>Send</);
 	});
 
-	it("a homework problem shows where it is in the file", () => {
-		const out = html({ problem: { ...problem, line: "HW4, problem 3 of 7", source: "from hw4.pdf, page 2", part: "b" } });
-		assert.match(out, /data-testid="problem-line"[^>]*>HW4, problem 3 of 7</);
-		assert.match(out, /data-testid="problem-source"[^>]*>from hw4\.pdf, page 2</);
+	it("a homework problem shows only its statement", () => {
+		const out = html({ problem: { ...problem, line: null, part: "b" } });
+		assert.doesNotMatch(out, /problem-line|problem-source/);
 		assert.match(out, /Find E\[N\]\./);
 	});
 

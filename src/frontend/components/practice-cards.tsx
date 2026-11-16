@@ -1,3 +1,5 @@
+import { useContext } from "react";
+import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { ResultTag, type ResultTone } from "@/frontend/components/result-tag";
 import { CARD } from "@/frontend/components/ui/card-parts";
@@ -37,6 +39,9 @@ const STACK = `${CARD} my-1 flex flex-col gap-2.5`;
 const PROSE_16 = { "--lh-prose-size": "16px", "--lh-prose-leading": "1.5", "--lh-ink-body": "var(--muted-foreground)" } as React.CSSProperties;
 
 export function ProblemCard({ part }: ArtifactPartProps) {
+	// The open problem shows once, in Your turn.
+	const openProblem = useContext(ChatActionsContext)?.openProblem;
+	if (openProblem === part.toolCallId) return null;
 	// Always open, no chevron: the record IS the statement, in the answered
 	// card's container. The commitment never renders, only the call's statement.
 	const input = (part.input ?? {}) as { statement?: string };

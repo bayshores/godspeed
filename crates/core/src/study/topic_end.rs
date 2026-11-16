@@ -223,7 +223,7 @@ fn ms_of(at: &Json) -> f64 {
 fn is_learner_input(m: &Json) -> bool {
 	match m["role"].as_str() {
 		Some("user") => true,
-		Some("custom") => matches!(m["customType"].as_str(), Some("practice-next" | "opener-answer" | "app-note")),
+		Some("custom") => matches!(m["customType"].as_str(), Some("practice-next" | "teach-me" | "opener-answer" | "app-note")),
 		_ => false,
 	}
 }

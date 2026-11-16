@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate, useRouteLoaderData } from "react-router";
 import { useActivity } from "@/frontend/components/activity-dock";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useMinute } from "@/frontend/components/countdown";
@@ -64,6 +64,7 @@ export function PillProvider({ children }: { children: ReactNode }) {
 	const notices = useNotices();
 	const navigate = useNavigate();
 	const { pathname } = useLocation();
+	const lessonDeadline = (useRouteLoaderData("lesson") as { chat: { deadlineId?: string } } | undefined)?.chat.deadlineId ?? null;
 
 	const name = teacher?.name ?? "";
 	const doing = teacher?.doing ?? null;
@@ -85,9 +86,10 @@ export function PillProvider({ children }: { children: ReactNode }) {
 				work: workProgress({ worker, spaces, jobs, requests }),
 				ready,
 				due: deadlines && minute !== null ? dueSoon(deadlines, minute, pathname) : null,
+				lessonDeadline,
 				offer: followButtons({ following, working: false, offer }).go && offer ? offer.label : null,
 			}),
-		[name, doing, agent, terminal, background, worker, spaces, jobs, requests, ready, deadlines, minute, pathname, following, offer],
+		[name, doing, agent, terminal, background, worker, spaces, jobs, requests, ready, deadlines, minute, pathname, lessonDeadline, following, offer],
 	);
 	const said = notices.said?.title ?? null;
 	const known = notices.known.length;

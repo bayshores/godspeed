@@ -10,7 +10,7 @@ use gs_json::{Json, Obj, json, stringify};
 
 use super::citations::cites_in_words;
 use super::message_id::new_message_id;
-use crate::contracts::chat::{CONCLUDE_ACK_TEXT, HANDOFF_TEXT, NEXT_PROBLEM_TEXT};
+use crate::contracts::chat::{CONCLUDE_ACK_TEXT, HANDOFF_TEXT, NEXT_PROBLEM_TEXT, TEACH_ME_TEXT};
 use crate::session::question_core::compact_answer_for_model;
 use super::tool_calls;
 
@@ -172,6 +172,11 @@ pub fn new_next_message() -> Json {
 	Json::Obj(marker(new_message_id(), "practice-next", NEXT_PROBLEM_TEXT, true, json!({})))
 }
 
+/// The learner's ask to be taught the open problem's method; the problem stays open.
+pub fn new_teach_message() -> Json {
+	Json::Obj(marker(new_message_id(), "teach-me", TEACH_ME_TEXT, true, json!({})))
+}
+
 /// The problem-dismissal marker: view-only, the model's face arrives with the learner's next
 /// input as `concluded_by_dismissal_pair`.
 pub fn new_problem_dismissed_marker(problem_call_id: &str) -> Json {
@@ -256,6 +261,8 @@ mod tests {
 		assert_eq!(keys(&new_next_message()), ["id", "role", "customType", "content", "display", "details", "timestamp"]);
 		assert_eq!(new_handoff_message("chat_x")["id"], json!("steer_probe_chat_x"));
 		assert_eq!(new_next_message()["details"], json!({}));
+		let teach = new_teach_message();
+		assert_eq!((teach["customType"].as_str(), teach["content"].as_str(), teach["display"].as_bool()), (Some("teach-me"), Some(TEACH_ME_TEXT), Some(true)));
 		let answer = new_answer_result("c1", "quiz", &json!({ "kind": "quiz", "correct": true }), &[]);
 		assert_eq!(keys(&answer), ["id", "role", "toolCallId", "toolName", "content", "details", "isError", "timestamp"]);
 		assert_eq!(answer["content"][0]["text"], json!(r#"{"kind":"quiz","correct":true}"#));

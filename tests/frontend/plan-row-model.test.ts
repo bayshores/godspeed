@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { homeworkProblemLine, homeworkRow, jumpTarget, planBranches, practiceRow, rightCountLabel, rowColumns, stepsRow } from "../../src/frontend/components/lesson/plan-row-model.ts";
+import { homeworkRow, homeworkStartLabel, jumpTarget, planBranches, practiceRow, rightCountLabel, rowColumns, stepsRow } from "../../src/frontend/components/lesson/plan-row-model.ts";
 import type { HomeworkProblem, LessonStop, PlanStepBar } from "../../src/shared/core/index.ts";
 
 const bar: PlanStepBar = {
@@ -58,18 +58,20 @@ describe("the plan row's logic", () => {
 		assert.deepEqual(stepsRow(bar)!.map((s) => s.number), ["1", "2", "3"]);
 	});
 
+	it("the homework go-ahead names the first problem not done, as the assignment numbers it", () => {
+		const problem = (number: string, done: boolean): HomeworkProblem => ({ number, title: "", text: "", done });
+		assert.equal(homeworkStartLabel([problem("1", true), problem("2", false), problem("3", false)]), "Start problem 2");
+		assert.equal(homeworkStartLabel([problem("1", true), problem("Ex. 4", false)]), "Start Ex. 4");
+		assert.equal(homeworkStartLabel([problem("1", true), problem("2", true)]), null);
+		assert.equal(homeworkStartLabel([]), null);
+	});
+
 	it("a practice row: solved in ink, missed light, the count only once a problem is finished", () => {
 		const row = practiceRow({ blocks: ["solved", "missed", "current"], solved: 1, finished: 2 })!;
 		assert.equal(row.count, "1 of 2 solved");
 		assert.deepEqual(row.blocks.map((b) => b.tone), ["done", "later", "current"]);
 		assert.equal(practiceRow({ blocks: ["current"], solved: 0, finished: 0 })!.count, null);
 		assert.equal(practiceRow({ blocks: [], solved: 0, finished: 0 }), null);
-	});
-
-	it("the line over an open homework problem names the assignment, the problem and the part", () => {
-		assert.equal(homeworkProblemLine("HW6", 7, "3", null), "HW6, problem 3 of 7");
-		assert.equal(homeworkProblemLine("HW6", 7, "3", "b"), "HW6, problem 3 of 7, part b");
-		assert.equal(homeworkProblemLine("HW6", 7, "Ex. 4", null), "HW6, Ex. 4", "a name the assignment wrote stays");
 	});
 });
 

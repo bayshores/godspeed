@@ -57,6 +57,8 @@ interface PillInputs {
 	work: WorkProgress | null;
 	ready: readonly ReadyLesson[];
 	due: DueSoon | null;
+	/** The deadline whose lesson is the open page: its pill needs no Open. */
+	lessonDeadline: string | null;
 	/** With Follow off: the label of a fresh change on another page. */
 	offer: string | null;
 }
@@ -172,7 +174,7 @@ export function pillThings(i: PillInputs): PillThing[] {
 		working: false,
 		tag: i.due.name,
 		needs: false,
-		action: "open",
+		action: i.due.id === i.lessonDeadline ? null : "open",
 	};
 	return [needs ? teacher : null, background, ...ready, needs ? null : teacher, work, due].filter((t) => t !== null);
 }

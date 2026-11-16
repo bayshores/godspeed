@@ -267,6 +267,17 @@ describe("send (one input event, verbatim consumption)", () => {
 		assert.equal(view.at(-1)!.parts.at(-1)!.text, "hello there");
 	});
 
+	it("shows the Teach me this line at once and posts the teach input", async () => {
+		const posts: string[] = [];
+		globalThis.fetch = dietFetch({ onPost: (b) => posts.push(b), stream: () => sseResponse({ type: "agent_end", messages: [] }, "[DONE]") });
+		const m = model();
+		const pending = m.send({ type: "teach" });
+		assert.equal((m.getState().nativeMessages.at(-1) as { customType?: string }).customType, "teach-me");
+		assert.equal(m.getState().messages.at(-1)!.parts[0]!.type, "data-teach-me");
+		await pending;
+		assert.deepEqual(JSON.parse(posts[0]!), { chatId: "chat_x", input: { type: "teach" } });
+	});
+
 	it("N id-less updates replace the SAME tail slot (the per-chunk divider bug pin)", async () => {
 		// pi's wire (captured live): message_start/update/end carry
 		// AssistantMessages with NO id. The bug: minting a fresh id per event

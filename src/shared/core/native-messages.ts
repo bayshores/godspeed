@@ -38,6 +38,7 @@ import {
 	CONCLUDE_ACK_TEXT,
 	TOPIC_DONE_TOOL,
 	NEXT_PROBLEM_TEXT,
+	TEACH_ME_TEXT,
 } from "./contracts/chat.ts";
 import { compactAnswerForModel, type QuestionAnswerData } from "./question-core.ts";
 import { activeCompactionOf, keptIndexFor } from "./compaction.ts";
@@ -95,6 +96,7 @@ export interface LhMarkerMessage {
 		| "plan-block"
 		| "practice-thinking"
 		| "practice-next"
+		| "teach-me"
 		| "problem-dismissed"
 		| "compaction"
 		| "keep-going"
@@ -292,6 +294,21 @@ export function newNextMessage(): LhMarkerMessage {
 		role: "custom",
 		customType: "practice-next",
 		content: NEXT_PROBLEM_TEXT,
+		display: true,
+		details: {},
+		timestamp: Date.now(),
+	};
+}
+
+/** The learner asks the teacher to teach the open homework problem's
+ *  method; the problem stays open. The transcript draws its own line off
+ *  the marker. */
+export function newTeachMessage(): LhMarkerMessage {
+	return {
+		id: newMessageId(),
+		role: "custom",
+		customType: "teach-me",
+		content: TEACH_ME_TEXT,
 		display: true,
 		details: {},
 		timestamp: Date.now(),

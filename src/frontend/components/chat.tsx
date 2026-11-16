@@ -25,7 +25,6 @@ import {
 	OUTSIDE_AGENT_CONTEXT_WINDOW,
 	phaseTimeline,
 	planStepBar,
-	problemSource,
 	questionNeedsReveal,
 	toolQuestionKind,
 	topicParts,
@@ -51,7 +50,7 @@ import { useFromEarlier } from "@/frontend/components/lesson/use-from-earlier";
 import { LessonHead } from "@/frontend/components/lesson/lesson-head";
 import { LessonWorkFrame } from "@/frontend/components/lesson/lesson-work-frame";
 import { PlanRow } from "@/frontend/components/lesson/plan-row";
-import { homeworkProblemLine } from "@/frontend/components/lesson/plan-row-model";
+import { homeworkStartLabel } from "@/frontend/components/lesson/plan-row-model";
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
 import { topicPageMarks } from "@/frontend/components/citations/page-excerpt-model";
 import { COLUMN_WIDTH, TeacherColumn, yourTurnShown } from "@/frontend/components/lesson/teacher-column";
@@ -365,8 +364,15 @@ export function Chat({
 	const questionRef = useRef<QuestionHandle>(null);
 	const sendBlocked = sendBlockedReason(sideOpen);
 
+	// A homework lesson's problems: the deadline's list plus this lesson's posts and done marks.
+	const freshProblems = useMemo(() => (kind === "homework" ? homeworkProblems(homework?.problems ?? [], messages) : null), [kind, homework, messages]);
+	const problems = useStableValue(freshProblems);
+	const startLabel = problems && homeworkStartLabel(problems.problems);
+	const teacherSpoke = useMemo(() => nativeMessages.some((m) => (m as { role?: string }).role === "assistant"), [nativeMessages]);
+
 	/* THE PRACTICE PAUSE (practice and study): between problems, once a
-	 * problem has ever been posed, the box offers the next one. */
+	 * problem has ever been posed, the box offers the next one. Homework
+	 * offers it once the teacher has spoken, while a problem is left. */
 	const posedAny = useMemo(
 		() =>
 			nativeMessages.some(
@@ -377,11 +383,13 @@ export function Chat({
 			),
 		[nativeMessages],
 	);
-	const nextReady = posedAny && !pending && !activeProblem && !busy;
+	const nextReady = (problems ? startLabel !== null && teacherSpoke : posedAny) && !pending && !activeProblem && !busy;
 	const sendNext = useCallback(() => {
 		if (!nextReady) return;
 		void send({ type: "next" });
 	}, [nextReady, send]);
+
+	const sendTeach = useCallback(() => void send({ type: "teach" }), [send]);
 
 	// The problem's work in the box, once the teacher is free.
 	const onSend = () => {
@@ -456,11 +464,7 @@ export function Chat({
 	// ── the plan row's data ──
 	const planTree = useMemo(() => latestTree(messages) ?? initialTree ?? null, [messages, initialTree]);
 	const freshBar = useMemo(() => (kind === "practice" || kind === "homework" ? null : planStepBar(planTree, messages)), [kind, planTree, messages]);
-	// A homework lesson's problems: the deadline's list plus this lesson's posts and done marks.
-	const freshProblems = useMemo(() => (kind === "homework" ? homeworkProblems(homework?.problems ?? [], messages) : null), [kind, homework, messages]);
-	const problems = useStableValue(freshProblems);
 	const openProblem = problems?.open ? problems.problems.find((p) => p.number === problems.open) : undefined;
-	const homeworkName = homework?.name ?? title;
 	const planHomework = useMemo(() => (problems ? { problems: problems.problems, open: problems.open, cards: problems.cards } : null), [problems]);
 	// Stable while nothing in it changed, so streaming never redraws the bar.
 	const stepBar = useStableValue(freshBar);
@@ -509,8 +513,9 @@ export function Chat({
 				else void send({ type: "text", text: t });
 			},
 			dropKept,
+			openProblem: activeProblem?.toolCallId ?? null,
 		}),
-		[chatId, send, steer, sendBlocked, dropKept],
+		[chatId, send, steer, sendBlocked, dropKept, activeProblem?.toolCallId],
 	);
 
 	// The error notice's Try again: send again what didn't go through, run a
@@ -560,19 +565,13 @@ export function Chat({
 	);
 	const [columnWidth, setColumnWidth] = usePaneWidth("your-turn", COLUMN_WIDTH);
 
-	const next = nextReady ? (kind === "study" ? "Continue" : "Next problem") : undefined;
+	const next = nextReady ? (startLabel ?? (kind === "study" ? "Continue" : "Next problem")) : undefined;
 	const stuckLine = stuck && stuckMinutes !== null ? { minutes: stuckMinutes, label: stuck.type === "text" ? "Stop and send again?" : "Stop and try again?", onStop: stopAndRetry } : null;
 	const errorLine = error && { text: lessonError(error.message).text, detail: error.message, onRetry: retry };
 	const problem = activeProblem && {
 		toolCallId: activeProblem.toolCallId,
 		statement: (activeProblem.input as { statement: string }).statement,
-		line:
-			openProblem && problems
-				? homeworkProblemLine(homeworkName, problems.problems.length, openProblem.number, problems.part ?? null)
-				: practice
-					? `Problem ${practice.blocks.length}`
-					: null,
-		source: openProblem ? problemSource(homework?.assignment ?? null, openProblem.page) : null,
+		line: !openProblem && practice ? `Problem ${practice.blocks.length}` : null,
 		part: openProblem ? (problems?.part ?? null) : null,
 	};
 
@@ -590,6 +589,7 @@ export function Chat({
 								sheet={spaceId ? { open: sheetOpen, onToggle: toggleSheet } : undefined}
 								plugins={{ words: lessonPlugins ?? [], open: openPlugin?.id ?? null, onToggle: togglePlugin }}
 								file={homework?.assignment ?? undefined}
+								page={openProblem?.page}
 								stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={SUMMARIZE_AT} pricing={pricing} />}
 								scopeRef={sessionFindScopeRef}
 								scrollContextRef={scrollContextRef}
@@ -659,6 +659,7 @@ export function Chat({
 											busy={busy}
 											next={next}
 											onNext={sendNext}
+											onTeach={kind === "homework" ? sendTeach : undefined}
 											value={text}
 											onChange={editText}
 											onSend={onSend}

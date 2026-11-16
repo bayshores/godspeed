@@ -33,9 +33,13 @@ pub fn is_latest_wrong(status: &str, latest: Option<&str>) -> bool {
 	status == "weak" && !matches!(latest, Some("right" | "hinted"))
 }
 
+/// Whether a progress topic's newest answer was wrong on a topic still weak (see `is_latest_wrong`).
+pub fn is_topic_latest_wrong(t: &Json) -> bool {
+	is_latest_wrong(t["status"].str_or_empty(), t["answers"].items().last().and_then(|a| a["outcome"].as_str()))
+}
+
 /// A progress topic (`{ id, name[, material], status, answers }`) as a study topic over `fact_ids`.
 fn study_topic(t: &Json, fact_ids: Vec<Json>) -> Json {
-	let status = t["status"].str_or_empty();
 	let mut o = Obj::new();
 	o.insert("id", t["id"].clone());
 	o.insert("name", t["name"].clone());
@@ -43,7 +47,7 @@ fn study_topic(t: &Json, fact_ids: Vec<Json>) -> Json {
 		o.insert("material", material);
 	}
 	o.insert("status", t["status"].clone());
-	if is_latest_wrong(status, t["answers"].items().last().and_then(|a| a["outcome"].as_str())) {
+	if is_topic_latest_wrong(t) {
 		o.insert("latestWrong", true);
 	}
 	o.insert("factIds", fact_ids);

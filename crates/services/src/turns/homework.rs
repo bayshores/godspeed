@@ -12,6 +12,7 @@ use gs_json::{Json, json};
 
 use super::lessons::{Created, NotFound};
 use crate::App;
+use crate::graph::progress::deadline_topics_for;
 use crate::spaces::space_card::{space_card_for, space_file_path};
 use crate::spaces::update_space_deadline;
 
@@ -41,7 +42,9 @@ pub fn create_homework(app: &Arc<App>, space_id: &str, deadline_id: &str) -> Res
 	let chat = app.stores.chats.create_chat(&title, Some("homework"), Some(space_id), deadline["id"].as_str())?;
 	let chat_id = chat["id"].str_or_empty().to_owned();
 	let problems = deadline["problems"].items();
-	let messages = [new_space_context_message(&space_card_for(app, &space)?), new_study_context_message(&homework_context_text(space_id, deadline, &assignment, problems), "homework-context")];
+	let topics = deadline_topics_for(app, space_id, deadline_id)?;
+	let note = homework_context_text(space_id, deadline, &assignment, problems, &topics);
+	let messages = [new_space_context_message(&space_card_for(app, &space)?), new_study_context_message(&note, "homework-context")];
 	app.stores.chats.save_messages(&chat_id, &messages)?;
 	let chat = app.stores.chats.get_chat(&chat_id).unwrap_or(chat);
 	Ok(Ok(Created { chat, title }))

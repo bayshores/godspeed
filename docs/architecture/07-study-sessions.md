@@ -43,7 +43,7 @@ The teacher's prompt and tools, without the planning part (`teacher/10-planning.
 - `plot`, in multiple-choice lessons
 - practice hint rules (`prompts/practice/20-hints.md`) and `prompts/study/`
 
-A posed problem ends the turn. `practice-next` and `problem-dismissed` mark moving on or skipping. A study session is extracted into the graph. A problem solved with hints counts as an answer worth 0.6 of a right one (`HINTED_WEIGHT`), so alone it reads shaky, and counts print it apart: "1 of 2 right, 1 solved with hints". An answer whose facts are in no topic (none extracted yet, or new ones still in Ungrouped) counts once for its question's `nodeId` when that is one of the space's topics (`core::study::derive_progress`), so a topic studied today is not untested while its facts are being saved.
+A posed problem ends the turn. `practice-next` and `problem-dismissed` mark moving on or skipping. In homework, `teach-me` marks the learner asking for the open problem's method; it closes nothing. A study session is extracted into the graph. A problem solved with hints counts as an answer worth 0.6 of a right one (`HINTED_WEIGHT`), so alone it reads shaky, and counts print it apart: "1 of 2 right, 1 solved with hints". An answer whose facts are in no topic (none extracted yet, or new ones still in Ungrouped) counts once for its question's `nodeId` when that is one of the space's topics (`core::study::derive_progress`), so a topic studied today is not untested while its facts are being saved.
 
 ### Questions from earlier
 
@@ -142,9 +142,14 @@ Allowed while a turn runs; never answer 409.
 A homework session (`kind: "homework"`, `deadlineId` required) works on one homework or project deadline's problems.
 
 - "Work on <name>" on deadline page or "Work on it" on its Today row starts one or reopens latest (`POST /api/chats` with `homework: true`, `create_homework` in `services::turns::homework`).
-- It opens with space card and a `homework-context` marker: deadline, its assignment file (`assignmentFileId`) and problems posted before.
+- It opens with space card and a `homework-context` marker: deadline, its assignment file (`assignmentFileId`), a track record line and problems posted before. The line sorts the deadline's topics with the Study rule (`deadline_topics_for`, `core::study::homework`): "Teach first" for untested topics and weak ones whose latest answer was wrong, "Open right away" for the rest. A deadline with no topics reads "none yet".
 - Homework agent (`agent::tools::homework`, prompt `prompts/homework/` plus practice hint rules) posts assignment's problems onto deadline with `post_problems`.
 - It opens one problem at a time with `problem`, which has no solution field: homework is hints only. `conclude` marks a problem done when learner's own work is right.
+- Before opening a problem whose idea is under Teach first (or in no topic), the teacher teaches its method once per lesson with a worked example on a different problem, then ends its turn without opening (`prompts/homework/00-base.md`).
+- With no problem open, nothing waiting, the teacher idle, at least one teacher reply and a problem not done, the Your turn column shows "Start problem N". It sends the `next` input, and the teacher opens the problem.
+- An open problem has "Teach me this", which sends the `teach` input. The server saves a `teach-me` marker (`new_teach_message`), and refuses the input outside homework or with no open problem. The problem stays open.
+- The open problem draws its parts other than the one the teacher marked lighter (`otherParts`, `src/frontend/components/lesson/problem-parts.ts`). The lesson head's file link reads "file.pdf, page N"; no line repeats the deadline name, problem number or file.
+- The top bar's pill has no Open button for the deadline whose lesson is the open page.
 - Plan row names every problem over its bar, a done one going back to its card (`homeworkProblems`, `src/shared/core/homework.ts`); Today row says "2 of 7 problems done". Above 12 problems or plan steps row shows numbers only, names on hover.
 
 Homework is never extracted into the graph.

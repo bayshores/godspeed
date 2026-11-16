@@ -57,10 +57,12 @@ export function jumpTarget(step: PlanStep): string | null {
 	return step.answers.find((a) => a.toolCallId)?.toolCallId ?? null;
 }
 
-/** The line over an open homework problem: "HW6, problem 3 of 7, part b". */
-export function homeworkProblemLine(name: string, total: number, open: string, part: string | null): string {
-	const place = /^\d/.test(open) ? `problem ${open} of ${total}` : open;
-	return `${name}, ${place}${part ? `, part ${part}` : ""}`;
+/** The homework go-ahead: "Start problem 3" for the first problem not done
+ *  ("Start Ex. 4" when the assignment names it so). Null when none is left. */
+export function homeworkStartLabel(problems: readonly HomeworkProblem[]): string | null {
+	const next = problems.find((p) => !p.done);
+	if (!next) return null;
+	return /^\d/.test(next.number) ? `Start problem ${next.number}` : `Start ${next.number}`;
 }
 
 /** A problem's place in the assignment. */

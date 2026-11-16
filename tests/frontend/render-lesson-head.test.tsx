@@ -134,6 +134,13 @@ describe("the lesson's title line", () => {
 		delete (window as unknown as { lh?: unknown }).lh;
 	});
 
+	it("adds the page of the open homework problem to the file word", async () => {
+		(window as unknown as { lh: unknown }).lh = { openPath: async () => {}, showInFolder: async () => {} };
+		await mount({ file: { name: "HW6.pdf", path: "/tmp/HW6.pdf" }, page: 1 });
+		assert.equal(q("lesson-assignment")!.textContent, "HW6.pdf, page 1");
+		delete (window as unknown as { lh?: unknown }).lh;
+	});
+
 	it("renaming swaps the name for a field", async () => {
 		await mount({ rename: rename({ renaming: true, draft: "New name" }) });
 		assert.ok(q("lesson-title") === null);

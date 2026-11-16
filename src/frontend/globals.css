@@ -311,6 +311,18 @@ body {
 	color: var(--lh-ink-body);
 }
 
+/* A part of the open problem the learner is not on. */
+[data-other-part] {
+	--lh-ink-body: var(--muted-foreground);
+	--lh-ink-strong: var(--muted-foreground);
+	--lh-ink-italic: var(--muted-foreground);
+	color: var(--muted-foreground);
+}
+
+[data-other-part] [data-streamdown="code-block"] {
+	opacity: 0.7;
+}
+
 .lh-prose :where(strong, b) {
 	color: var(--lh-ink-strong);
 	font-weight: 600;

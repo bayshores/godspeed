@@ -240,6 +240,10 @@ export type KeptPart = "analogy" | "phrase";
 export const NEXT_PROBLEM_TEXT =
 	"[NEXT PROBLEM] — the learner's explicit go-ahead: pose the next problem now per the selection rules, or wrap the session in text if the arc is complete.";
 
+/** The model-facing text of the teach-me marker: the learner asks for the
+ *  open homework problem's method. */
+export const TEACH_ME_TEXT = "[TEACH ME] The learner asks you to teach the method of the open problem.";
+
 /** The compaction marker's model-facing header. The marker's content is
  *  this header + the summary, in place of the dropped span. It tells the
  *  model the cut is routine, the summary replaces everything before it,

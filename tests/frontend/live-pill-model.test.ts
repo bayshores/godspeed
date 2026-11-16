@@ -10,7 +10,7 @@ import { dueSoon, firstWord, idleWords, keepReady, pillClick, pillLine, pillThin
 const off = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [] };
 const teaching = { ...off, connected: true, teaching: true, name: "Claude Code" };
 const reading = { text: "Reading Lecture 14 notes", count: "3 of 12", working: true };
-const nothing = { name: "marco", doing: null, agent: teaching, terminal: null, background: false, work: null, ready: [], due: null, offer: null };
+const nothing = { name: "marco", doing: null, agent: teaching, terminal: null, background: false, work: null, ready: [], due: null, lessonDeadline: null, offer: null };
 const helper = { doing: "Reading files", count: "6 of 17", tag: "6 of 17 files" };
 const homework = { id: "hw5", spaceId: "c21", name: "Homework 5", date: "2026-11-15", time: "23:59" };
 const words = (i: Parameters<typeof pillThings>[0]) => pillThings(i).map((t) => [t.head, t.detail, t.count].filter(Boolean).join(" "));
@@ -59,6 +59,14 @@ describe("the live things", () => {
 		const [lesson, due] = pillThings({ ...nothing, ready: [{ id: "l1", title: "Counting" }], due: homework });
 		assert.deepEqual([lesson!.kind, lesson!.key, lesson!.action], ["ready", "l1", "open"]);
 		assert.deepEqual([due!.kind, due!.key, due!.due, due!.action], ["due", "hw5", homework, "open"]);
+	});
+});
+
+describe("the deadline whose lesson is open", () => {
+	it("stays in the pill with no Open of its own", () => {
+		const [due] = pillThings({ ...nothing, due: homework, lessonDeadline: "hw5" });
+		assert.deepEqual([due!.kind, due!.key, due!.action], ["due", "hw5", null]);
+		assert.equal(pillThings({ ...nothing, due: homework, lessonDeadline: "hw4" })[0]!.action, "open");
 	});
 });
 

@@ -329,7 +329,7 @@ fn is_input(m: &Json) -> bool {
 	match m["role"].as_str() {
 		Some("user") => true,
 		Some("toolResult") => is_question_tool(m["toolName"].str_or_empty()),
-		Some("custom") => matches!(m["customType"].as_str(), Some("practice-next" | "opener-answer")),
+		Some("custom") => matches!(m["customType"].as_str(), Some("practice-next" | "teach-me" | "opener-answer")),
 		_ => false,
 	}
 }

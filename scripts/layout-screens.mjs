@@ -5,7 +5,7 @@
  * `shows`. `ready` and `shows` name something drawn from the screen's data, not its frame, so the
  * check never runs on a screen still loading. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
- * `{deadline}` and `{pathSpace}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
+ * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}` and `{pathSpace}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
 export const WIDTHS = [1440, 1100, 800];
@@ -40,6 +40,9 @@ const dropLateHomework = `const { deadlines } = await fetch("/api/deadlines")${H
 const late = deadlines.find((d) => d.name === "Graphing worksheet, part 2");
 if (late) await fetch("/api/spaces/{space}/deadlines/" + late.id, { method: "DELETE" })${HTTP_OK};`;
 
+/** Every deadline the seed made, so Today has none. */
+const dropDeadlines = ["{deadline}", "{homeworkOpenDeadline}", "{homeworkFirstDeadline}"].map((id) => `await fetch("/api/spaces/{space}/deadlines/${id}", { method: "DELETE" })${HTTP_OK};`).join("\n");
+
 /** The work frame with its tag, whether the work waits for an agent or the window started a
  *  stand-in helper for it. */
 const waitingFrame = "[data-testid=work-frame] [data-testid=work-frame-tag]";
@@ -63,6 +66,8 @@ export const SCREENS = [
 	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-name]" },
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
 	{ name: "Lesson with a plugin's page open", url: "/chat/{lesson}", ready: "[data-testid=lesson-plugin-flashcards]", setup: `document.querySelector("[data-testid=lesson-plugin-flashcards]").click()`, shows: "[data-testid=plugin-window] [data-testid=plugin-frame][data-state=ready]" },
+	{ name: "Homework lesson with an open problem", url: "/chat/{homeworkOpen}", ready: "[data-testid=open-problem]" },
+	{ name: "Homework lesson before a problem opens", url: "/chat/{homeworkFirst}", ready: "[data-testid=next-problem-button]" },
 	{ name: "Space's plugin tab", url: "/space/plugin/flashcards", ready: "[data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Teacher's window with no agent", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
 	{
@@ -90,7 +95,7 @@ export const SCREENS = [
 		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent]").click()`,
 		shows: "[data-testid=terminal-stop]",
 	},
-	{ name: "Today with no deadline", before: `await fetch("/api/spaces/{space}/deadlines/{deadline}", { method: "DELETE" })${HTTP_OK}`, url: "/", ready: "[data-testid=today-empty]" },
+	{ name: "Today with no deadline", before: dropDeadlines, url: "/", ready: "[data-testid=today-empty]" },
 	{ name: "Today on a busy day", before: busyDay, url: "/", ready: "[data-testid=today-list] [data-testid^=today-done-row]", shows: "[data-testid=later-list]" },
 	{ name: "Today with the overdue card", before: lateHomework, url: "/", ready: "[data-testid=overdue-notice] [data-testid=overdue-notice-done]" },
 	{

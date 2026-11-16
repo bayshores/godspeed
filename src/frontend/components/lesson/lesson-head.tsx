@@ -25,6 +25,7 @@ export function LessonHead({
 	sheet,
 	plugins,
 	file,
+	page,
 	stats,
 	scopeRef,
 	scrollContextRef,
@@ -37,6 +38,8 @@ export function LessonHead({
 	plugins: { words: readonly { id: string; label: string }[]; open: string | null; onToggle: (id: string) => void };
 	/** A homework lesson's assignment file, opened on the desktop. */
 	file?: { name: string; path: string | null };
+	/** The page of the file the open homework problem is on. */
+	page?: number;
 	/** The lesson size button. */
 	stats: ReactNode;
 	scopeRef: RefObject<HTMLDivElement | null>;
@@ -52,14 +55,18 @@ export function LessonHead({
 	const desktop = typeof window !== "undefined" ? window.lh : undefined;
 	const pdf = !!file && /\.pdf$/i.test(file.name);
 	const openFile = file?.path && desktop ? (pdf ? desktop.openPath : desktop.showInFolder) : undefined;
+	const fileWord = file && `${file.name}${page ? `, page ${page}` : ""}`;
 	return (
 		<div data-testid="lesson-head" className="flex min-h-14 shrink-0 items-center gap-3 px-8 pt-3">
 			<h1 className="sr-only">{rename.title}</h1>
 			<div className="flex min-w-0 shrink text-[22px] font-medium text-ink">{rename.renaming ? <RenameInput rename={rename} /> : <TitleButton rename={rename} />}</div>
 			<div className="flex-1" aria-hidden />
 			{file && openFile && (
-				<button type="button" data-testid="lesson-assignment" title={file.name} onClick={() => void openFile(file.path!)} className={cn(WORD, "max-w-[24ch]")}>
-					<span className="truncate">{file.name}</span>
+				<button type="button" data-testid="lesson-assignment" title={fileWord} onClick={() => void openFile(file.path!)} className={cn(WORD, "max-w-[34ch]")}>
+					<span className="flex min-w-0">
+						<span className="truncate">{file.name}</span>
+						{page && <span className="shrink-0">{`, page ${page}`}</span>}
+					</span>
 				</button>
 			)}
 			<SessionFind scopeRef={scopeRef} scrollContextRef={scrollContextRef}>

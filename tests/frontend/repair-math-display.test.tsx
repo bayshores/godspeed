@@ -29,7 +29,7 @@ const part = (input: unknown, over: Partial<ArtifactPartProps["part"]> = {}): Ar
 	type: "tool-problem", state: "input-available", toolCallId: "call_math", input, ...over,
 });
 const problemPane = (input: { statement: string }) => (
-	<OpenProblemPane statement={input.statement} source={null} part={null} />
+	<OpenProblemPane statement={input.statement} part={null} />
 );
 
 function math(html: string) {

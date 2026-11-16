@@ -3,6 +3,7 @@
 use gs_json::{Json, Obj, json};
 
 use super::latest_session;
+use super::study::is_topic_latest_wrong;
 
 /// The kinds of deadline that have problems to work on.
 pub fn has_problems(kind: &str) -> bool {
@@ -42,9 +43,20 @@ pub fn conclude_marks_done(outcome: &Json) -> bool {
 	matches!(outcome.as_str(), Some("solved" | "solvedWithHints"))
 }
 
+/// The track record line: the deadline's topics Study would teach first (untested, or weak with
+/// the latest answer wrong), and the rest. `topics` are progress topics.
+fn track_record_line(topics: &[Json]) -> String {
+	if topics.is_empty() {
+		return "Track record on its topics: none yet.".to_owned();
+	}
+	let (teach, open): (Vec<&Json>, Vec<&Json>) = topics.iter().partition(|t| t["status"].as_str() == Some("untested") || is_topic_latest_wrong(t));
+	let group = |label: &str, list: &[&Json]| (!list.is_empty()).then(|| format!(" {label}: {}.", list.iter().map(|t| t["name"].str_or_empty()).collect::<Vec<_>>().join(", ")));
+	format!("Track record on its topics.{}{}", group("Teach first", &teach).unwrap_or_default(), group("Open right away", &open).unwrap_or_default())
+}
+
 /// What the teacher knows when a homework session starts (a hidden message at its top).
-/// `assignment` is `{ id, name, path }` or null.
-pub fn homework_context_text(space_id: &str, deadline: &Json, assignment: &Json, problems: &[Json]) -> String {
+/// `assignment` is `{ id, name, path }` or null; `topics` are the progress topics the deadline covers.
+pub fn homework_context_text(space_id: &str, deadline: &Json, assignment: &Json, problems: &[Json], topics: &[Json]) -> String {
 	let text = |v: &Json| v.as_str().map_or_else(|| gs_json::stringify(v), str::to_owned);
 	let time = deadline["time"].as_str().filter(|t| !t.is_empty()).map(|t| format!(" {t}")).unwrap_or_default();
 	let mut lines = vec![format!("[Homework] The learner is working on {} ({}), due {}{time}.", text(&deadline["name"]), text(&deadline["kind"]), text(&deadline["date"]))];
@@ -57,6 +69,7 @@ pub fn homework_context_text(space_id: &str, deadline: &Json, assignment: &Json,
 		let at = assignment["path"].as_str().filter(|p| !p.is_empty()).map(|p| format!(", at {p}")).unwrap_or_default();
 		lines.push(format!("Its assignment is the space file {} (file id {}){at}.", text(&assignment["name"]), text(&assignment["id"])));
 	}
+	lines.push(track_record_line(topics));
 	if problems.is_empty() {
 		lines.push("No problems are posted yet. Read the assignment and post them all with post_problems first.".to_owned());
 	} else {
@@ -64,7 +77,7 @@ pub fn homework_context_text(space_id: &str, deadline: &Json, assignment: &Json,
 		for p in problems {
 			lines.push(format!("- {}: {}{}", text(&p["number"]), text(&p["title"]), if p["done"].truthy() { " (done)" } else { "" }));
 		}
-		lines.push("Open the first one not done unless the learner picks another.".to_owned());
+		lines.push("Next is the first one not done unless the learner picks another.".to_owned());
 	}
 	lines.join("\n")
 }
@@ -96,12 +109,35 @@ mod tests {
 		let sessions = [json!({ "chatId": "a", "deadlineId": "d", "createdAt": "1" }), json!({ "chatId": "b", "deadlineId": "d", "createdAt": "2" })];
 		assert_eq!(latest_homework("d", &sessions).as_deref(), Some("b"));
 		let deadline = json!({ "id": "ddl_4", "name": "HW 4", "kind": "homework", "date": "2026-11-20", "time": "17:00" });
-		let text = homework_context_text("spc_1", &deadline, &json!({ "id": "f1", "name": "hw4.pdf", "path": null }), &[json!({ "number": "1", "title": "Sums", "done": true })]);
+		let text = homework_context_text("spc_1", &deadline, &json!({ "id": "f1", "name": "hw4.pdf", "path": null }), &[json!({ "number": "1", "title": "Sums", "done": true })], &[]);
 		assert_eq!(
 			text,
-			"[Homework] The learner is working on HW 4 (homework), due 2026-11-20 17:00.\nIts assignment is the space file hw4.pdf (file id f1).\nIts problems, posted before:\n- 1: Sums (done)\nOpen the first one not done unless the learner picks another."
+			"[Homework] The learner is working on HW 4 (homework), due 2026-11-20 17:00.\nIts assignment is the space file hw4.pdf (file id f1).\nTrack record on its topics: none yet.\nIts problems, posted before:\n- 1: Sums (done)\nNext is the first one not done unless the learner picks another."
 		);
-		let bare = homework_context_text("spc_1", &deadline, &Json::Null, &[]);
+		let bare = homework_context_text("spc_1", &deadline, &Json::Null, &[], &[]);
 		assert!(bare.contains("update_space_deadline (space_id spc_1, deadline_id ddl_4, assignment_file_id)"));
+	}
+
+	fn topic(name: &str, status: &str, outcomes: &[&str]) -> Json {
+		json!({ "name": name, "status": status, "answers": outcomes.iter().map(|o| json!({ "outcome": o })).collect::<Vec<_>>() })
+	}
+
+	fn track_record(topics: &[Json]) -> String {
+		let text = homework_context_text("spc_1", &json!({ "id": "d", "name": "HW", "kind": "homework", "date": "2026-11-20" }), &Json::Null, &[], topics);
+		text.lines().find(|l| l.starts_with("Track record")).unwrap().to_owned()
+	}
+
+	#[test]
+	fn the_track_record_sorts_topics_by_the_study_rule() {
+		let both = [topic("Sets", "untested", &[]), topic("Logic", "strong", &["right"]), topic("Counting", "weak", &["right", "wrong"])];
+		assert_eq!(track_record(&both), "Track record on its topics. Teach first: Sets, Counting. Open right away: Logic.");
+		assert_eq!(track_record(&both[..1]), "Track record on its topics. Teach first: Sets.");
+		assert_eq!(track_record(&both[1..2]), "Track record on its topics. Open right away: Logic.");
+		assert_eq!(track_record(&[]), "Track record on its topics: none yet.");
+	}
+
+	#[test]
+	fn a_weak_topic_answered_right_last_opens_right_away() {
+		assert_eq!(track_record(&[topic("Counting", "weak", &["wrong", "right"])]), "Track record on its topics. Open right away: Counting.");
 	}
 }

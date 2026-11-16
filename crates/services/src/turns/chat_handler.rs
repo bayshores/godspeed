@@ -226,7 +226,7 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 
 	// The [Today] note goes right before a learner message when the day, the open deadlines or a
 	// compaction call for a fresh one. The app note goes there too.
-	if let TurnInput::Chat(chat @ (ChatInput::Text { .. } | ChatInput::Next)) = input {
+	if let TurnInput::Chat(chat @ (ChatInput::Text { .. } | ChatInput::Next | ChatInput::Teach)) = input {
 		let at = appends.len().saturating_sub(1);
 		let notes = today_note_for(app, &record).into_iter().chain(app_note_for(&record, chat, asked.as_ref()));
 		appends.splice(at..at, notes);

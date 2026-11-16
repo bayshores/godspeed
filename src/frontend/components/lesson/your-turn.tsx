@@ -20,17 +20,19 @@ export interface YourTurnProps {
 	onSkipQuestion: () => void;
 	/** His answer to a question from earlier was refused: it was no longer due. */
 	reviewRefused: boolean;
-	/** The open problem, with its line ("HW6, problem 3 of 7") and, for
-	 *  homework, where it is in the file and the part the learner is on. */
-	problem: { toolCallId: string; statement: string; line: string | null; source: string | null; part: string | null } | null;
+	/** The open problem, with its line ("Problem 2", practice only) and, for
+	 *  homework, the part the learner is on. */
+	problem: { toolCallId: string; statement: string; line: string | null; part: string | null } | null;
 	/** Opens the discard confirm for the open problem. */
 	onDiscardProblem: () => void;
+	/** "Teach me this" on the open problem; homework only. */
+	onTeach?: () => void;
 	/** A place to stop he has not kept going from, keyed by the call that
 	 *  made it. */
 	stop: { key: string; view: StopCardView; onAction: (action: StopAction) => void } | null;
 	busy: boolean;
-	/** The go-ahead in the pause between problems ("Next problem", or
-	 *  "Continue" in a study session); absent outside that pause. */
+	/** The go-ahead in the pause between problems ("Next problem", "Continue"
+	 *  in a study session, "Start problem 3" in homework); absent outside that pause. */
 	next?: string;
 	onNext: () => void;
 	/** The answer box's text. */
@@ -60,7 +62,7 @@ const EXIT: Record<BoxView["exit"], { label: string; testId: string }> = {
  * - a waiting question (QuestionDock) and the answer box;
  * - the open problem, worked on in the box;
  * - a place to stop (the stop card);
- * - Next problem / Continue in the pause between problems.
+ * - Next problem / Continue / Start problem in the pause between problems.
  * The button beside "Your turn" is the way out of that state. Talking to
  * the teacher happens in its terminal.
  */
@@ -75,6 +77,7 @@ export function YourTurn({
 	reviewRefused,
 	problem,
 	onDiscardProblem,
+	onTeach,
 	stop,
 	busy,
 	next,
@@ -168,7 +171,12 @@ export function YourTurn({
 									{problem.line}
 								</p>
 							)}
-							<OpenProblemPane statement={problem.statement} source={problem.source} part={problem.part} />
+							<OpenProblemPane statement={problem.statement} part={problem.part} />
+							{onTeach && !busy && (
+								<button type="button" data-testid="teach-me" onClick={onTeach} className="lh-btn lh-btn-quiet shrink-0 self-start">
+									Teach me this
+								</button>
+							)}
 						</>
 					)}
 					{!pending && !problem && stop && <StopCard view={stop.view} onAction={stop.onAction} />}
