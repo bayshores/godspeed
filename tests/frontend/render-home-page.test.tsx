@@ -193,14 +193,6 @@ function todayRow(props: Partial<React.ComponentProps<typeof TodayRow>> = {}) {
 	);
 }
 
-describe("A row the overdue card asks about", () => {
-	it("has no Mark done, and its Start stays", () => {
-		const html = todayRow({ onDone: null });
-		assert.doesNotMatch(html, /today-done/);
-		assert.match(html, /today-start/);
-	});
-});
-
 describe("A row due this week", () => {
 	it("the count block in the space's color, days left", () => {
 		const html = todayRow();
@@ -364,7 +356,6 @@ function page(props: Partial<React.ComponentProps<typeof TodayBody>> = {}): stri
 				newFiles={new Map()}
 				busy={false}
 				lessonError={null}
-				asking={null}
 				onStart={() => {}}
 				onDone={() => {}}
 				onUndo={() => {}}
@@ -486,8 +477,7 @@ describe("Your spaces", () => {
 					newFiles={new Map([["spc_la", "2 new files since Monday"]])}
 					busy={false}
 					lessonError={null}
-					asking={null}
-					onStart={() => {}}
+						onStart={() => {}}
 					onDone={() => {}}
 					onUndo={() => {}}
 					onRetry={() => {}}

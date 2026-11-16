@@ -33,7 +33,7 @@ export function NextCard({
 	busy: boolean;
 	onStart: (d: OpenDeadline) => void;
 	/** Null while the overdue card asks "Done?" about it. */
-	onDone: ((d: OpenDeadline) => void) | null;
+	onDone: (d: OpenDeadline) => void;
 }) {
 	const words = nextCard(d, progress, nowMs);
 	return (
@@ -66,11 +66,9 @@ export function NextCard({
 							{words.left}
 						</p>
 						<span className="flex shrink-0 items-center gap-3">
-							{onDone && (
-								<button type="button" data-testid="today-done" onClick={() => onDone(d)} className="lh-btn lh-btn-quiet text-[15px]">
-									Mark done
-								</button>
-							)}
+							<button type="button" data-testid="today-done" onClick={() => onDone(d)} className="lh-btn lh-btn-quiet text-[15px]">
+								Mark done
+							</button>
 							<button type="button" data-testid="today-start" disabled={busy} onClick={() => onStart(d)} className="lh-btn lh-btn-main h-[56px] px-7 text-[18px]">
 								{words.button}
 							</button>

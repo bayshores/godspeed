@@ -30,8 +30,6 @@ interface TodayBodyProps {
 	/** Why the last lesson start failed. */
 	lessonError: string | null;
 	onStart: (d: OpenDeadline) => void;
-	/** The deadline the overdue card asks about, which shows no Mark done. */
-	asking: string | null;
 	onDone: (d: OpenDeadline) => void;
 	onUndo: (d: OpenDeadline) => void;
 	onRetry: () => void;
@@ -88,7 +86,6 @@ export function TodayBody(p: TodayBodyProps) {
 						nowMs={p.nowMs}
 						busy={p.busy}
 						onStart={p.onStart}
-						asking={p.asking}
 						onDone={p.onDone}
 						onUndo={p.onUndo}
 						onRetry={p.onRetry}

@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router";
 import { useMinute } from "@/frontend/components/countdown";
-import { dueWords, overdueToAsk } from "@/frontend/components/home-page/home-page-model";
+import { overdueToAsk } from "@/frontend/components/home-page/home-page-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
 import { useServerEvent } from "@/frontend/components/server-events";
@@ -38,7 +38,7 @@ export function SpaceNotice() {
 			{checks.map((check) => (
 				<ChangeCard key={check.spaceId} check={check} onDone={() => setChecks((prev) => prev.filter((c) => c !== check))} />
 			))}
-			{overdue && now !== null && <OverdueCard key={overdue.id} deadline={overdue} now={now} />}
+			{overdue && now !== null && <OverdueCard key={overdue.id} deadline={overdue} />}
 		</>,
 		document.getElementById(NOTICE_STACK_ID) ?? document.body,
 	);
@@ -121,11 +121,10 @@ function ChangeCard({ check, onDone }: { check: SpaceCheck; onDone: () => void }
 	);
 }
 
-function OverdueCard({ deadline: d, now }: { deadline: OpenDeadline; now: number }) {
+function OverdueCard({ deadline: d }: { deadline: OpenDeadline }) {
 	const { markDone, reload } = useOpenDeadlines();
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const due = dueWords(d, now);
 	const notYet = async () => {
 		setBusy(true);
 		const result = await send(`/api/deadlines/${encodeURIComponent(d.spaceId)}/${encodeURIComponent(d.id)}/not-yet`, { method: "POST" });
@@ -142,7 +141,7 @@ function OverdueCard({ deadline: d, now }: { deadline: OpenDeadline; now: number
 			actions={
 				<>
 					<button type="button" data-testid="overdue-notice-done" disabled={busy} onClick={() => markDone(d)} className="lh-btn text-[15px]">
-						Done
+						Mark done
 					</button>
 					<button type="button" data-testid="overdue-notice-not-yet" disabled={busy} onClick={() => void notYet()} className="lh-btn text-[15px]">
 						Not yet
@@ -150,7 +149,6 @@ function OverdueCard({ deadline: d, now }: { deadline: OpenDeadline; now: number
 				</>
 			}
 		>
-			<NoticeText>{`${due.charAt(0).toUpperCase()}${due.slice(1)}.`}</NoticeText>
 			{error && (
 				<p role="alert" className="text-[13px] text-ans-wrong">
 					{error}

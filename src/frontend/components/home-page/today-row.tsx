@@ -37,7 +37,7 @@ export function TodayRow({
 	busy: boolean;
 	onStart: (d: OpenDeadline) => void;
 	/** Null while the overdue card asks "Done?" about it. */
-	onDone: ((d: OpenDeadline) => void) | null;
+	onDone: (d: OpenDeadline) => void;
 }) {
 	const words = todayRow(d, progress, nowMs);
 	return (
@@ -53,11 +53,9 @@ export function TodayRow({
 					</span>
 				</span>
 				<span className="ml-auto flex shrink-0 items-center gap-2">
-					{onDone && (
-						<button type="button" data-testid="today-done" onClick={() => onDone(d)} className="lh-btn lh-btn-quiet h-[30px] text-[13px]">
-							Mark done
-						</button>
-					)}
+					<button type="button" data-testid="today-done" onClick={() => onDone(d)} className="lh-btn lh-btn-quiet h-[30px] text-[13px]">
+						Mark done
+					</button>
 					<button type="button" data-testid="today-start" disabled={busy} onClick={() => onStart(d)} className={SMALL_KEY}>
 						{words.button}
 					</button>

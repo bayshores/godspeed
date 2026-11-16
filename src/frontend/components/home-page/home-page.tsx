@@ -10,7 +10,7 @@ import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { useWorker } from "@/frontend/components/work/use-worker";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { highlight, waitForTarget } from "@/frontend/components/teacher/dom";
-import { overdueToAsk, spacesSettled, todayLists } from "./home-page-model";
+import { spacesSettled, todayLists } from "./home-page-model";
 import { TodayBody } from "./today-body";
 import { useNewFiles } from "./use-new-files";
 import { useSpacesProgress } from "./use-spaces-progress";
@@ -24,7 +24,7 @@ import { useSpacesProgress } from "./use-spaces-progress";
 export function HomePage() {
 	const { spaces, loaded, setActive } = useSpaces();
 	const shown = useMemo(() => spaces.filter((c) => !c.closed), [spaces]);
-	const { deadlines, doneToday, overdueAsked, error: deadlinesError, markDone, undo, reload: reloadDeadlines } = useOpenDeadlines();
+	const { deadlines, doneToday, error: deadlinesError, markDone, undo, reload: reloadDeadlines } = useOpenDeadlines();
 	const shownIds = useMemo(() => shown.map((c) => c.id), [shown]);
 	const spacesProgress = useSpacesProgress(shownIds);
 	const newFiles = useNewFiles(shown);
@@ -71,8 +71,6 @@ export function HomePage() {
 	const ready = nowMs !== null && loaded && (deadlines !== null || deadlinesError !== null) && (shown.length === 0 || progressReady);
 	const lists = useMemo(() => (deadlines && nowMs !== null ? todayLists(deadlines, doneToday, nowMs) : null), [deadlines, doneToday, nowMs]);
 
-	// The overdue card in the pill has its own Done, so the page's row has none.
-	const asking = deadlines && nowMs !== null ? (overdueToAsk(deadlines, overdueAsked, nowMs)?.id ?? null) : null;
 
 	// Back from a lesson's Stop here (?lit=deadline:<id>): its card or row lights once.
 	const [params, setParams] = useSearchParams();
@@ -114,7 +112,6 @@ export function HomePage() {
 				busy={lesson.busy}
 				lessonError={lesson.error}
 				onStart={onStart}
-				asking={asking}
 				onDone={markDone}
 				onUndo={undo}
 				onRetry={() => void reloadDeadlines()}
