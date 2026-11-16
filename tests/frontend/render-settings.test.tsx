@@ -74,7 +74,6 @@ describe("TeachingSection (SSR)", () => {
 		assert.deepEqual(ids, [...TEACHING_AREAS.map((a) => a.id), "remembered"]);
 		assert.ok(tagOf(html, `area-${TEACHING_AREAS[0]!.id}`).includes('aria-current="true"'), "the first area is picked");
 		assert.ok(html.includes('data-testid="area-detail"'));
-		assert.ok(html.includes("How Ada teaches you."), "the teacher's name in the lead line");
 	});
 
 	it("the picked area's Full instructions button waits disabled until the texts load", () => {
@@ -161,7 +160,6 @@ describe("GeneralSection (SSR)", () => {
 		const html = render({ version: 1 });
 		assert.ok(tagOf(html, "teacher-name").includes('placeholder="Teacher"'));
 		assert.doesNotMatch(html, /slider-|Summarize long lessons|Add to the graph|toggle-build-the-graph/);
-		assert.match(html, /<span class="block pt-0.5 text-\[15px\] text-ink-2">Shown in the window only</, "hints use the readable quiet color");
 	});
 
 	it("a switch says On or Off beside its track", () => {

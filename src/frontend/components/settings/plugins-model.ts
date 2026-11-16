@@ -8,24 +8,22 @@ function joinWords(words: string[]): string {
 }
 
 /** What a manifest or a list entry says about a plugin. */
-type About = Pick<PluginManifest, "description" | "lesson" | "space" | "network" | "uses">;
+type About = Pick<PluginManifest, "description" | "network" | "uses">;
 
-/** What godspeed says about a plugin from its manifest, never the plugin's own words: where it
- *  shows and what it uses. */
+/** What godspeed says about a plugin from its manifest, never the plugin's own words: what it uses. */
 export function pluginFacts(manifest: About, agentName?: string): string {
-	const places = [manifest.lesson && "lessons", manifest.space && "spaces"].filter((p): p is string => !!p);
 	const uses = [
 		...(manifest.uses.includes("agent") ? [agentName?.trim() || "your agent"] : []),
 		...(manifest.uses.includes("space") ? ["the space's facts"] : []),
 		...manifest.network,
 	];
-	return [places.length > 0 && `Shows in ${joinWords(places)}.`, uses.length > 0 && `Uses ${joinWords(uses)}.`].filter(Boolean).join(" ");
+	return uses.length > 0 ? `Uses ${joinWords(uses)}.` : "";
 }
 
 /** The line under a plugin's name: its own sentence, then godspeed's facts. */
 export function pluginLine(manifest: About, agentName?: string): string {
 	const about = /[.!?]$/.test(manifest.description) ? manifest.description : `${manifest.description}.`;
-	return `${about} ${pluginFacts(manifest, agentName)}`;
+	return `${about} ${pluginFacts(manifest, agentName)}`.trim();
 }
 
 /** The listed plugins not installed yet, in the list's order: the Add sheet's rows. */

@@ -19,7 +19,7 @@ export function GeneralSection({
 	return (
 		<>
 			<SettingsGroup label="Teacher and sounds" testid="group-you">
-				<SettingsRow label="Teacher name" hint="Shown in the window only" testid="teacher-name-row">
+				<SettingsRow label="Teacher name" testid="teacher-name-row">
 					<CommitInput
 						value={record.general?.teacherName ?? ""}
 						placeholder={DEFAULT_TEACHER_NAME}

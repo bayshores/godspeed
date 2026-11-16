@@ -77,7 +77,6 @@ export function PluginsSection() {
 	const busy = running !== null;
 	return (
 		<>
-			<p className="text-lg text-ink-2">Plugins can't open your files.</p>
 			<div className="flex items-start gap-6">
 				<Pane aria-label="Plugins" data-testid="plugins-list" className="flex w-[260px] shrink-0 flex-col p-3">
 					{plugins.map((p) => {

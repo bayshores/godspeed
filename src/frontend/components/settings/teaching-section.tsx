@@ -70,7 +70,6 @@ export function TeachingSection({
 	const area = TEACHING_AREAS.find((a) => a.id === pick);
 	return (
 		<>
-			<p className="pb-6 text-lg text-ink-2">How {teacherName} teaches you. Change a switch, add a rule, or rewrite the instructions.</p>
 			{segments === null && segmentsFailed && <LoadFailed message="Couldn't load the instructions." onRetry={readSegments} className="pb-6" />}
 			<div className="flex items-start gap-5">
 				<Pane aria-label="Teaching areas" className="flex w-[260px] shrink-0 flex-col p-2">

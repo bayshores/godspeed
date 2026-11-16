@@ -147,13 +147,12 @@ describe("Settings, Plugins", () => {
 		serve([MEMES, CARDS]);
 		(window as { lh?: unknown }).lh = { pickFolder: async () => null, openPath: async () => {} };
 		await mount();
-		assert.ok(document.body.textContent!.includes("Plugins can't open your files."));
 		assert.equal(q("plugin-memes")!.getAttribute("aria-current"), "true");
 		assert.ok(q("plugin-memes")!.className.includes("bg-highlight"));
 		assert.equal(q("plugin-cards")!.textContent, "FlashcardsOff");
 		const sheet = q("plugin-sheet")!;
 		assert.equal(sheet.querySelector("h2")!.textContent, "Memes");
-		assert.equal(sheet.querySelector("p")!.textContent, "Made from your lesson. Shows in lessons. Uses Claude and api.memegen.link.");
+		assert.equal(sheet.querySelector("p")!.textContent, "Made from your lesson. Uses Claude and api.memegen.link.");
 		assert.equal(q("toggle-memes")!.getAttribute("aria-checked"), "true");
 		// Four options sit side by side, five open as a list.
 		assert.equal(q("plugin-setting-mode-Hint")!.getAttribute("role"), "radio");
@@ -172,7 +171,7 @@ describe("Settings, Plugins", () => {
 		await mount();
 		await click("plugin-cards");
 		assert.equal(q("plugin-sheet")!.querySelector("h2")!.textContent, "Flashcards");
-		assert.equal(q("plugin-sheet")!.querySelector("p")!.textContent, "Recall cards on a schedule. Shows in spaces. Uses the space's facts.");
+		assert.equal(q("plugin-sheet")!.querySelector("p")!.textContent, "Recall cards on a schedule. Uses the space's facts.");
 		assert.equal(q("toggle-flashcards")!.getAttribute("aria-checked"), "false");
 		const row = q("plugin-row-n")!.parentElement!;
 		assert.ok(row.hasAttribute("inert") && row.className.includes("opacity-45"));
@@ -262,10 +261,10 @@ describe("Settings, Plugins", () => {
 		const sheet = q("plugins-add-sheet")!;
 		assert.ok(q("plugin-sheet") === null);
 		assert.equal(sheet.querySelector("p")!.textContent, "Checked by godspeed.");
-		assert.equal(q("plugins-listed-quiz")!.textContent, "QuizFive quick questions. Shows in spaces. Uses the space's facts.Add");
+		assert.equal(q("plugins-listed-quiz")!.textContent, "QuizFive quick questions. Uses the space's facts.Add");
 		assert.ok(q("plugins-listed-memes") === null, "an installed plugin isn't offered again");
 		assert.equal(q("plugins-from-folder")!.textContent, "From a folderChoose");
-		assert.equal(sheet.textContent, "Checked by godspeed.QuizFive quick questions. Shows in spaces. Uses the space's facts.AddFrom a folderChoose");
+		assert.equal(sheet.textContent, "Checked by godspeed.QuizFive quick questions. Uses the space's facts.AddFrom a folderChoose");
 	});
 
 	it("a listed add sends only its id, reads Adding… while it runs, then opens the new plugin's sheet", async () => {
