@@ -1,5 +1,20 @@
 [
 	{
+		"version": "0.6.71",
+		"date": "2026-11-15",
+		"changes": [
+			"Your agent keeps your spaces up to date by itself. Drop in a new syllabus, homework sheet or slides and it adds the deadlines they name and links the files to the deadlines they cover.",
+			"When your agent changes a space on its own, a card says what changed and has Undo. It never pulls you off the page you are on.",
+			"A deadline that just went past asks if it is done, with Done and Not yet.",
+			"A space can have a path toward a goal, for things you learn on your own. Progress shows where you are on it, Study moves along it, and it grows when only a few topics are left.",
+			"Your agent can look up what you already learned during any lesson, and the same idea is no longer added to your graph twice.",
+			"A lesson on something your space has no topics for gets a real plan.",
+			"Lesson text never loads pictures from other websites, and your agent's file tools stay out of private folders like keys and browser profiles.",
+			"Saves are safer, so a power cut can't leave an empty file.",
+			"godspeed starts faster and uses less memory."
+		]
+	},
+	{
 		"version": "0.6.7",
 		"date": "2026-11-15",
 		"changes": [
