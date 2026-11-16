@@ -13,7 +13,8 @@ use gs_core::session::practice_outcomes::practice_outcomes;
 use gs_core::study::kept::{KeptSentence, kept_comebacks, kept_sentences};
 use gs_core::study::progress::{collect_answers, derive_progress, facts_by_message, facts_for_answer};
 use gs_core::study::review::{review_items, reviewable_topics};
-use gs_core::study::study::{deadline_study_topic_ids, fact_space_order, study_topics, topic_study};
+use gs_core::spaces::space_path::path_lesson_note;
+use gs_core::study::study::{MAX_STUDY_FACTS, deadline_study_topic_ids, fact_space_order, study_topics, topic_study};
 use gs_core::study::topic_end::{lesson_stop, topic_stop_times};
 use gs_json::{Json, Obj, json};
 use parking_lot::Mutex;
@@ -218,6 +219,11 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 		}
 	}
 	let topics = app.stores.graphs.read_topics(scope)?.unwrap_or(Json::Null);
+	let path = record.as_ref().map_or(Json::Null, |r| r["path"].clone());
+	let studied_today = match scope {
+		Some(id) if !path.is_null() => studied_on(app, id, &today).into_iter().map(Json::from).collect(),
+		_ => Vec::new(),
+	};
 	let input = json!({
 		"spaceId": scope,
 		"today": today,
@@ -232,6 +238,8 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 		"finishedToday": finished_today,
 		"mockAnswers": scope.map_or_else(Vec::new, |id| space_mock_answers(app, id)),
 		"grouping": scope.is_some_and(|id| topic_grouping_running(app, id)),
+		"path": path,
+		"studiedToday": studied_today,
 	});
 	Ok(Some(derive_progress(&input)))
 }
@@ -292,6 +300,52 @@ pub fn deadline_study_for(app: &App, space_id: &str, deadline_id: &str) -> Resul
 	let topic_ids = deadline_study_topic_ids(today, deadline, progress["topics"].items(), &reviewed);
 	let study = topic_study_in(app, Some(space_id), &progress, &topic_ids, Some(&studied));
 	Ok(Some(DeadlineStudy { name: deadline["name"].str_or_empty().to_owned(), topics: study.topics, picks: study.picks }))
+}
+
+/// A space's path with where the learner stands on each topic and the topic Study takes next
+/// (the Progress payload's `path`); None when the space has no path.
+pub fn path_for(app: &App, space_id: &str) -> Result<Option<Json>, String> {
+	if app.stores.spaces.get_space(space_id).is_none_or(|r| r.get("path").is_none()) {
+		return Ok(None);
+	}
+	Ok(progress_for(app, space_id, None)?.and_then(|p| p.get("path").cloned()))
+}
+
+/// A Study start on one path topic: the topic as a study topic (its standing from the answers
+/// given on it), the facts born in earlier lessons on it as picks, and the note on its place.
+pub struct PathStudy {
+	pub topic: Json,
+	pub picks: Vec<Json>,
+	pub note: String,
+}
+
+/// None when the space's path has no such topic.
+pub fn path_study_for(app: &App, space_id: &str, topic_id: &str) -> Result<Option<PathStudy>, String> {
+	let Some(path) = path_for(app, space_id)? else { return Ok(None) };
+	let topics = path["topics"].items();
+	let Some(at) = topics.iter().position(|t| t["id"].as_str() == Some(topic_id)) else { return Ok(None) };
+	let t = &topics[at];
+	let lessons: HashSet<String> = space_lessons(app, space_id)
+		.iter()
+		.filter_map(|c| app.stores.chats.get_chat(c["id"].str_or_empty()))
+		.filter(|c| c["tree"]["nodes"].items().iter().any(|n| n["id"].as_str() == Some(topic_id)))
+		.filter_map(|c| c["id"].as_str().map(str::to_owned))
+		.collect();
+	let graph = get_graph(graph_store_for(app, Some(space_id)).as_ref())?;
+	let picks: Vec<Json> = graph
+		.nodes
+		.iter()
+		.filter(|f| f["provenance"].items().iter().any(|p| p["chatId"].as_str().is_some_and(|c| lessons.contains(c))))
+		.take(MAX_STUDY_FACTS)
+		.map(|f| json!({ "id": f["id"], "name": f["name"], "statement": f["statement"] }))
+		.collect();
+	let mut topic = Obj::new();
+	for key in ["id", "name", "status"] {
+		topic.insert(key, t[key].clone());
+	}
+	topic.insert("factIds", picks.iter().map(|p| p["id"].clone()).collect::<Json>());
+	let note = path_lesson_note(path["goal"].str_or_empty(), at + 1, topics.len(), t["covers"].str_or_empty());
+	Ok(Some(PathStudy { topic: Json::Obj(topic), picks, note }))
 }
 
 /// The plan nodes of the space's study sessions created on `day` (the learner's local day).

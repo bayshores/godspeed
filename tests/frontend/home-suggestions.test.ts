@@ -1,12 +1,12 @@
 /**
  * Home's "Suggested for <space>" rows: which lesson is
- * Continue, Next up, which Work-on-next list counts (the soonest open
+ * Continue, Next up (a path's next topic before the next file), which Work-on-next list counts (the soonest open
  * deadline with files, else the space's), the two-row cap, and the
  * Continue step.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { DeadlineProgress, LessonProgress, PlanTree, ProgressPayload, TopicProgress, WorkOnNextItem } from "../../src/shared/core/index.ts";
+import type { DeadlineProgress, LessonProgress, PathTopicProgress, PlanTree, ProgressPayload, TopicProgress, WorkOnNextItem } from "../../src/shared/core/index.ts";
 import { planStepBar } from "../../src/shared/core/index.ts";
 import {
 	homeSuggestions,
@@ -100,6 +100,15 @@ describe("homeSuggestions", () => {
 		assert.deepEqual(rows.map((r) => r.kind), ["continue", "next-up", "work-on-next"]);
 		assert.equal(rows[0]!.kind === "continue" && rows[0]!.lesson.chatId, "newest");
 		assert.equal(rows[1]!.kind === "next-up" && rows[1]!.file.fileId, "f4");
+	});
+
+	it("in a space with a path, Next up is the topic its Study takes, with its place", () => {
+		const step = (id: string, name: string): PathTopicProgress => ({ id, name, covers: "c", answered: 0, right: 0, wrong: 0, dontKnow: 0, rate: null, status: "untested", color: "var(--lh-ink-3)" });
+		const file = { fileId: "f4", name: "Lecture 4.pdf", facts: 22, inLessons: 0, share: 0 };
+		const rows = homeSuggestions(payload({ nextUp: file, path: { goal: "backend developer", topics: [step("p1", "Git"), step("p2", "HTTP")], nextId: "p2" } }));
+		assert.deepEqual(rows.map((r) => r.kind), ["path"]);
+		assert.equal(suggestionLine(rows[0]!, null), "Next up, 2 of 2 on the path");
+		assert.equal(suggestionKey(rows[0]!), "path:p2");
 	});
 
 	it(`at most ${WORK_ON_NEXT_ROWS} Work-on-next rows, each with its topic`, () => {

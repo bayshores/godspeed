@@ -9,8 +9,9 @@ const ACTION = "lh-btn shrink-0 text-[15px]";
 
 /**
  * "Suggested for <space>": Continue (the latest lesson, Open), Next up
- * (the earliest unstudied file, Study) and Work on next (topics,
- * Study). Renders nothing when there is nothing to suggest.
+ * (the path's next topic or the earliest unstudied file, Study) and Work
+ * on next (topics, Study). Renders nothing when there is nothing to
+ * suggest.
  */
 export const SuggestionList = memo(function SuggestionList({
 	spaceLabel: label,
@@ -19,6 +20,7 @@ export const SuggestionList = memo(function SuggestionList({
 	busy,
 	onStudyFile,
 	onStudyTopic,
+	onStudyPath,
 }: {
 	/** The space's name; null = no space. */
 	spaceLabel: string | null;
@@ -28,6 +30,7 @@ export const SuggestionList = memo(function SuggestionList({
 	busy: boolean;
 	onStudyFile: (file: FileCoverage) => void;
 	onStudyTopic: (topic: TopicProgress) => void;
+	onStudyPath: (topicId: string) => void;
 }) {
 	if (suggestions.length === 0) return null;
 	return (
@@ -35,7 +38,7 @@ export const SuggestionList = memo(function SuggestionList({
 			<h2 className="border-b-[1.5px] border-ink pb-1.5 text-xl leading-tight text-ink">{label ? `Suggested for ${label}` : "Suggested"}</h2>
 			<ul className="flex w-full flex-col">
 				{suggestions.map((s) => (
-					<SuggestionRow key={suggestionKey(s)} suggestion={s} step={step} busy={busy} onStudyFile={onStudyFile} onStudyTopic={onStudyTopic} />
+					<SuggestionRow key={suggestionKey(s)} suggestion={s} step={step} busy={busy} onStudyFile={onStudyFile} onStudyTopic={onStudyTopic} onStudyPath={onStudyPath} />
 				))}
 			</ul>
 		</section>
@@ -48,12 +51,14 @@ const SuggestionRow = memo(function SuggestionRow({
 	busy,
 	onStudyFile,
 	onStudyTopic,
+	onStudyPath,
 }: {
 	suggestion: Suggestion;
 	step: LessonStep | null;
 	busy: boolean;
 	onStudyFile: (file: FileCoverage) => void;
 	onStudyTopic: (topic: TopicProgress) => void;
+	onStudyPath: (topicId: string) => void;
 }) {
 	let title: string;
 	let action: ReactNode;
@@ -68,6 +73,14 @@ const SuggestionRow = memo(function SuggestionRow({
 		title = displayName(s.file.name);
 		action = (
 			<button type="button" data-testid="home-study-file" disabled={busy} onClick={() => onStudyFile(s.file)} className={ACTION}>
+				Study
+			</button>
+		);
+	} else if (s.kind === "path") {
+		const topicId = s.topic.id;
+		title = s.topic.name;
+		action = (
+			<button type="button" data-testid="home-study-path" disabled={busy} onClick={() => onStudyPath(topicId)} className={ACTION}>
 				Study
 			</button>
 		);

@@ -58,6 +58,7 @@ Questions from older lessons come back when they're due, and godspeed asks and g
 | Spaces | One for each thing you study, like a course, a certification or a language. Each has its own lessons, files, graph, deadlines and cheat sheets. |
 | Files | PDFs, Word and PowerPoint files, EPUB books, notes, code, transcripts and lecture recordings. Or link a folder, Google Drive works too. |
 | Deadlines | Exams, homework, quizzes, projects and interviews. Today shows the next one big, with a button to start studying for it. |
+| Paths | No syllabus? Tell your agent your goal, like "I want to become a backend developer", and it writes a path of topics in order. Study takes the next one you haven't got down yet. |
 | Knowledge graph | What you've learned, grouped into topics and colored by how often you get it right. |
 | Progress | How ready you are for each deadline, and whether your confidence matches your results. |
 | Homework | Attach the assignment and the teacher goes through it one problem at a time. It gives you hints but never the answer. |

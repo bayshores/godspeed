@@ -233,8 +233,8 @@ impl SpaceStore {
 		self.get_space(id).ok_or_else(|| format!("Space not found: {id}"))
 	}
 
-	/// A new space from `init`: `name`, and optionally `description`, `signature` and `icon`. It
-	/// takes the color the fewest other spaces wear.
+	/// A new space from `init`: `name`, and optionally `description`, `signature`, `icon` and a
+	/// cleaned `path`. It takes the color the fewest other spaces wear.
 	pub fn create_space(&self, init: &Json) -> Result<Json, String> {
 		let now = time::iso_now();
 		let id = ids::timed("spc");
@@ -246,7 +246,7 @@ impl SpaceStore {
 		record.insert("updatedAt", now);
 		record.insert("closed", false);
 		record.insert("files", Json::Arr(Vec::new()));
-		for key in ["signature", "icon"] {
+		for key in ["signature", "icon", "path"] {
 			if init[key].truthy() {
 				record.insert(key, init[key].clone());
 			}
@@ -279,8 +279,8 @@ impl SpaceStore {
 	}
 
 	/// Merges a patch (`name`, `description`, `closed`, `rules`, `linkedFolder`, `signature`,
-	/// `icon`, `color`, `note`; `null` unlinks the folder and clears the signature) and bumps
-	/// `updatedAt`.
+	/// `icon`, `color`, `note`, a cleaned `path`; `null` unlinks the folder and clears the
+	/// signature) and bumps `updatedAt`.
 	pub fn update_space(&self, id: &str, patch: &Json) -> Result<Json, String> {
 		let _guard = self.locks.lock(LockKey::Space(id));
 		let mut record = self.require_space(id)?;
@@ -313,7 +313,7 @@ impl SpaceStore {
 				None => {}
 			}
 		}
-		for key in ["icon", "color", "note"] {
+		for key in ["icon", "color", "note", "path"] {
 			obj.insert_present(key, patch.get(key));
 		}
 		// A new note alone doesn't count as an edit: the space list is ordered by updatedAt and
@@ -482,10 +482,10 @@ mod tests {
 		let made = store.create_space(&json!({ "name": "  Math   101 ", "description": " Discrete " })).unwrap();
 		let id = made["id"].as_str().unwrap().to_owned();
 		assert_eq!(made["name"], Json::from("Math 101"));
-		assert_eq!(made["version"], Json::from(11));
+		assert_eq!(made["version"], Json::from(12));
 		assert!(rx.try_recv().is_ok());
 		let on_disk = std::fs::read_to_string(root.join(&id).join("space.json")).unwrap();
-		assert!(on_disk.starts_with("{\n\t\"id\": \"spc_") && on_disk.ends_with("\n}") && on_disk.contains("\"version\": 11"));
+		assert!(on_disk.starts_with("{\n\t\"id\": \"spc_") && on_disk.ends_with("\n}") && on_disk.contains("\"version\": 12"));
 
 		let updated = store.update_space(&id, &json!({ "rules": ["Be brief"], "icon": "cpu", "linkedFolder": "/x" })).unwrap();
 		assert_eq!(stringify(&updated["rules"]), r#"["Be brief"]"#);
@@ -511,6 +511,18 @@ mod tests {
 		assert_eq!(noted["updatedAt"], made["updatedAt"]);
 		let renamed = store.update_space(id, &json!({ "name": "B" })).unwrap();
 		assert_ne!(renamed["updatedAt"], made["updatedAt"]);
+	}
+
+	#[test]
+	fn a_path_is_saved_on_create_and_replaced_on_update() {
+		let (store, _, _) = store();
+		let path = |name: &str| json!({ "goal": "backend developer", "topics": [{ "id": "pth_1", "name": name, "covers": "c" }] });
+		let id = store.create_space(&json!({ "name": "Backend", "path": path("Git") })).unwrap()["id"].as_str().unwrap().to_owned();
+		assert_eq!(store.get_space(&id).unwrap()["path"], path("Git"));
+		store.update_space(&id, &json!({ "path": path("SQL") })).unwrap();
+		assert_eq!(store.get_space(&id).unwrap()["path"], path("SQL"));
+		store.update_space(&id, &json!({ "name": "Back end" })).unwrap();
+		assert_eq!(store.get_space(&id).unwrap()["path"], path("SQL"), "a patch without a path keeps it");
 	}
 
 	#[test]
@@ -552,7 +564,7 @@ mod tests {
 		let id = store.create_space(&json!({ "name": "A" })).unwrap()["id"].as_str().unwrap().to_owned();
 		let file = root.join(&id).join("space.json");
 		let text = std::fs::read_to_string(&file).unwrap();
-		fsx::write_text_atomic(&file, &text.replace("\"version\": 11", "\"version\": 12")).unwrap();
+		fsx::write_text_atomic(&file, &text.replace("\"version\": 12", "\"version\": 13")).unwrap();
 		assert!(store.get_space(&id).is_none());
 		fsx::write_text_atomic(&file, "{ nope").unwrap();
 		assert!(store.get_space(&id).is_none() && store.list_spaces().is_empty());
@@ -616,9 +628,9 @@ mod tests {
 		fsx::write_text_atomic(&root.join("cls_e1").join("space.json"), &colored).unwrap();
 		fsx::write_text_atomic(&root.join("cls_e2").join("class.json"), &old_record("cls_e2").replace("\t\"color\": 1,\n", "")).unwrap();
 		let record = store.get_space("cls_e2").unwrap();
-		assert_eq!((record["color"].clone(), record["version"].clone()), (Json::from(2), Json::from(11)));
+		assert_eq!((record["color"].clone(), record["version"].clone()), (Json::from(2), Json::from(12)));
 		let saved = std::fs::read_to_string(root.join("cls_e2").join("space.json")).unwrap();
-		assert!(saved.contains("\"closed\": true,\n\t\"files\": [],\n\t\"color\": 2,\n\t\"version\": 11\n}"));
+		assert!(saved.contains("\"closed\": true,\n\t\"files\": [],\n\t\"color\": 2,\n\t\"version\": 12\n}"));
 		assert!(!root.join("cls_e2").join("class.json").exists());
 		assert!(rx.try_recv().is_err(), "a read is quiet");
 		// The colored one is only read.
@@ -735,7 +747,7 @@ mod tests {
 		store.update_space("cls_b1", &json!({ "name": "New" })).unwrap();
 		assert_eq!(names(&dir), ["space.json"]);
 		let saved = std::fs::read_to_string(dir.join("space.json")).unwrap();
-		assert!(saved.contains("\"name\": \"New\"") && saved.ends_with("\"version\": 11\n}"));
+		assert!(saved.contains("\"name\": \"New\"") && saved.ends_with("\"version\": 12\n}"));
 		// space.json wins over a class.json left beside it.
 		fsx::write_text_atomic(&dir.join("class.json"), &old_record("cls_b1")).unwrap();
 		assert_eq!(store.get_space("cls_b1").unwrap()["name"], Json::from("New"));

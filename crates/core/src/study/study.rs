@@ -121,6 +121,18 @@ pub fn study_topics(picked: &[String], topics: &[Json], space_order: &HashMap<St
 	in_space_order(groups, space_order)
 }
 
+/// Where a topic stands on a Study click that moves on, lowest first: not strong and not studied
+/// today, then not strong but studied today, then strong.
+pub fn study_tier(status: &str, id: &str, studied_today: &HashSet<String>) -> u8 {
+	if status == "strong" {
+		2
+	} else if studied_today.contains(id) {
+		1
+	} else {
+		0
+	}
+}
+
 /// A session on space topics (a Study start on topics or on a deadline): each topic with its
 /// facts, the ones to fix first. Whole topics fill the session until the next one would pass
 /// `MAX_STUDY_FACTS` facts (always at least one; one bigger than that keeps its first
@@ -147,12 +159,7 @@ pub fn topic_study(topic_ids: &[String], topics: &[Json], facts: &[Json], space_
 		}
 	}
 	let candidates = in_space_order(found, space_order);
-	let tier = |t: &Json| match studied_today {
-		None => 0,
-		Some(_) if t["status"].as_str() == Some("strong") => 2,
-		Some(today) if t["id"].as_str().is_some_and(|id| today.contains(id)) => 1,
-		Some(_) => 0,
-	};
+	let tier = |t: &Json| studied_today.map_or(0, |today| study_tier(t["status"].str_or_empty(), t["id"].str_or_empty(), today));
 	let mut order: Vec<usize> = (0..candidates.len()).collect();
 	order.sort_by_key(|&i| tier(&candidates[i]));
 	let mut kept = vec![false; candidates.len()];

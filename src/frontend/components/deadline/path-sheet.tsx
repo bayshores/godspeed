@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
-import { deadlineStudyLabel, hasProblems, nothingMorePlannedLine, rampColor, topicStatus, type DeadlineProgress, type PlanDay } from "@/shared/core";
+import { deadlineStudyLabel, hasProblems, nothingMorePlannedLine, topicStatus, type DeadlineProgress, type PlanDay } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
-import { rightLabel, type Material, type TopicTally } from "./deadline-model";
+import type { Material, TopicTally } from "./deadline-model";
+import { RampRow } from "./ramp-row";
 import { RULE, SHEET, SHEET_TITLE } from "./styles";
 
 /**
@@ -83,12 +84,8 @@ export function PathSheet({
 								)}
 								<ul className="flex flex-col gap-1">
 									{day.topics.map((t) => (
-										<li key={t.id} className="flex min-w-0 items-center gap-2">
-											<span className="size-2.5 shrink-0" style={{ background: rampColor(t.rate) }} aria-hidden />
-											<span title={t.name} className="min-w-0 flex-1 truncate text-[15px] text-ink">
-												{t.name}
-											</span>
-											{(tallies.get(t.id)?.answered ?? 0) > 0 && <span className="shrink-0 text-base text-ink-2">{rightLabel(tallies.get(t.id))}</span>}
+										<li key={t.id}>
+											<RampRow name={t.name} rate={t.rate} tally={tallies.get(t.id)} />
 										</li>
 									))}
 								</ul>

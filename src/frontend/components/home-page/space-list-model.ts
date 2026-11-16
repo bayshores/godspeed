@@ -1,5 +1,5 @@
 /** Today's "Your spaces": each open space's topics by status, in words, and the new files its linked folder brought. Pure. */
-import { isNewFolderFile, localDay, rampColor, type ProgressPayload, type SpaceFile, type StatusCounts } from "@/shared/core";
+import { isNewFolderFile, localDay, pathNext, rampColor, type ProgressPayload, type SpaceFile, type StatusCounts } from "@/shared/core";
 import { STATUS_LEGEND } from "@/frontend/components/overview/overview-model";
 
 interface Segment {
@@ -11,13 +11,13 @@ interface Segment {
 interface SpaceRowWords {
 	/** The topic bar, strongest first; empty with no topics. */
 	segments: Segment[];
-	/** "18 topics, 9 strong, 3 shaky, 6 not tested" (the Graph page's words, zeros left out), why there are no topics yet, or empty while loading. */
+	/** "18 topics, 9 strong, 3 shaky, 6 not tested" (the Graph page's words, zeros left out), why there are no topics yet (a path's next topic with no study files), or empty while loading. */
 	line: string;
 }
 
 /** A space's row: its topic bar and the counts, or why it has no topics
  *  yet. With no progress it is still loading, unless its read `failed`. */
-export function spaceRow(progress: Pick<ProgressPayload, "overall" | "files" | "facts"> | undefined, failed: boolean): SpaceRowWords {
+export function spaceRow(progress: Pick<ProgressPayload, "overall" | "files" | "facts" | "path"> | undefined, failed: boolean): SpaceRowWords {
 	if (!progress) return { segments: [], line: failed ? "Couldn't load its progress." : "" };
 	const counts = progress.overall.counts;
 	const shown = STATUS_LEGEND.filter((s) => counts[s.key] > 0);
@@ -27,7 +27,10 @@ export function spaceRow(progress: Pick<ProgressPayload, "overall" | "files" | "
 		const parts = shown.map((s) => `${counts[s.key]} ${s.label}`);
 		return { segments, line: [`${total} ${total === 1 ? "topic" : "topics"}`, ...parts].join(", ") };
 	}
-	if (progress.files.length === 0) return { segments, line: "No study files yet." };
+	if (progress.files.length === 0) {
+		const onPath = progress.path ? pathNext(progress.path) : null;
+		return { segments, line: onPath ? `Next up: ${onPath.topic.name}` : "No study files yet." };
+	}
 	// Short, so the row keeps room for the name; the work chip says what happens next.
 	if (progress.facts.length === 0) return { segments, line: "No facts yet." };
 	return { segments, line: "Its facts are not grouped into topics yet." };

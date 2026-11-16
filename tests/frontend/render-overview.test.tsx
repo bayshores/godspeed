@@ -4,7 +4,7 @@
  * needed, Pick up where you left off, How lessons went (one square per
  * answer, score, lesson links), the confidence chart (target lines, red
  * where a sure level falls short, takeaway, sure-but-wrong links into the
- * lesson), the no-space variant, and the clicks.
+ * lesson), the space's path, the no-space variant, and the clicks.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -14,7 +14,7 @@ import { afterEach, describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import type { AnswerOutcome, AnswerRef, CalibrationLevel, DeadlineProgress, FileCoverage, LessonProgress, ProgressPayload } from "../../src/shared/core/index.ts";
+import type { AnswerOutcome, AnswerRef, CalibrationLevel, DeadlineProgress, FileCoverage, LessonProgress, PathProgress, PathTopicProgress, ProgressPayload } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, {
@@ -139,6 +139,7 @@ function body(props: Partial<Props> = {}) {
 				busy={false}
 				startError={null}
 				onStudy={() => {}}
+				onStudyPath={() => {}}
 				onStartDeadline={() => {}}
 				onAddDeadline={() => {}}
 				{...props}
@@ -247,6 +248,42 @@ describe("The next deadline", () => {
 		assert.match(tag(render({ busy: true }), "next-deadline-start"), /disabled=""/);
 		assert.match(render({ startError: "Couldn't start the lesson. Try again." }), /data-testid="start-error"[^>]*>Couldn&#x27;t start the lesson\. Try again\.</);
 		assert.ok(!render().includes("start-error"));
+	});
+});
+
+// ─── the path ───────────────────────────────────────────────────────────────
+
+function pathTopic(n: number, status: PathTopicProgress["status"] = "untested"): PathTopicProgress {
+	const answered = status === "untested" ? 0 : 1;
+	const right = status === "strong" ? 1 : 0;
+	return { id: `pth_${n}`, name: `Topic ${n}`, covers: `What topic ${n} covers.`, answered, right, wrong: answered - right, dontKnow: 0, rate: answered ? right : null, status, color: "var(--lh-ink-3)" };
+}
+
+/** A path of `count` topics, the first `strong` of them strong. */
+function path(count: number, strong: number): PathProgress {
+	const topics = Array.from({ length: count }, (_, i) => pathTopic(i + 1, i < strong ? "strong" : "untested"));
+	return { goal: "backend developer", topics, nextId: topics[strong < count ? strong : 0]!.id };
+}
+
+describe("The path", () => {
+	it("comes first: the goal and place, the topic Study takes with what it covers, then the next three", () => {
+		const html = render({ data: { ...PAYLOAD, deadlines: DEADLINES, facts: FACTS, path: path(28, 3) } });
+		assert.ok(html.indexOf('data-testid="space-path"') < html.indexOf('data-testid="next-deadline"'));
+		assert.match(text(section(html, "space-path")), /> Path to backend developer, 4 of 28 Topic 4 What topic 4 covers\. Study Topic 5 Topic 6 Topic 7 Show all 28 $/);
+	});
+
+	it("in a space with no deadline it takes the place of No deadlines yet", () => {
+		const html = render({ data: { ...PAYLOAD, path: path(3, 0) } });
+		assert.ok(!html.includes("next-deadline"));
+		assert.match(text(section(html, "space-path")), /> Path to backend developer, 1 of 3 Topic 1 What topic 1 covers\. Study Topic 2 Topic 3 $/, "nothing left out: no Show all");
+	});
+
+	it("once every topic is strong it says so, with no place", () => {
+		assert.match(text(section(render({ data: { ...PAYLOAD, path: path(2, 2) } }), "space-path")), /> Path to backend developer Every topic is strong\. Study them to keep it that way\. Topic 1 1 of 1 right/);
+	});
+
+	it("no path: no block", () => {
+		assert.ok(!render().includes("space-path"));
 	});
 });
 
@@ -380,6 +417,17 @@ describe("clicks", () => {
 		await click(el, "next-deadline-start");
 		await click(el, "most-needed-study");
 		assert.deepEqual(started, ["d1", "t1"]);
+	});
+
+	it("the path's Study starts its next topic; Show all opens the rest in place", async () => {
+		const started: string[] = [];
+		const el = await mount({ data: { ...PAYLOAD, path: path(8, 1) }, onStudyPath: (id) => started.push(id) });
+		await click(el, "space-path-study");
+		assert.deepEqual(started, ["pth_2"]);
+		assert.equal(el.querySelectorAll('[data-testid="space-path-rows"] li').length, 3);
+		await click(el, "space-path-show-all");
+		assert.equal(el.querySelectorAll('[data-testid="space-path-rows"] li').length, 7, "every other topic");
+		assert.equal(el.querySelector('[data-testid="space-path-show-all"]'), null);
 	});
 
 	it("Add a deadline, with none", async () => {

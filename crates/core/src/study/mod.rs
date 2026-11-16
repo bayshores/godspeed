@@ -16,6 +16,7 @@ mod answers;
 mod calibration;
 mod derive_progress;
 mod fact_progress;
+mod path_progress;
 mod sheet_cards;
 mod sheet_parse;
 mod sheet_request;

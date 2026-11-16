@@ -8,6 +8,7 @@ Started from:
 - Start on a Today row, or Study on a deadline page
 - "study these N", "study <topic>" or "practice this fact" on Graph tab, or Study on Progress tab
 - "Go over it with the teacher" on a mock's results
+- Study on a space's path (§6.3)
 - "Start from facts" (chain table in select mode, `src/frontend/components/home/facts-picker.tsx`)
 - MCP `start_lesson` tool
 

@@ -4,8 +4,8 @@
  * A screen opens at `url`, waits for `ready`, runs `setup` in the page (clicks), then waits for
  * `shows`. `ready` and `shows` name something drawn from the screen's data, not its frame, so the
  * check never runs on a screen still loading. `before` runs in the page first, on the screen
- * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}` and
- * `{deadline}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
+ * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
+ * `{deadline}` and `{pathSpace}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
 export const WIDTHS = [1440, 1100, 800];
@@ -69,6 +69,14 @@ export const SCREENS = [
 	},
 	{ name: "Today with no deadline", before: `await fetch("/api/spaces/{space}/deadlines/{deadline}", { method: "DELETE" })${HTTP_OK}`, url: "/", ready: "[data-testid=today-empty]" },
 	{ name: "Today on a busy day", before: busyDay, url: "/", ready: "[data-testid=today-list] [data-testid^=today-done-row]", shows: "[data-testid=later-list]" },
+	{
+		name: "Progress with a path, all shown",
+		before: `const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, activeSpace: "{pathSpace}" }) })${HTTP_OK}`,
+		url: "/space",
+		ready: "[data-testid=space-path-show-all]",
+		setup: `document.querySelector("[data-testid=space-path-show-all]").click()`,
+		shows: "[data-testid=space-path-rows] li:nth-child(7)",
+	},
 	{
 		name: "Onboarding",
 		before: `const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, onboarded: false }) })${HTTP_OK}`,

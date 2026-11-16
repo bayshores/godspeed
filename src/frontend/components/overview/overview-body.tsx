@@ -5,13 +5,15 @@ import { ConfidenceCard } from "./confidence-card";
 import { LessonsCard } from "./lessons-card";
 import { MostNeeded } from "./most-needed";
 import { NextDeadline } from "./next-deadline";
+import { PathBlock } from "./path-block";
 import { answeredLessons, hasCalibration, mostNeeded, recentLessons, upcomingDeadlines } from "./overview-model";
 import { RecentLessons } from "./recent-lessons";
 import { TeacherNote } from "./teacher-note";
 
 /**
  * The Progress tab under the space head (pure view, the render-test seam),
- * top to bottom: the teacher's note, the next deadline, "Most needed",
+ * top to bottom: the space's path, the teacher's note, the next deadline
+ * (with no deadline at all the path takes its place), "Most needed",
  * "Pick up where you left off", the fact grid, "How lessons went" and the
  * confidence chart. Each shows only once it has something to show; a
  * space's deadline, topic and facts are left out for "Lessons with no space".
@@ -25,6 +27,7 @@ export const OverviewBody = memo(function OverviewBody({
 	busy,
 	startError,
 	onStudy,
+	onStudyPath,
 	onStartDeadline,
 	onAddDeadline,
 	waiting,
@@ -43,6 +46,8 @@ export const OverviewBody = memo(function OverviewBody({
 	startError: string | null;
 	/** "Most needed" → Study. */
 	onStudy: (topicId: string) => void;
+	/** The path's Study, on its next topic. */
+	onStudyPath: (topicId: string) => void;
 	/** The next deadline's button. */
 	onStartDeadline: (d: DeadlineProgress) => void;
 	/** "Add a deadline" (opens the Deadlines tab). */
@@ -59,9 +64,10 @@ export const OverviewBody = memo(function OverviewBody({
 	return (
 		<div data-testid="space-overview" className="mx-auto flex w-full max-w-[908px] flex-col gap-[22px] px-6 pt-[22px] pb-9">
 			{pickSpace}
+			{hasSpace && data?.path && <PathBlock path={data.path} busy={busy} onStudy={onStudyPath} />}
 			{note && <TeacherNote note={note} nowMs={nowMs} />}
 			{waiting}
-			{hasSpace && data && nowMs !== null && (
+			{hasSpace && data && nowMs !== null && !(data.path && data.deadlines.length === 0) && (
 				<NextDeadline
 					deadline={upcoming[0] ?? null}
 					none={data.deadlines.length === 0 ? "No deadlines yet" : "Nothing is coming up."}

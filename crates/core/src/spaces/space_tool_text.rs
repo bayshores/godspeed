@@ -8,18 +8,18 @@ use crate::contracts::space::{SPACE_ICONS, SIGNATURE_MAX};
 /// Each tool's description, by tool name, in source order.
 pub const SPACE_TOOL_TEXT: [(&str, &str); 13] = [
 	("list_spaces", "List learner's spaces, closed ones included, with file and lesson counts."),
-	("read_space", "Read one space: description, file counts per status (pending, extracting, ready, failed, needs-whisper) and files that couldn't be read, knowledge-graph topics with fact counts, deadlines (kind, date, time, done, files each covers), lessons, today's local date and time. files: true lists every file instead (id, kind, status, size, path on disk). To find something inside files: search_space_files."),
+	("read_space", "Read one space: description, file counts per status (pending, extracting, ready, failed, needs-whisper) and files that couldn't be read, knowledge-graph topics with fact counts, deadlines (kind, date, time, done, files each covers), path (each topic's status, what the next covers), lessons, today's local date and time. files: true lists every file instead (id, kind, status, size, path on disk). To find something inside files: search_space_files."),
 	("search_space_files", "Search all of a space's files (readings, slides, transcripts, syllabus, assignments) by meaning and keywords. Returns best passages, each with id, file, place (page, slide, time or lines) and short snippet. Open needed ones with read_passage, not whole files."),
 	("read_passage", "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading."),
-	("create_space", "Create a space for one thing the learner studies (university course, certification, language). Description is shown to the teacher in every lesson of the space: level, book or source they follow, its notation, what they work toward (a course's exams, an interview). Add deadlines with add_space_deadline."),
-	("update_space", "Rename a space, change description, signature or icon, or close / reopen it (closing hides its tab, keeps everything; closed space takes no new lessons)."),
+	("create_space", "Create a space for one thing the learner studies (university course, certification, language). Description is shown to the teacher in every lesson of the space: level, book or source they follow, its notation, what they work toward (a course's exams, an interview). Add deadlines with add_space_deadline. A goal with no syllabus (a job, a skill): send path, the topics toward it in order, leaving out what the learner already knows."),
+	("update_space", "Rename a space, change description, signature, icon or path, or close / reopen it (closing hides its tab, keeps everything; closed space takes no new lessons)."),
 	("add_space_file", "Copy a file from this computer into a space, or write one with name and text instead of path (one you wrote before by that name is replaced, keeps its id). Supported: .md .txt, code files (.c .py .java .js and the like), plain text with no extension, .pdf .docx .pptx .epub, .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Google Docs links (.gdoc) need saving as PDF or Word first. Study files are turned into facts by you, through wait_for_work."),
 	("set_space_file_kind", "Switch space files between study material and space info. Study → info removes their facts; info → study builds them. File that can't switch is listed under refused; others still switch."),
 	("add_space_deadline", "Add one or more deadlines to a space (all of a space's deadlines in one call): exams, homework, quizzes, projects, interviews, each with date, time if any, and which space files (notes, readings) it covers. godspeed uses it to show the learner what's due and what to work on first. Take deadlines, dates and times from space info files (syllabus, schedule); never make up a date or time. Work out coverage from the space's own files first: practice exam or review sheet, schedule, announcements (search_space_files). Link files they point to (file_ids), list earlier files it doesn't cover in left_out_ids, name in source the file it came from. Ask only when files don't settle it. File ids from read_space with files: true. Refused deadlines are listed under refused with the reason; others still get added, so resend only refused ones. Interview: add the posting as space info, the interview with date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids."),
 	("update_space_deadline", "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick done (done: true) / not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from space's own files as add_space_deadline says; ask the learner when files don't settle it."),
 	("remove_space_deadline", "Remove one deadline from a space (its files and facts untouched)."),
 	("link_space_folder", "Link a folder on this computer to a space. Supported files are added; from then on new files dropped there are added automatically and edited ones rebuilt (checked every minute while godspeed is open). godspeed sorts them into study material and space info itself while reading, never changes the folder. set_space_file_kind only to correct a kind."),
-	("start_lesson", "Start a new study session in godspeed taught by you: teach what's new, give problems on what needs practice. Topic becomes the learner's first message. With space_id the lesson belongs to that space: opens with the space's card, its facts go to that space's graph. You teach it through wait_for_work; learner follows in the godspeed window."),
+	("start_lesson", "Start a new study session in godspeed taught by you: teach what's new, give problems on what needs practice. Topic becomes the learner's first message. With space_id the lesson belongs to that space: opens with the space's card, its facts go to that space's graph. A path topic's name as topic studies that topic. You teach it through wait_for_work; learner follows in the godspeed window."),
 ];
 
 /// The argument descriptions both tool schemas share.
@@ -53,6 +53,9 @@ pub struct SpaceArgText {
 	pub new_time: &'static str,
 	pub topic: &'static str,
 	pub lesson_space: &'static str,
+	pub path: &'static str,
+	pub path_goal: &'static str,
+	pub path_covers: &'static str,
 }
 
 pub static SPACE_ARG_TEXT: LazyLock<SpaceArgText> = LazyLock::new(|| SpaceArgText {
@@ -85,4 +88,7 @@ pub static SPACE_ARG_TEXT: LazyLock<SpaceArgText> = LazyLock::new(|| SpaceArgTex
 	new_time: "24-hour \"HH:MM\", or null to remove the time.",
 	topic: "What the learner wants to study, in their words.",
 	lesson_space: "The space id from list_spaces, or \"none\" for lessons without a space (the default).",
+	path: "Topics toward a goal with no syllabus, in order, in your own words. Sending it replaces the list; a topic keeps its progress while its name stays.",
+	path_goal: "What the learner works toward, read after \"Path to\", e.g. \"backend developer\".",
+	path_covers: "One line on what the topic covers.",
 });

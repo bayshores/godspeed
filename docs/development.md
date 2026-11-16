@@ -222,7 +222,7 @@ Everything under `data/` is plain JSON or JSONL, never tracked by git. Read thes
 | Record | Current version | Where |
 |---|---|---|
 | Chat | 3 | `CURRENT_CHAT_VERSION`, `crates/core/src/contracts/chat.rs` |
-| Space | 11 | `CURRENT_SPACE_VERSION`, `crates/core/src/contracts/space.rs` |
+| Space | 12 | `CURRENT_SPACE_VERSION`, `crates/core/src/contracts/space.rs` |
 | Settings | 3 | `CURRENT_SETTINGS_VERSION`, `crates/core/src/records/settings.rs` |
 | Graph family (`graph/format.json`) | 1 | `CURRENT_GRAPH_FORMAT_VERSION`, `crates/core/src/contracts/graph.rs` |
 

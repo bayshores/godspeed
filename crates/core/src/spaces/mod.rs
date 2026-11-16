@@ -18,5 +18,6 @@ pub mod time_zone_names;
 pub mod deadline_requests;
 pub mod space_deadlines;
 pub mod prep_upgrade;
+pub mod space_path;
 pub mod space_record;
 pub mod space_work;

@@ -17,7 +17,12 @@ pub const SIGNATURE_MAX: usize = 60;
 pub const NOTE_MAX: usize = 280;
 /// v9: the record file is space.json (class.json before). v10: adds `prep`. v11: the "interview"
 /// kind, a deadline's `aboutFileId` and the space's `waitingDeadline`; `prep` is upgraded away.
-pub const CURRENT_SPACE_VERSION: i64 = 11;
+/// v12: the space's `path`.
+pub const CURRENT_SPACE_VERSION: i64 = 12;
+/// The most topics a path holds.
+pub const MAX_PATH_TOPICS: usize = 40;
+/// Longest path goal, in characters (it follows "Path to").
+pub const PATH_GOAL_MAX: usize = 40;
 pub const FILE_NOT_FOUND: &str = "The file could not be found";
 pub const DEADLINE_KINDS: [&str; 5] = ["exam", "homework", "quiz", "project", "interview"];
 

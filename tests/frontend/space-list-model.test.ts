@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import type { ProgressPayload } from "../../src/shared/core/index.ts";
 import { newFilesLine, spaceRow } from "../../src/frontend/components/home-page/space-list-model.ts";
 
-type RowInput = Pick<ProgressPayload, "overall" | "files" | "facts">;
+type RowInput = Pick<ProgressPayload, "overall" | "files" | "facts" | "path">;
 const counts = (strong: number, shaky: number, weak: number, untested: number) => ({ strong, shaky, weak, untested });
 const payload = (c = counts(0, 0, 0, 0), files = 1, facts = 1): RowInput => ({
 	overall: { topicIds: [], counts: c, workOnNext: [] },
@@ -25,6 +25,11 @@ describe("spaceRow", () => {
 		assert.equal(spaceRow(payload(undefined, 3, 0), false).line, "No facts yet.");
 		assert.equal(spaceRow(payload(undefined, 3, 40), false).line, "Its facts are not grouped into topics yet.");
 		assert.deepEqual(spaceRow(payload(undefined, 3, 0), false).segments, []);
+	});
+
+	it("a space with a path and no study files names the topic its Study takes", () => {
+		const git = { id: "p1", name: "Git", covers: "c", answered: 0, right: 0, wrong: 0, dontKnow: 0, rate: null, status: "untested" as const, color: "" };
+		assert.equal(spaceRow({ ...payload(undefined, 0, 0), path: { goal: "backend developer", topics: [git], nextId: "p1" } }, false).line, "Next up: Git");
 	});
 
 	it("a space whose progress failed to load says so; one still loading says nothing", () => {

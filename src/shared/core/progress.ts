@@ -298,6 +298,36 @@ export function daysBetween(today: string, date: string): number {
 	return Math.round((utc(date) - utc(today)) / 86_400_000);
 }
 
+// ─── the path toward a goal ─────────────────────────────────────────────────
+
+/** A topic on the space's path, tallied over the answers given on it (its
+ *  id is the plan node of its Study sessions). */
+export interface PathTopicProgress extends Tally {
+	id: string;
+	name: string;
+	/** One line on what it covers. */
+	covers: string;
+	status: TopicStatus;
+	/** rampColor(rate). */
+	color: string;
+}
+
+/** The space's path: its goal (it follows "Path to") and its topics in
+ *  order. `nextId` is the topic Study takes: the first one not strong and
+ *  not studied today. */
+export interface PathProgress {
+	goal: string;
+	topics: PathTopicProgress[];
+	nextId: string | null;
+}
+
+/** The topic Study takes and its place on the path (1 for the first); null
+ *  with none. */
+export function pathNext(path: PathProgress): { topic: PathTopicProgress; position: number } | null {
+	const at = path.topics.findIndex((t) => t.id === path.nextId);
+	return at < 0 ? null : { topic: path.topics[at]!, position: at + 1 };
+}
+
 // ─── the whole payload ──────────────────────────────────────────────────────
 
 /** GET /api/progress — everything the Overview and the Graph page need. */
@@ -322,5 +352,7 @@ export interface ProgressPayload {
 	overall: OverallProgress;
 	/** Totals over every graded answer in the space. */
 	totals: Tally;
+	/** Only in a space with a path. */
+	path?: PathProgress;
 }
 

@@ -49,10 +49,11 @@ export function NewLesson() {
 	const viewRef = useRef<HTMLDivElement>(null);
 	useRiseOnChange(viewRef, activeSpaceId);
 
-	const { start, studyTopics, studyDeadline } = lesson;
+	const { start, studyTopics, studyPathTopic, studyDeadline } = lesson;
 	const startTopic = () => void start({ title: topicRef.current, picks, files: attachments.files.map((f) => f.attachment) });
 	const studyFile = useCallback((file: FileCoverage) => void start({ title: displayName(file.name) }), [start]);
 	const studyTopic = useCallback((t: TopicProgress) => void studyTopics([t.id]), [studyTopics]);
+	const studyPath = useCallback((topicId: string) => void studyPathTopic(topicId), [studyPathTopic]);
 
 	const deadlines = useMemo(() => (progress?.deadlines ?? []).filter((d) => d.daysUntil >= 0 && !d.done), [progress]);
 	const suggestions = useMemo(() => homeSuggestions(progress), [progress]);
@@ -102,6 +103,7 @@ export function NewLesson() {
 						busy={lesson.busy}
 						onStudyFile={studyFile}
 						onStudyTopic={studyTopic}
+						onStudyPath={studyPath}
 					/>
 				</div>
 			</div>

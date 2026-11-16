@@ -76,6 +76,8 @@ pub async fn call_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Json {
 
 #[cfg(test)]
 mod tests {
+	use gs_core::contracts::space::{MAX_PATH_TOPICS, PATH_GOAL_MAX};
+	use gs_core::spaces::space_path::PATH_COVERS_MAX;
 	use gs_core::spaces::space_tools::{SPACE_ARG_TEXT, SPACE_TOOL_TEXT};
 	use gs_core::records::agent_notes::NOTE_MAX_CHARS;
 
@@ -109,6 +111,16 @@ mod tests {
 		let create = &input_schema("create_space").unwrap()["properties"];
 		assert_eq!(create["signature"]["description"].as_str(), Some(SPACE_ARG_TEXT.signature.as_str()));
 		assert_eq!(create["icon"]["description"].as_str(), Some(SPACE_ARG_TEXT.icon.as_str()));
+		for tool in ["create_space", "update_space"] {
+			let path = &input_schema(tool).unwrap()["properties"]["path"];
+			assert_eq!(path["description"].as_str(), Some(SPACE_ARG_TEXT.path), "{tool}");
+			assert_eq!(path["properties"]["goal"]["description"].as_str(), Some(SPACE_ARG_TEXT.path_goal), "{tool}");
+			assert_eq!(path["properties"]["goal"]["maxLength"].as_f64(), Some(PATH_GOAL_MAX as f64), "{tool}");
+			assert_eq!(path["properties"]["topics"]["maxItems"].as_f64(), Some(MAX_PATH_TOPICS as f64), "{tool}");
+			let covers = &path["properties"]["topics"]["items"]["properties"]["covers"];
+			assert_eq!(covers["description"].as_str(), Some(SPACE_ARG_TEXT.path_covers), "{tool}");
+			assert_eq!(covers["maxLength"].as_f64(), Some(PATH_COVERS_MAX as f64), "{tool}");
+		}
 		assert_eq!(input_schema("remember").unwrap()["properties"]["text"]["maxLength"].as_f64(), Some(NOTE_MAX_CHARS as f64));
 	}
 }

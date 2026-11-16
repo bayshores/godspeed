@@ -12,6 +12,7 @@ use gs_base::{clock, time};
 use gs_core::spaces::space_tools::{SpaceChange, ToolOutcome};
 use gs_core::spaces::today_note::local_day;
 use gs_core::contracts::space::{SIGNATURE_MAX, clean_signature, parse_space_scope, safe_name};
+use gs_core::spaces::space_path::{CleanPath, clean_path};
 use gs_json::{Json, Obj, json};
 use gs_search::index::PassageRef;
 
@@ -21,6 +22,7 @@ use super::{add_file_from_path, add_space_deadline, link_folder, remove_space_de
 use crate::App;
 use crate::app::agent_actions::note_agent_action;
 use crate::app::agent_folder::shortcut_path_problem;
+use crate::graph::progress::path_for;
 use crate::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
 
 /// Study files are read by the agent itself, as background work items.
@@ -107,6 +109,32 @@ fn signature_arg(args: &Json) -> Result<Option<Json>, ()> {
 		return Ok(None);
 	}
 	clean_signature(&args["signature"]).map(Some).ok_or(())
+}
+
+/// The path argument cleaned against the space's `old` path: Ok(None) when not given.
+fn path_arg(args: &Json, old: Option<&Json>) -> Result<Option<CleanPath>, String> {
+	if !args["path"].truthy() {
+		return Ok(None);
+	}
+	clean_path(&args["path"], old, || gs_base::ids::uuid_hex("pth", 12)).map(Some)
+}
+
+/// What the answer says of a path it saved: the count, and the old topics it left off.
+fn path_answer(clean: &CleanPath) -> Json {
+	let mut out = Obj::new();
+	out.insert("topics", clean.path["topics"].items().len());
+	if !clean.removed.is_empty() {
+		out.insert("removed", clean.removed.clone());
+	}
+	Json::Obj(out)
+}
+
+/// A path as `read_space` shows it: each topic's name and standing, and what the next one covers.
+fn path_view(path: &Json) -> Json {
+	let topics = path["topics"].items();
+	let names: Vec<Json> = topics.iter().map(|t| json!({ "name": t["name"], "status": t["status"] })).collect();
+	let next = topics.iter().find(|t| t["id"] == path["nextId"]).map_or(Json::Null, |t| json!({ "name": t["name"], "covers": t["covers"] }));
+	json!({ "goal": path["goal"], "topics": names, "next": next })
 }
 
 impl SpaceActions {
@@ -282,11 +310,15 @@ impl SpaceActions {
 
 	pub fn read_space(&self, args: &Json) -> ToolOutcome {
 		let space_id = args["space_id"].str_or_empty();
-		match self.space_view(space_id, args["files"].truthy()) {
-			Ok(Some(view)) => self.done(view, Vec::new()),
-			Ok(None) => no_space(space_id),
-			Err(err) => ToolOutcome::Err(err),
+		let (mut view, path) = match (self.space_view(space_id, args["files"].truthy()), path_for(&self.app, space_id)) {
+			(Ok(Some(view)), Ok(path)) => (view, path),
+			(Ok(None), _) => return no_space(space_id),
+			(Err(err), _) | (_, Err(err)) => return ToolOutcome::Err(err),
+		};
+		if let (Some(path), Some(obj)) = (path, view.as_obj_mut()) {
+			obj.insert("path", path_view(&path));
 		}
+		self.done(view, Vec::new())
 	}
 
 	pub async fn search_space_files(&self, args: &Json) -> ToolOutcome {
@@ -314,6 +346,10 @@ impl SpaceActions {
 
 	pub fn create_space(&self, args: &Json) -> ToolOutcome {
 		let Ok(sig) = signature_arg(args) else { return bad_signature() };
+		let path = match path_arg(args, None) {
+			Ok(path) => path,
+			Err(problem) => return ToolOutcome::Err(problem),
+		};
 		let mut init = Obj::new();
 		for key in ["name", "description", "icon"] {
 			if given(args, key) {
@@ -322,6 +358,9 @@ impl SpaceActions {
 		}
 		if let Some(sig) = sig {
 			init.insert("signature", sig);
+		}
+		if let Some(path) = &path {
+			init.insert("path", path.path.clone());
 		}
 		let created = match self.app.stores.spaces.create_space(&Json::Obj(init)) {
 			Ok(created) => created,
@@ -333,15 +372,21 @@ impl SpaceActions {
 			Ok(view) => view,
 			Err(err) => return ToolOutcome::Err(err),
 		};
-		self.done(json!({ "space": view }), vec![self.opened(change(label, &created["id"], "space", id, "/space"))])
+		let mut answer = json!({ "space": view });
+		if let (Some(path), Some(obj)) = (&path, answer.as_obj_mut()) {
+			obj.insert("path", path_answer(path));
+		}
+		self.done(answer, vec![self.opened(change(label, &created["id"], "space", id, "/space"))])
 	}
 
 	pub fn update_space(&self, args: &Json) -> ToolOutcome {
 		let space_id = args["space_id"].str_or_empty();
-		if !self.space_exists(space_id) {
-			return no_space(space_id);
-		}
+		let Some(record) = self.app.stores.spaces.get_space(space_id) else { return no_space(space_id) };
 		let Ok(sig) = signature_arg(args) else { return bad_signature() };
+		let path = match path_arg(args, record.get("path")) {
+			Ok(path) => path,
+			Err(problem) => return ToolOutcome::Err(problem),
+		};
 		let mut patch = Obj::new();
 		for key in ["name", "description", "closed"] {
 			if given(args, key) {
@@ -353,6 +398,9 @@ impl SpaceActions {
 		}
 		if let Some(sig) = &sig {
 			patch.insert("signature", sig.clone());
+		}
+		if let Some(path) = &path {
+			patch.insert("path", path.path.clone());
 		}
 		let space = match update_space(&self.app, space_id, &Json::Obj(patch)) {
 			Ok(space) => space,
@@ -369,6 +417,9 @@ impl SpaceActions {
 			if was_given && let Some(value) = space.get(key) {
 				changed.insert(key, value.clone());
 			}
+		}
+		if let Some(path) = &path {
+			changed.insert("path", path_answer(path));
 		}
 		let label = format!("{verb} {}", space["name"].str_or_empty());
 		self.done(json!({ "spaceId": space_id, "changed": Json::Obj(changed) }), vec![change(label, &Json::from(space_id), "space", space_id, "/space")])
@@ -597,7 +648,13 @@ impl SpaceActions {
 		if space.as_ref().is_some_and(|s| s["closed"].truthy()) {
 			return ToolOutcome::Err("This space is closed. Ask the learner to reopen it first.".to_owned());
 		}
-		let input = CreateLessonInput { space_id: scope.clone(), start: LessonStart::Typed { title: topic.to_owned(), picks: Vec::new() } };
+		// A path topic's name studies that topic, so its answers count for it.
+		let on_path = space.as_ref().and_then(|s| s["path"]["topics"].items().iter().find(|t| t["name"].str_or_empty().to_lowercase() == topic.trim().to_lowercase()).and_then(|t| t["id"].as_str()));
+		let start = match on_path {
+			Some(id) => LessonStart::PathTopic(id.to_owned()),
+			None => LessonStart::Typed { title: topic.to_owned(), picks: Vec::new() },
+		};
+		let input = CreateLessonInput { space_id: scope.clone(), start };
 		let chat = match create_lesson(&self.app, input) {
 			Ok(Ok(created)) => created.chat,
 			Ok(Err(not_found)) => return ToolOutcome::Err(not_found.error.to_owned()),

@@ -9,15 +9,16 @@ import { jsonInit } from "@/frontend/lib/api";
 const LESSON_START_FAILED = "Couldn't start the lesson. Try again.";
 
 /** What a start sends POST /api/chats: a typed topic (its title and any
- *  facts picked for it), some space topics, one question of a mock, or a
- *  deadline. On picked
+ *  facts picked for it), some space topics, one question of a mock, a
+ *  deadline, or a topic of the space's path. On picked
  *  facts with no title, topics or a deadline the server picks the
  *  session's topics and writes its title. */
 type StartBody =
 	| { title: string; graphContext?: { propositions: readonly GraphContextPick[] } }
 	| { topicIds: readonly string[] }
 	| { mockQuestion: { mockId: string; questionId: string } }
-	| { deadlineId: string; homework?: true };
+	| { deadlineId: string; homework?: true }
+	| { pathTopicId: string };
 
 /**
  * Every Study start (the start page, its suggestions, a deadline, the
@@ -75,6 +76,9 @@ export function useLessonStart() {
 		[post],
 	);
 
+	/** Study one topic of the space's path. */
+	const studyPathTopic = useCallback((pathTopicId: string) => post({ pathTopicId }), [post]);
+
 	/** Go over one question of a graded mock. */
 	const goOverMock = useCallback((mockId: string, questionId: string, spaceId: string) => post({ mockQuestion: { mockId, questionId } }, [], spaceId), [post]);
 
@@ -126,6 +130,7 @@ export function useLessonStart() {
 	return {
 		start,
 		studyTopics,
+		studyPathTopic,
 		goOverMock,
 		studyDeadline,
 		continueStopped,

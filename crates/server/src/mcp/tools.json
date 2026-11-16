@@ -360,7 +360,7 @@
 	{
 		"name": "read_space",
 		"title": "Read a space",
-		"description": "Read one space: description, file counts per status (pending, extracting, ready, failed, needs-whisper) and files that couldn't be read, knowledge-graph topics with fact counts, deadlines (kind, date, time, done, files each covers), lessons, today's local date and time. files: true lists every file instead (id, kind, status, size, path on disk). To find something inside files: search_space_files.",
+		"description": "Read one space: description, file counts per status (pending, extracting, ready, failed, needs-whisper) and files that couldn't be read, knowledge-graph topics with fact counts, deadlines (kind, date, time, done, files each covers), path (each topic's status, what the next covers), lessons, today's local date and time. files: true lists every file instead (id, kind, status, size, path on disk). To find something inside files: search_space_files.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -457,7 +457,7 @@
 	{
 		"name": "create_space",
 		"title": "Create a space",
-		"description": "Create a space for one thing the learner studies (university course, certification, language). Description is shown to the teacher in every lesson of the space: level, book or source they follow, its notation, what they work toward (a course's exams, an interview). Add deadlines with add_space_deadline.",
+		"description": "Create a space for one thing the learner studies (university course, certification, language). Description is shown to the teacher in every lesson of the space: level, book or source they follow, its notation, what they work toward (a course's exams, an interview). Add deadlines with add_space_deadline. A goal with no syllabus (a job, a skill): send path, the topics toward it in order, leaving out what the learner already knows.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -515,6 +515,46 @@
 						"music"
 					],
 					"description": "Space's subject icon in the space switcher: \"cpu\" Computer science, \"code\" Programming, \"sigma\" Math, \"chart-line\" Statistics, \"atom\" Physics, \"flask-conical\" Chemistry, \"dna\" Biology, \"brain\" Psychology, \"landmark\" History, \"scale\" Law and politics, \"trending-up\" Economics, \"globe\" Geography, \"languages\" Languages, \"book-open\" Literature, \"palette\" Art, \"music\" Music. Pick the closest subject."
+				},
+				"path": {
+					"description": "Topics toward a goal with no syllabus, in order, in your own words. Sending it replaces the list; a topic keeps its progress while its name stays.",
+					"type": "object",
+					"properties": {
+						"goal": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 40,
+							"description": "What the learner works toward, read after \"Path to\", e.g. \"backend developer\"."
+						},
+						"topics": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"name": {
+										"type": "string",
+										"minLength": 1
+									},
+									"covers": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 200,
+										"description": "One line on what the topic covers."
+									}
+								},
+								"required": [
+									"name",
+									"covers"
+								]
+							},
+							"minItems": 1,
+							"maxItems": 40
+						}
+					},
+					"required": [
+						"goal",
+						"topics"
+					]
 				}
 			},
 			"required": [
@@ -532,7 +572,7 @@
 	{
 		"name": "update_space",
 		"title": "Update a space",
-		"description": "Rename a space, change description, signature or icon, or close / reopen it (closing hides its tab, keeps everything; closed space takes no new lessons).",
+		"description": "Rename a space, change description, signature, icon or path, or close / reopen it (closing hides its tab, keeps everything; closed space takes no new lessons).",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -591,6 +631,46 @@
 						"music"
 					],
 					"description": "Space's subject icon in the space switcher: \"cpu\" Computer science, \"code\" Programming, \"sigma\" Math, \"chart-line\" Statistics, \"atom\" Physics, \"flask-conical\" Chemistry, \"dna\" Biology, \"brain\" Psychology, \"landmark\" History, \"scale\" Law and politics, \"trending-up\" Economics, \"globe\" Geography, \"languages\" Languages, \"book-open\" Literature, \"palette\" Art, \"music\" Music. Pick the closest subject."
+				},
+				"path": {
+					"description": "Topics toward a goal with no syllabus, in order, in your own words. Sending it replaces the list; a topic keeps its progress while its name stays.",
+					"type": "object",
+					"properties": {
+						"goal": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 40,
+							"description": "What the learner works toward, read after \"Path to\", e.g. \"backend developer\"."
+						},
+						"topics": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"name": {
+										"type": "string",
+										"minLength": 1
+									},
+									"covers": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 200,
+										"description": "One line on what the topic covers."
+									}
+								},
+								"required": [
+									"name",
+									"covers"
+								]
+							},
+							"minItems": 1,
+							"maxItems": 40
+						}
+					},
+					"required": [
+						"goal",
+						"topics"
+					]
 				},
 				"closed": {
 					"type": "boolean"
@@ -929,7 +1009,7 @@
 	{
 		"name": "start_lesson",
 		"title": "Start a lesson",
-		"description": "Start a new study session in godspeed taught by you: teach what's new, give problems on what needs practice. Topic becomes the learner's first message. With space_id the lesson belongs to that space: opens with the space's card, its facts go to that space's graph. You teach it through wait_for_work; learner follows in the godspeed window.",
+		"description": "Start a new study session in godspeed taught by you: teach what's new, give problems on what needs practice. Topic becomes the learner's first message. With space_id the lesson belongs to that space: opens with the space's card, its facts go to that space's graph. A path topic's name as topic studies that topic. You teach it through wait_for_work; learner follows in the godspeed window.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",

@@ -110,7 +110,8 @@ async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandl
 }
 
 /// POST /api/chats: a study session (typed, picked facts, topics, a mock's
-/// question or a deadline), or with `homework: true` a homework session on the deadline.
+/// question, a deadline or a path topic), or with `homework: true` a homework session on the
+/// deadline.
 async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhandled> {
 	let body = fields(body).await?;
 	let title = body["title"].as_str().unwrap_or_default();
@@ -127,6 +128,8 @@ async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unh
 		LessonStart::Deadline(deadline_id.to_owned())
 	} else if let Some((mock_id, question_id)) = mock_question_of(&body["mockQuestion"]) {
 		LessonStart::MockQuestion { mock_id, question_id }
+	} else if let Some(topic_id) = body["pathTopicId"].as_str() {
+		LessonStart::PathTopic(topic_id.to_owned())
 	} else if let Some(ids) = body["topicIds"].as_arr() {
 		LessonStart::Topics(strings(ids))
 	} else {

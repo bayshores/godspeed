@@ -1,7 +1,8 @@
 //! Lesson creation (lessons.ts): the one place a new lesson record is born (POST /api/chats and
 //! MCP start_lesson), so a lesson in a space always opens with its space card. Every new lesson
 //! is a study session: on a typed topic, picked facts, some of the space's topics, one question
-//! of a graded mock, or a deadline. With no space topics for it, the agent writes the plan.
+//! of a graded mock, a deadline, or one topic of the space's path. With no space topics for it,
+//! the agent writes the plan.
 //!
 //! Message order at birth: space card, graph-context picks, study plan; the caller then sends the
 //! learner's first message. A start from a deadline is recorded on the chat so that deadline's
@@ -24,7 +25,7 @@ use gs_json::{Json, Obj};
 use crate::App;
 use crate::spaces::space_card::space_card_for;
 use crate::graph::graph::graph_store_for;
-use crate::graph::progress::{deadline_study_for, study_topics_for, topic_study_for};
+use crate::graph::progress::{deadline_study_for, path_study_for, study_topics_for, topic_study_for};
 
 /// What a lesson starts from.
 pub enum LessonStart {
@@ -36,6 +37,8 @@ pub enum LessonStart {
 	MockQuestion { mock_id: String, question_id: String },
 	/// A deadline: its topics for today.
 	Deadline(String),
+	/// One topic of the space's path, by id.
+	PathTopic(String),
 }
 
 pub struct CreateLessonInput {
@@ -50,7 +53,8 @@ pub struct Created {
 	pub title: String,
 }
 
-/// The 404 refusals: `space_not_found`, `topics_not_found`, `deadline_not_found`.
+/// The 404 refusals: `space_not_found`, `topics_not_found` (a path topic too),
+/// `deadline_not_found`.
 #[derive(Debug, PartialEq)]
 pub struct NotFound {
 	pub code: &'static str,
@@ -178,6 +182,17 @@ fn start_of(app: &Arc<App>, scope: Option<&str>, start: &LessonStart) -> Result<
 			}
 			Ok(Start { title: study_title(&deadline.topics), picks: deadline.picks, topics: deadline.topics, note: None })
 		}
+		LessonStart::PathTopic(topic_id) => {
+			let study = match scope {
+				Some(space_id) => path_study_for(app, space_id, topic_id)?,
+				None => None,
+			};
+			let Some(study) = study else {
+				return Ok(Err(NotFound { code: "topics_not_found", error: "No such path topic" }));
+			};
+			let topics = vec![study.topic];
+			Ok(Start { title: study_title(&topics), picks: study.picks, topics, note: Some(study.note) })
+		}
 		LessonStart::Typed { title, picks } => Ok(typed(app, scope, gs_base::text::trim(title), picks.iter().take(MAX_STUDY_FACTS).cloned().collect())?),
 	})
 }
@@ -262,6 +277,87 @@ mod tests {
 		assert_eq!(by_deadline["deadlineId"].as_str(), Some(deadline_id.as_str()));
 		assert!(by_deadline["tree"].is_null());
 		assert!(study_plan(&by_deadline).starts_with("[Study plan] \u{2014} no space topics for this: Study for Onsite."));
+	}
+
+	/// A problem on `node` the learner solved, as a lesson stores it.
+	fn solved(node: &str) -> Vec<Json> {
+		let now = gs_base::clock::now_ms();
+		vec![
+			gs_json::json!({ "role": "assistant", "id": "m1", "content": [{ "type": "toolCall", "id": "p1", "name": "problem", "arguments": { "nodeId": node, "mode": "composition", "target": [], "statement": "Undo the last commit." } }], "timestamp": now }),
+			gs_json::json!({ "role": "toolResult", "toolCallId": "p1", "toolName": "problem", "isError": false, "timestamp": now }),
+			gs_json::json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "c1", "name": "conclude", "arguments": { "outcome": "solved" } }], "timestamp": now }),
+			gs_json::json!({ "role": "toolResult", "toolCallId": "c1", "toolName": "conclude", "details": { "stop": { "kind": "topic", "nodeId": node, "activeMinutes": 2, "at": gs_base::time::iso(now) } }, "isError": false, "timestamp": now }),
+		]
+	}
+
+	fn path_ids(app: &Arc<App>, space_id: &str) -> Vec<String> {
+		app.stores.spaces.get_space(space_id).unwrap()["path"]["topics"].items().iter().map(|t| t["id"].as_str().unwrap().to_owned()).collect()
+	}
+
+	#[tokio::test]
+	async fn a_goal_space_studies_its_path_one_topic_at_a_time() {
+		use crate::spaces::space_actions::{SendFirstMessage, space_actions};
+		use gs_core::spaces::space_tools::ToolOutcome;
+		let root = scratch_dir("lesson-path");
+		let app = test_app(&root);
+		let send: SendFirstMessage = Arc::new(|_, _| Box::pin(async { Ok(()) }));
+		let actions = space_actions(&app, Some("Teacher"), send, true);
+		let value = |outcome: ToolOutcome| match outcome {
+			ToolOutcome::Ok { value, .. } => value,
+			ToolOutcome::Err(error) => panic!("{error}"),
+		};
+		let topics = gs_json::json!([{ "name": "Git", "covers": "Commits and branches." }, { "name": "HTTP", "covers": "Methods and status codes." }, { "name": "SQL", "covers": "Joins." }]);
+		let made = value(actions.create_space(&gs_json::json!({ "name": "Backend", "icon": "code", "path": { "goal": "backend developer", "topics": topics } })));
+		assert_eq!(made["path"], gs_json::json!({ "topics": 3 }), "the answer counts, it does not repeat the list");
+		let space_id = made["space"]["id"].as_str().unwrap().to_owned();
+		let ids = path_ids(&app, &space_id);
+
+		// Study takes the topic it is on, with its place and what it covers under the plan.
+		let (lesson, title) = start(&app, &space_id, LessonStart::PathTopic(ids[0].clone())).unwrap();
+		assert_eq!(title, "Study: Git");
+		assert_eq!(study_plan(&lesson), format!("{}\n\n{NO_PLOT_YET}\n\n[Path] Topic 1 of 3 on his path to backend developer. It covers: Commits and branches.", study_context_text(&[gs_json::json!({ "id": ids[0], "name": "Git", "status": "untested", "factIds": [] })])));
+		assert_eq!(start(&app, &space_id, LessonStart::PathTopic("pth_nope".to_owned())).unwrap_err(), NotFound { code: "topics_not_found", error: "No such path topic" });
+
+		// Studied today and not strong yet: the path moves on. One right answer makes it strong.
+		let path = |app: &Arc<App>| crate::graph::progress::path_for(app, &space_id).unwrap().unwrap();
+		assert_eq!(path(&app)["nextId"], gs_json::json!(ids[1]));
+		app.stores.chats.save_messages(lesson["id"].as_str().unwrap(), &solved(&ids[0])).unwrap();
+		assert_eq!(path(&app)["topics"][0]["status"], gs_json::json!("strong"), "the answer counts at once, with no facts read");
+
+		// read_space shows names and standings, and what the next one covers.
+		let read = value(actions.read_space(&gs_json::json!({ "space_id": space_id })));
+		assert_eq!(read["path"], gs_json::json!({ "goal": "backend developer", "topics": [{ "name": "Git", "status": "strong" }, { "name": "HTTP", "status": "untested" }, { "name": "SQL", "status": "untested" }], "next": { "name": "HTTP", "covers": "Methods and status codes." } }));
+
+		// "I know Git, put SQL first": the kept names keep their ids.
+		let changed = value(actions.update_space(&gs_json::json!({ "space_id": space_id, "path": { "goal": "backend developer", "topics": [topics[2], topics[1]] } })));
+		assert_eq!(changed["changed"]["path"], gs_json::json!({ "topics": 2, "removed": ["Git"] }));
+		assert_eq!(path_ids(&app, &space_id), [ids[2].clone(), ids[1].clone()]);
+		let refused = actions.update_space(&gs_json::json!({ "space_id": space_id, "path": { "goal": "backend developer", "topics": [topics[0], topics[0]] } }));
+		assert!(matches!(refused, ToolOutcome::Err(e) if e == "\"Git\" is on the path twice."));
+
+		// The agent starting a lesson on a path topic's name studies that topic.
+		let started = value(actions.start_lesson(&gs_json::json!({ "space_id": space_id, "topic": "sql" })).await);
+		let chat = app.stores.chats.get_chat(started["lessonId"].as_str().unwrap()).unwrap();
+		assert_eq!(chat["tree"]["nodes"][0]["id"], gs_json::json!(ids[2]));
+		assert!(study_plan(&chat).ends_with("[Path] Topic 1 of 2 on his path to backend developer. It covers: Joins."));
+	}
+
+	#[test]
+	fn a_later_path_session_picks_the_facts_born_in_the_earlier_ones() {
+		use gs_store::graph::Ledger;
+		let root = scratch_dir("lesson-path-facts");
+		let app = test_app(&root);
+		let path = gs_json::json!({ "goal": "backend developer", "topics": [{ "id": "pth_git", "name": "Git", "covers": "Commits." }] });
+		let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Backend", "path": path })).unwrap()["id"].as_str().unwrap().to_owned();
+		let (first, _) = start(&app, &space_id, LessonStart::PathTopic("pth_git".to_owned())).unwrap();
+		let other = app.stores.chats.create_chat("Other", Some("study"), Some(&space_id), None).unwrap();
+		let scope = Some(space_id.as_str());
+		for (id, chat) in [("n_revert", &first["id"]), ("n_other", &other["id"])] {
+			let fact = gs_json::json!({ "id": id, "name": id, "statement": "s", "aliases": [], "createdAt": "t", "provenance": [{ "chatId": chat, "messageId": "m1" }] });
+			app.stores.graphs.append(scope, Ledger::Nodes, &fact).unwrap();
+		}
+		let (later, _) = start(&app, &space_id, LessonStart::PathTopic("pth_git".to_owned())).unwrap();
+		assert!(study_plan(&later).starts_with(&study_context_text(&[gs_json::json!({ "id": "pth_git", "name": "Git", "status": "untested", "factIds": ["n_revert"] })])));
 	}
 
 	#[test]

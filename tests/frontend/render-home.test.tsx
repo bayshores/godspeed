@@ -86,6 +86,7 @@ function list(props: Partial<React.ComponentProps<typeof SuggestionList>> = {}) 
 				busy={false}
 				onStudyFile={() => {}}
 				onStudyTopic={() => {}}
+				onStudyPath={() => {}}
 				{...props}
 			/>
 		</MemoryRouter>,
@@ -229,6 +230,7 @@ describe("Home: actions", () => {
 					busy={false}
 					onStudyFile={(f) => learned.push(f)}
 					onStudyTopic={(t) => practiced.push(t)}
+					onStudyPath={() => {}}
 				/>
 			</MemoryRouter>,
 		);

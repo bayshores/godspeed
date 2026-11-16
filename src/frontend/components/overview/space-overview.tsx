@@ -17,7 +17,8 @@ import { OverviewBody } from "./overview-body";
  * THE SPACE'S PROGRESS TAB: the body reads the active space's progress
  * (useProgress).
  *
- * An interview with no date yet offers "Add the date". The next
+ * The path's Study starts a session on its next topic. An interview with
+ * no date yet offers "Add the date". The next
  * deadline's button works on it or studies for it; "Most needed"
  * → Study starts a study session on that topic (useLessonStart, in the
  * active space).
@@ -33,8 +34,9 @@ export function SpaceOverview() {
 	// Progress for a space the window just left is never shown.
 	const current = data && data.spaceId === active ? data : null;
 
-	const { studyTopics, studyDeadline, workOnHomework } = lesson;
+	const { studyTopics, studyPathTopic, studyDeadline, workOnHomework } = lesson;
 	const study = useCallback((topicId: string) => void studyTopics([topicId]), [studyTopics]);
+	const studyPath = useCallback((topicId: string) => void studyPathTopic(topicId), [studyPathTopic]);
 	const startDeadline = useCallback((d: DeadlineProgress) => void (hasProblems(d.kind) ? workOnHomework(d) : studyDeadline(d)), [workOnHomework, studyDeadline]);
 
 	return (
@@ -49,6 +51,7 @@ export function SpaceOverview() {
 				busy={lesson.busy}
 				startError={lesson.error}
 				onStudy={study}
+				onStudyPath={studyPath}
 				onStartDeadline={startDeadline}
 				onAddDeadline={() => navigate(ADD_DEADLINE_HREF)}
 				waiting={<WaitingDeadline record={record} />}

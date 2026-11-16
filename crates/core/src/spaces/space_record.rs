@@ -6,6 +6,7 @@ use std::collections::HashSet;
 use gs_json::{Json, Obj};
 
 use super::new_files::is_recent_change;
+use super::space_path::read_path;
 use super::space_deadlines::{id_list, squash, with_files};
 use super::space_work::{is_first_round, is_waiting_file};
 use crate::contracts::space::{CURRENT_SPACE_VERSION, clean_signature, compare_deadlines, is_deadline_kind, is_space_color, is_space_icon};
@@ -230,6 +231,9 @@ pub fn read_space_record(parsed: &Json, now: i64, fresh_color: impl FnOnce() -> 
 	if let Some(work) = read_work(&parsed["lastWork"]) {
 		out.insert("lastWork", work);
 	}
+	if let Some(path) = read_path(&parsed["path"]) {
+		out.insert("path", path);
+	}
 	// An old prep stays as saved until the one-time upgrade (`prep_upgrade`) drops it, so no
 	// write before then loses it.
 	if parsed["prep"].as_obj().is_some() {
@@ -379,8 +383,8 @@ mod tests {
 	fn a_record_without_its_basics_does_not_read() {
 		assert!(read_space_record(&json!({ "id": "cls_a", "name": "n", "createdAt": "c" }), 0, || 1).is_none());
 		assert!(read_space_record(&json!([]), 0, || 1).is_none());
-		assert_eq!(newer_version(&json!({ "version": 12 })), Some(12.0));
-		assert_eq!(newer_version(&json!({ "version": 11 })), None);
+		assert_eq!(newer_version(&json!({ "version": 13 })), Some(13.0));
+		assert_eq!(newer_version(&json!({ "version": 12 })), None);
 	}
 
 	#[test]
@@ -410,6 +414,12 @@ mod tests {
 	}
 
 	#[test]
+	fn a_saved_path_is_kept() {
+		let parsed = json!({ "id": "spc_a", "name": "n", "createdAt": "c", "updatedAt": "u", "path": { "goal": "backend developer", "topics": [{ "id": "pth_1", "name": "Git", "covers": "Commits." }] } });
+		assert_eq!(read_space_record(&parsed, 0, || 1).unwrap()["path"], parsed["path"]);
+	}
+
+	#[test]
 	fn a_saved_color_and_round_of_work_are_kept() {
 		let parsed = json!({
 			"id": "cls_a", "name": "n", "createdAt": "c", "updatedAt": "u", "color": 6,
@@ -417,6 +427,7 @@ mod tests {
 		});
 		let record = read_space_record(&parsed, 0, || panic!("a colored record keeps its color")).unwrap();
 		assert_eq!(record["color"], Json::from(6));
+		assert!(record.get("path").is_none(), "an older record reads as having no path");
 		assert_eq!(stringify(&record["lastWork"]), r#"{"startedAt":"s","fileIds":["f1"],"deadlineIds":[]}"#);
 		let broken = json!({ "id": "cls_a", "name": "n", "createdAt": "c", "updatedAt": "u", "color": 9, "lastWork": { "startedAt": "s", "fileIds": [1], "deadlineIds": [] } });
 		let record = read_space_record(&broken, 0, || 4).unwrap();

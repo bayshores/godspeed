@@ -3,7 +3,8 @@
  *
  * A small stand-in agent talks to the app over MCP, as Claude Code would: it makes the space
  * "Lab Algebra" with a deadline and one file, reads the file into one fact, starts a lesson and
- * answers it with a plan, then a sourced reply and an open quiz. The window installs the plugin
+ * answers it with a plan, then a sourced reply and an open quiz. A second space, "Backend jobs",
+ * has a path toward a goal and nothing else. The window installs the plugin
  * "Flashcards", marked as from the made-up plugin list (tests/fixtures/plugins/layout-list.json)
  * at an older tag, so its sheet shows Update. No model runs; every word is fixed here.
  */
@@ -150,5 +151,8 @@ export async function seed(dataDir, page, log) {
 		reply = await agent.call("respond", { work_id: header.workId, ...answer, wait_seconds: 0 });
 	}
 	const { deadlines } = await agent.json("read_space", { space_id: space.id });
-	return { space: space.id, lesson: lessonId, deadline: deadlines[0].id };
+	const covers = (topic) => `Enough ${topic} to get a junior job by spring, with typing practice daily.`;
+	const steps = ["Git and pull requests", "HTTP and APIs", "SQL querying", "Typing in Python", "Caching layers", "Deploying apps", "Logging and paging", "Security group policy"];
+	const goal = await agent.json("create_space", { name: "Backend jobs", icon: "code", path: { goal: "backend developer jobs", topics: steps.map((name) => ({ name, covers: covers(name) })) } });
+	return { space: space.id, lesson: lessonId, deadline: deadlines[0].id, pathSpace: goal.space.id };
 }

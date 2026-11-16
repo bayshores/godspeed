@@ -58,7 +58,7 @@ pub fn same_fact_set(snapshot: Option<&Json>, fact_ids: &[String]) -> bool {
 }
 
 /// Trims and collapses whitespace; empty when nothing is left.
-fn clean_topic_name(name: &str) -> String {
+pub(crate) fn clean_topic_name(name: &str) -> String {
 	collapse_spaces(text::trim(name))
 }
 

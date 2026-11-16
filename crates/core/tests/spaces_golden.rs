@@ -199,6 +199,9 @@ fn space_tool_text_matches_node() {
 		("newTime", a.new_time),
 		("topic", a.topic),
 		("lessonSpace", a.lesson_space),
+		("path", a.path),
+		("pathGoal", a.path_goal),
+		("pathCovers", a.path_covers),
 	];
 	let want: Vec<(String, String)> = c["args"].as_obj().unwrap().iter().map(|(k, v)| (k.clone(), s(v).to_owned())).collect();
 	assert_eq!(args.iter().map(|(k, v)| ((*k).to_owned(), (*v).to_owned())).collect::<Vec<_>>(), want);

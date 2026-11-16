@@ -12,6 +12,7 @@ use super::calibration::calibration;
 use super::continue_study::{continue_study_for, ended_today_for};
 use super::fact_progress::{file_coverage, from_lesson, next_up_file};
 use super::homework::{latest_homework, problems_done};
+use super::path_progress::path_progress;
 use super::progress::{days_between, ramp_color, topic_status};
 use super::topic_links::{TopicLink, topic_columns, topic_links};
 use super::work_on_next::{TopicView, status_counts, work_on_next};
@@ -23,10 +24,12 @@ use crate::records::newer_first;
 /// The progress payload for GET /api/progress.
 ///
 /// `input` is `{ spaceId, today, facts, chains, topics, files, deadlines, lessons[,
-/// deadlineSessions, homeworkSessions, mockAnswers, finishedToday, grouping] }`; each lesson carries
-/// its collected `answers`, `mockAnswers` are graded mock questions, which count for their facts
-/// but belong to no lesson, and `finishedToday` are the topic ids with a topic stop in a Study
-/// session today (a deadline topic among them carries `finishedToday: true`, so its plan moves on).
+/// deadlineSessions, homeworkSessions, mockAnswers, finishedToday, grouping, path, studiedToday]
+/// }`; each lesson carries its collected `answers`, `mockAnswers` are graded mock questions, which
+/// count for their facts but belong to no lesson, and `finishedToday` are the topic ids with a
+/// topic stop in a Study session today (a deadline topic among them carries `finishedToday: true`,
+/// so its plan moves on). A space's `path` comes with `studiedToday`, the plan nodes of today's
+/// Study sessions, and the payload then has `path` too.
 pub fn derive_progress(input: &Json) -> Json {
 	let facts = input["facts"].items();
 	let fact_ids: Vec<String> = facts.iter().map(|f| f["id"].str_or_empty().to_owned()).collect();
@@ -122,6 +125,10 @@ pub fn derive_progress(input: &Json) -> Json {
 	out.insert("deadlines", deadlines);
 	out.insert("overall", Json::Obj(overall));
 	out.insert("totals", Tally::of(all_answers.iter().copied()).to_json());
+	if input["path"].as_obj().is_some() {
+		let studied_today: HashSet<String> = input["studiedToday"].items().iter().filter_map(|id| id.as_str().map(str::to_owned)).collect();
+		out.insert("path", path_progress(&input["path"], &all_answers, &studied_today));
+	}
 	Json::Obj(out)
 }
 
