@@ -55,7 +55,8 @@ export function PillPanel({ children }: { children: ReactNode }) {
 			data-state={presence.state}
 			inert={!up}
 			style={{ top: at.top, right: at.right }}
-			className={cn("fixed z-50", at.hang && "lh-hang", !presence.mounted && "invisible")}
+			// Over the teacher's window (z-41), under dialogs (z-50): a dialog is modal, so notices wait under its dim.
+			className={cn("fixed z-[45]", at.hang && "lh-hang", !presence.mounted && "invisible")}
 			onPointerEnter={() => holdNotices(true)}
 			onPointerLeave={() => holdNotices(false)}
 			onFocus={() => holdNotices(true)}

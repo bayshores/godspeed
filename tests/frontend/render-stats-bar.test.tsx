@@ -54,7 +54,7 @@ describe("stats popup", () => {
 		const { createRoot } = await import("react-dom/client");
 		const { parseHTML } = await import("linkedom");
 		const dom = parseHTML("<html><body></body></html>");
-		Object.assign(globalThis, { window: dom.window, document: dom.document, Element: dom.window.Element, HTMLElement: dom.window.HTMLElement, CustomEvent: dom.window.CustomEvent, IS_REACT_ACT_ENVIRONMENT: true });
+		Object.assign(globalThis, { window: dom.window, document: dom.document, Element: dom.window.Element, HTMLElement: dom.window.HTMLElement, CustomEvent: dom.window.CustomEvent, IS_REACT_ACT_ENVIRONMENT: true, requestAnimationFrame: (cb: FrameRequestCallback) => setTimeout(() => cb(0), 0), cancelAnimationFrame: (id: number) => clearTimeout(id) });
 		const host = document.createElement("div");
 		document.body.append(host);
 		const root = createRoot(host);
@@ -62,9 +62,10 @@ describe("stats popup", () => {
 		try {
 			await act(async () => root.render(<StatsBar turns={turns} contextTokens={83_000} summarizeAt={100_000} pricing={{ unpriced: 0, subscription: 2 }} />));
 			assert.match(host.querySelector("[data-testid='stats-summary']")!.textContent!, /83k \/ 100k lesson/);
-			assert.ok(host.querySelector("[data-testid='stats-detail']") === null);
+			assert.ok(document.querySelector("[data-testid='stats-detail']") === null);
 			await act(async () => host.querySelector<HTMLButtonElement>("[data-testid='stats-summary']")!.click());
-			const detail = host.querySelector("[data-testid='stats-detail']")!.textContent!;
+			// The popup is portaled to the body, so it is never cut off by the column it sits in.
+			const detail = document.querySelector("[data-testid='stats-detail']")!.textContent!;
 			assert.match(detail, /Lesson statsSummarizes here to keep the lesson small\. Change it in Settings\. Your agent's own context is separate\./);
 			assert.match(detail, /Lesson size83k \/ 100kUsage.*Turns2/);
 			assert.ok(!detail.includes("Unpriced turns"), "only when above 0");

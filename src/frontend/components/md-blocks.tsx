@@ -199,7 +199,7 @@ function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
 	const startLine = startMatch ? Number.parseInt(startMatch[1]!, 10) : undefined;
 	const lineNumbers = !/\bnoLineNumbers\b/.test(meta);
 	return (
-		<div className="group/md relative" data-testid="md-code">
+		<div className="group/md relative z-0" data-testid="md-code">
 			<CopyCorner className="absolute top-1.5 right-2 z-10" getText={() => source} label="Copy code" />
 			<CodeBlock
 				code={source}
@@ -318,7 +318,7 @@ function MarkdownTable(props: ComponentProps<"table"> & ExtraProps) {
 	const { children, node, ...rest } = props;
 	const ref = useRef<HTMLTableElement>(null);
 	return (
-		<div className="group/md relative my-4" data-testid="md-table">
+		<div className="group/md relative z-0 my-4" data-testid="md-table">
 			<CopyCorner
 				// Contained in the table's top-right corner, not straddling the
 				// top outline. 4px inset, z above the

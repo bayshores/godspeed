@@ -161,7 +161,7 @@ export function SettingsPage({ section }: { section?: string }) {
 		<div ref={contentRef} data-testid="settings-page" className="h-full overflow-y-auto">
 			<div className="mx-auto flex w-full max-w-[1008px] flex-col px-6 pt-10 pb-12">
 				{!fullPage && <h1 className="text-[40px] leading-[48px] text-ink">Settings</h1>}
-				<nav hidden={fullPage} aria-label="Settings sections" data-testid="settings-nav" className="mt-6 mb-6 flex gap-1 overflow-x-auto border-b-2 border-edge">
+				<nav hidden={fullPage} aria-label="Settings sections" data-testid="settings-nav" className="mt-6 mb-6 flex gap-1 overflow-x-auto shadow-[inset_0_-2px_0_var(--lh-edge)]">
 					{SECTIONS.map((s) => {
 						const on = active === s.id;
 						return (
@@ -172,7 +172,7 @@ export function SettingsPage({ section }: { section?: string }) {
 								aria-current={on}
 								onClick={() => setActive(s.id)}
 								className={cn(
-									"lh-press -mb-0.5 shrink-0 border-b-2 px-3 py-2.5 text-base whitespace-nowrap",
+									"lh-press shrink-0 border-b-2 px-3 py-2.5 text-base whitespace-nowrap",
 									on ? "border-ink font-medium text-ink" : "border-transparent text-ink-2 hover:text-ink",
 								)}
 							>

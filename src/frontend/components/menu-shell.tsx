@@ -22,9 +22,9 @@ import { BARS } from "@/frontend/components/top-bar/bar-look";
  *    menus' discipline (the settings dialog's inner content scroll
  *    included).
  *
- * Sites: the space switcher, file rows, the files page, graph fact lists
- * and the settings font menu (the graph popovers and the stats-bar summary
- * popover stay bespoke). Menus portal out of any overflow-hidden frame so
+ * Sites: the space switcher, file rows, the files page, graph fact lists,
+ * the settings font menu and the lesson stats (the graph popovers stay
+ * bespoke). Menus portal out of any overflow-hidden frame so
  * they can extend beyond a dialog.
  *
  * SSR: menus only mount client-side while open; the hidden measuring pass

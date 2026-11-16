@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { usePresence } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
 import { TeacherActivity } from "./teacher-activity";
@@ -44,6 +44,21 @@ export function PanelHead({
 	const listOpen = !!list?.open;
 	const hang = usePresence(listOpen);
 	const needKey = usePresence(!!need);
+	// The list hangs into the panel, which clips it: it may reach the panel's
+	// bottom and no further, whatever the screen's height.
+	const head = useRef<HTMLDivElement>(null);
+	const [room, setRoom] = useState<number | null>(null);
+	useLayoutEffect(() => {
+		const el = head.current;
+		const panel = el?.parentElement;
+		if (!hang.mounted || !el || !panel) return;
+		const read = () => setRoom(panel.clientHeight - el.offsetTop - el.offsetHeight);
+		read();
+		const observer = new ResizeObserver(read);
+		observer.observe(panel);
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, [hang.mounted]);
 	// Opened, the keyboard goes into it, as into a menu.
 	useEffect(() => {
 		if (listOpen) card.current?.focus({ preventScroll: true });
@@ -91,7 +106,8 @@ export function PanelHead({
 
 	const inRow = !title;
 	return (
-		<div className="relative z-10 flex shrink-0 flex-col gap-2 pt-2.5 pb-1.5 pr-3 pl-[18px]">
+		// Over the panel's resize edges while its list is open, so they never cover the list.
+		<div ref={head} className={cn("relative flex shrink-0 flex-col gap-2 pt-2.5 pb-1.5 pr-3 pl-[18px]", hang.mounted ? "z-40" : "z-10")}>
 			<div className="flex min-h-8 items-center gap-2.5">
 				{title && (
 					<span data-testid="teacher-panel-name" className={cn("max-w-[40%] shrink-0 truncate font-medium text-ink", TYPE)}>
@@ -127,7 +143,7 @@ export function PanelHead({
 			{!inRow && statusChip && <div className="flex min-w-0 items-center gap-2">{statusChip}</div>}
 			{hang.mounted && (
 				<div data-state={hang.state} className="lh-hang absolute inset-x-0 top-full">
-					<div ref={card} id={listId} role="dialog" aria-label="Activity" tabIndex={-1} data-state={hang.state} data-testid="teacher-panel-list" className="lh-hang-body flex outline-none max-h-[calc((100dvh-3rem)*0.6)] flex-col overflow-y-auto bg-bar px-[18px] pt-1 pb-5">
+					<div ref={card} id={listId} role="dialog" aria-label="Activity" tabIndex={-1} data-state={hang.state} data-testid="teacher-panel-list" style={room === null ? undefined : { maxHeight: `min(${room}px, (100dvh - 3rem) * 0.6)` }} className="lh-hang-body flex outline-none max-h-[calc((100dvh-3rem)*0.6)] flex-col overflow-y-auto bg-bar px-[18px] pt-1 pb-5">
 						<TeacherActivity underStatus />
 					</div>
 				</div>
