@@ -32,8 +32,17 @@ const { deadlines } = await fetch("/api/deadlines")${HTTP_OK}.then((r) => r.json
 const done = deadlines.find((d) => d.name === "Polynomial practice");
 await fetch(base + "/" + done.id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ done: true }) })${HTTP_OK};`;
 
+/** A homework due yesterday, so the overdue card asks about it. */
+const lateHomework = `const day = new Date(Date.now() - 86400000).toLocaleDateString("sv");
+await fetch("/api/spaces/{space}/deadlines", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "homework", name: "Graphing worksheet, part 2", date: day, fileIds: [] }) })${HTTP_OK};`;
+/** Takes that homework away again, so the screens after it are as before. */
+const dropLateHomework = `const { deadlines } = await fetch("/api/deadlines")${HTTP_OK}.then((r) => r.json());
+const late = deadlines.find((d) => d.name === "Graphing worksheet, part 2");
+if (late) await fetch("/api/spaces/{space}/deadlines/" + late.id, { method: "DELETE" })${HTTP_OK};`;
+
 export const SCREENS = [
 	{ name: "Today with a deadline", url: "/", ready: deadlineCard },
+	{ name: "Today with the space check's change card", url: "/", ready: "[data-testid=space-notice] [data-testid=space-notice-undo]" },
 	{ name: "Progress", url: "/space", ready: "[data-testid=next-deadline-open]" },
 	{ name: "Lessons", url: "/space/lessons", ready: "[data-testid=lessons-list] [data-testid^=session-row]" },
 	{ name: "Files", url: "/space/files", ready: "[data-testid=files-list] > *" },
@@ -69,6 +78,7 @@ export const SCREENS = [
 	},
 	{ name: "Today with no deadline", before: `await fetch("/api/spaces/{space}/deadlines/{deadline}", { method: "DELETE" })${HTTP_OK}`, url: "/", ready: "[data-testid=today-empty]" },
 	{ name: "Today on a busy day", before: busyDay, url: "/", ready: "[data-testid=today-list] [data-testid^=today-done-row]", shows: "[data-testid=later-list]" },
+	{ name: "Today with the overdue card", before: lateHomework, url: "/", ready: "[data-testid=overdue-notice] [data-testid=overdue-notice-done]" },
 	{
 		name: "Progress with a path, all shown",
 		before: `const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, activeSpace: "{pathSpace}" }) })${HTTP_OK}`,
@@ -79,7 +89,7 @@ export const SCREENS = [
 	},
 	{
 		name: "Onboarding",
-		before: `const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, onboarded: false }) })${HTTP_OK}`,
+		before: `${dropLateHomework}; const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, onboarded: false }) })${HTTP_OK}`,
 		url: "/",
 		ready: "[data-testid=onboarding-intro]",
 	},

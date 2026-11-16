@@ -66,6 +66,21 @@ export function todayLists(open: readonly OpenDeadline[], doneToday: readonly Op
 	};
 }
 
+/** An overdue deadline is asked about for this many days after its due day. */
+const OVERDUE_ASK_DAYS = 7;
+
+/** The overdue deadline to ask "Done?" about: the oldest one not done,
+ *  past due by at most a week and not answered Not yet. */
+export function overdueToAsk(open: readonly OpenDeadline[], asked: readonly string[], nowMs: number): OpenDeadline | null {
+	let oldest: OpenDeadline | null = null;
+	for (const d of open) {
+		const late = nowMs - dueAtMs(d);
+		if (d.done || late <= 0 || late > OVERDUE_ASK_DAYS * DAY || asked.includes(d.id)) continue;
+		if (!oldest || dueAtMs(d) < dueAtMs(oldest)) oldest = d;
+	}
+	return oldest;
+}
+
 /** The count block: whole days left, hours on the last day, minutes in
  *  the last hour, "late" once it is due. */
 export function countLeft(dueMs: number, nowMs: number): { count: string; unit: string } {
@@ -95,7 +110,7 @@ const EVENT_WORD: Partial<Record<DeadlineKind, string>> = { quiz: "quiz", interv
 /** When an open deadline is due, after its space: "due Friday", "the test
  *  is on Tuesday at 7:00 PM", "was due Tue Oct 27". `short` drops "the test
  *  is on" where the title already says what it is. */
-function dueWords(d: OpenDeadline, nowMs: number, short = false): string {
+export function dueWords(d: OpenDeadline, nowMs: number, short = false): string {
 	const dueMs = dueAtMs(d);
 	if (dueMs <= nowMs) return `was due ${deadlineDateLabel(d.date)}`;
 	const days = calendarDays(nowMs, dueMs);

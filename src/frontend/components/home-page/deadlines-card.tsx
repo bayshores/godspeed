@@ -26,6 +26,7 @@ export function DeadlinesCard({
 	nowMs,
 	busy,
 	onStart,
+	asking,
 	onDone,
 	onUndo,
 	onRetry,
@@ -39,6 +40,7 @@ export function DeadlinesCard({
 	/** A lesson is starting. */
 	busy: boolean;
 	onStart: (d: OpenDeadline) => void;
+	asking: string | null;
 	onDone: (d: OpenDeadline) => void;
 	onUndo: (d: OpenDeadline) => void;
 	onRetry: () => void;
@@ -69,13 +71,13 @@ export function DeadlinesCard({
 							nowMs={nowMs}
 							busy={busy}
 							onStart={onStart}
-							onDone={onDone}
+							onDone={sections.card.id === asking ? null : onDone}
 						/>
 					)}
 					{sections.due.length + lists.done.length > 0 && (
 						<ul data-testid="today-list" className={cn(ROW_LIST, GROUP, "py-1")}>
 							{sections.due.map((d) => (
-								<TodayRow key={d.id} deadline={d} progress={progress.get(d.id)} color={color(d)} nowMs={nowMs} busy={busy} onStart={onStart} onDone={onDone} />
+								<TodayRow key={d.id} deadline={d} progress={progress.get(d.id)} color={color(d)} nowMs={nowMs} busy={busy} onStart={onStart} onDone={d.id === asking ? null : onDone} />
 							))}
 							{lists.done.map((d) => (
 								<DoneRow key={d.id} deadline={d} onUndo={onUndo} />

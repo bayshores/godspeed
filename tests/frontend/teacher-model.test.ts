@@ -10,6 +10,7 @@ import {
 	FOLLOW_DEFAULT,
 	GO_OFFER_MS,
 	RESUME_MS,
+	followHeld,
 	followMoves,
 	followReady,
 	followReducer,
@@ -75,6 +76,12 @@ describe("follow", () => {
 		const typed = followReducer(on, { type: "busy", at: t });
 		assert.equal(followReady(typed, false, t + RESUME_MS - 1), false);
 		assert.equal(followReady(typed, false, t + RESUME_MS), true);
+	});
+	it("holds the window on a mock, and on a lesson only with unsent text", () => {
+		assert.equal(followHeld("/space/mock/m1", false), true);
+		assert.equal(followHeld("/chat/c1", false), false);
+		assert.equal(followHeld("/chat/c1", true), true);
+		assert.equal(followHeld("/", true), false);
 	});
 	it("switches space first on a space page, never for Home", () => {
 		assert.deepEqual(followMoves({ page: "/space/files", spaceId: "cls_b" }, { path: "/", activeSpace: "cls_a", lessonDraft: false, asked: false }), { switchSpace: { to: "cls_b" }, go: "/space/files" });

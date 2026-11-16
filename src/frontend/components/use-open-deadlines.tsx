@@ -17,6 +17,8 @@ import { jsonInit } from "@/frontend/lib/api";
 interface Fetched {
 	open: OpenDeadline[];
 	doneToday: OpenDeadline[];
+	/** The overdue ones the learner already answered Not yet to. */
+	overdueAsked: string[];
 }
 
 interface SharedDeadlines {
@@ -42,9 +44,9 @@ export function OpenDeadlinesProvider({ children }: { children: React.ReactNode 
 		try {
 			const res = await fetch("/api/deadlines", { cache: "no-store" });
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			const body = (await res.json()) as { deadlines?: OpenDeadline[]; doneToday?: OpenDeadline[] };
+			const body = (await res.json()) as { deadlines?: OpenDeadline[]; doneToday?: OpenDeadline[]; overdueAsked?: string[] };
 			if (id !== request.current) return;
-			setFetched({ open: Array.isArray(body.deadlines) ? body.deadlines : [], doneToday: Array.isArray(body.doneToday) ? body.doneToday : [] });
+			setFetched({ open: Array.isArray(body.deadlines) ? body.deadlines : [], doneToday: Array.isArray(body.doneToday) ? body.doneToday : [], overdueAsked: Array.isArray(body.overdueAsked) ? body.overdueAsked : [] });
 			setError(null);
 		} catch (err) {
 			// Keep what we have; the error only matters before a first list.
@@ -90,6 +92,8 @@ interface OpenDeadlinesState {
 	deadlines: OpenDeadline[] | null;
 	/** The ones ticked done today. */
 	doneToday: OpenDeadline[];
+	/** The overdue ones the learner already answered Not yet to. */
+	overdueAsked: string[];
 	/** Why the last read failed; null once one succeeds. */
 	error: string | null;
 	markDone: (d: OpenDeadline) => void;
@@ -99,10 +103,11 @@ interface OpenDeadlinesState {
 }
 
 const NONE: OpenDeadline[] = [];
+const NO_IDS: string[] = [];
 
 export function useOpenDeadlines(): OpenDeadlinesState {
 	const { fetched, error, load, setDone } = useContext(OpenDeadlinesContext);
 	const markDone = useCallback((d: OpenDeadline) => setDone(d, true, "Couldn't mark it done. Try again."), [setDone]);
 	const undo = useCallback((d: OpenDeadline) => setDone(d, false, "Couldn't undo that. Try again."), [setDone]);
-	return { deadlines: fetched?.open ?? null, doneToday: fetched?.doneToday ?? NONE, error, markDone, undo, reload: load };
+	return { deadlines: fetched?.open ?? null, doneToday: fetched?.doneToday ?? NONE, overdueAsked: fetched?.overdueAsked ?? NO_IDS, error, markDone, undo, reload: load };
 }
