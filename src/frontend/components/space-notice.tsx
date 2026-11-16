@@ -120,6 +120,7 @@ function OverdueCard({ deadline: d, now }: { deadline: OpenDeadline; now: number
 	const { markDone, reload } = useOpenDeadlines();
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const due = dueWords(d, now);
 	const notYet = async () => {
 		setBusy(true);
 		const result = await send(`/api/deadlines/${encodeURIComponent(d.spaceId)}/${encodeURIComponent(d.id)}/not-yet`, { method: "POST" });
@@ -132,7 +133,7 @@ function OverdueCard({ deadline: d, now }: { deadline: OpenDeadline; now: number
 			data-testid="overdue-notice"
 			role="status"
 			kind="quiet"
-			title={`${d.name} ${dueWords(d, now)}. Done?`}
+			title={`Is ${d.name} done?`}
 			actions={
 				<>
 					<button type="button" data-testid="overdue-notice-done" disabled={busy} onClick={() => markDone(d)} className="lh-btn text-[15px]">
@@ -144,6 +145,7 @@ function OverdueCard({ deadline: d, now }: { deadline: OpenDeadline; now: number
 				</>
 			}
 		>
+			<NoticeText>{`${due.charAt(0).toUpperCase()}${due.slice(1)}.`}</NoticeText>
 			{error && (
 				<p role="alert" className="text-[13px] text-ans-wrong">
 					{error}

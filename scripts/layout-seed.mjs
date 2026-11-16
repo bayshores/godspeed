@@ -92,7 +92,7 @@ function answerFor(work, ids, lessonTurn) {
 			],
 		};
 	}
-	// godspeed's own check of the space: it links the file to the deadline, so a change card shows.
+	// godspeed's own check of the space, a background job: it links the file to the deadline.
 	if (work.task?.startsWith("Check: ")) {
 		return { text: "Linked the graphing notes to the quiz.", tool_calls: [{ name: "update_space_deadline", arguments: { space_id: ids.space, deadline_id: ids.deadline, file_ids: [ids.passage.split(":")[0]] } }] };
 	}

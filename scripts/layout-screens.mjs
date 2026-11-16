@@ -42,7 +42,6 @@ if (late) await fetch("/api/spaces/{space}/deadlines/" + late.id, { method: "DEL
 
 export const SCREENS = [
 	{ name: "Today with a deadline", url: "/", ready: deadlineCard },
-	{ name: "Today with the space check's change card", url: "/", ready: "[data-testid=space-notice] [data-testid=space-notice-undo]" },
 	{ name: "Progress", url: "/space", ready: "[data-testid=next-deadline-open]" },
 	{ name: "Lessons", url: "/space/lessons", ready: "[data-testid=lessons-list] [data-testid^=session-row]" },
 	{ name: "Files", url: "/space/files", ready: "[data-testid=files-list] > *" },
