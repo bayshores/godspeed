@@ -1,4 +1,4 @@
-//! /api/boot, /api/settings, /api/settings/{section}, /api/settings/prompts, /api/settings/prompts/{*segment}, /api/agent-folder, /api/agent-notes, /api/agent-actions, /api/rules, /api/reading, /api/cited/{file_id}, /api/cited/{file_id}/page/{n}.
+//! /api/boot, /api/settings, /api/settings/{section}, /api/settings/prompts, /api/settings/prompts/{*segment}, /api/agent-folder, /api/agent-notes, /api/agent-actions, /api/teacher-chats, /api/rules, /api/reading, /api/cited/{file_id}, /api/cited/{file_id}/page/{n}.
 
 use std::sync::Arc;
 
@@ -36,6 +36,7 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/agent-folder", ApiRoute::new().get(agent_folder).post(change_agent_folder).into_route())
 		.route("/api/agent-notes", ApiRoute::new().get(notes).delete(remove_note).into_route())
 		.route("/api/agent-actions", ApiRoute::new().get(actions).into_route())
+		.route("/api/teacher-chats", ApiRoute::new().get(teacher_chats).delete(forget_teacher_chat).into_route())
 		.route("/api/rules", ApiRoute::new().get(rules).post(change_rule).into_route())
 		.route("/api/reading", ApiRoute::new().get(reading).into_route())
 		.route("/api/cited/{file_id}", ApiRoute::new().get(cited).into_route())
@@ -133,6 +134,20 @@ async fn remove_note(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, 
 		return Ok(reply::no_store(error(404, "No such note.")));
 	}
 	Ok(reply::json_no_store(200, &json!({ "notes": agent_notes_view(&app) })))
+}
+
+/// The teacher's chats the terminal offers to go back to.
+async fn teacher_chats(State(app): State<Arc<App>>) -> Response {
+	reply::json_no_store(200, &json!({ "chats": gs_services::app::teacher_chats::shown(&app) }))
+}
+
+/// ?id=: the agent said that chat is gone.
+async fn forget_teacher_chat(State(app): State<Arc<App>>, uri: Uri) -> Response {
+	let params = query(&uri);
+	if let Some(id) = param(&params, "id") {
+		gs_services::app::teacher_chats::forget(&app, id);
+	}
+	reply::json_no_store(200, &json!({ "chats": gs_services::app::teacher_chats::shown(&app) }))
 }
 
 async fn actions(State(app): State<Arc<App>>) -> Response {

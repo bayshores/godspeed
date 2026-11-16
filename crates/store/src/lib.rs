@@ -5,6 +5,7 @@ pub mod prompt_overrides;
 pub mod agent_notes;
 pub mod agent_rules;
 pub mod agent_seen;
+pub mod teacher_chats;
 pub mod agent_actions;
 pub mod mcp_token;
 pub mod search_key;
@@ -43,6 +44,7 @@ pub struct Stores {
 	pub agent_rules: agent_rules::AgentRulesStore,
 	/// Shared with the bridge, which saves what each agent has seen.
 	pub agent_seen: Arc<agent_seen::AgentSeenStore>,
+	pub teacher_chats: teacher_chats::TeacherChatsStore,
 	pub agent_actions: agent_actions::AgentActionsStore,
 	pub mcp_token: mcp_token::McpTokenStore,
 	pub search_key: search_key::SearchKeyStore,
@@ -64,6 +66,7 @@ impl Stores {
 			agent_notes: agent_notes::AgentNotesStore::new(paths, locks),
 			agent_rules: agent_rules::AgentRulesStore::new(paths, locks),
 			agent_seen: Arc::new(agent_seen::AgentSeenStore::new(paths, locks)),
+			teacher_chats: teacher_chats::TeacherChatsStore::new(paths, locks),
 			agent_actions: agent_actions::AgentActionsStore::new(paths, locks),
 			mcp_token: mcp_token::McpTokenStore::new(paths),
 			search_key: search_key::SearchKeyStore::new(paths),

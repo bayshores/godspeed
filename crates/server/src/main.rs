@@ -14,6 +14,7 @@ use gs_base::{clock, shutdown};
 use gs_server::{data_lock, http};
 use gs_services::App;
 use gs_services::app::deadline_reminder::start_deadline_reminders;
+use gs_services::app::teacher_nudge::start_teacher_nudges;
 use gs_shell_rpc::{ShellLink, ToShell};
 use tower::Layer;
 
@@ -69,6 +70,7 @@ async fn main() -> ExitCode {
 	gs_services::spaces::upgrade_old_preps(&app);
 	gs_services::mocks::mocks::ask_waiting_mocks(&app);
 	start_deadline_reminders(&app);
+	start_teacher_nudges(&app);
 	let router = http::server(app, &access);
 	let service = axum::middleware::from_fn_with_state(access, http::front).layer(router);
 	eprintln!("godspeed-server {} on http://127.0.0.1:{port}", gs_base::config::VERSION);

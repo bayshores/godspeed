@@ -39,7 +39,9 @@ export function TerminalPane({ api, role, foot, focusOnOpen }: {
 	const running = live && !!api.facts[role]?.checkedIn;
 	const asked = live && (!!term.prompt || !!term.url);
 	const refocus = () => setFocusKey((n) => n + 1);
-	const startAgain = async () => setError(await api.start(role, term.agent));
+	// The teacher's Start again goes back to the chat that ended, when it was used.
+	const lastChat = role === "teacher" ? api.chats.find((c) => c.agent === term.agent && c.at >= term.startedAt) : undefined;
+	const startAgain = async (resume?: string) => setError(await api.start(role, term.agent, resume));
 	const attaches = role === "teacher" && running;
 	// Each file's path goes in after the one before, then the screen takes the keys again.
 	const attach = async (files: readonly File[]) => {
@@ -98,7 +100,9 @@ export function TerminalPane({ api, role, foot, focusOnOpen }: {
 						},
 					}
 				}
-				onStartAgain={foot.startAgain ? () => void startAgain() : null}
+				onStartAgain={foot.startAgain ? () => void startAgain(lastChat?.id) : null}
+				again={lastChat ? "Continue" : "Start again"}
+				onNewChat={foot.startAgain && lastChat ? () => void startAgain() : null}
 			/>
 			<CiteDialog
 				cite={cite}

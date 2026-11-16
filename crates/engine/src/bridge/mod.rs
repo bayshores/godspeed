@@ -129,6 +129,17 @@ struct State {
 	entered: HashMap<String, i64>,
 	/// Teacher terminals whose agent is answering a line the learner typed to it there.
 	chatting: HashSet<String>,
+	/// teacher terminal → the agent's chat (session id) it runs now.
+	terminal_chat: HashMap<String, String>,
+	/// Terminals whose agent took a line (typed, or godspeed's nudge) and has not stopped since.
+	prompting: HashSet<String>,
+	/// terminal → its agent's last tool call, and its last stop: a call after the stop means it
+	/// is at work on something (a turn a finished background waiter began has no line).
+	tool_at: HashMap<String, i64>,
+	stop_at: HashMap<String, i64>,
+	/// teacher terminal → the nudge line godspeed sent it and when, until its prompt hook hands
+	/// it over.
+	nudged: HashMap<String, (String, i64)>,
 	/// The last request from an agent outside the app's terminals.
 	outside_contact: i64,
 }
@@ -138,6 +149,8 @@ struct Wait {
 	id: u64,
 	on: Option<String>,
 	agent: Option<String>,
+	/// The app terminal the wait came from.
+	terminal: Option<String>,
 }
 
 /// Lessons use their chat id as the conversation; everything else is a background job.

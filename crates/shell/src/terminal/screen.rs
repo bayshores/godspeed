@@ -118,13 +118,19 @@ impl Screen {
 		claude_input(&rows)
 	}
 
+	/// The first line of Codex's composer, or None while none shows.
+	pub fn codex_input(&self) -> Option<String> {
+		let rows: Vec<String> = self.parser.screen().rows(0, self.size().1).collect();
+		codex_input(&rows)
+	}
+
 	/// Where the pointer is on the trust question, while the screen shows exactly that.
 	pub fn trust(&self) -> Option<Trust> {
 		let rows: Vec<String> = self.parser.screen().rows(0, self.size().1).collect();
 		trust(&rows).map(|(pointer, _)| pointer)
 	}
 
-	#[cfg(test)]
+	/// All the screen's text (the end of a run reads what the agent said last).
 	pub fn text(&self) -> String {
 		self.parser.screen().contents()
 	}
@@ -231,6 +237,13 @@ fn claude_input(rows: &[String]) -> Option<String> {
 	let end = first + rows[first..].iter().position(rule)?;
 	let text = rows[first..end].iter().map(|row| row.trim()).collect::<Vec<_>>().join(" ");
 	Some(text.trim_start_matches('❯').trim().to_owned())
+}
+
+/// Codex's composer is the lowest row that starts with `›` (the history above shows the
+/// learner's earlier lines the same way).
+fn codex_input(rows: &[String]) -> Option<String> {
+	let row = rows.iter().rev().find(|row| row.trim_start().starts_with('›'))?;
+	Some(row.trim_start().trim_start_matches('›').trim().to_owned())
 }
 
 fn seen(screen: &vt100::Screen) -> Seen {
@@ -412,6 +425,14 @@ mod tests {
 		for lines in [&answer[..], &shell[..], &words[..], &one_row[..]] {
 			assert_eq!(prompt(lines), None, "{lines:?}");
 		}
+	}
+
+	#[test]
+	fn codexs_composer_is_its_lowest_pointer_row() {
+		let rows = |lines: &[&str]| lines.iter().map(|l| (*l).to_owned()).collect::<Vec<_>>();
+		assert_eq!(codex_input(&rows(&["› explain limits", "", "• Limits are…", "", "› Your lesson is waiting.", "", "  ⏎ send"])).as_deref(), Some("Your lesson is waiting."));
+		assert_eq!(codex_input(&rows(&["› ", "  ⏎ send"])).as_deref(), Some(""));
+		assert_eq!(codex_input(&rows(&["sam@mac % "])), None);
 	}
 
 	#[test]

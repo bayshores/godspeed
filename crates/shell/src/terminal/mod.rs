@@ -270,7 +270,9 @@ impl Terminals {
 
 	/// Runs the folder's start script for `role` and `agent`: the new terminal's id. `env` is the
 	/// app's environment; `data` is this app's data folder.
-	pub fn start(&self, role: Role, agent: Agent, folder: &str, env: Vec<(OsString, OsString)>, data: &Path) -> Result<String, String> {
+	pub fn start(&self, role: Role, agent: Agent, folder: &str, env: Vec<(OsString, OsString)>, data: &Path, resume: Option<&str>) -> Result<String, String> {
+		// Only the teacher goes back to a chat, and only to one named by a session id.
+		let resume = resume.filter(|_| role == Role::Teacher).filter(|chat| gs_base::ids::is_uuid(chat));
 		let mut list = lock(&self.list);
 		if list.iter().any(|t| t.role == role && !state_ended(&t.state())) {
 			return Err(format!("The {} is already running.", role.name()));
@@ -280,7 +282,7 @@ impl Terminals {
 		let id = crate::server::random_hex::<16>();
 		let shell = spawn::shell(&env, os);
 		#[cfg_attr(not(windows), allow(unused_mut))]
-		let mut env = spawn::environment(env, &id, data, os);
+		let mut env = spawn::environment(env, &id, data, os, resume);
 		#[cfg(windows)]
 		crate::win::path::refresh(&mut env);
 		let spawned = spawn::spawn(spawn::argv(&script, &shell, os), env, Path::new(folder)).map_err(|err| {
@@ -457,6 +459,15 @@ impl Terminals {
 		}
 	}
 
+	/// The quiet teacher has work waiting: godspeed's line goes into its input and is sent.
+	pub fn nudge(&self, id: &str, line: &str) {
+		let Ok(terminal) = self.find(id) else { return };
+		if terminal.role == Role::Teacher {
+			let line = line.to_owned();
+			std::thread::spawn(move || nudge_input(&terminal, &line));
+		}
+	}
+
 	/// Paste: the clipboard's text, bracketed when the program asked for that, without escape
 	/// characters that could end the bracket early.
 	pub fn paste(&self, id: &str, text: &str, focused: bool) -> Result<(), String> {
@@ -557,15 +568,24 @@ fn stopping(terminal: &Terminal) -> bool {
 	!was
 }
 
+/// What Claude Code and Codex say when the chat to go back to is gone.
+const CHAT_GONE: [&str; 2] = ["No conversation found with session ID", "No saved session found"];
+/// The code the window reads as that chat being gone (the start scripts use 3 and 4).
+const EXIT_CHAT_GONE: u32 = 5;
+
 /// The script exited: the record keeps its screen, and whatever it left running is stopped.
 fn ended(terminal: Arc<Terminal>, code: u32, outlet: &dyn Outlet, list: &List) {
 	let (ended, stopped) = {
 		let mut state = terminal.state();
 		let stopped = state.stopping;
+		let gone = code != 0 && {
+			let text = state.screen.text();
+			CHAT_GONE.iter().any(|said| text.contains(said))
+		};
 		let ended = match (state.broken, stopped) {
 			(true, _) => Ended::Broken,
 			(false, true) => Ended::Stopped,
-			(false, false) => Ended::Exited(code),
+			(false, false) => Ended::Exited(if gone { EXIT_CHAT_GONE } else { code }),
 		};
 		state.ended = Some(ended);
 		state.io = None;
@@ -641,6 +661,47 @@ fn clear_input(terminal: &Terminal, line: &str) {
 			return;
 		}
 		let _ = terminal.write(b"\x7f\x15");
+	}
+}
+
+/// How long a nudge keeps trying while a question shows or the learner's text stays in the box.
+const NUDGE_TRIES: Duration = Duration::from_secs(60);
+
+/// The agent's input box, as its own screen shows it.
+fn input_of(terminal: &Terminal) -> Option<String> {
+	let state = terminal.state();
+	match terminal.agent {
+		Agent::Claude => state.screen.input(),
+		Agent::Codex => state.screen.codex_input(),
+	}
+}
+
+/// Types the nudge and sends it only once the box reads exactly that line, so it never sends
+/// what the learner had typed there: otherwise the line is taken out again and it tries once a
+/// second. Never while the screen asks the learner something.
+fn nudge_input(terminal: &Terminal, line: &str) {
+	let squash = |text: &str| text.split_whitespace().collect::<String>();
+	let deadline = Instant::now() + NUDGE_TRIES;
+	while Instant::now() < deadline {
+		std::thread::sleep(Duration::from_secs(1));
+		{
+			let state = terminal.state();
+			if state_ended(&state) {
+				return;
+			}
+			if state.screen.seen().prompt.is_some() {
+				continue;
+			}
+		}
+		if terminal.write(line.as_bytes()).is_err() {
+			return;
+		}
+		std::thread::sleep(Duration::from_millis(300));
+		if input_of(terminal).is_some_and(|text| squash(&text) == squash(line)) {
+			let _ = terminal.write(b"\r");
+			return;
+		}
+		let _ = terminal.write("\x7f".repeat(line.chars().count()).as_bytes());
 	}
 }
 
@@ -796,7 +857,7 @@ mod tests {
 	}
 
 	fn start(terminals: &Terminals, dir: &Path) -> String {
-		terminals.start(Role::Teacher, Agent::Claude, dir.to_str().unwrap(), env(dir), Path::new("/data")).unwrap()
+		terminals.start(Role::Teacher, Agent::Claude, dir.to_str().unwrap(), env(dir), Path::new("/data"), None).unwrap()
 	}
 
 	fn text(terminals: &Terminals, id: &str) -> String {
@@ -820,6 +881,36 @@ mod tests {
 	const ECHO: &str = "#!/bin/sh\nprintf 'ready %s\\n' \"$GODSPEED_TERMINAL\"\nread line\nprintf 'got %s\\n' \"$line\"\nsleep 1\n";
 	#[cfg(windows)]
 	const ECHO: &str = "@echo off\r\necho ready %GODSPEED_TERMINAL%\r\nset /p line=\r\necho got %line%\r\nping -n 2 127.0.0.1 >nul\r\n";
+
+	#[cfg(unix)]
+	#[test]
+	fn an_agent_that_says_the_chat_is_gone_ends_with_its_own_code() {
+		let dir = folder("gone", "#!/bin/sh\nprintf 'resume %s\\n' \"$GODSPEED_RESUME\"\necho 'No conversation found with session ID: x'\nexit 1\n");
+		let terminals = Terminals::new(Arc::new(Heard::default()));
+		let chat = "0f8fad5b-d9cb-469f-a165-70867728950e";
+		let id = terminals.start(Role::Teacher, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data"), Some(chat)).unwrap();
+		until("the end", || ended_of(&terminals, &id).is_some());
+		assert_eq!(ended_of(&terminals, &id), Some(Ended::Exited(EXIT_CHAT_GONE)));
+		assert!(text(&terminals, &id).contains(&format!("resume {chat}")), "the script was told the chat");
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn a_nudge_is_typed_then_sent_once_the_box_holds_it() {
+		let dir = std::env::temp_dir().join(format!("gs-shell-terminal-nudge-{}", std::process::id()));
+		let _ = std::fs::remove_dir_all(&dir);
+		std::fs::create_dir_all(dir.join(".godspeed")).unwrap();
+		let extension = if std::env::consts::OS == "macos" { "command" } else { "sh" };
+		let script = dir.join(".godspeed").join(format!("start-codex.{extension}"));
+		gs_base::fsx::write_text_atomic(&script, "#!/bin/sh\nprintf '› '\nread line\nprintf 'got %s\\n' \"$line\"\nsleep 1\n").unwrap();
+		std::fs::set_permissions(&script, std::os::unix::fs::PermissionsExt::from_mode(0o755)).unwrap();
+		let heard = Arc::new(Heard::default());
+		let terminals = Terminals::new(heard.clone());
+		let id = terminals.start(Role::Teacher, Agent::Codex, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None).unwrap();
+		terminals.nudge(&id, "Your lesson is waiting.");
+		until("the sent nudge", || text(&terminals, &id).contains("got Your lesson is waiting."));
+		assert!(lock(&heard.typed).is_empty(), "godspeed's own line is not the learner's message");
+	}
 
 	#[test]
 	fn a_start_script_draws_and_echoes_through_the_terminal() {
@@ -983,8 +1074,8 @@ mod tests {
 		let dir = folder("second", ECHO);
 		let terminals = Terminals::new(Arc::new(Heard::default()));
 		let id = start(&terminals, &dir);
-		assert_eq!(terminals.start(Role::Teacher, Agent::Codex, dir.to_str().unwrap(), env(&dir), Path::new("/data")), Err("The teacher is already running.".to_owned()));
-		assert_eq!(terminals.start(Role::Helper, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data")), Err(NOT_SET_UP.to_owned()), "the helper has no script here");
+		assert_eq!(terminals.start(Role::Teacher, Agent::Codex, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None), Err("The teacher is already running.".to_owned()));
+		assert_eq!(terminals.start(Role::Helper, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None), Err(NOT_SET_UP.to_owned()), "the helper has no script here");
 		terminals.stop(&id).unwrap();
 		until("the stop", || ended_of(&terminals, &id) == Some(Ended::Stopped));
 		let again = start(&terminals, &dir);
@@ -1005,7 +1096,7 @@ mod tests {
 		write_script(&dir, Role::Helper, WAITS);
 		let heard = Arc::new(Heard::default());
 		let terminals = Terminals::new(heard.clone());
-		let start_helper = || terminals.start(Role::Helper, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data")).unwrap();
+		let start_helper = || terminals.start(Role::Helper, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None).unwrap();
 
 		let teacher = start(&terminals, &dir);
 		let helper = start_helper();
@@ -1053,7 +1144,7 @@ mod tests {
 		write_script(&dir, Role::Helper, WAITS);
 		let heard = Arc::new(Heard::default());
 		let terminals = Arc::new(Terminals::new(heard.clone()));
-		let helper = terminals.start(Role::Helper, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data")).unwrap();
+		let helper = terminals.start(Role::Helper, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None).unwrap();
 		heard.slow.store(true, Ordering::SeqCst);
 		let stopping = std::thread::spawn({
 			let (terminals, helper) = (terminals.clone(), helper.clone());

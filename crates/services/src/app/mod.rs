@@ -25,6 +25,8 @@ pub mod reading_pages;
 pub mod settings_body;
 mod settings_put;
 pub(crate) mod settings_record;
+pub mod teacher_chats;
+pub mod teacher_nudge;
 pub mod terminal_lines;
 #[cfg(test)]
 pub(crate) mod test_support;

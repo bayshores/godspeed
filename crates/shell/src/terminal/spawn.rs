@@ -115,12 +115,13 @@ pub fn argv(script: &Path, shell: &str, os: &str) -> Vec<OsString> {
 /// What an AppImage sets for itself; a program started from it must not inherit them.
 const APPIMAGE_VARIABLES: [&str; 12] = ["APPDIR", "APPIMAGE", "ARGV0", "OWD", "LD_LIBRARY_PATH", "LD_PRELOAD", "GDK_PIXBUF_MODULE_FILE", "GIO_EXTRA_MODULES", "GSETTINGS_SCHEMA_DIR", "GTK_PATH", "GTK_EXE_PREFIX", "GTK_DATA_PREFIX"];
 
-/// The agent's environment: the app's own, less what belongs to the app, plus the terminal's id
-/// and this app's data folder (the folder's connector finds the app through it).
-pub fn environment(base: impl IntoIterator<Item = (OsString, OsString)>, id: &str, data: &Path, os: &str) -> Vec<(OsString, OsString)> {
+/// The agent's environment: the app's own, less what belongs to the app, plus the terminal's id,
+/// this app's data folder (the folder's connector finds the app through it) and the chat to go
+/// back to, which the caller checked is a session id (the script passes it on unquoted on Windows).
+pub fn environment(base: impl IntoIterator<Item = (OsString, OsString)>, id: &str, data: &Path, os: &str, resume: Option<&str>) -> Vec<(OsString, OsString)> {
 	let dropped = |key: &str| {
 		let upper = key.to_ascii_uppercase();
-		upper.starts_with("LH_") || upper.starts_with("TAURI_") || upper == "GODSPEED_TERMINAL" || upper == "GODSPEED_DATA_DIR" || (os == "linux" && APPIMAGE_VARIABLES.contains(&key))
+		upper.starts_with("LH_") || upper.starts_with("TAURI_") || ["GODSPEED_TERMINAL", "GODSPEED_DATA_DIR", "GODSPEED_RESUME"].contains(&upper.as_str()) || (os == "linux" && APPIMAGE_VARIABLES.contains(&key))
 	};
 	let mut env: Vec<(OsString, OsString)> = base.into_iter().filter(|(key, _)| !key.to_str().is_some_and(dropped)).collect();
 	let has = |env: &[(OsString, OsString)], key: &str| env.iter().any(|(k, _)| k == key);
@@ -131,6 +132,9 @@ pub fn environment(base: impl IntoIterator<Item = (OsString, OsString)>, id: &st
 	}
 	env.push(("GODSPEED_TERMINAL".into(), id.into()));
 	env.push(("GODSPEED_DATA_DIR".into(), data.into()));
+	if let Some(chat) = resume {
+		env.push(("GODSPEED_RESUME".into(), chat.into()));
+	}
 	env
 }
 
@@ -251,9 +255,9 @@ mod tests {
 
 	#[test]
 	fn the_agent_gets_the_apps_environment_without_the_apps_own_variables() {
-		let base = [("PATH", "/usr/bin"), ("LH_DATA_DIR", "/secret"), ("TAURI_ENV_DEBUG", "1"), ("GODSPEED_TERMINAL", "old"), ("APPIMAGE", "/x.AppImage"), ("LANG", "de_DE.UTF-8"), ("HOME", "/h")];
+		let base = [("PATH", "/usr/bin"), ("LH_DATA_DIR", "/secret"), ("TAURI_ENV_DEBUG", "1"), ("GODSPEED_TERMINAL", "old"), ("GODSPEED_RESUME", "old"), ("GODSPEED_MCP_URL", "http://x"), ("APPIMAGE", "/x.AppImage"), ("LANG", "de_DE.UTF-8"), ("HOME", "/h")];
 		let base = || base.iter().map(|(k, v)| (OsString::from(k), OsString::from(v)));
-		let env = |os: &str| environment(base(), "ab".repeat(16).as_str(), Path::new("/data"), os).into_iter().map(|(k, v)| (k.into_string().unwrap(), v.into_string().unwrap())).collect::<Vec<_>>();
+		let env = |os: &str| environment(base(), "ab".repeat(16).as_str(), Path::new("/data"), os, None).into_iter().map(|(k, v)| (k.into_string().unwrap(), v.into_string().unwrap())).collect::<Vec<_>>();
 		let linux = env("linux");
 		let get = |key: &str| linux.iter().filter(|(k, _)| k == key).map(|(_, v)| v.as_str()).collect::<Vec<_>>();
 		assert_eq!(get("PATH"), ["/usr/bin"]);
@@ -264,6 +268,11 @@ mod tests {
 		for gone in ["LH_DATA_DIR", "TAURI_ENV_DEBUG", "APPIMAGE"] {
 			assert!(get(gone).is_empty(), "{gone}");
 		}
+		assert!(get("GODSPEED_RESUME").is_empty(), "no chat to go back to unless the window picked one");
+		assert_eq!(get("GODSPEED_MCP_URL"), ["http://x"], "a test's own app stays reachable");
 		assert!(env("macos").iter().any(|(k, _)| k == "APPIMAGE"), "only Linux runs from an AppImage");
+		let chat = "0f8fad5b-d9cb-469f-a165-70867728950e";
+		let resumed = environment(base(), "ab".repeat(16).as_str(), Path::new("/data"), "linux", Some(chat));
+		assert!(resumed.iter().any(|(k, v)| k == "GODSPEED_RESUME" && v == chat));
 	}
 }

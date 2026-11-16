@@ -52,6 +52,11 @@ impl Bridge {
 		s.typed.retain(|id, _| live.contains(id));
 		s.entered.retain(|id, _| live.contains(id));
 		s.chatting.retain(|id| live.contains(id));
+		s.terminal_chat.retain(|id, _| live.contains(id));
+		s.prompting.retain(|id| live.contains(id));
+		s.tool_at.retain(|id, _| live.contains(id));
+		s.stop_at.retain(|id, _| live.contains(id));
+		s.nudged.retain(|id, _| live.contains(id));
 		s.teacher_terminal = teacher.filter(|id| live.contains(id));
 		s.live_terminals = live;
 		drop(s);
@@ -135,6 +140,54 @@ impl Bridge {
 		if s.teacher_terminal.as_deref() == Some(terminal) {
 			s.chatting.insert(terminal.to_owned());
 		}
+	}
+
+	/// The agent in this terminal took a line and works on it until it stops.
+	pub fn agent_prompted(&self, terminal: &str) {
+		self.0.state.lock().prompting.insert(terminal.to_owned());
+	}
+
+	/// The agent in this terminal stopped (its Stop hook).
+	pub fn agent_stopped(&self, terminal: &str, now: i64) {
+		let mut s = self.0.state.lock();
+		s.prompting.remove(terminal);
+		s.stop_at.insert(terminal.to_owned(), now);
+	}
+
+	/// The agent in this terminal called one of godspeed's tools.
+	pub fn agent_tool_call(&self, terminal: &str, now: i64) {
+		self.0.state.lock().tool_at.insert(terminal.to_owned(), now);
+	}
+
+	/// godspeed asked the shell to type this line to the quiet teacher.
+	pub fn nudge_sent(&self, terminal: &str, line: &str, now: i64) {
+		self.0.state.lock().nudged.insert(terminal.to_owned(), (line.to_owned(), now));
+	}
+
+	/// The line from this terminal's prompt hook is godspeed's nudge, not the learner's: it is
+	/// through, so the next one may go when needed.
+	pub fn take_nudge_line(&self, terminal: &str, line: &str) -> bool {
+		let mut s = self.0.state.lock();
+		let ours = s.nudged.get(terminal).is_some_and(|(sent, _)| sent.trim() == line.trim());
+		if ours {
+			s.nudged.remove(terminal);
+		}
+		ours
+	}
+
+	/// The teacher's terminal, once its agent has reached godspeed.
+	pub fn contacted_teacher_terminal(&self) -> Option<String> {
+		let s = self.0.state.lock();
+		s.teacher_terminal.clone().filter(|id| s.terminal_contact.contains_key(id))
+	}
+
+	/// The agent's chat (session id) this terminal runs now.
+	pub fn set_terminal_chat(&self, terminal: &str, chat: &str) {
+		self.0.state.lock().terminal_chat.insert(terminal.to_owned(), chat.to_owned());
+	}
+
+	pub fn terminal_chat(&self, terminal: &str) -> Option<String> {
+		self.0.state.lock().terminal_chat.get(terminal).cloned()
 	}
 
 	/// The agent in this terminal stopped: whether it was answering the learner there.

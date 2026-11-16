@@ -99,7 +99,7 @@ test("the terminal members name a role, an agent and an id, and hear their pushe
 	await terminals.list!();
 	await lh!.openLink!("https://nodejs.org");
 	assert.deepEqual(invoked, [
-		["terminal_start", { role: "teacher", agent: "claude" }],
+		["terminal_start", { role: "teacher", agent: "claude", resume: null }],
 		["terminal_attach", { id: "a1" }],
 		["terminal_resize", { id: "a1", cols: 50, rows: 34 }],
 		["terminal_write", { id: "a1", data: "y" }],

@@ -29,14 +29,28 @@ export interface TerminalRecord {
 	url: boolean;
 }
 
-/** The start scripts' own exit codes. */
+/** The start scripts' own exit codes, and the shell's when the agent said the chat to go back to is gone. */
 const EXIT_NOT_INSTALLED = 3;
 const EXIT_NO_NODE = 4;
+const EXIT_CHAT_GONE = 5;
+
+/** A chat the teacher had in godspeed's terminal, to go back to (GET /api/teacher-chats). */
+export interface TeacherChat {
+	id: string;
+	agent: FolderAgent;
+	/** The last lesson it taught, else the first line typed to it. */
+	name: string | null;
+	/** Last used, ms since the epoch. */
+	at: number;
+}
+
+/** The agent said the chat it was to go back to is gone. */
+export const chatGone = (ended: TerminalEnded | null): boolean => ended?.stopped === false && ended.code === EXIT_CHAT_GONE;
 
 /** No check-in this long after a start: the agent may be waiting on its screen. */
 export const CHECK_IN_WAIT_MS = 20_000;
-/** Checked in, a turn waits, and no teaching for this long. */
-export const TEACH_WAIT_MS = 30_000;
+/** Checked in, a turn waits, and no teaching for this long (godspeed nudges a quiet teacher for a minute first). */
+export const TEACH_WAIT_MS = 75_000;
 
 /** The size every terminal starts at (the shell opens it so); a shown
  *  screen then takes the size of its box, at one font size. */
@@ -145,6 +159,7 @@ function screenWords(f: TerminalFacts, name: string): ScreenWords {
 	if (ended) {
 		if (ended.code === EXIT_NOT_INSTALLED) return { need: `${agent} isn't installed on this computer.`, rest: null, more: { get: GET_AGENT[term.agent], ...again } };
 		if (ended.code === EXIT_NO_NODE) return { need: `godspeed needs Node.js to connect ${agent}.`, rest: null, more: { get: GET_NODE, ...again } };
+		if (ended.code === EXIT_CHAT_GONE) return { need: "Couldn't open that chat.", rest: null, more: again };
 		if (ended.code === 0) return { need: null, rest: `${agent} closed.`, more: again };
 		return { need: `${agent} closed with an error.`, rest: null, more: again };
 	}
@@ -248,12 +263,15 @@ export function wakeAgent(i: { teacher: TerminalRecord | null; agentHere: boolea
  *  its last request, so after godspeed's teacher ended, or before a new one
  *  checked in, it still says so. The terminals know: once godspeed has
  *  started a teacher, no agent here means none connected, teaching or
- *  helping (the shell stops the helper with the teacher). */
+ *  helping (the shell stops the helper with the teacher). And its own
+ *  teacher, running and checked in, is ready to teach even while it sits
+ *  quiet: godspeed wakes it when a lesson needs it. */
 export function statusFromTerminals<S extends { connected: boolean; teaching: boolean; helperHere: boolean; helperCovering: boolean; name?: string }>(
 	status: S | null,
 	teacher: TerminalRecord | null,
 	agentHere: boolean,
 ): S | null {
+	if (status && agentHere && live(teacher) && !(status.connected && status.teaching)) return { ...status, connected: true, teaching: true };
 	if (!status || !teacher || agentHere || !(status.connected || status.teaching || status.helperHere || status.helperCovering)) return status;
 	const { name: _gone, ...rest } = status;
 	return { ...rest, connected: false, teaching: false, helperHere: false, helperCovering: false } as S;

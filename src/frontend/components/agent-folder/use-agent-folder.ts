@@ -34,14 +34,15 @@ export function useAgentFolder() {
 	}, []);
 	useEffect(load, [load]);
 
-	/** Resolves to true once the agent starts (or, outside the desktop app, the folder is made). */
+	/** Resolves to true once the agent starts (or, outside the desktop app, the folder is made).
+	 *  `resume`: the teacher's chat to go back to. */
 	const start = useCallback(
-		async (role: TerminalRole, agent: FolderAgent): Promise<boolean> => {
+		async (role: TerminalRole, agent: FolderAgent, resume?: string): Promise<boolean> => {
 			saveAgent(agent);
 			if (terminals?.available) {
 				setStarting(true);
 				setFailed(null);
-				const why = await terminals.start(role, agent);
+				const why = await terminals.start(role, agent, resume);
 				setStarting(false);
 				setFailed(why);
 				if (!why) load();
@@ -62,7 +63,7 @@ export function useAgentFolder() {
 		[terminals, load, showTerminal],
 	);
 
-	const open = useCallback((agent: FolderAgent) => start("teacher", agent), [start]);
+	const open = useCallback((agent: FolderAgent, resume?: string) => start("teacher", agent, resume), [start]);
 	/** Start the helper alone. */
 	const openHelper = useCallback((agent: FolderAgent) => start("helper", agent), [start]);
 

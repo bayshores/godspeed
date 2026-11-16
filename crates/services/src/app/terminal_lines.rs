@@ -31,11 +31,20 @@ pub struct Lines {
 /// and the shell clears the line Claude Code puts back in its input. Otherwise None, and the
 /// agent reads the line as usual.
 pub async fn take_terminal_line(app: &App, terminal: Option<&str>, line: &str) -> Option<String> {
+	// godspeed's own nudge to the quiet teacher: the agent works on it, but it is not the learner's.
+	if let Some(terminal) = terminal
+		&& app.bridge.take_nudge_line(terminal, line)
+	{
+		app.bridge.agent_prompted(terminal);
+		return None;
+	}
 	let page = to_page(app, terminal, line).await;
 	if page.is_none()
 		&& let Some(terminal) = terminal
 	{
+		app.bridge.agent_prompted(terminal);
 		app.bridge.chat_line(terminal);
+		super::teacher_chats::typed(app, terminal, line);
 	}
 	page
 }
@@ -89,7 +98,7 @@ mod tests {
 	fn reads_only_the_named_files_that_are_there() {
 		let dir = std::env::temp_dir().join(format!("gs-lines-{}", std::process::id()));
 		std::fs::create_dir_all(&dir).unwrap();
-		std::fs::write(dir.join("0123456789ab-a.png"), b"ABC").unwrap();
+		gs_base::fsx::write_atomic(&dir.join("0123456789ab-a.png"), b"ABC", None).unwrap();
 		let read = read_attachments(&dir, &["0123456789ab-a.png".to_owned(), "0123456789ab-gone.pdf".to_owned()]);
 		assert_eq!(read, vec![json!({ "name": "0123456789ab-a.png", "mimeType": "image/png", "data": "QUJD" })]);
 		std::fs::remove_dir_all(&dir).unwrap();

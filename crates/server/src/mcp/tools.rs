@@ -35,6 +35,15 @@ pub struct ToolCall<'a> {
 	pub meta: &'a Json,
 }
 
+impl ToolCall<'_> {
+	/// The agent's session: in the teacher's terminal the chat its SessionStart hook named (the
+	/// connector keeps the id it started with, even after `/resume` opened another chat), else
+	/// the one the call says.
+	pub fn agent(&self) -> Option<String> {
+		self.terminal.and_then(|t| self.app.bridge.terminal_chat(t)).or_else(|| super::caller::agent_id_of(self.meta))
+	}
+}
+
 /// A tool's space_id argument, checked: absent or "none" is No space; otherwise the space must
 /// exist. The scope, or the refusal text.
 pub fn space_arg(app: &App, space_id: Option<&str>) -> Result<Option<String>, String> {

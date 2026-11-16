@@ -17,8 +17,9 @@ declare global {
 			openPath?: (path: string) => Promise<void>;
 			/** The agents' terminals the shell runs (terminal/use-terminals.ts). */
 			terminals?: {
-				/** Resolves to the new terminal's id; rejects with a sentence saying why it couldn't start. */
-				start: (role: TerminalRole, agent: FolderAgent) => Promise<{ id: string }>;
+				/** Resolves to the new terminal's id; rejects with a sentence saying why it couldn't start.
+				 *  `resume`: the teacher's chat (a session id) to go back to. */
+				start: (role: TerminalRole, agent: FolderAgent, resume?: string) => Promise<{ id: string }>;
 				/** Pushes the screen as it is, then its live output, until detach. */
 				attach: (id: string) => Promise<void>;
 				detach: (id: string) => Promise<void>;

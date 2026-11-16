@@ -13,7 +13,7 @@ const KEY = "lh-btn h-8 shrink-0 font-mono text-[13px]";
  * Start again) at the far right. A key shows only while it can act, and
  * fades in and out.
  */
-export function ScreenFooter({ text, onAttach, onPaste, onStop, get, assist, onStartAgain }: {
+export function ScreenFooter({ text, onAttach, onPaste, onStop, get, assist, onStartAgain, again = "Start again", onNewChat = null }: {
 	text: string | null;
 	onAttach: ((files: File[]) => void) | null;
 	onPaste: (() => void) | null;
@@ -21,6 +21,10 @@ export function ScreenFooter({ text, onAttach, onPaste, onStop, get, assist, onS
 	get: TerminalFooter["get"];
 	assist: { label: string; run: () => void } | null;
 	onStartAgain: (() => void) | null;
+	/** Start again's word: "Continue" when it goes back to the chat that ended. */
+	again?: string;
+	/** Beside Continue: a new chat instead. */
+	onNewChat?: (() => void) | null;
 }) {
 	const picker = useRef<HTMLInputElement>(null);
 	return (
@@ -56,8 +60,11 @@ export function ScreenFooter({ text, onAttach, onPaste, onStop, get, assist, onS
 			<Key testid="terminal-assist" onClick={assist?.run ?? null} main>
 				{assist?.label}
 			</Key>
+			<Key testid="terminal-new-chat" onClick={onNewChat} quiet>
+				New chat
+			</Key>
 			<Key testid="terminal-start-again" onClick={onStartAgain} main>
-				Start again
+				{again}
 			</Key>
 		</div>
 	);

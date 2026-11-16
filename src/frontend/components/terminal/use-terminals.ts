@@ -2,7 +2,8 @@
  * The agents' terminals in the desktop app, shared by every surface: the
  * teacher's and the helper's latest terminal, and starting and stopping
  * them. The helper starts by itself once the teacher has checked in and
- * background jobs wait; the shell stops it with the teacher.
+ * background jobs wait; the shell stops it with the teacher. The teacher's
+ * earlier chats come along, to go back to one.
  * Outside the desktop app `available` is false and nothing here runs.
  */
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
@@ -17,10 +18,12 @@ import {
 	CHECK_IN_WAIT_MS,
 	OUTSIDE_REFUSAL,
 	TEACH_WAIT_MS,
+	chatGone,
 	helperShouldStart,
 	statusFromTerminals,
 	teacherStartRefused,
 	wakeAgent,
+	type TeacherChat,
 	type TerminalFacts,
 	type TerminalRecord,
 	type TerminalRole,
@@ -43,16 +46,19 @@ export interface TerminalsApi {
 	agentHere: boolean;
 	/** The shell's first list of terminals has answered. */
 	loaded: boolean;
-	/** Resolves to why it couldn't start, or null. */
-	start: (role: TerminalRole, agent: FolderAgent) => Promise<string | null>;
+	/** The teacher's earlier chats, newest first (only in the desktop app). */
+	chats: readonly TeacherChat[];
+	/** Resolves to why it couldn't start, or null. `resume`: the teacher's chat to go back to. */
+	start: (role: TerminalRole, agent: FolderAgent, resume?: string) => Promise<string | null>;
 	stop: (role: TerminalRole) => void;
 	/** These resolve to why the shell refused, or null. */
 	answer: (role: TerminalRole, kind: "trust" | "enter") => Promise<string | null>;
 	paste: (role: TerminalRole) => Promise<string | null>;
 	/** Attach on the teacher's screen: the file's path typed into its input. */
 	addFile: (file: File) => Promise<string | null>;
-	/** Start lesson and a lesson's send: start the teacher hidden when it may (wakeAgent). */
-	wake: () => void;
+	/** Start lesson and a lesson's send: start the teacher hidden when it may (wakeAgent).
+	 *  True when it didn't because the learner picks the chat first. */
+	wake: () => boolean;
 }
 
 const UNSTARTED = "Couldn't start the agent. Try again.";
@@ -75,6 +81,9 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	// The terminals that have checked in at least once.
 	const [checked, setChecked] = useState<ReadonlySet<string>>(new Set());
 	const [quietSince, setQuietSince] = useState<number | null>(null);
+	const [chats, setChats] = useState<readonly TeacherChat[]>([]);
+	// terminal id → the chat it went back to.
+	const resumed = useRef(new Map<string, string>());
 	// Re-renders when a timer crosses its threshold, or to look for a closed dialog again.
 	const [tick, bump] = useReducer((n: number) => n + 1, 0);
 
@@ -124,6 +133,24 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 			off();
 		};
 	}, [lh, put]);
+
+	// The list changes as a teacher run starts, is used and ends; a chat the agent said is gone leaves it.
+	const runId = records.teacher?.id;
+	const runGone = chatGone(records.teacher?.ended ?? null);
+	const runEnded = !!records.teacher?.ended;
+	useEffect(() => {
+		if (!lh) return;
+		let on = true;
+		const gone = runId && runGone ? resumed.current.get(runId) : undefined;
+		const url = `/api/teacher-chats${gone ? `?id=${encodeURIComponent(gone)}` : ""}`;
+		fetch(url, gone ? { method: "DELETE" } : { cache: "no-store" })
+			.then((r) => (r.ok ? (r.json() as Promise<{ chats: TeacherChat[] }>) : null))
+			.then((body) => on && setChats(Array.isArray(body?.chats) ? body.chats : []))
+			.catch(() => {/* the list waits for the next look */});
+		return () => {
+			on = false;
+		};
+	}, [lh, runId, runGone, runEnded]);
 
 	const here = useCallback((id: string | undefined) => !!id && !!status?.terminals?.some((t) => t.id === id && t.here), [status]);
 	const teacher = records.teacher;
@@ -180,7 +207,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	}, [teacher, teacherLive, teacherCheckedIn, quietSince]);
 
 	const start = useCallback(
-		async (role: TerminalRole, agent: FolderAgent): Promise<string | null> => {
+		async (role: TerminalRole, agent: FolderAgent, resume?: string): Promise<string | null> => {
 			if (!lh) return UNSTARTED;
 			let view: FolderView;
 			try {
@@ -190,7 +217,8 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 			}
 			setFolder(view.short);
 			try {
-				const { id } = await lh.start(role, agent);
+				const { id } = await lh.start(role, agent, resume);
+				if (resume) resumed.current.set(id, resume);
 				setRecords((r) => (r[role]?.id === id ? r : { ...r, [role]: { id, role, agent, startedAt: Date.now(), ended: null, prompt: null, url: false } }));
 				return null;
 			} catch (err) {
@@ -202,7 +230,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 
 	const refused = teacherStartRefused(teacher, !!status?.outsideHere);
 	const startRole = useCallback(
-		async (role: TerminalRole, agent: FolderAgent) => {
+		async (role: TerminalRole, agent: FolderAgent, resume?: string) => {
 			// Its screen shows where the start was asked for.
 			if (role === "teacher" && refused === "running") return null;
 			if (role === "teacher" && refused === "outside") {
@@ -214,7 +242,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 				}
 				return OUTSIDE_REFUSAL;
 			}
-			return start(role, agent);
+			return start(role, agent, resume);
 		},
 		[refused, start],
 	);
@@ -273,16 +301,19 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const waking = useRef(false);
 	const wake = useCallback(() => {
 		const agent = lh && loaded && !waking.current && wakeAgent({ teacher, agentHere, outsideHere, saved: savedAgent() });
-		if (!agent) return;
+		if (!agent) return false;
+		// With earlier chats the learner picks which one teaches.
+		if (chats.length > 0) return true;
 		waking.current = true;
 		void start("teacher", agent).finally(() => {
 			waking.current = false;
 		});
-	}, [lh, loaded, teacher, agentHere, outsideHere, start]);
+		return false;
+	}, [lh, loaded, teacher, agentHere, outsideHere, chats, start]);
 
 	return useMemo(
-		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, start: startRole, stop, answer, paste, addFile, wake }),
-		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, startRole, stop, answer, paste, addFile, wake],
+		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, start: startRole, stop, answer, paste, addFile, wake }),
+		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, startRole, stop, answer, paste, addFile, wake],
 	);
 }
 

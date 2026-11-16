@@ -7,6 +7,7 @@ pub mod agent_notes;
 pub mod agent_actions;
 pub mod agent_rules;
 pub mod agent_seen;
+pub mod teacher_chats;
 pub mod prompt_segments;
 pub mod changelog;
 pub mod plugin_settings;

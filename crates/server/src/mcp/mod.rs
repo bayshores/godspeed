@@ -108,6 +108,13 @@ pub async fn handle_mcp_request(app: &Arc<App>, method: &Method, headers: &Heade
 	if let Some(caller) = &caller {
 		app.bridge.record_check_in(caller.name.as_deref(), false, now);
 		app.bridge.record_terminal_contact(terminal.as_deref(), now);
+		if let Some(id) = terminal.as_deref()
+			// A wait is no work: it counts while it runs, and a waiter that ended must not keep the
+			// agent looking busy.
+			&& body.as_ref().is_some_and(|b| b["method"].as_str() == Some("tools/call") && b["params"]["name"].as_str() != Some("wait_for_work"))
+		{
+			app.bridge.agent_tool_call(id, now);
+		}
 	}
 	// Only a client's own name changes the shared one; a guess names just this request.
 	let agent = caller.as_ref().and_then(|c| c.name.clone().or_else(|| c.guessed.clone())).or_else(|| app.bridge.agent_name(now));
@@ -172,10 +179,11 @@ pub async fn handle_terminal_line(app: &App, headers: &HeaderMap, body: Option<J
 	http_reply::json(200, &json!({ "sent": sent }))
 }
 
-/// /api/mcp/agent-event: the godspeed folder's hook says the agent in a terminal stopped
-/// (`{ "event": "stop" }`) or waits for the learner's say (`"needs"`). The window then may play
-/// its sound: for a stop only when the teacher was answering a line typed to it there (a lesson's
-/// reply has its own turn), for a need only from the teacher's terminal.
+/// /api/mcp/agent-event: the godspeed folder's hook says the agent in a terminal started a chat
+/// (`{ "event": "session", "session": <id>, "agent": "claude" }`), stopped (`"stop"`) or waits
+/// for the learner's say (`"needs"`). The teacher's chats are kept to go back to. The window may
+/// play its sound: for a stop only when the teacher was answering a line typed to it there (a
+/// lesson's reply has its own turn), for a need only from the teacher's terminal.
 pub fn handle_agent_event(app: &App, headers: &HeaderMap, body: Option<Json>) -> Response {
 	if let Some(refused) = refuse(app, headers) {
 		return refused;
@@ -183,10 +191,18 @@ pub fn handle_agent_event(app: &App, headers: &HeaderMap, body: Option<Json>) ->
 	let body = body.unwrap_or_default();
 	let terminal = terminal_of(headers);
 	let kind = match (body["event"].as_str(), terminal.as_deref()) {
-		(Some("stop"), Some(id)) if app.bridge.take_chat(id) => Some("done"),
+		(Some("session"), _) => {
+			let (session, agent) = (body["session"].as_str().unwrap_or_default(), body["agent"].as_str().unwrap_or_default());
+			gs_services::app::teacher_chats::session_started(app, terminal.as_deref(), session, agent);
+			None
+		}
+		(Some("stop"), Some(id)) => {
+			app.bridge.agent_stopped(id, clock::now_ms());
+			app.bridge.take_chat(id).then_some("done")
+		}
 		(Some("needs"), id) if app.bridge.is_teacher_terminal(id) => Some("needs"),
 		(Some("stop" | "needs"), _) => None,
-		_ => return http_reply::json(400, &json!({ "error": "Send \"event\": \"stop\" or \"needs\"." })),
+		_ => return http_reply::json(400, &json!({ "error": "Send \"event\": \"session\", \"stop\" or \"needs\"." })),
 	};
 	if let Some(kind) = kind {
 		app.events.emit(EventKind::AgentEvent, json!({ "kind": kind }));

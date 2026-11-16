@@ -43,13 +43,14 @@ fn focused(webview: &Webview) -> bool {
 }
 
 /// Starts the godspeed folder's start script for a role and an agent: `{ id }`, or why it could
-/// not. The server says where the folder is.
+/// not. The server says where the folder is. `resume`: the teacher's chat to go back to.
 #[tauri::command(async)]
-pub fn terminal_start(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, paths: State<Paths>, server: State<Server>, role: String, agent: String) -> Result<Value, String> {
+#[allow(clippy::too_many_arguments)]
+pub fn terminal_start(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, paths: State<Paths>, server: State<Server>, role: String, agent: String, resume: Option<String>) -> Result<Value, String> {
 	trusted(&webview, &origin)?;
 	let (Some(role), Some(agent)) = (Role::parse(&role), Agent::parse(&agent)) else { return Err(NOT_SET_UP.to_owned()) };
 	let folder = server.agent_folder().ok_or(super::NO_START)?.ok_or(NOT_SET_UP)?;
-	let id = terminals.start(role, agent, &folder, std::env::vars_os().collect(), &paths.data)?;
+	let id = terminals.start(role, agent, &folder, std::env::vars_os().collect(), &paths.data, resume.as_deref())?;
 	Ok(json!({ "id": id }))
 }
 

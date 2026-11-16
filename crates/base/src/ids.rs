@@ -30,6 +30,12 @@ pub fn is_file_id(id: &str) -> bool {
 	!id.is_empty() && id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
 }
 
+/// A UUID as text (8-4-4-4-12 hex), as the agents write their session ids.
+pub fn is_uuid(id: &str) -> bool {
+	let parts: Vec<&str> = id.split('-').collect();
+	parts.len() == 5 && parts.iter().zip([8, 4, 4, 4, 12]).all(|(part, len)| part.len() == len && part.bytes().all(|b| b.is_ascii_hexdigit()))
+}
+
 /// `crypto.randomUUID()`: a version 4 UUID in lowercase.
 pub fn uuid() -> String {
 	let mut b = random_bytes(16);
@@ -61,6 +67,15 @@ pub fn uuid_head(prefix: &str, n: usize) -> String {
 
 #[cfg(test)]
 mod tests {
+
+	#[test]
+	fn only_a_uuid_is_one() {
+		assert!(is_uuid("0f8fad5b-d9cb-469f-a165-70867728950e"));
+		assert!(is_uuid(&uuid()));
+		assert!(!is_uuid("0f8fad5b-d9cb-469f-a165-70867728950"));
+		assert!(!is_uuid("0f8fad5b-d9cb-469f-a165-70867728950e & calc"));
+		assert!(!is_uuid("%PATH%"));
+	}
 	use super::*;
 
 	fn shape(id: &str, re: &str) -> bool {

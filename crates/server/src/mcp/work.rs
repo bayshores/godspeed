@@ -18,7 +18,7 @@ use gs_services::spaces::citations::check_cites;
 use gs_services::turns::reply_nudges::reply_refusal;
 
 use super::TERMINAL_CLOSED;
-use super::caller::{agent_id_of, in_claude_code};
+use super::caller::in_claude_code;
 use super::reply::{failure, result, text_block};
 use super::tools::ToolCall;
 
@@ -166,7 +166,7 @@ pub async fn wait_for_work(call: &ToolCall<'_>, args: &Json) -> Json {
 	{
 		return failure(&format!("No lesson \"{lesson}\". Use list_lessons."));
 	}
-	let agent = agent_id_of(call.meta);
+	let agent = call.agent();
 	let terminal = call.terminal.map(str::to_owned);
 	let full = args["full_context"].as_bool() == Some(true);
 	// A session that said it is the helper stays one, so losing its context cannot make it a teacher.
@@ -236,6 +236,7 @@ pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 	if let Some(lesson) = app.stores.chats.get_chat(&answered.conversation) {
 		note_replying(app, call.caller, &lesson);
 	}
+	gs_services::app::teacher_chats::taught(app, call.terminal, &answered.conversation);
 	let helper = app.bridge.is_helper_agent(answered.agent.as_deref());
 	let next = {
 		let _release = Release { app, conversation: answered.conversation.clone() };

@@ -9,7 +9,7 @@ use gs_services::spaces::space_checks::as_check_call;
 use gs_services::spaces::{AGENT_FILE_READING_REFUSAL, unlink_folder};
 use gs_services::turns::send_first_message;
 
-use super::caller::{agent_id_of, in_claude_code};
+use super::caller::in_claude_code;
 use super::reply::{failure, outcome, result};
 use super::tools::ToolCall;
 
@@ -17,7 +17,7 @@ use super::tools::ToolCall;
 pub async fn space_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Option<Json> {
 	// From godspeed's own teacher terminal the learner asked for it there, so the window opens
 	// what it starts even with Follow off.
-	let agent = agent_id_of(call.meta);
+	let agent = call.agent();
 	let asked_here = call.app.bridge.is_teacher_terminal(call.terminal);
 	let mark = if asked_here { Mark::Started } else { Mark::Asked };
 	if let Some(done) = as_check_call(call.app, agent.as_deref(), name, args).await {

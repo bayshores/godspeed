@@ -101,7 +101,8 @@ pub enum Platform {
 	Linux,
 }
 
-/// The prompt each agent starts with; CLAUDE.md and AGENTS.md say what it means.
+/// The prompt each agent starts with; CLAUDE.md and AGENTS.md say what it means. The teacher in
+/// godspeed's terminal starts with none: godspeed asks it when work waits for it.
 const START_PROMPT: &str = "Start teaching";
 const HELPER_PROMPT: &str = "Start as the helper";
 
@@ -151,8 +152,8 @@ pub fn mcp_json(folder: &str, platform: Platform) -> String {
 /// .godspeed/claude-settings.json: turns on the folder's server, lets the agent use godspeed's
 /// tools, the waiter and web search (what an interview is like is looked up online) without asking, tells
 /// the app when the session starts compacting and when it lost its context, hands each line the
-/// learner types to the app first (typed.mjs), and says when the agent stopped or asks the learner
-/// something (agent-event.mjs, for the window's sound). Fetching a page still
+/// learner types to the app first (typed.mjs), and says which chat runs, when the agent stopped and
+/// when it asks the learner something (agent-event.mjs: the chats to go back to, the window's sound). Fetching a page still
 /// asks: text hidden in a space file could send the learner's data out.
 pub fn claude_settings(folder: &str, platform: Platform) -> String {
 	let hook = |script: &str| json!([{ "type": "command", "command": "node", "args": [join(folder, platform, &[".godspeed", script])], "timeout": 10 }]);
@@ -164,7 +165,7 @@ pub fn claude_settings(folder: &str, platform: Platform) -> String {
 		"hooks": {
 			"PreCompact": [{ "hooks": hook("compacting.mjs") }],
 			"UserPromptSubmit": [{ "hooks": hook("typed.mjs") }],
-			"SessionStart": [{ "matcher": "compact", "hooks": forget.clone() }],
+			"SessionStart": [{ "matcher": "compact", "hooks": forget.clone() }, { "hooks": event.clone() }],
 			"SessionEnd": [{ "matcher": "clear", "hooks": forget }],
 			"Stop": [{ "hooks": event.clone() }],
 			"Notification": [{ "matcher": "permission_prompt|elicitation_dialog", "hooks": event }],
@@ -179,7 +180,7 @@ pub fn claude_settings(folder: &str, platform: Platform) -> String {
 /// that hands each line the learner types to the app first, and the hooks that say when the agent
 /// stopped or asks for a permission (a hook given here needs no review).
 /// TOML literal strings ('...'), so no value needs escaping: the folder has no quotes in it.
-fn codex_args(folder: &str, platform: Platform, prompt: &str) -> Vec<String> {
+fn codex_args(folder: &str, platform: Platform, prompt: Option<&str>) -> Vec<String> {
 	let server = "mcp_servers.godspeed";
 	let connector = join(folder, platform, &[".godspeed", "connect.mjs"]);
 	let hook = |event: &str, script: &str| format!("hooks.{event}=[{{hooks=[{{type='command',command='node \"{}\"',timeout=10}}]}}]", join(folder, platform, &[".godspeed", script]));
@@ -197,11 +198,15 @@ fn codex_args(folder: &str, platform: Platform, prompt: &str) -> Vec<String> {
 		"-c".to_owned(),
 		hook("UserPromptSubmit", "typed.mjs"),
 		"-c".to_owned(),
+		hook("SessionStart", "agent-event.mjs"),
+		"-c".to_owned(),
 		hook("Stop", "agent-event.mjs"),
 		"-c".to_owned(),
 		hook("PermissionRequest", "agent-event.mjs"),
-		prompt.to_owned(),
 	]
+	.into_iter()
+	.chain(prompt.map(str::to_owned))
+	.collect()
 }
 
 fn plain_arg(arg: &str) -> bool {
@@ -219,17 +224,36 @@ fn cmd_quote(arg: &str) -> String {
 	if plain_arg(arg) { arg.to_owned() } else { format!("\"{}\"", arg.replace('"', "\\\"")) }
 }
 
-fn claude_args() -> Vec<String> {
-	CLAUDE_ARGS.iter().map(|a| (*a).to_owned()).collect()
+fn helper_args(agent: FolderAgent, folder: &str, platform: Platform) -> Vec<String> {
+	match agent {
+		FolderAgent::Codex => codex_args(folder, platform, Some(HELPER_PROMPT)),
+		FolderAgent::Claude => vec!["--settings".to_owned(), CLAUDE_SETTINGS.to_owned(), HELPER_PROMPT.to_owned()],
+	}
 }
 
-fn start_args(target: StartTarget, folder: &str, platform: Platform) -> Vec<String> {
-	match target {
-		StartTarget::Codex => codex_args(folder, platform, START_PROMPT),
-		StartTarget::CodexHelper => codex_args(folder, platform, HELPER_PROMPT),
-		StartTarget::Claude => claude_args(),
-		StartTarget::ClaudeHelper => vec!["--settings".to_owned(), CLAUDE_SETTINGS.to_owned(), HELPER_PROMPT.to_owned()],
-	}
+/// The teacher's three starts, quoted for the script: back to the chat in `resume` (a variable
+/// the shell checked is a session id), a new chat in godspeed's terminal (no prompt), and outside
+/// it (the copied command on Windows runs the script), where "Start teaching" starts it.
+struct TeacherStarts {
+	resume: Vec<String>,
+	fresh: Vec<String>,
+	outside: Vec<String>,
+}
+
+fn teacher_starts(agent: FolderAgent, folder: &str, platform: Platform, quote: fn(&str) -> String, resume: &str) -> TeacherStarts {
+	let quoted = |args: Vec<String>| args.iter().map(|a| quote(a)).collect::<Vec<_>>();
+	let base = match agent {
+		FolderAgent::Codex => codex_args(folder, platform, None),
+		FolderAgent::Claude => vec!["--settings".to_owned(), CLAUDE_SETTINGS.to_owned()],
+	};
+	let fresh = quoted(base.clone());
+	let mut outside = fresh.clone();
+	outside.push(quote(START_PROMPT));
+	let resume = match agent {
+		FolderAgent::Codex => ["resume".to_owned()].into_iter().chain(fresh.iter().cloned()).chain([resume.to_owned()]).collect(),
+		FolderAgent::Claude => fresh.iter().cloned().chain(["--resume".to_owned(), resume.to_owned()]).collect(),
+	};
+	TeacherStarts { resume, fresh, outside }
 }
 
 fn start_script_name(target: StartTarget, platform: Platform) -> String {
@@ -254,13 +278,13 @@ pub fn copy_command(agent: FolderAgent, folder: &str, home: &str, platform: Plat
 		if agent == FolderAgent::Codex {
 			return format!("\"{}\"", start_script_path(folder, StartTarget::Codex, platform));
 		}
-		let args: Vec<String> = claude_args().iter().map(|a| cmd_quote(a)).collect();
+		let args: Vec<String> = CLAUDE_ARGS.iter().map(|a| cmd_quote(a)).collect();
 		return format!("cd /d \"{folder}\" && {start} {}", args.join(" "));
 	}
 	static HOME_RELATIVE: LazyLock<Re> = LazyLock::new(|| Re::new(r"^~[\w./-]*$", ""));
 	let short = short_folder(folder, home);
 	let cd = if HOME_RELATIVE.test(&short) { short } else { posix_quote(folder) };
-	let args = if agent == FolderAgent::Claude { claude_args() } else { codex_args(folder, platform, START_PROMPT) };
+	let args = if agent == FolderAgent::Claude { CLAUDE_ARGS.iter().map(|a| (*a).to_owned()).collect() } else { codex_args(folder, platform, Some(START_PROMPT)) };
 	let args: Vec<String> = args.iter().map(|a| posix_quote(a)).collect();
 	format!("cd {cd} && {start} {}", args.join(" "))
 }
@@ -294,29 +318,46 @@ fn install_check(agent: FolderAgent, own: Option<&str>) -> Option<(String, Strin
 	Some((program, missing))
 }
 
-/// The start script the app runs in its terminal.
+/// The start script the app runs in its terminal. The teacher's goes back to the chat in
+/// `GODSPEED_RESUME` when the window picked one.
 pub fn start_script(target: StartTarget, folder: &str, platform: Platform, commands: &StartCommands) -> String {
 	let agent = target.agent();
 	let own = commands.get(agent);
 	let check = install_check(agent, own);
-	let args = start_args(target, folder, platform);
+	let helper = matches!(target, StartTarget::ClaudeHelper | StartTarget::CodexHelper);
 	let name = agent.name();
 	if platform == Platform::Win32 {
-		let args: Vec<String> = args.iter().map(|a| cmd_quote(a)).collect();
 		let mut lines = vec!["@echo off".to_owned(), format!("cd /d \"{folder}\"")];
 		lines.extend(check.map(|(program, missing)| format!("where {program} >nul 2>nul || (echo {missing} & exit /b {EXIT_NOT_INSTALLED})")));
 		lines.push(format!("where node >nul 2>nul || (echo {NEEDS_NODE} & exit /b {EXIT_NO_NODE})"));
-		lines.push(format!("{} {}", own.unwrap_or(name), args.join(" ")));
+		let start = own.unwrap_or(name);
+		if helper {
+			let args: Vec<String> = helper_args(agent, folder, platform).iter().map(|a| cmd_quote(a)).collect();
+			lines.push(format!("{start} {}", args.join(" ")));
+		} else {
+			let starts = teacher_starts(agent, folder, platform, cmd_quote, "%GODSPEED_RESUME%");
+			lines.push(format!("if defined GODSPEED_RESUME ({start} {} & exit /b)", starts.resume.join(" ")));
+			lines.push(format!("if defined GODSPEED_TERMINAL ({start} {} & exit /b)", starts.fresh.join(" ")));
+			lines.push(format!("{start} {}", starts.outside.join(" ")));
+		}
 		lines.push(String::new());
 		return lines.join("\r\n");
 	}
-	let args: Vec<String> = args.iter().map(|a| posix_quote(a)).collect();
 	let mut lines = vec!["#!/bin/sh".to_owned(), format!("cd {} || exit 1", posix_quote(folder))];
 	lines.extend(check.map(|(program, missing)| format!("command -v {program} >/dev/null 2>&1 || {{ echo {}; exit {EXIT_NOT_INSTALLED}; }}", posix_quote(&missing))));
 	lines.push(format!("command -v node >/dev/null 2>&1 || {{ echo {}; exit {EXIT_NO_NODE}; }}", posix_quote(NEEDS_NODE)));
 	// The learner's own command may start with a variable (A=b claude), which exec can't run.
 	let start = own.map_or_else(|| format!("exec {name}"), str::to_owned);
-	lines.push(format!("{start} {}", args.join(" ")));
+	let then = |args: &[String]| if own.is_some() { format!("{start} {}; exit $?", args.join(" ")) } else { format!("{start} {}", args.join(" ")) };
+	if helper {
+		let args: Vec<String> = helper_args(agent, folder, platform).iter().map(|a| posix_quote(a)).collect();
+		lines.push(format!("{start} {}", args.join(" ")));
+	} else {
+		let starts = teacher_starts(agent, folder, platform, posix_quote, "\"$GODSPEED_RESUME\"");
+		lines.push(format!("if [ -n \"$GODSPEED_RESUME\" ]; then {}; fi", then(&starts.resume)));
+		lines.push(format!("if [ -n \"$GODSPEED_TERMINAL\" ]; then {}; fi", then(&starts.fresh)));
+		lines.push(format!("{start} {}", starts.outside.join(" ")));
+	}
 	lines.push(String::new());
 	lines.join("\n")
 }
@@ -382,6 +423,20 @@ mod tests {
 		assert_eq!(gs_json::stringify(&settings["hooks"]["UserPromptSubmit"]), r#"[{"hooks":[{"type":"command","command":"node","args":["/Users/me/godspeed/.godspeed/typed.mjs"],"timeout":10}]}]"#);
 		assert_eq!(gs_json::stringify(&settings["hooks"]["Notification"]), r#"[{"matcher":"permission_prompt|elicitation_dialog","hooks":[{"type":"command","command":"node","args":["/Users/me/godspeed/.godspeed/agent-event.mjs"],"timeout":10}]}]"#);
 		assert_eq!(settings["hooks"].as_obj().unwrap().keys().cloned().collect::<Vec<_>>(), ["PreCompact", "UserPromptSubmit", "SessionStart", "SessionEnd", "Stop", "Notification"]);
+	}
+
+	#[test]
+	fn the_teacher_goes_back_to_a_chat_starts_quiet_in_godspeed_and_teaches_outside() {
+		let claude = start_script(StartTarget::Claude, "/Users/me/godspeed", Platform::Darwin, &none());
+		assert!(claude.contains("\nif [ -n \"$GODSPEED_RESUME\" ]; then exec claude --settings .godspeed/claude-settings.json --resume \"$GODSPEED_RESUME\"; fi\n"), "{claude}");
+		assert!(claude.contains("\nif [ -n \"$GODSPEED_TERMINAL\" ]; then exec claude --settings .godspeed/claude-settings.json; fi\n"), "{claude}");
+		assert!(claude.ends_with("\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"), "{claude}");
+		let codex = start_script(StartTarget::Codex, "/Users/me/godspeed", Platform::Linux, &none());
+		assert!(codex.contains("then exec codex resume -c "), "{codex}");
+		assert!(codex.contains(" \"$GODSPEED_RESUME\"; fi\n"), "{codex}");
+		let win = start_script(StartTarget::Claude, "C:\\Users\\me\\godspeed", Platform::Win32, &none());
+		assert!(win.contains("\r\nif defined GODSPEED_RESUME (claude --settings .godspeed/claude-settings.json --resume %GODSPEED_RESUME% & exit /b)\r\n"), "{win}");
+		assert!(copy_command(FolderAgent::Claude, "/Users/me/godspeed", "/Users/me", Platform::Darwin, &none()).ends_with(" \"Start teaching\""), "an agent started outside godspeed starts teaching");
 	}
 
 	#[test]

@@ -22,6 +22,9 @@ pub enum ToShell {
 	/// The learner's line went to a page: clear it from the agent's input, where Claude Code puts
 	/// a line its prompt hook blocked.
 	ClearLine { terminal: String, line: String },
+	/// The quiet teacher has work waiting: type this line to it and send it, once its input
+	/// holds exactly that line.
+	Nudge { terminal: String, line: String },
 }
 
 /// Shell to server.

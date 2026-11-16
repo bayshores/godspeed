@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { lessonStop, type ChatAttachment, type DeadlineProgress, type GraphContextPick, type LhMessage } from "@/shared/core";
 import { useSpaces } from "@/frontend/components/space-context";
 import { holdStartFiles } from "@/frontend/components/lesson/start-files";
-import { useTerminals } from "@/frontend/components/terminal/use-terminals";
+import { useWake } from "@/frontend/components/teacher/use-wake";
 import { jsonInit } from "@/frontend/lib/api";
 
 const LESSON_START_FAILED = "Couldn't start the lesson. Try again.";
@@ -35,7 +35,7 @@ export function useLessonStart() {
 	const { active } = useSpaces();
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const wake = useTerminals()?.wake;
+	const wake = useWake();
 
 	const post = useCallback(
 		async (body: StartBody, files: readonly ChatAttachment[] = [], spaceId = active) => {

@@ -38,6 +38,7 @@ const { PANEL_HEIGHT, PANEL_WIDTH, draggedHeight, keyedHeight, panelLayout, pane
 const { waitingNotice } = await import("../../src/frontend/components/agent-status.tsx");
 const { ActivityList, TeacherActivity } = await import("../../src/frontend/components/teacher/teacher-activity.tsx");
 const { FollowButton } = await import("../../src/frontend/components/teacher/follow-button.tsx");
+const { TeacherChats } = await import("../../src/frontend/components/teacher/teacher-chats.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 import type { TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 const { DEFAULT_TEACHER_NAME, sanitizeTeacherName, sanitizeUserSettings, TEACHER_NAME_MAX } = await import("../../src/shared/core/settings.ts");
@@ -326,5 +327,34 @@ describe("Follow beside the pill", () => {
 	});
 	it("shows nothing while the teacher is idle", () => {
 		assert.equal(html({ doing: null }), "");
+	});
+});
+
+describe("the teacher's earlier chats", () => {
+	const now = Date.now();
+	const chats = [
+		{ id: "0f8fad5b-d9cb-469f-a165-70867728950e", agent: "claude" as const, name: "Limits proof", at: now - 2 * 3_600_000 },
+		{ id: "7c9e6679-7425-40de-944b-e07fc1f90ae7", agent: "claude" as const, name: null, at: now - 5 * 60_000 },
+	];
+	const list = (over: Partial<React.ComponentProps<typeof TeacherChats>> = {}) => (
+		<TeacherChats chats={chats} choice="claude" onChoose={() => {}} onNew={() => {}} onResume={() => {}} busy={false} {...over} />
+	);
+	it("New chat first, then each chat with how long ago, and no agent's name while one agent has them", () => {
+		const el = mount(list());
+		assert.equal(el.querySelector("[data-testid='teacher-chat-new']")?.textContent, "New chat");
+		const rows = [...el.querySelectorAll("[data-testid='teacher-chat']")].map((r) => r.textContent);
+		assert.deepEqual(rows, ["Limits proof2 hours", "A chat5 min"]);
+	});
+	it("names the agent when both have chats", () => {
+		const el = mount(list({ chats: [chats[0]!, { ...chats[1]!, agent: "codex" }] }));
+		assert.match(el.querySelectorAll("[data-testid='teacher-chat']")[1]?.textContent ?? "", /^A chat, Codex/);
+	});
+	it("a click goes back to that chat; New chat starts one", () => {
+		const resumed: string[] = [];
+		let fresh = 0;
+		const el = mount(list({ onResume: (c) => resumed.push(c.id), onNew: () => fresh++ }));
+		act(() => (el.querySelector("[data-testid='teacher-chat']") as HTMLElement).click());
+		act(() => (el.querySelector("[data-testid='teacher-chat-new']") as HTMLElement).click());
+		assert.deepEqual([resumed, fresh], [[chats[0]!.id], 1]);
 	});
 });

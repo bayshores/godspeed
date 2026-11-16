@@ -55,10 +55,11 @@ pub fn catch_up_for_agent(app: &Arc<App>, now: i64) {
 	}
 }
 
-/// A deadline was added: check its space now if an agent is working.
+/// A deadline was added: check its space now if an agent is working, or the quiet teacher in
+/// godspeed's terminal, which godspeed wakes, is there.
 pub fn ask_about_new_deadlines(app: &Arc<App>) {
 	let now = clock::now_ms();
-	if app.bridge.agent_teaching(now) {
+	if app.bridge.agent_teaching(now) || app.bridge.contacted_teacher_terminal().is_some() {
 		check_spaces_now(app, now);
 	}
 }

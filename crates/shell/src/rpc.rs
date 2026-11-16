@@ -96,6 +96,10 @@ pub fn read(app: &AppHandle, generation: u64, stdout: impl Read, ready: mpsc::Se
 				app.state::<Terminals>().clear_line(&terminal, &line);
 				continue;
 			}
+			Ok(ToShell::Nudge { terminal, line }) => {
+				app.state::<Terminals>().nudge(&terminal, &line);
+				continue;
+			}
 			Ok(ToShell::Demo { id, html, probe }) => (id, Work::Demo(DemoJob { html, probe })),
 			Ok(ToShell::Svg { id, svg, width, height }) => (id, Work::Svg(SvgJob { svg, width, height })),
 			Err(err) => {

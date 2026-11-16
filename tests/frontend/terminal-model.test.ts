@@ -117,6 +117,8 @@ describe("the footer's words", () => {
 		assert.equal(node.text, "godspeed needs Node.js to connect Claude Code.");
 		assert.deepEqual(node.get, { label: "Get Node.js", url: "https://nodejs.org" });
 		assert.equal(node.startAgain, true);
+		const gone = words(facts({}, { ended: { stopped: false, code: 5 } }));
+		assert.deepEqual([gone.text, gone.startAgain], ["Couldn't open that chat.", true]);
 	});
 
 	it("background work's footer leaves out what its own status chip says", () => {
@@ -240,6 +242,8 @@ describe("starting the teacher hidden, and restarting", () => {
 		assert.ok(statusFromTerminals(server, term(), true) === server, "checked in: the server's word");
 		assert.ok(statusFromTerminals(server, null, false) === server, "never started here: the server's word");
 		assert.equal(statusFromTerminals(null, term(), false), null);
+		const quiet = { ...server, connected: false, teaching: false };
+		assert.deepEqual(statusFromTerminals(quiet, term(), true), { ...quiet, connected: true, teaching: true }, "its own teacher, checked in and quiet, is ready");
 	});
 
 	it("Restart now asks first only while the teacher's terminal runs and a turn waits", () => {
