@@ -5,7 +5,7 @@
  * saved rules, the working and failed lines; a terminal line sent with the
  * part pointed at, a refused one passed on, Stop, Try again, removing a rule),
  * the canvas (each version's pages as labeled artboards, the narrow layout,
- * the toolbar with Point at the sheet), the space's cards, the lesson top
+ * the toolbar with Point at the sheet), the lesson top
  * bar's Cheat sheet button, and the sheet beside a session (which sheet,
  * the picker, No cheat sheet yet with Make one).
  */
@@ -47,8 +47,6 @@ Object.assign(globalThis, {
 const { OlderSheet, emptyChatLine, sheetPaper, versionLabel } = await import("../../src/frontend/components/cheat-sheet/studio-states.tsx");
 const { SheetChat, pointedLabel } = await import("../../src/frontend/components/cheat-sheet/sheet-chat.tsx");
 const { SheetCanvas } = await import("../../src/frontend/components/cheat-sheet/sheet-canvas.tsx");
-const { SheetCardView, SpaceSheetsPage } = await import("../../src/frontend/components/cheat-sheet/space-sheets.tsx");
-const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { SheetDock } = await import("../../src/frontend/components/cheat-sheet/sheet-dock.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 // The window's events: a test sends one by name.
@@ -262,63 +260,6 @@ describe("the canvas", () => {
 		const narrow = renderToStaticMarkup(<SheetCanvas versions={[versions[1]!]} pdfUrl={(n) => `/pdf/${n}`} labelFor={() => "Current"} narrow />);
 		const pages = narrow.match(/data-testid="cheat-sheet-page"[^>]*style="[^"]*"/g)!;
 		assert.match(pages[1]!, /left:0;top:1170\.5\d*px/);
-	});
-});
-
-describe("a space's cheat sheet cards", () => {
-	const card = (over: Partial<SheetCard> = {}): SheetCard => ({ deadlineId: "ddl_1", name: "Midterm", kind: "exam", date: "2026-11-04", time: "09:00", past: false, status: "none", version: null, ...over });
-	const render = (c: SheetCard, show: { label: string; run: () => void } | null = null) =>
-		renderToStaticMarkup(
-			<MemoryRouter initialEntries={["/space/cheat-sheets"]}>
-				<SheetCardView card={c} spaceId="cls_1" agentName="Claude Code" onRemake={() => {}} show={show} />
-			</MemoryRouter>,
-		);
-
-	it("a made sheet: its first page's preview from the real PDF, its paper and when it was made, opening the studio", () => {
-		const html = render(card({ status: "made", version: versions[1]! }));
-		assert.match(html, /href="\/space\/deadline\/ddl_1\/cheat-sheet"/);
-		assert.match(html, /data-testid="cheat-sheet-thumb"[^>]*style="width:44px;height:62px"/);
-		assert.match(html, /Midterm<\/a><\/h3>.*Exam, Wed Nov 4 9:00 AM/);
-		assert.match(html, /A4, front and back, made Nov 3/);
-		assert.doesNotMatch(html, /cheat-sheet-show-file/, "no file browser in a plain browser");
-		assert.match(render(card({ status: "made", version: versions[1]! }), { label: "Show in Finder", run: () => {} }), /data-testid="cheat-sheet-show-file"[^>]*>Show in Finder/);
-	});
-
-	it("the agent on it: the working state, over the last version's preview when there is one", () => {
-		assert.match(render(card({ status: "making" })), /Claude Code is making it/);
-		const working = render(card({ status: "making", version: versions[0]! }));
-		assert.match(working, /Claude Code is on it/);
-		assert.match(working, /cheat-sheet-thumb/);
-	});
-
-	it("an older sheet says so with Make it again; none says so with Make one; a newer one asks for an update", () => {
-		const older = render(card({ status: "older" }));
-		assert.match(older, /Made by an older godspeed.*data-testid="cheat-sheet-remake"[^>]*>Make it again/);
-		assert.doesNotMatch(older, /cheat-sheet-thumb/);
-		assert.match(render(card()), /No cheat sheet yet.*data-testid="cheat-sheet-make"[^>]*>Make one/);
-		assert.match(render(card({ status: "newer" })), /Update godspeed to see it/);
-	});
-});
-
-describe("a space's Cheat sheets tab with no deadlines", () => {
-	it("says so with Add a deadline, which opens the Deadlines tab's dialog", async () => {
-		const originalFetch = globalThis.fetch;
-		(globalThis as Record<string, unknown>).fetch = async (url: string) =>
-			url.endsWith("/cheat-sheets") ? Response.json({ spaceName: "CSE 21", cards: [] } satisfies SpaceSheetsView) : new Response("{}", { status: 404 });
-		try {
-			const el = mount(
-				<SpaceProvider initialActive="cls_1" initialSpaces={[]}>
-					<SpaceSheetsPage />
-				</SpaceProvider>,
-			);
-			await settle();
-			assert.match(el.querySelector("[data-testid='cheat-sheets-summary']")!.textContent!, /No deadlines yet\. Add one to make a cheat sheet for it\./);
-			const add = el.querySelector("[data-testid='cheat-sheets-add-deadline']")!;
-			assert.equal(add.textContent, "Add a deadline");
-			assert.equal(add.getAttribute("href"), "/space/deadlines?add=1");
-		} finally {
-			globalThis.fetch = originalFetch;
-		}
 	});
 });
 

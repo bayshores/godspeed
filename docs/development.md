@@ -104,7 +104,7 @@ Routes:
 | `/settings` | Settings |
 | `/graph` | Graph |
 | `/space` | Progress |
-| `/space/lessons`, `/space/files`, `/space/cheat-sheets`, `/space/deadlines` | The space's tabs |
+| `/space/lessons`, `/space/files`, `/space/deadlines` | The space's tabs |
 | `/space/deadline/:id` | A deadline |
 | `/space/deadline/:id/cheat-sheet` | A deadline's cheat sheet |
 | `/space/mock/:spaceId/:mockId` | A mock |

@@ -5,7 +5,6 @@ import { GraphScreen } from "@/frontend/components/graph/graph-screen";
 import { SpaceOverview } from "@/frontend/components/overview/space-overview";
 import { LessonsList } from "@/frontend/components/lessons/lessons-list";
 import { FilesPage } from "@/frontend/components/files/files-page";
-import { SpaceSheetsPage } from "@/frontend/components/cheat-sheet/space-sheets";
 import { DeadlinesTab } from "@/frontend/components/space-page/deadlines-tab";
 import { Root } from "./root";
 import { NotFound, PageError } from "./not-found";
@@ -49,7 +48,6 @@ export const routes: RouteObject[] = [
 								),
 							},
 							{ path: "space/files", element: <><PageTitle page="Files" /><FilesPage /></> },
-							{ path: "space/cheat-sheets", element: <><PageTitle page="Cheat sheets" /><SpaceSheetsPage /></> },
 							{
 								path: "space/deadlines",
 								element: (

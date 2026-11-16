@@ -10,8 +10,6 @@
  * Pure: `now` and `timeZone` are inputs so tests are deterministic.
  */
 
-import { type SpaceDeadline } from "./contracts/space.ts";
-
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -45,10 +43,5 @@ export function localDay(at: Date | number = new Date()): string {
 export function clockLabel(time: string): string {
 	const [h, m] = time.split(":").map(Number) as [number, number];
 	return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
-}
-
-/** "Fri Oct 30 11:59 PM", or just "Fri Oct 30" when the deadline has no time. */
-export function whenLabel(d: Pick<SpaceDeadline, "date" | "time">): string {
-	return d.time ? `${dayLabel(d.date)} ${clockLabel(d.time)}` : dayLabel(d.date);
 }
 

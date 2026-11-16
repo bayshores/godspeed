@@ -1,10 +1,10 @@
 /** The tabs under a space's name, the count beside each, and the
  *  signature's share and fit. Pure. */
-import type { FactProgress, SheetCard } from "@/shared/core";
+import type { FactProgress } from "@/shared/core";
 
-/** What a tab counts: the percent of facts studied, lessons, files, cheat
- *  sheets made, deadlines coming up. */
-export type TabCounts = Record<"studied" | "lessons" | "files" | "sheets" | "deadlines", number | undefined>;
+/** What a tab counts: the percent of facts studied, lessons, files,
+ *  deadlines coming up. */
+export type TabCounts = Record<"studied" | "lessons" | "files" | "deadlines", number | undefined>;
 
 interface SpaceTab {
 	href: string;
@@ -22,7 +22,6 @@ const TABS: readonly (SpaceTab & { spaceOnly?: boolean })[] = [
 	{ href: "/space/lessons", label: "Lessons", testid: "nav-lessons", count: "lessons" },
 	{ href: "/space/files", label: "Files", testid: "nav-files", count: "files", spaceOnly: true },
 	{ href: "/graph", label: "Graph", testid: "nav-graph" },
-	{ href: "/space/cheat-sheets", label: "Cheat sheets", testid: "nav-cheat-sheets", count: "sheets", spaceOnly: true },
 	{ href: "/space/deadlines", label: "Deadlines", testid: "nav-deadlines", count: "deadlines", spaceOnly: true },
 ];
 
@@ -31,9 +30,9 @@ function pluginTabHref(id: string): string {
 	return `/space/plugin/${encodeURIComponent(id)}`;
 }
 
-/** The head's tabs. Lessons with no space have no files, cheat sheets or
- *  deadlines; a space also has a tab for each plugin that shows in spaces,
- *  after Deadlines. */
+/** The head's tabs. Lessons with no space have no files or deadlines; a
+ *  space also has a tab for each plugin that shows in spaces, after
+ *  Deadlines. */
 export function spaceTabs(kind: HeadKind, plugins: readonly { id: string; label: string }[]): readonly SpaceTab[] {
 	const own = TABS.filter((t) => kind === "space" || !t.spaceOnly);
 	if (kind !== "space") return own;
@@ -66,9 +65,4 @@ export function headSignatureScale(natural: { width: number; height: number }, f
 	if (natural.width <= 0 || natural.height <= 0) return 1;
 	const scale = Math.min(1, Math.min(SIGNATURE_ROOM.width, free) / natural.width, SIGNATURE_ROOM.height / natural.height);
 	return natural.height * scale < SMALLEST_SIGNATURE ? null : scale;
-}
-
-/** The cheat sheets that exist or are being made. */
-export function sheetCount(cards: readonly Pick<SheetCard, "status">[]): number {
-	return cards.filter((c) => c.status !== "none").length;
 }

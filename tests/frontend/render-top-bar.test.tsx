@@ -106,7 +106,6 @@ async function mount(node: React.ReactNode, { pathname = "/", active = "c29" as 
 		if (`${method} ${url}` === refused) return Response.json({ error: "The space is busy. Try again." }, { status: 409 });
 		if (url === "/api/spaces") return Response.json({ spaces });
 		if (url === "/api/chats") return Response.json({ chats: lessons });
-		if (url === "/api/spaces/c29/cheat-sheets") return Response.json({ cards: [{ status: "made" }, { status: "making" }, { status: "none" }] });
 		if (url.startsWith("/api/progress")) return Response.json({ spaceId: "c29", facts: [true, false, false, false].map((inLessons) => ({ inLessons, answers: [] })) });
 		return Response.json({});
 	}) as typeof fetch;
@@ -265,13 +264,12 @@ describe("a space page's head", () => {
 		assert.match(q("space-signature-ink")!.getAttribute("style")!, /--ink:\s*25%/, "inked as far as studied, on every tab");
 		assert.equal(q("space-edit")!.textContent, "Edit space");
 		assert.ok(document.querySelector("[data-testid='space-head'] nav")!.nextElementSibling === q("space-edit"), "Edit space ends the tab row");
-		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress25%", "Lessons1", "Files33", "Graph", "Cheat sheets2", "Deadlines"]);
+		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress25%", "Lessons1", "Files33", "Graph", "Deadlines"]);
 		assert.equal(q("nav-files-count")!.textContent, "33");
-		assert.equal(q("nav-cheat-sheets-count")!.textContent, "2", "sheets made or being made");
 		assert.equal(q("nav-files")!.getAttribute("aria-current"), "page");
 		assert.equal(q("nav-progress")!.hasAttribute("aria-current"), false, "/space/files is Files, not Progress");
 	});
-	it("with no space it names the lessons that belong to none: no Edit space, files, cheat sheets or deadlines", async () => {
+	it("with no space it names the lessons that belong to none: no Edit space, files or deadlines", async () => {
 		await mount(<SpaceHead plugins={[]} />, { pathname: "/space/lessons", active: null });
 		assert.equal(q("space-head-name")!.textContent, "Lessons with no space");
 		assert.ok(q("space-edit") === null);

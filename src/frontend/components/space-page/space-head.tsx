@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "react-router";
-import { useSpaceSheets } from "@/frontend/components/cheat-sheet/use-cheat-sheet";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaces } from "@/frontend/components/space-context";
 import { SpaceDialog } from "@/frontend/components/space-dialog";
@@ -13,7 +12,7 @@ import { useProgress } from "@/frontend/components/use-progress";
 import type { ShownPlugin } from "@/frontend/lib/use-plugins-at";
 import { cn } from "@/frontend/lib/utils";
 import { HeadSignature } from "./head-signature";
-import { spaceTabs, sheetCount, studiedShare, tabCount, type TabCounts } from "./space-head-model";
+import { spaceTabs, studiedShare, tabCount, type TabCounts } from "./space-head-model";
 
 /**
  * The head of every space page: the space's color bar and name, its
@@ -96,14 +95,12 @@ function useStudiedShare(): number | null {
 function useTabCounts(share: number | null): TabCounts {
 	const { active, activeSpace } = useSpaces();
 	const { chats } = useLessonList();
-	const sheets = useSpaceSheets(active).view;
 	const open = useOpenDeadlines().deadlines;
 	const nowMs = useMinute();
 	return {
 		studied: share === null ? undefined : Math.round(share * 100),
 		lessons: chats?.filter((c) => (c.spaceId ?? null) === active).length,
 		files: activeSpace?.fileCount,
-		sheets: sheets ? sheetCount(sheets.cards) : undefined,
 		deadlines: open && nowMs !== null ? open.filter((d) => d.spaceId === active && !isOverdue(d, nowMs)).length : undefined,
 	};
 }

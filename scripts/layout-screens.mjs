@@ -46,7 +46,6 @@ export const SCREENS = [
 	{ name: "Lessons", url: "/space/lessons", ready: "[data-testid=lessons-list] [data-testid^=session-row]" },
 	{ name: "Files", url: "/space/files", ready: "[data-testid=files-list] > *" },
 	{ name: "Graph", url: "/graph", ready: "[data-testid=fact-row], [data-testid=topic-row]" },
-	{ name: "Cheat sheets", url: "/space/cheat-sheets", ready: "[data-testid=cheat-sheet-card]" },
 	{ name: "Deadlines", url: "/space/deadlines", ready: "[data-testid=deadline-open]" },
 	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-name]" },
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },

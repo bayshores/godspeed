@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import type { SpaceDeadline, DeadlineProgress } from "@/shared/core";
+import type { SpaceDeadline, DeadlineProgress, SheetCard } from "@/shared/core";
+import { studioPath, useSpaceSheets } from "@/frontend/components/cheat-sheet/use-cheat-sheet";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useMinute } from "@/frontend/components/countdown";
@@ -22,13 +23,14 @@ import { deadlineLine, deadlineLists } from "./deadlines-tab-model";
 /**
  * The space's deadlines: "Coming up" with "Add a deadline" (and an
  * interview still waiting for its date), then "Done or past". A row opens the deadline's page; "Mark done" and "Undo" work in
- * place.
+ * place, and its cheat sheet opens (or is made) from the row.
  */
 export function DeadlinesTab() {
 	const { active, activeSpace } = useSpaces();
 	const { record, failed, reload } = useSpaceRecord(active);
 	const progress = useProgress().data;
 	const { markDone, undo } = useOpenDeadlines();
+	const sheets = useSpaceSheets(active).view;
 	const nowMs = useMinute();
 	const [adding, setAdding] = useState(false);
 	// "Add a deadline" on another page lands here with ?add=1: the dialog opens once.
@@ -56,12 +58,14 @@ export function DeadlinesTab() {
 			</div>
 		);
 	}
+	const sheetOf = new Map(sheets?.cards.map((c) => [c.deadlineId, c]));
 	const lists = record && nowMs !== null ? deadlineLists(record.deadlines ?? [], nowMs) : null;
 	const row = (d: SpaceDeadline) => (
 		<DeadlineRow
 			key={d.id}
 			deadline={d}
 			progress={progressOf.get(d.id)}
+			sheet={sheetOf.get(d.id)}
 			color={spaceColorVar(activeSpace.color)}
 			nowMs={nowMs!}
 			onDone={() => markDone({ ...d, spaceId: active, spaceName: activeSpace.name })}
@@ -101,10 +105,12 @@ export function DeadlinesTab() {
 }
 
 /** One deadline: its block (days left, the Done stamp, or "was due"), its
- *  name and line, and "Mark done" or "Undo". The whole row opens its page. */
+ *  name and line, its cheat sheet, and "Mark done" or "Undo". The whole row
+ *  opens its page. */
 function DeadlineRow({
 	deadline: d,
 	progress,
+	sheet,
 	color,
 	nowMs,
 	onDone,
@@ -112,6 +118,8 @@ function DeadlineRow({
 }: {
 	deadline: SpaceDeadline;
 	progress: DeadlineProgress | undefined;
+	/** Where its cheat sheet is; undefined while that loads and for an interview. */
+	sheet: SheetCard | undefined;
 	/** The space's color. */
 	color: string;
 	nowMs: number;
@@ -130,6 +138,11 @@ function DeadlineRow({
 					<span className="truncate text-base text-ink-2">{deadlineLine(d, progress, nowMs)}</span>
 				</span>
 				<span className="flex shrink-0 items-center gap-2.5 pr-5">
+					{sheet && (
+						<Link to={studioPath(d.id)} data-testid="deadline-sheet" className="lh-btn lh-btn-quiet relative text-[15px]">
+							{sheet.status === "none" ? "Make cheat sheet" : "Cheat sheet"}
+						</Link>
+					)}
 					<button type="button" data-testid={d.done ? "deadline-undo" : "deadline-done"} onClick={d.done ? onUndo : onDone} className="lh-btn lh-btn-quiet relative text-[15px]">
 						{d.done ? "Undo" : "Mark done"}
 					</button>

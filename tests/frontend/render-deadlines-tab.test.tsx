@@ -41,6 +41,7 @@ const record = (deadlines: SpaceDeadline[]): SpaceRecord => ({ id: "cls_a", name
 const calls: { method: string; url: string; body?: unknown }[] = [];
 const originalFetch = globalThis.fetch;
 let served = record([]);
+let sheetCards: { deadlineId: string; status: string }[] = [];
 
 let root: Root | undefined;
 let host: HTMLElement | undefined;
@@ -52,6 +53,7 @@ async function mount(deadlines: SpaceDeadline[], active: string | null = "cls_a"
 		if (method !== "GET") calls.push({ method, url, body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined });
 		if (url === "/api/spaces") return Response.json({ spaces: [{ id: "cls_a", name: "CSE 21", color: 2 }] });
 		if (url === "/api/spaces/cls_a") return Response.json({ space: served });
+		if (url === "/api/spaces/cls_a/cheat-sheets") return Response.json({ spaceName: "CSE 21", cards: sheetCards });
 		if (url.startsWith("/api/deadlines")) return Response.json({ deadlines: [], doneToday: [] });
 		return Response.json({ ok: true });
 	}) as typeof fetch;
@@ -102,6 +104,16 @@ describe("The Deadlines tab", () => {
 		assert.match(q("deadline-row-quiz3")!.textContent!, /was due/);
 		assert.match(q("deadline-row-quiz3")!.textContent!, /Mark done/);
 		assert.equal(q("deadline-row-final")!.querySelector("a")!.getAttribute("href"), "/space/deadline/final");
+	});
+
+	it("each row opens its cheat sheet, or makes one when it has none", async () => {
+		sheetCards = [{ deadlineId: "hw6", status: "made" }, { deadlineId: "final", status: "none" }];
+		await mount([d("final", "exam", 27), d("hw6", "homework", 2)]);
+		const sheet = (id: string) => q(`deadline-row-${id}`)!.querySelector("[data-testid='deadline-sheet']")!;
+		assert.equal(sheet("hw6").textContent, "Cheat sheet");
+		assert.equal(sheet("hw6").getAttribute("href"), "/space/deadline/hw6/cheat-sheet");
+		assert.equal(sheet("final").textContent, "Make cheat sheet");
+		sheetCards = [];
 	});
 
 	it("Mark done and Undo save at once", async () => {
