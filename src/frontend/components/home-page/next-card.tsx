@@ -3,7 +3,6 @@ import type { DeadlineProgress, SpaceColor } from "@/shared/core";
 import { dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
-import { openedFrom } from "@/frontend/components/deadline/deadline-back";
 import { CountBlock } from "@/frontend/components/ui/count-block";
 import { countLeft, nextCard } from "./home-page-model";
 import { CHIP } from "./styles";
@@ -49,7 +48,7 @@ export function NextCard({
 				<div className="flex min-w-0 flex-1 flex-col justify-between gap-5 px-6 py-6 @min-[540px]:px-7">
 					<div className="flex flex-col gap-2">
 						<h2 className="text-[34px] leading-tight break-words text-ink">
-							<Link to={deadlineHref(d.id)} state={openedFrom("today")} data-testid="today-card-open" className="hover:underline">
+							<Link to={deadlineHref(d.id)} data-testid="today-card-open" className="hover:underline">
 								{words.title}
 							</Link>
 						</h2>

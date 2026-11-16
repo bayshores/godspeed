@@ -8,7 +8,6 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { ProgressBar } from "@/frontend/components/ui/progress-bar";
 import { deadlineHref, nextDeadlineButton, progressShare, progressWords } from "./overview-model";
-import { openedFrom } from "@/frontend/components/deadline/deadline-back";
 
 /**
  * THE NEXT DEADLINE (Progress): the space's soonest open deadline with
@@ -54,7 +53,7 @@ export const NextDeadline = memo(function NextDeadline({
 			<div className="flex gap-7">
 				<CountBlock size="square" color={color} {...countLeft(dueAtMs(d), nowMs)} />
 				<div className="flex min-w-0 flex-1 flex-col gap-1.5">
-					<Link to={deadlineHref(d.id)} state={openedFrom("progress")} data-testid="next-deadline-open" title={d.name} className="truncate text-[40px] leading-[1.2] text-ink hover:underline">
+					<Link to={deadlineHref(d.id)} data-testid="next-deadline-open" title={d.name} className="truncate text-[40px] leading-[1.2] text-ink hover:underline">
 						{d.name}
 					</Link>
 					<p className="flex flex-wrap items-center gap-x-3 gap-y-1.5">

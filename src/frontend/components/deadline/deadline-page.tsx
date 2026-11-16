@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { DEFAULT_TEACHER_NAME, hasProblems, planDays } from "@/shared/core";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaces } from "@/frontend/components/space-context";
@@ -11,11 +11,9 @@ import { jsonInit } from "@/frontend/lib/api";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { LoadFailed } from "@/frontend/components/load-failed";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useProgress } from "@/frontend/components/use-progress";
 import { JobFrame } from "@/frontend/components/work/job-frame";
 import { AboutSheet } from "./about-sheet";
-import { deadlineBack } from "./deadline-back";
 import { DeadlineBody } from "./deadline-body";
 import { HomeworkCard } from "./homework-card";
 import { deadlineMaterial } from "./deadline-model";
@@ -28,7 +26,7 @@ import { useDeadlineRequest } from "./use-deadline-request";
 
 /**
  * A deadline's page, opened from its row on Today, the space's Deadlines
- * tab or its Progress tab; Back returns to that page. The page makes
+ * tab or its Progress tab; the bar's tabs lead back. The page makes
  * the deadline's space the active one (Today lists every space);
  * switching space afterwards goes to that space. Study works on today's
  * topics (all its topics once every one is strong). A test or interview
@@ -36,7 +34,6 @@ import { useDeadlineRequest } from "./use-deadline-request";
  */
 export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlineId: string }) {
 	const navigate = useNavigate();
-	const back = deadlineBack(useLocation().state);
 	const { active, setActive, activeSpace } = useSpaces();
 	const [joined, setJoined] = useState(active === spaceId);
 	useEffect(() => {
@@ -126,10 +123,6 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 		<JobFrame doing={running && requestDoing(running)}>
 			<div className="h-full overflow-y-auto">
 				<div className="mx-auto flex w-full max-w-[1128px] flex-col gap-[22px] px-6 pt-[22px] pb-9">
-					<Link to={back.to} data-testid="page-back" className="lh-btn lh-btn-quiet -ml-1 self-start text-[15px]">
-						<PixelIcon name="chevron" className="-scale-x-100" />
-						{back.label}
-					</Link>
 					{current && !deadline ? (
 						<p data-testid="deadline-removed" className="text-lg text-ink-2">
 							This deadline was removed.
