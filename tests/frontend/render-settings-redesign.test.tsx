@@ -413,8 +413,11 @@ describe("settings restyle", () => {
 		assert.ok(el.querySelector('[aria-label="Delete note: CSE 29 exam is done."]'));
 	});
 
-	it("Remembered sends one Delete per click: the button waits for its request", async () => {
-		const notes = [{ id: "note_1", text: "Likes proofs.", spaceName: null, createdAt: "2026-10-30T02:00:00Z" }];
+	it("Remembered Delete asks first: Cancel keeps the note, the question's Delete sends one request that waits", async () => {
+		const notes = [
+			{ id: "note_1", text: "Likes proofs.", spaceName: null, createdAt: "2026-10-30T02:00:00Z" },
+			{ id: "note_2", text: "Prefers mornings.", spaceName: null, createdAt: "2026-10-30T02:00:00Z" },
+		];
 		const read = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 }, { notes });
 		let deletes = 0;
 		let finish: () => void = () => {};
@@ -422,16 +425,26 @@ describe("settings restyle", () => {
 			if (init?.method !== "DELETE") return read(url, init);
 			deletes++;
 			await new Promise<void>((resolve) => (finish = resolve));
-			return Response.json({ notes: [] });
+			return Response.json({ notes: [notes[1]] });
 		}) as unknown as typeof fetch;
 		const el = await mount(<RememberedNotes />);
-		const button = () => el.querySelector<HTMLButtonElement>('[aria-label="Delete note: Likes proofs."]');
-		await act(async () => button()!.click());
-		assert.equal(button()!.disabled, true);
-		await act(async () => button()!.click());
+		const button = (text: string) => el.querySelector<HTMLButtonElement>(`[aria-label="Delete note: ${text}"]`);
+		await act(async () => button("Likes proofs.")!.click());
+		assert.equal(deletes, 0, "the first click only asks");
+		assert.equal(q("note-delete-confirm")!.textContent, "Delete this note?CancelDelete");
+		assert.equal(button("Likes proofs."), null);
+		assert.ok(button("Prefers mornings."));
+		await act(async () => button("Prefers mornings.")!.click());
+		assert.equal(el.querySelectorAll('[data-testid="note-delete-confirm"]').length, 1, "one row asks at a time");
+		await act(async () => q("note-delete-confirm-keep")!.click());
+		assert.equal(q("note-delete-confirm"), null);
+		assert.ok(button("Likes proofs."));
+		await act(async () => button("Likes proofs.")!.click());
+		await act(async () => q("note-delete-confirm-go")!.click());
 		assert.equal(deletes, 1);
+		assert.equal(button("Prefers mornings.")!.disabled, true);
 		await act(async () => finish());
-		assert.ok(q("remembered-notes")!.textContent!.includes("Nothing yet."));
+		assert.ok(!q("remembered-notes")!.textContent!.includes("Likes proofs."));
 	});
 
 	it("Remembered says there are no notes yet", async () => {

@@ -166,6 +166,20 @@ describe("Settings, Plugins", () => {
 		assert.ok(q("plugin-error") === null);
 	});
 
+	it("Remove on a working plugin asks first and says its settings go", async () => {
+		const server = serve([MEMES, CARDS]);
+		await mount();
+		await click("plugin-remove");
+		assert.equal(q("plugin-remove-confirm")!.textContent, "Remove Memes?Its settings are deleted.CancelRemove");
+		assert.ok(server.calls.every((c) => c.method !== "DELETE"), "the first click only asks");
+		await click("plugin-remove-confirm-keep");
+		assert.ok(q("plugin-remove-confirm") === null);
+		await click("plugin-remove");
+		await click("plugin-remove-confirm-go");
+		assert.deepEqual(server.calls.at(-1), { method: "DELETE", url: "/api/plugins/memes", body: undefined });
+		assert.ok(q("plugin-memes") === null);
+	});
+
 	it("the other plugin's sheet shows after a pick, its settings dimmed and locked while it is off", async () => {
 		serve([MEMES, { ...CARDS, manifest: { ...CARDS.manifest!, settings: [{ key: "n", label: "Cards a day", kind: "number", default: 5 }] } } as InstalledPlugin]);
 		await mount();
@@ -203,6 +217,12 @@ describe("Settings, Plugins", () => {
 		assert.ok(q("toggle-old-quiz") === null);
 		assert.ok(q("plugin-show-folder") === null);
 		await click("plugin-remove");
+		assert.equal(q("plugin-remove-confirm")!.textContent, "Remove old-quiz?CancelRemove");
+		assert.ok(server.calls.every((c) => c.method !== "DELETE"), "the first click only asks");
+		await click("plugin-remove-confirm-keep");
+		assert.ok(q("plugin-remove-confirm") === null && q("plugin-remove"));
+		await click("plugin-remove");
+		await click("plugin-remove-confirm-go");
 		assert.deepEqual(server.calls.at(-1), { method: "DELETE", url: "/api/plugins/old-quiz", body: undefined });
 		assert.ok(q("plugin-old-quiz") === null);
 		assert.equal(q("plugin-sheet")!.querySelector("h2")!.textContent, "Memes");

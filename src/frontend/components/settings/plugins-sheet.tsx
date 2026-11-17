@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { FootQuestion } from "@/frontend/components/ui/foot-question";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { Segmented } from "@/frontend/components/ui/segmented";
@@ -43,12 +45,17 @@ function ErrorLine({ text }: { text: string }) {
 	);
 }
 
-function RemoveKey({ busy, onRemove }: { busy: boolean; onRemove: () => void }) {
+function RemoveKey({ busy, onAsk }: { busy: boolean; onAsk: () => void }) {
 	return (
-		<button type="button" data-testid="plugin-remove" disabled={busy} onClick={onRemove} className={SMALL_KEY}>
+		<button type="button" data-testid="plugin-remove" disabled={busy} onClick={onAsk} className={SMALL_KEY}>
 			Remove
 		</button>
 	);
+}
+
+/** Replaces a sheet's foot until Remove is confirmed or cancelled. */
+function RemoveQuestion({ name, note, busy, onKeep, onGo }: { name: string; note?: string; busy: boolean; onKeep: () => void; onGo: () => void }) {
+	return <FootQuestion testid="plugin-remove-confirm" line={`Remove ${name}?`} note={note} keep="Cancel" go="Remove" busy={busy} onKeep={onKeep} onGo={onGo} />;
 }
 
 /** One plugin's sheet: its switch beside its name, what it adds and uses, its settings, then who
@@ -79,6 +86,7 @@ export function PluginSheet({
 	onRemove: () => void;
 }) {
 	const openPath = typeof window !== "undefined" ? window.lh?.openPath : undefined;
+	const [asking, setAsking] = useState(false);
 	return (
 		<Pane data-testid="plugin-sheet" className="px-8 pt-7 pb-5">
 			<div className="flex items-start justify-between gap-6">
@@ -101,23 +109,38 @@ export function PluginSheet({
 				))}
 				{error && <ErrorLine text={error} />}
 				<div className="flex items-center justify-between gap-6 pt-8 pb-2">
-					<span className="text-[15px] text-ink-2">
-						{manifest.version} by {manifest.author}
-					</span>
-					<span className="flex shrink-0 items-center gap-2">
-						{openPath && (
-							<button type="button" data-testid="plugin-show-folder" onClick={() => void openPath(folder)} className={QUIET_KEY}>
-								<PixelIcon name="folder" />
-								Show folder
-							</button>
-						)}
-						{onUpdate && (
-							<button type="button" data-testid="plugin-update" disabled={busy} onClick={onUpdate} className={SMALL_KEY}>
-								{updating ? "Updating…" : "Update"}
-							</button>
-						)}
-						<RemoveKey busy={busy} onRemove={onRemove} />
-					</span>
+					{asking ? (
+						<RemoveQuestion
+							name={manifest.name}
+							note="Its settings are deleted."
+							busy={busy}
+							onKeep={() => setAsking(false)}
+							onGo={() => {
+								setAsking(false);
+								onRemove();
+							}}
+						/>
+					) : (
+						<>
+							<span className="text-[15px] text-ink-2">
+								{manifest.version} by {manifest.author}
+							</span>
+							<span className="flex shrink-0 items-center gap-2">
+								{openPath && (
+									<button type="button" data-testid="plugin-show-folder" onClick={() => void openPath(folder)} className={QUIET_KEY}>
+										<PixelIcon name="folder" />
+										Show folder
+									</button>
+								)}
+								{onUpdate && (
+									<button type="button" data-testid="plugin-update" disabled={busy} onClick={onUpdate} className={SMALL_KEY}>
+										{updating ? "Updating…" : "Update"}
+									</button>
+								)}
+								<RemoveKey busy={busy} onAsk={() => setAsking(true)} />
+							</span>
+						</>
+					)}
 				</div>
 			</div>
 		</Pane>
@@ -176,6 +199,7 @@ export function AddSheet({
 
 /** A plugin whose manifest failed to load: why, and Remove. */
 export function BrokenSheet({ name, reason, busy, error, onRemove }: { name: string; reason: string; busy: boolean; error: string | null; onRemove: () => void }) {
+	const [asking, setAsking] = useState(false);
 	return (
 		<Pane data-testid="plugin-sheet" className="px-8 pt-7 pb-5">
 			<h2 className="text-[26px] leading-tight text-ink">{name}</h2>
@@ -184,7 +208,19 @@ export function BrokenSheet({ name, reason, busy, error, onRemove }: { name: str
 			</p>
 			{error && <ErrorLine text={error} />}
 			<div className="flex justify-end pt-8 pb-2">
-				<RemoveKey busy={busy} onRemove={onRemove} />
+				{asking ? (
+					<RemoveQuestion
+						name={name}
+						busy={busy}
+						onKeep={() => setAsking(false)}
+						onGo={() => {
+							setAsking(false);
+							onRemove();
+						}}
+					/>
+				) : (
+					<RemoveKey busy={busy} onAsk={() => setAsking(true)} />
+				)}
 			</div>
 		</Pane>
 	);
