@@ -68,7 +68,6 @@ const waitingFrame = "[data-testid=work-frame] [data-testid=work-frame-tag]";
 /** A file added to the space with no agent to read it, so every tab of the space is framed. It
  *  can't be removed while it waits, so the stand-in agent started later takes it. */
 const waitingFile = `const form = new FormData();
-form.append("kind", "study");
 form.append("files", new File(["# Slopes\\n\\nRise over run."], "waiting-notes.md", { type: "text/markdown" }));
 await fetch("/api/spaces/{space}/files", { method: "POST", body: form })${HTTP_OK};`;
 /** The deadline asks for a study guide with no agent to make it. The deadline is deleted for
@@ -131,6 +130,18 @@ export const SCREENS = [
 	{ name: "Settings, Teaching", url: "/settings?section=teaching", ready: "[data-testid^=area-][data-testid$=-instructions]:not(:disabled)" },
 	{ name: "Settings, Plugins", url: "/settings?section=plugins", ready: "[data-testid=plugins-list]" },
 	{ name: "Settings, Plugins, Add", url: "/settings?section=plugins", ready: "[data-testid=plugins-add][data-opens=sheet]", setup: `document.querySelector("[data-testid=plugins-add]").click()`, shows: "[data-testid=plugins-add-sheet] [data-testid=plugins-listed-meme-cards]" },
+	{ name: "Settings, Plugins, the Remove question", url: "/settings?section=plugins", ready: "[data-testid=plugin-remove]", setup: `document.querySelector("[data-testid=plugin-remove]").click()`, shows: "[data-testid=plugin-remove-confirm]" },
+	{
+		name: "Settings, Teaching, instructions with the Discard question",
+		url: "/settings?section=teaching",
+		ready: "[data-testid^=area-][data-testid$=-instructions]:not(:disabled)",
+		setup: `document.querySelector("[data-testid^=area-][data-testid$=-instructions]").click(); ${pause};
+const box = document.querySelector("[data-testid=instructions-editor]");
+Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set.call(box, box.value + " More.");
+box.dispatchEvent(new Event("input", { bubbles: true })); ${pause};
+document.querySelector("[data-testid=instructions-panel] button").click()`,
+		shows: "[data-testid=instructions-discard]",
+	},
 	{ name: "Settings, Appearance", url: "/settings?section=appearance", ready: "[data-testid=appearance-preview]" },
 	{ name: "Settings, Appearance, the font list", url: "/settings?section=appearance", ready: "[data-testid=font-trigger]", setup: `document.querySelector("[data-testid=font-trigger]").click()`, shows: "[data-testid=font-menu][data-state=open] [data-testid=font-option-default]" },
 	{ name: "Settings, General", url: "/settings?section=general", ready: "[data-testid=teacher-name-row]" },

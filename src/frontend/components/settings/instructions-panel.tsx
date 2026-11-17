@@ -14,6 +14,9 @@ import { tabListKeys } from "@/frontend/components/ui/tab-list";
 import { cn } from "@/frontend/lib/utils";
 import { SMALL_KEY } from "./controls.tsx";
 
+/** Escape can ask to leave while the page is scrolled past its head. */
+const intoView = (el: HTMLElement | null) => el?.scrollIntoView?.({ block: "nearest" });
+
 export function InstructionsPanel({
 	area,
 	parts,
@@ -79,6 +82,7 @@ export function InstructionsPanel({
 	}
 
 	function save() {
+		setAsking(null);
 		// Saving the original text unchanged is the same as resetting.
 		const init: RequestInit =
 			text === part?.sourceText
@@ -120,18 +124,26 @@ export function InstructionsPanel({
 			onGo={asking === "clear" ? () => void reset() : onClose}
 		/>
 	) : null;
+	// Leaving is asked where Back was pressed; a Reset question stays beside Reset.
+	const leaving = asking === "discard";
 
 	return (
 		<section aria-label={`${area.label} instructions`} data-testid="instructions-panel" className="flex flex-col gap-6">
-			<div className="flex items-center gap-4">
-				<button type="button" onClick={leave} className="lh-btn shrink-0 text-[15px]">
-					<PixelIcon name="chevron" className="-scale-x-100" />
-					Teaching
-				</button>
-				<div className="min-w-0">
-					<h2 className="text-[30px] leading-9 text-ink">{area.label}, full instructions</h2>
-					<p className="text-[15px] text-ink-2">What {teacherName} reads before every lesson</p>
-				</div>
+			<div ref={leaving ? intoView : undefined} className="flex min-h-[58px] scroll-mt-6 items-center gap-4">
+				{leaving ? (
+					question
+				) : (
+					<>
+						<button type="button" onClick={leave} className="lh-btn shrink-0 text-[15px]">
+							<PixelIcon name="chevron" className="-scale-x-100" />
+							Teaching
+						</button>
+						<div className="min-w-0">
+							<h2 className="text-[30px] leading-9 text-ink">{area.label}, full instructions</h2>
+							<p className="text-[15px] text-ink-2">What {teacherName} reads before every lesson</p>
+						</div>
+					</>
+				)}
 			</div>
 			{parts.length > 1 && (
 				<div
@@ -179,7 +191,9 @@ export function InstructionsPanel({
 				/>
 			</div>
 			<footer className="flex items-center gap-2.5">
-				{question ?? (
+				{question && !leaving ? (
+					question
+				) : (
 					<>
 						<span className="min-w-0 flex-1 text-[15px] text-ink-2">
 							{error ?? (dirty ? "Unsaved changes" : part.overrideText !== null ? "Your version is in use" : "The original is in use")}

@@ -72,10 +72,10 @@ const working = (count: string): FrameWords => ({ state: "working", text: "Worki
 
 /** The frame of a space page. While it works it names no reader: the
  *  teacher and the helper may each read some of it. */
-export function spaceFrame(state: WorkState, teacher: string): FrameWords {
+export function spaceFrame(state: WorkState): FrameWords {
 	switch (state.kind) {
 		case "waiting":
-			return { state: "waiting", text: `${files(state.left)} ${state.left === 1 ? "is" : "are"} waiting. Turn on ${teacher} to read ${state.left === 1 ? "it" : "them"}.`, count: null };
+			return { state: "waiting", text: `${files(state.left)} ${state.left === 1 ? "is" : "are"} waiting.`, count: null };
 		case "reading":
 			return working(`${state.read} of ${files(state.total)}`);
 		case "grouping":
@@ -85,8 +85,8 @@ export function spaceFrame(state: WorkState, teacher: string): FrameWords {
 
 /** The frame of a page one job works on (a lesson, a cheat sheet): what,
  *  or that it waits for the teacher. */
-export function jobFrame(worker: string | null, doing: string, teacher: string): FrameWords {
-	return worker ? working(doing) : { state: "waiting", text: `This page is waiting. Turn on ${teacher} to carry on.`, count: null };
+export function jobFrame(worker: string | null, doing: string): FrameWords {
+	return worker ? working(doing) : { state: "waiting", text: "This page is waiting.", count: null };
 }
 
 type LiveSpace = Pick<SpaceSummary, "filesLeft" | "building">;
