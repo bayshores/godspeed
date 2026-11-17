@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.png" alt="godspeed" width="640">
+  <img src="docs/assets/banner.png" alt="godspeed, in alpha" width="640">
 </p>
 
 <h3 align="center">The AI agent you already use teaches you, and godspeed remembers where you got stuck.</h3>
