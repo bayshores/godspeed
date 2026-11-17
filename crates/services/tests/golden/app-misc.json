@@ -376,8 +376,7 @@
 					"ok": true,
 					"settings": {
 						"background": "#112233",
-						"fontFamily": "Inter",
-						"proseFontSize": 16
+						"fontFamily": "Inter"
 					}
 				}
 			},
@@ -438,41 +437,11 @@
 			{
 				"section": "appearance",
 				"body": {
-					"proseFontSize": 11
+					"proseFontSize": 16
 				},
 				"result": {
-					"ok": false,
-					"error": "proseFontSize must be an integer between 12 and 24"
-				}
-			},
-			{
-				"section": "appearance",
-				"body": {
-					"proseFontSize": 25
-				},
-				"result": {
-					"ok": false,
-					"error": "proseFontSize must be an integer between 12 and 24"
-				}
-			},
-			{
-				"section": "appearance",
-				"body": {
-					"proseFontSize": 16.5
-				},
-				"result": {
-					"ok": false,
-					"error": "proseFontSize must be an integer between 12 and 24"
-				}
-			},
-			{
-				"section": "appearance",
-				"body": {
-					"proseFontSize": "16"
-				},
-				"result": {
-					"ok": false,
-					"error": "proseFontSize must be an integer between 12 and 24"
+					"ok": true,
+					"settings": {}
 				}
 			},
 			{

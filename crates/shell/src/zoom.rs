@@ -9,6 +9,7 @@ use tauri::{AppHandle, Manager, State, Webview};
 use crate::commands::{AppOrigin, trusted};
 use crate::push::push;
 
+/// Must match LADDER in src/frontend/components/settings/text-size-model.ts.
 const LADDER: [f64; 8] = [0.75, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0];
 
 /// The main window's factor.
@@ -56,7 +57,7 @@ pub fn get_zoom(webview: Webview, origin: State<AppOrigin>) -> Result<f64, Strin
 	Ok(current(webview.app_handle()))
 }
 
-/// The page restores its saved factor at load; only ladder values are taken.
+/// The page restores its saved factor at load and the Text size slider sets one; only ladder values are taken.
 #[tauri::command]
 pub fn set_zoom(webview: Webview, origin: State<AppOrigin>, factor: f64) -> Result<(), String> {
 	trusted(&webview, &origin)?;

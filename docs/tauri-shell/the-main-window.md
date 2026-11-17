@@ -36,6 +36,7 @@ Ladder: `[0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]`. Applying a factor sets the we
 
 - The menu owns `CmdOrCtrl+0`, `CmdOrCtrl+=` and `CmdOrCtrl+-`. muda has no Plus key.
 - The shim's `keydown` listener catches the keys the menu does not claim (⌘ or Ctrl with `=`, `+`, `-` or `0`) and calls `zoom_step` or `zoom_reset`. Menu keys never reach the page, so exactly one applies.
+- Settings > Appearance "Text size" is a slider over the ladder. It calls `set_zoom` and follows every `zoom` push, so the keys and the menu move it too. The browser build has no slider.
 - The shim saves each pushed factor in `localStorage["lh-zoom"]` and calls `set_zoom` with it at document start.
 
 ### Menu

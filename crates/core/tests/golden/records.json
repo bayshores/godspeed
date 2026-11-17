@@ -161,7 +161,6 @@
 					"appearance": {
 						"background": null,
 						"fontFamily": null,
-						"proseFontSize": 24,
 						"mdRendering": {
 							"headingWeight": 5000.4,
 							"boldColor": "zzz",
@@ -201,7 +200,6 @@
 					"appearance": {
 						"background": "#123",
 						"fontFamily": "Inter",
-						"proseFontSize": 12,
 						"mdRendering": {
 							"headingWeight": 100.5,
 							"boldColor": "#abcdef",
@@ -484,8 +482,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -514,8 +511,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -553,8 +549,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -587,8 +582,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -628,8 +622,7 @@
 					},
 					"appearance": {
 						"background": "#000",
-						"fontFamily": "Inter",
-						"proseFontSize": 18
+						"fontFamily": "Inter"
 					},
 					"graph": {
 						"enabled": true,
@@ -666,8 +659,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": false,
@@ -718,8 +710,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -752,8 +743,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -786,8 +776,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -821,8 +810,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -853,8 +841,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -885,8 +872,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -917,8 +903,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -949,8 +934,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -988,8 +972,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1026,8 +1009,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1062,8 +1044,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1097,8 +1078,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1144,8 +1124,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1185,8 +1164,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 24
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1219,8 +1197,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1260,8 +1237,7 @@
 					},
 					"appearance": {
 						"background": "#123",
-						"fontFamily": "Inter",
-						"proseFontSize": 12
+						"fontFamily": "Inter"
 					},
 					"graph": {
 						"enabled": true,
@@ -1297,8 +1273,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1333,8 +1308,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1368,8 +1342,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1403,8 +1376,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1437,8 +1409,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1471,8 +1442,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1505,8 +1475,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1539,8 +1508,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1597,8 +1565,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1637,8 +1604,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1675,8 +1641,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1709,8 +1674,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1746,8 +1710,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1783,8 +1746,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,
@@ -1826,8 +1788,7 @@
 					},
 					"appearance": {
 						"background": null,
-						"fontFamily": null,
-						"proseFontSize": 17
+						"fontFamily": null
 					},
 					"graph": {
 						"enabled": true,

@@ -142,12 +142,6 @@ fn parse_hex_or_null(value: &Json, field: &str) -> Result<Json, String> {
 	}
 }
 
-/// A whole number between `min` and `max`.
-fn integer_between(value: &Json, min: f64, max: f64) -> Option<Json> {
-	let n = value.as_f64()?;
-	(n.fract() == 0.0 && (min..=max).contains(&n)).then(|| value.clone())
-}
-
 fn parse_appearance(body: &Json) -> Parsed {
 	let raw = as_record(body)?;
 	let mut out = Obj::new();
@@ -164,10 +158,6 @@ fn parse_appearance(body: &Json) -> Parsed {
 			return Err("fontFamily must be a non-empty string or null".to_owned());
 		}
 		out.insert("fontFamily", v.clone());
-	}
-	if let Some(v) = raw.get("proseFontSize") {
-		let Some(size) = integer_between(v, 12.0, 24.0) else { return Err("proseFontSize must be an integer between 12 and 24".to_owned()) };
-		out.insert("proseFontSize", size);
 	}
 	Ok(Json::Obj(out))
 }
@@ -218,16 +208,15 @@ mod tests {
 
 	#[test]
 	fn appearance_is_strict() {
-		let ok = run("appearance", r##"{"proseFontSize":15,"background":"#FFF"}"##).unwrap();
-		assert_eq!(ok, r##"{"background":"#FFF","proseFontSize":15}"##);
-		assert_eq!(run("appearance", r#"{"proseFontSize":11.5}"#).unwrap_err(), "proseFontSize must be an integer between 12 and 24");
+		let ok = run("appearance", r##"{"background":"#FFF"}"##).unwrap();
+		assert_eq!(ok, r##"{"background":"#FFF"}"##);
 		assert_eq!(run("appearance", r#"{"fontFamily":" "}"#).unwrap_err(), "fontFamily must be a non-empty string or null");
 		assert_eq!(run("appearance", r#"{"background":"red"}"#).unwrap_err(), "background must be a #hex color or null");
 	}
 
 	#[test]
-	fn the_heading_weight_and_bold_and_italic_colors_can_no_longer_be_set() {
-		assert_eq!(run("appearance", r##"{"proseFontSize":15,"mdRendering":{"headingWeight":700,"boldColor":"#fff"}}"##).unwrap(), r#"{"proseFontSize":15}"#);
+	fn the_reading_size_and_the_heading_weight_and_bold_and_italic_colors_can_no_longer_be_set() {
+		assert_eq!(run("appearance", r##"{"proseFontSize":15,"mdRendering":{"headingWeight":700,"boldColor":"#fff"}}"##).unwrap(), "{}");
 		assert_eq!(run("appearance", r#"{"mdRendering":"x"}"#).unwrap(), "{}");
 	}
 

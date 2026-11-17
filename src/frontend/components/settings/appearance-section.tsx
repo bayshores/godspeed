@@ -1,7 +1,7 @@
 /**
  * Settings → Appearance:
- * background presets on top, the reading font and size on the left and a
- * live lesson preview on the right. The preview uses the real lesson styles,
+ * background presets on top, the reading font and the text size (the app's
+ * zoom, desktop app only) on the left and a live lesson preview on the right. The preview uses the real lesson styles,
  * so every saved change shows in it (and in the app behind the page).
  */
 
@@ -10,10 +10,10 @@ import type { AppearanceSettings } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { inTerminal } from "@/frontend/components/focus-hygiene";
 import { cn } from "@/frontend/lib/utils";
-import { useAppearance } from "./appearance.tsx";
 import { BACKGROUND_PRESETS, PAPER, appearanceToWrite, derivedPalette, readableBackground } from "./appearance-model.ts";
 import { DEFAULT_READING_FONT, FontMenuList } from "./font-menu";
 import { Slider } from "./controls.tsx";
+import { ZOOM_STOPS, zoomFactor, zoomIndex, zoomLabel } from "./text-size-model.ts";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
@@ -46,7 +46,6 @@ export function AppearanceSection({
 	/** PUT the whole appearance section; the provider re-applies on success. */
 	onSectionChange: (next: AppearanceSettings) => void;
 }) {
-	const { appearance: resolved } = useAppearance();
 	// Every write sends the section without the retired type fields.
 	const appearance = appearanceToWrite(stored);
 	const background = appearance.background ?? null;
@@ -90,21 +89,35 @@ export function AppearanceSection({
 					<Control label="Reading font">
 						<FontPicker family={appearance.fontFamily ?? null} onPick={(family) => onSectionChange(composeFontFamily(appearance, family))} />
 					</Control>
-					<Control label="Text size">
-						<Slider
-							value={resolved.proseFontSize}
-							min={12}
-							max={24}
-							ariaLabel="Text size"
-							testid="slider-text-size"
-							label={(v) => `${v} px`}
-							onCommit={(v) => onSectionChange({ ...appearance, proseFontSize: v })}
-						/>
-					</Control>
+					{typeof window !== "undefined" && window.lh?.setZoom && (
+						<Control label="Text size">
+							<TextSize />
+						</Control>
+					)}
 				</Pane>
 				<Preview />
 			</div>
 		</div>
+	);
+}
+
+/** The app's zoom on its ladder; it follows ⌘+ and ⌘− too. */
+function TextSize() {
+	const [factor, setFactor] = useState(1);
+	useEffect(() => {
+		void window.lh?.getZoom?.().then(setFactor);
+		return window.lh?.onZoom?.(setFactor);
+	}, []);
+	return (
+		<Slider
+			value={zoomIndex(factor)}
+			min={0}
+			max={ZOOM_STOPS - 1}
+			ariaLabel="Text size"
+			testid="slider-text-size"
+			label={zoomLabel}
+			onCommit={(index) => void window.lh?.setZoom?.(zoomFactor(index))}
+		/>
 	);
 }
 

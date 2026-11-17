@@ -66,7 +66,6 @@ export function resolveSettings(record: UserSettings | null): EffectiveSettings 
 		appearance: {
 			background: appearance.background ?? factoryAppearance.background,
 			fontFamily: appearance.fontFamily ?? factoryAppearance.fontFamily,
-			proseFontSize: appearance.proseFontSize ?? factoryAppearance.proseFontSize,
 		},
 		graph: {
 			enabled: graph.enabled ?? FACTORY_SETTINGS.graph.enabled,

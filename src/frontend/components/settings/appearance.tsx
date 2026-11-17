@@ -9,18 +9,15 @@
  */
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import type { AppearanceSettings, EffectiveAppearance } from "@/shared/core";
+import type { AppearanceSettings } from "@/shared/core";
 import { appearanceVars, resolveAppearance, staleVarNames } from "./appearance-model.ts";
 
 interface AppearanceContextValue {
-	/** Resolved appearance. */
-	appearance: EffectiveAppearance;
 	/** Called by the settings dialog after a successful section PUT. */
 	onAppearanceChange: (delta: AppearanceSettings | undefined) => void;
 }
 
 const AppearanceContext = createContext<AppearanceContextValue>({
-	appearance: resolveAppearance(undefined),
 	onAppearanceChange: () => {},
 });
 
@@ -54,6 +51,6 @@ export function AppearanceProvider({ initial, children }: { initial: AppearanceS
 		}
 	}, [key, vars, appearance]);
 
-	const value = useMemo(() => ({ appearance, onAppearanceChange: setDelta }), [appearance]);
+	const value = useMemo(() => ({ onAppearanceChange: setDelta }), []);
 	return <AppearanceContext.Provider value={value}>{children}</AppearanceContext.Provider>;
 }

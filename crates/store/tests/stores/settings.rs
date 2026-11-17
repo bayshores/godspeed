@@ -27,16 +27,28 @@ fn an_old_file_holding_the_batch_size_and_threshold_loads_and_is_left_alone() {
 #[test]
 fn an_old_file_holding_the_heading_weight_and_bold_and_italic_colors_loads_and_is_left_alone() {
 	let lab = Lab::new("settings-retired-rendering");
-	let before = tabbed(r##"{"version":3,"appearance":{"proseFontSize":18,"mdRendering":{"headingWeight":800,"boldColor":"#ff8080","italicColor":"zzz"}}}"##);
+	let before = tabbed(r##"{"version":3,"appearance":{"mdRendering":{"headingWeight":800,"boldColor":"#ff8080","italicColor":"zzz"}}}"##);
 	lab.put("settings.json", &before);
 	let read = store(&lab).read_settings().unwrap().unwrap();
-	assert_eq!(stringify(&read["appearance"]), r##"{"proseFontSize":18,"mdRendering":{"headingWeight":800,"boldColor":"#ff8080","italicColor":"zzz"}}"##);
+	assert_eq!(stringify(&read["appearance"]), r##"{"mdRendering":{"headingWeight":800,"boldColor":"#ff8080","italicColor":"zzz"}}"##);
 	let effective = store(&lab).effective_settings().unwrap();
-	assert_eq!(stringify(&effective["appearance"]), r#"{"background":null,"fontFamily":null,"proseFontSize":18}"#);
+	assert_eq!(stringify(&effective["appearance"]), r#"{"background":null,"fontFamily":null}"#);
 	assert_eq!(lab.get("settings.json"), before, "not rewritten");
 	// A save of the whole record keeps the stored values as they were.
 	let saved = store(&lab).write_settings(&read).unwrap();
 	assert_eq!(stringify(&saved["appearance"]["mdRendering"]), r##"{"headingWeight":800,"boldColor":"#ff8080","italicColor":"zzz"}"##);
+}
+
+#[test]
+fn an_old_file_holding_the_reading_size_loads_without_it_and_is_left_alone() {
+	let lab = Lab::new("settings-retired-reading-size");
+	let before = tabbed(r##"{"version":3,"appearance":{"background":"#123456","proseFontSize":18}}"##);
+	lab.put("settings.json", &before);
+	let read = store(&lab).read_settings().unwrap().unwrap();
+	assert_eq!(stringify(&read["appearance"]), r##"{"background":"#123456"}"##);
+	let effective = store(&lab).effective_settings().unwrap();
+	assert_eq!(stringify(&effective["appearance"]), r##"{"background":"#123456","fontFamily":null}"##);
+	assert_eq!(lab.get("settings.json"), before, "not rewritten");
 }
 
 #[cfg(unix)]

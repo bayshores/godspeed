@@ -5,7 +5,7 @@
 
 use std::sync::LazyLock;
 
-use gs_base::{num, re::Re};
+use gs_base::re::Re;
 use gs_json::{Json, Obj, json};
 
 use super::changelog::is_version;
@@ -20,9 +20,6 @@ pub const OUTSIDE_AGENT_MODEL_ID: &str = "outside-agent";
 pub const OUTSIDE_AGENT_CONTEXT_WINDOW: i64 = 200_000;
 /// The longest teacher name kept.
 pub const TEACHER_NAME_MAX: usize = 40;
-
-const PROSE_FONT_MIN: f64 = 12.0;
-const PROSE_FONT_MAX: f64 = 24.0;
 
 /// Names `key in {}` is true for in JavaScript: an unknown key like these never rides along.
 const OBJECT_PROTOTYPE_KEYS: [&str; 12] = [
@@ -48,7 +45,6 @@ pub fn factory_settings() -> Json {
 		"appearance": {
 			"background": null,
 			"fontFamily": null,
-			"proseFontSize": 17,
 		},
 		"graph": { "enabled": true, "extractionChunkTokens": 4096 },
 		"compaction": { "thresholdTokens": 40000 },
@@ -65,15 +61,6 @@ pub fn is_hex_color(value: &str) -> bool {
 	static THREE: LazyLock<Re> = LazyLock::new(|| Re::new(r"^#[0-9a-fA-F]{3}$", ""));
 	static SIX: LazyLock<Re> = LazyLock::new(|| Re::new(r"^#[0-9a-fA-F]{6}$", ""));
 	THREE.test(value) || SIX.test(value)
-}
-
-fn clamp(v: f64, min: f64, max: f64) -> f64 {
-	v.max(min).min(max)
-}
-
-/// A finite number, or None.
-fn finite(v: &Json) -> Option<f64> {
-	v.as_f64().filter(|n| n.is_finite())
 }
 
 /// Null and a valid hex color pass through; anything else becomes null.
@@ -153,9 +140,6 @@ fn sanitize_appearance(raw: &Json) -> Json {
 		let named = font.as_str().filter(|f| !gs_base::text::trim(f).is_empty());
 		out.insert("fontFamily", named.map_or(Json::Null, Json::from));
 	}
-	if let Some(size) = finite(&raw["proseFontSize"]) {
-		out.insert("proseFontSize", clamp(num::math_round(size), PROSE_FONT_MIN, PROSE_FONT_MAX));
-	}
 	// Retired: an old file's heading weight and bold and italic colors stay as stored and are never read.
 	out.insert_present("mdRendering", raw.get("mdRendering"));
 	Json::Obj(out)
@@ -209,10 +193,10 @@ mod tests {
 
 	#[test]
 	fn clamps_drops_and_keeps_unknown_keys() {
-		let messy = r##"{"version":7,"general":{"teacherName":5,"sounds":"x","activeSpace":"zzz","autoUpdate":true,"keep":1},"chat":{},"future":{"a":[1]},"appearance":{"background":"#FFFFFF","proseFontSize":99.6,"fontFamily":"  ","mdRendering":{"headingWeight":5000.4,"boldColor":"zzz","italicColor":null}},"graph":{"extractionChunkTokens":10,"enabled":"y"},"compaction":{"thresholdTokens":-5},"agent":{"tools":{"a":true,"b":"x"},"graphTools":{"enabled":"x"},"rules":{"voice":[" a ","a",3],"nope":["x"]}}}"##;
+		let messy = r##"{"version":7,"general":{"teacherName":5,"sounds":"x","activeSpace":"zzz","autoUpdate":true,"keep":1},"chat":{},"future":{"a":[1]},"appearance":{"background":"#FFFFFF","proseFontSize":18,"fontFamily":"  ","mdRendering":{"headingWeight":5000.4,"boldColor":"zzz","italicColor":null}},"graph":{"extractionChunkTokens":10,"enabled":"y"},"compaction":{"thresholdTokens":-5},"agent":{"tools":{"a":true,"b":"x"},"graphTools":{"enabled":"x"},"rules":{"voice":[" a ","a",3],"nope":["x"]}}}"##;
 		assert_eq!(
 			clean(messy),
-			r#"{"version":7,"general":{"autoUpdate":true},"agent":{"tools":{"a":true},"rules":{"voice":["a"]}},"appearance":{"background":null,"fontFamily":null,"proseFontSize":24,"mdRendering":{"headingWeight":5000.4,"boldColor":"zzz","italicColor":null}},"graph":{"extractionChunkTokens":10},"future":{"a":[1]},"compaction":{"thresholdTokens":-5}}"#
+			r#"{"version":7,"general":{"autoUpdate":true},"agent":{"tools":{"a":true},"rules":{"voice":["a"]}},"appearance":{"background":null,"fontFamily":null,"mdRendering":{"headingWeight":5000.4,"boldColor":"zzz","italicColor":null}},"graph":{"extractionChunkTokens":10},"future":{"a":[1]},"compaction":{"thresholdTokens":-5}}"#
 		);
 	}
 

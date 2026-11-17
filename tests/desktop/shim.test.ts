@@ -60,6 +60,7 @@ test("every window.lh member calls its shell command with its arguments", async 
 	const { lh, invoked } = page({ reply: (cmd) => (cmd === "get_zoom" ? 1.25 : undefined) });
 	lh!.showWindow!();
 	assert.equal(await lh!.getZoom!(), 1.25);
+	await lh!.setZoom!(1.5);
 	await lh!.pickFolder!();
 	await lh!.showInFolder!("/a/b.pdf");
 	await lh!.openPath!("/a");
@@ -72,6 +73,7 @@ test("every window.lh member calls its shell command with its arguments", async 
 	assert.deepEqual(invoked, [
 		["show_window"],
 		["get_zoom"],
+		["set_zoom", { factor: 1.5 }],
 		["pick_folder"],
 		["show_in_folder", { path: "/a/b.pdf" }],
 		["open_path", { path: "/a" }],

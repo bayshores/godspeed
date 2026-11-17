@@ -91,8 +91,9 @@ export interface AgentSettings {
 	rules?: AreaRules;
 }
 
-/** Appearance settings: the background and the reading type. Heading
- *  weight and bold and italic colors (`mdRendering`) are no longer read. */
+/** Appearance settings: the background and the reading font. Heading
+ *  weight and bold and italic colors (`mdRendering`) and the reading size
+ *  (`proseFontSize`) are no longer read. */
 export interface AppearanceSettings {
 	/** The one user-chosen color; text, panels and borders derive from it
 	 *  in code. null = Paper, the light default. */
@@ -100,9 +101,6 @@ export interface AppearanceSettings {
 	/** The reading font by name, user-chosen from installed fonts.
 	 *  null = Literata. */
 	fontFamily?: string | null;
-	/** Reading font size in px (12–24, default 17). Headings render as
-	 *  multiples of this, so one knob scales the document coherently. */
-	proseFontSize?: number;
 }
 
 /** Knowledge-graph settings. */
@@ -143,7 +141,6 @@ export interface FactorySettings {
 	appearance: {
 		background: string | null;
 		fontFamily: string | null;
-		proseFontSize: number;
 	};
 	graph: Required<GraphSettings>;
 }
@@ -154,17 +151,11 @@ export const FACTORY_SETTINGS: FactorySettings = {
 	appearance: {
 		background: null, // Paper
 		fontFamily: null, // Literata
-		proseFontSize: 17,
 	},
 	graph: { enabled: true },
 };
 
 // ─── Sanitizer ─────────────────────────────────────────────────────────────
-
-const PROSE_FONT_MIN = 12;
-const PROSE_FONT_MAX = 24;
-
-const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 
 /** #rgb / #rrggbb (case-insensitive) — the only color format we accept. */
 export function isHexColor(value: string): boolean {
@@ -241,9 +232,6 @@ function sanitizeAppearance(raw: Record<string, unknown>): AppearanceSettings {
 	if (raw.fontFamily !== undefined) {
 		out.fontFamily = typeof raw.fontFamily === "string" && raw.fontFamily.trim() ? raw.fontFamily : null;
 	}
-	if (typeof raw.proseFontSize === "number" && Number.isFinite(raw.proseFontSize)) {
-		out.proseFontSize = clamp(Math.round(raw.proseFontSize), PROSE_FONT_MIN, PROSE_FONT_MAX);
-	}
 	return out;
 }
 
@@ -260,7 +248,7 @@ function sanitizeGraph(raw: Record<string, unknown>): GraphSettings {
 
 /**
  * Coerce arbitrary JSON (disk file, network body) into a valid delta record:
- * known fields validated strictly (invalid ones drop/clamp per module doc),
+ * known fields validated strictly (invalid ones drop per module doc),
  * UNKNOWN KEYS PRESERVED VERBATIM (a newer record must survive an older
  * app). Never throws. Non-objects → null.
  */

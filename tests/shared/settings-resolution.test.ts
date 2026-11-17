@@ -17,7 +17,6 @@ describe("resolveSettings", () => {
 		assert.deepEqual(eff.agent.rules, {});
 		assert.equal(eff.appearance.background, null);
 		assert.equal(eff.appearance.fontFamily, null);
-		assert.equal(eff.appearance.proseFontSize, 17);
 		// the master switch ONLY
 		assert.deepEqual(eff.graph, { enabled: true });
 		assert.equal("compaction" in eff, false);
@@ -31,7 +30,7 @@ describe("resolveSettings", () => {
 				tools: { research: false },
 				rules: { voice: ["No jokes"] },
 			},
-			appearance: { proseFontSize: 20 },
+			appearance: { background: "#123456" },
 			graph: { enabled: false },
 		};
 		const eff = resolveSettings(record);
@@ -40,14 +39,14 @@ describe("resolveSettings", () => {
 		assert.equal(eff.general.deadlineReminders, false);
 		assert.deepEqual(eff.agent.tools, { research: false });
 		assert.deepEqual(eff.agent.rules, { voice: ["No jokes"] });
-		assert.equal(eff.appearance.proseFontSize, 20);
+		assert.equal(eff.appearance.background, "#123456");
 		assert.deepEqual(eff.graph, { enabled: false });
 	});
 
-	it("an older record's retired values resolve to nothing: heading weight, bold and italic colors, the chunk budget, the summarize point", () => {
+	it("an older record's retired values resolve to nothing: reading size, heading weight, bold and italic colors, the chunk budget, the summarize point", () => {
 		const old = { version: 3, appearance: { proseFontSize: 18, mdRendering: { headingWeight: 800, boldColor: "#f00" } }, graph: { extractionChunkTokens: 2000 }, compaction: { thresholdTokens: 64_000 } } as unknown as UserSettings;
 		const eff = resolveSettings(old);
-		assert.deepEqual(eff.appearance, { background: null, fontFamily: null, proseFontSize: 18 });
+		assert.deepEqual(eff.appearance, { background: null, fontFamily: null });
 		assert.deepEqual(eff.graph, { enabled: true });
 		assert.equal("compaction" in eff, false);
 	});

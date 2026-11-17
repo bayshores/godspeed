@@ -33,13 +33,12 @@ describe("resolveAppearance — delta over factory", () => {
 		const a = resolveAppearance(undefined);
 		assert.equal(a.background, null);
 		assert.equal(a.fontFamily, null);
-		assert.equal(a.proseFontSize, 17);
+		assert.equal("proseFontSize" in a, false);
 		assert.equal("mdRendering" in a, false);
 	});
 
 	it("explicit deltas win field-by-field", () => {
-		const a = resolveAppearance({ proseFontSize: 20, fontFamily: "Iowan Old Style" });
-		assert.equal(a.proseFontSize, 20);
+		const a = resolveAppearance({ fontFamily: "Iowan Old Style" });
 		assert.equal(a.fontFamily, "Iowan Old Style");
 		assert.equal(a.background, null);
 	});
@@ -151,13 +150,9 @@ describe("readableBackground — a picked color is made dark enough for the app"
 });
 
 describe("appearanceVars — the mapping the provider applies", () => {
-	it("factory appearance: only the always-applied tokens move", () => {
+	it("factory appearance: no token moves", () => {
 		const vars = appearanceVars(resolveAppearance(undefined));
-		assert.deepEqual(Object.keys(vars), ["--lh-prose-size"]);
-		assert.equal(vars["--lh-prose-size"], "17px");
-		assert.equal(vars["--font-prose"], undefined, "no font override at factory");
-		assert.equal(vars["--background"], undefined, "factory palette untouched");
-		assert.equal(vars["--lh-ink-strong"], undefined, "default ink");
+		assert.deepEqual(Object.keys(vars), []);
 	});
 
 	it("full delta: every knob lands on its token", () => {
@@ -165,20 +160,19 @@ describe("appearanceVars — the mapping the provider applies", () => {
 			resolveAppearance({
 				background: "#101820",
 				fontFamily: "Georgia",
-				proseFontSize: 18,
 			}),
 		);
 		assert.equal(vars["--background"], "#101820");
 		assert.equal(vars["--card"], "#182028", "raised +8 per channel: 10→18, 18→20, 20→28");
 		assert.equal(vars["--font-prose"], `"Georgia", var(--font-literata), Georgia, serif`);
-		assert.equal(vars["--lh-prose-size"], "18px");
 	});
 
 	it("an older record's heading weight and bold and italic colors no longer apply, and a write drops them", () => {
-		const old = { proseFontSize: 18, mdRendering: { headingWeight: 800, boldColor: "#ff8080", italicColor: "#00ff00" } } as never;
+		const old = { mdRendering: { headingWeight: 800, boldColor: "#ff8080", italicColor: "#00ff00" } } as never;
 		const vars = appearanceVars(resolveAppearance(old));
 		for (const name of ["--lh-heading-weight", "--lh-ink-strong", "--lh-ink-italic"]) assert.equal(vars[name], undefined, name);
-		assert.deepEqual(appearanceToWrite(old), { proseFontSize: 18 });
+		assert.deepEqual(vars, {});
+		assert.deepEqual(appearanceToWrite(old), {});
 		assert.deepEqual(appearanceToWrite(undefined), {});
 	});
 });
@@ -196,7 +190,6 @@ describe("staleVarNames — the removal half of application (resets revert)", ()
 		const stale = staleVarNames(applied, factory);
 		assert.ok(stale.includes("--background"));
 		assert.ok(stale.includes("--font-prose"));
-		assert.ok(!stale.includes("--lh-prose-size"), "always-applied tokens never go stale");
 	});
 
 	it("an empty background commit (null = factory) frees the palette vars", () => {

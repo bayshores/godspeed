@@ -38,7 +38,6 @@ pub fn resolve_settings(record: Option<&Json>) -> Json {
 		"appearance": {
 			"background": or(&appearance["background"], &factory["appearance"]["background"]),
 			"fontFamily": or(&appearance["fontFamily"], &factory["appearance"]["fontFamily"]),
-			"proseFontSize": or(&appearance["proseFontSize"], &factory["appearance"]["proseFontSize"]),
 		},
 		"graph": {
 			"enabled": or(&graph["enabled"], &factory["graph"]["enabled"]),
@@ -65,10 +64,10 @@ mod tests {
 		let first_boot = resolve_settings(None);
 		assert_eq!(first_boot["general"]["teacherName"].as_str(), Some("Teacher"));
 		assert_eq!(first_boot["graph"]["extractionChunkTokens"].as_i64(), Some(4096));
-		let record = json!({ "version": 2, "general": { "teacherName": "Zed" }, "appearance": { "proseFontSize": 20, "mdRendering": { "boldColor": "#fff" } }, "agent": { "graphTools": { "enabled": false } } });
+		let record = json!({ "version": 2, "general": { "teacherName": "Zed" }, "appearance": { "proseFontSize": 20, "background": "#123456", "mdRendering": { "boldColor": "#fff" } }, "agent": { "graphTools": { "enabled": false } } });
 		let resolved = resolve_settings(Some(&record));
 		assert_eq!(resolved["general"]["teacherName"].as_str(), Some("Zed"));
-		assert_eq!(stringify(&resolved["appearance"]), r#"{"background":null,"fontFamily":null,"proseFontSize":20}"#);
+		assert_eq!(stringify(&resolved["appearance"]), r##"{"background":"#123456","fontFamily":null}"##);
 		assert_eq!(stringify(&resolved["agent"]), r#"{"tools":{},"rules":{},"graphTools":{"enabled":false}}"#);
 		assert!(graph_tools_enabled(&first_boot));
 		assert!(!graph_tools_enabled(&resolved));

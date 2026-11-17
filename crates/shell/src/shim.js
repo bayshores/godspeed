@@ -165,6 +165,7 @@
 		showWindow: () => void invoke("show_window"),
 		onZoom: (cb) => subscribe("zoom", cb),
 		getZoom: () => invoke("get_zoom"),
+		setZoom: (factor) => invoke("set_zoom", { factor }),
 		pickFolder: () => invoke("pick_folder"),
 		showInFolder: (path) => invoke("show_in_folder", { path }),
 		openPath: (path) => invoke("open_path", { path }),

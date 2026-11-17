@@ -51,6 +51,8 @@ declare global {
 			/** The zoom truth: subscribes to "lh:zoom" pushes; returns unsubscribe. */
 			onZoom?: (cb: (factor: number) => void) => () => void;
 			getZoom?: () => Promise<number>;
+			/** Sets the zoom to one of the shell's ladder values. */
+			setZoom?: (factor: number) => Promise<void>;
 			/** Observational update events and a snapshot for late subscribers. */
 			onUpdateStatus?: (cb: (status: UpdateState) => void) => () => void;
 			getUpdateState?: () => Promise<UpdateState>;

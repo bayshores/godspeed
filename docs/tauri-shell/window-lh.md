@@ -12,6 +12,7 @@ The shim (`crates/shell/src/shim.js`) is an initialization script on the main wi
 | `showWindow()` | `show_window` | Shows and focuses the main window if hidden. |
 | `onZoom(cb)` | push `zoom` | The factor, pushed after every change and every page load. |
 | `getZoom()` | `get_zoom` | The current factor. |
+| `setZoom(factor)` | `set_zoom` | One of the ladder values; any other is ignored. Settings > Appearance "Text size" calls it. |
 | `onUpdateStatus(cb)` | push `update` | `{status, version, percent, revision}`. |
 | `getUpdateState()` | `update_state` | A snapshot of the same. |
 | `checkForUpdates()` | `update_check` | A manual check, ignoring the setting. |
@@ -35,7 +36,7 @@ The shim (`crates/shell/src/shim.js`) is an initialization script on the main wi
 | `terminals.onOutput(cb)` | push `terminal-output` | `{id, snapshot}` (base64 escape codes redrawing the screen) or `{id, data}` (base64 raw output). |
 | `terminals.onState(cb)` | push `terminal-state` | `{id, ended, prompt, url}`, when one changes. |
 
-The shim also calls commands not on `window.lh`: `open_link` (link clicks), `set_zoom` (restores zoom at load), `zoom_step` and `zoom_reset` (key fallback), `start_drag` and `title_bar_double_click` (Mac), `toggle_menu` (Windows and Linux).
+The shim also calls commands not on `window.lh`: `open_link` (link clicks), `set_zoom` (also restores zoom at load), `zoom_step` and `zoom_reset` (key fallback), `start_drag` and `title_bar_double_click` (Mac), `toggle_menu` (Windows and Linux).
 
 Pushes arrive as `webview.eval("window.__lhPush(channel, payload)")`, so the page needs no Tauri event permissions. A channel with no listener keeps its last message for the first listener, because a menu's push can arrive before React does.
 

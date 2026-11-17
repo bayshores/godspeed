@@ -78,7 +78,7 @@ mod tests {
 		app.stores.settings.write_settings(&json!({ "version": 2, "general": { "onboarded": true, "lastSeenVersion": VERSION, "teacherName": "Zed", "sounds": false, "activeSpace": "cls_gone" }, "appearance": { "background": "#123456", "proseFontSize": 18 } })).unwrap();
 		let boot = boot_info(&app);
 		assert_eq!(boot.as_obj().unwrap().keys().map(String::as_str).collect::<Vec<_>>(), ["onboarding", "firstLoad", "whatsNewSince", "folderNotice", "activeSpace", "sounds", "spaces", "teacherName", "appearance"]);
-		assert_eq!(stringify(&boot["appearance"]), r##"{"background":"#123456","proseFontSize":18}"##);
+		assert_eq!(stringify(&boot["appearance"]), r##"{"background":"#123456"}"##);
 		assert_eq!(boot["activeSpace"], Json::Null);
 		assert_eq!(boot["teacherName"].as_str(), Some("Zed"));
 		assert_eq!(boot["sounds"].as_bool(), Some(false));

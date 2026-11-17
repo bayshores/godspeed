@@ -163,8 +163,6 @@ export function appearanceVars(a: EffectiveAppearance): Record<string, string> {
 	if (a.fontFamily !== null) {
 		vars["--font-prose"] = `"${a.fontFamily}", var(--font-literata), Georgia, serif`;
 	}
-	// One reading-size variable: prose, inputs and lesson titles all read it.
-	vars["--lh-prose-size"] = `${a.proseFontSize}px`;
 	return vars;
 }
 

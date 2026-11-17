@@ -25,7 +25,7 @@ describe("FACTORY_SETTINGS (the compiled factory layer)", () => {
 		const a = FACTORY_SETTINGS.appearance;
 		assert.equal(a.background, null); // Paper
 		assert.equal(a.fontFamily, null); // Literata
-		assert.equal(a.proseFontSize, 17);
+		assert.equal("proseFontSize" in a, false);
 		assert.equal("mdRendering" in a, false);
 	});
 
@@ -56,7 +56,6 @@ describe("sanitizeUserSettings", () => {
 			appearance: {
 				background: "#101820",
 				fontFamily: "Some Font",
-				proseFontSize: 18,
 			},
 			graph: { enabled: false },
 		};
@@ -97,25 +96,16 @@ describe("sanitizeUserSettings", () => {
 		assert.deepEqual(out.graph, {});
 	});
 
-	it("an older record's retired settings are no longer read", () => {
+	it("an older record's retired settings, the reading size among them, are no longer read", () => {
 		const old = sanitizeUserSettings({
 			version: 3,
 			appearance: { proseFontSize: 18, mdRendering: { headingWeight: 800, boldColor: "#f00", italicColor: "#0f0" } },
 			graph: { enabled: true, extractionChunkTokens: 2048 },
 			compaction: { thresholdTokens: 64_000 },
 		});
-		assert.deepEqual(old?.appearance, { proseFontSize: 18 });
+		assert.deepEqual(old?.appearance, {});
 		assert.deepEqual(old?.graph, { enabled: true });
 		assert.equal("compaction" in (old ?? {}), false);
-	});
-
-	it("out-of-range numbers CLAMP (proseFontSize)", () => {
-		const out = sanitizeUserSettings({ appearance: { proseFontSize: 99 } });
-		assert.ok(out);
-		assert.equal(out.appearance?.proseFontSize, 24);
-		const low = sanitizeUserSettings({ appearance: { proseFontSize: 4 } });
-		assert.ok(low);
-		assert.equal(low.appearance?.proseFontSize, 12);
 	});
 
 	it("invalid colors become null (the factory default), valid ones pass", () => {
