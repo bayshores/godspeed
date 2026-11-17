@@ -42,7 +42,7 @@ You need Node, a Rust toolchain (`rust-toolchain.toml` pins it) and `cargo-mache
 | `npm run typecheck` | `tsc --noEmit`. Unused variables and parameters are errors. |
 | `npm run deadcode` | knip: unused files, exports, types and npm packages. |
 | `npm run rust:check` | `cargo test --workspace`, the shell's `screens` tests, clippy with `-D warnings` (also with the shell's `screens` and `self-test` features), and `cargo machete`. |
-| `npm run layout` | Mac only: runs the debug app on made-up data in a window nobody sees (fully transparent, no Dock icon, never the front app), walks the screens in `scripts/layout-screens.mjs` at 1440, 1100 and 800 points, each as it opens, scrolled 80 px and scrolled to the end, and fails on text drawn over text, text or a control another box is drawn over, a box spilling out of its parent, sideways scrolling, text or a control a clipping box hides, or letters it cuts off. Findings and pictures go to `target/layout/`. Not part of `check` (it builds the app and starts it): run it yourself before calling a UI change finished, one run at a time. |
+| `npm run layout` | Mac only: runs the debug app on made-up data in a window nobody sees (fully transparent, no Dock icon, never the front app), walks the screens in `scripts/layout-screens.mjs` at 1440, 1100 and 800 points, each as it opens, scrolled 80 px and scrolled to the end, and fails on text drawn over text, text or a control another box is drawn over, a box spilling out of its parent, sideways scrolling, text or a control a clipping box hides (also before a scrolling box's left or top edge, or outside the window, where no scrolling reaches it), or letters it cuts off. Findings and pictures go to `target/layout/`. Not part of `check` (it builds the app and starts it): run it yourself before calling a UI change finished, one run at a time. |
 | `npm run desktop:dev` | Vite, the debug Rust server and the Tauri shell pointed at Vite. |
 | `npm run desktop:local` | Unsigned local Mac app in `target/release/bundle/macos/`. |
 | `npm run desktop:dist` | Signed, notarized Mac app and DMG. `scripts/mac-dist.sh` says what it needs. |
@@ -53,7 +53,8 @@ To check a new screen or state with `npm run layout`:
 
 1. Add one entry to `scripts/layout-screens.mjs`: a name, its `url`, and a `ready` selector for something drawn from the screen's data (not its frame, which shows before the data).
 2. For a state the URL does not reach, add `setup` (a page script that clicks) and `shows` (the selector it waits for), or `before` (a page script that changes the data first).
-3. If the state needs data that is not there, have the stand-in agent in `scripts/layout-seed.mjs` write it through MCP.
+3. Every menu and pop-up gets its own entry that opens it, with `[data-state=open]` in `shows`: a `MenuShell` menu carries it once it is placed.
+4. If the state needs data that is not there, have the stand-in agent in `scripts/layout-seed.mjs` write it through MCP.
 
 Release builds run on the target OS, not as cross-builds from macOS. See [desktop-release.md](desktop-release.md) for Windows and Linux packages and the release flow.
 

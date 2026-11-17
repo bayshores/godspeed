@@ -12,7 +12,8 @@
  * - hidden: text or a control lies outside a box that clips it without scrolling, such as a
  *   button pushed out of the bottom of an overflow-hidden card, before the start of a box
  *   that scrolls, where no scrolling reaches (a pop-up wider than the page it hangs in), or
- *   outside the window in a fixed box (a menu that opens past the window's edge).
+ *   outside the window in a fixed box as the screen opens (a menu that opens past the window's
+ *   edge).
  * - cut-off letters: a box that clips (truncate, line-clamp, overflow-hidden) cuts off the top or
  *   bottom of letters it shows, such as the tail of a "g".
  *
@@ -248,9 +249,10 @@ const SCROLLS = ["auto", "scroll"];
 const CLIPS = ["hidden", "clip"];
 
 /** The boxes that hide part of `el` for good, nearest first: its own, then those of the
- *  ancestors in its containing-block chain, up to and with the first scroller (scrollerClip).
- *  A fixed box escapes them all and ends at the window, which nothing scrolls. Each says which
- *  axes it clips. */
+ *  ancestors in its containing-block chain, and last the window. A scroller hides only what
+ *  scrollerClip says, and carries its `inner` box: what it shows is all that the boxes after it
+ *  can hide. A fixed box escapes the ancestors and ends at the window, which nothing scrolls.
+ *  Each says which axes it clips. */
 function clipBoxes(el) {
 	const found = [];
 	let position = null;
@@ -268,16 +270,15 @@ function clipBoxes(el) {
 			const left = box.left + node.clientLeft;
 			const top = box.top + node.clientTop;
 			const inner = { left, top, right: left + node.clientWidth, bottom: top + node.clientHeight };
-			if (scrolls.x || scrolls.y) {
-				found.push({ node, style, ...scrollerClip(inner, { left: node.scrollLeft, top: node.scrollTop }, scrolls) });
-				break;
-			}
-			found.push({ node, style, x, y, ...inner });
+			if (scrolls.x || scrolls.y) found.push({ node, style, inner, ...scrollerClip(inner, { left: node.scrollLeft, top: node.scrollTop }, scrolls) });
+			else found.push({ node, style, x, y, ...inner });
 		}
 		position = style.position;
 		if (position === "absolute") skipTo = node.offsetParent;
 	}
-	if (position === "fixed") found.push({ node: document.documentElement, style: getComputedStyle(document.documentElement), window: true, x: true, y: true, left: 0, top: 0, right: innerWidth, bottom: innerHeight });
+	const view = { left: 0, top: 0, right: innerWidth, bottom: innerHeight };
+	const page = position === "fixed" ? { fixed: true, x: true, y: true, ...view } : scrollerClip(view, { left: scrollX, top: scrollY }, { x: true, y: true });
+	found.push({ node: document.documentElement, style: getComputedStyle(document.documentElement), window: true, inner: view, ...page });
 	return found;
 }
 
@@ -289,19 +290,22 @@ function clipBoxes(el) {
  */
 function hiddens() {
 	const found = [];
+	// A menu follows its button, so once the screen is scrolled it may leave the window with it.
+	const scrolled = (mainScroller()?.scrollTop ?? 0) > 0;
 	for (const el of document.body.querySelectorAll("*")) {
 		if (el.closest("svg, .katex, [aria-hidden=true]") || el.matches(PICTURES) || !shown(el)) continue;
 		const control = el.matches(CONTROLS);
-		const boxes = ownBoxes(el);
-		if (boxes.length === 0) continue;
+		let boxes = ownBoxes(el);
 		for (const clip of clipBoxes(el)) {
-			if (clip.right - clip.left <= SLACK || clip.bottom - clip.top <= SLACK) break;
+			if (boxes.length === 0 || clip.right - clip.left <= SLACK || clip.bottom - clip.top <= SLACK) break;
 			// A control's own overflow clips its label, not the control.
-			if (control && clip.node === el) continue;
+			if ((control && clip.node === el) || (clip.fixed && scrolled)) continue;
 			const axes = { ...clip, x: clip.x && clip.style.textOverflow !== "ellipsis", y: clip.y && !(Number(clip.style.webkitLineClamp) > 0) };
-			if (!boxes.some((box) => outside(box, axes))) continue;
-			found.push(finding("hidden", [el, clip.node], `${label(el)} lies outside ${clip.window ? "the window" : clip.node === el ? "its own box" : label(clip.node)}`));
-			break;
+			if (boxes.some((box) => outside(box, axes))) {
+				found.push(finding("hidden", [el, clip.node], `${label(el)} lies outside ${clip.window ? "the window" : clip.node === el ? "its own box" : label(clip.node)}`));
+				break;
+			}
+			if (clip.inner) boxes = boxes.map((box) => meet(box, clip.inner)).filter(Boolean);
 		}
 	}
 	return found;
@@ -327,7 +331,9 @@ function cutOffs() {
 		const texts = [...el.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE && node.data.trim());
 		// Text for screen readers only is clipped to nothing on purpose.
 		if (texts.length === 0 || el.closest("svg, .katex") || !shown(el) || !visiblePart(el, el.getBoundingClientRect())) continue;
-		const clipping = clipBoxes(el).filter((clip) => clip.y && !clip.window);
+		// Up to the first scroller: under its edge a line is scrolled, not cut.
+		const boxes = clipBoxes(el);
+		const clipping = boxes.slice(0, boxes.findIndex((clip) => clip.inner)).filter((clip) => clip.y);
 		if (clipping.length === 0) continue;
 		const style = getComputedStyle(el);
 		const range = document.createRange();

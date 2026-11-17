@@ -50,6 +50,18 @@ await fetch("/api/spaces/{space}/deadlines/{homeworkOpenDeadline}", { method: "P
 /** Every deadline the seed made, so Today has none. */
 const dropDeadlines = ["{deadline}", "{homeworkOpenDeadline}", "{homeworkFirstDeadline}", "{homeworkManyDeadline}"].map((id) => `await fetch("/api/spaces/{space}/deadlines/${id}", { method: "DELETE" })${HTTP_OK};`).join("\n");
 
+/** The other two homework deadlines cover the file too, so the Graph's deadline pane has a list to pick from. */
+const moreHomeworkCoversFile = `const { space } = await fetch("/api/spaces/{space}")${HTTP_OK}.then((r) => r.json());
+for (const id of ["{homeworkFirstDeadline}", "{homeworkManyDeadline}"]) await fetch("/api/spaces/{space}/deadlines/" + id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileIds: [space.files[0].id] }) })${HTTP_OK};`;
+/** A folder that is always there and always empty, linked to the second space. */
+const linkedFolder = `await fetch("/api/spaces/{pathSpace}/folder", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: "/private/var/empty" }) })${HTTP_OK};`;
+/** The second space closed, so the plus list has a closed space; the first is the open one again. */
+const closedSpace = `const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json());
+await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, activeSpace: "{space}" }) })${HTTP_OK};
+await fetch("/api/spaces/{pathSpace}", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ closed: true }) })${HTTP_OK};`;
+/** A right-click on the element the expression `el` finds. */
+const rightClick = (el) => `{ const el = ${el}; const at = el.getBoundingClientRect(); el.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: at.left + 10, clientY: at.top + 10 })); }`;
+
 /** The work frame with its tag, whether the work waits for an agent or the window started a
  *  stand-in helper for it. */
 const waitingFrame = "[data-testid=work-frame] [data-testid=work-frame-tag]";
@@ -65,17 +77,40 @@ const waitingRequest = `await fetch("/api/spaces/{space}/deadlines/{deadline}/re
 
 export const SCREENS = [
 	{ name: "Today with a deadline", url: "/", ready: deadlineCard },
+	{ name: "Today, the Add deadline menu", url: "/", ready: "[data-testid=home-add-deadline][aria-haspopup=menu]", setup: `document.querySelector("[data-testid=home-add-deadline]").click()`, shows: "[data-testid=home-add-deadline-menu][data-state=open]" },
+	{ name: "Today, the Menu list", url: "/", ready: deadlineCard, setup: `document.querySelector("[data-testid=app-menu]").click()`, shows: "[data-testid=app-menu-list][data-state=open]" },
+	{ name: "Today, the plus list", url: "/", ready: deadlineCard, setup: `document.querySelector("[data-testid=spaces-plus]").click()`, shows: "[data-testid=spaces-plus-list][data-state=open]" },
+	{ name: "Today, a space tab's menu", url: "/", ready: deadlineCard, setup: rightClick(`document.querySelector("[data-testid=space-option-{space}]")`), shows: "[data-testid=space-menu][data-state=open]" },
 	{ name: "Progress", url: "/space", ready: "[data-testid=next-deadline-open]" },
 	{ name: "Lessons", url: "/space/lessons", ready: "[data-testid=lessons-list] [data-testid^=session-row]" },
+	{ name: "Lessons, a lesson's menu", url: "/space/lessons", ready: "[data-testid=lessons-list] [data-testid=session-row-menu]", setup: `document.querySelector("[data-testid=session-row-menu]").click()`, shows: "[data-testid=session-context-menu][data-state=open]" },
 	{ name: "Files", url: "/space/files", ready: "[data-testid=files-list] > *" },
+	{ name: "Files, the Add files menu", url: "/space/files", ready: "[data-testid=space-add-files]:not(:disabled)", setup: `document.querySelector("[data-testid=space-add-files]").click()`, shows: "[data-testid=space-add-files-menu][data-state=open]" },
+	{ name: "Files, a file's menu", url: "/space/files", ready: "[data-testid=files-list] button[aria-label^='More for']", setup: `document.querySelector("[data-testid=files-list] button[aria-label^='More for']").click()`, shows: "[data-testid^=space-file-menu-body-][data-state=open]" },
 	{ name: "Graph", url: "/graph", ready: "[data-testid=fact-row], [data-testid=topic-row]" },
 	{ name: "Graph, costs open", url: "/graph", ready: "[data-testid=graph-costs]", setup: `document.querySelector("[data-testid=graph-costs]").click()`, shows: "[data-testid=graph-costs-panel][data-state=open]" },
+	{
+		name: "Graph, costs open beside the docked panel",
+		url: "/graph",
+		ready: "[data-testid=graph-costs]",
+		// The page is narrowest here: the panel takes its room.
+		setup: `localStorage.setItem("lh:pane-height:teacher", "full"); ${openTeacher}; ${pause}; localStorage.removeItem("lh:pane-height:teacher"); ${pause}; ${pause}; ${pause}; document.querySelector("[data-testid=graph-costs]").click()`,
+		shows: "[data-testid=graph-costs-panel][data-state=open]",
+	},
+	{
+		name: "Graph, a fact's menu",
+		url: "/graph",
+		ready: "[data-testid=topic-row]",
+		setup: `[...document.querySelectorAll("[data-testid=topic-row]")].find((row) => !/, 0 facts/.test(row.getAttribute("aria-label"))).click(); ${pause}; ${rightClick(`document.querySelector("[data-testid=topic-pane] [data-testid=fact-row]")`)}`,
+		shows: "[data-testid=fact-context-menu][data-state=open]",
+	},
 	{ name: "Deadlines", url: "/space/deadlines", ready: "[data-testid=deadline-open]" },
 	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-name]" },
 	{ name: "Homework deadline with its two keys", url: "/space/deadline/{homeworkOpenDeadline}", ready: "[data-testid=homework-card] [data-testid=deadline-work]" },
 	// The Graph's card shows a deadline that covers files, so the homework covers the made-up one.
 	{ name: "Graph with a homework on top", before: homeworkCoversFile, url: "/graph", ready: "[data-testid=deadline-pane] [data-testid=deadline-work]" },
 	{ name: "Progress with a homework next", before: homeworkTomorrow, url: "/space", ready: "[data-testid=next-deadline] [data-testid=deadline-work]" },
+	{ name: "Graph, the deadline list", before: moreHomeworkCoversFile, url: "/graph", ready: "[data-testid=deadline-picker][aria-haspopup=menu]", setup: `document.querySelector("[data-testid=deadline-picker]").click()`, shows: "[data-testid=deadline-picker-menu][data-state=open]" },
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
 	{ name: "Lesson with a plugin's page open", url: "/chat/{lesson}", ready: "[data-testid=lesson-plugin-flashcards]", setup: `document.querySelector("[data-testid=lesson-plugin-flashcards]").click()`, shows: "[data-testid=plugin-window] [data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Homework lesson with an open problem", url: "/chat/{homeworkOpen}", ready: "[data-testid=open-problem]" },
@@ -83,6 +118,7 @@ export const SCREENS = [
 	{ name: "Homework lesson with fourteen problems, the first done", url: "/chat/{homeworkMany}", ready: "[data-testid=plan-step][data-status=done] [data-testid=problem-pick]" },
 	{ name: "Space's plugin tab", url: "/space/plugin/flashcards", ready: "[data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Teacher's window with no agent", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
+	{ name: "Teacher's window, the other agents", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent-menu]").click()`, shows: "[data-testid=open-agent-choices][data-state=open]" },
 	{
 		name: "Teacher's panel docked beside a lesson",
 		url: "/chat/{lesson}",
@@ -97,6 +133,7 @@ export const SCREENS = [
 	{ name: "Settings, Plugins", url: "/settings?section=plugins", ready: "[data-testid=plugins-list]" },
 	{ name: "Settings, Plugins, Add", url: "/settings?section=plugins", ready: "[data-testid=plugins-add][data-opens=sheet]", setup: `document.querySelector("[data-testid=plugins-add]").click()`, shows: "[data-testid=plugins-add-sheet] [data-testid=plugins-listed-meme-cards]" },
 	{ name: "Settings, Appearance", url: "/settings?section=appearance", ready: "[data-testid=appearance-preview]" },
+	{ name: "Settings, Appearance, the font list", url: "/settings?section=appearance", ready: "[data-testid=font-trigger]", setup: `document.querySelector("[data-testid=font-trigger]").click()`, shows: "[data-testid=font-menu][data-state=open] [data-testid=font-option-default]" },
 	{ name: "Settings, General", url: "/settings?section=general", ready: "[data-testid=teacher-name-row]" },
 	{ name: "Progress while a file waits for an agent", before: waitingFile, url: "/space", ready: waitingFrame },
 	{ name: "Graph while a file waits for an agent", url: "/graph", ready: waitingFrame },
@@ -119,6 +156,9 @@ export const SCREENS = [
 		setup: `document.querySelector("[data-testid=space-path-show-all]").click()`,
 		shows: "[data-testid=space-path-rows] li:nth-child(7)",
 	},
+	{ name: "Files, the linked folder's box", before: linkedFolder, url: "/space/files", ready: "[data-testid=space-folder]", setup: `document.querySelector("[data-testid=space-folder]").click()`, shows: "[data-testid=space-folder-box][data-state=open]" },
+	{ name: "The plus list with a closed space", before: closedSpace, url: "/", ready: "[data-testid=spaces-plus]", setup: `document.querySelector("[data-testid=spaces-plus]").click()`, shows: "[data-testid=spaces-plus-list][data-state=open] [data-testid=closed-space-{pathSpace}]" },
+	{ name: "A closed space's menu", url: "/", ready: "[data-testid=spaces-plus]", setup: `document.querySelector("[data-testid=spaces-plus]").click(); ${pause}; ${rightClick(`document.querySelector("[data-testid=closed-space-{pathSpace}]")`)}`, shows: "[data-testid=space-menu][data-state=open]" },
 	{
 		name: "Onboarding",
 		before: `${dropLateHomework}; const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, onboarded: false }) })${HTTP_OK}`,
