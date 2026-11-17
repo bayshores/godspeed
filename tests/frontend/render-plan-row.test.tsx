@@ -1,5 +1,5 @@
 /**
- * The plan row on top of the reading sheet and the plan dialog, mounted
+ * The plan row pinned over the lesson's page and the plan dialog, mounted
  * over linkedom: the folded line and its remembered unfolding, a plan
  * lesson's steps and map, homework's problems and practice's blocks, and
  * what a click does.

@@ -69,7 +69,7 @@ export function CodeQuestion({
 	}));
 
 	return (
-		<div data-testid="question-dock" data-kind="code" className="flex shrink-0 flex-col gap-3.5">
+		<div data-testid="question-dock" data-kind="code" className="flex flex-col gap-7">
 			<QuestionText>{input.question}</QuestionText>
 			<CodeEditor initialCode={initialCode} language={language} onChange={setCode} />
 		</div>

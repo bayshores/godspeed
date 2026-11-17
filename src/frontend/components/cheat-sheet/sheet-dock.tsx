@@ -44,8 +44,8 @@ export function useSheetDock(chatId: string, deadlineId: string | undefined) {
 }
 
 /**
- * THE CHEAT SHEET BESIDE A LESSON: a column between the reading sheet and
- * the teacher, as wide as the learner drags it. It shows the lesson's
+ * THE CHEAT SHEET BESIDE A LESSON: a column beside the lesson's page, as
+ * wide as the learner drags it. It shows the lesson's
  * deadline's sheet, else the space's next one that has a sheet (a picker
  * when there are several), on the same canvas as the studio (pages one
  * under another, fit to width). It has no chat: asking about the sheet,

@@ -10,10 +10,10 @@ export function yourTurnShown(s: { pending: boolean; problem: boolean; stop: boo
 }
 
 /**
- * THE TURN SHEET, under the lesson's reading sheet: "Your turn", while
- * something waits for the learner. It is as tall as what it holds, up to
- * what the reading sheet leaves (.lh-lesson-body). The teacher's status,
- * terminal, Activity and Follow live in the top bar's pill, as on every page.
+ * THE TURN SHEET, under the lesson text's sheet: "Your turn", while
+ * something waits for the learner, as tall as what it holds. The teacher's
+ * status, terminal, Activity and Follow live in the top bar's pill, as on
+ * every page.
  */
 export function TurnSheet({
 	spaceId,
@@ -49,10 +49,10 @@ export function TurnSheet({
 		<aside
 			data-testid="turn-sheet"
 			aria-label="Your turn"
-			className="lh-rise flex min-h-0 min-w-0 flex-col [grid-area:turn]"
+			className="lh-rise min-w-0"
 			style={{ "--lh-pale": color ? paleSpaceColor(color) : "var(--color-tone)" } as React.CSSProperties}
 		>
-			<Pane className="flex min-h-0 flex-initial flex-col overflow-hidden">
+			<Pane>
 				<YourTurn
 					{...turn}
 					revealPending={pending !== null && requiresReveal && !revealed}

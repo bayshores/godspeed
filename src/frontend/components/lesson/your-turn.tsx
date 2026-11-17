@@ -9,7 +9,6 @@ import { HELP_LINES, lessonBox, questionTurn, type BoxAction, type BoxView } fro
 import { OpenProblemPane } from "./open-problem-pane";
 import { StopCard } from "./stop-card";
 import type { StopAction, StopCardView } from "./stop-card-model";
-import { useScrollFade } from "./use-scroll-fade";
 
 type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
 
@@ -66,8 +65,8 @@ const EXIT: Record<BoxView["exit"], { label: string; testId: string }> = {
  * - a place to stop (the stop card);
  * Its foot row holds the "Stuck?" keys, which ask for help in one click,
  * and at its right end the way out of that state. Talking to the teacher
- * happens in its terminal. When the sheet is too short, only the question
- * part scrolls; the box and the foot row stay.
+ * happens in its terminal. The sheet is as tall as all of it; the page
+ * scrolls (LessonScroll).
  */
 export function YourTurn({
 	pending,
@@ -130,53 +129,49 @@ export function YourTurn({
 					: "notice";
 	// The opening state appears still; later states rise in.
 	const initialModeRef = useRef(mode);
-	const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
-	useScrollFade(scroller);
 
 	return (
-		<div data-testid="your-turn" data-mode={mode.split(":")[0]} className="flex min-h-0 flex-1 flex-col gap-3.5 px-[22px] pt-[18px] pb-[22px] short:gap-2.5 short:px-[18px] short:pt-3 short:pb-4">
-			<h2 className="shrink-0 text-[26px] leading-tight font-medium text-ink short:text-[22px]">{fromEarlier ? "From earlier" : "Your turn"}</h2>
+		// The lesson text's inset, so both sheets share their edges.
+		<div data-testid="your-turn" data-mode={mode.split(":")[0]} className="flex flex-col gap-7 px-14 pt-10 pb-10 @max-[640px]/column:px-7 @max-[640px]/column:pt-7 @max-[640px]/column:pb-8">
+			<h2 className="text-[26px] leading-tight font-medium text-ink">{fromEarlier ? "From earlier" : "Your turn"}</h2>
 
 			{reviewRefused && (
-				<p data-testid="review-refused" className="shrink-0 text-base text-ink-2">
+				<p data-testid="review-refused" className="text-base text-ink-2">
 					That question is no longer due, so nothing was saved.
 				</p>
 			)}
 
-			<div key={mode} className={`flex min-h-0 flex-initial flex-col${mode === initialModeRef.current ? "" : " lh-rise"}`}>
-				{/* The scroll padding is the fade's length (useScrollFade), so a part scrolled to starts below the top fade. */}
-				<div ref={setScroller} className="lh-scroll-fade flex min-h-0 scroll-pt-[min(48px,25%)] flex-col gap-3.5 overflow-y-auto">
-					{pending && !revealPending && (
-						<QuestionDock
-							ref={questionRef}
-							toolName={pending.tool as QuestionDockProps["toolName"]}
-							toolCallId={pending.toolCallId}
-							input={pending.input}
-							onSubmit={onSubmitAnswer}
-							initialDraft={initialQuestionDraft}
-							onSaveDraft={onSaveQuestionDraft}
-							onReady={setPicked}
-							boxText={value}
-							onLeaveRows={() => boxRef.current?.focus()}
-							busy={busy && !fromEarlier}
-						/>
-					)}
-					{!pending && problem && (
-						<>
-							{problem.line && (
-								<p data-testid="problem-line" className="shrink-0 font-count text-base text-ink-2">
-									{problem.line}
-								</p>
-							)}
-							<OpenProblemPane statement={problem.statement} part={problem.part} />
-						</>
-					)}
-					{!pending && !problem && stop && <StopCard view={stop.view} onAction={stop.onAction} />}
-				</div>
+			<div key={mode} className={`flex flex-col gap-7 empty:hidden${mode === initialModeRef.current ? "" : " lh-rise"}`}>
+				{pending && !revealPending && (
+					<QuestionDock
+						ref={questionRef}
+						toolName={pending.tool as QuestionDockProps["toolName"]}
+						toolCallId={pending.toolCallId}
+						input={pending.input}
+						onSubmit={onSubmitAnswer}
+						initialDraft={initialQuestionDraft}
+						onSaveDraft={onSaveQuestionDraft}
+						onReady={setPicked}
+						boxText={value}
+						onLeaveRows={() => boxRef.current?.focus()}
+						busy={busy && !fromEarlier}
+					/>
+				)}
+				{!pending && problem && (
+					<div className="flex flex-col gap-4">
+						{problem.line && (
+							<p data-testid="problem-line" className="font-count text-base text-ink-2">
+								{problem.line}
+							</p>
+						)}
+						<OpenProblemPane statement={problem.statement} part={problem.part} />
+					</div>
+				)}
+				{!pending && !problem && stop && <StopCard view={stop.view} onAction={stop.onAction} />}
 			</div>
 
 			{stuck && (
-				<div data-testid="turn-stuck" className="flex shrink-0 flex-col items-start gap-2.5 bg-highlight px-3.5 py-3 text-base text-ink">
+				<div data-testid="turn-stuck" className="flex flex-col items-start gap-2.5 bg-highlight px-3.5 py-3 text-base text-ink">
 					{teacher} took this {stuck.minutes} minutes ago and hasn't answered.
 					<button type="button" data-testid="turn-stuck-stop" onClick={stuck.onStop} className="lh-btn">
 						{stuck.label}
@@ -184,7 +179,7 @@ export function YourTurn({
 				</div>
 			)}
 			{error && (
-				<div className="flex shrink-0 flex-col items-start gap-2.5 lh-sheet px-3.5 py-3 text-base">
+				<div className="flex flex-col items-start gap-2.5 lh-sheet px-3.5 py-3 text-base">
 					<span data-testid="lesson-error" title={error.detail} className="text-ans-wrong">
 						{error.text}
 					</span>
@@ -197,9 +192,9 @@ export function YourTurn({
 			{view && exit && (
 				<>
 					<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
-					<div data-testid="turn-foot" className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-2">
+					<div data-testid="turn-foot" className="flex flex-wrap items-center gap-x-2.5 gap-y-2.5">
 						{help && <HelpKeys help={help} questionRef={questionRef} onHelpLine={onHelpLine} />}
-						<button type="button" data-testid={exit.testId} onClick={onExit} className="lh-btn lh-btn-quiet ml-auto h-[30px] px-1.5 text-[15px]">
+						<button type="button" data-testid={exit.testId} onClick={onExit} className="lh-btn lh-btn-small lh-btn-quiet -mr-2.5 ml-auto">
 							{exit.label}
 						</button>
 					</div>

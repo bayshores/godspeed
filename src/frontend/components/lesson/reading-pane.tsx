@@ -1,30 +1,23 @@
-import { useContext, useEffect, useMemo, useState, type RefObject } from "react";
-import { useStickToBottomContext, type StickToBottomContext } from "use-stick-to-bottom";
-import {
-	Conversation,
-	ConversationContent,
-	ConversationEmptyState,
-	ConversationScrollButton,
-} from "@/frontend/components/ai-elements/conversation";
+import { useContext, useMemo } from "react";
+import { ConversationEmptyState } from "@/frontend/components/ai-elements/conversation";
 import { Shimmer } from "@/frontend/components/ai-elements/shimmer";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/frontend/components/queued-steers";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { JobsContext } from "@/frontend/components/jobs-context";
-import { SessionMessageNavigation } from "@/frontend/components/session-navigation";
 import { DEFAULT_TEACHER_NAME, type LhViewMessage, type Phase3 } from "@/shared/core";
 import { AgentAtWork } from "./agent-at-work";
 import { agentWork } from "./agent-at-work-model";
 import { ArrivalRow, type Arrive } from "./arrivals";
 import { GoAheadKey } from "./go-ahead-key";
 import { MessageRow } from "./message-row";
-import { useScrollFade } from "./use-scroll-fade";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { cn } from "@/frontend/lib/utils";
 
 /**
- * THE READING PANE: the lesson as one document on the reading sheet, in
- * the reading type (.lh-reading in globals.css), answered cards inline.
+ * THE READING PANE: the lesson as one document on the lesson text's sheet, in
+ * the reading type, answered cards inline. The sheet is as tall as its
+ * text; the page around it scrolls (LessonScroll).
  * Its foot holds one thing at a time: while the teacher writes, the lines
  * typed to it that wait for it and Stop; once it has finished, the
  * go-ahead key, if the lesson waits for one.
@@ -46,7 +39,6 @@ export function ReadingPane({
 	pageMarks,
 	arrive,
 	onOpenPlan,
-	scrollContextRef,
 }: {
 	/** The lesson's space. */
 	spaceId: string | undefined;
@@ -69,7 +61,6 @@ export function ReadingPane({
 	pageMarks: ReadonlyMap<string, string>;
 	arrive: Arrive;
 	onOpenPlan: () => void;
-	scrollContextRef: RefObject<StickToBottomContext | null>;
 }) {
 	const last = messages.length - 1;
 	const jobs = useContext(JobsContext);
@@ -79,67 +70,49 @@ export function ReadingPane({
 	const work = useMemo(() => (replying ? agentWork(replying, jobs) : null), [replying, jobs]);
 	const showWork = !!work && !work.replied && (work.plan !== null || work.steps.length > 0);
 	return (
-		<Conversation className="min-h-0 min-w-0 flex-1" initial="instant" contextRef={scrollContextRef}>
-			<SessionMessageNavigation />
-			<ScrollFade />
-			<ConversationContent className="min-h-full gap-0 p-0" scrollClassName="lh-scroll-fade">
-				{/* The right side keeps its padding at every width: the key that jumps to the end sits in it. */}
-				<div data-session-find-root="" className="lh-reading flex w-full max-w-[872px] flex-1 flex-col gap-4 px-14 pt-5 pb-8 @max-[640px]/reading:pl-7">
-					{messages.length === 0 && !busy && (
-						<ConversationEmptyState title="New lesson" description="" />
-					)}
-					{messages.map((m, mi) => (
-						<MessageRow
-							key={m.id || `m-${mi}`}
-							message={m}
-							spaceId={spaceId}
-							index={mi}
-							// The inferred teach seam: teaching begins at the group where
-							// the phase fold flips to teach (exactly one per lesson).
-							teachSeam={m.role === "assistant" && mi > 0 && phases[mi] === "teach" && phases[mi - 1] !== "teach"}
-							streamingLast={status === "streaming" && mi === last}
-							hideSteps={showWork && mi === last}
-							pageMarks={pageMarks}
-							arrive={arrive}
-							onOpenPlan={onOpenPlan}
-						/>
-					))}
-					{/* From the instant of any action that produces tokens until the
-					    turn's first applied event (the stream then renders its own
-					    thinking row with the same look). */}
-					{showWork && work && (
-						<ArrivalRow live={arrivalsLive} as="div">
-							<AgentAtWork work={work} agentName={agentName} />
-						</ArrivalRow>
-					)}
-					{!waitingForAgent && !showWork && (status === "submitted" || turnInFlight) && (
-						<ArrivalRow live={arrivalsLive} className={cn("flex items-center gap-2 font-ui", LABEL_TEXT)}>
-							<BrailleSpinner label="Thinking" />
-							<Shimmer>Thinking…</Shimmer>
-						</ArrivalRow>
-					)}
-					{busy && onStop && (
-						<div className="flex flex-col items-start gap-2 font-ui">
-							<QueuedSteersBody steers={queuedSteers} />
-							<button type="button" data-testid="stop-turn" onClick={onStop} className="lh-btn lh-btn-quiet">
-								Stop
-							</button>
-						</div>
-					)}
-					{goAhead && <GoAheadKey label={goAhead.label} onGo={goAhead.onGo} />}
+		<div data-session-find-root="" className="flex flex-col gap-4 px-14 pt-10 pb-10 @max-[640px]/column:px-7 @max-[640px]/column:pt-7 @max-[640px]/column:pb-8">
+			{messages.length === 0 && !busy && (
+				<ConversationEmptyState title="New lesson" description="" />
+			)}
+			{messages.map((m, mi) => (
+				<MessageRow
+					key={m.id || `m-${mi}`}
+					message={m}
+					spaceId={spaceId}
+					index={mi}
+					// The inferred teach seam: teaching begins at the group where
+					// the phase fold flips to teach (exactly one per lesson).
+					teachSeam={m.role === "assistant" && mi > 0 && phases[mi] === "teach" && phases[mi - 1] !== "teach"}
+					streamingLast={status === "streaming" && mi === last}
+					hideSteps={showWork && mi === last}
+					pageMarks={pageMarks}
+					arrive={arrive}
+					onOpenPlan={onOpenPlan}
+				/>
+			))}
+			{/* From the instant of any action that produces tokens until the
+			    turn's first applied event (the stream then renders its own
+			    thinking row with the same look). */}
+			{showWork && work && (
+				<ArrivalRow live={arrivalsLive} as="div">
+					<AgentAtWork work={work} agentName={agentName} />
+				</ArrivalRow>
+			)}
+			{!waitingForAgent && !showWork && (status === "submitted" || turnInFlight) && (
+				<ArrivalRow live={arrivalsLive} className={cn("flex items-center gap-2 font-ui", LABEL_TEXT)}>
+					<BrailleSpinner label="Thinking" />
+					<Shimmer>Thinking…</Shimmer>
+				</ArrivalRow>
+			)}
+			{busy && onStop && (
+				<div className="flex flex-col items-start gap-2 font-ui">
+					<QueuedSteersBody steers={queuedSteers} />
+					<button type="button" data-testid="stop-turn" onClick={onStop} className="lh-btn lh-btn-quiet">
+						Stop
+					</button>
 				</div>
-			</ConversationContent>
-			<ConversationScrollButton />
-		</Conversation>
+			)}
+			{goAhead && <GoAheadKey label={goAhead.label} onGo={goAhead.onGo} />}
+		</div>
 	);
-}
-
-/** Text scrolled past the sheet's top or bottom edge fades out there, so a line under the step
- *  row never looks sliced. */
-function ScrollFade() {
-	const { scrollRef } = useStickToBottomContext();
-	const [scroller, setScroller] = useState<HTMLElement | null>(null);
-	useEffect(() => setScroller(scrollRef.current), [scrollRef]);
-	useScrollFade(scroller);
-	return null;
 }

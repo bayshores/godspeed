@@ -10,7 +10,7 @@ export interface DockState {
 
 export const DOCK_MIN_W = 320;
 export const DOCK_DEFAULT_W = 340;
-/** The lesson keeps at least this much room beside the sheet: the 480px teacher column and the reading sheet. */
+/** The lesson keeps at least this much room beside the sheet for its page. */
 const SESSION_MIN_W = 1000;
 
 export function dockStateKey(chatId: string): string {

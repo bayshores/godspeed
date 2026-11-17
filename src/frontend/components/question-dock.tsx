@@ -109,7 +109,8 @@ export function QuestionDock(props: QuestionDockProps) {
 	return <QuestionDockForm {...props} input={parsed as QuizDisplayInput | AskToolInput | ExplainDisplayInput} />;
 }
 
-const OPTION_ROW = cn(ANSWER_ROW, "items-start px-2.5 py-[9px]");
+/** A row is 56 tall for one line, its tone as wide as the sheet's text. */
+const OPTION_ROW = cn(ANSWER_ROW, "items-start px-3 py-3.5");
 /** A choice's box: its letter, filled once picked. */
 function OptionMark({ picked, children }: { picked: boolean; children?: React.ReactNode }) {
 	return (
@@ -334,14 +335,14 @@ function QuestionDockForm({
 	));
 
 	return (
-		<div ref={rootRef} data-testid="question-dock" className="flex shrink-0 flex-col gap-3.5">
+		<div ref={rootRef} data-testid="question-dock" className="flex flex-col gap-7">
 			<QuestionText>{qd.question}</QuestionText>
 			{qd.context && (
-				<div className="shrink-0" style={proseVars(15, 22, true)}>
+				<div className="-mt-4" style={proseVars(16, 24, true)}>
 					<ToolContentResponse>{qd.context}</ToolContentResponse>
 				</div>
 			)}
-			{qd.mode === "multi-select" && !showFolded && <p className="shrink-0 text-[15px] text-ink-2">Select all that apply</p>}
+			{qd.mode === "multi-select" && !showFolded && <p className="-mt-4 text-[15px] text-ink-2">Select all that apply</p>}
 
 			{showFolded && (
 				<PickedRow
@@ -357,7 +358,7 @@ function QuestionDockForm({
 			)}
 
 			{qd.mode !== "text" && !showFolded && (
-				<div className="flex shrink-0 flex-col" role={qd.mode === "multi-select" ? "group" : "radiogroup"}>
+				<div className="flex flex-col gap-1" role={qd.mode === "multi-select" ? "group" : "radiogroup"}>
 					{qd.options.map((opt, i) => {
 						const isSel = sel.selected.has(i);
 						return (
@@ -372,7 +373,7 @@ function QuestionDockForm({
 								className={cn(OPTION_ROW, isSel ? PICKED : "hover:bg-tone", walked(i, isSel))}
 							>
 								<OptionMark picked={isSel}>{letter(i)}</OptionMark>
-								<span className="min-w-0 flex-1" style={proseVars(17, 26)}>
+								<span className="min-w-0 flex-1" style={proseVars(18, 28)}>
 									<ToolContentResponse>{opt.label}</ToolContentResponse>
 									{kind !== "quiz" && opt.description && (
 										// Only an ask's choices carry a second line: on a quiz it

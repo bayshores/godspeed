@@ -720,7 +720,6 @@ describe("the reading pane", () => {
 		pageMarks: new Map(),
 		arrive: () => undefined,
 		onOpenPlan: () => {},
-		scrollContextRef: { current: null },
 		...over,
 	});
 	const pane = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}) => renderToStaticMarkup(<ReadingPane {...readingProps(over)} />);
@@ -761,8 +760,8 @@ describe("the reading pane", () => {
 		assert.doesNotMatch(out, /see what you already know/);
 	});
 
-	it("the text scrolls in a fading scroller, so a line cut at the sheet's edge fades instead of looking sliced", () => {
-		assert.match(pane({ busy: false, status: "ready" }), /class="[^"]*lh-scroll-fade[^"]*"[^>]*>[\s\S]*data-session-find-root/);
+	it("is as tall as its text: no scroller and no fade of its own, the page scrolls instead", () => {
+		assert.doesNotMatch(pane({ busy: false, status: "ready" }), /overflow|lh-scroll-fade|role="log"/);
 	});
 
 	it("the learner's bubbles wear the lesson's space color, as the turn sheet does, not the open space's", () => {

@@ -7,10 +7,10 @@ export function proseVars(size: number, leading: number, quiet = false): React.C
 	return { "--lh-prose-size": `${size}px`, "--lh-prose-leading": `${leading / size}`, "--lh-ink-body": ink, "--lh-ink-strong": ink, "--lh-ink-italic": ink } as React.CSSProperties;
 }
 
-/** A waiting question's own text, in reading type. */
+/** A waiting question's own text, in reading type, the biggest text under "Your turn". */
 export function QuestionText({ children }: { children: string }) {
 	return (
-		<div data-session-find-root="" className="shrink-0" style={proseVars(18, 26)}>
+		<div data-session-find-root="" style={proseVars(22, 31)}>
 			<ToolContentResponse>{children}</ToolContentResponse>
 		</div>
 	);

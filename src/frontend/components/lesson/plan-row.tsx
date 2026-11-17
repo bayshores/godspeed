@@ -29,7 +29,7 @@ const STEPS_OPEN_KEY = "lh:steps-open";
 type Edges = ReadonlyArray<{ from: string; to: string }>;
 
 /**
- * THE PLAN ROW on top of the reading sheet: where the learner is in the
+ * THE PLAN ROW, the step line pinned over the lesson's page: where the learner is in the
  * lesson. A plan or homework lesson shows one line, "Step 2 of 5", the
  * step's name and a slim bar, which unfolds into every step by name over
  * a bar, with a small map of the plan when it branches; homework lists
@@ -164,7 +164,7 @@ function StepsRow({
 	const line = foldedLine(steps, onPick !== null);
 	return (
 		<div className="flex min-w-0 shrink-0 flex-col">
-			<button type="button" data-testid="plan-fold" aria-expanded={open} onClick={toggle} className="lh-steps-fold group flex min-w-0 items-center gap-4 text-left text-[15px] leading-snug">
+			<button type="button" data-testid="plan-fold" aria-expanded={open} onClick={toggle} className="group flex min-w-0 items-center gap-4 text-left text-[15px] leading-snug">
 				<span className="flex min-w-0 items-baseline gap-2.5">
 					<span className="shrink-0 font-count text-ink-2 group-hover:text-ink">{line.count}</span>
 					{/* Unfolded, the row below names the step. */}
