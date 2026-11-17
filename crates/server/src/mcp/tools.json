@@ -1008,8 +1008,8 @@
 	},
 	{
 		"name": "start_lesson",
-		"title": "Start a lesson",
-		"description": "Start a new study session in godspeed taught by you: teach what's new, give problems on what needs practice. Topic becomes the learner's first message. With space_id the lesson belongs to that space: opens with the space's card, its facts go to that space's graph. A path topic's name as topic studies that topic. You teach it through wait_for_work; learner follows in the godspeed window.",
+		"title": "Start or continue a lesson",
+		"description": "Start or continue a study session in godspeed taught by you. Give topic or deadline_id, not both. topic: a new session; it becomes the learner's first message; a path topic's name studies that topic. deadline_id: what the deadline's Study key does (continues its unfinished Study session, else starts one on its topics); with homework: true, its Work on key (continues its latest homework session, else starts one). With space_id the lesson belongs to that space: opens with the space's card, its facts go to that space's graph. You teach it through wait_for_work; learner follows in the godspeed window.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1022,16 +1022,68 @@
 				"space_id": {
 					"description": "The space id from list_spaces, or \"none\" for lessons without a space (the default).",
 					"type": "string"
+				},
+				"deadline_id": {
+					"type": "string",
+					"description": "Instead of topic: a deadline's id from read_space."
+				},
+				"homework": {
+					"type": "boolean",
+					"description": "With deadline_id: work on the homework's or project's problems instead of studying for it."
 				}
-			},
-			"required": [
-				"topic"
-			]
+			}
 		},
 		"annotations": {
 			"readOnlyHint": false,
 			"destructiveHint": false,
 			"idempotentHint": false,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "open_page",
+		"title": "Open a page",
+		"description": "Open a page in the learner's godspeed window when they ask to see something (\"open my cheat sheet\"), even with Follow off; brings the window forward. Never jumps away from unsent lesson text, a running mock or an open dialog: then the window offers Go to instead.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"page": {
+					"type": "string",
+					"enum": [
+						"today",
+						"progress",
+						"lessons",
+						"files",
+						"deadlines",
+						"graph",
+						"deadline",
+						"cheat_sheet",
+						"lesson"
+					],
+					"description": "today, a space's progress, lessons, files, deadlines or graph, a deadline, its cheat_sheet, or a lesson."
+				},
+				"space_id": {
+					"type": "string",
+					"description": "With progress, lessons, files, deadlines or graph: the space id from list_spaces, or \"none\" for no space (not for files or deadlines)."
+				},
+				"deadline_id": {
+					"type": "string",
+					"description": "With deadline or cheat_sheet: the deadline's id from read_space."
+				},
+				"lesson_id": {
+					"type": "string",
+					"description": "With lesson: the lesson's id from list_lessons."
+				}
+			},
+			"required": [
+				"page"
+			]
+		},
+		"annotations": {
+			"readOnlyHint": false,
+			"destructiveHint": false,
+			"idempotentHint": true,
 			"openWorldHint": false
 		}
 	},

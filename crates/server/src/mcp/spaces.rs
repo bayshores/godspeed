@@ -38,20 +38,25 @@ pub async fn space_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Option<
 /// Where the new lesson is: the window opens it itself, or Follow does, or the learner does.
 const IN_WINDOW: &str = "The lesson is in the godspeed window.";
 
-/// start_lesson's answer also says how to begin teaching, unless the agent's waiter already runs.
+/// start_lesson's answer also says how its turns come: by the agent's running waiter, else by the
+/// wait it starts. A continued lesson is where the learner left it.
 fn started(call: &ToolCall<'_>, done: ToolOutcome, waiting: bool) -> Json {
 	let value = match done {
 		ToolOutcome::Ok { value, .. } => value,
 		ToolOutcome::Err(error) => return failure(&error),
 	};
 	let lesson_id = value["lessonId"].str_or_empty();
-	let note = if waiting {
-		format!("{IN_WINDOW} Your waiter already running brings its turns.")
+	let continued = value["status"].as_str() == Some("continued");
+	let turns = if waiting {
+		"Your waiter already running brings its turns.".to_owned()
 	} else if in_claude_code(call.caller) {
-		format!("{IN_WINDOW} {}", super::work::waiter_hint(Some(lesson_id), false))
+		super::work::waiter_hint(Some(lesson_id), false)
+	} else if continued {
+		format!("Its next turns come through wait_for_work with lesson_id \"{lesson_id}\".")
 	} else {
-		format!("{IN_WINDOW} Call wait_for_work with lesson_id \"{lesson_id}\" to begin teaching.")
+		format!("Call wait_for_work with lesson_id \"{lesson_id}\" to begin teaching.")
 	};
+	let note = if continued { format!("{IN_WINDOW} The learner continues where they left off. {turns}") } else { format!("{IN_WINDOW} {turns}") };
 	let mut answer = value.clone();
 	if let Some(fields) = answer.as_obj_mut() {
 		fields.insert("note", note);

@@ -35,6 +35,7 @@ use super::job_host::run_job;
 use crate::App;
 use crate::graph::graph::search_graph;
 use crate::app::agent_rules::save_rule_by_agent;
+use crate::app::open_page::agent_open_page;
 use crate::app::today_note::current_today_note;
 use crate::spaces::space_actions::{Mark, space_actions};
 use crate::spaces::citations::check_cites;
@@ -153,6 +154,7 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 		search_graph: graph_tools_enabled(effective).then(|| lesson_graph_search(app, lesson_scope)),
 		save_rule: Some(save_rule(app, lesson_scope)),
 		space_actions: Some(agent_space_actions(app)),
+		open_page: Some(agent_open_page(app)),
 	};
 	let teacher = || TeacherToolContext { plan: PlanContext { chat_id: chat_id.clone(), chat_store: chats.clone() }, jobs: jobs.clone(), side: side.clone() };
 
@@ -208,6 +210,15 @@ mod tests {
 		assert!(!study.iter().any(|t| t.contains("deadline") || t == "list_spaces"), "{study:?}");
 		for kind in ["practice", "lesson"] {
 			assert!(tool_names(&app, kind).contains(&"add_space_deadline".to_owned()), "{kind}");
+		}
+	}
+
+	#[test]
+	fn every_lesson_opens_pages_study_too() {
+		let root = scratch_dir("lesson-agent-open-page");
+		let app = test_app(&root);
+		for kind in ["study", "practice", "lesson"] {
+			assert!(tool_names(&app, kind).contains(&"open_page".to_owned()), "{kind}");
 		}
 	}
 

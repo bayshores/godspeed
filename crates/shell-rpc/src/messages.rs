@@ -25,6 +25,9 @@ pub enum ToShell {
 	/// The quiet teacher has work waiting: type this line to it and send it, once its input
 	/// holds exactly that line.
 	Nudge { terminal: String, line: String },
+	/// The agent opened a page: bring the window forward, and send a window made again (or still
+	/// loading) to `page`, an app path with its `?space=`.
+	ShowWindow { page: String },
 }
 
 /// Shell to server.
@@ -109,6 +112,7 @@ mod tests {
 		round_trip(ToShell::Notify { id: 5, title: "Quiz 2 is tomorrow".into(), body: "Algebra.".into() }, r#"{"t":"notify","id":5,"title":"Quiz 2 is tomorrow","body":"Algebra."}"#);
 		round_trip(ToShell::AgentFolder { id: 6, folder: Some("/Users/sam/godspeed".into()) }, r#"{"t":"agent_folder","id":6,"folder":"/Users/sam/godspeed"}"#);
 		round_trip(ToShell::AgentFolder { id: 7, folder: None }, r#"{"t":"agent_folder","id":7,"folder":null}"#);
+		round_trip(ToShell::ShowWindow { page: "/space/files?space=spc_1".into() }, r#"{"t":"show_window","page":"/space/files?space=spc_1"}"#);
 	}
 
 	#[test]

@@ -70,14 +70,16 @@ fn update_newest(app: &App, list: &mut [Json], label: Option<&str>, now: i64) ->
 }
 
 /// Record one action and announce it. A repeat of the newest action (same label, agent and
-/// target, within `COALESCE_MS`) only refreshes its time and is not announced again. `input` has
-/// `label`, `spaceId`, `target`, `page` and optionally `removed`, `open` and `background`.
+/// target, within `COALESCE_MS`) only refreshes its time and is not announced again, except a
+/// removal or an open: asked twice, the window opens twice. `input` has `label`, `spaceId`,
+/// `target`, `page` and optionally `removed`, `open` and `background`.
 fn record_agent_action(app: &App, agent: Option<&str>, input: &Json, now: i64) -> Json {
 	let label = short_label(input["label"].str_or_empty());
 	let agent = agent.map(text::trim).filter(|a| !a.is_empty()).unwrap_or("Your agent");
 	let removed = input["removed"].truthy();
 	with_list(app, |list| {
 		let repeat = !removed
+			&& !input["open"].truthy()
 			&& list.last().is_some_and(|last| last["label"].as_str() == Some(&label) && last["agent"].as_str() == Some(agent) && same_target(&last["target"], &input["target"]) && is_recent(last, now));
 		if repeat {
 			return update_newest(app, list, None, now);
@@ -255,16 +257,20 @@ mod tests {
 	}
 
 	#[test]
-	fn a_removed_target_is_never_merged_and_long_labels_are_cut() {
+	fn a_removal_or_an_open_is_never_merged_and_long_labels_are_cut() {
 		let root = scratch_dir("actions-removed");
 		let app = test_app(&root);
 		let removed = json!({ "label": "Removed HW 5", "spaceId": null, "target": null, "page": "/", "removed": true });
 		record_agent_action(&app, None, &removed, 1_000);
 		record_agent_action(&app, None, &removed, 2_000);
+		let mut open = lesson_action("Opening Limits");
+		open.as_obj_mut().unwrap().insert("open", true);
+		record_agent_action(&app, None, &open, 2_500);
+		record_agent_action(&app, None, &open, 2_600);
 		let long = record_agent_action(&app, None, &lesson_action(&"word ".repeat(30)), 3_000);
 		assert_eq!(text::len16(long["label"].as_str().unwrap()), LABEL_MAX);
 		assert!(long["label"].as_str().unwrap().ends_with("word…"));
-		assert_eq!(labels(&app).len(), 3);
+		assert_eq!(labels(&app).len(), 5);
 	}
 
 	#[test]

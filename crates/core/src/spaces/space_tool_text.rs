@@ -6,7 +6,7 @@ use std::sync::LazyLock;
 use crate::contracts::space::{SPACE_ICONS, SIGNATURE_MAX};
 
 /// Each tool's description, by tool name, in source order.
-pub const SPACE_TOOL_TEXT: [(&str, &str); 13] = [
+pub const SPACE_TOOL_TEXT: [(&str, &str); 14] = [
 	("list_spaces", "List learner's spaces, closed ones included, with file and lesson counts."),
 	("read_space", "Read one space: description, file counts per status (pending, extracting, ready, failed, needs-whisper) and files that couldn't be read, knowledge-graph topics with fact counts, deadlines (kind, date, time, done, files each covers), path (each topic's status, what the next covers), lessons, today's local date and time. files: true lists every file instead (id, kind, status, size, path on disk). To find something inside files: search_space_files."),
 	("search_space_files", "Search all of a space's files (readings, slides, transcripts, syllabus, assignments) by meaning and keywords. Returns best passages, each with id, file, place (page, slide, time or lines) and short snippet. Open needed ones with read_passage, not whole files."),
@@ -19,7 +19,8 @@ pub const SPACE_TOOL_TEXT: [(&str, &str); 13] = [
 	("update_space_deadline", "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick done (done: true) / not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from space's own files as add_space_deadline says; ask the learner when files don't settle it."),
 	("remove_space_deadline", "Remove one deadline from a space (its files and facts untouched)."),
 	("link_space_folder", "Link a folder on this computer to a space. Supported files are added; from then on new files dropped there are added automatically and edited ones rebuilt (checked every minute while godspeed is open). godspeed sorts them into study material and space info itself while reading, never changes the folder. set_space_file_kind only to correct a kind."),
-	("start_lesson", "Start a new study session in godspeed taught by you: teach what's new, give problems on what needs practice. Topic becomes the learner's first message. With space_id the lesson belongs to that space: opens with the space's card, its facts go to that space's graph. A path topic's name as topic studies that topic. You teach it through wait_for_work; learner follows in the godspeed window."),
+	("start_lesson", "Start or continue a study session in godspeed taught by you. Give topic or deadline_id, not both. topic: a new session; it becomes the learner's first message; a path topic's name studies that topic. deadline_id: what the deadline's Study key does (continues its unfinished Study session, else starts one on its topics); with homework: true, its Work on key (continues its latest homework session, else starts one). With space_id the lesson belongs to that space: opens with the space's card, its facts go to that space's graph. You teach it through wait_for_work; learner follows in the godspeed window."),
+	("open_page", "Open a page in the learner's godspeed window when they ask to see something (\"open my cheat sheet\"), even with Follow off; brings the window forward. Never jumps away from unsent lesson text, a running mock or an open dialog: then the window offers Go to instead."),
 ];
 
 /// The argument descriptions both tool schemas share.
@@ -53,6 +54,12 @@ pub struct SpaceArgText {
 	pub new_time: &'static str,
 	pub topic: &'static str,
 	pub lesson_space: &'static str,
+	pub lesson_deadline: &'static str,
+	pub homework: &'static str,
+	pub page: &'static str,
+	pub page_space: &'static str,
+	pub page_deadline: &'static str,
+	pub page_lesson: &'static str,
 	pub path: &'static str,
 	pub path_goal: &'static str,
 	pub path_covers: &'static str,
@@ -88,6 +95,12 @@ pub static SPACE_ARG_TEXT: LazyLock<SpaceArgText> = LazyLock::new(|| SpaceArgTex
 	new_time: "24-hour \"HH:MM\", or null to remove the time.",
 	topic: "What the learner wants to study, in their words.",
 	lesson_space: "The space id from list_spaces, or \"none\" for lessons without a space (the default).",
+	lesson_deadline: "Instead of topic: a deadline's id from read_space.",
+	homework: "With deadline_id: work on the homework's or project's problems instead of studying for it.",
+	page: "today, a space's progress, lessons, files, deadlines or graph, a deadline, its cheat_sheet, or a lesson.",
+	page_space: "With progress, lessons, files, deadlines or graph: the space id from list_spaces, or \"none\" for no space (not for files or deadlines).",
+	page_deadline: "With deadline or cheat_sheet: the deadline's id from read_space.",
+	page_lesson: "With lesson: the lesson's id from list_lessons.",
 	path: "Topics toward a goal with no syllabus, in order, in your own words. Sending it replaces the list; a topic keeps its progress while its name stays.",
 	path_goal: "What the learner works toward, read after \"Path to\", e.g. \"backend developer\".",
 	path_covers: "One line on what the topic covers.",

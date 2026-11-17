@@ -157,3 +157,61 @@ async fn typing_while_respond_waits_for_a_follow_up_ends_the_turn_with_a_note() 
 	// The session id comes as Claude Code sends it, and its waiter ended when it took the turn.
 	assert!(body.contains(r#"{\"status\":\"turn_complete\",\"note\":\"Turn done. The learner typed to you in your terminal. Answer them there. Wait with the waiter"#), "{body}");
 }
+
+/// The text of a tool result.
+fn text(body: &str) -> String {
+	let reply = gs_json::parse(body).unwrap();
+	reply["result"]["content"][0]["text"].str_or_empty().to_owned()
+}
+
+#[tokio::test]
+async fn start_lesson_starts_or_continues_a_deadlines_study_or_homework() {
+	let app = app();
+	let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Algebra" })).unwrap()["id"].str_or_empty().to_owned();
+	let exam = app.stores.spaces.add_deadline(&space_id, &gs_json::json!({ "name": "Midterm", "kind": "exam", "date": "2099-01-15" })).unwrap()["id"].str_or_empty().to_owned();
+	let homework = app.stores.spaces.add_deadline(&space_id, &gs_json::json!({ "name": "HW6", "kind": "homework", "date": "2099-01-15" })).unwrap()["id"].str_or_empty().to_owned();
+	let start = |args: String| {
+		let app = app.clone();
+		async move { text(&call(&app, None, None, "start_lesson", &args).await.1) }
+	};
+
+	let study = gs_json::parse(&start(format!(r#"{{"deadline_id":"{exam}"}}"#)).await).unwrap();
+	assert_eq!((study["status"].as_str(), study["title"].as_str()), (Some("started"), Some("Study for Midterm")));
+	assert!(study["note"].str_or_empty().ends_with("to begin teaching."), "{study:?}");
+	let messages = app.stores.chats.get_chat(study["lessonId"].str_or_empty()).unwrap()["messages"].items().to_vec();
+	assert!(messages.iter().any(|m| m["role"].as_str() == Some("user")), "the title went as the first message");
+	let again = gs_json::parse(&start(format!(r#"{{"deadline_id":"{exam}","space_id":"{space_id}"}}"#)).await).unwrap();
+	assert_eq!((again["status"].as_str(), &again["lessonId"]), (Some("continued"), &study["lessonId"]));
+	assert!(again["note"].str_or_empty().contains("The learner continues where they left off.") && !again["note"].str_or_empty().contains("to begin teaching"), "{again:?}");
+
+	let work = gs_json::parse(&start(format!(r#"{{"deadline_id":"{homework}","homework":true}}"#)).await).unwrap();
+	assert_eq!((work["status"].as_str(), work["title"].as_str()), (Some("started"), Some("Work on HW6")));
+	let more = gs_json::parse(&start(format!(r#"{{"deadline_id":"{homework}","homework":true}}"#)).await).unwrap();
+	assert_eq!((more["status"].as_str(), &more["lessonId"]), (Some("continued"), &work["lessonId"]));
+
+	assert_eq!(start(format!(r#"{{"topic":"Sums","deadline_id":"{exam}"}}"#)).await, "Give topic or deadline_id, not both.");
+	assert_eq!(start("{}".to_owned()).await, "Give topic or deadline_id.");
+	assert_eq!(start(r#"{"topic":"Sums","homework":true}"#.to_owned()).await, "homework needs deadline_id, not a topic (\"Sums\").");
+	assert_eq!(start(r#"{"deadline_id":"ddl_gone"}"#.to_owned()).await, "No deadline \"ddl_gone\". Use read_space.");
+	assert_eq!(start(format!(r#"{{"deadline_id":"{exam}","space_id":"spc_other"}}"#)).await, format!("No deadline \"{exam}\". Use read_space."));
+	assert_eq!(start(format!(r#"{{"deadline_id":"{exam}","homework":true}}"#)).await, "Midterm is not homework or a project, so it has no problems to work on. Leave homework out to study for it.");
+	app.stores.spaces.update_space(&space_id, &gs_json::json!({ "closed": true })).unwrap();
+	assert_eq!(start(format!(r#"{{"deadline_id":"{exam}"}}"#)).await, "This space is closed. Ask the learner to reopen it first.");
+}
+
+#[tokio::test]
+async fn open_page_opens_from_any_terminal_every_time_it_is_asked() {
+	let app = app();
+	let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Algebra" })).unwrap()["id"].str_or_empty().to_owned();
+	let args = format!(r#"{{"page":"files","space_id":"{space_id}"}}"#);
+	let (_, body) = call(&app, None, None, "open_page", &args).await;
+	assert!(text(&body).contains("Sent to the godspeed window"), "{body}");
+	call(&app, None, None, "open_page", &args).await;
+	let opens = gs_services::app::agent_actions::recent_agent_actions(&app).into_iter().filter(|a| a["label"].as_str() == Some("Opening Algebra's Files")).count();
+	assert_eq!(opens, 2, "asked twice, it opens twice");
+	assert!(opened(&app, "Opening Algebra's Files"), "an agent outside the app opens it too");
+	let (_, body) = call(&app, None, None, "open_page", r#"{"page":"files"}"#).await;
+	assert!(body.contains(r#""isError":true"#) && text(&body) == "Files needs a space_id.", "{body}");
+	let (_, body) = call(&app, None, None, "open_page", r#"{"page":"inbox"}"#).await;
+	assert!(body.contains(r#""isError":true"#), "{body}");
+}

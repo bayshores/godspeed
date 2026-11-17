@@ -6,6 +6,7 @@ pub mod attachments;
 pub mod chat_handler;
 pub mod chats;
 pub mod compaction;
+pub mod deadline_lesson;
 pub mod dismissal_park;
 pub mod homework;
 mod job_host;

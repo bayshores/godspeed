@@ -6,8 +6,9 @@ use std::sync::{Arc, LazyLock};
 use gs_core::contracts::space::parse_space_scope;
 use gs_json::Json;
 use gs_services::App;
+use gs_services::app::open_page::open_page;
 
-use super::reply::failure;
+use super::reply::{failure, outcome};
 use super::schema::check_arguments;
 use super::{spaces, graph, lessons, memory, work};
 
@@ -79,6 +80,7 @@ pub async fn call_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Json {
 		"remember" => memory::remember(call, &args),
 		"forget" => memory::forget(call, &args),
 		"save_rule" => memory::save_rule(call, &args),
+		"open_page" => outcome(open_page(call.app, call.caller, &args)),
 		other => spaces::space_tool(call, other, &args).await.unwrap_or_else(|| failure(&format!("Tool {other} not found"))),
 	}
 }
@@ -95,9 +97,9 @@ mod tests {
 	#[test]
 	fn lists_every_tool_in_order() {
 		let names: Vec<&str> = tool_list().as_arr().unwrap().iter().filter_map(|t| t["name"].as_str()).collect();
-		assert_eq!(names.len(), 24);
+		assert_eq!(names.len(), 25);
 		assert_eq!(names[..3], ["wait_for_work", "respond", "read_work"]);
-		assert_eq!(names[23], "unlink_space_folder");
+		assert_eq!(names[22..], ["start_lesson", "open_page", "unlink_space_folder"]);
 	}
 
 	/// Clients and listings read a missing hint as the risky default, so every tool states all four.

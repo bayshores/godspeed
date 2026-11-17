@@ -4,6 +4,7 @@
 use std::sync::Arc;
 
 use gs_agent::subagents::cheat_sheet_writer::{SheetReply, SheetRequest, reply_on_sheet};
+use gs_agent::tools::open_page::open_page_tool;
 use gs_agent::tools::space::search_tools;
 use gs_base::ids::uuid;
 use gs_base::locks::LockKey;
@@ -22,6 +23,7 @@ use super::folder::working_folder;
 use super::{BUSY, Failed, NEWER, Running, changed};
 use crate::outcome::{Outcome, Stop, refuse};
 use crate::App;
+use crate::app::open_page::agent_open_page;
 use crate::spaces::citations::check_cites;
 use crate::spaces::space_search::space_search;
 
@@ -162,7 +164,7 @@ fn start_run(app: &Arc<App>, ctx: &Context, message_id: &str) -> Outcome<()> {
 	let request = SheetRequest {
 		title,
 		prompt,
-		lookups: search_tools(space_search(app, &ctx.space_id, false)),
+		lookups: [search_tools(space_search(app, &ctx.space_id, false)), vec![open_page_tool(agent_open_page(app)).into_arc()]].concat(),
 		check_text: Box::new({
 			let app = app.clone();
 			// Cheat sheets are not asked to quote: a quote that does not hold is dropped quietly.

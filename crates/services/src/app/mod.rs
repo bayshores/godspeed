@@ -1,6 +1,6 @@
 //! App-level services: boot, onboarding, welcome, what's new, settings bodies, the agent folder,
 //! old setups, agent memory, agent rules, agent actions, today's note, reading pages, the web
-//! search key and deadline reminders.
+//! search key, deadline reminders and the pages the agent opens.
 
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -19,6 +19,7 @@ pub(crate) mod disk;
 mod folder_files;
 pub mod old_setup;
 pub mod old_talk;
+pub mod open_page;
 mod onboarding;
 pub mod prompt_segments;
 pub mod reading_pages;
@@ -52,4 +53,6 @@ pub struct MiscState {
 	pub(crate) quote_boxes: Mutex<VecDeque<(String, Json)>>,
 	/// Lines from the teacher's terminal waiting for the window to send them.
 	lines: terminal_lines::Lines,
+	/// The page the window shows.
+	here: Mutex<Option<open_page::Here>>,
 }

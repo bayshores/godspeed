@@ -121,7 +121,7 @@ pub fn handle(app: &AppHandle, event: MenuEvent) {
 	let id = event.id().as_ref();
 	// The page runs a page item, as it does the same item's key in a browser.
 	if let Some(action) = id.strip_prefix("page:") {
-		show_window(app);
+		window::bring_forward(app, None);
 		window::push_when_loaded(app, "menu", Value::from(action));
 		return;
 	}
@@ -166,20 +166,9 @@ pub fn handle(app: &AppHandle, event: MenuEvent) {
 
 /// A manual check reports its result in Settings, General, so the window opens there.
 fn check_for_updates(app: &AppHandle) {
-	show_window(app);
+	window::bring_forward(app, None);
 	window::push_when_loaded(app, "open-settings", Value::from("general"));
 	update::manual_check(app);
-}
-
-/// The main window, made again if it was closed, out of the Dock and in front.
-fn show_window(app: &AppHandle) {
-	window::reopen(app);
-	if let Some(main) = app.get_webview_window("main") {
-		let shown = main.unminimize().and_then(|()| window::focus(&main));
-		if let Err(err) = shown {
-			log::line(&format!("cannot bring the window forward: {err}"));
-		}
-	}
 }
 
 /// Asking the server for the folder waits on its answer, so it runs off the menu's thread.

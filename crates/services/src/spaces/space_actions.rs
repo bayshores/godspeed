@@ -11,7 +11,7 @@ use std::sync::Arc;
 use gs_base::{clock, time};
 use gs_core::spaces::space_tools::{SpaceChange, ToolOutcome};
 use gs_core::spaces::today_note::local_day;
-use gs_core::contracts::space::{SIGNATURE_MAX, clean_signature, parse_space_scope, safe_name};
+use gs_core::contracts::space::{SIGNATURE_MAX, clean_signature, safe_name};
 use gs_core::spaces::space_path::{CleanPath, clean_path};
 use gs_json::{Json, Obj, json};
 use gs_search::index::PassageRef;
@@ -23,7 +23,6 @@ use crate::App;
 use crate::app::agent_actions::note_agent_action;
 use crate::app::agent_folder::shortcut_path_problem;
 use crate::graph::progress::path_for;
-use crate::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
 
 /// Study files are read by the agent itself, as background work items.
 pub const READING_NOTE: &str = "The reading work comes to you through wait_for_work; it does not progress until you run the loop.";
@@ -49,10 +48,10 @@ pub fn space_actions(app: &Arc<App>, caller: Option<&str>, send: SendFirstMessag
 }
 
 pub struct SpaceActions {
-	app: Arc<App>,
-	caller: Option<String>,
-	send: SendFirstMessage,
-	mark: Mark,
+	pub(super) app: Arc<App>,
+	pub(super) caller: Option<String>,
+	pub(super) send: SendFirstMessage,
+	pub(super) mark: Mark,
 }
 
 /// The last part of a folder path, or "a folder".
@@ -68,8 +67,15 @@ fn local_now() -> String {
 	format!("{} {:02}:{:02}", local_day(now), local.hour(), local.minute())
 }
 
+/// What an agent hears when it asks for something in a closed space.
+pub const CLOSED_SPACE: &str = "This space is closed. Ask the learner to reopen it first.";
+
+pub fn no_space_text(space_id: &str) -> String {
+	format!("No space \"{space_id}\". Use list_spaces.")
+}
+
 fn no_space(space_id: &str) -> ToolOutcome {
-	ToolOutcome::Err(format!("No space \"{space_id}\". Use list_spaces."))
+	ToolOutcome::Err(no_space_text(space_id))
 }
 
 fn bad_signature() -> ToolOutcome {
@@ -77,7 +83,7 @@ fn bad_signature() -> ToolOutcome {
 }
 
 /// `${v}` for an argument the schema makes a string (None is `undefined`).
-fn template_text(v: Option<&Json>) -> String {
+pub(super) fn template_text(v: Option<&Json>) -> String {
 	match v {
 		None => "undefined".to_owned(),
 		Some(Json::Str(s)) => s.clone(),
@@ -91,7 +97,7 @@ fn given(args: &Json, key: &str) -> bool {
 }
 
 /// A change for the panel: `{ label, spaceId, target: { kind, id }, page }`.
-fn change(label: String, space_id: &Json, kind: &str, id: &str, page: &str) -> Json {
+pub(super) fn change(label: String, space_id: &Json, kind: &str, id: &str, page: &str) -> Json {
 	json!({ "label": label, "spaceId": space_id, "target": { "kind": kind, "id": id }, "page": page })
 }
 
@@ -150,7 +156,7 @@ fn path_view(path: &Json) -> Json {
 
 impl SpaceActions {
 	/// The change marked `open` when the learner asked for it.
-	fn opened(&self, mut change: Json) -> Json {
+	pub(super) fn opened(&self, mut change: Json) -> Json {
 		if self.mark == Mark::Started
 			&& let Some(obj) = change.as_obj_mut()
 		{
@@ -164,7 +170,7 @@ impl SpaceActions {
 	}
 
 	/// Each change is recorded for the panel and returned for the chat.
-	fn done(&self, value: Json, mut changes: Vec<Json>) -> ToolOutcome {
+	pub(super) fn done(&self, value: Json, mut changes: Vec<Json>) -> ToolOutcome {
 		for change in &mut changes {
 			if self.mark == Mark::Background
 				&& let Some(obj) = change.as_obj_mut()
@@ -646,43 +652,6 @@ impl SpaceActions {
 			Err(err) => return ToolOutcome::Err(err),
 		};
 		self.done(json!({ "space": view, "note": format!("Linked. {READING_NOTE}") }), vec![change(label, &Json::from(space_id), "space", space_id, "/space/files")])
-	}
-
-	pub async fn start_lesson(&self, args: &Json) -> ToolOutcome {
-		let topic = args["topic"].str_or_empty();
-		let raw = args["space_id"].as_str();
-		let Some(scope) = parse_space_scope(raw) else {
-			return ToolOutcome::Err(format!("\"{}\" is not a space id. Use list_spaces.", template_text(args.get("space_id"))));
-		};
-		let space = match &scope {
-			Some(id) => match self.app.stores.spaces.get_space(id) {
-				Some(space) => Some(space),
-				None => return no_space(id),
-			},
-			None => None,
-		};
-		if space.as_ref().is_some_and(|s| s["closed"].truthy()) {
-			return ToolOutcome::Err("This space is closed. Ask the learner to reopen it first.".to_owned());
-		}
-		// A path topic's name studies that topic, so its answers count for it.
-		let on_path = space.as_ref().and_then(|s| s["path"]["topics"].items().iter().find(|t| t["name"].str_or_empty().to_lowercase() == topic.trim().to_lowercase()).and_then(|t| t["id"].as_str()));
-		let start = match on_path {
-			Some(id) => LessonStart::PathTopic(id.to_owned()),
-			None => LessonStart::Typed { title: topic.to_owned(), picks: Vec::new() },
-		};
-		let input = CreateLessonInput { space_id: scope.clone(), start };
-		let chat = match create_lesson(&self.app, input) {
-			Ok(Ok(created)) => created.chat,
-			Ok(Err(not_found)) => return ToolOutcome::Err(not_found.error.to_owned()),
-			Err(err) => return ToolOutcome::Err(err),
-		};
-		let (chat_id, title) = (chat["id"].str_or_empty().to_owned(), chat["title"].str_or_empty().to_owned());
-		if let Err(body) = (self.send)(chat_id.clone(), topic.to_owned()).await {
-			return ToolOutcome::Err(format!("The lesson was created but could not start: {body}"));
-		}
-		let space_json = scope.map_or(Json::Null, Json::from);
-		let started = self.opened(change(format!("Starting {title}"), &space_json, "lesson", &chat_id, &format!("/chat/{chat_id}")));
-		self.done(json!({ "status": "started", "lessonId": chat_id, "title": title }), vec![started])
 	}
 
 	/// Runs one space tool by name; None for a name that is not one.

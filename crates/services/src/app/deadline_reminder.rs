@@ -53,7 +53,7 @@ fn reminder_text(deadlines: &[Json], now_ms: i64, ready_of: impl FnOnce(&Json) -
 }
 
 /// The local moment a deadline is due: its time, or 23:59.
-fn due_at(deadline: &Json) -> Option<i64> {
+pub(crate) fn due_at(deadline: &Json) -> Option<i64> {
 	let (date, at) = deadline_due_at(deadline);
 	time::parse_date(&format!("{date}T{at}"))
 }

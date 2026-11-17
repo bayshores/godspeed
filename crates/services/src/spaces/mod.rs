@@ -15,6 +15,7 @@ pub mod space_card;
 pub mod space_checks;
 pub mod space_search;
 pub mod space_shortcuts;
+mod start_lesson;
 mod deadlines;
 mod files;
 mod folder;

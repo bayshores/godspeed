@@ -100,6 +100,13 @@ pub fn read(app: &AppHandle, generation: u64, stdout: impl Read, ready: mpsc::Se
 				app.state::<Terminals>().nudge(&terminal, &line);
 				continue;
 			}
+			Ok(ToShell::ShowWindow { page }) => {
+				let handle = app.clone();
+				if let Err(err) = app.run_on_main_thread(move || crate::window::bring_forward(&handle, Some(&page))) {
+					log::line(&format!("cannot bring the window forward: {err}"));
+				}
+				continue;
+			}
 			Ok(ToShell::Demo { id, html, probe }) => (id, Work::Demo(DemoJob { html, probe })),
 			Ok(ToShell::Svg { id, svg, width, height }) => (id, Work::Svg(SvgJob { svg, width, height })),
 			Err(err) => {

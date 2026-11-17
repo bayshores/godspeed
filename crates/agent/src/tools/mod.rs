@@ -9,6 +9,7 @@ pub mod jobs;
 pub mod lesson;
 pub mod lesson_parts;
 pub mod mermaid_plan;
+pub mod open_page;
 pub mod plan;
 pub mod plot;
 pub mod ports;

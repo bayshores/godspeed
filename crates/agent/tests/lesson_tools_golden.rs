@@ -278,6 +278,8 @@ impl World {
 			search_graph: Some(search_graph(vec![graph_node("n_a", "Alpha"), graph_node("n_b", "Beta")])),
 			save_rule: Some(save_rule()),
 			space_actions: Some(space_actions()),
+			// Recorded before open_page; its tool is checked beside its code.
+			open_page: None,
 		}
 	}
 

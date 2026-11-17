@@ -284,6 +284,30 @@ pub fn reopen(app: &AppHandle) {
 	}
 }
 
+/// The main window in front: made again if it was closed, out of the Dock, and the app shown
+/// when it was hidden. A page that hasn't loaded (a window made again) goes to `page` once it
+/// has; a loaded page goes there itself, unless the learner has unsent work.
+pub fn bring_forward(app: &AppHandle, page: Option<&str>) {
+	reopen(app);
+	if let Some(page) = page
+		&& !app.state::<Page>().loaded.load(Ordering::SeqCst)
+	{
+		push_when_loaded(app, "menu", Value::from(format!("go:{page}")));
+	}
+	#[cfg(target_os = "macos")]
+	if !lab()
+		&& let Err(err) = app.show()
+	{
+		log::line(&format!("cannot show the app: {err}"));
+	}
+	if let Some(main) = app.get_webview_window("main") {
+		let shown = main.unminimize().and_then(|()| focus(&main));
+		if let Err(err) = shown {
+			log::line(&format!("cannot bring the window forward: {err}"));
+		}
+	}
+}
+
 /// A web or mail link the learner clicked in the page (shim.js).
 #[tauri::command]
 pub fn open_link(webview: Webview, origin: State<AppOrigin>, url: String) -> Result<(), String> {
