@@ -96,7 +96,7 @@ pub static SPACE_ARG_TEXT: LazyLock<SpaceArgText> = LazyLock::new(|| SpaceArgTex
 	topic: "What the learner wants to study, in their words.",
 	lesson_space: "The space id from list_spaces, or \"none\" for lessons without a space (the default).",
 	lesson_deadline: "Instead of topic: a deadline's id from read_space.",
-	homework: "With deadline_id: work on the homework's or project's problems instead of studying for it.",
+	homework: "With deadline_id: true only when the learner asks to do its problems (\"work on HW6\"). Studying, learning or reviewing it (\"continue my HW6 study\") leaves it out.",
 	page: "today, a space's progress, lessons, files, deadlines or graph, a deadline, its cheat_sheet, or a lesson.",
 	page_space: "With progress, lessons, files, deadlines or graph: the space id from list_spaces, or \"none\" for no space (not for files or deadlines).",
 	page_deadline: "With deadline or cheat_sheet: the deadline's id from read_space.",

@@ -1029,7 +1029,7 @@
 				},
 				"homework": {
 					"type": "boolean",
-					"description": "With deadline_id: work on the homework's or project's problems instead of studying for it."
+					"description": "With deadline_id: true only when the learner asks to do its problems (\"work on HW6\"). Studying, learning or reviewing it (\"continue my HW6 study\") leaves it out."
 				}
 			}
 		},
