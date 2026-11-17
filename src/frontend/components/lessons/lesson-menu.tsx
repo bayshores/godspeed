@@ -44,7 +44,7 @@ export function LessonMenu({
 		<MenuShell
 			open={open}
 			anchorRef={anchorRef}
-			testid="session-context-menu"
+			testid="lesson-menu"
 			preferredSide="down"
 			menuClass="lh-popup flex w-[250px] flex-col p-1.5 text-[15px]"
 		>

@@ -19,7 +19,7 @@ export function clockText(d: Date): string {
 export function selectedTab(pathname: string, active: string | null, spaces: readonly Pick<SpaceSummary, "id" | "closed">[]): string {
 	if (pathname === "/") return "today";
 	if (pathname === "/settings") return "menu";
-	if (active === null) return pathname === "/space/lessons" || pathname.startsWith("/chat/") ? "plus" : "none";
+	if (active === null) return pathname === "/space" || pathname.startsWith("/chat/") ? "plus" : "none";
 	const space = spaces.find((s) => s.id === active);
 	if (!space) return "menu";
 	return space.closed ? "plus" : space.id;

@@ -3,7 +3,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { lessonAge, lessonWaiting, matchLessons } from "../../src/frontend/components/lessons/lessons-model.ts";
+import { lessonAge, matchLessons } from "../../src/frontend/components/lessons/lessons-model.ts";
 import type { ChatListItem } from "../../src/shared/core/index.ts";
 
 const item = (over: Partial<ChatListItem>): ChatListItem => ({
@@ -16,7 +16,6 @@ const item = (over: Partial<ChatListItem>): ChatListItem => ({
 	phase: "probe",
 	pendingQuestion: false,
 	pendingProblem: false,
-	busy: false,
 	...over,
 });
 
@@ -38,14 +37,6 @@ describe("lessonAge", () => {
 	it("after a week its date, with the year once it isn't this one", () => {
 		assert.equal(lessonAge(new Date(2026, 10, 1, 12).toISOString(), now), "Nov 1");
 		assert.equal(lessonAge(new Date(2025, 5, 2, 12).toISOString(), now), "Jun 2, 2025");
-	});
-});
-
-describe("lessonWaiting", () => {
-	it("covers open questions and posed problems", () => {
-		assert.equal(lessonWaiting(item({ pendingQuestion: true })), true);
-		assert.equal(lessonWaiting(item({ kind: "practice", pendingProblem: true })), true);
-		assert.equal(lessonWaiting(item({})), false);
 	});
 });
 

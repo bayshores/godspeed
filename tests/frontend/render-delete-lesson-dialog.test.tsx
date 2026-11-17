@@ -4,46 +4,9 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { LessonRow, RenameRow } from "../../src/frontend/components/lessons/lesson-row.tsx";
 import { DeleteLessonBody, DeleteLessonDialog, TRACES_COPY } from "../../src/frontend/components/lessons/delete-lesson-dialog.tsx";
-import type { ChatListItem } from "../../src/shared/core/index.ts";
 
-/**
- * The lesson menu's seams: the row a right-click anchors to, the inline
- * rename row, and the delete dialog's plain-language copy (the
- * graph-touching option says so).
- */
-
-const chat: ChatListItem = {
-	id: "c1",
-	title: "Wave mechanics",
-	updatedAt: new Date().toISOString(),
-	busy: false,
-} as unknown as ChatListItem;
-
-describe("LessonRow — the right-click seam", () => {
-	it("rows carry the session-row testid (context menu anchors to it)", () => {
-		const html = renderToStaticMarkup(<LessonRow chat={chat} teacher="Teacher" onOpen={() => {}} />);
-		assert.ok(html.includes('data-testid="session-row"'));
-	});
-});
-
-describe("RenameRow — the inline rename surface", () => {
-	it("renders the draft input with the current title, keeping the meta line", () => {
-		const html = renderToStaticMarkup(
-			<RenameRow chat={chat} onCommit={() => {}} onCancel={() => {}} />,
-		);
-		assert.ok(html.includes('data-testid="session-rename-input"'));
-		// controlled draft starts from the current title
-		assert.ok(html.includes(`value="${chat.title}"`));
-		assert.ok(html.includes("session-rename-row"));
-		// The draft sits where the title was: the underline is the only cue.
-		const input = html.split('data-testid="session-rename-input"')[1]?.split("/>")[0] ?? "";
-		assert.ok(input.includes("px-0"), "input carries no left padding");
-		assert.ok(input.includes("border-b"), "the underline is the editing cue");
-		assert.ok(!input.includes("bg-background"), "no filled field box — text stays put");
-	});
-});
+/** The delete dialog's plain-language copy (the graph-touching option says so). */
 
 describe("Delete lesson dialog", () => {
 	it("closed (chat=null) renders nothing", () => {

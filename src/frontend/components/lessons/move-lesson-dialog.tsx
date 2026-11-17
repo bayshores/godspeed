@@ -8,13 +8,13 @@ type Lesson = { id: string; title: string; spaceId?: string };
 
 /** "Move lesson to another space": the lesson's facts leave the old space's
  *  graph and are rebuilt in the new one. */
-export function MoveLessonDialog({ lesson, onClose, onMoved }: { lesson: Lesson | null; onClose: () => void; onMoved: (id: string, spaceId: string | null) => void }) {
+export function MoveLessonDialog({ lesson, onClose, onMoved }: { lesson: Lesson | null; onClose: () => void; onMoved: (id: string) => void }) {
 	const { mounted, state, shown } = useLastWhileClosing(lesson);
 	if (!mounted || !shown) return null;
 	return createPortal(<MoveLessonInner lesson={shown} onClose={onClose} onMoved={onMoved} state={state} />, document.body);
 }
 
-function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; onClose: () => void; onMoved: (id: string, spaceId: string | null) => void; state: "open" | "closed" }) {
+function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; onClose: () => void; onMoved: (id: string) => void; state: "open" | "closed" }) {
 	const { spaces } = useSpaces();
 	const from = lesson.spaceId ?? null;
 	const [target, setTarget] = useState<string | null>(from);
@@ -37,7 +37,7 @@ function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; 
 				setError(body.error ?? `Move failed (${res.status})`);
 				return;
 			}
-			onMoved(lesson.id, target);
+			onMoved(lesson.id);
 		} catch {
 			setError("Network error. Try again.");
 		} finally {

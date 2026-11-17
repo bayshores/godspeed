@@ -273,15 +273,14 @@ export interface PlanBlockData {
 /** The list view's shape (messageCount instead of full messages) + the
  *  per-session status the picker renders. `phase` and `pendingQuestion`
  *  derive from the stored record's native messages; the store computes
- *  them in listChats. Liveness (`busy`) is NOT record-derived — the API
- *  route merges it in (see ChatListItem).
+ *  them in listChats.
  *
  *  Phase semantics (three phases, event-driven): probe ends at a concluded
  *  probe_done (clean result, not ok:false); plan ends at the first
  *  quiz/explain call tagged with a nodeId; derived from the native
  *  transcript (core/phases.ts phaseAt3Lh).
  */
-interface ChatSummary {
+export interface ChatListItem {
 	id: string;
 	title: string;
 	createdAt: string;
@@ -300,16 +299,6 @@ interface ChatSummary {
 	pendingQuestion: boolean;
 	/** A posed problem with no conclude is waiting for the learner. */
 	pendingProblem: boolean;
-}
-
-/** The lesson list's row: a summary + live liveness. The chats list
- *  route attaches `busy` from the turn-liveness registry ONLY: a running
- *  teach turn (background jobs show on the transcript's dispatch cards,
- *  so the row's busy mark means exactly "a turn is in flight"). The store itself
- *  can't see liveness (import law: store never imports server), hence the
- *  split at exactly the record/liveness seam. */
-export interface ChatListItem extends ChatSummary {
-	busy: boolean;
 }
 
 // ─── Artifact renderer registry (client extension point) ────────────────────

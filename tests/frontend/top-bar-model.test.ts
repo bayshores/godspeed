@@ -32,7 +32,7 @@ describe("the lit tab", () => {
 	it("the + while the window shows a closed space or the lessons with no space", () => {
 		assert.equal(selectedTab("/space", "old", spaces), "plus");
 		assert.equal(selectedTab("/chat/abc", "old", spaces), "plus", "an old lesson of it");
-		assert.equal(selectedTab("/space/lessons", null, spaces), "plus", "lessons with no space");
+		assert.equal(selectedTab("/space", null, spaces), "plus", "lessons with no space");
 		assert.equal(selectedTab("/chat/abc", null, spaces), "plus", "a lesson with no space");
 	});
 	it("Menu for Settings and a space not in the list yet", () => {
@@ -41,7 +41,7 @@ describe("the lit tab", () => {
 		assert.equal(selectedTab("/space", "gone", spaces), "menu");
 	});
 	it("nothing on another page with no space, where the + offers nothing", () => {
-		assert.equal(selectedTab("/space", null, spaces), "none");
+		assert.equal(selectedTab("/graph", null, spaces), "none");
 		assert.equal(selectedTab("/space/files", null, spaces), "none");
 	});
 });

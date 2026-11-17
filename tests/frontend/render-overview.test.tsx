@@ -1,10 +1,10 @@
 /**
  * The Progress tab: the page body rendered from a fixture ProgressPayload:
  * the teacher's note, the next deadline (its words, bar and button), Most
- * needed, Pick up where you left off, How lessons went (one square per
- * answer, score, lesson links), the confidence chart (target lines, red
- * where a sure level falls short, takeaway, sure-but-wrong links into the
- * lesson), the space's path, the no-space variant, and the clicks.
+ * needed, Lessons (Unfinished and Studied, Show all, the lesson menu), the
+ * confidence chart (target lines, red where a sure level falls short,
+ * takeaway, sure-but-wrong links into the lesson), the space's path, the
+ * no-space variant, and the clicks.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -12,23 +12,43 @@ import React, { act } from "react";
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createRoot, type Root } from "react-dom/client";
+import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import type { AnswerOutcome, AnswerRef, CalibrationLevel, DeadlineProgress, FileCoverage, LessonProgress, PathProgress, PathTopicProgress, ProgressPayload } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
+// linkedom's document has no "oninput"; without it React would watch text
+// fields an old-IE way.
+(dom.document as unknown as { oninput: null }).oninput = null;
 Object.assign(globalThis, {
 	window: dom.window,
 	document: dom.document,
 	Element: dom.window.Element,
 	HTMLElement: dom.window.HTMLElement,
 	Node: dom.window.Node,
+	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
 	self: globalThis,
+	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
+	cancelAnimationFrame: (id: number) => clearTimeout(id),
+	getComputedStyle: () => ({ getPropertyValue: () => "" }),
+	ResizeObserver: class {
+		observe() {}
+		unobserve() {}
+		disconnect() {}
+	},
 });
+Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
+// linkedom's input has no select(); the rename field calls it on mount.
+(dom.window.HTMLElement.prototype as unknown as { select: () => void }).select = () => {};
 
+// Loaded once the DOM above is in place, so React sees text fields' input events.
+const { createRoot } = await import("react-dom/client");
 const { MemoryRouter } = await import("react-router");
 const { OverviewBody } = await import("../../src/frontend/components/overview/overview-body.tsx");
+const { SpaceOverview } = await import("../../src/frontend/components/overview/space-overview.tsx");
+const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
+const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 
 // ─── fixture ────────────────────────────────────────────────────────────────
 
@@ -170,29 +190,32 @@ const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "
 // ─── order ──────────────────────────────────────────────────────────────────
 
 describe("Progress, top to bottom", () => {
-	it("note, next deadline, Most needed, Pick up where you left off, Facts, lessons, confidence", () => {
+	it("note, next deadline, Most needed, Lessons, Facts, confidence", () => {
 		const html = render({ note: { text: "Strong on sets.", at: "2026-10-26T12:00:00" } });
-		const at = ["teacher-note", "next-deadline", "most-needed", "recent-lessons", "space-facts", "overview-lessons", "overview-confidence"].map((id) => html.indexOf(`data-testid="${id}"`));
+		const at = ["teacher-note", "next-deadline", "most-needed", "lesson-record", "space-facts", "overview-confidence"].map((id) => html.indexOf(`data-testid="${id}"`));
 		assert.ok(at.every((i) => i >= 0), "every part shows");
 		assert.deepEqual(at, [...at].sort((a, b) => a - b));
 	});
 
-	it("loading: nothing yet", () => {
+	it("loading: only the Lessons heading, so Study something new is still there", () => {
 		const html = render({ data: null });
-		for (const id of ["next-deadline", "most-needed", "recent-lessons", "space-facts", "overview-lessons", "overview-confidence"]) assert.ok(!html.includes(id));
+		for (const id of ["next-deadline", "most-needed", "lesson-row", "space-facts", "overview-confidence"]) assert.ok(!html.includes(id));
+		assert.match(text(section(html, "lesson-record")), /> Lessons Study something new\s*$/);
+		assert.match(tag(html, "study-something-new"), /href="\/new"/);
 	});
 
 	it("no space: lessons and confidence only, under the spaces to switch to", () => {
 		const html = render({ hasSpace: false, pickSpace: <p>pick one</p> });
-		assert.ok(html.indexOf("pick one") < html.indexOf('data-testid="recent-lessons"'));
+		assert.ok(html.indexOf("pick one") < html.indexOf('data-testid="lesson-record"'));
 		for (const id of ["next-deadline", "most-needed", "space-facts"]) assert.ok(!html.includes(id));
-		for (const id of ["overview-lessons", "overview-confidence"]) assert.ok(html.includes(`data-testid="${id}"`));
+		for (const id of ["lesson-record", "overview-confidence"]) assert.ok(html.includes(`data-testid="${id}"`));
 	});
 
-	it("no lessons, no answers: neither lesson list nor the chart", () => {
+	it("no lessons, no answers: No lessons yet, and no chart", () => {
 		const empty = { ...PAYLOAD, deadlines: DEADLINES, lessons: [], calibration: { levels: PAYLOAD.calibration.levels.map((l) => level(l.level, 0, 0)), sureButWrong: [] } };
 		const html = render({ data: empty });
-		for (const id of ["recent-lessons", "overview-lessons", "overview-confidence"]) assert.ok(!html.includes(id));
+		assert.match(text(section(html, "lesson-record")), /Lessons Study something new No lessons yet\.\s*$/);
+		assert.ok(!html.includes("overview-confidence"));
 		assert.ok(html.includes('data-testid="next-deadline"'));
 	});
 });
@@ -302,44 +325,58 @@ describe("Most needed", () => {
 	});
 });
 
-describe("Pick up where you left off", () => {
-	it("the lessons worked on last, each with its score and age, opening the lesson", () => {
-		const lessons = [
-			{ ...lesson("c1", "Gradient descent", "rrw"), updatedAt: "2026-10-20T12:00:00" },
-			{ ...lesson("c2", "Tracing", "rr"), updatedAt: new Date(NOW - 2 * 3_600_000).toISOString() },
-			{ ...lesson("c3", "Just started", ""), updatedAt: new Date(NOW - 26 * 3_600_000).toISOString() },
-			{ ...lesson("c4", "Oldest", "r"), updatedAt: "2026-10-01T12:00:00" },
-		];
-		const html = section(render({ data: { ...PAYLOAD, lessons } }), "recent-lessons");
-		assert.match(text(html), /Tracing 2 of 2 right 2 hours ago .*Just started Waiting for your answer yesterday .*Gradient descent 2 of 3 right Oct 20/);
-		assert.ok(!html.includes("Oldest"));
-		assert.match(tag(html, "recent-lesson-c2"), /href="\/chat\/c2"/);
-		assert.match(html, /background:var\(--lh-space-1\)/);
-	});
-});
+describe("Lessons", () => {
+	const hoursAgo = (h: number) => new Date(NOW - h * 3_600_000).toISOString();
+	const LESSONS: LessonProgress[] = [
+		{ ...lesson("s1", "Big-O basics", "rrwrr"), updatedAt: hoursAgo(26) },
+		{ ...lesson("u1", "Induction proofs", "r"), updatedAt: hoursAgo(1), unfinished: true, step: { done: 3, total: 5 } },
+		{ ...lesson("s2", "Just looked", ""), updatedAt: "2026-10-20T12:00:00" },
+		{ ...lesson("u2", "Work on Homework 4", ""), kind: "homework", updatedAt: hoursAgo(2), unfinished: true, step: { done: 2, total: 4 }, deadlineId: "d1" },
+	];
+	const html = () => render({ data: { ...PAYLOAD, lessons: LESSONS } });
 
-// ─── how lessons went ───────────────────────────────────────────────────────
-
-describe("How lessons went", () => {
-	it("one row per lesson with answers, linking to the lesson", () => {
-		const html = section(render(), "overview-lessons");
-		assert.match(tag(html, "overview-lesson-c1"), /href="\/chat\/c1"/);
-		assert.match(tag(html, "overview-lesson-c2"), /href="\/chat\/c2"/);
-		assert.ok(!html.includes("overview-lesson-c3"), "a lesson with no answers has no row");
+	it("Unfinished then Studied, each newest first", () => {
+		const block = text(section(html(), "lesson-record", "</section>"));
+		assert.match(block, /Lessons Study something new Unfinished Induction proofs Step 3 of 5 More Continue Work on Homework 4 More Work on it Studied Big-O basics 4 of 5 yesterday More Just looked Oct 20 More\s*$/);
 	});
 
-	it("one square per answer, in order, colored right / wrong / didn't know; the score", () => {
-		const row = section(render(), "overview-lesson-c1", "</a>");
-		const outcomes = [...row.matchAll(/data-outcome="(\w+)"/g)].map((m) => m[1]);
-		assert.deepEqual(outcomes, [...Array(9).fill("right"), ...Array(3).fill("wrong"), "dontKnow"]);
-		assert.match(row, /bg-ans-right/);
-		assert.match(row, /bg-ans-wrong/);
-		assert.match(row, /bg-ans-dontknow/);
-		assert.match(text(row), /9 of 13/);
+	it("an unfinished row opens its lesson, its key in place of the chevron; homework shows no count and Work on it", () => {
+		const group = section(html(), "lessons-unfinished", "</ul>");
+		const rows = group.split('data-testid="lesson-row"').slice(1);
+		assert.equal(rows.length, 2);
+		assert.match(tag(group, "lesson-row"), /href="\/chat\/u1"/);
+		assert.match(tag(group, "lesson-row"), /data-teacher-target="lesson:u1"/);
+		assert.ok(rows[0]!.includes(">Continue<") && rows[1]!.includes(">Work on it<"));
+		assert.ok(rows.every((r) => r.includes('data-testid="lesson-row-menu"') && !r.includes("<svg")), "More on every row, no chevron");
+		assert.ok(!text(rows[1]!).includes("Step"), "homework: no count");
 	});
 
-	it("the takeaway names the lesson with the most misses", () => {
-		assert.match(section(render(), "overview-lessons"), /“Bayesian knowledge tracing” has the most misses\./);
+	it("a studied row: a square per answer in order, right of answered, age, chevron; none with no answers", () => {
+		const group = section(html(), "lessons-studied", "</ul>");
+		const [bigO, looked] = group.split('data-testid="lesson-row"').slice(1);
+		assert.deepEqual([...bigO!.matchAll(/data-outcome="(\w+)"/g)].map((m) => m[1]), ["right", "right", "wrong", "right", "right"]);
+		assert.match(bigO!, /<svg/);
+		assert.ok(bigO!.includes('data-testid="lesson-row-menu"') && looked!.includes('data-testid="lesson-row-menu"'), "More on every row");
+		assert.ok(!looked!.includes("data-outcome") && !/ of /.test(text(looked!)), "no squares, no 0 of 0");
+		assert.match(text(looked!), /Just looked Oct 20/);
+		assert.match(looked!, /<svg/);
+	});
+
+	it("only one group: the other is not drawn", () => {
+		const studied = render({ data: { ...PAYLOAD, lessons: LESSONS.filter((l) => !l.unfinished) } });
+		assert.ok(!studied.includes("lessons-unfinished") && !studied.includes("Unfinished"));
+		const unfinished = render({ data: { ...PAYLOAD, lessons: LESSONS.filter((l) => l.unfinished) } });
+		assert.ok(!unfinished.includes("lessons-studied") && !unfinished.includes("Studied"));
+	});
+
+	it("Show all under a group that hides rows; one hidden row is shown instead", () => {
+		const studied = (n: number) => Array.from({ length: n }, (_, i) => ({ ...lesson(`s${i}`, `Lesson ${i}`, "r"), updatedAt: hoursAgo(i + 1) }));
+		const seven = render({ data: { ...PAYLOAD, lessons: studied(7) } });
+		assert.equal(section(seven, "lessons-studied", "</ul>").split('data-testid="lesson-row"').length - 1, 5);
+		assert.match(text(section(seven, "lesson-show-all", "</button>")), /Show all 7/);
+		const six = render({ data: { ...PAYLOAD, lessons: studied(6) } });
+		assert.equal(section(six, "lessons-studied", "</ul>").split('data-testid="lesson-row"').length - 1, 6);
+		assert.ok(!six.includes("lesson-show-all"));
 	});
 });
 
@@ -396,13 +433,26 @@ describe("Can you trust your confidence?", () => {
 
 let root: Root | null = null;
 let host: HTMLElement | null = null;
+const originalFetch = globalThis.fetch;
 
 afterEach(async () => {
 	await act(async () => root?.unmount());
 	host?.remove();
 	root = null;
 	host = null;
+	document.body.innerHTML = "";
+	globalThis.fetch = originalFetch;
 });
+
+/** Answers every request with `respond`; returns what was asked. */
+function serve(respond: (url: string, init?: RequestInit) => Response) {
+	const asked: string[] = [];
+	globalThis.fetch = (async (url: string, init?: RequestInit) => {
+		asked.push(`${init?.method ?? "GET"} ${url}`);
+		return respond(url, init);
+	}) as typeof fetch;
+	return asked;
+}
 
 describe("clicks", () => {
 	async function mount(props: Partial<Props>) {
@@ -439,5 +489,109 @@ describe("clicks", () => {
 		const el = await mount({ data: PAYLOAD, onAddDeadline: () => added++ });
 		await click(el, "next-deadline-add");
 		assert.equal(added, 1);
+	});
+	describe("the Lessons block", () => {
+		const ROWS = [lesson("c1", "Induction", "rw"), { ...lesson("c2", "Pointers", "r"), updatedAt: "2026-10-26T12:00:00Z" }];
+		const q = (el: HTMLElement, testid: string) => el.querySelector<HTMLElement>(`[data-testid="${testid}"]`);
+		const rowTitles = (el: HTMLElement) => [...el.querySelectorAll('[data-testid="lesson-row"]')].map((r) => r.querySelector("[title]")!.getAttribute("title"));
+
+		it("Show all opens the rest of the group in place", async () => {
+			const lessons = Array.from({ length: 8 }, (_, i) => ({ ...lesson(`s${i}`, `Lesson ${i}`, "r"), updatedAt: new Date(NOW - i * 3_600_000).toISOString() }));
+			const el = await mount({ data: { ...PAYLOAD, lessons } });
+			assert.equal(rowTitles(el).length, 5);
+			await click(el, "lesson-show-all");
+			assert.equal(rowTitles(el).length, 8);
+			assert.equal(q(el, "lesson-show-all"), null);
+		});
+
+		it("More and a right-click on the row open the lesson menu", async () => {
+			serve(() => Response.json({}));
+			const el = await mount({ data: { ...PAYLOAD, lessons: ROWS } });
+			await click(el, "lesson-row-menu");
+			assert.ok(document.querySelector('[data-testid="lesson-menu"]'), "opened by More");
+			await click(el, "lesson-row-menu");
+			await act(async () => new Promise((r) => setTimeout(r, 400))); // the exit plays
+			assert.equal(document.querySelector('[data-testid="lesson-menu"]'), null, "a second click closes it");
+			const row = q(el, "lesson-row")!.parentElement!;
+			await act(async () => row.dispatchEvent(new dom.window.Event("contextmenu", { bubbles: true, cancelable: true })));
+			assert.ok(document.querySelector('[data-testid="lesson-menu"]'), "opened by a right-click");
+		});
+
+		async function rename(el: HTMLElement, to: string) {
+			await click(el, "lesson-row-menu");
+			await act(async () => (document.querySelector('[data-testid="ctx-rename"]') as HTMLButtonElement).click());
+			const input = q(el, "lesson-rename-input") as HTMLInputElement;
+			input.setAttribute("type", "text"); // linkedom gives a field no type; React watches text fields only
+			await act(async () => {
+				Object.defineProperty(input, "value", { configurable: true, writable: true, value: to });
+				input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+			});
+			await act(async () => input.dispatchEvent(new dom.window.Event("focusout", { bubbles: true })));
+		}
+
+		it("a rename shows the new title at once", async () => {
+			const asked = serve(() => Response.json({}));
+			const el = await mount({ data: { ...PAYLOAD, lessons: ROWS } });
+			await rename(el, "Strong induction");
+			assert.deepEqual(rowTitles(el), ["Strong induction", "Pointers"]);
+			assert.ok(asked.includes("PUT /api/chats/c1"));
+			assert.equal(q(el, "lesson-rename-failed"), null);
+		});
+
+		it("a rename that fails keeps the old title and says so under the row; renaming again clears it", async () => {
+			serve((_url, init) => (init?.method === "PUT" ? Response.json({ error: "boom" }, { status: 500 }) : Response.json({})));
+			const el = await mount({ data: { ...PAYLOAD, lessons: ROWS } });
+			await rename(el, "Strong induction");
+			assert.deepEqual(rowTitles(el), ["Induction", "Pointers"]);
+			const failed = q(el, "lesson-rename-failed")!;
+			assert.equal(failed.textContent, "Couldn't rename the lesson.");
+			assert.equal(failed.getAttribute("role"), "alert");
+			await click(el, "lesson-row-menu");
+			await act(async () => (document.querySelector('[data-testid="ctx-rename"]') as HTMLButtonElement).click());
+			assert.equal(q(el, "lesson-rename-failed"), null);
+		});
+
+		it("a deleted lesson's row goes at once", async () => {
+			serve((_url, init) => (init?.method === "DELETE" ? Response.json({ graphRevision: 2 }) : Response.json({})));
+			const el = await mount({ data: { ...PAYLOAD, lessons: ROWS } });
+			await click(el, "lesson-row-menu");
+			await act(async () => (document.querySelector('[data-testid="ctx-delete"]') as HTMLButtonElement).click());
+			await act(async () => (document.querySelector('[data-testid="delete-confirm"]') as HTMLButtonElement).click());
+			assert.deepEqual(rowTitles(el), ["Pointers"]);
+		});
+	});
+
+	describe("no space", () => {
+		async function mountPage(lessons: LessonProgress[]) {
+			serve((url) => (url.startsWith("/api/progress") ? Response.json({ ...PAYLOAD, spaceId: null, lessons }) : Response.json({})));
+			host = document.createElement("div");
+			document.body.appendChild(host);
+			root = createRoot(host);
+			const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+			await act(async () =>
+				root!.render(
+					<MemoryRouter initialEntries={["/space"]}>
+						<ServerEventsProvider connect={quietEvents as never}>
+							<SpaceProvider initialActive={null} initialSpaces={[]}>
+								<SpaceOverview />
+							</SpaceProvider>
+						</ServerEventsProvider>
+					</MemoryRouter>,
+				),
+			);
+			return host;
+		}
+
+		it("with no lessons outside a space: the spaces to pick, then No lessons yet", async () => {
+			const el = await mountPage([]);
+			assert.ok(el.querySelector('[data-testid="pick-space"]'));
+			assert.match(el.querySelector('[data-testid="lesson-record"]')!.textContent!, /No lessons yet\./);
+		});
+
+		it("with lessons outside a space: the lessons, no spaces to pick", async () => {
+			const el = await mountPage([lesson("c1", "Loose lesson", "r")]);
+			assert.equal(el.querySelector('[data-testid="pick-space"]'), null);
+			assert.match(el.querySelector('[data-testid="lesson-record"]')!.textContent!, /Loose lesson/);
+		});
 	});
 });

@@ -9,9 +9,10 @@ use gs_json::{Json, Obj};
 
 use super::answers::{Tally, answer_ref, facts_by_message, facts_for_answer, is_overconfident};
 use super::calibration::calibration;
-use super::continue_study::{continue_study_for, ended_today_for};
+use super::continue_study::{continue_study_for, ended_today_for, plan_finished};
 use super::fact_progress::{file_coverage, from_lesson, next_up_file};
 use super::homework::{latest_homework, problems_done};
+use super::latest_session;
 use super::path_progress::path_progress;
 use super::progress::{days_between, ramp_color, topic_status};
 use super::topic_links::{TopicLink, topic_columns, topic_links};
@@ -25,8 +26,10 @@ use crate::records::newer_first;
 ///
 /// `input` is `{ spaceId, today, facts, chains, topics, files, deadlines, lessons[,
 /// deadlineSessions, homeworkSessions, mockAnswers, finishedToday, grouping, path, studiedToday]
-/// }`; each lesson carries its collected `answers`, `mockAnswers` are graded mock questions, which
-/// count for their facts but belong to no lesson, and `finishedToday` are the topic ids with a
+/// }`; each lesson carries its collected `answers` (and `deadlineId`, `pendingQuestion`,
+/// `pendingProblem`, and its `plan` state when it has a plan), `mockAnswers` are graded mock
+/// questions, which count for their facts but belong to no lesson, and `finishedToday` are the
+/// topic ids with a
 /// topic stop in a Study session today (a deadline topic among them carries `finishedToday: true`,
 /// so its plan moves on). A space's `path` comes with `studiedToday`, the plan nodes of today's
 /// Study sessions, and the payload then has `path` too.
@@ -98,7 +101,7 @@ pub fn derive_progress(input: &Json) -> Json {
 
 	let files = file_coverage(input["files"].items(), facts);
 
-	let lesson_rows = lesson_rows(lessons, &by_lesson, &lesson_at);
+	let lesson_rows = lesson_rows(input, &by_lesson, &lesson_at);
 
 	let grouped: Vec<(&Json, TopicView)> = topics.iter().filter(|t| !t["ungrouped"].truthy()).map(|t| (t, TopicView::of(t))).collect();
 	let deadlines = deadline_rows(input, &grouped, &links);
@@ -180,9 +183,12 @@ fn fact_rows(facts: &[Json], topic_of_fact: &HashMap<String, String>, fact_answe
 		.collect()
 }
 
-/// One row per lesson, newest first, each tallied over its own answers.
-fn lesson_rows(lessons: &[Json], by_lesson: &[&[Json]], lesson_at: &HashMap<&str, usize>) -> Vec<Json> {
-	let mut rows: Vec<Json> = lessons
+/// One row per lesson, newest first, each tallied over its own answers, with where its plan
+/// stands (`step`), whether it is `unfinished`, and the deadline it was started from.
+fn lesson_rows(input: &Json, by_lesson: &[&[Json]], lesson_at: &HashMap<&str, usize>) -> Vec<Json> {
+	let deadlines: HashMap<&str, &Json> = input["deadlines"].items().iter().map(|d| (d["id"].str_or_empty(), d)).collect();
+	let mut rows: Vec<Json> = input["lessons"]
+		.items()
 		.iter()
 		.map(|l| {
 			let answers = by_lesson[lesson_at[l["id"].str_or_empty()]];
@@ -199,11 +205,41 @@ fn lesson_rows(lessons: &[Json], by_lesson: &[&[Json]], lesson_at: &HashMap<&str
 			}
 			o.insert("answered", tally.answered);
 			o.insert("score", tally.rate);
+			let plan = &l["plan"];
+			if plan["total"].as_f64().is_some_and(|t| t > 0.0) {
+				o.insert("step", gs_json::json!({ "done": plan["done"], "total": plan["total"] }));
+			}
+			if is_unfinished(l, &tally, input, &deadlines) {
+				o.insert("unfinished", true);
+			}
+			o.insert_present("deadlineId", l.get("deadlineId"));
 			Json::Obj(o)
 		})
 		.collect();
 	rows.sort_by(newer_first);
 	rows
+}
+
+/// Whether a lesson is left to go back to. Of the lessons started from one deadline only the
+/// latest can be; a homework lesson while its deadline is not done and not every problem is. A
+/// lesson with a plan until the plan is finished; one with none while something waits for the
+/// learner or nothing is answered yet.
+fn is_unfinished(lesson: &Json, tally: &Tally, input: &Json, deadlines: &HashMap<&str, &Json>) -> bool {
+	let chat_id = lesson["id"].as_str();
+	if let Some(deadline_id) = lesson["deadlineId"].as_str() {
+		if lesson["kind"].as_str() == Some("homework") {
+			// No problems posted yet is not every problem done.
+			let open = deadlines.get(deadline_id).is_some_and(|d| !d["done"].truthy() && problems_done(&d["problems"]).is_none_or(|p| p["done"] != p["total"]));
+			return open && latest_homework(deadline_id, input["homeworkSessions"].items()).as_deref() == chat_id;
+		}
+		if latest_session(deadline_id, input["deadlineSessions"].items()).map(|s| s["chatId"].as_str()) != Some(chat_id) {
+			return false;
+		}
+	}
+	match lesson.get("plan") {
+		Some(plan) => !plan_finished(plan),
+		None => lesson["pendingQuestion"].truthy() || lesson["pendingProblem"].truthy() || tally.answered == 0,
+	}
 }
 
 /// The deadlines, soonest first: the topics born in each one's files, how ready they are, and what
@@ -298,6 +334,96 @@ mod tests {
 	use gs_json::json;
 
 	use super::*;
+
+	/// A space with one lesson per `lessons` entry and the given deadlines and sessions; its lesson
+	/// rows by chat id.
+	fn rows(lessons: Json, deadlines: Json, deadline_sessions: Json, homework_sessions: Json) -> HashMap<String, Json> {
+		let input = json!({
+			"spaceId": "spc_a", "today": "2026-11-16", "facts": [], "chains": [], "topics": null, "files": [],
+			"deadlines": deadlines, "lessons": lessons, "deadlineSessions": deadline_sessions, "homeworkSessions": homework_sessions,
+		});
+		derive_progress(&input)["lessons"].items().iter().map(|r| (r["chatId"].str_or_empty().to_owned(), r.clone())).collect()
+	}
+
+	fn lesson(id: &str, kind: &str, extra: Json) -> Json {
+		let mut l = json!({ "id": id, "title": id, "kind": kind, "updatedAt": "2026-11-16T10:00:00.000Z", "answers": [], "pendingQuestion": false, "pendingProblem": false });
+		for (k, v) in extra.as_obj().unwrap().iter() {
+			l.as_obj_mut().unwrap().insert(k.clone(), v.clone());
+		}
+		l
+	}
+
+	fn answered(chat: &str) -> Json {
+		json!([{ "chatId": chat, "messageId": "m1", "contextMessageIds": [], "toolCallId": "q1", "tool": "quiz", "outcome": "right", "answeredAt": "2026-11-16T10:00:00.000Z" }])
+	}
+
+	#[test]
+	fn a_lesson_with_a_plan_shows_its_step_and_is_unfinished_until_the_plan_is() {
+		let stop = json!({ "at": "2026-11-16T10:00:00.000Z", "next": "Cross-validation" });
+		let r = rows(
+			json!([
+				lesson("mid", "study", json!({ "plan": { "done": 1, "total": 3, "inTopic": "Regularization" } })),
+				lesson("ended", "study", json!({ "plan": { "done": 2, "total": 3, "endedAt": "2026-11-16T11:00:00.000Z" } })),
+				lesson("out", "teach", json!({ "plan": { "done": 3, "total": 3 } })),
+				lesson("skipped", "study", json!({ "plan": { "done": 3, "total": 3, "stop": stop } })),
+			]),
+			json!([]), json!([]), json!([]),
+		);
+		assert_eq!((r["mid"]["step"].clone(), r["mid"]["unfinished"].clone()), (json!({ "done": 1, "total": 3 }), json!(true)), "mid-way");
+		assert_eq!((r["ended"]["step"].clone(), r["ended"].get("unfinished")), (json!({ "done": 2, "total": 3 }), None), "reached its end");
+		assert_eq!(r["out"].get("unfinished"), None, "counted out");
+		assert_eq!(r["skipped"]["unfinished"], json!(true), "a stop with a skipped topic left");
+		assert_eq!(r["mid"].get("deadlineId"), None);
+	}
+
+	#[test]
+	fn of_a_deadlines_study_sessions_only_the_latest_can_be_unfinished() {
+		let plan = json!({ "done": 1, "total": 3 });
+		let session = |id: &str, at: &str| json!({ "chatId": id, "deadlineId": "d1", "createdAt": at, "done": 1, "total": 3 });
+		let r = rows(
+			json!([lesson("old", "study", json!({ "deadlineId": "d1", "plan": plan })), lesson("new", "study", json!({ "deadlineId": "d1", "plan": plan }))]),
+			json!([{ "id": "d1", "kind": "exam", "name": "Midterm", "date": "2026-12-01", "done": false }]),
+			json!([session("old", "2026-11-01"), session("new", "2026-11-02")]),
+			json!([]),
+		);
+		assert_eq!(r["old"].get("unfinished"), None, "an older session");
+		assert_eq!((r["new"]["unfinished"].clone(), r["new"]["deadlineId"].clone()), (json!(true), json!("d1")));
+		assert_eq!(r["old"]["step"], json!({ "done": 1, "total": 3 }), "every planned lesson keeps its step");
+	}
+
+	#[test]
+	fn the_latest_homework_lesson_is_unfinished_while_a_problem_is_undone() {
+		let homework = |done: bool, problems: Json| json!([{ "id": "d1", "kind": "homework", "name": "HW6", "date": "2026-12-01", "done": done, "problems": problems }]);
+		let sessions = json!([{ "chatId": "old", "deadlineId": "d1", "createdAt": "2026-11-01" }, { "chatId": "new", "deadlineId": "d1", "createdAt": "2026-11-02" }]);
+		let lessons = json!([lesson("old", "homework", json!({ "deadlineId": "d1" })), lesson("new", "homework", json!({ "deadlineId": "d1" }))]);
+		let undone = json!([{ "number": "1", "done": true }, { "number": "2", "done": false }]);
+		let r = rows(lessons.clone(), homework(false, undone.clone()), json!([]), sessions.clone());
+		assert_eq!((r["old"].get("unfinished"), r["new"]["unfinished"].clone()), (None, json!(true)), "the latest, a problem undone");
+		let all_done = json!([{ "number": "1", "done": true }, { "number": "2", "done": true }]);
+		assert_eq!(rows(lessons.clone(), homework(false, all_done), json!([]), sessions.clone())["new"].get("unfinished"), None, "every problem done");
+		assert_eq!(rows(lessons.clone(), homework(true, undone), json!([]), sessions.clone())["new"].get("unfinished"), None, "the deadline is done");
+		assert_eq!(rows(lessons, homework(false, json!([])), json!([]), sessions)["new"]["unfinished"], json!(true), "no problems posted yet");
+	}
+
+	#[test]
+	fn a_lesson_with_no_plan_is_unfinished_while_something_waits_or_nothing_is_answered() {
+		let r = rows(
+			json!([
+				lesson("waiting", "teach", json!({ "answers": answered("waiting"), "pendingQuestion": true })),
+				lesson("problem", "practice", json!({ "answers": answered("problem"), "pendingProblem": true })),
+				lesson("fresh", "teach", json!({})),
+				lesson("done", "teach", json!({ "answers": answered("done") })),
+				lesson("homework", "homework", json!({})),
+			]),
+			json!([]), json!([]), json!([]),
+		);
+		assert_eq!(r["waiting"]["unfinished"], json!(true), "a question waits");
+		assert_eq!(r["problem"]["unfinished"], json!(true), "a problem waits");
+		assert_eq!(r["fresh"]["unfinished"], json!(true), "nothing answered yet");
+		assert_eq!(r["done"].get("unfinished"), None, "answered, nothing waits");
+		assert_eq!(r["done"].get("step"), None, "no plan, no step");
+		assert_eq!(r["homework"]["unfinished"], json!(true), "homework with no deadline follows the no-plan rule");
+	}
 
 	#[test]
 	fn a_graded_mock_question_counts_for_its_facts_topic_but_is_no_lesson() {

@@ -99,23 +99,6 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 		return { ...next, messages };
 	}, [model, version] as const);
 
-	// THE TURN-STATE BROADCAST: the instant a turn starts locally
-	// (submitted: send, answer, session start, reattach, wake attach) the
-	// lesson list learns it without waiting for the server event; at settle the
-	// event clears the row and triggers one immediate refetch. The model
-	// stays pure; this adapter owns the window seam (the lh:chat-renamed
-	// pattern).
-	const prevStatusRef = useRef(state.status);
-	useEffect(() => {
-		const was = prevStatusRef.current;
-		prevStatusRef.current = state.status;
-		if (was === state.status) return;
-		const running = state.status === "submitted" || state.status === "streaming";
-		const wasRunning = was === "submitted" || was === "streaming";
-		if (running === wasRunning) return; // submitted→streaming: still running; error↔ready: not
-		window.dispatchEvent(new CustomEvent("lh:turn-state", { detail: { id: chatId, running } }));
-	}, [state.status, chatId]);
-
 	// The reattach settled terminal → the sync-and-continue seam (chat.tsx).
 	const setReattachSettled = useCallback(
 		(fn: () => void) => {

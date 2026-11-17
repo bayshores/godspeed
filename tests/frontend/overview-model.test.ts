@@ -5,7 +5,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-	answeredLessons,
 	calibrationTakeaway,
 	deadlineHref,
 	displayName,
@@ -13,19 +12,16 @@ import {
 	isLevelOverconfident,
 	joinAnd,
 	lessonHref,
-	mostMissesTakeaway,
 	mostNeeded,
 	noteWhen,
 	percent,
 	progressShare,
 	progressWords,
 	questionHref,
-	recentLessons,
-	scoreLine,
 	upcomingDeadlines,
 } from "../../src/frontend/components/overview/overview-model.ts";
 import { splitInlineMath } from "../../src/frontend/components/overview/inline-math.tsx";
-import type { CalibrationLevel, LessonProgress } from "../../src/shared/core/index.ts";
+import type { CalibrationLevel } from "../../src/shared/core/index.ts";
 
 const lvl = (level: 1 | 2 | 3 | 4 | 5, right: number, answered: number): CalibrationLevel => ({
 	level,
@@ -33,17 +29,6 @@ const lvl = (level: 1 | 2 | 3 | 4 | 5, right: number, answered: number): Calibra
 	right,
 	answered,
 	rate: answered ? right / answered : null,
-});
-
-const lesson = (chatId: string, right: number, answered: number): LessonProgress => ({
-	chatId,
-	title: `Lesson ${chatId}`,
-	kind: "teach",
-	updatedAt: "",
-	answers: Array.from({ length: answered }, (_, i) => ({ chatId, toolCallId: `${chatId}${i}`, outcome: i < right ? "right" : "wrong", answeredAt: "" })),
-	right,
-	answered,
-	score: answered ? right / answered : null,
 });
 
 describe("overview-model", () => {
@@ -57,20 +42,6 @@ describe("overview-model", () => {
 	it("links: the lesson, a question's message anchor", () => {
 		assert.equal(lessonHref("chat 1"), "/chat/chat%201");
 		assert.equal(questionHref("c1", "m7"), "/chat/c1#message-m7");
-	});
-
-	it("answeredLessons keeps lessons with at least one answer, in order", () => {
-		assert.deepEqual(answeredLessons([lesson("a", 0, 0), lesson("b", 1, 2), lesson("c", 3, 3)]).map((l) => l.chatId), ["b", "c"]);
-	});
-
-	it("mostMissesTakeaway: the most misses wins, ties are said; nothing with < 2 lessons or no misses", () => {
-		assert.equal(mostMissesTakeaway([lesson("a", 9, 13), lesson("b", 5, 11), lesson("c", 4, 6)]), "“Lesson b” has the most misses.");
-		assert.equal(mostMissesTakeaway([lesson("a", 1, 3), lesson("b", 1, 3)]), "Both lessons have 2 misses.");
-		assert.equal(mostMissesTakeaway([lesson("a", 1, 3), lesson("b", 1, 3), lesson("c", 2, 3)]), "“Lesson a” and “Lesson b” have the most misses, 2 misses each.");
-		assert.equal(mostMissesTakeaway([{ ...lesson("a", 0, 3), title: "ok lets prep." }, lesson("b", 1, 2)]), "“ok lets prep” has the most misses.");
-		assert.equal(mostMissesTakeaway([lesson("a", 1, 3)]), null);
-		assert.equal(mostMissesTakeaway([lesson("a", 3, 3), lesson("b", 2, 2)]), null);
-		assert.equal(mostMissesTakeaway([{ ...lesson("a", 0, 2), hinted: 2 }, lesson("b", 1, 2)]), "“Lesson b” has the most misses.", "solved with hints is no miss");
 	});
 
 	it("overconfident levels: only 4–5, only when below the target", () => {
@@ -144,19 +115,6 @@ describe("deadlines on Progress", () => {
 		assert.deepEqual(mostNeeded([topics("HW", [["b", 0.2], ["a", 0.2]]), topics("Final", [["b", 0.2]])]), { topicId: "b", name: "b", deadlines: ["HW", "Final"] });
 		assert.equal(mostNeeded([topics("HW", [["b", 0.2], ["a", 0.2]])])?.topicId, "a");
 		assert.equal(mostNeeded([topics("HW", [])]), null);
-	});
-});
-
-describe("pick up where you left off", () => {
-	it("the three lessons worked on last, newest first", () => {
-		const at = (id: string, updatedAt: string) => ({ ...lesson(id, 0, 0), updatedAt });
-		assert.deepEqual(recentLessons([at("a", "2026-10-01"), at("b", "2026-10-04"), at("c", "2026-10-02"), at("d", "2026-10-03")]).map((l) => l.chatId), ["b", "d", "c"]);
-	});
-
-	it("a lesson's score, or that it has no answers", () => {
-		assert.equal(scoreLine({ right: 4, answered: 6 }), "4 of 6 right");
-		assert.equal(scoreLine({ right: 0, answered: 0 }), "Waiting for your answer");
-		assert.equal(scoreLine({ right: 1, hinted: 1, answered: 2 }), "1 of 2 right, 1 solved with hints");
 	});
 });
 

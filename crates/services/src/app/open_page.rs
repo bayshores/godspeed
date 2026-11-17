@@ -36,7 +36,6 @@ const BESIDE_LESSON: &str = "It opens beside the learner's lesson on that deadli
 fn space_page(page: &str) -> Option<(&'static str, &'static str)> {
 	Some(match page {
 		"progress" => ("/space", "Progress"),
-		"lessons" => ("/space/lessons", "Lessons"),
 		"files" => ("/space/files", "Files"),
 		"deadlines" => ("/space/deadlines", "Deadlines"),
 		"graph" => ("/graph", "Graph"),
@@ -101,7 +100,7 @@ fn page_for(app: &App, args: &Json) -> Result<PageTarget, String> {
 }
 
 /// The pages that show the window's own space.
-const SPACE_PAGES: [&str; 5] = ["/space", "/space/lessons", "/space/files", "/space/deadlines", "/graph"];
+const SPACE_PAGES: [&str; 4] = ["/space", "/space/files", "/space/deadlines", "/graph"];
 
 /// What the agent hears when the window shows this page already, or a lesson on the cheat
 /// sheet's deadline (the sheet then opens beside it).
@@ -186,7 +185,6 @@ mod tests {
 		let cases = [
 			(json!({ "page": "today" }), "/", None, "Today", Json::Null),
 			(json!({ "page": "progress", "space_id": space_id }), "/space", Some(&space_id), "CSE 21's Progress", tab.clone()),
-			(json!({ "page": "lessons", "space_id": "none" }), "/space/lessons", None, "No space's Lessons", Json::Null),
 			(json!({ "page": "files", "space_id": space_id }), "/space/files", Some(&space_id), "CSE 21's Files", tab.clone()),
 			(json!({ "page": "deadlines", "space_id": space_id }), "/space/deadlines", Some(&space_id), "CSE 21's Deadlines", tab.clone()),
 			(json!({ "page": "graph", "space_id": space_id }), "/graph", Some(&space_id), "CSE 21's Graph", tab.clone()),

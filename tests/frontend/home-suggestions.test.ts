@@ -1,16 +1,15 @@
 /**
  * Home's "Suggested for <space>" rows: which lesson is
- * Continue, Next up (a path's next topic before the next file), which Work-on-next list counts (the soonest open
+ * Continue (the newest unfinished lesson), Next up (a path's next topic
+ * before the next file), which Work-on-next list counts (the soonest open
  * deadline with files, else the space's), the two-row cap, and the
  * Continue step.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { DeadlineProgress, LessonProgress, PathTopicProgress, PlanTree, ProgressPayload, TopicProgress, WorkOnNextItem } from "../../src/shared/core/index.ts";
-import { planStepBar } from "../../src/shared/core/index.ts";
+import type { DeadlineProgress, LessonProgress, PathTopicProgress, ProgressPayload, TopicProgress, WorkOnNextItem } from "../../src/shared/core/index.ts";
 import {
 	homeSuggestions,
-	lessonStep,
 	suggestionKey,
 	suggestionLine,
 	upcomingDeadline,
@@ -18,8 +17,8 @@ import {
 	WORK_ON_NEXT_ROWS,
 } from "../../src/frontend/components/home/suggestions-model.ts";
 
-function lesson(chatId: string, updatedAt: string): LessonProgress {
-	return { chatId, title: chatId, kind: "teach", updatedAt, answers: [], right: 0, answered: 0, score: null };
+function lesson(chatId: string, updatedAt: string, over: Partial<LessonProgress> = {}): LessonProgress {
+	return { chatId, title: chatId, kind: "teach", updatedAt, answers: [], right: 0, answered: 0, score: null, ...over };
 }
 
 function topic(id: string, status: TopicProgress["status"]): TopicProgress {
@@ -88,11 +87,11 @@ describe("homeSuggestions", () => {
 		assert.deepEqual(homeSuggestions(payload()), []);
 	});
 
-	it("Continue is the newest lesson (lessons come newest first), then Next up, then Work on next", () => {
+	it("Continue is the newest unfinished lesson (lessons come newest first), then Next up, then Work on next", () => {
 		const file = { fileId: "f4", name: "Lecture 4.pdf", facts: 22, inLessons: 0, share: 0 };
 		const rows = homeSuggestions(
 			payload({
-				lessons: [lesson("newest", "2026-10-27T12:00:00Z"), lesson("older", "2026-10-26T12:00:00Z")],
+				lessons: [lesson("newest", "2026-10-27T12:00:00Z", { unfinished: true }), lesson("older", "2026-10-26T12:00:00Z", { unfinished: true })],
 				nextUp: file,
 				overall: { topicIds: [], counts: { strong: 0, shaky: 0, weak: 0, untested: 0 }, workOnNext: [item("a")] },
 			}),
@@ -102,12 +101,26 @@ describe("homeSuggestions", () => {
 		assert.equal(rows[1]!.kind === "next-up" && rows[1]!.file.fileId, "f4");
 	});
 
+	it("Continue skips finished lessons and picks the newest unfinished one", () => {
+		const rows = homeSuggestions(
+			payload({
+				lessons: [lesson("done-new", "2026-10-27T12:00:00Z"), lesson("open-mid", "2026-10-26T12:00:00Z", { unfinished: true }), lesson("open-old", "2026-10-25T12:00:00Z", { unfinished: true })],
+			}),
+		);
+		assert.equal(rows[0]!.kind === "continue" && rows[0]!.lesson.chatId, "open-mid");
+	});
+
+	it("with no unfinished lesson there is no Continue row", () => {
+		const rows = homeSuggestions(payload({ lessons: [lesson("a", "2026-10-27T12:00:00Z"), lesson("b", "2026-10-26T12:00:00Z")] }));
+		assert.deepEqual(rows.map((r) => r.kind), []);
+	});
+
 	it("in a space with a path, Next up is the topic its Study takes, with its place", () => {
 		const step = (id: string, name: string): PathTopicProgress => ({ id, name, covers: "c", answered: 0, right: 0, wrong: 0, dontKnow: 0, rate: null, status: "untested", color: "var(--lh-ink-3)" });
 		const file = { fileId: "f4", name: "Lecture 4.pdf", facts: 22, inLessons: 0, share: 0 };
 		const rows = homeSuggestions(payload({ nextUp: file, path: { goal: "backend developer", topics: [step("p1", "Git"), step("p2", "HTTP")], nextId: "p2" } }));
 		assert.deepEqual(rows.map((r) => r.kind), ["path"]);
-		assert.equal(suggestionLine(rows[0]!, null), "Next up, 2 of 2 on the path");
+		assert.equal(suggestionLine(rows[0]!), "Next up, 2 of 2 on the path");
 		assert.equal(suggestionKey(rows[0]!), "path:p2");
 	});
 
@@ -128,7 +141,7 @@ describe("homeSuggestions", () => {
 
 	it("row keys are unique per kind and id", () => {
 		const rows = homeSuggestions(
-			payload({ lessons: [lesson("x", "2026-10-27T12:00:00Z")], overall: { topicIds: [], counts: { strong: 0, shaky: 0, weak: 0, untested: 0 }, workOnNext: [item("a"), item("c")] } }),
+			payload({ lessons: [lesson("x", "2026-10-27T12:00:00Z", { unfinished: true })], overall: { topicIds: [], counts: { strong: 0, shaky: 0, weak: 0, untested: 0 }, workOnNext: [item("a"), item("c")] } }),
 		);
 		assert.deepEqual(rows.map(suggestionKey), ["continue:x", "work:a", "work:c"]);
 	});
@@ -162,51 +175,17 @@ describe("which Work-on-next list counts", () => {
 	});
 });
 
-describe("lessonStep (the Continue row's step N / M)", () => {
-	const tree: PlanTree = {
-		nodes: [
-			{ id: "n1", title: "One", status: "pending" },
-			{ id: "n2", title: "Two", status: "pending" },
-			{ id: "n3", title: "Three", status: "pending" },
-		],
-		edges: [
-			{ from: "n1", to: "n2" },
-			{ from: "n2", to: "n3" },
-		],
-	} as unknown as PlanTree;
-
-	it("practice lessons and lessons without a plan have no step", () => {
-		assert.equal(lessonStep({ kind: "practice", tree, messages: [] }), null);
-		assert.equal(lessonStep({ kind: "teach", messages: [] }), null);
-		assert.equal(lessonStep({ kind: "teach", tree: null, messages: [] }), null);
-		assert.equal(lessonStep({ tree: { nodes: [], edges: [] } as unknown as PlanTree, messages: [] }), null);
-	});
-
-	it("matches the lesson's step bar: total = plan steps, position = the current step", () => {
-		const step = lessonStep({ kind: "teach", tree, messages: [] });
-		const bar = planStepBar(tree, []);
-		const expected = bar.currentIndex >= 0 ? bar.currentIndex + 1 : bar.steps.filter((s) => s.status === "visited").length;
-		assert.deepEqual(step, { position: expected, total: 3 });
-	});
-
-	it("a study session's problems move its step like quizzes do", () => {
-		const messages = [
-			{ id: "a1", role: "assistant", content: [{ type: "toolCall", id: "p1", name: "problem", arguments: { nodeId: "n2" } }], timestamp: 0 },
-		] as unknown as Parameters<typeof lessonStep>[0]["messages"];
-		assert.deepEqual(lessonStep({ kind: "study", tree, messages }), { position: 2, total: 3 });
-	});
-});
-
 describe("suggestionLine", () => {
 	it("says the kind and its one number", () => {
-		const l = lesson("x", "2026-10-27T12:00:00Z");
-		assert.equal(suggestionLine({ kind: "continue", lesson: l }, { position: 2, total: 4 }), "Continue, step 2 of 4");
-		assert.equal(suggestionLine({ kind: "continue", lesson: l }, null), "Continue");
+		const l = lesson("x", "2026-10-27T12:00:00Z", { unfinished: true });
+		assert.equal(suggestionLine({ kind: "continue", lesson: { ...l, step: { done: 2, total: 4 } } }), "Continue, step 2 of 4");
+		assert.equal(suggestionLine({ kind: "continue", lesson: { ...l, step: { done: 0, total: 4 } } }), "Continue", "nothing shown yet");
+		assert.equal(suggestionLine({ kind: "continue", lesson: l }), "Continue", "no plan");
 		const file = { fileId: "f", name: "a.pdf", facts: 12, inLessons: 0, share: 0 };
-		assert.equal(suggestionLine({ kind: "next-up", file }, null), "Next up, 12 facts");
-		assert.equal(suggestionLine({ kind: "next-up", file: { ...file, facts: 1 } }, null), "Next up, 1 fact");
+		assert.equal(suggestionLine({ kind: "next-up", file }), "Next up, 12 facts");
+		assert.equal(suggestionLine({ kind: "next-up", file: { ...file, facts: 1 } }), "Next up, 1 fact");
 		const item = { topicId: "a", name: "Topic a", status: "weak" as const, reason: "" };
-		assert.equal(suggestionLine({ kind: "work-on-next", item, topic: { ...topic("a", "weak"), right: 0, answered: 1 } }, null), "Work on next, 0 of 1 right");
-		assert.equal(suggestionLine({ kind: "work-on-next", item, topic: topic("a", "untested") }, null), "Work on next, not tested");
+		assert.equal(suggestionLine({ kind: "work-on-next", item, topic: { ...topic("a", "weak"), right: 0, answered: 1 } }), "Work on next, 0 of 1 right");
+		assert.equal(suggestionLine({ kind: "work-on-next", item, topic: topic("a", "untested") }), "Work on next, not tested");
 	});
 });

@@ -102,8 +102,8 @@ describe("follow", () => {
 		assert.deepEqual(followMoves({ page: "/chat/c2", spaceId: "cls_a" }, { path: "/space/mock/cls_a/mock_1", activeSpace: "cls_a", lessonDraft: false, asked: true }), { switchSpace: null, go: "/chat/c2" });
 	});
 	it("only goes to the app's own pages", () => {
-		for (const p of ["/", "/space", "/space/lessons", "/space/files", "/space/deadlines", "/space/deadline/ddl_0a1b2c", "/space/deadline/ddl_0a1b2c/cheat-sheet", "/graph", "/chat/c_12-ab"]) assert.equal(safePage(p), p);
-		for (const p of ["javascript:alert(1)", "https://x.example", "//x.example", "/chat/../x", "/settings", "/space/deadline/../x", "/space/deadline/", "/space/deadline/ddl_1/cheat-sheet/x", "/space/mock/a/b"]) assert.equal(safePage(p), null);
+		for (const p of ["/", "/space", "/space/files", "/space/deadlines", "/space/deadline/ddl_0a1b2c", "/space/deadline/ddl_0a1b2c/cheat-sheet", "/graph", "/chat/c_12-ab"]) assert.equal(safePage(p), p);
+		for (const p of ["javascript:alert(1)", "https://x.example", "//x.example", "/chat/../x", "/settings", "/space/deadline/../x", "/space/deadline/", "/space/deadline/ddl_1/cheat-sheet/x", "/space/mock/a/b", "/space/lessons"]) assert.equal(safePage(p), null);
 	});
 	it("with Follow off, offers 'Go to' for a fresh change on another page", () => {
 		const t = Date.parse("2026-10-29T08:00:00Z");
@@ -129,7 +129,6 @@ describe("follow", () => {
 		assert.equal(pageName("/space/files"), "Files");
 		assert.equal(pageName("/space/deadline/ddl_1"), "deadline");
 		assert.equal(pageName("/space/deadline/ddl_1/cheat-sheet"), "cheat sheet");
-		assert.equal(pageName("/space/lessons"), "Lessons");
 		assert.equal(pageName("/space/deadlines"), "Deadlines");
 	});
 	it("knows a cheat sheet's deadline, which a lesson on it opens beside itself", () => {

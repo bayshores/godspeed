@@ -25,7 +25,7 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 | `turn-settled` | `{chatId}` | `end_turn` on a live entry, after `persist_turn`, so fetches read saved data |
 | `jobs-changed` | `{chatId?}` | every job-store write that changed something |
 | `activity-changed` | `{}` | an extraction run changed phase, a deadline request or space check started or ended, or a background work item was queued, taken or dropped (`engine::bridge`, `agent::extraction::extraction_runs`, `services::spaces::deadline_requests`) |
-| `chats-changed` | `{}` | a lesson was created, renamed or deleted |
+| `chats-changed` | `{}` | a lesson was created, renamed, moved to another space or deleted. The lesson list and the progress hook (`use-progress.ts`) read it |
 | `spaces-changed` | `{}` | a space was created, edited, closed or deleted, or its files changed |
 | `agent-changed` | `{}` | outside agent connected, started or stopped teaching, was renamed or lapsed, a helper arrived, or compacting started or lapsed |
 | `record-changed` | `{chatId}` | a lesson record changed without a turn: a dismissal, Keep going at a stop, an answer to a question from earlier, a kept sentence's part dropped or brought back, an answer that leaves a sibling question open, or a finished compaction. The `keep-going`, `review` and `kept` routes also emit it during a turn |
@@ -58,4 +58,4 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 - Coverage block in lesson menu (`CoverageMenuBlock`, `src/frontend/components/extraction-coverage.tsx`) reads every 2 s while open, because events channel only reports extraction phases.
 - The 409 retry (`session-core.ts`) polls every 500 ms while another turn runs and gives up after 30 s.
 - Dock clock ticks every second (`use-now.ts`), no network.
-- Mount fast paths stay: `initiallyInFlight`, mount-time `needsContinuation` check, and the `lh:chat-renamed` and `lh:turn-state` window events for instant same-tab updates.
+- Mount fast paths stay: `initiallyInFlight`, mount-time `needsContinuation` check, and the `lh:chat-renamed` window event for instant same-tab updates.

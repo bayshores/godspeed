@@ -18,11 +18,6 @@ export function lessonAge(iso: string, now = new Date()): string {
 	return at.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(at.getFullYear() !== now.getFullYear() && { year: "numeric" }) });
 }
 
-/** The lesson waits for the learner: an open question or a posed problem. */
-export function lessonWaiting(chat: ChatListItem): boolean {
-	return chat.pendingQuestion || chat.pendingProblem;
-}
-
 /** The lessons a search finds, best match first; no search keeps them all
  *  in their own order. */
 export function matchLessons(chats: readonly ChatListItem[], query: string): ChatListItem[] {

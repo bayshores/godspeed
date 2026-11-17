@@ -6,6 +6,9 @@
  * answers it with a plan, then a sourced reply and an open quiz. Three homework deadlines get a homework lesson
  * each: one has its problems posted and a problem open at part (b), one has its problems posted and a
  * teaching reply with no problem open, and one has fourteen problems with the first done and none open.
+ * Eight more lessons are studied (a plan of two steps, a quiz on the last one, answered) and two are
+ * left open (a quiz on the first step, unanswered), so the Lessons block on Progress has both groups
+ * and a Show all. Their titles are of mixed length, one very long.
  * A second space, "Backend jobs",
  * has a path toward a goal and nothing else. The window installs the plugin
  * "Flashcards", marked as from the made-up plugin list (tests/fixtures/plugins/layout-list.json)
@@ -27,6 +30,19 @@ const HOMEWORK_FIRST = "Homework 4: solving equations";
 const HOMEWORK_MANY = "Homework 5: graphing systems";
 /** More problems than a row names, numbered as an assignment might ("2a"). */
 const MANY_NUMBERS = ["1", "2a", "2b", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"];
+
+/** Lessons the Lessons block lists besides the first lesson and the homework ones. */
+const STUDIED_TOPICS = [
+	"Slope",
+	"Intercepts of a line",
+	"Solving two-step equations",
+	"Graphing systems of equations",
+	"Parallel and perpendicular lines",
+	"Word problems with one unknown, the kind that hides the equation in a story about trains",
+	"Absolute value",
+	"Reading a graph",
+];
+const OPEN_TOPICS = ["Inequalities on a number line", "Slope-intercept form, with every kind of mistake people make while plotting by hand and reading the result back"];
 
 const HOMEWORK_PROBLEMS = {
 	[HOMEWORK_OPEN]: [
@@ -119,12 +135,26 @@ function homeworkAnswer(work, ids, lessonTurn) {
 	return null;
 }
 
+/** The two-step lessons: turn 0 writes the plan, turn 1 quizzes a step (the last for a studied
+ *  lesson, the first for an open one), and turn 2, after the learner answered, is a closing line. */
+function shortLessonAnswer(lessonTurn, studied) {
+	if (lessonTurn === 0) return { text: "Here is the plan.", tool_calls: [{ name: "plan_init", arguments: { mermaid: "graph TD\n  first-step[First step] --> last-step[Last step]" } }] };
+	if (lessonTurn === 1) {
+		const options = [{ label: "4", value: "4" }, { label: "7", value: "7" }];
+		const quiz = { type: "check", nodeId: studied ? "last-step" : "first-step", question: "What is x when x + 3 = 7?", options, explanation: "Subtract 3 from both sides.", correctAnswer: "4" };
+		return { text: "Try this one.", tool_calls: [{ name: "quiz", arguments: quiz }] };
+	}
+	return { text: "That is right." };
+}
+
 /** The stand-in's answer to a work item, or null for one it does not expect. The lesson's first
  *  turn presents the plan; its second, after the plan's result, is the sourced reply with an open
  *  quiz, so the reply ends the reading pane. */
 function answerFor(work, ids, lessonTurn) {
 	const homework = homeworkAnswer(work, ids, lessonTurn);
 	if (homework) return homework;
+	if (ids.studied.includes(work.lessonId)) return shortLessonAnswer(lessonTurn, true);
+	if (ids.open.includes(work.lessonId)) return shortLessonAnswer(lessonTurn, false);
 	if (work.task?.startsWith("Graph extraction")) {
 		return { tool_calls: [{ name: "submit_findings", arguments: { propositions: [{ id: "p1", name: "Undo in reverse", statement: "To solve ax + b = c, subtract b from both sides, then divide by a." }], chains: [], reteaches: [] } }] };
 	}
@@ -214,20 +244,28 @@ export async function seed(dataDir, page, log) {
 	const homeworkOpen = await homeworkLesson(HOMEWORK_OPEN);
 	const homeworkFirst = await homeworkLesson(HOMEWORK_FIRST);
 	const homeworkMany = await homeworkLesson(HOMEWORK_MANY);
+	const startLesson = async (topic) => (await agent.json("start_lesson", { topic, space_id: space.id })).lessonId;
+	const studied = [];
+	for (const topic of STUDIED_TOPICS) studied.push(await startLesson(topic));
+	const open = [];
+	for (const topic of OPEN_TOPICS) open.push(await startLesson(topic));
 
 	// Answer every item until the queue stays empty for two teacher and two helper waits in a row. A respond answers with the
-	// next item when one waits. godspeed's own jobs (the space check) go to a helper, so every
-	// other wait is the helper's.
-	let waits = 0;
-	const wait = () => agent.call("wait_for_work", { timeout_seconds: 3, ...(waits++ % 2 === 1 ? { helper: true } : {}) });
+	// next item when one waits. godspeed's own jobs (the space check) go to a helper, so an empty
+	// wait hands over to the other kind; a wait that brought work asks as the same kind again, so
+	// a row of lessons never sits behind a helper's empty wait.
+	let helper = false;
+	const wait = () => agent.call("wait_for_work", { timeout_seconds: 3, ...(helper ? { helper: true } : {}) });
 	const turns = new Map();
-	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany };
+	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, studied, open };
 	const drain = async () => {
 		let reply = await wait();
 		for (let idle = 0, tries = 0; idle < 4; tries++) {
-			if (tries > 20) throw new Error("the stand-in agent never ran out of work");
+			// Each added lesson is two items, and an item is two passes: the work, then its "turn done".
+			if (tries > 20 + 4 * (studied.length + open.length)) throw new Error("the stand-in agent never ran out of work");
 			const header = JSON.parse(reply[0]);
 			if (header.status !== "work") {
+				if (header.status === "idle") helper = !helper;
 				idle++;
 				reply = await wait();
 				continue;
@@ -247,6 +285,13 @@ export async function seed(dataDir, page, log) {
 	// The learner says which part they start; the teacher marks it.
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkOpen, input: { type: "text", text: "I am starting part (b)." } }) });
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkMany, input: { type: "text", text: "They cross at (2, 7)." } }) });
+	// The learner answers each studied lesson's quiz right, and the teacher closes the lesson.
+	for (const chatId of studied) {
+		const { messages } = await page.json(`/api/chats/${chatId}`);
+		const quiz = messages.flatMap((m) => (Array.isArray(m.content) ? m.content : [])).findLast((block) => block.type === "toolCall" && block.name === "quiz");
+		const answer = { kind: "quiz", tool: "quiz", questionText: "What is x when x + 3 = 7?", dontKnow: false, answers: [{ label: "4", value: "4", index: 1 }], correct: true, answeredAt: new Date().toISOString() };
+		await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId, input: { type: "answer", toolCallId: quiz.id, answer } }) });
+	}
 	await drain();
 	const covers = (topic) => `Enough ${topic} to get a junior job by spring, with typing practice daily.`;
 	const steps = ["Git and pull requests", "HTTP and APIs", "SQL querying", "Typing in Python", "Caching layers", "Deploying apps", "Logging and paging", "Security group policy"];

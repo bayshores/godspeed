@@ -3,12 +3,12 @@ import { Link } from "react-router";
 import type { FileCoverage, TopicProgress } from "@/shared/core";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { displayName, lessonHref } from "@/frontend/components/overview/overview-model";
-import { suggestionKey, suggestionLine, type LessonStep, type Suggestion } from "./suggestions-model";
+import { suggestionKey, suggestionLine, type Suggestion } from "./suggestions-model";
 
 const ACTION = "lh-btn shrink-0 text-[15px]";
 
 /**
- * "Suggested for <space>": Continue (the latest lesson, Open), Next up
+ * "Suggested for <space>": Continue (the newest unfinished lesson, Open), Next up
  * (the path's next topic or the earliest unstudied file, Study) and Work
  * on next (topics, Study). Renders nothing when there is nothing to
  * suggest.
@@ -16,7 +16,6 @@ const ACTION = "lh-btn shrink-0 text-[15px]";
 export const SuggestionList = memo(function SuggestionList({
 	spaceLabel: label,
 	suggestions,
-	step,
 	busy,
 	onStudyFile,
 	onStudyTopic,
@@ -25,8 +24,6 @@ export const SuggestionList = memo(function SuggestionList({
 	/** The space's name; null = no space. */
 	spaceLabel: string | null;
 	suggestions: readonly Suggestion[];
-	/** The Continue lesson's plan position, once read. */
-	step: LessonStep | null;
 	busy: boolean;
 	onStudyFile: (file: FileCoverage) => void;
 	onStudyTopic: (topic: TopicProgress) => void;
@@ -38,7 +35,7 @@ export const SuggestionList = memo(function SuggestionList({
 			<h2 className="pb-1.5 text-xl leading-tight text-ink">{label ? `Suggested for ${label}` : "Suggested"}</h2>
 			<ul className="flex w-full flex-col">
 				{suggestions.map((s) => (
-					<SuggestionRow key={suggestionKey(s)} suggestion={s} step={step} busy={busy} onStudyFile={onStudyFile} onStudyTopic={onStudyTopic} onStudyPath={onStudyPath} />
+					<SuggestionRow key={suggestionKey(s)} suggestion={s} busy={busy} onStudyFile={onStudyFile} onStudyTopic={onStudyTopic} onStudyPath={onStudyPath} />
 				))}
 			</ul>
 		</section>
@@ -47,14 +44,12 @@ export const SuggestionList = memo(function SuggestionList({
 
 const SuggestionRow = memo(function SuggestionRow({
 	suggestion: s,
-	step,
 	busy,
 	onStudyFile,
 	onStudyTopic,
 	onStudyPath,
 }: {
 	suggestion: Suggestion;
-	step: LessonStep | null;
 	busy: boolean;
 	onStudyFile: (file: FileCoverage) => void;
 	onStudyTopic: (topic: TopicProgress) => void;
@@ -98,7 +93,7 @@ const SuggestionRow = memo(function SuggestionRow({
 				<span className="truncate text-[17px] leading-tight text-ink">
 					<InlineMath text={title} />
 				</span>
-				<span className="truncate text-base text-ink-2">{suggestionLine(s, step)}</span>
+				<span className="truncate text-base text-ink-2">{suggestionLine(s)}</span>
 			</span>
 			{action}
 		</li>

@@ -6,7 +6,8 @@
  * Re-reads when the space changes, when a turn settles (new answers), when
  * background activity changes (a graph build or the topic grouper
  * finished; debounced so a burst of updates causes one fetch), when spaces
- * change (deadlines edited) and after the events channel reconnects.
+ * change (deadlines edited), when a lesson is made, renamed, deleted or
+ * moved, and after the events channel reconnects.
  * A stale response for a previous space is dropped.
  */
 
@@ -25,8 +26,8 @@ export async function fetchProgress(spaceId: string | null): Promise<ProgressPay
 	return body as ProgressPayload;
 }
 
-/** A debounced `load`, run when a turn settles, background activity or
- *  spaces change, and after the events channel reconnects. */
+/** A debounced `load`, run when a turn settles, background activity,
+ *  spaces or lessons change, and after the events channel reconnects. */
 export function useProgressRefresh(load: () => void): () => void {
 	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const refresh = useCallback(() => {
@@ -42,6 +43,7 @@ export function useProgressRefresh(load: () => void): () => void {
 	useServerEvent("turn-settled", refresh);
 	useServerEvent("activity-changed", refresh);
 	useServerEvent("spaces-changed", refresh);
+	useServerEvent("chats-changed", refresh);
 	useServerResync(refresh);
 	return refresh;
 }

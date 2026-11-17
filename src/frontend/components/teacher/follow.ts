@@ -101,7 +101,7 @@ export function goOffer<A extends { page: string; at: string; background?: true 
 export function pageName(page: string): string {
 	if (page.startsWith("/chat/")) return "lesson";
 	if (page.startsWith("/space/deadline/")) return page.endsWith("/cheat-sheet") ? "cheat sheet" : "deadline";
-	const names: Record<string, string> = { "/": "Today", "/space": "Progress", "/space/lessons": "Lessons", "/space/files": "Files", "/space/deadlines": "Deadlines", "/graph": "Graph" };
+	const names: Record<string, string> = { "/": "Today", "/space": "Progress", "/space/files": "Files", "/space/deadlines": "Deadlines", "/graph": "Graph" };
 	return names[page] ?? "page";
 }
 
@@ -122,5 +122,5 @@ export function parseFollow(raw: string | null): boolean {
 /** Only the app's own pages are ever navigated to (never a raw URL from
  *  the wire). */
 export function safePage(page: string): string | null {
-	return /^\/(?:space(?:\/lessons|\/files|\/deadlines|\/deadline\/[A-Za-z0-9_-]+(?:\/cheat-sheet)?)?|graph|chat\/[A-Za-z0-9_-]+)?$/.test(page) ? page : null;
+	return /^\/(?:space(?:\/files|\/deadlines|\/deadline\/[A-Za-z0-9_-]+(?:\/cheat-sheet)?)?|graph|chat\/[A-Za-z0-9_-]+)?$/.test(page) ? page : null;
 }

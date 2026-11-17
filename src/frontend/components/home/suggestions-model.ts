@@ -2,9 +2,8 @@
  * Home's "Suggested for <space>" rows, derived from the
  * space's ProgressPayload (src/shared/core/progress.ts). Pure, unit-tested.
  *
- *  - Continue: the space's most recently active lesson (lessons come
- *    newest first). The app keeps no "finished" flag, so the newest
- *    lesson is the one to continue.
+ *  - Continue: the newest lesson the server marks unfinished (lessons
+ *    come newest first); with none, there is no Continue row.
  *  - Next up: in a space with a path, the topic its Study takes; else the
  *    earliest study file not studied yet (payload.nextUp).
  *  - Work on next: the first two topics of the soonest open deadline
@@ -13,16 +12,13 @@
 import type {
 	DeadlineProgress,
 	FileCoverage,
-	LessonKind,
 	LessonProgress,
-	LhMessage,
 	PathTopicProgress,
-	PlanTree,
 	ProgressPayload,
 	TopicProgress,
 	WorkOnNextItem,
 } from "@/shared/core";
-import { pathNext, planStepBar, projectView } from "@/shared/core";
+import { pathNext } from "@/shared/core";
 import { rightLabel } from "@/frontend/components/deadline/deadline-model";
 
 /** How many "Work on next" rows Home shows. */
@@ -48,8 +44,8 @@ export function workOnNextList(data: Pick<ProgressPayload, "deadlines" | "overal
 export function homeSuggestions(data: ProgressPayload | null): Suggestion[] {
 	if (!data) return [];
 	const out: Suggestion[] = [];
-	const latest = data.lessons[0];
-	if (latest) out.push({ kind: "continue", lesson: latest });
+	const unfinished = data.lessons.find((l) => l.unfinished);
+	if (unfinished) out.push({ kind: "continue", lesson: unfinished });
 	const onPath = data.path ? pathNext(data.path) : null;
 	if (data.path && onPath) out.push({ kind: "path", topic: onPath.topic, position: onPath.position, total: data.path.topics.length });
 	else if (data.nextUp) out.push({ kind: "next-up", file: data.nextUp });
@@ -70,37 +66,16 @@ export function suggestionKey(s: Suggestion): string {
 	return `work:${s.item.topicId}`;
 }
 
-/** Where the lesson's plan is: "step 3 of 11" (the same position the
- *  lesson's step bar shows). */
-export interface LessonStep {
-	position: number;
-	total: number;
-}
-
 /** Under a row's name: what kind of suggestion it is and its one number
  *  ("Continue, step 2 of 4", "Next up, 12 facts", "Next up, 4 of 28 on
- *  the path", "Work on next, 0 of 1 right"). `step` is the Continue
- *  lesson's, once read. */
-export function suggestionLine(s: Suggestion, step: LessonStep | null): string {
-	if (s.kind === "continue") return step ? `Continue, step ${step.position} of ${step.total}` : "Continue";
+ *  the path", "Work on next, 0 of 1 right"). A Continue lesson's step is
+ *  the one its step bar shows. */
+export function suggestionLine(s: Suggestion): string {
+	if (s.kind === "continue") {
+		const { step } = s.lesson;
+		return step && step.done > 0 ? `Continue, step ${step.done} of ${step.total}` : "Continue";
+	}
 	if (s.kind === "next-up") return `Next up, ${s.file.facts} ${s.file.facts === 1 ? "fact" : "facts"}`;
 	if (s.kind === "path") return `Next up, ${s.position} of ${s.total} on the path`;
 	return `Work on next, ${rightLabel(s.topic)}`;
-}
-
-/** The slice of GET /api/chats/:id the step needs. */
-export interface LessonStepRecord {
-	kind?: LessonKind;
-	tree?: PlanTree | null;
-	messages: readonly LhMessage[];
-}
-
-/** The lesson's plan position; null for practice lessons and lessons
- *  with no plan yet. */
-export function lessonStep(record: LessonStepRecord): LessonStep | null {
-	if (record.kind === "practice" || !record.tree) return null;
-	const { steps, currentIndex } = planStepBar(record.tree, projectView(record.messages));
-	if (steps.length === 0) return null;
-	const position = currentIndex >= 0 ? currentIndex + 1 : steps.filter((s) => s.status === "visited").length;
-	return { position, total: steps.length };
 }

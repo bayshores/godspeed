@@ -68,7 +68,6 @@ const lesson = (id: string, title: string, spaceId?: string): ChatListItem => ({
 	phase: "probe",
 	pendingQuestion: false,
 	pendingProblem: false,
-	busy: false,
 	...(spaceId && { spaceId }),
 });
 const LESSONS = [lesson("l1", "Pointers", "c29"), lesson("l2", "Induction", "c21"), lesson("l3", "Loose notes")];
@@ -264,18 +263,18 @@ describe("a space page's head", () => {
 		assert.match(q("space-signature-ink")!.getAttribute("style")!, /--ink:\s*25%/, "inked as far as studied, on every tab");
 		assert.equal(q("space-edit")!.textContent, "Edit space");
 		assert.ok(document.querySelector("[data-testid='space-head'] nav")!.nextElementSibling === q("space-edit"), "Edit space ends the tab row");
-		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress25%", "Lessons1", "Files33", "Graph", "Deadlines"]);
+		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress25%", "Files33", "Graph", "Deadlines"]);
 		assert.equal(q("nav-files-count")!.textContent, "33");
 		assert.equal(q("nav-files")!.getAttribute("aria-current"), "page");
 		assert.equal(q("nav-progress")!.hasAttribute("aria-current"), false, "/space/files is Files, not Progress");
 	});
 	it("with no space it names the lessons that belong to none: no Edit space, files or deadlines", async () => {
-		await mount(<SpaceHead plugins={[]} />, { pathname: "/space/lessons", active: null });
+		await mount(<SpaceHead plugins={[]} />, { pathname: "/space", active: null });
 		assert.equal(q("space-head-name")!.textContent, "Lessons with no space");
 		assert.ok(q("space-edit") === null);
 		assert.ok(q("space-signature") === null);
-		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress", "Lessons1", "Graph"]);
-		assert.equal(q("nav-lessons")!.getAttribute("aria-current"), "page");
+		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress", "Graph"]);
+		assert.equal(q("nav-progress")!.getAttribute("aria-current"), "page");
 	});
 	it("the signature: math in real LaTeX, code in mono, text in the serif italic", () => {
 		const sign = (kind: "math" | "code" | "text", value: string) => renderToStaticMarkup(<HeadSignature signature={{ kind, value }} share={null} />);
@@ -436,13 +435,13 @@ describe("the +", () => {
 		assert.deepEqual(texts("[data-testid='spaces-plus-list'] [role='menuitem']"), ["Add a space", "MATH 18", "Lessons with no space"]);
 		assert.equal(document.querySelector("[data-testid='spaces-plus-list'] [role='group']")!.textContent, "ClosedMATH 18");
 	});
-	it("Lessons with no space leaves the space and opens its lessons", async () => {
+	it("Lessons with no space leaves the space and opens Progress", async () => {
 		await mount(<SpaceTabs selected="c29" />);
 		await openList();
 		await settle();
 		await click(q("space-option-none")!);
 		await act(async () => {});
-		assert.deepEqual(pushed, ["/space/lessons"]);
+		assert.deepEqual(pushed, ["/space"]);
 		assert.ok(requests.some((r) => r.startsWith("PUT /api/settings/general") && r.includes('"activeSpace":"none"')));
 		assert.equal(q("spaces-plus-list")?.getAttribute("data-state") ?? "closed", "closed");
 	});

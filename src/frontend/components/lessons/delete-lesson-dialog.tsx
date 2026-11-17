@@ -31,7 +31,7 @@ export function DeleteLessonDialog({
 	/** The lesson up for deletion; null = closed. */
 	chat: Lesson | null;
 	onClose: () => void;
-	onDeleted: (id: string, mode: ChatDeleteMode, graphRevision: number) => void;
+	onDeleted: (id: string) => void;
 }) {
 	const { mounted, state, shown } = useLastWhileClosing(chat);
 	const [traces, setTraces] = useState(false);
@@ -54,14 +54,14 @@ export function DeleteLessonDialog({
 		setFailure(null);
 		try {
 			const res = await fetch(`/api/chats/${chat.id}?mode=${mode}`, { method: "DELETE" });
-			const body = (await res.json()) as { error?: string; graphRevision?: number };
+			const body = (await res.json()) as { error?: string };
 			if (!res.ok) {
 				setFailure(body.error ?? `Delete failed (${res.status})`);
 				setBusy(false);
 				return;
 			}
 			forgetLessonDraft(chat.id);
-			onDeleted(chat.id, mode, body.graphRevision ?? 0);
+			onDeleted(chat.id);
 		} catch {
 			setFailure("Delete failed: network error. Try again.");
 			setBusy(false);

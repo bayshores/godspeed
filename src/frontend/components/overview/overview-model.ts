@@ -3,8 +3,8 @@
  * Pure: every number comes from the ProgressPayload (src/shared/core/progress.ts);
  * this file only shapes it for the page and is unit-tested on its own.
  */
-import type { CalibrationLevel, DeadlineProgress, LessonProgress, StatusCounts } from "@/shared/core";
-import { messageAnchorId, rightWords } from "@/shared/core";
+import type { CalibrationLevel, DeadlineProgress, StatusCounts } from "@/shared/core";
+import { messageAnchorId } from "@/shared/core";
 import { byDue, isOverdue } from "@/frontend/components/deadlines-model";
 
 /** A file's name without its extension ("Lecture 3 — Expectation.pdf" →
@@ -23,32 +23,6 @@ export function lessonHref(chatId: string): string {
  *  anchor (the same anchors the graph's message links use). */
 export function questionHref(chatId: string, messageId: string): string {
 	return `${lessonHref(chatId)}#${encodeURIComponent(messageAnchorId(messageId))}`;
-}
-
-/** Lessons with at least one graded answer (a row with no blocks says nothing). */
-export function answeredLessons(lessons: readonly LessonProgress[]): LessonProgress[] {
-	return lessons.filter((l) => l.answers.length > 0);
-}
-
-/** A lesson title quoted, its trailing punctuation dropped so the
- *  sentence around it reads right. */
-const quoted = (title: string) => `“${title.trim().replace(/[.!?,;:\s]+$/, "")}”`;
-
-/** "“<title>” has the most misses." — the lesson with the most answers
- *  that weren't right (wrong + "I don't know"; one solved with hints is no miss). A tie names both lessons,
- *  or says how many tie. Only when there are at least two lessons to
- *  compare and one has a miss. */
-export function mostMissesTakeaway(lessons: readonly LessonProgress[]): string | null {
-	if (lessons.length < 2) return null;
-	const misses = (l: LessonProgress) => l.answered - l.right - (l.hinted ?? 0);
-	const most = Math.max(...lessons.map(misses));
-	if (most <= 0) return null;
-	const top = lessons.filter((l) => misses(l) === most);
-	const each = `${most} ${most === 1 ? "miss" : "misses"}`;
-	if (top.length === 1) return `${quoted(top[0]!.title)} has the most misses.`;
-	if (top.length === lessons.length) return lessons.length === 2 ? `Both lessons have ${each}.` : `All ${lessons.length} lessons have ${each}.`;
-	if (top.length === 2) return `${quoted(top[0]!.title)} and ${quoted(top[1]!.title)} have the most misses, ${each} each.`;
-	return `${top.length} lessons tie for the most misses, ${each} each.`;
 }
 
 /** A level is overconfident (drawn red) when it is a "sure" level (4–5)
@@ -159,18 +133,4 @@ export function mostNeeded(upcoming: readonly Pick<DeadlineProgress, "name" | "t
 		if (better) best = { topicId, name: e.name, rate: e.rate, deadlines: e.deadlines };
 	}
 	return best ? { topicId: best.topicId, name: best.name, deadlines: best.deadlines } : null;
-}
-
-/** "Pick up where you left off" lists this many lessons. */
-const RECENT_LESSONS = 3;
-
-/** The lessons worked on last, newest first. */
-export function recentLessons(lessons: readonly LessonProgress[]): LessonProgress[] {
-	return [...lessons].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, RECENT_LESSONS);
-}
-
-/** Under a lesson's title: "4 of 6 right", "4 of 6 right, 1 with hints";
- *  "Waiting for your answer" before the first (as on the Lessons list). */
-export function scoreLine(l: Pick<LessonProgress, "right" | "hinted" | "answered">): string {
-	return l.answered > 0 ? rightWords(l) : "Waiting for your answer";
 }

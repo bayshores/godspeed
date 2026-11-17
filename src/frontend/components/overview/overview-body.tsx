@@ -2,21 +2,21 @@ import { memo, useMemo, type ReactNode } from "react";
 import type { SpaceNote, DeadlineProgress, ProgressPayload } from "@/shared/core";
 import { SpaceFacts } from "./space-facts";
 import { ConfidenceCard } from "./confidence-card";
-import { LessonsCard } from "./lessons-card";
+import { LessonRecord } from "./lesson-record";
 import { MostNeeded } from "./most-needed";
 import { NextDeadline } from "./next-deadline";
 import { PathBlock } from "./path-block";
-import { answeredLessons, hasCalibration, mostNeeded, recentLessons, upcomingDeadlines } from "./overview-model";
-import { RecentLessons } from "./recent-lessons";
+import { hasCalibration, mostNeeded, upcomingDeadlines } from "./overview-model";
 import { TeacherNote } from "./teacher-note";
 
 /**
  * The Progress tab under the space head (pure view, the render-test seam),
  * top to bottom: the space's path, the teacher's note, the next deadline
  * (with no deadline at all the path takes its place), "Most needed",
- * "Pick up where you left off", the fact grid, "How lessons went" and the
- * confidence chart. Each shows only once it has something to show; a
- * space's deadline, topic and facts are left out for "Lessons with no space".
+ * Lessons, the fact grid and the confidence chart. Each shows only once it
+ * has something to show, but for the Lessons heading, which shows while
+ * loading too; a space's deadline, topic and facts are left out for
+ * "Lessons with no space".
  */
 export const OverviewBody = memo(function OverviewBody({
 	hasSpace,
@@ -60,8 +60,6 @@ export const OverviewBody = memo(function OverviewBody({
 	/** With no space: the spaces to switch to. */
 	pickSpace?: ReactNode;
 }) {
-	const answered = useMemo(() => answeredLessons(data?.lessons ?? []), [data?.lessons]);
-	const recent = useMemo(() => recentLessons(data?.lessons ?? []), [data?.lessons]);
 	const upcoming = useMemo(() => (data && nowMs !== null ? upcomingDeadlines(data.deadlines, nowMs) : []), [data, nowMs]);
 	const needed = useMemo(() => mostNeeded(upcoming), [upcoming]);
 	return (
@@ -88,9 +86,8 @@ export const OverviewBody = memo(function OverviewBody({
 				</p>
 			)}
 			{hasSpace && needed && <MostNeeded needed={needed} busy={busy} onStudy={onStudy} />}
-			{recent.length > 0 && <RecentLessons lessons={recent} color={color} nowMs={nowMs} />}
+			<LessonRecord lessons={data?.lessons ?? null} spaceId={data?.spaceId ?? null} nowMs={nowMs} />
 			{hasSpace && data && <SpaceFacts progress={data} />}
-			{answered.length > 0 && <LessonsCard lessons={answered} />}
 			{data && hasCalibration(data.calibration.levels) && <ConfidenceCard calibration={data.calibration} />}
 		</div>
 	);

@@ -46,6 +46,8 @@ const LESSON: LessonProgress = {
 	right: 0,
 	answered: 0,
 	score: null,
+	step: { done: 1, total: 11 },
+	unfinished: true,
 };
 const FILE: FileCoverage = { fileId: "f4", name: "Rosen 6.2 — Probability theory.pdf", facts: 22, inLessons: 0, share: 0 };
 
@@ -82,7 +84,6 @@ function list(props: Partial<React.ComponentProps<typeof SuggestionList>> = {}) 
 			<SuggestionList
 				spaceLabel="CSE 21"
 				suggestions={SUGGESTIONS}
-				step={{ position: 1, total: 11 }}
 				busy={false}
 				onStudyFile={() => {}}
 				onStudyTopic={() => {}}
@@ -177,8 +178,9 @@ describe("Home: suggestions", () => {
 		assert.match(html, /<a[^>]*href="\/chat\/c1"[^>]*data-testid="home-continue"|data-testid="home-continue"[^>]*href="\/chat\/c1"/);
 	});
 
-	it("Continue before its step is read: no step", () => {
-		assert.ok(row(list({ step: null }), "home-suggestion-continue").includes(">Continue</span>"));
+	it("Continue with no step shown yet: no step", () => {
+		const fresh: Suggestion[] = [{ kind: "continue", lesson: { ...LESSON, step: { done: 0, total: 11 } } }];
+		assert.ok(row(list({ suggestions: fresh }), "home-suggestion-continue").includes(">Continue</span>"));
 	});
 
 	it("Next up: the file name without its extension, the fact count, Study", () => {
@@ -226,7 +228,6 @@ describe("Home: actions", () => {
 				<SuggestionList
 					spaceLabel="CSE 21"
 					suggestions={SUGGESTIONS}
-					step={null}
 					busy={false}
 					onStudyFile={(f) => learned.push(f)}
 					onStudyTopic={(t) => practiced.push(t)}

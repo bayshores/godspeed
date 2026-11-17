@@ -276,6 +276,7 @@ async function main() {
 				log(`page got ${status} for ${url}`);
 				return status;
 			},
+			json: async (url) => JSON.parse(await app.run(`return fetch(${JSON.stringify(url)})${HTTP_OK}.then((r) => r.text())`)),
 		};
 		ids = await seed(path.join(RUN, "data"), page, log).catch((err) => {
 			throw new Error(`${err.message}; steps: ${seedLog}`);

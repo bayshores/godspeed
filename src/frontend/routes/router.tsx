@@ -3,7 +3,6 @@ import { HomePage } from "@/frontend/components/home-page/home-page";
 import { NewLesson } from "@/frontend/components/home";
 import { GraphScreen } from "@/frontend/components/graph/graph-screen";
 import { SpaceOverview } from "@/frontend/components/overview/space-overview";
-import { LessonsList } from "@/frontend/components/lessons/lessons-list";
 import { FilesPage } from "@/frontend/components/files/files-page";
 import { DeadlinesTab } from "@/frontend/components/space-page/deadlines-tab";
 import { Root } from "./root";
@@ -36,17 +35,6 @@ export const routes: RouteObject[] = [
 						children: [
 							{ path: "graph", element: <><PageTitle page="Graph" /><GraphScreen /></> },
 							{ path: "space", element: <><PageTitle page="Progress" /><SpaceOverview /></> },
-							// With no space picked, the lessons that belong to none.
-							{
-								path: "space/lessons",
-								element: (
-									<div className="h-full overflow-y-auto">
-										<PageTitle page="Lessons" />
-										<h1 className="sr-only">Lessons</h1>
-										<LessonsList />
-									</div>
-								),
-							},
 							{ path: "space/files", element: <><PageTitle page="Files" /><FilesPage /></> },
 							{
 								path: "space/deadlines",

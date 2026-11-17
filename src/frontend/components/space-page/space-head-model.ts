@@ -2,9 +2,9 @@
  *  signature's share and fit. Pure. */
 import type { FactProgress } from "@/shared/core";
 
-/** What a tab counts: the percent of facts studied, lessons, files,
- *  deadlines coming up. */
-export type TabCounts = Record<"studied" | "lessons" | "files" | "deadlines", number | undefined>;
+/** What a tab counts: the percent of facts studied, files, deadlines
+ *  coming up. */
+export type TabCounts = Record<"studied" | "files" | "deadlines", number | undefined>;
 
 interface SpaceTab {
 	href: string;
@@ -19,7 +19,6 @@ type HeadKind = "space" | "none";
 
 const TABS: readonly (SpaceTab & { spaceOnly?: boolean })[] = [
 	{ href: "/space", label: "Progress", testid: "nav-progress", count: "studied" },
-	{ href: "/space/lessons", label: "Lessons", testid: "nav-lessons", count: "lessons" },
 	{ href: "/space/files", label: "Files", testid: "nav-files", count: "files", spaceOnly: true },
 	{ href: "/graph", label: "Graph", testid: "nav-graph" },
 	{ href: "/space/deadlines", label: "Deadlines", testid: "nav-deadlines", count: "deadlines", spaceOnly: true },

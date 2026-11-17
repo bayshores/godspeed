@@ -17,10 +17,7 @@ use crate::spaces::today_note::local_day;
 /// middle of a topic.
 pub fn continue_study_for(deadline_id: &str, sessions: &[Json]) -> Option<Json> {
 	let latest = latest_session(deadline_id, sessions)?;
-	let (done, total) = (latest["done"].as_f64(), latest["total"].as_f64());
-	// `done >= total` is false when either is missing, so such a session stays open.
-	let counted_out = matches!((done, total), (Some(d), Some(t)) if d >= t) && !latest["stop"].truthy();
-	if counted_out || latest["endedAt"].truthy() {
+	if plan_finished(latest) {
 		return None;
 	}
 	let mut out = Obj::new();
@@ -35,6 +32,15 @@ pub fn continue_study_for(deadline_id: &str, sessions: &[Json]) -> Option<Json> 
 		}
 	}
 	Some(Json::Obj(out))
+}
+
+/// Whether a lesson's plan state (`{ done?, total?, stop?, endedAt? }`) is finished: it reached
+/// its end, or its count reached its last step with no stop left to go on from.
+pub fn plan_finished(state: &Json) -> bool {
+	let (done, total) = (state["done"].as_f64(), state["total"].as_f64());
+	// `done >= total` is false when either is missing, so a lesson with no count stays open.
+	let counted_out = matches!((done, total), (Some(d), Some(t)) if d >= t) && !state["stop"].truthy();
+	counted_out || state["endedAt"].truthy()
 }
 
 /// Whether the deadline's latest session reached its end on `today` (the learner's day,
@@ -83,6 +89,17 @@ mod tests {
 		assert_eq!(continue_study_for("d1", &[old_finished]), None, "finished before stops existed");
 		let mid_last = json!({ "chatId": "a", "deadlineId": "d1", "createdAt": "1", "done": 3, "total": 3, "inTopic": "Model selection" });
 		assert_eq!(continue_study_for("d1", &[mid_last]), None, "in the middle of the last topic");
+	}
+
+	#[test]
+	fn a_plan_is_finished_at_its_end_or_counted_out_with_no_stop_left() {
+		let stop = json!({ "at": "2026-11-18T21:48:00.000Z", "next": "Cross-validation" });
+		assert!(!plan_finished(&json!({ "done": 1, "total": 3 })), "mid-way");
+		assert!(!plan_finished(&json!({})), "no count yet");
+		assert!(plan_finished(&json!({ "done": 3, "total": 3 })), "counted out");
+		assert!(plan_finished(&json!({ "done": 3, "total": 3, "inTopic": "Model selection" })), "in the last topic");
+		assert!(!plan_finished(&json!({ "done": 3, "total": 3, "stop": stop })), "a skipped topic is left");
+		assert!(plan_finished(&json!({ "done": 1, "total": 3, "endedAt": "2026-11-18T22:40:00.000Z" })), "reached its end");
 	}
 
 	#[test]

@@ -81,7 +81,7 @@ async fn chat(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhan
 	Ok(chat_reply(handle_chat_input(&app, chat_id, TurnInput::Chat(input)).await))
 }
 
-/// GET /api/chats[?space=<id|none>]: the session picker's list with liveness merged in.
+/// GET /api/chats[?space=<id|none>]: the lessons, all or one space's.
 async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandled> {
 	start_space_scanner(&app);
 	let params = query(&uri);
@@ -92,20 +92,7 @@ async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandl
 			None => return Ok(error(400, "bad space")),
 		},
 	};
-	let chats: Vec<Json> = app
-		.stores
-		.chats
-		.list_chats()
-		.into_iter()
-		.filter(|c| scope.as_ref().is_none_or(|s| c["spaceId"].as_str() == s.as_deref()))
-		.map(|mut c| {
-			let id = c["id"].as_str().unwrap_or_default().to_owned();
-			if let Some(o) = c.as_obj_mut() {
-				o.insert("busy", is_turn_running(&app, &id));
-			}
-			c
-		})
-		.collect();
+	let chats: Vec<Json> = app.stores.chats.list_chats().into_iter().filter(|c| scope.as_ref().is_none_or(|s| c["spaceId"].as_str() == s.as_deref())).collect();
 	Ok(reply::json(200, &json!({ "chats": chats })))
 }
 

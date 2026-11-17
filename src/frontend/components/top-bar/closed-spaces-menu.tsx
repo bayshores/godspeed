@@ -133,7 +133,7 @@ function LessonsWithNoSpace({ onPick }: { onPick: () => void }) {
 				onClick={() => {
 					onPick();
 					setActive(null);
-					navigate("/space/lessons");
+					navigate("/space");
 				}}
 				className={MENU_ITEM}
 			>

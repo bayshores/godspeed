@@ -17,6 +17,7 @@ import { OverviewBody } from "./overview-body";
  * THE SPACE'S PROGRESS TAB: the body reads the active space's progress
  * (useProgress).
  *
+ * With no space and no lessons outside one, it offers the spaces to pick.
  * The path's Study starts a session on its next topic. An interview with
  * no date yet offers "Add the date". The next
  * deadline's button works on it or studies for it; "Most needed"
@@ -57,7 +58,7 @@ export function SpaceOverview() {
 				onWorkDeadline={workOn}
 				onAddDeadline={() => navigate(ADD_DEADLINE_HREF)}
 				waiting={<WaitingDeadline record={record} />}
-				pickSpace={active ? undefined : <PickSpace line="Pick a space to see how it's going." />}
+				pickSpace={!active && current?.lessons.length === 0 ? <PickSpace line="Pick a space to see how it's going." /> : undefined}
 			/>
 			{!current && error && <LoadFailed message="Couldn't load this space's progress." onRetry={refresh} className="mx-auto w-full max-w-[908px] px-6" />}
 		</div>

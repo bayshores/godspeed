@@ -3,10 +3,9 @@ import { describe, it } from "node:test";
 import { headSignatureScale, spaceTabs, studiedShare, tabCount } from "../../src/frontend/components/space-page/space-head-model.ts";
 
 describe("a space's tabs", () => {
-	it("Progress, Lessons, Files, Graph, Deadlines", () => {
+	it("Progress, Files, Graph, Deadlines", () => {
 		assert.deepEqual(spaceTabs("space", []).map((t) => [t.label, t.href]), [
 			["Progress", "/space"],
-			["Lessons", "/space/lessons"],
 			["Files", "/space/files"],
 			["Graph", "/graph"],
 			["Deadlines", "/space/deadlines"],
@@ -19,19 +18,19 @@ describe("a space's tabs", () => {
 			["Cards", "/space/plugin/cards", "nav-plugin-cards"],
 			["Notes", "/space/plugin/a%20b", "nav-plugin-a b"],
 		]);
-		assert.deepEqual(spaceTabs("none", plugins).map((t) => t.label), ["Progress", "Lessons", "Graph"]);
+		assert.deepEqual(spaceTabs("none", plugins).map((t) => t.label), ["Progress", "Graph"]);
 	});
 	it("lessons with no space have no files or deadlines", () => {
-		assert.deepEqual(spaceTabs("none", []).map((t) => t.label), ["Progress", "Lessons", "Graph"]);
+		assert.deepEqual(spaceTabs("none", []).map((t) => t.label), ["Progress", "Graph"]);
 	});
-	it("Progress, Lessons, Files and Deadlines show a count", () => {
-		assert.deepEqual(spaceTabs("space", []).map((t) => t.count), ["studied", "lessons", "files", undefined, "deadlines"]);
+	it("Progress, Files and Deadlines show a count", () => {
+		assert.deepEqual(spaceTabs("space", []).map((t) => t.count), ["studied", "files", undefined, "deadlines"]);
 	});
 	it("a count reads as its number, the studied share as a percent, and nothing until it has loaded", () => {
-		const [progress, lessons, , graph] = spaceTabs("space", []);
-		const counts = { studied: 19, lessons: 0, files: 3, deadlines: 2 };
+		const [progress, files, graph] = spaceTabs("space", []);
+		const counts = { studied: 19, files: 0, deadlines: 2 };
 		assert.equal(tabCount(progress!, counts), "19%");
-		assert.equal(tabCount(lessons!, counts), "0");
+		assert.equal(tabCount(files!, counts), "0");
 		assert.equal(tabCount(graph!, counts), undefined);
 		assert.equal(tabCount(progress!, { ...counts, studied: undefined }), undefined);
 	});

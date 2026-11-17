@@ -18,8 +18,7 @@
  *
  * TEST SEAM: `connect` injects the source factory — the hub + wiring are
  * plain functions the tests drive directly (no React, no server); the
- * React glue is an adapter seam like lh:turn-state (untested by
- * precedent, src/frontend/components/session.ts).
+ * React glue is an adapter seam (untested by precedent).
  */
 import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { SERVER_EVENT_TYPES, type ServerEventType, type ServerEvents } from "@/shared/core";

@@ -1,9 +1,9 @@
 /**
  * CONTINUE STUDYING: a deadline's Study button reopens the learner's latest
- * Study session started from that deadline until it is finished: it reached
- * its end, or its step bar's count reached its last topic with no stop left
- * to go on from. The server keeps a Rust copy
- * (crates/core/src/study/continue_study.rs). Pure and browser-safe.
+ * Study session started from that deadline until it is finished. The server
+ * decides that (`plan_finished` in crates/core/src/study/continue_study.rs)
+ * and sends these types; this file holds them and the button labels. Pure
+ * and browser-safe.
  */
 
 /** A Study session started from a deadline, with its step bar's count. */

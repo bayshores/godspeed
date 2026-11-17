@@ -4,7 +4,7 @@
  * function — so these pins drive the real wiring with a fake source, no
  * React and no server: typed dispatch, resync-on-open, error isolation,
  * and close-stops-dispatch. The React glue around it (hooks/context) is
- * an adapter seam like lh:turn-state (untested by precedent).
+ * an adapter seam (untested by precedent).
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";

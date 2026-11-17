@@ -1053,7 +1053,6 @@
 					"enum": [
 						"today",
 						"progress",
-						"lessons",
 						"files",
 						"deadlines",
 						"graph",
@@ -1061,11 +1060,11 @@
 						"cheat_sheet",
 						"lesson"
 					],
-					"description": "today, a space's progress, lessons, files, deadlines or graph, a deadline, its cheat_sheet, or a lesson."
+					"description": "today, a space's progress, files, deadlines or graph, a deadline, its cheat_sheet, or a lesson."
 				},
 				"space_id": {
 					"type": "string",
-					"description": "With progress, lessons, files, deadlines or graph: the space id from list_spaces, or \"none\" for no space (not for files or deadlines)."
+					"description": "With progress, files, deadlines or graph: the space id from list_spaces, or \"none\" for no space (not for files or deadlines)."
 				},
 				"deadline_id": {
 					"type": "string",

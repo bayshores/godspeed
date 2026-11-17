@@ -205,6 +205,12 @@ export interface LessonProgress {
 	answered: number;
 	/** The rate as a topic's (tally); null before the first answer. */
 	score: number | null;
+	/** Where the lesson's plan is, as its step bar counts it; absent with no plan. */
+	step?: { done: number; total: number };
+	/** Set while the lesson has not reached its end. */
+	unfinished?: true;
+	/** The deadline it was started from. */
+	deadlineId?: string;
 }
 
 export interface CalibrationLevel {

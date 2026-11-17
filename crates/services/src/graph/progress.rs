@@ -26,9 +26,9 @@ use crate::mocks::mocks::space_mock_answers;
 use crate::spaces::source_id_for;
 
 /// A lesson's graded answers, practice outcomes, questions from earlier, kept sentences and when
-/// they came back, and (a Study session started from a deadline) where the session stands. Progress is read again after every
-/// background update, and parsing every lesson each time grows with the term, so each is kept
-/// while its record file is unchanged.
+/// they came back, and where its plan stands. Progress is read again after every background
+/// update, and parsing every lesson each time grows with the term, so each is kept while its
+/// record file is unchanged.
 struct Readout {
 	version: String,
 	answers: Vec<Json>,
@@ -36,7 +36,8 @@ struct Readout {
 	reviews: Vec<Json>,
 	kept: Vec<KeptSentence>,
 	comebacks: Vec<(String, i64)>,
-	session: Option<Obj>,
+	/// Set for a lesson with a plan.
+	plan: Option<Obj>,
 	/// Each topic stop's node and time.
 	topic_stops: Vec<(String, String)>,
 }
@@ -51,10 +52,7 @@ fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 	}
 	let record = app.stores.chats.get_chat(chat_id)?;
 	let messages = record["messages"].items();
-	// A lesson whose agent has not written its plan yet is the deadline's session too, uncounted.
-	// A homework lesson is never one: Study for the deadline would reopen it.
-	let is_session = record["deadlineId"].truthy() && record["kind"].as_str() != Some("homework");
-	let session = is_session.then(|| if record["tree"].truthy() { deadline_session(&record["tree"], messages) } else { Obj::new() });
+	let has_plan = !record["tree"]["nodes"].items().is_empty() && record["kind"].as_str() != Some("practice");
 	let readout = Arc::new(Readout {
 		version,
 		answers: collect_answers(chat_id, messages),
@@ -62,18 +60,17 @@ fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 		reviews: review_items(chat_id, messages),
 		kept: kept_sentences(chat_id, messages),
 		comebacks: kept_comebacks(messages),
-		session,
+		plan: has_plan.then(|| plan_state(&record["tree"], messages)),
 		topic_stops: topic_stop_times(messages),
 	});
 	app.graph.readouts.0.lock().insert(chat_id.to_owned(), readout.clone());
 	Some(readout)
 }
 
-/// Where a Study session started from a deadline with a plan stands: its step bar's count
-/// (`done`, `total`), the stop it waits at until he keeps going (`stop`: `{at, next}`), when it
-/// reached its end (`endedAt`), and otherwise the topic it is in the middle of (`inTopic`, the
-/// current step's title).
-fn deadline_session(tree: &Json, messages: &[Json]) -> Obj {
+/// Where a lesson's plan stands: its step bar's count (`done`, `total`), the stop it waits at
+/// until he keeps going (`stop`: `{at, next}`), when it reached its end (`endedAt`), and otherwise
+/// the topic it is in the middle of (`inTopic`, the current step's title).
+fn plan_state(tree: &Json, messages: &[Json]) -> Obj {
 	let mut out = picked(&plan_position_lh(tree, messages), &["done", "total"]);
 	let (key, value) = match lesson_stop(messages, Some(tree), None) {
 		Some(stop) if stop["kind"].as_str() == Some("end") => ("endedAt", Some(stop["at"].clone())),
@@ -204,19 +201,24 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 			homework_sessions.push(json!({ "chatId": c["id"], "deadlineId": c["deadlineId"], "createdAt": c["createdAt"] }));
 		}
 		let Some(readout) = lesson_readout(app, c["id"].str_or_empty()) else { continue };
-		let mut lesson = picked(c, &["id", "title", "kind", "updatedAt"]);
+		let mut lesson = picked(c, &["id", "title", "kind", "updatedAt", "deadlineId", "pendingQuestion", "pendingProblem"]);
 		lesson.insert("answers", readout.answers.clone());
+		if let Some(plan) = &readout.plan {
+			lesson.insert("plan", plan.clone());
+		}
 		lessons.push(Json::Obj(lesson));
 		if c["kind"].as_str() == Some("study") {
 			let today_stops = readout.topic_stops.iter().filter(|(_, at)| time::parse_date(at).map(local_day).as_deref() == Some(today.as_str()));
 			finished_today.extend(today_stops.map(|(node, _)| node.clone()));
 		}
-		if let (true, Some(stands)) = (c["deadlineId"].truthy(), &readout.session) {
+		// A lesson whose agent has not written its plan yet is the deadline's session too,
+		// uncounted. A homework lesson is never one: Study for the deadline would reopen it.
+		if c["deadlineId"].truthy() && c["kind"].as_str() != Some("homework") {
 			let mut session = Obj::new();
 			session.insert("chatId", c["id"].clone());
 			session.insert("deadlineId", c["deadlineId"].clone());
 			session.insert_present("createdAt", c.get("createdAt"));
-			session.extend(stands.clone());
+			session.extend(readout.plan.clone().unwrap_or_default());
 			deadline_sessions.push(Json::Obj(session));
 		}
 	}
@@ -510,6 +512,26 @@ mod tests {
 	}
 
 	#[test]
+	fn a_lesson_with_a_plan_and_no_deadline_gets_its_step_and_is_unfinished_until_its_end() {
+		let root = scratch_dir("progress-lesson-plan");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Machine Learning Foundations" })).unwrap()["id"].str_or_empty().to_owned();
+		let chat_id = app.stores.chats.create_chat("Regularization", Some("study"), Some(&space_id), None).unwrap()["id"].str_or_empty().to_owned();
+		app.stores.chats.save_tree(&chat_id, &tree()).unwrap();
+		let row = |app: &App| progress_for(app, space_id.as_str(), None).unwrap().unwrap()["lessons"].items().iter().find(|l| l["chatId"].as_str() == Some(chat_id.as_str())).unwrap().clone();
+
+		let r = row(&app);
+		assert_eq!((r["step"].clone(), r["unfinished"].clone(), r.get("deadlineId")), (json!({ "done": 0, "total": 3 }), json!(true), None), "nothing shown yet");
+		let stopped = [vec![asked("reg")], ended("c1", "reg"), opener_after("reg", "cv")].concat();
+		let going = [stopped, vec![kept_going("c1")]].concat();
+		app.stores.chats.save_messages(&chat_id, &going).unwrap();
+		let r = row(&app);
+		assert_eq!((r["step"].clone(), r["unfinished"].clone()), (json!({ "done": 2, "total": 3 }), json!(true)), "on the second topic");
+		app.stores.chats.save_messages(&chat_id, &[going, ended("c2", "cv"), ended("c3", "gd")].concat()).unwrap();
+		assert_eq!(row(&app).get("unfinished"), None, "reached its end");
+	}
+
+	#[test]
 	fn a_homework_lesson_is_never_the_deadlines_study_session() {
 		let root = scratch_dir("progress-homework");
 		let app = test_app(&root);
@@ -526,6 +548,19 @@ mod tests {
 		let d = midterm(&app, &space_id, &deadline_id);
 		assert_eq!(d["continueStudy"]["chatId"], json!(study));
 		assert_eq!(d["continueHomework"], json!(homework));
+	}
+
+	#[test]
+	fn a_practice_lesson_with_a_solved_problem_and_no_quiz_is_not_unfinished() {
+		let root = scratch_dir("progress-practice-solved");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Algorithms" })).unwrap()["id"].str_or_empty().to_owned();
+		let chat_id = app.stores.chats.create_chat("Recurrences", Some("practice"), Some(&space_id), None).unwrap()["id"].str_or_empty().to_owned();
+		let row = |app: &App| progress_for(app, space_id.as_str(), None).unwrap().unwrap()["lessons"].items()[0].clone();
+		assert_eq!(row(&app)["unfinished"], json!(true), "nothing done yet");
+		app.stores.chats.save_messages(&chat_id, &hinted("1", "rec", "n_rec")).unwrap();
+		let r = row(&app);
+		assert_eq!((r["answered"].clone(), r.get("unfinished")), (json!(1), None), "a problem solved with hints counts as answered");
 	}
 
 	/// A problem on `node` the learner solved with hints, ending the topic now.

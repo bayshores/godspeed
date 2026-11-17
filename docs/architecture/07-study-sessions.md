@@ -4,7 +4,7 @@ Every new lesson is a study session (`kind: "study"` on the chat record). No pro
 
 Started from:
 
-- "Study something new" on a space's Lessons tab (study page, `/new`)
+- "Study something new" on the Lessons block of a space's Progress page (study page, `/new`)
 - Start on a Today row, or Study on a deadline page
 - Study in a topic's or a fact's panel on Graph tab, or Study on Progress tab
 - "Go over it with the teacher" on a mock's results
@@ -33,6 +33,14 @@ A typed subject (also MCP `start_lesson`) or a deadline with no space topics for
 The lesson keeps its own plan when files are added to the space later. A mock question gone over with no topic of its own is one weak topic (`FREE_TOPIC_ID`).
 
 A Study session started from a deadline records `deadlineId` (a homework lesson records it too but is not a Study session). While the latest such session is unfinished, the deadline's Study button reopens it, and the button reads "Continue" instead of "Study" (`core::study::continue_study`, `studyLabel`). Where several deadlines' buttons sit together (the Study page), and on a homework's two keys, each names its deadline and an unfinished one adds its count ("Continue studying for Midterm, 1 of 4 topics"). The progress payload carries it as `continueStudy`. A deadline topic with a topic stop in a Study session on the learner's day carries `finishedToday: true` in the progress payload. The plan (`core::study::deadline_plan`, `deadline-plan.ts`) never puts such a topic on today: it moves to tomorrow, or out of the plan when tomorrow is the due day. When that empties today, Today has nothing planned and the deadline's Study button takes all its topics.
+
+### Unfinished lessons
+
+Each lesson row in the progress payload carries `step` (`{ done, total }`, the number the lesson's step bar shows, only when the lesson has a plan), `unfinished` (set only when true) and `deadlineId` (the deadline it was started from). The server decides `unfinished` (`derive_progress::lesson_rows`, with `plan_finished` from `core::study::continue_study`), and the Lessons block and the Study page's Continue row both read it. Of the lessons started from one deadline, only the latest can be unfinished. A lesson is unfinished when:
+
+1. It is a homework lesson, it is its deadline's latest homework lesson, the deadline is not done and not every problem is done. A deadline with no problems posted counts as not every problem done.
+2. It has a plan that has not reached its end, and either its count has not reached the last step or a stop is left to go on from.
+3. It has no plan and a question or problem waits for the learner, or nothing has been answered yet.
 
 ### The study agent
 

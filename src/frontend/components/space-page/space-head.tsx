@@ -6,7 +6,6 @@ import { SpaceDialog } from "@/frontend/components/space-dialog";
 import { useMinute } from "@/frontend/components/countdown";
 import { isOverdue } from "@/frontend/components/deadlines-model";
 import { useUnseenFiles } from "@/frontend/components/files/files-seen";
-import { useLessonList } from "@/frontend/components/lessons/use-lesson-list";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { useProgress } from "@/frontend/components/use-progress";
 import type { ShownPlugin } from "@/frontend/lib/use-plugins-at";
@@ -95,12 +94,10 @@ function useStudiedShare(): number | null {
 /** The count beside each tab; undefined until its list has loaded. */
 function useTabCounts(share: number | null): TabCounts {
 	const { active, activeSpace } = useSpaces();
-	const { chats } = useLessonList();
 	const open = useOpenDeadlines().deadlines;
 	const nowMs = useMinute();
 	return {
 		studied: share === null ? undefined : Math.round(share * 100),
-		lessons: chats?.filter((c) => (c.spaceId ?? null) === active).length,
 		files: activeSpace?.fileCount,
 		deadlines: open && nowMs !== null ? open.filter((d) => d.spaceId === active && !isOverdue(d, nowMs)).length : undefined,
 	};

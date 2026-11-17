@@ -38373,7 +38373,8 @@
 						"answers": [],
 						"right": 0,
 						"answered": 0,
-						"score": null
+						"score": null,
+						"unfinished": true
 					},
 					{
 						"chatId": "chat_cwa1fgeg_dd4b665c",
@@ -38401,7 +38402,8 @@
 						"answers": [],
 						"right": 0,
 						"answered": 0,
-						"score": null
+						"score": null,
+						"unfinished": true
 					},
 					{
 						"chatId": "chat_cw5rpskb_617eb4f6",
@@ -38411,7 +38413,8 @@
 						"answers": [],
 						"right": 0,
 						"answered": 0,
-						"score": null
+						"score": null,
+						"unfinished": true
 					},
 					{
 						"chatId": "chat_cw2tmqob_d86fd6e0",
@@ -38486,7 +38489,8 @@
 						"answers": [],
 						"right": 0,
 						"answered": 0,
-						"score": null
+						"score": null,
+						"unfinished": true
 					},
 					{
 						"chatId": "chat_cw0g3jfk_d22481ea",
@@ -38496,7 +38500,8 @@
 						"answers": [],
 						"right": 0,
 						"answered": 0,
-						"score": null
+						"score": null,
+						"unfinished": true
 					},
 					{
 						"chatId": "chat_cvxdvze6_9f82bbab",
@@ -38549,7 +38554,8 @@
 						"answers": [],
 						"right": 0,
 						"answered": 0,
-						"score": null
+						"score": null,
+						"unfinished": true
 					},
 					{
 						"chatId": "chat_cvvooldp_183cb789",
@@ -38559,7 +38565,8 @@
 						"answers": [],
 						"right": 0,
 						"answered": 0,
-						"score": null
+						"score": null,
+						"unfinished": true
 					},
 					{
 						"chatId": "chat_cvta7q3k_f10e5baf",
@@ -53409,7 +53416,8 @@
 						"answers": [],
 						"right": 0,
 						"answered": 0,
-						"score": null
+						"score": null,
+						"unfinished": true
 					},
 					{
 						"chatId": "c1",
