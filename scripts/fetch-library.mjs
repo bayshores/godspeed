@@ -13,7 +13,7 @@ import * as path from "node:path";
 
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
-/** `member` is the library's path inside the .tgz at `url`; `file` its name in .stage/. */
+/** `member` is the library's path inside the .tgz or .nupkg (a zip) at `url`; `file` its name in .stage/. */
 export async function fetchLibrary(tag, { url, archiveSha256, member, librarySha256, file }) {
 	const fail = (message) => {
 		console.error(`[${tag}] ${message}`);
@@ -36,7 +36,8 @@ export async function fetchLibrary(tag, { url, archiveSha256, member, librarySha
 	try {
 		fs.writeFileSync(path.join(work, archive), bytes);
 		// A bare file name: GNU tar (first on PATH in Git Bash) reads `C:\…` as a remote host.
-		execFileSync("tar", ["-xzf", archive, member], { cwd: work });
+		if (archive.endsWith(".nupkg")) execFileSync("unzip", ["-q", archive, member], { cwd: work });
+		else execFileSync("tar", ["-xzf", archive, member], { cwd: work });
 		library = fs.readFileSync(path.join(work, member));
 	} finally {
 		fs.rmSync(work, { recursive: true, force: true });

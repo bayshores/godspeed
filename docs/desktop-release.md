@@ -38,7 +38,7 @@ The release workflow runs these steps on each OS.
 1. `npm ci`.
 2. `node scripts/fetch-model.mjs` downloads the space-search model into `models/`.
 3. `node scripts/fetch-pdfium.mjs` downloads pdfium's library into `.stage/` and checks its sha256.
-4. Linux and Intel Macs: `node scripts/fetch-onnxruntime.mjs` downloads Microsoft's ONNX Runtime library into `.stage/` the same way.
+4. Linux and Intel Macs: `node scripts/fetch-onnxruntime.mjs` downloads Microsoft's ONNX Runtime library (from its NuGet package) into `.stage/` the same way.
 5. Mac: `node scripts/compile-icon.mjs` compiles the icon into `.stage/Assets.car`.
 6. Intel Macs: `cargo test -p gs-search`. No other job runs the search model on the ONNX Runtime Intel Macs load.
 7. `node scripts/stage-app.mjs` builds the UI (`dist-ui/`), builds the release server for this OS's target triple into `crates/shell/binaries/`, and copies the pdf.js files to `.stage/pdfjs-dist/`. It refuses a UI folder holding `data/` or a secrets file.
