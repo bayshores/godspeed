@@ -23,14 +23,14 @@ import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 
 /** The tabs. A section's hint is the quiet line under it. */
 const SECTIONS = [
-	{ id: "connection", label: "Connection", hint: connectionHint },
-	{ id: "teaching", label: "Teaching" },
-	{ id: "appearance", label: "Appearance" },
 	{ id: "general", label: "General" },
+	{ id: "appearance", label: "Appearance" },
+	{ id: "teaching", label: "Teaching" },
 	{ id: "plugins", label: "Plugins" },
+	{ id: "connection", label: "Connection", hint: connectionHint },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]["id"];
-const DEFAULT_SECTION: SectionId = "connection";
+const DEFAULT_SECTION: SectionId = "general";
 
 /** A requested section id → the section that shows it (unknown ids land
  *  on the default). */

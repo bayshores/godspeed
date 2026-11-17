@@ -14,7 +14,7 @@ import { canRemove, canRetry, fileState, kindTitle, studiedFill, type FileState 
  * ONE FILE ROW (Files page): the name (New for a few days after a scan
  * found it; a linked folder's file names its path on hover), Study or
  * Info, the row's state ("8 of 12 facts studied" with its bar, "Building
- * facts", "Waiting", "Failed" with Retry) and, on hover, More (Move to the
+ * facts", "Waiting", "Failed" with Retry) and More (Move to the
  * other kind, Retry, Show in Finder, Remove). A recording that needs the
  * speech tool gets a second line with the install command and Copy.
  * Memoized: a row redraws only when its own file or coverage changes.
@@ -70,7 +70,7 @@ export const FileRow = memo(function FileRow({
 		<li
 			data-testid={`space-file-${file.id}`}
 			data-teacher-target={`file:${file.id}`}
-			className={cn("group flex flex-wrap items-center gap-x-3 gap-y-1 px-1 py-[7px] hover:bg-panel", menuOpen && "bg-panel")}
+			className={cn("flex flex-wrap items-center gap-x-3 gap-y-1 px-1 py-[7px] hover:bg-panel", menuOpen && "bg-panel")}
 		>
 			<span className="flex min-w-0 flex-1 items-center gap-2">
 				{file.origin === "linked" ? (
@@ -180,7 +180,7 @@ function InstallLine({ fileId, command }: { fileId: string; command: string }) {
 const MENU_ITEM = "lh-press px-[18px] py-[11px] text-left hover:bg-tone";
 
 /** More: Move to the other kind, Retry (stuck waiting), Show in Finder
- *  (desktop app) and Remove (the app's own copies). Shown on hover. */
+ *  (desktop app) and Remove (the app's own copies). */
 function RowMenu({
 	file,
 	disabled,
@@ -218,7 +218,7 @@ function RowMenu({
 				data-testid={`space-file-menu-${file.id}`}
 				disabled={disabled}
 				onClick={() => setOpen((o) => !o)}
-				className={cn("lh-btn lh-btn-quiet h-7 shrink-0 text-[15px] focus-visible:opacity-100 group-hover:opacity-100", !open && "opacity-0")}
+				className="lh-btn lh-btn-quiet h-7 shrink-0 text-[15px]"
 			>
 				More
 			</button>

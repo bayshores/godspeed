@@ -103,7 +103,6 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 			&item("page:go:/space", "Progress", None)?,
 			&item("page:go:/space/files", "Files", None)?,
 			&item("page:go:/space/deadlines", "Deadlines", None)?,
-			&item("page:go:/space/cheat-sheets", "Cheat Sheets", None)?,
 		],
 	)?;
 

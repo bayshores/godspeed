@@ -194,9 +194,11 @@ export function YourTurn({
 			{view && (
 				<>
 					<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
-					<div className="flex shrink-0 items-center">
-						<AttachButton draft={attachments} />
-					</div>
+					{view.attach && (
+						<div className="flex shrink-0 items-center">
+							<AttachButton draft={attachments} />
+						</div>
+					)}
 				</>
 			)}
 		</div>

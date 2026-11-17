@@ -226,7 +226,7 @@ describe("backdrop dismissal requires a whole primary gesture on the scrim", () 
 	it("AbortTurnBody adopts the guard while retaining Cancel and Confirm actions", () => {
 		act(() => {
 			root.render(createElement(AbortTurnBody, {
-				mode: "turn",
+				mode: "question",
 				onClose: () => { closes++; },
 				onConfirm: () => { actions++; },
 			}));

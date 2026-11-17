@@ -38,25 +38,25 @@ describe("the Settings page (SSR)", () => {
 			</ServerEventsProvider>,
 		);
 
-	it("a page, not a dialog: \"Settings\", then one tab per section, Connection first and General last", () => {
+	it("a page, not a dialog: \"Settings\", then one tab per section, General first and Connection last", () => {
 		const html = page();
 		assert.ok(html.includes(">Settings</h1>"));
 		assert.ok(!html.includes('role="dialog"'));
 		assert.ok(!html.includes("settings-close"), "nothing to close");
 		const ids = [...html.matchAll(/data-testid="settings-nav-(\w+)"/g)].map((m) => m[1]);
-		assert.deepEqual(ids, ["connection", "teaching", "appearance", "general", "plugins"], "no Keyboard tab");
-		assert.ok(tagOf(html, "settings-nav-connection").includes('aria-current="true"'));
-		assert.ok(tagOf(html, "settings-nav-general").includes('aria-current="false"'));
+		assert.deepEqual(ids, ["general", "appearance", "teaching", "plugins", "connection"], "no Keyboard tab");
+		assert.ok(tagOf(html, "settings-nav-general").includes('aria-current="true"'));
+		assert.ok(tagOf(html, "settings-nav-connection").includes('aria-current="false"'));
 		// Fetches don't run under SSR: the loading state is the SSR state.
 		assert.ok(html.includes("Loading settings…"));
 	});
 
-	it("opens on the section the address asks for; an unknown one, the old Keyboard included, lands on Connection", () => {
-		assert.ok(tagOf(page("general"), "settings-nav-general").includes('aria-current="true"'));
-		assert.equal(sectionFor("keyboard"), "connection");
+	it("opens on the section the address asks for; an unknown one, the old Keyboard included, lands on General", () => {
+		assert.ok(tagOf(page("connection"), "settings-nav-connection").includes('aria-current="true"'));
+		assert.equal(sectionFor("keyboard"), "general");
 		assert.equal(sectionFor("teaching"), "teaching");
-		assert.equal(sectionFor("nope"), "connection");
-		assert.equal(sectionFor(undefined), "connection");
+		assert.equal(sectionFor("nope"), "general");
+		assert.equal(sectionFor(undefined), "general");
 	});
 });
 

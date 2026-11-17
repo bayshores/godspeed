@@ -267,8 +267,8 @@ export function Chat({
 	if (figureFocus !== null) lastFigureRef.current = figureFocus;
 
 	// THE LAYERED ESC: an open focus claims Esc first (the plan's dialog
-	// takes its own); then the abort chain opens its confirm (question →
-	// problem → turn).
+	// takes its own); then the abort chain: a question or problem opens its
+	// confirm, a running reply stops at once (what it wrote stays).
 	// The handler reads refs — the window listener is mount-scoped.
 	const [abortAsk, setAbortAsk] = useState<AbortMode | null>(null);
 	const escStateRef = useRef({ abortAsk, mermaid: false });
@@ -283,19 +283,16 @@ export function Chat({
 				problem: activeProblemRef.current !== null,
 				busy: busyRef.current,
 			});
-			if (target === "question" || target === "problem" || target === "turn") setAbortAsk(target);
+			if (target === "question" || target === "problem") setAbortAsk(target);
+			else if (target === "turn") abortInFlightTurn();
 			else if (target === "mermaid") setMermaidFocus(null);
 		};
 		window.addEventListener("lh:kbd-abort-turn", onAbort);
 		return () => window.removeEventListener("lh:kbd-abort-turn", onAbort);
-	}, []);
+	}, [abortInFlightTurn]);
 	const confirmAbort = useCallback(
-		(mode: AbortMode) => {
+		() => {
 			setAbortAsk(null);
-			if (mode === "turn") {
-				abortInFlightTurn();
-				return;
-			}
 			// A pending question's dismiss is silent (no turn); mid-turn it also
 			// kills the running turn, and the route parks the dismissal.
 			const p = pendingRef.current;

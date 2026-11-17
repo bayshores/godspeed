@@ -2,11 +2,12 @@
 import { isQuestionTool, type LhMessage, type LhViewMessage } from "@/shared/core";
 
 /** Layered Esc: an open overlay claims Esc
- *  — closing itself — before the abort chain may open its confirm.
+ *  — closing itself — before the abort chain acts.
  *  Priority is stacking order: the abort confirm (claims via its own
  *  dialog), the session overlays (mermaid above plan), then question →
- *  problem → turn. A turn running under a waiting question (a side reply)
- *  stops alone, so the question stays. */
+ *  problem → turn. Question and problem open their confirm; a turn stops
+ *  at once. A turn running under a waiting question (a side reply) stops
+ *  alone, so the question stays. */
 type EscAbortTarget = "mermaid" | "question" | "problem" | "turn" | null;
 
 export function escAbortTarget(s: {

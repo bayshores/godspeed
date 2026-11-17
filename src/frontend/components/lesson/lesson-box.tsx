@@ -32,8 +32,10 @@ export function LessonBox({
 	boxRef: React.Ref<{ focus(): void }>;
 }) {
 	const b = view.button;
+	// A box whose answer carries no files takes none by paste or drop either.
+	const taken: AttachmentDraft = view.attach ? attachments : { ...attachments, add: () => {} };
 	return (
-		<div data-testid="composer" className="flex min-h-[112px] flex-1 flex-col gap-2" {...attachmentInputProps(attachments)}>
+		<div data-testid="composer" className="flex min-h-[112px] flex-1 flex-col gap-2" {...attachmentInputProps(taken)}>
 			<AttachmentTray draft={attachments} />
 			<div className="flex min-h-0 flex-1 flex-col lh-well rounded-[2px]">
 				<MathBox

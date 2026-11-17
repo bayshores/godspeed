@@ -5,8 +5,8 @@ import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialo
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 
 /**
- * The stop guard: the global Esc → abort chain and the Skip question and
- * Discard problem buttons open this confirm popup. Esc on the popup
+ * The skip and discard guard: the global Esc → abort chain and the Skip
+ * question and Discard problem buttons open this confirm popup. Esc on the popup
  * itself cancels (claimed — it must never chain into another abort),
  * which is also why Chat's abort handler ignores events while this
  * dialog is open: two window listeners fire per Esc and stopPropagation
@@ -16,23 +16,17 @@ import { DEFAULT_TEACHER_NAME } from "@/shared/core";
  * (a fetch that fires and forgets, an answer submit whose own machinery
  * shows progress).
  *
- * What "abort" means is mode-dependent: from a running turn it kills
- * the turn (partial stays); from a pending question there is no turn to
- * kill — abort IS dismissal: the silent route writes
- * the skipped toolResult and wakes NOTHING; the session pauses until
- * the user's next plain message, which carries the dismissal to the
- * model in its context.
+ * Stopping a running reply needs no confirm (what was written stays), so
+ * it never opens this. Skipping a pending question is a dismissal: the
+ * silent route writes the skipped toolResult and wakes NOTHING; the session
+ * pauses until the user's next plain message, which carries the dismissal
+ * to the model in its context.
  */
 
-/** What is being stopped, skipped or discarded: drives copy and the confirm action. */
-export type AbortMode = "turn" | "question" | "problem";
+/** What is being skipped or discarded: drives copy and the confirm action. */
+export type AbortMode = "question" | "problem";
 
 const COPY: Record<AbortMode, { title: string; line: (teacher: string) => string; action: string }> = {
-	turn: {
-		title: "Stop this reply?",
-		line: (teacher) => `What ${teacher} wrote so far stays in the lesson.`,
-		action: "Stop reply",
-	},
 	question: {
 		title: "Skip this question?",
 		line: (teacher) => `${teacher} moves on without it.`,
@@ -57,8 +51,7 @@ export function AbortTurnBody({
 	mode: AbortMode;
 	onClose: () => void;
 	onConfirm: () => void;
-	/** The dismiss doubles as the abort when a turn is still running;
-	 * the line says so. */
+	/** The dismiss also stops a reply that is still running; the line says so. */
 	busy?: boolean;
 	/** "closed" while the exit plays — inert. */
 	state?: "open" | "closed";
@@ -91,7 +84,7 @@ export function AbortTurnBody({
 		>
 			<p data-testid="abort-turn-line" className="text-lg text-ink">
 				{copy.line(teacher)}
-				{busy && mode !== "turn" ? ` ${teacher}'s reply stops too.` : ""}
+				{busy ? ` ${teacher}'s reply stops too.` : ""}
 			</p>
 		</DialogSheet>
 	);
@@ -103,10 +96,10 @@ export function AbortTurnDialog({
 	onConfirm,
 	busy = false,
 }: {
-	/** What is being stopped, skipped or discarded; null = closed (nothing rendered). */
+	/** What is being skipped or discarded; null = closed (nothing rendered). */
 	mode: AbortMode | null;
 	onClose: () => void;
-	onConfirm: (mode: AbortMode) => void;
+	onConfirm: () => void;
 	busy?: boolean;
 }) {
 	// Exit motion: the last mode stays on screen while the dialog fades out.
@@ -129,5 +122,5 @@ export function AbortTurnDialog({
 	}, [mode]);
 
 	if (!mounted || shown === null || typeof document === "undefined") return null;
-	return createPortal(<AbortTurnBody mode={shown} onClose={onClose} onConfirm={() => onConfirm(shown)} busy={busy} state={state} />, document.body);
+	return createPortal(<AbortTurnBody mode={shown} onClose={onClose} onConfirm={onConfirm} busy={busy} state={state} />, document.body);
 }

@@ -15,10 +15,11 @@ const CONFIDENCE_WORDS: readonly string[] = ["Guessing", "Unsure", "Somewhat sur
 /**
  * One quiet line under a quiz's answers once one is picked: "How sure are
  * you?" and five small squares, filled up to the pick, with "Guessing" and
- * "Certain" at the ends when the line has room (each square names its level
- * on hover either way). Click a square, or ←/→ (the question owns the keys).
- * Unrated, every square is light and no confidence is sent. Each square
- * sits in a 24px target (WCAG 2.5.8).
+ * "Certain" at the ends. In a narrow column the line wraps between the
+ * question and the squares group, which never breaks apart (each square
+ * also names its level on hover). Click a square, or ←/→ (the question owns
+ * the keys). Unrated, every square is light and no confidence is sent. Each
+ * square sits in a 24px target (WCAG 2.5.8).
  */
 export function ConfidenceLine({ level, onChange, ref }: { level: ConfidenceLevel | null; onChange: (level: ConfidenceLevel) => void; ref?: Ref<HTMLDivElement> }) {
 	const groupRef = useRef<HTMLSpanElement>(null);
@@ -28,14 +29,14 @@ export function ConfidenceLine({ level, onChange, ref }: { level: ConfidenceLeve
 		if (!group || !group.contains(document.activeElement)) return;
 		group.querySelector<HTMLElement>('[tabindex="0"]')?.focus();
 	}, [level]);
-	const end = "hidden shrink-0 text-[13px] text-ink-2 @[24rem]:inline";
+	const end = "shrink-0 text-[13px] text-ink-2";
 	return (
-		<div ref={ref} data-testid="confidence-line" className="@container shrink-0">
-			<div className="flex items-center gap-2 text-[15px]">
-				<span id="confidence-question" className="shrink-0 text-ink-2">
-					How sure are you?
-				</span>
-				<span aria-hidden className={cn(end, "ml-1")}>
+		<div ref={ref} data-testid="confidence-line" className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 text-[15px]">
+			<span id="confidence-question" className="shrink-0 text-ink-2">
+				How sure are you?
+			</span>
+			<div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
+				<span aria-hidden className={end}>
 					{CONFIDENCE_WORDS[0]}
 				</span>
 				<span ref={groupRef} className="flex" role="radiogroup" aria-labelledby="confidence-question">

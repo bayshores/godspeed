@@ -533,6 +533,10 @@ describe("the question's keys", () => {
 			assert.ok(host.querySelector('[data-testid="dont-know-option"]')!.closest("[role]")!.nextElementSibling === line, "right under the answers");
 			assert.equal(line.querySelector('[data-testid="confidence-level-1"]')!.getAttribute("title"), "1, Guessing");
 			assert.equal(line.querySelector('[data-testid="confidence-level-5"]')!.getAttribute("title"), "5, Certain");
+			assert.equal(line.textContent, "How sure are you?GuessingCertain", "the end words show at any width");
+			const group = line.querySelector('[role="radiogroup"]')!.parentElement!;
+			assert.equal(group.textContent, "GuessingCertain", "the end words and the squares are one group, so a narrow line wraps before it");
+			assert.ok(!line.className.includes("@container"));
 			await click(host, "dont-know-option");
 			assert.ok(host.querySelector('[data-testid="confidence-line"]') === null, "never after I don't know");
 		});

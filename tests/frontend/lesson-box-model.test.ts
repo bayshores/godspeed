@@ -43,6 +43,27 @@ describe("lessonBox, a problem", () => {
 	});
 });
 
+describe("lessonBox, the Attach button", () => {
+	const quiz = { question: "q", options: [{ label: "a" }, { label: "b" }], correctAnswer: "a", explanation: "e" };
+	const ask = { question: "q", options: [{ label: "a" }, { label: "b" }] };
+
+	it("shows only where what is sent carries the files", () => {
+		assert.equal(box({ kind: "problem" }).attach, true, "work is sent with its files");
+		assert.equal(box({ kind: "read-first" }).attach, false, "Check your understanding sends nothing");
+		assert.equal(box(questionTurn("explain", { question: "why?", correctAnswer: "because" }, false)).attach, true, "a written answer");
+		assert.equal(box(questionTurn("ask_user_question", { question: "what next?" }, false)).attach, true, "an open ask");
+		assert.equal(box(questionTurn("ask_user_question", ask, true)).attach, true, "an ask with choices takes its own answer");
+		assert.equal(box(questionTurn("quiz", quiz, true)).attach, false, "a quiz answer drops files");
+		assert.equal(box(questionTurn("write_code", { question: "q" }, true)).attach, false, "a code answer drops files");
+	});
+
+	it("is hidden for an answer the app asked for, which is sent without files", () => {
+		assert.equal(box(questionTurn("quiz", quiz, true, "opener")).attach, false);
+		assert.equal(box(questionTurn("quiz", quiz, true, "review")).attach, false);
+		assert.equal(box(questionTurn("explain", { question: "why?", correctAnswer: "because" }, false, "review")).attach, false);
+	});
+});
+
 describe("lessonBox, a question", () => {
 	it("read first: the box holds thoughts, Enter opens the check", () => {
 		const view = box({ kind: "read-first" });

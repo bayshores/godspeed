@@ -36,6 +36,8 @@ export interface BoxView {
 	enter: BoxAction | null;
 	/** The quiet button beside "Your turn". */
 	exit: "skip" | "discard";
+	/** Whether what the box sends carries attached files, so the Attach button shows. */
+	attach: boolean;
 }
 
 /** A waiting question as the box sees it: written in the box, or picked
@@ -45,7 +47,8 @@ export function questionTurn(tool: string, input: unknown, picked: boolean, appP
 	const kind = toolQuestionKind(tool);
 	const ask = kind === "ask" ? parseAskInput(input) : undefined;
 	const written = kind === "explain" ? parseExplainInput(input) !== undefined : ask !== undefined && !ask.options?.length;
-	if (written) return { kind: "written", takesFiles: answerTakesFiles(tool) };
+	// An answer the app asked for (opener, review) is sent without files.
+	if (written) return { kind: "written", takesFiles: answerTakesFiles(tool) && !appPosed };
 	return { kind: "choice", picked, ...(appPosed ? { appPosed } : {}), ...(ask ? { ownAnswer: true as const } : {}) };
 }
 
@@ -60,10 +63,10 @@ export function lessonBox(s: {
 	if (turn.kind === "problem") {
 		// Work goes in once the teacher is free.
 		const canSend = (s.hasText || s.hasFiles) && !s.busy;
-		return { placeholder: "Your work", button: { action: "send", label: "Send", filled: canSend, disabled: !canSend }, enter: canSend ? "send" : null, exit: "discard" };
+		return { placeholder: "Your work", button: { action: "send", label: "Send", filled: canSend, disabled: !canSend }, enter: canSend ? "send" : null, exit: "discard", attach: true };
 	}
 	if (turn.kind === "read-first") {
-		return { placeholder: "Whatever comes to mind as you read.", button: { action: "reveal", label: "Check your understanding", filled: true, disabled: false }, enter: "reveal", exit: "skip" };
+		return { placeholder: "Whatever comes to mind as you read.", button: { action: "reveal", label: "Check your understanding", filled: true, disabled: false }, enter: "reveal", exit: "skip", attach: false };
 	}
 	const ready = turn.kind === "choice" ? turn.picked : s.hasText || (turn.takesFiles && s.hasFiles);
 	// An answer to a question from earlier wakes nobody, so it goes in while the teacher writes.
@@ -73,5 +76,6 @@ export function lessonBox(s: {
 		button: { action: "submit", label: "Submit answer", filled: true, disabled: !canSubmit },
 		enter: canSubmit ? "submit" : null,
 		exit: "skip",
+		attach: turn.kind === "written" ? turn.takesFiles : turn.ownAnswer === true && !turn.appPosed,
 	};
 }

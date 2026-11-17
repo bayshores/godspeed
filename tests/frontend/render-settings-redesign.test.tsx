@@ -1,6 +1,6 @@
 /**
  * The settings dialog in a DOM: requested sections land where they live
- * (unknown ids open Connection), General holds the graph rows, and the
+ * (unknown ids open General), General holds the graph rows, and the
  * Connection section reads as the design's rows (Access: Connection,
  * Access token; Setup: Claude Code, Codex, Other MCP apps; Remembered) with
  * its helpers.
@@ -92,12 +92,12 @@ afterEach(async () => {
 });
 
 describe("settings restyle", () => {
-	it("sectionFor: known ids open their section; anything else lands on Connection", () => {
+	it("sectionFor: known ids open their section; anything else lands on General", () => {
 		assert.equal(sectionFor("general"), "general");
 		assert.equal(sectionFor("teaching"), "teaching");
-		assert.equal(sectionFor("agent"), "connection", "the old Agent section id");
-		assert.equal(sectionFor(undefined), "connection");
-		assert.equal(sectionFor("nope"), "connection");
+		assert.equal(sectionFor("agent"), "general", "the old Agent section id");
+		assert.equal(sectionFor(undefined), "general");
+		assert.equal(sectionFor("nope"), "general");
 	});
 
 	it("General holds the update rows, and no Lessons and graph group (the graph switch is in Teaching)", async () => {
