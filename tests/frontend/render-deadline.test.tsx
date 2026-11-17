@@ -272,6 +272,8 @@ describe("a homework's Problems sheet", () => {
 
 	it("an unfinished Study says Continue studying; past its date only Work on stays; a failed start says why", () => {
 		assert.match(homework(HW_PROBLEMS, { deadline: deadline({ id: "hw4", kind: "homework", name: "HW 4", continueStudy: { chatId: "c1" } }) }), />Continue studying for HW 4</);
+		const counted = homework(HW_PROBLEMS, { deadline: deadline({ id: "hw4", kind: "homework", name: "HW 4", continueStudy: { chatId: "c1", done: 1, total: 4 } }) });
+		assert.match(counted, /title="Continue studying for HW 4, 1 of 4 topics"[^>]*>.*?>Continue studying for HW 4</, "beside Work on, the count is on hover");
 		const past = homework(HW_PROBLEMS, { deadline: deadline({ id: "hw4", kind: "homework", name: "HW 4", daysUntil: -1 }) });
 		assert.ok(!past.includes('data-testid="deadline-study"') && past.includes('data-testid="deadline-work"'));
 		assert.match(homework(HW_PROBLEMS, { error: "Couldn't start the lesson. Try again." }), /role="alert" data-testid="deadline-start-error"[^>]*>Couldn&#x27;t start the lesson/);

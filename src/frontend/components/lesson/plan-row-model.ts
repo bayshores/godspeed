@@ -137,8 +137,8 @@ export function homeworkRow(problems: readonly HomeworkProblem[], open: string |
 		const tone = problemTone(p, open);
 		const name = problemName(p.number);
 		const named = `${name.charAt(0).toUpperCase()}${name.slice(1)}, ${p.title}`;
-		const label =
-			tone === "current" ? `${named}, open now. Go to your work` : blocked ? `${named}${p.done ? ", done" : ""}. ${blocked}` : p.done ? `${named}, done. Open it again` : `${named}. Open it`;
+		const said = `${named}${p.done ? ", done" : ""}`;
+		const label = tone === "current" ? `${said}, open now. Go to your work` : blocked ? `${said}. ${blocked}` : p.done ? `${said}. Open it again` : `${said}. Open it`;
 		const hint = tone !== "current" && blocked ? `${p.title}. ${blocked}` : p.title;
 		return { key: p.number, tone, name: p.title, state: tone === "later" ? "upcoming" : tone, number: p.number, jump: null, hint, done: p.done, label };
 	});

@@ -57,7 +57,7 @@ describe("the plan row's logic", () => {
 
 	it("a done problem opened again is current and keeps its check", () => {
 		const row = homeworkRow([{ number: "1", title: "Gradient", text: "", done: true }], "1", null)!;
-		assert.deepEqual([row[0]!.tone, row[0]!.done], ["current", true]);
+		assert.deepEqual([row[0]!.tone, row[0]!.done, row[0]!.label], ["current", true, "Problem 1, Gradient, done, open now. Go to your work"]);
 	});
 
 	it("while no problem can open, every other cell says why, on hover too", () => {
