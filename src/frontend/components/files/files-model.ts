@@ -77,11 +77,6 @@ export function kindTitle(kind: "study" | "info"): string {
 	return kind === "study" ? "Study material" : "Space info";
 }
 
-/** What each kind does, under its name (Add files and the drop targets). */
-export function kindNote(kind: "study" | "info"): string {
-	return kind === "study" ? "Turned into facts" : "Read by the teacher only";
-}
-
 /** What "Move to Space info" does to a study file's facts (null: not
  *  known yet). A file with no facts loses nothing, so it says nothing. */
 function factsLeave(facts: number | null): string {
@@ -149,10 +144,9 @@ export function confirmCopy(
 	}
 }
 
-/** A drop target's line while files from Finder are dragged over the page. */
-export function dropTitle(kind: "study" | "info", count: number): string {
-	const what = count > 0 ? plural(count, "file") : "files";
-	return `Add ${what} as ${kindTitle(kind).toLowerCase()}`;
+/** The page's line while files from Finder are dragged over it (count 0: not known yet). */
+export function dropTitle(count: number): string {
+	return `Drop to add ${count > 0 ? plural(count, "file") : "files"}`;
 }
 
 /** The groups narrowed to entries with a file whose name has `query`

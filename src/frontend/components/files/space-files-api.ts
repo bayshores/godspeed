@@ -65,12 +65,12 @@ export function useSpaceRecord(spaceId: string | null): {
 
 const base = (spaceId: string) => `/api/spaces/${encodeURIComponent(spaceId)}`;
 
-/** Copy files into the space as study material or space info. Returns
- *  every failure (one line per file), or null. */
-export async function uploadSpaceFiles(spaceId: string, files: readonly File[], kind: "study" | "info"): Promise<WriteResult> {
+/** Copy files into the space; each one's first read sorts it into study
+ *  material or space info. Returns every failure (one line per file), or
+ *  null. */
+export async function uploadSpaceFiles(spaceId: string, files: readonly File[]): Promise<WriteResult> {
 	if (files.length === 0) return null;
 	const form = new FormData();
-	form.append("kind", kind);
 	for (const f of files) form.append("files", f);
 	const { error, body } = await send(`${base(spaceId)}/files`, { method: "POST", body: form });
 	if (error) return error;

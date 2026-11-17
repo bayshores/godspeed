@@ -17,7 +17,6 @@ import {
 	filesSummary,
 	fileState,
 	filterGroups,
-	kindNote,
 	fileBrowserName,
 	studiedFill,
 } from "../../src/frontend/components/files/files-model.ts";
@@ -115,15 +114,10 @@ describe("files-model", () => {
 		assert.equal(studiedFill({ facts: 0, inLessons: 0 }), 0, "no facts: an empty bar");
 	});
 
-	it("kindNote says what each kind does", () => {
-		assert.equal(kindNote("study"), "Turned into facts");
-		assert.equal(kindNote("info"), "Read by the teacher only");
-	});
-
 	it("dropTitle says what a drop will do", () => {
-		assert.equal(dropTitle("study", 2), "Add 2 files as study material");
-		assert.equal(dropTitle("info", 1), "Add 1 file as space info");
-		assert.equal(dropTitle("study", 0), "Add files as study material");
+		assert.equal(dropTitle(2), "Drop to add 2 files");
+		assert.equal(dropTitle(1), "Drop to add 1 file");
+		assert.equal(dropTitle(0), "Drop to add files");
 	});
 
 	it("the menu's Retry is only for a stuck file (a failed row has its own); Remove only for copies", () => {

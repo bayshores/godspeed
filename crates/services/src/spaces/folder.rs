@@ -393,10 +393,6 @@ async fn triage_files(app: Arc<App>, space_id: String, added_ids: Vec<String>, g
 							obj.insert("name", file["name"].clone());
 							obj.insert("path", file["path"].clone());
 							obj.insert("statSig", sig.as_str());
-							// A copy's kind was picked when it was added, so it stays picked.
-							if was_copied {
-								obj.insert("kindChosen", true);
-							}
 						}
 						f
 					})

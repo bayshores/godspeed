@@ -93,12 +93,12 @@ export interface SpaceFile {
 	/** Found by a later scan of its linked folder (not linked with the
 	 *  folder, nor added by hand): shown as new for a few days. */
 	foundByScan?: true;
-	/** Its kind was picked by hand (the kind menu, or the agent's
-	 *  set_space_file_kind): godspeed never sorts it by itself. Files added
-	 *  by hand pick their kind when added, so only linked files are sorted. */
+	/** Its kind was set on purpose (Move to …, or a kind the agent gave
+	 *  when adding or switching it): godspeed never sorts it by itself.
+	 *  Every other file is sorted on its first read. */
 	kindChosen?: true;
-	/** The agent's read found logistics, so godspeed switched this
-	 *  linked file to space info by itself. */
+	/** The agent's first read found logistics, so godspeed switched this
+	 *  file to space info by itself. */
 	sortedAsInfo?: true;
 	/** A recording whose lecture transcript is already in the space: that
 	 *  file's id. It is not transcribed and has no facts of its own. */

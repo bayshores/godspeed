@@ -313,7 +313,7 @@ describe("FilesPage", () => {
 		assert.deepEqual(calls, [{ method: "DELETE", url: "/api/spaces/cls_a/files/f1", body: undefined }]);
 	});
 
-	it("files dragged from Finder show two places to drop them, and each adds as its kind", async () => {
+	it("files dropped anywhere on the page are added, and the page says so while they are dragged in", async () => {
 		fakeFetch();
 		await mount();
 		const transfer = (types: string[], files: File[] = []) => ({ types, files, items: { length: files.length }, dropEffect: "none" });
@@ -325,36 +325,31 @@ describe("FilesPage", () => {
 			});
 		};
 		const pdf = new File(["x"], "Syllabus v2.pdf");
-		assert.ok(q("files-drop-targets") === null, "nothing to drop on until files are dragged in");
+		assert.ok(q("files-drop") === null, "no cue until files are dragged in");
 		await fire(q("files-page")!, "dragover", transfer(["Files"], [pdf]));
-		assert.equal(q("files-drop-study-title")!.textContent, "Add 1 file as study material");
-		assert.equal(q("files-drop-info-title")!.textContent, "Add 1 file as space info");
-		assert.match(q("files-drop-study")!.textContent!, /Turned into facts/);
-		await fire(q("files-drop-info")!, "dragover", transfer(["Files"], [pdf]));
-		assert.equal(q("files-drop-info")!.getAttribute("data-over"), "true");
-		await fire(q("files-drop-info")!, "drop", transfer(["Files"], [pdf]));
+		assert.equal(q("files-drop")!.textContent, "Drop to add 1 file");
+		await fire(q("files-summary")!, "drop", transfer(["Files"], [pdf]));
 		assert.equal(calls.at(-1)!.method, "POST");
 		assert.equal(calls.at(-1)!.url, "/api/spaces/cls_a/files");
-		assert.ok(q("files-drop-targets") === null, "the targets leave after the drop");
+		assert.ok(q("files-drop") === null, "the cue leaves after the drop");
 
-		// Text dragged over the page is not a file: no targets.
+		// Text dragged over the page is not a file: no cue.
 		await fire(q("files-page")!, "dragover", transfer(["text/plain"]));
-		assert.ok(q("files-drop-targets") === null);
+		assert.ok(q("files-drop") === null);
 	});
 
-	it("Add files asks study material or space info before picking files", async () => {
+	it("Add files opens the file picker on the first click", async () => {
 		fakeFetch();
 		await mount();
 		const input = q("space-file-input") as HTMLInputElement;
 		let picked = 0;
 		input.click = () => void picked++;
 		await act(async () => q("space-add-files")!.click());
-		assert.match(q("space-add-files-menu")!.textContent!, /Study material.*Space info/);
-		await act(async () => q("space-add-info")!.click());
 		assert.equal(picked, 1);
 		Object.defineProperty(input, "files", { configurable: true, value: [new File(["x"], "HW5.pdf")] });
 		await act(async () => input.dispatchEvent(new window.Event("change", { bubbles: true })));
 		assert.equal(calls.at(-1)!.method, "POST");
+		assert.equal(calls.at(-1)!.url, "/api/spaces/cls_a/files");
 	});
 
 	it("search narrows the groups to matching names, says when nothing matches, and clearing brings all back", async () => {

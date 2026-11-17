@@ -85,7 +85,6 @@ export const SCREENS = [
 	{ name: "Lessons", url: "/space/lessons", ready: "[data-testid=lessons-list] [data-testid^=session-row]" },
 	{ name: "Lessons, a lesson's menu", url: "/space/lessons", ready: "[data-testid=lessons-list] [data-testid=session-row-menu]", setup: `document.querySelector("[data-testid=session-row-menu]").click()`, shows: "[data-testid=session-context-menu][data-state=open]" },
 	{ name: "Files", url: "/space/files", ready: "[data-testid=files-list] > *" },
-	{ name: "Files, the Add files menu", url: "/space/files", ready: "[data-testid=space-add-files]:not(:disabled)", setup: `document.querySelector("[data-testid=space-add-files]").click()`, shows: "[data-testid=space-add-files-menu][data-state=open]" },
 	{ name: "Files, a file's menu", url: "/space/files", ready: "[data-testid=files-list] button[aria-label^='More for']", setup: `document.querySelector("[data-testid=files-list] button[aria-label^='More for']").click()`, shows: "[data-testid^=space-file-menu-body-][data-state=open]" },
 	{ name: "Graph", url: "/graph", ready: "[data-testid=fact-row], [data-testid=topic-row]" },
 	{ name: "Graph, costs open", url: "/graph", ready: "[data-testid=graph-costs]", setup: `document.querySelector("[data-testid=graph-costs]").click()`, shows: "[data-testid=graph-costs-panel][data-state=open]" },

@@ -1,9 +1,8 @@
-import { memo, useState, type DragEvent } from "react";
+import { memo } from "react";
 import { dayLabel, type FileCoverage, type FileGroup } from "@/shared/core";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { FileRow, type FileRowActions } from "./file-row";
-import { dropTitle, kindNote } from "./files-model";
 
 /** A section's header, a shaded strip: the chevron (right when folded), its
  *  name and a note after it ("28 files"). Clicking it folds the section. */
@@ -91,45 +90,3 @@ export const FileGroupSection = memo(function FileGroupSection({
 		</section>
 	);
 });
-
-/** The two places to drop files from Finder while they are over the page. */
-export function FinderDropTargets({ count, onDrop }: { count: number; onDrop: (kind: "study" | "info", files: File[]) => void }) {
-	const [over, setOver] = useState<"study" | "info" | null>(null);
-	const target = (kind: "study" | "info") => ({
-		onDragOver: (e: DragEvent<HTMLElement>) => {
-			e.preventDefault();
-			e.stopPropagation();
-			e.dataTransfer.dropEffect = "copy";
-			setOver(kind);
-		},
-		onDragLeave: () => setOver((o) => (o === kind ? null : o)),
-		onDrop: (e: DragEvent<HTMLElement>) => {
-			e.preventDefault();
-			e.stopPropagation();
-			setOver(null);
-			const files = Array.from(e.dataTransfer.files);
-			if (files.length > 0) onDrop(kind, files);
-		},
-	});
-	return (
-		<div data-testid="files-drop-targets" className="flex gap-3.5">
-			{(["study", "info"] as const).map((kind) => (
-				<div
-					key={kind}
-					data-testid={`files-drop-${kind}`}
-					data-over={over === kind || undefined}
-					{...target(kind)}
-					className={cn(
-						"flex h-[110px] flex-1 flex-col items-center justify-center gap-0.5 lh-well rounded px-4 text-center transition-colors duration-(--lh-dur)",
-						over === kind && "bg-highlight",
-					)}
-				>
-					<span data-testid={`files-drop-${kind}-title`} className="text-[17px] font-medium text-ink">
-						{dropTitle(kind, count)}
-					</span>
-					<span className="text-base text-ink-2">{kindNote(kind)}</span>
-				</div>
-			))}
-		</div>
-	);
-}

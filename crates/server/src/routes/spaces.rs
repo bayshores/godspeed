@@ -180,8 +180,7 @@ async fn close_work(State(app): State<Arc<App>>, Path(id): Path<String>) -> Resu
 	Ok(reply::ok())
 }
 
-/// POST /api/spaces/{id}/files: multipart, field "kind" ("study" or "info") and one or more
-/// "files".
+/// POST /api/spaces/{id}/files: multipart, one or more "files", added as the learner's own.
 async fn add_files(State(app): State<Arc<App>>, Path(id): Path<String>, headers: HeaderMap, body: Body) -> Result<Response, Unhandled> {
 	if !is_space_id(&id) {
 		return Ok(reply::no_such_space());
@@ -190,10 +189,6 @@ async fn add_files(State(app): State<Arc<App>>, Path(id): Path<String>, headers:
 	let Some(entries) = form::parse(content_type, &read_body(body).await) else {
 		return Ok(error(400, "Invalid form body"));
 	};
-	let kind = match entries.iter().find(|e| e.name == "kind").map(|e| (&e.file_name, e.text())) {
-		Some((None, kind)) if kind == "info" || kind == "study" => kind,
-		_ => return Ok(error(400, "kind must be \"study\" or \"info\"")),
-	};
 	let files: Vec<&form::Entry> = entries.iter().filter(|e| e.name == "files" && e.file_name.is_some()).collect();
 	if files.is_empty() {
 		return Ok(error(400, "no files"));
@@ -201,7 +196,7 @@ async fn add_files(State(app): State<Arc<App>>, Path(id): Path<String>, headers:
 	let mut results = Vec::new();
 	for file in files {
 		let name = file.file_name.clone().unwrap_or_default();
-		match add_copied_file(&app, &id, &name, &file.value, &kind) {
+		match add_copied_file(&app, &id, &name, &file.value) {
 			Ok(added) => results.push(json!({ "name": name, "ok": true, "file": added })),
 			Err(failure) if failure.code == "not_found" => return Ok(error(404, &failure.error)),
 			Err(failure) if failure.is_thrown() => return refused(failure),

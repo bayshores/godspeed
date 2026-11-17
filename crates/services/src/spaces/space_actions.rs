@@ -743,7 +743,7 @@ mod tests {
 		let actions = actions(&app);
 		let (made, _) = value(actions.create_space(&json!({ "name": "Algebra" })));
 		let space_id = made["space"]["id"].as_str().unwrap().to_owned();
-		let own = crate::spaces::add_copied_file(&app, &space_id, "notes.md", b"My own notes.", "study").unwrap();
+		let own = crate::spaces::add_copied_file(&app, &space_id, "notes.md", b"My own notes.").unwrap();
 		app.stores.spaces.rewrite_space(&space_id, |r| {
 			let mut next = r.clone();
 			let linked = json!({ "id": "f_linked", "origin": "linked", "name": "Syllabus.md", "path": "/tmp/Syllabus.md", "kind": "info", "contentFp": "", "status": "ready", "addedAt": "t" });

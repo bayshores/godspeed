@@ -95,6 +95,7 @@ fn file_entry(file: &UpgradeFile, now: &str) -> Json {
 	out.insert("name", file.name);
 	out.insert("path", format!("{}/{}", file.id, file.name));
 	out.insert("kind", file.kind);
+	out.insert("kindChosen", true);
 	out.insert("contentFp", "");
 	out.insert("status", "pending");
 	out.insert("addedAt", now);
@@ -217,7 +218,7 @@ mod tests {
 		);
 		assert_eq!(
 			stringify(&new["files"][0]),
-			format!(r#"{{"id":"{about}","origin":"copied","name":"What it's like.md","path":"{about}/What it's like.md","kind":"info","contentFp":"","status":"pending","addedAt":"2026-11-13T10:00:00.000Z","written":true}}"#)
+			format!(r#"{{"id":"{about}","origin":"copied","name":"What it's like.md","path":"{about}/What it's like.md","kind":"info","kindChosen":true,"contentFp":"","status":"pending","addedAt":"2026-11-13T10:00:00.000Z","written":true}}"#)
 		);
 		let mut again = new.clone();
 		again.as_obj_mut().unwrap().insert("prep", prep(Some("2026-11-24")));

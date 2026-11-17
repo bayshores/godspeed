@@ -181,11 +181,7 @@ async fn read_and_import(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path
 		return Ok(());
 	}
 	drop_source_facts(app, space_id, &source_id)?;
-	// Only a linked file's first read sorts it, and never a lecture's transcript or recording
-	// (whose sort would undo other files' work).
-	let name = file["name"].str_or_empty();
-	let may_be_space_info = file["origin"].str_or_empty() == "linked" && !file["kindChosen"].truthy() && !file["contentFp"].truthy() && !is_transcript_file(name) && !is_recording_file(name);
-	let import = NotesImportInput { file_path: name.to_owned(), text, scope: Some(space_id.to_owned()), source_id: Some(source_id.clone()), may_be_space_info };
+	let import = NotesImportInput { file_path: file["name"].str_or_empty().to_owned(), text, scope: Some(space_id.to_owned()), source_id: Some(source_id.clone()), may_be_space_info: sorts_on_read(file) };
 	match extraction(app).import_notes(import).await {
 		Ok(result) if result["spaceInfo"].truthy() => {
 			drop_source_facts(app, space_id, &source_id)?;
@@ -223,6 +219,14 @@ async fn read_and_import(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path
 		drop_source_facts(app, space_id, &source_id)?;
 	}
 	Ok(())
+}
+
+/// Whether this read may sort a study file into space info: only its first read, never a kind set on
+/// purpose (`kindChosen`), and never a lecture's transcript or recording (whose sort would undo
+/// other files' work). Linked and hand-added files alike.
+fn sorts_on_read(file: &Json) -> bool {
+	let name = file["name"].str_or_empty();
+	!file["kindChosen"].truthy() && !file["contentFp"].truthy() && !is_transcript_file(name) && !is_recording_file(name)
 }
 
 /// A recording covered by its lecture's transcript: ready with no facts of its own (any from an
@@ -403,13 +407,85 @@ pub fn start_space_scanner(app: &Arc<App>) {
 
 #[cfg(test)]
 mod tests {
+	use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions};
+	use gs_json::{json, stringify};
 	use gs_search::index::PassageRef;
 
 	use super::*;
-	use crate::app::test_support::scratch_dir;
+	use crate::app::test_support::{scratch_dir, test_app};
 	use crate::spaces::space_search::space_search;
 	use crate::spaces::files::replace_copied_file;
-	use crate::spaces::{add_copied_file, keep_page, kept_pages_at};
+	use crate::spaces::{add_copied_file, add_file_from_path, keep_page, kept_pages_at, set_file_kind, write_agent_file};
+
+	#[test]
+	fn only_a_first_read_of_a_kind_nobody_set_sorts() {
+		let file = |extra: Json| {
+			let mut file = json!({ "id": "f1", "origin": "copied", "name": "Syllabus.md", "kind": "study", "contentFp": "" });
+			for (key, value) in extra.as_obj().unwrap().iter() {
+				file.as_obj_mut().unwrap().insert(key.as_str(), value.clone());
+			}
+			file
+		};
+		assert!(sorts_on_read(&file(json!({}))));
+		assert!(sorts_on_read(&file(json!({ "origin": "linked" }))));
+		assert!(!sorts_on_read(&file(json!({ "kindChosen": true }))));
+		assert!(!sorts_on_read(&file(json!({ "contentFp": "abc" }))), "read before");
+		assert!(!sorts_on_read(&file(json!({ "name": "Lecture 1.vtt" }))));
+		assert!(!sorts_on_read(&file(json!({ "name": "Lecture 1.mp3" }))));
+	}
+
+	/// The stand-in agent reads the next file: logistics whenever it is asked whether the file is.
+	/// Gives the file's name and whether it was asked.
+	async fn read_as_logistics(app: &App, names: &[&str]) -> (String, bool) {
+		let view = app.bridge.wait_for_work(10_000, WaitOptions { full: true, helper: true, ..WaitOptions::default() }).await.expect("a file to read");
+		let asked = view.instructions.as_deref().expect("the reading's instructions").contains("spaceInfo: true");
+		let sent = stringify(&Json::Arr(view.messages.clone()));
+		let name = names.iter().find(|n| sent.contains(**n)).expect("the file's name in the reading");
+		let mut findings = json!({ "propositions": [], "chains": [], "reteaches": [] });
+		if asked {
+			findings.as_obj_mut().unwrap().insert("spaceInfo", true);
+		}
+		app.bridge.respond_to_work(&view.work_id, AgentReply { text: None, tool_calls: vec![ReplyCall { name: "submit_findings".into(), arguments: findings }] }, 0).unwrap();
+		((*name).to_owned(), asked)
+	}
+
+	#[tokio::test]
+	async fn a_file_the_learner_added_is_sorted_on_its_first_read_and_a_kind_set_on_purpose_is_not() {
+		let root = scratch_dir("sorting");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Biology" })).unwrap()["id"].as_str().unwrap().to_owned();
+		let id = |file: Json| file["id"].as_str().unwrap().to_owned();
+		let syllabus = id(add_copied_file(&app, &space_id, "Syllabus.md", b"Office hours move to Tuesday.").unwrap());
+		let moved = id(add_copied_file(&app, &space_id, "Week 1.md", b"Cells divide.").unwrap());
+		set_file_kind(&app, &space_id, &moved, "study").unwrap();
+		let written = id(write_agent_file(&app, &space_id, "Study guide.md", b"Mitosis has four phases.", "study").unwrap().0);
+		let reading = root.join("Reading.md");
+		fsx::write_text_atomic(&reading, "Meiosis halves the chromosomes.").unwrap();
+		let from_path = id(add_file_from_path(&app, &space_id, reading.to_str().unwrap(), "study").unwrap());
+		let transcript = id(add_copied_file(&app, &space_id, "Lecture 1.vtt", b"WEBVTT\n\n00:00.000 --> 00:02.000\nCells divide.\n").unwrap());
+
+		let names = ["Syllabus.md", "Week 1.md", "Study guide.md", "Reading.md", "Lecture 1.vtt"];
+		let mut asked = Vec::new();
+		for _ in names {
+			let (name, sorts) = read_as_logistics(&app, &names).await;
+			if sorts {
+				asked.push(name);
+			}
+		}
+		assert_eq!(asked, ["Syllabus.md"]);
+		let file = |file_id: &str| file_in(&app.stores.spaces.get_space(&space_id).unwrap(), file_id).unwrap().clone();
+		for _ in 0..400 {
+			if [&syllabus, &moved, &written, &from_path, &transcript].iter().all(|f| file(f)["status"] == json!("ready")) {
+				break;
+			}
+			clock::sleep(10).await;
+		}
+		assert_eq!((&file(&syllabus)["kind"], &file(&syllabus)["sortedAsInfo"]), (&json!("info"), &json!(true)));
+		for kept in [&moved, &written, &from_path, &transcript] {
+			let kept = file(kept);
+			assert_eq!((&kept["kind"], &kept["status"], kept.get("sortedAsInfo")), (&json!("study"), &json!("ready"), None), "{kept:?}");
+		}
+	}
 
 	/// The folder the search model loads from: the repo root, which holds `models/`.
 	#[cfg(not(any(target_os = "linux", all(target_os = "macos", target_arch = "x86_64"))))]
@@ -440,7 +516,7 @@ mod tests {
 		let app = App::new(gs_base::config::Paths::new(root.join("data"), root.join("home"), root.join("tmp"), resources(&root, repo)), None);
 		let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Discrete math" })).unwrap()["id"].as_str().unwrap().to_owned();
 		let book = std::fs::read(repo.join("tests/fixtures/sample-book.epub")).unwrap();
-		let file_id = add_copied_file(&app, &space_id, "Sample Book.epub", &book, "info").unwrap()["id"].as_str().unwrap().to_owned();
+		let file_id = write_agent_file(&app, &space_id, "Sample Book.epub", &book, "info").unwrap().0["id"].as_str().unwrap().to_owned();
 		let mut fp = String::new();
 		for _ in 0..600 {
 			let record = app.stores.spaces.get_space(&space_id).unwrap();
@@ -479,7 +555,7 @@ mod tests {
 		let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Physics" })).unwrap()["id"].as_str().unwrap().to_owned();
 		let pdf = std::fs::read(repo.join("tests/fixtures/sample-3page.pdf")).unwrap();
 		let fp = gs_base::hash::sha256_hex(&pdf)[..16].to_owned();
-		let file_id = add_copied_file(&app, &space_id, "Lecture 1.pdf", &pdf, "info").unwrap()["id"].as_str().unwrap().to_owned();
+		let file_id = write_agent_file(&app, &space_id, "Lecture 1.pdf", &pdf, "info").unwrap().0["id"].as_str().unwrap().to_owned();
 		// The PDF's text, saved before the queue first runs, so no PDF library is needed here.
 		write_cached_text(&app, &space_id, &file_id, &fp, "--- Page 1 ---\nOne.\n--- Page 2 ---\nForce is F \u{25a0} ma.\n--- Page 3 ---\nThree.");
 		wait_indexed(&app, &space_id, &file_id, &fp).await;

@@ -41,7 +41,7 @@ export function SpaceStep({ onDone }: { onDone: (spaceId: string | null) => void
 			}
 			const id = body.space.id;
 			const failed =
-				picked?.kind === "folder" ? await linkSpaceFolder(id, picked.path) : picked?.kind === "files" ? await uploadSpaceFiles(id, picked.files, "study") : null;
+				picked?.kind === "folder" ? await linkSpaceFolder(id, picked.path) : picked?.kind === "files" ? await uploadSpaceFiles(id, picked.files) : null;
 			if (failed) {
 				// The space exists; say what didn't make it and let them go on.
 				setError(`The space was made, but some files didn't go in:\n${failed}\nYou can add them later on its Files page.`);

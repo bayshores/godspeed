@@ -23,8 +23,8 @@ import {
 } from "./space-files-api";
 import { ConfirmDialog } from "./confirm-dialog";
 import type { FileRowActions } from "./file-row";
-import { FileGroupSection, FinderDropTargets } from "./files-sections";
-import { confirmCopy, fileBrowserName, filesSummary, filterGroups, type FileConfirm } from "./files-model";
+import { FileGroupSection } from "./files-sections";
+import { confirmCopy, dropTitle, fileBrowserName, filesSummary, filterGroups, type FileConfirm } from "./files-model";
 import { newSince } from "./folder-status-model";
 import { FolderStatusLine, LinkedFolderButton, LinkFolderButton, LinkFolderField, ROW_BUTTON } from "./linked-folder";
 import { RECENT_CHANGES_KEY, RecentChanges } from "./recent-changes";
@@ -32,13 +32,13 @@ import { recentChanges, removedLately } from "./recent-changes-model";
 import { PickSpace } from "@/frontend/components/pick-space";
 
 /**
- * THE FILES PAGE (a space tab): Add files (pick the kind first), a search
- * field, the linked folder, the summary and the folder's live line, then
- * Recent changes and the space's files in groups found from their names
- * (a lecture's notes and transcript together, with the date when a name
- * has one). Dragging files from Finder over the page shows two
- * places to drop them: Study material or Space info. Unlink, Remove and
- * Move to Space info ask first, saying how many facts go.
+ * THE FILES PAGE (a space tab): Add files, a search field, the linked
+ * folder, the summary and the folder's live line, then Recent changes and
+ * the space's files in groups found from their names (a lecture's notes and
+ * transcript together, with the date when a name has one). Files dropped
+ * from Finder anywhere on the page are added too. Each added file's first
+ * read sorts it into study material or space info. Unlink, Remove and Move
+ * to Space info ask first, saying how many facts go.
  *
  * Coverage per file comes from the shared progress payload; the record
  * re-reads on spaces-changed, so statuses update as files are built, and
@@ -171,9 +171,8 @@ function FilesPageBody() {
 
 	const disabled = busy > 0;
 	const add = useCallback(
-		(kind: "study" | "info", files: File[]) => {
-			setFinderDrag(null);
-			if (spaceId) void run(() => uploadSpaceFiles(spaceId, files, kind));
+		(files: File[]) => {
+			if (spaceId) void run(() => uploadSpaceFiles(spaceId, files));
 		},
 		[spaceId, run],
 	);
@@ -202,10 +201,10 @@ function FilesPageBody() {
 			data-testid="files-page"
 			onDragOver={(e) => {
 				if (!Array.from(e.dataTransfer.types).includes("Files")) return;
-				// Only the two drop targets take files.
 				e.preventDefault();
-				e.dataTransfer.dropEffect = "none";
-				if (record && !disabled) setFinderDrag(e.dataTransfer.items.length);
+				const takes = !!record && !disabled;
+				e.dataTransfer.dropEffect = takes ? "copy" : "none";
+				if (takes) setFinderDrag(e.dataTransfer.items.length);
 			}}
 			onDragLeave={(e) => {
 				if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return;
@@ -214,6 +213,8 @@ function FilesPageBody() {
 			onDrop={(e) => {
 				e.preventDefault();
 				setFinderDrag(null);
+				const files = Array.from(e.dataTransfer.files);
+				if (record && !disabled && files.length > 0) add(files);
 			}}
 		>
 			<h1 className="sr-only">Files</h1>
@@ -258,7 +259,11 @@ function FilesPageBody() {
 								{error}
 							</p>
 						)}
-						{finderDrag !== null && <FinderDropTargets count={finderDrag} onDrop={add} />}
+						{finderDrag !== null && (
+							<div data-testid="files-drop" className="flex h-[110px] items-center justify-center lh-well rounded px-4 text-center text-[17px] font-medium text-ink">
+								{dropTitle(finderDrag)}
+							</div>
+						)}
 						{record.files.length === 0 && finderDrag === null && (
 							<Pane data-testid="files-empty" className="flex flex-col gap-1.5 p-7">
 								<span className="text-[17px] text-ink">Add notes, readings, recordings or a syllabus, or drop them here.</span>

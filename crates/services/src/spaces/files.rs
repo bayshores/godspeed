@@ -114,9 +114,10 @@ pub fn copied_file_problem(name: &str, bytes: &[u8]) -> Option<String> {
 	Some(format!("{clean}: unsupported file type. Supported: {}, and plain text with no extension. Google Docs need saving as PDF or Word first.", supported.join(" ")))
 }
 
-/// Copies a file into the space (the "Add files…" button, MCP add_space_file with a path).
-pub fn add_copied_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: &str) -> SpaceOutcome<Json> {
-	add_file(app, space_id, name, bytes, kind, false)
+/// Copies a file the learner added into the space (Add files, a drop on the Files page, the
+/// first-run setup): study material until its first read sorts it.
+pub fn add_copied_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8]) -> SpaceOutcome<Json> {
+	add_file(app, space_id, name, bytes, None, false)
 }
 
 /// A file the agent writes from text (add_space_file with name and text, import_notes), marked
@@ -129,12 +130,14 @@ pub fn write_agent_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8]
 	let written = match same {
 		Some(file) if file["written"] == Json::Bool(true) => replace_copied_file(app, space_id, file["id"].str_or_empty(), bytes, kind).map(|f| (f, true)),
 		Some(_) => return Err(format!("This space already has a file named {name} that this tool can't replace. Pick another name, or ask the learner to remove the old one.")),
-		None => add_file(app, space_id, name, bytes, kind, true).map(|f| (f, false)),
+		None => add_file(app, space_id, name, bytes, Some(kind), true).map(|f| (f, false)),
 	};
 	written.map_err(|failure| failure.error)
 }
 
-fn add_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: &str, written: bool) -> SpaceOutcome<Json> {
+/// `kind`: the kind the agent gave, which stays; None for the learner's own file, which its first
+/// read sorts.
+fn add_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: Option<&str>, written: bool) -> SpaceOutcome<Json> {
 	// Held from the check to the list entry: a space deleted in between would leave the copy in a
 	// folder nothing lists.
 	let _held = app.locks.lock(LockKey::Space(space_id));
@@ -157,7 +160,10 @@ fn add_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: &str
 	file.insert("origin", "copied");
 	file.insert("name", clean);
 	file.insert("path", rel);
-	file.insert("kind", kind);
+	file.insert("kind", kind.unwrap_or("study"));
+	if kind.is_some() {
+		file.insert("kindChosen", true);
+	}
 	file.insert("contentFp", "");
 	file.insert("status", "pending");
 	file.insert("addedAt", time::iso_now());
@@ -174,10 +180,10 @@ fn add_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: &str
 	Ok(file)
 }
 
-/// Writes new contents over a copied file, keeping its id so deadlines that cover it still do;
-/// its facts are rebuilt.
+/// Writes new contents over a file the agent wrote, keeping its id so deadlines that cover it still
+/// do; its facts are rebuilt. The agent's kind stays, as when it was added.
 pub fn replace_copied_file(app: &Arc<App>, space_id: &str, file_id: &str, bytes: &[u8], kind: &str) -> SpaceOutcome<Json> {
-	// Held from the check to the list entry, as in `add_copied_file`.
+	// Held from the check to the list entry, as in `add_file`.
 	let _held = app.locks.lock(LockKey::Space(space_id));
 	let record = app.stores.spaces.get_space(space_id);
 	let file = record.as_ref().and_then(|r| file_in(r, file_id)).cloned();
@@ -192,12 +198,12 @@ pub fn replace_copied_file(app: &Arc<App>, space_id: &str, file_id: &str, bytes:
 	{
 		return Err(super::SpaceFailure::thrown(fsx::node_error_message(&err, "open", Path::new(&abs))));
 	}
-	let patched = patch_file(app, space_id, file_id, &[("kind", Some(kind.into())), ("status", Some("pending".into())), ("contentFp", Some("".into())), ("error", None)]);
+	let patched = patch_file(app, space_id, file_id, &[("kind", Some(kind.into())), ("kindChosen", Some(true.into())), ("status", Some("pending".into())), ("contentFp", Some("".into())), ("error", None)]);
 	enqueue_file(app, space_id, file_id);
 	Ok(patched.unwrap_or(file))
 }
 
-/// Copies a file from an absolute path on this computer (MCP).
+/// Copies a file from an absolute path on this computer (MCP add_space_file), as the agent's kind.
 pub fn add_file_from_path(app: &Arc<App>, space_id: &str, abs_path: &str, kind: &str) -> SpaceOutcome<Json> {
 	if !is_absolute(abs_path) {
 		return fail(400, "bad_path", "Give the file's full (absolute) path");
@@ -209,7 +215,7 @@ pub fn add_file_from_path(app: &Arc<App>, space_id: &str, abs_path: &str, kind: 
 		return fail(400, "not_a_file", format!("{abs_path} is not a file"));
 	}
 	let bytes = std::fs::read(abs_path).map_err(|err| super::SpaceFailure::thrown(fsx::node_error_message(&err, "open", Path::new(abs_path))))?;
-	add_copied_file(app, space_id, &node_basename(abs_path), &bytes, kind)
+	add_file(app, space_id, &node_basename(abs_path), &bytes, Some(kind), false)
 }
 
 /// `path.basename`: the last part, trailing separators ignored.
@@ -217,8 +223,8 @@ fn node_basename(p: &str) -> String {
 	Path::new(p).file_name().map_or_else(String::new, |name| name.to_string_lossy().into_owned())
 }
 
-/// Switches a file between study material and space info by hand: godspeed never sorts it by
-/// itself again. Study to info removes its facts; info to study builds them.
+/// Switches a file between study material and space info (Move to …, set_space_file_kind):
+/// godspeed never sorts it by itself again. Study to info removes its facts; info to study builds them.
 pub fn set_file_kind(app: &Arc<App>, space_id: &str, file_id: &str, kind: &str) -> SpaceOutcome<Json> {
 	let Some(file) = app.stores.spaces.get_space(space_id).and_then(|r| file_in(&r, file_id).cloned()) else {
 		return fail(404, "not_found", "No such space file");
@@ -331,7 +337,7 @@ mod tests {
 		// The delete holds the space while the add arrives.
 		let held = app.locks.lock(LockKey::Space(&id));
 		let (adding, space_id) = (app.clone(), id.clone());
-		let add = std::thread::spawn(move || add_copied_file(&adding, &space_id, "week1.md", b"# Week 1\n", "study").map_err(|failure| failure.status));
+		let add = std::thread::spawn(move || add_copied_file(&adding, &space_id, "week1.md", b"# Week 1\n").map_err(|failure| failure.status));
 		std::thread::sleep(std::time::Duration::from_millis(100));
 		app.stores.spaces.delete_space(&id).unwrap();
 		drop(held);
