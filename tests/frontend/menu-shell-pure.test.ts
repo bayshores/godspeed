@@ -79,4 +79,18 @@ describe("computeMenuPlacement — cap + position", () => {
 		assert.equal(p.style.left, 100);
 		assert.ok(!("right" in p.style));
 	});
+
+	it("a menu wider than the room beside its anchor slides back inside the viewport", () => {
+		// The anchor's right edge is at 300: a 440 wide menu aligned to it would start at -140.
+		const right = computeMenuPlacement(rect(400, 440), viewport(800), 300, "down", "right", 4, 440);
+		assert.equal(right.style.right, 1280 - 8 - 440);
+		// The anchor's left edge is at 100: a 1200 wide menu aligned to it would end at 1300.
+		const left = computeMenuPlacement(rect(400, 440), viewport(800), 300, "down", "left", 4, 1200);
+		assert.equal(left.style.left, 1280 - 8 - 1200);
+	});
+
+	it("a menu that fits beside its anchor keeps the anchor's edge", () => {
+		const p = computeMenuPlacement(rect(400, 440), viewport(800), 300, "down", "right", 4, 250);
+		assert.equal(p.style.right, 1280 - 300);
+	});
 });

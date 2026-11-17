@@ -6,7 +6,7 @@ import { BARS } from "@/frontend/components/top-bar/bar-look";
 /**
  * THE shared menu shell: one placement body for the app's dropdown menus,
  * portaled to document.body (never clipped by an ancestor's overflow),
- * fixed-anchored to the trigger's rect, viewport-capped. PLACEMENT-ONLY
+ * fixed-anchored to the trigger's rect, kept inside the viewport. PLACEMENT-ONLY
  * by design: every site keeps its own open/close/Esc contract, since
  * layered dismissal differs by surface.
  *
@@ -23,9 +23,9 @@ import { BARS } from "@/frontend/components/top-bar/bar-look";
  *    included).
  *
  * Sites: the space switcher, file rows, the files page, graph fact lists,
- * the settings font menu and the lesson stats (the graph popovers stay
- * bespoke). Menus portal out of any overflow-hidden frame so
- * they can extend beyond a dialog.
+ * the graph costs, the settings font menu and the lesson stats. Menus
+ * portal out of any overflow-hidden frame so they can extend beyond a
+ * dialog.
  *
  * SSR: menus only mount client-side while open; the hidden measuring pass
  * below is the only pre-placement render, so a server render never emits
@@ -75,7 +75,9 @@ interface MenuPlacement {
  *  filter re-measure honestly) → side, fixed style, cap. Flip rule: stay
  *  on the preferred side unless it cannot show the full content AND the
  *  other side is roomier. The cap always keeps the menu inside its side's
- *  room when there is room; the floor keeps it usable when there isn't. */
+ *  room when there is room; the floor keeps it usable when there isn't.
+ *  Sideways the menu keeps its anchor's edge unless its width would take
+ *  it out of the viewport; then it slides back in. */
 export function computeMenuPlacement(
 	rect: { top: number; bottom: number; left: number; right: number },
 	viewport: { width: number; height: number },
@@ -83,6 +85,7 @@ export function computeMenuPlacement(
 	preferredSide: MenuSide,
 	align: MenuAlign,
 	gap: number = GAP,
+	contentWidth: number = 0,
 ): MenuPlacement {
 	const availDown = viewport.height - EDGE - (rect.bottom + gap);
 	const availUp = rect.top - gap - EDGE;
@@ -98,8 +101,10 @@ export function computeMenuPlacement(
 	}
 	const avail = side === "down" ? availDown : availUp;
 	const maxHeight = Math.max(MIN_USABLE, Math.min(CAP_VH * viewport.height, avail));
+	// The distance from the viewport's side the menu is aligned to, never under EDGE at either side.
+	const inside = (offset: number) => Math.max(EDGE, Math.min(offset, viewport.width - EDGE - contentWidth));
 	const horizontal: Record<string, number> =
-		align === "right" ? { right: viewport.width - rect.right } : { left: rect.left };
+		align === "right" ? { right: inside(viewport.width - rect.right) } : { left: inside(rect.left) };
 	const vertical: Record<string, number> =
 		side === "down" ? { top: rect.bottom + gap } : { bottom: viewport.height - rect.top + gap };
 	return { side, style: { ...horizontal, ...vertical }, maxHeight };
@@ -253,6 +258,7 @@ function MenuShellBody({
 				preferredSide,
 				align,
 				hang ? 0 : GAP,
+				menuRef.current.offsetWidth,
 			);
 			setPlaced(p);
 		};

@@ -1,32 +1,38 @@
 /**
  * "Graph costs" in the Graph page's bar: a click toggles the popup with
  * the plan that paid, each stage's tokens and the latest runs; an outside
- * click or Escape closes it. The popup is viewport-capped and scrolls.
+ * click or Escape closes it.
  */
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { GraphCostSummary } from "@/shared/core";
 import { useMinute } from "@/frontend/components/countdown";
-import { usePopoverDismiss } from "@/frontend/components/popover-dismiss";
-import { usePresence } from "@/frontend/components/presence";
+import { MenuShell } from "@/frontend/components/menu-shell";
+import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { displayUnpricedRuns, fmtTokens, planLine, runName, timeAgo } from "./cost-model.ts";
 
 export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 	const [open, setOpen] = useState(false);
-	// The root wraps button and popup, so the toggle itself keeps working.
-	const rootRef = useRef<HTMLDivElement>(null);
-	usePopoverDismiss(rootRef, open, () => setOpen(false));
-	const panel = usePresence(open);
+	const anchorRef = useRef<HTMLButtonElement>(null);
+	const close = useCallback(() => setOpen(false), []);
+	useMenuDismiss(open, close, anchorRef);
 	return (
-		<div ref={rootRef} className="relative shrink-0">
-			<button type="button" data-testid="graph-costs" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="lh-btn text-[15px]">
+		<>
+			<button ref={anchorRef} type="button" data-testid="graph-costs" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="lh-btn shrink-0 text-[15px]">
 				Graph costs
 			</button>
-			{panel.mounted && (
-				<div data-state={panel.state} className="lh-pop absolute right-0 top-full z-20 mt-2 max-h-[60vh] overflow-y-auto">
-					<GraphCostPanel costs={costs} />
-				</div>
-			)}
-		</div>
+			<MenuShell
+				open={open}
+				anchorRef={anchorRef}
+				testid="graph-costs-panel"
+				role="dialog"
+				label="Graph costs"
+				preferredSide="down"
+				align="right"
+				menuClass="lh-sheet flex w-[440px] max-w-[calc(100vw-1.5rem)] flex-col gap-2 px-[18px] py-4"
+			>
+				<GraphCostPanel costs={costs} />
+			</MenuShell>
+		</>
 	);
 }
 
@@ -38,7 +44,7 @@ function GraphCostPanel({ costs }: { costs: GraphCostSummary }) {
 	];
 	const unpriced = displayUnpricedRuns(costs);
 	return (
-		<div data-testid="graph-costs-panel" className="flex w-[440px] max-w-[calc(100vw-1.5rem)] flex-col gap-2 lh-sheet px-[18px] py-4">
+		<>
 			<h2 className="text-lg text-ink">Graph costs</h2>
 			<p className="text-base text-ink-2">
 				{planLine(costs)}
@@ -68,6 +74,6 @@ function GraphCostPanel({ costs }: { costs: GraphCostSummary }) {
 					</ul>
 				</>
 			)}
-		</div>
+		</>
 	);
 }

@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, scrolledWords, SCROLL_TO, snapName, standInAgent } from "../../scripts/layout.mjs";
-import { cross, cutOf, inkOf, lineBox, meet, outside, probes, sticksOut } from "../../scripts/layout-page.mjs";
+import { cross, cutOf, inkOf, lineBox, meet, outside, probes, scrollerClip, sticksOut } from "../../scripts/layout-page.mjs";
 import { workOf } from "../../scripts/layout-seed.mjs";
 import { SCREENS } from "../../scripts/layout-screens.mjs";
 
@@ -62,6 +62,21 @@ describe("hidden", () => {
 		assert.ok(!outside(box(10, 80, 80, 102), card), "2 pixels is rounding");
 		assert.ok(!outside(box(150, 10, 400, 30), card), "sideways is not clipped here");
 		assert.ok(outside(box(150, 10, 400, 30), { ...card, x: true }));
+	});
+
+	it("a scroller hides for good only what lies before its start", () => {
+		const page = scrollerClip(box(170, 100, 800, 700), { left: 0, top: 0 }, { x: true, y: true });
+		assert.ok(outside(box(20, 150, 460, 400), page), "a pop-up that starts left of the page");
+		assert.ok(!outside(box(200, 900, 400, 930), page), "a row below the fold is scrolled to");
+		assert.ok(!outside(box(700, 150, 1100, 180), page), "so is one past the right edge");
+		const scrolled = scrollerClip(box(170, 100, 800, 700), { left: 0, top: 300 }, { x: true, y: true });
+		assert.ok(!outside(box(200, -150, 400, -120), scrolled), "a row scrolled away above comes back");
+	});
+
+	it("a scroller that only clips sideways hides both sides", () => {
+		const column = scrollerClip(box(170, 100, 800, 700), { left: 0, top: 0 }, { x: false, y: true });
+		assert.ok(outside(box(700, 150, 1100, 180), column), "past the right edge");
+		assert.ok(!outside(box(200, 900, 400, 930), column), "below the fold is scrolled to");
 	});
 });
 

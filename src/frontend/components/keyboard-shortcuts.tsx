@@ -4,7 +4,7 @@
  * - Tab moves focus as usual; an open modal dialog keeps it inside
  *   (trapTabInDialog in focus-hygiene.ts).
  * - Esc is a layered dismiss: topmost popover first (popovers stopPropagation
- *   on their own Esc — usePopoverDismiss), then abort of an
+ *   on their own Esc — useMenuDismiss), then abort of an
  *   in-flight turn.
  * - Global actions dispatch lh:kbd-<action> window events; surfaces that are
  *   mounted listen (the lh:chat-renamed pattern). A surface that isn't
