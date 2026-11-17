@@ -2,12 +2,12 @@ import { useEffect, useImperativeHandle, useRef, useState } from "react";
 import { buildCodeAnswer, codeLanguage, type QuestionAnswerData, type QuestionFormDraft, type WriteCodeInput } from "@/shared/core";
 import type { QuestionHandle } from "@/frontend/components/question-dock";
 import { CodeEditor } from "./code-editor";
-import { DontKnowRow, QuestionText } from "./question-parts";
+import { QuestionText } from "./question-parts";
 
 /**
- * A write_code question above the lesson's writing box: the task, the
- * code editor (starting with the teacher's starter code) and "I don't
- * know". The writing box under it holds the reasoning. Nothing is graded
+ * A write_code question above the lesson's writing box: the task and the
+ * code editor (starting with the teacher's starter code). The writing box
+ * under it holds the reasoning. Nothing is graded
  * here: the code goes to the teacher, who grades it in the next reply.
  */
 export function CodeQuestion({
@@ -28,7 +28,7 @@ export function CodeQuestion({
 	initialDraft?: QuestionFormDraft;
 	/** Called on every change, so the code survives leaving the lesson. */
 	onSaveDraft?: (draft: QuestionFormDraft) => void;
-	/** Whether there is code (or "I don't know") to submit. */
+	/** Whether there is code to submit. */
 	onReady: (ready: boolean) => void;
 	/** The reasoning in the writing box. */
 	boxText: string;
@@ -39,15 +39,14 @@ export function CodeQuestion({
 	const starter = input.starter ?? "";
 	const [initialCode] = useState(() => initialDraft?.code || starter);
 	const [code, setCode] = useState(initialCode);
-	const [dontKnow, setDontKnow] = useState(initialDraft?.selection.dontKnow ?? false);
-	const canSubmit = dontKnow || code.trim().length > 0;
+	const canSubmit = code.trim().length > 0;
 
 	// Every change is saved; untouched starter code is not a draft.
 	const saveDraftRef = useRef(onSaveDraft);
 	saveDraftRef.current = onSaveDraft;
 	useEffect(() => {
-		saveDraftRef.current?.({ selection: { selected: new Set(), dontKnow }, code: code === starter ? "" : code });
-	}, [code, dontKnow, starter]);
+		saveDraftRef.current?.({ selection: { selected: new Set() }, code: code === starter ? "" : code });
+	}, [code, starter]);
 
 	const readyRef = useRef(onReady);
 	readyRef.current = onReady;
@@ -59,7 +58,10 @@ export function CodeQuestion({
 	useImperativeHandle(ref, () => ({
 		submit() {
 			if (!canSubmit || busy) return;
-			onSubmit(buildCodeAnswer(input, { code, dontKnow, thinking: boxText }, toolName));
+			onSubmit(buildCodeAnswer(input, { code, dontKnow: false, thinking: boxText }, toolName));
+		},
+		dontKnow() {
+			if (!busy) onSubmit(buildCodeAnswer(input, { code, dontKnow: true, thinking: boxText }, toolName));
 		},
 		// The editor never folds away.
 		fold() {},
@@ -69,19 +71,7 @@ export function CodeQuestion({
 	return (
 		<div data-testid="question-dock" data-kind="code" className="flex shrink-0 flex-col gap-3.5">
 			<QuestionText>{input.question}</QuestionText>
-			<div className="flex shrink-0 flex-col gap-2">
-				<CodeEditor
-					initialCode={initialCode}
-					language={language}
-					dimmed={dontKnow}
-					onChange={(next) => {
-						setCode(next);
-						// Writing code means they're trying after all.
-						setDontKnow(false);
-					}}
-				/>
-				<DontKnowRow picked={dontKnow} onClick={() => setDontKnow((v) => !v)} />
-			</div>
+			<CodeEditor initialCode={initialCode} language={language} onChange={setCode} />
 		</div>
 	);
 }

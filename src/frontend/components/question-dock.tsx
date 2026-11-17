@@ -1,6 +1,6 @@
 import { useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
-import { ANSWER_ROW, DontKnowRow, PICKED, proseVars, QuestionText } from "@/frontend/components/lesson/question-parts";
+import { ANSWER_ROW, PICKED, proseVars, QuestionText } from "@/frontend/components/lesson/question-parts";
 import { ConfidenceLine } from "@/frontend/components/confidence-line";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { PickedRow } from "@/frontend/components/lesson/picked-row";
@@ -12,6 +12,7 @@ import {
 	buildAnswer,
 	normalizeQuizType,
 	CONFIDENCE_STOPS,
+	dontKnowRequest,
 	emptyDockSelection,
 	normalizeOptions,
 	resolveCorrect,
@@ -41,8 +42,8 @@ import { CodeQuestion } from "@/frontend/components/lesson/code-question";
 
 /**
  * THE WAITING QUESTION, above the lesson's writing box: the question, its
- * lettered choices (keys 1–n, 0 = I don't know) and, once a quiz answer is
- * picked, the "How sure are you?" line (←/→ or click). It holds no text box
+ * lettered choices (keys 1–n) and, once a quiz answer is picked, the
+ * "How sure are you?" line (←/→ or click). It holds no text box
  * and no buttons of its own: the writing box under it carries the
  * reasoning (or the whole answer, for a question answered in words) and
  * "Submit answer". An ask with choices takes the box's text as the
@@ -55,6 +56,8 @@ import { CodeQuestion } from "@/frontend/components/lesson/code-question";
 export interface QuestionHandle {
 	/** Sends the answer with the box's text. */
 	submit(): void;
+	/** Answers "I don't know", with the box's text as the reasoning. */
+	dontKnow(): void;
 	/** The learner started writing: an answered list folds into one row. */
 	fold(): void;
 	/** The option labels picked so far, in the order shown. */
@@ -174,8 +177,8 @@ function QuestionDockForm({
 	// the learner picks one.
 	const [confIdx, setConfIdx] = useState<number | undefined>(initialDraft?.confidenceIndex);
 	const selectMode: SelectMode = qd.mode === "multi-select" ? "multi-select" : "single-select";
-	// How sure is asked once a quiz answer is picked, never on "I don't know".
-	const rated = kind === "quiz" && !sel.dontKnow && sel.selected.size > 0;
+	// How sure is asked once a quiz answer is picked.
+	const rated = kind === "quiz" && sel.selected.size > 0;
 
 	// Every change is saved, so leaving the lesson keeps the picks.
 	const saveDraftRef = useRef(onSaveDraft);
@@ -185,10 +188,8 @@ function QuestionDockForm({
 	}, [sel, confIdx]);
 
 	const toggle = (idx: number) => setSel(toggleOption(selectMode, sel, idx));
-	const toggleDontKnow = () =>
-		setSel((prev) => ({ selected: new Set(), dontKnow: !prev.dontKnow }));
 
-	const picked = sel.dontKnow || sel.selected.size > 0;
+	const picked = sel.selected.size > 0;
 	// An ask with nothing picked takes the box's text as its own answer.
 	const ownAnswer = kind === "ask" && qd.mode !== "text" && !picked;
 	// Answered in words, the box decides when there is an answer.
@@ -204,24 +205,28 @@ function QuestionDockForm({
 	const [folded, setFolded] = useState(false);
 	const showFolded = folded && picked && qd.mode !== "text";
 
+	const answer = (req: AnswerRequest) => {
+		const built = buildAnswer(qd, req, toolName);
+		const sound = answerSound(built);
+		if (sound) play(sound);
+		onSubmit(built);
+	};
 	const submit = () => {
 		if (!canSubmit || busy) return;
-		const req: AnswerRequest = {
-			dontKnow: sel.dontKnow,
+		answer({
 			values: [...sel.selected].map((i) => qd.options[i]!.value),
 			other: ownAnswer ? boxText : undefined,
 			text: qd.mode === "text" ? boxText : undefined,
 			thinking: qd.mode !== "text" && !ownAnswer ? boxText.trim() || undefined : undefined,
-			// Sent only once picked; buildAnswer drops it on "I don't know".
+			// Sent only once picked.
 			confidence: kind === "quiz" && confIdx !== undefined ? CONFIDENCE_STOPS[confIdx] : undefined,
-		};
-		const answer = buildAnswer(qd, req, toolName);
-		const sound = answerSound(answer);
-		if (sound) play(sound);
-		onSubmit(answer);
+		});
 	};
 	useImperativeHandle(ref, () => ({
 		submit,
+		dontKnow() {
+			if (!busy) answer(dontKnowRequest(qd, boxText));
+		},
 		fold() {
 			if (picked) setFolded(true);
 		},
@@ -229,21 +234,14 @@ function QuestionDockForm({
 	}));
 
 	/* ── The keyboard machine ──
-	   1–9 pick an option, 0 = "I don't know" (quiz). ↑/↓ walk every row,
-	   clamped at the ends; Space acts on the walked row like a click; Enter
-	   submits once an answer exists. ←/→ move the confidence level. Tab
+	   1–9 pick an option. ↑/↓ walk the options, clamped at the ends; Space
+	   acts on the walked row like a click; Enter submits once an answer
+	   exists. ←/→ move the confidence level. Tab
 	   from the rows goes to the writing box. Keys typed into a field keep
 	   their meaning, and modifier combos are never ours. */
 	const [kbdIdx, setKbdIdx] = useState<number | null>(null);
 	const rootRef = useRef<HTMLDivElement>(null);
-	// A quiz has one row past the options: "I don't know".
-	const optionCount = qd.mode === "text" ? 0 : qd.options.length;
-	const rowCount = qd.mode === "text" ? 0 : optionCount + (kind === "quiz" ? 1 : 0);
-
-	const kbdAct = (idx: number) => {
-		if (idx < optionCount) toggle(idx);
-		else toggleDontKnow();
-	};
+	const rowCount = qd.mode === "text" ? 0 : qd.options.length;
 
 	const focusRow = (idx: number) => {
 		const row = rootRef.current?.querySelector(`[data-kbdrow="${idx}"]`) as HTMLElement | null;
@@ -275,14 +273,9 @@ function QuestionDockForm({
 				return;
 			}
 			if (typing || modded) return;
-			if (/^[0-9]$/.test(e.key) && rowCount > 0) {
+			if (/^[1-9]$/.test(e.key) && rowCount > 0) {
 				const n = Number(e.key);
-				if (n === 0) {
-					if (kind !== "quiz") return;
-					e.preventDefault();
-					setKbdIdx(optionCount);
-					toggleDontKnow();
-				} else if (n <= optionCount) {
+				if (n <= rowCount) {
 					e.preventDefault();
 					setKbdIdx(n - 1);
 					toggle(n - 1);
@@ -307,7 +300,7 @@ function QuestionDockForm({
 			} else if (e.key === " ") {
 				if (kbdIdx === null) return; // plain Space keeps scrolling
 				e.preventDefault();
-				kbdAct(kbdIdx);
+				toggle(kbdIdx);
 			} else if (e.key === "Enter") {
 				if (kbdIdx === null || !canSubmit) return;
 				e.preventDefault();
@@ -334,13 +327,11 @@ function QuestionDockForm({
 
 	const walked = (i: number, picked: boolean) => i === kbdIdx && !picked && "ring-2 ring-inset ring-ink-3";
 	const level = confIdx === undefined ? null : ((confIdx + 1) as ConfidenceLevel);
-	const pickedMarks = sel.dontKnow
-		? null
-		: [...sel.selected].map((i) => (
-				<OptionMark key={i} picked>
-					{letter(i)}
-				</OptionMark>
-			));
+	const pickedMarks = [...sel.selected].map((i) => (
+		<OptionMark key={i} picked>
+			{letter(i)}
+		</OptionMark>
+	));
 
 	return (
 		<div ref={rootRef} data-testid="question-dock" className="flex shrink-0 flex-col gap-3.5">
@@ -355,18 +346,12 @@ function QuestionDockForm({
 			{showFolded && (
 				<PickedRow
 					marks={pickedMarks}
-					label={
-						sel.dontKnow ? (
-							"I don't know"
-						) : (
-							[...sel.selected].map((i, n) => (
-								<span key={i}>
-									{n > 0 && ", "}
-									<InlineMath text={qd.options[i]!.label} />
-								</span>
-							))
-						)
-					}
+					label={[...sel.selected].map((i, n) => (
+						<span key={i}>
+							{n > 0 && ", "}
+							<InlineMath text={qd.options[i]!.label} />
+						</span>
+					))}
 					onOpen={() => setFolded(false)}
 				/>
 			)}
@@ -400,8 +385,6 @@ function QuestionDockForm({
 							</button>
 						);
 					})}
-
-					{kind === "quiz" && <DontKnowRow data-kbdrow={optionCount} picked={sel.dontKnow} onClick={toggleDontKnow} className={walked(optionCount, sel.dontKnow)} />}
 				</div>
 			)}
 

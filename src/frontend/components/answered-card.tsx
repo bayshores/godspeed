@@ -211,7 +211,7 @@ export function AnsweredCard({
 						<MessageResponse>{fencedCode(answer.code, answer.language ?? "")}</MessageResponse>
 					</div>
 				)}
-				{isCode && answer.dontKnow && <div className="text-[15px] text-ink-2">Answered “I don't know”.</div>}
+				{(isCode || isExplain) && answer.dontKnow && <div className="text-[15px] text-ink-2">Answered “I don't know”.</div>}
 
 				{fold.mounted && (
 					<div className="lh-collapse" data-state={fold.state} data-testid="answer-details">

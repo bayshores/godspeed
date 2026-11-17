@@ -461,10 +461,9 @@ export function confidenceLevel(percent: number): ConfidenceLevel {
 /** The question dock's selection state (0-based indices in display order). */
 export interface DockSelection {
 	selected: Set<number>;
-	dontKnow: boolean;
 }
 
-export const emptyDockSelection = (): DockSelection => ({ selected: new Set(), dontKnow: false });
+export const emptyDockSelection = (): DockSelection => ({ selected: new Set() });
 
 /** The question form as the learner left it (saved with the lesson's
  * drafts). Indices use the call's stable shuffle. */
@@ -491,9 +490,9 @@ export function toggleOption(mode: SelectMode, sel: DockSelection, idx: number):
 		const selected = new Set(sel.selected);
 		if (selected.has(idx)) selected.delete(idx);
 		else selected.add(idx);
-		return { selected, dontKnow: false };
+		return { selected };
 	}
-	return { selected: sel.selected.has(idx) ? new Set() : new Set([idx]), dontKnow: false };
+	return { selected: sel.selected.has(idx) ? new Set() : new Set([idx]) };
 }
 
 // ─── options ────────────────────────────────────────────────────────────────
@@ -664,6 +663,16 @@ export function buildAnswer(qd: QuestionData, req: AnswerRequest, tool?: string)
 		base.committed = qd.committedAnswer;
 	}
 	return base;
+}
+
+export const DONT_KNOW = "I don't know";
+
+/** "I don't know" as the answer to a waiting question, with the box's text
+ *  as the reasoning. A graded question records the gap; an ask has no right
+ *  answer, so it is answered in those words. */
+export function dontKnowRequest(qd: QuestionData, thinking: string): AnswerRequest {
+	if (qd.kind !== "ask") return { dontKnow: true, thinking };
+	return qd.mode === "text" ? { text: DONT_KNOW, thinking } : { other: DONT_KNOW, thinking };
 }
 
 /** The sound a submitted answer makes. Only quiz answers are graded on

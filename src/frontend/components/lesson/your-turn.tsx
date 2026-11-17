@@ -1,11 +1,11 @@
 import { useRef, useState, type RefObject } from "react";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
-import { DEFAULT_TEACHER_NAME, type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, DONT_KNOW, type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { AttachButton, type AttachmentDraft } from "./attachment-tray";
 import { LessonBox } from "./lesson-box";
-import { lessonBox, questionTurn, type BoxAction, type BoxView } from "./lesson-box-model";
+import { HELP_LINES, lessonBox, questionTurn, type BoxAction, type BoxView } from "./lesson-box-model";
 import { OpenProblemPane } from "./open-problem-pane";
 import { StopCard } from "./stop-card";
 import type { StopAction, StopCardView } from "./stop-card-model";
@@ -38,6 +38,8 @@ export interface YourTurnProps {
 	onChange: (v: string) => void;
 	/** Sends the problem's work in the box. */
 	onSend: () => void;
+	/** Sends a "Stuck?" key's words, as a line typed in the teacher's terminal. */
+	onHelpLine: (line: string) => void;
 	attachments: AttachmentDraft;
 	/** The waiting question, for the lesson to read what is picked so far. */
 	questionRef: RefObject<QuestionHandle | null>;
@@ -46,6 +48,8 @@ export interface YourTurnProps {
 	/** The last send or reply failed. */
 	error: { text: string; detail: string; onRetry: () => void } | null;
 }
+
+const HELP_KEY = "lh-btn h-[30px] px-2.5 text-[15px]";
 
 const EXIT: Record<BoxView["exit"], { label: string; testId: string }> = {
 	skip: { label: "Skip question", testId: "skip-question" },
@@ -61,7 +65,8 @@ const EXIT: Record<BoxView["exit"], { label: string; testId: string }> = {
  * - the open problem, worked on in the box;
  * - a place to stop (the stop card);
  * The button beside "Your turn" is the way out of that state. Talking to
- * the teacher happens in its terminal.
+ * the teacher happens in its terminal; the "Stuck?" keys under the box
+ * ask for help in one click.
  */
 export function YourTurn({
 	pending,
@@ -80,6 +85,7 @@ export function YourTurn({
 	value,
 	onChange,
 	onSend,
+	onHelpLine,
 	attachments,
 	questionRef,
 	stuck,
@@ -107,6 +113,7 @@ export function YourTurn({
 		if (view && view.button.action !== "send" && !view.button.disabled) act(view.button.action);
 	});
 
+	const help = view?.help;
 	const exit = view && EXIT[view.exit];
 	const onExit = view?.exit === "skip" ? onSkipQuestion : onDiscardProblem;
 	const fromEarlier = pending?.appPosed?.kind === "review";
@@ -202,6 +209,28 @@ export function YourTurn({
 						</div>
 					)}
 				</>
+			)}
+			{help && (
+				<div data-testid="help-keys" className="flex shrink-0 items-baseline gap-3">
+					<span className="shrink-0 text-base text-ink-2">Stuck?</span>
+					<div className="flex min-w-0 flex-wrap gap-2">
+						<button
+							type="button"
+							data-testid="help-dont-know"
+							disabled={help.dontKnowDisabled}
+							onClick={() => (help.dontKnow === "answer" ? questionRef.current?.dontKnow() : onHelpLine(DONT_KNOW))}
+							className={HELP_KEY}
+						>
+							{DONT_KNOW}
+						</button>
+						<button type="button" data-testid="help-hint" disabled={help.linesDisabled} onClick={() => onHelpLine(HELP_LINES.hint)} className={HELP_KEY}>
+							{HELP_LINES.hint}
+						</button>
+						<button type="button" data-testid="help-simpler" disabled={help.linesDisabled} onClick={() => onHelpLine(HELP_LINES.simpler)} className={HELP_KEY}>
+							{HELP_LINES.simpler}
+						</button>
+					</div>
+				</div>
 			)}
 		</div>
 	);

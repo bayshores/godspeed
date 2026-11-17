@@ -25,7 +25,7 @@ A question waiting in the saved record lets a lesson resume mid-question. Option
 
 ### Side questions
 
-The lesson has one writing box at the foot of the teacher column (`LessonBox` in `src/frontend/components/lesson/lesson-box.tsx`; `lessonBox` in `lesson-box-model.ts` decides its buttons). While a question waits, a message from that box is a side question.
+The lesson has one writing box at the foot of the teacher column (`LessonBox` in `src/frontend/components/lesson/lesson-box.tsx`; `lessonBox` in `lesson-box-model.ts` decides its buttons and the "Stuck?" keys under it). While a question waits, a line typed in the teacher's terminal is a side question (`sendLine` in `chat.tsx`). The "Give me a hint" and "Explain it simpler" keys send those words the same way. "I don't know" answers the question: `dontKnow: true`, or for `ask_user_question` the words as its answer (`dontKnowRequest`).
 
 - It posts a `side` input event, refused unless a question waits. The server saves it as a user message with `side: true` (`new_side_question`, `core::messages::native_messages`). Pictures and PDFs are stored like any message's.
 - Question stays open: `dangling_question_of` looks past side questions and their replies.
@@ -39,7 +39,7 @@ The lesson has one writing box at the foot of the teacher column (`LessonBox` in
 
 In study, practice and homework lessons, the open problem fills the teacher column's Your turn area (`OpenProblemPane`, `src/frontend/components/lesson/open-problem-pane.tsx`), with no writing box of its own.
 
-- Learner works in lesson's one box. Each message is a plain `text` input: work on problem or a question about it.
+- Learner works in lesson's one box. Each message is a plain `text` input: work on problem or a question about it. The three "Stuck?" keys send their words as such a message.
 - A message never ends problem (`active_problem_of`). Only teacher's `conclude` or learner's discard does.
 - Teacher may conclude one problem and pose the one learner asked for in same turn.
 - While a problem is open, its card in the transcript is not drawn (`openProblem` in `ChatActionsContext`). The card appears once the problem closes.

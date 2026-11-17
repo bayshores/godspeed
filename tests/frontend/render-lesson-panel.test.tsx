@@ -107,6 +107,7 @@ function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 		value: "",
 		onChange: () => {},
 		onSend: () => {},
+		onHelpLine: () => {},
 		attachments,
 		questionRef: { current: null },
 		boxRef: { current: null },
@@ -210,15 +211,50 @@ describe("Your turn in each state", () => {
 		});
 	});
 
-	it("I don't know is an answer too", async () => {
+	it("Stuck? sits under the box while a question or a problem waits, never while reading first or at a stop", () => {
+		const keys = /data-testid="help-keys"[^>]*><span[^>]*>Stuck\?<\/span>[\s\S]*?>I don(?:'|&#x27;)t know<[\s\S]*?>Give me a hint<[\s\S]*?>Explain it simpler</;
+		for (const over of [{ pending: quiz }, { pending: written }, { pending: choice }, { problem }]) assert.match(html(over), keys, JSON.stringify(Object.keys(over)));
+		assert.match(html({ problem }), /data-testid="attach-button"[\s\S]*data-testid="help-keys"/, "under the Attach row");
+		const view = stopCard({ kind: "topic", at: "2026-11-18T21:48:00.000Z", nodeId: "reg", stopOf: "c1", next: "Cross-validation", activeMinutes: 48, keptGoing: false });
+		for (const over of [{}, { pending: check, revealPending: true }, { stop: { key: "c1", view, onAction: () => {} } }]) assert.doesNotMatch(html(over), /help-keys|Stuck\?/);
+	});
+
+	it("I don't know answers the question in one click, with the box text as the thinking", async () => {
 		const answers: QuestionAnswerData[] = [];
-		await mounted(turn({ pending: quiz, onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
-			await click(host, "dont-know-option");
-			assert.equal(submitDisabled(host), false);
-			await click(host, "question-submit");
+		await mounted(turn({ pending: quiz, value: "no idea", onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
+			await click(host, "help-dont-know");
+			assert.equal(answers.length, 1);
 			assert.equal(answers[0]!.dontKnow, true);
-			assert.equal(answers[0]!.thinking, undefined, "an empty box adds no thinking");
+			assert.equal(answers[0]!.correct, false);
+			assert.equal(answers[0]!.thinking, "no idea");
 		});
+		await mounted(turn({ pending: written, onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
+			await click(host, "help-dont-know");
+			assert.equal(answers[1]!.text, "I don't know", "an ask has no gap to record, so it is answered in words");
+			assert.equal(answers[1]!.dontKnow, false);
+		});
+	});
+
+	it("the hint and simpler keys, and I don't know on a problem, send their words as a line to the teacher", async () => {
+		const lines: string[] = [];
+		const answers: QuestionAnswerData[] = [];
+		await mounted(turn({ pending: quiz, onHelpLine: (l) => lines.push(l), onSubmitAnswer: (a) => answers.push(a) }), async (host, show) => {
+			await click(host, "help-hint");
+			await click(host, "help-simpler");
+			await show(turn({ problem, onHelpLine: (l) => lines.push(l) }));
+			await click(host, "help-dont-know");
+		});
+		assert.deepEqual(lines, ["Give me a hint", "Explain it simpler", "I don't know"]);
+		assert.equal(answers.length, 0, "the question stays open");
+	});
+
+	it("while the teacher writes the keys wait, but I don't know still answers a question from earlier", () => {
+		const off = (out: string, id: string) => new RegExp(`data-testid="${id}"[^>]*disabled`).test(out);
+		const busy = html({ pending: quiz, busy: true });
+		assert.ok(off(busy, "help-dont-know") && off(busy, "help-hint") && off(busy, "help-simpler"));
+		const fromEarlier = html({ pending: { ...quiz, appPosed: { kind: "review" as const, ref: { chatId: "c_old", toolCallId: "rv1" } } }, busy: true });
+		assert.ok(!off(fromEarlier, "help-dont-know") && off(fromEarlier, "help-hint"));
+		assert.ok(!off(html({ pending: quiz }), "help-hint"));
 	});
 
 	it("a question answered in words: the box text is the answer", async () => {
@@ -226,7 +262,7 @@ describe("Your turn in each state", () => {
 		const out = html({ pending: written });
 		assert.match(out, /Your answer/);
 		assert.match(out, /data-testid="question-submit"[^>]*disabled/, "an empty box is no answer");
-		assert.doesNotMatch(out, /question-option|dont-know-option/);
+		assert.doesNotMatch(out, /question-option/);
 		await mounted(turn({ pending: written, value: "the steps shrink", onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
 			assert.equal(submitDisabled(host), false);
 			await click(host, "question-submit");
@@ -489,14 +525,13 @@ function press(key: string) {
 }
 
 describe("the question's keys", () => {
-	it("number keys pick options, 0 is I don't know, arrows move confidence, Enter on a picked row submits", async () => {
+	it("number keys pick options, arrows move confidence, Enter on a picked row submits", async () => {
 		const answers: QuestionAnswerData[] = [];
 		await mounted(turn({ pending: quiz, onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
 			await act(async () => press("2"));
 			assert.equal(options(host)[1]!.getAttribute("aria-checked"), "true", "2 picks the second row");
 			await act(async () => press("0"));
-			assert.equal(host.querySelector('[data-testid="dont-know-option"]')!.getAttribute("aria-pressed"), "true", "0 = I don't know");
-			assert.ok(options(host).every((r) => r.getAttribute("aria-checked") === "false"), "I don't know clears the pick");
+			assert.equal(options(host)[1]!.getAttribute("aria-checked"), "true", "0 does nothing");
 			await act(async () => press("1"));
 			assert.equal(options(host)[0]!.getAttribute("aria-checked"), "true");
 			await act(async () => press("9"));
@@ -522,7 +557,7 @@ describe("the question's keys", () => {
 		});
 	});
 
-	it("How sure shows only after a pick, as one line under I don't know, and comes into view", async () => {
+	it("How sure shows only after a pick, as one line under the answers, and comes into view", async () => {
 		await mounted(turn({ pending: quiz }), async (host) => {
 			assert.ok(host.querySelector('[data-testid="confidence-line"]') === null, "nothing before a pick");
 			scrolledTo.length = 0;
@@ -530,15 +565,13 @@ describe("the question's keys", () => {
 			const line = host.querySelector('[data-testid="confidence-line"]')!;
 			assert.ok(scrolledTo.includes(line));
 			assert.match(line.textContent ?? "", /^How sure are you\?/);
-			assert.ok(host.querySelector('[data-testid="dont-know-option"]')!.closest("[role]")!.nextElementSibling === line, "right under the answers");
+			assert.ok(options(host)[1]!.closest("[role=radiogroup]")!.nextElementSibling === line, "right under the answers");
 			assert.equal(line.querySelector('[data-testid="confidence-level-1"]')!.getAttribute("title"), "1, Guessing");
 			assert.equal(line.querySelector('[data-testid="confidence-level-5"]')!.getAttribute("title"), "5, Certain");
 			assert.equal(line.textContent, "How sure are you?GuessingCertain", "the end words show at any width");
 			const group = line.querySelector('[role="radiogroup"]')!.parentElement!;
 			assert.equal(group.textContent, "GuessingCertain", "the end words and the squares are one group, so a narrow line wraps before it");
 			assert.ok(!line.className.includes("@container"));
-			await click(host, "dont-know-option");
-			assert.ok(host.querySelector('[data-testid="confidence-line"]') === null, "never after I don't know");
 		});
 	});
 
@@ -592,15 +625,6 @@ describe("writing folds the answer list", () => {
 		});
 	});
 
-	it("I don't know folds with no How sure line", async () => {
-		await mounted(turn({ pending: quiz }), async (host) => {
-			await click(host, "dont-know-option");
-			await focusBox(host);
-			assert.match(host.querySelector('[data-testid="picked-row"]')!.textContent ?? "", /I don't know/);
-			assert.ok(host.querySelector('[data-testid="confidence-line"]') === null);
-		});
-	});
-
 	it("with nothing picked the list stays open", async () => {
 		await mounted(turn({ pending: quiz }), async (host) => {
 			await focusBox(host);
@@ -611,7 +635,7 @@ describe("writing folds the answer list", () => {
 });
 
 describe("saved drafts", () => {
-	const draft: QuestionFormDraft = { selection: { selected: new Set([0]), dontKnow: false }, confidenceIndex: 2 };
+	const draft: QuestionFormDraft = { selection: { selected: new Set([0]) }, confidenceIndex: 2 };
 
 	it("a question starts from the saved picks and confidence", async () => {
 		await mounted(turn({ pending: quiz, initialQuestionDraft: draft }), async (host) => {
@@ -627,10 +651,9 @@ describe("saved drafts", () => {
 		await mounted(turn({ pending: quiz, initialQuestionDraft: draft, onSaveQuestionDraft: (d) => saved.push(d) }), async (host) => {
 			await click(host, "confidence-level-5");
 			assert.equal(saved.at(-1)!.confidenceIndex, 4);
-			await click(host, "dont-know-option");
+			await act(async () => options(host)[0]!.click());
 			const last = saved.at(-1)!;
 			assert.deepEqual(Object.keys(last).sort(), ["confidenceIndex", "selection"]);
-			assert.equal(last.selection.dontKnow, true);
 			assert.equal(last.selection.selected.size, 0);
 			assert.equal(last.confidenceIndex, 4);
 		});

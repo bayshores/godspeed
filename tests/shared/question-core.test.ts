@@ -13,6 +13,7 @@ import {
 	buildAnswer,
 	compactAnswerForModel,
 	dismissedAnswer,
+	dontKnowRequest,
 	coerceCorrectAnswer,
 	CONFIDENCE_STOPS,
 	stepConfidence,
@@ -465,6 +466,15 @@ describe("buildAnswer", () => {
 		assert.deepEqual(ad.answers, []);
 	});
 
+	it("dontKnowRequest: a graded question records the gap; an ask is answered in those words; the box text rides as thinking", () => {
+		assert.deepEqual(dontKnowRequest(quizData(), "hm"), { dontKnow: true, thinking: "hm" });
+		assert.deepEqual(dontKnowRequest(quizData({ kind: "explain", mode: "text", options: [] }), ""), { dontKnow: true, thinking: "" });
+		assert.deepEqual(dontKnowRequest(quizData({ kind: "ask", mode: "text", options: [] }), "hm"), { text: "I don't know", thinking: "hm" });
+		assert.deepEqual(dontKnowRequest(quizData({ kind: "ask" }), ""), { other: "I don't know", thinking: "" });
+		const ask = buildAnswer(quizData({ kind: "ask", correctIndices: undefined }), dontKnowRequest(quizData({ kind: "ask" }), ""));
+		assert.deepEqual([ask.other, ask.dontKnow, ask.thinking], ["I don't know", false, undefined], "an empty box adds no thinking");
+	});
+
 	it("answerSound: quiz answers sound right or wrong; I don't know, ask answers and predictions stay silent", () => {
 		assert.equal(answerSound(buildAnswer(quizData(), { values: ["mercury"] })), "right");
 		assert.equal(answerSound(buildAnswer(quizData(), { values: ["venus"] })), "wrong");
@@ -614,11 +624,6 @@ describe("dock selection (toggleOption)", () => {
 		assert.deepEqual([...sel.selected], [1]);
 	});
 
-	it("any selection clears dont-know", () => {
-		const sel = toggleOption("multi-select", { selected: new Set<number>(), dontKnow: true }, 0);
-		assert.equal(sel.dontKnow, false);
-	});
-
 	it("single-select: an option displaces the one picked before", () => {
 		let sel = toggleOption("single-select", emptyDockSelection(), 0);
 		sel = toggleOption("single-select", sel, 1);
@@ -629,7 +634,6 @@ describe("dock selection (toggleOption)", () => {
 		let sel = toggleOption("single-select", emptyDockSelection(), 1);
 		sel = toggleOption("single-select", sel, 1);
 		assert.equal(sel.selected.size, 0);
-		assert.equal(sel.dontKnow, false);
 	});
 });
 

@@ -670,6 +670,7 @@ export function Chat({
 											value={text}
 											onChange={editText}
 											onSend={onSend}
+											onHelpLine={(line) => void sendLine(line, [])}
 											attachments={attachments}
 											questionRef={questionRef}
 											stuck={stuckLine}

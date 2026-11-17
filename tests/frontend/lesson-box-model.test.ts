@@ -1,4 +1,4 @@
-/** The lesson's answer box: its button, Enter and the way out per state. */
+/** The lesson's answer box: its button, Enter, the way out and the Stuck? keys per state. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { lessonBox, questionTurn, type BoxTurn } from "../../src/frontend/components/lesson/lesson-box-model.ts";
@@ -145,5 +145,33 @@ describe("lessonBox, a question from earlier", () => {
 		assert.equal(busy.enter, "submit");
 		assert.equal(busy.exit, "skip");
 		assert.equal(box(questionTurn("quiz", quiz, false, "review"), { busy: true }).button.disabled, true, "nothing picked");
+	});
+});
+
+describe("lessonBox, the Stuck? keys", () => {
+	const quiz = { question: "q", options: [{ label: "a" }, { label: "b" }], correctAnswer: "a", explanation: "e" };
+	const free = { dontKnow: "answer", dontKnowDisabled: false, linesDisabled: false };
+
+	it("a waiting question: I don't know answers it, the other two are lines to the teacher", () => {
+		assert.deepEqual(box(questionTurn("quiz", quiz, false)).help, free);
+		assert.deepEqual(box(questionTurn("explain", { question: "why?", correctAnswer: "because" }, false)).help, free, "a written answer");
+		assert.deepEqual(box(questionTurn("ask_user_question", { question: "q", options: [{ label: "a" }, { label: "b" }] }, true)).help, free, "with a pick");
+		assert.deepEqual(box(questionTurn("write_code", { question: "q" }, false)).help, free);
+		assert.deepEqual(box(questionTurn("quiz", quiz, false, "opener")).help, free, "the next topic's opener");
+	});
+
+	it("an open problem: all three are lines to the teacher, and the problem stays open", () => {
+		assert.deepEqual(box({ kind: "problem" }).help, { dontKnow: "send", dontKnowDisabled: false, linesDisabled: false });
+		assert.deepEqual(box({ kind: "problem" }, { busy: true }).help, { dontKnow: "send", dontKnowDisabled: true, linesDisabled: true });
+	});
+
+	it("none while reading first", () => {
+		assert.equal(box({ kind: "read-first" }).help, null);
+	});
+
+	it("while the teacher writes all wait, except I don't know on a question from earlier, which goes in like Submit", () => {
+		assert.deepEqual(box(questionTurn("quiz", quiz, false), { busy: true }).help, { dontKnow: "answer", dontKnowDisabled: true, linesDisabled: true });
+		assert.deepEqual(box(questionTurn("quiz", quiz, false, "opener"), { busy: true }).help, { dontKnow: "answer", dontKnowDisabled: true, linesDisabled: true });
+		assert.deepEqual(box(questionTurn("quiz", quiz, false, "review"), { busy: true }).help, { dontKnow: "answer", dontKnowDisabled: false, linesDisabled: true });
 	});
 });

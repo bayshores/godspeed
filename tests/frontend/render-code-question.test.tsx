@@ -50,14 +50,13 @@ const noop = {
 };
 
 describe("the code question", () => {
-	it("shows the task, the editor with its language and the Vim switch (off) and I don't know", () => {
+	it("shows the task and the editor with its language and the Vim switch (off)", () => {
 		const html = renderToStaticMarkup(<QuestionDock {...noop} toolName="write_code" toolCallId="c1" input={task} />);
 		assert.match(html, /<strong /, "the task renders as markdown");
 		assert.match(html, /data-testid="code-language"[^>]*>C</);
 		assert.match(html, /data-testid="code-editor-host"/);
 		assert.match(html, /role="switch" aria-checked="false" aria-label="Vim"/);
 		assert.ok(!html.includes('data-testid="vim-mode"'), "no mode label while Vim is off");
-		assert.match(html, /data-testid="dont-know-option" aria-pressed="false"/);
 		assert.ok(!html.includes('data-testid="thinking-field"'), "the reasoning is typed in the lesson's box");
 	});
 
@@ -70,20 +69,12 @@ describe("the code question", () => {
 		await mounted(<QuestionDock {...noop} onReady={(r) => ready.push(r)} toolName="write_code" toolCallId="c2" input={{ question: "Write it.", language: "python" }} />, async (host) => {
 			assert.match(host.innerHTML, /data-testid="code-language"[^>]*>python</);
 			assert.equal(ready.at(-1), false);
-			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="dont-know-option"]')!.click());
-			assert.equal(ready.at(-1), true, "I don't know is an answer");
 		});
 	});
 
 	it("a malformed call shows the quiet fallback", () => {
 		const html = renderToStaticMarkup(<QuestionDock {...noop} toolName="write_code" toolCallId="c3" input={{ question: "" } as never} />);
 		assert.match(html, /data-testid="malformed-question"/);
-	});
-
-	it("restores an unconfirmed submission's choice", () => {
-		const draft = { selection: { selected: new Set<number>(), otherSelected: false, dontKnow: true }, other: "", code: "int kept;" };
-		const html = renderToStaticMarkup(<QuestionDock {...noop} toolName="write_code" toolCallId="c4" input={task} initialDraft={draft} />);
-		assert.match(html, /data-testid="dont-know-option" aria-pressed="true"/);
 	});
 
 	it("saves untouched starter code as no draft", async () => {
@@ -96,16 +87,16 @@ describe("the code question", () => {
 	it("submits the starter code, or I don't know without code, with the box text as the reasoning", async () => {
 		const answers: QuestionAnswerData[] = [];
 		const ref = React.createRef<QuestionHandle>();
-		await mounted(<QuestionDock {...noop} ref={ref} boxText="ternary" onSubmit={(a) => answers.push(a)} toolName="write_code" toolCallId="c5" input={task} />, async (host) => {
+		await mounted(<QuestionDock {...noop} ref={ref} boxText="ternary" onSubmit={(a) => answers.push(a)} toolName="write_code" toolCallId="c5" input={task} />, async () => {
 			await act(async () => ref.current!.submit());
 			assert.deepEqual(answers[0]!.code, task.starter);
 			assert.equal(answers[0]!.kind, "code");
 			assert.equal(answers[0]!.tool, "write_code");
 			assert.equal(answers[0]!.thinking, "ternary");
-			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="dont-know-option"]')!.click());
-			await act(async () => ref.current!.submit());
+			await act(async () => ref.current!.dontKnow());
 			assert.equal(answers[1]!.dontKnow, true);
 			assert.ok(!("code" in answers[1]!), "I don't know sends no code");
+			assert.equal(answers[1]!.thinking, "ternary");
 		});
 	});
 

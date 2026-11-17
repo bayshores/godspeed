@@ -130,16 +130,14 @@ describe("DispatchCard — failed jobs", () => {
 });
 
 describe("render smoke tests", () => {
-	it("QuizCard renders question, options, and the automatic 'I don't know'", () => {
+	it("QuizCard renders the question and its options", () => {
 		const html = renderDock({ toolName: "quiz", toolCallId: "q1", input: quizInput as never });
 		assert.match(html, /Which planet is closest to the sun\?/);
 		assert.match(html, /Mercury/);
-		assert.match(html, /I don&#x27;t know|I don't know/);
+		assert.doesNotMatch(html, /I don&#x27;t know/, "I don't know is a key under the box");
 		// The reasoning is typed in the lesson's one box, not in the dock.
 		assert.doesNotMatch(html, /thinking-field|math-box|question-submit|Submit answer/, "no box or buttons of its own");
 		assert.ok(!html.includes("Enter"), "mouse-first: no key label");
-		// Mouse-first: the rows carry no number-key badges.
-		assert.doesNotMatch(html, /data-testid="dont-know-option"[\s\S]*?>0</, "no key 0 badge on I don't know");
 		assert.ok(!html.includes('data-testid="confidence-line"'), "How sure waits for a pick");
 		// The v1 desync bug: options are buttons with ARIA roles, not native inputs.
 		assert.ok(!html.includes('type="radio"'), "no native radio inputs");

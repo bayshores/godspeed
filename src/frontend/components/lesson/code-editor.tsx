@@ -21,15 +21,12 @@ export function CodeEditor({
 	initialCode,
 	language,
 	onChange,
-	dimmed = false,
 	tools,
 	fill = false,
 }: {
 	initialCode: string;
 	language: string;
 	onChange: (code: string) => void;
-	/** "I don't know" is picked: the code won't be sent. */
-	dimmed?: boolean;
 	/** In place of the language's name (a mock's language pick). */
 	tools?: ReactNode;
 	/** Take the whole height it is given, in place of growing with the code. */
@@ -74,7 +71,7 @@ export function CodeEditor({
 	};
 
 	return (
-		<div data-testid="code-editor" className={cn("flex flex-col bg-background transition-opacity duration-(--lh-dur)", fill ? "min-h-0 flex-1" : "shrink-0", dimmed && "opacity-40")}>
+		<div data-testid="code-editor" className={cn("flex flex-col bg-background", fill ? "min-h-0 flex-1" : "shrink-0")}>
 			<div className="flex items-center justify-between gap-3 border-b border-tone-2 px-3.5 py-2">
 				{tools ?? (
 					<span data-testid="code-language" className="font-mono text-[12.5px] text-ink-3">
