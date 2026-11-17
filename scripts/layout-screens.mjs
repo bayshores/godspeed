@@ -71,6 +71,16 @@ await fetch("/api/spaces/{space}/files", { method: "POST", body: form })${HTTP_O
  *  "Today with no deadline", which ends the request. */
 const waitingRequest = `await fetch("/api/spaces/{space}/deadlines/{deadline}/request", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "guide" }) })${HTTP_OK};`;
 
+/** Find opened on the Graph's foot line, with `word` typed in. */
+const findWord = (word) => `document.querySelector("[data-testid=graph-find]").click(); ${pause};
+const box = document.querySelector("[data-testid=graph-find-box]");
+Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(box, ${JSON.stringify(word)});
+box.dispatchEvent(new Event("input", { bubbles: true })); ${pause}`;
+
+/** The Graph page fits the window: neither the page nor its frame scrolls. */
+const fitsWindow = `${pause}; const frame = document.querySelector("[data-testid=graph-page]").firstElementChild;
+if (document.scrollingElement.scrollHeight > innerHeight + 1 || frame.scrollHeight > frame.clientHeight + 1) throw new Error("the Graph page scrolls")`;
+
 /** A click on the first topic with facts in the Graph's picture. */
 const pickTopic = `[...document.querySelectorAll("[data-testid=graph-topic]")].find((topic) => !/\\b0 facts/.test(topic.getAttribute("aria-label"))).click()`;
 
@@ -85,8 +95,10 @@ export const SCREENS = [
 	{ name: "Lessons, a lesson's menu", url: "/space/lessons", ready: "[data-testid=lessons-list] [data-testid=session-row-menu]", setup: `document.querySelector("[data-testid=session-row-menu]").click()`, shows: "[data-testid=session-context-menu][data-state=open]" },
 	{ name: "Files", url: "/space/files", ready: "[data-testid=files-list] > *" },
 	{ name: "Files, a file's menu", url: "/space/files", ready: "[data-testid=files-list] button[aria-label^='More for']", setup: `document.querySelector("[data-testid=files-list] button[aria-label^='More for']").click()`, shows: "[data-testid^=space-file-menu-body-][data-state=open]" },
-	{ name: "Graph", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]" },
-	{ name: "Graph, a topic picked", url: "/graph", ready: "[data-testid=graph-topic]", setup: pickTopic, shows: "[data-testid=graph-panel] [data-testid=topic-pane]" },
+	{ name: "Graph", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]", setup: fitsWindow },
+	{ name: "Graph, finding a word", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("undo"), shows: "[data-testid=graph-find-box]" },
+	{ name: "Graph, finding a word nothing matches", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("zzzz"), shows: "[data-testid=graph-no-match]" },
+	{ name: "Graph, a topic picked", url: "/graph", ready: "[data-testid=graph-topic]", setup: `${pickTopic}; ${fitsWindow}`, shows: "[data-testid=graph-panel] [data-testid=topic-pane]" },
 	{
 		name: "Graph, a fact picked",
 		url: "/graph",
@@ -94,6 +106,7 @@ export const SCREENS = [
 		setup: `${pickTopic}; ${pause}; document.querySelector("[data-testid=topic-pane] [data-testid=fact-row]").click()`,
 		shows: "[data-testid=graph-panel] [data-testid=fact-pane]",
 	},
+	// Costs opens upward from the foot line.
 	{ name: "Graph, costs open", url: "/graph", ready: "[data-testid=graph-costs]", setup: `document.querySelector("[data-testid=graph-costs]").click()`, shows: "[data-testid=graph-costs-panel][data-state=open]" },
 	{
 		name: "Graph, costs open beside the docked panel",

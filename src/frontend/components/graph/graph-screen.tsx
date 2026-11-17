@@ -1,7 +1,8 @@
 /**
- * THE GRAPH TAB, under the space head: its bar (search, All facts, Graph
- * costs, Add files), then one picture of the space's topics and facts
- * and how they link; a picked topic or fact docks its panel beside it. Data: useProgress (GET /api/progress) and the
+ * THE GRAPH TAB, under the space head: one picture of the space's topics and
+ * facts and how they link, fitted to the window so the page never scrolls,
+ * over a foot line (counts, Find, Costs, Add files); a picked topic or fact
+ * docks its panel beside it. Data: useProgress (GET /api/progress) and the
  * raw graph (GET /api/graph) for where facts came from, how they link,
  * and the chain table. Keyed by space by the route, so a space switch
  * starts clean.
@@ -14,8 +15,8 @@ import { useActivity } from "@/frontend/components/activity-dock";
 import { LazyChainTableOverlay as ChainTableOverlay } from "@/frontend/components/chain-table-lazy.tsx";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { NotesImportErrors, useNotesImport } from "@/frontend/components/notes-import";
-import { searchMatches } from "./derive.ts";
-import { GraphTopBar } from "./graph-top-bar.tsx";
+import { findMatches } from "./derive.ts";
+import { GraphFoot } from "./graph-foot.tsx";
 import { useGraphCosts } from "./use-graph-costs.ts";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { lazyComponent } from "@/frontend/lib/lazy-component";
@@ -69,22 +70,14 @@ function GraphScreenBody() {
 
 	const data = progress.data;
 	const hasFacts = (data?.facts.length ?? 0) > 0;
-	const matches = useMemo(() => (data ? searchMatches(query, data.topics, data.facts) : null), [query, data]);
+	const matches = useMemo(() => (data ? findMatches(query, data.topics, data.facts) : null), [query, data]);
 	// Deleting every fact hides the table; close it so new facts don't reopen it.
 	if (chainsOpen && data && !hasFacts) setChainsOpen(false);
 	return (
 		<div className="relative h-full" data-testid="graph-page">
-			<div className="h-full overflow-y-auto">
-				<div className="mx-auto flex w-full max-w-[1240px] flex-col gap-6 px-6 pt-6 pb-16">
-					<GraphTopBar
-						hasFacts={hasFacts}
-						query={query}
-						onQuery={setQuery}
-						nothingMatches={matches?.topics.size === 0}
-						onOpenChains={() => setChainsOpen(true)}
-						costs={costs}
-						importNotes={active ? null : notesImport}
-					/>
+			<div className="h-full overflow-hidden">
+				<div className="mx-auto flex w-full max-w-[1240px] flex-col gap-4 px-6 pt-3">
+					<h1 className="sr-only">Graph</h1>
 					{notesImport.errors.length > 0 && (
 						<div className="flex flex-col gap-1">
 							<NotesImportErrors errors={notesImport.errors} />
@@ -107,6 +100,17 @@ function GraphScreenBody() {
 					)}
 				</div>
 			</div>
+			<GraphFoot
+				hasFacts={hasFacts}
+				topicCount={data?.topics.filter((t) => !t.ungrouped).length ?? 0}
+				factCount={data?.facts.length ?? 0}
+				query={query}
+				onQuery={setQuery}
+				matches={matches}
+				onOpenChains={() => setChainsOpen(true)}
+				costs={costs}
+				importNotes={active ? null : notesImport}
+			/>
 			{/* Last child: the overlay covers the page and its top bar (one bar,
 			    one Follow chip; app-region subtraction follows DOM order). */}
 			<ChainTableOverlay

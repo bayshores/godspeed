@@ -1491,6 +1491,20 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	animation: lh-appear 1ms steps(1, end) var(--lh-block-delay, 0ms) backwards;
 }
 
+/* The Graph picture's reveal: each cluster and its name ink in at --lh-at,
+   each faint line draws in from its start once both its ends are in. */
+.lh-reveal {
+	animation: lh-fade-in 200ms var(--lh-ease-out) var(--lh-at, 0ms) backwards;
+}
+@keyframes lh-draw-line {
+	from {
+		stroke-dashoffset: 1;
+	}
+}
+.lh-reveal-line {
+	stroke-dasharray: 1 1;
+	animation: lh-draw-line 240ms var(--lh-ease-out) var(--lh-at, 0ms) backwards;
+}
 @keyframes lh-flash {
 	0%,
 	37% {
@@ -1519,6 +1533,8 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 
 @media (prefers-reduced-motion: reduce) {
 	.lh-block-in,
+	.lh-reveal,
+	.lh-reveal-line,
 	.lh-flash-right [data-testid="answered-card"],
 	.lh-flash-wrong [data-testid="answered-card"],
 	.lh-streaming > :is(p, h1, h2, h3, h4, blockquote):last-child::after,

@@ -5,6 +5,8 @@ import { prefersReducedMotion } from "@/frontend/components/presence";
 import { FactPane, type FactSources } from "./fact-pane.tsx";
 import { GraphEmpty } from "./graph-empty.tsx";
 import { TopicPane } from "./topic-pane.tsx";
+import { REVEAL_MS, type Reveal } from "./constellation-reveal.ts";
+import { FOOT } from "./graph-foot.tsx";
 
 /** The docked panel's width, and the gap between it and the picture. */
 const PANEL = 340;
@@ -13,6 +15,9 @@ const GAP = 16;
 const NARROW = 1000;
 /** The room before it is measured: the page's widest column, less its sides. */
 const WIDEST = 1192;
+const TALLEST = 600;
+/** The least height the picture gets, however short the window. */
+const MIN_HEIGHT = 120;
 const PICTURE = "[data-testid=graph-picture]";
 const PANEL_BOX = "[data-testid=graph-panel]";
 const PANEL_CLOSE = "[data-testid=topic-pane-close], [data-testid=fact-pane-close]";
@@ -32,7 +37,7 @@ export function GraphBody({
 	initialSelected = null,
 }: {
 	data: ProgressPayload;
-	/** A search's lit topics and facts; null with no search. */
+	/** Find's lit topics and facts; null with nothing typed. */
 	matches: { topics: ReadonlySet<string>; facts: ReadonlySet<string> } | null;
 	/** Where facts came from and how they link; null while it loads. */
 	sources: FactSources | null;
@@ -45,6 +50,12 @@ export function GraphBody({
 	const [selectedId, setSelectedId] = useState<string | null>(initialSelected);
 	const [factId, setFactId] = useState<string | null>(null);
 	const room = useRoom();
+	// The picture inks in once per opening of the tab; a re-fit, Find, pick or refresh never replays it.
+	const [reveal, setReveal] = useState<Reveal | null>(() => (prefersReducedMotion() ? null : { start: performance.now(), at: null }));
+	useEffect(() => {
+		const timer = window.setTimeout(() => setReveal(null), REVEAL_MS);
+		return () => window.clearTimeout(timer);
+	}, []);
 	// A graph change keeps the pick; a topic or fact that is gone closes its panel.
 	const selected = selectedId ? data.topics.find((t) => t.id === selectedId) : undefined;
 	const fact = factId ? data.facts.find((f) => f.id === factId) : undefined;
@@ -89,7 +100,7 @@ export function GraphBody({
 	};
 	const close = () => pick(null);
 
-	// Escape closes the fact, then the topic (menus, dialogs and the search claim theirs first).
+	// Escape closes the fact, then the topic (menus, dialogs and Find's typing line claim theirs first).
 	const onEscape = useRef(() => {});
 	onEscape.current = () => (fact ? backToTopic() : close());
 	useEffect(() => {
@@ -113,7 +124,7 @@ export function GraphBody({
 
 	if (data.topics.length === 0) return <GraphEmpty inSpace={data.spaceId !== null} />;
 
-	// The picked topic never dims under a search.
+	// The picked topic never dims under Find.
 	const focus = matches && selected ? new Set([...matches.topics, selected.id]) : (matches?.topics ?? null);
 	const panel =
 		fact && factTopic ? (
@@ -149,7 +160,9 @@ export function GraphBody({
 	return (
 		<div ref={room.ref} className="w-full">
 			{panel && narrow ? (
-				<Dock className="mx-auto w-full max-w-[560px]">{panel}</Dock>
+				<Dock className="mx-auto w-full max-w-[560px]" height={room.height}>
+					{panel}
+				</Dock>
 			) : (
 				<div className="flex items-start" style={{ gap: GAP }}>
 					<div ref={pictureRef} className="min-w-0 shrink-0" style={{ width }}>
@@ -159,6 +172,8 @@ export function GraphBody({
 							facts={data.facts}
 							chains={sources?.chains ?? null}
 							width={width}
+							height={room.height}
+							reveal={reveal}
 							pickedId={selected?.id ?? null}
 							pickedFactId={fact?.id ?? null}
 							focus={focus}
@@ -168,7 +183,7 @@ export function GraphBody({
 						/>
 					</div>
 					{panel && (
-						<Dock className="shrink-0" width={PANEL}>
+						<Dock className="shrink-0" width={PANEL} height={room.height}>
 							{panel}
 						</Dock>
 					)}
@@ -178,62 +193,37 @@ export function GraphBody({
 	);
 }
 
-/** The width the page gives the picture and panel, kept current. */
+/** The room the page gives the picture and panel, kept current: its width,
+ *  and the height from its top to 16 px above the foot line. The page never scrolls. */
 function useRoom() {
 	const ref = useRef<HTMLDivElement>(null);
-	const [width, setWidth] = useState(WIDEST);
+	const [size, setSize] = useState({ width: WIDEST, height: TALLEST });
 	useLayoutEffect(() => {
 		const el = ref.current;
 		if (!el) return;
 		const measure = () => {
-			if (el.clientWidth > 0) setWidth(el.clientWidth);
+			const page = el.closest("[data-testid=graph-page]") ?? document.documentElement;
+			const height = Math.max(MIN_HEIGHT, Math.floor(page.getBoundingClientRect().bottom - el.getBoundingClientRect().top - 16 - FOOT));
+			if (el.clientWidth > 0) setSize((o) => (o.width === el.clientWidth && o.height === height ? o : { width: el.clientWidth, height }));
 		};
 		measure();
 		const ro = new ResizeObserver(measure);
 		ro.observe(el);
-		return () => ro.disconnect();
+		if (el.parentElement) ro.observe(el.parentElement);
+		window.addEventListener("resize", measure);
+		return () => {
+			ro.disconnect();
+			window.removeEventListener("resize", measure);
+		};
 	}, []);
-	return { ref, width };
+	return { ref, ...size };
 }
 
-/** The docked panel: it ends 16 px above the window's foot, so its Study
- *  key stays in view and its middle scrolls; it stays put while the page scrolls. */
-function Dock({ className, width, children }: { className: string; width?: number; children: ReactNode }) {
-	const ref = useRef<HTMLElement>(null);
-	const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
-	useLayoutEffect(() => {
-		const fit = () => {
-			const el = ref.current;
-			if (!el) return;
-			let height = window.innerHeight - Math.max(16, el.getBoundingClientRect().top) - 16;
-			// It sticks only down to its row's foot, so at the scroll's end it must
-			// still fit between the scroller's top and that foot.
-			const scroller = scrollParent(el);
-			const row = el.parentElement;
-			if (scroller && row) {
-				const top = scroller.getBoundingClientRect().top;
-				const under = scroller.scrollHeight - scroller.scrollTop - (row.getBoundingClientRect().bottom - top);
-				height = Math.min(height, scroller.clientHeight - 16 - under);
-			}
-			setMaxHeight(height);
-		};
-		fit();
-		window.addEventListener("resize", fit);
-		window.addEventListener("scroll", fit, true);
-		return () => {
-			window.removeEventListener("resize", fit);
-			window.removeEventListener("scroll", fit, true);
-		};
-	}, []);
+/** The docked panel: as tall as the picture's room at most, so its Study key stays in view and its middle scrolls. */
+function Dock({ className, width, height, children }: { className: string; width?: number; height: number; children: ReactNode }) {
 	return (
-		<aside ref={ref} data-testid="graph-panel" className={`lh-fade sticky top-4 flex flex-col ${className}`} style={{ width, maxHeight }}>
+		<aside data-testid="graph-panel" className={`lh-fade flex flex-col ${className}`} style={{ width, maxHeight: height }}>
 			{children}
 		</aside>
 	);
-}
-
-/** The nearest box that scrolls up and down. */
-function scrollParent(el: HTMLElement): HTMLElement | null {
-	for (let n = el.parentElement; n; n = n.parentElement) if (/auto|scroll/.test(getComputedStyle(n).overflowY)) return n;
-	return null;
 }

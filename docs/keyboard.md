@@ -44,7 +44,7 @@ Entries marked `displayOnly` are keys one surface owns, like the question rows b
 | Study | ⌘N | `keyboard-shortcuts.tsx`, goes to `/new` |
 | Rename lesson | F2 | `src/frontend/components/lesson/use-title-rename.ts` |
 | Show or hide all your thinking | ⌘T | `src/frontend/components/chat.tsx` |
-| Find | ⌘F | the open page: topic search on `/graph` (`src/frontend/components/graph/graph-top-bar.tsx`) or text Find in a lesson (`src/frontend/components/session-find.tsx`) |
+| Find | ⌘F | the open page: Find in the foot line of `/graph` (`src/frontend/components/graph/graph-foot.tsx`; with no facts it does nothing) or text Find in a lesson (`src/frontend/components/session-find.tsx`) |
 | Show keyboard shortcuts | ? | `keyboard-shortcuts.tsx` |
 
 On the Mac the menu bar owns ⌘N (File, Study), ⌘⇧F (File, Search Lessons), ⌘G (Go, Graph), ⌘[ (Go, Back) and ⌘] (Go, Forward). Those keys never reach the page there; the menu pushes the item to the page, which runs it through the same code as the key. In a browser the page's listener handles ⌘N, ⌘⇧F and ⌘G, and ⌘[ and ⌘] do nothing.
@@ -60,7 +60,7 @@ The Graph page's picture (`src/frontend/components/graph/constellation.tsx`) is 
 | Tab | Moves focus into the picture, on one topic, and out again. |
 | ← → ↑ ↓ | Moves to the nearest topic in that direction. |
 | Enter or Space | Picks the topic and opens its panel. Pressed on the picked topic, closes it. |
-| Esc | Closes the open fact, then the open topic (`graph-body.tsx`). |
+| Esc | In the typing line, clears it first and keeps any open panel (`graph-foot.tsx`). Otherwise closes the open fact, then the open topic (`graph-body.tsx`). |
 
 ## Question rows
 

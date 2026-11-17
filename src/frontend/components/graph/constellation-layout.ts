@@ -235,7 +235,7 @@ export function layoutSky(topics: readonly TopicProgress[], links: readonly Topi
 			y += Math.max(...row.map((b) => rr - b.r + b.h)) + gap;
 		}
 		height = y - gap + PAD_BOTTOM + 3;
-		// The grid starts flush with the left edge, under the search box.
+		// The grid starts flush with the left edge, under the page's head.
 		const left = Math.min(...boxes.map((b) => b.cx - b.w / 2));
 		for (const b of boxes) b.cx -= left;
 	} else {

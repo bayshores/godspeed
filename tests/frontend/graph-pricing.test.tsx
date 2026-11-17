@@ -13,11 +13,11 @@ const run = (steps: CallUsage[], model = "anthropic:claude-haiku-4-5", at = 1): 
 const summary = (runs: ExtractionRunUsage[]) => graphCostSummary({ chats: [{ title: "fixture", extractions: runs }], sources: [] });
 const headline = (runs: ExtractionRunUsage[]) => renderToStaticMarkup(<GraphCostControl costs={summary(runs)} />);
 
-test("the bar's button says Graph costs, never a dollar figure", () => {
+test("the foot's button says Costs, never a dollar figure", () => {
 	const historical = run([usage()]);
 	assert.equal(displayUnpricedRuns(summary([historical])), 1);
 	const html = headline([historical]);
-	assert.match(html, />\s*Graph costs\s*<\/button>/);
+	assert.match(html, />\s*Costs\s*<\/button>/);
 	assert.doesNotMatch(html, /\$/);
 });
 

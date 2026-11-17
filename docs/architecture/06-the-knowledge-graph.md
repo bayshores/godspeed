@@ -125,24 +125,32 @@ Its body is `services::graph::graph::search_graph`, shared with the MCP tool of 
 
 ### The Graph page
 
-`/graph` is one picture of the space and how it connects, under a row with the search and two quiet words, All facts (the chain table) and Graph costs. The layout is worked out in the browser from `GET /api/progress` and `GET /api/graph`; the same data always gives the same picture, and nothing is stored.
+`/graph` is one picture of the space and how it connects, fitted to the window, over one quiet line at the window's foot. The page never scrolls. The layout is worked out in the browser from `GET /api/progress` and `GET /api/graph`; the same data always gives the same picture, and nothing is stored.
 
 | Part | File | What it does |
 |---|---|---|
-| Page | `src/frontend/components/graph/graph-screen.tsx` | Loads the data, runs the search, holds the bar and the chain table. |
-| Picture and panel | `graph-body.tsx` | Measures the room, gives the picture its width, docks the picked topic's or fact's panel, handles Escape. |
+| Page | `src/frontend/components/graph/graph-screen.tsx` | Loads the data, runs Find, holds the foot line and the chain table. |
+| Foot line | `graph-foot.tsx`, `cost-control.tsx` | The counts (the fact count opens the chain table), Find, Costs (its pop-up opens upward) and, with no space, Add files. Find turns the line into the typing line. |
+| Picture and panel | `graph-body.tsx` | Measures the room (its width, and its height down to 16 px above the foot line), docks the picked topic's or fact's panel, handles Escape. |
 | Picture | `constellation.tsx` | One SVG: every fact is a square, grouped by topic with the topic's name under it; lines join topics that build on each other. Topics are buttons on top. |
 | Layout | `constellation-layout.ts`, `constellation-routes.ts` | Where groups sit (by a topic's `column`, start on the left), and which lines are drawn and how they route around names. Pure, unit-tested. |
+| Fit | `constellation-fit.ts` | The scale that fits the picture in its room: smaller when it is too tall, never larger. Names that would be under 11 px are not drawn at rest. Pure, unit-tested. |
+| Reveal | `constellation-reveal.ts` | When each cluster, name and line inks in as the tab opens. Pure. |
 | Panels | `topic-pane.tsx`, `fact-pane.tsx` | The picked topic (its facts, what it needs first and leads to, Study) and the picked fact (its answers, where it came from, the facts it builds on and leads to, Study). |
 | No facts yet | `graph-empty.tsx` | "Start a lesson or add files to build your graph." |
 
 What the learner does:
 
 1. Pointer on a topic: its lines light up with arrows and the rest dims. Pointer on a fact: the facts it builds on light up.
-2. Click a topic: the picture re-fits with one short fade and the topic's panel docks on the right. The panel ends 16 px above the window's foot; its middle scrolls and Study stays in view. With under 1000 px of room the panel takes the picture's place.
+2. Click a topic: the picture re-fits with one short fade and the topic's panel docks on the right. The panel is at most as tall as the picture's room; its middle scrolls and Study stays in view. With under 1000 px of room the panel takes the picture's place.
 3. Click a fact (a square, or a row in the topic's panel): its fact panel opens, with its topic picked.
 4. Close: the panel's Close, Escape (the fact first, then the topic), a click on empty picture, or a click on the picked topic again.
-5. Search: topics and facts that don't match dim; the picked topic never does. A search that matches nothing says "Nothing matches" beside the box.
+5. Find, in the foot line: the line becomes a typing line with the topic and fact counts beside it. Topics and facts that don't match dim, the picked topic never does, and the counts show what matches. Typing that matches nothing says "Nothing matches".
+6. Stop finding: the x, Escape in the typing line (it clears the typed text and keeps any open panel), or leaving the line while it is empty. The counts come back.
+
+On a picture too tall for its room, a name drawn under 11 px waits until its topic is pointed at, picked or lit by Find, and then shows at full size.
+
+The picture inks in once each time the tab opens, in 0.9 s (a change to the graph, Find or a pick never replays it). With reduced motion there is no reveal.
 
 A graph change keeps the pick; a picked topic or fact that is gone closes its panel.
 

@@ -2,7 +2,10 @@
  * The Graph picture: every fact a small square star, every topic a cluster of
  * them with its name under it, faint lines between topics that build on each
  * other. Pointing at a topic inks in its lines with arrows and dims the rest;
- * pointing at a star inks in the facts it builds on and leads to.
+ * pointing at a star inks in the facts it builds on and leads to. A picture
+ * taller than its box is drawn smaller (the SVG's viewBox); names shrink with
+ * it until too small to read, then show only when lit, at full size; hover
+ * boxes never shrink. It inks in as the tab opens.
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
 import { rampColor, type FactProgress, type GraphChain, type TopicLink, type TopicProgress } from "@/shared/core";
@@ -10,13 +13,16 @@ import { factCellLabel, factLinks, neighbors, topicCountLine } from "./derive.ts
 import { NAME_LINE, layoutSky, nameBox, restLines, type Cluster, type Rect, type Seg, type Sky, type Star } from "./constellation-layout.ts";
 import { makeRouter } from "./constellation-routes.ts";
 import { tipSpot } from "./constellation-tips.ts";
+import { NAME_PX, fitPicture, namesHidden } from "./constellation-fit.ts";
+import { NAME_AFTER, RIM_AFTER, frozenDelays, lineDelay, type Reveal } from "./constellation-reveal.ts";
 
 /** Dimmed stars fade further than dimmed names, so names stay readable on the page. */
 const DIM = 0.35;
 const DIM_NAME = "color-mix(in srgb, var(--muted-foreground) 62%, var(--background))";
 const ARROW = 7;
-/** How near a star the pointer must be to point at it. */
+/** How near a star, and how far past a cluster's edge, the pointer reaches, in screen points. */
 const HIT = 12;
+const REACH = 8;
 const TIP_W = 260;
 const FADE = "var(--lh-dur) var(--lh-ease-out)";
 
@@ -27,7 +33,7 @@ function measurer(): (t: string) => number {
 	const ctx = canvas.getContext("2d");
 	// A DOM with no canvas (tests) gets a rough width per letter.
 	if (!ctx) return (t) => t.length * 7;
-	ctx.font = `13px ${getComputedStyle(document.body).fontFamily}`;
+	ctx.font = `${NAME_PX}px ${getComputedStyle(document.body).fontFamily}`;
 	return (t) => ctx.measureText(t).width;
 }
 
@@ -68,24 +74,37 @@ function squares(stars: readonly Star[], s: number, grow = 0): string {
 	return stars.map((t) => `M${t.x - grow} ${t.y - grow}h${w}v${w}h${-w}z`).join("");
 }
 
-/** One path per color, so a cluster is a handful of elements however many stars it has. */
-function ClusterStars({ k, s, keep }: { k: Cluster; s: number; keep: ReadonlySet<string> | null }) {
-	const byColor = new Map<string, { full: Star[]; faint: Star[] }>();
-	for (const st of k.stars) {
-		const e = byColor.get(st.color) ?? byColor.set(st.color, { full: [], faint: [] }).get(st.color)!;
-		(keep && !keep.has(st.id) ? e.faint : e.full).push(st);
-	}
-	return [...byColor].map(([color, e]) => (
-		<g key={color} fill={color}>
-			{e.full.length > 0 && <path d={squares(e.full, s)} />}
-			{e.faint.length > 0 && <path d={squares(e.faint, s)} opacity={0.3} />}
-		</g>
-	));
+/** One path per color, so a cluster is a handful of elements however many stars it has.
+ *  In the reveal its core (the best known half) inks in first, then its rim. */
+function ClusterStars({ k, s, keep, at }: { k: Cluster; s: number; keep: ReadonlySet<string> | null; at: number | null }) {
+	const half = Math.ceil(k.stars.length / 2);
+	const ring = (stars: readonly Star[], delay: number | null) => {
+		const byColor = new Map<string, { full: Star[]; faint: Star[] }>();
+		for (const st of stars) {
+			const e = byColor.get(st.color) ?? byColor.set(st.color, { full: [], faint: [] }).get(st.color)!;
+			(keep && !keep.has(st.id) ? e.faint : e.full).push(st);
+		}
+		const paths = [...byColor].map(([color, e]) => (
+			<g key={color} fill={color}>
+				{e.full.length > 0 && <path d={squares(e.full, s)} />}
+				{e.faint.length > 0 && <path d={squares(e.faint, s)} opacity={0.3} />}
+			</g>
+		));
+		return delay === null ? paths : <g className="lh-reveal" style={{ ["--lh-at" as string]: `${delay}ms` }}>{paths}</g>;
+	};
+	if (at === null) return ring(k.stars, null);
+	return (
+		<>
+			{ring(k.stars.slice(0, half), at)}
+			{ring(k.stars.slice(half), at + RIM_AFTER)}
+		</>
+	);
 }
 
-function nearestStar(sky: Sky, x: number, y: number): Star | null {
+/** `reach` is in layout points: HIT / scale keeps it the same on screen. */
+function nearestStar(sky: Sky, x: number, y: number, reach: number): Star | null {
 	let best: Star | null = null;
-	let bd = HIT * HIT;
+	let bd = reach * reach;
 	for (const st of sky.stars) {
 		const d = (st.cx - x) ** 2 + (st.cy - y) ** 2;
 		if (d < bd) {
@@ -96,8 +115,8 @@ function nearestStar(sky: Sky, x: number, y: number): Star | null {
 	return best;
 }
 
-function clusterAt(sky: Sky, x: number, y: number): Cluster | null {
-	return sky.clusters.find((k) => Math.hypot(k.cx - x, k.cy - y) <= k.r + 8) ?? null;
+function clusterAt(sky: Sky, x: number, y: number, reach: number): Cluster | null {
+	return sky.clusters.find((k) => Math.hypot(k.cx - x, k.cy - y) <= k.r + reach) ?? null;
 }
 
 /** The topic and every topic it links to, both ways. */
@@ -148,12 +167,23 @@ function nextTopic(sky: Sky, k: Cluster, [dx, dy]: [number, number]): Cluster | 
 	return best;
 }
 
+/** A name's box in layout points; `full` is a lit name drawn at full size
+ *  on a scaled-down picture, centred under its cluster. */
+function shownName(k: Cluster, scale: number, full: boolean): Rect {
+	const b = nameBox(k);
+	if (!full) return b;
+	const half = k.textW / scale / 2;
+	return { x0: k.cx - half, x1: k.cx + half, y0: b.y0, y1: b.y0 + (k.text.length * NAME_LINE) / scale };
+}
+
 export function Constellation({
 	topics,
 	links,
 	facts,
 	chains,
 	width,
+	height,
+	reveal,
 	pickedId,
 	pickedFactId,
 	focus,
@@ -166,13 +196,17 @@ export function Constellation({
 	facts: readonly FactProgress[];
 	/** Fact chains; null while they load. */
 	chains: readonly Pick<GraphChain, "premises" | "conclusion">[] | null;
-	/** The room the picture gets; its height follows what is in it. */
+	/** The room the picture gets. */
 	width: number;
+	/** The most height it may take: a taller picture scales down evenly to fit. */
+	height: number;
+	/** This opening's reveal while it runs; null once the picture is in. */
+	reveal: Reveal | null;
 	pickedId: string | null;
 	pickedFactId: string | null;
-	/** Topics a search keeps lit; null with no search. */
+	/** Topics Find keeps lit; null with nothing typed. */
 	focus: ReadonlySet<string> | null;
-	/** Facts a search matched; null with no search. */
+	/** Facts Find matched; null with nothing typed. */
 	factMatches: ReadonlySet<string> | null;
 	/** A topic, or null for a click on empty picture. */
 	onPick: (topicId: string | null) => void;
@@ -190,11 +224,20 @@ export function Constellation({
 	}, []);
 	// fontsIn is here so the names are measured again once the font is in.
 	const measure = useMemo(() => measurer(), [fontsIn]);
-	const { sky, router, rest } = useMemo(() => {
-		const sky = layoutSky(topics, links, facts, width, measure);
+	const { sky, scale, router, rest } = useMemo(() => {
+		const { sky, scale } = fitPicture((w) => layoutSky(topics, links, facts, w, measure), { width, height });
 		const router = makeRouter(sky);
-		return { sky, router, rest: restLines(sky, links, (a, z) => router.link(a, z, null, false)) };
-	}, [topics, links, facts, width, measure]);
+		return { sky, scale, router, rest: restLines(sky, links, (a, z) => router.link(a, z, null, false)) };
+	}, [topics, links, facts, width, height, measure]);
+	const tiny = namesHidden(scale);
+	// Fixed for this mount: a re-fit never moves a running animation, and a
+	// remount mid-reveal starts each one where it would be by now.
+	const [opening] = useState(() => (reveal ? { at: frozenDelays(reveal, sky), elapsed: performance.now() - reveal.start } : null));
+	const inAt = reveal ? opening : null;
+	const startOf = (id: string) => {
+		const at = inAt?.at.get(id);
+		return at === undefined ? undefined : at - inAt!.elapsed;
+	};
 	// Work out every lit line in the background so the first hover is instant too, in slices of about 8 ms so the page never stalls.
 	useEffect(() => {
 		const drawn = (id: string) => sky.byTopic.get(id)?.muted === false;
@@ -258,7 +301,7 @@ export function Constellation({
 			.filter((g, i, all): g is Seg => !!g && all.indexOf(g) === i);
 	}, [lead, links, sky, router, hoverId]);
 
-	// Search: inside a topic found by its facts, only the matching stars stay full ink.
+	// Find: inside a topic found by its facts, only the matching stars stay full ink.
 	const { keep, found } = useMemo(() => {
 		if (!factMatches || !focus) return { keep: null, found: [] as Star[] };
 		const keep = new Set<string>();
@@ -290,17 +333,18 @@ export function Constellation({
 		buttons.current.get(next.topic.id)?.focus();
 	};
 
+	// The pointer in layout points, whatever the scale.
 	const local = (e: PointerEvent<HTMLDivElement> | MouseEvent<HTMLDivElement>) => {
 		const r = e.currentTarget.getBoundingClientRect();
-		return { x: e.clientX - r.left, y: e.clientY - r.top };
+		return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale };
 	};
 	const onMove = (e: PointerEvent<HTMLDivElement>) => {
 		// Over a name, its button sets the hover itself.
 		if (e.target instanceof Element && e.target.closest("[data-topic-id]")) return setPtrStar(null);
 		const { x, y } = local(e);
-		const st = nearestStar(sky, x, y);
+		const st = nearestStar(sky, x, y, HIT / scale);
 		setPtrStar(st?.id ?? null);
-		setHoverId(st ? null : (clusterAt(sky, x, y)?.topic.id ?? null));
+		setHoverId(st ? null : (clusterAt(sky, x, y, REACH / scale)?.topic.id ?? null));
 	};
 	const onLeave = () => {
 		setPtrStar(null);
@@ -309,9 +353,9 @@ export function Constellation({
 	// Names are buttons with their own click; this is stars, clusters and empty picture.
 	const onClick = (e: MouseEvent<HTMLDivElement>) => {
 		const { x, y } = local(e);
-		const st = nearestStar(sky, x, y);
+		const st = nearestStar(sky, x, y, HIT / scale);
 		if (st) onPickFact(st.id);
-		else onPick(clusterAt(sky, x, y)?.topic.id ?? null);
+		else onPick(clusterAt(sky, x, y, REACH / scale)?.topic.id ?? null);
 	};
 
 	const pointed = star && ptrStar ? factById.get(star.id) : undefined;
@@ -322,25 +366,37 @@ export function Constellation({
 		const w = Math.min(TIP_W, Math.max(nameW, (measure(factCellLabel(pointed)) * 12) / 13) + 34);
 		const h = 50 + Math.ceil(nameW / (TIP_W - 34)) * 20;
 		const at: Rect = { x0: star.x - 3, y0: star.y - 3, x1: star.x + sky.s + 3, y1: star.y + sky.s + 3 };
-		return { w, ...tipSpot(sky, at, w, h, 8, starLinks.topics, starLinks.segs) };
-	}, [star, pointed, starLinks, sky, measure]);
+		const spot = tipSpot(sky, at, w / scale, h / scale, 8 / scale, starLinks.topics, starLinks.segs);
+		return { w, left: spot.left * scale, top: spot.top * scale };
+	}, [star, pointed, starLinks, sky, measure, scale]);
 	const hovered = hoverId && !star ? sky.byTopic.get(hoverId) : undefined;
 	const topicTip = useMemo(() => {
 		if (!hovered) return null;
-		return tipSpot(sky, nameBox(hovered), hovered.tipW, 16, 2, lit ?? new Set([hovered.topic.id]), inked);
-	}, [hovered, sky, lit, inked]);
+		const spot = tipSpot(sky, shownName(hovered, scale, tiny), hovered.tipW / scale, 16 / scale, 6 / scale, lit ?? new Set([hovered.topic.id]), inked);
+		return { left: spot.left * scale, top: spot.top * scale };
+	}, [hovered, sky, lit, inked, scale, tiny]);
 
+	const shownW = sky.width * scale;
+	const shownH = sky.height * scale;
 	return (
 		<div
 			data-testid="graph-picture"
 			className="relative select-none"
-			style={{ width, height: sky.height, cursor: star || hoverId ? "pointer" : "default" }}
+			style={{ width: shownW, height: shownH, cursor: star || hoverId ? "pointer" : "default" }}
 			onPointerMove={onMove}
 			onPointerLeave={onLeave}
 			onClick={onClick}
 		>
-			<svg aria-hidden width={width} height={sky.height} className="absolute inset-0 overflow-visible">
-				<path d={segPath(rest)} fill="none" stroke="var(--foreground)" strokeOpacity={lit ? 0.07 : 0.17} strokeWidth={1.25} style={{ transition: `stroke-opacity ${FADE}` }} />
+			<svg aria-hidden width={shownW} height={shownH} viewBox={`0 0 ${sky.width} ${sky.height}`} className="absolute inset-0 overflow-visible">
+				{inAt ? (
+					<g fill="none" stroke="var(--foreground)" strokeOpacity={lit ? 0.07 : 0.17} strokeWidth={1.25}>
+						{rest.map((g) => (
+							<path key={`${g.from}>${g.to}`} d={segPath([g])} pathLength={1} className="lh-reveal-line" style={{ ["--lh-at" as string]: `${lineDelay(g, inAt.at) - inAt.elapsed}ms` }} />
+						))}
+					</g>
+				) : (
+					<path d={segPath(rest)} fill="none" stroke="var(--foreground)" strokeOpacity={lit ? 0.07 : 0.17} strokeWidth={1.25} style={{ transition: `stroke-opacity ${FADE}` }} />
+				)}
 				{inked.length > 0 && (
 					<g className="lh-fade">
 						<path d={segPath(inked, ARROW - 1)} fill="none" stroke="var(--foreground)" strokeOpacity={0.55} strokeWidth={1.5} />
@@ -349,7 +405,7 @@ export function Constellation({
 				)}
 				{sky.clusters.map((k) => (
 					<g key={k.topic.id} shapeRendering="crispEdges" opacity={lit && !lit.has(k.topic.id) ? DIM : 1} style={{ transition: `opacity ${FADE}` }}>
-						<ClusterStars k={k} s={sky.s} keep={keep} />
+						<ClusterStars k={k} s={sky.s} keep={keep} at={startOf(k.topic.id) ?? null} />
 					</g>
 				))}
 				{found.length > 0 && <path shapeRendering="crispEdges" d={squares(found, sky.s)} fill="var(--foreground)" />}
@@ -372,6 +428,11 @@ export function Constellation({
 				const id = k.topic.id;
 				const picked = id === pickedId;
 				const dim = lit && !lit.has(id);
+				// Too small to read at rest: not drawn until pointed at, picked, lit or found.
+				const shown = !tiny || hoverId === id || picked || !!lit?.has(id);
+				const box = shownName(k, scale, tiny && shown);
+				const size = tiny && shown ? 1 : scale;
+				const at = startOf(id);
 				return (
 					<button
 						key={id}
@@ -395,26 +456,32 @@ export function Constellation({
 						onPointerEnter={() => setHoverId(id)}
 						onFocus={() => setHoverId(id)}
 						onBlur={() => setHoverId(null)}
-						className="absolute block text-center text-sm"
+						className={at === undefined ? "absolute block text-center" : "lh-reveal absolute block text-center"}
 						style={{
-							left: nameBox(k).x0,
-							top: k.nameTop,
-							width: k.textW,
-							lineHeight: `${NAME_LINE}px`,
+							left: Math.max(0, Math.min(shownW - (box.x1 - box.x0) * scale, box.x0 * scale)),
+							top: box.y0 * scale,
+							width: (box.x1 - box.x0) * scale,
+							fontSize: NAME_PX * size,
+							lineHeight: `${NAME_LINE * size}px`,
+							// Hidden, it lets the pointer through to the stars; it stays focusable.
+							opacity: shown ? undefined : 0,
+							pointerEvents: shown ? undefined : "none",
+							zIndex: tiny && shown ? 10 : undefined,
 							transition: `color ${FADE}`,
 							color: dim ? DIM_NAME : k.muted ? "var(--lh-ink-3)" : hoverId === id || picked ? "var(--foreground)" : "var(--muted-foreground)",
+							["--lh-at" as string]: at === undefined ? undefined : `${at + NAME_AFTER}ms`,
 						}}
 					>
 						<span
 							aria-hidden
 							className="inline-block whitespace-nowrap align-top"
-							style={picked ? { paddingBottom: 3, borderBottom: "2px solid var(--foreground)" } : undefined}
+							style={picked ? { paddingBottom: 3 * size, borderBottom: "2px solid var(--foreground)" } : undefined}
 						>
 							{k.text.map((ln, i) => (
 								<span key={i} className="block">
 									{/* A tested topic's name starts with a square in its status color. */}
 									{i === 0 && k.topic.status !== "untested" && !k.muted && (
-										<span className="mr-[5px] inline-block size-[9px] align-[0px]" style={{ background: rampColor(k.topic.rate), opacity: dim ? 0.5 : 1, transition: `opacity ${FADE}` }} />
+										<span className="inline-block align-[0px]" style={{ width: 9 * size, height: 9 * size, marginRight: 5 * size, background: rampColor(k.topic.rate), opacity: dim ? 0.5 : 1, transition: `opacity ${FADE}` }} />
 									)}
 									{ln}
 								</span>

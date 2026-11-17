@@ -1,6 +1,6 @@
 /**
  * Pure helpers for the Graph page's panels: answer colors, score lines,
- * the sure-miss note, a topic's and a fact's links, search matches.
+ * the sure-miss note, a topic's and a fact's links, what Find matches.
  * Browser-safe, unit-tested.
  */
 import {
@@ -70,10 +70,10 @@ export function neighbors(
 	};
 }
 
-/** What a search lights: the topics whose name matches or that hold a
+/** What Find lights: the topics whose name matches or that hold a
  *  matching fact, and the matching facts (by name or statement, or every
- *  fact of a topic whose name matches); case-insensitive. null = no search. */
-export function searchMatches(
+ *  fact of a topic whose name matches); case-insensitive. null = nothing typed. */
+export function findMatches(
 	query: string,
 	topics: readonly Pick<TopicProgress, "id" | "name">[],
 	facts: readonly Pick<FactProgress, "id" | "topicId" | "name" | "statement">[],

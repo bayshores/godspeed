@@ -1,5 +1,5 @@
 /**
- * "Graph costs" in the Graph page's bar: a click toggles the popup with
+ * "Costs" in the Graph page's foot line: a click toggles the popup (above it) with
  * the plan that paid, each stage's tokens and the latest runs; an outside
  * click or Escape closes it.
  */
@@ -18,7 +18,7 @@ export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 	return (
 		<>
 			<button ref={anchorRef} type="button" data-testid="graph-costs" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
-				Graph costs
+				Costs
 			</button>
 			<MenuShell
 				open={open}
@@ -26,7 +26,7 @@ export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 				testid="graph-costs-panel"
 				role="dialog"
 				label="Graph costs"
-				preferredSide="down"
+				preferredSide="up"
 				align="right"
 				menuClass="lh-sheet flex w-[440px] max-w-[calc(100vw-1.5rem)] flex-col gap-2 px-[18px] py-4"
 			>

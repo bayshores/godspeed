@@ -22,9 +22,8 @@ export function tipSpot(sky: Sky, at: Rect, w: number, h: number, gap: number, k
 	for (const top of tops)
 		for (const left of lefts) {
 			let cost = Math.hypot(left + w / 2 - mx, top + h / 2 - my) / 100;
-			if (left < 0 || top < 0 || left + w > sky.width) cost += 1000;
-			// Below the picture is only page, so running past its foot costs little.
-			if (top + h > sky.height) cost += 50;
+			// The page does not scroll: a box stays inside the picture.
+			if (left < 0 || top < 0 || left + w > sky.width || top + h > sky.height) cost += 1000;
 			if (covers(left, top, at, 0)) cost += 500;
 			for (const k of sky.clusters) {
 				const near = Math.hypot(k.cx - Math.max(left, Math.min(k.cx, left + w)), k.cy - Math.max(top, Math.min(k.cy, top + h)));

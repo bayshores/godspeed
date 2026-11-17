@@ -1,5 +1,5 @@
 /**
- * The Graph page's pure parts: the panels' helpers and search
+ * The Graph page's pure parts: the panels' helpers and Find
  * (src/frontend/components/graph/derive.ts) and the fact order from
  * core/progress.ts.
  */
@@ -9,7 +9,7 @@ import {
 	factCellLabel,
 	factLinks,
 	neighbors,
-	searchMatches,
+	findMatches,
 	sureMissNote,
 	topicCountLine,
 } from "../../src/frontend/components/graph/derive.ts";
@@ -71,15 +71,15 @@ describe("panel helpers", () => {
 		assert.deepEqual(leadsTo.map((t) => t.id), ["t-mom"]);
 	});
 
-	it("searchMatches: topics by name or by a matching fact; facts by name, statement or their topic's name", () => {
-		assert.equal(searchMatches("  ", data.topics, data.facts), null);
-		const variance = searchMatches("variance", data.topics, data.facts)!;
+	it("findMatches: topics by name or by a matching fact; facts by name, statement or their topic's name", () => {
+		assert.equal(findMatches("  ", data.topics, data.facts), null);
+		const variance = findMatches("variance", data.topics, data.facts)!;
 		assert.deepEqual([...variance.topics].sort(), ["t-mini", "t-var"]);
 		assert.deepEqual([...variance.facts].sort(), ["f3", "f4", "f6"], "every fact of Variance, and the one fact of Minibatch noise that says it");
-		const weights = searchMatches("ATTENTION weights", data.topics, data.facts)!;
+		const weights = findMatches("ATTENTION weights", data.topics, data.facts)!;
 		assert.deepEqual([...weights.topics], ["t-attn"]);
 		assert.deepEqual([...weights.facts], ["f12"]);
-		const none = searchMatches("zzz", data.topics, data.facts)!;
+		const none = findMatches("zzz", data.topics, data.facts)!;
 		assert.equal(none.topics.size + none.facts.size, 0);
 	});
 });
