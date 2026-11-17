@@ -66,12 +66,17 @@ describe("the + list", () => {
 describe("the Follow buttons", () => {
 	const offer: AgentAction = { id: "a1", at: "2026-11-01T10:00:00.000Z", agent: "Claude Code", label: "Reading 06_Counting.pdf", spaceId: "c21", target: null, page: "/space/files" };
 	it("Follow shows only while the teacher works", () => {
-		assert.deepEqual(followButtons({ following: false, working: false, offer: null }), { go: null, follow: null });
-		assert.deepEqual(followButtons({ following: false, working: true, offer: null }), { go: null, follow: "Follow" });
-		assert.deepEqual(followButtons({ following: true, working: true, offer: null }), { go: null, follow: "Following" });
+		assert.deepEqual(followButtons({ following: false, working: false, offer: null, held: false }), { go: null, follow: null });
+		assert.deepEqual(followButtons({ following: false, working: true, offer: null, held: false }), { go: null, follow: "Follow" });
+		assert.deepEqual(followButtons({ following: true, working: true, offer: null, held: false }), { go: null, follow: "Following" });
 	});
 	it("with Follow off, a change on another page offers to go there", () => {
-		assert.equal(followButtons({ following: false, working: true, offer }).go, "Go to Files");
-		assert.equal(followButtons({ following: true, working: true, offer }).go, null);
+		assert.equal(followButtons({ following: false, working: true, offer, held: false }).go, "Go to Files");
+		assert.equal(followButtons({ following: true, working: true, offer, held: false }).go, null);
+	});
+	it("a page the agent opened while the window held offers to go there with Follow on too", () => {
+		const sheet = { ...offer, page: "/space/deadline/ddl_1/cheat-sheet", open: true as const };
+		assert.equal(followButtons({ following: true, working: false, offer: sheet, held: true }).go, "Go to cheat sheet");
+		assert.equal(followButtons({ following: false, working: false, offer: sheet, held: true }).go, "Go to cheat sheet");
 	});
 });

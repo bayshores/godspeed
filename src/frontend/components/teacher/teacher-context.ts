@@ -35,8 +35,11 @@ export interface TeacherApi {
 	setLesson: (p: LessonPresence | null) => void;
 	/** Go to a change (a Recent row): its page, then fly to it. */
 	go: (action: AgentAction) => void;
-	/** With Follow off: a fresh change on another page, to offer "Go to". */
+	/** What "Go to" offers: a page the agent opened while the window held,
+	 *  else with Follow off a fresh change on another page. */
 	offer: AgentAction | null;
+	/** The offer is a held open, shown with Follow on too. */
+	held: boolean;
 	/** A space's name by id (Recent rows name the space). */
 	spaceNameOf: (id: string | null) => string | null;
 }

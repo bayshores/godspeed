@@ -69,6 +69,7 @@ export function PillProvider({ children }: { children: ReactNode }) {
 	const name = teacher?.name ?? "";
 	const doing = teacher?.doing ?? null;
 	const offer = teacher?.offer ?? null;
+	const held = teacher?.held ?? false;
 	const following = teacher?.follow ?? false;
 	const terminal = teacherTerminalState(terminals?.facts.teacher ?? null);
 	const helper = terminals?.facts.helper ?? null;
@@ -87,9 +88,9 @@ export function PillProvider({ children }: { children: ReactNode }) {
 				ready,
 				due: deadlines && minute !== null ? dueSoon(deadlines, minute, pathname) : null,
 				lessonDeadline,
-				offer: followButtons({ following, working: false, offer }).go && offer ? offer.label : null,
+				offer: followButtons({ following, working: false, offer, held }).go && offer ? offer.label : null,
 			}),
-		[name, doing, agent, terminal, background, worker, spaces, jobs, requests, ready, deadlines, minute, pathname, lessonDeadline, following, offer],
+		[name, doing, agent, terminal, background, worker, spaces, jobs, requests, ready, deadlines, minute, pathname, lessonDeadline, following, offer, held],
 	);
 	const said = notices.said?.title ?? null;
 	const known = notices.known.length;

@@ -61,6 +61,7 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 		setLesson: () => {},
 		go: () => {},
 		offer: null,
+		held: false,
 		spaceNameOf: () => null,
 	};
 	return (

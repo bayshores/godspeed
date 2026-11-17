@@ -75,6 +75,7 @@ const marco: TeacherApi = {
 	setLesson: () => {},
 	go: () => {},
 	offer: null,
+	held: false,
 	spaceNameOf: () => null,
 };
 const named = (node: React.ReactNode) => <TeacherContext.Provider value={marco}>{node}</TeacherContext.Provider>;

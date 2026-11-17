@@ -7,6 +7,8 @@
  * stop. It never leaves a lesson where you have unsent text, or a mock,
  * unless you asked to go.
  * With Follow off, a fresh change on another page offers a "Go to" button.
+ * A page the agent opens goes there with Follow off too, unless the window
+ * holds; then it waits as a "Go to" button with Follow on or off.
  */
 
 export const RESUME_MS = 3000;
@@ -54,6 +56,13 @@ export function followHeld(path: string, lessonDraft: boolean): boolean {
 	return path.startsWith("/space/mock/") || (lessonDraft && path.startsWith("/chat/"));
 }
 
+/** A page the agent opens waits as a held "Go to" while the window holds
+ *  (a mock, unsent lesson text) or a dialog of the learner's is open;
+ *  otherwise it goes there, Follow on or off. Only a click goes anyway. */
+export function openWaits(here: { path: string; lessonDraft: boolean; dialog: boolean }): boolean {
+	return here.dialog || followHeld(here.path, here.lessonDraft);
+}
+
 /** What Follow must do to show an action's page: switch space, go to the
  *  page, both, or nothing. A lesson with unsent text keeps the window, and
  *  so does a mock, unless the learner asked to go. */
@@ -66,8 +75,15 @@ export function followMoves(
 	return { switchSpace, go: action.page !== here.path ? action.page : null };
 }
 
-/** How long a change on another page keeps its "Go to" button. */
+/** How long a change on another page keeps its "Go to" button, a held
+ *  open too. */
 export const GO_OFFER_MS = 10 * 60_000;
+
+/** A held open stays offered until its page is reached or it is
+ *  GO_OFFER_MS old; a newer one replaces it. */
+export function heldStill(held: { page: string; at: string }, here: { path: string; now: number }): boolean {
+	return held.page !== here.path && here.now - Date.parse(held.at) < GO_OFFER_MS;
+}
 
 /** The change to offer "Go to" for while Follow is off: the newest one
  *  that is not a background check's (its notice card is the tell), while
@@ -84,8 +100,18 @@ export function goOffer<A extends { page: string; at: string; background?: true 
 /** The page's name on the "Go to" button. */
 export function pageName(page: string): string {
 	if (page.startsWith("/chat/")) return "lesson";
-	if (page.startsWith("/space/deadline/")) return "deadline";
-	return ({ "/": "Today", "/space": "Progress", "/space/files": "Files", "/graph": "Graph" } as Record<string, string>)[page] ?? "page";
+	if (page.startsWith("/space/deadline/")) return page.endsWith("/cheat-sheet") ? "cheat sheet" : "deadline";
+	const names: Record<string, string> = { "/": "Today", "/space": "Progress", "/space/lessons": "Lessons", "/space/files": "Files", "/space/deadlines": "Deadlines", "/graph": "Graph" };
+	return names[page] ?? "page";
+}
+
+/** Sent to the lesson on screen when the agent opens a cheat sheet; the
+ *  lesson on that deadline cancels it and opens the sheet beside itself. */
+export const OPEN_SHEET_EVENT = "lh:open-sheet";
+
+/** The deadline whose cheat sheet the page is, or null. */
+export function sheetDeadline(page: string): string | null {
+	return /^\/space\/deadline\/([A-Za-z0-9_-]+)\/cheat-sheet$/.exec(page)?.[1] ?? null;
 }
 
 /** The stored Follow choice ("0" = off). On by default. */
@@ -96,5 +122,5 @@ export function parseFollow(raw: string | null): boolean {
 /** Only the app's own pages are ever navigated to (never a raw URL from
  *  the wire). */
 export function safePage(page: string): string | null {
-	return /^\/(?:space(?:\/files|\/deadline\/[A-Za-z0-9_-]+)?|graph|chat\/[A-Za-z0-9_-]+)?$/.test(page) ? page : null;
+	return /^\/(?:space(?:\/lessons|\/files|\/deadlines|\/deadline\/[A-Za-z0-9_-]+(?:\/cheat-sheet)?)?|graph|chat\/[A-Za-z0-9_-]+)?$/.test(page) ? page : null;
 }

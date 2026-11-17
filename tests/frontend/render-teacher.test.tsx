@@ -312,6 +312,7 @@ describe("Follow beside the pill", () => {
 		setLesson: () => {},
 		go: () => {},
 		offer: null,
+		held: false,
 		spaceNameOf: () => null,
 		...over,
 	});

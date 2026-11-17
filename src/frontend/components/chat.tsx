@@ -544,7 +544,7 @@ export function Chat({
 		[],
 	);
 
-	const sheet = useSheetDock(chatId);
+	const sheet = useSheetDock(chatId, deadlineId);
 	// A plugin's window lies over the page; opening the cheat sheet closes it. It and the
 	// Teacher's window are both made of the bar and hang over the same corner, so one shows at a time.
 	const { plugins: lessonPlugins } = usePluginsAt("lesson");

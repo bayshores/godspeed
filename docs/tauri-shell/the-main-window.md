@@ -58,6 +58,15 @@ Check for Updates… and every File and Go item except Open godspeed Folder reop
 
 A push sent before the page has loaded waits in one slot (`window::push_when_loaded`) and goes out when it loads; a later one replaces it.
 
+`ToShell::ShowWindow { page }` (a page the agent opened, [architecture/08.1.3](../architecture/08.1.3-agent-tools-and-notes.md#opening-a-page)) runs the same `window::bring_forward` as the menu on the main thread, and on the Mac first shows a hidden app (⌘H). A page that hasn't loaded (a window made again, or one reloading) gets `menu` `go:<path>?space=<id or none>`, and the page switches to that space before it goes. A loaded page goes there itself from the activity event, so its holds (unsent lesson text, a mock, a dialog) still count.
+
+| Limit | Why |
+|---|---|
+| Windows may only flash the taskbar button | Its focus lock keeps another app's window in front. |
+| Wayland may not focus | The compositor decides. |
+| The screens lab never focuses | `window::focus` and the app show skip it, so a check never takes the learner's screen. |
+| Browser mode has no shell | The page goes there; nothing brings a browser tab forward. |
+
 ### Single instance
 
 Release builds register `tauri_plugin_single_instance` first. Debug builds skip it, so `tauri dev` runs beside the installed app. A second launch unminimizes and focuses the main window if visible, otherwise does nothing. The plugin does not see a running Electron godspeed; see [The old app still open](data.md#the-old-app-still-open).

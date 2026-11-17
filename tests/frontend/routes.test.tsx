@@ -52,9 +52,9 @@ const chat = (over: Record<string, unknown>) => ({ id: "chat_1", title: "A lesso
 describe("the route table", () => {
 	it("every address the UI links to has its own page", () => {
 		const tabs = (["space", "none"] as const).flatMap((kind) => spaceTabs(kind, [{ id: "memes", label: "Memes" }]).map((t) => t.href));
-		const follow = ["/", "/space", "/space/files", "/space/deadline/ddl_1", "/graph", "/chat/chat_abc"].filter((p) => safePage(p) === p);
+		const follow = ["/", "/space", "/space/lessons", "/space/files", "/space/deadlines", "/space/deadline/ddl_1", "/space/deadline/ddl_1/cheat-sheet", "/graph", "/chat/chat_abc"].filter((p) => safePage(p) === p);
 		const links = ["/", "/new", "/settings", "/space/lessons", "/space/deadlines", "/chat/chat_1", "/space/deadline/ddl_1", "/space/deadline/ddl_1/cheat-sheet", "/space/mock/spc_1/mock_1", "/space/plugin/memes"];
-		assert.equal(follow.length, 6);
+		assert.equal(follow.length, 9);
 		for (const path of [...tabs, ...follow, ...links]) {
 			const page = matchRoutes(routes, path)?.at(-1)?.route;
 			assert.ok(page && page.path !== "*", `${path} has a page`);

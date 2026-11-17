@@ -36,8 +36,9 @@ export function pickTarget(els: readonly HTMLElement[]): HTMLElement | null {
 }
 
 /** Resolve when the target shows up (an added item renders a moment after
- *  the change), or empty after `timeoutMs`. */
+ *  the change), or empty after `timeoutMs`; at once when there is none. */
 export async function waitForTarget(target: AgentAction["target"], timeoutMs: number, alive: () => boolean): Promise<HTMLElement[]> {
+	if (!target) return [];
 	const end = Date.now() + timeoutMs;
 	for (;;) {
 		const els = targetElements(target);
@@ -98,6 +99,13 @@ export function highlight(el: HTMLElement): void {
 export function dialogOpen(): boolean {
 	if (typeof document === "undefined") return false;
 	return !!document.querySelector("[role='dialog'], [role='alertdialog']");
+}
+
+/** A dialog of the learner's is open: the teacher's own Activity list steps
+ *  aside for a page the agent opens, so it never holds one. */
+export function learnerDialogOpen(): boolean {
+	if (typeof document === "undefined") return false;
+	return !!document.querySelector("[role='dialog']:not([data-testid='teacher-panel-list']), [role='alertdialog']");
 }
 
 export function sleep(ms: number): Promise<void> {

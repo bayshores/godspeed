@@ -6,6 +6,7 @@ import { SELECT, SELECT_ARROW } from "@/frontend/components/ui/field";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
+import { OPEN_SHEET_EVENT } from "@/frontend/components/teacher/follow";
 import { DOCK_DEFAULT_W, dockStateKey, dockWidth, makeTarget, parseDockState, pickSheet, sheetChoices, type DockState } from "./dock-model";
 import { SheetCanvas } from "./sheet-canvas";
 import { versionLabel } from "./studio-states";
@@ -14,8 +15,9 @@ import { sheetPdfPath, studioPath, useCheatSheet, useSpaceSheets } from "./use-c
 const WIDTH_KEY = "lh:sheet-dock-width";
 
 /** Whether a session's sheet is open and which one, kept per session in
- *  this browser. It starts closed and reads storage after mount. */
-export function useSheetDock(chatId: string) {
+ *  this browser. It starts closed and reads storage after mount. The agent
+ *  opening the session's own deadline's sheet opens it here. */
+export function useSheetDock(chatId: string, deadlineId: string | undefined) {
 	const [state, setState] = useState<DockState>({ open: false });
 	const key = dockStateKey(chatId);
 	useEffect(() => setState(parseDockState(readStorage(key))), [key]);
@@ -28,6 +30,16 @@ export function useSheetDock(chatId: string) {
 			}),
 		[key],
 	);
+	useEffect(() => {
+		if (!deadlineId) return;
+		const opened = (e: Event) => {
+			if ((e as CustomEvent<string>).detail !== deadlineId) return;
+			e.preventDefault();
+			update({ open: true, deadlineId });
+		};
+		window.addEventListener(OPEN_SHEET_EVENT, opened);
+		return () => window.removeEventListener(OPEN_SHEET_EVENT, opened);
+	}, [deadlineId, update]);
 	return { state, update };
 }
 

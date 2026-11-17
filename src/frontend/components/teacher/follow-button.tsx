@@ -11,12 +11,13 @@ const LIT = "bg-highlight text-ink";
 /**
  * Beside the pill while the teacher works: "Following" on the highlighter
  * (the window goes where the teacher works; a click stops it) or "Follow".
- * With Follow off, a fresh change on another page shows "Go to" its page.
+ * With Follow off, a fresh change on another page shows "Go to" its page,
+ * and so does a page the agent opened while the window held.
  */
 export function FollowButton() {
 	const teacher = useTeacher();
 	if (!teacher) return null;
-	const { go, follow } = followButtons({ following: teacher.follow, working: !!teacher.doing?.working, offer: teacher.offer });
+	const { go, follow } = followButtons({ following: teacher.follow, working: !!teacher.doing?.working, offer: teacher.offer, held: teacher.held });
 	const offer = teacher.offer;
 	return (
 		<>

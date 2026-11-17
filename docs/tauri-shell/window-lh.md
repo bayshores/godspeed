@@ -19,7 +19,7 @@ The shim (`crates/shell/src/shim.js`) is an initialization script on the main wi
 | `reportBug()` | `report_bug` | Opens the issue page. |
 | `listFonts()` | `list_fonts` | Mac: `NSFontManager` families. Windows and Linux: `fontdb` system fonts, each face's first family name. Drops `iconfont`, sorts with `gs_base::locale::compare`, removes repeats. |
 | `onOpenSettings(cb)` | push `open-settings` | The Settings section a menu item asked for. |
-| `onMenu(cb)` | push `menu` | A Mac File or Go item: a keyboard action id, `go:<path>`, `back` or `forward`. |
+| `onMenu(cb)` | push `menu` | A Mac File or Go item: a keyboard action id, `go:<path>`, `back` or `forward`. A page the agent opened in a window made again: `go:<path>?space=<id or none>`. |
 | `printPdf(path)` | `print_pdf` | Mac only; absent on Windows and Linux. See [Printing](the-main-window.md#printing). |
 | `openLink(url)` | `open_link` | A web or mail link, as a link click sends it. |
 | `terminals.start(role, agent)` | `terminal_start` | `role` is `"teacher"` or `"helper"`, `agent` is `"claude"` or `"codex"`. Answers `{ id }`. See [Terminals](terminals.md#terminals). |

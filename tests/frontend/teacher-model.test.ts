@@ -15,9 +15,12 @@ import {
 	followReady,
 	followReducer,
 	goOffer,
+	heldStill,
+	openWaits,
 	pageName,
 	parseFollow,
 	safePage,
+	sheetDeadline,
 	type FollowState,
 } from "../../src/frontend/components/teacher/follow.ts";
 function action(over: Partial<AgentAction> = {}): AgentAction {
@@ -99,8 +102,8 @@ describe("follow", () => {
 		assert.deepEqual(followMoves({ page: "/chat/c2", spaceId: "cls_a" }, { path: "/space/mock/cls_a/mock_1", activeSpace: "cls_a", lessonDraft: false, asked: true }), { switchSpace: null, go: "/chat/c2" });
 	});
 	it("only goes to the app's own pages", () => {
-		for (const p of ["/", "/space", "/space/files", "/space/deadline/ddl_0a1b2c", "/graph", "/chat/c_12-ab"]) assert.equal(safePage(p), p);
-		for (const p of ["javascript:alert(1)", "https://x.example", "//x.example", "/chat/../x", "/settings", "/space/deadline/../x", "/space/deadline/"]) assert.equal(safePage(p), null);
+		for (const p of ["/", "/space", "/space/lessons", "/space/files", "/space/deadlines", "/space/deadline/ddl_0a1b2c", "/space/deadline/ddl_0a1b2c/cheat-sheet", "/graph", "/chat/c_12-ab"]) assert.equal(safePage(p), p);
+		for (const p of ["javascript:alert(1)", "https://x.example", "//x.example", "/chat/../x", "/settings", "/space/deadline/../x", "/space/deadline/", "/space/deadline/ddl_1/cheat-sheet/x", "/space/mock/a/b"]) assert.equal(safePage(p), null);
 	});
 	it("with Follow off, offers 'Go to' for a fresh change on another page", () => {
 		const t = Date.parse("2026-10-29T08:00:00Z");
@@ -125,5 +128,32 @@ describe("follow", () => {
 		assert.equal(pageName("/space"), "Progress");
 		assert.equal(pageName("/space/files"), "Files");
 		assert.equal(pageName("/space/deadline/ddl_1"), "deadline");
+		assert.equal(pageName("/space/deadline/ddl_1/cheat-sheet"), "cheat sheet");
+		assert.equal(pageName("/space/lessons"), "Lessons");
+		assert.equal(pageName("/space/deadlines"), "Deadlines");
+	});
+	it("knows a cheat sheet's deadline, which a lesson on it opens beside itself", () => {
+		assert.equal(sheetDeadline("/space/deadline/ddl_1/cheat-sheet"), "ddl_1");
+		assert.equal(sheetDeadline("/space/deadline/ddl_1"), null);
+	});
+});
+
+describe("a page the agent opens", () => {
+	const here = { path: "/space/files", lessonDraft: false, dialog: false };
+	it("goes there whatever Follow says: nothing about Follow holds it", () => {
+		assert.equal(openWaits(here), false);
+		assert.equal(openWaits({ ...here, path: "/chat/c1" }), false, "a lesson with nothing unsent");
+	});
+	it("waits while the learner has unsent lesson text, a mock or a dialog", () => {
+		assert.equal(openWaits({ ...here, path: "/chat/c1", lessonDraft: true }), true);
+		assert.equal(openWaits({ ...here, path: "/space/mock/cls_a/mock_1" }), true);
+		assert.equal(openWaits({ ...here, dialog: true }), true);
+	});
+	it("a held one stays offered until its page is reached or it is ten minutes old", () => {
+		const t = Date.parse("2026-11-16T10:00:00Z");
+		const held = { page: "/space/deadline/ddl_1/cheat-sheet", at: new Date(t).toISOString() };
+		assert.equal(heldStill(held, { path: "/chat/c1", now: t + 1000 }), true);
+		assert.equal(heldStill(held, { path: held.page, now: t + 1000 }), false, "reached");
+		assert.equal(heldStill(held, { path: "/chat/c1", now: t + GO_OFFER_MS }), false, "stale");
 	});
 });

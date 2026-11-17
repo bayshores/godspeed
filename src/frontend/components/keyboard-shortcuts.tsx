@@ -22,6 +22,7 @@ import { useNavigate } from "react-router";
 import { actionForBinding, bindingForAction, bindingKeys, eventBinding, isTypingSurface, kbdEventForAction, KEYBOARD_ACTIONS, KEY_SCOPES, type KeyAction } from "@/shared/core";
 import { showFocusRingAfterTab, trapTabInDialog } from "@/frontend/components/focus-hygiene";
 import { usePresence } from "@/frontend/components/presence";
+import { useSpaces } from "@/frontend/components/space-context";
 import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
 
 export function KeyboardShortcuts() {
@@ -33,6 +34,9 @@ export function KeyboardShortcuts() {
 	// goes stale.
 	const navigateRef = useRef(navigate);
 	navigateRef.current = navigate;
+	const { setActive } = useSpaces();
+	const setActiveRef = useRef(setActive);
+	setActiveRef.current = setActive;
 
 	// Global commands we own run here; surface commands ride the window
 	// event for the mounted surface to catch.
@@ -93,14 +97,19 @@ export function KeyboardShortcuts() {
 	useEffect(() => window.lh?.onOpenSettings?.((section) => navigateRef.current(`/settings?section=${encodeURIComponent(section)}`)), []);
 
 	// The Mac menu's File and Go items. Their keys never reach the page, so
-	// each runs once, from here.
+	// each runs once, from here. A page the agent opened in a window made
+	// again comes the same way, with its space.
 	useEffect(
 		() =>
 			window.lh?.onMenu?.((item) => {
 				if (item === "back") navigateRef.current(-1);
 				else if (item === "forward") navigateRef.current(1);
-				else if (item.startsWith("go:")) navigateRef.current(item.slice(3));
-				else run(item as KeyAction);
+				else if (item.startsWith("go:")) {
+					const [path = "/", query] = item.slice(3).split("?");
+					const space = new URLSearchParams(query).get("space");
+					if (space !== null) setActiveRef.current(space === "none" ? null : space);
+					navigateRef.current(path);
+				} else run(item as KeyAction);
 			}),
 		[run],
 	);
