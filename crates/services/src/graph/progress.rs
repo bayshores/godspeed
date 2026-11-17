@@ -52,7 +52,9 @@ fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 	let record = app.stores.chats.get_chat(chat_id)?;
 	let messages = record["messages"].items();
 	// A lesson whose agent has not written its plan yet is the deadline's session too, uncounted.
-	let session = record["deadlineId"].truthy().then(|| if record["tree"].truthy() { deadline_session(&record["tree"], messages) } else { Obj::new() });
+	// A homework lesson is never one: Study for the deadline would reopen it.
+	let is_session = record["deadlineId"].truthy() && record["kind"].as_str() != Some("homework");
+	let session = is_session.then(|| if record["tree"].truthy() { deadline_session(&record["tree"], messages) } else { Obj::new() });
 	let readout = Arc::new(Readout {
 		version,
 		answers: collect_answers(chat_id, messages),
@@ -505,6 +507,25 @@ mod tests {
 		assert_eq!(midterm(&app, &space_id, &deadline_id)["continueStudy"], json!({ "chatId": chat_id }), "no plan yet: reopened, nothing to count");
 		app.stores.chats.save_tree(&chat_id, &tree()).unwrap();
 		assert_eq!(midterm(&app, &space_id, &deadline_id)["continueStudy"], json!({ "chatId": chat_id, "done": 0, "total": 3 }));
+	}
+
+	#[test]
+	fn a_homework_lesson_is_never_the_deadlines_study_session() {
+		let root = scratch_dir("progress-homework");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Algorithms" })).unwrap()["id"].str_or_empty().to_owned();
+		let deadline_id = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "HW6", "kind": "homework", "date": "2099-01-15" })).unwrap()["id"].str_or_empty().to_owned();
+		let homework = app.stores.chats.create_chat("HW6", Some("homework"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned();
+		let d = midterm(&app, &space_id, &deadline_id);
+		assert_eq!(d.get("continueStudy"), None, "Study would reopen the homework");
+		assert_eq!(d["continueHomework"], json!(homework));
+		app.stores.chats.save_messages(&homework, &ended("c1", "reg")).unwrap();
+		assert_eq!(midterm(&app, &space_id, &deadline_id).get("studyEndedToday"), None, "homework is not studying");
+
+		let study = app.stores.chats.create_chat("Study for HW6", Some("study"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned();
+		let d = midterm(&app, &space_id, &deadline_id);
+		assert_eq!(d["continueStudy"]["chatId"], json!(study));
+		assert_eq!(d["continueHomework"], json!(homework));
 	}
 
 	/// A problem on `node` the learner solved with hints, ending the topic now.
