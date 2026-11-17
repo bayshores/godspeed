@@ -1,0 +1,2113 @@
+{
+  "version": "2.22",
+  "children": [
+    {
+      "type": "frame",
+      "id": "i8mya",
+      "x": 0,
+      "y": 0,
+      "name": "1 Crafted list",
+      "clip": true,
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "bFUQL",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "ZvDJ8",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "1 Crafted list",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "EvOMQ",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "The same list, but inside a card like the rest of the page, with an icon, a status chip and one key.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "mpr7M",
+          "name": "Real window, 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "lessons/look-1.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "fPqX1",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "nD3jy",
+              "name": "Why",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Kgpn8",
+                  "name": "Why title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Why",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "e5E9z",
+                  "name": "Why text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Tests if only the polish was wrong and the list idea was fine.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "klkSf",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "dLT03",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "r1Ekiy",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Smallest change. Every lesson is visible. Chips and squares line up in columns.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Q13PyV",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "EGDjm",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "Q1eJ2S",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Still a list of titles and times, so it is the closest to a chat history. The icons say little.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "wLiFT",
+      "x": 1640,
+      "y": 0,
+      "name": "2 Bookmark",
+      "clip": true,
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "uMgz7",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "UNneq",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "2 Bookmark",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "w7BZAB",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "The lesson you left open is one big card with its step and the one Continue key. Everything else is quiet.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "txXoO",
+          "name": "Real window, 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "lessons/look-2.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "iOEgm",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "kAybi",
+              "name": "Why",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "gKW04",
+                  "name": "Why title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Why",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "qQ5Cd",
+                  "name": "Why text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Answers 'what do I do now' before anything else. One bright key, then the record.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "vCJLS",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "j1Q2v",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "Jo7cG",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Strongest big and small levels. Nothing to think about to start. The studied list stays calm.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "x2CFo",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "g8LLC",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "hF9sT",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "With nothing unfinished the big card is gone, so the block changes shape. Its dark key sits under the deadline's dark Study key.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "gVnIy",
+      "x": 3280,
+      "y": 0,
+      "name": "3 Ledger",
+      "clip": true,
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "IfnYI",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "SOZpk",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "3 Ledger",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "f9UDpM",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Rows start with the date, on striped paper, like a logbook. A day's lessons share one date.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "s9SSrb",
+          "name": "Real window, 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "lessons/look-3.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "sWVIx",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "XmV9i",
+              "name": "Why",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "rs4gM",
+                  "name": "Why title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Why",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "F9fnlL",
+                  "name": "Why text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Dates first make it a study log, not a chat list. Columns line up like the rest of the app's numbers.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "c7mC0",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "WQPWR",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "TY8FM",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Shows the most lessons in the least room (10 where others show 6). Easy to scan by day.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "tRVED",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "C8AV9O",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "fALP4",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Unfinished lessons are mixed in by date, marked only by a yellow edge and chip. Feels like a table. Stripes are busier.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "zcCKS",
+      "x": 4920,
+      "y": 0,
+      "name": "4 Journal",
+      "clip": true,
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "zR4UE",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "lzKFx",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "4 Journal",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "boiFk",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "One group per day you studied, with a big day tile at the left, like the deadline's day count.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "QrrNX",
+          "name": "Real window, 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "lessons/look-4.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "DReeW",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "sdOp4",
+              "name": "Why",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "bzCZb",
+                  "name": "Why title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Why",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "zo0jG",
+                  "name": "Why text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Reuses the tile you already like. Shows your rhythm: which days you studied and how much.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "P9Hc9",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Y8MEsx",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "k9s4jr",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Reads as a diary. Clear big and small levels. Days with three lessons look like a good day.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ZYAN9",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "E8zKw5",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "I2zO8",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Tall: five days fill the screen. An old unfinished lesson sinks down to its day. Many boxes.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "v6p9M8",
+      "x": 6560,
+      "y": 0,
+      "name": "5 Calendar",
+      "clip": true,
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "QpOjd",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "M1iEsW",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "5 Calendar",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "Q9eyPG",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Five weeks of days as squares, bigger ink for more answers. Click a day to see its lessons.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "LVEhy",
+          "name": "Real window, 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "lessons/look-5.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "fora2",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "UwKY8",
+              "name": "Why",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "PTsLE",
+                  "name": "Why title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Why",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "cPBb1",
+                  "name": "Why text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Makes the record something you look at, not read. Gaps and streaks show at once.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "xqhrL",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Pk9Jx",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "OgykE",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Most visual and most compact. Nothing like a chat app.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "hJv5j",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "rqDO1",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "HW8IQ",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Finding one lesson means clicking days, so search has to carry more. The small yellow corner for 'unfinished' is easy to miss.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Rf752",
+      "x": 0,
+      "y": 1560,
+      "name": "6 By topic",
+      "clip": true,
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "jfmIx",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "aal7c",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "6 By topic",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "kes7A",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "No time list. Lessons sit under the topic they taught, with that topic's answers added up.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "worEM",
+          "name": "Real window, 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "lessons/look-6.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "ajauJ",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "vl8Ge",
+              "name": "Why",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "NiBGq",
+                  "name": "Why title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Why",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "Geezj",
+                  "name": "Why text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "You think 'how am I doing on Lines', not 'which session was that'.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "atkl7",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lemCc",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "cysuE",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Least like chats. Weak topics stand out. Fits the Graph tab.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "RACRY",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "GmyFr",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "Tw5G6",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Needs a small server change: say which topic each lesson taught (the facts a lesson made already name their topic). 'What did I do last' is harder to see. Overlaps a little with Most needed.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "iXL28",
+      "x": 1640,
+      "y": 1560,
+      "name": "7 Two trays",
+      "clip": true,
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "kjNIh",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "A0nuDi",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "7 Two trays",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "rCE1R",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Two cards side by side: To finish, and Studied.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "wQR5q",
+          "name": "Real window, 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "lessons/look-7.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "YvXlT",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "CRXWX",
+              "name": "Why",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "hEc1G",
+                  "name": "Why title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Why",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "mmTZR",
+                  "name": "Why text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "The two states get a place and a real title, instead of two small grey labels.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "lWNQs",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "u83zHy",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "Dn5Up",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Both groups show without scrolling at 1440 and 1100. Continue is obvious.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "s1QtFF",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "J9DMu",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "k2Uvl5",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "At 800 wide the cards stack, so Studied drops below. Long titles get cut in the narrow Studied card. Two more boxes on a page of boxes.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "W3baM3",
+      "x": 3280,
+      "y": 1560,
+      "name": "8 Tracks",
+      "clip": true,
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "QdSoK",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "KxH3y",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "8 Tracks",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "SNRq1",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Each lesson is its title over one full-width bar: plan steps while unfinished, one piece per answer once studied.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "H3u1W",
+          "name": "Real window, 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "lessons/look-8.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "gFndP",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "e5NiN0",
+              "name": "Why",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "y4L6U9",
+                  "name": "Why title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Why",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "JRxS1",
+                  "name": "Why text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "The result is the picture. A weak lesson is visibly red before you read anything.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Kbz0B",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "uPtfL",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "w43stk",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Fastest to read at a glance. Looks like no chat app.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "IcWcb",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "uGcnM",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "wqotB",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Tall: six lessons per screen. A bar of 5 answers is as long as a bar of 10. More color than the rest of the page. Homework has no steps, so its bar is a stretch.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "cgf4K",
+      "x": 4920,
+      "y": 1560,
+      "name": "9 Score tiles",
+      "clip": true,
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "sy06B",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "EsviX",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "9 Score tiles",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "inNV9",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Today's row pattern for lessons: a square tile with the score or step, the title, one line under it.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "OC9lw",
+          "name": "Real window, 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "lessons/look-9.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "JEVrP",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "Fb8tt",
+              "name": "Why",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "oMAoa",
+                  "name": "Why title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Why",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "d9HBhb",
+                  "name": "Why text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Today already works this way, so the app feels like one app. The tile gives each row an anchor.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "xp5Ox",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "fc1HL",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "MEfL9",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Same pattern as Today. Bad scores show by color. One key.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "MYk4T",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "fV74X",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "YjnJ5",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Can feel like being graded. Six lessons per screen. The right half of each row is empty.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "vQTYH",
+      "x": 6560,
+      "y": 1560,
+      "name": "10 One card",
+      "clip": true,
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "YAPUu",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "FhhY3",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "10 One card",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "QV4dS",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Only the lesson you left open and one line that sums the record. The full list lives in the Search lessons pop-up.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "blMSL",
+          "name": "Real window, 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "lessons/look-10.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "SOccm",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "ehDIB",
+              "name": "Why",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "UlR0h",
+                  "name": "Why title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Why",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "jIF2U",
+                  "name": "Why text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Fewest things on the page. One home for the full list instead of two.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nDgtU",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "c8TLz",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "V3tzP",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Smallest and calmest. Nothing to scan.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "JD9lN",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "uLcxG",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "KeA6m",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "The record is one click away again, which was your first complaint. Needs a second state for when nothing is unfinished.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "ink": {
+      "type": "color",
+      "value": "#EDEDEF"
+    },
+    "bg": {
+      "type": "color",
+      "value": "#141416"
+    },
+    "panel": {
+      "type": "color",
+      "value": "#1B1B1E"
+    },
+    "line": {
+      "type": "color",
+      "value": "#2A2A2F"
+    },
+    "dim": {
+      "type": "color",
+      "value": "#8C8C94"
+    },
+    "faint": {
+      "type": "color",
+      "value": "#5A5A62"
+    },
+    "red": {
+      "type": "color",
+      "value": "#FF453A"
+    },
+    "blue": {
+      "type": "color",
+      "value": "#0A84FF"
+    },
+    "g-bg": {
+      "type": "color",
+      "value": "#000000"
+    },
+    "g-ink": {
+      "type": "color",
+      "value": "#E6E6E6"
+    },
+    "g-mute": {
+      "type": "color",
+      "value": "#8D8D8D"
+    },
+    "g-faint": {
+      "type": "color",
+      "value": "#5E5E5E"
+    },
+    "g-tone": {
+      "type": "color",
+      "value": "#141414"
+    },
+    "g-line": {
+      "type": "color",
+      "value": "#222222"
+    },
+    "g-red": {
+      "type": "color",
+      "value": "#EF4444"
+    },
+    "g-orange": {
+      "type": "color",
+      "value": "#F97316"
+    },
+    "g-yellow": {
+      "type": "color",
+      "value": "#EAB308"
+    },
+    "g-green": {
+      "type": "color",
+      "value": "#10B981"
+    }
+  },
+  "fileToken": "e46b8a32-cc64-4c22-8096-0b7960533b53",
+  "fonts": [
+    {
+      "name": "KaTeX_AMS",
+      "url": "fonts/localhost/34494743736fda75.woff2"
+    },
+    {
+      "name": "KaTeX_Caligraphic",
+      "url": "fonts/localhost/5bfa49cac46cd1d7.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Caligraphic",
+      "url": "fonts/localhost/9f8077e0b38a290c.woff2"
+    },
+    {
+      "name": "KaTeX_Fraktur",
+      "url": "fonts/localhost/f98f89272eca11ae.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Fraktur",
+      "url": "fonts/localhost/a5764c6e2784d028.woff2"
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/31050a1b1b123fb2.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/a4a4905b8b126f9f.woff2",
+      "style": "italic",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/c9b2b5ffd2f27aa5.woff2",
+      "style": "italic"
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/c884086c25cec855.woff2"
+    },
+    {
+      "name": "KaTeX_Math",
+      "url": "fonts/localhost/8fcb9d2de65ac71a.woff2",
+      "style": "italic",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Math",
+      "url": "fonts/localhost/db4883d0cff95ecb.woff2",
+      "style": "italic"
+    },
+    {
+      "name": "KaTeX_SansSerif",
+      "url": "fonts/localhost/886e61797a525d4a.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_SansSerif",
+      "url": "fonts/localhost/3d5fa3cb309f8d83.woff2",
+      "style": "italic"
+    },
+    {
+      "name": "KaTeX_SansSerif",
+      "url": "fonts/localhost/e45d5f4f4a7f2ff3.woff2"
+    },
+    {
+      "name": "KaTeX_Script",
+      "url": "fonts/localhost/63b80959f1fc5689.woff2"
+    },
+    {
+      "name": "KaTeX_Size1",
+      "url": "fonts/localhost/57fa599974a1bc0b.woff2"
+    },
+    {
+      "name": "KaTeX_Size2",
+      "url": "fonts/localhost/ee18713634a3be8c.woff2"
+    },
+    {
+      "name": "KaTeX_Size3",
+      "url": "fonts/localhost/19a7caadfb66bd27.woff2"
+    },
+    {
+      "name": "KaTeX_Size4",
+      "url": "fonts/localhost/9bed17fb92f26505.woff2"
+    },
+    {
+      "name": "KaTeX_Typewriter",
+      "url": "fonts/localhost/7a08883fffc6958c.woff2"
+    }
+  ]
+}

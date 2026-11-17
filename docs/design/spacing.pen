@@ -1,0 +1,2050 @@
+{
+  "version": "2.22",
+  "children": [
+    {
+      "type": "frame",
+      "id": "yvIox",
+      "x": 0,
+      "y": 0,
+      "name": "Now",
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "LuNDa",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "e9szZ",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Now",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "ocJm3",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Today's app. The space name shows twice: in the top bar tab and as the big title.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "fHn77",
+          "name": "Progress, real window 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "spacing/progress-now.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "IFnKA",
+          "name": "Today, real window 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "spacing/today-now.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "qDcJH",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "r9QV6",
+              "name": "Fits",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "p9YcZ",
+                  "name": "Fits title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Fits",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "A0YCvk",
+                  "name": "Fits text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "6 lessons in a window 900 points tall. Rows are 48 points tall.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "C1F3MH",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "dgbOr",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "fbouY",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Roomy. Easy to click.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "taoJh",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Lj7ct",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "hlARY",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "The name is said twice. The head takes 200 points before any content.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Ix7Ra",
+      "x": 1640,
+      "y": 0,
+      "name": "A No big title",
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "n5JeTN",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "Q6XNMW",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "A No big title",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "CJ14c",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "The big title is gone. The signature sits small at the end of the tab row. Padding is unchanged.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "MFUau",
+          "name": "Progress, real window 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "spacing/progress-1.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "J6kiZ",
+          "name": "Today note",
+          "width": "fill_container",
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "c3swW",
+              "name": "Today note text",
+              "fill": "#5C5A52",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Today looks the same as in Now.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 24,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "VEDDV",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "SqC8P",
+              "name": "Fits",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "dtDxc",
+                  "name": "Fits title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Fits",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "RyVs6",
+                  "name": "Fits text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "8 lessons and Show all. 110 points more room on every space page.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "cgGLH",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "BWkxv",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "K6jqNJ",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "The top bar tab already names the space, so nothing is lost. Today and other pages do not change.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "WYReY",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "tfl1f",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "CP3zy",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "The signature is about half its size. The color bar beside the title goes (the tab keeps the color square). 'Lessons with no space' keeps its title, since no tab names it.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "p1DJ8",
+      "x": 3280,
+      "y": 0,
+      "name": "B Tighter",
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "m7IZ4n",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "v48IA3",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "B Tighter",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "caDGw",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "A, plus every gap, padding and row at 80 percent, on every page.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "AgdZa",
+          "name": "Progress, real window 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "spacing/progress-2.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "HAwsq",
+          "name": "Today, real window 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "spacing/today-2.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "D4kEN6",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "qUY5L",
+              "name": "Fits",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "odXrq",
+                  "name": "Fits title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Fits",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "pk00l",
+                  "name": "Fits text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "8 lessons, Show all and the start of Facts. Rows are 38 points tall.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "r0j5vL",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "h6NIH",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "uj4jr",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Clearly more on screen, still calm, still easy to click.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "rWRsI",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "gm9cg",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "M5VnE",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Every screen has to be rechecked. About 1 day of work for the whole app.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "IdaoW",
+          "name": "How made",
+          "width": "fill_container",
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "ylYQA",
+              "name": "How made text",
+              "fill": "#5C5A52",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "How made: the real window with every padding, gap and row height scaled. The real build tightens the app's shared sizes to match.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 22,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Y4paZr",
+      "x": 4920,
+      "y": 0,
+      "name": "C Tightest",
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "wWCk6",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "TA2Sm",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "C Tightest",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "c0tAoP",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "A, plus every gap, padding and row at 65 percent, on every page.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "gJvBI",
+          "name": "Progress, real window 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "spacing/progress-3.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "eSvYH",
+          "name": "Today, real window 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "spacing/today-3.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "Gu9FB",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "TDBe0",
+              "name": "Fits",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "WSZtK",
+                  "name": "Fits title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Fits",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "VBOni",
+                  "name": "Fits text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "The whole Progress page in one screen. Rows are 31 points tall.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "m8iZjI",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "OE5D7",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "bBGu9",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Fits the most. Little scrolling.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "XXToo",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "C7oa6",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "yh5ya",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Lists start to look like a table. Smaller click targets. Text sits close to the edge of each sheet.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "ZIHBC",
+          "name": "How made",
+          "width": "fill_container",
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "EqvCV",
+              "name": "How made text",
+              "fill": "#5C5A52",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "How made: the real window with every padding, gap and row height scaled. The real build tightens the app's shared sizes to match.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 22,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "RbmmB",
+      "x": 6560,
+      "y": 0,
+      "name": "D Compact deadline",
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "QKH06",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "j7y9DL",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "D Compact deadline",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "U1IezB",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "A, plus the deadline as one short band. Study is a normal key at the end, not a bar across the sheet.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "B72ehq",
+          "name": "Progress, real window 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "spacing/progress-4.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "Sa7tD",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "ikBdx",
+              "name": "Fits",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "day9G",
+                  "name": "Fits title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Fits",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "JD9vm",
+                  "name": "Fits text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "8 lessons, Show all and the start of Facts. The deadline sheet goes from 250 to 110 points tall.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Z1t1n",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "kUHt1",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "X3UE0",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "The wide Study bar is gone. The change is easy to see. Padding stays roomy.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "RUZi0",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "wV5IF",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "BkE6R",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "The deadline is less loud. Its title drops from 40 to 26 points.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "mgaEe",
+      "x": 8200,
+      "y": 0,
+      "name": "E Two columns",
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "Dzj0x",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "WqWl3",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "E Two columns",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "U0xFLc",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "D, plus the empty sides are used: Lessons at the left, the deadline and Facts at the right. One column again in a narrow window.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "kefcp",
+          "name": "Progress, real window 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "spacing/progress-5.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "F8jck",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "rKkRv",
+              "name": "Fits",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "hdu4e",
+                  "name": "Fits title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Fits",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "m8xZ8",
+                  "name": "Fits text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "The whole Progress page in one screen, with room left over.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "F9TT2",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "KlYRJ",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "usDHr",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Fits the most without making anything smaller. Uses room that is empty today.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "V7q2Ky",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "b9xLP",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "sOTwU",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Biggest change: Today and the other tabs need the same wide layout or the app looks uneven. Lesson titles get cut at 1100 wide.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "PWjxB",
+      "x": 9840,
+      "y": 0,
+      "name": "F Sides halved",
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "t9AsJJ",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "rBbIY",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "F Sides halved",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "SDDjS",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "The empty sides are cut in half. No big title. Study is a normal key at the end of the deadline.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "FxC6S",
+          "name": "Progress, real window 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "spacing/progress-6.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "U4eb6",
+          "name": "Today, real window 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "spacing/today-6.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "mstJZ",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "B60t2",
+              "name": "Fits",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "YslNk",
+                  "name": "Fits title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Fits",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "fnb21",
+                  "name": "Fits text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "The same rows as today, but long titles are no longer cut.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "bkbG0",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "t2Ydy",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "m1Dr01",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Lines are still a comfortable length to read. Smallest change.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "M06EQg",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "EmUoS",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "v0KALS",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Still about 140 points empty on each side at full window width.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "mBNEK",
+      "x": 11480,
+      "y": 0,
+      "name": "G Sides gone",
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "hbCXL",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "bC2Jt",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "G Sides gone",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "YOx6D",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "The content runs the full width of the window. No big title. Study is a normal key.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "S0cEcv",
+          "name": "Progress, real window 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "spacing/progress-7.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "rFpwj",
+          "name": "Today, real window 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "spacing/today-7.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "yVlSs",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "M2AnQ2",
+              "name": "Fits",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "x0JDbg",
+                  "name": "Fits title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Fits",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "Y3dcx",
+                  "name": "Fits text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "The same rows as today. Nothing is cut.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "RdcAu",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "xogg9",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "ttWY7",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "No empty sides at all.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "I1Rt0",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "NY0ew",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "O6jFG",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Each row now has a long empty middle between its title and its numbers. On a bigger screen that gap grows.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "xmc6Z",
+      "x": 13120,
+      "y": 0,
+      "name": "H Sides gone, lists fold",
+      "width": 1440,
+      "fill": "#E6E4DC",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        0,
+        48,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "klLjh",
+          "name": "Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "eQT6S",
+              "name": "Title",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "H Sides gone, lists fold",
+              "lineHeight": 1.15,
+              "fontFamily": "Inter",
+              "fontSize": 56,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "mCanj",
+              "name": "Idea",
+              "fill": "#222220",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "G, plus a list folds into two columns when the window is wide, and goes back to one column when it is narrow.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "LykrJ",
+          "name": "Progress, real window 1440 wide",
+          "width": 1440,
+          "height": 900,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "spacing/progress-8.png",
+            "mode": "cover"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "L5JXx",
+          "name": "Reasoning",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            0,
+            48
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "dsF8B",
+              "name": "Fits",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lRG5U",
+                  "name": "Fits title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Fits",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "p5TA9",
+                  "name": "Fits text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "The whole Progress page in one screen.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Z2JoDy",
+              "name": "Good",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "g6e4w6",
+                  "name": "Good title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Good",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "clOk1",
+                  "name": "Good text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "The extra width holds content, not blank row middles. Titles sit next to their numbers again.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "vjQ42",
+              "name": "Bad",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "u6eTQ",
+                  "name": "Bad title",
+                  "fill": "#222220",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bad",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "DeJQX",
+                  "name": "Bad text",
+                  "fill": "#5C5A52",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "You read down the left column, then the right. Every list in the app needs this rule, about 1 day of work. Today would look like G until its lists fold too.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "ink": {
+      "type": "color",
+      "value": "#EDEDEF"
+    },
+    "bg": {
+      "type": "color",
+      "value": "#141416"
+    },
+    "panel": {
+      "type": "color",
+      "value": "#1B1B1E"
+    },
+    "line": {
+      "type": "color",
+      "value": "#2A2A2F"
+    },
+    "dim": {
+      "type": "color",
+      "value": "#8C8C94"
+    },
+    "faint": {
+      "type": "color",
+      "value": "#5A5A62"
+    },
+    "red": {
+      "type": "color",
+      "value": "#FF453A"
+    },
+    "blue": {
+      "type": "color",
+      "value": "#0A84FF"
+    },
+    "g-bg": {
+      "type": "color",
+      "value": "#000000"
+    },
+    "g-ink": {
+      "type": "color",
+      "value": "#E6E6E6"
+    },
+    "g-mute": {
+      "type": "color",
+      "value": "#8D8D8D"
+    },
+    "g-faint": {
+      "type": "color",
+      "value": "#5E5E5E"
+    },
+    "g-tone": {
+      "type": "color",
+      "value": "#141414"
+    },
+    "g-line": {
+      "type": "color",
+      "value": "#222222"
+    },
+    "g-red": {
+      "type": "color",
+      "value": "#EF4444"
+    },
+    "g-orange": {
+      "type": "color",
+      "value": "#F97316"
+    },
+    "g-yellow": {
+      "type": "color",
+      "value": "#EAB308"
+    },
+    "g-green": {
+      "type": "color",
+      "value": "#10B981"
+    }
+  },
+  "fileToken": "e46b8a32-cc64-4c22-8096-0b7960533b53",
+  "fonts": [
+    {
+      "name": "KaTeX_AMS",
+      "url": "fonts/localhost/34494743736fda75.woff2"
+    },
+    {
+      "name": "KaTeX_Caligraphic",
+      "url": "fonts/localhost/5bfa49cac46cd1d7.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Caligraphic",
+      "url": "fonts/localhost/9f8077e0b38a290c.woff2"
+    },
+    {
+      "name": "KaTeX_Fraktur",
+      "url": "fonts/localhost/f98f89272eca11ae.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Fraktur",
+      "url": "fonts/localhost/a5764c6e2784d028.woff2"
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/31050a1b1b123fb2.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/a4a4905b8b126f9f.woff2",
+      "style": "italic",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/c9b2b5ffd2f27aa5.woff2",
+      "style": "italic"
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/c884086c25cec855.woff2"
+    },
+    {
+      "name": "KaTeX_Math",
+      "url": "fonts/localhost/8fcb9d2de65ac71a.woff2",
+      "style": "italic",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Math",
+      "url": "fonts/localhost/db4883d0cff95ecb.woff2",
+      "style": "italic"
+    },
+    {
+      "name": "KaTeX_SansSerif",
+      "url": "fonts/localhost/886e61797a525d4a.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_SansSerif",
+      "url": "fonts/localhost/3d5fa3cb309f8d83.woff2",
+      "style": "italic"
+    },
+    {
+      "name": "KaTeX_SansSerif",
+      "url": "fonts/localhost/e45d5f4f4a7f2ff3.woff2"
+    },
+    {
+      "name": "KaTeX_Script",
+      "url": "fonts/localhost/63b80959f1fc5689.woff2"
+    },
+    {
+      "name": "KaTeX_Size1",
+      "url": "fonts/localhost/57fa599974a1bc0b.woff2"
+    },
+    {
+      "name": "KaTeX_Size2",
+      "url": "fonts/localhost/ee18713634a3be8c.woff2"
+    },
+    {
+      "name": "KaTeX_Size3",
+      "url": "fonts/localhost/19a7caadfb66bd27.woff2"
+    },
+    {
+      "name": "KaTeX_Size4",
+      "url": "fonts/localhost/9bed17fb92f26505.woff2"
+    },
+    {
+      "name": "KaTeX_Typewriter",
+      "url": "fonts/localhost/7a08883fffc6958c.woff2"
+    }
+  ]
+}
