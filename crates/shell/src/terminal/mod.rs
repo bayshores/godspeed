@@ -338,7 +338,10 @@ impl Terminals {
 	/// The terminal's other three threads: its output, its exit and its clock.
 	fn run(&self, terminal: Arc<Terminal>, mut reader: Box<dyn Read + Send>, mut child: Box<dyn Child + Send + Sync>) {
 		let (outlet, list, reading) = (self.outlet.clone(), self.list.clone(), terminal.clone());
+		// Dropped when the output ends, so the exit waits for the last lines it reads.
+		let (read_all, output_ended) = std::sync::mpsc::channel::<()>();
 		std::thread::spawn(move || {
+			let _read_all = read_all;
 			let mut buffer = [0u8; 8192];
 			while let Ok(read @ 1..) = reader.read(&mut buffer) {
 				if !reading.output(&buffer[..read], &*outlet) {
@@ -349,6 +352,9 @@ impl Terminals {
 		let (outlet, list, ticking) = (self.outlet.clone(), self.list.clone(), terminal.clone());
 		std::thread::spawn(move || {
 			let code = child.wait().map_or(1, |status| status.exit_code());
+			// "No conversation found" is often the last line before the exit; a child the script left
+			// running keeps the output open, so the wait is short.
+			let _ = output_ended.recv_timeout(Duration::from_millis(500));
 			ended(terminal, code, &*outlet, &list);
 		});
 		let outlet = self.outlet.clone();
