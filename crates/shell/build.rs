@@ -24,6 +24,7 @@ fn main() {
 		"terminal_write",
 		"terminal_answer",
 		"terminal_paste",
+		"terminal_send",
 		"terminal_add_file",
 		"terminal_stop",
 		"terminal_list",

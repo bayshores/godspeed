@@ -49,6 +49,11 @@ function addsLine(e: KeyboardEvent): boolean {
 	return e.key === "Enter" && e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && !e.isComposing && e.keyCode !== 229;
 }
 
+/** Cmd+Backspace on a Mac clears the line, as Ghostty does: it sends Ctrl+U. */
+function clearsLine(e: KeyboardEvent): boolean {
+	return e.key === "Backspace" && e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && document.documentElement.dataset.lhPlatform === "darwin";
+}
+
 /** Keeps a key in the screen; the Mac's Command keys still reach the app (copy, zoom). */
 function keepKey(e: KeyboardEvent) {
 	if (e.metaKey && document.documentElement.dataset.lhPlatform === "darwin") return;
@@ -104,8 +109,9 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }
 		const typed = t.onData((data) => lh.write(id, data).catch(() => {}));
 		// Its keypress and keyup are swallowed too, or xterm would send Enter after all.
 		t.attachCustomKeyEventHandler((e) => {
-			if (!addsLine(e)) return true;
-			if (e.type === "keydown") lh.write(id, "\n").catch(() => {});
+			const keys = addsLine(e) ? "\n" : clearsLine(e) ? "\x15" : null;
+			if (keys === null) return true;
+			if (e.type === "keydown") lh.write(id, keys).catch(() => {});
 			return false;
 		});
 		const offOutput = lh.onOutput((out) => {

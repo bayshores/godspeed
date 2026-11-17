@@ -30,6 +30,9 @@ declare global {
 				answer: (id: string, kind: "trust" | "enter") => Promise<void>;
 				/** The shell reads the clipboard itself and types it in. */
 				paste: (id: string) => Promise<void>;
+				/** Types a line into the teacher's input and sends it, only once the input holds
+				 *  exactly that line; rejects with a sentence saying why it didn't. */
+				send: (id: string, line: string) => Promise<void>;
 				/** Attach: a picture or a PDF as base64; answers the saved path. */
 				addFile: (id: string, name: string, data: string) => Promise<string>;
 				stop: (id: string) => Promise<void>;

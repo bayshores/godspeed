@@ -42,6 +42,7 @@ pub const NOT_SET_UP: &str = "The godspeed folder isn't set up yet.";
 const NO_START: &str = "godspeed couldn't start the terminal.";
 const NOT_THERE: &str = "That terminal isn't running.";
 const NOT_SHOWN: &str = "Show the terminal and click in it first.";
+const NOT_SENT: &str = "godspeed couldn't send that. Clear what you typed in the terminal, then try again.";
 /// The largest file Attach takes.
 const ATTACH_MAX: usize = 20 * 1024 * 1024;
 const ATTACH_TOO_BIG: &str = "That file is over 20 MB.";
@@ -468,6 +469,28 @@ impl Terminals {
 		}
 	}
 
+	/// A starter key: the line typed into the teacher's input and sent as the learner's message,
+	/// only once the input reads exactly that line, so it never sends what the learner had typed
+	/// there. Only while the window has the focus, the screen is shown and asks nothing.
+	pub fn send(&self, id: &str, line: &str, focused: bool) -> Result<(), String> {
+		let terminal = self.find(id)?;
+		let (attached, asked, ended) = {
+			let state = terminal.state();
+			(state.attached, state.screen.seen().prompt.is_some(), state_ended(&state))
+		};
+		if ended {
+			return Err(NOT_THERE.to_owned());
+		}
+		if !focused || !attached {
+			return Err(NOT_SHOWN.to_owned());
+		}
+		if terminal.role != Role::Teacher || asked || line.chars().any(char::is_control) || !type_line(&terminal, line) {
+			return Err(NOT_SENT.to_owned());
+		}
+		self.outlet.typed(&terminal.id);
+		Ok(())
+	}
+
 	/// Paste: the clipboard's text, bracketed when the program asked for that, without escape
 	/// characters that could end the bracket early.
 	pub fn paste(&self, id: &str, text: &str, focused: bool) -> Result<(), String> {
@@ -676,11 +699,24 @@ fn input_of(terminal: &Terminal) -> Option<String> {
 	}
 }
 
-/// Types the nudge and sends it only once the box reads exactly that line, so it never sends
-/// what the learner had typed there: otherwise the line is taken out again and it tries once a
-/// second. Never while the screen asks the learner something.
-fn nudge_input(terminal: &Terminal, line: &str) {
+/// Types the line and sends it only once the box reads exactly that line, so it never sends what
+/// the learner had typed there: otherwise the line is taken out again. True when it was sent.
+fn type_line(terminal: &Terminal, line: &str) -> bool {
 	let squash = |text: &str| text.split_whitespace().collect::<String>();
+	if terminal.write(line.as_bytes()).is_err() {
+		return false;
+	}
+	std::thread::sleep(Duration::from_millis(300));
+	if input_of(terminal).is_some_and(|text| squash(&text) == squash(line)) {
+		return terminal.write(b"\r").is_ok();
+	}
+	let _ = terminal.write("\x7f".repeat(line.chars().count()).as_bytes());
+	false
+}
+
+/// Types the nudge (type_line), trying once a second until it is sent. Never while the screen
+/// asks the learner something.
+fn nudge_input(terminal: &Terminal, line: &str) {
 	let deadline = Instant::now() + NUDGE_TRIES;
 	while Instant::now() < deadline {
 		std::thread::sleep(Duration::from_secs(1));
@@ -693,15 +729,9 @@ fn nudge_input(terminal: &Terminal, line: &str) {
 				continue;
 			}
 		}
-		if terminal.write(line.as_bytes()).is_err() {
+		if type_line(terminal, line) {
 			return;
 		}
-		std::thread::sleep(Duration::from_millis(300));
-		if input_of(terminal).is_some_and(|text| squash(&text) == squash(line)) {
-			let _ = terminal.write(b"\r");
-			return;
-		}
-		let _ = terminal.write("\x7f".repeat(line.chars().count()).as_bytes());
 	}
 }
 
@@ -894,22 +924,69 @@ mod tests {
 		assert!(text(&terminals, &id).contains(&format!("resume {chat}")), "the script was told the chat");
 	}
 
+	/// A godspeed folder whose Codex teacher shows Codex's input mark, reads one line and echoes it.
 	#[cfg(unix)]
-	#[test]
-	fn a_nudge_is_typed_then_sent_once_the_box_holds_it() {
-		let dir = std::env::temp_dir().join(format!("gs-shell-terminal-nudge-{}", std::process::id()));
+	fn codex_folder(name: &str) -> PathBuf {
+		let dir = std::env::temp_dir().join(format!("gs-shell-terminal-{name}-{}", std::process::id()));
 		let _ = std::fs::remove_dir_all(&dir);
 		std::fs::create_dir_all(dir.join(".godspeed")).unwrap();
 		let extension = if std::env::consts::OS == "macos" { "command" } else { "sh" };
 		let script = dir.join(".godspeed").join(format!("start-codex.{extension}"));
 		gs_base::fsx::write_text_atomic(&script, "#!/bin/sh\nprintf '› '\nread line\nprintf 'got %s\\n' \"$line\"\nsleep 1\n").unwrap();
 		std::fs::set_permissions(&script, std::os::unix::fs::PermissionsExt::from_mode(0o755)).unwrap();
+		dir
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn a_nudge_is_typed_then_sent_once_the_box_holds_it() {
+		let dir = codex_folder("nudge");
 		let heard = Arc::new(Heard::default());
 		let terminals = Terminals::new(heard.clone());
 		let id = terminals.start(Role::Teacher, Agent::Codex, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None).unwrap();
 		terminals.nudge(&id, "Your lesson is waiting.");
 		until("the sent nudge", || text(&terminals, &id).contains("got Your lesson is waiting."));
 		assert!(lock(&heard.typed).is_empty(), "godspeed's own line is not the learner's message");
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn a_starter_is_typed_sent_and_heard_as_the_learners_line() {
+		let dir = codex_folder("starter");
+		let heard = Arc::new(Heard::default());
+		let terminals = Terminals::new(heard.clone());
+		let id = terminals.start(Role::Teacher, Agent::Codex, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None).unwrap();
+		until("the input", || text(&terminals, &id).contains('›'));
+		assert_eq!(terminals.send(&id, "What's due?", true), Err(NOT_SHOWN.to_owned()), "not shown yet");
+		terminals.attach(&id).unwrap();
+		assert_eq!(terminals.send(&id, "What's due?", false), Err(NOT_SHOWN.to_owned()), "the window is not focused");
+		assert_eq!(terminals.send(&id, "What's due?\nrm -rf ~", true), Err(NOT_SENT.to_owned()), "a line break is never typed");
+		terminals.write(&id, "half", true).unwrap();
+		assert_eq!(terminals.send(&id, "What's due?", true), Err(NOT_SENT.to_owned()), "the learner's own text is in the box");
+		until("the starter taken out again", || terminals.find(&id).unwrap().state().screen.codex_input().as_deref() == Some("half"));
+		assert!(lock(&heard.typed).is_empty());
+		terminals.write(&id, "\x15", true).unwrap();
+		terminals.send(&id, "What's due?", true).unwrap();
+		assert_eq!(*lock(&heard.typed), vec![id.clone()], "the learner's message");
+		until("the sent line", || text(&terminals, &id).contains("got What's due?"));
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[test]
+	fn a_starter_is_only_for_the_teachers_running_terminal() {
+		let dir = folder("starter-helper", ECHO);
+		write_script(&dir, Role::Helper, WAITS);
+		let terminals = Terminals::new(Arc::new(Heard::default()));
+		let teacher = start(&terminals, &dir);
+		let helper = terminals.start(Role::Helper, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None).unwrap();
+		until("ready", || text(&terminals, &helper).contains("ready"));
+		terminals.attach(&helper).unwrap();
+		assert_eq!(terminals.send(&helper, "What's due?", true), Err(NOT_SENT.to_owned()), "background work's terminal");
+		terminals.stop(&teacher).unwrap();
+		until("the end", || ended_of(&terminals, &teacher).is_some());
+		terminals.attach(&teacher).unwrap();
+		assert_eq!(terminals.send(&teacher, "What's due?", true), Err(NOT_THERE.to_owned()), "it ended");
+		std::fs::remove_dir_all(dir).unwrap();
 	}
 
 	#[test]

@@ -85,6 +85,7 @@ fn main() {
 			terminal::commands::terminal_write,
 			terminal::commands::terminal_answer,
 			terminal::commands::terminal_paste,
+			terminal::commands::terminal_send,
 			terminal::commands::terminal_add_file,
 			terminal::commands::terminal_stop,
 			terminal::commands::terminal_list,

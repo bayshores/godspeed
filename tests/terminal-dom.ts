@@ -67,6 +67,7 @@ export function fakeShell(list: TerminalRecord[] = []): FakeShell {
 		write: (_id, data) => call(`write ${data}`),
 		answer: (_id, kind) => call(`answer ${kind}`),
 		paste: () => call("paste"),
+		send: (_id, line) => call(`send ${line}`),
 		addFile: (id, name, data) => (calls.push(`add ${id} ${name} ${data}`), Promise.resolve(`/g/.godspeed/attachments/${name}`)),
 		stop: (id) => call(`stop ${id}`),
 		list: () => Promise.resolve(list),
@@ -87,9 +88,9 @@ export function fakeShell(list: TerminalRecord[] = []): FakeShell {
 }
 
 /** A dispatched keydown, as a keyboard sends it. */
-export function press(target: EventTarget, key: string, keyCode: number, ctrlKey = false, shiftKey = false): KeyboardEvent {
+export function press(target: EventTarget, key: string, keyCode: number, ctrlKey = false, shiftKey = false, metaKey = false): KeyboardEvent {
 	const e = new dom.window.Event("keydown", { bubbles: true, cancelable: true }) as unknown as KeyboardEvent;
-	for (const [name, value] of Object.entries({ key, keyCode, which: keyCode, ctrlKey, metaKey: false, altKey: false, shiftKey })) Object.defineProperty(e, name, { value });
+	for (const [name, value] of Object.entries({ key, keyCode, which: keyCode, ctrlKey, metaKey, altKey: false, shiftKey })) Object.defineProperty(e, name, { value });
 	target.dispatchEvent(e);
 	return e;
 }

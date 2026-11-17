@@ -1,9 +1,10 @@
 /**
  * One agent's live screen and, under it, its footer (screen-footer.tsx).
- * The teacher's screen also takes dropped files for Attach. The teacher's
- * panel and onboarding's first start show it. A space file name in the
- * screen opens the file (a PDF in its own app, anything else shown in its
- * folder), and a passage id opens the source popup.
+ * The teacher's screen also takes dropped files for Attach, and in the
+ * panel shows starter keys above its footer while its chat is unused. The
+ * teacher's panel and onboarding's first start show it. A space file name
+ * in the screen opens the file (a PDF in its own app, anything else shown
+ * in its folder), and a passage id opens the source popup.
  */
 import { useCallback, useEffect, useState } from "react";
 import { CiteDialog } from "@/frontend/components/citations/cite-dialog";
@@ -13,6 +14,8 @@ import { lazyComponent } from "@/frontend/lib/lazy-component";
 import type { ScreenLink } from "./terminal-links-model";
 import { chatGone, type TerminalFooter, type TerminalRole } from "./terminal-model";
 import { ScreenFooter } from "./screen-footer";
+import { startersShown } from "./starter-model";
+import { StarterKeys } from "./starter-keys";
 import { useSpaceFiles } from "./use-space-files";
 import type { TerminalsApi } from "./use-terminals";
 
@@ -21,13 +24,15 @@ const FILE_GONE = "Can't find this file on your computer.";
 /** xterm loads with the first screen shown. */
 const TerminalView = lazyComponent(() => import("./terminal-view").then((m) => m.TerminalView));
 
-export function TerminalPane({ api, role, foot, focusOnOpen }: {
+export function TerminalPane({ api, role, foot, focusOnOpen, starters = [] }: {
 	api: TerminalsApi;
 	role: TerminalRole;
 	foot: TerminalFooter;
 	/** The learner opened it: the screen takes the keyboard. Opened by
 	 *  itself, it waits for a click in the screen. */
 	focusOnOpen: boolean;
+	/** The starter keys' words (starter-model.ts); none leaves the row out. */
+	starters?: readonly string[];
 }) {
 	const term = api[role]!;
 	const [focusKey, setFocusKey] = useState(0);
@@ -42,6 +47,17 @@ export function TerminalPane({ api, role, foot, focusOnOpen }: {
 	// The teacher's Start again goes back to the chat that ended, when it was used.
 	const lastChat = role === "teacher" ? api.chats.find((c) => c.agent === term.agent && c.at >= term.startedAt) : undefined;
 	const startAgain = async (resume?: string) => setError(await api.start(role, term.agent, resume));
+	// A clicked starter hides the row at once; a refusal brings it back and says why.
+	const [sentFrom, setSentFrom] = useState<string | null>(null);
+	const shownStarters = starters.length > 0 && sentFrom !== term.id && startersShown(api.facts[role], !!lastChat) ? starters : null;
+	const sendStarter = (line: string) => {
+		setSentFrom(term.id);
+		void api.send(role, line).then((refused) => {
+			setError(refused);
+			if (refused) setSentFrom(null);
+		});
+		refocus();
+	};
 	const attaches = role === "teacher" && running;
 	// Each file's path goes in after the one before, then the screen takes the keys again.
 	const attach = async (files: readonly File[]) => {
@@ -78,6 +94,7 @@ export function TerminalPane({ api, role, foot, focusOnOpen }: {
 			>
 				<TerminalView key={term.id} id={term.id} ended={!live} focusOnOpen={focusOnOpen} focusKey={focusKey} files={files} onLink={onLink} />
 			</div>
+			<StarterKeys starters={shownStarters} onSend={sendStarter} />
 			<ScreenFooter
 				text={error ?? foot.text}
 				onAttach={attaches ? (files) => void attach(files) : null}

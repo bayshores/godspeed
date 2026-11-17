@@ -28,6 +28,7 @@ The shim (`crates/shell/src/shim.js`) is an initialization script on the main wi
 | `terminals.write(id, data)` | `terminal_write` | Keys typed in the shown terminal. |
 | `terminals.answer(id, kind)` | `terminal_answer` | `kind` is `"trust"` or `"enter"`; the shell answers only while it still sees that question (see [What the shell recognises](terminals.md#what-the-shell-recognises)). |
 | `terminals.paste(id)` | `terminal_paste` | The shell reads the clipboard and types it. |
+| `terminals.send(id, line)` | `terminal_send` | A starter key: the shell types the line into the teacher's input and sends it. See [While it runs](terminals.md#while-it-runs). |
 | `terminals.addFile(id, name, data)` | `terminal_add_file` | `data` is the file in base64. The shell saves it in the godspeed folder and types its path. Answers the path. See [While it runs](terminals.md#while-it-runs). |
 | `terminals.stop(id)` | `terminal_stop` | Stops the terminal and everything it started. |
 | `terminals.list()` | `terminal_list` | Every terminal, for a page that reloaded. |

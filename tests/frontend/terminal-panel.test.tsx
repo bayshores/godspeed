@@ -2,8 +2,9 @@
  * The agent's screen in the teacher panel and the teacher's status line:
  * what opens it by itself, the lit chip while the Activity list hangs over
  * it, background work's screen only while it needs the learner, its one
- * bright key, the Start buttons that open it, and the web version, which
- * has no terminals and keeps its plain status line.
+ * bright key, the Start buttons that open it, the starter keys of an
+ * unused chat, and the web version, which has no terminals and keeps its
+ * plain status line.
  */
 import { dom, fakeShell, press } from "../terminal-dom.ts";
 import React, { act } from "react";
@@ -14,6 +15,7 @@ import assert from "node:assert/strict";
 import type { TerminalRecord } from "../../src/frontend/components/terminal/terminal-model.ts";
 import type { TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 
+const { MemoryRouter } = await import("react-router");
 const { TerminalsProvider, useTerminals } = await import("../../src/frontend/components/terminal/use-terminals.ts");
 const { TeacherStatus } = await import("../../src/frontend/components/terminal/teacher-status.tsx");
 const { RestartDialog } = await import("../../src/frontend/components/terminal/restart-dialog.tsx");
@@ -24,6 +26,7 @@ const { useTeacherPanel } = await import("../../src/frontend/components/teacher/
 const { panelBody } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { NoAgentLine } = await import("../../src/frontend/components/agent-folder/no-agent-line.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
+const { FirstRunScreen } = await import("../../src/frontend/components/terminal/first-run-screen.tsx");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 
 const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [], terminals: [], outsideHere: false, ...over });
@@ -102,7 +105,13 @@ const click = async (testid: string) => {
 	await settle();
 };
 
-const noEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+/** The server's events the page listens for; `say` sends one. */
+const listening = new Map<string, (data: string) => void>();
+const noEvents = () => ({ onEvent: (name: string, cb: (data: string) => void) => void listening.set(name, cb), onOpen() {}, close() {} });
+const say = async (name: string) => {
+	await act(async () => listening.get(name)?.("{}"));
+	await settle();
+};
 
 async function mounted(status: Access, run: (render: (s: Access, extra?: React.ReactNode) => Promise<void>) => Promise<void>, extra?: React.ReactNode) {
 	const host = document.createElement("div");
@@ -111,11 +120,13 @@ async function mounted(status: Access, run: (render: (s: Access, extra?: React.R
 	const render = async (s: Access, more: React.ReactNode = extra) => {
 		await act(async () =>
 			root.render(
-				<ServerEventsProvider connect={noEvents as never}>
-					<TerminalsProvider status={s}>
-						<PanelHost>{more}</PanelHost>
-					</TerminalsProvider>
-				</ServerEventsProvider>,
+				<MemoryRouter>
+					<ServerEventsProvider connect={noEvents as never}>
+						<TerminalsProvider status={s}>
+							<PanelHost>{more}</PanelHost>
+						</TerminalsProvider>
+					</ServerEventsProvider>
+				</MemoryRouter>,
 			),
 		);
 		await settle();
@@ -564,9 +575,11 @@ describe("onboarding", () => {
 			return <AgentNeed open={open} onOpen={() => setOpen(true)} />;
 		}
 		const page = (done: boolean) => (
-			<ServerEventsProvider connect={noEvents as never}>
-				<TerminalsProvider status={status}>{done ? <PanelHost /> : <Step />}</TerminalsProvider>
-			</ServerEventsProvider>
+			<MemoryRouter>
+				<ServerEventsProvider connect={noEvents as never}>
+					<TerminalsProvider status={status}>{done ? <PanelHost /> : <Step />}</TerminalsProvider>
+				</ServerEventsProvider>
+			</MemoryRouter>
 		);
 		try {
 			await act(async () => root.render(page(false)));
@@ -628,6 +641,111 @@ describe("the footer", () => {
 				assert.equal(text("terminal-footer"), "", "the chip asks");
 			});
 		} finally {
+			shell.remove();
+		}
+	});
+});
+
+describe("the starter keys", () => {
+	const running = access({ teaching: true, terminals: [{ id: "t1", here: true }] });
+	const starters = () => [...document.querySelectorAll('[data-testid="terminal-starter"]')].map((b) => b.textContent);
+
+	it("an unused chat shows three keys under Try asking; a click sends its words and the row goes", async () => {
+		const shell = fakeShell([teacher()]);
+		try {
+			await mounted(running, async () => {
+				await click("status");
+				assert.equal(q("terminal-starters")?.firstElementChild?.textContent, "Try asking");
+				assert.deepEqual(starters(), ["What should I study?", "What's due?", "What can you do?"]);
+				assert.equal(document.querySelector('[data-testid="terminal-starter"]')?.getAttribute("title"), "What should I study?", "the first key's full words, for when it is cut");
+				await click("terminal-starter");
+				assert.ok(shell.calls.includes("send What should I study?"));
+				await faded();
+				assert.ok(q("terminal-starters") === null);
+			});
+		} finally {
+			shell.remove();
+		}
+	});
+
+	it("a refused send says why and brings the row back", async () => {
+		const shell = fakeShell([teacher()]);
+		const terminals = (dom.window as unknown as { lh: { terminals: { send: () => Promise<void> } } }).lh.terminals;
+		terminals.send = () => Promise.reject("Show the terminal and click in it first.");
+		try {
+			await mounted(running, async () => {
+				await click("status");
+				await click("terminal-starter");
+				assert.equal(text("terminal-footer"), "Show the terminal and click in it first.");
+				assert.equal(starters().length, 3);
+			});
+		} finally {
+			shell.remove();
+		}
+	});
+
+	it("none while the screen asks or a lesson turn waits", async () => {
+		const shell = fakeShell([teacher()]);
+		try {
+			await mounted(running, async (render) => {
+				await click("status");
+				assert.equal(starters().length, 3);
+				await act(async () => shell.push({ id: "t1", ended: null, prompt: "menu", url: false }));
+				await settle();
+				await faded();
+				assert.ok(q("terminal-starters") === null, "a question");
+				await act(async () => shell.push({ id: "t1", ended: null, prompt: null, url: false }));
+				await settle();
+				assert.equal(starters().length, 3);
+				await render(access({ teaching: true, pendingTurns: 1, terminals: [{ id: "t1", here: true }] }));
+				await faded();
+				assert.ok(q("terminal-starters") === null, "a turn waits");
+			});
+		} finally {
+			shell.remove();
+		}
+	});
+
+	it("none once the chat was used, by the learner's own line or before (a chat continued)", async () => {
+		const shell = fakeShell([teacher()]);
+		let used = false;
+		globalThis.fetch = (async (url: string) => Response.json(url.startsWith("/api/teacher-chats") ? { chats: used ? [{ id: "c1", agent: "claude", name: "hi", at: Date.now() }] : [] } : FOLDER)) as unknown as typeof fetch;
+		try {
+			await mounted(running, async () => {
+				await click("status");
+				assert.equal(starters().length, 3);
+				used = true;
+				await say("teacher-chats-changed");
+				await faded();
+				assert.ok(q("terminal-starters") === null);
+			});
+		} finally {
+			shell.remove();
+		}
+	});
+
+	it("none in onboarding", async () => {
+		const shell = fakeShell([teacher()]);
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		try {
+			await act(async () =>
+				root.render(
+					<ServerEventsProvider connect={noEvents as never}>
+						<TerminalsProvider status={running}>
+							<FirstRunScreen />
+						</TerminalsProvider>
+					</ServerEventsProvider>,
+				),
+			);
+			await settle();
+			assert.ok(q("first-run-screen") !== null);
+			assert.ok(q("terminal-starters") === null);
+		} finally {
+			await act(async () => root.unmount());
+			await settle();
+			host.remove();
 			shell.remove();
 		}
 	});

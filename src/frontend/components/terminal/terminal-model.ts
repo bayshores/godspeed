@@ -94,6 +94,8 @@ export interface TerminalFacts {
 	quietSince: number | null;
 	/** Background jobs are being read. */
 	helperBusy: boolean;
+	/** A lesson turn waits for the teacher. */
+	turnWaits: boolean;
 }
 
 /** Why the screen opens by itself. */

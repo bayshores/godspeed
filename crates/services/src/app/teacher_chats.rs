@@ -1,8 +1,10 @@
 //! The teacher's chats in godspeed's terminal (gs_core's records::teacher_chats): the folder's
 //! SessionStart hook says which chat a terminal runs, a line typed to it or a lesson it takes
-//! marks it used and names it, and the terminal offers the newest to go back to.
+//! marks it used and names it, and the terminal offers the newest to go back to. Each change is
+//! announced, so the window's starter keys go once the chat is used.
 
 use gs_base::clock;
+use gs_base::events::EventKind;
 use gs_base::ids::is_uuid;
 use gs_core::records::teacher_chats;
 use gs_json::{Json, json};
@@ -20,12 +22,14 @@ pub fn session_started(app: &App, terminal: Option<&str>, id: &str, agent: &str)
 	app.bridge.set_terminal_chat(terminal, id);
 	let folder = agent_folder(app);
 	app.stores.teacher_chats.update(|chats| teacher_chats::started(chats, id, agent, &folder, clock::now_ms()));
+	changed(app);
 }
 
 /// The learner typed this line to the teacher in its terminal.
 pub fn typed(app: &App, terminal: &str, line: &str) {
 	if let Some(id) = app.bridge.terminal_chat(terminal) {
 		app.stores.teacher_chats.update(|chats| teacher_chats::typed(chats, &id, line, clock::now_ms()));
+		changed(app);
 	}
 }
 
@@ -34,6 +38,11 @@ pub fn taught(app: &App, terminal: Option<&str>, conversation: &str) {
 	let Some(id) = terminal.and_then(|t| app.bridge.terminal_chat(t)) else { return };
 	let Some(title) = app.stores.chats.get_chat(conversation).and_then(|chat| chat["title"].as_str().map(str::to_owned)) else { return };
 	app.stores.teacher_chats.update(|chats| teacher_chats::taught(chats, &id, &title, clock::now_ms()));
+	changed(app);
+}
+
+fn changed(app: &App) {
+	app.events.emit(EventKind::TeacherChatsChanged, json!({}));
 }
 
 /// The chats the terminal offers: `[{id, agent, name, at}]`, newest first.

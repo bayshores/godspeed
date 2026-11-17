@@ -25,6 +25,7 @@
     "allow-terminal-write",
     "allow-terminal-answer",
     "allow-terminal-paste",
+    "allow-terminal-send",
     "allow-terminal-add-file",
     "allow-terminal-stop",
     "allow-terminal-list",

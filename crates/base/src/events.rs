@@ -29,6 +29,7 @@ pub enum EventKind {
 	FilesRemoved,
 	TerminalLine,
 	AgentEvent,
+	TeacherChatsChanged,
 }
 
 impl EventKind {
@@ -52,6 +53,7 @@ impl EventKind {
 			EventKind::FilesRemoved => "files-removed",
 			EventKind::TerminalLine => "terminal-line",
 			EventKind::AgentEvent => "agent-event",
+			EventKind::TeacherChatsChanged => "teacher-chats-changed",
 		}
 	}
 }

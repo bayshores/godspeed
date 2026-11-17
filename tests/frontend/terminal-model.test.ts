@@ -19,7 +19,7 @@ import {
 
 const T0 = 1_000_000;
 const term = (over: Partial<TerminalRecord> = {}): TerminalRecord => ({ id: "t1", role: "teacher", agent: "claude", startedAt: T0, ended: null, prompt: null, url: false, ...over });
-const facts = (over: Partial<TerminalFacts> = {}, t: Partial<TerminalRecord> = {}): TerminalFacts => ({ term: term(t), checkedIn: true, outsideHere: false, teaching: true, now: T0 + 1000, quietSince: null, helperBusy: false, ...over });
+const facts = (over: Partial<TerminalFacts> = {}, t: Partial<TerminalRecord> = {}): TerminalFacts => ({ term: term(t), checkedIn: true, outsideHere: false, teaching: true, now: T0 + 1000, quietSince: null, helperBusy: false, turnWaits: false, ...over });
 /** The full words (the helper, onboarding), and the panel's under the status line. */
 const words = (f: TerminalFacts) => terminalFooter(f, "Ada", false);
 const tab = (f: TerminalFacts) => terminalFooter(f, "Ada", true);

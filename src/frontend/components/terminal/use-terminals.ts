@@ -11,6 +11,7 @@ import type { FolderAgent } from "@/shared/core";
 import { postAgentFolder, savedAgent } from "@/frontend/components/agent-folder/agent-folder-api";
 import type { FolderView } from "@/frontend/components/agent-folder/agent-folder-model";
 import { AgentStatusContext, type AgentStatus } from "@/frontend/components/agent-status";
+import { useServerEvent } from "@/frontend/components/server-events";
 import { readBase64 } from "@/frontend/lib/read-base64";
 import {
 	ATTACH_MAX_BYTES,
@@ -54,6 +55,8 @@ export interface TerminalsApi {
 	/** These resolve to why the shell refused, or null. */
 	answer: (role: TerminalRole, kind: "trust" | "enter") => Promise<string | null>;
 	paste: (role: TerminalRole) => Promise<string | null>;
+	/** A starter key: the line typed into the teacher's input and sent. */
+	send: (role: TerminalRole, line: string) => Promise<string | null>;
 	/** Attach on the teacher's screen: the file's path typed into its input. */
 	addFile: (file: File) => Promise<string | null>;
 	/** Start lesson and a lesson's send: start the teacher hidden when it may (wakeAgent).
@@ -135,6 +138,8 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	}, [lh, put]);
 
 	// The list changes as a teacher run starts, is used and ends; a chat the agent said is gone leaves it.
+	const [chatsChanged, chatsChange] = useReducer((n: number) => n + 1, 0);
+	useServerEvent("teacher-chats-changed", chatsChange);
 	const runId = records.teacher?.id;
 	const runGone = chatGone(records.teacher?.ended ?? null);
 	const runEnded = !!records.teacher?.ended;
@@ -150,7 +155,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		return () => {
 			on = false;
 		};
-	}, [lh, runId, runGone, runEnded]);
+	}, [lh, runId, runGone, runEnded, chatsChanged]);
 
 	const here = useCallback((id: string | undefined) => !!id && !!status?.terminals?.some((t) => t.id === id && t.here), [status]);
 	const teacher = records.teacher;
@@ -179,6 +184,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 				now,
 				quietSince: term.role === "teacher" ? quietSince : null,
 				helperBusy: !!status && status.pendingWork > status.pendingTurns,
+				turnWaits: !!status && status.pendingTurns > 0,
 			};
 		return { teacher: of(teacher), helper: of(helper) };
 		// tick: a timer crossed its threshold, so `now` must move.
@@ -286,6 +292,13 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		},
 		[idOf, lh],
 	);
+	const send = useCallback(
+		(role: TerminalRole, line: string) => {
+			const id = idOf(role);
+			return refusal(id ? lh?.send(id, line) : undefined);
+		},
+		[idOf, lh],
+	);
 	const addFile = useCallback(
 		(file: File) => {
 			const id = idOf("teacher");
@@ -312,8 +325,8 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	}, [lh, loaded, teacher, agentHere, outsideHere, chats, start]);
 
 	return useMemo(
-		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, start: startRole, stop, answer, paste, addFile, wake }),
-		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, startRole, stop, answer, paste, addFile, wake],
+		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, start: startRole, stop, answer, paste, send, addFile, wake }),
+		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, startRole, stop, answer, paste, send, addFile, wake],
 	);
 }
 

@@ -1,9 +1,9 @@
 /**
  * Every key in the terminal's screen goes to the agent: Shift+Enter as a
- * line feed (a new line, not a send), Escape and Ctrl+C
- * reach the terminal and never stop the teacher's turn, Tab stays in the
- * screen (the overlay's dialog does not take it), and no key reaches the
- * app's own shortcuts.
+ * line feed (a new line, not a send), Cmd+Backspace on a Mac as Ctrl+U
+ * (which clears the line), Escape and Ctrl+C reach the terminal and never
+ * stop the teacher's turn, Tab stays in the screen (the overlay's dialog
+ * does not take it), and no key reaches the app's own shortcuts.
  */
 import { dom, fakeShell, press } from "../terminal-dom.ts";
 import React, { act } from "react";
@@ -77,6 +77,31 @@ describe("keys in the terminal's screen", () => {
 			host.remove();
 			assert.ok(shell.calls.at(-1) === `detach ${ID}`, "the screen detached");
 			shell.remove();
+		}
+	});
+
+	it("Cmd+Backspace on a Mac sends Ctrl+U, which clears the line; elsewhere it stays the agent's own key", async () => {
+		const root = document.documentElement;
+		for (const platform of ["darwin", "linux"]) {
+			const shell = fakeShell();
+			root.setAttribute("data-lh-platform", platform);
+			const host = document.createElement("div");
+			document.body.append(host);
+			const screen = createRoot(host);
+			try {
+				await act(async () => screen.render(<TerminalView id={ID} ended={false} focusOnOpen focusKey={0} files={[]} onLink={() => {}} />));
+				const input = host.querySelector("[data-terminal-screen] textarea");
+				assert.ok(input !== null, "xterm drew its input");
+				press(input, "Backspace", 8, false, false, true);
+				const writes = shell.calls.filter((c) => c.startsWith("write "));
+				if (platform === "darwin") assert.deepEqual(writes, ["write \x15"], "Ctrl+U and no Backspace");
+				else assert.ok(!writes.includes("write \x15"), `the agent got ${JSON.stringify(writes)}`);
+			} finally {
+				await act(async () => screen.unmount());
+				host.remove();
+				root.removeAttribute("data-lh-platform");
+				shell.remove();
+			}
 		}
 	});
 });

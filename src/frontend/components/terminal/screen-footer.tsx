@@ -1,11 +1,8 @@
-import { useRef, type ReactNode } from "react";
+import { useRef } from "react";
 import { ATTACHMENT_ACCEPT } from "@/shared/core";
-import { usePresence } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
+import { ScreenKey } from "./screen-key";
 import type { TerminalFooter } from "./terminal-model";
-
-/** In the screen's font, so the row reads as part of the screen. */
-const KEY = "lh-btn h-8 shrink-0 font-mono text-[13px]";
 
 /**
  * The slim row under a screen: Attach and Paste at the left, the sentence
@@ -42,45 +39,31 @@ export function ScreenFooter({ text, onAttach, onPaste, onStop, get, assist, onS
 					e.target.value = "";
 				}}
 			/>
-			<Key testid="terminal-attach" onClick={onAttach && (() => picker.current?.click())} quiet>
+			<ScreenKey testid="terminal-attach" onClick={onAttach && (() => picker.current?.click())} quiet>
 				Attach
-			</Key>
-			<Key testid="terminal-paste" onClick={onPaste} quiet>
+			</ScreenKey>
+			<ScreenKey testid="terminal-paste" onClick={onPaste} quiet>
 				Paste
-			</Key>
+			</ScreenKey>
 			<p data-testid="terminal-footer" role="status" className={cn("min-w-0 flex-1 px-1.5 font-mono text-[13px] leading-snug text-ink", text && "min-w-56")}>
 				{text}
 			</p>
-			<Key testid="terminal-stop" onClick={onStop} quiet>
+			<ScreenKey testid="terminal-stop" onClick={onStop} quiet>
 				Stop
-			</Key>
-			<Key testid="terminal-get" onClick={get && (() => void window.lh?.openLink?.(get.url))}>
+			</ScreenKey>
+			<ScreenKey testid="terminal-get" onClick={get && (() => void window.lh?.openLink?.(get.url))}>
 				{get?.label}
-			</Key>
-			<Key testid="terminal-assist" onClick={assist?.run ?? null} main>
+			</ScreenKey>
+			<ScreenKey testid="terminal-assist" onClick={assist?.run ?? null} main>
 				{assist?.label}
-			</Key>
-			<Key testid="terminal-new-chat" onClick={onNewChat} quiet>
+			</ScreenKey>
+			<ScreenKey testid="terminal-new-chat" onClick={onNewChat} quiet>
 				New chat
-			</Key>
-			<Key testid="terminal-start-again" onClick={onStartAgain} main>
+			</ScreenKey>
+			<ScreenKey testid="terminal-start-again" onClick={onStartAgain} main>
 				{again}
-			</Key>
+			</ScreenKey>
 		</div>
 	);
 }
 
-/** A key that is there while it can act (`onClick`), fading in and out. The
- *  everyday ones are plain words (`quiet`); the one to press now is bright (`main`). */
-function Key({ testid, onClick, main = false, quiet = false, children }: { testid: string; onClick: (() => void) | null; main?: boolean; quiet?: boolean; children: ReactNode }) {
-	const shown = usePresence(!!onClick);
-	// While it fades out it keeps its last words and does nothing.
-	const last = useRef(children);
-	if (onClick) last.current = children;
-	if (!shown.mounted) return null;
-	return (
-		<button type="button" data-testid={testid} data-state={shown.state} onClick={() => onClick?.()} className={cn(KEY, "lh-fade", quiet ? "lh-btn-quiet" : "px-3", main && "lh-btn-main")}>
-			{last.current}
-		</button>
-	);
-}

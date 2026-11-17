@@ -143,8 +143,10 @@ export const SCREENS = [
 		url: "/",
 		ready: deadlineCard,
 		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent]").click()`,
-		shows: "[data-testid=terminal-stop]",
+		shows: "[data-testid=terminal-starters] [data-testid=terminal-starter]",
 	},
+	// The longest starter key: "Get me ready for" the deadline's name.
+	{ name: "The agent's screen on a deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-name]", setup: openTeacher, shows: "[data-testid=terminal-starters] [data-testid=terminal-starter]" },
 	{ name: "Today with no deadline", before: dropDeadlines, url: "/", ready: "[data-testid=today-empty]" },
 	{ name: "Today on a busy day", before: busyDay, url: "/", ready: "[data-testid=today-list] [data-testid^=today-done-row]", shows: "[data-testid=later-list]" },
 	{ name: "Today with the overdue card", before: lateHomework, url: "/", ready: "[data-testid=overdue-notice] [data-testid=overdue-notice-done]" },

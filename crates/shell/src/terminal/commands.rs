@@ -102,6 +102,14 @@ pub fn terminal_paste(webview: Webview, origin: State<AppOrigin>, terminals: Sta
 	terminals.paste(&id, &text, focused(&webview))
 }
 
+/// A starter key's line, sent as if the learner typed it. Off the main thread: it waits for the
+/// agent's input to show the line.
+#[tauri::command(async)]
+pub fn terminal_send(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, id: String, line: String) -> Result<(), String> {
+	trusted(&webview, &origin)?;
+	terminals.send(&id, &line, focused(&webview))
+}
+
 /// Attach: a picture or a PDF the learner picked or dropped on the teacher's screen, as base64.
 /// Off the main thread: a 20 MB file is decoded, hashed and written, after a wait for the
 /// folder. Answers the path.
@@ -146,7 +154,7 @@ mod tests {
 	fn every_terminal_command_checks_the_page_first() {
 		let source = include_str!("commands.rs").split("#[cfg(test)]").next().unwrap();
 		let commands: Vec<&str> = source.split("#[tauri::command").skip(1).collect();
-		assert_eq!(commands.len(), 10);
+		assert_eq!(commands.len(), 11);
 		for command in commands {
 			let body = &command[command.find('{').unwrap() + 1..];
 			assert!(body.trim_start().starts_with("trusted(&webview, &origin)?;"), "{}", &command[..80]);

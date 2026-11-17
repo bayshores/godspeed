@@ -51,12 +51,17 @@ afterEach(() => {
 const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
 const q = (testid: string) => document.querySelector<HTMLElement>(`[data-testid="${testid}"]`);
 
-async function mounted(render: (root: ReturnType<typeof createRoot>) => Promise<void>, run: () => Promise<void>) {
+type Root = ReturnType<typeof createRoot>;
+const noEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+
+/** Renders under the server's events, as the app does. */
+async function mounted(render: (root: Root) => Promise<void>, run: () => Promise<void>) {
 	const host = document.createElement("div");
 	document.body.append(host);
 	const root = createRoot(host);
+	const inEvents = { render: (node: React.ReactNode) => root.render(<ServerEventsProvider connect={noEvents as never}>{node}</ServerEventsProvider>), unmount: () => root.unmount() } as Root;
 	try {
-		await render(root);
+		await render(inEvents);
 		await settle();
 		await run();
 	} finally {
@@ -87,13 +92,11 @@ describe("Start Claude Code", () => {
 	it("in the desktop app, starts the teacher's terminal and shows its screen in the step until it connects", async () => {
 		const shell = fakeShell();
 		const page = (status: Access) => (
-			<ServerEventsProvider connect={(() => ({ onEvent() {}, onOpen() {}, close() {} })) as never}>
-				<TerminalsProvider status={status}>
-					<AgentLauncher />
-				</TerminalsProvider>
-			</ServerEventsProvider>
+			<TerminalsProvider status={status}>
+				<AgentLauncher />
+			</TerminalsProvider>
 		);
-		let root: ReturnType<typeof createRoot> | null = null;
+		let root: Root | null = null;
 		try {
 			await mounted(
 				async (r) => {
@@ -209,7 +212,7 @@ describe("Start lesson and a lesson's send", () => {
 				<Probe />
 			</TerminalsProvider>
 		);
-		let root: ReturnType<typeof createRoot> | null = null;
+		let root: Root | null = null;
 		try {
 			await mounted(
 				async (r) => {
@@ -353,7 +356,7 @@ describe("after godspeed's teacher ended, though the server still says connected
 			};
 		};
 		const busy = { connected: true, teaching: true, name: "Claude Code", pendingWork: 1, pendingTurns: 1 };
-		let root: ReturnType<typeof createRoot> | null = null;
+		let root: Root | null = null;
 		try {
 			await mounted(
 				async (r) => {
@@ -381,7 +384,7 @@ describe("the helper", () => {
 				<span />
 			</TerminalsProvider>
 		);
-		let root: ReturnType<typeof createRoot> | null = null;
+		let root: Root | null = null;
 		try {
 			await mounted(
 				async (r) => {
