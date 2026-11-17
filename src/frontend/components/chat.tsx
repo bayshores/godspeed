@@ -54,11 +54,10 @@ import { PlanRow } from "@/frontend/components/lesson/plan-row";
 import { homeworkStartLabel } from "@/frontend/components/lesson/plan-row-model";
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
 import { topicPageMarks } from "@/frontend/components/citations/page-excerpt-model";
-import { COLUMN_WIDTH, TeacherColumn, yourTurnShown } from "@/frontend/components/lesson/teacher-column";
+import { TurnSheet, yourTurnShown } from "@/frontend/components/lesson/turn-sheet";
 import type { QuestionHandle } from "@/frontend/components/question-dock";
 import { useTerminalLines } from "@/frontend/components/terminal/use-terminal-lines";
 import { Pane } from "@/frontend/components/ui/pane";
-import { usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
@@ -570,7 +569,6 @@ export function Chat({
 		() => lessonPluginContext({ space: space ? { id: space.id, name: space.name } : null, title: rename.title, messages, pending, requiresReveal }),
 		[space, rename.title, messages, pending, requiresReveal],
 	);
-	const [columnWidth, setColumnWidth] = usePaneWidth("your-turn", COLUMN_WIDTH);
 
 	// The go-ahead waits for the learner at the foot of the lesson text, unless a stop card is up.
 	const goAhead = nextReady && !lessonStop.card ? { label: startLabel ?? (kind === "study" ? "Continue" : "Next problem"), onGo: sendNext } : null;
@@ -610,7 +608,6 @@ export function Chat({
 										data-dock={sheetOpen ? "" : undefined}
 										data-solo={turnShown ? undefined : ""}
 										className="lh-dots lh-lesson-body relative h-full"
-										style={{ "--lh-turn-w": `${columnWidth}px` } as React.CSSProperties}
 									>
 										<Pane data-testid="lesson-reading" className="@container/reading flex min-h-0 min-w-0 flex-col overflow-hidden [grid-area:reading]">
 											<div className="shrink-0 px-14 pt-[26px] pb-3 empty:hidden @max-[640px]/reading:px-7">
@@ -646,12 +643,10 @@ export function Chat({
 											</div>
 										)}
 										{turnShown && (
-										<TeacherColumn
+										<TurnSheet
 											// Remounts once the saved drafts are read, so the question starts from them.
 											key={draftsLoaded ? "drafts" : "loading"}
 											spaceId={spaceId}
-											width={columnWidth}
-											onWidth={setColumnWidth}
 											pending={pending}
 											requiresReveal={requiresReveal}
 											onReveal={revealCheck}

@@ -152,9 +152,7 @@ function ownBoxes(el) {
 	return boxes;
 }
 
-/** The reading pane's jump key (.lh-log-jump) floats over the lesson on purpose, with a fade under
- *  it so it never sits on words being read. */
-const OVERLAYS = "[role=dialog], [role=alertdialog], [role=menu], [role=listbox], [role=tooltip], [popover], .lh-log-jump";
+const OVERLAYS = "[role=dialog], [role=alertdialog], [role=menu], [role=listbox], [role=tooltip], [popover]";
 
 /** A box that draws on its own layer over the page: a fixed or sticky bar, or a true overlay (a
  *  dialog, a menu, a tooltip). A positioned box in the page's flow stays in the page's layer, z-index

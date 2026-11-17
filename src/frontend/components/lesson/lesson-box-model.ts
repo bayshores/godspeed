@@ -1,13 +1,13 @@
 /**
  * The lesson's answer box: for each thing that waits for the learner, the
- * box's button, what Enter does in it, the way out beside "Your turn" and
- * the "Stuck?" keys under it.
+ * box's size and button, what Enter does in it, the way out at the end of
+ * the foot row and the "Stuck?" keys before it.
  * Talking to the teacher happens in its terminal (use-terminal-lines.ts), so
  * the box takes only answers and work. Pure.
  */
 import { answerTakesFiles, parseAskInput, parseExplainInput, toolQuestionKind, type AppPosed } from "@/shared/core";
 
-/** What waits in the column. */
+/** What waits in "Your turn". */
 export type BoxTurn =
 	/** The open problem, worked on in the box. */
 	| { kind: "problem" }
@@ -32,10 +32,13 @@ export interface BoxButton {
 
 export interface BoxView {
 	placeholder: string;
+	/** "line": optional text, one line with the button beside it. "lines": text that is the
+	 *  answer or the work, three lines with the button inside the box. Both grow to five. */
+	size: "line" | "lines";
 	button: BoxButton;
 	/** What Enter in the box does; null makes a new line. */
 	enter: BoxAction | null;
-	/** The quiet button beside "Your turn". */
+	/** The quiet way out at the end of the foot row. */
 	exit: "skip" | "discard";
 	/** Whether what the box sends carries attached files, so the Attach button shows. */
 	attach: boolean;
@@ -80,6 +83,7 @@ export function lessonBox(s: {
 		const canSend = (s.hasText || s.hasFiles) && !s.busy;
 		return {
 			placeholder: "Your work",
+			size: "lines",
 			button: { action: "send", label: "Send", filled: canSend, disabled: !canSend },
 			enter: canSend ? "send" : null,
 			exit: "discard",
@@ -88,14 +92,15 @@ export function lessonBox(s: {
 		};
 	}
 	if (turn.kind === "read-first") {
-		return { placeholder: "Whatever comes to mind as you read.", button: { action: "reveal", label: "Check your understanding", filled: true, disabled: false }, enter: "reveal", exit: "skip", attach: false, help: null };
+		return { placeholder: "Whatever comes to mind as you read.", size: "line", button: { action: "reveal", label: "Check your understanding", filled: true, disabled: false }, enter: "reveal", exit: "skip", attach: false, help: null };
 	}
 	const ready = turn.kind === "choice" ? turn.picked : s.hasText || (turn.takesFiles && s.hasFiles);
 	// An answer to a question from earlier wakes nobody, so it goes in while the teacher writes.
 	const canAnswer = !s.busy || (turn.kind === "choice" && turn.appPosed === "review");
 	const canSubmit = ready && canAnswer;
 	return {
-		placeholder: turn.kind === "written" ? "Your answer" : turn.ownAnswer && !turn.picked ? "Pick one above, or type your own answer" : "Your reasoning",
+		placeholder: turn.kind === "written" ? "Your answer" : turn.ownAnswer && !turn.picked ? "Pick one above, or type your own answer" : "Your reasoning (optional)",
+		size: turn.kind === "written" ? "lines" : "line",
 		button: { action: "submit", label: "Submit answer", filled: true, disabled: !canSubmit },
 		enter: canSubmit ? "submit" : null,
 		exit: "skip",

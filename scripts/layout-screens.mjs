@@ -86,6 +86,9 @@ box.dispatchEvent(new Event("input", { bubbles: true })); ${pause}`;
 const fitsWindow = `${pause}; const frame = document.querySelector("[data-testid=graph-page]").firstElementChild;
 if (document.scrollingElement.scrollHeight > innerHeight + 1 || frame.scrollHeight > frame.clientHeight + 1) throw new Error("the Graph page scrolls")`;
 
+/** Unfolds a lesson's steps for this screen only; the lessons after it open folded. */
+const unfoldSteps = `document.querySelector("[data-testid=plan-fold]").click(); localStorage.removeItem("lh:steps-open")`;
+
 /** A click on the first topic with facts in the Graph's picture. */
 const pickTopic = `[...document.querySelectorAll("[data-testid=graph-topic]")].find((topic) => !/\\b0 facts/.test(topic.getAttribute("aria-label"))).click()`;
 
@@ -164,7 +167,17 @@ export const SCREENS = [
 	{ name: "Lesson with a plugin's page open", url: "/chat/{lesson}", ready: "[data-testid=lesson-plugin-flashcards]", setup: `document.querySelector("[data-testid=lesson-plugin-flashcards]").click()`, shows: "[data-testid=plugin-window] [data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Homework lesson with an open problem", url: "/chat/{homeworkOpen}", ready: "[data-testid=open-problem]" },
 	{ name: "Homework lesson before a problem opens", url: "/chat/{homeworkFirst}", ready: "[data-testid=next-problem-button]" },
-	{ name: "Homework lesson with fourteen problems, the first done", url: "/chat/{homeworkMany}", ready: "[data-testid=plan-step][data-status=done] [data-testid=problem-pick]" },
+	{ name: "Homework lesson with fourteen problems, the first done", url: "/chat/{homeworkMany}", ready: "[data-testid=plan-fold]" },
+	{ name: "Homework with fourteen problems, unfolded", url: "/chat/{homeworkMany}", ready: "[data-testid=plan-fold]", setup: unfoldSteps, shows: "[data-testid=plan-step][data-status=done] [data-testid=problem-pick]" },
+	{ name: "Lesson with the steps unfolded", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: unfoldSteps, shows: "[data-testid=plan-step]" },
+	{
+		name: "Lesson with a quiz and the cheat sheet docked",
+		url: "/chat/{lesson}",
+		ready: "[data-testid=cite-list]",
+		// The dock stays open for this screen only; the lessons after it open without it.
+		setup: `document.querySelector("[data-testid=lesson-cheat-sheet]").click(); ${pause}; localStorage.removeItem("lh:sheet-dock:{lesson}")`,
+		shows: "[data-testid=sheet-dock] [data-testid=sheet-dock-none]",
+	},
 	{ name: "Space's plugin tab", url: "/space/plugin/flashcards", ready: "[data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Teacher's window with no agent", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
 	{ name: "Teacher's window, the other agents", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent-menu]").click()`, shows: "[data-testid=open-agent-choices][data-state=open]" },

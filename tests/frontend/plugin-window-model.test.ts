@@ -1,18 +1,11 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { pluginWindowBox, windowEdge } from "../../src/frontend/components/lesson/plugin-window-model.ts";
+import { pluginWindowBox } from "../../src/frontend/components/lesson/plugin-window-model.ts";
 
 /** Where a lesson plugin's window hangs and how tall it is. */
 
 describe("a lesson plugin's window", () => {
-	it("lines up with the lesson's sheet while Your turn sits beside it, and with its word when they are stacked", () => {
-		assert.equal(windowEdge(1224, { right: 904 }, { left: 928 }), 904);
-		assert.equal(windowEdge(1224, { right: 540 }, { left: 928 }), 540, "the cheat sheet docked between them");
-		assert.equal(windowEdge(700, { right: 784 }, { left: 16 }), 700, "stacked");
-		assert.equal(windowEdge(700, undefined, undefined), 700);
-	});
-
-	it("is 360 wide with its right edge on the edge it lines up with", () => {
+	it("is 360 wide with its right edge on its word's", () => {
 		assert.deepEqual(pluginWindowBox(1224, { width: 1440, height: 900 }, 314), { right: 216, width: 360, height: 314 });
 	});
 

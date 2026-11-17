@@ -83,30 +83,23 @@ export const ConversationScrollButton = ({
 
   return (
     presence.mounted && (
-      <>
-        {/* The text fades out under the button, so it never sits on words
-            you are reading (right-3 leaves the scrollbar clear). */}
-        <div
-          aria-hidden
-          className="lh-log-jump lh-fade pointer-events-none absolute left-0 right-3 bottom-0 h-24 bg-gradient-to-t from-background from-35% to-transparent"
-          data-state={presence.state}
-        />
-        <Button
-          aria-label="Scroll to the bottom"
-          className={cn(
-            "lh-log-jump lh-fade absolute bottom-4 left-[50%] translate-x-[-50%] bg-background hover:bg-muted",
-            className
-          )}
-          data-state={presence.state}
-          onClick={handleScrollToBottom}
-          size="icon"
-          type="button"
-          variant="outline"
-          {...props}
-        >
-          <PixelIcon name="chevron" className="rotate-90" />
-        </Button>
-      </>
+      // In the bottom-right corner, inside the text's side padding, so it
+      // never sits on words; right-3 leaves the scrollbar clear.
+      <Button
+        aria-label="Scroll to the bottom"
+        className={cn(
+          "lh-log-jump lh-fade absolute right-3 bottom-4 bg-background hover:bg-muted",
+          className
+        )}
+        data-state={presence.state}
+        onClick={handleScrollToBottom}
+        size="icon"
+        type="button"
+        variant="outline"
+        {...props}
+      >
+        <PixelIcon name="chevron" className="rotate-90" />
+      </Button>
     )
   );
 };

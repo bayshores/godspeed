@@ -25,7 +25,7 @@ A question waiting in the saved record lets a lesson resume mid-question. Option
 
 ### Side questions
 
-The lesson has one writing box at the foot of the teacher column (`LessonBox` in `src/frontend/components/lesson/lesson-box.tsx`; `lessonBox` in `lesson-box-model.ts` decides its buttons and the "Stuck?" keys under it). While a question waits, a line typed in the teacher's terminal is a side question (`sendLine` in `chat.tsx`). The "Give me a hint" and "Explain it simpler" keys send those words the same way. "I don't know" answers the question: `dontKnow: true`, or for `ask_user_question` the words as its answer (`dontKnowRequest`).
+The lesson is one page: the lesson text on top, the "Your turn" sheet under it while something waits (`TurnSheet` in `src/frontend/components/lesson/turn-sheet.tsx`). The turn sheet has one writing box (`LessonBox` in `lesson-box.tsx`; `lessonBox` in `lesson-box-model.ts` decides its size, its button, and the foot row under it: the "Stuck?" keys, then Skip question or Discard problem at the right end). The box is one line where its text is optional (reasoning for a choice or code answer, notes while reading first) and three lines where it is the answer or a problem's work; both grow to five lines. In a short window the reading sheet keeps `min(200px, 45%)` of the height (`min(320px, 55%)` while the steps are unfolded) and only the question part scrolls. While a question waits, a line typed in the teacher's terminal is a side question (`sendLine` in `chat.tsx`). The "Give me a hint" and "Explain it simpler" keys send those words the same way. "I don't know" answers the question: `dontKnow: true`, or for `ask_user_question` the words as its answer (`dontKnowRequest`).
 
 - It posts a `side` input event, refused unless a question waits. The server saves it as a user message with `side: true` (`new_side_question`, `core::messages::native_messages`). Pictures and PDFs are stored like any message's.
 - Question stays open: `dangling_question_of` looks past side questions and their replies.
@@ -37,7 +37,7 @@ The lesson has one writing box at the foot of the teacher column (`LessonBox` in
 
 ### Open problems
 
-In study, practice and homework lessons, the open problem fills the teacher column's Your turn area (`OpenProblemPane`, `src/frontend/components/lesson/open-problem-pane.tsx`), with no writing box of its own.
+In study, practice and homework lessons, the open problem fills the turn sheet's question part (`OpenProblemPane`, `src/frontend/components/lesson/open-problem-pane.tsx`), with no writing box of its own.
 
 - Learner works in lesson's one box. Each message is a plain `text` input: work on problem or a question about it. The three "Stuck?" keys send their words as such a message.
 - A message never ends problem (`active_problem_of`). Only teacher's `conclude` or learner's discard does.
@@ -56,7 +56,7 @@ The agent writes a plan tree with `plan_init`: a mermaid-subset graph, parsed wi
 | Study session on space topics | the app, when the lesson starts (§7) |
 | Study session with no space topics | the agent, with `plan_init` in its first reply (§7) |
 
-Progress is never written into the tree. Statuses (`current`, `visited`, upcoming) derive from tagged `quiz`, `explain` and `problem` calls in the transcript. The plan row (`src/frontend/components/lesson/plan-row.tsx`, steps from `src/shared/core/plan-step-bar.ts`) and plan blocks (`src/frontend/components/plan-block-model.ts`) draw that. The row names every step; a branching plan also gets a small map there that opens the plan dialog.
+Progress is never written into the tree. Statuses (`current`, `visited`, upcoming) derive from tagged `quiz`, `explain` and `problem` calls in the transcript. The plan row (`src/frontend/components/lesson/plan-row.tsx`, steps from `src/shared/core/plan-step-bar.ts`) and plan blocks (`src/frontend/components/plan-block-model.ts`) draw that. The row is one folded line ("Step 2 of 5", the step's name and a slim bar, `foldedLine` in `plan-row-model.ts`) that unfolds into every step by name; a branching plan also gets a small map there that opens the plan dialog. Whether it is unfolded is kept for every lesson (`lh:steps-open`); it starts folded.
 
 Older teach lessons start with a prober: `probe_done` files the assessment and queues a handoff steer; every later turn builds the teacher. Phases (`core::messages::phases`): probe, plan, teach.
 

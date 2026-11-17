@@ -14,16 +14,7 @@ const EDGE = 16;
 const BAR = 48;
 
 /**
- * The right edge the window lines up with. While "Your turn" sits beside the lesson's sheet, the
- * sheet's: the window lies wholly over the lesson, never over the question or across two sheets.
- * Stacked, the plugin's word's.
- */
-export function windowEdge(word: number, reading: { right: number } | undefined, turn: { left: number } | undefined): number {
-	return reading && turn && turn.left >= reading.right ? reading.right : word;
-}
-
-/**
- * The window with its right edge at `edge` (windowEdge), moved left only as far as keeps it `EDGE`
+ * The window with its right edge at `edge` (the plugin's word's), moved left only as far as keeps it `EDGE`
  * from the window's left side. Its height is the page's (`reported`, or START_HEIGHT before the
  * page says), from FLOOR up to the room under the bar.
  */

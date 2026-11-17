@@ -1,4 +1,4 @@
-/** The lesson's answer box: its button, Enter, the way out and the Stuck? keys per state. */
+/** The lesson's answer box: its size, button, Enter, the way out and the Stuck? keys per state. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { lessonBox, questionTurn, type BoxTurn } from "../../src/frontend/components/lesson/lesson-box-model.ts";
@@ -76,12 +76,12 @@ describe("lessonBox, a question", () => {
 	it("an ask with choices: the box text is its own answer until a pick, then reasoning", () => {
 		assert.equal(box({ kind: "choice", picked: false, ownAnswer: true }).placeholder, "Pick one above, or type your own answer");
 		assert.equal(box({ kind: "choice", picked: true, ownAnswer: true }, { hasText: true }).button.disabled, false);
-		assert.equal(box({ kind: "choice", picked: true, ownAnswer: true }).placeholder, "Your reasoning", "with a pick the text is reasoning");
+		assert.equal(box({ kind: "choice", picked: true, ownAnswer: true }).placeholder, "Your reasoning (optional)", "with a pick the text is reasoning");
 	});
 
 	it("choices: Submit waits for a pick; the box text is reasoning", () => {
 		const open = box({ kind: "choice", picked: false }, { hasText: true });
-		assert.equal(open.placeholder, "Your reasoning");
+		assert.equal(open.placeholder, "Your reasoning (optional)");
 		assert.equal(open.button.label, "Submit answer");
 		assert.equal(open.button.disabled, true);
 		assert.equal(open.enter, null);
@@ -106,6 +106,23 @@ describe("lessonBox, a question", () => {
 		assert.equal(view.button.disabled, true);
 		assert.equal(view.enter, null);
 		assert.equal(view.exit, "skip");
+	});
+});
+
+describe("lessonBox, the box's size", () => {
+	const quiz = { question: "q", options: [{ label: "a" }, { label: "b" }], correctAnswer: "a", explanation: "e" };
+
+	it("one line where the text is optional: choices, code and reading first", () => {
+		assert.equal(box(questionTurn("quiz", quiz, false)).size, "line");
+		assert.equal(box(questionTurn("ask_user_question", { question: "q", options: [{ label: "a" }, { label: "b" }] }, false)).size, "line", "an ask's own answer");
+		assert.equal(box(questionTurn("write_code", { question: "q" }, true)).size, "line");
+		assert.equal(box({ kind: "read-first" }).size, "line");
+	});
+
+	it("three lines where the text is the answer or the work", () => {
+		assert.equal(box(questionTurn("explain", { question: "why?", correctAnswer: "because" }, false)).size, "lines");
+		assert.equal(box(questionTurn("ask_user_question", { question: "what next?" }, false)).size, "lines", "an open ask");
+		assert.equal(box({ kind: "problem" }).size, "lines");
 	});
 });
 

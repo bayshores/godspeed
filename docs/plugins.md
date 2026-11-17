@@ -295,7 +295,7 @@ No title of its own; godspeed shows the label.
 
 | Place | The page's box |
 |---|---|
-| A lesson | A window hanging from the top bar over the lesson's sheet, right edges aligned, so it never covers "Your turn" beside it. In a narrow window, where "Your turn" sits under the lesson, it hangs under the plugin's word. 360 px wide, as tall as the page says, from 48 px up to the room under the top bar less 16 px; a taller page scrolls inside. Before the page says, 120 px tall. The word closes it; so do Escape, opening the cheat sheet and opening the Teacher's window. |
+| A lesson | A window hanging from the top bar under the plugin's word, right edges aligned. 360 px wide, as tall as the page says, from 48 px up to the room under the top bar less 16 px; a taller page scrolls inside. Before the page says, 120 px tall. The word closes it; so do Escape, opening the cheat sheet and opening the Teacher's window. |
 | A space | A tab that fills the space's page under its tabs. |
 
 In a lesson, report the page's height:

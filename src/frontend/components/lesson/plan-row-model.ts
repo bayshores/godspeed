@@ -34,10 +34,6 @@ export interface RowStep extends RowBlock {
 	label: string;
 }
 
-/** Above this many steps a row shows only numbers and bars (the names go
- *  to the hover), so it stays within three lines. */
-export const COMPACT_ABOVE = 12;
-
 /** How many cells go on a line of a row `width` px wide: as many as fit at
  *  their least width, spread evenly over the lines that takes, so 6 cells
  *  with room for 4 go 3 and 3, never 4 and 2. Unmeasured: one line. */
@@ -64,6 +60,12 @@ export function jumpTarget(step: PlanStep): string | null {
  *  "Ex. 4" when the assignment names it so. */
 function problemName(number: string): string {
 	return /^\d/.test(number) ? `problem ${number}` : number;
+}
+
+/** problemName at the start of a line: "Problem 3". */
+function capitalProblemName(number: string): string {
+	const name = problemName(number);
+	return `${name.charAt(0).toUpperCase()}${name.slice(1)}`;
 }
 
 /** The go-ahead for one problem: "Start problem 3", "Start Ex. 4". */
@@ -135,13 +137,31 @@ export function homeworkRow(problems: readonly HomeworkProblem[], open: string |
 	if (problems.length === 0) return null;
 	return problems.map((p) => {
 		const tone = problemTone(p, open);
-		const name = problemName(p.number);
-		const named = `${name.charAt(0).toUpperCase()}${name.slice(1)}, ${p.title}`;
+		const named = `${capitalProblemName(p.number)}, ${p.title}`;
 		const said = `${named}${p.done ? ", done" : ""}`;
 		const label = tone === "current" ? `${said}, open now. Go to your work` : blocked ? `${said}. ${blocked}` : p.done ? `${said}. Open it again` : `${said}. Open it`;
 		const hint = tone !== "current" && blocked ? `${p.title}. ${blocked}` : p.title;
 		return { key: p.number, tone, name: p.title, state: tone === "later" ? "upcoming" : tone, number: p.number, jump: null, hint, done: p.done, label };
 	});
+}
+
+/** The line a folded row shows: a count and the current step's name. */
+interface FoldedLine {
+	count: string;
+	name: string | null;
+}
+
+/**
+ * The one line a plan or homework row folds into: "Step 2 of 5" and the step's name; with a
+ * problem open, "Problem 2a" and its title (none when the title is only the number, which is
+ * what a problem with no title saves); with nothing current, "1 of 14 done".
+ */
+export function foldedLine(steps: readonly RowStep[], problems: boolean): FoldedLine {
+	const at = steps.findIndex((s) => s.tone === "current");
+	const step = steps[at];
+	if (!step) return { count: `${steps.filter((s) => s.done).length} of ${steps.length} done`, name: null };
+	if (!problems) return { count: `Step ${at + 1} of ${steps.length}`, name: step.name };
+	return { count: capitalProblemName(step.number), name: step.name === step.number ? null : step.name };
 }
 
 /** A practice lesson's row: "3 of 4 solved" once a problem is finished, one block per problem. Null with no blocks. */

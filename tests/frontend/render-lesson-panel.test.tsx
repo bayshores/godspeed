@@ -1,6 +1,6 @@
 /**
- * The lesson's right column: Your turn in each of its states (with the
- * answer box and the question above it), when it shows, the box's Enter
+ * The lesson's turn sheet: Your turn in each of its states (with the
+ * answer box, its size, the question above it and the foot row), when it shows, the box's Enter
  * rules, the question's keys, folding and saved drafts, the read-first
  * reveal, the reading pane's waiting line and Stop, the practice
  * progress, and the view's message reuse.
@@ -17,7 +17,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { YourTurn } from "../../src/frontend/components/lesson/your-turn.tsx";
 import { stopCard } from "../../src/frontend/components/lesson/stop-card-model.ts";
-import { TeacherColumn, yourTurnShown } from "../../src/frontend/components/lesson/teacher-column.tsx";
+import { TurnSheet, yourTurnShown } from "../../src/frontend/components/lesson/turn-sheet.tsx";
 import type { QuestionHandle } from "../../src/frontend/components/question-dock.tsx";
 import { practiceProgress } from "../../src/frontend/components/lesson/practice-progress.ts";
 import { GoAheadKey } from "../../src/frontend/components/lesson/go-ahead-key.tsx";
@@ -189,7 +189,7 @@ describe("Your turn in each state", () => {
 		assert.match(out, /data-mode="question"/);
 		assert.match(out, /data-testid="question-dock"[\s\S]*Which planet is closest[\s\S]*data-testid="composer"/);
 		assert.match(out, /data-testid="question-submit"[^>]*disabled[^>]*>Submit answer</, "Submit waits for a pick");
-		assert.match(out, /Your reasoning/);
+		assert.match(out, /Your reasoning \(optional\)/);
 		assert.doesNotMatch(out, /composer-send|Ask Teacher|a question for/, "questions to the teacher go in the terminal");
 		assert.equal(out.split('data-testid="math-box"').length - 1, 1, "one writing box");
 		assert.equal(out.split("Submit answer").length - 1, 1, "one submit button");
@@ -211,12 +211,11 @@ describe("Your turn in each state", () => {
 		});
 	});
 
-	it("Stuck? sits under the box while a question or a problem waits, never while reading first or at a stop", () => {
-		const keys = /data-testid="help-keys"[^>]*><span[^>]*>Stuck\?<\/span>[\s\S]*?>I don(?:'|&#x27;)t know<[\s\S]*?>Give me a hint<[\s\S]*?>Explain it simpler</;
+	it("Stuck? leads the foot row under the box while a question or a problem waits, never while reading first or at a stop", () => {
+		const keys = /data-testid="composer"[\s\S]*data-testid="turn-foot"[^>]*><span[^>]*>Stuck\?<\/span>[\s\S]*?>I don(?:'|&#x27;)t know<[\s\S]*?>Give me a hint<[\s\S]*?>Explain it simpler</;
 		for (const over of [{ pending: quiz }, { pending: written }, { pending: choice }, { problem }]) assert.match(html(over), keys, JSON.stringify(Object.keys(over)));
-		assert.match(html({ problem }), /data-testid="attach-button"[\s\S]*data-testid="help-keys"/, "under the Attach row");
 		const view = stopCard({ kind: "topic", at: "2026-11-18T21:48:00.000Z", nodeId: "reg", stopOf: "c1", next: "Cross-validation", activeMinutes: 48, keptGoing: false });
-		for (const over of [{}, { pending: check, revealPending: true }, { stop: { key: "c1", view, onAction: () => {} } }]) assert.doesNotMatch(html(over), /help-keys|Stuck\?/);
+		for (const over of [{}, { pending: check, revealPending: true }, { stop: { key: "c1", view, onAction: () => {} } }]) assert.doesNotMatch(html(over), /Stuck\?/);
 	});
 
 	it("I don't know answers the question in one click, with the box text as the thinking", async () => {
@@ -297,10 +296,10 @@ describe("Your turn in each state", () => {
 		const answers: QuestionAnswerData[] = [];
 		const props = (value: string) => turn({ pending: choice, value, onSubmitAnswer: (a) => answers.push(a) });
 		await mounted(props(""), async (host, show) => {
-			const placeholder = () => host.innerHTML.match(/Pick one above, or type your own answer|Your reasoning/)?.[0];
+			const placeholder = () => host.innerHTML.match(/Pick one above, or type your own answer|Your reasoning \(optional\)/)?.[0];
 			assert.equal(placeholder(), "Pick one above, or type your own answer");
 			await act(async () => optionNamed(host, "From an example").click());
-			assert.equal(placeholder(), "Your reasoning", "with a pick the text is reasoning");
+			assert.equal(placeholder(), "Your reasoning (optional)", "with a pick the text is reasoning");
 			await act(async () => optionNamed(host, "From an example").click());
 			assert.equal(placeholder(), "Pick one above, or type your own answer", "a second click clears the pick");
 			await show(props("Start from a picture"));
@@ -390,15 +389,16 @@ describe("Your turn in each state", () => {
 		assert.equal(activeProblemOf(concluded), null);
 	});
 
-	it("Skip question and Discard problem are the way out of each state", async () => {
-		const skip = /data-testid="skip-question"[^>]*>Skip question</;
+	it("Skip question and Discard problem are the way out of each state, at the end of the foot row under the box", async () => {
+		const skip = /data-testid="composer"[\s\S]*data-testid="turn-foot"[\s\S]*data-testid="skip-question"[^>]*>Skip question<\/button><\/div><\/div>$/;
 		assert.match(html({ pending: quiz }), skip);
 		assert.match(html({ pending: check, revealPending: true }), skip);
 		assert.match(html({ pending: { tool: "write_code", toolCallId: "w1", input: { question: "Write add.", language: "python" } } }), skip);
 		assert.match(html({ pending: written }), skip);
 		assert.match(html({ pending: quiz, busy: true }), skip, "Stop sits in the lesson text, not here");
-		assert.match(html({ problem, busy: true }), /data-testid="discard-problem"/);
+		assert.match(html({ problem, busy: true }), /data-testid="turn-foot"[\s\S]*data-testid="discard-problem"/);
 		assert.doesNotMatch(html({ pending: quiz, busy: true }), /stop-turn/);
+		assert.match(html({ pending: quiz }), /<h2[^>]*>Your turn<\/h2><div/, "the head is only the title");
 
 		const asked: string[] = [];
 		const handlers = { onSkipQuestion: () => asked.push("question"), onDiscardProblem: () => asked.push("problem") };
@@ -436,7 +436,7 @@ describe("Your turn in each state", () => {
 		});
 	});
 
-	it("takes pictures and PDFs: the tray above the field, the button in a row under the box", () => {
+	it("takes pictures and PDFs: the tray above the field, the button in the box's row of keys", () => {
 		const files = {
 			...attachments,
 			files: [
@@ -446,9 +446,10 @@ describe("Your turn in each state", () => {
 		};
 		const out = html({ problem, attachments: files });
 		assert.match(out, /data-testid="attachment-tray"[\s\S]*data-testid="draft-image"[\s\S]*data-testid="draft-pdf"[\s\S]*data-testid="math-box"/);
-		assert.match(out, /data-testid="composer"[\s\S]*data-testid="attach-button"[^>]*>[\s\S]*?Add pictures or PDFs</);
-		assert.equal(out.split('data-testid="attach-button"').length - 1, 1, "one attach button, outside the box");
-		assert.doesNotMatch(out.slice(out.indexOf('data-testid="composer"'), out.indexOf('data-testid="attach-button"')), /Add pictures or PDFs/);
+		assert.match(out, /class="lh-answer-lines[\s\S]*data-testid="math-box"[\s\S]*data-testid="attach-button"[^>]*>[\s\S]*?Add pictures or PDFs<\/button><button[^>]*data-testid="composer-send"/);
+		assert.equal(out.split('data-testid="attach-button"').length - 1, 1, "one attach button");
+		const ask = html({ pending: choice });
+		assert.match(ask, /class="lh-answer-line [\s\S]*data-testid="attach-button"[\s\S]*data-testid="question-submit"/, "beside Submit when the box is one line");
 		assert.match(out, /type="file"[^>]*accept="image\/png,image\/jpeg,image\/gif,image\/webp,application\/pdf"/);
 		assert.doesNotMatch(out, /data-testid="composer-send"[^>]*disabled=""/, "files alone can be sent");
 		assert.match(html({ problem, attachments: { ...attachments, error: "You can add up to 5 files to one message." } }), /data-testid="attachment-error"[^>]*>You can add up to 5 files to one message\.</);
@@ -490,7 +491,7 @@ describe("Enter in the box", () => {
 
 	it("Enter submits a picked answer and does nothing before one is picked", async () => {
 		const answers: QuestionAnswerData[] = [];
-		const label = "Your reasoning";
+		const label = "Your reasoning (optional)";
 		await mounted(turn({ pending: quiz, value: "because", onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
 			await act(async () => void enter(await mathBoxView(host, label)));
 			assert.equal(answers.length, 0);
@@ -585,7 +586,7 @@ describe("the question's keys", () => {
 });
 
 describe("writing folds the answer list", () => {
-	const label = "Your reasoning";
+	const label = "Your reasoning (optional)";
 	const focusBox = async (host: HTMLElement) => {
 		const content = (await mathBoxView(host, label)).contentDOM;
 		await act(async () => content.dispatchEvent(new dom.window.Event("focusin", { bubbles: true })));
@@ -660,14 +661,15 @@ describe("saved drafts", () => {
 	});
 });
 
-describe("the teacher column", () => {
-	const column = (over: Partial<React.ComponentProps<typeof TeacherColumn>> = {}) => (
-		<TeacherColumn {...turnProps(over)} spaceId={undefined} width={480} onWidth={() => {}} requiresReveal={false} onReveal={() => {}} {...over} />
+describe("the turn sheet", () => {
+	const column = (over: Partial<React.ComponentProps<typeof TurnSheet>> = {}) => (
+		<TurnSheet {...turnProps(over)} spaceId={undefined} requiresReveal={false} onReveal={() => {}} {...over} />
 	);
 
-	it("is Your turn alone: no head, no Terminal, Activity or Follow (the pill has them)", () => {
+	it("is Your turn alone: no head, no Terminal, Activity or Follow (the pill has them), and no drag handle", () => {
 		const out = renderToStaticMarkup(named(column({ pending: quiz })));
-		assert.match(out, /data-testid="teacher-column"[\s\S]*data-testid="your-turn"/);
+		assert.match(out, /data-testid="turn-sheet"[\s\S]*data-testid="your-turn"/);
+		assert.doesNotMatch(out, /separator|Resize/);
 		assert.doesNotMatch(out, /teacher-head|teacher-terminal-open|teacher-activity-open|follow-/);
 	});
 
@@ -759,7 +761,11 @@ describe("the reading pane", () => {
 		assert.doesNotMatch(out, /see what you already know/);
 	});
 
-	it("the learner's bubbles wear the lesson's space color, as the teacher column does, not the open space's", () => {
+	it("the text scrolls in a fading scroller, so a line cut at the sheet's edge fades instead of looking sliced", () => {
+		assert.match(pane({ busy: false, status: "ready" }), /class="[^"]*lh-scroll-fade[^"]*"[^>]*>[\s\S]*data-session-find-root/);
+	});
+
+	it("the learner's bubbles wear the lesson's space color, as the turn sheet does, not the open space's", () => {
 		const spaces = [
 			{ id: "spc_open", name: "Open space", color: 3 },
 			{ id: "spc_lesson", name: "Lesson space", color: 5 },
@@ -778,7 +784,7 @@ describe("the reading pane", () => {
 		);
 		assert.match(bubble, /data-testid="user-message"[^>]*style="[^"]*var\(--lh-space-5\)/);
 		assert.doesNotMatch(bubble, /--lh-space-3/);
-		assert.match(inSpaces(named(<TeacherColumn {...turnProps()} spaceId="spc_lesson" width={480} onWidth={() => {}} requiresReveal={false} onReveal={() => {}} />)), /--lh-pale:[^"]*var\(--lh-space-5\)/);
+		assert.match(inSpaces(named(<TurnSheet {...turnProps()} spaceId="spc_lesson" requiresReveal={false} onReveal={() => {}} />)), /--lh-pale:[^"]*var\(--lh-space-5\)/);
 		assert.doesNotMatch(pane({ messages, busy: false, status: "ready" }), /data-testid="user-message"[^>]*style=/, "a lesson with no space keeps the plain bubble");
 	});
 });

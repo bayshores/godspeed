@@ -3,7 +3,7 @@ import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
 import { DEFAULT_TEACHER_NAME, DONT_KNOW, type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { AttachButton, type AttachmentDraft } from "./attachment-tray";
+import type { AttachmentDraft } from "./attachment-tray";
 import { LessonBox } from "./lesson-box";
 import { HELP_LINES, lessonBox, questionTurn, type BoxAction, type BoxView } from "./lesson-box-model";
 import { OpenProblemPane } from "./open-problem-pane";
@@ -57,16 +57,17 @@ const EXIT: Record<BoxView["exit"], { label: string; testId: string }> = {
 };
 
 /**
- * YOUR TURN, the lesson's right column, shown only while something waits
- * for the learner (yourTurnShown). It holds one of:
+ * YOUR TURN, the sheet under the lesson's text, shown only while something
+ * waits for the learner (yourTurnShown). It holds one of:
  * - a check waiting behind "Check your understanding" (the learner reads
  *   first and can note thoughts in the box);
  * - a waiting question (QuestionDock) and the answer box;
  * - the open problem, worked on in the box;
  * - a place to stop (the stop card);
- * The button beside "Your turn" is the way out of that state. Talking to
- * the teacher happens in its terminal; the "Stuck?" keys under the box
- * ask for help in one click.
+ * Its foot row holds the "Stuck?" keys, which ask for help in one click,
+ * and at its right end the way out of that state. Talking to the teacher
+ * happens in its terminal. When the sheet is too short, only the question
+ * part scrolls; the box and the foot row stay.
  */
 export function YourTurn({
 	pending,
@@ -133,15 +134,8 @@ export function YourTurn({
 	useScrollFade(scroller);
 
 	return (
-		<div data-testid="your-turn" data-mode={mode.split(":")[0]} className="flex min-h-0 flex-1 flex-col gap-3.5 px-[22px] pt-[18px] pb-[22px]">
-			<div className="flex shrink-0 items-center justify-between gap-3">
-				<h2 className="text-[26px] leading-tight font-medium text-ink">{fromEarlier ? "From earlier" : "Your turn"}</h2>
-				{exit && (
-					<button type="button" data-testid={exit.testId} onClick={onExit} className="lh-btn lh-btn-quiet shrink-0">
-						{exit.label}
-					</button>
-				)}
-			</div>
+		<div data-testid="your-turn" data-mode={mode.split(":")[0]} className="flex min-h-0 flex-1 flex-col gap-3.5 px-[22px] pt-[18px] pb-[22px] short:gap-2.5 short:px-[18px] short:pt-3 short:pb-4">
+			<h2 className="shrink-0 text-[26px] leading-tight font-medium text-ink short:text-[22px]">{fromEarlier ? "From earlier" : "Your turn"}</h2>
 
 			{reviewRefused && (
 				<p data-testid="review-refused" className="shrink-0 text-base text-ink-2">
@@ -200,38 +194,43 @@ export function YourTurn({
 				</div>
 			)}
 
-			{view && (
+			{view && exit && (
 				<>
 					<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
-					{view.attach && (
-						<div className="flex shrink-0 items-center">
-							<AttachButton draft={attachments} />
-						</div>
-					)}
-				</>
-			)}
-			{help && (
-				<div data-testid="help-keys" className="flex shrink-0 items-baseline gap-3">
-					<span className="shrink-0 text-base text-ink-2">Stuck?</span>
-					<div className="flex min-w-0 flex-wrap gap-2">
-						<button
-							type="button"
-							data-testid="help-dont-know"
-							disabled={help.dontKnowDisabled}
-							onClick={() => (help.dontKnow === "answer" ? questionRef.current?.dontKnow() : onHelpLine(DONT_KNOW))}
-							className={HELP_KEY}
-						>
-							{DONT_KNOW}
-						</button>
-						<button type="button" data-testid="help-hint" disabled={help.linesDisabled} onClick={() => onHelpLine(HELP_LINES.hint)} className={HELP_KEY}>
-							{HELP_LINES.hint}
-						</button>
-						<button type="button" data-testid="help-simpler" disabled={help.linesDisabled} onClick={() => onHelpLine(HELP_LINES.simpler)} className={HELP_KEY}>
-							{HELP_LINES.simpler}
+					<div data-testid="turn-foot" className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-2">
+						{help && <HelpKeys help={help} questionRef={questionRef} onHelpLine={onHelpLine} />}
+						<button type="button" data-testid={exit.testId} onClick={onExit} className="lh-btn lh-btn-quiet ml-auto h-[30px] px-1.5 text-[15px]">
+							{exit.label}
 						</button>
 					</div>
-				</div>
+				</>
 			)}
 		</div>
+	);
+}
+
+/** "Stuck?" and its three keys. */
+function HelpKeys({ help, questionRef, onHelpLine }: { help: NonNullable<BoxView["help"]>; questionRef: RefObject<QuestionHandle | null>; onHelpLine: (line: string) => void }) {
+	return (
+		<>
+			<span className="mr-1 shrink-0 text-base text-ink-2">
+				Stuck?
+			</span>
+			<button
+				type="button"
+				data-testid="help-dont-know"
+				disabled={help.dontKnowDisabled}
+				onClick={() => (help.dontKnow === "answer" ? questionRef.current?.dontKnow() : onHelpLine(DONT_KNOW))}
+				className={HELP_KEY}
+			>
+				{DONT_KNOW}
+			</button>
+			<button type="button" data-testid="help-hint" disabled={help.linesDisabled} onClick={() => onHelpLine(HELP_LINES.hint)} className={HELP_KEY}>
+				{HELP_LINES.hint}
+			</button>
+			<button type="button" data-testid="help-simpler" disabled={help.linesDisabled} onClick={() => onHelpLine(HELP_LINES.simpler)} className={HELP_KEY}>
+				{HELP_LINES.simpler}
+			</button>
+		</>
 	);
 }

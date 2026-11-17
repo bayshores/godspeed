@@ -1,7 +1,6 @@
 /**
- * A lesson plugin's window: it hangs from the lesson bar over the page, over the lesson's sheet
- * while Your turn sits beside it and under the plugin's word when stacked, and Escape closes it
- * unless something over it or the agent's screen has the key.
+ * A lesson plugin's window: it hangs from the lesson bar over the page under the plugin's word, and
+ * Escape closes it unless something over it or the agent's screen has the key.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -21,10 +20,6 @@ Object.assign(globalThis, {
 	HTMLElement: dom.window.HTMLElement,
 	Node: dom.window.Node,
 	IS_REACT_ACT_ENVIRONMENT: true,
-	ResizeObserver: class {
-		observe() {}
-		disconnect() {}
-	},
 	getComputedStyle: () => ({ getPropertyValue: () => "", display: "block", visibility: "visible", opacity: "1" }),
 	location: { port: "4100" },
 });
@@ -47,13 +42,10 @@ afterEach(() => {
 type Boxed = { getBoundingClientRect: () => object };
 const place = (testid: string, box: object) => void ((document.querySelector(`[data-testid=${testid}]`) as unknown as Boxed).getBoundingClientRect = () => box);
 
-/** The lesson bar with the plugin's word ending 216 px from the window's right edge, the lesson's
- *  sheet and Your turn (stacked unless `beside`), and the window. */
-async function mount(onClose: () => void = () => {}, beside = false) {
-	document.body.innerHTML = `<div class="lh-own-bar"><button data-testid="lesson-plugin-probe">Probe</button></div><section data-testid="lesson-reading"></section><div data-testid="teacher-column"></div><div id="host"></div>`;
+/** The lesson bar with the plugin's word ending 216 px from the window's right edge, and the window. */
+async function mount(onClose: () => void = () => {}) {
+	document.body.innerHTML = `<div class="lh-own-bar"><button data-testid="lesson-plugin-probe">Probe</button></div><div id="host"></div>`;
 	place("lesson-plugin-probe", { right: 1224 });
-	place("lesson-reading", { right: beside ? 904 : 1408 });
-	place("teacher-column", { left: beside ? 928 : 32 });
 	root = createRoot(document.getElementById("host")!);
 	await act(async () => root!.render(<PluginWindow plugin={PLUGIN} context={CONTEXT} onClose={onClose} />));
 }
@@ -66,7 +58,7 @@ const escape = (target: EventTarget = document) =>
 	});
 
 describe("a lesson plugin's window", () => {
-	it("stacked, hangs under its word, right edges lined up, 360 wide and 120 tall until the page says, with no head and no Close", async () => {
+	it("hangs under its word, right edges lined up, 360 wide and 120 tall until the page says, with no head and no Close", async () => {
 		await mount();
 		const shown = document.querySelector("[data-testid=plugin-window]")!;
 		assert.equal(shown.getAttribute("aria-label"), "Probe");
@@ -74,11 +66,6 @@ describe("a lesson plugin's window", () => {
 		assert.match(shown.getAttribute("style")!, /width:\s*360px;\s*height:\s*120px/);
 		assert.ok(shown.querySelector("[data-testid=plugin-frame]"));
 		assert.equal(shown.querySelectorAll("button, h2, h3").length, 0);
-	});
-
-	it("beside Your turn, lies over the lesson's sheet with their right edges lined up", async () => {
-		await mount(() => {}, true);
-		assert.match(document.querySelector("[data-testid=plugin-window]")!.parentElement!.getAttribute("style")!, /right:\s*536px/);
 	});
 
 	it("closes on Escape, but not while Find is open or from the agent's screen", async () => {

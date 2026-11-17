@@ -1,11 +1,13 @@
-import { memo, useLayoutEffect, useRef, useState } from "react";
+import { memo, useLayoutEffect, useState } from "react";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaces } from "@/frontend/components/space-context";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { useFold } from "@/frontend/components/use-fold";
 import { lazyComponent } from "@/frontend/lib/lazy-component";
+import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { cn } from "@/frontend/lib/utils";
 import type { HomeworkProblem, LessonKind, LessonStop, PlanStepBar } from "@/shared/core";
-import { COMPACT_ABOVE, homeworkRow, openingLabel, rowColumns, planBranches, practiceRow, stepsRow, type RowBlock, type RowStep } from "./plan-row-model";
+import { foldedLine, homeworkRow, openingLabel, rowColumns, planBranches, practiceRow, stepsRow, type RowBlock, type RowStep, type Tone } from "./plan-row-model";
 import type { PracticeProgress } from "./practice-progress";
 
 // The map draws with dagre, which loads with the plan blocks, not the lesson.
@@ -14,23 +16,27 @@ import type { PracticeProgress } from "./practice-progress";
 const MAP_BOX = "h-9 w-[140px]";
 const PlanMiniMap = lazyComponent(() => import("@/frontend/components/plan-block").then((m) => m.PlanMiniMap));
 
-/** A step cell's width range and the gap between cells, in px; a compact
- *  cell holds only the number over its bar. */
+/** A step cell's width range and the gap between cells, in px. */
 const CELL = { min: 150, max: 260 };
-const COMPACT_CELL = { min: 40, max: 64 };
 const CELL_GAP = 12;
+
+/** A bar's fill by its tone; the current one takes the space's color. */
+const TONE: Record<Tone, string> = { done: "bg-ink", current: "", later: "bg-tone-2" };
+
+/** Whether the row is unfolded, kept for every lesson ("1"); folded by default. */
+const STEPS_OPEN_KEY = "lh:steps-open";
 
 type Edges = ReadonlyArray<{ from: string; to: string }>;
 
 /**
  * THE PLAN ROW on top of the reading sheet: where the learner is in the
- * lesson. A plan lesson lists every step by name over a bar, with a small
- * map of the plan when it branches; homework lists every problem the same
- * way, each full name wrapping in its cell and the lines evenly filled;
- * practice shows its count and blocks alone. A done step goes back to its
- * first answer. Every problem is a pick: the teacher opens it, done or not,
- * and the open one takes him to his work. A long row shows numbers only,
- * with the names on hover.
+ * lesson. A plan or homework lesson shows one line, "Step 2 of 5", the
+ * step's name and a slim bar, which unfolds into every step by name over
+ * a bar, with a small map of the plan when it branches; homework lists
+ * every problem the same way, each full name wrapping in its cell and the
+ * lines evenly filled. Practice shows its count and blocks alone. A done
+ * step goes back to its first answer. Every problem is a pick: the teacher
+ * opens it, done or not, and the open one takes him to his work.
  */
 export const PlanRow = memo(function PlanRow({
 	kind,
@@ -99,13 +105,14 @@ export const PlanRow = memo(function PlanRow({
 function Block({ block, color }: { block: RowBlock; color: string }) {
 	return (
 		<span data-testid="plan-block" data-block={block.state} title={block.name} className="flex h-5 w-[22px] min-w-[3px] shrink items-center">
-			<span className={cn("block h-2.5 w-full", block.tone === "done" && "bg-ink", block.tone === "later" && "bg-tone-2")} style={block.tone === "current" ? { background: color } : undefined} />
+			<span className={cn("block h-2.5 w-full", TONE[block.tone])} style={block.tone === "current" ? { background: color } : undefined} />
 		</span>
 	);
 }
 
-/** A lesson's steps in cells on evenly filled lines, and the plan's map when it branches.
- *  With `onPick` (homework) every cell is a pick, said aloud as it goes out. */
+/** A lesson's steps folded into one line, unfolding into cells on evenly filled lines and the
+ *  plan's map when it branches. With `onPick` (homework) every cell is a pick, said aloud as it
+ *  goes out. */
 function StepsRow({
 	steps,
 	edges,
@@ -135,60 +142,87 @@ function StepsRow({
 	const n = steps.length;
 	// A plan that is one chain shows no map: the row already says everything.
 	const mapEdges = edges && planBranches(steps.map((s) => s.key), edges) ? edges : null;
-	const compact = n > COMPACT_ABOVE;
-	const cell = compact ? COMPACT_CELL : CELL;
-	const list = useRef<HTMLOListElement>(null);
+	// Measured once the list is drawn, which a folded row does only when it opens.
+	const [list, setList] = useState<HTMLOListElement | null>(null);
 	const [width, setWidth] = useState<number | null>(null);
 	useLayoutEffect(() => {
-		const box = list.current?.parentElement;
+		const box = list?.parentElement;
 		if (!box) return;
 		const measure = () => setWidth(box.clientWidth);
 		measure();
 		const ro = new ResizeObserver(measure);
 		ro.observe(box);
 		return () => ro.disconnect();
-	}, []);
-	const columns = rowColumns(n, width, cell.min, CELL_GAP);
+	}, [list]);
+	const columns = rowColumns(n, width, CELL.min, CELL_GAP);
+	const [open, setOpen] = useState(() => readStorage(STEPS_OPEN_KEY) === "1");
+	const fold = useFold(open);
+	const toggle = () => {
+		setOpen(!open);
+		writeStorage(STEPS_OPEN_KEY, open ? null : "1");
+	};
+	const line = foldedLine(steps, onPick !== null);
 	return (
-		<div data-testid="plan-row" className="flex min-w-0 shrink-0 items-start gap-6">
-			<ol
-				ref={list}
-				aria-label={onPick ? "Problems" : "Plan steps"}
-				className="grid min-w-0 flex-1 gap-y-3"
-				style={{ columnGap: CELL_GAP, gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, maxWidth: columns * cell.max + (columns - 1) * CELL_GAP }}
-			>
-				{steps.map((step) => (
-					<StepCell key={step.key} step={step} compact={compact} color={color} onJump={onJump} pick={pick} blocked={blocked !== null && step.tone !== "current"} />
-				))}
-			</ol>
+		<div className="flex min-w-0 shrink-0 flex-col">
+			<button type="button" data-testid="plan-fold" aria-expanded={open} onClick={toggle} className="lh-steps-fold group flex min-w-0 items-center gap-4 text-left text-[15px] leading-snug">
+				<span className="flex min-w-0 items-baseline gap-2.5">
+					<span className="shrink-0 font-count text-ink-2 group-hover:text-ink">{line.count}</span>
+					{/* Unfolded, the row below names the step. */}
+					{!open && line.name && <span className="min-w-0 truncate text-ink">{line.name}</span>}
+				</span>
+				{!open && (
+					<span aria-hidden className="ml-auto flex shrink-0 gap-[3px]" style={{ width: Math.min(320, Math.max(168, n * 24)) }}>
+						{steps.map((s) => (
+							<span key={s.key} className={cn("block h-1.5 min-w-0 flex-1", TONE[s.tone])} style={s.tone === "current" ? { background: color } : undefined} />
+						))}
+					</span>
+				)}
+				<PixelIcon name="chevron" className={cn("h-2.5 shrink-0 text-ink-2 transition-transform duration-(--lh-dur) ease-(--lh-ease-out) group-hover:text-ink", open ? "ml-auto -rotate-90" : "rotate-90")} />
+			</button>
+			{fold.mounted && (
+				<div className="lh-collapse" data-state={fold.state}>
+					<div>
+						<div data-testid="plan-row" className="flex min-w-0 items-start gap-6 pt-4">
+							<ol
+								ref={setList}
+								aria-label={onPick ? "Problems" : "Plan steps"}
+								className="grid min-w-0 flex-1 gap-y-3"
+								style={{ columnGap: CELL_GAP, gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, maxWidth: columns * CELL.max + (columns - 1) * CELL_GAP }}
+							>
+								{steps.map((step) => (
+									<StepCell key={step.key} step={step} color={color} onJump={onJump} pick={pick} blocked={blocked !== null && step.tone !== "current"} />
+								))}
+							</ol>
+							{mapEdges && (
+								<div data-testid="plan-map-box" className={cn("ml-auto flex shrink-0 items-start justify-end", MAP_BOX)}>
+									<PlanMiniMap steps={steps} edges={mapEdges} color={color} onOpen={onOpenPlan} />
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+			)}
 			{onPick && (
 				<p className="sr-only" aria-live="polite">
 					{said}
 				</p>
 			)}
-			{mapEdges && (
-				<div data-testid="plan-map-box" className={cn("ml-auto flex shrink-0 items-start justify-end", MAP_BOX)}>
-					<PlanMiniMap steps={steps} edges={mapEdges} color={color} onOpen={onOpenPlan} />
-				</div>
-			)}
 		</div>
 	);
 }
 
-/** One step: its number and name over a bar in its tone, a check when done
- *  (compact: the number alone). A done step that can go back is a button,
+/** One step: its number and name over a bar in its tone, a check when done.
+ *  A done step that can go back is a button,
  *  and so is every problem; one that can't open yet stays focusable and
  *  says why. */
 function StepCell({
 	step,
-	compact,
 	color,
 	onJump,
 	pick,
 	blocked,
 }: {
 	step: RowStep;
-	compact: boolean;
 	color: string;
 	onJump: (toolCallId: string) => void;
 	pick: ((step: RowStep) => void) | null;
@@ -197,11 +231,11 @@ function StepCell({
 	const body = (
 		<>
 			<span className="flex min-w-0 items-baseline gap-2">
-				{!compact && step.done && <PixelIcon name="check" className="shrink-0 self-center" />}
+				{step.done && <PixelIcon name="check" className="shrink-0 self-center" />}
 				<span className="shrink-0 font-count">{step.number}</span>
-				{!compact && <span className="min-w-0 break-words">{step.name}</span>}
+				<span className="min-w-0 break-words">{step.name}</span>
 			</span>
-			<span className={cn("mt-auto block h-1.5 w-full shrink-0", step.tone === "done" && "bg-ink", step.tone === "later" && "bg-tone-2")} style={step.tone === "current" ? { background: color } : undefined} />
+			<span className={cn("mt-auto block h-1.5 w-full shrink-0", TONE[step.tone])} style={step.tone === "current" ? { background: color } : undefined} />
 		</>
 	);
 	const cls = cn("flex h-full w-full min-w-0 flex-col gap-1.5 text-left text-[15px] leading-snug", step.tone === "current" ? "text-ink" : "text-ink-2");

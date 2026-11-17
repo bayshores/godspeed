@@ -1,13 +1,14 @@
 /**
  * The plan row on top of the reading sheet and the plan dialog, mounted
- * over linkedom: a plan lesson's steps and map, homework's problems and
- * practice's blocks, and what a click does.
+ * over linkedom: the folded line and its remembered unfolding, a plan
+ * lesson's steps and map, homework's problems and practice's blocks, and
+ * what a click does.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
 
 import assert from "node:assert/strict";
-import { afterEach, describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
@@ -30,7 +31,17 @@ Object.assign(globalThis, {
 		unobserve() {}
 		disconnect() {}
 	},
+	localStorage: (() => {
+		const kept = new Map<string, string>();
+		return { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => void kept.set(k, v), removeItem: (k: string) => void kept.delete(k) };
+	})(),
 });
+const STEPS_OPEN = "lh:steps-open";
+/** The row unfolded, as a learner who left it open finds it. */
+const unfold = () => {
+	beforeEach(() => localStorage.setItem(STEPS_OPEN, "1"));
+	afterEach(() => localStorage.removeItem(STEPS_OPEN));
+};
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
 const { PlanRow } = await import("../../src/frontend/components/lesson/plan-row.tsx");
@@ -79,8 +90,45 @@ async function mount(node: React.ReactNode) {
 	return host;
 }
 
+describe("the folded line", () => {
+	const homework: RowProps = { ...base, kind: "homework", stepBar: null, homework: { problems, open: "2", blocked: null } };
+	const line = (html: string) => html.match(/data-testid="plan-fold"[^>]*>([\s\S]*?)<\/button>/)![1]!.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
+	it("is folded by default: the step's place and name over a slim bar, and no list", () => {
+		const html = renderToStaticMarkup(<PlanRow {...base} />);
+		assert.match(html, /data-testid="plan-fold" aria-expanded="false"/);
+		assert.equal(line(html), "Step 2 of 3 Gradient as an expectation");
+		assert.match(html, /class="shrink-0 font-count[^"]*">Step 2 of 3</, "the count keeps the count font");
+		assert.equal([...html.matchAll(/class="block h-1\.5 min-w-0 flex-1/g)].length, 3, "one bar segment per step");
+		assert.doesNotMatch(html, /plan-step|<ol/);
+	});
+
+	it("homework: the open problem and its title, the title dropped when it is only the number, and a done count with nothing open", () => {
+		assert.equal(line(renderToStaticMarkup(<PlanRow {...homework} />)), "Problem 2 Step size");
+		const untitled = [...problems, { number: "4", title: "4", text: "…", done: false }];
+		assert.equal(line(renderToStaticMarkup(<PlanRow {...homework} homework={{ problems: untitled, open: "4", blocked: null }} />)), "Problem 4");
+		assert.equal(line(renderToStaticMarkup(<PlanRow {...homework} homework={{ problems, open: null, blocked: null }} />)), "1 of 3 done");
+	});
+
+	it("a click unfolds every step by name and is remembered for every lesson; a second click folds it", async () => {
+		const el = await mount(<PlanRow {...base} />);
+		const fold = el.querySelector<HTMLButtonElement>('[data-testid="plan-fold"]')!;
+		await act(async () => fold.click());
+		assert.equal(fold.getAttribute("aria-expanded"), "true");
+		assert.equal(el.querySelectorAll('[data-testid="plan-step"]').length, 3);
+		assert.equal(fold.textContent, "Step 2 of 3", "unfolded, the row names the step and the line only counts");
+		assert.equal(localStorage.getItem(STEPS_OPEN), "1");
+		assert.match(renderToStaticMarkup(<PlanRow {...homework} />), /aria-expanded="true"[\s\S]*data-testid="problem-pick"/, "another lesson opens unfolded");
+		await act(async () => fold.click());
+		assert.equal(fold.getAttribute("aria-expanded"), "false");
+		assert.equal(localStorage.getItem(STEPS_OPEN), null);
+	});
+});
+
 describe("the plan row of a plan lesson", () => {
-	it("names every step in order in a list, the current one marked, with no count and no plan button", () => {
+	unfold();
+
+	it("names every step in order in a list, the current one marked, counted once and with no plan button", () => {
 		const html = renderToStaticMarkup(<PlanRow {...base} />);
 		assert.match(html, /<ol aria-label="Plan steps"/);
 		assert.deepEqual([...html.matchAll(/data-testid="plan-step" data-status="(\w+)"/g)].map((m) => m[1]), ["visited", "current", "upcoming"]);
@@ -88,7 +136,8 @@ describe("the plan row of a plan lesson", () => {
 		assert.match(html, /aria-current="step" title="Gradient as an expectation"/);
 		assert.match(html, />2<\/span><span[^>]*>Gradient as an expectation</);
 		assert.match(html, />Variance</);
-		assert.doesNotMatch(html, /Step 2 of 3|See the plan/);
+		assert.equal(html.split("Gradient as an expectation").length - 1, 2, "the cell and its hover, not the line too");
+		assert.doesNotMatch(html, /See the plan/);
 	});
 
 	it("paints the current step's bar in the space's color, or ink with no space", async () => {
@@ -154,6 +203,7 @@ describe("the plan row of a plan lesson", () => {
 describe("the plan row of a homework lesson", () => {
 	const hw = { problems, open: "2", blocked: null };
 	const homework: RowProps = { ...base, kind: "homework", stepBar: null, homework: hw };
+	unfold();
 
 	it("names every problem by its own number over its bar, the open one marked, with no count and no button to a list", () => {
 		const html = renderToStaticMarkup(<PlanRow {...homework} />);
@@ -190,15 +240,11 @@ describe("the plan row of a homework lesson", () => {
 		assert.equal(open.hasAttribute("aria-disabled"), false, "the open one still goes to the work");
 	});
 
-	it("above twelve problems each cell is its number alone, with the title on hover", () => {
+	it("however many problems, every cell shows its full name", () => {
 		const many = Array.from({ length: 15 }, (_, i) => ({ number: String(i + 1), title: `Made-up problem ${i + 1}`, text: "…", done: i < 4 }));
 		const html = renderToStaticMarkup(<PlanRow {...homework} homework={{ problems: many, open: "5", blocked: null }} />);
 		assert.equal([...html.matchAll(/data-testid="plan-step"/g)].length, 15);
-		assert.match(html, /title="Made-up problem 15"/);
-		assert.doesNotMatch(html, />Made-up problem/, "no name inside a cell");
-		assert.match(html, /aria-label="Problem 15, Made-up problem 15\. Open it"/, "a screen reader still hears each name");
-		const twelve = renderToStaticMarkup(<PlanRow {...homework} homework={{ problems: many.slice(0, 12), open: "5", blocked: null }} />);
-		assert.match(twelve, />Made-up problem 12</, "twelve still show their names");
+		assert.match(html, />15<\/span><span[^>]*>Made-up problem 15</);
 	});
 
 	it("says the teacher is reading the assignment while no problems are posted and it works, and nothing once it stopped", () => {

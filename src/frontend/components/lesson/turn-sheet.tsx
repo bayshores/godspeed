@@ -2,11 +2,7 @@ import { useRef, useState } from "react";
 import { paleSpaceColor } from "@/frontend/components/space-color";
 import { useSpaceColor } from "@/frontend/components/space-context";
 import { Pane } from "@/frontend/components/ui/pane";
-import { ResizeHandle } from "@/frontend/components/ui/resize-handle";
 import { YourTurn, type YourTurnProps } from "./your-turn";
-
-/** The column's width beside the reading sheet (drag its border line). */
-export const COLUMN_WIDTH = { initial: 480, min: 340, max: 720 };
 
 /** Whether "Your turn" shows: only while something waits for the learner. */
 export function yourTurnShown(s: { pending: boolean; problem: boolean; stop: boolean; stuck: boolean; error: boolean; reviewRefused: boolean }): boolean {
@@ -14,23 +10,18 @@ export function yourTurnShown(s: { pending: boolean; problem: boolean; stop: boo
 }
 
 /**
- * THE TEACHER COLUMN, the lesson's right side (below the text in a narrow
- * window): "Your turn", while something waits for the learner. The
- * teacher's status, terminal, Activity and Follow live in the top bar's
- * pill, as on every page.
+ * THE TURN SHEET, under the lesson's reading sheet: "Your turn", while
+ * something waits for the learner. It is as tall as what it holds, up to
+ * what the reading sheet leaves (.lh-lesson-body). The teacher's status,
+ * terminal, Activity and Follow live in the top bar's pill, as on every page.
  */
-export function TeacherColumn({
+export function TurnSheet({
 	spaceId,
-	width,
-	onWidth,
 	requiresReveal,
 	onReveal,
 	...turn
 }: YourTurnProps & {
 	spaceId: string | undefined;
-	/** The saved width; the lesson's layout sizes the column from it. */
-	width: number;
-	onWidth: (width: number) => void;
 	/** A teach-phase check: it waits behind "Check your understanding". */
 	requiresReveal: boolean;
 	/** The learner opens the check. */
@@ -56,16 +47,12 @@ export function TeacherColumn({
 
 	return (
 		<aside
-			data-testid="teacher-column"
+			data-testid="turn-sheet"
 			aria-label="Your turn"
-			className="lh-rise relative flex min-h-0 min-w-0 flex-col [grid-area:teacher]"
+			className="lh-rise flex min-h-0 min-w-0 flex-col [grid-area:turn]"
 			style={{ "--lh-pale": color ? paleSpaceColor(color) : "var(--color-tone)" } as React.CSSProperties}
 		>
-			{/* Side by side only: stacked, the column is full width. */}
-			<div className="lh-teacher-resize">
-				<ResizeHandle paneKey="your-turn" width={width} bounds={COLUMN_WIDTH} onWidth={onWidth} label="Resize the teacher column" />
-			</div>
-			<Pane className="flex min-h-0 flex-1 flex-col overflow-hidden">
+			<Pane className="flex min-h-0 flex-initial flex-col overflow-hidden">
 				<YourTurn
 					{...turn}
 					revealPending={pending !== null && requiresReveal && !revealed}

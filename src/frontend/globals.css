@@ -3,6 +3,8 @@
 @import "tailwindcss" source("../..");
 
 @custom-variant dark (&:is(.dark *));
+/* A short window, where the lesson's "Your turn" sheet and page padding tighten. */
+@custom-variant short (@media (max-height: 759px));
 
 /*
  * THE SKIN. Design tokens, the single place to restyle the app.
@@ -634,27 +636,43 @@ body {
 	background-size: 16px 16px;
 }
 
-/* The lesson under its bar: the reading sheet, the cheat sheet when open,
-   and the teacher column at its saved width. Stacked in a narrow window,
-   where the teacher side is as tall as what it holds. */
+/* The lesson under its bar: one centered column at the reading text's width, the reading
+   sheet on top and "Your turn" under it while something waits for the learner. The turn sheet
+   is as tall as it holds, up to what is left once the reading sheet keeps min(200px, 45%).
+   A docked cheat sheet keeps its own column beside both. */
 .lh-lesson-body {
+	--lh-body-gap: 16px;
+	--lh-reading-min: min(200px, 45%);
 	display: grid;
-	grid-template: "reading teacher" minmax(0, 1fr) / minmax(420px, 1fr) minmax(340px, var(--lh-turn-w));
-	gap: 24px;
+	grid-template:
+		"reading" minmax(0, 1fr)
+		"turn" fit-content(calc(100% - var(--lh-reading-min) - var(--lh-body-gap)))
+		/ minmax(0, 872px);
+	justify-content: center;
+	gap: var(--lh-body-gap);
 	padding: 24px 32px 28px;
 }
 .lh-lesson-body[data-dock] {
-	grid-template: "reading dock teacher" minmax(0, 1fr) / minmax(280px, 1fr) auto minmax(340px, var(--lh-turn-w));
+	grid-template:
+		"reading dock" minmax(0, 1fr)
+		"turn dock" fit-content(calc(100% - var(--lh-reading-min) - var(--lh-body-gap)))
+		/ minmax(0, 872px) auto;
+	gap: var(--lh-body-gap) 24px;
 }
-/* Nothing waits for the learner: no right column, and the reading sheet sits centered at the
-   reading text's width (the cheat sheet, when docked, stays beside it). */
 .lh-lesson-body[data-solo] {
 	grid-template: "reading" minmax(0, 1fr) / minmax(0, 872px);
-	justify-content: center;
 }
-@container lesson (min-width: 1000px) {
-	.lh-lesson-body[data-solo][data-dock] {
-		grid-template: "reading dock" minmax(0, 1fr) / minmax(280px, 1fr) auto;
+/* Unfolded steps take room from the lesson text, so the reading sheet keeps more. */
+.lh-lesson-body:has(.lh-steps-fold[aria-expanded="true"]) {
+	--lh-reading-min: min(320px, 55%);
+}
+.lh-lesson-body[data-solo][data-dock] {
+	grid-template: "reading dock" minmax(0, 1fr) / minmax(0, 872px) auto;
+}
+@media (max-height: 759px) {
+	.lh-lesson-body {
+		--lh-body-gap: 12px;
+		padding: 16px 32px;
 	}
 }
 /* The docked cheat sheet is as wide as the learner dragged it. */
@@ -663,38 +681,52 @@ body {
 }
 @container lesson (max-width: 999px) {
 	.lh-lesson-body[data-dock] {
-		grid-template: "reading dock" minmax(0, 1fr) "teacher teacher" fit-content(70%) / minmax(0, 1fr) minmax(0, 300px);
-		gap: 16px;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 300px);
+		gap: var(--lh-body-gap) 16px;
 		padding: 16px;
 	}
 	.lh-lesson-body[data-dock] .lh-sheet-dock {
 		width: 100%;
 	}
-	.lh-lesson-body[data-dock] .lh-teacher-resize,
 	.lh-lesson-body[data-dock] .lh-dock-resize {
 		display: none;
 	}
 }
 @container lesson (max-width: 899px) {
-	.lh-lesson-body:not([data-dock]) {
-		grid-template: "reading" minmax(0, 1fr) "teacher" fit-content(70%) / minmax(0, 1fr);
-		gap: 16px;
+	.lh-lesson-body {
 		padding: 16px;
 	}
-	.lh-teacher-resize {
+}
+
+/* A conversation too short to hold the key that jumps to its end shows no key: the key would
+   be cut off. */
+.lh-log {
+	container: lh-log / size;
+}
+@container lh-log (max-height: 59px) {
+	.lh-log-jump {
 		display: none;
 	}
 }
 
-/* A conversation too short to hold the key that jumps to its end shows no key:
-   the key would cover all of it. */
-.lh-log {
-	container: lh-log / size;
+/* The answer box is as tall as its text, up to five lines, then scrolls. One line is as tall
+   as a key; three lines when the text is the answer or the work. */
+:is(.lh-answer-line, .lh-answer-lines) .cm-editor {
+	height: auto;
 }
-@container lh-log (max-height: 95px) {
-	.lh-log-jump {
-		display: none;
-	}
+.lh-answer-line .cm-editor .cm-content,
+.lh-answer-line [data-testid="math-box"] > div[aria-hidden] {
+	padding-block: 8px;
+}
+.lh-answer-line .cm-editor .cm-scroller {
+	max-height: 136px;
+}
+.lh-answer-lines .cm-editor .cm-scroller {
+	max-height: 144px;
+}
+.lh-answer-lines .cm-editor .cm-content,
+.lh-answer-lines [data-testid="math-box"] > div[aria-hidden] {
+	min-height: 96px;
 }
 
 /* The block cursor at the end of the text the teacher is writing. */

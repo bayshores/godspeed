@@ -1,5 +1,5 @@
-import { useContext, useMemo, type RefObject } from "react";
-import type { StickToBottomContext } from "use-stick-to-bottom";
+import { useContext, useEffect, useMemo, useState, type RefObject } from "react";
+import { useStickToBottomContext, type StickToBottomContext } from "use-stick-to-bottom";
 import {
 	Conversation,
 	ConversationContent,
@@ -18,6 +18,7 @@ import { agentWork } from "./agent-at-work-model";
 import { ArrivalRow, type Arrive } from "./arrivals";
 import { GoAheadKey } from "./go-ahead-key";
 import { MessageRow } from "./message-row";
+import { useScrollFade } from "./use-scroll-fade";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { cn } from "@/frontend/lib/utils";
 
@@ -80,8 +81,10 @@ export function ReadingPane({
 	return (
 		<Conversation className="min-h-0 min-w-0 flex-1" initial="instant" contextRef={scrollContextRef}>
 			<SessionMessageNavigation />
-			<ConversationContent className="min-h-full gap-0 p-0">
-				<div data-session-find-root="" className="lh-reading flex w-full max-w-[872px] flex-1 flex-col gap-4 px-14 pt-5 pb-24 @max-[640px]/reading:px-7">
+			<ScrollFade />
+			<ConversationContent className="min-h-full gap-0 p-0" scrollClassName="lh-scroll-fade">
+				{/* The right side keeps its padding at every width: the key that jumps to the end sits in it. */}
+				<div data-session-find-root="" className="lh-reading flex w-full max-w-[872px] flex-1 flex-col gap-4 px-14 pt-5 pb-8 @max-[640px]/reading:pl-7">
 					{messages.length === 0 && !busy && (
 						<ConversationEmptyState title="New lesson" description="" />
 					)}
@@ -126,7 +129,17 @@ export function ReadingPane({
 					{goAhead && <GoAheadKey label={goAhead.label} onGo={goAhead.onGo} />}
 				</div>
 			</ConversationContent>
-			<ConversationScrollButton className="bottom-6 left-1/2" />
+			<ConversationScrollButton />
 		</Conversation>
 	);
+}
+
+/** Text scrolled past the sheet's top or bottom edge fades out there, so a line under the step
+ *  row never looks sliced. */
+function ScrollFade() {
+	const { scrollRef } = useStickToBottomContext();
+	const [scroller, setScroller] = useState<HTMLElement | null>(null);
+	useEffect(() => setScroller(scrollRef.current), [scrollRef]);
+	useScrollFade(scroller);
+	return null;
 }

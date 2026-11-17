@@ -7,19 +7,15 @@ import { usePresence } from "@/frontend/components/presence";
 import { sessionFindHasForegroundLayer } from "@/frontend/components/session-find";
 import { BarWindow } from "@/frontend/components/ui/bar-window";
 import type { ShownPlugin } from "@/frontend/lib/use-plugins-at";
-import { pluginWindowBox, windowEdge } from "./plugin-window-model";
+import { pluginWindowBox } from "./plugin-window-model";
 
 /** The plugin's word in the lesson bar. */
 export const pluginWordTestId = (id: string) => `lesson-plugin-${id}`;
-/** The lesson's sheet and the "Your turn" column beside or under it. */
-const READING = '[data-testid="lesson-reading"]';
-const TURN = '[data-testid="teacher-column"]';
 
 /**
- * A lesson plugin's page, in a window hanging from the lesson bar over the page, as tall as the page
- * says it is: over the lesson's sheet while "Your turn" sits beside it, under the plugin's lit word
- * when they are stacked. The word opens and closes it, and Escape closes it; it stays while the
- * learner works in the lesson.
+ * A lesson plugin's page, in a window hanging from the lesson bar under the plugin's lit word, as
+ * tall as the page says it is. The word opens and closes it, and Escape closes it; it stays while
+ * the learner works in the lesson.
  */
 export function PluginWindow({ plugin, context, onClose }: { plugin: ShownPlugin | null; context: PluginContext; onClose: () => void }) {
 	const presence = usePresence(plugin !== null);
@@ -35,27 +31,16 @@ function Window({ plugin, context, state, onClose }: { plugin: ShownPlugin; cont
 	const [reported, setReported] = useState<number | null>(null);
 	const [at, setAt] = useState<{ edge: number; width: number; height: number } | null>(null);
 
-	// Before paint, so it opens in place. The lesson's columns change with the cheat sheet, a
-	// dragged column and the Teacher's window docking.
+	// Before paint, so it opens in place.
 	useLayoutEffect(() => {
-		const rect = (selector: string) => document.querySelector(selector)?.getBoundingClientRect();
 		const place = () => {
-			const word = rect(`[data-testid="${pluginWordTestId(plugin.id)}"]`)?.right;
+			const word = document.querySelector(`[data-testid="${pluginWordTestId(plugin.id)}"]`)?.getBoundingClientRect().right;
 			// While Find has the bar the word is gone, and the window stays where it was.
-			setAt((now) => {
-				const fallback = word ?? now?.edge ?? window.innerWidth;
-				return { edge: windowEdge(fallback, rect(READING), rect(TURN)), width: window.innerWidth, height: window.innerHeight };
-			});
+			setAt((now) => ({ edge: word ?? now?.edge ?? window.innerWidth, width: window.innerWidth, height: window.innerHeight }));
 		};
 		place();
-		const watch = new ResizeObserver(place);
-		const reading = document.querySelector(READING);
-		if (reading) watch.observe(reading);
 		window.addEventListener("resize", place);
-		return () => {
-			watch.disconnect();
-			window.removeEventListener("resize", place);
-		};
+		return () => window.removeEventListener("resize", place);
 	}, [plugin.id]);
 
 	useEffect(() => {
