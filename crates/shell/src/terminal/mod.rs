@@ -42,7 +42,7 @@ pub const NOT_SET_UP: &str = "The godspeed folder isn't set up yet.";
 const NO_START: &str = "godspeed couldn't start the terminal.";
 const NOT_THERE: &str = "That terminal isn't running.";
 const NOT_SHOWN: &str = "Show the terminal and click in it first.";
-const NOT_SENT: &str = "godspeed couldn't send that. Clear what you typed in the terminal, then try again.";
+const NOT_SENT: &str = "Clear what you typed in the terminal, then try again.";
 /// The largest file Attach takes.
 const ATTACH_MAX: usize = 20 * 1024 * 1024;
 const ATTACH_TOO_BIG: &str = "That file is over 20 MB.";
