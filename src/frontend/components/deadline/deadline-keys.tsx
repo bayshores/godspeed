@@ -13,8 +13,8 @@ export function workLabel(name: string): string {
  * sit side by side where both fit and wrap where not; a long name
  * is cut off with its whole label on hover, as is Study's topic count. In a
  * narrow card under the deadline's name the keys leave the name out
- * ("Study", "Work on it"), are as wide as their words, at the right, and
- * only Work on it is the big dark key.
+ * ("Study", "Work on it"), are as wide as their words and one height, at
+ * the right, and only Work on it is dark.
  * None once it is done.
  */
 export function DeadlineKeys({
@@ -33,7 +33,7 @@ export function DeadlineKeys({
 	onWork: () => void;
 }) {
 	if (d.done) return null;
-	const key = narrow ? "lh-btn max-w-full min-w-0" : "lh-btn h-[52px] min-w-0 flex-1 basis-[200px] justify-center px-[18px] text-[17px]";
+	const key = narrow ? "lh-btn h-12 max-w-full min-w-0 px-5 text-[17px]" : "lh-btn h-[52px] min-w-0 flex-1 basis-[200px] justify-center px-[18px] text-[17px]";
 	const study = deadlineStudyLabel(d.continueStudy, d.name);
 	const studyShort = narrow ? studyLabel(d.continueStudy) : deadlineStudyLabel(d.continueStudy && { ...d.continueStudy, total: undefined }, d.name);
 	const work = workLabel(d.name);
