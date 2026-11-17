@@ -614,17 +614,13 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[], homework: 
 			out.push({
 				id: marker.id,
 				role: "user",
-				parts: [{ type: "data-practice-next", id: `pn_${marker.id}`, data: { homework } }],
+				parts: [{ type: "data-practice-next", id: `pn_${marker.id}`, data: { homework, number: (marker.details as { number?: string } | undefined)?.number ?? null } }],
 			});
 			return;
 		}
 		case "teach-me":
-			// A compact centered line; the model reads the marker's content.
-			out.push({
-				id: marker.id,
-				role: "user",
-				parts: [{ type: "data-teach-me", id: `tm_${marker.id}`, data: null }],
-			});
+			// Kept from 0.6.74's Teach me this button: his ask, read as his line.
+			out.push({ id: marker.id, role: "user", parts: [{ type: "text", text: "Teach me this" }] });
 			return;
 		case "today-context":
 		case "study-context":

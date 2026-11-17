@@ -22,7 +22,7 @@ import {
 	measuredContextTokens,
 	newAnswerResult,
 	newNextMessage,
-	newTeachMessage,
+	newOpenProblemMessage,
 	newProblemDismissedMarker,
 	newSideQuestion,
 	newUserMessage,
@@ -696,8 +696,8 @@ export class SessionModel {
 			// The move-on signal: the NEXT PROBLEM line
 			// renders the instant the chip/Enter fires.
 			optimistic.push({ ...newNextMessage(), id: localId() });
-		} else if (input.type === "teach") {
-			optimistic.push({ ...newTeachMessage(), id: localId() });
+		} else if (input.type === "open") {
+			optimistic.push({ ...newOpenProblemMessage(input.number), id: localId() });
 		} else if (input.type === "answer") {
 			const tool = pendingCallTool([...this.base, ...this.tail], input.toolCallId) ?? "quiz";
 			const result = { ...newAnswerResult(input.toolCallId, tool, input.answer, files), id: localId() };

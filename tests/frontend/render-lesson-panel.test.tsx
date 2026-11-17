@@ -108,6 +108,7 @@ function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 		onSend: () => {},
 		attachments,
 		questionRef: { current: null },
+		boxRef: { current: null },
 		stuck: null,
 		error: null,
 		...over,
@@ -177,18 +178,8 @@ describe("Your turn in each state", () => {
 		assert.equal(yourTurnShown({ pending: false, problem: false, stop: false, stuck: false, error: false, reviewRefused: false }), false);
 	});
 
-	it("a homework problem offers Teach me this while the teacher is idle, and the click asks for it", async () => {
-		const shown = html({ problem, onTeach: () => {} });
-		assert.match(shown, /data-testid="teach-me"[^>]*>Teach me this</);
-		assert.doesNotMatch(shown, /data-testid="teach-me"[^>]*disabled/);
-		assert.match(html({ problem, onTeach: () => {}, busy: true }), /data-testid="teach-me"[^>]*disabled/, "off while the teacher works");
-		assert.doesNotMatch(html({ problem }), /teach-me/, "practice and study problems have no onTeach");
-		assert.doesNotMatch(html({ onTeach: () => {} }), /teach-me/, "no problem open");
-		let taught = 0;
-		await mounted(turn({ problem, onTeach: () => taught++ }), async (host) => {
-			await click(host, "teach-me");
-			assert.equal(taught, 1);
-		});
+	it("an open problem's box has no Teach me this: he asks the teacher in its terminal", () => {
+		assert.doesNotMatch(html({ problem }), /teach-me|Teach me this/);
 	});
 
 	it("a waiting quiz question sits above the box, with no text box or submit of its own", () => {

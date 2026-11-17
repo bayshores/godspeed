@@ -41,6 +41,7 @@ import { drawnSeparators } from "./message-row-model";
 import { FromEarlierCard } from "./from-earlier-card";
 import { KeptCard } from "./kept-card";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
+import { startProblemLabel } from "./plan-row-model";
 
 // A plan diagram (and dagre, its layout engine) is its own chunk; the
 // lesson loader reads it with the record, so it is in the first paint.
@@ -177,10 +178,10 @@ function MarkerPart({ part }: { part: LhViewPart }) {
 			return <ThinkingCard data={part.data as PracticeThinkingData} />;
 		case "data-from-earlier":
 			return <FromEarlierCard data={part.data as FromEarlierData} />;
-		case "data-practice-next":
-			return <SignalLine testId="practice-next-line">{(part.data as { homework: boolean }).homework ? "Start problem" : "Next problem"}</SignalLine>;
-		case "data-teach-me":
-			return <SignalLine testId="teach-me-line">Teach me this</SignalLine>;
+		case "data-practice-next": {
+			const { homework, number } = part.data as { homework: boolean; number: string | null };
+			return <SignalLine testId="practice-next-line">{number ? startProblemLabel(number) : homework ? "Start problem" : "Next problem"}</SignalLine>;
+		}
 		default:
 			return null;
 	}

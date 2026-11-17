@@ -41,14 +41,12 @@ type ViewMessage = { parts: ReadonlyArray<{ type: string; state?: string; input?
 
 /** The problems as a homework lesson sees them: the deadline's list when
  *  the page loaded, then every post_problems and done mark in the messages
- *  since, the number of the problem open now, the part marked in it, and
- *  each problem's first card (its `problem` call) by number. */
+ *  since, the number of the problem open now and the part marked in it. */
 export function homeworkProblems(
 	initial: readonly HomeworkProblem[],
 	messages: readonly ViewMessage[],
-): { problems: HomeworkProblem[]; open: string | null; part: string | null; cards: Record<string, string> } {
+): { problems: HomeworkProblem[]; open: string | null; part: string | null } {
 	let problems = [...initial];
-	const cards: Record<string, string> = {};
 	let open: string | null = null;
 	let part: string | null = null;
 	for (const m of messages) {
@@ -61,7 +59,6 @@ export function homeworkProblems(
 			} else if (call.type === "tool-problem") {
 				open = typeof input.number === "string" ? input.number : null;
 				part = null;
-				if (open !== null && call.toolCallId && !(open in cards)) cards[open] = call.toolCallId;
 			} else if (call.type === "tool-part") {
 				if (open !== null && typeof input.part === "string" && input.part.trim()) part = input.part.trim();
 			} else if (call.type === "tool-conclude") {
@@ -74,6 +71,6 @@ export function homeworkProblems(
 			}
 		}
 	}
-	return { problems, open, part, cards };
+	return { problems, open, part };
 }
 

@@ -267,15 +267,15 @@ describe("send (one input event, verbatim consumption)", () => {
 		assert.equal(view.at(-1)!.parts.at(-1)!.text, "hello there");
 	});
 
-	it("shows the Teach me this line at once and posts the teach input", async () => {
+	it("shows a pick's go-ahead line at once and posts the open input", async () => {
 		const posts: string[] = [];
 		globalThis.fetch = dietFetch({ onPost: (b) => posts.push(b), stream: () => sseResponse({ type: "agent_end", messages: [] }, "[DONE]") });
 		const m = model();
-		const pending = m.send({ type: "teach" });
-		assert.equal((m.getState().nativeMessages.at(-1) as { customType?: string }).customType, "teach-me");
-		assert.equal(m.getState().messages.at(-1)!.parts[0]!.type, "data-teach-me");
+		const pending = m.send({ type: "open", number: "4" });
+		assert.equal((m.getState().nativeMessages.at(-1) as { customType?: string }).customType, "practice-next");
+		assert.equal(m.getState().messages.at(-1)!.parts[0]!.type, "data-practice-next");
 		await pending;
-		assert.deepEqual(JSON.parse(posts[0]!), { chatId: "chat_x", input: { type: "teach" } });
+		assert.deepEqual(JSON.parse(posts[0]!), { chatId: "chat_x", input: { type: "open", number: "4" } });
 	});
 
 	it("N id-less updates replace the SAME tail slot (the per-chunk divider bug pin)", async () => {

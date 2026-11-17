@@ -17,7 +17,7 @@ import {
 	concludedByDismissalPair,
 	newProblemDismissedMarker,
 	newNextMessage,
-	newTeachMessage,
+	newOpenProblemMessage,
 	needsContinuation,
 	newUserMessage,
 	pendingProblemDismissalOf,
@@ -240,25 +240,33 @@ describe("the next input", () => {
 	});
 });
 
-describe("the teach input", () => {
-	it("appends the teach-me marker and leaves the problem open", () => {
-		const record = { messages: problemPose(), kind: "homework" };
-		const appends = inputAppends(record, { type: "teach" });
+describe("the open input", () => {
+	const pose = (number: string): LhMessage[] => {
+		const [call, result] = problemPose();
+		((call as AssistantMessage).content[0] as { arguments: Record<string, unknown> }).arguments.number = number;
+		return [call!, result!];
+	};
+
+	it("appends a go-ahead naming the picked problem, even with another one open", () => {
+		const appends = inputAppends({ messages: pose("1"), kind: "homework" }, { type: "open", number: "2b" });
 		assert.equal(appends.length, 1);
-		const marker = appends[0] as { customType: string; content: string };
-		assert.equal(marker.customType, "teach-me");
-		assert.match(marker.content, /\[TEACH ME\]/);
-		assert.ok(activeProblemOf([...record.messages, ...appends]), "the problem is still open");
+		const marker = appends[0] as { customType: string; content: string; details: unknown };
+		assert.equal(marker.customType, "practice-next");
+		assert.deepEqual(marker.details, { number: "2b" });
+		assert.match(marker.content, /^\[OPEN PROBLEM 2b\]/);
 	});
 
-	it("400s outside homework or with no open problem", () => {
-		assert.throws(() => inputAppends({ messages: problemPose(), kind: "practice" }, { type: "teach" }), /open homework problem/);
-		assert.throws(() => inputAppends({ messages: [], kind: "homework" }, { type: "teach" }), /open homework problem/);
+	it("400s outside homework, on the problem already open, and while a question waits", () => {
+		assert.throws(() => inputAppends({ messages: [], kind: "practice" }, { type: "open", number: "1" }), /homework session affordance/);
+		assert.throws(() => inputAppends({ messages: pose("2b"), kind: "homework" }, { type: "open", number: "2b" }), /already open/);
 	});
 
-	it("projects a compact line", () => {
-		const parts = projectView([newTeachMessage()]).flatMap((m) => m.parts);
-		assert.ok(parts.some((p) => p.type === "data-teach-me"));
+	it("draws the pick as its go-ahead line, and 0.6.74's Teach me this as his own line", () => {
+		const pick = projectView([newOpenProblemMessage("2b")]).flatMap((m) => m.parts);
+		assert.deepEqual(pick.map((p) => [p.type, p.data]), [["data-practice-next", { homework: false, number: "2b" }]]);
+		const old = { id: "m1", role: "custom", customType: "teach-me", content: "[TEACH ME] The learner asks you to teach the method of the open problem.", display: true, details: {}, timestamp: 1 } as LhMessage;
+		const view = projectView([old]);
+		assert.deepEqual([view[0]!.role, view[0]!.parts.map((p) => [p.type, p.text])], ["user", [["text", "Teach me this"]]]);
 	});
 });
 
@@ -403,7 +411,7 @@ describe("projectView renders the move-on signal", () => {
 	it("the line knows whether the lesson works an assignment", () => {
 		const note = { id: "h", role: "custom", customType: "homework-context", content: "…", display: false, timestamp: 1 } as unknown as LhMessage;
 		const dataOf = (messages: LhMessage[]) => projectView(messages).flatMap((m) => m.parts).find((p) => p.type === "data-practice-next")?.data;
-		assert.deepEqual(dataOf([note, newNextMessage()]), { homework: true });
-		assert.deepEqual(dataOf([newNextMessage()]), { homework: false });
+		assert.deepEqual(dataOf([note, newNextMessage()]), { homework: true, number: null });
+		assert.deepEqual(dataOf([newNextMessage()]), { homework: false, number: null });
 	});
 });

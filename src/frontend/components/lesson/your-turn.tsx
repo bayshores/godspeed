@@ -26,8 +26,8 @@ export interface YourTurnProps {
 	problem: { toolCallId: string; statement: string; line: string | null; part: string | null } | null;
 	/** Opens the discard confirm for the open problem. */
 	onDiscardProblem: () => void;
-	/** "Teach me this" on the open problem; homework only. */
-	onTeach?: () => void;
+	/** The answer box, for the problem row to bring him back to his work. */
+	boxRef: RefObject<{ focus(): void } | null>;
 	/** A place to stop he has not kept going from, keyed by the call that
 	 *  made it. */
 	stop: { key: string; view: StopCardView; onAction: (action: StopAction) => void } | null;
@@ -73,7 +73,7 @@ export function YourTurn({
 	reviewRefused,
 	problem,
 	onDiscardProblem,
-	onTeach,
+	boxRef,
 	stop,
 	busy,
 	value,
@@ -90,7 +90,6 @@ export function YourTurn({
 }) {
 	// Whether the question above the box has an answer picked.
 	const [picked, setPicked] = useState(false);
-	const boxRef = useRef<{ focus(): void }>(null);
 
 	const turn = revealPending ? ({ kind: "read-first" } as const) : pending ? questionTurn(pending.tool, pending.input, picked, pending.appPosed?.kind) : problem ? ({ kind: "problem" } as const) : null;
 	const view = turn && lessonBox({ busy, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
@@ -195,13 +194,8 @@ export function YourTurn({
 			{view && (
 				<>
 					<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
-					<div className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+					<div className="flex shrink-0 items-center">
 						<AttachButton draft={attachments} />
-						{onTeach && problem && !pending && (
-							<button type="button" data-testid="teach-me" disabled={busy} onClick={onTeach} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
-								Teach me this
-							</button>
-						)}
 					</div>
 				</>
 			)}

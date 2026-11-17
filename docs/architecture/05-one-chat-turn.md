@@ -2,7 +2,7 @@
 
 `handle_chat_input` (`services::turns::chat_handler`) is plain Rust over `App`. `AgentBuildOptions` is its test seam (scripted engines).
 
-1. Window posts `{chatId, input}` to `POST /api/chat`. Input is one event: `text`, `answer`, `continue`, `side`, `next` (practice, study or homework), `teach` (homework with an open problem) or `opener-answer` (`core::messages::input_events`). `dismiss` and `dismiss-problem` are dismissals.
+1. Window posts `{chatId, input}` to `POST /api/chat`. Input is one event: `text`, `answer`, `continue`, `side`, `next` (practice, study or homework), `open` (a homework problem picked by number) or `opener-answer` (`core::messages::input_events`). `dismiss` and `dismiss-problem` are dismissals.
 2. Handler turns input, or queued steers, into record appends.
 3. `begin_turn(chatId)` registers turn in `turn_liveness` (in memory). A turn already running gives 409; window waits for it to end and posts same input again, giving up after 30 s.
 4. `save_messages` writes input before anything streams (write-ahead).

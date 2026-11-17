@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { homeworkRow, homeworkStartLabel, jumpTarget, planBranches, practiceRow, rightCountLabel, rowColumns, stepsRow } from "../../src/frontend/components/lesson/plan-row-model.ts";
+import { homeworkRow, homeworkStartLabel, jumpTarget, openingLabel, planBranches, practiceRow, rightCountLabel, rowColumns, startProblemLabel, stepsRow } from "../../src/frontend/components/lesson/plan-row-model.ts";
 import type { HomeworkProblem, LessonStop, PlanStepBar } from "../../src/shared/core/index.ts";
 
 const bar: PlanStepBar = {
@@ -43,15 +43,37 @@ describe("the plan row's logic", () => {
 		assert.equal(planBranches(ids, [{ from: "a", to: "b" }, { from: "a", to: "x" }]), false, "a link to a step not in the plan is left out");
 	});
 
-	it("a homework row: every problem by its own number, tones by problem, a done one going back to its card", () => {
+	it("a homework row: every problem by its own number, each one a pick that says what it does", () => {
 		const problems: HomeworkProblem[] = [
 			{ number: "1", title: "Gradient", text: "", done: true },
 			{ number: "2b", title: "Step size", text: "", done: false },
-			{ number: "3", title: "Momentum", text: "", done: true },
+			{ number: "Ex. 4", title: "Momentum", text: "", done: false },
 		];
-		const row = homeworkRow(problems, "2b", { "1": "p1", "2b": "p2" })!;
-		assert.deepEqual(row.map((s) => [s.number, s.name, s.tone, s.jump]), [["1", "Gradient", "done", "p1"], ["2b", "Step size", "current", null], ["3", "Momentum", "done", null]]);
-		assert.equal(homeworkRow([], null, {}), null);
+		const row = homeworkRow(problems, "2b", null)!;
+		assert.deepEqual(row.map((s) => [s.number, s.tone, s.done]), [["1", "done", true], ["2b", "current", false], ["Ex. 4", "later", false]]);
+		assert.deepEqual(row.map((s) => s.label), ["Problem 1, Gradient, done. Open it again", "Problem 2b, Step size, open now. Go to your work", "Ex. 4, Momentum. Open it"]);
+		assert.equal(homeworkRow([], null, null), null);
+	});
+
+	it("a done problem opened again is current and keeps its check", () => {
+		const row = homeworkRow([{ number: "1", title: "Gradient", text: "", done: true }], "1", null)!;
+		assert.deepEqual([row[0]!.tone, row[0]!.done], ["current", true]);
+	});
+
+	it("while no problem can open, every other cell says why, on hover too", () => {
+		const problems: HomeworkProblem[] = [
+			{ number: "1", title: "Gradient", text: "", done: true },
+			{ number: "2", title: "Step size", text: "", done: false },
+		];
+		const row = homeworkRow(problems, "2", "The teacher is writing.")!;
+		assert.deepEqual(row.map((s) => [s.label, s.hint]), [
+			["Problem 1, Gradient, done. The teacher is writing.", "Gradient. The teacher is writing."],
+			["Problem 2, Step size, open now. Go to your work", "Step size"],
+		]);
+	});
+
+	it("a pick's go-ahead and spoken line use the assignment's own number", () => {
+		assert.deepEqual([startProblemLabel("3"), startProblemLabel("Ex. 4"), openingLabel("2b")], ["Start problem 3", "Start Ex. 4", "Opening problem 2b"]);
 	});
 
 	it("a plan step's number is its place in the plan", () => {

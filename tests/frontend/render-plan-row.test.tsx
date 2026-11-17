@@ -61,7 +61,7 @@ const chainEdges = [
 	{ from: "a", to: "b" },
 	{ from: "b", to: "c" },
 ];
-const base: RowProps = { kind: "teach", spaceId: undefined, stepBar: bar, edges: chainEdges, stop: null, homework: null, practice: null, onJump: () => {}, onOpenPlan: () => {}, busy: false };
+const base: RowProps = { kind: "teach", spaceId: undefined, stepBar: bar, edges: chainEdges, stop: null, homework: null, practice: null, onJump: () => {}, onPick: () => {}, onOpenPlan: () => {}, busy: false };
 
 let host: HTMLElement | null = null;
 let root: Root | null = null;
@@ -152,7 +152,7 @@ describe("the plan row of a plan lesson", () => {
 });
 
 describe("the plan row of a homework lesson", () => {
-	const hw = { problems, open: "2", cards: { "1": "p1", "2": "p2" } };
+	const hw = { problems, open: "2", blocked: null };
 	const homework: RowProps = { ...base, kind: "homework", stepBar: null, homework: hw };
 
 	it("names every problem by its own number over its bar, the open one marked, with no count and no button to a list", () => {
@@ -163,22 +163,41 @@ describe("the plan row of a homework lesson", () => {
 		assert.doesNotMatch(html, /of 3 done|See the problems|problems-open/);
 	});
 
-	it("a done problem is a button back to its card", async () => {
-		const jumps: string[] = [];
-		const el = await mount(<PlanRow {...homework} onJump={(id) => jumps.push(id)} />);
-		const buttons = el.querySelectorAll<HTMLButtonElement>('[data-testid="plan-step"] button');
-		assert.equal(buttons.length, 1);
+	it("every problem is a button: a pick opens it, the open one goes to the work, and the pick is said aloud", async () => {
+		const picks: Array<string | null> = [];
+		const el = await mount(<PlanRow {...homework} onPick={(n) => picks.push(n)} />);
+		const buttons = el.querySelectorAll<HTMLButtonElement>('[data-testid="problem-pick"]');
+		assert.deepEqual([...buttons].map((b) => b.getAttribute("aria-label")), ["Problem 1, Gradient, done. Open it again", "Problem 2, Step size, open now. Go to your work", "Problem 3, Momentum. Open it"]);
+		assert.equal(el.querySelector('[aria-label="Problems"]') !== null, true);
+		await act(async () => buttons[2]!.click());
+		await act(async () => buttons[1]!.click());
 		await act(async () => buttons[0]!.click());
-		assert.deepEqual(jumps, ["p1"]);
+		assert.deepEqual(picks, ["3", null, "1"]);
+		assert.equal(el.querySelector('[aria-live="polite"]')!.textContent, "Opening problem 1");
+	});
+
+	it("while no problem can open, a cell stays focusable, says why and picks nothing", async () => {
+		const picks: Array<string | null> = [];
+		const el = await mount(<PlanRow {...homework} homework={{ ...hw, blocked: "Answer the question first." }} onPick={(n) => picks.push(n)} />);
+		const later = el.querySelectorAll<HTMLButtonElement>('[data-testid="problem-pick"]')[2]!;
+		assert.equal(later.disabled, false);
+		assert.equal(later.getAttribute("aria-disabled"), "true");
+		assert.equal(later.getAttribute("aria-label"), "Problem 3, Momentum. Answer the question first.");
+		await act(async () => later.click());
+		assert.deepEqual(picks, []);
+		assert.equal(el.querySelector('[aria-live="polite"]')!.textContent, "");
+		const open = el.querySelectorAll<HTMLButtonElement>('[data-testid="problem-pick"]')[1]!;
+		assert.equal(open.hasAttribute("aria-disabled"), false, "the open one still goes to the work");
 	});
 
 	it("above twelve problems each cell is its number alone, with the title on hover", () => {
 		const many = Array.from({ length: 15 }, (_, i) => ({ number: String(i + 1), title: `Made-up problem ${i + 1}`, text: "…", done: i < 4 }));
-		const html = renderToStaticMarkup(<PlanRow {...homework} homework={{ problems: many, open: "5", cards: {} }} />);
+		const html = renderToStaticMarkup(<PlanRow {...homework} homework={{ problems: many, open: "5", blocked: null }} />);
 		assert.equal([...html.matchAll(/data-testid="plan-step"/g)].length, 15);
 		assert.match(html, /title="Made-up problem 15"/);
 		assert.doesNotMatch(html, />Made-up problem/, "no name inside a cell");
-		const twelve = renderToStaticMarkup(<PlanRow {...homework} homework={{ problems: many.slice(0, 12), open: "5", cards: {} }} />);
+		assert.match(html, /aria-label="Problem 15, Made-up problem 15\. Open it"/, "a screen reader still hears each name");
+		const twelve = renderToStaticMarkup(<PlanRow {...homework} homework={{ problems: many.slice(0, 12), open: "5", blocked: null }} />);
 		assert.match(twelve, />Made-up problem 12</, "twelve still show their names");
 	});
 

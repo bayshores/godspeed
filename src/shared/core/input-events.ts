@@ -5,7 +5,7 @@
  * like. An input event retries safely: nothing was appended when a POST
  * is refused.
  *
- * The teach events (practice adds `next` and homework `teach`, below):
+ * The teach events (practice adds `next` and homework `open`, below):
  *   text    — a learner-authored user message (composer send, initial
  *             topic, the demo error-fix loop)
  *   answer  — the pending question's graded result (QuestionAnswerData,
@@ -20,8 +20,8 @@
  *             (text, files or both) while a question waits, which stays
  *             open around it. With a problem open, a message is plain
  *             text: the learner's work on it, or a question about it.
- *   teach   — "Teach me this" on an open homework problem; the problem
- *             stays open.
+ *   open    — a pick from a homework lesson's problem list; the teacher
+ *             opens that problem, done or not.
  *   opener-answer — the answer to the next topic's opener (a question
  *             topic_done stored, shown by the app after Keep going), or
  *             its skip.
@@ -40,7 +40,7 @@ import {
 	danglingQuestionOf,
 	newAnswerResult,
 	newNextMessage,
-	newTeachMessage,
+	newOpenProblemMessage,
 	
 	newSideQuestion,
 	newUserMessage,
@@ -68,9 +68,9 @@ export type ChatInput =
 	 *  chip or Enter on an empty composer. Practice sessions only, and
 	 *  only with nothing active. */
 	| { type: "next" }
-	/** "Teach me this": the learner asks for the open homework problem's
-	 *  method. The problem stays open. */
-	| { type: "teach" }
+	/** A pick from a homework lesson's problem list, done or not: the
+	 *  teacher opens that one. */
+	| { type: "open"; number: string }
 	/** His answer to the next topic's opener, which has no tool call of
 	 *  its own; null is Skip question. */
 	| { type: "opener-answer"; topicDoneCallId: string; answer: QuestionAnswerData | null };
@@ -127,11 +127,18 @@ export function inputAppends(
 			}
 			return [...dismissalConclusion(record), newNextMessage()];
 		}
-		case "teach":
-			if (record.kind !== "homework" || !activeProblemOf(record.messages)) {
-				throw new ChatInputError("teach input requires an open homework problem");
+		case "open": {
+			if (record.kind !== "homework") {
+				throw new ChatInputError("open input is a homework session affordance");
 			}
-			return [newTeachMessage()];
+			if (danglingQuestionOf(record.messages)) {
+				throw new ChatInputError("open input waits for the pending question's answer");
+			}
+			if ((activeProblemOf(record.messages)?.input as { number?: unknown } | undefined)?.number === input.number) {
+				throw new ChatInputError("that problem is already open");
+			}
+			return [...dismissalConclusion(record), newOpenProblemMessage(input.number)];
+		}
 		case "opener-answer":
 			// Only the server's copy reads the record's openers.
 			throw new ChatInputError("opener-answer input is appended by the server");

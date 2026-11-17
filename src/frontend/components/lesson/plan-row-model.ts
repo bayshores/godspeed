@@ -24,11 +24,14 @@ interface RowSummary {
 export interface RowStep extends RowBlock {
 	/** "3" for a plan step, the assignment's own number ("2b") for a problem. */
 	number: string;
-	/** Where a done step goes back to: its first answered question, or a
-	 *  problem's card. */
+	/** Where a done plan step goes back to: its first answered question. */
 	jump: string | null;
 	/** The hover text: the name, and on a done step that goes back, how its answers went. */
 	hint: string;
+	/** Done, so it shows a check; a problem opened again is done and current. */
+	done: boolean;
+	/** What a screen reader says for a problem cell, and why it can't open yet. */
+	label: string;
 }
 
 /** Above this many steps a row shows only numbers and bars (the names go
@@ -57,17 +60,31 @@ export function jumpTarget(step: PlanStep): string | null {
 	return step.answers.find((a) => a.toolCallId)?.toolCallId ?? null;
 }
 
-/** The homework go-ahead: "Start problem 3" for the first problem not done
- *  ("Start Ex. 4" when the assignment names it so). Null when none is left. */
-export function homeworkStartLabel(problems: readonly HomeworkProblem[]): string | null {
-	const next = problems.find((p) => !p.done);
-	if (!next) return null;
-	return /^\d/.test(next.number) ? `Start problem ${next.number}` : `Start ${next.number}`;
+/** A problem by its number as the assignment writes it: "problem 3", or
+ *  "Ex. 4" when the assignment names it so. */
+function problemName(number: string): string {
+	return /^\d/.test(number) ? `problem ${number}` : number;
 }
 
-/** A problem's place in the assignment. */
+/** The go-ahead for one problem: "Start problem 3", "Start Ex. 4". */
+export function startProblemLabel(number: string): string {
+	return `Start ${problemName(number)}`;
+}
+
+/** The homework go-ahead for the first problem not done. Null when none is left. */
+export function homeworkStartLabel(problems: readonly HomeworkProblem[]): string | null {
+	const next = problems.find((p) => !p.done);
+	return next ? startProblemLabel(next.number) : null;
+}
+
+/** What a screen reader hears when a pick goes out: "Opening problem 4". */
+export function openingLabel(number: string): string {
+	return `Opening ${problemName(number)}`;
+}
+
+/** A problem's place in the assignment: the open one is current even when done. */
 function problemTone(problem: HomeworkProblem, open: string | null): Tone {
-	return problem.done ? "done" : problem.number === open ? "current" : "later";
+	return problem.number === open ? "current" : problem.done ? "done" : "later";
 }
 
 /** A plan lesson's row: every step in order. Null with no steps. At a
@@ -78,14 +95,17 @@ export function stepsRow(bar: PlanStepBar, stop: LessonStop | null = null): RowS
 	return bar.steps.map((step, i) => {
 		const jump = jumpTarget(step);
 		const right = jump ? rightCountLabel(step.answers) : null;
+		const tone: Tone = step.status === "visited" || (step.status === "current" && step.id === finished) ? "done" : step.status === "current" ? "current" : "later";
 		return {
 			key: step.id,
-			tone: step.status === "visited" || (step.status === "current" && step.id === finished) ? "done" : step.status === "current" ? "current" : "later",
+			tone,
 			name: step.title,
 			state: step.status,
 			number: String(i + 1),
 			jump,
 			hint: right ? `${step.title}, ${right}` : step.title,
+			done: tone === "done",
+			label: step.title,
 		};
 	});
 }
@@ -108,13 +128,19 @@ export function planBranches(stepIds: readonly string[], edges: ReadonlyArray<{ 
 	return false;
 }
 
-/** A homework lesson's row: every problem in order, a done one going back
- *  to its card (`cards`: each problem's first card by number). Null with no problems. */
-export function homeworkRow(problems: readonly HomeworkProblem[], open: string | null, cards: Readonly<Record<string, string>>): RowStep[] | null {
+/** A homework lesson's row: every problem in order, each one a pick. The
+ *  open one takes him to his work; `blocked` is why no other can open yet.
+ *  Null with no problems. */
+export function homeworkRow(problems: readonly HomeworkProblem[], open: string | null, blocked: string | null): RowStep[] | null {
 	if (problems.length === 0) return null;
 	return problems.map((p) => {
 		const tone = problemTone(p, open);
-		return { key: p.number, tone, name: p.title, state: tone === "later" ? "upcoming" : tone, number: p.number, jump: tone === "done" ? (cards[p.number] ?? null) : null, hint: p.title };
+		const name = problemName(p.number);
+		const named = `${name.charAt(0).toUpperCase()}${name.slice(1)}, ${p.title}`;
+		const label =
+			tone === "current" ? `${named}, open now. Go to your work` : blocked ? `${named}${p.done ? ", done" : ""}. ${blocked}` : p.done ? `${named}, done. Open it again` : `${named}. Open it`;
+		const hint = tone !== "current" && blocked ? `${p.title}. ${blocked}` : p.title;
+		return { key: p.number, tone, name: p.title, state: tone === "later" ? "upcoming" : tone, number: p.number, jump: null, hint, done: p.done, label };
 	});
 }
 

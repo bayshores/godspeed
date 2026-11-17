@@ -5,7 +5,7 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { lazyComponent } from "@/frontend/lib/lazy-component";
 import { cn } from "@/frontend/lib/utils";
 import type { HomeworkProblem, LessonKind, LessonStop, PlanStepBar } from "@/shared/core";
-import { COMPACT_ABOVE, homeworkRow, rowColumns, planBranches, practiceRow, stepsRow, type RowBlock, type RowStep } from "./plan-row-model";
+import { COMPACT_ABOVE, homeworkRow, openingLabel, rowColumns, planBranches, practiceRow, stepsRow, type RowBlock, type RowStep } from "./plan-row-model";
 import type { PracticeProgress } from "./practice-progress";
 
 // The map draws with dagre, which loads with the plan blocks, not the lesson.
@@ -28,7 +28,8 @@ type Edges = ReadonlyArray<{ from: string; to: string }>;
  * map of the plan when it branches; homework lists every problem the same
  * way, each full name wrapping in its cell and the lines evenly filled;
  * practice shows its count and blocks alone. A done step goes back to its
- * first answer, a done problem to its card. A long row shows numbers only,
+ * first answer. Every problem is a pick: the teacher opens it, done or not,
+ * and the open one takes him to his work. A long row shows numbers only,
  * with the names on hover.
  */
 export const PlanRow = memo(function PlanRow({
@@ -40,6 +41,7 @@ export const PlanRow = memo(function PlanRow({
 	homework,
 	practice,
 	onJump,
+	onPick,
 	onOpenPlan,
 	busy,
 }: {
@@ -50,10 +52,12 @@ export const PlanRow = memo(function PlanRow({
 	edges: Edges | null;
 	/** The lesson's stop: the row stays on a topic that just ended. */
 	stop: LessonStop | null;
-	/** `cards`: each problem's first card by number. */
-	homework: { problems: readonly HomeworkProblem[]; open: string | null; cards: Readonly<Record<string, string>> } | null;
+	/** `blocked`: why no problem can open yet. */
+	homework: { problems: readonly HomeworkProblem[]; open: string | null; blocked: string | null } | null;
 	practice: PracticeProgress | null;
 	onJump: (toolCallId: string) => void;
+	/** A problem picked (its number), or null for the open one: go to the work. */
+	onPick: (number: string | null) => void;
 	onOpenPlan: () => void;
 	/** The teacher is writing in this lesson. */
 	busy: boolean;
@@ -73,8 +77,8 @@ export const PlanRow = memo(function PlanRow({
 		);
 	}
 	if (homework || kind !== "practice") {
-		const steps = homework ? homeworkRow(homework.problems, homework.open, homework.cards) : stepBar && stepsRow(stepBar, stop);
-		return steps && <StepsRow steps={steps} edges={homework ? null : edges} color={color} onJump={onJump} onOpenPlan={onOpenPlan} />;
+		const steps = homework ? homeworkRow(homework.problems, homework.open, homework.blocked) : stepBar && stepsRow(stepBar, stop);
+		return steps && <StepsRow steps={steps} edges={homework ? null : edges} color={color} onJump={onJump} onPick={homework ? onPick : null} blocked={homework?.blocked ?? null} onOpenPlan={onOpenPlan} />;
 	}
 	const summary = practice && practiceRow(practice);
 	if (!summary) return null;
@@ -100,8 +104,34 @@ function Block({ block, color }: { block: RowBlock; color: string }) {
 	);
 }
 
-/** A lesson's steps in cells on evenly filled lines, and the plan's map when it branches. */
-function StepsRow({ steps, edges, color, onJump, onOpenPlan }: { steps: RowStep[]; edges: Edges | null; color: string; onJump: (toolCallId: string) => void; onOpenPlan: () => void }) {
+/** A lesson's steps in cells on evenly filled lines, and the plan's map when it branches.
+ *  With `onPick` (homework) every cell is a pick, said aloud as it goes out. */
+function StepsRow({
+	steps,
+	edges,
+	color,
+	onJump,
+	onPick,
+	blocked,
+	onOpenPlan,
+}: {
+	steps: RowStep[];
+	edges: Edges | null;
+	color: string;
+	onJump: (toolCallId: string) => void;
+	onPick: ((number: string | null) => void) | null;
+	blocked: string | null;
+	onOpenPlan: () => void;
+}) {
+	const [said, setSaid] = useState("");
+	const pick =
+		onPick &&
+		((step: RowStep) => {
+			if (step.tone === "current") return onPick(null);
+			if (blocked) return;
+			setSaid(openingLabel(step.number));
+			onPick(step.number);
+		});
 	const n = steps.length;
 	// A plan that is one chain shows no map: the row already says everything.
 	const mapEdges = edges && planBranches(steps.map((s) => s.key), edges) ? edges : null;
@@ -123,14 +153,19 @@ function StepsRow({ steps, edges, color, onJump, onOpenPlan }: { steps: RowStep[
 		<div data-testid="plan-row" className="flex min-w-0 shrink-0 items-start gap-6">
 			<ol
 				ref={list}
-				aria-label="Plan steps"
+				aria-label={onPick ? "Problems" : "Plan steps"}
 				className="grid min-w-0 flex-1 gap-y-3"
 				style={{ columnGap: CELL_GAP, gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, maxWidth: columns * cell.max + (columns - 1) * CELL_GAP }}
 			>
 				{steps.map((step) => (
-					<StepCell key={step.key} step={step} compact={compact} color={color} onJump={onJump} />
+					<StepCell key={step.key} step={step} compact={compact} color={color} onJump={onJump} pick={pick} blocked={blocked !== null && step.tone !== "current"} />
 				))}
 			</ol>
+			{onPick && (
+				<p className="sr-only" aria-live="polite">
+					{said}
+				</p>
+			)}
 			{mapEdges && (
 				<div data-testid="plan-map-box" className={cn("ml-auto flex shrink-0 items-start justify-end", MAP_BOX)}>
 					<PlanMiniMap steps={steps} edges={mapEdges} color={color} onOpen={onOpenPlan} />
@@ -141,12 +176,28 @@ function StepsRow({ steps, edges, color, onJump, onOpenPlan }: { steps: RowStep[
 }
 
 /** One step: its number and name over a bar in its tone, a check when done
- *  (compact: the number alone). A done step that can go back is a button. */
-function StepCell({ step, compact, color, onJump }: { step: RowStep; compact: boolean; color: string; onJump: (toolCallId: string) => void }) {
+ *  (compact: the number alone). A done step that can go back is a button,
+ *  and so is every problem; one that can't open yet stays focusable and
+ *  says why. */
+function StepCell({
+	step,
+	compact,
+	color,
+	onJump,
+	pick,
+	blocked,
+}: {
+	step: RowStep;
+	compact: boolean;
+	color: string;
+	onJump: (toolCallId: string) => void;
+	pick: ((step: RowStep) => void) | null;
+	blocked: boolean;
+}) {
 	const body = (
 		<>
 			<span className="flex min-w-0 items-baseline gap-2">
-				{!compact && step.tone === "done" && <PixelIcon name="check" className="shrink-0 self-center" />}
+				{!compact && step.done && <PixelIcon name="check" className="shrink-0 self-center" />}
 				<span className="shrink-0 font-count">{step.number}</span>
 				{!compact && <span className="min-w-0 break-words">{step.name}</span>}
 			</span>
@@ -157,7 +208,11 @@ function StepCell({ step, compact, color, onJump }: { step: RowStep; compact: bo
 	const { jump } = step;
 	return (
 		<li data-testid="plan-step" data-status={step.state} aria-current={step.tone === "current" ? "step" : undefined} title={step.hint} className="flex min-w-0">
-			{jump ? (
+			{pick ? (
+				<button type="button" data-testid="problem-pick" aria-label={step.label} aria-disabled={blocked || undefined} onClick={() => pick(step)} className={cn(cls, !blocked && "hover:text-ink", blocked && "cursor-default")}>
+					{body}
+				</button>
+			) : jump ? (
 				<button type="button" onClick={() => onJump(jump)} className={cn(cls, "hover:text-ink")}>
 					{body}
 				</button>

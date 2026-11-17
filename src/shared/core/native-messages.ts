@@ -38,7 +38,7 @@ import {
 	CONCLUDE_ACK_TEXT,
 	TOPIC_DONE_TOOL,
 	NEXT_PROBLEM_TEXT,
-	TEACH_ME_TEXT,
+	openProblemText,
 } from "./contracts/chat.ts";
 import { compactAnswerForModel, type QuestionAnswerData } from "./question-core.ts";
 import { activeCompactionOf, keptIndexFor } from "./compaction.ts";
@@ -300,17 +300,16 @@ export function newNextMessage(): LhMarkerMessage {
 	};
 }
 
-/** The learner asks the teacher to teach the open homework problem's
- *  method; the problem stays open. The transcript draws its own line off
- *  the marker. */
-export function newTeachMessage(): LhMarkerMessage {
+/** The learner's pick of a homework problem: a go-ahead naming the one to
+ *  open. The transcript draws its own line off the marker. */
+export function newOpenProblemMessage(number: string): LhMarkerMessage {
 	return {
 		id: newMessageId(),
 		role: "custom",
-		customType: "teach-me",
-		content: TEACH_ME_TEXT,
+		customType: "practice-next",
+		content: openProblemText(number),
 		display: true,
-		details: {},
+		details: { number },
 		timestamp: Date.now(),
 	};
 }
