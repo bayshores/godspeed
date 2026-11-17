@@ -105,7 +105,7 @@ export const SCREENS = [
 	{ name: "Today, the plus list", url: "/", ready: deadlineCard, setup: `document.querySelector("[data-testid=spaces-plus]").click()`, shows: "[data-testid=spaces-plus-list][data-state=open]" },
 	{ name: "Today, a space tab's menu", url: "/", ready: deadlineCard, setup: rightClick(`document.querySelector("[data-testid=space-option-{space}]")`), shows: "[data-testid=space-menu][data-state=open]" },
 	{ name: "Progress", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]" },
-	{ name: "Progress, every lesson shown", url: "/space", ready: "[data-testid=lesson-show-all]", setup: `document.querySelectorAll("[data-testid=lesson-show-all]").forEach((button) => button.click())`, shows: "[data-testid=lesson-record] li:nth-child(10)" },
+	{ name: "Progress, every unfinished lesson shown", url: "/space", ready: "[data-testid=unfinished-show-all]", setup: `document.querySelector("[data-testid=unfinished-show-all]").click()`, shows: "[data-testid=unfinished-lessons] li:nth-child(5)" },
 	{ name: "Progress, a lesson's menu", url: "/space", ready: "[data-testid=lesson-row-menu]", setup: `document.querySelector("[data-testid=lesson-row-menu]").click()`, shows: "[data-testid=lesson-menu][data-state=open]" },
 	{ name: "Files", url: "/space/files", ready: "[data-testid=files-list] > *" },
 	{ name: "Files, a file's menu", url: "/space/files", ready: "[data-testid=files-list] button[aria-label^='More for']", setup: `document.querySelector("[data-testid=files-list] button[aria-label^='More for']").click()`, shows: "[data-testid^=space-file-menu-body-][data-state=open]" },

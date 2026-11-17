@@ -1,11 +1,11 @@
 /**
- * The Lessons block on Progress: its rows in order, the rows shown with
- * "Show all", an unfinished lesson's chip, and the edits shown before the
- * payload has them.
+ * A space's lessons on Progress: unfinished beside finished, the rows shown
+ * with "Show all", the day a finished row names, an unfinished row's
+ * blocks, its key, and the edits shown before the payload has them.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { keyLabel, lessonOrder, pendingEdits, shownRows, statusChip, withEdits } from "../../src/frontend/components/overview/lesson-record-model.ts";
+import { dayWord, keyLabel, pendingEdits, shownRows, splitLessons, stepBlocks, withEdits } from "../../src/frontend/components/overview/lesson-record-model.ts";
 import type { LessonProgress } from "../../src/shared/core/index.ts";
 
 const lesson = (chatId: string, day: number, over: Partial<LessonProgress> = {}): LessonProgress => ({
@@ -22,39 +22,59 @@ const lesson = (chatId: string, day: number, over: Partial<LessonProgress> = {})
 
 const ids = (lessons: readonly LessonProgress[]) => lessons.map((l) => l.chatId);
 
-describe("lessonOrder", () => {
-	it("unfinished first, then studied, each newest first", () => {
-		const ordered = lessonOrder([lesson("a", 1), lesson("b", 4, { unfinished: true }), lesson("c", 3), lesson("d", 2, { unfinished: true })]);
-		assert.deepEqual(ids(ordered), ["b", "d", "c", "a"]);
-		assert.deepEqual(lessonOrder([]), []);
+describe("splitLessons", () => {
+	it("the unfinished and the finished apart, each newest first", () => {
+		const { unfinished, finished } = splitLessons([lesson("a", 1), lesson("b", 4, { unfinished: true }), lesson("c", 3), lesson("d", 2, { unfinished: true })]);
+		assert.deepEqual(ids(unfinished), ["b", "d"]);
+		assert.deepEqual(ids(finished), ["c", "a"]);
 	});
 });
 
 describe("shownRows", () => {
 	const many = (n: number) => Array.from({ length: n }, (_, i) => lesson(`l${i}`, 1));
 
-	it("the first 8 rows and Show all naming the total", () => {
-		const { rows, showAll } = shownRows(many(13), false);
-		assert.equal(rows.length, 8);
-		assert.equal(showAll, 13);
+	it("the first rows up to the limit and Show all naming the total", () => {
+		const { rows, showAll } = shownRows(many(15), 12, false);
+		assert.equal(rows.length, 12);
+		assert.equal(showAll, 15);
+		assert.equal(shownRows(many(5), 3, false).rows.length, 3);
 	});
 
 	it("one hidden row is shown instead of hidden", () => {
-		assert.deepEqual(shownRows(many(9), false), { rows: many(9), showAll: null });
-		assert.equal(shownRows(many(10), false).showAll, 10);
+		assert.deepEqual(shownRows(many(4), 3, false), { rows: many(4), showAll: null });
+		assert.equal(shownRows(many(5), 3, false).showAll, 5);
 	});
 
 	it("Show all shows every row and no button", () => {
-		assert.deepEqual(shownRows(many(13), true), { rows: many(13), showAll: null });
+		assert.deepEqual(shownRows(many(13), 12, true), { rows: many(13), showAll: null });
 	});
 });
 
-describe("statusChip", () => {
-	it("the plan's step, Homework for homework, Started before the first step and with no plan", () => {
-		assert.equal(statusChip({ kind: "teach", step: { done: 3, total: 5 } }), "Step 3 of 5");
-		assert.equal(statusChip({ kind: "homework", step: { done: 2, total: 4 } }), "Homework");
-		assert.equal(statusChip({ kind: "teach", step: { done: 0, total: 5 } }), "Started");
-		assert.equal(statusChip({ kind: "study" }), "Started");
+describe("dayWord", () => {
+	const now = new Date(2026, 10, 17, 9, 0).getTime();
+	const at = (y: number, m: number, d: number, h = 12) => new Date(y, m, d, h).toISOString();
+
+	it("Today, Yesterday, then the month and day, with the year once it is another year's", () => {
+		assert.equal(dayWord(at(2026, 10, 17, 1), now), "Today");
+		assert.equal(dayWord(at(2026, 10, 16, 23), now), "Yesterday");
+		assert.equal(dayWord(at(2026, 10, 14), now), "Nov 14");
+		assert.equal(dayWord(at(2025, 11, 30), now), "Dec 30, 2025");
+		assert.equal(dayWord("not a date", now), "");
+	});
+});
+
+describe("stepBlocks", () => {
+	const problems = (id: string) => (id === "hw" ? { done: 1, total: 4 } : undefined);
+
+	it("a homework shows its deadline's problems; any other lesson its plan's steps", () => {
+		assert.deepEqual(stepBlocks({ kind: "homework", deadlineId: "hw", step: { done: 2, total: 3 } }, problems), { done: 1, total: 4 });
+		assert.deepEqual(stepBlocks({ kind: "teach", step: { done: 2, total: 3 } }, problems), { done: 2, total: 3 });
+	});
+
+	it("a homework with no deadline found falls back to its steps; nothing to draw is null", () => {
+		assert.deepEqual(stepBlocks({ kind: "homework", deadlineId: "gone", step: { done: 1, total: 2 } }, problems), { done: 1, total: 2 });
+		assert.equal(stepBlocks({ kind: "practice" }, problems), null);
+		assert.equal(stepBlocks({ kind: "teach", step: { done: 0, total: 0 } }, problems), null);
 	});
 });
 

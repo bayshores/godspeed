@@ -15,7 +15,6 @@ import {
 	mostNeeded,
 	noteWhen,
 	percent,
-	progressShare,
 	progressWords,
 	questionHref,
 	upcomingDeadlines,
@@ -90,10 +89,6 @@ describe("deadlines on Progress", () => {
 		assert.equal(progressWords({ problems: { done: 2, total: 7 }, ready: 0.5 }), "2 of 7 problems done");
 		assert.equal(progressWords({ ready: 0.186 }), "19% ready");
 		assert.equal(progressWords({ ready: null }), null);
-		assert.equal(progressShare({ problems: { done: 2, total: 8 }, ready: 0.5 }), 0.25);
-		assert.equal(progressShare({ problems: { done: 0, total: 0 }, ready: 0.5 }), 0);
-		assert.equal(progressShare({ ready: 0.4 }), 0.4);
-		assert.equal(progressShare({ ready: null }), null);
 	});
 
 	it("links and numbers", () => {

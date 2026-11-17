@@ -1,35 +1,57 @@
-/** The Lessons block on Progress: its rows in order, how many show, what
- *  an unfinished lesson's chip says, and the edits shown before the payload
- *  has them. Pure. */
+/** A space's lessons on Progress: the unfinished ones beside the finished
+ *  ones, how many of each show, the day a finished row names, a row's step
+ *  blocks, and the edits shown before the payload has them. Pure. */
 import type { LessonProgress } from "@/shared/core";
 
-/** Rows shown until "Show all". */
-const SHOWN = 8;
+/** Unfinished lessons shown until "Show all". */
+export const UNFINISHED_SHOWN = 3;
+/** Finished lessons shown until "Show all". */
+export const FINISHED_SHOWN = 12;
 
-/** Unfinished lessons first, then the studied ones, each newest first. */
-export function lessonOrder(lessons: readonly LessonProgress[]): LessonProgress[] {
+/** The unfinished lessons and the finished ones, each newest first. */
+export function splitLessons(lessons: readonly LessonProgress[]): { unfinished: LessonProgress[]; finished: LessonProgress[] } {
 	const newest = [...lessons].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-	return [...newest.filter((l) => l.unfinished), ...newest.filter((l) => !l.unfinished)];
+	return { unfinished: newest.filter((l) => l.unfinished), finished: newest.filter((l) => !l.unfinished) };
 }
 
-/** The rows the block shows, and the count "Show all" names (null when none
- *  is hidden). One hidden row is shown instead of hidden. */
-export function shownRows(lessons: readonly LessonProgress[], shownAll: boolean): { rows: readonly LessonProgress[]; showAll: number | null } {
-	if (shownAll || lessons.length <= SHOWN + 1) return { rows: lessons, showAll: null };
-	return { rows: lessons.slice(0, SHOWN), showAll: lessons.length };
-}
-
-/** An unfinished lesson's chip: "Homework", its step ("Step 3 of 5"), or
- *  "Started" before the first step and with no plan. */
-export function statusChip(lesson: Pick<LessonProgress, "kind" | "step">): string {
-	if (lesson.kind === "homework") return "Homework";
-	const step = lesson.step;
-	return step && step.done > 0 ? `Step ${step.done} of ${step.total}` : "Started";
+/** The rows a list shows, and the count "Show all" names (null when none is
+ *  hidden). One hidden row is shown instead of hidden. */
+export function shownRows<T>(rows: readonly T[], limit: number, shownAll: boolean): { rows: readonly T[]; showAll: number | null } {
+	if (shownAll || rows.length <= limit + 1) return { rows, showAll: null };
+	return { rows: rows.slice(0, limit), showAll: rows.length };
 }
 
 /** An unfinished lesson's key: "Work on it" for homework, else "Continue". */
 export function keyLabel(lesson: Pick<LessonProgress, "kind">): string {
 	return lesson.kind === "homework" ? "Work on it" : "Continue";
+}
+
+/** A homework lesson's blocks are its deadline's problems; any other
+ *  lesson's are the steps of its plan. Null with neither. */
+export function stepBlocks(
+	lesson: Pick<LessonProgress, "kind" | "step" | "deadlineId">,
+	problemsOf: (deadlineId: string) => { done: number; total: number } | undefined,
+): { done: number; total: number } | null {
+	const problems = lesson.kind === "homework" && lesson.deadlineId ? problemsOf(lesson.deadlineId) : undefined;
+	const blocks = problems ?? lesson.step;
+	return blocks && blocks.total > 0 ? blocks : null;
+}
+
+const startOfDay = (ms: number) => {
+	const d = new Date(ms);
+	return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+};
+
+/** The day a lesson was last worked on: "Today", "Yesterday", "Nov 14",
+ *  or "Nov 14, 2025" in another year. */
+export function dayWord(at: string, nowMs: number): string {
+	const ms = Date.parse(at);
+	if (Number.isNaN(ms)) return "";
+	const days = Math.round((startOfDay(nowMs) - startOfDay(ms)) / 86_400_000);
+	if (days <= 0) return "Today";
+	if (days === 1) return "Yesterday";
+	const sameYear = new Date(ms).getFullYear() === new Date(nowMs).getFullYear();
+	return new Date(ms).toLocaleDateString("en-US", sameYear ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" });
 }
 
 /** Renames, deletes and moves the server took that the payload may not show

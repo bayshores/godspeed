@@ -93,12 +93,6 @@ export const STATUS_LEGEND: readonly { key: keyof StatusCounts; label: string; r
 	{ key: "untested", label: "not tested", rate: null },
 ];
 
-/** The same as a share, 0 to 1; null with nothing to count. */
-export function progressShare(d: Pick<DeadlineProgress, "problems" | "ready">): number | null {
-	if (d.problems) return d.problems.total > 0 ? d.problems.done / d.problems.total : 0;
-	return d.ready;
-}
-
 /** "a", "a and b", "a, b and c". */
 export function joinAnd(names: readonly string[]): string {
 	if (names.length <= 1) return names[0] ?? "";

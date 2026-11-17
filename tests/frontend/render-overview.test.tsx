@@ -1,7 +1,8 @@
 /**
  * The Progress tab: the page body rendered from a fixture ProgressPayload:
- * the teacher's note, the next deadline (its words, bar and button), Most
- * needed, Lessons (Unfinished and Studied, Show all, the lesson menu), the
+ * the side column (the next deadline with its blocks, words and keys, the
+ * unfinished lessons, the path, Most needed), the wide one (the teacher's
+ * note, the finished lessons, Show all, the lesson menu from either column), the
  * confidence chart (target lines, red where a sure level falls short,
  * takeaway, sure-but-wrong links into the lesson), the space's path, the
  * no-space variant, and the clicks.
@@ -190,16 +191,16 @@ const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "
 // ─── order ──────────────────────────────────────────────────────────────────
 
 describe("Progress, top to bottom", () => {
-	it("note, next deadline, Most needed, Lessons, Facts, confidence", () => {
+	it("the side column (next deadline, Most needed), then the wide one (note, Lessons, Facts, confidence)", () => {
 		const html = render({ note: { text: "Strong on sets.", at: "2026-10-26T12:00:00" } });
-		const at = ["teacher-note", "next-deadline", "most-needed", "lesson-record", "space-facts", "overview-confidence"].map((id) => html.indexOf(`data-testid="${id}"`));
+		const at = ["progress-side", "next-deadline", "most-needed", "teacher-note", "lesson-record", "space-facts", "overview-confidence"].map((id) => html.indexOf(`data-testid="${id}"`));
 		assert.ok(at.every((i) => i >= 0), "every part shows");
 		assert.deepEqual(at, [...at].sort((a, b) => a - b));
 	});
 
 	it("loading: only the Lessons heading, so Study something new is still there", () => {
 		const html = render({ data: null });
-		for (const id of ["next-deadline", "most-needed", "lesson-row", "space-facts", "overview-confidence"]) assert.ok(!html.includes(id));
+		for (const id of ["progress-side", "next-deadline", "most-needed", "lesson-row", "space-facts", "overview-confidence"]) assert.ok(!html.includes(id));
 		assert.match(text(section(html, "lesson-record")), /> Lessons Study something new\s*$/);
 		assert.match(tag(html, "study-something-new"), /href="\/new"/);
 	});
@@ -207,8 +208,15 @@ describe("Progress, top to bottom", () => {
 	it("no space: lessons and confidence only, under the spaces to switch to", () => {
 		const html = render({ hasSpace: false, pickSpace: <p>pick one</p> });
 		assert.ok(html.indexOf("pick one") < html.indexOf('data-testid="lesson-record"'));
-		for (const id of ["next-deadline", "most-needed", "space-facts"]) assert.ok(!html.includes(id));
+		for (const id of ["progress-side", "next-deadline", "most-needed", "space-facts"]) assert.ok(!html.includes(id), `${id} is left out`);
 		for (const id of ["lesson-record", "overview-confidence"]) assert.ok(html.includes(`data-testid="${id}"`));
+	});
+
+	it("no space but an unfinished lesson: the side column holds only it", () => {
+		const loose = { ...lesson("u9", "Loose start", ""), unfinished: true as const };
+		const html = render({ hasSpace: false, data: { ...PAYLOAD, lessons: [loose] } });
+		assert.match(text(section(html, "progress-side", "</section>")), /Unfinished Loose start More Continue/);
+		for (const id of ["next-deadline", "space-path", "most-needed"]) assert.ok(!html.includes(id));
 	});
 
 	it("no lessons, no answers: No lessons yet, and no chart", () => {
@@ -236,17 +244,26 @@ describe("The teacher's note", () => {
 // ─── the next deadline ──────────────────────────────────────────────────────
 
 describe("The next deadline", () => {
-	it("the soonest open deadline still ahead: days left, name, then day and how far, and its page", () => {
+	it("the soonest open deadline still ahead: days left, name, day, its problems as blocks and in words, and its page", () => {
 		const html = section(render(), "next-deadline");
 		assert.match(text(html), /2 days HW 5 Thursday Oct 29 2 of 7 problems done/);
 		assert.match(tag(html, "next-deadline-open"), /href="\/space\/deadline\/d1"/);
-		assert.match(html, /width:28\.57/, "the bar is as far as the problems done");
+		const blocks = section(html, "step-blocks", "</span></span>");
+		assert.equal(blocks.split("bg-ink").length - 1, 2, "two of seven blocks inked");
+		assert.equal(blocks.split("<span").length - 1, 7);
 		assert.match(html, /data-teacher-target="deadline:d1"/);
 	});
 
-	it("homework gets Study for it and Work on it, a test one Study key", () => {
+	it("a test's topics as blocks, weakest first, with how ready in words", () => {
+		const html = section(render({ data: { ...PAYLOAD, deadlines: [DEADLINES[0]!] } }), "next-deadline");
+		assert.deepEqual([...html.matchAll(/title="(Convexity|Sets)"/g)].map((m) => m[1]), ["Convexity", "Sets"]);
+		assert.ok(!html.includes("step-blocks"));
+	});
+
+	it("homework gets Study and Work on it, a test one Study key", () => {
 		const hw = section(render(), "next-deadline");
-		assert.match(text(section(hw, "deadline-keys")), /Study for HW 5\s*Work on HW 5/);
+		assert.match(text(section(hw, "deadline-keys")), /Study\s*Work on it/, "the name is the card's title, not said again on its keys");
+		assert.match(tag(hw, "deadline-work"), /title="Work on HW 5"/);
 		assert.ok(!hw.includes("next-deadline-start"));
 		const exam = render({ data: { ...PAYLOAD, deadlines: [DEADLINES[0]!] } });
 		assert.match(text(section(exam, "next-deadline-start", "</button>")), /Study\s*$/);
@@ -256,7 +273,7 @@ describe("The next deadline", () => {
 	it("nothing to measure: says so, with no bar", () => {
 		const html = section(render({ data: { ...PAYLOAD, deadlines: [deadline("d3", "Reading", "2026-11-06", { kind: "exam", topics: [], ready: null })] } }), "next-deadline");
 		assert.match(text(html), /Not measured yet/);
-		assert.ok(!html.includes("lh-grow"));
+		assert.ok(!html.includes("size-[18px]") && !html.includes("step-blocks"), "no blocks");
 	});
 
 	it("no deadlines: one line and Add a deadline", () => {
@@ -292,16 +309,20 @@ function path(count: number, strong: number): PathProgress {
 }
 
 describe("The path", () => {
-	it("comes first: the goal and place, the topic Study takes with what it covers, then the next three", () => {
+	it("beside a deadline: under it, the goal and place, the topic Study takes with what it covers, the next three, and a grey Study", () => {
 		const html = render({ data: { ...PAYLOAD, deadlines: DEADLINES, facts: FACTS, path: path(28, 3) } });
-		assert.ok(html.indexOf('data-testid="space-path"') < html.indexOf('data-testid="next-deadline"'));
+		assert.ok(html.indexOf('data-testid="next-deadline"') < html.indexOf('data-testid="space-path"'));
 		assert.match(text(section(html, "space-path")), /> Path to backend developer, 4 of 28 Topic 4 What topic 4 covers\. Study Topic 5 Topic 6 Topic 7 Show all 28 $/);
+		assert.doesNotMatch(tag(html, "space-path-study"), /lh-btn-main/, "the deadline's key is the page's dark one");
 	});
 
-	it("in a space with no deadline it takes the place of No deadlines yet", () => {
+	it("with no deadline ahead it takes the deadline card's place, and the dark key", () => {
 		const html = render({ data: { ...PAYLOAD, path: path(3, 0) } });
 		assert.ok(!html.includes("next-deadline"));
 		assert.match(text(section(html, "space-path")), /> Path to backend developer, 1 of 3 Topic 1 What topic 1 covers\. Study Topic 2 Topic 3 $/, "nothing left out: no Show all");
+		assert.match(tag(html, "space-path-study"), /lh-btn-main/);
+		const past = render({ data: { ...PAYLOAD, deadlines: DEADLINES.slice(2), path: path(3, 0) } });
+		assert.ok(!past.includes("next-deadline-none"), "only past deadlines: the path, not Nothing is coming up");
 	});
 
 	it("once every topic is strong it says so, with no place", () => {
@@ -331,25 +352,27 @@ describe("Lessons", () => {
 		{ ...lesson("s1", "Big-O basics", "rrwrr"), updatedAt: hoursAgo(26) },
 		{ ...lesson("u1", "Induction proofs", "r"), updatedAt: hoursAgo(1), unfinished: true, step: { done: 3, total: 5 } },
 		{ ...lesson("s2", "Just looked", ""), updatedAt: "2026-10-20T12:00:00" },
+		{ ...lesson("s3", "Recursion", "rw"), updatedAt: hoursAgo(30) },
 		{ ...lesson("u2", "Work on Homework 4", ""), kind: "homework", updatedAt: hoursAgo(2), unfinished: true, step: { done: 2, total: 4 }, deadlineId: "d1" },
 	];
-	const html = () => render({ data: { ...PAYLOAD, lessons: LESSONS } });
+	const html = () => render({ data: { ...PAYLOAD, deadlines: DEADLINES, lessons: LESSONS } });
+	const rowsOf = (h: string, testid: string) => section(h, testid, "</ul>").split("<li").slice(1);
 
-	it("one list: the unfinished lessons first, then the studied ones, each newest first", () => {
-		const block = text(section(html(), "lesson-record", "</section>"));
-		assert.match(block, /Lessons Study something new Induction proofs Continue Step 3 of 5 \S.*? More Work on Homework 4 Homework \S.*? More Big-O basics 4 of 5 yesterday More Just looked Oct 20 More\s*$/);
+	it("the unfinished ones in the side column, the finished ones in Lessons, never both, each newest first", () => {
+		const page = html();
+		assert.match(text(section(page, "unfinished-lessons")), /> Unfinished Induction proofs More Continue Work on Homework 4 More $/);
+		assert.match(text(section(page, "lesson-record")), /> Lessons Study something new Yesterday Big-O basics More Recursion More Oct 20 Just looked More $/);
 	});
 
-	it("an unfinished row opens its lesson and shows its chip; only the first carries the key", () => {
-		const rows = section(html(), "lesson-record", "</ul>").split("<li").slice(1);
-		assert.equal(rows.length, 4);
+	it("an unfinished row opens its lesson and shows its steps as blocks, a homework its deadline's problems; only the first carries the key", () => {
+		const rows = rowsOf(html(), "unfinished-lessons");
+		assert.equal(rows.length, 2);
 		assert.match(tag(rows[0]!, "lesson-row"), /href="\/chat\/u1"/);
 		assert.match(tag(rows[0]!, "lesson-row"), /data-teacher-target="lesson:u1"/);
+		assert.match(tag(rows[0]!, "step-blocks"), /aria-label="Step 3 of 5"/);
 		assert.match(section(rows[0]!, "lesson-row-key", "</span>"), />Continue(<|$)/);
-		assert.match(section(rows[0]!, "lesson-row-status", "</span>"), />Step 3 of 5(<|$)/);
-		assert.ok(!rows[1]!.includes("lesson-row-key"), "one key in the block");
-		assert.match(section(rows[1]!, "lesson-row-status", "</span>"), />Homework(<|$)/);
-		assert.ok(rows.every((r) => r.includes('data-testid="lesson-row-menu"')), "More on every row");
+		assert.match(tag(rows[1]!, "step-blocks"), /aria-label="2 of 7 problems done"/);
+		assert.ok(!rows[1]!.includes("lesson-row-key"), "one key in the list");
 	});
 
 	it("the key says Work on it when the first unfinished lesson is homework", () => {
@@ -357,22 +380,38 @@ describe("Lessons", () => {
 		assert.match(section(only, "lesson-row-key", "</span>"), />Work on it(<|$)/);
 	});
 
-	it("a studied row: a square per answer in order, right of answered, age; none with no answers", () => {
-		const [, , bigO, looked] = section(html(), "lesson-record", "</ul>").split("<li").slice(1);
+	it("a finished row: the day once where it changes, a square per answer in order, the title; no squares with no answers", () => {
+		const [bigO, recursion, looked] = rowsOf(html(), "lesson-record");
 		assert.deepEqual([...bigO!.matchAll(/data-outcome="(\w+)"/g)].map((m) => m[1]), ["right", "right", "wrong", "right", "right"]);
-		assert.ok(!bigO!.includes("lesson-row-status") && !bigO!.includes("lesson-row-key"));
-		assert.ok(!looked!.includes("data-outcome") && !/ of /.test(text(looked!)), "no squares, no 0 of 0");
-		assert.match(text(looked!), /Just looked Oct 20/);
+		assert.match(bigO!, /aria-label="4 of 5 right"/);
+		assert.match(text(bigO!), /Yesterday Big-O basics/);
+		assert.match(text(recursion!), /^\s*>?\s*Recursion/, "the same day is not said again");
+		assert.ok(!looked!.includes("data-outcome") && !looked!.includes("right\""), "no squares");
+		assert.ok(!html().includes("lesson-row-status"), "no chips");
 	});
 
-	it("Show all when rows are hidden; one hidden row is shown instead", () => {
-		const studied = (n: number) => Array.from({ length: n }, (_, i) => ({ ...lesson(`s${i}`, `Lesson ${i}`, "r"), updatedAt: hoursAgo(i + 1) }));
-		const ten = render({ data: { ...PAYLOAD, lessons: studied(10) } });
-		assert.equal(ten.split('data-testid="lesson-row"').length - 1, 8);
-		assert.match(text(section(ten, "lesson-show-all", "</button>")), /Show all 10/);
-		const nine = render({ data: { ...PAYLOAD, lessons: studied(9) } });
-		assert.equal(nine.split('data-testid="lesson-row"').length - 1, 9);
-		assert.ok(!nine.includes("lesson-show-all"));
+	it("More on every row, in both columns", () => {
+		const page = html();
+		assert.equal(page.split('data-testid="lesson-row-menu"').length - 1, LESSONS.length);
+	});
+
+	it("Show all past 12 finished and past 3 unfinished; one hidden row is shown instead", () => {
+		const finished = (n: number) => Array.from({ length: n }, (_, i) => ({ ...lesson(`s${i}`, `Lesson ${i}`, "r"), updatedAt: hoursAgo(i + 1) }));
+		const fifteen = render({ data: { ...PAYLOAD, lessons: finished(15) } });
+		assert.equal(fifteen.split('data-testid="lesson-row"').length - 1, 12);
+		assert.match(text(section(fifteen, "lesson-show-all", "</button>")), /Show all 15/);
+		const thirteen = render({ data: { ...PAYLOAD, lessons: finished(13) } });
+		assert.equal(thirteen.split('data-testid="lesson-row"').length - 1, 13);
+		assert.ok(!thirteen.includes("lesson-show-all"));
+		const unfinished = (n: number) => finished(n).map((l) => ({ ...l, unfinished: true as const }));
+		const five = render({ data: { ...PAYLOAD, lessons: unfinished(5) } });
+		assert.equal(five.split('data-testid="lesson-row"').length - 1, 3);
+		assert.match(text(section(five, "unfinished-show-all", "</button>")), /Show all 5/);
+		assert.ok(!render({ data: { ...PAYLOAD, lessons: unfinished(4) } }).includes("unfinished-show-all"));
+	});
+
+	it("no unfinished lessons: no Unfinished sheet", () => {
+		assert.ok(!render().includes("unfinished-lessons"));
 	});
 });
 
@@ -492,11 +531,11 @@ describe("clicks", () => {
 		const rowTitles = (el: HTMLElement) => [...el.querySelectorAll('[data-testid="lesson-row"]')].map((r) => r.getAttribute("title"));
 
 		it("Show all opens the rest in place", async () => {
-			const lessons = Array.from({ length: 12 }, (_, i) => ({ ...lesson(`s${i}`, `Lesson ${i}`, "r"), updatedAt: new Date(NOW - i * 3_600_000).toISOString() }));
+			const lessons = Array.from({ length: 15 }, (_, i) => ({ ...lesson(`s${i}`, `Lesson ${i}`, "r"), updatedAt: new Date(NOW - i * 3_600_000).toISOString() }));
 			const el = await mount({ data: { ...PAYLOAD, lessons } });
-			assert.equal(rowTitles(el).length, 8);
-			await click(el, "lesson-show-all");
 			assert.equal(rowTitles(el).length, 12);
+			await click(el, "lesson-show-all");
+			assert.equal(rowTitles(el).length, 15);
 			assert.equal(q(el, "lesson-show-all"), null);
 		});
 
@@ -511,6 +550,16 @@ describe("clicks", () => {
 			const row = q(el, "lesson-row")!.parentElement!;
 			await act(async () => row.dispatchEvent(new dom.window.Event("contextmenu", { bubbles: true, cancelable: true })));
 			assert.ok(document.querySelector('[data-testid="lesson-menu"]'), "opened by a right-click");
+		});
+
+		it("an unfinished row's right-click opens the same menu, and a rename shows there at once", async () => {
+			serve(() => Response.json({}));
+			const el = await mount({ data: { ...PAYLOAD, lessons: [...ROWS, { ...lesson("u1", "Half done", ""), unfinished: true }] } });
+			const row = el.querySelector('[data-testid="unfinished-lessons"] [data-testid="lesson-row"]')!.parentElement!;
+			await act(async () => row.dispatchEvent(new dom.window.Event("contextmenu", { bubbles: true, cancelable: true })));
+			assert.ok(document.querySelector('[data-testid="lesson-menu"]'));
+			await act(async () => (document.querySelector('[data-testid="ctx-rename"]') as HTMLButtonElement).click());
+			assert.ok(el.querySelector('[data-testid="unfinished-lessons"] [data-testid="lesson-rename-input"]'), "renamed in place, in its own column");
 		});
 
 		async function rename(el: HTMLElement, to: string) {

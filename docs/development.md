@@ -104,7 +104,7 @@ Routes:
 | `/new` | Study: start a study session |
 | `/settings` | Settings |
 | `/graph` | Graph |
-| `/space` | Progress, with the space's Lessons block |
+| `/space` | Progress: what to do (next deadline, unfinished lessons, path, Most needed) in a side column, the finished lessons and facts in the wide one |
 | `/space/files`, `/space/deadlines` | The space's tabs |
 | `/space/deadline/:id` | A deadline |
 | `/space/deadline/:id/cheat-sheet` | A deadline's cheat sheet |

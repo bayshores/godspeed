@@ -1,30 +1,39 @@
 import { memo, useState } from "react";
 import type { PathProgress } from "@/shared/core";
 import { RampRow } from "@/frontend/components/deadline/ramp-row";
-import { SHEET, SHEET_TITLE } from "@/frontend/components/deadline/styles";
+import { SHEET_TITLE } from "@/frontend/components/deadline/styles";
 import { Pane } from "@/frontend/components/ui/pane";
+import { cn } from "@/frontend/lib/utils";
 import { pathBlockView } from "./path-block-model";
 
 /**
- * THE PATH (Progress, first): the space's path toward its goal, the topic
- * Study takes with what it covers, the next three, and "Show all" for the
- * rest. The agent writes and changes the path; the learner tells it how.
+ * THE PATH (Progress, side column): the space's path toward its goal, the
+ * topic Study takes with what it covers, the next three, and "Show all" for
+ * the rest. With no deadline ahead it is the page's first card and its Study
+ * the page's one dark key; beside a deadline its Study is grey. The agent
+ * writes and changes the path; the learner tells it how.
  */
-export const PathBlock = memo(function PathBlock({ path, busy, onStudy }: { path: PathProgress; busy: boolean; onStudy: (topicId: string) => void }) {
+export const PathBlock = memo(function PathBlock({ path, main, busy, onStudy }: { path: PathProgress; main: boolean; busy: boolean; onStudy: (topicId: string) => void }) {
 	const [shownAll, setShownAll] = useState(false);
 	const view = pathBlockView(path, shownAll);
 	const next = view.next;
 	return (
-		<Pane data-testid="space-path" className={SHEET}>
+		<Pane data-testid="space-path" className="flex flex-col gap-2.5 p-5">
 			<h2 className={SHEET_TITLE}>{view.title}</h2>
 			{view.allStrong && <p className="text-base text-ink-2">Every topic is strong. Study them to keep it that way.</p>}
 			{next && (
-				<div className="flex flex-wrap items-end gap-x-6 gap-y-3 py-1">
-					<div data-testid="space-path-next" className="flex min-w-0 flex-[1_1_320px] flex-col gap-0.5">
+				<div className="flex flex-wrap items-end justify-end gap-x-6 gap-y-3 py-1">
+					<div data-testid="space-path-next" className="flex min-w-0 flex-[1_1_200px] flex-col gap-0.5">
 						<RampRow name={next.name} rate={next.rate} tally={next} />
 						<p className="text-base text-ink-2">{next.covers}</p>
 					</div>
-					<button type="button" data-testid="space-path-study" disabled={busy} onClick={() => onStudy(next.id)} className="lh-btn lh-btn-main ml-auto h-11 shrink-0 px-8 text-[15px]">
+					<button
+						type="button"
+						data-testid="space-path-study"
+						disabled={busy}
+						onClick={() => onStudy(next.id)}
+						className={cn("lh-btn shrink-0", main && "lh-btn-main h-[52px] px-8 text-[17px]")}
+					>
 						Study
 					</button>
 				</div>
