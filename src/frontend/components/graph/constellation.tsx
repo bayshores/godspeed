@@ -3,41 +3,50 @@
  * them with its name under it, faint lines between topics that build on each
  * other. Pointing at a topic inks in its lines with arrows and dims the rest;
  * pointing at a star inks in the facts it builds on and leads to. A picture
- * taller than its box is drawn smaller (the SVG's viewBox); names shrink with
- * it until too small to read, then show only when lit, at full size; hover
- * boxes never shrink. It inks in as the tab opens.
+ * taller than its box is drawn smaller; names shrink with it until too small
+ * to read, then show only when lit, at full size; hover boxes never shrink.
+ * It inks in as the tab opens.
+ *
+ * A camera looks at the picture (use-camera.ts): zoomed in, stars stop
+ * growing at 12 points and only the gaps grow, and once the picture is near
+ * each fact's name and answers show under its star (constellation-near.tsx).
  */
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent, type RefObject } from "react";
 import { rampColor, type FactProgress, type GraphChain, type TopicLink, type TopicProgress } from "@/shared/core";
 import { factCellLabel, factLinks, neighbors, topicCountLine } from "./derive.ts";
-import { NAME_LINE, layoutSky, nameBox, restLines, type Cluster, type Rect, type Seg, type Sky, type Star } from "./constellation-layout.ts";
-import { makeRouter } from "./constellation-routes.ts";
+import { NAME_GAP, NAME_LINE, layoutSky, restLines, type Cluster, type Rect, type Seg, type Sky, type Star } from "./constellation-layout.ts";
+import { makeRouter, toStars } from "./constellation-routes.ts";
 import { tipSpot } from "./constellation-tips.ts";
 import { NAME_PX, fitPicture, namesHidden } from "./constellation-fit.ts";
 import { NAME_AFTER, RIM_AFTER, frozenDelays, lineDelay, type Reveal } from "./constellation-reveal.ts";
+import { STAR_CAP, camShowing, nearRamp, nearState, pitchOf, project, starPitch, toLayout, viewRect, type Aim, type CameraMemory, type Frame } from "./constellation-camera.ts";
+import { LABEL_LINE, NAME_DROP, factNameText, placeFactNames, type InView } from "./constellation-near.ts";
+import { FactAnswers, FactNames, LABEL_PX, useInViewReport } from "./constellation-near-layer.tsx";
+import { useCamera } from "./use-camera.ts";
+import { DIM, FADE, FAINT } from "./styles.ts";
 
-/** Dimmed stars fade further than dimmed names, so names stay readable on the page. */
-const DIM = 0.35;
 const DIM_NAME = "color-mix(in srgb, var(--muted-foreground) 62%, var(--background))";
 const ARROW = 7;
 /** How near a star, and how far past a cluster's edge, the pointer reaches, in screen points. */
 const HIT = 12;
 const REACH = 8;
 const TIP_W = 260;
-const FADE = "var(--lh-dur) var(--lh-ease-out)";
+/** Near, names and answers are worked out for what is in view and this much around it, in screen points. */
+const MARGIN = 60;
 
-let canvas: HTMLCanvasElement | null = null;
-/** Name widths in the page's 13-point font. */
-function measurer(): (t: string) => number {
-	canvas ??= document.createElement("canvas");
-	const ctx = canvas.getContext("2d");
+const canvases = new Map<number, CanvasRenderingContext2D | null>();
+/** Text widths in the page's font at `px` points. */
+function measurer(px: number): (t: string) => number {
+	if (!canvases.has(px)) canvases.set(px, document.createElement("canvas").getContext("2d"));
+	const ctx = canvases.get(px);
 	// A DOM with no canvas (tests) gets a rough width per letter.
-	if (!ctx) return (t) => t.length * 7;
-	ctx.font = `${NAME_PX}px ${getComputedStyle(document.body).fontFamily}`;
+	if (!ctx) return (t) => (t.length * 7 * px) / 13;
+	ctx.font = `${px}px ${getComputedStyle(document.body).fontFamily}`;
 	return (t) => ctx.measureText(t).width;
 }
 
 const fx = (n: number) => n.toFixed(1);
+const f2 = (n: number) => n.toFixed(2);
 
 /** The lines as one path; `trim` stops each short of its end, where its arrowhead sits. */
 function segPath(segs: readonly Seg[], trim = 0): string {
@@ -69,14 +78,11 @@ function arrows(segs: readonly Seg[], len: number): string {
 		.join("");
 }
 
-function squares(stars: readonly Star[], s: number, grow = 0): string {
-	const w = s + 2 * grow;
-	return stars.map((t) => `M${t.x - grow} ${t.y - grow}h${w}v${w}h${-w}z`).join("");
-}
+type Squares = (stars: readonly Star[], grow?: number) => string;
 
 /** One path per color, so a cluster is a handful of elements however many stars it has.
  *  In the reveal its core (the best known half) inks in first, then its rim. */
-function ClusterStars({ k, s, keep, at }: { k: Cluster; s: number; keep: ReadonlySet<string> | null; at: number | null }) {
+function ClusterStars({ k, sq, keep, at }: { k: Cluster; sq: Squares; keep: ReadonlySet<string> | null; at: number | null }) {
 	const half = Math.ceil(k.stars.length / 2);
 	const ring = (stars: readonly Star[], delay: number | null) => {
 		const byColor = new Map<string, { full: Star[]; faint: Star[] }>();
@@ -86,8 +92,8 @@ function ClusterStars({ k, s, keep, at }: { k: Cluster; s: number; keep: Readonl
 		}
 		const paths = [...byColor].map(([color, e]) => (
 			<g key={color} fill={color}>
-				{e.full.length > 0 && <path d={squares(e.full, s)} />}
-				{e.faint.length > 0 && <path d={squares(e.faint, s)} opacity={0.3} />}
+				{e.full.length > 0 && <path d={sq(e.full)} />}
+				{e.faint.length > 0 && <path d={sq(e.faint)} opacity={FAINT} />}
 			</g>
 		));
 		return delay === null ? paths : <g className="lh-reveal" style={{ ["--lh-at" as string]: `${delay}ms` }}>{paths}</g>;
@@ -167,14 +173,7 @@ function nextTopic(sky: Sky, k: Cluster, [dx, dy]: [number, number]): Cluster | 
 	return best;
 }
 
-/** A name's box in layout points; `full` is a lit name drawn at full size
- *  on a scaled-down picture, centred under its cluster. */
-function shownName(k: Cluster, scale: number, full: boolean): Rect {
-	const b = nameBox(k);
-	if (!full) return b;
-	const half = k.textW / scale / 2;
-	return { x0: k.cx - half, x1: k.cx + half, y0: b.y0, y1: b.y0 + (k.text.length * NAME_LINE) / scale };
-}
+const discRect = (k: Cluster): Rect => ({ x0: k.cx - k.r, x1: k.cx + k.r, y0: k.cy - k.r, y1: k.cy + k.r });
 
 export function Constellation({
 	topics,
@@ -190,6 +189,9 @@ export function Constellation({
 	factMatches,
 	onPick,
 	onPickFact,
+	onInView,
+	camera,
+	aim,
 }: {
 	topics: readonly TopicProgress[];
 	links: readonly TopicLink[];
@@ -211,6 +213,11 @@ export function Constellation({
 	/** A topic, or null for a click on empty picture. */
 	onPick: (topicId: string | null) => void;
 	onPickFact: (factId: string) => void;
+	/** What is in view while zoomed in; null at the whole space. */
+	onInView: (v: InView | null) => void;
+	camera: RefObject<CameraMemory>;
+	/** The latest flight asked for. */
+	aim: Aim | null;
 }) {
 	// Names are measured in the loaded font, so lay out again once it is in.
 	const [fontsIn, setFontsIn] = useState(false);
@@ -223,13 +230,34 @@ export function Constellation({
 		};
 	}, []);
 	// fontsIn is here so the names are measured again once the font is in.
-	const measure = useMemo(() => measurer(), [fontsIn]);
-	const { sky, scale, router, rest } = useMemo(() => {
+	const measure = useMemo(() => measurer(NAME_PX), [fontsIn]);
+	const measureLabel = useMemo(() => measurer(LABEL_PX), [fontsIn]);
+	const { sky, scale, router, rest, nn, lowest } = useMemo(() => {
 		const { sky, scale } = fitPicture((w) => layoutSky(topics, links, facts, w, measure), { width, height });
 		const router = makeRouter(sky);
-		return { sky, scale, router, rest: restLines(sky, links, (a, z) => router.link(a, z, null, false)) };
+		return {
+			sky,
+			scale,
+			router,
+			rest: restLines(sky, links, (a, z) => router.link(a, z, null, false)),
+			nn: starPitch(sky),
+			lowest: new Map(sky.clusters.map((k) => [k.topic.id, Math.max(k.cy, ...k.stars.map((st) => st.cy))])),
+		};
 	}, [topics, links, facts, width, height, measure]);
-	const tiny = namesHidden(scale);
+	const shownW = sky.width * scale;
+	const shownH = sky.height * scale;
+	// Zoomed in, the view takes the whole room's height, not only the fitted picture's.
+	const frame: Frame = useMemo(() => ({ w: shownW, h: Math.max(shownH, height), scale, skyW: sky.width, skyH: sky.height }), [shownW, shownH, height, scale, sky]);
+
+	const boxRef = useRef<HTMLDivElement>(null);
+	const { cam, zoomed, zMax, flyTo, drag, dragging } = useCamera({ sky, frame, nn, memory: camera, aim, box: boxRef });
+	const P = project(cam, frame);
+	const { k: kk, tx, ty } = P;
+	const pitch = pitchOf(cam, frame, nn);
+	const view = viewRect(cam, frame);
+	const around = viewRect(cam, frame, MARGIN);
+	const nearView = (x: number, y: number) => x >= around.x0 && x <= around.x1 && y >= around.y0 && y <= around.y1;
+
 	// Fixed for this mount: a re-fit never moves a running animation, and a
 	// remount mid-reveal starts each one where it would be by now.
 	const [opening] = useState(() => (reveal ? { at: frozenDelays(reveal, sky), elapsed: performance.now() - reveal.start } : null));
@@ -238,10 +266,13 @@ export function Constellation({
 		const at = inAt?.at.get(id);
 		return at === undefined ? undefined : at - inAt!.elapsed;
 	};
-	// Work out every lit line in the background so the first hover is instant too, in slices of about 8 ms so the page never stalls.
+	// Work out every lit line and fact chain in the background so the first hover is instant too, in slices of about 8 ms so the page never stalls.
 	useEffect(() => {
 		const drawn = (id: string) => sky.byTopic.get(id)?.muted === false;
-		const jobs = links.filter((l) => l.from !== l.to && drawn(l.from) && drawn(l.to)).flatMap((l) => [l.from, l.to].map((lead) => [l, lead] as const));
+		const jobs: (() => void)[] = links
+			.filter((l) => l.from !== l.to && drawn(l.from) && drawn(l.to))
+			.flatMap((l) => [l.from, l.to].map((lead) => () => void router.link(l.from, l.to, lead, true)));
+		for (const c of chains ?? []) for (const p of c.premises) if (p !== c.conclusion) jobs.push(() => void router.chain(p, c.conclusion));
 		let i = 0;
 		let timer = 0;
 		const step = () => {
@@ -249,13 +280,13 @@ export function Constellation({
 			do {
 				const job = jobs[i++];
 				if (!job) return;
-				router.link(job[0].from, job[0].to, job[1], true);
+				job();
 			} while (performance.now() < end);
 			timer = window.setTimeout(step, 0);
 		};
 		timer = window.setTimeout(step, 300);
 		return () => window.clearTimeout(timer);
-	}, [sky, router, links]);
+	}, [sky, router, links, chains]);
 	const topicById = useMemo(() => new Map(topics.map((t) => [t.id, t])), [topics]);
 	const labels = useMemo(() => new Map(topics.map((t) => [t.id, topicLabel(t, links, topicById)])), [topics, links, topicById]);
 	const factById = useMemo(() => new Map(facts.map((f) => [f.id, f])), [facts]);
@@ -314,6 +345,50 @@ export function Constellation({
 		return { keep, found };
 	}, [factMatches, focus, sky]);
 
+	// Stars on screen: their drawn size grows with the zoom up to STAR_CAP, centred where they are.
+	const d = zoomed ? Math.min(sky.s * kk, STAR_CAP) : sky.s * scale;
+	const sx = (x: number) => x * kk + tx;
+	const sy = (y: number) => y * kk + ty;
+	const sq: Squares = (stars, grow = 0) => {
+		const g = grow * Math.min(kk, 1);
+		const w = f2(d + 2 * g);
+		return stars.map((t) => `M${f2(sx(t.cx) - d / 2 - g)} ${f2(sy(t.cy) - d / 2 - g)}h${w}v${w}h-${w}z`).join("");
+	};
+
+	// Near, each fact's name and answers ink in under its star, and topic names move down to make room.
+	const near = nearState(pitch, cam.z);
+	const ramp = nearRamp(pitch, cam.z);
+	// Topic names: at their laid-out size scaled with the picture, never above 13 points.
+	const tiny = namesHidden(kk);
+	const namePlace = (k: Cluster, shown: boolean) => {
+		const f = tiny && shown ? 1 : Math.min(1, kk);
+		const w = k.textW * f;
+		const h = k.text.length * NAME_LINE * f;
+		const cx = sx(k.cx);
+		const left = zoomed ? cx - w / 2 : Math.max(0, Math.min(shownW - w, cx - w / 2));
+		// Near, the name hangs from the lowest star rather than the disc's edge, so it stays with its fact names.
+		const fromDisc = (k.nameTop - NAME_GAP) * kk + ty + NAME_GAP * Math.min(1, kk);
+		const fromStar = sy(lowest.get(k.topic.id) ?? k.cy) + d / 2 + NAME_GAP;
+		const top = fromDisc + ramp * (fromStar - fromDisc + NAME_DROP);
+		// Zoomed in, a name the view's edge would cut is not drawn: the foot line names the topic instead.
+		const whole = !zoomed || (left >= 0 && top >= 0 && left + w <= shownW && top + h <= frame.h);
+		return { left, top, w, h, f, whole };
+	};
+	const toLayoutRect = (r: { left: number; top: number; w: number; h: number }): Rect => ({ x0: (r.left - tx) / kk, x1: (r.left + r.w - tx) / kk, y0: (r.top - ty) / kk, y1: (r.top + r.h - ty) / kk });
+
+	const nearClusters = sky.clusters.filter((k) => k.cx + k.r >= around.x0 && k.cx - k.r <= around.x1 && k.cy + k.r >= around.y0 && k.cy - k.r <= around.y1);
+	const nameText = useMemo(() => factNameText(measureLabel), [measureLabel]);
+	// Placed again only when the camera, the picture or the open fact changes, not on every pointer move: all it reads follows from these.
+	const placed = useMemo(() => {
+		if (!near.mounted) return [];
+		const blocks: Rect[] = [];
+		for (const k of nearClusters) {
+			const np = namePlace(k, true);
+			if (np.whole) blocks.push({ x0: np.left - 4, x1: np.left + np.w + 4, y0: np.top - 2, y1: np.top + np.h });
+		}
+		return placeFactNames({ clusters: nearClusters, factById, text: nameText, at: (x, y) => [sx(x), sy(y)], shown: nearView, d, blocks, view: { x0: 0, x1: shownW, y0: 0, y1: frame.h }, first: pickedFactId });
+	}, [near.mounted, cam, frame, sky, lowest, factById, nameText, pickedFactId]);
+
 	// Roving focus: one Tab stop among the topics, arrow keys move between them.
 	const buttons = useRef(new Map<string, HTMLButtonElement>());
 	const [tabId, setTabId] = useState<string | null>(null);
@@ -332,107 +407,161 @@ export function Constellation({
 		setTabId(next.topic.id);
 		buttons.current.get(next.topic.id)?.focus();
 	};
+	// Zoomed in, a topic that takes focus outside the view comes into it.
+	const showTopic = (k: Cluster) => {
+		if (!zoomed) return;
+		const r = discRect(k);
+		const n = toLayoutRect(namePlace(k, true));
+		const next = camShowing(cam, frame, { x0: Math.min(r.x0, n.x0), x1: Math.max(r.x1, n.x1), y0: r.y0, y1: Math.max(r.y1, n.y1) }, 24, zMax);
+		if (next !== cam) flyTo(next);
+	};
 
-	// The pointer in layout points, whatever the scale.
+	// The pointer in layout points, whatever the zoom.
 	const local = (e: PointerEvent<HTMLDivElement> | MouseEvent<HTMLDivElement>) => {
 		const r = e.currentTarget.getBoundingClientRect();
-		return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale };
+		return toLayout(P, e.clientX - r.left, e.clientY - r.top);
 	};
 	const onMove = (e: PointerEvent<HTMLDivElement>) => {
+		if (drag.move(e)) {
+			setPtrStar(null);
+			setHoverId(null);
+			return;
+		}
 		// Over a name, its button sets the hover itself.
 		if (e.target instanceof Element && e.target.closest("[data-topic-id]")) return setPtrStar(null);
 		const { x, y } = local(e);
-		const st = nearestStar(sky, x, y, HIT / scale);
+		const st = nearestStar(sky, x, y, HIT / kk);
 		setPtrStar(st?.id ?? null);
-		setHoverId(st ? null : (clusterAt(sky, x, y, REACH / scale)?.topic.id ?? null));
+		setHoverId(st ? null : (clusterAt(sky, x, y, REACH / kk)?.topic.id ?? null));
 	};
 	const onLeave = () => {
 		setPtrStar(null);
 		setHoverId(null);
 	};
 	// Names are buttons with their own click; this is stars, clusters and empty picture.
+	// The second click of a double-click does nothing, so a double-click never opens and closes a topic.
 	const onClick = (e: MouseEvent<HTMLDivElement>) => {
+		if (drag.ended() || e.detail >= 2) return;
 		const { x, y } = local(e);
-		const st = nearestStar(sky, x, y, HIT / scale);
+		const st = nearestStar(sky, x, y, HIT / kk);
 		if (st) onPickFact(st.id);
-		else onPick(clusterAt(sky, x, y, REACH / scale)?.topic.id ?? null);
+		else onPick(clusterAt(sky, x, y, REACH / kk)?.topic.id ?? null);
 	};
 
 	const pointed = star && ptrStar ? factById.get(star.id) : undefined;
+	// Near, the pointer shows a fact's whole statement; its name only when it is not drawn under the star.
+	const showStatement = near.on && !!pointed?.statement;
+	const showName = !showStatement || !placed.some((p) => p.id === pointed?.id);
 	// Hover boxes sit where they cover neither the hovered thing nor what it lights.
-	const starTip = useMemo(() => {
+	const starTip = (() => {
 		if (!star || !pointed || !starLinks) return null;
-		const nameW = measure(pointed.name);
-		const w = Math.min(TIP_W, Math.max(nameW, (measure(factCellLabel(pointed)) * 12) / 13) + 34);
-		const h = 50 + Math.ceil(nameW / (TIP_W - 34)) * 20;
-		const at: Rect = { x0: star.x - 3, y0: star.y - 3, x1: star.x + sky.s + 3, y1: star.y + sky.s + 3 };
-		const spot = tipSpot(sky, at, w / scale, h / scale, 8 / scale, starLinks.topics, starLinks.segs);
-		return { w, left: spot.left * scale, top: spot.top * scale };
-	}, [star, pointed, starLinks, sky, measure, scale]);
+		const nameW = showName ? measure(pointed.name) : 0;
+		const stW = showStatement ? (measure(pointed.statement) * 14) / 13 : 0;
+		const w = Math.min(TIP_W, Math.max(nameW, stW, (measure(factCellLabel(pointed)) * 12) / 13) + 34);
+		const h = 30 + (showName ? Math.ceil(nameW / (TIP_W - 34)) * 20 : 0) + (showStatement ? Math.ceil(stW / (TIP_W - 34)) * 20 : 0) + 20;
+		const half = (d / 2 + 3) / kk;
+		const at: Rect = { x0: star.cx - half, y0: star.cy - half, x1: star.cx + half, y1: star.cy + half };
+		// The star's own name stays readable beside its hover box, and the box covers as few other names as it can.
+		const others: Rect[] = [];
+		for (const p of placed) {
+			const r = toLayoutRect({ left: p.left, top: p.top, w: p.w, h: p.lines.length * LABEL_LINE });
+			if (p.id !== star.id) others.push(r);
+			else [at.x0, at.x1, at.y1] = [Math.min(at.x0, r.x0), Math.max(at.x1, r.x1), r.y1];
+		}
+		const spot = tipSpot(sky, at, w / kk, h / kk, 8 / kk, starLinks.topics, starLinks.segs, view, others);
+		return { w, left: sx(spot.left), top: sy(spot.top) };
+	})();
 	const hovered = hoverId && !star ? sky.byTopic.get(hoverId) : undefined;
-	const topicTip = useMemo(() => {
-		if (!hovered) return null;
-		const spot = tipSpot(sky, shownName(hovered, scale, tiny), hovered.tipW / scale, 16 / scale, 6 / scale, lit ?? new Set([hovered.topic.id]), inked);
-		return { left: spot.left * scale, top: spot.top * scale };
-	}, [hovered, sky, lit, inked, scale, tiny]);
+	const topicTip = hovered ? tipSpot(sky, toLayoutRect(namePlace(hovered, true)), hovered.tipW / kk, 16 / kk, 6 / kk, lit ?? new Set([hovered.topic.id]), inked, view) : null;
 
-	const shownW = sky.width * scale;
-	const shownH = sky.height * scale;
+	useInViewReport(sky, zoomed ? view : null, onInView);
+
+	const lineW = (w: number) => w / cam.z;
+	const shownLinks = starLinks?.segs.map((g) => {
+		const a = sky.starById.get(g.from);
+		const z = sky.starById.get(g.to);
+		// Zoomed in, a chain runs on to its stars, which no longer grow with it.
+		return zoomed && a && z ? toStars(g, a, z, (d / 2 + 3) / kk) : g;
+	});
+
 	return (
 		<div
+			ref={boxRef}
 			data-testid="graph-picture"
+			data-zoom={zoomed ? cam.z.toFixed(2) : undefined}
+			data-near={near.on || undefined}
 			className="relative select-none"
-			style={{ width: shownW, height: shownH, cursor: star || hoverId ? "pointer" : "default" }}
+			style={{
+				width: shownW,
+				height: zoomed ? frame.h : shownH,
+				overflow: zoomed ? "hidden" : undefined,
+				cursor: dragging ? "grabbing" : star || hoverId ? "pointer" : zoomed ? "grab" : "default",
+				touchAction: "none",
+			}}
+			onPointerDown={drag.down}
+			onPointerUp={drag.up}
+			onPointerCancel={drag.up}
 			onPointerMove={onMove}
 			onPointerLeave={onLeave}
 			onClick={onClick}
 		>
-			<svg aria-hidden width={shownW} height={shownH} viewBox={`0 0 ${sky.width} ${sky.height}`} className="absolute inset-0 overflow-visible">
-				{inAt ? (
-					<g fill="none" stroke="var(--foreground)" strokeOpacity={lit ? 0.07 : 0.17} strokeWidth={1.25}>
-						{rest.map((g) => (
-							<path key={`${g.from}>${g.to}`} d={segPath([g])} pathLength={1} className="lh-reveal-line" style={{ ["--lh-at" as string]: `${lineDelay(g, inAt.at) - inAt.elapsed}ms` }} />
-						))}
-					</g>
-				) : (
-					<path d={segPath(rest)} fill="none" stroke="var(--foreground)" strokeOpacity={lit ? 0.07 : 0.17} strokeWidth={1.25} style={{ transition: `stroke-opacity ${FADE}` }} />
-				)}
-				{inked.length > 0 && (
-					<g className="lh-fade">
-						<path d={segPath(inked, ARROW - 1)} fill="none" stroke="var(--foreground)" strokeOpacity={0.55} strokeWidth={1.5} />
-						<path d={arrows(inked, ARROW)} fill="var(--foreground)" fillOpacity={0.8} />
-					</g>
-				)}
+			<svg aria-hidden width={shownW} height={frame.h} className="absolute inset-0 overflow-visible">
+				{/* Lines are drawn in layout points under one transform, at the same weight on screen at any zoom. */}
+				<g transform={`matrix(${kk} 0 0 ${kk} ${tx} ${ty})`}>
+					{inAt ? (
+						<g fill="none" stroke="var(--foreground)" strokeOpacity={lit ? 0.07 : 0.17} strokeWidth={lineW(1.25)}>
+							{rest.map((g) => (
+								<path key={`${g.from}>${g.to}`} d={segPath([g])} pathLength={1} className="lh-reveal-line" style={{ ["--lh-at" as string]: `${lineDelay(g, inAt.at) - inAt.elapsed}ms` }} />
+							))}
+						</g>
+					) : (
+						<path d={segPath(rest)} fill="none" stroke="var(--foreground)" strokeOpacity={lit ? 0.07 : 0.17} strokeWidth={lineW(1.25)} style={{ transition: `stroke-opacity ${FADE}` }} />
+					)}
+					{/* Near, a topic's lines would end at its disc's edge, far from its stars: its panel and hover box name its links instead. */}
+					{inked.length > 0 && !near.on && (
+						<g className="lh-fade">
+							<path d={segPath(inked, (ARROW - 1) / cam.z)} fill="none" stroke="var(--foreground)" strokeOpacity={0.55} strokeWidth={lineW(1.5)} />
+							<path d={arrows(inked, ARROW / cam.z)} fill="var(--foreground)" fillOpacity={0.8} />
+						</g>
+					)}
+					{star && shownLinks && (
+						<g className="lh-fade">
+							<path d={segPath(shownLinks, 4 / cam.z)} fill="none" stroke="var(--foreground)" strokeOpacity={0.75} strokeWidth={lineW(1)} />
+							<path d={arrows(shownLinks, 5 / cam.z)} fill="var(--foreground)" fillOpacity={0.85} />
+						</g>
+					)}
+				</g>
 				{sky.clusters.map((k) => (
 					<g key={k.topic.id} shapeRendering="crispEdges" opacity={lit && !lit.has(k.topic.id) ? DIM : 1} style={{ transition: `opacity ${FADE}` }}>
-						<ClusterStars k={k} s={sky.s} keep={keep} at={startOf(k.topic.id) ?? null} />
+						<ClusterStars k={k} sq={sq} keep={keep} at={startOf(k.topic.id) ?? null} />
 					</g>
 				))}
-				{found.length > 0 && <path shapeRendering="crispEdges" d={squares(found, sky.s)} fill="var(--foreground)" />}
+				{near.mounted && <FactAnswers clusters={nearClusters} factById={factById} at={(x, y) => [sx(x), sy(y)]} shown={nearView} d={d} lit={lit} keep={keep} on={near.on} />}
+				{found.length > 0 && <path shapeRendering="crispEdges" d={sq(found)} fill="var(--foreground)" />}
 				{star && starLinks && (
-					<g className="lh-fade">
-						<path d={segPath(starLinks.segs, 4)} fill="none" stroke="var(--foreground)" strokeOpacity={0.75} strokeWidth={1} />
-						<path d={arrows(starLinks.segs, 5)} fill="var(--foreground)" fillOpacity={0.85} />
+					<g className="lh-fade" shapeRendering="crispEdges">
 						{/* A chain's other ends grow in their own color; the star itself grows inside a solid 2-point ink frame. */}
-						<g shapeRendering="crispEdges">
-							{starLinks.ends.map((e) => (
-								<path key={e.id} d={squares([e], sky.s, 2)} fill={e.color} />
-							))}
-							<path d={squares([star], sky.s, 4)} fill="var(--foreground)" />
-							<path d={squares([star], sky.s, 2)} fill={star.color} />
-						</g>
+						{starLinks.ends.map((e) => (
+							<path key={e.id} d={sq([e], 2)} fill={e.color} />
+						))}
+						<path d={sq([star], 4)} fill="var(--foreground)" />
+						<path d={sq([star], 2)} fill={star.color} />
 					</g>
 				)}
 			</svg>
+			{near.mounted && <FactNames placed={placed} sky={sky} lit={lit} keep={keep} on={near.on} />}
 			{sky.clusters.map((k) => {
 				const id = k.topic.id;
 				const picked = id === pickedId;
 				const dim = lit && !lit.has(id);
 				// Too small to read at rest: not drawn until pointed at, picked, lit or found.
-				const shown = !tiny || hoverId === id || picked || !!lit?.has(id);
-				const box = shownName(k, scale, tiny && shown);
-				const size = tiny && shown ? 1 : scale;
+				const readable = !tiny || hoverId === id || picked || !!lit?.has(id);
+				const np = namePlace(k, readable);
+				const shown = readable && np.whole;
+				const size = np.f;
 				const at = startOf(id);
+				// Near, the topic name is the strongest text on the picture.
+				const strong = near.on && !k.muted;
 				return (
 					<button
 						key={id}
@@ -449,26 +578,31 @@ export function Constellation({
 						tabIndex={id === stop ? 0 : -1}
 						onClick={(e) => {
 							e.stopPropagation();
+							// A drag that started on the name ends here without opening it.
+							if (drag.ended() || e.detail >= 2) return;
 							setTabId(id);
 							onPick(id);
 						}}
 						onKeyDown={(e) => onKey(e, k)}
 						onPointerEnter={() => setHoverId(id)}
-						onFocus={() => setHoverId(id)}
+						onFocus={() => {
+							setHoverId(id);
+							showTopic(k);
+						}}
 						onBlur={() => setHoverId(null)}
 						className={at === undefined ? "absolute block text-center" : "lh-reveal absolute block text-center"}
 						style={{
-							left: Math.max(0, Math.min(shownW - (box.x1 - box.x0) * scale, box.x0 * scale)),
-							top: box.y0 * scale,
-							width: (box.x1 - box.x0) * scale,
+							left: np.left,
+							top: np.top,
+							width: np.w,
 							fontSize: NAME_PX * size,
 							lineHeight: `${NAME_LINE * size}px`,
 							// Hidden, it lets the pointer through to the stars; it stays focusable.
 							opacity: shown ? undefined : 0,
 							pointerEvents: shown ? undefined : "none",
-							zIndex: tiny && shown ? 10 : undefined,
-							transition: `color ${FADE}`,
-							color: dim ? DIM_NAME : k.muted ? "var(--lh-ink-3)" : hoverId === id || picked ? "var(--foreground)" : "var(--muted-foreground)",
+							zIndex: (tiny && shown) || zoomed ? 10 : undefined,
+							transition: `color ${FADE}, opacity ${FADE}`,
+							color: dim ? DIM_NAME : k.muted ? "var(--lh-ink-3)" : strong || hoverId === id || picked ? "var(--foreground)" : "var(--muted-foreground)",
 							["--lh-at" as string]: at === undefined ? undefined : `${at + NAME_AFTER}ms`,
 						}}
 					>
@@ -496,7 +630,7 @@ export function Constellation({
 					key={hovered.topic.id}
 					aria-hidden
 					className="lh-fade pointer-events-none absolute whitespace-nowrap text-xs leading-4 text-muted-foreground"
-					style={{ left: topicTip.left, top: topicTip.top }}
+					style={{ left: sx(topicTip.left), top: sy(topicTip.top) }}
 				>
 					{topicCountLine(hovered.topic.members.length, hovered.topic)}
 				</span>
@@ -504,7 +638,8 @@ export function Constellation({
 			{pointed && starTip && (
 				<div aria-hidden className="lh-fade pointer-events-none absolute z-20 flex" style={{ left: starTip.left, top: starTip.top, width: starTip.w }}>
 					<div className="lh-sheet flex w-full flex-col gap-1 px-3.5 pt-2.5 pb-3.5">
-						<div className="text-sm text-foreground">{pointed.name}</div>
+						{showName && <div className="text-sm text-foreground">{pointed.name}</div>}
+						{showStatement && <div className={showName ? "text-sm text-ink-2" : "text-sm text-foreground"}>{pointed.statement}</div>}
 						<div className="text-xs text-muted-foreground">{factCellLabel(pointed)}</div>
 					</div>
 				</div>

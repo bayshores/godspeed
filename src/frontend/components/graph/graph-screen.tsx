@@ -7,8 +7,8 @@
  * and the chain table. Keyed by space by the route, so a space switch
  * starts clean.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { GraphSnapshot } from "@/shared/core";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import type { FactProgress, GraphSnapshot } from "@/shared/core";
 import { spaceQuery, useSpaces } from "@/frontend/components/space-context";
 import { useProgress } from "@/frontend/components/use-progress";
 import { useActivity } from "@/frontend/components/activity-dock";
@@ -20,9 +20,12 @@ import { GraphFoot } from "./graph-foot.tsx";
 import { useGraphCosts } from "./use-graph-costs.ts";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { lazyComponent } from "@/frontend/lib/lazy-component";
+import type { Aim, Flight } from "./constellation-camera.ts";
+import type { InView } from "./constellation-near.ts";
 
 // The picture and panels load in their own chunk once the progress data has arrived.
-const GraphBody = lazyComponent(() => import("./graph-body.tsx").then((m) => m.GraphBody));
+// Kept from rendering again when only the foot line's in-view counts change, which they do as the camera moves.
+const GraphBody = memo(lazyComponent(() => import("./graph-body.tsx").then((m) => m.GraphBody)));
 
 export function GraphScreen() {
 	const { active } = useSpaces();
@@ -62,15 +65,31 @@ function GraphScreenBody() {
 		() => (snapshot ? { chains: snapshot.chains, fileSources: snapshot.fileSources, sessions: snapshot.sessions } : null),
 		[snapshot],
 	);
+	const [inView, setInView] = useState<InView | null>(null);
+	// The camera's latest flight: the picture asks for picks, the foot line and Find for the whole space.
+	const [aim, setAim] = useState<Aim | null>(null);
+	const fly = useCallback((to: Flight) => {
+		// Whole space leaves the foot line as the camera flies out; focus on it moves to the picture's Tab stop instead of the page.
+		if (to.to === "whole" && document.activeElement?.closest("[data-testid=graph-whole-space]")) document.querySelector<HTMLElement>("[data-testid=graph-topic][tabindex='0']")?.focus();
+		setAim((a) => ({ ...to, seq: (a?.seq ?? 0) + 1 }));
+	}, []);
 
 	const refreshActivity = useActivity().refresh;
 	const notesImport = useNotesImport({ onStart: refreshActivity, onFinish: refresh });
 	const study = useLessonStart();
 	const costs = useGraphCosts(active);
+	const { studyTopics, start } = study;
+	const onStudy = useCallback((ids: string[]) => void studyTopics(ids), [studyTopics]);
+	const onStudyFact = useCallback((f: FactProgress) => void start({ title: "", picks: [{ id: f.id, name: f.name, statement: f.statement }] }), [start]);
 
 	const data = progress.data;
 	const hasFacts = (data?.facts.length ?? 0) > 0;
 	const matches = useMemo(() => (data ? findMatches(query, data.topics, data.facts) : null), [query, data]);
+	// Typing in Find shows the whole space, so every match is in view.
+	const finding = matches !== null;
+	useEffect(() => {
+		if (finding) fly({ to: "whole" });
+	}, [finding, fly]);
 	// Deleting every fact hides the table; close it so new facts don't reopen it.
 	if (chainsOpen && data && !hasFacts) setChainsOpen(false);
 	return (
@@ -90,8 +109,11 @@ function GraphScreenBody() {
 							sources={sources}
 							studying={study.busy}
 							studyError={study.error}
-							onStudy={(ids) => void study.studyTopics(ids)}
-							onStudyFact={(f) => void study.start({ title: "", picks: [{ id: f.id, name: f.name, statement: f.statement }] })}
+							onStudy={onStudy}
+							onStudyFact={onStudyFact}
+							onInView={setInView}
+							aim={aim}
+							onFly={fly}
 						/>
 					) : progress.error ? (
 						<LoadFailed message="Couldn't load your graph." onRetry={refresh} className="py-10" />
@@ -110,6 +132,8 @@ function GraphScreenBody() {
 				onOpenChains={() => setChainsOpen(true)}
 				costs={costs}
 				importNotes={active ? null : notesImport}
+				inView={inView}
+				onWholeSpace={() => fly({ to: "whole" })}
 			/>
 			{/* Last child: the overlay covers the page and its top bar (one bar,
 			    one Follow chip; app-region subtraction follows DOM order). */}

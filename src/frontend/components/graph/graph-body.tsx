@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { FactProgress, ProgressPayload } from "@/shared/core";
 import { Constellation } from "./constellation.tsx";
+import type { Aim, CameraMemory, Flight } from "./constellation-camera.ts";
+import type { InView } from "./constellation-near.ts";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { FactPane, type FactSources } from "./fact-pane.tsx";
 import { GraphEmpty } from "./graph-empty.tsx";
@@ -21,11 +23,13 @@ const MIN_HEIGHT = 120;
 const PICTURE = "[data-testid=graph-picture]";
 const PANEL_BOX = "[data-testid=graph-panel]";
 const PANEL_CLOSE = "[data-testid=topic-pane-close], [data-testid=fact-pane-close]";
+const FOOT_LINE = "[data-testid=graph-foot]";
 const topicButton = (id: string) => `[data-testid=graph-topic][data-topic-id=${JSON.stringify(id)}]`;
 
 /** The picture over one progress payload (loaded lazily by graph-screen.tsx).
  *  A picked topic or fact docks its panel at the right and the picture
- *  re-fits beside it; with too little room the panel shows alone. */
+ *  re-fits beside it; with too little room the panel shows alone. A pick
+ *  flies the camera into its topic, and closing it flies back. */
 export function GraphBody({
 	data,
 	matches,
@@ -35,6 +39,9 @@ export function GraphBody({
 	onStudy,
 	onStudyFact,
 	initialSelected = null,
+	onInView,
+	aim,
+	onFly,
 }: {
 	data: ProgressPayload;
 	/** Find's lit topics and facts; null with nothing typed. */
@@ -46,6 +53,11 @@ export function GraphBody({
 	onStudy: (topicIds: string[]) => void;
 	onStudyFact: (fact: FactProgress) => void;
 	initialSelected?: string | null;
+	/** What is in view while the picture is zoomed in; null at the whole space. */
+	onInView: (v: InView | null) => void;
+	/** The camera's latest flight, asked for here or by the foot line. */
+	aim: Aim | null;
+	onFly: (to: Flight) => void;
 }) {
 	const [selectedId, setSelectedId] = useState<string | null>(initialSelected);
 	const [factId, setFactId] = useState<string | null>(null);
@@ -63,6 +75,13 @@ export function GraphBody({
 
 	const narrow = room.width < NARROW;
 
+	// The camera outlives the picture, which a narrow window unmounts while a panel shows.
+	const camera = useRef<CameraMemory>({ shot: null, back: null, done: 0 });
+	// A picked topic gone in a graph change closes with no flight back, so its saved view goes with it.
+	const gone = selectedId !== null && !selected;
+	useEffect(() => {
+		if (gone) camera.current.back = null;
+	}, [gone]);
 	// Keyboard focus follows the panel: a pick that hides the picture, or a
 	// change inside the panel, lands on the panel's Close; closing from inside
 	// the panel lands back on the topic's button. Applied after the render.
@@ -80,18 +99,24 @@ export function GraphBody({
 		if (selectedId && focusIn(PANEL_BOX)) focusNext.current = topicButton(selectedId);
 	};
 
-	// A click on the picked topic, or on empty picture (null), closes it.
+	// A pick flies into its topic; a click on the picked topic, or on empty picture (null), closes it and flies back.
 	const pick = (id: string | null) => {
-		if (id === null || id === selectedId) closing();
+		const closes = id === null || id === selectedId;
+		if (closes) closing();
 		else opening();
 		setFactId(null);
-		setSelectedId(id === selectedId ? null : id);
+		setSelectedId(closes ? null : id);
+		if (!closes) onFly({ to: "topic", id, fact: null });
+		else if (selectedId) onFly({ to: "back" });
 	};
-	// A fact opens with its topic picked, so the picture shows where it sits.
+	// A fact opens with its topic picked, so the picture shows where it sits, flying in unless it is already near.
 	const openFact = (id: string) => {
 		opening();
 		const topicId = data.facts.find((f) => f.id === id)?.topicId;
-		if (topicId) setSelectedId(topicId);
+		if (topicId) {
+			setSelectedId(topicId);
+			onFly({ to: "topic", id: topicId, fact: id });
+		}
 		setFactId(id);
 	};
 	const backToTopic = () => {
@@ -100,17 +125,22 @@ export function GraphBody({
 	};
 	const close = () => pick(null);
 
-	// Escape closes the fact, then the topic (menus, dialogs and Find's typing line claim theirs first).
+	// Escape closes the fact, then the topic, then flies to the whole space (menus, dialogs and Find's typing line claim theirs first).
+	// The last only from the picture, the foot line or nowhere, so Escape elsewhere on the page never moves the camera; at the whole space it changes nothing.
 	const onEscape = useRef(() => {});
-	onEscape.current = () => (fact ? backToTopic() : close());
+	onEscape.current = () => {
+		const at = document.activeElement;
+		if (fact) backToTopic();
+		else if (selected) close();
+		else if (!at || at === document.body || at.closest(`${PICTURE}, ${FOOT_LINE}`)) onFly({ to: "whole" });
+	};
 	useEffect(() => {
-		if (!selected && !fact) return;
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === "Escape" && !e.defaultPrevented) onEscape.current();
 		};
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
-	}, [selected, fact]);
+	}, []);
 
 	// The picture re-fits beside a panel that opens or closes with one short fade, kept in place so focus stays on its topic.
 	const pictureRef = useRef<HTMLDivElement>(null);
@@ -180,6 +210,9 @@ export function GraphBody({
 							factMatches={matches?.facts ?? null}
 							onPick={pick}
 							onPickFact={openFact}
+							onInView={onInView}
+							camera={camera}
+							aim={aim}
 						/>
 					</div>
 					{panel && (

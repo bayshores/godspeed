@@ -5,7 +5,7 @@
  * A rest line with no gentle curve is not drawn; a lit line always is. Pure;
  * every route is worked out once and remembered.
  */
-import { nameBox, type Cluster, type Rect, type Seg, type Sky } from "./constellation-layout.ts";
+import { nameBox, type Cluster, type Rect, type Seg, type Sky, type Star } from "./constellation-layout.ts";
 
 interface Router {
 	/** A topic link. `lead` is the hovered topic, whose score line shows under its name. `lit` lines may bend further and detour. */
@@ -456,4 +456,27 @@ export function makeRouter(sky: Sky): Router {
 				return a && z && ka && kz ? route(from, to, a.cx, a.cy, g, z.cx, z.cy, g, [ka, kz], true, null, true) : null;
 			}),
 	};
+}
+
+/** A chain's line run on to its two stars' centres and cut `gap` short of each, so it meets a star drawn at any size. */
+export function toStars(g: Seg, a: Star, z: Star, gap: number): Seg {
+	const run = (x0: number, y0: number, x1: number, y1: number) => {
+		const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 0.25));
+		return Array.from({ length: n }, (_, i) => [x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n]).flat();
+	};
+	const p = g.pts;
+	const n0 = p.length;
+	const pts = [...run(a.cx, a.cy, p[0]!, p[1]!), ...p, ...run(p[n0 - 2]!, p[n0 - 1]!, z.cx, z.cy).slice(2), z.cx, z.cy];
+	let i = 0;
+	while (i < pts.length - 2 && Math.hypot(pts[i]! - a.cx, pts[i + 1]! - a.cy) < gap) i += 2;
+	let j = pts.length - 2;
+	while (j > i && Math.hypot(pts[j]! - z.cx, pts[j + 1]! - z.cy) < gap) j -= 2;
+	const out = pts.slice(i, j + 2);
+	const n = out.length;
+	let k = n - 4;
+	while (k > 0 && Math.hypot(out[n - 2]! - out[k]!, out[n - 1]! - out[k + 1]!) < gap) k -= 2;
+	const ex = out[n - 2]! - out[Math.max(0, k)]!;
+	const ey = out[n - 1]! - out[Math.max(0, k) + 1]!;
+	const e = Math.hypot(ex, ey) || 1;
+	return { from: g.from, to: g.to, pts: out, ux: ex / e, uy: ey / e };
 }

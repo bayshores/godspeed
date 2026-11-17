@@ -8,7 +8,7 @@ import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
 
 import assert from "node:assert/strict";
-import { afterEach, describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
@@ -19,6 +19,8 @@ import { FactPane, type FactSources } from "../../src/frontend/components/graph/
 import { GraphFoot } from "../../src/frontend/components/graph/graph-foot.tsx";
 import { GraphScreen } from "../../src/frontend/components/graph/graph-screen.tsx";
 import { Constellation } from "../../src/frontend/components/graph/constellation.tsx";
+import type { Aim, Flight } from "../../src/frontend/components/graph/constellation-camera.ts";
+import type { InView } from "../../src/frontend/components/graph/constellation-near.ts";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
 import { MemoryRouter } from "react-router";
 import { fixture } from "../graph-fixture.ts";
@@ -61,7 +63,7 @@ const noop = () => {};
 const inRouter = (tree: React.ReactNode) => <MemoryRouter initialEntries={["/graph"]}>{tree}</MemoryRouter>;
 const count = (html: string, needle: string) => html.split(needle).length - 1;
 const body = (over: Partial<React.ComponentProps<typeof GraphBody>> = {}) =>
-	inRouter(<GraphBody data={fixture()} matches={null} sources={null} studying={false} studyError={null} onStudy={noop} onStudyFact={noop} {...over} />);
+	inRouter(<GraphBody data={fixture()} matches={null} sources={null} studying={false} studyError={null} onStudy={noop} onStudyFact={noop} onInView={noop} aim={null} onFly={noop} {...over} />);
 
 describe("the picture", () => {
 	const html = renderToStaticMarkup(body());
@@ -188,7 +190,7 @@ const costsFixture = () => {
 describe("the foot line", () => {
 	const foot = (over: Partial<React.ComponentProps<typeof GraphFoot>> = {}) =>
 		renderToStaticMarkup(
-			inRouter(<GraphFoot hasFacts topicCount={16} factCount={248} query="" onQuery={noop} matches={null} onOpenChains={noop} costs={null} importNotes={null} {...over} />),
+			inRouter(<GraphFoot hasFacts topicCount={16} factCount={248} query="" onQuery={noop} matches={null} onOpenChains={noop} costs={null} importNotes={null} inView={null} onWholeSpace={noop} {...over} />),
 		);
 	const text = (html: string) => html.replace(/<[^>]*>/g, "");
 
@@ -254,6 +256,7 @@ function fire(el: Element, type: string, init: Record<string, unknown> = {}) {
 	const event = new dom.window.Event(type, { bubbles: true, cancelable: true });
 	for (const [k, v] of Object.entries(init)) Object.defineProperty(event, k, { value: v });
 	el.dispatchEvent(event);
+	return event;
 }
 
 async function mount(tree: React.ReactNode) {
@@ -265,6 +268,18 @@ async function mount(tree: React.ReactNode) {
 	const topic = (id: string) => host!.querySelector<HTMLButtonElement>(`[data-testid="graph-topic"][data-topic-id="${id}"]`)!;
 	return { q, topic };
 }
+
+/** Lets the page run until `found` holds, for things that load or fly. */
+async function until(found: () => unknown, what: string) {
+	for (let tries = 0; tries < 200; tries++) {
+		if (found()) return;
+		await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
+	}
+	assert.fail(`never showed: ${what}`);
+}
+
+/** Two frames: the camera applies a wheel on one and renders on the next. */
+const frames = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
 const escape = () => act(async () => fire(dom.window as unknown as Element, "keydown", { key: "Escape" }));
 
@@ -326,13 +341,23 @@ describe("picking in the page", () => {
 	});
 });
 
-/** The page as the screen builds it: the picture and its panels over the foot line, sharing one Find. */
-function Page({ data = fixture(), costs = null, onChains = noop }: { data?: ReturnType<typeof fixture>; costs?: ReturnType<typeof costsFixture> | null; onChains?: () => void }) {
+/** The page as the screen builds it: the picture and its panels over the foot line, sharing one Find and the camera's view. */
+function Page({ data: given, costs = null, onChains = noop }: { data?: ReturnType<typeof fixture>; costs?: ReturnType<typeof costsFixture> | null; onChains?: () => void }) {
+	// One payload for the page's life, as the screen holds one: a new one on every render would re-fit the picture and end a flight.
+	const [own] = React.useState(fixture);
+	const data = given ?? own;
 	const [query, setQuery] = React.useState("");
+	const [inView, setInView] = React.useState<InView | null>(null);
+	const [aim, setAim] = React.useState<Aim | null>(null);
+	const fly = React.useCallback((to: Flight) => setAim((a) => ({ ...to, seq: (a?.seq ?? 0) + 1 })), []);
 	const matches = findMatches(query, data.topics, data.facts);
+	const finding = matches !== null;
+	React.useEffect(() => {
+		if (finding) fly({ to: "whole" });
+	}, [finding, fly]);
 	return inRouter(
 		<>
-			<GraphBody data={data} matches={matches} sources={null} studying={false} studyError={null} onStudy={noop} onStudyFact={noop} />
+			<GraphBody data={data} matches={matches} sources={null} studying={false} studyError={null} onStudy={noop} onStudyFact={noop} onInView={setInView} aim={aim} onFly={fly} />
 			<GraphFoot
 				hasFacts={data.facts.length > 0}
 				topicCount={data.topics.length}
@@ -343,6 +368,8 @@ function Page({ data = fixture(), costs = null, onChains = noop }: { data?: Retu
 				onOpenChains={onChains}
 				costs={costs}
 				importNotes={null}
+				inView={inView}
+				onWholeSpace={() => fly({ to: "whole" })}
 			/>
 		</>,
 	);
@@ -564,6 +591,33 @@ describe("the graph screen", () => {
 			globalThis.fetch = original;
 		}
 	});
+
+	it("Whole space, once it is gone, hands focus back to the picture's Tab stop", async () => {
+		const original = globalThis.fetch;
+		globalThis.fetch = (async (url: string) => (url.startsWith("/api/progress") ? Response.json(fixture()) : Response.json({ error: "none" }, { status: 404 }))) as typeof fetch;
+		const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+		reducedMotion.matches = true;
+		try {
+			const { q, topic } = await mount(
+				<MemoryRouter initialEntries={["/graph"]}>
+					<ServerEventsProvider connect={quietEvents as never}>
+						<GraphScreen />
+					</ServerEventsProvider>
+				</MemoryRouter>,
+			);
+			await until(() => topic("t-mini"), "the graph");
+			await act(async () => topic("t-mini").click());
+			await until(() => q("graph-whole-space"), "Whole space");
+			q("graph-whole-space")!.focus();
+			await act(async () => q("graph-whole-space")!.click());
+			const stop = host!.querySelector('[data-testid="graph-topic"][tabindex="0"]');
+			assert.ok(stop, "the picture has one Tab stop");
+			assert.ok(document.activeElement === stop, "focus is on it");
+		} finally {
+			reducedMotion.matches = false;
+			globalThis.fetch = original;
+		}
+	});
 });
 
 describe("a picture too tall for its box", () => {
@@ -584,10 +638,345 @@ describe("a picture too tall for its box", () => {
 				factMatches={null}
 				onPick={noop}
 				onPickFact={noop}
+				onInView={noop}
+				camera={{ current: { shot: null, back: null, done: 0 } }}
+				aim={null}
 			/>,
 		);
 		const names = html.match(/<button[^>]*data-testid="graph-topic"[^>]*>/g) ?? [];
 		assert.ok(names.length > 0);
 		for (const name of names) assert.match(name, /opacity:0;pointer-events:none/);
+	});
+});
+
+describe("zooming the picture", () => {
+	// A flight is a jump with reduced motion, so a pick or a close lands before the test looks.
+	beforeEach(() => {
+		reducedMotion.matches = true;
+	});
+	afterEach(() => {
+		reducedMotion.matches = false;
+	});
+
+	const zoom = () => document.querySelector('[data-testid="graph-picture"]')?.getAttribute("data-zoom") ?? null;
+	const isNear = () => document.querySelector('[data-testid="graph-picture"]')?.getAttribute("data-near") === "true";
+	const factNames = () => [...document.querySelectorAll('[data-testid="fact-name"]')].map((n) => n.getAttribute("data-fact-id")!).sort();
+	const members = (id: string) => [...fixture().topics.find((t) => t.id === id)!.members].sort();
+	/** One wheel event over the picture, then the frame its zoom waits for. The test DOM has no layout, so the pointer is measured from the picture's corner. */
+	async function wheel(deltaY: number, at: { clientX: number; clientY: number } = { clientX: 600, clientY: 100 }, on: Element = document.querySelector('[data-testid="graph-picture"]')!) {
+		let event!: Event;
+		await act(async () => {
+			event = fire(on, "wheel", { deltaY, deltaMode: 0, ctrlKey: false, ...at });
+			await frames();
+		});
+		return event;
+	}
+	const footText = (q: (id: string) => HTMLElement | null) => q("graph-foot")!.textContent!;
+
+	it("a click on a topic opens its panel and the picture is near on it, with every fact's name", async () => {
+		const { q, topic } = await mount(<Page />);
+		assert.ok(zoom() === null && !isNear() && factNames().length === 0, "at rest: whole picture, no fact names");
+		await act(async () => topic("t-mini").click());
+		assert.ok(q("topic-pane"));
+		assert.ok(zoom() !== null && isNear());
+		assert.deepEqual(factNames(), members("t-mini"));
+	});
+
+	it("a topic named in the panel's Leads to is picked and shows its own fact names", async () => {
+		const { q, topic } = await mount(<Page />);
+		await act(async () => topic("t-mini").click());
+		const chip = [...q("leads-to")!.querySelectorAll<HTMLElement>('[data-testid="topic-chip"]')].find((c) => c.textContent!.includes("Momentum"))!;
+		await act(async () => chip.click());
+		assert.match(q("topic-pane")!.querySelector("h2")!.textContent!, /Momentum/);
+		assert.ok(isNear());
+		assert.deepEqual(factNames(), members("t-mom"));
+	});
+
+	it("Close flies back to the whole picture, and the foot shows the space's counts again", async () => {
+		const { q, topic } = await mount(<Page />);
+		await act(async () => topic("t-mini").click());
+		await act(async () => q("topic-pane-close")!.click());
+		assert.ok(!q("topic-pane"));
+		assert.ok(zoom() === null && !isNear());
+		assert.equal(factNames().length, 0);
+		assert.match(footText(q), /5topics12facts/);
+		assert.ok(!q("graph-whole-space"));
+	});
+
+	it("zoomed in on one topic, the foot names it and counts its facts, with Whole space beside", async () => {
+		const { q, topic } = await mount(<Page />);
+		assert.ok(!q("graph-whole-space") && !q("graph-in-view"), "no Whole space at the whole picture");
+		await act(async () => topic("t-mini").click());
+		assert.equal(q("graph-in-view")!.textContent, "Minibatch noise6facts");
+		assert.equal(q("graph-whole-space")!.textContent, "Whole space");
+		assert.ok(!q("open-chain-table"), "the counts are what is in view, so the fact count is not a button");
+	});
+
+	it("zoomed out to several topics, the foot counts topics and facts in view", async () => {
+		const { q, topic } = await mount(<Page />);
+		await act(async () => topic("t-mini").click());
+		await wheel(1300);
+		assert.ok(zoom() !== null, "still zoomed in");
+		const [, topics, facts] = q("graph-in-view")!.textContent!.match(/^(\d+)topics(\d+)facts$/) ?? [];
+		assert.ok(topics !== undefined, `counts, not a topic's name: ${q("graph-in-view")!.textContent}`);
+		assert.ok(Number(topics) > 1 && Number(facts) > 6, `${topics} topics, ${facts} facts`);
+		assert.ok(q("graph-whole-space"));
+	});
+
+	it("Whole space flies out to the whole picture and leaves the panel open", async () => {
+		const { q, topic } = await mount(<Page />);
+		await act(async () => topic("t-mini").click());
+		await act(async () => q("graph-whole-space")!.click());
+		assert.ok(zoom() === null && !isNear());
+		assert.ok(q("topic-pane"), "the panel stays");
+		assert.ok(!q("graph-whole-space"));
+		assert.match(footText(q), /5topics12facts/);
+	});
+
+	it("Escape closes the fact, then the topic, then flies a hand-zoomed view out to the whole space", async () => {
+		const { q, topic } = await mount(<Page />);
+		await wheel(-400);
+		assert.ok(zoom() !== null, "zoomed by hand");
+		await act(async () => topic("t-mini").click());
+		await act(async () => q("fact-row")!.click());
+		assert.ok(q("fact-pane"));
+		await escape();
+		assert.ok(q("topic-pane") && !q("fact-pane"), "the fact first");
+		await escape();
+		assert.ok(!q("graph-panel"), "then the topic");
+		assert.ok(zoom() !== null && !isNear(), "closing flies back to the hand-zoomed view");
+		await escape();
+		assert.ok(zoom() === null, "then the whole space");
+		assert.ok(q("graph-picture") && !q("graph-whole-space"));
+	});
+
+	it("typing in Find flies to the whole space and keeps the panel", async () => {
+		const { q, topic } = await mount(<Page />);
+		await act(async () => topic("t-mini").click());
+		assert.ok(zoom() !== null);
+		await act(async () => q("graph-find")!.click());
+		await typeInto(q("graph-find-box")!, "momentum");
+		assert.ok(zoom() === null && !isNear());
+		assert.ok(q("topic-pane"));
+		assert.equal(factNames().length, 0);
+	});
+
+	it("a wheel over the picture zooms toward the pointer and does not scroll the page", async () => {
+		const { q } = await mount(<Page />);
+		const event = await wheel(-300);
+		assert.ok(event.defaultPrevented, "the page is not scrolled");
+		assert.ok(zoom() !== null);
+		assert.ok(q("graph-whole-space"));
+	});
+
+	it("a wheel the other way zooms back out to the whole picture", async () => {
+		await mount(<Page />);
+		await wheel(-300);
+		await wheel(1500);
+		assert.ok(zoom() === null);
+	});
+
+	it("a wheel outside the picture is left to the page", async () => {
+		const { q } = await mount(<Page />);
+		const event = await wheel(-300, undefined, q("graph-foot")!);
+		assert.ok(!event.defaultPrevented);
+		assert.ok(zoom() === null);
+	});
+
+	it("a space of one topic flies to it and names its facts", async () => {
+		const data = fixture();
+		const mini = data.topics.find((t) => t.id === "t-mini")!;
+		const { q, topic } = await mount(<Page data={{ ...data, topics: [mini], topicLinks: [], facts: data.facts.filter((f) => f.topicId === "t-mini") }} />);
+		await act(async () => topic("t-mini").click());
+		assert.ok(q("topic-pane") && isNear());
+		assert.deepEqual(factNames(), members("t-mini"));
+		assert.equal(q("graph-in-view")!.textContent, "Minibatch noise6facts");
+	});
+
+	it("a space with no facts still draws, picks and zooms, with nothing to name", async () => {
+		const { q, topic } = await mount(<Page data={{ ...fixture(), facts: [] }} />);
+		await act(async () => topic("t-mini").click());
+		assert.ok(q("topic-pane"));
+		await wheel(-300);
+		assert.equal(factNames().length, 0);
+		await act(async () => q("topic-pane-close")!.click());
+		assert.ok(q("graph-picture"));
+	});
+});
+
+describe("the camera's small behaviours", () => {
+	beforeEach(() => {
+		reducedMotion.matches = true;
+	});
+	afterEach(() => {
+		reducedMotion.matches = false;
+	});
+
+	const picture = () => document.querySelector<HTMLElement>('[data-testid="graph-picture"]')!;
+	const wheelIn = () =>
+		act(async () => {
+			fire(picture(), "wheel", { deltaY: -400, deltaMode: 0, ctrlKey: false, clientX: 600, clientY: 100 });
+			await frames();
+		});
+	const constellation = (onPick: (id: string | null) => void = noop) => {
+		const data = fixture();
+		return (
+			<Constellation
+				topics={data.topics}
+				links={data.topicLinks}
+				facts={data.facts}
+				chains={null}
+				width={1192}
+				height={600}
+				reveal={null}
+				pickedId={null}
+				pickedFactId={null}
+				focus={null}
+				factMatches={null}
+				onPick={onPick}
+				onPickFact={noop}
+				onInView={noop}
+				camera={{ current: { shot: null, back: null, done: 0 } }}
+				aim={null}
+			/>
+		);
+	};
+
+	it("at the whole picture, a bottom-row topic's name still shows when pointed at on a small-scale picture", async () => {
+		const data = fixture();
+		const small = (
+			<Constellation
+				topics={data.topics}
+				links={data.topicLinks}
+				facts={data.facts}
+				chains={null}
+				width={1192}
+				height={60}
+				reveal={null}
+				pickedId={null}
+				pickedFactId={null}
+				focus={null}
+				factMatches={null}
+				onPick={noop}
+				onPickFact={noop}
+				onInView={noop}
+				camera={{ current: { shot: null, back: null, done: 0 } }}
+				aim={null}
+			/>
+		);
+		await mount(small);
+		const buttons = [...host!.querySelectorAll<HTMLButtonElement>('[data-testid="graph-topic"]')];
+		const top = (b: HTMLElement) => parseFloat(/top:\s*([\d.]+)/.exec(b.getAttribute("style") ?? "")?.[1] ?? "0");
+		const bottom = buttons.reduce((a, b) => (top(b) > top(a) ? b : a));
+		assert.match(bottom.getAttribute("style")!, /opacity:\s*0/, "too small to read at rest");
+		await act(async () => fire(bottom, "focusin"));
+		assert.doesNotMatch(bottom.getAttribute("style")!, /opacity:\s*0/, "shown when pointed at");
+	});
+
+	it("a click right after a drag that was cancelled still works", async () => {
+		const picks: (string | null)[] = [];
+		await mount(constellation((id) => picks.push(id)));
+		await wheelIn();
+		await act(async () => void fire(picture(), "click", { clientX: 2, clientY: 2, detail: 1 }));
+		assert.deepEqual(picks, [null], "a plain click on empty picture reaches it");
+		const at = { button: 0, clientX: 300, clientY: 100, pointerId: 1 };
+		await act(async () => {
+			fire(picture(), "pointerdown", at);
+			fire(picture(), "pointermove", { ...at, clientX: 340 });
+			fire(picture(), "pointercancel", { ...at, clientX: 340 });
+		});
+		await act(async () => void fire(picture(), "click", { clientX: 2, clientY: 2, detail: 1 }));
+		assert.deepEqual(picks, [null, null], "the click after the cancel reaches the picture too");
+	});
+
+	it("Find dims the names of facts that do not match inside a found topic", async () => {
+		const { q, topic } = await mount(<Page />);
+		await act(async () => q("graph-find")!.click());
+		await typeInto(q("graph-find-box")!, "gradient");
+		await act(async () => topic("t-mini").click());
+		const opacity = (id: string) => Number(/opacity:\s*([\d.]+)/.exec(host!.querySelector(`[data-testid="fact-name"][data-fact-id="${id}"]`)!.getAttribute("style")!)?.[1]);
+		for (const hit of ["f5", "f10"]) assert.equal(opacity(hit), 1, `${hit} matches`);
+		for (const miss of ["f6", "f7", "f8", "f9"]) assert.ok(opacity(miss) < 1, `${miss} does not`);
+	});
+
+	it("Escape with focus in an unrelated control does not fly the camera", async () => {
+		const { q } = await mount(
+			<>
+				<input data-testid="elsewhere" />
+				<Page />
+			</>,
+		);
+		await wheelIn();
+		assert.ok(q("graph-whole-space"));
+		q("elsewhere")!.focus();
+		await act(async () => void fire(q("elsewhere")!, "keydown", { key: "Escape" }));
+		assert.ok(picture().getAttribute("data-zoom") !== null, "still zoomed");
+	});
+});
+
+describe("a flight with motion", () => {
+	// Frames and the clock are the test's own here, so a flight is part-way exactly when the test says so.
+	const real = { frame: globalThis.requestAnimationFrame, cancel: globalThis.cancelAnimationFrame, now: performance.now };
+	let clock = 0;
+	let waiting = new Map<number, FrameRequestCallback>();
+	let ids = 0;
+	const step = (ms: number) =>
+		act(async () => {
+			clock += ms;
+			const due = [...waiting.values()];
+			waiting.clear();
+			for (const frame of due) frame(clock);
+		});
+	beforeEach(() => {
+		clock = 0;
+		waiting = new Map();
+		Object.assign(globalThis, {
+			requestAnimationFrame: (frame: FrameRequestCallback) => {
+				waiting.set(++ids, frame);
+				return ids;
+			},
+			cancelAnimationFrame: (id: number) => void waiting.delete(id),
+		});
+		performance.now = () => clock;
+	});
+	afterEach(() => {
+		Object.assign(globalThis, { requestAnimationFrame: real.frame, cancelAnimationFrame: real.cancel });
+		performance.now = real.now;
+	});
+	const zoom = () => Number(host!.querySelector('[data-testid="graph-picture"]')!.getAttribute("data-zoom"));
+	const names = () => host!.querySelectorAll('[data-testid="fact-name"]').length;
+
+	it("takes its time: the picture is whole at the pick, part-way at half time and near once the flight has run", async () => {
+		const { q, topic } = await mount(<Page />);
+		await act(async () => topic("t-mini").click());
+		assert.ok(q("graph-picture")!.getAttribute("data-zoom") === null, "not yet moved at the click");
+		await step(150);
+		const partWay = zoom();
+		assert.ok(partWay > 1, "zoomed in at half time");
+		await step(150);
+		assert.ok(zoom() > partWay, "further in at the end");
+		assert.ok(q("graph-picture")!.getAttribute("data-near") === "true");
+		assert.ok(names() === 6, "the topic's six fact names");
+		const landed = zoom();
+		await step(150);
+		assert.ok(zoom() === landed, "and it stays there");
+	});
+
+	it("lands on the picked topic when the graph changes and the picture is laid out again mid-flight", async () => {
+		const { q, topic } = await mount(<Page />);
+		await act(async () => topic("t-mini").click());
+		await step(60);
+		assert.ok(q("graph-picture")!.getAttribute("data-near") === null, "the flight has not landed");
+		const data = fixture();
+		const more = {
+			...data,
+			topics: data.topics.map((t) => (t.id === "t-deriv" ? { ...t, members: [...t.members, "f13"] } : t)),
+			facts: [...data.facts, { ...data.facts[0]!, id: "f13", name: "Quotient rule" }],
+		};
+		await act(async () => root!.render(<Page data={more} />));
+		await step(16);
+		assert.ok(q("graph-picture")!.getAttribute("data-near") === "true");
+		assert.ok(names() === 6, "the topic's six fact names");
+		assert.match(q("graph-foot")!.textContent!, /Minibatch noise6facts/);
 	});
 });

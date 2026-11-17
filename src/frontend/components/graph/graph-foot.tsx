@@ -2,7 +2,8 @@
  * The Graph tab's foot line, pinned under the picture like a map's legend:
  * the space's counts ("N facts" opens All facts), then Find and Costs, and
  * with no space, Add files to pick notes files right here (a space adds files
- * on its Files tab). Find, or the app's find shortcut, turns the line into a
+ * on its Files tab). Zoomed in, the counts are what is in view (the topic's
+ * name when it is the only one) and Whole space flies back out. Find, or the app's find shortcut, turns the line into a
  * bare typing line that says what matches; the x, Escape, or leaving it empty
  * brings the counts back.
  */
@@ -11,6 +12,7 @@ import type { GraphCostSummary } from "@/shared/core";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { GraphCostControl } from "./cost-control.tsx";
+import type { InView } from "./constellation-near.ts";
 
 /** The foot line's height, kept free under the picture. */
 export const FOOT = 60;
@@ -37,6 +39,8 @@ export function GraphFoot({
 	onOpenChains,
 	costs,
 	importNotes,
+	inView,
+	onWholeSpace,
 }: {
 	hasFacts: boolean;
 	/** Topics other than Ungrouped. */
@@ -51,6 +55,9 @@ export function GraphFoot({
 	costs: GraphCostSummary | null;
 	/** No space's own file picker; null in a space. */
 	importNotes: { importing: boolean; onImportFiles: (files: FileList | null) => void } | null;
+	/** What is in view while the picture is zoomed in; null at the whole space. */
+	inView: InView | null;
+	onWholeSpace: () => void;
 }) {
 	const [finding, setFinding] = useState(query !== "");
 	const line = useRef<HTMLDivElement>(null);
@@ -126,22 +133,40 @@ export function GraphFoot({
 					</>
 				) : (
 					<>
-						{hasFacts && (
+						{hasFacts && inView ? (
 							<>
-								{/* The same unseen underline as the button beside it, so both sit on one line. */}
-								<span className="border-b-2 border-transparent pb-1">
-									<Count n={topicCount} word="topic" />
+								{/* Plain words: the in-view counts open nothing, so All facts stays one click away at the whole space. */}
+								<span data-testid="graph-in-view" className="flex items-baseline gap-6 border-b-2 border-transparent pb-1">
+									{inView.name ? <span className="whitespace-nowrap text-[15px] text-ink">{inView.name}</span> : <Count n={inView.topics} word="topic" />}
+									<Count n={inView.facts} word="fact" />
 								</span>
 								<button
 									type="button"
-									data-testid="open-chain-table"
-									aria-label={`All ${factCount} ${factCount === 1 ? "fact" : "facts"}`}
-									onClick={onOpenChains}
-									className="border-b-2 border-transparent pb-1 transition-colors hover:border-foreground"
+									data-testid="graph-whole-space"
+									onClick={onWholeSpace}
+									className="lh-fade border-b-2 border-transparent pb-1 text-[15px] text-ink-2 transition-colors hover:border-foreground hover:text-ink"
 								>
-									<Count n={factCount} word="fact" />
+									Whole space
 								</button>
 							</>
+						) : (
+							hasFacts && (
+								<>
+									{/* The same unseen underline as the button beside it, so both sit on one line. */}
+									<span className="border-b-2 border-transparent pb-1">
+										<Count n={topicCount} word="topic" />
+									</span>
+									<button
+										type="button"
+										data-testid="open-chain-table"
+										aria-label={`All ${factCount} ${factCount === 1 ? "fact" : "facts"}`}
+										onClick={onOpenChains}
+										className="border-b-2 border-transparent pb-1 transition-colors hover:border-foreground"
+									>
+										<Count n={factCount} word="fact" />
+									</button>
+								</>
+							)
 						)}
 						<span className="flex-1" />
 						<span className="flex items-center gap-1">

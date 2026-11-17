@@ -66,7 +66,7 @@ export interface Rect {
 	y1: number;
 }
 
-type Measure = (text: string) => number;
+export type Measure = (text: string) => number;
 
 /** The box a name's button takes: its ink, centred under the cluster. */
 export function nameBox(k: Pick<Cluster, "cx" | "nameTop" | "textW" | "text">): Rect {
@@ -75,7 +75,7 @@ export function nameBox(k: Pick<Cluster, "cx" | "nameTop" | "textW" | "text">): 
 
 const GOLD = Math.PI * (3 - Math.sqrt(5));
 export const NAME_LINE = 17;
-const NAME_GAP = 7;
+export const NAME_GAP = 7;
 const PAD_TOP = 14;
 const PAD_BOTTOM = 10;
 /** The height a sky aims for before its levels wrap into more columns. */
@@ -123,7 +123,7 @@ function starSize(n: number, width: number): number {
  * ellipsis only ends the second line. `mark` is the room the status square
  * takes before the first line. `w` is the widest line as drawn.
  */
-function wrap(name: string, maxW: number, measure: Measure, mark: number): { w: number; text: string[] } {
+export function wrap(name: string, maxW: number, measure: Measure, mark: number): { w: number; text: string[] } {
 	const words = name.split(/\s+/).filter(Boolean);
 	const full = words.join(" ");
 	const fw = measure(full) + mark;

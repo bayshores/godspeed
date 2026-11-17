@@ -19,7 +19,7 @@ export const discMeetsBox = (k: Cluster, b: Rect) => Math.hypot(k.cx - Math.max(
 /** Rough 13-point name widths, about what the page's font gives. */
 export const measure = (t: string) => t.length * 6.6;
 
-function rng(seed: number) {
+export function rng(seed: number) {
 	let a = seed >>> 0;
 	return () => {
 		a = (a + 0x6d2b79f5) >>> 0;

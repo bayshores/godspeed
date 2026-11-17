@@ -10,6 +10,7 @@ import { makeRouter } from "../../src/frontend/components/graph/constellation-ro
 import { tipSpot } from "../../src/frontend/components/graph/constellation-tips.ts";
 import { boxesMeet, course, discMeetsBox, measure } from "../constellation-fixture.ts";
 
+const whole = (s: { width: number; height: number }): Rect => ({ x0: 0, y0: 0, x1: s.width, y1: s.height });
 const covers = (b: Rect, k: Cluster) => boxesMeet(b, nameBox(k)) || discMeetsBox(k, b);
 const onLine = (b: Rect, g: Seg) => {
 	for (let i = 0; i < g.pts.length; i += 2) if (g.pts[i]! > b.x0 && g.pts[i]! < b.x1 && g.pts[i + 1]! > b.y0 && g.pts[i + 1]! < b.y1) return true;
@@ -25,7 +26,7 @@ describe("the constellation's hover boxes", () => {
 			for (const k of s.clusters) {
 				const lit = new Set([k.topic.id, ...sp.links.flatMap((l) => (l.from === k.topic.id ? [l.to] : l.to === k.topic.id ? [l.from] : []))]);
 				const lines = sp.links.filter((l) => l.from === k.topic.id || l.to === k.topic.id).flatMap((l) => router.link(l.from, l.to, k.topic.id, true) ?? []);
-				const score = tipSpot(s, nameBox(k), k.tipW, 16, 2, lit, lines);
+				const score = tipSpot(s, nameBox(k), k.tipW, 16, 2, lit, lines, whole(s));
 				const box = { x0: score.left, x1: score.left + k.tipW, y0: score.top, y1: score.top + 16 };
 				assert.ok(box.x0 >= 0 && box.x1 <= s.width, `${k.topic.name}'s score leaves the picture at ${w}`);
 				for (const id of lit) assert.ok(!covers(box, s.byTopic.get(id)!), `${k.topic.name}'s score covers ${id} at ${w}`);
@@ -35,7 +36,7 @@ describe("the constellation's hover boxes", () => {
 				const chains = sp.chains.flatMap((c) => c.premises.flatMap((p) => (p === star.id || c.conclusion === star.id ? [[p, c.conclusion] as const] : [])));
 				const starLines = chains.flatMap(([a, z]) => router.chain(a, z) ?? []);
 				const starLit = new Set([k.topic.id, ...chains.flat().map((id) => s.starById.get(id)!.topicId)]);
-				const tip = tipSpot(s, at, 220, 70, 8, starLit, starLines);
+				const tip = tipSpot(s, at, 220, 70, 8, starLit, starLines, whole(s));
 				const tipBox = { x0: tip.left, x1: tip.left + 220, y0: tip.top, y1: tip.top + 70 };
 				assert.ok(!boxesMeet(tipBox, at), `the box covers its star in ${k.topic.name} at ${w}`);
 				for (const id of starLit) assert.ok(!covers(tipBox, s.byTopic.get(id)!), `the box covers ${id} at ${w}`);

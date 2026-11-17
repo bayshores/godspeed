@@ -84,6 +84,20 @@ if (document.scrollingElement.scrollHeight > innerHeight + 1 || frame.scrollHeig
 /** A click on the first topic with facts in the Graph's picture. */
 const pickTopic = `[...document.querySelectorAll("[data-testid=graph-topic]")].find((topic) => !/\\b0 facts/.test(topic.getAttribute("aria-label"))).click()`;
 
+/** Waits for the Graph's camera to come to rest: a flight takes 0.3 s, so its zoom reads the same on two looks apart. `arrived` is the page expression that says the camera went where the screen asked; a narrow window shows the panel in the picture's place, and then there is nothing to wait for. */
+const cameraRests = (arrived) => `{ const picture = () => document.querySelector("[data-testid=graph-picture]");
+let last;
+for (let i = 0; picture(); i++) {
+	await new Promise((done) => setTimeout(done, 150));
+	const zoom = picture()?.getAttribute("data-zoom");
+	if (!picture() || (${arrived} && zoom === last)) break;
+	if (i > 30) throw new Error("the Graph's camera never came to rest");
+	last = zoom;
+} }`;
+/** The picture is zoomed in by hand, as far as the wheel goes: one wheel event a third of the way in. */
+const wheelIn = `{ const picture = document.querySelector("[data-testid=graph-picture]"); const at = picture.getBoundingClientRect();
+picture.dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: -1500, clientX: at.left + at.width / 3, clientY: at.top + at.height / 3 })); }`;
+
 export const SCREENS = [
 	{ name: "Today with a deadline", url: "/", ready: deadlineCard },
 	{ name: "Today, the Add deadline menu", url: "/", ready: "[data-testid=home-add-deadline][aria-haspopup=menu]", setup: `document.querySelector("[data-testid=home-add-deadline]").click()`, shows: "[data-testid=home-add-deadline-menu][data-state=open]" },
@@ -98,7 +112,8 @@ export const SCREENS = [
 	{ name: "Graph", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]", setup: fitsWindow },
 	{ name: "Graph, finding a word", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("undo"), shows: "[data-testid=graph-find-box]" },
 	{ name: "Graph, finding a word nothing matches", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("zzzz"), shows: "[data-testid=graph-no-match]" },
-	{ name: "Graph, a topic picked", url: "/graph", ready: "[data-testid=graph-topic]", setup: `${pickTopic}; ${fitsWindow}`, shows: "[data-testid=graph-panel] [data-testid=topic-pane]" },
+	{ name: "Graph, a topic picked", url: "/graph", ready: "[data-testid=graph-topic]", setup: `${pickTopic}; ${cameraRests(`picture().hasAttribute("data-near")`)}; ${fitsWindow}`, shows: "[data-testid=graph-panel] [data-testid=topic-pane]" },
+	{ name: "Graph, zoomed by hand", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]", setup: `${wheelIn}; ${cameraRests(`zoom !== null`)}; ${fitsWindow}`, shows: "[data-testid=graph-whole-space]" },
 	{
 		name: "Graph, a fact picked",
 		url: "/graph",
