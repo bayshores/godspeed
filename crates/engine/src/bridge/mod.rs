@@ -33,6 +33,7 @@ use waiters::Waiters;
 pub use checkin::display_agent_name;
 pub use helper::UNNAMED_HELPER;
 pub use stream::agent_model;
+pub use terminals::WindowPage;
 pub use view::WorkView;
 pub use work::{AgentReply, Answered, ReplyCall, WaitOptions};
 
@@ -124,6 +125,8 @@ struct State {
 	typed: HashMap<String, i64>,
 	/// What the window shows that takes the learner's lines ("lesson", "cheat sheet"), if anything.
 	talk_page: Option<String>,
+	/// The page the window shows, as it last said; None while it says nothing (closed).
+	window_page: Option<WindowPage>,
 	/// teacher terminal → when the learner pressed Enter there on a talk page, until the line comes
 	/// through the prompt hook or turns into a typed mark.
 	entered: HashMap<String, i64>,

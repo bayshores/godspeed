@@ -15,6 +15,13 @@ use super::{Bridge, State};
 /// A typed message older than this no longer ends a wait: the agent read it some other way.
 const TYPED_FRESH_MS: i64 = 120_000;
 
+/// The page the window shows and its space (None: no space).
+#[derive(Clone, Debug, PartialEq)]
+pub struct WindowPage {
+	pub path: String,
+	pub space_id: Option<String>,
+}
+
 /// How long Enter on a talk page waits for its line to come through the prompt hook.
 pub const LINE_WAIT_MS: i64 = 3_000;
 
@@ -118,9 +125,16 @@ impl Bridge {
 		self.0.waiters.wake_all();
 	}
 
-	/// What the window shows that takes the learner's lines, or None.
-	pub fn set_talk_page(&self, page: Option<String>) {
-		self.0.state.lock().talk_page = page;
+	/// What the window shows: the page that takes the learner's lines, or None, and the page
+	/// itself (None once the window is gone), which open_page compares with.
+	pub fn set_talk_page(&self, page: Option<String>, window: Option<WindowPage>) {
+		let mut s = self.0.state.lock();
+		s.talk_page = page;
+		s.window_page = window;
+	}
+
+	pub fn window_page(&self) -> Option<WindowPage> {
+		self.0.state.lock().window_page.clone()
 	}
 
 	/// The line from this terminal's prompt hook: the talk page it goes to, when the learner just

@@ -41,7 +41,7 @@ async fn send_line(app: &Arc<App>, token: &str, line: &str) -> (u16, Json) {
 async fn a_line_for_the_lesson_on_screen_goes_to_the_window_and_the_hook_blocks_it() {
 	let app = app();
 	let mut events = app.events.subscribe();
-	app.bridge.set_talk_page(Some("lesson".to_owned()));
+	app.bridge.set_talk_page(Some("lesson".to_owned()), None);
 	app.bridge.typed(TEACHER, clock::now_ms());
 
 	// The window answers once it got the line.
@@ -74,7 +74,7 @@ async fn a_line_reaches_the_agent_without_a_page_an_enter_or_the_window() {
 	assert_eq!(send_line(&app, TOKEN, "hi").await, (200, json!({ "sent": null })));
 
 	// A page, but no Enter in the teacher's terminal (the agent's own background prompt).
-	app.bridge.set_talk_page(Some("lesson".to_owned()));
+	app.bridge.set_talk_page(Some("lesson".to_owned()), None);
 	assert_eq!(send_line(&app, TOKEN, "## Memory Writing Agent").await, (200, json!({ "sent": null })));
 
 	// The window never answers: after 3 s the agent reads it, and its wait hears of it.

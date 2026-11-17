@@ -1,5 +1,5 @@
-//! /api/talk-page (the window says which page on screen takes the learner's terminal lines) and
-//! /api/terminal-lines/{id} (the window says whether that page sent a line).
+//! /api/talk-page (the window says which page it shows, and whether it takes the learner's
+//! terminal lines) and /api/terminal-lines/{id} (the window says whether that page sent a line).
 
 use std::sync::Arc;
 
@@ -7,6 +7,8 @@ use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, State};
 use axum::response::Response;
+use gs_core::contracts::space::parse_space_scope;
+use gs_engine::bridge::WindowPage;
 use gs_services::App;
 use gs_services::app::terminal_lines::confirm_terminal_line;
 
@@ -22,7 +24,8 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/terminal-lines/{id}", ApiRoute::new().post(confirm).into_route())
 }
 
-/// PUT `{ page: "lesson" | "cheat sheet" | null }`.
+/// PUT `{ page: "lesson" | "cheat sheet" | null, path: "/space/files" | null, space: "spc_1" | null }`:
+/// path null once the window is gone.
 async fn talk_page(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhandled> {
 	let body = fields(body).await?;
 	let page = match body["page"].as_str() {
@@ -30,7 +33,15 @@ async fn talk_page(State(app): State<Arc<App>>, body: Body) -> Result<Response, 
 		Some(_) => return Ok(error(400, "page must be \"lesson\", \"cheat sheet\" or null")),
 		None => None,
 	};
-	app.bridge.set_talk_page(page);
+	let window = match body["path"].as_str() {
+		None => None,
+		Some(path) if path.starts_with('/') => {
+			let Some(space_id) = parse_space_scope(body["space"].as_str()) else { return Ok(error(400, "bad space")) };
+			Some(WindowPage { path: path.to_owned(), space_id })
+		}
+		Some(_) => return Ok(error(400, "path must be an app path")),
+	};
+	app.bridge.set_talk_page(page, window);
 	Ok(reply::ok())
 }
 

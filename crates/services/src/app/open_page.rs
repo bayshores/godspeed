@@ -10,24 +10,13 @@ use gs_agent::tools::open_page::OpenPage;
 use gs_base::clock;
 use gs_core::spaces::space_tools::ToolOutcome;
 use gs_core::study::cheat_sheet::ParsedSheet;
+use gs_engine::bridge::WindowPage;
 use gs_json::{Json, json};
 
 use super::agent_actions::note_agent_action;
 use crate::App;
 use crate::spaces::deadline_with_space;
 use crate::spaces::space_actions::{CLOSED_SPACE, no_space_text};
-
-/// The page the window shows and its space (None: no space), as the window last said.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Here {
-	pub path: String,
-	pub space_id: Option<String>,
-}
-
-/// The window's page, or None while the window has said nothing (closed, or not loaded yet).
-pub fn set_window_page(app: &App, here: Option<Here>) {
-	*app.misc.here.lock() = here;
-}
 
 /// Where an open goes: the window's path, its space, the page's name for the activity entry, the
 /// item Follow lights there (the space's tab, always shown), and a note for the agent.
@@ -116,7 +105,7 @@ const SPACE_PAGES: [&str; 5] = ["/space", "/space/lessons", "/space/files", "/sp
 
 /// What the agent hears when the window shows this page already, or a lesson on the cheat
 /// sheet's deadline (the sheet then opens beside it).
-fn already_there(app: &App, page: &PageTarget, here: Option<&Here>) -> Option<&'static str> {
+fn already_there(app: &App, page: &PageTarget, here: Option<&WindowPage>) -> Option<&'static str> {
 	let here = here?;
 	let sheet_of = page.path.strip_prefix("/space/deadline/").and_then(|p| p.strip_suffix("/cheat-sheet"));
 	if let (Some(lesson_id), Some(deadline_id)) = (here.path.strip_prefix("/chat/"), sheet_of) {
@@ -142,7 +131,7 @@ pub fn open_page(app: &App, caller: Option<&str>, args: &Json) -> ToolOutcome {
 		Ok(page) => page,
 		Err(refused) => return ToolOutcome::Err(refused),
 	};
-	let here = app.misc.here.lock().clone();
+	let here = app.bridge.window_page();
 	let there = already_there(app, &page, here.as_ref());
 	let action = json!({ "label": format!("Opening {}", page.name), "spaceId": page.space_id, "target": page.target, "page": page.path, "open": true });
 	note_agent_action(app, caller, &action);
@@ -233,6 +222,10 @@ mod tests {
 		assert!(recent_agent_actions(&app).is_empty(), "nothing refused is opened");
 	}
 
+	fn set_window(app: &App, page: Option<WindowPage>) {
+		app.bridge.set_talk_page(None, page);
+	}
+
 	#[test]
 	fn the_agent_hears_where_it_went_and_asked_twice_it_opens_twice() {
 		let root = scratch_dir("open-page-notes");
@@ -247,13 +240,13 @@ mod tests {
 		assert_eq!(opens[0]["open"], json!(true));
 
 		let files = json!({ "page": "files", "space_id": space_id });
-		set_window_page(&app, Some(Here { path: "/space/files".to_owned(), space_id: None }));
+		set_window(&app, Some(WindowPage { path: "/space/files".to_owned(), space_id: None }));
 		assert!(note(open_page(&app, None, &files)).starts_with("Sent to"), "another space's Files");
-		set_window_page(&app, Some(Here { path: "/space/files".to_owned(), space_id: Some(space_id.clone()) }));
+		set_window(&app, Some(WindowPage { path: "/space/files".to_owned(), space_id: Some(space_id.clone()) }));
 		assert_eq!(note(open_page(&app, None, &files)), "The learner is already on that page, so nothing moved.");
 
 		let lesson_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned();
-		set_window_page(&app, Some(Here { path: format!("/chat/{lesson_id}"), space_id: Some(space_id.clone()) }));
+		set_window(&app, Some(WindowPage { path: format!("/chat/{lesson_id}"), space_id: Some(space_id.clone()) }));
 		assert!(note(open_page(&app, None, &sheet)).starts_with(BESIDE_LESSON));
 	}
 }

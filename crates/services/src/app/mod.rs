@@ -53,6 +53,4 @@ pub struct MiscState {
 	pub(crate) quote_boxes: Mutex<VecDeque<(String, Json)>>,
 	/// Lines from the teacher's terminal waiting for the window to send them.
 	lines: terminal_lines::Lines,
-	/// The page the window shows.
-	here: Mutex<Option<open_page::Here>>,
 }

@@ -32,6 +32,7 @@ import { useSpaces } from "@/frontend/components/space-context";
 import { prefersReducedMotion, usePresence } from "@/frontend/components/presence";
 import { useSettingsSaved } from "@/frontend/components/settings-signal";
 import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
+import { useWindowPage } from "@/frontend/components/terminal/use-terminal-lines";
 import { TeacherPanel, panelFillsWindow } from "./teacher-panel";
 import { TeacherContext, useTeacher, type TeacherApi, type LessonPresence } from "./teacher-context";
 import { useTeacherPanel } from "./use-teacher-panel";
@@ -40,7 +41,6 @@ import { STEP_MS, nextStep } from "./tour";
 import { FOLLOW_DEFAULT, FOLLOW_KEY, GO_OFFER_MS, followMoves, followReady, followReducer, goOffer, heldStill, OPEN_SHEET_EVENT, openWaits, parseFollow, safePage, sheetDeadline, type FollowEvent, type FollowState } from "./follow";
 import { agentDoing, freshAction } from "./follow-status";
 import { dialogOpen, highlight, isInView, learnerDialogOpen, pickTarget, sleep, targetElements, waitForTarget } from "./dom";
-import { useWindowPage } from "./use-window-page";
 
 /** A run of visits waits this long first, so changes made together are
  *  seen together. */

@@ -33,7 +33,7 @@ async fn a_line_on_a_talk_page_goes_to_the_page_unless_it_comes_late() {
 	assert!(bridge.take_typed(Some(TEACHER), clock::now_ms()));
 
 	// A lesson is shown: Enter waits for its line, and the line goes to the lesson once.
-	bridge.set_talk_page(Some("lesson".to_owned()));
+	bridge.set_talk_page(Some("lesson".to_owned()), None);
 	bridge.typed(TEACHER, clock::now_ms());
 	assert!(!bridge.take_typed(Some(TEACHER), clock::now_ms()), "the wait doesn't hear of it");
 	let turn = park(&bridge, vec![json!({ "role": "user", "content": "why?", "timestamp": 1 })], "chat_l1", &Abort::new());
@@ -71,7 +71,7 @@ async fn a_line_on_a_talk_page_goes_to_the_page_unless_it_comes_late() {
 	assert!(bridge.take_typed(Some(TEACHER), clock::now_ms()));
 
 	// The page closed: Enter is typed to the agent again.
-	bridge.set_talk_page(None);
+	bridge.set_talk_page(None, None);
 	bridge.typed(TEACHER, clock::now_ms());
 	assert!(bridge.take_typed(Some(TEACHER), clock::now_ms()));
 }

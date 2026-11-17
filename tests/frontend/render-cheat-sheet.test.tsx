@@ -176,7 +176,7 @@ describe("the sheet's chat", () => {
 		try {
 			const el = mount(<SheetChat view={chatView} spaceId="cls_1" deadlineId="ddl_1" act={act_} agentName="Claude Code" agentGone={false} pointed={pointed} onClearPointed={() => cleared++} empty="" />);
 			await settle();
-			assert.deepEqual(confirmed.at(-1), { url: "/api/talk-page", body: { page: "cheat sheet" } }, "the page says it takes lines");
+			assert.deepEqual(confirmed.at(-1), { url: "/api/talk-page", body: { page: "cheat sheet", path: null, space: null } }, "the page says it takes lines");
 			const picture = { name: "graph.png", mimeType: "image/png", data: "R1JB" };
 			await sendEvent("terminal-line", { id: 7, text: "that's what I did ", attachments: [picture] });
 			await settle();

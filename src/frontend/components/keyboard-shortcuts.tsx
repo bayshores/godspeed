@@ -23,6 +23,7 @@ import { actionForBinding, bindingForAction, bindingKeys, eventBinding, isTyping
 import { showFocusRingAfterTab, trapTabInDialog } from "@/frontend/components/focus-hygiene";
 import { usePresence } from "@/frontend/components/presence";
 import { useSpaces } from "@/frontend/components/space-context";
+import { followMoves } from "@/frontend/components/teacher/follow";
 import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
 
 export function KeyboardShortcuts() {
@@ -34,9 +35,9 @@ export function KeyboardShortcuts() {
 	// goes stale.
 	const navigateRef = useRef(navigate);
 	navigateRef.current = navigate;
-	const { setActive } = useSpaces();
-	const setActiveRef = useRef(setActive);
-	setActiveRef.current = setActive;
+	const spaces = useSpaces();
+	const spacesRef = useRef(spaces);
+	spacesRef.current = spaces;
 
 	// Global commands we own run here; surface commands ride the window
 	// event for the mounted surface to catch.
@@ -105,10 +106,13 @@ export function KeyboardShortcuts() {
 				if (item === "back") navigateRef.current(-1);
 				else if (item === "forward") navigateRef.current(1);
 				else if (item.startsWith("go:")) {
-					const [path = "/", query] = item.slice(3).split("?");
+					const [page = "/", query] = item.slice(3).split("?");
 					const space = new URLSearchParams(query).get("space");
-					if (space !== null) setActiveRef.current(space === "none" ? null : space);
-					navigateRef.current(path);
+					const { active, setActive } = spacesRef.current;
+					// With a space, the same switch Follow makes for a change's space.
+					const moves = followMoves({ page, spaceId: space === "none" ? null : (space ?? active) }, { path: location.pathname, activeSpace: active, lessonDraft: false, asked: true });
+					if (moves.switchSpace) setActive(moves.switchSpace.to);
+					navigateRef.current(page);
 				} else run(item as KeyAction);
 			}),
 		[run],

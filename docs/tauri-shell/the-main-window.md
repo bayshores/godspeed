@@ -58,7 +58,7 @@ Check for Updates… and every File and Go item except Open godspeed Folder reop
 
 A push sent before the page has loaded waits in one slot (`window::push_when_loaded`) and goes out when it loads; a later one replaces it.
 
-`ToShell::ShowWindow { page }` (a page the agent opened, [architecture/08.1.3](../architecture/08.1.3-agent-tools-and-notes.md#opening-a-page)) runs the same `window::bring_forward` as the menu on the main thread, and on the Mac first shows a hidden app (⌘H). A page that hasn't loaded (a window made again, or one reloading) gets `menu` `go:<path>?space=<id or none>`, and the page switches to that space before it goes. A loaded page goes there itself from the activity event, so its holds (unsent lesson text, a mock, a dialog) still count.
+`ToShell::ShowWindow { page }` (a page the agent opened, [architecture/08.1.3](../architecture/08.1.3-agent-tools-and-notes.md#opening-a-page)) runs the same `window::bring_forward` as the menu on the main thread, and on the Mac first shows a hidden app (⌘H). A page that hasn't loaded (a window made again, or one reloading) gets `menu` `go:<path>?space=<id or none>`, and the page switches to that space the way Follow does (`followMoves`) before it goes. A loaded page goes there itself from the activity event, so its holds (unsent lesson text, a mock, a dialog) still count.
 
 | Limit | Why |
 |---|---|
