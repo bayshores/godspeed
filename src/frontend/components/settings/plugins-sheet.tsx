@@ -77,7 +77,7 @@ export function PluginSheet({
 	enabled: boolean;
 	values: Record<string, SettingValue>;
 	folder: string;
-	agentName?: string;
+	agentName: string;
 	busy: boolean;
 	updating: boolean;
 	error: string | null;
@@ -160,7 +160,7 @@ export function AddSheet({
 	onChoose,
 }: {
 	rows: ListedPlugin[];
-	agentName?: string;
+	agentName: string;
 	busy: boolean;
 	/** The entry whose add runs. */
 	adding: string | null;

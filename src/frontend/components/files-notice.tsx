@@ -5,13 +5,15 @@
  * with See changes, and a close button. Each stays until one is clicked,
  * and never shows on that space's own Files page (its New badges and
  * Recent changes say it). With no agent connected, the new-files notice
- * says the study material waits for one.
+ * says the study material waits for the teacher.
  */
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router";
+import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { useSpaces } from "@/frontend/components/space-context";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
 import { NOTICE_STACK_ID } from "@/frontend/components/top-bar/pill-panel";
@@ -22,6 +24,7 @@ export function FilesNotice() {
 	const [changes, setChanges] = useState<FolderChange[]>([]);
 	const { spaces, active, setActive } = useSpaces();
 	const agent = useAgentStatus();
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const navigate = useNavigate();
 	// The space whose Files page is open, if any.
 	const onFilesOf = useLocation().pathname === "/space/files" ? active : null;
@@ -42,6 +45,7 @@ export function FilesNotice() {
 		<FilesNoticeView
 			changes={changes}
 			agentConnected={agent?.connected !== false}
+			teacher={teacher}
 			nameOf={(id) => spaces.find((c) => c.id === id)?.name ?? null}
 			onSee={(entry) => {
 				dismiss(entry);
@@ -57,6 +61,7 @@ export function FilesNotice() {
 export function FilesNoticeView({
 	changes,
 	agentConnected,
+	teacher,
 	nameOf,
 	onSee,
 	onDismiss,
@@ -64,6 +69,7 @@ export function FilesNoticeView({
 	changes: readonly FolderChange[];
 	/** False while no agent is connected (unknown counts as connected). */
 	agentConnected: boolean;
+	teacher: string;
 	/** The space's name; null hides its entry (the space was deleted). */
 	nameOf: (spaceId: string) => string | null;
 	onSee: (entry: FolderChange) => void;
@@ -79,7 +85,7 @@ export function FilesNoticeView({
 						key={`${entry.spaceId}:${entry.change}`}
 						data-testid={`files-notice-${entry.change}`}
 						role="status"
-						title={changeTitle(entry, name, agentConnected)}
+						title={changeTitle(entry, name, agentConnected, teacher)}
 						close={{ onClick: () => onDismiss(entry), testId: "files-notice-close" }}
 						actions={
 							<button type="button" data-testid="files-notice-see" onClick={() => onSee(entry)} className="lh-btn text-[15px]">

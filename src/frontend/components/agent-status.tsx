@@ -14,7 +14,8 @@ export interface AgentStatus {
 	connected: boolean;
 	/** The agent ran the work loop recently (wait_for_work, respond, read_work). */
 	teaching: boolean;
-	/** The agent's name from its MCP client info ("Claude Code"). */
+	/** The agent's name from its MCP client info ("Claude Code"). The
+	 *  learner sees the teacher's name instead, except in Settings, Connection. */
 	name?: string;
 	/** A helper waits, or still works on an item it took. */
 	helperHere: boolean;
@@ -34,14 +35,14 @@ export interface AgentStatus {
 	outsideHere?: boolean;
 }
 
-/** How to get the agent teaching: start one, or ask the connected one to start. */
-export function teachStep(name?: string): string {
-	return name ? `Tell ${name} to start teaching.` : "Start your agent to begin.";
+/** How to get the teacher teaching: turn it on, or tell the connected one to start. */
+export function teachStep(teacher: string, connected: boolean): string {
+	return connected ? `Tell ${teacher} to start teaching.` : `Turn on ${teacher} to begin.`;
 }
 
 /** The notice shown while work waits and no agent is teaching. */
-export function waitingNotice(name?: string): string {
-	return name ? `Waiting for your agent. ${teachStep(name)}` : teachStep();
+export function waitingNotice(teacher: string, connected: boolean): string {
+	return connected ? `Waiting for ${teacher}. ${teachStep(teacher, true)}` : teachStep(teacher, false);
 }
 
 /** True when work is waiting and no agent is running the work loop to take it. */
@@ -120,17 +121,17 @@ export function useAgentStatus(): AgentStatus | null {
 	return useContext(AgentStatusContext);
 }
 
-/** The agent's status line (the top bar and the teacher panel). Pure,
- *  exported for tests. */
-export function agentStatusLabel(agent: Pick<AgentStatus, "connected" | "teaching" | "name" | "pendingWork"> | null): string {
-	const name = agent?.name?.trim() || "Your agent";
+/** The teacher's status line (the top bar and the teacher panel), by the
+ *  teacher's name. Connected but not teaching is only "on". Pure, exported
+ *  for tests. */
+export function agentStatusLabel(agent: Pick<AgentStatus, "connected" | "teaching" | "pendingWork"> | null, teacher: string): string {
 	return !agent
-		? "No agent connected"
+		? `${teacher} is off`
 		: agent.teaching
-			? name
+			? teacher
 			: agent.connected
-				? `${name} connected, not teaching`
+				? `${teacher} is on`
 				: agent.pendingWork > 0
-					? "Waiting for your agent"
-					: "No agent connected";
+					? `Waiting for ${teacher}`
+					: `${teacher} is off`;
 }

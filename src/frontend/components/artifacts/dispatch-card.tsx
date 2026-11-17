@@ -20,9 +20,9 @@ import { useNow } from "@/frontend/components/use-now";
  *                 box must not duplicate it.
  */
 const KIND_LABEL: Record<JobKind, string> = {
-	research: "Research agent",
-	demo: "Demo agent",
-	visual: "Figure agent",
+	research: "Research",
+	demo: "Demo builder",
+	visual: "Figure maker",
 	pdf: "PDF reader",
 };
 

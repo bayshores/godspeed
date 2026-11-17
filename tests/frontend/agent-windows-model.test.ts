@@ -17,7 +17,7 @@ const agent = (over: Partial<Parameters<typeof teacherTile>[0]> = {}) => ({
 	...over,
 });
 
-const own = { outside: false, term: null };
+const own = { outside: false, term: null, teacher: "Ada" };
 const helper = (over: Partial<Parameters<typeof helperTile>[0]> = {}) =>
 	helperTile({ agent: agent(), background: null, files: null, filesLeft: 0, teacher: "Teacher", term: null, autoStart: false, ...over });
 
@@ -34,9 +34,9 @@ describe("the teacher and the helper", () => {
 		const idle = teacherTile(teaching, { text: "Idle", working: false }, own);
 		assert.equal(idle.line, "Nothing to do right now");
 		assert.equal(idle.chip, "Running", "Teaching only while it works on something");
-		const running = teacherTile(agent({ connected: true, name: "Codex" }), null, own);
+		const running = teacherTile(agent({ connected: true }), null, own);
 		assert.equal(running.chip, "Running");
-		assert.equal(running.line, "Tell Codex to start teaching.");
+		assert.equal(running.line, "Tell Ada to start teaching.");
 		assert.deepEqual(teacherTile(agent(), null, own), { tone: "off", chip: "", line: "", note: "Start it and it teaches you", start: null }, "no chip and no button: the top bar says it, the teacher's window starts it");
 		assert.deepEqual(teacherTile(agent(), null, { ...own, term: "starting" as const }), { tone: "off", chip: "Starting", line: "", note: "Teaches and answers you", start: null });
 		assert.equal(teacherTile(agent(), null, { ...own, term: "ended" as const }).chip, "Stopped");

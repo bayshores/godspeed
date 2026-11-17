@@ -9,20 +9,20 @@ import { spaceFrame, workState } from "./work-model";
 
 /**
  * The work frame around every tab of a space: while its files are read or
- * its facts are grouped into topics, or wait for an agent. `wide`: the
+ * its facts are grouped into topics, or wait for the teacher. `wide`: the
  * tab's page is the wide one.
  */
 export function SpaceWorkFrame({ wide = false, children }: { wide?: boolean; children: ReactNode }) {
 	const { active } = useSpaces();
 	const { record } = useSpaceRecord(active);
-	const { worker } = useWorker();
+	const { worker, teacher } = useWorker();
 	const { feed } = useActivity();
 
 	let frame: Frame | null = null;
 	if (record) {
 		const grouping = feed.extractions.some((run) => run.kind === "topics" && run.chatId === `topics:${record.id}`);
 		const state = workState({ files: record.files, work: record.lastWork, grouping, working: worker !== null });
-		if (state) frame = { ...spaceFrame(state), actions: state.kind === "waiting" ? <StartAgentAction /> : null };
+		if (state) frame = { ...spaceFrame(state, teacher), actions: state.kind === "waiting" ? <StartAgentAction /> : null };
 	}
 	return (
 		<WorkFrame frame={frame} column={wide ? "wide" : "page"}>

@@ -30,13 +30,13 @@ import { PanelSize, usePanelHeight } from "./panel-size";
  *  the waiting notice while work waits, what the agent is doing while it
  *  works, then whether it is teaching. Nothing until the first read of the
  *  agent. */
-export function agentLine(agent: AgentStatus | null, doing: AgentDoing | null = null): string | null {
+export function agentLine(agent: AgentStatus | null, teacher: string, doing: AgentDoing | null = null): string | null {
 	if (!agent) return null;
 	if (agent.helperCovering) return "Tidying my memory. A backup is answering for a minute.";
-	if (agentWaiting(agent)) return waitingNotice(agent.name);
+	if (agentWaiting(agent)) return waitingNotice(teacher, agent.connected);
 	if (doing?.working) return doing.text;
 	if (agent.teaching) return "Ready";
-	return agent.connected ? agentStatusLabel(agent) : "No agent connected";
+	return agentStatusLabel(agent, teacher);
 }
 
 /** The page's push while the panel is open (main's padding reads it). */
@@ -81,7 +81,7 @@ export function TeacherPanel({
 	const helperFacts = terminals?.facts.helper ?? null;
 	const helperCalls = !!helperFacts && !!needsYou(helperFacts);
 	const doing = teacher?.doing ?? null;
-	const line = agentLine(agent, doing);
+	const line = agentLine(agent, name, doing);
 	const teacherStatus = screenStatusLine(teacherFacts, name);
 	const [wanted, setWanted] = usePaneWidth("teacher", PANEL_WIDTH);
 	const [tall, setTall] = usePanelHeight();

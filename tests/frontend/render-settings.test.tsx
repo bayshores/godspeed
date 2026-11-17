@@ -193,9 +193,22 @@ describe("AppearanceSection (SSR)", () => {
 		}
 		assert.ok(tagOf(html, "theme-paper").includes('aria-pressed="true"'));
 		assert.ok(html.includes('data-testid="font-trigger"'));
-		assert.ok(tagOf(html, "slider-text-size").includes('value="17"'));
+		assert.ok(!html.includes("slider-text-size"), "the text size is the desktop app's zoom");
 		assert.ok(html.includes('data-testid="appearance-preview"'));
 		assert.doesNotMatch(html, /Heading weight|Bold and italic|slider-heading-weight/);
+	});
+
+	it("the text size is a slider over the zoom ladder, at 100% before the shell answers, only in the desktop app", () => {
+		const global = globalThis as { window?: unknown };
+		global.window = { lh: { setZoom() {} } };
+		try {
+			const html = renderToStaticMarkup(<AppearanceSection appearance={undefined} onSectionChange={() => {}} />);
+			const slider = tagOf(html, "slider-text-size");
+			assert.ok(slider.includes('value="2"') && slider.includes('max="7"'));
+			assert.ok(html.includes(">100%<"));
+		} finally {
+			delete global.window;
+		}
 	});
 
 	it("Tab onto a hidden color picker rings its visible tile", () => {

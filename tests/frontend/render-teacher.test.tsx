@@ -118,16 +118,16 @@ describe("the panel", () => {
 		assert.match(section, new RegExp(`width:${PANEL_WIDTH.initial}px;height:${PANEL_HEIGHT.initial}px`));
 		assert.doesNotMatch(section, /border-l|bg-panel|blur/);
 	});
-	it("the status line says No agent connected with no agent, and shows the waiting notice once while work waits", () => {
-		assert.equal(agentLine(IDLE), "No agent connected");
-		assert.equal(agentLine(null), null, "nothing until the first read");
-		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true }), "Ready");
-		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true }, { text: "Reading a PDF", working: true }), "Reading a PDF");
-		assert.equal(agentLine({ ...IDLE, connected: true, name: "Codex" }), "Codex connected, not teaching");
-		assert.equal(agentLine({ ...IDLE, connected: true, name: "Codex", pendingWork: 1 }), waitingNotice("Codex"));
-		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true, helperCovering: true }), "Tidying my memory. A backup is answering for a minute.");
+	it("the status line says the teacher is off with no agent, and shows the waiting notice once while work waits", () => {
+		assert.equal(agentLine(IDLE, "Ada"), "Ada is off");
+		assert.equal(agentLine(null, "Ada"), null, "nothing until the first read");
+		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true }, "Ada"), "Ready");
+		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true }, "Ada", { text: "Reading a PDF", working: true }), "Reading a PDF");
+		assert.equal(agentLine({ ...IDLE, connected: true, name: "Codex" }, "Ada"), "Ada is on", "the teacher's name, never the program's");
+		assert.equal(agentLine({ ...IDLE, connected: true, name: "Codex", pendingWork: 1 }, "Ada"), waitingNotice("Ada", true));
+		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true, helperCovering: true }, "Ada"), "Tidying my memory. A backup is answering for a minute.");
 		const html = renderToStaticMarkup(panel({ agent: { ...IDLE, pendingWork: 2 } }));
-		assert.equal(html.split(`>${waitingNotice()}<`).length - 1, 1, "in the head, not again in Activity");
+		assert.equal(html.split(`>${waitingNotice("Ada", false)}<`).length - 1, 1, "in the head, not again in Activity");
 	});
 	const at = (width: number, height = 852) => ({ width, height });
 	it("a window lies over the page at the size the learner left it, without pushing", () => {
@@ -238,7 +238,7 @@ describe("the teacher's Activity", () => {
 		act(() => root?.unmount());
 		assert.ok(mount(list()).querySelector("[data-testid='activity-empty']") === null);
 		act(() => root?.unmount());
-		assert.ok(mount(list({ recent: [], waiting: waitingNotice() })).querySelector("[data-testid='activity-empty']") === null, "the waiting line is something");
+		assert.ok(mount(list({ recent: [], waiting: waitingNotice("Ada", false) })).querySelector("[data-testid='activity-empty']") === null, "the waiting line is something");
 	});
 	it("Recent hides when there is nothing yet", () => {
 		assert.ok(mount(list({ recent: [] })).querySelector("[data-testid='activity-recent']") === null);
@@ -260,11 +260,11 @@ describe("the teacher's Activity", () => {
 	});
 	it("Running in the background sits above Recent, with failed jobs and the waiting line", () => {
 		const failed = [{ id: "j1", kind: "pdf" as const, chatId: "c1", title: "06_Counting.pdf", error: "The PDF could not be read", at: "2026-10-28T16:00:00Z" }];
-		const html = renderToStaticMarkup(list({ feed: { ...EMPTY, failed }, waiting: waitingNotice("Codex") }));
+		const html = renderToStaticMarkup(list({ feed: { ...EMPTY, failed }, waiting: waitingNotice("Ada", true) }));
 		assert.match(html, /Running in the background/);
 		assert.match(html, /data-testid="activity-failed"/);
 		assert.match(html, /Failed: The PDF could not be read/);
-		assert.match(html, /data-testid="activity-waiting"[^>]*>Waiting for your agent\. Tell Codex to start teaching\.</);
+		assert.match(html, /data-testid="activity-waiting"[^>]*>Waiting for Ada\. Tell Ada to start teaching\.</);
 		assert.ok(html.indexOf("Running in the background") < html.indexOf(">Recent<"));
 	});
 	it("clicking a job opens its detail: what it is doing, cost, context and its lesson", () => {

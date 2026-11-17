@@ -20,13 +20,14 @@ export function TeacherActivity({ underStatus = false }: { underStatus?: boolean
 	const teacher = useTeacher();
 	const { feed } = useActivity();
 	const agent = useAgentStatus();
+	const name = teacher?.name ?? DEFAULT_TEACHER_NAME;
 	return (
 		<ActivityList
-			name={teacher?.name ?? DEFAULT_TEACHER_NAME}
+			name={name}
 			recent={teacher?.recent ?? []}
 			spaceNameOf={teacher?.spaceNameOf ?? (() => null)}
 			feed={feed}
-			waiting={!underStatus && agentWaiting(agent) ? waitingNotice(agent?.name) : null}
+			waiting={!underStatus && agentWaiting(agent) ? waitingNotice(name, !!agent?.connected) : null}
 		/>
 	);
 }

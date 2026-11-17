@@ -5,7 +5,8 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { useAgentStatus } from "@/frontend/components/agent-status";
+import { DEFAULT_TEACHER_NAME } from "@/shared/core";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { changePlugin, fetchListed, fetchPlugins, installListed, installPlugin, removePlugin, type InstalledPlugin, type ListedPlugin, type PluginResult } from "@/frontend/lib/plugins-api";
@@ -20,7 +21,7 @@ const ROW = "lh-press flex items-center gap-2 px-3.5 py-3 text-left text-base te
 type Place = "add" | "sheet" | "update" | `listed:${string}`;
 
 export function PluginsSection() {
-	const agentName = useAgentStatus()?.name;
+	const agentName = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	// undefined: loading. null: the server didn't answer.
 	const [plugins, setPlugins] = useState<InstalledPlugin[] | null | undefined>(undefined);
 	const [listed, setListed] = useState<ListedPlugin[]>([]);

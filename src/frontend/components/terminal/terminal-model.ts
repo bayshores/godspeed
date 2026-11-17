@@ -142,7 +142,8 @@ const footer = (text: string | null, more: Partial<TerminalFooter> = {}): Termin
 
 /** What a screen says: `need` is the short form the teacher's status line
  *  shows, `rest` what only the footer adds. `starting`: the status line
- *  says the teacher starts instead. */
+ *  says the teacher starts instead. Only installing and signing in name
+ *  the program; the rest say `name`. */
 interface ScreenWords {
 	need: string | null;
 	rest: string | null;
@@ -162,19 +163,19 @@ function screenWords(f: TerminalFacts, name: string): ScreenWords {
 		if (ended.code === EXIT_NOT_INSTALLED) return { need: `${agent} isn't installed on this computer.`, rest: null, more: { get: GET_AGENT[term.agent], ...again } };
 		if (ended.code === EXIT_NO_NODE) return { need: `godspeed needs Node.js to connect ${agent}.`, rest: null, more: { get: GET_NODE, ...again } };
 		if (ended.code === EXIT_CHAT_GONE) return { need: "Couldn't open that chat.", rest: null, more: again };
-		if (ended.code === 0) return { need: null, rest: `${agent} closed.`, more: again };
-		return { need: `${agent} closed with an error.`, rest: null, more: again };
+		if (ended.code === 0) return { need: null, rest: `${name} closed.`, more: again };
+		return { need: `${name} closed with an error.`, rest: null, more: again };
 	}
 	if (term.prompt === "trust")
-		return { need: `${agent} asks to trust its folder.`, rest: null, more: { assist: { kind: "trust", label: "Trust folder" } } };
-	if (term.prompt === "enter") return { need: `${agent} is asking you to continue.`, rest: null, more: { assist: { kind: "enter", label: "Continue" } } };
+		return { need: `${name} asks to trust its folder.`, rest: null, more: { assist: { kind: "trust", label: "Trust folder" } } };
+	if (term.prompt === "enter") return { need: `${name} is asking you to continue.`, rest: null, more: { assist: { kind: "enter", label: "Continue" } } };
 	// Only a link says signing in: a menu before the first check-in may be any question (Codex asks about new hooks).
 	if (!f.checkedIn && term.url)
 		return { need: `Finish signing in to ${agent}.`, rest: "Got a code? Click Paste." };
-	if (term.prompt === "menu") return { need: `${agent} is asking you something.`, rest: null };
+	if (term.prompt === "menu") return { need: `${name} is asking you something.`, rest: null };
 	const why = needsYou(f);
 	if (why === "no-check-in" || why === "not-teaching") return { need: `${name} hasn't started teaching yet.`, rest: null };
-	if (!f.checkedIn) return { need: `${agent} is starting.`, rest: null, starting: true };
+	if (!f.checkedIn) return { need: `${name} is starting.`, rest: null, starting: true };
 	if (teacher) return { need: null, rest: null };
 	return { need: null, rest: f.helperBusy ? "Reading your files." : "Waiting for files." };
 }
@@ -218,7 +219,7 @@ export const ATTACH_MAX_BYTES = 20 * 1024 * 1024;
 export const ATTACH_TOO_BIG = "That file is over 20 MB.";
 
 /** Why the teacher doesn't start while an agent outside godspeed is here. */
-export const OUTSIDE_REFUSAL = "An agent outside godspeed is connected. Close it first.";
+export const OUTSIDE_REFUSAL = "The teacher is already running outside godspeed. Close it there first.";
 
 /** Why a teacher start is refused: its terminal runs, or an agent outside
  *  godspeed is here. Null when it may start. */

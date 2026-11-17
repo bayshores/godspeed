@@ -16,6 +16,7 @@ import { currentUserThinkingOpen, setAllUserThinkingOpen } from "@/frontend/comp
 import {
 	activeProblemOf,
 	answerTakesFiles,
+	DEFAULT_TEACHER_NAME,
 	dismissedAnswer,
 	effectiveThresholdTokens,
 	findPendingToolCall,
@@ -183,6 +184,8 @@ export function Chat({
 	// The turn is waiting on the outside agent and none is connected: say so
 	// in the composer (it starts by itself once the agent connects).
 	const agentStatus = useAgentStatus();
+	const teacher = useTeacher();
+	const teacherName = teacher?.name ?? DEFAULT_TEACHER_NAME;
 	const waitingForAgent = busy && agentWaiting(agentStatus);
 	const noAgent = lessonAgentWaiting(agentStatus);
 	const busyRef = useRef(busy);
@@ -388,7 +391,7 @@ export function Chat({
 
 	// A pick from the homework's problem list. Why none can open yet: the
 	// lesson's own words for a reply under way, or the question waiting.
-	const openBlocked = busy ? (waitingForAgent ? "Waiting for your agent" : "The teacher is writing.") : pending ? "Answer the question first." : null;
+	const openBlocked = busy ? (waitingForAgent ? `Waiting for ${teacherName}` : "The teacher is writing.") : pending ? "Answer the question first." : null;
 	const workBoxRef = useRef<{ focus(): void }>(null);
 	const openPick = useCallback(
 		(number: string | null) => {
@@ -546,7 +549,6 @@ export function Chat({
 	// Teacher's window are both made of the bar and hang over the same corner, so one shows at a time.
 	const { plugins: lessonPlugins } = usePluginsAt("lesson");
 	const { spaces } = useSpaces();
-	const teacher = useTeacher();
 	const [pluginId, setPluginId] = useState<string | null>(null);
 	const openPlugin = lessonPlugins?.find((p) => p.id === pluginId) ?? null;
 	const sheetOpen = !!spaceId && sheet.state.open;

@@ -45,7 +45,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 	onToggle,
 	coverage,
 	disabled,
-	agentTeaching,
+	teacher,
 	actions,
 }: {
 	group: FileGroup;
@@ -53,11 +53,11 @@ export const FileGroupSection = memo(function FileGroupSection({
 	onToggle: (key: string) => void;
 	coverage: ReadonlyMap<string, FileCoverage>;
 	disabled?: boolean;
-	agentTeaching: boolean;
+	teacher: string;
 	actions: FileRowActions;
 }) {
 	const row = (file: FileGroup["items"][number]["files"][number]) => (
-		<FileRow key={file.id} file={file} coverage={coverage.get(file.id)} disabled={disabled} agentTeaching={agentTeaching} actions={actions} />
+		<FileRow key={file.id} file={file} coverage={coverage.get(file.id)} disabled={disabled} teacher={teacher} actions={actions} />
 	);
 	return (
 		<section data-testid={`files-group-${group.key}`} aria-label={group.label} className="flex w-full flex-col gap-1">

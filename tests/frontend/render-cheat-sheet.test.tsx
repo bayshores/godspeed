@@ -145,7 +145,7 @@ describe("the sheet's chat", () => {
 		const working = render({ ...chatView, running: { messageId: "m3" } });
 		assert.match(working, /according to the cheat sheet.*Claude Code is on it/);
 		assert.match(working, /Claude Code is on it<\/span><button[^>]*data-testid="sheet-stop"[^>]*>Stop</, "Stop beside the working line");
-		assert.match(render({ ...chatView, running: { messageId: "m3" } }, { agentGone: true }), /Waiting for an agent/);
+		assert.match(render({ ...chatView, running: { messageId: "m3" } }, { agentGone: true }), />Waiting</);
 		const failed = render({ ...chatView, error: { messageId: "m3", text: "the agent never answered" } });
 		assert.match(failed, /according to the cheat sheet.*Claude Code couldn&#x27;t finish that\..*the agent never answered.*Try again/);
 	});
@@ -166,7 +166,7 @@ describe("the sheet's chat", () => {
 			confirmed.push({ url, body: init?.body ? JSON.parse(String(init.body)) : null });
 			return Response.json({});
 		}) as typeof fetch;
-		let answer: string | null = "Your agent is still answering your last message about this sheet.";
+		let answer: string | null = "The teacher is still answering your last message about this sheet.";
 		let cleared = 0;
 		const pointed = { region: { n: 2, page: 2, x: 0.1, y: 0.2, w: 0.3, h: 0.1 }, picture: { name: "Version 2, Back.png", mimeType: "image/png", data: "QUJD" } };
 		const act_ = async (body: Record<string, unknown>) => {
@@ -181,7 +181,7 @@ describe("the sheet's chat", () => {
 			await sendEvent("terminal-line", { id: 7, text: "that's what I did ", attachments: [picture] });
 			await settle();
 			assert.deepEqual(posted[0], { action: "ask", text: "that's what I did", attachments: [pointed.picture, picture], region: pointed.region });
-			assert.match(el.innerHTML, /role="alert"[^>]*>Your agent is still answering/);
+			assert.match(el.innerHTML, /role="alert"[^>]*>The teacher is still answering/);
 			assert.deepEqual(confirmed.at(-1), { url: "/api/terminal-lines/7", body: { sent: false } });
 			assert.equal(cleared, 0);
 			answer = null;

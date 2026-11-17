@@ -46,7 +46,7 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 	const teacherTerm: TermState = !ownTeacher ? null : ownTeacher.ended ? "ended" : terminals?.facts.teacher?.checkedIn ? null : "starting";
 	// A helper that ended with its teacher starts again by itself with the next one.
 	const helperTerm: TermState = !ownHelper ? null : !ownHelper.ended ? (agent.helperHere ? null : "starting") : teacherLive ? "ended" : null;
-	const teacher = teacherTile(agent, panel?.doing ?? null, { outside, term: teacherTerm });
+	const teacher = teacherTile(agent, panel?.doing ?? null, { outside, term: teacherTerm, teacher: teacherName });
 	const helper = helperTile({
 		agent,
 		background: backgroundLine(feed.extractions, feed.jobs),

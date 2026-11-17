@@ -36,7 +36,7 @@ const KIND_HELP = {
 	info: { title: "Space info", body: "Schedules, rules and other details about the space. The teacher reads it, but it never becomes facts." },
 	sorted: {
 		title: "Space info",
-		body: "Sorted as space info by your agent while reading it. If it's study material, pick Move to Study material in the More menu.",
+		body: "Sorted as space info by {teacher} while reading it. If it's study material, pick Move to Study material in the More menu.",
 	},
 } as const;
 
@@ -46,17 +46,17 @@ export const FileRow = memo(function FileRow({
 	file,
 	coverage,
 	disabled,
-	agentTeaching,
+	teacher,
 	actions,
 }: {
 	file: SpaceFile;
 	coverage: FileCoverage | undefined;
 	disabled?: boolean;
-	/** An agent is running the work loop (a waiting file says who it waits for). */
-	agentTeaching: boolean;
+	/** The teacher's name, for the kind label's hover text. */
+	teacher: string;
 	actions: FileRowActions;
 }) {
-	const state = fileState(file, coverage, agentTeaching);
+	const state = fileState(file, coverage);
 	const install = state.kind === "failed" ? state.install : undefined;
 	const help = KIND_HELP[file.sortedAsInfo && file.kind === "info" ? "sorted" : file.kind];
 	const minute = useMinute();
@@ -88,7 +88,7 @@ export const FileRow = memo(function FileRow({
 					</span>
 				)}
 			</span>
-			<Tip title={help.title} body={<span className="text-xs text-ink-2">{help.body}</span>} side="bottom" className="w-[240px]">
+			<Tip title={help.title} body={<span className="text-xs text-ink-2">{help.body.replace("{teacher}", teacher)}</span>} side="bottom" className="w-[240px]">
 				<span tabIndex={0} data-testid={`space-file-kind-${file.id}`} className="w-10 shrink-0 text-base text-ink-2 outline-none">
 					{file.kind === "study" ? "Study" : "Info"}
 				</span>

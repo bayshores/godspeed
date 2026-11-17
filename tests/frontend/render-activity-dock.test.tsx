@@ -16,10 +16,10 @@ describe("the waiting-for-your-agent notice", () => {
 		assert.equal(agentWaiting(status()), false);
 		assert.equal(agentWaiting(null), false);
 	});
-	it("says to open an agent, or to tell the connected one to start", () => {
-		assert.equal(waitingNotice(), "Start your agent to begin.");
-		assert.equal(waitingNotice("Claude Code"), "Waiting for your agent. Tell Claude Code to start teaching.");
-		assert.equal(teachStep("Codex"), "Tell Codex to start teaching.");
+	it("says to turn the teacher on, or to tell the connected one to start", () => {
+		assert.equal(waitingNotice("Ada", false), "Turn on Ada to begin.");
+		assert.equal(waitingNotice("Ada", true), "Waiting for Ada. Tell Ada to start teaching.");
+		assert.equal(teachStep("Ada", true), "Tell Ada to start teaching.");
 	});
 	it("reads the /api/mcp-access body", () => {
 		assert.deepEqual(
@@ -51,9 +51,9 @@ describe("the waiting-for-your-agent notice", () => {
 		assert.equal(sameAgentStatus(s, { ...s, outsideHere: true }), false);
 	});
 	it("the background jobs show the notice text", () => {
-		const html = renderToStaticMarkup(<BackgroundJobs feed={{ jobs: [], extractions: [] }} waiting={waitingNotice()} />);
+		const html = renderToStaticMarkup(<BackgroundJobs feed={{ jobs: [], extractions: [] }} waiting={waitingNotice("Ada", false)} />);
 		assert.ok(html.includes('data-testid="activity-waiting"'));
-		assert.ok(html.includes(waitingNotice()));
+		assert.ok(html.includes(waitingNotice("Ada", false)));
 		assert.ok(!renderToStaticMarkup(<BackgroundJobs feed={{ jobs: [], extractions: [] }} waiting={null} />).includes("activity-waiting"));
 	});
 });
@@ -183,11 +183,11 @@ describe("activity dock pure layer", () => {
 	});
 
 	it("names each job by what it is", () => {
-		assert.equal(blobLabel({ process: "extraction" }), "Building facts");
-		assert.equal(blobLabel({ process: "job", jobKind: "research" }), "Research agent");
-		assert.equal(blobLabel({ process: "job", jobKind: "pdf" }), "PDF reader");
-		assert.equal(blobLabel({ process: "job" }), "Sub-agent");
-		assert.equal(blobLabel({ process: "request" }), "Your agent");
+		assert.equal(blobLabel({ process: "extraction" }, "Ada"), "Building facts");
+		assert.equal(blobLabel({ process: "job", jobKind: "research" }, "Ada"), "Research");
+		assert.equal(blobLabel({ process: "job", jobKind: "pdf" }, "Ada"), "PDF reader");
+		assert.equal(blobLabel({ process: "job" }, "Ada"), "Job");
+		assert.equal(blobLabel({ process: "request" }, "Ada"), "Ada", "a request the teacher works on");
 	});
 
 	it("says how long ago a change was", () => {
@@ -256,7 +256,7 @@ describe("background jobs render", () => {
 		assert.deepEqual(toBlobs(feed).map((b) => [b.process, b.title]), [["request", "Deadline: Wave Optics Final"]]);
 		const html = renderToStaticMarkup(<BackgroundJobs feed={feed} waiting={null} />);
 		assert.match(html, /data-testid="activity-blob-request"/);
-		assert.match(html, /Your agent, <span data-testid="activity-blob-elapsed">/);
+		assert.match(html, /Teacher, <span data-testid="activity-blob-elapsed">/);
 		assert.doesNotMatch(html, /activity-abort/);
 	});
 

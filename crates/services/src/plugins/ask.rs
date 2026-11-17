@@ -64,7 +64,7 @@ pub async fn ask_agent(app: &Arc<App>, id: &str, prompt: &str, schema: &Json) ->
 	{
 		let mut asking = app.plugins.asking.lock();
 		if asking.contains_key(id) {
-			return refuse(409, "Your agent is still on this plugin's last request.");
+			return refuse(409, "The teacher is still on this plugin's last request.");
 		}
 		asking.insert(id.to_owned(), json!({ "id": format!("plugin:{id}"), "title": name.clone(), "startedAt": clock::now_ms() }));
 	}

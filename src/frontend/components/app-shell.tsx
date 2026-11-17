@@ -49,8 +49,9 @@ export function AppShell({
 	return (
 		<>
 			<OpenDeadlinesProvider>
-				<Welcome initialOpen={welcome} whatsNewSince={whatsNewSince} />
+				{/* Around the welcome screen and the notices too: they say the teacher's name. */}
 				<TeacherProvider initialName={teacherName}>
+					<Welcome initialOpen={welcome} whatsNewSince={whatsNewSince} />
 					{/* Around the page too: a lesson, a mock and a cheat sheet draw the pill in their own bar. */}
 					<PillProvider>
 						<a href="#lh-page" className="lh-btn sr-only focus:not-sr-only focus:fixed focus:top-1.5 focus:left-1.5 focus:z-50">
@@ -63,15 +64,15 @@ export function AppShell({
 						</main>
 						<ReadNotice />
 					</PillProvider>
+					<SpaceNotice />
+					<RuleNotice />
+					<FilesNotice />
 				</TeacherProvider>
-				<SpaceNotice />
 			</OpenDeadlinesProvider>
 			{/* The single document-level keydown listener: window-level, so its
 			    place in the tree only matters for the events it dispatches. */}
 			<KeyboardShortcuts />
 			<SearchLessons />
-			<RuleNotice />
-			<FilesNotice />
 			<QuietNotice />
 		</>
 	);

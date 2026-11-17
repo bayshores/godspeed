@@ -9,10 +9,10 @@ import {
 import { Shimmer } from "@/frontend/components/ai-elements/shimmer";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/frontend/components/queued-steers";
-import { useAgentStatus } from "@/frontend/components/agent-status";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { JobsContext } from "@/frontend/components/jobs-context";
 import { SessionMessageNavigation } from "@/frontend/components/session-navigation";
-import type { LhViewMessage, Phase3 } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, type LhViewMessage, type Phase3 } from "@/shared/core";
 import { AgentAtWork } from "./agent-at-work";
 import { agentWork } from "./agent-at-work-model";
 import { ArrivalRow, type Arrive } from "./arrivals";
@@ -72,7 +72,7 @@ export function ReadingPane({
 }) {
 	const last = messages.length - 1;
 	const jobs = useContext(JobsContext);
-	const agentName = useAgentStatus()?.name?.trim() || "Your agent";
+	const agentName = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	// The reply being worked on: its plan, steps and file, until its text lands.
 	const replying = busy && messages[last]?.role === "assistant" ? messages[last] : undefined;
 	const work = useMemo(() => (replying ? agentWork(replying, jobs) : null), [replying, jobs]);

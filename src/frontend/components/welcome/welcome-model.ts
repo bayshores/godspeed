@@ -1,6 +1,6 @@
 /**
- * The welcome screen's start lines under the logo: the version, the agent,
- * and the next deadline ("Version 0.5.50", "Claude Code is connected",
+ * The welcome screen's start lines under the logo: the version, whether
+ * the teacher is on, and the next deadline ("Version 0.5.50", "Teacher is on",
  * "Midterm 2 is due in 3 days"). The first launch after updating from the
  * old look says so instead. Pure and unit-tested.
  */
@@ -18,14 +18,15 @@ export function lookUpgraded(whatsNewSince: string | null): boolean {
 
 export function bootLines(
 	version: string,
-	agent: { connected: boolean; name?: string },
+	agent: { connected: boolean },
+	teacher: string,
 	next: { name: string; date: string; time?: string } | undefined,
 	nowMs: number,
 	upgraded: boolean,
 ): string[] {
 	const head = `Version ${version}`;
 	if (upgraded) return [head, "New look", "Loading your spaces"];
-	const who = agent.connected ? `${agent.name?.trim() || "Your agent"} is connected` : "No agent is connected";
+	const who = `${teacher} is ${agent.connected ? "on" : "off"}`;
 	if (!next) return [head, who];
 	let when: string;
 	if (isOverdue(next, nowMs)) when = "overdue";

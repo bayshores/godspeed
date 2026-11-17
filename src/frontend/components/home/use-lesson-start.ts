@@ -24,7 +24,7 @@ type StartBody =
  * Every Study start (the start page, its suggestions, a deadline, the
  * Graph, the Overview) goes through here, in the active space. The lesson
  * runs on the outside agent; with no agent connected it waits in the agent
- * queue (the lesson shows "Waiting for your agent") and, in the desktop
+ * queue (the lesson shows "Waiting for Teacher") and, in the desktop
  * app, starts the agent last started there (TerminalsApi.wake). The session's title,
  * as the server returns it, is its first message, with any pictures and
  * PDFs added to the topic. A start that fails sets `error` for the screen

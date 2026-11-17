@@ -19,7 +19,8 @@ import {
 } from "react";
 import { Streamdown } from "streamdown";
 
-import { transformMathDelimiters } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, transformMathDelimiters } from "@/shared/core";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { plainRehypePlugins, streamdownPlugins } from "./message";
 import { mdComponents } from "@/frontend/components/md-blocks";
 import { Shimmer } from "./shimmer";
@@ -104,6 +105,7 @@ export const ReasoningTrigger = memo(
     ...props
   }: ReasoningTriggerProps) => {
     const { isStreaming, isOpen } = useReasoning();
+    const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 
     return (
       <CollapsibleTrigger
@@ -127,7 +129,7 @@ export const ReasoningTrigger = memo(
             It is the placeholder spinner's size, so the handoff is seamless. */}
         {isStreaming && <BrailleSpinner label="Thinking" />}
         {/* A static settled label, pairing with the learner's "Your thinking" rows. */}
-        {isStreaming ? <Shimmer>Thinking...</Shimmer> : <p>Agent’s thinking</p>}
+        {isStreaming ? <Shimmer>Thinking...</Shimmer> : <p>{teacher}’s thinking</p>}
       </CollapsibleTrigger>
     );
   }

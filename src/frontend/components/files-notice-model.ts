@@ -19,14 +19,14 @@ export function mergeChange(list: readonly FolderChange[], next: FolderChange): 
 	return list.map((e, i) => (i === at ? { ...e, files } : e));
 }
 
-/** "3 new files in CSE 21", and when study material waits for an agent to
- *  read it, "· read when your agent connects". "2 files removed from CSE 21". */
-export function changeTitle(entry: FolderChange, spaceName: string, agentConnected: boolean): string {
+/** "3 new files in CSE 21", and when study material waits for the teacher
+ *  to read it, ", read when Teacher is on". "2 files removed from CSE 21". */
+export function changeTitle(entry: FolderChange, spaceName: string, agentConnected: boolean, teacher: string): string {
 	const count = entry.files.length;
 	const files = count === 1 ? "file" : "files";
 	if (entry.change === "removed") return `${count} ${files} removed from ${spaceName}`;
 	const title = `${count} new ${files} in ${spaceName}`;
-	return !agentConnected && entry.files.some((f) => f.kind === "study") ? `${title}, read when your agent connects` : title;
+	return !agentConnected && entry.files.some((f) => f.kind === "study") ? `${title}, read when ${teacher} is on` : title;
 }
 
 /** "Lecture11.srt", "Lecture11.srt and HW5.pdf", "Lecture11.srt and 2 more". */

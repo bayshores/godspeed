@@ -378,7 +378,7 @@ describe("Your turn in each state", () => {
 		let stopped = 0;
 		const stuck = { minutes: 7, label: "Stop and try again", onStop: () => stopped++ };
 		const out = html({ stuck });
-		assert.match(out, /data-testid="turn-stuck"[^>]*>Your agent took this 7 minutes ago and hasn(?:'|&#x27;)t answered\./);
+		assert.match(out, /data-testid="turn-stuck"[^>]*>Teacher took this 7 minutes ago and hasn(?:'|&#x27;)t answered\./);
 		assert.match(out, /data-testid="turn-stuck-stop"[^>]*>Stop and try again</);
 		assert.doesNotMatch(html(), /turn-stuck/);
 		await mounted(turn({ stuck }), async (host) => {

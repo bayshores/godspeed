@@ -42,7 +42,7 @@ struct Failed {
 	links: String,
 }
 
-pub(crate) const BUSY: &str = "Your agent is still working on this deadline.";
+pub(crate) const BUSY: &str = "The teacher is still working on this deadline.";
 
 /// What runs now.
 #[derive(Default)]

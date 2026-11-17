@@ -160,7 +160,7 @@ describe("never opening by itself", () => {
 		const shell = fakeShell([teacher({ prompt: "trust" })]);
 		try {
 			await mounted(access(), async () => {
-				assert.equal(text("status"), "Claude Code asks to trust its folder.");
+				assert.equal(text("status"), "Ada asks to trust its folder.");
 				assert.ok(q("teacher-panel") === null, "the panel stays shut");
 				await click("status");
 				assert.ok(onTerminal());
@@ -272,7 +272,7 @@ describe("never opening by itself", () => {
 				await settle();
 				assert.ok(q("teacher-panel-list") !== null, "the list stays open");
 				assert.ok(lit(), "the chip is lit");
-				assert.equal(text("teacher-panel-agent"), "Claude Code is asking you to continue.");
+				assert.equal(text("teacher-panel-agent"), "Ada is asking you to continue.");
 				await click("teacher-panel-activity");
 				await faded();
 				assert.ok(q("teacher-panel-list") === null, "Activity closes the list");
@@ -355,7 +355,7 @@ describe("the screens", () => {
 				await click("teacher-panel-need");
 				await faded();
 				assert.equal(text("teacher-panel-name"), "Background work");
-				assert.equal(text("teacher-panel-agent"), "Claude Code is asking you something.");
+				assert.equal(text("teacher-panel-agent"), "Background work is asking you something.");
 				assert.ok(q("teacher-panel-agent")?.classList.contains("bg-highlight"), "its chip carries the need");
 				assert.equal(text("terminal-footer"), "", "the chip already says what");
 				assert.ok(q("teacher-panel-need") === null && q("terminal-attach") === null);
@@ -447,7 +447,7 @@ describe("the screens", () => {
 		try {
 			await mounted(access({ connected: true, teaching: true, outsideHere: true }), async () => {
 				await click("open-terminal");
-				assert.equal(text("terminal-none"), "Your agent runs in its own window.");
+				assert.equal(text("terminal-none"), "Ada runs in its own window.");
 			});
 		} finally {
 			outside.remove();

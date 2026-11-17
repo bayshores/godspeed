@@ -249,7 +249,7 @@ describe("Edit space dialog", () => {
 	it("Edit space says the agent picks the icon", async () => {
 		fakeFetch();
 		await mount({ kind: "edit", spaceId: "cls_a" });
-		assert.match(q("space-dialog")!.textContent!, /Your agent picks one when it sets up the space\./);
+		assert.match(q("space-dialog")!.textContent!, /Teacher picks one when it sets up the space\./);
 	});
 
 	it("Add a space: name and description only", async () => {

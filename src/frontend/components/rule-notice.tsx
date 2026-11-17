@@ -1,17 +1,18 @@
 /**
  * The corner notice when an outside agent saves a rule from the terminal:
- * "Claude Code saved a rule", the rule, where it applies, Undo and Edit.
+ * "Teacher saved a rule" (by the teacher's name), the rule, where it applies, Undo and Edit.
  * It hides after a while, but not while the pointer is on it, focus is
  * in it or the rule is being edited.
  */
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { parseWhere, type RuleWhere } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, parseWhere, type RuleWhere } from "@/shared/core";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
 import { NOTICE_STACK_ID } from "@/frontend/components/top-bar/pill-panel";
 import { RuleEditBox, useSavedRule } from "@/frontend/components/saved-rule";
 import { useServerEvent } from "@/frontend/components/server-events";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { useHeld } from "@/frontend/components/use-held";
 import { cn } from "@/frontend/lib/utils";
 
@@ -20,7 +21,6 @@ const AFTER_UNDO_MS = 3_000;
 
 interface Saved {
 	key: number;
-	agent: string;
 	text: string;
 	label: string;
 	where: RuleWhere;
@@ -30,7 +30,7 @@ export function RuleNotice() {
 	const [saved, setSaved] = useState<Saved | null>(null);
 	useServerEvent("rules-changed", ({ saved: next }) => {
 		const where = parseWhere(next?.where);
-		if (next && where) setSaved({ key: Date.now(), agent: next.agent, text: next.text, label: next.label, where });
+		if (next && where) setSaved({ key: Date.now(), text: next.text, label: next.label, where });
 	});
 	if (!saved || typeof document === "undefined") return null;
 	return createPortal(<Card key={saved.key} saved={saved} onDone={() => setSaved(null)} />, document.getElementById(NOTICE_STACK_ID) ?? document.body);
@@ -38,6 +38,7 @@ export function RuleNotice() {
 
 function Card({ saved, onDone }: { saved: Saved; onDone: () => void }) {
 	const api = useSavedRule(saved.where, saved.text);
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const { held, handlers } = useHeld();
 	const { mode } = api;
 	useEffect(() => {
@@ -52,7 +53,7 @@ function Card({ saved, onDone }: { saved: Saved; onDone: () => void }) {
 			role="status"
 			timed
 			{...handlers}
-			title={mode.kind === "removed" ? "Rule removed" : `${saved.agent} saved a rule`}
+			title={mode.kind === "removed" ? "Rule removed" : `${teacher} saved a rule`}
 			actions={
 				(mode.kind === "saved" || mode.kind === "error") && (
 					<>

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import type { FolderAgent } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, type FolderAgent } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import type { TerminalRole } from "@/frontend/components/terminal/terminal-model";
-import { AGENT_LABEL, logLines, rememberedAgent, type FolderView, type Launch, type LaunchChoice } from "./agent-folder-model";
+import { logLines, rememberedAgent, type FolderView, type Launch, type LaunchChoice } from "./agent-folder-model";
 import { postAgentFolder, saveAgent, savedAgent } from "./agent-folder-api";
 
 /**
@@ -107,8 +107,8 @@ export function useAgentChoice() {
 	return [choice, setChoice] as const;
 }
 
-/** "Start Claude Code" for the agent last started here (Claude Code when
- *  none): the button on the "No agent connected" lines. `starting` while
+/** "Turn on Teacher": starts the agent last started here (Claude Code
+ *  when none), the button on the "Teacher is off" lines. `starting` while
  *  godspeed's own teacher runs but has not connected: the teacher's status
  *  line says so, and the lines show nothing. */
 export function useStartAgent() {
@@ -116,5 +116,6 @@ export function useStartAgent() {
 	const [agent, setAgent] = useState<FolderAgent>("claude");
 	useEffect(() => setAgent(rememberedAgent(savedAgent())), []);
 	const teacher = useTerminals()?.teacher;
-	return { label: `Start ${AGENT_LABEL[agent]}`, start: () => void open(agent), busy, error, manual, starting: !!teacher && !teacher.ended };
+	const name = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
+	return { label: `Turn on ${name}`, start: () => void open(agent), busy, error, manual, starting: !!teacher && !teacher.ended };
 }

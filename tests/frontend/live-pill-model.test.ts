@@ -87,12 +87,12 @@ describe("the pill", () => {
 		assert.equal(pillLine({ things, notice: "godspeed 0.6.7 is ready", idle: "marco" }).tag, null);
 	});
 
-	it("with nothing live: the teacher's name, or the agent's state when none is teaching", () => {
+	it("with nothing live: the teacher's name, or its state when it is not teaching", () => {
 		const idle = (agent: Parameters<typeof idleWords>[0]["agent"]) => idleWords({ name: "marco", agent, notices: 2, own: false });
 		assert.deepEqual(pillLine({ things: [], notice: null, idle: idle(teaching) }), { head: "marco", thing: null, lit: false, tag: null, idle: true });
-		assert.equal(idle(off), "No agent connected");
-		assert.equal(idle({ ...off, connected: true, name: "Codex" }), "Codex connected, not teaching");
-		assert.equal(idle({ ...off, pendingWork: 1 }), "Waiting for your agent");
+		assert.equal(idle(off), "marco is off");
+		assert.equal(idle({ ...off, connected: true, name: "Codex" }), "marco is on", "the teacher's name, never the program's");
+		assert.equal(idle({ ...off, pendingWork: 1 }), "Waiting for marco");
 		assert.equal(idle(null), "marco", "before the agent's state is read");
 	});
 

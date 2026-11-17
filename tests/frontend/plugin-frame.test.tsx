@@ -301,10 +301,10 @@ describe("host tools", () => {
 	});
 
 	it("a failed ask comes back as a tool error, not a broken request", async () => {
-		const h = harness({ ...PROBE, uses: ["agent"] }, { askAgent: () => Promise.resolve({ error: "Your agent is still on this plugin's last request." }) });
+		const h = harness({ ...PROBE, uses: ["agent"] }, { askAgent: () => Promise.resolve({ error: "The teacher is still on this plugin's last request." }) });
 		await h.start();
 		const got = await h.tool("ask_agent", { prompt: "A caption", schema: {} });
-		assert.deepEqual(got?.result, { content: [{ type: "text", text: "Your agent is still on this plugin's last request." }], isError: true });
+		assert.deepEqual(got?.result, { content: [{ type: "text", text: "The teacher is still on this plugin's last request." }], isError: true });
 	});
 
 	it("read_space reads the open space, and says when none is open", async () => {

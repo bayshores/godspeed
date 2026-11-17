@@ -1,4 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { DEFAULT_TEACHER_NAME } from "@/shared/core";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { FIELD } from "@/frontend/components/ui/field";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
@@ -32,6 +34,7 @@ function usageLine(limit: number | null): string {
  * godspeed searches with that key and shows how many searches it has used.
  */
 export function WebSearch() {
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const [view, setView] = useState<WebSearchView | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [key, setKey] = useState("");
@@ -59,7 +62,7 @@ export function WebSearch() {
 				<p className="text-[15px] text-ink-2">{error ?? "Loading…"}</p>
 			) : (
 				<div className="grid items-start gap-4 min-[860px]:grid-cols-[290px_1fr]">
-					<Choice testid="web-search-agent" name="Your agent searches" picked={!works}>
+					<Choice testid="web-search-agent" name={`${teacher} searches`} picked={!works}>
 						<p className="text-[15px] text-ink-2">Free, nothing to set up. Works with Claude Code and Codex.</p>
 					</Choice>
 					<Choice testid="web-search-tavily" name="godspeed searches with Tavily" picked={works}>
@@ -82,7 +85,7 @@ export function WebSearch() {
 								)}
 								{view.error && (
 									<p role="alert" data-testid="web-search-error" className="text-[15px] text-ans-wrong">
-										{view.error} Your agent's own search is used until it works again.
+										{view.error} {teacher}'s own search is used until it works again.
 									</p>
 								)}
 								<div className="flex flex-wrap items-center gap-x-3 gap-y-2">

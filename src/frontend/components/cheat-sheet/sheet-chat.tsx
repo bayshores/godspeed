@@ -109,7 +109,7 @@ export function SheetChat({
 							</div>
 							{view.running?.messageId === m.id && (
 								<p data-testid="sheet-working" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
-									<span>{agentGone ? "Waiting for an agent" : `${agentName} is on it`}</span>
+									<span>{agentGone ? "Waiting" : `${agentName} is on it`}</span>
 									<button type="button" data-testid="sheet-stop" onClick={() => post({ action: "stop" })} className="lh-btn lh-btn-quiet text-[15px]">
 										Stop
 									</button>

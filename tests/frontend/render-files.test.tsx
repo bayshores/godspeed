@@ -221,14 +221,8 @@ describe("FilesPage", () => {
 		assert.match(page.textContent!, /Loading…/);
 	});
 
-	it("a waiting file says it waits for your agent when none is teaching", async () => {
+	it("a waiting file says Waiting, teaching or not: the space's work frame says when the teacher is off", async () => {
 		agentTeaching = false;
-		fakeFetch();
-		await mount();
-		assert.equal(q("space-file-status-f7")!.textContent, "No agent connected");
-	});
-
-	it("a waiting file just says Waiting while an agent is teaching", async () => {
 		fakeFetch();
 		await mount();
 		assert.equal(q("space-file-status-f7")!.textContent, "Waiting");

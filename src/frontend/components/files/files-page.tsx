@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { fileGroups, type FileCoverage, type FolderStatus } from "@/shared/core";
-import { useAgentStatus } from "@/frontend/components/agent-status";
+import { DEFAULT_TEACHER_NAME, fileGroups, type FileCoverage, type FolderStatus } from "@/shared/core";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useMinute } from "@/frontend/components/countdown";
 import { LoadFailed } from "@/frontend/components/load-failed";
@@ -91,7 +91,7 @@ function FilesPageBody() {
 		if (linked && prev !== null && minute !== prev) void reload();
 	}, [linked, minute, reload]);
 	const { data } = useProgress();
-	const agentTeaching = useAgentStatus()?.teaching ?? true;
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const [confirm, setConfirm] = useState<FileConfirm | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(0);
@@ -189,7 +189,7 @@ function FilesPageBody() {
 
 	const showRecent = !searching && changes.length > 0;
 	const showInFinder = shortcuts && openPath && (
-		<Hint label="Shortcuts to these files in your godspeed folder, for you and your agent." side="bottom">
+		<Hint label={`Shortcuts to these files in your godspeed folder, for you and ${teacher}.`} side="bottom">
 			<button type="button" data-testid="files-show-shortcuts" onClick={() => void openPath(shortcuts)} className={ROW_BUTTON}>
 				Show in {fileBrowserName(window.lh?.platform)}
 			</button>
@@ -281,7 +281,7 @@ function FilesPageBody() {
 										onToggle={toggle}
 										coverage={coverage}
 										disabled={disabled}
-										agentTeaching={agentTeaching}
+										teacher={teacher}
 										actions={actions}
 									/>
 								))}

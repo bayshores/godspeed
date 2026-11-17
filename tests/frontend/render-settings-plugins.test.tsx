@@ -152,7 +152,7 @@ describe("Settings, Plugins", () => {
 		assert.equal(q("plugin-cards")!.textContent, "FlashcardsOff");
 		const sheet = q("plugin-sheet")!;
 		assert.equal(sheet.querySelector("h2")!.textContent, "Memes");
-		assert.equal(sheet.querySelector("p")!.textContent, "Made from your lesson. Uses Claude and api.memegen.link.");
+		assert.equal(sheet.querySelector("p")!.textContent, "Made from your lesson. Uses Teacher and api.memegen.link.");
 		assert.equal(q("toggle-memes")!.getAttribute("aria-checked"), "true");
 		// Four options sit side by side, five open as a list.
 		assert.equal(q("plugin-setting-mode-Hint")!.getAttribute("role"), "radio");

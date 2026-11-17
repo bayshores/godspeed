@@ -22,23 +22,18 @@ describe("the facts godspeed writes from a manifest", () => {
 		assert.equal(pluginFacts(m, "Claude"), "Uses Claude and api.memegen.link.");
 	});
 
-	it("falls back to your agent when no agent is connected", () => {
-		assert.equal(pluginFacts(manifest({ space: { label: "Cards" }, uses: ["agent", "space"] })), "Uses your agent and the space's facts.");
-		assert.equal(pluginFacts(manifest({ space: { label: "Cards" }, uses: ["agent"] }), "  "), "Uses your agent.");
-	});
-
 	it("joins three or more with commas and and", () => {
 		const m = manifest({ lesson: { label: "A" }, uses: ["agent", "space"], network: ["a.example.com"] });
 		assert.equal(pluginFacts(m, "Claude"), "Uses Claude, the space's facts and a.example.com.");
 	});
 
 	it("says nothing when it uses nothing", () => {
-		assert.equal(pluginFacts(manifest({ lesson: { label: "A" } })), "");
+		assert.equal(pluginFacts(manifest({ lesson: { label: "A" } }), "Claude"), "");
 	});
 
 	it("puts the author's sentence first, ended with a full stop", () => {
-		assert.equal(pluginLine(manifest({ lesson: { label: "A" } })), "Made from your lesson.");
-		assert.equal(pluginLine(manifest({ description: "Streaks", uses: ["space"] })), "Streaks. Uses the space's facts.");
+		assert.equal(pluginLine(manifest({ lesson: { label: "A" } }), "Claude"), "Made from your lesson.");
+		assert.equal(pluginLine(manifest({ description: "Streaks", uses: ["space"] }), "Claude"), "Streaks. Uses the space's facts.");
 	});
 });
 
@@ -73,6 +68,6 @@ describe("adding from godspeed's list", () => {
 	});
 
 	it("writes a list entry's line as it writes a manifest's", () => {
-		assert.equal(pluginLine(LISTED), "Five quick questions.");
+		assert.equal(pluginLine(LISTED, "Claude"), "Five quick questions.");
 	});
 });

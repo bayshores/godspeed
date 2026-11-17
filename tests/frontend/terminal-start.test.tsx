@@ -152,7 +152,7 @@ describe("Start with an agent outside godspeed connected", () => {
 					await settle();
 					assert.ok(posts.some((b) => b.includes('"setup"')), "the folder was set up");
 					assert.ok(!shell.calls.some((c) => c.startsWith("start")), "no second teacher");
-					assert.match(document.body.textContent!, /An agent outside godspeed is connected\. Close it first\./);
+					assert.match(document.body.textContent!, /The teacher is already running outside godspeed\. Close it there first\./);
 				},
 			);
 		} finally {
@@ -350,8 +350,8 @@ describe("after godspeed's teacher ended, though the server still says connected
 			const facts = api!.facts.teacher;
 			return {
 				pill: pillWords(pillLine({ things: pillThings({ name: "Teacher", doing, agent, terminal: teacherTerminalState(facts), background: false, work: null, ready: [], due: null, lessonDeadline: null, offer: null }), notice: null, idle: idleWords({ name: "Teacher", agent, notices: 0, own: false }) })),
-				panel: agentLine(agent, doing),
-				tile: teacherTile(agent, doing, { outside: false, term: facts?.term.ended ? "ended" : null }).chip,
+				panel: agentLine(agent, "Teacher", doing),
+				tile: teacherTile(agent, doing, { outside: false, term: facts?.term.ended ? "ended" : null, teacher: "Teacher" }).chip,
 				lessonWaits: lessonAgentWaiting(agent),
 			};
 		};
@@ -367,7 +367,7 @@ describe("after godspeed's teacher ended, though the server still says connected
 					assert.deepEqual(words(), { pill: "Teacher, writing the lesson", panel: "Writing the lesson", tile: "Teaching", lessonWaits: false });
 					await act(async () => shell.push({ id: "t1", ended: { stopped: true, code: null }, prompt: null, url: false }));
 					await act(async () => root!.render(page(access(busy))));
-					assert.deepEqual(words(), { pill: "Waiting for your agent", panel: "Start your agent to begin.", tile: "Stopped", lessonWaits: true });
+					assert.deepEqual(words(), { pill: "Waiting for Teacher", panel: "Turn on Teacher to begin.", tile: "Stopped", lessonWaits: true });
 				},
 			);
 		} finally {

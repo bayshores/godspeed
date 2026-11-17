@@ -7,7 +7,7 @@
  * The agent step opens the agent in the godspeed folder and follows it
  * live (src/frontend/components/agent-folder); "I'll do this later" skips
  * it. The space step is optional. Without an agent, the done step's
- * "Start your agent" goes back to step 1, whose Continue then returns to
+ * "Turn on Teacher" goes back to step 1, whose Continue then returns to
  * the done step. Finishing writes general.onboarded and re-reads
  * /api/boot, which then shows Home; if that save fails, the done step stays
  * with Try again.
@@ -36,7 +36,7 @@ export function Onboarding() {
 	const [introSkipped, setIntroSkipped] = useState(false);
 	const [leaving, setLeaving] = useState(false);
 	const [spaceId, setSpaceId] = useState<string | null>(null);
-	// The space step is behind us: "Start your agent" on the done step comes back here, not to it again.
+	// The space step is behind us: "Turn on Teacher" on the done step comes back here, not to it again.
 	const [spaceStepDone, setSpaceStepDone] = useState(false);
 	// Saving "onboarded" failed: stay on the done step (leaving would show the intro again).
 	const [saveFailed, setSaveFailed] = useState(false);
@@ -97,7 +97,7 @@ export function Onboarding() {
 				)}
 				{step === "done" && (
 					<DoneStep
-						agent={status?.connected ? { name: status.name } : null}
+						connected={!!status?.connected}
 						onStart={() => void finish()}
 						onConnect={() => setStep("agent")}
 						disabled={leaving}

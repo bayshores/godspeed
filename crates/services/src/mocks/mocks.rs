@@ -258,7 +258,7 @@ pub fn change_mock(app: &Arc<App>, space_id: &str, mock_id: &str, change: MockAc
 		}
 		MockAction::Retry => {
 			if is_running(app, &mock_run_key(space_id, mock_id)) {
-				return refuse(409, "Your agent is still working on this mock.");
+				return refuse(409, "The teacher is still working on this mock.");
 			}
 			match state {
 				MockState::Writing => ask_questions(app, space_id, &mock)?,

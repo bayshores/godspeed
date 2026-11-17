@@ -49,4 +49,4 @@ pub(crate) fn changed(app: &App, deadline_id: &str) {
 }
 
 pub(crate) const NEWER: &str = "A newer godspeed saved this cheat sheet. Update godspeed to change it.";
-pub(crate) const BUSY: &str = "Your agent is still answering your last message about this sheet.";
+pub(crate) const BUSY: &str = "The teacher is still answering your last message about this sheet.";

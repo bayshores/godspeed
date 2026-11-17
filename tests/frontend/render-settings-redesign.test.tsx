@@ -224,7 +224,7 @@ describe("settings restyle", () => {
 		globalThis.fetch = connectionFetch({ token: "tok_d", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, agentTeaching: false, agentName: "Codex", pendingWork: 0 });
 		const el = await mount(<Connection />);
 		assert.equal(q("agent-window-teacher-chip")!.textContent, "Running");
-		assert.equal(q("agent-window-teacher-line")!.textContent, "Tell Codex to start teaching.");
+		assert.equal(q("agent-window-teacher-line")!.textContent, "Tell Teacher to start teaching.");
 		assert.ok(el.textContent!.includes("Your agent is Codex"));
 	});
 
@@ -255,7 +255,7 @@ describe("settings restyle", () => {
 		assert.ok(!el.textContent!.includes("Copy the command"), "no command for another app");
 	});
 
-	it("Web search: the agent's own search until a key is saved, then Tavily with its count", async () => {
+	it("Web search: the teacher's own search until a key is saved, then Tavily with its count", async () => {
 		const calls: string[] = [];
 		const access = { token: "tok_s", agentConnected: false, pendingWork: 0 };
 		globalThis.fetch = (async (url: string, init?: RequestInit) => {
@@ -314,8 +314,8 @@ describe("settings restyle", () => {
 
 		globalThis.fetch = connectionFetch({ token: "tok_s" }, { search: { keyEnd: "4f2a", used: null, limit: null, error: "This key is out of searches for now." } });
 		await mount(<WebSearch />);
-		assert.equal(q("web-search-error")!.textContent, "This key is out of searches for now. Your agent's own search is used until it works again.");
-		assert.ok(q("web-search-agent")!.hasAttribute("data-picked"), "the agent's own search is the one in use");
+		assert.equal(q("web-search-error")!.textContent, "This key is out of searches for now. Teacher's own search is used until it works again.");
+		assert.ok(q("web-search-agent")!.hasAttribute("data-picked"), "the teacher's own search is the one in use");
 	});
 
 	it("Change command opens a box for the picked agent's own start command, and Save keeps it", async () => {

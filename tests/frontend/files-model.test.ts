@@ -48,21 +48,20 @@ const cov = (facts: number, inLessons: number): FileCoverage => ({ fileId: "f_1"
 
 describe("files-model", () => {
 	it("fileState follows the pipeline status", () => {
-		assert.deepEqual(fileState(file({ status: "extracting" }), undefined, true), { kind: "building" });
-		assert.deepEqual(fileState(file({ status: "pending" }), undefined, true), { kind: "waiting", label: "Waiting" });
-		assert.deepEqual(fileState(file({ status: "pending" }), undefined, false), { kind: "waiting", label: "No agent connected" }, "no agent is teaching");
-		assert.deepEqual(fileState(file({ status: "pending", kind: "info" }), undefined, false), { kind: "none" }, "space info has nothing to do");
-		assert.deepEqual(fileState(file({ status: "failed", error: "boom" }), undefined, true), { kind: "failed", label: "Failed", error: "boom" });
-		assert.deepEqual(fileState(file({ status: "needs-whisper", error: "Run brew" }), undefined, true), {
+		assert.deepEqual(fileState(file({ status: "extracting" }), undefined), { kind: "building" });
+		assert.deepEqual(fileState(file({ status: "pending" }), undefined), { kind: "waiting", label: "Waiting" }, "the space's work frame says when the teacher is off");
+		assert.deepEqual(fileState(file({ status: "pending", kind: "info" }), undefined), { kind: "none" }, "space info has nothing to do");
+		assert.deepEqual(fileState(file({ status: "failed", error: "boom" }), undefined), { kind: "failed", label: "Failed", error: "boom" });
+		assert.deepEqual(fileState(file({ status: "needs-whisper", error: "Run brew" }), undefined), {
 			kind: "failed",
 			label: "Needs a speech tool",
 			install: "brew install whisper-cpp ffmpeg",
 		});
-		assert.deepEqual(fileState(file({ status: "ready" }), cov(10, 4), true), { kind: "coverage", facts: 10, inLessons: 4, share: 0.4 });
-		assert.deepEqual(fileState(file({ status: "ready" }), undefined, true), { kind: "none" }, "no coverage yet: nothing");
-		assert.deepEqual(fileState(file({ status: "ready", kind: "info" }), cov(10, 4), true), { kind: "none" }, "space info shows no coverage");
+		assert.deepEqual(fileState(file({ status: "ready" }), cov(10, 4)), { kind: "coverage", facts: 10, inLessons: 4, share: 0.4 });
+		assert.deepEqual(fileState(file({ status: "ready" }), undefined), { kind: "none" }, "no coverage yet: nothing");
+		assert.deepEqual(fileState(file({ status: "ready", kind: "info" }), cov(10, 4)), { kind: "none" }, "space info shows no coverage");
 		const covered = file({ name: "CSE21_Lecture_01_2026-09-25.mp4", transcriptId: "f_t" });
-		assert.deepEqual(fileState(covered, undefined, true), { kind: "transcript", label: "Uses its transcript" });
+		assert.deepEqual(fileState(covered, undefined), { kind: "transcript", label: "Uses its transcript" });
 	});
 
 	it("confirmCopy says how many files and facts go before Unlink, Remove and Move to Space info", () => {

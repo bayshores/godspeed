@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
-import { subscriptionLabel, subscriptionLabels } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, subscriptionLabel, subscriptionLabels } from "@/shared/core";
 import { useActivity, type ActivityFeed } from "@/frontend/components/activity-dock";
 import { useFold } from "@/frontend/components/use-fold";
 import { useNow } from "@/frontend/components/use-now";
 import { formatTokens, planCostLabel } from "@/frontend/components/usage-format";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { blobLabel, formatElapsed, toBlobs, type ActivityBlob } from "./activity-model";
+import { useTeacher } from "./teacher-context";
 
 /**
  * "Running in the background": jobs that failed lately, then one row per
@@ -135,7 +136,7 @@ function JobRow({
 	onAbort: () => void;
 }) {
 	const detail = useFold(detailOpen);
-	const label = blobLabel(blob);
+	const label = blobLabel(blob, useTeacher()?.name ?? DEFAULT_TEACHER_NAME);
 	const elapsed = formatElapsed(now - blob.startedAt);
 	const doing = blob.activity || blob.phase;
 	return (

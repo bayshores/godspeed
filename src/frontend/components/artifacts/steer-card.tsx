@@ -38,7 +38,7 @@ export function SubagentSteerCard({ message }: { message: LhViewMessage }) {
 		if (aborted?.data) return <AbortedBadge kind={aborted.data.kind ?? "job"} />;
 		return (
 			<div className={cn(CARD, "text-[15px] text-ink-2")}>
-				A sub-agent finished, but its result could not be displayed.
+				A job finished, but its result could not be displayed.
 			</div>
 		);
 	}
@@ -108,7 +108,7 @@ function PdfCompleteBadge({ result }: { result: PdfResult }) {
 function ResearchCompleteBadge({ result }: { result: ResearchResult }) {
 	const n = result.sources.length;
 	return (
-		<BriefBadge testId="research-complete-badge" who="Research agent" ended={n > 0 ? `finished, ${n} source${n === 1 ? "" : "s"}` : "finished"}>
+		<BriefBadge testId="research-complete-badge" who="Research" ended={n > 0 ? `finished, ${n} source${n === 1 ? "" : "s"}` : "finished"}>
 			<ResearchBriefCard output={result} />
 		</BriefBadge>
 	);

@@ -405,7 +405,7 @@ async fn two_days_of_study_for_the_midterm() {
 
 	// Saturday 20:40. Continue: the opener shows from disk with no agent teaching.
 	clock_to(local(&saturday, "20:40"));
-	assert!(!app.bridge.agent_teaching(clock::now_ms()), "the head says Waiting for your agent");
+	assert!(!app.bridge.agent_teaching(clock::now_ms()), "the head says Waiting for Teacher");
 	assert_eq!(keep_going(app, chat, &conclude_reg), Ok(KeepGoing::Kept { opener: true, running: false }));
 	let record = messages(app, chat);
 	let done_reg_id = id_of(&done_reg);

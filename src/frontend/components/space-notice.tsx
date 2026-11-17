@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router";
 import { useMinute } from "@/frontend/components/countdown";
@@ -16,6 +17,7 @@ import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { useSpaces } from "@/frontend/components/space-context";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { followHeld } from "@/frontend/components/teacher/follow";
 import { NOTICE_STACK_ID } from "@/frontend/components/top-bar/pill-panel";
 import { useHeld } from "@/frontend/components/use-held";
@@ -48,6 +50,7 @@ type Mode = { kind: "ready" } | { kind: "busy" } | { kind: "undone"; title: stri
 
 function ChangeCard({ check, onDone }: { check: SpaceCheck; onDone: () => void }) {
 	const { spaces, setActive } = useSpaces();
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const navigate = useNavigate();
 	const { held, handlers } = useHeld();
 	const [mode, setMode] = useState<Mode>({ kind: "ready" });
@@ -83,7 +86,7 @@ function ChangeCard({ check, onDone }: { check: SpaceCheck; onDone: () => void }
 			role="status"
 			kind="quiet"
 			{...handlers}
-			title={`${check.agent} updated ${name}`}
+			title={`${teacher} updated ${name}`}
 			onClick={open}
 			actions={
 				<button

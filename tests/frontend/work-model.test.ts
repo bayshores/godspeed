@@ -38,15 +38,15 @@ describe("the work frame of a space", () => {
 	it("no agent: the files wait", () => {
 		const state = workState({ ...base, working: false, files: [file("a", "pending"), file("b", "pending")], work: undefined });
 		assert.deepEqual(state, { kind: "waiting", left: 2 });
-		assert.deepEqual(spaceFrame(state!), { state: "waiting", text: "2 files are waiting. Start your agent to read them.", count: null });
-		assert.equal(spaceFrame({ kind: "waiting", left: 1 }).text, "1 file is waiting. Start your agent to read it.");
+		assert.deepEqual(spaceFrame(state!, "Ada"), { state: "waiting", text: "2 files are waiting. Turn on Ada to read them.", count: null });
+		assert.equal(spaceFrame({ kind: "waiting", left: 1 }, "Ada").text, "1 file is waiting. Turn on Ada to read it.");
 	});
 
 	it("reading: how many of the round's files are finished", () => {
 		const work = { startedAt: "x", fileIds: ["a"], deadlineIds: [] };
 		const state = workState({ ...base, files: [file("old", "ready"), file("a", "ready"), file("b", "extracting"), file("c", "pending")], work });
 		assert.deepEqual(state, { kind: "reading", read: 1, total: 3 });
-		assert.deepEqual(spaceFrame(state!), { state: "working", text: "Working on this page", count: "1 of 3 files" });
+		assert.deepEqual(spaceFrame(state!, "Ada"), { state: "working", text: "Working on this page", count: "1 of 3 files" });
 	});
 
 	it("before a round is recorded, none is read yet", () => {
@@ -55,7 +55,7 @@ describe("the work frame of a space", () => {
 
 	it("grouping the facts into topics", () => {
 		const state = workState({ ...base, grouping: true, files: [file("a", "ready")], work: undefined });
-		assert.deepEqual(spaceFrame(state!), { state: "working", text: "Working on this page", count: "grouping facts into topics" });
+		assert.deepEqual(spaceFrame(state!, "Ada"), { state: "working", text: "Working on this page", count: "grouping facts into topics" });
 		assert.equal(workState({ ...base, grouping: true, working: false, files: [file("a", "ready")], work: undefined }), null);
 	});
 
@@ -91,8 +91,8 @@ describe("what the last round read, for the pill's notice", () => {
 
 describe("the work frame of a page one job works on", () => {
 	it("says who and what, or that it waits", () => {
-		assert.deepEqual(jobFrame("Helper", "making your sheet"), { state: "working", text: "Working on this page", count: "making your sheet" });
-		assert.deepEqual(jobFrame(null, "making your sheet"), { state: "waiting", text: "This page is waiting. Start your agent to carry on.", count: null });
+		assert.deepEqual(jobFrame("Helper", "making your sheet", "Ada"), { state: "working", text: "Working on this page", count: "making your sheet" });
+		assert.deepEqual(jobFrame(null, "making your sheet", "Ada"), { state: "waiting", text: "This page is waiting. Turn on Ada to carry on.", count: null });
 	});
 });
 
@@ -102,8 +102,8 @@ describe("elsewhere", () => {
 	it("Today names the space and how many files are left", () => {
 		assert.equal(todayWorkLine(space({ filesLeft: 15, building: true }), "Helper"), "Building, 15 left");
 		assert.equal(todayWorkLine(space({ filesLeft: 2 }), "Teacher"), "Reading new files, 2 left");
-		assert.equal(todayWorkLine(space({ filesLeft: 18, building: true }), null), "18 files are waiting for your agent");
-		assert.equal(todayWorkLine(space({ filesLeft: 1 }), null), "1 file is waiting for your agent");
+		assert.equal(todayWorkLine(space({ filesLeft: 18, building: true }), null), "18 files are waiting", "the top bar says why");
+		assert.equal(todayWorkLine(space({ filesLeft: 1 }), null), "1 file is waiting");
 		assert.equal(todayWorkLine(space({}), "Teacher"), null);
 	});
 

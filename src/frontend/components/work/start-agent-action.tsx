@@ -1,7 +1,7 @@
 import { useStartAgent } from "@/frontend/components/agent-folder/use-agent-folder";
 
-/** The work frame's button while no agent takes the work: starts the agent
- *  last started here. */
+/** The work frame's button while no agent takes the work: turns the
+ *  teacher on, starting the agent last started here. */
 export function StartAgentAction() {
 	const agent = useStartAgent();
 	if (agent.starting) return null;

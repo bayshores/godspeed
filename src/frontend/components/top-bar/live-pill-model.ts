@@ -215,14 +215,14 @@ export function noticeCount(notices: number): string {
 
 /**
  * The pill's words while nothing is live. In the app's bar: the teacher's
- * name, or the agent's state when none is teaching ("No agent connected").
+ * name, or its state when it is not teaching ("Teacher is off").
  * In a page's own bar: the notices it holds, or nothing (no pill).
  */
 export function idleWords(i: { name: string; agent: AgentStatus | null; notices: number; own: boolean }): string {
 	if (i.own) return i.notices === 0 ? "" : noticeCount(i.notices);
 	// Before the first read of the agent's state: just the name.
 	if (!i.agent) return i.name;
-	return i.agent.teaching ? i.name : agentStatusLabel(i.agent);
+	return agentStatusLabel(i.agent, i.name);
 }
 
 /** What the pill shows. */

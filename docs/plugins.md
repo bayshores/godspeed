@@ -213,7 +213,7 @@ One request to the learner's agent, as a work item labelled "<name> asked for…
 | Needs | `"agent"` in `uses`, and the plugin switched on. |
 | Prompt | Not empty, up to 4096 bytes. |
 | Schema | A JSON object, up to 4096 characters written out. |
-| At a time | One per plugin. A second while one runs is refused with "Your agent is still on this plugin's last request." |
+| At a time | One per plugin. A second while one runs is refused with "The teacher is still on this plugin's last request." |
 | Waiting | No time limit. If the request had `_meta.progressToken`, godspeed sends `notifications/progress` every 20 seconds, so a client library that gives up after a silent minute keeps waiting. |
 
 A running request shows under the plugin's name like a deadline request: a row in the teacher's Activity list, and the top bar's pill when it is the only work. The agent is told the request comes from a plugin and to answer it and do nothing else. Put nothing in a prompt you wouldn't show the learner. A failed ask is a tool error whose text says why.

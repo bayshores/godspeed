@@ -11,9 +11,9 @@ function joinWords(words: string[]): string {
 type About = Pick<PluginManifest, "description" | "network" | "uses">;
 
 /** What godspeed says about a plugin from its manifest, never the plugin's own words: what it uses. */
-export function pluginFacts(manifest: About, agentName?: string): string {
+export function pluginFacts(manifest: About, agentName: string): string {
 	const uses = [
-		...(manifest.uses.includes("agent") ? [agentName?.trim() || "your agent"] : []),
+		...(manifest.uses.includes("agent") ? [agentName] : []),
 		...(manifest.uses.includes("space") ? ["the space's facts"] : []),
 		...manifest.network,
 	];
@@ -21,7 +21,7 @@ export function pluginFacts(manifest: About, agentName?: string): string {
 }
 
 /** The line under a plugin's name: its own sentence, then godspeed's facts. */
-export function pluginLine(manifest: About, agentName?: string): string {
+export function pluginLine(manifest: About, agentName: string): string {
 	const about = /[.!?]$/.test(manifest.description) ? manifest.description : `${manifest.description}.`;
 	return `${about} ${pluginFacts(manifest, agentName)}`.trim();
 }

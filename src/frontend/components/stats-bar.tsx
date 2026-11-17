@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react";
-import { subscriptionLabels, type SessionPricing, type TurnUsage } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, subscriptionLabels, type SessionPricing, type TurnUsage } from "@/shared/core";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { formatTokens, planCostLabel } from "@/frontend/components/usage-format";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
@@ -49,6 +50,7 @@ export function StatsBar({
 	pricing?: SessionPricing;
 }) {
 	const [open, setOpen] = useState(false);
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const anchorRef = useRef<HTMLButtonElement>(null);
 	const close = useCallback(() => setOpen(false), []);
 	useMenuDismiss(open, close, anchorRef);
@@ -69,7 +71,7 @@ export function StatsBar({
 			</button>
 			<MenuShell open={open} anchorRef={anchorRef} testid="stats-detail" role="dialog" label="Lesson stats" preferredSide="up" align="right" menuClass="lh-popup flex w-[340px] flex-col gap-1 px-4 py-3.5">
 				<h3 className="text-[17px] text-ink">Lesson stats</h3>
-				<p className="text-base text-ink-2">Summarizes here to keep the lesson small. Change it in Settings. Your agent&apos;s own context is separate.</p>
+				<p className="text-base text-ink-2">Summarizes here to keep the lesson small. Change it in Settings. {teacher}&apos;s own context is separate.</p>
 				<StatRow label="Lesson size" value={contextLabel} />
 				<StatRow label={subscription ? "Usage" : "Total cost"} value={costLabel} testId="stats-cost" />
 				{unpriced > 0 && <StatRow label="Unpriced turns" value={String(unpriced)} />}

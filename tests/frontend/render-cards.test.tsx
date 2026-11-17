@@ -254,7 +254,7 @@ describe("render smoke tests", () => {
 
 	it("the agent's settled thinking is labeled in sentence case, like the learner's", () => {
 		const html = renderToStaticMarkup(<Reasoning isStreaming={false}><ReasoningTrigger /></Reasoning>);
-		assert.match(html, /Agent’s thinking/);
+		assert.match(html, /Teacher’s thinking/);
 	});
 
 	it("AnsweredCard promotes the learner's thinking to a first-class block", () => {

@@ -4,6 +4,8 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { DEFAULT_TEACHER_NAME } from "@/shared/core";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { savedDay } from "@/frontend/components/rule-chips";
 import { FootQuestion } from "@/frontend/components/ui/foot-question";
 import { SMALL_KEY, SettingsGroup, SettingsRow } from "./controls.tsx";
@@ -27,6 +29,7 @@ function savedLabel(note: NoteView): string {
 }
 
 export function RememberedNotes() {
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const [notes, setNotes] = useState<NoteView[] | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	// Delete waits for the request: a second click would 404 and show an error.
@@ -49,11 +52,11 @@ export function RememberedNotes() {
 	useEffect(() => load(), [load]);
 
 	return (
-		<SettingsGroup label="Remembered" about="Notes your agent saved when you told it something worth keeping" testid="remembered-notes">
+		<SettingsGroup label="Remembered" about={`Notes ${teacher} saved when you told it something worth keeping`} testid="remembered-notes">
 			{notes === null ? (
 				<p>{error ?? "Loading…"}</p>
 			) : notes.length === 0 ? (
-				<p>Nothing yet. Your agent saves notes here when you tell it something worth keeping.</p>
+				<p>Nothing yet. {teacher} saves notes here when you tell it something worth keeping.</p>
 			) : (
 				notes.map((note) => (
 					<div key={note.id}>

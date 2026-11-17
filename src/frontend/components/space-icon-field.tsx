@@ -1,5 +1,6 @@
 import { memo } from "react";
-import { SPACE_ICONS, type SpaceIcon as SpaceIconName } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, SPACE_ICONS, type SpaceIcon as SpaceIconName } from "@/shared/core";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { SpaceIcon } from "@/frontend/components/space-icon";
 import { cn } from "@/frontend/lib/utils";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
@@ -18,6 +19,7 @@ export const SpaceIconField = memo(function SpaceIconField({
 	disabled: boolean;
 	onChange: (icon: SpaceIconName) => void;
 }) {
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	return (
 		<div className="flex flex-col gap-1.5">
 			<span className={LABEL_TEXT}>Icon</span>
@@ -44,7 +46,7 @@ export const SpaceIconField = memo(function SpaceIconField({
 					);
 				})}
 			</div>
-			<span className="text-base text-ink-2">Your agent picks one when it sets up the space. Pick another here any time.</span>
+			<span className="text-base text-ink-2">{teacher} picks one when it sets up the space. Pick another here any time.</span>
 		</div>
 	);
 });

@@ -27,13 +27,13 @@ describe("space surfaces", () => {
 	it("a file row says Study or Info, shows Failed + Retry and its studied facts, and always has the More menu", () => {
 		const base = { id: "f_1", name: "notes.md", path: "f_1/notes.md", kind: "study" as const, contentFp: "", addedAt: "" };
 		const actions = { onKind: () => {}, onRetry: () => {}, onRemove: () => {} };
-		const copied = renderToStaticMarkup(<FileRow file={{ ...base, origin: "copied", status: "failed", error: "boom" }} coverage={undefined} agentTeaching actions={actions} />);
+		const copied = renderToStaticMarkup(<FileRow file={{ ...base, origin: "copied", status: "failed", error: "boom" }} coverage={undefined} teacher="Ada" actions={actions} />);
 		assert.ok(copied.includes("Failed"));
 		assert.ok(copied.includes('data-testid="space-file-retry-f_1"'));
 		assert.match(copied, /data-testid="space-file-kind-f_1"[^>]*>Study</);
 		assert.ok(!copied.includes("draggable"), "rows are not dragged between kinds any more");
 		const linked = renderToStaticMarkup(
-			<FileRow file={{ ...base, origin: "linked", status: "ready" }} coverage={{ fileId: "f_1", name: "notes.md", facts: 31, inLessons: 12, share: 12 / 31 }} agentTeaching actions={actions} />,
+			<FileRow file={{ ...base, origin: "linked", status: "ready" }} coverage={{ fileId: "f_1", name: "notes.md", facts: 31, inLessons: 12, share: 12 / 31 }} teacher="Ada" actions={actions} />,
 		);
 		assert.ok(!linked.includes("Failed"));
 		assert.match(linked, /12 of 31 facts studied/);

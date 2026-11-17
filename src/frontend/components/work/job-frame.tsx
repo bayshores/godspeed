@@ -7,8 +7,8 @@ import { jobFrame } from "./work-model";
 /** The work frame around a page one job works on. `doing`: what the job
  *  does, or null while none runs. */
 export function JobFrame({ doing, children }: { doing: string | null; children: ReactNode }) {
-	const { worker } = useWorker();
-	const words = doing === null ? null : jobFrame(worker, doing);
+	const { worker, teacher } = useWorker();
+	const words = doing === null ? null : jobFrame(worker, doing, teacher);
 	return (
 		<WorkFrame frame={words && { ...words, actions: words.state === "waiting" ? <StartAgentAction /> : null }}>
 			{children}

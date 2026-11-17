@@ -18,7 +18,7 @@ describe("a deadline request in words", () => {
 		assert.equal(requestFailedLine(null, null, "coverage", "Marco"), null);
 	});
 	it("shows a start that failed on its own Ask", () => {
-		const busy = { kind: "guide" as const, error: "Your agent is still working on this deadline." };
+		const busy = { kind: "guide" as const, error: "The teacher is still working on this deadline." };
 		assert.equal(requestFailedLine(null, busy, "guide", "Marco"), busy.error);
 		assert.equal(requestFailedLine(null, busy, "about", "Marco"), null);
 	});

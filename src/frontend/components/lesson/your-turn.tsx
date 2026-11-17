@@ -1,7 +1,8 @@
 import { useRef, useState, type RefObject } from "react";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
-import { type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { AttachButton, type AttachmentDraft } from "./attachment-tray";
 import { LessonBox } from "./lesson-box";
 import { lessonBox, questionTurn, type BoxAction, type BoxView } from "./lesson-box-model";
@@ -90,6 +91,7 @@ export function YourTurn({
 }) {
 	// Whether the question above the box has an answer picked.
 	const [picked, setPicked] = useState(false);
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 
 	const turn = revealPending ? ({ kind: "read-first" } as const) : pending ? questionTurn(pending.tool, pending.input, picked, pending.appPosed?.kind) : problem ? ({ kind: "problem" } as const) : null;
 	const view = turn && lessonBox({ busy, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
@@ -174,7 +176,7 @@ export function YourTurn({
 
 			{stuck && (
 				<div data-testid="turn-stuck" className="flex shrink-0 flex-col items-start gap-2.5 bg-highlight px-3.5 py-3 text-base text-ink">
-					Your agent took this {stuck.minutes} minutes ago and hasn't answered.
+					{teacher} took this {stuck.minutes} minutes ago and hasn't answered.
 					<button type="button" data-testid="turn-stuck-stop" onClick={stuck.onStop} className="lh-btn">
 						{stuck.label}
 					</button>

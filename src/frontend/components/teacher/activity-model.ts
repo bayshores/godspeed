@@ -98,17 +98,18 @@ export function formatElapsed(ms: number): string {
 }
 
 const JOB_LABEL: Record<JobKind, string> = {
-	research: "Research agent",
+	research: "Research",
 	demo: "Demo builder",
 	visual: "Figure maker",
 	pdf: "PDF reader",
 };
 
-/** What a background job is: "Building facts", "Research agent". */
-export function blobLabel(blob: Pick<ActivityBlob, "process" | "jobKind">): string {
+/** What a background job is: "Building facts", "Research", the teacher's
+ *  name for a request it works on. */
+export function blobLabel(blob: Pick<ActivityBlob, "process" | "jobKind">, teacher: string): string {
 	if (blob.process === "extraction") return "Building facts";
-	if (blob.process === "request") return "Your agent";
-	return (blob.jobKind && JOB_LABEL[blob.jobKind]) || "Sub-agent";
+	if (blob.process === "request") return teacher;
+	return (blob.jobKind && JOB_LABEL[blob.jobKind]) || "Job";
 }
 
 /** How long ago a Recent change was: "now", "2 min", "1 hour", "yesterday",

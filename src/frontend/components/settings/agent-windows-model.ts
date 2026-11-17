@@ -18,7 +18,7 @@ export interface AgentTile {
 	start: string | null;
 }
 
-type Agent = Pick<AgentStatus, "connected" | "teaching" | "name" | "helperHere" | "helperCovering" | "pendingTurns">;
+type Agent = Pick<AgentStatus, "connected" | "teaching" | "helperHere" | "helperCovering" | "pendingTurns">;
 
 /** godspeed's own terminal for that role: it runs and has not checked in
  *  yet, it ended, or there is none to speak of. */
@@ -29,12 +29,12 @@ const teacherRuns = (agent: Agent) => agent.teaching || (agent.connected && !age
 
 /** `outside`: the agent here was started outside godspeed. The teacher
  *  starts from its own window, so its tile has no button. */
-export function teacherTile(agent: Agent, doing: AgentDoing | null, i: { outside: boolean; term: TermState }): AgentTile {
+export function teacherTile(agent: Agent, doing: AgentDoing | null, i: { outside: boolean; term: TermState; teacher: string }): AgentTile {
 	const note = i.outside ? "Connected from outside godspeed." : "Teaches and answers you";
 	if (agent.helperCovering) return { tone: "on", chip: "Teaching", line: "Tidying its memory", note: "A backup answers for a minute", start: null };
 	// "Teaching" only while it works on something; idle in its work loop it is just running.
 	if (agent.teaching) return { tone: "on", chip: doing?.working ? "Teaching" : "Running", line: doing?.working ? doing.text : "Nothing to do right now", note, start: null };
-	if (teacherRuns(agent)) return { tone: "on", chip: "Running", line: teachStep(agent.name), note, start: null };
+	if (teacherRuns(agent)) return { tone: "on", chip: "Running", line: teachStep(i.teacher, true), note, start: null };
 	if (i.term === "starting") return { tone: "off", chip: "Starting", line: "", note, start: null };
 	return {
 		tone: "off",

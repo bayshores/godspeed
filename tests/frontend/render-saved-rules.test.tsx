@@ -109,7 +109,7 @@ describe("the terminal notice", () => {
 		assert.ok(q("rule-notice") === null);
 		const saved = { text: "Shorter answers.", where: { area: "voice" }, label: "Every lesson, under Voice", agent: "Claude Code" };
 		await act(async () => events.get("rules-changed")!(JSON.stringify({ saved })));
-		assert.match(q("rule-notice")!.textContent!, /Claude Code saved a ruleShorter answers\.Every lesson, under VoiceUndoEdit/);
+		assert.match(q("rule-notice")!.textContent!, /Teacher saved a ruleShorter answers\.Every lesson, under VoiceUndoEdit/);
 		await click(q("rule-notice-undo"));
 		assert.deepEqual(posts, [{ action: "remove", where: { area: "voice" }, text: "Shorter answers." }]);
 		assert.match(q("rule-notice")!.textContent!, /Rule removed/);
