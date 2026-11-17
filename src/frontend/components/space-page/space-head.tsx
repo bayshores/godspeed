@@ -40,9 +40,10 @@ export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 				</p>
 				{activeSpace?.signature && <HeadSignature signature={activeSpace.signature} share={share} />}
 			</div>
-			{/* When the tabs and Edit space don't fit one line, Edit space goes above the tabs. */}
+			{/* When the tabs and Edit space don't fit one line, Edit space goes above the tabs; in a page
+			    squeezed narrower still the tabs wrap, so none hides behind a scroll. */}
 			<div className="mt-[22px] flex flex-wrap-reverse items-center shadow-[inset_0_-2px_0_var(--border)]">
-				<nav aria-label={activeSpace?.name ?? "Lessons with no space"} className="flex min-w-0 flex-[1_1_auto] gap-1.5 overflow-x-auto">
+				<nav aria-label={activeSpace?.name ?? "Lessons with no space"} className="flex min-w-0 flex-[1_1_auto] flex-wrap gap-x-1.5">
 					{spaceTabs(activeSpace ? "space" : "none", plugins).map((t) => {
 						const selected = t.href === pathname;
 						const count = tabCount(t, counts);
