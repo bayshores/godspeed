@@ -210,10 +210,16 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 	const holds = useCallback(() => openWaits({ path: live.current.pathname, lessonDraft: !!lessonRef.current?.draft, dialog: learnerDialogOpen() }), []);
 
 	// asked: the learner clicked to go there, so unsent text doesn't hold it.
-	const showPage = useCallback(async (action: AgentAction, asked: boolean) => {
+	// False when the window held it, so there is nothing to light up.
+	const showPage = useCallback(async (action: AgentAction, asked: boolean): Promise<boolean> => {
 		const page = safePage(action.page);
-		if (!page) return;
+		if (!page) return true;
 		const { pathname: path, spaces: space, navigate: nav } = live.current;
+		// A move Follow would make waits as Go to while the window holds.
+		if (!asked && page !== path && holds()) {
+			setHeld(action);
+			return false;
+		}
 		const moves = followMoves({ page, spaceId: action.spaceId }, { path, activeSpace: space.active, lessonDraft: !!lessonRef.current?.draft, asked });
 		if (moves.switchSpace) space.setActive(moves.switchSpace.to);
 		if (moves.go) {
@@ -222,7 +228,8 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 			while (live.current.pathname !== moves.go && Date.now() < end && alive.current) await sleep(60);
 			await sleep(200);
 		}
-	}, []);
+		return true;
+	}, [holds]);
 
 	const waitUntilFollowReady = useCallback(async () => {
 		while (alive.current && !followReady(followRef.current, dialogOpen(), Date.now())) {
@@ -237,7 +244,7 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 			const following = go || followRef.current.on;
 			// The lesson you are reading: the reply is right here.
 			if (!go && action.page.startsWith("/chat/") && action.page === live.current.pathname) return;
-			if (following) await showPage(action, asked);
+			if (following && !(await showPage(action, asked))) return;
 			const els = await waitForTarget(action.target, following ? 4000 : 1200, () => alive.current);
 			const el = pickTarget(els);
 			if (el && following && !isInView(el)) {
