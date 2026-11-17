@@ -64,7 +64,7 @@ export interface TerminalsApi {
 	wake: () => boolean;
 }
 
-const UNSTARTED = "Couldn't start the agent. Try again.";
+const UNSTARTED = "Couldn't turn the teacher on. Try again.";
 const ROLES: readonly TerminalRole[] = ["teacher", "helper"];
 
 /** A start's error: the shell rejects with a sentence. */

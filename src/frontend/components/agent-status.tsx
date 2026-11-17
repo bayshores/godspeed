@@ -42,7 +42,7 @@ export function teachStep(teacher: string, connected: boolean): string {
 
 /** The notice shown while work waits and no agent is teaching. */
 export function waitingNotice(teacher: string, connected: boolean): string {
-	return connected ? `Waiting for ${teacher}. ${teachStep(teacher, true)}` : teachStep(teacher, false);
+	return connected ? `Waiting for ${teacher}. Tell it to start teaching.` : teachStep(teacher, false);
 }
 
 /** True when work is waiting and no agent is running the work loop to take it. */

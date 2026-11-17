@@ -264,7 +264,7 @@ describe("the teacher's Activity", () => {
 		assert.match(html, /Running in the background/);
 		assert.match(html, /data-testid="activity-failed"/);
 		assert.match(html, /Failed: The PDF could not be read/);
-		assert.match(html, /data-testid="activity-waiting"[^>]*>Waiting for Ada\. Tell Ada to start teaching\.</);
+		assert.match(html, /data-testid="activity-waiting"[^>]*>Waiting for Ada\. Tell it to start teaching\.</);
 		assert.ok(html.indexOf("Running in the background") < html.indexOf(">Recent<"));
 	});
 	it("clicking a job opens its detail: what it is doing, cost, context and its lesson", () => {

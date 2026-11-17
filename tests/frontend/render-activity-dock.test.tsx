@@ -18,7 +18,7 @@ describe("the waiting-for-your-agent notice", () => {
 	});
 	it("says to turn the teacher on, or to tell the connected one to start", () => {
 		assert.equal(waitingNotice("Ada", false), "Turn on Ada to begin.");
-		assert.equal(waitingNotice("Ada", true), "Waiting for Ada. Tell Ada to start teaching.");
+		assert.equal(waitingNotice("Ada", true), "Waiting for Ada. Tell it to start teaching.");
 		assert.equal(teachStep("Ada", true), "Tell Ada to start teaching.");
 	});
 	it("reads the /api/mcp-access body", () => {
