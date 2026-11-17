@@ -218,7 +218,7 @@ function FilesPageBody() {
 			}}
 		>
 			<h1 className="sr-only">Files</h1>
-			<div className="mx-auto flex w-full max-w-[908px] flex-col gap-[18px] px-6 pt-[18px] pb-10">
+			<div className="mx-auto flex w-full max-w-(--lh-page-w) flex-col gap-[18px] px-6 pt-[18px] pb-10">
 				{!active && <PickSpace line="Pick a space to see its files." />}
 				{active && !record && !failed && <p className="text-[15px] text-ink-2">Loading…</p>}
 				{active && !record && failed && <LoadFailed message="Couldn't load this space's files." onRetry={() => void reload()} />}

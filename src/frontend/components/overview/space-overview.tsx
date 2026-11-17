@@ -60,7 +60,7 @@ export function SpaceOverview() {
 				waiting={<WaitingDeadline record={record} />}
 				pickSpace={!active && current?.lessons.length === 0 ? <PickSpace line="Pick a space to see how it's going." /> : undefined}
 			/>
-			{!current && error && <LoadFailed message="Couldn't load this space's progress." onRetry={refresh} className="mx-auto w-full max-w-[908px] px-6" />}
+			{!current && error && <LoadFailed message="Couldn't load this space's progress." onRetry={refresh} className="mx-auto w-full max-w-(--lh-page-w) px-6" />}
 		</div>
 	);
 }

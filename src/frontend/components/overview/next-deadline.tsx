@@ -52,8 +52,8 @@ export const NextDeadline = memo(function NextDeadline({
 	}
 	const share = progressShare(d);
 	return (
-		<Pane data-testid="next-deadline" data-teacher-target={`deadline:${d.id}`} className="flex flex-col gap-[18px] p-5">
-			<div className="flex gap-7">
+		<Pane data-testid="next-deadline" data-teacher-target={`deadline:${d.id}`} className="flex flex-wrap items-end gap-x-7 gap-y-[18px] p-5">
+			<div className="flex min-w-0 flex-[1_1_420px] gap-7">
 				<CountBlock size="square" color={color} {...countLeft(dueAtMs(d), nowMs)} />
 				<div className="flex min-w-0 flex-1 flex-col gap-1.5">
 					<Link to={deadlineHref(d.id)} data-testid="next-deadline-open" title={d.name} className="truncate text-[40px] leading-[1.2] text-ink hover:underline">
@@ -68,10 +68,15 @@ export const NextDeadline = memo(function NextDeadline({
 					{share !== null && <ProgressBar share={share} className="w-full max-w-[480px]" />}
 				</div>
 			</div>
+			{/* The keys end the sheet, not stretched across it. A homework's two take their own line. */}
 			{hasProblems(d.kind) ? (
-				<DeadlineKeys deadline={d} busy={busy} onStudy={() => onStudy(d)} onWork={() => onWork(d)} />
+				<div className="flex w-full justify-end">
+					<div className="w-full max-w-[560px]">
+						<DeadlineKeys deadline={d} busy={busy} onStudy={() => onStudy(d)} onWork={() => onWork(d)} />
+					</div>
+				</div>
 			) : (
-				<button type="button" data-testid="next-deadline-start" disabled={busy} onClick={() => onStudy(d)} className="lh-btn lh-btn-main h-[53px] w-full justify-center gap-2.5 px-[22px] text-[17px]">
+				<button type="button" data-testid="next-deadline-start" disabled={busy} onClick={() => onStudy(d)} className="lh-btn lh-btn-main ml-auto h-[53px] max-w-full shrink-0 px-8 text-[17px]">
 					<span className="min-w-0 truncate">{studyLabel(d.continueStudy)}</span>
 				</button>
 			)}

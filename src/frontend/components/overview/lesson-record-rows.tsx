@@ -1,24 +1,34 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import type { LessonProgress } from "@/shared/core";
+import type { LessonKind, LessonProgress } from "@/shared/core";
+import { CHIP } from "@/frontend/components/home-page/styles";
 import { lessonAge } from "@/frontend/components/lessons/lessons-model";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
-import { keyLabel, stepLine } from "./lesson-record-model";
+import { keyLabel, statusChip } from "./lesson-record-model";
 import { lessonHref } from "./overview-model";
 import { OUTCOME_BG, ROW } from "./styles";
 
+/** A lesson's kind as an icon: pages for a lesson, a check for practice, a folder for homework. */
+const KIND_ICON = { teach: "pages", study: "pages", practice: "check", homework: "folder" } as const satisfies Record<LessonKind, string>;
+
+/** Every row's cells sit on these widths, so the columns line up down the list. */
+const RESULT = "flex w-[236px] shrink-0 items-center justify-end gap-3";
+const AGE = "grid w-[100px] shrink-0 items-center justify-items-end";
+
 /**
  * ONE LESSON ROW (the Lessons block). The link's ::after covers the row, so
- * a click anywhere opens the lesson; More sits above it and opens the
- * lesson menu, as a right-click on the row does. An unfinished lesson shows
- * its step under the title, More, then its key ("Continue", or "Work on it"
- * for homework); a studied one shows a square per graded answer, how many
- * were right, its age, More and a chevron.
+ * a click anywhere opens the lesson. An unfinished lesson shows its chip
+ * (its step, "Homework" or "Started"), and the first of them its key; a
+ * studied one shows a square per graded answer and how many were right.
+ * Every row ends with its age, which gives way to More while the mouse or
+ * the focus is on the row; More opens the lesson menu, as a right-click on
+ * the row does.
  */
 export const LessonRow = memo(function LessonRow({
 	lesson,
 	nowMs,
+	withKey,
 	menuOpen,
 	renameFailed,
 	onMenu,
@@ -26,7 +36,9 @@ export const LessonRow = memo(function LessonRow({
 	lesson: LessonProgress;
 	/** The window's clock (null before the first client render). */
 	nowMs: number | null;
-	/** Its menu is open: the row keeps its tone. */
+	/** The first unfinished lesson: it carries the block's key. */
+	withKey: boolean;
+	/** Its menu is open: the row keeps its tone and More stays. */
 	menuOpen: boolean;
 	/** The last rename failed. */
 	renameFailed: boolean;
@@ -34,20 +46,6 @@ export const LessonRow = memo(function LessonRow({
 	onMenu: (anchor: HTMLElement, chatId: string) => void;
 }) {
 	const l = lesson;
-	const line = l.unfinished ? stepLine(l) : null;
-	const more = (
-		<button
-			type="button"
-			aria-label={`More for ${l.title}`}
-			aria-haspopup="menu"
-			aria-expanded={menuOpen}
-			data-testid="lesson-row-menu"
-			onClick={(e) => onMenu(e.currentTarget, l.chatId)}
-			className="lh-btn lh-btn-quiet relative z-10 h-7 shrink-0 text-[15px]"
-		>
-			More
-		</button>
-	);
 	return (
 		<li>
 			<div
@@ -55,49 +53,67 @@ export const LessonRow = memo(function LessonRow({
 					e.preventDefault(); // the lesson menu instead of the native one
 					onMenu(e.currentTarget, l.chatId);
 				}}
-				className={cn(ROW, "relative py-3 has-[:focus-visible]:bg-tone", menuOpen && "bg-tone")}
+				className={cn(ROW, "group relative min-h-12 gap-4 px-3 py-1.5 has-[:focus-visible]:bg-tone", menuOpen && "bg-tone")}
 			>
-				{l.unfinished ? (
-					<>
-						<Link to={lessonHref(l.chatId)} data-testid="lesson-row" data-teacher-target={`lesson:${l.chatId}`} className="peer flex min-w-0 flex-1 flex-col gap-0.5 after:absolute after:inset-0">
-							<span title={l.title} className="truncate text-[17px] text-ink">
-								{l.title}
+				<span className="flex w-4 shrink-0 justify-center">
+					<PixelIcon name={KIND_ICON[l.kind]} className={cn("h-[13px]", l.unfinished ? "text-ink" : "text-ink-2")} />
+				</span>
+				<Link
+					to={lessonHref(l.chatId)}
+					data-testid="lesson-row"
+					data-teacher-target={`lesson:${l.chatId}`}
+					title={l.title}
+					className="min-w-0 flex-1 truncate text-[17px] text-ink after:absolute after:inset-0"
+				>
+					{l.title}
+				</Link>
+				<span className={RESULT}>
+					{l.unfinished ? (
+						<>
+							{/* The link covers the key, so the key lights and sinks with the link. */}
+							{withKey && (
+								<span data-testid="lesson-row-key" className="lh-btn h-[30px] px-3 text-[15px] group-has-[a:hover]:bg-(--lh-key-hover) group-has-[a:active]:border-t-(length:--lh-lip) group-has-[a:active]:border-b-0">
+									{keyLabel(l)}
+								</span>
+							)}
+							<span data-testid="lesson-row-status" className={cn(CHIP, "text-[15px]")}>
+								{statusChip(l)}
 							</span>
-							{line && <span className="text-base text-ink-2">{line}</span>}
-						</Link>
-						{more}
-						{/* Both labels share one width, so the keys line up. The link covers the
-						    key, so the key lights and sinks with the link. */}
-						<span className="lh-btn w-[120px] shrink-0 justify-center peer-hover:bg-(--lh-key-hover) peer-active:border-t-(length:--lh-lip) peer-active:border-b-0">{keyLabel(l)}</span>
-					</>
-				) : (
-					<>
-						{/* The title keeps 200 px; the squares give way first. */}
-						<Link to={lessonHref(l.chatId)} data-testid="lesson-row" data-teacher-target={`lesson:${l.chatId}`} className="min-w-[200px] flex-1 after:absolute after:inset-0">
-							<span title={l.title} className="block truncate text-[17px] text-ink">
-								{l.title}
-							</span>
-						</Link>
-						{l.answered > 0 && (
+						</>
+					) : (
+						l.answered > 0 && (
 							<>
-								<span className="flex min-w-0 max-w-[45%] flex-wrap justify-end gap-[3px]" aria-hidden>
+								<span aria-hidden className="flex min-w-0 flex-wrap justify-end gap-[3px]">
 									{l.answers.map((a) => (
 										<span key={a.toolCallId} data-outcome={a.outcome} className={cn("size-3", OUTCOME_BG[a.outcome])} />
 									))}
 								</span>
-								<span className="min-w-16 shrink-0 font-count text-[15px] text-ink tabular-nums">
+								<span className="w-[60px] shrink-0 font-count text-[15px] text-ink tabular-nums">
 									{l.right} of {l.answered}
 								</span>
 							</>
-						)}
-						<span className="min-w-16 shrink-0 text-right font-count text-[15px] text-ink-2">{nowMs !== null && lessonAge(l.updatedAt, new Date(nowMs))}</span>
-						{more}
-						<PixelIcon name="chevron" className="h-3.5 text-ink" />
-					</>
-				)}
+						)
+					)}
+				</span>
+				<span className={AGE}>
+					<span className={cn("col-start-1 row-start-1 font-count text-[15px] text-ink-2 tabular-nums group-hover:invisible group-focus-within:invisible", menuOpen && "invisible")}>
+						{nowMs !== null && lessonAge(l.updatedAt, new Date(nowMs))}
+					</span>
+					<button
+						type="button"
+						aria-label={`More for ${l.title}`}
+						aria-haspopup="menu"
+						aria-expanded={menuOpen}
+						data-testid="lesson-row-menu"
+						onClick={(e) => onMenu(e.currentTarget, l.chatId)}
+						className={cn("lh-btn lh-btn-quiet relative z-10 col-start-1 row-start-1 h-7 text-[15px] group-hover:visible group-focus-within:visible", !menuOpen && "invisible")}
+					>
+						More
+					</button>
+				</span>
 			</div>
 			{renameFailed && (
-				<p role="alert" data-testid="lesson-rename-failed" className="px-1 pb-2 text-[15px] text-ans-wrong">
+				<p role="alert" data-testid="lesson-rename-failed" className="px-3 pb-2 pl-11 text-[15px] text-ans-wrong">
 					Couldn&apos;t rename the lesson.
 				</p>
 			)}
@@ -115,7 +131,7 @@ export function RenameRow({ title, onCommit, onCancel }: { title: string; onComm
 		inputRef.current?.select();
 	}, []);
 	return (
-		<li className="flex items-center bg-tone px-1 py-3">
+		<li className="flex min-h-12 items-center bg-tone py-1.5 pr-3 pl-11">
 			<input
 				ref={inputRef}
 				value={draft}

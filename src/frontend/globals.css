@@ -43,6 +43,8 @@
    at least 4.5:1. The interface is Zen Kaku Gothic New, reading text
    Literata, dates and counts DotGothic16. */
 :root {
+	/* The widest a space page's column gets. */
+	--lh-page-w: 1160px;
 	color-scheme: light;
 	--radius: 2px;
 	--background: #c9c7bd;

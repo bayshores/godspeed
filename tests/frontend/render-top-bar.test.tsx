@@ -256,13 +256,15 @@ describe("Search lessons", () => {
 });
 
 describe("a space page's head", () => {
-	it("the space's name and signature, then its tabs with their counts and Edit space", async () => {
+	it("its tabs with their counts, then the signature and Edit space; no name, since the top bar's tab has it", async () => {
 		await mount(<SpaceHead plugins={[]} />, { pathname: "/space/files" });
-		assert.equal(q("space-head-name")!.textContent, "CSE 29");
+		assert.equal(q("space-head-name"), null);
+		assert.doesNotMatch(q("space-head")!.textContent!, /CSE 29/);
 		assert.doesNotMatch(q("space-head")!.textContent!, /Systems programming/, "the description is the teacher's, not the head's");
 		assert.match(q("space-signature-ink")!.getAttribute("style")!, /--ink:\s*25%/, "inked as far as studied, on every tab");
 		assert.equal(q("space-edit")!.textContent, "Edit space");
-		assert.ok(document.querySelector("[data-testid='space-head'] nav")!.nextElementSibling === q("space-edit"), "Edit space ends the tab row");
+		const nav = document.querySelector("[data-testid='space-head'] nav")!;
+		assert.ok(nav.nextElementSibling!.contains(q("space-signature")) && nav.parentElement!.lastElementChild === q("space-edit"), "the signature, then Edit space, end the tab row");
 		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress25%", "Files33", "Graph", "Deadlines"]);
 		assert.equal(q("nav-files-count")!.textContent, "33");
 		assert.equal(q("nav-files")!.getAttribute("aria-current"), "page");

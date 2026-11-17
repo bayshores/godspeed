@@ -53,7 +53,7 @@ export function DeadlinesTab() {
 
 	if (!active || !activeSpace) {
 		return (
-			<div className="mx-auto w-full max-w-[908px] px-6 py-9">
+			<div className="mx-auto w-full max-w-(--lh-page-w) px-6 py-9">
 				<PickSpace line="Pick a space to see its deadlines." />
 			</div>
 		);
@@ -73,7 +73,7 @@ export function DeadlinesTab() {
 		/>
 	);
 	return (
-		<div data-testid="deadlines-tab" className="mx-auto flex w-full max-w-[908px] flex-col gap-9 px-6 py-9">
+		<div data-testid="deadlines-tab" className="mx-auto flex w-full max-w-(--lh-page-w) flex-col gap-9 px-6 py-9">
 			<section className="flex flex-col gap-2.5">
 				<div className="flex items-center gap-2">
 					<h2 className="min-w-0 flex-1 text-[22px] leading-tight text-ink">Coming up</h2>

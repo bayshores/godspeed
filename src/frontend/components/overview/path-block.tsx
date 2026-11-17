@@ -19,15 +19,15 @@ export const PathBlock = memo(function PathBlock({ path, busy, onStudy }: { path
 			<h2 className={SHEET_TITLE}>{view.title}</h2>
 			{view.allStrong && <p className="text-base text-ink-2">Every topic is strong. Study them to keep it that way.</p>}
 			{next && (
-				<>
-					<div data-testid="space-path-next" className="flex flex-col gap-0.5 py-1">
+				<div className="flex flex-wrap items-end gap-x-6 gap-y-3 py-1">
+					<div data-testid="space-path-next" className="flex min-w-0 flex-[1_1_320px] flex-col gap-0.5">
 						<RampRow name={next.name} rate={next.rate} tally={next} />
 						<p className="text-base text-ink-2">{next.covers}</p>
 					</div>
-					<button type="button" data-testid="space-path-study" disabled={busy} onClick={() => onStudy(next.id)} className="lh-btn lh-btn-main h-11 w-full justify-center text-[15px]">
+					<button type="button" data-testid="space-path-study" disabled={busy} onClick={() => onStudy(next.id)} className="lh-btn lh-btn-main ml-auto h-11 shrink-0 px-8 text-[15px]">
 						Study
 					</button>
-				</>
+				</div>
 			)}
 			{view.rows.length > 0 && (
 				<ul data-testid="space-path-rows" className="flex flex-col gap-1 pt-1">

@@ -335,48 +335,44 @@ describe("Lessons", () => {
 	];
 	const html = () => render({ data: { ...PAYLOAD, lessons: LESSONS } });
 
-	it("Unfinished then Studied, each newest first", () => {
+	it("one list: the unfinished lessons first, then the studied ones, each newest first", () => {
 		const block = text(section(html(), "lesson-record", "</section>"));
-		assert.match(block, /Lessons Study something new Unfinished Induction proofs Step 3 of 5 More Continue Work on Homework 4 More Work on it Studied Big-O basics 4 of 5 yesterday More Just looked Oct 20 More\s*$/);
+		assert.match(block, /Lessons Study something new Induction proofs Continue Step 3 of 5 \S.*? More Work on Homework 4 Homework \S.*? More Big-O basics 4 of 5 yesterday More Just looked Oct 20 More\s*$/);
 	});
 
-	it("an unfinished row opens its lesson, its key in place of the chevron; homework shows no count and Work on it", () => {
-		const group = section(html(), "lessons-unfinished", "</ul>");
-		const rows = group.split('data-testid="lesson-row"').slice(1);
-		assert.equal(rows.length, 2);
-		assert.match(tag(group, "lesson-row"), /href="\/chat\/u1"/);
-		assert.match(tag(group, "lesson-row"), /data-teacher-target="lesson:u1"/);
-		assert.ok(rows[0]!.includes(">Continue<") && rows[1]!.includes(">Work on it<"));
-		assert.ok(rows.every((r) => r.includes('data-testid="lesson-row-menu"') && !r.includes("<svg")), "More on every row, no chevron");
-		assert.ok(!text(rows[1]!).includes("Step"), "homework: no count");
+	it("an unfinished row opens its lesson and shows its chip; only the first carries the key", () => {
+		const rows = section(html(), "lesson-record", "</ul>").split("<li").slice(1);
+		assert.equal(rows.length, 4);
+		assert.match(tag(rows[0]!, "lesson-row"), /href="\/chat\/u1"/);
+		assert.match(tag(rows[0]!, "lesson-row"), /data-teacher-target="lesson:u1"/);
+		assert.match(section(rows[0]!, "lesson-row-key", "</span>"), />Continue(<|$)/);
+		assert.match(section(rows[0]!, "lesson-row-status", "</span>"), />Step 3 of 5(<|$)/);
+		assert.ok(!rows[1]!.includes("lesson-row-key"), "one key in the block");
+		assert.match(section(rows[1]!, "lesson-row-status", "</span>"), />Homework(<|$)/);
+		assert.ok(rows.every((r) => r.includes('data-testid="lesson-row-menu"')), "More on every row");
 	});
 
-	it("a studied row: a square per answer in order, right of answered, age, chevron; none with no answers", () => {
-		const group = section(html(), "lessons-studied", "</ul>");
-		const [bigO, looked] = group.split('data-testid="lesson-row"').slice(1);
+	it("the key says Work on it when the first unfinished lesson is homework", () => {
+		const only = render({ data: { ...PAYLOAD, lessons: LESSONS.filter((l) => l.chatId !== "u1") } });
+		assert.match(section(only, "lesson-row-key", "</span>"), />Work on it(<|$)/);
+	});
+
+	it("a studied row: a square per answer in order, right of answered, age; none with no answers", () => {
+		const [, , bigO, looked] = section(html(), "lesson-record", "</ul>").split("<li").slice(1);
 		assert.deepEqual([...bigO!.matchAll(/data-outcome="(\w+)"/g)].map((m) => m[1]), ["right", "right", "wrong", "right", "right"]);
-		assert.match(bigO!, /<svg/);
-		assert.ok(bigO!.includes('data-testid="lesson-row-menu"') && looked!.includes('data-testid="lesson-row-menu"'), "More on every row");
+		assert.ok(!bigO!.includes("lesson-row-status") && !bigO!.includes("lesson-row-key"));
 		assert.ok(!looked!.includes("data-outcome") && !/ of /.test(text(looked!)), "no squares, no 0 of 0");
 		assert.match(text(looked!), /Just looked Oct 20/);
-		assert.match(looked!, /<svg/);
 	});
 
-	it("only one group: the other is not drawn", () => {
-		const studied = render({ data: { ...PAYLOAD, lessons: LESSONS.filter((l) => !l.unfinished) } });
-		assert.ok(!studied.includes("lessons-unfinished") && !studied.includes("Unfinished"));
-		const unfinished = render({ data: { ...PAYLOAD, lessons: LESSONS.filter((l) => l.unfinished) } });
-		assert.ok(!unfinished.includes("lessons-studied") && !unfinished.includes("Studied"));
-	});
-
-	it("Show all under a group that hides rows; one hidden row is shown instead", () => {
+	it("Show all when rows are hidden; one hidden row is shown instead", () => {
 		const studied = (n: number) => Array.from({ length: n }, (_, i) => ({ ...lesson(`s${i}`, `Lesson ${i}`, "r"), updatedAt: hoursAgo(i + 1) }));
-		const seven = render({ data: { ...PAYLOAD, lessons: studied(7) } });
-		assert.equal(section(seven, "lessons-studied", "</ul>").split('data-testid="lesson-row"').length - 1, 5);
-		assert.match(text(section(seven, "lesson-show-all", "</button>")), /Show all 7/);
-		const six = render({ data: { ...PAYLOAD, lessons: studied(6) } });
-		assert.equal(section(six, "lessons-studied", "</ul>").split('data-testid="lesson-row"').length - 1, 6);
-		assert.ok(!six.includes("lesson-show-all"));
+		const ten = render({ data: { ...PAYLOAD, lessons: studied(10) } });
+		assert.equal(ten.split('data-testid="lesson-row"').length - 1, 8);
+		assert.match(text(section(ten, "lesson-show-all", "</button>")), /Show all 10/);
+		const nine = render({ data: { ...PAYLOAD, lessons: studied(9) } });
+		assert.equal(nine.split('data-testid="lesson-row"').length - 1, 9);
+		assert.ok(!nine.includes("lesson-show-all"));
 	});
 });
 
@@ -493,14 +489,14 @@ describe("clicks", () => {
 	describe("the Lessons block", () => {
 		const ROWS = [lesson("c1", "Induction", "rw"), { ...lesson("c2", "Pointers", "r"), updatedAt: "2026-10-26T12:00:00Z" }];
 		const q = (el: HTMLElement, testid: string) => el.querySelector<HTMLElement>(`[data-testid="${testid}"]`);
-		const rowTitles = (el: HTMLElement) => [...el.querySelectorAll('[data-testid="lesson-row"]')].map((r) => r.querySelector("[title]")!.getAttribute("title"));
+		const rowTitles = (el: HTMLElement) => [...el.querySelectorAll('[data-testid="lesson-row"]')].map((r) => r.getAttribute("title"));
 
-		it("Show all opens the rest of the group in place", async () => {
-			const lessons = Array.from({ length: 8 }, (_, i) => ({ ...lesson(`s${i}`, `Lesson ${i}`, "r"), updatedAt: new Date(NOW - i * 3_600_000).toISOString() }));
+		it("Show all opens the rest in place", async () => {
+			const lessons = Array.from({ length: 12 }, (_, i) => ({ ...lesson(`s${i}`, `Lesson ${i}`, "r"), updatedAt: new Date(NOW - i * 3_600_000).toISOString() }));
 			const el = await mount({ data: { ...PAYLOAD, lessons } });
-			assert.equal(rowTitles(el).length, 5);
-			await click(el, "lesson-show-all");
 			assert.equal(rowTitles(el).length, 8);
+			await click(el, "lesson-show-all");
+			assert.equal(rowTitles(el).length, 12);
 			assert.equal(q(el, "lesson-show-all"), null);
 		});
 

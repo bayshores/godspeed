@@ -53,12 +53,12 @@ export function studiedShare(facts: readonly Pick<FactProgress, "inLessons" | "a
 }
 
 /** The most room a signature gets in the space head. */
-const SIGNATURE_ROOM = { width: 320, height: 64 };
+const SIGNATURE_ROOM = { width: 174, height: 30 };
 /** Drawn shorter than this (px), a signature is too small to read. */
 const SMALLEST_SIGNATURE = 24;
 
 /** How much the head's signature shrinks (1 = as is) to fit its room and
- *  the `free` width beside the space's name; null when it would be too
+ *  the `free` width of its slot; null when it would be too
  *  small, so it is left out and the name keeps its room. */
 export function headSignatureScale(natural: { width: number; height: number }, free: number): number | null {
 	if (natural.width <= 0 || natural.height <= 0) return 1;

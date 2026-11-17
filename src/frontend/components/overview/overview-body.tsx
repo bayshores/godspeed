@@ -63,7 +63,7 @@ export const OverviewBody = memo(function OverviewBody({
 	const upcoming = useMemo(() => (data && nowMs !== null ? upcomingDeadlines(data.deadlines, nowMs) : []), [data, nowMs]);
 	const needed = useMemo(() => mostNeeded(upcoming), [upcoming]);
 	return (
-		<div data-testid="space-overview" className="mx-auto flex w-full max-w-[908px] flex-col gap-[22px] px-6 pt-[22px] pb-9">
+		<div data-testid="space-overview" className="mx-auto flex w-full max-w-(--lh-page-w) flex-col gap-[22px] px-6 pt-[22px] pb-9">
 			{pickSpace}
 			{hasSpace && data?.path && <PathBlock path={data.path} busy={busy} onStudy={onStudyPath} />}
 			{note && <TeacherNote note={note} nowMs={nowMs} />}

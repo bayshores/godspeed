@@ -1,40 +1,30 @@
-/** The Lessons block on Progress: its two groups, the rows each shows, the
- *  line under an unfinished lesson's title, and the edits shown before the
- *  payload has them. Pure. */
+/** The Lessons block on Progress: its rows in order, how many show, what
+ *  an unfinished lesson's chip says, and the edits shown before the payload
+ *  has them. Pure. */
 import type { LessonProgress } from "@/shared/core";
 
-interface LessonGroup {
-	name: "Unfinished" | "Studied";
-	/** Newest first. */
-	lessons: LessonProgress[];
-	/** Rows shown until "Show all". */
-	size: number;
-}
+/** Rows shown until "Show all". */
+const SHOWN = 8;
 
-/** Unfinished (3 rows) then Studied (5 rows), each newest first; a group
- *  with no lessons is left out. */
-export function lessonGroups(lessons: readonly LessonProgress[]): LessonGroup[] {
+/** Unfinished lessons first, then the studied ones, each newest first. */
+export function lessonOrder(lessons: readonly LessonProgress[]): LessonProgress[] {
 	const newest = [...lessons].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-	const groups: LessonGroup[] = [
-		{ name: "Unfinished", lessons: newest.filter((l) => l.unfinished), size: 3 },
-		{ name: "Studied", lessons: newest.filter((l) => !l.unfinished), size: 5 },
-	];
-	return groups.filter((g) => g.lessons.length > 0);
+	return [...newest.filter((l) => l.unfinished), ...newest.filter((l) => !l.unfinished)];
 }
 
-/** The rows a group shows, and the count "Show all" names (null when none
+/** The rows the block shows, and the count "Show all" names (null when none
  *  is hidden). One hidden row is shown instead of hidden. */
-export function groupRows(lessons: readonly LessonProgress[], size: number, shownAll: boolean): { rows: readonly LessonProgress[]; showAll: number | null } {
-	if (shownAll || lessons.length <= size + 1) return { rows: lessons, showAll: null };
-	return { rows: lessons.slice(0, size), showAll: lessons.length };
+export function shownRows(lessons: readonly LessonProgress[], shownAll: boolean): { rows: readonly LessonProgress[]; showAll: number | null } {
+	if (shownAll || lessons.length <= SHOWN + 1) return { rows: lessons, showAll: null };
+	return { rows: lessons.slice(0, SHOWN), showAll: lessons.length };
 }
 
-/** Under an unfinished lesson's title: "Step 3 of 5"; nothing before the
- *  first step, with no plan, or for homework. */
-export function stepLine(lesson: Pick<LessonProgress, "kind" | "step">): string | null {
+/** An unfinished lesson's chip: "Homework", its step ("Step 3 of 5"), or
+ *  "Started" before the first step and with no plan. */
+export function statusChip(lesson: Pick<LessonProgress, "kind" | "step">): string {
+	if (lesson.kind === "homework") return "Homework";
 	const step = lesson.step;
-	if (lesson.kind === "homework" || !step || step.done === 0) return null;
-	return `Step ${step.done} of ${step.total}`;
+	return step && step.done > 0 ? `Step ${step.done} of ${step.total}` : "Started";
 }
 
 /** An unfinished lesson's key: "Work on it" for homework, else "Continue". */

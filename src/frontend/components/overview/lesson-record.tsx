@@ -1,24 +1,24 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { LessonProgress } from "@/shared/core";
 import { renameLesson } from "@/frontend/components/lesson/use-title-rename";
 import { DeleteLessonDialog } from "@/frontend/components/lessons/delete-lesson-dialog";
 import { LessonMenu } from "@/frontend/components/lessons/lesson-menu";
 import { MoveLessonDialog } from "@/frontend/components/lessons/move-lesson-dialog";
+import { CARD_HEAD, CARD_TITLE } from "@/frontend/components/home-page/styles";
+import { Pane } from "@/frontend/components/ui/pane";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
-import { cn } from "@/frontend/lib/utils";
-import { groupRows, lessonGroups, pendingEdits, withEdits, type LessonEdits } from "./lesson-record-model";
+import { lessonOrder, pendingEdits, shownRows, withEdits, type LessonEdits } from "./lesson-record-model";
 import { LessonRow, RenameRow } from "./lesson-record-rows";
-import { TITLE } from "./styles";
 
 type Lesson = { id: string; title: string; spaceId?: string };
 
 /**
- * LESSONS (Progress): "Study something new", then the space's lessons in
- * two groups, Unfinished and Studied, each newest first with "Show all"
- * for the rest. A row's More button or a right-click opens the lesson menu
- * (rename, export, move, delete); a rename, delete or move shows at once,
- * before the progress payload is read again.
+ * LESSONS (Progress): one sheet with "Study something new" and the space's
+ * lessons in one list, the unfinished ones first, each newest first, with
+ * "Show all" for the rest. A row's More button or a right-click opens the
+ * lesson menu (rename, export, move, delete); a rename, delete or move
+ * shows at once, before the progress payload is read again.
  */
 export const LessonRecord = memo(function LessonRecord({
 	lessons,
@@ -37,7 +37,10 @@ export const LessonRecord = memo(function LessonRecord({
 		if (lessons) setEdits((prev) => pendingEdits(prev, lessons));
 	}, [lessons]);
 	const shown = useMemo(() => (lessons ? withEdits(lessons, edits) : null), [lessons, edits]);
-	const groups = useMemo(() => (shown ? lessonGroups(shown) : []), [shown]);
+	const ordered = useMemo(() => (shown ? lessonOrder(shown) : []), [shown]);
+	const [shownAll, setShownAll] = useState(false);
+	const { rows, showAll } = shownRows(ordered, shownAll);
+	const keyId = ordered.find((l) => l.unfinished)?.chatId;
 	const edit = useCallback((id: string, title: string | null | undefined) => {
 		setEdits((prev) => {
 			const next: Record<string, string | null> = { ...prev };
@@ -95,25 +98,36 @@ export const LessonRecord = memo(function LessonRecord({
 	);
 
 	return (
-		<section data-testid="lesson-record" className="flex flex-col">
-			<div className="flex items-center gap-3 pb-1.5">
-				<h2 className={cn(TITLE, "flex-1 pb-0")}>Lessons</h2>
-				<Link to="/new" data-testid="study-something-new" className="lh-btn lh-btn-main shrink-0">
+		<Pane data-testid="lesson-record" className="flex flex-col pb-5">
+			<div className={CARD_HEAD}>
+				<h2 className={CARD_TITLE}>Lessons</h2>
+				<Link to="/new" data-testid="study-something-new" className="lh-btn shrink-0">
 					Study something new
 				</Link>
 			</div>
-			{shown?.length === 0 && <p className="px-1 py-3 text-base text-ink-2">No lessons yet.</p>}
-			{groups.map((g) => (
-				<LessonGroup key={g.name} name={g.name} lessons={g.lessons} size={g.size}>
-					{(l) =>
-						renamingId === l.chatId ? (
-							<RenameRow key={l.chatId} title={l.title} onCommit={(next) => void commitRename(l, next)} onCancel={() => setRenamingId(null)} />
-						) : (
-							<LessonRow key={l.chatId} lesson={l} nowMs={nowMs} menuOpen={menuId === l.chatId} renameFailed={renameFailedId === l.chatId} onMenu={onMenu} />
-						)
-					}
-				</LessonGroup>
-			))}
+			{shown?.length === 0 && <p className="px-6 text-base text-ink-2">No lessons yet.</p>}
+			<ul className="flex flex-col px-3">
+				{rows.map((l) =>
+					renamingId === l.chatId ? (
+						<RenameRow key={l.chatId} title={l.title} onCommit={(next) => void commitRename(l, next)} onCancel={() => setRenamingId(null)} />
+					) : (
+						<LessonRow
+							key={l.chatId}
+							lesson={l}
+							nowMs={nowMs}
+							withKey={l.chatId === keyId}
+							menuOpen={menuId === l.chatId}
+							renameFailed={renameFailedId === l.chatId}
+							onMenu={onMenu}
+						/>
+					),
+				)}
+			</ul>
+			{showAll !== null && (
+				<button type="button" data-testid="lesson-show-all" onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet mt-1 ml-[50px] self-start text-[15px]">
+					Show all {showAll}
+				</button>
+			)}
 
 			{lastMenuId !== null && (
 				<LessonMenu
@@ -147,34 +161,6 @@ export const LessonRecord = memo(function LessonRecord({
 					edit(id, null);
 				}}
 			/>
-		</section>
+		</Pane>
 	);
 });
-
-/** One group: its name, its rows, and "Show all" when some are hidden
- *  (it opens the rest in place). */
-function LessonGroup({
-	name,
-	lessons,
-	size,
-	children,
-}: {
-	name: string;
-	lessons: readonly LessonProgress[];
-	size: number;
-	children: (lesson: LessonProgress) => ReactNode;
-}) {
-	const [shownAll, setShownAll] = useState(false);
-	const { rows, showAll } = groupRows(lessons, size, shownAll);
-	return (
-		<div data-testid={`lessons-${name.toLowerCase()}`} className="flex flex-col">
-			<h3 className="px-1 pt-2 text-base text-ink-2">{name}</h3>
-			<ul className="flex flex-col">{rows.map(children)}</ul>
-			{showAll !== null && (
-				<button type="button" data-testid="lesson-show-all" onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet self-start px-1 text-[15px]">
-					Show all {showAll}
-				</button>
-			)}
-		</div>
-	);
-}

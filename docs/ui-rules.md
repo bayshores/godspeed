@@ -36,6 +36,14 @@ A big title never sits between a small line above and a small line below.
 - Holds for every title: page heads, cards, rows, pop-ups, empty states.
 - Before calling a UI change finished, check every title on the changed screen for a small line above it.
 
+## No wide buttons
+
+A button is as wide as its words.
+
+- No button stretched across its sheet, row or page.
+- A button sits at the end of the row or sheet it acts on.
+- Before calling a UI change finished, look for a button wider than its label needs on the changed screen.
+
 ## Look at the real window
 
 The Mac app draws with WebKit, not Chrome; a page right in a browser can overlap in the app.

@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "react-router";
-import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaces } from "@/frontend/components/space-context";
 import { SpaceDialog } from "@/frontend/components/space-dialog";
 import { useMinute } from "@/frontend/components/countdown";
@@ -14,10 +13,11 @@ import { HeadSignature } from "./head-signature";
 import { spaceTabs, studiedShare, tabCount, type TabCounts } from "./space-head-model";
 
 /**
- * The head of every space page: the space's color bar and name, its
- * signature inked as far as its facts are studied in the room the name
- * leaves, then the tabs with their counts and "Edit space" at the end of
- * their row. With no space picked it names the lessons that belong to none.
+ * The head of every space page: the tabs with their counts, then the
+ * space's signature, inked as far as its facts are studied, and "Edit
+ * space" at the end of their row. The top bar's tab names the space, so
+ * the head does not; with no space picked it names the lessons that belong
+ * to none.
  */
 export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 	const { pathname } = useLocation();
@@ -30,19 +30,16 @@ export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 	// The dialog compares its mode by identity: one object per open.
 	const editMode = useMemo(() => (editing ? { kind: "edit" as const, spaceId: editing } : null), [editing]);
 	return (
-		<div data-testid="space-head" className="mx-auto w-full max-w-[908px] shrink-0 px-6 pt-10">
-			{/* As tall as a signature, so the tabs sit at one height in every space. */}
-			<div className="flex min-h-16 items-center gap-4">
-				{activeSpace && <span aria-hidden className="h-12 w-3 shrink-0" style={{ background: spaceColorVar(activeSpace.color) }} />}
-				<p data-testid="space-head-name" title={activeSpace?.name} className={cn("min-w-0 truncate text-[38px] leading-[1.2] text-ink", !activeSpace?.signature && "flex-1")}>
-					{activeSpace?.name ?? "Lessons with no space"}
+		<div data-testid="space-head" className={cn("mx-auto w-full max-w-(--lh-page-w) shrink-0 px-6", activeSpace ? "pt-4" : "pt-10")}>
+			{!activeSpace && (
+				<p data-testid="space-head-name" className="truncate text-[38px] leading-[1.2] text-ink">
+					Lessons with no space
 				</p>
-				{activeSpace?.signature && <HeadSignature signature={activeSpace.signature} share={share} />}
-			</div>
+			)}
 			{/* When the tabs and Edit space don't fit one line, Edit space goes above the tabs; in a page
 			    squeezed narrower still the tabs wrap, so none hides behind a scroll. */}
-			<div className="mt-[22px] flex flex-wrap-reverse items-center shadow-[inset_0_-2px_0_var(--border)]">
-				<nav aria-label={activeSpace?.name ?? "Lessons with no space"} className="flex min-w-0 flex-[1_1_auto] flex-wrap gap-x-1.5">
+			<div className={cn("flex flex-wrap-reverse items-center shadow-[inset_0_-2px_0_var(--border)]", !activeSpace && "mt-[22px]")}>
+				<nav aria-label={activeSpace?.name ?? "Lessons with no space"} className="flex min-w-0 flex-[0_1_auto] flex-wrap gap-x-1.5">
 					{spaceTabs(activeSpace ? "space" : "none", plugins).map((t) => {
 						const selected = t.href === pathname;
 						const count = tabCount(t, counts);
@@ -72,6 +69,12 @@ export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 						);
 					})}
 				</nav>
+				{/* The signature takes what the tabs and Edit space leave, so it never pushes either to a new line. */}
+				{activeSpace?.signature && (
+					<span className="flex min-w-0 flex-[1_1_0] px-4">
+						<HeadSignature signature={activeSpace.signature} share={share} />
+					</span>
+				)}
 				{activeSpace && (
 					<button type="button" data-testid="space-edit" onClick={() => setEditing(activeSpace.id)} className="lh-btn lh-btn-quiet ml-auto shrink-0 text-[15px]">
 						Edit space

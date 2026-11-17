@@ -24,8 +24,8 @@ export const SignatureText = memo(function SignatureText({ signature, className 
 
 /**
  * THE SPACE'S SIGNATURE (the space head): pale, inked over as far as the
- * space's facts are studied. It takes the room the space's name leaves,
- * shrinking to fit, and is left out when that room is too small. `share`
+ * space's facts are studied. It shrinks to fit its room in the tab row
+ * and is left out when that would be too small to read. `share`
  * is null until the progress has loaded, and for a space with no facts.
  */
 export const HeadSignature = memo(function HeadSignature({ signature, share }: { signature: SpaceSignature; share: number | null }) {
@@ -50,9 +50,9 @@ export const HeadSignature = memo(function HeadSignature({ signature, share }: {
 	}, [signature]);
 	const shown = fit !== null && fit.scale !== null;
 	return (
-		// What the name leaves of the row; the signature sits at its end.
+		// Its room in the tab row; the signature sits at its end.
 		<div ref={slot} className="flex min-w-0 flex-1 basis-0 justify-end overflow-hidden">
-			{/* Decorative: the space name says the same to a screen reader. */}
+			{/* Decorative: the top bar's tab names the space. */}
 			<div
 				data-testid="space-signature"
 				aria-hidden

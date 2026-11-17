@@ -39,12 +39,12 @@ describe("a space's tabs", () => {
 		assert.equal(studiedShare([fact(true), fact(false, true), fact(false), fact(false)]), 0.5);
 		assert.equal(studiedShare([]), null);
 	});
-	it("the signature keeps its size when it fits, shrinks a long or tall one, and is left out before the name is cut", () => {
-		assert.equal(headSignatureScale({ width: 200, height: 60 }, 600), 1);
-		assert.equal(headSignatureScale({ width: 640, height: 60 }, 600), 0.5, "320 wide at most");
-		assert.equal(headSignatureScale({ width: 200, height: 128 }, 600), 0.5, "64 tall at most");
-		assert.equal(headSignatureScale({ width: 400, height: 60 }, 300), 0.75, "the room the name leaves");
-		assert.equal(headSignatureScale({ width: 400, height: 60 }, 150), null, "too small to read");
+	it("the signature keeps its size when it fits, shrinks a long or tall one, and is left out when too small to read", () => {
+		assert.equal(headSignatureScale({ width: 100, height: 30 }, 600), 1);
+		assert.equal(headSignatureScale({ width: 232, height: 36 }, 600), 0.75, "174 wide at most");
+		assert.equal(headSignatureScale({ width: 100, height: 60 }, 600), 0.5, "30 tall at most");
+		assert.equal(headSignatureScale({ width: 200, height: 30 }, 160), 0.8, "the room its slot has");
+		assert.equal(headSignatureScale({ width: 400, height: 30 }, 174), null, "too small to read");
 		assert.equal(headSignatureScale({ width: 400, height: 60 }, 0), null, "no room at all");
 		assert.equal(headSignatureScale({ width: 0, height: 0 }, 600), 1, "not measured yet");
 	});
