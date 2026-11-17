@@ -590,12 +590,12 @@
 				{
 					"path": "shared/20-question-tools.md",
 					"shared": true,
-					"sourceSha": "9ed2c72711fca3b742f5a2d91bc99511df1f3b998d7f9c8b8745235e591db6e1"
+					"sourceSha": "1aebdaf01b193827927d1a874349ceee4f454874b1da9b20192c539a563da353"
 				},
 				{
 					"path": "shared/25-confidence.md",
 					"shared": true,
-					"sourceSha": "202aca8c284a73d6e6ccdd634b4b45c6a9cd7e3eaf21929ebdb103efa0e7586e"
+					"sourceSha": "ffec8061b83560793ac89e0c0fcb4ba8377013b613e0bf5ed172ca5054162a96"
 				},
 				{
 					"path": "shared/30-learner-files.md",
