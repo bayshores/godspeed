@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router";
-import { hasProblems, type DeadlineProgress } from "@/shared/core";
+import type { DeadlineProgress } from "@/shared/core";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaces } from "@/frontend/components/space-context";
 import { LoadFailed } from "@/frontend/components/load-failed";
@@ -37,7 +37,8 @@ export function SpaceOverview() {
 	const { studyTopics, studyPathTopic, studyDeadline, workOnHomework } = lesson;
 	const study = useCallback((topicId: string) => void studyTopics([topicId]), [studyTopics]);
 	const studyPath = useCallback((topicId: string) => void studyPathTopic(topicId), [studyPathTopic]);
-	const startDeadline = useCallback((d: DeadlineProgress) => void (hasProblems(d.kind) ? workOnHomework(d) : studyDeadline(d)), [workOnHomework, studyDeadline]);
+	const studyFor = useCallback((d: DeadlineProgress) => void studyDeadline(d), [studyDeadline]);
+	const workOn = useCallback((d: DeadlineProgress) => void workOnHomework(d), [workOnHomework]);
 
 	return (
 		<div className="h-full overflow-y-auto">
@@ -52,7 +53,8 @@ export function SpaceOverview() {
 				startError={lesson.error}
 				onStudy={study}
 				onStudyPath={studyPath}
-				onStartDeadline={startDeadline}
+				onStudyDeadline={studyFor}
+				onWorkDeadline={workOn}
 				onAddDeadline={() => navigate(ADD_DEADLINE_HREF)}
 				waiting={<WaitingDeadline record={record} />}
 				pickSpace={active ? undefined : <PickSpace line="Pick a space to see how it's going." />}

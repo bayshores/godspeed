@@ -15,7 +15,6 @@ import {
 	lessonHref,
 	mostMissesTakeaway,
 	mostNeeded,
-	nextDeadlineButton,
 	noteWhen,
 	percent,
 	progressShare,
@@ -124,13 +123,6 @@ describe("deadlines on Progress", () => {
 		assert.equal(progressShare({ problems: { done: 0, total: 0 }, ready: 0.5 }), 0);
 		assert.equal(progressShare({ ready: 0.4 }), 0.4);
 		assert.equal(progressShare({ ready: null }), null);
-	});
-
-	it("the button: work on homework and projects, Study (or Continue) for tests", () => {
-		assert.equal(nextDeadlineButton({ kind: "homework", name: "HW6" }), "Work on HW6");
-		assert.equal(nextDeadlineButton({ kind: "project", name: "PA2" }), "Work on PA2");
-		assert.equal(nextDeadlineButton({ kind: "exam", name: "Final" }), "Study");
-		assert.equal(nextDeadlineButton({ kind: "quiz", name: "Quiz 3", continueStudy: { chatId: "c" } }), "Continue");
 	});
 
 	it("links and numbers", () => {

@@ -28,7 +28,8 @@ export const OverviewBody = memo(function OverviewBody({
 	startError,
 	onStudy,
 	onStudyPath,
-	onStartDeadline,
+	onStudyDeadline,
+	onWorkDeadline,
 	onAddDeadline,
 	waiting,
 	pickSpace,
@@ -48,8 +49,10 @@ export const OverviewBody = memo(function OverviewBody({
 	onStudy: (topicId: string) => void;
 	/** The path's Study, on its next topic. */
 	onStudyPath: (topicId: string) => void;
-	/** The next deadline's button. */
-	onStartDeadline: (d: DeadlineProgress) => void;
+	/** The next deadline's Study. */
+	onStudyDeadline: (d: DeadlineProgress) => void;
+	/** The next homework's or project's Work on. */
+	onWorkDeadline: (d: DeadlineProgress) => void;
 	/** "Add a deadline" (opens the Deadlines tab). */
 	onAddDeadline: () => void;
 	/** An interview waiting for its date (waiting-deadline.tsx). */
@@ -74,7 +77,8 @@ export const OverviewBody = memo(function OverviewBody({
 					color={color}
 					nowMs={nowMs}
 					busy={busy}
-					onStart={onStartDeadline}
+					onStudy={onStudyDeadline}
+					onWork={onWorkDeadline}
 					onAddDeadline={onAddDeadline}
 				/>
 			)}

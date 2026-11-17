@@ -49,7 +49,7 @@ export function NewLesson() {
 	const viewRef = useRef<HTMLDivElement>(null);
 	useRiseOnChange(viewRef, activeSpaceId);
 
-	const { start, studyTopics, studyPathTopic, studyDeadline } = lesson;
+	const { start, studyTopics, studyPathTopic, studyDeadline, workOnHomework } = lesson;
 	const startTopic = () => void start({ title: topicRef.current, picks, files: attachments.files.map((f) => f.attachment) });
 	const studyFile = useCallback((file: FileCoverage) => void start({ title: displayName(file.name) }), [start]);
 	const studyTopic = useCallback((t: TopicProgress) => void studyTopics([t.id]), [studyTopics]);
@@ -72,7 +72,7 @@ export function NewLesson() {
 						<h1 className="text-[38px] leading-[1.2] text-ink">What do you want to study?</h1>
 					</div>
 					<div className="flex flex-col gap-3.5">
-						{progress && deadlines.length > 0 && <DeadlineStarts deadlines={deadlines} busy={lesson.busy} onStudy={(d) => void studyDeadline(d)} />}
+						{progress && deadlines.length > 0 && <DeadlineStarts deadlines={deadlines} busy={lesson.busy} onStudy={(d) => void studyDeadline(d)} onWork={(d) => void workOnHomework(d)} />}
 						<TopicBox
 							text={topic}
 							onText={(t) => {

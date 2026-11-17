@@ -241,19 +241,20 @@ describe("Home: actions", () => {
 		assert.deepEqual(practiced.map((t) => t.id), ["t2"]);
 	});
 
-	it("Study for each deadline, or Continue studying for it with its topics done; a click passes the deadline", async () => {
-		const ddl = (id: string, name: string, over: Partial<DeadlineProgress> = {}) => ({ id, name, ...over }) as DeadlineProgress;
-		const deadlines = [ddl("mid", "Midterm", { continueStudy: { chatId: "chat_1", done: 0, total: 4 } }), ddl("quiz", "Quiz 3")];
+	it("Study for each deadline, or Continue studying for it with its topics done, and Work on after a homework's; a click passes the deadline", async () => {
+		const ddl = (id: string, name: string, over: Partial<DeadlineProgress> = {}) => ({ id, name, kind: "exam", ...over }) as DeadlineProgress;
+		const deadlines = [ddl("mid", "Midterm", { continueStudy: { chatId: "chat_1", done: 0, total: 4 } }), ddl("hw6", "HW6", { kind: "homework" }), ddl("quiz", "Quiz 3")];
 		const clicked: string[] = [];
 		const host = await mount(
 			<MemoryRouter initialEntries={["/new"]}>
-				<DeadlineStarts deadlines={deadlines} busy={false} onStudy={(d) => clicked.push(d.id)} />
+				<DeadlineStarts deadlines={deadlines} busy={false} onStudy={(d) => clicked.push(d.id)} onWork={(d) => clicked.push(`work ${d.id}`)} />
 			</MemoryRouter>,
 		);
-		const buttons = [...host.querySelectorAll('[data-testid="home-study-deadline"]')] as HTMLButtonElement[];
-		assert.deepEqual(buttons.map((b) => b.textContent), ["Continue studying for Midterm, 0 of 4 topics", "Study for Quiz 3"]);
+		const buttons = [...host.querySelectorAll('[data-testid="home-deadlines"] button')] as HTMLButtonElement[];
+		assert.deepEqual(buttons.map((b) => b.textContent), ["Continue studying for Midterm, 0 of 4 topics", "Study for HW6", "Work on HW6", "Study for Quiz 3"]);
 		await act(async () => buttons[0]!.click());
-		assert.deepEqual(clicked, ["mid"]);
+		await act(async () => buttons[2]!.click());
+		assert.deepEqual(clicked, ["mid", "work hw6"]);
 	});
 
 	it("busy: the start buttons are disabled", () => {

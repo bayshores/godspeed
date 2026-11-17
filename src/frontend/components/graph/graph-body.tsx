@@ -18,6 +18,7 @@ export function GraphBody({
 	studyError,
 	onStudy,
 	onStudyDeadline,
+	onWorkDeadline,
 	onPractice,
 	initialSelected = null,
 }: {
@@ -29,6 +30,7 @@ export function GraphBody({
 	studyError: string | null;
 	onStudy: (topicIds: string[]) => void;
 	onStudyDeadline: (deadline: DeadlineProgress) => void;
+	onWorkDeadline: (deadline: DeadlineProgress) => void;
 	onPractice: (fact: FactProgress) => void;
 	initialSelected?: string | null;
 }) {
@@ -85,6 +87,7 @@ export function GraphBody({
 						topics={data.topics}
 						onChange={setDeadlinePick}
 						onStudy={onStudyDeadline}
+						onWork={onWorkDeadline}
 						studying={studying}
 						studyError={null}
 					/>

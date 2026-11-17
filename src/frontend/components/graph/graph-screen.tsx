@@ -97,6 +97,7 @@ function GraphScreenBody() {
 							studyError={study.error}
 							onStudy={(ids) => void study.studyTopics(ids)}
 							onStudyDeadline={(d) => void study.studyDeadline(d)}
+							onWorkDeadline={(d) => void study.workOnHomework(d)}
 							onPractice={(f) => void study.start({ title: "", picks: [{ id: f.id, name: f.name, statement: f.statement }] })}
 						/>
 					) : progress.error ? (

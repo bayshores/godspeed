@@ -7,7 +7,8 @@
  * With no open deadline that has files, the lower sheet covers the whole space.
  */
 import { memo, useCallback, useRef, useState } from "react";
-import { longDay, studyLabel, type DeadlineProgress, type TopicProgress, type WorkOnNextItem } from "@/shared/core";
+import { hasProblems, longDay, studyLabel, type DeadlineProgress, type TopicProgress, type WorkOnNextItem } from "@/shared/core";
+import { DeadlineKeys } from "@/frontend/components/deadline/deadline-keys";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -75,6 +76,7 @@ export function DeadlinePane({
 	topics,
 	onChange,
 	onStudy,
+	onWork,
 	studying,
 	studyError,
 }: {
@@ -84,6 +86,8 @@ export function DeadlinePane({
 	topics: readonly TopicProgress[];
 	onChange: (id: string) => void;
 	onStudy: (deadline: DeadlineProgress) => void;
+	/** Work on a homework or project. */
+	onWork: (deadline: DeadlineProgress) => void;
 	studying: boolean;
 	studyError: string | null;
 }) {
@@ -123,13 +127,18 @@ export function DeadlinePane({
 					</span>
 				</>
 			)}
-			<StudyButton
-				testid="study-deadline"
-				label={studyLabel(deadline.continueStudy)}
-				busy={studying}
-				error={studyError}
-				onClick={() => onStudy(deadline)}
-			/>
+			{hasProblems(deadline.kind) ? (
+				<div className="flex flex-col gap-2">
+					<DeadlineKeys deadline={deadline} busy={studying} compact onStudy={() => onStudy(deadline)} onWork={() => onWork(deadline)} />
+					{studyError && (
+						<p role="alert" data-testid="study-start-error" className="text-sm text-ans-wrong">
+							{studyError}
+						</p>
+					)}
+				</div>
+			) : (
+				<StudyButton testid="study-deadline" label={studyLabel(deadline.continueStudy)} busy={studying} error={studyError} onClick={() => onStudy(deadline)} />
+			)}
 		</Pane>
 	);
 }

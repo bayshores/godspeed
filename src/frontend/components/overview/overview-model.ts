@@ -4,7 +4,7 @@
  * this file only shapes it for the page and is unit-tested on its own.
  */
 import type { CalibrationLevel, DeadlineProgress, LessonProgress, StatusCounts } from "@/shared/core";
-import { hasProblems, messageAnchorId, rightWords, studyLabel } from "@/shared/core";
+import { messageAnchorId, rightWords } from "@/shared/core";
 import { byDue, isOverdue } from "@/frontend/components/deadlines-model";
 
 /** A file's name without its extension ("Lecture 3 — Expectation.pdf" →
@@ -123,12 +123,6 @@ export const STATUS_LEGEND: readonly { key: keyof StatusCounts; label: string; r
 export function progressShare(d: Pick<DeadlineProgress, "problems" | "ready">): number | null {
 	if (d.problems) return d.problems.total > 0 ? d.problems.done / d.problems.total : 0;
 	return d.ready;
-}
-
-/** The next deadline's button: homework and projects are worked on, tests
- *  are studied for. */
-export function nextDeadlineButton(d: Pick<DeadlineProgress, "kind" | "name" | "continueStudy">): string {
-	return hasProblems(d.kind) ? `Work on ${d.name}` : studyLabel(d.continueStudy);
 }
 
 /** "a", "a and b", "a, b and c". */

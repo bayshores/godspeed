@@ -27,7 +27,7 @@ const noop = () => {};
 const inRouter = (tree: React.ReactNode) => <MemoryRouter initialEntries={["/graph"]}>{tree}</MemoryRouter>;
 const count = (html: string, needle: string) => html.split(needle).length - 1;
 const body = (over: Partial<React.ComponentProps<typeof GraphBody>> = {}) =>
-	inRouter(<GraphBody data={fixture()} query="" sources={null} studying={false} studyError={null} onStudy={noop} onStudyDeadline={noop} onPractice={noop} {...over} />);
+	inRouter(<GraphBody data={fixture()} query="" sources={null} studying={false} studyError={null} onStudy={noop} onStudyDeadline={noop} onWorkDeadline={noop} onPractice={noop} {...over} />);
 
 describe("the level columns", () => {
 	const data = fixture();
@@ -88,7 +88,7 @@ describe("the right side", () => {
 
 	it("the deadline sits on top: its name, when, its files, readiness, and Study", () => {
 		const html = renderToStaticMarkup(
-			<DeadlinePane deadlines={data.deadlines} deadline={deadline} topics={data.topics} onChange={noop} onStudy={noop} studying={false} studyError={null} />,
+			<DeadlinePane deadlines={data.deadlines} deadline={deadline} topics={data.topics} onChange={noop} onStudy={noop} onWork={noop} studying={false} studyError={null} />,
 		);
 		assert.match(html, /<h2[^>]*>Midterm 1</);
 		assert.match(html, /data-testid="deadline-countdown"[^>]*>in 9 days, Thursday Nov 5</);
@@ -97,14 +97,31 @@ describe("the right side", () => {
 		assert.match(html, /data-testid="study-deadline"[^>]*class="[^"]*lh-btn-main[\s\S]*?>Study</);
 		assert.ok(!html.includes("deadline-picker"), "one deadline: nothing to change to");
 		const two = renderToStaticMarkup(
-			<DeadlinePane deadlines={[deadline, { ...deadline, id: "ex-2" }]} deadline={deadline} topics={data.topics} onChange={noop} onStudy={noop} studying={false} studyError={null} />,
+			<DeadlinePane deadlines={[deadline, { ...deadline, id: "ex-2" }]} deadline={deadline} topics={data.topics} onChange={noop} onStudy={noop} onWork={noop} studying={false} studyError={null} />,
 		);
 		assert.match(two, /data-testid="deadline-picker"[^>]*><span[^>]*>Switch to Midterm 1</, "one other deadline: the key names it");
 		assert.ok(!two.includes("aria-haspopup"), "and opens no menu");
 		const three = renderToStaticMarkup(
-			<DeadlinePane deadlines={[deadline, { ...deadline, id: "ex-2" }, { ...deadline, id: "ex-3" }]} deadline={deadline} topics={data.topics} onChange={noop} onStudy={noop} studying={false} studyError={null} />,
+			<DeadlinePane deadlines={[deadline, { ...deadline, id: "ex-2" }, { ...deadline, id: "ex-3" }]} deadline={deadline} topics={data.topics} onChange={noop} onStudy={noop} onWork={noop} studying={false} studyError={null} />,
 		);
 		assert.match(three, /data-testid="deadline-picker"[^>]*>Change deadline</);
+	});
+
+	it("a homework on top: Study for it first, then Work on it, stacked in the narrow side and each passing the deadline", async () => {
+		const hw = { ...deadline, id: "hw6", kind: "homework" as const, name: "HW6" };
+		const clicked: string[] = [];
+		host = document.createElement("div");
+		document.body.append(host);
+		root = createRoot(host);
+		await act(async () =>
+			root!.render(<DeadlinePane deadlines={[hw]} deadline={hw} topics={data.topics} onChange={noop} onStudy={(d) => clicked.push(`study ${d.id}`)} onWork={(d) => clicked.push(`work ${d.id}`)} studying={false} studyError={null} />),
+		);
+		const keys = [...host!.querySelectorAll<HTMLButtonElement>('[data-testid="deadline-keys"] button')];
+		assert.deepEqual(keys.map((k) => k.textContent), ["Study for HW6", "Work on HW6"]);
+		assert.ok(!host!.querySelector('[data-testid="study-deadline"]'), "no lone Study key");
+		assert.match(keys[0]!.className, /basis-\[200px\]/, "two 200 px keys can't share the 280 px inside: they stack");
+		for (const k of keys) await act(async () => k.click());
+		assert.deepEqual(clicked, ["study hw6", "work hw6"]);
 	});
 
 	it("work on next: no counts line while every count is 0", () => {
@@ -329,6 +346,7 @@ describe("the deadline picker", () => {
 					topics={data.topics}
 					onChange={(id) => changed.push(id)}
 					onStudy={noop}
+					onWork={noop}
 					studying={false}
 					studyError={null}
 				/>,
@@ -347,7 +365,7 @@ describe("the deadline picker", () => {
 		document.body.append(host);
 		root = createRoot(host);
 		await act(async () =>
-			root!.render(<DeadlinePane deadlines={[data.deadlines[0]!, long, third]} deadline={data.deadlines[0]!} topics={data.topics} onChange={noop} onStudy={noop} studying={false} studyError={null} />),
+			root!.render(<DeadlinePane deadlines={[data.deadlines[0]!, long, third]} deadline={data.deadlines[0]!} topics={data.topics} onChange={noop} onStudy={noop} onWork={noop} studying={false} studyError={null} />),
 		);
 		await act(async () => host!.querySelector<HTMLButtonElement>('[data-testid="deadline-picker"]')!.click());
 		const menu = document.querySelector('[data-testid="deadline-picker-menu"]')!;

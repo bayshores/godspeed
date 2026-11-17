@@ -140,7 +140,8 @@ function body(props: Partial<Props> = {}) {
 				startError={null}
 				onStudy={() => {}}
 				onStudyPath={() => {}}
-				onStartDeadline={() => {}}
+				onStudyDeadline={() => {}}
+				onWorkDeadline={() => {}}
 				onAddDeadline={() => {}}
 				{...props}
 			/>
@@ -220,8 +221,10 @@ describe("The next deadline", () => {
 		assert.match(html, /data-teacher-target="deadline:d1"/);
 	});
 
-	it("homework is worked on, a test is studied for", () => {
-		assert.match(text(section(render(), "next-deadline-start", "</button>")), /Work on HW 5/);
+	it("homework gets Study for it and Work on it, a test one Study key", () => {
+		const hw = section(render(), "next-deadline");
+		assert.match(text(section(hw, "deadline-keys")), /Study for HW 5\s*Work on HW 5/);
+		assert.ok(!hw.includes("next-deadline-start"));
 		const exam = render({ data: { ...PAYLOAD, deadlines: [DEADLINES[0]!] } });
 		assert.match(text(section(exam, "next-deadline-start", "</button>")), /Study\s*$/);
 		assert.match(text(section(exam, "next-deadline")), /72% ready/);
@@ -245,7 +248,7 @@ describe("The next deadline", () => {
 	});
 
 	it("the button is off while a lesson is starting; a lesson that didn't start says so", () => {
-		assert.match(tag(render({ busy: true }), "next-deadline-start"), /disabled=""/);
+		assert.match(tag(render({ busy: true }), "deadline-work"), /disabled=""/);
 		assert.match(render({ startError: "Couldn't start the lesson. Try again." }), /data-testid="start-error"[^>]*>Couldn&#x27;t start the lesson\. Try again\.</);
 		assert.ok(!render().includes("start-error"));
 	});
@@ -411,12 +414,13 @@ describe("clicks", () => {
 	}
 	const click = (el: HTMLElement, testid: string) => act(async () => (el.querySelector(`[data-testid="${testid}"]`) as HTMLButtonElement).click());
 
-	it("the next deadline's button starts it; Study starts a lesson on the Most needed topic", async () => {
+	it("the next homework's keys study for it or work on it; Study starts a lesson on the Most needed topic", async () => {
 		const started: string[] = [];
-		const el = await mount({ onStartDeadline: (d) => started.push(d.id), onStudy: (id) => started.push(id) });
-		await click(el, "next-deadline-start");
+		const el = await mount({ onStudyDeadline: (d) => started.push(`study ${d.id}`), onWorkDeadline: (d) => started.push(`work ${d.id}`), onStudy: (id) => started.push(id) });
+		await click(el, "deadline-study");
+		await click(el, "deadline-work");
 		await click(el, "most-needed-study");
-		assert.deepEqual(started, ["d1", "t1"]);
+		assert.deepEqual(started, ["study d1", "work d1", "t1"]);
 	});
 
 	it("the path's Study starts its next topic; Show all opens the rest in place", async () => {

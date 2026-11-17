@@ -97,14 +97,14 @@ export function PathSheet({
 					</ol>
 				</>
 			)}
-			{startError && (
+			{/* A homework's keys and their error sit in its Problems sheet. */}
+			{startError && !hasProblems(d.kind) && (
 				<p role="alert" data-testid="deadline-start-error" className="text-[15px] text-ans-wrong">
 					{startError}
 				</p>
 			)}
-			{ahead && (
-				// A homework's one main button is "Work on" in its Problems sheet.
-				<button type="button" data-testid="deadline-start" disabled={busy} onClick={onStart} className={cn("lh-btn mt-1 h-11 w-full justify-center text-[15px]", !hasProblems(d.kind) && "lh-btn-main")}>
+			{ahead && !hasProblems(d.kind) && (
+				<button type="button" data-testid="deadline-start" disabled={busy} onClick={onStart} className="lh-btn lh-btn-main mt-1 h-11 w-full justify-center text-[15px]">
 					<span className="min-w-0 truncate">{studyLabel(d.continueStudy)}</span>
 				</button>
 			)}

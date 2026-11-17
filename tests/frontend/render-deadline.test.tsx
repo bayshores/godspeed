@@ -152,8 +152,9 @@ describe("the deadline page", () => {
 		assert.match(html, /data-testid="deadline-start"[^>]*lh-btn-main.*>Study</);
 		assert.match(html, /<h2[^>]*>Path<\/h2>/);
 	});
-	it("a homework's Study is not the main button: Work on is", () => {
-		assert.doesNotMatch(render(deadline({ kind: "homework" })), /data-testid="deadline-start"[^>]*lh-btn-main/);
+	it("a homework's Study and its start error sit with Work on in its Problems sheet, not in the path", () => {
+		const html = render(deadline({ kind: "homework" }), { startError: "Couldn't start the lesson. Try again." });
+		assert.ok(!html.includes('data-testid="deadline-start"') && !html.includes('data-testid="deadline-start-error"'));
 	});
 	it("an unfinished session from this deadline: Continue", () => {
 		const html = render(deadline({ continueStudy: { chatId: "chat_1", done: 1, total: 4 } }));
@@ -230,7 +231,9 @@ function homework(problems = HW_PROBLEMS, over: Partial<React.ComponentProps<typ
 				files={[{ id: "a", name: "hw4.pdf" }]}
 				assignmentId="a"
 				busy={false}
+				error={null}
 				saving={false}
+				onStudy={() => {}}
 				onWork={() => {}}
 				onPickAssignment={() => {}}
 				onMarkDone={() => {}}
@@ -241,10 +244,10 @@ function homework(problems = HW_PROBLEMS, over: Partial<React.ComponentProps<typ
 }
 
 describe("a homework's Problems sheet", () => {
-	it("lists the problems, marks the done ones and the next one, and offers Work on and Mark done", () => {
+	it("lists the problems, marks the done ones and the next one, and offers Study first, Work on filled, and Mark done", () => {
 		const html = homework();
 		assert.match(html, />Problems</);
-		assert.match(html, /data-testid="homework-work"[^>]*lh-btn-main.*>Work on HW 4</);
+		assert.match(html, /data-testid="deadline-study"[^>]*class="lh-btn [^"]*"[^>]*><span[^>]*>Study for HW 4<\/span><\/button><button[^>]*data-testid="deadline-work"[^>]*lh-btn-main[^>]*><span[^>]*>Work on HW 4</);
 		assert.match(html, /data-testid="homework-mark-done"[^>]*>Mark done</);
 		assert.deepEqual([...html.matchAll(/data-testid="homework-problem"( data-done="true")?( data-next="true")?/g)].map((m) => (m[1] ? "done" : m[2] ? "next" : "")), ["done", "next", ""]);
 		assert.match(html, />Gradient of a quadratic<\/span><span[^>]*>right</);
@@ -264,7 +267,19 @@ describe("a homework's Problems sheet", () => {
 		assert.match(homework([], { assignmentId: undefined }), /Pick its assignment file/);
 		const done = homework(HW_PROBLEMS, { deadline: deadline({ id: "hw4", kind: "homework", name: "HW 4", done: true }) });
 		assert.match(done, />Mark not done</);
-		assert.ok(!done.includes('data-testid="homework-work"') && !done.includes("data-next"));
+		assert.ok(!done.includes('data-testid="deadline-keys"') && !done.includes("data-next"));
+	});
+
+	it("an unfinished Study says Continue studying; past its date only Work on stays; a failed start says why", () => {
+		assert.match(homework(HW_PROBLEMS, { deadline: deadline({ id: "hw4", kind: "homework", name: "HW 4", continueStudy: { chatId: "c1" } }) }), />Continue studying for HW 4</);
+		const past = homework(HW_PROBLEMS, { deadline: deadline({ id: "hw4", kind: "homework", name: "HW 4", daysUntil: -1 }) });
+		assert.ok(!past.includes('data-testid="deadline-study"') && past.includes('data-testid="deadline-work"'));
+		assert.match(homework(HW_PROBLEMS, { error: "Couldn't start the lesson. Try again." }), /role="alert" data-testid="deadline-start-error"[^>]*>Couldn&#x27;t start the lesson/);
+	});
+
+	it("a long name is cut off in its key, with the whole label on hover", () => {
+		const html = homework(HW_PROBLEMS, { deadline: deadline({ id: "hw4", kind: "homework", name: "Problem set 6 on recurrences and induction" }) });
+		assert.match(html, /title="Study for Problem set 6 on recurrences and induction"[^>]*><span class="min-w-0 truncate">/);
 	});
 
 	it("shows in the page's homework slot", () => {

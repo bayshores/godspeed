@@ -1,16 +1,17 @@
 import { memo } from "react";
 import type { DeadlineProgress, HomeworkProblem } from "@/shared/core";
-import { nextDeadlineButton } from "@/frontend/components/overview/overview-model";
 import { SELECT, SELECT_ARROW } from "@/frontend/components/ui/field";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
+import { DeadlineKeys } from "./deadline-keys";
 import { SHEET, SHEET_TITLE } from "./styles";
 
 /**
  * A homework or project deadline's problems: the problems themselves (the
  * next one not done is marked), Mark done once it is handed in, the
- * assignment file the teacher reads the problems from, and Work on.
+ * assignment file the teacher reads the problems from, and its keys: Study
+ * for it and Work on it.
  */
 export const HomeworkCard = memo(function HomeworkCard({
 	deadline: d,
@@ -18,7 +19,9 @@ export const HomeworkCard = memo(function HomeworkCard({
 	files,
 	assignmentId,
 	busy,
+	error,
 	saving,
+	onStudy,
 	onWork,
 	onPickAssignment,
 	onOpenAssignment,
@@ -30,7 +33,10 @@ export const HomeworkCard = memo(function HomeworkCard({
 	files: readonly { id: string; name: string }[];
 	assignmentId: string | undefined;
 	busy: boolean;
+	/** Why the last start failed. */
+	error: string | null;
 	saving: boolean;
+	onStudy: () => void;
 	onWork: () => void;
 	onPickAssignment: (fileId: string | null) => void;
 	/** Opens the assignment on the desktop; absent in a browser. */
@@ -91,11 +97,14 @@ export const HomeworkCard = memo(function HomeworkCard({
 					</button>
 				)}
 			</label>
-			{!d.done && (
-				<button type="button" data-testid="homework-work" disabled={busy} onClick={onWork} className="lh-btn lh-btn-main mt-1 h-[52px] w-full justify-center gap-2.5 px-[22px] text-[17px]">
-					<span className="min-w-0 truncate">{nextDeadlineButton(d)}</span>
-				</button>
+			{error && (
+				<p role="alert" data-testid="deadline-start-error" className="text-[15px] text-ans-wrong">
+					{error}
+				</p>
 			)}
+			<div className="mt-1">
+				<DeadlineKeys deadline={d} busy={busy} onStudy={onStudy} onWork={onWork} />
+			</div>
 		</Pane>
 	);
 });

@@ -1,18 +1,19 @@
 import { memo } from "react";
 import { Link } from "react-router";
-import { longDay, type DeadlineProgress } from "@/shared/core";
+import { hasProblems, longDay, studyLabel, type DeadlineProgress } from "@/shared/core";
 import { dueAtMs } from "@/frontend/components/countdown-model";
 import { countLeft } from "@/frontend/components/home-page/home-page-model";
+import { DeadlineKeys } from "@/frontend/components/deadline/deadline-keys";
 import { CountBlock } from "@/frontend/components/ui/count-block";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { ProgressBar } from "@/frontend/components/ui/progress-bar";
-import { deadlineHref, nextDeadlineButton, progressShare, progressWords } from "./overview-model";
+import { deadlineHref, progressShare, progressWords } from "./overview-model";
 
 /**
  * THE NEXT DEADLINE (Progress): the space's soonest open deadline with
- * the time left, its day and how far it is (a chip) under its name, and the
- * one button that works on it. Its
+ * the time left, its day and how far it is (a chip) under its name, and its
+ * Study (a homework or project adds Work on). Its
  * name opens its page. With none: one line and "Add a deadline".
  */
 export const NextDeadline = memo(function NextDeadline({
@@ -21,7 +22,8 @@ export const NextDeadline = memo(function NextDeadline({
 	color,
 	nowMs,
 	busy,
-	onStart,
+	onStudy,
+	onWork,
 	onAddDeadline,
 }: {
 	/** The soonest open deadline; null with none ahead. */
@@ -33,7 +35,8 @@ export const NextDeadline = memo(function NextDeadline({
 	nowMs: number;
 	/** A lesson is starting. */
 	busy: boolean;
-	onStart: (d: DeadlineProgress) => void;
+	onStudy: (d: DeadlineProgress) => void;
+	onWork: (d: DeadlineProgress) => void;
 	onAddDeadline: () => void;
 }) {
 	if (!d) {
@@ -65,9 +68,13 @@ export const NextDeadline = memo(function NextDeadline({
 					{share !== null && <ProgressBar share={share} className="w-full max-w-[480px]" />}
 				</div>
 			</div>
-			<button type="button" data-testid="next-deadline-start" disabled={busy} onClick={() => onStart(d)} className="lh-btn lh-btn-main h-[53px] w-full justify-center gap-2.5 px-[22px] text-[17px]">
-				<span className="min-w-0 truncate">{nextDeadlineButton(d)}</span>
-			</button>
+			{hasProblems(d.kind) ? (
+				<DeadlineKeys deadline={d} busy={busy} onStudy={() => onStudy(d)} onWork={() => onWork(d)} />
+			) : (
+				<button type="button" data-testid="next-deadline-start" disabled={busy} onClick={() => onStudy(d)} className="lh-btn lh-btn-main h-[53px] w-full justify-center gap-2.5 px-[22px] text-[17px]">
+					<span className="min-w-0 truncate">{studyLabel(d.continueStudy)}</span>
+				</button>
+			)}
 		</Pane>
 	);
 });

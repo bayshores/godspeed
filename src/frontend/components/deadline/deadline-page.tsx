@@ -176,7 +176,9 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 										files={record?.files ?? []}
 										assignmentId={assignmentId}
 										busy={lesson.busy}
+										error={lesson.error ?? saveError}
 										saving={saving}
+										onStudy={onStart}
 										onWork={() => void workOnHomework(deadline)}
 										onPickAssignment={(id) => void save({ assignmentFileId: id })}
 										onOpenAssignment={openAssignment}
