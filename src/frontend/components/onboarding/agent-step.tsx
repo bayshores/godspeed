@@ -18,8 +18,8 @@ export function AgentStep({ connected, onNext }: { connected: boolean; onNext: (
 		<StepSheet
 			at={1}
 			wide={started}
-			title="Start your agent"
-			sub="godspeed doesn't have its own AI. Your agent teaches you from its own godspeed folder, on the plan you already have."
+			title="Turn on your teacher"
+			sub="godspeed uses Claude Code or Codex as your teacher, on the plan you already have."
 		>
 			<AgentLauncher />
 			<div className="flex items-center pt-2">

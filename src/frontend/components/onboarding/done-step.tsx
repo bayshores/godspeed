@@ -20,7 +20,7 @@ export function DoneStep({
 	/** An agent is connected. */
 	connected: boolean;
 	onStart: () => void;
-	/** Back to step 1, "Start your agent". */
+	/** Back to step 1, "Turn on your teacher". */
 	onConnect: () => void;
 	disabled: boolean;
 	/** Saving the finished onboarding failed. */

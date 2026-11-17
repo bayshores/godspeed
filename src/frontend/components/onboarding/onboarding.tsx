@@ -2,7 +2,7 @@
  * FIRST-LAUNCH ONBOARDING. Rendered by src/frontend/routes/root.tsx INSTEAD of
  * the app frame while the server says it is needed:
  *
- *   intro → 1 Start your agent → 2 Add your first space → You're all set
+ *   intro → 1 Turn on your teacher → 2 Add your first space → You're all set
  *
  * The agent step opens the agent in the godspeed folder and follows it
  * live (src/frontend/components/agent-folder); "I'll do this later" skips

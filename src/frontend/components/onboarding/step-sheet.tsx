@@ -20,7 +20,7 @@ function StepMark({ n, label, here }: { n: 1 | 2; label: string; here: boolean }
 function StepBar({ at }: { at: 1 | 2 }) {
 	return (
 		<div data-testid="onboarding-steps" className="flex items-center gap-3.5">
-			<StepMark n={1} label="Agent" here={at === 1} />
+			<StepMark n={1} label="Teacher" here={at === 1} />
 			<span aria-hidden className="h-0.5 w-20 bg-line" />
 			<StepMark n={2} label="Space" here={at === 2} />
 		</div>
