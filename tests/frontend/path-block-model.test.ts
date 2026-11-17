@@ -18,7 +18,8 @@ const names = (topics: readonly PathTopicProgress[]) => topics.map((t) => t.name
 describe("pathBlockView", () => {
 	it("the place of the topic Study takes, then the next three, with the rest behind Show all", () => {
 		const view = pathBlockView(path(["strong", "untested", "untested", "untested", "untested", "untested"], 2), false);
-		assert.equal(view.title, "Path to backend developer, 2 of 6");
+		assert.equal(view.title, "Path to backend developer");
+		assert.equal(view.count, "2 of 6");
 		assert.equal(view.next?.name, "T2");
 		assert.deepEqual(names(view.rows), ["T3", "T4", "T5"]);
 		assert.equal(view.showAll, 6);
@@ -34,9 +35,10 @@ describe("pathBlockView", () => {
 		assert.equal(last.showAll, 2);
 	});
 
-	it("every topic strong: no place in the title", () => {
+	it("every topic strong: no place beside the title", () => {
 		const view = pathBlockView(path(["strong", "strong"], 1), false);
 		assert.equal(view.title, "Path to backend developer");
+		assert.equal(view.count, null);
 		assert.ok(view.allStrong);
 	});
 

@@ -10,13 +10,13 @@ import type { LessonActions } from "./use-lesson-actions";
 /** A row that opens its lesson: lit under the mouse, under the focus and while its menu is open. */
 const ROW = "lh-press group relative hover:bg-tone has-[:focus-visible]:bg-tone";
 
-/** Steps (or a homework's problems) as blocks: done ones inked, the rest dim. With no label
- *  the words beside them say it. */
-export function StepBlocks({ done, total, label, className = "h-3 w-5" }: { done: number; total: number; label?: string; className?: string }) {
+/** Steps (or a homework's problems) as the page's 12-point blocks: done ones inked, the rest
+ *  dim. With no label the words beside them say it. */
+export function StepBlocks({ done, total, label }: { done: number; total: number; label?: string }) {
 	return (
 		<span {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })} data-testid="step-blocks" className="flex flex-wrap gap-[3px]">
 			{Array.from({ length: total }, (_, i) => (
-				<span key={i} className={cn("shrink-0", className, i < done ? "bg-ink" : "bg-(--border)")} />
+				<span key={i} className={cn("size-3 shrink-0", i < done ? "bg-ink" : "bg-(--border)")} />
 			))}
 		</span>
 	);
@@ -32,7 +32,7 @@ function TitleCell({ lesson, actions, className }: { lesson: LessonProgress; act
 			data-testid="lesson-row"
 			data-teacher-target={`lesson:${lesson.chatId}`}
 			title={lesson.title}
-			className={cn("line-clamp-2 min-w-0 text-[17px] leading-snug text-ink after:absolute after:inset-0", className)}
+			className={cn("min-w-0 text-[17px] leading-snug text-ink after:absolute after:inset-0", className)}
 		>
 			{lesson.title}
 		</Link>
@@ -58,9 +58,9 @@ function MoreButton({ lesson, actions, className }: { lesson: LessonProgress; ac
 }
 
 /** The row's shell: a right-click opens the lesson menu; a failed rename says so under it. */
-function RowShell({ lesson, actions, spaced = false, className, children }: { lesson: LessonProgress; actions: LessonActions; spaced?: boolean; className: string; children: ReactNode }) {
+function RowShell({ lesson, actions, itemClass, className, children }: { lesson: LessonProgress; actions: LessonActions; itemClass?: string; className: string; children: ReactNode }) {
 	return (
-		<li className={spaced ? "mt-2" : undefined}>
+		<li className={itemClass}>
 			<div
 				onContextMenu={(e) => {
 					e.preventDefault(); // the lesson menu instead of the native one
@@ -71,7 +71,7 @@ function RowShell({ lesson, actions, spaced = false, className, children }: { le
 				{children}
 			</div>
 			{actions.renameFailedId === lesson.chatId && (
-				<p role="alert" data-testid="lesson-rename-failed" className="px-2 pt-1 pb-2 text-[15px] text-ans-wrong">
+				<p role="alert" data-testid="lesson-rename-failed" className="col-span-full px-3 pt-1 pb-2 text-[15px] text-ans-wrong">
 					Couldn&apos;t rename the lesson.
 				</p>
 			)}
@@ -79,25 +79,30 @@ function RowShell({ lesson, actions, spaced = false, className, children }: { le
 	);
 }
 
+/** The Lessons list's columns: the day, the title, More and the answers. Each row takes them
+ *  from the list, so every title starts at one edge and every run of answers ends at one. */
+export const FINISHED_LIST = "grid grid-cols-[auto_minmax(0,1fr)_auto_auto] gap-x-4 gap-y-0.5";
+
 /**
  * A FINISHED LESSON (the Lessons sheet): the day where it changes from the
- * row above (a little space above it), a square per graded answer in a fixed column, and the title.
+ * row above, the title on one line, and a square per graded answer at the
+ * row's end.
  */
-export function FinishedRow({ lesson: l, day, spaced, actions }: { lesson: LessonProgress; day: string | null; spaced: boolean; actions: LessonActions }) {
+export function FinishedRow({ lesson: l, day, actions }: { lesson: LessonProgress; day: string | null; actions: LessonActions }) {
 	return (
-		<RowShell lesson={l} actions={actions} spaced={spaced} className="grid min-h-10 grid-cols-[84px_148px_minmax(0,1fr)_auto] items-center gap-x-4 px-3 py-1.5">
+		<RowShell lesson={l} actions={actions} itemClass="col-span-full grid grid-cols-subgrid" className="col-span-full grid h-10 grid-cols-subgrid items-center px-3">
 			<span className="font-count text-[15px] text-ink-2">{day}</span>
+			<TitleCell lesson={l} actions={actions} className="truncate" />
+			<MoreButton lesson={l} actions={actions} />
 			{l.answered > 0 ? (
-				<span role="img" aria-label={`${l.right} of ${l.answered} right`} className="flex flex-wrap gap-[3px] py-1">
+				<span role="img" aria-label={`${l.right} of ${l.answered} right`} className="flex gap-[3px] justify-self-end">
 					{l.answers.map((a) => (
-						<span key={a.toolCallId} data-outcome={a.outcome} className={cn("size-3", OUTCOME_BG[a.outcome])} />
+						<span key={a.toolCallId} data-outcome={a.outcome} className={cn("size-3 shrink-0", OUTCOME_BG[a.outcome])} />
 					))}
 				</span>
 			) : (
 				<span />
 			)}
-			<TitleCell lesson={l} actions={actions} />
-			<MoreButton lesson={l} actions={actions} />
 		</RowShell>
 	);
 }
@@ -111,8 +116,8 @@ export function FinishedRow({ lesson: l, day, spaced, actions }: { lesson: Lesso
 export function UnfinishedRow({ lesson: l, blocks, withKey, actions }: { lesson: LessonProgress; blocks: { done: number; total: number } | null; withKey: boolean; actions: LessonActions }) {
 	const blockLabel = blocks && (l.kind === "homework" ? `${blocks.done} of ${blocks.total} problems done` : `Step ${blocks.done} of ${blocks.total}`);
 	return (
-		<RowShell lesson={l} actions={actions} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-1 gap-y-2 px-2 py-2">
-			<TitleCell lesson={l} actions={actions} />
+		<RowShell lesson={l} actions={actions} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-1 gap-y-2 px-3 py-2">
+			<TitleCell lesson={l} actions={actions} className="line-clamp-2" />
 			<MoreButton lesson={l} actions={actions} className="-my-0.5" />
 			{(blocks || withKey) && (
 				<span className="col-span-2 flex items-center justify-between gap-3">
@@ -120,7 +125,7 @@ export function UnfinishedRow({ lesson: l, blocks, withKey, actions }: { lesson:
 					{withKey && (
 						<span
 							data-testid="lesson-row-key"
-							className="lh-btn h-[30px] shrink-0 px-3 text-[15px] group-has-[a:hover]:bg-(--lh-key-hover) group-has-[a:active]:border-t-(length:--lh-lip) group-has-[a:active]:border-b-0"
+							className="lh-btn shrink-0 group-has-[a:hover]:bg-(--lh-key-hover) group-has-[a:active]:border-t-(length:--lh-lip) group-has-[a:active]:border-b-0"
 						>
 							{keyLabel(l)}
 						</span>

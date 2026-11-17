@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { RAMP_COLORS, UNTESTED_COLOR, type ProgressPayload } from "@/shared/core";
 import { UNSTUDIED_CELL, factCells } from "@/frontend/components/fact-cells";
 import { Pane } from "@/frontend/components/ui/pane";
+import { HEAD, SHEET, TITLE } from "./styles";
 
 /** The studied squares fill in over this long, one at a time. */
 const FILL_MS = 400;
@@ -19,13 +20,13 @@ export const SpaceFacts = memo(function SpaceFacts({ progress }: { progress: Pic
 	// Studied: every square that isn't dim, so the count matches the grid.
 	const studied = cells.filter((c) => c !== UNSTUDIED_CELL).length;
 	const total = cells.length;
-	const name = (
-		<>
-			Facts <span className="font-count text-base text-ink-2">{`${studied} of ${total} studied`}</span>
-		</>
-	);
 	return (
-		<Pane name={total > 0 ? name : "Facts"} data-testid="space-facts" className="[&>h2]:p-0 [&>h2]:pb-3 px-5 pt-4 pb-4">
+		<Pane data-testid="space-facts" className={`flex flex-col gap-3 ${SHEET}`}>
+			<div className={HEAD}>
+				<h2 className={TITLE}>
+					Facts{total > 0 && <span className="font-count text-base whitespace-nowrap text-ink-2">{` ${studied} of ${total} studied`}</span>}
+				</h2>
+			</div>
 			{progress.files.length === 0 ? (
 				<div className="flex flex-col items-start gap-3">
 					<p className="text-[15px] text-ink-2">No study files yet.</p>
@@ -41,7 +42,7 @@ export const SpaceFacts = memo(function SpaceFacts({ progress }: { progress: Pic
 						{cells.map((color, i) => (
 							<span
 								key={i}
-								className={color === UNSTUDIED_CELL ? "size-[13px]" : "lh-block-in size-[13px]"}
+								className={color === UNSTUDIED_CELL ? "size-3" : "lh-block-in size-3"}
 								style={{ background: color, "--lh-block-delay": `${Math.round((i * FILL_MS) / total)}ms` } as React.CSSProperties}
 							/>
 						))}

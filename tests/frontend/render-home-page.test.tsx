@@ -546,7 +546,7 @@ describe("A space's facts", () => {
 		);
 		assert.ok(html.includes("2 of 3 studied"));
 		assert.match(html, /aria-label="2 of 3 facts studied"/);
-		assert.equal(html.split('size-[13px]"').length - 1, 3);
+		assert.equal(html.split('size-3"').length - 1, 3, "one 12-point square per fact");
 		assert.ok(html.includes('data-testid="fact-key"'));
 	});
 

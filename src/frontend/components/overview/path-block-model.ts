@@ -5,8 +5,10 @@ import { pathNext, type PathProgress, type PathTopicProgress } from "@/shared/co
 const PATH_ROWS_AHEAD = 3;
 
 interface PathBlockView {
-	/** "Path to backend developer, 4 of 28", or no count once every topic is strong. */
+	/** "Path to backend developer". */
 	title: string;
+	/** Where the next topic sits, "4 of 28"; null once every topic is strong. */
+	count: string | null;
 	allStrong: boolean;
 	next: PathTopicProgress | null;
 	/** The next three after it, or every other topic in order once shown all. */
@@ -23,7 +25,8 @@ export function pathBlockView(path: PathProgress, shownAll: boolean): PathBlockV
 	const others = path.topics.filter((t) => t !== at?.topic);
 	const leftOut = others.length > ahead.length;
 	return {
-		title: at && !allStrong ? `Path to ${path.goal}, ${at.position} of ${total}` : `Path to ${path.goal}`,
+		title: `Path to ${path.goal}`,
+		count: at && !allStrong ? `${at.position} of ${total}` : null,
 		allStrong,
 		next: at?.topic ?? null,
 		rows: shownAll ? others : ahead,

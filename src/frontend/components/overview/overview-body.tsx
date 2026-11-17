@@ -12,6 +12,7 @@ import { hasCalibration, mostNeeded, upcomingDeadlines } from "./overview-model"
 import { TeacherNote } from "./teacher-note";
 import { UnfinishedLessons } from "./unfinished-lessons";
 import { useLessonActions } from "./use-lesson-actions";
+import { useStickyTop } from "./use-sticky-top";
 
 /**
  * The Progress tab under the space head (pure view, the render-test seam).
@@ -22,8 +23,9 @@ import { useLessonActions } from "./use-lesson-actions";
  * and the confidence chart. Each shows only once it has something to show,
  * but for the Lessons heading, which shows while loading too; a space's
  * deadline, path and facts are left out for "Lessons with no space". With
- * nothing in the side column the wide one takes the whole width; in a
- * narrow window the side column goes on top.
+ * nothing in the side column the wide one takes the whole width. The side
+ * column sticks while the record scrolls, so what to do stays in view; in
+ * a narrow window it goes on top instead.
  */
 export const OverviewBody = memo(function OverviewBody({
 	hasSpace,
@@ -78,13 +80,15 @@ export const OverviewBody = memo(function OverviewBody({
 	// With no deadline ahead the path takes the deadline card's place, and its key.
 	const pathFirst = !!spaceData?.path && next === null;
 	const side = spaceData !== null || unfinished.length > 0 || startError !== null;
+	const [sideRef, sideTop] = useStickyTop();
 
 	return (
-		<div data-testid="space-overview" className="mx-auto flex w-full max-w-(--lh-page-w) flex-col gap-[22px] px-6 pt-[22px] pb-9">
+		<div data-testid="space-overview" className="@container mx-auto flex w-full max-w-(--lh-page-w) flex-col gap-[22px] px-6 pt-[22px] pb-9">
 			{pickSpace}
-			<div className="flex flex-wrap items-start gap-[22px]">
+			{/* Two columns once both fit: the side's 280 points, the gap and the record's 460. */}
+			<div className="flex flex-col gap-[22px] @[762px]:flex-row @[762px]:items-start">
 				{side && (
-					<div data-testid="progress-side" className="flex min-w-0 grow basis-[280px] flex-col gap-[22px]">
+					<div ref={sideRef} data-testid="progress-side" style={{ top: sideTop }} className="flex min-w-0 flex-col gap-[22px] @[762px]:sticky @[762px]:w-[280px] @[762px]:shrink-0">
 						{spaceData &&
 							(pathFirst ? (
 								<PathBlock path={spaceData.path!} main busy={busy} onStudy={onStudyPath} />
@@ -111,7 +115,7 @@ export const OverviewBody = memo(function OverviewBody({
 						{hasSpace && needed && <MostNeeded needed={needed} busy={busy} onStudy={onStudy} />}
 					</div>
 				)}
-				<div className="flex min-w-0 grow-[999] basis-[460px] flex-col gap-[22px]">
+				<div className="flex min-w-0 flex-1 flex-col gap-[22px]">
 					{note && <TeacherNote note={note} nowMs={nowMs} />}
 					<LessonRecord finished={actions.shown ? finished : null} none={actions.shown?.length === 0} nowMs={nowMs} actions={actions} />
 					{hasSpace && data && <SpaceFacts progress={data} />}

@@ -10,7 +10,7 @@ export const TeacherNote = memo(function TeacherNote({ note, nowMs }: { note: Sp
 	const teacherName = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const when = nowMs !== null ? noteWhen(note.at, nowMs) : "";
 	return (
-		<Pane data-testid="teacher-note" className="flex flex-col gap-0.5 px-[18px] py-3.5">
+		<Pane data-testid="teacher-note" className="flex flex-col gap-0.5 px-6 py-4">
 			<p className="font-prose text-lg leading-snug text-ink">{note.text}</p>
 			{when && (
 				<p className="font-count text-base text-ink-2">

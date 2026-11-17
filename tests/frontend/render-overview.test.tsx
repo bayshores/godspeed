@@ -270,10 +270,10 @@ describe("The next deadline", () => {
 		assert.match(text(section(exam, "next-deadline")), /72% ready/);
 	});
 
-	it("nothing to measure: says so, with no bar", () => {
+	it("nothing measured yet: name, day and key, with no blocks and no words", () => {
 		const html = section(render({ data: { ...PAYLOAD, deadlines: [deadline("d3", "Reading", "2026-11-06", { kind: "exam", topics: [], ready: null })] } }), "next-deadline");
-		assert.match(text(html), /Not measured yet/);
-		assert.ok(!html.includes("size-[18px]") && !html.includes("step-blocks"), "no blocks");
+		assert.ok(!html.includes("next-deadline-progress") && !html.includes("Not measured"));
+		assert.match(text(html), /Reading Friday Nov 6 Study/);
 	});
 
 	it("no deadlines: one line and Add a deadline", () => {
@@ -312,14 +312,14 @@ describe("The path", () => {
 	it("beside a deadline: under it, the goal and place, the topic Study takes with what it covers, the next three, and a grey Study", () => {
 		const html = render({ data: { ...PAYLOAD, deadlines: DEADLINES, facts: FACTS, path: path(28, 3) } });
 		assert.ok(html.indexOf('data-testid="next-deadline"') < html.indexOf('data-testid="space-path"'));
-		assert.match(text(section(html, "space-path")), /> Path to backend developer, 4 of 28 Topic 4 What topic 4 covers\. Study Topic 5 Topic 6 Topic 7 Show all 28 $/);
+		assert.match(text(section(html, "space-path")), /> Path to backend developer 4 of 28 Topic 4 What topic 4 covers\. Study Topic 5 Topic 6 Topic 7 Show all 28 $/);
 		assert.doesNotMatch(tag(html, "space-path-study"), /lh-btn-main/, "the deadline's key is the page's dark one");
 	});
 
 	it("with no deadline ahead it takes the deadline card's place, and the dark key", () => {
 		const html = render({ data: { ...PAYLOAD, path: path(3, 0) } });
 		assert.ok(!html.includes("next-deadline"));
-		assert.match(text(section(html, "space-path")), /> Path to backend developer, 1 of 3 Topic 1 What topic 1 covers\. Study Topic 2 Topic 3 $/, "nothing left out: no Show all");
+		assert.match(text(section(html, "space-path")), /> Path to backend developer 1 of 3 Topic 1 What topic 1 covers\. Study Topic 2 Topic 3 $/, "nothing left out: no Show all");
 		assert.match(tag(html, "space-path-study"), /lh-btn-main/);
 		const past = render({ data: { ...PAYLOAD, deadlines: DEADLINES.slice(2), path: path(3, 0) } });
 		assert.ok(!past.includes("next-deadline-none"), "only past deadlines: the path, not Nothing is coming up");
@@ -385,7 +385,7 @@ describe("Lessons", () => {
 		assert.deepEqual([...bigO!.matchAll(/data-outcome="(\w+)"/g)].map((m) => m[1]), ["right", "right", "wrong", "right", "right"]);
 		assert.match(bigO!, /aria-label="4 of 5 right"/);
 		assert.match(text(bigO!), /Yesterday Big-O basics/);
-		assert.match(text(recursion!), /^\s*>?\s*Recursion/, "the same day is not said again");
+		assert.match(text(recursion!.slice(recursion!.indexOf(">") + 1)), /^\s*Recursion/, "the same day is not said again");
 		assert.ok(!looked!.includes("data-outcome") && !looked!.includes("right\""), "no squares");
 		assert.ok(!html().includes("lesson-row-status"), "no chips");
 	});

@@ -16,7 +16,7 @@ export function WaitingDeadline({ record }: { record: SpaceRecord | null }) {
 	return (
 		<>
 			{waiting && (
-				<Pane data-testid="waiting-deadline" className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4">
+				<Pane data-testid="waiting-deadline" className="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 pt-5 pb-[22px]">
 					<span className="flex min-w-0 flex-1 basis-[220px] flex-col gap-1">
 						<span title={waiting.name} className="truncate text-xl leading-tight text-ink">
 							{waiting.name}

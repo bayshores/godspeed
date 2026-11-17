@@ -6,7 +6,7 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { InlineMath } from "./inline-math";
 import { calibrationTakeaway, isLevelOverconfident, questionHref } from "./overview-model";
-import { ROW, TITLE } from "./styles";
+import { HEAD, ROW, SHEET, TITLE } from "./styles";
 
 /**
  * CAN YOU TRUST YOUR CONFIDENCE? (Progress): for each confidence level 1
@@ -18,8 +18,10 @@ import { ROW, TITLE } from "./styles";
 export const ConfidenceCard = memo(function ConfidenceCard({ calibration }: { calibration: Calibration }) {
 	const takeaway = useMemo(() => calibrationTakeaway(calibration.levels), [calibration.levels]);
 	return (
-		<Pane data-testid="overview-confidence" className="flex flex-col px-6 pt-[18px] pb-4">
-			<h2 className={TITLE}>Can you trust your confidence?</h2>
+		<Pane data-testid="overview-confidence" className={`flex flex-col ${SHEET}`}>
+			<div className={HEAD}>
+				<h2 className={TITLE}>Can you trust your confidence?</h2>
+			</div>
 			<div className="flex flex-wrap items-center gap-x-8 gap-y-4 py-3">
 				<div className="flex shrink-0 gap-3.5">
 					{calibration.levels.map((level) => (
@@ -37,7 +39,7 @@ export const ConfidenceCard = memo(function ConfidenceCard({ calibration }: { ca
 			{calibration.sureButWrong.length > 0 && (
 				<>
 					<h3 className="pt-3 text-[15px] text-ink">Sure but wrong</h3>
-					<ul className="flex flex-col">
+					<ul className="-mx-1 flex flex-col">
 						{calibration.sureButWrong.map((q) => (
 							<SureButWrongRow key={`${q.chatId}:${q.toolCallId}`} q={q} />
 						))}
