@@ -43,6 +43,13 @@ pub fn conclude_marks_done(outcome: &Json) -> bool {
 	matches!(outcome.as_str(), Some("solved" | "solvedWithHints"))
 }
 
+/// The problem the learner's newest input picked from the problem list, if it was a pick: a
+/// problem closed for it moves on without a long-problem stop, since he chose where to go next.
+pub fn picked_problem(messages: &[Json]) -> Option<&str> {
+	let newest = messages.iter().rev().find(|m| m["role"].as_str() == Some("user") || m["customType"].as_str() == Some("practice-next"))?;
+	newest["details"]["number"].as_str()
+}
+
 /// The track record line: the deadline's topics Study would teach first (untested, or weak with
 /// the latest answer wrong), and the rest. `topics` are progress topics.
 fn track_record_line(topics: &[Json]) -> String {
@@ -139,5 +146,17 @@ mod tests {
 	#[test]
 	fn a_weak_topic_answered_right_last_opens_right_away() {
 		assert_eq!(track_record(&[topic("Counting", "weak", &["wrong", "right"])]), "Track record on its topics. Open right away: Counting.");
+	}
+
+	#[test]
+	fn only_the_newest_input_being_a_pick_counts() {
+		let pick = json!({ "role": "custom", "customType": "practice-next", "details": { "number": "2b" } });
+		let next = json!({ "role": "custom", "customType": "practice-next", "details": {} });
+		let typed = json!({ "role": "user", "content": "hm" });
+		let reply = json!({ "role": "assistant", "content": [] });
+		assert_eq!(picked_problem(&[pick.clone(), reply.clone()]), Some("2b"));
+		assert_eq!(picked_problem(&[pick.clone(), typed]), None, "he typed after picking");
+		assert_eq!(picked_problem(&[pick, next]), None);
+		assert_eq!(picked_problem(&[reply]), None);
 	}
 }

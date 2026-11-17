@@ -197,7 +197,7 @@ fn chat_input_json(input: &ChatInput) -> Json {
 		ChatInput::Continue => Json::Obj(event("continue", vec![])),
 		ChatInput::Side { text, attachments } => with_files(event("side", vec![("text", text.as_str().into())]), attachments),
 		ChatInput::Next => Json::Obj(event("next", vec![])),
-		ChatInput::Teach => Json::Obj(event("teach", vec![])),
+		ChatInput::Open { number } => Json::Obj(event("open", vec![("number", number.as_str().into())])),
 		ChatInput::OpenerAnswer { topic_done_call_id, answer } => Json::Obj(event("opener-answer", vec![("topicDoneCallId", topic_done_call_id.as_str().into()), ("answer", answer.clone().unwrap_or(Json::Null))])),
 	}
 }

@@ -9,7 +9,7 @@ use std::sync::Arc;
 use gs_core::contracts::space::MAX_HOMEWORK_PROBLEMS;
 use gs_core::messages::native_messages::active_problem_of;
 use gs_base::clock;
-use gs_core::study::homework::conclude_marks_done;
+use gs_core::study::homework::{conclude_marks_done, picked_problem};
 use gs_core::study::topic_end::long_problem_stop;
 use gs_engine::turn::messages::text_block;
 use gs_engine::turn::tool_execute::{conclude_result, invalid_input_result, problem_result};
@@ -141,9 +141,12 @@ fn conclude_tool(ctx: &HomeworkToolContext, open: &Arc<Mutex<Option<String>>>) -
 		if conclude_marks_done(&args["outcome"]) {
 			homework.mark_done(&number);
 		}
-		// With every problem done, the done bar shows instead of a stop.
+		// With every problem done, the done bar shows instead of a stop; a problem left for a picked
+		// one makes none either.
 		let left = homework.problems().iter().any(|p| !p["done"].truthy());
-		conclude_result(left.then(|| long_problem_stop(&record_messages(&chat_store, &chat_id), clock::now_ms())).flatten())
+		let messages = record_messages(&chat_store, &chat_id);
+		let picked = args["outcome"].as_str() == Some("movedOn") && picked_problem(&messages).is_some();
+		conclude_result((left && !picked).then(|| long_problem_stop(&messages, clock::now_ms())).flatten())
 	})
 	.sequential()
 }
@@ -181,12 +184,13 @@ mod tests {
 		}
 	}
 
-	/// Problem 1 open for 26 active minutes, with problem 2 after it.
-	async fn conclude_one(outcome: &str, problems: Json) -> Json {
+	/// Problem 1 open for 26 active minutes, with problem 2 after it; `then` is the learner's
+	/// newest input.
+	async fn conclude_one(outcome: &str, problems: Json, then: Option<Json>) -> Json {
 		let posed = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "h1", "name": "problem", "arguments": { "number": "1", "statement": "s" } }], "timestamp": clock::now_ms() - 26 * 60_000 });
 		let result = json!({ "role": "toolResult", "toolCallId": "h1", "toolName": "problem", "details": null, "isError": false, "timestamp": clock::now_ms() - 26 * 60_000 });
 		let worked: Vec<Json> = (0..6).map(|i| learner_at(22 - 4 * i)).collect();
-		let PlanContext { chat_id, chat_store } = record([vec![posed, result], worked].concat());
+		let PlanContext { chat_id, chat_store } = record([vec![posed, result], worked, then.into_iter().collect()].concat());
 		let homework = Arc::new(Deadline(Mutex::new(problems.as_arr().unwrap().clone())));
 		let ctx = HomeworkToolContext { chat_id, chat_store, homework, jobs: None, side: LessonSide::default() };
 		let tool = homework_tools(&ctx, None).into_iter().find(|t| t.name() == "conclude").unwrap();
@@ -196,9 +200,12 @@ mod tests {
 	#[tokio::test]
 	async fn a_long_problem_stops_unless_none_is_left() {
 		let two = json!([{ "number": "1" }, { "number": "2" }]);
-		let stop = &conclude_one("solved", two).await["details"]["stop"];
+		let stop = &conclude_one("solved", two.clone(), None).await["details"]["stop"];
 		assert_eq!((stop["kind"].as_str(), stop["activeMinutes"].as_f64()), (Some("problem"), Some(26.0)));
-		assert_eq!(conclude_one("solved", json!([{ "number": "1" }, { "number": "2", "done": true }])).await["details"], Json::Null, "the done bar shows instead");
-		assert_eq!(conclude_one("movedOn", json!([{ "number": "1" }])).await["details"]["stop"]["kind"].as_str(), Some("problem"), "problem 1 is still undone");
+		assert_eq!(conclude_one("solved", json!([{ "number": "1" }, { "number": "2", "done": true }]), None).await["details"], Json::Null, "the done bar shows instead");
+		assert_eq!(conclude_one("movedOn", json!([{ "number": "1" }]), None).await["details"]["stop"]["kind"].as_str(), Some("problem"), "problem 1 is still undone");
+		let pick = json!({ "role": "custom", "customType": "practice-next", "details": { "number": "2" }, "timestamp": clock::now_ms() });
+		assert_eq!(conclude_one("movedOn", two.clone(), Some(pick.clone())).await["details"], Json::Null, "he picked problem 2: no break before it");
+		assert_eq!(conclude_one("solved", two, Some(pick)).await["details"]["stop"]["kind"].as_str(), Some("problem"), "solved on the way still stops");
 	}
 }

@@ -31,6 +31,7 @@ use parking_lot::Mutex;
 use super::attachments::{AttachmentError, store_attachments};
 use super::compaction::{CompactionDeps, ensure_compacted, kick_compaction, or_zero};
 use super::dismissal_park::apply_parked_dismissal;
+use super::homework::homework_view;
 use super::job_host::run_job;
 use super::lesson_agent::{TurnAgent, build_lesson_agent};
 use super::review::askable;
@@ -218,6 +219,14 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 		_ => None,
 	};
 
+	// A pick names one of the deadline's problems.
+	if let TurnInput::Chat(ChatInput::Open { number }) = input {
+		let view = homework_view(app, record["spaceId"].str_or_empty(), record["deadlineId"].str_or_empty());
+		if !view.is_some_and(|v| v["problems"].items().iter().any(|p| p["number"].as_str() == Some(number.as_str()))) {
+			return Err(ChatReply::error(400, &format!("no problem numbered {number}")));
+		}
+	}
+
 	// The wake carries every queued marker; one already in the record is a re-fire.
 	let mut appends = match input {
 		TurnInput::Steers(steers) => steers.iter().filter(|s| !steer_delivered(&messages, s["id"].str_or_empty())).cloned().collect(),
@@ -226,7 +235,7 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 
 	// The [Today] note goes right before a learner message when the day, the open deadlines or a
 	// compaction call for a fresh one. The app note goes there too.
-	if let TurnInput::Chat(chat @ (ChatInput::Text { .. } | ChatInput::Next | ChatInput::Teach)) = input {
+	if let TurnInput::Chat(chat @ (ChatInput::Text { .. } | ChatInput::Next | ChatInput::Open { .. })) = input {
 		let at = appends.len().saturating_sub(1);
 		let notes = today_note_for(app, &record).into_iter().chain(app_note_for(&record, chat, asked.as_ref()));
 		appends.splice(at..at, notes);
@@ -544,6 +553,25 @@ mod tests {
 		let turn_events: Vec<EventKind> = std::iter::from_fn(|| events.try_recv().ok()).map(|e| e.kind).filter(|kind| matches!(kind, EventKind::TurnStarted | EventKind::TurnSettled)).collect();
 		assert_eq!(turn_events, [EventKind::TurnStarted, EventKind::TurnSettled]);
 		assert!(!is_turn_running(&app, &chat_id));
+	}
+
+	#[test]
+	fn a_pick_names_one_of_the_deadlines_problems() {
+		let root = scratch_dir("chat-open-pick");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Algorithms" })).unwrap()["id"].str_or_empty().to_owned();
+		let deadline_id = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "HW6", "kind": "homework", "date": "2099-01-15" })).unwrap()["id"].str_or_empty().to_owned();
+		let problems = super::super::homework::homework_deadline(&app, &space_id, &deadline_id);
+		assert_eq!(problems.post(&[json!({ "number": "2b", "title": "Sums", "text": "Sum 1 to n." })]), None);
+		problems.mark_done("2b");
+		let chat_id = app.stores.chats.create_chat("HW6", Some("homework"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned();
+		let pick = |number: &str| TurnInput::Chat(ChatInput::Open { number: number.to_owned() });
+		let refused = write_ahead(&app, &chat_id, &pick("7"), &[]).err().map(|reply| reply.status);
+		assert_eq!(refused, Some(400));
+		let opened = write_ahead(&app, &chat_id, &pick("2b"), &[]).err().map(|r| (r.status, format!("{:?}", r.body)));
+		assert_eq!(opened, None, "a done one opens again");
+		end_turn(&app, &chat_id);
+		assert_eq!(custom_types(&app, &chat_id).last().map(String::as_str), Some("practice-next"));
 	}
 
 	/// A stop a day ago that he kept going from an hour ago, then `tail`.

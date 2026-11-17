@@ -40,6 +40,9 @@ pub const TOPIC_DONE_NO_OPENER_TEXT: &str = "Stored. He sees the stop now.";
 
 pub const NEXT_PROBLEM_TEXT: &str = "[NEXT PROBLEM] — the learner's explicit go-ahead: pose the next problem now per the selection rules, or wrap the session in text if the arc is complete.";
 
-pub const TEACH_ME_TEXT: &str = "[TEACH ME] The learner asks you to teach the method of the open problem.";
+/// The learner's pick from the homework's problem list, as the teacher reads it.
+pub fn open_problem_text(number: &str) -> String {
+	format!("[OPEN PROBLEM {number}] The learner picked problem {number} in the problem list. Open exactly that one now per the session rules, even if it is done.")
+}
 
 pub const COMPACTED_HISTORY_HEADER: &str = "[SESSION HISTORY COMPACTED] The transcript before this point was summarized to fit the context window; the summary below replaces it. Everything after this message is the verbatim recent transcript.";
