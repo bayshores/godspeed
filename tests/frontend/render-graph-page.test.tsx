@@ -1,8 +1,7 @@
 /**
- * The Graph page: the level columns, the right side's panes (the next
- * deadline, work on next, the picked topic, the picked fact) over a
- * fixture ProgressPayload, keyboard access to topics, and the screen's
- * load failure.
+ * The Graph page: the picture with its docked topic and fact panels over a
+ * fixture ProgressPayload, picking and closing by mouse and Escape, search,
+ * the empty space, the top bar, and the screen's load failure.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -13,62 +12,71 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import { GraphBody } from "../../src/frontend/components/graph/graph-body.tsx";
-import { DeadlinePane, WorkOnNextPane } from "../../src/frontend/components/graph/side-panes.tsx";
+import { searchMatches } from "../../src/frontend/components/graph/derive.ts";
 import { TopicPane } from "../../src/frontend/components/graph/topic-pane.tsx";
 import { FactPane, type FactSources } from "../../src/frontend/components/graph/fact-pane.tsx";
-import { LevelColumns } from "../../src/frontend/components/graph/level-columns.tsx";
 import { GraphTopBar } from "../../src/frontend/components/graph/graph-top-bar.tsx";
 import { GraphScreen } from "../../src/frontend/components/graph/graph-screen.tsx";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
 import { MemoryRouter } from "react-router";
 import { fixture } from "../graph-fixture.ts";
 
+// The picture measures names, so the static renders need a DOM too.
+const dom = parseHTML("<html><body></body></html>");
+Object.assign(globalThis, {
+	window: dom.window,
+	document: dom.document,
+	Element: dom.window.Element,
+	HTMLElement: dom.window.HTMLElement,
+	SVGElement: dom.window.SVGElement,
+	CustomEvent: dom.window.CustomEvent,
+	IS_REACT_ACT_ENVIRONMENT: true,
+	// The menu shell measures and places on a frame.
+	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
+	cancelAnimationFrame: (id: number) => clearTimeout(id),
+	getComputedStyle: () => ({ getPropertyValue: () => "" }),
+	ResizeObserver: class {
+		observe() {}
+		unobserve() {}
+		disconnect() {}
+	},
+});
+Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
+// The picture lays out again once the page's font is in.
+Object.assign(dom.document, { fonts: { ready: Promise.resolve() } });
+// linkedom has no focus: remember what was last focused. Nodes are only
+// compared with ===, since a failed assert.equal on one prints the whole tree.
+let focused: Element | null = null;
+(dom.window.HTMLElement.prototype as unknown as { focus: () => void }).focus = function (this: Element) {
+	focused = this;
+};
+Object.defineProperty(dom.document, "activeElement", { get: () => (focused?.isConnected ? focused : dom.document.body) });
+
 const noop = () => {};
 const inRouter = (tree: React.ReactNode) => <MemoryRouter initialEntries={["/graph"]}>{tree}</MemoryRouter>;
 const count = (html: string, needle: string) => html.split(needle).length - 1;
 const body = (over: Partial<React.ComponentProps<typeof GraphBody>> = {}) =>
-	inRouter(<GraphBody data={fixture()} query="" sources={null} studying={false} studyError={null} onStudy={noop} onStudyDeadline={noop} onWorkDeadline={noop} onPractice={noop} {...over} />);
+	inRouter(<GraphBody data={fixture()} matches={null} sources={null} studying={false} studyError={null} onStudy={noop} onStudyFact={noop} {...over} />);
 
-describe("the level columns", () => {
-	const data = fixture();
+describe("the picture", () => {
 	const html = renderToStaticMarkup(body());
 
-	it("one sheet of level columns, named from start to advanced, each topic a row with a square per fact, and the key", () => {
-		assert.equal(count(html, 'data-testid="level-columns"'), 1);
-		assert.equal(count(html, 'data-testid="level"'), 3);
-		assert.match(html, />Level 1, start here</);
-		assert.match(html, />Level 2</);
-		assert.match(html, />Level 3, advanced</);
-		assert.equal(count(html, 'data-testid="topic-row"'), 5);
-		const mini = html.slice(html.indexOf('aria-label="Minibatch noise'));
-		assert.match(mini, /^aria-label="Minibatch noise, 3\/7 right, overconfident, 6 facts"/);
-		const columns = html.slice(html.indexOf('data-testid="level-columns"'), html.indexOf('data-testid="graph-side"'));
-		assert.ok(!columns.includes("<svg"), "no map");
-		const key = columns.slice(columns.indexOf('data-testid="cell-key"'));
-		for (const words of ["One square is one fact", "right", "wrong", "in a lesson, not answered", "not studied"]) assert.ok(key.includes(`${words}<`), words);
+	it("one picture with a button per topic, and nothing else on the page", () => {
+		assert.equal(count(html, 'data-testid="graph-picture"'), 1);
+		assert.equal(count(html, 'data-testid="graph-topic"'), 5);
+		assert.ok(!html.includes('data-testid="graph-panel"'), "no panel until a topic is picked");
+		for (const gone of ["deadline-pane", "work-on-next", "study-these", "level-columns", "cell-key", "Midterm 1"]) assert.ok(!html.includes(gone), gone);
 	});
 
-	it("topics off the picked deadline dim", () => {
-		const row = (name: string) => html.slice(html.lastIndexOf("<button", html.indexOf(`aria-label="${name},`)), html.indexOf(`aria-label="${name},`));
-		assert.match(row("Attention"), /data-dim="true"/, "Attention is not on Midterm 1");
-		assert.doesNotMatch(row("Variance"), /data-dim/);
+	it("a picked topic docks its panel beside the picture", () => {
+		const picked = renderToStaticMarkup(body({ initialSelected: "t-var" }));
+		assert.equal(count(picked, 'data-testid="graph-picture"'), 1);
+		assert.match(picked, /data-testid="graph-panel"[\s\S]*data-testid="topic-pane"/);
 	});
 
-	it("a picked topic: its row pressed, what it needs and leads to marked, nothing dimmed", () => {
-		const picked = renderToStaticMarkup(
-			<LevelColumns topics={data.topics} links={data.topicLinks} facts={data.facts} inSpace focus={null} selectedId="t-mini" onSelect={noop} />,
-		);
-		assert.match(picked, /aria-pressed="true"[^>]*aria-label="Minibatch noise/);
-		assert.match(picked, /aria-label="Variance, [^"]*, needed first"/);
-		assert.match(picked, /aria-label="Derivatives, [^"]*, needed first"/);
-		assert.match(picked, /aria-label="Momentum, [^"]*, comes next"/);
-		assert.equal(count(picked, 'data-mark="needs"'), 2);
-		assert.equal(count(picked, 'data-mark="leads"'), 1);
-		assert.ok(!picked.includes("data-dim"));
-	});
-
-	it("a search dims the topics it doesn't match", () => {
-		const searched = renderToStaticMarkup(body({ query: "momentum" }));
+	it("a search dims the topics it doesn't light", () => {
+		const data = fixture();
+		const searched = renderToStaticMarkup(body({ matches: searchMatches("momentum", data.topics, data.facts) }));
 		assert.equal(count(searched, 'data-dim="true"'), 4);
 	});
 
@@ -76,94 +84,10 @@ describe("the level columns", () => {
 		const empty = { ...fixture(), topics: [], topicLinks: [] };
 		const inSpace = renderToStaticMarkup(body({ data: { ...empty, spaceId: "cls_a" } }));
 		assert.match(inSpace, /Start a lesson or <a[^>]*href="\/space\/files"[^>]*>add files<\/a> to build your graph\./);
+		assert.ok(!inSpace.includes("graph-picture"));
 		const noSpace = renderToStaticMarkup(body({ data: { ...empty, spaceId: null } }));
 		assert.ok(noSpace.includes("Start a lesson or add files to build your graph."));
 		assert.ok(!noSpace.includes("/space/files"));
-	});
-});
-
-describe("the right side", () => {
-	const data = fixture();
-	const deadline = data.deadlines[0]!;
-
-	it("the deadline sits on top: its name, when, its files, readiness, and Study", () => {
-		const html = renderToStaticMarkup(
-			<DeadlinePane deadlines={data.deadlines} deadline={deadline} topics={data.topics} onChange={noop} onStudy={noop} onWork={noop} studying={false} studyError={null} />,
-		);
-		assert.match(html, /<h2[^>]*>Midterm 1</);
-		assert.match(html, /data-testid="deadline-countdown"[^>]*>in 9 days, Thursday Nov 5</);
-		assert.match(html, /data-testid="deadline-files"[^>]*>Covers 2 files</);
-		assert.match(html, /data-testid="deadline-ready"[^>]*>0 of 3 topics ready</);
-		assert.match(html, /data-testid="study-deadline"[^>]*class="[^"]*lh-btn-main[\s\S]*?>Study</);
-		assert.ok(!html.includes("deadline-picker"), "one deadline: nothing to change to");
-		const two = renderToStaticMarkup(
-			<DeadlinePane deadlines={[deadline, { ...deadline, id: "ex-2" }]} deadline={deadline} topics={data.topics} onChange={noop} onStudy={noop} onWork={noop} studying={false} studyError={null} />,
-		);
-		assert.match(two, /data-testid="deadline-picker"[^>]*><span[^>]*>Switch to Midterm 1</, "one other deadline: the key names it");
-		assert.ok(!two.includes("aria-haspopup"), "and opens no menu");
-		const three = renderToStaticMarkup(
-			<DeadlinePane deadlines={[deadline, { ...deadline, id: "ex-2" }, { ...deadline, id: "ex-3" }]} deadline={deadline} topics={data.topics} onChange={noop} onStudy={noop} onWork={noop} studying={false} studyError={null} />,
-		);
-		assert.match(three, /data-testid="deadline-picker"[^>]*>Change deadline</);
-	});
-
-	it("a homework on top: Study for it first, then Work on it, stacked in the narrow side and each passing the deadline", async () => {
-		const hw = { ...deadline, id: "hw6", kind: "homework" as const, name: "HW6" };
-		const clicked: string[] = [];
-		host = document.createElement("div");
-		document.body.append(host);
-		root = createRoot(host);
-		await act(async () =>
-			root!.render(<DeadlinePane deadlines={[hw]} deadline={hw} topics={data.topics} onChange={noop} onStudy={(d) => clicked.push(`study ${d.id}`)} onWork={(d) => clicked.push(`work ${d.id}`)} studying={false} studyError={null} />),
-		);
-		const keys = [...host!.querySelectorAll<HTMLButtonElement>('[data-testid="deadline-keys"] button')];
-		assert.deepEqual(keys.map((k) => k.textContent), ["Study for HW6", "Work on HW6"]);
-		assert.ok(!host!.querySelector('[data-testid="study-deadline"]'), "no lone Study key");
-		assert.match(keys[0]!.className, /basis-\[200px\]/, "two 200 px keys can't share the 280 px inside: they stack");
-		for (const k of keys) await act(async () => k.click());
-		assert.deepEqual(clicked, ["study hw6", "work hw6"]);
-	});
-
-	it("work on next: no counts line while every count is 0", () => {
-		const bare = { ...deadline, counts: { strong: 0, shaky: 0, weak: 0, untested: 0 } };
-		const html = renderToStaticMarkup(<WorkOnNextPane scope={bare} topics={data.topics} onSelectTopic={noop} onStudy={noop} studying={false} studyError={null} />);
-		assert.ok(!html.includes("status-counts"));
-	});
-
-	it("work on next: the counts, the deadline's topics with status lines and reasons, and Study these", () => {
-		const html = renderToStaticMarkup(<WorkOnNextPane scope={deadline} topics={data.topics} onSelectTopic={noop} onStudy={noop} studying={false} studyError={null} />);
-		assert.equal(count(html, 'data-testid="work-on-next-row"'), 3);
-		assert.match(html, /<h2[^>]*>Work on next</);
-		assert.match(html, /data-testid="status-counts"[^>]*>0 strong, 1 shaky, 1 weak, 1 not tested</);
-		assert.ok(html.includes("shaky, 4 of 7 right"));
-		assert.ok(html.includes("weak, 3 of 7 right"));
-		assert.ok(html.includes("Minibatch noise builds on it, so fix it first"));
-		assert.ok(html.includes("You felt sure on most of your misses"));
-		assert.ok(html.includes(">not tested<"));
-		assert.match(html, /data-testid="study-these"[^>]*class="lh-btn h-auto[^"]*"[\s\S]*?>Study these 3</);
-	});
-
-	it("nothing picked: the deadline pane and work on next; a topic picked: the deadline stays and the topic shows under it", () => {
-		const none = renderToStaticMarkup(body());
-		assert.ok(none.includes('data-testid="deadline-pane"') && none.includes('data-testid="work-on-next-pane"'));
-		const picked = renderToStaticMarkup(body({ initialSelected: "t-var" }));
-		assert.ok(picked.includes('data-testid="deadline-pane"'), "the deadline stays");
-		assert.ok(picked.includes('data-testid="topic-pane"'));
-		assert.ok(!picked.includes('data-testid="work-on-next-pane"'));
-	});
-
-	it("a done deadline, or one with no files, is not offered: work on next covers the space", () => {
-		const [d] = data.deadlines;
-		for (const deadlines of [[{ ...d!, done: true }], [{ ...d!, files: [] }]]) {
-			const html = renderToStaticMarkup(body({ data: { ...data, deadlines } }));
-			assert.ok(!html.includes('data-testid="deadline-pane"'));
-			assert.equal(count(html, 'data-testid="work-on-next-row"'), 1);
-		}
-	});
-
-	it("a Study start that failed says so under the button", () => {
-		const html = renderToStaticMarkup(<WorkOnNextPane scope={deadline} topics={data.topics} onSelectTopic={noop} onStudy={noop} studying={false} studyError="Couldn't start the lesson. Try again." />);
-		assert.match(html.slice(html.indexOf('data-testid="study-these"')), /data-testid="study-start-error"[^>]*>Couldn&#x27;t start the lesson\. Try again\.</);
 	});
 });
 
@@ -189,13 +113,19 @@ describe("the picked topic", () => {
 		assert.ok(html.slice(html.indexOf('data-testid="leads-to"')).includes("Momentum"));
 	});
 
-	it("Facts: the first four with their squares, Show all, math as KaTeX, and Study", () => {
+	it("Facts: the first four with their squares, Show all, math as KaTeX", () => {
 		assert.ok(html.includes(">Facts<"));
 		assert.equal(count(html, 'data-testid="fact-row"'), 4);
 		assert.ok(html.includes("Show all 6"));
 		assert.ok(html.includes('class="katex"'), "1/B renders through KaTeX");
 		assert.match(html, /role="img" aria-label="0 of 1 right"/);
-		assert.match(html, /data-testid="study-topic"[\s\S]*?Study Minibatch noise/);
+	});
+
+	it("Study is the one main key, outside the part that scrolls", () => {
+		const scroller = html.slice(html.indexOf("overflow-y-auto"), html.indexOf('data-testid="study-topic"'));
+		assert.ok(scroller.includes('data-testid="fact-row"'), "the facts scroll");
+		assert.match(html, /data-testid="study-topic"[^>]*class="lh-btn lh-btn-main[^"]*"><span[^>]*>Study</);
+		assert.equal(count(html, "lh-btn-main"), 1);
 	});
 });
 
@@ -211,9 +141,9 @@ describe("the picked fact", () => {
 		sessions: { "chat-1": "Study: Minibatch noise" },
 	};
 	const pane = (over: Partial<React.ComponentProps<typeof FactPane>> = {}) =>
-		renderToStaticMarkup(inRouter(<FactPane fact={f6} topicName="Minibatch noise" facts={data.facts} sources={sources} onBack={noop} onClose={noop} onOpenFact={noop} onPractice={noop} studying={false} studyError={null} {...over} />));
+		renderToStaticMarkup(inRouter(<FactPane fact={f6} topicName="Minibatch noise" facts={data.facts} sources={sources} onBack={noop} onClose={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} {...over} />));
 
-	it("back and Close, what it says, its answers, where it came from, what it builds on and leads to, and Practice", () => {
+	it("back and Close, what it says, its answers, where it came from, what it builds on and leads to, and Study", () => {
 		const html = pane();
 		assert.match(html, /data-testid="fact-pane-back"[\s\S]*?Minibatch noise/);
 		assert.match(html, /data-testid="fact-pane-close"[\s\S]*?Close</);
@@ -224,7 +154,7 @@ describe("the picked fact", () => {
 		const builds = html.slice(html.indexOf('data-testid="builds-on"'), html.indexOf('data-testid="fact-leads-to"'));
 		assert.ok(builds.includes("Variance adds") && builds.includes("Variance scales"));
 		assert.ok(html.slice(html.indexOf('data-testid="fact-leads-to"')).includes("Batch size and learning rate"));
-		assert.match(html, /data-testid="practice-fact"[\s\S]*?Practice this fact/);
+		assert.match(html, /data-testid="study-fact"[^>]*class="lh-btn lh-btn-main[^"]*"><span[^>]*>Study</);
 	});
 
 	it("a fact from a space file names the file", () => {
@@ -235,55 +165,45 @@ describe("the picked fact", () => {
 	it("before the graph loads: no source or links, the rest shows", () => {
 		const html = pane({ sources: null });
 		assert.ok(!html.includes("fact-source") && !html.includes("builds-on"));
-		assert.ok(html.includes("Practice this fact"));
+		assert.ok(html.includes('data-testid="study-fact"'));
+	});
+
+	it("a Study start that failed says so under the key", () => {
+		const html = pane({ studyError: "Couldn't start the lesson. Try again." });
+		assert.match(html.slice(html.indexOf('data-testid="study-fact"')), /data-testid="study-start-error"[^>]*>Couldn&#x27;t start the lesson\. Try again\.</);
 	});
 });
 
 describe("the top bar", () => {
-	it("a space has no Add files here (its Files tab has it); No space picks files right there", () => {
-		const inSpace = renderToStaticMarkup(inRouter(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} costs={null} importNotes={null} />));
-		assert.ok(!inSpace.includes("add-notes") && !inSpace.includes("import-notes") && !inSpace.includes("Add files"));
-		const noSpace = renderToStaticMarkup(inRouter(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} costs={null} importNotes={{ importing: false, onImportFiles: noop }} />));
-		assert.ok(noSpace.includes('data-testid="import-notes"'));
-			});
+	const bar = (over: Partial<React.ComponentProps<typeof GraphTopBar>>) =>
+		renderToStaticMarkup(inRouter(<GraphTopBar hasFacts query="" onQuery={noop} nothingMatches={false} onOpenChains={noop} costs={null} importNotes={null} {...over} />));
 
-	it("search and All facts once there are facts; Graph costs once a run is recorded", () => {
+	it("a space has no Add files here (its Files tab has it); No space picks files right there", () => {
+		const inSpace = bar({ hasFacts: false });
+		assert.ok(!inSpace.includes("import-notes") && !inSpace.includes("Add files"));
+		assert.ok(bar({ hasFacts: false, importNotes: { importing: false, onImportFiles: noop } }).includes('data-testid="import-notes"'));
+	});
+
+	it("search, then All facts and Graph costs as quiet words, once there are facts and a run", () => {
 		const tokens = { inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 };
 		const stage = { runs: 1, unpricedRuns: 0, tokens };
 		const costs = { stages: { extraction: stage, audit: stage }, runs: [{ startedAt: 1, title: "Lecture 1", tokens }] };
-		const bar = (over: Partial<React.ComponentProps<typeof GraphTopBar>>) =>
-			renderToStaticMarkup(inRouter(<GraphTopBar hasFacts query="" onQuery={noop} onOpenChains={noop} costs={null} importNotes={null} {...over} />));
 		const html = bar({ costs });
 		assert.match(html, /data-testid="graph-search"[^>]*placeholder="Search topics and facts"/);
-		assert.match(html, /data-testid="graph-costs"[^>]*>Graph costs</);
-		assert.match(html, /data-testid="open-chain-table"[^>]*>All facts</);
+		assert.match(html, /data-testid="open-chain-table"[^>]*class="lh-btn lh-btn-quiet[^"]*">All facts</);
+		assert.match(html, /data-testid="graph-costs"[^>]*class="lh-btn lh-btn-quiet[^"]*">Graph costs</);
+		assert.ok(html.indexOf("open-chain-table") < html.indexOf("graph-costs"), "All facts first");
 		assert.ok(!bar({ costs: { ...costs, runs: [] } }).includes("graph-costs"), "no runs: no costs to show");
 		assert.ok(!bar({ hasFacts: false }).includes("graph-search"));
 	});
+
+	it("a search that lights nothing says so once", () => {
+		assert.ok(!bar({}).includes("Nothing matches"));
+		assert.equal(count(bar({ query: "zzz", nothingMatches: true }), "Nothing matches"), 1);
+	});
 });
 
-// ─── keyboard (createRoot over linkedom) ────────────────────────────────────
-
-const dom = parseHTML("<html><body></body></html>");
-Object.assign(globalThis, {
-	window: dom.window,
-	document: dom.document,
-	Element: dom.window.Element,
-	HTMLElement: dom.window.HTMLElement,
-	SVGElement: dom.window.SVGElement,
-	CustomEvent: dom.window.CustomEvent,
-	IS_REACT_ACT_ENVIRONMENT: true,
-	// The menu shell measures and places on a frame.
-	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
-	cancelAnimationFrame: (id: number) => clearTimeout(id),
-	getComputedStyle: () => ({ getPropertyValue: () => "" }),
-	ResizeObserver: class {
-		observe() {}
-		unobserve() {}
-		disconnect() {}
-	},
-});
-Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
+// ─── picking (createRoot over linkedom) ─────────────────────────────────────
 
 let root: Root | undefined;
 let host: HTMLDivElement | undefined;
@@ -300,79 +220,118 @@ function fire(el: Element, type: string, init: Record<string, unknown> = {}) {
 	el.dispatchEvent(event);
 }
 
+async function mount(tree: React.ReactNode) {
+	host = document.createElement("div");
+	document.body.append(host);
+	root = createRoot(host);
+	await act(async () => root!.render(tree));
+	const q = (id: string) => host!.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+	const topic = (id: string) => host!.querySelector<HTMLButtonElement>(`[data-testid="graph-topic"][data-topic-id="${id}"]`)!;
+	return { q, topic };
+}
+
+const escape = () => act(async () => fire(dom.window as unknown as Element, "keydown", { key: "Escape" }));
+
 describe("picking in the page", () => {
-	it("a topic row picks the topic; a fact opens it; Escape closes the fact, then the topic", async () => {
-		host = document.createElement("div");
-		document.body.append(host);
-		root = createRoot(host);
-		await act(async () => root!.render(body()));
-		const q = (id: string) => host!.querySelector<HTMLElement>(`[data-testid="${id}"]`);
-		const rows = [...host.querySelectorAll<HTMLButtonElement>('[data-testid="topic-row"]')];
-		for (const r of rows) assert.equal(r.tagName, "BUTTON", "each topic is a tab stop");
-		await act(async () => rows.find((r) => r.getAttribute("aria-label")!.startsWith("Minibatch noise"))!.click());
+	it("a topic opens its panel; a fact row opens the fact; Escape closes the fact, then the topic", async () => {
+		const { q, topic } = await mount(body());
+		assert.equal(topic("t-mini").tagName, "BUTTON", "each topic is a button");
+		await act(async () => topic("t-mini").click());
 		assert.ok(q("topic-pane"));
 		await act(async () => q("fact-row")!.click());
-		assert.ok(q("fact-pane"));
-		await act(async () => fire(dom.window as unknown as Element, "keydown", { key: "Escape" }));
+		assert.ok(q("fact-pane") && !q("topic-pane"));
+		await escape();
 		assert.ok(q("topic-pane") && !q("fact-pane"), "back to the topic");
-		await act(async () => fire(dom.window as unknown as Element, "keydown", { key: "Escape" }));
-		assert.ok(q("work-on-next-pane") && !q("topic-pane"));
+		await escape();
+		assert.ok(!q("topic-pane") && !q("graph-panel"));
+		assert.ok(q("graph-picture"));
+	});
+
+	it("a click on the picked topic, or its Close, closes it", async () => {
+		const { q, topic } = await mount(body());
+		await act(async () => topic("t-var").click());
+		await act(async () => topic("t-var").click());
+		assert.ok(!q("topic-pane"));
+		await act(async () => topic("t-var").click());
+		await act(async () => q("topic-pane-close")!.click());
+		assert.ok(!q("topic-pane"));
 	});
 
 	it("a fact's Close closes the fact and its topic", async () => {
-		host = document.createElement("div");
-		document.body.append(host);
-		root = createRoot(host);
-		await act(async () => root!.render(body({ initialSelected: "t-mini" })));
-		const q = (id: string) => host!.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+		const { q } = await mount(body({ initialSelected: "t-mini" }));
 		await act(async () => q("fact-row")!.click());
 		await act(async () => q("fact-pane-close")!.click());
-		assert.ok(q("work-on-next-pane") && !q("fact-pane") && !q("topic-pane"));
+		assert.ok(!q("fact-pane") && !q("topic-pane"));
+	});
+
+	it("a graph change keeps the pick; a topic that is gone closes its panel", async () => {
+		const data = fixture();
+		const { q } = await mount(body({ initialSelected: "t-mini" }));
+		await act(async () => root!.render(body({ data: { ...data, facts: data.facts.slice(0, -1) } })));
+		assert.ok(q("topic-pane"), "still picked after a change");
+		await act(async () => root!.render(body({ data: { ...data, topics: data.topics.filter((t) => t.id !== "t-mini") } })));
+		assert.ok(!q("topic-pane"));
+	});
+
+	it("with little room, the panel takes the picture's place", async () => {
+		const box = Object.getOwnPropertyDescriptor(dom.window.HTMLElement.prototype, "clientWidth");
+		Object.defineProperty(dom.window.HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 900 });
+		try {
+			const { q, topic } = await mount(body());
+			assert.ok(q("graph-picture"), "nothing picked: the picture");
+			await act(async () => topic("t-var").click());
+			assert.ok(q("topic-pane") && !q("graph-picture"));
+			await escape();
+			assert.ok(q("graph-picture") && !q("topic-pane"));
+		} finally {
+			if (box) Object.defineProperty(dom.window.HTMLElement.prototype, "clientWidth", box);
+			else delete (dom.window.HTMLElement.prototype as { clientWidth?: number }).clientWidth;
+		}
 	});
 });
 
-describe("the deadline picker", () => {
-	it("with one other deadline, the first click shows that one", async () => {
-		const data = fixture();
-		const changed: string[] = [];
-		host = document.createElement("div");
-		document.body.append(host);
-		root = createRoot(host);
-		await act(async () =>
-			root!.render(
-				<DeadlinePane
-					deadlines={[data.deadlines[0]!, { ...data.deadlines[0]!, id: "ex-2" }]}
-					deadline={data.deadlines[0]!}
-					topics={data.topics}
-					onChange={(id) => changed.push(id)}
-					onStudy={noop}
-					onWork={noop}
-					studying={false}
-					studyError={null}
-				/>,
-			),
-		);
-		await act(async () => host!.querySelector<HTMLButtonElement>('[data-testid="deadline-picker"]')!.click());
-		assert.deepEqual(changed, ["ex-2"]);
-		assert.ok(!document.querySelector('[data-testid="deadline-picker-menu"] [role="menuitemradio"]'), "no menu opened");
+describe("keyboard focus", () => {
+	const active = () => document.activeElement;
+
+	it("beside the picture: the picked topic keeps focus, and arrows still move", async () => {
+		const { q, topic } = await mount(body());
+		topic("t-mini").focus();
+		await act(async () => topic("t-mini").click()); // Enter or Space on a button clicks it
+		assert.ok(q("topic-pane"));
+		assert.ok(active() === topic("t-mini"), "the same button, not a new one");
+		await act(async () => fire(topic("t-mini"), "keydown", { key: "ArrowRight" }));
+		assert.equal(active()?.getAttribute("data-testid"), "graph-topic");
+		assert.ok(active() !== topic("t-mini"));
 	});
 
-	it("its menu is the space switcher's width; a long name truncates and shows in full on hover", async () => {
-		const data = fixture();
-		const long = { ...data.deadlines[0]!, id: "ex-2", name: "Final exam covering every lecture from week one through week ten" };
-		const third = { ...data.deadlines[0]!, id: "ex-3", name: "Quiz 4" };
-		host = document.createElement("div");
-		document.body.append(host);
-		root = createRoot(host);
-		await act(async () =>
-			root!.render(<DeadlinePane deadlines={[data.deadlines[0]!, long, third]} deadline={data.deadlines[0]!} topics={data.topics} onChange={noop} onStudy={noop} onWork={noop} studying={false} studyError={null} />),
-		);
-		await act(async () => host!.querySelector<HTMLButtonElement>('[data-testid="deadline-picker"]')!.click());
-		const menu = document.querySelector('[data-testid="deadline-picker-menu"]')!;
-		assert.match(menu.getAttribute("class")!, /w-\[236px\]/);
-		const item = [...menu.querySelectorAll('[role="menuitemradio"]')].find((el) => el.getAttribute("title") === long.name);
-		assert.ok(item, "the full name is the item's title");
-		assert.match(item.querySelector("span")!.getAttribute("class")!, /min-w-0 flex-1 truncate/);
+	it("closing from inside the panel puts focus back on the topic; Escape on a fact lands on the topic's Close", async () => {
+		const { q, topic } = await mount(body());
+		await act(async () => topic("t-mini").click());
+		q("fact-row")!.focus();
+		await act(async () => q("fact-row")!.click());
+		await escape();
+		assert.ok(active() === q("topic-pane-close"));
+		await act(async () => q("topic-pane-close")!.click());
+		assert.ok(!q("topic-pane"));
+		assert.ok(active() === topic("t-mini"));
+	});
+
+	it("with little room: the panel's Close takes focus, and closing gives it back to the topic", async () => {
+		const box = Object.getOwnPropertyDescriptor(dom.window.HTMLElement.prototype, "clientWidth");
+		Object.defineProperty(dom.window.HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 900 });
+		try {
+			const { q, topic } = await mount(body());
+			topic("t-var").focus();
+			await act(async () => topic("t-var").click());
+			assert.ok(!q("graph-picture"));
+			assert.ok(active() === q("topic-pane-close"));
+			await escape();
+			assert.ok(q("graph-picture"));
+			assert.ok(active() === topic("t-var"));
+		} finally {
+			if (box) Object.defineProperty(dom.window.HTMLElement.prototype, "clientWidth", box);
+			else delete (dom.window.HTMLElement.prototype as { clientWidth?: number }).clientWidth;
+		}
 	});
 });
 

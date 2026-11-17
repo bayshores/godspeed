@@ -51,6 +51,17 @@ On the Mac the menu bar owns ⌘N (File, Study), ⌘⇧F (File, Search Lessons),
 
 Search lessons opens a popup over every space. In its field ↑/↓ walk the results and Enter opens one (the first match if none is picked).
 
+## Graph topics
+
+The Graph page's picture (`src/frontend/components/graph/constellation.tsx`) is one Tab stop: the topic last moved to or picked, else the leftmost one. Focus stays on a topic while its panel opens beside the picture. When the panel takes the picture's place, focus moves to the panel's Close, and closing gives it back to the topic.
+
+| Key | What it does |
+|---|---|
+| Tab | Moves focus into the picture, on one topic, and out again. |
+| ← → ↑ ↓ | Moves to the nearest topic in that direction. |
+| Enter or Space | Picks the topic and opens its panel. Pressed on the picked topic, closes it. |
+| Esc | Closes the open fact, then the open topic (`graph-body.tsx`). |
+
 ## Question rows
 
 While a question is open, `src/frontend/components/question-dock.tsx` owns these keys. They work only when focus is not in a text field, and never with a modifier held.

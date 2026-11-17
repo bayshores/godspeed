@@ -2,7 +2,8 @@
  * One fact, opened from its topic: back to the topic and Close, what it
  * says, its answers, where it came from (a space file opens on the
  * desktop, a lesson opens in the app), the facts it builds on and leads
- * to (each opens), and Practice.
+ * to (each opens), and Study. A tall panel scrolls its middle, so Study
+ * stays in view.
  */
 import { useMemo } from "react";
 import { Link } from "react-router";
@@ -11,7 +12,7 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { factLinks, PANEL_ANSWER_COLOR } from "./derive.ts";
-import { CloseButton, StudyButton } from "./side-panes.tsx";
+import { CloseButton, StudyButton } from "./pane-buttons.tsx";
 import { CHIP, GROUP_LABEL } from "./styles.ts";
 
 /** What the page knows about where facts came from (the graph snapshot's maps). */
@@ -31,7 +32,7 @@ export function FactPane({
 	onBack,
 	onClose,
 	onOpenFact,
-	onPractice,
+	onStudy,
 	studying,
 	studyError,
 }: {
@@ -44,7 +45,7 @@ export function FactPane({
 	/** Closes the fact and its topic. */
 	onClose: () => void;
 	onOpenFact: (id: string) => void;
-	onPractice: (fact: FactProgress) => void;
+	onStudy: (fact: FactProgress) => void;
 	studying: boolean;
 	studyError: string | null;
 }) {
@@ -52,8 +53,8 @@ export function FactPane({
 	const links = useMemo(() => (sources ? factLinks(fact.id, sources.chains) : null), [fact.id, sources]);
 	const last = fact.answers.at(-1)?.answeredAt;
 	return (
-		<Pane active data-testid="fact-pane" aria-label="Fact" className="flex flex-col gap-3.5 p-5">
-			<div className="flex items-center gap-2">
+		<Pane active data-testid="fact-pane" aria-label="Fact" className="flex min-h-0 flex-col gap-3.5 p-5">
+			<div className="flex shrink-0 items-center gap-2">
 				<button type="button" data-testid="fact-pane-back" onClick={onBack} title={topicName} className={`${CHIP} min-w-0`}>
 					<PixelIcon name="chevron" className="-scale-x-100" />
 					<span className="truncate">{topicName}</span>
@@ -61,34 +62,36 @@ export function FactPane({
 				<span className="flex-1" />
 				<CloseButton testid="fact-pane-close" onClick={onClose} />
 			</div>
-			<p data-testid="fact-statement" className="text-[17px] leading-snug text-ink">
-				<InlineMath text={fact.statement || fact.name} />
-			</p>
-			<div className="flex items-center gap-2.5 text-base text-ink-2" data-testid="fact-answers">
-				{fact.answers.length > 0 ? (
+			<div className="-mx-5 flex min-h-0 shrink flex-col gap-3.5 overflow-y-auto px-5">
+				<p data-testid="fact-statement" className="text-[17px] leading-snug text-ink">
+					<InlineMath text={fact.statement || fact.name} />
+				</p>
+				<div className="flex items-center gap-2.5 text-base text-ink-2" data-testid="fact-answers">
+					{fact.answers.length > 0 ? (
+						<>
+							<span aria-hidden className="flex flex-wrap gap-[3px]">
+								{fact.answers.slice(-12).map((a) => (
+									<span key={`${a.chatId}:${a.toolCallId}`} className="size-[11px]" style={{ background: PANEL_ANSWER_COLOR[a.outcome] }} />
+								))}
+							</span>
+							<span>
+								{rightWords(tally(fact.answers))}
+								{last ? `, last ${dayLabel(localDay(new Date(last)))}` : ""}
+							</span>
+						</>
+					) : (
+						<span>Not asked yet.</span>
+					)}
+				</div>
+				<Source born={fact.born} sources={sources} />
+				{links && (
 					<>
-						<span aria-hidden className="flex flex-wrap gap-[3px]">
-							{fact.answers.slice(-12).map((a) => (
-								<span key={`${a.chatId}:${a.toolCallId}`} className="size-[11px]" style={{ background: PANEL_ANSWER_COLOR[a.outcome] }} />
-							))}
-						</span>
-						<span>
-							{rightWords(tally(fact.answers))}
-							{last ? `, last ${dayLabel(localDay(new Date(last)))}` : ""}
-						</span>
+						<FactLinks label="Builds on" ids={links.buildsOn} byId={byId} onOpen={onOpenFact} testid="builds-on" />
+						<FactLinks label="Leads to" ids={links.leadsTo} byId={byId} onOpen={onOpenFact} testid="fact-leads-to" />
 					</>
-				) : (
-					<span>Not asked yet.</span>
 				)}
 			</div>
-			<Source born={fact.born} sources={sources} />
-			{links && (
-				<>
-					<FactLinks label="Builds on" ids={links.buildsOn} byId={byId} onOpen={onOpenFact} testid="builds-on" />
-					<FactLinks label="Leads to" ids={links.leadsTo} byId={byId} onOpen={onOpenFact} testid="fact-leads-to" />
-				</>
-			)}
-			<StudyButton testid="practice-fact" label="Practice this fact" busy={studying} error={studyError} onClick={() => onPractice(fact)} />
+			<StudyButton testid="study-fact" label="Study" busy={studying} error={studyError} onClick={() => onStudy(fact)} />
 		</Pane>
 	);
 }

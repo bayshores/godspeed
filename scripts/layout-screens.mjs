@@ -40,7 +40,7 @@ const dropLateHomework = `const { deadlines } = await fetch("/api/deadlines")${H
 const late = deadlines.find((d) => d.name === "Graphing worksheet, part 2");
 if (late) await fetch("/api/spaces/{space}/deadlines/" + late.id, { method: "DELETE" })${HTTP_OK};`;
 
-/** The homework with a problem open covers the made-up file, as the exam does not. */
+/** The homework with a problem open covers the made-up file, as the exam does not, so it can be Progress's next deadline. */
 const homeworkCoversFile = `const { space } = await fetch("/api/spaces/{space}")${HTTP_OK}.then((r) => r.json());
 await fetch("/api/spaces/{space}/deadlines/{homeworkOpenDeadline}", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileIds: [space.files[0].id] }) })${HTTP_OK};`;
 /** The homework comes before the quiz, so it is Progress's next deadline. */
@@ -50,9 +50,6 @@ await fetch("/api/spaces/{space}/deadlines/{homeworkOpenDeadline}", { method: "P
 /** Every deadline the seed made, so Today has none. */
 const dropDeadlines = ["{deadline}", "{homeworkOpenDeadline}", "{homeworkFirstDeadline}", "{homeworkManyDeadline}"].map((id) => `await fetch("/api/spaces/{space}/deadlines/${id}", { method: "DELETE" })${HTTP_OK};`).join("\n");
 
-/** The other two homework deadlines cover the file too, so the Graph's deadline pane has a list to pick from. */
-const moreHomeworkCoversFile = `const { space } = await fetch("/api/spaces/{space}")${HTTP_OK}.then((r) => r.json());
-for (const id of ["{homeworkFirstDeadline}", "{homeworkManyDeadline}"]) await fetch("/api/spaces/{space}/deadlines/" + id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileIds: [space.files[0].id] }) })${HTTP_OK};`;
 /** A folder that is always there and always empty, linked to the second space. */
 const linkedFolder = `await fetch("/api/spaces/{pathSpace}/folder", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: "/private/var/empty" }) })${HTTP_OK};`;
 /** The second space closed, so the plus list has a closed space; the first is the open one again. */
@@ -74,6 +71,9 @@ await fetch("/api/spaces/{space}/files", { method: "POST", body: form })${HTTP_O
  *  "Today with no deadline", which ends the request. */
 const waitingRequest = `await fetch("/api/spaces/{space}/deadlines/{deadline}/request", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "guide" }) })${HTTP_OK};`;
 
+/** A click on the first topic with facts in the Graph's picture. */
+const pickTopic = `[...document.querySelectorAll("[data-testid=graph-topic]")].find((topic) => !/\\b0 facts/.test(topic.getAttribute("aria-label"))).click()`;
+
 export const SCREENS = [
 	{ name: "Today with a deadline", url: "/", ready: deadlineCard },
 	{ name: "Today, the Add deadline menu", url: "/", ready: "[data-testid=home-add-deadline][aria-haspopup=menu]", setup: `document.querySelector("[data-testid=home-add-deadline]").click()`, shows: "[data-testid=home-add-deadline-menu][data-state=open]" },
@@ -85,7 +85,15 @@ export const SCREENS = [
 	{ name: "Lessons, a lesson's menu", url: "/space/lessons", ready: "[data-testid=lessons-list] [data-testid=session-row-menu]", setup: `document.querySelector("[data-testid=session-row-menu]").click()`, shows: "[data-testid=session-context-menu][data-state=open]" },
 	{ name: "Files", url: "/space/files", ready: "[data-testid=files-list] > *" },
 	{ name: "Files, a file's menu", url: "/space/files", ready: "[data-testid=files-list] button[aria-label^='More for']", setup: `document.querySelector("[data-testid=files-list] button[aria-label^='More for']").click()`, shows: "[data-testid^=space-file-menu-body-][data-state=open]" },
-	{ name: "Graph", url: "/graph", ready: "[data-testid=fact-row], [data-testid=topic-row]" },
+	{ name: "Graph", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]" },
+	{ name: "Graph, a topic picked", url: "/graph", ready: "[data-testid=graph-topic]", setup: pickTopic, shows: "[data-testid=graph-panel] [data-testid=topic-pane]" },
+	{
+		name: "Graph, a fact picked",
+		url: "/graph",
+		ready: "[data-testid=graph-topic]",
+		setup: `${pickTopic}; ${pause}; document.querySelector("[data-testid=topic-pane] [data-testid=fact-row]").click()`,
+		shows: "[data-testid=graph-panel] [data-testid=fact-pane]",
+	},
 	{ name: "Graph, costs open", url: "/graph", ready: "[data-testid=graph-costs]", setup: `document.querySelector("[data-testid=graph-costs]").click()`, shows: "[data-testid=graph-costs-panel][data-state=open]" },
 	{
 		name: "Graph, costs open beside the docked panel",
@@ -98,17 +106,14 @@ export const SCREENS = [
 	{
 		name: "Graph, a fact's menu",
 		url: "/graph",
-		ready: "[data-testid=topic-row]",
-		setup: `[...document.querySelectorAll("[data-testid=topic-row]")].find((row) => !/, 0 facts/.test(row.getAttribute("aria-label"))).click(); ${pause}; ${rightClick(`document.querySelector("[data-testid=topic-pane] [data-testid=fact-row]")`)}`,
+		ready: "[data-testid=graph-topic]",
+		setup: `${pickTopic}; ${pause}; ${rightClick(`document.querySelector("[data-testid=topic-pane] [data-testid=fact-row]")`)}`,
 		shows: "[data-testid=fact-context-menu][data-state=open]",
 	},
 	{ name: "Deadlines", url: "/space/deadlines", ready: "[data-testid=deadline-open]" },
 	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-name]" },
 	{ name: "Homework deadline with its two keys", url: "/space/deadline/{homeworkOpenDeadline}", ready: "[data-testid=homework-card] [data-testid=deadline-work]" },
-	// The Graph's card shows a deadline that covers files, so the homework covers the made-up one.
-	{ name: "Graph with a homework on top", before: homeworkCoversFile, url: "/graph", ready: "[data-testid=deadline-pane] [data-testid=deadline-work]" },
-	{ name: "Progress with a homework next", before: homeworkTomorrow, url: "/space", ready: "[data-testid=next-deadline] [data-testid=deadline-work]" },
-	{ name: "Graph, the deadline list", before: moreHomeworkCoversFile, url: "/graph", ready: "[data-testid=deadline-picker][aria-haspopup=menu]", setup: `document.querySelector("[data-testid=deadline-picker]").click()`, shows: "[data-testid=deadline-picker-menu][data-state=open]" },
+	{ name: "Progress with a homework next", before: `${homeworkCoversFile}\n${homeworkTomorrow}`, url: "/space", ready: "[data-testid=next-deadline] [data-testid=deadline-work]" },
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
 	{ name: "Lesson with a plugin's page open", url: "/chat/{lesson}", ready: "[data-testid=lesson-plugin-flashcards]", setup: `document.querySelector("[data-testid=lesson-plugin-flashcards]").click()`, shows: "[data-testid=plugin-window] [data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Homework lesson with an open problem", url: "/chat/{homeworkOpen}", ready: "[data-testid=open-problem]" },

@@ -1,8 +1,7 @@
 /**
- * THE GRAPH TAB, under the space head: its bar (search, Graph costs, All
- * facts, Add files), then the space's topics as level columns with a
- * right side: the picked deadline on top, under it what to work on next,
- * the picked topic, or the picked fact. Data: useProgress (GET /api/progress) and the
+ * THE GRAPH TAB, under the space head: its bar (search, All facts, Graph
+ * costs, Add files), then one picture of the space's topics and facts
+ * and how they link; a picked topic or fact docks its panel beside it. Data: useProgress (GET /api/progress) and the
  * raw graph (GET /api/graph) for where facts came from, how they link,
  * and the chain table. Keyed by space by the route, so a space switch
  * starts clean.
@@ -15,12 +14,13 @@ import { useActivity } from "@/frontend/components/activity-dock";
 import { LazyChainTableOverlay as ChainTableOverlay } from "@/frontend/components/chain-table-lazy.tsx";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { NotesImportErrors, useNotesImport } from "@/frontend/components/notes-import";
+import { searchMatches } from "./derive.ts";
 import { GraphTopBar } from "./graph-top-bar.tsx";
 import { useGraphCosts } from "./use-graph-costs.ts";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { lazyComponent } from "@/frontend/lib/lazy-component";
 
-// The columns and panes load in their own chunk once the progress data has arrived.
+// The picture and panels load in their own chunk once the progress data has arrived.
 const GraphBody = lazyComponent(() => import("./graph-body.tsx").then((m) => m.GraphBody));
 
 export function GraphScreen() {
@@ -69,6 +69,7 @@ function GraphScreenBody() {
 
 	const data = progress.data;
 	const hasFacts = (data?.facts.length ?? 0) > 0;
+	const matches = useMemo(() => (data ? searchMatches(query, data.topics, data.facts) : null), [query, data]);
 	// Deleting every fact hides the table; close it so new facts don't reopen it.
 	if (chainsOpen && data && !hasFacts) setChainsOpen(false);
 	return (
@@ -79,6 +80,7 @@ function GraphScreenBody() {
 						hasFacts={hasFacts}
 						query={query}
 						onQuery={setQuery}
+						nothingMatches={matches?.topics.size === 0}
 						onOpenChains={() => setChainsOpen(true)}
 						costs={costs}
 						importNotes={active ? null : notesImport}
@@ -91,14 +93,12 @@ function GraphScreenBody() {
 					{data ? (
 						<GraphBody
 							data={data}
-							query={query}
+							matches={matches}
 							sources={sources}
 							studying={study.busy}
 							studyError={study.error}
 							onStudy={(ids) => void study.studyTopics(ids)}
-							onStudyDeadline={(d) => void study.studyDeadline(d)}
-							onWorkDeadline={(d) => void study.workOnHomework(d)}
-							onPractice={(f) => void study.start({ title: "", picks: [{ id: f.id, name: f.name, statement: f.statement }] })}
+							onStudyFact={(f) => void study.start({ title: "", picks: [{ id: f.id, name: f.name, statement: f.statement }] })}
 						/>
 					) : progress.error ? (
 						<LoadFailed message="Couldn't load your graph." onRetry={refresh} className="py-10" />

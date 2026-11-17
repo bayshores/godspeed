@@ -14,9 +14,11 @@ import { DeleteNodeDialog } from "@/frontend/components/delete-node-dialog";
 import { factCells } from "@/frontend/components/fact-cells";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { factCellLabel } from "./derive.ts";
-import { MENU_CLASS, MENU_ITEM_CLASS } from "./menu.tsx";
 
 const FACTS_SHOWN = 4;
+const MENU_CLASS = "lh-popup flex w-fit min-w-40 flex-col gap-0.5 p-1.5 text-[13.5px]";
+const MENU_ITEM_CLASS =
+	"lh-press flex items-center gap-2 px-2.5 py-1.5 text-left text-ink-2 hover:bg-tone hover:text-ink focus-visible:bg-tone focus-visible:text-ink outline-none";
 
 export function FactList({
 	facts,

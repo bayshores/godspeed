@@ -1,21 +1,22 @@
 /**
  * The Graph tab's bar under the space head: search (topics and facts),
- * then Graph costs, All facts (the chain table) and, with no space,
- * Add files to pick notes files right here (a space adds files on its Files
- * tab). Search and All facts only show once the space has facts; Graph costs
- * once a graph run has been recorded.
+ * then quiet words: All facts (the chain table), Graph costs and, with no
+ * space, Add files to pick notes files right here (a space adds files on
+ * its Files tab). Search and All facts only show once the space has facts;
+ * Graph costs once a graph run has been recorded.
  */
 import { useEffect, useRef, type RefObject } from "react";
 import type { GraphCostSummary } from "@/shared/core";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { GraphCostControl } from "./cost-control.tsx";
 
-const BUTTON = "lh-btn shrink-0 text-[15px]";
+const WORD = "lh-btn lh-btn-quiet shrink-0 text-[15px]";
 
 export function GraphTopBar({
 	hasFacts,
 	query,
 	onQuery,
+	nothingMatches,
 	onOpenChains,
 	costs,
 	importNotes,
@@ -23,6 +24,8 @@ export function GraphTopBar({
 	hasFacts: boolean;
 	query: string;
 	onQuery: (q: string) => void;
+	/** A search that lights nothing. */
+	nothingMatches: boolean;
 	onOpenChains: () => void;
 	/** null until loaded. */
 	costs: GraphCostSummary | null;
@@ -37,17 +40,24 @@ export function GraphTopBar({
 		return () => window.removeEventListener("lh:kbd-find", onFind);
 	}, []);
 	return (
-		<div data-testid="graph-tools" className="flex flex-wrap items-center gap-2.5">
+		<div data-testid="graph-tools" className="flex flex-wrap items-center gap-x-5 gap-y-2">
 			<h1 className="sr-only">Graph</h1>
 			{hasFacts && <SearchBox inputRef={searchRef} query={query} onQuery={onQuery} />}
-			<span className="flex-1" />
-			{costs && costs.runs.length > 0 && <GraphCostControl costs={costs} />}
-			{hasFacts && (
-				<button type="button" data-testid="open-chain-table" onClick={onOpenChains} className={BUTTON}>
-					All facts
-				</button>
+			{nothingMatches && (
+				<span data-testid="graph-no-match" className="text-[15px] text-ink-2">
+					Nothing matches
+				</span>
 			)}
-			{importNotes && <ImportNotes {...importNotes} />}
+			<span className="flex-1" />
+			<span className="flex items-center gap-1">
+				{hasFacts && (
+					<button type="button" data-testid="open-chain-table" onClick={onOpenChains} className={WORD}>
+						All facts
+					</button>
+				)}
+				{costs && costs.runs.length > 0 && <GraphCostControl costs={costs} />}
+				{importNotes && <ImportNotes {...importNotes} />}
+			</span>
 		</div>
 	);
 }
@@ -67,7 +77,7 @@ function ImportNotes({ importing, onImportFiles }: { importing: boolean; onImpor
 					e.target.value = ""; // the same file can be picked again
 				}}
 			/>
-			<button type="button" data-testid="import-notes" disabled={importing} onClick={() => fileRef.current?.click()} className={BUTTON}>
+			<button type="button" data-testid="import-notes" disabled={importing} onClick={() => fileRef.current?.click()} className={WORD}>
 				<PixelIcon name="plus" />
 				{importing ? "Adding…" : "Add files"}
 			</button>

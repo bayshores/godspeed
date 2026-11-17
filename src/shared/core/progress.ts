@@ -112,7 +112,7 @@ export function rightWords(t: { right: number; hinted?: number; answered: number
 }
 
 /** ", 1 solved with hints", or "" with none. */
-export function hintedWords(t: { hinted?: number }): string {
+function hintedWords(t: { hinted?: number }): string {
 	return t.hinted ? `, ${t.hinted} solved with hints` : "";
 }
 

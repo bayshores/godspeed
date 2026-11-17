@@ -125,8 +125,25 @@ Its body is `services::graph::graph::search_graph`, shared with the MCP tool of 
 
 ### The Graph page
 
-`/graph` shows topics in level columns (`src/frontend/components/graph/level-columns.tsx`); each column is one prerequisite depth (a topic's `column`). Each topic is a row with one square per fact, colored by its right rate, with no lines and no zoom. A picked topic marks what it needs and what it leads to.
+`/graph` is one picture of the space and how it connects, under a row with the search and two quiet words, All facts (the chain table) and Graph costs. The layout is worked out in the browser from `GET /api/progress` and `GET /api/graph`; the same data always gives the same picture, and nothing is stored.
 
-The right side (`side-panes.tsx`) shows the next deadline on top, then what to work on next, the picked topic (`topic-pane.tsx`) or picked fact (`fact-pane.tsx`: its answers, where it came from, facts it builds on and leads to).
+| Part | File | What it does |
+|---|---|---|
+| Page | `src/frontend/components/graph/graph-screen.tsx` | Loads the data, runs the search, holds the bar and the chain table. |
+| Picture and panel | `graph-body.tsx` | Measures the room, gives the picture its width, docks the picked topic's or fact's panel, handles Escape. |
+| Picture | `constellation.tsx` | One SVG: every fact is a square, grouped by topic with the topic's name under it; lines join topics that build on each other. Topics are buttons on top. |
+| Layout | `constellation-layout.ts`, `constellation-routes.ts` | Where groups sit (by a topic's `column`, start on the left), and which lines are drawn and how they route around names. Pure, unit-tested. |
+| Panels | `topic-pane.tsx`, `fact-pane.tsx` | The picked topic (its facts, what it needs first and leads to, Study) and the picked fact (its answers, where it came from, the facts it builds on and leads to, Study). |
+| No facts yet | `graph-empty.tsx` | "Start a lesson or add files to build your graph." |
+
+What the learner does:
+
+1. Pointer on a topic: its lines light up with arrows and the rest dims. Pointer on a fact: the facts it builds on light up.
+2. Click a topic: the picture re-fits with one short fade and the topic's panel docks on the right. The panel ends 16 px above the window's foot; its middle scrolls and Study stays in view. With under 1000 px of room the panel takes the picture's place.
+3. Click a fact (a square, or a row in the topic's panel): its fact panel opens, with its topic picked.
+4. Close: the panel's Close, Escape (the fact first, then the topic), a click on empty picture, or a click on the picked topic again.
+5. Search: topics and facts that don't match dim; the picked topic never does. A search that matches nothing says "Nothing matches" beside the box.
+
+A graph change keeps the pick; a picked topic or fact that is gone closes its panel.
 
 The topic grouper (`agent::extraction::topic_grouper`, scheduled by `services::graph::topics`) groups a graph's facts into topics. It labels each topic's material as term, procedure, concept or proof, and appends a full snapshot to `topics.jsonl`. Older snapshots may have no material. A topic keeping its id across a regroup keeps its stored material (`repair_topics`, `core::graph::topics`). No layout is stored.

@@ -1,8 +1,10 @@
 /**
- * The picked topic, under the deadline sheet: its name and Close, one
- * square per fact with the fact count and score, the sure-miss note, the
- * topics it needs first and leads to (each opens that topic), its facts
- * (each opens the fact), and Study.
+ * The picked topic, docked beside the picture: its name and Close, one
+ * square per fact with the fact count and score under them, the
+ * sure-miss note, the topics it needs first and leads to (each opens
+ * that topic), its facts
+ * (each opens the fact), and Study. A tall panel scrolls its middle, so
+ * Study stays in view.
  */
 import { useMemo } from "react";
 import { topicFacts, type FactProgress, type TopicLink, type TopicProgress } from "@/shared/core";
@@ -10,7 +12,7 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { factCells, UNSTUDIED_CELL } from "@/frontend/components/fact-cells";
 import { neighbors, sureMissNote, topicCountLine } from "./derive.ts";
 import { FactList } from "./fact-list.tsx";
-import { CloseButton, StudyButton } from "./side-panes.tsx";
+import { CloseButton, StudyButton } from "./pane-buttons.tsx";
 import { CHIP, GROUP_LABEL, SIDE_TITLE } from "./styles.ts";
 
 export function TopicPane({
@@ -42,37 +44,39 @@ export function TopicPane({
 	const cells = useMemo(() => factCells(list), [list]);
 	const note = sureMissNote(topic);
 	return (
-		<Pane active data-testid="topic-pane" aria-label="Topic" className="flex flex-col gap-[9px] p-4">
-			<div className="flex items-center gap-2">
+		<Pane active data-testid="topic-pane" aria-label="Topic" className="flex min-h-0 flex-col gap-[9px] p-4">
+			<div className="flex shrink-0 items-center gap-2">
 				<h2 title={topic.name} className={`${SIDE_TITLE} flex-1`}>
 					{topic.name}
 				</h2>
 				<CloseButton testid="topic-pane-close" onClick={onClose} />
 			</div>
-			<div className="flex items-center gap-2.5">
-				<span aria-hidden className="flex flex-wrap gap-[3px]">
-					{cells.map((color, i) => (
-						<span key={i} className={color === UNSTUDIED_CELL ? "size-[11px]" : "lh-block-in size-[11px]"} style={{ background: color }} />
-					))}
-				</span>
-				<span data-testid="topic-score" className="text-base text-ink-2">
-					{topicCountLine(list.length, topic)}
-				</span>
+			<div className="-mx-4 flex min-h-0 shrink flex-col gap-[9px] overflow-y-auto px-4">
+				<div className="flex flex-col gap-1.5">
+					<span aria-hidden className="flex flex-wrap gap-[3px]">
+						{cells.map((color, i) => (
+							<span key={i} className={color === UNSTUDIED_CELL ? "size-[11px]" : "lh-block-in size-[11px]"} style={{ background: color }} />
+						))}
+					</span>
+					<span data-testid="topic-score" className="text-base text-ink-2">
+						{topicCountLine(list.length, topic)}
+					</span>
+				</div>
+				{note && (
+					<p data-testid="topic-note" className="text-[15px] leading-snug text-ink-2">
+						{note}
+					</p>
+				)}
+				<Related label="Needs first" empty="Nothing, start here" topics={needs} onSelect={onSelectTopic} testid="needs-first" />
+				<Related label="Leads to" empty="Nothing yet" topics={leadsTo} onSelect={onSelectTopic} testid="leads-to" />
+				{list.length > 0 && (
+					<>
+						<span className={GROUP_LABEL}>Facts</span>
+						<FactList key={topic.id} facts={list} onOpen={onOpenFact} />
+					</>
+				)}
 			</div>
-			{note && (
-				<p data-testid="topic-note" className="text-[15px] leading-snug text-ink-2">
-					{note}
-				</p>
-			)}
-			<Related label="Needs first" empty="Nothing, start here" topics={needs} onSelect={onSelectTopic} testid="needs-first" />
-			<Related label="Leads to" empty="Nothing yet" topics={leadsTo} onSelect={onSelectTopic} testid="leads-to" />
-			{list.length > 0 && (
-				<>
-					<span className={GROUP_LABEL}>Facts</span>
-					<FactList key={topic.id} facts={list} onOpen={onOpenFact} />
-				</>
-			)}
-			<StudyButton testid="study-topic" label={`Study ${topic.name}`} busy={studying} error={studyError} onClick={() => onStudy([topic.id])} />
+			<StudyButton testid="study-topic" label="Study" busy={studying} error={studyError} onClick={() => onStudy([topic.id])} />
 		</Pane>
 	);
 }

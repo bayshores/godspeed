@@ -1,24 +1,19 @@
 /**
- * Pure helpers for the Graph page's columns and panes: status colors,
- * score lines, the sure-miss note, levels, a fact's links, the deadline
- * picker's choices and default, search matches. Browser-safe, unit-tested.
+ * Pure helpers for the Graph page's panels: answer colors, score lines,
+ * the sure-miss note, a topic's and a fact's links, search matches.
+ * Browser-safe, unit-tested.
  */
 import {
 	RAMP_COLORS,
 	type AnswerOutcome,
 	type AnswerRef,
-	type DeadlineProgress,
 	type FactProgress,
 	type GraphChain,
-	type StatusCounts,
 	type TopicLink,
 	type TopicProgress,
-	type WorkOnNextItem,
-	hintedWords,
 	rightWords,
 	tally,
 } from "@/shared/core";
-import { STATUS_LEGEND } from "@/frontend/components/overview/overview-model";
 
 /** Answer blocks in the topic panel use the topic ramp's ends. */
 export const PANEL_ANSWER_COLOR: Record<AnswerOutcome, string> = {
@@ -27,27 +22,6 @@ export const PANEL_ANSWER_COLOR: Record<AnswerOutcome, string> = {
 	wrong: RAMP_COLORS[0],
 	dontKnow: "var(--color-ans-dontknow)",
 };
-
-/** "4/7" — right over answered. */
-function scoreText(t: Pick<TopicProgress, "right" | "answered">): string {
-	return `${t.right}/${t.answered}`;
-}
-
-/** The Work-on-next status line: "4/7 right, overconfident", "3/7 right,
- *  1 solved with hints" or "Not tested". */
-export function statusLine(t: Pick<TopicProgress, "right" | "hinted" | "answered" | "overconfident" | "status">): string {
-	if (t.status === "untested") return "Not tested";
-	return `${scoreText(t)} right${hintedWords(t)}${t.overconfident ? ", overconfident" : ""}`;
-}
-
-/** The reason under a Work-on-next row. progress.ts says "overconfident"
- *  for that group; the status line already says the word, so the reason
- *  explains it. A bare "<n>% right" repeats the status line's score, so
- *  it shows nothing. */
-export function reasonText(item: Pick<WorkOnNextItem, "reason">): string {
-	if (/^\d+% right$/.test(item.reason)) return "";
-	return item.reason === "overconfident" ? "You felt sure on most of your misses" : item.reason;
-}
 
 /** Wrong answers given at confidence 4–5. */
 function sureMisses(answers: readonly Pick<AnswerRef, "outcome" | "level">[]): number {
@@ -71,23 +45,11 @@ export function topicCountLine(factCount: number, t: Pick<TopicProgress, "right"
 	return `${factCount} ${factCount === 1 ? "fact" : "facts"}, ${rightOf(t)}`;
 }
 
-/** A Work-on-next row's line: "shaky, 1 of 2 right", or "not tested". */
-export function workRowLine(t: Pick<TopicProgress, "status" | "right" | "hinted" | "answered">): string {
-	if (t.status === "untested") return "not tested";
-	return `${t.status}, ${rightOf(t)}`;
-}
-
 /** What a fact's square says, for screen readers: "1 of 2 right", "In a
  *  lesson, not answered" or "Not studied". */
 export function factCellLabel(f: Pick<FactProgress, "answers" | "inLessons">): string {
 	if (f.answers.length === 0) return f.inLessons ? "In a lesson, not answered" : "Not studied";
 	return rightWords(tally(f.answers));
-}
-
-/** "2 strong, 3 shaky, 1 weak, 8 not tested"; null when all are 0. */
-export function countsLine(c: StatusCounts): string | null {
-	if (STATUS_LEGEND.every((s) => c[s.key] === 0)) return null;
-	return STATUS_LEGEND.map((s) => `${c[s.key]} ${s.label}`).join(", ");
 }
 
 /** "Needs first" (arrows in) and "Leads to" (arrows out) for a topic,
@@ -108,71 +70,24 @@ export function neighbors(
 	};
 }
 
-/** The deadlines the picker offers: not done, and covering at least one
- *  file (payload order: soonest due first). */
-export function pickableDeadlines<T extends Pick<DeadlineProgress, "done" | "files">>(deadlines: readonly T[]): T[] {
-	return deadlines.filter((d) => !d.done && d.files.length > 0);
-}
-
-/** The deadline the picker opens on: the soonest one still ahead, else
- *  the latest one (they arrive soonest first). */
-export function defaultDeadlineId(deadlines: readonly Pick<DeadlineProgress, "id" | "daysUntil">[]): string | null {
-	if (deadlines.length === 0) return null;
-	return (deadlines.find((d) => d.daysUntil >= 0) ?? deadlines[deadlines.length - 1]!).id;
-}
-
-/** "9 days", "1 day", "Today", "3 days ago". */
-export function countdownText(days: number): string {
-	if (days === 0) return "Today";
-	if (days < 0) return `${-days} ${days === -1 ? "day" : "days"} ago`;
-	return `${days} ${days === 1 ? "day" : "days"}`;
-}
-
-/** What the deadline covers, short: the file's name when there is one,
- *  else "7 files". */
-export function deadlineFilesText(files: readonly { name: string }[]): string {
-	if (files.length === 0) return "";
-	if (files.length === 1) return files[0]!.name;
-	return `${files.length} files`;
-}
-
-/** Topics matching a search (the topic's name, or any of its facts' name
- *  or statement, case-insensitive). null = no search. */
+/** What a search lights: the topics whose name matches or that hold a
+ *  matching fact, and the matching facts (by name or statement, or every
+ *  fact of a topic whose name matches); case-insensitive. null = no search. */
 export function searchMatches(
 	query: string,
 	topics: readonly Pick<TopicProgress, "id" | "name">[],
-	facts: readonly Pick<FactProgress, "topicId" | "name" | "statement">[],
-): Set<string> | null {
+	facts: readonly Pick<FactProgress, "id" | "topicId" | "name" | "statement">[],
+): { topics: Set<string>; facts: Set<string> } | null {
 	const q = query.trim().toLowerCase();
 	if (!q) return null;
-	const hits = new Set<string>();
-	for (const t of topics) if (t.name.toLowerCase().includes(q)) hits.add(t.id);
+	const named = new Set(topics.filter((t) => t.name.toLowerCase().includes(q)).map((t) => t.id));
+	const hits = { topics: new Set(named), facts: new Set<string>() };
 	for (const f of facts) {
-		if (hits.has(f.topicId)) continue;
-		if (f.name.toLowerCase().includes(q) || f.statement.toLowerCase().includes(q)) hits.add(f.topicId);
+		if (!named.has(f.topicId) && !f.name.toLowerCase().includes(q) && !f.statement.toLowerCase().includes(q)) continue;
+		hits.facts.add(f.id);
+		hits.topics.add(f.topicId);
 	}
 	return hits;
-}
-
-/** The topics by level (a topic's column: the longest chain of topics it
- *  needs first), each level's topics by name. */
-export function topicLevels<T extends Pick<TopicProgress, "column" | "name">>(topics: readonly T[]): T[][] {
-	const levels: T[][] = [];
-	for (const t of topics) (levels[t.column] ??= []).push(t);
-	return levels.filter((l) => l !== undefined).map((l) => l.sort((a, b) => a.name.localeCompare(b.name)));
-}
-
-/** A level pane's name: the first says where to start, the last that it's advanced. */
-export function levelName(index: number, count: number): string {
-	const name = `Level ${index + 1}`;
-	if (count < 2) return name;
-	if (index === 0) return `${name}, start here`;
-	return index === count - 1 ? `${name}, advanced` : name;
-}
-
-/** "How many of these topics are ready": the strong ones. */
-export function readyCount(topics: readonly Pick<TopicProgress, "status">[]): number {
-	return topics.filter((t) => t.status === "strong").length;
 }
 
 /** The facts a fact builds on (the premises of chains concluding it) and

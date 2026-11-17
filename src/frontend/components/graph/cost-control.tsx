@@ -17,7 +17,7 @@ export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 	useMenuDismiss(open, close, anchorRef);
 	return (
 		<>
-			<button ref={anchorRef} type="button" data-testid="graph-costs" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="lh-btn shrink-0 text-[15px]">
+			<button ref={anchorRef} type="button" data-testid="graph-costs" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
 				Graph costs
 			</button>
 			<MenuShell
