@@ -3,9 +3,10 @@
  *
  * A small stand-in agent talks to the app over MCP, as Claude Code would: it makes the space
  * "Lab Algebra" with a deadline and one file, reads the file into one fact, starts a lesson and
- * answers it with a plan, then a sourced reply and an open quiz. Two homework deadlines get a homework lesson
- * each: one has its problems posted and a problem open at part (b), the other has its problems posted and a
- * teaching reply with no problem open. A second space, "Backend jobs",
+ * answers it with a plan, then a sourced reply and an open quiz. Three homework deadlines get a homework lesson
+ * each: one has its problems posted and a problem open at part (b), one has its problems posted and a
+ * teaching reply with no problem open, and one has fourteen problems with the first done and none open.
+ * A second space, "Backend jobs",
  * has a path toward a goal and nothing else. The window installs the plugin
  * "Flashcards", marked as from the made-up plugin list (tests/fixtures/plugins/layout-list.json)
  * at an older tag, so its sheet shows Update. No model runs; every word is fixed here.
@@ -20,9 +21,12 @@ const WEB_SOURCE = "[[https://example.com/lab-algebra/linear-equations]]";
 /** Every made-up name has letters that hang below the line (g, j, p, q, y), so the check for
  *  cut-off letters has something to catch. */
 const DEADLINE = "Pop quiz: graphing";
-/** Two homework deadlines, each worked in its own lesson ("Work on <name>"). */
+/** Three homework deadlines, each worked in its own lesson ("Work on <name>"). */
 const HOMEWORK_OPEN = "Homework 3: graphing lines";
 const HOMEWORK_FIRST = "Homework 4: solving equations";
+const HOMEWORK_MANY = "Homework 5: graphing systems";
+/** More problems than a row names, numbered as an assignment might ("2a"). */
+const MANY_NUMBERS = ["1", "2a", "2b", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"];
 
 const HOMEWORK_PROBLEMS = {
 	[HOMEWORK_OPEN]: [
@@ -33,6 +37,7 @@ const HOMEWORK_PROBLEMS = {
 		{ number: "1", title: "Undo each step", text: "Solve $5x - 7 = 18$ and say what you undid first.", page: 1 },
 		{ number: "2", title: "Check by graphing", text: "Graph $y = 5x - 7$ and $y = 18$ and read off the crossing.", page: 1 },
 	],
+	[HOMEWORK_MANY]: MANY_NUMBERS.map((number) => ({ number, title: `Graph system ${number}`, text: `Graph the pair of lines in system ${number} and say where they cross.`, page: 1 })),
 };
 
 /** The stand-in agent: tool calls to the app's MCP endpoint, each logged when sent and answered. */
@@ -97,6 +102,19 @@ function homeworkAnswer(work, ids, lessonTurn) {
 	if (work.lessonId === ids.homeworkFirst) {
 		if (lessonTurn === 0) return { tool_calls: [{ name: "post_problems", arguments: { problems: HOMEWORK_PROBLEMS[HOMEWORK_FIRST] } }] };
 		return { text: "Before problem 1, here is the method. To solve $3x + 4 = 19$, undo each step in reverse: subtract 4 from both sides to get $3x = 15$, then divide both sides by 3 to get $x = 5$." };
+	}
+	// Posts its problems and opens the first; after the learner's answer, closes it solved.
+	if (work.lessonId === ids.homeworkMany) {
+		if (lessonTurn === 0) {
+			return {
+				tool_calls: [
+					{ name: "post_problems", arguments: { problems: HOMEWORK_PROBLEMS[HOMEWORK_MANY] } },
+					{ name: "problem", arguments: { number: "1", statement: HOMEWORK_PROBLEMS[HOMEWORK_MANY][0].text } },
+				],
+			};
+		}
+		if (lessonTurn === 1) return { tool_calls: [{ name: "conclude", arguments: { outcome: "solved", verdict: "Both lines cross at (2, 7), as you found." } }] };
+		return { text: "That's the crossing. Pick any problem next." };
 	}
 	return null;
 }
@@ -166,6 +184,7 @@ export async function seed(dataDir, page, log) {
 			{ kind: "exam", name: DEADLINE, date, time: "10:00" },
 			{ kind: "homework", name: HOMEWORK_OPEN, date: inDays(10) },
 			{ kind: "homework", name: HOMEWORK_FIRST, date: inDays(11) },
+			{ kind: "homework", name: HOMEWORK_MANY, date: inDays(12) },
 		],
 	});
 	await agent.call("add_space_file", { space_id: space.id, kind: "study", name: "Graphing quiz prep.md", text: "# Solving by graphing\n\nTo solve ax + b = c, subtract b from both sides, then divide by a. Graphing y = ax + b and y = c gives the same x where the lines cross." });
@@ -194,6 +213,7 @@ export async function seed(dataDir, page, log) {
 	};
 	const homeworkOpen = await homeworkLesson(HOMEWORK_OPEN);
 	const homeworkFirst = await homeworkLesson(HOMEWORK_FIRST);
+	const homeworkMany = await homeworkLesson(HOMEWORK_MANY);
 
 	// Answer every item until the queue stays empty for two teacher and two helper waits in a row. A respond answers with the
 	// next item when one waits. godspeed's own jobs (the space check) go to a helper, so every
@@ -201,7 +221,7 @@ export async function seed(dataDir, page, log) {
 	let waits = 0;
 	const wait = () => agent.call("wait_for_work", { timeout_seconds: 3, ...(waits++ % 2 === 1 ? { helper: true } : {}) });
 	const turns = new Map();
-	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst };
+	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany };
 	const drain = async () => {
 		let reply = await wait();
 		for (let idle = 0, tries = 0; idle < 4; tries++) {
@@ -226,9 +246,10 @@ export async function seed(dataDir, page, log) {
 	await drain();
 	// The learner says which part they start; the teacher marks it.
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkOpen, input: { type: "text", text: "I am starting part (b)." } }) });
+	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkMany, input: { type: "text", text: "They cross at (2, 7)." } }) });
 	await drain();
 	const covers = (topic) => `Enough ${topic} to get a junior job by spring, with typing practice daily.`;
 	const steps = ["Git and pull requests", "HTTP and APIs", "SQL querying", "Typing in Python", "Caching layers", "Deploying apps", "Logging and paging", "Security group policy"];
 	const goal = await agent.json("create_space", { name: "Backend jobs", icon: "code", path: { goal: "backend developer jobs", topics: steps.map((name) => ({ name, covers: covers(name) })) } });
-	return { space: space.id, lesson: lessonId, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), pathSpace: goal.space.id };
+	return { space: space.id, lesson: lessonId, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), pathSpace: goal.space.id };
 }
