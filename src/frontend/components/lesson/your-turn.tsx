@@ -132,7 +132,7 @@ export function YourTurn({
 
 	return (
 		// The lesson text's inset, so both sheets share their edges.
-		<div data-testid="your-turn" data-mode={mode.split(":")[0]} className="flex flex-col gap-7 px-14 pt-10 pb-10 @max-[640px]/column:px-7 @max-[640px]/column:pt-7 @max-[640px]/column:pb-8">
+		<div data-testid="your-turn" data-mode={mode.split(":")[0]} className="lh-reading flex flex-col gap-7">
 			<h2 className="text-[28px] leading-tight text-ink">{fromEarlier ? "From earlier" : "Your turn"}</h2>
 
 			{reviewRefused && (

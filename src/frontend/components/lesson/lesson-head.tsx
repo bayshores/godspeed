@@ -56,8 +56,9 @@ export function LessonHead({
 	const pdf = !!file && /\.pdf$/i.test(file.name);
 	const openFile = file?.path && desktop ? (pdf ? desktop.openPath : desktop.showInFolder) : undefined;
 	const fileWord = file && `${file.name}${page ? `, page ${page}` : ""}`;
+	// As tall as a space's tab row (16 above a 50-point row), so the first sheet starts where a space page's first card does.
 	return (
-		<div data-testid="lesson-head" className="lh-page flex min-h-14 shrink-0 items-center gap-3 pt-3">
+		<div data-testid="lesson-head" className="lh-page flex min-h-[66px] shrink-0 items-center gap-3 pt-4">
 			<h1 className="sr-only">{rename.title}</h1>
 			<div className="flex min-w-0 shrink text-[22px] text-ink">{rename.renaming ? <RenameInput rename={rename} /> : <TitleButton rename={rename} />}</div>
 			<div className="flex-1" aria-hidden />

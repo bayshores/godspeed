@@ -1,37 +1,40 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { keepPair, REST_PAD, restingTop, turnStick, wholeLineTop } from "../../src/frontend/components/lesson/lesson-scroll-model.ts";
+import { keepPair, restingTop, turnStick, wholeLineTop } from "../../src/frontend/components/lesson/lesson-scroll-model.ts";
 
 /** Where the lesson page rests: its end, unless that hides the start of the newest thing. */
+
+// The page's padding as its CSS sets it: room above what it rests on and under its last sheet.
+const pads = { top: 24, end: 28 };
 
 describe("where the lesson page rests with Your turn under the text", () => {
 	const view = 600;
 	const under = (top: number, height = 400) => ({ top, height, beside: false });
 
 	it("at its end with nothing waiting", () => {
-		assert.equal(restingTop(900, { view, sheet: null, part: null, reply: null }), 900);
+		assert.equal(restingTop(900, { view, pads, sheet: null, part: null, reply: null }), 900);
 	});
 
 	it("at its end while all of Your turn fits, with the lesson text above it", () => {
 		// The sheet starts at 1100 and the page ends at 1500: 400 tall, the window shows 600.
-		assert.equal(restingTop(900, { view, sheet: under(1100), part: null, reply: null }), 900);
+		assert.equal(restingTop(900, { view, pads, sheet: under(1100), part: null, reply: null }), 900);
 	});
 
 	it("on the sheet's top when Your turn is taller than the window, so a problem is read from its start", () => {
-		assert.equal(restingTop(900, { view, sheet: under(500, 1000), part: null, reply: null }), 500 - REST_PAD);
+		assert.equal(restingTop(900, { view, pads, sheet: under(500, 1000), part: null, reply: null }), 500 - pads.top);
 	});
 
 	it("on the part the learner is on when it sits deep in a tall sheet, else still on the sheet's top", () => {
-		assert.equal(restingTop(1500, { view, sheet: under(500, 1600), part: 500, reply: null }), 1000 - REST_PAD);
-		assert.equal(restingTop(1500, { view, sheet: under(500, 1600), part: 200, reply: null }), 500 - REST_PAD);
+		assert.equal(restingTop(1500, { view, pads, sheet: under(500, 1600), part: 500, reply: null }), 1000 - pads.top);
+		assert.equal(restingTop(1500, { view, pads, sheet: under(500, 1600), part: 200, reply: null }), 500 - pads.top);
 	});
 
 	it("on the learner's last message once the teacher writes back under a tall sheet", () => {
-		assert.equal(restingTop(1500, { view, sheet: under(800, 1300), part: 500, reply: 300 }), 300 - REST_PAD);
+		assert.equal(restingTop(1500, { view, pads, sheet: under(800, 1300), part: 500, reply: 300 }), 300 - pads.top);
 	});
 
 	it("never above the page's top", () => {
-		assert.equal(restingTop(900, { view, sheet: under(10), part: null, reply: null }), 0);
+		assert.equal(restingTop(900, { view, pads, sheet: under(10), part: null, reply: null }), 0);
 	});
 });
 
@@ -40,32 +43,32 @@ describe("where the lesson page rests with Your turn beside the text", () => {
 	const beside = (height: number) => ({ top: 24, height, beside: true });
 
 	it("at its end while Your turn fits the window, so the newest text shows", () => {
-		assert.equal(restingTop(2000, { view, sheet: beside(500), part: null, reply: null }), 2000);
+		assert.equal(restingTop(2000, { view, pads, sheet: beside(500), part: null, reply: null }), 2000);
 	});
 
 	it("short of its end by as much as a tall sheet overflows, so the sheet shows its top", () => {
 		// 700 tall with 24 above and 28 below needs 752; the window shows 600.
-		assert.equal(restingTop(2000, { view, sheet: beside(700), part: null, reply: null }), 2000 - 152);
+		assert.equal(restingTop(2000, { view, pads, sheet: beside(700), part: null, reply: null }), 2000 - 152);
 	});
 
 	it("lower by the part's depth when the learner's part sits deep in a tall sheet", () => {
-		assert.equal(restingTop(2000, { view, sheet: beside(1200), part: 400, reply: null }), 2000 - 652 + 400);
-		assert.equal(restingTop(2000, { view, sheet: beside(700), part: 400, reply: null }), 2000);
+		assert.equal(restingTop(2000, { view, pads, sheet: beside(1200), part: 400, reply: null }), 2000 - 652 + 400);
+		assert.equal(restingTop(2000, { view, pads, sheet: beside(700), part: 400, reply: null }), 2000);
 	});
 
 	it("at its end once the teacher writes back, since the reply is the text's newest words", () => {
-		assert.equal(restingTop(2000, { view, sheet: beside(700), part: null, reply: 1800 }), 2000);
+		assert.equal(restingTop(2000, { view, pads, sheet: beside(700), part: null, reply: 1800 }), 2000);
 	});
 });
 
 describe("how Your turn holds still beside the text", () => {
 	it("under the step line while it fits the window", () => {
-		assert.deepEqual(turnStick(500, 600), { alignSelf: "start", top: REST_PAD });
+		assert.deepEqual(turnStick(500, 600, pads), { alignSelf: "start", top: pads.top });
 	});
 
 	it("taller, at its column's foot with its top held under the step line until the page's end", () => {
 		// Its bottom may sit 600 - 24 - 700 below the window's foot, so its top is never below 24.
-		assert.deepEqual(turnStick(700, 600), { alignSelf: "end", bottom: -124 });
+		assert.deepEqual(turnStick(700, 600, pads), { alignSelf: "end", bottom: -124 });
 	});
 });
 

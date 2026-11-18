@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, scrolledWords, SCROLL_TO, snapName, standInAgent } from "../../scripts/layout.mjs";
-import { cross, cutOf, inkOf, lineBox, meet, offGap, outside, probes, scrollerClip, sticksOut } from "../../scripts/layout-page.mjs";
+import { cross, cutOf, inkOf, lineBox, meet, offGap, offInset, outside, probes, scrollerClip, sticksOut } from "../../scripts/layout-page.mjs";
 import { workOf } from "../../scripts/layout-seed.mjs";
 import { SCREENS } from "../../scripts/layout-screens.mjs";
 
@@ -44,6 +44,13 @@ describe("spacing", () => {
 		assert.ok(offGap(22, 24));
 		assert.ok(offGap(32, 24));
 		assert.ok(!offGap(48, 24), "columns that end at different heights");
+	});
+
+	it("a box's sides are off unless all of them match one of the allowed insets", () => {
+		assert.ok(!offInset([24, 24, 24.4], [24]));
+		assert.ok(offInset([24, 20, 24], [24]));
+		assert.ok(!offInset([28, 28], [56, 28]), "a reading surface in a narrow column");
+		assert.ok(offInset([56, 28], [56, 28]), "both sides take the same step");
 	});
 });
 

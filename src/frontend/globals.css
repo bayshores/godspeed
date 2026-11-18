@@ -56,6 +56,10 @@
 	--lh-gap: 24px;
 	--lh-inset: 24px;
 	--lh-page-end: 64px;
+	/* Lesson text and "Your turn" are read like a page of a book, so their sheets keep a wider
+	   margin than a card's inset: 56, or 28 in a column under 640 (.lh-reading). */
+	--lh-reading-inset: 56px;
+	--lh-reading-inset-narrow: 28px;
 	/* The longest line of a sentence or paragraph outside lesson text. */
 	--lh-measure: 75ch;
 	--lh-title: clamp(34px, (100vw - var(--lh-dock-push, 0px) - 899px) * 999, 44px);
@@ -663,7 +667,17 @@ body {
    down to 560 so the text keeps at least 632 and is never narrower. */
 .lh-lesson-room {
 	--lh-pair: min(100cqw - 2 * var(--lh-page-side), var(--lh-page-w));
-	--lh-turn: clamp(560px, min((var(--lh-pair) - 28px) / 2, var(--lh-pair) - 660px), 688px);
+	--lh-turn: clamp(560px, min((var(--lh-pair) - var(--lh-gap)) / 2, var(--lh-pair) - var(--lh-gap) - 632px), 688px);
+}
+
+/* A reading surface: the lesson text's sheet and "Your turn". */
+.lh-reading {
+	padding: 40px var(--lh-reading-inset);
+}
+@container column (width < 640px) {
+	.lh-reading {
+		padding: 28px var(--lh-reading-inset-narrow) 32px;
+	}
 }
 
 /* The answer box is as tall as its text, up to five lines, then scrolls. One line is as tall

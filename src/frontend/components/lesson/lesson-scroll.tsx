@@ -5,22 +5,22 @@ import { prefersReducedMotion } from "@/frontend/components/presence";
 import { SessionMessageNavigation } from "@/frontend/components/session-navigation";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
-import { keepPair, restingTop, turnStick, wholeLineTop } from "./lesson-scroll-model";
+import { keepPair, type Pads, restingTop, turnStick, wholeLineTop } from "./lesson-scroll-model";
 
 /**
  * The lesson text's reading measure: the page's one width of its own. Everything else takes
- * the shared page width and sides (`.lh-page`). With room for both (1284 = the text's 632, the
- * gap, "Your turn"'s 560 and two page sides), the lesson text and "Your turn" sit side by side
+ * the shared page width and sides (`.lh-page`). With room for both (1280 = the text's 632, the
+ * gap, "Your turn"'s 560 and two page sides; a container query cannot read the tokens), the lesson text and "Your turn" sit side by side
  * across the page's width, sized by `.lh-lesson-room`; with less, "Your turn" sits under the
  * text in one column.
  */
 const READING_MEASURE = "mx-auto w-full max-w-[872px]";
-const PAIR = "@min-[1284px]/room:max-w-none";
-const PAIR_GRID = "@min-[1284px]/room:grid @min-[1284px]/room:grid-cols-[minmax(0,1fr)_var(--lh-turn)] @min-[1284px]/room:items-start";
+const PAIR = "@min-[1280px]/room:max-w-none";
+const PAIR_GRID = "@min-[1280px]/room:grid @min-[1280px]/room:grid-cols-[minmax(0,1fr)_var(--lh-turn)] @min-[1280px]/room:items-start";
 
 /** The jump key: in the gutter beside one column where the window leaves room, else in the sheet's side padding; in a pair, in the lesson text's. */
 const KEY = "@min-[688px]/room:right-[max(34px,calc((100%-872px)/2-48px))]";
-const PAIR_KEY = "@min-[1284px]/room:right-[calc((100%-var(--lh-pair))/2+var(--lh-turn)+38px)]";
+const PAIR_KEY = "@min-[1280px]/room:right-[calc((100%-var(--lh-pair))/2+var(--lh-turn)+38px)]";
 
 /** Text blocks whose lines the window's top edge may cut. */
 const LINES = "p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th";
@@ -29,6 +29,12 @@ const BLOCKS = "pre, img, figure, table, .katex-display";
 /** Whether the column lays its sheets side by side (its container query decides). */
 function sideBySide(column: HTMLElement | null): boolean {
 	return column !== null && getComputedStyle(column).display === "grid";
+}
+
+/** The page's padding above and under its sheets, as its CSS sets them. */
+function padsOf(column: HTMLElement | null): Pads {
+	const style = column?.parentElement ? getComputedStyle(column.parentElement) : null;
+	return { top: parseFloat(style?.paddingTop ?? "0"), end: parseFloat(style?.paddingBottom ?? "0") };
 }
 
 /** The line boxes in `root` that cross `y`, measured from `origin`. */
@@ -96,6 +102,7 @@ export function LessonScroll({
 		const reply = replyRef.current ? [...contentElement.querySelectorAll("[data-testid=user-message]")].at(-1) : null;
 		const rest = restingTop(end, {
 			view: scrollElement.clientHeight,
+			pads: padsOf(columnRef.current),
 			sheet: sheetBox ? { top: sheetBox.top - origin, height: sheetBox.height, beside: sideBySide(columnRef.current) } : null,
 			part: sheetBox && partBox ? partBox.top - sheetBox.top : null,
 			reply: reply ? reply.getBoundingClientRect().top - origin : null,
@@ -153,7 +160,7 @@ export function LessonScroll({
 		const scroller = contextRef.current?.scrollRef.current;
 		const column = columnRef.current;
 		if (!el || !scroller || !column) return;
-		const place = () => setStick(sideBySide(column) ? { position: "sticky", ...turnStick(el.offsetHeight, scroller.clientHeight) } : undefined);
+		const place = () => setStick(sideBySide(column) ? { position: "sticky", ...turnStick(el.offsetHeight, scroller.clientHeight, padsOf(column)) } : undefined);
 		const ro = new ResizeObserver(place);
 		ro.observe(el);
 		ro.observe(scroller);
@@ -164,16 +171,16 @@ export function LessonScroll({
 	return (
 		<div className="lh-lesson-room @container/room flex min-h-0 min-w-0 flex-col [grid-area:main]">
 			{/* A sheet of its own, so the page scrolls under its edge; shown only when the step line draws something. */}
-			<div className="lh-page shrink-0 pt-5 [&:not(:has(>section>div>*))]:hidden">
+			<div className="lh-page shrink-0 pt-(--lh-gap) [&:not(:has(>section>div>*))]:hidden">
 				<Pane className={cn("@container/strip", READING_MEASURE, pair && PAIR)}>
-					<div className="px-14 py-4 @max-[640px]/strip:px-7">{steps}</div>
+					<div className="px-(--lh-reading-inset) py-4 @max-[640px]/strip:px-(--lh-reading-inset-narrow)">{steps}</div>
 				</Pane>
 			</div>
 			<Conversation className="min-h-0 min-w-0 flex-1" initial="instant" contextRef={contextRef} targetScrollTop={target}>
 				<SessionMessageNavigation />
 				<ConversationContent className="gap-0 p-0" scrollClassName="[overflow-anchor:none]">
-					<div className="lh-page pt-6 pb-7">
-						<div ref={columnRef} data-testid="lesson-column" className={cn("@container/column flex flex-col gap-7", READING_MEASURE, pair && [PAIR, PAIR_GRID])}>
+					<div className="lh-page pt-(--lh-gap) pb-(--lh-page-end)">
+						<div ref={columnRef} data-testid="lesson-column" className={cn("@container/column flex flex-col gap-(--lh-gap)", READING_MEASURE, pair && [PAIR, PAIR_GRID])}>
 							{reading}
 							{turn && (
 								<div ref={turnRef} className="min-w-0" style={stick}>

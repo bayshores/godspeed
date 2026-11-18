@@ -151,7 +151,7 @@ function DraftChip({ file, onRemove }: { file: ChatAttachment; onRemove: () => v
 				<img src={`data:${file.mimeType};base64,${file.data}`} alt="" className="size-11 shrink-0 object-cover" />
 			)}
 			<span className="min-w-0 truncate text-base text-ink" title={file.name}>{file.name}</span>
-			<button type="button" aria-label={`Remove ${file.name}`} onClick={onRemove} className="lh-btn lh-btn-quiet h-7 shrink-0 text-[15px]">
+			<button type="button" aria-label={`Remove ${file.name}`} onClick={onRemove} className="lh-btn lh-btn-small lh-btn-quiet shrink-0">
 				Remove
 			</button>
 		</div>
@@ -176,7 +176,7 @@ export function AttachButton({ draft, outlined }: { draft: AttachmentDraft; outl
 					e.target.value = "";
 				}}
 			/>
-			<button type="button" data-testid="attach-button" onClick={() => inputRef.current?.click()} className={cn("lh-btn shrink-0 text-[15px]", !outlined && "lh-btn-quiet")}>
+			<button type="button" data-testid="attach-button" onClick={() => inputRef.current?.click()} className={cn("lh-btn shrink-0", !outlined && "lh-btn-quiet")}>
 				{!outlined && <PixelIcon name="plus" />}
 				Add pictures or PDFs
 			</button>

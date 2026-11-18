@@ -664,7 +664,7 @@ export function Chat({
 											}
 										/>
 										{spaceId && sheetOpen && (
-											<div className="flex min-h-0 pt-5 pr-8 pb-7 [grid-area:dock] @max-[999px]/lesson:pr-4">
+											<div className="flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap) [grid-area:dock]">
 												<SheetDock
 													spaceId={spaceId}
 													sessionDeadlineId={deadlineId}

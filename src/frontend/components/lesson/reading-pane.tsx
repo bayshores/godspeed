@@ -70,7 +70,7 @@ export function ReadingPane({
 	const work = useMemo(() => (replying ? agentWork(replying, jobs) : null), [replying, jobs]);
 	const showWork = !!work && !work.replied && (work.plan !== null || work.steps.length > 0);
 	return (
-		<div data-session-find-root="" className="flex flex-col gap-4 px-14 pt-10 pb-10 @max-[640px]/column:px-7 @max-[640px]/column:pt-7 @max-[640px]/column:pb-8">
+		<div data-session-find-root="" className="lh-reading flex flex-col gap-4">
 			{messages.length === 0 && !busy && (
 				<ConversationEmptyState title="New lesson" description="" />
 			)}

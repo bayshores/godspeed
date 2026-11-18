@@ -17,8 +17,10 @@
  * - cut-off letters: a box that clips (truncate, line-clamp, overflow-hidden) cuts off the top or
  *   bottom of letters it shows, such as the tail of a "g".
  * - spacing: a page leaves the shared spacing (globals.css :root): a card (.lh-card) whose sides
- *   or bottom are not the inset, two sheets in a page's column side by side or one above the
- *   other at a gap that is not the shared one, or a page title not in the shared title class.
+ *   or bottom are not the inset, a reading surface (.lh-reading, the lesson text and "Your
+ *   turn") whose sides are not the reading inset or its narrow step, two sheets in one page
+ *   column side by side or one above the other at a gap that is not the shared one, or a page
+ *   title not in the shared title class.
  *
  * Each finding has a `key` naming its elements, the same from one read to the next while its
  * words (a clock) may change.
@@ -456,6 +458,11 @@ function floats(el) {
 	return false;
 }
 
+/** Whether a box's sides match none of the allowed insets; all sides must match the same one. */
+export function offInset(sides, insets) {
+	return !insets.some((inset) => sides.every((side) => Math.abs(side - inset) <= 0.5));
+}
+
 function spacings() {
 	const found = [];
 	const root = getComputedStyle(document.documentElement);
@@ -465,8 +472,15 @@ function spacings() {
 		if (!shown(card)) continue;
 		const style = getComputedStyle(card);
 		const sides = { left: style.paddingLeft, right: style.paddingRight, bottom: style.paddingBottom };
-		const off = Object.entries(sides).filter(([, side]) => Math.abs(parseFloat(side) - inset) > 0.5);
+		const off = Object.entries(sides).filter(([, side]) => offInset([parseFloat(side)], [inset]));
 		if (off.length > 0) found.push(finding("spacing", [card], `${label(card)} is a card inset ${off.map(([name, side]) => `${side} on the ${name}`).join(", ")}; every card is inset ${inset}px (--lh-inset)`));
+	}
+	const reading = ["--lh-reading-inset", "--lh-reading-inset-narrow"].map((name) => parseFloat(root.getPropertyValue(name)));
+	for (const surface of document.querySelectorAll(".lh-page .lh-reading")) {
+		if (!shown(surface)) continue;
+		const style = getComputedStyle(surface);
+		const sides = [style.paddingLeft, style.paddingRight].map(parseFloat);
+		if (offInset(sides, reading)) found.push(finding("spacing", [surface], `${label(surface)} is a reading surface inset ${sides[0]}px on the left, ${sides[1]}px on the right; every reading surface is inset ${reading[0]}px (--lh-reading-inset), or ${reading[1]}px in a narrow column (--lh-reading-inset-narrow)`));
 	}
 	const sheets = [...document.querySelectorAll(".lh-page .lh-sheet")].filter((el) => shown(el) && !el.parentElement.closest(".lh-sheet, [role=dialog], [role=menu]") && !floats(el));
 	for (const a of sheets) {
@@ -474,7 +488,8 @@ function spacings() {
 		let right = null;
 		let below = null;
 		for (const b of sheets) {
-			if (a === b) continue;
+			// Only sheets in one column: a pinned bar (the lesson's step line) has the page scroll under it.
+			if (a === b || a.closest(".lh-page") !== b.closest(".lh-page")) continue;
 			const bb = b.getBoundingClientRect();
 			if (Math.min(ab.bottom, bb.bottom) - Math.max(ab.top, bb.top) > 4 && bb.left >= ab.right - 1 && (!right || bb.left < right.box.left)) right = { el: b, box: bb };
 			if (Math.min(ab.right, bb.right) - Math.max(ab.left, bb.left) > 4 && bb.top >= ab.bottom - 1 && (!below || bb.top < below.box.top)) below = { el: b, box: bb };

@@ -1,8 +1,5 @@
-/** Room left above what the page rests on, the same as the page's own top padding. */
-export const REST_PAD = 24;
-
-/** The page's room under its last sheet. */
-const FOOT_PAD = 28;
+/** The page's own padding, read from its CSS: room above what it rests on and under its last sheet. */
+export type Pads = { top: number; end: number };
 
 /** A part this far down "Your turn" (in windows) is shown from its own start, not the sheet's. */
 const PART_DEPTH = 0.6;
@@ -28,17 +25,17 @@ type Sheet = {
  * a sheet taller than the window shows its top while the page rests just short of its end, by
  * as much as the sheet overflows. Places are measured from the page's top; `part` from the sheet's.
  */
-export function restingTop(end: number, page: { view: number; sheet: Sheet | null; part: number | null; reply: number | null }): number {
-	const { view, sheet, part, reply } = page;
+export function restingTop(end: number, page: { view: number; pads: Pads; sheet: Sheet | null; part: number | null; reply: number | null }): number {
+	const { view, pads, sheet, part, reply } = page;
 	if (sheet === null) return end;
 	const deepPart = part !== null && part > view * PART_DEPTH ? part : null;
 	if (sheet.beside) {
-		const over = Math.max(0, sheet.height + REST_PAD + FOOT_PAD - view);
+		const over = Math.max(0, sheet.height + pads.top + pads.end - view);
 		if (reply !== null || over === 0) return end;
 		return Math.max(0, end - over + Math.min(over, deepPart ?? 0));
 	}
 	const start = reply ?? (deepPart === null ? sheet.top : sheet.top + deepPart);
-	return Math.max(0, Math.min(end, start - REST_PAD));
+	return Math.max(0, Math.min(end, start - pads.top));
 }
 
 /**
@@ -47,8 +44,8 @@ export function restingTop(end: number, page: { view: number; sheet: Sheet | nul
  * until the page nears its end, then slides up with the page so its foot (the box and its
  * keys) comes into view at the end.
  */
-export function turnStick(height: number, view: number): { alignSelf: "start"; top: number } | { alignSelf: "end"; bottom: number } {
-	return height + REST_PAD + FOOT_PAD <= view ? { alignSelf: "start", top: REST_PAD } : { alignSelf: "end", bottom: view - REST_PAD - height };
+export function turnStick(height: number, view: number, pads: Pads): { alignSelf: "start"; top: number } | { alignSelf: "end"; bottom: number } {
+	return height + pads.top + pads.end <= view ? { alignSelf: "start", top: pads.top } : { alignSelf: "end", bottom: view - pads.top - height };
 }
 
 /**
