@@ -45,7 +45,7 @@ Ladder: `[0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]`. Applying a factor sets the we
 
 | Submenu | Items |
 |---|---|
-| godspeed | About godspeed, Check for Updates…, separator, Mac only: Hide, Hide Others, separator; Quit godspeed (a custom item on every OS, CmdOrCtrl+Q, `app.exit(0)`; GTK 3 has no predefined Quit). |
+| godspeed | About godspeed, Mac only: Settings… (⌘,); Check for Updates…, separator, Mac only: Hide, Hide Others, separator; Quit godspeed (a custom item on every OS, CmdOrCtrl+Q, `app.exit(0)`; GTK 3 has no predefined Quit). |
 | File | Mac only: Study (⌘N), Search Lessons (⌘⇧F), separator, Open godspeed Folder (asks the server for the folder off the menu's thread, then opens it in Finder). |
 | Edit | Mac and Windows: Undo, Redo, separator, Cut, Copy, Paste, Select All. Linux: Cut, Copy, Paste, Select All. GTK 3 has no Undo or Redo item, and a custom one would take Ctrl+Z from the page's editors. |
 | View | Reload (CmdOrCtrl+R), Toggle Developer Tools (⌥⌘I or Ctrl+Shift+I; works in debug builds or with cargo feature `devtools`), separator, Actual Size, Zoom In, Zoom Out, separator, Toggle Full Screen (Mac predefined; Windows and Linux a custom F11). |
@@ -55,7 +55,7 @@ Ladder: `[0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]`. Applying a factor sets the we
 
 The bar's order on the Mac is godspeed, File, Edit, View, Go, Window, Help. Windows and Linux have no File or Go menu: their keys would be Ctrl keys, which the agent's terminal needs (Ctrl+[ is Esc).
 
-Check for Updates… and every File and Go item except Open godspeed Folder reopen the window if gone, unminimize and focus it. Check for Updates… then pushes `open-settings` with `general` and starts a manual check. A File or Go item pushes `menu` with its id: a keyboard action id (`new-session`, `sessions-search`, `jump-graph`), `go:<path>`, `back` or `forward`. The page runs it (`keyboard-shortcuts.tsx`). Menu keys never reach the page, so each runs once.
+Settings…, Check for Updates… and every File and Go item except Open godspeed Folder reopen the window if gone, unminimize and focus it. Check for Updates… then pushes `open-settings` with `general` and starts a manual check. Settings… and a File or Go item push `menu` with the item's id: a keyboard action id (`open-settings`, `new-session`, `sessions-search`, `jump-graph`), `go:<path>`, `back` or `forward`. The page runs it (`keyboard-shortcuts.tsx`). Menu keys never reach the page, so each runs once.
 
 A push sent before the page has loaded waits in one slot (`window::push_when_loaded`) and goes out when it loads; a later one replaces it.
 

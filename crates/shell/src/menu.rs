@@ -1,5 +1,6 @@
 //! The application menu: the Edit items make ⌘C/⌘V work in the page, the View items own the
-//! zoom keys, and on the Mac the File and Go items open the app's pages. Built once at setup.
+//! zoom keys, and on the Mac Settings… and the File and Go items open the app's pages. Built
+//! once at setup.
 
 use serde_json::Value;
 use tauri::menu::{AboutMetadata, IsMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
@@ -27,7 +28,9 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 	#[cfg(target_os = "macos")]
 	let (hide, hide_others, sep2) = (PredefinedMenuItem::hide(app, None)?, PredefinedMenuItem::hide_others(app, None)?, separator()?);
 	#[cfg(target_os = "macos")]
-	let app_items: Vec<&dyn IsMenuItem<Wry>> = vec![&about, &check, &sep1, &hide, &hide_others, &sep2, &quit];
+	let settings = item("page:open-settings", "Settings…", Some("CmdOrCtrl+,"))?;
+	#[cfg(target_os = "macos")]
+	let app_items: Vec<&dyn IsMenuItem<Wry>> = vec![&about, &settings, &check, &sep1, &hide, &hide_others, &sep2, &quit];
 	#[cfg(not(target_os = "macos"))]
 	let app_items: Vec<&dyn IsMenuItem<Wry>> = vec![&about, &check, &sep1, &quit];
 	let app_menu = Submenu::with_items(app, "godspeed", true, &app_items)?;

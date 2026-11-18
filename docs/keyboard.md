@@ -47,7 +47,7 @@ Entries marked `displayOnly` are keys one surface owns, like the question rows b
 | Find | ⌘F | the open page: Find in the foot line of `/graph` (`src/frontend/components/graph/graph-foot.tsx`; with no facts it does nothing) or text Find in a lesson (`src/frontend/components/session-find.tsx`) |
 | Show keyboard shortcuts | ? | `keyboard-shortcuts.tsx` |
 
-On the Mac the menu bar owns ⌘N (File, Study), ⌘⇧F (File, Search Lessons), ⌘G (Go, Graph), ⌘[ (Go, Back) and ⌘] (Go, Forward). Those keys never reach the page there; the menu pushes the item to the page, which runs it through the same code as the key. In a browser the page's listener handles ⌘N, ⌘⇧F and ⌘G, and ⌘[ and ⌘] do nothing.
+On the Mac the menu bar owns ⌘, (godspeed, Settings…), ⌘N (File, Study), ⌘⇧F (File, Search Lessons), ⌘G (Go, Graph), ⌘[ (Go, Back) and ⌘] (Go, Forward). Those keys never reach the page there; the menu pushes the item to the page, which runs it through the same code as the key. In a browser the page's listener handles ⌘N, ⌘⇧F, ⌘G and ⌘, (comma), and ⌘[ and ⌘] do nothing.
 
 Search lessons opens a popup over every space. In its field ↑/↓ walk the results and Enter opens one (the first match if none is picked).
 
