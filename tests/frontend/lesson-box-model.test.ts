@@ -32,7 +32,7 @@ describe("questionTurn", () => {
 describe("lessonBox, a problem", () => {
 	it("one Send for the work, once there is some and the teacher is free; Discard beside Your turn", () => {
 		const empty = box({ kind: "problem" });
-		assert.equal(empty.placeholder, "Your work");
+		assert.equal(empty.placeholder, "Your work or a question");
 		assert.deepEqual(empty.button, { action: "send", label: "Send", filled: false, disabled: true });
 		assert.equal(empty.enter, null);
 		assert.equal(empty.exit, "discard");

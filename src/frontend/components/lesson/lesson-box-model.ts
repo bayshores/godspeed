@@ -2,8 +2,9 @@
  * The lesson's answer box: for each thing that waits for the learner, the
  * box's size and button, what Enter does in it, the way out at the end of
  * the foot row and the "Stuck?" keys before it.
- * Talking to the teacher happens in its terminal (use-terminal-lines.ts), so
- * the box takes only answers and work. Pure.
+ * A problem's box takes his work or a question about it, plain messages the
+ * teacher reads; under a question, talking to the teacher happens in its
+ * terminal (use-terminal-lines.ts). Pure.
  */
 import { answerTakesFiles, parseAskInput, parseExplainInput, toolQuestionKind, type AppPosed } from "@/shared/core";
 
@@ -82,7 +83,7 @@ export function lessonBox(s: {
 		// Work goes in once the teacher is free.
 		const canSend = (s.hasText || s.hasFiles) && !s.busy;
 		return {
-			placeholder: "Your work",
+			placeholder: "Your work or a question",
 			size: "lines",
 			button: { action: "send", label: "Send", filled: canSend, disabled: !canSend },
 			enter: canSend ? "send" : null,
