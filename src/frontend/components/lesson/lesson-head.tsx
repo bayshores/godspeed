@@ -57,9 +57,9 @@ export function LessonHead({
 	const openFile = file?.path && desktop ? (pdf ? desktop.openPath : desktop.showInFolder) : undefined;
 	const fileWord = file && `${file.name}${page ? `, page ${page}` : ""}`;
 	return (
-		<div data-testid="lesson-head" className="flex min-h-14 shrink-0 items-center gap-3 px-8 pt-3">
+		<div data-testid="lesson-head" className="lh-page flex min-h-14 shrink-0 items-center gap-3 pt-3">
 			<h1 className="sr-only">{rename.title}</h1>
-			<div className="flex min-w-0 shrink text-[22px] font-medium text-ink">{rename.renaming ? <RenameInput rename={rename} /> : <TitleButton rename={rename} />}</div>
+			<div className="flex min-w-0 shrink text-[22px] text-ink">{rename.renaming ? <RenameInput rename={rename} /> : <TitleButton rename={rename} />}</div>
 			<div className="flex-1" aria-hidden />
 			{file && openFile && (
 				<button type="button" data-testid="lesson-assignment" title={fileWord} onClick={() => void openFile(file.path!)} className={cn(WORD, "max-w-[34ch]")}>

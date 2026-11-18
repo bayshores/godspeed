@@ -8,14 +8,15 @@ import { cn } from "@/frontend/lib/utils";
 import { keepPair, restingTop, turnStick, wholeLineTop } from "./lesson-scroll-model";
 
 /**
- * The column's width and its sides, shared by the step line and the page so their edges meet.
- * With room for both (1284 or more), a pair is the lesson text and "Your turn" side by side,
- * sized by `.lh-lesson-room`; with less, "Your turn" sits under the text in one column.
+ * The lesson text's reading measure: the page's one width of its own. Everything else takes
+ * the shared page width and sides (`.lh-page`). With room for both (1284 = the text's 632, the
+ * gap, "Your turn"'s 560 and two page sides), the lesson text and "Your turn" sit side by side
+ * across the page's width, sized by `.lh-lesson-room`; with less, "Your turn" sits under the
+ * text in one column.
  */
-const COLUMN = "mx-auto w-full max-w-[872px]";
-const PAIR = "@min-[1284px]/room:max-w-[1588px]";
+const READING_MEASURE = "mx-auto w-full max-w-[872px]";
+const PAIR = "@min-[1284px]/room:max-w-none";
 const PAIR_GRID = "@min-[1284px]/room:grid @min-[1284px]/room:grid-cols-[minmax(0,1fr)_var(--lh-turn)] @min-[1284px]/room:items-start";
-const GUTTERS = "px-8 @max-[899px]/lesson:px-6";
 
 /** The jump key: in the gutter beside one column where the window leaves room, else in the sheet's side padding; in a pair, in the lesson text's. */
 const KEY = "@min-[688px]/room:right-[max(34px,calc((100%-872px)/2-48px))]";
@@ -163,16 +164,16 @@ export function LessonScroll({
 	return (
 		<div className="lh-lesson-room @container/room flex min-h-0 min-w-0 flex-col [grid-area:main]">
 			{/* A sheet of its own, so the page scrolls under its edge; shown only when the step line draws something. */}
-			<div className={`shrink-0 pt-5 [&:not(:has(>section>div>*))]:hidden ${GUTTERS}`}>
-				<Pane className={cn("@container/strip", COLUMN, pair && PAIR)}>
+			<div className="lh-page shrink-0 pt-5 [&:not(:has(>section>div>*))]:hidden">
+				<Pane className={cn("@container/strip", READING_MEASURE, pair && PAIR)}>
 					<div className="px-14 py-4 @max-[640px]/strip:px-7">{steps}</div>
 				</Pane>
 			</div>
 			<Conversation className="min-h-0 min-w-0 flex-1" initial="instant" contextRef={contextRef} targetScrollTop={target}>
 				<SessionMessageNavigation />
 				<ConversationContent className="gap-0 p-0" scrollClassName="[overflow-anchor:none]">
-					<div className={`pt-6 pb-7 ${GUTTERS}`}>
-						<div ref={columnRef} data-testid="lesson-column" className={cn("@container/column flex flex-col gap-7", COLUMN, pair && [PAIR, PAIR_GRID])}>
+					<div className="lh-page pt-6 pb-7">
+						<div ref={columnRef} data-testid="lesson-column" className={cn("@container/column flex flex-col gap-7", READING_MEASURE, pair && [PAIR, PAIR_GRID])}>
 							{reading}
 							{turn && (
 								<div ref={turnRef} className="min-w-0" style={stick}>

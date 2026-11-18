@@ -659,10 +659,10 @@ body {
 }
 
 /* The lesson text and "Your turn" side by side (LessonScroll), measured on the page's room:
-   the pair inside the side gutters, at most 1588 wide, and "Your turn" 688 where there is
-   room, giving way first down to 560 so the text keeps at least 632 and is never narrower. */
+   the pair is the page's column, and "Your turn" is 688 where there is room, giving way first
+   down to 560 so the text keeps at least 632 and is never narrower. */
 .lh-lesson-room {
-	--lh-pair: min(100cqw - 64px, 1588px);
+	--lh-pair: min(100cqw - 2 * var(--lh-page-side), var(--lh-page-w));
 	--lh-turn: clamp(560px, min((var(--lh-pair) - 28px) / 2, var(--lh-pair) - 660px), 688px);
 }
 
