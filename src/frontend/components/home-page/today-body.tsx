@@ -59,7 +59,7 @@ export function TodayBody(p: TodayBodyProps) {
 		return () => setOnCard(null);
 	}, [cardId, setOnCard]);
 	return (
-		<div className="mx-auto flex w-full max-w-[1160px] flex-col gap-8 px-6 pt-14 pb-16">
+		<div className="mx-auto flex w-full max-w-(--lh-page-w) flex-col gap-8 px-6 pt-14 pb-16">
 			{/* Narrow, the date steps down so the sentence still fits beside it. */}
 			<header className="@container flex min-h-[46px] flex-wrap items-baseline gap-x-6 gap-y-2">
 				{p.nowMs !== null && (
