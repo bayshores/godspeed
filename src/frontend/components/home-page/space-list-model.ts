@@ -11,13 +11,13 @@ interface Segment {
 interface SpaceRowWords {
 	/** The topic bar, strongest first; empty with no topics. */
 	segments: Segment[];
-	/** "18 topics, 9 strong, 3 shaky, 6 not tested" (the Graph page's words, zeros left out), why there are no topics yet (a path's next topic with no study files), or empty while loading. */
+	/** "18 topics, 9 strong, 3 shaky, 6 not tested" (the Graph page's words, zeros left out), a path's next topic or "No study files yet." with no files, else empty (loading, or files still being read). */
 	line: string;
 }
 
-/** A space's row: its topic bar and the counts, or why it has no topics
- *  yet. With no progress it is still loading, unless its read `failed`. */
-export function spaceRow(progress: Pick<ProgressPayload, "overall" | "files" | "facts" | "path"> | undefined, failed: boolean): SpaceRowWords {
+/** A space's row: its topic bar and the counts, or what to add when it has
+ *  no files. With no progress it is still loading, unless its read `failed`. */
+export function spaceRow(progress: Pick<ProgressPayload, "overall" | "files" | "path"> | undefined, failed: boolean): SpaceRowWords {
 	if (!progress) return { segments: [], line: failed ? "Couldn't load its progress." : "" };
 	const counts = progress.overall.counts;
 	const shown = STATUS_LEGEND.filter((s) => counts[s.key] > 0);
@@ -31,9 +31,8 @@ export function spaceRow(progress: Pick<ProgressPayload, "overall" | "files" | "
 		const onPath = progress.path ? pathNext(progress.path) : null;
 		return { segments, line: onPath ? `Next up: ${onPath.topic.name}` : "No study files yet." };
 	}
-	// Short, so the row keeps room for the name; the work chip says what happens next.
-	if (progress.facts.length === 0) return { segments, line: "No facts yet." };
-	return { segments, line: "Its facts are not grouped into topics yet." };
+	// Its files are still being read: the top bar's pill says so.
+	return { segments, line: "" };
 }
 
 /** "2 new files since Monday": files a scan of the linked folder found

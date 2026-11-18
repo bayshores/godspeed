@@ -8,6 +8,15 @@ import { cn } from "@/frontend/lib/utils";
 const GREY = "flex shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--border)_50%,var(--card))]";
 const BOX = { list: "w-24 self-stretch", head: "size-[120px]" };
 
+/** A done deadline's block: the Done stamp on grey. */
+export function DoneBlock({ className }: { className: string }) {
+	return (
+		<span className={cn(GREY, className)}>
+			<Stamp>Done</Stamp>
+		</span>
+	);
+}
+
 /**
  * A deadline's block: the time left on the space's color, the Done stamp,
  * or "was due" once it passed.
@@ -27,12 +36,7 @@ export function DeadlineBlock({
 	size: keyof typeof BOX;
 	pale?: boolean;
 }) {
-	if (d.done)
-		return (
-			<span className={cn(GREY, BOX[size])}>
-				<Stamp>Done</Stamp>
-			</span>
-		);
+	if (d.done) return <DoneBlock className={BOX[size]} />;
 	if (isOverdue(d, nowMs)) return <span className={cn(GREY, BOX[size], "font-count text-base text-ink")}>was due</span>;
 	return <CountBlock size={size} pale={pale} color={color} {...countLeft(dueAtMs(d), nowMs)} />;
 }

@@ -3,18 +3,26 @@ import type { DeadlineProgress, SpaceColor } from "@/shared/core";
 import { dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
+import { DoneBlock } from "@/frontend/components/deadline/deadline-block";
+import { blockColor } from "@/frontend/components/space-color";
 import { CountBlock } from "@/frontend/components/ui/count-block";
+import { Pane } from "@/frontend/components/ui/pane";
+import { cn } from "@/frontend/lib/utils";
 import { countLeft, nextCard } from "./home-page-model";
 import { CHIP } from "./styles";
-import { blockColor } from "./today-row";
+
+/** A narrow card puts the tile above the words as a strip. */
+const STRIP = "@max-[539px]:w-full @max-[539px]:flex-row @max-[539px]:items-baseline @max-[539px]:gap-3 @max-[539px]:py-2";
 
 /**
- * The next thing to do, the biggest band in Today's deadlines card: the
- * time left as a big block in its space's color, what to do as the title
- * (which opens the deadline's page), one line under it with its space and
- * when and how far as a chip, what is left of it today, "Mark done" and the
- * page's one main button. A narrow card puts the block above the words as
- * a strip.
+ * Now, the biggest card on Today: the deadline picked in the week (the
+ * next thing to do until one is picked). Its tile, flush with the card's
+ * left edge as on a space's Deadlines list, holds the time left (or how
+ * late it is) in its space's color. Beside it its name as the title (which
+ * opens its page) with one line under it, and at the row's end, on the
+ * title's center line, "Mark done" and the page's one main key. One ticked
+ * done today shows the Done stamp and its name struck through, with Undo
+ * and no main key.
  */
 export function NextCard({
 	deadline: d,
@@ -24,6 +32,7 @@ export function NextCard({
 	busy,
 	onStart,
 	onDone,
+	onUndo,
 }: {
 	deadline: OpenDeadline;
 	progress: DeadlineProgress | undefined;
@@ -32,50 +41,51 @@ export function NextCard({
 	/** A lesson is starting. */
 	busy: boolean;
 	onStart: (d: OpenDeadline) => void;
-	/** Null while the overdue card asks "Done?" about it. */
 	onDone: (d: OpenDeadline) => void;
+	onUndo: (d: OpenDeadline) => void;
 }) {
 	const words = nextCard(d, progress, nowMs);
 	return (
-		<div data-testid="today-card" data-teacher-target={`deadline:${d.id}`}>
-			<div className="flex min-h-[208px] flex-col @min-[540px]:flex-row">
-				<CountBlock
-					size="card"
-					color={blockColor(color)}
-					{...countLeft(dueAtMs(d), nowMs)}
-					className="@max-[539px]:w-full @max-[539px]:flex-row @max-[539px]:items-baseline @max-[539px]:gap-3 @max-[539px]:pt-2"
-				/>
-				<div className="flex min-w-0 flex-1 flex-col justify-between gap-5 px-6 py-6 @min-[540px]:px-7">
-					<div className="flex flex-col gap-2">
-						<h2 className="text-[34px] leading-tight break-words text-ink">
-							<Link to={deadlineHref(d.id)} data-testid="today-card-open" className="hover:underline">
-								{words.title}
-							</Link>
-						</h2>
-						<p className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[17px] text-ink-2">
-							{words.when}
-							{words.ready && (
-								<span data-testid="today-card-ready" className={CHIP}>
-									{words.ready}
-								</span>
-							)}
-						</p>
-					</div>
-					<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-						<p data-testid="today-card-left" className="min-w-0 flex-1 basis-[160px] text-base text-ink-2">
-							{words.left}
-						</p>
-						<span className="flex shrink-0 items-center gap-3">
-							<button type="button" data-testid="today-done" onClick={() => onDone(d)} className="lh-btn lh-btn-quiet text-[15px]">
-								Mark done
-							</button>
-							<button type="button" data-testid="today-start" disabled={busy} onClick={() => onStart(d)} className="lh-btn lh-btn-main h-[56px] px-7 text-[18px]">
-								{words.button}
-							</button>
-						</span>
-					</div>
+		<Pane data-testid="today-card" data-teacher-target={`deadline:${d.id}`} className="@container overflow-hidden">
+			<div className="flex min-h-[104px] flex-col @min-[540px]:flex-row @min-[540px]:items-center">
+				{d.done ? (
+					<DoneBlock className={cn("w-[112px] self-stretch py-2", STRIP)} />
+				) : (
+					<CountBlock size="card" color={blockColor(color)} {...countLeft(dueAtMs(d), nowMs)} className={STRIP} />
+				)}
+				{/* The title's ink sits low in its line box, so the words sit 4px high to center on the keys. */}
+				<div className="flex min-w-0 flex-1 flex-col gap-1 px-6 pt-3 pb-5">
+					<h2 className={cn("text-[30px] leading-tight break-words text-ink", d.done && "line-through")}>
+						<Link to={deadlineHref(d.id)} data-testid="today-card-open" className="hover:underline">
+							{words.title}
+						</Link>
+					</h2>
+					<p data-testid="today-card-line" className="text-[17px] leading-snug text-ink-2">
+						{words.line}
+						{words.ready && (
+							<span data-testid="today-card-ready" className={cn(CHIP, "ml-3 align-[1px]")}>
+								{words.ready}
+							</span>
+						)}
+					</p>
 				</div>
+				{words.button ? (
+					<span className="flex shrink-0 items-center gap-3 px-6 pb-5 @min-[540px]:py-4 @min-[540px]:pl-0">
+						<button type="button" data-testid="today-done" onClick={() => onDone(d)} className="lh-btn lh-btn-quiet">
+							Mark done
+						</button>
+						<button type="button" data-testid="today-start" disabled={busy} onClick={() => onStart(d)} className="lh-btn lh-btn-main h-12 px-7 text-[17px]">
+							{words.button}
+						</button>
+					</span>
+				) : (
+					<span className="flex shrink-0 px-6 pb-5 @min-[540px]:py-4 @min-[540px]:pl-0">
+						<button type="button" data-testid="today-undo" onClick={() => onUndo(d)} className="lh-btn lh-btn-quiet">
+							Undo
+						</button>
+					</span>
+				)}
 			</div>
-		</div>
+		</Pane>
 	);
 }

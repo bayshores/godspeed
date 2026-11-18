@@ -2,7 +2,7 @@
  * The two corner cards from godspeed's own upkeep of a space. A change
  * card says what a background check changed ("Claude Code updated CSE 21"),
  * with Undo. An overdue card asks "Done?" about the oldest deadline that
- * just went by, with Done and Not yet. Both are the "quiet" kind: one at a
+ * just went by, with Done and Not yet, unless Today's card shows that one. Both are the "quiet" kind: one at a
  * time, folded into the pill, never timed, so they wait for the learner.
  * Both wait while a lesson or mock is open.
  */
@@ -30,11 +30,11 @@ const AFTER_UNDO_MS = 3_000;
 export function SpaceNotice() {
 	const { pathname } = useLocation();
 	const now = useMinute();
-	const { deadlines, overdueAsked } = useOpenDeadlines();
+	const { deadlines, overdueAsked, onCard } = useOpenDeadlines();
 	const [checks, setChecks] = useState<SpaceCheck[]>([]);
 	useServerEvent("space-checked", (check) => setChecks((prev) => addCheck(prev, check)));
 	if (typeof document === "undefined" || followHeld(pathname, true)) return null;
-	const overdue = deadlines && now !== null ? overdueToAsk(deadlines, overdueAsked, now) : null;
+	const overdue = deadlines && now !== null ? overdueToAsk(deadlines, overdueAsked, now, onCard) : null;
 	return createPortal(
 		<>
 			{checks.map((check) => (

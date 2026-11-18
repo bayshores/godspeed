@@ -1,14 +1,13 @@
 import { cn } from "@/frontend/lib/utils";
 
-/** The block's size and type: Today's card, the band on the Progress tab's
- *  next deadline, the smaller one of a space's Deadlines list, a Today
- *  row's, or the one at the head of a deadline's page. */
+/** The block's size and type: the smaller one of a space's Deadlines list,
+ *  the one a size up flush with Today's card, the band on the Progress
+ *  tab's next deadline, or the one at the head of a deadline's page. */
 const SIZES = {
-	card: { box: "w-[150px]", count: "text-[92px] leading-[1.15]", word: "py-4 text-[40px] leading-none", unit: "text-lg" },
-	head: { box: "size-[120px]", count: "text-[60px] leading-[1.15]", word: "py-3 text-[30px] leading-none", unit: "text-[15px]" },
-	band: { box: "w-[116px]", count: "text-[54px] leading-[1.2]", word: "py-3 text-[30px] leading-none", unit: "text-base" },
-	list: { box: "w-24", count: "text-[34px] leading-[1.2]", word: "py-2 text-xl leading-none", unit: "text-base" },
-	today: { box: "size-14", count: "text-[28px] leading-[1.2]", word: "text-[15px] leading-none", unit: "text-xs" },
+	head: { box: "size-[120px]", count: "text-[60px] leading-[1.15]", unit: "text-[15px]" },
+	band: { box: "w-[116px]", count: "text-[54px] leading-[1.2]", unit: "text-base" },
+	card: { box: "w-[112px]", count: "text-[42px] leading-[1.2]", unit: "text-base" },
+	list: { box: "w-24", count: "text-[34px] leading-[1.2]", unit: "text-base" },
 };
 
 /**
@@ -38,10 +37,10 @@ export function CountBlock({
 			className={cn("flex shrink-0 flex-col items-center justify-center self-stretch font-count", s.box, pale ? "text-ink" : "text-on-space", className)}
 			style={{ background: pale ? `color-mix(in srgb, ${color} 57%, var(--lh-space-wash))` : color }}
 		>
-			{/* A word ("late") is set smaller than a number so it fits. The digits sit low in their
-			    line, so a number is pulled up to leave the same room above it as below its unit. */}
-			<span className={count.length > 3 ? s.word : cn(s.count, "-mt-[0.16em]")}>{count}</span>
-			{unit && <span className={cn("leading-none", s.unit)}>{unit}</span>}
+			{/* The digits sit low in their line, so the number is pulled up to leave the same room above it as below its unit. */}
+			<span className={cn(s.count, "-mt-[0.16em]")}>{count}</span>
+			{/* The dot font's space is a full cell wide, too wide between "days" and "late". */}
+			<span className={cn("leading-none [word-spacing:-0.3em]", s.unit)}>{unit}</span>
 		</span>
 	);
 }

@@ -89,16 +89,6 @@ export function jobFrame(worker: string | null, doing: string): FrameWords {
 	return worker ? working(doing) : { state: "waiting", text: "This page is waiting.", count: null };
 }
 
-type LiveSpace = Pick<SpaceSummary, "filesLeft" | "building">;
-
-/** The chip on a space's row on Today while its files are read; null
- *  otherwise. With no reader it only says they wait: the top bar says why. */
-export function todayWorkLine(space: LiveSpace, worker: string | null): string | null {
-	if (space.filesLeft === 0) return null;
-	if (!worker) return `${files(space.filesLeft)} ${space.filesLeft === 1 ? "is" : "are"} waiting`;
-	return `${space.building ? "Building" : "Reading new files"}, ${space.filesLeft} left`;
-}
-
 /** The tag on the space's tab in the top bar. */
 export function tabWorkTag(space: Pick<SpaceSummary, "filesLeft">): string | null {
 	return space.filesLeft > 0 ? `${space.filesLeft} left` : null;

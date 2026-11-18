@@ -4,8 +4,5 @@ export const CARD_HEAD = "flex flex-wrap items-center justify-between gap-x-4 ga
 /** A card's title on Today ("Deadlines", "Your spaces"): well under the next deadline's title. */
 export const CARD_TITLE = "text-xl leading-snug text-ink";
 
-/** A Today list: its rows apart by a little space, inset from the card's edges. */
-export const ROW_LIST = "flex flex-col gap-1 px-6";
-
 /** A filled chip: readiness, days left, new files, the teacher at work. */
 export const CHIP = "inline-flex shrink-0 items-center gap-1.5 bg-highlight px-2 py-0.5 text-sm leading-snug text-ink";

@@ -53,13 +53,6 @@ pub fn work_after_deadline(work: Option<&Json>, deadline_id: &str) -> Option<Jso
 	Some(with(round, &[("deadlineIds", Json::Arr(deadline_ids))]))
 }
 
-/// True while every study file read so far was read in this round: the teacher is building the
-/// space, not adding to it.
-pub fn is_first_round(files: &[Json], work: Option<&Json>) -> bool {
-	let read_now = work.map(|w| w["fileIds"].strs()).unwrap_or_default();
-	!files.iter().any(|f| f["kind"].as_str() == Some("study") && f["status"].as_str() == Some("ready") && f["id"].as_str().is_none_or(|id| !read_now.contains(&id)))
-}
-
 #[cfg(test)]
 mod tests {
 	use gs_json::stringify;
@@ -101,14 +94,5 @@ mod tests {
 		assert_eq!(stringify(&ended), r#"{"startedAt":"t1","fileIds":[],"deadlineIds":["ddl_1"],"endedAt":"t3"}"#);
 		assert_eq!(work_after_deadline(Some(&ended), "ddl_2"), Some(ended));
 		assert_eq!(work_after_deadline(None, "ddl_2"), None);
-	}
-
-	#[test]
-	fn the_first_round_lasts_while_every_read_file_was_read_in_it() {
-		let work = json!({ "startedAt": "t", "fileIds": ["a"], "deadlineIds": [] });
-		assert!(is_first_round(&[file("a", "study", "ready"), file("b", "study", "pending")], Some(&work)));
-		assert!(!is_first_round(&[file("z", "study", "ready"), file("b", "study", "pending")], Some(&work)));
-		assert!(is_first_round(&[file("z", "info", "ready")], None));
-		assert!(!is_first_round(&[file("z", "study", "ready")], None));
 	}
 }

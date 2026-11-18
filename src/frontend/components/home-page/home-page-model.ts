@@ -1,4 +1,4 @@
-/** Pure helpers for Today (home-page.tsx): per-space progress, which list a deadline goes in, the card's and each row's words. */
+/** Pure helpers for Today (home-page.tsx): per-space progress, which list a deadline goes in, which one the card shows and its words. */
 import { hasProblems, localDay, longDay, nothingMorePlannedLine, planDays, type ContinueStudy, type DeadlineKind, type DeadlineProgress, type ProgressPayload } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
 import { DAY, HOUR, MINUTE, calendarDays, dueAtMs } from "@/frontend/components/countdown-model";
@@ -37,8 +37,8 @@ export function spacesSettled(spaceIds: readonly string[], state: SpacesProgress
 	return spaceIds.every((id) => state.progress.has(id) || state.errors.has(id));
 }
 
-/** A deadline at most this many days away is under Today; the rest are Later. */
-const TODAY_DAYS = 7;
+/** The week is today and the six days after it; a deadline further away is Later. */
+const TODAY_DAYS = 6;
 
 /** Due within the week, or overdue. */
 export function dueThisWeek(d: { date: string; time?: string }, nowMs: number): boolean {
@@ -46,7 +46,7 @@ export function dueThisWeek(d: { date: string; time?: string }, nowMs: number): 
 }
 
 export interface TodayLists {
-	/** Open, due within the week or overdue. */
+	/** Open, due within the week or overdue, soonest first. */
 	today: OpenDeadline[];
 	/** Ticked done today. */
 	done: OpenDeadline[];
@@ -70,31 +70,29 @@ export function todayLists(open: readonly OpenDeadline[], doneToday: readonly Op
 const OVERDUE_ASK_DAYS = 7;
 
 /** The overdue deadline to ask "Done?" about: the oldest one not done,
- *  past due by at most a week and not answered Not yet. */
-export function overdueToAsk(open: readonly OpenDeadline[], asked: readonly string[], nowMs: number): OpenDeadline | null {
+ *  past due by at most a week and not answered Not yet. The one on Today's
+ *  card (`onCard`) is skipped, as the card already asks with its own Mark done. */
+export function overdueToAsk(open: readonly OpenDeadline[], asked: readonly string[], nowMs: number, onCard: string | null): OpenDeadline | null {
 	let oldest: OpenDeadline | null = null;
 	for (const d of open) {
 		const late = nowMs - dueAtMs(d);
-		if (d.done || late <= 0 || late > OVERDUE_ASK_DAYS * DAY || asked.includes(d.id)) continue;
+		if (d.done || late <= 0 || late > OVERDUE_ASK_DAYS * DAY || asked.includes(d.id) || d.id === onCard) continue;
 		if (!oldest || dueAtMs(d) < dueAtMs(oldest)) oldest = d;
 	}
 	return oldest;
 }
 
 /** The count block: whole days left, hours on the last day, minutes in
- *  the last hour, "late" once it is due. */
+ *  the last hour. Once it is due, the same count of how late it is
+ *  ("2" over "days late"). */
 export function countLeft(dueMs: number, nowMs: number): { count: string; unit: string } {
-	const left = dueMs - nowMs;
-	if (left <= 0) return { count: "late", unit: "" };
-	if (left >= DAY) {
-		const days = calendarDays(nowMs, dueMs);
-		return { count: String(days), unit: days === 1 ? "day" : "days" };
-	}
-	if (left >= HOUR) {
-		const hours = Math.floor(left / HOUR);
-		return { count: String(hours), unit: hours === 1 ? "hour" : "hours" };
-	}
-	return { count: String(Math.ceil(left / MINUTE)), unit: "min" };
+	const late = dueMs <= nowMs;
+	const [from, to] = late ? [dueMs, nowMs] : [nowMs, dueMs];
+	const gap = to - from;
+	const count = (n: number, one: string, many: string) => ({ count: String(n), unit: `${n === 1 ? one : many}${late ? " late" : ""}` });
+	if (gap >= DAY) return count(calendarDays(from, to), "day", "days");
+	if (gap >= HOUR) return count(Math.floor(gap / HOUR), "hour", "hours");
+	return count(Math.max(1, Math.ceil(gap / MINUTE)), "min", "min");
 }
 
 /** ". 2 of 7 problems done", or ". 19% ready" for one with no problems;
@@ -108,26 +106,18 @@ export function progressNote(p: DeadlineProgress | undefined): string {
 const EVENT_WORD: Partial<Record<DeadlineKind, string>> = { quiz: "quiz", interview: "interview" };
 
 /** When an open deadline is due, after its space: "due Friday", "the test
- *  is on Tuesday at 7:00 PM", "was due Tue Oct 27". `short` drops "the test
+ *  is on Tuesday at 7:00 PM", "due Sunday Nov 29" after the week, "was due
+ *  Tue Oct 27". `short` drops "the test
  *  is on" where the title already says what it is. */
-function dueWords(d: OpenDeadline, nowMs: number, short = false): string {
+export function dueWords(d: OpenDeadline, nowMs: number, short = false): string {
 	const dueMs = dueAtMs(d);
 	if (dueMs <= nowMs) return `was due ${deadlineDateLabel(d.date)}`;
 	const days = calendarDays(nowMs, dueMs);
-	const day = days === 0 ? "today" : days === 1 ? "tomorrow" : new Date(dueMs).toLocaleDateString("en-US", { weekday: "long" });
+	const day = days === 0 ? "today" : days === 1 ? "tomorrow" : days > TODAY_DAYS ? longDay(d.date) : new Date(dueMs).toLocaleDateString("en-US", { weekday: "long" });
 	const at = d.time ? ` at ${clockLabel(d.time)}` : "";
 	if (hasProblems(d.kind)) return `due ${day}${at}`;
 	if (short) return `${day}${at}`;
 	return `the ${EVENT_WORD[d.kind] ?? "test"} is ${days > 1 ? "on " : ""}${day}${at}`;
-}
-
-interface TodayRowWords {
-	title: string;
-	/** Under the title: the space and when it is due. */
-	line: string;
-	/** The row's button. "Work on it" works on the assignment's
-	 *  problems; the others study ("Continue" reopens an unfinished session). */
-	button: "Study" | "Continue" | "Work on it";
 }
 
 /** Where an unfinished Study session is: "Recursion is next", "in the
@@ -143,67 +133,48 @@ function nothingMoreToday(progress: DeadlineProgress | undefined, nowMs: number)
 	return progress?.studyEndedToday === true && !planDays(localDay(nowMs), progress.date, progress.topics)[0]?.topics.length;
 }
 
-/** A Today row's words. Homework and projects say how far they are; a
- *  test or quiz says where its Study session stopped, the topic it is in
- *  the middle of, or that nothing more is planned today. */
-export function todayRow(d: OpenDeadline, progress: DeadlineProgress | undefined, nowMs: number): TodayRowWords {
-	const when = `${d.spaceName}, ${dueWords(d, nowMs)}`;
-	if (hasProblems(d.kind)) return { title: d.name, line: `${when}${progressNote(progress)}`, button: "Work on it" };
-	const next = progress?.continueStudy;
-	if (next) {
-		const where = continueWords(next);
-		return { title: d.name, line: where ? `${d.spaceName}, ${where}.` : when, button: "Continue" };
-	}
-	if (nothingMoreToday(progress, nowMs)) return { title: d.name, line: nothingMorePlannedLine(d.spaceName), button: "Study" };
-	return { title: d.name, line: when, button: "Study" };
-}
-
-/** Today's card: what to do as its title, its space and when (the one line
- *  under it), how far (its chip), and what is left of it today. */
+/** Today's card: what to do as its title, the one line under it, how far
+ *  (its chip) and its main key. */
 interface CardWords {
 	title: string;
-	/** "CSE 21, Thursday at 7:00 PM". */
-	when: string;
+	/** "CSE 21, Thursday at 7:00 PM. 3 topics left today." */
+	line: string;
 	/** "40% ready", "2 of 7 problems done"; null with nothing to count. */
 	ready: string | null;
-	/** "3 topics left today.", "Recursion is next."; null with nothing to say. */
-	left: string | null;
-	button: TodayRowWords["button"];
+	/** "Work on it" works on the assignment's problems; the others study
+	 *  ("Continue" reopens an unfinished session). Null once it is done. */
+	button: "Study" | "Continue" | "Work on it" | null;
 }
 
 const sentence = (words: string) => `${words[0]!.toUpperCase()}${words.slice(1)}.`;
 
-/** The card's words, for the row mainRowId picks. */
+/** The card's words. Homework and projects say how far they are; a test
+ *  or quiz says where its Study session stopped, the topic it is in the
+ *  middle of, how many topics are left today, or that nothing more is
+ *  planned today. One ticked done says only its space and when. */
 export function nextCard(d: OpenDeadline, progress: DeadlineProgress | undefined, nowMs: number): CardWords {
-	const row = todayRow(d, progress, nowMs);
-	const base = { when: `${d.spaceName}, ${dueWords(d, nowMs, true)}`, ready: (progress && progressWords(progress)) ?? null, button: row.button };
-	if (hasProblems(d.kind)) return { ...base, title: row.title, left: null };
+	const when = `${d.spaceName}, ${dueWords(d, nowMs, true)}`;
+	if (d.done) return { title: d.name, line: when, ready: null, button: null };
+	const ready = (progress && progressWords(progress)) ?? null;
+	if (hasProblems(d.kind)) return { title: d.name, line: when, ready, button: "Work on it" };
 	const next = progress?.continueStudy;
 	const where = next && continueWords(next);
-	if (where) return { ...base, title: row.title, left: sentence(where) };
 	const topics = progress ? (planDays(localDay(nowMs), progress.date, progress.topics)[0]?.topics.length ?? 0) : 0;
-	return { ...base, title: row.title, left: topics > 0 ? `${topics} ${topics === 1 ? "topic" : "topics"} left today.` : null };
+	const left = where ? sentence(where) : topics > 0 ? `${topics} ${topics === 1 ? "topic" : "topics"} left today.` : nothingMoreToday(progress, nowMs) ? nothingMorePlannedLine() : null;
+	return { title: d.name, line: left ? `${when}. ${left}` : when, ready, button: next ? "Continue" : "Study" };
 }
 
-interface TodaySections {
-	/** The row mainRowId picks, shown as the card; null with no card. */
-	card: OpenDeadline | null;
-	/** The rest of "Due this week". */
-	due: OpenDeadline[];
-	/** What Today says in place of the card when nothing is due this week. */
-	empty: string | null;
+/** What Today says in place of the week when there is no deadline at all. */
+export function todayEmpty(lists: TodayLists, teacher: string): string | null {
+	return lists.today.length + lists.done.length + lists.later.length > 0 ? null : `None yet. ${teacher} can add them from your files.`;
 }
 
-/** Splits Today's list into the card and the rows under "Due this week". */
-export function todaySections(lists: TodayLists, progress: ReadonlyMap<string, DeadlineProgress>, nowMs: number, teacher: string): TodaySections {
-	const mainId = mainRowId(lists.today, progress, nowMs);
-	const empty =
-		lists.today.length + lists.done.length > 0
-			? null
-			: lists.later.length === 0
-				? `None yet. ${teacher} can add them from your files.`
-				: "Nothing is due in the next 7 days.";
-	return { card: lists.today.find((d) => d.id === mainId) ?? null, due: lists.today.filter((d) => d.id !== mainId), empty };
+/** The deadline the card shows: the one picked in the week or Later while
+ *  it is still there (open or ticked done today), else mainRowId's. */
+export function shownCard(lists: TodayLists, picked: string | null, mainId: string | null): OpenDeadline | null {
+	const all = [...lists.today, ...lists.done, ...lists.later];
+	const find = (id: string | null) => (id === null ? undefined : all.find((d) => d.id === id));
+	return find(picked) ?? find(mainId) ?? null;
 }
 
 /** The row Today's card holds, with the page's one main button: a session
@@ -222,11 +193,4 @@ export function mainRowId(deadlines: readonly OpenDeadline[], progress: Readonly
 	});
 	if (stoppedBefore) return stoppedBefore.id;
 	return deadlines.find((d) => stopDay(d) !== today && !nothingMoreToday(progress.get(d.id), nowMs))?.id ?? null;
-}
-
-/** A Later row's words beside its name: the space and the day, the days
- *  left (its chip), and how far it is. */
-export function laterRow(d: OpenDeadline, progress: DeadlineProgress | undefined, nowMs: number): { when: string; left: string; ready: string | null } {
-	const { count, unit } = countLeft(dueAtMs(d), nowMs);
-	return { when: `${d.spaceName}, ${longDay(d.date)}`, left: `${count} ${unit}`.trim(), ready: (progress && progressWords(progress)) ?? null };
 }

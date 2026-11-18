@@ -7,7 +7,6 @@ import { useMinute } from "@/frontend/components/countdown";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { ADD_DEADLINE_HREF } from "@/frontend/components/space-page/deadlines-tab-model";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
-import { useWorker } from "@/frontend/components/work/use-worker";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { highlight, waitForTarget } from "@/frontend/components/teacher/dom";
 import { spacesSettled, todayLists } from "./home-page-model";
@@ -28,7 +27,6 @@ export function HomePage() {
 	const shownIds = useMemo(() => shown.map((c) => c.id), [shown]);
 	const spacesProgress = useSpacesProgress(shownIds);
 	const newFiles = useNewFiles(shown);
-	const { worker } = useWorker();
 	// The sections' words need each space's progress and new files, so they
 	// wait for them the first time and never change under the reader.
 	const [progressReady, setProgressReady] = useState(false);
@@ -71,8 +69,7 @@ export function HomePage() {
 	const ready = nowMs !== null && loaded && (deadlines !== null || deadlinesError !== null) && (shown.length === 0 || progressReady);
 	const lists = useMemo(() => (deadlines && nowMs !== null ? todayLists(deadlines, doneToday, nowMs) : null), [deadlines, doneToday, nowMs]);
 
-
-	// Back from a lesson's Stop here (?lit=deadline:<id>): its card or row lights once.
+	// Back from a lesson's Stop here (?lit=deadline:<id>): its card lights once.
 	const [params, setParams] = useSearchParams();
 	const lit = params.get("lit");
 	useEffect(() => {
@@ -80,7 +77,7 @@ export function HomePage() {
 		let alive = true;
 		void waitForTarget({ kind: "deadline", id: lit.slice("deadline:".length) }, 3000, () => alive).then((els) => {
 			if (!alive) return;
-			// What it holds: the next deadline's band or a row.
+			// What it holds: the card's face or a week block.
 			const row = els[0]?.firstElementChild;
 			if (row instanceof HTMLElement) highlight(row);
 			setParams(
@@ -107,7 +104,6 @@ export function HomePage() {
 				spacesProgress={spacesProgress.progress}
 				noSpaceProgress={spacesProgress.noSpace}
 				progressErrors={spacesProgress.errors}
-				worker={worker}
 				newFiles={newFiles.lines}
 				busy={lesson.busy}
 				lessonError={lesson.error}

@@ -4246,8 +4246,7 @@
 								"closed": false,
 								"fileCount": 2,
 								"color": 4,
-								"filesLeft": 1,
-								"building": true
+								"filesLeft": 1
 							},
 							{
 								"id": "<cls1>",

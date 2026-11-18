@@ -5,7 +5,7 @@ Every new lesson is a study session (`kind: "study"` on the chat record). No pro
 Started from:
 
 - "Study something new" on the Lessons sheet of a space's Progress page (study page, `/new`)
-- Start on a Today row, or Study on a deadline page
+- Start on Today's card, or Study on a deadline page
 - Study in a topic's or a fact's panel on Graph tab, or Study on Progress tab
 - "Go over it with the teacher" on a mock's results
 - Study on a space's path (§6.3)
@@ -149,7 +149,7 @@ Allowed while a turn runs; never answer 409.
 
 A homework session (`kind: "homework"`, `deadlineId` required) works on one homework or project deadline's problems.
 
-- "Work on <name>" starts one or reopens the latest (`POST /api/chats` with `homework: true`, `create_homework` in `services::turns::homework`). It is the filled key of a homework's or project's two keys (`DeadlineKeys`, `src/frontend/components/deadline/deadline-keys.tsx`) on its deadline page's Problems sheet, the Graph's deadline card and Progress's next deadline (there, under the deadline's name, they leave the name out: "Study" and "Work on it"); the Study page adds it after the deadline's Study key, and its Today row says "Work on it". The grey key before it, "Study for <name>" ("Continue studying for <name>" while a Study session is unfinished), is the deadline's Study; it hides once the date has passed. A homework lesson is never the deadline's Study session (`lesson_readout`, `services::graph::progress`), so Study never reopens it.
+- "Work on <name>" starts one or reopens the latest (`POST /api/chats` with `homework: true`, `create_homework` in `services::turns::homework`). It is the filled key of a homework's or project's two keys (`DeadlineKeys`, `src/frontend/components/deadline/deadline-keys.tsx`) on its deadline page's Problems sheet, the Graph's deadline card and Progress's next deadline (there, under the deadline's name, they leave the name out: "Study" and "Work on it"); the Study page adds it after the deadline's Study key, and Today's card says "Work on it" while it shows it. The grey key before it, "Study for <name>" ("Continue studying for <name>" while a Study session is unfinished), is the deadline's Study; it hides once the date has passed. A homework lesson is never the deadline's Study session (`lesson_readout`, `services::graph::progress`), so Study never reopens it.
 - It opens with space card and a `homework-context` marker: deadline, its assignment file (`assignmentFileId`), a track record line and problems posted before. The line sorts the deadline's topics with the Study rule (`deadline_topics_for`, `core::study::homework`): "Teach first" for untested topics and weak ones whose latest answer was wrong, "Open right away" for the rest. A deadline with no topics reads "none yet".
 - Homework agent (`agent::tools::homework`, prompt `prompts/homework/` plus practice hint rules) posts assignment's problems onto deadline with `post_problems`.
 - It opens one problem at a time with `problem`, which has no solution field: homework is hints only. `conclude` marks a problem done when learner's own work is right.
@@ -158,6 +158,6 @@ A homework session (`kind: "homework"`, `deadlineId` required) works on one home
 - Every problem in the plan row is a button (`homeworkRow`, `src/frontend/components/lesson/plan-row-model.ts`). A pick sends the `open` input with the problem's number, done or not; the lesson text shows "Start problem N" and a screen reader hears "Opening problem N". The server saves a `practice-next` marker with the number (`new_open_problem_message`) and refuses a number the deadline doesn't have, a pick while a question waits, and the problem already open. The teacher closes an open problem as moved on and opens the pick; a problem closed for a pick makes no long-problem stop (`picked_problem`, `core::study::homework`). A done problem opened again keeps its done mark and shows open with its check. The open problem's cell puts the cursor in the work box. While the teacher writes or a question waits, the other cells stay focusable and say why ("The teacher is writing.", "Waiting for Teacher" by the teacher's name, "Answer the question first.").
 - The open problem draws its parts other than the one the teacher marked at 60% opacity (`otherParts`, `src/frontend/components/lesson/problem-parts.ts`). The lesson head's file link reads "file.pdf, page N"; no line repeats the deadline name, problem number or file.
 - The top bar's pill has no Open button for the deadline whose lesson is the open page.
-- Plan row names every problem over its bar (`homeworkProblems`, `src/shared/core/homework.ts`); Today row says "2 of 7 problems done". Above 12 problems or plan steps row shows numbers only, names on hover.
+- Plan row names every problem over its bar (`homeworkProblems`, `src/shared/core/homework.ts`); Today's card says "2 of 7 problems done". Above 12 problems or plan steps row shows numbers only, names on hover.
 
 Homework is never extracted into the graph.

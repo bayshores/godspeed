@@ -1,11 +1,14 @@
-import { localDay, longDay, type DeadlineProgress, type ProgressPayload, type SpaceSummary } from "@/shared/core";
+import { useEffect, useState } from "react";
+import type { DeadlineProgress, ProgressPayload, SpaceSummary } from "@/shared/core";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { Pane } from "@/frontend/components/ui/pane";
+import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { DeadlinesCard } from "./deadlines-card";
-import type { TodayLists } from "./home-page-model";
+import { mainRowId, shownCard, type TodayLists } from "./home-page-model";
+import { NextCard } from "./next-card";
 import { SpaceList } from "./space-list";
+import { StudiedLine } from "./studied-line";
 import { CARD_HEAD, CARD_TITLE } from "./styles";
-import { WeekStrip } from "./week-strip";
 
 interface TodayBodyProps {
 	/** Null before the first minute tick. */
@@ -22,8 +25,6 @@ interface TodayBodyProps {
 	noSpaceProgress: ProgressPayload | null;
 	/** Why a space's progress failed to load. */
 	progressErrors: ReadonlyMap<string, string>;
-	/** Who reads files (useWorker). */
-	worker: string | null;
 	newFiles: ReadonlyMap<string, string>;
 	/** A lesson is starting. */
 	busy: boolean;
@@ -40,23 +41,33 @@ interface TodayBodyProps {
 
 /**
  * TODAY (the render seam of home-page.tsx), from the top of the window
- * down: the head (Today, the date, this week's study days), then the
- * deadlines card with the next thing biggest, then the spaces card. With
- * no space yet, the spaces card alone, with the key for the first.
+ * down, each part lighter than the one before: the date and the days
+ * studied, the card with the deadline picked in the week (the next thing
+ * to do until one is picked), the week with Later, then the spaces. With no
+ * space yet, the spaces card alone, with the key for the first.
  */
 export function TodayBody(p: TodayBodyProps) {
+	// A pick that leaves the lists falls back to the next thing to do.
+	const [picked, setPicked] = useState<string | null>(null);
+	const card = p.lists && p.nowMs !== null ? shownCard(p.lists, picked, mainRowId(p.lists.today, p.deadlineProgress, p.nowMs)) : null;
+	const color = (d: OpenDeadline) => p.spaces.find((s) => s.id === d.spaceId)?.color;
+	// The top bar's overdue ask skips what the card shows: the card asks already.
+	const { setOnCard } = useOpenDeadlines();
+	const cardId = card?.id ?? null;
+	useEffect(() => {
+		setOnCard(cardId);
+		return () => setOnCard(null);
+	}, [cardId, setOnCard]);
 	return (
-		<div className="mx-auto flex w-full max-w-[904px] flex-col gap-10 px-6 pt-14 pb-16">
-			<header className="flex flex-col gap-4">
-				<div className="flex flex-wrap items-end gap-x-5 gap-y-3">
-					<h1 className="text-[56px] leading-none text-ink">Today</h1>
-					{p.nowMs !== null && (
-						<p data-testid="today-date" className="mb-1 bg-highlight px-2.5 py-1 font-count text-[17px] text-ink">
-							{longDay(localDay(p.nowMs))}
-						</p>
-					)}
-				</div>
-				{p.ready && p.nowMs !== null && p.spaces.length > 0 && <WeekStrip progress={p.spacesProgress} noSpace={p.noSpaceProgress} nowMs={p.nowMs} />}
+		<div className="mx-auto flex w-full max-w-[1160px] flex-col gap-8 px-6 pt-14 pb-16">
+			{/* Narrow, the date steps down so the sentence still fits beside it. */}
+			<header className="@container flex min-h-[46px] flex-wrap items-baseline gap-x-6 gap-y-2">
+				{p.nowMs !== null && (
+					<h1 data-testid="today-date" className="text-[46px] leading-none text-ink @max-[800px]:text-[34px]">
+						{new Date(p.nowMs).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+					</h1>
+				)}
+				{p.ready && p.nowMs !== null && p.spaces.length > 0 && <StudiedLine progress={p.spacesProgress} noSpace={p.noSpaceProgress} nowMs={p.nowMs} />}
 			</header>
 			{!p.ready || p.nowMs === null ? (
 				<div data-testid="home-loading" aria-hidden className="h-[320px] w-full bg-panel" />
@@ -75,23 +86,27 @@ export function TodayBody(p: TodayBodyProps) {
 			) : (
 				<>
 					{p.lessonError && (
-						<p role="alert" className="-mb-5 text-[15px] text-ans-wrong">
+						<p role="alert" className="-mb-4 text-[15px] text-ans-wrong">
 							{p.lessonError}
 						</p>
 					)}
-					<DeadlinesCard
-						spaces={p.spaces}
-						lists={p.lists}
-						progress={p.deadlineProgress}
-						nowMs={p.nowMs}
-						busy={p.busy}
-						onStart={p.onStart}
-						onDone={p.onDone}
-						onUndo={p.onUndo}
-						onRetry={p.onRetry}
-						onAdd={p.onAddDeadline}
-					/>
-					<SpaceList spaces={p.spaces} progress={p.spacesProgress} errors={p.progressErrors} worker={p.worker} newFiles={p.newFiles} onOpen={p.onOpenSpace} />
+					{card && (
+						<NextCard
+							deadline={card}
+							progress={p.deadlineProgress.get(card.id)}
+							color={color(card)}
+							nowMs={p.nowMs}
+							busy={p.busy}
+							onStart={p.onStart}
+							onDone={p.onDone}
+							onUndo={p.onUndo}
+						/>
+					)}
+					<DeadlinesCard spaces={p.spaces} lists={p.lists} nowMs={p.nowMs} picked={card?.id ?? null} onPick={(d) => setPicked(d.id)} onRetry={p.onRetry} onAdd={p.onAddDeadline} />
+					<p aria-live="polite" data-testid="today-showing" className="sr-only">
+						{picked !== null && card ? `Showing ${card.name}` : ""}
+					</p>
+					<SpaceList spaces={p.spaces} progress={p.spacesProgress} errors={p.progressErrors} newFiles={p.newFiles} onOpen={p.onOpenSpace} />
 				</>
 			)}
 		</div>

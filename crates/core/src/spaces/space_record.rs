@@ -8,7 +8,7 @@ use gs_json::{Json, Obj};
 use super::new_files::is_recent_change;
 use super::space_path::read_path;
 use super::space_deadlines::{id_list, squash, with_files};
-use super::space_work::{is_first_round, is_waiting_file};
+use super::space_work::is_waiting_file;
 use crate::contracts::space::{CURRENT_SPACE_VERSION, clean_signature, compare_deadlines, is_deadline_kind, is_space_color, is_space_icon};
 use gs_base::text::cmp16;
 use crate::records::teaching_areas::sanitize_rules;
@@ -295,9 +295,6 @@ pub fn summarize(record: &Json) -> Json {
 	}
 	let files_left = files.iter().filter(|f| is_waiting_file(f)).count();
 	out.insert("filesLeft", files_left);
-	if files_left > 0 && is_first_round(files, record.get("lastWork")) {
-		out.insert("building", true);
-	}
 	// The open round's files finished so far, for "6 of 17 files".
 	let files_read = record.get("lastWork").filter(|work| !work["endedAt"].truthy()).and_then(|work| work["fileIds"].as_arr()).map_or(0, Vec::len);
 	if files_left > 0 && files_read > 0 {
@@ -436,16 +433,14 @@ mod tests {
 	}
 
 	#[test]
-	fn a_space_being_built_counts_the_files_left() {
+	fn a_space_counts_the_files_left_and_those_read_this_round() {
 		let mut waiting = file("f2", "copied", "t");
 		waiting.as_obj_mut().unwrap().insert("status", "pending");
 		let mut record = json!({ "id": "cls_a", "name": "n", "description": "", "createdAt": "c", "updatedAt": "u", "closed": false, "files": [waiting.clone()], "color": 1 });
 		let summary = summarize(&record);
-		assert_eq!((summary["filesLeft"].clone(), summary["building"].clone()), (Json::from(1), Json::from(true)));
-		// A file read before this round: the teacher is adding to the space, not building it.
+		assert_eq!(summary["filesLeft"], Json::from(1));
 		record.as_obj_mut().unwrap().insert("files", json!([file("f1", "copied", "t"), waiting]));
 		record.as_obj_mut().unwrap().insert("lastWork", json!({ "startedAt": "s", "fileIds": [], "deadlineIds": [] }));
-		assert!(summarize(&record).get("building").is_none());
 		assert!(summarize(&record).get("filesRead").is_none());
 		record.as_obj_mut().unwrap().insert("lastWork", json!({ "startedAt": "s", "fileIds": ["f1"], "deadlineIds": [] }));
 		assert_eq!(summarize(&record)["filesRead"], Json::from(1));

@@ -16,29 +16,34 @@ export const HTTP_OK = `.then((r) => { if (!r.ok) throw new Error(r.url + " answ
 const pause = `await new Promise((done) => setTimeout(done, 100))`;
 const openTeacher = `document.querySelector("[data-testid=live-pill]").click()`;
 const deadlineCard = "[data-teacher-target='deadline:{deadline}']";
-/** Today's every group at once: the next deadline, three more this week, one ticked done, two
- *  later. Dates count from the day the check runs. */
+/** Today's every part at once, from both spaces so the blocks' colors differ: five deadlines on one
+ *  day (so it folds to three and "+2 more"), one late, one ticked done today, more across the week,
+ *  two later. Dates count from the day the check runs. */
 const busyDay = `const day = (n) => new Date(Date.now() + n * 86400000).toLocaleDateString("sv");
-const base = "/api/spaces/{space}/deadlines";
-const add = (kind, name, n, time) => fetch(base, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind, name, date: day(n), time, fileIds: [] }) })${HTTP_OK};
-await add("exam", "Graphing quiz", 2, "10:00");
-await add("homework", "Homework 7: slopes", 3);
-await add("project", "Spring-loaded graph project", 5, "23:00");
-await add("homework", "Warm-up problems", 6);
-await add("homework", "Polynomial practice", 4);
-await add("exam", "Final exam, everything", 20, "09:00");
-await add("quiz", "Quiz 3: graphing systems", 12);
+const base = (space) => "/api/spaces/" + space + "/deadlines";
+const add = (space, kind, name, n, time) => fetch(base(space), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind, name, date: day(n), time, fileIds: [] }) })${HTTP_OK};
+await add("{space}", "homework", "Slope drills", -2);
+await add("{space}", "exam", "Graphing quiz", 3, "10:00");
+await add("{pathSpace}", "project", "REST API with tests", 3);
+await add("{space}", "homework", "Reading, chapter 4", 3, "12:00");
+await add("{pathSpace}", "interview", "Phone screen with Acme", 3, "15:00");
+await add("{pathSpace}", "homework", "SQL joins practice", 3, "08:00");
+await add("{space}", "homework", "Lab write-up", 5);
+await add("{pathSpace}", "homework", "Git branching exercises", 0, "23:00");
+await add("{pathSpace}", "interview", "Mock system design interview", 1, "18:00");
+await add("{space}", "exam", "Final exam, everything", 20, "09:00");
+await add("{pathSpace}", "project", "Portfolio site", 12);
 const { deadlines } = await fetch("/api/deadlines")${HTTP_OK}.then((r) => r.json());
-const done = deadlines.find((d) => d.name === "Polynomial practice");
-await fetch(base + "/" + done.id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ done: true }) })${HTTP_OK};`;
+const done = deadlines.find((d) => d.name === "Git branching exercises");
+await fetch(base("{pathSpace}") + "/" + done.id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ done: true }) })${HTTP_OK};`;
 
-/** A homework due yesterday, so the overdue card asks about it. */
+/** A task due yesterday in the other space, so the top bar asks about it while the card shows Slope drills. */
 const lateHomework = `const day = new Date(Date.now() - 86400000).toLocaleDateString("sv");
-await fetch("/api/spaces/{space}/deadlines", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "homework", name: "Graphing worksheet, part 2", date: day, fileIds: [] }) })${HTTP_OK};`;
+await fetch("/api/spaces/{pathSpace}/deadlines", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "homework", name: "Cover letter draft", date: day, fileIds: [] }) })${HTTP_OK};`;
 /** Takes that homework away again, so the screens after it are as before. */
 const dropLateHomework = `const { deadlines } = await fetch("/api/deadlines")${HTTP_OK}.then((r) => r.json());
-const late = deadlines.find((d) => d.name === "Graphing worksheet, part 2");
-if (late) await fetch("/api/spaces/{space}/deadlines/" + late.id, { method: "DELETE" })${HTTP_OK};`;
+const late = deadlines.find((d) => d.name === "Cover letter draft");
+if (late) await fetch("/api/spaces/{pathSpace}/deadlines/" + late.id, { method: "DELETE" })${HTTP_OK};`;
 
 /** The homework with a problem open covers the made-up file, as the exam does not, so it can be Progress's next deadline. */
 const homeworkCoversFile = `const { space } = await fetch("/api/spaces/{space}")${HTTP_OK}.then((r) => r.json());
@@ -191,7 +196,8 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	// The longest starter key: "Get me ready for" the deadline's name.
 	{ name: "The agent's screen on a deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-name]", setup: openTeacher, shows: "[data-testid=terminal-starters] [data-testid=terminal-starter]" },
 	{ name: "Today with no deadline", before: dropDeadlines, url: "/", ready: "[data-testid=today-empty]" },
-	{ name: "Today on a busy day", before: busyDay, url: "/", ready: "[data-testid=today-list] [data-testid^=today-done-row]", shows: "[data-testid=later-list]" },
+	{ name: "Today on a busy day", before: busyDay, url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", shows: "[data-testid=week-later]" },
+	{ name: "Today, the week unfolded", url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", setup: `document.querySelector("[data-testid=week-more]").click()`, shows: "[data-testid=week-rest][data-state=open]" },
 	{ name: "Today with the overdue card", before: lateHomework, url: "/", ready: "[data-testid=overdue-notice] [data-testid=overdue-notice-done]" },
 	{
 		name: "Progress with a path, all shown",

@@ -1,8 +1,8 @@
 /**
  * Today: ticking a deadline done and undoing it (the shared read), the
- * next deadline's band, a row due this week (count block, words, Mark
- * done, its button), a row stamped Done, a row under Later, the whole page
- * in each of its states, and a space's fact grid on Progress.
+ * card (open and ticked done), the week's columns (picking, late, done,
+ * "+N more"), Later, the whole page in each of its states, and a space's
+ * fact grid on Progress.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -28,7 +28,6 @@ Object.assign(globalThis, {
 });
 
 const { MemoryRouter } = await import("react-router");
-const { TodayRow, DoneRow, LaterRow } = await import("../../src/frontend/components/home-page/today-row.tsx");
 const { NextCard } = await import("../../src/frontend/components/home-page/next-card.tsx");
 const { TodayBody } = await import("../../src/frontend/components/home-page/today-body.tsx");
 const { todayLists } = await import("../../src/frontend/components/home-page/home-page-model.ts");
@@ -165,8 +164,6 @@ describe("Ticking a deadline done", () => {
 	});
 });
 
-// ─── A row under Today ──────────────────────────────────────────────────────
-
 function progressFor(id: string, extra: Partial<DeadlineProgress>): DeadlineProgress {
 	return {
 		id,
@@ -185,128 +182,63 @@ function progressFor(id: string, extra: Partial<DeadlineProgress>): DeadlineProg
 	};
 }
 
-function todayRow(props: Partial<React.ComponentProps<typeof TodayRow>> = {}) {
-	return renderToStaticMarkup(
-		<MemoryRouter initialEntries={["/"]}>
-			<TodayRow deadline={OPEN[2]!} progress={undefined} color={3} nowMs={NOW} busy={false} onStart={() => {}} onDone={() => {}} {...props} />
-		</MemoryRouter>,
-	);
-}
-
-describe("A row due this week", () => {
-	it("the count block in the space's color, days left", () => {
-		const html = todayRow();
-		assert.match(html, /background:var\(--lh-space-3\)/);
-		assert.match(html, />2<\/span>.*>days</);
-		assert.match(todayRow({ deadline: OPEN[1]! }), />48<\/span>.*>min</);
-		assert.match(todayRow({ deadline: OPEN[0]! }), />late</);
-	});
-
-	it("the title opens the deadline's page and the row is tagged for the teacher", () => {
-		const html = todayRow();
-		assert.match(tag(html, "today-open"), /href="\/space\/deadline\/hw5"/);
-		assert.ok(html.includes('data-teacher-target="deadline:hw5"'));
-	});
-
-	it("homework: its name, how far it is, and Work on it", () => {
-		const html = todayRow({ progress: progressFor("hw5", { problems: { done: 2, total: 7 } }) });
-		assert.match(section(html, "today-open", "</a>"), />HW 5$/);
-		assert.ok(html.includes("CSE 29, due Friday. 2 of 7 problems done"));
-		assert.match(section(html, "today-start", "</button>"), />Work on it$/);
-		assert.ok(!tag(html, "today-start").includes("lh-btn-main"), "the card holds the main button");
-	});
-
-	it("a test: titled with its name and Study; an unfinished session continues", () => {
-		const topics = [1, 2, 3].map((n) => ({ id: `t${n}`, name: `t${n}`, rate: null }));
-		const html = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics }) });
-		assert.match(section(html, "today-open", "</a>"), />Midterm 2$/);
-		assert.ok(html.includes("CSE 21, the test is on Thursday at 7:00 PM"));
-		assert.match(section(html, "today-start", "</button>"), /Study$/);
-		const cont = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics, continueStudy: { chatId: "c", done: 1, total: 3 } }) });
-		assert.match(section(cont, "today-open", "</a>"), />Midterm 2$/);
-		assert.match(section(cont, "today-start", "</button>"), /Continue$/);
-	});
-
-	it("a click passes the deadline; the button waits while a lesson starts", async () => {
-		const started: string[] = [];
-		const done: string[] = [];
-		const el = await mount(
-			<MemoryRouter initialEntries={["/"]}>
-				<ul><TodayRow deadline={OPEN[1]!} progress={undefined} color={1} nowMs={NOW} busy={false} onStart={(x) => started.push(x.id)} onDone={(x) => done.push(x.id)} /></ul>
-			</MemoryRouter>,
-		);
-		await act(async () => {
-			el.querySelector<HTMLButtonElement>('[data-testid="today-start"]')!.click();
-			el.querySelector<HTMLButtonElement>('[data-testid="today-done"]')!.click();
-		});
-		assert.deepEqual([started, done], [["quiz"], ["quiz"]]);
-		assert.match(tag(todayRow({ busy: true }), "today-start"), /disabled/);
-	});
-});
-
-describe("A row ticked done", () => {
-	it("its name struck through, its space, and Undo, with no grey Done word", async () => {
-		const undone: string[] = [];
-		const el = await mount(
-			<MemoryRouter initialEntries={["/"]}>
-				<ul><DoneRow deadline={OPEN[2]!} onUndo={(x) => undone.push(x.id)} /></ul>
-			</MemoryRouter>,
-		);
-		const row = el.querySelector('[data-testid="today-done-row-hw5"]')!;
-		assert.equal(row.textContent, "Done, HW 5CSE 29Undo", "Done is said only to a screen reader");
-		assert.ok(row.querySelector(".line-through")!.textContent!.endsWith("HW 5"));
-		await act(async () => el.querySelector<HTMLButtonElement>('[data-testid="today-undo"]')!.click());
-		assert.deepEqual(undone, ["hw5"]);
-	});
-});
-
-describe("A row under Later", () => {
-	const html = renderToStaticMarkup(
-		<MemoryRouter initialEntries={["/"]}>
-			<LaterRow deadline={OPEN[4]!} progress={progressFor("far", { ready: 0.19 })} nowMs={NOW} />
-		</MemoryRouter>,
-	);
-
-	it("the whole row opens the deadline's page", () => {
-		const row = section(html, "later-row-far", "</li>");
-		assert.match(row, /<a[^>]*href="\/space\/deadline\/far"/);
-		assert.ok(!row.includes("<button"));
-		assert.ok(html.includes('data-teacher-target="deadline:far"'));
-	});
-
-	it("a plain row: its name, the space and the day, the days left as a chip, how ready; no block", () => {
-		assert.ok(!html.includes("--lh-space-"));
-		assert.ok(html.includes(">Project<"));
-		assert.ok(html.includes(">CSE 21, Tuesday Dec 1<"));
-		assert.match(html, /bg-highlight[^"]*font-count">34 days</);
-		assert.ok(html.includes(">19% ready<"));
-	});
-});
-
 // ─── The card ───────────────────────────────────────────────────────────────
 
 describe("The card", () => {
-	const html = renderToStaticMarkup(
-		<MemoryRouter initialEntries={["/"]}>
-			<NextCard deadline={OPEN[3]!} progress={progressFor("mid", { ready: 0.4, date: "2026-11-05" })} color={2} nowMs={NOW} busy={false} onStart={() => {}} onDone={() => {}} />
-		</MemoryRouter>,
-	);
+	function card(props: Partial<React.ComponentProps<typeof NextCard>> = {}) {
+		return renderToStaticMarkup(
+			<MemoryRouter initialEntries={["/"]}>
+				<NextCard deadline={OPEN[3]!} progress={progressFor("mid", { ready: 0.4, date: "2026-11-05" })} color={2} nowMs={NOW} busy={false} onStart={() => {}} onDone={() => {}} onUndo={() => {}} {...props} />
+			</MemoryRouter>,
+		);
+	}
+	const html = card();
 
 	it("the deadline's name as the title opening the deadline's page, then its space and when, and how ready", () => {
 		assert.match(tag(html, "today-card-open"), /href="\/space\/deadline\/mid"/);
 		assert.match(section(html, "today-card-open", "</a>"), />Midterm 2$/);
-		assert.ok(html.indexOf("Midterm 2") < html.indexOf("CSE 21, Thursday at 7:00 PM"), "nothing above the title");
+		assert.ok(html.indexOf("Midterm 2") < html.indexOf("CSE 21, Thursday Nov 5 at 7:00 PM"), "nothing above the title");
 		assert.match(tag(html, "today-card-ready"), /bg-highlight/);
 		assert.match(section(html, "today-card-ready", "</span>"), />40% ready$/);
-		assert.ok(html.includes("background:var(--lh-space-2)"), "the big block in the space's color");
-		assert.match(html, /text-\[92px\][^>]*>8<\/span>/, "the days left, large");
+		assert.ok(html.includes("background:var(--lh-space-2)"), "the tile in the space's color");
+		assert.match(html, /w-\[112px\][^>]*>.*text-\[42px\][^>]*>8<\/span><span[^>]*>days<\/span>/, "the days left over their unit");
+		assert.match(tag(html, "today-card"), /overflow-hidden/, "the tile is cut to the card's corners");
 		assert.ok(html.includes('data-teacher-target="deadline:mid"'));
 	});
 
-	it("holds the page's one main button, beside a quiet Mark done", () => {
+	it("an overdue one counts how late it is, never a bare word", () => {
+		const late = card({ deadline: OPEN[0]!, progress: undefined });
+		assert.match(late, />16<\/span><span[^>]*>hours late<\/span>/);
+	});
+
+	it("holds the page's one main button, beside a quiet Mark done, each as wide as its label", () => {
 		assert.ok(tag(html, "today-start").includes("lh-btn-main"));
+		assert.match(tag(html, "today-start"), /h-12 px-7 text-\[17px\]/, "the Progress page's main key size");
 		assert.match(section(html, "today-start", "</button>"), />Study$/);
 		assert.ok(tag(html, "today-done").includes("lh-btn-quiet"));
+		assert.ok(!html.includes("w-full justify-center"));
+	});
+
+	it("homework is worked on; the main key waits while a lesson starts", () => {
+		const hw = card({ deadline: OPEN[2]!, progress: progressFor("hw5", { problems: { done: 2, total: 7 } }), busy: true });
+		assert.match(section(hw, "today-start", "</button>"), />Work on it$/);
+		assert.match(tag(hw, "today-start"), /disabled/);
+		assert.match(section(hw, "today-card-ready", "</span>"), />2 of 7 problems done$/);
+	});
+
+	it("one ticked done: struck through, the Done stamp, Undo and no main key", async () => {
+		const undone: string[] = [];
+		const el = await mount(
+			<MemoryRouter initialEntries={["/"]}>
+				<NextCard deadline={{ ...OPEN[2]!, done: true, doneAt: new Date(NOW).toISOString() }} progress={undefined} color={3} nowMs={NOW} busy={false} onStart={() => {}} onDone={() => {}} onUndo={(x) => undone.push(x.id)} />
+			</MemoryRouter>,
+		);
+		assert.ok(el.querySelector("h2")!.className.includes("line-through"));
+		assert.ok(el.textContent!.includes("Done"));
+		assert.equal(el.querySelector('[data-testid="today-start"]'), null);
+		assert.equal(el.querySelector('[data-testid="today-done"]'), null);
+		await act(async () => el.querySelector<HTMLButtonElement>('[data-testid="today-undo"]')!.click());
+		assert.deepEqual(undone, ["hw5"]);
 	});
 });
 
@@ -352,8 +284,7 @@ function page(props: Partial<React.ComponentProps<typeof TodayBody>> = {}): stri
 				spacesProgress={new Map([["spc_la", spaceProgress({ counts: [9, 3, 0, 6] })], ["spc_os", spaceProgress({ counts: [4, 1, 0, 12] })]])}
 				noSpaceProgress={null}
 				progressErrors={new Map()}
-				worker="Teacher"
-				newFiles={new Map()}
+								newFiles={new Map()}
 				busy={false}
 				lessonError={null}
 				onStart={() => {}}
@@ -374,89 +305,249 @@ const count = (html: string, needle: string) => html.split(needle).length - 1;
 const LA_OPEN = [d("q2", "Quiz 2", "2026-10-30", undefined, { kind: "quiz", spaceId: "spc_la", spaceName: "Linear Algebra" }), d("hw4", "Homework 4", "2026-11-01", undefined, { spaceId: "spc_os", spaceName: "Operating Systems" }), d("fin", "Final", "2026-12-08", undefined, { kind: "exam", spaceId: "spc_la", spaceName: "Linear Algebra" })];
 
 describe("Today, as a whole page", () => {
+	const DONE_HW5 = { ...OPEN[2]!, done: true, doneAt: new Date(NOW).toISOString() };
+
 	it("waits in one block until everything is in", () => {
 		const html = page({ ready: false });
 		assert.ok(html.includes('data-testid="home-loading"'));
-		assert.ok(!html.includes('data-testid="today-week"'));
+		assert.ok(!html.includes('data-testid="today-studied"'));
 	});
 
-	it("with deadlines: the week line, then one deadlines card (the next, the rest of this week, Later), then the spaces, with one main button", () => {
-		const html = page({ lists: todayLists(LA_OPEN, [{ ...OPEN[2]!, done: true, doneAt: new Date(NOW).toISOString() }], NOW) });
-		const order = ["today-week", "today-deadlines", "today-card", "today-list", "later-list", "today-spaces"].map((id) => html.indexOf(`data-testid="${id}"`));
+	it("with deadlines: the date and days studied, the card, the week with Later, then the spaces, with one main key", () => {
+		const html = page({ lists: todayLists(LA_OPEN, [DONE_HW5], NOW) });
+		const order = ["today-date", "today-studied", "today-card", "today-deadlines", "week-columns", "week-later", "today-spaces"].map((id) => html.indexOf(`data-testid="${id}"`));
 		assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1]!)), `sections in order: ${order.join(", ")}`);
+		assert.match(section(html, "today-date", "</h1>"), />Wednesday, October 28$/);
 		assert.equal(count(html, "lh-btn-main"), 1);
 		assert.match(section(html, "today-card", "</h2>"), /Quiz 2/);
-		assert.ok(html.includes('data-testid="today-row-hw4"'));
-		assert.ok(html.includes('data-testid="today-done-row-hw5"'));
-		assert.ok(html.includes('data-testid="later-row-fin"'));
+		assert.ok(section(html, "week-day-2026-11-01", "</section>").includes('data-testid="week-item-hw4"'));
+		assert.ok(section(html, "week-day-2026-10-28", "</section>").includes('data-testid="week-item-hw5"'), "done today sits in today's column");
+		assert.ok(section(html, "week-later", "</section>").includes('data-testid="week-item-fin"'));
+		assert.ok(!html.includes('data-testid="today-later"'), "no Later card");
 		for (const title of ["Deadlines", "Your spaces"]) assert.ok(html.includes(`>${title}</h2>`), title);
-		assert.ok(html.includes(">Later</h3>"));
-		assert.ok(!html.includes(">This week<"), "the week is a quiet line under the title, not a section");
 		assert.match(section(html, "home-add-deadline", "</button>"), /Add$/);
 		assert.match(tag(html, "home-add-deadline"), /aria-label="Add a deadline"/);
+		assert.ok(!/<button[^>]*class="[^"]*lh-btn[^"]*w-full/.test(html) && !/<button[^>]*class="[^"]*w-full[^"]*lh-btn/.test(html), "no key wider than its label");
+	});
+
+	it("the week: seven columns from today, today's head filled and named for a screen reader, a block per deadline", () => {
+		const html = page({ lists: todayLists([OPEN[0]!, ...LA_OPEN], [DONE_HW5], NOW) });
+		assert.equal(count(html, 'data-testid="week-day-'), 7);
+		const today = section(html, "week-day-2026-10-28", "</section>");
+		assert.match(today, /<h3 class="[^"]*bg-highlight[^"]*"><span aria-hidden="true">Wed<span class="font-count"> 28<\/span><\/span><span class="sr-only">Wednesday, today<\/span>/);
+		assert.ok(today.indexOf("week-item-late") < today.indexOf("week-item-hw5"), "late first, done last");
+		assert.match(section(today, "week-item-late", "</button>"), />late<\/span>/);
+		assert.match(tag(today, "week-item-late"), /aria-label="HW 4, CSE 21, was due Tue Oct 27, late"/);
+		assert.match(tag(today, "week-item-hw5"), /aria-label="HW 5, CSE 29, due Friday, done"/);
+		assert.ok(section(today, "week-item-hw5", "</button>").includes("line-through"));
+		const fri = section(html, "week-day-2026-10-30", "</section>");
+		assert.match(tag(fri, "week-item-q2"), /background:var\(--lh-space-2\)/);
+		assert.ok(fri.includes('data-teacher-target="deadline:q2"'));
+		assert.ok(!section(html, "week-day-2026-10-29", "</section>").includes("week-item-"), "an empty day is an empty well");
+		assert.ok(!/class="grid[^"]*items-start/.test(html), "every column as tall as the fullest");
 	});
 
 	it("no spaces: the sentence and Add a space, nothing else", () => {
 		const html = page({ spaces: [], spacesProgress: new Map() });
 		assert.match(section(html, "today-empty", "</p>"), /None yet\. A space holds one subject&#x27;s files, deadlines and lessons\./);
 		assert.ok(tag(html, "today-add-space").includes("lh-btn-main"));
-		for (const id of ["today-week", "today-spaces", "home-add-deadline"]) assert.ok(!html.includes(`data-testid="${id}"`), id);
+		for (const id of ["today-studied", "today-spaces", "home-add-deadline"]) assert.ok(!html.includes(`data-testid="${id}"`), id);
 	});
 
-	it("spaces but no deadlines: no card, the sentence, this week, the spaces and Add a deadline", () => {
+	it("spaces but no deadlines: no card and no week, the sentence, the spaces and Add a deadline", () => {
 		const html = page();
 		assert.ok(!html.includes('data-testid="today-card"'));
+		assert.ok(!html.includes('data-testid="week-columns"'));
 		assert.match(section(html, "today-empty", "</p>"), /None yet\. Teacher can add them from your files\./);
-		assert.ok(!html.includes('data-testid="today-list"'));
-		assert.ok(!html.includes(">Later<"));
 		assert.ok(html.includes('data-testid="home-add-deadline"'));
 		assert.equal(count(html, "lh-btn-main"), 0);
 	});
 
-	it("nothing due this week: the sentence, and Later holds the rest", () => {
+	it("nothing due this week: seven empty days and Later, no sentence", () => {
 		const html = page({ lists: todayLists([LA_OPEN[2]!], [], NOW) });
-		assert.match(section(html, "today-empty", "</p>"), /Nothing is due in the next 7 days\./);
-		assert.ok(html.includes('data-testid="later-row-fin"'));
+		assert.ok(!html.includes('data-testid="today-empty"'));
+		assert.equal(count(html, 'data-testid="week-day-'), 7);
+		assert.ok(section(html, "week-later", "</section>").includes('data-testid="week-item-fin"'));
 	});
 
-	it("deadlines that failed to load keep Try again, this week and the spaces", () => {
+	it("deadlines that failed to load keep Try again, the days studied and the spaces", () => {
 		const html = page({ lists: null });
 		assert.ok(html.includes("Couldn&#x27;t load your deadlines."));
-		assert.ok(html.includes('data-testid="today-week"'));
+		assert.ok(html.includes('data-testid="today-studied"'));
 		assert.ok(html.includes('data-testid="today-spaces"'));
 		assert.ok(!html.includes('data-testid="home-add-deadline"'));
 	});
 
-	it("a week with no answers, and one with answers in two spaces", () => {
-		assert.match(section(page(), "today-week-line", "</p>"), /No studying yet this week\.$/);
+	it("the last 7 days with no answers, and with answers in two spaces, beside the date", () => {
+		assert.match(section(page(), "today-studied", "</p>"), /No studying in the last 7 days\.$/);
 		const progress = new Map([
-			["spc_la", spaceProgress({ answeredAt: [new Date(2026, 9, 26, 10), new Date(2026, 9, 28, 9)] })],
+			["spc_la", spaceProgress({ answeredAt: [new Date(2026, 9, 22, 10), new Date(2026, 9, 28, 9)] })],
 			["spc_os", spaceProgress({ answeredAt: [new Date(2026, 9, 28, 20)] })],
 		]);
 		const html = page({ spacesProgress: progress });
-		assert.match(section(html, "today-week-line", "</p>"), /You studied 2 days this week and answered 3 questions\.$/);
-		assert.match(html, /role="img" aria-label="You studied on Monday and Wednesday\."/);
-		assert.ok(html.indexOf('data-testid="today-week"') < html.indexOf('data-testid="today-empty"'), "under Today's title");
-		assert.equal(count(html, "data-studied"), 2);
+		assert.match(section(html, "today-studied", "</p>"), /You studied 2 of the last 7 days and answered 3 questions\.$/);
+		assert.ok(section(html, "today-date", "</header>").includes('data-testid="today-studied"'), "in the head, beside the date");
 	});
 
-	it("answers only in a lesson with no space fill their day and count", () => {
+	it("answers only in a lesson with no space count", () => {
 		const html = page({ noSpaceProgress: spaceProgress({ answeredAt: [new Date(2026, 9, 27, 10), new Date(2026, 9, 27, 11)] }) });
-		assert.match(section(html, "today-week-line", "</p>"), /You studied 1 day this week and answered 2 questions\.$/);
-		assert.match(html, /role="img" aria-label="You studied on Tuesday\."/);
-		assert.equal(count(html, "data-studied"), 1);
+		assert.match(section(html, "today-studied", "</p>"), /You studied 1 of the last 7 days and answered 2 questions\.$/);
+	});
+});
+
+describe("Picking in the week", () => {
+	function body(lists: ReturnType<typeof todayLists>, on: { done?: string[]; undone?: string[] } = {}) {
+		return (
+			<MemoryRouter initialEntries={["/"]}>
+				<TodayBody
+					nowMs={NOW}
+					ready
+					spaces={[LA, OS]}
+					lists={lists}
+					deadlineProgress={new Map()}
+					spacesProgress={new Map()}
+					noSpaceProgress={null}
+					progressErrors={new Map()}
+										newFiles={new Map()}
+					busy={false}
+					lessonError={null}
+					onStart={() => {}}
+					onDone={(x) => on.done?.push(x.id)}
+					onUndo={(x) => on.undone?.push(x.id)}
+					onRetry={() => {}}
+					onAddSpace={() => {}}
+					onAddDeadline={() => {}}
+					onOpenSpace={() => {}}
+				/>
+			</MemoryRouter>
+		);
+	}
+	const $ = (el: HTMLElement, testid: string) => el.querySelector<HTMLElement>(`[data-testid="${testid}"]`);
+	const cardTitle = (el: HTMLElement) => $(el, "today-card-open")!.textContent;
+	const DONE_HW5 = { ...OPEN[2]!, done: true, doneAt: new Date(NOW).toISOString() };
+
+	it("the card shows the next thing until a block is picked; a click shows that one, pressed, and says so", async () => {
+		const el = await mount(body(todayLists(LA_OPEN, [DONE_HW5], NOW)));
+		assert.equal(cardTitle(el), "Quiz 2");
+		assert.equal($(el, "week-item-q2")!.getAttribute("aria-pressed"), "true");
+		assert.equal($(el, "today-showing")!.textContent, "", "nothing said before a pick");
+		await act(async () => $(el, "week-item-hw4")!.click());
+		assert.equal(cardTitle(el), "Homework 4");
+		assert.equal($(el, "week-item-hw4")!.getAttribute("aria-pressed"), "true");
+		assert.equal($(el, "week-item-q2")!.getAttribute("aria-pressed"), "false");
+		assert.ok($(el, "week-item-hw4")!.className.includes("border-ink"));
+		assert.equal($(el, "today-showing")!.textContent, "Showing Homework 4");
+		assert.equal(count(el.innerHTML, "lh-btn-main"), 1);
+	});
+
+	it("a picked one ticked done today: struck through with Undo and no main key", async () => {
+		const undone: string[] = [];
+		const el = await mount(body(todayLists(LA_OPEN, [DONE_HW5], NOW), { undone }));
+		await act(async () => $(el, "week-item-hw5")!.click());
+		assert.equal(cardTitle(el), "HW 5");
+		assert.equal($(el, "today-start"), null);
+		await act(async () => $(el, "today-undo")!.click());
+		assert.deepEqual(undone, ["hw5"]);
+	});
+
+	it("Mark done on the picked one keeps it shown, struck through, once the lists say it is done", async () => {
+		const done: string[] = [];
+		const el = await mount(body(todayLists(LA_OPEN, [], NOW), { done }));
+		await act(async () => $(el, "week-item-hw4")!.click());
+		await act(async () => $(el, "today-done")!.click());
+		assert.deepEqual(done, ["hw4"]);
+		const hw4Done = { ...LA_OPEN[1]!, done: true, doneAt: new Date(NOW).toISOString() };
+		await act(async () => root!.render(body(todayLists([LA_OPEN[0]!, LA_OPEN[2]!], [hw4Done], NOW))));
+		assert.equal(cardTitle(el), "Homework 4");
+		assert.ok($(el, "today-undo"));
+	});
+
+	it("a pick that leaves the lists falls back to the next thing", async () => {
+		const el = await mount(body(todayLists(LA_OPEN, [], NOW)));
+		await act(async () => $(el, "week-item-hw4")!.click());
+		await act(async () => root!.render(body(todayLists([LA_OPEN[0]!], [], NOW))));
+		assert.equal(cardTitle(el), "Quiz 2");
+		assert.equal($(el, "today-showing")!.textContent, "Showing Quiz 2");
+	});
+
+	it("a day with more than four shows three and +N more, which unfolds the whole week; Show less folds it", async () => {
+		const busy = ["a", "b", "c", "e", "f"].map((id, i) => d(id, `Task ${id}`, "2026-10-30", `1${i}:00`));
+		const el = await mount(body(todayLists(busy, [], NOW)));
+		const fri = () => $(el, "week-day-2026-10-30")!;
+		const shown = () => fri().querySelectorAll('[data-testid^="week-item-"]').length;
+		assert.equal(shown(), 3);
+		assert.equal($(el, "week-more")!.textContent, "+2 more");
+		assert.equal($(el, "week-more")!.getAttribute("aria-expanded"), "false");
+		await act(async () => $(el, "week-more")!.click());
+		assert.equal(shown(), 5);
+		assert.equal($(el, "week-rest")!.getAttribute("data-state"), "open");
+		assert.ok($(el, "week-rest")!.className.includes("lh-collapse"), "a fold while it eases open");
+		await act(async () => void $(el, "week-rest")!.dispatchEvent(new window.Event("transitionend", { bubbles: true })));
+		assert.ok(!$(el, "week-rest")!.className.includes("lh-collapse"), "a plain box once open, so a resize can't cut it off");
+		assert.equal($(el, "week-more")!.textContent, "Show less");
+		await act(async () => $(el, "week-more")!.click());
+		await act(async () => void (await new Promise((r) => setTimeout(r, 200))));
+		assert.equal(shown(), 3);
+		assert.equal($(el, "week-more")!.textContent, "+2 more");
+	});
+
+	it("a Later block picks into the card, with its days left and its key", async () => {
+		const el = await mount(body(todayLists(LA_OPEN, [], NOW)));
+		await act(async () => $(el, "week-item-fin")!.click());
+		assert.equal(cardTitle(el), "Final");
+		assert.equal($(el, "week-item-fin")!.getAttribute("aria-pressed"), "true");
+		assert.ok($(el, "today-start"));
+	});
+
+	it("a day with four shows all four and no key", async () => {
+		const four = ["a", "b", "c", "e"].map((id) => d(id, `Task ${id}`, "2026-10-30"));
+		const el = await mount(body(todayLists(four, [], NOW)));
+		assert.equal($(el, "week-day-2026-10-30")!.querySelectorAll('[data-testid^="week-item-"]').length, 4);
+		assert.equal($(el, "week-more"), null);
+	});
+});
+
+/** The week grid's column sizes, one per column. */
+const gridColumns = (html: string) => html.match(/grid-template-columns:([^"]*)"/)![1]!.split(/ (?=minmax)/);
+
+describe("Later, the eighth column", () => {
+	it("after the seven days: its head, then blocks by date, each with its date always under the name", () => {
+		const html = page({ lists: todayLists([OPEN[4]!, LA_OPEN[2]!], [], NOW) });
+		const later = section(html, "week-later", "</section>");
+		assert.ok(html.indexOf('data-testid="week-day-2026-11-03"') < html.indexOf('data-testid="week-later"'));
+		assert.match(later, /<h3 class="[^"]*text-ink-2[^"]*"><span aria-hidden="true">Later<\/span><span class="sr-only">Later<\/span>/);
+		assert.ok(later.indexOf("week-item-far") < later.indexOf("week-item-fin"), "Dec 1 before Dec 8");
+		assert.match(section(later, "week-item-far", "</button>"), /<span class="w-full truncate[^"]*block">Dec 1<\/span>/);
+		assert.match(tag(later, "week-item-far"), /aria-label="Project, CSE 21, due Tuesday Dec 1 at 12:00 PM"/);
+		assert.ok(later.includes('data-teacher-target="deadline:far"'));
+		assert.equal(gridColumns(html).length, 8);
+	});
+
+	it("an empty day takes the narrow-week share, a day with something a whole one; a block's second line is its time alone", () => {
+		const html = page({ lists: todayLists([d("q", "Quiz", "2026-10-29", "08:00"), OPEN[2]!], [], NOW) });
+		assert.deepEqual(gridColumns(html).slice(0, 4), ["minmax(min-content, var(--day-empty))", "minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(min-content, var(--day-empty))"]);
+		assert.ok(html.includes("@max-[760px]:[--day-empty:0.6fr]"));
+		assert.match(section(html, "week-item-q", "</button>"), /hidden @min-\[1000px\]:block">8:00 AM<\/span>/);
+		assert.ok(!section(html, "week-item-hw5", "</button>").includes("@min-[1000px]:block"), "no time, no second line");
+	});
+
+	it("nothing after the week: seven columns and no Later", () => {
+		const html = page({ lists: todayLists([OPEN[0]!], [], NOW) });
+		assert.ok(!html.includes('data-testid="week-later"'));
+		assert.equal(gridColumns(html).length, 7);
 	});
 });
 
 describe("Your spaces", () => {
-	it("one row per space: its name, the topic bar with words for a screen reader, the counts, and the row opens the space", () => {
+	it("one tile per space: its color square and name as its tab shows them, the topic bar with words for a screen reader, the counts, and the tile opens the space", () => {
 		const html = page();
 		const row = section(html, "today-space-spc_la", "</li>");
 		assert.match(tag(row, "today-space-open"), /^<a[^>]*href="\/space"/);
 		assert.ok(row.includes(">Linear Algebra<"));
 		assert.ok(row.includes('role="img" aria-label="18 topics, 9 strong, 3 shaky, 6 not tested"'));
 		assert.ok(row.includes(">18 topics, 9 strong, 3 shaky, 6 not tested<"));
-		assert.ok(!row.includes("border-line"), "a plain row, not a box");
+		assert.match(row, /<span aria-hidden="true" class="size-2\.5 shrink-0" style="background:var\(--lh-space-2\)">/, "the space's color square");
+		assert.ok(!row.includes("font-medium"), "the name in regular weight");
 		assert.equal(count(row, "flex-grow:"), 3);
 	});
 
@@ -473,8 +564,7 @@ describe("Your spaces", () => {
 					spacesProgress={new Map([["spc_la", spaceProgress()]])}
 					noSpaceProgress={null}
 					progressErrors={new Map()}
-					worker="Teacher"
-					newFiles={new Map([["spc_la", "2 new files since Monday"]])}
+										newFiles={new Map([["spc_la", "2 new files since Monday"]])}
 					busy={false}
 					lessonError={null}
 						onStart={() => {}}
@@ -501,28 +591,25 @@ describe("Your spaces", () => {
 		assert.match(tag(row, "today-space-files"), /bg-highlight/);
 	});
 
-	it("a space with no topics says so; the teacher at work is a chip beside the name", () => {
+	it("a space with no files says what to add; one whose files are being read says nothing, as the top bar's pill says that", () => {
 		const progress = new Map([["spc_la", spaceProgress({ files: 0, facts: 0 })], ["spc_os", spaceProgress({ files: 4, facts: 0 })]]);
-		const building = { ...OS, filesLeft: 4, building: true as const };
-		const html = page({ spaces: [LA, building], spacesProgress: progress });
+		const html = page({ spaces: [LA, { ...OS, filesLeft: 4 }], spacesProgress: progress });
 		assert.match(section(html, "today-space-spc_la", "</li>"), />No study files yet\.</);
 		const os = section(html, "today-space-spc_os", "</li>");
-		assert.match(os, /data-testid="today-space-work"[^>]*class="[^"]*bg-highlight[^"]*"><span class="truncate">Building, 4 left</);
-		assert.match(os, />No facts yet\.</);
-		const counted = page({ spaces: [LA, { ...OS, filesLeft: 2 }] });
-		assert.match(section(counted, "today-space-spc_os", "</li>"), /data-testid="today-space-work"[^>]*><span class="truncate">Reading new files, 2 left</);
+		assert.ok(!os.includes("today-space-line"));
+		assert.ok(!os.includes("bg-highlight"), "no chip for the teacher's work");
 	});
 
 	it("a space still loading is quiet; only a failed read says so", () => {
 		const progress = new Map([["spc_la", spaceProgress({ counts: [9, 3, 0, 6] })]]);
 		const loading = section(page({ spacesProgress: progress }), "today-space-spc_os", "</li>");
 		assert.ok(!loading.includes("Couldn&#x27;t load"), "a new space waits for its first read");
-		assert.ok(!loading.includes('role="img"'), "the dotted bar, no counts");
+		assert.ok(!loading.includes('role="img"'), "no bar, no counts");
 		const failed = section(page({ spacesProgress: progress, progressErrors: new Map([["spc_os", "HTTP 500"]]) }), "today-space-spc_os", "</li>");
 		assert.match(failed, />Couldn&#x27;t load its progress\.</);
 	});
 
-	it("one space, or six, each gets its row", () => {
+	it("one space, or six, each gets its tile", () => {
 		const one = page({ spaces: [LA] });
 		assert.equal(count(one, 'data-testid="today-space-open"'), 1);
 		const six = ["a", "b", "c", "d", "e", "f"].map((id, i) => space(`spc_${id}`, `Space ${id}`, { color: (i % 8) + 1 }));

@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { files, filesProgress, jobFrame, readNews, spaceFrame, tabWorkTag, todayWorkLine, workProgress, workerName, workState } from "../../src/frontend/components/work/work-model.ts";
+import { files, filesProgress, jobFrame, readNews, spaceFrame, tabWorkTag, workProgress, workerName, workState } from "../../src/frontend/components/work/work-model.ts";
 import type { SpaceFile, SpaceFileStatus, SpaceSummary, SpaceWork } from "../../src/shared/core/index.ts";
 
 const file = (id: string, status: SpaceFileStatus, extra: Partial<SpaceFile> = {}): SpaceFile => ({
@@ -98,14 +98,6 @@ describe("the work frame of a page one job works on", () => {
 
 describe("elsewhere", () => {
 	const space = (over: Partial<SpaceSummary>): SpaceSummary => ({ id: "spc_ml", name: "Machine Learning", description: "", createdAt: "", updatedAt: "", closed: false, fileCount: 18, color: 1, filesLeft: 0, ...over });
-
-	it("Today names the space and how many files are left", () => {
-		assert.equal(todayWorkLine(space({ filesLeft: 15, building: true }), "Helper"), "Building, 15 left");
-		assert.equal(todayWorkLine(space({ filesLeft: 2 }), "Teacher"), "Reading new files, 2 left");
-		assert.equal(todayWorkLine(space({ filesLeft: 18, building: true }), null), "18 files are waiting", "the top bar says why");
-		assert.equal(todayWorkLine(space({ filesLeft: 1 }), null), "1 file is waiting");
-		assert.equal(todayWorkLine(space({}), "Teacher"), null);
-	});
 
 	it("the tab's tag", () => {
 		assert.equal(tabWorkTag(space({ filesLeft: 15 })), "15 left");

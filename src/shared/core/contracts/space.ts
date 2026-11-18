@@ -302,8 +302,6 @@ export interface SpaceSummary {
 	note?: SpaceNote;
 	/** Study files the teacher still has to read. */
 	filesLeft: number;
-	/** Those are the space's first files: it is being built. */
-	building?: true;
 	/** Files of the round under way that are finished; absent when none. */
 	filesRead?: number;
 }
