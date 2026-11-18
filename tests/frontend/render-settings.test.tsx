@@ -169,6 +169,12 @@ describe("GeneralSection (SSR)", () => {
 		assert.match(off.split('data-testid="toggle-sounds"')[1]!.slice(0, 400), />Off</);
 	});
 
+	it("the startup sound has its own switch, apart from the other sounds", () => {
+		const startupOff = render({ version: 1, general: { startupSound: false } });
+		assert.match(startupOff.split('data-testid="toggle-startup-sound"')[1]!.slice(0, 400), />Off</);
+		assert.match(startupOff.split('data-testid="toggle-sounds"')[1]!.slice(0, 400), />On</);
+	});
+
 	it("deadline reminders: on by default, off when the record says so, only in the desktop app", () => {
 		assert.ok(!render({ version: 1 }).includes("deadline-reminders-row"), "a browser can show no notification");
 		const global = globalThis as { window?: unknown };

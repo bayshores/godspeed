@@ -46,7 +46,7 @@ export function Root() {
 							<AppearanceProvider initial={boot.appearance}>
 								<div className="flex h-dvh flex-col">
 									<ActivityProvider>
-										<SoundProvider initialOn={boot.sounds}>
+										<SoundProvider initialOn={boot.sounds} initialStartupOn={boot.startupSound}>
 											{boot.onboarding ? (
 												<>
 													<PageTitle />

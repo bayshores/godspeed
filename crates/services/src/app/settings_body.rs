@@ -74,6 +74,9 @@ fn parse_general(body: &Json) -> Parsed {
 			out.insert("teacherName", name);
 		}
 	}
+	if let Some(v) = boolean(raw, "startupSound")? {
+		out.insert("startupSound", v);
+	}
 	if let Some(v) = boolean(raw, "sounds")? {
 		out.insert("sounds", v);
 	}

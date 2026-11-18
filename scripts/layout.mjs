@@ -255,6 +255,8 @@ async function main() {
 
 	fs.rmSync(RUN, { recursive: true, force: true });
 	for (const dir of ["data", "home", "tmp"]) fs.mkdirSync(path.join(RUN, dir), { recursive: true });
+	// Silent from the first page load: the run's windows are hidden, but their sounds are heard.
+	fs.writeFileSync(path.join(RUN, "data", "settings.json"), JSON.stringify({ version: 3, general: { startupSound: false, sounds: false } }));
 	standInAgent(path.join(RUN, "home"));
 	const port = await freePort();
 	const pageSource = fs.readFileSync(path.join(import.meta.dirname, "layout-page.mjs"), "utf8").replace(/^export /gm, "");
@@ -283,7 +285,7 @@ async function main() {
 		});
 		const { settings } = JSON.parse(await app.run(`return fetch("/api/settings")${HTTP_OK}.then((r) => r.text())`));
 		const version = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).version;
-		const general = { ...settings.general, onboarded: true, lastSeenVersion: version, activeSpace: ids.space, sounds: false, teacherName: "Quigley" };
+		const general = { ...settings.general, onboarded: true, lastSeenVersion: version, activeSpace: ids.space, teacherName: "Quigley" };
 		await page.fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(general) });
 	} finally {
 		await app.quit();

@@ -1,6 +1,6 @@
 /**
- * The app's sound effects (public/sounds), behind the Settings → General
- * "Sounds" switch.
+ * The app's sound effects (public/sounds), behind two Settings → General
+ * switches: "Startup sound" for the welcome screen's sound, "Sounds" for the rest.
  */
 
 import { createContext, useCallback, useContext, useRef } from "react";
@@ -10,22 +10,25 @@ type SoundName = "startup" | "intro" | "connected" | "all-set" | "right" | "wron
 
 const PlayContext = createContext<(name: SoundName) => void>(() => {});
 
-export function SoundProvider({ initialOn, children }: { initialOn: boolean; children: React.ReactNode }) {
+export function SoundProvider({ initialOn, initialStartupOn, children }: { initialOn: boolean; initialStartupOn: boolean; children: React.ReactNode }) {
 	const on = useRef(initialOn);
+	const startupOn = useRef(initialStartupOn);
 	const loaded = useRef(new Map<SoundName, HTMLAudioElement>());
 
 	useSettingsSaved((section) => {
 		if (section !== "general") return;
 		fetch("/api/settings", { cache: "no-store" })
 			.then((r) => (r.ok ? r.json() : null))
-			.then((body: { settings?: { general?: { sounds?: boolean } } } | null) => {
-				if (body) on.current = body.settings?.general?.sounds !== false;
+			.then((body: { settings?: { general?: { sounds?: boolean; startupSound?: boolean } } } | null) => {
+				if (!body) return;
+				on.current = body.settings?.general?.sounds !== false;
+				startupOn.current = body.settings?.general?.startupSound !== false;
 			})
 			.catch(() => {});
 	});
 
 	const play = useCallback((name: SoundName) => {
-		if (!on.current) return;
+		if (!(name === "startup" ? startupOn : on).current) return;
 		let audio = loaded.current.get(name);
 		if (!audio) {
 			audio = new Audio(`/sounds/${name}.mp3`);

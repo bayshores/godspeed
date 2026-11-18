@@ -58,7 +58,9 @@ export interface GeneralSettings {
 	/** The on-screen teacher's name. Only shown in
 	 *  the window; the agent's prompts never use it. Default "Teacher". */
 	teacherName?: string;
-	/** Startup, onboarding and right/wrong answer sounds (default ON). */
+	/** The welcome screen's sound on each launch (default ON). */
+	startupSound?: boolean;
+	/** Onboarding, right/wrong answer and teacher-done sounds (default ON). */
 	sounds?: boolean;
 	/** One system notification a day for a deadline 3 days away or less (default ON). */
 	deadlineReminders?: boolean;
@@ -147,7 +149,7 @@ export interface FactorySettings {
 
 export const FACTORY_SETTINGS: FactorySettings = {
 	version: CURRENT_SETTINGS_VERSION,
-	general: { autoUpdate: true, activeSpace: "none", teacherName: DEFAULT_TEACHER_NAME, sounds: true, deadlineReminders: true },
+	general: { autoUpdate: true, activeSpace: "none", teacherName: DEFAULT_TEACHER_NAME, startupSound: true, sounds: true, deadlineReminders: true },
 	appearance: {
 		background: null, // Paper
 		fontFamily: null, // Literata
@@ -189,6 +191,8 @@ function sanitizeGeneral(raw: Record<string, unknown>): GeneralSettings {
 		const name = sanitizeTeacherName(raw.teacherName);
 		if (name) out.teacherName = name;
 	}
+	const startupSound = boolOrDrop(raw.startupSound);
+	if (startupSound !== undefined) out.startupSound = startupSound;
 	const sounds = boolOrDrop(raw.sounds);
 	if (sounds !== undefined) out.sounds = sounds;
 	const deadlineReminders = boolOrDrop(raw.deadlineReminders);

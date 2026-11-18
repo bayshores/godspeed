@@ -9,7 +9,7 @@ import type { BootInfo } from "@/shared/core";
  */
 
 /** What the app shows when the server couldn't answer: the app, No space. */
-const UNREAD: BootInfo = { onboarding: false, firstLoad: null, whatsNewSince: null, folderNotice: null, activeSpace: null, sounds: true };
+const UNREAD: BootInfo = { onboarding: false, firstLoad: null, whatsNewSince: null, folderNotice: null, activeSpace: null, startupSound: true, sounds: true };
 
 declare global {
 	interface Window {

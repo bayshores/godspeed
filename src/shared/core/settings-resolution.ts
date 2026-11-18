@@ -55,6 +55,7 @@ export function resolveSettings(record: UserSettings | null): EffectiveSettings 
 			autoUpdate: record?.general?.autoUpdate ?? FACTORY_SETTINGS.general.autoUpdate,
 			activeSpace: record?.general?.activeSpace ?? FACTORY_SETTINGS.general.activeSpace,
 			teacherName: record?.general?.teacherName || FACTORY_SETTINGS.general.teacherName,
+			startupSound: record?.general?.startupSound ?? FACTORY_SETTINGS.general.startupSound,
 			sounds: record?.general?.sounds ?? FACTORY_SETTINGS.general.sounds,
 			deadlineReminders: record?.general?.deadlineReminders ?? FACTORY_SETTINGS.general.deadlineReminders,
 		},

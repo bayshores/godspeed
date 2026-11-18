@@ -472,6 +472,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -501,6 +502,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -539,6 +541,7 @@
 						"autoUpdate": false,
 						"activeSpace": "cls_a",
 						"teacherName": "Zed",
+						"startupSound": true,
 						"sounds": false,
 						"deadlineReminders": false
 					},
@@ -572,6 +575,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -612,6 +616,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -649,6 +654,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -692,6 +698,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -733,6 +740,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -766,6 +774,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -800,6 +809,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -831,6 +841,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -862,6 +873,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -893,6 +905,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -924,6 +937,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -962,6 +976,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -999,6 +1014,7 @@
 						"autoUpdate": true,
 						"activeSpace": "cls_abc-1_2",
 						"teacherName": "Zed the great",
+						"startupSound": true,
 						"sounds": false,
 						"deadlineReminders": true
 					},
@@ -1034,6 +1050,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1068,6 +1085,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1114,6 +1132,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1154,6 +1173,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1187,6 +1207,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1227,6 +1248,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1263,6 +1285,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1298,6 +1321,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1332,6 +1356,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1366,6 +1391,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1399,6 +1425,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1432,6 +1459,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1465,6 +1493,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1498,6 +1527,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1548,6 +1578,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1594,6 +1625,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1629,6 +1661,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1664,6 +1697,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1700,6 +1734,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1736,6 +1771,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},
@@ -1776,6 +1812,7 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
+						"startupSound": true,
 						"sounds": true,
 						"deadlineReminders": true
 					},

@@ -13,6 +13,6 @@ The shell is launcher and security guard. All app logic runs in `godspeed-server
 | Shutdown | closing server's stdin stops it, so a dying shell never leaves a server behind |
 | Crashes | shell restarts server max 3 times a minute with `LH_SERVER_RESTARTED=1` and reloads window. After that, a "godspeed stopped working" dialog offers Relaunch, Report a bug, Quit |
 
-The window stays hidden until the app drew its first screen. It reports that via `window.lh.showWindow` once `/api/boot` answered and React rendered, or is shown 5 seconds after first paint. First screen is the welcome screen (`src/frontend/components/welcome/welcome.tsx`, chosen by `first_load_screen` in `services::app::welcome`), which plays the startup sound; after a crash restart, a "godspeed restarted after a problem" notice instead.
+The window stays hidden until the app drew its first screen. It reports that via `window.lh.showWindow` once `/api/boot` answered and React rendered, or is shown 5 seconds after first paint. First screen is the welcome screen (`src/frontend/components/welcome/welcome.tsx`, chosen by `first_load_screen` in `services::app::welcome`), which plays the startup sound (behind its own Startup sound switch); after a crash restart, a "godspeed restarted after a problem" notice instead.
 
 The page reaches the shell through `window.lh`, typed in `src/frontend/components/desktop-env.tsx` and defined by `crates/shell/src/shim.js` (calls the shell's Tauri commands). Kept in step by hand.

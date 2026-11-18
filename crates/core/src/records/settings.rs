@@ -41,7 +41,7 @@ const OBJECT_PROTOTYPE_KEYS: [&str; 12] = [
 pub fn factory_settings() -> Json {
 	json!({
 		"version": CURRENT_SETTINGS_VERSION,
-		"general": { "autoUpdate": true, "activeSpace": "none", "teacherName": DEFAULT_TEACHER_NAME, "sounds": true, "deadlineReminders": true },
+		"general": { "autoUpdate": true, "activeSpace": "none", "teacherName": DEFAULT_TEACHER_NAME, "startupSound": true, "sounds": true, "deadlineReminders": true },
 		"appearance": {
 			"background": null,
 			"fontFamily": null,
@@ -87,6 +87,9 @@ fn sanitize_general(raw: &Json) -> Json {
 	}
 	if let Some(name) = raw["teacherName"].as_str().map(sanitize_teacher_name).filter(|n| !n.is_empty()) {
 		out.insert("teacherName", name);
+	}
+	if let Some(startup) = raw["startupSound"].as_bool() {
+		out.insert("startupSound", startup);
 	}
 	if let Some(sounds) = raw["sounds"].as_bool() {
 		out.insert("sounds", sounds);

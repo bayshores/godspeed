@@ -18,6 +18,7 @@ export interface BootInfo {
 	spaces?: SpaceSummary[];
 	/** The teacher's name (Settings, General); missing means the default. */
 	teacherName?: string;
+	startupSound: boolean;
 	sounds: boolean;
 	/** The saved look, so the first paint already has its colors; missing means the defaults. */
 	appearance?: AppearanceSettings;

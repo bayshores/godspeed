@@ -27,6 +27,7 @@ pub fn resolve_settings(record: Option<&Json>) -> Json {
 			"autoUpdate": or(&general["autoUpdate"], &factory["general"]["autoUpdate"]),
 			"activeSpace": or(&general["activeSpace"], &factory["general"]["activeSpace"]),
 			"teacherName": if teacher.truthy() { teacher.clone() } else { factory["general"]["teacherName"].clone() },
+			"startupSound": or(&general["startupSound"], &factory["general"]["startupSound"]),
 			"sounds": or(&general["sounds"], &factory["general"]["sounds"]),
 			"deadlineReminders": or(&general["deadlineReminders"], &factory["general"]["deadlineReminders"]),
 		},
