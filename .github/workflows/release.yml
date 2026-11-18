@@ -6,7 +6,7 @@ on:
   # Manual and scheduled runs are rehearsals: no Apple signing, a throwaway updater key,
   # artifacts only. They NEVER create, change or upload to a release.
   # A rehearsal on main also saves the build caches that tag runs restore (docs/desktop-release.md).
-  # CI starts one on main when the Rust dependencies change; the weekly one keeps the caches
+  # CI starts one on main when they are stale or missing; the weekly one keeps them
   # from expiring after 7 unused days.
   schedule:
     - cron: "30 13 * * 1"

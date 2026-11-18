@@ -176,7 +176,7 @@ jobs:
           path: target/layout
 
   # Tag runs restore the release build caches that a rehearsal on main saved
-  # (docs/desktop-release.md). When the Rust dependencies change, this starts one.
+  # (docs/desktop-release.md). This starts one when they are stale or missing.
   release-cache:
     name: Warm the release caches
     if: github.event_name == 'push'
@@ -186,13 +186,29 @@ jobs:
       actions: write
       contents: read
     steps:
-      - name: Start a release rehearsal on main when the Rust dependencies change
+      - name: Start a release rehearsal on main when its caches are stale or missing
         env:
           GH_TOKEN: ${{ github.token }}
           BEFORE: ${{ github.event.before }}
-        # A failed compare (a force push) starts one too.
         run: |
+          set -euo pipefail
+          why=""
+          # A failed compare (a force push) counts as a change.
           files=$(gh api "repos/$GITHUB_REPOSITORY/compare/$BEFORE...$GITHUB_SHA" --jq '.files[].filename') || files=Cargo.lock
           if grep -qxE 'Cargo\.(lock|toml)|rust-toolchain\.toml|crates/[^/]+/Cargo\.toml|\.github/workflows/release\.yml' <<<"$files"; then
+            why="the Rust dependencies, the toolchain or release.yml changed"
+          fi
+          # Also after GitHub deleted one (unused for 7 days, or pushed out of the 10 GB).
+          for platform in mac mac-intel windows; do
+            if [[ -z "$(gh cache list -R "$GITHUB_REPOSITORY" --ref refs/heads/main --key "v0-rust-release-$platform-package-" --json id --jq '.[].id')" ]]; then
+              why="main has no $platform release cache"
+            fi
+          done
+          if [[ -z "$why" ]]; then
+            echo "The release caches are current."
+          elif [[ "$(gh run list -R "$GITHUB_REPOSITORY" --workflow release.yml --branch main --json status --jq 'map(select(.status != "completed")) | length')" != 0 ]]; then
+            echo "A rehearsal on main is already running ($why)."
+          else
+            echo "Starting a rehearsal on main: $why."
             gh workflow run release.yml --ref main -R "$GITHUB_REPOSITORY"
           fi
