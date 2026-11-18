@@ -4,9 +4,11 @@
 
 use gs_json::{Json, json};
 
+use super::file_state::{FileKind, FileStatus};
+
 /// A study file the teacher still has to read.
 pub fn is_waiting_file(file: &Json) -> bool {
-	file["kind"].as_str() == Some("study") && matches!(file["status"].as_str(), Some("pending" | "extracting"))
+	FileKind::of(file) == Some(FileKind::Study) && FileStatus::of(file).is_some_and(FileStatus::is_waiting)
 }
 
 fn open(work: Option<&Json>) -> Option<&Json> {

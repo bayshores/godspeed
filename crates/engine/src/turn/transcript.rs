@@ -5,7 +5,7 @@
 use gs_base::clock;
 use gs_json::{Json, Obj, json, stringify};
 
-use super::messages::role;
+use gs_core::messages::role::Role;
 use super::tool::Tool;
 
 /// `toToolDeclaration`: what the model sees of a tool.
@@ -19,7 +19,7 @@ pub fn initial_system_message(system_prompt: &str, declarations: &[Json]) -> Opt
 		return None;
 	}
 	let mut m = Obj::new();
-	m.insert("role", "system");
+	m.insert("role", Role::System.as_str());
 	m.insert("content", system_prompt);
 	if !declarations.is_empty() {
 		m.insert("toolsAdded", declarations.to_vec());
@@ -64,7 +64,7 @@ fn name_of(tool: &Json) -> &str {
 /// `getCurrentTools`: every system message's removals and additions, replayed in order.
 fn current_tools(messages: &[Json]) -> Vec<Json> {
 	let mut tools: Vec<Json> = Vec::new();
-	for m in messages.iter().filter(|m| role(m) == "system") {
+	for m in messages.iter().filter(|m| Role::System.is(m)) {
 		for removed in named(m, "toolsRemoved") {
 			tools.retain(|t| name_of(t) != name_of(removed));
 		}
@@ -103,7 +103,7 @@ fn with_tool_changes(message: &Json, added: &[Json], removed: &[Json]) -> Json {
 /// `declareToolChanges`: before a request, the difference between the tools the transcript
 /// declares and the tools that can run goes on a system message among `pending`.
 pub fn declare_tool_changes(transcript: &[Json], declarations: &[Json], pending: Vec<Json>) -> Vec<Json> {
-	let system_index = pending.iter().rposition(|m| role(m) == "system");
+	let system_index = pending.iter().rposition(|m| Role::System.is(m));
 	let baseline: Vec<Json> = match system_index {
 		Some(i) => pending.iter().enumerate().map(|(k, m)| if k == i { with_tool_changes(m, &[], &[]) } else { m.clone() }).collect(),
 		None => pending.clone(),
@@ -121,8 +121,8 @@ pub fn declare_tool_changes(transcript: &[Json], declarations: &[Json], pending:
 	if unchanged {
 		return pending;
 	}
-	let update = with_tool_changes(&json!({ "role": "system", "content": "", "timestamp": clock::now_ms() }), &added, &removed);
-	let at = pending.iter().position(|m| role(m) != "system").unwrap_or(pending.len());
+	let update = with_tool_changes(&json!({ "role": Role::System.as_str(), "content": "", "timestamp": clock::now_ms() }), &added, &removed);
+	let at = pending.iter().position(|m| !Role::System.is(m)).unwrap_or(pending.len());
 	let mut out = pending;
 	out.insert(at, update);
 	out

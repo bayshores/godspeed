@@ -11,6 +11,7 @@ use super::files::{file_in};
 use super::pipeline::reindex_kept_pages;
 use super::space_card::space_file_path;
 use super::text_cache::{read_kept_pages, write_kept_page};
+use gs_core::spaces::file_state::FileStatus;
 use crate::App;
 use crate::app::reading_pages::is_pdf;
 
@@ -21,7 +22,7 @@ pub async fn kept_pages_at(app: &App, path: &Path) -> Option<KeptPages> {
 	for record in app.stores.spaces.list_space_records() {
 		for file in record["files"].items() {
 			let fp = file["contentFp"].str_or_empty();
-			if file["status"].str_or_empty() != "ready" || fp.is_empty() || !is_pdf(Path::new(file["name"].str_or_empty())) {
+			if FileStatus::of(file) != Some(FileStatus::Ready) || fp.is_empty() || !is_pdf(Path::new(file["name"].str_or_empty())) {
 				continue;
 			}
 			let Some(abs) = space_file_path(app, &record, file) else { continue };

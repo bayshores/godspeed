@@ -4,6 +4,7 @@
 //! that sends a plot gets no curve nudge. Each is sent once a topic, so the same reply sent again
 //! goes through. What was sent lives in memory; after a restart a topic may get one more.
 
+use gs_core::messages::role::Role;
 use gs_core::session::plot::PLOT_TOOL;
 use gs_core::study::reply_nudges::{Nudge, reply_nudges};
 use gs_core::study::topic_parts::{first_topic, reply_topic};
@@ -43,7 +44,7 @@ pub fn reply_refusal(app: &App, chat_id: &str, text: Option<&str>, calls: &[Repl
 	if !words.is_empty() {
 		let content: Vec<Json> = text.map(|t| json!({ "type": "text", "text": t })).into_iter().chain(calls.iter().map(|c| json!({ "type": "toolCall", "id": "", "name": c.name, "arguments": c.arguments }))).collect();
 		let messages = lesson["messages"].items();
-		let topic = reply_topic(messages, first_topic(lesson.get("tree").filter(|t| !t.is_null())), &json!({ "role": "assistant", "content": content })).unwrap_or_default();
+		let topic = reply_topic(messages, first_topic(lesson.get("tree").filter(|t| !t.is_null())), &json!({ "role": Role::Assistant.as_str(), "content": content })).unwrap_or_default();
 		due.extend(words.into_iter().map(|n| (topic.clone(), n)));
 	}
 	let mut sent = app.turns.nudged.lock();

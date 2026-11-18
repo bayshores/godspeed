@@ -5,6 +5,7 @@
 
 use gs_json::Json;
 
+use crate::messages::role::{Role, is_custom};
 use super::scans::{clean_tool_call_ids, is_clean, is_plain_learner_message, replies_to_side_question, result_ids_from};
 use super::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL};
 use crate::messages::pending::is_question_tool;
@@ -13,10 +14,6 @@ use crate::messages::phases::{Phase3, refused_probe, tagged_node_id};
 /// Would `phaseAt3Lh(messages, start)`, `danglingQuestionOf` or `activeProblemOf` throw?
 pub fn summary_folds_throw(messages: &[Json], start: Phase3) -> bool {
 	messages.iter().any(Json::is_null) || phase_fold_throws(messages, start) || dangling_fold_throws(messages) || active_fold_throws(messages)
-}
-
-fn role(m: &Json) -> &str {
-	m["role"].str_or_empty()
 }
 
 /// `for (const block of content)`: only arrays and strings iterate, and a string's characters
@@ -33,9 +30,9 @@ fn blocks(content: &Json) -> Option<&[Json]> {
 fn phase_fold_throws(messages: &[Json], start: Phase3) -> bool {
 	let mut phase = start;
 	for m in messages {
-		match role(m) {
-			"toolResult" if phase == Phase3::Probe && m["toolName"].as_str() == Some("probe_done") && !m["isError"].truthy() && !refused_probe(&m["details"]) => phase = Phase3::Plan,
-			"assistant" if phase == Phase3::Plan && !m["content"].is_null() => {
+		match Role::of(m) {
+			Some(Role::ToolResult) if phase == Phase3::Probe && m["toolName"].as_str() == Some("probe_done") && !m["isError"].truthy() && !refused_probe(&m["details"]) => phase = Phase3::Plan,
+			Some(Role::Assistant) if phase == Phase3::Plan && !m["content"].is_null() => {
 				let Some(blocks) = blocks(&m["content"]) else { return true };
 				for b in blocks {
 					if b.is_null() {
@@ -61,7 +58,7 @@ fn dangling_fold_throws(messages: &[Json]) -> bool {
 		if is_plain_learner_message(m) {
 			return false;
 		}
-		if role(m) != "assistant" {
+		if !Role::Assistant.is(m) {
 			continue;
 		}
 		let Some(blocks) = blocks(&m["content"]) else { return true };
@@ -87,9 +84,9 @@ fn dangling_fold_throws(messages: &[Json]) -> bool {
 fn active_fold_throws(messages: &[Json]) -> bool {
 	let clean = clean_tool_call_ids(messages);
 	for m in messages.iter().rev() {
-		match role(m) {
-			"custom" if m["customType"].as_str() == Some("problem-dismissed") => return false,
-			"assistant" => match &m["content"] {
+		match Role::of(m) {
+			Some(Role::Custom) if is_custom(m, "problem-dismissed") => return false,
+			Some(Role::Assistant) => match &m["content"] {
 				Json::Null => return true,
 				Json::Arr(blocks) => {
 					for b in blocks.iter().rev() {

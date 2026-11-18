@@ -16,6 +16,7 @@ pub mod citations;
 pub mod quote_find;
 pub mod content_reader;
 pub mod talk_export;
+pub mod role;
 
 /// The tool-call blocks of a message's content, in order.
 pub(crate) fn tool_calls_in(content: &Json) -> impl DoubleEndedIterator<Item = &Json> {

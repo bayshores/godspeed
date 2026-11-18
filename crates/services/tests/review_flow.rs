@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use gs_base::config::Paths;
 use gs_base::{clock, ids, time};
+use gs_core::messages::role::is_custom;
 use gs_core::messages::input_events::{About, ChatInput, TurnInput};
 use gs_core::messages::native_messages::dangling_question_of;
 use gs_engine::bridge::{AgentReply, WaitOptions};
@@ -177,7 +178,7 @@ fn three_a_day_across_two_lessons_and_a_reload_shows_the_same_question() {
 	assert_eq!(topic(&Some(fx.answer(&b))), Some("gd"), "the other lesson goes on where this one stopped");
 	assert_eq!(fx.next(&b), None, "three today in this space; PCA waits");
 	assert_eq!(fx.next(&a), None);
-	let markers: Vec<Json> = fx.messages(&a).into_iter().filter(|m| m["customType"].as_str() == Some("review")).collect();
+	let markers: Vec<Json> = fx.messages(&a).into_iter().filter(|m| is_custom(m, "review")).collect();
 	assert_eq!(markers.len(), 2);
 	let details = &markers[0]["details"];
 	assert_eq!(details["answer"]["correct"], json!(true));
@@ -214,7 +215,7 @@ fn the_question_on_screen_stays_answerable_after_the_picks_moved() {
 	clock::advance(31 * 60_000);
 	assert_eq!(topic(&fx.next(&id)), Some("bayes"));
 	assert_eq!(answer_review(&fx.app, &id, &second["of"], &graded()).unwrap(), ReviewReply::Done, "the question he answered is still due");
-	assert_eq!(fx.messages(&id).iter().filter(|m| m["customType"].as_str() == Some("review")).count(), 1);
+	assert_eq!(fx.messages(&id).iter().filter(|m| is_custom(m, "review")).count(), 1);
 }
 
 #[test]
@@ -244,7 +245,7 @@ async fn an_answer_during_a_turn_lands_before_the_reply_and_reaches_the_agent_on
 	agent_says(&fx.app, &id, "A penalty makes large weights cost something.").await;
 	settled(&fx.app, &id).await;
 	let record = fx.messages(&id);
-	let marker = record.iter().position(|m| m["customType"].as_str() == Some("review")).unwrap();
+	let marker = record.iter().position(|m| is_custom(m, "review")).unwrap();
 	let answer = record.iter().position(|m| m["role"].as_str() == Some("assistant")).unwrap();
 	assert!(marker < answer, "the answer sits before the turn's reply");
 	assert_eq!(question["nodeId"], json!("bayes"));
@@ -317,7 +318,7 @@ fn kept_on_bayes(then: i64) -> Vec<Json> {
 }
 
 fn last_row(fx: &Fixture, chat_id: &str) -> Json {
-	fx.messages(chat_id).into_iter().rfind(|m| m["customType"].as_str() == Some("review")).unwrap()["details"].clone()
+	fx.messages(chat_id).into_iter().rfind(|m| is_custom(m, "review")).unwrap()["details"].clone()
 }
 
 #[test]

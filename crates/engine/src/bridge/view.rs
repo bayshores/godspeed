@@ -1,6 +1,7 @@
 //! One work item as the MCP layer presents it: only the unseen tail when its agent already
 //! holds the conversation, and only the instructions and tools it does not already have.
 
+use gs_core::messages::role::Role;
 use gs_core::contracts::chat::CHAT_ID_PREFIX;
 use gs_core::records::agent_seen::{SeenMark, SeenStore, print_hash, resume_at};
 use gs_json::{Json, stringify};
@@ -8,7 +9,6 @@ use gs_json::{Json, stringify};
 use super::helper::UNNAMED_HELPER;
 use super::render::{instructions_and_tools, prints_of, render_message};
 use super::{Bridge, State, WorkItem};
-use crate::turn::messages::role;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorkView {
@@ -68,7 +68,7 @@ impl Bridge {
 		let continued = from.is_some();
 		let fresh = &all[from.unwrap_or(0)..];
 		let mut images = Vec::new();
-		let messages = fresh.iter().filter(|m| continued || role(m) != "system").filter_map(|m| render_message(m, Some(&mut images))).collect();
+		let messages = fresh.iter().filter(|m| continued || !Role::System.is(m)).filter_map(|m| render_message(m, Some(&mut images))).collect();
 		let mut view = WorkView {
 			work_id: work_id.clone(),
 			conversation: conversation.clone(),

@@ -15,6 +15,8 @@ use gs_base::{locale, text, time};
 use gs_json::Json;
 use gs_json::js_text::num_text;
 
+use super::file_state::FileKind;
+use crate::messages::role::is_custom;
 use super::new_files::{NEW_FILE_DAYS, is_recent};
 use super::time_zone_names::generic_name;
 use crate::contracts::space::{compare_deadlines, deadline_due_at};
@@ -246,7 +248,7 @@ fn new_files_part(files: &[Json], now_ms: i64) -> Option<String> {
 	let list = |names: &[&str]| {
 		if names.len() <= MAX_NEW_FILES { names.join(", ") } else { format!("{}, and {} more", names[..MAX_NEW_FILES].join(", "), names.len() - MAX_NEW_FILES) }
 	};
-	let names_of = |info: bool| -> Vec<&str> { fresh.iter().filter(|f| (f["kind"].as_str() == Some("info")) == info).map(|f| f["name"].str_or_empty()).collect() };
+	let names_of = |info: bool| -> Vec<&str> { fresh.iter().filter(|f| (FileKind::of(f) == Some(FileKind::Info)) == info).map(|f| f["name"].str_or_empty()).collect() };
 	let (study, info) = (names_of(false), names_of(true));
 	let mut lines = Vec::new();
 	if !study.is_empty() {
@@ -266,7 +268,7 @@ pub fn deadline_part_of(text: &str) -> &str {
 /// The note to append before the learner's next message, or None when the last one still holds:
 /// same local day, same deadline part, and still in the model's view (not cut by a compaction).
 pub fn today_note_to_append(messages: &[Json], text: &str, day: &str) -> Option<Json> {
-	let at = messages.iter().rposition(|m| m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("today-context"));
+	let at = messages.iter().rposition(|m| is_custom(m, "today-context"));
 	if let Some(at) = at {
 		let last = &messages[at];
 		let kept = active_compaction_of(messages).and_then(|active| kept_index_for(messages, active));

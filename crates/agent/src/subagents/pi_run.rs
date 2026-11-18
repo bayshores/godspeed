@@ -20,6 +20,7 @@ use gs_engine::turn::tool::Tool;
 use gs_json::{Json, json};
 use parking_lot::Mutex;
 
+use gs_core::messages::role::Role;
 use super::headless::HeadlessApi;
 use super::stream_once::message_text;
 
@@ -150,7 +151,7 @@ struct Seen {
 /// pi's `handleRunFailure` message for a run that threw.
 fn run_failure_message(model: &Json, error: &str) -> Json {
 	json!({
-		"role": "assistant",
+		"role": Role::Assistant.as_str(),
 		"content": [{ "type": "text", "text": "" }],
 		"api": model["api"],
 		"provider": model["provider"],
@@ -200,7 +201,7 @@ pub async fn run_subagent(bridge: &Bridge, tools: Vec<Arc<dyn Tool>>, opts: Suba
 		let seen = seen.clone();
 		let run_abort = run_abort.clone();
 		move |event: &AgentEvent| match event {
-			AgentEvent::MessageEnd(m) if m["role"] == Json::from("assistant") => {
+			AgentEvent::MessageEnd(m) if Role::Assistant.is(m) => {
 				if m["stopReason"] == Json::from("aborted") {
 					// The call was cancelled: no completed step and no usage.
 					seen.lock().aborted = true;
@@ -248,7 +249,7 @@ pub async fn run_subagent(bridge: &Bridge, tools: Vec<Arc<dyn Tool>>, opts: Suba
 		}
 	}));
 
-	let prompt = json!({ "role": "user", "content": opts.prompt, "timestamp": clock::now_ms() });
+	let prompt = json!({ "role": Role::User.as_str(), "content": opts.prompt, "timestamp": clock::now_ms() });
 	let ran = agent.prompt(vec![prompt], run_abort).await;
 	bridge.forget_conversation(&session_id);
 	ran.map_err(RunError::Failed)?;
@@ -264,8 +265,8 @@ pub async fn run_subagent(bridge: &Bridge, tools: Vec<Arc<dyn Tool>>, opts: Suba
 		return Err(RunError::Failed(message));
 	}
 	// Without the seeded leading system message.
-	let new_messages: Vec<Json> = agent.messages().into_iter().filter(|m| m["role"] != Json::from("system")).collect();
-	let text = new_messages.iter().rev().find(|m| m["role"] == Json::from("assistant")).map(message_text).unwrap_or_default();
+	let new_messages: Vec<Json> = agent.messages().into_iter().filter(|m| !Role::System.is(m)).collect();
+	let text = new_messages.iter().rev().find(|m| Role::Assistant.is(m)).map(message_text).unwrap_or_default();
 	Ok(SubagentRunResult { new_messages, text })
 }
 
@@ -315,7 +316,7 @@ mod tests {
 		}));
 		let result = run_subagent(&bridge(), Vec::new(), opts).await.unwrap();
 		assert_eq!(result.text, "");
-		assert_eq!(result.new_messages.iter().filter(|m| m["role"] == Json::from("assistant")).count(), 2);
+		assert_eq!(result.new_messages.iter().filter(|m| Role::Assistant.is(m)).count(), 2);
 		assert_eq!(*starts.lock(), vec!["nope", "nope"]);
 	}
 

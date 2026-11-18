@@ -10,6 +10,7 @@ use std::collections::HashSet;
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::{clock, time};
+use gs_core::messages::role::is_custom;
 use gs_core::messages::input_events::stamped_quiz_answer;
 use gs_core::messages::lesson_markers::new_review_marker;
 use gs_core::study::kept::kept_for;
@@ -116,7 +117,7 @@ pub fn next_review(app: &App, chat_id: &str) -> Result<ReviewReply, String> {
 fn asked_this_sitting(record: &Json, now: i64) -> Option<&Json> {
 	let start = sitting_start(&times(record), now as f64);
 	let sitting = record["messages"].items().iter().rev().take_while(|m| m["timestamp"].as_f64().is_some_and(|t| t >= start));
-	sitting.filter(|m| m["customType"].as_str() == Some("app-note")).map(|m| &m["details"]["reviewOf"]).find(|of| of.as_obj().is_some())
+	sitting.filter(|m| is_custom(m, "app-note")).map(|m| &m["details"]["reviewOf"]).find(|of| of.as_obj().is_some())
 }
 
 /// His answer to a question from earlier still askable, as the window graded it: written as a

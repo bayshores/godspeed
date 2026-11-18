@@ -9,6 +9,7 @@ use gs_engine::turn::faux::{self, Engine};
 use gs_engine::turn::transcript::normalize_context;
 use gs_json::{Json, json};
 
+use gs_core::messages::role::Role;
 use super::pi_run::RunError;
 
 /// The call's final assistant message. `tools` are the wire declarations (name, description,
@@ -40,7 +41,7 @@ pub async fn stream_once(
 /// A text tool result; each loop decides which of its outputs are errors.
 pub fn tool_text(tool_call_id: &Json, tool_name: &Json, value: &str, is_error: bool) -> Json {
 	json!({
-		"role": "toolResult",
+		"role": Role::ToolResult.as_str(),
 		"toolCallId": tool_call_id.clone(),
 		"toolName": tool_name.clone(),
 		"content": [{ "type": "text", "text": value }],
@@ -53,12 +54,12 @@ pub fn tool_text(tool_call_id: &Json, tool_name: &Json, value: &str, is_error: b
 pub fn png_message(text: &str, pngs: &[&[u8]]) -> Json {
 	let mut content = vec![json!({ "type": "text", "text": text })];
 	content.extend(pngs.iter().map(|png| json!({ "type": "image", "data": gs_base::base64::encode(png), "mimeType": "image/png" })));
-	json!({ "role": "user", "content": content, "timestamp": clock::now_ms() })
+	json!({ "role": Role::User.as_str(), "content": content, "timestamp": clock::now_ms() })
 }
 
 /// A user text message.
 pub fn user_text(text: &str) -> Json {
-	json!({ "role": "user", "content": text, "timestamp": clock::now_ms() })
+	json!({ "role": Role::User.as_str(), "content": text, "timestamp": clock::now_ms() })
 }
 
 /// The assistant message's text blocks, joined (the loops' final answer).

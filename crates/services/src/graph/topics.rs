@@ -14,6 +14,7 @@ use gs_agent::subagents::pi_run::RunError;
 use gs_base::locks::LockKey;
 use gs_base::tasks::detach;
 use gs_base::{clock, time};
+use gs_core::spaces::file_state::FileStatus;
 use gs_core::graph::graph::get_graph;
 use gs_core::graph::topics::{MIN_FACTS_FOR_TOPICS, resolve_topics, same_fact_set};
 use gs_json::{Json, json};
@@ -113,7 +114,7 @@ async fn group_once(app: &Arc<App>, space_id: &str) -> Result<(), String> {
 		return Ok(());
 	}
 	// Grouping reads the whole graph, so a space importing many files groups once, at the end.
-	if record["files"].items().iter().any(|f| matches!(f["status"].as_str(), Some("pending" | "extracting"))) {
+	if record["files"].items().iter().any(|f| FileStatus::of(f).is_some_and(FileStatus::is_waiting)) {
 		return Ok(());
 	}
 	let scope = Some(space_id);

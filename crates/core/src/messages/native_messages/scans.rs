@@ -5,6 +5,7 @@ use std::collections::HashSet;
 
 use gs_json::Json;
 
+use crate::messages::role::{Role, is_custom, is_ok_tool_result};
 use super::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL};
 use crate::messages::lesson_markers::is_ui_only;
 use crate::messages::tool_calls;
@@ -26,17 +27,13 @@ pub struct ActiveProblem {
 	pub input: Json,
 }
 
-fn role(m: &Json) -> &str {
-	m["role"].str_or_empty()
-}
-
 /// A user message asked while a question or problem waits.
 pub(super) fn is_side_question(m: &Json) -> bool {
-	role(m) == "user" && m["side"] == Json::Bool(true)
+	Role::User.is(m) && m["side"] == Json::Bool(true)
 }
 
 pub(super) fn is_plain_learner_message(m: &Json) -> bool {
-	role(m) == "user" && m["side"] != Json::Bool(true)
+	Role::User.is(m) && m["side"] != Json::Bool(true)
 }
 
 /// A compaction marker or a UI-only marker (a plan block, a problem dismissal, Keep going):
@@ -44,24 +41,24 @@ pub(super) fn is_plain_learner_message(m: &Json) -> bool {
 /// either.
 pub(super) fn is_bookkeeping(m: &Json) -> bool {
 	let custom_type = m["customType"].as_str();
-	role(m) == "custom" && (custom_type == Some("compaction") || is_ui_only(custom_type))
+	Role::Custom.is(m) && (custom_type == Some("compaction") || is_ui_only(custom_type))
 }
 
 /// A hidden note for the agent that rides right ahead of the learner's message it came with: the
 /// [Today] note or an app note.
 pub(super) fn rides_ahead(m: &Json) -> bool {
-	role(m) == "custom" && matches!(m["customType"].as_str(), Some("today-context" | "app-note"))
+	Role::Custom.is(m) && matches!(m["customType"].as_str(), Some("today-context" | "app-note"))
 }
 
 /// The ids of every tool result in `messages`.
 pub(super) fn result_ids_from(messages: &[Json]) -> HashSet<&str> {
-	messages.iter().filter(|m| role(m) == "toolResult").filter_map(|m| m["toolCallId"].as_str()).collect()
+	messages.iter().filter(|m| Role::ToolResult.is(m)).filter_map(|m| m["toolCallId"].as_str()).collect()
 }
 
 /// The ids of tool calls whose results are clean: the only calls that ever happened. A pose or a
 /// conclude counts through its result, so errored and unanswered calls are skipped.
 pub(super) fn clean_tool_call_ids(messages: &[Json]) -> HashSet<&str> {
-	messages.iter().filter(|m| role(m) == "toolResult" && !m["isError"].truthy()).filter_map(|m| m["toolCallId"].as_str()).collect()
+	messages.iter().filter(|m| is_ok_tool_result(m)).filter_map(|m| m["toolCallId"].as_str()).collect()
 }
 
 pub(super) fn is_clean(clean: &HashSet<&str>, call: &Json) -> bool {
@@ -71,9 +68,9 @@ pub(super) fn is_clean(clean: &HashSet<&str>, call: &Json) -> bool {
 /// What the agent filled into the problem call before the conclude call `conclude_call_id`: the
 /// arguments of the newest pose that went through (a refused pose revealed nothing).
 pub fn problem_input_for_conclude(messages: &[Json], conclude_call_id: &str) -> Option<Json> {
-	let owner = messages.iter().position(|m| role(m) == "assistant" && tool_calls(m).any(|b| b["id"].as_str() == Some(conclude_call_id)))?;
+	let owner = messages.iter().position(|m| Role::Assistant.is(m) && tool_calls(m).any(|b| b["id"].as_str() == Some(conclude_call_id)))?;
 	let clean = clean_tool_call_ids(messages);
-	let pose = messages[..=owner].iter().rev().filter(|m| role(m) == "assistant").find_map(|m| tool_calls(m).rev().find(|b| b["name"].as_str() == Some(PRACTICE_PROBLEM_TOOL) && is_clean(&clean, b)))?;
+	let pose = messages[..=owner].iter().rev().filter(|m| Role::Assistant.is(m)).find_map(|m| tool_calls(m).rev().find(|b| b["name"].as_str() == Some(PRACTICE_PROBLEM_TOOL) && is_clean(&clean, b)))?;
 	Some(pose["arguments"].clone()).filter(|a| !a.is_null())
 }
 
@@ -82,9 +79,9 @@ pub fn problem_input_for_conclude(messages: &[Json], conclude_call_id: &str) -> 
 pub fn active_problem_of(messages: &[Json]) -> Option<ActiveProblem> {
 	let clean = clean_tool_call_ids(messages);
 	for m in messages.iter().rev() {
-		match role(m) {
-			"custom" if m["customType"].as_str() == Some("problem-dismissed") => return None,
-			"assistant" => {
+		match Role::of(m) {
+			Some(Role::Custom) if is_custom(m, "problem-dismissed") => return None,
+			Some(Role::Assistant) => {
 				for call in tool_calls(m).rev() {
 					match call["name"].as_str() {
 						Some(PRACTICE_CONCLUDE_TOOL) if is_clean(&clean, call) => return None,
@@ -107,9 +104,9 @@ pub fn active_problem_of(messages: &[Json]) -> Option<ActiveProblem> {
 pub fn pending_problem_dismissal_of(messages: &[Json]) -> Option<String> {
 	let clean = clean_tool_call_ids(messages);
 	for m in messages.iter().rev() {
-		match role(m) {
-			"custom" if m["customType"].as_str() == Some("problem-dismissed") => return m["details"]["problemCallId"].as_str().map(str::to_owned),
-			"assistant" => {
+		match Role::of(m) {
+			Some(Role::Custom) if is_custom(m, "problem-dismissed") => return m["details"]["problemCallId"].as_str().map(str::to_owned),
+			Some(Role::Assistant) => {
 				for call in tool_calls(m).rev() {
 					if matches!(call["name"].as_str(), Some(PRACTICE_CONCLUDE_TOOL | PRACTICE_PROBLEM_TOOL)) && is_clean(&clean, call) {
 						return None;
@@ -125,7 +122,7 @@ pub fn pending_problem_dismissal_of(messages: &[Json]) -> Option<String> {
 /// Is the assistant message at `i` part of a reply to a side question (only reply steps and
 /// bookkeeping lie between it and that question)?
 pub(super) fn replies_to_side_question(messages: &[Json], i: usize) -> bool {
-	messages[..i].iter().rev().find(|m| !matches!(role(m), "assistant" | "toolResult") && !is_bookkeeping(m)).is_some_and(is_side_question)
+	messages[..i].iter().rev().find(|m| !matches!(Role::of(m), Some(Role::Assistant | Role::ToolResult)) && !is_bookkeeping(m)).is_some_and(is_side_question)
 }
 
 /// The question the learner is being asked: the newest assistant message's first question call
@@ -137,7 +134,7 @@ pub fn dangling_question_of(messages: &[Json]) -> Option<DanglingQuestion> {
 		if is_plain_learner_message(m) {
 			return None;
 		}
-		if role(m) != "assistant" {
+		if !Role::Assistant.is(m) {
 			continue;
 		}
 		let answered = result_ids_from(&messages[mi + 1..]);
@@ -155,12 +152,12 @@ pub fn dangling_question_of(messages: &[Json]) -> Option<DanglingQuestion> {
 /// The probe-to-teach seam: a probe_done result that is neither an error nor a refusal means the
 /// probe is over.
 pub fn has_probe_done(messages: &[Json]) -> bool {
-	messages.iter().any(|m| role(m) == "toolResult" && m["toolName"].as_str() == Some("probe_done") && !m["isError"].truthy() && !refused_probe(&m["details"]))
+	messages.iter().any(|m| is_ok_tool_result(m) && m["toolName"].as_str() == Some("probe_done") && !refused_probe(&m["details"]))
 }
 
 /// The record a continue runs from: everything before a trailing failed or stopped reply.
 pub fn retry_context(messages: &[Json]) -> &[Json] {
-	let failed = |m: &Json| role(m) == "assistant" && matches!(m["stopReason"].as_str(), Some("error" | "aborted"));
+	let failed = |m: &Json| Role::Assistant.is(m) && matches!(m["stopReason"].as_str(), Some("error" | "aborted"));
 	let end = messages.iter().rposition(|m| !failed(m)).map_or(0, |i| i + 1);
 	&messages[..end]
 }

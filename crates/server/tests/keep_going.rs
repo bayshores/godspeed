@@ -14,6 +14,7 @@ use gs_services::App;
 use gs_services::turns::turn_liveness::{begin_turn, end_turn};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
+use gs_core::messages::role::is_custom;
 
 async fn serve() -> (Arc<App>, u16) {
 	let dir = std::env::temp_dir().join(format!("gs-keep-going-{}", ids::uuid()));
@@ -89,6 +90,6 @@ async fn kept_drops_and_brings_back_a_part_of_a_kept_sentence() {
 	end_turn(&app, &chat_id);
 	assert_eq!(post(port, &path, r#"{"input":{"of":"q5","part":"analogy","back":true}}"#).await, (200, json!({ "ok": true })));
 	let record = app.stores.chats.get_chat(&chat_id).unwrap();
-	let drops: Vec<&Json> = record["messages"].as_arr().unwrap().iter().filter(|m| m["customType"].as_str() == Some("analogy-drop")).map(|m| &m["details"]).collect();
+	let drops: Vec<&Json> = record["messages"].as_arr().unwrap().iter().filter(|m| is_custom(m, "analogy-drop")).map(|m| &m["details"]).collect();
 	assert_eq!((drops.len(), drops[0].get("back"), &drops[1]["back"]), (2, None, &json!(true)));
 }

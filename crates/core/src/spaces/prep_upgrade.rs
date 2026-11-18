@@ -13,6 +13,7 @@ use gs_base::hash::sha256_text;
 use gs_base::text::trim;
 use gs_json::{Json, Obj};
 
+use super::file_state::{FileKind, FileStatus};
 use super::space_deadlines::{file_ids_of, new_deadline};
 use crate::contracts::space::{compare_deadlines, is_calendar_date};
 
@@ -24,7 +25,7 @@ pub const GUIDE_FILE_NAME: &str = "Study guide.md";
 pub struct UpgradeFile {
 	pub id: String,
 	pub name: &'static str,
-	pub kind: &'static str,
+	pub kind: FileKind,
 	pub text: String,
 }
 
@@ -79,10 +80,10 @@ pub fn prep_upgrade(record: &Json) -> Option<PrepUpgrade> {
 	let space_id = record["id"].str_or_empty();
 	let mut files = Vec::new();
 	if let Some(text) = about_text(prep) {
-		files.push(UpgradeFile { id: fixed_id("f", space_id, "about"), name: ABOUT_FILE_NAME, kind: "info", text });
+		files.push(UpgradeFile { id: fixed_id("f", space_id, "about"), name: ABOUT_FILE_NAME, kind: FileKind::Info, text });
 	}
 	if let Some(text) = guide_text(prep) {
-		files.push(UpgradeFile { id: fixed_id("f", space_id, "guide"), name: GUIDE_FILE_NAME, kind: "study", text });
+		files.push(UpgradeFile { id: fixed_id("f", space_id, "guide"), name: GUIDE_FILE_NAME, kind: FileKind::Study, text });
 	}
 	Some(PrepUpgrade { deadline_id: fixed_id("ddl", space_id, "deadline"), files })
 }
@@ -97,7 +98,7 @@ fn file_entry(file: &UpgradeFile, now: &str) -> Json {
 	out.insert("kind", file.kind);
 	out.insert("kindChosen", true);
 	out.insert("contentFp", "");
-	out.insert("status", "pending");
+	out.insert("status", FileStatus::Pending);
 	out.insert("addedAt", now);
 	// godspeed wrote it, so the agent's add_space_file may change it.
 	out.insert("written", true);
@@ -196,7 +197,7 @@ mod tests {
 		let upgrade = prep_upgrade(&record(prep(Some("2026-11-24")))).unwrap();
 		assert_eq!(upgrade, prep_upgrade(&record(prep(None))).unwrap(), "the same every time");
 		assert_eq!(upgrade.deadline_id, format!("ddl_{}", &sha256_text("spc_larkspur:deadline")[..12]));
-		assert_eq!(upgrade.files.iter().map(|f| (f.name, f.kind)).collect::<Vec<_>>(), [(ABOUT_FILE_NAME, "info"), (GUIDE_FILE_NAME, "study")]);
+		assert_eq!(upgrade.files.iter().map(|f| (f.name, f.kind)).collect::<Vec<_>>(), [(ABOUT_FILE_NAME, FileKind::Info), (GUIDE_FILE_NAME, FileKind::Study)]);
 		assert_eq!(upgrade.files[0].text, "Two coding rounds and a system design round.\n\n## Sources\n\n- [Larkspur careers](https://example.com/careers)\n- [https://example.com/blog](https://example.com/blog)\n");
 		assert_eq!(upgrade.files[1].text, "# Study guide: Larkspur backend onsite\n\n## Rate limiting\n\nRound 2 asks for one.\n\n## Idempotency keys\n");
 		assert_eq!(prep_upgrade(&json!({ "id": "spc_plain", "name": "Plain" })), None);

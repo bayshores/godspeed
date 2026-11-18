@@ -254,6 +254,7 @@ mod tests {
 	use gs_engine::turn::messages::faux_assistant_message;
 	use gs_base::re::Re;
 	use gs_core::messages::citations::DroppedQuote;
+	use gs_core::messages::role::Role;
 
 	use super::*;
 	use crate::tools::test_record::record;
@@ -471,9 +472,9 @@ mod tests {
 		let agent = Agent::new(options);
 		agent.prompt(vec![json!({ "role": "user", "content": "go", "timestamp": 1 })], Abort::new()).await.unwrap();
 		let messages = agent.messages();
-		let assistant = messages.iter().find(|m| m["role"].as_str() == Some("assistant")).unwrap();
+		let assistant = messages.iter().find(|m| Role::Assistant.is(m)).unwrap();
 		assert_eq!(stringify(&assistant["content"][0]["arguments"]), stringify(&sent_args));
-		let result = messages.iter().find(|m| m["role"].as_str() == Some("toolResult")).unwrap();
+		let result = messages.iter().find(|m| Role::ToolResult.is(m)).unwrap();
 		assert_eq!((result["isError"].as_bool(), result["content"][0]["text"].as_str()), (Some(false), Some(TOPIC_DONE_STORED_TEXT)));
 		assert_eq!(messages.last().unwrap()["role"].as_str(), Some("toolResult"), "its result ends the run");
 	}

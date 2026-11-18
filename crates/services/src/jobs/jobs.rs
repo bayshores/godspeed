@@ -19,6 +19,7 @@ use gs_base::clock;
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::tasks::detach;
+use gs_core::messages::role::{Role, is_custom};
 use gs_core::messages::native_messages::{dangling_question_of, open_question_held};
 use gs_core::session::jobs::{build_abort_steer, build_subagent_steer, is_subagent_failure, steer_delivered};
 use gs_engine::turn::agent::Agent;
@@ -103,7 +104,7 @@ fn held_by(handed: &Option<Arc<Agent>>, agent: &Arc<Agent>) -> bool {
 }
 
 fn is_probe_handoff(steer: &Json) -> bool {
-	steer["customType"].as_str() == Some("probe-handoff")
+	is_custom(steer, "probe-handoff")
 }
 
 /// The job a steer belongs to; None for a probe handoff.
@@ -128,7 +129,7 @@ pub fn set_job_respawn(app: &App, respawn: JobRespawn) {
 /// Call only after the conversation is saved: acknowledges every job marker in `persisted` and
 /// drops the registry entries it holds. Streaming visibility is not acceptance.
 pub fn note_steers_durable(app: &App, chat_id: &str, persisted: &[Json]) {
-	for message in persisted.iter().filter(|m| m["role"].as_str() == Some("custom")) {
+	for message in persisted.iter().filter(|m| Role::Custom.is(m)) {
 		finalize_steer(app, message);
 	}
 	let ids: HashSet<&str> = persisted.iter().filter_map(|m| m["id"].as_str()).collect();
@@ -593,7 +594,7 @@ async fn wait_for_idle(app: &Arc<App>, chat_id: &str) {
 
 /// A finished figure's or demo's result marker (not its abort notice): what the window draws.
 fn is_artifact(steer: &Json) -> bool {
-	steer["customType"].as_str() == Some("subagent-steer") && matches!(steer["details"]["kind"].as_str(), Some("visual" | "demo"))
+	is_custom(steer, "subagent-steer") && matches!(steer["details"]["kind"].as_str(), Some("visual" | "demo"))
 }
 
 /// Writes the waiting figures and demos into the lesson with no turn while a side question holds

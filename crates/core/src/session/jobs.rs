@@ -7,6 +7,7 @@ use gs_base::{clock, re::Re};
 use gs_json::{Json, Obj, json};
 
 use gs_json::js_text::{field_text, js_string};
+use crate::messages::role::Role;
 
 fn number(v: &Json, key: &str) -> Option<f64> {
 	v.get(key).and_then(Json::as_f64)
@@ -93,9 +94,9 @@ pub fn set_steer_ui_inverted(messages: &[Json], message_id: &str, inverted: bool
 			let mut ui = details["ui"].as_obj().cloned().unwrap_or_default();
 			ui.insert("inverted", inverted);
 			let mut details = details.clone();
-			details.as_obj_mut().expect("kind was read from an object").insert("ui", ui);
+			details.set("ui", ui);
 			let mut out = m.clone();
-			out.as_obj_mut().expect("id was read from an object").insert("details", details);
+			out.set("details", details);
 			out
 		})
 		.collect()
@@ -167,7 +168,7 @@ fn steer(job: &Json, custom_type: &str, content: String, last: (&str, Json)) -> 
 	details.insert(last.0, last.1);
 	json!({
 		"id": format!("steer_{}", field_text(job, "id")),
-		"role": "custom",
+		"role": Role::Custom.as_str(),
 		"customType": custom_type,
 		"content": content,
 		"display": true,

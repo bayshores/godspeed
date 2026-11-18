@@ -1,10 +1,10 @@
 //! The transcript as the outside agent reads it: flat messages, the instructions and tools, and
 //! the fingerprints that tell which messages an agent has already seen.
 
+use gs_core::messages::role::Role;
 use gs_core::records::agent_seen::print_hash;
 use gs_json::{Json, Obj, json, lone::to_utf16, stringify};
 
-use crate::turn::messages::role;
 
 /// Text with each image as "[image N]", the image itself going to `images` as
 /// `{data, mimeType}`. Without a collector (fingerprints) an image is "[image]".
@@ -41,22 +41,22 @@ fn put(obj: &mut Obj, key: &str, value: Option<&Json>) {
 /// One message flattened for an outside reader; none for a system message without text.
 pub fn render_message(m: &Json, images: Option<&mut Vec<Json>>) -> Option<Json> {
 	let mut out = Obj::new();
-	match role(m) {
-		"system" => {
+	match Role::of(m) {
+		Some(Role::System) => {
 			let mut parts = vec![text_of(&m["content"], None)];
 			parts.extend(m["sections"].as_obj().into_iter().flat_map(|s| s.values()).filter_map(|v| v.as_str().map(str::to_owned)));
 			parts.retain(|p| !p.is_empty());
 			if parts.is_empty() {
 				return None;
 			}
-			out.insert("role", "system");
+			out.insert("role", Role::System.as_str());
 			out.insert("text", parts.join("\n\n"));
 		}
-		"user" => {
-			out.insert("role", "user");
+		Some(Role::User) => {
+			out.insert("role", Role::User.as_str());
 			out.insert("text", text_of(&m["content"], images));
 		}
-		"assistant" => {
+		Some(Role::Assistant) => {
 			let blocks = m["content"].items();
 			let text: Vec<&str> = blocks.iter().filter(|c| c["type"] == Json::from("text")).map(|c| c["text"].str_or_empty()).collect();
 			let calls: Vec<Json> = blocks
@@ -70,7 +70,7 @@ pub fn render_message(m: &Json, images: Option<&mut Vec<Json>>) -> Option<Json> 
 					Json::Obj(call)
 				})
 				.collect();
-			out.insert("role", "assistant");
+			out.insert("role", Role::Assistant.as_str());
 			let text = text.join("\n");
 			if !text.is_empty() {
 				out.insert("text", text);
@@ -79,8 +79,8 @@ pub fn render_message(m: &Json, images: Option<&mut Vec<Json>>) -> Option<Json> 
 				out.insert("toolCalls", calls);
 			}
 		}
-		"toolResult" => {
-			out.insert("role", "toolResult");
+		Some(Role::ToolResult) => {
+			out.insert("role", Role::ToolResult.as_str());
 			for key in ["toolCallId", "toolName", "isError"] {
 				put(&mut out, key, m.get(key));
 			}
@@ -97,7 +97,7 @@ pub fn render_message(m: &Json, images: Option<&mut Vec<Json>>) -> Option<Json> 
 pub fn instructions_and_tools(messages: &[Json]) -> (String, Vec<Json>) {
 	let mut instructions = String::new();
 	let mut tools: Vec<Json> = Vec::new();
-	for m in messages.iter().filter(|m| role(m) == "system") {
+	for m in messages.iter().filter(|m| Role::System.is(m)) {
 		if instructions.is_empty() {
 			instructions = render_message(m, None).map(|r| r["text"].str_or_empty().to_owned()).unwrap_or_default();
 		}
@@ -126,7 +126,7 @@ fn sorted_names(tools: &Json) -> Vec<Json> {
 /// switches tools, and the agent must then get the new tools.
 pub fn fingerprint(m: &Json) -> String {
 	let rendered = render_message(m, None);
-	if role(m) != "system" {
+	if !Role::System.is(m) {
 		return stringify(&rendered.unwrap_or_default());
 	}
 	let mut out = rendered.and_then(|r| r.as_obj().cloned()).unwrap_or_default();
@@ -140,7 +140,7 @@ pub fn fingerprint(m: &Json) -> String {
 /// conversation.
 pub fn prints_of(messages: &[Json], extra: Option<&Json>) -> (Vec<String>, String) {
 	let all: Vec<&Json> = messages.iter().chain(extra).collect();
-	let lead_at = all.iter().position(|m| role(m) == "system");
+	let lead_at = all.iter().position(|m| Role::System.is(m));
 	let prints = all.iter().enumerate().map(|(i, m)| if Some(i) == lead_at { String::new() } else { fingerprint(m) }).collect();
 	(prints, lead_at.map_or_else(String::new, |i| print_hash(&fingerprint(all[i]))))
 }

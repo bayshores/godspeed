@@ -1,6 +1,7 @@
 //! Space files and folders, the agent folder, briefings and today's note.
 
 pub mod file_groups;
+pub mod file_state;
 pub mod file_series;
 pub mod kept_pages;
 pub mod lecture_transcript;

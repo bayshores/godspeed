@@ -18,11 +18,11 @@ use gs_json::{Json, json, stringify};
 use parking_lot::Mutex;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
+use gs_core::messages::role::Role;
 use super::abort::Abort;
 use super::agent::Agent;
 use super::call_ids::ToolCallIdUniquifier;
 use super::events::AgentEvent;
-use super::messages::role;
 
 /// The headers of a turn's SSE response (GET /api/chats/{id}/stream).
 pub const SSE_HEADERS: [(&str, &str); 3] = [("Content-Type", "text/event-stream"), ("Cache-Control", "no-cache, no-transform"), ("X-Accel-Buffering", "no")];
@@ -217,7 +217,7 @@ impl Turn {
 	/// The settle seam: `on_finish` gets the agent's own final transcript.
 	fn settle(self: &Arc<Self>) {
 		let all = self.spec.agent.messages();
-		let settled: Vec<Json> = self.uniquifier.lock().remap_settled(&all, self.base).into_iter().filter(|m| role(m) != "system").collect();
+		let settled: Vec<Json> = self.uniquifier.lock().remap_settled(&all, self.base).into_iter().filter(|m| !Role::System.is(m)).collect();
 		let Err(err) = (self.spec.on_finish)(settled) else { return };
 		eprintln!("[turn] settlement failed: {err}");
 		let reported = self.wire.lock().reported_error.clone();

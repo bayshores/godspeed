@@ -9,9 +9,10 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use gs_base::{clock, time};
+use gs_core::spaces::file_state::{FileKind, FileStatus};
 use gs_core::spaces::space_tools::{SpaceChange, ToolOutcome};
 use gs_core::spaces::today_note::local_day;
-use gs_core::contracts::space::{SIGNATURE_MAX, clean_signature, safe_name};
+use gs_core::contracts::space::{FILE_KIND_PROBLEM, SIGNATURE_MAX, clean_signature, safe_name};
 use gs_core::spaces::space_path::{CleanPath, clean_path};
 use gs_json::{Json, Obj, json};
 use gs_search::index::PassageRef;
@@ -233,7 +234,7 @@ impl SpaceActions {
 		} else {
 			let failed: Vec<Json> = files
 				.iter()
-				.filter(|f| matches!(f["status"].str_or_empty(), "failed" | "needs-whisper"))
+				.filter(|f| matches!(FileStatus::of(f), Some(FileStatus::Failed | FileStatus::NeedsWhisper)))
 				.map(|f| {
 					let mut entry = Obj::new();
 					for key in ["id", "name", "status"] {
@@ -448,8 +449,9 @@ impl SpaceActions {
 	}
 
 	pub fn add_space_file(&self, args: &Json) -> ToolOutcome {
-		let (space_id, path, kind) = (args["space_id"].str_or_empty(), args["path"].str_or_empty(), args["kind"].str_or_empty());
+		let (space_id, path) = (args["space_id"].str_or_empty(), args["path"].str_or_empty());
 		let Some(record) = self.app.stores.spaces.get_space(space_id) else { return no_space(space_id) };
+		let Some(kind) = args["kind"].as_str().and_then(FileKind::parse) else { return ToolOutcome::Err(FILE_KIND_PROBLEM.to_owned()) };
 		let (file, verb) = if args["name"].truthy() && args.get("text").is_some_and(|t| t.as_str().is_some()) {
 			match self.write_space_file(&record, args["name"].str_or_empty(), args["text"].str_or_empty(), kind) {
 				Ok(written) => written,
@@ -466,7 +468,7 @@ impl SpaceActions {
 		} else {
 			return ToolOutcome::Err("Give path, or name and text.".to_owned());
 		};
-		let note = if kind == "study" { format!("Added. {READING_NOTE}") } else { "Added.".to_owned() };
+		let note = if kind == FileKind::Study { format!("Added. {READING_NOTE}") } else { "Added.".to_owned() };
 		let label = format!("{verb} {}", file["name"].str_or_empty());
 		let change = change(label, &Json::from(space_id), "file", file["id"].str_or_empty(), "/space/files");
 		self.done(json!({ "file": file, "note": note }), vec![change])
@@ -474,7 +476,7 @@ impl SpaceActions {
 
 	/// Writes a file from text: one it wrote before by that name is replaced and keeps its id; the
 	/// learner's own file by that name is never written over.
-	fn write_space_file(&self, record: &Json, name: &str, text: &str, kind: &str) -> Result<(Json, &'static str), String> {
+	fn write_space_file(&self, record: &Json, name: &str, text: &str, kind: FileKind) -> Result<(Json, &'static str), String> {
 		let Some(file_name) = written_file_name(name) else { return Err("Give a plain file name like \"Study guide.md\", with no folders or control characters.".to_owned()) };
 		if text.trim().is_empty() {
 			return Err("The text is empty.".to_owned());
@@ -487,10 +489,11 @@ impl SpaceActions {
 	}
 
 	pub fn set_space_file_kind(&self, args: &Json) -> ToolOutcome {
-		let (space_id, kind) = (args["space_id"].str_or_empty(), args["kind"].str_or_empty());
+		let space_id = args["space_id"].str_or_empty();
 		if !self.space_exists(space_id) {
 			return no_space(space_id);
 		}
+		let Some(kind) = args["kind"].as_str().and_then(FileKind::parse) else { return ToolOutcome::Err(FILE_KIND_PROBLEM.to_owned()) };
 		let (mut files, mut refused, mut changes) = (Vec::new(), Vec::new(), Vec::new());
 		for file_id in args["file_ids"].items().iter() {
 			let file_id = file_id.str_or_empty();
@@ -501,8 +504,8 @@ impl SpaceActions {
 					continue;
 				}
 			};
-			files.push(json!({ "id": file["id"], "name": file["name"], "kind": kind, "status": file["status"] }));
-			let label = format!("Marking {} as {}", file["name"].str_or_empty(), if kind == "study" { "study material" } else { "space info" });
+			files.push(json!({ "id": file["id"], "name": file["name"], "kind": kind.as_str(), "status": file["status"] }));
+			let label = format!("Marking {} as {}", file["name"].str_or_empty(), if kind == FileKind::Study { "study material" } else { "space info" });
 			changes.push(change(label, &Json::from(space_id), "file", file["id"].str_or_empty(), "/space/files"));
 		}
 		if files.is_empty() {

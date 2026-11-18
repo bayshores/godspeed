@@ -7,10 +7,10 @@ use std::sync::Arc;
 use gs_json::Json;
 use parking_lot::Mutex;
 
+use gs_core::messages::role::Role;
 use super::abort::Abort;
 use super::events::AgentEvent;
 use super::faux::Engine;
-use super::messages::role;
 use super::tool::Tool;
 use super::transcript::{initial_system_message, tool_declaration};
 
@@ -122,7 +122,7 @@ impl Agent {
 	pub fn new(options: AgentOptions) -> Arc<Agent> {
 		let mut messages = options.messages;
 		let declarations: Vec<Json> = options.tools.iter().map(|t| tool_declaration(t.as_ref())).collect();
-		if messages.first().is_none_or(|m| role(m) != "system")
+		if messages.first().is_none_or(|m| !Role::System.is(m))
 			&& let Some(system) = initial_system_message(&options.system_prompt, &declarations)
 		{
 			messages.insert(0, system);
@@ -204,14 +204,14 @@ impl Agent {
 		if self.is_running() {
 			return Err("Agent is already processing. Wait for completion before continuing.".to_owned());
 		}
-		let last_role = {
+		let last_is_assistant = {
 			let messages = self.messages.lock();
-			if messages.is_empty() || messages.iter().all(|m| role(m) == "system") {
+			if messages.is_empty() || messages.iter().all(|m| Role::System.is(m)) {
 				return Err("No messages to continue from".to_owned());
 			}
-			role(messages.last().expect("not empty")).to_owned()
+			Role::Assistant.is(messages.last().expect("not empty"))
 		};
-		if last_role == "assistant" {
+		if last_is_assistant {
 			let steering = self.steering_messages();
 			if !steering.is_empty() {
 				return self.run(Some(steering), true, abort).await;

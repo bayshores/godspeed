@@ -3,11 +3,12 @@
 
 use gs_json::Json;
 
+use gs_core::messages::role::Role;
 use super::abort::Abort;
 use super::agent::{Agent, FinishedTurn};
 use super::events::AgentEvent;
 use super::faux::{self, Partial};
-use super::messages::{role, tool_calls};
+use super::messages::tool_calls;
 use super::tool_batch::{Batch, Reply, execute_tool_calls, fail_truncated_calls};
 use super::transcript::{declare_tool_changes, tool_declaration};
 
@@ -103,7 +104,7 @@ impl Agent {
 		self.passed_model_call();
 		let request = match &self.convert_to_llm {
 			Some(convert) => convert(context),
-			None => context.iter().filter(|m| matches!(role(m), "system" | "user" | "assistant" | "toolResult")).cloned().collect(),
+			None => context.iter().filter(|m| matches!(Role::of(m), Some(Role::System | Role::User | Role::Assistant | Role::ToolResult))).cloned().collect(),
 		};
 		let mut started = false;
 		let mut message = faux::stream(&self.engine, request, self.session_id.clone(), abort, &mut |partial| match partial {
@@ -115,7 +116,7 @@ impl Agent {
 		})
 		.await;
 		// The level the request asked for; the app never sets one.
-		message.as_obj_mut().expect("an object").insert("thinkingLevel", "off");
+		message.set("thinkingLevel", "off");
 		context.push(message.clone());
 		if !started {
 			self.emit(AgentEvent::MessageStart(message.clone()));

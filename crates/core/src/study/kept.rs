@@ -12,6 +12,7 @@ use std::collections::{HashMap, HashSet};
 use gs_base::{text, time};
 use gs_json::{Json, Obj, json};
 
+use crate::messages::role::{Role, is_custom};
 use super::review::item_key;
 use super::topic_parts::{kept_calls, visits};
 use crate::messages::citations::MARK_MAX;
@@ -36,7 +37,7 @@ fn words<'a>(keep: &'a Json, field: &str) -> Option<&'a str> {
 
 /// Each keep-check verdict by its quiz call id.
 fn verdicts(messages: &[Json]) -> HashMap<&str, &Json> {
-	messages.iter().filter(|m| m["customType"].as_str() == Some(KEEP_CHECK)).filter_map(|m| Some((m["details"]["quizCallId"].as_str()?, &m["details"]))).collect()
+	messages.iter().filter(|m| is_custom(m, KEEP_CHECK)).filter_map(|m| Some((m["details"]["quizCallId"].as_str()?, &m["details"]))).collect()
 }
 
 /// The keep-check verdicts the record still lacks, in record order: one per quiz call that carries
@@ -47,13 +48,13 @@ fn verdicts(messages: &[Json]) -> HashMap<&str, &Json> {
 /// the keep has one, `note` the line the teacher reads after his answer.
 pub fn keep_verdicts(messages: &[Json], first_topic: Option<&str>, check_source: &dyn Fn(&str) -> Option<String>) -> Vec<Json> {
 	let checked = verdicts(messages);
-	let refused: HashSet<&str> = messages.iter().filter(|m| m["role"].as_str() == Some("toolResult") && m["isError"] == Json::Bool(true)).filter_map(|m| m["toolCallId"].as_str()).collect();
+	let refused: HashSet<&str> = messages.iter().filter(|m| Role::ToolResult.is(m) && m["isError"] == Json::Bool(true)).filter_map(|m| m["toolCallId"].as_str()).collect();
 	let kept = kept_calls(messages);
 	let visits = visits(messages, first_topic);
 	// The sentences he saw: where each sits, its topic and whether its analogy lines showed.
 	let mut seen: Vec<(usize, &str, bool)> = Vec::new();
 	let mut out = Vec::new();
-	for (at, m) in messages.iter().enumerate().filter(|(_, m)| m["role"].as_str() == Some("assistant")) {
+	for (at, m) in messages.iter().enumerate().filter(|(_, m)| Role::Assistant.is(m)) {
 		// Whether this reply already stores a keep: a second one is crowded out, so it never
 		// reaches the topic's count either.
 		let mut stores_one = false;
@@ -158,7 +159,7 @@ impl KeptPart {
 /// Whether his last drop marker of `part` for the quiz call `of` took it away; one with `back`
 /// brings it back.
 pub fn dropped(messages: &[Json], part: KeptPart, of: &str) -> bool {
-	messages.iter().rfind(|m| m["customType"].as_str() == Some(part.drop_marker()) && m["details"]["of"].as_str() == Some(of)).is_some_and(|m| !m["details"]["back"].truthy())
+	messages.iter().rfind(|m| is_custom(m, part.drop_marker()) && m["details"]["of"].as_str() == Some(of)).is_some_and(|m| !m["details"]["back"].truthy())
 }
 
 /// Whether the quiz call `of` earned a kept sentence he saw with the part a drop takes away.
@@ -180,9 +181,9 @@ pub struct KeptSentence {
 pub fn kept_sentences(chat_id: &str, messages: &[Json]) -> Vec<KeptSentence> {
 	let kept = kept_calls(messages);
 	let verdicts = verdicts(messages);
-	let answered: HashMap<&str, i64> = messages.iter().filter(|m| m["role"].as_str() == Some("toolResult")).filter_map(|m| Some((m["toolCallId"].as_str()?, answer_time(m)))).collect();
+	let answered: HashMap<&str, i64> = messages.iter().filter(|m| Role::ToolResult.is(m)).filter_map(|m| Some((m["toolCallId"].as_str()?, answer_time(m)))).collect();
 	let mut out = Vec::new();
-	for m in messages.iter().filter(|m| m["role"].as_str() == Some("assistant")) {
+	for m in messages.iter().filter(|m| Role::Assistant.is(m)) {
 		for call in tool_calls(m) {
 			let id = call["id"].str_or_empty();
 			let (Some(verdict), Some(keep)) = (verdicts.get(id).filter(|_| kept.contains(id)), keep_of(&call["arguments"])) else { continue };
@@ -210,7 +211,7 @@ fn answer_time(result: &Json) -> i64 {
 pub fn kept_comebacks(messages: &[Json]) -> Vec<(String, i64)> {
 	messages
 		.iter()
-		.filter(|m| m["customType"].as_str() == Some("review") && m["details"]["kept"].as_obj().is_some())
+		.filter(|m| is_custom(m, "review") && m["details"]["kept"].as_obj().is_some())
 		.map(|m| (item_key(&m["details"]["kept"]["of"]), m["timestamp"].as_i64().unwrap_or(0)))
 		.collect()
 }

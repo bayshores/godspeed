@@ -215,6 +215,7 @@ fn typed(app: &Arc<App>, scope: Option<&str>, title: &str, picks: Vec<Json>) -> 
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use gs_core::messages::role::is_custom;
 	use crate::app::test_support::{scratch_dir, test_app};
 
 	/// A space with an interview and one graded mock: q1 right on a fact, q2 left blank on a fact,
@@ -242,7 +243,7 @@ mod tests {
 	}
 
 	fn study_plan(chat: &Json) -> &str {
-		chat["messages"].as_arr().unwrap().iter().find(|m| m["customType"].as_str() == Some("study-context")).unwrap()["content"].as_str().unwrap()
+		chat["messages"].as_arr().unwrap().iter().find(|m| is_custom(m, "study-context")).unwrap()["content"].as_str().unwrap()
 	}
 
 	#[tokio::test]

@@ -5,6 +5,7 @@ use std::sync::Arc;
 use gs_base::clock;
 use gs_base::locks::LockKey;
 use gs_base::tasks::detach;
+use gs_core::messages::role::is_ok_tool_result;
 use gs_core::graph::coverage::coverage_of;
 use gs_core::messages::citations::{CiteMark, replace_cite_marks};
 use gs_core::messages::lesson_markers::new_keep_check_marker;
@@ -50,7 +51,7 @@ fn save_turn(app: &App, chat_id: &str, base_count: usize, turn_messages: &[Json]
 	let record = app.stores.chats.get_chat(chat_id).ok_or_else(|| format!("Chat not found: {chat_id}"))?;
 	let mut stamped = Vec::new();
 	for message in turn_messages.iter().skip(base_count) {
-		let placeholder = message["role"].as_str() == Some("toolResult") && is_question_tool(message["toolName"].str_or_empty()) && !message["isError"].truthy();
+		let placeholder = is_ok_tool_result(message) && is_question_tool(message["toolName"].str_or_empty());
 		if placeholder {
 			continue;
 		}

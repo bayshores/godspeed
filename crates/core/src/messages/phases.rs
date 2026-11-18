@@ -1,6 +1,7 @@
 //! The record-side phase fold; the transcript dividers fold view messages in the browser.
 
 use gs_json::Json;
+use crate::messages::role::Role;
 use super::tool_calls;
 
 /// The three phases of a session, as the picker and header see them.
@@ -44,9 +45,9 @@ pub fn first_phase(kind: Option<&str>) -> Phase3 {
 pub fn phase_at3_lh(messages: &[Json], start: Phase3) -> Phase3 {
 	let mut phase = start;
 	for m in messages {
-		match m["role"].as_str() {
-			Some("toolResult") if phase == Phase3::Probe && m["toolName"].as_str() == Some("probe_done") && !m["isError"].truthy() && !refused_probe(&m["details"]) => phase = Phase3::Plan,
-			Some("assistant") if phase == Phase3::Plan => {
+		match Role::of(m) {
+			Some(Role::ToolResult) if phase == Phase3::Probe && m["toolName"].as_str() == Some("probe_done") && !m["isError"].truthy() && !refused_probe(&m["details"]) => phase = Phase3::Plan,
+			Some(Role::Assistant) if phase == Phase3::Plan => {
 				let teaches = tool_calls(m).any(|b| matches!(b["name"].as_str(), Some("quiz" | "explain")) && tagged_node_id(&b["arguments"]));
 				if teaches {
 					phase = Phase3::Teach;

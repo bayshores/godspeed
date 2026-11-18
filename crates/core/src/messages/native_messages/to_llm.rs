@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use gs_json::{Json, Obj, json};
 
+use crate::messages::role::Role;
 use crate::messages::tool_calls;
 use super::side_questions::{SIDE_PENDING_TEXT, side_answer_lead, side_held_questions};
 use crate::messages::compaction_marks::{active_compaction_of, kept_index_for};
@@ -21,7 +22,7 @@ fn text_content(text: impl Into<Json>) -> Json {
 
 /// A user message for the wire; the timestamp is copied only when the source has one.
 fn user_message(content: Json, source: &Json) -> Json {
-	let mut out: Obj = [("role", Json::from("user")), ("content", content)].into_iter().collect();
+	let mut out: Obj = [("role", Json::from(Role::User.as_str())), ("content", content)].into_iter().collect();
 	out.insert_present("timestamp", source.get("timestamp"));
 	Json::Obj(out)
 }
@@ -48,21 +49,21 @@ pub fn to_llm_messages(messages: &[Json]) -> Vec<Json> {
 	}
 	// The system message the agent seeds first carries the prompt and tools; the cut never drops
 	// it, and it goes ahead of the compaction head.
-	let leading = messages.first().filter(|m| m["role"].as_str() == Some("system"));
+	let leading = messages.first().filter(|m| Role::System.is(m));
 	let mut out: Vec<Json> = leading.into_iter().cloned().collect();
 	let has_head = head.is_some();
 	out.extend(head);
 	// A call is answered when its id has a result after it; some providers reuse ids.
 	let mut last_result_at: HashMap<&str, usize> = HashMap::new();
 	for (j, m) in messages.iter().enumerate() {
-		if let Some(id) = m["toolCallId"].as_str().filter(|_| m["role"].as_str() == Some("toolResult")) {
+		if let Some(id) = m["toolCallId"].as_str().filter(|_| Role::ToolResult.is(m)) {
 			last_result_at.insert(id, j);
 		}
 	}
 	let side_held = side_held_questions(messages);
 	for (i, m) in messages.iter().enumerate().skip(if leading.is_some() { start.max(1) } else { start }) {
-		match m["role"].as_str() {
-			Some("custom") => {
+		match Role::of(m) {
+			Some(Role::Custom) => {
 				let custom_type = m["customType"].as_str();
 				if is_ui_only(custom_type) {
 					continue;
@@ -76,7 +77,7 @@ pub fn to_llm_messages(messages: &[Json]) -> Vec<Json> {
 				out.push(user_message(content, m));
 				continue;
 			}
-			Some("toolResult") => {
+			Some(Role::ToolResult) => {
 				let held = m["toolCallId"].as_str().and_then(|id| side_held.get(id)).filter(|h| i > h.side_at);
 				if let Some(held) = held {
 					// The answer record first, then its files.
@@ -96,14 +97,14 @@ pub fn to_llm_messages(messages: &[Json]) -> Vec<Json> {
 			o.remove("side");
 		}
 		out.push(native);
-		if m["role"].as_str() == Some("assistant") {
+		if Role::Assistant.is(m) {
 			for call in tool_calls(m) {
 				let id = call["id"].as_str();
 				let held = id.is_some_and(|id| side_held.contains_key(id));
 				if !held && id.and_then(|id| last_result_at.get(id)).is_some_and(|&j| j > i) {
 					continue;
 				}
-				let mut result: Obj = [("role", Json::from("toolResult"))].into_iter().collect();
+				let mut result: Obj = [("role", Json::from(Role::ToolResult.as_str()))].into_iter().collect();
 				result.insert_present("toolCallId", call.get("id"));
 				result.insert_present("toolName", call.get("name"));
 				result.insert("content", text_content(if held { SIDE_PENDING_TEXT } else { INTERRUPTED_TEXT }));

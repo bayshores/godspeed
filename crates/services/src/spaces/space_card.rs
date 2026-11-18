@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 
 use gs_base::config::resolve;
 use gs_base::locks::LockKey;
+use gs_core::messages::role::is_custom;
 use gs_core::contracts::space::is_recording_file;
 use gs_core::graph::graph::get_graph;
 use gs_core::graph::topics::resolve_topics;
@@ -88,7 +89,7 @@ pub fn apply_space_card(app: &App, chat_id: &str, record: Option<&Json>) -> Resu
 	let _held = app.locks.lock(LockKey::Chat(chat_id));
 	let Some(chat) = app.stores.chats.get_chat(chat_id) else { return Ok(()) };
 	let mut messages = chat["messages"].as_arr().cloned().unwrap_or_default();
-	let at = messages.iter().position(|m| m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("space-context"));
+	let at = messages.iter().position(|m| is_custom(m, "space-context"));
 	let card = record.map(|r| space_card_for(app, r).map(|card| new_space_context_message(&card))).transpose()?;
 	match (at, card) {
 		(Some(at), Some(mut card)) => {

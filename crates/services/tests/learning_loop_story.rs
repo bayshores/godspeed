@@ -14,6 +14,7 @@ use std::sync::Arc;
 
 use gs_base::config::Paths;
 use gs_base::{clock, fsx, ids, time};
+use gs_core::messages::role::is_custom;
 use gs_core::contracts::chat::{STUDY_TOPIC_END_ACK_TEXT, TOPIC_DONE_NO_OPENER_TEXT, TOPIC_DONE_STORED_TEXT};
 use gs_core::messages::input_events::{ChatInput, TurnInput};
 use gs_core::spaces::today_note::local_day;
@@ -308,7 +309,7 @@ async fn two_days_of_study_for_the_midterm() {
 	let opening_id = opening["id"].clone();
 	let opened = topic_parts(&record, first_topic(Some(&plan)));
 	assert_eq!(opened.iter().map(|t| (t["nodeId"].as_str().unwrap(), &t["page"]["messageId"])).collect::<Vec<_>>(), [("reg", &opening_id)], "the page draws under the opening reply as soon as it is there");
-	assert_eq!(record.iter().filter(|m| m["customType"].as_str() == Some("review")).count(), 3, "his answers are written at once, during the turn");
+	assert_eq!(record.iter().filter(|m| is_custom(m, "review")).count(), 3, "his answers are written at once, during the turn");
 	assert_eq!(next_review(app, chat).unwrap(), ReviewReply::Next(None), "the reply landed");
 
 	thinks();

@@ -13,6 +13,7 @@ use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::tasks::detach;
 use gs_base::{clock, fsx, time};
+use gs_core::spaces::file_state::{FileKind, FileStatus};
 use gs_core::spaces::lecture_transcript::transcript_for;
 use gs_core::spaces::linked_folder::folder_source;
 use gs_core::spaces::new_files::kinds_for_new_files;
@@ -231,7 +232,7 @@ pub fn scan_linked_folder(app: &Arc<App>, space_id: &str, linking: bool) {
 			continue;
 		}
 		if let Some(file) = known_file(rel) {
-			if file["statSig"].as_str() != Some(sig.as_str()) && file["status"].str_or_empty() != "extracting" {
+			if file["statSig"].as_str() != Some(sig.as_str()) && FileStatus::of(file) != Some(FileStatus::Extracting) {
 				to_process.push(file["id"].str_or_empty().to_owned());
 			}
 			continue;
@@ -241,9 +242,9 @@ pub fn scan_linked_folder(app: &Arc<App>, space_id: &str, linking: bool) {
 		file.insert("origin", "linked");
 		file.insert("name", rel.rsplit('/').next().unwrap_or(rel));
 		file.insert("path", rel.as_str());
-		file.insert("kind", "study");
+		file.insert("kind", FileKind::Study);
 		file.insert("contentFp", "");
-		file.insert("status", "pending");
+		file.insert("status", FileStatus::Pending);
 		file.insert("addedAt", time::iso_now());
 		if !linking {
 			file.insert("foundByScan", true);
@@ -262,7 +263,7 @@ pub fn scan_linked_folder(app: &Arc<App>, space_id: &str, linking: bool) {
 	let existing = app.stores.spaces.get_space(space_id).map(|r| r["files"].items().to_vec()).unwrap_or_default();
 	let kinds = kinds_for_new_files(&existing, &added);
 	for file in &mut added {
-		let kind = kinds.get(file["id"].str_or_empty()).cloned().unwrap_or_else(|| "study".to_owned());
+		let kind = kinds.get(file["id"].str_or_empty()).cloned().unwrap_or_else(|| FileKind::Study.as_str().to_owned());
 		if let Some(obj) = file.as_obj_mut() {
 			obj.insert("kind", kind);
 		}

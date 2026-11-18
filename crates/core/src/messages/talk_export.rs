@@ -8,6 +8,7 @@ use gs_base::hash::sha256_hex;
 use gs_base::text::{slice16, trim};
 use gs_json::Json;
 
+use crate::messages::role::Role;
 use super::attachments::pdf_note_of;
 use crate::spaces::today_note::{day_label, local_day};
 
@@ -39,14 +40,14 @@ pub fn talk_export(record: &Json, teacher: &str, files: &str) -> Option<TalkExpo
 			continue;
 		}
 		let at = m["timestamp"].as_f64().map(|t| t as i64);
-		match (m["role"].as_str(), m["customType"].as_str()) {
-			(Some("user"), _) => rows.extend(learner_lines(&m["content"], files, &mut pictures).into_iter().map(|line| (Speaker::You, at, line))),
-			(Some("assistant"), _) => rows.extend(m["content"].items().iter().filter(|p| p["type"].as_str() == Some("text")).filter_map(|p| shown(&p["text"])).map(|text| (Speaker::Teacher, at, text))),
-			(Some("toolResult"), _) => {
+		match (Role::of(m), m["customType"].as_str()) {
+			(Some(Role::User), _) => rows.extend(learner_lines(&m["content"], files, &mut pictures).into_iter().map(|line| (Speaker::You, at, line))),
+			(Some(Role::Assistant), _) => rows.extend(m["content"].items().iter().filter(|p| p["type"].as_str() == Some("text")).filter_map(|p| shown(&p["text"])).map(|text| (Speaker::Teacher, at, text))),
+			(Some(Role::ToolResult), _) => {
 				let labels = m["details"]["changes"].items().iter().filter_map(|c| c["label"].as_str());
 				rows.extend(labels.map(|label| (Speaker::Teacher, at, format!("- {label}"))));
 			}
-			(Some("custom"), Some("app-request")) => rows.push((Speaker::Godspeed, at, asked_text(teacher, &m["details"]["deadlines"]))),
+			(Some(Role::Custom), Some("app-request")) => rows.push((Speaker::Godspeed, at, asked_text(teacher, &m["details"]["deadlines"]))),
 			_ => {}
 		}
 	}

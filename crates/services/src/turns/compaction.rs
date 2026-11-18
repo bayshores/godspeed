@@ -19,6 +19,7 @@ use gs_base::tasks::detach;
 use gs_base::{clock, ids, text, time};
 use gs_core::messages::compaction_marks::active_compaction_of;
 use gs_core::messages::native_messages::to_llm_messages;
+use gs_core::session::prices::CallUsage;
 use gs_core::session::compaction::{
 	KEEP_RECENT_TOKENS, build_compaction_prompt, compaction_cut_index, compaction_span, effective_threshold_tokens, estimate_context_tokens, estimate_tokens, local_summary, new_compaction_marker,
 	plan_tree_to_text, serialize_for_summary,
@@ -219,23 +220,11 @@ async fn summarize_and_replace(app: &Arc<App>, deps: &CompactionDeps, chat_id: &
 		app.stores.chats.save_messages(chat_id, &replaced)?;
 	}
 	// A real model call on the session's own engine: usage keys to the marker.
-	let step = json!({
-		"inputTokens": usage["input"],
-		"outputTokens": usage["output"],
-		"cacheReadTokens": usage["cacheRead"],
-		"cacheWriteTokens": usage["cacheWrite"],
-		"cacheWrite1hTokens": or_zero(&usage["cacheWrite1h"]),
-		"reasoningTokens": or_zero(&usage["reasoning"]),
-	});
+	let step = CallUsage::from_model_usage(&usage).to_json();
 	let entry = json!({ "id": ids::uuid(), "messageId": marker["id"], "at": time::iso_now(), "model": deps.model_id, "steps": [step] });
 	app.stores.chats.append_turn_usage(chat_id, &entry)?;
 	app.events.emit(EventKind::RecordChanged, json!({ "chatId": chat_id }));
 	Ok(())
-}
-
-/// `value ?? 0`.
-pub(super) fn or_zero(value: &Json) -> Json {
-	if value.is_null() { json!(0) } else { value.clone() }
 }
 
 /// The one-shot summary call: zero tools, one turn, text out, with the last call's usage.
@@ -254,6 +243,7 @@ async fn summarize(app: &Arc<App>, prompt: &str, engine: &Engine) -> Result<(Str
 mod tests {
 	use gs_core::contracts::chat::COMPACTED_HISTORY_HEADER;
 	use gs_core::messages::native_messages::new_user_message;
+	use gs_core::messages::role::is_custom;
 	use gs_engine::turn::faux::{Scripted, faux_model};
 	use gs_engine::turn::messages::{faux_assistant_message, text_block};
 
@@ -292,7 +282,7 @@ mod tests {
 	}
 
 	fn markers(app: &App, chat_id: &str) -> Vec<Json> {
-		app.stores.chats.get_chat(chat_id).unwrap()["messages"].items().iter().filter(|m| m["customType"].as_str() == Some("compaction")).cloned().collect()
+		app.stores.chats.get_chat(chat_id).unwrap()["messages"].items().iter().filter(|m| is_custom(m, "compaction")).cloned().collect()
 	}
 
 	fn active(app: &App, chat_id: &str) -> Option<Json> {

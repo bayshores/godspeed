@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use gs_base::config::Paths;
 use gs_base::{fsx, ids};
+use gs_core::messages::role::is_custom;
 use gs_core::messages::attachments::ChatAttachment;
 use gs_json::{Json, json, parse, stringify_pretty};
 use gs_services::App;
@@ -113,7 +114,7 @@ fn masked(messages: &[Json], known: &HashSet<String>) -> Json {
 				if o.get("id").and_then(Json::as_str).is_some_and(|id| !known.contains(id)) {
 					o.insert("id", "<new>");
 				}
-				if m["customType"].as_str() == Some("plan-block") {
+				if is_custom(m, "plan-block") {
 					o.insert("timestamp", "<now>");
 					let mut details = m["details"].clone();
 					details.get_mut("block").and_then(Json::as_obj_mut).unwrap().insert("at", "<now>");

@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 use gs_json::{Json, Obj};
 
+use crate::messages::role::{Role, is_custom};
 use super::progress::{answer_outcome, is_answer_data};
 use crate::messages::pending::{is_graded_tool, is_question_tool};
 use crate::session::practice_outcomes::practice_outcomes;
@@ -46,9 +47,9 @@ pub fn collect_answers(chat_id: &str, messages: &[Json]) -> Vec<Json> {
 	// question's answer, where a new turn starts).
 	let mut turn: Vec<&str> = Vec::new();
 	for m in messages {
-		match m["role"].as_str() {
-			Some("user") => turn.clear(),
-			Some("assistant") => {
+		match Role::of(m) {
+			Some(Role::User) => turn.clear(),
+			Some(Role::Assistant) => {
 				for block in m["content"].items().iter() {
 					let (Some(id), Some(name)) = (block["id"].as_str().filter(|s| !s.is_empty()), block["name"].as_str().filter(|s| !s.is_empty())) else { continue };
 					if block["type"].as_str() != Some("toolCall") || !is_graded_tool(name) {
@@ -58,8 +59,8 @@ pub fn collect_answers(chat_id: &str, messages: &[Json]) -> Vec<Json> {
 				}
 				turn.push(m["id"].str_or_empty());
 			}
-			Some("custom") if m["customType"].as_str() == Some("review") => out.extend(review_answer(&m["details"])),
-			Some("toolResult") => {
+			Some(Role::Custom) if is_custom(m, "review") => out.extend(review_answer(&m["details"])),
+			Some(Role::ToolResult) => {
 				// Any question's answer is the learner speaking: a new turn starts.
 				if is_question_tool(m["toolName"].str_or_empty()) {
 					turn.clear();

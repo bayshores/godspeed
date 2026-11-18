@@ -7,6 +7,7 @@
 use gs_json::{Json, json};
 use gs_json::js_text::js_string;
 
+use crate::messages::role::{is_custom, is_ok_tool_result};
 use super::input_events::{About, ChatInput};
 use super::lesson_markers::{ANALOGY_DROP, new_app_note_marker};
 use crate::session::question_core::{confidence_level, keep_of};
@@ -71,16 +72,16 @@ pub fn app_note_for(record: &Json, input: &ChatInput, asked: Option<&Json>) -> O
 fn from_earlier_line(messages: &[Json]) -> Option<String> {
 	let told = |m: &Json| matches!(m["customType"].as_str(), Some("app-note" | "opener-answer")) && m["content"].as_str().is_some_and(|c| c.lines().any(|l| l.starts_with(FROM_EARLIER)));
 	let since = messages.iter().rposition(told).map_or(0, |i| i + 1);
-	let answered: Vec<String> = messages[since..].iter().filter(|m| m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("review")).map(|m| review_words(&m["details"])).collect();
+	let answered: Vec<String> = messages[since..].iter().filter(|m| is_custom(m, "review")).map(|m| review_words(&m["details"])).collect();
 	(!answered.is_empty()).then(|| format!("{FROM_EARLIER} {}", answered.join(" ")))
 }
 
 /// The quizzes he answered after the last note that carried a keep note, then `answered` (his
 /// answer, not in the record yet): a batch's earlier answers wait for its last one's note.
 fn answered_since_keep_note<'a>(messages: &'a [Json], answered: &'a str) -> Vec<&'a str> {
-	let told = |m: &Json| m["customType"].as_str() == Some("app-note") && m["content"].as_str().is_some_and(|c| c.lines().any(|l| l.starts_with(KEEP_NOTE)));
+	let told = |m: &Json| is_custom(m, "app-note") && m["content"].as_str().is_some_and(|c| c.lines().any(|l| l.starts_with(KEEP_NOTE)));
 	let since = messages.iter().rposition(told).map_or(0, |i| i + 1);
-	let results = messages[since..].iter().filter(|m| m["role"].as_str() == Some("toolResult") && !m["isError"].truthy() && !m["details"]["dismissed"].truthy());
+	let results = messages[since..].iter().filter(|m| is_ok_tool_result(m) && !m["details"]["dismissed"].truthy());
 	results.filter_map(|m| m["toolCallId"].as_str()).chain([answered]).collect()
 }
 
@@ -91,7 +92,7 @@ fn analogy_dropped_lines(record: &Json) -> Vec<String> {
 	let told = |m: &Json| matches!(m["customType"].as_str(), Some("app-note" | "opener-answer")) && m["content"].as_str().is_some_and(|c| c.lines().any(|l| l.starts_with(ANALOGY_DROPPED)));
 	let since = messages.iter().rposition(told).map_or(0, |i| i + 1);
 	let mut changed: Vec<&str> = Vec::new();
-	for of in messages[since..].iter().filter(|m| m["customType"].as_str() == Some(ANALOGY_DROP)).filter_map(|m| m["details"]["of"].as_str()) {
+	for of in messages[since..].iter().filter(|m| is_custom(m, ANALOGY_DROP)).filter_map(|m| m["details"]["of"].as_str()) {
 		if !changed.contains(&of) {
 			changed.push(of);
 		}

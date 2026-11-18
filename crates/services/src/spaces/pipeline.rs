@@ -10,6 +10,7 @@ use std::sync::Arc;
 use gs_base::hash::sha256_text;
 use gs_base::tasks::detach;
 use gs_base::{clock, fsx};
+use gs_core::spaces::file_state::{FileKind, FileStatus};
 use gs_core::spaces::kept_pages::with_kept_pages;
 use gs_core::spaces::lecture_transcript::transcript_for;
 use gs_core::contracts::space::{DOCUMENT_EXTENSIONS, FILE_NOT_FOUND, extension_of, is_recording_file, is_transcript_file};
@@ -125,7 +126,7 @@ async fn process_file(app: Arc<App>, space_id: String, file_id: String) {
 	}
 	let Some(abs) = space_file_path(app, &record, &file).filter(|p| Path::new(p).exists()) else {
 		// Forget the signature so the folder scan picks the file up again once it is back (drive re-plugged).
-		patch_file(app, space_id, file_id, &[("status", Some("failed".into())), ("error", Some(FILE_NOT_FOUND.into())), ("statSig", None)]);
+		patch_file(app, space_id, file_id, &[("status", Some(FileStatus::Failed.into())), ("error", Some(FILE_NOT_FOUND.into())), ("statSig", None)]);
 		return;
 	};
 	// Saved on failure too, so the folder scan stops re-queuing an unreadable file until it changes.
@@ -135,7 +136,7 @@ async fn process_file(app: Arc<App>, space_id: String, file_id: String) {
 		if !still_there(app, space_id, file_id) {
 			return;
 		}
-		let mut patch = vec![("status", Some(Json::from("failed"))), ("error", Some(Json::from(err)))];
+		let mut patch = vec![("status", Some(FileStatus::Failed.into())), ("error", Some(Json::from(err)))];
 		if let Some(sig) = stat {
 			patch.push(("statSig", Some(Json::from(sig))));
 		}
@@ -152,15 +153,15 @@ async fn read_and_import(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path
 	let sig = Some(Json::from(sig));
 	let fp_json = Some(Json::from(fp.as_str()));
 
-	if file["kind"].str_or_empty() == "info" {
+	if FileKind::of(file) == Some(FileKind::Info) {
 		if let Some(source_id) = file["sourceId"].as_str().filter(|s| !s.is_empty()) {
 			drop_source_facts(app, space_id, source_id)?;
 		}
-		patch_file(app, space_id, file_id, &[("status", Some("ready".into())), ("contentFp", fp_json), ("statSig", sig), ("sourceId", None), ("transcriptId", None), ("error", None)]);
+		patch_file(app, space_id, file_id, &[("status", Some(FileStatus::Ready.into())), ("contentFp", fp_json), ("statSig", sig), ("sourceId", None), ("transcriptId", None), ("error", None)]);
 		index_for_search(app, space_id, file, abs, &fp, None).await;
 		return Ok(());
 	}
-	if file["contentFp"].str_or_empty() == fp && file["status"].str_or_empty() == "ready" && file["sourceId"].truthy() {
+	if file["contentFp"].str_or_empty() == fp && FileStatus::of(file) == Some(FileStatus::Ready) && file["sourceId"].truthy() {
 		// Touched, not changed.
 		if file["statSig"] != sig.clone().unwrap_or_default() {
 			patch_file(app, space_id, file_id, &[("statSig", sig)]);
@@ -168,20 +169,20 @@ async fn read_and_import(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path
 		return Ok(());
 	}
 	if !graph_enabled(app) {
-		patch_file(app, space_id, file_id, &[("status", Some("pending".into())), ("statSig", sig), ("error", Some("The knowledge graph is turned off in Settings → Graph".into()))]);
+		patch_file(app, space_id, file_id, &[("status", Some(FileStatus::Pending.into())), ("statSig", sig), ("error", Some("The knowledge graph is turned off in Settings → Graph".into()))]);
 		index_for_search(app, space_id, file, abs, &fp, None).await;
 		return Ok(());
 	}
 
-	patch_file(app, space_id, file_id, &[("status", Some("extracting".into())), ("statSig", sig), ("error", None)]);
+	patch_file(app, space_id, file_id, &[("status", Some(FileStatus::Extracting.into())), ("statSig", sig), ("error", None)]);
 	let text = match file_text(app, space_id, file, abs, &fp).await {
 		Ok(text) => text,
 		Err(TextError::WhisperMissing(message)) => {
-			patch_file(app, space_id, file_id, &[("status", Some("needs-whisper".into())), ("contentFp", fp_json), ("error", Some(message.into()))]);
+			patch_file(app, space_id, file_id, &[("status", Some(FileStatus::NeedsWhisper.into())), ("contentFp", fp_json), ("error", Some(message.into()))]);
 			return Ok(());
 		}
 		Err(TextError::Failed(message)) => {
-			patch_file(app, space_id, file_id, &[("status", Some("failed".into())), ("contentFp", fp_json), ("error", Some(message.into()))]);
+			patch_file(app, space_id, file_id, &[("status", Some(FileStatus::Failed.into())), ("contentFp", fp_json), ("error", Some(message.into()))]);
 			return Ok(());
 		}
 	};
@@ -209,17 +210,17 @@ async fn read_and_import(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path
 			let now = app.stores.spaces.get_space(space_id).and_then(|r| file_in(&r, file_id).cloned());
 			match now {
 				// Logistics: space info, which the teacher reads but never quizzes.
-				Some(now) if now["kind"].str_or_empty() == "study" && !now["kindChosen"].truthy() => {
+				Some(now) if FileKind::of(&now) == Some(FileKind::Study) && !now["kindChosen"].truthy() => {
 					patch_file(
 						app,
 						space_id,
 						file_id,
-						&[("kind", Some("info".into())), ("sortedAsInfo", Some(true.into())), ("status", Some("ready".into())), ("contentFp", fp_json), ("sourceId", None), ("error", None)],
+						&[("kind", Some(FileKind::Info.into())), ("sortedAsInfo", Some(true.into())), ("status", Some(FileStatus::Ready.into())), ("contentFp", fp_json), ("sourceId", None), ("error", None)],
 					);
 				}
 				// Picked as study material by hand during the read: read it again as that.
-				Some(now) if now["kind"].str_or_empty() == "study" => {
-					patch_file(app, space_id, file_id, &[("status", Some("pending".into())), ("error", None)]);
+				Some(now) if FileKind::of(&now) == Some(FileKind::Study) => {
+					patch_file(app, space_id, file_id, &[("status", Some(FileStatus::Pending.into())), ("error", None)]);
 					enqueue_file(app, space_id, file_id);
 				}
 				// Switched to space info meanwhile: its own queued run settles it.
@@ -227,11 +228,11 @@ async fn read_and_import(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path
 			}
 		}
 		Ok(_) => {
-			patch_file(app, space_id, file_id, &[("status", Some("ready".into())), ("contentFp", fp_json), ("sourceId", Some(source_id.as_str().into())), ("error", None)]);
+			patch_file(app, space_id, file_id, &[("status", Some(FileStatus::Ready.into())), ("contentFp", fp_json), ("sourceId", Some(source_id.as_str().into())), ("error", None)]);
 		}
 		Err(err) => {
 			if app.stores.spaces.get_space(space_id).is_some() {
-				patch_file(app, space_id, file_id, &[("status", Some("failed".into())), ("contentFp", fp_json), ("sourceId", Some(source_id.as_str().into())), ("error", Some(format!("{}: {}", err.outcome.as_str(), err.message).into()))]);
+				patch_file(app, space_id, file_id, &[("status", Some(FileStatus::Failed.into())), ("contentFp", fp_json), ("sourceId", Some(source_id.as_str().into())), ("error", Some(format!("{}: {}", err.outcome.as_str(), err.message).into()))]);
 			}
 		}
 	}
@@ -266,7 +267,7 @@ fn use_transcript(app: &Arc<App>, record: &Json, file: &Json, transcript_id: &st
 	}
 	// Gone since the check: the scan handles it.
 	let sig = space_file_path(app, record, file).and_then(|p| stat_sig(Path::new(&p)).ok());
-	patch_file(app, space_id, file_id, &[("status", Some("ready".into())), ("contentFp", Some("".into())), ("statSig", sig.map(Json::from)), ("sourceId", None), ("transcriptId", Some(transcript_id.into())), ("error", None)]);
+	patch_file(app, space_id, file_id, &[("status", Some(FileStatus::Ready.into())), ("contentFp", Some("".into())), ("statSig", sig.map(Json::from)), ("sourceId", None), ("transcriptId", Some(transcript_id.into())), ("error", None)]);
 }
 
 /// A file's text for the notes pipeline: a recording's or document's saved (or freshly made)
@@ -368,8 +369,7 @@ async fn index_unindexed_files(app: &Arc<App>) {
 		}
 		let Some(record) = app.stores.spaces.get_space(summary["id"].str_or_empty()) else { continue };
 		for file in record["files"].items() {
-			let status = file["status"].str_or_empty();
-			if (status != "ready" && status != "failed") || !file["contentFp"].truthy() {
+			if !matches!(FileStatus::of(file), Some(FileStatus::Ready | FileStatus::Failed)) || !file["contentFp"].truthy() {
 				continue;
 			}
 			if let Some(abs) = space_file_path(app, &record, file).filter(|p| Path::new(p).exists()) {
@@ -386,7 +386,7 @@ pub fn queue_waiting_files(app: &Arc<App>) {
 			continue;
 		}
 		for file in record["files"].items() {
-			if matches!(file["status"].str_or_empty(), "pending" | "extracting") {
+			if FileStatus::of(file).is_some_and(FileStatus::is_waiting) {
 				enqueue_file(app, record["id"].str_or_empty(), file["id"].str_or_empty());
 			}
 		}
@@ -500,11 +500,11 @@ mod tests {
 		let id = |file: Json| file["id"].as_str().unwrap().to_owned();
 		let syllabus = id(add_copied_file(&app, &space_id, "Syllabus.md", b"Office hours move to Tuesday.").unwrap());
 		let moved = id(add_copied_file(&app, &space_id, "Week 1.md", b"Cells divide.").unwrap());
-		set_file_kind(&app, &space_id, &moved, "study").unwrap();
-		let written = id(write_agent_file(&app, &space_id, "Study guide.md", b"Mitosis has four phases.", "study").unwrap().0);
+		set_file_kind(&app, &space_id, &moved, FileKind::Study).unwrap();
+		let written = id(write_agent_file(&app, &space_id, "Study guide.md", b"Mitosis has four phases.", FileKind::Study).unwrap().0);
 		let reading = root.join("Reading.md");
 		fsx::write_text_atomic(&reading, "Meiosis halves the chromosomes.").unwrap();
-		let from_path = id(add_file_from_path(&app, &space_id, reading.to_str().unwrap(), "study").unwrap());
+		let from_path = id(add_file_from_path(&app, &space_id, reading.to_str().unwrap(), FileKind::Study).unwrap());
 		let transcript = id(add_copied_file(&app, &space_id, "Lecture 1.vtt", b"WEBVTT\n\n00:00.000 --> 00:02.000\nCells divide.\n").unwrap());
 
 		let names = ["Syllabus.md", "Week 1.md", "Study guide.md", "Reading.md", "Lecture 1.vtt"];
@@ -559,7 +559,7 @@ mod tests {
 		let app = App::new(gs_base::config::Paths::new(root.join("data"), root.join("home"), root.join("tmp"), resources(&root, repo)), None);
 		let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Discrete math" })).unwrap()["id"].as_str().unwrap().to_owned();
 		let book = std::fs::read(repo.join("tests/fixtures/sample-book.epub")).unwrap();
-		let file_id = write_agent_file(&app, &space_id, "Sample Book.epub", &book, "info").unwrap().0["id"].as_str().unwrap().to_owned();
+		let file_id = write_agent_file(&app, &space_id, "Sample Book.epub", &book, FileKind::Info).unwrap().0["id"].as_str().unwrap().to_owned();
 		let mut fp = String::new();
 		for _ in 0..600 {
 			let record = app.stores.spaces.get_space(&space_id).unwrap();
@@ -598,7 +598,7 @@ mod tests {
 		let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Physics" })).unwrap()["id"].as_str().unwrap().to_owned();
 		let pdf = std::fs::read(repo.join("tests/fixtures/sample-3page.pdf")).unwrap();
 		let fp = gs_base::hash::sha256_hex(&pdf)[..16].to_owned();
-		let file_id = write_agent_file(&app, &space_id, "Lecture 1.pdf", &pdf, "info").unwrap().0["id"].as_str().unwrap().to_owned();
+		let file_id = write_agent_file(&app, &space_id, "Lecture 1.pdf", &pdf, FileKind::Info).unwrap().0["id"].as_str().unwrap().to_owned();
 		// The PDF's text, saved before the queue first runs, so no PDF library is needed here.
 		write_cached_text(&app, &space_id, &file_id, &fp, "--- Page 1 ---\nOne.\n--- Page 2 ---\nForce is F \u{25a0} ma.\n--- Page 3 ---\nThree.");
 		wait_indexed(&app, &space_id, &file_id, &fp).await;
@@ -636,7 +636,7 @@ mod tests {
 		// A new version has no kept pages, and a keep for the old one is refused.
 		let changed = [pdf.as_slice(), b"\n% changed\n"].concat();
 		let new_fp = gs_base::hash::sha256_hex(&changed)[..16].to_owned();
-		replace_copied_file(&app, &space_id, &file_id, &changed, "info").unwrap();
+		replace_copied_file(&app, &space_id, &file_id, &changed, FileKind::Info).unwrap();
 		write_cached_text(&app, &space_id, &file_id, &new_fp, "--- Page 1 ---\nOne.\n--- Page 2 ---\nForce, changed.\n--- Page 3 ---\nThree.");
 		wait_indexed(&app, &space_id, &file_id, &new_fp).await;
 		assert_eq!(page_two()["text"].as_str(), Some("Force, changed."));

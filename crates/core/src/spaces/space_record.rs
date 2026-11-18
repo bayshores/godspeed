@@ -5,6 +5,7 @@ use std::collections::HashSet;
 
 use gs_json::{Json, Obj};
 
+use super::file_state::FileKind;
 use super::new_files::is_recent_change;
 use super::space_path::read_path;
 use super::space_deadlines::{id_list, squash, with_files};
@@ -22,7 +23,7 @@ fn is_space_file(v: &Json) -> bool {
 		&& matches!(v["origin"].as_str(), Some("copied" | "linked"))
 		&& is_str(&v["name"])
 		&& is_str(&v["path"])
-		&& matches!(v["kind"].as_str(), Some("study" | "info"))
+		&& FileKind::of(v).is_some()
 		&& is_str(&v["contentFp"])
 		&& is_str(&v["status"])
 		&& is_str(&v["addedAt"])
@@ -307,6 +308,7 @@ pub fn summarize(record: &Json) -> Json {
 mod tests {
 	use gs_json::{json, stringify};
 
+	use super::super::file_state::FileStatus;
 	use super::*;
 
 	fn file(id: &str, origin: &str, added: &str) -> Json {
@@ -435,7 +437,7 @@ mod tests {
 	#[test]
 	fn a_space_counts_the_files_left_and_those_read_this_round() {
 		let mut waiting = file("f2", "copied", "t");
-		waiting.as_obj_mut().unwrap().insert("status", "pending");
+		waiting.as_obj_mut().unwrap().insert("status", FileStatus::Pending);
 		let mut record = json!({ "id": "cls_a", "name": "n", "description": "", "createdAt": "c", "updatedAt": "u", "closed": false, "files": [waiting.clone()], "color": 1 });
 		let summary = summarize(&record);
 		assert_eq!(summary["filesLeft"], Json::from(1));

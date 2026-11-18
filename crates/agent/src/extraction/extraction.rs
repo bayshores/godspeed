@@ -23,6 +23,7 @@ use gs_core::graph::graph::{MergeSource, get_graph, merge_findings};
 use gs_core::graph::ports::GraphStore;
 use gs_core::messages::native_messages::failed_output_call_ids;
 use gs_core::records::settings::factory_settings;
+use gs_core::session::prices::CallUsage;
 use gs_engine::bridge::Bridge;
 use gs_engine::turn::abort::Abort;
 use gs_engine::turn::faux::Engine;
@@ -205,19 +206,6 @@ fn elapsed_ms(t0: Instant) -> i64 {
 	t0.elapsed().as_millis() as i64
 }
 
-/// One model step's usage as the extraction log stores it.
-fn call_usage(usage: &Json) -> Json {
-	let or_zero = |v: &Json| if v.is_null() { Json::from(0) } else { v.clone() };
-	json!({
-		"inputTokens": usage["input"],
-		"outputTokens": usage["output"],
-		"cacheReadTokens": usage["cacheRead"],
-		"cacheWriteTokens": usage["cacheWrite"],
-		"cacheWrite1hTokens": or_zero(&usage["cacheWrite1h"]),
-		"reasoningTokens": or_zero(&usage["reasoning"]),
-	})
-}
-
 /// Which submit the extractor gets.
 enum Door {
 	/// A lesson: anchors must be passages of this batch.
@@ -345,7 +333,7 @@ impl Extraction {
 		opts.abort = Some(abort);
 		opts.task_label = Some(self.task_label(key));
 		let (host, step_key) = (self.0.clone(), key.to_owned());
-		opts.on_step = Some(Arc::new(move |usage, model| host.state().runs.record_step(&step_key, call_usage(usage), model)));
+		opts.on_step = Some(Arc::new(move |usage, model| host.state().runs.record_step(&step_key, CallUsage::from_model_usage(usage).to_json(), model)));
 		Ok(run_submit_agent(self.0.bridge(), opts).await?)
 	}
 
@@ -602,11 +590,6 @@ mod tests {
 
 	#[test]
 	fn usage_steps_fill_the_optional_counts() {
-		let usage = json!({ "input": 10, "output": 5, "cacheRead": 0, "cacheWrite": 1, "totalTokens": 16 });
-		assert_eq!(
-			gs_json::stringify(&call_usage(&usage)),
-			r#"{"inputTokens":10,"outputTokens":5,"cacheReadTokens":0,"cacheWriteTokens":1,"cacheWrite1hTokens":0,"reasoningTokens":0}"#
-		);
 		assert_eq!(job_key("chat_1", None), "chat_1");
 		assert_eq!(job_key("src_1", Some((2, 3))), "src_1#2");
 	}

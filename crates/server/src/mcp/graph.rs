@@ -6,6 +6,7 @@ use gs_agent::extraction::extraction::NotesImportInput;
 use gs_base::re::Re;
 use gs_base::tasks::detach;
 use gs_core::contracts::space::safe_name;
+use gs_core::spaces::file_state::FileKind;
 use gs_json::{Json, json};
 use gs_services::App;
 use gs_services::app::agent_actions::note_agent_action;
@@ -45,7 +46,7 @@ pub fn import_notes(call: &ToolCall<'_>, args: &Json) -> Json {
 	let clean = safe_name(name);
 	let file_name = if Re::new(r"\.(md|markdown|txt)$", "i").test(&clean) { clean } else { format!("{clean}.md") };
 	// Only a note it imported or wrote before is replaced; the learner's own file never is.
-	let file = match gs_services::spaces::write_agent_file(app, &space_id, &file_name, &gs_base::text::utf8_bytes(text), "study") {
+	let file = match gs_services::spaces::write_agent_file(app, &space_id, &file_name, &gs_base::text::utf8_bytes(text), FileKind::Study) {
 		Ok((file, _)) => file,
 		Err(refused) => return failure(&refused),
 	};

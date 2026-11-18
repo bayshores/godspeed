@@ -247,7 +247,7 @@ pub async fn run_demo_builder(title: &str, brief: &str, opts: &JobAgentOptions) 
 	}
 	let mut result = json!({ "title": title, "html": html, "tested": true });
 	if !trim(&final_text).is_empty() {
-		result.as_obj_mut().expect("an object").insert("notes", trim(&final_text));
+		result.set("notes", trim(&final_text));
 	}
 	result
 }

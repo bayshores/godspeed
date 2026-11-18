@@ -2,6 +2,7 @@
 
 use gs_json::{Json, Obj, json};
 
+use crate::messages::role::{Role, is_custom};
 use super::latest_session;
 use super::study::is_topic_latest_wrong;
 
@@ -46,7 +47,7 @@ pub fn conclude_marks_done(outcome: &Json) -> bool {
 /// The problem the learner's newest input picked from the problem list, if it was a pick: a
 /// problem closed for it moves on without a long-problem stop, since he chose where to go next.
 pub fn picked_problem(messages: &[Json]) -> Option<&str> {
-	let newest = messages.iter().rev().find(|m| m["role"].as_str() == Some("user") || m["customType"].as_str() == Some("practice-next"))?;
+	let newest = messages.iter().rev().find(|m| Role::User.is(m) || is_custom(m, "practice-next"))?;
 	newest["details"]["number"].as_str()
 }
 

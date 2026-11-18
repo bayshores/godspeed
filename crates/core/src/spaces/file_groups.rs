@@ -6,6 +6,7 @@ use std::collections::{HashMap, HashSet};
 use gs_base::locale;
 use gs_json::{Json, js_number};
 
+use super::file_state::FileKind;
 use super::file_series::{FileSeries, date_in_name, group_file_series};
 use crate::contracts::space::is_recording_or_captions;
 
@@ -158,7 +159,7 @@ pub fn file_groups(files: &[Json]) -> Vec<FileGroup<'_>> {
 		(0..series.len()).filter(|i| !paired.contains(i)).map(|i| series_group(files, &series[i], pairs.get(&i).map(|&p| &series[p]))).collect();
 	groups.extend(folder_groups);
 	// Groups with study material (lectures, readings) come before space info.
-	let has_study = |g: &FileGroup<'_>| g.items.iter().any(|i| i.files.iter().any(|f| f["kind"].as_str() == Some("study")));
+	let has_study = |g: &FileGroup<'_>| g.items.iter().any(|i| i.files.iter().any(|f| FileKind::of(f) == Some(FileKind::Study)));
 	groups.sort_by_key(|g| !has_study(g));
 	rest.sort_by(|a, b| locale::compare_numeric(name_of(a), name_of(b)));
 	if !rest.is_empty() {

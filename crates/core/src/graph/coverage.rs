@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use gs_base::{hash, text};
 use gs_json::{Json, json, stringify};
 
+use crate::messages::role::Role;
 use crate::contracts::chat::TOPIC_DONE_TOOL;
 use crate::messages::citations::cites_in_words;
 use crate::messages::native_messages::{failed_output_call_ids, user_facing_text_of};
@@ -15,7 +16,7 @@ use crate::session::question_core::{keep_fields_note, keep_of};
 /// review questions too); everything else yields none. `mid` is part of each line, so the
 /// same prose in two messages is two slots. `failed` defaults to this message's own failures.
 pub fn message_view_lines(message: &Json, mid: &str, failed: Option<&HashSet<String>>) -> Vec<String> {
-	if message["role"].as_str() != Some("assistant") {
+	if !Role::Assistant.is(message) {
 		return Vec::new();
 	}
 	let own;

@@ -11,6 +11,7 @@ use std::collections::HashSet;
 
 use gs_json::{Json, json};
 
+use crate::messages::role::{Role, is_custom};
 use super::progress::answer_outcome;
 use super::topic_end::shown_openers;
 use crate::messages::citations::{CiteMark, replace_cite_marks};
@@ -68,12 +69,12 @@ pub(crate) fn visits(messages: &[Json], first_topic: Option<&str>) -> Vec<Visit>
 pub(crate) fn kept_calls(messages: &[Json]) -> HashSet<&str> {
 	let shown: HashSet<&str> = messages
 		.iter()
-		.filter(|m| m["customType"].as_str() == Some(KEEP_CHECK) && m["details"]["keep"].as_str() == Some("shown"))
+		.filter(|m| is_custom(m, KEEP_CHECK) && m["details"]["keep"].as_str() == Some("shown"))
 		.filter_map(|m| m["details"]["quizCallId"].as_str())
 		.collect();
 	messages
 		.iter()
-		.filter(|m| m["role"].as_str() == Some("toolResult") && answer_outcome(&m["details"]) == Some("right"))
+		.filter(|m| Role::ToolResult.is(m) && answer_outcome(&m["details"]) == Some("right"))
 		.filter_map(|m| m["toolCallId"].as_str())
 		.filter(|id| shown.contains(id))
 		.collect()
@@ -83,14 +84,14 @@ pub(crate) fn kept_calls(messages: &[Json]) -> HashSet<&str> {
 fn walk(messages: &[Json], first_topic: Option<&str>, reply: Option<&Json>) -> (Vec<Json>, Vec<Visit>) {
 	let openers = shown_openers(messages);
 	let kept = kept_calls(messages);
-	let refused: HashSet<&str> = messages.iter().filter(|m| m["role"].as_str() == Some("toolResult") && m["isError"] == Json::Bool(true)).filter_map(|m| m["toolCallId"].as_str()).collect();
+	let refused: HashSet<&str> = messages.iter().filter(|m| Role::ToolResult.is(m) && m["isError"] == Json::Bool(true)).filter_map(|m| m["toolCallId"].as_str()).collect();
 	let mut out: Vec<Json> = Vec::new();
 	let mut visits = Vec::new();
 	let reached = |out: &[Json], node_id: &str| out.iter().position(|t| t["nodeId"].as_str() == Some(node_id));
 	let mut opened: HashSet<String> = HashSet::new();
 	let mut current: Option<String> = first_topic.map(str::to_owned);
 	for (index, m) in messages.iter().chain(reply).enumerate() {
-		let opener = (m["role"].as_str() == Some("toolResult")).then(|| m["toolCallId"].as_str().and_then(|id| openers.get(id))).flatten();
+		let opener = (Role::ToolResult.is(m)).then(|| m["toolCallId"].as_str().and_then(|id| openers.get(id))).flatten();
 		if let Some(opener) = opener
 			&& let Some(node_id) = opener["quiz"]["nodeId"].as_str()
 			&& reached(&out, node_id).is_none()
@@ -102,7 +103,7 @@ fn walk(messages: &[Json], first_topic: Option<&str>, reply: Option<&Json>) -> (
 			current = Some(node_id.to_owned());
 			continue;
 		}
-		if m["role"].as_str() != Some("assistant") {
+		if !Role::Assistant.is(m) {
 			continue;
 		}
 		let named = call_topic(m, &refused);

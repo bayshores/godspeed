@@ -99,6 +99,11 @@ impl Json {
 		}
 	}
 
+	/// Sets `key` on an object that the caller just built or read as one; anything else is a bug.
+	pub fn set(&mut self, key: impl Into<String>, value: impl Into<Json>) {
+		self.as_obj_mut().expect("an object").insert(key, value);
+	}
+
 	/// `obj[key]` for an object; None for a missing key or a value that is not an object.
 	pub fn get(&self, key: &str) -> Option<&Json> {
 		self.as_obj().and_then(|o| o.get(key))
@@ -219,5 +224,13 @@ mod tests {
 		assert!(!Json::Num(f64::NAN).truthy());
 		assert!(Json::Arr(vec![]).truthy());
 		assert!(!Json::from("").truthy());
+	}
+
+	#[test]
+	fn set_writes_a_field_of_an_object() {
+		let mut v = crate::parse(r#"{"a":1}"#).unwrap();
+		v.set("b", "x");
+		v.set("a", 2);
+		assert_eq!(crate::stringify(&v), r#"{"a":2,"b":"x"}"#);
 	}
 }

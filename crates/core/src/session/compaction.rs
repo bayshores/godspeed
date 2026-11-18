@@ -17,6 +17,7 @@ use gs_base::{clock, text};
 use gs_json::{Json, Obj, stringify};
 
 use gs_json::js_text::{field_text, js_string, or_empty};
+use crate::messages::role::{Role, is_custom};
 use super::plan::{PlanStatuses, derive_plan_statuses_lh, derived_node_status};
 use crate::contracts::chat::COMPACTED_HISTORY_HEADER;
 use crate::messages::attachments::content_text;
@@ -91,7 +92,7 @@ fn text_chars_of_content(content: &Json) -> f64 {
 /// record scaffolding would inflate the count about threefold.
 pub fn estimate_message_tokens(message: &Json) -> f64 {
 	let mut chars = 0.0;
-	if message["role"].as_str() == Some("assistant") {
+	if Role::Assistant.is(message) {
 		for block in message["content"].items().iter() {
 			match block["type"].as_str() {
 				Some("text") => chars += len_of(&block["text"]),
@@ -105,7 +106,7 @@ pub fn estimate_message_tokens(message: &Json) -> f64 {
 		}
 	} else {
 		chars += text_chars_of_content(&message["content"]) + text_chars_of_content(&message["attachments"]);
-		if message["role"].as_str() == Some("system") {
+		if Role::System.is(message) {
 			for section in message["sections"].as_obj().into_iter().flat_map(|s| s.values()) {
 				chars += len_of(section);
 			}
@@ -122,10 +123,10 @@ pub fn estimate_message_tokens(message: &Json) -> f64 {
 /// compaction marker, because usage captured before a compaction described the pre-cut context.
 fn last_assistant_usage_index(messages: &[Json]) -> Option<usize> {
 	for (i, m) in messages.iter().enumerate().rev() {
-		if m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("compaction") {
+		if is_custom(m, "compaction") {
 			return None;
 		}
-		if m["role"].as_str() != Some("assistant") || matches!(m["stopReason"].as_str(), Some("aborted" | "error")) {
+		if !Role::Assistant.is(m) || matches!(m["stopReason"].as_str(), Some("aborted" | "error")) {
 			continue;
 		}
 		if calculate_context_tokens(&m["usage"]) == 0.0 {
@@ -167,7 +168,7 @@ pub fn estimate_tokens(messages: &[Json]) -> f64 {
 /// have no context.
 fn has_context(message: &Json) -> bool {
 	let custom_type = message["customType"].as_str();
-	!(message["role"].as_str() == Some("custom") && (custom_type == Some("compaction") || is_ui_only(custom_type)))
+	!(Role::Custom.is(message) && (custom_type == Some("compaction") || is_ui_only(custom_type)))
 }
 
 /// The cut rule of Pi's findCutPoint: walk backwards to the budget, then take the nearest valid cut at or
@@ -175,7 +176,7 @@ fn has_context(message: &Json) -> bool {
 pub fn compaction_cut_index(messages: &[Json], keep_recent_tokens: f64) -> usize {
 	let start = active_compaction_of(messages).and_then(|previous| kept_index_for(messages, previous)).unwrap_or(0);
 	let points: Vec<usize> = (start..messages.len())
-		.filter(|&i| has_context(&messages[i]) && matches!(messages[i]["role"].as_str(), Some("user" | "assistant" | "custom")))
+		.filter(|&i| has_context(&messages[i]) && matches!(Role::of(&messages[i]), Some(Role::User | Role::Assistant | Role::Custom)))
 		.collect();
 	let Some(&first) = points.first() else { return start };
 	let mut cut = first;
@@ -194,7 +195,7 @@ pub fn compaction_cut_index(messages: &[Json], keep_recent_tokens: f64) -> usize
 	// Metadata next to the cut stays with it, but the walk never crosses a previous compaction.
 	while cut > start {
 		let before = &messages[cut - 1];
-		let is_compaction = before["role"].as_str() == Some("custom") && before["customType"].as_str() == Some("compaction");
+		let is_compaction = is_custom(before, "compaction");
 		if is_compaction || has_context(before) {
 			break;
 		}
@@ -210,7 +211,7 @@ pub fn compaction_cut_index(messages: &[Json], keep_recent_tokens: f64) -> usize
 pub fn new_compaction_marker(summary: &str, details: &Json) -> Json {
 	let mut out = Obj::new();
 	out.insert("id", new_message_id());
-	out.insert("role", "custom");
+	out.insert("role", Role::Custom.as_str());
 	out.insert("customType", "compaction");
 	out.insert("content", format!("{COMPACTED_HISTORY_HEADER}\n\n{}", text::trim(summary)));
 	out.insert("display", true);
@@ -228,9 +229,9 @@ pub fn serialize_for_summary(messages: &[Json]) -> String {
 fn summary_lines(messages: &[Json]) -> Vec<String> {
 	let mut lines: Vec<String> = Vec::new();
 	for m in messages {
-		match m["role"].as_str() {
-			Some("user") => lines.push(format!("[LEARNER] {}", content_text(&m["content"]))),
-			Some("assistant") => {
+		match Role::of(m) {
+			Some(Role::User) => lines.push(format!("[LEARNER] {}", content_text(&m["content"]))),
+			Some(Role::Assistant) => {
 				let mut blocks: Vec<String> = Vec::new();
 				for b in m["content"].items().iter() {
 					match b["type"].as_str() {
@@ -247,7 +248,7 @@ fn summary_lines(messages: &[Json]) -> Vec<String> {
 					lines.push(format!("[TUTOR] {}", blocks.join("\n")));
 				}
 			}
-			Some("toolResult") => {
+			Some(Role::ToolResult) => {
 				let result = content_text(&m["content"]);
 				let shown = if text::len16(&result) > SUMMARY_TOOL_RESULT_TRUNCATE {
 					format!("{}\u{2026}[truncated]", text::slice16(&result, 0, Some(SUMMARY_TOOL_RESULT_TRUNCATE as i64)))
@@ -257,7 +258,7 @@ fn summary_lines(messages: &[Json]) -> Vec<String> {
 				let failed = if m["isError"].truthy() { " (error)" } else { "" };
 				lines.push(format!("[RESULT for {}{failed}] {shown}", field_text(m, "toolName")));
 			}
-			Some("custom") => {
+			Some(Role::Custom) => {
 				if is_ui_only(m["customType"].as_str()) {
 					continue;
 				}

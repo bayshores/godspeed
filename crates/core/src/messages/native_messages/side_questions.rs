@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 use gs_json::{Json, quote};
 
+use crate::messages::role::Role;
 use super::scans::{dangling_question_of, is_bookkeeping, is_side_question, retry_context, rides_ahead};
 use crate::messages::pending::is_question_tool;
 use crate::messages::tool_calls;
@@ -26,7 +27,7 @@ pub struct HeldQuestion {
 /// The side question right after the assistant message at `i`, past its tool results,
 /// bookkeeping and the notes riding ahead of it.
 fn side_question_after(messages: &[Json], i: usize) -> Option<usize> {
-	let j = (i + 1..messages.len()).find(|&j| messages[j]["role"].as_str() != Some("toolResult") && !is_bookkeeping(&messages[j]) && !rides_ahead(&messages[j]))?;
+	let j = (i + 1..messages.len()).find(|&j| !Role::ToolResult.is(&messages[j]) && !is_bookkeeping(&messages[j]) && !rides_ahead(&messages[j]))?;
 	is_side_question(&messages[j]).then_some(j)
 }
 
@@ -35,13 +36,13 @@ fn side_question_after(messages: &[Json], i: usize) -> Option<usize> {
 pub fn side_held_questions(messages: &[Json]) -> HashMap<String, HeldQuestion> {
 	let mut answered_at: HashMap<&str, usize> = HashMap::new();
 	for (j, m) in messages.iter().enumerate() {
-		if let Some(id) = m["toolCallId"].as_str().filter(|_| m["role"].as_str() == Some("toolResult")) {
+		if let Some(id) = m["toolCallId"].as_str().filter(|_| Role::ToolResult.is(m)) {
 			answered_at.insert(id, j);
 		}
 	}
 	let mut held = HashMap::new();
 	for (j, m) in messages.iter().enumerate() {
-		if m["role"].as_str() != Some("assistant") {
+		if !Role::Assistant.is(m) {
 			continue;
 		}
 		let Some(side_at) = side_question_after(messages, j) else { continue };
@@ -58,7 +59,7 @@ pub fn side_held_questions(messages: &[Json]) -> HashMap<String, HeldQuestion> {
 /// Does this turn answer a side question: the newest input (a learner message, a job result) is
 /// one, and the question it was asked around is still open?
 pub fn is_side_turn(messages: &[Json]) -> bool {
-	let input = messages.iter().rev().find(|m| m["role"].as_str() == Some("user") || (m["role"].as_str() == Some("custom") && !is_bookkeeping(m)));
+	let input = messages.iter().rev().find(|m| Role::User.is(m) || (Role::Custom.is(m) && !is_bookkeeping(m)));
 	input.is_some_and(is_side_question) && dangling_question_of(messages).is_some()
 }
 
@@ -74,7 +75,7 @@ pub fn open_question_held(messages: &[Json]) -> bool {
 /// SIDE_ANSWER_LEAD, naming the question when its message asked several: out of place, the answer
 /// no longer sits next to its own call.
 pub(super) fn side_answer_lead(asker: &Json, call_id: &str) -> String {
-	if asker["role"].as_str() != Some("assistant") {
+	if !Role::Assistant.is(asker) {
 		return SIDE_ANSWER_LEAD.to_owned();
 	}
 	let questions: Vec<&Json> = tool_calls(asker).filter(|b| b["name"].as_str().is_some_and(is_question_tool)).collect();

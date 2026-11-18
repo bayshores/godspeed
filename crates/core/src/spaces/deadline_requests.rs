@@ -8,8 +8,10 @@ use gs_base::text::cmp16;
 use gs_base::{hash, time};
 use gs_json::{Json, Obj};
 
+use super::file_state::{FileKind, FileStatus};
 use super::prep_upgrade::{ABOUT_FILE_NAME, GUIDE_FILE_NAME};
 use crate::contracts::space::MAX_PATH_TOPICS;
+use crate::messages::role::is_custom;
 use super::today_note::local_day;
 
 /// Files added this soon after a space's first file came with its setup, which handles them.
@@ -77,7 +79,7 @@ pub fn requested_deadline(space: &Json, deadline: &Json) -> RequestedDeadline {
 pub fn unlinked_deadlines(spaces: &[Json], today: &str, asked: &HashSet<String>) -> Vec<RequestedDeadline> {
 	let mut out = Vec::new();
 	for c in spaces {
-		let has_ready_study = c["files"].items().iter().any(|f| f["kind"].as_str() == Some("study") && f["status"].as_str() == Some("ready"));
+		let has_ready_study = c["files"].items().iter().any(|f| FileKind::of(f) == Some(FileKind::Study) && FileStatus::of(f) == Some(FileStatus::Ready));
 		if c["closed"].truthy() || !has_ready_study {
 			continue;
 		}
@@ -96,7 +98,7 @@ pub fn unlinked_deadlines(spaces: &[Json], today: &str, asked: &HashSet<String>)
 
 /// The deadlines godspeed asked about in the Talk chat of earlier versions.
 pub fn asked_deadline_ids(messages: &[Json]) -> HashSet<String> {
-	let requests = messages.iter().filter(|m| m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("app-request"));
+	let requests = messages.iter().filter(|m| is_custom(m, "app-request"));
 	requests.flat_map(|m| m["details"]["deadlines"].items()).map(|d| text_of(&d["id"])).collect()
 }
 
@@ -234,13 +236,13 @@ pub fn space_reasons(space: &Json, path: Option<&Json>, today: &str, record: &As
 	let files = space["files"].items();
 	let Some(first) = files.iter().filter_map(added_ms).min() else { return reasons };
 	// A ready file of `kind` added after setup, with the time it was added.
-	let ready = |kind: &'static str| {
+	let ready = |kind: FileKind| {
 		files.iter().filter_map(move |f| {
 			let at = added_ms(f)?;
-			(f["kind"].as_str() == Some(kind) && f["status"].as_str() == Some("ready") && at >= first + SETUP_MS).then_some((f, at))
+			(FileKind::of(f) == Some(kind) && FileStatus::of(f) == Some(FileStatus::Ready) && at >= first + SETUP_MS).then_some((f, at))
 		})
 	};
-	for (f, at) in ready("info").filter(|(f, _)| !f["written"].truthy()) {
+	for (f, at) in ready(FileKind::Info).filter(|(f, _)| !f["written"].truthy()) {
 		let (id, fp) = (f["id"].str_or_empty(), f["contentFp"].str_or_empty());
 		let prefix = format!("{id}:");
 		let counts = match record.checked_info.iter().find(|key| key.starts_with(&prefix)) {
@@ -257,7 +259,7 @@ pub fn space_reasons(space: &Json, path: Option<&Json>, today: &str, record: &As
 			continue;
 		}
 		let (left_out, deadline_id) = (d["leftOutIds"].strs(), d["id"].str_or_empty());
-		for (f, at) in ready("study") {
+		for (f, at) in ready(FileKind::Study) {
 			let id = f["id"].str_or_empty();
 			let weighed = linked.contains(&id) || left_out.contains(&id) || record.weighed.contains(&format!("{deadline_id}:{id}"));
 			if !weighed && at > since && cmp16(&local_day(at), d["date"].str_or_empty()).is_le() {

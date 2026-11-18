@@ -39,6 +39,20 @@ pub struct CallUsage {
 }
 
 impl CallUsage {
+	/// One model call's usage as the engine reports it (input, output, cacheRead, cacheWrite,
+	/// cacheWrite1h, reasoning); a count it left out is 0.
+	pub fn from_model_usage(usage: &Json) -> CallUsage {
+		let read = |key: &str| Some(usage[key].as_f64().unwrap_or(0.0));
+		CallUsage {
+			input_tokens: read("input"),
+			output_tokens: read("output"),
+			cache_read_tokens: read("cacheRead"),
+			cache_write_tokens: read("cacheWrite"),
+			cache_write_1h_tokens: read("cacheWrite1h"),
+			reasoning_tokens: read("reasoning"),
+		}
+	}
+
 	/// Reads a stored usage record. A present null counts as a reported zero.
 	pub fn from_json(v: &Json) -> CallUsage {
 		let read = |key: &str| v.get(key).map(|n| n.as_f64().unwrap_or(0.0));
@@ -110,6 +124,15 @@ mod tests {
 	use gs_json::{json, stringify};
 
 	use super::*;
+
+	#[test]
+	fn a_model_calls_usage_reads_every_count_and_a_missing_one_as_zero() {
+		let usage = json!({ "input": 10, "output": 5, "cacheRead": 0, "cacheWrite": 1, "totalTokens": 16 });
+		assert_eq!(
+			stringify(&CallUsage::from_model_usage(&usage).to_json()),
+			r#"{"inputTokens":10,"outputTokens":5,"cacheReadTokens":0,"cacheWriteTokens":1,"cacheWrite1hTokens":0,"reasoningTokens":0}"#
+		);
+	}
 
 	#[test]
 	fn labels_come_from_the_model_prefix() {

@@ -13,6 +13,7 @@ use std::sync::LazyLock;
 use gs_base::re::Re;
 use gs_json::{Json, Obj};
 
+use crate::messages::role::{Role, is_custom};
 use super::code_question::fenced_code;
 use gs_json::js_text::{field_text, js_string, or_empty};
 use crate::contracts::chat::TOPIC_DONE_TOOL;
@@ -32,7 +33,7 @@ struct MarkdownContext<'a> {
 
 fn markdown_context(messages: &[Json]) -> MarkdownContext<'_> {
 	let mut calls = HashMap::new();
-	for message in messages.iter().filter(|m| m["role"].as_str() == Some("assistant")) {
+	for message in messages.iter().filter(|m| Role::Assistant.is(m)) {
 		for block in tool_calls(message) {
 			if let Some(id) = block["id"].as_str() {
 				calls.insert(id, block);
@@ -190,18 +191,18 @@ fn tool_result_body(result: &Json, ctx: &MarkdownContext) -> (&'static str, Vec<
 /// marker, a message with no text).
 fn message_markdown(message: &Json, ctx: &MarkdownContext) -> Option<String> {
 	let mut parts: Vec<String> = Vec::new();
-	match message["role"].as_str() {
-		Some("user") => {
+	match Role::of(message) {
+		Some(Role::User) => {
 			for text in user_facing_text_of(&message["content"], None) {
 				parts.push(format!("### Learner\n\n{}", gs_base::text::trim(&text)));
 			}
 		}
-		Some("assistant") => {
+		Some(Role::Assistant) => {
 			for text in user_facing_text_of(&message["content"], Some(&ctx.failed_output_calls)) {
 				parts.push(format!("### Teacher\n\n{}", gs_base::text::trim(&text)));
 			}
 		}
-		Some("toolResult") => {
+		Some(Role::ToolResult) => {
 			if message["isError"].truthy() || message["toolName"].as_str() == Some(SEND_TO_USER_TOOL) {
 				return None;
 			}
@@ -214,7 +215,7 @@ fn message_markdown(message: &Json, ctx: &MarkdownContext) -> Option<String> {
 			}
 		}
 		// Only answers to a shown opener; any other is refused when sent.
-		Some("custom") if message["customType"].as_str() == Some("opener-answer") && message["details"]["topicDoneCallId"].as_str().is_some_and(|id| ctx.openers.contains_key(id)) => {
+		Some(Role::Custom) if is_custom(message, "opener-answer") && message["details"]["topicDoneCallId"].as_str().is_some_and(|id| ctx.openers.contains_key(id)) => {
 			parts.extend(opener_answer_block(&message["details"]));
 		}
 		_ => {}

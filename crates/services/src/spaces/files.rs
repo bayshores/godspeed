@@ -9,6 +9,7 @@ use gs_base::hash::sha256_text;
 use gs_base::locks::LockKey;
 use gs_base::tasks::detach;
 use gs_base::{events::EventKind, fsx, ids, time};
+use gs_core::spaces::file_state::{FileKind, FileStatus};
 use gs_core::spaces::lecture_transcript::recordings_to_recheck;
 use gs_core::contracts::space::{safe_name, supported_space_file_extensions};
 use gs_core::graph::graph_deletion::delete_source_traces;
@@ -55,7 +56,7 @@ pub(super) fn mutate_files(app: &Arc<App>, space_id: &str, change: impl FnOnce(V
 			if file["id"].as_str().is_some_and(|id| recheck.iter().any(|r| r == id))
 				&& let Some(obj) = file.as_obj_mut()
 			{
-				obj.insert("status", "pending");
+				obj.insert("status", FileStatus::Pending);
 				obj.remove("transcriptId");
 			}
 		}
@@ -125,7 +126,7 @@ pub fn add_copied_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8])
 /// `written`: a later write by that name replaces only such a file and keeps its id, and the
 /// learner's own file by that name is never written over. Ok holds the file and whether it was
 /// replaced; Err is the words for the agent.
-pub fn write_agent_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: &str) -> Result<(Json, bool), String> {
+pub fn write_agent_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: FileKind) -> Result<(Json, bool), String> {
 	let record = app.stores.spaces.get_space(space_id);
 	let same = record.as_ref().and_then(|r| r["files"].as_arr()?.iter().find(|f| f["name"].str_or_empty() == name).cloned());
 	let written = match same {
@@ -138,7 +139,7 @@ pub fn write_agent_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8]
 
 /// `kind`: the kind the agent gave, which stays; None for the learner's own file, which its first
 /// read sorts.
-fn add_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: Option<&str>, written: bool) -> SpaceOutcome<Json> {
+fn add_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: Option<FileKind>, written: bool) -> SpaceOutcome<Json> {
 	// Held from the check to the list entry: a space deleted in between would leave the copy in a
 	// folder nothing lists.
 	let _held = app.locks.lock(LockKey::Space(space_id));
@@ -161,12 +162,12 @@ fn add_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: Opti
 	file.insert("origin", "copied");
 	file.insert("name", clean);
 	file.insert("path", rel);
-	file.insert("kind", kind.unwrap_or("study"));
+	file.insert("kind", kind.unwrap_or(FileKind::Study));
 	if kind.is_some() {
 		file.insert("kindChosen", true);
 	}
 	file.insert("contentFp", "");
-	file.insert("status", "pending");
+	file.insert("status", FileStatus::Pending);
 	file.insert("addedAt", time::iso_now());
 	if written {
 		file.insert("written", true);
@@ -183,7 +184,7 @@ fn add_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: Opti
 
 /// Writes new contents over a file the agent wrote, keeping its id so deadlines that cover it still
 /// do; its facts are rebuilt. The agent's kind stays, as when it was added.
-pub fn replace_copied_file(app: &Arc<App>, space_id: &str, file_id: &str, bytes: &[u8], kind: &str) -> SpaceOutcome<Json> {
+pub fn replace_copied_file(app: &Arc<App>, space_id: &str, file_id: &str, bytes: &[u8], kind: FileKind) -> SpaceOutcome<Json> {
 	// Held from the check to the list entry, as in `add_file`.
 	let _held = app.locks.lock(LockKey::Space(space_id));
 	let record = app.stores.spaces.get_space(space_id);
@@ -199,13 +200,13 @@ pub fn replace_copied_file(app: &Arc<App>, space_id: &str, file_id: &str, bytes:
 	{
 		return Err(super::SpaceFailure::thrown(fsx::node_error_message(&err, "open", Path::new(&abs))));
 	}
-	let patched = patch_file(app, space_id, file_id, &[("kind", Some(kind.into())), ("kindChosen", Some(true.into())), ("status", Some("pending".into())), ("contentFp", Some("".into())), ("error", None)]);
+	let patched = patch_file(app, space_id, file_id, &[("kind", Some(kind.into())), ("kindChosen", Some(true.into())), ("status", Some(FileStatus::Pending.into())), ("contentFp", Some("".into())), ("error", None)]);
 	enqueue_file(app, space_id, file_id);
 	Ok(patched.unwrap_or(file))
 }
 
 /// Copies a file from an absolute path on this computer (MCP add_space_file), as the agent's kind.
-pub fn add_file_from_path(app: &Arc<App>, space_id: &str, abs_path: &str, kind: &str) -> SpaceOutcome<Json> {
+pub fn add_file_from_path(app: &Arc<App>, space_id: &str, abs_path: &str, kind: FileKind) -> SpaceOutcome<Json> {
 	if !is_absolute(abs_path) {
 		return fail(400, "bad_path", "Give the file's full (absolute) path");
 	}
@@ -226,19 +227,19 @@ fn node_basename(p: &str) -> String {
 
 /// Switches a file between study material and space info (Move to …, set_space_file_kind):
 /// godspeed never sorts it by itself again. Study to info removes its facts; info to study builds them.
-pub fn set_file_kind(app: &Arc<App>, space_id: &str, file_id: &str, kind: &str) -> SpaceOutcome<Json> {
+pub fn set_file_kind(app: &Arc<App>, space_id: &str, file_id: &str, kind: FileKind) -> SpaceOutcome<Json> {
 	let Some(file) = app.stores.spaces.get_space(space_id).and_then(|r| file_in(&r, file_id).cloned()) else {
 		return fail(404, "not_found", "No such space file");
 	};
 	let chosen = [("kindChosen", Some(Json::from(true))), ("sortedAsInfo", None)];
-	if file["kind"].str_or_empty() == kind {
+	if FileKind::of(&file) == Some(kind) {
 		return Ok(patch_file(app, space_id, file_id, &chosen).unwrap_or(file));
 	}
 	let patch = [
 		chosen[0].clone(),
 		chosen[1].clone(),
 		("kind", Some(kind.into())),
-		("status", Some("pending".into())),
+		("status", Some(FileStatus::Pending.into())),
 		("contentFp", Some("".into())),
 		("transcriptId", None),
 		("error", None),
@@ -253,7 +254,7 @@ pub fn retry_file(app: &Arc<App>, space_id: &str, file_id: &str) -> SpaceOutcome
 	if app.stores.spaces.get_space(space_id).and_then(|r| file_in(&r, file_id).cloned()).is_none() {
 		return fail(404, "not_found", "No such space file");
 	}
-	patch_file(app, space_id, file_id, &[("status", Some("pending".into())), ("contentFp", Some("".into())), ("error", None)]);
+	patch_file(app, space_id, file_id, &[("status", Some(FileStatus::Pending.into())), ("contentFp", Some("".into())), ("error", None)]);
 	enqueue_file(app, space_id, file_id);
 	Ok(())
 }
@@ -357,7 +358,7 @@ mod tests {
 		// The delete holds the space while the replace arrives.
 		let held = app.locks.lock(LockKey::Space(&id));
 		let (replacing, space_id) = (app.clone(), id.clone());
-		let replace = std::thread::spawn(move || replace_copied_file(&replacing, &space_id, "f_week1", b"# Week 1, again\n", "study").map_err(|failure| failure.status));
+		let replace = std::thread::spawn(move || replace_copied_file(&replacing, &space_id, "f_week1", b"# Week 1, again\n", FileKind::Study).map_err(|failure| failure.status));
 		std::thread::sleep(std::time::Duration::from_millis(100));
 		app.stores.spaces.delete_space(&id).unwrap();
 		drop(held);

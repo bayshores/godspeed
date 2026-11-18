@@ -11,6 +11,7 @@ use std::sync::Arc;
 use gs_base::clock;
 use gs_base::config::Paths;
 use gs_base::ids;
+use gs_core::messages::role::is_custom;
 use gs_core::messages::input_events::{ChatInput, TurnInput};
 use gs_core::study::kept::KeptPart;
 use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions};
@@ -119,7 +120,7 @@ fn last_quiz(record: &[Json]) -> Json {
 }
 
 fn verdict_of(record: &[Json], quiz_call_id: &Json) -> Json {
-	record.iter().find(|m| m["customType"].as_str() == Some("keep-check") && &m["details"]["quizCallId"] == quiz_call_id).expect("a verdict")["details"].clone()
+	record.iter().find(|m| is_custom(m, "keep-check") && &m["details"]["quizCallId"] == quiz_call_id).expect("a verdict")["details"].clone()
 }
 
 /// Every line the agent was sent that starts with `prefix`.
@@ -197,7 +198,7 @@ async fn only_a_study_lesson_stores_a_verdict() {
 		let chat_id = fx.app.stores.chats.create_chat("Lesson", kind, None, None).unwrap()["id"].as_str().unwrap().to_owned();
 		let reply = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q1", "name": "quiz", "arguments": quiz(leash()) }] });
 		persist_turn(&fx.app, &chat_id, 0, &[reply]).unwrap();
-		let checks = messages(&fx.app, &chat_id).iter().filter(|m| m["customType"].as_str() == Some("keep-check")).count();
+		let checks = messages(&fx.app, &chat_id).iter().filter(|m| is_custom(m, "keep-check")).count();
 		assert_eq!(checks, verdicts, "{kind:?}");
 	}
 }

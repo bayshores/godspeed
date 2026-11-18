@@ -8,6 +8,7 @@ use std::collections::HashSet;
 use gs_base::{clock, ids, text};
 use gs_json::{Json, Obj, json, stringify};
 
+use crate::messages::role::Role;
 use super::citations::cites_in_words;
 use super::message_id::new_message_id;
 use crate::contracts::chat::{CONCLUDE_ACK_TEXT, HANDOFF_TEXT, NEXT_PROBLEM_TEXT, open_problem_text};
@@ -68,13 +69,13 @@ pub fn user_facing_text_of(content: &Json, failed: Option<&HashSet<String>>) -> 
 pub fn failed_output_call_ids(messages: &[Json]) -> HashSet<String> {
 	let mut failed = HashSet::new();
 	for m in messages {
-		match m["role"].as_str() {
-			Some("toolResult") if m["toolName"].as_str() == Some(SEND_TO_USER_TOOL) && m["isError"].truthy() => {
+		match Role::of(m) {
+			Some(Role::ToolResult) if m["toolName"].as_str() == Some(SEND_TO_USER_TOOL) && m["isError"].truthy() => {
 				if let Some(id) = m["toolCallId"].as_str() {
 					failed.insert(id.to_owned());
 				}
 			}
-			Some("assistant") if matches!(m["stopReason"].as_str(), Some("error" | "aborted")) => {
+			Some(Role::Assistant) if matches!(m["stopReason"].as_str(), Some("error" | "aborted")) => {
 				for b in tool_calls(m) {
 					if b["name"].as_str() == Some(SEND_TO_USER_TOOL)
 						&& let Some(id) = b["id"].as_str()
@@ -97,7 +98,7 @@ fn now() -> Json {
 pub(crate) fn marker(id: String, custom_type: &str, content: impl Into<Json>, display: bool, details: Json) -> Obj {
 	[
 		("id", Json::from(id)),
-		("role", "custom".into()),
+		("role", Role::Custom.as_str().into()),
 		("customType", custom_type.into()),
 		("content", content.into()),
 		("display", display.into()),
@@ -117,7 +118,7 @@ pub fn new_user_message(text: &str, attachments: &[Json]) -> Json {
 		let lead = (!gs_base::text::trim(text).is_empty()).then(|| json!({ "type": "text", "text": text }));
 		lead.into_iter().chain(attachments.iter().cloned()).collect()
 	};
-	json!({ "id": new_message_id(), "role": "user", "content": content, "timestamp": clock::now_ms() })
+	json!({ "id": new_message_id(), "role": Role::User.as_str(), "content": content, "timestamp": clock::now_ms() })
 }
 
 /// A side question: the learner asks the teacher something while a question or problem waits.
@@ -132,7 +133,7 @@ pub fn new_side_question(text: &str, attachments: &[Json]) -> Json {
 
 /// A steered user message (mid-turn composer steering) with the client-minted steer id.
 pub fn new_user_steer(text: &str, id: &str) -> Json {
-	json!({ "id": id, "role": "user", "content": text, "timestamp": clock::now_ms() })
+	json!({ "id": id, "role": Role::User.as_str(), "content": text, "timestamp": clock::now_ms() })
 }
 
 /// The learner's answer: the question call's tool result. The model sees the compact record,
@@ -142,7 +143,7 @@ pub fn new_answer_result(tool_call_id: &str, tool_name: &str, answer: &Json, att
 	let record = json!({ "type": "text", "text": stringify(&compact_answer_for_model(answer)) });
 	json!({
 		"id": new_message_id(),
-		"role": "toolResult",
+		"role": Role::ToolResult.as_str(),
 		"toolCallId": tool_call_id,
 		"toolName": tool_name,
 		"content": std::iter::once(record).chain(attachments.iter().cloned()).collect::<Json>(),
@@ -193,7 +194,7 @@ pub fn concluded_by_dismissal_pair(problem_call_id: &str) -> [Json; 2] {
 	// The stamps are placeholders: history serialization reads only the content blocks.
 	let assistant = json!({
 		"id": new_message_id(),
-		"role": "assistant",
+		"role": Role::Assistant.as_str(),
 		"content": [call],
 		"timestamp": at,
 		"api": "faux",
@@ -211,7 +212,7 @@ pub fn concluded_by_dismissal_pair(problem_call_id: &str) -> [Json; 2] {
 	});
 	let result = json!({
 		"id": new_message_id(),
-		"role": "toolResult",
+		"role": Role::ToolResult.as_str(),
 		"toolCallId": call_id,
 		"toolName": PRACTICE_CONCLUDE_TOOL,
 		"content": [{ "type": "text", "text": CONCLUDE_ACK_TEXT }],

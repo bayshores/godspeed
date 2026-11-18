@@ -6,6 +6,7 @@ use std::sync::LazyLock;
 use gs_base::{locale, re::Re};
 use gs_json::Json;
 
+use super::file_state::{FileKind, FileStatus};
 use super::file_series::date_in_name;
 use crate::contracts::space::{FILE_NOT_FOUND, is_recording_file, is_transcript_file};
 
@@ -29,7 +30,7 @@ fn lecture_of(name: &str) -> Option<f64> {
 /// either name has no date, the same lecture number. Captions win over other transcripts; then
 /// name order. None when none.
 pub fn transcript_for<'a>(recording: &Json, files: &'a [Json]) -> Option<&'a Json> {
-	if recording["kind"].as_str() != Some("study") || !is_recording_file(name_of(recording)) {
+	if FileKind::of(recording) != Some(FileKind::Study) || !is_recording_file(name_of(recording)) {
 		return None;
 	}
 	let date = date_in_name(name_of(recording));
@@ -37,7 +38,7 @@ pub fn transcript_for<'a>(recording: &Json, files: &'a [Json]) -> Option<&'a Jso
 	let mut matches: Vec<&Json> = files
 		.iter()
 		.filter(|f| {
-			if f["id"] == recording["id"] || f["kind"].as_str() != Some("study") || !reads_as_transcript(name_of(f)) {
+			if f["id"] == recording["id"] || FileKind::of(f) != Some(FileKind::Study) || !reads_as_transcript(name_of(f)) {
 				return false;
 			}
 			let other = date_in_name(name_of(f));
@@ -62,9 +63,9 @@ pub fn recordings_to_recheck(files: &[Json]) -> Vec<String> {
 		.iter()
 		.filter(|f| {
 			if f["transcriptId"].truthy() {
-				return !files.iter().any(|t| t["id"] == f["transcriptId"] && t["kind"].as_str() == Some("study"));
+				return !files.iter().any(|t| t["id"] == f["transcriptId"] && FileKind::of(t) == Some(FileKind::Study));
 			}
-			!matches!(f["status"].as_str(), Some("pending" | "extracting")) && f["error"].as_str() != Some(FILE_NOT_FOUND) && transcript_for(f, files).is_some()
+			!FileStatus::of(f).is_some_and(FileStatus::is_waiting) && f["error"].as_str() != Some(FILE_NOT_FOUND) && transcript_for(f, files).is_some()
 		})
 		.map(|f| f["id"].str_or_empty().to_owned())
 		.collect()

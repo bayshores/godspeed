@@ -10,6 +10,7 @@ use std::sync::Arc;
 
 use gs_base::config::Paths;
 use gs_base::{clock, ids};
+use gs_core::messages::role::is_custom;
 use gs_core::contracts::chat::{CONCLUDE_ACK_TEXT, STUDY_TOPIC_END_ACK_TEXT, TOPIC_DONE_STORED_TEXT};
 use gs_core::messages::input_events::{About, ChatInput, TurnInput};
 use gs_core::study::topic_end::{lesson_stop, shown_openers};
@@ -176,7 +177,7 @@ async fn a_topic_ends_on_a_stop_and_its_opener_is_stored_in_the_same_turn() {
 	assert_eq!(stored["details"], json!({ "part": "topic_done", "v": 1, "lead": "One split of the data can mislead you." }));
 	assert_eq!(record[done_at]["content"][0]["arguments"], topic_done_args(), "the call is stored as sent");
 
-	let keep_at = record.iter().position(|m| m["customType"].as_str() == Some("keep-going")).unwrap();
+	let keep_at = record.iter().position(|m| is_custom(m, "keep-going")).unwrap();
 	assert!(keep_at < conclude_at, "a Keep going written mid-turn sits before that turn's messages");
 	assert_eq!(record[keep_at]["details"]["stopOf"], json!(conclude_id));
 	assert!(shown_openers(&record).contains_key(&done_id), "the opener shows once topic_done landed");

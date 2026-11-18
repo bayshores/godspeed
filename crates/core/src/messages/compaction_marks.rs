@@ -2,10 +2,11 @@
 //! module needs nothing from session.
 
 use gs_json::Json;
+use crate::messages::role::is_custom;
 
 /// The latest compaction marker that names its first kept message, if any.
 pub fn active_compaction_of(messages: &[Json]) -> Option<&Json> {
-	messages.iter().rev().find(|m| m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("compaction") && m["details"]["firstKeptMessageId"].as_str().is_some())
+	messages.iter().rev().find(|m| is_custom(m, "compaction") && m["details"]["firstKeptMessageId"].as_str().is_some())
 }
 
 /// Where the marker's first kept message is; None when it is gone (TypeScript's -1).

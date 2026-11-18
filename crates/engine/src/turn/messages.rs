@@ -3,6 +3,7 @@
 
 use gs_base::clock;
 use gs_json::{Json, json};
+use gs_core::messages::role::Role;
 
 /// pi-ai's zero usage (`DEFAULT_USAGE`).
 pub fn zero_usage() -> Json {
@@ -13,7 +14,7 @@ pub fn zero_usage() -> Json {
 /// fresh timestamp; the faux stream swaps in the model's api, provider and id.
 pub fn faux_assistant_message(content: Vec<Json>, stop_reason: &str) -> Json {
 	json!({
-		"role": "assistant",
+		"role": Role::Assistant.as_str(),
 		"content": content,
 		"api": "faux",
 		"provider": "faux",
@@ -37,7 +38,7 @@ pub fn error_tool_result(text: &str) -> Json {
 /// a missing `details` stays missing.
 pub fn tool_result_message(call: &Json, result: &Json, is_error: bool, duration_ms: Option<f64>) -> Json {
 	let mut m = gs_json::Obj::new();
-	m.insert("role", "toolResult");
+	m.insert("role", Role::ToolResult.as_str());
 	m.insert("toolCallId", call["id"].clone());
 	m.insert("toolName", call["name"].clone());
 	m.insert("content", match result.get("content") {
@@ -55,10 +56,6 @@ pub fn tool_result_message(call: &Json, result: &Json, is_error: bool, duration_
 	}
 	m.insert("timestamp", clock::now_ms());
 	Json::Obj(m)
-}
-
-pub fn role(message: &Json) -> &str {
-	message["role"].str_or_empty()
 }
 
 /// The assistant message's tool-call blocks, in order.

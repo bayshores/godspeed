@@ -9,6 +9,7 @@ use std::collections::{HashMap, HashSet};
 use gs_base::time;
 use gs_json::{Json, Obj, json};
 
+use crate::messages::role::Role;
 use super::progress::{answer_outcome, days_between};
 use super::topic_end::{ended_topics, lesson_stop, shown_openers, sitting_start};
 use crate::contracts::chat::TOPIC_DONE_TOOL;
@@ -142,13 +143,13 @@ pub fn review_items(chat_id: &str, messages: &[Json]) -> Vec<Json> {
 	let mut calls: HashMap<&str, (&Json, &Json)> = HashMap::new();
 	let mut out = Vec::new();
 	for m in messages {
-		match m["role"].as_str() {
-			Some("assistant") => {
+		match Role::of(m) {
+			Some(Role::Assistant) => {
 				for block in tool_calls(m) {
 					calls.insert(block["id"].str_or_empty(), (&m["id"], &block["arguments"]));
 				}
 			}
-			Some("toolResult") if !m["isError"].truthy() => {
+			Some(Role::ToolResult) if !m["isError"].truthy() => {
 				let call_id = m["toolCallId"].str_or_empty();
 				let Some(&(message_id, args)) = calls.get(call_id) else { continue };
 				let (node, quiz) = match m["toolName"].as_str() {
@@ -319,17 +320,17 @@ pub fn review_window_open(record: &Json, now_ms: i64, busy: bool) -> bool {
 	let start = sitting_start(&times, now_ms as f64);
 	let sitting: Vec<&Json> = messages.iter().filter(|m| m["timestamp"].as_f64().is_some_and(|t| t >= start)).collect();
 	match sitting.iter().position(|m| is_input(m)) {
-		Some(first) => !sitting[first + 1..].iter().any(|m| m["role"].as_str() == Some("assistant")),
+		Some(first) => !sitting[first + 1..].iter().any(|m| Role::Assistant.is(m)),
 		None => true,
 	}
 }
 
 /// A message that carries his input: his words, an answer, the go-ahead or an opener answer.
 fn is_input(m: &Json) -> bool {
-	match m["role"].as_str() {
-		Some("user") => true,
-		Some("toolResult") => is_question_tool(m["toolName"].str_or_empty()),
-		Some("custom") => matches!(m["customType"].as_str(), Some("practice-next" | "teach-me" | "opener-answer")),
+	match Role::of(m) {
+		Some(Role::User) => true,
+		Some(Role::ToolResult) => is_question_tool(m["toolName"].str_or_empty()),
+		Some(Role::Custom) => matches!(m["customType"].as_str(), Some("practice-next" | "teach-me" | "opener-answer")),
 		_ => false,
 	}
 }

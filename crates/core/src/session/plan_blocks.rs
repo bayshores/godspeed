@@ -7,6 +7,7 @@ use std::collections::{HashMap, HashSet};
 use gs_base::time::iso_now;
 use gs_json::{Json, Obj};
 
+use crate::messages::role::{Role, is_custom};
 use super::plan::{derive_plan_statuses_lh, derived_node_status};
 use crate::messages::native_messages::new_plan_block_message;
 
@@ -44,14 +45,14 @@ fn snapshot(tree: &Json, messages: &[Json]) -> Json {
 fn emitted_plan_block_calls(messages: &[Json]) -> HashSet<&str> {
 	messages
 		.iter()
-		.filter(|m| m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("plan-block"))
+		.filter(|m| is_custom(m, "plan-block"))
 		.filter_map(|m| m["details"]["planCallId"].as_str())
 		.collect()
 }
 
 /// A plan_init result that saved its tree.
 fn is_plan_written(message: &Json) -> bool {
-	message["role"].as_str() == Some("toolResult") && message["toolName"].as_str() == Some("plan_init") && message["details"]["ok"] == Json::Bool(true)
+	Role::ToolResult.is(message) && message["toolName"].as_str() == Some("plan_init") && message["details"]["ok"] == Json::Bool(true)
 }
 
 /// Whether a Study lesson's agent writes its plan: the app made no tree at its birth, or the agent

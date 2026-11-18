@@ -8,6 +8,7 @@ use gs_base::time;
 use gs_json::{Json, Obj};
 
 use gs_json::js_text::js_string;
+use crate::messages::role::{Role, is_ok_tool_result};
 use crate::messages::tool_calls;
 
 const OUTCOMES: [&str; 5] = ["solved", "solvedWithHints", "movedOn", "surrendered", "dismissed"];
@@ -57,14 +58,14 @@ pub fn practice_outcomes(messages: &[Json]) -> Vec<Json> {
 	let mut out = Vec::new();
 	let mut open: Option<OpenProblem> = None;
 	for m in messages {
-		if m["role"].as_str() == Some("assistant") {
+		if Role::Assistant.is(m) {
 			for block in tool_calls(m) {
 				let (Some(name @ ("problem" | "conclude")), Some(id)) = (block["name"].as_str(), block["id"].as_str()) else { continue };
 				calls.insert(id, Call { message_id: m.get("id"), name, args: &block["arguments"] });
 			}
 			continue;
 		}
-		if m["role"].as_str() != Some("toolResult") || m["isError"].truthy() {
+		if !is_ok_tool_result(m) {
 			continue;
 		}
 		let Some(call_id) = m["toolCallId"].as_str() else { continue };

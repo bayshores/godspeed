@@ -6,6 +6,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use gs_base::text::trim;
+use gs_core::messages::role::Role;
 use gs_core::contracts::chat::TOPIC_DONE_TOOL;
 use gs_core::messages::native_messages::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, to_llm_messages};
 use gs_core::messages::pending::is_question_tool;
@@ -132,7 +133,7 @@ fn build_agent(kind: AgentKind, opts: AgentBuildOptions, tools: Vec<FnTool>, bef
 	if let Some(on_usage) = opts.on_usage {
 		agent.subscribe(Arc::new(move |event| {
 			if let AgentEvent::MessageEnd(message) = event
-				&& message["role"].as_str() == Some("assistant")
+				&& Role::Assistant.is(message)
 				&& message.get("usage").is_some()
 				// A cancelled call's usage is only partial or estimated.
 				&& message["stopReason"].as_str() != Some("aborted")

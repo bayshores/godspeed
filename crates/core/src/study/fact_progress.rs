@@ -6,6 +6,7 @@ use std::collections::{HashMap, HashSet};
 use gs_base::locale;
 use gs_json::{Json, Obj};
 
+use crate::spaces::file_state::FileKind;
 use crate::graph::session_clusters::birth_session_of;
 
 /// A fact's mark: its latest answer's outcome, or None when untested.
@@ -54,7 +55,7 @@ pub fn file_coverage(files: &[Json], facts: &[Json]) -> Vec<Json> {
 	}
 	files
 		.iter()
-		.filter(|f| f["kind"].as_str() == Some("study"))
+		.filter(|f| FileKind::of(f) == Some(FileKind::Study))
 		.map(|f| {
 			let (facts, in_lessons) = f["sourceId"].as_str().and_then(|s| by_source.get(s)).copied().unwrap_or_default();
 			let mut o = Obj::new();

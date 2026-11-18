@@ -84,7 +84,7 @@ impl From<ImageFileResult> for Json {
 		let images: Vec<Json> = r.images.into_iter().map(|i| json!({ "data": i.data, "mimeType": i.mime_type })).collect();
 		let mut v = json!({ "text": r.text, "images": images });
 		if let Some(details) = r.details {
-			v.as_obj_mut().expect("an object").insert("details", details);
+			v.set("details", details);
 		}
 		v
 	}

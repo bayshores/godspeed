@@ -24,6 +24,7 @@ pub const MAX_PATH_TOPICS: usize = 40;
 /// Longest path goal, in characters (it follows "Path to").
 pub const PATH_GOAL_MAX: usize = 40;
 pub const FILE_NOT_FOUND: &str = "The file could not be found";
+pub const FILE_KIND_PROBLEM: &str = "kind must be \"study\" or \"info\"";
 pub const DEADLINE_KINDS: [&str; 5] = ["exam", "homework", "quiz", "project", "interview"];
 
 /// The subject icons a space can wear (lucide names) and what each stands for, in source order.

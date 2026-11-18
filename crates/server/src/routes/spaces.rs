@@ -9,7 +9,8 @@ use axum::extract::{Path, State};
 use axum::http::{HeaderMap, Uri, header};
 use axum::response::Response;
 use gs_base::{clock, text};
-use gs_core::contracts::space::{SIGNATURE_MAX, clean_signature, is_space_color, is_space_icon, is_space_id};
+use gs_core::contracts::space::{FILE_KIND_PROBLEM, SIGNATURE_MAX, clean_signature, is_space_color, is_space_icon, is_space_id};
+use gs_core::spaces::file_state::FileKind;
 use gs_core::spaces::today_note::local_day;
 use gs_json::{Json, Obj, json};
 use gs_services::App;
@@ -231,8 +232,8 @@ async fn change_file(State(app): State<Arc<App>>, Path((id, file_id)): Path<(Str
 			Err(failure) => refused(failure),
 		};
 	}
-	let Some(kind) = body.get("kind").and_then(Json::as_str).filter(|k| *k == "study" || *k == "info") else {
-		return Ok(error(400, "kind must be \"study\" or \"info\""));
+	let Some(kind) = body.get("kind").and_then(Json::as_str).and_then(FileKind::parse) else {
+		return Ok(error(400, FILE_KIND_PROBLEM));
 	};
 	match set_file_kind(&app, &id, &file_id, kind) {
 		Ok(file) => Ok(reply::json(200, &json!({ "file": file }))),

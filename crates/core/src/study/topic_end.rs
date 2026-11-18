@@ -10,6 +10,7 @@ use gs_base::time;
 use gs_json::js_text::js_string;
 use gs_json::{Json, Obj, json};
 
+use crate::messages::role::{Role, is_custom, is_ok_tool_result};
 use super::progress::answer_outcome;
 use crate::contracts::chat::TOPIC_DONE_TOOL;
 use crate::messages::native_messages::{ActiveProblem, PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL};
@@ -144,8 +145,8 @@ pub fn lesson_stop(messages: &[Json], tree: Option<&Json>, homework: Option<&[Js
 fn moved_past(messages: &[Json], stop: &RecordStop) -> bool {
 	let Some(node_id) = stop.node_id.as_deref() else { return false };
 	let after = &messages[stop.index + 1..];
-	let refused: HashSet<&str> = after.iter().filter(|m| m["role"].as_str() == Some("toolResult") && m["isError"].truthy()).filter_map(|m| m["toolCallId"].as_str()).collect();
-	after.iter().filter(|m| m["role"].as_str() == Some("assistant")).flat_map(tool_calls).any(|b| {
+	let refused: HashSet<&str> = after.iter().filter(|m| Role::ToolResult.is(m) && m["isError"].truthy()).filter_map(|m| m["toolCallId"].as_str()).collect();
+	after.iter().filter(|m| Role::Assistant.is(m)).flat_map(tool_calls).any(|b| {
 		b["name"].as_str().is_some_and(|name| TAGGING_TOOLS.contains(&name))
 			&& !b["id"].as_str().is_some_and(|id| refused.contains(id))
 			&& b["arguments"]["nodeId"].as_str().is_some_and(|n| n != node_id)
@@ -173,7 +174,7 @@ fn next_topic(tree: &Json, node_id: &str, ended: &HashSet<&str>) -> Option<Json>
 pub fn finished_topic(messages: &[Json]) -> Option<(String, bool)> {
 	let calls = call_args(messages);
 	let mut finished = None;
-	for m in messages.iter().filter(|m| m["role"].as_str() == Some("toolResult") && !m["isError"].truthy()) {
+	for m in messages.iter().filter(|m| is_ok_tool_result(m)) {
 		let args = calls.get(m["toolCallId"].str_or_empty()).copied().unwrap_or(&Json::Null);
 		match m["toolName"].as_str() {
 			Some(PRACTICE_PROBLEM_TOOL) => finished = None,
@@ -197,7 +198,7 @@ pub fn finished_topic(messages: &[Json]) -> Option<(String, bool)> {
 pub fn topic_done_stored(messages: &[Json], node_id: &str) -> bool {
 	let calls = call_args(messages);
 	messages.iter().any(|m| {
-		m["role"].as_str() == Some("toolResult") && m["toolName"].as_str() == Some(TOPIC_DONE_TOOL) && !m["isError"].truthy() && calls.get(m["toolCallId"].str_or_empty()).is_some_and(|args| args["nodeId"].as_str() == Some(node_id))
+		is_ok_tool_result(m) && m["toolName"].as_str() == Some(TOPIC_DONE_TOOL) && calls.get(m["toolCallId"].str_or_empty()).is_some_and(|args| args["nodeId"].as_str() == Some(node_id))
 	})
 }
 
@@ -221,9 +222,9 @@ fn ms_of(at: &Json) -> f64 {
 
 /// A message that carries the learner's input to the agent.
 fn is_learner_input(m: &Json) -> bool {
-	match m["role"].as_str() {
-		Some("user") => true,
-		Some("custom") => matches!(m["customType"].as_str(), Some("practice-next" | "teach-me" | "opener-answer" | "app-note")),
+	match Role::of(m) {
+		Some(Role::User) => true,
+		Some(Role::Custom) => matches!(m["customType"].as_str(), Some("practice-next" | "teach-me" | "opener-answer" | "app-note")),
 		_ => false,
 	}
 }
@@ -244,7 +245,7 @@ pub fn shown_openers(messages: &[Json]) -> Obj {
 		opener.insert("quiz", stored.quiz.clone());
 		out.insert(stored.id, opener);
 	}
-	for m in messages.iter().filter(|m| m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("opener-answer")) {
+	for m in messages.iter().filter(|m| is_custom(m, "opener-answer")) {
 		let details = &m["details"];
 		let Some(opener) = details["topicDoneCallId"].as_str().and_then(|id| out.get_mut(id)).and_then(Json::as_obj_mut) else { continue };
 		if !opener.contains_key("answer") {
@@ -269,7 +270,7 @@ fn stored_openers(messages: &[Json]) -> Vec<StoredOpener<'_>> {
 	let mut out = Vec::new();
 	for (index, m) in messages.iter().enumerate() {
 		let details = &m["details"];
-		if m["role"].as_str() != Some("toolResult") || m["toolName"].as_str() != Some(TOPIC_DONE_TOOL) || m["isError"].truthy() || details["part"].as_str() != Some("topic_done") || details.as_obj().is_none() {
+		if !Role::ToolResult.is(m) || m["toolName"].as_str() != Some(TOPIC_DONE_TOOL) || m["isError"].truthy() || details["part"].as_str() != Some("topic_done") || details.as_obj().is_none() {
 			continue;
 		}
 		let id = m["toolCallId"].str_or_empty();
@@ -335,7 +336,7 @@ fn record_stops(messages: &[Json]) -> Vec<RecordStop<'_>> {
 	let mut out = Vec::new();
 	let mut problem_node: Option<String> = None;
 	for (index, m) in messages.iter().enumerate() {
-		if m["role"].as_str() != Some("toolResult") || m["isError"].truthy() {
+		if !is_ok_tool_result(m) {
 			continue;
 		}
 		let id = m["toolCallId"].str_or_empty();
@@ -374,7 +375,7 @@ fn stop_in(result: &Json) -> Option<&Json> {
 /// Every call's arguments, by call id (a reused id keeps its last call).
 fn call_args(messages: &[Json]) -> HashMap<&str, &Json> {
 	let mut out = HashMap::new();
-	for m in messages.iter().filter(|m| m["role"].as_str() == Some("assistant")) {
+	for m in messages.iter().filter(|m| Role::Assistant.is(m)) {
 		for block in tool_calls(m) {
 			out.insert(block["id"].str_or_empty(), &block["arguments"]);
 		}
@@ -385,7 +386,7 @@ fn call_args(messages: &[Json]) -> HashMap<&str, &Json> {
 /// The keep-going markers' details with their index, wherever they sit (one written during a turn
 /// sits before that turn's messages).
 fn keep_going_markers(messages: &[Json]) -> impl Iterator<Item = (usize, &Json)> {
-	messages.iter().enumerate().filter(|(_, m)| m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("keep-going")).map(|(i, m)| (i, &m["details"]))
+	messages.iter().enumerate().filter(|(_, m)| is_custom(m, "keep-going")).map(|(i, m)| (i, &m["details"]))
 }
 
 #[cfg(test)]

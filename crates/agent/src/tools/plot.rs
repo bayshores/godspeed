@@ -9,6 +9,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use futures_util::future::BoxFuture;
+use gs_core::messages::role::is_ok_tool_result;
 use gs_core::session::plot::{PLOT_TOOL, check_plot, plot_details};
 use gs_core::session::schema::{described, object};
 use gs_engine::turn::messages::text_block;
@@ -71,7 +72,7 @@ impl Plot {
 		let guess = self.parts.guess_of(call_id).ok_or("plot: needs a quiz with onPlot in the same reply.")?;
 		let stored = record_messages(&self.record.chat_store, &self.record.chat_id)
 			.iter()
-			.filter(|m| m["role"].as_str() == Some("toolResult") && m["toolName"].as_str() == Some(PLOT_TOOL) && !m["isError"].truthy())
+			.filter(|m| is_ok_tool_result(m) && m["toolName"].as_str() == Some(PLOT_TOOL))
 			.count();
 		let id = format!("p{}", stored + self.drawn.fetch_add(1, Ordering::SeqCst) + 1);
 		let details = plot_details(&id, guess, plot.y);
@@ -114,6 +115,7 @@ pub fn plot_tool(record: PlanContext, parts: &Arc<LessonParts>) -> FnTool {
 
 #[cfg(test)]
 mod tests {
+	use gs_core::messages::role::Role;
 	use gs_engine::turn::abort::Abort;
 	use gs_engine::turn::agent::{Agent, AgentOptions};
 	use gs_engine::turn::faux::{Engine, Scripted, faux_model};
@@ -168,7 +170,7 @@ mod tests {
 		options.before_tool_call = hooked.then(|| parts.hook());
 		let agent = Agent::new(options);
 		agent.prompt(vec![json!({ "role": "user", "content": "go", "timestamp": 1 })], Abort::new()).await.unwrap();
-		agent.messages().into_iter().filter(|m| m["role"].as_str() == Some("toolResult")).collect()
+		agent.messages().into_iter().filter(|m| Role::ToolResult.is(m)).collect()
 	}
 
 	/// The test record with a plan holding `reg`.

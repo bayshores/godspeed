@@ -5,6 +5,7 @@
 use gs_base::text::len16;
 use gs_json::{Json, json, stringify};
 
+use gs_core::messages::role::Role;
 use super::transcript::system_message_text;
 
 fn quarter(units: usize) -> f64 {
@@ -55,16 +56,16 @@ pub(crate) fn assistant_text(content: &Json) -> String {
 
 /// `messageToText`.
 fn message_text(m: &Json) -> Result<String, String> {
-	Ok(match m["role"].as_str() {
-		Some("system") => {
+	Ok(match Role::of(m) {
+		Some(Role::System) => {
 			let mut parts = vec![system_message_text(m)];
 			parts.extend(m["toolsRemoved"].items().iter().map(|t| format!("tool-:{}", stringify(t))));
 			parts.extend(m["toolsAdded"].items().iter().map(|t| format!("tool+:{}", stringify(t))));
 			parts.retain(|p| !p.is_empty());
 			parts.join("\n")
 		}
-		Some("user") => content_to_text(&m["content"])?,
-		Some("assistant") => assistant_text(&m["content"]),
+		Some(Role::User) => content_to_text(&m["content"])?,
+		Some(Role::Assistant) => assistant_text(&m["content"]),
 		_ => {
 			let mut parts = vec![m["toolName"].as_str().unwrap_or("undefined").to_owned()];
 			for block in m["content"].items().iter() {

@@ -12,6 +12,7 @@ use gs_base::{clock, num};
 use gs_json::{Json, Obj, json};
 use parking_lot::Mutex;
 
+use gs_core::messages::role::Role;
 use super::abort::Abort;
 use super::messages::zero_usage;
 use super::usage;
@@ -59,7 +60,7 @@ pub async fn stream(engine: &Engine, messages: Vec<Json>, session_id: Option<Str
 		None => {
 			let mut m = error_message(&engine.model, "No more faux responses queued");
 			if let Ok(u) = usage::estimate(&messages, &m) {
-				m.as_obj_mut().expect("an object").insert("usage", u);
+				m.set("usage", u);
 			}
 			m
 		}
@@ -92,14 +93,14 @@ fn stamped(model: &Json, reply: Json, request: &[Json]) -> Result<Json, String> 
 	}
 	let mut message = Json::Obj(m);
 	let estimate = usage::estimate(request, &message)?;
-	message.as_obj_mut().expect("an object").insert("usage", estimate);
+	message.set("usage", estimate);
 	Ok(message)
 }
 
 /// `createErrorMessage`.
 fn error_message(model: &Json, error: &str) -> Json {
 	json!({
-		"role": "assistant",
+		"role": Role::Assistant.as_str(),
 		"content": [],
 		"api": model["api"].clone(),
 		"provider": model["provider"].clone(),

@@ -3,6 +3,7 @@
 use std::cmp::Ordering;
 
 use gs_base::time::iso_now;
+use gs_core::spaces::file_state::FileKind;
 use gs_core::study::cheat_sheet::{ParsedSheet, mistake_counts, new_cheat_sheet, sheet_mistakes};
 use gs_core::study::progress::{topic_facts, topic_status};
 use gs_json::{Json, json};
@@ -97,7 +98,7 @@ pub(super) fn context_for(app: &App, space_id: &str, deadline_id: &str) -> Outco
 		let shown: Vec<Json> = topic_facts(facts, t).into_iter().take(FACTS_PER_TOPIC).map(|f| json!({ "name": f["name"], "statement": f["statement"] })).collect();
 		topics.push(json!({ "id": id, "name": t["name"], "status": topic_status(t["rate"].as_f64()).as_str(), "mistakes": counts.get(id).copied().unwrap_or(0), "facts": shown }));
 	}
-	let info_files = record["files"].items().iter().filter(|f| f["kind"].as_str() == Some("info")).filter_map(|f| f["name"].as_str().map(str::to_owned)).collect();
+	let info_files = record["files"].items().iter().filter(|f| FileKind::of(f) == Some(FileKind::Info)).filter_map(|f| f["name"].as_str().map(str::to_owned)).collect();
 	let text = |v: &Json| v.str_or_empty().to_owned();
 	Ok(Context {
 		space_id: space_id.to_owned(),

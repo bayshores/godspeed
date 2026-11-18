@@ -12,8 +12,8 @@ use std::collections::{HashMap, HashSet};
 
 use gs_json::{Json, Obj};
 
+use gs_core::messages::role::Role;
 use super::events::AgentEvent;
-use super::messages::role;
 
 fn call_ids(message: &Json) -> impl Iterator<Item = &str> {
 	message["content"].items().iter().filter(|b| b["type"] == Json::from("toolCall")).filter_map(|b| b["id"].as_str())
@@ -23,9 +23,9 @@ fn call_ids(message: &Json) -> impl Iterator<Item = &str> {
 pub fn collect_tool_call_ids(messages: &[Json]) -> Vec<String> {
 	let mut ids = Vec::new();
 	for m in messages {
-		match role(m) {
-			"assistant" => ids.extend(call_ids(m).map(str::to_owned)),
-			"toolResult" => ids.extend(m["toolCallId"].as_str().map(str::to_owned)),
+		match Role::of(m) {
+			Some(Role::Assistant) => ids.extend(call_ids(m).map(str::to_owned)),
+			Some(Role::ToolResult) => ids.extend(m["toolCallId"].as_str().map(str::to_owned)),
 			_ => {}
 		}
 	}
@@ -100,7 +100,7 @@ impl ToolCallIdUniquifier {
 
 	/// An assistant message on the wire, in the current table.
 	fn remap(&mut self, message: &Json) -> Json {
-		if role(message) != "assistant" || call_ids(message).next().is_none() {
+		if !Role::Assistant.is(message) || call_ids(message).next().is_none() {
 			return message.clone();
 		}
 		let table = match self.epoch {
@@ -118,7 +118,7 @@ impl ToolCallIdUniquifier {
 	pub fn event(&mut self, event: AgentEvent) -> AgentEvent {
 		match event {
 			AgentEvent::MessageStart(m) => {
-				if role(&m) == "assistant" {
+				if Role::Assistant.is(&m) {
 					self.epoch = Some(self.open_table());
 				}
 				AgentEvent::MessageStart(self.remap(&m))
@@ -126,7 +126,7 @@ impl ToolCallIdUniquifier {
 			AgentEvent::MessageUpdate(m) => AgentEvent::MessageUpdate(self.remap(&m)),
 			AgentEvent::MessageEnd(m) => {
 				let remapped = self.remap(&m);
-				if role(&m) == "assistant" {
+				if Role::Assistant.is(&m) {
 					self.ended.push(self.epoch.filter(|_| call_ids(&m).next().is_some()));
 				}
 				AgentEvent::MessageEnd(remapped)
@@ -165,15 +165,15 @@ impl ToolCallIdUniquifier {
 		messages
 			.iter()
 			.enumerate()
-			.map(|(i, m)| match role(m) {
-				"assistant" => {
+			.map(|(i, m)| match Role::of(m) {
+				Some(Role::Assistant) => {
 					scope = if i < first_new { None } else { ended.next().flatten() };
 					match scope {
 						Some(t) => self.remap_with(m, t),
 						None => m.clone(),
 					}
 				}
-				"toolResult" => self.with_result_id(m, scope),
+				Some(Role::ToolResult) => self.with_result_id(m, scope),
 				_ => m.clone(),
 			})
 			.collect()

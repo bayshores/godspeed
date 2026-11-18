@@ -18,7 +18,9 @@ use gs_core::messages::app_notes::app_note_for;
 use gs_core::messages::attachments::ChatAttachment;
 use gs_core::messages::input_events::{About, ChatInput, ChatInputError, TurnInput, input_appends};
 use gs_core::messages::native_messages::{dangling_question_of, has_probe_done, is_side_turn, retry_context};
+use gs_core::messages::role::Role;
 use gs_core::session::jobs::steer_delivered;
+use gs_core::session::prices::CallUsage;
 use gs_engine::turn::agent::Agent;
 use gs_engine::turn::call_ids::collect_tool_call_ids;
 use gs_engine::turn::events::AgentEvent;
@@ -28,7 +30,7 @@ use gs_json::{Json, json, stringify};
 use parking_lot::Mutex;
 
 use super::attachments::{AttachmentError, store_attachments};
-use super::compaction::{CompactionDeps, ensure_compacted, kick_compaction, or_zero, summarize_at_tokens};
+use super::compaction::{CompactionDeps, ensure_compacted, kick_compaction, summarize_at_tokens};
 use super::dismissal_park::apply_parked_dismissal;
 use super::homework::homework_view;
 use super::job_host::run_job;
@@ -302,11 +304,11 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 	let sink = steps.clone();
 	agent.subscribe(Arc::new(move |event: &AgentEvent| {
 		if let AgentEvent::MessageEnd(message) = event
-			&& message["role"].as_str() == Some("assistant")
+			&& Role::Assistant.is(message)
 			&& message.get("usage").is_some()
 			&& message["stopReason"].as_str() != Some("aborted")
 		{
-			sink.lock().push(call_usage(&message["usage"]));
+			sink.lock().push(CallUsage::from_model_usage(&message["usage"]).to_json());
 		}
 	}));
 
@@ -360,18 +362,6 @@ fn model_id_of(model: &Json) -> String {
 	format!("{}:{}", model["provider"].str_or_empty(), model["id"].str_or_empty())
 }
 
-/// One model call's usage as the turn log stores it; optional counts are saved as 0.
-fn call_usage(usage: &Json) -> Json {
-	json!({
-		"inputTokens": usage["input"],
-		"outputTokens": usage["output"],
-		"cacheReadTokens": usage["cacheRead"],
-		"cacheWriteTokens": usage["cacheWrite"],
-		"cacheWrite1hTokens": or_zero(&usage["cacheWrite1h"]),
-		"reasoningTokens": or_zero(&usage["reasoning"]),
-	})
-}
-
 struct Usage<'a> {
 	id: &'a str,
 	model: &'a str,
@@ -397,7 +387,7 @@ impl Settle {
 		let durable = app.stores.chats.get_chat(chat_id).and_then(|r| r["messages"].as_arr().cloned());
 		note_steers_durable(app, chat_id, durable.as_deref().unwrap_or(&stamped));
 		// The provenance message is the turn's first new assistant message.
-		if let Some(response) = stamped.iter().find(|m| m["role"].as_str() == Some("assistant"))
+		if let Some(response) = stamped.iter().find(|m| Role::Assistant.is(m))
 			&& !usage.steps.is_empty()
 		{
 			let entry = json!({ "id": usage.id, "messageId": response["id"], "at": time::iso_now(), "model": usage.model, "steps": usage.steps.to_vec() });
@@ -623,7 +613,7 @@ mod tests {
 		assert!(is_turn_running(&app, &chat_id));
 		end_turn(&app, &chat_id);
 		let record = app.stores.chats.get_chat(&chat_id).unwrap();
-		let saved = record["messages"].as_arr().unwrap().iter().find(|m| m["toolCallId"].as_str() == Some("q1") && m["role"].as_str() == Some("toolResult")).unwrap();
+		let saved = record["messages"].as_arr().unwrap().iter().find(|m| m["toolCallId"].as_str() == Some("q1") && Role::ToolResult.is(m)).unwrap();
 		assert_eq!(saved["details"]["dismissed"], json!(true));
 		assert!(crate::app::agent_actions::recent_agent_actions(&app).is_empty(), "a skip is not logged as a wrong answer");
 	}

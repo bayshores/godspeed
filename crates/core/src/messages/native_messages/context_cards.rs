@@ -4,6 +4,7 @@
 use gs_base::text;
 use gs_json::{Json, json};
 
+use crate::spaces::file_state::{FileKind, FileStatus};
 use super::marker;
 use gs_json::js_text::js_string;
 use crate::messages::message_id::new_message_id;
@@ -46,7 +47,7 @@ pub fn space_card_text(card: &Json) -> String {
 	}
 	let readable = readable_files(card);
 	if !readable.is_empty() {
-		let study = readable.iter().filter(|f| f["kind"].as_str() == Some("study")).count();
+		let study = readable.iter().filter(|f| FileKind::of(f) == Some(FileKind::Study)).count();
 		lines.push(String::new());
 		lines.push(format!("Space files: {study} study material, {} space info. Find what's in them with search_space_files; read_space lists them with their paths.", readable.len() - study));
 	}
@@ -74,10 +75,10 @@ pub fn space_files_text(card: &Json) -> String {
 	let mut lines = vec!["Space files (study material = turned into the space's knowledge graph; space info = a syllabus, a schedule, logistics):".to_owned()];
 	for f in readable {
 		// Only a status other than "ready" is worth showing.
-		let status = Some(&f["status"]).filter(|s| s.as_str() != Some("ready"));
+		let status = Some(&f["status"]).filter(|_| FileStatus::of(f) != Some(FileStatus::Ready));
 		let parts: Vec<String> = [Some(&f["size"]), status].into_iter().flatten().filter(|v| v.truthy()).map(|v| js_string(Some(v))).collect();
 		let about = if parts.is_empty() { String::new() } else { format!(" ({})", parts.join(", ")) };
-		let kind = if f["kind"].as_str() == Some("study") { "study material" } else { "space info" };
+		let kind = if FileKind::of(f) == Some(FileKind::Study) { "study material" } else { "space info" };
 		lines.push(format!("- [{kind}] {}{about} — {}", js_string(f.get("name")), js_string(f.get("path"))));
 	}
 	lines.join("\n")

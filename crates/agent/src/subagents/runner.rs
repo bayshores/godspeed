@@ -16,6 +16,7 @@ use futures_util::future::BoxFuture;
 use gs_base::ids;
 use gs_base::re::Re;
 use gs_base::text::{slice16, trim};
+use gs_core::messages::role::Role;
 use gs_core::session::jobs::{accumulate_job_usage, build_subagent_steer, is_subagent_failure, notes_or, pi_usage_to_step};
 use gs_engine::bridge::Bridge;
 use gs_engine::turn::abort::Abort;
@@ -197,7 +198,7 @@ impl JobRunner {
 			return Some(saved.clone());
 		}
 		let chat = self.host.chat_store().get_chat(job["chatId"].as_str()?)?;
-		for m in chat["messages"].items().iter().filter(|m| m["role"] == Json::from("assistant")) {
+		for m in chat["messages"].items().iter().filter(|m| Role::Assistant.is(m)) {
 			for block in m["content"].items().iter() {
 				if block["type"] == Json::from("toolCall") && block["id"] == job["toolCallId"] {
 					return block.get("arguments").cloned();

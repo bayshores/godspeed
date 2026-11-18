@@ -73,6 +73,7 @@ pub fn drop_kept_part(app: &App, chat_id: &str, of: &str, part: KeptPart, back: 
 
 #[cfg(test)]
 mod tests {
+	use gs_core::messages::role::is_custom;
 	use gs_json::Json;
 
 	use super::*;
@@ -101,7 +102,7 @@ mod tests {
 
 	fn markers(app: &App, id: &str) -> Vec<Json> {
 		let record = app.stores.chats.get_chat(id).unwrap();
-		record["messages"].as_arr().unwrap().iter().filter(|m| m["customType"].as_str() == Some("keep-going")).map(|m| m["details"]["stopOf"].clone()).collect()
+		record["messages"].as_arr().unwrap().iter().filter(|m| is_custom(m, "keep-going")).map(|m| m["details"]["stopOf"].clone()).collect()
 	}
 
 	#[test]
