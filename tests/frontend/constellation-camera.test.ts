@@ -16,6 +16,7 @@ import {
 	camOnTopic,
 	camShowing,
 	carryCam,
+	drawnRect,
 	homeCam,
 	isNear,
 	nearRamp,
@@ -186,6 +187,23 @@ describe("where a flight to a topic lands", () => {
 		assert.ok(mid, "the course has a topic between the two limits");
 		const c = camOnTopic(mid!, f, nn, zMax);
 		near(2 * mid!.r * f.scale * c.z, 0.6 * Math.min(f.w, f.h), "the disc's size on screen");
+	});
+});
+
+describe("what a zoomed-in picture draws", () => {
+	const c: Cam = { z: 2, x: 1000, y: 500 };
+	const k = F.scale * c.z;
+	it("with nothing past its box, it is the view and its margin", () => {
+		assert.deepEqual(drawnRect(c, F, { left: 0, right: 0, top: 0, bottom: 0 }, 60), viewRect(c, F, 60));
+	});
+
+	it("grows past the view by each side's own room, in layout points", () => {
+		const v = viewRect(c, F, 60);
+		const r = drawnRect(c, F, { left: 300, right: 120, top: 8, bottom: 16 }, 60);
+		near(v.x0 - r.x0, 300 / k);
+		near(r.x1 - v.x1, 120 / k);
+		near(v.y0 - r.y0, 8 / k);
+		near(r.y1 - v.y1, 16 / k);
 	});
 });
 

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { FactProgress, ProgressPayload } from "@/shared/core";
 import { Constellation } from "./constellation.tsx";
-import type { Aim, CameraMemory, Flight } from "./constellation-camera.ts";
+import type { Aim, Bleed, CameraMemory, Flight } from "./constellation-camera.ts";
 import type { InView } from "./use-in-view.ts";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { FactPane, type FactSources } from "./fact-pane.tsx";
@@ -20,6 +20,10 @@ const WIDEST = 1192;
 const TALLEST = 600;
 /** The least height the picture gets, however short the window. */
 const MIN_HEIGHT = 120;
+/** The room kept between the picture and the foot line. */
+const ABOVE_FOOT = 16;
+/** The room a zoomed-in picture keeps clear under the tab row's rule. */
+const UNDER_TABS = 4;
 const PICTURE = "[data-testid=graph-picture]";
 const PANEL_BOX = "[data-testid=graph-panel]";
 const PANEL_CLOSE = "[data-testid=topic-pane-close], [data-testid=fact-pane-close]";
@@ -187,6 +191,8 @@ export function GraphBody({
 			/>
 		) : null;
 	const width = panel ? room.width - PANEL - GAP : room.width;
+	// Zoomed in, the picture is drawn out to the window's sides, under a docked panel, up to just under the tab row and down to the foot line.
+	const bleed: Bleed = { left: room.edges.left, right: room.edges.right + room.width - width, top: Math.max(0, room.edges.top - UNDER_TABS), bottom: ABOVE_FOOT };
 	return (
 		<div ref={room.ref} className="w-full">
 			{panel && narrow ? (
@@ -203,6 +209,8 @@ export function GraphBody({
 							chains={sources?.chains ?? null}
 							width={width}
 							height={room.height}
+							bleed={bleed}
+								docked={!!panel}
 							reveal={reveal}
 							pickedId={selected?.id ?? null}
 							pickedFactId={fact?.id ?? null}
@@ -216,7 +224,7 @@ export function GraphBody({
 						/>
 					</div>
 					{panel && (
-						<Dock className="shrink-0" width={PANEL} height={room.height}>
+						<Dock className="relative z-30 shrink-0" width={PANEL} height={room.height}>
 							{panel}
 						</Dock>
 					)}
@@ -227,17 +235,21 @@ export function GraphBody({
 }
 
 /** The room the page gives the picture and panel, kept current: its width,
- *  and the height from its top to 16 px above the foot line. The page never scrolls. */
+ *  the height from its top to ABOVE_FOOT above the foot line, and how far
+ *  the page reaches past its left, right and top. The page never scrolls. */
 function useRoom() {
 	const ref = useRef<HTMLDivElement>(null);
-	const [size, setSize] = useState({ width: WIDEST, height: TALLEST });
+	const [size, setSize] = useState({ width: WIDEST, height: TALLEST, edges: { left: 0, right: 0, top: 0 } });
 	useLayoutEffect(() => {
 		const el = ref.current;
 		if (!el) return;
 		const measure = () => {
-			const page = el.closest("[data-testid=graph-page]") ?? document.documentElement;
-			const height = Math.max(MIN_HEIGHT, Math.floor(page.getBoundingClientRect().bottom - el.getBoundingClientRect().top - 16 - FOOT));
-			if (el.clientWidth > 0) setSize((o) => (o.width === el.clientWidth && o.height === height ? o : { width: el.clientWidth, height }));
+			const page = (el.closest("[data-testid=graph-page]") ?? document.documentElement).getBoundingClientRect();
+			const box = el.getBoundingClientRect();
+			const height = Math.max(MIN_HEIGHT, Math.floor(page.bottom - box.top - ABOVE_FOOT - FOOT));
+			const edges = { left: Math.round(box.left - page.left), right: Math.round(page.right - box.right), top: Math.round(box.top - page.top) };
+			const same = (o: typeof size) => o.width === el.clientWidth && o.height === height && o.edges.left === edges.left && o.edges.right === edges.right && o.edges.top === edges.top;
+			if (el.clientWidth > 0) setSize((o) => (same(o) ? o : { width: el.clientWidth, height, edges }));
 		};
 		measure();
 		const ro = new ResizeObserver(measure);

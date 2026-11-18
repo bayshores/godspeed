@@ -61,6 +61,7 @@ let focused: Element | null = null;
 Object.defineProperty(dom.document, "activeElement", { get: () => (focused?.isConnected ? focused : dom.document.body) });
 
 const noop = () => {};
+const NO_BLEED = { left: 0, right: 0, top: 0, bottom: 0 };
 const inRouter = (tree: React.ReactNode) => <MemoryRouter initialEntries={["/graph"]}>{tree}</MemoryRouter>;
 const count = (html: string, needle: string) => html.split(needle).length - 1;
 const body = (over: Partial<React.ComponentProps<typeof GraphBody>> = {}) =>
@@ -642,6 +643,8 @@ describe("a picture too tall for its box", () => {
 				chains={null}
 				width={1192}
 				height={60}
+				bleed={NO_BLEED}
+				docked={false}
 				reveal={null}
 				pickedId={null}
 				pickedFactId={null}
@@ -829,7 +832,7 @@ describe("the camera's small behaviours", () => {
 			fire(picture(), "wheel", { deltaY: -400, deltaMode: 0, ctrlKey: false, clientX: 600, clientY: 100 });
 			await frames();
 		});
-	const constellation = (onPick: (id: string | null) => void = noop) => {
+	const constellation = ({ onPick = noop, onPickFact = noop, bleed = NO_BLEED, docked = false, onInView = noop, aim = null }: { onPick?: (id: string | null) => void; onPickFact?: (id: string) => void; bleed?: typeof NO_BLEED; docked?: boolean; onInView?: (v: InView | null) => void; aim?: Aim | null } = {}) => {
 		const data = fixture();
 		return (
 			<Constellation
@@ -839,16 +842,18 @@ describe("the camera's small behaviours", () => {
 				chains={null}
 				width={1192}
 				height={600}
+				bleed={bleed}
+				docked={docked}
 				reveal={null}
 				pickedId={null}
 				pickedFactId={null}
 				focus={null}
 				factMatches={null}
 				onPick={onPick}
-				onPickFact={noop}
-				onInView={noop}
+				onPickFact={onPickFact}
+				onInView={onInView}
 				camera={{ current: { shot: null, back: null, done: 0 } }}
-				aim={null}
+				aim={aim}
 			/>
 		);
 	};
@@ -863,6 +868,8 @@ describe("the camera's small behaviours", () => {
 				chains={null}
 				width={1192}
 				height={60}
+				bleed={NO_BLEED}
+				docked={false}
 				reveal={null}
 				pickedId={null}
 				pickedFactId={null}
@@ -884,9 +891,55 @@ describe("the camera's small behaviours", () => {
 		assert.doesNotMatch(bottom.getAttribute("style")!, /opacity:\s*0/, "shown when pointed at");
 	});
 
+	it("drawing past the box zoomed in leaves the foot line's counts as they were", async () => {
+		const seen: string[] = [];
+		for (const bleed of [NO_BLEED, { left: 300, right: 400, top: 12, bottom: 16 }]) {
+			let last: InView | null = null;
+			await mount(constellation({ bleed, onInView: (v) => (last = v) }));
+			await wheelIn();
+			seen.push(JSON.stringify(last));
+			await act(async () => root!.unmount());
+			host!.remove();
+			root = undefined;
+		}
+		assert.notEqual(seen[0], "null", "zoomed in, something is in view");
+		assert.equal(seen[1], seen[0]);
+	});
+
+	// Landed on Minibatch noise, wide bleed: Derivatives' moons are drawn left of the box, Attention's name right of it.
+	const WIDE = { left: 300, right: 400, top: 12, bottom: 16 };
+	const onMini: Aim = { to: "topic", id: "t-mini", fact: null, seq: 1 };
+
+	it("zoomed in, a star drawn left of the box is pointed at and clicked", async () => {
+		const opened: string[] = [];
+		await mount(constellation({ bleed: WIDE, aim: onMini, onPickFact: (id) => opened.push(id) }));
+		const [m] = moons("t-deriv");
+		assert.ok(m && m.x < 0, "a moon left of the box");
+		// The layer that reaches past the box takes the pointer there.
+		const reach = host!.querySelector<HTMLElement>("[data-testid=graph-hit-area]")!;
+		await act(async () => void fire(reach, "pointermove", { clientX: m.x, clientY: m.y, button: 0, pointerId: 1 }));
+		const tag = picture().querySelector("[data-testid=graph-name-tag]")?.textContent;
+		assert.ok(fixture().facts.some((f) => f.topicId === "t-deriv" && f.name === tag), "its name tag shows");
+		await act(async () => void fire(reach, "click", { clientX: m.x, clientY: m.y, detail: 1 }));
+		assert.equal(fixture().facts.find((f) => f.id === opened[0])?.topicId, "t-deriv", "its fact opens");
+	});
+
+	it("with a panel docked, a topic name right of the box is hidden", async () => {
+		const pastBox = () =>
+			[...host!.querySelectorAll<HTMLElement>("[data-testid=graph-topic]")].filter((b) => parseFloat(b.style.left) + parseFloat(b.style.width) > 1192).map((b) => b.style.opacity !== "0");
+		for (const docked of [false, true]) {
+			await mount(constellation({ bleed: WIDE, aim: onMini, docked }));
+			assert.ok(pastBox().length > 0, "a name right of the box");
+			assert.equal(pastBox().some(Boolean), !docked, docked ? "hidden beside a panel" : "shown with no panel");
+			await act(async () => root!.unmount());
+			host!.remove();
+			root = undefined;
+		}
+	});
+
 	it("a click right after a drag that was cancelled still works", async () => {
 		const picks: (string | null)[] = [];
-		await mount(constellation((id) => picks.push(id)));
+		await mount(constellation({ onPick: (id) => picks.push(id) }));
 		await wheelIn();
 		await act(async () => void fire(picture(), "click", { clientX: 2, clientY: 2, detail: 1 }));
 		assert.deepEqual(picks, [null], "a plain click on empty picture reaches it");
@@ -990,6 +1043,33 @@ describe("a flight with motion", () => {
 	});
 });
 
+/**
+ * Where each moon is, read from what is drawn, since this DOM has no layout: the figure's
+ * 2-point cells, grouped into moons by how near they sit, each moon's middle.
+ */
+function moons(figure = "t-mini") {
+	// A moon's path is `M x y`, then each 2-point cell as `m dx dy h2v2h-2z`, relative to the cell before it.
+	const cells = [...host!.querySelectorAll(`[data-figure="${figure}"] [shape-rendering="crispEdges"] path`)].flatMap((p) => {
+		let [x, y] = [0, 0];
+		return [...(p.getAttribute("d") ?? "").matchAll(/([Mm])(-?\d+) (-?\d+)(h2v2h-2z)?/g)].flatMap((m) => {
+			[x, y] = m[1] === "M" ? [+m[2]!, +m[3]!] : [x + +m[2]!, y + +m[3]!];
+			return m[4] ? [{ x, y }] : [];
+		});
+	});
+	const out: { x: number; y: number }[] = [];
+	const left = new Set(cells);
+	while (left.size) {
+		const [first] = left;
+		const group = [first!];
+		left.delete(first!);
+		for (let i = 0; i < group.length; i++)
+			for (const c of left) if (Math.abs(c.x - group[i]!.x) <= 4 && Math.abs(c.y - group[i]!.y) <= 4) (group.push(c), left.delete(c));
+		const [x0, x1] = [Math.min(...group.map((c) => c.x)), Math.max(...group.map((c) => c.x)) + 2];
+		const [y0, y1] = [Math.min(...group.map((c) => c.y)), Math.max(...group.map((c) => c.y)) + 2];
+		out.push({ x: (x0 + x1) / 2, y: (y0 + y1) / 2 });
+	}
+	return out.sort((a, b) => a.y - b.y || a.x - b.x);
+}
 describe("the picture near", () => {
 	// Chains inside Minibatch noise (f5 to f10), and one from Variance into it, which is never drawn as a line of its figure.
 	const sources: FactSources = {
@@ -1007,33 +1087,6 @@ describe("the picture near", () => {
 	const picture = () => document.querySelector<HTMLElement>('[data-testid="graph-picture"]')!;
 	/** The name tags: the picture's one-line boxes. Nothing else in the picture is a sheet. */
 	const tags = () => [...picture().querySelectorAll("[data-testid=graph-name-tag]")].map((n) => n.textContent!);
-	/**
-	 * Where each moon is, read from what is drawn, since this DOM has no layout: the figure's
-	 * 2-point cells, grouped into moons by how near they sit, each moon's middle.
-	 */
-	function moons() {
-		// A moon's path is `M x y`, then each 2-point cell as `m dx dy h2v2h-2z`, relative to the cell before it.
-		const cells = [...host!.querySelectorAll('[data-figure="t-mini"] [shape-rendering="crispEdges"] path')].flatMap((p) => {
-			let [x, y] = [0, 0];
-			return [...(p.getAttribute("d") ?? "").matchAll(/([Mm])(-?\d+) (-?\d+)(h2v2h-2z)?/g)].flatMap((m) => {
-				[x, y] = m[1] === "M" ? [+m[2]!, +m[3]!] : [x + +m[2]!, y + +m[3]!];
-				return m[4] ? [{ x, y }] : [];
-			});
-		});
-		const out: { x: number; y: number }[] = [];
-		const left = new Set(cells);
-		while (left.size) {
-			const [first] = left;
-			const group = [first!];
-			left.delete(first!);
-			for (let i = 0; i < group.length; i++)
-				for (const c of left) if (Math.abs(c.x - group[i]!.x) <= 4 && Math.abs(c.y - group[i]!.y) <= 4) (group.push(c), left.delete(c));
-			const [x0, x1] = [Math.min(...group.map((c) => c.x)), Math.max(...group.map((c) => c.x)) + 2];
-			const [y0, y1] = [Math.min(...group.map((c) => c.y)), Math.max(...group.map((c) => c.y)) + 2];
-			out.push({ x: (x0 + x1) / 2, y: (y0 + y1) / 2 });
-		}
-		return out.sort((a, b) => a.y - b.y || a.x - b.x);
-	}
 	const point = (at: { x: number; y: number }) => act(async () => void fire(picture(), "pointermove", { clientX: at.x, clientY: at.y, button: 0, pointerId: 1 }));
 	const open = async (data?: ReturnType<typeof fixture>) => {
 		const page = await mount(<Page data={data} sources={sources} />);

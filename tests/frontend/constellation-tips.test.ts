@@ -48,13 +48,13 @@ describe("the constellation's hover boxes", () => {
 });
 
 describe("the name tag", () => {
-	const room = { w: 1192, h: 600 };
+	const room = { x0: 0, y0: 0, x1: 1192, y1: 600 };
 	const [w, h, half, ext] = [180, 22, 13, 12];
 	const base = { half, w, h, room, topicTop: 200, own: new Set<string>(), ext };
 	const star = (id: string, x: number, y: number) => ({ id, x, y });
 	const at = star("at", 600, 300);
 	const under = (p: { left: number; top: number }, s: { x: number; y: number }) => s.x > p.left - ext && s.x < p.left + w + ext && s.y > p.top - ext && s.y < p.top + h + ext;
-	const inside = (p: { left: number; top: number }) => p.left >= 0 && p.top >= 0 && p.left + w <= room.w && p.top + h <= room.h;
+	const inside = (p: { left: number; top: number }) => p.left >= 0 && p.top >= 0 && p.left + w <= room.x1 && p.top + h <= room.y1;
 	/** A star on each side of the pointed one, where its tag would go. */
 	const rightOf = star("r", 600 + half + 6 + 20, 300);
 	const leftOf = star("l", 600 - half - 6 - 20, 300);
@@ -103,10 +103,10 @@ describe("the name tag", () => {
 	it("stays inside the picture and off every star wherever the fact is and however many stars there are", () => {
 		const r = rng(7);
 		for (let run = 0; run < 400; run++) {
-			const stars = Array.from({ length: 4 + Math.floor(r() * 10) }, (_, i) => star(`s${i}`, r() * room.w, r() * room.h));
+			const stars = Array.from({ length: 4 + Math.floor(r() * 10) }, (_, i) => star(`s${i}`, r() * room.x1, r() * room.y1));
 			const pointed = stars[0]!;
 			// A fact too near the edge to have a side clear is left to the edge test.
-			if (pointed.x < w + 40 || pointed.x > room.w - w - 40 || pointed.y < 60 || pointed.y > room.h - 60) continue;
+			if (pointed.x < w + 40 || pointed.x > room.x1 - w - 40 || pointed.y < 60 || pointed.y > room.y1 - 60) continue;
 			const spot = tagSpot({ ...base, at: pointed, stars, topicTop: pointed.y - 40 });
 			assert.ok(inside(spot), `run ${run}: the tag leaves the picture`);
 			const hit = stars.filter((o) => o !== pointed && under(spot, o));
@@ -125,7 +125,7 @@ describe("the name tag", () => {
 
 	it("stays inside the picture for a fact at its edge", () => {
 		const off: string[] = [];
-		for (const [x, y] of [[6, 6], [room.w - 6, 6], [6, room.h - 6], [room.w - 6, room.h - 6], [300, 5], [5, 300], [room.w - 5, 300], [300, room.h - 5]] as const) {
+		for (const [x, y] of [[6, 6], [room.x1 - 6, 6], [6, room.y1 - 6], [room.x1 - 6, room.y1 - 6], [300, 5], [5, 300], [room.x1 - 5, 300], [300, room.y1 - 5]] as const) {
 			const pointed = star("p", x, y);
 			const spot = tagSpot({ ...base, at: pointed, stars: [pointed], topicTop: y });
 			if (!inside(spot)) off.push(`fact at ${x}, ${y}: tag at ${spot.left}, ${spot.top}`);
@@ -150,7 +150,7 @@ describe("the name tag", () => {
 	});
 
 	it("with every side blocked, a fact at each corner of the picture gets a tag inside the picture", () => {
-		for (const [x, y] of [[6, 6], [room.w - 6, 6], [6, room.h - 6], [room.w - 6, room.h - 6]] as const) {
+		for (const [x, y] of [[6, 6], [room.x1 - 6, 6], [6, room.y1 - 6], [room.x1 - 6, room.y1 - 6]] as const) {
 			const stars = surrounded(x, y);
 			// Its topic reaches the picture's top, so there is no room above it either.
 			const spot = tagSpot({ ...base, at: stars[0]!, stars, topicTop: 0 });
@@ -160,11 +160,31 @@ describe("the name tag", () => {
 	});
 
 	it("in a picture only a little wider than the tag, a fact at either side still gets a tag inside it", () => {
-		const small = { w: w + 40, h: 90 };
-		for (const [x, y] of [[5, 5], [small.w - 5, 5], [5, small.h - 5], [small.w - 5, small.h - 5], [small.w / 2, small.h / 2]] as const) {
+		const small = { x0: 0, y0: 0, x1: w + 40, y1: 90 };
+		for (const [x, y] of [[5, 5], [small.x1 - 5, 5], [5, small.y1 - 5], [small.x1 - 5, small.y1 - 5], [small.x1 / 2, small.y1 / 2]] as const) {
 			const stars = surrounded(x, y);
 			const spot = tagSpot({ ...base, room: small, at: stars[0]!, stars, topicTop: 0 });
-			assert.ok(spot.left >= 0 && spot.left + w <= small.w && spot.top >= 0 && spot.top + h <= small.h, `fact at ${x}, ${y}: tag at ${spot.left}, ${spot.top}`);
+			assert.ok(spot.left >= 0 && spot.left + w <= small.x1 && spot.top >= 0 && spot.top + h <= small.y1, `fact at ${x}, ${y}: tag at ${spot.left}, ${spot.top}`);
+		}
+	});
+
+	it("a fact drawn past the room's side gets its tag at that side's edge, level with it, and no leader", () => {
+		for (const x of [-40, room.x1 + 40]) {
+			const stars = surrounded(x, 300);
+			const spot = tagSpot({ ...base, at: stars[0]!, stars, topicTop: 200 });
+			assert.ok(inside(spot), `fact at ${x}: tag at ${spot.left}`);
+			assert.equal(spot.left, x < 0 ? room.x0 : room.x1 - w);
+			assert.equal(spot.top, 300 - h / 2);
+			assert.equal(spot.leader, null);
+		}
+	});
+
+	it("keeps out of a room's dissolving top and bottom, for a fact right at either", () => {
+		const band = { ...room, y0: 24, y1: room.y1 - 24 };
+		for (const [x, y] of [[300, 10], [300, room.y1 - 10], [600, 30], [600, room.y1 - 30]] as const) {
+			const stars = surrounded(x, y);
+			const spot = tagSpot({ ...base, room: band, at: stars[0]!, stars, topicTop: y });
+			assert.ok(spot.top >= band.y0 && spot.top + h <= band.y1, `fact at ${x}, ${y}: tag at ${spot.top}`);
 		}
 	});
 });

@@ -18,7 +18,8 @@ import { NAME_GAP, NAME_LINE, layoutSky, restLines, type Cluster, type Rect, typ
 import { makeRouter, toStars } from "./constellation-routes.ts";
 import { NAME_PX, fitPicture, namesHidden } from "./constellation-fit.ts";
 import { NAME_AFTER, RIM_AFTER, frozenDelays, lineDelay, type Reveal } from "./constellation-reveal.ts";
-import { MOON_PITCH, STAR_CAP, camShowing, isNear, nearRamp, pitchOf, project, starPitch, toLayout, viewRect, type Aim, type CameraMemory, type Frame } from "./constellation-camera.ts";
+import { MOON_PITCH, STAR_CAP, camShowing, drawnRect, isNear, nearRamp, pitchOf, project, starPitch, toLayout, viewRect, type Aim, type Bleed, type CameraMemory, type Frame } from "./constellation-camera.ts";
+import { BAND, PictureSvg } from "./constellation-edges.tsx";
 import { FigureLayer, NameTag, TAG_H, TAG_PX, starHalf, tagLabel, useDrawIn } from "./constellation-figure-layer.tsx";
 import { tagSpot, tipSpot } from "./constellation-tips.ts";
 import { useCamera } from "./use-camera.ts";
@@ -183,6 +184,8 @@ export function Constellation({
 	chains,
 	width,
 	height,
+	bleed,
+	docked,
 	reveal,
 	pickedId,
 	pickedFactId,
@@ -203,6 +206,9 @@ export function Constellation({
 	width: number;
 	/** The most height it may take: a taller picture scales down evenly to fit. */
 	height: number;
+	bleed: Bleed;
+	/** A panel is docked right of the box: names stay left of the box's right edge. */
+	docked: boolean;
 	/** This opening's reveal while it runs; null once the picture is in. */
 	reveal: Reveal | null;
 	pickedId: string | null;
@@ -257,7 +263,10 @@ export function Constellation({
 	const { k: kk, tx, ty } = P;
 	const pitch = pitchOf(cam, frame, nn);
 	const view = viewRect(cam, frame);
-	const around = viewRect(cam, frame, MARGIN);
+	const around = zoomed ? drawnRect(cam, frame, bleed, MARGIN) : viewRect(cam, frame, MARGIN);
+	// Zoomed in, the picture is drawn past its box (out to the window's sides) and dissolves at its top and bottom.
+	/** Where a name or the name tag shows whole while zoomed in: the drawn area, short of its dissolving edges. */
+	const clear = zoomed ? { x0: -bleed.left, x1: shownW + (docked ? 0 : bleed.right), y0: BAND - bleed.top, y1: frame.h + bleed.bottom - BAND } : null;
 	const nearView = (x: number, y: number) => x >= around.x0 && x <= around.x1 && y >= around.y0 && y <= around.y1;
 
 	// Fixed for this mount: a re-fit never moves a running animation, and a
@@ -377,7 +386,7 @@ export function Constellation({
 		const fromStar = sy(lowest) + Math.max(d / 2, ext) + NAME_GAP;
 		const top = fromDisc + ramp * (fromStar - fromDisc);
 		// Zoomed in, a name the view's edge would cut is not drawn: the foot line names the topic instead.
-		const whole = !zoomed || (left >= 0 && top >= 0 && left + w <= shownW && top + h <= frame.h);
+		const whole = !clear || (left >= clear.x0 && top >= clear.y0 && left + w <= clear.x1 && top + h <= clear.y1);
 		return { left, top, w, h, f, whole };
 	};
 	const toLayoutRect = (r: { left: number; top: number; w: number; h: number }): Rect => ({ x0: (r.left - tx) / kk, x1: (r.left + r.w - tx) / kk, y0: (r.top - ty) / kk, y1: (r.top + r.h - ty) / kk });
@@ -463,7 +472,7 @@ export function Constellation({
 		const at = moved.starById.get(star.id) ?? star;
 		const own = new Set([at.id, ...(starLinks?.ends.map((e) => e.id) ?? [])]);
 		const topicTop = Math.min(...(moved.byTopic.get(at.topicId) ?? { stars: [at] }).stars.map((o) => sy(o.cy)));
-		return { text, w, ...tagSpot({ at: onScreen(at), half: ext + 4, w, h: TAG_H, room: { w: shownW, h: frame.h }, stars: nearClusters.flatMap((k) => k.stars.map(onScreen)), topicTop, own, ext: ext + 3 }) };
+		return { text, w, ...tagSpot({ at: onScreen(at), half: ext + 4, w, h: TAG_H, room: { x0: 0, y0: Math.max(0, clear?.y0 ?? 0), x1: shownW, y1: Math.min(frame.h, clear?.y1 ?? frame.h) }, stars: nearClusters.flatMap((k) => k.stars.map(onScreen)), topicTop, own, ext: ext + 3 }) };
 	})();
 	const hovered = hoverId && !star ? sky.byTopic.get(hoverId) : undefined;
 	const topicTip = hovered ? tipSpot(sky, toLayoutRect(namePlace(hovered, true)), hovered.tipW / kk, 16 / kk, 6 / kk, lit ?? new Set([hovered.topic.id]), inked, view) : null;
@@ -488,7 +497,6 @@ export function Constellation({
 			style={{
 				width: shownW,
 				height: zoomed ? frame.h : shownH,
-				overflow: zoomed ? "hidden" : undefined,
 				cursor: dragging ? "grabbing" : star || hoverId ? "pointer" : zoomed ? "grab" : "default",
 				touchAction: "none",
 			}}
@@ -499,7 +507,9 @@ export function Constellation({
 			onPointerLeave={onLeave}
 			onClick={onClick}
 		>
-			<svg aria-hidden width={shownW} height={frame.h} className="absolute inset-0 overflow-visible">
+			{/* Zoomed in, stars drawn past the box are pointed at and clicked too: this layer reaches as far as the picture is drawn, under the names and a docked panel. */}
+			{zoomed && <div data-testid="graph-hit-area" className="absolute" style={{ left: -bleed.left, top: -bleed.top, width: shownW + bleed.left + bleed.right, height: frame.h + bleed.top + bleed.bottom }} />}
+			<PictureSvg w={shownW} h={frame.h} out={zoomed ? bleed : null}>
 				{/* Lines are drawn in layout points under one transform, at the same weight on screen at any zoom. */}
 				<g transform={`matrix(${kk} 0 0 ${kk} ${tx} ${ty})`}>
 					{inAt ? (
@@ -543,7 +553,7 @@ export function Constellation({
 						<path d={sq([star], 2)} fill={star.color} />
 					</g>
 				)}
-			</svg>
+			</PictureSvg>
 			{sky.clusters.map((k) => {
 				const id = k.topic.id;
 				const picked = id === pickedId;

@@ -131,8 +131,8 @@ Its body is `services::graph::graph::search_graph`, shared with the MCP tool of 
 |---|---|---|
 | Page | `src/frontend/components/graph/graph-screen.tsx` | Loads the data, runs Find, holds the foot line and the chain table, and holds the camera's latest flight (the picture asks for picks, the foot line and Find for the whole space). |
 | Foot line | `graph-foot.tsx`, `cost-control.tsx` | The counts (the fact count opens the chain table), Find, Costs (its pop-up opens upward) and, with no space, Add files. Find turns the line into the typing line. Zoomed in, the counts are what is in view and Whole space flies out. With one topic in view the line reads its name and how many of its facts are lit ("16 of 18 lit"). |
-| Picture and panel | `graph-body.tsx` | Measures the room (its width, and its height down to 16 px above the foot line), docks the picked topic's or fact's panel, asks for a flight on each pick and close, handles Escape. |
-| Picture | `constellation.tsx` | One SVG: every fact is a square star, grouped by topic with the topic's name under it; lines join topics that build on each other. Topics are buttons on top. Zoomed in, it adds no words except the pointed fact's name tag. |
+| Picture and panel | `graph-body.tsx` | Measures the room (its width, its height down to 16 px above the foot line, and how far the page reaches past it), docks the picked topic's or fact's panel, asks for a flight on each pick and close, handles Escape. |
+| Picture | `constellation.tsx` | One SVG: every fact is a square star, grouped by topic with the topic's name under it; lines join topics that build on each other. Topics are buttons on top. Zoomed in, it adds no words except the pointed fact's name tag, and it is drawn past its box: out to the window's sides and under a docked panel, dissolving in 24 px pixel dither (`constellation-edges.tsx`) just under the tab row and just above the foot line. Stars drawn past the box are pointed at, clicked, dragged and zoomed like the rest. |
 | Layout | `constellation-layout.ts`, `constellation-routes.ts` | Where groups sit (by a topic's `column`, start on the left), and which lines are drawn and how they route around names. Pure, unit-tested. |
 | Fit | `constellation-fit.ts` | The scale that fits the picture in its room: smaller when it is too tall, never larger. Names that would be under 11 px are not drawn at rest. Pure, unit-tested. |
 | Reveal | `constellation-reveal.ts` | When each cluster, name and line inks in as the tab opens. Pure. |
@@ -165,6 +165,8 @@ Zooming in adds no words: facts are named only by their panel and the name tag, 
 A fact is lit when its latest answer was right. A line is lit when both its facts are lit, half lit with one, and a faint ghost with none.
 
 Near, with a fact pointed at or open in its panel, the facts it needs stand out solid, the facts it leads to are dashed, and the rest dims. Pointing also shows the fact's name on a one-line tag (at most 44 letters), except for the fact whose panel is open. The tag takes the first of right, left, above and below that stays inside the picture and covers no star; when every side is crowded it hangs above the topic with a dotted leader down to the fact.
+
+Zoomed in, a topic name or the name tag that would cross the dissolving top or bottom is not drawn there; the foot line names the topic instead. With a panel docked, a topic name shows only whole left of the picture's box, so the panel never cuts one. The name tag stays inside the box; a fact drawn past the box's side gets its tag at that edge, level with it. The foot line counts only what is in the camera's view, not the wider drawn area.
 
 On a picture too tall for its room, a name drawn under 11 px waits until its topic is pointed at, picked or lit by Find, and then shows at full size.
 

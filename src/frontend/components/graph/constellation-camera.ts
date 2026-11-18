@@ -82,6 +82,20 @@ export function toLayout(p: Proj, sx: number, sy: number): { x: number; y: numbe
 	return { x: (sx - p.tx) / p.k, y: (sy - p.ty) / p.k };
 }
 
+/** How far past the camera's box, in screen points, a zoomed-in picture is drawn on each side: out to the window's sides and to the page's top and the foot line. */
+export interface Bleed {
+	left: number;
+	right: number;
+	top: number;
+	bottom: number;
+}
+
+/** The part of the picture drawn while zoomed in, in layout points: the view grown by `bleed`, and by `margin` screen points more. */
+export function drawnRect(c: Cam, f: Frame, bleed: Bleed, margin: number): Rect {
+	const k = f.scale * c.z;
+	return { x0: c.x - (f.w / 2 + bleed.left + margin) / k, x1: c.x + (f.w / 2 + bleed.right + margin) / k, y0: c.y - (f.h / 2 + bleed.top + margin) / k, y1: c.y + (f.h / 2 + bleed.bottom + margin) / k };
+}
+
 /** The part of the picture in view, in layout points, grown by `margin` screen points. */
 export function viewRect(c: Cam, f: Frame, margin = 0): Rect {
 	const k = f.scale * c.z;

@@ -38,6 +38,13 @@ export function useInViewReport(sky: Pick<Sky, "clusters">, view: Rect | null, f
 	const report = useRef(onInView);
 	report.current = onInView;
 	const key = inView ? `${inView.topics}:${inView.facts}:${inView.lit}:${inView.name}` : "";
-	useEffect(() => report.current(inView), [key]);
-	useEffect(() => () => report.current(null), []);
+	useEffect(() => {
+		report.current(inView);
+	}, [key]);
+	useEffect(
+		() => () => {
+			report.current(null);
+		},
+		[],
+	);
 }

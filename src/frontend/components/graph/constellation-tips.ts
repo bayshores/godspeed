@@ -80,7 +80,8 @@ export function tagSpot({
 	half: number;
 	w: number;
 	h: number;
-	room: { w: number; h: number };
+	/** Where the tag may go. */
+	room: Rect;
 	stars: readonly TagStar[];
 	/** The top of the star's topic on screen. */
 	topicTop: number;
@@ -88,20 +89,22 @@ export function tagSpot({
 	ext: number;
 }): { left: number; top: number; leader: { x: number; y0: number; y1: number } | null } {
 	const { x, y } = at;
-	const inside = (p: { left: number; top: number }) => p.left >= 0 && p.left + w <= room.w && p.top >= 0 && p.top + h <= room.h;
+	const inside = (p: { left: number; top: number }) => p.left >= room.x0 && p.left + w <= room.x1 && p.top >= room.y0 && p.top + h <= room.y1;
 	const under = (p: { left: number; top: number }) => stars.filter((o) => o.id !== at.id && o.x > p.left - ext && o.x < p.left + w + ext && o.y > p.top - ext && o.y < p.top + h + ext);
-	const sides = [
+	const all = [
 		{ left: x + half + 6, top: y - h / 2 },
 		{ left: x - half - 6 - w, top: y - h / 2 },
 		{ left: x - w / 2, top: y - half - 6 - h },
 		{ left: x - w / 2, top: y + half + 6 },
-	].filter(inside);
+	];
+	const sides = all.filter(inside);
 	const round = (p: { left: number; top: number }) => ({ left: Math.round(p.left), top: Math.round(p.top) });
 	const clear = sides.find((p) => under(p).length === 0);
 	if (clear) return { ...round(clear), leader: null };
-	const above = { left: Math.max(0, Math.min(room.w - w, x - w / 2)), top: topicTop - ext - 8 - h };
-	if (inside(above)) return { ...round(above), leader: { x: Math.round(x), y0: Math.round(above.top + h + 3), y1: Math.round(y - half - 4) } };
-	const best = sides.filter((p) => !under(p).some((o) => own.has(o.id))).sort((a, b) => under(a).length - under(b).length)[0] ?? sides[0] ?? above;
-	// No side fits a long name in a small view: kept inside the room all the same.
-	return { ...round({ left: Math.max(0, Math.min(room.w - w, best.left)), top: Math.max(0, Math.min(room.h - h, best.top)) }), leader: null };
+	const above = { left: Math.max(room.x0, Math.min(room.x1 - w, x - w / 2)), top: topicTop - ext - 8 - h };
+	// The leader has to meet the tag, so a star past the room's side gets none.
+	if (inside(above) && x >= above.left && x <= above.left + w) return { ...round(above), leader: { x: Math.round(x), y0: Math.round(above.top + h + 3), y1: Math.round(y - half - 4) } };
+	const best = sides.filter((p) => !under(p).some((o) => own.has(o.id))).sort((a, b) => under(a).length - under(b).length)[0] ?? sides[0] ?? (x < room.x0 ? all[0]! : x > room.x1 ? all[1]! : above);
+	// No side fits (a long name in a small view, or a star past the room's side): kept inside the room all the same, a star outside it at the near edge beside it.
+	return { ...round({ left: Math.max(room.x0, Math.min(room.x1 - w, best.left)), top: Math.max(room.y0, Math.min(room.y1 - h, best.top)) }), leader: null };
 }
