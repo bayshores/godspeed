@@ -1,5 +1,22 @@
 [
 	{
+		"version": "0.6.75",
+		"date": "2026-11-17",
+		"changes": [
+			"Every page has the same width and spacing, so nothing shifts when you move between pages.",
+			"A lesson is one page that scrolls, and in a wide window the lesson text and Your turn sit side by side.",
+			"The whole interface is set in Literata, the book face lessons already use.",
+			"Today shows your week at a glance and the one deadline that comes next.",
+			"A space's Progress page keeps your next deadline in a side column and your lessons in one list, in place of the Lessons tab.",
+			"The Graph is one picture of the space that zooms like a map, and each topic becomes a figure of its facts that lights up as you get them right.",
+			"Under a question, Stuck? has I don't know, Give me a hint and Explain it simpler.",
+			"A homework has Study for it first and Work on it, and in a homework lesson you can pick any problem.",
+			"The teacher can open a page in your window and start a deadline's lesson.",
+			"Text size in Settings sizes the whole app, Settings has its own Startup sound switch, and it asks before something is lost.",
+			"The notices count in the top bar says how many notices wait, in words, and stays while they are open."
+		]
+	},
+	{
 		"version": "0.6.74",
 		"date": "2026-11-16",
 		"changes": [
