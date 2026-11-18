@@ -9,17 +9,18 @@ import { keepPair, restingTop, turnStick, wholeLineTop } from "./lesson-scroll-m
 
 /**
  * The column's width and its sides, shared by the step line and the page so their edges meet.
- * With room for both, a pair is the lesson text (up to 872 wide) and "Your turn" (560) side by
+ * With room for both, a pair is the lesson text (688 to 872 wide, never narrower than its
+ * partner) and "Your turn" (688, so its Stuck? keys and the way out share one line) side by
  * side; with less, "Your turn" sits under the text in one column.
  */
 const COLUMN = "mx-auto w-full max-w-[872px]";
-const PAIR = "@min-[1284px]/room:max-w-[1460px]";
-const PAIR_GRID = "@min-[1284px]/room:grid @min-[1284px]/room:grid-cols-[minmax(0,1fr)_560px] @min-[1284px]/room:items-start";
+const PAIR = "@min-[1468px]/room:max-w-[1588px]";
+const PAIR_GRID = "@min-[1468px]/room:grid @min-[1468px]/room:grid-cols-[minmax(0,1fr)_688px] @min-[1468px]/room:items-start";
 const GUTTERS = "px-8 @max-[899px]/lesson:px-6";
 
 /** The jump key: in the gutter beside one column where the window leaves room, else in the sheet's side padding; in a pair, in the lesson text's. */
 const KEY = "@min-[688px]/room:right-[max(34px,calc((100%-872px)/2-48px))]";
-const PAIR_KEY = "@min-[1284px]/room:right-[calc((100%-min(100%-64px,1460px))/2+598px)]";
+const PAIR_KEY = "@min-[1468px]/room:right-[calc((100%-min(100%-64px,1588px))/2+726px)]";
 
 /** Text blocks whose lines the window's top edge may cut. */
 const LINES = "p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th";
