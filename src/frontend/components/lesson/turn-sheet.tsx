@@ -10,7 +10,7 @@ export function yourTurnShown(s: { pending: boolean; problem: boolean; stop: boo
 }
 
 /**
- * THE TURN SHEET, under the lesson text's sheet: "Your turn", while
+ * THE TURN SHEET, beside the lesson text's sheet or under it: "Your turn", while
  * something waits for the learner, as tall as what it holds. The teacher's
  * status, terminal, Activity and Follow live in the top bar's pill, as on
  * every page.

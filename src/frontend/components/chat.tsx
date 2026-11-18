@@ -83,8 +83,9 @@ const NO_PAGES: ReadonlyMap<string, string> = new Map();
 
 /**
  * THE LESSON: its title line, then one page that scrolls (LessonScroll):
- * the step line, the lesson text's sheet and "Your turn" under it while
- * something waits for the learner, with the cheat sheet beside it when
+ * the step line, the lesson text's sheet and "Your turn" beside it (or
+ * under it in a small room) while something waits for the learner, with
+ * the cheat sheet beside both when
  * docked. The learner talks to the teacher in its terminal; those lines
  * come here (useTerminalLines). This component owns the lesson's state and
  * wiring; the pieces live in src/frontend/components/lesson/.
@@ -609,56 +610,59 @@ export function Chat({
 											restKey={[pending?.toolCallId, problem?.toolCallId, problem?.part, lessonStop.card?.key].join(" ")}
 											busy={busy}
 											contextRef={scrollContextRef}
-										>
-											<Pane data-testid="lesson-reading" className="min-w-0">
-												<ReadingPane
-													spaceId={spaceId}
-													messages={messages}
-													phases={phases}
-													status={status}
-													busy={busy}
-													turnInFlight={turnInFlight}
-													waitingForAgent={waitingForAgent}
-													onStop={lessonStop.card ? null : abortInFlightTurn}
-													goAhead={goAhead}
-													queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
-													arrivalsLive={arrivalsLive}
-													pageMarks={pageMarks}
-													arrive={arrive}
-													onOpenPlan={openPlan}
-												/>
-											</Pane>
-											{turnShown && (
-												<TurnSheet
-													// Remounts once the saved drafts are read, so the question starts from them.
-													key={draftsLoaded ? "drafts" : "loading"}
-													spaceId={spaceId}
-													pending={pending}
-													requiresReveal={requiresReveal}
-													onReveal={revealCheck}
-													initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
-													onSaveQuestionDraft={(form) => {
-														if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
-													}}
-													onSubmitAnswer={onSubmitAnswer}
-													onSkipQuestion={() => setAbortAsk("question")}
-													reviewRefused={reviewRefused}
-													problem={problem}
-													onDiscardProblem={() => setAbortAsk("problem")}
-													stop={lessonStop.card}
-													busy={busy}
-													boxRef={workBoxRef}
-													value={text}
-													onChange={editText}
-													onSend={onSend}
-													onHelpLine={(line) => void sendLine(line, [])}
-													attachments={attachments}
-													questionRef={questionRef}
-													stuck={stuckLine}
-													error={errorLine}
-												/>
-											)}
-										</LessonScroll>
+											reading={
+												<Pane data-testid="lesson-reading" className="min-w-0">
+													<ReadingPane
+														spaceId={spaceId}
+														messages={messages}
+														phases={phases}
+														status={status}
+														busy={busy}
+														turnInFlight={turnInFlight}
+														waitingForAgent={waitingForAgent}
+														onStop={lessonStop.card ? null : abortInFlightTurn}
+														goAhead={goAhead}
+														queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
+														arrivalsLive={arrivalsLive}
+														pageMarks={pageMarks}
+														arrive={arrive}
+														onOpenPlan={openPlan}
+													/>
+												</Pane>
+											}
+											turn={
+												turnShown ? (
+													<TurnSheet
+														// Remounts once the saved drafts are read, so the question starts from them.
+														key={draftsLoaded ? "drafts" : "loading"}
+														spaceId={spaceId}
+														pending={pending}
+														requiresReveal={requiresReveal}
+														onReveal={revealCheck}
+														initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
+														onSaveQuestionDraft={(form) => {
+															if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
+														}}
+														onSubmitAnswer={onSubmitAnswer}
+														onSkipQuestion={() => setAbortAsk("question")}
+														reviewRefused={reviewRefused}
+														problem={problem}
+														onDiscardProblem={() => setAbortAsk("problem")}
+														stop={lessonStop.card}
+														busy={busy}
+														boxRef={workBoxRef}
+														value={text}
+														onChange={editText}
+														onSend={onSend}
+														onHelpLine={(line) => void sendLine(line, [])}
+														attachments={attachments}
+														questionRef={questionRef}
+														stuck={stuckLine}
+														error={errorLine}
+													/>
+												) : null
+											}
+										/>
 										{spaceId && sheetOpen && (
 											<div className="flex min-h-0 pt-5 pr-8 pb-7 [grid-area:dock] @max-[999px]/lesson:pr-4">
 												<SheetDock

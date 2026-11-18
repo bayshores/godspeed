@@ -1,28 +1,68 @@
-import { useCallback, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import type { GetTargetScrollTop, StickToBottomContext } from "use-stick-to-bottom";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/frontend/components/ai-elements/conversation";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { SessionMessageNavigation } from "@/frontend/components/session-navigation";
 import { Pane } from "@/frontend/components/ui/pane";
-import { restingTop } from "./lesson-scroll-model";
-
-/** The column's width and its sides, shared by the step line and the page so their edges meet. */
-const COLUMN = "mx-auto w-full max-w-[872px]";
-const GUTTERS = "px-8 @max-[899px]/lesson:px-6";
+import { cn } from "@/frontend/lib/utils";
+import { keepPair, restingTop, turnStick, wholeLineTop } from "./lesson-scroll-model";
 
 /**
- * THE LESSON PAGE: the step line pinned on top, then one centered column that scrolls as a
- * whole, the lesson text's sheet and, while something waits, "Your turn" under it, each as tall
- * as what it holds. The page rests where restingTop says: on open, when the teacher asks
- * (`restKey` changes) and while the teacher writes. Scrolled up, the key in the corner brings
- * the learner back.
+ * The column's width and its sides, shared by the step line and the page so their edges meet.
+ * With room for both, a pair is the lesson text (up to 872 wide) and "Your turn" (560) side by
+ * side; with less, "Your turn" sits under the text in one column.
+ */
+const COLUMN = "mx-auto w-full max-w-[872px]";
+const PAIR = "@min-[1284px]/room:max-w-[1460px]";
+const PAIR_GRID = "@min-[1284px]/room:grid @min-[1284px]/room:grid-cols-[minmax(0,1fr)_560px] @min-[1284px]/room:items-start";
+const GUTTERS = "px-8 @max-[899px]/lesson:px-6";
+
+/** The jump key: in the gutter beside one column where the window leaves room, else in the sheet's side padding; in a pair, in the lesson text's. */
+const KEY = "@min-[688px]/room:right-[max(34px,calc((100%-872px)/2-48px))]";
+const PAIR_KEY = "@min-[1284px]/room:right-[calc((100%-min(100%-64px,1460px))/2+598px)]";
+
+/** Text blocks whose lines the window's top edge may cut. */
+const LINES = "p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th";
+const BLOCKS = "pre, img, figure, table, .katex-display";
+
+/** Whether the column lays its sheets side by side (its container query decides). */
+function sideBySide(column: HTMLElement | null): boolean {
+	return column !== null && getComputedStyle(column).display === "grid";
+}
+
+/** The line boxes in `root` that cross `y`, measured from `origin`. */
+function linesAt(root: Element, y: number, origin: number): { top: number; bottom: number }[] {
+	const crosses = (r: DOMRect) => r.top - origin < y && r.bottom - origin > y;
+	const out: { top: number; bottom: number }[] = [];
+	for (const el of root.querySelectorAll(`${LINES}, ${BLOCKS}`)) {
+		const box = el.getBoundingClientRect();
+		if (!crosses(box)) continue;
+		let rects: Iterable<DOMRect> = [box];
+		if (el.matches(LINES)) {
+			const range = document.createRange();
+			range.selectNodeContents(el);
+			rects = range.getClientRects();
+		}
+		for (const r of rects) if (crosses(r)) out.push({ top: r.top - origin, bottom: r.bottom - origin });
+	}
+	return out;
+}
+
+/**
+ * THE LESSON PAGE: the step line pinned on top, then the page that scrolls as a whole: the
+ * lesson text's sheet and, while something waits, "Your turn", each as tall as what it holds.
+ * With room for both they sit side by side and "Your turn" holds still while the text scrolls
+ * (turnStick); with less it sits under the text. The page rests where restingTop says: on open,
+ * when the teacher asks (`restKey` changes) and while the teacher writes. Scrolled up, the key
+ * in the corner brings the learner back.
  */
 export function LessonScroll({
 	steps,
 	restKey,
 	busy,
 	contextRef,
-	children,
+	reading,
+	turn,
 }: {
 	/** The step line; nothing when the lesson has none. */
 	steps: ReactNode;
@@ -30,21 +70,46 @@ export function LessonScroll({
 	restKey: string;
 	busy: boolean;
 	contextRef: RefObject<StickToBottomContext | null>;
-	children: ReactNode;
+	/** The lesson text's sheet. */
+	reading: ReactNode;
+	/** "Your turn", while something waits. */
+	turn: ReactNode | null;
 }) {
+	const [paired, setPaired] = useState(turn !== null);
+	const pair = keepPair(paired, turn !== null, busy);
+	if (pair !== paired) setPaired(pair);
+
+	const columnRef = useRef<HTMLDivElement>(null);
+	const turnRef = useRef<HTMLDivElement>(null);
+
 	// The teacher writing back while "Your turn" stays open makes its reply the newest thing.
 	const replyRef = useRef(false);
+	// Lines keep their place while the teacher writes; the page only settles on a whole line at rest.
+	const busyRef = useRef(busy);
+	busyRef.current = busy;
 	const target = useCallback<GetTargetScrollTop>((end, { scrollElement, contentElement }) => {
 		const origin = contentElement.getBoundingClientRect().top;
-		const top = (el: Element | null | undefined) => (el ? el.getBoundingClientRect().top - origin : null);
+		const sheetEl = contentElement.querySelector("[data-testid=turn-sheet]");
+		const sheetBox = sheetEl?.getBoundingClientRect();
+		const partBox = contentElement.querySelector("[data-part-current]")?.getBoundingClientRect();
 		const reply = replyRef.current ? [...contentElement.querySelectorAll("[data-testid=user-message]")].at(-1) : null;
-		return restingTop(end, {
+		const rest = restingTop(end, {
 			view: scrollElement.clientHeight,
-			sheet: top(contentElement.querySelector("[data-testid=turn-sheet]")),
-			part: top(contentElement.querySelector("[data-part-current]")),
-			reply: top(reply),
+			sheet: sheetBox ? { top: sheetBox.top - origin, height: sheetBox.height, beside: sideBySide(columnRef.current) } : null,
+			part: sheetBox && partBox ? partBox.top - sheetBox.top : null,
+			reply: reply ? reply.getBoundingClientRect().top - origin : null,
 		});
+		const text = contentElement.querySelector("[data-testid=lesson-reading]");
+		return busyRef.current || !text ? rest : wholeLineTop(rest, linesAt(text, rest, origin));
 	}, []);
+
+	/** Following the page only moves it down; this brings it up to where it now rests. */
+	const settleUp = useCallback(() => {
+		const context = contextRef.current;
+		if (!context || context.state.escapedFromLock) return;
+		const rest = context.state.calculatedTargetScrollTop;
+		if (rest < context.state.scrollTop) context.state.scrollTop = rest;
+	}, [contextRef]);
 
 	const wasBusy = useRef(busy);
 	useLayoutEffect(() => {
@@ -52,15 +117,9 @@ export function LessonScroll({
 		wasBusy.current = busy;
 		if (!started) return;
 		replyRef.current = true;
-		// The reply starts above where the page rests, and following the page only moves it down.
-		const frame = requestAnimationFrame(() => {
-			const context = contextRef.current;
-			if (!context || context.state.escapedFromLock) return;
-			const rest = context.state.calculatedTargetScrollTop;
-			if (rest < context.state.scrollTop) context.state.scrollTop = rest;
-		});
+		const frame = requestAnimationFrame(settleUp);
 		return () => cancelAnimationFrame(frame);
-	}, [busy, contextRef]);
+	}, [busy, settleUp]);
 	// The window, or the step line above, changing the page's height keeps a page that rests where it should there.
 	useLayoutEffect(() => {
 		const scroller = contextRef.current?.scrollRef.current;
@@ -78,29 +137,52 @@ export function LessonScroll({
 	const firstKey = useRef(restKey);
 	useLayoutEffect(() => {
 		replyRef.current = false;
-		if (restKey !== firstKey.current) void contextRef.current?.scrollToBottom(prefersReducedMotion() ? "instant" : "smooth");
+		if (restKey === firstKey.current) return;
 		firstKey.current = restKey;
-	}, [restKey, contextRef]);
+		void contextRef.current?.scrollToBottom(prefersReducedMotion() ? "instant" : "smooth");
+		const frame = requestAnimationFrame(settleUp);
+		return () => cancelAnimationFrame(frame);
+	}, [restKey, contextRef, settleUp]);
+
+	// Beside the text, "Your turn" holds still as the page scrolls, measured against the window.
+	const [stick, setStick] = useState<CSSProperties | undefined>();
+	const hasTurn = turn !== null;
+	useLayoutEffect(() => {
+		const el = turnRef.current;
+		const scroller = contextRef.current?.scrollRef.current;
+		const column = columnRef.current;
+		if (!el || !scroller || !column) return;
+		const place = () => setStick(sideBySide(column) ? { position: "sticky", ...turnStick(el.offsetHeight, scroller.clientHeight) } : undefined);
+		const ro = new ResizeObserver(place);
+		ro.observe(el);
+		ro.observe(scroller);
+		ro.observe(column);
+		return () => ro.disconnect();
+	}, [hasTurn, contextRef]);
 
 	return (
-		<div className="flex min-h-0 min-w-0 flex-col [grid-area:main]">
+		<div className="@container/room flex min-h-0 min-w-0 flex-col [grid-area:main]">
 			{/* A sheet of its own, so the page scrolls under its edge; shown only when the step line draws something. */}
 			<div className={`shrink-0 pt-5 [&:not(:has(>section>div>*))]:hidden ${GUTTERS}`}>
-				<Pane className={`@container/strip ${COLUMN}`}>
+				<Pane className={cn("@container/strip", COLUMN, pair && PAIR)}>
 					<div className="px-14 py-4 @max-[640px]/strip:px-7">{steps}</div>
 				</Pane>
 			</div>
-			<Conversation className="@container/page min-h-0 min-w-0 flex-1" initial="instant" contextRef={contextRef} targetScrollTop={target}>
+			<Conversation className="min-h-0 min-w-0 flex-1" initial="instant" contextRef={contextRef} targetScrollTop={target}>
 				<SessionMessageNavigation />
 				<ConversationContent className="gap-0 p-0" scrollClassName="[overflow-anchor:none]">
 					<div className={`pt-6 pb-7 ${GUTTERS}`}>
-						<div data-testid="lesson-column" className={`@container/column flex flex-col gap-7 ${COLUMN}`}>
-							{children}
+						<div ref={columnRef} data-testid="lesson-column" className={cn("@container/column flex flex-col gap-7", COLUMN, pair && [PAIR, PAIR_GRID])}>
+							{reading}
+							{turn && (
+								<div ref={turnRef} className="min-w-0" style={stick}>
+									{turn}
+								</div>
+							)}
 						</div>
 					</div>
 				</ConversationContent>
-				{/* Beside the column where the window leaves room, else in the sheet's side padding, never on words. */}
-				<ConversationScrollButton className="@min-[688px]/page:right-[max(34px,calc((100%-872px)/2-48px))]" />
+				<ConversationScrollButton className={cn(KEY, pair && PAIR_KEY)} />
 			</Conversation>
 		</div>
 	);
