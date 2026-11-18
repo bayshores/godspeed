@@ -466,8 +466,9 @@ function spacings() {
 	for (const card of document.querySelectorAll(".lh-page .lh-card")) {
 		if (!shown(card)) continue;
 		const style = getComputedStyle(card);
-		const sides = [style.paddingLeft, style.paddingRight, style.paddingBottom].map(parseFloat);
-		if (sides.some((side) => Math.abs(side - inset) > 0.5)) found.push(finding("spacing", [card], `${label(card)} is inset ${sides.join(", ")}, not ${inset}`));
+		const sides = { left: style.paddingLeft, right: style.paddingRight, bottom: style.paddingBottom };
+		const off = Object.entries(sides).filter(([, side]) => Math.abs(parseFloat(side) - inset) > 0.5);
+		if (off.length > 0) found.push(finding("spacing", [card], `${label(card)} is a card inset ${off.map(([name, side]) => `${side} on the ${name}`).join(", ")}; every card is inset ${inset}px (--lh-inset)`));
 	}
 	const sheets = [...document.querySelectorAll(".lh-page .lh-sheet")].filter((el) => shown(el) && !el.parentElement.closest(".lh-sheet, [role=dialog], [role=menu]") && !floats(el));
 	for (const a of sheets) {
@@ -480,11 +481,12 @@ function spacings() {
 			if (Math.min(ab.bottom, bb.bottom) - Math.max(ab.top, bb.top) > 4 && bb.left >= ab.right - 1 && (!right || bb.left < right.box.left)) right = { el: b, box: bb };
 			if (Math.min(ab.right, bb.right) - Math.max(ab.left, bb.left) > 4 && bb.top >= ab.bottom - 1 && (!below || bb.top < below.box.top)) below = { el: b, box: bb };
 		}
-		if (right && offGap(right.box.left - ab.right, gap)) found.push(finding("spacing", [a, right.el], `${label(a)} and ${label(right.el)} are ${Math.round(right.box.left - ab.right)} apart across, not ${gap}`));
-		if (below && offGap(below.box.top - ab.bottom, gap)) found.push(finding("spacing", [a, below.el], `${label(a)} and ${label(below.el)} are ${Math.round(below.box.top - ab.bottom)} apart down, not ${gap}`));
+		const apart = (b, space, way) => `${label(a)} and ${label(b)} are ${Math.round(space)}px apart ${way}; neighbouring cards are ${gap}px apart (--lh-gap)`;
+		if (right && offGap(right.box.left - ab.right, gap)) found.push(finding("spacing", [a, right.el], apart(right.el, right.box.left - ab.right, "side by side")));
+		if (below && offGap(below.box.top - ab.bottom, gap)) found.push(finding("spacing", [a, below.el], apart(below.el, below.box.top - ab.bottom, "one above the other")));
 	}
 	for (const title of document.querySelectorAll(".lh-page h1")) {
-		if (shown(title) && !title.closest(".sr-only") && !title.classList.contains("sr-only") && !title.classList.contains("lh-page-title")) found.push(finding("spacing", [title], `${label(title)} is a page title without .lh-page-title`));
+		if (shown(title) && !title.closest(".sr-only") && !title.classList.contains("sr-only") && !title.classList.contains("lh-page-title")) found.push(finding("spacing", [title], `${label(title)} is a page's h1 without the .lh-page-title class, so it is not the shared title size`));
 	}
 	return found;
 }
