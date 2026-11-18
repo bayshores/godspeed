@@ -94,7 +94,7 @@ export function UpdateSettings({
 					</>
 				}
 			>
-				<span className="flex items-center gap-2">
+				<span className="flex flex-wrap items-center gap-2">
 					{hasWhatsNew(version) ? (
 						<button type="button" onClick={() => openWhatsNew()} className="lh-btn lh-btn-quiet text-[15px]" data-testid="release-notes">Release notes</button>
 					) : releaseNotes && <a href={releaseNotes} target="_blank" rel="noopener noreferrer" className="lh-btn lh-btn-quiet text-[15px]" data-testid="release-notes">Release notes</a>}

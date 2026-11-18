@@ -53,7 +53,8 @@ export function SettingsGroup({
 }
 
 /** One label + one control: label left (with an optional muted hint under
- *  it), control right. */
+ *  it), control right. A control too wide for the card drops under the text;
+ *  a label with a hint asks for more room first, so its hint is never crushed. */
 export function SettingsRow({
 	label,
 	hint,
@@ -66,8 +67,8 @@ export function SettingsRow({
 	testid?: string;
 }) {
 	return (
-		<div data-testid={testid} className="flex items-center justify-between gap-6 py-3.5">
-			<span className="min-w-0">
+		<div data-testid={testid} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-3.5">
+			<span className={cn("min-w-0", hint ? "flex-[1_1_14rem]" : "flex-[1_1_7rem]")}>
 				<span className="block text-[17px] leading-snug text-ink">{label}</span>
 				{hint && <span className="block pt-0.5 text-[15px] text-ink-2">{hint}</span>}
 			</span>

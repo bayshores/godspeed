@@ -121,8 +121,12 @@ pub fn start(app: &AppHandle) {
 			Status::Disabled
 		}
 	};
+	// The screens lab runs a debug build, which has no updater; it shows the up-to-date row so
+	// Settings is drawn in full.
+	#[cfg(all(feature = "screens", target_os = "macos"))]
+	let status = if crate::screens::active() { Status::UpToDate } else { status };
 	app.manage(Updates { core: Mutex::new(Core { shown: Shown::new(status), busy: false }), held: Mutex::new(None) });
-	if status == Status::Disabled {
+	if status != Status::Idle {
 		return;
 	}
 	let app = app.clone();
