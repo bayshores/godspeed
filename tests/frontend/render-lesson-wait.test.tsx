@@ -1,8 +1,9 @@
 /**
  * The lesson while the teacher works: the desk at the foot of the lesson text in each state
  * (just opened, no agent, split into the plan beside the paper), the title's bubble left out,
- * Start again after a stopped first reply, and the landing: the desk leaves before the reply
- * shows, which then draws in.
+ * the start key while no agent is here, Start again after a stopped first reply, and the landing:
+ * the desk leaves before the reply shows, which then draws in, also when an answered question's
+ * reply grows the same message.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -12,6 +13,8 @@ import { parseHTML } from "linkedom";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { ReadingPane } from "../../src/frontend/components/lesson/reading-pane.tsx";
+import { AgentStatusContext, type AgentStatus } from "../../src/frontend/components/agent-status.tsx";
+import { TeacherContext, type TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 import { newUserMessage, projectView, type AttachmentPart, type LhViewMessage } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
@@ -105,6 +108,37 @@ describe("the desk", () => {
 	});
 });
 
+describe("the start key", () => {
+	const off = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 1, pendingTurns: 1, helperWork: 0, claimedLessons: [] } as AgentStatus;
+	const withStatus = (status: AgentStatus | null, panelStarts = false) =>
+		renderToStaticMarkup(
+			<AgentStatusContext.Provider value={status}>
+				<TeacherContext.Provider value={{ name: "Quigley", panelStarts } as TeacherApi}>
+					<ReadingPane {...props({ waitingForAgent: true })} />
+				</TeacherContext.Provider>
+			</AgentStatusContext.Provider>,
+		);
+
+	it("turns the teacher on from the still desk while no agent is here, with Stop quiet beside it", () => {
+		assert.match(withStatus(off), /lh-btn lh-btn-main[^>]*>Turn on Quigley<\/button>[\s\S]*data-testid="stop-turn"[^>]*lh-btn-quiet/);
+	});
+
+	it("is not there while an agent is here, before the status is known, or while the teacher's panel shows its own", () => {
+		assert.doesNotMatch(withStatus({ ...off, connected: true }), /Turn on/);
+		assert.doesNotMatch(withStatus(null), /Turn on/);
+		assert.doesNotMatch(withStatus(off, true), /Turn on/);
+	});
+
+	it("is only on the still desk", () => {
+		const html = renderToStaticMarkup(
+			<AgentStatusContext.Provider value={off}>
+				<ReadingPane {...props()} />
+			</AgentStatusContext.Provider>,
+		);
+		assert.doesNotMatch(html, /Turn on/);
+	});
+});
+
 describe("the title's bubble", () => {
 	it("keeps the files sent with the title, without the title's words", () => {
 		const image: AttachmentPart = { type: "image", data: "QUJD", mimeType: "image/jpeg" };
@@ -151,6 +185,34 @@ describe("the reply landing", () => {
 			assert.ok(host.querySelector("[data-testid=agent-at-work]") === null);
 			assert.ok(host.querySelector(".lh-source-passage .lh-set") !== null, "the reply draws in block by block");
 			assert.match(host.textContent ?? "", /First\.[\s\S]*Second\./);
+		} finally {
+			await act(async () => root.unmount());
+			host.remove();
+		}
+	});
+
+	it("holds back an answered question's reply that grows the same message until the desk has gone", async () => {
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		const answered = { type: "tool-quiz", toolCallId: "q", state: "output-available", input: { type: "check", question: "Which?", options: [{ label: "A", value: "a" }] }, output: { kind: "quiz", answers: [{ index: 0, label: "A" }], correct: true } };
+		const asked = teacher({ type: "text", text: "Try this." }, answered);
+		const grown = (text: string) => teacher({ type: "text", text: "Try this." }, answered, { type: "step-start" }, { type: "text", text });
+		const working = props({ messages: [card(1), first, asked], status: "streaming", arrive: () => "lh-rise" });
+		try {
+			await act(async () => root.render(<ReadingPane {...working} />));
+			await act(async () => root.render(<ReadingPane {...working} messages={[card(1), first, grown("")]} />));
+			assert.ok(host.querySelector("[data-testid=agent-at-work]") !== null, "an empty text part keeps the desk");
+			await act(async () => root.render(<ReadingPane {...working} messages={[card(1), first, grown("Your pick holds.")]} />));
+			assert.ok(host.querySelector("[data-desk-closing]") !== null, "the desk fades out");
+			assert.doesNotMatch(host.textContent ?? "", /Your pick holds/, "the reply waits until it has gone");
+			await act(async () => root.render(<ReadingPane {...working} busy={false} status="ready" messages={[card(1), first, grown("Your pick holds. More.")]} />));
+			assert.doesNotMatch(host.textContent ?? "", /Your pick holds/, "still held while the desk leaves");
+			await act(async () => {
+				await new Promise((done) => setTimeout(done, 200));
+			});
+			assert.ok(host.querySelector("[data-testid=agent-at-work]") === null);
+			assert.match(host.textContent ?? "", /Try this\.[\s\S]*Your pick holds\. More\./);
 		} finally {
 			await act(async () => root.unmount());
 			host.remove();

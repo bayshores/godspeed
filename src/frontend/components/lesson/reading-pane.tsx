@@ -1,9 +1,13 @@
 import { useContext, useMemo } from "react";
+import { useAgentStatus } from "@/frontend/components/agent-status";
 import { ConversationEmptyState } from "@/frontend/components/ai-elements/conversation";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/frontend/components/queued-steers";
 import { JobsContext } from "@/frontend/components/jobs-context";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
+import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { StartAgentAction } from "@/frontend/components/work/start-agent-action";
 import { cn } from "@/frontend/lib/utils";
 import type { LhViewMessage, Phase3 } from "@/shared/core";
 import { AgentAtWork } from "./agent-at-work";
@@ -11,7 +15,7 @@ import { agentWork } from "./agent-at-work-model";
 import { ArrivalRow, type Arrive } from "./arrivals";
 import { GoAheadKey } from "./go-ahead-key";
 import { MessageRow } from "./message-row";
-import { deskPaper, heldBack, nothingWritten, titleEcho, waitView } from "./wait-model";
+import { cardFiles, deskMark, deskPaper, heldBack, nothingWritten, titleEcho, waitView } from "./wait-model";
 
 /**
  * THE READING PANE: the lesson as one document on the lesson text's sheet, in
@@ -70,15 +74,14 @@ export function ReadingPane({
 	onOpenPlan: () => void;
 }) {
 	const last = messages.length - 1;
-	const lastParts = messages[last]?.parts.length ?? 0;
 	const jobs = useContext(JobsContext);
 	// The reply being worked on: its plan, steps and file, until its text lands.
 	const replying = busy && messages[last]?.role === "assistant" ? messages[last] : undefined;
-	const work = useMemo(() => (replying ? agentWork(replying, jobs) : null), [replying, jobs]);
+	const work = useMemo(() => (replying ? agentWork(replying, jobs, cardFiles(messages)) : null), [replying, jobs, messages]);
 	const view = waitView({ busy, waitingForAgent, work });
 	const open = useMemo(
-		() => view.desk && { state: view.desk, split: view.split, work, mark: { count: messages.length, parts: lastParts } },
-		[view.desk, view.split, work, messages.length, lastParts],
+		() => view.desk && { state: view.desk, split: view.split, work, paper: deskPaper(messages, assignment), mark: deskMark(messages) },
+		[view.desk, view.split, work, messages, assignment],
 	);
 	const desk = useLastWhileClosing(open);
 	const closing = desk.mounted && desk.state === "closed" && !prefersReducedMotion();
@@ -88,9 +91,12 @@ export function ReadingPane({
 	const foot = (busy || closing) && onStop && (
 		<div className="flex flex-col items-start gap-2 font-ui">
 			<QueuedSteersBody steers={queuedSteers} />
-			<button type="button" data-testid="stop-turn" onClick={onStop} className="lh-btn lh-btn-quiet">
-				Stop
-			</button>
+			<div className="flex flex-wrap items-center gap-3">
+				{shownDesk?.state === "waiting" && <StartKey />}
+				<button type="button" data-testid="stop-turn" onClick={onStop} className="lh-btn lh-btn-quiet">
+					Stop
+				</button>
+			</div>
 		</div>
 	);
 	const startAgain = !busy && !shownDesk && !goAhead && nothingWritten(messages) ? onStartAgain : null;
@@ -117,7 +123,7 @@ export function ReadingPane({
 			{shownDesk && (
 				<ArrivalRow live={arrivalsLive}>
 					<div data-state={closing ? "closed" : "open"} data-desk-closing={closing || undefined} inert={closing} className={cn(closing && "lh-fade")}>
-						<AgentAtWork state={shownDesk.state} work={shownDesk.work} split={shownDesk.split} paper={deskPaper(messages, assignment)} arrive={arrive} foot={foot} />
+						<AgentAtWork state={shownDesk.state} work={shownDesk.work} split={shownDesk.split} paper={shownDesk.paper} arrive={arrive} foot={foot} />
 					</div>
 				</ArrivalRow>
 			)}
@@ -126,4 +132,14 @@ export function ReadingPane({
 			{startAgain && <GoAheadKey label="Start again" onGo={startAgain} />}
 		</div>
 	);
+}
+
+/** While the turn waits for an agent: the key that turns the teacher on, when none is here and
+ *  godspeed is not starting one by itself, and the teacher's panel does not show its own. */
+function StartKey() {
+	const status = useAgentStatus();
+	const terminals = useTerminals();
+	const panelStarts = useTeacher()?.panelStarts ?? false;
+	if (!noAgentHere(status, terminals) || terminals?.waking || panelStarts) return null;
+	return <StartAgentAction />;
 }

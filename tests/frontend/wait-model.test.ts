@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { AgentWork } from "../../src/frontend/components/lesson/agent-at-work-model.ts";
-import { deskPaper, heldBack, nothingWritten, planLines, titleEcho, waitView } from "../../src/frontend/components/lesson/wait-model.ts";
+import { deskMark, deskPaper, heldBack, nothingWritten, planLines, titleEcho, waitView } from "../../src/frontend/components/lesson/wait-model.ts";
 import type { LhViewMessage } from "../../src/shared/core/index.ts";
 
 /** The lesson while the teacher works: the desk, the title echo, the paper, the plan's rows and the landing. */
@@ -42,10 +42,24 @@ describe("titleEcho", () => {
 });
 
 describe("deskPaper", () => {
-	it("puts the assignment on top, else blank paper", () => {
-		assert.equal(deskPaper([card(1)], { path: "/h/hw1.pdf" }).path, "/h/hw1.pdf");
+	const files = (...list: [string, "study" | "info", string | null][]): LhViewMessage => ({
+		id: "c",
+		role: "user",
+		parts: [{ type: "data-space-context", data: { spaceId: "s", name: "S", description: "", files: list.map(([name, kind, path]) => ({ name, kind, path })) } }],
+	});
+	const space = files(["Week 1.md", "study", "/h/Week 1.md"], ["Week 2.pdf", "study", "/h/Week 2.pdf"], ["Week 3.docx", "study", "/h/Week 3.docx"], ["Syllabus.md", "info", "/h/Syllabus.md"]);
+
+	it("puts the assignment on top, else the file the lesson read last, else the newest study file it can show", () => {
+		const read = teacher({ type: "tool-read", state: "output-available", toolCallId: "r", input: { path: "/h/Week 1.md" } });
+		assert.equal(deskPaper([space, user("Hi"), read], { path: "/h/hw1.pdf" }).path, "/h/hw1.pdf");
+		assert.equal(deskPaper([space, user("Hi"), read], null).path, "/h/Week 1.md");
+		assert.equal(deskPaper([space, user("Hi")], { path: null }).path, "/h/Week 2.pdf", "not the Word file, and not space info");
+	});
+
+	it("is blank paper for a space with no file to show", () => {
 		assert.equal(deskPaper([card(1)], null).path, null);
-		assert.equal(deskPaper([card(1)], { path: null }).path, null);
+		assert.equal(deskPaper([files(["Syllabus.md", "info", "/h/Syllabus.md"])], null).path, null);
+		assert.equal(deskPaper([user("Hi")], null).path, null);
 	});
 
 	it("draws one edge from one file, two from 5 and three from 20, none with no space", () => {
@@ -77,11 +91,19 @@ describe("heldBack", () => {
 	it("keeps the messages as they stood while a reply lands, so the desk and the reply never stack", () => {
 		const before = [user("Hi"), teacher({ type: "tool-read", state: "output-available" })];
 		const after = [user("Hi"), teacher({ type: "tool-read", state: "output-available" }, { type: "text", text: "Here." })];
-		const held = heldBack(after, { count: 2, parts: 1 });
+		const held = heldBack(after, deskMark(before));
 		assert.equal(held.length, 2);
 		assert.deepEqual(held[1]!.parts, before[1]!.parts);
-		assert.equal(heldBack([user("Hi"), teacher({ type: "text", text: "Here." })], { count: 1, parts: 1 }).length, 1, "a new message stays out");
-		assert.ok(heldBack(before, { count: 2, parts: 1 })[1] === before[1], "nothing new: the same message");
+		assert.equal(heldBack([user("Hi"), teacher({ type: "text", text: "Here." })], deskMark([user("Hi")])).length, 1, "a new message stays out");
+		assert.ok(heldBack(before, deskMark(before))[1] === before[1], "nothing new: the same message");
+	});
+
+	it("keeps out the words a reply writes into a text part that was already there, empty", () => {
+		const quiz = { type: "tool-quiz", state: "output-available", toolCallId: "q" };
+		const before = [user("Hi"), teacher(quiz, { type: "text", text: "" })];
+		const after = [user("Hi"), teacher(quiz, { type: "text", text: "Your pick holds." })];
+		assert.deepEqual(deskMark(before), { count: 2, parts: 2, text: 0 });
+		assert.equal(heldBack(after, deskMark(before))[1]!.parts[1]!.text, "");
 	});
 });
 

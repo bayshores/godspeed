@@ -1,5 +1,5 @@
 import { isQuestionTool, type LhViewMessage } from "@/shared/core";
-import type { AgentWork } from "./agent-at-work-model";
+import { deskShows, lastRead, type AgentWork, type CardFile } from "./agent-at-work-model";
 
 /**
  * The lesson while the teacher works on a reply: the desk at the foot of the lesson text,
@@ -32,13 +32,22 @@ export function titleEcho(messages: readonly LhViewMessage[], title: string): nu
 	return first !== -1 && flat(title) !== "" && flat(textOf(messages[first]!)) === flat(title) ? first : -1;
 }
 
-/** The paper on the desk: the homework's assignment as the top sheet (`path`), or blank paper
- *  (null), over one edge for a space with a file, two from 5 files and three from 20. The space's
- *  files are read from its card, the lesson's first message. */
-export function deskPaper(messages: readonly LhViewMessage[], assignment: { path: string | null } | null): { path: string | null; edges: number } {
+/** The space's files, from its card: the lesson's first message. */
+export function cardFiles(messages: readonly LhViewMessage[]): readonly CardFile[] {
 	const card = messages[0]?.parts.find((p) => p.type === "data-space-context");
-	const files = (card?.data as { files?: unknown[] } | undefined)?.files?.length ?? 0;
-	return { path: assignment?.path ?? null, edges: files >= 20 ? 3 : files >= 5 ? 2 : files >= 1 ? 1 : 0 };
+	return (card?.data as { files?: CardFile[] } | undefined)?.files ?? [];
+}
+
+/** The paper on the desk. The top sheet (`path`) is the homework's assignment, else the file the
+ *  lesson's teacher read last, else the space's newest study file the desk can show; blank paper
+ *  (null) for a space with none. Under it lie one edge for a space with a file, two from 5 files
+ *  and three from 20. */
+export function deskPaper(messages: readonly LhViewMessage[], assignment: { path: string | null } | null): { path: string | null; edges: number } {
+	const files = cardFiles(messages);
+	// The card lists a space's files in the order they were added.
+	const newest = files.findLast((f) => f.kind === "study" && f.path !== null && deskShows(f.path))?.path ?? null;
+	const n = files.length;
+	return { path: assignment?.path ?? lastRead(messages, files) ?? newest, edges: n >= 20 ? 3 : n >= 5 ? 2 : n >= 1 ? 1 : 0 };
 }
 
 /** The most rows the plan shows beside the paper. */
@@ -55,17 +64,28 @@ export function planLines({ items, done }: { items: readonly string[]; done: num
 	return folded.slice(0, PLAN_ROWS);
 }
 
-/** Where a desk that is leaving held the lesson: its message count and the newest message's part
- *  count. */
-type DeskMark = { count: number; parts: number };
+/** Where a desk that is leaving held the lesson: its message count, the newest message's part
+ *  count and, when that message ends in text, how long the text was (an answered question's reply
+ *  grows the same message, and its text can start as an empty part). */
+type DeskMark = { count: number; parts: number; text: number | null };
+
+/** The lesson's mark as it stands. */
+export function deskMark(messages: readonly LhViewMessage[]): DeskMark {
+	const last = messages.at(-1)?.parts.at(-1);
+	return { count: messages.length, parts: messages.at(-1)?.parts.length ?? 0, text: last?.type === "text" ? (last.text ?? "").length : null };
+}
 
 /** The messages as they stood at `mark`, so a reply that just landed stays out of the page while
  *  the desk leaves, and the two never stack. */
 export function heldBack(messages: readonly LhViewMessage[], mark: DeskMark): readonly LhViewMessage[] {
 	const kept = messages.slice(0, mark.count);
 	const last = kept.at(-1);
-	if (!last || last.parts.length <= mark.parts) return kept;
-	return [...kept.slice(0, -1), { ...last, parts: last.parts.slice(0, mark.parts) }];
+	if (!last) return kept;
+	const parts = last.parts.slice(0, mark.parts);
+	const end = parts.at(-1);
+	if (mark.text !== null && end?.type === "text" && (end.text ?? "").length > mark.text) parts[parts.length - 1] = { ...end, text: (end.text ?? "").slice(0, mark.text) };
+	else if (parts.length === last.parts.length) return kept;
+	return [...kept.slice(0, -1), { ...last, parts }];
 }
 
 /** The learner has written and the teacher wrote nothing back: no words and no question (its

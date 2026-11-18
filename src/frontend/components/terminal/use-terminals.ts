@@ -62,6 +62,8 @@ export interface TerminalsApi {
 	/** Start lesson and a lesson's send: start the teacher hidden when it may (wakeAgent).
 	 *  True when it didn't because the learner picks the chat first. */
 	wake: () => boolean;
+	/** A wake is starting the teacher and its terminal is not there yet. */
+	waking: boolean;
 }
 
 const UNSTARTED = "Couldn't turn the teacher on. Try again.";
@@ -312,21 +314,24 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const agentHere = outsideHere || (teacherLive && teacherCheckedIn);
 	// Two sends close together start one teacher: the second comes before the first start's record.
 	const waking = useRef(false);
+	const [wakingShown, setWaking] = useState(false);
 	const wake = useCallback(() => {
 		const agent = lh && loaded && !waking.current && wakeAgent({ teacher, agentHere, outsideHere, saved: savedAgent() });
 		if (!agent) return false;
 		// With earlier chats the learner picks which one teaches.
 		if (chats.length > 0) return true;
 		waking.current = true;
+		setWaking(true);
 		void start("teacher", agent).finally(() => {
 			waking.current = false;
+			setWaking(false);
 		});
 		return false;
 	}, [lh, loaded, teacher, agentHere, outsideHere, chats, start]);
 
 	return useMemo(
-		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, start: startRole, stop, answer, paste, send, addFile, wake }),
-		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, startRole, stop, answer, paste, send, addFile, wake],
+		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, start: startRole, stop, answer, paste, send, addFile, wake, waking: wakingShown }),
+		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, startRole, stop, answer, paste, send, addFile, wake, wakingShown],
 	);
 }
 

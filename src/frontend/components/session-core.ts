@@ -324,7 +324,7 @@ export class SessionModel {
 		const latest = messages.at(-1);
 		// One rule for live and restored failures: only the final completed
 		// assistant can own the banner. While trying again, hide the old
-		// failure from the first Thinking frame, but show a new failure at end.
+		// failure as soon as the new turn is sent, but show a new failure at end.
 		const providerError =
 			latest?.role === "assistant" && latest.stopReason === "error" &&
 			!this.incompleteUsageIds.has(latest.id) && (!live || latest.id === this.liveFailureId)
@@ -394,8 +394,8 @@ export class SessionModel {
 	 * never assembles deltas). Returns whether the event did VIEW WORK:
 	 * the consume flips submitted→streaming on the first ACTED event, not
 	 * the first wire byte — agent_start/turn_start release nothing, so
-	 * the Thinking… placeholder (gated on submitted) covers the whole
-	 * connect gap.
+	 * the lesson's desk (shown while submitted) covers the whole connect
+	 * gap.
 	 */
 	applyWireEvent(event: Record<string, unknown>): boolean {
 		if (event.type === "error") {
@@ -542,8 +542,8 @@ export class SessionModel {
 		} finally {
 			await reader.cancel().catch(() => {});
 			reader.releaseLock();
-			// A cancelled consume may finish after its replacement has entered
-			// Thinking. Only the current owner can settle shared state.
+			// A cancelled consume may finish after its replacement was
+			// submitted. Only the current owner can settle shared state.
 			if (this.consumeAbort === controller) {
 				this.streamingIds = new Set();
 				this.executions = new Map();
