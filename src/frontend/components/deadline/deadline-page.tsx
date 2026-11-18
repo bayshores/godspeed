@@ -122,7 +122,7 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 	return (
 		<JobFrame doing={running && requestDoing(running)}>
 			<div className="h-full overflow-y-auto">
-				<div className="mx-auto flex w-full max-w-[1128px] flex-col gap-[22px] px-6 pt-[22px] pb-9">
+				<div className="lh-page flex flex-col gap-[22px] pt-[22px] pb-9">
 					{current && !deadline ? (
 						<p data-testid="deadline-removed" className="text-lg text-ink-2">
 							This deadline was removed.

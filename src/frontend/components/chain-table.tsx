@@ -86,7 +86,7 @@ export function ChainTableBody({
 	return (
 		<div data-testid="chain-table" className="relative flex h-full min-h-0 flex-col">
 			<div className="min-h-0 flex-1 overflow-y-auto">
-				<div className="mx-auto flex w-full max-w-[960px] flex-col gap-6 px-6 pt-8 pb-28">
+				<div className="lh-page flex flex-col gap-6 pt-8 pb-28">
 					<div className="flex flex-wrap items-center gap-3.5">
 						<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 							<h1 className="text-[30px] leading-tight text-ink">All facts</h1>

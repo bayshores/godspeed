@@ -26,9 +26,9 @@ export function AddFilesButton({ disabled, onAdd }: { disabled?: boolean; onAdd:
 				data-testid="space-add-files"
 				disabled={disabled}
 				onClick={() => inputRef.current?.click()}
-				className="lh-btn lh-btn-main h-auto w-full justify-center gap-2.5 py-3.5 text-[17px]"
+				className="lh-btn lh-btn-main ml-auto"
 			>
-				<PixelIcon name="plus" className="h-3.5" />
+				<PixelIcon name="plus" className="h-3" />
 				Add files
 			</button>
 		</>

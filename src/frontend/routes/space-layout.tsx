@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from "react-router";
+import { Outlet } from "react-router";
 import { SpaceHead } from "@/frontend/components/space-page/space-head";
 import { SpaceWorkFrame } from "@/frontend/components/work/space-work-frame";
 import { usePluginsAt } from "@/frontend/lib/use-plugins-at";
@@ -7,13 +7,12 @@ import { usePluginsAt } from "@/frontend/lib/use-plugins-at";
  *  the work frame while the space is being worked on. The plugins that show
  *  in spaces are read once and handed to the head and to a plugin's tab. */
 export function SpaceLayout() {
-	const wide = useLocation().pathname === "/graph";
 	const pluginsAt = usePluginsAt("space");
 	return (
 		<div className="flex h-full flex-col">
 			<SpaceHead plugins={pluginsAt.plugins ?? []} />
 			<div className="min-h-0 flex-1">
-				<SpaceWorkFrame wide={wide}>
+				<SpaceWorkFrame>
 					<Outlet context={pluginsAt} />
 				</SpaceWorkFrame>
 			</div>

@@ -6,7 +6,8 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { MockBox } from "./mock-box";
 
-const WIDE = "lh-btn h-11 w-full justify-center text-[15px]";
+/** As wide as its words, at the sheet's right, as every key is. */
+const KEY = "lh-btn h-11 max-w-full self-end text-[15px]";
 const SMALL = "lh-btn lh-btn-small";
 
 /**
@@ -53,7 +54,7 @@ export function PathMocks({
 	return (
 		<div data-testid="deadline-mocks" className="flex flex-col gap-2">
 			{open ? (
-				<Link to={mockHref(spaceId, open.id)} data-testid="deadline-mock-continue" className={WIDE}>
+				<Link to={mockHref(spaceId, open.id)} data-testid="deadline-mock-continue" className={KEY}>
 					{openMockLabel(open)}
 				</Link>
 			) : (
@@ -67,7 +68,7 @@ export function PathMocks({
 						aria-haspopup="dialog"
 						aria-expanded={boxOpen}
 						onClick={() => setBoxOpen((v) => !v)}
-						className={WIDE}
+						className={KEY}
 					>
 						Take a mock
 					</button>

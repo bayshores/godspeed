@@ -53,8 +53,9 @@ export function AppearanceSection({
 	const isPreset = BACKGROUND_PRESETS.some((p) => p.color === background);
 
 	return (
-		<div className="flex flex-col gap-5">
-			<Pane data-testid="group-background" className="flex flex-col gap-3.5 px-6 py-[18px]">
+		// Wide, the controls take the left half and the preview the right.
+		<div className="grid grid-cols-[340px_minmax(0,1fr)] items-start gap-5 [grid-template-areas:'bg_bg'_'font_preview'] @[1100px]/page:grid-cols-2 @[1100px]/page:[grid-template-areas:'bg_preview'_'font_preview']">
+			<Pane data-testid="group-background" className="flex flex-col gap-3.5 px-6 py-[18px] [grid-area:bg]">
 				<h2 className="text-xl leading-tight text-ink">Background</h2>
 				<div className="grid grid-cols-7 gap-2.5">
 					{BACKGROUND_PRESETS.map((preset) => (
@@ -84,19 +85,17 @@ export function AppearanceSection({
 				</div>
 			</Pane>
 
-			<div className="flex items-start gap-5">
-				<Pane className="flex w-[340px] shrink-0 flex-col gap-[18px] px-6 py-5">
-					<Control label="Reading font">
-						<FontPicker family={appearance.fontFamily ?? null} onPick={(family) => onSectionChange(composeFontFamily(appearance, family))} />
+			<Pane className="flex w-[340px] flex-col gap-[18px] px-6 py-5 [grid-area:font]">
+				<Control label="Reading font">
+					<FontPicker family={appearance.fontFamily ?? null} onPick={(family) => onSectionChange(composeFontFamily(appearance, family))} />
+				</Control>
+				{typeof window !== "undefined" && window.lh?.setZoom && (
+					<Control label="Text size">
+						<TextSize />
 					</Control>
-					{typeof window !== "undefined" && window.lh?.setZoom && (
-						<Control label="Text size">
-							<TextSize />
-						</Control>
-					)}
-				</Pane>
-				<Preview />
-			</div>
+				)}
+			</Pane>
+			<Preview />
 		</div>
 	);
 }
@@ -166,7 +165,7 @@ function ColorInput({ label, value, onCommit }: { label: string; value: string; 
 /** The sample lesson, drawn with the real lesson styles. */
 function Preview() {
 	return (
-		<Pane data-testid="appearance-preview" className="flex min-w-0 flex-1 flex-col gap-3 px-7 py-5">
+		<Pane data-testid="appearance-preview" className="flex min-w-0 flex-col gap-3 px-7 py-5 [grid-area:preview]">
 			<h2 className="text-xl leading-tight text-ink">Preview</h2>
 			<div className="lh-prose flex flex-col gap-2.5">
 				<h4 className="text-[1.4em]">Why a derivative is a slope</h4>

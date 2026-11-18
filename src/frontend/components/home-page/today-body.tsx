@@ -59,7 +59,7 @@ export function TodayBody(p: TodayBodyProps) {
 		return () => setOnCard(null);
 	}, [cardId, setOnCard]);
 	return (
-		<div className="mx-auto flex w-full max-w-(--lh-page-w) flex-col gap-8 px-6 pt-14 pb-16">
+		<div className="@container/page lh-page flex flex-col gap-8 pt-14 pb-16">
 			{/* Narrow, the date steps down so the sentence still fits beside it. */}
 			<header className="@container flex min-h-[46px] flex-wrap items-baseline gap-x-6 gap-y-2">
 				{p.nowMs !== null && (
@@ -90,23 +90,30 @@ export function TodayBody(p: TodayBodyProps) {
 							{p.lessonError}
 						</p>
 					)}
-					{card && (
-						<NextCard
-							deadline={card}
-							progress={p.deadlineProgress.get(card.id)}
-							color={color(card)}
-							nowMs={p.nowMs}
-							busy={p.busy}
-							onStart={p.onStart}
-							onDone={p.onDone}
-							onUndo={p.onUndo}
-						/>
-					)}
-					<DeadlinesCard spaces={p.spaces} lists={p.lists} nowMs={p.nowMs} picked={card?.id ?? null} onPick={(d) => setPicked(d.id)} onRetry={p.onRetry} onAdd={p.onAddDeadline} />
-					<p aria-live="polite" data-testid="today-showing" className="sr-only">
-						{picked !== null && card ? `Showing ${card.name}` : ""}
-					</p>
-					<SpaceList spaces={p.spaces} progress={p.spacesProgress} errors={p.progressErrors} newFiles={p.newFiles} onOpen={p.onOpenSpace} />
+					{/* Wide, the spaces take a column beside the card and the week. */}
+					<div className="grid gap-8 @[1100px]/page:grid-cols-[minmax(0,1fr)_340px]">
+						<div className="flex min-w-0 flex-col gap-8">
+							{card && (
+								<NextCard
+									deadline={card}
+									progress={p.deadlineProgress.get(card.id)}
+									color={color(card)}
+									nowMs={p.nowMs}
+									busy={p.busy}
+									onStart={p.onStart}
+									onDone={p.onDone}
+									onUndo={p.onUndo}
+								/>
+							)}
+							<DeadlinesCard spaces={p.spaces} lists={p.lists} nowMs={p.nowMs} picked={card?.id ?? null} onPick={(d) => setPicked(d.id)} onRetry={p.onRetry} onAdd={p.onAddDeadline} />
+							<p aria-live="polite" data-testid="today-showing" className="sr-only">
+								{picked !== null && card ? `Showing ${card.name}` : ""}
+							</p>
+						</div>
+						<div className="self-start">
+							<SpaceList spaces={p.spaces} progress={p.spacesProgress} errors={p.progressErrors} newFiles={p.newFiles} onOpen={p.onOpenSpace} />
+						</div>
+					</div>
 				</>
 			)}
 		</div>

@@ -55,7 +55,7 @@ export function CoversSheet({
 						</p>
 					) : (
 						// While a request runs, the work frame says what happens.
-						!requesting && <p className="text-lg text-ink-2">Nothing is linked yet. {teacherName} can work it out from your files, like a practice exam or the syllabus.</p>
+						!requesting && <p className="max-w-[75ch] text-lg text-ink-2">Nothing is linked yet. {teacherName} can work it out from your files, like a practice exam or the syllabus.</p>
 					)}
 					<div className="flex flex-wrap gap-2.5">
 						<button type="button" data-testid="deadline-ask" disabled={requesting} onClick={onAsk} className="lh-btn lh-btn-main px-[18px] text-[15px]">

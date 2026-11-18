@@ -53,6 +53,15 @@ The Mac app draws with WebKit, not Chrome; a page right in a browser can overlap
 - Anything that sticks out of its own box (a tag, a badge, a pop-up) sits on a layer above what can move under it, or does not stick out at all. Pop-ups go through `MenuShell` or a dialog, which no box can clip.
 - `npm run layout` checks the screens in `scripts/layout-screens.mjs` in the real window at all three widths, each as it opens, scrolled 80 px and scrolled to the end, for overlapping text, text or a control another box is drawn over, spills, sideways scrolling, hidden text and cut-off letters. CI runs it on the Mac; `npm run check` does not. Run it yourself before calling a UI change finished. A new screen or state gets an entry there.
 
+## One page width
+
+Every page, the lesson page included, sits in one column: `.lh-page` in `src/frontend/globals.css`, at most `--lh-page-w` (1460 px) wide with 32 px sides (24 px when the room is under 900), so page edges line up as the learner moves between pages.
+
+- No page or route sets a max width of its own.
+- The width is used, not stretched: wide, a page puts a second block in a side column (Today's spaces, Files' recent changes, the Study page's suggestions) or lays its cards and groups in columns (Deadlines, Settings). Sentences stay under about 75 characters a line (`max-w-[75ch]`), fields stay field-sized and keys stay as wide as their words.
+- Only screens that are one centered box (onboarding, dialogs) stay centered.
+- Before calling a page change finished, look at it at 1512, 1100 and 800 points wide, with the teacher's panel docked too, and check its edges against the lesson page's.
+
 ## Type
 
 Interface and lesson text are one face, Literata, so they stay apart by size, weight and color, as a book sets its running text apart from its headings and notes.

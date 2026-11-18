@@ -43,8 +43,11 @@
    at least 4.5:1. Interface and reading text are Literata, dates and
    counts DotGothic16. */
 :root {
-	/* The widest a page's column gets, on Today and on a space's pages. */
-	--lh-page-w: 1160px;
+	/* The widest every page's column gets, the lesson page's included, and its sides: 32px, or
+	   24px when the page's room (the window less the teacher's docked panel) is under 900. The
+	   clamp is that step at 900, so no page needs a container to measure its room. */
+	--lh-page-w: 1460px;
+	--lh-page-side: clamp(24px, (100vw - var(--lh-dock-push, 0px) - 899px) * 999, 32px);
 	color-scheme: light;
 	--radius: 2px;
 	--background: #c9c7bd;
@@ -387,6 +390,14 @@ body {
 	.truncate {
 		min-width: 0;
 	}
+}
+
+/* Every page's column, with the lesson page's edges at every width. */
+.lh-page {
+	width: 100%;
+	max-width: calc(var(--lh-page-w) + 2 * var(--lh-page-side));
+	margin-inline: auto;
+	padding-inline: var(--lh-page-side);
 }
 
 /* A box is a sheet: a flat fill with pixel corners (two 4px steps) and a

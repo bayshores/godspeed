@@ -159,7 +159,7 @@ export function SettingsPage({ section }: { section?: string }) {
 
 	return (
 		<div ref={contentRef} data-testid="settings-page" className="h-full overflow-y-auto">
-			<div className="mx-auto flex w-full max-w-[1008px] flex-col px-6 pt-10 pb-12">
+			<div className="@container/page lh-page flex flex-col pt-10 pb-12">
 				{!fullPage && <h1 className="text-[40px] leading-[48px] text-ink">Settings</h1>}
 				<nav hidden={fullPage} aria-label="Settings sections" data-testid="settings-nav" className="mt-6 mb-6 flex gap-1 overflow-x-auto shadow-[inset_0_-2px_0_var(--lh-edge)]">
 					{SECTIONS.map((s) => {
@@ -239,7 +239,7 @@ export function SettingsPage({ section }: { section?: string }) {
 						</div>
 					)}
 					{"hint" in current && (
-						<p data-testid="settings-hint" className="pt-6 text-sm text-ink-2">
+						<p data-testid="settings-hint" className="max-w-[75ch] pt-6 text-sm text-ink-2">
 							{current.hint(desktop)}
 						</p>
 					)}

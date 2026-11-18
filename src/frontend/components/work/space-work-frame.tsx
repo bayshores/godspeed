@@ -9,10 +9,9 @@ import { spaceFrame, workState } from "./work-model";
 
 /**
  * The work frame around every tab of a space: while its files are read or
- * its facts are grouped into topics, or wait for the teacher. `wide`: the
- * tab's page is the wide one.
+ * its facts are grouped into topics, or wait for the teacher.
  */
-export function SpaceWorkFrame({ wide = false, children }: { wide?: boolean; children: ReactNode }) {
+export function SpaceWorkFrame({ children }: { children: ReactNode }) {
 	const { active } = useSpaces();
 	const { record } = useSpaceRecord(active);
 	const { worker } = useWorker();
@@ -25,7 +24,7 @@ export function SpaceWorkFrame({ wide = false, children }: { wide?: boolean; chi
 		if (state) frame = { ...spaceFrame(state), actions: state.kind === "waiting" ? <StartAgentAction /> : null };
 	}
 	return (
-		<WorkFrame frame={frame} column={wide ? "wide" : "page"}>
+		<WorkFrame frame={frame} onPage>
 			{children}
 		</WorkFrame>
 	);

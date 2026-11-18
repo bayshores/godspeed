@@ -61,7 +61,7 @@ export function PathSheet({
 				</p>
 			)}
 			{needsGuide && (
-				<button type="button" data-testid="deadline-ask-guide" disabled={requesting} onClick={onAskGuide} className="lh-btn mt-1 h-11 w-full justify-center text-[15px]">
+				<button type="button" data-testid="deadline-ask-guide" disabled={requesting} onClick={onAskGuide} className="lh-btn mt-1 h-11 max-w-full self-end text-[15px]">
 					<span className="min-w-0 truncate">Ask {teacherName} for a study guide</span>
 				</button>
 			)}
@@ -104,7 +104,7 @@ export function PathSheet({
 				</p>
 			)}
 			{ahead && !hasProblems(d.kind) && (
-				<button type="button" data-testid="deadline-start" disabled={busy} onClick={onStart} className="lh-btn lh-btn-main mt-1 h-11 w-full justify-center text-[15px]">
+				<button type="button" data-testid="deadline-start" disabled={busy} onClick={onStart} className="lh-btn lh-btn-main mt-1 h-11 max-w-full self-end text-[15px]">
 					<span className="min-w-0 truncate">{studyLabel(d.continueStudy)}</span>
 				</button>
 			)}

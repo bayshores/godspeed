@@ -218,13 +218,12 @@ function FilesPageBody() {
 			}}
 		>
 			<h1 className="sr-only">Files</h1>
-			<div className="mx-auto flex w-full max-w-(--lh-page-w) flex-col gap-[18px] px-6 pt-[18px] pb-10">
+			<div className="@container/page lh-page flex flex-col gap-[18px] pt-[18px] pb-10">
 				{!active && <PickSpace line="Pick a space to see its files." />}
 				{active && !record && !failed && <p className="text-[15px] text-ink-2">Loading…</p>}
 				{active && !record && failed && <LoadFailed message="Couldn't load this space's files." onRetry={() => void reload()} />}
 				{record && actions && (
 					<>
-						<AddFilesButton disabled={disabled} onAdd={add} />
 						<div className="flex flex-wrap items-center gap-2.5">
 							{record.files.length > 0 && <SearchBox value={query} onChange={setQuery} />}
 							{record.linkedFolder ? (
@@ -240,6 +239,7 @@ function FilesPageBody() {
 								!linking && <LinkFolderButton disabled={disabled} onClick={onLinkFolder} />
 							)}
 							{showInFinder}
+							<AddFilesButton disabled={disabled} onAdd={add} />
 						</div>
 						{linking && <LinkFolderField initial={record.linkedFolder ?? ""} disabled={disabled} onLink={link} onCancel={() => setLinking(false)} />}
 						{(record.files.length > 0 || record.linkedFolder) && (
@@ -276,20 +276,27 @@ function FilesPageBody() {
 							</p>
 						)}
 						{(showRecent || shown.length > 0) && (
-							<div data-testid="files-list" className="flex flex-col gap-3">
-								{showRecent && <RecentChanges changes={changes} collapsed={collapsed.has(RECENT_CHANGES_KEY)} onToggle={toggle} />}
-								{shown.map((group) => (
-									<FileGroupSection
-										key={group.key}
-										group={group}
-										collapsed={!searching && collapsed.has(group.key)}
-										onToggle={toggle}
-										coverage={coverage}
-										disabled={disabled}
-										teacher={teacher}
-										actions={actions}
-									/>
-								))}
+							// Wide, recent changes take a column beside the files.
+							<div data-testid="files-list" className="grid items-start gap-3 @[1100px]/page:grid-cols-[minmax(0,1fr)_400px] @[1100px]/page:gap-6">
+								{showRecent && (
+									<div className="@[1100px]/page:col-start-2 @[1100px]/page:row-start-1">
+										<RecentChanges changes={changes} collapsed={collapsed.has(RECENT_CHANGES_KEY)} onToggle={toggle} />
+									</div>
+								)}
+								<div className="flex min-w-0 flex-col gap-3 @[1100px]/page:row-start-1">
+									{shown.map((group) => (
+										<FileGroupSection
+											key={group.key}
+											group={group}
+											collapsed={!searching && collapsed.has(group.key)}
+											onToggle={toggle}
+											coverage={coverage}
+											disabled={disabled}
+											teacher={teacher}
+											actions={actions}
+										/>
+									))}
+								</div>
 							</div>
 						)}
 					</>
@@ -302,7 +309,7 @@ function FilesPageBody() {
 
 function SearchBox({ value, onChange }: { value: string; onChange: (value: string) => void }) {
 	return (
-		<label className="flex h-10 min-w-[200px] flex-1 items-center gap-2 lh-well rounded px-3 text-ink-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink">
+		<label className="flex h-10 max-w-[420px] min-w-[200px] flex-1 items-center gap-2 lh-well rounded px-3 text-ink-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink">
 			<input
 				type="search"
 				data-testid="files-search"

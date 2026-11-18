@@ -24,7 +24,7 @@ export function MockResults({ view }: { view: MockView }) {
 		<div data-testid="mock-results" className="flex h-full flex-col">
 			<MockBar view={view} />
 			<div className="min-h-0 flex-1 overflow-y-auto">
-				<div className="mx-auto flex w-full max-w-[908px] flex-wrap items-start gap-x-10 gap-y-8 px-6 pt-7 pb-16">
+				<div className="lh-page flex flex-wrap items-start gap-x-10 gap-y-8 pt-7 pb-16">
 					<section className="flex min-w-0 flex-1 basis-[460px] flex-col gap-2">
 						<div className={cn(TITLE, "flex flex-wrap items-baseline justify-between gap-x-4")}>
 							<h2>How Mock {mock.n} went</h2>
@@ -80,7 +80,7 @@ function QuestionRow({ n, question: q, view, teacher, busy, onGoOver }: { n: num
 					{answer && answer.seconds > 0 && <span className="shrink-0 text-[15px] text-ink-2">{spentText(answer.seconds)}</span>}
 				</div>
 				{grade && (
-					<div data-testid="mock-feedback" className="font-prose text-[16px] leading-relaxed text-ink">
+					<div data-testid="mock-feedback" className="max-w-[75ch] font-prose text-[16px] leading-relaxed text-ink">
 						<MessageResponse>{grade.feedback}</MessageResponse>
 					</div>
 				)}

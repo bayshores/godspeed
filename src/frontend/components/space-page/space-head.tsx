@@ -30,7 +30,7 @@ export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 	// The dialog compares its mode by identity: one object per open.
 	const editMode = useMemo(() => (editing ? { kind: "edit" as const, spaceId: editing } : null), [editing]);
 	return (
-		<div data-testid="space-head" className={cn("mx-auto w-full max-w-(--lh-page-w) shrink-0 px-6", activeSpace ? "pt-4" : "pt-10")}>
+		<div data-testid="space-head" className={cn("lh-page shrink-0", activeSpace ? "pt-4" : "pt-10")}>
 			{!activeSpace && (
 				<p data-testid="space-head-name" className="truncate text-[38px] leading-[1.2] text-ink">
 					Lessons with no space

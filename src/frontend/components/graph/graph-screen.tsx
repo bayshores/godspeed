@@ -95,7 +95,7 @@ function GraphScreenBody() {
 	return (
 		<div className="relative h-full" data-testid="graph-page">
 			<div className="h-full overflow-hidden">
-				<div className="mx-auto flex w-full max-w-[1240px] flex-col gap-4 px-6 pt-3">
+				<div className="lh-page flex flex-col gap-4 pt-3">
 					<h1 className="sr-only">Graph</h1>
 					{notesImport.errors.length > 0 && (
 						<div className="flex flex-col gap-1">

@@ -85,7 +85,7 @@ export function GraphFoot({
 
 	return (
 		<div className="pointer-events-none absolute inset-x-0 bottom-0" style={{ height: FOOT }}>
-			<div ref={line} data-testid="graph-foot" className="pointer-events-auto mx-auto flex h-11 w-full max-w-[1240px] items-center gap-6 px-6 pt-1">
+			<div ref={line} data-testid="graph-foot" className="lh-page pointer-events-auto flex h-11 items-center gap-6 pt-1">
 				{finding ? (
 					<>
 						<label className="lh-fade flex min-w-0 flex-1 items-center gap-3">
