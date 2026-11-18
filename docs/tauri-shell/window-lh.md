@@ -23,7 +23,7 @@ The shim (`crates/shell/src/shim.js`) is an initialization script on the main wi
 | `onMenu(cb)` | push `menu` | A Mac File or Go item: a keyboard action id, `go:<path>`, `back` or `forward`. A page the agent opened in a window made again: `go:<path>?space=<id or none>`. |
 | `printPdf(path)` | `print_pdf` | Mac only; absent on Windows and Linux. See [Printing](the-main-window.md#printing). |
 | `openLink(url)` | `open_link` | A web or mail link, as a link click sends it. |
-| `terminals.start(role, agent)` | `terminal_start` | `role` is `"teacher"` or `"helper"`, `agent` is `"claude"` or `"codex"`. Answers `{ id }`. See [Terminals](terminals.md#terminals). |
+| `terminals.start(role, agent, resume?)` | `terminal_start` | `role` is `"teacher"` or `"helper"`, `agent` is `"claude"` or `"codex"`, and `resume` is the teacher's earlier chat to go back to, when one was picked. Answers `{ id }`. See [Terminals](terminals.md#terminals). |
 | `terminals.attach(id)`, `terminals.detach(id)` | `terminal_attach`, `terminal_detach` | Attach pushes a snapshot of the screen, then live output, on `terminal-output`. |
 | `terminals.resize(id, cols, rows)` | `terminal_resize` | Sizes a running terminal to the screen showing it (kept within 40 to 200 columns, 10 to 100 rows). Answers `{ cols, rows }`, the size in force: an ended terminal keeps the size it ended at. |
 | `terminals.write(id, data)` | `terminal_write` | Keys typed in the shown terminal. |

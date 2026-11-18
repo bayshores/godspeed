@@ -16,7 +16,7 @@ The plugin is used from Rust only. Signing secrets are in [desktop-release.md](.
 | Status | When |
 |---|---|
 | `idle` | The start state. |
-| `disabled` | Debug builds, a build with an empty `pubkey`, or `app.updater()` failed. Logged as `updater: disabled (<why>)`. |
+| `disabled` | Debug builds, a build with an empty `pubkey`, or `app.updater()` failed. Logged as `updater: disabled (<why>)`. A debug build driven by the screens lab (`npm run layout`) starts at `up-to-date` instead, so Settings draws the whole Updates row. |
 | `checking` | A check starts. |
 | `downloading` | `check()` found an update. `percent` is pushed only on a new whole percent. |
 | `downloaded` | The bytes are held in memory. Sticks until a newer download replaces it. |

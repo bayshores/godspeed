@@ -62,7 +62,7 @@ The Graph page's picture (`src/frontend/components/graph/constellation.tsx`) is 
 | Tab | Moves focus into the picture, on one topic, and out again. |
 | ← → ↑ ↓ | Moves to the nearest topic in that direction; zoomed in, one outside the view comes into it. |
 | Enter or Space | Picks the topic and opens its panel. Pressed on the picked topic, closes it. |
-| Esc | In the typing line, clears it first and keeps any open panel (`graph-foot.tsx`). Otherwise closes the open fact, then the open topic, then flies a zoomed-in picture back to the whole space (`graph-body.tsx`). |
+| Esc | In Find's field in the top bar, clears and closes Find and keeps any open panel (`use-bar-find.ts`). Otherwise closes the open fact, then the open topic, then flies a zoomed-in picture back to the whole space (`graph-body.tsx`). |
 
 ## Question rows
 

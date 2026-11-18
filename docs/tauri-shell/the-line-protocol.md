@@ -17,6 +17,9 @@ One JSON object per line, UTF-8, ending `\n`. Field `t` names the message. The s
 | shell to server | `{"t":"typed","terminal":"<32 hex>"}` | The learner sent the agent in that terminal a message: Enter on its own while the screen showed no question. |
 | shell to server | `{"t":"agent_folder","id":n}` | Where is the godspeed folder? Asked at every terminal start. |
 | server to shell | `{"t":"agent_folder","id":n,"folder":"…"\|null}` | The folder in use, or `null` while not set up. The shell waits 2 s. |
+| server to shell | `{"t":"clear_line","terminal":"<32 hex>","line":"…"}` | The learner's line went to a lesson or cheat sheet page. In Claude Code's teacher terminal, the shell clears that line from the agent's input box within 3 s. |
+| server to shell | `{"t":"nudge","terminal":"<32 hex>","line":"…"}` | The quiet teacher has work waiting. The shell types the line into the teacher's input and sends it (see [While it runs](terminals.md#while-it-runs)). |
+| server to shell | `{"t":"show_window","page":"<app path>?space=<id or none>"}` | The agent opened a page. The shell brings the window forward and sends a window that has not loaded to that page. |
 
 - Unknown lines are logged to stderr and skipped on both sides.
 - stdin EOF stops the server, on every OS.

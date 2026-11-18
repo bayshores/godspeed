@@ -89,10 +89,11 @@ To import notes while testing, use the app: a space's linked folder or Files pag
 | `main.tsx` | The entry. Waits for `/api/boot` and the first screen's data, then renders. |
 | `routes/router.tsx` | Every screen (routes below). |
 | `routes/root.tsx`, `routes/space-layout.tsx` | The app frame; the space head and tabs. |
-| `routes/lesson.tsx`, `deadline.tsx`, `mock.tsx`, `settings.tsx` | Screens with their own loaders. |
+| `routes/lesson.tsx`, `deadline.tsx`, `mock.tsx` | Screens with their own loaders. |
+| `routes/settings.tsx`, `routes/plugin-tab.tsx` | Settings, which opens on the section the address names; a plugin's own tab in a space. |
 | `routes/not-found.tsx`, `routes/page-title.tsx` | The not-found page; the window title. |
 | `components/` | Everything the screens render (below). |
-| `lib/` | `utils.ts` (the shadcn `cn` helper), `lazy-component.tsx`, the calculator (`calculate.ts`, `calculate.worker.ts`, `calculator-client.ts`). |
+| `lib/` | `utils.ts` (the shadcn `cn` helper), `api.ts` (the JSON request helpers), `lazy-component.tsx`, `plural.ts`, `storage.ts`, `read-base64.ts`, `use-stable-value.ts`, the plugin helpers (`plugins-api.ts`, `plugin-host-api.ts`, `use-plugins-at.ts`) and the calculator (`calculate.ts`, `calculate.worker.ts`, `calculator-client.ts`). |
 | `globals.css` | Tailwind and the theme. |
 | `fonts/` | The woff2 files and `fonts.css`. |
 
@@ -104,8 +105,9 @@ Routes:
 | `/new` | Study: start a study session |
 | `/settings` | Settings |
 | `/graph` | Graph |
-| `/space` | Progress: what to do (next deadline, unfinished lessons, path, Most needed) in a side column, the finished lessons and facts in the wide one |
+| `/space` | Progress: what to do (next deadline, unfinished lessons, path, Most needed) in a side column, and the teacher's note, the finished lessons, the facts and the confidence chart in the wide one |
 | `/space/files`, `/space/deadlines` | The space's tabs |
+| `/space/plugin/:id` | A plugin's own tab in a space |
 | `/space/deadline/:id` | A deadline |
 | `/space/deadline/:id/cheat-sheet` | A deadline's cheat sheet |
 | `/space/mock/:spaceId/:mockId` | A mock |
@@ -117,8 +119,8 @@ Component folders:
 |---|---|
 | `top-bar/`, `home-page/`, `home/` | Top bar, Today, the study page. |
 | `space-page/`, `overview/`, `lessons/`, `files/`, `graph/`, `deadline/`, `cheat-sheet/`, `mock/` | Space pages, deadlines, cheat sheets, mocks. |
-| `lesson/`, `work/`, `teacher/` | Lesson screen, work frame, teacher panel. |
-| `settings/`, `agent-folder/`, `onboarding/`, `welcome/` | Settings, agent launcher, onboarding, welcome screen. |
+| `lesson/`, `work/`, `teacher/`, `terminal/` | Lesson screen, work frame, teacher panel, the agent's terminal screen. |
+| `settings/`, `agent-folder/`, `onboarding/`, `welcome/`, `plugins/` | Settings, agent launcher, onboarding, welcome screen, a plugin's sandboxed frame. |
 | `citations/`, `artifacts/` | Source marks; renderers for job results (registry in `artifacts/`). |
 | `ai-elements/`, `ui/` | Shared message and UI pieces. |
 
@@ -162,7 +164,7 @@ Shared helpers sit in `tests/` itself.
 | `release-assets.mjs` | Gives the bundler's outputs their download names. |
 | `release-feeds.mjs` | Writes the update feeds a release publishes. |
 | `verify-release.ts` | The last check in the release workflow. |
-| `layout.mjs`, `layout-page.mjs`, `layout-screens.mjs`, `layout-seed.mjs` | `npm run layout`: the walk, the in-page check, the screen list, and the stand-in agent that writes the made-up data. |
+| `layout.mjs`, `layout-page.mjs`, `layout-screens.mjs`, `layout-seed.mjs`, `layout-agent.mjs` | `npm run layout`: the walk, the in-page check, the screen list, the stand-in agent that writes the made-up data, and the stand-in `claude` and `codex` a Start runs in the check. |
 
 ## Where to read about what
 

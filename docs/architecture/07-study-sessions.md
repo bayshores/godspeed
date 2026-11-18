@@ -5,9 +5,9 @@ Every new lesson is a study session (`kind: "study"` on the chat record). No pro
 Started from:
 
 - "Study something new" on the Lessons sheet of a space's Progress page (study page, `/new`)
-- Start on Today's card, or Study on a deadline page
+- Study or Continue on Today's card, a topic row in Today's Work on next block, or Study on a deadline page
 - Study in a topic's or a fact's panel on Graph tab, or Study on Progress tab
-- "Go over it with the teacher" on a mock's results
+- "Go over it with {teacher}" on a mock's results
 - Study on a space's path (§6.3)
 - "Start from facts" (chain table in select mode, `src/frontend/components/home/facts-picker.tsx`)
 - MCP `start_lesson` tool
@@ -36,7 +36,7 @@ A Study session started from a deadline records `deadlineId` (a homework lesson 
 
 ### Unfinished lessons
 
-Each lesson row in the progress payload carries `step` (`{ done, total }`, the number the lesson's step bar shows, only when the lesson has a plan), `unfinished` (set only when true) and `deadlineId` (the deadline it was started from). The server decides `unfinished` (`derive_progress::lesson_rows`, with `plan_finished` from `core::study::continue_study`), and Progress (the unfinished lessons in its side column, the finished ones in its Lessons sheet, never both) and the Study page's Continue row both read it. Of the lessons started from one deadline, only the latest can be unfinished. A lesson is unfinished when:
+Each lesson row in the progress payload carries `step` (`{ done, total }`, the number the lesson's step bar shows, only when the lesson has a plan), `unfinished` (set only when true) and `deadlineId` (the deadline it was started from). The server decides `unfinished` (`derive_progress::lesson_rows`, with `plan_finished` from `core::study::continue_study`), and Progress (the unfinished lessons in its side column, the finished ones in its Lessons sheet, never both), Today's Unfinished block and the Study page's Continue row all read it. Of the lessons started from one deadline, only the latest can be unfinished. A lesson is unfinished when:
 
 1. It is a homework lesson, it is its deadline's latest homework lesson, the deadline is not done and not every problem is done. A deadline with no problems posted counts as not every problem done.
 2. It has a plan that has not reached its end, and either its count has not reached the last step or a stop is left to go on from.
@@ -51,7 +51,7 @@ The teacher's prompt and tools, without the planning part (`teacher/10-planning.
 - `plot`, in multiple-choice lessons
 - practice hint rules (`prompts/practice/20-hints.md`) and `prompts/study/`
 
-In a Study session the foot of the lesson text shows "Continue" whenever the teacher has spoken, is idle, nothing waits and no stop card is up, with or without a problem posed. It sends the `next` input (`nextReady` in `chat.tsx`).
+In a Study session the foot of the lesson text shows "Continue" whenever the teacher has spoken and is idle, and no question, open problem, stop card or error line is up. It sends the `next` input (`goAheadLabel` in `src/frontend/components/lesson/chat-helpers.ts`).
 
 A posed problem ends the turn. `practice-next` and `problem-dismissed` mark moving on or skipping. In homework, a `practice-next` with a `number` is a pick from the problem list. Lessons from 0.6.74 may hold `teach-me` markers; they still count as the learner's input and read as his line "Teach me this". A study session is extracted into the graph. A problem solved with hints counts as an answer worth 0.6 of a right one (`HINTED_WEIGHT`), so alone it reads shaky, and counts print it apart: "1 of 2 right, 1 solved with hints". An answer whose facts are in no topic (none extracted yet, or new ones still in Ungrouped) counts once for its question's `nodeId` when that is one of the space's topics (`core::study::derive_progress`), so a topic studied today is not untested while its facts are being saved.
 
@@ -151,7 +151,7 @@ Allowed while a turn runs; never answer 409.
 
 A homework session (`kind: "homework"`, `deadlineId` required) works on one homework or project deadline's problems.
 
-- "Work on <name>" starts one or reopens the latest (`POST /api/chats` with `homework: true`, `create_homework` in `services::turns::homework`). It is the filled key of a homework's or project's two keys (`DeadlineKeys`, `src/frontend/components/deadline/deadline-keys.tsx`) on its deadline page's Problems sheet, the Graph's deadline card and Progress's next deadline (there, under the deadline's name, they leave the name out: "Study" and "Work on it"); the Study page adds it after the deadline's Study key, and Today's card says "Work on it" while it shows it. The grey key before it, "Study for <name>" ("Continue studying for <name>" while a Study session is unfinished), is the deadline's Study; it hides once the date has passed. A homework lesson is never the deadline's Study session (`lesson_readout`, `services::graph::progress`), so Study never reopens it.
+- "Work on <name>" starts one or reopens the latest (`POST /api/chats` with `homework: true`, `create_homework` in `services::turns::homework`). It is the filled key of a homework's or project's two keys (`DeadlineKeys`, `src/frontend/components/deadline/deadline-keys.tsx`) on its deadline page's Problems sheet and Progress's next deadline (there, under the deadline's name, they leave the name out: "Study" and "Work on it"); the Study page adds it after the deadline's Study key, and Today's card says "Work on it" while it shows it. The grey key before it, "Study for <name>" ("Continue studying for <name>" while a Study session is unfinished), is the deadline's Study; it hides once the date has passed. A homework lesson is never the deadline's Study session (`lesson_readout`, `services::graph::progress`), so Study never reopens it.
 - It opens with space card and a `homework-context` marker: deadline, its assignment file (`assignmentFileId`), a track record line and problems posted before. The line sorts the deadline's topics with the Study rule (`deadline_topics_for`, `core::study::homework`): "Teach first" for untested topics and weak ones whose latest answer was wrong, "Open right away" for the rest. A deadline with no topics reads "none yet".
 - Homework agent (`agent::tools::homework`, prompt `prompts/homework/` plus practice hint rules) posts assignment's problems onto deadline with `post_problems`.
 - It opens one problem at a time with `problem`, which has no solution field: homework is hints only. `conclude` marks a problem done when learner's own work is right.
