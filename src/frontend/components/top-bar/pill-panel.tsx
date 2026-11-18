@@ -9,7 +9,7 @@ import { BARS } from "./bar-look";
 export const NOTICE_STACK_ID = "lh-notices";
 
 /** With no pill on screen (the first steps): the window's top right corner. */
-const FLOATING = { top: 12, right: 16, hang: false };
+const FLOATING = { top: 12, right: 16, least: 0, hang: false };
 
 /** The pill on screen: a page's own bar hides the app's. */
 function visiblePill(): Element | null {
@@ -39,6 +39,7 @@ export function PillPanel({ children }: { children: ReactNode }) {
 					? {
 							top: bar.getBoundingClientRect().bottom,
 							right: window.innerWidth - pill.getBoundingClientRect().right,
+							least: pill.getBoundingClientRect().width,
 							hang: true,
 						}
 					: FLOATING,
@@ -64,7 +65,11 @@ export function PillPanel({ children }: { children: ReactNode }) {
 				if (!e.currentTarget.contains(e.relatedTarget as Node | null)) holdNotices(false);
 			}}
 		>
-			<div data-state={presence.state} className={cn("lh-popup flex max-h-[calc(100dvh-4rem)] w-[400px] max-w-[calc(100vw-2rem)] flex-col overflow-y-auto", at.hang ? "lh-hang-body" : "lh-pop rounded-[14px]")}>
+			{/* As wide as what it holds, up to 400px: a card the pill already titled may be only its buttons. Never narrower than the pill it hangs from. */}
+			<div
+				data-state={presence.state}
+				style={{ minWidth: at.least }}
+				className={cn("lh-popup flex max-h-[calc(100dvh-4rem)] w-max max-w-[min(400px,calc(100vw-2rem))] flex-col overflow-y-auto", at.hang ? "lh-hang-body" : "lh-pop rounded-[14px]")}>
 				<div id={NOTICE_STACK_ID} tabIndex={-1} className="lh-notices flex flex-col outline-none">
 					{children}
 				</div>
