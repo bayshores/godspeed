@@ -46,17 +46,38 @@ jobs:
             echo "::error::Release tag must equal v$version"
             exit 1
           fi
+      # The runner's Ubuntu mirror sometimes takes over 10 minutes to send these packages, so the
+      # downloaded files are kept in the cache, one copy per runner image (shared with CI).
+      - name: Runner image
+        id: image
+        run: echo "key=apt-$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+      - name: Restore the downloaded Linux packages
+        id: apt
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/apt
+          key: ${{ steps.image.outputs.key }}
+          restore-keys: apt-
       - name: Linux packages for the shell
         run: |
+          mkdir -p ~/apt/partial
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y -o Dir::Cache::Archives="$HOME/apt" -o APT::Sandbox::User=root \
+            libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          sudo chown -R "$USER" ~/apt
+      # A cache saved on a tag can never be restored by another run.
+      - name: Save the downloaded Linux packages
+        if: steps.apt.outputs.cache-hit != 'true' && github.ref_type != 'tag'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/apt
+          key: ${{ steps.image.outputs.key }}
       - uses: actions/setup-node@v7
         with:
           node-version: "26"
           cache: npm
       - name: Rust toolchain (the version pinned in rust-toolchain.toml)
         run: rustup toolchain install
-      # A cache saved on a tag can never be restored by another run.
       - uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref_type != 'tag' }}
@@ -224,10 +245,11 @@ jobs:
           rustup toolchain install
           rustup target add ${{ matrix.triple }}
       # Tag runs restore what a rehearsal on main saved: a tag's own cache can never be restored
-      # by another run. Linux, built from nothing, still finishes before the Macs and Windows, so
-      # it keeps no cache and leaves room in the repository's 10 GB.
+      # by another run. Only the Intel Mac and Windows keep one. The Apple chip Mac spends its
+      # time linking, not on dependencies, and Linux built from nothing still finishes first, so
+      # they leave room in the repository's 10 GB.
       - uses: Swatinem/rust-cache@v2
-        if: matrix.platform != 'linux'
+        if: matrix.platform == 'mac-intel' || matrix.platform == 'windows'
         with:
           key: release-${{ matrix.platform }}
           save-if: ${{ github.ref_type != 'tag' }}

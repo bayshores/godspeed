@@ -131,16 +131,16 @@ The workflow never publishes. Uploads use `--clobber`, so a rerun replaces same-
 
 ### Build caches
 
-A run can restore a cache saved on its own branch or tag, or on main. A cache saved on a tag can never be restored by another run, so tag runs save none. The Mac and Windows `package` jobs restore the Rust cache a rehearsal on main saved, so a release compiles only the workspace crates instead of every dependency. Linux keeps no cache: built from nothing it still finishes first.
+A run can restore a cache saved on its own branch or tag, or on main. A cache saved on a tag can never be restored by another run, so tag runs save none. The Intel Mac and Windows `package` jobs restore the Rust cache a rehearsal on main saved, so a release compiles only the workspace crates instead of every dependency. The Apple chip Mac keeps no cache: most of its time is the release link of the server and the app (about 11 and 7 minutes), which no cache saves. Linux keeps none either: built from nothing it still finishes before the Macs. The release gates job and CI's Ubuntu job share a cache of the downloaded Linux packages.
 
 | When the rehearsal on main runs | Why |
 |---|---|
 | A push to main changes `Cargo.lock`, a `Cargo.toml`, `rust-toolchain.toml` or `release.yml` | The cache key changes; CI's `release-cache` job starts it. |
-| A push to main finds no Mac, Intel Mac or Windows release cache on main | GitHub deleted it, or it was never made (the first push after this setup); CI's `release-cache` job starts it, unless a rehearsal on main is already running. |
+| A push to main finds no Intel Mac or Windows release cache on main | GitHub deleted it, or it was never made (the first push after this setup); CI's `release-cache` job starts it, unless a rehearsal on main is already running. |
 | Every Monday at 13:30 UTC | GitHub deletes caches unused for 7 days. |
 | By hand, **Run workflow** on main | Whenever the cache is cold. |
 
-The cache is cold when a release's `Swatinem/rust-cache` step says "No cache found", or when it restores an older key (the dependencies changed since the last rehearsal). The release still works; it is just slower (about 50 minutes on the Intel Mac instead of about 20). To warm it, run the rehearsal on main (or push to main) and wait for it to finish before pushing the tag.
+The cache is cold when a release's `Swatinem/rust-cache` step says "No cache found", or when it restores an older key (the dependencies changed since the last rehearsal). The release still works; it is just slower (about 40 minutes on the Intel Mac instead of about 22, and about 33 instead of 17 on Windows). To warm it, run the rehearsal on main (or push to main) and wait for it to finish before pushing the tag.
 
 The repository has 10 GB of cache space. When it is full GitHub deletes the caches used longest ago, so the release caches can be pushed out by CI's.
 

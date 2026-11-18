@@ -199,7 +199,7 @@ jobs:
             why="the Rust dependencies, the toolchain or release.yml changed"
           fi
           # Also after GitHub deleted one (unused for 7 days, or pushed out of the 10 GB).
-          for platform in mac mac-intel windows; do
+          for platform in mac-intel windows; do
             if [[ -z "$(gh cache list -R "$GITHUB_REPOSITORY" --ref refs/heads/main --key "v0-rust-release-$platform-package-" --json id --jq '.[].id')" ]]; then
               why="main has no $platform release cache"
             fi
