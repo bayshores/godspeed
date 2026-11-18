@@ -125,8 +125,10 @@ jobs:
         timeout-minutes: 5
         run: node scripts/smoke-server.mjs
       # On the Mac the window job runs these, beside this one.
+      # A hung test fails in minutes, not at the job's hour.
       - name: Shell tests
         if: runner.os != 'macOS'
+        timeout-minutes: 15
         run: |
           if [[ "$RUNNER_OS" == Linux ]]; then xvfb-run -a cargo test -p gs-shell; else cargo test -p gs-shell; fi
       - name: Demo runner self-test in the real app
@@ -160,6 +162,7 @@ jobs:
       - run: node scripts/fetch-model.mjs
       - run: node scripts/fetch-pdfium.mjs
       - name: Shell tests
+        timeout-minutes: 15
         run: cargo test -p gs-shell
       - name: Demo runner self-test in the real app
         run: |
