@@ -155,13 +155,10 @@ describe("the open lesson in the top bar", () => {
 		assert.ok(q("bar-crumb")!.contains(q("lesson-title")));
 	});
 
-	it("lays its words out in order: plugins, the size, Find, Cheat sheet, More, then the homework file", async () => {
-		(window as unknown as { lh: unknown }).lh = { openPath: async () => {}, showInFolder: async () => {} };
+	it("lays its words out in order: plugins, the size, Find, Cheat sheet, More", async () => {
 		const plugins = { words: [{ id: "memes", label: "Memes" }], open: null, onToggle() {} };
-		await mount({ sheet: { open: false, onToggle() {} }, plugins, file: { name: "HW6.pdf", path: "/tmp/HW6.pdf" }, page: 2 });
-		assert.deepEqual(words(), ["Memes", "3k", "Find in lesson", "Cheat sheet", "More for Study: counting", "HW6.pdf, page 2"]);
-		assert.equal(q("lesson-assignment")!.textContent, "HW6.pdf, page 2");
-		delete (window as unknown as { lh?: unknown }).lh;
+		await mount({ sheet: { open: false, onToggle() {} }, plugins });
+		assert.deepEqual(words(), ["Memes", "3k", "Find in lesson", "Cheat sheet", "More for Study: counting"]);
 	});
 
 	it("Find is the magnifying glass with its key, and says both to a screen reader", async () => {

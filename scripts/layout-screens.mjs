@@ -7,7 +7,7 @@ import { WAITING_TOPIC } from "./layout-seed.mjs";
  * `shows`. `ready` and `shows` name something drawn from the screen's data, not its frame, so the
  * check never runs on a screen still loading. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
- * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkOpenDeadline}`, `{pending}` and `{pathSpace}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
+ * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{pending}` and `{pathSpace}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
 export const WIDTHS = [1440, 1100, 800];
@@ -213,7 +213,15 @@ Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(bo
 box.dispatchEvent(new Event("input", { bubbles: true })); ${pause}`,
 		shows: "[data-testid=session-find-count]:not(:empty)",
 	},
-	{ name: "Homework lesson with an open problem", url: "/chat/{homeworkOpen}", ready: "[data-testid=open-problem]" },
+	{ name: "Homework lesson with a three-part problem on part (b)", url: "/chat/{homeworkOpen}", ready: "[data-part-current] ~ [data-part-head=c][aria-expanded=false]", shows: "[data-testid=lesson-assignment]" },
+	{
+		name: "Homework lesson with a folded part opened",
+		url: "/chat/{homeworkOpen}",
+		ready: "[data-part-head=a][aria-expanded=false]",
+		setup: `document.querySelector("[data-part-head=a]").click()`,
+		shows: "[data-part-head=a][aria-expanded=true]",
+	},
+	{ name: "Lesson with a problem longer than the window", url: "/chat/{longProblem}", ready: "[data-testid=open-problem]" },
 	{ name: "Homework lesson before a problem opens", url: "/chat/{homeworkFirst}", ready: "[data-testid=next-problem-button]" },
 	{ name: "Homework lesson with fourteen problems, the first done", url: "/chat/{homeworkMany}", ready: "[data-testid=plan-fold]" },
 	{ name: "Homework with fourteen problems, unfolded", url: "/chat/{homeworkMany}", ready: "[data-testid=plan-fold]", setup: unfoldSteps, shows: "[data-testid=plan-step][data-status=done] [data-testid=problem-pick]" },

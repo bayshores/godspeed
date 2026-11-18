@@ -107,7 +107,7 @@ fn problem_tool(homework: Arc<dyn HomeworkDeadline>, open: &Arc<Mutex<Option<Str
 fn part_tool(open: &Arc<Mutex<Option<String>>>) -> FnTool {
 	let open = open.clone();
 	let parameters = object(&["part"], vec![("part", string("REQUIRED \u{2014} the part as the problem labels it, e.g. \"a\", \"b\", \"2\"."))]);
-	let description = "For a problem with parts: mark the part the learner works on now, when they start it. Their panel marks it and scrolls the problem to it. Doesn't end the turn.";
+	let description = "For a problem with parts: mark the part the learner works on now, when they start it. Their panel opens that part and folds the others. Doesn't end the turn.";
 	FnTool::immediate("part", description, parameters, move |_args| {
 		if open.lock().is_none() {
 			return invalid_input_result("part", &["no problem is open".to_owned()]);

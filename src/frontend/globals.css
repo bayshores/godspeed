@@ -334,9 +334,27 @@ body {
 	color: var(--lh-ink-body);
 }
 
-/* A part of the open problem the learner is not on. */
-[data-other-part] {
-	opacity: 0.6;
+/* A part of the open problem the learner is not on: its first line opens and
+   folds it. Folded, that line is cut to one line and the rest is hidden. */
+[data-part-head] {
+	cursor: pointer;
+}
+[data-part-head][aria-expanded="false"] {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 1;
+	overflow: hidden;
+	color: var(--color-ink-2);
+}
+[data-part-head][aria-expanded="false"]:hover {
+	color: var(--color-ink);
+}
+[data-part-fold] {
+	display: none;
+}
+/* The last block shown keeps no space under it for the hidden ones. */
+:not([data-part-fold]):has(~ [data-part-fold]):not(:has(~ :not([data-part-fold]))) {
+	margin-bottom: 0;
 }
 
 .lh-prose :where(strong, b) {
@@ -670,6 +688,21 @@ body {
 .lh-lesson-room {
 	--lh-pair: min(100cqw - 2 * var(--lh-page-side), var(--lh-page-w));
 	--lh-turn: clamp(560px, min((var(--lh-pair) - var(--lh-gap)) / 2, var(--lh-pair) - var(--lh-gap) - 632px), 688px);
+}
+/* Side by side, "Your turn" (.lh-turn-fit) holds still while the text scrolls and always fits
+   the page's window (the scroller is a size container, so 100cqh is its height). Only its
+   question or problem (.lh-turn-scroll) shrinks, and scrolls in its own box. */
+@container room (width >= 1280px) {
+	.lh-turn-fit {
+		position: sticky;
+		top: var(--lh-gap);
+		display: flex;
+		flex-direction: column;
+		max-height: calc(100cqh - 2 * var(--lh-gap));
+	}
+	.lh-turn-scroll {
+		overflow-y: auto;
+	}
 }
 
 /* A reading surface: the lesson text's sheet and "Your turn". */

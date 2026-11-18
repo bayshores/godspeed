@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { keepPair, restingTop, turnStick, wholeLineTop } from "../../src/frontend/components/lesson/lesson-scroll-model.ts";
+import { keepPair, restingTop, wholeLineTop } from "../../src/frontend/components/lesson/lesson-scroll-model.ts";
 
 /** Where the lesson page rests: its end, unless that hides the start of the newest thing. */
 
@@ -45,36 +45,10 @@ describe("where the lesson page rests with Your turn under the text", () => {
 });
 
 describe("where the lesson page rests with Your turn beside the text", () => {
-	const view = 600;
-	const beside = (height: number) => ({ top: 24, height, beside: true });
-
-	it("at its end while Your turn fits the window, so the newest text shows", () => {
-		assert.equal(restingTop(2000, { view, pads, sheet: beside(500), part: null, reply: null }), 2000);
-	});
-
-	it("short of its end by as much as a tall sheet overflows, so the sheet shows its top", () => {
-		// 700 tall with 24 above and 28 below needs 752; the window shows 600.
-		assert.equal(restingTop(2000, { view, pads, sheet: beside(700), part: null, reply: null }), 2000 - 152);
-	});
-
-	it("lower by the part's depth when the learner's part sits deep in a tall sheet", () => {
-		assert.equal(restingTop(2000, { view, pads, sheet: beside(1200), part: 400, reply: null }), 2000 - 652 + 400);
-		assert.equal(restingTop(2000, { view, pads, sheet: beside(700), part: 400, reply: null }), 2000);
-	});
-
-	it("at its end once the teacher writes back, since the reply is the text's newest words", () => {
-		assert.equal(restingTop(2000, { view, pads, sheet: beside(700), part: null, reply: 1800 }), 2000);
-	});
-});
-
-describe("how Your turn holds still beside the text", () => {
-	it("under the step line while it fits the window", () => {
-		assert.deepEqual(turnStick(500, 600, pads), { alignSelf: "start", top: pads.top });
-	});
-
-	it("taller, at its column's foot with its top held under the step line until the page's end", () => {
-		// Its bottom may sit 600 - 24 - 700 below the window's foot, so its top is never below 24.
-		assert.deepEqual(turnStick(700, 600, pads), { alignSelf: "end", bottom: -124 });
+	it("at its end, since Your turn always fits the window there, whatever part it is on or whether the teacher writes back", () => {
+		const sheet = { top: 24, height: 500, beside: true };
+		assert.equal(restingTop(2000, { view: 600, pads, sheet, part: null, reply: null }), 2000);
+		assert.equal(restingTop(2000, { view: 600, pads, sheet, part: 400, reply: 1800 }), 2000);
 	});
 });
 

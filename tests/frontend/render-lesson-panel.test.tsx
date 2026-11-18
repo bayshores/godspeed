@@ -60,7 +60,7 @@ const quiz = { tool: "quiz", toolCallId: "q1", input: quizInput };
 const check = { tool: "quiz", toolCallId: "t1", input: { ...quizInput, type: "check" } };
 const written = { tool: "ask_user_question", toolCallId: "a1", input: { question: "Why does it converge?" } };
 const choice = { tool: "ask_user_question", toolCallId: "a2", input: { question: "How do you want to start?", options: [{ label: "From an example" }, { label: "From the definition" }] } };
-const problem = { toolCallId: "p1", statement: "Find E[N].", line: "Practice, problem 2", part: null };
+const problem = { toolCallId: "p1", statement: "Find E[N].", line: "Practice, problem 2", part: null, file: null };
 
 const marco: TeacherApi = {
 	name: "marco",
@@ -354,6 +354,38 @@ describe("Your turn in each state", () => {
 		assert.match(out, /Find E\[N\]\./);
 	});
 
+	it("a homework problem's file and page sit at the end of the title line, and open the file", async () => {
+		const opened: string[] = [];
+		(window as unknown as { lh: unknown }).lh = { openPath: async (path: string) => void opened.push(path), showInFolder: async () => {} };
+		try {
+			const file = { name: "HW6.pdf", path: "/tmp/HW6.pdf", page: 2 };
+			assert.match(html({ problem: { ...problem, line: null, part: "b", file } }), /<h2[^>]*>Your turn<\/h2><button[^>]*data-testid="lesson-assignment"[^>]*title="HW6.pdf, page 2"/);
+			assert.doesNotMatch(html({ pending: quiz, problem: { ...problem, file } }), /lesson-assignment/, "not over a question asked while it is open");
+			await mounted(turn({ problem: { ...problem, file } }), async (host) => {
+				assert.equal(host.querySelector('[data-testid="lesson-assignment"]')!.textContent, "HW6.pdf, page 2");
+				await click(host, "lesson-assignment");
+			});
+			assert.deepEqual(opened, ["/tmp/HW6.pdf"]);
+		} finally {
+			delete (window as unknown as { lh?: unknown }).lh;
+		}
+	});
+
+	it("a homework problem folds the parts the learner is not on to their first line, and a click opens and folds one", async () => {
+		const statement = "Solve each equation.\n\n(a) First\n\n(b) Second\n\n(c) Third";
+		await mounted(turn({ problem: { ...problem, line: null, part: "b", statement } }), async (host) => {
+			const head = (label: string) => host.querySelector(`[data-part-head="${label}"]`)!;
+			assert.equal(head("a").getAttribute("role"), "button");
+			assert.equal(head("a").getAttribute("aria-expanded"), "false");
+			assert.equal(head("c").getAttribute("aria-expanded"), "false");
+			assert.match(host.querySelector("[data-part-current]")!.textContent!, /\(b\) Second/);
+			await act(async () => (head("a") as HTMLElement).click());
+			assert.equal(head("a").getAttribute("aria-expanded"), "true");
+			await act(async () => (head("a") as HTMLElement).click());
+			assert.equal(head("a").getAttribute("aria-expanded"), "false");
+		});
+	});
+
 	it("a problem without a line shows only the statement", () => {
 		assert.doesNotMatch(html({ problem: { ...problem, line: null } }), /problem-line/);
 	});
@@ -398,7 +430,7 @@ describe("Your turn in each state", () => {
 		assert.match(html({ pending: quiz, busy: true }), skip, "Stop sits in the lesson text, not here");
 		assert.match(html({ problem, busy: true }), /data-testid="turn-foot"[\s\S]*data-testid="discard-problem"/);
 		assert.doesNotMatch(html({ pending: quiz, busy: true }), /stop-turn/);
-		assert.match(html({ pending: quiz }), /<h2[^>]*>Your turn<\/h2><div/, "the head is only the title");
+		assert.match(html({ pending: quiz }), /<h2[^>]*>Your turn<\/h2><\/div><div/, "the head is only the title");
 
 		const asked: string[] = [];
 		const handlers = { onSkipQuestion: () => asked.push("question"), onDiscardProblem: () => asked.push("problem") };

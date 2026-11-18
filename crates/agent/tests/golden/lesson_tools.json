@@ -6219,7 +6219,7 @@
 			},
 			{
 				"name": "part",
-				"description": "For a problem with parts: mark the part the learner works on now, when they start it. Their panel marks it and scrolls the problem to it. Doesn't end the turn.",
+				"description": "For a problem with parts: mark the part the learner works on now, when they start it. Their panel opens that part and folds the others. Doesn't end the turn.",
 				"parameters": {
 					"type": "object",
 					"required": [

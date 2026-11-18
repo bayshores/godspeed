@@ -1,13 +1,28 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
-import { otherParts, partElement } from "./problem-parts";
+import { partMarks, toggled, type PartMarks } from "./problem-parts";
 import { proseVars } from "./question-parts";
 
+const MARKED = "[data-part-current], [data-part-head], [data-part-fold]";
+const NAMES = ["data-part-current", "data-part-head", "data-part-fold", "role", "tabindex", "aria-expanded"];
+
+/** Puts `marks` on the statement's blocks and takes the old ones off, touching
+ *  only what changes, so a focused part keeps its focus. */
+function apply(root: HTMLElement, marks: PartMarks) {
+	for (const el of root.querySelectorAll<HTMLElement>(MARKED)) {
+		const keep = marks.get(el) ?? {};
+		for (const name of NAMES) if (!(name in keep)) el.removeAttribute(name);
+	}
+	for (const [el, attrs] of marks) {
+		for (const [name, value] of Object.entries(attrs)) if (el.getAttribute(name) !== value) el.setAttribute(name, value);
+	}
+}
+
 /**
- * The open problem under "Your turn": the whole problem, the part the
- * teacher marked in full ink (data-part-current, where the page may rest)
- * and the other parts lighter. The learner works on it in the writing box
- * under it.
+ * The open problem under "Your turn": the whole problem, the part the teacher
+ * marked open (data-part-current, where the page may rest) and every other
+ * part folded to its first line, which opens it on a click and folds it on
+ * the next. The learner works on it in the writing box under it.
  */
 export function OpenProblemPane({
 	statement,
@@ -18,31 +33,46 @@ export function OpenProblemPane({
 	part: string | null;
 }) {
 	const statementRef = useRef<HTMLDivElement>(null);
+	// The other parts the learner opened; a newly marked part folds them again.
+	const [opened, setOpened] = useState<readonly string[]>([]);
+	const [openedFor, setOpenedFor] = useState(part);
+	if (openedFor !== part) {
+		setOpenedFor(part);
+		setOpened([]);
+	}
+
+	// Clicks and keys on the other parts' first lines; the marks go with the part.
 	useEffect(() => {
 		const root = statementRef.current;
 		if (!part || !root) return;
-		const mark = () => {
-			const others = otherParts(root, part);
-			const current = partElement(root, part);
-			for (const el of root.querySelectorAll("[data-other-part], [data-part-current]")) {
-				if (!others.includes(el as HTMLElement)) el.removeAttribute("data-other-part");
-				if (el !== current) el.removeAttribute("data-part-current");
-			}
-			for (const el of others) el.setAttribute("data-other-part", "");
-			current?.setAttribute("data-part-current", "");
+		const toggle = (e: Event) => {
+			const target = e.target as Element;
+			const head = target.closest("[data-part-head]");
+			if (!head || target.closest("a")) return;
+			e.preventDefault();
+			setOpened((now) => toggled(now, head.getAttribute("data-part-head")!));
 		};
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Enter" || e.key === " ") toggle(e);
+		};
+		root.addEventListener("click", toggle);
+		root.addEventListener("keydown", onKey);
+		return () => {
+			root.removeEventListener("click", toggle);
+			root.removeEventListener("keydown", onKey);
+			apply(root, new Map());
+		};
+	}, [part]);
+	useEffect(() => {
+		const root = statementRef.current;
+		if (!part || !root) return;
+		const mark = () => apply(root, partMarks(root, part, opened));
 		mark();
 		// Code and math finish drawing after this.
 		const ro = new ResizeObserver(mark);
 		ro.observe(root);
-		return () => {
-			ro.disconnect();
-			for (const el of root.querySelectorAll("[data-other-part], [data-part-current]")) {
-				el.removeAttribute("data-other-part");
-				el.removeAttribute("data-part-current");
-			}
-		};
-	}, [part]);
+		return () => ro.disconnect();
+	}, [part, opened]);
 
 	return (
 		<div data-testid="open-problem" className="flex flex-col gap-2">

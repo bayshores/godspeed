@@ -6,7 +6,7 @@ import { SessionMessageNavigation } from "@/frontend/components/session-navigati
 import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
-import { keepPair, type Pads, restingTop, turnStick, wholeLineTop } from "./lesson-scroll-model";
+import { keepPair, type Pads, restingTop, wholeLineTop } from "./lesson-scroll-model";
 
 /**
  * The lesson text's reading measure: the page's one width of its own. Everything else takes
@@ -65,10 +65,11 @@ function linesAt(root: Element, y: number, origin: number): { top: number; botto
 
 /**
  * THE LESSON PAGE: the step line pinned on top, then the page that scrolls as a whole: the
- * lesson text's sheet and, while something waits, "Your turn", each as tall as what it holds.
- * With room for both they sit side by side and "Your turn" holds still while the text scrolls
- * (turnStick); with less it sits under the text. The page rests where restingTop says: on open,
- * when the teacher asks (`restKey` changes) and while the teacher writes. When a reply lands it
+ * lesson text's sheet and, while something waits, "Your turn". With room for both they sit side
+ * by side and "Your turn" holds still while the text scrolls, always inside the window, where
+ * only its question or problem scrolls (.lh-turn-fit); with less it sits under the text, each
+ * sheet as tall as what it holds. The page rests where restingTop says: on open, when the
+ * teacher asks (`restKey` changes) and while the teacher writes. When a reply lands it
  * holds still while the desk leaves, then is placed at once as the reply draws in. "Your turn"
  * fades out when it closes and, arriving with a reply, steps in after the reply's text. Scrolled
  * up, the key in the corner brings the learner back.
@@ -104,7 +105,6 @@ export function LessonScroll({
 	if (hasTurn !== (stepIn !== null)) setStepIn(hasTurn ? true : null);
 
 	const columnRef = useRef<HTMLDivElement>(null);
-	const turnRef = useRef<HTMLDivElement>(null);
 
 	// The teacher writing back while "Your turn" stays open makes its reply the newest thing.
 	const replyRef = useRef(false);
@@ -189,21 +189,6 @@ export function LessonScroll({
 		return () => cancelAnimationFrame(frame);
 	}, [restKey, contextRef, settleUp]);
 
-	// Beside the text, "Your turn" holds still as the page scrolls, measured against the window.
-	const [stick, setStick] = useState<CSSProperties | undefined>();
-	useLayoutEffect(() => {
-		const el = turnRef.current;
-		const scroller = contextRef.current?.scrollRef.current;
-		const column = columnRef.current;
-		if (!el || !scroller || !column) return;
-		const place = () => setStick(sideBySide(column) ? { position: "sticky", ...turnStick(el.offsetHeight, scroller.clientHeight, padsOf(column)) } : undefined);
-		const ro = new ResizeObserver(place);
-		ro.observe(el);
-		ro.observe(scroller);
-		ro.observe(column);
-		return () => ro.disconnect();
-	}, [hasTurn, contextRef]);
-
 	return (
 		<div className="lh-lesson-room @container/room flex min-h-0 min-w-0 flex-col [grid-area:main]">
 			{/* A sheet of its own, so the page scrolls under its edge; shown only when the step line draws something, and
@@ -215,17 +200,17 @@ export function LessonScroll({
 			</div>
 			<Conversation className="min-h-0 min-w-0 flex-1" initial="instant" contextRef={contextRef} targetScrollTop={target}>
 				<SessionMessageNavigation />
-				<ConversationContent className="gap-0 p-0" scrollClassName="[overflow-anchor:none]">
-					<div className="lh-page pt-(--lh-gap) pb-(--lh-page-end)">
+				<ConversationContent className="gap-0 p-0" scrollClassName="[overflow-anchor:none] [container-type:size]">
+					{/* Side by side the page ends a gap under the sheets, so "Your turn" has the window's height to fill. */}
+					<div className={cn("lh-page pt-(--lh-gap) pb-(--lh-page-end)", pair && "@min-[1280px]/room:pb-(--lh-gap)")}>
 						<div ref={columnRef} data-testid="lesson-column" className={cn("@container/column flex flex-col gap-(--lh-gap)", READING_MEASURE, pair && [PAIR, PAIR_GRID])}>
 							{reading}
 							{hasTurn && (
 								<div
-									ref={turnRef}
 									data-state={closing ? "closed" : "open"}
 									inert={closing}
-									className={cn("min-w-0", closing ? "lh-fade" : stepIn && "lh-block-in")}
-									style={{ ...stick, "--lh-block-delay": "240ms" } as CSSProperties}
+									className={cn("lh-turn-fit min-w-0", closing ? "lh-fade" : stepIn && "lh-block-in")}
+									style={{ "--lh-block-delay": "240ms" } as CSSProperties}
 								>
 									{shownTurn}
 								</div>

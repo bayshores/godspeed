@@ -12,7 +12,7 @@ type Sheet = {
 	/** Its top, from the page's top. */
 	top: number;
 	height: number;
-	/** Beside the lesson text, held in view as the text scrolls, instead of under it. */
+	/** Beside the lesson text, where it always fits the window, instead of under it. */
 	beside: boolean;
 };
 
@@ -23,31 +23,16 @@ type Sheet = {
  * begins). Under the text, "Your turn" ends at the window's end; when that would hide the start
  * of the newest thing, the page rests on that start instead: the learner's last message once the
  * teacher writes back while "Your turn" stays open, else the part the learner is on when it sits
- * deep in the sheet, else the sheet's top. Beside the text, a sheet taller than the window shows
- * its top while the page rests just short of its end, by as much as the sheet overflows. Places
- * are measured from the page's top; `part` from the sheet's.
+ * deep in the sheet, else the sheet's top. Beside the text "Your turn" always fits the window, so
+ * the page rests at its end. Places are measured from the page's top; `part` from the sheet's.
  */
 export function restingTop(end: number, page: { view: number; pads: Pads; sheet: Sheet | null; part: number | null; reply: number | null }): number {
 	const { view, pads, sheet, part, reply } = page;
 	if (sheet === null) return reply === null ? end : Math.max(0, Math.min(end, reply - pads.top));
+	if (sheet.beside) return end;
 	const deepPart = part !== null && part > view * PART_DEPTH ? part : null;
-	if (sheet.beside) {
-		const over = Math.max(0, sheet.height + pads.top + pads.end - view);
-		if (reply !== null || over === 0) return end;
-		return Math.max(0, end - over + Math.min(over, deepPart ?? 0));
-	}
 	const start = reply ?? (deepPart === null ? sheet.top : sheet.top + deepPart);
 	return Math.max(0, Math.min(end, start - pads.top));
-}
-
-/**
- * How "Your turn" holds still beside the lesson text (sticky). While it fits the window it
- * stays under the step line. Taller, it sits at the foot of its column and shows its top
- * until the page nears its end, then slides up with the page so its foot (the box and its
- * keys) comes into view at the end.
- */
-export function turnStick(height: number, view: number, pads: Pads): { alignSelf: "start"; top: number } | { alignSelf: "end"; bottom: number } {
-	return height + pads.top + pads.end <= view ? { alignSelf: "start", top: pads.top } : { alignSelf: "end", bottom: view - pads.top - height };
 }
 
 /**

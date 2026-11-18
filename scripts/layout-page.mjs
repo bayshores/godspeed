@@ -16,6 +16,8 @@
  *   edge).
  * - cut-off letters: a box that clips (truncate, line-clamp, overflow-hidden) cuts off the top or
  *   bottom of letters it shows, such as the tail of a "g".
+ * - turn foot: beside the lesson text, the foot of "Your turn" (the Stuck? keys and the way out)
+ *   reaches past the lesson's window, so the learner would scroll to answer.
  * - spacing: a page leaves the shared spacing (globals.css :root): a card (.lh-card) whose sides
  *   or bottom are not the inset, a reading surface (.lh-reading, the lesson text and "Your
  *   turn") whose sides are not the reading inset or its narrow step, two sheets in one page
@@ -504,9 +506,27 @@ function spacings() {
 	return found;
 }
 
+/** Turn foot: side by side with the lesson text, "Your turn" fits the lesson's window, its foot
+ *  row included, at every scroll. */
+function turnFoot() {
+	const foot = document.querySelector("[data-testid=turn-foot]");
+	const column = document.querySelector("[data-testid=lesson-column]");
+	if (!foot || !column || getComputedStyle(column).display !== "grid" || !shown(foot)) return [];
+	let view = { top: 0, bottom: innerHeight };
+	for (let node = foot.parentElement; node; node = node.parentElement) {
+		if (!SCROLLS.includes(getComputedStyle(node).overflowY)) continue;
+		const box = node.getBoundingClientRect();
+		view = { top: Math.max(0, box.top), bottom: Math.min(innerHeight, box.bottom) };
+		break;
+	}
+	const box = foot.getBoundingClientRect();
+	if (box.top >= view.top - SLACK && box.bottom <= view.bottom + SLACK) return [];
+	return [finding("turn foot", [foot], `${label(foot)} spans ${Math.round(box.top)} to ${Math.round(box.bottom)} px, outside the lesson's window (${Math.round(view.top)} to ${Math.round(view.bottom)} px) beside the lesson text`)];
+}
+
 /** Every finding on the page as it is now, each once. */
 export function checkPage() {
-	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...spacings()];
+	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings()];
 	const seen = new Set();
 	return all.filter((f) => !seen.has(f.key) && seen.add(f.key));
 }

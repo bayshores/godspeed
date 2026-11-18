@@ -11,9 +11,8 @@ export function yourTurnShown(s: { pending: boolean; problem: boolean; stop: boo
 
 /**
  * THE TURN SHEET, beside the lesson text's sheet or under it: "Your turn", while
- * something waits for the learner, as tall as what it holds. The teacher's
- * status, terminal, Activity and Follow live in the top bar's pill, as on
- * every page.
+ * something waits for the learner. The teacher's status, terminal, Activity
+ * and Follow live in the top bar's pill, as on every page.
  */
 export function TurnSheet({
 	spaceId,
@@ -49,10 +48,10 @@ export function TurnSheet({
 		<aside
 			data-testid="turn-sheet"
 			aria-label="Your turn"
-			className="min-w-0"
+			className="flex min-h-0 min-w-0 flex-col"
 			style={{ "--lh-pale": color ? paleSpaceColor(color) : "var(--color-tone)" } as React.CSSProperties}
 		>
-			<Pane>
+			<Pane className="flex min-h-0 flex-col">
 				<YourTurn
 					{...turn}
 					revealPending={pending !== null && requiresReveal && !revealed}

@@ -565,6 +565,7 @@ export function Chat({
 		statement: (activeProblem.input as { statement: string }).statement,
 		line: !openProblem && practice ? `Problem ${practice.blocks.length}` : null,
 		part: openProblem ? (problems?.part ?? null) : null,
+		file: openProblem && homework?.assignment ? { ...homework.assignment, page: openProblem.page } : null,
 	};
 
 	const turnShown = yourTurnShown({ pending: pending !== null, problem: problem !== null, stop: lessonStop.card !== null, stuck: stuckLine !== null, error: errorLine !== null, reviewRefused });
@@ -581,8 +582,6 @@ export function Chat({
 								spaceId={spaceId}
 								sheet={spaceId ? { open: sheetOpen, onToggle: toggleSheet } : undefined}
 								plugins={{ words: lessonPlugins ?? [], open: openPlugin?.id ?? null, onToggle: togglePlugin }}
-								file={homework?.assignment ?? undefined}
-								page={openProblem?.page}
 								stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={SUMMARIZE_AT} pricing={pricing} />}
 								scopeRef={sessionFindScopeRef}
 								scrollContextRef={scrollContextRef}

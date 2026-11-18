@@ -8,7 +8,7 @@
  * teaching reply with no problem open, and one has fourteen problems with the first done and none open.
  * Eight more lessons are studied (a plan of two steps, a quiz on the last one, answered) and two are
  * left open (a quiz on the first step, unanswered), so the Lessons block on Progress has both groups
- * and a Show all. Their titles are of mixed length, one very long. One more lesson is made and
+ * and a Show all. One more poses a practice problem longer than the window, still open. Their titles are of mixed length, one very long. One more lesson is made and
  * never sent: the window sends its first message, whose reply waits for an agent.
  * A second space, "Backend jobs",
  * has a path toward a goal and nothing else. The window installs the plugin
@@ -52,10 +52,24 @@ const WRITTEN_REPLY = {
 	tool_calls: [{ name: "ask_user_question", arguments: { question: "In your own words, why do we undo the steps in reverse order?" } }],
 };
 const OPEN_TOPICS = ["Inequalities on a number line", "Slope-intercept form, with every kind of mistake people make while plotting by hand and reading the result back"];
+/** A lesson whose open practice problem is one part longer than the window. */
+const LONG_PROBLEM_TOPIC = "Equations from a story";
+const LONG_PROBLEM = [
+	"Two trains leave stations 300 miles apart at noon and run toward each other on the same line. The first runs at a steady $x$ miles an hour. The second runs 15 miles an hour faster than the first, but it stops for half an hour at a town halfway along before it goes on at the same speed.",
+	"A dispatcher sees them pass each other at a quarter to three. She writes one equation for the distance the first train covers, one for the second, and sets their sum equal to the distance between the stations:",
+	"$$x \\cdot 2.75 + (x + 15)(2.75 - 0.5) = 300$$",
+	"Say what each piece of her equation stands for, in words, and why the second train's time is shorter than the first train's. Then solve for $x$, and give both trains' speeds.",
+	"Last, check your answer: put both speeds back into the story and work out how far each train has gone when they pass. Do the two distances add up to 300 miles? If they do not, find the step where the equation and the story stopped agreeing, and fix it.",
+].join("\n\n");
 
 const HOMEWORK_PROBLEMS = {
 	[HOMEWORK_OPEN]: [
-		{ number: "1", title: "Solve two equations", text: "Solve each equation.\n\n(a) $2x + 3 = 11$\n\n(b) $\\frac{x}{3} - 4 = 2$", page: 1 },
+		{
+			number: "1",
+			title: "Solve three equations",
+			text: "Solve each equation.\n\n(a) $2x + 3 = 11$, then put your answer back into the equation and say why both sides now agree\n\n(b) $\\frac{x}{3} - 4 = 2$\n\n(c) Solve for $x$ and graph both sides as lines:\n\n$$5 - 2x = -7$$",
+			page: 1,
+		},
 		{ number: "2", title: "Graph a line", text: "Graph $y = 2x + 3$ and mark where it crosses the axes.", page: 2 },
 	],
 	[HOMEWORK_FIRST]: [
@@ -165,6 +179,13 @@ function answerFor(work, ids, lessonTurn) {
 	if (work.lessonId === ids.written) return WRITTEN_REPLY;
 	if (ids.studied.includes(work.lessonId)) return shortLessonAnswer(lessonTurn, true);
 	if (ids.open.includes(work.lessonId)) return shortLessonAnswer(lessonTurn, false);
+	if (work.lessonId === ids.longProblem) {
+		if (lessonTurn === 0) return shortLessonAnswer(0, false);
+		if (lessonTurn === 1) {
+			const problem = { nodeId: "first-step", statement: LONG_PROBLEM, mode: "composition", modelSolution: "2.75x + 2.25(x + 15) = 300, so 5x = 266.25 and x = 53.25: 53.25 and 68.25 miles an hour." };
+			return { text: "Try this one.", tool_calls: [{ name: "problem", arguments: problem }] };
+		}
+	}
 	if (work.task?.startsWith("Graph extraction")) {
 		return { tool_calls: [{ name: "submit_findings", arguments: { propositions: [{ id: "p1", name: "Undo in reverse", statement: "To solve ax + b = c, subtract b from both sides, then divide by a." }], chains: [], reteaches: [] } }] };
 	}
@@ -251,6 +272,8 @@ export async function seed(dataDir, page, log) {
 		await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: id, input: { type: "continue" } }) });
 		return id;
 	};
+	// The homework with a problem open has the made-up file as its assignment, so "Your turn" names it.
+	await agent.call("update_space_deadline", { space_id: space.id, deadline_id: deadlineNamed(HOMEWORK_OPEN), assignment_file_id: passage.split(":")[0] });
 	const homeworkOpen = await homeworkLesson(HOMEWORK_OPEN);
 	const homeworkFirst = await homeworkLesson(HOMEWORK_FIRST);
 	const homeworkMany = await homeworkLesson(HOMEWORK_MANY);
@@ -260,6 +283,7 @@ export async function seed(dataDir, page, log) {
 	for (const topic of STUDIED_TOPICS) studied.push(await startLesson(topic));
 	const open = [];
 	for (const topic of OPEN_TOPICS) open.push(await startLesson(topic));
+	const longProblem = await startLesson(LONG_PROBLEM_TOPIC);
 
 	// Answer every item until the queue stays empty for two teacher and two helper waits in a row. A respond answers with the
 	// next item when one waits. godspeed's own jobs (the space check) go to a helper, so an empty
@@ -268,12 +292,12 @@ export async function seed(dataDir, page, log) {
 	let helper = false;
 	const wait = () => agent.call("wait_for_work", { timeout_seconds: 3, ...(helper ? { helper: true } : {}) });
 	const turns = new Map();
-	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, studied, open, written };
+	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, studied, open, written, longProblem };
 	const drain = async () => {
 		let reply = await wait();
 		for (let idle = 0, tries = 0; idle < 4; tries++) {
 			// Each added lesson is two items, and an item is two passes: the work, then its "turn done".
-			if (tries > 20 + 4 * (studied.length + open.length + 1)) throw new Error("the stand-in agent never ran out of work");
+			if (tries > 20 + 4 * (studied.length + open.length + 2)) throw new Error("the stand-in agent never ran out of work");
 			const header = JSON.parse(reply[0]);
 			if (header.status !== "work") {
 				if (header.status === "idle") helper = !helper;
@@ -310,5 +334,5 @@ export async function seed(dataDir, page, log) {
 	const covers = (topic) => `Enough ${topic} to get a junior job by spring, with typing practice daily.`;
 	const steps = ["Git and pull requests", "HTTP and APIs", "SQL querying", "Typing in Python", "Caching layers", "Deploying apps", "Logging and paging", "Security group policy"];
 	const goal = await agent.json("create_space", { name: "Backend jobs", icon: "code", path: { goal: "backend developer jobs", topics: steps.map((name) => ({ name, covers: covers(name) })) } });
-	return { space: space.id, lesson: lessonId, written, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), pathSpace: goal.space.id };
+	return { space: space.id, lesson: lessonId, written, longProblem, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), pathSpace: goal.space.id };
 }

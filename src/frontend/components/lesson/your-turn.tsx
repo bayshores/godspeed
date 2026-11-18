@@ -7,6 +7,8 @@ import type { AttachmentDraft } from "./attachment-tray";
 import { LessonBox } from "./lesson-box";
 import { HELP_LINES, lessonBox, questionTurn, type BoxAction, type BoxView } from "./lesson-box-model";
 import { OpenProblemPane } from "./open-problem-pane";
+import { ProblemFile, type ProblemFileRef } from "./problem-file";
+import { TurnScroll } from "./turn-scroll";
 import { StopCard } from "./stop-card";
 import type { StopAction, StopCardView } from "./stop-card-model";
 
@@ -22,8 +24,8 @@ export interface YourTurnProps {
 	/** His answer to a question from earlier was refused: it was no longer due. */
 	reviewRefused: boolean;
 	/** The open problem, with its line ("Problem 2", practice only) and, for
-	 *  homework, the part the learner is on. */
-	problem: { toolCallId: string; statement: string; line: string | null; part: string | null } | null;
+	 *  homework, the part the learner is on and the file it is from. */
+	problem: { toolCallId: string; statement: string; line: string | null; part: string | null; file: ProblemFileRef | null } | null;
 	/** Opens the discard confirm for the open problem. */
 	onDiscardProblem: () => void;
 	/** The answer box, for the problem row to bring him back to his work. */
@@ -65,8 +67,8 @@ const EXIT: Record<BoxView["exit"], { label: string; testId: string }> = {
  * - a place to stop (the stop card);
  * Its foot row holds the "Stuck?" keys, which ask for help in one click,
  * and at its right end the way out of that state. Talking to the teacher
- * happens in its terminal. The sheet is as tall as all of it; the page
- * scrolls (LessonScroll).
+ * happens in its terminal. Beside the lesson text only the question or
+ * problem shrinks to fit the window, scrolling in its own box (LessonScroll).
  */
 export function YourTurn({
 	pending,
@@ -132,8 +134,11 @@ export function YourTurn({
 
 	return (
 		// The lesson text's inset, so both sheets share their edges.
-		<div data-testid="your-turn" data-mode={mode.split(":")[0]} className="lh-reading flex flex-col gap-7">
-			<h2 className="text-[28px] leading-tight text-ink">{fromEarlier ? "From earlier" : "Your turn"}</h2>
+		<div data-testid="your-turn" data-mode={mode.split(":")[0]} className="lh-reading flex min-h-0 flex-col gap-7">
+			<div className="flex items-baseline gap-4">
+				<h2 className="text-[28px] leading-tight text-ink">{fromEarlier ? "From earlier" : "Your turn"}</h2>
+				{!pending && problem?.file && <ProblemFile file={problem.file} />}
+			</div>
 
 			{reviewRefused && (
 				<p data-testid="review-refused" className="text-base text-ink-2">
@@ -141,7 +146,7 @@ export function YourTurn({
 				</p>
 			)}
 
-			<div key={mode} className={`flex flex-col gap-7 empty:hidden${mode === initialModeRef.current ? "" : " lh-rise"}`}>
+			<TurnScroll key={mode} className={mode === initialModeRef.current ? undefined : "lh-rise"}>
 				{pending && !revealPending && (
 					<QuestionDock
 						ref={questionRef}
@@ -168,7 +173,7 @@ export function YourTurn({
 					</div>
 				)}
 				{!pending && !problem && stop && <StopCard view={stop.view} onAction={stop.onAction} />}
-			</div>
+			</TurnScroll>
 
 			{stuck && (
 				<div data-testid="turn-stuck" className="flex flex-col items-start gap-2.5 bg-highlight px-3.5 py-3 text-base text-ink">
