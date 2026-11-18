@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
+import { keyboardFocus } from "./focus-hygiene";
 
 /**
  * Moves focus into a modal dialog when it opens and gives it back when it
@@ -15,7 +16,7 @@ export function useDialogFocus<T extends HTMLElement>(open = true): RefObject<T 
 		const dialog = ref.current;
 		if (!open || !dialog) return;
 		const before = document.activeElement as HTMLElement | null;
-		const keyboard = document.documentElement.hasAttribute("data-tab-focus");
+		const keyboard = keyboardFocus();
 		if (!dialog.contains(before)) (dialog.querySelector<HTMLElement>("[data-autofocus]") ?? dialog).focus({ preventScroll: true });
 		return () => {
 			if (!keyboard || !before || before === document.body || !before.isConnected || dialog.contains(before)) return;

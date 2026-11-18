@@ -1,5 +1,7 @@
-import { useLayoutEffect, useState, type FocusEvent, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type FocusEvent, type ReactNode } from "react";
 import { useLocation } from "react-router";
+import { keyboardFocus } from "@/frontend/components/focus-hygiene";
+import { PRESENT_MS } from "@/frontend/components/notice-stack-model";
 import { holdNotices, useNotices } from "@/frontend/components/notice-store";
 import { usePresence } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
@@ -21,11 +23,17 @@ function visiblePill(): Element | null {
  * The pill's panel, one for the whole window: it hangs from the top bar
  * under the pill and holds the notices (update, restart, files, rules, a
  * quiet space, a deadline that didn't save). It is open while a notice
- * shows by itself or the folded ones were asked for; a notice waits while
- * the pointer or focus is on the panel.
+ * shows by itself or the folded ones were asked for; time stands still
+ * while the pointer or keyboard focus is on the panel (a clicked key keeps
+ * focus but holds nothing), and a bar along its foot drains with the time left.
  */
 export function PillPanel({ children }: { children: ReactNode }) {
-	const { up } = useNotices();
+	const { up, drain } = useNotices();
+	const held = useRef({ pointer: false, focus: false });
+	const hold = (part: "pointer" | "focus", on: boolean) => {
+		held.current[part] = on;
+		holdNotices(held.current.pointer || held.current.focus);
+	};
 	const presence = usePresence(up);
 	const { pathname } = useLocation();
 	const [at, setAt] = useState(FLOATING);
@@ -58,11 +66,12 @@ export function PillPanel({ children }: { children: ReactNode }) {
 			style={{ top: at.top, right: at.right }}
 			// Over the teacher's window (z-41), under dialogs (z-50): a dialog is modal, so notices wait under its dim.
 			className={cn("fixed z-[45]", at.hang && "lh-hang", !presence.mounted && "invisible")}
-			onPointerEnter={() => holdNotices(true)}
-			onPointerLeave={() => holdNotices(false)}
-			onFocus={() => holdNotices(true)}
+			onPointerEnter={() => hold("pointer", true)}
+			onPointerLeave={() => hold("pointer", false)}
+			onPointerDown={() => hold("focus", false)}
+			onFocus={() => keyboardFocus() && hold("focus", true)}
 			onBlur={(e: FocusEvent<HTMLElement>) => {
-				if (!e.currentTarget.contains(e.relatedTarget as Node | null)) holdNotices(false);
+				if (!e.currentTarget.contains(e.relatedTarget as Node | null)) hold("focus", false);
 			}}
 		>
 			{/* As wide as what it holds, up to 400px: a card the pill already titled may be only its buttons. Never narrower than the pill it hangs from. */}
@@ -73,7 +82,22 @@ export function PillPanel({ children }: { children: ReactNode }) {
 				<div id={NOTICE_STACK_ID} tabIndex={-1} className="lh-notices flex flex-col outline-none">
 					{children}
 				</div>
+				{drain && <NoticeDrain left={drain.left} held={drain.held} />}
 			</div>
+		</div>
+	);
+}
+
+/** The time left before the notices fold, along the panel's foot; it stops while held. */
+function NoticeDrain({ left, held }: { left: number; held: boolean }) {
+	return (
+		<div aria-hidden data-testid="notice-drain" className="lh-drain sticky bottom-0 h-1 shrink-0">
+			<div
+				key={left}
+				data-held={held ? "" : undefined}
+				className="h-full origin-left bg-edge"
+				style={{ transform: `scaleX(${Math.min(1, left / PRESENT_MS)})`, "--lh-drain-ms": `${left}ms` } as React.CSSProperties}
+			/>
 		</div>
 	);
 }

@@ -31,16 +31,28 @@ describe("noticeView", () => {
 
 	it("after its time a notice folds into the pill, which counts it", () => {
 		const notices = [notice("a", null, 100), notice("b", null, 200)];
-		assert.deepEqual(noticeView(notices, 150, false), { shown: ["b"], presenting: notices[1], waiting: 1 });
-		assert.deepEqual(noticeView(notices, 250, false), { shown: [], presenting: null, waiting: 2 });
+		assert.deepEqual(noticeView(notices, 150, false), { shown: ["b"], presenting: notices[1], waiting: 1, foldsAt: 200 });
+		assert.deepEqual(noticeView(notices, 250, false), { shown: [], presenting: null, waiting: 2, foldsAt: null });
 	});
 
 	it("the open card shows the folded ones too, and the pill still counts them", () => {
 		const notices = [notice("a", null, 100), notice("b", null, 200)];
-		assert.deepEqual(noticeView(notices, 250, true), { shown: ["a", "b"], presenting: null, waiting: 2 });
+		assert.deepEqual(noticeView(notices, 250, true), { shown: ["a", "b"], presenting: null, waiting: 2, foldsAt: null });
 	});
 
 	it("one that closes by itself never folds", () => {
 		assert.deepEqual(noticeView([notice("a", null, Infinity)], 1e15, false).shown, ["a"]);
+	});
+
+	it("the bar runs to the last notice showing by itself, never to one that waits its turn or is folded", () => {
+		assert.equal(noticeView([notice("a", null, 100), notice("b", null, 300)], 0, false).foldsAt, 300);
+		assert.equal(noticeView([notice("a", null, 100), notice("b", null, 300), notice("c", null, 200), notice("d", null, 900)], 0, false).foldsAt, 300, "a 4th waits hidden");
+		assert.equal(noticeView([notice("a", null, 100), notice("b", null, 300)], 150, false).foldsAt, 300, "a folded one is not counted");
+	});
+
+	it("there is no bar once the folded ones were asked for, or when only timed notices show", () => {
+		assert.equal(noticeView([notice("a", null, 100)], 0, true).foldsAt, null);
+		assert.equal(noticeView([notice("a", null, Infinity)], 0, false).foldsAt, null);
+		assert.equal(noticeView([notice("a", null, Infinity), notice("b", null, 100)], 0, false).foldsAt, 100);
 	});
 });

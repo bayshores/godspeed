@@ -9,7 +9,7 @@ import type { NoticeKind } from "./notice-stack-model";
  * title line, an optional close button, a body, and buttons on the right.
  * It shows by itself for a while, then waits folded in the pill. The pill
  * says the title of the notice that just came, so that one shows only what
- * is under it.
+ * is under it, with its close button at the top right.
  */
 export function NoticeCard({
 	title,
@@ -34,19 +34,37 @@ export function NoticeCard({
 	const { shown, said } = useNotice(title, kind, bare, timed);
 	// With only a title, the pill says all of it. Its time still runs, so it is not `hidden` (use-held.ts).
 	const onPill = said && bare;
+	// The click stops here: a card may open something on its whole surface.
+	const closeKey = close && (
+		<button
+			type="button"
+			data-testid={close.testId}
+			aria-label="Close"
+			onClick={(e) => {
+				e.stopPropagation();
+				close.onClick();
+			}}
+			className="lh-press pt-[5px] text-ink-2 hover:text-ink"
+		>
+			<PixelIcon name="close" />
+		</button>
+	);
 	return (
 		<div {...rest} hidden={!shown} data-shown={shown && !onPill ? "" : undefined} className={cn("lh-notice flex-col gap-2 py-3.5 pr-4 pl-[18px] font-ui", onPill ? "hidden" : "flex", className)}>
 			{!said && (
 				<div className="flex gap-3">
 					<p className="min-w-0 flex-1 text-[17px] text-ink">{title}</p>
-					{close && (
-						<button type="button" data-testid={close.testId} aria-label="Close" onClick={close.onClick} className="lh-press pt-[5px] text-ink-2 hover:text-ink">
-							<PixelIcon name="close" />
-						</button>
-					)}
+					{closeKey}
 				</div>
 			)}
-			{children}
+			{said && closeKey ? (
+				<div className="flex gap-3">
+					<div className="flex min-w-0 flex-1 flex-col gap-2">{children}</div>
+					{closeKey}
+				</div>
+			) : (
+				children
+			)}
 			{actions && <div className="flex items-center justify-end gap-2 pt-1">{actions}</div>}
 		</div>
 	);

@@ -1,8 +1,9 @@
 /**
  * The two corner cards from godspeed's own upkeep of a space. A change
  * card says what a background check changed ("Claude Code updated CSE 21"),
- * with Undo. An overdue card asks "Done?" about the oldest deadline that
- * just went by, with Done and Not yet, unless Today's card shows that one. Both are the "quiet" kind: one at a
+ * with Undo and a close key that removes it for good. An overdue card asks
+ * "Done?" about the oldest deadline that just went by, with Done and Not yet,
+ * unless Today's card shows that one. Both are the "quiet" kind: one at a
  * time, folded into the pill, never timed, so they wait for the learner.
  * Both wait while a lesson or mock is open.
  */
@@ -60,6 +61,7 @@ function ChangeCard({ check, onDone }: { check: SpaceCheck; onDone: () => void }
 		return () => window.clearTimeout(id);
 	}, [held, mode.kind, onDone]);
 
+	const closeKey = { onClick: onDone, testId: "space-notice-close" };
 	const name = spaces.find((s) => s.id === check.spaceId)?.name ?? "a space";
 	const { shown, more } = cardLines(check.lines);
 	const undo = async () => {
@@ -75,7 +77,7 @@ function ChangeCard({ check, onDone }: { check: SpaceCheck; onDone: () => void }
 
 	if (mode.kind === "undone") {
 		return (
-			<NoticeCard data-testid="space-notice" role="status" kind="quiet" {...handlers} title={mode.title}>
+			<NoticeCard data-testid="space-notice" role="status" kind="quiet" {...handlers} title={mode.title} close={closeKey}>
 				{mode.left && <NoticeText>{mode.left}</NoticeText>}
 			</NoticeCard>
 		);
@@ -87,6 +89,7 @@ function ChangeCard({ check, onDone }: { check: SpaceCheck; onDone: () => void }
 			kind="quiet"
 			{...handlers}
 			title={`${teacher} updated ${name}`}
+			close={closeKey}
 			onClick={open}
 			actions={
 				<button

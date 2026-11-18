@@ -30,6 +30,11 @@ export function blurAfterPointerClick(e: {
 	if (el && typeof el.blur === "function") (el.blur as () => void).call(el);
 }
 
+/** Did focus last move by keyboard? The focus ring is on (showFocusRingAfterTab). */
+export function keyboardFocus(): boolean {
+	return document.documentElement.hasAttribute("data-tab-focus");
+}
+
 /** Keys that move focus inside menus, radio groups and tabs. */
 const NAV_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"]);
 

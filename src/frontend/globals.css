@@ -1127,6 +1127,16 @@ body:has(.lh-own-bar) .lh-app-bar {
 .lh-notice[data-shown] ~ .lh-notice[data-shown] {
 	border-top: 1px solid var(--border);
 }
+/* The time left before the notices fold: a bar along the panel's foot that
+   drains from where it stands. It stops while held (data-held). */
+.lh-drain > :not([data-held]) {
+	animation: lh-drain var(--lh-drain-ms) linear both;
+}
+@keyframes lh-drain {
+	to {
+		transform: scaleX(0);
+	}
+}
 /* The pill's new line rolls in from below. */
 .lh-pill-line {
 	animation: lh-pill-in var(--lh-dur) var(--lh-ease-out) both;
@@ -1282,6 +1292,9 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	.lh-pill-line,
 	.lh-sheet-wrap::before {
 		animation: none !important;
+	}
+	.lh-drain {
+		display: none;
 	}
 	.lh-press,
 	.lh-collapse {

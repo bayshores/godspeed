@@ -2,7 +2,7 @@
  * The notices on screen, shared by the cards (notice-card.tsx), the pill
  * and its panel: each card adds itself, shows by itself for a while, then
  * folds into the pill until its count is clicked. The time stands
- * still while the pointer or focus is on the panel.
+ * still while the pointer or keyboard focus is on the panel.
  */
 
 import { useEffect, useId, useSyncExternalStore } from "react";
@@ -24,6 +24,8 @@ interface NoticeState {
 	said: { id: string; title: string } | null;
 	/** The panel has something to show. */
 	up: boolean;
+	/** Time left before the last notice showing by itself folds, and whether the hold has stopped it; null when none folds. */
+	drain: { left: number; held: boolean } | null;
 }
 
 const EMPTY: NoticeState = {
@@ -33,6 +35,7 @@ const EMPTY: NoticeState = {
 	open: false,
 	said: null,
 	up: false,
+	drain: null,
 };
 
 let notices: Notice[] = [];
@@ -59,6 +62,7 @@ function update() {
 		open,
 		said,
 		up,
+		drain: view.foldsAt === null ? null : { left: view.foldsAt - now, held: heldSince !== null },
 	};
 	if (timer !== null) clearTimeout(timer);
 	timer = null;
@@ -82,8 +86,9 @@ export function holdNotices(held: boolean) {
 		heldSince = Date.now();
 	} else {
 		const since = heldSince!;
-		const until = Date.now() + AFTER_HOLD_MS;
-		notices = notices.map((n) => (n.foldAt > since ? { ...n, foldAt: Math.max(n.foldAt, until) } : n));
+		const now = Date.now();
+		// The time stood still while held: what was left carries on, at most a full time and at least a few seconds. A timed notice has no fold.
+		notices = notices.map((n) => (n.foldAt > since && Number.isFinite(n.foldAt) ? { ...n, foldAt: Math.max(Math.min(n.foldAt + (now - since), now + PRESENT_MS), now + AFTER_HOLD_MS) } : n));
 		heldSince = null;
 	}
 	update();
