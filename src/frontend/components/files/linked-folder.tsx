@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { MAX_LINKED_FILES, type FolderProblem, type FolderStatus } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
+import { barWord } from "@/frontend/components/top-bar/bar-look";
 import { cn } from "@/frontend/lib/utils";
 import { folderStatusLine, skippedLines } from "./folder-status-model";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
@@ -13,11 +14,11 @@ const PROBLEM_LINE: Record<FolderProblem, string> = {
 	"too-many-files": `Only the first ${MAX_LINKED_FILES} files were added. Link a smaller folder to choose which ones.`,
 };
 
-/** A plain button in the Files page's top row and the folder box. */
+/** A plain button in the folder box and beside the summary. */
 export const ROW_BUTTON = "lh-btn shrink-0";
 
 /**
- * "Linked folder" (Files page): opens a box with the full path, what is
+ * "Linked folder", a word in the top bar on the Files page: opens a box, hung from the bar, with the full path, what is
  * wrong with the folder (when something is), which files it can't read, and
  * its buttons: Pick folder again (the safe way to switch folders), Open
  * in Finder (desktop app, while the folder can be read) and Unlink, which
@@ -60,7 +61,7 @@ export function LinkedFolderButton({
 				aria-haspopup="dialog"
 				aria-expanded={open}
 				onClick={() => setOpen((o) => !o)}
-				className={cn(ROW_BUTTON, open && "bg-tone")}
+				className={barWord(open)}
 			>
 				Linked folder
 			</button>
@@ -72,6 +73,7 @@ export function LinkedFolderButton({
 				label="Linked folder"
 				preferredSide="down"
 				align="right"
+				hang
 				menuClass="lh-popup flex w-[400px] max-w-[calc(100vw-2rem)] flex-col gap-2.5 px-[18px] py-3.5"
 			>
 				<h2 className="text-xl text-ink">Linked folder</h2>
@@ -120,10 +122,10 @@ export function FolderStatusLine({ path, status, now }: { path: string; status: 
 	);
 }
 
-/** "Link a folder" (no folder linked yet). */
+/** "Link a folder", a word in the top bar (no folder linked yet). */
 export function LinkFolderButton({ disabled, onClick }: { disabled?: boolean; onClick: () => void }) {
 	return (
-		<button type="button" data-testid="space-pick-folder" disabled={disabled} onClick={onClick} className={ROW_BUTTON}>
+		<button type="button" data-testid="space-pick-folder" disabled={disabled} onClick={onClick} className={barWord(false)}>
 			Link a folder
 		</button>
 	);

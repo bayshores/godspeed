@@ -6,6 +6,9 @@ import { useMinute } from "@/frontend/components/countdown";
 import { isOverdue } from "@/frontend/components/deadlines-model";
 import { useUnseenFiles } from "@/frontend/components/files/files-seen";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
+import { BarActions } from "@/frontend/components/top-bar/bar-slots";
+import { barWord } from "@/frontend/components/top-bar/bar-look";
+import { KeyHint, keyShortcutProps } from "@/frontend/components/ui/key-hint";
 import { useProgress } from "@/frontend/components/use-progress";
 import type { ShownPlugin } from "@/frontend/lib/use-plugins-at";
 import { cn } from "@/frontend/lib/utils";
@@ -14,10 +17,10 @@ import { spaceTabs, studiedShare, tabCount, type TabCounts } from "./space-head-
 
 /**
  * The head of every space page: the tabs with their counts, then the
- * space's signature, inked as far as its facts are studied, and "Edit
- * space" at the end of their row. The top bar's tab names the space, so
- * the head does not; with no space picked it names the lessons that belong
- * to none.
+ * space's signature, inked as far as its facts are studied. "Edit
+ * space" is a word in the top bar's right side. The top bar's tab names
+ * the space, so the head does not; with no space picked it names the
+ * lessons that belong to none.
  */
 export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 	const { pathname } = useLocation();
@@ -36,9 +39,8 @@ export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 					Lessons with no space
 				</p>
 			)}
-			{/* When the tabs and Edit space don't fit one line, Edit space goes above the tabs; in a page
-			    squeezed narrower still the tabs wrap, so none hides behind a scroll. */}
-			<div className={cn("lh-tabs flex-wrap-reverse items-center", !activeSpace && "mt-(--lh-head-gap)")}>
+			{/* In a page squeezed narrow the tabs wrap, so none hides behind a scroll. */}
+			<div className={cn("lh-tabs items-center", !activeSpace && "mt-(--lh-head-gap)")}>
 				<nav aria-label={activeSpace?.name ?? "Lessons with no space"} className="flex min-w-0 flex-[0_1_auto] flex-wrap gap-x-1.5">
 					{spaceTabs(activeSpace ? "space" : "none", plugins).map((t) => {
 						const selected = t.href === pathname;
@@ -49,9 +51,11 @@ export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 								to={t.href}
 								data-testid={t.testid}
 								aria-current={selected ? "page" : undefined}
+								{...(t.action && keyShortcutProps(t.action))}
 								className="lh-press lh-tab"
 							>
 								{t.label}
+								{t.action && <KeyHint action={t.action} />}
 								{count !== undefined && (
 									<span data-testid={`${t.testid}-count`} className="font-count text-[15px] text-ink-2 tabular-nums">
 										{count}
@@ -72,12 +76,15 @@ export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 						<HeadSignature signature={activeSpace.signature} share={share} />
 					</span>
 				)}
-				{activeSpace && (
-					<button type="button" data-testid="space-edit" onClick={() => setEditing(activeSpace.id)} className="lh-btn lh-btn-quiet ml-auto shrink-0 text-[15px]">
+			</div>
+			{/* Last among the page words: Files and Graph put theirs before it. */}
+			{activeSpace && (
+				<BarActions>
+					<button type="button" data-testid="space-edit" onClick={() => setEditing(activeSpace.id)} className={cn(barWord(false), "order-last")}>
 						Edit space
 					</button>
-				)}
-			</div>
+				</BarActions>
+			)}
 			<SpaceDialog mode={editMode} onClose={() => setEditing(null)} />
 		</div>
 	);

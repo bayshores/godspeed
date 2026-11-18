@@ -1,7 +1,8 @@
 /**
  * The Graph page: the picture with its docked topic and fact panels over a
  * fixture ProgressPayload, picking and closing by mouse and Escape, Find,
- * the empty space, the foot line (counts, Find, Costs, Add files), the
+ * the empty space, the foot line (counts) and the top bar's words (Find,
+ * Costs, Add files), the
  * opening reveal, and the screen's load failure.
  */
 import React, { act } from "react";
@@ -17,6 +18,10 @@ import { findMatches } from "../../src/frontend/components/graph/derive.ts";
 import { TopicPane } from "../../src/frontend/components/graph/topic-pane.tsx";
 import { FactPane, type FactSources } from "../../src/frontend/components/graph/fact-pane.tsx";
 import { GraphFoot } from "../../src/frontend/components/graph/graph-foot.tsx";
+import { GraphBar } from "../../src/frontend/components/graph/graph-bar.tsx";
+import { useBarFind } from "../../src/frontend/components/use-bar-find.ts";
+import { BarHost } from "../bar-host.tsx";
+import { kbdEventForAction } from "../../src/shared/core/index.ts";
 import { GraphScreen } from "../../src/frontend/components/graph/graph-screen.tsx";
 import { Constellation } from "../../src/frontend/components/graph/constellation.tsx";
 import type { Aim, Flight } from "../../src/frontend/components/graph/constellation-camera.ts";
@@ -59,6 +64,8 @@ let focused: Element | null = null;
 	focused = this;
 };
 Object.defineProperty(dom.document, "activeElement", { get: () => (focused?.isConnected ? focused : dom.document.body) });
+// Find selects its field on opening; linkedom has no select().
+(dom.window.HTMLElement.prototype as unknown as { select: () => void }).select = () => {};
 
 const noop = () => {};
 const NO_BLEED = { left: 0, right: 0, top: 0, bottom: 0 };
@@ -191,37 +198,68 @@ const costsFixture = () => {
 
 describe("the foot line", () => {
 	const foot = (over: Partial<React.ComponentProps<typeof GraphFoot>> = {}) =>
-		renderToStaticMarkup(
-			inRouter(<GraphFoot hasFacts topicCount={16} factCount={248} query="" onQuery={noop} matches={null} onOpenChains={noop} costs={null} importNotes={null} inView={null} onWholeSpace={noop} {...over} />),
-		);
+		renderToStaticMarkup(inRouter(<GraphFoot hasFacts topicCount={16} factCount={248} matches={null} onOpenChains={noop} inView={null} onWholeSpace={noop} {...over} />));
 	const text = (html: string) => html.replace(/<[^>]*>/g, "");
 
-	it("the counts, with the fact count a button, then Find; a count of one is singular", () => {
+	it("the counts, with the fact count a button; a count of one is singular; no words of the page in it", () => {
 		const html = foot();
 		assert.match(text(html), /16topics/);
 		assert.match(html, /data-testid="open-chain-table"[^>]*>[\s\S]*?248[\s\S]*?facts</);
-		assert.ok(html.indexOf("open-chain-table") < html.indexOf("graph-find"), "counts first, Find after");
 		assert.match(text(foot({ topicCount: 1, factCount: 1 })), /1topic1fact/);
+		for (const gone of ["graph-find", "graph-costs", "import-notes", "Add files", "Costs"]) assert.ok(!html.includes(gone), gone);
 	});
 
-	it("a space has no Add files here (its Files tab has it); No space picks files right there, left of Find", () => {
-		const inSpace = foot({ hasFacts: false });
-		assert.ok(!inSpace.includes("import-notes") && !inSpace.includes("Add files"));
-		const noSpace = foot({ importNotes: { importing: false, onImportFiles: noop } });
-		assert.ok(noSpace.includes('data-testid="import-notes"') && noSpace.includes(">Add files<"));
-		assert.ok(noSpace.indexOf("import-notes") < noSpace.indexOf("graph-find"), "Add files is left of Find");
-		assert.ok(foot({ importNotes: { importing: true, onImportFiles: noop } }).includes("Adding…"));
-	});
-
-	it("Find and the counts need facts; Costs needs a run; the typing line is not there until Find is clicked", () => {
-		const costs = costsFixture();
-		const html = foot({ costs });
-		assert.match(html, /data-testid="graph-costs"[^>]*class="lh-btn lh-btn-quiet[^"]*">Costs</);
-		assert.ok(html.indexOf("graph-find") < html.indexOf("graph-costs"), "Find, then Costs");
-		assert.ok(!foot({ costs: { ...costs, runs: [] } }).includes("graph-costs"), "no runs: no costs to show");
+	it("with no facts there are no counts", () => {
 		const bare = foot({ hasFacts: false });
-		assert.ok(!bare.includes("graph-find") && !bare.includes("open-chain-table"), "no facts: no Find, no counts");
-		assert.ok(!html.includes("graph-find-box"));
+		assert.ok(!bare.includes("open-chain-table") && text(bare) === "");
+	});
+
+	it("while something is typed it says what matches, in one status", () => {
+		const html = foot({ matches: { topics: new Set(["a"]), facts: new Set(["x", "y"]) } });
+		assert.match(html, /role="status" data-testid="graph-find-status"/);
+		assert.match(text(html), /1topic2facts/);
+		assert.ok(!html.includes("open-chain-table"), "the counts of the whole space wait");
+		assert.match(foot({ matches: { topics: new Set(), facts: new Set() } }), /data-testid="graph-no-match"[^>]*>Nothing matches</);
+	});
+});
+
+describe("the graph's words in the top bar", () => {
+	const bar = (over: Partial<React.ComponentProps<typeof GraphBar>> = {}) => {
+		function Words() {
+			const find = useBarFind(true);
+			return <GraphBar hasFacts find={find} costs={null} importNotes={null} {...over} />;
+		}
+		return <BarHost><Words /></BarHost>;
+	};
+	const words = (q: (id: string) => HTMLElement | null) => [...q("bar-actions")!.children].map((el) => el.getAttribute("data-testid")).filter(Boolean);
+
+	it("Find, then Costs, then Add files in the graph with no space; none of them in the foot", async () => {
+		const { q } = await mount(bar({ costs: costsFixture(), importNotes: { importing: false, onImportFiles: noop } }));
+		assert.deepEqual(words(q), ["graph-find", "graph-costs", "import-notes"]);
+		assert.equal(q("import-notes")!.textContent, "Add files");
+	});
+
+	it("a space has no Add files here (its Files tab has it)", async () => {
+		const { q } = await mount(bar({ costs: costsFixture() }));
+		assert.ok(q("import-notes") === null);
+	});
+
+	it("Add files says Adding… while it works and is off", async () => {
+		const { q } = await mount(bar({ importNotes: { importing: true, onImportFiles: noop } }));
+		assert.equal(q("import-notes")!.textContent, "Adding…");
+		assert.equal(q("import-notes")!.hasAttribute("disabled"), true);
+	});
+
+	it("no facts: no magnifying glass; no runs: no Costs", async () => {
+		const { q } = await mount(bar({ hasFacts: false, costs: { ...costsFixture(), runs: [] } }));
+		assert.deepEqual(words(q), []);
+	});
+
+	it("the magnifying glass is named Find a topic or fact and shows the find key", async () => {
+		const { q } = await mount(bar());
+		assert.equal(q("graph-find")!.getAttribute("aria-label"), "Find a topic or fact");
+		assert.match(q("graph-find")!.textContent!, /F$/);
+		assert.ok(q("graph-find")!.querySelector("kbd"));
 	});
 });
 
@@ -343,47 +381,47 @@ describe("picking in the page", () => {
 	});
 });
 
-/** The page as the screen builds it: the picture and its panels over the foot line, sharing one Find and the camera's view. */
+/** The page as the screen builds it: the picture and its panels over the foot line, sharing one Find, whose words are in the bar's places, and the camera's view. */
 function Page({
 	data: given,
 	costs = null,
 	onChains = noop,
 	sources = null,
+	importNotes = null,
 }: {
 	data?: ReturnType<typeof fixture>;
 	costs?: ReturnType<typeof costsFixture> | null;
 	onChains?: () => void;
 	sources?: FactSources | null;
+	importNotes?: React.ComponentProps<typeof GraphBar>["importNotes"];
 }) {
 	// One payload for the page's life, as the screen holds one: a new one on every render would re-fit the picture and end a flight.
 	const [own] = React.useState(fixture);
 	const data = given ?? own;
-	const [query, setQuery] = React.useState("");
+	const hasFacts = data.facts.length > 0;
+	const find = useBarFind(hasFacts);
 	const [inView, setInView] = React.useState<InView | null>(null);
 	const [aim, setAim] = React.useState<Aim | null>(null);
 	const fly = React.useCallback((to: Flight) => setAim((a) => ({ ...to, seq: (a?.seq ?? 0) + 1 })), []);
-	const matches = findMatches(query, data.topics, data.facts);
+	const matches = findMatches(find.query, data.topics, data.facts);
 	const finding = matches !== null;
 	React.useEffect(() => {
 		if (finding) fly({ to: "whole" });
 	}, [finding, fly]);
 	return inRouter(
-		<>
+		<BarHost>
+			<GraphBar hasFacts={hasFacts} find={find} costs={costs} importNotes={importNotes} />
 			<GraphBody data={data} matches={matches} sources={sources} studying={false} studyError={null} onStudy={noop} onStudyFact={noop} onInView={setInView} aim={aim} onFly={fly} />
 			<GraphFoot
-				hasFacts={data.facts.length > 0}
+				hasFacts={hasFacts}
 				topicCount={data.topics.length}
 				factCount={data.facts.length}
-				query={query}
-				onQuery={setQuery}
 				matches={matches}
 				onOpenChains={onChains}
-				costs={costs}
-				importNotes={null}
 				inView={inView}
 				onWholeSpace={() => fly({ to: "whole" })}
 			/>
-		</>,
+		</BarHost>,
 	);
 }
 
@@ -398,105 +436,105 @@ async function typeInto(input: HTMLElement, value: string) {
 	});
 }
 
-describe("finding in the foot line", () => {
+describe("finding from the top bar", () => {
 	const footText = (q: (id: string) => HTMLElement | null) => q("graph-foot")!.textContent!;
+	const box = (q: (id: string) => HTMLElement | null) => q("graph-find-field")!.querySelector("input")!;
+	const sendFind = () => act(async () => window.dispatchEvent(new dom.window.CustomEvent(kbdEventForAction("find"))));
 
-	it("Find turns the counts into a typing line; typing dims what doesn't match and counts what does", async () => {
+	it("the magnifying glass opens a field in the bar; typing dims what doesn't match and the foot counts what does", async () => {
 		const { q } = await mount(<Page />);
-		assert.ok(!q("graph-find-box"));
+		assert.ok(!q("graph-find-field"));
 		assert.match(footText(q), /5topics12facts/);
 		await act(async () => q("graph-find")!.click());
-		assert.ok(q("graph-find-box"), "the typing line");
-		assert.ok(!q("graph-find") && !q("open-chain-table"), "the counts are gone while typing");
-		assert.equal(q("graph-find-box")!.getAttribute("aria-label"), "Find a topic or fact");
-		await typeInto(q("graph-find-box")!, "momentum");
+		assert.ok(q("graph-find-field")!.closest("[data-testid='bar-actions']"), "the field is in the bar");
+		assert.ok(!q("graph-find") && !q("graph-foot")!.querySelector("input"), "no typing line in the foot");
+		assert.equal(box(q).getAttribute("aria-label"), "Find a topic or fact");
+		await typeInto(box(q), "momentum");
 		assert.equal(count(host!.innerHTML, 'data-dim="true"'), 4);
 		assert.match(footText(q), /1topic1fact/);
+		assert.ok(!q("bar-actions")!.textContent!.includes("1 topic"), "the count is said once, in the foot");
 	});
 
-	it("a word nothing matches says so once, and Escape or the x brings the counts back", async () => {
+	it("a word nothing matches says so once, and Escape or Close clears it and closes", async () => {
 		const { q } = await mount(<Page />);
 		await act(async () => q("graph-find")!.click());
-		await typeInto(q("graph-find-box")!, "zzz");
+		await typeInto(box(q), "zzz");
 		assert.equal(q("graph-no-match")!.textContent, "Nothing matches");
-		await act(async () => fire(q("graph-find-box")!, "keydown", { key: "Escape" }));
-		assert.ok(!q("graph-find-box") && !q("graph-no-match"));
+		await act(async () => fire(box(q), "keydown", { key: "Escape" }));
+		assert.ok(!q("graph-find-field") && !q("graph-no-match"));
 		assert.ok(q("open-chain-table") && q("graph-find"));
 		assert.equal(count(host!.innerHTML, 'data-dim="true"'), 0, "Find is cleared");
 		await act(async () => q("graph-find")!.click());
-		await typeInto(q("graph-find-box")!, "momentum");
-		assert.equal(q("graph-find-close")!.getAttribute("aria-label"), "Stop finding");
-		await act(async () => q("graph-find-close")!.click());
-		assert.ok(!q("graph-find-box") && q("open-chain-table"));
+		assert.equal(box(q).value, "", "reopened empty");
+		await typeInto(box(q), "momentum");
+		const close = host!.querySelector<HTMLElement>("[aria-label='Close Find']")!;
+		await act(async () => close.click());
+		assert.ok(!q("graph-find-field") && q("open-chain-table"));
 		assert.equal(count(host!.innerHTML, 'data-dim="true"'), 0);
 	});
 
-	it("leaving the typing line empty brings the counts back; leaving it with a word keeps it", async () => {
-		const { q } = await mount(<Page />);
+	it("opening Find takes the place of Costs and Add files", async () => {
+		const { q } = await mount(<Page costs={costsFixture()} importNotes={{ importing: false, onImportFiles: noop }} />);
 		await act(async () => q("graph-find")!.click());
-		await act(async () => fire(q("graph-find-box")!, "focusout"));
-		assert.ok(!q("graph-find-box") && q("graph-find"));
-		await act(async () => q("graph-find")!.click());
-		await typeInto(q("graph-find-box")!, "momentum");
-		await act(async () => fire(q("graph-find-box")!, "focusout"));
-		assert.ok(q("graph-find-box"), "the word stays");
+		assert.ok(!q("graph-costs") && !q("import-notes"));
+		await act(async () => fire(box(q), "keydown", { key: "Escape" }));
+		assert.ok(q("graph-costs") && q("import-notes"));
 	});
 
-	it("the find shortcut opens the typing line and focuses it; with no facts it does nothing", async () => {
+	it("the find shortcut opens the field and focuses it; with no facts it does nothing", async () => {
 		const { q } = await mount(<Page />);
-		await act(async () => window.dispatchEvent(new dom.window.CustomEvent("lh:kbd-find")));
-		await act(async () => new Promise((resolve) => setTimeout(resolve, 10))); // the focus waits one frame
-		assert.ok(q("graph-find-box"));
-		assert.ok(document.activeElement === q("graph-find-box"));
+		await sendFind();
+		assert.ok(q("graph-find-field"));
+		assert.ok(document.activeElement === box(q));
 		await act(async () => root!.unmount());
 		host!.remove();
 		const empty = await mount(<Page data={{ ...fixture(), facts: [] }} />);
-		await act(async () => window.dispatchEvent(new dom.window.CustomEvent("lh:kbd-find")));
-		assert.ok(!empty.q("graph-find-box") && !empty.q("graph-find"));
+		await sendFind();
+		assert.ok(!empty.q("graph-find-field") && !empty.q("graph-find"));
 	});
 
-	it("Escape in the typing line clears it first, then closes the fact, then the topic", async () => {
+	it("the find shortcut does nothing while a menu or dialog is on top", async () => {
+		const { q } = await mount(<Page />);
+		const menu = document.createElement("div");
+		menu.setAttribute("role", "dialog");
+		document.body.append(menu);
+		await sendFind();
+		menu.remove();
+		assert.ok(!q("graph-find-field"));
+	});
+
+	it("Escape in the field clears it first, then closes the fact, then the topic", async () => {
 		const { q, topic } = await mount(<Page />);
 		await act(async () => topic("t-mini").click());
 		await act(async () => q("fact-row")!.click());
 		await act(async () => q("graph-find")!.click());
-		await typeInto(q("graph-find-box")!, "momentum");
-		await act(async () => fire(q("graph-find-box")!, "keydown", { key: "Escape" }));
-		assert.ok(!q("graph-find-box"));
-		assert.ok(q("fact-pane"), "the typing line took the Escape, the fact stays");
+		await typeInto(box(q), "momentum");
+		await act(async () => fire(box(q), "keydown", { key: "Escape" }));
+		assert.ok(!q("graph-find-field"));
+		assert.ok(q("fact-pane"), "the field took the Escape, the fact stays");
 		await escape();
 		assert.ok(q("topic-pane") && !q("fact-pane"));
 		await escape();
 		assert.ok(!q("topic-pane") && !q("graph-panel"));
 	});
 
-	it("Escape and the x hand focus back to Find", async () => {
+	it("Escape and Close hand focus back to where it was", async () => {
 		const { q } = await mount(<Page />);
+		const before = q("open-chain-table")!;
+		before.focus();
 		await act(async () => q("graph-find")!.click());
-		assert.ok(document.activeElement === q("graph-find-box"), "the typing line takes focus");
-		await act(async () => fire(q("graph-find-box")!, "keydown", { key: "Escape" }));
-		assert.ok(document.activeElement === q("graph-find"), "after Escape");
-		await act(async () => q("graph-find")!.click());
-		await typeInto(q("graph-find-box")!, "momentum");
-		await act(async () => q("graph-find-close")!.click());
-		assert.ok(document.activeElement === q("graph-find"), "after the x");
-	});
-
-	it("Tab from an empty typing line to the x keeps the line open", async () => {
-		const { q } = await mount(<Page />);
-		await act(async () => q("graph-find")!.click());
-		await act(async () => fire(q("graph-find-box")!, "focusout", { relatedTarget: q("graph-find-close") }));
-		assert.ok(q("graph-find-box") && q("graph-find-close"));
+		assert.ok(document.activeElement === box(q), "the field takes focus");
+		await act(async () => fire(box(q), "keydown", { key: "Escape" }));
+		assert.ok(document.activeElement === before, "after Escape");
 	});
 
 	it("the match counts and Nothing matches sit in one status that stays while finding", async () => {
 		const { q } = await mount(<Page />);
 		await act(async () => q("graph-find")!.click());
+		await typeInto(box(q), "momentum");
 		const status = q("graph-find-status")!;
 		assert.equal(status.getAttribute("role"), "status");
-		await typeInto(q("graph-find-box")!, "momentum");
-		assert.ok(q("graph-find-status") === status, "the same element after typing");
-		await typeInto(q("graph-find-box")!, "zzz");
+		await typeInto(box(q), "zzz");
 		assert.ok(q("graph-find-status") === status && status.contains(q("graph-no-match")));
 	});
 
@@ -513,12 +551,13 @@ describe("finding in the foot line", () => {
 		assert.equal(opened, 1);
 	});
 
-	it("Costs opens its pop-up, and a second click closes it", async () => {
+	it("Costs opens its pop-up, hung from the bar, and a second click closes it", async () => {
 		const { q } = await mount(<Page costs={costsFixture()} />);
 		const panel = () => document.querySelector('[data-testid="graph-costs-panel"]');
 		assert.ok(!panel());
 		await act(async () => q("graph-costs")!.click());
 		assert.ok(panel(), "the pop-up opens");
+		assert.equal(panel()!.parentElement!.className, "lh-hang", "hung from the bar");
 		assert.equal(q("graph-costs")!.getAttribute("aria-expanded"), "true");
 		await act(async () => q("graph-costs")!.click());
 		assert.equal(q("graph-costs")!.getAttribute("aria-expanded"), "false");
@@ -769,7 +808,7 @@ describe("zooming the picture", () => {
 		await act(async () => topic("t-mini").click());
 		assert.ok(zoom() !== null);
 		await act(async () => q("graph-find")!.click());
-		await typeInto(q("graph-find-box")!, "momentum");
+		await typeInto(q("graph-find-field")!.querySelector("input")!, "momentum");
 		assert.ok(zoom() === null && !isNear());
 		assert.ok(q("topic-pane"));
 		assert.equal(figures().length, 0);
@@ -956,7 +995,7 @@ describe("the camera's small behaviours", () => {
 	it("Find dims the facts that do not match inside a found topic", async () => {
 		const { q, topic } = await mount(<Page />);
 		await act(async () => q("graph-find")!.click());
-		await typeInto(q("graph-find-box")!, "gradient");
+		await typeInto(q("graph-find-field")!.querySelector("input")!, "gradient");
 		await act(async () => topic("t-mini").click());
 		assert.ok(host!.querySelectorAll(`[data-figure="t-mini"] path[opacity="${FAINT}"]`).length > 0);
 	});

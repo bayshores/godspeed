@@ -13,7 +13,10 @@ import { afterEach, describe, it } from "node:test";
 import type { Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
-import type { ChatListItem, SpaceSummary } from "../../src/shared/core/index.ts";
+import { ariaKeyShortcuts, bindingForAction, IS_MAC, keyHintText, type ChatListItem, type KeyAction, type SpaceSummary } from "../../src/shared/core/index.ts";
+
+const keyText = (action: KeyAction) => keyHintText(bindingForAction(action), IS_MAC);
+const ariaKey = (action: KeyAction) => ariaKeyShortcuts(bindingForAction(action), IS_MAC);
 
 const dom = parseHTML("<html><body></body></html>");
 // linkedom's document has no "oninput"; without it React would watch text
@@ -54,6 +57,7 @@ const { hasUnseenFiles } = await import("../../src/frontend/components/files/fil
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { MemoryRouter, useLocation } = await import("react-router");
+const { BarHost } = await import("../bar-host.tsx");
 
 const space = (id: string, name: string, over: Partial<SpaceSummary> = {}): SpaceSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", closed: false, fileCount: 33, color: 1, filesLeft: 0, ...over });
 const SPACES = [space("c29", "CSE 29", { description: "Systems programming", signature: { kind: "code", value: "*p" } }), space("c21", "CSE 21", { color: 2, filesLeft: 2 }), space("old", "MATH 18", { closed: true, description: "Linear algebra.", fileCount: 1 })];
@@ -163,14 +167,16 @@ describe("the top bar's tabs", () => {
 		assert.equal(q("nav-today")!.getAttribute("href"), "/");
 		assert.ok(q("space-option-old") === null, "a closed space has no tab");
 		const strip = q("space-tabs-strip")!;
-		assert.ok(strip.lastElementChild === q("space-option-c21") && strip.nextElementSibling === q("spaces-plus"), "the + comes right after the last tab, outside the tabs' scroller");
+		assert.ok(strip.lastElementChild!.firstElementChild === q("space-option-c21") && strip.nextElementSibling!.firstElementChild === q("spaces-plus"), "the + comes right after the last tab, outside the tabs' scroller");
 		assert.ok(strip.previousElementSibling === q("nav-today"), "Today sits before the scroller, so it never scrolls away");
 		assert.match(q("spaces-plus")!.className, /shrink-0/, "the + never squeezes; the tabs do");
 		assert.doesNotMatch(q("space-option-c21")!.className, /shrink-0/);
 		assert.match(q("space-option-c21")!.className, /grid-cols-\[auto_minmax\(auto,max-content\)_auto\]/, "a tab with a tag lets its name give way first");
 		assert.equal(q("space-option-c21")!.querySelector<HTMLElement>("[title='CSE 21']")!.style.minWidth, "max-content", "a short name never squeezes");
-		assert.match(q("space-option-c29")!.className, /shrink-0 .*grid-cols-\[auto_fit-content\(240px\)_auto\]/, "the lit tab keeps its whole name");
-		assert.match(q("space-option-c29")!.className, /max-w-\[calc\(100%-16px\)\]/, "but is never wider than the strip, so a long name ends in an ellipsis clear of the fades");
+		const lit = q("space-option-c29")!.parentElement!;
+		assert.match(lit.className, /shrink-0/, "the lit tab never gives way to the other tabs");
+		assert.match(q("space-option-c29")!.className, /grid-cols-\[auto_fit-content\(240px\)_auto\]/);
+		assert.match(lit.className, /max-w-full/, "but is never wider than the strip, so a long name ends in an ellipsis");
 	});
 	it("a space's tab says how many files the teacher still has to read", async () => {
 		await mount(<SpaceTabs selected="c29" />);
@@ -200,7 +206,9 @@ describe("Menu", () => {
 		assert.equal(q("app-menu")!.textContent, "Menu");
 		assert.equal(q("app-menu")!.getAttribute("aria-expanded"), "false");
 		await click(q("app-menu")!);
-		assert.deepEqual(texts("[data-testid='app-menu-list'] [role='menuitem']"), ["Search lessons", "Settings"]);
+		assert.deepEqual(texts("[data-testid='app-menu-list'] [role='menuitem']"), ["Search lessons", "Settings"].map((l, i) => l + keyText(["sessions-search", "open-settings"][i] as KeyAction)));
+		assert.equal(q("menu-search-lessons")!.getAttribute("aria-keyshortcuts"), ariaKey("sessions-search"));
+		assert.equal(q("settings-entry")!.getAttribute("aria-keyshortcuts"), ariaKey("open-settings"));
 		assert.equal(q("settings-entry")!.getAttribute("href"), "/settings");
 	});
 });
@@ -256,16 +264,24 @@ describe("Search lessons", () => {
 });
 
 describe("a space page's head", () => {
-	it("its tabs with their counts, then the signature and Edit space; no name, since the top bar's tab has it", async () => {
-		await mount(<SpaceHead plugins={[]} />, { pathname: "/space/files" });
+	it("its tabs with their counts, then the signature, with Edit space in the top bar; no name, since the top bar's tab has it", async () => {
+		await mount(
+			<BarHost>
+				<SpaceHead plugins={[]} />
+			</BarHost>,
+			{ pathname: "/space/files" },
+		);
 		assert.equal(q("space-head-name"), null);
 		assert.doesNotMatch(q("space-head")!.textContent!, /CSE 29/);
 		assert.doesNotMatch(q("space-head")!.textContent!, /Systems programming/, "the description is the teacher's, not the head's");
 		assert.match(q("space-signature-ink")!.getAttribute("style")!, /--ink:\s*25%/, "inked as far as studied, on every tab");
 		assert.equal(q("space-edit")!.textContent, "Edit space");
+		assert.equal(q("space-edit")!.parentElement, q("bar-actions"), "Edit space is a word in the top bar");
+		assert.match(q("space-edit")!.className, /order-last/, "after the words Files and Graph add");
+		assert.ok(!q("space-head")!.contains(q("space-edit")), "not on the page");
 		const nav = document.querySelector("[data-testid='space-head'] nav")!;
-		assert.ok(nav.nextElementSibling!.contains(q("space-signature")) && nav.parentElement!.lastElementChild === q("space-edit"), "the signature, then Edit space, end the tab row");
-		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress25%", "Files33", "Graph", "Deadlines"]);
+		assert.ok(nav.nextElementSibling!.contains(q("space-signature")) && nav.parentElement!.lastElementChild === nav.nextElementSibling, "the signature ends the tab row");
+		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress25%", "Files33", `Graph${keyText("jump-graph")}`, "Deadlines"]);
 		assert.equal(q("nav-files-count")!.textContent, "33");
 		assert.equal(q("nav-files")!.getAttribute("aria-current"), "page");
 		assert.equal(q("nav-progress")!.hasAttribute("aria-current"), false, "/space/files is Files, not Progress");
@@ -275,7 +291,7 @@ describe("a space page's head", () => {
 		assert.equal(q("space-head-name")!.textContent, "Lessons with no space");
 		assert.ok(q("space-edit") === null);
 		assert.ok(q("space-signature") === null);
-		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress", "Graph"]);
+		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress", `Graph${keyText("jump-graph")}`]);
 		assert.equal(q("nav-progress")!.getAttribute("aria-current"), "page");
 	});
 	it("the signature: math in real LaTeX, code in mono, text in the serif italic", () => {

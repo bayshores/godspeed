@@ -54,8 +54,15 @@ export function PillPanel({ children }: { children: ReactNode }) {
 			);
 		};
 		place();
+		// The bar gains a line when a page puts its words in it in a narrow window; the line is padding.
+		const bar = visiblePill()?.closest(BARS);
+		const grown = new ResizeObserver(place);
+		if (bar) grown.observe(bar, { box: "border-box" });
 		window.addEventListener("resize", place);
-		return () => window.removeEventListener("resize", place);
+		return () => {
+			grown.disconnect();
+			window.removeEventListener("resize", place);
+		};
 	}, [up, pathname]);
 	return (
 		<div
@@ -74,11 +81,12 @@ export function PillPanel({ children }: { children: ReactNode }) {
 				if (!e.currentTarget.contains(e.relatedTarget as Node | null)) hold("focus", false);
 			}}
 		>
-			{/* As wide as what it holds, up to 400px: a card the pill already titled may be only its buttons. Never narrower than the pill it hangs from. */}
+			{/* As wide as what it holds, up to 400px: a card the pill already titled may be only its buttons. Never narrower than the pill it hangs from.
+			    As tall as the room under the bar; floating with no bar, the bar's one line stays a top margin. */}
 			<div
 				data-state={presence.state}
 				style={{ minWidth: at.least }}
-				className={cn("lh-popup flex max-h-[calc(100dvh-4rem)] w-max max-w-[min(400px,calc(100vw-2rem))] flex-col overflow-y-auto", at.hang ? "lh-hang-body" : "lh-pop rounded-[14px]")}>
+				className={cn("lh-popup flex max-h-[calc(100dvh-var(--lh-bar-h)-1rem)] w-max max-w-[min(400px,calc(100vw-2rem))] flex-col overflow-y-auto", at.hang ? "lh-hang-body" : "lh-pop rounded-[14px]")}>
 				<div id={NOTICE_STACK_ID} tabIndex={-1} className="lh-notices flex flex-col outline-none">
 					{children}
 				</div>

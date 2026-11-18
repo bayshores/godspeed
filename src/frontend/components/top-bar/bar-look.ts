@@ -6,8 +6,12 @@ export const barTabState = (lit: boolean) => (lit ? "bg-background font-medium t
 /** A word in a bar whose panel is open: a block of the bar's ink. */
 export const BAR_WORD_ON = "bg-bar-ink font-medium text-bar hover:bg-bar-ink";
 
-/** The bars a pop-up can hang from: the app's top bar, or a page's own. */
-export const BARS = ".lh-app-bar, .lh-own-bar";
+/** A page's own word in the top bar (bar-slots.tsx), the same on every page; `on` while its panel is open. */
+export const barWord = (on: boolean) => `${BAR_TAB} shrink-0 disabled:pointer-events-none disabled:opacity-50 ${on ? BAR_WORD_ON : barTabState(false)}`;
+
+/** What a pop-up hangs from, the nearest around its word: the page's words in the app's top bar
+ *  (a line of their own in a narrow window), the app's top bar, or a page's own bar. */
+export const BARS = ".lh-bar-actions, .lh-app-bar, .lh-own-bar";
 
 /** One entry of a top bar menu. */
 export const MENU_ITEM = "lh-press flex items-center px-3 py-2 text-left text-[15px] text-ink hover:bg-accent disabled:pointer-events-none disabled:opacity-50";

@@ -6,7 +6,9 @@ import { useMinute } from "@/frontend/components/countdown";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { Hint } from "@/frontend/components/ui/hint";
 import { Pane } from "@/frontend/components/ui/pane";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { BarFind } from "@/frontend/components/top-bar/bar-find";
+import { BarActions } from "@/frontend/components/top-bar/bar-slots";
+import { useBarFind } from "@/frontend/components/use-bar-find";
 import { useProgress } from "@/frontend/components/use-progress";
 import type { WriteResult } from "@/frontend/lib/api";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
@@ -32,8 +34,9 @@ import { recentChanges, removedLately } from "./recent-changes-model";
 import { PickSpace } from "@/frontend/components/pick-space";
 
 /**
- * THE FILES PAGE (a space tab): Add files, a search field, the linked
- * folder, the summary and the folder's live line, then Recent changes and
+ * THE FILES PAGE (a space tab): Find, the linked folder and Add files are
+ * words in the top bar; on the page, the summary with the folder's live
+ * line, then Recent changes and
  * the space's files in groups found from their names (a lecture's notes and
  * transcript together, with the date when a name has one). Files dropped
  * from Finder anywhere on the page are added too. Each added file's first
@@ -96,10 +99,11 @@ function FilesPageBody() {
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(0);
 	const [linking, setLinking] = useState(false);
-	const [query, setQuery] = useState("");
 	const [finderDrag, setFinderDrag] = useState<number | null>(null);
 	const { collapsed, toggle } = useCollapsed(active);
 	const spaceId = record?.id ?? null;
+	const find = useBarFind((record?.files.length ?? 0) > 0);
+	const { query } = find;
 	const folderStatus = folder ?? NO_FOLDER_STATUS;
 
 	const coverage = useMemo(() => {
@@ -224,34 +228,42 @@ function FilesPageBody() {
 				{active && !record && failed && <LoadFailed message="Couldn't load this space's files." onRetry={() => void reload()} />}
 				{record && actions && (
 					<>
-						<div className="flex flex-wrap items-center gap-2.5">
-							{record.files.length > 0 && <SearchBox value={query} onChange={setQuery} />}
-							{record.linkedFolder ? (
-								<LinkedFolderButton
-									path={record.linkedFolder}
-									status={folderStatus}
-									disabled={disabled}
-									open={openPath && { label: `Show in ${fileBrowserName(window.lh?.platform)}`, run: () => void openPath(record.linkedFolder!) }}
-									onPickAgain={onLinkFolder}
-									onUnlink={() => setConfirm({ kind: "unlink" })}
-								/>
-							) : (
-								!linking && <LinkFolderButton disabled={disabled} onClick={onLinkFolder} />
+						<BarActions>
+							{record.files.length > 0 && (
+								<BarFind label="Find a file" testIds={{ key: "files-find", field: "files-search" }} open={find.open} onOpen={find.start} query={find.query} onQuery={find.setQuery} inputRef={find.inputRef} keyRef={find.keyRef} onKeyDown={find.onKeyDown} onClose={find.close} />
 							)}
-							{showInFinder}
-							<AddFilesButton disabled={disabled} onAdd={add} />
-						</div>
+							{!find.open && (
+								<>
+									{record.linkedFolder ? (
+										<LinkedFolderButton
+											path={record.linkedFolder}
+											status={folderStatus}
+											disabled={disabled}
+											open={openPath && { label: `Show in ${fileBrowserName(window.lh?.platform)}`, run: () => void openPath(record.linkedFolder!) }}
+											onPickAgain={onLinkFolder}
+											onUnlink={() => setConfirm({ kind: "unlink" })}
+										/>
+									) : (
+										!linking && <LinkFolderButton disabled={disabled} onClick={onLinkFolder} />
+									)}
+									<AddFilesButton disabled={disabled} onAdd={add} />
+								</>
+							)}
+						</BarActions>
 						{linking && <LinkFolderField initial={record.linkedFolder ?? ""} disabled={disabled} onLink={link} onCancel={() => setLinking(false)} />}
-						{(record.files.length > 0 || record.linkedFolder) && (
-							<div className="flex flex-col gap-[3px]">
-								{record.files.length > 0 && (
-									<p data-testid="files-summary" className="text-[15px] text-ink-2">
-										{filesSummary(record.files)}
-										{arrived && `, ${arrived}`}
-										{removed && `, ${removed}`}
-									</p>
-								)}
-								{record.linkedFolder && <FolderStatusLine path={record.linkedFolder} status={folderStatus} now={minute} />}
+						{(record.files.length > 0 || record.linkedFolder || showInFinder) && (
+							<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+								<div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+									{record.files.length > 0 && (
+										<p data-testid="files-summary" className="text-[15px] text-ink-2">
+											{filesSummary(record.files)}
+											{arrived && `, ${arrived}`}
+											{removed && `, ${removed}`}
+										</p>
+									)}
+									{record.linkedFolder && <FolderStatusLine path={record.linkedFolder} status={folderStatus} now={minute} />}
+								</div>
+								{showInFinder}
 							</div>
 						)}
 						{error && (
@@ -304,26 +316,5 @@ function FilesPageBody() {
 			</div>
 			<ConfirmDialog copy={confirmText} onConfirm={onConfirm} onClose={closeConfirm} />
 		</div>
-	);
-}
-
-function SearchBox({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-	return (
-		<label className="flex h-10 max-w-[420px] min-w-[200px] flex-1 items-center gap-2 lh-well rounded px-3 text-ink-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink">
-			<input
-				type="search"
-				data-testid="files-search"
-				aria-label="Find a file"
-				placeholder="Find a file"
-				value={value}
-				onChange={(e) => onChange(e.target.value)}
-				className="min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-3 [&::-webkit-search-cancel-button]:hidden"
-			/>
-			{value && (
-				<button type="button" aria-label="Clear" data-testid="files-search-clear" onClick={() => onChange("")} className="lh-press shrink-0 hover:text-ink">
-					<PixelIcon name="close" className="h-2.5" />
-				</button>
-			)}
-		</label>
 	);
 }

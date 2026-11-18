@@ -11,7 +11,7 @@
  */
 import { useEffect, useLayoutEffect, useState } from "react";
 import { cn } from "@/frontend/lib/utils";
-import { BarWindow } from "@/frontend/components/ui/bar-window";
+import { BarWindow, barBottom, observeBar } from "@/frontend/components/ui/bar-window";
 import { ResizeHandle, usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import { agentWaiting, agentStatusLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
 import { needsYou, screenStatusLine, teacherTerminalState, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
@@ -41,9 +41,6 @@ export function agentLine(agent: AgentStatus | null, teacher: string, doing: Age
 
 /** The page's push while the panel is open (main's padding reads it). */
 const PUSH_VAR = "--lh-dock-push";
-
-/** The top bar's height: the panel hangs under it. */
-const BAR = 48;
 
 /** The open panel takes the whole window, with no page left beside it. */
 export const panelFillsWindow = (): boolean => document.querySelector("[data-teacher-panel][data-whole]") !== null;
@@ -90,7 +87,7 @@ export function TeacherPanel({
 	useLayoutEffect(() => {
 		const measure = () => {
 			const page = document.querySelector("main")?.getBoundingClientRect().width ?? window.innerWidth;
-			const room = window.innerHeight - BAR;
+			const room = window.innerHeight - barBottom();
 			const layout = panelLayout({ width: window.innerWidth, height: room }, page, { width: wanted, height: tall });
 			setLayout({ width: layout.width, height: layout.height, room, whole: layout.width >= window.innerWidth });
 			// On its way out it lets the page back at once.
@@ -101,6 +98,7 @@ export function TeacherPanel({
 		// window's resize event before its width changes.
 		const observer = new ResizeObserver(measure);
 		observer.observe(document.documentElement);
+		observeBar(observer);
 		return () => observer.disconnect();
 	}, [wanted, tall, state]);
 	useEffect(

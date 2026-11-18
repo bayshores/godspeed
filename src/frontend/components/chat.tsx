@@ -48,7 +48,7 @@ import { useLessonServer } from "@/frontend/components/lesson/use-lesson-server"
 import { useTitleRename } from "@/frontend/components/lesson/use-title-rename";
 import { useLessonStop } from "@/frontend/components/lesson/use-lesson-stop";
 import { useFromEarlier } from "@/frontend/components/lesson/use-from-earlier";
-import { LessonHead } from "@/frontend/components/lesson/lesson-head";
+import { LessonBar } from "@/frontend/components/lesson/lesson-bar";
 import { LessonWorkFrame } from "@/frontend/components/lesson/lesson-work-frame";
 import { PlanRow } from "@/frontend/components/lesson/plan-row";
 import { LessonScroll } from "@/frontend/components/lesson/lesson-scroll";
@@ -82,7 +82,7 @@ const PlanPopup = lazyComponent(() => import("@/frontend/components/plan-block")
 const NO_PAGES: ReadonlyMap<string, string> = new Map();
 
 /**
- * THE LESSON: its title line, then one page that scrolls (LessonScroll):
+ * THE LESSON: its title and words in the top bar (LessonBar), then one page that scrolls (LessonScroll):
  * the step line, the lesson text's sheet and "Your turn" beside it (or
  * under it in a small room) while something waits for the learner, with
  * the cheat sheet beside both when
@@ -575,7 +575,7 @@ export function Chat({
 				<JobsContext.Provider value={jobs}>
 					<LessonStepsContext.Provider value={stepNumbers}>
 						<div className="@container/lesson flex h-full min-w-0 flex-1 flex-col">
-							<LessonHead
+							<LessonBar
 								chatId={chatId}
 								rename={rename}
 								spaceId={spaceId}

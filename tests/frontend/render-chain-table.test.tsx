@@ -318,7 +318,7 @@ describe("ChainTableOverlay — the lifted practice pick", () => {
 	});
 
 	it("covers the page under the app's top bar, not the top bar", () => {
-		assert.match(overlay(), /data-testid="chain-table-overlay"[^>]*class="[^"]*fixed top-12 /);
+		assert.match(overlay(), /data-testid="chain-table-overlay"[^>]*class="[^"]*fixed top-\(--lh-bar-h\) /);
 	});
 
 	it("browse mode: Delete stays", () => {

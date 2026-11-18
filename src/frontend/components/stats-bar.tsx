@@ -5,6 +5,7 @@ import { formatTokens, planCostLabel } from "@/frontend/components/usage-format"
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { barWord } from "@/frontend/components/top-bar/bar-look";
 
 /** The meter shows once the lesson is this full (of where it gets summarized). */
 const SHOW_AT = 0.8;
@@ -25,10 +26,9 @@ export function turnSize(turn: TurnUsage): string {
 }
 
 /**
- * The lesson's stats bar: the session's context window + usage as one
- * quiet row in the Your-turn panel's footer, shown once the lesson is 80%
- * of the way to being summarized. Clicking it opens the per-turn detail
- * popover.
+ * The lesson's size: the session's context window + usage as one word in
+ * the top bar, shown once the lesson is 80% of the way to being
+ * summarized. Clicking it opens the per-turn detail, hanging from the bar.
  *
  * Lessons run on the outside agent's own plan, so cost reads as the plan's
  * label; missing cost stays "–", never fake zero. Context is a separate
@@ -62,14 +62,14 @@ export function StatsBar({
 	const newestFirst = turns.map((turn, i) => ({ turn, n: i + 1 })).reverse();
 
 	return (
-		<div data-testid="stats-bar" className="flex shrink-0 justify-end">
-			<button ref={anchorRef} type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid="stats-summary" className="lh-btn text-[15px]">
+		<div data-testid="stats-bar" className="flex shrink-0">
+			<button ref={anchorRef} type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid="stats-summary" className={barWord(open)}>
 				<PixelIcon name="chevron" className="rotate-90" />
 				<span>
 					<span data-testid="stats-context">{contextLabel}</span> lesson
 				</span>
 			</button>
-			<MenuShell open={open} anchorRef={anchorRef} testid="stats-detail" role="dialog" label="Lesson stats" preferredSide="up" align="right" menuClass="lh-popup flex w-[340px] flex-col gap-1 px-4 py-3.5">
+			<MenuShell open={open} anchorRef={anchorRef} testid="stats-detail" role="dialog" label="Lesson stats" preferredSide="down" align="right" hang menuClass="lh-popup flex w-[340px] flex-col gap-1 px-4 py-3.5">
 				<h3 className="text-[17px] text-ink">Lesson stats</h3>
 				<p className="text-base text-ink-2">Summarizes here to keep the lesson small. Change it in Settings. {teacher}&apos;s own context is separate.</p>
 				<StatRow label="Lesson size" value={contextLabel} />

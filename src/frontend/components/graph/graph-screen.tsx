@@ -1,8 +1,8 @@
 /**
  * THE GRAPH TAB, under the space head: one picture of the space's topics and
  * facts and how they link, fitted to the window so the page never scrolls,
- * over a foot line (counts, Find, Costs, Add files); a picked topic or fact
- * docks its panel beside it. Data: useProgress (GET /api/progress) and the
+ * over a foot line (counts); Find, Costs and Add files are words in the top
+ * bar. A picked topic or fact docks its panel beside it. Data: useProgress (GET /api/progress) and the
  * raw graph (GET /api/graph) for where facts came from, how they link,
  * and the chain table. Keyed by space by the route, so a space switch
  * starts clean.
@@ -14,8 +14,10 @@ import { useProgress } from "@/frontend/components/use-progress";
 import { useActivity } from "@/frontend/components/activity-dock";
 import { LazyChainTableOverlay as ChainTableOverlay } from "@/frontend/components/chain-table-lazy.tsx";
 import { LoadFailed } from "@/frontend/components/load-failed";
+import { useBarFind } from "@/frontend/components/use-bar-find";
 import { NotesImportErrors, useNotesImport } from "@/frontend/components/notes-import";
 import { findMatches } from "./derive.ts";
+import { GraphBar } from "./graph-bar.tsx";
 import { GraphFoot } from "./graph-foot.tsx";
 import { useGraphCosts } from "./use-graph-costs.ts";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
@@ -36,7 +38,6 @@ function GraphScreenBody() {
 	const { active } = useSpaces();
 	const progress = useProgress();
 	const { refresh } = progress;
-	const [query, setQuery] = useState("");
 	const [chainsOpen, setChainsOpen] = useState(false);
 	const [snapshot, setSnapshot] = useState<GraphSnapshot | null>(null);
 
@@ -84,7 +85,8 @@ function GraphScreenBody() {
 
 	const data = progress.data;
 	const hasFacts = (data?.facts.length ?? 0) > 0;
-	const matches = useMemo(() => (data ? findMatches(query, data.topics, data.facts) : null), [query, data]);
+	const find = useBarFind(hasFacts);
+	const matches = useMemo(() => (data ? findMatches(find.query, data.topics, data.facts) : null), [find.query, data]);
 	// Typing in Find shows the whole space, so every match is in view.
 	const finding = matches !== null;
 	useEffect(() => {
@@ -122,16 +124,13 @@ function GraphScreenBody() {
 					)}
 				</div>
 			</div>
+			<GraphBar hasFacts={hasFacts} find={find} costs={costs} importNotes={active ? null : notesImport} />
 			<GraphFoot
 				hasFacts={hasFacts}
 				topicCount={data?.topics.filter((t) => !t.ungrouped).length ?? 0}
 				factCount={data?.facts.length ?? 0}
-				query={query}
-				onQuery={setQuery}
 				matches={matches}
 				onOpenChains={() => setChainsOpen(true)}
-				costs={costs}
-				importNotes={active ? null : notesImport}
 				inView={inView}
 				onWholeSpace={() => fly({ to: "whole" })}
 			/>

@@ -53,6 +53,23 @@ The Mac app draws with WebKit, not Chrome; a page right in a browser can overlap
 - Anything that sticks out of its own box (a tag, a badge, a pop-up) sits on a layer above what can move under it, or does not stick out at all. Pop-ups go through `MenuShell` or a dialog, which no box can clip.
 - `npm run layout` checks the screens in `scripts/layout-screens.mjs` in the real window at all three widths, each as it opens, scrolled 80 px and scrolled to the end, for overlapping text, text or a control another box is drawn over, spills, sideways scrolling, hidden text and cut-off letters. CI runs it on the Mac; `npm run check` does not. Run it yourself before calling a UI change finished. A new screen or state gets an entry there.
 
+## Top bar
+
+The top bar is the one place for a page's own actions and for where the learner is. Its parts are in `src/frontend/components/top-bar/`.
+
+| What | Where | How |
+|---|---|---|
+| A page's own actions | The bar's right side, after the teacher pill and before Menu, so the pill's changing words never move them | `BarActions`, each word with the `barWord` look; never a row under the bar |
+| Where the learner is inside a space | After the lit space tab, on its paper, after a "›" | `BarCrumb`: a lesson's title, a deadline's name, "Cheat sheet" |
+| Find | A magnifying glass in the bar, on every page that can find; open, its field takes the place of that page's own words only, so on Files and Graph the space's Edit space stays, and on a lesson every word gives way | `BarFind` |
+| A shortcut | Inside the button whose action it is, read from the key registry | `KeyHint` and `keyShortcutProps` |
+
+- Page tabs (Progress, Files, Graph, Deadlines) and keys inside a card stay on the page.
+- Bar words are real buttons or links, never a clickable span: the bar is the window's drag band, and only buttons, links and fields are cut out of it (`crates/shell/src/shim.js`).
+- Crowded, the bar gives way in this order (`space-tabs.tsx`): the pill's words, then the unlit tabs' names down to 8 letters, then those tabs scroll with the lit tab kept in view. The lit tab and its crumb never give way to the other tabs; in a strip too narrow for both, the crumb's name gives way down to 12 letters (`CrumbName`), then the lit tab's name down to its dot. The wordmark and the clock leave below 1200 points while a page has words in the bar, and below 760 always (`.lh-bar-spare`).
+- Below 1100 points a page's words take a line of their own above the bar's, at its right end, so the bar is two lines tall (`.lh-bar-actions` in `globals.css`). Whatever sits under the bar reads its height from `--lh-bar-h`, never a fixed 48 points. A menu from a page's word hangs from that word's line and may cover the line below while it is open. Windows that stay open, the teacher's window and a plugin's window, hang under the whole bar and read `--lh-bar-h`.
+- Before calling a bar change finished, check that no page draws its actions under the bar, and look at the bar at 1440, 1100 and 800 points wide with the longest real names.
+
 ## Page layout
 
 Every page, the lesson page included, uses one column and one set of spacing, so nothing moves as the learner goes from page to page. The values live in `:root` and the classes in `src/frontend/globals.css`. Page files use the tokens (`pt-(--lh-page-top)`, `gap-(--lh-gap)`) and classes, never their own numbers.
@@ -60,7 +77,7 @@ Every page, the lesson page included, uses one column and one set of spacing, so
 | What | Value | Where it applies |
 |---|---|---|
 | Column | `.lh-page`: at most `--lh-page-w` (1460) wide, centered, sides `--lh-page-side` (32, or 24 when the room is under 900) | Every page |
-| Top of a page with a title | `--lh-page-top` (40) from the top bar to the title | Today, Study, a deadline, Settings, All facts, Lessons with no space |
+| Top of a page with a title | `--lh-page-top` (40) from the top bar to the title, or to a deadline's head (its name is in the bar) | Today, Study, a deadline, Settings, All facts, Lessons with no space |
 | Page title | `.lh-page-title`: `--lh-title` (44, or 34 when the room is under 900), regular | Every page's one h1 |
 | Title to what is under it | `--lh-head-gap` (32) | Under a page title, and above a second section title on a page (Done or past) |
 | Between cards | `--lh-gap` (24), across and down | Every page; also a tab row to the first card |
@@ -73,10 +90,10 @@ Every page, the lesson page included, uses one column and one set of spacing, so
 | Keys | 40 high; `.lh-btn-small` 30; `BIG_KEY` and `MAIN_KEY` 48 for a page's main action | Every key |
 | Fields | 40 high (`FIELD`, `SELECT`) | Every field |
 
-- Pages with the same head start their first card at the same height: a space's pages under the tab row, title pages under the title.
+- Pages with the same head start their first card at the same height: a space's pages under the tab row, title pages under the title. The lesson page has no head: its first sheet starts `--lh-gap` under the bar.
 - The width is used, not stretched: wide, a page puts a second block in a side column (Today's spaces, Files' recent changes, the Study page's suggestions) or lays its cards and groups in columns (Deadlines, Settings). Fields stay field-sized and keys stay as wide as their words.
 - A different kind of object keeps its own numbers and says why: a card with a days block on its edge (Today's next card, Progress's next deadline, a Deadlines row) has no inset where the block is; the Graph picture runs under the tab row; side lists of picks in Settings have an 8-point inset as their rows carry their own; the Study page's back link sits above its title; a deadline's head is as tall as its days block.
-- The lesson page is read like a book, so its two sheets are reading surfaces (`.lh-reading`), not cards. The lesson text's sheet and "Your turn" keep a 56-point margin (`--lh-reading-inset`, 28 in a column under 640, `--lh-reading-inset-narrow`) with 40 points above and below, and the step line's words sit on the same margin. "Your turn" is headed at 28 points, a step above its 22-point question, where a card title at 20 would sit under the question. The text keeps a reading measure of 872 points while nothing waits. Everything else on the lesson page takes the shared values: its gaps are `--lh-gap`, its end is `--lh-page-end`, and its head is a 48-point row like a space's tab row, so its first sheet starts where a space page's first card does.
+- The lesson page is read like a book, so its two sheets are reading surfaces (`.lh-reading`), not cards. The lesson text's sheet and "Your turn" keep a 56-point margin (`--lh-reading-inset`, 28 in a column under 640, `--lh-reading-inset-narrow`) with 40 points above and below, and the step line's words sit on the same margin. "Your turn" is headed at 28 points, a step above its 22-point question, where a card title at 20 would sit under the question. The text keeps a reading measure of 872 points while nothing waits. Everything else on the lesson page takes the shared values: its gaps are `--lh-gap` and its end is `--lh-page-end`. It has no head of its own (its title and words sit in the top bar), so its first sheet starts `--lh-gap` under the bar.
 - Only screens that are one centered box (onboarding, dialogs, Not found) stay centered.
 - `npm run layout` reports a card whose inset is off, a reading surface whose sides are not the reading inset, two neighbouring sheets in a page's column at a gap that is not `--lh-gap`, and a page h1 without `.lh-page-title`.
 - Before calling a page change finished, look at it at 1512, 1100 and 800 points wide, with the teacher's panel docked too.

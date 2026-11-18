@@ -15,6 +15,7 @@ import { afterEach, describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
+import { ariaKeyShortcuts, bindingForAction, IS_MAC, keyHintText } from "../../src/shared/core/index.ts";
 import type { AnswerOutcome, AnswerRef, CalibrationLevel, DeadlineProgress, FileCoverage, LessonProgress, PathProgress, PathTopicProgress, ProgressPayload } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
@@ -186,6 +187,8 @@ function section(html: string, testid: string, close = "</section>"): string {
 	return html.slice(start, html.indexOf(close, start));
 }
 
+const studyKey = keyHintText(bindingForAction("new-session"), IS_MAC);
+const studyKeyRe = studyKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 
 // ─── order ──────────────────────────────────────────────────────────────────
@@ -201,8 +204,9 @@ describe("Progress, top to bottom", () => {
 	it("loading: only the Lessons heading, so Study something new is still there", () => {
 		const html = render({ data: null });
 		for (const id of ["progress-side", "next-deadline", "most-needed", "lesson-row", "space-facts", "overview-confidence"]) assert.ok(!html.includes(id));
-		assert.match(text(section(html, "lesson-record")), /> Lessons Study something new\s*$/);
+		assert.match(text(section(html, "lesson-record")), new RegExp(`> Lessons Study something new ${studyKeyRe}\\s*$`));
 		assert.match(tag(html, "study-something-new"), /href="\/new"/);
+		assert.ok(tag(html, "study-something-new").includes(`aria-keyshortcuts="${ariaKeyShortcuts(bindingForAction("new-session"), IS_MAC)}"`));
 	});
 
 	it("no space: lessons and confidence only, under the spaces to switch to", () => {
@@ -222,7 +226,7 @@ describe("Progress, top to bottom", () => {
 	it("no lessons, no answers: No lessons yet, and no chart", () => {
 		const empty = { ...PAYLOAD, deadlines: DEADLINES, lessons: [], calibration: { levels: PAYLOAD.calibration.levels.map((l) => level(l.level, 0, 0)), sureButWrong: [] } };
 		const html = render({ data: empty });
-		assert.match(text(section(html, "lesson-record")), /Lessons Study something new No lessons yet\.\s*$/);
+		assert.match(text(section(html, "lesson-record")), new RegExp(`Lessons Study something new ${studyKeyRe} No lessons yet\\.\\s*$`));
 		assert.ok(!html.includes("overview-confidence"));
 		assert.ok(html.includes('data-testid="next-deadline"'));
 	});
@@ -361,7 +365,7 @@ describe("Lessons", () => {
 	it("the unfinished ones in the side column, the finished ones in Lessons, never both, each newest first", () => {
 		const page = html();
 		assert.match(text(section(page, "unfinished-lessons")), /> Unfinished Induction proofs More Continue Work on Homework 4 More $/);
-		assert.match(text(section(page, "lesson-record")), /> Lessons Study something new Yesterday Big-O basics More Recursion More Oct 20 Just looked More $/);
+		assert.match(text(section(page, "lesson-record")), new RegExp(`> Lessons Study something new ${studyKeyRe} Yesterday Big-O basics More Recursion More Oct 20 Just looked More $`));
 	});
 
 	it("an unfinished row opens its lesson and shows its steps as blocks, a homework its deadline's problems; only the first carries the key", () => {

@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { actionForBinding, bindingForAction, bindingKeys, IS_MAC, kbdEventForAction, KEYBOARD_ACTIONS, KEY_SCOPES } from "../../src/shared/core/keyboard.ts";
+import { actionForBinding, ariaKeyShortcuts, bindingForAction, bindingKeys, keyHintText, IS_MAC, kbdEventForAction, KEYBOARD_ACTIONS, KEY_SCOPES } from "../../src/shared/core/keyboard.ts";
 
 describe("a keypress reaches its action's event", () => {
 	it("mod+t is the toggle-user-thinking action", () => {
@@ -65,5 +65,25 @@ describe("bindingKeys: one keycap per key", () => {
 	it("named keys are written out", () => {
 		assert.deepEqual(bindingKeys("enter"), [IS_MAC ? "Return" : "Enter"]);
 		assert.deepEqual(bindingKeys("tab"), ["Tab"]);
+	});
+});
+
+describe("the key shown inside a button", () => {
+	it("reads ⌘⇧F on a Mac and Ctrl+Shift+F elsewhere", () => {
+		assert.equal(keyHintText("mod+shift+f", true), "⌘⇧F");
+		assert.equal(keyHintText("mod+shift+f", false), "Ctrl+Shift+F");
+	});
+	it("shows a comma and a function key as they are", () => {
+		assert.equal(keyHintText("mod+,", true), "⌘,");
+		assert.equal(keyHintText("mod+,", false), "Ctrl+,");
+		assert.equal(keyHintText("f2", true), "F2");
+		assert.equal(keyHintText("f2", false), "F2");
+	});
+	it("gives the aria-keyshortcuts form with Meta on a Mac and Control elsewhere", () => {
+		assert.equal(ariaKeyShortcuts("mod+f", true), "Meta+F");
+		assert.equal(ariaKeyShortcuts("mod+f", false), "Control+F");
+		assert.equal(ariaKeyShortcuts("mod+shift+f", true), "Meta+Shift+F");
+		assert.equal(ariaKeyShortcuts("mod+,", false), "Control+,");
+		assert.equal(ariaKeyShortcuts("f2", true), "F2");
 	});
 });

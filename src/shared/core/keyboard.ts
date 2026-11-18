@@ -62,8 +62,8 @@ export const KEYBOARD_ACTIONS: readonly KeyActionDef[] = [
 	{ id: "new-session", label: "Study", scope: "global", binding: "mod+n" },
 	{ id: "rename-session", label: "Rename lesson", scope: "chat", binding: "f2" },
 	{ id: "toggle-user-thinking", label: "Show or hide all your thinking", scope: "chat", binding: "mod+t" },
-	// Mod+F is surface-scoped: graph node search and session text Find share
-	// one action/binding. Only the currently mounted surface listens.
+	// Mod+F is surface-scoped: the Files and Graph pages' Find and a lesson's
+	// text Find share one action/binding. Only the page on screen listens.
 	{ id: "find", label: "Find", scope: "global", binding: "mod+f" },
 	{ id: "cheat-sheet", label: "Show keyboard shortcuts", scope: "global", binding: "?" },
 	// The question dock's row machine — displayOnly: the dock owns
@@ -173,4 +173,23 @@ const KEY_NAME: Record<string, string> = { mod: IS_MAC ? "⌘" : "Ctrl", alt: IS
 export function bindingKeys(binding: string): string[] {
 	const { mods, key } = splitBinding(binding);
 	return [...mods, key].map((k) => KEY_NAME[k] ?? KEY_GLYPH[k] ?? k.toUpperCase());
+}
+
+const MAC_MOD_GLYPH: Record<string, string> = { mod: "⌘", alt: "⌥", shift: "⇧" };
+const PLAIN_MOD_NAME: Record<string, string> = { mod: "Ctrl", alt: "Alt", shift: "Shift" };
+
+/** A binding as the short text inside a button: "⌘⇧F" on a Mac, "Ctrl+Shift+F" elsewhere. */
+export function keyHintText(binding: string, mac: boolean): string {
+	const { mods, key } = splitBinding(binding);
+	const keyName = KEY_GLYPH[key] ?? key.toUpperCase();
+	if (mac) return [...mods.map((m) => MAC_MOD_GLYPH[m]), keyName].join("");
+	return [...mods.map((m) => PLAIN_MOD_NAME[m]), keyName].join("+");
+}
+
+const ARIA_MOD_NAME: Record<string, (mac: boolean) => string> = { mod: (mac) => (mac ? "Meta" : "Control"), alt: () => "Alt", shift: () => "Shift" };
+
+/** A binding in the form of the `aria-keyshortcuts` attribute: "Meta+Shift+F", "Control+,", "F2". */
+export function ariaKeyShortcuts(binding: string, mac: boolean): string {
+	const { mods, key } = splitBinding(binding);
+	return [...mods.map((m) => ARIA_MOD_NAME[m]!(mac)), key.length === 1 ? key.toUpperCase() : key[0]!.toUpperCase() + key.slice(1)].join("+");
 }

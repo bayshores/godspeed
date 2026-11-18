@@ -3,7 +3,7 @@
  * The DOM seam runs under linkedom (styles resolve to defaults: display
  * block/inline behave; the hidden/overlay paths are exercised through the
  * selectors and inline styles linkedom DOES evaluate). The highlight/
- * scroll lifecycle itself is browser-verified (SessionFind on the live
+ * scroll lifecycle itself is browser-verified (useSessionFind on the live
  * page), not re-implemented here.
  */
 import React from "react";

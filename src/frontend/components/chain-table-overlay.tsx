@@ -7,7 +7,7 @@ import { nextSort, toggled, withIds, type ChainSort } from "./chain-table-model"
 
 /**
  * "All facts" over the page: it covers the space head too, but not the
- * app's top bar (48px) or the docked teacher panel. It owns the search,
+ * app's top bar or the docked teacher panel. It owns the search,
  * sort, open rows and picked facts; Esc and "Close" leave.
  *
  * Passing `controlledSelection` + `onSelectionChange` lifts the picked
@@ -75,7 +75,7 @@ export function ChainTableOverlay({
 	return (
 		<>
 			{/* Fixed under the top bar; the right edge follows the docked panel's push. */}
-			<div data-testid="chain-table-overlay" className="lh-dots fixed top-12 right-(--lh-dock-push,0px) bottom-0 left-0 z-40 flex flex-col bg-background">
+			<div data-testid="chain-table-overlay" className="lh-dots fixed top-(--lh-bar-h) right-(--lh-dock-push,0px) bottom-0 left-0 z-40 flex flex-col bg-background">
 				<ChainTableBody
 					nodes={nodes}
 					chains={chains}

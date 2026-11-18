@@ -1,12 +1,13 @@
 /**
- * "Costs" in the Graph page's foot line: a click toggles the popup (above it) with
- * the plan that paid, each stage's tokens and the latest runs; an outside
+ * "Costs", a word in the top bar on the Graph page: a click toggles the popup (hung from the
+ * bar) with the plan that paid, each stage's tokens and the latest runs; an outside
  * click or Escape closes it.
  */
 import { useCallback, useRef, useState } from "react";
 import type { GraphCostSummary } from "@/shared/core";
 import { useMinute } from "@/frontend/components/countdown";
 import { MenuShell } from "@/frontend/components/menu-shell";
+import { barWord } from "@/frontend/components/top-bar/bar-look";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { displayUnpricedRuns, fmtTokens, planLine, runName, timeAgo } from "./cost-model.ts";
 
@@ -17,7 +18,7 @@ export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 	useMenuDismiss(open, close, anchorRef);
 	return (
 		<>
-			<button ref={anchorRef} type="button" data-testid="graph-costs" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
+			<button ref={anchorRef} type="button" data-testid="graph-costs" aria-expanded={open} onClick={() => setOpen((o) => !o)} className={barWord(open)}>
 				Costs
 			</button>
 			<MenuShell
@@ -26,9 +27,10 @@ export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 				testid="graph-costs-panel"
 				role="dialog"
 				label="Graph costs"
-				preferredSide="up"
+				preferredSide="down"
 				align="right"
-				menuClass="lh-sheet flex w-[440px] max-w-[calc(100vw-1.5rem)] flex-col gap-2 px-[18px] py-4"
+				hang
+				menuClass="lh-popup flex w-[440px] max-w-[calc(100vw-1.5rem)] flex-col gap-2 px-[18px] py-4"
 			>
 				<GraphCostPanel costs={costs} />
 			</MenuShell>

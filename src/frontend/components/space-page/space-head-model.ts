@@ -1,6 +1,6 @@
 /** The tabs under a space's name, the count beside each, and the
  *  signature's share and fit. Pure. */
-import type { FactProgress } from "@/shared/core";
+import type { FactProgress, KeyAction } from "@/shared/core";
 
 /** What a tab counts: the percent of facts studied, files, deadlines
  *  coming up. */
@@ -12,6 +12,8 @@ interface SpaceTab {
 	testid: string;
 	/** The count shown beside the label. */
 	count?: keyof TabCounts;
+	/** The shortcut action that opens this tab; its key is shown inside the tab. */
+	action?: KeyAction;
 }
 
 /** What the head is over: a space, or the lessons with no space. */
@@ -20,7 +22,7 @@ type HeadKind = "space" | "none";
 const TABS: readonly (SpaceTab & { spaceOnly?: boolean })[] = [
 	{ href: "/space", label: "Progress", testid: "nav-progress", count: "studied" },
 	{ href: "/space/files", label: "Files", testid: "nav-files", count: "files", spaceOnly: true },
-	{ href: "/graph", label: "Graph", testid: "nav-graph" },
+	{ href: "/graph", label: "Graph", testid: "nav-graph", action: "jump-graph" },
 	{ href: "/space/deadlines", label: "Deadlines", testid: "nav-deadlines", count: "deadlines", spaceOnly: true },
 ];
 

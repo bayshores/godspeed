@@ -26,6 +26,9 @@ describe("a space's tabs", () => {
 	it("Progress, Files and Deadlines show a count", () => {
 		assert.deepEqual(spaceTabs("space", []).map((t) => t.count), ["studied", "files", undefined, "deadlines"]);
 	});
+	it("only the Graph tab has a shortcut, ⌘G, shown inside it", () => {
+		assert.deepEqual(spaceTabs("space", []).map((t) => t.action), [undefined, undefined, "jump-graph", undefined]);
+	});
 	it("a count reads as its number, the studied share as a percent, and nothing until it has loaded", () => {
 		const [progress, files, graph] = spaceTabs("space", []);
 		const counts = { studied: 19, files: 0, deadlines: 2 };

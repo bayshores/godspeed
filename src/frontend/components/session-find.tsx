@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from "react";
 import { kbdEventForAction, stepSessionMatch } from "@/shared/core";
 import {
 	sameSessionRange, sessionFindRanges, sessionRangeIdentity, type SessionRangeIdentity,
 } from "@/frontend/components/session-find-dom";
 import { scrollSessionTarget, type SessionScrollContext } from "@/frontend/components/session-navigation";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
 const SESSION_FIND_HIGHLIGHT = "lh-session-find";
 const SESSION_FIND_ACTIVE_HIGHLIGHT = "lh-session-find-active";
@@ -57,49 +56,71 @@ export function sessionFindHasForegroundLayer(doc: Document): boolean {
 	});
 }
 
-/** Lives in the lesson's title line: shows its children (the line's own buttons)
- * until Find opens, then takes their place. Mounted for the lifetime of ONE
- * Chat (which is keyed by chatId). Closing keeps the query/reading position;
- * changing sessions resets all local state. The line lives outside scopeRef,
- * so it never finds its own query or count. */
-export function SessionFind({ scopeRef, scrollContextRef, children }: {
-	scopeRef: RefObject<HTMLDivElement | null>;
-	scrollContextRef: RefObject<SessionScrollContext | null>;
-	children?: ReactNode;
-}) {
+/** What every Find in the top bar (bar-find.tsx) shares: the find key or the
+ * magnifying glass opens it (not while a menu or dialog is up), a second find
+ * key selects the field again, and closing gives focus back. Focus goes back
+ * to where it was, or to the glass when that was the glass itself, which the
+ * open field replaced. `onClose` must keep its identity. */
+export function useBarFindOpen(enabled: boolean, onClose: () => void) {
 	const [open, setOpen] = useState(false);
+	const inputRef = useRef<HTMLInputElement | null>(null);
+	const keyRef = useRef<HTMLButtonElement | null>(null);
+	const previousFocus = useRef<HTMLElement | null>(null);
+	const giveBack = useRef(false);
+
+	const close = useCallback(() => {
+		onClose();
+		giveBack.current = true;
+		setOpen(false);
+	}, [onClose]);
+
+	const start = useCallback(() => {
+		if (!enabled || sessionFindHasForegroundLayer(document)) return;
+		if (open) {
+			inputRef.current?.focus({ preventScroll: true });
+			inputRef.current?.select();
+			return;
+		}
+		previousFocus.current = document.activeElement as HTMLElement | null;
+		setOpen(true);
+	}, [enabled, open]);
+
+	useEffect(() => {
+		window.addEventListener(kbdEventForAction("find"), start);
+		return () => window.removeEventListener(kbdEventForAction("find"), start);
+	}, [start]);
+
+	// After the render that opened or closed it, so the field, or the glass, is there to focus.
+	useEffect(() => {
+		if (open) {
+			inputRef.current?.focus({ preventScroll: true });
+			inputRef.current?.select();
+		} else if (giveBack.current) {
+			giveBack.current = false;
+			const back = previousFocus.current?.isConnected ? previousFocus.current : keyRef.current;
+			back?.focus({ preventScroll: true });
+		}
+	}, [open]);
+
+	return { open, start, close, inputRef, keyRef };
+}
+
+/** Find in an open lesson, for the top bar's Find: Enter and Shift+Enter
+ * walk the matches, Esc or Close closes it. Lives for ONE Chat (keyed by
+ * chatId): closing keeps the query and the reading position; another lesson
+ * starts fresh. The bar is outside scopeRef, so it never finds its own query or count. */
+export function useSessionFind(scopeRef: RefObject<HTMLDivElement | null>, scrollContextRef: RefObject<SessionScrollContext | null>) {
+	const { open, start, close, inputRef, keyRef } = useBarFindOpen(true, clearSessionFindHighlights);
 	const [query, setQuery] = useState("");
 	const [result, setResult] = useState({ index: -1, count: 0 });
 	useEffect(injectFindStyles, []);
-	const inputRef = useRef<HTMLInputElement | null>(null);
-	const previousFocus = useRef<HTMLElement | null>(null);
 	const rangesRef = useRef<Range[]>([]);
 	const indexRef = useRef(-1);
 	const identityRef = useRef<SessionRangeIdentity | null>(null);
 	const lastQueryRef = useRef<string | null>(null);
 
-	const close = useCallback(() => {
-		clearSessionFindHighlights();
-		setOpen(false);
-		if (previousFocus.current?.isConnected) previousFocus.current.focus({ preventScroll: true });
-	}, []);
-
-	useEffect(() => {
-		const onFind = () => {
-			if (sessionFindHasForegroundLayer(document)) return;
-			if (!open) previousFocus.current = document.activeElement as HTMLElement | null;
-			setOpen(true);
-			// A second Mod+F focuses/selects the retained query, not a second bar.
-			if (open) { inputRef.current?.focus({ preventScroll: true }); inputRef.current?.select(); }
-		};
-		window.addEventListener(kbdEventForAction("find"), onFind);
-		return () => window.removeEventListener(kbdEventForAction("find"), onFind);
-	}, [open]);
-
 	useEffect(() => {
 		if (!open) return;
-		inputRef.current?.focus({ preventScroll: true });
-		inputRef.current?.select();
 		const onEscape = (event: KeyboardEvent) => {
 			if (event.key !== "Escape" || sessionFindHasForegroundLayer(document)) return;
 			event.preventDefault();
@@ -159,48 +180,18 @@ export function SessionFind({ scopeRef, scrollContextRef, children }: {
 		if (ranges[index] && scopeRef.current) scrollSessionTarget(ranges[index]!, scopeRef.current, scrollContextRef.current);
 	};
 
-	if (!open) return <>{children}</>;
-	return (
-		<div
-			role="search"
-			aria-label="Find in lesson"
-			data-testid="session-find"
-			className="flex items-center gap-3"
-			onKeyDown={(event) => {
-				if (event.key === "Enter") {
-					event.stopPropagation(); // NEVER reach question/global Enter submits.
-					if ((event.target as HTMLElement).tagName !== "INPUT" || event.nativeEvent.isComposing) return;
-					event.preventDefault();
-					step(event.shiftKey ? -1 : 1);
-				} else if (event.key === "Escape") {
-					event.preventDefault();
-					event.stopPropagation();
-					close();
-				}
-			}}
-		>
-			<input
-				ref={inputRef}
-				aria-label="Find in lesson"
-				placeholder="Find in lesson"
-				value={query}
-				onChange={(event) => setQuery(event.target.value)}
-				spellCheck={false}
-				className="h-10 w-[200px] rounded-[2px] border-[1.5px] border-transparent bg-tone px-3 text-base text-ink outline-none placeholder:text-ink-3 focus:border-ink"
-			/>
-			<output aria-live="polite" data-testid="session-find-count" className="font-count min-w-[6ch] shrink-0 text-[15px]">
-				{query ? `${result.index + 1} of ${result.count}` : ""}
-			</output>
-			<button type="button" className="lh-btn" disabled={!result.count} onMouseDown={(event) => event.preventDefault()} onClick={() => step(-1)}>
-				Previous match
-			</button>
-			<button type="button" className="lh-btn" disabled={!result.count} onMouseDown={(event) => event.preventDefault()} onClick={() => step(1)}>
-				Next match
-			</button>
-			<button type="button" className="lh-btn lh-btn-quiet" onClick={close}>
-				<PixelIcon name="close" />
-				Close Find
-			</button>
-		</div>
-	);
+	const onKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+		if (event.key === "Enter") {
+			event.stopPropagation(); // NEVER reach question/global Enter submits.
+			if ((event.target as HTMLElement).tagName !== "INPUT" || event.nativeEvent.isComposing) return;
+			event.preventDefault();
+			step(event.shiftKey ? -1 : 1);
+		} else if (event.key === "Escape") {
+			event.preventDefault();
+			event.stopPropagation();
+			close();
+		}
+	};
+
+	return { open, start, close, query, setQuery, inputRef, keyRef, onKeyDown, step, count: query ? `${result.index + 1} of ${result.count}` : "", canStep: result.count > 0 };
 }

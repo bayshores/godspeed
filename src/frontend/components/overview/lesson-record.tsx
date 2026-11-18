@@ -1,6 +1,7 @@
 import { memo, useState } from "react";
 import { Link } from "react-router";
 import type { LessonProgress } from "@/shared/core";
+import { KeyHint, keyShortcutProps } from "@/frontend/components/ui/key-hint";
 import { Pane } from "@/frontend/components/ui/pane";
 import { FINISHED_SHOWN, dayWord, shownRows } from "./lesson-record-model";
 import { FINISHED_LIST, FinishedRow } from "./lesson-rows";
@@ -33,8 +34,9 @@ export const LessonRecord = memo(function LessonRecord({
 		<Pane data-testid="lesson-record" className="lh-card">
 			<div className="lh-card-head">
 				<h2 className="lh-card-title">Lessons</h2>
-				<Link to="/new" data-testid="study-something-new" className="lh-btn shrink-0">
+				<Link to="/new" data-testid="study-something-new" {...keyShortcutProps("new-session")} className="lh-btn shrink-0">
 					Study something new
+					<KeyHint action="new-session" />
 				</Link>
 			</div>
 			{none && <p className="text-base text-ink-2">No lessons yet.</p>}

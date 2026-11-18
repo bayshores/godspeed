@@ -2,6 +2,8 @@ import { memo, type ReactNode } from "react";
 import { rampColor, type DeadlineProgress, type PlanDay } from "@/shared/core";
 import { isOverdue } from "@/frontend/components/deadlines-model";
 import { STATUS_LEGEND, progressWords } from "@/frontend/components/overview/overview-model";
+import { barWord } from "@/frontend/components/top-bar/bar-look";
+import { BarActions, BarCrumb, CrumbName } from "@/frontend/components/top-bar/bar-slots";
 import { Tip } from "@/frontend/components/ui/tooltip";
 import { CoversSheet } from "./covers-sheet";
 import { DeadlineBlock } from "./deadline-block";
@@ -10,11 +12,13 @@ import { PathSheet } from "./path-sheet";
 import type { RequestKind } from "./request-model";
 
 /**
- * ONE DEADLINE'S PAGE (pure view, the render-test seam): the time left,
- * the name, and under it when and how far it is (a chip); its topics as a
+ * ONE DEADLINE'S PAGE (pure view, the render-test seam): the time left
+ * with when and how far it is (a chip) beside it; its topics as a
  * strip colored by how you do; what it's like; a homework's problems; What's
- * on it and the path to it with its mocks. An interview has no cheat sheet, and no What's on
- * it until files are linked.
+ * on it and the path to it with its mocks. The deadline's name is the top bar's
+ * crumb (the page keeps it as a hidden h1), and Cheat sheet and Edit deadline
+ * are words at the bar's right. An interview has no cheat sheet, and no
+ * What's on it until files are linked.
  */
 
 interface DeadlineBodyProps {
@@ -62,29 +66,34 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 	const interview = d.kind === "interview";
 	return (
 		<div data-testid="deadline-page" className="@container flex w-full flex-col gap-(--lh-head-gap)">
-			<header className="flex flex-wrap items-center gap-x-6 gap-y-3">
-				<DeadlineBlock deadline={d} color={props.color} nowMs={nowMs} size="head" />
-				<div className="flex min-w-0 flex-1 basis-[280px] flex-col gap-2">
-					<h1 data-testid="deadline-name" className="lh-page-title">
-						{d.name}
-					</h1>
-					<p className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-						<span data-testid="deadline-when" className="font-count text-lg text-ink-2">
-							{whenLine(d)}
-						</span>
-						<span data-testid="deadline-progress" className="bg-highlight px-2 py-0.5 text-[15px] leading-snug text-ink">
-							{progressWords(d) ?? "Not measured yet"}
-						</span>
-					</p>
-				</div>
+			<h1 data-testid="deadline-name" className="sr-only">
+				{d.name}
+			</h1>
+			<BarCrumb>
+				<span title={d.name} className="flex">
+					<CrumbName text={d.name} />
+				</span>
+			</BarCrumb>
+			<BarActions>
 				{!interview && (
-					<button type="button" data-testid="deadline-cheat-sheet" onClick={props.onCheatSheet} className="lh-btn shrink-0 text-[15px]">
+					<button type="button" data-testid="deadline-cheat-sheet" onClick={props.onCheatSheet} className={barWord(false)}>
 						Cheat sheet
 					</button>
 				)}
-				<button type="button" data-testid="deadline-edit" onClick={props.onEdit} className="lh-btn shrink-0 text-[15px]">
+				<button type="button" data-testid="deadline-edit" onClick={props.onEdit} className={barWord(false)}>
 					Edit deadline
 				</button>
+			</BarActions>
+			<header className="flex flex-wrap items-center gap-x-6 gap-y-3">
+				<DeadlineBlock deadline={d} color={props.color} nowMs={nowMs} size="head" />
+				<div className="flex min-w-0 flex-col items-start gap-2">
+					<span data-testid="deadline-when" className="font-count text-xl text-ink">
+						{whenLine(d)}
+					</span>
+					<span data-testid="deadline-progress" className="bg-highlight px-2 py-0.5 text-[15px] leading-snug text-ink">
+						{progressWords(d) ?? "Not measured yet"}
+					</span>
+				</div>
 			</header>
 
 			<div className="flex flex-col gap-(--lh-gap)">

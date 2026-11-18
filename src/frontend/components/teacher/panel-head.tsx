@@ -143,7 +143,7 @@ export function PanelHead({
 			{!inRow && statusChip && <div className="flex min-w-0 items-center gap-2">{statusChip}</div>}
 			{hang.mounted && (
 				<div data-state={hang.state} className="lh-hang absolute inset-x-0 top-full">
-					<div ref={card} id={listId} role="dialog" aria-label="Activity" tabIndex={-1} data-state={hang.state} data-testid="teacher-panel-list" style={room === null ? undefined : { maxHeight: `min(${room}px, (100dvh - 3rem) * 0.6)` }} className="lh-hang-body flex outline-none max-h-[calc((100dvh-3rem)*0.6)] flex-col overflow-y-auto bg-bar px-[18px] pt-1 pb-5">
+					<div ref={card} id={listId} role="dialog" aria-label="Activity" tabIndex={-1} data-state={hang.state} data-testid="teacher-panel-list" style={room === null ? undefined : { maxHeight: `min(${room}px, (100dvh - var(--lh-bar-h)) * 0.6)` }} className="lh-hang-body flex outline-none max-h-[calc((100dvh-var(--lh-bar-h))*0.6)] flex-col overflow-y-auto bg-bar px-[18px] pt-1 pb-5">
 						<TeacherActivity underStatus />
 					</div>
 				</div>

@@ -93,9 +93,9 @@ for (let tries = 0; ; tries++) {
 	await new Promise((done) => setTimeout(done, 100));
 }`;
 
-/** Find opened on the Graph's foot line, with `word` typed in. */
-const findWord = (word) => `document.querySelector("[data-testid=graph-find]").click(); ${pause};
-const box = document.querySelector("[data-testid=graph-find-box]");
+/** Find opened in the top bar by its magnifying glass `key`, with `word` typed into its `field`. */
+const findWord = (key, field, word) => `document.querySelector("[data-testid=${key}]").click(); ${pause};
+const box = document.querySelector("[data-testid=${field}] input");
 Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(box, ${JSON.stringify(word)});
 box.dispatchEvent(new Event("input", { bubbles: true })); ${pause}`;
 
@@ -123,6 +123,16 @@ for (let i = 0; picture(); i++) {
 const wheelIn = `{ const picture = document.querySelector("[data-testid=graph-picture]"); const at = picture.getBoundingClientRect();
 picture.dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: -1500, clientX: at.left + at.width / 3, clientY: at.top + at.height / 3 })); }`;
 
+/** Four more open spaces, so with the first one the bar has five tabs; their names hang below the line too. */
+const moreSpaces = ["Spanish grammar, preterite", "Physics: waves and optics", "Typing practice", "Japanese reading"]
+	.map((name) => `await fetch("/api/spaces", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: ${JSON.stringify(name)} }) })${HTTP_OK};`)
+	.join("\n");
+/** The first lesson's title at 40 letters, the longest the bar's crumb is checked with. */
+const LONG_TITLE = "Graphing linear equations, by hand, fast";
+const longTitle = `await fetch("/api/chats/{lesson}", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: ${JSON.stringify(LONG_TITLE)} }) })${HTTP_OK};`;
+/** The written-answer lesson moved out of its space, so the bar lights the + with the lesson's title after it. */
+const noSpace = `await fetch("/api/chats/{written}/space", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ spaceId: "none" }) })${HTTP_OK};`;
+
 export const SCREENS = [
 	{ name: "Today with a deadline", url: "/", ready: deadlineCard },
 	{ name: "Today, the Add deadline menu", url: "/", ready: "[data-testid=home-add-deadline][aria-haspopup=menu]", setup: `document.querySelector("[data-testid=home-add-deadline]").click()`, shows: "[data-testid=home-add-deadline-menu][data-state=open]" },
@@ -134,10 +144,12 @@ export const SCREENS = [
 	{ name: "Progress, a lesson's menu", url: "/space", ready: "[data-testid=lesson-row-menu]", setup: `document.querySelector("[data-testid=lesson-row-menu]").click()`, shows: "[data-testid=lesson-menu][data-state=open]" },
 	{ name: "Study", url: "/new", ready: "[data-testid=home-deadlines] [data-testid=home-study-deadline]", shows: "[data-testid=home-suggestions]" },
 	{ name: "Files", url: "/space/files", ready: "[data-testid=files-list] > *" },
+	{ name: "Files, Find open", url: "/space/files", ready: "[data-testid=files-find]", setup: findWord("files-find", "files-search", "notes"), shows: "[data-testid=files-search]" },
 	{ name: "Files, a file's menu", url: "/space/files", ready: "[data-testid=files-list] button[aria-label^='More for']", setup: `document.querySelector("[data-testid=files-list] button[aria-label^='More for']").click()`, shows: "[data-testid^=space-file-menu-body-][data-state=open]" },
 	{ name: "Graph", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]", setup: fitsWindow },
-	{ name: "Graph, finding a word", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("undo"), shows: "[data-testid=graph-find-box]" },
-	{ name: "Graph, finding a word nothing matches", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("zzzz"), shows: "[data-testid=graph-no-match]" },
+	{ name: "Graph, finding a word", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("graph-find", "graph-find-field", "undo"), shows: "[data-testid=graph-find-field]" },
+	{ name: "Graph, Find open", url: "/graph", ready: "[data-testid=graph-find]", setup: `document.querySelector("[data-testid=graph-find]").click(); ${pause}`, shows: "[data-testid=graph-find-field]" },
+	{ name: "Graph, finding a word nothing matches", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("graph-find", "graph-find-field", "zzzz"), shows: "[data-testid=graph-no-match]" },
 	{
 		name: "Graph, a topic picked",
 		url: "/graph",
@@ -177,7 +189,7 @@ export const SCREENS = [
 		shows: "[data-testid=fact-context-menu][data-state=open]",
 	},
 	{ name: "Deadlines", url: "/space/deadlines", ready: "[data-testid=deadline-open]" },
-	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-name]" },
+	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]" },
 	{ name: "Homework deadline with its two keys", url: "/space/deadline/{homeworkOpenDeadline}", ready: "[data-testid=homework-card] [data-testid=deadline-work]" },
 	{ name: "Progress with a homework next", before: `${homeworkCoversFile}\n${homeworkTomorrow}`, url: "/space", ready: "[data-testid=next-deadline] [data-testid=deadline-work]" },
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
@@ -190,6 +202,16 @@ export const SCREENS = [
 		ready: "[data-testid=lesson-more]",
 		setup: `document.querySelector("[data-testid=lesson-more]").click(); ${pause}; document.querySelector("[data-testid=ctx-delete]").click()`,
 		shows: "[data-testid=delete-lesson-dialog]",
+	},
+	{
+		name: "Lesson with Find open in the bar",
+		url: "/chat/{lesson}",
+		ready: "[data-testid=cite-list]",
+		setup: `document.querySelector("[data-testid=lesson-find]").click(); ${pause};
+const box = document.querySelector("[data-testid=session-find] input");
+Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(box, "graph");
+box.dispatchEvent(new Event("input", { bubbles: true })); ${pause}`,
+		shows: "[data-testid=session-find-count]:not(:empty)",
 	},
 	{ name: "Homework lesson with an open problem", url: "/chat/{homeworkOpen}", ready: "[data-testid=open-problem]" },
 	{ name: "Homework lesson before a problem opens", url: "/chat/{homeworkFirst}", ready: "[data-testid=next-problem-button]" },
@@ -264,7 +286,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		shows: "[data-testid=terminal-starters] [data-testid=terminal-starter]",
 	},
 	// The longest starter key: "Get me ready for" the deadline's name.
-	{ name: "The agent's screen on a deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-name]", setup: openTeacher, shows: "[data-testid=terminal-starters] [data-testid=terminal-starter]" },
+	{ name: "The agent's screen on a deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]", setup: openTeacher, shows: "[data-testid=terminal-starters] [data-testid=terminal-starter]" },
 	{ name: "Today with no deadline", before: dropDeadlines, url: "/", ready: "[data-testid=today-empty]" },
 	{ name: "Today on a busy day", before: busyDay, url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", shows: "[data-testid=week-later]" },
 	{ name: "Today, the week unfolded", url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", setup: `document.querySelector("[data-testid=week-more]").click()`, shows: "[data-testid=week-rest][data-state=open]" },
@@ -280,6 +302,14 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	{ name: "Files, the linked folder's box", before: linkedFolder, url: "/space/files", ready: "[data-testid=space-folder]", setup: `document.querySelector("[data-testid=space-folder]").click()`, shows: "[data-testid=space-folder-box][data-state=open]" },
 	{ name: "The plus list with a closed space", before: closedSpace, url: "/", ready: "[data-testid=spaces-plus]", setup: `document.querySelector("[data-testid=spaces-plus]").click()`, shows: "[data-testid=spaces-plus-list][data-state=open] [data-testid=closed-space-{pathSpace}]" },
 	{ name: "A closed space's menu", url: "/", ready: "[data-testid=spaces-plus]", setup: `document.querySelector("[data-testid=spaces-plus]").click(); ${pause}; ${rightClick(`document.querySelector("[data-testid=closed-space-{pathSpace}]")`)}`, shows: "[data-testid=space-menu][data-state=open]" },
+	{
+		name: "Lesson with a 40-letter title among five open spaces",
+		before: `${moreSpaces}\n${longTitle}`,
+		url: "/chat/{lesson}",
+		ready: `[data-testid=bar-crumb] [data-testid=lesson-title][title="${LONG_TITLE}"]`,
+		shows: "[data-testid=space-tabs-strip] > :nth-child(5)",
+	},
+	{ name: "Lesson with no space", before: noSpace, url: "/chat/{written}", ready: "[data-testid=question-dock]", shows: "[data-testid=spaces-plus] ~ [data-testid=bar-crumb] [data-testid=lesson-title]" },
 	{
 		name: "Onboarding",
 		before: `${dropLateHomework}; const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, onboarded: false }) })${HTTP_OK}`,

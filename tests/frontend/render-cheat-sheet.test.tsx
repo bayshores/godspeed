@@ -48,6 +48,10 @@ const { OlderSheet, emptyChatLine, sheetPaper, versionLabel } = await import("..
 const { SheetChat, pointedLabel } = await import("../../src/frontend/components/cheat-sheet/sheet-chat.tsx");
 const { SheetCanvas } = await import("../../src/frontend/components/cheat-sheet/sheet-canvas.tsx");
 const { SheetDock } = await import("../../src/frontend/components/cheat-sheet/sheet-dock.tsx");
+const { sheetPdfPath } = await import("../../src/frontend/components/cheat-sheet/use-cheat-sheet.ts");
+const { CheatSheetStudio } = await import("../../src/frontend/components/cheat-sheet/studio.tsx");
+const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
+const { BarHost } = await import("../bar-host.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 // The window's events: a test sends one by name.
 const listeners = new Map<string, (data: string) => void>();
@@ -314,5 +318,52 @@ describe("the cheat sheet beside a session", () => {
 		const el = mount(dock({ sessionDeadlineId: undefined }));
 		await settle();
 		assert.match(el.querySelector("[data-testid='sheet-dock-none']")!.textContent!, /Add a deadline to this space to make one\./);
+	});
+});
+
+describe("the cheat sheet studio's place in the top bar", () => {
+	const serveView = (v: CheatSheetView) => {
+		(globalThis as Record<string, unknown>).fetch = async () => Response.json(v);
+	};
+	const studio = () => (
+		<SpaceProvider initialActive="cls_1" initialSpaces={[]}>
+			<BarHost>
+				<CheatSheetStudio spaceId="cls_1" deadlineId="ddl_1" deadlineName="Midterm" />
+			</BarHost>
+		</SpaceProvider>
+	);
+	const q = (el: HTMLElement, id: string) => el.querySelector<HTMLElement>(`[data-testid='${id}']`);
+
+	it("the crumb is the deadline's name as a link back to it, then Cheat sheet; the page keeps a hidden h1 and no title line", async () => {
+		serveView(view({ sheet: { ...newCheatSheet("ddl_1", "t"), versions } }));
+		const el = mount(studio());
+		await settle();
+		const crumb = q(el, "bar-crumb")!;
+		assert.deepEqual([...crumb.children].map((c) => c.getAttribute("title") ?? c.textContent), ["›", "Midterm", "›", "Cheat sheet"]);
+		assert.equal(q(el, "studio-deadline")!.getAttribute("href"), "/space/deadline/ddl_1");
+		assert.equal(el.querySelector("h1")!.className, "sr-only");
+		assert.ok(q(el, "studio-bar") === null);
+	});
+
+	it("the paper, the file button and Print are words in the top bar", async () => {
+		serveView(view({ sheet: { ...newCheatSheet("ddl_1", "t"), versions } }));
+		const el = mount(studio());
+		await settle();
+		const words = q(el, "bar-actions")!;
+		assert.equal(q(el, "cheat-sheet-status")!.parentElement, words);
+		assert.equal(q(el, "cheat-sheet-status")!.textContent, sheetPaper(view({ sheet: { ...newCheatSheet("ddl_1", "t"), versions } })));
+		assert.equal(q(el, "cheat-sheet-download")!.getAttribute("href"), sheetPdfPath("cls_1", "ddl_1", 2));
+		assert.equal(q(el, "cheat-sheet-download")!.parentElement, words);
+		assert.equal(q(el, "cheat-sheet-print")!.parentElement, words);
+		assert.ok(q(el, "studio-bar") === null, "no title line on the page");
+	});
+
+	it("before a sheet is made Print is off and there is no file button", async () => {
+		serveView(view());
+		const el = mount(studio());
+		await settle();
+		assert.equal(q(el, "cheat-sheet-status")!.textContent, "Not made yet");
+		assert.ok(q(el, "cheat-sheet-download") === null && q(el, "cheat-sheet-show-file") === null);
+		assert.equal(q(el, "cheat-sheet-print")!.hasAttribute("disabled"), true);
 	});
 });

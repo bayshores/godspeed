@@ -6,20 +6,31 @@
  * due-today, nothing-linked and nothing-to-plan states; a homework's
  * Problems sheet; an interview, What it's like, and a deadline's mocks.
  */
-import React from "react";
+import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
 
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { afterEach, describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import type { Root } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { parseHTML } from "linkedom";
 import type { DeadlineProgress } from "../../src/shared/core/index.ts";
 import { SELECT, SELECT_ARROW } from "../../src/frontend/components/ui/field.ts";
 
 const dom = parseHTML("<html><body></body></html>");
-Object.assign(globalThis, { window: dom.window, document: dom.document, self: globalThis });
+Object.assign(globalThis, {
+	window: dom.window,
+	document: dom.document,
+	Element: dom.window.Element,
+	HTMLElement: dom.window.HTMLElement,
+	Node: dom.window.Node,
+	self: globalThis,
+	IS_REACT_ACT_ENVIRONMENT: true,
+});
 
+const { createRoot } = await import("react-dom/client");
+const { BarHost } = await import("../bar-host.tsx");
 const { DeadlineBody } = await import("../../src/frontend/components/deadline/deadline-body.tsx");
 const { deadlineMaterial } = await import("../../src/frontend/components/deadline/deadline-model.ts");
 const { planDays } = await import("../../src/shared/core/deadline-plan.ts");
@@ -59,10 +70,10 @@ const RECORD_FILES = [
 	{ id: "syl", name: "syllabus.txt", kind: "info" as const, status: "ready" as const },
 ];
 
-function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentProps<typeof DeadlineBody>> = {}, leftOut: string[] = []) {
+function page(d: DeadlineProgress, over: Partial<React.ComponentProps<typeof DeadlineBody>>, leftOut: string[]) {
 	const saved = { id: d.id, kind: d.kind, date: d.date, fileIds: d.files.map((f) => f.id), ...(leftOut.length ? { leftOutIds: leftOut } : {}) };
 	const material = deadlineMaterial(RECORD_FILES, saved, [saved], [{ fileId: "d1", facts: 12 }]);
-	return renderToStaticMarkup(
+	return (
 		<MemoryRouter initialEntries={["/space/deadline/d1"]}>
 			<DeadlineBody
 				deadline={d}
@@ -86,20 +97,53 @@ function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentP
 				onCheatSheet={() => {}}
 				{...over}
 			/>
-		</MemoryRouter>,
+		</MemoryRouter>
 	);
 }
+
+function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentProps<typeof DeadlineBody>> = {}, leftOut: string[] = []) {
+	return renderToStaticMarkup(page(d, over, leftOut));
+}
+
+let root: Root | null = null;
+afterEach(() => {
+	act(() => root?.unmount());
+	root = null;
+	document.body.innerHTML = "";
+});
+/** The page inside the top bar's two places, which the static markup has no portal into. */
+async function mountInBar(d: DeadlineProgress = deadline(), over: Partial<React.ComponentProps<typeof DeadlineBody>> = {}) {
+	const el = document.createElement("div");
+	document.body.appendChild(el);
+	root = createRoot(el);
+	await act(async () => {
+		root!.render(<BarHost>{page(d, over, [])}</BarHost>);
+	});
+	return el;
+}
+const q = (testid: string) => document.querySelector<HTMLElement>(`[data-testid="${testid}"]`);
 
 const count = (html: string, needle: string) => html.split(needle).length - 1;
 
 describe("the deadline page", () => {
-	it("head: the days left on the space's color, the name, then kind and when with how ready as a chip, and its two buttons", () => {
+	it("head: the days left on the space's color, then when and how ready as a chip; the name is a hidden h1, not a title", () => {
 		const html = render();
 		assert.match(html, /background:var\(--lh-space-1\)[^>]*><span[^>]*>4<\/span><span[^>]*>days</);
-		assert.match(html, /data-testid="deadline-name"[^>]*>Midterm<.*data-testid="deadline-when"[^>]*>Exam, Friday Nov 6, 7:00 PM</, "nothing above the name");
-		assert.match(html, /data-testid="deadline-progress"[^>]*bg-highlight[^>]*>38% ready</);
-		assert.match(html, /data-testid="deadline-cheat-sheet"[^>]*>Cheat sheet<\/button>/);
-		assert.match(html, /data-testid="deadline-edit"[^>]*>Edit deadline<\/button>/);
+		assert.match(html, /<h1 data-testid="deadline-name" class="sr-only">Midterm<\/h1>/);
+		assert.doesNotMatch(html, /lh-page-title/);
+		assert.match(html, /data-testid="deadline-when"[^>]*>Exam, Friday Nov 6, 7:00 PM<.*data-testid="deadline-progress"[^>]*bg-highlight[^>]*>38% ready</);
+		assert.doesNotMatch(html, /deadline-cheat-sheet|deadline-edit"/, "the buttons are in the top bar, not the page");
+	});
+	it("the top bar gets the name after the space's tab, then Cheat sheet and Edit deadline, with their handlers", async () => {
+		const calls: string[] = [];
+		await mountInBar(deadline(), { onCheatSheet: () => calls.push("sheet"), onEdit: () => calls.push("edit") });
+		const crumb = q("bar-crumb")!;
+		assert.deepEqual([...crumb.children].map((c) => c.getAttribute("title") ?? c.textContent), ["›", "Midterm"]);
+		assert.deepEqual([...q("bar-actions")!.children].map((b) => b.textContent), ["Cheat sheet", "Edit deadline"]);
+		assert.ok(!document.querySelector("header [data-testid='deadline-edit']"), "not in the page's head");
+		await act(async () => q("deadline-cheat-sheet")!.click());
+		await act(async () => q("deadline-edit")!.click());
+		assert.deepEqual(calls, ["sheet", "edit"]);
 	});
 	it("a homework's head counts its problems", () => {
 		const html = render(deadline({ kind: "homework", problems: { done: 2, total: 8 } }));
@@ -314,10 +358,13 @@ const interview = (over: Partial<DeadlineProgress> = {}) =>
 	deadline({ id: "onsite", kind: "interview", name: "Onsite interview", files: [], topics: [], topicIds: [], ready: null, counts: { strong: 0, shaky: 0, weak: 0, untested: 0 }, ...over });
 
 describe("an interview's page", () => {
+	it("has no Cheat sheet word in the top bar, only Edit deadline", async () => {
+		await mountInBar(interview());
+		assert.deepEqual([...q("bar-actions")!.children].map((b) => b.textContent), ["Edit deadline"]);
+	});
 	it("has no cheat sheet, puts What it's like first, and has no What's on it until files are linked", () => {
 		const html = render(interview(), { about: about({ state: "ready", text: "Two rounds of **45 minutes**." }) });
 		assert.match(html, /data-testid="deadline-when"[^>]*>Interview, Friday Nov 6, 7:00 PM</);
-		assert.ok(!html.includes('data-testid="deadline-cheat-sheet"'));
 		assert.ok(!html.includes('data-testid="deadline-material"'));
 		assert.match(html, /data-testid="deadline-about".*>What it&#x27;s like<.*Two rounds of .*45 minutes.*data-testid="deadline-about-ask"[^>]*lh-btn-quiet[^>]*>Ask marco to rewrite</);
 		assert.ok(html.indexOf("deadline-about") < html.indexOf("deadline-path"), "left column first");

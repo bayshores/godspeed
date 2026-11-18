@@ -5,6 +5,7 @@ import { announceDelay } from "@/frontend/components/teacher/follow-status";
 import { FollowButton } from "@/frontend/components/teacher/follow-button";
 import { cn } from "@/frontend/lib/utils";
 import { BAR_TAB, BAR_WORD_ON, barTabState } from "./bar-look";
+import { Fit } from "./fit";
 import { firstWord, noticeCount, shortName, type PillThing } from "./live-pill-model";
 import { NOTICE_STACK_ID } from "./pill-panel";
 import { usePill } from "./pill-provider";
@@ -108,23 +109,6 @@ export function LivePill({ own = false, named = false }: { own?: boolean; named?
 			)}
 			{line.thing && <Announce text={spoken} />}
 		</div>
-	);
-}
-
-/** Words on one line that give their room up: cut short with an ellipsis,
- *  never below `least`. */
-function Fit({ text, least, className }: { text: string; least: string; className: string }) {
-	return (
-		<span className={cn("grid", className)}>
-			{/* Sizing only: at least `least` wide, at most the whole text. */}
-			<span aria-hidden className="invisible [grid-area:1/1]">
-				{least}
-			</span>
-			<span aria-hidden className="invisible h-0 overflow-hidden break-all whitespace-normal [grid-area:1/1]">
-				{text}
-			</span>
-			<span className="w-0 min-w-full truncate [grid-area:1/1]">{text}</span>
-		</span>
 	);
 }
 

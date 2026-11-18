@@ -11,6 +11,7 @@ import { TeacherProvider } from "@/frontend/components/teacher/teacher-provider"
 import { Welcome } from "@/frontend/components/welcome/welcome";
 import { AppBar } from "@/frontend/components/app-bar";
 import { PillProvider } from "@/frontend/components/top-bar/pill-provider";
+import { BarSlotsProvider } from "@/frontend/components/top-bar/bar-slots";
 import { SearchLessons } from "@/frontend/components/search-lessons";
 import { ReadNotice } from "@/frontend/components/work/read-notice";
 
@@ -52,16 +53,19 @@ export function AppShell({
 				{/* Around the welcome screen and the notices too: they say the teacher's name. */}
 				<TeacherProvider initialName={teacherName}>
 					<Welcome initialOpen={welcome} whatsNewSince={whatsNewSince} />
-					{/* Around the page too: a lesson, a mock and a cheat sheet draw the pill in their own bar. */}
+					{/* Around the page too: a mock draws the pill in its own bar. */}
 					<PillProvider>
-						<a href="#lh-page" className="lh-btn sr-only focus:not-sr-only focus:fixed focus:top-1.5 focus:left-1.5 focus:z-50">
-							Skip to the page
-						</a>
-						<AppBar />
-						{/* The teacher's open panel pushes the page left (teacher-panel.tsx sets the var). */}
-						<main id="lh-page" tabIndex={-1} className="lh-dots min-h-0 min-w-0 flex-1 pr-(--lh-dock-push,0px) motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)">
-							<ViewSwap>{children}</ViewSwap>
-						</main>
+						{/* The page puts its own words into the top bar. */}
+						<BarSlotsProvider>
+							<a href="#lh-page" className="lh-btn sr-only focus:not-sr-only focus:fixed focus:top-1.5 focus:left-1.5 focus:z-50">
+								Skip to the page
+							</a>
+							<AppBar />
+							{/* The teacher's open panel pushes the page left (teacher-panel.tsx sets the var). */}
+							<main id="lh-page" tabIndex={-1} className="lh-dots min-h-0 min-w-0 flex-1 pr-(--lh-dock-push,0px) motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)">
+								<ViewSwap>{children}</ViewSwap>
+							</main>
+						</BarSlotsProvider>
 						<ReadNotice />
 					</PillProvider>
 					<SpaceNotice />

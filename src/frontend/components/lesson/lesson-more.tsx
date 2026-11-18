@@ -3,18 +3,19 @@ import { useNavigate, useRevalidator } from "react-router";
 import { DeleteLessonDialog } from "@/frontend/components/lessons/delete-lesson-dialog";
 import { LessonMenu } from "@/frontend/components/lessons/lesson-menu";
 import { MoveLessonDialog } from "@/frontend/components/lessons/move-lesson-dialog";
+import { barWord } from "@/frontend/components/top-bar/bar-look";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 
 type Lesson = { id: string; title: string; spaceId?: string };
 
 /**
- * More, the last word in the open lesson's title line: the same lesson menu a
- * Progress row has. Rename turns the title into its field; a delete leaves
- * the lesson for its space's Progress page (the lesson's space is the bar's
- * selected tab); a move keeps the lesson open and reads its record again, so
- * the bar marks the new space.
+ * More, the open lesson's last word in the top bar: the same lesson menu a
+ * Progress row has, hanging from the bar. Rename turns the title into its
+ * field; a delete leaves the lesson for its space's Progress page (the
+ * lesson's space is the bar's lit tab); a move keeps the lesson open and
+ * reads its record again, so the bar marks the new space.
  */
-export function LessonMore({ chatId, title, spaceId, className, onRename }: { chatId: string; title: string; spaceId: string | undefined; className: string; onRename: () => void }) {
+export function LessonMore({ chatId, title, spaceId, onRename }: { chatId: string; title: string; spaceId: string | undefined; onRename: () => void }) {
 	const navigate = useNavigate();
 	const revalidator = useRevalidator();
 	const anchorRef = useRef<HTMLButtonElement>(null);
@@ -38,7 +39,7 @@ export function LessonMore({ chatId, title, spaceId, className, onRename }: { ch
 				aria-haspopup="menu"
 				aria-expanded={open}
 				onClick={() => setOpen((o) => !o)}
-				className={className}
+				className={barWord(open)}
 			>
 				More
 			</button>
@@ -50,6 +51,7 @@ export function LessonMore({ chatId, title, spaceId, className, onRename }: { ch
 				onRename={pick(onRename)}
 				onMove={pick(() => setMoving(lesson))}
 				onDelete={pick(() => setDeleting(lesson))}
+				bar
 			/>
 			<DeleteLessonDialog chat={deleting} onClose={() => setDeleting(null)} onDeleted={() => void navigate("/space")} />
 			<MoveLessonDialog

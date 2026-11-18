@@ -3,7 +3,7 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/fron
 
 /**
  * An icon or pill control's label, shown as the tooltip's white tag. No
- * shortcut in it: godspeed's learners use the mouse.
+ * shortcut in it: a button's key is shown inside the button (see KeyHint).
  *
  * children must be a single element able to take a ref (TooltipTrigger
  * asChild merges onto it — no wrapper DOM, no layout shift).

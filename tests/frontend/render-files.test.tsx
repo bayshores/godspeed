@@ -27,6 +27,16 @@ Object.assign(globalThis, {
 	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
 	cancelAnimationFrame: (id: number) => clearTimeout(id),
 });
+// linkedom has no focus: remember what was last focused.
+let focused: Element | null = null;
+(dom.window.HTMLElement.prototype as unknown as { focus: () => void }).focus = function (this: Element) {
+	focused = this;
+};
+Object.defineProperty(dom.document, "activeElement", { get: () => (focused?.isConnected ? focused : dom.document.body) });
+// Find selects its field on opening; linkedom has no select().
+(dom.window.HTMLElement.prototype as unknown as { select: () => void }).select = () => {};
+// React reads the selection when focus moves between its fields.
+Object.assign(dom.window, { getSelection: () => ({}) });
 // linkedom has no localStorage: a plain one remembers folded groups.
 const stored = new Map<string, string>();
 Object.defineProperty(dom.window, "localStorage", {
@@ -44,6 +54,8 @@ const { ServerEventsProvider } = await import("../../src/frontend/components/ser
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { AgentStatusProvider } = await import("../../src/frontend/components/agent-status.tsx");
 const { CopyButton } = await import("../../src/frontend/components/copy-button.tsx");
+const { BarHost } = await import("../bar-host.tsx");
+const { kbdEventForAction } = await import("../../src/shared/core/index.ts");
 
 function file(id: string, name: string, over: Partial<SpaceFile> = {}): SpaceFile {
 	return { id, origin: "copied", name, path: `${id}/${name}`, kind: "study", contentFp: "", status: "ready", addedAt: "", ...over };
@@ -107,7 +119,9 @@ async function mount(initialActive: string | null = "cls_a") {
 			<ServerEventsProvider connect={connect as never}>
 				<AgentStatusProvider>
 					<SpaceProvider initialActive={initialActive}>
-						<FilesPage />
+						<BarHost>
+							<FilesPage />
+						</BarHost>
 					</SpaceProvider>
 				</AgentStatusProvider>
 			</ServerEventsProvider>,
@@ -119,11 +133,15 @@ async function mount(initialActive: string | null = "cls_a") {
 	});
 	return host;
 }
-/** Type into a text field (React hears the "input" event). */
+/** Type into a text field the way a keyboard does. React loaded before this DOM existed, so it
+ *  takes its old-browser path for text fields: it watches the focused field and reads it on a key-up. */
 async function typeInto(input: HTMLInputElement, value: string) {
+	input.setAttribute("type", "text"); // linkedom gives a field with no type attribute a null type
 	await act(async () => {
+		input.dispatchEvent(new window.Event("focusin", { bubbles: true }));
 		Object.defineProperty(input, "value", { configurable: true, writable: true, value });
 		input.dispatchEvent(new window.Event("input", { bubbles: true }));
+		input.dispatchEvent(new window.Event("keyup", { bubbles: true }));
 	});
 }
 const q = (id: string) => document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
@@ -352,18 +370,67 @@ describe("FilesPage", () => {
 		assert.equal(calls.at(-1)!.url, "/api/spaces/cls_a/files");
 	});
 
-	it("search narrows the groups to matching names, says when nothing matches, and clearing brings all back", async () => {
+	const field = () => q("files-search")!.querySelector("input") as HTMLInputElement;
+	const sendFind = () => act(async () => window.dispatchEvent(new dom.window.CustomEvent(kbdEventForAction("find"))));
+
+	it("the bar has Find, then the linked folder, then Add files; Find shows its key and opens a field", async () => {
 		fakeFetch();
 		await mount();
-		await typeInto(q("files-search") as HTMLInputElement, "rosen 7");
+		const bar = q("bar-actions")!;
+		assert.deepEqual([...bar.children].map((el) => el.getAttribute("data-testid")).filter((id) => id && id !== "space-file-input"), ["files-find", "space-folder", "space-add-files"]);
+		assert.equal(q("files-find")!.getAttribute("aria-label"), "Find a file");
+		assert.ok(q("files-find")!.querySelector("kbd"), "the magnifying glass shows the find key");
+		assert.ok(q("files-search") === null);
+		await act(async () => q("files-find")!.click());
+		assert.ok(q("files-search")!.closest("[data-testid='bar-actions']"), "the field is in the bar");
+		assert.ok(q("space-folder") === null && q("space-add-files") === null, "the other words make room");
+		assert.ok(document.activeElement === field());
+	});
+
+	it("search narrows the groups to matching names, says when nothing matches, and Close brings all back", async () => {
+		fakeFetch();
+		await mount();
+		await act(async () => q("files-find")!.click());
+		await typeInto(field(), "rosen 7");
 		assert.ok(q("space-file-f3"));
 		assert.ok(q("space-file-f2") === null);
 		assert.ok(q("files-group-lecture") === null, "groups with no match leave");
-		await typeInto(q("files-search") as HTMLInputElement, "zzz");
+		await typeInto(field(), "zzz");
 		assert.match(q("files-no-match")!.textContent!, /No file names have .zzz./);
-		await act(async () => q("files-search-clear")!.click());
+		await act(async () => document.querySelector<HTMLElement>("[aria-label='Close Find']")!.click());
+		assert.ok(q("files-search") === null && q("files-find") && q("space-add-files"));
 		assert.ok(q("files-group-lecture"));
 		assert.ok(q("files-no-match") === null);
+	});
+
+	it("Escape clears the search and closes the field; reopened, it is empty", async () => {
+		fakeFetch();
+		await mount();
+		await act(async () => q("files-find")!.click());
+		await typeInto(field(), "rosen 7");
+		await act(async () => {
+			const escape = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
+			Object.defineProperty(escape, "key", { value: "Escape" });
+			field().dispatchEvent(escape);
+		});
+		assert.ok(q("files-search") === null);
+		assert.ok(q("files-group-lecture"), "every group is back");
+		await act(async () => q("files-find")!.click());
+		assert.equal(field().value, "");
+	});
+
+	it("the find shortcut opens the search; not while a dialog is on top", async () => {
+		fakeFetch();
+		await mount();
+		const dialog = document.createElement("div");
+		dialog.setAttribute("role", "dialog");
+		document.body.append(dialog);
+		await sendFind();
+		dialog.remove();
+		assert.ok(q("files-search") === null);
+		await sendFind();
+		assert.ok(q("files-search"));
+		assert.ok(document.activeElement === field());
 	});
 
 	it("a group folds and stays folded for this space", async () => {
@@ -376,7 +443,8 @@ describe("FilesPage", () => {
 		host?.remove();
 		await mount();
 		assert.ok(q("space-file-f1") === null, "still folded after the page opens again");
-		await typeInto(q("files-search") as HTMLInputElement, "lecture 1");
+		await act(async () => q("files-find")!.click());
+		await typeInto(field(), "lecture 1");
 		assert.ok(q("space-file-f1"), "a search shows matches in folded groups too");
 	});
 
@@ -389,7 +457,7 @@ describe("FilesPage", () => {
 		assert.match(q("files-empty")!.textContent!, /Add notes, readings, recordings or a syllabus/);
 		assert.ok(q("files-summary") === null, "no summary without files");
 		assert.ok(q("space-folder"), "the linked folder still shows");
-		assert.ok(q("files-search") === null, "nothing to search");
+		assert.ok(q("files-find") === null, "nothing to search");
 	});
 
 	it("Link a folder without the desktop picker opens a path field that links the folder", async () => {

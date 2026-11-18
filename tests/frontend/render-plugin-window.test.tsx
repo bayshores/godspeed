@@ -1,5 +1,5 @@
 /**
- * A lesson plugin's window: it hangs from the lesson bar over the page under the plugin's word, and
+ * A lesson plugin's window: it hangs from the top bar over the page under the plugin's word, and
  * Escape closes it unless something over it or the agent's screen has the key.
  */
 import React, { act } from "react";
@@ -22,6 +22,10 @@ Object.assign(globalThis, {
 	IS_REACT_ACT_ENVIRONMENT: true,
 	getComputedStyle: () => ({ getPropertyValue: () => "", display: "block", visibility: "visible", opacity: "1" }),
 	location: { port: "4100" },
+	ResizeObserver: class {
+		observe() {}
+		disconnect() {}
+	},
 });
 Object.assign(dom.window, { innerWidth: 1440, innerHeight: 900 });
 
@@ -42,9 +46,9 @@ afterEach(() => {
 type Boxed = { getBoundingClientRect: () => object };
 const place = (testid: string, box: object) => void ((document.querySelector(`[data-testid=${testid}]`) as unknown as Boxed).getBoundingClientRect = () => box);
 
-/** The lesson bar with the plugin's word ending 216 px from the window's right edge, and the window. */
+/** The top bar with the lesson's words, the plugin's ending 216 px from the window's right edge, and the window. */
 async function mount(onClose: () => void = () => {}) {
-	document.body.innerHTML = `<div class="lh-own-bar"><button data-testid="lesson-plugin-probe">Probe</button></div><div id="host"></div>`;
+	document.body.innerHTML = `<header class="lh-app-bar"><div class="lh-bar-actions"><button data-testid="lesson-plugin-probe">Probe</button></div></header><div id="host"></div>`;
 	place("lesson-plugin-probe", { right: 1224 });
 	root = createRoot(document.getElementById("host")!);
 	await act(async () => root!.render(<PluginWindow plugin={PLUGIN} context={CONTEXT} onClose={onClose} />));

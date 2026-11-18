@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { Link } from "react-router";
 import { kbdEventForAction } from "@/shared/core";
+import { KeyHint, keyShortcutProps } from "@/frontend/components/ui/key-hint";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { cn } from "@/frontend/lib/utils";
@@ -37,12 +38,15 @@ export function AppMenu({ lit }: { lit: boolean }) {
 						close();
 						window.dispatchEvent(new CustomEvent(kbdEventForAction("sessions-search")));
 					}}
-					className={MENU_ITEM}
+					{...keyShortcutProps("sessions-search")}
+					className={cn(MENU_ITEM, "justify-between gap-2")}
 				>
 					Search lessons
+					<KeyHint action="sessions-search" />
 				</button>
-				<Link role="menuitem" to="/settings" data-testid="settings-entry" onClick={close} className={MENU_ITEM}>
+				<Link role="menuitem" to="/settings" data-testid="settings-entry" onClick={close} {...keyShortcutProps("open-settings")} className={cn(MENU_ITEM, "justify-between gap-2")}>
 					Settings
+					<KeyHint action="open-settings" />
 				</Link>
 			</MenuShell>
 		</>

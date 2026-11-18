@@ -4,6 +4,8 @@ How shortcuts work in the code. Read this before you add, change or debug a shor
 
 Most learners use the mouse, so a shortcut is always an extra, never the only way. In the app `?` opens the full list. Keys are fixed and cannot be changed; keys an older version saved in localStorage under `lh:keymap` are no longer read.
 
+A button whose action has a shortcut shows the key inside it, read from the list in `src/shared/core/keyboard.ts`. `KeyHint` draws the key and `keyShortcutProps` adds `aria-keyshortcuts`, both in `src/frontend/components/ui/key-hint.tsx`. Tooltips carry no key, and a key is never typed by hand.
+
 ## Where the code lives
 
 | Part | File | What it does |
@@ -44,7 +46,7 @@ Entries marked `displayOnly` are keys one surface owns, like the question rows b
 | Study | ⌘N | `keyboard-shortcuts.tsx`, goes to `/new` |
 | Rename lesson | F2 | `src/frontend/components/lesson/use-title-rename.ts` |
 | Show or hide all your thinking | ⌘T | `src/frontend/components/chat.tsx` |
-| Find | ⌘F | the open page: Find in the foot line of `/graph` (`src/frontend/components/graph/graph-foot.tsx`; with no facts it does nothing) or text Find in a lesson (`src/frontend/components/session-find.tsx`) |
+| Find | ⌘F | the open page: Find in the top bar of `/graph` (with no facts it does nothing) or of the Files page (both share `src/frontend/components/use-bar-find.ts`) or text Find in a lesson (`src/frontend/components/session-find.tsx`) |
 | Show keyboard shortcuts | ? | `keyboard-shortcuts.tsx` |
 
 On the Mac the menu bar owns ⌘, (godspeed, Settings…), ⌘N (File, Study), ⌘⇧F (File, Search Lessons), ⌘G (Go, Graph), ⌘[ (Go, Back) and ⌘] (Go, Forward). Those keys never reach the page there; the menu pushes the item to the page, which runs it through the same code as the key. In a browser the page's listener handles ⌘N, ⌘⇧F, ⌘G and ⌘, (comma), and ⌘[ and ⌘] do nothing.

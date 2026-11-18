@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { jsonInit } from "@/frontend/lib/api";
 
 /** PUT a lesson's title, then tell every listener (the lesson list and an
- *  open lesson header) through lh:chat-renamed. Throws when the server says no. */
+ *  open lesson's title) through lh:chat-renamed. Throws when the server says no. */
 export async function renameLesson(id: string, title: string): Promise<void> {
 	const res = await fetch(`/api/chats/${id}`, jsonInit("PUT", { title }));
 	if (!res.ok) throw new Error(`rename failed: ${res.status}`);

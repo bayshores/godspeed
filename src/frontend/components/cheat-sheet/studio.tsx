@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { currentVersion, DEFAULT_TEACHER_NAME, type CheatSheetView } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
@@ -6,6 +6,8 @@ import { useSpaces } from "@/frontend/components/space-context";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { fileBrowserName } from "@/frontend/components/files/files-model";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
+import { barWord } from "@/frontend/components/top-bar/bar-look";
+import { BarActions, BarCrumb, CrumbName } from "@/frontend/components/top-bar/bar-slots";
 import { Pane } from "@/frontend/components/ui/pane";
 import { printPdf } from "./print-pdf";
 import { SheetCanvas } from "./sheet-canvas";
@@ -15,8 +17,9 @@ import { OlderSheet, emptyChatLine, sheetPaper, versionLabel } from "./studio-st
 import { remakeSheet, sheetPdfFile, sheetPdfPath, showSheetPdf, useCheatSheet, useSheetFocus } from "./use-cheat-sheet";
 
 /**
- * THE CHEAT SHEET STUDIO: a page under the app's bar with a title line
- * (the sheet's deadline, its paper, Show in Finder, Print). The canvas on
+ * THE CHEAT SHEET STUDIO: a page under the app's bar, whose crumb names the
+ * sheet's deadline (a link back to it) and whose right side has the sheet's
+ * paper, Show in Finder and Print. The canvas on
  * the left holds the PDF with the earlier versions beside it, or, before
  * there is a sheet, says what to ask for. On the right is the sheet's
  * chat: lines typed in the teacher's terminal ask about the sheet, a part
@@ -37,31 +40,27 @@ export function CheatSheetStudio({ spaceId, deadlineId, deadlineName }: { spaceI
 	if (view) return <Studio view={view} spaceId={spaceId} deadlineId={deadlineId} act={act} />;
 	return (
 		<div className="flex h-full flex-col">
-			<StudioBar deadlineId={deadlineId} deadlineName={deadlineName} />
+			<StudioHead deadlineId={deadlineId} deadlineName={deadlineName} />
 			{loadError ? <LoadFailed message="Couldn't load this cheat sheet." onRetry={() => void reload()} className="px-8 py-6" /> : <div className="flex-1" aria-hidden />}
 		</div>
 	);
 }
 
-/** The studio's title line under the app's bar: the sheet's name (its
- *  deadline's name opens the deadline), then its paper and buttons. */
-function StudioBar({ deadlineId, deadlineName, status, children }: { deadlineId: string; deadlineName: string; status?: string; children?: ReactNode }) {
+/** The studio's name: the bar's crumb "<deadline> › Cheat sheet", the deadline a link back to it, and the page's hidden h1. */
+function StudioHead({ deadlineId, deadlineName }: { deadlineId: string; deadlineName: string }) {
 	return (
-		<div data-testid="studio-bar" className="flex min-h-14 shrink-0 items-center gap-3 px-8 pt-3">
-			<h1 className="min-w-0 truncate text-[22px] font-medium text-ink">
-				Cheat sheet for{" "}
-				<Link to={`/space/deadline/${encodeURIComponent(deadlineId)}`} data-testid="studio-deadline" className="underline decoration-ink-3 underline-offset-4 hover:decoration-ink">
-					{deadlineName}
+		<>
+			<h1 className="sr-only">Cheat sheet for {deadlineName}</h1>
+			<BarCrumb>
+				<Link to={`/space/deadline/${encodeURIComponent(deadlineId)}`} data-testid="studio-deadline" title={deadlineName} className="flex hover:underline">
+					<CrumbName text={deadlineName} />
 				</Link>
-			</h1>
-			<div className="flex-1" aria-hidden />
-			{status && (
-				<span data-testid="cheat-sheet-status" className="shrink-0 text-base text-ink-2">
-					{status}
+				<span aria-hidden className="shrink-0">
+					›
 				</span>
-			)}
-			{children}
-		</div>
+				<span className="shrink-0 whitespace-nowrap">Cheat sheet</span>
+			</BarCrumb>
+		</>
 	);
 }
 
@@ -87,7 +86,7 @@ function Studio({
 	const pdfUrl = useCallback((n: number) => sheetPdfPath(spaceId, deadlineId, n), [spaceId, deadlineId]);
 	const currentUrl = current ? pdfUrl(current.n) : null;
 	const desktop = typeof window !== "undefined" && !!window.lh?.showInFolder;
-	const fileButton = "lh-btn lh-btn-quiet shrink-0";
+	const fileButton = barWord(false);
 	// The Mac prints the PDF file itself through the system's sheet; elsewhere pdf.js draws it.
 	const printVersion = async (n: number, url: string) => {
 		const printFile = window.lh?.printPdf;
@@ -106,7 +105,11 @@ function Studio({
 
 	return (
 		<div className="flex h-full flex-col">
-			<StudioBar deadlineId={deadlineId} deadlineName={view.deadlineName} status={sheetPaper(view)}>
+			<StudioHead deadlineId={deadlineId} deadlineName={view.deadlineName} />
+			<BarActions>
+				<span data-testid="cheat-sheet-status" className="shrink-0 self-center px-4 text-[15px] text-bar-ink">
+					{sheetPaper(view)}
+				</span>
 				{current &&
 					currentUrl &&
 					(desktop ? (
@@ -118,10 +121,10 @@ function Studio({
 							Download PDF
 						</a>
 					))}
-				<button type="button" data-testid="cheat-sheet-print" disabled={!current || printing} onClick={print} className="lh-btn shrink-0">
+				<button type="button" data-testid="cheat-sheet-print" disabled={!current || printing} onClick={print} className={barWord(false)}>
 					Print
 				</button>
-			</StudioBar>
+			</BarActions>
 			{failed && (
 				<p role="alert" className="shrink-0 px-8 pt-3 text-[15px] text-ans-wrong">
 					{failed}

@@ -1,5 +1,6 @@
 import type { RefObject } from "react";
 import { MenuShell } from "@/frontend/components/menu-shell";
+import { KeyHint, keyShortcutProps } from "@/frontend/components/ui/key-hint";
 import { CoverageMenuBlock } from "@/frontend/components/extraction-coverage";
 import { dispositionFileName, saveBlob } from "@/frontend/components/artifacts/download";
 
@@ -7,7 +8,9 @@ import { dispositionFileName, saveBlob } from "@/frontend/components/artifacts/d
  * THE LESSON MENU (a Progress row's More button or a right-click, and the open lesson's More): Rename,
  * Export as Markdown, Move to another space, Delete (the destructive
  * action last), then below a gap the extraction coverage block. MenuShell owns
- * placement, focus and arrow keys; the list owns dismissal.
+ * placement, focus and arrow keys; the list owns dismissal. From the open
+ * lesson's More in the top bar (`bar`) it hangs from the bar and Rename shows
+ * its key.
  */
 
 const ITEM = "lh-press flex items-center px-3 py-2 text-left hover:bg-accent";
@@ -31,6 +34,7 @@ export function LessonMenu({
 	onMove,
 	onDelete,
 	onClose,
+	bar,
 }: {
 	chatId: string;
 	open: boolean;
@@ -39,6 +43,7 @@ export function LessonMenu({
 	onMove: () => void;
 	onDelete: () => void;
 	onClose: () => void;
+	bar?: boolean;
 }) {
 	return (
 		<MenuShell
@@ -46,10 +51,12 @@ export function LessonMenu({
 			anchorRef={anchorRef}
 			testid="lesson-menu"
 			preferredSide="down"
+			hang={bar}
 			menuClass="lh-popup flex w-[250px] flex-col p-1.5 text-[15px]"
 		>
-			<button role="menuitem" type="button" data-testid="ctx-rename" onClick={onRename} className={`${ITEM} text-ink`}>
+			<button role="menuitem" type="button" data-testid="ctx-rename" onClick={onRename} {...(bar && keyShortcutProps("rename-session"))} className={`${ITEM} justify-between gap-2 text-ink`}>
 				Rename
+				{bar && <KeyHint action="rename-session" />}
 			</button>
 			<button
 				role="menuitem"

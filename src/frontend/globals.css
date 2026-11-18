@@ -43,6 +43,8 @@
    at least 4.5:1. Interface and reading text are Literata, dates and
    counts DotGothic16. */
 :root {
+	/* The top bar's height: two lines in a narrow window while a page has words in it (see .lh-bar-actions). */
+	--lh-bar-h: 3rem;
 	/* The widest every page's column gets, the lesson page's included, and its sides: 32px, or
 	   24px when the page's room (the window less the teacher's docked panel) is under 900. The
 	   clamp is that step at 900, so no page needs a container to measure its room. */
@@ -588,7 +590,7 @@ body {
 		padding: 0 10px;
 		font-size: 14px;
 	}
-	/* A button on the dark bar of a lesson or a cheat sheet. */
+	/* A button on a mock's own dark bar. */
 	.lh-btn-bar {
 		--lh-key: color-mix(in srgb, var(--lh-bar-ink) 26%, var(--lh-bar));
 		--lh-key-hover: color-mix(in srgb, var(--lh-bar-ink) 34%, var(--lh-bar));
@@ -638,7 +640,7 @@ body {
 	background-size: 16px 16px;
 }
 
-/* The lesson under its bar: the page (the step line over one scrolling column, LessonScroll)
+/* The lesson under the top bar: the page (the step line over one scrolling column, LessonScroll)
    and, when docked, the cheat sheet beside it at the width the learner dragged it. */
 .lh-lesson-body {
 	display: grid;
@@ -942,7 +944,7 @@ body {
 	padding-right: 0.75rem;
 }
 
-/* A page with a bar of its own (a cheat sheet's page) shows that bar in
+/* A page with a bar of its own (a mock's page) shows that bar in
    place of the app's top bar. Keyed on the bar being drawn, so the
    page's not-found and error screens keep the top bar. */
 body:has(.lh-own-bar) .lh-app-bar {
@@ -956,6 +958,32 @@ body:has(.lh-own-bar) .lh-app-bar {
 @media (prefers-reduced-motion: no-preference) {
 	.lh-own-bar {
 		transition: margin-right var(--lh-dur) var(--lh-ease-out);
+	}
+}
+
+/* A page's own words in the top bar (bar-slots.tsx). As the bar narrows,
+   the pill's words go first, then the unlit tabs' names down to a few
+   letters, and then those tabs scroll (space-tabs.tsx). While a page has
+   words here the wordmark and the clock leave below 1200, and below 1100
+   the words take a line of their own above the bar's, at its right end. */
+@media (max-width: 1199px) {
+	.lh-app-bar:has(.lh-bar-actions > *) .lh-bar-spare {
+		display: none;
+	}
+}
+@media (max-width: 1099px) {
+	:root:has(.lh-app-bar .lh-bar-actions > *) {
+		--lh-bar-h: 6rem;
+	}
+	.lh-app-bar:has(.lh-bar-actions > *) {
+		position: relative;
+		padding-top: 3rem;
+	}
+	.lh-bar-actions:not(:empty) {
+		position: absolute;
+		top: 0;
+		right: 0;
+		height: 3rem;
 	}
 }
 
@@ -1195,12 +1223,12 @@ body:has(.lh-own-bar) .lh-app-bar {
 	display: flex;
 	align-items: flex-start;
 	justify-content: center;
-	padding-top: 3rem;
+	padding-top: var(--lh-bar-h);
 }
 .lh-sheet-wrap::before {
 	content: "";
 	position: absolute;
-	inset: 3rem 0 0;
+	inset: var(--lh-bar-h) 0 0;
 	background: rgb(0 0 0 / 0.4);
 	pointer-events: none;
 	animation: lh-fade-in var(--lh-dur) var(--lh-ease-out) both;

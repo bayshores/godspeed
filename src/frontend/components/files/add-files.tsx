@@ -1,8 +1,8 @@
 import { useRef } from "react";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { barWord } from "@/frontend/components/top-bar/bar-look";
 import { SPACE_FILE_ACCEPT } from "./files-model";
 
-/** "Add files" (the page's main button): opens the file picker. Each file's first read sorts it
+/** "Add files", a word in the top bar: opens the file picker. Each file's first read sorts it
  *  into study material or space info. */
 export function AddFilesButton({ disabled, onAdd }: { disabled?: boolean; onAdd: (files: File[]) => void }) {
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -26,9 +26,8 @@ export function AddFilesButton({ disabled, onAdd }: { disabled?: boolean; onAdd:
 				data-testid="space-add-files"
 				disabled={disabled}
 				onClick={() => inputRef.current?.click()}
-				className="lh-btn lh-btn-main ml-auto"
+				className={barWord(false)}
 			>
-				<PixelIcon name="plus" className="h-3" />
 				Add files
 			</button>
 		</>

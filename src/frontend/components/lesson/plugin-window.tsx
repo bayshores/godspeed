@@ -5,15 +5,15 @@ import { PluginFrame } from "@/frontend/components/plugins/plugin-frame";
 import type { PluginContext } from "@/frontend/components/plugins/plugin-frame-model";
 import { usePresence } from "@/frontend/components/presence";
 import { sessionFindHasForegroundLayer } from "@/frontend/components/session-find";
-import { BarWindow } from "@/frontend/components/ui/bar-window";
+import { BarWindow, barBottom, observeBar } from "@/frontend/components/ui/bar-window";
 import type { ShownPlugin } from "@/frontend/lib/use-plugins-at";
 import { pluginWindowBox } from "./plugin-window-model";
 
-/** The plugin's word in the lesson bar. */
+/** The plugin's word, among the lesson's words in the top bar. */
 export const pluginWordTestId = (id: string) => `lesson-plugin-${id}`;
 
 /**
- * A lesson plugin's page, in a window hanging from the lesson bar under the plugin's lit word, as
+ * A lesson plugin's page, in a window hanging from the top bar under the plugin's lit word, as
  * tall as the page says it is. The word opens and closes it, and Escape closes it; it stays while
  * the learner works in the lesson.
  */
@@ -29,18 +29,23 @@ export function PluginWindow({ plugin, context, onClose }: { plugin: ShownPlugin
 
 function Window({ plugin, context, state, onClose }: { plugin: ShownPlugin; context: PluginContext; state: "open" | "closed"; onClose: () => void }) {
 	const [reported, setReported] = useState<number | null>(null);
-	const [at, setAt] = useState<{ edge: number; width: number; height: number } | null>(null);
+	const [at, setAt] = useState<{ edge: number; width: number; height: number; bar: number } | null>(null);
 
 	// Before paint, so it opens in place.
 	useLayoutEffect(() => {
 		const place = () => {
 			const word = document.querySelector(`[data-testid="${pluginWordTestId(plugin.id)}"]`)?.getBoundingClientRect().right;
 			// While Find has the bar the word is gone, and the window stays where it was.
-			setAt((now) => ({ edge: word ?? now?.edge ?? window.innerWidth, width: window.innerWidth, height: window.innerHeight }));
+			setAt((now) => ({ edge: word ?? now?.edge ?? window.innerWidth, width: window.innerWidth, height: window.innerHeight, bar: barBottom() }));
 		};
 		place();
+		const observer = new ResizeObserver(place);
+		observeBar(observer);
 		window.addEventListener("resize", place);
-		return () => window.removeEventListener("resize", place);
+		return () => {
+			observer.disconnect();
+			window.removeEventListener("resize", place);
+		};
 	}, [plugin.id]);
 
 	useEffect(() => {
@@ -57,7 +62,7 @@ function Window({ plugin, context, state, onClose }: { plugin: ShownPlugin; cont
 	}, [state, onClose]);
 
 	if (!at) return null;
-	const box = pluginWindowBox(at.edge, at, reported);
+	const box = pluginWindowBox(at.edge, at, at.bar, reported);
 	return (
 		<BarWindow
 			right={box.right}
