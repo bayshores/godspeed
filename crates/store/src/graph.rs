@@ -276,7 +276,7 @@ fn ensure_graph_format(file: &Path) -> Result<(), String> {
 /// is lost, as in JS, where assigning it sets the prototype instead of a key.
 fn read_source_map(files: &GraphFiles) -> Result<Obj, String> {
 	assert_graph_format(&files.format)?;
-	let parsed = fsx::read_json(&files.sources).unwrap_or(Json::Null);
+	let parsed = fsx::read_json_or_set_aside(&files.sources).unwrap_or(Json::Null);
 	let mut map = Obj::new();
 	for (id, value) in entries(&parsed) {
 		if is_notes_source(value) && id != "__proto__" {

@@ -12,6 +12,7 @@ use gs_agent::extraction::topic_grouper::{TopicGrouperInput, group_topics};
 use gs_agent::subagents::bg_llm_semaphore::with_bg_llm_slot;
 use gs_agent::subagents::pi_run::RunError;
 use gs_base::locks::LockKey;
+use gs_base::tasks::detach;
 use gs_base::{clock, time};
 use gs_core::graph::graph::get_graph;
 use gs_core::graph::topics::{MIN_FACTS_FOR_TOPICS, resolve_topics, same_fact_set};
@@ -90,7 +91,7 @@ fn run_single_flight(app: &Arc<App>, space_id: &str) {
 		inner.running.insert(space_id.to_owned());
 	}
 	let (app, space_id) = (app.clone(), space_id.to_owned());
-	tokio::spawn(async move {
+	detach("topics", async move {
 		if let Err(err) = group_once(&app, &space_id).await {
 			eprintln!("[topics {space_id}] grouping failed: {err}");
 		}

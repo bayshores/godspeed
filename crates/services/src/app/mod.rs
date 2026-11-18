@@ -36,7 +36,7 @@ pub mod web_search;
 mod welcome;
 mod whats_new;
 
-pub use settings_put::put_settings_section;
+pub use settings_put::{patch_settings_section, put_settings_section};
 
 /// This service's live state inside `App` (registries, timers, caches).
 #[derive(Default)]

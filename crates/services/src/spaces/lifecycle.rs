@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use gs_base::locks::LockKey;
 use gs_base::clock;
+use gs_base::tasks::detach;
 use gs_core::contracts::chat::extracts_facts;
 use gs_core::contracts::space::parse_space_scope;
 use gs_core::graph::graph_deletion::ChatDeleteMode;
@@ -179,7 +180,7 @@ async fn run_move(app: &Arc<App>, chat_id: &str, target: Option<&str>) -> SpaceO
 	// Settings only for a lesson that extracts facts, as in Node: a read can save an old file anew.
 	if extracts_facts(record["kind"].as_str()) && app.stores.settings.effective_settings().is_ok_and(|s| s["graph"]["enabled"].truthy()) {
 		let (app, chat_id) = (app.clone(), chat_id.to_owned());
-		tokio::spawn(async move {
+		detach("spaces", async move {
 			if let Err(err) = extraction(&app).run_extraction(&chat_id).await {
 				eprintln!("[spaces] rebuild after move skipped for {chat_id}: {err}");
 			}

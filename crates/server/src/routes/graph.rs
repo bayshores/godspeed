@@ -11,6 +11,7 @@ use axum::extract::{Path, State};
 use axum::http::{HeaderMap, Uri, header};
 use axum::response::Response;
 use futures_util::StreamExt;
+use gs_base::tasks::detach;
 use gs_core::contracts::space::is_calendar_date;
 use gs_json::{Json, Obj, json};
 use gs_services::App;
@@ -79,7 +80,7 @@ async fn post_extract(State(app): State<Arc<App>>, body: Body) -> Result<Respons
 	if extraction_statuses(&app).iter().any(|run| run["kind"].as_str() == Some("chat") && run["chatId"].as_str() == Some(&chat_id)) {
 		return Ok(error(409, "Godspeed is already adding this lesson to your graph."));
 	}
-	tokio::spawn(async move {
+	detach("chat", async move {
 		if let Err(err) = extraction(&app).run_extraction(&chat_id).await {
 			eprintln!("[chat {chat_id}] manual extraction failed: {err}");
 		}

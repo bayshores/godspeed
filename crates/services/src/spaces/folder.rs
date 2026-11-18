@@ -11,6 +11,7 @@ use std::sync::Arc;
 use gs_base::config::{is_absolute, resolve};
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
+use gs_base::tasks::detach;
 use gs_base::{clock, fsx, time};
 use gs_core::spaces::lecture_transcript::transcript_for;
 use gs_core::spaces::linked_folder::folder_source;
@@ -125,7 +126,7 @@ fn set_folder_status(app: &App, space_id: &str, problem: Option<&str>, read: Opt
 fn wait_for_triage(app: &Arc<App>, space_id: &str, linking: bool) -> bool {
 	let Some(triage) = app.spaces.triaging.lock().get(space_id).copied() else { return false };
 	let (app, space_id) = (app.clone(), space_id.to_owned());
-	tokio::spawn(async move {
+	detach("spaces", async move {
 		triage_done(&app, &space_id, triage).await;
 		scan_linked_folder(&app, &space_id, linking);
 	});
@@ -305,7 +306,7 @@ fn triage_new_files(app: &Arc<App>, space_id: &str, added_ids: Vec<String>, gone
 	};
 	app.spaces.triaging.lock().insert(space_id.to_owned(), triage);
 	let (app, space_id) = (app.clone(), space_id.to_owned());
-	tokio::spawn(async move {
+	detach("spaces", async move {
 		let run = tokio::spawn(triage_files(app.clone(), space_id.clone(), added_ids, gone, announce));
 		if let Err(err) = run.await {
 			eprintln!("[spaces] new files in {space_id}: {err}");

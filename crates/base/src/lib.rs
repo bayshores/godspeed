@@ -15,5 +15,6 @@ pub mod posix;
 pub mod re;
 pub mod regexp;
 pub mod shutdown;
+pub mod tasks;
 pub mod text;
 pub mod time;

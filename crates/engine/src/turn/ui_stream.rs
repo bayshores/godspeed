@@ -13,6 +13,7 @@
 use std::sync::Arc;
 
 use gs_base::clock;
+use gs_base::tasks::detach;
 use gs_json::{Json, json, stringify};
 use parking_lot::Mutex;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
@@ -114,7 +115,7 @@ impl TurnHandle {
 	/// Runs the agent on from its transcript, in the background.
 	pub fn start(&self) {
 		let turn = self.0.clone();
-		tokio::spawn(async move {
+		detach("turn", async move {
 			let Err(err) = turn.spec.agent.continue_run(turn.abort.clone()).await else { return };
 			if turn.wire.lock().settled {
 				eprintln!("[turn] error after settlement: {err}");
@@ -202,7 +203,7 @@ impl Turn {
 		wire.flush_armed = Some(number);
 		let turn = Arc::downgrade(self);
 		let delay = self.spec.update_flush_ms;
-		tokio::spawn(async move {
+		detach("turn", async move {
 			clock::sleep(delay).await;
 			if let Some(turn) = turn.upgrade() {
 				let mut wire = turn.wire.lock();

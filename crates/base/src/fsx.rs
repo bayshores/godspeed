@@ -181,7 +181,9 @@ pub fn set_aside_corrupt(file: &Path) {
 	}
 }
 
-/// A data file's parsed JSON; a missing, unreadable or invalid file reads as None.
+/// A file's parsed JSON; a missing, unreadable or invalid file reads as None. Only for a file the
+/// app does not rewrite or a read that must not rename; every other data file uses
+/// `read_json_or_set_aside`.
 pub fn read_json(file: &Path) -> Option<Json> {
 	parse(&read_text(file).ok()?).ok()
 }

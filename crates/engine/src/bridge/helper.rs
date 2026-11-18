@@ -5,6 +5,7 @@
 
 use gs_base::clock;
 use gs_base::events::EventKind;
+use gs_base::tasks::detach;
 
 use super::checkin::recent;
 use super::work::{CLAIM_TIMEOUT_MS, for_helper};
@@ -81,7 +82,7 @@ impl Bridge {
 		drop(s);
 		// The window hears when a mark that never ended lapses.
 		let events = self.0.events.clone();
-		tokio::spawn(async move {
+		detach("bridge", async move {
 			clock::sleep(COMPACTING_LIMIT_MS + 1000).await;
 			events.emit(EventKind::AgentChanged, gs_json::json!({}));
 		});

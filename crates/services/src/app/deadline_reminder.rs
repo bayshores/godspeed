@@ -5,6 +5,7 @@
 
 use std::sync::Arc;
 
+use gs_base::tasks::detach;
 use gs_base::{clock, num, time};
 use gs_core::contracts::space::deadline_due_at;
 use gs_core::spaces::today_note::{local_day, relative_day};
@@ -72,7 +73,7 @@ fn is_due(now_ms: i64, last_day: Option<&str>, at_start: bool) -> bool {
 pub fn start_deadline_reminders(app: &Arc<App>) {
 	let Some(shell) = app.shell.clone() else { return };
 	let app = app.clone();
-	tokio::spawn(async move {
+	detach("reminders", async move {
 		clock::sleep(START_DELAY_MS).await;
 		let mut at_start = true;
 		loop {

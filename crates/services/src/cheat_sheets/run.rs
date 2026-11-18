@@ -8,6 +8,7 @@ use gs_agent::tools::open_page::open_page_tool;
 use gs_agent::tools::space::search_tools;
 use gs_base::ids::uuid;
 use gs_base::locks::LockKey;
+use gs_base::tasks::detach;
 use gs_base::text::{len16, trim};
 use gs_base::time::iso_now;
 use gs_core::messages::attachments::{ChatAttachment, is_pdf_type};
@@ -181,7 +182,7 @@ fn start_run(app: &Arc<App>, ctx: &Context, message_id: &str) -> Outcome<()> {
 		signal: abort.clone(),
 	};
 	let answer = Answer { app: app.clone(), space_id: ctx.space_id.clone(), deadline_id: id, message_id: message_id.to_owned(), asked: message["text"].str_or_empty().to_owned() };
-	tokio::spawn(async move {
+	detach("cheat-sheet", async move {
 		let _end = RunEnd { app: answer.app.clone(), deadline_id: answer.deadline_id.clone() };
 		let done = match reply_on_sheet(&answer.app.bridge, request).await {
 			Ok(reply) => keep_reply(&answer, reply),

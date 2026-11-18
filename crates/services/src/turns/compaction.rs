@@ -15,12 +15,13 @@ use std::sync::Arc;
 use gs_agent::subagents::pi_run::{SubagentRunOptions, run_subagent};
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
+use gs_base::tasks::detach;
 use gs_base::{clock, ids, text, time};
 use gs_core::messages::compaction_marks::active_compaction_of;
 use gs_core::messages::native_messages::to_llm_messages;
 use gs_core::session::compaction::{
-	KEEP_RECENT_TOKENS, build_compaction_prompt, compaction_cut_index, compaction_span, estimate_context_tokens, estimate_tokens, local_summary, new_compaction_marker, plan_tree_to_text,
-	serialize_for_summary,
+	KEEP_RECENT_TOKENS, build_compaction_prompt, compaction_cut_index, compaction_span, effective_threshold_tokens, estimate_context_tokens, estimate_tokens, local_summary, new_compaction_marker,
+	plan_tree_to_text, serialize_for_summary,
 };
 use gs_engine::turn::faux::Engine;
 use gs_json::{Json, json};
@@ -45,6 +46,11 @@ pub struct CompactionDeps {
 	pub threshold_tokens: f64,
 	/// The composed system prompt's estimate (chars / 4).
 	pub system_prompt_tokens: f64,
+}
+
+/// The token count at which a lesson on `model` is summarized, under the effective settings.
+pub fn summarize_at_tokens(effective: &Json, model: &Json) -> f64 {
+	effective_threshold_tokens(effective["compaction"]["thresholdTokens"].as_f64(), model["contextWindow"].as_f64())
 }
 
 /// Builds a chat's deps from its record as it is then; none when the chat is gone.
@@ -131,7 +137,7 @@ fn refine_when_quiet(app: &Arc<App>, build_deps: BuildDeps, chat_id: &str, delay
 	};
 	app.turns.refine_timers.lock().insert(chat_id.to_owned(), number);
 	let (app, chat_id) = (app.clone(), chat_id.to_owned());
-	tokio::spawn(async move {
+	detach("chat", async move {
 		clock::sleep(delay_ms).await;
 		{
 			let mut timers = app.turns.refine_timers.lock();
@@ -265,6 +271,15 @@ mod tests {
 		let id = chat["id"].as_str().unwrap().to_owned();
 		app.stores.chats.save_messages(&id, &[big("m1"), big("m2"), big("m3"), new_user_message("recent", &[])]).unwrap();
 		id
+	}
+
+	#[test]
+	fn the_summary_point_is_the_setting_cut_to_fit_the_models_window() {
+		let model = |window: f64| faux_model("faux", "faux", "test", "Test", window, 32_000.0);
+		let setting = |tokens: f64| json!({ "compaction": { "thresholdTokens": tokens } });
+		assert_eq!(summarize_at_tokens(&setting(90_000.0), &model(1_000_000.0)), 90_000.0);
+		assert_eq!(summarize_at_tokens(&setting(90_000.0), &model(50_000.0)), effective_threshold_tokens(Some(90_000.0), Some(50_000.0)));
+		assert_eq!(summarize_at_tokens(&json!({}), &model(1_000_000.0)), effective_threshold_tokens(None, Some(1_000_000.0)));
 	}
 
 	fn deps(threshold_tokens: f64, script: &Arc<Scripted>) -> CompactionDeps {

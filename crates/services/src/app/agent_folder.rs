@@ -55,7 +55,7 @@ fn state_file(app: &App) -> PathBuf {
 /// Writes spread it and set keys on top, so the file keeps that order with new keys last.
 fn read_state(app: &App) -> Obj {
 	let mut state = Obj::new();
-	let Some(raw) = fsx::read_json(&state_file(app)) else { return state };
+	let Some(raw) = fsx::read_json_or_set_aside(&state_file(app)) else { return state };
 	if let Some(folder) = raw["folder"].as_str().filter(|f| usable_folder(f)) {
 		state.insert("folder", folder);
 	}

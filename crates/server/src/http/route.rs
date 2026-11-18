@@ -42,6 +42,10 @@ impl ApiRoute {
 		self.on(Method::PUT, handler)
 	}
 
+	pub fn patch<H: Handler<T, Arc<App>>, T: 'static>(self, handler: H) -> ApiRoute {
+		self.on(Method::PATCH, handler)
+	}
+
 	pub fn delete<H: Handler<T, Arc<App>>, T: 'static>(self, handler: H) -> ApiRoute {
 		self.on(Method::DELETE, handler)
 	}
@@ -104,5 +108,6 @@ mod tests {
 		assert_eq!(ApiRoute::new().post(ok).allow(), "OPTIONS, POST");
 		assert_eq!(ApiRoute::new().get(ok).put(ok).delete(ok).allow(), "DELETE, GET, HEAD, OPTIONS, PUT");
 		assert_eq!(ApiRoute::new().post(ok).delete(ok).allow(), "DELETE, OPTIONS, POST");
+		assert_eq!(ApiRoute::new().put(ok).patch(ok).allow(), "OPTIONS, PATCH, PUT");
 	}
 }

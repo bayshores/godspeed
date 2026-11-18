@@ -61,7 +61,7 @@ Use `gs_base::re::Re::new(pattern, flags)` with the pattern as the screens' JS w
 ### Files
 
 - Write only with `fsx::write_atomic`, `fsx::write_text_atomic` or `fsx::write_atomic_pair`. Each writes temp file `<name>.tmp-<8 hex>`, then renames, like `write-file-atomic`. `write_atomic_pair` streams two files that go together and renames only once both are written.
-- Unreadable records go aside with `fsx::set_aside_corrupt`.
+- A data file the app rewrites is read with `fsx::read_json_or_set_aside`: one that is not valid JSON is kept as `<name>.corrupt-<ms>`, so the next save cannot replace it. `fsx::read_json` is only for a file the app does not rewrite (a plugin's `manifest.json`) or a read that must not rename (`list_mocks_unlocked`). Other unreadable records go aside with `fsx::set_aside_corrupt`.
 - Error texts the learner or outside agent sees come from `fsx::node_error_message`, which spells libuv's messages as Node did (`ENOENT: no such file or directory, open '<path>'`).
 - Directory and file order must not depend on the file system. Sort explicitly.
 
@@ -74,6 +74,7 @@ Everything lives in `App` (`crates/services/src/lib.rs`): `paths`, `events`, `lo
 - Emit with `app.events.emit(EventKind::X, json!({...}))`. Payload is the event minus `type`.
 - A fallible function returns `Result<T, String>`, or a small error enum when callers match on kind.
 - A route returns `Result<Response, Unhandled>`; `?` on any error answers an empty 500. A handler panic also answers an empty 500 and the server keeps running, but do not rely on it.
+- A background task nobody awaits starts with `tasks::detach(label, future)`, which prints `[label] task panicked: ...` if it panics. Keep a plain `tokio::spawn` only where the handle is awaited, stored or aborted.
 - Never hold a lock across `.await`. See [Locks](#locks).
 
 ### Tests
@@ -92,7 +93,7 @@ Where output must equal the original TypeScript's (formatting, ranking, merging,
 ## What every module can use
 
 - `gs_json`: `Json`, `Obj`, `json!`, `parse`, `stringify`, `stringify_pretty`, `js_number`, `quote`, `to_json`, `from_json`, `lone`.
-- `gs_base`: `base64`, `clock`, `config` (`Paths`, `GraphFiles`, `resolve`, `VERSION`), `events` (`Events`, `EventKind`, `Event::sse_frame`), `fsx`, `hash`, `ids`, `locale`, `locks`, `num`, `posix`, `re`, `regexp`, `shutdown`, `text`, `time`.
+- `gs_base`: `base64`, `clock`, `config` (`Paths`, `GraphFiles`, `resolve`, `VERSION`), `events` (`Events`, `EventKind`, `Event::sse_frame`), `fsx`, `hash`, `ids`, `locale`, `locks`, `num`, `posix`, `re`, `regexp`, `shutdown`, `tasks`, `text`, `time`.
 - `gs_core`: `contracts::{chat, space, graph}` (ids, versions, guards, space icons, deadline sort, scope parsing) and the pure logic above them.
 - `gs_store`: `Stores::new` with every store's constructor. `AgentSeenStore` implements `gs_core::records::agent_seen::SeenStore`.
 - `gs_services`: `App::new(paths, shell)`.
@@ -102,7 +103,7 @@ Where output must equal the original TypeScript's (formatting, ranking, merging,
 The `access` unit tests and `crates/server/tests/shell.rs` cover the desktop access rule.
 
 - `front` runs before routing. Backslashes, `//` and trailing slashes redirect 308 with the path as body; `.`, `..` and `%2e` segments resolve. Then the desktop access check runs. A segment that will not decode answers Next's 500 page.
-- `route::ApiRoute::new().get(h).post(h).put(h).delete(h).into_route()` builds one route path; register every route with it. OPTIONS answers 204 with Next's sorted `Allow`, other methods an empty 405, HEAD runs GET without the body, a panic an empty 500.
+- `route::ApiRoute::new().get(h).post(h).put(h).patch(h).delete(h).into_route()` builds one route path; register every route with it. OPTIONS answers 204 with Next's sorted `Allow`, other methods an empty 405, HEAD runs GET without the body, a panic an empty 500.
 - `reply`: `json(status, &v)`, `json_no_store`, `text`, `empty`, `no_store`, `not_found`, `Unhandled`, `json_body(body)` (`await req.json()`, None where it throws), `read_body` (cut at 210 MiB like `proxyClientMaxBodySize`), `body_text`.
 - `paths::search_params(query)` and `paths::param` read a query like `URLSearchParams`. `paths::decode_component` decodes one segment.
 - `ui` serves `ui/` and `/pdfjs/*`. `plugin_files` serves `/plugin-files/<id>/<path>` with the plugin's CSP, only for a Host of 127.0.0.1, localhost or [::1]. `events` is `GET /api/events`.

@@ -25,7 +25,7 @@ impl AgentSeenStore {
 	}
 
 	fn read(&self) -> Json {
-		let parsed = fsx::read_json(&self.file);
+		let parsed = fsx::read_json_or_set_aside(&self.file);
 		parse_agent_seen(&parsed.unwrap_or(Json::Null))
 	}
 

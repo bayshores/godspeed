@@ -18,7 +18,6 @@ use gs_core::messages::app_notes::app_note_for;
 use gs_core::messages::attachments::ChatAttachment;
 use gs_core::messages::input_events::{About, ChatInput, ChatInputError, TurnInput, input_appends};
 use gs_core::messages::native_messages::{dangling_question_of, has_probe_done, is_side_turn, retry_context};
-use gs_core::session::compaction::effective_threshold_tokens;
 use gs_core::session::jobs::steer_delivered;
 use gs_engine::turn::agent::Agent;
 use gs_engine::turn::call_ids::collect_tool_call_ids;
@@ -29,7 +28,7 @@ use gs_json::{Json, json, stringify};
 use parking_lot::Mutex;
 
 use super::attachments::{AttachmentError, store_attachments};
-use super::compaction::{CompactionDeps, ensure_compacted, kick_compaction, or_zero};
+use super::compaction::{CompactionDeps, ensure_compacted, kick_compaction, or_zero, summarize_at_tokens};
 use super::dismissal_park::apply_parked_dismissal;
 use super::homework::homework_view;
 use super::job_host::run_job;
@@ -466,7 +465,7 @@ fn agent_kind_of(record: &Json) -> AgentKind {
 fn compaction_deps(app: &Arc<App>, record: &Json, effective: &Json) -> CompactionDeps {
 	let engine = agent_engine(&app.bridge);
 	let agent_kind = agent_kind_of(record);
-	let threshold_tokens = effective_threshold_tokens(effective["compaction"]["thresholdTokens"].as_f64(), engine.model["contextWindow"].as_f64());
+	let threshold_tokens = summarize_at_tokens(effective, &engine.model);
 	let system_prompt_tokens = (text::len16(&compose_instructions(agent_kind, &app.stores.prompt_overrides)) as f64 / 4.0).ceil();
 	CompactionDeps { model_id: model_id_of(&engine.model), engine, threshold_tokens, system_prompt_tokens }
 }

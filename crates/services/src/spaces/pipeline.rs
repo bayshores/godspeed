@@ -8,6 +8,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use gs_base::hash::sha256_text;
+use gs_base::tasks::detach;
 use gs_base::{clock, fsx};
 use gs_core::spaces::kept_pages::with_kept_pages;
 use gs_core::spaces::lecture_transcript::transcript_for;
@@ -40,13 +41,33 @@ pub fn enqueue_file(app: &Arc<App>, space_id: &str, file_id: &str) {
 	queue.waiting.push_back(file_id.to_owned());
 	if !queue.running {
 		queue.running = true;
-		tokio::spawn(run_queue(app.clone(), space_id.to_owned()));
+		detach("spaces", run_queue(app.clone(), space_id.to_owned()));
+	}
+}
+
+/// Frees a space's queue when `run_queue` panics, so its files are not left marked as running for
+/// good. A normal exit does nothing: it already took the queue out, and a new one may have started.
+struct QueueGuard {
+	app: Arc<App>,
+	space_id: String,
+}
+
+impl Drop for QueueGuard {
+	fn drop(&mut self) {
+		if !std::thread::panicking() {
+			return;
+		}
+		self.app.spaces.queues.lock().remove(&self.space_id);
+		let prefix = format!("{}:", self.space_id);
+		self.app.spaces.queued.lock().retain(|key| !key.starts_with(&prefix));
+		self.app.spaces.settled.notify_waiters();
 	}
 }
 
 /// Works through one space's queue until it is empty. Each time it drains, topics are grouped
 /// once for the whole batch of files.
 async fn run_queue(app: Arc<App>, space_id: String) {
+	let _guard = QueueGuard { app: app.clone(), space_id: space_id.clone() };
 	loop {
 		let next = {
 			let mut queues = app.spaces.queues.lock();
@@ -332,7 +353,7 @@ pub(super) fn reindex_kept_pages(app: &Arc<App>, space_id: &str, file_id: &str) 
 	let Some(file) = file_in(&record, file_id).cloned() else { return };
 	let Some(abs) = space_file_path(app, &record, &file) else { return };
 	let (app, space_id) = (app.clone(), space_id.to_owned());
-	tokio::spawn(async move {
+	detach("spaces", async move {
 		let _turn = ONE_AT_A_TIME.lock().await;
 		index_for_search(&app, &space_id, &file, Path::new(&abs), file["contentFp"].str_or_empty(), None).await;
 	});
@@ -380,7 +401,7 @@ pub fn start_space_scanner(app: &Arc<App>) {
 		return;
 	}
 	let timer = app.clone();
-	tokio::spawn(async move {
+	detach("spaces", async move {
 		let mut due = clock::now_ms() + SCAN_PERIOD_MS;
 		loop {
 			clock::sleep_until(due).await;
@@ -393,7 +414,7 @@ pub fn start_space_scanner(app: &Arc<App>) {
 		}
 	});
 	let startup = app.clone();
-	tokio::spawn(async move {
+	detach("spaces", async move {
 		clock::sleep(STARTUP_SCAN_DELAY_MS).await;
 		queue_waiting_files(&startup);
 		for record in startup.stores.spaces.list_space_records() {
@@ -416,6 +437,28 @@ mod tests {
 	use crate::spaces::space_search::space_search;
 	use crate::spaces::files::replace_copied_file;
 	use crate::spaces::{add_copied_file, add_file_from_path, keep_page, kept_pages_at, set_file_kind, write_agent_file};
+
+	#[test]
+	fn a_queue_that_panics_is_freed_and_one_that_ends_normally_is_left_alone() {
+		let root = scratch_dir("queue-guard");
+		let app = test_app(&root);
+		let queue_of = |space_id: &str, file_id: &str| {
+			app.spaces.queues.lock().entry(space_id.to_owned()).or_default().running = true;
+			app.spaces.queued.lock().insert(format!("{space_id}:{file_id}"));
+		};
+		queue_of("s1", "f1");
+		queue_of("s2", "f2");
+		drop(QueueGuard { app: app.clone(), space_id: "s1".to_owned() });
+		assert!(app.spaces.queues.lock().contains_key("s1"), "a normal end leaves the queue to its owner");
+		let panicked = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+			let _guard = QueueGuard { app: app.clone(), space_id: "s1".to_owned() };
+			panic!("the queue broke");
+		}));
+		assert!(panicked.is_err());
+		assert!(!app.spaces.queues.lock().contains_key("s1"));
+		assert_eq!(app.spaces.queued.lock().iter().collect::<Vec<_>>(), ["s2:f2"]);
+		assert!(app.spaces.queues.lock().contains_key("s2"));
+	}
 
 	#[test]
 	fn only_a_first_read_of_a_kind_nobody_set_sorts() {

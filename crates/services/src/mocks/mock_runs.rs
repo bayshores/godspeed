@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
+use gs_base::tasks::detach;
 use gs_engine::turn::abort::Abort;
 use gs_json::json;
 use parking_lot::Mutex;
@@ -87,7 +88,7 @@ where
 	changed(app, space_id);
 	let end = RunEnd { app: app.clone(), space_id: space_id.to_owned(), key: key.to_owned(), n };
 	let running = work(abort.clone());
-	tokio::spawn(async move {
+	detach("mock", async move {
 		let result = running.await;
 		if let Err(error) = result
 			&& !abort.is_aborted()

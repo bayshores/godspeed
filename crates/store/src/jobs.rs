@@ -79,7 +79,7 @@ impl JobStore {
 		};
 		self.cache
 			.load(id, &file, || {
-				let parsed = fsx::read_json(&file)?;
+				let parsed = fsx::read_json_or_set_aside(&file)?;
 				let valid = ["id", "chatId", "updatedAt", "status"].iter().all(|key| parsed[*key].as_str().is_some());
 				Some(valid.then(|| Arc::new(parsed)))
 			})

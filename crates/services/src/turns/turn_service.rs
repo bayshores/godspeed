@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use gs_base::clock;
 use gs_base::locks::LockKey;
+use gs_base::tasks::detach;
 use gs_core::graph::coverage::coverage_of;
 use gs_core::messages::citations::{CiteMark, replace_cite_marks};
 use gs_core::messages::lesson_markers::new_keep_check_marker;
@@ -120,7 +121,7 @@ pub fn extract_when_idle(app: &Arc<App>, chat_id: &str, scope: Option<&str>, del
 	};
 	app.turns.leftover_timers.lock().insert(chat_id.to_owned(), number);
 	let (app, chat_id, scope) = (app.clone(), chat_id.to_owned(), scope.map(str::to_owned));
-	tokio::spawn(async move {
+	detach("chat", async move {
 		clock::sleep(delay_ms).await;
 		{
 			let mut timers = app.turns.leftover_timers.lock();
@@ -158,7 +159,7 @@ pub(super) fn uncovered_tokens(app: &App, chat_id: &str, scope: Option<&str>) ->
 
 pub(super) fn run_extraction(app: &Arc<App>, chat_id: &str) {
 	let (app, chat_id) = (app.clone(), chat_id.to_owned());
-	tokio::spawn(async move {
+	detach("chat", async move {
 		if let Err(err) = extraction(&app).run_extraction(&chat_id).await {
 			eprintln!("[chat {chat_id}] extraction pipeline failed: {err}");
 		}

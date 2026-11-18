@@ -1,4 +1,4 @@
-//! /api/boot, /api/settings, /api/settings/{section}, /api/settings/prompts, /api/settings/prompts/{*segment}, /api/agent-folder, /api/agent-notes, /api/agent-actions, /api/teacher-chats, /api/rules, /api/reading, /api/cited/{file_id}, /api/cited/{file_id}/page/{n}.
+//! /api/boot, /api/settings, /api/settings/{section} (PUT and PATCH), /api/settings/prompts, /api/settings/prompts/{*segment}, /api/agent-folder, /api/agent-notes, /api/agent-actions, /api/teacher-chats, /api/rules, /api/reading, /api/cited/{file_id}, /api/cited/{file_id}/page/{n}.
 
 use std::sync::Arc;
 
@@ -19,7 +19,7 @@ use gs_services::app::boot::boot_info;
 use gs_services::app::old_setup::remove_old_setup;
 use gs_services::app::prompt_segments::{prompt_segments, reset_prompt_segment, save_prompt_segment};
 use gs_services::app::reading_pages::{ReadingError, parse_page, reading_document, reading_pdf_page};
-use gs_services::app::{agent_actions::recent_agent_actions, put_settings_section};
+use gs_services::app::{agent_actions::recent_agent_actions, patch_settings_section, put_settings_section};
 use gs_services::spaces::citations::{cited_page, cited_passage, passage_range};
 
 use crate::http::paths::{param, query};
@@ -32,7 +32,7 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/settings", ApiRoute::new().get(settings).into_route())
 		.route("/api/settings/prompts", ApiRoute::new().get(prompts).into_route())
 		.route("/api/settings/prompts/{*segment}", ApiRoute::new().put(save_prompt).delete(reset_prompt).into_route())
-		.route("/api/settings/{section}", ApiRoute::new().put(put_section).into_route())
+		.route("/api/settings/{section}", ApiRoute::new().put(put_section).patch(patch_section).into_route())
 		.route("/api/agent-folder", ApiRoute::new().get(agent_folder).post(change_agent_folder).into_route())
 		.route("/api/agent-notes", ApiRoute::new().get(notes).delete(remove_note).into_route())
 		.route("/api/agent-actions", ApiRoute::new().get(actions).into_route())
@@ -55,6 +55,12 @@ async fn settings(State(app): State<Arc<App>>) -> Result<Response, Unhandled> {
 async fn put_section(State(app): State<Arc<App>>, Path(section): Path<String>, body: Body) -> Result<Response, Unhandled> {
 	let body = json_body(body).await.unwrap_or(Json::Null);
 	let (status, answer) = put_settings_section(&app, &section, &body)?;
+	Ok(reply::json(status, &answer))
+}
+
+async fn patch_section(State(app): State<Arc<App>>, Path(section): Path<String>, body: Body) -> Result<Response, Unhandled> {
+	let body = json_body(body).await.unwrap_or(Json::Null);
+	let (status, answer) = patch_settings_section(&app, &section, &body)?;
 	Ok(reply::json(status, &answer))
 }
 

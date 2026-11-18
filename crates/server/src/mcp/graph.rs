@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use gs_agent::extraction::extraction::NotesImportInput;
 use gs_base::re::Re;
+use gs_base::tasks::detach;
 use gs_core::contracts::space::safe_name;
 use gs_json::{Json, json};
 use gs_services::App;
@@ -57,7 +58,7 @@ pub fn import_notes(call: &ToolCall<'_>, args: &Json) -> Json {
 /// wait_for_work, and a failure is only logged.
 fn import_in_background(app: &Arc<App>, name: &str, text: &str) {
 	let (app, name, text) = (app.clone(), name.to_owned(), text.to_owned());
-	tokio::spawn(async move {
+	detach("mcp", async move {
 		let input = NotesImportInput { file_path: name.clone(), text, scope: None, source_id: None, may_be_space_info: false };
 		if let Err(err) = extraction(&app).import_notes(input).await {
 			eprintln!("[mcp] import of {name} failed: {err}");

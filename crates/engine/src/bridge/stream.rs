@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
 use gs_base::events::EventKind;
+use gs_base::tasks::detach;
 use gs_base::{clock, ids};
 use gs_core::records::settings::{OUTSIDE_AGENT_CONTEXT_WINDOW, OUTSIDE_AGENT_MODEL_ID, OUTSIDE_AGENT_PROVIDER};
 use gs_json::Json;
@@ -72,7 +73,7 @@ impl Bridge {
 		if asked {
 			// Left untaken, it becomes the helper's: the window looks again to start one.
 			let events = self.0.events.clone();
-			tokio::spawn(async move {
+			detach("bridge", async move {
 				clock::sleep(ASK_GRACE_MS + 1000).await;
 				events.emit(EventKind::AgentChanged, gs_json::json!({}));
 			});

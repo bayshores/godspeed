@@ -22,7 +22,7 @@ impl TeacherChatsStore {
 	}
 
 	pub fn read(&self) -> Vec<TeacherChat> {
-		parse_teacher_chats(&fsx::read_json(&self.file).unwrap_or(Json::Null))
+		parse_teacher_chats(&fsx::read_json_or_set_aside(&self.file).unwrap_or(Json::Null))
 	}
 
 	/// Changes the list under the file's lock. A save that fails is logged: the list only helps

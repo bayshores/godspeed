@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
 use gs_base::events::EventKind;
+use gs_base::tasks::detach;
 use gs_base::{clock, fsx, text};
 use gs_core::spaces::space_shortcuts::{README_NAME, readme_text, shortcut_layout};
 use gs_json::{Json, Obj, json, stringify_pretty};
@@ -27,7 +28,7 @@ fn manifest_path(folder: &Path) -> PathBuf {
 
 /// The links (`{ path, target, ino? }`, kept as read) and folders the last sync made.
 fn read_manifest(folder: &Path) -> (Vec<Json>, Vec<String>) {
-	let Some(m) = fsx::read_json(&manifest_path(folder)) else { return (Vec::new(), Vec::new()) };
+	let Some(m) = fsx::read_json_or_set_aside(&manifest_path(folder)) else { return (Vec::new(), Vec::new()) };
 	let links = m["links"].as_arr().cloned().unwrap_or_default();
 	let dirs = m["dirs"].as_arr().map(|d| d.iter().map(|v| v.str_or_empty().to_owned()).collect()).unwrap_or_default();
 	(links, dirs)
@@ -307,7 +308,7 @@ pub fn watch_shortcuts(app: &Arc<App>, folder: impl Fn(&App) -> Option<PathBuf> 
 	}
 	let mut events = app.events.subscribe();
 	let app = app.clone();
-	tokio::spawn(async move {
+	detach("space-shortcuts", async move {
 		let mut due: Option<i64> = None;
 		loop {
 			let timer = async {

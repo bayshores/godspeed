@@ -10,6 +10,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
+use gs_base::tasks::detach;
 use gs_base::{clock, fsx, ids, text};
 use gs_core::mocks::mock::MockLanguage;
 use gs_core::mocks::mock_run::{RUN_SECONDS, read_run, run_file, runner_source};
@@ -182,9 +183,9 @@ struct Cleanup {
 impl Drop for Cleanup {
 	fn drop(&mut self) {
 		// Without a runtime the program is killed as it drops (kill_on_drop).
-		let (Some(mut child), Ok(runtime)) = (self.child.take(), tokio::runtime::Handle::try_current()) else { return };
+		let (Some(mut child), Ok(_)) = (self.child.take(), tokio::runtime::Handle::try_current()) else { return };
 		let dir = self.dir.clone();
-		runtime.spawn(async move {
+		detach("mock", async move {
 			// The program is ended last: Windows walks the process tree from it, and its open handle
 			// keeps its pid from going to another program until then.
 			let pid = child.id();

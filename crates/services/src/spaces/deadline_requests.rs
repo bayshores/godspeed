@@ -14,6 +14,7 @@ use gs_agent::subagents::pi_run::RunError;
 use gs_agent::tools::fn_tool::FnTool;
 use gs_agent::tools::space_actions::{SpaceActions, deadline_request_tools};
 use gs_base::events::EventKind;
+use gs_base::tasks::detach;
 use gs_base::{clock, fsx};
 use gs_core::contracts::chat::TALK_CHAT_ID;
 use gs_core::spaces::deadline_requests::{AskedRecord, RequestKind, RequestedDeadline, asked_deadline_ids, request_text, requested_deadline};
@@ -102,7 +103,7 @@ pub fn deadline_request_view(app: &App, space_id: &str, deadline_id: &str) -> Js
 }
 
 fn read_record_file(app: &App) -> AskedRecord {
-	fsx::read_json(&app.paths.data.join(ASKED_FILE)).map(|saved| AskedRecord::read(&saved)).unwrap_or_default()
+	fsx::read_json_or_set_aside(&app.paths.data.join(ASKED_FILE)).map(|saved| AskedRecord::read(&saved)).unwrap_or_default()
 }
 
 /// What godspeed asked its agent about, as saved.
@@ -175,7 +176,7 @@ fn start(app: &Arc<App>, kind: RequestKind, deadline: RequestedDeadline) -> bool
 	let tools = deadline_request_tools(&writing_actions(app, writes.clone(), Mark::Asked), kind != RequestKind::Coverage);
 	let request = DeadlineRequest { label, prompt: request_text(kind, std::slice::from_ref(&deadline)), tools: tools.into_iter().map(FnTool::into_arc).collect(), asked: true };
 	let end = RequestEnd { app: app.clone(), deadline };
-	tokio::spawn(async move {
+	detach("deadline-request", async move {
 		let outcome = run_deadline_request(&end.app.bridge, request).await;
 		ended(&end, kind, outcome, writes.wrote.load(Ordering::SeqCst));
 	});

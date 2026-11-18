@@ -15,6 +15,7 @@ use gs_agent::tools::fn_tool::FnTool;
 use gs_agent::tools::space_actions::{SpaceActions, space_check_tool_names, space_check_tools};
 use gs_core::spaces::space_tools::ToolOutcome;
 use gs_base::events::EventKind;
+use gs_base::tasks::detach;
 use gs_base::{clock, ids, time};
 use gs_core::spaces::check_lines::{DeadlineChange, FieldChange, change_lines};
 use gs_core::spaces::deadline_requests::{Reason, check_text, space_reasons};
@@ -206,7 +207,7 @@ fn start_check(app: &Arc<App>, space: &Json, reasons: Vec<Reason>) {
 	let agent = app.bridge.agent_name(clock::now_ms()).unwrap_or_else(|| "Your agent".to_owned());
 	let request = DeadlineRequest { label, prompt: check_text(space, &reasons), tools: tools.into_iter().map(FnTool::into_arc).collect(), asked: false };
 	let end = CheckEnd { app: app.clone(), space_id };
-	tokio::spawn(async move {
+	detach("space-check", async move {
 		let outcome = run_deadline_request(&end.app.bridge, request).await;
 		check_ended(&end, &reasons, outcome, &writes, &agent);
 	});

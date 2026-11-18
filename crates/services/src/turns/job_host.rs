@@ -8,6 +8,7 @@ use std::task::Context;
 
 use futures_util::future::BoxFuture;
 use futures_util::task::noop_waker_ref;
+use gs_base::tasks::detach;
 use gs_agent::subagents::aborts::JobAborts;
 use gs_agent::subagents::headless::{HeadlessApi, get_headless};
 use gs_agent::subagents::runner::{JobHost, KeptPages, create_job_runner};
@@ -86,7 +87,7 @@ pub fn run_job(app: &Arc<App>, job_id: &str, input: Option<Json>) {
 	let mut job = Box::pin(runner.run_job(job_id.to_owned(), input));
 	if job.as_mut().poll(&mut Context::from_waker(noop_waker_ref())).is_pending() {
 		let turn = app.stores.jobs.get_job(job_id).and_then(|j| live_agent(app, j["chatId"].as_str()?)).filter(|agent| agent.is_running()).map(|agent| agent.next_model_call());
-		tokio::spawn(async move {
+		detach("job", async move {
 			if let Some(turn) = turn {
 				turn.await;
 			}

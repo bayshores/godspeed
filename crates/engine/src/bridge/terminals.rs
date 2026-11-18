@@ -8,6 +8,7 @@ use std::collections::HashSet;
 
 use gs_base::clock;
 use gs_base::events::EventKind;
+use gs_base::tasks::detach;
 
 use super::checkin::recent;
 use super::{Bridge, State};
@@ -109,7 +110,7 @@ impl Bridge {
 			s.entered.insert(terminal.to_owned(), now);
 			drop(s);
 			let (bridge, id) = (self.clone(), terminal.to_owned());
-			tokio::spawn(async move {
+			detach("bridge", async move {
 				clock::sleep(LINE_WAIT_MS).await;
 				let mut s = bridge.0.state.lock();
 				if s.entered.get(&id) == Some(&now) {

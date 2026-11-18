@@ -23,6 +23,7 @@ use gs_core::session::jobs::set_steer_ui_inverted;
 use gs_core::session::prices::session_cost;
 use gs_core::session::session_markdown::session_markdown;
 use gs_core::study::kept::KeptPart;
+use gs_engine::bridge::agent_model;
 use gs_engine::turn::ui_stream::SSE_HEADERS;
 use gs_json::{Json, Obj, json};
 use gs_services::App;
@@ -30,6 +31,7 @@ use gs_services::spaces::{move_chat_to_space, start_space_scanner};
 use gs_services::jobs::steer_live_chat;
 use gs_services::turns::chat_handler::{ChatReply, REVIEW_NOT_OPEN, ReplyBody, handle_chat_input};
 use gs_services::turns::chats::{delete_chat_session, session_coverage};
+use gs_services::turns::compaction::summarize_at_tokens;
 use gs_services::turns::dismissal_park::park_dismissal;
 use gs_services::turns::homework::create_homework;
 use gs_services::turns::lesson_events::{KeepGoing, KeptDrop, drop_kept_part, keep_going};
@@ -144,7 +146,7 @@ fn picks_of(graph_context: &Json) -> Vec<Json> {
 	graph_context["propositions"].as_arr().map_or_else(Vec::new, |picks| picks.iter().filter(is_pick).cloned().collect())
 }
 
-/// GET /api/chats/{id}: the record verbatim, with pricing, liveness and coverage.
+/// GET /api/chats/{id}: the record verbatim, with pricing, liveness, coverage and `summarizeAt`, the token count at which the lesson is summarized.
 async fn read(State(app): State<Arc<App>>, Path(id): Path<String>) -> Result<Response, Unhandled> {
 	let Some(chat) = app.stores.chats.get_chat(&id) else { return Ok(error(404, "Not found")) };
 	let mut out: Obj = chat.as_obj().cloned().unwrap_or_default();
@@ -155,6 +157,7 @@ async fn read(State(app): State<Arc<App>>, Path(id): Path<String>) -> Result<Res
 		out.insert("turnError", error);
 	}
 	out.insert("coverage", session_coverage(&app, &chat)?);
+	out.insert("summarizeAt", summarize_at_tokens(&app.stores.settings.effective_settings()?, &agent_model()));
 	Ok(reply::json(200, &Json::Obj(out)))
 }
 

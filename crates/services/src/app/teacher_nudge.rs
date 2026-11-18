@@ -7,6 +7,7 @@
 use std::sync::Arc;
 
 use gs_base::clock;
+use gs_base::tasks::detach;
 
 use crate::App;
 use crate::turns::agent_catch_up::catch_up_for_agent;
@@ -23,7 +24,7 @@ pub const JOB_WAITS: &str = "Your job is waiting.";
 pub fn start_teacher_nudges(app: &Arc<App>) {
 	let Some(shell) = app.shell.clone() else { return };
 	let app = app.clone();
-	tokio::spawn(async move {
+	detach("teacher-nudge", async move {
 		let mut caught_up: Option<String> = None;
 		loop {
 			clock::sleep(LOOK_MS).await;

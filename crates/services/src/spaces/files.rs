@@ -7,6 +7,7 @@ use std::sync::Arc;
 use gs_base::config::is_absolute;
 use gs_base::hash::sha256_text;
 use gs_base::locks::LockKey;
+use gs_base::tasks::detach;
 use gs_base::{events::EventKind, fsx, ids, time};
 use gs_core::spaces::lecture_transcript::recordings_to_recheck;
 use gs_core::contracts::space::{safe_name, supported_space_file_extensions};
@@ -290,7 +291,7 @@ pub(super) fn drop_source_facts(app: &Arc<App>, space_id: &str, source_id: &str)
 /// Takes a file out of the space's search index in the background.
 pub(super) fn drop_from_search(app: &Arc<App>, space_id: &str, file_id: &str) {
 	let (app, space_id, file_id) = (app.clone(), space_id.to_owned(), file_id.to_owned());
-	tokio::spawn(async move {
+	detach("spaces", async move {
 		if let Err(err) = app.search.drop_space_file(&space_id, &file_id).await {
 			eprintln!("[spaces] could not drop {file_id} from search: {err}");
 		}

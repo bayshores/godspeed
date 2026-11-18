@@ -18,6 +18,7 @@ use gs_agent::subagents::aborts::{fire_job_abort, is_job_live};
 use gs_base::clock;
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
+use gs_base::tasks::detach;
 use gs_core::messages::native_messages::{dangling_question_of, open_question_held};
 use gs_core::session::jobs::{build_abort_steer, build_subagent_steer, is_subagent_failure, steer_delivered};
 use gs_engine::turn::agent::Agent;
@@ -346,7 +347,7 @@ fn pump(app: &Arc<App>, chat_id: String) {
 		return;
 	}
 	let app = app.clone();
-	tokio::spawn(async move {
+	detach("jobs", async move {
 		let parked = run_pump(&app, &chat_id).await;
 		let restart = {
 			let mut wake = app.jobs.wake.lock();

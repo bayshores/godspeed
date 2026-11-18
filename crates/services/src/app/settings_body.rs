@@ -13,6 +13,9 @@ use gs_json::{Json, Obj};
 /// PUT /api/settings/{section} takes these, in this order.
 pub const SETTINGS_SECTIONS: [&str; 4] = ["general", "agent", "appearance", "graph"];
 
+/// The 400's message for a body that is not an object.
+pub const NOT_A_RECORD: &str = "Invalid JSON body";
+
 /// The parsed section, or the 400's message.
 pub type Parsed = Result<Json, String>;
 
@@ -29,7 +32,7 @@ pub fn parse_section(section: &str, body: &Json) -> Option<Parsed> {
 
 /// The body as an object; null, arrays and scalars are not records.
 fn as_record(body: &Json) -> Result<&Obj, String> {
-	body.as_obj().ok_or_else(|| "Invalid JSON body".to_owned())
+	body.as_obj().ok_or_else(|| NOT_A_RECORD.to_owned())
 }
 
 fn type_error(field: &str, kind: &str) -> String {

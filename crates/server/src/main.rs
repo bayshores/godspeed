@@ -10,6 +10,7 @@ use axum::ServiceExt;
 use axum::extract::Request;
 use axum::serve::ListenerExt;
 use gs_base::config::Paths;
+use gs_base::tasks::detach;
 use gs_base::{clock, shutdown};
 use gs_server::{data_lock, http};
 use gs_services::App;
@@ -100,7 +101,7 @@ fn listen_for_terminals(app: &App, shell: &ShellLink) {
 /// OS), else stdin when it is a pipe. After the stop, open requests get FORCE_EXIT_MS, then the
 /// process exits with 143 like Node after SIGTERM.
 fn watch_for_stop(shell: Option<ShellLink>) {
-	tokio::spawn(stop_on_signal());
+	detach("shutdown", stop_on_signal());
 	if let Some(shell) = shell {
 		std::thread::spawn(move || {
 			shell.listen(std::io::stdin().lock());
@@ -112,7 +113,7 @@ fn watch_for_stop(shell: Option<ShellLink>) {
 			shutdown::trigger();
 		});
 	}
-	tokio::spawn(async {
+	detach("shutdown", async {
 		shutdown::wait().await;
 		std::thread::spawn(|| {
 			std::thread::sleep(std::time::Duration::from_millis(FORCE_EXIT_MS));
