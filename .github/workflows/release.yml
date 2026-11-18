@@ -276,7 +276,26 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: npx tauri build --config crates/shell/tauri.bundle.conf.json ${{ matrix.config }} --target ${{ matrix.triple }} --bundles ${{ matrix.bundles }}
+        # Apple's timestamp and notary services sometimes do not answer. Only those failures are
+        # tried again, up to three times in all; the compile is done, so a retry only bundles,
+        # signs and notarizes. Any other failure (a wrong identity, a rejected app) fails at once.
+        run: |
+          log="$RUNNER_TEMP/tauri-build.log"
+          for try in 1 2 3; do
+            if npx tauri build --config crates/shell/tauri.bundle.conf.json ${{ matrix.config }} --target ${{ matrix.triple }} --bundles ${{ matrix.bundles }} 2>&1 | tee "$log"; then
+              exit 0
+            fi
+            if ! grep -qE 'A timestamp was expected but was not found|The timestamp service is not available|NSURLErrorDomain|HTTP status code: 5[0-9][0-9]' "$log"; then
+              echo "::error::tauri build failed (see the log above); not an Apple network failure, so it is not tried again."
+              exit 1
+            fi
+            if [[ $try -lt 3 ]]; then
+              echo "::warning::Apple's timestamp or notary service did not answer (try $try of 3); trying again in 60 s."
+              sleep 60
+            fi
+          done
+          echo "::error::Apple's timestamp or notary service did not answer in 3 tries: $(grep -m1 -E 'A timestamp was expected|The timestamp service|NSURLErrorDomain|HTTP status code: 5' "$log")"
+          exit 1
       - name: Build (Windows and Linux release)
         if: github.event_name == 'push' && runner.os != 'macOS'
         env:
