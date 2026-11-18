@@ -3,8 +3,13 @@ name: Desktop release
 on:
   push:
     tags: ["v*"]
-  # Manual runs are rehearsals: no Apple signing, a throwaway updater key, artifacts only.
-  # They NEVER create, change or upload to a release.
+  # Manual and scheduled runs are rehearsals: no Apple signing, a throwaway updater key,
+  # artifacts only. They NEVER create, change or upload to a release.
+  # A rehearsal on main also saves the build caches that tag runs restore (docs/desktop-release.md).
+  # CI starts one on main when the Rust dependencies change; the weekly one keeps the caches
+  # from expiring after 7 unused days.
+  schedule:
+    - cron: "30 13 * * 1"
   workflow_dispatch:
     inputs:
       staging_percentage:
@@ -51,7 +56,10 @@ jobs:
           cache: npm
       - name: Rust toolchain (the version pinned in rust-toolchain.toml)
         run: rustup toolchain install
+      # A cache saved on a tag can never be restored by another run.
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref_type != 'tag' }}
       - run: cargo install cargo-machete --locked --version 0.9.2
       - run: npm ci
       # The search tests run the model, and on Linux load ONNX Runtime from .stage/.
@@ -215,9 +223,14 @@ jobs:
         run: |
           rustup toolchain install
           rustup target add ${{ matrix.triple }}
+      # Tag runs restore what a rehearsal on main saved: a tag's own cache can never be restored
+      # by another run. Linux, built from nothing, still finishes before the Macs and Windows, so
+      # it keeps no cache and leaves room in the repository's 10 GB.
       - uses: Swatinem/rust-cache@v2
+        if: matrix.platform != 'linux'
         with:
           key: release-${{ matrix.platform }}
+          save-if: ${{ github.ref_type != 'tag' }}
       - run: npm ci
       - run: node scripts/fetch-model.mjs
       - run: node scripts/fetch-pdfium.mjs
@@ -225,9 +238,6 @@ jobs:
         run: node scripts/fetch-onnxruntime.mjs
       - if: runner.os == 'macOS'
         run: node scripts/compile-icon.mjs
-      # No other job runs the search model on the ONNX Runtime that Intel Macs load.
-      - if: matrix.platform == 'mac-intel'
-        run: cargo test -p gs-search
       # Stage once here so the smoke runs before the slow bundler (tauri build stages again, cached).
       - run: node scripts/stage-app.mjs
       - run: node scripts/smoke-server.mjs
@@ -273,7 +283,7 @@ jobs:
       # A throwaway key still writes the .sig files, so the feeds job rehearses too. Without an
       # Apple identity the bundler signs nothing on the Mac.
       - name: Build (rehearsal, no Apple signing, throwaway updater key)
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name != 'push'
         run: |
           npx tauri signer generate --ci -p "" -w "$RUNNER_TEMP/rehearsal.key"
           TAURI_SIGNING_PRIVATE_KEY="$RUNNER_TEMP/rehearsal.key" TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" \
@@ -336,15 +346,6 @@ jobs:
             done
           done
 
-      - name: Demo runner self-test in the real app
-        run: |
-          cargo build -p gs-shell --features self-test
-          case "$RUNNER_OS" in
-            Windows) target/debug/godspeed.exe --self-test ;;
-            Linux) xvfb-run -a target/debug/godspeed --self-test ;;
-            *) target/debug/godspeed --self-test ;;
-          esac
-
       - name: Save the downloads and signatures
         uses: actions/upload-artifact@v7
         with:
@@ -373,6 +374,60 @@ jobs:
         run: |
           shopt -s extglob
           gh release upload "$GITHUB_REF_NAME" dist/!(*.sig) --clobber -R "$GITHUB_REPOSITORY"
+
+  # Debug builds, so they run on their own runners beside the release builds instead of after them.
+  # A failure still blocks the release: verify needs this job.
+  checks:
+    name: Release checks (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-26
+            platform: mac
+          - os: macos-26-intel
+            platform: mac-intel
+          - os: windows-2025
+            platform: windows
+          - os: ubuntu-24.04
+            platform: linux
+            container: ubuntu:22.04
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Linux packages (Ubuntu 22.04 container)
+        if: runner.os == 'Linux'
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates git python3 unzip xvfb xauth \
+            libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+      - name: Rust toolchain (the version pinned in rust-toolchain.toml)
+        run: rustup toolchain install
+      # No other job runs the search model on the ONNX Runtime that Intel Macs load.
+      - name: Search tests on the Intel Mac's ONNX Runtime
+        if: matrix.platform == 'mac-intel'
+        run: |
+          node scripts/fetch-model.mjs
+          node scripts/fetch-onnxruntime.mjs
+          cargo test -p gs-search
+      - name: Demo runner self-test in the real app
+        run: |
+          cargo build -p gs-shell --features self-test
+          case "$RUNNER_OS" in
+            Windows) target/debug/godspeed.exe --self-test ;;
+            Linux) xvfb-run -a target/debug/godspeed --self-test ;;
+            *) target/debug/godspeed --self-test ;;
+          esac
 
   feeds:
     name: Write the update feeds
@@ -416,7 +471,7 @@ jobs:
   # so there is no draft to verify and the job stays skipped.
   verify:
     name: Verify draft release
-    needs: [quality, feeds]
+    needs: [quality, checks, feeds]
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 10

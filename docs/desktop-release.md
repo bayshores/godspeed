@@ -33,22 +33,25 @@ CI builds and self-tests both systems. Nobody has tried these by hand:
 
 ## Build pipeline
 
-The release workflow runs these steps on each OS.
+The release workflow's package job runs these steps on each OS.
 
 1. `npm ci`.
 2. `node scripts/fetch-model.mjs` downloads the space-search model into `models/`.
 3. `node scripts/fetch-pdfium.mjs` downloads pdfium's library into `.stage/` and checks its sha256.
 4. Linux and Intel Macs: `node scripts/fetch-onnxruntime.mjs` downloads Microsoft's ONNX Runtime library (from its NuGet package) into `.stage/` the same way.
 5. Mac: `node scripts/compile-icon.mjs` compiles the icon into `.stage/Assets.car`.
-6. Intel Macs: `cargo test -p gs-search`. No other job runs the search model on the ONNX Runtime Intel Macs load.
-7. `node scripts/stage-app.mjs` builds the UI (`dist-ui/`), builds the release server for this OS's target triple into `crates/shell/binaries/`, and copies the pdf.js files to `.stage/pdfjs-dist/`. It refuses a UI folder holding `data/` or a secrets file.
-8. `node scripts/smoke-server.mjs` starts that server from a folder of the staged files, with a throwaway home and data folder, and checks `/`, `/api/boot`, `/api/graph`, `/api/settings` and a pdf.js file.
-9. `TAURI_APP_PATH=crates/shell npx tauri build --config crates/shell/tauri.bundle.conf.json --config crates/shell/tauri.bundle.<macos|windows|linux>.conf.json --target <triple> --bundles <app,dmg | nsis | appimage,deb>`. The Intel Mac build adds `--config crates/shell/tauri.bundle.macos-intel.conf.json`.
-10. `node scripts/release-assets.mjs <mac|mac-intel|windows|linux>` copies the bundler's files into `dist/` under the download names, with their `.sig` files. For `mac` it also zips the app for Electron installs.
-11. `node scripts/smoke-app.mjs <the app's binary>` starts the packaged app once and waits for its "window open" log line.
-12. Mac, tag push only: the signature checks (below). Linux: the glibc check.
-13. `cargo build -p gs-shell --features self-test`, then `godspeed --self-test` (`xvfb-run -a` on Linux).
-14. `node scripts/release-feeds.mjs dist --mac-staging <share>` runs once, on every package job's `dist/` together, and writes the four feeds.
+6. `node scripts/stage-app.mjs` builds the UI (`dist-ui/`), builds the release server for this OS's target triple into `crates/shell/binaries/`, and copies the pdf.js files to `.stage/pdfjs-dist/`. It refuses a UI folder holding `data/` or a secrets file.
+7. `node scripts/smoke-server.mjs` starts that server from a folder of the staged files, with a throwaway home and data folder, and checks `/`, `/api/boot`, `/api/graph`, `/api/settings` and a pdf.js file.
+8. `TAURI_APP_PATH=crates/shell npx tauri build --config crates/shell/tauri.bundle.conf.json --config crates/shell/tauri.bundle.<macos|windows|linux>.conf.json --target <triple> --bundles <app,dmg | nsis | appimage,deb>`. The Intel Mac build adds `--config crates/shell/tauri.bundle.macos-intel.conf.json`.
+9. `node scripts/release-assets.mjs <mac|mac-intel|windows|linux>` copies the bundler's files into `dist/` under the download names, with their `.sig` files. For `mac` it also zips the app for Electron installs.
+10. `node scripts/smoke-app.mjs <the app's binary>` starts the packaged app once and waits for its "window open" log line.
+11. Mac, tag push only: the signature checks (below). Linux: the glibc check.
+12. `node scripts/release-feeds.mjs dist --mac-staging <share>` runs once, on every package job's `dist/` together, and writes the four feeds.
+
+The checks job runs beside it on each OS, on its own runner, because its builds are debug builds:
+
+1. Intel Macs: `cargo test -p gs-search`. No other job runs the search model on the ONNX Runtime Intel Macs load.
+2. `cargo build -p gs-shell --features self-test`, then `godspeed --self-test` (`xvfb-run -a` on Linux).
 
 Notes:
 
@@ -79,7 +82,7 @@ The zip keeps symlinks, signatures and the notarization ticket.
 
 - `npm run desktop:local`: unsigned Apple Silicon Mac app for trying out.
 - `npm run desktop:dist`: runs `scripts/mac-dist.sh`, which makes the signed and notarized Mac app and DMG.
-- Windows or Linux: steps 1 to 4, then step 9 with `--no-sign` added.
+- Windows or Linux: steps 1 to 4, then step 8 with `--no-sign` added.
 
 `scripts/mac-dist.sh` needs:
 
@@ -98,7 +101,11 @@ It then fetches the model and pdfium, compiles the icon, runs `tauri build` with
 `.github/workflows/ci.yml` runs on pushes to main and on pull requests. Changes to only `docs/**` and `README.md` skip it.
 
 - `quality` (Ubuntu 24.04): fetches the model and ONNX Runtime, runs `npm run check` (typecheck, tests, lint, knip, then cargo test, clippy and cargo machete) and the skill's Python tests.
-- `desktop` (macOS 15, Windows, Ubuntu 22.04 container): build pipeline steps 1 to 4, then `stage-app.mjs` and `smoke-server.mjs`, `cargo test -p gs-shell` and the self-test, and on the Mac `npm run layout` (the screens in the real app window, see [development.md](development.md)). It does not compile the Mac icon.
+- `desktop` (macOS 15, Windows, Ubuntu 22.04 container): build pipeline steps 1 to 4, then `stage-app.mjs` and `smoke-server.mjs`, and on Windows and Linux `cargo test -p gs-shell` and the self-test. It does not compile the Mac icon.
+- `window` (macOS 15): `cargo test -p gs-shell`, the self-test and `npm run layout` (the screens in the real app window, see [development.md](development.md)), beside the Mac desktop job.
+- `release-cache`: on a push to main that changes `Cargo.lock`, a `Cargo.toml`, `rust-toolchain.toml` or `release.yml`, starts a release rehearsal on main (see [Build caches](#build-caches)).
+
+The Ubuntu job keeps the downloaded Linux packages in the cache, because the runner's package mirror is sometimes very slow. Pull requests restore caches but save none.
 
 ## Release workflow
 
@@ -106,7 +113,7 @@ It then fetches the model and pdfium, compiles the icon, runs `tauri build` with
 
 ### Manual run (rehearsal)
 
-Start it from **Run workflow**. It builds all four apps without Apple signing, signs the updater files with a throwaway key made in the run, and saves `dist/` and the four feeds as workflow artifacts for 7 days. It never creates or uploads to a release, and the verify job is skipped. Input `staging_percentage` (default `10`) sets the share written into the rehearsal's `latest-mac.yml`.
+Start it from **Run workflow**. A weekly scheduled run and the CI `release-cache` job start one on main too. It builds all four apps without Apple signing, signs the updater files with a throwaway key made in the run, and saves `dist/` and the four feeds as workflow artifacts for 7 days. It never creates or uploads to a release, and the verify job is skipped. Input `staging_percentage` (default `10`) sets the share written into the rehearsal's `latest-mac.yml`.
 
 ### Tag push
 
@@ -115,10 +122,25 @@ Push tag `v<package.json version>`.
 1. `quality` checks the tag matches `package.json`, then runs `npm run check`.
 2. `draft` makes or reuses a **single draft release** with the alpha line, the download table and the notes from `src/shared/changelog.json`. A version with no notes, a published release or two matching releases fail it.
 3. The four `package` jobs check every secret is set, then build, sign, check and upload their downloads to the draft.
-4. `feeds` writes the four feeds from all downloads and uploads them.
-5. `verify` checks the draft, read-only.
+4. The four `checks` jobs run the debug checks beside them.
+5. `feeds` writes the four feeds from all downloads and uploads them.
+6. `verify` checks the draft, read-only, after `quality`, `checks` and `feeds`.
 
 The workflow never publishes. Uploads use `--clobber`, so a rerun replaces same-named assets.
+
+### Build caches
+
+A run can restore a cache saved on its own branch or tag, or on main. A cache saved on a tag can never be restored by another run, so tag runs save none. The Mac and Windows `package` jobs restore the Rust cache a rehearsal on main saved, so a release compiles only the workspace crates instead of every dependency. Linux keeps no cache: built from nothing it still finishes first.
+
+| When the rehearsal on main runs | Why |
+|---|---|
+| A push to main changes the Rust dependencies, the toolchain or `release.yml` | The cache key changes; CI's `release-cache` job starts it. |
+| Every Monday at 13:30 UTC | GitHub deletes caches unused for 7 days. |
+| By hand, **Run workflow** on main | Whenever the cache is cold. |
+
+The cache is cold when a release's `Swatinem/rust-cache` step says "No cache found", or when it restores an older key (the dependencies changed since the last rehearsal). The release still works; it is just slower (about 50 minutes on the Intel Mac instead of about 20). To warm it, run the rehearsal on main and wait for it to finish before pushing the tag.
+
+The repository has 10 GB of cache space. When it is full GitHub deletes the caches used longest ago, so the release caches can be pushed out by CI's.
 
 ### Mac checks
 

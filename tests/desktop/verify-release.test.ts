@@ -333,7 +333,7 @@ describe("release gate: workflow wiring", () => {
 
 	it("can see drafts after the feeds are up, only on real tag pushes", () => {
 		assert.ok(verify);
-		assert.deepEqual(verify.needs, ["quality", "feeds"]);
+		assert.deepEqual(verify.needs, ["quality", "checks", "feeds"]);
 		assert.equal(workflow.jobs.feeds.needs, "package");
 		assert.equal(verify.if, "github.event_name == 'push'");
 		// GitHub's release-list API hides drafts from read-only tokens.
@@ -371,6 +371,12 @@ describe("release gate: workflow wiring", () => {
 		const download = verify.steps.find((step: any) => step.name === "Download the four update feeds");
 		for (const feed of ["latest.json", "latest-mac.yml", "latest.yml", "latest-linux.yml"]) assert.ok(download.run.includes(feed));
 		assert.match(download.run, /releases\/assets\/\$id/);
+	});
+
+	it("saves no build cache on a tag, where no other run could restore it", () => {
+		const caches = Object.values<any>(workflow.jobs).flatMap((job) => (job.steps ?? []).filter((step: any) => step.uses?.startsWith("Swatinem/rust-cache")));
+		assert.ok(caches.length > 0);
+		for (const step of caches) assert.equal(step.with?.["save-if"], "${{ github.ref_type != 'tag' }}");
 	});
 
 	it("never publishes, and uploads only on tag pushes", () => {

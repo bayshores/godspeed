@@ -26,18 +26,43 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
+      # The runner's Ubuntu mirror sometimes takes over 10 minutes to send these packages, so the
+      # downloaded files are kept in the cache, one copy per runner image.
+      - name: Runner image
+        id: image
+        run: echo "key=apt-$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+      - name: Restore the downloaded Linux packages
+        id: apt
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/apt
+          key: ${{ steps.image.outputs.key }}
+          restore-keys: apt-
       # cargo builds the Tauri shell too, which links against WebKitGTK.
       - name: Linux packages for the shell
         run: |
+          mkdir -p ~/apt/partial
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y -o Dir::Cache::Archives="$HOME/apt" -o APT::Sandbox::User=root \
+            libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          sudo chown -R "$USER" ~/apt
+      - name: Save the downloaded Linux packages
+        if: steps.apt.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/apt
+          key: ${{ steps.image.outputs.key }}
       - uses: actions/setup-node@v7
         with:
           node-version: "26"
           cache: npm
       - name: Rust toolchain (the version pinned in rust-toolchain.toml)
         run: rustup toolchain install
+      # Pull requests restore main's caches but save none, so they never push main's out of the
+      # repository's 10 GB.
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.event_name != 'pull_request' }}
       - run: cargo install cargo-machete --locked --version 0.9.2
       - run: npm ci
       # The search tests run the model, and on Linux load ONNX Runtime from .stage/.
@@ -88,6 +113,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.platform }}
+          save-if: ${{ github.event_name != 'pull_request' }}
       - run: npm ci
       - run: node scripts/fetch-model.mjs
       - run: node scripts/fetch-pdfium.mjs
@@ -96,10 +122,13 @@ jobs:
       # The UI, the release server and the pdf.js files, as `tauri build` stages them.
       - run: node scripts/stage-app.mjs
       - run: node scripts/smoke-server.mjs
+      # On the Mac the window job runs these, beside this one.
       - name: Shell tests
+        if: runner.os != 'macOS'
         run: |
           if [[ "$RUNNER_OS" == Linux ]]; then xvfb-run -a cargo test -p gs-shell; else cargo test -p gs-shell; fi
       - name: Demo runner self-test in the real app
+        if: runner.os != 'macOS'
         run: |
           cargo build -p gs-shell --features self-test
           case "$RUNNER_OS" in
@@ -107,13 +136,61 @@ jobs:
             Linux) xvfb-run -a target/debug/godspeed --self-test ;;
             *) target/debug/godspeed --self-test ;;
           esac
+
+  # The Mac's debug builds in the real app window, on their own runner so the layout walk (about
+  # 8 minutes) runs beside the release server build in the desktop job instead of after it.
+  window:
+    name: App window (mac)
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+          cache: npm
+      - name: Rust toolchain (the version pinned in rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.event_name != 'pull_request' }}
+      - run: npm ci
+      - run: node scripts/fetch-model.mjs
+      - run: node scripts/fetch-pdfium.mjs
+      - name: Shell tests
+        run: cargo test -p gs-shell
+      - name: Demo runner self-test in the real app
+        run: |
+          cargo build -p gs-shell --features self-test
+          target/debug/godspeed --self-test
       # The screens in the real WebKit window on made-up data, checked for broken layout.
       - name: Layout check in the real app window
-        if: runner.os == 'macOS'
         run: npm run layout
       - name: Keep the layout report and pictures
-        if: failure() && runner.os == 'macOS'
+        if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: layout
           path: target/layout
+
+  # Tag runs restore the release build caches that a rehearsal on main saved
+  # (docs/desktop-release.md). When the Rust dependencies change, this starts one.
+  release-cache:
+    name: Warm the release caches
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Start a release rehearsal on main when the Rust dependencies change
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BEFORE: ${{ github.event.before }}
+        # A failed compare (a force push) starts one too.
+        run: |
+          files=$(gh api "repos/$GITHUB_REPOSITORY/compare/$BEFORE...$GITHUB_SHA" --jq '.files[].filename') || files=Cargo.lock
+          if grep -qxE 'Cargo\.(lock|toml)|rust-toolchain\.toml|crates/[^/]+/Cargo\.toml|\.github/workflows/release\.yml' <<<"$files"; then
+            gh workflow run release.yml --ref main -R "$GITHUB_REPOSITORY"
+          fi
