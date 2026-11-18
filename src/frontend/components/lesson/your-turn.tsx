@@ -49,7 +49,7 @@ export interface YourTurnProps {
 	error: { text: string; detail: string; onRetry: () => void } | null;
 }
 
-const HELP_KEY = "lh-btn h-[30px] px-2.5 text-[15px]";
+const HELP_KEY = "lh-btn lh-btn-small";
 
 const EXIT: Record<BoxView["exit"], { label: string; testId: string }> = {
 	skip: { label: "Skip question", testId: "skip-question" },

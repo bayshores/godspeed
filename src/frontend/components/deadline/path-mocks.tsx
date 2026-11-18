@@ -7,7 +7,7 @@ import { cn } from "@/frontend/lib/utils";
 import { MockBox } from "./mock-box";
 
 const WIDE = "lh-btn h-11 w-full justify-center text-[15px]";
-const SMALL = "lh-btn h-[29px] px-2.5 text-[15px]";
+const SMALL = "lh-btn lh-btn-small";
 
 /**
  * A DEADLINE'S MOCKS, under Study in its Path sheet: "Take a mock" (left

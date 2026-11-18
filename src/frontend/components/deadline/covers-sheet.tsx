@@ -8,7 +8,7 @@ import { cn } from "@/frontend/lib/utils";
 import { materialSummary, type Day, type DayState, type Material } from "./deadline-model";
 import { SHEET, SHEET_TITLE } from "./styles";
 
-const SMALL = "lh-btn h-[29px] px-2.5 text-[15px]";
+const SMALL = "lh-btn lh-btn-small";
 
 /**
  * WHAT'S ON IT: the deadline's days by week, the days before it

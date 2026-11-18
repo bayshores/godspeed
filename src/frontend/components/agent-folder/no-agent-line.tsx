@@ -24,7 +24,7 @@ function Line({ className }: { className?: string }) {
 			<p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-ink">
 				<span aria-hidden className="size-2.5 shrink-0 bg-ink-3" />
 				{name} is off
-				<button type="button" data-testid="no-agent-open" disabled={agent.busy} onClick={agent.start} className="lh-btn h-[30px] px-2.5 text-[15px]">
+				<button type="button" data-testid="no-agent-open" disabled={agent.busy} onClick={agent.start} className="lh-btn lh-btn-small">
 					{agent.label}
 				</button>
 			</p>

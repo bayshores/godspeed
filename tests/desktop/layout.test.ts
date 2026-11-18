@@ -81,7 +81,7 @@ describe("hidden", () => {
 });
 
 describe("cut-off letters", () => {
-	// The space title as measured in the real window: 38 px Zen Kaku Gothic New in a 46 px box.
+	// A 38 px space title in a 46 px box, with the metrics a real window gives such a title.
 	const metrics = { fontBoundingBoxAscent: 44, actualBoundingBoxAscent: 27.4, actualBoundingBoxDescent: 8.2 };
 	const text = box(0, 92.5, 200, 147.5);
 

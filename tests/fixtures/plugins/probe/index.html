@@ -85,7 +85,7 @@
 				const asFont = (url) => new FontFace("probe", `url("${url}")`).load().then(() => "loaded", (err) => `blocked: ${err?.name ?? err}`);
 				const fonts = {
 					rules: (styles.css?.fonts ?? "").split("@font-face").length - 1,
-					appFont: await document.fonts.load('16px "Zen Kaku Gothic New"').then((faces) => `${faces.length} faces, check ${document.fonts.check('16px "Zen Kaku Gothic New"')}`),
+					appFont: await document.fonts.load('16px "Literata"').then((faces) => `${faces.length} faces, check ${document.fonts.check('16px "Literata"')}`),
 					fontReadAsData: await fetch(fontUrl).then((r) => `status ${r.status}`, (err) => `threw ${err?.name ?? err}`),
 					apiAsFont: await asFont(`http://localhost:${location.port}/api/settings`),
 					pageAsFont: await asFont(`http://localhost:${location.port}/plugin-fonts/index.html`),

@@ -40,8 +40,8 @@
    src/frontend/components/settings/appearance-model.ts (a test holds them
    equal). A background picked in Settings, Appearance is dark and moves
    every surface, text level and status color with it. Every text level is
-   at least 4.5:1. The interface is Zen Kaku Gothic New, reading text
-   Literata, dates and counts DotGothic16. */
+   at least 4.5:1. Interface and reading text are Literata, dates and
+   counts DotGothic16. */
 :root {
 	/* The widest a page's column gets, on Today and on a space's pages. */
 	--lh-page-w: 1160px;
@@ -206,15 +206,17 @@
 }
 
 @theme inline {
-	/* Fonts: the interface is Zen Kaku Gothic New, reading text Literata
-	   (the Appearance reading font overrides --font-prose at runtime),
-	   dates and counts DotGothic16 (font-count). All come from
-	   fonts/fonts.css. Code stays in the system's monospace. */
-	--font-ui: var(--font-zen), system-ui, sans-serif;
+	/* Fonts: interface and reading text are Literata, set apart by size,
+	   weight and color; the Appearance reading font overrides only
+	   --font-prose at runtime, so the interface stays Literata. Dates and
+	   counts are DotGothic16 (font-count). All come from fonts/fonts.css.
+	   Code stays in the system's monospace. --font-sans is the name
+	   plugins are given. */
+	--font-ui: var(--font-literata), Georgia, serif;
 	--font-prose: var(--font-literata), Georgia, serif;
 	--font-count: var(--font-dot), ui-monospace, monospace;
 	--font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-	--font-sans: var(--font-zen), system-ui, sans-serif;
+	--font-sans: var(--font-literata), Georgia, serif;
 	--text-xs: 12px;
 	--text-xs--line-height: 1.5;
 	--text-sm: 13px;
@@ -229,8 +231,7 @@
 	--text-2xl--line-height: 1.3;
 	--text-3xl: 34px;
 	--text-3xl--line-height: 1.2;
-	/* No heavy interface text: the interface font is loaded at regular and
-	   medium only, so every heavier rung draws as medium. */
+	/* No heavy interface text: every rung above medium draws as medium. */
 	--font-weight-semibold: 500;
 	--font-weight-bold: 500;
 	--font-weight-extrabold: 500;
@@ -446,8 +447,8 @@ body {
 		background: var(--lh-key) padding-box;
 		font-family: var(--font-ui);
 		font-size: 15px;
-		font-weight: 400;
-		letter-spacing: 0.01em;
+		/* A touch above regular, so a legend holds its own on the key's grey face. */
+		font-weight: 450;
 		line-height: 1.4;
 		white-space: nowrap;
 		color: var(--foreground);
@@ -468,13 +469,14 @@ body {
 	.lh-btn-danger {
 		--lh-key: var(--color-ans-wrong);
 		--lh-key-hover: var(--color-ans-wrong-hover);
-		font-weight: 500;
+		font-weight: 560;
 		color: var(--background);
 	}
 	.lh-btn-main {
 		--lh-key: var(--lh-tint);
 		--lh-key-hover: color-mix(in srgb, var(--lh-tint) 88%, #fff);
-		font-weight: 500;
+		/* Light letters on a dark key read thinner than dark on light. */
+		font-weight: 560;
 		color: var(--background);
 	}
 	.lh-btn-quiet {
@@ -492,6 +494,13 @@ body {
 	.lh-btn-quiet:has(~ .lh-btn:not(.lh-btn-quiet)) {
 		--lh-lip: 4px;
 		border-bottom-color: transparent;
+	}
+	/* A small key: one that sits in a line of text or a card's corner. */
+	.lh-btn-small {
+		gap: 6px;
+		height: 30px;
+		padding: 0 10px;
+		font-size: 14px;
 	}
 	/* A button on the dark bar of a lesson or a cheat sheet. */
 	.lh-btn-bar {

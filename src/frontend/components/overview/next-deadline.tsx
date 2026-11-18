@@ -64,7 +64,7 @@ export const NextDeadline = memo(function NextDeadline({
 				<div className={`flex min-w-0 flex-1 flex-col gap-4 @[480px]:flex-row @[480px]:items-end @[480px]:gap-6 ${SHEET}`}>
 					<div className="flex min-w-0 flex-1 flex-col gap-4">
 						<div className="flex flex-col gap-1">
-							<Link to={deadlineHref(d.id)} data-testid="next-deadline-open" title={d.name} className="line-clamp-2 text-[28px] leading-tight text-ink hover:underline">
+							<Link to={deadlineHref(d.id)} data-testid="next-deadline-open" title={d.name} className="line-clamp-2 text-[28px] leading-[1.3] text-ink hover:underline">
 								{d.name}
 							</Link>
 							<p className="font-count text-lg text-ink-2">{longDay(d.date)}</p>

@@ -2,7 +2,7 @@
 export const CARD = "lh-well rounded p-4";
 
 /** A small key on such a card. */
-export const SMALL_BTN = "lh-btn h-7 shrink-0 px-2.5 text-[15px]";
+export const SMALL_BTN = "lh-btn lh-btn-small shrink-0";
 
 /** Key colors for a button on a dark bar: paper mixed into ink. */
 export const KEY_ON_INK =

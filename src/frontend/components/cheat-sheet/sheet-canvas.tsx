@@ -286,7 +286,7 @@ export function SheetCanvas({
 					onPointerDown={(e) => e.stopPropagation()}
 				>
 					<span className="min-w-0 truncate">{pointError ?? "Drag a box around the part you mean"}</span>
-					<button type="button" onClick={() => setPointing(false)} className={cn("lh-btn h-7 shrink-0 px-3 font-medium text-background", KEY_ON_INK)}>
+					<button type="button" onClick={() => setPointing(false)} className={cn("lh-btn lh-btn-small shrink-0 font-medium text-background", KEY_ON_INK)}>
 						Cancel
 					</button>
 				</div>

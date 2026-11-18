@@ -7,7 +7,7 @@ export function StartAgentAction() {
 	if (agent.starting) return null;
 	return (
 		<>
-			<button type="button" data-testid="work-frame-open" disabled={agent.busy} onClick={agent.start} className="lh-btn lh-btn-main h-7 shrink-0 px-2.5">
+			<button type="button" data-testid="work-frame-open" disabled={agent.busy} onClick={agent.start} className="lh-btn lh-btn-main lh-btn-small shrink-0">
 				{agent.label}
 			</button>
 			{agent.error && (

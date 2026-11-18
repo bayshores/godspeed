@@ -159,7 +159,7 @@ function JobRow({
 						disabled={abortState === "pending"}
 						title={abortState === "failed" ? "Abort failed. Try again." : undefined}
 						aria-label={`Stop ${label} in ${blob.title}`}
-						className="lh-btn h-auto shrink-0 px-2.5 py-1 text-[15px]"
+						className="lh-btn lh-btn-small shrink-0"
 					>
 						Stop
 					</button>

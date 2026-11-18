@@ -52,3 +52,14 @@ The Mac app draws with WebKit, not Chrome; a page right in a browser can overlap
 - Check each state the change touches, scrolled a little and at the scroll end too, for text on text, text under another box, content spilling out of its box and sideways scrolling.
 - Anything that sticks out of its own box (a tag, a badge, a pop-up) sits on a layer above what can move under it, or does not stick out at all. Pop-ups go through `MenuShell` or a dialog, which no box can clip.
 - `npm run layout` checks the screens in `scripts/layout-screens.mjs` in the real window at all three widths, each as it opens, scrolled 80 px and scrolled to the end, for overlapping text, text or a control another box is drawn over, spills, sideways scrolling, hidden text and cut-off letters. CI runs it on the Mac; `npm run check` does not. Run it yourself before calling a UI change finished. A new screen or state gets an entry there.
+
+## Type
+
+Interface and lesson text are one face, Literata, so they stay apart by size, weight and color, as a book sets its running text apart from its headings and notes.
+
+- Lesson text is the reading size (17 px at 100%) in the body ink. Interface text is 15 px or smaller, titles 22 px and up at regular weight, labels medium. Nothing in the interface is heavier than medium, except the legend of a main or danger key.
+- Settings, Appearance, Reading font changes lesson text only; the interface stays Literata.
+- Dates and counts are DotGothic16 (`font-count`). Code and the agent's screen are the system monospace.
+- Italic only where a book would set it (a work's title, a term as it is defined), never for decoration.
+- A key takes its size from `lh-btn`, or `lh-btn-small` for a key in a line of text or a card's corner. A new key never gets a height or font size of its own.
+- Before calling a UI change finished, check that a new key uses one of those two sizes and that no interface text is set at lesson text's size and weight.
