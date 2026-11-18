@@ -15,7 +15,7 @@ use super::native_messages::{
 };
 use super::app_notes::opener_answer_text;
 use super::lesson_markers::new_opener_answer_marker;
-use super::pending::{answer_takes_files, tool_question_kind};
+use super::pending::answer_takes_files;
 use crate::study::topic_end::shown_openers;
 
 /// A malformed input event: the honest 400.
@@ -71,14 +71,11 @@ pub enum TurnInput {
 	Steers(Vec<Json>),
 }
 
-/// The dismissal event. It never composes a turn: the silent route appends and persists and
-/// wakes nothing.
-#[derive(Clone, Debug, PartialEq)]
-pub enum DismissInput {
-	/// A question's dismissal; the answer must be one.
-	Dismiss { tool_call_id: String, answer: Json },
-	/// The problem discard; the conclude pair rides the learner's next input.
-	DismissProblem { problem_call_id: String },
+/// The problem discard. It never composes a turn: the silent route appends and persists and
+/// wakes nothing; the conclude pair rides the learner's next input.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DismissInput {
+	pub problem_call_id: String,
 }
 
 /// A mid-turn steer from the composer, with the client-minted id.
@@ -105,25 +102,14 @@ fn unknown_type<T>(input: &Json) -> Result<T, ChatInputError> {
 	refuse(format!("unknown input type: {}", js_string(input.get("type"))))
 }
 
-/// Parse and validate a dismissal event off a request body.
+/// Parse and validate a problem discard off a request body.
 pub fn parse_dismiss_input(input: &Json) -> Result<DismissInput, ChatInputError> {
 	let i = object_input(input)?;
-	if i["type"].as_str() == Some("dismiss-problem") {
-		let Some(problem_call_id) = non_empty_str(&i["problemCallId"]) else { return refuse("dismiss-problem input requires problemCallId") };
-		return Ok(DismissInput::DismissProblem { problem_call_id: problem_call_id.to_owned() });
-	}
-	if i["type"].as_str() != Some("dismiss") {
+	if i["type"].as_str() != Some("dismiss-problem") {
 		return unknown_type(i);
 	}
-	let Some(tool_call_id) = non_empty_str(&i["toolCallId"]) else { return refuse("dismiss input requires toolCallId") };
-	let answer = &i["answer"];
-	if !is_object(answer) {
-		return refuse("dismiss input requires the dismissal answer object");
-	}
-	if answer["dismissed"] != Json::Bool(true) {
-		return refuse("dismiss input's answer must be a dismissal (dismissed: true)");
-	}
-	Ok(DismissInput::Dismiss { tool_call_id: tool_call_id.to_owned(), answer: answer.clone() })
+	let Some(problem_call_id) = non_empty_str(&i["problemCallId"]) else { return refuse("dismiss-problem input requires problemCallId") };
+	Ok(DismissInput { problem_call_id: problem_call_id.to_owned() })
 }
 
 /// Parse and validate a steer event off a request body.
@@ -137,22 +123,11 @@ pub fn parse_user_steer_input(input: &Json) -> Result<UserSteerInput, ChatInputE
 	Ok(UserSteerInput { id: id.to_owned(), text: steer_text.to_owned() })
 }
 
-/// The native appends a dismissal makes: the call must be a waiting question call, or (for a
-/// problem) the active problem.
+/// The native append a problem discard makes: the problem must be the active one.
 pub fn dismiss_appends(record: &Json, input: &DismissInput) -> Result<Vec<Json>, ChatInputError> {
-	let messages = record["messages"].items();
-	match input {
-		DismissInput::DismissProblem { problem_call_id } => match active_problem_of(messages) {
-			Some(active) if active.tool_call_id == *problem_call_id => Ok(vec![new_problem_dismissed_marker(problem_call_id)]),
-			_ => refuse("dismiss-problem input targets no active problem"),
-		},
-		DismissInput::Dismiss { tool_call_id, answer } => {
-			let Some(pending) = dangling_question_of(messages).filter(|p| p.tool_call_id == *tool_call_id) else { return refuse("dismiss input targets no pending question call") };
-			if answer["kind"].as_str() != Some(tool_question_kind(&pending.tool)) {
-				return refuse("dismiss input's answer kind does not match the question");
-			}
-			Ok(vec![new_answer_result(tool_call_id, &pending.tool, answer, &[])])
-		}
+	match active_problem_of(record["messages"].items()) {
+		Some(active) if active.tool_call_id == input.problem_call_id => Ok(vec![new_problem_dismissed_marker(&input.problem_call_id)]),
+		_ => refuse("dismiss-problem input targets no active problem"),
 	}
 }
 
@@ -389,7 +364,8 @@ mod tests {
 		assert_eq!(error_of(parse_chat_input(&json!({}))), "unknown input type: undefined");
 		assert_eq!(error_of(parse_chat_input(&json!([]))), "unknown input type: undefined");
 		assert_eq!(error_of(parse_chat_input(&json!({ "type": "answer", "toolCallId": "q" }))), "answer input requires the graded answer object");
-		assert_eq!(error_of(parse_dismiss_input(&json!({ "type": "dismiss", "toolCallId": "q", "answer": { "kind": "quiz" } }))), "dismiss input's answer must be a dismissal (dismissed: true)");
+		assert_eq!(error_of(parse_dismiss_input(&json!({ "type": "dismiss", "toolCallId": "q" }))), "unknown input type: dismiss");
+		assert_eq!(error_of(parse_dismiss_input(&json!({ "type": "dismiss-problem" }))), "dismiss-problem input requires problemCallId");
 		assert_eq!(error_of(parse_user_steer_input(&json!({ "type": "steer", "id": "s", "text": " " }))), "steer input requires non-empty text");
 	}
 
@@ -423,10 +399,8 @@ mod tests {
 		assert_eq!(error_of(input_appends(&record, &wrong, &[])), "answer input targets no pending question call");
 		let files = [json!({ "type": "image" })];
 		assert_eq!(error_of(input_appends(&record, &answer, &files)), "a quiz answer takes no files");
-		let dismissal = parse_dismiss_input(&json!({ "type": "dismiss", "toolCallId": "q1", "answer": { "kind": "quiz", "dismissed": true } })).unwrap();
-		assert_eq!(dismiss_appends(&record, &dismissal).unwrap()[0]["details"]["dismissed"], json!(true));
-		let mismatched = parse_dismiss_input(&json!({ "type": "dismiss", "toolCallId": "q1", "answer": { "kind": "text", "dismissed": true } })).unwrap();
-		assert_eq!(error_of(dismiss_appends(&record, &mismatched)), "dismiss input's answer kind does not match the question");
+		let skipped = ChatInput::Answer { tool_call_id: "q1".into(), answer: json!({ "kind": "quiz", "dismissed": true }), attachments: None };
+		assert_eq!(input_appends(&record, &skipped, &[]).unwrap()[0]["details"]["dismissed"], json!(true), "a skip is an answer carrying dismissed");
 		assert_eq!(input_appends(&record, &ChatInput::Side { text: "q".into(), attachments: None }, &[]).unwrap()[0]["side"], json!(true));
 		let ask = ChatInput::Text { text: "Why?".into(), attachments: None, about: Some(About::Review { of: json!({ "chatId": "c", "toolCallId": "t" }), picked: vec![] }) };
 		assert_eq!(input_appends(&record, &ask, &[]).unwrap()[0]["side"], json!(true), "Ask Teacher on a question from earlier keeps the waiting one open");
@@ -446,7 +420,7 @@ mod tests {
 		let side = ChatInput::Side { text: "q".into(), attachments: None };
 		assert_eq!(error_of(input_appends(&record, &side, &[])), "side input requires a waiting question");
 		assert_eq!(error_of(input_appends(&record, &ChatInput::Next, &[])), "next input requires no active problem");
-		let dismiss = DismissInput::DismissProblem { problem_call_id: "p1".into() };
+		let dismiss = DismissInput { problem_call_id: "p1".into() };
 		let marker = dismiss_appends(&record, &dismiss).unwrap();
 		let mut dismissed = record.clone();
 		dismissed.get_mut("messages").and_then(Json::as_arr_mut).unwrap().extend(marker);

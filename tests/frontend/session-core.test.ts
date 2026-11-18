@@ -24,7 +24,7 @@ import { afterEach, describe, it } from "node:test";
 import { absorbed, errorBodyMessage, pendingCallTool, SessionModel } from "../../src/frontend/components/session-core.ts";
 import type { ChatInput } from "../../src/shared/core/input-events.ts";
 import type { LhMessage } from "../../src/shared/core/native-messages.ts";
-import { newUserMessage, newAnswerResult, newSideQuestion, newNextMessage, newProblemDismissedMarker, needsContinuation, endsInDismissal } from "../../src/shared/core/native-messages.ts";
+import { newUserMessage, newAnswerResult, newSideQuestion, newNextMessage, newProblemDismissedMarker, needsContinuation } from "../../src/shared/core/native-messages.ts";
 import { newCompactionMarker, projectView } from "../../src/shared/core/index.ts";
 import { dismissedAnswer } from "../../src/shared/core/question-core.ts";
 import { oldThinkingMessage } from "../old-records.ts";
@@ -1117,20 +1117,19 @@ describe("answer submission recovery", () => {
 		assert.equal(m.getState().nativeMessages.some(m => m.role === "toolResult"), false);
 	});
 
-	it("does not undo an acknowledged dismissal when an unrelated send's record read fails", async () => {
+	it("does not undo an acknowledged problem discard when an unrelated send's record read fails", async () => {
 		const m = model({ initialMessages: [question], fetch: async (url) => {
 			if (String(url).endsWith("/dismiss") || String(url) === "/api/chat") return Response.json({ ok: true });
 			throw new TypeError("record read failed");
 		} });
-		await m.dismissQuestion("q1", dismissedAnswer("quiz", "Q?"));
+		await m.dismissProblem("p1");
 		await m.send({ type: "text", text: "move on" });
 		assert.equal(m.status, "error");
-		const part = m.getState().messages.flatMap(m => m.parts).find(p => p.toolCallId === "q1")!;
-		assert.equal(part.state, "output-available");
-		assert.equal((part.output as { dismissed: boolean }).dismissed, true);
+		const native = m.getState().nativeMessages as Array<{ customType?: string }>;
+		assert.ok(native.some((x) => x.customType === "problem-dismissed"));
 	});
 
-	it("posts a mid-turn dismissal (the route parks it) and appends its optimistic entry", async () => {
+	it("posts a mid-turn problem discard (the route parks it) and appends its optimistic marker", async () => {
 		const dismissals: unknown[] = [];
 		let closeStream = () => {};
 		const m = model({ initialMessages: [question], fetch: async (url, init) => {
@@ -1153,18 +1152,16 @@ describe("answer submission recovery", () => {
 		const sending = m.send({ type: "text", text: "go on" });
 		for (let i = 0; i < 100 && m.status !== "streaming"; i++) await new Promise((r) => setTimeout(r, 0));
 		assert.equal(m.status, "streaming");
-		await m.dismissQuestion("q1", dismissedAnswer("quiz", "Q?"));
 		await m.dismissProblem("p1");
-		assert.deepEqual(dismissals.map((d) => (d as { type: string }).type), ["dismiss", "dismiss-problem"]);
-		const native = m.getState().nativeMessages as Array<{ role: string; toolCallId?: string; customType?: string }>;
-		assert.ok(native.some((x) => x.role === "toolResult" && x.toolCallId === "q1"), "the dismissed answer lands at once");
+		assert.deepEqual(dismissals.map((d) => (d as { type: string }).type), ["dismiss-problem"]);
+		const native = m.getState().nativeMessages as Array<{ customType?: string }>;
 		assert.ok(native.some((x) => x.customType === "problem-dismissed"), "the discard marker lands at once");
 		m.stop();
 		closeStream();
 		await sending;
 	});
 
-	it("posts a dismissal in the error status, and the banner shows the route's message, not its JSON", async () => {
+	it("posts a problem discard in the error status, and the banner shows the route's message, not its JSON", async () => {
 		const dismissals: unknown[] = [];
 		const m = model({ initialMessages: [question], fetch: async (url, init) => {
 			const u = String(url);
@@ -1178,10 +1175,10 @@ describe("answer submission recovery", () => {
 		await m.send({ type: "text", text: "go on" });
 		assert.equal(m.status, "error");
 		assert.equal(m.getState().error?.message, "Failed to start the turn");
-		await m.dismissQuestion("q1", dismissedAnswer("quiz", "Q?"));
+		await m.dismissProblem("p1");
 		assert.equal(dismissals.length, 1);
-		const part = m.getState().messages.flatMap((x) => x.parts).find((p) => p.toolCallId === "q1")!;
-		assert.equal((part.output as { dismissed: boolean }).dismissed, true);
+		const native = m.getState().nativeMessages as Array<{ customType?: string }>;
+		assert.ok(native.some((x) => x.customType === "problem-dismissed"));
 	});
 
 	it("restores an unconfirmed optimistic answer when the post-ack record read fails", async () => {
@@ -1671,56 +1668,23 @@ describe("needsContinuation (the native lastAssistantMessageIsCompleteWithToolCa
 	});
 });
 
-// ─── the dismissal pause ────────────────────
+// ─── a skipped question ────────────────────
 
-describe("the dismissal pause (needsContinuation + endsInDismissal)", () => {
-	/** The record's silent dismiss write: the toolResult the dismiss route
-	 *  appends (full answer in details — the folds read it there). */
-	function dismissedMsg(callId: string): LhMessage {
+describe("a skipped question is owed its reaction", () => {
+	/** The toolResult a skip saves: the answer carries dismissed: true in details. */
+	function skippedMsg(callId: string): LhMessage {
 		return {
 			...newAnswerResult(callId, "quiz", dismissedAnswer("quiz", "Pick a planet")),
 			id: `d_${callId}`,
 		} as unknown as LhMessage;
 	}
 
-	it("an all-dismissed tail demands NO continuation — the session waits for the user", () => {
-		const messages = [userText("u1", "topic"), assistantWithCall("a1", "call-q1", "quiz"), dismissedMsg("call-q1")];
-		assert.equal(needsContinuation(messages), false);
-		assert.equal(endsInDismissal(messages), true, "the pause predicate reads the same tail");
+	it("a tail ending in a skip owes the teacher's reaction", () => {
+		const messages = [userText("u1", "topic"), assistantWithCall("a1", "call-q1", "quiz"), skippedMsg("call-q1")];
+		assert.equal(needsContinuation(messages), true);
 	});
 
-	it("parallel dismissals: each silent write its own call — still paused", () => {
-		const assistant = {
-			...assistantWithCall("a1", "call-a"),
-			content: [
-				{ type: "toolCall", id: "call-a", name: "quiz", arguments: {} },
-				{ type: "toolCall", id: "call-b", name: "ask_user_question", arguments: {} },
-			],
-		} as unknown as LhMessage;
-		const messages = [
-			userText("u1", "topic"),
-			assistant,
-			dismissedMsg("call-a"),
-			{ ...newAnswerResult("call-b", "ask_user_question", dismissedAnswer("ask", "Why?")), id: "d_call-b" } as unknown as LhMessage,
-		];
-		assert.equal(endsInDismissal(messages), true);
-		assert.equal(needsContinuation(messages), false, "dismissed by id, not by position — the batch rule holds");
-	});
-
-	it("mixed tail answered-then-dismissed: the LAST resolution decides — no wake (round-1 incident)", () => {
-		const assistant = {
-			...assistantWithCall("a1", "call-a"),
-			content: [
-				{ type: "toolCall", id: "call-a", name: "quiz", arguments: {} },
-			{ type: "toolCall", id: "call-b", name: "quiz", arguments: {} },
-			],
-		} as unknown as LhMessage;
-		const messages = [userText("u1", "topic"), assistant, resultMsg("call-a", "quiz"), dismissedMsg("call-b")];
-		assert.equal(endsInDismissal(messages), true, "tail ends in the dismissal");
-		assert.equal(needsContinuation(messages), false, "ending on a dismissal = the user signaled stop — the reaction rides the next message");
-	});
-
-	it("mixed tail dismissed-then-answered: the answer IS owed its reaction (round-2 wake)", () => {
+	it("answered then skipped: the skip is owed its reaction too", () => {
 		const assistant = {
 			...assistantWithCall("a1", "call-a"),
 			content: [
@@ -1728,24 +1692,8 @@ describe("the dismissal pause (needsContinuation + endsInDismissal)", () => {
 				{ type: "toolCall", id: "call-b", name: "quiz", arguments: {} },
 			],
 		} as unknown as LhMessage;
-		const messages = [userText("u1", "topic"), assistant, dismissedMsg("call-a"), resultMsg("call-b", "quiz")];
-		assert.equal(endsInDismissal(messages), false);
-		assert.equal(needsContinuation(messages), true, "ending on a real answer = the reaction is owed");
-	});
-
-	it("any user message un-pauses (the derived tail flips)", () => {
-		const messages = [
-			userText("u1", "topic"),
-			assistantWithCall("a1", "call-q1", "quiz"),
-			dismissedMsg("call-q1"),
-			userText("u2", "moving on"),
-		];
-		assert.equal(endsInDismissal(messages), false);
-	});
-
-	it("a normal answer is not a dismissal (the predicate stays honest)", () => {
-		const messages = [userText("u1", "topic"), assistantWithCall("a1", "call-q1", "quiz"), resultMsg("call-q1", "quiz")];
-		assert.equal(endsInDismissal(messages), false);
+		const messages = [userText("u1", "topic"), assistant, resultMsg("call-a", "quiz"), skippedMsg("call-b")];
+		assert.equal(needsContinuation(messages), true);
 	});
 });
 

@@ -686,26 +686,6 @@ export function answeredCallIds(messages: readonly LhMessage[]): Set<string> {
 
 // ─── the continuation fold ───────────────────────────────────────────────────
 
-/** Is this record message a user-dismissed question result? The full
- *  answer rides the toolResult's `details` (newAnswerResult) — the
- *  dismissal pause and the continuation fold both read it. */
-function isDismissedResult(m: LhMessage): boolean {
-	if ((m as { role?: string }).role !== "toolResult") return false;
-	const details = (m as { details?: unknown }).details as { dismissed?: unknown } | undefined;
-	return details?.dismissed === true;
-}
-
-/** The dismissal pause: the record ends
- *  in user dismissal — the session waits for the USER. While paused,
- *  nothing auto-wakes: the continuation fold demands nothing (below) and
- *  the wake pipeline holds job deliveries in the steer queue until the
- *  next send. Derived from the tail — no latch to persist or clear; any
- *  user message flips it off by changing the record. */
-export function endsInDismissal(messages: readonly LhMessage[]): boolean {
-	const last = messages[messages.length - 1];
-	return last !== undefined && isDismissedResult(last);
-}
-
 /**
  * Does the record END on un-consumed tool results — a turn that stopped
  * after its tools ran (a job dispatch's ack, an aborted answer turn),
@@ -738,16 +718,6 @@ export function needsContinuation(record: readonly LhMessage[]): boolean {
 		(messages[start - 1] as { role?: string } | undefined)?.role === "toolResult"
 	) {
 		start--;
-	}
-	// The dismissal rule:
-	// the batch's LAST resolution decides. Ending on a dismissal = the
-	// user signaled STOP — no wake, no reaction owed now; the answers'
-	// reactions ride the user's next plain message. Ending on a real
-	// answer = the reaction is owed. One law with the pump's pause
-	// (endsInDismissal reads the same last result), so continuation,
-	// delivery-holding, and the pause can never disagree.
-	if (isDismissedResult(messages[messages.length - 1]!)) {
-		return false;
 	}
 	// An answer given after side questions: its call sits before them.
 	const ownerAt = sideHeldQuestions(messages).get((last as ToolResultMessage).toolCallId)?.callAt ?? start - 1;

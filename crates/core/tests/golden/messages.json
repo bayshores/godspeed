@@ -7,7 +7,6 @@
 				"messages": [],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [],
@@ -35,7 +34,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -102,7 +100,6 @@
 						"question": "q?"
 					}
 				},
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -227,7 +224,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -360,7 +356,6 @@
 						"prompt": "why"
 					}
 				},
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -461,7 +456,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -543,7 +537,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -640,7 +633,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -732,7 +724,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": true,
 				"pendingDismissal": null,
 				"retry": [
@@ -824,7 +815,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -913,7 +903,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -1060,7 +1049,6 @@
 						"nodeId": "n2"
 					}
 				},
-				"endsInDismissal": false,
 				"hasProbeDone": true,
 				"pendingDismissal": null,
 				"retry": [
@@ -1245,7 +1233,6 @@
 						"question": "q?"
 					}
 				},
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -1396,7 +1383,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -1544,7 +1530,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -1681,7 +1666,6 @@
 					}
 				},
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -1762,7 +1746,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -1849,7 +1832,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -1970,7 +1952,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -2133,7 +2114,6 @@
 					}
 				},
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -2269,7 +2249,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": "p1",
 				"retry": [
@@ -2420,7 +2399,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -2609,7 +2587,6 @@
 					}
 				},
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -2765,7 +2742,6 @@
 					}
 				},
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -2913,7 +2889,6 @@
 					"input": {}
 				},
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -3034,7 +3009,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": true,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -3127,7 +3101,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -3201,7 +3174,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -3305,7 +3277,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -3473,7 +3444,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -3661,7 +3631,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -3742,7 +3711,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -3873,7 +3841,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -4005,7 +3972,6 @@
 						"question": "q?"
 					}
 				},
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -4142,7 +4108,6 @@
 				],
 				"active": null,
 				"dangling": null,
-				"endsInDismissal": false,
 				"hasProbeDone": false,
 				"pendingDismissal": null,
 				"retry": [
@@ -5439,96 +5404,6 @@
 			},
 			{
 				"raw": {
-					"type": "dismiss",
-					"toolCallId": "q1",
-					"answer": {
-						"kind": "quiz",
-						"dismissed": true
-					}
-				},
-				"ok": {
-					"type": "dismiss",
-					"toolCallId": "q1",
-					"answer": {
-						"kind": "quiz",
-						"dismissed": true
-					}
-				}
-			},
-			{
-				"raw": {
-					"type": "dismiss",
-					"toolCallId": "",
-					"answer": {
-						"dismissed": true
-					}
-				},
-				"error": "dismiss input requires toolCallId"
-			},
-			{
-				"raw": {
-					"type": "dismiss",
-					"answer": {
-						"dismissed": true
-					}
-				},
-				"error": "dismiss input requires toolCallId"
-			},
-			{
-				"raw": {
-					"type": "dismiss",
-					"toolCallId": "q1"
-				},
-				"error": "dismiss input requires the dismissal answer object"
-			},
-			{
-				"raw": {
-					"type": "dismiss",
-					"toolCallId": "q1",
-					"answer": null
-				},
-				"error": "dismiss input requires the dismissal answer object"
-			},
-			{
-				"raw": {
-					"type": "dismiss",
-					"toolCallId": "q1",
-					"answer": {
-						"kind": "quiz"
-					}
-				},
-				"error": "dismiss input's answer must be a dismissal (dismissed: true)"
-			},
-			{
-				"raw": {
-					"type": "dismiss",
-					"toolCallId": "q1",
-					"answer": {
-						"dismissed": "yes"
-					}
-				},
-				"error": "dismiss input's answer must be a dismissal (dismissed: true)"
-			},
-			{
-				"raw": {
-					"type": "dismiss",
-					"toolCallId": "q1",
-					"answer": {
-						"kind": "explain",
-						"dismissed": true
-					}
-				},
-				"ok": {
-					"type": "dismiss",
-					"toolCallId": "q1",
-					"answer": {
-						"kind": "explain",
-						"dismissed": true
-					}
-				}
-			},
-			{
-				"raw": {
 					"type": "dismiss-problem",
 					"problemCallId": "p1"
 				},
@@ -6120,30 +5995,6 @@
 				{
 					"record": "empty",
 					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "quiz",
-							"dismissed": true
-						}
-					},
-					"error": "dismiss input targets no pending question call"
-				},
-				{
-					"record": "empty",
-					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "explain",
-							"dismissed": true
-						}
-					},
-					"error": "dismiss input targets no pending question call"
-				},
-				{
-					"record": "empty",
-					"dismiss": {
 						"type": "dismiss-problem",
 						"problemCallId": "p1"
 					},
@@ -6403,49 +6254,6 @@
 					},
 					"stored": [],
 					"error": "answer input targets no pending question call"
-				},
-				{
-					"record": "question",
-					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "quiz",
-							"dismissed": true
-						}
-					},
-					"ok": [
-						{
-							"id": "<id>",
-							"role": "toolResult",
-							"toolCallId": "q1",
-							"toolName": "quiz",
-							"content": [
-								{
-									"type": "text",
-									"text": "{\"kind\":\"quiz\",\"dismissed\":true}"
-								}
-							],
-							"details": {
-								"kind": "quiz",
-								"dismissed": true
-							},
-							"isError": false,
-							"timestamp": 0
-						}
-					]
-				},
-				{
-					"record": "question",
-					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "explain",
-							"dismissed": true
-						}
-					},
-					"error": "dismiss input's answer kind does not match the question"
 				},
 				{
 					"record": "question",
@@ -6735,49 +6543,6 @@
 				{
 					"record": "explain_question",
 					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "quiz",
-							"dismissed": true
-						}
-					},
-					"error": "dismiss input's answer kind does not match the question"
-				},
-				{
-					"record": "explain_question",
-					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "explain",
-							"dismissed": true
-						}
-					},
-					"ok": [
-						{
-							"id": "<id>",
-							"role": "toolResult",
-							"toolCallId": "q1",
-							"toolName": "explain",
-							"content": [
-								{
-									"type": "text",
-									"text": "{\"kind\":\"explain\",\"dismissed\":true}"
-								}
-							],
-							"details": {
-								"kind": "explain",
-								"dismissed": true
-							},
-							"isError": false,
-							"timestamp": 0
-						}
-					]
-				},
-				{
-					"record": "explain_question",
-					"dismiss": {
 						"type": "dismiss-problem",
 						"problemCallId": "p1"
 					},
@@ -7041,30 +6806,6 @@
 				{
 					"record": "code_question",
 					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "quiz",
-							"dismissed": true
-						}
-					},
-					"error": "dismiss input's answer kind does not match the question"
-				},
-				{
-					"record": "code_question",
-					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "explain",
-							"dismissed": true
-						}
-					},
-					"error": "dismiss input's answer kind does not match the question"
-				},
-				{
-					"record": "code_question",
-					"dismiss": {
 						"type": "dismiss-problem",
 						"problemCallId": "p1"
 					},
@@ -7247,30 +6988,6 @@
 					},
 					"stored": [],
 					"error": "answer input targets no pending question call"
-				},
-				{
-					"record": "problem",
-					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "quiz",
-							"dismissed": true
-						}
-					},
-					"error": "dismiss input targets no pending question call"
-				},
-				{
-					"record": "problem",
-					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "explain",
-							"dismissed": true
-						}
-					},
-					"error": "dismiss input targets no pending question call"
 				},
 				{
 					"record": "problem",
@@ -7740,30 +7457,6 @@
 				{
 					"record": "dismissed_problem",
 					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "quiz",
-							"dismissed": true
-						}
-					},
-					"error": "dismiss input targets no pending question call"
-				},
-				{
-					"record": "dismissed_problem",
-					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "explain",
-							"dismissed": true
-						}
-					},
-					"error": "dismiss input targets no pending question call"
-				},
-				{
-					"record": "dismissed_problem",
-					"dismiss": {
 						"type": "dismiss-problem",
 						"problemCallId": "p1"
 					},
@@ -7960,30 +7653,6 @@
 				{
 					"record": "between_problems",
 					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "quiz",
-							"dismissed": true
-						}
-					},
-					"error": "dismiss input targets no pending question call"
-				},
-				{
-					"record": "between_problems",
-					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "explain",
-							"dismissed": true
-						}
-					},
-					"error": "dismiss input targets no pending question call"
-				},
-				{
-					"record": "between_problems",
-					"dismiss": {
 						"type": "dismiss-problem",
 						"problemCallId": "p1"
 					},
@@ -8166,30 +7835,6 @@
 					},
 					"stored": [],
 					"error": "answer input targets no pending question call"
-				},
-				{
-					"record": "teach",
-					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "quiz",
-							"dismissed": true
-						}
-					},
-					"error": "dismiss input targets no pending question call"
-				},
-				{
-					"record": "teach",
-					"dismiss": {
-						"type": "dismiss",
-						"toolCallId": "q1",
-						"answer": {
-							"kind": "explain",
-							"dismissed": true
-						}
-					},
-					"error": "dismiss input targets no pending question call"
 				},
 				{
 					"record": "teach",

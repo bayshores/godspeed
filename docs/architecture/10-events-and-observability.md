@@ -28,7 +28,7 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 | `chats-changed` | `{}` | a lesson was created, renamed, moved to another space or deleted. The lesson list and the progress hook (`use-progress.ts`) read it |
 | `spaces-changed` | `{}` | a space was created, edited, closed or deleted, or its files changed |
 | `agent-changed` | `{}` | outside agent connected, started or stopped teaching, was renamed or lapsed, a helper arrived, or compacting started or lapsed |
-| `record-changed` | `{chatId}` | a lesson record changed without a turn: a dismissal, Keep going at a stop, an answer to a question from earlier, a kept sentence's part dropped or brought back, an answer that leaves a sibling question open, or a finished compaction. The `keep-going`, `review` and `kept` routes also emit it during a turn |
+| `record-changed` | `{chatId}` | a lesson record changed without a turn: a problem discard, Keep going at a stop, an answer to a question from earlier, a kept sentence's part dropped or brought back, an answer that leaves a sibling question open, or a finished compaction. The `keep-going`, `review` and `kept` routes also emit it during a turn |
 | `agent-action` | action | a new line in activity log (`services::app::agent_actions`, saved in `data/agent-actions.json`) |
 | `rules-changed` | `{saved?}` | a teaching rule was saved, undone or edited (`services::app::agent_rules`). `saved` carries rule when an outside agent saved it from terminal |
 | `mocks-changed` | `{spaceId}` | one of a space's mocks changed, or a request for one started or ended (`services::mocks`). A saved mock answer is silent |

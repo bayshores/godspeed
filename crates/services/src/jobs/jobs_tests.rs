@@ -202,20 +202,6 @@ async fn an_idle_chat_gets_one_wake_turn_carrying_every_marker() {
 }
 
 #[tokio::test]
-async fn a_dismissed_question_holds_the_wake() {
-	let root = scratch_dir("jobs");
-	let app = test_app(&root);
-	write_chat(&app, CHAT, vec![json!({ "id": "msg_1", "role": "toolResult", "toolCallId": "c1", "toolName": "question", "details": { "dismissed": true } })]);
-	finished_job(&app, "job_a");
-	let calls = saving_runner(&app, 200);
-	deliver_job_result(&app, steer_for(&app, "job_a"));
-	clock::sleep(GRACE_MS + 300).await;
-	assert!(calls.lock().is_empty());
-	assert_eq!(queued(&app, None), [("steer_job_a".into(), false, false, false)]);
-	assert!(!app.jobs.wake.lock().pumping.contains(CHAT), "parked, not polling");
-}
-
-#[tokio::test]
 async fn a_refused_wake_parks_and_a_failed_one_defers_job_markers_and_drops_handoffs() {
 	let root = scratch_dir("jobs");
 	let app = test_app(&root);

@@ -101,7 +101,7 @@ export function QuestionDock(props: QuestionDockProps) {
 	if (!parsed) {
 		return (
 			<div data-testid="malformed-question" className="shrink-0 bg-tone px-3.5 py-3 text-base text-ink-2">
-				This question came through broken. Skip it and the teacher will ask again.
+				This question came through broken. Skip it to go on.
 			</div>
 		);
 	}

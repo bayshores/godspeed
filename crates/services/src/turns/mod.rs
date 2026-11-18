@@ -47,7 +47,7 @@ pub struct TurnsState {
 	attachable: Notify,
 	/// The kept notice of a turn whose settlement failed (turn-runs).
 	failures: Mutex<HashMap<String, String>>,
-	/// A dismissal that arrived mid-turn, applied at settle (dismissal-park).
+	/// A problem discard that arrived mid-turn, applied at settle (dismissal-park).
 	parked: Mutex<HashMap<String, DismissInput>>,
 	/// The quiet-wait timer of each chat's summary: its number, so a newer one replaces it.
 	refine_timers: Mutex<HashMap<String, u64>>,

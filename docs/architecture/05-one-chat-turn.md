@@ -2,7 +2,7 @@
 
 `handle_chat_input` (`services::turns::chat_handler`) is plain Rust over `App`. `AgentBuildOptions` is its test seam (scripted engines).
 
-1. Window posts `{chatId, input}` to `POST /api/chat`. Input is one event: `text`, `answer`, `continue`, `side`, `next` (practice, study or homework), `open` (a homework problem picked by number) or `opener-answer` (`core::messages::input_events`). `dismiss` and `dismiss-problem` are dismissals.
+1. Window posts `{chatId, input}` to `POST /api/chat`. Input is one event: `text`, `answer`, `continue`, `side`, `next` (practice, study or homework), `open` (a homework problem picked by number) or `opener-answer` (`core::messages::input_events`). `dismiss-problem` is the only dismissal: it discards an open problem and never starts a turn.
 2. Handler turns input, or queued steers, into record appends.
 3. `begin_turn(chatId)` registers turn in `turn_liveness` (in memory). A turn already running gives 409; window waits for it to end and posts same input again, giving up after 30 s.
 4. `save_messages` writes input before anything streams (write-ahead).
@@ -20,6 +20,8 @@
 2. Learner answers. The window grades multiple choice with `question-core` and builds answer. A `write_code` answer (`code-question.ts`) is never run or graded by the app; teacher reads it.
 3. Window posts it as an `answer` input event.
 4. Server saves it as call's tool result and next turn runs.
+
+Skip question sends the same `answer` with `dismissed: true` (`dismissedAnswer`), after stopping a running reply; the teacher moves on without asking it again.
 
 A question waiting in the saved record lets a lesson resume mid-question. Options are shuffled with a seed (the tool call id), so server and window show the same order.
 
@@ -119,7 +121,6 @@ Delivery:
 Rules:
 
 - A marker already in transcript is never delivered twice; a failed bookkeeping step cannot replay one.
-- A record ending in a dismissal waits for learner's next message, which carries markers.
 - `register_live_agent` restores pending deliveries from job records before a new agent's first steering poll, so a restart loses nothing.
 - Only a computing worker can be aborted. An abort saves its own pending abort notice (`delivery: {kind: "abort"}`).
 - Deleting a lesson drops its pending deliveries (`discard_chat_deliveries`). Only a live turn or computing worker blocks deletion.

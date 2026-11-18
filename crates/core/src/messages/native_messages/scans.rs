@@ -158,11 +158,6 @@ pub fn has_probe_done(messages: &[Json]) -> bool {
 	messages.iter().any(|m| role(m) == "toolResult" && m["toolName"].as_str() == Some("probe_done") && !m["isError"].truthy() && !refused_probe(&m["details"]))
 }
 
-/// The record ends in a dismissed question: the session waits for the learner.
-pub fn ends_in_dismissal(messages: &[Json]) -> bool {
-	messages.last().is_some_and(|m| role(m) == "toolResult" && m["details"]["dismissed"] == Json::Bool(true))
-}
-
 /// The record a continue runs from: everything before a trailing failed or stopped reply.
 pub fn retry_context(messages: &[Json]) -> &[Json] {
 	let failed = |m: &Json| role(m) == "assistant" && matches!(m["stopReason"].as_str(), Some("error" | "aborted"));
@@ -239,12 +234,10 @@ mod tests {
 	}
 
 	#[test]
-	fn probe_dismissal_and_retry_folds() {
+	fn probe_and_retry_folds() {
 		let probe = json!({ "role": "toolResult", "toolName": "probe_done", "details": { "ok": false } });
 		assert!(!has_probe_done(&[probe]));
 		assert!(has_probe_done(&[json!({ "role": "toolResult", "toolName": "probe_done" })]));
-		assert!(ends_in_dismissal(&[json!({ "role": "toolResult", "details": { "dismissed": true } })]));
-		assert!(!ends_in_dismissal(&[]));
 		let stopped = json!({ "role": "assistant", "content": [], "stopReason": "aborted" });
 		let messages = [user(false), stopped.clone(), stopped];
 		assert_eq!(retry_context(&messages), &messages[..1]);

@@ -217,7 +217,7 @@ async fn move_space(State(app): State<Arc<App>>, Path(id): Path<String>, body: B
 	})
 }
 
-/// POST /api/chats/{id}/dismiss: the learner discards a waiting question or problem. Silent: the
+/// POST /api/chats/{id}/dismiss: the learner discards an open problem. Silent: the
 /// record is all that moves. A running turn parks it (202) and applies it at settle.
 async fn dismiss(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
 	let body = json_body(body).await.unwrap_or(Json::Null);

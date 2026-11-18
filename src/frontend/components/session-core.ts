@@ -822,18 +822,6 @@ export class SessionModel {
 		return this.send({ type: "answer", toolCallId, answer: output, ...(attachments.length > 0 ? { attachments } : {}) });
 	}
 
-	/** The dismissal path: the skipped toolResult lands optimistically,
-	 * then the SILENT route persists it (no turn, no stream, nothing
-	 * wakes). Not ready-gated: mid-turn the route parks the dismissal
-	 * until the turn settles. The session pauses at the user's choice;
-	 * the next plain send is the wake. On failure the durable record
-	 * wins: the error surfaces, the record-changed sync (or any later
-	 * refetch) replaces the optimistic append with truth. */
-	async dismissQuestion(toolCallId: string, answer: QuestionAnswerData): Promise<void> {
-		const tool = pendingCallTool([...this.base, ...this.tail], toolCallId) ?? "quiz";
-		await this.dismiss(newAnswerResult(toolCallId, tool, answer), { type: "dismiss", toolCallId, answer });
-	}
-
 	/** Keep going at a stop: the UI-only marker lands optimistically (the
 	 *  next topic's stored opener shows at once), then the route stores it,
 	 *  even during a turn; it never starts one. With no opener stored and
@@ -888,21 +876,16 @@ export class SessionModel {
 		}
 	}
 
-	/** The problem discard (practice sessions): the ask-style dismissal.
-	 *  The UI-only marker lands optimistically, then the SILENT route
-	 *  persists it (no turn, no wake; parked mid-turn). The composer
-	 *  returns; the conclude synthesis rides the user's next input. */
+	/** The problem discard (practice sessions): the UI-only marker lands
+	 *  optimistically, then the SILENT route persists it (no turn, no wake;
+	 *  parked mid-turn). The composer returns; the conclude synthesis rides
+	 *  the user's next input. */
 	async dismissProblem(problemCallId: string): Promise<void> {
-		await this.dismiss(newProblemDismissedMarker(problemCallId), { type: "dismiss-problem", problemCallId });
-	}
-
-	/** Land `optimistic` in the tail, then store the dismissal. */
-	private async dismiss(optimistic: LhMessage, input: unknown): Promise<void> {
 		this.mutate(() => {
-			this.tail = [...this.tail, { ...optimistic, id: localId() }];
+			this.tail = [...this.tail, { ...newProblemDismissedMarker(problemCallId), id: localId() }];
 		});
 		try {
-			const res = await this.postRoute("dismiss", input);
+			const res = await this.postRoute("dismiss", { type: "dismiss-problem", problemCallId });
 			if (!res.ok) throw new Error(`The dismissal failed (${res.status}).`);
 		} catch (err) {
 			this.setError((err as Error).message);

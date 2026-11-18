@@ -4,9 +4,9 @@
 use std::collections::HashSet;
 
 use gs_core::messages::attachments::{attachment_refusal, base64_bytes, content_text, keeps_png, pdf_file_name, pdf_note, pdf_note_of};
-use gs_core::messages::input_events::{About, ChatInput, DismissInput, dismiss_appends, input_appends, parse_chat_input, parse_dismiss_input, parse_user_steer_input};
+use gs_core::messages::input_events::{About, ChatInput, dismiss_appends, input_appends, parse_chat_input, parse_dismiss_input, parse_user_steer_input};
 use gs_core::messages::native_messages::{
-	active_problem_of, space_card_text, space_files_text, concluded_by_dismissal_pair, dangling_question_of, ends_in_dismissal, failed_output_call_ids, has_probe_done, is_side_turn, new_answer_result,
+	active_problem_of, space_card_text, space_files_text, concluded_by_dismissal_pair, dangling_question_of, failed_output_call_ids, has_probe_done, is_side_turn, new_answer_result,
 	new_space_context_message, new_graph_context_message, new_handoff_message, new_next_message, new_plan_block_message, new_problem_dismissed_marker, new_side_question, new_study_context_message,
 	new_today_context_message, new_user_message, new_user_steer, pending_problem_dismissal_of, problem_input_for_conclude, retry_context, send_to_user_text, side_held_questions,
 	to_llm_messages, user_facing_text_of,
@@ -79,7 +79,6 @@ fn folds_match_node() {
 		let check = |field: &str, got: Json| same(&got, &case[field], &format!("{name}: {field}"));
 		check("active", opt(active));
 		check("dangling", opt(dangling));
-		check("endsInDismissal", ends_in_dismissal(messages).into());
 		check("hasProbeDone", has_probe_done(messages).into());
 		check("pendingDismissal", opt(pending_problem_dismissal_of(messages)));
 		check("retry", retry_context(messages).iter().map(|m| opt(m["id"].as_str())).collect());
@@ -217,10 +216,7 @@ fn input_events_match_node() {
 		same(&got, &Json::Obj(event_pick(case)), &stringify(&case["raw"]));
 	}
 	for case in arr(&golden("dismiss inputs")) {
-		let got = outcome(parse_dismiss_input(&case["raw"]), |d| match d {
-			DismissInput::Dismiss { tool_call_id, answer } => json!({ "type": "dismiss", "toolCallId": tool_call_id, "answer": answer }),
-			DismissInput::DismissProblem { problem_call_id } => json!({ "type": "dismiss-problem", "problemCallId": problem_call_id }),
-		});
+		let got = outcome(parse_dismiss_input(&case["raw"]), |d| json!({ "type": "dismiss-problem", "problemCallId": d.problem_call_id }));
 		same(&got, &Json::Obj(event_pick(case)), &stringify(&case["raw"]));
 	}
 	for case in arr(&golden("steer inputs")) {

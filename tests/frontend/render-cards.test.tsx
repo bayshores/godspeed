@@ -191,7 +191,7 @@ describe("render smoke tests", () => {
 			input: { question: "q?", options: JSON.stringify([{ label: "a" }, { label: "b" }]) } as never,
 		});
 		assert.ok(html.includes('data-testid="malformed-question"'));
-		assert.match(html, /This question came through broken\. Skip it and the teacher will ask again\./);
+		assert.match(html, /This question came through broken\. Skip it to go on\./);
 		assert.ok(!html.includes('data-testid="skip-question"'), "the way out is the button beside Your turn");
 	});
 

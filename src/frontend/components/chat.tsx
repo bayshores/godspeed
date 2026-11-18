@@ -129,7 +129,7 @@ export function Chat({
 	// THE SESSION HOOK: the record is native history; the view is derived
 	// client-side (core/view.ts projectView).
 	const session = useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
-	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, keepGoing, dropKept, status, error, stop, clearError, resumeStream } = session;
+	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissProblem, keepGoing, dropKept, status, error, stop, clearError, resumeStream } = session;
 	const { turnInFlight, localStreamRef, jobs, turns, pricing, adoptAppendOnly } = useLessonServer({
 		chatId,
 		session,
@@ -296,8 +296,6 @@ export function Chat({
 	const confirmAbort = useCallback(
 		() => {
 			setAbortAsk(null);
-			// A pending question's dismiss is silent (no turn); mid-turn it also
-			// kills the running turn, and the route parks the dismissal.
 			const p = pendingRef.current;
 			// A question from earlier is skipped alone: the teacher writes on.
 			if (p?.appPosed?.kind === "review") {
@@ -311,13 +309,15 @@ export function Chat({
 				void send({ type: "opener-answer", topicDoneCallId: p.appPosed.ref, answer: null });
 				return;
 			}
+			// A skip is the question's answer, marked dismissed: the teacher moves
+			// on at once. A running reply stops first; the send waits for it to end.
 			if (p) {
 				const question = (p.input as { question?: string } | null)?.question ?? "";
 				const reading = readingThinkingRef.current.trim() || undefined;
 				readingThinkingRef.current = "";
 				const answer = dismissedAnswer(toolQuestionKind(p.tool), question);
-				void dismissQuestion(p.toolCallId, reading ? { ...answer, readingThinking: reading } : answer);
 				if (busyRef.current) abortInFlightTurn();
+				void submitAnswer(p.toolCallId, reading ? { ...answer, readingThinking: reading } : answer, []);
 				return;
 			}
 			// The practice discard: the silent marker route.
@@ -327,7 +327,7 @@ export function Chat({
 				if (busyRef.current) abortInFlightTurn();
 			}
 		},
-		[abortInFlightTurn, dismissQuestion, dismissProblem, send, skipReview],
+		[abortInFlightTurn, submitAnswer, dismissProblem, send, skipReview],
 	);
 
 	// ── the answer box ──
@@ -370,9 +370,9 @@ export function Chat({
 	const startLabel = problems && homeworkStartLabel(problems.problems);
 	const teacherSpoke = useMemo(() => nativeMessages.some((m) => (m as { role?: string }).role === "assistant"), [nativeMessages]);
 
-	/* THE PRACTICE PAUSE (practice and study): between problems, once a
-	 * problem has ever been posed, the box offers the next one. Homework
-	 * offers it once the teacher has spoken, while a problem is left. */
+	/* THE PAUSE BETWEEN STEPS: practice offers the next problem once one was
+	 * posed, study offers Continue whenever the teacher has spoken, homework
+	 * once the teacher has spoken while a problem is left. */
 	const posedAny = useMemo(
 		() =>
 			nativeMessages.some(
@@ -383,7 +383,7 @@ export function Chat({
 			),
 		[nativeMessages],
 	);
-	const nextReady = (problems ? startLabel !== null && teacherSpoke : posedAny) && !pending && !activeProblem && !busy;
+	const nextReady = (problems ? startLabel !== null && teacherSpoke : kind === "study" ? teacherSpoke : posedAny) && !pending && !activeProblem && !busy;
 	const sendNext = useCallback(() => {
 		if (!nextReady) return;
 		void send({ type: "next" });

@@ -18,7 +18,7 @@ use gs_agent::subagents::aborts::{fire_job_abort, is_job_live};
 use gs_base::clock;
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
-use gs_core::messages::native_messages::{dangling_question_of, ends_in_dismissal, open_question_held};
+use gs_core::messages::native_messages::{dangling_question_of, open_question_held};
 use gs_core::session::jobs::{build_abort_steer, build_subagent_steer, is_subagent_failure, steer_delivered};
 use gs_engine::turn::agent::Agent;
 use gs_json::{Json, json};
@@ -422,10 +422,6 @@ async fn run_pump(app: &Arc<App>, chat_id: &str) -> bool {
 		let fire: Vec<u64> = app.jobs.wake.lock().queue(chat_id).iter().filter(|e| !e.waking && !e.deferred && e.handed_to.is_none()).map(|e| e.seq).collect();
 		if fire.is_empty() {
 			return false;
-		}
-		// A record ending in a dismissal waits for the learner: their next send carries the markers.
-		if ends_in_dismissal(fresh["messages"].items()) {
-			return true;
 		}
 		let steers: Vec<Json> = {
 			let mut wake = app.jobs.wake.lock();

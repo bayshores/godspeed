@@ -159,7 +159,7 @@ fn answer_tally(label: &str) -> Option<(usize, usize)> {
 /// A graded answer (quiz questions; others are graded by the agent later) as the learner's
 /// entry. Answers to a lesson's questions in a row add up: "Answered 2 of 3 right".
 pub fn record_answer(app: &App, lesson: &Json, answer: &Json) {
-	if answer["kind"].as_str() != Some("quiz") {
+	if answer["kind"].as_str() != Some("quiz") || answer["dismissed"].truthy() {
 		return;
 	}
 	let dont_know = answer["dontKnow"].truthy();
@@ -304,6 +304,8 @@ mod tests {
 		let root = scratch_dir("actions-answers");
 		let app = test_app(&root);
 		let lesson = json!({ "id": "chat_a", "spaceId": "cls_a" });
+		record_answer(&app, &lesson, &json!({ "kind": "quiz", "dismissed": true }));
+		assert!(labels(&app).is_empty(), "a skipped quiz records nothing");
 		record_answer(&app, &lesson, &json!({ "kind": "quiz", "correct": true }));
 		assert_eq!(labels(&app), ["Answered right"]);
 		record_answer(&app, &lesson, &json!({ "kind": "quiz", "correct": false }));

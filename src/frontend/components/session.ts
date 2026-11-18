@@ -120,7 +120,6 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 			continueIfOwed: (record: readonly LhMessage[]) => void model.continueIfOwed(record),
 			steer: (text: string) => model.steer(text),
 			submitAnswer: (toolCallId: string, output: QuestionAnswerData, attachments: ChatAttachment[]) => model.submitAnswer(toolCallId, output, attachments),
-			dismissQuestion: (toolCallId: string, answer: QuestionAnswerData) => void model.dismissQuestion(toolCallId, answer),
 			keepGoing: (stopOf: string) => void model.keepGoing(stopOf),
 			dropKept: (of: string, part: KeptPart, back: boolean) => void model.dropKept(of, part, back),
 			dismissProblem: (problemCallId: string) => void model.dismissProblem(problemCallId),

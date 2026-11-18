@@ -51,6 +51,8 @@ The teacher's prompt and tools, without the planning part (`teacher/10-planning.
 - `plot`, in multiple-choice lessons
 - practice hint rules (`prompts/practice/20-hints.md`) and `prompts/study/`
 
+In a Study session the foot of the lesson text shows "Continue" whenever the teacher has spoken, is idle, nothing waits and no stop card is up, with or without a problem posed. It sends the `next` input (`nextReady` in `chat.tsx`).
+
 A posed problem ends the turn. `practice-next` and `problem-dismissed` mark moving on or skipping. In homework, a `practice-next` with a `number` is a pick from the problem list. Lessons from 0.6.74 may hold `teach-me` markers; they still count as the learner's input and read as his line "Teach me this". A study session is extracted into the graph. A problem solved with hints counts as an answer worth 0.6 of a right one (`HINTED_WEIGHT`), so alone it reads shaky, and counts print it apart: "1 of 2 right, 1 solved with hints". An answer whose facts are in no topic (none extracted yet, or new ones still in Ungrouped) counts once for its question's `nodeId` when that is one of the space's topics (`core::study::derive_progress`), so a topic studied today is not untested while its facts are being saved.
 
 ### Questions from earlier

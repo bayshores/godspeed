@@ -17,10 +17,9 @@ import { DEFAULT_TEACHER_NAME } from "@/shared/core";
  * shows progress).
  *
  * Stopping a running reply needs no confirm (what was written stays), so
- * it never opens this. Skipping a pending question is a dismissal: the
- * silent route writes the skipped toolResult and wakes NOTHING; the session
- * pauses until the user's next plain message, which carries the dismissal
- * to the model in its context.
+ * it never opens this. Skipping a pending question answers it as skipped
+ * and the teacher moves on at once. A problem discard is silent and rides
+ * the next input.
  */
 
 /** What is being skipped or discarded: drives copy and the confirm action. */

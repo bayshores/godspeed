@@ -614,6 +614,22 @@ mod tests {
 	}
 
 	#[test]
+	fn a_skipped_question_starts_the_turn() {
+		let root = scratch_dir("chat-skip");
+		let app = test_app(&root);
+		let quiz = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q1", "name": "quiz", "arguments": {} }], "stopReason": "toolUse", "timestamp": clock::now_ms() });
+		let chat_id = resumed_lesson(&app, vec![quiz]);
+		let skip = TurnInput::Chat(ChatInput::Answer { tool_call_id: "q1".to_owned(), answer: json!({ "kind": "quiz", "dismissed": true }), attachments: None });
+		assert!(write_ahead(&app, &chat_id, &skip, &[]).is_ok(), "a skip is owed a reaction like any answer");
+		assert!(is_turn_running(&app, &chat_id));
+		end_turn(&app, &chat_id);
+		let record = app.stores.chats.get_chat(&chat_id).unwrap();
+		let saved = record["messages"].as_arr().unwrap().iter().find(|m| m["toolCallId"].as_str() == Some("q1") && m["role"].as_str() == Some("toolResult")).unwrap();
+		assert_eq!(saved["details"]["dismissed"], json!(true));
+		assert!(crate::app::agent_actions::recent_agent_actions(&app).is_empty(), "a skip is not logged as a wrong answer");
+	}
+
+	#[test]
 	fn the_app_note_waits_for_the_last_answer_of_a_call_batch() {
 		let root = scratch_dir("chat-app-note-batch");
 		let app = test_app(&root);
