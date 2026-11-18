@@ -1,5 +1,26 @@
 [
 	{
+		"version": "0.6.76",
+		"date": "2026-11-18",
+		"changes": [
+			"Each page's own actions sit in the top bar. A lesson's title joins its space tab, and Find, Cheat sheet and More are there too.",
+			"A lesson's More has Rename, Export as Markdown, Delete and Move to another space.",
+			"Find is a magnifying glass that opens into its field, and it also works on Files.",
+			"Every button looks like a key, and a button whose action has a shortcut shows the key inside it.",
+			"While the teacher works on a reply, the lesson shows a desk with your files, the plan and the step in progress, in place of a Thinking line.",
+			"Beside the lesson text, Your turn always fits the window, and in a problem with parts the other parts fold to one line.",
+			"Skip question makes the teacher move on at once, and a skipped question is no longer counted as wrong.",
+			"The box under an open problem asks for Your work or a question.",
+			"Today shows Unfinished lessons and Work on next under Deadlines.",
+			"The pop-up that says the teacher updated a space has a close key and a bar for the time left.",
+			"On the Mac, the godspeed menu has Settings.",
+			"In Settings, the Version row no longer crushes its text in a narrow window.",
+			"Changing a setting no longer undoes a change made elsewhere at the same moment, such as the space you just switched to.",
+			"A damaged data file is kept as a copy beside it, where before it was read as empty and overwritten.",
+			"A space page reads its record and its progress once, where it read them up to four times."
+		]
+	},
+	{
 		"version": "0.6.75",
 		"date": "2026-11-17",
 		"changes": [
