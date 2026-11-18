@@ -117,8 +117,20 @@ export const SCREENS = [
 	{ name: "Graph", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]", setup: fitsWindow },
 	{ name: "Graph, finding a word", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("undo"), shows: "[data-testid=graph-find-box]" },
 	{ name: "Graph, finding a word nothing matches", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("zzzz"), shows: "[data-testid=graph-no-match]" },
-	{ name: "Graph, a topic picked", url: "/graph", ready: "[data-testid=graph-topic]", setup: `${pickTopic}; ${cameraRests(`picture().hasAttribute("data-near")`)}; ${fitsWindow}`, shows: "[data-testid=graph-panel] [data-testid=topic-pane]" },
-	{ name: "Graph, zoomed by hand", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]", setup: `${wheelIn}; ${cameraRests(`zoom !== null`)}; ${fitsWindow}`, shows: "[data-testid=graph-whole-space]" },
+	{
+		name: "Graph, a topic picked",
+		url: "/graph",
+		ready: "[data-testid=graph-topic]",
+		setup: `${pickTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}; ${fitsWindow}`,
+		shows: "[data-testid=graph-panel] [data-testid=topic-pane]",
+	},
+	{
+		name: "Graph, zoomed by hand",
+		url: "/graph",
+		ready: "[data-testid=graph-picture] [data-testid=graph-topic]",
+		setup: `${wheelIn}; ${cameraRests(`zoom !== null`)}; ${fitsWindow}`,
+		shows: "[data-testid=graph-whole-space]",
+	},
 	{
 		name: "Graph, a fact picked",
 		url: "/graph",

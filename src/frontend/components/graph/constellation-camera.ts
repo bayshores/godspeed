@@ -2,10 +2,9 @@
  * The Graph picture's camera: how far in it is zoomed and where it looks.
  * Zoom 1 is the fitted picture; zooming in spreads the stars apart on screen,
  * and once neighbouring stars are far enough apart (the pitch) the picture is
- * near and each fact's name and answers show. The view never leaves the
+ * near and each topic shows as its figure. The view never leaves the
  * picture. Pure.
  */
-import { NAME_DROP, LABEL_W } from "./constellation-near.ts";
 import { NAME_GAP, NAME_LINE, type Cluster, type Rect, type Sky } from "./constellation-layout.ts";
 
 /** `x`, `y`: the layout point at the view's centre. */
@@ -56,14 +55,18 @@ interface Proj {
 
 /** A star is never drawn bigger than this on screen; only the gaps keep growing. */
 export const STAR_CAP = 12;
-/** The pitch, in screen points, from which the picture is near. */
-const NEAR_PITCH = 80;
+/** The pitch, in screen points, from which the picture is near: each topic shows as its figure. */
+const NEAR_PITCH = 28;
+/** The pitch from which facts are moons; a flight into a topic lands at least this close. */
+export const MOON_PITCH = 44;
+/** A flight into a topic never lands closer than this, so the topic keeps its facts close together. */
+const FLY_PITCH = 72;
 /** The deepest zoom: neighbouring stars this far apart on screen. */
-const TOP_PITCH = 124;
-/** The near layer stays drawn (faded out) down to this share of its pitch, so it can fade both ways. */
+const TOP_PITCH = 92;
+/** Topic names start moving down to their figures from this share of the near pitch. */
 const KEEP = 0.75;
-/** A flight to a topic fits it, with its names, inside this share of the box. */
-const FILL = 0.85;
+/** A flight to a topic fits its disc to this share of the box's shorter side. */
+const FILL = 0.6;
 
 /** The whole space, at its top left: the box may be taller than the fitted picture, never smaller. */
 export const homeCam = (f: Frame): Cam => ({ z: 1, x: f.w / 2 / f.scale, y: f.h / 2 / f.scale });
@@ -115,13 +118,10 @@ export const topZoom = (nn: number, f: Frame) => Math.max(1, zoomForPitch(TOP_PI
 
 export const pitchOf = (c: Cam, f: Frame, nn: number) => nn * f.scale * c.z;
 
-/** Whether the near layer is drawn at all (`mounted`) and inked in (`on`); the fitted picture never is. */
-export function nearState(pitch: number, z: number): { mounted: boolean; on: boolean } {
-	if (z <= 1.001) return { mounted: false, on: false };
-	return { mounted: pitch >= NEAR_PITCH * KEEP, on: pitch >= NEAR_PITCH };
-}
+/** Whether the picture is near, so each topic shows as its figure; the fitted picture never is. */
+export const isNear = (pitch: number, z: number) => z > 1.001 && pitch >= NEAR_PITCH;
 
-/** 0 below the near layer, 1 once it is in, evenly between: topic names move down this share of the room fact names take. */
+/** 0 well short of near, 1 once near, evenly between: topic names move this share of the way from their discs to under their figures. */
 export function nearRamp(pitch: number, z: number): number {
 	if (z <= 1.001) return 0;
 	return Math.min(1, Math.max(0, (pitch - NEAR_PITCH * KEEP) / (NEAR_PITCH * (1 - KEEP))));
@@ -131,20 +131,15 @@ export function nearRamp(pitch: number, z: number): number {
 const TOP_ROOM = 8;
 
 /**
- * Where a flight to a topic lands: the zoom at which its disc, with fact
- * names overhanging its edge stars and its own name under them, fills FILL
- * of the box. Never short of near and never past `zMax`. A topic too big for
- * that leaves its name out (the panel's title and the foot line carry it),
- * and one taller than the box keeps its top stars in view.
+ * Where a flight to a topic lands: the zoom at which its disc fills FILL of
+ * the box's shorter side, between MOON_PITCH and FLY_PITCH and never past
+ * `zMax`, with room under it for its name. A topic taller than the box keeps
+ * its top stars in view.
  */
 export function camOnTopic(k: Cluster, f: Frame, nn: number, zMax: number): Cam {
 	const d = 2 * k.r;
-	const zNear = zoomForPitch(NEAR_PITCH, nn, f);
-	const fit = (side: number, below: number) => Math.min((FILL * f.w - side) / d, (FILL * f.h - below) / d) / f.scale;
-	let side = Math.max(LABEL_W, k.textW - d * f.scale);
-	let below = NAME_GAP + NAME_DROP + k.text.length * NAME_LINE;
-	if (fit(side, below) < zNear) [side, below] = [LABEL_W, NAME_DROP];
-	const z = Math.min(zMax, Math.max(zNear, fit(side, below)));
+	const below = NAME_GAP + k.text.length * NAME_LINE;
+	const z = Math.min(zMax, zoomForPitch(FLY_PITCH, nn, f), Math.max(zoomForPitch(MOON_PITCH, nn, f), (FILL * Math.min(f.w, f.h)) / d / f.scale));
 	const kz = f.scale * z;
 	const top = Math.min(k.cy, ...k.stars.map((st) => st.cy));
 	const y = d * kz + below > f.h - 2 * TOP_ROOM ? top + (f.h / 2 - TOP_ROOM - STAR_CAP / 2) / kz : k.cy + below / 2 / kz;
@@ -216,3 +211,4 @@ export function carryCam(from: Shot, to: Omit<Shot, "cam">, zMax: number): Cam {
 	const r = to.nn / from.nn;
 	return clampCam({ z, x: there.cx + (c.x - near.cx) * r, y: there.cy + (c.y - near.cy) * r }, to.f, zMax);
 }
+

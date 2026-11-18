@@ -21,7 +21,7 @@ import { useGraphCosts } from "./use-graph-costs.ts";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { lazyComponent } from "@/frontend/lib/lazy-component";
 import type { Aim, Flight } from "./constellation-camera.ts";
-import type { InView } from "./constellation-near.ts";
+import type { InView } from "./use-in-view.ts";
 
 // The picture and panels load in their own chunk once the progress data has arrived.
 // Kept from rendering again when only the foot line's in-view counts change, which they do as the camera moves.

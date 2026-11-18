@@ -3,7 +3,7 @@
  * the space's counts ("N facts" opens All facts), then Find and Costs, and
  * with no space, Add files to pick notes files right here (a space adds files
  * on its Files tab). Zoomed in, the counts are what is in view (the topic's
- * name when it is the only one) and Whole space flies back out. Find, or the app's find shortcut, turns the line into a
+ * name and how many of its facts are lit when it is the only one) and Whole space flies back out. Find, or the app's find shortcut, turns the line into a
  * bare typing line that says what matches; the x, Escape, or leaving it empty
  * brings the counts back.
  */
@@ -12,7 +12,7 @@ import type { GraphCostSummary } from "@/shared/core";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { GraphCostControl } from "./cost-control.tsx";
-import type { InView } from "./constellation-near.ts";
+import type { InView } from "./use-in-view.ts";
 
 /** The foot line's height, kept free under the picture. */
 export const FOOT = 60;
@@ -138,7 +138,17 @@ export function GraphFoot({
 								{/* Plain words: the in-view counts open nothing, so All facts stays one click away at the whole space. */}
 								<span data-testid="graph-in-view" className="flex items-baseline gap-6 border-b-2 border-transparent pb-1">
 									{inView.name ? <span className="whitespace-nowrap text-[15px] text-ink">{inView.name}</span> : <Count n={inView.topics} word="topic" />}
-									<Count n={inView.facts} word="fact" />
+									{/* One topic in view reads how much of it is lit. */}
+									{inView.name ? (
+										<span className="inline-flex items-baseline gap-2 whitespace-nowrap">
+											<span className="font-count text-lg leading-none text-ink">{inView.lit}</span>
+											<span className="text-[15px] text-ink-2">of</span>
+											<span className="font-count text-lg leading-none text-ink">{inView.facts}</span>
+											<span className="text-[15px] text-ink-2">lit</span>
+										</span>
+									) : (
+										<Count n={inView.facts} word="fact" />
+									)}
 								</span>
 								<button
 									type="button"

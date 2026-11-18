@@ -1,14 +1,13 @@
 /**
- * Where the Graph picture's hover boxes go: beside what is hovered, never over
- * it or over what it lights. Pure.
+ * Where the Graph picture's hover boxes and name tags go: beside what is
+ * hovered, never over it or over what it lights. Pure.
  */
 import { nameBox, type Rect, type Seg, type Sky } from "./constellation-layout.ts";
 
 /**
  * Where a hover box `w` by `h` goes beside `at`: inside `bounds` (the view), off `at`
  * itself, off the clusters and names of the `keep` topics and off the `lines`
- * they light; covering another name or cluster costs a little, each of the
- * `labels` (fact names) a little more; then nearest.
+ * they light; covering another name or cluster costs a little; then nearest.
  */
 export function tipSpot(
 	sky: Sky,
@@ -19,7 +18,6 @@ export function tipSpot(
 	keep: ReadonlySet<string>,
 	lines: readonly Seg[],
 	bounds: Rect,
-	labels: readonly Rect[] = [],
 ): { left: number; top: number } {
 	const mx = (at.x0 + at.x1) / 2;
 	const my = (at.y0 + at.y1) / 2;
@@ -41,7 +39,6 @@ export function tipSpot(
 				const hit = near < k.r + 3 || covers(left, top, nameBox(k), Math.min(3, gap));
 				if (hit) cost += keep.has(k.topic.id) ? 300 : 20;
 			}
-			for (const b of labels) if (covers(left, top, b, 0)) cost += 40;
 			for (const g of lines)
 				for (let i = 0; i < g.pts.length; i += 2)
 					if (covers(left, top, { x0: g.pts[i]!, x1: g.pts[i]!, y0: g.pts[i + 1]!, y1: g.pts[i + 1]! })) {
@@ -51,4 +48,60 @@ export function tipSpot(
 			if (cost < least) [least, best] = [cost, { left, top }];
 		}
 	return best;
+}
+
+/** A star on screen, for placing a name tag. */
+interface TagStar {
+	id: string;
+	x: number;
+	y: number;
+}
+
+/**
+ * Where a pointed star's one-line name tag goes, in screen points: the first
+ * side of right, left, above, below that stays inside `room` and covers no
+ * star (each `ext` across); when every side is crowded, above the star's
+ * topic with a dotted leader down to it; failing that, the side that covers
+ * none of the `own` stars (the ends of its lines) and the fewest others.
+ */
+export function tagSpot({
+	at,
+	half,
+	w,
+	h,
+	room,
+	stars,
+	topicTop,
+	own,
+	ext,
+}: {
+	at: TagStar;
+	/** Half the pointed star's drawn size, with its frame. */
+	half: number;
+	w: number;
+	h: number;
+	room: { w: number; h: number };
+	stars: readonly TagStar[];
+	/** The top of the star's topic on screen. */
+	topicTop: number;
+	own: ReadonlySet<string>;
+	ext: number;
+}): { left: number; top: number; leader: { x: number; y0: number; y1: number } | null } {
+	const { x, y } = at;
+	const inside = (p: { left: number; top: number }) => p.left >= 0 && p.left + w <= room.w && p.top >= 0 && p.top + h <= room.h;
+	const under = (p: { left: number; top: number }) => stars.filter((o) => o.id !== at.id && o.x > p.left - ext && o.x < p.left + w + ext && o.y > p.top - ext && o.y < p.top + h + ext);
+	const sides = [
+		{ left: x + half + 6, top: y - h / 2 },
+		{ left: x - half - 6 - w, top: y - h / 2 },
+		{ left: x - w / 2, top: y - half - 6 - h },
+		{ left: x - w / 2, top: y + half + 6 },
+	].filter(inside);
+	const round = (p: { left: number; top: number }) => ({ left: Math.round(p.left), top: Math.round(p.top) });
+	const clear = sides.find((p) => under(p).length === 0);
+	if (clear) return { ...round(clear), leader: null };
+	const above = { left: Math.max(0, Math.min(room.w - w, x - w / 2)), top: topicTop - ext - 8 - h };
+	if (inside(above)) return { ...round(above), leader: { x: Math.round(x), y0: Math.round(above.top + h + 3), y1: Math.round(y - half - 4) } };
+	const best = sides.filter((p) => !under(p).some((o) => own.has(o.id))).sort((a, b) => under(a).length - under(b).length)[0] ?? sides[0] ?? above;
+	// No side fits a long name in a small view: kept inside the room all the same.
+	return { ...round({ left: Math.max(0, Math.min(room.w - w, best.left)), top: Math.max(0, Math.min(room.h - h, best.top)) }), leader: null };
 }

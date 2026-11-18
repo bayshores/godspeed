@@ -130,30 +130,45 @@ Its body is `services::graph::graph::search_graph`, shared with the MCP tool of 
 | Part | File | What it does |
 |---|---|---|
 | Page | `src/frontend/components/graph/graph-screen.tsx` | Loads the data, runs Find, holds the foot line and the chain table, and holds the camera's latest flight (the picture asks for picks, the foot line and Find for the whole space). |
-| Foot line | `graph-foot.tsx`, `cost-control.tsx` | The counts (the fact count opens the chain table), Find, Costs (its pop-up opens upward) and, with no space, Add files. Find turns the line into the typing line. Zoomed in, the counts are what is in view (the topic's name when it is the only one) and Whole space flies out. |
+| Foot line | `graph-foot.tsx`, `cost-control.tsx` | The counts (the fact count opens the chain table), Find, Costs (its pop-up opens upward) and, with no space, Add files. Find turns the line into the typing line. Zoomed in, the counts are what is in view and Whole space flies out. With one topic in view the line reads its name and how many of its facts are lit ("16 of 18 lit"). |
 | Picture and panel | `graph-body.tsx` | Measures the room (its width, and its height down to 16 px above the foot line), docks the picked topic's or fact's panel, asks for a flight on each pick and close, handles Escape. |
-| Picture | `constellation.tsx` | One SVG: every fact is a square, grouped by topic with the topic's name under it; lines join topics that build on each other. Topics are buttons on top. |
+| Picture | `constellation.tsx` | One SVG: every fact is a square star, grouped by topic with the topic's name under it; lines join topics that build on each other. Topics are buttons on top. Zoomed in, it adds no words except the pointed fact's name tag. |
 | Layout | `constellation-layout.ts`, `constellation-routes.ts` | Where groups sit (by a topic's `column`, start on the left), and which lines are drawn and how they route around names. Pure, unit-tested. |
 | Fit | `constellation-fit.ts` | The scale that fits the picture in its room: smaller when it is too tall, never larger. Names that would be under 11 px are not drawn at rest. Pure, unit-tested. |
 | Reveal | `constellation-reveal.ts` | When each cluster, name and line inks in as the tab opens. Pure. |
 | Camera | `use-camera.ts`, `constellation-camera.ts` | Zoom and pan: the wheel or a pinch zooms toward the pointer, a drag pans while zoomed in, a pick flies in. The maths is pure and unit-tested; the camera outlives the picture while a narrow window shows a panel in its place. |
-| Near | `constellation-near.ts`, `constellation-near-layer.tsx` | Once neighbouring stars are 80 px apart, each fact's name and answers show under its star. Names never touch a star or another name; one that would is not drawn. Placement and the in-view counts are pure, unit-tested. |
+| Figure | `constellation-figure.ts`, `use-figure.ts`, `constellation-figure-layer.tsx` | Near, each topic is a figure: its facts placed by what they need, its links as lines, a fact's path. The maths is pure and unit-tested; `use-figure.ts` glides facts into place and the layer draws lines, arrows, facts and the pointed fact's name tag. |
+| Moon | `constellation-moon.ts` | A fact's moon as pixel cells, by its phase. Pure, unit-tested. |
+| Name tag | `constellation-tips.ts` (`tagSpot`) | Where a pointed fact's name tag goes. Pure, unit-tested. |
+| In view | `use-in-view.ts` | What the foot line counts while zoomed in: a topic counts once half its facts are in view. The count is pure and unit-tested. |
 | Panels | `topic-pane.tsx`, `fact-pane.tsx` | The picked topic (its facts, what it needs first and leads to, Study) and the picked fact (its answers, where it came from, the facts it builds on and leads to, Study). |
 | No facts yet | `graph-empty.tsx` | "Start a lesson or add files to build your graph." |
 
 What the learner does:
 
-1. Pointer on a topic: its lines light up with arrows and the rest dims. Pointer on a fact: the facts it builds on light up.
-2. Click a topic: the picture re-fits with one short fade, the topic's panel docks on the right, and the camera flies in until the topic, with its fact names, fills the picture. A topic in the panel's Needs first or Leads to flies the same way. The panel is at most as tall as the picture's room; its middle scrolls and Study stays in view. With under 1000 px of room the panel takes the picture's place.
-3. Click a fact (a square, or a row in a panel): its fact panel opens, with its topic picked, and the camera flies to the topic unless the fact is already near and in view.
+1. Pointer on a topic: its lines light up with arrows and the rest dims. Pointer on a fact: the facts it builds on light up. Near, pointing at a fact shows its name on a tag instead (below).
+2. Click a topic: the picture re-fits with one short fade, the topic's panel docks on the right, and the camera flies in until the topic, drawn as its figure, fills the picture. A topic in the panel's Needs first or Leads to flies the same way. The panel is at most as tall as the picture's room; its middle scrolls and Study stays in view. With under 1000 px of room the panel takes the picture's place.
+3. Click a fact (a star or moon, or a row in a panel): its fact panel opens, with its topic picked, and the camera flies to the topic unless the fact is already near and in view.
 4. Close: the panel's Close, Escape (the fact first, then the topic), a click on empty picture, or a click on the picked topic again. Closing flies back to the view before the first fly-in.
 5. Zoom by hand: the wheel or a pinch zooms toward the pointer. Zoomed in, a drag pans, from a topic's name too (a press that does not move is a click). Whole space in the foot line, or Escape with nothing open, flies back to the whole space; a panel stays open.
 6. Find, in the foot line: the line becomes a typing line with the topic and fact counts beside it, and the camera flies to the whole space. Topics and facts that don't match dim, the picked topic never does, and the counts show what matches. Typing that matches nothing says "Nothing matches".
 7. Stop finding: the x, Escape in the typing line (it clears the typed text and keeps any open panel), or leaving the line while it is empty. The counts come back.
 
+Zooming in adds no words: facts are named only by their panel and the name tag, and the far view (zoom 1) is unchanged. By the star gap on screen:
+
+| Star gap | Facts | Lines |
+|---|---|---|
+| Under 28 px | Square stars in their clusters. | Faint lines between topics. |
+| 28 px and up (near) | Squares glide into their topic's figure, basics at the bottom. Facts no link in the topic reaches (loose) sit in rows under it. | One line for each link inside a topic, from the fact it needs (lower) to the fact built on it (higher). Links to other topics are not drawn. |
+| 44 px and up | Each fact a moon: its phase is how many of its last four answers were right (0 to 4), and never asked is a dark moon. | The same, with a small arrow pointing up on each line. |
+
+A fact is lit when its latest answer was right. A line is lit when both its facts are lit, half lit with one, and a faint ghost with none.
+
+Near, with a fact pointed at or open in its panel, the facts it needs stand out solid, the facts it leads to are dashed, and the rest dims. Pointing also shows the fact's name on a one-line tag (at most 44 letters), except for the fact whose panel is open. The tag takes the first of right, left, above and below that stays inside the picture and covers no star; when every side is crowded it hangs above the topic with a dotted leader down to the fact.
+
 On a picture too tall for its room, a name drawn under 11 px waits until its topic is pointed at, picked or lit by Find, and then shows at full size.
 
-The picture inks in once each time the tab opens, in 0.9 s (a change to the graph, Find or a pick never replays it). A flight takes 0.3 s. With reduced motion there is no reveal and a flight is a jump.
+The picture inks in once each time the tab opens, in 0.9 s (a change to the graph, Find or a pick never replays it). A flight takes 0.3 s. Flying into a topic, its facts glide into their figure places in 0.36 s, and its lit lines draw in from the basics up over 0.6 s, starting after the flight. With reduced motion there is no reveal, a flight is a jump, and the figure shows at once with nothing moving.
 
 A graph change keeps the pick; a picked topic or fact that is gone closes its panel.
 

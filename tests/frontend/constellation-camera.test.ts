@@ -2,23 +2,23 @@
  * The Graph picture's camera maths
  * (src/frontend/components/graph/constellation-camera.ts): zoom toward the
  * pointer, pan, the view kept inside the picture, where a flight to a topic
- * lands, bringing a rect into view, the steps of a flight, when the near
- * layer shows, carrying a camera onto a picture laid out again, and the
+ * lands, bringing a rect into view, the steps of a flight, when the picture
+ * is near, carrying a camera onto a picture laid out again, and the
  * wheel's zoom factor.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { layoutSky, NAME_GAP, NAME_LINE, type Cluster, type Rect } from "../../src/frontend/components/graph/constellation-layout.ts";
 import { fitPicture } from "../../src/frontend/components/graph/constellation-fit.ts";
-import { NAME_DROP } from "../../src/frontend/components/graph/constellation-near.ts";
 import {
+	MOON_PITCH,
 	between,
 	camOnTopic,
 	camShowing,
 	carryCam,
 	homeCam,
+	isNear,
 	nearRamp,
-	nearState,
 	panBy,
 	pitchOf,
 	project,
@@ -139,11 +139,11 @@ describe("where a flight to a topic lands", () => {
 	for (const [name, make] of [["the intro course", introC], ["the made-up course", course]] as const) {
 		const { sky, f, nn, zMax } = look(make());
 
-		it(`${name}: never short of near, never past the top, and the view stays inside the picture`, () => {
+		it(`${name}: close enough for moons, never past the top, and the view stays inside the picture`, () => {
 			for (const k of sky.clusters) {
 				const c = camOnTopic(k, f, nn, zMax);
 				assert.ok(c.z <= zMax + 1e-9, k.topic.name);
-				assert.ok(nearState(pitchOf(c, f, nn), c.z).on, `${k.topic.name} is near`);
+				assert.ok(pitchOf(c, f, nn) >= MOON_PITCH - 1e-6, `${k.topic.name} shows moons`);
 				const v = viewRect(c, f);
 				assert.ok(v.x0 >= -1e-6 && v.x1 <= f.skyW + 1e-6 && v.y0 >= -1e-6, `${k.topic.name} inside`);
 			}
@@ -157,36 +157,35 @@ describe("where a flight to a topic lands", () => {
 		});
 	}
 
-	it("a small cluster goes to the top zoom, with its disc and the names under it in the box", () => {
+	it("a small cluster stops at a pitch of 72, short of the top zoom, with its disc and the name under it in the box", () => {
 		const { sky, f, nn, zMax } = look(course());
 		const small = [...sky.clusters].sort((a, b) => a.r - b.r)[0]!;
 		const c = camOnTopic(small, f, nn, zMax);
-		assert.equal(c.z, zMax);
+		near(pitchOf(c, f, nn), 72);
+		assert.ok(c.z < zMax);
 		const v = viewRect(c, f);
-		const below = (NAME_GAP + NAME_DROP + small.text.length * NAME_LINE) / (f.scale * c.z);
+		const below = (NAME_GAP + small.text.length * NAME_LINE) / (f.scale * c.z);
 		assert.ok(v.x0 <= small.cx - small.r && v.x1 >= small.cx + small.r, "its width is in view");
 		assert.ok(v.y0 <= small.cy - small.r && v.y1 >= small.cy + small.r + below - 1e-6, "its names are in view");
 	});
 
-	it("a cluster that fills the box lands at near and no deeper", () => {
-		const { sky, f, nn, zMax } = look(introC());
+	it("a cluster too big for a short box lands where facts are moons and no deeper", () => {
+		const { sky, f, nn, zMax } = look(introC(), 1192, 300);
 		const big = [...sky.clusters].sort((a, b) => b.r - a.r)[0]!;
 		const c = camOnTopic(big, f, nn, zMax);
 		assert.ok(c.z < zMax);
-		near(pitchOf(c, f, nn), 80, "a big cluster is not zoomed past the least near pitch");
+		near(pitchOf(c, f, nn), MOON_PITCH, "a big cluster is not zoomed past the moon pitch");
 	});
 
-	it("a cluster that fits with room to spare is fitted, not left at the near zoom", () => {
+	it("a cluster between the two limits is fitted to 60% of the box's shorter side", () => {
 		const { sky, f, nn, zMax } = look(introC());
 		const mid = sky.clusters.find((k) => {
-			const c = camOnTopic(k, f, nn, zMax);
-			return c.z < zMax && pitchOf(c, f, nn) > 85;
+			const p = pitchOf(camOnTopic(k, f, nn, zMax), f, nn);
+			return p > MOON_PITCH + 1 && p < 71;
 		});
 		assert.ok(mid, "the course has a topic between the two limits");
 		const c = camOnTopic(mid!, f, nn, zMax);
-		const below = NAME_GAP + NAME_DROP + mid!.text.length * NAME_LINE;
-		const used = 2 * mid!.r * f.scale * c.z + below;
-		assert.ok(used <= 0.85 * f.h + 1e-6 && used > 0.8 * f.h, `fills about 85% of the box (${used.toFixed(0)} of ${f.h})`);
+		near(2 * mid!.r * f.scale * c.z, 0.6 * Math.min(f.w, f.h), "the disc's size on screen");
 	});
 });
 
@@ -278,26 +277,24 @@ describe("the steps of a flight", () => {
 	});
 });
 
-describe("when the near layer shows", () => {
-	it("never shows at the whole picture, however far apart the stars are", () => {
-		assert.deepEqual(nearState(500, 1), { mounted: false, on: false });
-		assert.deepEqual(nearState(500, 1.001), { mounted: false, on: false });
+describe("when the picture is near", () => {
+	it("never at the whole picture, however far apart the stars are", () => {
+		assert.equal(isNear(500, 1), false);
+		assert.equal(isNear(500, 1.001), false);
 		assert.equal(nearRamp(500, 1), 0);
 	});
 
-	it("is inked in from a pitch of 80 and kept, faded out, down to 60", () => {
-		assert.deepEqual(nearState(80, 2), { mounted: true, on: true });
-		assert.deepEqual(nearState(79.9, 2), { mounted: true, on: false });
-		assert.deepEqual(nearState(60, 2), { mounted: true, on: false });
-		assert.deepEqual(nearState(59.9, 2), { mounted: false, on: false });
-		assert.deepEqual(nearState(124, 9), { mounted: true, on: true });
+	it("from a pitch of 28", () => {
+		assert.equal(isNear(28, 2), true);
+		assert.equal(isNear(27.9, 2), false);
+		assert.equal(isNear(92, 9), true);
 	});
 
-	it("the ramp runs from 0 at 60 to 1 at 80 and stays inside that", () => {
-		near(nearRamp(60, 2), 0);
-		near(nearRamp(70, 2), 0.5);
-		near(nearRamp(80, 2), 1);
-		assert.equal(nearRamp(30, 2), 0);
+	it("the ramp runs from 0 at 21 to 1 at 28 and stays inside that", () => {
+		near(nearRamp(21, 2), 0);
+		near(nearRamp(24.5, 2), 0.5);
+		near(nearRamp(28, 2), 1);
+		assert.equal(nearRamp(10, 2), 0);
 		assert.equal(nearRamp(200, 2), 1);
 	});
 });
@@ -320,10 +317,10 @@ describe("carrying a camera onto the picture laid out again", () => {
 	it("keeps near near, at the same pitch, on the same topic", () => {
 		const topic = wide.sky.clusters.find((k) => k.topic.name === "Pointers")!;
 		const cam = camOnTopic(topic, wide.f, wide.nn, wide.zMax);
-		assert.ok(nearState(pitchOf(cam, wide.f, wide.nn), cam.z).on);
+		assert.ok(isNear(pitchOf(cam, wide.f, wide.nn), cam.z));
 		const c = carryCam(shot(wide, cam), there, narrow.zMax);
 		near(pitchOf(c, narrow.f, narrow.nn), pitchOf(cam, wide.f, wide.nn), "pitch");
-		assert.ok(nearState(pitchOf(c, narrow.f, narrow.nn), c.z).on);
+		assert.ok(isNear(pitchOf(c, narrow.f, narrow.nn), c.z));
 		const k = narrow.sky.byTopic.get(topic.topic.id)!;
 		const v = viewRect(c, narrow.f);
 		assert.ok(k.cx >= v.x0 && k.cx <= v.x1 && k.cy >= v.y0 && k.cy <= v.y1, "the topic is still in view");

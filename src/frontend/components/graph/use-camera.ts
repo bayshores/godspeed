@@ -1,7 +1,7 @@
 /**
  * The Graph picture's camera as the person moves it: the wheel or a pinch
  * zooms toward the pointer (a Mac's pinch arrives as gesture events), a drag
- * pans, and an Aim flies it. A flight is
+ * pans, and an Aim flies it, onto a topic as its figure is drawn. A flight is
  * short and eased, a jump with reduced motion, and any wheel, drag or new
  * flight stops it. The camera lives in `memory` too, so a picture mounted
  * again (a narrow window's panel closing) starts where it was.
@@ -15,7 +15,7 @@ import {
 	carryCam,
 	easeOut,
 	homeCam,
-	nearState,
+	isNear,
 	panBy,
 	pitchOf,
 	topZoom,
@@ -39,6 +39,7 @@ const DRAG = 3;
 
 export function useCamera({
 	sky,
+	placed,
 	frame,
 	nn,
 	memory,
@@ -46,6 +47,8 @@ export function useCamera({
 	box,
 }: {
 	sky: Sky;
+	/** The sky with each fact at its figure place, where a flight to a topic lands. */
+	placed: Sky;
 	frame: Frame;
 	nn: number;
 	memory: RefObject<CameraMemory>;
@@ -73,6 +76,12 @@ export function useCamera({
 		live.current = { ...s, cam };
 		setShot(live.current);
 	}, []);
+
+	// The figure places, read when an Aim flies; a change to them alone does not fly again.
+	const figure = useRef(placed);
+	figure.current = placed;
+	/** The last flight to a topic, so its figure can draw in once it lands. */
+	const [landed, setLanded] = useState<{ topic: string; seq: number } | null>(null);
 
 	const flight = useRef(0);
 	const land = useCallback(() => {
@@ -119,12 +128,13 @@ export function useCamera({
 			if (back) flyTo(carryCam(back, now, top));
 			return;
 		}
-		const k = now.sky.byTopic.get(aim.id);
+		const k = figure.current.byTopic.get(aim.id);
 		if (!k) return;
-		const star = aim.fact ? now.sky.starById.get(aim.fact) : undefined;
+		const star = aim.fact ? figure.current.starById.get(aim.fact) : undefined;
 		const v = viewRect(now.cam, now.f);
-		if (star && nearState(pitchOf(now.cam, now.f, now.nn), now.cam.z).on && star.cx > v.x0 && star.cx < v.x1 && star.cy > v.y0 && star.cy < v.y1) return;
+		if (star && isNear(pitchOf(now.cam, now.f, now.nn), now.cam.z) && star.cx > v.x0 && star.cx < v.x1 && star.cy > v.y0 && star.cy < v.y1) return;
 		m.back ??= now;
+		setLanded({ topic: aim.id, seq: aim.seq });
 		flyTo(camOnTopic(k, now.f, now.nn, top));
 	}, [aim, memory, flyTo]);
 
@@ -223,5 +233,6 @@ export function useCamera({
 		},
 	};
 
-	return { cam: current.cam, zoomed: zoomed(current.cam), zMax, flyTo, drag, dragging };
+	return { cam: current.cam, zoomed: zoomed(current.cam), zMax, flyTo, drag, dragging, landed };
 }
+

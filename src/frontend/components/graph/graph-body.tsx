@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import type { FactProgress, ProgressPayload } from "@/shared/core";
 import { Constellation } from "./constellation.tsx";
 import type { Aim, CameraMemory, Flight } from "./constellation-camera.ts";
-import type { InView } from "./constellation-near.ts";
+import type { InView } from "./use-in-view.ts";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { FactPane, type FactSources } from "./fact-pane.tsx";
 import { GraphEmpty } from "./graph-empty.tsx";

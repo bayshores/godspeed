@@ -20,10 +20,11 @@ import { GraphFoot } from "../../src/frontend/components/graph/graph-foot.tsx";
 import { GraphScreen } from "../../src/frontend/components/graph/graph-screen.tsx";
 import { Constellation } from "../../src/frontend/components/graph/constellation.tsx";
 import type { Aim, Flight } from "../../src/frontend/components/graph/constellation-camera.ts";
-import type { InView } from "../../src/frontend/components/graph/constellation-near.ts";
+import type { InView } from "../../src/frontend/components/graph/use-in-view.ts";
+import { FAINT } from "../../src/frontend/components/graph/styles.ts";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
 import { MemoryRouter } from "react-router";
-import { fixture } from "../graph-fixture.ts";
+import { answers, fixture } from "../graph-fixture.ts";
 
 // The picture measures names, so the static renders need a DOM too.
 const dom = parseHTML("<html><body></body></html>");
@@ -342,7 +343,17 @@ describe("picking in the page", () => {
 });
 
 /** The page as the screen builds it: the picture and its panels over the foot line, sharing one Find and the camera's view. */
-function Page({ data: given, costs = null, onChains = noop }: { data?: ReturnType<typeof fixture>; costs?: ReturnType<typeof costsFixture> | null; onChains?: () => void }) {
+function Page({
+	data: given,
+	costs = null,
+	onChains = noop,
+	sources = null,
+}: {
+	data?: ReturnType<typeof fixture>;
+	costs?: ReturnType<typeof costsFixture> | null;
+	onChains?: () => void;
+	sources?: FactSources | null;
+}) {
 	// One payload for the page's life, as the screen holds one: a new one on every render would re-fit the picture and end a flight.
 	const [own] = React.useState(fixture);
 	const data = given ?? own;
@@ -357,7 +368,7 @@ function Page({ data: given, costs = null, onChains = noop }: { data?: ReturnTyp
 	}, [finding, fly]);
 	return inRouter(
 		<>
-			<GraphBody data={data} matches={matches} sources={null} studying={false} studyError={null} onStudy={noop} onStudyFact={noop} onInView={setInView} aim={aim} onFly={fly} />
+			<GraphBody data={data} matches={matches} sources={sources} studying={false} studyError={null} onStudy={noop} onStudyFact={noop} onInView={setInView} aim={aim} onFly={fly} />
 			<GraphFoot
 				hasFacts={data.facts.length > 0}
 				topicCount={data.topics.length}
@@ -660,8 +671,8 @@ describe("zooming the picture", () => {
 
 	const zoom = () => document.querySelector('[data-testid="graph-picture"]')?.getAttribute("data-zoom") ?? null;
 	const isNear = () => document.querySelector('[data-testid="graph-picture"]')?.getAttribute("data-near") === "true";
-	const factNames = () => [...document.querySelectorAll('[data-testid="fact-name"]')].map((n) => n.getAttribute("data-fact-id")!).sort();
-	const members = (id: string) => [...fixture().topics.find((t) => t.id === id)!.members].sort();
+	/** The topics drawn as figures. */
+	const figures = () => [...document.querySelectorAll("[data-figure]")].map((n) => n.getAttribute("data-figure")!);
 	/** One wheel event over the picture, then the frame its zoom waits for. The test DOM has no layout, so the pointer is measured from the picture's corner. */
 	async function wheel(deltaY: number, at: { clientX: number; clientY: number } = { clientX: 600, clientY: 100 }, on: Element = document.querySelector('[data-testid="graph-picture"]')!) {
 		let event!: Event;
@@ -673,23 +684,23 @@ describe("zooming the picture", () => {
 	}
 	const footText = (q: (id: string) => HTMLElement | null) => q("graph-foot")!.textContent!;
 
-	it("a click on a topic opens its panel and the picture is near on it, with every fact's name", async () => {
+	it("a click on a topic opens its panel and the picture is near on it, drawn as its figure", async () => {
 		const { q, topic } = await mount(<Page />);
-		assert.ok(zoom() === null && !isNear() && factNames().length === 0, "at rest: whole picture, no fact names");
+		assert.ok(zoom() === null && !isNear() && figures().length === 0, "at rest: whole picture, no figures");
 		await act(async () => topic("t-mini").click());
 		assert.ok(q("topic-pane"));
 		assert.ok(zoom() !== null && isNear());
-		assert.deepEqual(factNames(), members("t-mini"));
+		assert.ok(figures().includes("t-mini"));
 	});
 
-	it("a topic named in the panel's Leads to is picked and shows its own fact names", async () => {
+	it("a topic named in the panel's Leads to is picked and drawn as its figure", async () => {
 		const { q, topic } = await mount(<Page />);
 		await act(async () => topic("t-mini").click());
 		const chip = [...q("leads-to")!.querySelectorAll<HTMLElement>('[data-testid="topic-chip"]')].find((c) => c.textContent!.includes("Momentum"))!;
 		await act(async () => chip.click());
 		assert.match(q("topic-pane")!.querySelector("h2")!.textContent!, /Momentum/);
 		assert.ok(isNear());
-		assert.deepEqual(factNames(), members("t-mom"));
+		assert.ok(figures().includes("t-mom"));
 	});
 
 	it("Close flies back to the whole picture, and the foot shows the space's counts again", async () => {
@@ -698,16 +709,16 @@ describe("zooming the picture", () => {
 		await act(async () => q("topic-pane-close")!.click());
 		assert.ok(!q("topic-pane"));
 		assert.ok(zoom() === null && !isNear());
-		assert.equal(factNames().length, 0);
+		assert.equal(figures().length, 0);
 		assert.match(footText(q), /5topics12facts/);
 		assert.ok(!q("graph-whole-space"));
 	});
 
-	it("zoomed in on one topic, the foot names it and counts its facts, with Whole space beside", async () => {
+	it("zoomed in on one topic, the foot names it and counts its lit facts, with Whole space beside", async () => {
 		const { q, topic } = await mount(<Page />);
 		assert.ok(!q("graph-whole-space") && !q("graph-in-view"), "no Whole space at the whole picture");
 		await act(async () => topic("t-mini").click());
-		assert.equal(q("graph-in-view")!.textContent, "Minibatch noise6facts");
+		assert.equal(q("graph-in-view")!.textContent, "Minibatch noise1of6lit");
 		assert.equal(q("graph-whole-space")!.textContent, "Whole space");
 		assert.ok(!q("open-chain-table"), "the counts are what is in view, so the fact count is not a button");
 	});
@@ -715,7 +726,7 @@ describe("zooming the picture", () => {
 	it("zoomed out to several topics, the foot counts topics and facts in view", async () => {
 		const { q, topic } = await mount(<Page />);
 		await act(async () => topic("t-mini").click());
-		await wheel(1300);
+		await wheel(700);
 		assert.ok(zoom() !== null, "still zoomed in");
 		const [, topics, facts] = q("graph-in-view")!.textContent!.match(/^(\d+)topics(\d+)facts$/) ?? [];
 		assert.ok(topics !== undefined, `counts, not a topic's name: ${q("graph-in-view")!.textContent}`);
@@ -735,7 +746,7 @@ describe("zooming the picture", () => {
 
 	it("Escape closes the fact, then the topic, then flies a hand-zoomed view out to the whole space", async () => {
 		const { q, topic } = await mount(<Page />);
-		await wheel(-400);
+		await wheel(-150);
 		assert.ok(zoom() !== null, "zoomed by hand");
 		await act(async () => topic("t-mini").click());
 		await act(async () => q("fact-row")!.click());
@@ -758,7 +769,7 @@ describe("zooming the picture", () => {
 		await typeInto(q("graph-find-box")!, "momentum");
 		assert.ok(zoom() === null && !isNear());
 		assert.ok(q("topic-pane"));
-		assert.equal(factNames().length, 0);
+		assert.equal(figures().length, 0);
 	});
 
 	it("a wheel over the picture zooms toward the pointer and does not scroll the page", async () => {
@@ -783,22 +794,22 @@ describe("zooming the picture", () => {
 		assert.ok(zoom() === null);
 	});
 
-	it("a space of one topic flies to it and names its facts", async () => {
+	it("a space of one topic flies to it and draws its figure", async () => {
 		const data = fixture();
 		const mini = data.topics.find((t) => t.id === "t-mini")!;
 		const { q, topic } = await mount(<Page data={{ ...data, topics: [mini], topicLinks: [], facts: data.facts.filter((f) => f.topicId === "t-mini") }} />);
 		await act(async () => topic("t-mini").click());
 		assert.ok(q("topic-pane") && isNear());
-		assert.deepEqual(factNames(), members("t-mini"));
-		assert.equal(q("graph-in-view")!.textContent, "Minibatch noise6facts");
+		assert.deepEqual(figures(), ["t-mini"]);
+		assert.equal(q("graph-in-view")!.textContent, "Minibatch noise1of6lit");
 	});
 
-	it("a space with no facts still draws, picks and zooms, with nothing to name", async () => {
+	it("a space with no facts still draws, picks and zooms, with no figure", async () => {
 		const { q, topic } = await mount(<Page data={{ ...fixture(), facts: [] }} />);
 		await act(async () => topic("t-mini").click());
 		assert.ok(q("topic-pane"));
 		await wheel(-300);
-		assert.equal(factNames().length, 0);
+		assert.equal(document.querySelectorAll("[data-figure] path").length, 0);
 		await act(async () => q("topic-pane-close")!.click());
 		assert.ok(q("graph-picture"));
 	});
@@ -889,14 +900,12 @@ describe("the camera's small behaviours", () => {
 		assert.deepEqual(picks, [null, null], "the click after the cancel reaches the picture too");
 	});
 
-	it("Find dims the names of facts that do not match inside a found topic", async () => {
+	it("Find dims the facts that do not match inside a found topic", async () => {
 		const { q, topic } = await mount(<Page />);
 		await act(async () => q("graph-find")!.click());
 		await typeInto(q("graph-find-box")!, "gradient");
 		await act(async () => topic("t-mini").click());
-		const opacity = (id: string) => Number(/opacity:\s*([\d.]+)/.exec(host!.querySelector(`[data-testid="fact-name"][data-fact-id="${id}"]`)!.getAttribute("style")!)?.[1]);
-		for (const hit of ["f5", "f10"]) assert.equal(opacity(hit), 1, `${hit} matches`);
-		for (const miss of ["f6", "f7", "f8", "f9"]) assert.ok(opacity(miss) < 1, `${miss} does not`);
+		assert.ok(host!.querySelectorAll(`[data-figure="t-mini"] path[opacity="${FAINT}"]`).length > 0);
 	});
 
 	it("Escape with focus in an unrelated control does not fly the camera", async () => {
@@ -944,7 +953,7 @@ describe("a flight with motion", () => {
 		performance.now = real.now;
 	});
 	const zoom = () => Number(host!.querySelector('[data-testid="graph-picture"]')!.getAttribute("data-zoom"));
-	const names = () => host!.querySelectorAll('[data-testid="fact-name"]').length;
+	const drawn = () => host!.querySelector('[data-figure="t-mini"]') !== null;
 
 	it("takes its time: the picture is whole at the pick, part-way at half time and near once the flight has run", async () => {
 		const { q, topic } = await mount(<Page />);
@@ -956,7 +965,7 @@ describe("a flight with motion", () => {
 		await step(150);
 		assert.ok(zoom() > partWay, "further in at the end");
 		assert.ok(q("graph-picture")!.getAttribute("data-near") === "true");
-		assert.ok(names() === 6, "the topic's six fact names");
+		assert.ok(drawn(), "the topic's figure");
 		const landed = zoom();
 		await step(150);
 		assert.ok(zoom() === landed, "and it stays there");
@@ -965,7 +974,7 @@ describe("a flight with motion", () => {
 	it("lands on the picked topic when the graph changes and the picture is laid out again mid-flight", async () => {
 		const { q, topic } = await mount(<Page />);
 		await act(async () => topic("t-mini").click());
-		await step(60);
+		await step(16);
 		assert.ok(q("graph-picture")!.getAttribute("data-near") === null, "the flight has not landed");
 		const data = fixture();
 		const more = {
@@ -976,7 +985,370 @@ describe("a flight with motion", () => {
 		await act(async () => root!.render(<Page data={more} />));
 		await step(16);
 		assert.ok(q("graph-picture")!.getAttribute("data-near") === "true");
-		assert.ok(names() === 6, "the topic's six fact names");
-		assert.match(q("graph-foot")!.textContent!, /Minibatch noise6facts/);
+		assert.ok(drawn(), "the topic's figure");
+		assert.match(q("graph-foot")!.textContent!, /Minibatch noise1of6lit/);
+	});
+});
+
+describe("the picture near", () => {
+	// Chains inside Minibatch noise (f5 to f10), and one from Variance into it, which is never drawn as a line of its figure.
+	const sources: FactSources = {
+		chains: [
+			{ premises: ["f5"], conclusion: "f6" },
+			{ premises: ["f6"], conclusion: "f7" },
+			{ premises: ["f5"], conclusion: "f8" },
+			{ premises: ["f7"], conclusion: "f9" },
+			{ premises: ["f3"], conclusion: "f6" },
+		],
+		fileSources: {},
+		sessions: {},
+	};
+	const factNames = fixture().facts.filter((f) => f.topicId === "t-mini").map((f) => f.name);
+	const picture = () => document.querySelector<HTMLElement>('[data-testid="graph-picture"]')!;
+	/** The name tags: the picture's one-line boxes. Nothing else in the picture is a sheet. */
+	const tags = () => [...picture().querySelectorAll("[data-testid=graph-name-tag]")].map((n) => n.textContent!);
+	/**
+	 * Where each moon is, read from what is drawn, since this DOM has no layout: the figure's
+	 * 2-point cells, grouped into moons by how near they sit, each moon's middle.
+	 */
+	function moons() {
+		// A moon's path is `M x y`, then each 2-point cell as `m dx dy h2v2h-2z`, relative to the cell before it.
+		const cells = [...host!.querySelectorAll('[data-figure="t-mini"] [shape-rendering="crispEdges"] path')].flatMap((p) => {
+			let [x, y] = [0, 0];
+			return [...(p.getAttribute("d") ?? "").matchAll(/([Mm])(-?\d+) (-?\d+)(h2v2h-2z)?/g)].flatMap((m) => {
+				[x, y] = m[1] === "M" ? [+m[2]!, +m[3]!] : [x + +m[2]!, y + +m[3]!];
+				return m[4] ? [{ x, y }] : [];
+			});
+		});
+		const out: { x: number; y: number }[] = [];
+		const left = new Set(cells);
+		while (left.size) {
+			const [first] = left;
+			const group = [first!];
+			left.delete(first!);
+			for (let i = 0; i < group.length; i++)
+				for (const c of left) if (Math.abs(c.x - group[i]!.x) <= 4 && Math.abs(c.y - group[i]!.y) <= 4) (group.push(c), left.delete(c));
+			const [x0, x1] = [Math.min(...group.map((c) => c.x)), Math.max(...group.map((c) => c.x)) + 2];
+			const [y0, y1] = [Math.min(...group.map((c) => c.y)), Math.max(...group.map((c) => c.y)) + 2];
+			out.push({ x: (x0 + x1) / 2, y: (y0 + y1) / 2 });
+		}
+		return out.sort((a, b) => a.y - b.y || a.x - b.x);
+	}
+	const point = (at: { x: number; y: number }) => act(async () => void fire(picture(), "pointermove", { clientX: at.x, clientY: at.y, button: 0, pointerId: 1 }));
+	const open = async (data?: ReturnType<typeof fixture>) => {
+		const page = await mount(<Page data={data} sources={sources} />);
+		await act(async () => page.topic("t-mini").click());
+		await until(() => picture().getAttribute("data-near") === "true", "the near picture");
+		return page;
+	};
+
+	describe("with reduced motion", () => {
+		beforeEach(() => {
+			reducedMotion.matches = true;
+		});
+		afterEach(() => {
+			reducedMotion.matches = false;
+		});
+
+		it("zoomed to a topic, every fact is a moon and the picture holds no fact name", async () => {
+			const { q } = await open();
+			assert.equal(moons().length, factNames.length);
+			assert.equal(picture().querySelectorAll("text").length, 0);
+			assert.equal(host!.querySelectorAll('[data-testid="fact-name"]').length, 0);
+			const shown = picture().textContent!;
+			for (const name of factNames) assert.ok(!shown.includes(name), `${name} is written on the picture`);
+			assert.ok(q("graph-topic"), "the topic's own name stays");
+		});
+
+		it("only the links inside a topic are lines of its figure", async () => {
+			await open();
+			// One ghost path holds a figure's every line; four links inside the topic make four segments, the link from Variance none.
+			const ghost = host!.querySelector('[data-figure="t-mini"] path[stroke-opacity="0.16"]')!.getAttribute("d")!;
+			assert.equal(ghost.split("M").length - 1, 4);
+		});
+
+		it("pointing at a moon shows its name on one tag; each moon its own; moving off shows none", async () => {
+			await open();
+			assert.deepEqual(tags(), [], "no tag with no pointer");
+			const seen: string[] = [];
+			for (const m of moons()) {
+				await point(m);
+				assert.equal(tags().length, 1, "exactly one tag");
+				seen.push(tags()[0]!);
+			}
+			assert.deepEqual([...seen].sort(), [...factNames].sort(), "each fact's own name");
+			await point({ x: 2, y: 2 });
+			assert.deepEqual(tags(), [], "moving off the moon takes its tag away");
+		});
+
+		it("a fact whose panel is open gets no tag, the others still do", async () => {
+			const { q } = await open();
+			const [first] = moons();
+			await point(first!);
+			const name = tags()[0]!;
+			await act(async () => void fire(picture(), "click", { clientX: first!.x, clientY: first!.y, detail: 1 }));
+			assert.ok(q("fact-pane"), "the fact opened");
+			const shown = moons();
+			assert.equal(shown.length, factNames.length);
+			const named: (string | undefined)[] = [];
+			for (const m of shown) {
+				await point(m);
+				assert.ok(tags().length <= 1);
+				named.push(tags()[0]);
+			}
+			assert.equal(named.filter((t) => t === undefined).length, 1, "one moon has no tag");
+			assert.ok(!named.includes(name), "and it is the open fact's");
+			assert.equal(named.filter((t) => t !== undefined && factNames.includes(t)).length, factNames.length - 1);
+		});
+
+		it("the figure shows at once, with no line drawing in", async () => {
+			const data = fixture();
+			await open({ ...data, facts: data.facts.map((f) => (["f5", "f6", "f7"].includes(f.id) ? { ...f, answers: answers("r") } : f)) });
+			assert.ok(host!.querySelectorAll('[data-figure="t-mini"] path[stroke-width="2"]').length > 0, "a lit line is drawn");
+			assert.equal(host!.querySelectorAll(".lh-reveal-line").length, 0);
+			assert.equal(host!.querySelectorAll('[data-figure] [style*="--lh-at"]').length, 0);
+		});
+	});
+
+	describe("the foot's lit count", () => {
+		beforeEach(() => {
+			reducedMotion.matches = true;
+		});
+		afterEach(() => {
+			reducedMotion.matches = false;
+		});
+
+		for (const [lit, ids] of [
+			[0, []],
+			[3, ["f5", "f6", "f8"]],
+			[6, ["f5", "f6", "f7", "f8", "f9", "f10"]],
+		] as const)
+			it(`reads ${lit} of 6 lit when ${lit} of the topic's facts were last answered right`, async () => {
+				const data = fixture();
+				const { q } = await open({ ...data, facts: data.facts.map((f) => (f.topicId !== "t-mini" ? f : { ...f, answers: ids.includes(f.id as never) ? answers("wr") : answers("rw") })) });
+				assert.equal(q("graph-in-view")!.textContent, `Minibatch noise${lit}of6lit`);
+			});
+	});
+});
+
+describe("the figure with motion", () => {
+	const real = { frame: globalThis.requestAnimationFrame, cancel: globalThis.cancelAnimationFrame, now: performance.now };
+	let clock = 0;
+	let waiting = new Map<number, FrameRequestCallback>();
+	let ids = 0;
+	const step = (ms: number) =>
+		act(async () => {
+			clock += ms;
+			const due = [...waiting.values()];
+			waiting.clear();
+			for (const frame of due) frame(clock);
+		});
+	beforeEach(() => {
+		clock = 0;
+		waiting = new Map();
+		Object.assign(globalThis, {
+			requestAnimationFrame: (frame: FrameRequestCallback) => {
+				waiting.set(++ids, frame);
+				return ids;
+			},
+			cancelAnimationFrame: (id: number) => void waiting.delete(id),
+		});
+		performance.now = () => clock;
+	});
+	afterEach(() => {
+		Object.assign(globalThis, { requestAnimationFrame: real.frame, cancelAnimationFrame: real.cancel });
+		performance.now = real.now;
+	});
+	const lines = () => [...host!.querySelectorAll('[data-figure="t-mini"] .lh-reveal-line')];
+	const delays = () => lines().map((n) => parseFloat(/--lh-at:\s*([\d.]+)ms/.exec(n.getAttribute("style") ?? "")![1]!));
+	const cells = () => [...host!.querySelectorAll('[data-figure="t-mini"] [shape-rendering="crispEdges"] path')].map((p) => p.getAttribute("d")).join("|");
+
+	async function fly() {
+		const data = fixture();
+		const lit = { ...data, facts: data.facts.map((f) => (["f5", "f6", "f7", "f9"].includes(f.id) ? { ...f, answers: answers("r") } : f)) };
+		const { q, topic } = await mount(<Page data={lit} sources={{ chains: [{ premises: ["f5"], conclusion: "f6" }, { premises: ["f6"], conclusion: "f7" }, { premises: ["f7"], conclusion: "f9" }], fileSources: {}, sessions: {} }} />);
+		await act(async () => topic("t-mini").click());
+		for (let i = 0; i < 30 && q("graph-picture")!.getAttribute("data-near") !== "true"; i++) await step(16);
+		return q;
+	}
+
+	it("lit lines draw in from the basics up: a line that rests on another waits for it", async () => {
+		await fly();
+		const wait = delays();
+		assert.equal(wait.length, 3, "the three lit lines");
+		assert.ok(wait.every((ms) => ms >= 300 && ms <= 600), "after the flight, inside the drawing time");
+		assert.equal(new Set(wait).size, 3, "each its own turn");
+		// Lines are drawn in the order their start points rise up the picture.
+		const startY = lines().map((n) => +/^M[\d.]+ ([\d.]+)/.exec(n.getAttribute("d")!)![1]!);
+		const byWait = startY.map((y, i) => ({ y, ms: wait[i]! })).sort((a, b) => a.ms - b.ms);
+		for (let i = 1; i < byWait.length; i++) assert.ok(byWait[i]!.y < byWait[i - 1]!.y, "a later line starts higher up");
+	});
+
+	it("facts glide into their places over a third of a second, and land where a jump would put them", async () => {
+		await fly();
+		const gliding = cells();
+		await step(90);
+		assert.notEqual(cells(), gliding, "still moving part-way");
+		await step(400);
+		const landed = cells();
+		await step(100);
+		assert.ok(cells() === landed, "at rest once it has run");
+		await act(async () => root!.unmount());
+		host!.remove();
+		reducedMotion.matches = true;
+		try {
+			await fly();
+			assert.ok(cells() === landed, "with reduced motion they are there at once");
+		} finally {
+			reducedMotion.matches = false;
+		}
+	});
+});
+
+describe("when the lines draw in", () => {
+	const real = { frame: globalThis.requestAnimationFrame, cancel: globalThis.cancelAnimationFrame, now: performance.now };
+	let clock = 0;
+	let waiting = new Map<number, FrameRequestCallback>();
+	let ids = 0;
+	const step = (ms: number) =>
+		act(async () => {
+			clock += ms;
+			const due = [...waiting.values()];
+			waiting.clear();
+			for (const frame of due) frame(clock);
+		});
+	beforeEach(() => {
+		clock = 0;
+		waiting = new Map();
+		Object.assign(globalThis, {
+			requestAnimationFrame: (frame: FrameRequestCallback) => {
+				waiting.set(++ids, frame);
+				return ids;
+			},
+			cancelAnimationFrame: (id: number) => void waiting.delete(id),
+		});
+		performance.now = () => clock;
+	});
+	afterEach(() => {
+		Object.assign(globalThis, { requestAnimationFrame: real.frame, cancelAnimationFrame: real.cancel });
+		performance.now = real.now;
+		reducedMotion.matches = false;
+	});
+
+	// Lit lines in Minibatch noise (f5 to f6 to f7) and in Derivatives (f1 to f2).
+	const sources: FactSources = { chains: [{ premises: ["f5"], conclusion: "f6" }, { premises: ["f6"], conclusion: "f7" }, { premises: ["f1"], conclusion: "f2" }], fileSources: {}, sessions: {} };
+	const data = () => {
+		const d = fixture();
+		return { ...d, facts: d.facts.map((f) => (["f1", "f2", "f5", "f6", "f7"].includes(f.id) ? { ...f, answers: answers("r") } : f)) };
+	};
+	const picture = () => host!.querySelector<HTMLElement>('[data-testid="graph-picture"]')!;
+	const isNear = () => picture().getAttribute("data-near") === "true";
+	const drawing = () => [...host!.querySelectorAll("[data-figure] .lh-reveal-line")];
+	/** The topics whose figure has a line drawing in. */
+	const drawingIn = () => [...new Set(drawing().map((n) => n.closest("[data-figure]")!.getAttribute("data-figure")))].sort();
+	const landOn = async (topic: (id: string) => HTMLButtonElement, id: string) => {
+		await act(async () => topic(id).click());
+		// Longer than a flight takes, so it has landed.
+		for (let i = 0; i < 30; i++) await step(16);
+		assert.ok(isNear() && host!.querySelector(`[data-figure="${id}"]`), `${id} drawn near`);
+	};
+	/** The drawing window runs on the page's real timer: let it end. */
+	const windowEnds = () => until(() => drawing().length === 0, "the draw-in to end");
+	const noLines = (why: string) => assert.equal(drawing().length, 0, why);
+	const key = (el: Element, init: Record<string, unknown>) => act(async () => void fire(el, "keydown", init));
+
+	it("a flight that lands on a topic draws its lit lines in, and only that topic's", async () => {
+		const { topic } = await mount(<Page data={data()} sources={sources} />);
+		await landOn(topic, "t-mini");
+		assert.equal(drawing().length, 2, "its two lit lines");
+		assert.deepEqual(drawingIn(), ["t-mini"]);
+	});
+
+	it("a later flight to another topic draws that topic's lines, and the first topic's stay still", async () => {
+		const { topic } = await mount(<Page data={data()} sources={sources} />);
+		await landOn(topic, "t-mini");
+		await windowEnds();
+		noLines("the first draw-in is over");
+		await landOn(topic, "t-deriv");
+		assert.deepEqual(drawingIn(), ["t-deriv"]);
+	});
+
+	it("pointing at a fact does not draw the lines in again", async () => {
+		const { topic } = await mount(<Page data={data()} sources={sources} />);
+		await landOn(topic, "t-mini");
+		const before = drawing();
+		await act(async () => void fire(picture(), "pointermove", { clientX: 2, clientY: 2, button: 0, pointerId: 1 }));
+		assert.ok(drawing().length === before.length && drawing().every((n, i) => n === before[i]), "the same lines, not drawn afresh");
+		await windowEnds();
+		await act(async () => void fire(picture(), "pointermove", { clientX: 600, clientY: 300, button: 0, pointerId: 1 }));
+		await act(async () => void fire(picture(), "pointermove", { clientX: 2, clientY: 2, button: 0, pointerId: 1 }));
+		noLines("pointing after the draw-in");
+	});
+
+	it("opening a fact's panel and closing it does not draw them in again", async () => {
+		const { q, topic } = await mount(<Page data={data()} sources={sources} />);
+		await landOn(topic, "t-mini");
+		await windowEnds();
+		await act(async () => q("fact-row")!.click());
+		assert.ok(q("fact-pane"), "the fact opened");
+		await step(400);
+		noLines("a fact open");
+		await key(document.body, { key: "Escape" });
+		await step(400);
+		noLines("the fact closed");
+	});
+
+	it("closing the topic's panel, and flying back out, does not draw anything", async () => {
+		const { q, topic } = await mount(<Page data={data()} sources={sources} />);
+		await landOn(topic, "t-mini");
+		await windowEnds();
+		await key(document.body, { key: "Escape" });
+		for (let i = 0; i < 40; i++) await step(16);
+		assert.equal(q("topic-pane"), null, "the panel is closed");
+		noLines("the pick is cleared");
+	});
+
+	it("panning the picture does not draw them in again", async () => {
+		const { topic } = await mount(<Page data={data()} sources={sources} />);
+		await landOn(topic, "t-mini");
+		await windowEnds();
+		const at = { button: 0, clientX: 300, clientY: 100, pointerId: 1 };
+		await act(async () => {
+			fire(picture(), "pointerdown", at);
+			fire(picture(), "pointermove", { ...at, clientX: 360, clientY: 130 });
+		});
+		await step(32);
+		await act(async () => void fire(picture(), "pointerup", { ...at, clientX: 360, clientY: 130 }));
+		await step(32);
+		assert.ok(isNear(), "still near");
+		noLines("after a pan");
+	});
+
+	it("a wheel zoom in across the near pitch does not draw them in", async () => {
+		const { q } = await mount(<Page data={data()} sources={sources} />);
+		for (let i = 0; i < 40 && !isNear(); i++) {
+			await act(async () => void fire(picture(), "wheel", { deltaY: -400, deltaMode: 0, ctrlKey: false, clientX: 600, clientY: 100 }));
+			await step(16);
+			await step(16);
+			noLines(`wheel ${i}`);
+		}
+		assert.ok(isNear(), "the wheel zoomed in to the near picture");
+		assert.ok(host!.querySelector("[data-figure]"), "with figures");
+		assert.ok(q("graph-whole-space"));
+		noLines("near by the wheel");
+	});
+
+	it("with reduced motion nothing draws in and the facts do not glide", async () => {
+		reducedMotion.matches = true;
+		const { topic } = await mount(<Page data={data()} sources={sources} />);
+		await act(async () => topic("t-mini").click());
+		assert.ok(isNear(), "a flight is a jump");
+		noLines("at the landing");
+		const cells = () => [...host!.querySelectorAll('[data-figure="t-mini"] [shape-rendering="crispEdges"] path')].map((p) => p.getAttribute("d")).join("|");
+		const at = cells();
+		assert.ok(at.length > 0);
+		for (let i = 0; i < 5; i++) await step(100);
+		assert.ok(cells() === at, "the facts stay where they landed");
+		noLines("after the time it would take");
 	});
 });

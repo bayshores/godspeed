@@ -66,7 +66,7 @@ export interface Rect {
 	y1: number;
 }
 
-export type Measure = (text: string) => number;
+type Measure = (text: string) => number;
 
 /** The box a name's button takes: its ink, centred under the cluster. */
 export function nameBox(k: Pick<Cluster, "cx" | "nameTop" | "textW" | "text">): Rect {
@@ -123,7 +123,7 @@ function starSize(n: number, width: number): number {
  * ellipsis only ends the second line. `mark` is the room the status square
  * takes before the first line. `w` is the widest line as drawn.
  */
-export function wrap(name: string, maxW: number, measure: Measure, mark: number): { w: number; text: string[] } {
+function wrap(name: string, maxW: number, measure: Measure, mark: number): { w: number; text: string[] } {
 	const words = name.split(/\s+/).filter(Boolean);
 	const full = words.join(" ");
 	const fw = measure(full) + mark;
