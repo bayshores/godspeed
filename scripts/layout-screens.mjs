@@ -164,6 +164,7 @@ export const SCREENS = [
 	{ name: "Homework deadline with its two keys", url: "/space/deadline/{homeworkOpenDeadline}", ready: "[data-testid=homework-card] [data-testid=deadline-work]" },
 	{ name: "Progress with a homework next", before: `${homeworkCoversFile}\n${homeworkTomorrow}`, url: "/space", ready: "[data-testid=next-deadline] [data-testid=deadline-work]" },
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
+	{ name: "Lesson with a written-answer question", url: "/chat/{written}", ready: "[data-testid=question-dock]" },
 	{ name: "Lesson with a plugin's page open", url: "/chat/{lesson}", ready: "[data-testid=lesson-plugin-flashcards]", setup: `document.querySelector("[data-testid=lesson-plugin-flashcards]").click()`, shows: "[data-testid=plugin-window] [data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Homework lesson with an open problem", url: "/chat/{homeworkOpen}", ready: "[data-testid=open-problem]" },
 	{ name: "Homework lesson before a problem opens", url: "/chat/{homeworkFirst}", ready: "[data-testid=next-problem-button]" },

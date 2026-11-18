@@ -212,7 +212,7 @@ describe("Your turn in each state", () => {
 	});
 
 	it("Stuck? leads the foot row under the box while a question or a problem waits, never while reading first or at a stop", () => {
-		const keys = /data-testid="composer"[\s\S]*data-testid="turn-foot"[^>]*><span[^>]*>Stuck\?<\/span>[\s\S]*?>I don(?:'|&#x27;)t know<[\s\S]*?>Give me a hint<[\s\S]*?>Explain it simpler</;
+		const keys = /data-testid="composer"[\s\S]*data-testid="turn-foot"[^>]*><div[^>]*><span[^>]*>Stuck\?<\/span>[\s\S]*?>I don(?:'|&#x27;)t know<[\s\S]*?>Give me a hint<[\s\S]*?>Explain it simpler</;
 		for (const over of [{ pending: quiz }, { pending: written }, { pending: choice }, { problem }]) assert.match(html(over), keys, JSON.stringify(Object.keys(over)));
 		const view = stopCard({ kind: "topic", at: "2026-11-18T21:48:00.000Z", nodeId: "reg", stopOf: "c1", next: "Cross-validation", activeMinutes: 48, keptGoing: false });
 		for (const over of [{}, { pending: check, revealPending: true }, { stop: { key: "c1", view, onAction: () => {} } }]) assert.doesNotMatch(html(over), /Stuck\?/);

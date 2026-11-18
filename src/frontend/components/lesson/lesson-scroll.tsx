@@ -9,18 +9,17 @@ import { keepPair, restingTop, turnStick, wholeLineTop } from "./lesson-scroll-m
 
 /**
  * The column's width and its sides, shared by the step line and the page so their edges meet.
- * With room for both, a pair is the lesson text (688 to 872 wide, never narrower than its
- * partner) and "Your turn" (688, so its Stuck? keys and the way out share one line) side by
- * side; with less, "Your turn" sits under the text in one column.
+ * With room for both (1284 or more), a pair is the lesson text and "Your turn" side by side,
+ * sized by `.lh-lesson-room`; with less, "Your turn" sits under the text in one column.
  */
 const COLUMN = "mx-auto w-full max-w-[872px]";
-const PAIR = "@min-[1468px]/room:max-w-[1588px]";
-const PAIR_GRID = "@min-[1468px]/room:grid @min-[1468px]/room:grid-cols-[minmax(0,1fr)_688px] @min-[1468px]/room:items-start";
+const PAIR = "@min-[1284px]/room:max-w-[1588px]";
+const PAIR_GRID = "@min-[1284px]/room:grid @min-[1284px]/room:grid-cols-[minmax(0,1fr)_var(--lh-turn)] @min-[1284px]/room:items-start";
 const GUTTERS = "px-8 @max-[899px]/lesson:px-6";
 
 /** The jump key: in the gutter beside one column where the window leaves room, else in the sheet's side padding; in a pair, in the lesson text's. */
 const KEY = "@min-[688px]/room:right-[max(34px,calc((100%-872px)/2-48px))]";
-const PAIR_KEY = "@min-[1468px]/room:right-[calc((100%-min(100%-64px,1588px))/2+726px)]";
+const PAIR_KEY = "@min-[1284px]/room:right-[calc((100%-var(--lh-pair))/2+var(--lh-turn)+38px)]";
 
 /** Text blocks whose lines the window's top edge may cut. */
 const LINES = "p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th";
@@ -162,7 +161,7 @@ export function LessonScroll({
 	}, [hasTurn, contextRef]);
 
 	return (
-		<div className="@container/room flex min-h-0 min-w-0 flex-col [grid-area:main]">
+		<div className="lh-lesson-room @container/room flex min-h-0 min-w-0 flex-col [grid-area:main]">
 			{/* A sheet of its own, so the page scrolls under its edge; shown only when the step line draws something. */}
 			<div className={`shrink-0 pt-5 [&:not(:has(>section>div>*))]:hidden ${GUTTERS}`}>
 				<Pane className={cn("@container/strip", COLUMN, pair && PAIR)}>

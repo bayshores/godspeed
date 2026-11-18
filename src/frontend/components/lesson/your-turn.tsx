@@ -133,7 +133,7 @@ export function YourTurn({
 	return (
 		// The lesson text's inset, so both sheets share their edges.
 		<div data-testid="your-turn" data-mode={mode.split(":")[0]} className="flex flex-col gap-7 px-14 pt-10 pb-10 @max-[640px]/column:px-7 @max-[640px]/column:pt-7 @max-[640px]/column:pb-8">
-			<h2 className="text-[26px] leading-tight font-medium text-ink">{fromEarlier ? "From earlier" : "Your turn"}</h2>
+			<h2 className="text-[28px] leading-tight text-ink">{fromEarlier ? "From earlier" : "Your turn"}</h2>
 
 			{reviewRefused && (
 				<p data-testid="review-refused" className="text-base text-ink-2">
@@ -193,7 +193,12 @@ export function YourTurn({
 				<>
 					<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
 					<div data-testid="turn-foot" className="flex flex-wrap items-center gap-x-2.5 gap-y-2.5">
-						{help && <HelpKeys help={help} questionRef={questionRef} onHelpLine={onHelpLine} />}
+						{/* One group, so a narrow sheet wraps the way out under the keys, not a key under the rest. */}
+						{help && (
+							<div className="flex flex-wrap items-center gap-2.5">
+								<HelpKeys help={help} questionRef={questionRef} onHelpLine={onHelpLine} />
+							</div>
+						)}
 						<button type="button" data-testid={exit.testId} onClick={onExit} className="lh-btn lh-btn-small lh-btn-quiet -mr-2.5 ml-auto">
 							{exit.label}
 						</button>

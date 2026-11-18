@@ -42,6 +42,12 @@ const STUDIED_TOPICS = [
 	"Absolute value",
 	"Reading a graph",
 ];
+/** A lesson whose question is answered in words, so "Your turn" holds a three-line box. */
+const WRITTEN_TOPIC = "Why undo in reverse";
+const WRITTEN_REPLY = {
+	text: "An equation is a balance: whatever you do to one side, you do to the other, so it stays true.\n\nTo solve 3x - 5 = 10, look at what was done to x: first it was multiplied by 3, then 5 was taken away. Undo those in reverse. Add 5 to both sides to get 3x = 15, then divide both sides by 3 to get x = 5.",
+	tool_calls: [{ name: "ask_user_question", arguments: { question: "In your own words, why do we undo the steps in reverse order?" } }],
+};
 const OPEN_TOPICS = ["Inequalities on a number line", "Slope-intercept form, with every kind of mistake people make while plotting by hand and reading the result back"];
 
 const HOMEWORK_PROBLEMS = {
@@ -153,6 +159,7 @@ function shortLessonAnswer(lessonTurn, studied) {
 function answerFor(work, ids, lessonTurn) {
 	const homework = homeworkAnswer(work, ids, lessonTurn);
 	if (homework) return homework;
+	if (work.lessonId === ids.written) return WRITTEN_REPLY;
 	if (ids.studied.includes(work.lessonId)) return shortLessonAnswer(lessonTurn, true);
 	if (ids.open.includes(work.lessonId)) return shortLessonAnswer(lessonTurn, false);
 	if (work.task?.startsWith("Graph extraction")) {
@@ -244,6 +251,7 @@ export async function seed(dataDir, page, log) {
 	const homeworkOpen = await homeworkLesson(HOMEWORK_OPEN);
 	const homeworkFirst = await homeworkLesson(HOMEWORK_FIRST);
 	const homeworkMany = await homeworkLesson(HOMEWORK_MANY);
+	const written = (await agent.json("start_lesson", { topic: WRITTEN_TOPIC, space_id: space.id })).lessonId;
 	const startLesson = async (topic) => (await agent.json("start_lesson", { topic, space_id: space.id })).lessonId;
 	const studied = [];
 	for (const topic of STUDIED_TOPICS) studied.push(await startLesson(topic));
@@ -257,12 +265,12 @@ export async function seed(dataDir, page, log) {
 	let helper = false;
 	const wait = () => agent.call("wait_for_work", { timeout_seconds: 3, ...(helper ? { helper: true } : {}) });
 	const turns = new Map();
-	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, studied, open };
+	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, studied, open, written };
 	const drain = async () => {
 		let reply = await wait();
 		for (let idle = 0, tries = 0; idle < 4; tries++) {
 			// Each added lesson is two items, and an item is two passes: the work, then its "turn done".
-			if (tries > 20 + 4 * (studied.length + open.length)) throw new Error("the stand-in agent never ran out of work");
+			if (tries > 20 + 4 * (studied.length + open.length + 1)) throw new Error("the stand-in agent never ran out of work");
 			const header = JSON.parse(reply[0]);
 			if (header.status !== "work") {
 				if (header.status === "idle") helper = !helper;
@@ -296,5 +304,5 @@ export async function seed(dataDir, page, log) {
 	const covers = (topic) => `Enough ${topic} to get a junior job by spring, with typing practice daily.`;
 	const steps = ["Git and pull requests", "HTTP and APIs", "SQL querying", "Typing in Python", "Caching layers", "Deploying apps", "Logging and paging", "Security group policy"];
 	const goal = await agent.json("create_space", { name: "Backend jobs", icon: "code", path: { goal: "backend developer jobs", topics: steps.map((name) => ({ name, covers: covers(name) })) } });
-	return { space: space.id, lesson: lessonId, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), pathSpace: goal.space.id };
+	return { space: space.id, lesson: lessonId, written, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), pathSpace: goal.space.id };
 }
