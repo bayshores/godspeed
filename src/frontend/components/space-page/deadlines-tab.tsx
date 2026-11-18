@@ -145,11 +145,11 @@ function DeadlineRow({
 				</span>
 				<span className="flex shrink-0 items-center gap-2.5 pr-(--lh-inset)">
 					{sheet && (
-						<Link to={studioPath(d.id)} data-testid="deadline-sheet" className="lh-btn lh-btn-quiet relative text-[15px]">
+						<Link to={studioPath(d.id)} data-testid="deadline-sheet" className="lh-btn lh-btn-small lh-btn-quiet relative">
 							{sheet.status === "none" ? "Make cheat sheet" : "Cheat sheet"}
 						</Link>
 					)}
-					<button type="button" data-testid={d.done ? "deadline-undo" : "deadline-done"} onClick={d.done ? onUndo : onDone} className="lh-btn lh-btn-quiet relative text-[15px]">
+					<button type="button" data-testid={d.done ? "deadline-undo" : "deadline-done"} onClick={d.done ? onUndo : onDone} className="lh-btn lh-btn-small lh-btn-quiet relative">
 						{d.done ? "Undo" : "Mark done"}
 					</button>
 					<PixelIcon name="chevron" className="h-3.5 text-ink" />

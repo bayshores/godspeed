@@ -5,7 +5,7 @@ import { KeyHint, keyShortcutProps } from "@/frontend/components/ui/key-hint";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { cn } from "@/frontend/lib/utils";
-import { BAR_TAB, barTabState, MENU_ITEM } from "./bar-look";
+import { barWord, MENU_ITEM } from "./bar-look";
 
 /**
  * Menu, at the top bar's right: Search lessons and Settings. `lit` while
@@ -25,7 +25,7 @@ export function AppMenu({ lit }: { lit: boolean }) {
 				aria-haspopup="menu"
 				aria-expanded={open}
 				onClick={() => setOpen((v) => !v)}
-				className={cn(BAR_TAB, "shrink-0", barTabState(lit && !open), open && "font-medium")}
+				className={cn(barWord(open || lit), "mx-1.5")}
 			>
 				Menu
 			</button>

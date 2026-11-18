@@ -14,7 +14,7 @@ import { keptCardView } from "./kept-card-model";
 import { useStepNumber } from "./step-context";
 
 /** A quiet word button on the card. */
-const QUIET_BTN = "lh-btn lh-btn-quiet h-7 shrink-0 text-[14px]";
+const QUIET_BTN = "lh-btn lh-btn-small lh-btn-quiet shrink-0";
 
 /** His sentence as he reads it on a card: Literata 17/28 in ink. */
 export function KeptSentence({ text }: { text: string }) {

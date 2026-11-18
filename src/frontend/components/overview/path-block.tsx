@@ -53,7 +53,7 @@ export const PathBlock = memo(function PathBlock({ path, main, busy, onStudy }: 
 				</ul>
 			)}
 			{view.showAll !== null && (
-				<button type="button" data-testid="space-path-show-all" onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet -ml-1.5 self-start text-[15px]">
+				<button type="button" data-testid="space-path-show-all" onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet self-start text-[15px]">
 					Show all {view.showAll}
 				</button>
 			)}

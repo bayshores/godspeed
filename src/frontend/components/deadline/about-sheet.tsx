@@ -45,7 +45,7 @@ export function AboutSheet({
 			) : (
 				<div className="h-24 w-full bg-tone" aria-hidden />
 			)}
-			<button type="button" data-testid="deadline-about-ask" disabled={requesting} onClick={onAsk} className="lh-btn lh-btn-quiet -ml-1 self-start text-[15px]">
+			<button type="button" data-testid="deadline-about-ask" disabled={requesting} onClick={onAsk} className="lh-btn lh-btn-quiet self-start text-[15px]">
 				Ask {teacherName} to rewrite
 			</button>
 			{requestLine && (

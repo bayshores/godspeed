@@ -50,7 +50,7 @@ function MoreButton({ lesson, actions, className }: { lesson: LessonProgress; ac
 			aria-expanded={open}
 			data-testid="lesson-row-menu"
 			onClick={(e) => actions.onMenu(e.currentTarget, lesson.chatId)}
-			className={cn("lh-btn lh-btn-quiet relative z-10 h-7 text-[15px] group-hover:visible group-focus-within:visible", !open && "invisible", className)}
+			className={cn("lh-btn lh-btn-small lh-btn-quiet relative z-10 group-hover:visible group-focus-within:visible", !open && "invisible", className)}
 		>
 			More
 		</button>

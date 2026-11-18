@@ -134,7 +134,7 @@ export function YourTurn({
 
 	return (
 		// The lesson text's inset, so both sheets share their edges.
-		<div data-testid="your-turn" data-mode={mode.split(":")[0]} className="lh-reading flex min-h-0 flex-col gap-7">
+		<div data-testid="your-turn" data-mode={mode.split(":")[0]} className="lh-reading flex min-h-0 flex-1 flex-col gap-7">
 			<div className="flex items-baseline gap-4">
 				<h2 className="text-[28px] leading-tight text-ink">{fromEarlier ? "From earlier" : "Your turn"}</h2>
 				{!pending && problem?.file && <ProblemFile file={problem.file} />}
@@ -204,7 +204,7 @@ export function YourTurn({
 								<HelpKeys help={help} questionRef={questionRef} onHelpLine={onHelpLine} />
 							</div>
 						)}
-						<button type="button" data-testid={exit.testId} onClick={onExit} className="lh-btn lh-btn-small lh-btn-quiet -mr-2.5 ml-auto">
+						<button type="button" data-testid={exit.testId} onClick={onExit} className="lh-btn lh-btn-small lh-btn-quiet ml-auto">
 							{exit.label}
 						</button>
 					</div>

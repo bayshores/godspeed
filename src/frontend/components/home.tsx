@@ -62,7 +62,7 @@ export function NewLesson() {
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<div ref={viewRef} className="@container/page lh-page flex flex-col gap-(--lh-head-gap) pt-(--lh-page-top) pb-(--lh-page-end)" style={{ animationDuration: "var(--lh-dur-slow)" }}>
 					<div className="flex flex-col items-start gap-2.5">
-						<Link to="/space" data-testid="page-back" className="lh-btn lh-btn-quiet -ml-1 text-[15px]">
+						<Link to="/space" data-testid="page-back" className="lh-btn lh-btn-quiet text-[15px]">
 							<PixelIcon name="chevron" className="-scale-x-100" />
 							Progress
 						</Link>

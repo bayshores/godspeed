@@ -596,7 +596,7 @@ export function Chat({
 											busy={busy}
 											contextRef={scrollContextRef}
 											reading={
-												<Pane data-testid="lesson-reading" className="min-w-0">
+												<Pane data-testid="lesson-reading" className="lh-text-fit min-w-0">
 													<ReadingPane
 														spaceId={spaceId}
 														title={rename.title}

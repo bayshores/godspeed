@@ -32,7 +32,7 @@ export const UnfinishedLessons = memo(function UnfinishedLessons({
 				))}
 			</ul>
 			{showAll !== null && (
-				<button type="button" data-testid="unfinished-show-all" onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet -ml-1.5 self-start text-[15px]">
+				<button type="button" data-testid="unfinished-show-all" onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet self-start text-[15px]">
 					Show all {showAll}
 				</button>
 			)}

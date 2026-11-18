@@ -69,12 +69,12 @@ export function CodeAnswer({
 					<button type="button" data-testid="mock-start-over-yes" onClick={onStartOver} className="lh-btn h-6 px-2 text-[13px]">
 						Erase
 					</button>
-					<button type="button" onClick={() => setErasing(false)} className="lh-btn lh-btn-quiet h-6 text-[13px]">
+					<button type="button" onClick={() => setErasing(false)} className="lh-btn lh-btn-small lh-btn-quiet">
 						Keep
 					</button>
 				</span>
 			) : (
-				<button type="button" data-testid="mock-start-over" onClick={() => setErasing(true)} className="lh-btn lh-btn-quiet h-6 text-[13px]">
+				<button type="button" data-testid="mock-start-over" onClick={() => setErasing(true)} className="lh-btn lh-btn-small lh-btn-quiet">
 					Start over
 				</button>
 			)}

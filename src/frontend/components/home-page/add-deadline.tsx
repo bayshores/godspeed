@@ -24,7 +24,7 @@ export function AddDeadline({ spaces, onPick }: { spaces: readonly SpaceSummary[
 				aria-haspopup={single ? undefined : "menu"}
 				aria-expanded={single ? undefined : open}
 				onClick={() => (single ? onPick(single.id) : setOpen((v) => !v))}
-				className="lh-btn lh-btn-quiet -mr-[7.5px]"
+				className="lh-btn lh-btn-quiet"
 			>
 				<PixelIcon name="plus" />
 				Add

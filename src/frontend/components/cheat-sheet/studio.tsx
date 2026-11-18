@@ -107,7 +107,7 @@ function Studio({
 		<div className="flex h-full flex-col">
 			<StudioHead deadlineId={deadlineId} deadlineName={view.deadlineName} />
 			<BarActions>
-				<span data-testid="cheat-sheet-status" className="shrink-0 self-center px-4 text-[15px] text-bar-ink">
+				<span data-testid="cheat-sheet-status" className="shrink-0 px-2.5 text-[15px] text-bar-ink">
 					{sheetPaper(view)}
 				</span>
 				{current &&

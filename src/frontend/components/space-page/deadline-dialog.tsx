@@ -126,7 +126,7 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 		) : (
 			<>
 				{saved && (
-					<button type="button" data-testid="deadline-remove" disabled={busy} onClick={() => setAsking("remove")} className="lh-btn lh-btn-quiet -ml-1.5 text-[15px] text-ans-wrong hover:text-ans-wrong-hover">
+					<button type="button" data-testid="deadline-remove" disabled={busy} onClick={() => setAsking("remove")} className="lh-btn lh-btn-quiet text-[15px] text-ans-wrong hover:text-ans-wrong-hover">
 						Remove deadline
 					</button>
 				)}

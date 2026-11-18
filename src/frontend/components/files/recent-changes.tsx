@@ -45,7 +45,7 @@ export function RecentChanges({ changes, collapsed, onToggle }: { changes: reado
 			)}
 			{!collapsed && more > 0 && (
 				<div className="pt-0.5 pr-1 pb-2 pl-[30px]">
-					<button type="button" data-testid="files-recent-changes-more" onClick={() => setAll(true)} className="lh-btn lh-btn-quiet -ml-1.5 text-[15px]">
+					<button type="button" data-testid="files-recent-changes-more" onClick={() => setAll(true)} className="lh-btn lh-btn-quiet text-[15px]">
 						Show {more} more
 					</button>
 				</div>

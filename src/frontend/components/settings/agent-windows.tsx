@@ -165,7 +165,7 @@ function Tile({
 					)}
 					<p className="text-[15px] text-ink-2">{tile.note}</p>
 					{tile.start && onOpen && (
-						<button type="button" data-testid={`agent-window-${id}-open`} disabled={busy} onClick={onOpen} className={cn("lh-btn mt-2", quiet ? "lh-btn-quiet -ml-1.5" : "lh-btn-main")}>
+						<button type="button" data-testid={`agent-window-${id}-open`} disabled={busy} onClick={onOpen} className={cn("lh-btn mt-2", quiet ? "lh-btn-quiet" : "lh-btn-main")}>
 							{tile.start}
 						</button>
 					)}

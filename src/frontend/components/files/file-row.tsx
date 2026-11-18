@@ -218,7 +218,7 @@ function RowMenu({
 				data-testid={`space-file-menu-${file.id}`}
 				disabled={disabled}
 				onClick={() => setOpen((o) => !o)}
-				className="lh-btn lh-btn-quiet h-7 shrink-0 text-[15px]"
+				className="lh-btn lh-btn-small lh-btn-quiet shrink-0"
 			>
 				More
 			</button>

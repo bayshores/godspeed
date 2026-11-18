@@ -534,8 +534,8 @@ body {
 
 /* Buttons are keycaps: a hard-cornered face on a darker bottom edge, which
    sinks while pressed. .lh-btn-main is the one bright key of a view;
-   .lh-btn-quiet is a plain word. In the components layer, so a size
-   utility on one button wins. */
+   .lh-btn-quiet is a lighter key for its lesser actions. In the components
+   layer, so a size utility on one button wins. */
 @layer components {
 	.lh-btn {
 		--lh-key: color-mix(in srgb, var(--foreground) 26%, var(--background));
@@ -586,20 +586,9 @@ body {
 		color: var(--background);
 	}
 	.lh-btn-quiet {
-		--lh-key: transparent;
-		--lh-key-hover: color-mix(in srgb, var(--foreground) 10%, transparent);
-		--lh-lip: 0px;
-		padding: 0 6px;
-		color: var(--muted-foreground);
-	}
-	.lh-btn-quiet:hover {
-		color: var(--foreground);
-	}
-	/* Beside a key the word keeps the key's lip, unseen, so both read on one line. */
-	.lh-btn:not(.lh-btn-quiet) ~ .lh-btn-quiet,
-	.lh-btn-quiet:has(~ .lh-btn:not(.lh-btn-quiet)) {
-		--lh-lip: 4px;
-		border-bottom-color: transparent;
+		--lh-key: color-mix(in srgb, var(--foreground) 10%, var(--background));
+		--lh-key-hover: color-mix(in srgb, var(--foreground) 16%, var(--background));
+		border-bottom-color: color-mix(in srgb, var(--foreground) 26%, var(--background));
 	}
 	/* A small key: one that sits in a line of text or a card's corner. */
 	.lh-btn-small {
@@ -608,12 +597,21 @@ body {
 		padding: 0 10px;
 		font-size: 14px;
 	}
-	/* A button on a mock's own dark bar. */
+	/* A key on a dark bar: the app's top bar or a page's own. */
 	.lh-btn-bar {
 		--lh-key: color-mix(in srgb, var(--lh-bar-ink) 26%, var(--lh-bar));
 		--lh-key-hover: color-mix(in srgb, var(--lh-bar-ink) 34%, var(--lh-bar));
 		flex-shrink: 0;
 		color: var(--lh-bar-ink);
+	}
+	/* A bar key whose panel is open or whose page is shown: held down, in the bar's ink. */
+	.lh-btn-bar.lh-btn-on {
+		--lh-key: var(--lh-bar-ink);
+		--lh-key-hover: var(--lh-bar-ink);
+		border-top-width: var(--lh-lip);
+		border-bottom-width: 0;
+		font-weight: 560;
+		color: var(--lh-bar);
 	}
 }
 
@@ -689,18 +687,24 @@ body {
 	--lh-pair: min(100cqw - 2 * var(--lh-page-side), var(--lh-page-w));
 	--lh-turn: clamp(560px, min((var(--lh-pair) - var(--lh-gap)) / 2, var(--lh-pair) - var(--lh-gap) - 632px), 688px);
 }
-/* Side by side, "Your turn" (.lh-turn-fit) holds still while the text scrolls and always fits
-   the page's window (the scroller is a size container, so 100cqh is its height). Only its
-   question or problem (.lh-turn-scroll) shrinks, and scrolls in its own box. */
+/* Side by side, the two sheets are the pages of an open book: both fill the page's window (the
+   scroller is a size container, so 100cqh is its height), and the text's grows past it. "Your
+   turn" (.lh-turn-fit) holds still while the text scrolls. Its question or problem
+   (.lh-turn-scroll) takes the room that is left, so the box and the keys under it rest at the
+   sheet's foot, and scrolls in its own box when it is longer than that room. */
 @container room (width >= 1280px) {
+	.lh-text-fit {
+		min-height: calc(100cqh - 2 * var(--lh-gap));
+	}
 	.lh-turn-fit {
 		position: sticky;
 		top: var(--lh-gap);
 		display: flex;
 		flex-direction: column;
-		max-height: calc(100cqh - 2 * var(--lh-gap));
+		height: calc(100cqh - 2 * var(--lh-gap));
 	}
 	.lh-turn-scroll {
+		flex: 1 1 auto;
 		overflow-y: auto;
 	}
 }

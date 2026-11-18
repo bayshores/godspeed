@@ -48,10 +48,10 @@ export function TurnSheet({
 		<aside
 			data-testid="turn-sheet"
 			aria-label="Your turn"
-			className="flex min-h-0 min-w-0 flex-col"
+			className="flex min-h-0 min-w-0 flex-1 flex-col"
 			style={{ "--lh-pale": color ? paleSpaceColor(color) : "var(--color-tone)" } as React.CSSProperties}
 		>
-			<Pane className="flex min-h-0 flex-col">
+			<Pane className="flex min-h-0 flex-1 flex-col">
 				<YourTurn
 					{...turn}
 					revealPending={pending !== null && requiresReveal && !revealed}

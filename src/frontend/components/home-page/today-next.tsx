@@ -40,11 +40,11 @@ export function TodayNext({
 	onStudyTopic: (spaceId: string, topicId: string) => void;
 }) {
 	if (unfinished.length === 0 && topics.length === 0) return null;
-	// Two blocks sit side by side from 700 points of room; one keeps a half, never a stretched row.
+	// Two blocks sit side by side from 700 points of room; one alone takes the row.
 	return (
-		<div className="grid gap-(--lh-gap) @[700px]/page:grid-cols-2">
+		<div className="grid gap-(--lh-gap) @[700px]/page:grid-cols-2 @[1100px]/page:col-span-2">
 			{unfinished.length > 0 && (
-				<Pane data-testid="today-unfinished" className="lh-card self-start">
+				<Pane data-testid="today-unfinished" className="lh-card self-start only:col-span-full">
 					<div className="lh-card-head">
 						<h2 className="lh-card-title">Unfinished</h2>
 					</div>
@@ -83,7 +83,7 @@ export function TodayNext({
 				</Pane>
 			)}
 			{topics.length > 0 && (
-				<Pane data-testid="today-work-on-next" className="lh-card self-start">
+				<Pane data-testid="today-work-on-next" className="lh-card self-start only:col-span-full">
 					<div className="lh-card-head">
 						<h2 className="lh-card-title">Work on next</h2>
 					</div>

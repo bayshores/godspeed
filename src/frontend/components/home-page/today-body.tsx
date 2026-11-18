@@ -90,7 +90,7 @@ export function TodayBody(p: TodayBodyProps) {
 				</Pane>
 			) : (
 				<>
-					{/* Wide, the spaces take a column beside the card and the week. */}
+					{/* Wide, the spaces take a column beside the card and the week and end level with them; the blocks under run the page's width. */}
 					<div className="grid gap-(--lh-gap) @[1100px]/page:grid-cols-[minmax(0,1fr)_340px]">
 						<div className="flex min-w-0 flex-col gap-(--lh-gap)">
 							{p.lessonError && (
@@ -111,12 +111,12 @@ export function TodayBody(p: TodayBodyProps) {
 								/>
 							)}
 							<DeadlinesCard spaces={p.spaces} lists={p.lists} nowMs={p.nowMs} picked={card?.id ?? null} onPick={(d) => setPicked(d.id)} onRetry={p.onRetry} onAdd={p.onAddDeadline} />
-							<TodayNext unfinished={unfinished} topics={topics} busy={p.busy} onOpenSpace={p.onOpenSpace} onStudyTopic={p.onStudyTopic} />
 							<p aria-live="polite" data-testid="today-showing" className="sr-only">
 								{picked !== null && card ? `Showing ${card.name}` : ""}
 							</p>
 						</div>
-						<div className="self-start">
+						<TodayNext unfinished={unfinished} topics={topics} busy={p.busy} onOpenSpace={p.onOpenSpace} onStudyTopic={p.onStudyTopic} />
+						<div className="grid @[1100px]/page:col-start-2 @[1100px]/page:row-start-1">
 							<SpaceList spaces={p.spaces} progress={p.spacesProgress} errors={p.progressErrors} newFiles={p.newFiles} onOpen={p.onOpenSpace} />
 						</div>
 					</div>

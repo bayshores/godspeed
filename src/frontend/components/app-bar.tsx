@@ -32,7 +32,7 @@ export function AppBar() {
 			<SpaceTabs selected={selected} />
 			<LivePill />
 			{/* After the pill, so its changing words never move the page's. */}
-			<div ref={actionsRef} data-testid="bar-actions" className="lh-bar-actions flex shrink-0 items-stretch" />
+			<div ref={actionsRef} data-testid="bar-actions" className="lh-bar-actions flex shrink-0 items-center gap-1.5 not-empty:pl-1.5" />
 			<AppMenu lit={selected === "menu"} />
 			<Clock />
 		</header>

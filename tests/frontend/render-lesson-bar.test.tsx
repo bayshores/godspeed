@@ -183,8 +183,8 @@ describe("the open lesson in the top bar", () => {
 		await mount({ plugins });
 		assert.equal(q("lesson-plugin-memes")!.getAttribute("aria-pressed"), "true");
 		assert.equal(q("lesson-plugin-cards")!.getAttribute("aria-pressed"), "false");
-		assert.match(q("lesson-plugin-memes")!.className, /bg-bar-ink /, "marked as the bar marks an open panel");
-		assert.doesNotMatch(q("lesson-plugin-cards")!.className, /bg-bar-ink /);
+		assert.match(q("lesson-plugin-memes")!.className, /lh-btn-on/, "held down as the bar holds a key with an open panel");
+		assert.doesNotMatch(q("lesson-plugin-cards")!.className, /lh-btn-on/);
 		await click(q("lesson-plugin-cards")!);
 		assert.deepEqual(clicked, ["cards"]);
 	});
@@ -217,11 +217,11 @@ describe("More in the bar", () => {
 		assert.equal(more.getAttribute("aria-label"), "More for Study: counting");
 		assert.equal(more.getAttribute("aria-haspopup"), "menu");
 		assert.equal(more.getAttribute("aria-expanded"), "false");
-		assert.doesNotMatch(more.className, /bg-bar-ink /);
+		assert.doesNotMatch(more.className, /lh-btn-on/);
 		await click(more);
 		assert.ok(q("lesson-menu"));
 		assert.equal(q("lesson-more")!.getAttribute("aria-expanded"), "true");
-		assert.match(q("lesson-more")!.className, /bg-bar-ink /, "lit while its menu is open");
+		assert.match(q("lesson-more")!.className, /lh-btn-on/, "held down while its menu is open");
 		assert.deepEqual([...document.querySelectorAll("[data-testid=lesson-menu] [role=menuitem]")].map((b) => b.getAttribute("data-testid")), ["ctx-rename", "ctx-export-md", "ctx-move-space", "ctx-delete"]);
 		const renameItem = q("ctx-rename")!;
 		assert.equal(renameItem.querySelector("kbd")!.textContent, "F2");

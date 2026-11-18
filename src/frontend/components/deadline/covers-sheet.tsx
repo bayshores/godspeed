@@ -130,7 +130,7 @@ export function CoversSheet({
 					)}
 					<div className="flex flex-wrap items-center gap-2.5">
 						{m.leftOut.length > 0 && (
-							<button type="button" data-testid="deadline-left-out-toggle" aria-expanded={showLeftOut} onClick={() => setShowLeftOut((v) => !v)} className="lh-btn lh-btn-quiet -ml-1 text-[15px]">
+							<button type="button" data-testid="deadline-left-out-toggle" aria-expanded={showLeftOut} onClick={() => setShowLeftOut((v) => !v)} className="lh-btn lh-btn-quiet text-[15px]">
 								{m.leftOut.length} left out, {showLeftOut ? "Hide" : "Show"}
 							</button>
 						)}
