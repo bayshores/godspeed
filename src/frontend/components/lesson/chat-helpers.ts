@@ -1,5 +1,5 @@
 /** Pure helpers for the lesson view (src/frontend/components/chat.tsx). */
-import { isQuestionTool, type LhMessage, type LhViewMessage } from "@/shared/core";
+import { isQuestionTool, type LessonKind, type LhMessage, type LhViewMessage } from "@/shared/core";
 
 /** Layered Esc: an open overlay claims Esc
  *  — closing itself — before the abort chain acts.
@@ -77,4 +77,32 @@ export function stuckRetry(messages: readonly LhMessage[]): { type: "text"; text
 		return m.role === "user" && typeof m.content === "string" && m.content.trim() ? { type: "text", text: m.content } : { type: "continue" };
 	}
 	return { type: "continue" };
+}
+
+/** Has the teacher posed a problem in this lesson? */
+export function problemPosed(messages: readonly LhMessage[]): boolean {
+	return messages.some((m) => m.role === "assistant" && Array.isArray(m.content) && m.content.some((b) => b.type === "toolCall" && b.name === "problem"));
+}
+
+/** The key at the foot of the lesson text that asks for the next step, or null.
+ *  Study offers Continue once the teacher has spoken, homework its start label
+ *  once the teacher has spoken, the other kinds "Next problem" once a problem
+ *  was posed. Never while a question, a problem, a reply, a stop card or an
+ *  error line is up: the error's own Try again answers the learner first. */
+export function goAheadLabel(s: {
+	kind: LessonKind;
+	homework: boolean;
+	startLabel: string | null;
+	teacherSpoke: boolean;
+	posedAny: boolean;
+	pending: boolean;
+	problem: boolean;
+	busy: boolean;
+	error: boolean;
+	stop: boolean;
+}): string | null {
+	if (s.pending || s.problem || s.busy || s.error || s.stop) return null;
+	if (s.homework) return s.teacherSpoke ? s.startLabel : null;
+	if (s.kind === "study") return s.teacherSpoke ? "Continue" : null;
+	return s.posedAny ? "Next problem" : null;
 }

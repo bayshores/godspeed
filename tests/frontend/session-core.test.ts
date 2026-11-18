@@ -1107,6 +1107,27 @@ describe("answer submission recovery", () => {
 		assert.equal(m.status, "ready");
 	});
 
+	it("a skip sent after stop() posts at once, even when the view failed while its reply still runs", async () => {
+		const calls: string[] = [];
+		let posts = 0;
+		const m = model({ initialMessages: [question], fetch: async (url) => {
+			calls.push(String(url));
+			if (String(url) === "/api/chat") {
+				posts++;
+				return posts === 1 ? new Response("request refused", { status: 500 }) : Response.json({ ok: true });
+			}
+			if (String(url).endsWith("/stream")) return sseResponse("[DONE]");
+			return Response.json({ messages: [question], turnInFlight: true });
+		} });
+		await m.submitAnswer("q1", answer);
+		assert.equal(m.status, "error");
+		m.stop(); // what the skip does while a reply is still running
+		assert.equal(m.status, "ready");
+		await m.submitAnswer("q1", answer);
+		assert.equal(posts, 2, "the skip was posted, not swapped for a re-attach");
+		assert.deepEqual(calls.slice(0, 2), ["/api/chat", "/api/chat"], "no record read in between");
+	});
+
 	it("keeps the question and makes no further POST while reconciliation is unreachable", async () => {
 		const calls: string[] = [];
 		const m = model({ initialMessages: [question], fetch: async (url) => { calls.push(String(url)); throw new TypeError("offline"); } });

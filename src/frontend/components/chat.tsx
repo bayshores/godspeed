@@ -37,7 +37,7 @@ import {
 	type QuestionAnswerData,
 	withOpenReview,
 } from "@/shared/core";
-import { escAbortTarget, initialPromptOwed, restoreUnsent, sendBlockedReason, stuckClaimMinutes, stuckRetry } from "@/frontend/components/lesson/chat-helpers";
+import { escAbortTarget, goAheadLabel, initialPromptOwed, problemPosed, restoreUnsent, sendBlockedReason, stuckClaimMinutes, stuckRetry } from "@/frontend/components/lesson/chat-helpers";
 import { holdsDraft } from "@/frontend/components/lesson/lesson-drafts-model";
 import { lastLearnerText, lessonError, retryAction } from "@/frontend/components/lesson/lesson-error-model";
 import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts";
@@ -210,13 +210,15 @@ export function Chat({
 	const stuckMinutes = busy ? stuckClaimMinutes(claimedAt, now) : null;
 
 	// The abort is always the remote kill (turns are server processes); a
-	// local view also detaches at once and keeps the partial.
+	// local view also detaches at once and keeps the partial. A failed view
+	// with a reply still running detaches too, so the send after it is not
+	// taken for a recovery that re-attaches.
 	const abortInFlightTurn = useCallback(() => {
-		if (localStreamRef.current) stop();
+		if (localStreamRef.current || status === "error") stop();
 		void fetch("/api/activity/abort", jsonInit("POST", { kind: "turn", id: chatId })).catch(() => {
 			/* transient — the turn settles on its own */
 		});
-	}, [chatId, stop, localStreamRef]);
+	}, [chatId, stop, status, localStreamRef]);
 
 	// The stuck-turn line stops the turn and runs it again at once (its
 	// wording is the confirmation); send() waits until the stopped turn ends.
@@ -369,25 +371,7 @@ export function Chat({
 	const problems = useStableValue(freshProblems);
 	const startLabel = problems && homeworkStartLabel(problems.problems);
 	const teacherSpoke = useMemo(() => nativeMessages.some((m) => (m as { role?: string }).role === "assistant"), [nativeMessages]);
-
-	/* THE PAUSE BETWEEN STEPS: practice offers the next problem once one was
-	 * posed, study offers Continue whenever the teacher has spoken, homework
-	 * once the teacher has spoken while a problem is left. */
-	const posedAny = useMemo(
-		() =>
-			nativeMessages.some(
-				(m) =>
-					(m as { role?: string }).role === "assistant" &&
-					Array.isArray((m as { content?: unknown[] }).content) &&
-					(m as { content: Array<{ type?: string; name?: string }> }).content.some((b) => b.type === "toolCall" && b.name === "problem"),
-			),
-		[nativeMessages],
-	);
-	const nextReady = (problems ? startLabel !== null && teacherSpoke : kind === "study" ? teacherSpoke : posedAny) && !pending && !activeProblem && !busy;
-	const sendNext = useCallback(() => {
-		if (!nextReady) return;
-		void send({ type: "next" });
-	}, [nextReady, send]);
+	const posedAny = useMemo(() => problemPosed(nativeMessages), [nativeMessages]);
 
 	// A pick from the homework's problem list. Why none can open yet: the
 	// lesson's own words for a reply under way, or the question waiting.
@@ -572,7 +556,8 @@ export function Chat({
 	);
 
 	// The go-ahead waits for the learner at the foot of the lesson text, unless a stop card is up.
-	const goAhead = nextReady && !lessonStop.card ? { label: startLabel ?? (kind === "study" ? "Continue" : "Next problem"), onGo: sendNext } : null;
+	const goLabel = goAheadLabel({ kind, homework: problems !== null, startLabel: startLabel ?? null, teacherSpoke, posedAny, pending: pending !== null, problem: activeProblem !== null, busy, error: error !== null, stop: lessonStop.card !== null });
+	const goAhead = goLabel ? { label: goLabel, onGo: () => void send({ type: "next" }) } : null;
 	const stuckLine = stuck && stuckMinutes !== null ? { minutes: stuckMinutes, label: stuck.type === "text" ? "Stop and send again?" : "Stop and try again?", onStop: stopAndRetry } : null;
 	const errorLine = error && { text: lessonError(error.message).text, detail: error.message, onRetry: retry };
 	const problem = activeProblem && {

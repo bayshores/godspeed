@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { restoreUnsent, sendBlockedReason, stuckClaimMinutes, stuckRetry } from "../../src/frontend/components/lesson/chat-helpers.ts";
+import { goAheadLabel, problemPosed, restoreUnsent, sendBlockedReason, stuckClaimMinutes, stuckRetry } from "../../src/frontend/components/lesson/chat-helpers.ts";
 import type { LhMessage } from "../../src/shared/core/index.ts";
 
 describe("restoreUnsent", () => {
@@ -51,5 +51,51 @@ describe("stuckRetry", () => {
 		assert.deepEqual(stuckRetry([user([{ type: "text", text: "see this" }, { type: "image" }])]), { type: "continue" }, "a message with files");
 		assert.deepEqual(stuckRetry([msg({ role: "custom", customType: "practice-thinking" })]), { type: "continue" });
 		assert.deepEqual(stuckRetry([]), { type: "continue" });
+	});
+});
+
+describe("goAheadLabel", () => {
+	const idle = { kind: "study" as const, homework: false, startLabel: null, teacherSpoke: true, posedAny: false, pending: false, problem: false, busy: false, error: false, stop: false };
+
+	it("study says Continue once the teacher has spoken and nothing waits, with no problem ever posed", () => {
+		assert.equal(goAheadLabel(idle), "Continue");
+		assert.equal(goAheadLabel({ ...idle, teacherSpoke: false }), null);
+	});
+
+	it("no key beside an error line: its Try again answers the learner first", () => {
+		assert.equal(goAheadLabel({ ...idle, error: true }), null);
+		assert.equal(goAheadLabel({ ...idle, kind: "practice", posedAny: true, error: true }), null);
+		assert.equal(goAheadLabel({ ...idle, kind: "homework", homework: true, startLabel: "Start Problem 1", error: true }), null);
+	});
+
+	it("practice needs a posed problem", () => {
+		assert.equal(goAheadLabel({ ...idle, kind: "practice" }), null);
+		assert.equal(goAheadLabel({ ...idle, kind: "practice", posedAny: true }), "Next problem");
+	});
+
+	it("homework needs a start label and the teacher having spoken", () => {
+		const homework = { ...idle, kind: "homework" as const, homework: true };
+		assert.equal(goAheadLabel({ ...homework, startLabel: "Start Problem 2" }), "Start Problem 2");
+		assert.equal(goAheadLabel(homework), null);
+		assert.equal(goAheadLabel({ ...homework, startLabel: "Start Problem 2", teacherSpoke: false }), null);
+	});
+
+	it("a teach lesson that never posed a problem never gets it", () => {
+		assert.equal(goAheadLabel({ ...idle, kind: "teach" }), null);
+	});
+
+	it("waits while a question, a problem, a reply or a stop card is up", () => {
+		for (const busy of [{ pending: true }, { problem: true }, { busy: true }, { stop: true }]) {
+			assert.equal(goAheadLabel({ ...idle, ...busy }), null);
+		}
+	});
+});
+
+describe("problemPosed", () => {
+	it("is true once an assistant message calls the problem tool", () => {
+		const call = (name: string) => ({ role: "assistant", content: [{ type: "toolCall", id: "c", name, arguments: {} }] }) as unknown as LhMessage;
+		assert.equal(problemPosed([call("question_text")]), false);
+		assert.equal(problemPosed([call("question_text"), call("problem")]), true);
+		assert.equal(problemPosed([]), false);
 	});
 });

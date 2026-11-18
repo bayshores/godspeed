@@ -9,7 +9,7 @@ describe("lessonError", () => {
 		assert.deepEqual(lessonError("The send failed (500)."), { text: "Your message didn't go through.", kind: "send" });
 		assert.equal(lessonError("The steer failed (502).").kind, "send");
 		assert.equal(lessonError("A turn is already running. Try again in a moment.").text, "The teacher was still busy, so your message didn't go through.");
-		assert.deepEqual(lessonError("The dismissal failed (500)."), { text: "Skipping or discarding didn't save.", kind: "sync" });
+		assert.deepEqual(lessonError("The dismissal failed (500)."), { text: "Discarding didn't save.", kind: "sync" });
 		assert.deepEqual(lessonError("Keep going failed: status 400"), { text: "Keep going didn't save.", kind: "sync" });
 		assert.deepEqual(lessonError("Keep going failed: Failed to fetch"), { text: "Keep going didn't save.", kind: "sync" }, "never the lost reply");
 		assert.deepEqual(lessonError("The kept change failed: status 400"), { text: "That change didn't save.", kind: "sync" });

@@ -49,7 +49,8 @@ pub fn app_note_for(record: &Json, input: &ChatInput, asked: Option<&Json>) -> O
 	lines.extend(analogy_dropped_lines(record));
 	let mut details = json!({});
 	match input {
-		ChatInput::Answer { tool_call_id, .. } => lines.extend(keep_notes(messages, &answered_since_keep_note(messages, tool_call_id)).into_iter().map(str::to_owned)),
+		// A skipped quiz has no keep to tell about; the ones answered before it wait for the next answer.
+		ChatInput::Answer { tool_call_id, answer, .. } if !answer["dismissed"].truthy() => lines.extend(keep_notes(messages, &answered_since_keep_note(messages, tool_call_id)).into_iter().map(str::to_owned)),
 		ChatInput::Text { about: Some(About::Opener(opener)), .. } => {
 			lines.push(format!("[Opener] {}: he asked about it before answering; it stays open. Answer his question and end your turn.", opener_topic(record, opener)));
 		}
@@ -382,6 +383,14 @@ mod tests {
 		assert_eq!(app_note_for(&json!({ "messages": messages.clone() }), &answer("q5"), None).unwrap()["content"], json!(long), "each note once");
 		let skipped = vec![messages[0].clone(), check("q3", long), result("q3", json!({ "kind": "quiz", "dismissed": true }))];
 		assert!(app_note_for(&json!({ "messages": skipped }), &answer("q9"), None).is_none(), "a skipped quiz sends no note");
+	}
+
+	#[test]
+	fn a_skipped_quiz_sends_no_keep_note() {
+		let record = json!({ "messages": kept(Some("keep.fits not shown: this topic already has an analogy.")), "tree": tree() });
+		let answer = |answer: Json| ChatInput::Answer { tool_call_id: "q5".into(), answer, attachments: None };
+		assert!(app_note_for(&record, &answer(json!({ "kind": "quiz", "dismissed": true })), None).is_none());
+		assert!(app_note_for(&record, &answer(json!({ "kind": "quiz", "correct": true })), None).is_some(), "answered, it does");
 	}
 
 	#[test]
