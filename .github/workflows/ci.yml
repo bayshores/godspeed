@@ -121,7 +121,9 @@ jobs:
         run: node scripts/fetch-onnxruntime.mjs
       # The UI, the release server and the pdf.js files, as `tauri build` stages them.
       - run: node scripts/stage-app.mjs
-      - run: node scripts/smoke-server.mjs
+      - name: Smoke-test the release server
+        timeout-minutes: 5
+        run: node scripts/smoke-server.mjs
       # On the Mac the window job runs these, beside this one.
       - name: Shell tests
         if: runner.os != 'macOS'

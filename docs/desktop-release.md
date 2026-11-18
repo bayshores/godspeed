@@ -58,7 +58,7 @@ Notes:
 - ONNX Runtime: Apple Silicon Macs and Windows link it into the server. Linux loads it from the resources folder, the Intel Mac app from `Contents/Frameworks`. Intel Macs get 1.23.2, the last version Microsoft released for them, and `ort` asks for no newer API there (`crates/search/Cargo.toml`).
 - `tauri build` runs `stage-app.mjs` again as its `beforeBuildCommand`; it is fast since everything is built.
 - With `TAURI_SIGNING_PRIVATE_KEY` set, the bundler writes a `.sig` beside each updater file.
-- `smoke-app.mjs` starts the installed setup on Windows, the installed `.deb` and the AppImage on Linux, and the `.app` on the Mac. It refuses to run outside CI, because a packaged app uses the real godspeed data of whoever runs it.
+- `smoke-app.mjs` starts the installed setup on Windows, the installed `.deb` and the AppImage on Linux, and the `.app` on the Mac. It refuses to run outside CI, because a packaged app uses the real godspeed data of whoever runs it. It reads the app's output through pipes and stops the app with its whole process tree, so nothing the app started can keep the step open. The smoke and check steps have limits of 5 to 10 minutes.
 - The self-test runs the demo runner in the real app on that OS. Planted errors and a probe value come back, every loopback request is blocked, downloads and navigations from a demo change nothing, and an invoke from the demo window is refused.
 
 ### Download names

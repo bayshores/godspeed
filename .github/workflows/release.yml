@@ -240,7 +240,10 @@ jobs:
         run: node scripts/compile-icon.mjs
       # Stage once here so the smoke runs before the slow bundler (tauri build stages again, cached).
       - run: node scripts/stage-app.mjs
-      - run: node scripts/smoke-server.mjs
+      # Short checks get short limits, so a hung one fails in minutes, not at the job's 3 hours.
+      - name: Smoke-test the release server
+        timeout-minutes: 5
+        run: node scripts/smoke-server.mjs
 
       - name: Check the signing secrets
         if: github.event_name == 'push'
@@ -294,6 +297,7 @@ jobs:
       # The steps so far build the app and test its parts. This starts the finished app once,
       # installed the way people get it.
       - name: Start the packaged app
+        timeout-minutes: 10
         run: |
           case "$RUNNER_OS" in
             Windows)
@@ -311,6 +315,7 @@ jobs:
       # Only the Apple chip job has that zip.
       - name: Check the Mac signature, notarization and hand-over requirement
         if: github.event_name == 'push' && runner.os == 'macOS'
+        timeout-minutes: 10
         run: |
           set -euo pipefail
           requirement="=$(cat crates/shell/release/electron-requirement.txt)"
@@ -332,6 +337,7 @@ jobs:
       # libstdc++ of 22.04, GLIBCXX 3.4.30). The two libraries ship as downloaded.
       - name: Check the glibc and libstdc++ the Linux binaries need
         if: runner.os == 'Linux'
+        timeout-minutes: 5
         run: |
           set -euo pipefail
           for bin in "target/${{ matrix.triple }}/release/godspeed" "target/${{ matrix.triple }}/release/godspeed-server" .stage/libpdfium.so .stage/libonnxruntime.so; do

@@ -7,6 +7,9 @@
  * app's log on stderr until the "window open" line, gives it a few more seconds to crash, and
  * stops it. Only for CI's throwaway machines: a packaged app uses the real godspeed data of
  * whoever runs it.
+ *
+ * The app's output comes through pipes, not the step's own output, and the stop takes the app's
+ * whole process tree, so nothing it started can outlive this script or hold the CI step open.
  */
 import { execFileSync, spawn } from "node:child_process";
 
@@ -23,17 +26,25 @@ if (!process.env.CI) {
 	process.exit(1);
 }
 
-const app = spawn(binary, [], { stdio: ["ignore", "inherit", "pipe"] });
+const WINDOWS = process.platform === "win32";
+// Elsewhere the app leads a new process group, so one kill takes it and its server.
+const app = spawn(binary, [], { stdio: ["ignore", "pipe", "pipe"], detached: !WINDOWS });
+app.stdout.on("data", (chunk) => process.stdout.write(chunk));
 let log = "";
 let settling = false;
 
 function finish(code, message) {
 	app.removeAllListeners("exit");
-	if (app.exitCode === null && process.platform === "win32") {
+	if (WINDOWS) {
 		// The app's server is its child; /T takes it too.
-		execFileSync("taskkill", ["/pid", String(app.pid), "/T", "/F"], { stdio: "ignore" });
-	} else {
-		app.kill("SIGKILL");
+		if (app.exitCode === null) execFileSync("taskkill", ["/pid", String(app.pid), "/T", "/F"], { stdio: "ignore" });
+	} else if (app.pid !== undefined) {
+		// The group outlives an app that quit by itself while its server still runs.
+		try {
+			process.kill(-app.pid, "SIGKILL");
+		} catch {
+			// Nothing of it is left to stop.
+		}
 	}
 	console[code === 0 ? "log" : "error"](`[smoke-app] ${message}`);
 	process.exit(code);
