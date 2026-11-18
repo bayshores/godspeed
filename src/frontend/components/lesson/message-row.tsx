@@ -257,8 +257,8 @@ function AssistantPart({
 					className="lh-source-passage"
 				>
 					{/* While it streams, an unclosed diagram fence shows "still drawing", not a doomed parse. A reply
-					    that just landed draws in block by block (.lh-set). */}
-					<CitedResponse text={part.text ?? ""} page={page} isAnimating={streaming} className={cn(streaming && "lh-streaming", arrive(slot) && "lh-set")} />
+					    that just landed draws in block by block. */}
+					<CitedResponse text={part.text ?? ""} page={page} isAnimating={streaming} className={streaming ? "lh-streaming" : undefined} landed={!!arrive(slot)} />
 				</div>
 			);
 		}

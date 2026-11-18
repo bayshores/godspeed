@@ -58,7 +58,7 @@ function WorkList({ work, slot, arrive }: { work: AgentWork; slot: string; arriv
 	const lines = work.plan ? planLines(work.plan) : [];
 	const n = work.steps.length;
 	const step = n > 0 && (
-		<span key={n} className={cn("block truncate font-count text-[15px] leading-5 text-ink-2", arrive(`${slot}:step:${n}`) && "lh-block-in")} style={{ "--lh-block-delay": "60ms" } as CSSProperties}>
+		<span key={n} className={cn("line-clamp-2 font-count text-[15px] leading-5 break-words text-ink-2", arrive(`${slot}:step:${n}`) && "lh-block-in")} style={{ "--lh-block-delay": "60ms" } as CSSProperties}>
 			{work.steps[n - 1]}
 		</span>
 	);

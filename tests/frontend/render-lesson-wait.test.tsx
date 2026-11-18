@@ -173,7 +173,7 @@ describe("the reply landing", () => {
 		document.body.append(host);
 		const root = createRoot(host);
 		const working = props({ messages: [card(1), first, teacher(read("r1", "/h/a.md"))], status: "streaming", arrive: () => "lh-rise" });
-		const landed = { ...working, busy: false, status: "ready" as const, messages: [card(1), first, teacher(read("r1", "/h/a.md"), { type: "text", text: "First.\n\nSecond." })] };
+		const landed = { ...working, busy: false, status: "ready" as const, messages: [card(1), first, teacher(read("r1", "/h/a.md"), { type: "text", text: "First.\n\nSecond. [[https://example.com/a]]" })] };
 		try {
 			await act(async () => root.render(<ReadingPane {...working} />));
 			await act(async () => root.render(<ReadingPane {...landed} />));
@@ -184,6 +184,7 @@ describe("the reply landing", () => {
 			});
 			assert.ok(host.querySelector("[data-testid=agent-at-work]") === null);
 			assert.ok(host.querySelector(".lh-source-passage .lh-set") !== null, "the reply draws in block by block");
+			assert.ok(host.querySelector("[data-testid=cite-list].lh-block-in") !== null, "Sources come after the text");
 			assert.match(host.textContent ?? "", /First\.[\s\S]*Second\./);
 		} finally {
 			await act(async () => root.unmount());
