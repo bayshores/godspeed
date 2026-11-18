@@ -978,6 +978,11 @@ body:has(.lh-own-bar) .lh-app-bar {
    changes) · --lh-dur-slow (larger surfaces: dialogs, view swaps) ·
    --lh-ease-out (enters) · --lh-ease-in (exits).
 
+   Enters take --lh-dur, exits --lh-dur-fast, held on screen by presence
+   (usePresence, useLastWhileClosing) so nothing pops away. Anything that
+   replaces part of a page appears stepped (STEPPED MOTION below). A new
+   keyframe needs a reason the ones here can't serve.
+
    Classes — pair with data-state="open" | "closed" (usePresence in
    src/frontend/components/presence.ts keeps an element mounted through its exit):
    - .lh-pop       menus/popovers: fade + 2% scale + 4px travel toward the
@@ -1296,6 +1301,12 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	.lh-drain {
 		display: none;
 	}
+	/* The Shimmer's sweep stops; its words stay, in the quiet ink. */
+	.lh-shimmer {
+		animation: none !important;
+		background: none !important;
+		color: var(--muted-foreground) !important;
+	}
 	.lh-press,
 	.lh-collapse {
 		transition-duration: 0ms !important;
@@ -1440,9 +1451,32 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	}
 }
 
-/* The lesson's agent-at-work view (components/lesson/agent-at-work.tsx):
-   the page stack floats on two uneven loops so it never sits still, and
-   each new step rises into the list. */
+/* The lesson's desk (components/lesson/agent-at-work.tsx, page-stage.tsx):
+   the learner's files as paper in a well cut at the sheet's stepped corners.
+   The pile floats on two uneven loops so it never sits still, and waits
+   while the pages drift (data-drifting). With no agent at the desk the
+   paper is pale and still. On a dark background the paper is dimmed, so
+   it never glares. */
+.lh-desk {
+	--lh-paper: #e9e9e7;
+	--lh-paper-lip: #bdbdb8;
+}
+.lh-desk[data-state="waiting"] {
+	--lh-paper: color-mix(in srgb, #e9e9e7 50%, var(--lh-sheet));
+	--lh-paper-lip: color-mix(in srgb, #bdbdb8 50%, var(--lh-sheet));
+}
+.lh-desk-well {
+	--lh-sheet: var(--background);
+	--lh-sheet-lip: var(--background);
+}
+.lh-paper {
+	--lh-sheet: var(--lh-paper);
+	--lh-sheet-lip: var(--lh-paper-lip);
+	color: #2b2b2b;
+}
+.dark .lh-paper {
+	filter: brightness(0.82);
+}
 @keyframes lh-float-a {
 	0% {
 		transform: translate(0, 0) rotate(-1deg);
@@ -1469,19 +1503,13 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 .lh-float-2 {
 	animation: lh-float-b 5.3s ease-in-out infinite alternate;
 }
-@keyframes lh-step-in {
-	from {
-		opacity: 0;
-		transform: translateY(6px);
-	}
-}
-.lh-step-in {
-	animation: lh-step-in 0.32s ease-out both;
+[data-drifting] .lh-float,
+[data-drifting] .lh-float-2 {
+	animation-play-state: paused;
 }
 @media (prefers-reduced-motion: reduce) {
 	.lh-float,
-	.lh-float-2,
-	.lh-step-in {
+	.lh-float-2 {
 		animation: none;
 	}
 }
@@ -1572,8 +1600,10 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
    STEPPED MOTION: fast and stepped, like an e-ink page redrawing. Nothing
    floats or glows. Reduce motion (the OS setting) turns all of it off.
 
-   - .lh-block-in      a bar block or fact square that steps in
-                       (--lh-block-delay);
+   - .lh-block-in      a bar block, fact square, sheet of paper or plan
+                       item that steps in (--lh-block-delay);
+   - .lh-set           a reply that landed: its blocks step in top to
+                       bottom, 30 ms apart, the eighth and later together;
    - .lh-flash-right/-wrong  a checked answer's card flips to inverse green
                        or red for a beat, then settles;
    - the streaming block cursor blinks. */
@@ -1588,6 +1618,30 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 
 .lh-block-in {
 	animation: lh-appear 1ms steps(1, end) var(--lh-block-delay, 0ms) backwards;
+}
+.lh-set > * {
+	animation: lh-appear 1ms steps(1, end) backwards;
+}
+.lh-set > :nth-child(2) {
+	animation-delay: 30ms;
+}
+.lh-set > :nth-child(3) {
+	animation-delay: 60ms;
+}
+.lh-set > :nth-child(4) {
+	animation-delay: 90ms;
+}
+.lh-set > :nth-child(5) {
+	animation-delay: 120ms;
+}
+.lh-set > :nth-child(6) {
+	animation-delay: 150ms;
+}
+.lh-set > :nth-child(7) {
+	animation-delay: 180ms;
+}
+.lh-set > :nth-child(n + 8) {
+	animation-delay: 210ms;
 }
 
 /* The Graph picture's reveal: each cluster and its name ink in at --lh-at,
@@ -1632,6 +1686,7 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 
 @media (prefers-reduced-motion: reduce) {
 	.lh-block-in,
+	.lh-set > *,
 	.lh-reveal,
 	.lh-reveal-line,
 	.lh-flash-right [data-testid="answered-card"],

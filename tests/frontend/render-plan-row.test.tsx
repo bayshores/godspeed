@@ -72,7 +72,7 @@ const chainEdges = [
 	{ from: "a", to: "b" },
 	{ from: "b", to: "c" },
 ];
-const base: RowProps = { kind: "teach", spaceId: undefined, stepBar: bar, edges: chainEdges, stop: null, homework: null, practice: null, onJump: () => {}, onPick: () => {}, onOpenPlan: () => {}, busy: false };
+const base: RowProps = { kind: "teach", spaceId: undefined, stepBar: bar, edges: chainEdges, stop: null, homework: null, practice: null, onJump: () => {}, onPick: () => {}, onOpenPlan: () => {} };
 
 let host: HTMLElement | null = null;
 let root: Root | null = null;
@@ -247,10 +247,9 @@ describe("the plan row of a homework lesson", () => {
 		assert.match(html, />15<\/span><span[^>]*>Made-up problem 15</);
 	});
 
-	it("says the teacher is reading the assignment while no problems are posted and it works, and nothing once it stopped", () => {
+	it("draws nothing while no problems are posted: the desk shows the assignment instead", () => {
 		const none = { ...hw, problems: [], open: null };
-		assert.match(renderToStaticMarkup(<PlanRow {...homework} homework={none} busy />), /data-testid="problems-none"[^>]*>The teacher is reading the assignment\./);
-		assert.equal(renderToStaticMarkup(<PlanRow {...homework} homework={none} busy={false} />), "");
+		assert.equal(renderToStaticMarkup(<PlanRow {...homework} homework={none} />), "");
 	});
 });
 

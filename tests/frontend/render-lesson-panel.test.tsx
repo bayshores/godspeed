@@ -2,7 +2,7 @@
  * The lesson's turn sheet: Your turn in each of its states (with the
  * answer box, its size, the question above it and the foot row), when it shows, the box's Enter
  * rules, the question's keys, folding and saved drafts, the read-first
- * reveal, the reading pane's waiting line and Stop, the practice
+ * reveal, the reading pane's desk and Stop, the practice
  * progress, and the view's message reuse.
  */
 import React, { act } from "react";
@@ -707,13 +707,15 @@ describe("the turn sheet", () => {
 describe("the reading pane", () => {
 	const readingProps = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}): React.ComponentProps<typeof ReadingPane> => ({
 		spaceId: undefined,
+		title: "Limits",
+		assignment: null,
 		messages: [],
 		phases: [],
 		status: "submitted",
 		busy: true,
-		turnInFlight: false,
 		waitingForAgent: false,
 		onStop: () => {},
+		onStartAgain: () => {},
 		goAhead: null,
 		queuedSteers: [],
 		arrivalsLive: false,
@@ -724,13 +726,13 @@ describe("the reading pane", () => {
 	});
 	const pane = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}) => renderToStaticMarkup(<ReadingPane {...readingProps(over)} />);
 
-	it("Thinking… while the agent works", () => {
-		assert.match(pane(), /Thinking…/);
+	it("the desk while the agent works", () => {
+		assert.match(pane(), /data-testid="agent-at-work" data-state="working"/);
 	});
 
-	it("while the teacher writes: Stop and the lines waiting for it at the foot; none when idle or at a stop", () => {
+	it("while the teacher writes: Stop and the lines waiting for it under the desk; none when idle or at a stop", () => {
 		const out = pane({ queuedSteers: [{ id: "s1", text: "and the variance?" }] });
-		assert.match(out, /Thinking…[\s\S]*data-testid="queued-steers"[\s\S]*?and the variance\?[\s\S]*data-testid="stop-turn"[^>]*>Stop</);
+		assert.match(out, /data-testid="agent-at-work"[\s\S]*data-testid="queued-steers"[\s\S]*?and the variance\?[\s\S]*data-testid="stop-turn"[^>]*>Stop</);
 		assert.doesNotMatch(pane({ busy: false, status: "ready" }), /stop-turn/);
 		assert.doesNotMatch(pane({ onStop: null }), /stop-turn/, "the teacher reading ahead at a stop is not stopped");
 	});
@@ -748,10 +750,10 @@ describe("the reading pane", () => {
 		});
 	});
 
-	it("no Thinking… while no agent takes the turn; the pill says it instead", () => {
+	it("a still desk while no agent takes the turn; the pill says it instead", () => {
 		const out = pane({ waitingForAgent: true });
-		assert.ok(!out.includes("Thinking…"), "no shimmer while nothing works");
-		assert.ok(!out.includes("lesson-waiting"));
+		assert.match(out, /data-testid="agent-at-work" data-state="waiting"/);
+		assert.ok(!out.includes("Thinking"), "no words while nothing works");
 	});
 
 	it("an empty lesson says it is new, with no promise of a probe", () => {

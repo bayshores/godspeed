@@ -16,6 +16,7 @@ Read only the files your task touches. A "§N" in any doc is the file that start
 | [06.2-interviews-and-mocks.md](06.2-interviews-and-mocks.md) | You change interview, online assessment or test prep. |
 | [06.3-paths.md](06.3-paths.md) | You change a space's path toward a goal. |
 | [07-study-sessions.md](07-study-sessions.md) | You change how a lesson starts, runs or ends, plots, kept sentences or homework. |
+| [07.1-while-the-teacher-works.md](07.1-while-the-teacher-works.md) | You change what the lesson shows while the teacher works or how its reply lands. |
 | [08-process-boundaries.md](08-process-boundaries.md) | You need the shell and server split before reading 8.1 to 8.2. |
 | [08.1-the-outside-agent-boundary.md](08.1-the-outside-agent-boundary.md) | You change agent access, when an agent counts as connected or teaching. |
 | [08.1.1-the-godspeed-folder.md](08.1.1-the-godspeed-folder.md) | You change the godspeed folder, the spaces folder or the agent start script. |

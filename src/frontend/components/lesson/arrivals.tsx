@@ -6,8 +6,8 @@ import { cn } from "@/frontend/lib/utils";
  * first render shows — a reopened lesson — never animates. Slots are keyed
  * by POSITION (message index, part index), not id: an optimistic message
  * that later swaps its local id for the server's keeps its slot, so the
- * remount never replays. Agent text and reasoning are left alone —
- * streaming is their motion. */
+ * remount never replays. Agent text that arrives draws in block by block
+ * (.lh-set) instead; reasoning is left alone. */
 const ARRIVAL_WINDOW_MS = 400;
 
 export type Arrive = (slot: string) => string | undefined;
@@ -29,19 +29,9 @@ export function useArrivals(): Arrive {
 	}, []);
 }
 
-/** A one-off row (the Thinking… placeholder) that rises in
- *  when it mounts mid-session — decided once, at mount. */
-export function ArrivalRow({
-	live,
-	as: Tag = "span",
-	className,
-	children,
-}: {
-	live: boolean;
-	as?: "span" | "div";
-	className?: string;
-	children: React.ReactNode;
-}) {
+/** A one-off row (the desk) that rises in when it mounts mid-session —
+ *  decided once, at mount. */
+export function ArrivalRow({ live, children }: { live: boolean; children: React.ReactNode }) {
 	const [rise] = useState(live);
-	return <Tag className={cn(rise && "lh-rise", className)}>{children}</Tag>;
+	return <div className={cn(rise && "lh-rise")}>{children}</div>;
 }

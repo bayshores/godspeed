@@ -8,7 +8,8 @@
  * teaching reply with no problem open, and one has fourteen problems with the first done and none open.
  * Eight more lessons are studied (a plan of two steps, a quiz on the last one, answered) and two are
  * left open (a quiz on the first step, unanswered), so the Lessons block on Progress has both groups
- * and a Show all. Their titles are of mixed length, one very long.
+ * and a Show all. Their titles are of mixed length, one very long. One more lesson is made and
+ * never sent: the window sends its first message, whose reply waits for an agent.
  * A second space, "Backend jobs",
  * has a path toward a goal and nothing else. The window installs the plugin
  * "Flashcards", marked as from the made-up plugin list (tests/fixtures/plugins/layout-list.json)
@@ -42,6 +43,8 @@ const STUDIED_TOPICS = [
 	"Absolute value",
 	"Reading a graph",
 ];
+/** The lesson whose first reply waits for an agent; its address sends it (layout-screens.mjs). */
+export const WAITING_TOPIC = "Graphing two lines to find where they cross";
 /** A lesson whose question is answered in words, so "Your turn" holds a three-line box. */
 const WRITTEN_TOPIC = "Why undo in reverse";
 const WRITTEN_REPLY = {
@@ -301,8 +304,11 @@ export async function seed(dataDir, page, log) {
 		await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId, input: { type: "answer", toolCallId: quiz.id, answer } }) });
 	}
 	await drain();
+	// A lesson made as the window's Study does, whose first message the window sends when it opens: its reply waits for an agent.
+	await page.fetch("/api/chats", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: WAITING_TOPIC, spaceId: space.id }) });
+	const pending = (await agent.json("list_lessons", { space_id: space.id })).lessons.find((lesson) => lesson.title === WAITING_TOPIC).id;
 	const covers = (topic) => `Enough ${topic} to get a junior job by spring, with typing practice daily.`;
 	const steps = ["Git and pull requests", "HTTP and APIs", "SQL querying", "Typing in Python", "Caching layers", "Deploying apps", "Logging and paging", "Security group policy"];
 	const goal = await agent.json("create_space", { name: "Backend jobs", icon: "code", path: { goal: "backend developer jobs", topics: steps.map((name) => ({ name, covers: covers(name) })) } });
-	return { space: space.id, lesson: lessonId, written, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), pathSpace: goal.space.id };
+	return { space: space.id, lesson: lessonId, written, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), pathSpace: goal.space.id };
 }

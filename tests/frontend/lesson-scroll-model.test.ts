@@ -15,6 +15,12 @@ describe("where the lesson page rests with Your turn under the text", () => {
 		assert.equal(restingTop(900, { view, pads, sheet: null, part: null, reply: null }), 900);
 	});
 
+	it("with nothing waiting, at the start of a reply that landed longer than the window, and at its end when it fits", () => {
+		assert.equal(restingTop(900, { view, pads, sheet: null, part: null, reply: 200 }), 200 - pads.top);
+		assert.equal(restingTop(900, { view, pads, sheet: null, part: null, reply: 1000 }), 900);
+		assert.equal(restingTop(900, { view, pads, sheet: null, part: null, reply: 0 }), 0, "never above the page's top");
+	});
+
 	it("at its end while all of Your turn fits, with the lesson text above it", () => {
 		// The sheet starts at 1100 and the page ends at 1500: 400 tall, the window shows 600.
 		assert.equal(restingTop(900, { view, pads, sheet: under(1100), part: null, reply: null }), 900);

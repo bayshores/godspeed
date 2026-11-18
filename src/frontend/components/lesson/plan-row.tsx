@@ -49,7 +49,6 @@ export const PlanRow = memo(function PlanRow({
 	onJump,
 	onPick,
 	onOpenPlan,
-	busy,
 }: {
 	kind: LessonKind;
 	spaceId: string | undefined;
@@ -65,23 +64,13 @@ export const PlanRow = memo(function PlanRow({
 	/** A problem picked (its number), or null for the open one: go to the work. */
 	onPick: (number: string | null) => void;
 	onOpenPlan: () => void;
-	/** The teacher is writing in this lesson. */
-	busy: boolean;
 }) {
 	const { spaces } = useSpaces();
 	const space = spaces.find((c) => c.id === spaceId);
 	const color = space ? spaceColorVar(space.color) : "var(--color-ink)";
 
-	// No problems yet: the teacher is reading the assignment, or it said in the lesson why not.
-	if (homework?.problems.length === 0) {
-		return (
-			busy && (
-			<p data-testid="problems-none" className="text-[15px] text-ink-2">
-				The teacher is reading the assignment.
-			</p>
-			)
-		);
-	}
+	// No problems yet: the desk shows the assignment while the teacher reads it, or the lesson says why not.
+	if (homework?.problems.length === 0) return null;
 	if (homework || kind !== "practice") {
 		const steps = homework ? homeworkRow(homework.problems, homework.open, homework.blocked) : stepBar && stepsRow(stepBar, stop);
 		return steps && <StepsRow steps={steps} edges={homework ? null : edges} color={color} onJump={onJump} onPick={homework ? onPick : null} blocked={homework?.blocked ?? null} onOpenPlan={onOpenPlan} />;

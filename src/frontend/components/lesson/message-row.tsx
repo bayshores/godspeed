@@ -63,11 +63,13 @@ interface MessageRowProps {
 	spaceId: string | undefined;
 	/** The message's position — arrival slots and the step-boundary rule. */
 	index: number;
+	/** The learner's first message only repeats the lesson's title: its words show no bubble. */
+	echo: boolean;
 	/** The teaching phase begins at this message (the inferred teach seam). */
 	teachSeam: boolean;
 	/** This is the last message and its turn is streaming right now. */
 	streamingLast: boolean;
-	/** The agent-at-work view stands in for this message's step cards. */
+	/** The desk stands in for this message's step cards. */
 	hideSteps: boolean;
 	/** Each Study topic's stored page mark, by the text it sits in (topicPageMarks). */
 	pageMarks: ReadonlyMap<string, string>;
@@ -80,7 +82,7 @@ interface MessageRowProps {
  * streams only the message being written redraws — every other row keeps
  * its previous message object (reuseUnchangedMessages) and skips.
  */
-export const MessageRow = memo(function MessageRow({ message: m, spaceId, index: mi, teachSeam, streamingLast, hideSteps, pageMarks, arrive, onOpenPlan }: MessageRowProps) {
+export const MessageRow = memo(function MessageRow({ message: m, spaceId, index: mi, echo, teachSeam, streamingLast, hideSteps, pageMarks, arrive, onOpenPlan }: MessageRowProps) {
 	if (m.role === "user" && isSubagentSteer(m)) {
 		// Sub-agent delivery: no bubble — the artifact card sits in the column.
 		return (
@@ -108,7 +110,7 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 		);
 	}
 	if (m.role === "user") {
-		return <UserMessage message={m} spaceId={spaceId} className={arrive(`${mi}`)} />;
+		return <UserMessage message={m} spaceId={spaceId} echo={echo} className={arrive(`${mi}`)} />;
 	}
 	// The teach seam's step: -1 = before the whole group; a later index =
 	// at that step boundary, replacing its plain hairline.
@@ -146,10 +148,12 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 
 /** The learner's message: a bubble on the right in the lesson's space color.
  *  Plain text, since learner text never goes through the model's LaTeX
- *  pipeline; the learner's files sit under it. */
-function UserMessage({ message, spaceId, className }: { message: LhViewMessage; spaceId: string | undefined; className?: string }) {
+ *  pipeline; the learner's files sit under it. An `echo` of the title shows
+ *  only its files. */
+function UserMessage({ message, spaceId, echo, className }: { message: LhViewMessage; spaceId: string | undefined; echo: boolean; className?: string }) {
 	const color = useSpaceColor(spaceId);
-	const text = message.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n");
+	const text = echo ? "" : message.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n");
+	if (echo && !message.parts.some(isAttachmentPart)) return null;
 	return (
 		<div className={cn("my-2 flex w-full justify-end", className)}>
 			<div
@@ -252,8 +256,9 @@ function AssistantPart({
 					data-source-message-id={sourceId ?? undefined}
 					className="lh-source-passage"
 				>
-					{/* While it streams, an unclosed diagram fence shows "still drawing", not a doomed parse. */}
-					<CitedResponse text={part.text ?? ""} page={page} isAnimating={streaming} className={streaming ? "lh-streaming" : undefined} />
+					{/* While it streams, an unclosed diagram fence shows "still drawing", not a doomed parse. A reply
+					    that just landed draws in block by block (.lh-set). */}
+					<CitedResponse text={part.text ?? ""} page={page} isAnimating={streaming} className={cn(streaming && "lh-streaming", arrive(slot) && "lh-set")} />
 				</div>
 			);
 		}

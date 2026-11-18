@@ -49,7 +49,7 @@ export function TurnSheet({
 		<aside
 			data-testid="turn-sheet"
 			aria-label="Your turn"
-			className="lh-rise min-w-0"
+			className="min-w-0"
 			style={{ "--lh-pale": color ? paleSpaceColor(color) : "var(--color-tone)" } as React.CSSProperties}
 		>
 			<Pane>

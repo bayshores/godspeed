@@ -3,6 +3,7 @@ import type { GetTargetScrollTop, StickToBottomContext } from "use-stick-to-bott
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/frontend/components/ai-elements/conversation";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { SessionMessageNavigation } from "@/frontend/components/session-navigation";
+import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import { keepPair, type Pads, restingTop, turnStick, wholeLineTop } from "./lesson-scroll-model";
@@ -21,6 +22,13 @@ const PAIR_GRID = "@min-[1280px]/room:grid @min-[1280px]/room:grid-cols-[minmax(
 /** The jump key: in the gutter beside one column where the window leaves room, else in the sheet's side padding; in a pair, in the lesson text's. */
 const KEY = "@min-[688px]/room:right-[max(34px,calc((100%-872px)/2-48px))]";
 const PAIR_KEY = "@min-[1280px]/room:right-[calc((100%-var(--lh-pair))/2+var(--lh-turn)+38px)]";
+
+/** What the learner last sent: the start of the teacher's reply to it. */
+const LEARNER = "[data-testid=user-message], [data-testid=practice-next-line]";
+
+/** How long after a turn ends a change in the page's height places it at once, not smoothly: the
+ *  desk's exit and the reply's arrival. */
+const LANDING_MS = 400;
 
 /** Text blocks whose lines the window's top edge may cut. */
 const LINES = "p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th";
@@ -60,8 +68,10 @@ function linesAt(root: Element, y: number, origin: number): { top: number; botto
  * lesson text's sheet and, while something waits, "Your turn", each as tall as what it holds.
  * With room for both they sit side by side and "Your turn" holds still while the text scrolls
  * (turnStick); with less it sits under the text. The page rests where restingTop says: on open,
- * when the teacher asks (`restKey` changes) and while the teacher writes. Scrolled up, the key
- * in the corner brings the learner back.
+ * when the teacher asks (`restKey` changes) and while the teacher writes. When a reply lands it
+ * holds still while the desk leaves, then is placed at once as the reply draws in. "Your turn"
+ * fades out when it closes and, arriving with a reply, steps in after the reply's text. Scrolled
+ * up, the key in the corner brings the learner back.
  */
 export function LessonScroll({
 	steps,
@@ -82,9 +92,16 @@ export function LessonScroll({
 	/** "Your turn", while something waits. */
 	turn: ReactNode | null;
 }) {
-	const [paired, setPaired] = useState(turn !== null);
-	const pair = keepPair(paired, turn !== null, busy);
+	const held = useLastWhileClosing(turn);
+	const closing = held.mounted && held.state === "closed" && !prefersReducedMotion();
+	const shownTurn = closing ? held.shown : turn;
+	const hasTurn = shownTurn !== null;
+	const [paired, setPaired] = useState(hasTurn);
+	const pair = keepPair(paired, hasTurn, busy);
 	if (pair !== paired) setPaired(pair);
+	// Shown when the page opened, "Your turn" is just there; arriving later, it steps in.
+	const [stepIn, setStepIn] = useState<boolean | null>(hasTurn ? false : null);
+	if (hasTurn !== (stepIn !== null)) setStepIn(hasTurn ? true : null);
 
 	const columnRef = useRef<HTMLDivElement>(null);
 	const turnRef = useRef<HTMLDivElement>(null);
@@ -95,11 +112,17 @@ export function LessonScroll({
 	const busyRef = useRef(busy);
 	busyRef.current = busy;
 	const target = useCallback<GetTargetScrollTop>((end, { scrollElement, contentElement }) => {
+		// The desk is leaving: the page holds still until the reply takes its place.
+		if (contentElement.querySelector("[data-desk-closing]")) return scrollElement.scrollTop;
 		const origin = contentElement.getBoundingClientRect().top;
 		const sheetEl = contentElement.querySelector("[data-testid=turn-sheet]");
 		const sheetBox = sheetEl?.getBoundingClientRect();
 		const partBox = contentElement.querySelector("[data-part-current]")?.getBoundingClientRect();
-		const reply = replyRef.current ? [...contentElement.querySelectorAll("[data-testid=user-message]")].at(-1) : null;
+		// With nothing waiting, a reply is read from its start once it has landed; while it is worked on, the desk shows.
+		const reply =
+			replyRef.current && (sheetEl || !busyRef.current)
+				? ([...contentElement.querySelectorAll(LEARNER)].at(-1) ?? contentElement.querySelector("[data-testid=lesson-reading]"))
+				: null;
 		const rest = restingTop(end, {
 			view: scrollElement.clientHeight,
 			pads: padsOf(columnRef.current),
@@ -120,10 +143,12 @@ export function LessonScroll({
 	}, [contextRef]);
 
 	const wasBusy = useRef(busy);
+	const landing = useRef(0);
 	useLayoutEffect(() => {
-		const started = busy && !wasBusy.current;
+		const was = wasBusy.current;
 		wasBusy.current = busy;
-		if (!started) return;
+		if (was && !busy) landing.current = performance.now() + LANDING_MS;
+		if (!busy || was) return;
 		replyRef.current = true;
 		const frame = requestAnimationFrame(settleUp);
 		return () => cancelAnimationFrame(frame);
@@ -142,6 +167,18 @@ export function LessonScroll({
 		ro.observe(scroller);
 		return () => ro.disconnect();
 	}, [contextRef]);
+	// A landing reply changes the page's height: it is placed before it is drawn, so it appears in place.
+	useLayoutEffect(() => {
+		const column = columnRef.current;
+		if (!column) return;
+		const ro = new ResizeObserver(() => {
+			const context = contextRef.current;
+			if (!context || context.state.escapedFromLock || performance.now() > landing.current) return;
+			context.state.scrollTop = context.state.calculatedTargetScrollTop;
+		});
+		ro.observe(column);
+		return () => ro.disconnect();
+	}, [contextRef]);
 	const firstKey = useRef(restKey);
 	useLayoutEffect(() => {
 		replyRef.current = false;
@@ -154,7 +191,6 @@ export function LessonScroll({
 
 	// Beside the text, "Your turn" holds still as the page scrolls, measured against the window.
 	const [stick, setStick] = useState<CSSProperties | undefined>();
-	const hasTurn = turn !== null;
 	useLayoutEffect(() => {
 		const el = turnRef.current;
 		const scroller = contextRef.current?.scrollRef.current;
@@ -170,9 +206,10 @@ export function LessonScroll({
 
 	return (
 		<div className="lh-lesson-room @container/room flex min-h-0 min-w-0 flex-col [grid-area:main]">
-			{/* A sheet of its own, so the page scrolls under its edge; shown only when the step line draws something. */}
+			{/* A sheet of its own, so the page scrolls under its edge; shown only when the step line draws something, and
+			    then it steps in with the reply's text (the step replays when :has() shows it). */}
 			<div className="lh-page shrink-0 pt-(--lh-gap) [&:not(:has(>section>div>*))]:hidden">
-				<Pane className={cn("@container/strip", READING_MEASURE, pair && PAIR)}>
+				<Pane className={cn("@container/strip lh-block-in [--lh-block-delay:var(--lh-dur-fast)]", READING_MEASURE, pair && PAIR)}>
 					<div className="px-(--lh-reading-inset) py-4 @max-[640px]/strip:px-(--lh-reading-inset-narrow)">{steps}</div>
 				</Pane>
 			</div>
@@ -182,9 +219,15 @@ export function LessonScroll({
 					<div className="lh-page pt-(--lh-gap) pb-(--lh-page-end)">
 						<div ref={columnRef} data-testid="lesson-column" className={cn("@container/column flex flex-col gap-(--lh-gap)", READING_MEASURE, pair && [PAIR, PAIR_GRID])}>
 							{reading}
-							{turn && (
-								<div ref={turnRef} className="min-w-0" style={stick}>
-									{turn}
+							{hasTurn && (
+								<div
+									ref={turnRef}
+									data-state={closing ? "closed" : "open"}
+									inert={closing}
+									className={cn("min-w-0", closing ? "lh-fade" : stepIn && "lh-block-in")}
+									style={{ ...stick, "--lh-block-delay": "240ms" } as CSSProperties}
+								>
+									{shownTurn}
 								</div>
 							)}
 						</div>

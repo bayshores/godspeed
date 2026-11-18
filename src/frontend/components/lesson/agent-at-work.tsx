@@ -1,175 +1,100 @@
-import { memo, useLayoutEffect, useMemo, useRef } from "react";
+import { useId, useRef, type CSSProperties, type ReactNode } from "react";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
-import { prefersReducedMotion } from "@/frontend/components/presence";
+import { useReplayOnChange } from "@/frontend/components/motion";
 import { cn } from "@/frontend/lib/utils";
-import { textPages, type AgentWork, type ReadingTarget } from "./agent-at-work-model";
-import { pdfPageUrl, useReadingDoc, type ReadingDoc } from "./use-reading-doc";
+import type { AgentWork } from "./agent-at-work-model";
+import type { Arrive } from "./arrivals";
+import { PageStage, PaperStack } from "./page-stage";
+import { planLines, type DeskState, type PlanLine } from "./wait-model";
 
 /**
- * THE AGENT AT WORK: while the teacher works on a reply, its plan and steps
- * on the left and the file it is reading on the right, as paper pages that
- * drift through the whole document once, settle on the part being read,
- * and float.
+ * THE DESK: where the reply will appear, while the teacher works on it. It shows paper, the
+ * learner's own files, from the moment the turn starts; once the teacher has a plan or takes a
+ * step it splits in place into the plan on the left and the paper on the right, the file the
+ * teacher opened on top. It says nothing the top bar's pill says. `foot` is Stop and the lines
+ * typed to the teacher that wait for it.
  */
-export function AgentAtWork({ work, agentName }: { work: AgentWork; agentName: string }) {
+export function AgentAtWork({
+	state,
+	work,
+	split,
+	paper,
+	arrive,
+	foot,
+}: {
+	state: DeskState;
+	work: AgentWork | null;
+	split: boolean;
+	paper: { path: string | null; edges: number };
+	arrive: Arrive;
+	foot: ReactNode;
+}) {
+	// Each desk's own arrival slots, so the next turn's desk steps in again.
+	const slot = useId();
+	const ref = useRef<HTMLDivElement>(null);
+	useReplayOnChange(ref, split, "lh-block-in");
+	const reading = split ? (work?.reading ?? null) : null;
 	return (
-		<div data-testid="agent-at-work" className="flex gap-7 py-2">
-			<div className="flex w-[260px] shrink-0 flex-col gap-4">
-				<div className="text-[15px] text-ink-2">{agentName}</div>
-				{work.plan ? <PlanList plan={work.plan} steps={work.steps} /> : <Steps steps={work.steps} working />}
-			</div>
-			{work.reading && <PageStage reading={work.reading} />}
-		</div>
-	);
-}
-
-function PlanList({ plan, steps }: { plan: NonNullable<AgentWork["plan"]>; steps: string[] }) {
-	return (
-		<div className="flex flex-col gap-3">
-			<div className={LABEL_TEXT}>Plan</div>
-			<ol className="flex flex-col gap-3">
-				{plan.items.map((item, i) => {
-					const state = i < plan.done ? "done" : i === plan.done ? "now" : "next";
-					return (
-						<li key={`${i}:${item}`} className="flex gap-2.5">
-							<span className="flex h-5 w-4 shrink-0 items-center justify-center">
-								{state === "done" && <PixelIcon name="check" className="text-ink-2" />}
-								{state === "now" && <BrailleSpinner label="Working" />}
-								{state === "next" && <span className="size-1.5 bg-tone-2" />}
-							</span>
-							<div className="flex min-w-0 flex-col gap-2">
-								<span className={cn("text-[15px] leading-5", state === "now" ? "text-ink" : "text-ink-2")}>{item}</span>
-								{state === "now" && <Steps steps={steps} />}
-							</div>
-						</li>
-					);
-				})}
-			</ol>
-		</div>
-	);
-}
-
-function Steps({ steps, working }: { steps: string[]; working?: boolean }) {
-	if (steps.length === 0) return null;
-	return (
-		<ul className="flex flex-col gap-1 font-count text-[15px] leading-5">
-			{steps.map((step, i) => {
-				const last = i === steps.length - 1;
-				return (
-					<li key={`${i}:${step}`} className={"lh-step-in flex gap-2 break-words text-ink-2"}>
-						{working && last && <BrailleSpinner label="Working" />}
-						{step}
-					</li>
-				);
-			})}
-		</ul>
-	);
-}
-
-/** PDFs longer than this show only their first pages. */
-const MAX_PDF_PAGES = 80;
-
-function PageStage({ reading }: { reading: ReadingTarget }) {
-	const doc = useReadingDoc(reading.path);
-	const scrollerRef = useRef<HTMLDivElement>(null);
-	const stageRef = useRef<HTMLDivElement>(null);
-	const sweptRef = useRef<string | null>(null);
-	const from = reading.kind === "text" ? reading.from : null;
-	const to = reading.kind === "text" ? (reading.to ?? reading.from) : null;
-	const anchor = reading.kind === "text" ? from : reading.page;
-
-	useLayoutEffect(() => {
-		const scroller = scrollerRef.current;
-		const stage = stageRef.current;
-		if (!doc || !scroller || !stage) return;
-		const target = scroller.querySelector<HTMLElement>("[data-reading-here]");
-		const room = Math.max(0, scroller.scrollHeight - stage.clientHeight);
-		const goal = target ? Math.min(room, Math.max(0, target.offsetTop - stage.clientHeight / 3)) : 0;
-		const at = new DOMMatrix(getComputedStyle(scroller).transform).m42;
-		for (const a of scroller.getAnimations()) a.cancel();
-		const end = `translateY(${-goal}px)`;
-		scroller.style.transform = end;
-		if (prefersReducedMotion()) return;
-		if (sweptRef.current !== reading.path) {
-			// First sight of this file: drift down through all of it, then settle.
-			sweptRef.current = reading.path;
-			const pages = scroller.childElementCount;
-			scroller.animate(
-				[
-					{ transform: "translateY(0)", easing: "cubic-bezier(0.45, 0, 0.55, 1)" },
-					{ transform: `translateY(${-room}px)`, offset: 0.75, easing: "cubic-bezier(0.33, 0, 0.2, 1)" },
-					{ transform: end },
-				],
-				{ duration: Math.min(9000, Math.max(2600, pages * 500)) },
-			);
-		} else {
-			scroller.animate([{ transform: `translateY(${at}px)` }, { transform: end }], { duration: 900, easing: "cubic-bezier(0.33, 0, 0.2, 1)" });
-		}
-	}, [doc, reading.path, anchor]);
-
-	return (
-		// The file is not lesson text, and Find could never scroll into this stage.
-		<div data-session-find-exclude="" className="flex min-w-0 flex-1 flex-col gap-2">
-			<div className="flex items-baseline gap-3 text-[15px]">
-				<span className="truncate text-ink-2" title={reading.name}>{reading.name}</span>
-				<span className="shrink-0 font-count text-ink-2">{whereLabel(reading, doc)}</span>
-			</div>
-			<div ref={stageRef} className="relative h-[340px] overflow-hidden">
-				<div className="lh-float h-full px-4 pt-10">
-					<div className="lh-float-2 h-full">
-						<div ref={scrollerRef} className="relative flex flex-col gap-4 will-change-transform">
-							{doc?.kind === "text" && <TextPages text={doc.text} from={from} to={to} />}
-							{doc?.kind === "pdf" && reading.kind === "pdf" && <PdfPages path={reading.path} doc={doc} page={reading.page} />}
-						</div>
-					</div>
+		<div ref={ref} data-testid="agent-at-work" data-state={state} className="lh-desk @container/desk flex flex-col gap-4">
+			<div className={cn("flex h-[340px] gap-7 @max-[360px]/desk:h-auto", split && "@max-[560px]/desk:h-auto @max-[560px]/desk:flex-col")}>
+				{split && work && <WorkList work={work} slot={slot} arrive={arrive} />}
+				<div className={cn("flex min-w-0 flex-1 flex-col @max-[360px]/desk:hidden", split && "@max-[560px]/desk:h-[220px] @max-[560px]/desk:flex-none")}>
+					{reading ? (
+						<PageStage key={reading.path} reading={reading} className={cn(arrive(`${slot}:file:${reading.path}`) && "lh-block-in")} />
+					) : (
+						<PaperStack path={paper.path} edges={paper.edges} still={state === "waiting"} slot={slot} arrive={arrive} />
+					)}
 				</div>
-				<div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-panel to-transparent" />
-				<div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-panel to-transparent" />
 			</div>
+			{foot}
 		</div>
 	);
 }
 
-function whereLabel(reading: ReadingTarget, doc: ReadingDoc | null): string {
-	if (reading.kind === "pdf") {
-		const total = doc?.kind === "pdf" ? ` of ${doc.pageCount}` : "";
-		return reading.page ? `page ${reading.page}${total}` : "";
-	}
-	if (reading.from && reading.to) return `lines ${reading.from} to ${reading.to}`;
-	return reading.from ? `from line ${reading.from}` : "";
+/** The plan, each item stepping in after the one above it, with the newest step under the
+ *  current item; with no plan, the newest step alone. Only the current item spins. */
+function WorkList({ work, slot, arrive }: { work: AgentWork; slot: string; arrive: Arrive }) {
+	const lines = work.plan ? planLines(work.plan) : [];
+	const n = work.steps.length;
+	const step = n > 0 && (
+		<span key={n} className={cn("block truncate font-count text-[15px] leading-5 text-ink-2", arrive(`${slot}:step:${n}`) && "lh-block-in")} style={{ "--lh-block-delay": "60ms" } as CSSProperties}>
+			{work.steps[n - 1]}
+		</span>
+	);
+	const hasNow = lines.some((line) => line.state === "now");
+	return (
+		<ol data-testid="desk-plan" className="flex w-[260px] shrink-0 flex-col gap-3 @max-[560px]/desk:w-full">
+			{lines.map((line, i) => (
+				<li key={line.key} className={cn("flex gap-2.5", arrive(`${slot}:plan:${line.key}`) && "lh-block-in")} style={{ "--lh-block-delay": `${i * 40}ms` } as CSSProperties}>
+					<Mark state={line.state} />
+					<div className="flex min-w-0 flex-col gap-2">
+						<LineText line={line} />
+						{line.state === "now" && step}
+					</div>
+				</li>
+			))}
+			{!hasNow && step && (
+				<li className="flex gap-2.5">
+					<Mark state="now" />
+					<div className="min-w-0">{step}</div>
+				</li>
+			)}
+		</ol>
+	);
 }
 
-const PAPER = "bg-[#E9E9E7] text-[#2B2B2B] border border-edge";
+function Mark({ state }: { state: PlanLine["state"] }) {
+	return (
+		<span className="flex h-5 w-4 shrink-0 items-center justify-center">
+			{(state === "done" || state === "folded") && <PixelIcon name="check" className="text-ink-2" />}
+			{state === "now" && <BrailleSpinner label="Working" />}
+			{state === "next" && <span className="size-1.5 bg-tone-2" />}
+		</span>
+	);
+}
 
-// Memoized: the file can be megabytes, and the pane re-renders on every stream frame and keystroke.
-const TextPages = memo(function TextPages({ text, from, to }: { text: string; from: number | null; to: number | null }) {
-	const pages = useMemo(() => textPages(text), [text]);
-	return pages.map((page) => (
-		<div key={page.start} className={cn(PAPER, "px-6 py-5 text-[10.5px] leading-[1.5]")}>
-			{page.lines.map((line, i) => {
-				const n = page.start + i;
-				const lit = from !== null && to !== null && n >= from && n <= to;
-				return (
-					<div
-						key={n}
-						data-reading-here={n === from ? "" : undefined}
-						className={cn("-ml-2 border-l-2 pl-1.5 whitespace-pre-wrap break-words", lit ? "border-[#1A1A1A] bg-black/[0.07] text-[#111]" : "border-transparent")}
-					>
-						{line || " "}
-					</div>
-				);
-			})}
-		</div>
-	));
-});
-
-function PdfPages({ path, doc, page }: { path: string; doc: Extract<ReadingDoc, { kind: "pdf" }>; page: number | null }) {
-	return Array.from({ length: Math.min(doc.pageCount, MAX_PDF_PAGES) }, (_, i) => i + 1).map((n) => (
-		<div key={n} data-reading-here={n === page ? "" : undefined} className={cn(PAPER, "relative")} style={{ aspectRatio: doc.aspect }}>
-			<img src={pdfPageUrl(path, n)} alt={`Page ${n}`} loading={page !== null && Math.abs(n - page) <= 1 ? "eager" : "lazy"} className="size-full object-contain" />
-			{n === page && <span className="absolute top-0 bottom-0 left-0 w-0.5 bg-[#1A1A1A]" />}
-		</div>
-	));
+function LineText({ line }: { line: PlanLine }) {
+	if (line.state === "folded") return <span className="font-count text-[15px] leading-5 text-ink-2">{line.count} done</span>;
+	return <span className={cn("line-clamp-2 text-[15px] leading-5 break-words", line.state === "now" ? "text-ink" : "text-ink-2")}>{line.text}</span>;
 }

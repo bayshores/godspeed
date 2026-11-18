@@ -18,16 +18,18 @@ type Sheet = {
 
 /**
  * Where the lesson page rests, as a scroll position. Its end is the default: the lesson text's
- * newest words at the window's end. Under the text, "Your turn" ends at the window's end; when
- * that would hide the start of the newest thing, the page rests on that start instead: the
- * learner's last message once the teacher writes back while "Your turn" stays open, else the
- * part the learner is on when it sits deep in the sheet, else the sheet's top. Beside the text,
- * a sheet taller than the window shows its top while the page rests just short of its end, by
- * as much as the sheet overflows. Places are measured from the page's top; `part` from the sheet's.
+ * newest words at the window's end. With no "Your turn", a reply that landed and is longer than
+ * the window is read from its start (`reply`: where the learner's last message, or the page,
+ * begins). Under the text, "Your turn" ends at the window's end; when that would hide the start
+ * of the newest thing, the page rests on that start instead: the learner's last message once the
+ * teacher writes back while "Your turn" stays open, else the part the learner is on when it sits
+ * deep in the sheet, else the sheet's top. Beside the text, a sheet taller than the window shows
+ * its top while the page rests just short of its end, by as much as the sheet overflows. Places
+ * are measured from the page's top; `part` from the sheet's.
  */
 export function restingTop(end: number, page: { view: number; pads: Pads; sheet: Sheet | null; part: number | null; reply: number | null }): number {
 	const { view, pads, sheet, part, reply } = page;
-	if (sheet === null) return end;
+	if (sheet === null) return reply === null ? end : Math.max(0, Math.min(end, reply - pads.top));
 	const deepPart = part !== null && part > view * PART_DEPTH ? part : null;
 	if (sheet.beside) {
 		const over = Math.max(0, sheet.height + pads.top + pads.end - view);

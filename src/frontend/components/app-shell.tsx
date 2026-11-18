@@ -5,7 +5,7 @@ import { RuleNotice } from "@/frontend/components/rule-notice";
 import { SpaceNotice } from "@/frontend/components/space-notice";
 import { FilesNotice } from "@/frontend/components/files-notice";
 import { QuietNotice } from "@/frontend/components/quiet-notice";
-import { replayRise } from "@/frontend/components/motion";
+import { replay } from "@/frontend/components/motion";
 import { OpenDeadlinesProvider } from "@/frontend/components/use-open-deadlines";
 import { TeacherProvider } from "@/frontend/components/teacher/teacher-provider";
 import { Welcome } from "@/frontend/components/welcome/welcome";
@@ -24,7 +24,7 @@ function ViewSwap({ children }: { children: React.ReactNode }) {
 		const from = prev.current;
 		prev.current = pathname;
 		if (from === pathname) return;
-		replayRise(ref.current);
+		replay(ref.current, "lh-rise");
 	}, [pathname]);
 	return (
 		<div ref={ref} className="h-full" style={{ animationDuration: "var(--lh-dur-slow)" }}>

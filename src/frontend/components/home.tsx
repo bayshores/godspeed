@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import type { FileCoverage, GraphContextPick, TopicProgress } from "@/shared/core";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { useSpaces } from "@/frontend/components/space-context";
-import { useRiseOnChange } from "@/frontend/components/motion";
+import { useReplayOnChange } from "@/frontend/components/motion";
 import { useProgress } from "@/frontend/components/use-progress";
 import { displayName } from "@/frontend/components/overview/overview-model";
 import { DeadlineStarts } from "@/frontend/components/home/deadline-starts";
@@ -46,7 +46,7 @@ export function NewLesson() {
 	const topicInputRef = useRef<HTMLTextAreaElement>(null);
 	// Switching space swaps the view: it rises in once.
 	const viewRef = useRef<HTMLDivElement>(null);
-	useRiseOnChange(viewRef, activeSpaceId);
+	useReplayOnChange(viewRef, activeSpaceId, "lh-rise");
 
 	const { start, studyTopics, studyPathTopic, studyDeadline, workOnHomework } = lesson;
 	const startTopic = () => void start({ title: topicRef.current, picks, files: attachments.files.map((f) => f.attachment) });

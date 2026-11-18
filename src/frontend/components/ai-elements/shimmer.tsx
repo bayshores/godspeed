@@ -7,12 +7,12 @@ interface TextShimmerProps {
   className?: string;
 }
 
-/** One sweep a second, two pixels of highlight per character. */
+/** One sweep a second, two pixels of highlight per character; with reduced motion, plain quiet text (globals.css). */
 const ShimmerComponent = ({ children, className }: TextShimmerProps) => {
   return (
     <p
       className={cn(
-        "relative inline-block animate-[lh-shimmer_1s_linear_infinite] bg-[length:250%_100%,auto] bg-clip-text text-transparent",
+        "lh-shimmer relative inline-block animate-[lh-shimmer_1s_linear_infinite] bg-[length:250%_100%,auto] bg-clip-text text-transparent",
         "[--bg:linear-gradient(90deg,#0000_calc(50%-var(--spread)),var(--color-background),#0000_calc(50%+var(--spread)))] [background-repeat:no-repeat,padding-box]",
         className
       )}

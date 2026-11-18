@@ -81,6 +81,17 @@ Every page, the lesson page included, uses one column and one set of spacing, so
 - `npm run layout` reports a card whose inset is off, a reading surface whose sides are not the reading inset, two neighbouring sheets in a page's column at a gap that is not `--lh-gap`, and a page h1 without `.lh-page-title`.
 - Before calling a page change finished, look at it at 1512, 1100 and 800 points wide, with the teacher's panel docked too.
 
+## Motion and waiting
+
+The app moves in one register, quick and quiet, like an e-ink page redrawing. The tokens and classes live in the motion blocks of `src/frontend/globals.css`.
+
+- Things enter in `--lh-dur` (160 ms) and leave in `--lh-dur-fast` (110 ms). A leaving thing is held on screen by presence (`usePresence`, `useLastWhileClosing`) until its exit has played; nothing pops away.
+- Anything that replaces part of a page appears stepped (`.lh-block-in`, `.lh-set`), top to bottom, one thing moving at a time.
+- A new keyframe needs a reason the existing ones can't serve.
+- Every motion class has a reduced-motion switch: with reduced motion nothing is held, nothing animates and scrolls are instant.
+- A wait has the shape of what comes, at the place it will appear, and shows objects (the lesson's desk shows the learner's files as paper), not skeleton bars. It has one live element and repeats no word the top bar's pill already says.
+- Before calling a waiting state finished, reload a lesson mid-wait at 1440, 1100 and 800 points wide: it shows without motion, in place, and nothing jumps when the reply lands.
+
 ## Type
 
 Interface and lesson text are one face, Literata, so they stay apart by size, weight and color, as a book sets its running text apart from its headings and notes.

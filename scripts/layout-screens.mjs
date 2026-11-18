@@ -1,3 +1,5 @@
+import { WAITING_TOPIC } from "./layout-seed.mjs";
+
 /**
  * layout-screens.mjs — the screens `npm run layout` checks, in order, each at every width.
  *
@@ -5,7 +7,7 @@
  * `shows`. `ready` and `shows` name something drawn from the screen's data, not its frame, so the
  * check never runs on a screen still loading. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
- * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkOpenDeadline}` and `{pathSpace}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
+ * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkOpenDeadline}`, `{pending}` and `{pathSpace}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
 export const WIDTHS = [1440, 1100, 800];
@@ -75,6 +77,21 @@ await fetch("/api/spaces/{space}/files", { method: "POST", body: form })${HTTP_O
 /** The deadline asks for a study guide with no agent to make it. The deadline is deleted for
  *  "Today with no deadline", which ends the request. */
 const waitingRequest = `await fetch("/api/spaces/{space}/deadlines/{deadline}/request", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "guide" }) })${HTTP_OK};`;
+
+/** The lesson made and never sent: opened at this address, the window sends its first message once,
+ *  as Study does, and with no agent connected its reply waits. */
+const waitingLesson = `/chat/{pending}?prompt=${encodeURIComponent(WAITING_TOPIC)}`;
+/** The desk at the foot of that lesson, still while no agent takes the reply, at work once one does. */
+const desk = (state) => `[data-testid=agent-at-work][data-state=${state}] [data-testid=desk-top-sheet]`;
+/** That lesson's reply stopped and the lesson deleted, so the screens after it are as before. A
+ *  lesson can't be deleted while its turn runs, so the delete is tried until the stop has ended it. */
+const dropWaitingLesson = `await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: "{pending}" }) })${HTTP_OK};
+for (let tries = 0; ; tries++) {
+	const res = await fetch("/api/chats/{pending}?mode=preserve-graph", { method: "DELETE" });
+	if (res.ok) break;
+	if (tries > 50) throw new Error("the waiting lesson was never deleted: " + res.status);
+	await new Promise((done) => setTimeout(done, 100));
+}`;
 
 /** Find opened on the Graph's foot line, with `word` typed in. */
 const findWord = (word) => `document.querySelector("[data-testid=graph-find]").click(); ${pause};
@@ -218,14 +235,32 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	{ name: "Settings, Appearance", url: "/settings?section=appearance", ready: "[data-testid=appearance-preview]" },
 	{ name: "Settings, Appearance, the font list", url: "/settings?section=appearance", ready: "[data-testid=font-trigger]", setup: `document.querySelector("[data-testid=font-trigger]").click()`, shows: "[data-testid=font-menu][data-state=open] [data-testid=font-option-default]" },
 	{ name: "Settings, General", url: "/settings?section=general", ready: "[data-testid=teacher-name-row]" },
+	{ name: "Lesson whose first reply waits for an agent", url: waitingLesson, ready: desk("waiting") },
+	{
+		name: "Lesson whose first reply waits for an agent, the teacher's panel docked",
+		url: "/chat/{pending}",
+		ready: desk("waiting"),
+		setup: `localStorage.setItem("lh:pane-height:teacher", "full"); ${openTeacher}; ${pause}; localStorage.removeItem("lh:pane-height:teacher")`,
+		shows: "[data-testid=terminal-none] [data-testid=open-agent]",
+	},
 	{ name: "Progress while a file waits for an agent", before: waitingFile, url: "/space", ready: waitingFrame },
 	{ name: "Graph while a file waits for an agent", url: "/graph", ready: waitingFrame },
 	{ name: "Deadline while its request waits for an agent", before: waitingRequest, url: "/space/deadline/{deadline}", ready: waitingFrame },
+	// The stand-in agent is started from the waiting lesson's teacher window, and the desk goes to work beside it.
+	{
+		name: "Lesson whose first reply an agent took",
+		url: "/chat/{pending}",
+		ready: desk("waiting"),
+		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent]").click()`,
+		shows: desk("working"),
+	},
+	// Starter keys show only while no lesson turn waits, so the waiting lesson goes first. The stand-in agent may already run.
 	{
 		name: "The agent's screen",
+		before: dropWaitingLesson,
 		url: "/",
 		ready: deadlineCard,
-		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent]").click()`,
+		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent]")?.click()`,
 		shows: "[data-testid=terminal-starters] [data-testid=terminal-starter]",
 	},
 	// The longest starter key: "Get me ready for" the deadline's name.

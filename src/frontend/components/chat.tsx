@@ -592,7 +592,7 @@ export function Chat({
 								<LessonWorkFrame chatId={chatId}>
 									<div ref={sessionFindScopeRef} data-dock={sheetOpen ? "" : undefined} className="lh-dots lh-lesson-body relative h-full">
 										<LessonScroll
-											steps={<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onPick={openPick} onOpenPlan={openPlan} busy={busy} />}
+											steps={<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onPick={openPick} onOpenPlan={openPlan} />}
 											restKey={[pending?.toolCallId, problem?.toolCallId, problem?.part, lessonStop.card?.key].join(" ")}
 											busy={busy}
 											contextRef={scrollContextRef}
@@ -600,13 +600,15 @@ export function Chat({
 												<Pane data-testid="lesson-reading" className="min-w-0">
 													<ReadingPane
 														spaceId={spaceId}
+														title={rename.title}
+														assignment={homework?.assignment ?? null}
 														messages={messages}
 														phases={phases}
 														status={status}
 														busy={busy}
-														turnInFlight={turnInFlight}
 														waitingForAgent={waitingForAgent}
 														onStop={lessonStop.card ? null : abortInFlightTurn}
+														onStartAgain={error ? null : () => void send({ type: "continue" })}
 														goAhead={goAhead}
 														queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
 														arrivalsLive={arrivalsLive}
