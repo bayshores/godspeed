@@ -54,9 +54,11 @@ export function AppearanceSection({
 
 	return (
 		// Wide, the controls take the left half and the preview the right.
-		<div className="grid grid-cols-[340px_minmax(0,1fr)] items-start gap-5 [grid-template-areas:'bg_bg'_'font_preview'] @[1100px]/page:grid-cols-2 @[1100px]/page:[grid-template-areas:'bg_preview'_'font_preview']">
-			<Pane data-testid="group-background" className="flex flex-col gap-3.5 px-6 py-[18px] [grid-area:bg]">
-				<h2 className="text-xl leading-tight text-ink">Background</h2>
+		<div className="grid grid-cols-[340px_minmax(0,1fr)] items-start gap-(--lh-gap) [grid-template-areas:'bg_bg'_'font_preview'] @[1100px]/page:grid-cols-2 @[1100px]/page:[grid-template-areas:'bg_preview'_'font_preview']">
+			<Pane data-testid="group-background" className="lh-card [grid-area:bg]">
+				<div className="lh-card-head">
+					<h2 className="lh-card-title">Background</h2>
+				</div>
 				<div className="grid grid-cols-7 gap-2.5">
 					{BACKGROUND_PRESETS.map((preset) => (
 						<ThemeTile
@@ -85,7 +87,7 @@ export function AppearanceSection({
 				</div>
 			</Pane>
 
-			<Pane className="flex w-[340px] flex-col gap-[18px] px-6 py-5 [grid-area:font]">
+			<Pane className="lh-card w-[340px] gap-(--lh-gap) [grid-area:font]">
 				<Control label="Reading font">
 					<FontPicker family={appearance.fontFamily ?? null} onPick={(family) => onSectionChange(composeFontFamily(appearance, family))} />
 				</Control>
@@ -123,7 +125,7 @@ function TextSize() {
 function Control({ label, children }: { label: string; children: React.ReactNode }) {
 	return (
 		<div className="flex flex-col gap-2">
-			<p className="text-lg font-medium text-ink">{label}</p>
+			<p className="text-[17px] leading-snug text-ink">{label}</p>
 			{children}
 		</div>
 	);
@@ -165,8 +167,10 @@ function ColorInput({ label, value, onCommit }: { label: string; value: string; 
 /** The sample lesson, drawn with the real lesson styles. */
 function Preview() {
 	return (
-		<Pane data-testid="appearance-preview" className="flex min-w-0 flex-col gap-3 px-7 py-5 [grid-area:preview]">
-			<h2 className="text-xl leading-tight text-ink">Preview</h2>
+		<Pane data-testid="appearance-preview" className="lh-card min-w-0 [grid-area:preview]">
+			<div className="lh-card-head">
+				<h2 className="lh-card-title">Preview</h2>
+			</div>
 			<div className="lh-prose flex flex-col gap-2.5">
 				<h4 className="text-[1.4em]">Why a derivative is a slope</h4>
 				<p>

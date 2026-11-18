@@ -53,14 +53,32 @@ The Mac app draws with WebKit, not Chrome; a page right in a browser can overlap
 - Anything that sticks out of its own box (a tag, a badge, a pop-up) sits on a layer above what can move under it, or does not stick out at all. Pop-ups go through `MenuShell` or a dialog, which no box can clip.
 - `npm run layout` checks the screens in `scripts/layout-screens.mjs` in the real window at all three widths, each as it opens, scrolled 80 px and scrolled to the end, for overlapping text, text or a control another box is drawn over, spills, sideways scrolling, hidden text and cut-off letters. CI runs it on the Mac; `npm run check` does not. Run it yourself before calling a UI change finished. A new screen or state gets an entry there.
 
-## One page width
+## Page layout
 
-Every page, the lesson page included, sits in one column: `.lh-page` in `src/frontend/globals.css`, at most `--lh-page-w` (1460 px) wide with 32 px sides (24 px when the room is under 900), so page edges line up as the learner moves between pages.
+Every page, the lesson page included, uses one column and one set of spacing, so nothing moves as the learner goes from page to page. The values live in `:root` and the classes in `src/frontend/globals.css`. Page files use the tokens (`pt-(--lh-page-top)`, `gap-(--lh-gap)`) and classes, never their own numbers.
 
-- No page or route sets a max width of its own.
-- The width is used, not stretched: wide, a page puts a second block in a side column (Today's spaces, Files' recent changes, the Study page's suggestions) or lays its cards and groups in columns (Deadlines, Settings). Sentences stay under about 75 characters a line (`max-w-[75ch]`), fields stay field-sized and keys stay as wide as their words.
-- Only screens that are one centered box (onboarding, dialogs) stay centered.
-- Before calling a page change finished, look at it at 1512, 1100 and 800 points wide, with the teacher's panel docked too, and check its edges against the lesson page's.
+| What | Value | Where it applies |
+|---|---|---|
+| Column | `.lh-page`: at most `--lh-page-w` (1460) wide, centered, sides `--lh-page-side` (32, or 24 when the room is under 900) | Every page |
+| Top of a page with a title | `--lh-page-top` (40) from the top bar to the title | Today, Study, a deadline, Settings, All facts, Lessons with no space |
+| Page title | `.lh-page-title`: `--lh-title` (44, or 34 when the room is under 900), regular | Every page's one h1 |
+| Title to what is under it | `--lh-head-gap` (32) | Under a page title, and above a second section title on a page (Done or past) |
+| Between cards | `--lh-gap` (24), across and down | Every page; also a tab row to the first card |
+| Card | `.lh-card` on a sheet: inset `--lh-inset` (24) on the sides and bottom, 20 on top | Every card with a title or plain content |
+| Card head | `.lh-card-head`: one 40-point line for the title and its key, 12 points above the content | Every card title, and a section title outside a card |
+| Card title | `.lh-card-title`: 20, regular | Every card and section title |
+| Tabs | `.lh-tabs` and `.lh-tab`: 18-point words on a 2-point line | A space's pages, Settings' sections |
+| End of a page | `--lh-page-end` (64) under the last card | Every page that scrolls |
+| Line length | `--lh-measure` (75ch) | Sentences and paragraphs outside lesson text |
+| Keys | 40 high; `.lh-btn-small` 30; `BIG_KEY` and `MAIN_KEY` 48 for a page's main action | Every key |
+| Fields | 40 high (`FIELD`, `SELECT`) | Every field |
+
+- Pages with the same head start their first card at the same height: a space's pages under the tab row, title pages under the title.
+- The width is used, not stretched: wide, a page puts a second block in a side column (Today's spaces, Files' recent changes, the Study page's suggestions) or lays its cards and groups in columns (Deadlines, Settings). Fields stay field-sized and keys stay as wide as their words.
+- A different kind of object keeps its own numbers and says why: a card with a days block on its edge (Today's next card, Progress's next deadline, a Deadlines row) has no inset where the block is; the Graph picture runs under the tab row; side lists of picks in Settings have an 8-point inset as their rows carry their own; the Study page's back link sits above its title; a deadline's head is as tall as its days block.
+- Only screens that are one centered box (onboarding, dialogs, Not found) stay centered.
+- `npm run layout` reports a card whose inset is off, two neighbouring sheets in a page's column at a gap that is not `--lh-gap`, and a page h1 without `.lh-page-title`.
+- Before calling a page change finished, look at it at 1512, 1100 and 800 points wide, with the teacher's panel docked too.
 
 ## Type
 

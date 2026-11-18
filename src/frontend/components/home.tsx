@@ -60,16 +60,16 @@ export function NewLesson() {
 	return (
 		<div className="flex h-full min-h-0 flex-col" data-testid="home">
 			<div className="min-h-0 flex-1 overflow-y-auto">
-				<div ref={viewRef} className="@container/page lh-page flex flex-col gap-9 pt-[22px] pb-16" style={{ animationDuration: "var(--lh-dur-slow)" }}>
+				<div ref={viewRef} className="@container/page lh-page flex flex-col gap-(--lh-head-gap) pt-(--lh-page-top) pb-(--lh-page-end)" style={{ animationDuration: "var(--lh-dur-slow)" }}>
 					<div className="flex flex-col items-start gap-2.5">
 						<Link to="/space" data-testid="page-back" className="lh-btn lh-btn-quiet -ml-1 text-[15px]">
 							<PixelIcon name="chevron" className="-scale-x-100" />
 							Progress
 						</Link>
-						<h1 className="text-[38px] leading-[1.2] text-ink">What do you want to study?</h1>
+						<h1 className="lh-page-title">What do you want to study?</h1>
 					</div>
 					{/* Wide, the ways to start take the left half and the suggestions the right. */}
-					<div className="grid items-start gap-9 @[1100px]/page:grid-cols-2 @[1100px]/page:gap-8">
+					<div className="grid items-start gap-(--lh-head-gap) @[1100px]/page:grid-cols-2">
 						<div className="flex flex-col gap-3.5">
 							{progress && deadlines.length > 0 && <DeadlineStarts deadlines={deadlines} busy={lesson.busy} onStudy={(d) => void studyDeadline(d)} onWork={(d) => void workOnHomework(d)} />}
 							<TopicBox

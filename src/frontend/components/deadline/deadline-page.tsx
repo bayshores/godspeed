@@ -122,7 +122,7 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 	return (
 		<JobFrame doing={running && requestDoing(running)}>
 			<div className="h-full overflow-y-auto">
-				<div className="lh-page flex flex-col gap-[22px] pt-[22px] pb-9">
+				<div className="lh-page pt-(--lh-page-top) pb-(--lh-page-end)">
 					{current && !deadline ? (
 						<p data-testid="deadline-removed" className="text-lg text-ink-2">
 							This deadline was removed.
@@ -191,7 +191,7 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 						<LoadFailed message="Couldn't load this deadline." onRetry={refresh} />
 					) : (
 						// Plain boxes until the space's progress arrives, so nothing jumps.
-						<div className="flex flex-col gap-[22px]" aria-hidden>
+						<div className="flex flex-col gap-(--lh-head-gap)" aria-hidden>
 							<div className="h-[120px] w-full bg-panel" />
 							<div className="h-[320px] w-full bg-panel" />
 						</div>

@@ -3,7 +3,6 @@ import { DEFAULT_TEACHER_NAME, secondsLeft, starterCode, type Mock, type MockLan
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { MathBox } from "@/frontend/components/math-box";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
-import { TITLE } from "@/frontend/components/overview/styles";
 import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
@@ -306,7 +305,7 @@ function Clock({ mock, onTimeUp }: { mock: Mock; onTimeUp: () => void }) {
 function QuestionPanel({ question: q, n, teacher }: { question: MockQuestion; n: number; teacher: string }) {
 	return (
 		<section data-testid="mock-question" className="flex w-[42%] max-w-[520px] min-w-[320px] shrink-0 flex-col gap-4 overflow-y-auto border-r-2 border-line px-7 py-6">
-			<h2 className={TITLE}>
+			<h2 className="lh-card-title">
 				Question {n}: {q.title}
 			</h2>
 			<div className="font-prose text-[17px] leading-relaxed text-ink">

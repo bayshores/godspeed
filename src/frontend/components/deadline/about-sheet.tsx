@@ -1,7 +1,6 @@
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { Pane } from "@/frontend/components/ui/pane";
 import type { About } from "./use-deadline-about";
-import { SHEET, SHEET_TITLE } from "./styles";
 
 /** The teacher's Markdown; its headings stay under the sheet's title. */
 const ABOUT_TEXT = "font-prose text-[17px] leading-relaxed text-ink [--lh-heading-weight:500] [&_:is(h1,h2,h3)]:text-lg [&_:is(h1,h2,h3)]:leading-snug";
@@ -28,8 +27,10 @@ export function AboutSheet({
 	onRetry: () => void;
 }) {
 	return (
-		<Pane data-testid="deadline-about" className={SHEET}>
-			<h2 className={SHEET_TITLE}>What it&apos;s like</h2>
+		<Pane data-testid="deadline-about" className="lh-card">
+			<div className="lh-card-head">
+				<h2 className="lh-card-title">What it&apos;s like</h2>
+			</div>
 			{about.state === "ready" ? (
 				<div data-testid="deadline-about-text" className={ABOUT_TEXT}>
 					<MessageResponse>{about.text}</MessageResponse>

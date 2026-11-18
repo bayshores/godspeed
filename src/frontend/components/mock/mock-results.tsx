@@ -2,7 +2,6 @@ import { DEFAULT_TEACHER_NAME, MOCK_LANGUAGES, localDay, longDay, minutesUsed, p
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
-import { TITLE } from "@/frontend/components/overview/styles";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import { MockBar } from "./mock-bar";
@@ -24,10 +23,10 @@ export function MockResults({ view }: { view: MockView }) {
 		<div data-testid="mock-results" className="flex h-full flex-col">
 			<MockBar view={view} />
 			<div className="min-h-0 flex-1 overflow-y-auto">
-				<div className="lh-page flex flex-wrap items-start gap-x-10 gap-y-8 pt-7 pb-16">
+				<div className="lh-page flex flex-wrap items-start gap-(--lh-gap) pt-(--lh-gap) pb-(--lh-page-end)">
 					<section className="flex min-w-0 flex-1 basis-[460px] flex-col gap-2">
-						<div className={cn(TITLE, "flex flex-wrap items-baseline justify-between gap-x-4")}>
-							<h2>How Mock {mock.n} went</h2>
+						<div className="lh-card-head">
+							<h2 className="lh-card-title">How Mock {mock.n} went</h2>
 							{mock.endedAt && <p className="text-[15px] text-ink-2">{longDay(localDay(new Date(mock.endedAt)))}</p>}
 						</div>
 						<ol className="flex flex-col">
@@ -37,7 +36,7 @@ export function MockResults({ view }: { view: MockView }) {
 						</ol>
 					</section>
 
-					<Pane className="flex w-full shrink-0 flex-col gap-1 px-5 py-5 sm:sticky sm:top-6 sm:w-[292px]">
+					<Pane className="lh-card w-full shrink-0 gap-1 sm:sticky sm:top-6 sm:w-[292px]">
 						<p data-testid="mock-solved" className="font-count text-[34px] leading-tight text-ink">
 							{solvedCount(mock)} of {mock.questions.length} right
 						</p>
@@ -80,7 +79,7 @@ function QuestionRow({ n, question: q, view, teacher, busy, onGoOver }: { n: num
 					{answer && answer.seconds > 0 && <span className="shrink-0 text-[15px] text-ink-2">{spentText(answer.seconds)}</span>}
 				</div>
 				{grade && (
-					<div data-testid="mock-feedback" className="max-w-[75ch] font-prose text-[16px] leading-relaxed text-ink">
+					<div data-testid="mock-feedback" className="max-w-(--lh-measure) font-prose text-[16px] leading-relaxed text-ink">
 						<MessageResponse>{grade.feedback}</MessageResponse>
 					</div>
 				)}

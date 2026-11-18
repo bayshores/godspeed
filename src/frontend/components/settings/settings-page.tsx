@@ -15,7 +15,6 @@ import { GeneralSection } from "./general-section.tsx";
 import { MENU_CLOSE_EVENT, MENU_OPEN_EVENT } from "@/frontend/components/menu-shell";
 import { notifySettingsSaved } from "@/frontend/components/settings-signal";
 import { useServerEvent } from "@/frontend/components/server-events";
-import { cn } from "@/frontend/lib/utils";
 import { PluginsSection } from "./plugins-section.tsx";
 import { AppearanceSection } from "./appearance-section.tsx";
 import { ConnectionSection, connectionHint } from "./connection-section.tsx";
@@ -159,9 +158,9 @@ export function SettingsPage({ section }: { section?: string }) {
 
 	return (
 		<div ref={contentRef} data-testid="settings-page" className="h-full overflow-y-auto">
-			<div className="@container/page lh-page flex flex-col pt-10 pb-12">
-				{!fullPage && <h1 className="text-[40px] leading-[48px] text-ink">Settings</h1>}
-				<nav hidden={fullPage} aria-label="Settings sections" data-testid="settings-nav" className="mt-6 mb-6 flex gap-1 overflow-x-auto shadow-[inset_0_-2px_0_var(--lh-edge)]">
+			<div className="@container/page lh-page flex flex-col pt-(--lh-page-top) pb-(--lh-page-end)">
+				{!fullPage && <h1 className="lh-page-title">Settings</h1>}
+				<nav hidden={fullPage} aria-label="Settings sections" data-testid="settings-nav" className="lh-tabs mt-(--lh-head-gap) mb-(--lh-gap)">
 					{SECTIONS.map((s) => {
 						const on = active === s.id;
 						return (
@@ -171,10 +170,7 @@ export function SettingsPage({ section }: { section?: string }) {
 								data-testid={`settings-nav-${s.id}`}
 								aria-current={on}
 								onClick={() => setActive(s.id)}
-								className={cn(
-									"lh-press shrink-0 border-b-2 px-3 py-2.5 text-base whitespace-nowrap",
-									on ? "border-ink font-medium text-ink" : "border-transparent text-ink-2 hover:text-ink",
-								)}
+								className="lh-press lh-tab"
 							>
 								{s.label}
 							</button>
@@ -239,7 +235,7 @@ export function SettingsPage({ section }: { section?: string }) {
 						</div>
 					)}
 					{"hint" in current && (
-						<p data-testid="settings-hint" className="max-w-[75ch] pt-6 text-sm text-ink-2">
+						<p data-testid="settings-hint" className="max-w-(--lh-measure) pt-(--lh-gap) text-sm text-ink-2">
 							{current.hint(desktop)}
 						</p>
 					)}

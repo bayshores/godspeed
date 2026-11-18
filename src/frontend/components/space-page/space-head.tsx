@@ -30,15 +30,15 @@ export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 	// The dialog compares its mode by identity: one object per open.
 	const editMode = useMemo(() => (editing ? { kind: "edit" as const, spaceId: editing } : null), [editing]);
 	return (
-		<div data-testid="space-head" className={cn("lh-page shrink-0", activeSpace ? "pt-4" : "pt-10")}>
+		<div data-testid="space-head" className={cn("lh-page shrink-0", activeSpace ? "pt-4" : "pt-(--lh-page-top)")}>
 			{!activeSpace && (
-				<p data-testid="space-head-name" className="truncate text-[38px] leading-[1.2] text-ink">
+				<p data-testid="space-head-name" className="lh-page-title truncate">
 					Lessons with no space
 				</p>
 			)}
 			{/* When the tabs and Edit space don't fit one line, Edit space goes above the tabs; in a page
 			    squeezed narrower still the tabs wrap, so none hides behind a scroll. */}
-			<div className={cn("flex flex-wrap-reverse items-center shadow-[inset_0_-2px_0_var(--border)]", !activeSpace && "mt-[22px]")}>
+			<div className={cn("lh-tabs flex-wrap-reverse items-center", !activeSpace && "mt-(--lh-head-gap)")}>
 				<nav aria-label={activeSpace?.name ?? "Lessons with no space"} className="flex min-w-0 flex-[0_1_auto] flex-wrap gap-x-1.5">
 					{spaceTabs(activeSpace ? "space" : "none", plugins).map((t) => {
 						const selected = t.href === pathname;
@@ -49,10 +49,7 @@ export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 								to={t.href}
 								data-testid={t.testid}
 								aria-current={selected ? "page" : undefined}
-								className={cn(
-									"lh-press flex shrink-0 items-baseline gap-[7px] border-b-2 px-3.5 py-2.5 text-lg whitespace-nowrap",
-									selected ? "border-ink text-ink" : "border-transparent text-ink-2 hover:text-ink",
-								)}
+								className="lh-press lh-tab"
 							>
 								{t.label}
 								{count !== undefined && (

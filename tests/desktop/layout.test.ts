@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, scrolledWords, SCROLL_TO, snapName, standInAgent } from "../../scripts/layout.mjs";
-import { cross, cutOf, inkOf, lineBox, meet, outside, probes, scrollerClip, sticksOut } from "../../scripts/layout-page.mjs";
+import { cross, cutOf, inkOf, lineBox, meet, offGap, outside, probes, scrollerClip, sticksOut } from "../../scripts/layout-page.mjs";
 import { workOf } from "../../scripts/layout-seed.mjs";
 import { SCREENS } from "../../scripts/layout-screens.mjs";
 
@@ -34,6 +34,16 @@ describe("the page check's boxes", () => {
 		assert.deepEqual(lineBox(box(0, 0, 50, 40), 20), box(0, 10, 50, 30));
 		assert.deepEqual(lineBox(box(0, 0, 50, 20), 30), box(0, 0, 50, 20));
 		assert.deepEqual(lineBox(box(0, 0, 50, 20), Number.NaN), box(0, 0, 50, 20), "line-height: normal");
+	});
+});
+
+describe("spacing", () => {
+	it("a gap between neighbouring sheets is off when it is not the shared one, and far apart is not neighbours", () => {
+		assert.ok(!offGap(24, 24));
+		assert.ok(!offGap(24.6, 24), "rounding");
+		assert.ok(offGap(22, 24));
+		assert.ok(offGap(32, 24));
+		assert.ok(!offGap(48, 24), "columns that end at different heights");
 	});
 });
 

@@ -61,11 +61,11 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 	const tallies = new Map(props.topics.map((t) => [t.id, t]));
 	const interview = d.kind === "interview";
 	return (
-		<div data-testid="deadline-page" className="@container flex w-full flex-col gap-[22px]">
+		<div data-testid="deadline-page" className="@container flex w-full flex-col gap-(--lh-head-gap)">
 			<header className="flex flex-wrap items-center gap-x-6 gap-y-3">
 				<DeadlineBlock deadline={d} color={props.color} nowMs={nowMs} size="head" />
 				<div className="flex min-w-0 flex-1 basis-[280px] flex-col gap-2">
-					<h1 data-testid="deadline-name" className="text-[44px] leading-[1.2] break-words text-ink">
+					<h1 data-testid="deadline-name" className="lh-page-title">
 						{d.name}
 					</h1>
 					<p className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -87,45 +87,47 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 				</button>
 			</header>
 
-			{d.topics.length > 0 && <TopicStrip deadline={d} tallies={tallies} />}
+			<div className="flex flex-col gap-(--lh-gap)">
+				{d.topics.length > 0 && <TopicStrip deadline={d} tallies={tallies} />}
 
-			<div className="flex flex-col items-start gap-5 @4xl:flex-row">
-				{/* Grows only beside the path: stacked, WebKit kept its height from before a resize. */}
-				<div className="flex w-full min-w-0 flex-col gap-5 @4xl:flex-1">
-					{props.about}
-					{props.homework}
-					{!(interview && d.files.length === 0) && (
-						<CoversSheet
+				<div className="flex flex-col items-start gap-(--lh-gap) @4xl:flex-row">
+					{/* Grows only beside the path: stacked, WebKit kept its height from before a resize. */}
+					<div className="flex w-full min-w-0 flex-col gap-(--lh-gap) @4xl:flex-1">
+						{props.about}
+						{props.homework}
+						{!(interview && d.files.length === 0) && (
+							<CoversSheet
+								deadline={d}
+								material={props.material}
+								source={props.source}
+								teacherName={props.teacherName}
+								saving={props.saving}
+								requesting={props.requesting}
+								requestLine={props.requestLine("coverage")}
+								onEdit={props.onEdit}
+								onAsk={() => props.onRequest("coverage")}
+								onAdd={props.onAdd}
+								onLeaveOut={props.onLeaveOut}
+							/>
+						)}
+					</div>
+					<div className="w-full @4xl:w-[400px] @4xl:shrink-0">
+						<PathSheet
 							deadline={d}
+							plan={props.plan}
 							material={props.material}
-							source={props.source}
+							tallies={tallies}
+							past={past}
+							busy={props.busy}
+							startError={props.startError}
 							teacherName={props.teacherName}
-							saving={props.saving}
 							requesting={props.requesting}
-							requestLine={props.requestLine("coverage")}
-							onEdit={props.onEdit}
-							onAsk={() => props.onRequest("coverage")}
-							onAdd={props.onAdd}
-							onLeaveOut={props.onLeaveOut}
+							guideLine={props.requestLine("guide")}
+							onStart={props.onStart}
+							onAskGuide={() => props.onRequest("guide")}
+							mocks={props.mocks}
 						/>
-					)}
-				</div>
-				<div className="w-full @4xl:w-[400px] @4xl:shrink-0">
-					<PathSheet
-						deadline={d}
-						plan={props.plan}
-						material={props.material}
-						tallies={tallies}
-						past={past}
-						busy={props.busy}
-						startError={props.startError}
-						teacherName={props.teacherName}
-						requesting={props.requesting}
-						guideLine={props.requestLine("guide")}
-						onStart={props.onStart}
-						onAskGuide={() => props.onRequest("guide")}
-						mocks={props.mocks}
-					/>
+					</div>
 				</div>
 			</div>
 		</div>

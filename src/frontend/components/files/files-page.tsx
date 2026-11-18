@@ -218,7 +218,7 @@ function FilesPageBody() {
 			}}
 		>
 			<h1 className="sr-only">Files</h1>
-			<div className="@container/page lh-page flex flex-col gap-[18px] pt-[18px] pb-10">
+			<div className="@container/page lh-page flex flex-col gap-(--lh-gap) pt-(--lh-gap) pb-(--lh-page-end)">
 				{!active && <PickSpace line="Pick a space to see its files." />}
 				{active && !record && !failed && <p className="text-[15px] text-ink-2">Loading…</p>}
 				{active && !record && failed && <LoadFailed message="Couldn't load this space's files." onRetry={() => void reload()} />}
@@ -265,7 +265,7 @@ function FilesPageBody() {
 							</div>
 						)}
 						{record.files.length === 0 && finderDrag === null && (
-							<Pane data-testid="files-empty" className="flex flex-col gap-1.5 p-7">
+							<Pane data-testid="files-empty" className="lh-card gap-1.5">
 								<span className="text-[17px] text-ink">Add notes, readings, recordings or a syllabus, or drop them here.</span>
 								<span className="text-[15px] text-ink-2">PDF, Markdown, text, VTT/SRT, audio, video</span>
 							</Pane>
@@ -277,7 +277,7 @@ function FilesPageBody() {
 						)}
 						{(showRecent || shown.length > 0) && (
 							// Wide, recent changes take a column beside the files.
-							<div data-testid="files-list" className="grid items-start gap-3 @[1100px]/page:grid-cols-[minmax(0,1fr)_400px] @[1100px]/page:gap-6">
+							<div data-testid="files-list" className="grid items-start gap-(--lh-gap) @[1100px]/page:grid-cols-[minmax(0,1fr)_400px]">
 								{showRecent && (
 									<div className="@[1100px]/page:col-start-2 @[1100px]/page:row-start-1">
 										<RecentChanges changes={changes} collapsed={collapsed.has(RECENT_CHANGES_KEY)} onToggle={toggle} />

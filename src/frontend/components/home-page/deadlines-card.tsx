@@ -5,7 +5,6 @@ import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { Pane } from "@/frontend/components/ui/pane";
 import { AddDeadline } from "./add-deadline";
 import { todayEmpty, type TodayLists } from "./home-page-model";
-import { CARD_HEAD, CARD_TITLE } from "./styles";
 import { WeekColumns } from "./week-columns";
 import { weekColumns } from "./week-columns-model";
 
@@ -35,15 +34,15 @@ export function DeadlinesCard({
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const empty = lists && todayEmpty(lists, teacher);
 	return (
-		<Pane data-testid="today-deadlines">
-			<div className={CARD_HEAD}>
-				<h2 className={CARD_TITLE}>Deadlines</h2>
+		<Pane data-testid="today-deadlines" className="lh-card">
+			<div className="lh-card-head">
+				<h2 className="lh-card-title">Deadlines</h2>
 				{lists && <AddDeadline spaces={spaces} onPick={onAdd} />}
 			</div>
 			{!lists ? (
 				<LoadFailed message="Couldn't load your deadlines." onRetry={onRetry} className="py-10" />
 			) : empty ? (
-				<p data-testid="today-empty" className="px-6 pb-6 text-[17px] text-ink-2">
+				<p data-testid="today-empty" className="text-[17px] text-ink-2">
 					{empty}
 				</p>
 			) : (

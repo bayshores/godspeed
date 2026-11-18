@@ -3,7 +3,6 @@ import type { LessonProgress } from "@/shared/core";
 import { Pane } from "@/frontend/components/ui/pane";
 import { UNFINISHED_SHOWN, shownRows, stepBlocks } from "./lesson-record-model";
 import { UnfinishedRow } from "./lesson-rows";
-import { HEAD, SHEET, TITLE } from "./styles";
 import type { LessonActions } from "./use-lesson-actions";
 
 /**
@@ -23,9 +22,9 @@ export const UnfinishedLessons = memo(function UnfinishedLessons({
 	const [shownAll, setShownAll] = useState(false);
 	const { rows, showAll } = shownRows(lessons, UNFINISHED_SHOWN, shownAll);
 	return (
-		<Pane data-testid="unfinished-lessons" className={`flex flex-col gap-3 ${SHEET}`}>
-			<div className={HEAD}>
-				<h2 className={TITLE}>Unfinished</h2>
+		<Pane data-testid="unfinished-lessons" className="lh-card">
+			<div className="lh-card-head">
+				<h2 className="lh-card-title">Unfinished</h2>
 			</div>
 			<ul className="-mx-3 flex flex-col gap-1">
 				{rows.map((l, i) => (

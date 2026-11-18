@@ -8,7 +8,6 @@ import { mainRowId, shownCard, type TodayLists } from "./home-page-model";
 import { NextCard } from "./next-card";
 import { SpaceList } from "./space-list";
 import { StudiedLine } from "./studied-line";
-import { CARD_HEAD, CARD_TITLE } from "./styles";
 
 interface TodayBodyProps {
 	/** Null before the first minute tick. */
@@ -59,11 +58,11 @@ export function TodayBody(p: TodayBodyProps) {
 		return () => setOnCard(null);
 	}, [cardId, setOnCard]);
 	return (
-		<div className="@container/page lh-page flex flex-col gap-8 pt-14 pb-16">
-			{/* Narrow, the date steps down so the sentence still fits beside it. */}
-			<header className="@container flex min-h-[46px] flex-wrap items-baseline gap-x-6 gap-y-2">
+		<div className="@container/page lh-page flex flex-col gap-(--lh-head-gap) pt-(--lh-page-top) pb-(--lh-page-end)">
+			{/* As tall as the title before the date is known, so nothing moves when it comes. */}
+			<header className="flex min-h-[calc(var(--lh-title)*1.2)] flex-wrap items-baseline gap-x-6 gap-y-2">
 				{p.nowMs !== null && (
-					<h1 data-testid="today-date" className="text-[46px] leading-none text-ink @max-[800px]:text-[34px]">
+					<h1 data-testid="today-date" className="lh-page-title">
 						{new Date(p.nowMs).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
 					</h1>
 				)}
@@ -72,27 +71,27 @@ export function TodayBody(p: TodayBodyProps) {
 			{!p.ready || p.nowMs === null ? (
 				<div data-testid="home-loading" aria-hidden className="h-[320px] w-full bg-panel" />
 			) : p.spaces.length === 0 ? (
-				<Pane>
-					<div className={CARD_HEAD}>
-						<h2 className={CARD_TITLE}>Your spaces</h2>
+				<Pane className="lh-card">
+					<div className="lh-card-head">
+						<h2 className="lh-card-title">Your spaces</h2>
 						<button type="button" data-testid="today-add-space" onClick={p.onAddSpace} className="lh-btn lh-btn-main">
 							Add a space
 						</button>
 					</div>
-					<p data-testid="today-empty" className="px-6 pb-6 text-[17px] text-ink-2">
+					<p data-testid="today-empty" className="text-[17px] text-ink-2">
 						None yet. A space holds one subject&apos;s files, deadlines and lessons.
 					</p>
 				</Pane>
 			) : (
 				<>
-					{p.lessonError && (
-						<p role="alert" className="-mb-4 text-[15px] text-ans-wrong">
-							{p.lessonError}
-						</p>
-					)}
 					{/* Wide, the spaces take a column beside the card and the week. */}
-					<div className="grid gap-8 @[1100px]/page:grid-cols-[minmax(0,1fr)_340px]">
-						<div className="flex min-w-0 flex-col gap-8">
+					<div className="grid gap-(--lh-gap) @[1100px]/page:grid-cols-[minmax(0,1fr)_340px]">
+						<div className="flex min-w-0 flex-col gap-(--lh-gap)">
+							{p.lessonError && (
+								<p role="alert" className="text-[15px] text-ans-wrong">
+									{p.lessonError}
+								</p>
+							)}
 							{card && (
 								<NextCard
 									deadline={card}

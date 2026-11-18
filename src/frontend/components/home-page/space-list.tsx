@@ -5,7 +5,7 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { spaceRow } from "./space-list-model";
 import { Pane } from "@/frontend/components/ui/pane";
-import { CARD_HEAD, CARD_TITLE, CHIP } from "./styles";
+import { CHIP } from "./styles";
 
 /**
  * "Your spaces": a tile per open space, named as its tab names it (its
@@ -30,11 +30,11 @@ export function SpaceList({
 	onOpen: (spaceId: string) => void;
 }) {
 	return (
-		<Pane data-testid="today-spaces">
-			<div className={CARD_HEAD}>
-				<h2 className={CARD_TITLE}>Your spaces</h2>
+		<Pane data-testid="today-spaces" className="lh-card">
+			<div className="lh-card-head">
+				<h2 className="lh-card-title">Your spaces</h2>
 			</div>
-			<ul className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-[6px] px-6 pb-6">
+			<ul className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-[6px]">
 				{spaces.map((s) => (
 					<SpaceTile key={s.id} space={s} progress={progress.get(s.id)} failed={errors.has(s.id)} newFiles={newFiles.get(s.id) ?? null} onOpen={onOpen} />
 				))}

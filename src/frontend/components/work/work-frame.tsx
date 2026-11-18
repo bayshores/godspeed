@@ -23,7 +23,7 @@ export function WorkFrame({ frame, onPage, children }: { frame: Frame | null; on
 	return (
 		<div className="flex h-full min-h-0 flex-col">
 			{frame && (
-				<div className={cn("shrink-0 pt-[18px]", onPage ? "lh-page" : "w-full")}>
+				<div className={cn("shrink-0 pt-(--lh-gap)", onPage ? "lh-page" : "w-full")}>
 					<div data-testid="work-frame" data-state={frame.state} className="lh-work-stripes flex h-10 justify-end border-2 border-b-0 border-line pr-[22px]">
 						{/* Its right edge lines up with the page's column, where the space head ends its tabs. */}
 						<div

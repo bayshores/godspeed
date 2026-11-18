@@ -3,7 +3,7 @@ import type { PathProgress } from "@/shared/core";
 import { RampRow } from "@/frontend/components/deadline/ramp-row";
 import { Pane } from "@/frontend/components/ui/pane";
 import { pathBlockView } from "./path-block-model";
-import { HEAD, MAIN_KEY, SHEET, TITLE } from "./styles";
+import { MAIN_KEY } from "./styles";
 
 /**
  * THE PATH (Progress, side column): the space's path toward its goal, the
@@ -17,10 +17,10 @@ export const PathBlock = memo(function PathBlock({ path, main, busy, onStudy }: 
 	const view = pathBlockView(path, shownAll);
 	const next = view.next;
 	return (
-		<Pane data-testid="space-path" className={`flex flex-col gap-3 ${SHEET}`}>
-			<div className={HEAD}>
+		<Pane data-testid="space-path" className="lh-card">
+			<div className="lh-card-head">
 				{/* The count stays whole, so "of 7" never sits alone on a line. */}
-				<h2 className={TITLE}>
+				<h2 className="lh-card-title">
 					{view.title}
 					{view.count && <span className="font-count text-base whitespace-nowrap text-ink-2">{` ${view.count}`}</span>}
 				</h2>

@@ -35,7 +35,7 @@ export function WeekColumns({
 	const settled = fold.state === "open" && (eased || prefersReducedMotion());
 	const color = (d: OpenDeadline) => spaces.find((s) => s.id === d.spaceId)?.color;
 	return (
-		<div data-testid="week-columns" className="@container px-6 pb-6">
+		<div data-testid="week-columns" className="@container">
 			{/* A narrow week gives an empty day less room, so the names in the others keep whole words, but never less than its head. */}
 			<div
 				style={{ gridTemplateColumns: columns.map((c) => (c.items.length > 0 ? "minmax(0, 1fr)" : "minmax(min-content, var(--day-empty))")).join(" ") }}
@@ -72,7 +72,7 @@ export function WeekColumns({
 								<button type="button" data-testid="week-more" aria-expanded={open} onClick={() => {
 										setOpen(!open);
 										setEased(false);
-									}} className="lh-btn lh-btn-quiet h-8 self-start text-[13px]">
+									}} className="lh-btn lh-btn-quiet lh-btn-small self-start">
 									{open ? "Show less" : `+${rest.length} more`}
 								</button>
 							)}

@@ -1,3 +1,4 @@
+import { MAIN_KEY } from "@/frontend/components/overview/styles";
 import type { ReactNode } from "react";
 import { hasProblems, studyLabel, nothingMorePlannedLine, topicStatus, type DeadlineProgress, type PlanDay } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
@@ -5,7 +6,6 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import type { Material, TopicTally } from "./deadline-model";
 import { RampRow } from "./ramp-row";
-import { SHEET, SHEET_TITLE } from "./styles";
 
 /**
  * THE PATH TO A DEADLINE: the topics that need work, weakest first, one
@@ -51,8 +51,10 @@ export function PathSheet({
 	const allStrong = plan.length === 0 && d.topics.length > 0 && d.topics.every((t) => topicStatus(t.rate) === "strong");
 	const needsGuide = ahead && d.kind === "interview" && d.topics.length === 0 && !(material && material.reading > 0);
 	return (
-		<Pane data-testid="deadline-path" className={cn(SHEET, "pb-6")}>
-			<h2 className={SHEET_TITLE}>Path</h2>
+		<Pane data-testid="deadline-path" className="lh-card">
+			<div className="lh-card-head">
+				<h2 className="lh-card-title">Path</h2>
+			</div>
 			{ahead && (
 				<p data-testid="deadline-path-note" className="text-base text-ink-2">
 					{needsGuide
@@ -61,7 +63,7 @@ export function PathSheet({
 				</p>
 			)}
 			{needsGuide && (
-				<button type="button" data-testid="deadline-ask-guide" disabled={requesting} onClick={onAskGuide} className="lh-btn mt-1 h-11 max-w-full self-end text-[15px]">
+				<button type="button" data-testid="deadline-ask-guide" disabled={requesting} onClick={onAskGuide} className="lh-btn max-w-full self-end">
 					<span className="min-w-0 truncate">Ask {teacherName} for a study guide</span>
 				</button>
 			)}
@@ -104,7 +106,7 @@ export function PathSheet({
 				</p>
 			)}
 			{ahead && !hasProblems(d.kind) && (
-				<button type="button" data-testid="deadline-start" disabled={busy} onClick={onStart} className="lh-btn lh-btn-main mt-1 h-11 max-w-full self-end text-[15px]">
+				<button type="button" data-testid="deadline-start" disabled={busy} onClick={onStart} className={cn(MAIN_KEY, "self-end")}>
 					<span className="min-w-0 truncate">{studyLabel(d.continueStudy)}</span>
 				</button>
 			)}

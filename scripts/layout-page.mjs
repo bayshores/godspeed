@@ -16,6 +16,9 @@
  *   edge).
  * - cut-off letters: a box that clips (truncate, line-clamp, overflow-hidden) cuts off the top or
  *   bottom of letters it shows, such as the tail of a "g".
+ * - spacing: a page leaves the shared spacing (globals.css :root): a card (.lh-card) whose sides
+ *   or bottom are not the inset, two sheets in a page's column side by side or one above the
+ *   other at a gap that is not the shared one, or a page title not in the shared title class.
  *
  * Each finding has a `key` naming its elements, the same from one read to the next while its
  * words (a clock) may change.
@@ -439,9 +442,56 @@ export function scrollMain(top) {
 	return el.scrollTop !== before;
 }
 
+/** Whether the space between two neighbouring sheets breaks the shared gap: it is not the gap
+ *  (give or take rounding) and is under twice the gap, as wider space means the two are not
+ *  neighbours but sit in columns that end at different heights. */
+export function offGap(space, gap) {
+	return space < 2 * gap && Math.abs(space - gap) > 1;
+}
+
+/** A box that floats over the page (a pop-up, a pane on the Graph picture), up to the page's
+ *  column. */
+function floats(el) {
+	for (let node = el; node && !node.classList.contains("lh-page"); node = node.parentElement) {
+		if (["absolute", "fixed"].includes(getComputedStyle(node).position)) return true;
+	}
+	return false;
+}
+
+function spacings() {
+	const found = [];
+	const root = getComputedStyle(document.documentElement);
+	const inset = parseFloat(root.getPropertyValue("--lh-inset"));
+	const gap = parseFloat(root.getPropertyValue("--lh-gap"));
+	for (const card of document.querySelectorAll(".lh-page .lh-card")) {
+		if (!shown(card)) continue;
+		const style = getComputedStyle(card);
+		const sides = [style.paddingLeft, style.paddingRight, style.paddingBottom].map(parseFloat);
+		if (sides.some((side) => Math.abs(side - inset) > 0.5)) found.push(finding("spacing", [card], `${label(card)} is inset ${sides.join(", ")}, not ${inset}`));
+	}
+	const sheets = [...document.querySelectorAll(".lh-page .lh-sheet")].filter((el) => shown(el) && !el.parentElement.closest(".lh-sheet, [role=dialog], [role=menu]") && !floats(el));
+	for (const a of sheets) {
+		const ab = a.getBoundingClientRect();
+		let right = null;
+		let below = null;
+		for (const b of sheets) {
+			if (a === b) continue;
+			const bb = b.getBoundingClientRect();
+			if (Math.min(ab.bottom, bb.bottom) - Math.max(ab.top, bb.top) > 4 && bb.left >= ab.right - 1 && (!right || bb.left < right.box.left)) right = { el: b, box: bb };
+			if (Math.min(ab.right, bb.right) - Math.max(ab.left, bb.left) > 4 && bb.top >= ab.bottom - 1 && (!below || bb.top < below.box.top)) below = { el: b, box: bb };
+		}
+		if (right && offGap(right.box.left - ab.right, gap)) found.push(finding("spacing", [a, right.el], `${label(a)} and ${label(right.el)} are ${Math.round(right.box.left - ab.right)} apart across, not ${gap}`));
+		if (below && offGap(below.box.top - ab.bottom, gap)) found.push(finding("spacing", [a, below.el], `${label(a)} and ${label(below.el)} are ${Math.round(below.box.top - ab.bottom)} apart down, not ${gap}`));
+	}
+	for (const title of document.querySelectorAll(".lh-page h1")) {
+		if (shown(title) && !title.closest(".sr-only") && !title.classList.contains("sr-only") && !title.classList.contains("lh-page-title")) found.push(finding("spacing", [title], `${label(title)} is a page title without .lh-page-title`));
+	}
+	return found;
+}
+
 /** Every finding on the page as it is now, each once. */
 export function checkPage() {
-	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs()];
+	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...spacings()];
 	const seen = new Set();
 	return all.filter((f) => !seen.has(f.key) && seen.add(f.key));
 }

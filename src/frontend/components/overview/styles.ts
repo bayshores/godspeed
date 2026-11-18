@@ -1,14 +1,8 @@
-/** A Progress sheet's padding: every sheet starts its content 24 points in from its sides. */
-export const SHEET = "px-6 pt-5 pb-[22px]";
+/** A big key: the size of a page's main action and the grey key beside it. */
+export const BIG_KEY = "lh-btn h-12 max-w-full min-w-0 px-7 text-[17px]";
 
-/** A sheet's head: its title, and its key if it has one, on one 40-point line, so the titles of the two columns line up. */
-export const HEAD = "flex min-h-10 flex-wrap items-center justify-between gap-x-4 gap-y-2";
-
-/** A sheet's title on the Progress tab. */
-export const TITLE = "min-w-0 text-xl leading-snug text-ink";
-
-/** The page's one dark key: the next deadline's (or, with none, the path's) Study or Work on it. */
-export const MAIN_KEY = "lh-btn lh-btn-main h-12 max-w-full min-w-0 px-7 text-[17px]";
+/** A page's one dark key: the next deadline's Study or Work on it, or, with none, the path's. */
+export const MAIN_KEY = `${BIG_KEY} lh-btn-main`;
 
 /** A row that opens something. */
 export const ROW = "lh-press flex items-center gap-3.5 px-1 hover:bg-tone focus-visible:bg-tone";

@@ -86,10 +86,10 @@ export function ChainTableBody({
 	return (
 		<div data-testid="chain-table" className="relative flex h-full min-h-0 flex-col">
 			<div className="min-h-0 flex-1 overflow-y-auto">
-				<div className="lh-page flex flex-col gap-6 pt-8 pb-28">
+				<div className="lh-page flex flex-col gap-(--lh-head-gap) pt-(--lh-page-top) pb-28">
 					<div className="flex flex-wrap items-center gap-3.5">
 						<div className="flex min-w-0 flex-1 flex-col gap-0.5">
-							<h1 className="text-[30px] leading-tight text-ink">All facts</h1>
+							<h1 className="lh-page-title">All facts</h1>
 							<p data-testid="chain-table-count" className="text-[15px] text-ink-2">
 								{countLine(nodes.length, spaceLabel)}
 							</p>
@@ -109,78 +109,80 @@ export function ChainTableBody({
 						</button>
 					</div>
 
-					<div className="flex flex-col gap-1">
-						{selectMode && <h2 className="text-lg text-ink">Pick the facts to start from</h2>}
-						<p data-testid="chain-table-hint" className="text-[15px] text-ink-2">
-							Picking a file or a fact also picks the facts it builds on.
-						</p>
-					</div>
-
-					<div className="flex flex-wrap items-center gap-1.5">
-						<span className="mr-1 text-[15px] text-ink-2">Sort by</span>
-						{SORTS.map(({ col, label }) => {
-							const on = sort.col === col;
-							return (
-								<button
-									key={col}
-									type="button"
-									data-testid={`sort-${col}`}
-									onClick={() => onSort(col)}
-									aria-sort={on ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
-									className={cn("lh-btn text-[15px]", on ? "h-auto px-2.5 py-[5px]" : "lh-btn-quiet")}
-								>
-									{label}
-									{on && <PixelIcon name="chevron" className={cn("h-2", sort.dir === 1 ? "-rotate-90" : "rotate-90")} />}
-								</button>
-							);
-						})}
-					</div>
-
-					<div className="lh-sheet px-6 py-2.5">
-						{groups.length === 0 && (
-							<p data-testid="chain-table-nomatch" className="py-2.5 text-[15px] text-ink-2">
-								No matching facts.
+					<div className="flex flex-col gap-(--lh-gap)">
+						<div className="flex flex-col gap-1">
+							{selectMode && <h2 className="text-lg text-ink">Pick the facts to start from</h2>}
+							<p data-testid="chain-table-hint" className="text-[15px] text-ink-2">
+								Picking a file or a fact also picks the facts it builds on.
 							</p>
-						)}
-						{groups.map((group) => {
-							const open = searching || expandedClusters.has(group.key);
-							const label = groupName(group);
-							return (
-								<div key={group.key} data-testid={`cluster-group-${group.key}`} className="pb-2">
-									<div className="flex items-center gap-3 py-2.5">
-										<TickBox
-											{...tickState(group.nodeIds, selection)}
-											onToggle={(next) => onToggleNodes(group.nodeIds, next)}
-											testid={`cluster-checkbox-${group.key}`}
-											label={`Select all facts from ${group.label ?? "unlabeled"}`}
-										/>
-										<Expander open={open} onClick={() => onToggleCluster(group.key)} testid={`cluster-toggle-${group.key}`} label={`Expand ${group.label ?? "unlabeled"}`} />
-										<span title={group.label ?? undefined} className={cn("min-w-0 truncate text-lg font-medium", label ? "text-ink" : "text-ink-3")}>
-											{label ?? "unlabeled"}
-										</span>
-										{group.kind === "chat" && <span className="shrink-0 rounded-sm bg-tone-2 px-[7px] py-px text-xs font-medium text-ink">Lesson</span>}
-										<span className="flex-1" />
-										<span className={TALLY}>{factCount(group.nodeIds.length)}</span>
-										<span className={cn(TALLY, "text-ink-3")}>{group.newestCreatedAt.slice(0, 10)}</span>
-									</div>
-									{open &&
-										group.chains.map((chain) => (
-											<ChainBlock
-												key={chain.id}
-												chain={chain}
-												open={expandedChains.has(chain.id)}
-												line={formatChainLine(chain, names)}
-												byId={byId}
-												nameOf={nameOf}
-												date={dateOf(chain.conclusion)}
-												selection={selection}
-												onToggle={() => onToggleChain(chain.id)}
-												onToggleNodes={onToggleNodes}
+						</div>
+
+						<div className="flex flex-wrap items-center gap-1.5">
+							<span className="mr-1 text-[15px] text-ink-2">Sort by</span>
+							{SORTS.map(({ col, label }) => {
+								const on = sort.col === col;
+								return (
+									<button
+										key={col}
+										type="button"
+										data-testid={`sort-${col}`}
+										onClick={() => onSort(col)}
+										aria-sort={on ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
+										className={cn("lh-btn text-[15px]", on ? "h-auto px-2.5 py-[5px]" : "lh-btn-quiet")}
+									>
+										{label}
+										{on && <PixelIcon name="chevron" className={cn("h-2", sort.dir === 1 ? "-rotate-90" : "rotate-90")} />}
+									</button>
+								);
+							})}
+						</div>
+
+						<div className="lh-sheet px-(--lh-inset) py-2.5">
+							{groups.length === 0 && (
+								<p data-testid="chain-table-nomatch" className="py-2.5 text-[15px] text-ink-2">
+									No matching facts.
+								</p>
+							)}
+							{groups.map((group) => {
+								const open = searching || expandedClusters.has(group.key);
+								const label = groupName(group);
+								return (
+									<div key={group.key} data-testid={`cluster-group-${group.key}`} className="pb-2">
+										<div className="flex items-center gap-3 py-2.5">
+											<TickBox
+												{...tickState(group.nodeIds, selection)}
+												onToggle={(next) => onToggleNodes(group.nodeIds, next)}
+												testid={`cluster-checkbox-${group.key}`}
+												label={`Select all facts from ${group.label ?? "unlabeled"}`}
 											/>
-										))}
-								</div>
-							);
-						})}
+											<Expander open={open} onClick={() => onToggleCluster(group.key)} testid={`cluster-toggle-${group.key}`} label={`Expand ${group.label ?? "unlabeled"}`} />
+											<span title={group.label ?? undefined} className={cn("min-w-0 truncate text-lg font-medium", label ? "text-ink" : "text-ink-3")}>
+												{label ?? "unlabeled"}
+											</span>
+											{group.kind === "chat" && <span className="shrink-0 rounded-sm bg-tone-2 px-[7px] py-px text-xs font-medium text-ink">Lesson</span>}
+											<span className="flex-1" />
+											<span className={TALLY}>{factCount(group.nodeIds.length)}</span>
+											<span className={cn(TALLY, "text-ink-3")}>{group.newestCreatedAt.slice(0, 10)}</span>
+										</div>
+										{open &&
+											group.chains.map((chain) => (
+												<ChainBlock
+													key={chain.id}
+													chain={chain}
+													open={expandedChains.has(chain.id)}
+													line={formatChainLine(chain, names)}
+													byId={byId}
+													nameOf={nameOf}
+													date={dateOf(chain.conclusion)}
+													selection={selection}
+													onToggle={() => onToggleChain(chain.id)}
+													onToggleNodes={onToggleNodes}
+												/>
+											))}
+									</div>
+								);
+							})}
+						</div>
 					</div>
 				</div>
 			</div>

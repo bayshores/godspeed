@@ -7,7 +7,7 @@ import { cn } from "@/frontend/lib/utils";
 import { MockBox } from "./mock-box";
 
 /** As wide as its words, at the sheet's right, as every key is. */
-const KEY = "lh-btn h-11 max-w-full self-end text-[15px]";
+const KEY = "lh-btn max-w-full self-end";
 const SMALL = "lh-btn lh-btn-small";
 
 /**

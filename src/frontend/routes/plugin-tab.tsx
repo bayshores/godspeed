@@ -19,13 +19,13 @@ export function PluginTab() {
 	if (!plugin) return <NotFound />;
 	if (!activeSpace) {
 		return (
-			<div className="lh-page py-9">
+			<div className="lh-page pt-(--lh-gap)">
 				<PickSpace line={`Pick a space to open ${plugin.label}.`} />
 			</div>
 		);
 	}
 	return (
-		<div className="lh-page h-full py-6">
+		<div className="lh-page h-full py-(--lh-gap)">
 			<PageTitle page={plugin.label} />
 			<Pane className="h-full overflow-hidden">
 				<PluginFrame key={plugin.id} manifest={plugin.manifest} values={plugin.values} context={{ space: { id: activeSpace.id, name: activeSpace.name }, topic: null, question: null, lastAnswered: null, teacherMessage: null }} />

@@ -1,3 +1,4 @@
+import { MAIN_KEY } from "@/frontend/components/overview/styles";
 import { Link } from "react-router";
 import type { DeadlineProgress, SpaceColor } from "@/shared/core";
 import { dueAtMs } from "@/frontend/components/countdown-model";
@@ -54,8 +55,8 @@ export function NextCard({
 					<CountBlock size="card" color={blockColor(color)} {...countLeft(dueAtMs(d), nowMs)} className={STRIP} />
 				)}
 				{/* The title's ink sits low in its line box, so the words sit 4px high to center on the keys. */}
-				<div className="flex min-w-0 flex-1 flex-col gap-1 px-6 pt-3 pb-5">
-					<h2 className={cn("text-[30px] leading-tight break-words text-ink", d.done && "line-through")}>
+				<div className="flex min-w-0 flex-1 flex-col gap-1 px-(--lh-inset) pt-3 pb-5">
+					<h2 className={cn("text-[28px] leading-tight break-words text-ink", d.done && "line-through")}>
 						<Link to={deadlineHref(d.id)} data-testid="today-card-open" className="hover:underline">
 							{words.title}
 						</Link>
@@ -70,11 +71,11 @@ export function NextCard({
 					</p>
 				</div>
 				{words.button ? (
-					<span className="flex shrink-0 items-center gap-3 px-6 pb-5 @min-[540px]:py-4 @min-[540px]:pl-0">
+					<span className="flex shrink-0 items-center gap-3 px-(--lh-inset) pb-5 @min-[540px]:py-4 @min-[540px]:pl-0">
 						<button type="button" data-testid="today-done" onClick={() => onDone(d)} className="lh-btn lh-btn-quiet">
 							Mark done
 						</button>
-						<button type="button" data-testid="today-start" disabled={busy} onClick={() => onStart(d)} className="lh-btn lh-btn-main h-12 px-7 text-[17px]">
+						<button type="button" data-testid="today-start" disabled={busy} onClick={() => onStart(d)} className={MAIN_KEY}>
 							{words.button}
 						</button>
 					</span>

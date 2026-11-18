@@ -4,7 +4,6 @@ import type { LessonProgress } from "@/shared/core";
 import { Pane } from "@/frontend/components/ui/pane";
 import { FINISHED_SHOWN, dayWord, shownRows } from "./lesson-record-model";
 import { FINISHED_LIST, FinishedRow } from "./lesson-rows";
-import { HEAD, SHEET, TITLE } from "./styles";
 import type { LessonActions } from "./use-lesson-actions";
 
 /**
@@ -31,9 +30,9 @@ export const LessonRecord = memo(function LessonRecord({
 	const { rows, showAll } = shownRows(finished ?? [], FINISHED_SHOWN, shownAll);
 	const days = rows.map((l) => (nowMs !== null ? dayWord(l.updatedAt, nowMs) : ""));
 	return (
-		<Pane data-testid="lesson-record" className={`flex flex-col gap-3 ${SHEET}`}>
-			<div className={HEAD}>
-				<h2 className={TITLE}>Lessons</h2>
+		<Pane data-testid="lesson-record" className="lh-card">
+			<div className="lh-card-head">
+				<h2 className="lh-card-title">Lessons</h2>
 				<Link to="/new" data-testid="study-something-new" className="lh-btn shrink-0">
 					Study something new
 				</Link>

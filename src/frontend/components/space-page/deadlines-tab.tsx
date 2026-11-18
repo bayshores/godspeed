@@ -20,14 +20,15 @@ import { DeadlineDialog } from "./deadline-dialog";
 import { WaitingDeadline } from "./waiting-deadline";
 import { deadlineLine, deadlineLists } from "./deadlines-tab-model";
 
+/** Deadlines in one column, or two once a row would be a wide empty slab. */
+const LIST = "grid gap-(--lh-gap) @[1100px]/page:grid-cols-2";
+
 /**
  * The space's deadlines: "Coming up" with "Add a deadline" (and an
- * interview still waiting for its date), then "Done or past". A row opens the deadline's page; "Mark done" and "Undo" work in
- * place, and its cheat sheet opens (or is made) from the row.
+ * interview still waiting for its date), then "Done or past". A row opens
+ * the deadline's page; "Mark done" and "Undo" work in place, and its cheat
+ * sheet opens (or is made) from the row.
  */
-/** Deadlines in one column, or two once a row would be a wide empty slab. */
-const LIST = "grid gap-2.5 @[1100px]/page:grid-cols-2";
-
 export function DeadlinesTab() {
 	const { active, activeSpace } = useSpaces();
 	const { record, failed, reload } = useSpaceRecord(active);
@@ -56,7 +57,7 @@ export function DeadlinesTab() {
 
 	if (!active || !activeSpace) {
 		return (
-			<div className="lh-page py-9">
+			<div className="lh-page pt-(--lh-gap)">
 				<PickSpace line="Pick a space to see its deadlines." />
 			</div>
 		);
@@ -76,10 +77,10 @@ export function DeadlinesTab() {
 		/>
 	);
 	return (
-		<div data-testid="deadlines-tab" className="@container/page lh-page flex flex-col gap-9 py-9">
-			<section className="flex flex-col gap-2.5">
-				<div className="flex items-center gap-2">
-					<h2 className="min-w-0 flex-1 text-[22px] leading-tight text-ink">Coming up</h2>
+		<div data-testid="deadlines-tab" className="@container/page lh-page flex flex-col gap-(--lh-head-gap) pt-(--lh-gap) pb-(--lh-page-end)">
+			<section className="flex flex-col gap-3">
+				<div className="lh-card-head">
+					<h2 className="lh-card-title">Coming up</h2>
 					<button type="button" data-testid="deadline-add" disabled={!record} onClick={() => setAdding(true)} className="lh-btn lh-btn-quiet text-[15px]">
 						<PixelIcon name="plus" />
 						Add a deadline
@@ -97,8 +98,10 @@ export function DeadlinesTab() {
 				)}
 			</section>
 			{lists && lists.past.length > 0 && (
-				<section className="flex flex-col gap-2.5">
-					<h2 className="text-[22px] leading-tight text-ink">Done or past</h2>
+				<section className="flex flex-col gap-3">
+					<div className="lh-card-head">
+						<h2 className="lh-card-title">Done or past</h2>
+					</div>
 					<ul className={LIST}>{lists.past.map(row)}</ul>
 				</section>
 			)}
@@ -133,14 +136,14 @@ function DeadlineRow({
 		<li data-testid={`deadline-row-${d.id}`} data-teacher-target={`deadline:${d.id}`}>
 			<Pane className="flex h-full min-h-[84px] items-center overflow-hidden hover:[--lh-sheet:var(--color-tone)]">
 				<DeadlineBlock deadline={d} color={color} nowMs={nowMs} size="list" pale={!dueThisWeek(d, nowMs)} />
-				<span className="flex min-w-0 flex-1 flex-col gap-[3px] px-5 py-3">
+				<span className="flex min-w-0 flex-1 flex-col gap-[3px] px-(--lh-inset) py-3">
 					{/* Stretched over the row, so a click anywhere opens the page. */}
-					<Link to={deadlineHref(d.id)} data-testid="deadline-open" title={d.name} className={cn("truncate text-xl leading-tight after:absolute after:inset-0", d.done ? "text-ink-3" : "text-ink")}>
+					<Link to={deadlineHref(d.id)} data-testid="deadline-open" title={d.name} className={cn("text-xl leading-tight break-words after:absolute after:inset-0", d.done ? "text-ink-3" : "text-ink")}>
 						{d.name}
 					</Link>
 					<span className="text-base leading-snug text-ink-2">{deadlineLine(d, progress, nowMs)}</span>
 				</span>
-				<span className="flex shrink-0 items-center gap-2.5 pr-5">
+				<span className="flex shrink-0 items-center gap-2.5 pr-(--lh-inset)">
 					{sheet && (
 						<Link to={studioPath(d.id)} data-testid="deadline-sheet" className="lh-btn lh-btn-quiet relative text-[15px]">
 							{sheet.status === "none" ? "Make cheat sheet" : "Cheat sheet"}

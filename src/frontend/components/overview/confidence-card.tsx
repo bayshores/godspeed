@@ -6,7 +6,7 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { InlineMath } from "./inline-math";
 import { calibrationTakeaway, isLevelOverconfident, questionHref } from "./overview-model";
-import { HEAD, ROW, SHEET, TITLE } from "./styles";
+import { ROW } from "./styles";
 
 /**
  * CAN YOU TRUST YOUR CONFIDENCE? (Progress): for each confidence level 1
@@ -18,9 +18,9 @@ import { HEAD, ROW, SHEET, TITLE } from "./styles";
 export const ConfidenceCard = memo(function ConfidenceCard({ calibration }: { calibration: Calibration }) {
 	const takeaway = useMemo(() => calibrationTakeaway(calibration.levels), [calibration.levels]);
 	return (
-		<Pane data-testid="overview-confidence" className={`flex flex-col ${SHEET}`}>
-			<div className={HEAD}>
-				<h2 className={TITLE}>Can you trust your confidence?</h2>
+		<Pane data-testid="overview-confidence" className="lh-card">
+			<div className="lh-card-head">
+				<h2 className="lh-card-title">Can you trust your confidence?</h2>
 			</div>
 			<div className="flex flex-wrap items-center gap-x-8 gap-y-4 py-3">
 				<div className="flex shrink-0 gap-3.5">

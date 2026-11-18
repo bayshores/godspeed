@@ -35,6 +35,7 @@ const { SpaceFacts } = await import("../../src/frontend/components/overview/spac
 const { OpenDeadlinesProvider, useOpenDeadlines } = await import("../../src/frontend/components/use-open-deadlines.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { PillPanel } = await import("../../src/frontend/components/top-bar/pill-panel.tsx");
+const { MAIN_KEY } = await import("../../src/frontend/components/overview/styles.ts");
 
 // Wed Oct 28 2026, 4:12 PM local.
 const NOW = new Date(2026, 9, 28, 16, 12).getTime();
@@ -213,7 +214,7 @@ describe("The card", () => {
 
 	it("holds the page's one main button, beside a quiet Mark done, each as wide as its label", () => {
 		assert.ok(tag(html, "today-start").includes("lh-btn-main"));
-		assert.match(tag(html, "today-start"), /h-12 px-7 text-\[17px\]/, "the Progress page's main key size");
+		assert.ok(tag(html, "today-start").includes(`class="${MAIN_KEY}"`), "the Progress page's main key");
 		assert.match(section(html, "today-start", "</button>"), />Study$/);
 		assert.ok(tag(html, "today-done").includes("lh-btn-quiet"));
 		assert.ok(!html.includes("w-full justify-center"));
@@ -327,7 +328,7 @@ describe("Today, as a whole page", () => {
 		for (const title of ["Deadlines", "Your spaces"]) assert.ok(html.includes(`>${title}</h2>`), title);
 		assert.match(section(html, "home-add-deadline", "</button>"), /Add$/);
 		assert.match(tag(html, "home-add-deadline"), /aria-label="Add a deadline"/);
-		assert.ok(!/<button[^>]*class="[^"]*lh-btn[^"]*w-full/.test(html) && !/<button[^>]*class="[^"]*w-full[^"]*lh-btn/.test(html), "no key wider than its label");
+		assert.ok(!/<button[^>]*class="[^"]*lh-btn[^"]*[ "]w-full/.test(html) && !/<button[^>]*class="(?:[^"]* )?w-full[^"]*lh-btn/.test(html), "no key wider than its label");
 	});
 
 	it("the week: seven columns from today, today's head filled and named for a screen reader, a block per deadline", () => {

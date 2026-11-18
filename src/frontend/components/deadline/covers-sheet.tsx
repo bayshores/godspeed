@@ -6,7 +6,6 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { Tip } from "@/frontend/components/ui/tooltip";
 import { cn } from "@/frontend/lib/utils";
 import { materialSummary, type Day, type DayState, type Material } from "./deadline-model";
-import { SHEET, SHEET_TITLE } from "./styles";
 
 const SMALL = "lh-btn lh-btn-small";
 
@@ -46,8 +45,10 @@ export function CoversSheet({
 	const before = d.kind === "exam" ? "before the exam" : "before it's due";
 	if (m && d.files.length === 0) {
 		return (
-			<Pane data-testid="deadline-material" className={SHEET}>
-				<h2 className={SHEET_TITLE}>What&apos;s on it</h2>
+			<Pane data-testid="deadline-material" className="lh-card">
+				<div className="lh-card-head">
+					<h2 className="lh-card-title">What&apos;s on it</h2>
+				</div>
 				<div data-testid="deadline-no-files" className="flex flex-col items-start gap-4">
 					{requestLine ? (
 						<p role="alert" data-testid="deadline-request-line" className="text-lg text-ink">
@@ -55,7 +56,7 @@ export function CoversSheet({
 						</p>
 					) : (
 						// While a request runs, the work frame says what happens.
-						!requesting && <p className="max-w-[75ch] text-lg text-ink-2">Nothing is linked yet. {teacherName} can work it out from your files, like a practice exam or the syllabus.</p>
+						!requesting && <p className="max-w-(--lh-measure) text-lg text-ink-2">Nothing is linked yet. {teacherName} can work it out from your files, like a practice exam or the syllabus.</p>
 					)}
 					<div className="flex flex-wrap gap-2.5">
 						<button type="button" data-testid="deadline-ask" disabled={requesting} onClick={onAsk} className="lh-btn lh-btn-main px-[18px] text-[15px]">
@@ -70,9 +71,9 @@ export function CoversSheet({
 		);
 	}
 	return (
-		<Pane data-testid="deadline-material" className={SHEET}>
-			<div className="flex items-center gap-2">
-				<h2 className={SHEET_TITLE}>What&apos;s on it</h2>
+		<Pane data-testid="deadline-material" className="lh-card">
+			<div className="lh-card-head">
+				<h2 className="lh-card-title">What&apos;s on it</h2>
 				<button type="button" data-testid="deadline-edit-files" onClick={onEdit} className="lh-btn lh-btn-quiet text-[15px]">
 					Pick files
 				</button>

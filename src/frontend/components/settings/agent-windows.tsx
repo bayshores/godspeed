@@ -58,11 +58,11 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 	});
 
 	return (
-		<section data-testid="agent-windows" className="@container flex flex-col gap-5 lh-sheet p-6">
-			<div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+		<section data-testid="agent-windows" className="@container lh-sheet lh-card">
+			<div className="lh-card-head">
 				<div className="min-w-0 flex-1">
 					{/* Each tile's chip says whether it runs; the headline names the agent. */}
-					<h2 data-testid="agent-status" className="text-[28px] leading-tight text-ink">
+					<h2 data-testid="agent-status" className="lh-card-title">
 						Your agent is {agent.name ?? (folderAgent ? AGENT_LABEL[folderAgent] : "another app")}
 					</h2>
 				</div>

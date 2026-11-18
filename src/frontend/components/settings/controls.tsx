@@ -22,7 +22,7 @@ export function SettingsSection({
 	testid?: string;
 }) {
 	return (
-		<section data-testid={testid} aria-label={title} className="flex flex-col gap-6">
+		<section data-testid={testid} aria-label={title} className="flex flex-col gap-(--lh-gap)">
 			{children}
 		</section>
 	);
@@ -42,10 +42,12 @@ export function SettingsGroup({
 	testid?: string;
 }) {
 	return (
-		<section data-testid={testid} className="lh-sheet px-8 pt-7 pb-5">
-			<h2 className="text-[26px] leading-tight text-ink">{label}</h2>
-			{about && <p className="pt-1.5 text-base text-ink-2">{about}</p>}
-			<div className="flex flex-col pt-4 [&>p]:py-3 [&>p]:text-base">{children}</div>
+		<section data-testid={testid} className="lh-sheet lh-card">
+			<div className="lh-card-head">
+				<h2 className="lh-card-title">{label}</h2>
+			</div>
+			{about && <p className="text-base text-ink-2">{about}</p>}
+			<div className="flex flex-col [&>p]:py-3 [&>p]:text-base">{children}</div>
 		</section>
 	);
 }

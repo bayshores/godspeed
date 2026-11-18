@@ -78,8 +78,8 @@ export function PluginsSection() {
 	const busy = running !== null;
 	return (
 		<>
-			<div className="flex items-start gap-6">
-				<Pane aria-label="Plugins" data-testid="plugins-list" className="flex w-[260px] shrink-0 flex-col p-3">
+			<div className="flex items-start gap-(--lh-gap)">
+				<Pane aria-label="Plugins" data-testid="plugins-list" className="flex w-[260px] shrink-0 flex-col p-2">
 					{plugins.map((p) => {
 						const on = !sheetOpen && p === picked;
 						const off = "manifest" in p && !p.enabled;
@@ -140,7 +140,7 @@ export function PluginsSection() {
 							onChoose={pickFolder && chooseFolder}
 						/>
 					) : !picked ? (
-						<Pane data-testid="plugins-empty" className="px-8 py-7">
+						<Pane data-testid="plugins-empty" className="lh-card">
 							<p className="text-base text-ink-2">No plugins yet.</p>
 						</Pane>
 					) : "manifest" in picked ? (

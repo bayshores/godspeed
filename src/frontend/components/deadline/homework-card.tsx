@@ -5,7 +5,6 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { DeadlineKeys } from "./deadline-keys";
-import { SHEET, SHEET_TITLE } from "./styles";
 
 /**
  * A homework or project deadline's problems: the problems themselves (the
@@ -45,9 +44,9 @@ export const HomeworkCard = memo(function HomeworkCard({
 }) {
 	const next = d.done ? undefined : problems.find((p) => !p.done);
 	return (
-		<Pane data-testid="homework-card" className={cn(SHEET, "pb-6")}>
-			<div className="flex items-center gap-2">
-				<h2 className={SHEET_TITLE}>Problems</h2>
+		<Pane data-testid="homework-card" className="lh-card">
+			<div className="lh-card-head">
+				<h2 className="lh-card-title">Problems</h2>
 				<button type="button" data-testid="homework-mark-done" disabled={saving} onClick={() => onMarkDone(!d.done)} className="lh-btn lh-btn-quiet text-[15px]">
 					{d.done ? "Mark not done" : "Mark done"}
 				</button>

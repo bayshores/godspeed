@@ -31,8 +31,10 @@ export const SuggestionList = memo(function SuggestionList({
 }) {
 	if (suggestions.length === 0) return null;
 	return (
-		<section data-testid="home-suggestions" className="lh-rise flex w-full flex-col">
-			<h2 className="pb-1.5 text-xl leading-tight text-ink">{label ? `Suggested for ${label}` : "Suggested"}</h2>
+		<section data-testid="home-suggestions" className="lh-rise flex w-full flex-col gap-3">
+			<div className="lh-card-head">
+				<h2 className="lh-card-title">{label ? `Suggested for ${label}` : "Suggested"}</h2>
+			</div>
 			<ul className="flex w-full flex-col">
 				{suggestions.map((s) => (
 					<SuggestionRow key={suggestionKey(s)} suggestion={s} busy={busy} onStudyFile={onStudyFile} onStudyTopic={onStudyTopic} onStudyPath={onStudyPath} />

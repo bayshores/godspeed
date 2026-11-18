@@ -88,17 +88,13 @@ export function PluginSheet({
 	const openPath = typeof window !== "undefined" ? window.lh?.openPath : undefined;
 	const [asking, setAsking] = useState(false);
 	return (
-		<Pane data-testid="plugin-sheet" className="px-8 pt-7 pb-5">
-			<div className="flex items-start justify-between gap-6">
-				<div className="min-w-0">
-					<h2 className="text-[26px] leading-tight text-ink">{manifest.name}</h2>
-					<p className="pt-1.5 text-base text-ink-2">{pluginLine(manifest, agentName)}</p>
-				</div>
-				<span className="pt-1.5">
-					<Toggle checked={enabled} label={manifest.name} onChange={(on) => onChange({ enabled: on })} />
-				</span>
+		<Pane data-testid="plugin-sheet" className="lh-card">
+			<div className="lh-card-head">
+				<h2 className="lh-card-title">{manifest.name}</h2>
+				<Toggle checked={enabled} label={manifest.name} onChange={(on) => onChange({ enabled: on })} />
 			</div>
-			<div className="flex flex-col pt-4">
+			<p className="text-base text-ink-2">{pluginLine(manifest, agentName)}</p>
+			<div className="flex flex-col">
 				{manifest.settings.map((s) => (
 					// Off: its settings dim and lock, like every dependent settings row.
 					<div key={s.key} inert={!enabled} className={cn(!enabled && "opacity-45")}>
@@ -108,7 +104,7 @@ export function PluginSheet({
 					</div>
 				))}
 				{error && <ErrorLine text={error} />}
-				<div className="flex items-center justify-between gap-6 pt-8 pb-2">
+				<div className="flex items-center justify-between gap-6 pt-(--lh-gap)">
 					{asking ? (
 						<RemoveQuestion
 							name={manifest.name}
@@ -171,9 +167,9 @@ export function AddSheet({
 	onChoose?: () => void;
 }) {
 	return (
-		<Pane data-testid="plugins-add-sheet" aria-label="Add" className="px-8 pt-7 pb-5">
+		<Pane data-testid="plugins-add-sheet" aria-label="Add" className="lh-card">
 			<p className="text-lg text-ink">Checked by godspeed.</p>
-			<div className="flex flex-col pt-4">
+			<div className="flex flex-col">
 				{rows.map((entry) => (
 					<div key={entry.id}>
 						<SettingsRow label={entry.name} hint={pluginLine(entry, agentName)} testid={`plugins-listed-${entry.id}`}>
@@ -201,13 +197,15 @@ export function AddSheet({
 export function BrokenSheet({ name, reason, busy, error, onRemove }: { name: string; reason: string; busy: boolean; error: string | null; onRemove: () => void }) {
 	const [asking, setAsking] = useState(false);
 	return (
-		<Pane data-testid="plugin-sheet" className="px-8 pt-7 pb-5">
-			<h2 className="text-[26px] leading-tight text-ink">{name}</h2>
-			<p data-testid="plugin-broken" className="pt-1.5 text-base whitespace-pre-wrap text-ans-wrong">
+		<Pane data-testid="plugin-sheet" className="lh-card">
+			<div className="lh-card-head">
+				<h2 className="lh-card-title">{name}</h2>
+			</div>
+			<p data-testid="plugin-broken" className="text-base whitespace-pre-wrap text-ans-wrong">
 				{reason}
 			</p>
 			{error && <ErrorLine text={error} />}
-			<div className="flex justify-end pt-8 pb-2">
+			<div className="flex justify-end pt-(--lh-gap)">
 				{asking ? (
 					<RemoveQuestion
 						name={name}

@@ -83,13 +83,13 @@ export const OverviewBody = memo(function OverviewBody({
 	const [sideRef, sideTop] = useStickyTop();
 
 	return (
-		<div data-testid="space-overview" className="@container lh-page flex flex-col gap-[22px] pt-[22px] pb-9">
+		<div data-testid="space-overview" className="@container lh-page flex flex-col gap-(--lh-gap) pt-(--lh-gap) pb-(--lh-page-end)">
 			{pickSpace}
 			{/* Two columns once both fit: the side's 280 points, the gap and the record's 460. Wide, the
 			    side grows to 340 so a deadline's name and a lesson's keep to fewer lines. */}
-			<div className="flex flex-col gap-[22px] @[762px]:flex-row @[762px]:items-start">
+			<div className="flex flex-col gap-(--lh-gap) @[762px]:flex-row @[762px]:items-start">
 				{side && (
-					<div ref={sideRef} data-testid="progress-side" style={{ top: sideTop }} className="flex min-w-0 flex-col gap-[22px] @[762px]:sticky @[762px]:w-[280px] @[762px]:shrink-0 @[1200px]:w-[340px]">
+					<div ref={sideRef} data-testid="progress-side" style={{ top: sideTop }} className="flex min-w-0 flex-col gap-(--lh-gap) @[762px]:sticky @[762px]:w-[280px] @[762px]:shrink-0 @[1200px]:w-[340px]">
 						{spaceData &&
 							(pathFirst ? (
 								<PathBlock path={spaceData.path!} main busy={busy} onStudy={onStudyPath} />
@@ -116,7 +116,7 @@ export const OverviewBody = memo(function OverviewBody({
 						{hasSpace && needed && <MostNeeded needed={needed} busy={busy} onStudy={onStudy} />}
 					</div>
 				)}
-				<div className="flex min-w-0 flex-1 flex-col gap-[22px]">
+				<div className="flex min-w-0 flex-1 flex-col gap-(--lh-gap)">
 					{note && <TeacherNote note={note} nowMs={nowMs} />}
 					<LessonRecord finished={actions.shown ? finished : null} none={actions.shown?.length === 0} nowMs={nowMs} actions={actions} />
 					{hasSpace && data && <SpaceFacts progress={data} />}

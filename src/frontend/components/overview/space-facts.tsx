@@ -3,7 +3,6 @@ import { Link } from "react-router";
 import { RAMP_COLORS, UNTESTED_COLOR, type ProgressPayload } from "@/shared/core";
 import { UNSTUDIED_CELL, factCells } from "@/frontend/components/fact-cells";
 import { Pane } from "@/frontend/components/ui/pane";
-import { HEAD, SHEET, TITLE } from "./styles";
 
 /** The studied squares fill in over this long, one at a time. */
 const FILL_MS = 400;
@@ -21,9 +20,9 @@ export const SpaceFacts = memo(function SpaceFacts({ progress }: { progress: Pic
 	const studied = cells.filter((c) => c !== UNSTUDIED_CELL).length;
 	const total = cells.length;
 	return (
-		<Pane data-testid="space-facts" className={`flex flex-col gap-3 ${SHEET}`}>
-			<div className={HEAD}>
-				<h2 className={TITLE}>
+		<Pane data-testid="space-facts" className="lh-card">
+			<div className="lh-card-head">
+				<h2 className="lh-card-title">
 					Facts{total > 0 && <span className="font-count text-base whitespace-nowrap text-ink-2">{` ${studied} of ${total} studied`}</span>}
 				</h2>
 			</div>
