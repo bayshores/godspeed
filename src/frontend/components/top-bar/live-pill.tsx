@@ -45,8 +45,8 @@ export function LivePill({ own = false, named = false }: { own?: boolean; named?
 	const thing = line.thing;
 	const tag = line.tag;
 	const on = pill.on;
-	// In a page's own bar the idle words are the count already.
-	const waiting = own && line.idle && !on ? 0 : pill.waiting;
+	// In a page's own bar the idle words are the count already, and the pill itself opens the notices.
+	const waiting = own && ((line.idle && !on) || pill.notices) ? 0 : pill.waiting;
 	const place = { own, named };
 	const spoken = [line.head, line.thing?.detail, line.thing?.count].filter(Boolean).join(" ");
 	const words = (
@@ -100,12 +100,10 @@ export function LivePill({ own = false, named = false }: { own?: boolean; named?
 					data-testid="live-pill-waiting"
 					aria-expanded={pill.notices}
 					aria-controls={NOTICE_STACK_ID}
-					title={noticeCount(waiting)}
 					onClick={(e) => pill.showNotices(e.currentTarget)}
-					className="lh-press font-count flex self-stretch shrink-0 items-center bg-bar-ink/15 px-2 text-[15px] text-bar-ink hover:bg-bar-ink/25"
+					className={cn(BAR_TAB, "shrink-0 self-stretch", pill.notices ? BAR_WORD_ON : barTabState(false))}
 				>
-					<span aria-hidden>{waiting}</span>
-					<span className="sr-only">{noticeCount(waiting)}</span>
+					{noticeCount(waiting)}
 				</button>
 			)}
 			{line.thing && <Announce text={spoken} />}

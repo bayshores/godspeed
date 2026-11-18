@@ -25,7 +25,7 @@ interface NoticeView {
 	shown: string[];
 	/** The first notice still showing by itself: the pill says its title. */
 	presenting: Notice | null;
-	/** How many wait folded in the pill, for its count. */
+	/** How many are folded, for the pill's count; it stays while the card shows them. */
 	waiting: number;
 }
 
@@ -49,6 +49,6 @@ export function noticeView(notices: readonly Notice[], now: number, open: boolea
 	return {
 		shown: shown.map((n) => n.id),
 		presenting: fresh[0] ?? null,
-		waiting: open ? 0 : taking.length - fresh.length,
+		waiting: taking.length - fresh.length,
 	};
 }

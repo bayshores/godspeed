@@ -176,7 +176,7 @@ describe("The notices under the pill", () => {
 
 			await act(async () => setNoticesOpen(true));
 			assert.deepEqual(shownIds(), ["a"]);
-			assert.equal(waiting, 0);
+			assert.equal(waiting, 1, "the count stays while the card shows it");
 			await act(async () => setNoticesOpen(false));
 			assert.deepEqual(shownIds(), [], "closing the card folds it again");
 		} finally {

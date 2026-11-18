@@ -35,9 +35,9 @@ describe("noticeView", () => {
 		assert.deepEqual(noticeView(notices, 250, false), { shown: [], presenting: null, waiting: 2 });
 	});
 
-	it("the open card shows the folded ones too, so the pill counts none", () => {
+	it("the open card shows the folded ones too, and the pill still counts them", () => {
 		const notices = [notice("a", null, 100), notice("b", null, 200)];
-		assert.deepEqual(noticeView(notices, 250, true), { shown: ["a", "b"], presenting: null, waiting: 0 });
+		assert.deepEqual(noticeView(notices, 250, true), { shown: ["a", "b"], presenting: null, waiting: 2 });
 	});
 
 	it("one that closes by itself never folds", () => {
