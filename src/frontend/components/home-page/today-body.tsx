@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DeadlineProgress, ProgressPayload, SpaceSummary } from "@/shared/core";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -8,6 +8,8 @@ import { mainRowId, shownCard, type TodayLists } from "./home-page-model";
 import { NextCard } from "./next-card";
 import { SpaceList } from "./space-list";
 import { StudiedLine } from "./studied-line";
+import { TodayNext } from "./today-next";
+import { topicsToWorkOn, unfinishedAcross } from "./today-next-model";
 
 interface TodayBodyProps {
 	/** Null before the first minute tick. */
@@ -36,13 +38,15 @@ interface TodayBodyProps {
 	onAddSpace: () => void;
 	onAddDeadline: (spaceId: string) => void;
 	onOpenSpace: (spaceId: string) => void;
+	/** Starts a lesson on one topic of a space. */
+	onStudyTopic: (spaceId: string, topicId: string) => void;
 }
 
 /**
  * TODAY (the render seam of home-page.tsx), from the top of the window
  * down, each part lighter than the one before: the date and the days
  * studied, the card with the deadline picked in the week (the next thing
- * to do until one is picked), the week with Later, then the spaces. With no
+ * to do until one is picked), the week with Later, the lessons left unfinished and the topics to work on next, then the spaces. With no
  * space yet, the spaces card alone, with the key for the first.
  */
 export function TodayBody(p: TodayBodyProps) {
@@ -57,6 +61,8 @@ export function TodayBody(p: TodayBodyProps) {
 		setOnCard(cardId);
 		return () => setOnCard(null);
 	}, [cardId, setOnCard]);
+	const unfinished = useMemo(() => unfinishedAcross(p.spaces, p.spacesProgress, p.noSpaceProgress), [p.spaces, p.spacesProgress, p.noSpaceProgress]);
+	const topics = useMemo(() => topicsToWorkOn(p.spaces, p.spacesProgress), [p.spaces, p.spacesProgress]);
 	return (
 		<div className="@container/page lh-page flex flex-col gap-(--lh-head-gap) pt-(--lh-page-top) pb-(--lh-page-end)">
 			{/* As tall as the title before the date is known, so nothing moves when it comes. */}
@@ -105,6 +111,7 @@ export function TodayBody(p: TodayBodyProps) {
 								/>
 							)}
 							<DeadlinesCard spaces={p.spaces} lists={p.lists} nowMs={p.nowMs} picked={card?.id ?? null} onPick={(d) => setPicked(d.id)} onRetry={p.onRetry} onAdd={p.onAddDeadline} />
+							<TodayNext unfinished={unfinished} topics={topics} busy={p.busy} onOpenSpace={p.onOpenSpace} onStudyTopic={p.onStudyTopic} />
 							<p aria-live="polite" data-testid="today-showing" className="sr-only">
 								{picked !== null && card ? `Showing ${card.name}` : ""}
 							</p>

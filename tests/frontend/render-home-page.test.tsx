@@ -25,6 +25,11 @@ Object.assign(globalThis, {
 	MutationObserver: dom.window.MutationObserver,
 	IS_REACT_ACT_ENVIRONMENT: true,
 	self: globalThis,
+	ResizeObserver: class {
+		observe() {}
+		unobserve() {}
+		disconnect() {}
+	},
 });
 
 const { MemoryRouter } = await import("react-router");
@@ -263,6 +268,7 @@ function spaceProgress(over: { counts?: [number, number, number, number]; files?
 	const answers = (over.answeredAt ?? []).map((t, i) => ({ chatId: "l", toolCallId: `q${i}`, outcome: "right" as const, answeredAt: t.toISOString() }));
 	return {
 		overall: { topicIds: [], counts: { strong, shaky, weak, untested }, workOnNext: [] },
+		topics: [],
 		files: Array.from({ length: over.files ?? 1 }, () => ({})),
 		facts: Array.from({ length: over.facts ?? 1 }, () => ({})),
 		lessons: answers.length ? [{ chatId: "l", title: "l", kind: "study", updatedAt: "", answers, right: answers.length, answered: answers.length, score: 1 }] : [],
@@ -295,6 +301,7 @@ function page(props: Partial<React.ComponentProps<typeof TodayBody>> = {}): stri
 				onAddSpace={() => {}}
 				onAddDeadline={() => {}}
 				onOpenSpace={() => {}}
+				onStudyTopic={() => {}}
 				{...props}
 			/>
 		</MemoryRouter>,
@@ -304,6 +311,82 @@ function page(props: Partial<React.ComponentProps<typeof TodayBody>> = {}): stri
 /** How many times `needle` is in `html`. */
 const count = (html: string, needle: string) => html.split(needle).length - 1;
 const LA_OPEN = [d("q2", "Quiz 2", "2026-10-30", undefined, { kind: "quiz", spaceId: "spc_la", spaceName: "Linear Algebra" }), d("hw4", "Homework 4", "2026-11-01", undefined, { spaceId: "spc_os", spaceName: "Operating Systems" }), d("fin", "Final", "2026-12-08", undefined, { kind: "exam", spaceId: "spc_la", spaceName: "Linear Algebra" })];
+
+/** A progress payload with an unfinished lesson and a weak topic to work on. */
+function nextProgress(over: { lesson?: boolean; topic?: boolean } = {}): ProgressPayload {
+	const { lesson = true, topic = true } = over;
+	return {
+		...spaceProgress(),
+		lessons: lesson ? [{ chatId: "l1", title: "Pointers and arrays", kind: "study", updatedAt: "2026-10-28T10:00:00", unfinished: true, step: { done: 2, total: 3 }, answers: [], right: 0, answered: 0, score: null }] : [],
+		topics: [{ id: "t1", name: "Master Theorem", rate: 0.3 }],
+		overall: { topicIds: [], counts: { strong: 0, shaky: 0, weak: 1, untested: 0 }, workOnNext: topic ? [{ topicId: "t1", name: "Master Theorem", status: "weak", reason: "" }] : [] },
+	} as unknown as ProgressPayload;
+}
+
+describe("Today, under the deadlines: Unfinished and Work on next", () => {
+	const order = (html: string, ...ids: string[]) => ids.map((id) => html.indexOf(`data-testid="${id}"`));
+
+	it("both blocks sit after the deadlines and before the spaces, a key on each first row", () => {
+		const html = page({ spacesProgress: new Map([["spc_la", nextProgress()]]) });
+		const at = order(html, "today-deadlines", "today-unfinished", "today-work-on-next", "today-spaces");
+		assert.ok(at.every((i) => i >= 0));
+		assert.deepEqual(at, [...at].sort((a, b) => a - b));
+		const unfinished = section(html, "today-unfinished", "</section>");
+		assert.match(tag(unfinished, "today-unfinished-row"), /href="\/chat\/l1"/);
+		assert.ok(unfinished.includes("Pointers and arrays") && unfinished.includes("2 of 3") && unfinished.includes("Continue"));
+		const work = section(html, "today-work-on-next", "</section>");
+		assert.ok(work.includes("Master Theorem") && work.includes("weak") && work.includes("Study"));
+		assert.equal(count(html, "group-hover:bg-(--lh-key-hover)"), 2, "one key per block");
+	});
+
+	it("one block alone", () => {
+		const html = page({ spacesProgress: new Map([["spc_la", nextProgress({ topic: false })]]) });
+		assert.ok(html.includes('data-testid="today-unfinished"'));
+		assert.ok(!html.includes('data-testid="today-work-on-next"'));
+		const topics = page({ spacesProgress: new Map([["spc_la", nextProgress({ lesson: false })]]) });
+		assert.ok(topics.includes('data-testid="today-work-on-next"'));
+		assert.ok(!topics.includes('data-testid="today-unfinished"'));
+	});
+
+	it("neither block with nothing unfinished and nothing to work on", () => {
+		const html = page({ spacesProgress: new Map([["spc_la", nextProgress({ lesson: false, topic: false })]]) });
+		assert.ok(!html.includes("today-unfinished") && !html.includes("today-work-on-next"));
+	});
+
+	it("a lesson row opens its space; a topic row starts a lesson on that topic in its space", async () => {
+		const opened: string[] = [];
+		const started: string[][] = [];
+		const el = await mount(
+			<MemoryRouter initialEntries={["/"]}>
+				<TodayBody
+					nowMs={NOW}
+					ready
+					spaces={[LA]}
+					lists={todayLists([], [], NOW)}
+					deadlineProgress={new Map()}
+					spacesProgress={new Map([["spc_la", nextProgress()]])}
+					noSpaceProgress={null}
+					progressErrors={new Map()}
+					newFiles={new Map()}
+					busy={false}
+					lessonError={null}
+					onStart={() => {}}
+					onDone={() => {}}
+					onUndo={() => {}}
+					onRetry={() => {}}
+					onAddSpace={() => {}}
+					onAddDeadline={() => {}}
+					onOpenSpace={(id) => opened.push(id)}
+					onStudyTopic={(spaceId, topicId) => started.push([spaceId, topicId])}
+				/>
+			</MemoryRouter>,
+		);
+		await act(async () => el.querySelector<HTMLElement>('[data-testid="today-unfinished-row"]')!.click());
+		await act(async () => el.querySelector<HTMLElement>('[data-testid="today-topic-row"]')!.click());
+		assert.deepEqual(opened, ["spc_la"]);
+		assert.deepEqual(started, [["spc_la", "t1"]]);
+	});
+});
 
 describe("Today, as a whole page", () => {
 	const DONE_HW5 = { ...OPEN[2]!, done: true, doneAt: new Date(NOW).toISOString() };
@@ -419,6 +502,7 @@ describe("Picking in the week", () => {
 					onAddSpace={() => {}}
 					onAddDeadline={() => {}}
 					onOpenSpace={() => {}}
+					onStudyTopic={() => {}}
 				/>
 			</MemoryRouter>
 		);
@@ -575,6 +659,7 @@ describe("Your spaces", () => {
 					onAddSpace={() => {}}
 					onAddDeadline={() => {}}
 					onOpenSpace={(id) => opened.push(id)}
+					onStudyTopic={() => {}}
 				/>
 			</MemoryRouter>,
 		);

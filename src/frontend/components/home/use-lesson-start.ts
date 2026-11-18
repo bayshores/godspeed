@@ -68,12 +68,12 @@ export function useLessonStart() {
 		[post],
 	);
 
-	/** Study some of the space's topics. */
+	/** Study some of a space's topics, the active space's unless `spaceId` names one (Today). */
 	const studyTopics = useCallback(
-		(topicIds: readonly string[]) => {
-			if (topicIds.length > 0) return post({ topicIds });
+		(topicIds: readonly string[], spaceId?: string) => {
+			if (topicIds.length > 0) return post({ topicIds }, [], spaceId ?? active);
 		},
-		[post],
+		[post, active],
 	);
 
 	/** Study one topic of the space's path. */

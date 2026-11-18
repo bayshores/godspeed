@@ -8,7 +8,7 @@ import { OUTCOME_BG } from "./styles";
 import type { LessonActions } from "./use-lesson-actions";
 
 /** A row that opens its lesson: lit under the mouse, under the focus and while its menu is open. */
-const ROW = "lh-press group relative hover:bg-tone has-[:focus-visible]:bg-tone";
+export const ROW = "lh-press group relative hover:bg-tone has-[:focus-visible]:bg-tone";
 
 /** Steps (or a homework's problems) as the page's 12-point blocks: done ones inked, the rest
  *  dim. With no label the words beside them say it. */

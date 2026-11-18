@@ -52,7 +52,14 @@ export function HomePage() {
 		return map;
 	}, [spacesProgress]);
 
-	const { studyDeadline, workOnHomework, continueStopped } = lesson;
+	const { studyDeadline, workOnHomework, continueStopped, studyTopics } = lesson;
+	const onStudyTopic = useCallback(
+		(spaceId: string, topicId: string) => {
+			setActive(spaceId);
+			void studyTopics([topicId], spaceId);
+		},
+		[setActive, studyTopics],
+	);
 	const onStart = useCallback(
 		(d: OpenDeadline) => {
 			setActive(d.spaceId);
@@ -114,6 +121,7 @@ export function HomePage() {
 				onAddSpace={() => setAddingSpace(true)}
 				onAddDeadline={addDeadline}
 				onOpenSpace={setActive}
+				onStudyTopic={onStudyTopic}
 			/>
 			<SpaceDialog mode={createMode} onClose={() => setAddingSpace(false)} />
 		</div>
