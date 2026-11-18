@@ -4,9 +4,9 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { DeleteLessonBody, DeleteLessonDialog, TRACES_COPY } from "../../src/frontend/components/lessons/delete-lesson-dialog.tsx";
+import { DeleteLessonBody, DeleteLessonDialog } from "../../src/frontend/components/lessons/delete-lesson-dialog.tsx";
 
-/** The delete dialog's plain-language copy (the graph-touching option says so). */
+/** The delete dialog's plain-language copy: the name, one box about the graph, and that it cannot be undone. */
 
 describe("Delete lesson dialog", () => {
 	it("closed (chat=null) renders nothing", () => {
@@ -30,11 +30,12 @@ describe("Delete lesson dialog", () => {
 		);
 		assert.match(html, /<h2[^>]*>Delete lesson\?<\/h2>/);
 		assert.match(html, /data-testid="delete-lesson-name"[^>]*>Orbital mechanics</);
-		assert.ok(html.includes("its messages, background jobs and graph-building history"), "the words the learner already sees");
+		assert.ok(html.includes("This cannot be undone."));
+		assert.ok(!html.includes("background jobs"), "the long paragraph is gone");
 		assert.ok(!html.includes("extraction"));
 	});
 
-	it("one unchecked-by-default checkbox for the graph traces — the graph-touching consequence says so", () => {
+	it("one unchecked-by-default checkbox for what the lesson added to the graph", () => {
 		const html = renderToStaticMarkup(
 			<DeleteLessonBody
 				chat={{ id: "c1", title: "Orbital mechanics" }}
@@ -49,10 +50,11 @@ describe("Delete lesson dialog", () => {
 		// unchecked by default (preserve-graph) — React SSR omits the
 		// attribute when false, so pin its ABSENCE on the rendered input
 		assert.ok(!/"checked"/.test(html), "unchecked by default");
-		// plain-language consequences on the checkbox body
-		assert.ok(html.includes(TRACES_COPY.title));
-		assert.ok(html.includes("leave the graph too"));
-		assert.ok(html.includes("survive"));
+		assert.ok(html.includes("Also remove what it added to the graph"));
+		assert.ok(!html.includes("survive"), "no paragraph under the box");
+		// the body is the name, the box, then the line
+		const at = (text: string) => html.indexOf(text);
+		assert.ok(at("Orbital mechanics") < at("Also remove what it added") && at("Also remove what it added") < at("This cannot be undone."));
 		// the old two-button design is gone
 		assert.ok(!html.includes("delete-option-preserve"));
 		assert.ok(!html.includes("delete-option-nodes"));

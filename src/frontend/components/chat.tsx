@@ -591,6 +591,7 @@ export function Chat({
 					<LessonStepsContext.Provider value={stepNumbers}>
 						<div className="@container/lesson flex h-full min-w-0 flex-1 flex-col">
 							<LessonHead
+								chatId={chatId}
 								rename={rename}
 								spaceId={spaceId}
 								sheet={spaceId ? { open: sheetOpen, onToggle: toggleSheet } : undefined}

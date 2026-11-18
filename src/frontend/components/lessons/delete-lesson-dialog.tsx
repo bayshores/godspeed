@@ -6,19 +6,12 @@ import { DeleteFoot, FailureRow } from "@/frontend/components/ui/delete-dialog-p
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import type { ChatDeleteMode, ChatListItem } from "@/shared/core";
 
-/** What "Also remove its graph traces" does, in the learner's words. */
-export const TRACES_COPY = {
-	checkbox: "delete-traces-checkbox",
-	title: "Also remove its graph traces",
-	body: "This lesson’s topics, links, and events leave the graph too. Topics other lessons or imported notes also cover survive; topics only this lesson created are removed entirely.",
-};
-
 type Lesson = Pick<ChatListItem, "id" | "title">;
 
 /**
- * "Delete lesson?": the lesson's name, what goes, and one unticked box,
- * "Also remove its graph traces" (unticked keeps everything the lesson
- * added to the graph).
+ * "Delete lesson?": the lesson's name, one unticked box, "Also remove what it
+ * added to the graph" (unticked keeps everything the lesson added), and
+ * the line that a delete cannot be undone.
  *
  * A delete the server refuses for now (a reply or a job is still running)
  * shows the server's line with "Try again", which is Delete pressed again.
@@ -120,11 +113,8 @@ export function DeleteLessonBody({
 			<p data-testid="delete-lesson-name" title={chat.title} className="truncate text-lg text-ink">
 				{chat.title}
 			</p>
-			<p className="text-lg text-ink">
-				This permanently removes the lesson: its messages, background jobs and graph-building history. Everything it added to the graph stays unless you check below. This cannot be undone.
-			</p>
-			<CheckRow testid={TRACES_COPY.checkbox} label={TRACES_COPY.title} checked={traces} disabled={busy} onToggle={() => onTraces(!traces)} />
-			<p className="text-[15px] text-ink-2">{TRACES_COPY.body}</p>
+			<CheckRow testid="delete-traces-checkbox" label="Also remove what it added to the graph" checked={traces} disabled={busy} onToggle={() => onTraces(!traces)} />
+			<p className="text-lg text-ink">This cannot be undone.</p>
 			{failure && <FailureRow testid="delete-failure" retryTestid="delete-retry" failure={failure} busy={busy} onRun={onRun} />}
 		</DialogSheet>
 	);

@@ -5,6 +5,7 @@ import type { SessionScrollContext } from "@/frontend/components/session-navigat
 import { Hint } from "@/frontend/components/ui/hint";
 import { cn } from "@/frontend/lib/utils";
 import { kbdEventForAction } from "@/shared/core";
+import { LessonMore } from "./lesson-more";
 import { pluginWordTestId } from "./plugin-window";
 import type { useTitleRename } from "./use-title-rename";
 
@@ -15,11 +16,12 @@ const WORD_ON = "lh-btn shrink-0 [--lh-key:var(--lh-highlight)] [--lh-key-hover:
 /**
  * THE LESSON'S TITLE LINE, under the app's top bar: the lesson's name
  * (renames in place on a click, or F2), then the homework file, the
- * plugins' words, the cheat sheet, Find and the lesson's size. Opening Find
- * swaps the words for the find field. The lesson's space is the bar's
- * selected tab, which is also the way back.
+ * plugins' words, the cheat sheet, Find, the lesson's size and More (the
+ * lesson menu). Opening Find swaps the words for the find field. The
+ * lesson's space is the bar's selected tab, which is also the way back.
  */
 export function LessonHead({
+	chatId,
 	rename,
 	spaceId,
 	sheet,
@@ -30,6 +32,7 @@ export function LessonHead({
 	scopeRef,
 	scrollContextRef,
 }: {
+	chatId: string;
 	rename: ReturnType<typeof useTitleRename>;
 	spaceId: string | undefined;
 	/** The cheat sheet beside the session (a session in a space). */
@@ -85,6 +88,7 @@ export function LessonHead({
 					Find
 				</button>
 				{stats}
+				<LessonMore chatId={chatId} title={rename.title} spaceId={spaceId} className={WORD} onRename={rename.start} />
 			</SessionFind>
 		</div>
 	);
