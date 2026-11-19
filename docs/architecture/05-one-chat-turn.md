@@ -41,7 +41,7 @@ The lesson is one scrolling page (`LessonScroll` in `src/frontend/components/les
 
 In study, practice and homework lessons, the open problem sits in the turn sheet above the box (`OpenProblemPane`, `src/frontend/components/lesson/open-problem-pane.tsx`), with no writing box of its own.
 
-- Learner works in lesson's one box. Each message is a plain `text` input: work on problem or a question about it. The three "Stuck?" keys send their words as such a message.
+- Learner works in lesson's one box. Each message is a plain `text` input: work on the problem. The box reads "Your work"; a question about it is typed to the teacher in its terminal, whose line goes into the lesson. The three "Stuck?" keys send their words as such a message.
 - A message never ends problem (`active_problem_of`). Only teacher's `conclude` or learner's discard does.
 - Teacher may conclude one problem and pose the one learner asked for in same turn.
 - While a problem is open, its card in the transcript is not drawn (`openProblem` in `ChatActionsContext`). The card appears once the problem closes.

@@ -19,7 +19,7 @@
  *   side    — a side question: the learner asks the teacher something
  *             (text, files or both) while a question waits, which stays
  *             open around it. With a problem open, a message is plain
- *             text: the learner's work on it, or a question about it.
+ *             text: the learner's work on it.
  *   open    — a pick from a homework lesson's problem list; the teacher
  *             opens that problem, done or not.
  *   opener-answer — the answer to the next topic's opener (a question

@@ -337,7 +337,7 @@ describe("Your turn in each state", () => {
 		assert.match(out, /data-mode="practice"/);
 		assert.match(out, /data-testid="problem-line"[^>]*>Practice, problem 2</);
 		assert.match(out, /data-testid="open-problem"[\s\S]*data-testid="problem-statement"[\s\S]*Find E\[N\]\./);
-		assert.match(out, /Your work or a question/);
+		assert.match(out, /Your work/);
 		assert.match(out, /data-testid="discard-problem"[^>]*>Discard problem</);
 		assert.doesNotMatch(out, /question-dock/);
 		assert.equal(out.split('data-testid="math-box"').length - 1, 1);
@@ -503,7 +503,7 @@ describe("Enter in the box", () => {
 		const typed: string[] = [];
 		let sent = 0;
 		await mounted(turn({ problem, value: "x^2", onChange: (v) => typed.push(v), onSend: () => sent++ }), async (host) => {
-			const view = await mathBoxView(host, "Your work or a question");
+			const view = await mathBoxView(host, "Your work");
 			await act(async () => view.dispatch({ changes: { from: view.state.doc.length, insert: "+1" } }));
 			assert.deepEqual(typed, ["x^2+1"]);
 			await act(async () => void enter(view, true));
@@ -516,7 +516,7 @@ describe("Enter in the box", () => {
 	it("an empty Enter on a problem sends nothing", async () => {
 		let sent = 0;
 		await mounted(turn({ problem, onSend: () => sent++ }), async (host) => {
-			await act(async () => void enter(await mathBoxView(host, "Your work or a question")));
+			await act(async () => void enter(await mathBoxView(host, "Your work")));
 			assert.equal(sent, 0);
 		});
 	});
