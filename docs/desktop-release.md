@@ -15,7 +15,7 @@ How the desktop app is built, checked in CI and released, and how Electron insta
 - Windows code signing is off on purpose. SmartScreen may warn about an unknown publisher on first install.
 - Linux builds run in an Ubuntu 22.04 container so the app runs on Ubuntu 22.04 and Debian 12. A release step fails if `godspeed`, `godspeed-server`, `libpdfium.so` or `libonnxruntime.so` needs glibc newer than 2.35 or libstdc++ newer than GLIBCXX 3.4.30.
 - The Linux release job sets `APPIMAGE_EXTRACT_AND_RUN=1` (containers have no FUSE).
-- The container's Linux packages step reads packages from `azure.archive.ubuntu.com`, with a 30 second timeout and three tries: the image's own servers (`archive.ubuntu.com`, `security.ubuntu.com`) once stopped answering and the 73 second step ran for an hour.
+- The container's Linux packages step keeps its downloaded packages in the cache for a week (key `debs-jammy-<year>-<week>`, saved by runs that are not a tag or a pull request), reads them from `azure.archive.ubuntu.com`, and gives a download 30 seconds and three tries: the package servers were once so slow that this one-minute step ran for up to an hour.
 
 ### Mac icon
 

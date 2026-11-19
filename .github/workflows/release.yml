@@ -212,17 +212,40 @@ jobs:
       run:
         shell: bash
     steps:
+      # The package servers can be so slow that this one-minute step takes an hour, so the downloaded
+      # packages are kept for a week. gzip on both sides: the image has no zstd before the install.
+      - name: This week's key for the downloaded Linux packages
+        if: runner.os == 'Linux'
+        id: debs
+        run: echo "key=debs-jammy-$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+      - name: Restore the downloaded Linux packages
+        if: runner.os == 'Linux'
+        id: debs-restore
+        uses: actions/cache/restore@v6
+        with:
+          path: /var/cache/debs
+          key: ${{ steps.debs.outputs.key }}
+          restore-keys: debs-jammy-
       - name: Linux packages (Ubuntu 22.04 container)
         if: runner.os == 'Linux'
         run: |
-          # The container's own package servers (archive.ubuntu.com) can stop answering for an hour; this mirror sits beside GitHub's runners.
+          # The image's own servers (archive.ubuntu.com) once stopped answering; this mirror still did.
           sed -i -E 's#http://(archive|security)\.ubuntu\.com#http://azure.archive.ubuntu.com#' /etc/apt/sources.list
-          printf 'Acquire::Retries "3";\nAcquire::http::Timeout "30";\n' > /etc/apt/apt.conf.d/80-fail-fast
+          printf 'Acquire::Retries "3";\nAcquire::http::Timeout "30";\nDir::Cache::Archives "/var/cache/debs";\n' > /etc/apt/apt.conf.d/80-godspeed
+          mkdir -p /var/cache/debs/partial
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates git python3 unzip xvfb xauth binutils \
             libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          # Packages the servers no longer offer leave the kept set.
+          apt-get autoclean
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Save the downloaded Linux packages
+        if: runner.os == 'Linux' && steps.debs-restore.outputs.cache-hit != 'true' && github.ref_type != 'tag'
+        uses: actions/cache/save@v6
+        with:
+          path: /var/cache/debs
+          key: ${{ steps.debs.outputs.key }}
       # The upload step needs gh, which the container does not have (GitHub's own apt repository).
       - name: GitHub CLI (Ubuntu 22.04 container)
         if: runner.os == 'Linux' && github.event_name == 'push'
@@ -452,17 +475,40 @@ jobs:
       run:
         shell: bash
     steps:
+      # The package servers can be so slow that this one-minute step takes an hour, so the downloaded
+      # packages are kept for a week. gzip on both sides: the image has no zstd before the install.
+      - name: This week's key for the downloaded Linux packages
+        if: runner.os == 'Linux'
+        id: debs
+        run: echo "key=debs-jammy-$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+      - name: Restore the downloaded Linux packages
+        if: runner.os == 'Linux'
+        id: debs-restore
+        uses: actions/cache/restore@v6
+        with:
+          path: /var/cache/debs
+          key: ${{ steps.debs.outputs.key }}
+          restore-keys: debs-jammy-
       - name: Linux packages (Ubuntu 22.04 container)
         if: runner.os == 'Linux'
         run: |
-          # The container's own package servers (archive.ubuntu.com) can stop answering for an hour; this mirror sits beside GitHub's runners.
+          # The image's own servers (archive.ubuntu.com) once stopped answering; this mirror still did.
           sed -i -E 's#http://(archive|security)\.ubuntu\.com#http://azure.archive.ubuntu.com#' /etc/apt/sources.list
-          printf 'Acquire::Retries "3";\nAcquire::http::Timeout "30";\n' > /etc/apt/apt.conf.d/80-fail-fast
+          printf 'Acquire::Retries "3";\nAcquire::http::Timeout "30";\nDir::Cache::Archives "/var/cache/debs";\n' > /etc/apt/apt.conf.d/80-godspeed
+          mkdir -p /var/cache/debs/partial
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates git python3 unzip xvfb xauth \
             libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          # Packages the servers no longer offer leave the kept set.
+          apt-get autoclean
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Save the downloaded Linux packages
+        if: runner.os == 'Linux' && steps.debs-restore.outputs.cache-hit != 'true' && github.ref_type != 'tag'
+        uses: actions/cache/save@v6
+        with:
+          path: /var/cache/debs
+          key: ${{ steps.debs.outputs.key }}
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
