@@ -17,7 +17,7 @@
 `probe`, `quiz`, `ask_user_question`, `explain`, `recall` and `write_code`. The server only checks their input, and the call ends the turn. The "question posed" placeholder lives in memory, never saved.
 
 1. Call streams to window; question shows in dock.
-2. Learner answers. The window grades multiple choice with `question-core` and builds answer. A `write_code` answer (`code-question.ts`) is never run or graded by the app; teacher reads it.
+2. Learner answers. The window grades multiple choice with `question-grading.ts` and builds answer. A `write_code` answer (`code-question.ts`) is never run or graded by the app; teacher reads it.
 3. Window posts it as an `answer` input event.
 4. Server saves it as call's tool result and next turn runs.
 

@@ -7,7 +7,8 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { needsContinuation, type LhMessage } from "../../src/shared/core/native-messages.ts";
+import type { LhMessage } from "../../src/shared/core/native-messages.ts";
+import { needsContinuation } from "../../src/shared/core/native-scans.ts";
 import { findPendingToolCall } from "../../src/shared/core/pending.ts";
 import { planStepBar } from "../../src/shared/core/plan-step-bar.ts";
 import { projectView } from "../../src/shared/core/view.ts";

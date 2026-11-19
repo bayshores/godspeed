@@ -4,7 +4,7 @@
  */
 import type { LhMessage } from "../src/shared/core/native-messages.ts";
 import type { KeepCheckDetails } from "../src/shared/core/contracts/chat.ts";
-import type { QuestionAnswerData } from "../src/shared/core/question-core.ts";
+import type { QuestionAnswerData } from "../src/shared/core/question-data.ts";
 import { call, marker, result } from "./stop-fixtures.ts";
 
 export const KEEP = {

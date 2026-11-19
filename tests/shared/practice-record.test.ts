@@ -10,17 +10,16 @@ import { describe, it } from "node:test";
 
 import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
 import {
-	activeProblemOf,
 	newProblemDismissedMarker,
 	newNextMessage,
 	newOpenProblemMessage,
-	needsContinuation,
 	newUserMessage,
 	PRACTICE_CONCLUDE_TOOL,
 	PRACTICE_PROBLEM_TOOL,
 	type LhMessage,
 } from "../../src/shared/core/native-messages.ts";
-import { problemInputForConclude } from "../../src/shared/core/native-messages.ts";
+import { needsContinuation } from "../../src/shared/core/native-scans.ts";
+import { activeProblemOf, problemInputForConclude } from "../../src/shared/core/practice-problem.ts";
 import { projectView } from "../../src/shared/core/index.ts";
 
 // ── builders (native-shaped test fixtures) ───────────────────────────────────

@@ -18,7 +18,7 @@ import {
 	parseQuizInput,
 	parseExplainInput,
 } from "../../src/shared/core/tool-parts.ts";
-import { quizDisplayInputSchema } from "../../src/shared/core/question-core.ts";
+import { quizDisplayInputSchema } from "../../src/shared/core/question-schemas.ts";
 import { probeDoneInputSchema } from "../../src/shared/core/contracts/probe.ts";
 
 const TEACHER_QUIZ = {

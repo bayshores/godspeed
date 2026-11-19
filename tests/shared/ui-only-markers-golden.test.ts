@@ -6,7 +6,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { danglingQuestionOf, needsContinuation, sideHeldQuestions, type LhMessage } from "../../src/shared/core/native-messages.ts";
+import type { LhMessage } from "../../src/shared/core/native-messages.ts";
+import { danglingQuestionOf, needsContinuation, sideHeldQuestions } from "../../src/shared/core/native-scans.ts";
 
 interface Case {
 	name: string;

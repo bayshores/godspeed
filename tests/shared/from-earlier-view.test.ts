@@ -6,7 +6,8 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { danglingQuestionOf, needsContinuation, type LhMessage } from "../../src/shared/core/native-messages.ts";
+import type { LhMessage } from "../../src/shared/core/native-messages.ts";
+import { danglingQuestionOf, needsContinuation } from "../../src/shared/core/native-scans.ts";
 import { findPendingToolCall } from "../../src/shared/core/pending.ts";
 import { projectView, reuseUnchangedMessages, withOpenReview, type FromEarlierData } from "../../src/shared/core/view.ts";
 import type { ReviewQuestion } from "../../src/shared/core/contracts/chat.ts";

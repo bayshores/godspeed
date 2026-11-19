@@ -6,7 +6,10 @@
 export * from "./contracts.ts";
 export * from "./chains.ts";
 
-export * from "./question-core.ts";
+export * from "./question-schemas.ts";
+export * from "./question-data.ts";
+export * from "./question-dock-state.ts";
+export * from "./question-grading.ts";
 export * from "./code-question.ts";
 // The event bus: vocabulary + emit/subscribe
 // for every layer; the browser shell consumes the types + the runtime names
@@ -24,6 +27,8 @@ export * from "./citations.ts";
 // The native record (LhMessage) and the input-events contract — pure,
 // browser-safe.
 export * from "./native-messages.ts";
+export * from "./native-scans.ts";
+export * from "./practice-problem.ts";
 export * from "./today-note.ts";
 export * from "./space-work.ts";
 export * from "./compaction.ts";

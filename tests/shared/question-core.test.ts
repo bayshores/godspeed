@@ -31,7 +31,7 @@ import {
 	emptyDockSelection,
 	shuffleOptions,
 	type QuestionData,
-} from "../../src/shared/core/question-core.ts";
+} from "../../src/shared/core/index.ts";
 import { toolQuestionKind } from "../../src/shared/core/pending.ts";
 import { parseQuizInput } from "../../src/shared/core/tool-parts.ts";
 

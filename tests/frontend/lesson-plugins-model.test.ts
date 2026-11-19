@@ -5,7 +5,7 @@ import { lessonPluginContext } from "../../src/frontend/components/lesson/lesson
 import { pluginsAt } from "../../src/frontend/lib/use-plugins-at.ts";
 import type { InstalledPlugin, PluginManifest } from "../../src/frontend/lib/plugins-api.ts";
 import type { LhViewMessage, LhViewPart } from "../../src/shared/core/view.ts";
-import type { QuestionAnswerData } from "../../src/shared/core/question-core.ts";
+import type { QuestionAnswerData } from "../../src/shared/core/question-data.ts";
 
 const space = { id: "c21", name: "CSE 21" };
 const teacher = (text: string, ...parts: LhViewPart[]): LhViewMessage => ({ id: `m-${text}`, role: "assistant", parts: [{ type: "text", text }, ...parts] });

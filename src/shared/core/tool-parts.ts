@@ -9,7 +9,7 @@
 
 import { Value } from "typebox/value";
 import type { TSchema } from "typebox";
-import { quizDisplayInputSchema, askInputSchema, askOptionProblems, quizInputProblems, explainInputProblems, explainDisplayInputSchema, type AskToolInput, type QuizDisplayInput, type ExplainDisplayInput } from "./question-core.ts";
+import { quizDisplayInputSchema, askInputSchema, askOptionProblems, quizInputProblems, explainInputProblems, explainDisplayInputSchema, type AskToolInput, type QuizDisplayInput, type ExplainDisplayInput } from "./question-schemas.ts";
 import { healEncodedArguments } from "./argument-heal.ts";
 import { probeDoneInputSchema, type ProbeDoneInput } from "./contracts/probe.ts";
 import { writeCodeInputProblems, writeCodeInputSchema, type WriteCodeInput } from "./code-question.ts";

@@ -11,7 +11,7 @@ import type { ToolResultMessage } from "@earendil-works/pi-ai";
 import { TOPIC_DONE_TOOL, type KeepGoingDetails, type OpenerAnswerDetails, type StopDetails, type TopicDoneDetails } from "./contracts/chat.ts";
 import { derivePlanStatusesLh, orderedPlanNodes, TAGGING_TOOLS, type PlanTree } from "./contracts/plan.ts";
 import { PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, type LhMessage } from "./native-messages.ts";
-import type { QuestionAnswerData } from "./question-core.ts";
+import type { QuestionAnswerData } from "./question-data.ts";
 import { isRecord } from "./is-record.ts";
 
 /** The stop a lesson is at: its newest stop, with what comes next.

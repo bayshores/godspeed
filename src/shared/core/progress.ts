@@ -16,7 +16,8 @@
  */
 import type { DeadlineKind, LessonKind, TopicMaterial } from "./contracts.ts";
 import { type ContinueStudy } from "./continue-study.ts";
-import { type ConfidenceLevel, type QuestionAnswerData } from "./question-core.ts";
+import { type ConfidenceLevel } from "./question-dock-state.ts";
+import { type QuestionAnswerData } from "./question-data.ts";
 
 // ─── the color ramp + statuses ──────────────────────────────────────────────
 

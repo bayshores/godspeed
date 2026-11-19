@@ -34,10 +34,12 @@
 
 import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
 import type { LhMarkerMessage, LhMessage } from "./native-messages.ts";
-import { answeredCallIds, interruptedQuestions, PRACTICE_CONCLUDE_TOOL, problemInputForConclude, SEND_TO_USER_TOOL, sendToUserText, sideHeldQuestions } from "./native-messages.ts";
+import { PRACTICE_CONCLUDE_TOOL, SEND_TO_USER_TOOL, sendToUserText } from "./native-messages.ts";
+import { answeredCallIds, interruptedQuestions, sideHeldQuestions } from "./native-scans.ts";
+import { problemInputForConclude } from "./practice-problem.ts";
 import { activeCompactionOf, type CompactionDetails } from "./compaction.ts";
 import { isQuestionTool, type AppPosed } from "./pending.ts";
-import { dismissedAnswer } from "./question-core.ts";
+import { dismissedAnswer } from "./question-grading.ts";
 import { shownOpeners, type ShownOpener } from "./topic-end.ts";
 import type { SubagentArtifactData, SubagentResultMeta } from "./contracts/jobs.ts";
 import type { PlanBlockData, ReviewDetails, ReviewQuestion } from "./contracts/chat.ts";

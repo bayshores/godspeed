@@ -6,7 +6,7 @@
  */
 
 import { Type, type Static } from "typebox";
-import type { QuestionAnswerData } from "./question-core.ts";
+import type { QuestionAnswerData } from "./question-data.ts";
 
 export const writeCodeInputSchema = Type.Object({
 	question: Type.String({

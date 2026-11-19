@@ -172,7 +172,7 @@ function QuestionDockForm({
 		return q;
 	}, [toolCallId, kind, input]);
 
-	// The selection machine lives in question-core (pure, tested).
+	// The selection machine lives in question-dock-state (pure, tested).
 	const [sel, setSel] = useState<DockSelection>(() => initialDraft?.selection ?? emptyDockSelection());
 	// Confidence: an index into CONFIDENCE_STOPS (level − 1), unset until
 	// the learner picks one.

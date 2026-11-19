@@ -6,7 +6,7 @@ import type { LhMessage } from "../native-messages.ts";
 import type { Phase3 } from "../phases.ts";
 import type { PlanNodeStatus, PlanTree } from "./plan.ts";
 import type { EmissionStats } from "./graph.ts";
-import type { QuestionAnswerData } from "../question-core.ts";
+import type { QuestionAnswerData } from "../question-data.ts";
 
 // ─── Chat records (the session store's on-disk format) ───────────────────────
 

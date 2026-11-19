@@ -27,7 +27,7 @@
  *             its skip.
  */
 
-import type { QuestionAnswerData } from "./question-core.ts";
+import type { QuestionAnswerData } from "./question-data.ts";
 import type { ReviewOf } from "./contracts/chat.ts";
 import type { ChatAttachment } from "./attachments.ts";
 

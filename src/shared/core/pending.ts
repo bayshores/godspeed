@@ -2,10 +2,10 @@
  * These scans read VIEW messages (core/view.ts LhViewMessage — the
  * client's grouped transcript). A tool part is structural: `tool-` prefix +
  * toolCallId. The server-side record scans (danglingQuestionOf over native
- * LhMessage[]) live in native-messages.ts.
+ * LhMessage[]) live in native-scans.ts.
  */
 import type { ReviewOf } from "./contracts/chat.ts";
-import type { QuestionKind } from "./question-core.ts";
+import type { QuestionKind } from "./question-data.ts";
 
 interface UIMessage {
 	role?: string;

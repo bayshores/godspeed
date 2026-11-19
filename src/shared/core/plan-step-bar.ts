@@ -6,7 +6,7 @@
 import type { PlanNodeStatus, PlanTree } from "./contracts.ts";
 import { derivedNodeStatus, derivePlanStatuses, orderedPlanNodes } from "./contracts.ts";
 import { answerOutcome, isAnswerData, type AnswerOutcome } from "./progress.ts";
-import { confidenceLevel, type ConfidenceLevel } from "./question-core.ts";
+import { confidenceLevel, type ConfidenceLevel } from "./question-dock-state.ts";
 
 /** The view-message slice the step bar reads (core/view.ts LhViewMessage). */
 interface StepBarMessage {

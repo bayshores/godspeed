@@ -1,7 +1,7 @@
 /** Read-only provenance for historical question cards. Never persist this
  * projection: answer identities, ordering, grading, and learner text remain
  * the recorded facts; only model-authored display text comes from the call. */
-import { normalizeOptions, type QuestionAnswerData } from "./question-core.ts";
+import { normalizeOptions, type QuestionAnswerData } from "./question-data.ts";
 import { parseAskInput, parseExplainInput, parseQuizInput, parseWriteCodeInput } from "./tool-parts.ts";
 import { repairMathForDisplay } from "./math-delims.ts";
 

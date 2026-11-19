@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { planStepBar } from "../../src/shared/core/plan-step-bar.ts";
-import type { QuestionAnswerData } from "../../src/shared/core/question-core.ts";
+import type { QuestionAnswerData } from "../../src/shared/core/question-data.ts";
 
 describe("planStepBar", () => {
 	const tree = { nodes: [{ id: "b", title: "Bayes" }, { id: "a", title: "Priors" }, { id: "c", title: "Posteriors" }], edges: [{ from: "a", to: "b" }, { from: "b", to: "c" }] };

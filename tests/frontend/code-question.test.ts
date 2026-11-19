@@ -12,7 +12,7 @@ import {
 	writeCodeInputProblems,
 	writeCodeInputSchema,
 } from "../../src/shared/core/code-question.ts";
-import { compactAnswerForModel, dismissedAnswer } from "../../src/shared/core/question-core.ts";
+import { compactAnswerForModel, dismissedAnswer } from "../../src/shared/core/question-grading.ts";
 import { isQuestionTool, toolQuestionKind } from "../../src/shared/core/pending.ts";
 import { parseWriteCodeInput } from "../../src/shared/core/tool-parts.ts";
 import { answerForPresentation } from "../../src/shared/core/answer-presentation.ts";
