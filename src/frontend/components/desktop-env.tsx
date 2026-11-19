@@ -42,6 +42,17 @@ declare global {
 				/** Sent when a terminal's question, link or end changes. */
 				onState: (cb: (state: Pick<TerminalRecord, "id" | "ended" | "prompt" | "url">) => void) => () => void;
 			};
+			/** The teacher's terminal in a window of its own, beside the main window. */
+			terminalWindow?: {
+				/** Opens the window, or brings it forward when it is open; the main window only. `title` is the teacher's name. */
+				open: (title: string) => Promise<void>;
+				/** Closes the window; either window may. Closing one that isn't there does nothing. */
+				close: () => Promise<void>;
+				/** Brings the window to the front, out of the Dock if minimized; rejects when it isn't open. */
+				focus: () => Promise<void>;
+				/** The main page hears whether the window is open when it opens or closes, and after every load of the main page. */
+				onChange: (cb: (state: { open: boolean }) => void) => () => void;
+			};
 			/** Opens an http, https or mailto link in the browser. */
 			openLink?: (url: string) => Promise<void>;
 			/** A dropped file's or folder's absolute path, or "" where the OS gives none (onboarding drop zone). */

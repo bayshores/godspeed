@@ -29,6 +29,7 @@ mod screens;
 mod self_test;
 mod server;
 mod terminal;
+mod terminal_window;
 mod update;
 #[cfg(windows)]
 mod win;
@@ -50,7 +51,7 @@ fn main() {
 	#[cfg(not(debug_assertions))]
 	let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
 		// A window still hidden while the app starts shows itself once drawn.
-		if let Some(main) = app.get_webview_window("main").filter(|main| main.is_visible().unwrap_or(false)) {
+		if let Some(main) = app.get_webview_window(window::MAIN).filter(|main| main.is_visible().unwrap_or(false)) {
 			let _ = main.unminimize();
 			let _ = main.set_focus();
 		}
@@ -69,6 +70,9 @@ fn main() {
 			window::start_drag,
 			window::toggle_menu,
 			window::open_link,
+			terminal_window::terminal_window_open,
+			terminal_window::terminal_window_close,
+			terminal_window::terminal_window_focus,
 			zoom::get_zoom,
 			zoom::set_zoom,
 			zoom::zoom_step,
@@ -114,9 +118,15 @@ fn main() {
 		RunEvent::Exit => quit::run(app),
 		#[cfg(target_os = "macos")]
 		RunEvent::Reopen { .. } => window::reopen(app),
-		// A demo window left at that moment would keep the process alive.
-		#[cfg(not(target_os = "macos"))]
-		RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } if label == "main" => app.exit(0),
+		RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } if label == window::TERMINAL => terminal_window::closed(app),
+		RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } if label == window::MAIN => {
+			// The terminal window has no use without the main window, and on the Mac would stay
+			// open with nothing behind it.
+			terminal_window::close(app);
+			// A demo window left at that moment would keep the process alive.
+			#[cfg(not(target_os = "macos"))]
+			app.exit(0);
+		}
 		RunEvent::MenuEvent(event) => menu::handle(app, event),
 		_ => {}
 	});

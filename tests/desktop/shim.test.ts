@@ -127,6 +127,21 @@ test("the terminal members name a role, an agent and an id, and hear their pushe
 	]);
 });
 
+test("the terminal window members call their commands and hear whether it is open", async () => {
+	const { lh, invoked, window } = page();
+	const terminalWindow = lh!.terminalWindow as unknown as Record<string, (...args: unknown[]) => unknown>;
+	await terminalWindow.open!("Ada");
+	await terminalWindow.focus!();
+	await terminalWindow.close!();
+	assert.deepEqual(invoked, [["terminal_window_open", { title: "Ada" }], ["terminal_window_focus"], ["terminal_window_close"]]);
+	const push = window.__lhPush as (channel: string, payload: unknown) => void;
+	push("terminal-window", { open: true });
+	const heard: unknown[] = [];
+	terminalWindow.onChange!((state: unknown) => heard.push(state));
+	push("terminal-window", { open: false });
+	assert.deepEqual(heard, [{ open: true }, { open: false }], "a push before the first listener is kept for it");
+});
+
 test("only the Mac prints through the system sheet", () => {
 	assert.equal(typeof page({ platform: "darwin" }).lh!.printPdf, "function");
 	assert.equal(page({ platform: "win32" }).lh!.printPdf, undefined);

@@ -6,14 +6,15 @@ use std::sync::Mutex;
 use serde_json::Value;
 use tauri::{AppHandle, Manager, State, Webview};
 
-use crate::commands::{AppOrigin, trusted};
+use crate::commands::{AppOrigin, trusted_terminal};
 use crate::lock::lock;
-use crate::push::push;
+use crate::push::push_to;
+use crate::window::WINDOWS;
 
 /// Must match LADDER in src/frontend/components/settings/text-size-model.ts.
 const LADDER: [f64; 8] = [0.75, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0];
 
-/// The main window's factor.
+/// The factor of every app window.
 pub struct Zoom(Mutex<f64>);
 
 impl Default for Zoom {
@@ -22,7 +23,7 @@ impl Default for Zoom {
 	}
 }
 
-fn current(app: &AppHandle) -> f64 {
+pub fn current(app: &AppHandle) -> f64 {
 	*lock(&app.state::<Zoom>().0)
 }
 
@@ -36,8 +37,11 @@ fn next(from: f64, dir: i32) -> f64 {
 }
 
 pub fn apply(app: &AppHandle, factor: f64) {
-	let Some(main) = app.get_webview_window("main") else { return };
-	if main.set_zoom(factor).is_ok() {
+	let mut set = false;
+	for window in WINDOWS.iter().filter_map(|label| app.get_webview_window(label)) {
+		set |= window.set_zoom(factor).is_ok();
+	}
+	if set {
 		*lock(&app.state::<Zoom>().0) = factor;
 		push_current(app);
 	}
@@ -49,19 +53,21 @@ pub fn step(app: &AppHandle, dir: i32) {
 
 /// After every page load too, so a reloaded page never holds a stale factor.
 pub fn push_current(app: &AppHandle) {
-	push(app, "zoom", &Value::from(current(app)));
+	for label in WINDOWS {
+		push_to(app, label, "zoom", &Value::from(current(app)));
+	}
 }
 
 #[tauri::command]
 pub fn get_zoom(webview: Webview, origin: State<AppOrigin>) -> Result<f64, String> {
-	trusted(&webview, &origin)?;
+	trusted_terminal(&webview, &origin)?;
 	Ok(current(webview.app_handle()))
 }
 
 /// The page restores its saved factor at load and the Text size slider sets one; only ladder values are taken.
 #[tauri::command]
 pub fn set_zoom(webview: Webview, origin: State<AppOrigin>, factor: f64) -> Result<(), String> {
-	trusted(&webview, &origin)?;
+	trusted_terminal(&webview, &origin)?;
 	if LADDER.contains(&factor) {
 		apply(webview.app_handle(), factor);
 	}
@@ -71,14 +77,14 @@ pub fn set_zoom(webview: Webview, origin: State<AppOrigin>, factor: f64) -> Resu
 /// The keys the menu does not claim (⌘= with another layout, ⌘+).
 #[tauri::command]
 pub fn zoom_step(webview: Webview, origin: State<AppOrigin>, dir: i32) -> Result<(), String> {
-	trusted(&webview, &origin)?;
+	trusted_terminal(&webview, &origin)?;
 	step(webview.app_handle(), dir);
 	Ok(())
 }
 
 #[tauri::command]
 pub fn zoom_reset(webview: Webview, origin: State<AppOrigin>) -> Result<(), String> {
-	trusted(&webview, &origin)?;
+	trusted_terminal(&webview, &origin)?;
 	apply(webview.app_handle(), 1.0);
 	Ok(())
 }

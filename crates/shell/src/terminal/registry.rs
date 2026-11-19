@@ -208,11 +208,20 @@ impl Terminals {
 		if state.attached.as_deref() != Some(window) {
 			return Ok(());
 		}
-		state.attached = None;
-		state.pending.clear();
-		state.overflow = false;
-		state.flush_at = None;
+		state.hide();
 		Ok(())
+	}
+
+	/// A window is gone, its page with it and without a word: every terminal it showed shows
+	/// nowhere now.
+	pub fn window_closed(&self, window: &str) {
+		let all: Vec<Arc<Terminal>> = lock(&self.list).clone();
+		for terminal in all {
+			let mut state = terminal.state();
+			if state.attached.as_deref() == Some(window) {
+				state.hide();
+			}
+		}
 	}
 
 	/// Keys the learner typed in the shown terminal, only from the window that shows it and only

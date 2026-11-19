@@ -215,6 +215,14 @@ impl Terminal {
 }
 
 impl State {
+	/// No window shows the terminal: nothing is sent until one attaches.
+	fn hide(&mut self) {
+		self.attached = None;
+		self.pending.clear();
+		self.overflow = false;
+		self.flush_at = None;
+	}
+
 	/// Whether keys from `window` (the window that has the focus, if any) may go to the terminal:
 	/// only the window that shows it.
 	fn typed_from(&self, window: Option<&str>) -> bool {

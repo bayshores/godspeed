@@ -15,7 +15,8 @@ pub fn trusted(webview: &Webview, state: &AppOrigin) -> Result<(), String> {
 	trusted_in(webview, state, &[MAIN])
 }
 
-/// The terminal commands also come from the terminal window.
+/// The commands the terminal window may also call: the terminal commands, its own window's, and
+/// the few the page of any window needs (zoom, links, opening a path).
 pub fn trusted_terminal(webview: &Webview, state: &AppOrigin) -> Result<(), String> {
 	trusted_in(webview, state, &TERMINAL_WINDOWS)
 }
@@ -39,14 +40,14 @@ pub async fn pick_folder(webview: Webview, origin: State<'_, AppOrigin>) -> Resu
 /// Shows a file selected in Finder (the OS file manager).
 #[tauri::command(async)]
 pub fn show_in_folder(webview: Webview, origin: State<AppOrigin>, path: String) -> Result<(), String> {
-	trusted(&webview, &origin)?;
+	trusted_terminal(&webview, &origin)?;
 	open::show_in_folder(&path)
 }
 
 /// Opens a folder or a PDF in its default app.
 #[tauri::command(async)]
 pub fn open_path(webview: Webview, origin: State<AppOrigin>, path: String) -> Result<(), String> {
-	trusted(&webview, &origin)?;
+	trusted_terminal(&webview, &origin)?;
 	open::open_path(&path)
 }
 

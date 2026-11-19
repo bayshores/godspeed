@@ -272,6 +272,28 @@ fn output_goes_only_to_the_window_that_attached_last() {
 }
 
 #[test]
+fn a_window_that_is_gone_shows_nothing_and_another_window_is_left_alone() {
+	let dir = folder("window-gone", WAITS);
+	write_script(&dir, Role::Helper, WAITS);
+	let terminals = Terminals::new(Arc::new(Heard::default()));
+	let shown = start(&terminals, &dir);
+	let other = terminals.start(Role::Helper, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None).unwrap();
+	until("ready", || text(&terminals, &shown).contains("ready") && text(&terminals, &other).contains("ready"));
+	terminals.attach(&shown, TERMINAL).unwrap();
+	terminals.attach(&other, MAIN).unwrap();
+
+	terminals.window_closed(TERMINAL);
+	assert_eq!(terminals.write(&shown, "a", Some(TERMINAL)), Err(NOT_SHOWN.to_owned()), "nothing shows it now");
+	terminals.write(&other, "b", Some(MAIN)).unwrap();
+	terminals.attach(&shown, MAIN).unwrap();
+	terminals.write(&shown, "c", Some(MAIN)).unwrap();
+	terminals.stop(&shown).unwrap();
+	terminals.stop(&other).unwrap();
+	until("the stops", || ended_of(&terminals, &shown).is_some() && ended_of(&terminals, &other).is_some());
+	std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
 fn only_the_window_that_shows_a_terminal_types_into_it() {
 	let dir = folder("typing-window", WAITS);
 	let terminals = Terminals::new(Arc::new(Heard::default()));

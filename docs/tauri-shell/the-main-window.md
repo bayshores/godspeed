@@ -14,6 +14,8 @@
 | Windows browser arguments | `--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required`. WebView2 refuses a second webview with other arguments in the same profile, which is why the demo window has its own. |
 | Debug builds | Mac: `data_store_identifier(*b"godspeed-dev-web")`. Windows and Linux: `data_directory(<userData>/webview)`. A debug build never shares localStorage or cookies with the installed app. |
 
+Every app window, the terminal window too, is built from `window::base_builder`: the shim, the navigation and new-window rules, downloads, the window color, the page's own drops, the Windows browser arguments and the debug profile above, and `allow_link_preview(false)` on the Mac.
+
 ### Mac traffic lights
 
 tao puts the first light's left edge at x and its center at y - 2, so the lights span x 16 to 76 with centers on y 23 in the 48 px top bar. AppKit moves the lights back to their default place on every title change and when a hidden window first shows. So the title handler sets the title through `mac::window::set_title`, and `show` sets it again after showing.
@@ -32,7 +34,7 @@ Windows and Linux have no drag areas.
 
 ### Zoom
 
-Ladder: `[0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]`. Applying a factor sets the webview zoom, stores it and pushes `zoom`.
+Ladder: `[0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]`. Applying a factor sets the webview zoom of every open app window, stores it and pushes `zoom` to each. A terminal window made later starts at the stored factor.
 
 - The menu owns `CmdOrCtrl+0`, `CmdOrCtrl+=` and `CmdOrCtrl+-`. muda has no Plus key.
 - The shim's `keydown` listener catches the keys the menu does not claim (⌘ or Ctrl with `=`, `+`, `-` or `0`) and calls `zoom_step` or `zoom_reset`. Menu keys never reach the page, so exactly one applies.
@@ -57,6 +59,8 @@ The bar's order on the Mac is godspeed, File, Edit, View, Go, Window, Help. Wind
 
 Settings…, Check for Updates… and every File and Go item except Open godspeed Folder reopen the window if gone, unminimize and focus it. Check for Updates… then pushes `open-settings` with `general` and starts a manual check. Settings… and a File or Go item push `menu` with the item's id: a keyboard action id (`open-settings`, `new-session`, `sessions-search`, `jump-graph`), `go:<path>`, `back` or `forward`. The page runs it (`keyboard-shortcuts.tsx`). Menu keys never reach the page, so each runs once.
 
+Every item acts on the main window, except Close Window (Windows and Linux), which closes the window that has the focus. The Mac has no Close Window item, so ⌘W does nothing in either window.
+
 A push sent before the page has loaded waits in one slot (`window::push_when_loaded`) and goes out when it loads; a later one replaces it.
 
 `ToShell::ShowWindow { page }` (a page the agent opened, [architecture/08.1.3](../architecture/08.1.3-agent-tools-and-notes.md#opening-a-page)) runs the same `window::bring_forward` as the menu on the main thread, and on the Mac first shows a hidden app (⌘H). A page that hasn't loaded (a window made again, or one reloading) gets `menu` `go:<path>?space=<id or none>`, and the page switches to that space the way Follow does (`followMoves`) before it goes. A loaded page goes there itself from the activity event, so its holds (unsent lesson text, a mock, a dialog) still count.
@@ -70,14 +74,36 @@ A push sent before the page has loaded waits in one slot (`window::push_when_loa
 
 ### Single instance
 
-Release builds register `tauri_plugin_single_instance` first. Debug builds skip it, so `tauri dev` runs beside the installed app. A second launch unminimizes and focuses the main window if visible, otherwise does nothing. The plugin does not see a running Electron godspeed; see [The old app still open](data.md#the-old-app-still-open).
+Release builds register `tauri_plugin_single_instance` first. Debug builds skip it, so `tauri dev` runs beside the installed app. A second launch unminimizes and focuses the main window if visible, otherwise does nothing; the terminal window is never brought forward by it. The plugin does not see a running Electron godspeed; see [The old app still open](data.md#the-old-app-still-open).
 
 ### Window lifecycle
 
 - Mac: closing the window keeps the app running. `RunEvent::ExitRequested` with no code is the only prevented exit.
 - Mac: `RunEvent::Reopen` creates the window again and logs it in when no `main` window exists. It does nothing while the server is not managed yet (the old-app dialog, a failed port choice).
+- Destroying the main window destroys the terminal window too (`RunEvent::WindowEvent`, `terminal_window::close`). On the Mac the last window is then gone, so the app keeps running as above.
 - Windows and Linux: when the main window is destroyed, the shell calls `app.exit(0)`. A `demo` window would otherwise keep the process alive.
+- A server restart reloads every open app window.
 - Every way out ends in `RunEvent::Exit`, where `quit.rs` runs. See [Shutdown](the-server-child.md#shutdown).
+
+### The terminal window
+
+The teacher's terminal popped out beside the main window. The page is `/terminal-window`; the shell only makes the window.
+
+| Item | Value |
+|---|---|
+| Label | `terminal` (`window::TERMINAL`), one at a time, never open at launch. |
+| Made by | `terminal_window_open(title)` from the main window only. When the window exists, the call brings it forward instead (unminimize, show, focus). |
+| Place | Its left edge on the main window's right edge, its top on the main window's top, on the screen the main window is on, inside that screen's work area. With no room at the right, it moves left until it fits and covers the main window's right part. Not remembered. |
+| Size | 720 × 900 logical, never taller than the main window's frame or the screen; minimum 400 × 300. The title bar's height is taken off the inner height after the build, so the frame is as tall as placed. Not remembered. |
+| Title | The system title bar, titled with the name the page passes: control characters dropped, cut at 60 characters, `godspeed` when nothing is left. The page's own title is not followed. |
+| Not always on top | It is an ordinary window. |
+| Built like main | `base_builder`, so the shim, the navigation rules, the color, the Windows browser arguments and the debug profile are main's; the menu bar is hidden after the build on Windows and Linux. |
+| Shown | Hidden until its first app page has loaded (then focused), or 5 s after it was made. In the screens lab it goes through `screens::appear` like main: unseen, never focused. |
+| Zoom | Shares main's factor (see Zoom). |
+| Focus | The app counts as focused when either window is: `notify.rs` shows no notification then. |
+| Closing | Its close button, `terminal_window_close` from either window, or the main window being destroyed. Nothing is remembered and nothing asks. |
+
+The shell owns whether it is open. It pushes `terminal-window` `{open}` to the main window when the window is made, when it is destroyed and after every load of the main page, so a reloaded main page knows. When it is destroyed the shell also detaches every terminal it showed (`Terminals::window_closed`), because its page cannot say so; the main page attaches again.
 
 ### Links and navigation
 

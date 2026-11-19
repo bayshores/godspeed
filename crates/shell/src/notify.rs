@@ -2,10 +2,10 @@
 //! notification plugin. Clicks are not handled.
 
 use tauri::plugin::{Plugin, TauriPlugin};
-use tauri::{AppHandle, Manager, Wry};
+use tauri::{AppHandle, Wry};
 use tauri_plugin_notification::NotificationExt;
 
-use crate::log;
+use crate::{log, window};
 
 /// The plugin without its page script. That script asks the app for the notification permission
 /// on every page load, and the demo window, which may call no command, would report the refusal
@@ -28,11 +28,11 @@ impl Plugin<Wry> for Notifications {
 	}
 }
 
-/// Hands the notification to the system, unless the window has the focus: the learner then sees
+/// Hands the notification to the system, unless a window has the focus: the learner then sees
 /// the deadline on Today already, and a Mac may skip the banner of the app in front. The answer is
 /// whether it was handed over.
 pub fn show(app: &AppHandle, title: &str, body: &str) -> bool {
-	if app.get_webview_window("main").is_some_and(|main| main.is_focused().unwrap_or(false)) {
+	if window::focused(app).is_some() {
 		return false;
 	}
 	match app.notification().builder().title(title).body(body).show() {

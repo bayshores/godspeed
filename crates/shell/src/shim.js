@@ -185,6 +185,14 @@
 			onOutput: (cb) => subscribe("terminal-output", cb),
 			onState: (cb) => subscribe("terminal-state", cb),
 		},
+		// The teacher's terminal in a window of its own. Only the main window may open it; either
+		// window may close it or bring it forward. `onChange` is for the main page.
+		terminalWindow: {
+			open: (title) => invoke("terminal_window_open", { title }),
+			close: () => invoke("terminal_window_close"),
+			focus: () => invoke("terminal_window_focus"),
+			onChange: (cb) => subscribe("terminal-window", cb),
+		},
 		openLink: (url) => invoke("open_link", { url }),
 		pathForFile,
 		reportBug: () => void invoke("report_bug"),

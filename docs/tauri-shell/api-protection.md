@@ -26,6 +26,9 @@ The access rule and login route are in [rust-server.md](../rust-server.md#the-se
     "allow-start-drag",
     "allow-toggle-menu",
     "allow-open-link",
+    "allow-terminal-window-open",
+    "allow-terminal-window-close",
+    "allow-terminal-window-focus",
     "allow-pick-folder",
     "allow-show-in-folder",
     "allow-open-path",
@@ -49,8 +52,9 @@ The access rule and login route are in [rust-server.md](../rust-server.md#the-se
 }
 ```
 
+- `terminal.json` grants the terminal window's webview (`terminal`) only: the `terminal_*` commands, `terminal_window_close`, `terminal_window_focus`, `open_link`, `open_path`, `show_in_folder` and the four zoom commands. It has no folder picker, no update, bug report, print, drag path or window-opening command. `command_lists.rs` checks that every name in it is in `main.json` and that none of the main-only commands is.
 - `print.json` grants `core:webview:allow-print` to the same webview on `windows` and `linux` only.
 - No `windows` key, because a window entry grants every webview in that window.
 - No `core:default`. The page uses no Tauri events or plugin JS.
 - `local: false` is safe because the app page is never "local". The config sets no `devUrl`, so `tauri dev` serves `boot/` on its own port and the window then moves to the remote app origin.
-- A new command needs a line in `generate_handler!` in `main.rs`, in `build.rs` and in `capabilities/main.json`.
+- A new command needs a line in `generate_handler!` in `main.rs`, in `build.rs` and in `capabilities/main.json`, and in `capabilities/terminal.json` too when the terminal window may call it (its trust check is then `trusted_terminal`).

@@ -1,6 +1,7 @@
 //! The main window: built hidden on the boot page while the server starts, then sent to the app.
-//! It keeps to the app origin, sends web links to the browser, saves downloads where the learner
-//! picks, follows the page's title and shows itself once the page has drawn.
+//! Every app window (`base_builder`, the terminal window too) keeps to the app origin, sends web
+//! links to the browser and saves downloads where the learner picks. The main window also
+//! follows the page's title and shows itself once the page has drawn.
 //!
 //! WebKit asks about every frame's navigations without saying which frame, so a navigation
 //! never opens the browser: a demo iframe sending itself to a web address would open it with
@@ -15,20 +16,22 @@ use std::time::Duration;
 use serde_json::Value;
 use tauri::webview::{DownloadEvent, NewWindowResponse, PageLoadEvent};
 use tauri::window::Color;
-use tauri::{AppHandle, Manager, State, Url, Webview, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager, State, Url, Webview, WebviewUrl, WebviewWindow, WebviewWindowBuilder, Wry};
 
-use crate::commands::{AppOrigin, trusted};
+use crate::commands::{AppOrigin, trusted, trusted_terminal};
 use crate::lock::lock;
 use crate::paths::Paths;
 use crate::push::push;
 use crate::server::Server;
-use crate::{log, zoom};
+use crate::{log, terminal_window, zoom};
 
 /// The labels of the app's windows. The terminal window shows only the teacher's terminal.
 pub const MAIN: &str = "main";
 pub const TERMINAL: &str = "terminal";
+/// Every window with an app page.
+pub const WINDOWS: [&str; 2] = [MAIN, TERMINAL];
 /// The windows that can show a terminal.
-pub const TERMINAL_WINDOWS: [&str; 2] = [MAIN, TERMINAL];
+pub const TERMINAL_WINDOWS: [&str; 2] = WINDOWS;
 
 /// Paper, the window's color when no dark background is picked.
 const PAPER: Color = Color(0xc9, 0xc7, 0xbd, 0xff);
@@ -36,8 +39,8 @@ const PAPER: Color = Color(0xc9, 0xc7, 0xbd, 0xff);
 /// A page that never asks to be shown still gets its window this long after it loaded.
 const SHOW_FALLBACK: Duration = Duration::from_secs(5);
 
-/// WebView2 refuses a second web view with other arguments in the same profile, so the demo
-/// window keeps a profile of its own.
+/// WebView2 refuses a second web view with other arguments in the same profile, so every app
+/// window has these and the demo window keeps a profile of its own.
 #[cfg(windows)]
 const MAIN_BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required";
 
@@ -56,26 +59,18 @@ pub struct Page {
 	waiting: Mutex<Option<(String, Value)>>,
 }
 
-/// Builds the main window on the boot page; `server::open_window` sends it to the app.
-pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
+/// A builder with what every app window shares: the shim, the navigation rules, downloads, the
+/// window's color, the page's own drops, and the web view's profile. Hidden until shown.
+pub fn base_builder<'a>(app: &'a AppHandle, label: &str, url: WebviewUrl) -> WebviewWindowBuilder<'a, Wry, AppHandle> {
 	let origin = app.state::<AppOrigin>().0.clone();
-	// A closed window's page is gone: a menu's push now waits for the new one.
-	app.state::<Page>().loaded.store(false, Ordering::SeqCst);
-	#[cfg(target_os = "macos")]
-	crate::mac::window::register_text_defaults();
 	let platform = match std::env::consts::OS {
 		"macos" => "darwin",
 		"windows" => "win32",
 		other => other,
 	};
 	let shim = SHIM.replace("__APP_ORIGIN__", &Value::from(origin.as_str()).to_string()).replace("__PLATFORM__", &Value::from(platform).to_string());
-	let show_armed = Arc::new(AtomicBool::new(true));
-	let (nav_origin, new_window_origin, load_origin) = (origin.clone(), origin.clone(), origin);
-	let builder = WebviewWindowBuilder::new(app, MAIN, WebviewUrl::App("index.html".into()))
-		.title("godspeed")
-		.inner_size(1440.0, 900.0)
-		.min_inner_size(640.0, 600.0)
-		.center()
+	let (nav_origin, new_window_origin) = (origin.clone(), origin);
+	let builder = WebviewWindowBuilder::new(app, label, url)
 		.visible(false)
 		.background_color(background(&app.state::<Paths>().data.join("settings.json")))
 		.initialization_script(shim)
@@ -90,7 +85,32 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 			}
 			NewWindowResponse::Deny
 		})
-		.on_download(save_download)
+		.on_download(save_download);
+	#[cfg(target_os = "macos")]
+	let builder = builder.allow_link_preview(false);
+	#[cfg(windows)]
+	let builder = builder.additional_browser_args(MAIN_BROWSER_ARGS);
+	// A debug build never shares localStorage or cookies with the installed app.
+	#[cfg(target_os = "macos")]
+	let builder = if cfg!(debug_assertions) { builder.data_store_identifier(*b"godspeed-dev-web") } else { builder };
+	#[cfg(not(target_os = "macos"))]
+	let builder = if cfg!(debug_assertions) { builder.data_directory(app.state::<crate::paths::Paths>().user_data.join("webview")) } else { builder };
+	builder
+}
+
+/// Builds the main window on the boot page; `server::open_window` sends it to the app.
+pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
+	let load_origin = app.state::<AppOrigin>().0.clone();
+	// A closed window's page is gone: a menu's push now waits for the new one.
+	app.state::<Page>().loaded.store(false, Ordering::SeqCst);
+	#[cfg(target_os = "macos")]
+	crate::mac::window::register_text_defaults();
+	let show_armed = Arc::new(AtomicBool::new(true));
+	let builder = base_builder(app, MAIN, WebviewUrl::App("index.html".into()))
+		.title("godspeed")
+		.inner_size(1440.0, 900.0)
+		.min_inner_size(640.0, 600.0)
+		.center()
 		// A loading page has an empty title for a moment. Every title change moves the Mac's
 		// traffic lights back to their default place, so only a real change is passed on.
 		.on_document_title_changed(|window, title| {
@@ -111,6 +131,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 					page.loaded.store(true, Ordering::SeqCst);
 					let app = window.app_handle();
 					zoom::push_current(app);
+					terminal_window::push_current(app);
 					flush_waiting(app);
 					if show_armed.swap(false, Ordering::SeqCst) {
 						show_later(window);
@@ -125,14 +146,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 		None => builder,
 	};
 	#[cfg(target_os = "macos")]
-	let builder = builder.title_bar_style(tauri::TitleBarStyle::Overlay).hidden_title(true).traffic_light_position(TRAFFIC_LIGHTS).allow_link_preview(false);
-	#[cfg(windows)]
-	let builder = builder.additional_browser_args(MAIN_BROWSER_ARGS);
-	// A debug build never shares localStorage or cookies with the installed app.
-	#[cfg(target_os = "macos")]
-	let builder = if cfg!(debug_assertions) { builder.data_store_identifier(*b"godspeed-dev-web") } else { builder };
-	#[cfg(not(target_os = "macos"))]
-	let builder = if cfg!(debug_assertions) { builder.data_directory(app.state::<crate::paths::Paths>().user_data.join("webview")) } else { builder };
+	let builder = builder.title_bar_style(tauri::TitleBarStyle::Overlay).hidden_title(true).traffic_light_position(TRAFFIC_LIGHTS);
 	let main = builder.build()?;
 	#[cfg(not(target_os = "macos"))]
 	main.hide_menu()?;
@@ -213,7 +227,7 @@ fn save_download(webview: Webview, event: DownloadEvent<'_>) -> bool {
 	}
 }
 
-fn show_later(window: WebviewWindow) {
+pub fn show_later(window: WebviewWindow) {
 	std::thread::spawn(move || {
 		std::thread::sleep(SHOW_FALLBACK);
 		if window.is_visible().is_ok_and(|visible| !visible) {
@@ -235,7 +249,7 @@ fn lab() -> bool {
 
 /// AppKit puts the traffic lights back in their default place when a hidden window first shows;
 /// setting the title again makes tao move them to ours.
-fn show(window: &WebviewWindow) -> tauri::Result<()> {
+pub fn show(window: &WebviewWindow) -> tauri::Result<()> {
 	#[cfg(all(feature = "screens", target_os = "macos"))]
 	if lab() {
 		return crate::screens::appear(window);
@@ -249,6 +263,11 @@ fn show(window: &WebviewWindow) -> tauri::Result<()> {
 /// Brings the window to the front, except in the lab, where nothing may take the focus.
 pub fn focus(window: &WebviewWindow) -> tauri::Result<()> {
 	if lab() { Ok(()) } else { window.set_focus() }
+}
+
+/// The app window that has the focus, if any.
+pub fn focused(app: &AppHandle) -> Option<WebviewWindow> {
+	WINDOWS.iter().filter_map(|label| app.get_webview_window(label)).find(|window| window.is_focused().unwrap_or(false))
 }
 
 /// Pushes to the page now if it has loaded, else once it has.
@@ -270,7 +289,7 @@ fn flush_waiting(app: &AppHandle) {
 pub fn reopen(app: &AppHandle) {
 	// Setup manages the server only after the old-app check and the port choice let the launch
 	// go on; a Dock click while that check's dialog is up has no window to open.
-	if app.try_state::<Server>().is_none() || app.get_webview_window("main").is_some() {
+	if app.try_state::<Server>().is_none() || app.get_webview_window(MAIN).is_some() {
 		return;
 	}
 	if let Err(err) = create(app) {
@@ -283,7 +302,7 @@ pub fn reopen(app: &AppHandle) {
 			// The server may be restarting. It keeps running; the next click tries again.
 			if let Err(err) = app.state::<Server>().open_window(&app) {
 				log::line(&err);
-				if let Some(main) = app.get_webview_window("main") {
+				if let Some(main) = app.get_webview_window(MAIN) {
 					let _ = main.destroy();
 				}
 			}
@@ -307,7 +326,7 @@ pub fn bring_forward(app: &AppHandle, page: Option<&str>) {
 	{
 		log::line(&format!("cannot show the app: {err}"));
 	}
-	if let Some(main) = app.get_webview_window("main") {
+	if let Some(main) = app.get_webview_window(MAIN) {
 		let shown = main.unminimize().and_then(|()| focus(&main));
 		if let Err(err) = shown {
 			log::line(&format!("cannot bring the window forward: {err}"));
@@ -318,7 +337,7 @@ pub fn bring_forward(app: &AppHandle, page: Option<&str>) {
 /// A web or mail link the learner clicked in the page (shim.js).
 #[tauri::command]
 pub fn open_link(webview: Webview, origin: State<AppOrigin>, url: String) -> Result<(), String> {
-	trusted(&webview, &origin)?;
+	trusted_terminal(&webview, &origin)?;
 	let url: Url = url.parse().map_err(|_| "Not a link.".to_owned())?;
 	if route(&url, &origin.0) != Route::Browser {
 		return Err("Not a web link.".to_owned());
@@ -328,7 +347,7 @@ pub fn open_link(webview: Webview, origin: State<AppOrigin>, url: String) -> Res
 }
 
 pub fn main_window(webview: &Webview) -> Result<WebviewWindow, String> {
-	webview.app_handle().get_webview_window("main").ok_or_else(|| "no window".to_owned())
+	webview.app_handle().get_webview_window(MAIN).ok_or_else(|| "no window".to_owned())
 }
 
 /// The page drew its first screen.

@@ -127,7 +127,7 @@ pub fn handle(app: &AppHandle, event: MenuEvent) {
 		window::push_when_loaded(app, "menu", Value::from(action));
 		return;
 	}
-	let main = app.get_webview_window("main");
+	let main = app.get_webview_window(window::MAIN);
 	match id {
 		"open-folder" => open_folder(app),
 		"check-updates" => check_for_updates(app),
@@ -156,9 +156,10 @@ pub fn handle(app: &AppHandle, event: MenuEvent) {
 				let _ = main.minimize();
 			}
 		}
+		// Whichever window the learner is in.
 		"close-window" => {
-			if let Some(main) = main {
-				let _ = main.close();
+			if let Some(window) = window::focused(app).or(main) {
+				let _ = window.close();
 			}
 		}
 		"report-bug" => bug_report::open(app),

@@ -1,6 +1,6 @@
 ## `window.lh`
 
-The shim (`crates/shell/src/shim.js`) is an initialization script on the main window. It defines `window.lh` with the members `src/frontend/components/desktop-env.tsx` declares, via `window.__TAURI_INTERNALS__.invoke`. The shell bakes `APP_ORIGIN` and `PLATFORM` into the script text before building the window. The shim does nothing unless `location.origin === APP_ORIGIN`, so the boot page and login redirect get no `window.lh`.
+The shim (`crates/shell/src/shim.js`) is an initialization script on every app window, the main window and the terminal window. The terminal window's capability grants only some of the commands (see [API protection](api-protection.md#capabilities)); the shim's other calls (`drag_paths`, `start_drag`, `title_bar_double_click`, `toggle_menu`) are refused there. It defines `window.lh` with the members `src/frontend/components/desktop-env.tsx` declares, via `window.__TAURI_INTERNALS__.invoke`. The shell bakes `APP_ORIGIN` and `PLATFORM` into the script text before building the window. The shim does nothing unless `location.origin === APP_ORIGIN`, so the boot page and login redirect get no `window.lh`.
 
 | Member | Command or push | Detail |
 |---|---|---|
@@ -23,6 +23,9 @@ The shim (`crates/shell/src/shim.js`) is an initialization script on the main wi
 | `onMenu(cb)` | push `menu` | A Mac File or Go item: a keyboard action id, `go:<path>`, `back` or `forward`. A page the agent opened in a window made again: `go:<path>?space=<id or none>`. |
 | `printPdf(path)` | `print_pdf` | Mac only; absent on Windows and Linux. See [Printing](the-main-window.md#printing). |
 | `openLink(url)` | `open_link` | A web or mail link, as a link click sends it. |
+| `terminalWindow.open(title)` | `terminal_window_open` | Main window only. Opens the terminal window beside the main window, titled `title` (the teacher's name), or brings it forward when open. See [The terminal window](the-main-window.md#the-terminal-window). |
+| `terminalWindow.close()`, `terminalWindow.focus()` | `terminal_window_close`, `terminal_window_focus` | Either window. Close does nothing when it is not open; focus rejects then. |
+| `terminalWindow.onChange(cb)` | push `terminal-window` | `{open}`, sent to the main window when the window is made or destroyed and after every load of the main page. |
 | `terminals.start(role, agent, resume?)` | `terminal_start` | `role` is `"teacher"` or `"helper"`, `agent` is `"claude"` or `"codex"`, and `resume` is the teacher's earlier chat to go back to, when one was picked. Answers `{ id }`. See [Terminals](terminals.md#terminals). |
 | `terminals.attach(id)`, `terminals.detach(id)` | `terminal_attach`, `terminal_detach` | Attach pushes a snapshot of the screen, then live output, on `terminal-output`, to the calling window only. See [Which window shows it](terminals.md#which-window-shows-it). |
 | `terminals.resize(id, cols, rows)` | `terminal_resize` | Sizes a running terminal to the screen showing it (kept within 40 to 200 columns, 10 to 100 rows). Answers `{ cols, rows }`, the size in force: an ended terminal keeps the size it ended at. |
@@ -42,4 +45,4 @@ Pushes arrive as `webview.eval("window.__lhPush(channel, payload)")`, so the pag
 
 ### Trust check
 
-Every command calls `commands::trusted` first. It refuses with `"Untrusted desktop request."` unless the webview's label is `main` and its URL's origin equals the app origin: `http://127.0.0.1:<port>`, or Vite's origin in `desktop:dev`. The terminal commands call `commands::trusted_terminal` instead, which also accepts the label `terminal`.
+Every command calls `commands::trusted` first. It refuses with `"Untrusted desktop request."` unless the webview's label is `main` and its URL's origin equals the app origin: `http://127.0.0.1:<port>`, or Vite's origin in `desktop:dev`. The commands the terminal window may call use `commands::trusted_terminal` instead, which also accepts the label `terminal`: the terminal commands, `terminal_window_close`, `terminal_window_focus`, `open_link`, `open_path`, `show_in_folder` and the four zoom commands. `terminal_window_open` and every other command are the main window's alone.

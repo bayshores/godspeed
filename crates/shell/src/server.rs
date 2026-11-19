@@ -17,7 +17,7 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind, Me
 use crate::lock::lock;
 use crate::paths::{self, Paths};
 use crate::terminal::Terminals;
-use crate::{bug_report, log, restarts, rpc};
+use crate::{bug_report, log, restarts, rpc, window};
 
 /// Outside agents keep their saved setup when the port stays the same. Taken, any free port
 /// works: the real one is always in `<data>/mcp-endpoint.json`.
@@ -120,7 +120,7 @@ impl Server {
 
 	/// Logs the main window in (desktop mode) and sends it to the app.
 	pub fn open_window(&self, app: &AppHandle) -> Result<(), String> {
-		let Some(main) = app.get_webview_window("main") else { return Ok(()) };
+		let Some(main) = app.get_webview_window(window::MAIN) else { return Ok(()) };
 		let target = match &self.mode {
 			Mode::Desktop { .. } => self.log_in().map(|token| format!("{}/api/desktop/login?token={token}", self.url())),
 			#[cfg(debug_assertions)]
@@ -264,8 +264,8 @@ impl Server {
 			return;
 		}
 		log::line(&format!("server up again: {}", self.url()));
-		if let Some(main) = app.get_webview_window("main") {
-			let _ = main.reload();
+		for window in window::WINDOWS.iter().filter_map(|label| app.get_webview_window(label)) {
+			let _ = window.reload();
 		}
 	}
 

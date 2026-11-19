@@ -28,6 +28,7 @@ A terminal is attached to at most one window, by label: `main`, or `terminal` (t
 | Detach from a window | Stops output only when that window is the attached one. A page that unmounts after another window took over changes nothing. |
 | Typing, paste, starter keys, Attach | Accepted from the attached window only. All but Attach also need that window to have focus. Any other window gets "Show the terminal and click in it first." |
 | `terminal-state` | Goes to every window that exists, since a window that shows nothing yet must still learn that a terminal ended or asks a question. |
+| A window destroyed | Every terminal it showed is detached (`Terminals::window_closed`), so nothing is sent to it and no window may type until one attaches. |
 | Resize, answer, stop, list | Not tied to a window. |
 
 The shell's `Outlet::push` takes a `To`: `To::Window(label)` for output and snapshots, `To::All` for state.
