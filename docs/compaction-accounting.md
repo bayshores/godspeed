@@ -8,16 +8,16 @@ How a long lesson is shortened, how the size meter is measured and how token usa
 |---|---|
 | `crates/core/src/session/compaction.rs` | Cutoff rule, token estimate, `local_summary`, compaction marker. The copy the server runs. |
 | `crates/services/src/turns/compaction.rs` | When shortening and the summary run. |
-| `src/shared/core/compaction.ts` | TypeScript port of the rule. Screens use `activeCompactionOf` and `keptIndexFor`. |
+| `src/shared/core/compaction.ts` | What the screens need to draw a shortened lesson (`activeCompactionOf`). The rule itself is Rust only. |
 | `src/shared/core/context-usage.ts` | `measuredContextTokens`, the meter's number. |
 | `src/frontend/components/stats-bar.tsx` | The meter (`contextMeter`). |
 | `src/shared/core/prices.ts`, `src/shared/core/cost-summary.ts` | Usage totals and plan labels. |
 
 Tests:
 
-- `tests/shared/compaction-native-parity.test.ts`: golden outputs from the original package.
-- `tests/shared/compaction.test.ts`: the TypeScript port.
-- `crates/core/tests/session_golden.rs`: Rust copy against recorded outputs of the TypeScript one.
+- `crates/core/src/session/compaction.rs` (`published_cases`): the cut cases published with the original package.
+- `crates/core/tests/session_golden.rs`: recorded outputs of the original TypeScript rule.
+- `tests/shared/compaction.test.ts`: the marker and divider the screens read.
 
 ## When a lesson gets shortened
 
