@@ -597,7 +597,8 @@ export function Constellation({
 						className={at === undefined ? "absolute block text-center" : "lh-reveal absolute block text-center"}
 						style={{
 							left: np.left,
-							top: np.top,
+							// A name the view's edge cuts is not drawn, and is kept above the frame's foot so it never makes the page scroll.
+							top: np.whole ? np.top : Math.min(frame.h - np.h, np.top),
 							width: np.w,
 							fontSize: NAME_PX * size,
 							lineHeight: `${NAME_LINE * size}px`,

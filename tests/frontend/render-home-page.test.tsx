@@ -326,7 +326,7 @@ function nextProgress(over: { lesson?: boolean; topic?: boolean } = {}): Progres
 describe("Today, under the deadlines: Unfinished and Work on next", () => {
 	const order = (html: string, ...ids: string[]) => ids.map((id) => html.indexOf(`data-testid="${id}"`));
 
-	it("both blocks sit after the deadlines and before the spaces, a key on each first row", () => {
+	it("both blocks sit after the deadlines and before the spaces, one key in each head", () => {
 		const html = page({ spacesProgress: new Map([["spc_la", nextProgress()]]) });
 		const at = order(html, "today-deadlines", "today-unfinished", "today-work-on-next", "today-spaces");
 		assert.ok(at.every((i) => i >= 0));
@@ -336,7 +336,10 @@ describe("Today, under the deadlines: Unfinished and Work on next", () => {
 		assert.ok(unfinished.includes("Pointers and arrays") && unfinished.includes("2 of 3") && unfinished.includes("Continue"));
 		const work = section(html, "today-work-on-next", "</section>");
 		assert.ok(work.includes("Master Theorem") && work.includes("weak") && work.includes("Study"));
-		assert.equal(count(html, "group-hover:bg-(--lh-key-hover)"), 2, "one key per block");
+		assert.match(tag(unfinished, "today-unfinished-key"), /href="\/chat\/l1"/);
+		assert.ok(unfinished.indexOf("today-unfinished-key") < unfinished.indexOf("today-unfinished-row"), "the key is in the head, above the rows");
+		assert.equal(count(work, 'data-testid="today-topic-key"'), 1);
+		assert.ok(work.indexOf("today-topic-key") < work.indexOf("today-topic-row"));
 	});
 
 	it("one block alone", () => {
