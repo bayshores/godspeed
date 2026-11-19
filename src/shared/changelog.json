@@ -1,11 +1,15 @@
 [
 	{
-		"version": "0.6.77",
-		"date": "2026-11-18",
+		"version": "0.6.78",
+		"date": "2026-11-19",
 		"changes": [
+			"Pop out, in the terminal's bottom row, puts the teacher's terminal in a window of its own beside godspeed. Put back returns it.",
+			"When the terminal leaves a page too little room, the terminal's head shows a Hide key.",
+			"The cheat sheet and mock exam pages fit the room the open terminal leaves them. In a narrow window the sheet sits over its chat.",
+			"A cheat sheet now draws on macOS 15, where it used to stay a white page.",
 			"The top bar says what the teacher is doing in one pill, with the countdown to your next deadline inside it.",
 			"The teacher's terminal opens when the teacher needs you and closes once that is settled, and you can still open and close it yourself.",
-			"The terminal is always a column down the right side of the window that moves the page aside. The floating window is gone.",
+			"Inside godspeed, the terminal is a column down the right side of the window that moves the page aside. It no longer floats over the page.",
 			"The teacher's panel has a Chats key that lists your earlier chats and starts a new one.",
 			"The words in the top bar are flat like the tabs, where before they were raised keys.",
 			"A lesson's text holds only the lesson. The Space context and Graph context rows and the plan diagram are gone, and Lesson stats moved into More.",
