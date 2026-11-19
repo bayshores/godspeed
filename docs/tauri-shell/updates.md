@@ -40,4 +40,4 @@ The plugin is used from Rust only. Signing secrets are in [desktop-release.md](.
 
 ### Local drill builds
 
-No runtime feed override ships. A drill builds with `tauri build --config '{"plugins":{"updater":{"endpoints":["http://127.0.0.1:48070/latest.json"],"dangerousInsecureTransportProtocol":true}}}'` and a throwaway key pair.
+No runtime feed override ships. A drill gives `--config '{"plugins":{"updater":{"endpoints":["http://127.0.0.1:48070/latest.json"],"dangerousInsecureTransportProtocol":true}}}'` to both `stage-app.mjs --app` and `tauri bundle`, with a throwaway key pair.

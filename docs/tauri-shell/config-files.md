@@ -1,15 +1,15 @@
 ## Config files
 
-tauri-build copies `bundle.externalBin`, `bundle.resources` and `bundle.macOS.frameworks` on every cargo build and fails when they are missing. They are gitignored build outputs, so they live in files only `tauri build` reads.
+tauri-build copies `bundle.externalBin`, `bundle.resources` and `bundle.macOS.frameworks` on every cargo build and fails when they are missing. They are gitignored build outputs, so they live in files only the release build reads (`stage-app.mjs --app`, then `tauri bundle`).
 
 | File | Read by | Holds |
 |---|---|---|
 | `crates/shell/tauri.conf.json` | every cargo build, test and clippy, and `tauri build` | Names, identifier `com.bayshores.godspeed`, `frontendDist: "boot"`, bundle targets, icons, `minimumSystemVersion: "14.0"`, DMG layout, NSIS settings, the updater block. |
-| `tauri.bundle.conf.json` | `tauri build` | `beforeBuildCommand: "node scripts/stage-app.mjs"`, `externalBin`, the `ui/`, `models/` and `pdfjs-dist/` resources, `libpdfium.dylib` in Frameworks. |
-| `tauri.bundle.macos.conf.json` | `tauri build` on the Mac | The icon list with the compiled `../../.stage/Assets.car`. |
-| `tauri.bundle.macos-intel.conf.json` | `tauri build` on Intel Macs | Frameworks `libpdfium.dylib` and `libonnxruntime.dylib`. |
-| `tauri.bundle.windows.conf.json` | `tauri build` on Windows | The `pdfium.dll` resource. |
-| `tauri.bundle.linux.conf.json` | `tauri build` on Linux | The `libpdfium.so` and `libonnxruntime.so` resources. |
+| `tauri.bundle.conf.json` | the release build | `externalBin`, the `ui/`, `models/` and `pdfjs-dist/` resources, `libpdfium.dylib` in Frameworks. |
+| `tauri.bundle.macos.conf.json` | the release build on the Mac | The icon list with the compiled `../../.stage/Assets.car`. |
+| `tauri.bundle.macos-intel.conf.json` | the release build on Intel Macs | Frameworks `libpdfium.dylib` and `libonnxruntime.dylib`. |
+| `tauri.bundle.windows.conf.json` | the release build on Windows | The `pdfium.dll` resource. |
+| `tauri.bundle.linux.conf.json` | the release build on Linux | The `libpdfium.so` and `libonnxruntime.so` resources. |
 
 - The CLI merges `--config` files in order as JSON merge patches, so the `resources` maps combine.
 - No `tauri.<platform>.conf.json` files, because tauri-build would read those too.

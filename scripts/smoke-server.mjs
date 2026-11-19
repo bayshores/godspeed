@@ -3,7 +3,7 @@
  *
  * A finished `cargo build` says nothing about whether the server starts beside its UI and
  * pdf.js files. This runs before the bundler so a broken payload fails in seconds. It starts
- * target/<triple>/release/godspeed-server (what scripts/stage-app.mjs builds) in browser mode on
+ * crates/shell/binaries/godspeed-server-<triple> (the copy scripts/stage-app.mjs stages for the bundle) in browser mode on
  * a free 127.0.0.1 port, in a folder of links to the staged files, with a THROWAWAY home and
  * data folder so it never touches a real godspeed folder. It polls GET / until 200, then probes
  * the routes below. Any non-200, an early exit, or a 30 s boot timeout fails and prints the
@@ -26,7 +26,7 @@ const BOOT_TIMEOUT_MS = 30_000;
 const PROBES = ["/api/boot", "/api/graph", "/api/settings", "/pdfjs/pdf.worker.min.mjs"];
 
 const triple = execFileSync("rustc", ["--print", "host-tuple"], { encoding: "utf8" }).trim();
-const server = path.join(ROOT, "target", triple, "release", WINDOWS ? "godspeed-server.exe" : "godspeed-server");
+const server = path.join(ROOT, "crates", "shell", "binaries", `godspeed-server-${triple}${WINDOWS ? ".exe" : ""}`);
 const staged = { ui: path.join(ROOT, "dist-ui"), models: path.join(ROOT, "models"), "pdfjs-dist": path.join(ROOT, ".stage", "pdfjs-dist") };
 // Linux loads ONNX Runtime from the resources folder, as the bundle ships it.
 if (process.platform === "linux") staged["libonnxruntime.so"] = path.join(ROOT, ".stage", "libonnxruntime.so");

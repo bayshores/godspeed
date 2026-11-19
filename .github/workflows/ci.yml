@@ -112,6 +112,7 @@ jobs:
         run: rustup toolchain install
       - uses: Swatinem/rust-cache@v2
         with:
+          prefix-key: v1-rust
           key: ${{ matrix.platform }}
           save-if: ${{ github.event_name != 'pull_request' }}
       - run: npm ci
@@ -119,7 +120,7 @@ jobs:
       - run: node scripts/fetch-pdfium.mjs
       - if: runner.os == 'Linux'
         run: node scripts/fetch-onnxruntime.mjs
-      # The UI, the release server and the pdf.js files, as `tauri build` stages them.
+      # The UI, the release server and the pdf.js files, as a release stages them.
       - run: node scripts/stage-app.mjs
       - name: Smoke-test the release server
         timeout-minutes: 5
@@ -203,7 +204,7 @@ jobs:
           fi
           # Also after GitHub deleted one (unused for 7 days, or pushed out of the 10 GB).
           for platform in mac-intel windows; do
-            if [[ -z "$(gh cache list -R "$GITHUB_REPOSITORY" --ref refs/heads/main --key "v0-rust-release-$platform-package-" --json id --jq '.[].id')" ]]; then
+            if [[ -z "$(gh cache list -R "$GITHUB_REPOSITORY" --ref refs/heads/main --key "v1-rust-release-$platform-package-" --json id --jq '.[].id')" ]]; then
               why="main has no $platform release cache"
             fi
           done

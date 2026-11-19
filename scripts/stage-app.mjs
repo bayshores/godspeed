@@ -1,5 +1,5 @@
 /**
- * stage-app.mjs — put together what `tauri build` bundles (its beforeBuildCommand).
+ * stage-app.mjs — build what `tauri bundle` packs.
  *
  * Builds the UI (dist-ui/) and the release server, copies the server to
  * crates/shell/binaries/godspeed-server-<target triple> (where the bundle's externalBin looks),
@@ -7,9 +7,18 @@
  * (scripts/fetch-model.mjs), pdfium's library (scripts/fetch-pdfium.mjs) and, on Linux and Intel
  * Macs, ONNX Runtime's library (scripts/fetch-onnxruntime.mjs) are there and that nothing private
  * rides along in the UI. Apple silicon Macs and Windows link ONNX Runtime into the server.
+ *
+ * `--app <options>` also builds the app's own binary, with `tauri build --no-bundle <options>`.
+ * The server and the app each end in a release link of several minutes, and each link takes
+ * several GB of memory. With 12 GB or more the two builds run side by side: one target folder
+ * takes one cargo at a time, and one cargo for both would mix their dependencies' features, so
+ * the server has its own folder, target/server/. With less memory (GitHub's 7 GB Apple chip
+ * Mac) side by side they swap, so they run in a row in one folder, where the second build
+ * reuses what the first compiled.
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
@@ -53,13 +62,6 @@ for (const file of fs.readdirSync(UI, { recursive: true })) {
 	if (secret.test(path.basename(file))) fail(`REFUSING: dist-ui holds ${file}, so a dev secret would ship in the app.`);
 }
 
-const triple = execFileSync("rustc", ["--print", "host-tuple"], { encoding: "utf8" }).trim();
-run("cargo", ["build", "--release", "-p", "gs-server", "--target", triple]);
-const server = path.join(ROOT, "target", triple, "release", WINDOWS ? "godspeed-server.exe" : "godspeed-server");
-const staged = path.join(ROOT, "crates", "shell", "binaries", `godspeed-server-${triple}${WINDOWS ? ".exe" : ""}`);
-fs.mkdirSync(path.dirname(staged), { recursive: true });
-fs.copyFileSync(server, staged);
-
 const pdfjs = path.join(ROOT, "node_modules", "pdfjs-dist");
 const pdfjsOut = path.join(STAGE, "pdfjs-dist");
 fs.rmSync(pdfjsOut, { recursive: true, force: true });
@@ -72,5 +74,48 @@ for (const file of fs.readdirSync(pdfjs, { recursive: true })) {
 	copied += 1;
 }
 if (!fs.existsSync(path.join(pdfjsOut, "build", "pdf.worker.min.mjs"))) fail("pdf.js's worker is missing, run `npm ci` first.");
+
+const triple = execFileSync("rustc", ["--print", "host-tuple"], { encoding: "utf8" }).trim();
+const together = os.totalmem() >= 12 * 2 ** 30;
+const serverTarget = together ? path.join("target", "server") : "target";
+const builds = [["cargo", ["build", "--release", "-p", "gs-server", "--target", triple, "--target-dir", serverTarget]]];
+if (process.argv[2] === "--app") {
+	// The app's build step copies externalBin and fails without it, and the server is still being
+	// built, so this build names none. The bundler reads the list again from its own options.
+	const options = [...process.argv.slice(3), "--config", JSON.stringify({ bundle: { externalBin: [] } })];
+	builds.push([process.execPath, [path.join(ROOT, "node_modules", "@tauri-apps", "cli", "tauri.js"), "build", "--no-bundle", ...options]]);
+}
+/** A build under way; `done` settles with its exit code, its signal, or why it did not start. */
+function start([command, args]) {
+	const child = spawn(command, args, { cwd: ROOT, stdio: "inherit" });
+	const done = new Promise((resolve) => {
+		child.on("error", (err) => resolve(err.message));
+		child.on("exit", (code, signal) => resolve(code ?? signal));
+	});
+	return { child, done };
+}
+const codes = [];
+if (together) {
+	const running = builds.map(start);
+	for (const { child, done } of running) {
+		// One failed build ends the other: its minutes would be wasted.
+		void done.then((code) => {
+			if (code !== 0) for (const other of running) if (other.child !== child) other.child.kill();
+		});
+	}
+	codes.push(...(await Promise.all(running.map((build) => build.done))));
+} else {
+	for (const build of builds) {
+		codes.push(await start(build).done);
+		if (codes.at(-1) !== 0) break;
+	}
+}
+const failed = codes.findIndex((code) => code !== 0);
+if (failed !== -1) fail(`\`${builds[failed][0]} ${builds[failed][1].slice(0, 2).join(" ")}\` failed (${codes[failed]}).`);
+
+const server = path.join(ROOT, serverTarget, triple, "release", WINDOWS ? "godspeed-server.exe" : "godspeed-server");
+const staged = path.join(ROOT, "crates", "shell", "binaries", `godspeed-server-${triple}${WINDOWS ? ".exe" : ""}`);
+fs.mkdirSync(path.dirname(staged), { recursive: true });
+fs.copyFileSync(server, staged);
 
 console.log(`[stage-app] staged ${path.relative(ROOT, staged)} and ${copied} pdf.js files`);
