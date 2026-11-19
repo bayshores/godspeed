@@ -19,7 +19,6 @@ use tauri::webview::{NewWindowResponse, PageLoadEvent, PlatformWebview};
 use tauri::{AppHandle, Manager, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 use crate::demo::{self, ANSWER_LIMIT, DEMO_SIZE, DemoDone, DemoJob, LOAD_LIMIT, LOAD_TIMED_OUT, NO_ANSWER, NO_SNAPSHOT, READ, RECORDER, SETTLE, SvgDone, SvgJob};
-use crate::lock::lock;
 use crate::paths::{DEMO_FOLDER_PREFIX, Paths};
 
 pub const LABEL: &str = "demo";
@@ -38,7 +37,7 @@ pub static REFUSED: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::n
 
 #[cfg(feature = "self-test")]
 fn refused(url: &str) {
-	lock(&REFUSED).push(url.to_owned());
+	crate::lock::lock(&REFUSED).push(url.to_owned());
 }
 
 /// How often a run asks the page whether it has answered.
@@ -55,7 +54,7 @@ pub fn serve<R: tauri::Runtime>(ctx: tauri::UriSchemeContext<'_, R>, request: ta
 	if ctx.webview_label() != LABEL || request.uri().path() != "/" {
 		return Response::builder().status(StatusCode::NOT_FOUND).body(Vec::new()).unwrap_or_default();
 	}
-	let page = lock(&PAGE).clone();
+	let page = crate::lock::lock(&PAGE).clone();
 	Response::builder().header(header::CONTENT_TYPE, "text/html; charset=utf-8").body(page.into_bytes()).unwrap_or_default()
 }
 
@@ -180,7 +179,7 @@ impl View {
 
 	#[cfg(windows)]
 	fn load(&self, html: &str) -> Result<(), String> {
-		html.clone_into(&mut lock(&PAGE));
+		html.clone_into(&mut crate::lock::lock(&PAGE));
 		let page: Url = PAGE_URL.parse().map_err(|_| "bad demo page URL".to_owned())?;
 		self.window.navigate(page).map_err(|err| err.to_string())
 	}
@@ -244,6 +243,6 @@ impl Drop for View {
 			std::thread::sleep(Duration::from_millis(20));
 		}
 		#[cfg(windows)]
-		lock(&PAGE).clear();
+		crate::lock::lock(&PAGE).clear();
 	}
 }
