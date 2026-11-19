@@ -98,6 +98,9 @@ jobs:
       - name: Linux packages (Ubuntu 22.04 container)
         if: runner.os == 'Linux'
         run: |
+          # The container's own package servers (archive.ubuntu.com) can stop answering for an hour; this mirror sits beside GitHub's runners.
+          sed -i -E 's#http://(archive|security)\.ubuntu\.com#http://azure.archive.ubuntu.com#' /etc/apt/sources.list
+          printf 'Acquire::Retries "3";\nAcquire::http::Timeout "30";\n' > /etc/apt/apt.conf.d/80-fail-fast
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates git python3 unzip xvfb xauth \
             libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
