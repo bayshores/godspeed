@@ -749,7 +749,7 @@ mod tests {
 			started.send(()).unwrap();
 			std::thread::sleep(std::time::Duration::from_millis(100));
 			std::fs::create_dir_all(&graph).unwrap();
-			std::fs::write(graph.join("sources.json"), "{}").unwrap();
+			gs_base::fsx::write_text_atomic(&graph.join("sources.json"), "{}").unwrap();
 		});
 		wait.recv().unwrap();
 		assert_eq!(store.delete_space(&id), Ok(true));
