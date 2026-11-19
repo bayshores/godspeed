@@ -24,7 +24,7 @@ The shim (`crates/shell/src/shim.js`) is an initialization script on the main wi
 | `printPdf(path)` | `print_pdf` | Mac only; absent on Windows and Linux. See [Printing](the-main-window.md#printing). |
 | `openLink(url)` | `open_link` | A web or mail link, as a link click sends it. |
 | `terminals.start(role, agent, resume?)` | `terminal_start` | `role` is `"teacher"` or `"helper"`, `agent` is `"claude"` or `"codex"`, and `resume` is the teacher's earlier chat to go back to, when one was picked. Answers `{ id }`. See [Terminals](terminals.md#terminals). |
-| `terminals.attach(id)`, `terminals.detach(id)` | `terminal_attach`, `terminal_detach` | Attach pushes a snapshot of the screen, then live output, on `terminal-output`. |
+| `terminals.attach(id)`, `terminals.detach(id)` | `terminal_attach`, `terminal_detach` | Attach pushes a snapshot of the screen, then live output, on `terminal-output`, to the calling window only. See [Which window shows it](terminals.md#which-window-shows-it). |
 | `terminals.resize(id, cols, rows)` | `terminal_resize` | Sizes a running terminal to the screen showing it (kept within 40 to 200 columns, 10 to 100 rows). Answers `{ cols, rows }`, the size in force: an ended terminal keeps the size it ended at. |
 | `terminals.write(id, data)` | `terminal_write` | Keys typed in the shown terminal. |
 | `terminals.answer(id, kind)` | `terminal_answer` | `kind` is `"trust"` or `"enter"`; the shell answers only while it still sees that question (see [What the shell recognises](terminals.md#what-the-shell-recognises)). |
@@ -42,4 +42,4 @@ Pushes arrive as `webview.eval("window.__lhPush(channel, payload)")`, so the pag
 
 ### Trust check
 
-Every command calls `commands::trusted` first. It refuses with `"Untrusted desktop request."` unless the webview's label is `main` and its URL's origin equals the app origin: `http://127.0.0.1:<port>`, or Vite's origin in `desktop:dev`.
+Every command calls `commands::trusted` first. It refuses with `"Untrusted desktop request."` unless the webview's label is `main` and its URL's origin equals the app origin: `http://127.0.0.1:<port>`, or Vite's origin in `desktop:dev`. The terminal commands call `commands::trusted_terminal` instead, which also accepts the label `terminal`.

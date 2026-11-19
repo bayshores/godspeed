@@ -4,6 +4,7 @@
 use tauri::{Manager, State, Webview};
 use tauri_plugin_dialog::DialogExt;
 
+use crate::window::{MAIN, TERMINAL_WINDOWS};
 use crate::{bug_report, fonts, open};
 
 /// The origin of the app page: the server's, or Vite's in `desktop:dev`.
@@ -11,8 +12,17 @@ pub struct AppOrigin(pub String);
 
 /// Only the main window's page on the app origin may call a command.
 pub fn trusted(webview: &Webview, state: &AppOrigin) -> Result<(), String> {
+	trusted_in(webview, state, &[MAIN])
+}
+
+/// The terminal commands also come from the terminal window.
+pub fn trusted_terminal(webview: &Webview, state: &AppOrigin) -> Result<(), String> {
+	trusted_in(webview, state, &TERMINAL_WINDOWS)
+}
+
+fn trusted_in(webview: &Webview, state: &AppOrigin, labels: &[&str]) -> Result<(), String> {
 	let on_app_origin = webview.url().is_ok_and(|url| url.origin().ascii_serialization() == state.0);
-	if webview.label() == "main" && on_app_origin { Ok(()) } else { Err("Untrusted desktop request.".to_owned()) }
+	if labels.contains(&webview.label()) && on_app_origin { Ok(()) } else { Err("Untrusted desktop request.".to_owned()) }
 }
 
 /// The native folder picker: the chosen absolute path, or null when cancelled.

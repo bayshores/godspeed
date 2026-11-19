@@ -24,6 +24,12 @@ use crate::push::push;
 use crate::server::Server;
 use crate::{log, zoom};
 
+/// The labels of the app's windows. The terminal window shows only the teacher's terminal.
+pub const MAIN: &str = "main";
+pub const TERMINAL: &str = "terminal";
+/// The windows that can show a terminal.
+pub const TERMINAL_WINDOWS: [&str; 2] = [MAIN, TERMINAL];
+
 /// Paper, the window's color when no dark background is picked.
 const PAPER: Color = Color(0xc9, 0xc7, 0xbd, 0xff);
 
@@ -65,7 +71,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 	let shim = SHIM.replace("__APP_ORIGIN__", &Value::from(origin.as_str()).to_string()).replace("__PLATFORM__", &Value::from(platform).to_string());
 	let show_armed = Arc::new(AtomicBool::new(true));
 	let (nav_origin, new_window_origin, load_origin) = (origin.clone(), origin.clone(), origin);
-	let builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+	let builder = WebviewWindowBuilder::new(app, MAIN, WebviewUrl::App("index.html".into()))
 		.title("godspeed")
 		.inner_size(1440.0, 900.0)
 		.min_inner_size(640.0, 600.0)

@@ -1,7 +1,7 @@
 //! The agents' terminals, in memory only: at most one live record per role (teacher, helper).
 //! Each runs one start script in a pseudo-terminal (spawn.rs); the shell keeps its screen
-//! (screen.rs), sends its output to the page only while the page shows it, and tells the server
-//! which terminal ids are live, so an agent whose terminal ended is refused.
+//! (screen.rs), sends its output only to the window that shows it (one at a time, by label), and
+//! tells the server which terminal ids are live, so an agent whose terminal ended is refused.
 
 mod attach;
 pub mod commands;
@@ -39,9 +39,18 @@ const NOT_THERE: &str = "That terminal isn't running.";
 const NOT_SHOWN: &str = "Show the terminal and click in it first.";
 const NOT_SENT: &str = "Clear what you typed in the terminal, then try again.";
 
+/// Which window a push is for.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum To<'a> {
+	/// Every window that can show a terminal.
+	All,
+	/// The window with this label.
+	Window(&'a str),
+}
+
 /// Where a terminal's news goes: the page, the server and the log.
 pub trait Outlet: Send + Sync + 'static {
-	fn push(&self, channel: &str, payload: Value);
+	fn push(&self, to: To, channel: &str, payload: Value);
 	/// The live terminal ids changed; `teacher` is the teacher's among them.
 	fn live(&self, ids: Vec<String>, teacher: Option<String>);
 	/// The learner sent a message to the agent in this terminal.
@@ -83,7 +92,8 @@ struct State {
 	settle: Settle,
 	/// What the page was last told.
 	shown: (Option<Prompt>, bool),
-	attached: bool,
+	/// The label of the window showing the terminal. A newer window takes it over from an older.
+	attached: Option<String>,
 	/// Output for the page, sent once a frame; `overflow` sends the screen instead.
 	pending: Vec<u8>,
 	overflow: bool,
@@ -121,7 +131,7 @@ impl Terminal {
 		let shown = state.settle.shown(now);
 		if shown != state.shown {
 			state.shown = shown;
-			outlet.push("terminal-state", self.state_json(state));
+			outlet.push(To::All, "terminal-state", self.state_json(state));
 		}
 	}
 
@@ -144,7 +154,7 @@ impl Terminal {
 		if let Some(io) = state.io.as_ref().filter(|_| !replies.is_empty()) {
 			let _ = io.input.send(replies);
 		}
-		if state.attached {
+		if state.attached.is_some() {
 			if state.overflow || state.pending.len() + bytes.len() > FRAME_BYTES {
 				state.pending.clear();
 				state.overflow = true;
@@ -168,16 +178,14 @@ impl Terminal {
 	/// Sends the page the frame's output, or the screen when there was too much of it.
 	fn flush(&self, state: &mut State, outlet: &dyn Outlet) {
 		state.flush_at = None;
-		if !state.attached {
-			return;
-		}
+		let Some(window) = state.attached.clone() else { return };
 		if std::mem::take(&mut state.overflow) {
 			state.pending.clear();
 			let snapshot = gs_base::base64::encode(state.screen.snapshot().as_bytes());
-			outlet.push("terminal-output", json!({ "id": self.id, "snapshot": snapshot }));
+			outlet.push(To::Window(&window), "terminal-output", json!({ "id": self.id, "snapshot": snapshot }));
 		} else if !state.pending.is_empty() {
 			let data = gs_base::base64::encode(&std::mem::take(&mut state.pending));
-			outlet.push("terminal-output", json!({ "id": self.id, "data": data }));
+			outlet.push(To::Window(&window), "terminal-output", json!({ "id": self.id, "data": data }));
 		}
 	}
 
@@ -203,6 +211,14 @@ impl Terminal {
 		let state = self.state();
 		let io = state.io.as_ref().filter(|_| !state_ended(&state)).ok_or(NOT_THERE)?;
 		io.input.send(bytes.to_vec()).map_err(|_| NOT_THERE.to_owned())
+	}
+}
+
+impl State {
+	/// Whether keys from `window` (the window that has the focus, if any) may go to the terminal:
+	/// only the window that shows it.
+	fn typed_from(&self, window: Option<&str>) -> bool {
+		window.is_some() && self.attached.as_deref() == window
 	}
 }
 

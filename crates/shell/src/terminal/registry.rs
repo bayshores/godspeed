@@ -15,7 +15,7 @@ use serde_json::{Value, json};
 use super::input::{clear_input, enter_on_yes, nudge_input, type_line};
 use super::screen::{self, Prompt, Screen, Settle, Trust};
 use super::spawn::{self, Agent, Role};
-use super::{Ended, Io, NO_START, NOT_SENT, NOT_SET_UP, NOT_SHOWN, NOT_THERE, Outlet, State, Terminal, next_tick, state_ended};
+use super::{Ended, Io, NO_START, NOT_SENT, NOT_SET_UP, NOT_SHOWN, NOT_THERE, Outlet, State, Terminal, To, next_tick, state_ended};
 use crate::lock::lock;
 
 /// The fewest and the most columns and rows a page may size a terminal to.
@@ -108,7 +108,7 @@ impl Terminals {
 				screen: Screen::default(),
 				settle: Settle::default(),
 				shown: (None, false),
-				attached: false,
+				attached: None,
 				pending: Vec::new(),
 				overflow: false,
 				flush_at: None,
@@ -170,16 +170,17 @@ impl Terminals {
 		});
 	}
 
-	/// Shows a terminal: the page gets its screen as it is, then everything it prints.
-	pub fn attach(&self, id: &str) -> Result<(), String> {
+	/// Shows a terminal in a window: that window's page gets its screen as it is, then everything
+	/// it prints. A window that showed it before gets nothing more.
+	pub fn attach(&self, id: &str, window: &str) -> Result<(), String> {
 		let terminal = self.find(id)?;
 		let mut state = terminal.state();
-		state.attached = true;
+		state.attached = Some(window.to_owned());
 		state.pending.clear();
 		state.overflow = false;
 		state.flush_at = None;
 		let snapshot = gs_base::base64::encode(state.screen.snapshot().as_bytes());
-		self.outlet.push("terminal-output", json!({ "id": id, "snapshot": snapshot }));
+		self.outlet.push(To::Window(window), "terminal-output", json!({ "id": id, "snapshot": snapshot }));
 		Ok(())
 	}
 
@@ -199,21 +200,27 @@ impl Terminals {
 		Ok((cols, rows))
 	}
 
-	pub fn detach(&self, id: &str) -> Result<(), String> {
+	/// A window stops showing a terminal. Ignored when another window took it over since, so an
+	/// old page closing cannot cut the new one off.
+	pub fn detach(&self, id: &str, window: &str) -> Result<(), String> {
 		let terminal = self.find(id)?;
 		let mut state = terminal.state();
-		state.attached = false;
+		if state.attached.as_deref() != Some(window) {
+			return Ok(());
+		}
+		state.attached = None;
 		state.pending.clear();
 		state.overflow = false;
 		state.flush_at = None;
 		Ok(())
 	}
 
-	/// Keys the learner typed in the shown terminal, only while the window has the focus. The
-	/// page's terminal answering a question the shell already answered is dropped.
-	pub fn write(&self, id: &str, data: &str, focused: bool) -> Result<(), String> {
+	/// Keys the learner typed in the shown terminal, only from the window that shows it and only
+	/// while that window has the focus (`focused` is its label then). The page's terminal answering
+	/// a question the shell already answered is dropped.
+	pub fn write(&self, id: &str, data: &str, focused: Option<&str>) -> Result<(), String> {
 		let terminal = self.find(id)?;
-		if !focused || !terminal.state().attached {
+		if !terminal.state().typed_from(focused) {
 			return Err(NOT_SHOWN.to_owned());
 		}
 		if screen::is_reply(data) {
@@ -273,17 +280,17 @@ impl Terminals {
 
 	/// A starter key: the line typed into the teacher's input and sent as the learner's message,
 	/// only once the input reads exactly that line, so it never sends what the learner had typed
-	/// there. Only while the window has the focus, the screen is shown and asks nothing.
-	pub fn send(&self, id: &str, line: &str, focused: bool) -> Result<(), String> {
+	/// there. Only while the window showing the terminal has the focus and the screen asks nothing.
+	pub fn send(&self, id: &str, line: &str, focused: Option<&str>) -> Result<(), String> {
 		let terminal = self.find(id)?;
-		let (attached, asked, ended) = {
+		let (typable, asked, ended) = {
 			let state = terminal.state();
-			(state.attached, state.screen.seen().prompt.is_some(), state_ended(&state))
+			(state.typed_from(focused), state.screen.seen().prompt.is_some(), state_ended(&state))
 		};
 		if ended {
 			return Err(NOT_THERE.to_owned());
 		}
-		if !focused || !attached {
+		if !typable {
 			return Err(NOT_SHOWN.to_owned());
 		}
 		if terminal.role != Role::Teacher || asked || line.chars().any(char::is_control) || !type_line(&terminal, line) {
@@ -295,13 +302,13 @@ impl Terminals {
 
 	/// Paste: the clipboard's text, bracketed when the program asked for that, without escape
 	/// characters that could end the bracket early.
-	pub fn paste(&self, id: &str, text: &str, focused: bool) -> Result<(), String> {
+	pub fn paste(&self, id: &str, text: &str, focused: Option<&str>) -> Result<(), String> {
 		let terminal = self.find(id)?;
-		let (attached, bracketed) = {
+		let (typable, bracketed) = {
 			let state = terminal.state();
-			(state.attached, state.screen.bracketed_paste())
+			(state.typed_from(focused), state.screen.bracketed_paste())
 		};
-		if !focused || !attached {
+		if !typable {
 			return Err(NOT_SHOWN.to_owned());
 		}
 		let text = text.replace('\x1b', "");
@@ -380,7 +387,7 @@ fn ended(terminal: Arc<Terminal>, code: u32, outlet: &dyn Outlet, list: &List) {
 		state.io = None;
 		terminal.wake.notify_one();
 		terminal.flush(&mut state, outlet);
-		outlet.push("terminal-state", terminal.state_json(&state));
+		outlet.push(To::All, "terminal-state", terminal.state_json(&state));
 		(ended, stopped)
 	};
 	let how = match ended {

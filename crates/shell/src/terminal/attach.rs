@@ -18,18 +18,18 @@ impl Terminals {
 	/// Attach: a picture or a PDF saved in the godspeed folder, where the agent reads it without
 	/// asking, and its path typed into the teacher's input like a paste (escaped as a Finder drag
 	/// types it), then a space and no Enter, so the learner adds words and sends. Answers the
-	/// saved path. The terminal must be shown, but the window need not have the focus: a file
-	/// dropped from Finder leaves Finder in front, and what is typed is only a path the shell
-	/// saved itself.
-	pub fn add_file(&self, id: &str, name: &str, bytes: &[u8], folder: &Path) -> Result<String, String> {
+	/// saved path. The terminal must be shown in the window `window` the file came from, but that
+	/// window need not have the focus: a file dropped from Finder leaves Finder in front, and what
+	/// is typed is only a path the shell saved itself.
+	pub fn add_file(&self, id: &str, name: &str, bytes: &[u8], folder: &Path, window: &str) -> Result<String, String> {
 		let terminal = self.find(id)?;
 		if terminal.role != Role::Teacher {
 			return Err(ATTACH_TEACHER.to_owned());
 		}
-		let attached = terminal.state().attached;
+		let shown = terminal.state().attached.as_deref() == Some(window);
 		// Shown, but no focus check: a Finder drop leaves Finder in front. Safe, since only a path
 		// the shell saved itself is typed, never a line break.
-		if !attached {
+		if !shown {
 			return Err(NOT_SHOWN.to_owned());
 		}
 		if bytes.len() > ATTACH_MAX {
@@ -67,7 +67,7 @@ pub(super) fn send_attachment(terminal: &Terminal, file: &Path, existed: bool) -
 	let sent = {
 		let state = terminal.state();
 		let typed = if state.screen.bracketed_paste() { format!("\x1b[200~{typed}\x1b[201~ ") } else { format!("{typed} ") };
-		if state.attached { state.io.as_ref().filter(|_| !state_ended(&state)).ok_or(NOT_THERE).and_then(|io| io.input.send(typed.into_bytes()).map_err(|_| NOT_THERE)) } else { Err(NOT_SHOWN) }
+		if state.attached.is_some() { state.io.as_ref().filter(|_| !state_ended(&state)).ok_or(NOT_THERE).and_then(|io| io.input.send(typed.into_bytes()).map_err(|_| NOT_THERE)) } else { Err(NOT_SHOWN) }
 	};
 	if sent.is_err() && !existed {
 		let _ = std::fs::remove_file(file);
