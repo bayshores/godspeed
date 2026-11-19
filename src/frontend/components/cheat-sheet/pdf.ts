@@ -3,7 +3,9 @@ import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 import { PX_PER_PT } from "./canvas-model";
 
 /**
- * pdf.js in the browser, loaded on first use. Its worker and data come
+ * pdf.js in the browser, loaded on first use: its build for older
+ * browsers, because the default one calls what a web view a year old does
+ * not have, and then never draws. Its worker and data come
  * from the app (/pdfjs/), so cheat sheets show offline. The PDF's bytes
  * are fetched by the page itself: in the desktop app only the window's
  * main frame may read /api.
@@ -11,7 +13,7 @@ import { PX_PER_PT } from "./canvas-model";
 let lib: Promise<typeof import("pdfjs-dist")> | null = null;
 
 function pdfjs(): Promise<typeof import("pdfjs-dist")> {
-	return (lib ??= import("pdfjs-dist").then((m) => {
+	return (lib ??= import("pdfjs-dist/legacy/build/pdf.mjs").then((m) => {
 		m.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.min.mjs";
 		return m;
 	}));

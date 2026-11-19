@@ -69,11 +69,12 @@ async fn ui_file(root: &Path, parts: &[String]) -> Option<Response> {
 }
 
 /// The pdf.js files the cheat sheet viewer may load, by pattern; its scripting engine never.
+/// The worker is the build for older browsers, as the page's half is.
 static PDFJS: LazyLock<Vec<(Re, &'static str, &'static str)>> = LazyLock::new(|| {
 	let js = "text/javascript; charset=utf-8";
 	let bin = "application/octet-stream";
 	[
-		(r"^pdf\.worker\.min\.mjs$", "build", js),
+		(r"^pdf\.worker\.min\.mjs$", "legacy/build", js),
 		(r"^standard_fonts\/[A-Za-z0-9_-]+\.(pfb|ttf)$", "", bin),
 		(r"^cmaps\/[A-Za-z0-9_-]+\.bcmap$", "", bin),
 		(r"^iccs\/[A-Za-z0-9_-]+\.icc$", "", bin),

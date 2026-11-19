@@ -31,7 +31,7 @@ const MODEL_WEIGHTS = path.join("models", "Snowflake", "snowflake-arctic-embed-x
 
 /** The pdf.js files crates/server/src/http/ui.rs serves (not its scripting engine), with their licenses. */
 const PDFJS_FILES = [
-	/^build\/pdf\.worker\.min\.mjs$/,
+	/^legacy\/build\/pdf\.worker\.min\.mjs$/,
 	/^standard_fonts\/[A-Za-z0-9_-]+\.(pfb|ttf)$/,
 	/^cmaps\/[A-Za-z0-9_-]+\.bcmap$/,
 	/^iccs\/[A-Za-z0-9_-]+\.icc$/,
@@ -73,7 +73,7 @@ for (const file of fs.readdirSync(pdfjs, { recursive: true })) {
 	fs.copyFileSync(path.join(pdfjs, name), path.join(pdfjsOut, name));
 	copied += 1;
 }
-if (!fs.existsSync(path.join(pdfjsOut, "build", "pdf.worker.min.mjs"))) fail("pdf.js's worker is missing, run `npm ci` first.");
+if (!fs.existsSync(path.join(pdfjsOut, "legacy", "build", "pdf.worker.min.mjs"))) fail("pdf.js's worker is missing, run `npm ci` first.");
 
 const triple = execFileSync("rustc", ["--print", "host-tuple"], { encoding: "utf8" }).trim();
 const together = os.totalmem() >= 12 * 2 ** 30;
