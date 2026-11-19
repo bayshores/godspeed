@@ -12,5 +12,8 @@ gs-base.workspace = true
 gs-core.workspace = true
 parking_lot.workspace = true
 
+[dev-dependencies]
+gs-base = { workspace = true, features = ["lock-order-check"] }
+
 [lints]
 workspace = true

@@ -46,6 +46,7 @@ pub fn server(app: Arc<App>, access: &Access) -> Router {
 		.route(&format!("{}/{{file}}", gs_services::plugins::FONTS_PREFIX), ApiRoute::new().get(plugin_files::plugin_font).into_route())
 		.fallback(ApiRoute::new().get(ui::page).into_route())
 		.layer(DefaultBodyLimit::disable())
+		.layer(axum::middleware::from_fn(reply::with_request_line))
 		.with_state(app)
 }
 

@@ -23,6 +23,8 @@ use gs_core::messages::phases::{first_phase, phase_at3_lh};
 use gs_json::{Json, Obj, js_number, json, parse};
 use parking_lot::Mutex;
 
+use crate::app_file::write_stamped;
+
 const UNTITLED: &str = "Untitled session";
 
 /// What a write to the old Talk chat answers.
@@ -99,12 +101,7 @@ impl ChatStore {
 		}
 		self.summaries.lock().remove(id);
 		let file = self.chat_file(id)?;
-		if record["version"].as_f64() == Some(CURRENT_CHAT_VERSION as f64) {
-			return fsx::write_json_atomic(&file, record);
-		}
-		let mut stamped = record.clone();
-		set_field(&mut stamped, "version", CURRENT_CHAT_VERSION);
-		fsx::write_json_atomic(&file, &stamped)
+		write_stamped(&file, record, CURRENT_CHAT_VERSION)
 	}
 
 	/// The record, or None when it is missing, unreadable, malformed, or stamped by a newer build

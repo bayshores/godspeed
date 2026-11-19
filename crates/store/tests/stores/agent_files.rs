@@ -226,12 +226,11 @@ fn only_the_newest_20_agents_are_kept() {
 }
 
 #[test]
-fn a_broken_seen_file_reads_as_empty_and_is_not_set_aside() {
+fn a_broken_seen_file_reads_as_empty_and_is_set_aside() {
 	let lab = Lab::new("agent-seen-broken");
 	lab.put("agent-seen.json", "{\"version\":1,");
 	assert!(seen(&lab).get("agent-a", "chat_1").is_none());
-	assert_eq!(lab.get("agent-seen.json"), "{\"version\":1,");
-	assert_eq!(lab.names("."), ["agent-seen.json"]);
+	assert_eq!(lab.aside("agent-seen.json.corrupt-"), ["{\"version\":1,"]);
 	seen(&lab).set("agent-a", "chat_1", &mark(1, "h"));
 	assert_eq!(seen(&lab).get("agent-a", "chat_1"), Some(mark(1, "h")));
 }

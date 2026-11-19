@@ -7,6 +7,7 @@ pub mod agent_rules;
 pub mod agent_seen;
 pub mod teacher_chats;
 pub mod agent_actions;
+pub mod asked;
 pub mod mcp_token;
 pub mod search_key;
 pub mod jobs;
@@ -16,6 +17,7 @@ pub mod spaces;
 pub mod cheat_sheets;
 pub mod mocks;
 pub mod reminders;
+mod app_file;
 mod file_cache;
 
 use std::path::Path;
@@ -46,6 +48,7 @@ pub struct Stores {
 	pub agent_seen: Arc<agent_seen::AgentSeenStore>,
 	pub teacher_chats: teacher_chats::TeacherChatsStore,
 	pub agent_actions: agent_actions::AgentActionsStore,
+	pub asked: asked::AskedStore,
 	pub mcp_token: mcp_token::McpTokenStore,
 	pub search_key: search_key::SearchKeyStore,
 	/// The lesson tools hold these for a whole turn, so they are shared.
@@ -68,6 +71,7 @@ impl Stores {
 			agent_seen: Arc::new(agent_seen::AgentSeenStore::new(paths, locks)),
 			teacher_chats: teacher_chats::TeacherChatsStore::new(paths, locks),
 			agent_actions: agent_actions::AgentActionsStore::new(paths, locks),
+			asked: asked::AskedStore::new(paths, locks),
 			mcp_token: mcp_token::McpTokenStore::new(paths),
 			search_key: search_key::SearchKeyStore::new(paths),
 			jobs: Arc::new(jobs::JobStore::new(paths, events, locks)),

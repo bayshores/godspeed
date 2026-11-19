@@ -1,8 +1,8 @@
 //! Deadline requests: the deadline page's asks, each one background run of the learner's agent
 //! on one deadline. One request at a time per deadline, and none on a space godspeed checks
 //! (`space_checks`); each start and end goes out as "deadline-request-changed". What godspeed
-//! asked its agent about is kept in `data/deadline-requests.json`, with what the old Talk chat
-//! asked.
+//! asked its agent about is kept in `data/deadline-requests.json` (`stores.asked`), with what the
+//! old Talk chat asked.
 //! A running request is background work: the activity feed lists it.
 
 use std::collections::{HashMap, HashSet};
@@ -15,7 +15,7 @@ use gs_agent::tools::fn_tool::FnTool;
 use gs_agent::tools::space_actions::{SpaceActions, deadline_request_tools};
 use gs_base::events::EventKind;
 use gs_base::tasks::detach;
-use gs_base::{clock, fsx};
+use gs_base::clock;
 use gs_core::contracts::chat::TALK_CHAT_ID;
 use gs_core::spaces::deadline_requests::{AskedRecord, RequestKind, RequestedDeadline, asked_deadline_ids, request_text, requested_deadline};
 use gs_core::spaces::space_tools::ToolOutcome;
@@ -27,8 +27,6 @@ use super::space_checks::CheckWrites;
 use crate::App;
 use crate::outcome::{Outcome, refuse};
 use crate::turns::chat_handler::send_first_message;
-
-const ASKED_FILE: &str = "deadline-requests.json";
 
 /// Why a request changed nothing: the agent's own last line, or why its run stopped.
 #[derive(Clone)]
@@ -63,8 +61,6 @@ pub struct DeadlineRequestsState {
 	pub(super) rows: Mutex<Vec<Json>>,
 	/// The last request from the page that changed nothing, why, and the deadline's links then.
 	failed: Mutex<HashMap<String, Failed>>,
-	/// Held while `deadline-requests.json` is read and written.
-	asked_file: Mutex<()>,
 }
 
 /// The deadline page asks for `kind` on one deadline.
@@ -102,24 +98,14 @@ pub fn deadline_request_view(app: &App, space_id: &str, deadline_id: &str) -> Js
 	json!({ "running": running, "failed": failed })
 }
 
-fn read_record_file(app: &App) -> AskedRecord {
-	fsx::read_json_or_set_aside(&app.paths.data.join(ASKED_FILE)).map(|saved| AskedRecord::read(&saved)).unwrap_or_default()
-}
-
 /// What godspeed asked its agent about, as saved.
 pub(super) fn read_record(app: &App) -> AskedRecord {
-	let _held = app.spaces.requests.asked_file.lock();
-	read_record_file(app)
+	app.stores.asked.read()
 }
 
 /// Changes the record and saves it; a failed save is only logged.
 pub(super) fn change_record(app: &App, change: impl FnOnce(&mut AskedRecord)) {
-	let _held = app.spaces.requests.asked_file.lock();
-	let mut record = read_record_file(app);
-	change(&mut record);
-	if let Err(err) = fsx::write_json_atomic(&app.paths.data.join(ASKED_FILE), &record.to_json()) {
-		eprintln!("[deadline-request] saving what was asked failed: {err}");
-	}
+	app.stores.asked.update(change);
 }
 
 /// The deadline ids asked about: the record's and the old Talk chat's (read only, never written).
@@ -253,6 +239,8 @@ impl Drop for RequestEnd {
 
 #[cfg(test)]
 mod tests {
+	use gs_base::fsx;
+
 	use super::*;
 	use crate::app::test_support::{scratch_dir, test_app};
 
@@ -294,7 +282,7 @@ mod tests {
 	fn not_yet_is_remembered_once_per_deadline() {
 		let (app, exam) = one_exam("deadline-requests-not-yet");
 		let space_id = app.stores.spaces.list_space_records()[0]["id"].str_or_empty().to_owned();
-		fsx::write_json_atomic(&app.paths.data.join(ASKED_FILE), &json!({ "version": 1, "asked": ["d_old"] })).unwrap();
+		fsx::write_json_atomic(&app.paths.data.join("deadline-requests.json"), &json!({ "version": 1, "asked": ["d_old"] })).unwrap();
 		not_yet(&app, &space_id, &exam).unwrap();
 		not_yet(&app, &space_id, &exam).unwrap();
 		assert_eq!(overdue_asked(&app), [exam]);

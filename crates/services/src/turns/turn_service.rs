@@ -14,6 +14,7 @@ use gs_core::messages::pending::is_question_tool;
 use gs_core::session::plan_blocks::plan_blocks_for;
 use gs_core::study::kept::keep_verdicts;
 use gs_core::study::topic_parts::first_topic;
+use gs_engine::turn::ui_stream::SettleError;
 use gs_json::Json;
 use gs_store::graph::Ledger;
 
@@ -22,9 +23,6 @@ use crate::App;
 use crate::graph::extraction::extraction;
 use crate::graph::extraction_runs::runs;
 use crate::spaces::citations::check_cites;
-
-/// The message a failed canonical save reports (TurnPersistenceError).
-pub const PERSISTENCE_ERROR: &str = "The reply could not be saved.";
 
 /// How long a lesson sits idle before its last stretch (under a chunk) is extracted.
 pub const LEFTOVER_IDLE_MS: i64 = 5 * 60_000;
@@ -38,11 +36,11 @@ pub const LEFTOVER_IDLE_MS: i64 = 5 * 60_000;
 /// - one frozen plan block per successful plan_init call;
 /// - in a Study lesson, one keep-check verdict per new quiz that carries a keep.
 ///
-/// Returns the stamped new messages. Err is PERSISTENCE_ERROR.
-pub fn persist_turn(app: &App, chat_id: &str, base_count: usize, turn_messages: &[Json]) -> Result<Vec<Json>, String> {
+/// Returns the stamped new messages. Err is `SettleError::NotSaved`.
+pub fn persist_turn(app: &App, chat_id: &str, base_count: usize, turn_messages: &[Json]) -> Result<Vec<Json>, SettleError> {
 	save_turn(app, chat_id, base_count, turn_messages).map_err(|err| {
 		eprintln!("[chat {chat_id}] persist failed: {err}");
-		PERSISTENCE_ERROR.to_owned()
+		SettleError::NotSaved
 	})
 }
 
@@ -191,6 +189,6 @@ mod tests {
 		let saved = app.stores.chats.get_chat(&id).unwrap()["messages"].as_arr().unwrap().clone();
 		assert_eq!(saved.len(), 3);
 		assert_eq!(saved[2]["isError"], json!(true));
-		assert_eq!(persist_turn(&app, "chat_gone", 0, &[]).unwrap_err(), PERSISTENCE_ERROR);
+		assert_eq!(persist_turn(&app, "chat_gone", 0, &[]).unwrap_err(), SettleError::NotSaved);
 	}
 }

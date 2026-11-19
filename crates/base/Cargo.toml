@@ -17,5 +17,8 @@ regress.workspace = true
 sha2.workspace = true
 tokio.workspace = true
 
+[features]
+lock-order-check = []
+
 [lints]
 workspace = true

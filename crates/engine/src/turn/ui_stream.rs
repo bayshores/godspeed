@@ -29,8 +29,31 @@ pub const SSE_HEADERS: [(&str, &str); 3] = [("Content-Type", "text/event-stream"
 
 const DONE_FRAME: &str = "data: [DONE]\n\n";
 
+/// Why a turn's settlement failed: the reply could not be saved (views are told so), or anything
+/// else (views get a general message).
+#[derive(Debug, PartialEq)]
+pub enum SettleError {
+	NotSaved,
+	Other(String),
+}
+
+impl std::fmt::Display for SettleError {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			SettleError::NotSaved => f.write_str("The reply could not be saved."),
+			SettleError::Other(message) => f.write_str(message),
+		}
+	}
+}
+
+impl From<String> for SettleError {
+	fn from(message: String) -> SettleError {
+		SettleError::Other(message)
+	}
+}
+
 /// `on_settle_failure(error, reported_error_text)`.
-pub type SettleFailureFn = Box<dyn Fn(&str, Option<&str>) + Send + Sync>;
+pub type SettleFailureFn = Box<dyn Fn(&SettleError, Option<&str>) + Send + Sync>;
 
 pub struct TurnSpec {
 	/// The turn's agent, built from the record for this turn.
@@ -38,12 +61,12 @@ pub struct TurnSpec {
 	/// The error text views see when the run could not start (TS `onError`).
 	pub on_error: Box<dyn Fn(&str) -> String + Send + Sync>,
 	/// The error text views see when `on_finish` failed.
-	pub on_settle_error: Box<dyn Fn(&str) -> String + Send + Sync>,
+	pub on_settle_error: Box<dyn Fn(&SettleError) -> String + Send + Sync>,
 	/// Clean-up after a failed `on_finish`, with the error text already reported, if any.
 	pub on_settle_failure: SettleFailureFn,
 	/// Persist and finish: gets the agent's final transcript without system messages (ids as
 	/// the wire showed them); the caller saves the part past its own base.
-	pub on_finish: Box<dyn Fn(Vec<Json>) -> Result<(), String> + Send + Sync>,
+	pub on_finish: Box<dyn Fn(Vec<Json>) -> Result<(), SettleError> + Send + Sync>,
 	/// Every tool-call id the chat record already holds.
 	pub used_tool_call_ids: Vec<String>,
 	/// The live update window (100 ms in the app).

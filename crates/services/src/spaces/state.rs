@@ -45,7 +45,7 @@ pub struct SpacesState {
 	pub(super) triage_count: Mutex<u64>,
 	pub(super) scanner_started: AtomicBool,
 	pub(super) shortcut_watch: AtomicBool,
-	/// Held through a shortcut sync. Nothing under it takes a `LockKey`.
+	/// Held through a shortcut sync. The sync reads spaces under it, which only ever `try_lock`s a space.
 	pub(super) shortcut_sync: Mutex<()>,
 	pub(super) text_checks: TextChecks,
 	pub(super) speech_model: ModelDownload,

@@ -148,9 +148,9 @@ impl AskedRecord {
 		}
 	}
 
+	/// The fields to save; the store adds the version stamp.
 	pub fn to_json(&self) -> Json {
 		let mut out = Obj::new();
-		out.insert("version", ASKED_VERSION);
 		out.insert("asked", self.asked.iter().cloned().collect::<Vec<_>>());
 		if let Some(since) = &self.since {
 			out.insert("since", since.as_str());
@@ -508,7 +508,7 @@ mod tests {
 		full.mark(&[Reason::Path { asked: "spc_a:h1".to_owned(), topics: 12, left: 3 }]);
 		full.mark(&[Reason::Path { asked: "spc_a:h2".to_owned(), topics: 22, left: 2 }]);
 		full.overdue_asked.insert("d_quiz".to_owned());
-		assert_eq!(gs_json::stringify(&full.to_json()), r#"{"version":2,"asked":[],"since":"2026-11-01T11:00:00.000Z","checkedInfo":[],"weighed":[],"pathAsked":["spc_a:h2"],"overdueAsked":["d_quiz"]}"#);
+		assert_eq!(gs_json::stringify(&full.to_json()), r#"{"asked":[],"since":"2026-11-01T11:00:00.000Z","checkedInfo":[],"weighed":[],"pathAsked":["spc_a:h2"],"overdueAsked":["d_quiz"]}"#);
 		assert_eq!(AskedRecord::read(&full.to_json()), full);
 	}
 

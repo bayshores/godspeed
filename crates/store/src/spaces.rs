@@ -25,6 +25,8 @@ use gs_core::records::teaching_areas::sanitize_rules;
 use gs_json::{Json, Obj, json, parse};
 use parking_lot::Mutex;
 
+use crate::app_file::write_stamped;
+
 /// Why a space change was refused: a deadline that is wrong or missing, or anything else
 /// (an unknown space, a disk error).
 #[derive(Debug, Clone, PartialEq)]
@@ -164,13 +166,7 @@ impl SpaceStore {
 	fn write_space(&self, record: &Json) -> Result<(), String> {
 		let id = record["id"].str_or_empty();
 		let file = self.record_file(id)?;
-		if record.as_obj().is_some() && record["version"].as_f64() == Some(CURRENT_SPACE_VERSION as f64) {
-			fsx::write_json_atomic(&file, record)?;
-		} else {
-			let mut stamped = record.as_obj().cloned().unwrap_or_default();
-			stamped.insert("version", CURRENT_SPACE_VERSION);
-			fsx::write_json_atomic(&file, &Json::Obj(stamped))?;
-		}
+		write_stamped(&file, record, CURRENT_SPACE_VERSION)?;
 		let old = self.old_record_file(id)?;
 		fsx::remove_if_present(&old, "rm")
 	}

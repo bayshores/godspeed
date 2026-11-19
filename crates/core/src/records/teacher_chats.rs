@@ -52,7 +52,7 @@ pub fn parse_teacher_chats(file: &Json) -> Vec<TeacherChat> {
 }
 
 pub fn teacher_chats_json(chats: &[TeacherChat]) -> Json {
-	json!({ "version": 1, "chats": chats.iter().map(TeacherChat::to_json).collect::<Vec<_>>() })
+	json!({ "chats": chats.iter().map(TeacherChat::to_json).collect::<Vec<_>>() })
 }
 
 /// A chat started (or came back) in the teacher's terminal: first in the list, newest 20 kept.

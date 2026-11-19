@@ -1,38 +1,31 @@
 //! data/agent-seen.json, what each outside agent has
 //! seen of each lesson. Read-modify-write; small by design.
 //!
-//! A file that cannot be read or parsed reads as nothing seen and is left where it is.
-
-use std::path::PathBuf;
+//! A file that cannot be read or parsed reads as nothing seen. One that is not valid JSON is kept
+//! aside first.
 
 use gs_base::config::Paths;
-use gs_base::locks::{LockKey, Locks};
-use gs_base::{fsx, time};
+use gs_base::locks::Locks;
+use gs_base::time;
 use gs_core::records::agent_seen::{SeenMark, SeenStore, parse_agent_seen, with_seen};
-use gs_json::{Json, json, stringify_pretty};
+use gs_json::{Json, json};
 
-const FILE_NAME: &str = "agent-seen.json";
-const VERSION: i64 = 1;
+use crate::app_file::AppFile;
 
 pub struct AgentSeenStore {
-	file: PathBuf,
-	locks: Locks,
+	file: AppFile,
 }
 
 impl AgentSeenStore {
 	pub fn new(paths: &Paths, locks: &Locks) -> AgentSeenStore {
-		AgentSeenStore { file: paths.data.join(FILE_NAME), locks: locks.clone() }
+		AgentSeenStore { file: AppFile::new(paths, locks, "agent-seen.json", 1) }
 	}
 
-	fn read(&self) -> Json {
-		let parsed = fsx::read_json_or_set_aside(&self.file);
-		parse_agent_seen(&parsed.unwrap_or(Json::Null))
-	}
-
-	fn write(&self, file: &Json) {
-		let record = json!({ "version": VERSION, "agents": file["agents"].clone() });
-		if let Err(err) = fsx::write_text_atomic(&self.file, &stringify_pretty(&record, "\t")) {
-			eprintln!("[store] could not save what agents have seen: {}", fsx::node_error_message(&err, "open", &self.file));
+	/// Saves `change`'s result under the file's lock; a save that fails is logged.
+	fn update(&self, change: impl FnOnce(Json) -> Option<Json>) {
+		let saved = self.file.update(|saved| Ok((change(parse_agent_seen(saved)).map(|file| json!({ "agents": file["agents"].clone() })), ())));
+		if let Err(err) = saved {
+			eprintln!("[store] could not save what agents have seen: {err}");
 		}
 	}
 }
@@ -42,20 +35,17 @@ impl AgentSeenStore {
 /// sends the lesson again.
 impl SeenStore for AgentSeenStore {
 	fn get(&self, agent: &str, conversation: &str) -> Option<SeenMark> {
-		SeenMark::from_json(&self.read()["agents"][agent]["conversations"][conversation])
+		SeenMark::from_json(&parse_agent_seen(&self.file.read())["agents"][agent]["conversations"][conversation])
 	}
 
 	fn set(&self, agent: &str, conversation: &str, mark: &SeenMark) {
-		let _guard = self.locks.lock(LockKey::AppFile(FILE_NAME));
-		self.write(&with_seen(&self.read(), agent, conversation, mark, &time::iso_now()));
+		self.update(|file| Some(with_seen(&file, agent, conversation, mark, &time::iso_now())));
 	}
 
 	fn forget_agent(&self, agent: &str) {
-		let _guard = self.locks.lock(LockKey::AppFile(FILE_NAME));
-		let mut file = self.read();
-		let removed = file.get_mut("agents").and_then(Json::as_obj_mut).and_then(|agents| agents.remove(agent));
-		if removed.is_some() {
-			self.write(&file);
-		}
+		self.update(|mut file| {
+			let removed = file.get_mut("agents").and_then(Json::as_obj_mut).and_then(|agents| agents.remove(agent));
+			removed.map(|_| file)
+		});
 	}
 }

@@ -8,7 +8,7 @@ use gs_engine::turn::agent::{Agent, AgentOptions};
 use gs_engine::turn::faux::{Engine, Scripted, faux_model};
 use gs_engine::turn::messages::{faux_assistant_message, text_block};
 use gs_engine::turn::tool::{Tool, ToolContext};
-use gs_engine::turn::ui_stream::{TurnSpec, run_pi_turn};
+use gs_engine::turn::ui_stream::{SettleError, TurnSpec, run_pi_turn};
 use gs_json::{Json, Obj, json, parse, stringify_pretty};
 use parking_lot::Mutex;
 use tokio::sync::mpsc::UnboundedReceiver;
@@ -80,10 +80,10 @@ async fn play(s: &Json) -> Json {
 		agent,
 		on_error: Box::new(|err| format!("loop: {err}")),
 		on_settle_error: Box::new(|err| format!("settle: {err}")),
-		on_settle_failure: Box::new(move |err, reported| fails.lock().push(json!({ "error": err, "reported": reported }))),
+		on_settle_failure: Box::new(move |err, reported| fails.lock().push(json!({ "error": err.to_string(), "reported": reported }))),
 		on_finish: Box::new(move |messages| {
 			*fin.lock() = Json::Arr(messages);
-			if finish_fails { Err("disk full".to_owned()) } else { Ok(()) }
+			if finish_fails { Err(SettleError::Other("disk full".to_owned())) } else { Ok(()) }
 		}),
 		used_tool_call_ids: s["usedIds"].as_arr().unwrap().iter().map(|id| id.as_str().unwrap().to_owned()).collect(),
 		update_flush_ms: 100,

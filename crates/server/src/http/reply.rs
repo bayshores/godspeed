@@ -3,7 +3,9 @@
 use std::fmt::Display;
 
 use axum::body::Body;
+use axum::extract::Request;
 use axum::http::{HeaderValue, StatusCode, header};
+use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use bytes::{Bytes, BytesMut};
 use gs_json::Json;
@@ -82,9 +84,27 @@ pub fn not_found() -> Response {
 #[derive(Debug)]
 pub struct Unhandled;
 
+tokio::task_local! {
+	/// "GET /api/spaces/spc_1", the request this task answers.
+	static REQUEST: String;
+}
+
+/// Runs the request with its method and path known to `Unhandled`, so a logged error names the route.
+pub async fn with_request_line(req: Request, next: Next) -> Response {
+	let line = format!("{} {}", req.method(), req.uri().path());
+	REQUEST.scope(line, next.run(req)).await
+}
+
+fn error_line(err: &dyn Display) -> String {
+	match REQUEST.try_with(Clone::clone) {
+		Ok(request) => format!("route error on {request}: {err}"),
+		Err(_) => format!("route error: {err}"),
+	}
+}
+
 impl<E: Display> From<E> for Unhandled {
 	fn from(err: E) -> Unhandled {
-		eprintln!("route error: {err}");
+		eprintln!("{}", error_line(&err));
 		Unhandled
 	}
 }
@@ -148,5 +168,12 @@ mod tests {
 		assert_eq!(res.status(), 404);
 		assert_eq!(res.headers()[header::CONTENT_TYPE], "text/plain;charset=UTF-8");
 		assert_eq!(res.headers()[header::CACHE_CONTROL], "no-store");
+	}
+
+	#[tokio::test]
+	async fn a_logged_route_error_names_the_method_and_path() {
+		assert_eq!(error_line(&"boom"), "route error: boom");
+		let line = REQUEST.scope("PUT /api/spaces/spc_1".to_owned(), async { error_line(&"boom") }).await;
+		assert_eq!(line, "route error on PUT /api/spaces/spc_1: boom");
 	}
 }

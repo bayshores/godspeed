@@ -25,7 +25,7 @@ use gs_engine::turn::agent::Agent;
 use gs_engine::turn::call_ids::collect_tool_call_ids;
 use gs_engine::turn::events::AgentEvent;
 use gs_engine::turn::models::agent_engine;
-use gs_engine::turn::ui_stream::{TurnSpec, run_pi_turn};
+use gs_engine::turn::ui_stream::{SettleError, TurnSpec, run_pi_turn};
 use gs_json::{Json, json, stringify};
 use parking_lot::Mutex;
 
@@ -38,7 +38,7 @@ use super::lesson_agent::{TurnAgent, build_lesson_agent};
 use super::review::askable;
 use super::turn_liveness::{begin_turn, end_turn, turn_started};
 use super::turn_runs::{register_turn, remember_turn_failure, unregister_turn};
-use super::turn_service::{PERSISTENCE_ERROR, persist_turn, trigger_extraction};
+use super::turn_service::{persist_turn, trigger_extraction};
 use crate::App;
 use crate::app::agent_actions::record_answer;
 use crate::app::today_note::today_note_for;
@@ -337,7 +337,7 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 				"An error occurred.".to_owned()
 			}
 		}),
-		on_settle_error: Box::new(|err| settlement_error_text(err).to_owned()),
+		on_settle_error: Box::new(settlement_error_text),
 		on_settle_failure: Box::new(move |err, reported| failure.failed(err, reported)),
 		on_finish: Box::new(move |turn_messages| {
 			let Some(app) = finish.app.upgrade() else { return Ok(()) };
@@ -354,8 +354,11 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 }
 
 /// What views see when settlement failed.
-fn settlement_error_text(err: &str) -> &str {
-	if err == PERSISTENCE_ERROR { err } else { "An error occurred." }
+fn settlement_error_text(err: &SettleError) -> String {
+	match err {
+		SettleError::NotSaved => err.to_string(),
+		SettleError::Other(_) => "An error occurred.".to_owned(),
+	}
 }
 
 fn model_id_of(model: &Json) -> String {
@@ -381,7 +384,7 @@ impl Settle {
 	/// Persist and finish, in the order that makes "turn-settled" imply durable truth: persist,
 	/// usage, extraction, the parked dismissal, then end_turn and unregister, then the steers, then
 	/// the compaction kick.
-	fn finished(&self, app: &Arc<App>, base: usize, turn_messages: &[Json], usage: Usage, extraction: Option<(Option<&str>, f64)>) -> Result<(), String> {
+	fn finished(&self, app: &Arc<App>, base: usize, turn_messages: &[Json], usage: Usage, extraction: Option<(Option<&str>, f64)>) -> Result<(), SettleError> {
 		let chat_id = self.chat_id.as_str();
 		let stamped = persist_turn(app, chat_id, base, turn_messages)?;
 		let durable = app.stores.chats.get_chat(chat_id).and_then(|r| r["messages"].as_arr().cloned());
@@ -408,13 +411,13 @@ impl Settle {
 	}
 
 	/// Settlement failed: release the chat and keep a notice for a view that attaches late.
-	fn failed(&self, err: &str, reported: Option<&str>) {
+	fn failed(&self, err: &SettleError, reported: Option<&str>) {
 		let Some(app) = self.app.upgrade() else { return };
 		let chat_id = self.chat_id.as_str();
 		if let Err(park) = apply_parked_dismissal(&app, chat_id) {
 			eprintln!("[chat {chat_id}] parked dismissal failed: {park}");
 		}
-		remember_turn_failure(&app, chat_id, reported.unwrap_or_else(|| settlement_error_text(err)));
+		remember_turn_failure(&app, chat_id, reported.map_or_else(|| settlement_error_text(err), str::to_owned).as_str());
 		end_turn(&app, chat_id);
 		unregister_turn(&app, chat_id);
 		unregister_live_agent(&app, chat_id);
