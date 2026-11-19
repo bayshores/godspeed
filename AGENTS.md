@@ -62,6 +62,7 @@ Keep godspeed small, tidy and easy to read. The checks below enforce these rules
 - Server data has one owner in the browser (a provider or one hook). Every other component reads from it. Never fetch the same record a second time and keep the copies in step with an event.
 - Every request from the browser goes through `send` or `getJson` in `src/frontend/lib/api.ts`. Lint fails any other `fetch`; one that cannot (a stream, a download) goes on the allow list in `eslint.config.mjs` with its reason.
 - Browser storage goes through `readStorage` and `writeStorage` in `src/frontend/lib/storage.ts`. Lint fails any other `localStorage` or `sessionStorage`.
+- A hook that loads server data is built on `useServerResource` (newest read wins, reloads on the events it names and on reconnect). A request started by a click runs through `useGuardedAction` (busy, error line, no double send).
 - To change one field, send that field; the server merges it under its lock (as `PATCH /api/settings/general` does). Never read a record, change it and send the whole thing back.
 - A fixed set of values (a role, a status, a kind) is one type with its values named once, never the same strings compared in many files. Saved text stays the same.
 
