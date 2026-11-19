@@ -42,6 +42,8 @@ export interface TeacherChat {
 	name: string | null;
 	/** Last used, ms since the epoch. */
 	at: number;
+	/** The teacher's terminal runs it now. */
+	open: boolean;
 }
 
 /** The agent said the chat it was to go back to is gone. */

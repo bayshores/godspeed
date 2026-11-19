@@ -45,10 +45,12 @@ fn changed(app: &App) {
 	app.events.emit(EventKind::TeacherChatsChanged, json!({}));
 }
 
-/// The chats the terminal offers: `[{id, agent, name, at}]`, newest first.
+/// The chats the terminal offers: `[{id, agent, name, at, open}]`, newest first. `open`: the
+/// teacher's terminal runs it now.
 pub fn shown(app: &App) -> Json {
 	let chats = teacher_chats::shown(&app.stores.teacher_chats.read(), &agent_folder(app));
-	Json::Arr(chats.iter().map(|c| json!({ "id": c.id.as_str(), "agent": c.agent.as_str(), "name": c.name.clone(), "at": c.at })).collect())
+	let open = app.bridge.teacher_chat();
+	Json::Arr(chats.iter().map(|c| json!({ "id": c.id.as_str(), "agent": c.agent.as_str(), "name": c.name.clone(), "at": c.at, "open": open.as_deref() == Some(c.id.as_str()) })).collect())
 }
 
 /// The agent said the chat is gone: it leaves the list.

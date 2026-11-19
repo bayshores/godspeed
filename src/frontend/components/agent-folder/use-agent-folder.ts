@@ -28,14 +28,14 @@ export function useAgentFolder() {
 	const showTerminal = useTeacher()?.showTerminal;
 
 	/** Resolves to true once the agent starts (or, outside the desktop app, the folder is made).
-	 *  `resume`: the teacher's chat to go back to. */
+	 *  `resume`: the teacher's chat to go back to. `change`: a running teacher leaves its chat for it. */
 	const start = useCallback(
-		async (role: TerminalRole, agent: FolderAgent, resume?: string): Promise<boolean> => {
+		async (role: TerminalRole, agent: FolderAgent, resume?: string, change = false): Promise<boolean> => {
 			saveAgent(agent);
 			if (terminals?.available) {
 				setStarting(true);
 				setFailed(null);
-				const why = await terminals.start(role, agent, resume);
+				const why = await (change ? terminals.changeChat(agent, resume) : terminals.start(role, agent, resume));
 				setStarting(false);
 				setFailed(why);
 				if (!why) void reload();
@@ -57,6 +57,8 @@ export function useAgentFolder() {
 	);
 
 	const open = useCallback((agent: FolderAgent, resume?: string) => start("teacher", agent, resume), [start]);
+	/** While the teacher runs: a new chat, or back to `resume`. */
+	const changeChat = useCallback((agent: FolderAgent, resume?: string) => start("teacher", agent, resume, true), [start]);
 	/** Start the helper alone. */
 	const openHelper = useCallback((agent: FolderAgent) => start("helper", agent), [start]);
 
@@ -89,7 +91,7 @@ export function useAgentFolder() {
 	/** Outside the desktop app the folder is made: the learner runs the command. */
 	const manual = launch?.made === "done";
 
-	return { view, lines, busy, error, manual, open, openHelper, change, setStartCommand };
+	return { view, lines, busy, error, manual, open, changeChat, openHelper, change, setStartCommand };
 }
 
 /** The agent picked beside "Use another agent": the one last started

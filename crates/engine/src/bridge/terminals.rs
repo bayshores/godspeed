@@ -206,6 +206,12 @@ impl Bridge {
 		self.0.state.lock().terminal_chat.get(terminal).cloned()
 	}
 
+	/// The chat godspeed's own teacher terminal runs now.
+	pub fn teacher_chat(&self) -> Option<String> {
+		let s = self.0.state.lock();
+		s.teacher_terminal.as_ref().and_then(|terminal| s.terminal_chat.get(terminal).cloned())
+	}
+
 	/// The agent in this terminal stopped: whether it was answering the learner there.
 	pub fn take_chat(&self, terminal: &str) -> bool {
 		self.0.state.lock().chatting.remove(terminal)

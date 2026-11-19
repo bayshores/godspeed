@@ -59,7 +59,7 @@ export function fakeShell(list: TerminalRecord[] = []): FakeShell {
 		return Promise.resolve();
 	};
 	const terminals: Lh = {
-		start: (role, agent) => (calls.push(`start ${role} ${agent}`), Promise.resolve({ id: `${role}-new` })),
+		start: (role, agent, resume) => (calls.push(`start ${role} ${agent}${resume ? ` ${resume}` : ""}`), Promise.resolve({ id: `${role}-new` })),
 		attach: (id) => call(`attach ${id}`),
 		detach: (id) => call(`detach ${id}`),
 		// Answers as an ended terminal does, with the size it has: linkedom draws no cells, and xterm cannot change size without them.

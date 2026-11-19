@@ -139,8 +139,8 @@ export function TeacherPanel({
 				className={cn(
 					"flex min-h-0 flex-1 flex-col motion-safe:transition-opacity motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)",
 					!onScreenView && "gap-[18px] px-[18px] pt-1.5 pb-[18px]",
-					// The Activity list drops over the screen: the screen steps back under it.
-					list && onScreenView && "opacity-40",
+					// A list dropped from the head lies over the screen: the screen steps back under it.
+					onScreenView && "peer-data-[hang]:opacity-40",
 				)}
 			>
 				{onScreenView ? (

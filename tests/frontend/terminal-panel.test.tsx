@@ -687,6 +687,72 @@ describe("the footer", () => {
 	});
 });
 
+describe("the Chats key in the panel's head", () => {
+	const running = access({ teaching: true, terminals: [{ id: "t1", here: true }] });
+	const chats = [
+		{ id: "0f8fad5b-d9cb-469f-a165-70867728950e", agent: "claude", name: "Limits proof", at: Date.now(), open: true },
+		{ id: "7c9e6679-7425-40de-944b-e07fc1f90ae7", agent: "claude", name: "Slope", at: Date.now() - 3_600_000, open: false },
+	];
+	const withChats = (list: unknown[]) => {
+		globalThis.fetch = (async (url: string) =>
+			url.startsWith("/api/graph/costs") ? new Response(null, { status: 404 }) : Response.json(url.startsWith("/api/teacher-chats") ? { chats: list } : FOLDER)) as unknown as typeof fetch;
+	};
+
+	it("no key with no chat to go back to, or before the teacher has a screen (the screen lists them)", async () => {
+		const shell = fakeShell([teacher()]);
+		try {
+			withChats([]);
+			await mounted(running, async () => {
+				await click("status");
+				assert.ok(q("teacher-panel-chats") === null);
+			});
+		} finally {
+			shell.remove();
+		}
+		const none = fakeShell([]);
+		try {
+			withChats(chats);
+			await mounted(access(), async () => {
+				await click("open-terminal");
+				assert.ok(q("teacher-chats") !== null, "the screen lists the chats");
+				assert.ok(q("teacher-panel-chats") === null);
+			});
+		} finally {
+			none.remove();
+		}
+	});
+
+	it("it drops the chats, the open one marked; Activity takes its place; a pick turns the teacher off and starts it in that chat", async () => {
+		const shell = fakeShell([teacher()]);
+		try {
+			withChats(chats);
+			await mounted(running, async () => {
+				await click("status");
+				await click("teacher-panel-chats");
+				const list = q("teacher-panel-list");
+				assert.equal(list?.getAttribute("aria-label"), "Chats");
+				assert.equal(list?.querySelector("[data-testid='teacher-chat-open']")?.textContent, "Limits proofopen now");
+				assert.equal(list?.querySelectorAll("[data-testid='teacher-chat']").length, 1);
+				await click("teacher-panel-activity");
+				assert.equal(q("teacher-panel-list")?.getAttribute("aria-label"), "Activity", "one list at a time");
+				await click("teacher-panel-chats");
+				assert.equal(q("teacher-panel-list")?.getAttribute("aria-label"), "Chats");
+
+				await click("teacher-chat");
+				assert.ok(shell.calls.includes("stop t1"), "the running teacher is turned off");
+				assert.ok(!shell.calls.some((c) => c.startsWith("start teacher")), "the start waits for it to end");
+				await act(async () => shell.push({ id: "t1", ended: { code: null, stopped: true }, prompt: null, url: false }));
+				await settle();
+				assert.ok(shell.calls.includes("start teacher claude 7c9e6679-7425-40de-944b-e07fc1f90ae7"), "then it starts in the chat picked");
+				await faded();
+				assert.ok(q("teacher-panel-list") === null, "the list went once it started");
+			});
+		} finally {
+			shell.remove();
+		}
+	});
+});
+
 describe("the starter keys", () => {
 	const running = access({ teaching: true, terminals: [{ id: "t1", here: true }] });
 	const starters = () => [...document.querySelectorAll('[data-testid="terminal-starter"]')].map((b) => b.textContent);
@@ -750,7 +816,7 @@ describe("the starter keys", () => {
 	it("none once the chat was used, by the learner's own line or before (a chat continued)", async () => {
 		const shell = fakeShell([teacher()]);
 		let used = false;
-		globalThis.fetch = (async (url: string) => (url.startsWith("/api/graph/costs") ? new Response(null, { status: 404 }) : Response.json(url.startsWith("/api/teacher-chats") ? { chats: used ? [{ id: "c1", agent: "claude", name: "hi", at: Date.now() }] : [] } : FOLDER))) as unknown as typeof fetch;
+		globalThis.fetch = (async (url: string) => (url.startsWith("/api/graph/costs") ? new Response(null, { status: 404 }) : Response.json(url.startsWith("/api/teacher-chats") ? { chats: used ? [{ id: "c1", agent: "claude", name: "hi", at: Date.now(), open: true }] : [] } : FOLDER))) as unknown as typeof fetch;
 		try {
 			await mounted(running, async () => {
 				await click("status");

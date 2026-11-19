@@ -17,14 +17,16 @@ export function StartTeacher() {
 	return (
 		<div data-testid="no-agent" className="lh-rise flex flex-col items-start gap-3.5">
 			{chats.length > 0 ? (
-				<TeacherChats
-					chats={chats}
-					choice={choice}
-					onChoose={setChoice}
-					onNew={() => choice !== "other" && void open(choice)}
-					onResume={(chat) => void open(chat.agent, chat.id)}
-					busy={busy}
-				/>
+				<div className="w-full max-w-[420px]">
+					<TeacherChats
+						chats={chats}
+						choice={choice}
+						onChoose={setChoice}
+						onNew={() => choice !== "other" && void open(choice)}
+						onResume={(chat) => void open(chat.agent, chat.id)}
+						busy={busy}
+					/>
+				</div>
 			) : (
 				<StartAgentButton choice={choice} onChoose={setChoice} onStart={() => choice !== "other" && void open(choice)} busy={busy} />
 			)}

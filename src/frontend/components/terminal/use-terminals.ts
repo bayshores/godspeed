@@ -52,6 +52,9 @@ export interface TerminalsApi {
 	chats: readonly TeacherChat[];
 	/** Resolves to why it couldn't start, or null. `resume`: the teacher's chat to go back to. */
 	start: (role: TerminalRole, agent: FolderAgent, resume?: string) => Promise<string | null>;
+	/** The teacher leaves the chat it runs for a new one, or for `resume`: the running teacher is
+	 *  turned off first. Resolves like `start`. */
+	changeChat: (agent: FolderAgent, resume?: string) => Promise<string | null>;
 	stop: (role: TerminalRole) => void;
 	/** These resolve to why the shell refused, or null. */
 	answer: (role: TerminalRole, kind: "trust" | "enter") => Promise<string | null>;
@@ -253,6 +256,29 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		[refused, start, postFolder],
 	);
 
+	// A change of chat waits here for the running teacher to end.
+	const teacherEnded = useRef<(() => void) | null>(null);
+	useEffect(() => {
+		if (teacherLive) return;
+		teacherEnded.current?.();
+		teacherEnded.current = null;
+	}, [teacherLive]);
+	const changeChat = useCallback(
+		async (agent: FolderAgent, resume?: string) => {
+			if (!teacher || !teacherLive || !lh) return startRole("teacher", agent, resume);
+			const ended = new Promise<void>((done) => (teacherEnded.current = done));
+			try {
+				await lh.stop(teacher.id);
+			} catch (err) {
+				teacherEnded.current = null;
+				return reason(err);
+			}
+			await ended;
+			return start("teacher", agent, resume);
+		},
+		[teacher, teacherLive, lh, startRole, start],
+	);
+
 	// The helper starts by itself, once per teacher run.
 	const helperTried = useRef<string | null>(null);
 	const helperWanted =
@@ -328,8 +354,8 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	}, [lh, loaded, teacher, agentHere, outsideHere, chats, start]);
 
 	return useMemo(
-		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, start: startRole, stop, answer, paste, send, addFile, wake, waking: wakingShown }),
-		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, startRole, stop, answer, paste, send, addFile, wake, wakingShown],
+		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, start: startRole, changeChat, stop, answer, paste, send, addFile, wake, waking: wakingShown }),
+		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, startRole, changeChat, stop, answer, paste, send, addFile, wake, wakingShown],
 	);
 }
 
