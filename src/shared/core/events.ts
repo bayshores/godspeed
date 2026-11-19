@@ -1,24 +1,9 @@
 /**
- * THE EVENT BUS: notify → fetch, no standing polls.
+ * The server's events: the Rust server sends each as an SSE frame on
+ * GET /api/events. They carry the fact, never the data: the window fetches
+ * the truth on receipt, so a reconnect heals by refetching.
  *
- * One bus, every layer: server emits turn lifecycle here, the store
- * adapters emit job/chat mutations, the agent layer's background
- * registries (extraction) emit activity changes — and
- * GET /api/events turns every emission into an SSE frame for any open
- * window. The events carry the FACT, never the data: consumers fetch
- * truth on receipt (push the poke, pull the data), so payloads stay
- * tiny, schemaless, and idempotent — a reconnect heals by refetching.
- *
- * WHY globalThis (the turn-liveness discipline, same rationale): Next
- * dev compiles each route as its own module entry, so a module-level
- * singleton is a DIFFERENT instance in the page render, the events
- * route, and every emitter's entry — they would each hold a private
- * listener set and nothing would propagate. globalThis spans module
- * instances within the process; it is the standard Next singleton
- * channel.
- *
- * Pure core by law: no React, no IO, no imports — the one layer that
- * server, store, and agent may all depend on.
+ * Pure types, no imports.
  */
 
 /** What an outside agent changed: every MCP tool
@@ -47,10 +32,10 @@ export interface AgentAction {
 
 /** The `agent` of the app's own entries in that list (a linked folder's
  *  new files): not an agent, so the teacher never flies to them. */
-export const APP_SOURCE = "godspeed";
+const APP_SOURCE = "godspeed";
 
 /** The `agent` of what the learner did in the app (answers, deadlines). */
-export const LEARNER_SOURCE = "you";
+const LEARNER_SOURCE = "you";
 
 /** An outside agent's entry: the only kind Follow and the teacher go to. */
 export function isAgentEntry(action: AgentAction): boolean {
@@ -63,8 +48,7 @@ export interface ServerEvents {
 	 *  wake turns, other-tab turns: every origin rides the same event. */
 	"turn-started": { chatId: string };
 	/** A turn settled (endTurn — AFTER persistTurn, so any fetch triggered
-	 *  by this event reads a durable record; ordering is guaranteed in
-	 *  chat-handler's onFinish). */
+	 *  by this event reads a durable record). */
 	"turn-settled": { chatId: string };
 	/** A job record changed (dispatch, progress, settle, abort, recovery).
 	 *  chatId when known — consumers that own one chat filter on it. */
@@ -77,7 +61,7 @@ export interface ServerEvents {
 	 *  delete, files). */
 	"spaces-changed": Record<string, never>;
 	/** The outside agent's status changed: it checked in, went quiet, or
-	 *  a request started or stopped waiting for it (agent-bridge.ts). */
+	 *  a request started or stopped waiting for it. */
 	"agent-changed": Record<string, never>;
 	/** A chat's record changed WITHOUT a turn (the silent dismissal write).
 	 *  Same notify-then-fetch contract as the turn events: open views of

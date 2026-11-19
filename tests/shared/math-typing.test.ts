@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { formatBeforeBreak, formatPiece, hasSlots, isMathBreak, mathSpans, suggestMath, symbolSwap } from "../../src/shared/core/math-typing.ts";
+import { formatBeforeBreak, hasSlots, isMathBreak, mathSpans, suggestMath, symbolSwap } from "../../src/shared/core/math-typing.ts";
 
 describe("math spans", () => {
 	it("finds $...$ pieces and their LaTeX", () => {
@@ -17,6 +17,7 @@ describe("math spans", () => {
 });
 
 describe("formatting a finished piece", () => {
+	const formatPiece = (piece: string) => formatBeforeBreak(piece, piece.length)?.insert ?? null;
 	it("fractions between numbers, letters and groups", () => {
 		assert.equal(formatPiece("1/2"), "$\\frac{1}{2}$");
 		assert.equal(formatPiece("x/y"), "$\\frac{x}{y}$");

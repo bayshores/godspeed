@@ -65,7 +65,7 @@ function unwrap(atom: string): string {
 
 /** What a finished piece becomes: 1/2 → $\frac{1}{2}$, x^2 → $x^{2}$,
  *  x_1 → $x_{1}$. Null when the piece isn't math. */
-export function formatPiece(piece: string): string | null {
+function formatPiece(piece: string): string | null {
 	const frac = FRACTION.exec(piece);
 	if (frac) return `$\\frac{${unwrap(frac[1]!)}}{${unwrap(frac[2]!)}}$`;
 	const scripts = SCRIPTS.exec(piece);

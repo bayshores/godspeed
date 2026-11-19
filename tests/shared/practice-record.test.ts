@@ -1,40 +1,29 @@
 /**
  * PRACTICE RECORD MECHANICS (practice sessions): the
  * native shapes beneath the two practice tools — the active-problem fold
- * (conclude-before-next-problem), the learner's work as plain messages,
- * the ask-style dismissal (UI-only marker; the conclude pair rides the
- * NEXT input), and the model-facing flattening (old thinking records
- * labeled, the dismissal filtered, the synthesized pair native).
+ * (conclude-before-next-problem), the learner's work as plain messages
+ * and the ask-style dismissal (a UI-only marker).
  */
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
 import {
 	activeProblemOf,
-	concludedByDismissalPair,
 	newProblemDismissedMarker,
 	newNextMessage,
 	newOpenProblemMessage,
 	needsContinuation,
 	newUserMessage,
-	pendingProblemDismissalOf,
-	toLlmMessages,
 	PRACTICE_CONCLUDE_TOOL,
 	PRACTICE_PROBLEM_TOOL,
 	type LhMessage,
 } from "../../src/shared/core/native-messages.ts";
-import { CONCLUDE_ACK_TEXT } from "../../src/shared/core/contracts/chat.ts";
-import { inputAppends } from "../../src/shared/core/input-events.ts";
 import { problemInputForConclude } from "../../src/shared/core/native-messages.ts";
 import { projectView } from "../../src/shared/core/index.ts";
-import { oldThinkingMessage } from "../old-records.ts";
 
 // ── builders (native-shaped test fixtures) ───────────────────────────────────
-
-const asAgentMessages = (messages: readonly LhMessage[]) => messages as unknown as AgentMessage[];
 
 const STAMPS = {
 	api: "faux",
@@ -176,148 +165,13 @@ describe("activeProblemOf (the conclude-before-next-problem gate's fold)", () =>
 	});
 });
 
-// ── the dismissal's deferred conclude ────────────────────────────────────────
-
-describe("pendingProblemDismissalOf (the marker waiting for its synthesis)", () => {
-	it("a trailing dismissal marker pends", () => {
-		const messages = [...problemPose(), newProblemDismissedMarker("call_p1")];
-		assert.equal(pendingProblemDismissalOf(messages), "call_p1");
-	});
-
-	it("the synthesized pair clears it", () => {
-		const messages = [...problemPose(), newProblemDismissedMarker("call_p1"), ...concludedByDismissalPair("call_p1")];
-		assert.equal(pendingProblemDismissalOf(messages), null);
-	});
-
-	it("a plain record pends nothing", () => {
-		assert.equal(pendingProblemDismissalOf(problemPose()), null);
-	});
-});
-
-// ── the input channel ────────────────────────────────────────────────────────
-
-describe("work on an open problem", () => {
-	it("is a plain text input: a normal user message, the problem stays active", () => {
-		const input = { type: "text" as const, text: "I think the inactivity constraint applies here" };
-		const appends = inputAppends({ messages: problemPose() }, input);
-		assert.equal(appends.length, 1);
-		const message = appends[0] as { role: string; content: string; customType?: string };
-		assert.equal(message.role, "user");
-		assert.equal(message.content, "I think the inactivity constraint applies here");
-		assert.equal(message.customType, undefined);
-		assert.equal(activeProblemOf([...problemPose(), ...appends])?.toolCallId, "call_p1");
-	});
-});
-
-// ── the move-on signal ─────────────────────────
-
-describe("the next input", () => {
-	it("appends the practice-next marker in an idle practice session", () => {
-		const appends = inputAppends({ messages: [], kind: "practice" }, { type: "next" });
-		assert.equal(appends.length, 1);
-		const marker = appends[0] as { customType: string; content: string };
-		assert.equal(marker.customType, "practice-next");
-		// The model's unambiguous go-ahead, single-sourced in contracts.
-		assert.match(marker.content, /\[NEXT PROBLEM\]/);
-	});
-
-	it("400s outside practice, study and homework sessions", () => {
-		assert.throws(() => inputAppends({ messages: [], kind: "teach" }, { type: "next" }), /practice, study or homework session/);
-		assert.equal(inputAppends({ messages: [], kind: "study" }, { type: "next" }).length, 1);
-		assert.equal(inputAppends({ messages: [], kind: "homework" }, { type: "next" }).length, 1);
-		assert.throws(() => inputAppends({ messages: [] }, { type: "next" }), /practice, study or homework session/);
-	});
-
-	it("400s while a problem is active (mid-problem input is plain text)", () => {
-		assert.throws(() => inputAppends({ messages: problemPose(), kind: "practice" }, { type: "next" }), /no active problem/);
-	});
-
-	it("rides AFTER a pending dismissal conclusion, exactly like text", () => {
-		const dismissed = [...problemPose(), newProblemDismissedMarker("call_p1")];
-		const appends = inputAppends({ messages: dismissed, kind: "practice" }, { type: "next" });
-		assert.equal(appends.length, 3); // conclude pair + the next marker
-		assert.equal((appends[2] as { customType: string }).customType, "practice-next");
-	});
-});
-
-describe("the open input", () => {
-	const pose = (number: string): LhMessage[] => {
-		const [call, result] = problemPose();
-		((call as AssistantMessage).content[0] as { arguments: Record<string, unknown> }).arguments.number = number;
-		return [call!, result!];
-	};
-
-	it("appends a go-ahead naming the picked problem, even with another one open", () => {
-		const appends = inputAppends({ messages: pose("1"), kind: "homework" }, { type: "open", number: "2b" });
-		assert.equal(appends.length, 1);
-		const marker = appends[0] as { customType: string; content: string; details: unknown };
-		assert.equal(marker.customType, "practice-next");
-		assert.deepEqual(marker.details, { number: "2b" });
-		assert.match(marker.content, /^\[OPEN PROBLEM 2b\]/);
-	});
-
-	it("400s outside homework, on the problem already open, and while a question waits", () => {
-		assert.throws(() => inputAppends({ messages: [], kind: "practice" }, { type: "open", number: "1" }), /homework session affordance/);
-		assert.throws(() => inputAppends({ messages: pose("2b"), kind: "homework" }, { type: "open", number: "2b" }), /already open/);
-	});
-
+describe("a homework pick in the view", () => {
 	it("draws the pick as its go-ahead line, and 0.6.74's Teach me this as his own line", () => {
 		const pick = projectView([newOpenProblemMessage("2b")]).flatMap((m) => m.parts);
 		assert.deepEqual(pick.map((p) => [p.type, p.data]), [["data-practice-next", { homework: false, number: "2b" }]]);
 		const old = { id: "m1", role: "custom", customType: "teach-me", content: "[TEACH ME] The learner asks you to teach the method of the open problem.", display: true, details: {}, timestamp: 1 } as LhMessage;
 		const view = projectView([old]);
 		assert.deepEqual([view[0]!.role, view[0]!.parts.map((p) => [p.type, p.text])], ["user", [["text", "Teach me this"]]]);
-	});
-});
-
-describe("the dismissal's conclude synthesis rides the next input", () => {
-	it("text after a dismissal prepends the conclude pair before the user message", () => {
-		const record = { messages: [...problemPose(), newProblemDismissedMarker("call_p1")] };
-		const appends = inputAppends(record, { type: "text", text: "that one was over my head" });
-		assert.equal(appends.length, 3);
-		const [call, ack, user] = appends as [AssistantMessage & { id: string }, ToolResultMessage & { id: string }, { role: string; content: string }];
-		assert.equal(call.content[0]!.type, "toolCall");
-		assert.equal((call.content[0] as { name: string }).name, PRACTICE_CONCLUDE_TOOL);
-		assert.deepEqual((call.content[0] as { arguments: unknown }).arguments, { outcome: "dismissed" });
-		assert.equal(ack.toolCallId, (call.content[0] as { id: string }).id);
-		assert.equal((ack.content[0] as { text: string }).text, CONCLUDE_ACK_TEXT);
-		assert.equal(user.role, "user");
-		assert.equal(user.content, "that one was over my head");
-	});
-
-	it("continue after a dismissal carries the pair alone", () => {
-		const record = { messages: [...problemPose(), newProblemDismissedMarker("call_p1")] };
-		const appends = inputAppends(record, { type: "continue" });
-		assert.equal(appends.length, 2);
-	});
-
-	it("with nothing pending, text appends only the user message", () => {
-		const appends = inputAppends({ messages: problemPose() }, { type: "text", text: "hello" });
-		assert.equal(appends.length, 1);
-	});
-});
-
-// ── the model-facing seam ────────────────────────────────────────────────────
-
-describe("toLlmMessages (practice shapes)", () => {
-	it("an old thinking record flattens to a labeled user message", () => {
-		const out = toLlmMessages(asAgentMessages([oldThinkingMessage("call_p1", "It is 42")]));
-		assert.equal(out.length, 1);
-		const user = out[0] as { role: string; content: Array<{ type: string; text: string }> };
-		assert.equal(user.role, "user");
-		assert.match(user.content[0]!.text, /^Your thinking:\nIt is 42$/);
-	});
-
-	it("the dismissal marker is UI-only (the synthesized pair carries the face)", () => {
-		const out = toLlmMessages(asAgentMessages([newProblemDismissedMarker("call_p1")]));
-		assert.equal(out.length, 0);
-	});
-
-	it("the synthesized pair passes through natively", () => {
-		const out = toLlmMessages(asAgentMessages(concludedByDismissalPair("call_p1")));
-		assert.equal(out.length, 2);
-		assert.equal(out[0]!.role, "assistant");
-		assert.equal(out[1]!.role, "toolResult");
 	});
 });
 
@@ -341,7 +195,7 @@ describe("needsContinuation (a persisted pose ack owes nothing)", () => {
 				role: "toolResult",
 				toolCallId: "call_conclude_solved",
 				toolName: PRACTICE_CONCLUDE_TOOL,
-				content: [{ type: "text", text: CONCLUDE_ACK_TEXT }],
+				content: [{ type: "text", text: "Problem concluded." }],
 				details: null,
 				isError: false,
 				timestamp: 4,

@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { LessonBox } from "../../src/frontend/components/lesson/lesson-box.tsx";
 import { MessageRow } from "../../src/frontend/components/lesson/message-row.tsx";
 import { AttachButton, useAttachmentDraft, type AttachmentDraft } from "../../src/frontend/components/lesson/attachment-tray.tsx";
-import { HEIC_REFUSAL, newAnswerResult, newUserMessage, pdfNote, projectView, type AttachmentPart, type LhMessage } from "../../src/shared/core/index.ts";
+import { newAnswerResult, newUserMessage, pdfNote, projectView, type AttachmentPart, type LhMessage } from "../../src/shared/core/index.ts";
 import { lessonBox, questionTurn, type BoxTurn } from "../../src/frontend/components/lesson/lesson-box-model.ts";
 import { stubCodeMirrorDom } from "../math-box-dom.ts";
 import { oldThinkingMessage } from "../old-records.ts";
@@ -70,7 +70,7 @@ describe("the lesson box's waiting files", () => {
 	});
 
 	it("a refusal shows in the tray", () => {
-		const html = composer({ attachments: draft({ files: [], error: HEIC_REFUSAL }) });
+		const html = composer({ attachments: draft({ files: [], error: "Can't use HEIC photos yet. Export as JPG." }) });
 		assert.match(html, /data-testid="attachment-error"[^>]*>Can&#x27;t use HEIC photos yet\. Export as JPG\.</);
 	});
 

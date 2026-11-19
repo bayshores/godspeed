@@ -1,29 +1,10 @@
 /**
- * The UI parse seam — parse, don't cast.
- *
- * WHY THIS EXISTS. Validation IS first at the model-facing boundary — pi
- * validates arguments against the tool's TypeBox schema before execute,
- * and the authoring refinements run in the execute seam; a failure
- * returns to the model as an error tool result, same turn. But the same bytes have two other consumers, and there they
- * exist UNVALIDATED BY DESIGN:
- *
- *   - the live wire streams raw tool-input deltas while the model is still
- *     typing the call (validation cannot run before the call is complete);
- *   - the transcript keeps the raw input of REJECTED calls too (transcript
- *     honesty + the replay invariant: every toolCall followed by a result).
- *
- * So invalid input is always observable, and part STATES carry the verdict
- * (input-streaming = partial, input-available = validated, output-error =
- * garbage). The flaw that made the crashes possible: consumers trusted
- * those shapes via TypeScript CASTS — `part.input as X` is a compile-time
- * lie the checker believes, with no runtime check behind it.
- *
- * THE RULE (mechanical, not vigilance): model-authored INPUT is consumed
- * only through these parsers, each running the SAME TypeBox schema the model
- * faced — boundary-valid ⇔ consumer-parseable, structurally. Server- and
- * learner-authored OUTPUT stays trusted (our own code authors it: the
- * execute acks, the learner's buildAnswer). A parse failure renders the
- * quiet fallback, never a crash.
+ * The UI parse seam: parse, don't cast. The Rust server validates a tool
+ * call before it runs, but the live wire streams raw input while the model
+ * is still typing, and the transcript keeps the input of rejected calls, so
+ * the UI sees unvalidated input. Model-authored input is read only through
+ * these parsers; a failure renders the quiet fallback, never a crash.
+ * Server- and learner-authored output stays trusted.
  */
 
 import { Value } from "typebox/value";
@@ -50,18 +31,11 @@ function boundaryParse<T>(schema: TSchema, input: unknown): T | undefined {
 }
 
 /**
- * Quiz parse for DISPLAY: the shared authoring base, pre-refinement.
- * Both boundaries (the prober's quizInputBase, the teacher's quizInputObject
- * over base + optional nodeId) share THE SAME quizInputBase fields, so
- * anything that passed either boundary parses here; the teacher-only
- * `nodeId` is an unknown key Value.Clean strips. This is deliberately the LENIENT common core — the strict per-agent authoring
- * checks are the boundary's job — but it runs the shared grading
- * refinement (quizInputProblems) after Convert, mirroring the boundary's
- * full chain: pi accepts `correctAnswer: 17` structurally (Convert →
- * "17") and execute's refinement is what makes it a posed-or-rejected
- * call. The display parse follows the same order so an input that could
- * never have been posed (e.g. `correctAnswer: undefined`, which Convert
- * widens to "") renders as a quiet fallback, not a broken quiz.
+ * Quiz parse for DISPLAY: the shared authoring base, then the grading
+ * refinement (quizInputProblems), so an input that could never have been
+ * posed (e.g. `correctAnswer: undefined`, which Convert widens to "")
+ * renders as a quiet fallback, not a broken quiz. The teacher-only `nodeId`
+ * is an unknown key Value.Clean strips.
  *
  * Shape parsing never repairs authored text. The dock builds its answer
  * data from this source copy; recovery belongs exclusively to presentation
@@ -74,8 +48,7 @@ export function parseQuizInput(input: unknown): QuizDisplayInput | undefined {
 	// strips.
 	// The display mirror of the boundary heal: the record keeps RAW
 	// arguments, so a `type: "\"predict\""` wobble must heal HERE too or a
-	// posed quiz renders invisible. healEncodedArguments is the same pure
-	// pass the boundary's withArgumentHeal runs.
+	// posed quiz renders invisible.
 	const healedInput = healEncodedArguments(input, quizDisplayInputSchema);
 	const cleaned = boundaryParse<QuizDisplayInput>(quizDisplayInputSchema, healedInput);
 	if (!cleaned) return undefined;

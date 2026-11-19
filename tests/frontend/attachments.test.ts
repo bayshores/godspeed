@@ -1,8 +1,7 @@
 /**
  * Pictures and PDFs on learner messages: the shared rules (types, sizes,
- * the 5-file limit, the PDF note), the strict input parse, the stored
- * message shapes, the model-facing seam, the view projection, and the
- * compaction text (never base64).
+ * the 5-file limit, the PDF note), the stored message shapes and the view
+ * projection.
  */
 
 import assert from "node:assert/strict";
@@ -10,23 +9,16 @@ import { describe, it } from "node:test";
 
 import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
 import {
-	attachmentRefusal,
 	attachmentType,
-	base64Bytes,
-	contentText,
 	draftAttachmentParts,
-	HEIC_REFUSAL,
 	pdfNote,
 	pdfNoteOf,
 	pickAttachments,
-	TOO_MANY_REFUSAL,
 	type AttachmentPart,
 } from "../../src/shared/core/attachments.ts";
-import { inputAppends } from "../../src/shared/core/input-events.ts";
-import { newAnswerResult, newSideQuestion, newUserMessage, PRACTICE_PROBLEM_TOOL, toLlmMessages, type LhMessage } from "../../src/shared/core/native-messages.ts";
+import { newAnswerResult, newUserMessage, PRACTICE_PROBLEM_TOOL, type LhMessage } from "../../src/shared/core/native-messages.ts";
 import { answerTakesFiles } from "../../src/shared/core/pending.ts";
 import { projectView } from "../../src/shared/core/view.ts";
-import { serializeForSummary } from "../../src/shared/core/compaction.ts";
 import { absorbed } from "../../src/frontend/components/session-core.ts";
 import { oldThinkingMessage } from "../old-records.ts";
 
@@ -45,14 +37,15 @@ describe("attachment rules", () => {
 	});
 
 	it("refuses HEIC, oversized files and other types with short plain messages", () => {
-		assert.equal(attachmentRefusal({ name: "IMG_1.heic", type: "", size: 10 }), HEIC_REFUSAL);
-		assert.equal(attachmentRefusal({ name: "a.png", type: "image/png", size: 20 * MB }), null);
-		assert.equal(attachmentRefusal({ name: "a.png", type: "image/png", size: 20 * MB + 1 }), "a.png is too big. Pictures can be up to 20 MB.");
-		assert.equal(attachmentRefusal({ name: "b.pdf", type: "application/pdf", size: 30 * MB }), null);
-		assert.equal(attachmentRefusal({ name: "b.pdf", type: "application/pdf", size: 30 * MB + 1 }), "b.pdf is too big. PDFs can be up to 30 MB.");
-		assert.equal(attachmentRefusal({ name: "c.zip", type: "application/zip", size: 1 }), "Can't add c.zip. Use a PNG, JPG, GIF, WebP or PDF.");
+		const refusal = (file: { name: string; type: string; size: number }) => pickAttachments(0, [file]).refusal;
+		assert.equal(refusal({ name: "IMG_1.heic", type: "", size: 10 }), "Can't use HEIC photos yet. Export as JPG.");
+		assert.equal(refusal({ name: "a.png", type: "image/png", size: 20 * MB }), null);
+		assert.equal(refusal({ name: "a.png", type: "image/png", size: 20 * MB + 1 }), "a.png is too big. Pictures can be up to 20 MB.");
+		assert.equal(refusal({ name: "b.pdf", type: "application/pdf", size: 30 * MB }), null);
+		assert.equal(refusal({ name: "b.pdf", type: "application/pdf", size: 30 * MB + 1 }), "b.pdf is too big. PDFs can be up to 30 MB.");
+		assert.equal(refusal({ name: "c.zip", type: "application/zip", size: 1 }), "Can't add c.zip. Use a PNG, JPG, GIF, WebP or PDF.");
 		for (const type of ["image/png", "image/jpeg", "image/gif", "image/webp"]) {
-			assert.equal(attachmentRefusal({ name: "x", type, size: 1 }), null, type);
+			assert.equal(refusal({ name: "x", type, size: 1 }), null, type);
 		}
 	});
 
@@ -60,17 +53,11 @@ describe("attachment rules", () => {
 		const file = (name: string) => ({ name, type: "image/png", size: 1 });
 		const some = pickAttachments(3, [file("1"), file("2"), file("3")]);
 		assert.deepEqual(some.accepted.map((f) => f.name), ["1", "2"]);
-		assert.equal(some.refusal, TOO_MANY_REFUSAL);
+		assert.equal(some.refusal, "You can add up to 5 files to one message.");
 		const mixed = pickAttachments(0, [{ name: "x.heic", type: "", size: 1 }, file("ok")]);
 		assert.deepEqual(mixed.accepted.map((f) => f.name), ["ok"]);
-		assert.equal(mixed.refusal, HEIC_REFUSAL);
+		assert.equal(mixed.refusal, "Can't use HEIC photos yet. Export as JPG.");
 		assert.deepEqual(pickAttachments(0, [file("a")]), { accepted: [file("a")], refusal: null });
-	});
-
-	it("counts base64 bytes without decoding", () => {
-		assert.equal(base64Bytes("QUJD"), 3);
-		assert.equal(base64Bytes("QUI="), 2);
-		assert.equal(base64Bytes("QQ=="), 1);
 	});
 
 	it("the PDF note names the file and its path, and reads back", () => {
@@ -89,11 +76,6 @@ describe("attachment rules", () => {
 			[{ type: "image", data: PNG, mimeType: "image/png" }, pdfNote("b.pdf", "")],
 		);
 	});
-
-	it("content as text marks pictures and never carries their base64", () => {
-		assert.equal(contentText("hi"), "hi");
-		assert.equal(contentText([{ type: "text", text: "look" }, image]), "look\n[image]");
-	});
 });
 
 describe("stored messages", () => {
@@ -103,31 +85,11 @@ describe("stored messages", () => {
 		assert.deepEqual(newUserMessage("  ", [image]).content, [image], "no empty text part");
 	});
 
-	it("inputAppends puts the stored files on the learner's message", () => {
-		const [message] = inputAppends({ messages: [] }, { type: "text", text: "see", attachments: [] }, [image]);
-		assert.deepEqual((message as { content: unknown }).content, [{ type: "text", text: "see" }, image]);
-	});
-
-	it("an old thinking record's files reach the model after its text", () => {
-		const thinking = oldThinkingMessage("call_p1", "my work", [image, pdf]);
-		assert.deepEqual(thinking.attachments, [image, pdf]);
-		const [wire] = toLlmMessages([thinking as never]);
-		assert.deepEqual((wire as { content: unknown }).content, [{ type: "text", text: thinking.content }, image, pdf]);
-		assert.equal(oldThinkingMessage("call_p1", "x").attachments, undefined);
-	});
-
 	it("an optimistic message with files is absorbed by its saved copy", () => {
 		const optimistic = { ...newUserMessage("see", [{ ...image, data: "b3JpZ2luYWw=" }, pdfNote("notes.pdf", "")]), id: "c_local" };
 		const saved = newUserMessage("see", [image, pdf]);
 		assert.ok(absorbed(optimistic, [saved]));
 		assert.ok(!absorbed(optimistic, [newUserMessage("see", [image])]), "a different file list is a different message");
-	});
-
-	it("compaction reads files as text and never their base64", () => {
-		const text = serializeForSummary([newUserMessage("see", [image, pdf]), oldThinkingMessage("p", "work", [image])]);
-		assert.ok(!text.includes(image.data));
-		assert.match(text, /\[LEARNER\] see\n\[image\]\n\[Attached PDF\] notes\.pdf/);
-		assert.match(text, /\[SYSTEM NOTE\] Your thinking:\nwork\n\[image\]/);
 	});
 });
 
@@ -183,18 +145,8 @@ describe("an answer's files", () => {
 		for (const tool of ["quiz", "probe", "write_code"]) assert.equal(answerTakesFiles(tool), false, tool);
 	});
 
-	it("they follow the answer record in the call's result, and a question that takes none refuses them", () => {
-		const [result] = inputAppends({ messages: [ask("q1", "explain")] }, { type: "answer", toolCallId: "q1", answer: explained }, [image, pdf]);
-		const content = (result as ToolResultMessage).content;
-		assert.equal(content[0]!.type, "text");
-		assert.deepEqual(content.slice(1), [image, pdf]);
-		assert.throws(() => inputAppends({ messages: [ask("q2", "quiz")] }, { type: "answer", toolCallId: "q2", answer: explained }, [image]), /takes no files/);
-	});
-
-	it("the model gets them with the result, and the answered card gets them as file parts", () => {
+	it("the answered card gets them as file parts", () => {
 		const record = [ask("q1", "recall"), { ...newAnswerResult("q1", "recall", explained, [image, pdf]), id: "r1" }];
-		const wire = toLlmMessages(record).at(-1) as ToolResultMessage;
-		assert.deepEqual(wire.content.slice(1), [image, pdf]);
 		const part = projectView(record)[0]!.parts.find((p) => p.type === "tool-recall")!;
 		assert.deepEqual(part.files, [
 			{ type: "data-image", id: "q1-a0", data: { base64: image.data, mimeType: "image/jpeg" } },
@@ -202,21 +154,5 @@ describe("an answer's files", () => {
 		]);
 		const plain = projectView([ask("q2", "explain"), newAnswerResult("q2", "explain", explained)]);
 		assert.equal(plain[0]!.parts.find((p) => p.type === "tool-explain")!.files, undefined);
-	});
-
-	it("an answer given after a side question carries them in its late message, and the earlier view stays a prefix", () => {
-		const asked = [ask("q1", "explain"), newSideQuestion("why?")];
-		const before = toLlmMessages(asked);
-		const after = toLlmMessages([...asked, newAnswerResult("q1", "explain", explained, [image])]);
-		assert.deepEqual(after.slice(0, before.length), before);
-		const late = after.at(-1)!;
-		assert.equal(late.role, "user");
-		assert.deepEqual((late.content as AttachmentPart[]).slice(1), [image]);
-	});
-
-	it("compaction reads them as text and never their base64", () => {
-		const text = serializeForSummary([newAnswerResult("q1", "explain", explained, [image])]);
-		assert.ok(!text.includes(image.data));
-		assert.match(text, /\[image\]/);
 	});
 });

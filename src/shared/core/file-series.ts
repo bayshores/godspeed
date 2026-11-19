@@ -7,14 +7,14 @@
 
 import { extensionOf } from "./contracts.ts";
 
-export interface NamedFile {
+interface NamedFile {
 	id: string;
 	name: string;
 }
 
 /** One number of a series and the files that carry it (a lecture's notes
  *  can come as two files). */
-export interface SeriesItem<F extends NamedFile = NamedFile> {
+interface SeriesItem<F extends NamedFile = NamedFile> {
 	number: number;
 	files: F[];
 	/** "YYYY-MM-DD" when a file's name has one. */

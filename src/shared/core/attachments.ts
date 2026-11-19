@@ -1,13 +1,12 @@
 /**
  * Files on a learner message: pictures and PDFs added in the composer.
  *
- * The composer sends each file as base64 (ChatAttachment). The server turns
- * a picture into a pi image part and saves a PDF next to the lesson, leaving
- * a text note (pdfNote) that tells the teacher where it is. Both kinds ride
- * the stored message as AttachmentPart, so the view, the outside agent and
- * compaction read them like any other pi content.
+ * The composer sends each file as base64 (ChatAttachment). The Rust server
+ * turns a picture into an image part and saves a PDF next to the lesson,
+ * leaving a text note (pdfNote) that tells the teacher where it is. Both
+ * kinds ride the stored message as AttachmentPart.
  *
- * Pure and browser-safe: the composer and the server share these rules.
+ * Pure and browser-safe: the composer's rules for what it accepts.
  */
 
 import type { ImageContent, TextContent } from "@earendil-works/pi-ai";
@@ -46,8 +45,8 @@ const TYPE_BY_EXTENSION: Record<string, string> = {
 	heif: "image/heif",
 };
 
-export const HEIC_REFUSAL = "Can't use HEIC photos yet. Export as JPG.";
-export const TOO_MANY_REFUSAL = `You can add up to ${MAX_ATTACHMENTS} files to one message.`;
+const HEIC_REFUSAL = "Can't use HEIC photos yet. Export as JPG.";
+const TOO_MANY_REFUSAL = `You can add up to ${MAX_ATTACHMENTS} files to one message.`;
 
 /** A file's type: the browser's, or read from its extension when the browser gives none. */
 export function attachmentType(name: string, type: string): string {
@@ -61,7 +60,7 @@ export function isPdfType(type: string): boolean {
 }
 
 /** Why a file can't be added (shown under the previews), or null when it can. */
-export function attachmentRefusal(file: { name: string; type: string; size: number }): string | null {
+function attachmentRefusal(file: { name: string; type: string; size: number }): string | null {
 	const type = attachmentType(file.name, file.type);
 	if (HEIC_TYPES.includes(type)) return HEIC_REFUSAL;
 	if (type === PDF_TYPE) return file.size > MAX_PDF_BYTES ? `${file.name} is too big. PDFs can be up to 30 MB.` : null;
@@ -83,12 +82,6 @@ export function pickAttachments<T extends { name: string; type: string; size: nu
 		else accepted.push(file);
 	}
 	return { accepted, refusal };
-}
-
-/** Decoded size of a base64 string, without decoding it. */
-export function base64Bytes(data: string): number {
-	const padding = data.endsWith("==") ? 2 : data.endsWith("=") ? 1 : 0;
-	return Math.floor((data.length * 3) / 4) - padding;
 }
 
 const PDF_NOTE_HEAD = "[Attached PDF] ";
@@ -115,10 +108,4 @@ export function draftAttachmentParts(attachments: readonly ChatAttachment[]): At
 	return attachments.map((a) =>
 		isPdfType(a.mimeType) ? pdfNote(a.name, "") : { type: "image", data: a.data, mimeType: a.mimeType },
 	);
-}
-
-/** Message content as plain text, each picture as "[image]" (never its base64). */
-export function contentText(content: string | readonly AttachmentPart[]): string {
-	if (typeof content === "string") return content;
-	return content.map((part) => (part.type === "text" ? part.text : "[image]")).join("\n");
 }

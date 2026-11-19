@@ -7,11 +7,11 @@
  */
 
 /** A Study session started from a deadline, with its step bar's count. */
-export interface DeadlineSession {
+interface DeadlineSession {
 	chatId: string;
 	deadlineId: string;
 	createdAt: string;
-	/** The step bar's count (plan-step-bar.ts stepPosition); absent until
+	/** The step bar's count; absent until
 	 *  the session has a plan (the agent writes it when the space has no
 	 *  topics for it). */
 	done?: number;

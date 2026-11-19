@@ -11,13 +11,13 @@ import type { QuestionAnswerData } from "../question-core.ts";
 // ─── Chat records (the session store's on-disk format) ───────────────────────
 
 /** The session's kind. "study" is every new session: the teacher plus
- *  the practice tools, per topic (core/study.ts). "teach" (prober then
+ *  the practice tools, per topic. "teach" (prober then
  *  teacher; ABSENT on old records, absence reads as teach) and "practice"
  *  (the practice agent, its two tools, no extraction) are older sessions
  *  that keep working as they were. "homework" works on one deadline's
  *  problems with hints only (core/homework.ts). "talk" is an older
  *  build's Talk chat (TALK_CHAT_ID): kept on disk, never shown. */
-export type ChatKind = "teach" | "practice" | "study" | "homework" | "talk";
+type ChatKind = "teach" | "practice" | "study" | "homework" | "talk";
 
 /** A lesson's kind: every kind but Talk. */
 export type LessonKind = Exclude<ChatKind, "talk">;
@@ -73,7 +73,7 @@ export interface ChatRecord {
 /** One pipeline stage's model usage — the stage's model + every step it
  *  ran (CallUsage per agent step). Steps, not a sum: usage and context
  *  folds happen at read time (core/prices.ts). */
-export interface ExtractionStageUsage {
+interface ExtractionStageUsage {
 	/** The model that ran this stage, provider-qualified ("provider:id")
 	 * for Pi catalog lookup at read time. */
 	model: string;
@@ -84,7 +84,7 @@ export interface ExtractionStageUsage {
  *  Appended to the chat's `extractions` log when the run ends — success or
  *  failure, because tokens were used either way; `stats` is present only
  *  when the merger actually ran. */
-export interface ExtractionRunUsage {
+interface ExtractionRunUsage {
 	/** The run's registry startedAt (ms) — the idempotency key. */
 	startedAt: number;
 	at: string;
@@ -144,15 +144,6 @@ export interface TurnUsage {
 // ─── Practice sessions — marker + ack texts ─────────────────────────────────
 // The model-facing text of every custom marker lives in core/contracts,
 // never in the flattening seam.
-
-/** The conclude tool's ack — shared by the executed call (agent layer) and
- *  the dismissal-synthesized pair (input-events), so a concluded problem
- *  reads identically to the model however it concluded. The turn ENDS
- *  after concluding (closing words allowed, no more tool calls); the next
- *  problem waits for the learner's explicit go-ahead, which asking for a
- *  different problem or part is. */
-export const CONCLUDE_ACK_TEXT =
-	"Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). The one exception: when the learner asked for a different problem or part, that ask is the go-ahead, so pose it now. Between problems, answer their questions about the concluded one.";
 
 /** The Study tool that stores a finished topic's review question and the
  *  next topic's opener. Its result ends the agent's turn. */
@@ -277,8 +268,8 @@ export interface PlanBlockData {
  *
  *  Phase semantics (three phases, event-driven): probe ends at a concluded
  *  probe_done (clean result, not ok:false); plan ends at the first
- *  quiz/explain call tagged with a nodeId; derived from the native
- *  transcript (core/phases.ts phaseAt3Lh).
+ *  quiz/explain call tagged with a nodeId; the server derives it from the
+ *  native transcript.
  */
 export interface ChatListItem {
 	id: string;
@@ -293,7 +284,7 @@ export interface ChatListItem {
 	/** The deadline a Study session was started from. */
 	deadlineId?: string;
 	messageCount: number;
-	/** The session's current phase, derived from the native transcript (phaseAt3Lh). */
+	/** The session's current phase, derived from the native transcript. */
 	phase: Phase3;
 	/** An unanswered quiz/ask question is waiting for the learner. */
 	pendingQuestion: boolean;

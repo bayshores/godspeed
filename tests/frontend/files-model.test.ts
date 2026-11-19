@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { SpaceFile, FileCoverage } from "../../src/shared/core/index.ts";
 import { groupFileSeries } from "../../src/shared/core/file-series.ts";
-import { fileGroups, pairSeries } from "../../src/shared/core/file-groups.ts";
+import { fileGroups } from "../../src/shared/core/file-groups.ts";
 import {
 	canRemove,
 	canRetry,
@@ -156,26 +156,17 @@ describe("files-model", () => {
 		);
 	});
 
-	it("pairSeries pairs a transcript series with the one notes series most like it, never on a tie", () => {
-		const { series } = groupFileSeries(CSE21);
-		const pairs = pairSeries(series);
-		assert.deepEqual([...pairs].map(([t, n]) => [t.label, n.label]), [["Lecture", "Day"]]);
-		// Two notes series equally like the transcripts: no pair.
-		const tie = groupFileSeries(named(["Lecture01.srt", "Lecture02.srt", "Day1.pdf", "Day2.pdf", "Notes1.pdf", "Notes2.pdf"]));
-		assert.equal(pairSeries(tie.series).size, 0);
-		// Too few shared numbers: no pair.
-		const apart = groupFileSeries(named(["Lecture01.srt", "Lecture02.srt", "Lecture03.srt", "Day3.pdf", "Day7.pdf", "Day8.pdf"]));
-		assert.equal(pairSeries(apart.series).size, 0);
-		// A series mixing notes and transcripts pairs with nothing.
-		const mixed = groupFileSeries(named(["Lecture01.srt", "Lecture02.pdf", "Day1.pdf", "Day2.pdf"]));
-		assert.equal(pairSeries(mixed.series).size, 0);
-	});
-
-	it("chapters named by their number, or numbers on other dates, never pair with lecture transcripts", () => {
-		const { series } = groupFileSeries(named(["01_Logic.pdf", "02_Sets.pdf", "03_Algorithms.pdf", "Lecture01.srt", "Lecture02.srt", "Lecture03.srt"]));
-		assert.equal(pairSeries(series).size, 0);
-		const weeks = groupFileSeries(named(["2026-09-30 Week 1.pdf", "2026-10-07 Week 2.pdf", "Lecture01_2026-09-25.srt", "Lecture02_2026-09-28.srt"]));
-		assert.equal(pairSeries(weeks.series).size, 0);
+	it("a transcript series joins the one notes series most like it, never on a tie, too few shared numbers, a mixed series or numbered chapters", () => {
+		// A series that joined another leaves one group fewer than there are series.
+		const joinedIn = (files: ReturnType<typeof named>) => groupFileSeries(files).series.length - fileGroups(files).filter((g) => g.key !== "other").length;
+		const joined = (names: string[]) => joinedIn(named(names));
+		assert.equal(joinedIn(CSE21), 1);
+		assert.equal(joined(["Lecture01.srt", "Lecture02.srt", "Day1.pdf", "Day2.pdf"]), 1);
+		assert.equal(joined(["Lecture01.srt", "Lecture02.srt", "Day1.pdf", "Day2.pdf", "Notes1.pdf", "Notes2.pdf"]), 0, "a tie pairs nothing");
+		assert.equal(joined(["Lecture01.srt", "Lecture02.srt", "Lecture03.srt", "Day3.pdf", "Day7.pdf", "Day8.pdf"]), 0, "too few shared numbers");
+		assert.equal(joined(["Lecture01.srt", "Lecture02.pdf", "Day1.pdf", "Day2.pdf"]), 0, "a mixed series pairs with nothing");
+		assert.equal(joined(["01_Logic.pdf", "02_Sets.pdf", "03_Algorithms.pdf", "Lecture01.srt", "Lecture02.srt", "Lecture03.srt"]), 0, "chapters named by their number");
+		assert.equal(joined(["2026-09-30 Week 1.pdf", "2026-10-07 Week 2.pdf", "Lecture01_2026-09-25.srt", "Lecture02_2026-09-28.srt"]), 0, "numbers on other dates");
 	});
 
 	it("linked files in no series are grouped by their subfolder, by date; lone and root files stay in Other", () => {

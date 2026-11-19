@@ -6,7 +6,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { contrast, darkBackground, inkFor, inkReaches, readableAccent, shiftHex, tintFor, type InkLevel } from "../../src/shared/core/ink.ts";
+import { contrast, darkBackground, inkFor, readableAccent, shiftHex, tintFor, type InkLevel } from "../../src/shared/core/ink.ts";
 
 const MINIMUM: Record<InkLevel, number> = { text: 7, body: 6, muted: 4.5, faint: 4.5, edge: 3 };
 const LEVELS = Object.keys(MINIMUM) as InkLevel[];
@@ -55,13 +55,6 @@ describe("inkFor", () => {
 		assert.ok(r! > g! && r! > b! - 10, "text on wine leans warm");
 		const [nr, ng, nb] = rgb(inkFor("#161616", "muted"));
 		assert.ok(nr === ng && ng === nb, "a gray background gives gray text");
-	});
-});
-
-describe("inkReaches", () => {
-	it("says whether a level can meet its minimum at all", () => {
-		assert.equal(inkReaches("#000000", "text", ["#161616"]), true);
-		assert.equal(inkReaches("#777777", "muted", ["#8e8e8e"]), false, "mid gray: white can't reach 4.5 on its tone");
 	});
 });
 

@@ -2,7 +2,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { StatsBar, contextMeter, turnSize } from "../../src/frontend/components/stats-bar.tsx";
-import { sessionCost } from "../../src/shared/core/prices.ts";
 import { planCostLabel, prettyModel } from "../../src/frontend/components/usage-format.ts";
 import type { TurnUsage } from "../../src/shared/core/contracts.ts";
 
@@ -30,14 +29,14 @@ describe("stats bar", () => {
 	it("stays hidden until the lesson is 80% of the way to being summarized", () => {
 		assert.equal(renderToStaticMarkup(<StatsBar turns={[]} />), "");
 		assert.equal(renderToStaticMarkup(<StatsBar turns={[turn()]} contextTokens={11_000} summarizeAt={40_000} />), "");
-		const html = renderToStaticMarkup(<StatsBar turns={[turn(), turn()]} contextTokens={33_000} summarizeAt={40_000} pricing={sessionCost({ turns: [turn(), turn()] })} />);
+		const html = renderToStaticMarkup(<StatsBar turns={[turn(), turn()]} contextTokens={33_000} summarizeAt={40_000} pricing={{ unpriced: 0, subscription: 2, subscriptionProviders: ["Your agent"] }} />);
 		assert.match(html, /data-testid="stats-context">33k \/ 40k<\/span> lesson</);
 		assert.ok(!html.includes('data-testid="stats-model"'), "no model control");
 		assert.ok(!html.includes("Your agent"), "the plan label stays in the details");
 	});
 
 	it("shows – for cost when every turn is unpriceable, never a fake $0", () => {
-		assert.equal(planCostLabel(sessionCost({ turns: [turn({ model: "nope/unknown" })] }).subscriptionProviders), "–");
+		assert.equal(planCostLabel(undefined), "–");
 	});
 
 	it("the meter's text: none while unknown or below 80%", () => {

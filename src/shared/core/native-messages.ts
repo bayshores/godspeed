@@ -9,19 +9,13 @@
  * id, never the message. This app needs a per-message id for client
  * identity (React keys, append-only adoption, the continuation seam), so
  * every record message carries ONE extra field — `id` — alongside the
- * native shape. `toLlmMessages` strips it at the wire: the provider never
- * sees it (verified single site, below).
+ * native shape. The Rust server strips it before the provider sees it.
  *
  * UI-ONLY CONTENT: the probe→teach handoff, sub-agent steers,
- * and plan blocks are LhMarkerMessage — this app's declaration-merged
- * member of pi-agent-core's CustomAgentMessages extension point, shaped
- * exactly like pi's own CustomMessage ({role:"custom", customType,
- * content, display, details}). ONE seam — toLlmMessages, wired as the
- * agent's convertToLlm — owns every model-facing decision: markers
- * flatten to their canonical user text (single-sourced in
- * core/contracts), plan blocks are UI-only and filtered, and dangling
- * tool calls (an aborted turn) get the interrupted-result synthesis the
- * provider protocol demands.
+ * and plan blocks are LhMarkerMessage — shaped like pi's own
+ * CustomMessage ({role:"custom", customType, content, display, details}).
+ * The Rust server flattens markers to their canonical user text
+ * (single-sourced in core/contracts) and filters the UI-only ones.
  *
  * Answers: the learner's answer IS the tool call's ToolResultMessage —
  * appended natively at answer time. The synthetic "question posed"
@@ -32,43 +26,16 @@
  */
 
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import type { AssistantMessage, Message, ToolResultMessage, UserMessage } from "@earendil-works/pi-ai";
+import type { AssistantMessage, ToolResultMessage, UserMessage } from "@earendil-works/pi-ai";
 import { isQuestionTool } from "./pending.ts";
 import {
-	CONCLUDE_ACK_TEXT,
 	TOPIC_DONE_TOOL,
 	NEXT_PROBLEM_TEXT,
 	openProblemText,
 } from "./contracts/chat.ts";
 import { compactAnswerForModel, type QuestionAnswerData } from "./question-core.ts";
-import { activeCompactionOf, keptIndexFor } from "./compaction.ts";
 import { newMessageId } from "./message-id.ts";
 import type { AttachmentPart } from "./attachments.ts";
-
-/** The hard-invariant wording for an aborted turn's unanswered calls.
- *  Keep it verbatim so the model's view never drifts. */
-const INTERRUPTED_TEXT =
-	"The question was interrupted — the learner never answered; continue without holding a result for it.";
-
-/** The model's result for a question the learner asked a side question
- *  around: providers need a result right after the call, and the real
- *  answer comes later (SIDE_ANSWER_LEAD). */
-const SIDE_PENDING_TEXT =
-	"Not answered yet. The learner asked a side question first. Answer it. The question stays open in their window, so don't repeat it or ask another.";
-
-/** How that later answer (or skip) reaches the model, at its own place. */
-const SIDE_ANSWER_LEAD = "The learner answered your open question: ";
-
-/** SIDE_ANSWER_LEAD, naming the question when its message asked several:
- *  out of place, the answer no longer sits next to its own call. */
-function sideAnswerLead(asker: LhMessage, callId: string): string {
-	if (asker.role !== "assistant") return SIDE_ANSWER_LEAD;
-	const questions = asker.content.filter((b) => b.type === "toolCall" && isQuestionTool(b.name));
-	if (questions.length < 2) return SIDE_ANSWER_LEAD;
-	const call = questions.find((b) => b.type === "toolCall" && b.id === callId);
-	const question = call?.type === "toolCall" && typeof call.arguments.question === "string" ? call.arguments.question : callId;
-	return `The learner answered your open question (${JSON.stringify(question)}): `;
-}
 
 // ─── The record's message type ───────────────────────────────────────────────
 
@@ -314,12 +281,9 @@ export function newOpenProblemMessage(number: string): LhMarkerMessage {
 	};
 }
 
-/** The problem-dismissal marker (ask-style discard):
- *  UI-ONLY — toLlmMessages filters it. The model's face arrives later, at
- *  the user's next input, as the synthesized conclude pair
- *  (concludedByDismissalPair below) — the agent sees the dismissal as a
- *  conclude call it "made" with outcome "dismissed", so the slot-freed
- *  state and the dismissal read through the one vocabulary it owns. */
+/** The problem-dismissal marker (ask-style discard): UI-ONLY. The server
+ *  gives the model a synthesized conclude call with outcome "dismissed"
+ *  at the learner's next input. */
 export function newProblemDismissedMarker(problemCallId: string): LhMarkerMessage {
 	return {
 		id: newMessageId(),
@@ -330,57 +294,6 @@ export function newProblemDismissedMarker(problemCallId: string): LhMarkerMessag
 		details: { problemCallId },
 		timestamp: Date.now(),
 	};
-}
-
-/** The dismissal's deferred conclude: the pair
- *  prepended to the user's NEXT input — a synthetic assistant message
- *  carrying a conclude call (outcome "dismissed") plus its ack result, so
- *  both the record and the model context read the problem as concluded
- *  by dismissal, slot freed. Pure; ids are deterministic off the problem
- *  call id (idempotent shape — the pending-dismissal gate guarantees the
- *  pair appends at most once per marker). */
-export function concludedByDismissalPair(
-	problemCallId: string,
-): [LhMessage & AssistantMessage, LhMessage & ToolResultMessage] {
-	const callId = `call_conc_${problemCallId}`;
-	const now = Date.now();
-	// The stamps are placeholders by design: history serialization reads
-	// ONLY the content blocks (verified in pi-ai's converters), and usage
-	// lives in the parallel turns log, never message objects — so
-	// "synthetic" never corrupts a wire view or a usage fold.
-	const syntheticStamps = {
-		api: "faux",
-		provider: "synthetic",
-		model: "synthetic-conclude",
-		usage: {
-			input: 0,
-			output: 0,
-			cacheRead: 0,
-			cacheWrite: 0,
-			totalTokens: 0,
-			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
-		},
-		stopReason: "toolUse",
-	} as const;
-	return [
-		{
-			id: newMessageId(),
-			role: "assistant",
-			content: [{ type: "toolCall", id: callId, name: PRACTICE_CONCLUDE_TOOL, arguments: { outcome: "dismissed" } }],
-			timestamp: now,
-			...syntheticStamps,
-		},
-		{
-			id: newMessageId(),
-			role: "toolResult",
-			toolCallId: callId,
-			toolName: PRACTICE_CONCLUDE_TOOL,
-			content: [{ type: "text", text: CONCLUDE_ACK_TEXT }],
-			details: { outcome: "dismissed", problemCallId },
-			isError: false,
-			timestamp: now,
-		},
-	];
 }
 
 /** The ids of tool calls whose results are CLEAN (not errored) — the only
@@ -467,41 +380,6 @@ export function activeProblemOf(
 	return null;
 }
 
-/** Is a problem-dismissal marker waiting for its conclude synthesis? The
- *  text/continue appends read this: the pair rides the user's next input
- *  (input-events). Newest-marker-wins scan: the first dismissal marker or
- *  conclude call from the end decides. */
-export function pendingProblemDismissalOf(messages: readonly LhMessage[]): string | null {
-	const cleanCallIds = cleanToolCallIds(messages);
-	for (let mi = messages.length - 1; mi >= 0; mi--) {
-		const m = messages[mi]!;
-		const role = (m as { role?: string }).role;
-		if (role === "custom") {
-			const marker = m as LhMarkerMessage;
-			if (marker.customType === "problem-dismissed") {
-				return (marker.details as { problemCallId?: unknown }).problemCallId as string;
-			}
-			continue;
-		}
-		if (role === "assistant") {
-			const assistant = m as AssistantMessage;
-			for (let bi = assistant.content.length - 1; bi >= 0; bi--) {
-				const block = assistant.content[bi]!;
-				if (block.type !== "toolCall") continue;
-				if (block.name === PRACTICE_CONCLUDE_TOOL) {
-					if (cleanCallIds.has(block.id)) return null; // a CLEAN conclude settles it
-					continue; // errored/dangling: it never happened
-				}
-				if (block.name === PRACTICE_PROBLEM_TOOL) {
-					if (cleanCallIds.has(block.id)) return null; // a CLEAN pose supersedes it
-				}
-			}
-			continue;
-		}
-	}
-	return null;
-}
-
 // ─── the one model-facing seam (the agent's convertToLlm) ────────────────────
 
 /** The ids of every toolResult in the tail (for the dangling-call scan). */
@@ -513,131 +391,6 @@ function resultIdsFrom(messages: readonly AgentMessage[]): Set<string> {
 		}
 	}
 	return ids;
-}
-
-/**
- * AgentMessage[] → the provider wire (the agent's convertToLlm — required
- * by pi-agent-core's loop config, the ONE place model-facing decisions
- * live):
- *
- * - user / assistant / toolResult pass through VERBATIM — signatures,
- *   usage, provider stamps all native — minus our record-`id` field.
- * - markers flatten to a user message carrying their content (the
- *   canonical text single-sourced in core/contracts); plan blocks are
- *   UI-only and filtered.
- * - dangling tool calls (an aborted turn's unanswered questions) get the
- *   synthesized interrupted result — the provider protocol's hard
- *   invariant: a tool call must be followed by its result.
- *
- * Contract (pi-agent-core): never throws — an unknown shape passes
- * through untouched rather than killing the loop.
- */
-export function toLlmMessages(messages: readonly AgentMessage[]): Message[] {
-	// THE COMPACTION CUT: the ACTIVE marker
-	// (the newest — chained compactions rule last) names the first kept
-	// message; everything before it is replaced by the marker's content
-	// (header + summary) rendered ONCE, up top. The marker itself is then
-	// skipped in place — it must never render twice. A cut naming a
-	// missing id degrades honestly (everything renders — never throw).
-	const lhMessages = messages as readonly LhMessage[];
-	const active = activeCompactionOf(lhMessages);
-	let start = 0;
-	let head: Message | null = null;
-	if (active) {
-		const kept = keptIndexFor(lhMessages, active);
-		if (kept > 0) {
-			start = kept;
-			head = {
-				role: "user",
-				content: [{ type: "text", text: active.content }],
-				timestamp: active.timestamp,
-			};
-		}
-	}
-	// THE LEADING SYSTEM MESSAGE IS REQUEST CHROME, NEVER COMPACTABLE
-	// PAYLOAD:
-	// pi-agent-core's Agent seeds a SystemMessage carrying the system
-	// prompt AND the tool declarations at state.messages[0]
-	// (createInitialSystemMessage — "messages declare the provider-visible
-	// loadout"). The record never persists it (ui-stream's settleWith
-	// filters the role), so RECORD-path callers never see it — but the
-	// Agent's convertToLlm DOES. The cut slices the RECORD's history;
-	// when [0] is the chrome it must carry through AHEAD of the
-	// compaction head, exactly as pi's own prepareRequest re-applies
-	// context.systemPrompt + context.tools around its projection.
-	const leading =
-		(messages[0] as { role?: string } | undefined)?.role === "system" ? (messages[0] as Message) : null;
-	const out: Message[] = [];
-	if (leading) out.push(leading);
-	if (head) out.push(head);
-	// The last index of each call id's result, built once: a call is
-	// answered when its id has a result after it (legacy providers reuse
-	// ids like call_0, so "after" matters, not "anywhere").
-	const lastResultAt = new Map<string, number>();
-	messages.forEach((m, j) => {
-		if ((m as { role?: string }).role === "toolResult") lastResultAt.set((m as ToolResultMessage).toolCallId, j);
-	});
-	// A question a side question was asked around gets SIDE_PENDING_TEXT at
-	// its call, and the learner's later answer arrives where it happened, as
-	// their message. The earlier model view stays a prefix of the next one.
-	const sideHeld = sideHeldQuestions(lhMessages);
-	for (let i = leading ? Math.max(start, 1) : start; i < messages.length; i++) {
-		const m = messages[i]!;
-		const role = (m as { role?: string }).role;
-		if (role === "custom") {
-			const marker = m as LhMarkerMessage;
-			// UI-only markers: plan blocks, and problem dismissals (the
-			// synthesized conclude pair carries the model's face).
-			if (marker.customType === "plan-block" || marker.customType === "problem-dismissed") continue;
-			// The ACTIVE compaction marker already rendered as the head —
-			// never twice. (Stale markers before the cut are unreachable; a
-			// marker whose cut could not resolve has no head and renders as
-			// its user text — honest degradation.)
-			if (marker.customType === "compaction" && head !== null && marker.id === active!.id) continue;
-			out.push({
-				role: "user",
-				content: [{ type: "text", text: marker.content }, ...(marker.attachments ?? [])],
-				timestamp: marker.timestamp,
-			});
-			continue;
-		}
-		if (role === "toolResult") {
-			const result = m as ToolResultMessage;
-			const held = sideHeld.get(result.toolCallId);
-			if (held && i > held.sideAt) {
-				// The answer record, then its files.
-				const [answer, ...files] = result.content;
-				const lead = sideAnswerLead(lhMessages[held.callAt]!, result.toolCallId);
-				const text = answer?.type === "text" ? answer.text : "";
-				out.push({ role: "user", content: [{ type: "text", text: lead + text }, ...files], timestamp: result.timestamp });
-				continue;
-			}
-		}
-		// Strip the record fields: the wire carries the native shape only.
-		const { id: _id, side: _side, ...native } = m as LhMessage & { side?: true };
-		out.push(native as Message);
-		// Dangling-call synthesis: an assistant message whose toolCalls have
-		// no results in the remaining tail (abort mid-question) — the
-		// provider rejects unanswered calls outright.
-		if (role === "assistant") {
-			const assistant = m as AssistantMessage;
-			const calls = assistant.content.filter((b) => b.type === "toolCall");
-			if (calls.length === 0) continue;
-			for (const call of calls) {
-				const held = sideHeld.has(call.id);
-				if (!held && (lastResultAt.get(call.id) ?? -1) > i) continue;
-				out.push({
-					role: "toolResult",
-					toolCallId: call.id,
-					toolName: call.name,
-					content: [{ type: "text", text: held ? SIDE_PENDING_TEXT : INTERRUPTED_TEXT }],
-					isError: false,
-					timestamp: assistant.timestamp,
-				});
-			}
-		}
-	}
-	return out;
 }
 
 // ─── native scans ────────────────────────────────────────────────────────────

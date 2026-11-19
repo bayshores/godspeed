@@ -7,7 +7,7 @@
  * the last few versions, the chat and the sheet's rules (what should
  * always hold for it). Pure and browser-safe.
  */
-import type { SpaceDeadline, DeadlineKind } from "./contracts.ts";
+import type { DeadlineKind } from "./contracts.ts";
 
 // ─── the record ─────────────────────────────────────────────────────────────
 
@@ -32,7 +32,7 @@ export interface SheetVersion {
 }
 
 /** A picture or PDF sent with a message. */
-export interface SheetFile {
+interface SheetFile {
 	name: string;
 	/** Its saved copy beside the sheet; absent on asks older godspeeds kept. */
 	file?: string;
@@ -88,16 +88,6 @@ export interface CheatSheet {
 /** The newest version, or null before the first. */
 export function currentVersion(sheet: Pick<CheatSheet, "versions">): SheetVersion | null {
 	return sheet.versions[sheet.versions.length - 1] ?? null;
-}
-
-// ─── pointing at the sheet ──────────────────────────────────────────────────
-
-const pct = (f: number) => `${Math.round(f * 100)}%`;
-
-/** "page 1 (the front), from 10% to 40% across and 20% to 35% down". */
-export function regionText(r: SheetRegion, pages: number): string {
-	const side = pages === 2 ? ` (the ${r.page === 1 ? "front" : "back"})` : "";
-	return `page ${r.page}${side}, from ${pct(r.x)} to ${pct(r.x + r.w)} across and ${pct(r.y)} to ${pct(r.y + r.h)} down`;
 }
 
 // ─── reading a saved record ─────────────────────────────────────────────────
@@ -162,32 +152,6 @@ export interface SheetCard {
 export interface SpaceSheetsView {
 	spaceName: string;
 	cards: SheetCard[];
-}
-
-/** Every deadline of the space with its sheet: upcoming soonest first, then
- *  past ones, latest first. */
-export function sheetCards(
-	deadlines: readonly SpaceDeadline[],
-	sheetOf: (deadlineId: string) => CheatSheet | "newer" | null,
-	running: (deadlineId: string) => boolean,
-	today: string,
-): SheetCard[] {
-	const cards = deadlines.map((d): SheetCard => {
-		const sheet = sheetOf(d.id);
-		const version = sheet && sheet !== "newer" ? currentVersion(sheet) : null;
-		const status: SheetStatus = running(d.id)
-			? "making"
-			: sheet === "newer"
-				? "newer"
-				: version
-					? "made"
-					: sheet?.olderFormat
-						? "older"
-						: "none";
-		return { deadlineId: d.id, name: d.name, kind: d.kind, date: d.date, ...(d.time ? { time: d.time } : {}), past: d.done || d.date < today, status, version };
-	});
-	const when = (c: SheetCard) => `${c.date} ${c.time ?? "23:59"}`;
-	return [...cards.filter((c) => !c.past).sort((a, b) => when(a).localeCompare(when(b))), ...cards.filter((c) => c.past).sort((a, b) => when(b).localeCompare(when(a)))];
 }
 
 // ─── what the studio reads ──────────────────────────────────────────────────

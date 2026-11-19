@@ -25,7 +25,7 @@ export function hasProblems(kind: SpaceDeadline["kind"]): boolean {
 }
 
 /** The posted list, each problem keeping its done mark by number. */
-export function mergeProblems(previous: readonly HomeworkProblem[], posted: readonly PostedProblem[]): HomeworkProblem[] {
+function mergeProblems(previous: readonly HomeworkProblem[], posted: readonly PostedProblem[]): HomeworkProblem[] {
 	const done = new Map(previous.map((p) => [p.number, p.done]));
 	return posted.map((p) => ({ ...p, done: done.get(p.number) ?? false }));
 }

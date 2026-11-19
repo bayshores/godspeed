@@ -18,16 +18,11 @@ import {
 	CONFIDENCE_STOPS,
 	stepConfidence,
 	confidenceLevel,
-	levelPercent,
 	isCorrect,
 	normalizeOptions,
 	questionKindLabel,
 	quizInputProblems,
-	explainInputBase,
-	explainInputObject,
 	explainInputProblems,
-	quizInputObject,
-	probeQuizInputSchema,
 	quizDisplayInputSchema,
 	normalizeQuizType,
 	questionNeedsReveal,
@@ -40,43 +35,14 @@ import {
 import { toolQuestionKind } from "../../src/shared/core/pending.ts";
 import { parseQuizInput } from "../../src/shared/core/tool-parts.ts";
 
-// ─── the authoring contract (TypeBox schemas + execute-time refinements) ──
+// ─── the authoring contract (display schema + refinement problems) ────────
 // Schema-valid ⇔ gradeable: a quiz whose correctAnswer can't be resolved
-// dies at the tool-call boundary (structural TypeBox check in pi's loop +
-// the refinement problems in the tool's execute — a ToolInputError the
-// model retries on), and never reaches the learner's dock. The boundary
-// predicate is BOTH: structural check AND zero authoring problems.
+// never reaches the learner's dock. The boundary predicate is BOTH: the
+// structural check AND zero authoring problems.
 const boundaryOk = (schema: TSchema, input: unknown, problems: string[]): boolean =>
 	Value.Check(schema, input) && problems.length === 0;
 
-describe("the schema's argument order (reasoning before the pick)", () => {
-	// Argument-order ruling: the explanation is
-	// reasoning, and reasoning happens BEFORE the answer is chosen — models
-	// emit tool args in schema order, so explanation sits immediately before
-	// correctAnswer. The TypeBox authoring order IS the model-facing JSON
-	// Schema property order, so this pin guards the emission end to end.
-	// All consumers read by key — the order is authoring guidance.
-	it("emits explanation immediately before correctAnswer (both agents' schemas)", () => {
-		// The CONTENT fields put reasoning before the pick; the
-		// teach schema mirrors it — the required pair (`type`, `nodeId`) LEADS the
-		// object, because glm-5.3 dropped exactly those fields when they
-		// trailed every long content field (the tools_fails_2 drops).
-		// Models emit tool args in schema order: commit to the role and the
-		// target first, reason, then pick.
-		for (const schema of [quizInputObject, probeQuizInputSchema]) {
-			const keys = Object.keys((schema as { properties: Record<string, unknown> }).properties);
-			assert.ok(
-				keys.indexOf("explanation") < keys.indexOf("correctAnswer"),
-				`explanation must precede correctAnswer in the emitted schema (got: ${keys.join(", ")})`,
-			);
-			assert.deepEqual(keys, schema === quizInputObject
-				? ["type", "nodeId", "question", "options", "multiSelect", "explanation", "correctAnswer", "details"]
-				: ["question", "options", "multiSelect", "explanation", "correctAnswer", "details"]);
-		}
-	});
-});
-
-describe("quizInputObject / quizInputProblems (the authoring contract)", () => {
+describe("quizInputProblems (the authoring contract)", () => {
 	const valid = {
 		question: "Which planet is closest to the Sun?",
 		options: [{ label: "Venus" }, { label: "Mercury" }, { label: "Mars" }],
@@ -87,7 +53,7 @@ describe("quizInputObject / quizInputProblems (the authoring contract)", () => {
 	};
 
 	it("accepts a valid single-select quiz (label as correctAnswer)", () => {
-		assert.equal(boundaryOk(quizInputObject, valid, quizInputProblems(valid)), true);
+		assert.equal(boundaryOk(quizDisplayInputSchema, valid, quizInputProblems(valid)), true);
 		assert.deepEqual(quizInputProblems(valid), []);
 	});
 
@@ -102,10 +68,10 @@ describe("quizInputObject / quizInputProblems (the authoring contract)", () => {
 			correctAnswer: ["a", "b"],
 			multiSelect: true,
 		};
-		assert.equal(boundaryOk(quizInputObject, multi, quizInputProblems(multi)), true);
+		assert.equal(boundaryOk(quizDisplayInputSchema, multi, quizInputProblems(multi)), true);
 		// The union lists String first, so providers sometimes stringify arrays.
 		const stringified = { ...multi, correctAnswer: JSON.stringify(multi.correctAnswer) };
-		assert.equal(boundaryOk(quizInputObject, stringified, quizInputProblems(stringified)), true);
+		assert.equal(boundaryOk(quizDisplayInputSchema, stringified, quizInputProblems(stringified)), true);
 		assert.deepEqual(quizInputProblems(stringified), []);
 	});
 
@@ -121,7 +87,7 @@ describe("quizInputObject / quizInputProblems (the authoring contract)", () => {
 			correctAnswer: "cultural-diagnosis",
 			explanation: "...",
 		};
-		assert.equal(boundaryOk(quizInputObject, bad, quizInputProblems(bad)), false);
+		assert.equal(boundaryOk(quizDisplayInputSchema, bad, quizInputProblems(bad)), false);
 		const problems = quizInputProblems(bad);
 		assert.equal(problems.length, 1);
 		assert.match(problems[0]!, /does not match any option value/);
@@ -130,7 +96,7 @@ describe("quizInputObject / quizInputProblems (the authoring contract)", () => {
 
 	it("rejects multiple correct answers without multiSelect (ungradeable single-select)", () => {
 		const bad = { ...valid, correctAnswer: ["Venus", "Mercury"] };
-		assert.equal(boundaryOk(quizInputObject, bad, quizInputProblems(bad)), false);
+		assert.equal(boundaryOk(quizDisplayInputSchema, bad, quizInputProblems(bad)), false);
 		assert.match(quizInputProblems(bad).join(" "), /multiSelect/);
 	});
 
@@ -142,19 +108,19 @@ describe("quizInputObject / quizInputProblems (the authoring contract)", () => {
 				{ label: "Venus", value: "same" },
 			],
 		};
-		assert.equal(boundaryOk(quizInputObject, bad, quizInputProblems(bad)), false);
+		assert.equal(boundaryOk(quizDisplayInputSchema, bad, quizInputProblems(bad)), false);
 		assert.match(quizInputProblems(bad).join(" "), /same value/);
 	});
 
 	it("rejects an empty option label", () => {
 		const bad = { ...valid, options: [{ label: "  " }, { label: "Mercury" }, { label: "Mars" }] };
-		assert.equal(boundaryOk(quizInputObject, bad, quizInputProblems(bad)), false);
+		assert.equal(boundaryOk(quizDisplayInputSchema, bad, quizInputProblems(bad)), false);
 		assert.match(quizInputProblems(bad).join(" "), /label is empty/);
 	});
 
 	it("requires a resolvable correctAnswer", () => {
-		assert.equal(boundaryOk(quizInputObject, { ...valid, correctAnswer: "" }, quizInputProblems({ ...valid, correctAnswer: "" })), false);
-		assert.equal(boundaryOk(quizInputObject, { ...valid, correctAnswer: "[]" }, quizInputProblems({ ...valid, correctAnswer: "[]" })), false);
+		assert.equal(boundaryOk(quizDisplayInputSchema, { ...valid, correctAnswer: "" }, quizInputProblems({ ...valid, correctAnswer: "" })), false);
+		assert.equal(boundaryOk(quizDisplayInputSchema, { ...valid, correctAnswer: "[]" }, quizInputProblems({ ...valid, correctAnswer: "[]" })), false);
 		assert.match(quizInputProblems({ ...valid, correctAnswer: "" }).join(" "), /required/);
 	});
 });
@@ -203,7 +169,7 @@ it("quiz options carry NO description field; ask keeps it", () => {
 	// ("that's not the gradient") in every quiz of the gradient-descent
 	// session — the field is gone from BOTH quiz schemas; ask (ungraded,
 	// nothing to leak) keeps it.
-	const quizOption = (probeQuizInputSchema.properties.options as { items?: { properties?: Record<string, unknown> } })
+	const quizOption = (quizDisplayInputSchema.properties.options as { items?: { properties?: Record<string, unknown> } })
 		.items!.properties!;
 	assert.ok(!("description" in quizOption), "quiz option schema has no description");
 	const askOption = (askInputSchema.properties.options as { items?: { properties?: Record<string, unknown> } })
@@ -307,7 +273,7 @@ describe("exact answer membership precedes debris cleanup", () => {
 			correctAnswer: correct,
 		};
 		const before = JSON.stringify(input);
-		assert.ok(boundaryOk(probeQuizInputSchema, input, quizInputProblems(input)));
+		assert.ok(boundaryOk(quizDisplayInputSchema, input, quizInputProblems(input)));
 		const parsed = parseQuizInput(input);
 		assert.ok(parsed, "the accepted raw call must also render");
 		assert.equal(parsed.correctAnswer, correct);
@@ -421,7 +387,7 @@ function quizData(overrides?: Partial<QuestionData>): QuestionData {
 describe("confidence stops", () => {
 	it("the 1–5 meter saves as 20/40/60/80/100", () => {
 		assert.deepEqual(CONFIDENCE_STOPS, [20, 40, 60, 80, 100]);
-		assert.deepEqual(([1, 2, 3, 4, 5] as const).map(levelPercent), [20, 40, 60, 80, 100]);
+		assert.deepEqual(CONFIDENCE_STOPS, [20, 40, 60, 80, 100]);
 	});
 
 	it("arrows step from the middle when unrated, and stop at the ends", () => {
@@ -434,7 +400,7 @@ describe("confidence stops", () => {
 
 	it("maps every stored percentage to its nearest level, ties to the lower one", () => {
 		// The new grid round-trips.
-		for (const level of [1, 2, 3, 4, 5] as const) assert.equal(confidenceLevel(levelPercent(level)), level);
+		for (const level of [1, 2, 3, 4, 5] as const) assert.equal(confidenceLevel(CONFIDENCE_STOPS[level - 1]!), level);
 		// The old grid (0/30/50/70/90/100) displays at the nearest level.
 		assert.deepEqual([0, 30, 50, 70, 90, 100].map(confidenceLevel), [1, 1, 2, 3, 4, 5]);
 		// Out of range clamps.
@@ -639,23 +605,7 @@ describe("dock selection (toggleOption)", () => {
 
 // ─── the explain tool: free-recall quizzing ─────────────
 
-describe("explainInputBase / explainInputProblems (the commitment contract)", () => {
-	it("has ONE authoring field — no explanation remnant", () => {
-		// The MC quiz's explanation/answer split was quiz baggage: free
-		// recall commits a single correctAnswer, reasoning included.
-		const keys = Object.keys(explainInputBase.properties);
-		assert.deepEqual(keys, ["question", "correctAnswer", "details"]);
-	});
-
-	it("the teach object LEADS with the required pair (type, nodeId) — base fields follow", () => {
-		// glm-5.3 dropped `type`/`nodeId` when they trailed
-		// the content fields — required fields generated FIRST get dropped
-		// least, and the order doubles as the authoring order (role, target,
-		// then the question). Mirrors the quiz reorder (see above).
-		const keys = Object.keys(explainInputObject.properties);
-		assert.deepEqual(keys, ["type", "nodeId", ...Object.keys(explainInputBase.properties)]);
-	});
-
+describe("explainInputProblems (the commitment contract)", () => {
 	it("an empty commitment is the one authoring problem", () => {
 		assert.deepEqual(explainInputProblems({ correctAnswer: "Full speed is c." }), []);
 		assert.deepEqual(explainInputProblems({ correctAnswer: "   " }), [
@@ -705,8 +655,8 @@ describe("buildAnswer / formatAnswerMessage: explain", () => {
 
 // ─── the question's role: predict vs check ─────────────
 // Teaching units are a predict → teach → check cycle. The teach quiz schema
-// carries a REQUIRED `type` declaring the role; the prober's quiz never does
-// (probing questions are role-less). The reveal law keys off it: only CHECKS
+// carries a `type` declaring the role; old records and probe questions have
+// none. The reveal law keys off it: only CHECKS
 // collapse behind "Check your understanding" — predictions arrive open.
 describe("the quiz role field (predict | check)", () => {
 	const valid = {
@@ -717,22 +667,9 @@ describe("the quiz role field (predict | check)", () => {
 		type: "check",
 		nodeId: "planet-order",
 	};
-	it("the teach schema REQUIRES type; the probe schema has no such field", () => {
-		assert.equal(Value.Check(quizInputObject, valid), true, "fixture (type: check) is boundary-valid");
-		assert.equal(
-			Value.Check(quizInputObject, { ...valid, type: undefined }),
-			false,
-			"a teach quiz without a role is rejected at the boundary",
-		);
-		assert.equal(
-			"nodeId" in (probeQuizInputSchema as { properties: Record<string, unknown> }).properties === false,
-			true,
-		);
-		assert.equal(
-			"type" in (probeQuizInputSchema as { properties: Record<string, unknown> }).properties,
-			false,
-			"the probe quiz stays role-less",
-		);
+	it("the display parse keeps the role when present and accepts old records without one", () => {
+		assert.equal(Value.Check(quizDisplayInputSchema, valid), true);
+		assert.equal(Value.Check(quizDisplayInputSchema, { ...valid, type: undefined }), true, "old records carry no role");
 	});
 
 	it("normalizeQuizType: exact literals only — old records and wobble degrade to check-style", () => {

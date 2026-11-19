@@ -1,49 +1,20 @@
 /**
- * COMPACTION: the context-fitting mechanic,
- * with a bounded local port of Pi coding-agent 1.4.0 cutoff selection.
- * No coding-agent dependency. See docs/compaction-accounting.md for the
- * behavior boundary, native golden fixtures, and upstream MIT notice.
+ * COMPACTION, the frontend's share: the threshold the size meter reads and
+ * the marker helpers the transcript uses. The Rust server shortens the
+ * record (crates/core/src/session/compaction.rs); the cutoff rule here is
+ * kept for tests/shared/compaction-native-parity.test.ts. See
+ * docs/compaction-accounting.md.
  *
- * THE CONTRACT: full history stays persisted in the record — extraction
- * and the user's transcript keep reading everything. A compaction marker
- * (LhMarkerMessage, customType "compaction") carries a summary plus the
- * cut (firstKeptMessageId); toLlmMessages — the ONE model-facing seam —
- * projects [summary] + [messages from the cut onward] on every request.
- * The live agent never holds dropped messages because every run is built
- * fresh from the record: question/problem poses terminate their runs, so
- * the "user is thinking" pause is always a BETWEEN-RUNS window —
- * compaction kicks at turn settle (running during the pause) and every
- * turn start awaits the gate. No mid-run surgery exists.
- *
- * Trigger threshold: effective = min(settings threshold, model
- * contextWindow − 16k reserve). Defaults: threshold 40k, kept tail ~20k
- * recent tokens (pi's defaults). Token estimation follows pi: anchor on the
- * provider-reported usage of the last assistant message, chars/4 only
- * for messages appended after that anchor; the heuristic alone runs
- * only when no usage exists yet.
- *
- * Two steps, so a turn never waits on a summary: past the threshold godspeed
- * shortens the record itself at once (localSummary: the plan, then the older
- * messages cut short, oldest dropped first), and once the lesson has been
- * quiet the session's model writes the real summary in its place.
- *
- * Summary content: the learner's understanding and its EVOLUTION (quiz outcomes, confidence,
- * misconceptions — a detailed picture of what the user knows), the
- * teaching arc / session progression, and the plan dependency tree
- * VERBATIM (from record.tree — the plan_init tool result may fall before
- * the cut, so the marker re-injects it). Plus the current moment (any
- * pending question/problem and the immediate next step) so the post-cut
- * model can continue mid-thought.
+ * A compaction marker (LhMarkerMessage, customType "compaction") carries a
+ * summary plus the cut (firstKeptMessageId): the model sees the summary,
+ * then every message from the cut onward. Full history stays in the record.
  */
 
-import type { PlanTree } from "./contracts/plan.ts";
-import { derivePlanStatusesLh, derivedNodeStatus } from "./contracts/plan.ts";
 import { COMPACTED_HISTORY_HEADER } from "./contracts/chat.ts";
 import type { LhMessage, LhMarkerMessage } from "./native-messages.ts";
 import { newMessageId } from "./message-id.ts";
-import { contentText } from "./attachments.ts";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import type { AssistantMessage, ToolResultMessage, SystemMessage, UserMessage } from "@earendil-works/pi-ai";
+import type { SystemMessage } from "@earendil-works/pi-ai";
 
 // ─── constants (the tunables) ────────────────────────────────────────────────
 
@@ -68,28 +39,7 @@ export function effectiveThresholdTokens(contextWindowTokens: number | undefined
 	return Math.min(SUMMARIZE_TOKENS, Math.max(contextWindowTokens - COMPACTION_RESERVE_TOKENS, 1));
 }
 
-/** Tool-result truncation when serializing the span for the summarizer
- * (pi's mirror: long job/research results don't need verbatim inclusion
- * in the SUMMARY INPUT — the kept tail carries them whole). */
-const SUMMARY_TOOL_RESULT_TRUNCATE = 2_000;
-
-// ─── token estimation (pi's law: usage-anchored, chars/4 only for the tail) ─
-
-/** Context tokens from a provider-reported usage block — the most honest
- * measure of "what the last request actually carried." Mirrors pi's
- * calculateContextTokens. */
-export function calculateContextTokens(usage: {
-	totalTokens?: number;
-	input?: number;
-	output?: number;
-	cacheRead?: number;
-	cacheWrite?: number;
-}): number {
-	return (
-		usage.totalTokens ||
-		(usage.input ?? 0) + (usage.output ?? 0) + (usage.cacheRead ?? 0) + (usage.cacheWrite ?? 0)
-	);
-}
+// ─── token estimate (chars/4) ─────────────────────────────────────────────────
 
 /** Pi 1.4.0's heuristic: text + thinking + toolCall name/args for
  * assistants, content text plus a fixed image allowance for other roles. NEVER JSON.stringify of the
@@ -135,69 +85,6 @@ function textCharsOfContent(content: unknown): number {
 		else if (block?.type === "text") chars += block.text?.length ?? 0;
 	}
 	return chars;
-}
-
-/** The newest assistant message carrying VALID provider-reported usage
- * (pi's rule: skip aborted/error messages and all-zero usage — they carry no
- * truth about the wire). The scan STOPS at the newest compaction
- * marker: usage captured before a compaction described the pre-cut
- * context — the next request carries the summary + kept tail instead,
- * so pre-marker usage is not a valid anchor (pi's "don't trust usage
- * captured before a later compaction" law). Index into messages, or
- * null. */
-function lastAssistantUsageIndex(
-	messages: readonly (LhMessage | AgentMessage)[],
-): number | null {
-	for (let i = messages.length - 1; i >= 0; i--) {
-		const m = messages[i]!;
-		if ((m as { role?: string }).role === "custom" && (m as LhMarkerMessage).customType === "compaction") return null;
-		if ((m as { role?: string }).role !== "assistant") continue;
-		const a = m as AssistantMessage & { stopReason?: string };
-		if (a.stopReason === "aborted" || a.stopReason === "error") continue;
-		if (calculateContextTokens((a.usage ?? {}) as Parameters<typeof calculateContextTokens>[0]) === 0) continue;
-		return i;
-	}
-	return null;
-}
-
-interface ContextTokenEstimate {
-	/** The estimate the trigger should compare against the threshold. */
-	tokens: number;
-	/** Provider-reported tokens from the usage anchor (0 when unanchored). */
-	usageTokens: number;
-	/** chars/4-estimated tokens after the anchor (or everything, unanchored). */
-	trailingTokens: number;
-	/** Index of the usage anchor, or null (diagnostics). */
-	lastUsageIndex: number | null;
-}
-
-/** THE trigger estimator (pi's estimateContextTokens): anchor on the last
- * assistant usage the provider reported — prompt, tools, tokenizer
- * density and all — and chars/4-estimate ONLY what was appended after
- * it. The heuristic never re-estimates history the provider already
- * counted (the relational-databases bug: full-record JSON.stringify/4
- * tripled the true context and fired a 30k session at an 80k threshold). */
-export function estimateContextTokens(
-	messages: readonly (LhMessage | AgentMessage)[],
-): ContextTokenEstimate {
-	const anchor = lastAssistantUsageIndex(messages);
-	if (anchor === null) {
-		let trailing = 0;
-		for (const m of messages) trailing += estimateMessageTokens(m);
-		return { tokens: trailing, usageTokens: 0, trailingTokens: trailing, lastUsageIndex: null };
-	}
-	const anchored = messages[anchor]! as AssistantMessage;
-	const usageTokens = calculateContextTokens(anchored.usage as Parameters<typeof calculateContextTokens>[0]);
-	let trailing = 0;
-	for (let i = anchor + 1; i < messages.length; i++) trailing += estimateMessageTokens(messages[i]!);
-	return { tokens: usageTokens + trailing, usageTokens, trailingTokens: trailing, lastUsageIndex: anchor };
-}
-
-/** Estimate a whole message list (the plain heuristic — cut-walk use). */
-export function estimateTokens(messages: readonly (LhMessage | AgentMessage)[]): number {
-	let total = 0;
-	for (const m of messages) total += estimateMessageTokens(m);
-	return total;
 }
 
 // ─── the cut walk ────────────────────────────────────────────────────────────
@@ -314,150 +201,4 @@ export function keptIndexFor(messages: readonly LhMessage[], marker: LhMarkerMes
 		if (messages[i]!.id === id) return i;
 	}
 	return -1;
-}
-
-// ─── the summarizer input (pi's mirror: labeled text, truncated results) ─────
-
-/** Serialize a message span as labeled text for the summarizer. Tool
- * results truncate at ~2k chars (the kept tail carries them verbatim for
- * the model; the SUMMARY only needs their gist). */
-export function serializeForSummary(messages: readonly LhMessage[]): string {
-	return summaryLines(messages).join("\n\n");
-}
-
-/** serializeForSummary's entries, one per message. */
-function summaryLines(messages: readonly LhMessage[]): string[] {
-	const lines: string[] = [];
-	for (const m of messages) {
-		const role = (m as { role?: string }).role;
-		if (role === "user") {
-			lines.push(`[LEARNER] ${contentText((m as UserMessage).content)}`);
-		} else if (role === "assistant") {
-			const assistant = m as AssistantMessage;
-			const blocks: string[] = [];
-			for (const b of assistant.content) {
-				if (b.type === "text") blocks.push(b.text);
-				else if (b.type === "toolCall") blocks.push(`(tool call ${b.name}: ${JSON.stringify(b.arguments)})`);
-				// thinking blocks: the model's private scratch — its
-				// conclusions land in text; skip the noise
-			}
-			if (blocks.length > 0) lines.push(`[TUTOR] ${blocks.join("\n")}`);
-		} else if (role === "toolResult") {
-			const result = m as ToolResultMessage;
-			const text = contentText(result.content);
-			lines.push(
-				`[RESULT for ${result.toolName}${result.isError ? " (error)" : ""}] ${
-					text.length > SUMMARY_TOOL_RESULT_TRUNCATE ? `${text.slice(0, SUMMARY_TOOL_RESULT_TRUNCATE)}…[truncated]` : text
-				}`,
-			);
-		} else if (role === "custom") {
-			const marker = m as LhMarkerMessage;
-			if (marker.customType === "plan-block") continue; // UI-only
-			lines.push(`[SYSTEM NOTE] ${[marker.content, ...(marker.attachments ? [contentText(marker.attachments)] : [])].join("\n")}`);
-		}
-	}
-	return lines;
-}
-
-/** A message in godspeed's own shortening is cut to this many characters. */
-const LOCAL_LINE_CHARS = 600;
-/** godspeed's own shortening stays under this (about 6k tokens). */
-const LOCAL_SUMMARY_CHARS = 24_000;
-
-/** godspeed's own shortening of a span, written at once and without a model:
- *  the plan, the summary before it, then each message cut short, the oldest
- *  dropped first when they don't all fit. */
-export function localSummary(input: { span: readonly LhMessage[]; priorSummary: string | null; planTreeText: string | null }): string {
-	const head = ["godspeed shortened the earlier part of this session itself; a written summary comes later. Long messages are cut short."];
-	if (input.planTreeText) head.push(`## The plan dependency tree\n${input.planTreeText}`);
-	if (input.priorSummary) head.push(`## Before that\n${cut(input.priorSummary, LOCAL_SUMMARY_CHARS / 3)}`);
-	const lines = summaryLines(input.span).map((line) => cut(line, LOCAL_LINE_CHARS));
-	let room = LOCAL_SUMMARY_CHARS - head.join("\n\n").length;
-	const kept: string[] = [];
-	for (let i = lines.length - 1; i >= 0 && room - lines[i]!.length > 0; i--) {
-		kept.unshift(lines[i]!);
-		room -= lines[i]!.length + 2;
-	}
-	const dropped = lines.length - kept.length;
-	return [...head, "## Earlier messages", ...(dropped > 0 ? [`(${dropped} older messages left out)`] : []), ...kept].join("\n\n");
-}
-
-function cut(text: string, chars: number): string {
-	return text.length > chars ? `${text.slice(0, chars)}…` : text;
-}
-
-/** The messages a compaction marker stands for: from the previous marker's
- *  kept boundary (or the start) to its own, and that previous marker's text. */
-export function compactionSpan(
-	messages: readonly LhMessage[],
-	marker: LhMarkerMessage & { details: CompactionDetails },
-): { span: LhMessage[]; priorSummary: string | null } | null {
-	const at = messages.findIndex((m) => m.id === marker.id);
-	const kept = messages.findIndex((m) => m.id === marker.details.firstKeptMessageId);
-	if (at < 0 || kept < 0) return null;
-	const previous = activeCompactionOf(messages.slice(0, at));
-	const start = previous ? messages.findIndex((m) => m.id === previous.details.firstKeptMessageId) : 0;
-	return { span: messages.slice(Math.max(start, 0), kept), priorSummary: previous?.content ?? null };
-}
-
-/** Render the plan dependency tree verbatim (the tree persists through
- * compaction). Structure from record.tree, statuses
- * derived from the transcript (the record's own law: the tree carries
- * structure only). Empty tree → absent section (nothing persisted). */
-export function planTreeToText(tree: PlanTree | undefined, messages: readonly LhMessage[]): string | null {
-	if (!tree || tree.nodes.length === 0) return null;
-	const statuses = derivePlanStatusesLh(tree, messages);
-	const byId = new Map(tree.nodes.map((n) => [n.id, n]));
-	const lines: string[] = [];
-	for (const node of tree.nodes) {
-		const status = derivedNodeStatus(statuses, node.id);
-		const summary = node.summary ? ` — ${node.summary}` : "";
-		lines.push(`- [${status}] ${node.title} (${node.id})${summary}`);
-	}
-	for (const edge of tree.edges) {
-		const from = byId.get(edge.from);
-		const to = byId.get(edge.to);
-		if (from && to) lines.push(`- ${from.title} → ${to.title} (${from.id} → ${to.id})`);
-	}
-	return lines.join("\n");
-}
-
-/**
- * The summarizer prompt. The summary's REQUIRED SHAPE: the learner's
- * understanding AND its evolution, the teaching arc, the plan tree
- * verbatim, and the current moment — in that order of stress.
- * The summarizer is the session's own model, writing for
- * its own future self: the summary replaces everything before the cut.
- */
-export function buildCompactionPrompt(input: {
-	/** The span to summarize, pre-serialized (serializeForSummary). */
-	spanText: string;
-	/** The plan tree rendered (planTreeToText) or null. */
-	planTreeText: string | null;
-}): string {
-	const planSection =
-		input.planTreeText ?? "No plan tree exists in this session (nothing was persisted).";
-	return `You are compacting the earlier part of a tutoring session — writing the summary your future self will read INSTEAD of that transcript. Everything before the cut is replaced by what you write; everything after stays verbatim. The learner's transcript below labels the learner as [LEARNER], the tutoring agent as [TUTOR], tool traffic as [RESULT …]/[SYSTEM NOTE].
-
-Write the summary with EXACTLY these sections, in this order:
-
-## The learner's understanding
-The most detailed picture you can give of what this learner knows and how that EVOLVED across the session: what they answered and how well (quiz outcomes, correct reasoning, mistakes), their stated or displayed confidence, misconceptions that surfaced, which were corrected and which still stand. This section carries the most weight — future teaching decisions hang on it.
-
-## The teaching arc
-How the session progressed: what was covered and in what order, which explanations landed and which didn't, how the learner responded, where the momentum went. Include probe-phase findings if present.
-
-## The plan dependency tree
-Reproduce the session's current plan tree verbatim from the structure below — do not drop nodes, edges, or statuses.
-
-${planSection}
-
-## The current moment
-What is happening RIGHT NOW at the cut: any question or problem awaiting the learner's answer, any commitment the agent has made that a later turn must honor, and the immediate next step.
-
-Rules: no praise, no filler, no speculation beyond the transcript. Every claim about the learner must be traceable to what they actually said or answered. Keep every identifier (proposition ids, node ids, file paths) exact.
-
-TRANSCRIPT TO SUMMARIZE:
-
-${input.spanText}`;
 }

@@ -40,7 +40,7 @@ export interface JobRecord {
  * plus a step count. Token fields are optional exactly like CallUsage: a
  * field NO model call reported stays undefined — absent is not zero
  * (renderers show "–"). */
-export interface JobUsage {
+interface JobUsage {
 	/** The model that ran the sub-agent, provider-qualified ("provider:id",
 	 *  matching Pi catalog lookup keys). */
 	model: string;
@@ -106,7 +106,7 @@ export interface PdfResult {
 // LhMarkerMessage customs (role "custom"), the custom-message taxonomy's
 // wake members. The model-facing text rides `content` (single-sourced
 // below); the UI payload (the artifact, the abort badge) rides `details`
-// and never reaches the model (toLlmMessages maps the marker to a user
+// and never reaches the model (the server sends the marker as a user
 // message carrying `content` only). The deterministic id (`steer_<jobId>`)
 // IS the idempotency key — steerDelivered matches on it.
 

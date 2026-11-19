@@ -1,23 +1,13 @@
 /**
- * THE WEAK-MODEL ARGUMENT HEAL — the pure core (agent/tools/heal.ts wires
- * it into every tool). Lives in core because BOTH seams need
- * it (the tool-parts law: display parses mirror boundary coercion or a
- * healed-at-boundary call whose record keeps the RAW arguments renders
- * as an invisible pending quiz):
+ * The weak-model argument heal, pure. The display parse (tool-parts) runs
+ * it because the stored record keeps the raw arguments the Rust server
+ * healed before running the call, so the same wobble heals on read.
  *
- *   - the agent boundary: pi's prepareArguments seam, BEFORE TypeBox
- *     validation (withArgumentHeal / healToolRecord);
- *   - the display parse: tool-parts' parseQuizInput, before
- *     boundaryParse — the persisted record keeps raw arguments, so the
- *     same wobble heals on read.
- *
- * Weak models send JSON-string-encoded enums (`"mode": "\"recall\""`),
- * and TypeBox's `must be equal to constant` never names the expected
- * values, so they re-send the same payload in a loop. A STRING value where the
- * schema expects a literal union / boolean / null / number / array is
- * JSON.parse-d and kept when the parsed value satisfies the expectation.
- * Well-formed args pass through UNTOUCHED (same reference); unhealable
- * values stay for validation to reject honestly.
+ * Weak models send JSON-string-encoded enums (`"mode": "\"recall\""`). A
+ * STRING value where the schema expects a literal union / boolean / null /
+ * number / array is JSON.parse-d and kept when the parsed value satisfies
+ * the expectation. Well-formed args pass through UNTOUCHED (same
+ * reference); unhealable values stay for validation to reject honestly.
  */
 import { isRecord } from "./is-record.ts";
 

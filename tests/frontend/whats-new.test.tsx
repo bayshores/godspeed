@@ -10,8 +10,9 @@ import * as fs from "node:fs";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 
-const { CHANGELOG, compareVersions, entriesSince, entryFor, sanitizeUserSettings } = await import("../../src/shared/core/index.ts");
+const { compareVersions, entriesSince, entryFor, sanitizeUserSettings } = await import("../../src/shared/core/index.ts");
 const { WhatsNewDialog, formatChangelogDate } = await import("../../src/frontend/components/whats-new-dialog.tsx");
+const CHANGELOG = JSON.parse(fs.readFileSync(new URL("../../src/shared/changelog.json", import.meta.url), "utf8")) as Array<{ version: string; date: string; changes: string[] }>;
 const pkg = JSON.parse(fs.readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as { version: string };
 
 const NOTES = [

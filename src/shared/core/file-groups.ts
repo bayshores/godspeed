@@ -10,7 +10,7 @@ import { dateInName, groupFileSeries, type FileSeries } from "./file-series.ts";
 
 /** One entry of a group: a number of a series ("Lecture 3", with every
  *  file that carries it, notes and transcript together) or one other file. */
-export interface FileItem {
+interface FileItem {
 	key: string;
 	/** "Lecture 3", "Week 2", "6"; null for a file outside any series. */
 	label: string | null;
@@ -51,7 +51,7 @@ function likeness(a: FileSeries<SpaceFile>, b: FileSeries<SpaceFile>): number {
  * chapters or readings, not lecture notes, so they never pair. A tie pairs
  * nothing, and a notes series pairs once.
  */
-export function pairSeries(series: readonly FileSeries<SpaceFile>[]): Map<FileSeries<SpaceFile>, FileSeries<SpaceFile>> {
+function pairSeries(series: readonly FileSeries<SpaceFile>[]): Map<FileSeries<SpaceFile>, FileSeries<SpaceFile>> {
 	const all = (s: FileSeries<SpaceFile>, test: (f: SpaceFile) => boolean) => s.items.every((i) => i.files.every(test));
 	const transcripts = series.filter((s) => all(s, (f) => isRecordingOrCaptions(f.name)));
 	const notes = series.filter((s) => s.key !== "" && all(s, (f) => !isRecordingOrCaptions(f.name)));

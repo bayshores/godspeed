@@ -1,16 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-	homeworkProblems,
-	mergeProblems,
-} from "../../src/shared/core/homework.ts";
+import { homeworkProblems } from "../../src/shared/core/homework.ts";
 
 const P = (number: string, done = false) => ({ number, title: `t${number}`, text: "…", done });
 
 describe("homework problems", () => {
 	it("keeps done marks by number when the list is posted again", () => {
-		const merged = mergeProblems([P("1", true), P("2")], [{ number: "2", title: "b", text: "…" }, { number: "1", title: "a", text: "…" }, { number: "3", title: "c", text: "…" }]);
-		assert.deepEqual(merged.map((p) => [p.number, p.done]), [["2", false], ["1", true], ["3", false]]);
+		const posted = { parts: [{ type: "tool-post_problems", state: "output-available", input: { problems: [{ number: "2", title: "b", text: "…" }, { number: "1", title: "a", text: "…" }, { number: "3", title: "c", text: "…" }] } }] };
+		const { problems } = homeworkProblems([P("1", true), P("2")], [posted]);
+		assert.deepEqual(problems.map((p) => [p.number, p.done]), [["2", false], ["1", true], ["3", false]]);
 	});
 
 	it("folds posts, opens and solved concludes over the lesson's messages", () => {

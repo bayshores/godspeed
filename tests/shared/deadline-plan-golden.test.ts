@@ -6,8 +6,6 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { planDays, type PlanTopic } from "../../src/shared/core/deadline-plan.ts";
-import type { TopicProgress } from "../../src/shared/core/progress.ts";
-import { deadlineStudyTopicIds } from "../../src/shared/core/study.ts";
 
 interface Case {
 	name: string;
@@ -15,9 +13,7 @@ interface Case {
 		args: {
 			today: string;
 			due?: string;
-			topics?: PlanTopic[] & Array<Pick<TopicProgress, "id" | "status" | "answers">>;
-			from?: string;
-			deadline?: { date: string; topics: PlanTopic[] };
+			topics?: PlanTopic[];
 		};
 		result: unknown;
 	};
@@ -30,8 +26,6 @@ describe("deadline plan shared cases", () => {
 		const { args } = output;
 		if (name.startsWith("plan days")) {
 			it(name, () => assert.deepEqual(planDays(args.today, args.due!, args.topics!), output.result));
-		} else if (name.startsWith("deadline study topics ") && !args.from) {
-			it(name, () => assert.deepEqual(deadlineStudyTopicIds(args.today, args.deadline!, args.topics!), output.result));
 		}
 	}
 });

@@ -359,8 +359,8 @@ describe("over-escaped command heal — doubled backslashes in tool args", () =>
 	// arguments — sometimes per-field within one call (the gradient-descent
 	// session's first probe: question doubled, explanation+options clean).
 	// KaTeX reads `\\` as a row break and renders the command name as plain
-	// letters — "renders as LaTeX but reads the word nabla". The heal lives
-	// at the tool-parts argument seam (restoreMathEscapesDeep); these are its
+	// letters — "renders as LaTeX but reads the word nabla". The heal runs
+	// when a stored call is displayed (repairMathForDisplay); these are its
 	// pure units. TS literals: 4 backslashes = 2 real, 6 = 3 real.
 
 	/** The gradient-descent session's probe question (chat_mv7r02og, msg 3)

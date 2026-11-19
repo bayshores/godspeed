@@ -19,7 +19,7 @@ export function isMockLanguage(v: unknown): v is MockLanguage {
 
 /** One call of a code question's function, as JSON text: the arguments
  *  (a JSON array, one item per parameter) and what it should return. */
-export interface MockExample {
+interface MockExample {
 	args: string;
 	expected: string;
 }
@@ -56,7 +56,7 @@ export interface MockAnswer {
 
 export type MockVerdict = "right" | "partly" | "wrong";
 
-export interface MockGrade {
+interface MockGrade {
 	verdict: MockVerdict;
 	/** What was right, what was not, and the fix, in markdown. */
 	feedback: string;

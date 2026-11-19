@@ -2,10 +2,8 @@
  *  only. Deliberately NOT toggleable: quiz + ask_user_question (assessment
  *  and teaching are built on graded verification), the learner-filesystem
  *  set, plan tools, and probe_done (a prober that can never conclude is a
- *  lockout). The write side validates against this list
- *  (settings-body.ts); the read-side sanitizer stays lenient. The names
- *  are the MODEL-FACING tool names. */
-export const TOGGLEABLE_TOOLS = ["research", "demo", "visual", "pdf"] as const;
+ *  lockout). The names are the MODEL-FACING tool names. */
+const TOGGLEABLE_TOOLS = ["research", "demo", "visual", "pdf"] as const;
 
 export type ToggleableTool = (typeof TOGGLEABLE_TOOLS)[number];
 

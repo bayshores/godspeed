@@ -69,10 +69,10 @@ export interface GeneralSettings {
 /** The teacher's name when none is set. */
 export const DEFAULT_TEACHER_NAME = "Teacher";
 /** The longest teacher name kept. */
-export const TEACHER_NAME_MAX = 40;
+const TEACHER_NAME_MAX = 40;
 
 /** A teacher name made safe to show. "" = use the default. */
-export function sanitizeTeacherName(raw: string): string {
+function sanitizeTeacherName(raw: string): string {
 	return oneLine(raw, TEACHER_NAME_MAX);
 }
 

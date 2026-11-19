@@ -8,7 +8,7 @@ import type { LhMessage } from "../native-messages.ts";
 // A session-scoped dependency tree authored by the teacher via plan tools.
 // One substrate with the global graph: tree nodes fold into graph nodes.
 
-export interface PlanNode {
+interface PlanNode {
 	/** Opaque, agent-chosen slug, stable across edits: "chain-rule-intuition". */
 	id: string;
 	/** Short label for the tree panel. */
@@ -17,7 +17,7 @@ export interface PlanNode {
 	summary?: string;
 }
 
-export interface PlanEdge {
+interface PlanEdge {
 	/** Prerequisite node id. */
 	from: string;
 	/** Node that depends on `from`. */

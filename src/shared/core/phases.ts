@@ -18,18 +18,11 @@
  * question is posed. nodeId is schema-required at the teach quiz
  * boundary, so the seam signal is structural, not prompt-mandated.
  *
- * TWO FOLDS over the same events: `phaseTimeline` folds
- * VIEW messages (the client's dividers and dock — part shapes, pure and
- * structural); `phaseAt3Lh` folds the NATIVE record (server summaries,
- * tests) — probe→plan advances at the probe_done RESULT message, plan→teach
- * at the assistant message carrying the first nodeId-tagged quiz CALL.
- * Both are strictly sequential; the two derivations agree on every settled
- * record (a call's part projects into the same view boundary).
+ * `phaseTimeline` folds the VIEW messages (the client's dividers and dock),
+ * strictly sequentially. The Rust server derives the list's phase itself.
  *
- * Pure: type-only imports, no runtime deps — safe on server, client, and tests.
+ * Pure, no imports.
  */
-
-import type { LhMessage } from "./native-messages.ts";
 
 /** The three phases of a session, as the picker / header / dividers see them. */
 export type Phase3 = "probe" | "plan" | "teach";
@@ -141,43 +134,4 @@ export function phaseTimeline(messages: readonly PhaseMessage[], start: Phase3 =
 		out.push(phase);
 	}
 	return out;
-}
-
-// ─── the native fold (record-side phase over LhMessage[]) ───────────────────
-
-/** The current phase of a NATIVE record. probe→plan advances at the probe_done call's clean
- *  toolResult; plan→teach at the assistant message carrying the first
- *  nodeId-tagged quiz CALL (mirrors the view fold — same seam, native
- *  shape). */
-export function phaseAt3Lh(messages: readonly LhMessage[], start: Phase3 = "probe"): Phase3 {
-	let phase = start;
-	for (const m of messages) {
-		const role = (m as { role?: string }).role;
-		if (role === "toolResult") {
-			const result = m as { toolName?: string; isError?: boolean; details?: unknown };
-			if (
-				phase === "probe" &&
-				result.toolName === "probe_done" &&
-				!result.isError &&
-				!refusedProbe(result.details)
-			) {
-				phase = "plan";
-			}
-		} else if (role === "assistant") {
-			const content = (m as { content?: ReadonlyArray<{ type?: string; name?: string; arguments?: unknown }> }).content ?? [];
-			if (phase === "plan") {
-				for (const block of content) {
-					if (
-						block.type === "toolCall" &&
-						(block.name === "quiz" || block.name === "explain") &&
-						taggedNodeId(block.arguments)
-					) {
-						phase = "teach";
-						break;
-					}
-				}
-			}
-		}
-	}
-	return phase;
 }

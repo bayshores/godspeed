@@ -1,15 +1,12 @@
 /**
- * The cheat sheet's pure core: pointing at a page, the page size, a space's
- * sheet cards, and the canvas's artboards and camera.
+ * The cheat sheet's pure core: the page size, and the canvas's artboards and
+ * camera.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
 	pageCaption,
 	pageSizeLabel,
-	sheetCards,
-	regionText,
-	type CheatSheet,
 	type SheetPage,
 } from "../../src/shared/core/cheat-sheet.ts";
 import {
@@ -27,18 +24,10 @@ import {
 	zoomLabel,
 	zoomStep,
 } from "../../src/frontend/components/cheat-sheet/canvas-model.ts";
-import { newCheatSheet } from "../cheat-sheet-fixture.ts";
 import { DOCK_MIN_W, dockWidth, makeTarget, parseDockState, pickSheet } from "../../src/frontend/components/cheat-sheet/dock-model.ts";
 
 const A4: SheetPage = { widthPt: 595.28, heightPt: 841.89 };
 const LETTER: SheetPage = { widthPt: 612, heightPt: 792 };
-
-describe("cheat sheet: pointing at a page", () => {
-	it("says which page and where in plain percents", () => {
-		assert.equal(regionText({ n: 3, page: 2, x: 0.1, y: 0.2, w: 0.3, h: 0.15 }, 2), "page 2 (the back), from 10% to 40% across and 20% to 35% down");
-		assert.equal(regionText({ n: 3, page: 1, x: 0, y: 0, w: 1, h: 1 }, 1), "page 1, from 0% to 100% across and 0% to 100% down");
-	});
-});
 
 describe("cheat sheet: the page size", () => {
 	it("names the paper by its first page, and the sides", () => {
@@ -51,36 +40,6 @@ describe("cheat sheet: the page size", () => {
 
 	it("labels two pages Front and Back, the rest by number", () => {
 		assert.deepEqual([pageCaption(0, 2), pageCaption(1, 2), pageCaption(0, 1), pageCaption(2, 3)], ["Front", "Back", "Page 1", "Page 3"]);
-	});
-});
-
-describe("cheat sheet: a space's cheat sheets", () => {
-	const deadline = (id: string, date: string, over: Record<string, unknown> = {}) => ({ id, kind: "exam" as const, name: id, date, fileIds: [], done: false, ...over });
-	const made = { ...newCheatSheet("d", "t"), versions: [{ n: 2, prompt: "A4", at: "t", pages: [A4] }] };
-
-	it("lists upcoming deadlines soonest first, then past ones latest first, each with where its sheet is", () => {
-		const deadlines = [
-			deadline("later", "2026-11-20"),
-			deadline("old", "2026-10-01"),
-			deadline("soon", "2026-11-05", { time: "09:00" }),
-			deadline("done", "2026-11-30", { done: true }),
-			deadline("soon2", "2026-11-05"),
-			deadline("older", "2026-10-10"),
-		];
-		const sheets: Record<string, CheatSheet | "newer"> = { soon: made, later: { ...newCheatSheet("later", "t"), olderFormat: true }, old: made, older: "newer" };
-		const cards = sheetCards(deadlines, (id) => sheets[id] ?? null, (id) => id === "old" || id === "soon2", "2026-11-04");
-		assert.deepEqual(
-			cards.map((c) => [c.deadlineId, c.past, c.status, c.version?.n ?? null]),
-			[
-				["soon", false, "made", 2],
-				["soon2", false, "making", null],
-				["later", false, "older", null],
-				["done", true, "none", null],
-				["older", true, "newer", null],
-				["old", true, "making", 2],
-			],
-		);
-		assert.equal(cards[0]!.time, "09:00");
 	});
 });
 

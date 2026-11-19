@@ -16,7 +16,7 @@
  *  chain's implication node, the implication node → the conclusion.
  *  Nothing stores or mutates these — they are rebuilt after every change
  *  and never converted back. */
-export interface GraphEdge {
+interface GraphEdge {
 	from: string;
 	to: string;
 }
@@ -63,7 +63,7 @@ export interface EmissionStats {
 /** One provenance point — message-granular: nodes and
  *  chains record every (chat, message) where they came up, deep-linkable to
  *  the exact transcript point. */
-export interface ProvenancePoint {
+interface ProvenancePoint {
 	/** The chat this point anchors to — or a notes source id ("src_…"):
 	 *  imports carry no message anchors (provenance is the file itself,
 	 *  recorded through the source record). */
@@ -72,7 +72,7 @@ export interface ProvenancePoint {
 }
 
 /** The main work a topic asks of a learner; Study picks its opening move by it. */
-export const TOPIC_MATERIALS = ["term", "procedure", "concept", "proof"] as const;
+const TOPIC_MATERIALS = ["term", "procedure", "concept", "proof"] as const;
 export type TopicMaterial = (typeof TOPIC_MATERIALS)[number];
 
 export interface GraphNode {

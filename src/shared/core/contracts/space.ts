@@ -17,7 +17,7 @@
 /** "study" files are turned into graph facts by the extraction pipeline;
  *  "info" files (syllabus, assignments) are never extracted — the teacher
  *  can only read them. */
-export type SpaceFileKind = "study" | "info";
+type SpaceFileKind = "study" | "info";
 
 /** Where a space file lives: "copied" = the app's own copy under
  *  data/spaces/<id>/files; "linked" = inside the space's linked folder

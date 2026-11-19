@@ -131,7 +131,7 @@ export function inkFor(background: string, level: InkLevel, panels: readonly str
 }
 
 /** True when this level can meet its minimum on the background and every panel. */
-export function inkReaches(background: string, level: InkLevel, panels: readonly string[] = []): boolean {
+function inkReaches(background: string, level: InkLevel, panels: readonly string[] = []): boolean {
 	const ink = inkFor(background, level, panels);
 	return [background, ...panels].every((s) => contrast(ink, s) >= LEVELS[level].min);
 }

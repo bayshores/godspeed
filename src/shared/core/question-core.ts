@@ -2,11 +2,11 @@
  * question-core — the question contract + pure grading logic. No framework
  * imports, no UI: everything here is deterministic and unit-testable.
  *
- * The TypeBox schemas below are the tool INPUT contracts (agent/tools
- * declares the tools against them); the browser validates, shuffles and
- * grades with these functions, then posts the verdict as the answer input
- * event, which becomes the call's native toolResult (newAnswerResult in
- * native-messages.ts):
+ * The TypeBox schemas below parse stored tool calls for display (the Rust
+ * server owns the tools' input contracts); the browser validates, shuffles
+ * and grades with these functions, then posts the verdict as the answer
+ * input event, which becomes the call's native toolResult (newAnswerResult
+ * in native-messages.ts):
  *   1. The teacher calls `quiz` (question + options + correctAnswer +
  *      explanation). No server execute → the call shows in the UI as a
  *      tool part in `input-available` state.
@@ -211,48 +211,12 @@ export function questionNeedsReveal(tool: string, rawInput: unknown, phase: stri
 	return normalizeQuizType((rawInput as { type?: unknown } | null)?.type) !== "predict";
 }
 
-/** The teaching-cycle role field, shared by both teach quizzing tools.
- *  Bare words, never quoted (models copy the quotes; see
- *  tests/backend/tool-heal.test.ts). */
-const predictCheckType = Type.Union([Type.Literal("predict"), Type.Literal("check")], {
-	description:
-		"REQUIRED — the question's role in the teaching cycle, as a bare word (no quotes): predict = posed BEFORE " +
-		"you teach the step (its own turn; the learner answers, then your teaching resolves it — arrives open, never " +
-		"collapsed); check = posed AFTER the step's teaching is complete (arrives collapsed behind the Check your " +
-		"understanding reveal). ONE question per turn either way.",
-});
-
-/** The plan-node tag, shared by both teach quizzing tools. */
-const planNodeId = Type.String({
-	description:
-		"REQUIRED plan-tree node id this question is about — must EXACTLY match one of this session's " +
-		"plan_init node slugs (validated at call time; a mismatched id is rejected back to you). " +
-		"The lesson's position on the map derives from these tags (the node the latest tagged question is about is " +
-		"where the map stands; earlier ones count as visited). A node takes as many questions as it deserves: stay on " +
-		"one node for as many turns as the understanding needs — one reasoning step at a time, never rush forward. " +
-		"For off-map checks use ask_user_question.",
-});
-
-/** The TEACH-side quiz object. The required pair leads the property
- *  order because models drop trailing fields on long calls; fields
- *  generated first get dropped least. */
-export const quizInputObject = Type.Object({
-	type: predictCheckType,
-	nodeId: planNodeId,
-	...quizInputBase.properties,
-});
-
-/** The PROBE-side quiz: the shared contract with no nodeId and no `type`.
- *  The map doesn't exist yet, and probing has one question role. */
-export const probeQuizInputSchema = quizInputBase;
-
 /** The DISPLAY parse for persisted quiz calls (tool-parts.ts): the base
  *  + `type` as an OPTIONAL plain string (old records carry none, and
  *  Value.Clean keeps a key only when the schema knows it — the dock would
  *  otherwise lose the role it renders and gates by). Normalization is
  *  normalizeQuizType at the read seam; nodeId stays stripped (unknown
- *  key). The PROBE quiz parses against the bare base — probe calls carry
- *  no type. */
+ *  key). */
 export const quizDisplayInputSchema = Type.Object({
 	...quizInputBase.properties,
 	type: Type.Optional(Type.String()),
@@ -265,7 +229,7 @@ export const quizDisplayInputSchema = Type.Object({
 // posing; the commitment is revealed on submit and restated in the answer
 // result the model grades against. The client never grades free text.
 
-export const explainInputBase = Type.Object({
+const explainInputBase = Type.Object({
 	question: Type.String({
 		description:
 			"The single question to ask. ONE question per turn: ask, then end your turn — the answer determines the next.",
@@ -282,19 +246,10 @@ export const explainInputBase = Type.Object({
 	),
 });
 
-/** The TEACH-side explain object: base + `type` and nodeId, with the same
- *  meaning and order as the teach quiz's. */
-export const explainInputObject = Type.Object({
-	type: predictCheckType,
-	nodeId: planNodeId,
-	...explainInputBase.properties,
-});
-
 /** The DISPLAY parse for persisted explain calls (tool-parts.ts): the
  *  base + `type` as an OPTIONAL plain string — exactly the quiz display
  *  pattern. Old records carry none; questionNeedsReveal treats them as
- *  checks (the standing default). nodeId stays stripped (unknown key).
- *  The PROBE recall parses against the bare base. */
+ *  checks (the standing default). nodeId stays stripped (unknown key). */
 export const explainDisplayInputSchema = Type.Object({
 	...explainInputBase.properties,
 	type: Type.Optional(Type.String()),
@@ -440,7 +395,7 @@ export function stepConfidence(index: number | undefined, dir: 1 | -1): number {
 export type ConfidenceLevel = 1 | 2 | 3 | 4 | 5;
 
 /** The percentage a 1–5 level saves as (level × 20). */
-export function levelPercent(level: ConfidenceLevel): number {
+function levelPercent(level: ConfidenceLevel): number {
 	return level * 20;
 }
 
