@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import type { BootInfo } from "@/shared/core";
+import { getJson } from "@/frontend/lib/api";
 
 /**
  * What the window reads before its first paint (GET /api/boot): onboarding,
@@ -13,18 +14,14 @@ const UNREAD: BootInfo = { onboarding: false, firstLoad: null, whatsNewSince: nu
 
 declare global {
 	interface Window {
-		/** The first /api/boot request, sent by index.html before the app's code loads. */
-		bootRequest?: Promise<Response | null>;
+		/** The first /api/boot answer, asked for by index.html before the app's code loads; null when it failed. */
+		bootRequest?: Promise<BootInfo | null>;
 	}
 }
 
-export async function fetchBoot(request: Promise<Response | null> = fetch("/api/boot", { cache: "no-store" })): Promise<BootInfo> {
-	try {
-		const res = await request;
-		return res?.ok ? ((await res.json()) as BootInfo) : UNREAD;
-	} catch {
-		return UNREAD;
-	}
+/** The boot answer: `early` is the page's own first request, when it has one. */
+export async function fetchBoot(early?: Promise<BootInfo | null>): Promise<BootInfo> {
+	return (await (early ?? getJson<BootInfo>("/api/boot").then((read) => read.body))) ?? UNREAD;
 }
 
 /** The welcome screen covers this page load. */

@@ -31,6 +31,8 @@ import { useActivity } from "@/frontend/components/activity-dock";
 import { useSpaces } from "@/frontend/components/space-context";
 import { prefersReducedMotion, usePresence } from "@/frontend/components/presence";
 import { useSettings } from "@/frontend/components/settings-context";
+import { getJson } from "@/frontend/lib/api";
+import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useWindowPage } from "@/frontend/components/terminal/use-terminal-lines";
 import { TeacherPanel, panelFillsWindow } from "./teacher-panel";
@@ -59,21 +61,6 @@ export function useTeacherLesson(streaming: boolean, working: boolean, draft: bo
 		set?.({ streaming, working, draft });
 	}, [set, streaming, working, draft]);
 	useEffect(() => () => set?.(null), [set]);
-}
-
-function readStored(key: string): string | null {
-	try {
-		return localStorage.getItem(key);
-	} catch {
-		return null;
-	}
-}
-function writeStored(key: string, value: string): void {
-	try {
-		localStorage.setItem(key, value);
-	} catch {
-		/* private window: not remembered */
-	}
 }
 
 export function TeacherProvider({ children }: { children: ReactNode }) {
@@ -105,11 +92,11 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 		setFollowOn(next.on);
 	}, []);
 	useEffect(() => {
-		if (!parseFollow(readStored(FOLLOW_KEY))) dispatchFollow({ type: "toggle", on: false });
+		if (!parseFollow(readStorage(FOLLOW_KEY))) dispatchFollow({ type: "toggle", on: false });
 	}, [dispatchFollow]);
 	const setFollow = useCallback(
 		(on: boolean) => {
-			writeStored(FOLLOW_KEY, on ? "1" : "0");
+			writeStorage(FOLLOW_KEY, on ? "1" : "0");
 			dispatchFollow({ type: "toggle", on });
 		},
 		[dispatchFollow],
@@ -139,12 +126,9 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	// ── recent changes ──
 	const [recent, setRecent] = useState<AgentAction[]>([]);
 	const loadRecent = useCallback(() => {
-		fetch("/api/agent-actions", { cache: "no-store" })
-			.then((r) => (r.ok ? r.json() : null))
-			.then((body: { actions?: AgentAction[] } | null) => {
-				if (Array.isArray(body?.actions)) setRecent(body.actions.slice(0, RECENT_LIMIT));
-			})
-			.catch(() => {});
+		void getJson<{ actions?: AgentAction[] }>("/api/agent-actions").then(({ body }) => {
+			if (Array.isArray(body?.actions)) setRecent(body.actions.slice(0, RECENT_LIMIT));
+		});
 	}, []);
 	useEffect(loadRecent, [loadRecent]);
 	useServerResync(loadRecent);

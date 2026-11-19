@@ -6,17 +6,14 @@
 
 import { useState } from "react";
 import { RULE_MAX_CHARS, type RuleWhere } from "@/shared/core";
+import { jsonInit, send, serverError } from "@/frontend/lib/api";
 
 type Mode = { kind: "saved" } | { kind: "editing"; draft: string } | { kind: "removed" } | { kind: "error"; message: string };
 
 async function postRule(body: { action: "remove" | "edit"; where: RuleWhere; text: string; newText?: string }): Promise<{ ok: true; rule?: string } | { ok: false; error: string }> {
-	try {
-		const res = await fetch("/api/rules", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-		const json = (await res.json().catch(() => ({}))) as { rule?: string; error?: string };
-		return res.ok ? { ok: true, rule: json.rule } : { ok: false, error: json.error ?? "Couldn't change the rule. Try again." };
-	} catch {
-		return { ok: false, error: "Couldn't reach godspeed. Try again." };
-	}
+	const { error, body: answer, status } = await send("/api/rules", jsonInit("POST", body));
+	if (!error) return { ok: true, rule: (answer as { rule?: string }).rule };
+	return { ok: false, error: status === 0 ? "Couldn't reach godspeed. Try again." : (serverError(answer) ?? "Couldn't change the rule. Try again.") };
 }
 
 export function useSavedRule(where: RuleWhere, saved: string) {

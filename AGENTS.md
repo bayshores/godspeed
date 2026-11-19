@@ -60,6 +60,8 @@ Keep godspeed small, tidy and easy to read. The checks below enforce these rules
 **One owner, one way**
 - Search before you write (`graphify query`): a helper, hook, type or component that does the job is used, not copied. The second copy is the moment to make the shared one.
 - Server data has one owner in the browser (a provider or one hook). Every other component reads from it. Never fetch the same record a second time and keep the copies in step with an event.
+- Every request from the browser goes through `send` or `getJson` in `src/frontend/lib/api.ts`. Lint fails any other `fetch`; one that cannot (a stream, a download) goes on the allow list in `eslint.config.mjs` with its reason.
+- Browser storage goes through `readStorage` and `writeStorage` in `src/frontend/lib/storage.ts`. Lint fails any other `localStorage` or `sessionStorage`.
 - To change one field, send that field; the server merges it under its lock (as `PATCH /api/settings/general` does). Never read a record, change it and send the whole thing back.
 - A fixed set of values (a role, a status, a kind) is one type with its values named once, never the same strings compared in many files. Saved text stays the same.
 

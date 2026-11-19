@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { send, serverError } from "@/frontend/lib/api";
 import { spaceQuery, useSpaces } from "@/frontend/components/space-context";
 import { DeleteFoot, FailureRow } from "@/frontend/components/ui/delete-dialog-parts";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
@@ -43,25 +44,18 @@ export function DeleteNodeDialog({
 		setFailure(null);
 		const dead: string[] = [];
 		let revision = 0;
-		try {
-			for (const n of nodes) {
-				const res = await fetch(`/api/graph/nodes/${encodeURIComponent(n.id)}${spaceQuery(activeSpaceId)}`, { method: "DELETE" });
-				const body = (await res.json()) as { error?: string; graphRevision?: number };
-				if (!res.ok) {
-					setFailure(body.error ?? `Delete failed (${res.status})`);
-					setBusy(false);
-					if (dead.length > 0) onDeleted(dead, revision);
-					return;
-				}
-				dead.push(n.id);
-				revision = body.graphRevision ?? revision;
+		for (const n of nodes) {
+			const { error, body, status } = await send(`/api/graph/nodes/${encodeURIComponent(n.id)}${spaceQuery(activeSpaceId)}`, { method: "DELETE" });
+			if (error) {
+				setFailure(status === 0 ? "Delete failed: network error. Try again." : (serverError(body) ?? `Delete failed (${status})`));
+				setBusy(false);
+				if (dead.length > 0) onDeleted(dead, revision);
+				return;
 			}
-			onDeleted(dead, revision);
-		} catch {
-			setFailure("Delete failed: network error. Try again.");
-			setBusy(false);
-			if (dead.length > 0) onDeleted(dead, revision);
+			dead.push(n.id);
+			revision = (body as { graphRevision?: number }).graphRevision ?? revision;
 		}
+		onDeleted(dead, revision);
 	};
 
 	if (!mounted || !shown) return null;

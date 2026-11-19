@@ -48,7 +48,7 @@ const TURN_POLL_MS = 500;
 const TURN_WAIT_MAX_MS = 30_000;
 
 interface SessionModelDeps {
-	/** Injectable fetch (tests); defaults to the global. */
+	/** The transport for this chat's requests and streams (tests inject one); defaults to the global fetch. */
 	fetch?: typeof globalThis.fetch;
 	/** Injectable retry timing (tests). */
 	pollMs?: number;

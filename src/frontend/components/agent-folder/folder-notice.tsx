@@ -11,6 +11,7 @@ import { createPortal } from "react-dom";
 import type { FolderAgent } from "@/shared/core";
 import { usePresence } from "@/frontend/components/presence";
 import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
+import { jsonInit, send } from "@/frontend/lib/api";
 import { AGENT_LABEL } from "./agent-folder-model";
 import { useAgentFolder } from "./use-agent-folder";
 
@@ -33,7 +34,7 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 
 	const later = () => {
 		setOpen(false);
-		void fetch("/api/agent-folder", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "dismiss-notice" }) }).catch(() => {});
+		void send("/api/agent-folder", jsonInit("POST", { action: "dismiss-notice" }));
 	};
 	// Close once the agent starts; the teacher's status line follows it from there.
 	const setUp = async () => {

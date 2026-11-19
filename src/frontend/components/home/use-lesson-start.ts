@@ -4,7 +4,7 @@ import { lessonStop, type ChatAttachment, type DeadlineProgress, type GraphConte
 import { useSpaces } from "@/frontend/components/space-context";
 import { holdStartFiles } from "@/frontend/components/lesson/start-files";
 import { useWake } from "@/frontend/components/teacher/use-wake";
-import { jsonInit } from "@/frontend/lib/api";
+import { getJson, jsonInit, send } from "@/frontend/lib/api";
 
 const LESSON_START_FAILED = "Couldn't start the lesson. Try again.";
 
@@ -42,17 +42,16 @@ export function useLessonStart() {
 			if (busy) return;
 			setBusy(true);
 			setError(null);
-			try {
-				const res = await fetch("/api/chats", jsonInit("POST", { ...body, ...(spaceId ? { spaceId } : {}) }));
-				if (!res.ok) throw new Error(`HTTP ${res.status}`);
-				const { id, title } = (await res.json()) as { id: string; title: string };
-				holdStartFiles(id, files);
-				wake?.();
-				navigate(`/chat/${id}?prompt=${encodeURIComponent(title)}`);
-			} catch {
+			const { error: failed, body: made } = await send("/api/chats", jsonInit("POST", { ...body, ...(spaceId ? { spaceId } : {}) }));
+			if (failed) {
 				setBusy(false);
 				setError(LESSON_START_FAILED);
+				return;
 			}
+			const { id, title } = made as { id: string; title: string };
+			holdStartFiles(id, files);
+			wake?.();
+			navigate(`/chat/${id}?prompt=${encodeURIComponent(title)}`);
 		},
 		[busy, active, navigate, wake],
 	);
@@ -102,17 +101,10 @@ export function useLessonStart() {
 			if (busy) return;
 			setBusy(true);
 			const lesson = `/chat/${encodeURIComponent(chatId)}`;
-			try {
-				const res = await fetch(`/api/chats/${encodeURIComponent(chatId)}`);
-				if (!res.ok) throw new Error(`HTTP ${res.status}`);
-				const stop = lessonStop(((await res.json()) as { messages: LhMessage[] }).messages, null);
-				if (!stop || stop.keptGoing) throw new Error("no stop to go on from");
-				const kept = await fetch(`/api/chats/${encodeURIComponent(chatId)}/keep-going`, jsonInit("POST", { input: { stopOf: stop.stopOf } }));
-				if (!kept.ok) throw new Error(`HTTP ${kept.status}`);
-				navigate(`${lesson}?lit=stop`);
-			} catch {
-				navigate(lesson);
-			}
+			const { body } = await getJson<{ messages: LhMessage[] }>(`/api/chats/${encodeURIComponent(chatId)}`);
+			const stop = body ? lessonStop(body.messages, null) : null;
+			const kept = stop && !stop.keptGoing ? await send(`/api/chats/${encodeURIComponent(chatId)}/keep-going`, jsonInit("POST", { input: { stopOf: stop.stopOf } })) : null;
+			navigate(kept && !kept.error ? `${lesson}?lit=stop` : lesson);
 		},
 		[busy, navigate],
 	);

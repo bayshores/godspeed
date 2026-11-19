@@ -12,6 +12,7 @@ import { savedAgent } from "@/frontend/components/agent-folder/agent-folder-api"
 import { useAgentFolderView } from "@/frontend/components/agent-folder/agent-folder-context";
 import { AgentStatusContext, type AgentStatus } from "@/frontend/components/agent-status";
 import { useServerEvent } from "@/frontend/components/server-events";
+import { send as sendRequest } from "@/frontend/lib/api";
 import { readBase64 } from "@/frontend/lib/read-base64";
 import {
 	ATTACH_MAX_BYTES,
@@ -147,10 +148,12 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		let on = true;
 		const gone = runId && runGone ? resumed.current.get(runId) : undefined;
 		const url = `/api/teacher-chats${gone ? `?id=${encodeURIComponent(gone)}` : ""}`;
-		fetch(url, gone ? { method: "DELETE" } : { cache: "no-store" })
-			.then((r) => (r.ok ? (r.json() as Promise<{ chats: TeacherChat[] }>) : null))
-			.then((body) => on && setChats(Array.isArray(body?.chats) ? body.chats : []))
-			.catch(() => {/* the list waits for the next look */});
+		void sendRequest(url, gone ? { method: "DELETE" } : { cache: "no-store" }).then(({ body, status }) => {
+			// Unreachable: the list waits for the next look.
+			if (!on || status === 0) return;
+			const { chats } = body as { chats?: TeacherChat[] };
+			setChats(Array.isArray(chats) ? chats : []);
+		});
 		return () => {
 			on = false;
 		};

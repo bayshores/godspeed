@@ -66,7 +66,7 @@ import { lessonPluginContext } from "@/frontend/components/lesson/lesson-plugins
 import { PluginWindow } from "@/frontend/components/lesson/plugin-window";
 import { useSpaces } from "@/frontend/components/space-context";
 import { usePluginsAt } from "@/frontend/lib/use-plugins-at";
-import { jsonInit } from "@/frontend/lib/api";
+import { jsonInit, send as sendRequest } from "@/frontend/lib/api";
 import { useStableValue } from "@/frontend/lib/use-stable-value";
 import { useNow } from "@/frontend/components/use-now";
 
@@ -214,9 +214,8 @@ export function Chat({
 	// taken for a recovery that re-attaches.
 	const abortInFlightTurn = useCallback(() => {
 		if (localStreamRef.current || status === "error") stop();
-		void fetch("/api/activity/abort", jsonInit("POST", { kind: "turn", id: chatId })).catch(() => {
-			/* transient — the turn settles on its own */
-		});
+		// A failed abort is transient: the turn settles on its own.
+		void sendRequest("/api/activity/abort", jsonInit("POST", { kind: "turn", id: chatId }));
 	}, [chatId, stop, status, localStreamRef]);
 
 	// The stuck-turn line stops the turn and runs it again at once (its

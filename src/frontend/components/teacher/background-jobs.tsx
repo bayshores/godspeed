@@ -6,6 +6,7 @@ import { useFold } from "@/frontend/components/use-fold";
 import { useNow } from "@/frontend/components/use-now";
 import { formatTokens, planCostLabel } from "@/frontend/components/usage-format";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { jsonInit, send } from "@/frontend/lib/api";
 import { blobLabel, formatElapsed, toBlobs, type ActivityBlob } from "./activity-model";
 import { useTeacher } from "./teacher-context";
 
@@ -48,30 +49,17 @@ export function BackgroundJobs({ feed, waiting }: { feed: ActivityFeed; waiting:
 	const abort = useCallback(async (blob: ActivityBlob) => {
 		const key = runKey(blob);
 		setAbortStates((s) => ({ ...s, [key]: "pending" }));
-		try {
-			const res = await fetch("/api/activity/abort", {
-				method: "POST",
-				headers: { "content-type": "application/json" },
-				// A fact-building run stops by its source id: chunk rows share
-				// one source and stop together.
-				body: JSON.stringify({ kind: blob.process, id: blob.process === "extraction" ? blob.chatId : blob.id }),
-			});
-			if (!res.ok) {
-				// Not found / not running: it already ended, which is what Stop wants.
-				if (res.status === 404 || res.status === 409) {
-					refreshRef.current();
-					setAbortStates((s) => {
-						const { [key]: _drop, ...rest } = s;
-						return rest;
-					});
-					return;
-				}
-				throw new Error(String(res.status));
-			}
+		// A fact-building run stops by its source id: chunk rows share one source and stop together.
+		const { error, status } = await send("/api/activity/abort", jsonInit("POST", { kind: blob.process, id: blob.process === "extraction" ? blob.chatId : blob.id }));
+		if (!error) return refreshRef.current();
+		// Not found / not running: it already ended, which is what Stop wants.
+		if (status === 404 || status === 409) {
 			refreshRef.current();
-		} catch {
-			setAbortStates((s) => ({ ...s, [key]: "failed" }));
-		}
+			setAbortStates((s) => {
+				const { [key]: _drop, ...rest } = s;
+				return rest;
+			});
+		} else setAbortStates((s) => ({ ...s, [key]: "failed" }));
 	}, []);
 
 	const failed = feed.failed ?? [];

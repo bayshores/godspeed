@@ -7,6 +7,7 @@ import { NoticeCard } from "@/frontend/components/notice-card";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { NOTICE_STACK_ID } from "@/frontend/components/top-bar/pill-panel";
+import { send } from "@/frontend/lib/api";
 import { readNews } from "./work-model";
 
 /**
@@ -27,7 +28,7 @@ export function ReadNotice() {
 	if (title === null) return null;
 	const close = () => {
 		setClosed(round);
-		void fetch(`/api/spaces/${encodeURIComponent(record.id)}/work`, { method: "DELETE" });
+		void send(`/api/spaces/${encodeURIComponent(record.id)}/work`, { method: "DELETE" });
 	};
 	return createPortal(
 		<NoticeCard data-testid="read-notice" role="status" title={title} close={{ onClick: close, testId: "read-notice-close" }} />,

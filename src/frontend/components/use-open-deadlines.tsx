@@ -13,7 +13,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from "react
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { DoneNotice } from "@/frontend/components/done-notice";
 import { useServerResource } from "@/frontend/components/use-server-resource";
-import { jsonInit } from "@/frontend/lib/api";
+import { jsonInit, send } from "@/frontend/lib/api";
 
 interface Fetched {
 	open: OpenDeadline[];
@@ -59,13 +59,9 @@ export function OpenDeadlinesProvider({ children }: { children: React.ReactNode 
 		(d: OpenDeadline, done: boolean, failed: string) => {
 			setNotice(null);
 			void (async () => {
-				try {
-					const res = await fetch(`/api/spaces/${encodeURIComponent(d.spaceId)}/deadlines/${encodeURIComponent(d.id)}`, jsonInit("PUT", { done }));
-					if (!res.ok) throw new Error(`HTTP ${res.status}`);
-					await load();
-				} catch {
-					setNotice(failed);
-				}
+				const { error } = await send(`/api/spaces/${encodeURIComponent(d.spaceId)}/deadlines/${encodeURIComponent(d.id)}`, jsonInit("PUT", { done }));
+				if (error) setNotice(failed);
+				else await load();
 			})();
 		},
 		[load],

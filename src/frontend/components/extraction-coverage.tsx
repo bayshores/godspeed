@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useActivity } from "@/frontend/components/activity-dock";
-import { getJson } from "@/frontend/lib/api";
+import { getJson, jsonInit, send } from "@/frontend/lib/api";
 
 /**
  * The coverage block in the lesson menu: whether the
@@ -32,17 +32,8 @@ async function fetchCoverage(chatId: string): Promise<SessionCoverage | null> {
  *  started, so the caller shows the running state instead of an error.
  *  Returns false only on a real failure, where the caller reverts. */
 async function requestExtract(chatId: string): Promise<boolean> {
-	try {
-		const res = await fetch("/api/graph/coverage/extract", {
-			method: "POST",
-			headers: { "content-type": "application/json" },
-			body: JSON.stringify({ chatId }),
-		});
-		if (!res.ok && res.status !== 409) return false;
-		return true; // 202 started, or 409 already-running — both "running"
-	} catch {
-		return false;
-	}
+	const { error, status } = await send("/api/graph/coverage/extract", jsonInit("POST", { chatId }));
+	return !error || status === 409; // 202 started, or 409 already-running: both "running"
 }
 
 /**

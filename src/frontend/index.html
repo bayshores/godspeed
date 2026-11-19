@@ -10,7 +10,9 @@
 		<!-- No <title>: each page renders its own (routes/page-title.tsx). -->
 		<!-- Asks for /api/boot while the app's code still loads (main.tsx reads the answer). -->
 		<script>
-			window.bootRequest = fetch("/api/boot", { cache: "no-store" }).catch(() => null);
+			window.bootRequest = fetch("/api/boot", { cache: "no-store" })
+				.then((res) => (res.ok ? res.json() : null))
+				.catch(() => null);
 		</script>
 	</head>
 	<body class="min-h-dvh antialiased">

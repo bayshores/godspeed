@@ -8,6 +8,7 @@ import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { savedDay } from "@/frontend/components/rule-chips";
 import { FootQuestion } from "@/frontend/components/ui/foot-question";
+import { send } from "@/frontend/lib/api";
 import { SMALL_KEY, SettingsGroup, SettingsRow } from "./controls.tsx";
 
 interface NoteView {
@@ -18,9 +19,9 @@ interface NoteView {
 }
 
 async function request(query = "", init?: RequestInit): Promise<NoteView[]> {
-	const res = await fetch(`/api/agent-notes${query}`, { cache: "no-store", ...init });
-	if (!res.ok) throw new Error("Saved notes are unavailable.");
-	return ((await res.json()) as { notes: NoteView[] }).notes;
+	const { error, body } = await send(`/api/agent-notes${query}`, { cache: "no-store", ...init });
+	if (error) throw new Error("Saved notes are unavailable.");
+	return (body as { notes: NoteView[] }).notes;
 }
 
 function savedLabel(note: NoteView): string {

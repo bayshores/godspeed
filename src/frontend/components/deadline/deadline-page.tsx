@@ -8,7 +8,7 @@ import { studioPath } from "@/frontend/components/cheat-sheet/use-cheat-sheet";
 import { useMinute } from "@/frontend/components/countdown";
 import { spaceFilePathOf } from "@/frontend/components/files/space-files-api";
 import { useSpaceRecord } from "@/frontend/components/files/space-record";
-import { jsonInit } from "@/frontend/lib/api";
+import { jsonInit, send } from "@/frontend/lib/api";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { LoadFailed } from "@/frontend/components/load-failed";
@@ -64,15 +64,10 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 		async (patch: Record<string, unknown>) => {
 			setSaving(true);
 			setSaveError(null);
-			try {
-				const res = await fetch(`/api/spaces/${encodeURIComponent(spaceId)}/deadlines/${encodeURIComponent(deadlineId)}`, jsonInit("PUT", patch));
-				if (!res.ok) throw new Error();
-				await Promise.all([reload(), refresh()]);
-			} catch {
-				setSaveError("Couldn't save that. Try again.");
-			} finally {
-				setSaving(false);
-			}
+			const { error } = await send(`/api/spaces/${encodeURIComponent(spaceId)}/deadlines/${encodeURIComponent(deadlineId)}`, jsonInit("PUT", patch));
+			if (error) setSaveError("Couldn't save that. Try again.");
+			else await Promise.all([reload(), refresh()]);
+			setSaving(false);
 		},
 		[spaceId, deadlineId, reload, refresh],
 	);

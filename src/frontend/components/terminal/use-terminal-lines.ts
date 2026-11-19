@@ -10,7 +10,7 @@
  */
 import { useEffect, useRef } from "react";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
-import { jsonInit } from "@/frontend/lib/api";
+import { jsonInit, send } from "@/frontend/lib/api";
 import type { ChatAttachment } from "@/shared/core";
 
 type TalkPage = "lesson" | "cheat sheet";
@@ -24,12 +24,10 @@ let queued = false;
 function say() {
 	if (queued) return;
 	queued = true;
-	saying = saying
-		.then(() => {
-			queued = false;
-			return fetch("/api/talk-page", jsonInit("PUT", { ...shown }));
-		})
-		.catch(() => undefined);
+	saying = saying.then(() => {
+		queued = false;
+		return send("/api/talk-page", jsonInit("PUT", { ...shown }));
+	});
 }
 
 /** The app shell reports the page on screen and its space. */
@@ -41,7 +39,7 @@ export function useWindowPage(path: string, space: string | null): void {
 	}, [path, space]);
 	// A closed window shows nothing, so the agent never hears the learner is there.
 	useEffect(() => {
-		const gone = () => void fetch("/api/talk-page", { ...jsonInit("PUT", { page: null, path: null, space: null }), keepalive: true }).catch(() => undefined);
+		const gone = () => void send("/api/talk-page", { ...jsonInit("PUT", { page: null, path: null, space: null }), keepalive: true });
 		window.addEventListener("pagehide", gone);
 		return () => window.removeEventListener("pagehide", gone);
 	}, []);
@@ -66,7 +64,6 @@ export function useTerminalLines(page: TalkPage, onLine: (text: string, attachme
 		void onLineRef
 			.current(text, attachments)
 			.catch(() => false)
-			.then((sent) => fetch(`/api/terminal-lines/${id}`, jsonInit("POST", { sent })))
-			.catch(() => undefined);
+			.then((sent) => send(`/api/terminal-lines/${id}`, jsonInit("POST", { sent })));
 	});
 }

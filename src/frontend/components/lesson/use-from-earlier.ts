@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import type { QuestionAnswerData, ReviewQuestion } from "@/shared/core";
-import { jsonInit } from "@/frontend/lib/api";
+import { jsonInit, send } from "@/frontend/lib/api";
 import { fromEarlierAsk } from "./from-earlier-ask-model";
 
 /** One request to the lesson's review route. */
-function postReview(chatId: string, input: unknown): Promise<Response> {
-	return fetch(`/api/chats/${encodeURIComponent(chatId)}/review`, jsonInit("POST", { input }));
+function postReview(chatId: string, input: unknown) {
+	return send(`/api/chats/${encodeURIComponent(chatId)}/review`, jsonInit("POST", { input }));
 }
 
 /**
@@ -45,15 +45,13 @@ export function useFromEarlier({ chatId, waiting, open, busy, onAnswered }: {
 	useEffect(() => {
 		if (ask === null) return;
 		let live = true;
+		// A failed ask shows none; the next wait asks again.
 		void postReview(chatId, { type: "next" })
-			.then(async (res) => (res.ok ? ((await res.json()) as { question?: ReviewQuestion | null }) : null))
-			.then((body) => {
-				if (!live || !body?.question) return;
-				setQuestion(body.question);
+			.then(({ error, body }) => {
+				const next = error ? null : (body as { question?: ReviewQuestion | null }).question;
+				if (!live || !next) return;
+				setQuestion(next);
 				setRefused(false);
-			})
-			.catch(() => {
-				/* none shows; the next wait asks again */
 			})
 			.finally(() => setAsked(true));
 		return () => {
@@ -68,17 +66,12 @@ export function useFromEarlier({ chatId, waiting, open, busy, onAnswered }: {
 			setQuestion(null);
 			setRefused(false);
 			setSending(true);
-			try {
-				const res = await postReview(chatId, { ...input, of });
-				// Refused: it is no longer due, and the next ask says what shows.
-				return res.ok ? "done" : res.status === 400 ? "refused" : "unsent";
-			} catch {
-				// Not sent: it stays.
-				setQuestion(question);
-				return "unsent";
-			} finally {
-				setSending(false);
-			}
+			const { error, status } = await postReview(chatId, { ...input, of });
+			setSending(false);
+			// Not sent: it stays.
+			if (status === 0) setQuestion(question);
+			// Refused: it is no longer due, and the next ask says what shows.
+			return !error ? "done" : status === 400 ? "refused" : "unsent";
 		},
 		[chatId, question],
 	);

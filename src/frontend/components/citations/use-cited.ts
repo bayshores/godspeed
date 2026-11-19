@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getJson } from "@/frontend/lib/api";
 import type { CitedPassage, FileCite, PassageCite } from "./page-excerpt-model";
 
 /** GET /api/cited for a space file's source, with its quote when it has
@@ -12,12 +13,9 @@ export function useCited(cite: FileCite | PassageCite): CitedPassage | "gone" | 
 			: `/api/cited/${cite.fileId}?range=${encodeURIComponent(cite.range)}${cite.quote ? `&quote=${encodeURIComponent(cite.quote)}` : ""}`;
 	useEffect(() => {
 		let live = true;
-		fetch(url)
-			.then((res): Promise<CitedPassage | "gone"> => (res.ok ? res.json() : Promise.resolve("gone")))
-			.catch((): "gone" => "gone")
-			.then((passage) => {
-				if (live) setGot({ key: url, passage });
-			});
+		void getJson<CitedPassage>(url).then(({ body }) => {
+			if (live) setGot({ key: url, passage: body ?? "gone" });
+		});
 		return () => {
 			live = false;
 		};

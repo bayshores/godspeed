@@ -155,7 +155,7 @@ for (const kind of ["network", "non-JSON", "non-2xx", "malformed", "duplicate in
 	};
 	await mount();
 	await submit();
-	const message = kind === "network" ? "synthetic offline" : kind === "non-2xx" ? "Import request failed (HTTP 503): synthetic refused. Please retry the file." : "Invalid import response. Please retry the file.";
+	const message = kind === "network" ? "Network error. Try again." : kind === "non-2xx" ? "Import request failed (HTTP 503): synthetic refused. Please retry the file." : "Invalid import response. Please retry the file.";
 	assert.deepEqual(current.errors, files.map((file) => `${file.name}: ${message}`));
 	assert.equal(host!.querySelectorAll('[role="alert"]').length, 2);
 	assert.equal(finishes, 1);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getJson } from "@/frontend/lib/api";
 
 /** `aspect` is the first page's width over height; every page is drawn at it. */
 export type ReadingDoc = { kind: "text"; text: string } | { kind: "pdf"; pageCount: number; aspect: number };
@@ -10,12 +11,9 @@ export function useReadingDoc(path: string | null): ReadingDoc | null {
 	useEffect(() => {
 		if (!path) return;
 		let live = true;
-		fetch(`/api/reading?path=${encodeURIComponent(path)}`)
-			.then((res) => (res.ok ? (res.json() as Promise<ReadingDoc>) : null))
-			.catch(() => null)
-			.then((next) => {
-				if (live) setDoc({ path, doc: next });
-			});
+		void getJson<ReadingDoc>(`/api/reading?path=${encodeURIComponent(path)}`).then(({ body }) => {
+			if (live) setDoc({ path, doc: body });
+		});
 		return () => {
 			live = false;
 		};

@@ -5,6 +5,7 @@ import { CheckRow } from "@/frontend/components/ui/check-row";
 import { DeleteFoot, FailureRow } from "@/frontend/components/ui/delete-dialog-parts";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import type { ChatDeleteMode, ChatListItem } from "@/shared/core";
+import { send, serverError } from "@/frontend/lib/api";
 
 type Lesson = Pick<ChatListItem, "id" | "title">;
 
@@ -45,20 +46,14 @@ export function DeleteLessonDialog({
 		const mode: ChatDeleteMode = traces ? "delete-nodes" : "preserve-graph";
 		setBusy(true);
 		setFailure(null);
-		try {
-			const res = await fetch(`/api/chats/${chat.id}?mode=${mode}`, { method: "DELETE" });
-			const body = (await res.json()) as { error?: string };
-			if (!res.ok) {
-				setFailure(body.error ?? `Delete failed (${res.status})`);
-				setBusy(false);
-				return;
-			}
-			forgetLessonDraft(chat.id);
-			onDeleted(chat.id);
-		} catch {
-			setFailure("Delete failed: network error. Try again.");
+		const { error, body, status } = await send(`/api/chats/${chat.id}?mode=${mode}`, { method: "DELETE" });
+		if (error) {
+			setFailure(status === 0 ? "Delete failed: network error. Try again." : (serverError(body) ?? `Delete failed (${status})`));
 			setBusy(false);
+			return;
 		}
+		forgetLessonDraft(chat.id);
+		onDeleted(chat.id);
 	};
 
 	if (!mounted || !shown) return null;

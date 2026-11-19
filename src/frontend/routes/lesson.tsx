@@ -2,6 +2,7 @@ import { data, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import type { HomeworkView, LessonKind } from "@/shared/core";
 import { Chat } from "@/frontend/components/chat";
 import type { ChatRead } from "@/frontend/components/lesson/use-lesson-server";
+import { getJson } from "@/frontend/lib/api";
 import { loadJson } from "./load-json";
 import { PageTitle } from "./page-title";
 
@@ -15,8 +16,8 @@ export async function lessonLoader({ params, request }: LoaderFunctionArgs) {
 	const chat = { ...read, kind: read.kind as LessonKind | undefined };
 	let homework: HomeworkView | undefined;
 	if (chat.kind === "homework" && chat.spaceId && chat.deadlineId) {
-		const hw = await fetch(`/api/spaces/${chat.spaceId}/deadlines/${encodeURIComponent(chat.deadlineId)}/homework`, { signal: request.signal });
-		if (hw.ok) homework = ((await hw.json()) as { homework: HomeworkView }).homework;
+		const hw = await getJson<{ homework: HomeworkView }>(`/api/spaces/${chat.spaceId}/deadlines/${encodeURIComponent(chat.deadlineId)}/homework`, request.signal);
+		if (hw.body) homework = hw.body.homework;
 	}
 	return { chat, homework, prompt: new URL(request.url).searchParams.get("prompt") ?? undefined };
 }

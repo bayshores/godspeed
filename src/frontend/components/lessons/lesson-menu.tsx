@@ -15,8 +15,8 @@ import { dispositionFileName, saveBlob } from "@/frontend/components/artifacts/d
 
 const ITEM = "lh-press flex items-center px-3 py-2 text-left hover:bg-accent";
 
-/** Saves the lesson as a markdown file. A fetch, not a link: the server only answers requests
- *  the page itself makes. A failed export shows nothing, as a failed download did. */
+/** Saves the lesson as a markdown file. A raw fetch, not a link: the server only answers requests
+ *  the page itself makes, and the body is a download, not JSON. A failed export shows nothing, as a failed download did. */
 async function exportMarkdown(chatId: string): Promise<void> {
 	try {
 		const res = await fetch(`/api/chats/${chatId}/markdown`);

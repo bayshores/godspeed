@@ -6,7 +6,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { CURRENT_SETTINGS_VERSION, type GeneralSettings, type UserSettings } from "@/shared/core";
-import { jsonInit, type WriteResult } from "@/frontend/lib/api";
+import { getJson, jsonInit, send, serverError, type WriteResult } from "@/frontend/lib/api";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
 import { liveGeneral, type BootGeneral, type LiveGeneral } from "./settings-context-model";
 
@@ -26,27 +26,18 @@ interface SettingsState extends LiveGeneral {
 }
 
 async function readRecord(): Promise<UserSettings> {
-	const res = await fetch("/api/settings", { cache: "no-store" });
-	if (!res.ok) throw new Error(`status ${res.status}`);
+	const { error, body } = await getJson<{ settings: UserSettings | null }>("/api/settings");
+	if (error) throw new Error(error);
 	// No record yet is a first launch, every setting at its default.
-	const body = (await res.json()) as { settings: UserSettings | null };
-	return body.settings ?? { version: CURRENT_SETTINGS_VERSION };
+	return body?.settings ?? { version: CURRENT_SETTINGS_VERSION };
 }
 
 /** One save. `keep` gets the record the server stored, never the request
  *  body: the server may clean up what it stores. */
 async function save(section: "general" | WholeSection, method: "PATCH" | "PUT", body: object, keep: (record: UserSettings) => void): Promise<WriteResult> {
-	let res: Response;
-	try {
-		res = await fetch(`/api/settings/${section}`, jsonInit(method, body));
-	} catch {
-		return "Network error. Try again.";
-	}
-	if (!res.ok) {
-		const detail = (await res.json().catch(() => ({}))) as { error?: string };
-		return `${section}: ${detail.error ?? res.status}`;
-	}
-	const stored = ((await res.json().catch(() => null)) as { settings?: UserSettings } | null)?.settings;
+	const { error, body: answer, status } = await send(`/api/settings/${section}`, jsonInit(method, body));
+	if (error) return status === 0 ? error : `${section}: ${serverError(answer) ?? status}`;
+	const stored = (answer as { settings?: UserSettings } | null)?.settings;
 	if (stored) keep(stored);
 	return null;
 }

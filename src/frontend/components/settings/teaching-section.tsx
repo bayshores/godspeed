@@ -9,6 +9,7 @@ import { savedTimes, TEACHING_AREAS, type AgentSettings, type AreaId, type Graph
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { useSavedRules } from "@/frontend/components/use-saved-rules";
 import { Pane } from "@/frontend/components/ui/pane";
+import { getJson } from "@/frontend/lib/api";
 import { cn } from "@/frontend/lib/utils";
 import { AreaDetail } from "./area-detail.tsx";
 import { InstructionsPanel } from "./instructions-panel.tsx";
@@ -41,13 +42,7 @@ export function TeachingSection({
 	const [openArea, setOpenArea] = useState<TeachingArea | null>(null);
 	const savedRules = useSavedRules(agent?.rules);
 	const readSegments = useCallback(() => {
-		fetch("/api/settings/prompts")
-			.then((r) => {
-				if (!r.ok) throw new Error(String(r.status));
-				return r.json() as Promise<{ segments: PromptSegmentInfo[] }>;
-			})
-			.then((body) => setSegments(body.segments))
-			.catch(() => setSegmentsFailed(true));
+		void getJson<{ segments: PromptSegmentInfo[] }>("/api/settings/prompts").then(({ body }) => (body ? setSegments(body.segments) : setSegmentsFailed(true)));
 	}, []);
 	useEffect(readSegments, [readSegments]);
 	useEffect(() => {

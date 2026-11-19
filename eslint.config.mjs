@@ -7,12 +7,35 @@ import importPlugin from "eslint-plugin-import";
  * It is not a style linter.
  *
  *   src/frontend/**   imports only "@/shared/core" (the pure core barrel)
+ *   src/frontend/**   talks to the server only through lib/api.ts and keeps browser
+ *                     storage only through lib/storage.ts (AGENTS.md, "One owner, one way")
  *
  * tests/ and scripts/ are outside the law.
  */
 
 const FRONTEND_MESSAGE =
 	"The frontend imports ONLY the pure core barrel: `from \"@/shared/core\"` (architecture: docs/architecture/02-layers-and-the-import-law.md).";
+
+const FETCH_MESSAGE = "Use `send` or `getJson` from lib/api.ts. If a request cannot (a stream, a download), add the file to FETCH_ALLOWED in eslint.config.mjs with the reason.";
+const STORAGE_MESSAGE = "Use `readStorage` and `writeStorage` from lib/storage.ts: they never throw in a private window.";
+
+const fetchGlobals = [{ name: "fetch", message: FETCH_MESSAGE }];
+const fetchProperties = ["window", "globalThis"].map((object) => ({ object, property: "fetch", message: FETCH_MESSAGE }));
+const storageGlobals = ["localStorage", "sessionStorage"].map((name) => ({ name, message: STORAGE_MESSAGE }));
+const storageProperties = ["window", "globalThis"].flatMap((object) =>
+	["localStorage", "sessionStorage"].map((property) => ({ object, property, message: STORAGE_MESSAGE })),
+);
+
+// The only files outside lib/api.ts that may call the global fetch, and why.
+// (index.html also sends the first /api/boot request, before any module loads; eslint does not read it.)
+const FETCH_ALLOWED = [
+	// The chat session's own transport: it reads the turn's stream, and its tests inject a fake fetch.
+	"src/frontend/components/session-core.ts",
+	// Reads a PDF's bytes, not JSON.
+	"src/frontend/components/cheat-sheet/pdf.ts",
+	// Saves a lesson's markdown as a file: a download, not JSON.
+	"src/frontend/components/lessons/lesson-menu.tsx",
+];
 
 export default defineConfig([
 	globalIgnores(["node_modules/**", "data/**", "scripts/**", "dist/**", "dist-ui/**", ".claude/**", "crates/**", "target/**"]),
@@ -42,6 +65,28 @@ export default defineConfig([
 					],
 				},
 			],
+		},
+	},
+	// Requests and storage each have one home in the browser code.
+	{
+		files: ["src/frontend/**/*.{ts,tsx}"],
+		rules: {
+			"no-restricted-globals": ["error", ...fetchGlobals, ...storageGlobals],
+			"no-restricted-properties": ["error", ...fetchProperties, ...storageProperties],
+		},
+	},
+	{
+		files: ["src/frontend/lib/api.ts", ...FETCH_ALLOWED],
+		rules: {
+			"no-restricted-globals": ["error", ...storageGlobals],
+			"no-restricted-properties": ["error", ...storageProperties],
+		},
+	},
+	{
+		files: ["src/frontend/lib/storage.ts"],
+		rules: {
+			"no-restricted-globals": ["error", ...fetchGlobals],
+			"no-restricted-properties": ["error", ...fetchProperties],
 		},
 	},
 	// No import cycles in src/ (the code quality contract in AGENTS.md).

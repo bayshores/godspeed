@@ -13,6 +13,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { SpaceColor, SpaceSummary } from "@/shared/core";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { useSettings } from "@/frontend/components/settings-context";
+import { getJson } from "@/frontend/lib/api";
 
 interface SpacesState {
 	/** Every space, closed ones included (most recently updated first). */
@@ -65,16 +66,10 @@ export function SpaceProvider({
 	}
 
 	const refresh = useCallback(async () => {
-		try {
-			const res = await fetch("/api/spaces", { cache: "no-store" });
-			if (!res.ok) return;
-			const body = (await res.json()) as { spaces?: SpaceSummary[] };
-			setSpaces(Array.isArray(body.spaces) ? body.spaces : []);
-		} catch {
-			/* offline: keep what we have */
-		} finally {
-			setLoaded(true);
-		}
+		const { body } = await getJson<{ spaces?: SpaceSummary[] }>("/api/spaces");
+		// Offline or refused: keep what we have.
+		if (body) setSpaces(Array.isArray(body.spaces) ? body.spaces : []);
+		setLoaded(true);
 	}, []);
 
 	// Boot already read the list when it could.
@@ -91,7 +86,7 @@ export function SpaceProvider({
 				// A failed save still switches this window.
 				await patchGeneral({ activeSpace: id ?? "none" });
 				// Switching to a space rescans its linked folder.
-				if (id) void fetch(`/api/spaces/${encodeURIComponent(id)}?scan=1`, { cache: "no-store" }).catch(() => {});
+				if (id) void getJson(`/api/spaces/${encodeURIComponent(id)}?scan=1`);
 			})();
 		},
 		[patchGeneral],

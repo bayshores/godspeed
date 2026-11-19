@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useId, useState } from "react";
 import { PART_NAMES, type PromptSegmentInfo, type TeachingArea } from "@/shared/core";
 import { inTerminal } from "@/frontend/components/focus-hygiene";
+import { jsonInit, send } from "@/frontend/lib/api";
 import { FootQuestion } from "@/frontend/components/ui/foot-question";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { tabListKeys } from "@/frontend/components/ui/tab-list";
@@ -69,14 +70,14 @@ export function InstructionsPanel({
 		});
 
 	/** One request at a time; a failed or unreachable one shows `failure`. */
-	async function send(init: RequestInit, failure: string) {
+	async function change(init: RequestInit, failure: string) {
 		if (!part) return;
 		const path = part.path;
 		setError(null);
 		setBusy(true);
-		const res = await fetch(`/api/settings/prompts/${path}`, init).catch(() => null);
+		const { error } = await send(`/api/settings/prompts/${path}`, init);
 		setBusy(false);
-		if (!res?.ok) return setError(failure);
+		if (error) return setError(failure);
 		forget(path);
 		onChanged();
 	}
@@ -87,14 +88,14 @@ export function InstructionsPanel({
 		const init: RequestInit =
 			text === part?.sourceText
 				? { method: "DELETE" }
-				: { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) };
-		return send(init, "Could not save. Try again.");
+				: jsonInit("PUT", { text });
+		return change(init, "Could not save. Try again.");
 	}
 
 	function reset() {
 		setAsking(null);
 		if (part?.overrideText === null) return forget(part.path);
-		return send({ method: "DELETE" }, "Could not reset. Try again.");
+		return change({ method: "DELETE" }, "Could not reset. Try again.");
 	}
 
 	const pick = (path: string) => {

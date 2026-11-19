@@ -3,6 +3,7 @@ import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { FIELD } from "@/frontend/components/ui/field";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { send, serverError } from "@/frontend/lib/api";
 import { cn } from "@/frontend/lib/utils";
 
 /** GET /api/web-search: the saved key's last characters and its searches
@@ -17,10 +18,9 @@ interface WebSearchView {
 const UNREACHABLE = "Couldn't reach godspeed. Try again.";
 
 async function request(path: string, init?: RequestInit): Promise<WebSearchView> {
-	const res = await fetch(path, { cache: "no-store", ...init, headers: { "Content-Type": "application/json" } }).catch(() => null);
-	const body = (await res?.json().catch(() => null)) as WebSearchView | null;
-	if (!res?.ok || !body) throw new Error(body?.error ?? UNREACHABLE);
-	return body;
+	const { error, body } = await send(path, { cache: "no-store", ...init, headers: { "Content-Type": "application/json" } });
+	if (error) throw new Error(serverError(body) ?? UNREACHABLE);
+	return body as WebSearchView;
 }
 
 /** "of 1,000 searches used this month", or without the limit when the plan has none. */

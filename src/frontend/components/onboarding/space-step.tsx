@@ -3,6 +3,7 @@ import { linkSpaceFolder, uploadSpaceFiles } from "@/frontend/components/files/s
 import { SPACE_FILE_ACCEPT } from "@/frontend/components/files/files-model";
 import { FIELD } from "@/frontend/components/ui/field";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
+import { jsonInit, send, serverError } from "@/frontend/lib/api";
 import { cn } from "@/frontend/lib/utils";
 import { AgentNeed } from "./agent-need";
 import { pickedLabel, type Picked } from "./space-step-model";
@@ -28,33 +29,24 @@ export function SpaceStep({ onDone }: { onDone: (spaceId: string | null) => void
 		if (name.trim() === "" || busy) return;
 		setBusy(true);
 		setError(null);
-		try {
-			const res = await fetch("/api/spaces", {
-				method: "POST",
-				headers: { "content-type": "application/json" },
-				body: JSON.stringify({ name: name.trim() }),
-			});
-			const body = (await res.json().catch(() => ({}))) as { space?: { id: string }; error?: string };
-			if (!res.ok || !body.space) {
-				setError(body.error ?? "Couldn't create the space. Try again.");
-				return;
-			}
-			const id = body.space.id;
-			const failed =
-				picked?.kind === "folder" ? await linkSpaceFolder(id, picked.path) : picked?.kind === "files" ? await uploadSpaceFiles(id, picked.files) : null;
-			if (failed) {
-				// The space exists; say what didn't make it and let them go on.
-				setError(`The space was made, but some files didn't go in:\n${failed}\nYou can add them later on its Files page.`);
-				setPicked(null);
-				setMadeId(id);
-				return;
-			}
-			onDone(id);
-		} catch {
-			setError("Network error. Try again.");
-		} finally {
+		const { error, body, status } = await send("/api/spaces", jsonInit("POST", { name: name.trim() }));
+		const made = (body as { space?: { id: string } } | null)?.space;
+		if (error || !made) {
+			setError(status === 0 ? error : (serverError(body) ?? "Couldn't create the space. Try again."));
 			setBusy(false);
+			return;
 		}
+		const id = made.id;
+		const failed = picked?.kind === "folder" ? await linkSpaceFolder(id, picked.path) : picked?.kind === "files" ? await uploadSpaceFiles(id, picked.files) : null;
+		setBusy(false);
+		if (failed) {
+			// The space exists; say what didn't make it and let them go on.
+			setError(`The space was made, but some files didn't go in:\n${failed}\nYou can add them later on its Files page.`);
+			setPicked(null);
+			setMadeId(id);
+			return;
+		}
+		onDone(id);
 	}, [busy, madeId, name, onDone, picked]);
 	useReturn(canSave ? () => void save() : null);
 
