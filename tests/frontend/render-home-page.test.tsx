@@ -596,7 +596,7 @@ describe("Picking in the week", () => {
 });
 
 /** The week grid's column sizes, one per column. */
-const gridColumns = (html: string) => html.match(/grid-template-columns:([^"]*)"/)![1]!.split(/ (?=minmax)/);
+const gridColumns = (html: string) => html.match(/--week-cols:([^"]*)"/)![1]!.split(/ (?=minmax)/);
 
 describe("Later, the eighth column", () => {
 	it("after the seven days: its head, then blocks by date, each with its date always under the name", () => {
@@ -615,8 +615,11 @@ describe("Later, the eighth column", () => {
 		const html = page({ lists: todayLists([d("q", "Quiz", "2026-10-29", "08:00"), OPEN[2]!], [], NOW) });
 		assert.deepEqual(gridColumns(html).slice(0, 4), ["minmax(min-content, var(--day-empty))", "minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(min-content, var(--day-empty))"]);
 		assert.ok(html.includes("@max-[760px]:[--day-empty:0.6fr]"));
-		assert.match(section(html, "week-item-q", "</button>"), /hidden @min-\[1000px\]:block">8:00 AM<\/span>/);
+		assert.match(section(html, "week-item-q", "</button>"), /hidden @min-\[1000px\]:block @max-\[600px\]:block">8:00 AM<\/span>/);
 		assert.ok(!section(html, "week-item-hw5", "</button>").includes("@min-[1000px]:block"), "no time, no second line");
+		// Under 600px the week is rows: an empty day leaves, today and a day with something stay.
+		const narrow = [...html.matchAll(/<section data-testid="week-day-[^"]*" class="([^"]*)"/g)].map((m) => m[1]!.includes("@max-[600px]:hidden"));
+		assert.deepEqual(narrow.slice(0, 4), [false, false, false, true], "today is empty and stays");
 	});
 
 	it("nothing after the week: seven columns and no Later", () => {
