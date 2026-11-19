@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useRouteLoaderData } from "react-router";
 import { useActivity } from "@/frontend/components/activity-dock";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useMinute } from "@/frontend/components/countdown";
-import { setNoticesOpen, useNotices } from "@/frontend/components/notice-store";
+import { coverNotices, setNoticesOpen, useNotices } from "@/frontend/components/notice-store";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useOpenInSpace } from "@/frontend/components/use-join-space";
@@ -101,6 +101,10 @@ export function PillProvider({ children }: { children: ReactNode }) {
 	// that background work needs the learner: the pill, in every bar, is
 	// the name alone, and closes it.
 	const panelOpen = teacher?.panelOpen ?? false;
+	useEffect(() => {
+		coverNotices(panelOpen);
+		return () => coverNotices(false);
+	}, [panelOpen]);
 	const shown = useMemo(() => (panelOpen ? things.filter((t) => t.kind !== "teacher" && t.kind !== "background") : things), [things, panelOpen]);
 	const lineAt = useCallback(
 		(own: boolean) => pillLine({ things: shown, notice: said, idle: panelOpen ? name : idleWords({ name, agent, notices: known, own }), due }),

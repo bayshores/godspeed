@@ -40,6 +40,8 @@ const EMPTY: NoticeState = {
 
 let notices: Notice[] = [];
 let open = false;
+/** The teacher's panel is open where the cards hang. */
+let covered = false;
 /** How many pills are mounted; with none (the first steps) a notice keeps its title. */
 let pills = 0;
 /** Since when the panel is held; null while it is not. */
@@ -50,7 +52,7 @@ const listeners = new Set<() => void>();
 
 function update() {
 	const now = heldSince ?? Date.now();
-	const view = noticeView(notices, now, open);
+	const view = noticeView(notices, now, open, covered);
 	const said = pills > 0 && !open && view.presenting ? { id: view.presenting.id, title: view.presenting.title, bare: view.presenting.bare } : null;
 	const up = open || view.shown.some((id) => id !== said?.id || !notices.find((n) => n.id === id)?.bare);
 	// A panel that closed under the pointer never says the pointer left.
@@ -76,6 +78,13 @@ export function setNoticesOpen(next: boolean) {
 	if (open === next) return;
 	open = next;
 	if (!next) notices = notices.map((n) => (Number.isFinite(n.foldAt) ? { ...n, foldAt: 0 } : n));
+	update();
+}
+
+/** The teacher's panel opened under the pill (or closed): while it is open no card shows by itself. */
+export function coverNotices(next: boolean) {
+	if (covered === next) return;
+	covered = next;
 	update();
 }
 

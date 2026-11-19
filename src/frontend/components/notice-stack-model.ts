@@ -35,9 +35,10 @@ interface NoticeView {
  * The notices in the stack's order, to what shows: "first" ones before the
  * rest, which keep their order, one "quiet" notice at a time, 3 at most.
  * One shows by itself until it folds; `open` (the pill's card is open)
- * shows the folded ones too.
+ * shows the folded ones too. `covered` (the teacher's panel hangs where
+ * the cards would): none shows by itself, all wait folded.
  */
-export function noticeView(notices: readonly Notice[], now: number, open: boolean): NoticeView {
+export function noticeView(notices: readonly Notice[], now: number, open: boolean, covered: boolean): NoticeView {
 	const ranked = [...notices].sort((a, b) => Number(b.kind === "first") - Number(a.kind === "first"));
 	let quiet = false;
 	const taking = ranked.filter((n) => {
@@ -46,7 +47,7 @@ export function noticeView(notices: readonly Notice[], now: number, open: boolea
 		quiet = true;
 		return true;
 	});
-	const fresh = taking.filter((n) => n.foldAt > now);
+	const fresh = covered ? [] : taking.filter((n) => n.foldAt > now);
 	const shown = (open ? taking : fresh).slice(0, MAX_SHOWN);
 	const folds = open ? [] : shown.map((n) => n.foldAt).filter(Number.isFinite);
 	return {
