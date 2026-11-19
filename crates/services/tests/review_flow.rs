@@ -255,7 +255,7 @@ async fn an_answer_during_a_turn_lands_before_the_reply_and_reaches_the_agent_on
 	let seen = agent_says(&fx.app, &id, "Because the loss adds it.").await;
 	settled(&fx.app, &id).await;
 	let lines: Vec<String> = seen.iter().filter(|m| m["role"].as_str() == Some("user")).filter_map(|m| m["text"].as_str()).flat_map(|t| t.lines().map(str::to_owned).collect::<Vec<_>>()).filter(|l| l.starts_with("[From earlier]")).collect();
-	assert_eq!(lines, ["[From earlier] Bayes' rule right, sure 4."]);
+	assert_eq!(lines, ["[From earlier] Bayes' rule right, sure 4 of 5."]);
 	assert!(seen.iter().all(|m| !stringify(m).contains("\"review\"")), "the marker itself never reaches the agent");
 
 	assert_eq!(send(&fx.app, &id, text("And then?", None)).await.0, 200);

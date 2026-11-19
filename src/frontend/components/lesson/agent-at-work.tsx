@@ -5,47 +5,40 @@ import { useReplayOnChange } from "@/frontend/components/motion";
 import { cn } from "@/frontend/lib/utils";
 import type { AgentWork } from "./agent-at-work-model";
 import type { Arrive } from "./arrivals";
-import { PageStage, PaperStack } from "./page-stage";
+import { PageStage } from "./page-stage";
 import { planLines, type DeskState, type PlanLine } from "./wait-model";
 
 /**
- * THE DESK: where the reply will appear, while the teacher works on it. It shows paper, the
- * learner's own files, from the moment the turn starts; once the teacher has a plan or takes a
- * step it splits in place into the plan on the left and the paper on the right, the file the
- * teacher opened on top. It fills the sheet down to its foot, where `foot` rests: Stop and the
- * lines typed to the teacher that wait for it. It says nothing the top bar's pill says.
+ * THE DESK: where the reply will appear, while the teacher works on it. It shows only what the
+ * teacher is doing in this reply: its plan, and once it opens a file, that file's pages beside
+ * the plan, filling the sheet down to its foot. `foot` rests under it: Stop and the lines typed
+ * to the teacher that wait for it. It says nothing the top bar's pill says.
  */
 export function AgentAtWork({
 	state,
 	work,
-	split,
-	paper,
 	arrive,
 	foot,
 }: {
 	state: DeskState;
-	work: AgentWork | null;
-	split: boolean;
-	paper: { path: string | null; edges: number };
+	work: AgentWork;
 	arrive: Arrive;
 	foot: ReactNode;
 }) {
 	// Each desk's own arrival slots, so the next turn's desk steps in again.
 	const slot = useId();
 	const ref = useRef<HTMLDivElement>(null);
-	useReplayOnChange(ref, split, "lh-block-in");
-	const reading = split ? (work?.reading ?? null) : null;
+	const reading = work.reading;
+	useReplayOnChange(ref, reading !== null, "lh-block-in");
 	return (
-		<div ref={ref} data-testid="agent-at-work" data-state={state} className="lh-desk @container/desk flex flex-1 flex-col gap-6">
-			<div className={cn("flex min-h-[420px] flex-1 gap-7 @max-[360px]/desk:min-h-0", split && "@max-[560px]/desk:min-h-0 @max-[560px]/desk:flex-col")}>
-				{split && work && <WorkList work={work} slot={slot} arrive={arrive} />}
-				<div className={cn("flex min-w-0 flex-1 flex-col @max-[360px]/desk:hidden", split && "@max-[560px]/desk:h-[220px] @max-[560px]/desk:flex-none")}>
-					{reading ? (
+		<div ref={ref} data-testid="agent-at-work" data-state={state} className={cn("lh-desk @container/desk flex flex-col gap-6", reading && "flex-1")}>
+			<div className={cn("flex gap-7 @max-[560px]/desk:flex-col", reading && "min-h-[420px] flex-1 @max-[560px]/desk:min-h-0")}>
+				<WorkList work={work} slot={slot} arrive={arrive} />
+				{reading && (
+					<div className="flex min-w-0 flex-1 flex-col @max-[560px]/desk:h-[220px] @max-[560px]/desk:flex-none @max-[360px]/desk:hidden">
 						<PageStage key={reading.path} reading={reading} className={cn(arrive(`${slot}:file:${reading.path}`) && "lh-block-in")} />
-					) : (
-						<PaperStack path={paper.path} edges={paper.edges} still={state === "waiting"} slot={slot} arrive={arrive} />
-					)}
-				</div>
+					</div>
+				)}
 			</div>
 			{foot}
 		</div>

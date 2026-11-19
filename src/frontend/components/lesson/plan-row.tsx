@@ -68,7 +68,7 @@ export const PlanRow = memo(function PlanRow({
 	const { spaces } = useSpaces();
 	const space = spaces.find((c) => c.id === spaceId);
 	const color = space ? spaceColorVar(space.color) : "var(--color-ink)";
-	// No problems yet: the desk shows the assignment while the teacher reads it, or the lesson says why not.
+	// No problems yet: the desk shows the assignment once the teacher opens it, or the lesson says why not.
 	const steps = homework ? (homework.problems.length > 0 ? homeworkRow(homework.problems, homework.open, homework.blocked) : null) : kind !== "practice" && stepBar ? stepsRow(stepBar, stop) : null;
 
 	// The row lives as long as the lesson, so it sees a plan arrive or change. It then unfolds

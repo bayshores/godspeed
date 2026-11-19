@@ -1,20 +1,20 @@
 import { isQuestionTool, type LhViewMessage } from "@/shared/core";
-import { deskShows, lastRead, type AgentWork, type CardFile } from "./agent-at-work-model";
+import type { AgentWork, CardFile } from "./agent-at-work-model";
 
 /**
  * The lesson while the teacher works on a reply: the desk at the foot of the lesson text,
- * which shows paper and the teacher's plan, never words the top bar's pill already says.
+ * which shows the teacher's plan and the file it reads, never words the top bar's pill already says.
  * Pure.
  */
 
 /** "waiting": no agent has taken the turn; "working": one has. */
 export type DeskState = "waiting" | "working";
 
-/** Whether the desk shows and whether it is split into the plan beside the paper. It shows from
- *  the moment a turn runs until the reply's text lands. */
-export function waitView({ busy, waitingForAgent, work }: { busy: boolean; waitingForAgent: boolean; work: AgentWork | null }): { desk: DeskState | null; split: boolean } {
-	if (!busy || work?.replied) return { desk: null, split: false };
-	return { desk: waitingForAgent ? "waiting" : "working", split: work !== null && (work.plan !== null || work.steps.length > 0) };
+/** Whether the desk shows: from the teacher's first plan or step in this reply until the reply's
+ *  text lands. Before that, Stop stands alone and the top bar's pill says the teacher works. */
+export function deskState({ busy, waitingForAgent, work }: { busy: boolean; waitingForAgent: boolean; work: AgentWork | null }): DeskState | null {
+	if (!busy || !work || work.replied || (work.plan === null && work.steps.length === 0)) return null;
+	return waitingForAgent ? "waiting" : "working";
 }
 
 const flat = (text: string) => text.replace(/\s+/g, " ").trim();
@@ -36,18 +36,6 @@ export function titleEcho(messages: readonly LhViewMessage[], title: string): nu
 export function cardFiles(messages: readonly LhViewMessage[]): readonly CardFile[] {
 	const card = messages[0]?.parts.find((p) => p.type === "data-space-context");
 	return (card?.data as { files?: CardFile[] } | undefined)?.files ?? [];
-}
-
-/** The paper on the desk. The top sheet (`path`) is the homework's assignment, else the file the
- *  lesson's teacher read last, else the space's newest study file the desk can show; blank paper
- *  (null) for a space with none. Under it lie one edge for a space with a file, two from 5 files
- *  and three from 20. */
-export function deskPaper(messages: readonly LhViewMessage[], assignment: { path: string | null } | null): { path: string | null; edges: number } {
-	const files = cardFiles(messages);
-	// The card lists a space's files in the order they were added.
-	const newest = files.findLast((f) => f.kind === "study" && f.path !== null && deskShows(f.path))?.path ?? null;
-	const n = files.length;
-	return { path: assignment?.path ?? lastRead(messages, files) ?? newest, edges: n >= 20 ? 3 : n >= 5 ? 2 : n >= 1 ? 1 : 0 };
 }
 
 /** The most rows the plan shows beside the paper. */

@@ -79,7 +79,8 @@ const waitingRequest = `await fetch("/api/spaces/{space}/deadlines/{deadline}/re
  *  as Study does, and with no agent connected its reply waits. */
 const waitingLesson = `/chat/{pending}?prompt=${encodeURIComponent(WAITING_TOPIC)}`;
 /** The desk at the foot of that lesson, still while no agent takes the reply, at work once one does. */
-const desk = (state) => `[data-testid=agent-at-work][data-state=${state}] [data-testid=desk-top-sheet]`;
+/** A lesson turn running: Stop at the lesson's foot. */
+const turnRuns = "[data-testid=stop-turn]";
 /** That lesson's reply stopped and the lesson deleted, so the screens after it are as before. A
  *  lesson can't be deleted while its turn runs, so the delete is tried until the stop has ended it. */
 const dropWaitingLesson = `await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: "{pending}" }) })${HTTP_OK};
@@ -296,24 +297,24 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	// The two screens below leave requests waiting for an agent; the lesson that follows them ends them.
 	{ name: "Cheat sheet while no agent is on it", before: askSheet, url: sheetPage("{waitingDeadline}"), ready: "[data-testid=sheet-working]" },
 	{ name: "Mock being written", before: askMock, url: "/space/deadline/{waitingDeadline}", ready: "[data-testid=deadline-mock-continue]", setup: `document.querySelector("[data-testid=deadline-mock-continue]").click()`, shows: "[data-testid=mock-writing]" },
-	{ name: "Lesson whose first reply waits for an agent", before: dropAskedRequests, url: waitingLesson, ready: desk("waiting") },
+	{ name: "Lesson whose first reply waits for an agent", before: dropAskedRequests, url: waitingLesson, ready: turnRuns },
 	{
 		name: "Lesson whose first reply waits for an agent, beside the teacher's panel",
 		url: "/chat/{pending}",
-		ready: desk("waiting"),
+		ready: turnRuns,
 		setup: openTeacher,
 		shows: "[data-testid=terminal-none] [data-testid=open-agent]",
 	},
 	{ name: "Progress while a file waits for an agent", before: waitingFile, url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]" },
 	{ name: "Graph while a file waits for an agent", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]" },
 	{ name: "Deadline while its request waits for an agent", before: waitingRequest, url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]" },
-	// The stand-in agent is started from the waiting lesson's teacher window, and the desk goes to work beside it.
+	// The stand-in agent is started from the waiting lesson's teacher window, and the lesson's start key goes.
 	{
 		name: "Lesson whose first reply an agent took",
 		url: "/chat/{pending}",
-		ready: desk("waiting"),
+		ready: turnRuns,
 		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent]").click()`,
-		shows: desk("working"),
+		shows: ".lh-reading:not(:has([data-testid=work-frame-open])) [data-testid=stop-turn]",
 	},
 	// Starter keys show only while no lesson turn waits, so the waiting lesson goes first. The stand-in agent may already run.
 	{

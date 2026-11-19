@@ -317,7 +317,7 @@ async fn two_days_of_study_for_the_midterm() {
 	writes();
 	let seen = says(app, chat, "A penalty on the weights: the loss grows with them.").await;
 	settled(app, chat).await;
-	assert_eq!(input_lines(&seen).iter().filter(|l| l.starts_with("[From earlier]")).collect::<Vec<_>>(), ["[From earlier] Bayes' rule wrong, sure 3, picked Wrong. Eigenvalues right, sure 4. Gradient descent right, sure 4."]);
+	assert_eq!(input_lines(&seen).iter().filter(|l| l.starts_with("[From earlier]")).collect::<Vec<_>>(), ["[From earlier] Bayes' rule wrong, sure 3 of 5, picked Wrong. Eigenvalues right, sure 4 of 5. Gradient descent right, sure 4 of 5."]);
 	assert!(stringify(&Json::Arr(seen.clone())).contains(&stored_page), "the agent reads its mark as stored");
 
 	// The plot and its guess; his guess at A opens it.
@@ -433,7 +433,7 @@ async fn two_days_of_study_for_the_midterm() {
 	writes();
 	let seen = calls(app, chat, vec![("problem", problem("cv", "Why can one train and test split give a misleading score?"))]).await;
 	settled(app, chat).await;
-	assert_eq!(last_input(&seen), format!("[Resumed] He came back to this session after a stop.\n[Opener] Cross-validation: he picked A, It can move a lot, sure 3.\n{NO_PLOT_YET}"));
+	assert_eq!(last_input(&seen), format!("[Resumed] He came back to this session after a stop.\n[Opener] Cross-validation: he picked A, It can move a lot, sure 3 of 5.\n{NO_PLOT_YET}"));
 
 	// Cross-validation ends on a conclude; Keep going in the same sitting.
 	thinks();
@@ -443,7 +443,7 @@ async fn two_days_of_study_for_the_midterm() {
 	let lines = input_lines(&seen);
 	let order = ["[Resumed]", "[Opener]", "[From earlier]"].map(|tag| lines.iter().rposition(|l| l.starts_with(tag)).unwrap_or_else(|| panic!("{tag} in {lines:?}")));
 	assert!(order[0] < order[1] && order[1] < order[2], "{lines:?}");
-	assert_eq!(lines[order[2]], "[From earlier] Bayes' rule right, sure 4. Gradient descent right, sure 4. Regularization right, sure 4.");
+	assert_eq!(lines[order[2]], "[From earlier] Bayes' rule right, sure 4 of 5. Gradient descent right, sure 4 of 5. Regularization right, sure 4 of 5.");
 	let opener_ms = json!({
 		"nodeId": "cv",
 		"review": quiz("check", "cv", "Why average the score over several splits?", &["One split can mislead", "It is faster", "It uses less data"]),
@@ -463,7 +463,7 @@ async fn two_days_of_study_for_the_midterm() {
 	writes();
 	let seen = calls(app, chat, vec![("quiz", quiz("check", "ms", "Two models score 0.81 and 0.80 averaged over five splits. What decides between them?", &["The spread over the splits", "The first split", "The training score"]))]).await;
 	settled(app, chat).await;
-	assert_eq!(last_input(&seen), format!("[Opener] Model selection: he picked A, The one that wins on average, sure 4.\n{NO_PLOT_YET}"), "no [Resumed] in the same sitting");
+	assert_eq!(last_input(&seen), format!("[Opener] Model selection: he picked A, The one that wins on average, sure 4 of 5.\n{NO_PLOT_YET}"), "no [Resumed] in the same sitting");
 
 	// Model selection ends on a right quiz: the stop comes with topic_done, after the teacher's turn.
 	let ms_quiz = id_of(&last_call(&messages(app, chat), "quiz"));

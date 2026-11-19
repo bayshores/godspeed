@@ -41,7 +41,6 @@ import { useTitleRename } from "@/frontend/components/lesson/use-title-rename";
 import { useLessonStop } from "@/frontend/components/lesson/use-lesson-stop";
 import { useFromEarlier } from "@/frontend/components/lesson/use-from-earlier";
 import { LessonBar } from "@/frontend/components/lesson/lesson-bar";
-import { LessonWorkFrame } from "@/frontend/components/lesson/lesson-work-frame";
 import { PlanRow } from "@/frontend/components/lesson/plan-row";
 import { LessonScroll } from "@/frontend/components/lesson/lesson-scroll";
 import { homeworkStartLabel } from "@/frontend/components/lesson/plan-row-model";
@@ -502,87 +501,84 @@ export function Chat({
 							/>
 							<PluginWindow plugin={openPlugin} context={pluginContext} onClose={closePlugin} />
 							<div className="min-h-0 flex-1">
-								<LessonWorkFrame chatId={chatId}>
-									<div ref={sessionFindScopeRef} data-dock={sheetOpen ? "" : undefined} className="lh-dots lh-lesson-body relative h-full">
-										<LessonScroll
-											steps={<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onPick={openPick} onOpenPlan={overlays.openPlan} />}
-											restKey={[pending?.toolCallId, problem?.toolCallId, problem?.part, lessonStop.card?.key].join(" ")}
-											busy={busy}
-											contextRef={scrollContextRef}
-											reading={
-												<Pane data-testid="lesson-reading" className="lh-text-fit flex min-w-0 flex-col">
-													<ReadingPane
-														spaceId={spaceId}
-														title={rename.title}
-														assignment={homework?.assignment ?? null}
-														messages={messages}
-														phases={phases}
-														status={status}
-														busy={busy}
-														waitingForAgent={waitingForAgent}
-														onStop={lessonStop.card ? null : abortInFlightTurn}
-														onStartAgain={error ? null : () => void send({ type: "continue" })}
-														goAhead={goAhead}
-														queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
-														arrivalsLive={arrivalsLive}
-														pageMarks={pageMarks}
-														arrive={arrive}
-													/>
-												</Pane>
-											}
-											turn={
-												turnShown ? (
-													<TurnSheet
-														// Remounts once the saved drafts are read, so the question starts from them.
-														key={draftsLoaded ? "drafts" : "loading"}
-														spaceId={spaceId}
-														pending={pending}
-														requiresReveal={requiresReveal}
-														onReveal={revealCheck}
-														initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
-														onSaveQuestionDraft={(form) => {
-															if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
-														}}
-														onSubmitAnswer={onSubmitAnswer}
-														onSkipQuestion={() => setAbortAsk("question")}
-														reviewRefused={reviewRefused}
-														problem={problem}
-														onDiscardProblem={() => setAbortAsk("problem")}
-														stop={lessonStop.card}
-														busy={busy}
-														boxRef={workBoxRef}
-														value={text}
-														onChange={editText}
-														onSend={onSend}
-														onHelpLine={(line) => void sendLine(line, [])}
-														attachments={attachments}
-														questionRef={questionRef}
-														stuck={stuckLine}
-														error={errorLine}
-													/>
-												) : null
-											}
-										/>
-										{spaceId && sheetOpen && (
-											<div className="flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap) [grid-area:dock]">
-												<SheetDock
+								<div ref={sessionFindScopeRef} data-dock={sheetOpen ? "" : undefined} className="lh-dots lh-lesson-body relative h-full">
+									<LessonScroll
+										steps={<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onPick={openPick} onOpenPlan={overlays.openPlan} />}
+										restKey={[pending?.toolCallId, problem?.toolCallId, problem?.part, lessonStop.card?.key].join(" ")}
+										busy={busy}
+										contextRef={scrollContextRef}
+										reading={
+											<Pane data-testid="lesson-reading" className="lh-text-fit flex min-w-0 flex-col">
+												<ReadingPane
 													spaceId={spaceId}
-													sessionDeadlineId={deadlineId}
-													picked={sheet.state.deadlineId}
-													onPick={(id) => sheet.update({ deadlineId: id })}
-													onClose={() => sheet.update({ open: false })}
+													title={rename.title}
+													messages={messages}
+													phases={phases}
+													status={status}
+													busy={busy}
+													waitingForAgent={waitingForAgent}
+													onStop={lessonStop.card ? null : abortInFlightTurn}
+													onStartAgain={error ? null : () => void send({ type: "continue" })}
+													goAhead={goAhead}
+													queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
+													arrivalsLive={arrivalsLive}
+													pageMarks={pageMarks}
+													arrive={arrive}
 												/>
-											</div>
-										)}
+											</Pane>
+										}
+										turn={
+											turnShown ? (
+												<TurnSheet
+													// Remounts once the saved drafts are read, so the question starts from them.
+													key={draftsLoaded ? "drafts" : "loading"}
+													spaceId={spaceId}
+													pending={pending}
+													requiresReveal={requiresReveal}
+													onReveal={revealCheck}
+													initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
+													onSaveQuestionDraft={(form) => {
+														if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
+													}}
+													onSubmitAnswer={onSubmitAnswer}
+													onSkipQuestion={() => setAbortAsk("question")}
+													reviewRefused={reviewRefused}
+													problem={problem}
+													onDiscardProblem={() => setAbortAsk("problem")}
+													stop={lessonStop.card}
+													busy={busy}
+													boxRef={workBoxRef}
+													value={text}
+													onChange={editText}
+													onSend={onSend}
+													onHelpLine={(line) => void sendLine(line, [])}
+													attachments={attachments}
+													questionRef={questionRef}
+													stuck={stuckLine}
+													error={errorLine}
+												/>
+											) : null
+										}
+									/>
+									{spaceId && sheetOpen && (
+										<div className="flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap) [grid-area:dock]">
+											<SheetDock
+												spaceId={spaceId}
+												sessionDeadlineId={deadlineId}
+												picked={sheet.state.deadlineId}
+												onPick={(id) => sheet.update({ deadlineId: id })}
+												onClose={() => sheet.update({ open: false })}
+											/>
+										</div>
+									)}
 
-										<LessonOverlays
-											overlays={overlays}
-											planTree={planTree}
-											messages={messages}
-											abort={{ mode: abortAsk, onClose: () => setAbortAsk(null), onConfirm: confirmAbort, busy: busy && pending?.appPosed?.kind !== "review" }}
-										/>
-									</div>
-								</LessonWorkFrame>
+									<LessonOverlays
+										overlays={overlays}
+										planTree={planTree}
+										messages={messages}
+										abort={{ mode: abortAsk, onClose: () => setAbortAsk(null), onConfirm: confirmAbort, busy: busy && pending?.appPosed?.kind !== "review" }}
+									/>
+								</div>
 							</div>
 						</div>
 					</LessonStepsContext.Provider>

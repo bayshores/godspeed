@@ -212,7 +212,7 @@ describe("Your turn in each state", () => {
 	});
 
 	it("Stuck? leads the foot row under the box while a question or a problem waits, never while reading first or at a stop", () => {
-		const keys = /data-testid="composer"[\s\S]*data-testid="turn-foot"[^>]*><div[^>]*><span[^>]*>Stuck\?<\/span>[\s\S]*?>I don(?:'|&#x27;)t know<[\s\S]*?>Give me a hint<[\s\S]*?>Explain it simpler</;
+		const keys = /data-testid="composer"[\s\S]*data-testid="turn-foot"[^>]*><span[^>]*>Stuck\?<\/span>[\s\S]*?>I don(?:'|&#x27;)t know<[\s\S]*?>Give me a hint<[\s\S]*?>Explain it simpler</;
 		for (const over of [{ pending: quiz }, { pending: written }, { pending: choice }, { problem }]) assert.match(html(over), keys, JSON.stringify(Object.keys(over)));
 		const view = stopCard({ kind: "topic", at: "2026-11-18T21:48:00.000Z", nodeId: "reg", stopOf: "c1", next: "Cross-validation", activeMinutes: 48, keptGoing: false });
 		for (const over of [{}, { pending: check, revealPending: true }, { stop: { key: "c1", view, onAction: () => {} } }]) assert.doesNotMatch(html(over), /Stuck\?/);
@@ -335,7 +335,8 @@ describe("Your turn in each state", () => {
 	it("an open practice problem shows whole above the box, worked on in the box", () => {
 		const out = html({ problem });
 		assert.match(out, /data-mode="practice"/);
-		assert.match(out, /data-testid="problem-line"[^>]*>Practice, problem 2</);
+		assert.match(out, /<h2[^>]*>Practice, problem 2<\/h2>/, "the problem's number is the title");
+		assert.doesNotMatch(out, />Your turn</);
 		assert.match(out, /data-testid="open-problem"[\s\S]*data-testid="problem-statement"[\s\S]*Find E\[N\]\./);
 		assert.match(out, /Your work/);
 		assert.match(out, /data-testid="discard-problem"[^>]*>Discard problem</);
@@ -421,16 +422,16 @@ describe("Your turn in each state", () => {
 		assert.equal(activeProblemOf(concluded), null);
 	});
 
-	it("Skip question and Discard problem are the way out of each state, at the end of the foot row under the box", async () => {
-		const skip = /data-testid="composer"[\s\S]*data-testid="turn-foot"[\s\S]*data-testid="skip-question"[^>]*>Skip question<\/button><\/div><\/div>$/;
+	it("Skip question and Discard problem are the way out of each state, at the end of the title row", async () => {
+		const skip = /<h2[^>]*>Your turn<\/h2><button[^>]*data-testid="skip-question"[^>]*>Skip question<\/button><\/div>[\s\S]*data-testid="composer"/;
 		assert.match(html({ pending: quiz }), skip);
 		assert.match(html({ pending: check, revealPending: true }), skip);
 		assert.match(html({ pending: { tool: "write_code", toolCallId: "w1", input: { question: "Write add.", language: "python" } } }), skip);
 		assert.match(html({ pending: written }), skip);
 		assert.match(html({ pending: quiz, busy: true }), skip, "Stop sits in the lesson text, not here");
-		assert.match(html({ problem, busy: true }), /data-testid="turn-foot"[\s\S]*data-testid="discard-problem"/);
+		assert.match(html({ problem, busy: true }), /<\/h2><button[^>]*data-testid="discard-problem"[\s\S]*data-testid="turn-foot"/);
 		assert.doesNotMatch(html({ pending: quiz, busy: true }), /stop-turn/);
-		assert.match(html({ pending: quiz }), /<h2[^>]*>Your turn<\/h2><\/div><div/, "the head is only the title");
+
 
 		const asked: string[] = [];
 		const handlers = { onSkipQuestion: () => asked.push("question"), onDiscardProblem: () => asked.push("problem") };
@@ -740,7 +741,6 @@ describe("the reading pane", () => {
 	const readingProps = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}): React.ComponentProps<typeof ReadingPane> => ({
 		spaceId: undefined,
 		title: "Limits",
-		assignment: null,
 		messages: [],
 		phases: [],
 		status: "submitted",
@@ -757,12 +757,15 @@ describe("the reading pane", () => {
 	});
 	const pane = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}) => renderToStaticMarkup(<ReadingPane {...readingProps(over)} />);
 
-	it("the desk while the agent works", () => {
-		assert.match(pane(), /data-testid="agent-at-work" data-state="working"/);
+	const planned: React.ComponentProps<typeof ReadingPane>["messages"] = [{ id: "a1", role: "assistant", parts: [{ type: "tool-work_plan", toolCallId: "p", state: "output-available", input: { items: ["Read"], done: 0 } }] }];
+
+	it("the desk once the working teacher has a plan", () => {
+		assert.doesNotMatch(pane(), /data-testid="agent-at-work"/);
+		assert.match(pane({ messages: planned }), /data-testid="agent-at-work" data-state="working"/);
 	});
 
 	it("while the teacher writes: Stop and the lines waiting for it under the desk; none when idle or at a stop", () => {
-		const out = pane({ queuedSteers: [{ id: "s1", text: "and the variance?" }] });
+		const out = pane({ messages: planned, queuedSteers: [{ id: "s1", text: "and the variance?" }] });
 		assert.match(out, /data-testid="agent-at-work"[\s\S]*data-testid="queued-steers"[\s\S]*?and the variance\?[\s\S]*data-testid="stop-turn"[^>]*>Stop</);
 		assert.doesNotMatch(pane({ busy: false, status: "ready" }), /stop-turn/);
 		assert.doesNotMatch(pane({ onStop: null }), /stop-turn/, "the teacher reading ahead at a stop is not stopped");
@@ -781,9 +784,9 @@ describe("the reading pane", () => {
 		});
 	});
 
-	it("a still desk while no agent takes the turn; the pill says it instead", () => {
+	it("no desk while no agent takes the turn; the pill says it instead", () => {
 		const out = pane({ waitingForAgent: true });
-		assert.match(out, /data-testid="agent-at-work" data-state="waiting"/);
+		assert.doesNotMatch(out, /data-testid="agent-at-work"/);
 		assert.ok(!out.includes("Thinking"), "no words while nothing works");
 	});
 

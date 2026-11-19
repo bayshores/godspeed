@@ -169,7 +169,7 @@ function passagePath(p: Passage, files: readonly CardFile[]): string | null {
 }
 
 /** The desk shows text and PDF pages; Word, PowerPoint and EPUB files it can't. */
-export const deskShows = (path: string): boolean => !/\.(docx|pptx|epub)$/i.test(path);
+const deskShows = (path: string): boolean => !/\.(docx|pptx|epub)$/i.test(path);
 
 /** A passage's file open at the lines (or the PDF page) read. */
 function passageReading(p: Passage, files: readonly CardFile[]): ReadingTarget | null {
@@ -243,20 +243,6 @@ export function agentWork(message: LhViewMessage | undefined, jobs: readonly Job
 	const last = parts.at(-1);
 	const replied = last?.type === "text" && typeof last.text === "string" && last.text.trim().length > 0;
 	return { plan, steps: steps.slice(planStart), reading, replied };
-}
-
-/** The path of the file the lesson's teacher read last, in any reply. */
-export function lastRead(messages: readonly LhViewMessage[], files: readonly CardFile[]): string | null {
-	const hits = new Map<string, Passage>();
-	let path: string | null = null;
-	for (const m of messages) {
-		if (m.role !== "assistant") continue;
-		for (const part of m.parts) {
-			const tool = toolOf(part);
-			if (tool) path = toolStep(part, tool, [], files, hits).reading?.path ?? path;
-		}
-	}
-	return path;
 }
 
 /** A page holds this many printed rows; a long line wraps every ROW_CHARS characters. */

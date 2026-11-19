@@ -105,6 +105,7 @@ export function LessonScroll({
 	if (hasTurn !== (stepIn !== null)) setStepIn(hasTurn ? true : null);
 
 	const columnRef = useRef<HTMLDivElement>(null);
+	const pageRef = useRef<HTMLDivElement>(null);
 
 	// The teacher writing back while "Your turn" stays open makes its reply the newest thing.
 	const replyRef = useRef(false);
@@ -179,6 +180,22 @@ export function LessonScroll({
 		ro.observe(column);
 		return () => ro.disconnect();
 	}, [contextRef]);
+	// While the teacher works the page never gets shorter. WebKit lays the page out between a row
+	// leaving and the row that replaces it arriving (the desk taking Stop and the reply's steps), and
+	// would pull the page up by the gap, then glide back down.
+	useLayoutEffect(() => {
+		const page = pageRef.current;
+		if (!page) return;
+		if (!busy) {
+			page.style.minHeight = "";
+			return;
+		}
+		const ro = new ResizeObserver(() => {
+			page.style.minHeight = `${page.offsetHeight}px`;
+		});
+		ro.observe(page);
+		return () => ro.disconnect();
+	}, [busy]);
 	const firstKey = useRef(restKey);
 	useLayoutEffect(() => {
 		replyRef.current = false;
@@ -202,7 +219,7 @@ export function LessonScroll({
 				<SessionMessageNavigation />
 				<ConversationContent className="gap-0 p-0" scrollClassName="[overflow-anchor:none] [container-type:size]">
 					{/* Side by side the page ends a gap under the sheets, so "Your turn" has the window's height to fill. */}
-					<div className={cn("lh-page pt-(--lh-gap) pb-(--lh-page-end)", pair && "@min-[1280px]/room:pb-(--lh-gap)")}>
+					<div ref={pageRef} className={cn("lh-page pt-(--lh-gap) pb-(--lh-page-end)", pair && "@min-[1280px]/room:pb-(--lh-gap)")}>
 						<div ref={columnRef} data-testid="lesson-column" className={cn("@container/column flex flex-col gap-(--lh-gap)", READING_MEASURE, pair && [PAIR, PAIR_GRID])}>
 							{reading}
 							{hasTurn && (

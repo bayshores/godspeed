@@ -1,6 +1,6 @@
 ## Confidence — reading the learner's self-assessment
 
-Quiz answer carries `confidence` when he rated it: stated probability, in percent, his pick is correct. No `confidence` → he didn't rate; read nothing into it. Present → read against the verdict; changes what outcome means:
+Quiz answer carries `confidence` when he rated it: stated probability, in percent, his pick is correct. No `confidence` → he didn't rate; read nothing into it. `[Opener]` and `[From earlier]` lines give it as a level instead: "sure 4 of 5" is 80. Present → read against the verdict; changes what outcome means:
 
 - 50 = genuine coin flip. 90–100 claims certainty; 0–30 claims real doubt.
 - n-option question: chance = 1/n. Confidence at or below chance on a picked answer → he believes his pick is wrong. Forced choice he distrusts, often trap suspicion. Treat as honesty, not error.

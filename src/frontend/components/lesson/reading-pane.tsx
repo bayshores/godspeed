@@ -15,7 +15,7 @@ import { agentWork } from "./agent-at-work-model";
 import { ArrivalRow, type Arrive } from "./arrivals";
 import { GoAheadKey } from "./go-ahead-key";
 import { MessageRow } from "./message-row";
-import { cardFiles, deskMark, deskPaper, heldBack, nothingWritten, titleEcho, waitView } from "./wait-model";
+import { cardFiles, deskMark, deskState, heldBack, nothingWritten, titleEcho } from "./wait-model";
 
 /**
  * THE READING PANE: the lesson as one document on the lesson text's sheet, in
@@ -32,7 +32,6 @@ import { cardFiles, deskMark, deskPaper, heldBack, nothingWritten, titleEcho, wa
 export function ReadingPane({
 	spaceId,
 	title,
-	assignment,
 	messages,
 	phases,
 	status,
@@ -50,8 +49,6 @@ export function ReadingPane({
 	spaceId: string | undefined;
 	/** The lesson's title: a first message that only repeats it shows no bubble. */
 	title: string;
-	/** A homework lesson's assignment file: the top sheet on the desk. */
-	assignment: { path: string | null } | null;
 	messages: readonly LhViewMessage[];
 	/** The phase at every message (phaseTimeline). */
 	phases: readonly Phase3[];
@@ -77,11 +74,8 @@ export function ReadingPane({
 	// The reply being worked on: its plan, steps and file, until its text lands.
 	const replying = busy && messages[last]?.role === "assistant" ? messages[last] : undefined;
 	const work = useMemo(() => (replying ? agentWork(replying, jobs, cardFiles(messages)) : null), [replying, jobs, messages]);
-	const view = waitView({ busy, waitingForAgent, work });
-	const open = useMemo(
-		() => view.desk && { state: view.desk, split: view.split, work, paper: deskPaper(messages, assignment), mark: deskMark(messages) },
-		[view.desk, view.split, work, messages, assignment],
-	);
+	const state = deskState({ busy, waitingForAgent, work });
+	const open = useMemo(() => state && work && { state, work, mark: deskMark(messages) }, [state, work, messages]);
 	const desk = useLastWhileClosing(open);
 	const closing = desk.mounted && desk.state === "closed" && !prefersReducedMotion();
 	const shownDesk = open || (closing ? desk.shown : null);
@@ -91,7 +85,7 @@ export function ReadingPane({
 		<div className="flex flex-col items-start gap-2 font-ui">
 			<QueuedSteersBody steers={queuedSteers} />
 			<div className="flex flex-wrap items-center gap-3">
-				{shownDesk?.state === "waiting" && <StartKey />}
+				{waitingForAgent && <StartKey />}
 				<button type="button" data-testid="stop-turn" onClick={onStop} className="lh-btn lh-btn-quiet">
 					Stop
 				</button>
@@ -121,7 +115,7 @@ export function ReadingPane({
 			{shownDesk && (
 				<ArrivalRow live={arrivalsLive} className="flex flex-1 flex-col">
 					<div data-state={closing ? "closed" : "open"} data-desk-closing={closing || undefined} inert={closing} className={cn("flex flex-1 flex-col", closing && "lh-fade")}>
-						<AgentAtWork state={shownDesk.state} work={shownDesk.work} split={shownDesk.split} paper={shownDesk.paper} arrive={arrive} foot={foot} />
+						<AgentAtWork state={shownDesk.state} work={shownDesk.work} arrive={arrive} foot={foot} />
 					</div>
 				</ArrivalRow>
 			)}

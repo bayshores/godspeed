@@ -67,7 +67,7 @@ pub fn app_note_for(record: &Json, input: &ChatInput, asked: Option<&Json>) -> O
 	(!lines.is_empty()).then(|| new_app_note_marker(&lines, details))
 }
 
-/// "[From earlier] Eigenvalues right, sure 4. Bayes' rule wrong, sure 3, picked About 9%.": the
+/// "[From earlier] Eigenvalues right, sure 4 of 5. Bayes' rule wrong, sure 3 of 5, picked About 9%.": the
 /// questions from earlier he answered after the last note that told the agent about them.
 fn from_earlier_line(messages: &[Json]) -> Option<String> {
 	let told = |m: &Json| matches!(m["customType"].as_str(), Some("app-note" | "opener-answer")) && m["content"].as_str().is_some_and(|c| c.lines().any(|l| l.starts_with(FROM_EARLIER)));
@@ -137,15 +137,15 @@ fn first_words(fits: &str) -> String {
 	words.join(" ")
 }
 
-/// One answered question from earlier: "Bayes' rule wrong, sure 3, picked About 9%.", "Eigenvalues
-/// right, sure 4." or "Bayes' rule: he did not know."
+/// One answered question from earlier: "Bayes' rule wrong, sure 3 of 5, picked About 9%.", "Eigenvalues
+/// right, sure 4 of 5." or "Bayes' rule: he did not know."
 fn review_words(details: &Json) -> String {
 	let answer = &details["answer"];
 	let topic = review_topic(details);
 	if answer["dontKnow"].truthy() {
 		return format!("{topic}: he did not know.");
 	}
-	let sure = answer.get("confidence").map_or_else(String::new, |c| format!(", sure {}", confidence_level(c.as_f64().unwrap_or(f64::NAN))));
+	let sure = answer.get("confidence").map_or_else(String::new, |c| format!(", sure {} of 5", confidence_level(c.as_f64().unwrap_or(f64::NAN))));
 	if answer["correct"].as_bool() == Some(true) {
 		return format!("{topic} right{sure}.");
 	}
@@ -188,7 +188,7 @@ fn node_title(record: &Json, id: &str) -> String {
 	title.map_or_else(|| id.to_owned(), |t| js_string(Some(t)))
 }
 
-/// "he picked A, It can move a lot, sure 3." with his thinking after it when he wrote some. "did
+/// "he picked A, It can move a lot, sure 3 of 5." with his thinking after it when he wrote some. "did
 /// not know" and "his thinking" are the words a quiz answer reads with in a past lesson
 /// (session_markdown).
 fn picked_words(answer: &Json) -> String {
@@ -205,7 +205,7 @@ fn picked_words(answer: &Json) -> String {
 			format!("{letter}, {}", js_string(a.get("label")))
 		})
 		.collect();
-	let sure = answer.get("confidence").map_or_else(String::new, |c| format!(", sure {}", confidence_level(c.as_f64().unwrap_or(f64::NAN))));
+	let sure = answer.get("confidence").map_or_else(String::new, |c| format!(", sure {} of 5", confidence_level(c.as_f64().unwrap_or(f64::NAN))));
 	format!("he picked {}{sure}.{thinking}", picks.join(" and "))
 }
 
@@ -250,7 +250,7 @@ mod tests {
 	fn the_opener_lines_word_for_word() {
 		let record = kept_at(50);
 		let answer = json!({ "kind": "quiz", "dontKnow": false, "answers": [pick(1, "It can move a lot")], "confidence": 60 });
-		assert_eq!(opener_answer_text(&record, "t1", &answer), format!("[Opener] Cross-validation: he picked A, It can move a lot, sure 3.\n{NO_PLOT_YET}"));
+		assert_eq!(opener_answer_text(&record, "t1", &answer), format!("[Opener] Cross-validation: he picked A, It can move a lot, sure 3 of 5.\n{NO_PLOT_YET}"));
 		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), format!("[Opener] Cross-validation: he skipped it.\n{NO_PLOT_YET}"));
 		let two = json!({ "kind": "quiz", "dontKnow": false, "answers": [pick(1, "One"), pick(3, "Three")], "thinking": "Folds are small." });
 		assert_eq!(opener_answer_text(&record, "t1", &two), format!("[Opener] Cross-validation: he picked A, One and C, Three. His thinking: Folds are small.\n{NO_PLOT_YET}"));
@@ -322,20 +322,20 @@ mod tests {
 		];
 		let record = json!({ "messages": messages });
 		let next = app_note_for(&record, &ChatInput::Next, None).unwrap();
-		assert_eq!(next["content"], json!("[From earlier] Bayes' rule wrong, sure 3, picked About 60%. Eigenvalues right, sure 4. Gradient descent: he did not know."));
+		assert_eq!(next["content"], json!("[From earlier] Bayes' rule wrong, sure 3 of 5, picked About 60%. Eigenvalues right, sure 4 of 5. Gradient descent: he did not know."));
 		messages.push(next);
 		let told = json!({ "messages": messages });
 		assert!(app_note_for(&told, &ChatInput::Next, None).is_none(), "once");
 		messages.push(reviewed("Regularization", graded(true, "x", 80)));
 		let answer = ChatInput::Answer { tool_call_id: "q".into(), answer: json!({}), attachments: None };
-		assert_eq!(app_note_for(&json!({ "messages": messages }), &answer, None).unwrap()["content"], json!("[From earlier] Regularization right, sure 4."));
+		assert_eq!(app_note_for(&json!({ "messages": messages }), &answer, None).unwrap()["content"], json!("[From earlier] Regularization right, sure 4 of 5."));
 	}
 
 	#[test]
 	fn an_opener_answer_carries_the_questions_from_earlier_after_its_line() {
 		let mut record = kept_at(50);
 		record.get_mut("messages").and_then(Json::as_arr_mut).unwrap().push(reviewed("Bayes' rule", graded(true, "About 9%", 60)));
-		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), format!("[Opener] Cross-validation: he skipped it.\n{NO_PLOT_YET}\n[From earlier] Bayes' rule right, sure 3."));
+		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), format!("[Opener] Cross-validation: he skipped it.\n{NO_PLOT_YET}\n[From earlier] Bayes' rule right, sure 3 of 5."));
 	}
 
 	/// Reply 5's quiz carries a keep with an analogy and its verdict; he answered it right.

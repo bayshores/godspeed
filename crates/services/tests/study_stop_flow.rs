@@ -197,7 +197,7 @@ async fn keep_going_after_the_opener_landed_shows_it_and_his_pick_reaches_the_ag
 	let answer_data = json!({ "kind": "quiz", "dontKnow": false, "answers": [{ "index": 1, "label": "It can move a lot", "value": "It can move a lot" }], "confidence": 60 });
 	send(&fx.app, &chat_id, ChatInput::OpenerAnswer { topic_done_call_id: done_id, answer: Some(answer_data) }).await;
 	let seen = answer(&fx.app, &chat_id, says("Yes: each split sees different points.")).await;
-	assert_eq!(last_user_text(&seen), format!("[Opener] Cross-validation: he picked A, It can move a lot, sure 3.\n{NO_PLOT_YET}"));
+	assert_eq!(last_user_text(&seen), format!("[Opener] Cross-validation: he picked A, It can move a lot, sure 3 of 5.\n{NO_PLOT_YET}"));
 	settled(&fx.app, &chat_id).await;
 }
 

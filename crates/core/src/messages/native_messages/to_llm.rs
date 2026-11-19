@@ -174,7 +174,7 @@ mod tests {
 		messages.push(json!({ "id": "n", "role": "custom", "customType": "practice-next", "content": "[NEXT PROBLEM]", "timestamp": 3 }));
 		let seen = to_llm_messages(&messages);
 		let texts: Vec<&str> = seen.iter().filter_map(|m| m["content"][0]["text"].as_str()).collect();
-		assert_eq!(texts, ["[From earlier] Eigenvalues right, sure 4. Gradient descent right, sure 4.", "[NEXT PROBLEM]"]);
+		assert_eq!(texts, ["[From earlier] Eigenvalues right, sure 4 of 5. Gradient descent right, sure 4 of 5.", "[NEXT PROBLEM]"]);
 	}
 
 	#[test]

@@ -65,8 +65,9 @@ const EXIT: Record<BoxView["exit"], { label: string; testId: string }> = {
  * - a waiting question (QuestionDock) and the answer box;
  * - the open problem, worked on in the box;
  * - a place to stop (the stop card);
- * Its foot row holds the "Stuck?" keys, which ask for help in one click,
- * and at its right end the way out of that state. Talking to the teacher
+ * Its title is the problem's number when one is open ("Problem 3"), with the
+ * way out of that state at the title row's end. Its foot row holds the
+ * "Stuck?" keys, which ask for help in one click. Talking to the teacher
  * happens in its terminal. Beside the lesson text only the question or
  * problem shrinks to fit the window, scrolling in its own box (LessonScroll).
  */
@@ -119,6 +120,7 @@ export function YourTurn({
 	const exit = view && EXIT[view.exit];
 	const onExit = view?.exit === "skip" ? onSkipQuestion : onDiscardProblem;
 	const fromEarlier = pending?.appPosed?.kind === "review";
+	const title = fromEarlier ? "From earlier" : !pending && problem?.line ? problem.line : "Your turn";
 
 	const mode = revealPending
 		? `reveal:${pending?.toolCallId}`
@@ -135,9 +137,14 @@ export function YourTurn({
 	return (
 		// The lesson text's inset, so both sheets share their edges.
 		<div data-testid="your-turn" data-mode={mode.split(":")[0]} className="lh-reading flex min-h-0 flex-1 flex-col gap-7">
-			<div className="flex items-baseline gap-4">
-				<h2 className="text-[28px] leading-tight text-ink">{fromEarlier ? "From earlier" : "Your turn"}</h2>
+			<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+				<h2 className="text-[28px] leading-tight text-ink">{title}</h2>
 				{!pending && problem?.file && <ProblemFile file={problem.file} />}
+				{exit && (
+					<button type="button" data-testid={exit.testId} onClick={onExit} className="lh-btn lh-btn-small lh-btn-quiet ml-auto">
+						{exit.label}
+					</button>
+				)}
 			</div>
 
 			{reviewRefused && (
@@ -162,16 +169,7 @@ export function YourTurn({
 						busy={busy && !fromEarlier}
 					/>
 				)}
-				{!pending && problem && (
-					<div className="flex flex-col gap-4">
-						{problem.line && (
-							<p data-testid="problem-line" className="font-count text-base text-ink-2">
-								{problem.line}
-							</p>
-						)}
-						<OpenProblemPane statement={problem.statement} part={problem.part} />
-					</div>
-				)}
+				{!pending && problem && <OpenProblemPane statement={problem.statement} part={problem.part} />}
 				{!pending && !problem && stop && <StopCard view={stop.view} onAction={stop.onAction} />}
 			</TurnScroll>
 
@@ -194,21 +192,11 @@ export function YourTurn({
 				</div>
 			)}
 
-			{view && exit && (
-				<>
-					<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
-					<div data-testid="turn-foot" className="flex flex-wrap items-center gap-x-2.5 gap-y-2.5">
-						{/* One group, so a narrow sheet wraps the way out under the keys, not a key under the rest. */}
-						{help && (
-							<div className="flex flex-wrap items-center gap-2.5">
-								<HelpKeys help={help} questionRef={questionRef} onHelpLine={onHelpLine} />
-							</div>
-						)}
-						<button type="button" data-testid={exit.testId} onClick={onExit} className="lh-btn lh-btn-small lh-btn-quiet ml-auto">
-							{exit.label}
-						</button>
-					</div>
-				</>
+			{view && <LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />}
+			{help && (
+				<div data-testid="turn-foot" className="flex flex-wrap items-center gap-2.5">
+					<HelpKeys help={help} questionRef={questionRef} onHelpLine={onHelpLine} />
+				</div>
 			)}
 		</div>
 	);

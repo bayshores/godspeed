@@ -1,6 +1,6 @@
 /**
- * The lesson while the teacher works: the desk at the foot of the lesson text in each state
- * (just opened, no agent, split into the plan beside the paper), the title's bubble left out,
+ * The lesson while the teacher works: Stop alone until the teacher plans or takes a step, then
+ * the desk with the plan and the file it reads, the title's bubble left out,
  * the start key while no agent is here, Start again after a stopped first reply, and the landing:
  * the desk leaves before the reply shows, which then draws in, also when an answered question's
  * reply grows the same message.
@@ -45,7 +45,6 @@ type Props = React.ComponentProps<typeof ReadingPane>;
 const props = (over: Partial<Props> = {}): Props => ({
 	spaceId: undefined,
 	title: TITLE,
-	assignment: null,
 	messages: [card(5), first],
 	phases: [],
 	status: "submitted",
@@ -64,12 +63,11 @@ const pane = (over: Partial<Props> = {}) => renderToStaticMarkup(<ReadingPane {.
 const count = (html: string, pattern: RegExp) => [...html.matchAll(pattern)].length;
 
 describe("the desk", () => {
-	it("opens on a new lesson as a floating pile of paper with Stop under it, and no bubble for the title", () => {
+	it("opens on a new lesson as Stop alone, with no desk and no bubble for the title", () => {
 		const out = pane();
-		assert.match(out, /data-testid="agent-at-work" data-state="working"/);
-		assert.match(out, /lh-float/);
-		assert.equal(count(out, /lh-sheet lh-paper/g), 3, "the top sheet over two edges for five files");
-		assert.match(out, /data-testid="agent-at-work"[\s\S]*data-testid="stop-turn"/);
+		assert.doesNotMatch(out, /data-testid="agent-at-work"/);
+		assert.doesNotMatch(out, /lh-paper/, "no paper before the teacher opens a file");
+		assert.match(out, /data-testid="stop-turn"/);
 		assert.doesNotMatch(out, /data-testid="user-message"/);
 		assert.doesNotMatch(out, /Space context/, "the scaffolding card is not drawn");
 		assert.doesNotMatch(out, /class="[^"]*empty:hidden/, "and leaves no hidden box behind");
@@ -87,10 +85,10 @@ describe("the desk", () => {
 		assert.doesNotMatch(out, /\bborder(-edge)?\b(?!-)/);
 	});
 
-	it("lies still and pale while no agent takes the turn", () => {
+	it("offers the start key beside Stop while no agent takes the turn", () => {
 		const out = pane({ waitingForAgent: true });
-		assert.match(out, /data-testid="agent-at-work" data-state="waiting"/);
-		assert.doesNotMatch(out, /lh-float/);
+		assert.doesNotMatch(out, /data-testid="agent-at-work"/);
+		assert.match(out, /data-testid="stop-turn"/);
 	});
 
 	it("splits into the plan beside the file being read, the spinner only on the current item and only the newest step under it", () => {
@@ -198,7 +196,7 @@ describe("the reply landing", () => {
 		const root = createRoot(host);
 		const answered = { type: "tool-quiz", toolCallId: "q", state: "output-available", input: { type: "check", question: "Which?", options: [{ label: "A", value: "a" }] }, output: { kind: "quiz", answers: [{ index: 0, label: "A" }], correct: true } };
 		const asked = teacher({ type: "text", text: "Try this." }, answered);
-		const grown = (text: string) => teacher({ type: "text", text: "Try this." }, answered, { type: "step-start" }, { type: "text", text });
+		const grown = (text: string) => teacher({ type: "text", text: "Try this." }, answered, { type: "step-start" }, read("r1", "/h/a.md"), { type: "text", text });
 		const working = props({ messages: [card(1), first, asked], status: "streaming", arrive: () => "lh-rise" });
 		try {
 			await act(async () => root.render(<ReadingPane {...working} />));

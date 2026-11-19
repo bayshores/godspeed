@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { JobRecord, LhViewMessage, LhViewPart } from "../../src/shared/core/index.ts";
-import { agentWork, lastRead, pageSpanOf, pdfActivity, textPages, ROWS_PER_PAGE } from "../../src/frontend/components/lesson/agent-at-work-model.ts";
+import { agentWork, pageSpanOf, pdfActivity, textPages, ROWS_PER_PAGE } from "../../src/frontend/components/lesson/agent-at-work-model.ts";
 
 const tool = (name: string, input: Record<string, unknown>, toolCallId = name): LhViewPart => ({ type: `tool-${name}`, state: "output-available", toolCallId, input });
 const reply = (...parts: LhViewPart[]): LhViewMessage => ({ id: "m1", role: "assistant", parts });
@@ -128,13 +128,6 @@ describe("the space's files", () => {
 		assert.deepEqual(agentWork(reply(passage("f_a9344168eb05:2")), [], files).steps, []);
 	});
 
-	it("finds the file the lesson read last, in any reply", () => {
-		const earlier = reply(search(found), passage("f_a9344168eb05:1"));
-		const later: LhViewMessage = { id: "m2", role: "assistant", parts: [tool("read", { path: "/Users/me/hw.md" }), { type: "text", text: "Here." }] };
-		assert.equal(lastRead([earlier], files), notes);
-		assert.equal(lastRead([earlier, { id: "u", role: "user", parts: [] }, later], files), "/Users/me/hw.md");
-		assert.equal(lastRead([], files), null);
-	});
 });
 
 describe("pdfActivity", () => {

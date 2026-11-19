@@ -504,7 +504,7 @@ mod tests {
 		let input = ChatInput::OpenerAnswer { topic_done_call_id: "t1".into(), answer: Some(answer) };
 		let appends = input_appends(&study(kept()), &input, &[]).unwrap();
 		assert_eq!(appends.len(), 1);
-		assert_eq!((appends[0]["customType"].as_str(), appends[0]["content"].as_str()), (Some("opener-answer"), Some(format!("[Opener] Cross-validation: he picked B, Barely, sure 4.\n{NO_PLOT_YET}").as_str())));
+		assert_eq!((appends[0]["customType"].as_str(), appends[0]["content"].as_str()), (Some("opener-answer"), Some(format!("[Opener] Cross-validation: he picked B, Barely, sure 4 of 5.\n{NO_PLOT_YET}").as_str())));
 		assert_eq!(appends[0]["details"]["topicDoneCallId"], json!("t1"));
 		let stamped = appends[0]["details"]["answer"]["answeredAt"].as_str().and_then(time::parse_date).unwrap();
 		assert!((clock::now_ms() - stamped).abs() < 60_000, "stamped with the server's clock");
