@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { clockText, followButtons, hasLessonsWithNoSpace, plusName, selectedTab, spaceMenuDescription } from "../../src/frontend/components/top-bar/top-bar-model.ts";
+import { clockText, goLabel, hasLessonsWithNoSpace, plusName, selectedTab, spaceMenuDescription } from "../../src/frontend/components/top-bar/top-bar-model.ts";
 import type { AgentAction } from "../../src/shared/core/events.ts";
 
 describe("the clock", () => {
@@ -63,20 +63,18 @@ describe("the + list", () => {
 	});
 });
 
-describe("the Follow buttons", () => {
+describe("the pill's Go to key", () => {
 	const offer: AgentAction = { id: "a1", at: "2026-11-01T10:00:00.000Z", agent: "Claude Code", label: "Reading 06_Counting.pdf", spaceId: "c21", target: null, page: "/space/files" };
-	it("Follow shows only while the teacher works", () => {
-		assert.deepEqual(followButtons({ following: false, working: false, offer: null, held: false }), { go: null, follow: null });
-		assert.deepEqual(followButtons({ following: false, working: true, offer: null, held: false }), { go: null, follow: "Follow" });
-		assert.deepEqual(followButtons({ following: true, working: true, offer: null, held: false }), { go: null, follow: "Following" });
+	it("nothing to offer, no key", () => {
+		assert.equal(goLabel({ following: false, offer: null, held: false }), null);
 	});
 	it("with Follow off, a change on another page offers to go there", () => {
-		assert.equal(followButtons({ following: false, working: true, offer, held: false }).go, "Go to Files");
-		assert.equal(followButtons({ following: true, working: true, offer, held: false }).go, null);
+		assert.equal(goLabel({ following: false, offer, held: false }), "Go to Files");
+		assert.equal(goLabel({ following: true, offer, held: false }), null);
 	});
 	it("a page the agent opened while the window held offers to go there with Follow on too", () => {
 		const sheet = { ...offer, page: "/space/deadline/ddl_1/cheat-sheet", open: true as const };
-		assert.equal(followButtons({ following: true, working: false, offer: sheet, held: true }).go, "Go to cheat sheet");
-		assert.equal(followButtons({ following: false, working: false, offer: sheet, held: true }).go, "Go to cheat sheet");
+		assert.equal(goLabel({ following: true, offer: sheet, held: true }), "Go to cheat sheet");
+		assert.equal(goLabel({ following: false, offer: sheet, held: true }), "Go to cheat sheet");
 	});
 });

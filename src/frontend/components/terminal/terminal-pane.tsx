@@ -24,9 +24,11 @@ const FILE_GONE = "Can't find this file on your computer.";
 /** xterm loads with the first screen shown. */
 const TerminalView = lazyComponent(() => import("./terminal-view").then((m) => m.TerminalView));
 
-export function TerminalPane({ api, role, foot, focusOnOpen, starters = [] }: {
+export function TerminalPane({ api, role, name, foot, focusOnOpen, starters = [] }: {
 	api: TerminalsApi;
 	role: TerminalRole;
+	/** What the screen's agent is called: the teacher's name, or background work's. */
+	name: string;
 	foot: TerminalFooter;
 	/** The learner opened it: the screen takes the keyboard. Opened by
 	 *  itself, it waits for a click in the screen. */
@@ -107,6 +109,7 @@ export function TerminalPane({ api, role, foot, focusOnOpen, starters = [] }: {
 						: null
 				}
 				onStop={live ? () => void api.stop(role) : null}
+				off={`Turn off ${name}`}
 				get={foot.get}
 				assist={
 					foot.assist && {

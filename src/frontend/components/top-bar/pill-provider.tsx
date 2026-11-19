@@ -14,30 +14,32 @@ import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { useWorker } from "@/frontend/components/work/use-worker";
 import { workProgress } from "@/frontend/components/work/work-model";
-import { dueSoon, idleWords, pillClick, pillLine, pillThings, thingsAt, type PillLine, type PillPlace, type PillThing } from "./live-pill-model";
+import { dueSoon, idleWords, pillClick, pillLine, pillThings, type PillLine, type PillThing } from "./live-pill-model";
 import { NOTICE_STACK_ID } from "./pill-panel";
-import { followButtons } from "./top-bar-model";
+import { goLabel } from "./top-bar-model";
 import { useReadyLessons } from "./use-ready-lessons";
 
 interface PillApi {
-	/** What the pill at `place` says. */
-	lineAt: (place: PillPlace) => PillLine;
+	/** What the pill says; `own`: in a page's own bar. */
+	lineAt: (own: boolean) => PillLine;
 	/** What the pill opens is open: the teacher's panel, or in a page's own bar the notices. */
-	open: (place: PillPlace) => boolean;
+	open: (own: boolean) => boolean;
 	/** The teacher's panel is open: the pill is its key, held down. */
 	on: boolean;
 	/** How many notices wait folded in the pill. */
 	waiting: number;
 	notices: boolean;
-	/** The pill clicked (pillClick). */
-	click: (pill: HTMLElement, place: PillPlace) => void;
-	/** The pill at `place` does something when clicked. */
-	clickable: (place: PillPlace) => boolean;
+	/** The pill's words clicked (pillClick). */
+	click: (pill: HTMLElement, own: boolean) => void;
+	/** The pill's words do something when clicked. */
+	clickable: (own: boolean) => boolean;
 	/** The count of folded notices clicked: they show, or fold again. */
 	showNotices: (from: HTMLElement) => void;
 	closeNotices: () => void;
 	/** What a thing's own button does. */
 	act: (thing: PillThing) => void;
+	/** Opens the pill's deadline; null when the open lesson is that deadline's. */
+	openDue: (() => void) | null;
 }
 
 const PillContext = createContext<PillApi | null>(null);
@@ -76,7 +78,6 @@ export function PillProvider({ children }: { children: ReactNode }) {
 	const terminal = teacherTerminalState(terminals?.facts.teacher ?? null);
 	const helper = terminals?.facts.helper ?? null;
 	const background = !!helper && !!needsYou(helper);
-	const jobs = feed.jobs.length + feed.extractions.length;
 	const requests = useMemo(() => (feed.requests ?? []).map((r) => r.title), [feed.requests]);
 	const things = useMemo(
 		() =>
@@ -86,24 +87,24 @@ export function PillProvider({ children }: { children: ReactNode }) {
 				agent,
 				terminal,
 				background,
-				work: workProgress({ worker, spaces, jobs, requests }),
+				work: workProgress({ worker, spaces, extractions: feed.extractions, jobs: feed.jobs, requests }),
 				ready,
-				due: deadlines && minute !== null ? dueSoon(deadlines, minute, pathname) : null,
-				lessonDeadline,
-				offer: followButtons({ following, working: false, offer, held }).go && offer ? offer.label : null,
+				offer: offer && goLabel({ following, offer, held }) ? offer.label : null,
 			}),
-		[name, doing, agent, terminal, background, worker, spaces, jobs, requests, ready, deadlines, minute, pathname, lessonDeadline, following, offer, held],
+		[name, doing, agent, terminal, background, worker, spaces, feed.extractions, feed.jobs, requests, ready, following, offer, held],
 	);
-	const said = notices.said?.title ?? null;
+	const due = useMemo(() => (deadlines && minute !== null ? dueSoon(deadlines, minute, pathname) : null), [deadlines, minute, pathname]);
+	// A notice with a card under it has something to read or do; a bare one is news.
+	const said = useMemo(() => notices.said && { title: notices.said.title, lit: !notices.said.bare }, [notices.said]);
 	const known = notices.known.length;
 	// The teacher's open panel says in its head what the teacher does and
 	// that background work needs the learner: the pill, in every bar, is
 	// the name alone, and closes it.
 	const panelOpen = teacher?.panelOpen ?? false;
-	const shownAt = useCallback((at: PillPlace) => (panelOpen ? things.filter((t) => t.kind !== "teacher" && t.kind !== "background") : thingsAt(things, at)), [things, panelOpen]);
+	const shown = useMemo(() => (panelOpen ? things.filter((t) => t.kind !== "teacher" && t.kind !== "background") : things), [things, panelOpen]);
 	const lineAt = useCallback(
-		(at: PillPlace) => pillLine({ things: shownAt(at), notice: said, idle: panelOpen ? name : idleWords({ name, agent, notices: known, own: at.own }) }),
-		[shownAt, said, name, agent, known, panelOpen],
+		(own: boolean) => pillLine({ things: shown, notice: said, idle: panelOpen ? name : idleWords({ name, agent, notices: known, own }), due }),
+		[shown, said, name, agent, known, panelOpen, due],
 	);
 
 	const noticesOpen = notices.open;
@@ -127,8 +128,8 @@ export function PillProvider({ children }: { children: ReactNode }) {
 	const setPanelOpen = teacher?.setPanelOpen;
 	const showTerminal = teacher?.showTerminal;
 	const click = useCallback(
-		(pill: HTMLElement, at: PillPlace) => {
-			const does = pillClick({ main: lineAt(at).thing, place: at, panelOpen, notices: known });
+		(pill: HTMLElement, own: boolean) => {
+			const does = pillClick({ main: lineAt(own).thing, own, panelOpen, notices: known });
 			if (does === "notices") return showNotices(pill);
 			closeNotices();
 			if (does === "close") setPanelOpen?.(false);
@@ -136,22 +137,29 @@ export function PillProvider({ children }: { children: ReactNode }) {
 		},
 		[showNotices, closeNotices, panelOpen, known, setPanelOpen, showTerminal, lineAt],
 	);
-	const clickable = useCallback((at: PillPlace) => pillClick({ main: lineAt(at).thing, place: at, panelOpen, notices: known }) !== null, [panelOpen, known, lineAt]);
-	const open = useCallback((at: PillPlace) => (at.own ? noticesOpen : panelOpen), [noticesOpen, panelOpen]);
+	const clickable = useCallback((own: boolean) => pillClick({ main: lineAt(own).thing, own, panelOpen, notices: known }) !== null, [panelOpen, known, lineAt]);
+	const open = useCallback((own: boolean) => (own ? noticesOpen : panelOpen), [noticesOpen, panelOpen]);
 	const act = useCallback(
 		(thing: PillThing) => {
 			closeNotices();
 			if (thing.kind === "ready") void navigate(`/chat/${encodeURIComponent(thing.key)}`);
-			if (thing.due) {
-				openInSpace(thing.due.spaceId, deadlineHref(thing.due.id));
-			}
 		},
-		[closeNotices, navigate, openInSpace],
+		[closeNotices, navigate],
+	);
+	const openDue = useMemo(
+		() =>
+			due && due.id !== lessonDeadline
+				? () => {
+						closeNotices();
+						openInSpace(due.spaceId, deadlineHref(due.id));
+					}
+				: null,
+		[due, lessonDeadline, closeNotices, openInSpace],
 	);
 
 	const api = useMemo(
-		() => ({ lineAt, open, on: panelOpen, waiting: notices.waiting, notices: noticesOpen, click, clickable, showNotices, closeNotices, act }),
-		[lineAt, open, panelOpen, notices.waiting, noticesOpen, click, clickable, showNotices, closeNotices, act],
+		() => ({ lineAt, open, on: panelOpen, waiting: notices.waiting, notices: noticesOpen, click, clickable, showNotices, closeNotices, act, openDue }),
+		[lineAt, open, panelOpen, notices.waiting, noticesOpen, click, clickable, showNotices, closeNotices, act, openDue],
 	);
 	if (!teacher) return <>{children}</>;
 	return <PillContext.Provider value={api}>{children}</PillContext.Provider>;

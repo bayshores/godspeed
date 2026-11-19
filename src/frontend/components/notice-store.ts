@@ -20,8 +20,8 @@ interface NoticeState {
 	waiting: number;
 	/** The folded notices were asked for. */
 	open: boolean;
-	/** The pill says this notice's title in its place: its id and the title. */
-	said: { id: string; title: string } | null;
+	/** The pill says this notice's title in its place. `bare`: nothing shows under it. */
+	said: { id: string; title: string; bare: boolean } | null;
 	/** The panel has something to show. */
 	up: boolean;
 	/** Time left before the last notice showing by itself folds, and whether the hold has stopped it; null when none folds. */
@@ -51,7 +51,7 @@ const listeners = new Set<() => void>();
 function update() {
 	const now = heldSince ?? Date.now();
 	const view = noticeView(notices, now, open);
-	const said = pills > 0 && !open && view.presenting ? { id: view.presenting.id, title: view.presenting.title } : null;
+	const said = pills > 0 && !open && view.presenting ? { id: view.presenting.id, title: view.presenting.title, bare: view.presenting.bare } : null;
 	const up = open || view.shown.some((id) => id !== said?.id || !notices.find((n) => n.id === id)?.bare);
 	// A panel that closed under the pointer never says the pointer left.
 	if (!up) heldSince = null;

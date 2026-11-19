@@ -2,10 +2,13 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { usePresence } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
 import { TeacherActivity } from "./teacher-activity";
+import { useTeacher } from "./teacher-context";
 
 /** The head's words are in the screen's font; its keys are plain words. */
 const TYPE = "font-mono text-[13px]";
 const KEY = cn("lh-btn lh-btn-quiet h-8 shrink-0", TYPE);
+/** A key held down: Follow while it is on, Activity while its list is open. */
+const HELD = "text-ink [--lh-key:var(--lh-key-hover)]";
 /** A key that needs the learner: lit like the chip that says so. */
 const LIT_KEY = "[--lh-key:var(--lh-highlight)] [--lh-key-hover:color-mix(in_srgb,var(--lh-highlight)_85%,#fff)] text-ink";
 
@@ -13,7 +16,8 @@ const LIT_KEY = "[--lh-key:var(--lh-highlight)] [--lh-key-hover:color-mix(in_srg
  * The panel's one head row: the screen's status (lit while it needs the
  * learner, its words fading from one to the next, a breathing square while
  * the teacher works), then the key to background
- * work's screen while that needs the learner, and Activity, which drops
+ * work's screen while that needs the learner, Follow (held down while the
+ * window goes where the teacher works), and Activity, which drops
  * the Activity list over the top of the screen. Background work's screen
  * has its name first, and Back. The pill that opened the panel closes it.
  * Under a name the status takes its own row.
@@ -38,6 +42,7 @@ export function PanelHead({
 	need: (() => void) | null;
 	back: (() => void) | null;
 }) {
+	const teacher = useTeacher();
 	const listKey = useRef<HTMLButtonElement>(null);
 	const card = useRef<HTMLDivElement>(null);
 	const listId = useId();
@@ -120,6 +125,17 @@ export function PanelHead({
 						Background work needs you
 					</button>
 				)}
+				{list && teacher && (
+					<button
+						type="button"
+						data-testid={teacher.follow ? "follow-stop" : "follow-start"}
+						aria-pressed={teacher.follow}
+						onClick={() => teacher.setFollow(!teacher.follow)}
+						className={cn(KEY, teacher.follow && HELD)}
+					>
+						{teacher.follow ? "Following" : "Follow"}
+					</button>
+				)}
 				{list && (
 					<button
 						ref={listKey}
@@ -128,8 +144,7 @@ export function PanelHead({
 						aria-expanded={listOpen}
 						aria-controls={listOpen ? listId : undefined}
 						onClick={() => list.onOpen(!listOpen)}
-						// Held down while its list is open.
-						className={cn(KEY, listOpen && "text-ink [--lh-key:var(--lh-key-hover)]")}
+						className={cn(KEY, listOpen && HELD)}
 					>
 						Activity
 					</button>

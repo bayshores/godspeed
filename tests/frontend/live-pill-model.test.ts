@@ -5,13 +5,13 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { dueSoon, firstWord, idleWords, keepReady, pillClick, pillLine, pillThings, shortName, thingsAt } from "../../src/frontend/components/top-bar/live-pill-model.ts";
+import { dueSoon, firstWord, idleWords, keepReady, pillClick, pillLine, pillThings, shortName } from "../../src/frontend/components/top-bar/live-pill-model.ts";
 
 const off = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [] };
 const teaching = { ...off, connected: true, teaching: true, name: "Claude Code" };
 const reading = { text: "Reading Lecture 14 notes", count: "3 of 12", working: true };
-const nothing = { name: "marco", doing: null, agent: teaching, terminal: null, background: false, work: null, ready: [], due: null, lessonDeadline: null, offer: null };
-const helper = { doing: "Reading files", count: "6 of 17", tag: "6 of 17 files" };
+const nothing = { name: "marco", doing: null, agent: teaching, terminal: null, background: false, work: null, ready: [], offer: null };
+const helper = { doing: "Reading files", count: "6 of 17" };
 const homework = { id: "hw5", spaceId: "c21", name: "Homework 5", date: "2026-11-15", time: "23:59" };
 const words = (i: Parameters<typeof pillThings>[0]) => pillThings(i).map((t) => [t.head, t.detail, t.count].filter(Boolean).join(" "));
 
@@ -22,9 +22,9 @@ describe("the live things", () => {
 		assert.deepEqual(pillThings({ ...nothing, doing: reading, agent: null }), [], "before the agent's state is read");
 	});
 
-	it("the teacher at work: what it does and how far it is, on the highlighter, its square breathing", () => {
+	it("the teacher at work: what it does and how far it is, its square breathing, off the highlighter", () => {
 		const [thing] = pillThings({ ...nothing, doing: reading });
-		assert.deepEqual(thing, { kind: "teacher", key: "teacher", head: "marco", detail: "reading Lecture 14 notes", count: "3 of 12", due: null, lit: true, working: true, tag: null, needs: false, action: null });
+		assert.deepEqual(thing, { kind: "teacher", key: "teacher", head: "marco", detail: "reading Lecture 14 notes", count: "3 of 12", lit: false, working: true, needs: false, action: null });
 	});
 
 	it("godspeed's own terminal: starting, or needing the learner", () => {
@@ -49,47 +49,40 @@ describe("the live things", () => {
 		assert.deepEqual(words({ ...nothing, doing: reading, offer: "Adding Lab 4" }), ["marco reading Lecture 14 notes 3 of 12"], "the work it does now comes first");
 	});
 
-	it("what waits for the learner first, then what works, then the deadline", () => {
-		const all = { ...nothing, doing: reading, work: helper, ready: [{ id: "l1", title: "Counting" }], due: homework };
-		assert.deepEqual(words(all), ["Counting your turn", "marco reading Lecture 14 notes 3 of 12", "Reading files 6 of 17", "Homework 5 due in"]);
-		assert.deepEqual(words({ ...all, terminal: "needsYou" }), ["marco needs you", "Counting your turn", "Reading files 6 of 17", "Homework 5 due in"]);
+	it("what waits for the learner first, then what works; only what waits is lit", () => {
+		const all = { ...nothing, doing: reading, work: helper, ready: [{ id: "l1", title: "Counting" }] };
+		assert.deepEqual(words(all), ["Counting your turn", "marco reading Lecture 14 notes 3 of 12", "Reading files 6 of 17"]);
+		assert.deepEqual(pillThings(all).map((t) => t.lit), [true, false, false]);
+		assert.deepEqual(words({ ...all, terminal: "needsYou" }), ["marco needs you", "Counting your turn", "Reading files 6 of 17"]);
 	});
 
-	it("a lesson and a deadline open with a click; their key is their id", () => {
-		const [lesson, due] = pillThings({ ...nothing, ready: [{ id: "l1", title: "Counting" }], due: homework });
+	it("a lesson opens with a click; its key is its id", () => {
+		const [lesson] = pillThings({ ...nothing, ready: [{ id: "l1", title: "Counting" }] });
 		assert.deepEqual([lesson!.kind, lesson!.key, lesson!.action], ["ready", "l1", "open"]);
-		assert.deepEqual([due!.kind, due!.key, due!.due, due!.action], ["due", "hw5", homework, "open"]);
-	});
-});
-
-describe("the deadline whose lesson is open", () => {
-	it("stays in the pill with no Open of its own", () => {
-		const [due] = pillThings({ ...nothing, due: homework, lessonDeadline: "hw5" });
-		assert.deepEqual([due!.kind, due!.key, due!.action], ["due", "hw5", null]);
-		assert.equal(pillThings({ ...nothing, due: homework, lessonDeadline: "hw4" })[0]!.action, "open");
 	});
 });
 
 describe("the pill", () => {
-	const things = pillThings({ ...nothing, doing: reading, work: helper, due: homework });
+	const things = pillThings({ ...nothing, doing: reading, work: helper });
 
-	it("says the first live thing, with background work as a tag", () => {
-		const line = pillLine({ things, notice: null, idle: "marco" });
-		assert.deepEqual([line.head, line.thing, line.lit, line.tag?.tag], ["marco", things[0], true, "6 of 17 files"]);
+	it("says the first live thing, then the deadline in its last day", () => {
+		const line = pillLine({ things, notice: null, idle: "marco", due: homework });
+		assert.deepEqual([line.head, line.thing, line.lit, line.due], ["marco", things[0], false, homework]);
 	});
 
-	it("says a notice that just came; the live thing moves to the tag", () => {
-		const line = pillLine({ things: things.slice(1), notice: "Claude Code saved a rule", idle: "marco" });
-		assert.deepEqual([line.head, line.thing, line.lit, line.tag?.tag], ["Claude Code saved a rule", null, true, "6 of 17 files"]);
+	it("says a notice that just came, on the highlighter; the deadline stays", () => {
+		const line = pillLine({ things, notice: { title: "Claude Code saved a rule", lit: true }, idle: "marco", due: homework });
+		assert.deepEqual([line.head, line.thing, line.lit, line.due], ["Claude Code saved a rule", null, true, homework]);
 	});
 
-	it("the teacher is never a tag", () => {
-		assert.equal(pillLine({ things, notice: "godspeed 0.6.7 is ready", idle: "marco" }).tag, null);
+	it("says plain news off the highlighter", () => {
+		const line = pillLine({ things, notice: { title: "Teacher read 1 file.", lit: false }, idle: "marco", due: null });
+		assert.deepEqual([line.head, line.thing, line.lit], ["Teacher read 1 file.", null, false]);
 	});
 
 	it("with nothing live: the teacher's name, or its state when it is not teaching", () => {
 		const idle = (agent: Parameters<typeof idleWords>[0]["agent"]) => idleWords({ name: "marco", agent, notices: 2, own: false });
-		assert.deepEqual(pillLine({ things: [], notice: null, idle: idle(teaching) }), { head: "marco", thing: null, lit: false, tag: null, idle: true });
+		assert.deepEqual(pillLine({ things: [], notice: null, idle: idle(teaching), due: null }), { head: "marco", thing: null, lit: false, due: null, idle: true });
 		assert.equal(idle(off), "marco is off");
 		assert.equal(idle({ ...off, connected: true, name: "Codex" }), "marco is on", "the teacher's name, never the program's");
 		assert.equal(idle({ ...off, pendingWork: 1 }), "Waiting for marco");
@@ -110,39 +103,29 @@ describe("the pill", () => {
 		assert.equal(firstWord("working"), "working");
 		assert.equal(firstWord("your turn"), "your turn", "too short to cut");
 	});
-
-	it("beside a teacher head the teacher shows only while it needs the learner", () => {
-		const beside = { own: true, named: true };
-		assert.deepEqual(thingsAt(things, beside).map((t) => t.kind), ["work", "due"]);
-		assert.deepEqual(thingsAt(things, { own: true, named: false }), things);
-		const needs = pillThings({ ...nothing, doing: reading, terminal: "needsYou", due: homework });
-		assert.deepEqual(thingsAt(needs, beside).map((t) => t.kind), ["teacher", "due"]);
-	});
 });
 
 describe("a click on the pill", () => {
-	const app = { own: false, named: false };
-	const lesson = { own: true, named: true };
 	const [work] = pillThings({ ...nothing, work: helper });
 	it("opens the teacher's panel on the agent's screen, or closes it; it never holds one key in a card", () => {
-		assert.deepEqual(pillClick({ main: null, place: app, panelOpen: false, notices: 2 }), { open: "teacher" });
-		assert.deepEqual(pillClick({ main: work!, place: app, panelOpen: false, notices: 0 }), { open: "teacher" });
-		assert.equal(pillClick({ main: work!, place: app, panelOpen: true, notices: 0 }), "close");
+		assert.deepEqual(pillClick({ main: null, own: false, panelOpen: false, notices: 2 }), { open: "teacher" });
+		assert.deepEqual(pillClick({ main: work!, own: false, panelOpen: false, notices: 0 }), { open: "teacher" });
+		assert.equal(pillClick({ main: work!, own: false, panelOpen: true, notices: 0 }), "close");
 	});
-	it("background work's need opens its own view, in the app's bar and in a lesson's", () => {
+	it("background work's need opens its own view, in the app's bar and in a page's own", () => {
 		const [need] = pillThings({ ...nothing, background: true });
 		assert.ok(need!.lit, "the pill lights");
-		assert.deepEqual(pillClick({ main: need!, place: app, panelOpen: false, notices: 0 }), { open: "helper" });
-		assert.deepEqual(pillClick({ main: need!, place: lesson, panelOpen: false, notices: 0 }), { open: "helper" });
+		assert.deepEqual(pillClick({ main: need!, own: false, panelOpen: false, notices: 0 }), { open: "helper" });
+		assert.deepEqual(pillClick({ main: need!, own: true, panelOpen: false, notices: 0 }), { open: "helper" });
 		const [teacher] = pillThings({ ...nothing, terminal: "needsYou", background: true });
-		assert.deepEqual(pillClick({ main: teacher!, place: lesson, panelOpen: false, notices: 0 }), { open: "teacher" }, "the teacher's own need first");
+		assert.deepEqual(pillClick({ main: teacher!, own: true, panelOpen: false, notices: 0 }), { open: "teacher" }, "the teacher's own need first");
 	});
 	it("in a page's own bar: the folded notices, or nothing to do", () => {
-		assert.equal(pillClick({ main: work!, place: lesson, panelOpen: false, notices: 1 }), "notices");
-		assert.equal(pillClick({ main: work!, place: lesson, panelOpen: false, notices: 0 }), null);
+		assert.equal(pillClick({ main: work!, own: true, panelOpen: false, notices: 1 }), "notices");
+		assert.equal(pillClick({ main: work!, own: true, panelOpen: false, notices: 0 }), null);
 	});
 	it("the open panel closes from a page's own bar too", () => {
-		assert.equal(pillClick({ main: null, place: lesson, panelOpen: true, notices: 1 }), "close");
+		assert.equal(pillClick({ main: null, own: true, panelOpen: true, notices: 1 }), "close");
 	});
 });
 

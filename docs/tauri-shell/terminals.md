@@ -43,6 +43,19 @@ Matched by shape, since agents reword their screens. Screen text is only matched
 
 A question counts once unchanged for 2 s. `url` is true while the screen shows an `http` or `https` address. The trust and Enter buttons send keys only if the shell sees that question on screen at that moment. Trust on "No" sends Down, then Enter once the shell sees the pointer on "Yes" (within 1 s); if the screen changed, nothing more.
 
+### The panel opens and closes by itself
+
+`teacher/panel-auto-model.ts` decides, `teacher/use-teacher-panel.ts` applies it. A need is `needsYou` for the teacher's or background work's terminal.
+
+| Rule | What happens |
+|---|---|
+| A need arises (none before) while the panel is closed | The panel opens on that terminal's screen without taking the keyboard. A need already there when the learner closed the panel does not reopen it. |
+| The learner is writing | A key in a writing box (text box, text field or editable element, not the terminal's screen) in the last 3 s holds the opening back until 3 s after the last key, if the need and the closed panel are still there. |
+| The need is settled | The panel closes, but only one that opened by itself and that the learner has not opened since. |
+| A lesson reply starts (the open lesson's `working` goes from false to true) with no need present | The panel closes, whoever opened it. A lesson already working when it first reports is no change. |
+
+Size and dock are untouched, and the first terminal list after a reload is a start, not a change. Without a motion preference the panel hangs down from the bar; with reduced motion it appears and goes at once (`.lh-hang-body`).
+
 ### Stop, quit and the server
 
 | Event | What happens |

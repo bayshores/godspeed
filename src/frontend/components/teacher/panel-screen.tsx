@@ -33,5 +33,5 @@ export function PanelScreen({ name, role, focus }: { name: string; role: Termina
 				{!api.outsideHere && <StartTeacher />}
 			</div>
 		);
-	return <TerminalPane api={api} role={role} foot={terminalFooter(facts, name, true)} focusOnOpen={focus} starters={startersFor({ path: pathname, spaceName, deadlines: deadlines ?? [] })} />;
+	return <TerminalPane api={api} role={role} name={name} foot={terminalFooter(facts, name, true)} focusOnOpen={focus} starters={startersFor({ path: pathname, spaceName, deadlines: deadlines ?? [] })} />;
 }

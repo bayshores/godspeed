@@ -49,7 +49,7 @@ afterEach(() => {
 
 /** The teacher's panel as the provider holds it. */
 function PanelHost({ children }: { children?: React.ReactNode }) {
-	const panel = useTeacherPanel();
+	const panel = useTeacherPanel(null);
 	const view = panelBody(!!useTerminals()?.available);
 	const api: TeacherApi = {
 		name: "Ada",
@@ -72,6 +72,7 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 			<TeacherStatus name="Ada" line="Ready" testid="status" />
 			<button type="button" data-testid="open-panel" onClick={() => panel.setOpen(true)} />
 			<button type="button" data-testid="open-terminal" onClick={() => panel.showTerminal()} />
+			<button type="button" data-testid="close-panel" onClick={() => panel.setOpen(false)} />
 			{children}
 			{panel.open && (
 				<TeacherPanel
@@ -155,7 +156,7 @@ describe("the web version", () => {
 	});
 });
 
-describe("never opening by itself", () => {
+describe("opening by itself", () => {
 	it("the trust question waits in the status line; a click there opens the screen with its one bright key", async () => {
 		const shell = fakeShell([teacher({ prompt: "trust" })]);
 		try {
@@ -168,6 +169,44 @@ describe("never opening by itself", () => {
 				assert.deepEqual(bright(), ["Trust folder"]);
 				await click("terminal-assist");
 				assert.ok(shell.calls.includes("answer trust"));
+			});
+		} finally {
+			shell.remove();
+		}
+	});
+
+	it("a question that comes opens the panel; answered, the panel it opened goes, but one the learner opened stays", async () => {
+		const shell = fakeShell([teacher()]);
+		try {
+			await mounted(access({ terminals: [{ id: "t1", here: true }] }), async () => {
+				assert.ok(q("teacher-panel") === null);
+				await act(async () => shell.push({ id: "t1", ended: null, prompt: "menu", url: false }));
+				await settle();
+				assert.ok(q("teacher-panel") !== null, "the question opened it");
+				await act(async () => shell.push({ id: "t1", ended: null, prompt: null, url: false }));
+				await settle();
+				assert.ok(q("teacher-panel") === null, "answered: it went");
+				await click("open-terminal");
+				await act(async () => shell.push({ id: "t1", ended: null, prompt: "menu", url: false }));
+				await settle();
+				await act(async () => shell.push({ id: "t1", ended: null, prompt: null, url: false }));
+				await settle();
+				assert.ok(q("teacher-panel") !== null, "the learner opened it, so it stays");
+			});
+		} finally {
+			shell.remove();
+		}
+	});
+
+	it("a panel the learner closed does not come back for a question that was already there", async () => {
+		const shell = fakeShell([teacher({ prompt: "menu" })]);
+		try {
+			await mounted(access({ terminals: [{ id: "t1", here: true }] }), async () => {
+				assert.ok(q("teacher-panel") === null, "a question there at the start is no change");
+				await click("open-terminal");
+				await click("close-panel");
+				await faded();
+				assert.ok(q("teacher-panel") === null);
 			});
 		} finally {
 			shell.remove();
@@ -193,14 +232,14 @@ describe("never opening by itself", () => {
 		}
 	});
 
-	it("a teacher not checked in 20 s after its start, also after the system held the timers, says so and stays shut", async () => {
+	it("a teacher not checked in 20 s after its start, also after the system held the timers, says so and opens the panel without the keyboard", async () => {
 		const shell = fakeShell([teacher({ startedAt: Date.now() - 19_700, url: true })]);
 		try {
 			await mounted(access(), async () => {
 				await act(() => new Promise((r) => setTimeout(r, 500)));
 				await settle();
-				assert.equal(text("status"), "Finish signing in to Claude Code.");
-				assert.ok(q("teacher-panel") === null);
+				assert.equal(text("teacher-panel-agent"), "Finish signing in to Claude Code.");
+				assert.ok(q("teacher-panel") !== null, "the need opened it");
 			});
 		} finally {
 			shell.remove();
@@ -213,8 +252,8 @@ describe("never opening by itself", () => {
 				Date.now = () => realNow() + 15_000;
 				await act(async () => void dom.window.dispatchEvent(new dom.window.Event("focus")));
 				await settle();
-				assert.equal(text("status"), "Ada hasn't started teaching yet.");
-				assert.ok(q("teacher-panel") === null);
+				assert.equal(text("teacher-panel-agent"), "Ada hasn't started teaching yet.");
+				assert.ok(q("teacher-panel") !== null, "the need opened it");
 			});
 		} finally {
 			Date.now = realNow;
@@ -228,8 +267,7 @@ describe("never opening by itself", () => {
 			await mounted(access({ terminals: [{ id: "t1", here: true }] }), async () => {
 				await act(async () => shell.push({ id: "t1", ended: { stopped: false, code: 1 }, prompt: null, url: false }));
 				await settle();
-				assert.ok(q("teacher-panel") === null, "still shut");
-				await click("status");
+				assert.ok(q("teacher-panel") !== null, "the crash opened it");
 				await faded();
 				assert.equal(text("terminal-footer"), "", "the chip says it closed");
 				assert.ok(q("terminal-stop") === null, "nothing to stop");
@@ -335,6 +373,7 @@ describe("the screens", () => {
 				assert.equal(text("teacher-panel-name"), null);
 				assert.ok(q("teacher-panel-need") === null && q("teacher-panel-back") === null);
 				assert.ok(!/helper/i.test(q("teacher-panel")?.textContent ?? ""), "the panel never says helper");
+				assert.equal(text("terminal-stop"), "Turn off Ada", "says it ends the whole agent");
 				await click("terminal-stop");
 				assert.ok(shell.calls.includes("stop t1"));
 			});
@@ -358,6 +397,7 @@ describe("the screens", () => {
 				assert.equal(text("teacher-panel-agent"), "Background work is asking you something.");
 				assert.ok(q("teacher-panel-agent")?.classList.contains("bg-highlight"), "its chip carries the need");
 				assert.equal(text("terminal-footer"), "", "the chip already says what");
+				assert.equal(text("terminal-stop"), "Turn off Background work");
 				assert.ok(q("teacher-panel-need") === null && q("terminal-attach") === null);
 				await click("teacher-panel-back");
 				assert.equal(text("teacher-panel-name"), null);
@@ -531,12 +571,12 @@ describe("the keyboard", () => {
 				assert.ok(focused === box, "the learner types in the box");
 				await act(async () => shell.push({ id: "t1", ended: null, prompt: "menu", url: false }));
 				await settle();
-				assert.ok(q("teacher-panel") === null, "a permission menu does not open it");
+				assert.ok(q("teacher-panel") !== null, "a permission menu opens it");
 				assert.ok(focused === box, "the box kept the keyboard");
 				press(box, "1", 49);
 				press(box, "Enter", 13);
 				assert.ok(!wrote(), "no key reached the agent");
-				await click("status");
+				await click("open-terminal");
 				for (let i = 0; i < 10 && !screen(); i++) await settle();
 				assert.ok(focused === screen(), "opened by the learner, the screen takes the keyboard");
 				await act(async () => shell.push({ id: "t1", ended: null, prompt: null, url: false }));

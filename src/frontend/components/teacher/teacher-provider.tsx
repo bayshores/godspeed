@@ -13,7 +13,8 @@
  *  - The panel (use-teacher-panel.ts): in the desktop app the agent's
  *    screen, where the learner talks to it outside lessons, and Activity
  *    (teacher-activity.tsx); in a browser Activity alone. It stays open
- *    across pages, lessons too.
+ *    across pages, lessons too. It opens by itself for a need and closes
+ *    when that is settled or a lesson reply starts.
  *
  * The name is the learner's choice (Settings → General → Teacher name) and
  * only ever shown on screen.
@@ -85,7 +86,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	);
 
 	// ── the panel ──
-	const panel = useTeacherPanel();
+	const panel = useTeacherPanel(lesson?.working ?? null);
 	const { open: panelOpen, setOpen: setPanelOpen, showTerminal, setList } = panel;
 	useDoneSound(panelOpen);
 	// The panel stays while the page shows; across the whole window it gets out of the way.
@@ -126,7 +127,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	return (
 		<TeacherContext.Provider value={api}>
 			{children}
-			{/* On the page's top layer. Only the pill closes it. */}
+			{/* On the page's top layer. The pill closes it; it also closes by itself (use-teacher-panel.ts). */}
 			{shown.mounted &&
 				createPortal(
 					<TeacherPanel

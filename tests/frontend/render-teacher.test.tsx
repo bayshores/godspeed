@@ -37,7 +37,7 @@ const { TeacherPanel, agentLine } = await import("../../src/frontend/components/
 const { PANEL_HEIGHT, PANEL_WIDTH, draggedHeight, keyedHeight, panelLayout, panelBody, panelStarts, shownScreen, storedHeight } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { waitingNotice } = await import("../../src/frontend/components/agent-status.tsx");
 const { ActivityList, TeacherActivity } = await import("../../src/frontend/components/teacher/teacher-activity.tsx");
-const { FollowButton } = await import("../../src/frontend/components/teacher/follow-button.tsx");
+const { PanelHead } = await import("../../src/frontend/components/teacher/panel-head.tsx");
 const { TeacherChats } = await import("../../src/frontend/components/teacher/teacher-chats.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 import type { TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
@@ -287,7 +287,7 @@ describe("the teacher name setting", () => {
 	});
 });
 
-describe("Follow beside the pill", () => {
+describe("Follow in the panel's head", () => {
 	const api = (over: Partial<TeacherApi>): TeacherApi => ({
 		name: "Ada",
 		follow: true,
@@ -308,15 +308,12 @@ describe("Follow beside the pill", () => {
 	const html = (over: Partial<TeacherApi>) =>
 		renderToStaticMarkup(
 			<TeacherContext.Provider value={api(over)}>
-				<FollowButton />
+				<PanelHead title={null} status="Idle" lit={false} working={false} list={{ open: false, onOpen: () => {} }} need={null} back={null} />
 			</TeacherContext.Provider>,
 		);
-	it("says Following while the teacher works, and Follow once stopped", () => {
-		assert.match(html({}), /data-testid="follow-stop"[^>]*>Following</);
-		assert.match(html({ follow: false }), /data-testid="follow-start"[^>]*>Follow</);
-	});
-	it("shows nothing while the teacher is idle", () => {
-		assert.equal(html({ doing: null }), "");
+	it("says Following while it is on, and Follow once stopped, working or not", () => {
+		assert.match(html({}), /data-testid="follow-stop"[^>]*aria-pressed="true"[^>]*>Following</);
+		assert.match(html({ follow: false, doing: null }), /data-testid="follow-start"[^>]*aria-pressed="false"[^>]*>Follow</);
 	});
 });
 

@@ -43,13 +43,10 @@ export function spaceMenuDescription(closed: boolean): string {
 }
 
 /**
- * The buttons beside what the teacher does. Follow shows only while it works.
- * With Follow off, a fresh change on another page offers "Go to" its page;
- * a page the agent opened while the window held offers it with Follow on too.
+ * "Go to Files", the key the pill offers: with Follow off a fresh change
+ * on another page, and with Follow on too a page the agent opened while
+ * the window held. Null with nothing to offer.
  */
-export function followButtons(i: { following: boolean; working: boolean; offer: AgentAction | null; held: boolean }): { go: string | null; follow: "Follow" | "Following" | null } {
-	return {
-		go: i.offer && (i.held || !i.following) ? `Go to ${pageName(i.offer.page)}` : null,
-		follow: i.working ? (i.following ? "Following" : "Follow") : null,
-	};
+export function goLabel(i: { following: boolean; offer: AgentAction | null; held: boolean }): string | null {
+	return i.offer && (i.held || !i.following) ? `Go to ${pageName(i.offer.page)}` : null;
 }

@@ -1,3 +1,5 @@
+import { DEFAULT_TEACHER_NAME } from "@/shared/core";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { firstRunFooter } from "./terminal-model";
 import { TerminalPane } from "./terminal-pane";
 import { useTerminals } from "./use-terminals";
@@ -7,11 +9,12 @@ import { useTerminals } from "./use-terminals";
  *  takes the keyboard only once the learner clicks in it. */
 export function FirstRunScreen() {
 	const api = useTerminals();
+	const name = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const facts = api?.facts.teacher;
 	if (!api || !facts) return null;
 	return (
 		<div data-testid="first-run-screen" className="lh-popup flex h-[460px] w-full flex-col overflow-hidden">
-			<TerminalPane api={api} role="teacher" foot={firstRunFooter(facts, api.folder)} focusOnOpen={false} />
+			<TerminalPane api={api} role="teacher" name={name} foot={firstRunFooter(facts, api.folder)} focusOnOpen={false} />
 		</div>
 	);
 }

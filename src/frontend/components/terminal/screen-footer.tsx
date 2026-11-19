@@ -6,15 +6,17 @@ import type { TerminalFooter } from "./terminal-model";
 
 /**
  * The slim row under a screen: Attach and Paste at the left, the sentence
- * when there is one, then Stop, and the one bright key (the assist key or
+ * when there is one, then Turn off (the agent's whole process), and the one bright key (the assist key or
  * Start again) at the far right. A key shows only while it can act, and
  * fades in and out.
  */
-export function ScreenFooter({ text, onAttach, onPaste, onStop, get, assist, onStartAgain, again = "Start again", onNewChat = null }: {
+export function ScreenFooter({ text, onAttach, onPaste, onStop, off, get, assist, onStartAgain, again = "Start again", onNewChat = null }: {
 	text: string | null;
 	onAttach: ((files: File[]) => void) | null;
 	onPaste: (() => void) | null;
 	onStop: (() => void) | null;
+	/** Stop's words: "Turn off Teacher". */
+	off: string;
 	get: TerminalFooter["get"];
 	assist: { label: string; run: () => void } | null;
 	onStartAgain: (() => void) | null;
@@ -49,7 +51,7 @@ export function ScreenFooter({ text, onAttach, onPaste, onStop, get, assist, onS
 				{text}
 			</p>
 			<ScreenKey testid="terminal-stop" onClick={onStop} quiet>
-				Stop
+				{off}
 			</ScreenKey>
 			<ScreenKey testid="terminal-get" onClick={get && (() => void window.lh?.openLink?.(get.url))}>
 				{get?.label}

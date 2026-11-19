@@ -5,6 +5,7 @@
  */
 import { isWaitingFile, type SpaceFile, type SpaceSummary, type SpaceWork } from "@/shared/core";
 import type { AgentStatus } from "@/frontend/components/agent-status";
+import { backgroundLine } from "@/frontend/components/teacher/follow-status";
 
 /** A finished round shows for a day. */
 const SHOWN_MS = 24 * 60 * 60 * 1000;
@@ -94,29 +95,31 @@ export function tabWorkTag(space: Pick<SpaceSummary, "filesLeft">): string | nul
 	return space.filesLeft > 0 ? `${space.filesLeft} left` : null;
 }
 
-/** Background work, for the pill: what it is, how far it is, and its
- *  short form as a tag. */
+/** Background work, for the pill: what it is and how far it is. */
 export interface WorkProgress {
 	doing: string;
 	count: string | null;
-	tag: string;
 }
 
 /**
- * The background work under way on every page: "Reading files", "6 of 17"
- * while files are read, a request's name when it is the
- * only work, else the number of jobs. `requests`: the deadline and plugin
- * requests' names ("Deadline: Wave Optics Final", "Memes"), not counted in `jobs`. Null when
- * nothing runs or no agent takes the work.
+ * The background work under way on every page, named: "Reading files",
+ * "6 of 17" while files are read, else the run or job in progress
+ * (backgroundLine), else a deadline's or plugin's request by its name
+ * ("Deadline: Wave Optics Final", "Memes"). Null when nothing runs or no
+ * agent takes the work.
  */
-export function workProgress(i: { worker: string | null; spaces: readonly ProgressSpace[]; jobs: number; requests: readonly string[] }): WorkProgress | null {
+export function workProgress(i: {
+	worker: string | null;
+	spaces: readonly ProgressSpace[];
+	extractions: Parameters<typeof backgroundLine>[0];
+	jobs: Parameters<typeof backgroundLine>[1];
+	requests: readonly string[];
+}): WorkProgress | null {
 	if (!i.worker) return null;
 	const { live, read, left } = filesProgress(i.spaces);
-	if (live.length > 0) return { doing: "Reading files", count: `${read} of ${read + left}`, tag: `${read} of ${files(read + left)}` };
-	const [request, ...more] = i.requests;
-	if (i.jobs === 0 && request !== undefined && more.length === 0) return { doing: request, count: null, tag: request };
-	const all = i.jobs + i.requests.length;
-	if (all === 0) return null;
-	const jobs = `${all} job${all === 1 ? "" : "s"}`;
-	return { doing: `Working on ${jobs}`, count: null, tag: jobs };
+	if (live.length > 0) return { doing: "Reading files", count: `${read} of ${read + left}` };
+	const line = backgroundLine(i.extractions, i.jobs);
+	if (line) return { doing: line.text, count: line.count ?? null };
+	const request = i.requests[0];
+	return request === undefined ? null : { doing: request, count: null };
 }
