@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import type { LessonProgress } from "@/shared/core";
 import { cn } from "@/frontend/lib/utils";
-import { keyLabel } from "./lesson-record-model";
 import { lessonHref } from "./overview-model";
 import { OUTCOME_BG } from "./styles";
 import type { LessonActions } from "./use-lesson-actions";
@@ -109,27 +108,16 @@ export function FinishedRow({ lesson: l, day, actions }: { lesson: LessonProgres
 
 /**
  * AN UNFINISHED LESSON (the side column): the title, then its steps as
- * blocks (a homework's: its deadline's problems) and, on the first row
- * only, its key. The link covers the key, so the key lights and sinks with
- * the row.
+ * blocks (a homework's: its deadline's problems).
  */
-export function UnfinishedRow({ lesson: l, blocks, withKey, actions }: { lesson: LessonProgress; blocks: { done: number; total: number } | null; withKey: boolean; actions: LessonActions }) {
-	const blockLabel = blocks && (l.kind === "homework" ? `${blocks.done} of ${blocks.total} problems done` : `Step ${blocks.done} of ${blocks.total}`);
+export function UnfinishedRow({ lesson: l, blocks, actions }: { lesson: LessonProgress; blocks: { done: number; total: number } | null; actions: LessonActions }) {
 	return (
 		<RowShell lesson={l} actions={actions} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-1 gap-y-2 px-3 py-2">
 			<TitleCell lesson={l} actions={actions} className="line-clamp-2" />
 			<MoreButton lesson={l} actions={actions} className="-my-0.5" />
-			{(blocks || withKey) && (
-				<span className="col-span-2 flex items-center justify-between gap-3">
-					{blocks && blockLabel ? <StepBlocks done={blocks.done} total={blocks.total} label={blockLabel} /> : <span />}
-					{withKey && (
-						<span
-							data-testid="lesson-row-key"
-							className="lh-btn shrink-0 group-has-[a:hover]:bg-(--lh-key-hover) group-has-[a:active]:border-t-(length:--lh-lip) group-has-[a:active]:border-b-0"
-						>
-							{keyLabel(l)}
-						</span>
-					)}
+			{blocks && (
+				<span className="col-span-2 flex">
+					<StepBlocks done={blocks.done} total={blocks.total} label={l.kind === "homework" ? `${blocks.done} of ${blocks.total} problems done` : `Step ${blocks.done} of ${blocks.total}`} />
 				</span>
 			)}
 		</RowShell>

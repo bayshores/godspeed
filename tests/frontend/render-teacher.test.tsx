@@ -227,7 +227,7 @@ describe("the teacher's Activity", () => {
 		assert.match(renderToStaticMarkup(<TeacherActivity />), /data-testid="activity-empty"[^>]*>Nothing yet\. What Teacher reads and builds shows here\.</);
 	});
 	it("scrolls inside its parent, with no padding of its own", () => {
-		assert.match(renderToStaticMarkup(list()), /data-testid="activity-list" class="flex min-h-0 flex-1 flex-col gap-3\.5 overflow-y-auto"/);
+		assert.match(renderToStaticMarkup(list()), /data-testid="activity-list" class="flex min-h-0 flex-1 flex-col gap-7 overflow-y-auto"/);
 	});
 	it("holds no now box and no Follow: those sit beside the teacher's name", () => {
 		const html = renderToStaticMarkup(list());
@@ -267,11 +267,20 @@ describe("the teacher's Activity", () => {
 		assert.match(rows[0]!.querySelector("[data-testid='activity-recent-time']")?.textContent ?? "", /^(Oct 2[89]|\d+ (min|hours?|days)|yesterday)$/);
 		assert.ok(el.querySelector("[data-testid='activity-recent'] button, [data-testid='activity-recent'] svg") === null);
 	});
-	it("Recent lists every row the server sent, scrolling inside the list", () => {
-		const many = Array.from({ length: 12 }, (_, i) => ({ ...ACTIONS[0]!, id: `a${i}` }));
+	it("Recent lists every change the server sent, scrolling inside the list", () => {
+		const many = Array.from({ length: 12 }, (_, i) => ({ ...ACTIONS[0]!, id: `a${i}`, label: `Adding Lab ${i}` }));
 		const el = mount(list({ recent: many }));
 		assert.equal(el.querySelectorAll("[data-testid='activity-recent-row']").length, 12);
 		assert.match(el.querySelector("[data-testid='activity-list']")?.className ?? "", /overflow-y-auto/);
+	});
+	it("changes that read the same, one after another, are one row with a count and the newest time; no line divides the rows", () => {
+		const same = Array.from({ length: 4 }, (_, i) => ({ ...ACTIONS[0]!, id: `a${i}`, at: new Date(Date.now() - (i + 1) * 3_600_000).toISOString() }));
+		const el = mount(list({ recent: [...same, ACTIONS[1]!, same[0]!] }));
+		const rows = [...el.querySelectorAll("[data-testid='activity-recent-row']")];
+		assert.equal(rows.length, 3, "a run of four, another change, then the first again");
+		assert.match(rows[0]!.textContent ?? "", /^Added Lab 44 timesCSE 291 hour$/);
+		assert.doesNotMatch(rows[2]!.textContent ?? "", /times/);
+		assert.doesNotMatch(el.innerHTML, /border-/);
 	});
 	it("Running in the background sits above Recent, with failed jobs and the waiting line", () => {
 		const failed = [{ id: "j1", kind: "pdf" as const, chatId: "c1", title: "06_Counting.pdf", error: "The PDF could not be read", at: "2026-10-28T16:00:00Z" }];

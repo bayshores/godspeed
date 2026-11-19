@@ -120,4 +120,15 @@ describe("the constellation layout", () => {
 				}
 			}
 	});
+
+	it("facts with no topic yet stand in the middle of the room, a little above its center", () => {
+		const sp = looseOnly();
+		const s = layoutSky(sp.topics, sp.links, sp.facts, 1440, measure, 800);
+		const [k] = s.clusters;
+		assert.ok(Math.abs(k!.cx - 720) <= 1, `centred across: ${k!.cx}`);
+		assert.ok(k!.cy > 250 && k!.cy < 400, `above the center: ${k!.cy}`);
+		assert.ok(s.height <= 800, "it still fits the room");
+		const withTopic = one();
+		assert.ok(layoutSky(withTopic.topics, withTopic.links, withTopic.facts, 1440, measure, 800).clusters[0]!.cx < 200, "a topic keeps its place at the left");
+	});
 });

@@ -240,7 +240,7 @@ export function Constellation({
 	const measure = useMemo(() => measurer(NAME_PX), [fontsIn]);
 	const measureTag = useMemo(() => measurer(TAG_PX), [fontsIn]);
 	const { sky, scale, router, rest, nn } = useMemo(() => {
-		const { sky, scale } = fitPicture((w) => layoutSky(topics, links, facts, w, measure), { width, height });
+		const { sky, scale } = fitPicture((w) => layoutSky(topics, links, facts, w, measure, width > 0 ? (height * w) / width : 0), { width, height });
 		const router = makeRouter(sky);
 		return {
 			sky,
@@ -628,6 +628,12 @@ export function Constellation({
 					</button>
 				);
 			})}
+			{/* Facts with no topic yet stand alone: one line says why. */}
+			{!zoomed && sky.clusters.length === 1 && sky.clusters[0]!.muted && (
+				<p data-testid="graph-no-topics" className="pointer-events-none absolute text-center text-[15px] text-ink-2" style={{ left: 0, width: shownW, top: namePlace(sky.clusters[0]!, true).top + namePlace(sky.clusters[0]!, true).h + 26 }}>
+					No topics yet. They show once these facts are grouped.
+				</p>
+			)}
 			{/* The score inks in near the name: no box over the picture. */}
 			{hovered && topicTip && (
 				<span

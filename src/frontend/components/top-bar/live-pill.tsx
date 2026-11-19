@@ -92,12 +92,12 @@ export function LivePill({ own = false }: { own?: boolean }) {
 							aria-controls={own && !on && !thing?.needs ? NOTICE_STACK_ID : undefined}
 							title={spoken}
 							onClick={(e) => pill.click(e.currentTarget, own)}
-							className={cn(BAR_TAB, "h-full gap-2.5", !bright && "hover:bg-bar-ink/10")}
+							className={cn(BAR_TAB, "h-full gap-2.5", waiting > 0 && "pr-2.5", !bright && "hover:bg-bar-ink/10")}
 						>
 							{words}
 						</button>
 					) : (
-						<span data-testid="live-pill" title={spoken} className="flex h-full items-center gap-2.5 px-4 text-[15px] whitespace-nowrap">
+						<span data-testid="live-pill" title={spoken} className={cn("flex h-full items-center gap-2.5 px-4 text-[15px] whitespace-nowrap", waiting > 0 && "pr-2.5")}>
 							{words}
 						</span>
 					))}
@@ -110,7 +110,7 @@ export function LivePill({ own = false }: { own?: boolean }) {
 						aria-expanded={pill.notices}
 						aria-controls={NOTICE_STACK_ID}
 						onClick={(e) => pill.showNotices(e.currentTarget)}
-						className="lh-press -ml-1.5 flex shrink-0 items-center self-stretch pr-3"
+						className="lh-press flex shrink-0 items-center self-stretch pr-3"
 					>
 						<span className={cn("font-count flex h-5 min-w-5 items-center justify-center px-1 text-[13px] leading-none", bright ? "bg-ink/15" : "bg-bar-ink/20")}>{waiting}</span>
 					</button>

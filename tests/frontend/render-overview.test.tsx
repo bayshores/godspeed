@@ -219,7 +219,7 @@ describe("Progress, top to bottom", () => {
 	it("no space but an unfinished lesson: the side column holds only it", () => {
 		const loose = { ...lesson("u9", "Loose start", ""), unfinished: true as const };
 		const html = render({ hasSpace: false, data: { ...PAYLOAD, lessons: [loose] } });
-		assert.match(text(section(html, "progress-side", "</section>")), /Unfinished Loose start More Continue/);
+		assert.match(text(section(html, "progress-side", "</section>")), /Unfinished Continue Loose start More/);
 		for (const id of ["next-deadline", "space-path", "most-needed"]) assert.ok(!html.includes(id));
 	});
 
@@ -364,24 +364,24 @@ describe("Lessons", () => {
 
 	it("the unfinished ones in the side column, the finished ones in Lessons, never both, each newest first", () => {
 		const page = html();
-		assert.match(text(section(page, "unfinished-lessons")), /> Unfinished Induction proofs More Continue Work on Homework 4 More $/);
+		assert.match(text(section(page, "unfinished-lessons")), /> Unfinished Continue Induction proofs More Work on Homework 4 More $/);
 		assert.match(text(section(page, "lesson-record")), new RegExp(`> Lessons Study something new ${studyKeyRe} Yesterday Big-O basics More Recursion More Oct 20 Just looked More $`));
 	});
 
-	it("an unfinished row opens its lesson and shows its steps as blocks, a homework its deadline's problems; only the first carries the key", () => {
+	it("an unfinished row opens its lesson and shows its steps as blocks, a homework its deadline's problems; the card's key opens the first", () => {
 		const rows = rowsOf(html(), "unfinished-lessons");
 		assert.equal(rows.length, 2);
 		assert.match(tag(rows[0]!, "lesson-row"), /href="\/chat\/u1"/);
 		assert.match(tag(rows[0]!, "lesson-row"), /data-teacher-target="lesson:u1"/);
 		assert.match(tag(rows[0]!, "step-blocks"), /aria-label="Step 3 of 5"/);
-		assert.match(section(rows[0]!, "lesson-row-key", "</span>"), />Continue(<|$)/);
+		assert.match(tag(html(), "unfinished-key"), /href="\/chat\/u1"/);
+		assert.match(section(html(), "unfinished-key", "</a>"), />Continue(<|$)/);
 		assert.match(tag(rows[1]!, "step-blocks"), /aria-label="2 of 7 problems done"/);
-		assert.ok(!rows[1]!.includes("lesson-row-key"), "one key in the list");
 	});
 
 	it("the key says Work on it when the first unfinished lesson is homework", () => {
 		const only = render({ data: { ...PAYLOAD, lessons: LESSONS.filter((l) => l.chatId !== "u1") } });
-		assert.match(section(only, "lesson-row-key", "</span>"), />Work on it(<|$)/);
+		assert.match(section(only, "unfinished-key", "</a>"), />Work on it(<|$)/);
 	});
 
 	it("a finished row: the day once where it changes, a square per answer in order, the title; no squares with no answers", () => {

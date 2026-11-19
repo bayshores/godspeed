@@ -16,7 +16,7 @@ export function FromEarlierCard({ data }: { data: FromEarlierData }) {
 	return (
 		<div data-testid="from-earlier-card" className={cn(CARD, "flex flex-col gap-2.5 text-card-foreground")}>
 			<p className="font-count text-[15px] text-ink-2">From earlier</p>
-			<div className="flex flex-col divide-y divide-border">
+			<div className="flex flex-col gap-1.5">
 				{data.rows.map((details) => (
 					<Row key={`${details.of.chatId}:${details.of.toolCallId}:${details.answer.answeredAt}`} details={details} />
 				))}

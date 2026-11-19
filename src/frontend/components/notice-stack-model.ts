@@ -27,8 +27,6 @@ interface NoticeView {
 	presenting: Notice | null;
 	/** How many are folded, for the pill's count; it stays while the card shows them. */
 	waiting: number;
-	/** When the last notice showing by itself folds (ms); null once the folded ones were asked for, or when none folds. */
-	foldsAt: number | null;
 }
 
 /**
@@ -49,11 +47,9 @@ export function noticeView(notices: readonly Notice[], now: number, open: boolea
 	});
 	const fresh = covered ? [] : taking.filter((n) => n.foldAt > now);
 	const shown = (open ? taking : fresh).slice(0, MAX_SHOWN);
-	const folds = open ? [] : shown.map((n) => n.foldAt).filter(Number.isFinite);
 	return {
 		shown: shown.map((n) => n.id),
 		presenting: fresh[0] ?? null,
 		waiting: taking.length - fresh.length,
-		foldsAt: folds.length > 0 ? Math.max(...folds) : null,
 	};
 }

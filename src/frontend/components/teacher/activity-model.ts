@@ -112,6 +112,27 @@ export function blobLabel(blob: Pick<ActivityBlob, "process" | "jobKind">, teach
 	return (blob.jobKind && JOB_LABEL[blob.jobKind]) || "Job";
 }
 
+interface RecentRow {
+	id: string;
+	label: string;
+	/** The space's name, when the row says it. */
+	space: string | null;
+	at: string;
+	/** How many changes in a row it stands for. */
+	times: number;
+}
+
+/** Recent's rows, newest first: changes that read the same, one after another, are one row with a count and the newest one's time. */
+export function recentRows(changes: readonly Omit<RecentRow, "times">[]): RecentRow[] {
+	const rows: RecentRow[] = [];
+	for (const c of changes) {
+		const last = rows.at(-1);
+		if (last && last.label === c.label && last.space === c.space) last.times++;
+		else rows.push({ ...c, times: 1 });
+	}
+	return rows;
+}
+
 /** How long ago a Recent change was: "now", "2 min", "1 hour", "yesterday",
  *  "3 days", then its date ("Nov 5"). */
 export function agoLabel(iso: string, now: number): string {

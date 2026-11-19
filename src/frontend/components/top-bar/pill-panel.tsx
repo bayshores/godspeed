@@ -2,7 +2,6 @@ import { useLayoutEffect, useRef, useState, type FocusEvent, type ReactNode } fr
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router";
 import { keyboardFocus } from "@/frontend/components/focus-hygiene";
-import { PRESENT_MS } from "@/frontend/components/notice-stack-model";
 import { holdNotices, useNotices } from "@/frontend/components/notice-store";
 import { usePresence } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
@@ -32,10 +31,10 @@ function visiblePill(): Element | null {
  * quiet space, a deadline that didn't save). It is open while a notice
  * shows by itself or the folded ones were asked for; time stands still
  * while the pointer or keyboard focus is on the panel (a clicked key keeps
- * focus but holds nothing), and a bar along its foot drains with the time left.
+ * focus but holds nothing).
  */
 export function PillPanel({ children }: { children: ReactNode }) {
-	const { up, drain } = useNotices();
+	const { up } = useNotices();
 	const held = useRef({ pointer: false, focus: false });
 	const hold = (part: "pointer" | "focus", on: boolean) => {
 		held.current[part] = on;
@@ -97,22 +96,7 @@ export function PillPanel({ children }: { children: ReactNode }) {
 				<div id={NOTICE_STACK_ID} tabIndex={-1} className="lh-notices flex flex-col outline-none">
 					{children}
 				</div>
-				{drain && <NoticeDrain left={drain.left} held={drain.held} />}
 			</div>
-		</div>
-	);
-}
-
-/** The time left before the notices fold, along the panel's foot; it stops while held. */
-function NoticeDrain({ left, held }: { left: number; held: boolean }) {
-	return (
-		<div aria-hidden data-testid="notice-drain" className="lh-drain sticky bottom-0 h-1 shrink-0">
-			<div
-				key={left}
-				data-held={held ? "" : undefined}
-				className="h-full origin-left bg-edge"
-				style={{ transform: `scaleX(${Math.min(1, left / PRESENT_MS)})`, "--lh-drain-ms": `${left}ms` } as React.CSSProperties}
-			/>
 		</div>
 	);
 }

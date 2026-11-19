@@ -4,8 +4,8 @@
  * until one closes, and a waiting notice's time starts once it shows. A
  * notice folds into the pill after a while and comes back when the pill's
  * card opens; the pill says the title of the one that just came. Time
- * stands still while the pointer or keyboard focus is on the panel, and a
- * bar along its foot drains with the time left. Mounted over linkedom.
+ * stands still while the pointer or keyboard focus is on the panel.
+ * Mounted over linkedom.
  */
 import React, { act, useEffect, useState } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -259,24 +259,13 @@ describe("With a pill on screen", () => {
 });
 
 describe("Time stands still while the panel is held", () => {
-	let drain: { left: number; held: boolean } | null = null;
-	function Drain() {
-		drain = useNotices().drain;
-		return null;
-	}
-	const bar = () => document.querySelector('[data-testid="notice-drain"]');
 	const fire = (target: Element, type: string) => act(async () => void target.dispatchEvent(new dom.window.Event(type, { bubbles: true })));
-	const withOneNotice = async () => {
-		drain = null;
-		await mount(
-			<>
-				<PillPanel>
-					<Notices ids={["a"]} />
-				</PillPanel>
-				<Drain />
-			</>,
+	const withOneNotice = () =>
+		mount(
+			<PillPanel>
+				<Notices ids={["a"]} />
+			</PillPanel>,
 		);
-	};
 	const timers = async (run: () => Promise<void>) => {
 		mock.timers.enable({ apis: ["setTimeout", "Date"] });
 		try {
@@ -286,19 +275,14 @@ describe("Time stands still while the panel is held", () => {
 		}
 	};
 
-	it("a held notice stays past a minute, the bar stops, and it folds 6 seconds after the release", () =>
+	it("a held notice stays past a minute, and folds 6 seconds after the release", () =>
 		timers(async () => {
 			await withOneNotice();
-			assert.deepEqual(drain, { left: PRESENT_MS, held: false });
 			await act(async () => mock.timers.tick(6_000));
 			await fire(panel(), "pointerover");
-			assert.deepEqual(drain, { left: 6_000, held: true });
-			assert.ok(bar()!.firstElementChild!.hasAttribute("data-held"));
 			await act(async () => mock.timers.tick(60_000));
 			assert.deepEqual(shownIds(), ["a"]);
-			assert.deepEqual(drain, { left: 6_000, held: true });
 			await fire(panel(), "pointerout");
-			assert.deepEqual(drain, { left: 6_000, held: false });
 			await act(async () => mock.timers.tick(5_900));
 			assert.deepEqual(shownIds(), ["a"]);
 			await act(async () => mock.timers.tick(200));
@@ -312,38 +296,34 @@ describe("Time stands still while the panel is held", () => {
 			await fire(panel(), "pointerover");
 			await act(async () => mock.timers.tick(5_000));
 			await fire(panel(), "pointerout");
-			assert.deepEqual(drain, { left: 3_000, held: false });
-			await act(async () => mock.timers.tick(3_100));
-			assert.deepEqual(shownIds(), []);
-		}));
-
-	it("the bar is not drawn once the folded notices were opened from the count", () =>
-		timers(async () => {
-			await withOneNotice();
-			assert.ok(bar());
-			await act(async () => mock.timers.tick(13_000));
-			await act(async () => setNoticesOpen(true));
+			await act(async () => mock.timers.tick(2_900));
 			assert.deepEqual(shownIds(), ["a"]);
-			assert.equal(drain, null);
-			assert.equal(bar(), null);
+			await act(async () => mock.timers.tick(200));
+			assert.deepEqual(shownIds(), []);
 		}));
 
 	it("a clicked key keeps focus but holds nothing; keyboard focus holds until it leaves", () =>
 		timers(async () => {
 			await withOneNotice();
+			const clicked = document.querySelector('[data-testid="close-a"]')!;
+			await fire(clicked, "pointerdown");
+			await fire(clicked, "focusin");
+			await act(async () => mock.timers.tick(PRESENT_MS + 100));
+			assert.deepEqual(shownIds(), [], "a click held nothing");
+
+			await withOneNotice();
 			const key = document.querySelector('[data-testid="close-a"]')!;
-			await fire(key, "pointerdown");
-			await fire(key, "focusin");
-			assert.equal(drain!.held, false);
 			document.documentElement.setAttribute("data-tab-focus", "");
-			await fire(key, "focusin");
-			assert.equal(drain!.held, true);
-			await fire(key, "focusout");
-			assert.equal(drain!.held, false, "focus left the panel");
-			await fire(key, "focusin");
-			assert.equal(drain!.held, true);
-			await fire(key, "pointerdown");
-			assert.equal(drain!.held, false, "a click ends the keyboard hold");
+			try {
+				await fire(key, "focusin");
+				await act(async () => mock.timers.tick(60_000));
+				assert.deepEqual(shownIds(), ["a"], "keyboard focus holds");
+				await fire(key, "focusout");
+				await act(async () => mock.timers.tick(PRESENT_MS + 100));
+				assert.deepEqual(shownIds(), [], "focus left the panel");
+			} finally {
+				document.documentElement.removeAttribute("data-tab-focus");
+			}
 		}));
 });
 

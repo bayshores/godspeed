@@ -66,7 +66,7 @@ export function ClosedSpacesMenu({ lit, onAdd, onDelete }: { lit: boolean; onAdd
 					</button>
 					{closed.length > 0 && (
 						<div role="group" aria-labelledby="closed-spaces-word" className="flex flex-col">
-							<div aria-hidden className="mx-3 my-1.5 border-t border-dotted border-edge" />
+							<div aria-hidden className="h-2.5" />
 							<span id="closed-spaces-word" className="px-3 pt-1 pb-1 text-[15px] text-ink-2">
 								Closed
 							</span>
@@ -125,7 +125,7 @@ function LessonsWithNoSpace({ onPick }: { onPick: () => void }) {
 	if (!hasLessonsWithNoSpace(useLessonList().chats)) return null;
 	return (
 		<>
-			<div aria-hidden className="mx-3 my-1.5 border-t border-dotted border-edge" />
+			<div aria-hidden className="h-2.5" />
 			<button
 				role="menuitem"
 				type="button"

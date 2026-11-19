@@ -7,6 +7,7 @@ import { useNow } from "@/frontend/components/use-now";
 import { formatTokens, planCostLabel } from "@/frontend/components/usage-format";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { jsonInit, send } from "@/frontend/lib/api";
+import { ACTIVITY_ROW, ACTIVITY_ROWS } from "./activity-look";
 import { blobLabel, formatElapsed, toBlobs, type ActivityBlob } from "./activity-model";
 import { useTeacher } from "./teacher-context";
 
@@ -25,8 +26,6 @@ type AbortState = "pending" | "failed";
 /** One run of a row: a later run of the same source reuses the row id, so
  *  the state keys on its start too and never carries over. */
 const runKey = (blob: ActivityBlob) => `${blob.id}@${blob.startedAt}`;
-
-const ROW = "border-b border-dotted border-edge last:border-b-0";
 
 export function BackgroundJobs({ feed, waiting }: { feed: ActivityFeed; waiting: string | null }) {
 	const { refresh } = useActivity();
@@ -65,7 +64,7 @@ export function BackgroundJobs({ feed, waiting }: { feed: ActivityFeed; waiting:
 	const failed = feed.failed ?? [];
 	if (!waiting && failed.length === 0 && blobs.length === 0) return null;
 	return (
-		<section data-testid="activity-section" className="flex flex-col gap-3.5">
+		<section data-testid="activity-section" className="flex flex-col gap-3">
 			<div className="flex items-baseline gap-2">
 				<h3 className="min-w-0 flex-1 text-[17px] font-normal text-ink">Running in the background</h3>
 				{blobs.length > 0 && (
@@ -80,9 +79,9 @@ export function BackgroundJobs({ feed, waiting }: { feed: ActivityFeed; waiting:
 				</p>
 			)}
 			{(failed.length > 0 || blobs.length > 0) && (
-				<div className="flex flex-col border-y-[1.5px] border-ink">
+				<div className={ACTIVITY_ROWS}>
 					{failed.map((f) => (
-						<div key={f.id} data-testid="activity-failed" className={`flex flex-col gap-0.5 py-2.5 ${ROW}`}>
+						<div key={f.id} data-testid="activity-failed" className={`flex flex-col gap-0.5 py-2.5 ${ACTIVITY_ROW}`}>
 							<span className="truncate text-lg text-ink" title={f.title}>
 								{f.title}
 							</span>
@@ -129,7 +128,7 @@ function JobRow({
 	const doing = blob.activity || blob.phase;
 	return (
 		// A new job rises in once (keyed by id, so the clock's re-render never replays it).
-		<div data-testid={`activity-blob-${blob.process}`} className={`lh-rise flex flex-col ${ROW}`}>
+		<div data-testid={`activity-blob-${blob.process}`} className={`lh-rise flex flex-col ${ACTIVITY_ROW}`}>
 			<div className="flex items-center gap-3 py-2.5">
 				<button type="button" onClick={onToggleDetail} aria-expanded={detailOpen} className="lh-press flex min-w-0 flex-1 flex-col gap-0.5 text-left">
 					<span className="w-full truncate text-lg text-ink" title={blob.title}>
@@ -156,7 +155,7 @@ function JobRow({
 			{detail.mounted && (
 				<div className="lh-collapse" data-state={detail.state}>
 					<div>
-						<div data-testid="activity-blob-detail" className="mb-2.5 flex flex-col gap-1 bg-tone px-3 py-2.5 text-base text-ink-2">
+						<div data-testid="activity-blob-detail" className="flex flex-col gap-1 pb-3 text-base text-ink-2">
 							{doing && (
 								<p className="break-words text-ink" title={doing}>
 									{doing}

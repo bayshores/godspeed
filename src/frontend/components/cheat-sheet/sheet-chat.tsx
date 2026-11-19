@@ -204,7 +204,7 @@ function AgentBody({ message, current, onShowVersion }: { message: Extract<Sheet
 }
 
 /** The sheet's rules above the chat, what every change keeps to: a
- *  toggle, the rules as chips, then a dotted rule. Every one was saved by
+ *  toggle, then the rules as chips. Every one was saved by
  *  the agent (the learner removes them, never adds). */
 function SheetRules({ rules, agentName, onRemove }: { rules: readonly SheetRule[]; agentName: string; onRemove: (rule: string) => void }) {
 	const [open, setOpen] = useState(true);
@@ -230,7 +230,6 @@ function SheetRules({ rules, agentName, onRemove }: { rules: readonly SheetRule[
 					))}
 				</ul>
 			)}
-			<span aria-hidden className="h-0 w-full border-t-2 border-dotted border-edge" />
 		</div>
 	);
 }

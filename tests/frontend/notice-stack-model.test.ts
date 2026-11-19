@@ -31,35 +31,23 @@ describe("noticeView", () => {
 
 	it("after its time a notice folds into the pill, which counts it", () => {
 		const notices = [notice("a", null, 100), notice("b", null, 200)];
-		assert.deepEqual(noticeView(notices, 150, false, false), { shown: ["b"], presenting: notices[1], waiting: 1, foldsAt: 200 });
-		assert.deepEqual(noticeView(notices, 250, false, false), { shown: [], presenting: null, waiting: 2, foldsAt: null });
+		assert.deepEqual(noticeView(notices, 150, false, false), { shown: ["b"], presenting: notices[1], waiting: 1 });
+		assert.deepEqual(noticeView(notices, 250, false, false), { shown: [], presenting: null, waiting: 2 });
 	});
 
 	it("under the teacher's open panel none shows by itself: all wait folded, a never-timed one too", () => {
 		const notices = [notice("a", null, 100), notice("b", "quiet", Infinity)];
-		assert.deepEqual(noticeView(notices, 50, false, true), { shown: [], presenting: null, waiting: 2, foldsAt: null });
+		assert.deepEqual(noticeView(notices, 50, false, true), { shown: [], presenting: null, waiting: 2 });
 		assert.deepEqual(noticeView(notices, 50, true, true).shown, ["a", "b"], "the count still opens them");
 		assert.deepEqual(noticeView(notices, 150, false, false).shown, ["b"], "the panel closed: the never-timed one shows again");
 	});
 
 	it("the open card shows the folded ones too, and the pill still counts them", () => {
 		const notices = [notice("a", null, 100), notice("b", null, 200)];
-		assert.deepEqual(noticeView(notices, 250, true, false), { shown: ["a", "b"], presenting: null, waiting: 2, foldsAt: null });
+		assert.deepEqual(noticeView(notices, 250, true, false), { shown: ["a", "b"], presenting: null, waiting: 2 });
 	});
 
 	it("one that closes by itself never folds", () => {
 		assert.deepEqual(noticeView([notice("a", null, Infinity)], 1e15, false, false).shown, ["a"]);
-	});
-
-	it("the bar runs to the last notice showing by itself, never to one that waits its turn or is folded", () => {
-		assert.equal(noticeView([notice("a", null, 100), notice("b", null, 300)], 0, false, false).foldsAt, 300);
-		assert.equal(noticeView([notice("a", null, 100), notice("b", null, 300), notice("c", null, 200), notice("d", null, 900)], 0, false, false).foldsAt, 300, "a 4th waits hidden");
-		assert.equal(noticeView([notice("a", null, 100), notice("b", null, 300)], 150, false, false).foldsAt, 300, "a folded one is not counted");
-	});
-
-	it("there is no bar once the folded ones were asked for, or when only timed notices show", () => {
-		assert.equal(noticeView([notice("a", null, 100)], 0, true, false).foldsAt, null);
-		assert.equal(noticeView([notice("a", null, Infinity)], 0, false, false).foldsAt, null);
-		assert.equal(noticeView([notice("a", null, Infinity), notice("b", null, 100)], 0, false, false).foldsAt, 100);
 	});
 });

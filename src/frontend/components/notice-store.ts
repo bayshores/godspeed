@@ -24,8 +24,6 @@ interface NoticeState {
 	said: { id: string; title: string; bare: boolean } | null;
 	/** The panel has something to show. */
 	up: boolean;
-	/** Time left before the last notice showing by itself folds, and whether the hold has stopped it; null when none folds. */
-	drain: { left: number; held: boolean } | null;
 }
 
 const EMPTY: NoticeState = {
@@ -35,7 +33,6 @@ const EMPTY: NoticeState = {
 	open: false,
 	said: null,
 	up: false,
-	drain: null,
 };
 
 let notices: Notice[] = [];
@@ -64,7 +61,6 @@ function update() {
 		open,
 		said,
 		up,
-		drain: view.foldsAt === null ? null : { left: view.foldsAt - now, held: heldSince !== null },
 	};
 	if (timer !== null) clearTimeout(timer);
 	timer = null;

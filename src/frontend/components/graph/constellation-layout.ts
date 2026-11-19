@@ -173,7 +173,8 @@ function parents(links: readonly TopicLink[], level: ReadonlyMap<string, number>
 	return new Map([...best].map(([to, l]) => [to, l.from]));
 }
 
-export function layoutSky(topics: readonly TopicProgress[], links: readonly TopicLink[], facts: readonly FactProgress[], width: number, measure: Measure): Sky {
+/** `room`: the height the picture has at this width, so facts with no topic yet can stand in its middle. */
+export function layoutSky(topics: readonly TopicProgress[], links: readonly TopicLink[], facts: readonly FactProgress[], width: number, measure: Measure, room = 0): Sky {
 	const factById = new Map(facts.map((f) => [f.id, f]));
 	const total = topics.reduce((n, t) => n + t.members.length, 0);
 	const s = starSize(total, width);
@@ -238,6 +239,16 @@ export function layoutSky(topics: readonly TopicProgress[], links: readonly Topi
 		// The grid starts flush with the left edge, under the page's head.
 		const left = Math.min(...boxes.map((b) => b.cx - b.w / 2));
 		for (const b of boxes) b.cx -= left;
+		// No topic yet: the ungrouped facts stand in the middle of the room, a little above its center.
+		if (grouped.length === 0 && boxes.length > 0) {
+			const right = Math.max(...boxes.map((b) => b.cx + b.w / 2));
+			const down = Math.max(0, Math.round((room - height) * 0.42));
+			for (const b of boxes) {
+				b.cx += Math.max(0, (width - right) / 2);
+				b.top += down;
+			}
+			height += down;
+		}
 	} else {
 		// Levels left to right; the order inside a level follows the levels around it (barycentre sweeps).
 		const byLevel: TopicProgress[][] = Array.from({ length: levels }, () => []);
