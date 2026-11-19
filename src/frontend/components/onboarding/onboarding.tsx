@@ -17,7 +17,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useBoot } from "@/frontend/components/boot";
-import { notifySettingsSaved } from "@/frontend/components/settings-signal";
+import { useSettings } from "@/frontend/components/settings-context";
 import { showFocusRingAfterTab } from "@/frontend/components/focus-hygiene";
 import { cn } from "@/frontend/lib/utils";
 import { AgentStep } from "./agent-step";
@@ -31,6 +31,7 @@ type Step = "intro" | "agent" | "space" | "done";
 export function Onboarding() {
 	const navigate = useNavigate();
 	const { refresh } = useBoot();
+	const { patchGeneral } = useSettings();
 	const [step, setStep] = useState<Step>("intro");
 	// Return during the intro jumps its animation to the end (.ob-skip).
 	const [introSkipped, setIntroSkipped] = useState(false);
@@ -47,31 +48,16 @@ export function Onboarding() {
 	const finish = useCallback(async () => {
 		setSaveFailed(false);
 		setLeaving(true);
-		let saved = false;
-		try {
-			const read = await fetch("/api/settings", { cache: "no-store" });
-			if (!read.ok) throw new Error(String(read.status));
-			const current = (await read.json()) as { settings?: { general?: Record<string, unknown> } | null };
-			const general = { ...(current.settings?.general ?? {}), onboarded: true, ...(spaceId ? { activeSpace: spaceId } : {}) };
-			const res = await fetch("/api/settings/general", {
-				method: "PUT",
-				headers: { "content-type": "application/json" },
-				body: JSON.stringify(general),
-			});
-			saved = res.ok;
-		} catch {
-			/* saved stays false */
-		}
-		if (!saved) {
+		const failed = await patchGeneral({ onboarded: true, ...(spaceId ? { activeSpace: spaceId } : {}) });
+		if (failed !== null) {
 			setLeaving(false);
 			setSaveFailed(true);
 			return;
 		}
-		notifySettingsSaved("general");
 		await new Promise((r) => setTimeout(r, 600));
 		navigate("/", { replace: true });
 		void refresh();
-	}, [spaceId, navigate, refresh]);
+	}, [spaceId, navigate, refresh, patchGeneral]);
 
 	const sky: ConstellationMode = step === "intro" ? "intro" : leaving ? "gone" : step === "done" ? "bright" : "backdrop";
 

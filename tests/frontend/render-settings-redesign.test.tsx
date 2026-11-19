@@ -38,9 +38,16 @@ const { WebSearch } = await import("../../src/frontend/components/settings/web-s
 const { RememberedNotes } = await import("../../src/frontend/components/settings/remembered-notes.tsx");
 const { maskToken } = await import("../../src/frontend/components/mcp-access.ts");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
+const { SettingsProvider } = await import("../../src/frontend/components/settings-context.tsx");
 const { AgentStatusProvider } = await import("../../src/frontend/components/agent-status.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+/** The page with the window's settings it reads. */
+const Settings = ({ section }: { section: string }) => (
+	<SettingsProvider boot={{ sounds: true, startupSound: true }}>
+		<SettingsPage section={section} />
+	</SettingsProvider>
+);
 /** The section with the live agent status it reads. */
 const Connection = () => (
 	<AgentStatusProvider>
@@ -102,7 +109,7 @@ describe("settings restyle", () => {
 
 	it("General holds the update rows, and no Lessons and graph group (the graph switch is in Teaching)", async () => {
 		globalThis.fetch = (async () => Response.json({ settings: { version: 1 } })) as typeof fetch;
-		await mount(<SettingsPage section="general" />);
+		await mount(<Settings section="general" />);
 		assert.equal(q("settings-nav-general")!.getAttribute("aria-current"), "true");
 		assert.ok(q("row-version"));
 		assert.ok(q("group-lessons") === null);
@@ -110,12 +117,12 @@ describe("settings restyle", () => {
 	});
 
 	it("Escape in the teacher name field drops the edit without saving it", async () => {
-		const puts: string[] = [];
+		const saves: string[] = [];
 		globalThis.fetch = (async (url: string, init?: RequestInit) => {
-			if (init?.method === "PUT") puts.push(String(url));
+			if (init?.method) saves.push(String(url));
 			return Response.json({ settings: { version: 1 } });
 		}) as typeof fetch;
-		await mount(<SettingsPage section="general" />);
+		await mount(<Settings section="general" />);
 		const input = q("teacher-name") as HTMLInputElement;
 		await act(async () => {
 			Object.defineProperty(input, "value", { configurable: true, writable: true, value: "Ada" });
@@ -125,7 +132,7 @@ describe("settings restyle", () => {
 		Object.defineProperty(escape, "key", { value: "Escape" });
 		await act(async () => input.dispatchEvent(escape));
 		assert.equal(escape.defaultPrevented, true, "the field claims its Escape");
-		assert.deepEqual(puts, [], "the dropped edit is not saved");
+		assert.deepEqual(saves, [], "the dropped edit is not saved");
 	});
 
 	it("Connection: the teacher and the helper, the folder and the token masked (web search is in Teaching)", async () => {

@@ -196,7 +196,7 @@ describe("the top bar's tabs", () => {
 		assert.equal(q("space-option-c21")!.getAttribute("href"), "/space");
 		await click(q("space-option-c21")!);
 		await act(async () => {});
-		assert.ok(requests.some((r) => r.startsWith("PUT /api/settings/general") && r.includes('"activeSpace":"c21"')), "the switch is saved");
+		assert.ok(requests.some((r) => r.startsWith("PATCH /api/settings/general") && r.includes('"activeSpace":"c21"')), "the switch is saved");
 	});
 });
 
@@ -356,7 +356,7 @@ describe("a tab's right-click menu", () => {
 		assert.ok(requests.includes('PUT /api/spaces/c21 {"closed":true}'));
 		assert.equal(q("space-menu")?.getAttribute("data-state") ?? "closed", "closed");
 		assert.deepEqual(pushed, [], "another space's page stays");
-		assert.ok(!requests.some((r) => r.startsWith("PUT /api/settings/general")), "the window stays on its space");
+		assert.ok(!requests.some((r) => r.startsWith("PATCH /api/settings/general")), "the window stays on its space");
 	});
 	it("after Close, focus goes to the tab that is lit", async () => {
 		const spaces = [...SPACES];
@@ -378,7 +378,7 @@ describe("a tab's right-click menu", () => {
 		await settle();
 		assert.ok(requests.includes('PUT /api/spaces/c29 {"closed":true}'));
 		assert.deepEqual(pushed, ["/"]);
-		assert.ok(requests.some((r) => r.startsWith("PUT /api/settings/general") && r.includes('"activeSpace":"none"')));
+		assert.ok(requests.some((r) => r.startsWith("PATCH /api/settings/general") && r.includes('"activeSpace":"none"')));
 	});
 	it("a refused Close says why in the menu and changes nothing", async () => {
 		refused = "PUT /api/spaces/c29";
@@ -390,7 +390,7 @@ describe("a tab's right-click menu", () => {
 		assert.equal(q("space-menu-error")!.getAttribute("role"), "alert");
 		assert.equal(q("space-menu")!.getAttribute("data-state"), "open", "the menu stays to show it");
 		assert.deepEqual(pushed, []);
-		assert.ok(!requests.some((r) => r.startsWith("PUT /api/settings/general")));
+		assert.ok(!requests.some((r) => r.startsWith("PATCH /api/settings/general")));
 	});
 	it("Delete space opens the delete question", async () => {
 		await mount(<SpaceTabs selected="c29" />);
@@ -460,7 +460,7 @@ describe("the +", () => {
 		await click(q("space-option-none")!);
 		await act(async () => {});
 		assert.deepEqual(pushed, ["/space"]);
-		assert.ok(requests.some((r) => r.startsWith("PUT /api/settings/general") && r.includes('"activeSpace":"none"')));
+		assert.ok(requests.some((r) => r.startsWith("PATCH /api/settings/general") && r.includes('"activeSpace":"none"')));
 		assert.equal(q("spaces-plus-list")?.getAttribute("data-state") ?? "closed", "closed");
 	});
 	it("Add a space opens the dialog for it", async () => {
@@ -478,7 +478,7 @@ describe("the +", () => {
 		await settle();
 		assert.ok(requests.includes('PUT /api/spaces/old {"closed":false}'));
 		assert.deepEqual(pushed, ["/space"]);
-		assert.ok(requests.some((r) => r.startsWith("PUT /api/settings/general") && r.includes('"activeSpace":"old"')));
+		assert.ok(requests.some((r) => r.startsWith("PATCH /api/settings/general") && r.includes('"activeSpace":"old"')));
 		assert.equal(q("spaces-plus-list")?.getAttribute("data-state") ?? "closed", "closed");
 	});
 	it("a refused Reopen says why in the list and changes nothing", async () => {
@@ -490,7 +490,7 @@ describe("the +", () => {
 		assert.equal(q("spaces-plus-error")!.textContent, "The space is busy. Try again.");
 		assert.equal(q("spaces-plus-list")!.getAttribute("data-state"), "open");
 		assert.deepEqual(pushed, []);
-		assert.ok(!requests.some((r) => r.startsWith("PUT /api/settings/general")));
+		assert.ok(!requests.some((r) => r.startsWith("PATCH /api/settings/general")));
 	});
 	it("a right-click on a closed row has Reopen and Delete space; Escape closes that menu first", async () => {
 		await mount(<SpaceTabs selected="c29" />);

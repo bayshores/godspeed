@@ -8,7 +8,7 @@ How a long lesson is shortened, how the size meter is measured and how token usa
 |---|---|
 | `crates/core/src/session/compaction.rs` | Cutoff rule, token estimate, `local_summary`, compaction marker. The copy the server runs. |
 | `crates/services/src/turns/compaction.rs` | When shortening and the summary run. |
-| `src/shared/core/compaction.ts` | TypeScript port of the rule. Screens use `activeCompactionOf`, `keptIndexFor`, `effectiveThresholdTokens`. |
+| `src/shared/core/compaction.ts` | TypeScript port of the rule. Screens use `activeCompactionOf` and `keptIndexFor`. |
 | `src/shared/core/context-usage.ts` | `measuredContextTokens`, the meter's number. |
 | `src/frontend/components/stats-bar.tsx` | The meter (`contextMeter`). |
 | `src/shared/core/prices.ts`, `src/shared/core/cost-summary.ts` | Usage totals and plan labels. |
@@ -64,7 +64,7 @@ Shows `tokens / summarize point`, for example "33k / 40k", never a percentage.
 - Number: the latest completed response's `input + output + cacheRead + cacheWrite`. Reasoning is already inside output. `totalTokens` is not used.
 - A response counts only if it ended with `stop`, `length` or `toolUse` and its usage is finite, not negative and not all zero. Partial stream updates, errors and aborts don't count.
 - A compaction marker clears every earlier reading. Summary runs never feed the meter.
-- Maximum: the 40,000 summarize point, capped by window minus reserve (`effectiveThresholdTokens`).
+- Maximum: the summarize point the server sends as `summarizeAt` with `GET /api/chats/{id}`: 40,000, capped by window minus reserve (`effective_threshold_tokens`).
 - Hidden until the lesson reaches 80% of the summarize point, and while either number is unknown.
 
 ## Usage, not dollars

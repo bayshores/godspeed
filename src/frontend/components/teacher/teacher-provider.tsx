@@ -23,14 +23,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router";
 import type { AgentAction } from "@/shared/core";
-import { DEFAULT_TEACHER_NAME, isAgentEntry } from "@/shared/core";
+import { isAgentEntry } from "@/shared/core";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
 import { useDoneSound } from "./use-done-sound";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useActivity } from "@/frontend/components/activity-dock";
 import { useSpaces } from "@/frontend/components/space-context";
 import { prefersReducedMotion, usePresence } from "@/frontend/components/presence";
-import { useSettingsSaved } from "@/frontend/components/settings-signal";
+import { useSettings } from "@/frontend/components/settings-context";
 import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useWindowPage } from "@/frontend/components/terminal/use-terminal-lines";
 import { TeacherPanel, panelFillsWindow } from "./teacher-panel";
@@ -76,8 +76,8 @@ function writeStored(key: string, value: string): void {
 	}
 }
 
-export function TeacherProvider({ initialName, children }: { initialName?: string; children: ReactNode }) {
-	const [name, setName] = useState(initialName?.trim() || DEFAULT_TEACHER_NAME);
+export function TeacherProvider({ children }: { children: ReactNode }) {
+	const name = useSettings().teacherName;
 	const agent = useAgentStatus();
 	const { feed } = useActivity();
 	const spaces = useSpaces();
@@ -95,17 +95,6 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 			alive.current = false;
 		};
 	}, []);
-
-	// ── the name (Settings → General) ──
-	useSettingsSaved((section) => {
-		if (section !== "general") return;
-		fetch("/api/settings", { cache: "no-store" })
-			.then((r) => (r.ok ? r.json() : null))
-			.then((body: { settings?: { general?: { teacherName?: string } } } | null) => {
-				if (body) setName(body.settings?.general?.teacherName?.trim() || DEFAULT_TEACHER_NAME);
-			})
-			.catch(() => {});
-	});
 
 	// ── Follow ──
 	const followRef = useRef<FollowState>(FOLLOW_DEFAULT);

@@ -3,7 +3,8 @@
  * updates.
  */
 
-import { DEFAULT_TEACHER_NAME, resolveSettings, type GeneralSettings, type UserSettings } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, resolveSettings, type UserSettings } from "@/shared/core";
+import type { GeneralPatch } from "@/frontend/components/settings-context";
 import { CommitInput, SettingsGroup, SettingsRow, Toggle } from "./controls.tsx";
 import { UpdateSettings } from "./update-settings.tsx";
 
@@ -12,7 +13,8 @@ export function GeneralSection({
 	onGeneralChange,
 }: {
 	record: UserSettings;
-	onGeneralChange: (next: GeneralSettings) => void;
+	/** Only the fields that changed. */
+	onGeneralChange: (fields: GeneralPatch) => void;
 }) {
 	// The same resolver the server uses, so the switches show what is in effect.
 	const effective = resolveSettings(record);
@@ -26,21 +28,18 @@ export function GeneralSection({
 						placeholder={DEFAULT_TEACHER_NAME}
 						ariaLabel="Teacher name"
 						testid="teacher-name"
-						onCommit={(next) => {
-							const { teacherName: _old, ...rest } = record.general ?? {};
-							onGeneralChange(next ? { ...rest, teacherName: next } : rest);
-						}}
+						onCommit={(next) => onGeneralChange({ teacherName: next || null })}
 					/>
 				</SettingsRow>
 				<SettingsRow label="Startup sound" testid="startup-sound-row">
 					<Toggle
 						checked={effective.general.startupSound}
 						label="Startup sound"
-						onChange={(on) => onGeneralChange({ ...record.general, startupSound: on })}
+						onChange={(on) => onGeneralChange({ startupSound: on })}
 					/>
 				</SettingsRow>
 				<SettingsRow label="Sounds" hint="Setup and right or wrong answers" testid="sounds-row">
-					<Toggle checked={effective.general.sounds} label="Sounds" onChange={(on) => onGeneralChange({ ...record.general, sounds: on })} />
+					<Toggle checked={effective.general.sounds} label="Sounds" onChange={(on) => onGeneralChange({ sounds: on })} />
 				</SettingsRow>
 			</SettingsGroup>
 			{/* Only the desktop shell shows notifications. */}
@@ -50,7 +49,7 @@ export function GeneralSection({
 						<Toggle
 							checked={effective.general.deadlineReminders}
 							label="Deadline reminders"
-							onChange={(on) => onGeneralChange({ ...record.general, deadlineReminders: on })}
+							onChange={(on) => onGeneralChange({ deadlineReminders: on })}
 						/>
 					</SettingsRow>
 				</SettingsGroup>
@@ -58,7 +57,7 @@ export function GeneralSection({
 			<SettingsGroup label="Updates" testid="group-updates">
 				<UpdateSettings
 					autoUpdate={effective.general.autoUpdate}
-					onAutoUpdateChange={(on) => onGeneralChange({ ...record.general, autoUpdate: on })}
+					onAutoUpdateChange={(on) => onGeneralChange({ autoUpdate: on })}
 				/>
 			</SettingsGroup>
 		</div>

@@ -17,8 +17,10 @@ import { useAgentStatus } from "@/frontend/components/agent-status";
 import { RestartDialog } from "@/frontend/components/terminal/restart-dialog";
 import { restartAsks } from "@/frontend/components/terminal/terminal-model";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
+import { useSettings } from "@/frontend/components/settings-context";
 
-export default function UpdateBanner({ teacherName }: { teacherName: string }) {
+export default function UpdateBanner() {
+	const { teacherName } = useSettings();
 	const { state } = useUpdateState();
 	const [later, setLater] = useState(false);
 	const [asking, setAsking] = useState(false);

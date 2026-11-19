@@ -18,12 +18,10 @@ import {
 	answerTakesFiles,
 	DEFAULT_TEACHER_NAME,
 	dismissedAnswer,
-	effectiveThresholdTokens,
 	findPendingToolCall,
 	firstPhase,
 	homeworkProblems,
 	kbdEventForAction,
-	OUTSIDE_AGENT_CONTEXT_WINDOW,
 	phaseTimeline,
 	planStepBar,
 	questionNeedsReveal,
@@ -71,9 +69,6 @@ import { usePluginsAt } from "@/frontend/lib/use-plugins-at";
 import { jsonInit } from "@/frontend/lib/api";
 import { useStableValue } from "@/frontend/lib/use-stable-value";
 import { useNow } from "@/frontend/components/use-now";
-
-/** The lesson size where it gets summarized (the size meter's end). */
-const SUMMARIZE_AT = effectiveThresholdTokens(OUTSIDE_AGENT_CONTEXT_WINDOW);
 
 // The plan popup (and dagre, its layout engine) loads on first open.
 const PlanPopup = lazyComponent(() => import("@/frontend/components/plan-block").then((m) => m.PlanPopup));
@@ -130,7 +125,7 @@ export function Chat({
 	// client-side (core/view.ts projectView).
 	const session = useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
 	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissProblem, keepGoing, dropKept, status, error, stop, clearError, resumeStream } = session;
-	const { turnInFlight, localStreamRef, jobs, turns, pricing, adoptAppendOnly } = useLessonServer({
+	const { turnInFlight, localStreamRef, jobs, turns, pricing, summarizeAt, adoptAppendOnly } = useLessonServer({
 		chatId,
 		session,
 		initiallyInFlight: initiallyInFlight ?? false,
@@ -582,7 +577,7 @@ export function Chat({
 								spaceId={spaceId}
 								sheet={spaceId ? { open: sheetOpen, onToggle: toggleSheet } : undefined}
 								plugins={{ words: lessonPlugins ?? [], open: openPlugin?.id ?? null, onToggle: togglePlugin }}
-								stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={SUMMARIZE_AT} pricing={pricing} />}
+								stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={summarizeAt} pricing={pricing} />}
 								scopeRef={sessionFindScopeRef}
 								scrollContextRef={scrollContextRef}
 							/>

@@ -12,7 +12,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { SpaceColor, SpaceSummary } from "@/shared/core";
 import { useServerEvent } from "@/frontend/components/server-events";
-import { notifySettingsSaved } from "@/frontend/components/settings-signal";
+import { useSettings } from "@/frontend/components/settings-context";
 
 interface SpacesState {
 	/** Every space, closed ones included (most recently updated first). */
@@ -83,26 +83,19 @@ export function SpaceProvider({
 	}, [refresh, initialSpaces]);
 	useServerEvent("spaces-changed", () => void refresh());
 
-	const setActive = useCallback((id: string | null) => {
-		setActiveState(id);
-		void (async () => {
-			try {
-				const current = await fetch("/api/settings", { cache: "no-store" }).then(
-					(r) => r.json() as Promise<{ settings?: { general?: Record<string, unknown> } | null }>,
-				);
-				const res = await fetch("/api/settings/general", {
-					method: "PUT",
-					headers: { "content-type": "application/json" },
-					body: JSON.stringify({ ...(current.settings?.general ?? {}), activeSpace: id ?? "none" }),
-				});
-				if (res.ok) notifySettingsSaved("general");
-			} catch {
-				/* the switch still applies to this window */
-			}
-			// Switching to a space rescans its linked folder.
-			if (id) void fetch(`/api/spaces/${encodeURIComponent(id)}?scan=1`, { cache: "no-store" }).catch(() => {});
-		})();
-	}, []);
+	const { patchGeneral } = useSettings();
+	const setActive = useCallback(
+		(id: string | null) => {
+			setActiveState(id);
+			void (async () => {
+				// A failed save still switches this window.
+				await patchGeneral({ activeSpace: id ?? "none" });
+				// Switching to a space rescans its linked folder.
+				if (id) void fetch(`/api/spaces/${encodeURIComponent(id)}?scan=1`, { cache: "no-store" }).catch(() => {});
+			})();
+		},
+		[patchGeneral],
+	);
 
 	// A deleted space falls back to No space.
 	useEffect(() => {

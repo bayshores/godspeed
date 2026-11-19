@@ -1,11 +1,11 @@
 import { useEffect } from "react";
-import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { Outlet } from "react-router";
 import { showsWelcome, useBoot } from "@/frontend/components/boot";
 import { DesktopEnv } from "@/frontend/components/desktop-env";
 import { AppShell } from "@/frontend/components/app-shell";
 import { ActivityProvider } from "@/frontend/components/activity-dock";
 import { ServerEventsProvider } from "@/frontend/components/server-events";
+import { SettingsProvider } from "@/frontend/components/settings-context";
 import { AgentStatusProvider, useAgentStatus } from "@/frontend/components/agent-status";
 import { AppearanceProvider } from "@/frontend/components/settings/appearance";
 import UpdateBanner from "@/frontend/components/update-banner";
@@ -40,40 +40,42 @@ export function Root() {
 			{/* The notification channel rides OUTSIDE everything: the top bar,
 			    dock and pages all subscribe. */}
 			<ServerEventsProvider>
-				<AgentStatusProvider>
-					<Terminals>
-						<SpaceProvider initialActive={boot.activeSpace} initialSpaces={boot.spaces}>
-							<AppearanceProvider initial={boot.appearance}>
-								<div className="flex h-dvh flex-col">
-									<ActivityProvider>
-										<SoundProvider initialOn={boot.sounds} initialStartupOn={boot.startupSound}>
-											{boot.onboarding ? (
-												<>
-													<PageTitle />
-													<Onboarding />
-												</>
-											) : (
-												<AppShell teacherName={boot.teacherName} welcome={welcome} whatsNewSince={welcome ? boot.whatsNewSince : null}>
-													<Outlet />
-												</AppShell>
-											)}
-										</SoundProvider>
-									</ActivityProvider>
-								</div>
-							</AppearanceProvider>
-						</SpaceProvider>
-						{/* Auto-update banner (pushed by the desktop shell) and the restart notice. */}
-						<PillPanel>
-							<UpdateBanner teacherName={boot.teacherName ?? DEFAULT_TEACHER_NAME} />
-							{boot.firstLoad === "restarted" && <RestartNotice />}
-							{!boot.onboarding && <OldSetupNotice />}
-						</PillPanel>
-						{/* "What's new" after an update (after the welcome screen when it
-						    shows); Settings reopens it. */}
-						{!boot.onboarding && <WhatsNew since={welcome ? null : boot.whatsNewSince} />}
-						{boot.folderNotice && <FolderNotice agent={boot.folderNotice} afterWelcome={welcome} />}
-					</Terminals>
-				</AgentStatusProvider>
+				<SettingsProvider boot={boot}>
+					<AgentStatusProvider>
+						<Terminals>
+							<SpaceProvider initialActive={boot.activeSpace} initialSpaces={boot.spaces}>
+								<AppearanceProvider initial={boot.appearance}>
+									<div className="flex h-dvh flex-col">
+										<ActivityProvider>
+											<SoundProvider>
+												{boot.onboarding ? (
+													<>
+														<PageTitle />
+														<Onboarding />
+													</>
+												) : (
+													<AppShell welcome={welcome} whatsNewSince={welcome ? boot.whatsNewSince : null}>
+														<Outlet />
+													</AppShell>
+												)}
+											</SoundProvider>
+										</ActivityProvider>
+									</div>
+								</AppearanceProvider>
+							</SpaceProvider>
+							{/* Auto-update banner (pushed by the desktop shell) and the restart notice. */}
+							<PillPanel>
+								<UpdateBanner />
+								{boot.firstLoad === "restarted" && <RestartNotice />}
+								{!boot.onboarding && <OldSetupNotice />}
+							</PillPanel>
+							{/* "What's new" after an update (after the welcome screen when it
+							    shows); Settings reopens it. */}
+							{!boot.onboarding && <WhatsNew since={welcome ? null : boot.whatsNewSince} />}
+							{boot.folderNotice && <FolderNotice agent={boot.folderNotice} afterWelcome={welcome} />}
+						</Terminals>
+					</AgentStatusProvider>
+				</SettingsProvider>
 			</ServerEventsProvider>
 		</>
 	);

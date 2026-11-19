@@ -1,8 +1,9 @@
 /**
- * COMPACTION, the frontend's share: the threshold the size meter reads and
- * the marker helpers the transcript uses. The Rust server shortens the
- * record (crates/core/src/session/compaction.rs); the cutoff rule here is
- * kept for tests/shared/compaction-native-parity.test.ts. See
+ * COMPACTION, the frontend's share: the marker helpers the transcript
+ * uses. The Rust server shortens the record
+ * (crates/core/src/session/compaction.rs) and sends the lesson size where it
+ * does; the cutoff rule here is kept for
+ * tests/shared/compaction-native-parity.test.ts. See
  * docs/compaction-accounting.md.
  *
  * A compaction marker (LhMarkerMessage, customType "compaction") carries a
@@ -22,22 +23,6 @@ import type { SystemMessage } from "@earendil-works/pi-ai";
  * ~20k tokens of verbatim recent transcript always ride after the
  * summary — recency is cheap insurance against summary loss. */
 export const KEEP_RECENT_TOKENS = 20_000;
-
-/** The reserve subtracted from the model's contextWindow when the window
- * (not the user's threshold) is the binding constraint (pi's default). */
-const COMPACTION_RESERVE_TOKENS = 16_384;
-
-/** The lesson size where a lesson gets summarized, before the window cap:
- *  the outside agent compacts its own context, and after that the app
- *  sends a lesson again in full, so a lesson must stay small. */
-const SUMMARIZE_TOKENS = 40_000;
-
-/** The point a lesson gets summarized: min(40k, window − reserve).
- *  Unknown window → 40k. */
-export function effectiveThresholdTokens(contextWindowTokens: number | undefined): number {
-	if (contextWindowTokens === undefined) return SUMMARIZE_TOKENS;
-	return Math.min(SUMMARIZE_TOKENS, Math.max(contextWindowTokens - COMPACTION_RESERVE_TOKENS, 1));
-}
 
 // ─── token estimate (chars/4) ─────────────────────────────────────────────────
 

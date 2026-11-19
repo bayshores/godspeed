@@ -38,12 +38,10 @@ function ViewSwap({ children }: { children: React.ReactNode }) {
  *  everything at launch. Rendered once by src/frontend/routes/root.tsx. */
 export function AppShell({
 	children,
-	teacherName,
 	welcome,
 	whatsNewSince,
 }: {
 	children: React.ReactNode;
-	teacherName?: string;
 	welcome: boolean;
 	whatsNewSince: string | null;
 }) {
@@ -51,7 +49,7 @@ export function AppShell({
 		<>
 			<OpenDeadlinesProvider>
 				{/* Around the welcome screen and the notices too: they say the teacher's name. */}
-				<TeacherProvider initialName={teacherName}>
+				<TeacherProvider>
 					<Welcome initialOpen={welcome} whatsNewSince={whatsNewSince} />
 					{/* Around the page too: a mock draws the pill in its own bar. */}
 					<PillProvider>

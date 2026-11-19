@@ -5,9 +5,10 @@ import type { ChatRecord, JobRecord, SessionPricing, TurnUsage } from "@/shared/
 
 type Session = ReturnType<typeof useChatSession>;
 
-/** GET /api/chats/[id]: the record plus its pricing, whether a turn is
- *  running and the last turn's failure. */
-export type ChatRead = ChatRecord & { pricing?: SessionPricing; turnInFlight: boolean; turnError?: string };
+/** GET /api/chats/[id]: the record plus its pricing, the lesson size where
+ *  the server summarizes it, whether a turn is running and the last turn's
+ *  failure. */
+export type ChatRead = ChatRecord & { pricing?: SessionPricing; summarizeAt?: number; turnInFlight: boolean; turnError?: string };
 
 /** The chat's record, or null when it can't be read right now (the next
  *  event or send heals). */
@@ -71,9 +72,11 @@ export function useLessonServer({
 	// ── the session usage log (the stats row) ──
 	const [turns, setTurns] = useState<TurnUsage[]>([]);
 	const [pricing, setPricing] = useState<SessionPricing | undefined>();
+	const [summarizeAt, setSummarizeAt] = useState<number | null>(null);
 	const applyStats = useCallback((record: ChatRead) => {
 		if (Array.isArray(record.turns)) setTurns(record.turns);
 		setPricing(record.pricing);
+		setSummarizeAt(record.summarizeAt ?? null);
 	}, []);
 	// A failed read leaves the stats on the last known figures.
 	const syncTurns = useCallback(async () => {
@@ -264,6 +267,7 @@ export function useLessonServer({
 		jobs,
 		turns,
 		pricing,
+		summarizeAt,
 		adoptAppendOnly,
 	};
 }

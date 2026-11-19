@@ -35,11 +35,6 @@ import { oneLine, sanitizeAreaRules, type AreaRules } from "./teaching-areas.ts"
  *  additions never bump. */
 export const CURRENT_SETTINGS_VERSION = 3;
 
-/** The context budget the app plans compaction around (and the lesson's
- *  context meter shows). Claude- and GPT-class agents both hold well over
- *  this; staying modest keeps lessons compact. */
-export const OUTSIDE_AGENT_CONTEXT_WINDOW = 200_000;
-
 /** General settings — app-level behavior. Version DISPLAY and plans login
  *  live outside the record (package.json / credential files). */
 export interface GeneralSettings {

@@ -4,31 +4,21 @@
  */
 
 import { createContext, useCallback, useContext, useRef } from "react";
-import { useSettingsSaved } from "@/frontend/components/settings-signal";
+import { useSettings } from "@/frontend/components/settings-context";
 
 type SoundName = "startup" | "intro" | "connected" | "all-set" | "right" | "wrong" | "done";
 
 const PlayContext = createContext<(name: SoundName) => void>(() => {});
 
-export function SoundProvider({ initialOn, initialStartupOn, children }: { initialOn: boolean; initialStartupOn: boolean; children: React.ReactNode }) {
-	const on = useRef(initialOn);
-	const startupOn = useRef(initialStartupOn);
+export function SoundProvider({ children }: { children: React.ReactNode }) {
+	const { sounds, startupSound } = useSettings();
+	// Read when a sound plays, so play itself never changes.
+	const on = useRef({ sounds, startupSound });
+	on.current = { sounds, startupSound };
 	const loaded = useRef(new Map<SoundName, HTMLAudioElement>());
 
-	useSettingsSaved((section) => {
-		if (section !== "general") return;
-		fetch("/api/settings", { cache: "no-store" })
-			.then((r) => (r.ok ? r.json() : null))
-			.then((body: { settings?: { general?: { sounds?: boolean; startupSound?: boolean } } } | null) => {
-				if (!body) return;
-				on.current = body.settings?.general?.sounds !== false;
-				startupOn.current = body.settings?.general?.startupSound !== false;
-			})
-			.catch(() => {});
-	});
-
 	const play = useCallback((name: SoundName) => {
-		if (!(name === "startup" ? startupOn : on).current) return;
+		if (!(name === "startup" ? on.current.startupSound : on.current.sounds)) return;
 		let audio = loaded.current.get(name);
 		if (!audio) {
 			audio = new Audio(`/sounds/${name}.mp3`);

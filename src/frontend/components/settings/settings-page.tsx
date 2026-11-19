@@ -1,20 +1,17 @@
 /**
  * THE SETTINGS PAGE: "Settings", one tab per section, then the open
  * section. Appearance edits restyle the whole window as they are made.
- *
- * One record instance for the whole page: sections write through the
- * single `write` seam, and switching sections never refetches.
+ * The record and its saves come from the window's settings (settings-context).
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { CURRENT_SETTINGS_VERSION, DEFAULT_TEACHER_NAME, type AppearanceSettings, type UserSettings } from "@/shared/core";
+import { useEffect, useRef, useState } from "react";
+import type { WriteResult } from "@/frontend/lib/api";
 import { useAppearance } from "./appearance.tsx";
 import { SettingsSection } from "./controls.tsx";
 import { TeachingSection } from "./teaching-section.tsx";
 import { GeneralSection } from "./general-section.tsx";
 import { MENU_CLOSE_EVENT, MENU_OPEN_EVENT } from "@/frontend/components/menu-shell";
-import { notifySettingsSaved } from "@/frontend/components/settings-signal";
-import { useServerEvent } from "@/frontend/components/server-events";
+import { useSettings } from "@/frontend/components/settings-context";
 import { PluginsSection } from "./plugins-section.tsx";
 import { AppearanceSection } from "./appearance-section.tsx";
 import { ConnectionSection, connectionHint } from "./connection-section.tsx";
@@ -41,10 +38,12 @@ export function sectionFor(id: string | undefined): SectionId {
 export function SettingsPage({ section }: { section?: string }) {
 	const initialSection = sectionFor(section);
 	const { onAppearanceChange } = useAppearance();
-	const [record, setRecord] = useState<UserSettings | null | undefined>(
-		undefined,
-	);
-	const [error, setError] = useState<string | null>(null);
+	const { record, teacherName, patchGeneral, saveSection, refresh } = useSettings();
+	// Whole sections are saved from this copy, so it is read fresh on open.
+	useEffect(() => {
+		void refresh();
+	}, [refresh]);
+	const [error, setError] = useState<WriteResult>(null);
 	// MenuShell open-count — drives the page's scroll lock.
 	const [openMenus, setOpenMenus] = useState(0);
 	const contentRef = useRef<HTMLDivElement | null>(null);
@@ -85,76 +84,13 @@ export function SettingsPage({ section }: { section?: string }) {
 		setActive(initialSection);
 	}, [initialSection]);
 
-	// Fetch once per page mount. 200 {settings: null} is FIRST BOOT
-	// (no record = factory everything), not a failure — the error state is
-	// a non-200 or a network throw only.
-	useEffect(() => {
-		fetch("/api/settings")
-			.then((r) =>
-				r.ok ? r.json() : Promise.reject(new Error(`status ${r.status}`)),
-			)
-			.then((body: { settings: UserSettings | null }) =>
-				setRecord(body.settings ?? { version: CURRENT_SETTINGS_VERSION }),
-			)
-			.catch(() => setRecord(null));
-	}, []);
-	// An agent saved, undid or edited a rule: take the new rules, so the
-	// next Teaching write (which replaces the whole section) keeps them.
-	useServerEvent("rules-changed", () => {
-		fetch("/api/settings")
-			.then((r) => (r.ok ? r.json() : null))
-			.then((body: { settings: UserSettings | null } | null) => {
-				// A failed read keeps the record: writes rebuild the section from it.
-				const settings = body?.settings;
-				if (!settings) return;
-				setRecord((prev) => (prev ? { ...prev, agent: settings.agent } : prev));
-			})
-			.catch(() => {});
-	});
-
-	/** ONE writer for the whole page: PUT the whole section, keep the
-	 *  record mirror in sync, surface route errors inline (a 400 is a
-	 *  schema mistake caught by the validation surface). */
-	const write = useCallback(
-		async (
-			section: "general" | "agent" | "appearance" | "graph",
-			body: object,
-		) => {
-			setError(null);
-			let res: Response;
-			try {
-				res = await fetch(`/api/settings/${section}`, {
-					method: "PUT",
-					headers: { "content-type": "application/json" },
-					body: JSON.stringify(body),
-				});
-			} catch {
-				setError("Network error. Try again.");
-				return;
-			}
-			if (!res.ok) {
-				const detail = (await res.json().catch(() => ({}))) as {
-					error?: string;
-				};
-				setError(`${section}: ${detail.error ?? res.status}`);
-				return;
-			}
-			// Server truth, never the request body: the route may clean up what
-			// it stores, and the writing surface must show the stored value in
-			// this same interaction.
-			const stored = (
-				(await res.json().catch(() => null)) as { settings?: UserSettings } | null
-			)?.settings;
-			setRecord(
-				(prev) =>
-					stored ?? ({ ...(prev ?? {}), [section]: body }) as UserSettings,
-			);
-			notifySettingsSaved(section);
-			if (section === "appearance")
-				onAppearanceChange(body as AppearanceSettings);
-		},
-		[onAppearanceChange],
-	);
+	// A failed save shows its line above the section.
+	const shown = async (saving: Promise<WriteResult>): Promise<boolean> => {
+		setError(null);
+		const failed = await saving;
+		setError(failed);
+		return failed === null;
+	};
 
 	return (
 		<div ref={contentRef} data-testid="settings-page" className="h-full overflow-y-auto">
@@ -207,9 +143,9 @@ export function SettingsPage({ section }: { section?: string }) {
 									<TeachingSection
 										agent={record.agent}
 										graph={record.graph}
-										onGraphChange={(next) => void write("graph", next)}
-										teacherName={record.general?.teacherName || DEFAULT_TEACHER_NAME}
-										onSectionChange={(next) => void write("agent", next)}
+										onGraphChange={(next) => void shown(saveSection("graph", next))}
+										teacherName={teacherName}
+										onSectionChange={(next) => void shown(saveSection("agent", next))}
 										onFullPage={setFullPage}
 									/>
 								</SettingsSection>
@@ -221,14 +157,14 @@ export function SettingsPage({ section }: { section?: string }) {
 							)}
 							{active === "appearance" && (
 								<SettingsSection title="Appearance" testid="section-appearance">
-									<AppearanceSection appearance={record.appearance} onSectionChange={(next) => void write("appearance", next)} />
+									<AppearanceSection appearance={record.appearance} onSectionChange={(next) => void shown(saveSection("appearance", next)).then((ok) => ok && onAppearanceChange(next))} />
 								</SettingsSection>
 							)}
 							{active === "general" && (
 								<SettingsSection title="General" testid="section-general">
 									<GeneralSection
 										record={record}
-										onGeneralChange={(next) => void write("general", next)}
+										onGeneralChange={(fields) => void shown(patchGeneral(fields))}
 									/>
 								</SettingsSection>
 							)}
