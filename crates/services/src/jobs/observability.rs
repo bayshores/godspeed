@@ -11,7 +11,7 @@ use gs_base::{clock, locale, text, time};
 use gs_engine::bridge::agent_model;
 use gs_json::{Json, Obj, json};
 
-use super::jobs::list_all_jobs;
+use super::list_all_jobs;
 use crate::App;
 use crate::graph::extraction_runs::extraction_statuses;
 use crate::plugins::plugin_ask_rows;

@@ -524,4 +524,80 @@ mod tests {
 		assert!(teach.ends_with("TRANSCRIPT TO SUMMARIZE:\n\nSPAN"));
 		assert!(build_compaction_prompt("S", None).contains("No plan tree exists in this session (nothing was persisted)."));
 	}
+
+	/// Golden outputs from the published pi-coding-agent 1.4.0 findCutPoint and estimateTokens
+	/// helpers, run on synthetic messages (compaction.js SHA256
+	/// f51e78ef1da66b5803fc91e185f07b968f8f989ab9326b7744958416aad3f6f6). Change them only together
+	/// with a deliberate re-port of that library.
+	mod published_cases {
+		use gs_json::{Json, json, stringify};
+
+		use super::super::*;
+
+		fn user_chars(chars: usize) -> Json {
+			json!({ "role": "user", "content": "u".repeat(chars) })
+		}
+
+		fn assistant_chars(chars: usize) -> Json {
+			json!({ "role": "assistant", "content": [{ "type": "text", "text": "a".repeat(chars) }] })
+		}
+
+		fn call_chars(chars: usize) -> Json {
+			json!({ "role": "assistant", "content": [{ "type": "text", "text": "a".repeat(chars) }, { "type": "toolCall", "name": "quiz", "arguments": {}, "id": "c" }] })
+		}
+
+		fn result_chars(chars: usize) -> Json {
+			json!({ "role": "toolResult", "content": [{ "type": "text", "text": "r".repeat(chars) }], "toolCallId": "c", "toolName": "quiz", "isError": false })
+		}
+
+		fn image() -> Json {
+			json!({ "role": "user", "content": [{ "type": "image", "data": "fixture", "mimeType": "image/png" }] })
+		}
+
+		fn metadata() -> Json {
+			json!({ "role": "custom", "customType": "plan-block", "content": "invisible".repeat(1000), "display": false, "details": {} })
+		}
+
+		#[test]
+		fn the_cut_and_the_estimate_match_the_published_boundaries() {
+			type Case = (&'static str, Vec<Json>, f64, usize, Vec<f64>);
+			let cases: Vec<Case> = vec![
+				("exact threshold", vec![user_chars(40), user_chars(40), user_chars(40)], 20.0, 1, vec![10.0, 10.0, 10.0]),
+				("under budget", vec![user_chars(4), assistant_chars(4)], 20.0, 0, vec![1.0, 1.0]),
+				("split turn", vec![user_chars(400), assistant_chars(40), assistant_chars(40)], 15.0, 1, vec![100.0, 10.0, 10.0]),
+				("completed result boundary", vec![user_chars(400), call_chars(4), result_chars(400), user_chars(40)], 30.0, 3, vec![100.0, 3.0, 100.0, 10.0]),
+				("oversized trailing result", vec![user_chars(400), user_chars(40), call_chars(4), result_chars(400)], 30.0, 2, vec![100.0, 10.0, 3.0, 100.0]),
+				("multiple trailing results", vec![user_chars(400), call_chars(4), result_chars(200), result_chars(200)], 30.0, 1, vec![100.0, 3.0, 50.0, 50.0]),
+				("image allowance", vec![user_chars(400), image(), user_chars(40)], 1000.0, 1, vec![100.0, 1200.0, 10.0]),
+				("empty trailing text", vec![user_chars(400), assistant_chars(0), user_chars(0)], 30.0, 0, vec![100.0, 0.0, 0.0]),
+				("pending call", vec![user_chars(400), user_chars(400), call_chars(4)], 10.0, 1, vec![100.0, 100.0, 3.0]),
+			];
+			for (name, messages, budget, cut, tokens) in cases {
+				assert_eq!(compaction_cut_index(&messages, budget), cut, "{name}");
+				assert_eq!(messages.iter().map(estimate_message_tokens).collect::<Vec<_>>(), tokens, "{name}");
+			}
+			let with_metadata = [user_chars(400), metadata(), assistant_chars(40), metadata(), user_chars(40)];
+			assert_eq!(compaction_cut_index(&with_metadata, 15.0), 1, "adjacent invisible metadata stays with the cut");
+			assert_eq!(KEEP_RECENT_TOKENS, 20_000.0);
+		}
+
+		#[test]
+		fn a_chained_cut_ignores_the_previous_summary_and_the_discarded_prefix() {
+			let kept = json!({ "id": "kept", "role": "user", "content": "u".repeat(40) });
+			let marker = new_compaction_marker(&"summary".repeat(100_000), &json!({ "firstKeptMessageId": "kept", "tokensBefore": 100_000, "at": "fixture" }));
+			let messages = [user_chars(400_000), kept, assistant_chars(40), marker, user_chars(40)];
+			assert_eq!(compaction_cut_index(&messages, 100.0), 1, "retained tail fits; no progress");
+			assert_eq!(compaction_cut_index(&messages, 15.0), 2, "old summary does not consume the kept-tail budget");
+		}
+
+		#[test]
+		fn opaque_signatures_stay_unmeasured_and_the_system_and_image_allowances_match() {
+			let signed = json!({ "role": "assistant", "content": [{ "type": "thinking", "thinking": "", "thinkingSignature": "opaque".repeat(100_000) }] });
+			assert_eq!(estimate_message_tokens(&signed), 0.0);
+			assert_eq!(signed["content"][0]["thinkingSignature"].as_str().map(str::len), Some(600_000));
+			let tools_added = json!([{ "name": "fixture" }]);
+			let system = json!({ "role": "system", "content": [{ "type": "image", "data": "fixture", "mimeType": "image/png" }], "sections": { "a": "abcd" }, "toolsAdded": tools_added.clone() });
+			assert_eq!(estimate_message_tokens(&system), ((4800 + 4 + stringify(&tools_added).len()) as f64 / 4.0).ceil());
+		}
+	}
 }

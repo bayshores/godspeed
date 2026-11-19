@@ -9,7 +9,7 @@ use gs_base::config::Paths;
 use gs_base::{fsx, ids};
 use gs_json::{Json, json, parse, stringify, stringify_pretty};
 use gs_services::App;
-use gs_services::jobs::jobs::{abort_job, list_all_jobs, note_steers_durable};
+use gs_services::jobs::{abort_job, list_all_jobs, note_steers_durable};
 use gs_services::jobs::observability::compose_feed;
 
 fn case(name: &str) -> Json {

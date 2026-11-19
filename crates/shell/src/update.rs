@@ -4,7 +4,7 @@
 //! `update` and logged.
 
 use std::path::Path;
-use std::sync::{Mutex, MutexGuard, PoisonError};
+use std::sync::{Mutex, MutexGuard};
 
 use gs_base::clock;
 use serde_json::{Value, json};
@@ -12,6 +12,7 @@ use tauri::{AppHandle, Manager, State, Webview};
 use tauri_plugin_updater::{Update, Updater, UpdaterExt};
 
 use crate::commands::{AppOrigin, trusted};
+use crate::lock::lock;
 use crate::log;
 use crate::paths::Paths;
 use crate::push::push;
@@ -104,11 +105,11 @@ pub struct Updates {
 
 impl Updates {
 	fn core(&self) -> MutexGuard<'_, Core> {
-		self.core.lock().unwrap_or_else(PoisonError::into_inner)
+		lock(&self.core)
 	}
 
 	fn held(&self) -> MutexGuard<'_, Option<Held>> {
-		self.held.lock().unwrap_or_else(PoisonError::into_inner)
+		lock(&self.held)
 	}
 }
 

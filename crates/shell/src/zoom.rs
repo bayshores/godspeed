@@ -7,6 +7,7 @@ use serde_json::Value;
 use tauri::{AppHandle, Manager, State, Webview};
 
 use crate::commands::{AppOrigin, trusted};
+use crate::lock::lock;
 use crate::push::push;
 
 /// Must match LADDER in src/frontend/components/settings/text-size-model.ts.
@@ -22,7 +23,7 @@ impl Default for Zoom {
 }
 
 fn current(app: &AppHandle) -> f64 {
-	*app.state::<Zoom>().0.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+	*lock(&app.state::<Zoom>().0)
 }
 
 /// The next rung up (`dir` > 0) or down from `from`; the ends stay put.
@@ -37,7 +38,7 @@ fn next(from: f64, dir: i32) -> f64 {
 pub fn apply(app: &AppHandle, factor: f64) {
 	let Some(main) = app.get_webview_window("main") else { return };
 	if main.set_zoom(factor).is_ok() {
-		*app.state::<Zoom>().0.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = factor;
+		*lock(&app.state::<Zoom>().0) = factor;
 		push_current(app);
 	}
 }

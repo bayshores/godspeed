@@ -28,7 +28,7 @@ use super::lifecycle::update_space;
 use super::space_actions::Mark;
 use crate::App;
 use crate::app::agent_actions::record_check_undo;
-use crate::graph::progress::path_for;
+use crate::graph::study_start::path_for;
 use crate::outcome::{Outcome, Stop, refuse};
 
 /// A space whose check failed is not checked again for this long.

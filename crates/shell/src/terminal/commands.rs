@@ -6,7 +6,8 @@
 use serde_json::{Value, json};
 use tauri::{AppHandle, Manager, State, Webview};
 
-use super::{Agent, NOT_SET_UP, Outlet, Prompt, Role, Terminals, attachment_bytes};
+use super::attach::attachment_bytes;
+use super::{Agent, NOT_SET_UP, Outlet, Prompt, Role, Terminals};
 use crate::commands::{AppOrigin, trusted};
 use crate::paths::Paths;
 use crate::server::Server;

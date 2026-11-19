@@ -25,7 +25,7 @@ use gs_json::{Json, Obj};
 use crate::App;
 use crate::spaces::space_card::space_card_for;
 use crate::graph::graph::graph_store_for;
-use crate::graph::progress::{deadline_study_for, path_study_for, study_topics_for, topic_study_for};
+use crate::graph::study_start::{deadline_study_for, path_study_for, study_topics_for, topic_study_for};
 
 /// What a lesson starts from.
 pub enum LessonStart {
@@ -320,7 +320,7 @@ mod tests {
 		assert_eq!(start(&app, &space_id, LessonStart::PathTopic("pth_nope".to_owned())).unwrap_err(), NotFound { code: "topics_not_found", error: "No such path topic" });
 
 		// Studied today and not strong yet: the path moves on. One right answer makes it strong.
-		let path = |app: &Arc<App>| crate::graph::progress::path_for(app, &space_id).unwrap().unwrap();
+		let path = |app: &Arc<App>| crate::graph::study_start::path_for(app, &space_id).unwrap().unwrap();
 		assert_eq!(path(&app)["nextId"], gs_json::json!(ids[1]));
 		app.stores.chats.save_messages(lesson["id"].as_str().unwrap(), &solved(&ids[0])).unwrap();
 		assert_eq!(path(&app)["topics"][0]["status"], gs_json::json!("strong"), "the answer counts at once, with no facts read");

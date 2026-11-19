@@ -13,7 +13,7 @@ use gs_base::re::Re;
 use gs_json::{Json, json};
 use gs_services::App;
 use gs_services::graph::extraction_runs::abort_extraction;
-use gs_services::jobs::jobs::{abort_job, list_jobs};
+use gs_services::jobs::{abort_job, list_jobs};
 use gs_services::jobs::observability::activity_feed;
 use gs_services::turns::turn_liveness::is_turn_running;
 use gs_services::turns::turn_runs::abort_turn;
@@ -61,7 +61,7 @@ async fn post_abort(State(app): State<Arc<App>>, body: Body) -> Result<Response,
 		"job" => match abort_job(&app, id)? {
 			Ok(()) => json(200, &ok),
 			Err(refusal) => {
-				let status = if refusal == gs_services::jobs::jobs::AbortRefusal::NotFound { 404 } else { 409 };
+				let status = if refusal == gs_services::jobs::AbortRefusal::NotFound { 404 } else { 409 };
 				json(status, &json!({ "ok": false, "reason": refusal.reason() }))
 			}
 		},

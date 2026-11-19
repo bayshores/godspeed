@@ -7,6 +7,7 @@ pub mod extraction_runs;
 #[allow(clippy::module_inception)]
 pub mod graph;
 pub mod progress;
+pub mod study_start;
 pub mod topics;
 
 use gs_agent::extraction::extraction::ExtractionState;

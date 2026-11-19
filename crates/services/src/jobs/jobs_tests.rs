@@ -3,16 +3,23 @@
 
 use std::sync::Arc;
 
+use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::{clock, fsx};
+use gs_core::messages::native_messages::{dangling_question_of, open_question_held};
+use gs_core::session::jobs::build_subagent_steer;
 use gs_engine::turn::agent::{Agent, AgentOptions};
 use gs_engine::turn::models::agent_engine;
 use gs_json::{Json, json, stringify_pretty};
 use parking_lot::Mutex;
 
+use super::lifecycle::SWEEP_THROTTLE_MS;
+use super::pump::{GRACE_MS, POLL_MS};
+use super::wake::{held_by, queue_steer, steer_id};
 use super::*;
+use crate::App;
 use crate::app::test_support::{scratch_dir, test_app};
-use crate::turns::turn_liveness::{begin_turn, end_turn};
+use crate::turns::turn_liveness::{begin_turn, end_turn, is_turn_running};
 
 const CHAT: &str = "chat_jobtest1_00000001";
 

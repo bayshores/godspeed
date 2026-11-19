@@ -18,6 +18,7 @@ use tauri::window::Color;
 use tauri::{AppHandle, Manager, State, Url, Webview, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 use crate::commands::{AppOrigin, trusted};
+use crate::lock::lock;
 use crate::paths::Paths;
 use crate::push::push;
 use crate::server::Server;
@@ -246,14 +247,14 @@ pub fn focus(window: &WebviewWindow) -> tauri::Result<()> {
 
 /// Pushes to the page now if it has loaded, else once it has.
 pub fn push_when_loaded(app: &AppHandle, channel: &str, payload: Value) {
-	*app.state::<Page>().waiting.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some((channel.to_owned(), payload));
+	*lock(&app.state::<Page>().waiting) = Some((channel.to_owned(), payload));
 	if app.state::<Page>().loaded.load(Ordering::SeqCst) {
 		flush_waiting(app);
 	}
 }
 
 fn flush_waiting(app: &AppHandle) {
-	let waiting = app.state::<Page>().waiting.lock().unwrap_or_else(std::sync::PoisonError::into_inner).take();
+	let waiting = lock(&app.state::<Page>().waiting).take();
 	if let Some((channel, payload)) = waiting {
 		push(app, &channel, &payload);
 	}

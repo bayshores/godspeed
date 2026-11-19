@@ -15,6 +15,7 @@ use tauri::{App, AppHandle, Manager};
 
 use crate::commands::AppOrigin;
 use crate::demo::{self, DemoJob, SvgJob};
+use crate::lock::lock;
 use crate::paths::Paths;
 use crate::{window, zoom};
 
@@ -100,7 +101,7 @@ impl Seen {
 			self.upgraded.fetch_add(1, Ordering::SeqCst);
 		} else {
 			let line = if sent[0] == 0x16 { "a TLS handshake".to_owned() } else { String::from_utf8_lossy(sent).lines().next().unwrap_or_default().to_owned() };
-			self.requests.lock().unwrap_or_else(std::sync::PoisonError::into_inner).push(line);
+			lock(&self.requests).push(line);
 		}
 	}
 }
@@ -189,7 +190,7 @@ fn planted_errors(result: &DemoResult) -> Result<String, String> {
 }
 
 fn nothing_reached(result: &DemoResult, port: u16, seen: &Seen) -> Result<String, String> {
-	let requests = seen.requests.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+	let requests = lock(&seen.requests);
 	if !requests.is_empty() {
 		return Err(format!("the loopback server got {}: {requests:?}", requests.len()));
 	}
@@ -217,7 +218,7 @@ fn nothing_changed(app: &AppHandle, result: &DemoResult, saved: &str) -> Result<
 	#[cfg(not(target_os = "macos"))]
 	{
 		let download = result.probe_result.as_ref().and_then(|probe| probe["download"].as_str()).unwrap_or_default();
-		let refused = crate::demo_webview::REFUSED.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+		let refused = lock(&crate::demo_webview::REFUSED);
 		if !refused.iter().any(|url| url == download) {
 			return Err(format!("no guard of the demo window stopped the download {download:?}; it refused {refused:?}"));
 		}

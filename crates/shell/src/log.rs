@@ -6,6 +6,8 @@ use std::io::Write;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 
+use crate::lock::lock;
+
 const ROTATE_BYTES: u64 = 5 * 1024 * 1024;
 
 static FILE: OnceLock<Mutex<File>> = OnceLock::new();
@@ -32,7 +34,7 @@ pub fn line(text: &str) {
 	let entry = format!("[{}] {text}\n", gs_base::time::iso_now());
 	let _ = std::io::stderr().write_all(entry.as_bytes());
 	if let Some(file) = FILE.get() {
-		let mut file = file.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+		let mut file = lock(file);
 		let _ = file.write_all(entry.as_bytes());
 	}
 }

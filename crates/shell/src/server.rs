@@ -7,13 +7,14 @@ use std::net::TcpListener;
 use std::process::{Child, ChildStdin, Command, ExitStatus, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use gs_shell_rpc::ToServer;
 use tauri::{AppHandle, Manager, Url};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind, MessageDialogResult};
 
+use crate::lock::lock;
 use crate::paths::{self, Paths};
 use crate::terminal::Terminals;
 use crate::{bug_report, log, restarts, rpc};
@@ -441,10 +442,6 @@ fn signal_name(signal: i32) -> String {
 		SIGBUS => "SIGBUS".to_owned(),
 		other => other.to_string(),
 	}
-}
-
-fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
-	mutex.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
 #[cfg(test)]

@@ -12,7 +12,7 @@ use gs_json::{Json, json};
 
 use super::lessons::{Created, NotFound};
 use crate::App;
-use crate::graph::progress::deadline_topics_for;
+use crate::graph::study_start::deadline_topics_for;
 use crate::spaces::space_card::{space_card_for, space_file_path};
 use crate::spaces::update_space_deadline;
 
