@@ -31,6 +31,8 @@ Object.assign(globalThis, {
 
 const { createRoot } = await import("react-dom/client");
 const { DeadlineDialog } = await import("../../src/frontend/components/space-page/deadline-dialog.tsx");
+const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
+const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 
 function file(id: string, name: string, kind: "study" | "info" = "study"): SpaceFile {
 	return { id, origin: "copied", name, path: `${id}/${name}`, kind, contentFp: "", status: "ready", addedAt: "" };
@@ -70,7 +72,11 @@ async function mount(deadline: SpaceDeadline | null, files: readonly SpaceFile[]
 	root = createRoot(host);
 	const mode = { spaceId: "cls_a", deadline, files, ...(waiting ? { waiting } : {}) };
 	await act(async () => {
-		root!.render(<DeadlineDialog mode={mode} onClose={() => closed++} onRemoved={() => removed++} />);
+		root!.render(
+			<ServerEventsProvider connect={quietEvents}>
+				<DeadlineDialog mode={mode} onClose={() => closed++} onRemoved={() => removed++} />
+			</ServerEventsProvider>,
+		);
 	});
 }
 const q = (id: string) => document.querySelector<HTMLElement>(`[data-testid="${id}"]`);

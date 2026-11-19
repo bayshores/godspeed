@@ -7,19 +7,26 @@ import { removeMock } from "@/frontend/components/mock/use-mock";
 import { useServerResource } from "@/frontend/components/use-server-resource";
 import { newMockBody } from "./mocks-model";
 
+const mocksUrl = (spaceId: string) => `/api/spaces/${encodeURIComponent(spaceId)}/mocks`;
+
+/** The read both hooks below share: a deadline's mocks, newest first,
+ *  read again whenever the space's mocks change; null until read. */
+function useMocksRead(spaceId: string, deadlineId: string | null) {
+	const { value, error, reload } = useServerResource<{ mocks: MockSummary[] }>(deadlineId ? `${mocksUrl(spaceId)}?deadline=${encodeURIComponent(deadlineId)}` : null, {
+		on: { "mocks-changed": (e) => e.spaceId === spaceId },
+	});
+	return { mocks: value?.mocks ?? null, failed: error !== null, reload };
+}
+
 /**
- * A deadline's mocks, newest first (GET /api/spaces/:id/mocks?deadline=),
- * read again whenever the space's mocks change; null until read. `write`
+ * A deadline's mocks (GET /api/spaces/:id/mocks?deadline=). `write`
  * makes the next one and opens its page; `remove` removes one. Both give
  * back the error line, or null. `deadlineId` null reads nothing.
  */
 export function useDeadlineMocks(spaceId: string, deadlineId: string | null) {
 	const navigate = useNavigate();
-	const base = `/api/spaces/${encodeURIComponent(spaceId)}/mocks`;
-	const { value, error, reload } = useServerResource<{ mocks: MockSummary[] }>(deadlineId ? `${base}?deadline=${encodeURIComponent(deadlineId)}` : null, {
-		on: { "mocks-changed": (e) => e.spaceId === spaceId },
-	});
-	const mocks = value?.mocks ?? null;
+	const base = mocksUrl(spaceId);
+	const { mocks, failed, reload } = useMocksRead(spaceId, deadlineId);
 
 	const write = useCallback(
 		async (questions: number, minutes: number | null): Promise<string | null> => {
@@ -40,11 +47,11 @@ export function useDeadlineMocks(spaceId: string, deadlineId: string | null) {
 		[spaceId, reload],
 	);
 
-	return { mocks, failed: error !== null, reload, write, remove };
+	return { mocks, failed, reload, write, remove };
 }
 
 /** How many mocks a deadline has, read while `deadlineId` is given (the
  *  remove question names them); 0 until read. */
 export function useMockCount(spaceId: string, deadlineId: string | null): number {
-	return useDeadlineMocks(spaceId, deadlineId).mocks?.length ?? 0;
+	return useMocksRead(spaceId, deadlineId).mocks?.length ?? 0;
 }
