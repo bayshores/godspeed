@@ -176,16 +176,19 @@ export interface PillLine {
 /**
  * The pill: a notice that just came first, else the first live thing, else
  * the idle words; then the deadline in its last day. `notice.lit`: a card
- * hangs under it with something to read or do; plain news stays quiet.
+ * hangs under it with something to read or do; plain news stays quiet, and
+ * never covers a thing that needs the learner.
  */
 export function pillLine(i: { things: readonly PillThing[]; notice: { title: string; lit: boolean } | null; idle: string; due: DueSoon | null }): PillLine {
-	const main = i.notice === null ? (i.things[0] ?? null) : null;
+	const first = i.things[0] ?? null;
+	const notice = i.notice && (i.notice.lit || !first?.lit) ? i.notice : null;
+	const main = notice === null ? first : null;
 	return {
-		head: i.notice?.title ?? main?.head ?? i.idle,
+		head: notice?.title ?? main?.head ?? i.idle,
 		thing: main,
-		lit: i.notice ? i.notice.lit : (main?.lit ?? false),
+		lit: notice ? notice.lit : (main?.lit ?? false),
 		due: i.due,
-		idle: i.notice === null && main === null,
+		idle: notice === null && main === null,
 	};
 }
 

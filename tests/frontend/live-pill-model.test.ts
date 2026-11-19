@@ -80,6 +80,14 @@ describe("the pill", () => {
 		assert.deepEqual([line.head, line.thing, line.lit], ["Teacher read 1 file.", null, false]);
 	});
 
+	it("keeps saying a need while plain news comes; a notice with a card still goes first", () => {
+		const needy = pillThings({ ...nothing, doing: reading, terminal: "needsYou" });
+		const news = pillLine({ things: needy, notice: { title: "Teacher read 1 file.", lit: false }, idle: "marco", due: null });
+		assert.deepEqual([news.head, news.thing, news.lit], ["marco", needy[0], true]);
+		const card = pillLine({ things: needy, notice: { title: "Claude Code saved a rule", lit: true }, idle: "marco", due: null });
+		assert.deepEqual([card.head, card.thing, card.lit], ["Claude Code saved a rule", null, true]);
+	});
+
 	it("with nothing live: the teacher's name, or its state when it is not teaching", () => {
 		const idle = (agent: Parameters<typeof idleWords>[0]["agent"]) => idleWords({ name: "marco", agent, notices: 2, own: false });
 		assert.deepEqual(pillLine({ things: [], notice: null, idle: idle(teaching), due: null }), { head: "marco", thing: null, lit: false, due: null, idle: true });
