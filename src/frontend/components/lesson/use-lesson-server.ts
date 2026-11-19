@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getJson } from "@/frontend/lib/api";
+import { useTrailing } from "@/frontend/lib/use-trailing";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
 import type { useChatSession } from "@/frontend/components/session";
 import type { ChatRecord, JobRecord, SessionPricing, TurnUsage } from "@/shared/core";
@@ -13,13 +15,11 @@ export type ChatRead = ChatRecord & { pricing?: SessionPricing; summarizeAt?: nu
 /** The chat's record, or null when it can't be read right now (the next
  *  event or send heals). */
 async function readRecord(chatId: string): Promise<ChatRead | null> {
-	try {
-		const res = await fetch(`/api/chats/${chatId}`);
-		return res.ok ? ((await res.json()) as ChatRead) : null;
-	} catch {
-		return null;
-	}
+	return (await getJson<ChatRead>(`/api/chats/${encodeURIComponent(chatId)}`)).body;
 }
+
+/** The stats row's figures as the route's loader read them. */
+export type LessonStats = Pick<ChatRead, "turns" | "pricing" | "summarizeAt">;
 
 /**
  * The lesson's server seams (split out of src/frontend/components/chat.tsx): record
@@ -41,10 +41,12 @@ export function useLessonServer({
 	chatId,
 	session,
 	initiallyInFlight,
+	initialStats,
 }: {
 	chatId: string;
 	session: Session;
 	initiallyInFlight: boolean;
+	initialStats: LessonStats;
 }) {
 	const { status, setMessages, continueIfOwed, adoptRecord, resumeStream, clearError, setReattachSettled } = session;
 
@@ -70,9 +72,9 @@ export function useLessonServer({
 	}, [resumeStream]);
 
 	// ── the session usage log (the stats row) ──
-	const [turns, setTurns] = useState<TurnUsage[]>([]);
-	const [pricing, setPricing] = useState<SessionPricing | undefined>();
-	const [summarizeAt, setSummarizeAt] = useState<number | null>(null);
+	const [turns, setTurns] = useState<TurnUsage[]>(Array.isArray(initialStats.turns) ? initialStats.turns : []);
+	const [pricing, setPricing] = useState<SessionPricing | undefined>(initialStats.pricing);
+	const [summarizeAt, setSummarizeAt] = useState<number | null>(initialStats.summarizeAt ?? null);
 	const applyStats = useCallback((record: ChatRead) => {
 		if (Array.isArray(record.turns)) setTurns(record.turns);
 		setPricing(record.pricing);
@@ -83,9 +85,6 @@ export function useLessonServer({
 		const record = await readRecord(chatId);
 		if (record) applyStats(record);
 	}, [chatId, applyStats]);
-	useEffect(() => {
-		void syncTurns();
-	}, [syncTurns]);
 
 	const syncFromServer = useCallback(async () => {
 		// A failed read: the next record-changed / turn-settled event re-syncs.
@@ -181,53 +180,38 @@ export function useLessonServer({
 	const [jobs, setJobs] = useState<JobRecord[]>([]);
 	const jobStatusRef = useRef<Map<string, string>>(new Map());
 	const pendingSyncRef = useRef(false);
-	const fetchDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 	const fetchJobs = useCallback(async () => {
-		try {
-			const res = await fetch(`/api/jobs?chatId=${encodeURIComponent(chatId)}`);
-			if (!res.ok) return;
-			const data = (await res.json()) as { jobs?: JobRecord[]; turnInFlight?: boolean };
-			const list = data.jobs ?? [];
-			for (const j of list) {
-				const prev = jobStatusRef.current.get(j.id);
-				if (prev === "running" && j.status !== "running") {
-					// A settle: adopt append-only now; the full sync waits for idle.
-					if (localStreamRef.current || data.turnInFlight === true) {
-						pendingSyncRef.current = true;
-						void adoptAppendOnly();
-					} else {
-						void syncFromServer();
-					}
+		const { body: data } = await getJson<{ jobs?: JobRecord[]; turnInFlight?: boolean }>(`/api/jobs?chatId=${encodeURIComponent(chatId)}`);
+		// A failed read: the next jobs-changed announcement reads again.
+		if (!data) return;
+		const list = data.jobs ?? [];
+		for (const j of list) {
+			const prev = jobStatusRef.current.get(j.id);
+			if (prev === "running" && j.status !== "running") {
+				// A settle: adopt append-only now; the full sync waits for idle.
+				if (localStreamRef.current || data.turnInFlight === true) {
+					pendingSyncRef.current = true;
+					void adoptAppendOnly();
+				} else {
+					void syncFromServer();
 				}
-				jobStatusRef.current.set(j.id, j.status);
 			}
-			if (pendingSyncRef.current && !localStreamRef.current && data.turnInFlight !== true) {
-				pendingSyncRef.current = false;
-				void syncFromServer();
-			}
-			setJobs(list);
-		} catch {
-			/* transient — the next jobs-changed announcement re-fetches */
+			jobStatusRef.current.set(j.id, j.status);
 		}
+		if (pendingSyncRef.current && !localStreamRef.current && data.turnInFlight !== true) {
+			pendingSyncRef.current = false;
+			void syncFromServer();
+		}
+		setJobs(list);
 	}, [chatId, syncFromServer, adoptAppendOnly]);
 	useEffect(() => {
 		void fetchJobs();
 	}, [fetchJobs]);
+	const fetchJobsSoon = useTrailing(() => void fetchJobs(), 250);
 	useServerEvent("jobs-changed", (p) => {
-		if (p.chatId != null && p.chatId !== chatId) return;
-		if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
-		fetchDebounceRef.current = setTimeout(() => {
-			fetchDebounceRef.current = undefined;
-			void fetchJobs();
-		}, 250);
+		if (p.chatId == null || p.chatId === chatId) fetchJobsSoon();
 	});
 	useServerResync(() => void fetchJobs());
-	useEffect(
-		() => () => {
-			if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
-		},
-		[],
-	);
 
 	// ── server-initiated turn discovery ──
 	useServerEvent("turn-started", (p) => {

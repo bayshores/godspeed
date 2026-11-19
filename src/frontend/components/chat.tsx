@@ -42,7 +42,7 @@ import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts"
 import { useArrivals } from "@/frontend/components/lesson/arrivals";
 import { LessonStepsContext, answerAnchorSelector } from "@/frontend/components/lesson/step-context";
 import { practiceProgress } from "@/frontend/components/lesson/practice-progress";
-import { useLessonServer } from "@/frontend/components/lesson/use-lesson-server";
+import { useLessonServer, type LessonStats } from "@/frontend/components/lesson/use-lesson-server";
 import { useTitleRename } from "@/frontend/components/lesson/use-title-rename";
 import { useLessonStop } from "@/frontend/components/lesson/use-lesson-stop";
 import { useFromEarlier } from "@/frontend/components/lesson/use-from-earlier";
@@ -93,6 +93,7 @@ export function Chat({
 	initialError,
 	initialPrompt,
 	initiallyInFlight,
+	initialStats,
 	kind = "teach",
 	initialTree,
 	spaceId,
@@ -120,6 +121,8 @@ export function Chat({
 	initialPrompt?: string;
 	/** A teacher turn is running server-side with no client attached. */
 	initiallyInFlight?: boolean;
+	/** The stats row's figures from the route's read of the record. */
+	initialStats: LessonStats;
 }) {
 	// THE SESSION HOOK: the record is native history; the view is derived
 	// client-side (core/view.ts projectView).
@@ -129,6 +132,7 @@ export function Chat({
 		chatId,
 		session,
 		initiallyInFlight: initiallyInFlight ?? false,
+		initialStats,
 	});
 	const rename = useTitleRename(chatId, title);
 

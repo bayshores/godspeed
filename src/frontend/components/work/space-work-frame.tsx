@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useActivity } from "@/frontend/components/activity-dock";
-import { useSpaceRecord } from "@/frontend/components/files/space-files-api";
+import { useSpaceRecord } from "@/frontend/components/files/space-record";
 import { useSpaces } from "@/frontend/components/space-context";
 import { StartAgentAction } from "./start-agent-action";
 import { useWorker } from "./use-worker";

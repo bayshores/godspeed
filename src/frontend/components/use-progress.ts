@@ -1,93 +1,52 @@
 /**
  * useProgress: the active
- * space's ProgressPayload from GET /api/progress — shared by the space
+ * space's ProgressPayload from GET /api/progress, shared by the space
  * Overview and the topic Graph page.
  *
  * Re-reads when the space changes, when a turn settles (new answers), when
  * background activity changes (a graph build or the topic grouper
- * finished; debounced so a burst of updates causes one fetch), when spaces
- * change (deadlines edited), when a lesson is made, renamed, deleted or
- * moved, and after the events channel reconnects.
- * A stale response for a previous space is dropped.
+ * finished), when spaces change (deadlines edited), when a lesson is made,
+ * renamed, deleted or moved, and after the events channel reconnects.
+ * Events are debounced, so a burst of updates causes one read.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { localDay, type ProgressPayload } from "@/shared/core";
+import { localDay, type ProgressPayload, type ServerEventType } from "@/shared/core";
+import { getJson } from "@/frontend/lib/api";
+import { useTrailing } from "@/frontend/lib/use-trailing";
 import { spaceQuery, useSpaces } from "@/frontend/components/space-context";
-import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
+import { useServerEvents, useServerResync } from "@/frontend/components/server-events";
+import { useServerResource } from "@/frontend/components/use-server-resource";
+import type { ReloadOn } from "@/frontend/components/server-resource-model";
 
 const REFRESH_DEBOUNCE_MS = 400;
+const PROGRESS_EVENTS = ["turn-settled", "activity-changed", "spaces-changed", "chats-changed"] as const satisfies readonly ServerEventType[];
+const RELOAD_ON: ReloadOn = Object.fromEntries(PROGRESS_EVENTS.map((type) => [type, true]));
+
+const progressUrl = (spaceId: string | null) => `/api/progress${spaceQuery(spaceId)}&today=${localDay()}`;
 
 /** One space's progress (null: the lessons with no space); throws the server's message. */
 export async function fetchProgress(spaceId: string | null): Promise<ProgressPayload> {
-	const res = await fetch(`/api/progress${spaceQuery(spaceId)}&today=${localDay()}`);
-	const body = await res.json();
-	if (!res.ok) throw new Error(typeof body?.error === "string" ? body.error : `HTTP ${res.status}`);
-	return body as ProgressPayload;
+	const { error, body } = await getJson<ProgressPayload>(progressUrl(spaceId));
+	if (error !== null || body === null) throw new Error(error ?? "No progress");
+	return body;
 }
 
-/** A debounced `load`, run when a turn settles, background activity,
- *  spaces or lessons change, and after the events channel reconnects. */
-export function useProgressRefresh(load: () => void): () => void {
-	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const refresh = useCallback(() => {
-		if (timer.current) clearTimeout(timer.current);
-		timer.current = setTimeout(load, REFRESH_DEBOUNCE_MS);
-	}, [load]);
-	useEffect(
-		() => () => {
-			if (timer.current) clearTimeout(timer.current);
-		},
-		[load],
-	);
-	useServerEvent("turn-settled", refresh);
-	useServerEvent("activity-changed", refresh);
-	useServerEvent("spaces-changed", refresh);
-	useServerEvent("chats-changed", refresh);
-	useServerResync(refresh);
-	return refresh;
+/** `load` again on the same events as useProgress, debounced the same,
+ *  and at once after the events channel reconnects. */
+export function useProgressRefresh(load: () => void): void {
+	const later = useTrailing(load, REFRESH_DEBOUNCE_MS);
+	useServerEvents(PROGRESS_EVENTS, later);
+	useServerResync(load);
 }
 
-interface ProgressState {
+export function useProgress(): {
 	/** null until the first response (or after an error with no data yet). */
 	data: ProgressPayload | null;
 	error: string | null;
-	loading: boolean;
-	refresh: () => void;
-}
-
-export function useProgress(): ProgressState {
+	/** Read it again now (Try again). */
+	refresh: () => Promise<void>;
+} {
 	const { active } = useSpaces();
-	const [data, setData] = useState<ProgressPayload | null>(null);
-	const [error, setError] = useState<string | null>(null);
-	const [loading, setLoading] = useState(true);
-	const request = useRef(0);
-
-	const load = useCallback(() => {
-		const id = ++request.current;
-		setLoading(true);
-		fetchProgress(active)
-			.then((payload) => {
-				if (id !== request.current) return;
-				setData(payload);
-				setError(null);
-			})
-			.catch((err: unknown) => {
-				if (id !== request.current) return;
-				setError(err instanceof Error ? err.message : String(err));
-			})
-			.finally(() => {
-				if (id === request.current) setLoading(false);
-			});
-	}, [active]);
-
-	const refresh = useProgressRefresh(load);
-
-	// A space switch shows nothing stale: clear, then load at once.
-	useEffect(() => {
-		setData(null);
-		load();
-	}, [load]);
-
-	return { data, error, loading, refresh };
+	const { value, error, reload } = useServerResource<ProgressPayload>(progressUrl(active), { on: RELOAD_ON, debounceMs: REFRESH_DEBOUNCE_MS });
+	return { data: value, error, refresh: reload };
 }

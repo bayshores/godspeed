@@ -50,7 +50,8 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 - Handlers read refs (`localStreamRef`, `turnInFlightRef`, `statusRef`), never stale render state.
 - On `turn-started`, a lesson ignores event when `localStreamRef.current` is held (its own turn just began) or it is already attached. Otherwise it attaches to running turn (`GET /api/chats/{id}/stream`).
 - While attached, stream's final event settles turn. A `turn-settled` refetch (`syncFromServer`) would swap in a stale snapshot, so it is skipped. An error status detaches and refetches.
-- Bursty events coalesce into one fetch per window with a 250 ms trailing debounce (for example `use-lesson-list.ts`).
+- A record read from the server goes through `useServerResource` (`src/frontend/components/use-server-resource.ts`): it names the events that read it again (with an optional test on the payload), reads again on reconnect, lets the newest read win and keeps the last value when a read fails. Each record has one owner in the window (a provider or one hook); other components read from it.
+- Bursty events coalesce into one fetch per window with a trailing debounce (`debounceMs`, or `useTrailing` in `src/frontend/lib/use-trailing.ts`): 250 ms for the lesson list and the activity feed, 400 ms for progress.
 - Every consumer refetches once when channel opens or reopens.
 
 ### 10.5 What still polls

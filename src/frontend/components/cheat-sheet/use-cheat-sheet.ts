@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import type { CheatSheetView, SpaceSheetsView } from "@/shared/core";
 import { jsonInit, send } from "@/frontend/lib/api";
-import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
+import { useServerResource } from "@/frontend/components/use-server-resource";
 import type { Pointed } from "./canvas-model";
 
 /** A deadline's cheat sheet (GET …/cheat-sheet), read again whenever the
@@ -9,30 +9,9 @@ import type { Pointed } from "./canvas-model";
  *  line, or null. */
 export function useCheatSheet(spaceId: string, deadlineId: string) {
 	const url = sheetApiPath(spaceId, deadlineId);
-	const [view, setView] = useState<CheatSheetView | null>(null);
-	const [loadError, setLoadError] = useState<string | null>(null);
-	const request = useRef(0);
-
-	const reload = useCallback(async () => {
-		const id = ++request.current;
-		const { error, body } = await send(url, { method: "GET" });
-		if (id !== request.current) return;
-		if (error) setLoadError(error);
-		else {
-			setView(body as CheatSheetView);
-			setLoadError(null);
-		}
-	}, [url]);
-
-	useEffect(() => {
-		void reload();
-	}, [reload]);
-	useServerEvent("cheat-sheet-changed", (e) => {
-		if (e.deadlineId === deadlineId) void reload();
+	const { value: view, error: loadError, reload } = useServerResource<CheatSheetView>(url, {
+		on: { "cheat-sheet-changed": (e) => e.deadlineId === deadlineId, "spaces-changed": true },
 	});
-	useServerEvent("spaces-changed", () => void reload());
-	useServerResync(() => void reload());
-
 	const act = useCallback(async (body: Record<string, unknown>) => (await send(url, jsonInit("POST", body))).error, [url]);
 
 	return { view, loadError, reload, act };
@@ -41,25 +20,10 @@ export function useCheatSheet(spaceId: string, deadlineId: string) {
 /** A space's deadlines with where each sheet is, read again whenever a
  *  sheet or the space changes. */
 export function useSpaceSheets(spaceId: string | null) {
-	const [view, setView] = useState<SpaceSheetsView | null>(null);
-	const [failed, setFailed] = useState(false);
-	const request = useRef(0);
-	const reload = useCallback(async () => {
-		const id = ++request.current;
-		if (!spaceId) return setView(null);
-		const { error, body } = await send(`/api/spaces/${encodeURIComponent(spaceId)}/cheat-sheets`, { method: "GET" });
-		if (id !== request.current) return;
-		setFailed(!!error);
-		if (!error) setView(body as SpaceSheetsView);
-	}, [spaceId]);
-	useEffect(() => {
-		setView(null);
-		void reload();
-	}, [reload]);
-	useServerEvent("cheat-sheet-changed", () => void reload());
-	useServerEvent("spaces-changed", () => void reload());
-	useServerResync(() => void reload());
-	return { view, failed, reload };
+	const { value: view, error, reload } = useServerResource<SpaceSheetsView>(spaceId ? `/api/spaces/${encodeURIComponent(spaceId)}/cheat-sheets` : null, {
+		on: { "cheat-sheet-changed": true, "spaces-changed": true },
+	});
+	return { view, failed: error !== null, reload };
 }
 
 /** The part pointed at and the version the chat asks to show, shared by

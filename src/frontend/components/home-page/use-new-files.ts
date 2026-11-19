@@ -5,7 +5,9 @@
  * nothing. A failed read shows no line.
  */
 import { useEffect, useState } from "react";
-import type { SpaceRecord, SpaceSummary } from "@/shared/core";
+import type { SpaceSummary } from "@/shared/core";
+import { getJson } from "@/frontend/lib/api";
+import { spaceUrl, type SpaceRead } from "@/frontend/components/files/space-record";
 import { filesSeenAt, hasUnseenFiles } from "@/frontend/components/files/files-seen";
 import { newFilesLine } from "./space-list-model";
 
@@ -26,15 +28,9 @@ export function useNewFiles(spaces: readonly SpaceSummary[]): { lines: ReadonlyM
 		});
 		void Promise.all(
 			unseen.map(async ({ id, seenAt }): Promise<[string, string] | null> => {
-				try {
-					const res = await fetch(`/api/spaces/${encodeURIComponent(id)}`, { cache: "no-store" });
-					if (!res.ok) return null;
-					const { space } = (await res.json()) as { space: SpaceRecord };
-					const line = newFilesLine(space.files, seenAt, Date.now());
-					return line ? [id, line] : null;
-				} catch {
-					return null;
-				}
+				const { body } = await getJson<SpaceRead>(spaceUrl(id));
+				const line = body && newFilesLine(body.space.files, seenAt, Date.now());
+				return line ? [id, line] : null;
 			}),
 		).then((found) => {
 			if (alive) setState({ key, lines: new Map(found.filter((f) => f !== null)) });

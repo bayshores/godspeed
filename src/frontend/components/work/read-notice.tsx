@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useMinute } from "@/frontend/components/countdown";
-import { useSpaceRecord } from "@/frontend/components/files/space-files-api";
+import { useSpaceRecord } from "@/frontend/components/files/space-record";
 import { NoticeCard } from "@/frontend/components/notice-card";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";

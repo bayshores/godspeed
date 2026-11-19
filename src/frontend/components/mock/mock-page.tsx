@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { mockState } from "@/shared/core";
+import { mockState, type MockView } from "@/shared/core";
 import { useSpaces } from "@/frontend/components/space-context";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { MockBar } from "./mock-bar";
@@ -15,7 +15,8 @@ import { useMock } from "./use-mock";
  * where the mock is: the teacher writing it, ready to start, being
  * answered (or paused), the teacher grading it, then the results.
  */
-export function MockPage({ spaceId, mockId }: { spaceId: string; mockId: string }) {
+/** `initial`: the mock as the route's loader read it. */
+export function MockPage({ spaceId, mockId, initial }: { spaceId: string; mockId: string; initial: MockView }) {
 	const navigate = useNavigate();
 	const { active, setActive } = useSpaces();
 	const [joined, setJoined] = useState(active === spaceId);
@@ -26,7 +27,7 @@ export function MockPage({ spaceId, mockId }: { spaceId: string; mockId: string 
 		} else if (active !== spaceId) navigate("/space", { replace: true });
 	}, [active, spaceId, joined, setActive, navigate]);
 
-	const { view, loadError, reload } = useMock(spaceId, mockId);
+	const { view, loadError, reload } = useMock(spaceId, mockId, initial);
 	if (!view) {
 		return (
 			<div className="flex h-full flex-col">

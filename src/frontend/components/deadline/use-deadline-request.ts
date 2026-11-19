@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { jsonInit, send } from "@/frontend/lib/api";
-import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
+import { useServerResource } from "@/frontend/components/use-server-resource";
 import type { AskError, RequestKind, RequestState } from "./request-model";
 
 /**
@@ -11,27 +11,13 @@ import type { AskError, RequestKind, RequestState } from "./request-model";
  * `askError` is the last start that failed.
  */
 export function useDeadlineRequest(spaceId: string, deadlineId: string) {
-	const [state, setState] = useState<RequestState | null>(null);
 	const [askError, setAskError] = useState<AskError | null>(null);
-	const request = useRef(0);
 	const url = `/api/spaces/${encodeURIComponent(spaceId)}/deadlines/${encodeURIComponent(deadlineId)}/request`;
-
-	const reload = useCallback(async () => {
-		const id = ++request.current;
-		const { error, body } = await send(url, { method: "GET" });
-		if (id === request.current && !error) setState(body as RequestState);
-	}, [url]);
-
-	useEffect(() => {
-		void reload();
-	}, [reload]);
-	useServerEvent("deadline-request-changed", (e) => {
-		if (e.deadlineId === deadlineId) void reload();
+	const failed = useRef(false);
+	const { value: state, reload } = useServerResource<RequestState>(url, {
+		on: { "deadline-request-changed": (e) => e.deadlineId === deadlineId, "spaces-changed": () => failed.current },
 	});
-	useServerEvent("spaces-changed", () => {
-		if (state?.failed) void reload();
-	});
-	useServerResync(() => void reload());
+	failed.current = !!state?.failed;
 
 	const ask = useCallback(
 		async (kind: RequestKind) => {

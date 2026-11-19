@@ -104,4 +104,21 @@ describe("notify hub + wireSource (the client channel wiring)", () => {
 		disconnect();
 		assert.equal(src.closed, true, "the effect's cleanup closes the source");
 	});
+
+	it("subscribeMany: one callback told which type fired, one unsubscribe for all", () => {
+		const hub = createNotifyHub();
+		const src = fakeSource();
+		wireSource(src, hub);
+		const got: [string, unknown][] = [];
+		const off = hub.subscribeMany(["mocks-changed", "spaces-changed"], (type, payload) => got.push([type, payload]));
+		src.push("mocks-changed", { spaceId: "s1" });
+		src.push("chats-changed", {});
+		src.push("spaces-changed", {});
+		off();
+		src.push("mocks-changed", { spaceId: "s2" });
+		assert.deepEqual(got, [
+			["mocks-changed", { spaceId: "s1" }],
+			["spaces-changed", {}],
+		]);
+	});
 });

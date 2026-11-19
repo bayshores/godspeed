@@ -15,6 +15,13 @@ export async function send(url: string, init: RequestInit): Promise<{ error: Wri
 	}
 }
 
+/** One read (GET, never cached): its error message (null on success) and
+ *  its JSON body, typed here and nowhere else. */
+export async function getJson<T>(url: string): Promise<{ error: WriteResult; body: T | null }> {
+	const { error, body } = await send(url, { cache: "no-store" });
+	return { error, body: error ? null : (body as T) };
+}
+
 export function jsonInit(method: string, body: unknown): RequestInit {
 	return { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) };
 }

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useMcpAccess } from "@/frontend/components/agent-status";
 import { CopyButton } from "@/frontend/components/copy-button";
 import { ACCESS_ERROR, maskToken } from "@/frontend/components/mcp-access";
 import { QUIET_KEY } from "@/frontend/components/settings/controls";
@@ -88,13 +89,7 @@ export function Log({ lines }: { lines: LogLine[] }) {
 
 /** Any other MCP app: the address and the access token to paste into it. */
 export function OtherAppSetup() {
-	const [access, setAccess] = useState<{ url: string; token: string } | null>(null);
-	const [failed, setFailed] = useState(false);
-	useEffect(() => {
-		fetch("/api/mcp-access", { cache: "no-store" })
-			.then((r) => (r.ok ? (r.json() as Promise<{ url: string; token: string }>) : Promise.reject()))
-			.then((a) => setAccess({ url: a.url, token: a.token }), () => setFailed(true));
-	}, []);
+	const { access, failed } = useMcpAccess();
 	if (!access) return <p className="text-[15px] text-ink-2">{failed ? ACCESS_ERROR : "Loading…"}</p>;
 	return (
 		<div className="flex w-full flex-col gap-3 text-left">

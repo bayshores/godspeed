@@ -5,7 +5,7 @@ import type { ActivityFeed, FeedExtraction } from "../../src/frontend/components
 import { agoLabel, blobLabel, formatElapsed, toBlobs } from "../../src/frontend/components/teacher/activity-model.ts";
 import { BackgroundJobs } from "../../src/frontend/components/teacher/background-jobs.tsx";
 import { formatTokens, pagesLabel } from "../../src/frontend/components/usage-format.ts";
-import { agentWaiting, parseAgentStatus, sameAgentStatus, teachStep, waitingNotice, type AgentStatus } from "../../src/frontend/components/agent-status.tsx";
+import { agentWaiting, parseAgentStatus, teachStep, waitingNotice, type AgentStatus } from "../../src/frontend/components/agent-status.tsx";
 
 describe("the waiting-for-your-agent notice", () => {
 	const status = (over: Partial<AgentStatus> = {}): AgentStatus => ({ connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [], ...over });
@@ -35,20 +35,6 @@ describe("the waiting-for-your-agent notice", () => {
 		assert.equal(s?.outsideHere, false);
 		const old = parseAgentStatus({ agentConnected: true });
 		assert.ok(old !== null && old.terminals === undefined && old.outsideHere === undefined);
-	});
-	it("a poll with the same status keeps the old one", () => {
-		const s = status({ connected: true, teaching: true, name: "Claude Code", pendingWork: 2 });
-		assert.equal(sameAgentStatus(s, { ...s }), true);
-		assert.equal(sameAgentStatus(null, s), false);
-		assert.equal(sameAgentStatus(s, { ...s, connected: false }), false);
-		assert.equal(sameAgentStatus(s, { ...s, teaching: false }), false);
-		assert.equal(sameAgentStatus(s, { ...s, name: "Codex" }), false);
-		assert.equal(sameAgentStatus(s, { ...s, pendingWork: 3 }), false);
-		assert.equal(sameAgentStatus(s, { ...s, helperHere: true }), false);
-		assert.equal(sameAgentStatus(s, { ...s, helperCovering: true }), false);
-		assert.equal(sameAgentStatus(s, { ...s, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }] }), false);
-		assert.equal(sameAgentStatus(s, { ...s, terminals: [{ id: "t1", here: true }] }), false);
-		assert.equal(sameAgentStatus(s, { ...s, outsideHere: true }), false);
 	});
 	it("the background jobs show the notice text", () => {
 		const html = renderToStaticMarkup(<BackgroundJobs feed={{ jobs: [], extractions: [] }} waiting={waitingNotice("Ada", false)} />);

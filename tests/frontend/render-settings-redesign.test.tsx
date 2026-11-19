@@ -39,6 +39,7 @@ const { RememberedNotes } = await import("../../src/frontend/components/settings
 const { maskToken } = await import("../../src/frontend/components/mcp-access.ts");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { SettingsProvider } = await import("../../src/frontend/components/settings-context.tsx");
+const { AgentFolderProvider } = await import("../../src/frontend/components/agent-folder/agent-folder-context.tsx");
 const { AgentStatusProvider } = await import("../../src/frontend/components/agent-status.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
@@ -48,10 +49,12 @@ const Settings = ({ section }: { section: string }) => (
 		<SettingsPage section={section} />
 	</SettingsProvider>
 );
-/** The section with the live agent status it reads. */
+/** The section with the live agent status and the folder it reads. */
 const Connection = () => (
 	<AgentStatusProvider>
-		<ConnectionSection />
+		<AgentFolderProvider>
+			<ConnectionSection />
+		</AgentFolderProvider>
 	</AgentStatusProvider>
 );
 

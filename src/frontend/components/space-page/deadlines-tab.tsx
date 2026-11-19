@@ -6,7 +6,7 @@ import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useMinute } from "@/frontend/components/countdown";
 import { DeadlineBlock } from "@/frontend/components/deadline/deadline-block";
-import { useSpaceRecord } from "@/frontend/components/files/space-files-api";
+import { useSpaceRecord } from "@/frontend/components/files/space-record";
 import { dueThisWeek } from "@/frontend/components/home-page/home-page-model";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";

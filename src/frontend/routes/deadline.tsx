@@ -1,15 +1,13 @@
-import { data, useLoaderData, type LoaderFunctionArgs } from "react-router";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import type { SpaceDeadline } from "@/shared/core";
 import { DeadlinePage } from "@/frontend/components/deadline/deadline-page";
 import { CheatSheetStudio } from "@/frontend/components/cheat-sheet/studio";
+import { loadJson } from "./load-json";
 import { PageTitle } from "./page-title";
 
 /** A deadline and its space, read before the page shows (GET /api/deadlines/[id]). */
 export async function deadlineLoader({ params, request }: LoaderFunctionArgs) {
-	const res = await fetch(`/api/deadlines/${encodeURIComponent(params.id ?? "")}`, { signal: request.signal });
-	if (res.status === 404) throw data(null, { status: 404 });
-	if (!res.ok) throw new Error(`GET /api/deadlines/${params.id}: ${res.status}`);
-	return (await res.json()) as { spaceId: string; deadline: SpaceDeadline };
+	return loadJson<{ spaceId: string; deadline: SpaceDeadline }>(`/api/deadlines/${encodeURIComponent(params.id ?? "")}`, request.signal);
 }
 
 /** One deadline's page, from its ring on the Overview or its row in Coming up. */

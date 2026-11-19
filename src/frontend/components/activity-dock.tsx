@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
 import type { CallUsage, JobKind, JobRecord } from "@/shared/core";
-import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
+import { useServerResource } from "@/frontend/components/use-server-resource";
 
 /**
  * THE ACTIVITY FEED: one feed of GET /api/activity (running sub-agent jobs
@@ -85,62 +85,25 @@ const ActivityContext = createContext<{ feed: ActivityFeed; refresh: () => void 
  * fetch keeps the last feed (the list never flickers to empty on a blip).
  */
 export function ActivityProvider({ children }: { children: React.ReactNode }) {
-	const [feed, setFeed] = useState<ActivityFeed>(EMPTY_FEED);
-	const [nonce, setNonce] = useState(0);
-	const refresh = useCallback(() => setNonce((n) => n + 1), []);
-	const refreshRef = useRef(refresh);
-	refreshRef.current = refresh;
-	const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-	useEffect(() => {
-		let alive = true;
-		void (async () => {
-			try {
-				const res = await fetch("/api/activity");
-				if (res.ok) {
-					const data = (await res.json()) as Partial<ActivityFeed>;
-					if (alive)
-						setFeed({ jobs: data.jobs ?? [], extractions: data.extractions ?? [], failed: data.failed ?? [], requests: data.requests ?? [] });
-				}
-			} catch {
-				// transport blip: keep the last feed, announce again next event
-			}
-		})();
-		return () => {
-			alive = false;
-		};
-	}, [nonce]);
-
-	// Announcements → one trailing fetch per burst.
-	const scheduleAnnouncedFetch = () => {
-		if (debounceRef.current) clearTimeout(debounceRef.current);
-		debounceRef.current = setTimeout(() => {
-			debounceRef.current = undefined;
-			refreshRef.current();
-		}, 250);
-	};
-	useServerEvent("activity-changed", scheduleAnnouncedFetch);
-	useServerEvent("jobs-changed", scheduleAnnouncedFetch);
-	// Reconnect catch-up: events missed while the channel was down.
-	useServerResync(() => refreshRef.current());
+	const { value: read, reload } = useServerResource<Partial<ActivityFeed>>("/api/activity", {
+		on: { "activity-changed": true, "jobs-changed": true },
+		debounceMs: 250,
+	});
+	const feed = useMemo<ActivityFeed>(
+		() => (read ? { jobs: read.jobs ?? [], extractions: read.extractions ?? [], failed: read.failed ?? [], requests: read.requests ?? [] } : EMPTY_FEED),
+		[read],
+	);
+	const refresh = useCallback(() => void reload(), [reload]);
 
 	// The visibility nudge: returning to the tab refetches immediately —
 	// anything missed while hidden lands at once.
 	useEffect(() => {
 		const onVisibility = () => {
-			if (document.visibilityState === "visible") setNonce((n) => n + 1);
+			if (document.visibilityState === "visible") refresh();
 		};
 		document.addEventListener("visibilitychange", onVisibility);
 		return () => document.removeEventListener("visibilitychange", onVisibility);
-	}, []);
-
-	// The debounce timer never outlives the provider.
-	useEffect(
-		() => () => {
-			if (debounceRef.current) clearTimeout(debounceRef.current);
-		},
-		[],
-	);
+	}, [refresh]);
 
 	const value = useMemo(() => ({ feed, refresh }), [feed, refresh]);
 	return <ActivityContext.Provider value={value}>{children}</ActivityContext.Provider>;

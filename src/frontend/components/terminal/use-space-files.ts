@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { SpaceRecord } from "@/shared/core";
+import { getJson } from "@/frontend/lib/api";
+import { spaceUrl, type SpaceRead } from "@/frontend/components/files/space-record";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useServerEvent } from "@/frontend/components/server-events";
 import type { LinkFile } from "./terminal-links-model";
@@ -15,11 +16,10 @@ export function useSpaceFiles(): LinkFile[] {
 	const load = useCallback(async () => {
 		const id = ++request.current;
 		const records = await Promise.all(
-			ids.split(" ").filter(Boolean).map((spaceId) =>
-				fetch(`/api/spaces/${encodeURIComponent(spaceId)}`, { cache: "no-store" })
-					.then((res) => (res.ok ? (res.json() as Promise<{ space: SpaceRecord }>) : null))
-					.catch(() => null),
-			),
+			ids
+				.split(" ")
+				.filter(Boolean)
+				.map(async (spaceId) => (await getJson<SpaceRead>(spaceUrl(spaceId))).body),
 		);
 		if (id !== request.current) return;
 		setFiles(records.flatMap((r) => r?.space.files.map((f) => ({ id: f.id, name: f.name, spaceId: r.space.id, space: r.space.name })) ?? []));

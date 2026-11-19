@@ -4,7 +4,7 @@ import { DEFAULT_TEACHER_NAME, type MockState, type MockView } from "@/shared/co
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
-import { useSpaceRecord } from "@/frontend/components/files/space-files-api";
+import { useSpaceRecord } from "@/frontend/components/files/space-record";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
 import { cn } from "@/frontend/lib/utils";

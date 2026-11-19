@@ -33,7 +33,7 @@ const { SpaceDialog } = await import("../../src/frontend/components/space-dialog
 const { MoveLessonDialog } = await import("../../src/frontend/components/lessons/move-lesson-dialog.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { SpaceProvider, useSpaces } = await import("../../src/frontend/components/space-context.tsx");
-const { useSpaceRecord } = await import("../../src/frontend/components/files/space-files-api.ts");
+const { useSpaceRecord } = await import("../../src/frontend/components/files/space-record.tsx");
 const { MemoryRouter, useLocation } = await import("react-router");
 
 /** Where the window was sent. */

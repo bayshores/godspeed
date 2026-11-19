@@ -130,7 +130,7 @@ async function main() {
 		root.render(
 			<ServerEventsProvider connect={connect as never}>
 				<Profiler id="chat" onRender={onRender}>
-					<Chat chatId="perf" title="Gradient descent" initialMessages={lesson(100) as never} initiallyInFlight />
+					<Chat chatId="perf" title="Gradient descent" initialMessages={lesson(100) as never} initiallyInFlight initialStats={{}} />
 				</Profiler>
 			</ServerEventsProvider>,
 		);

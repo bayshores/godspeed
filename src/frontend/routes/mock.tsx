@@ -1,16 +1,14 @@
-import { data, useLoaderData, type LoaderFunctionArgs } from "react-router";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import type { MockView } from "@/shared/core";
 import { MockPage } from "@/frontend/components/mock/mock-page";
+import { mockUrl } from "@/frontend/components/mock/use-mock";
+import { loadJson } from "./load-json";
 import { PageTitle } from "./page-title";
 
-/** A mock, read before the page shows (GET /api/spaces/[id]/mocks/[mockId]);
- *  any refusal means it isn't there. */
+/** A mock, read before the page shows (GET /api/spaces/[id]/mocks/[mockId]). */
 export async function mockLoader({ params, request }: LoaderFunctionArgs) {
-	const res = await fetch(`/api/spaces/${encodeURIComponent(params.spaceId ?? "")}/mocks/${encodeURIComponent(params.mockId ?? "")}`, {
-		signal: request.signal,
-	});
-	if (!res.ok) throw data(null, { status: 404 });
-	return { spaceId: params.spaceId ?? "", mockId: params.mockId ?? "", view: (await res.json()) as MockView };
+	const [spaceId, mockId] = [params.spaceId ?? "", params.mockId ?? ""];
+	return { spaceId, mockId, view: await loadJson<MockView>(mockUrl(spaceId, mockId), request.signal) };
 }
 
 /** One mock: being written, taken against the clock, then its results. */
@@ -19,7 +17,7 @@ export function MockRoute() {
 	return (
 		<>
 			<PageTitle page={`Mock ${view.mock.n}`} />
-			<MockPage key={mockId} spaceId={spaceId} mockId={mockId} />
+			<MockPage key={mockId} spaceId={spaceId} mockId={mockId} initial={view} />
 		</>
 	);
 }

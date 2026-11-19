@@ -51,13 +51,19 @@ function openEventsChannel(): NotifySource {
 export function createNotifyHub() {
 	const byType = new Map<string, Set<(data: never) => void>>();
 	const resyncs = new Set<() => void>();
+	function subscribe<K extends ServerEventType>(type: K, cb: (payload: ServerEvents[K]) => void) {
+		const set = byType.get(type) ?? new Set<(data: never) => void>();
+		byType.set(type, set);
+		const slot = cb as unknown as (data: never) => void;
+		set.add(slot);
+		return () => set.delete(slot);
+	}
 	return {
-		subscribe<K extends ServerEventType>(type: K, cb: (payload: ServerEvents[K]) => void) {
-			const set = byType.get(type) ?? new Set<(data: never) => void>();
-			byType.set(type, set);
-			const slot = cb as unknown as (data: never) => void;
-			set.add(slot);
-			return () => set.delete(slot);
+		subscribe,
+		/** One callback for several types, told which one fired. One unsubscribe for all. */
+		subscribeMany(types: readonly ServerEventType[], cb: (type: ServerEventType, payload: unknown) => void) {
+			const offs = types.map((type) => subscribe(type, (payload) => cb(type, payload)));
+			return () => offs.forEach((off) => off());
 		},
 		/** Resync callbacks: fired on the source's every (re)open — "you may
 		 *  have missed events while disconnected; refetch". A consumer that
@@ -133,6 +139,22 @@ export function useServerEvent<K extends ServerEventType>(type: K, cb: (payload:
 			off();
 		};
 	}, [hub, type]);
+}
+
+/** Subscribe to several event types for this component's lifetime; a
+ *  latest-ref like useServerEvent. The list may change between renders. */
+export function useServerEvents(types: readonly ServerEventType[], cb: (type: ServerEventType, payload: unknown) => void): void {
+	const hub = useContext(EventsContext);
+	if (!hub) throw new Error("useServerEvents requires <ServerEventsProvider>");
+	const cbRef = useRef(cb);
+	cbRef.current = cb;
+	const key = types.join(" ");
+	useEffect(() => {
+		const off = hub.subscribeMany(key ? (key.split(" ") as ServerEventType[]) : [], (type, payload) => cbRef.current(type, payload));
+		return () => {
+			off();
+		};
+	}, [hub, key]);
 }
 
 /** Refetch truth on every (re)connect of the window's channel — the

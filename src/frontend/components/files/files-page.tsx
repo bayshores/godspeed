@@ -21,8 +21,8 @@ import {
 	setSpaceFileKind,
 	unlinkSpaceFolder,
 	uploadSpaceFiles,
-	useSpaceRecord,
 } from "./space-files-api";
+import { useSpaceRecord } from "./space-record";
 import { ConfirmDialog } from "./confirm-dialog";
 import type { FileRowActions } from "./file-row";
 import { FileGroupSection } from "./files-sections";

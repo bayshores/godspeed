@@ -7,7 +7,8 @@ import { useReplayOnChange } from "@/frontend/components/motion";
 import { useProgress } from "@/frontend/components/use-progress";
 import { displayName } from "@/frontend/components/overview/overview-model";
 import { DeadlineStarts } from "@/frontend/components/home/deadline-starts";
-import { FactsPicker, useGraphSnapshot } from "@/frontend/components/home/facts-picker";
+import { FactsPicker } from "@/frontend/components/home/facts-picker";
+import { useGraphSnapshot } from "@/frontend/components/graph/use-graph-snapshot";
 import { SuggestionList } from "@/frontend/components/home/suggestions";
 import { homeSuggestions } from "@/frontend/components/home/suggestions-model";
 import { TopicBox } from "@/frontend/components/home/topic-box";
@@ -41,7 +42,8 @@ export function NewLesson() {
 	// Picks belong to one space's graph — switching space clears them.
 	useEffect(() => setPicks([]), [activeSpaceId]);
 	const pickedIds = useMemo(() => new Set(picks.map((p) => p.id)), [picks]);
-	const snapshot = useGraphSnapshot(activeSpaceId);
+	// The picker's rows.
+	const snapshot = useGraphSnapshot(activeSpaceId).value;
 
 	const topicInputRef = useRef<HTMLTextAreaElement>(null);
 	// Switching space swaps the view: it rises in once.

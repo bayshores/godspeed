@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useActivity } from "@/frontend/components/activity-dock";
+import { getJson } from "@/frontend/lib/api";
 
 /**
  * The coverage block in the lesson menu: whether the
@@ -24,14 +25,7 @@ export interface SessionCoverage {
 /** One session's coverage read — null on transport/404 (callers render
  *  nothing rather than a fake zero; the honest-render doctrine). */
 async function fetchCoverage(chatId: string): Promise<SessionCoverage | null> {
-	try {
-		const res = await fetch(`/api/chats/${encodeURIComponent(chatId)}`);
-		if (!res.ok) return null;
-		const body = (await res.json()) as { coverage?: SessionCoverage | null };
-		return body.coverage ?? null;
-	} catch {
-		return null;
-	}
+	return (await getJson<{ coverage?: SessionCoverage | null }>(`/api/chats/${encodeURIComponent(chatId)}`)).body?.coverage ?? null;
 }
 
 /** The manual-extract request. 409 (a run is already in flight) counts as

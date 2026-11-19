@@ -8,8 +8,8 @@
  * starts clean.
  */
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import type { FactProgress, GraphSnapshot } from "@/shared/core";
-import { spaceQuery, useSpaces } from "@/frontend/components/space-context";
+import type { FactProgress } from "@/shared/core";
+import { useSpaces } from "@/frontend/components/space-context";
 import { useProgress } from "@/frontend/components/use-progress";
 import { useActivity } from "@/frontend/components/activity-dock";
 import { LazyChainTableOverlay as ChainTableOverlay } from "@/frontend/components/chain-table-lazy.tsx";
@@ -20,6 +20,7 @@ import { findMatches } from "./derive.ts";
 import { GraphBar } from "./graph-bar.tsx";
 import { GraphFoot } from "./graph-foot.tsx";
 import { useGraphCosts } from "./use-graph-costs.ts";
+import { useGraphSnapshot } from "./use-graph-snapshot.ts";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { lazyComponent } from "@/frontend/lib/lazy-component";
 import type { Aim, Flight } from "./constellation-camera.ts";
@@ -39,25 +40,17 @@ function GraphScreenBody() {
 	const progress = useProgress();
 	const { refresh } = progress;
 	const [chainsOpen, setChainsOpen] = useState(false);
-	const [snapshot, setSnapshot] = useState<GraphSnapshot | null>(null);
-
-	const loadSnapshot = useCallback(() => {
-		fetch(`/api/graph${spaceQuery(active)}`)
-			.then((res) => {
-				if (!res.ok) throw new Error(String(res.status));
-				return res.json() as Promise<GraphSnapshot>;
-			})
-			.then(setSnapshot)
-			// The page works without it: no fact sources or links, and All facts waits.
-			.catch(() => setChainsOpen(false));
-	}, [active]);
-	useEffect(() => loadSnapshot(), [loadSnapshot]);
+	const { value: snapshot, error: snapshotError, reload: loadSnapshot } = useGraphSnapshot(active);
+	// The page works without it: no fact sources or links, and All facts waits.
+	useEffect(() => {
+		if (snapshotError !== null) setChainsOpen(false);
+	}, [snapshotError]);
 
 	// A delete (fact menu or chain table) announces the new revision.
 	useEffect(() => {
 		const onRevision = () => {
-			refresh();
-			loadSnapshot();
+			void refresh();
+			void loadSnapshot();
 		};
 		window.addEventListener("lh:graph-revision", onRevision);
 		return () => window.removeEventListener("lh:graph-revision", onRevision);

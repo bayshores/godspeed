@@ -9,10 +9,10 @@
  * while Today is open, so the overdue ask in the top bar never asks twice.
  */
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { DoneNotice } from "@/frontend/components/done-notice";
+import { useServerResource } from "@/frontend/components/use-server-resource";
 import { jsonInit } from "@/frontend/lib/api";
 
 interface Fetched {
@@ -38,31 +38,20 @@ interface SharedDeadlines {
 const OpenDeadlinesContext = createContext<SharedDeadlines>({ fetched: null, error: null, load: async () => {}, setDone: () => {}, onCard: null, setOnCard: () => {} });
 
 export function OpenDeadlinesProvider({ children }: { children: React.ReactNode }) {
-	const [fetched, setFetched] = useState<Fetched | null>(null);
-	const [error, setError] = useState<string | null>(null);
 	const [onCard, setOnCard] = useState<string | null>(null);
-	const request = useRef(0);
-
-	const load = useCallback(async () => {
-		const id = ++request.current;
-		try {
-			const res = await fetch("/api/deadlines", { cache: "no-store" });
-			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			const body = (await res.json()) as { deadlines?: OpenDeadline[]; doneToday?: OpenDeadline[]; overdueAsked?: string[] };
-			if (id !== request.current) return;
-			setFetched({ open: Array.isArray(body.deadlines) ? body.deadlines : [], doneToday: Array.isArray(body.doneToday) ? body.doneToday : [], overdueAsked: Array.isArray(body.overdueAsked) ? body.overdueAsked : [] });
-			setError(null);
-		} catch (err) {
-			// Keep what we have; the error only matters before a first list.
-			if (id === request.current) setError(err instanceof Error ? err.message : String(err));
-		}
-	}, []);
-
-	useEffect(() => {
-		void load();
-	}, [load]);
-	useServerEvent("spaces-changed", () => void load());
-	useServerResync(() => void load());
+	// A failed read keeps what we have; the error only matters before a first list.
+	const { value: read, error, reload: load } = useServerResource<{ deadlines?: OpenDeadline[]; doneToday?: OpenDeadline[]; overdueAsked?: string[] }>("/api/deadlines", {
+		on: { "spaces-changed": true },
+	});
+	const fetched = useMemo<Fetched | null>(
+		() =>
+			read && {
+				open: Array.isArray(read.deadlines) ? read.deadlines : [],
+				doneToday: Array.isArray(read.doneToday) ? read.doneToday : [],
+				overdueAsked: Array.isArray(read.overdueAsked) ? read.overdueAsked : [],
+			},
+		[read],
+	);
 
 	const [notice, setNotice] = useState<string | null>(null);
 	const clearNotice = useCallback(() => setNotice(null), []);

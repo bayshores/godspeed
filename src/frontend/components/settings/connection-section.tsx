@@ -6,56 +6,33 @@
  * searches the web is set in Teaching, Facts and research.
  */
 
-import { useCallback, useEffect, useState } from "react";
-import { useAgentStatus } from "@/frontend/components/agent-status";
+import { useState } from "react";
+import { useAgentStatus, useMcpAccess } from "@/frontend/components/agent-status";
 import { CopyButton } from "@/frontend/components/copy-button";
 import { ACCESS_ERROR, maskToken } from "@/frontend/components/mcp-access";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { AgentWindows } from "./agent-windows.tsx";
 import { QUIET_KEY, SMALL_KEY } from "./controls.tsx";
 
-interface AccessView {
-	token: string;
-}
-
-async function request(init?: RequestInit): Promise<AccessView> {
-	const res = await fetch("/api/mcp-access", { cache: "no-store", ...init, headers: { "Content-Type": "application/json" } });
-	if (!res.ok) throw new Error(ACCESS_ERROR);
-	return res.json() as Promise<AccessView>;
-}
-
 export function ConnectionSection() {
-	const [access, setAccess] = useState<AccessView | null>(null);
+	const { access, failed, rotate: rotateToken } = useMcpAccess();
+	// A new token that could not be made.
 	const [error, setError] = useState<string | null>(null);
 	// "New token" asks first, then says what to copy again. "making": Continue
 	// is off until the new token arrives, so a double click makes one token.
 	const [rotate, setRotate] = useState<"idle" | "asking" | "making" | "done">("idle");
 
-	// Any success clears an earlier failure, so a stale error never sits under good data.
-	const loaded = useCallback((a: AccessView) => {
-		setAccess(a);
-		setError(null);
-	}, []);
 	const live = useAgentStatus();
-	useEffect(() => {
-		request().then(loaded, (e: Error) => setError(e.message));
-	}, [loaded]);
 
 	const makeToken = () => {
 		setRotate("making");
-		request({ method: "POST", body: JSON.stringify({ action: "rotate" }) }).then(
-			(a) => {
-				loaded(a);
-				setRotate("done");
-			},
-			(e: Error) => {
-				setError(e.message);
-				setRotate("idle");
-			},
-		);
+		void rotateToken().then((refused) => {
+			setError(refused === null ? null : ACCESS_ERROR);
+			setRotate(refused === null ? "done" : "idle");
+		});
 	};
 
-	if (!access || !live) return <p className="text-xs text-ink-2">{error ?? "Loading…"}</p>;
+	if (!access || !live) return <p className="text-xs text-ink-2">{failed ? ACCESS_ERROR : "Loading…"}</p>;
 	const token = access.token;
 
 	return (

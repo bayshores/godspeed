@@ -21,6 +21,7 @@ const { teacherTile } = await import("../../src/frontend/components/settings/age
 const { teacherTerminalState } = await import("../../src/frontend/components/terminal/terminal-model.ts");
 const { useChatSession } = await import("../../src/frontend/components/session.ts");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
+const { AgentFolderProvider } = await import("../../src/frontend/components/agent-folder/agent-folder-context.tsx");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 type Api = NonNullable<ReturnType<typeof useTerminals>>;
 
@@ -54,12 +55,16 @@ const q = (testid: string) => document.querySelector<HTMLElement>(`[data-testid=
 type Root = ReturnType<typeof createRoot>;
 const noEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 
-/** Renders under the server's events, as the app does. */
+/** Renders under the server's events and the folder's one read, as the app does. */
 async function mounted(render: (root: Root) => Promise<void>, run: () => Promise<void>) {
 	const host = document.createElement("div");
 	document.body.append(host);
 	const root = createRoot(host);
-	const inEvents = { render: (node: React.ReactNode) => root.render(<ServerEventsProvider connect={noEvents as never}>{node}</ServerEventsProvider>), unmount: () => root.unmount() } as Root;
+	const inEvents = { render: (node: React.ReactNode) => root.render(
+				<ServerEventsProvider connect={noEvents as never}>
+					<AgentFolderProvider>{node}</AgentFolderProvider>
+				</ServerEventsProvider>,
+			), unmount: () => root.unmount() } as Root;
 	try {
 		await render(inEvents);
 		await settle();

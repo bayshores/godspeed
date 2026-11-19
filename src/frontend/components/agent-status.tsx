@@ -1,13 +1,16 @@
 /**
  * THE OUTSIDE AGENT'S LIVE STATUS: one read of
  * GET /api/mcp-access shared by every surface (teacher pane, activity
- * panel, lesson composer, onboarding). It refreshes on the server's
- * "agent-changed" event (a check-in, a lapse, work starting or stopping
- * to wait), on reconnect, and when the window comes back.
+ * panel, lesson composer, onboarding, Settings → Connection). It refreshes
+ * on the server's "agent-changed" event (a check-in, a lapse, work
+ * starting or stopping to wait), on reconnect, and when the window comes
+ * back. The same read holds the address and token an outside app needs.
  */
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
+import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
+import { jsonInit, send, type WriteResult } from "@/frontend/lib/api";
+import { useStableValue } from "@/frontend/lib/use-stable-value";
+import { useServerResource } from "@/frontend/components/use-server-resource";
 
 export interface AgentStatus {
 	/** An agent checked in recently. */
@@ -80,40 +83,54 @@ export function parseAgentStatus(body: unknown): AgentStatus | null {
 	};
 }
 
-/** True when two statuses read the same, so a poll can keep the old object
- *  and consumers skip a render (pure — exported for tests). */
-export function sameAgentStatus(a: AgentStatus | null, b: AgentStatus): boolean {
-	return !!a && a.connected === b.connected && a.teaching === b.teaching && a.name === b.name && a.pendingWork === b.pendingWork && a.pendingTurns === b.pendingTurns && a.helperWork === b.helperWork
-		&& a.helperHere === b.helperHere && a.helperCovering === b.helperCovering
-		&& JSON.stringify(a.claimedLessons) === JSON.stringify(b.claimedLessons)
-		&& a.outsideHere === b.outsideHere && JSON.stringify(a.terminals) === JSON.stringify(b.terminals);
-}
-
 /** The desktop app's terminals provide it again, corrected (use-terminals.ts). */
 export const AgentStatusContext = createContext<AgentStatus | null>(null);
 
+/** What an outside MCP app needs: the address and the access token. */
+interface McpAccess {
+	url: string;
+	token: string;
+}
+
+interface AccessState {
+	/** null until read. */
+	access: McpAccess | null;
+	/** The last read failed. */
+	failed: boolean;
+	/** Make a new token: the error line, or null once made. */
+	rotate: () => Promise<WriteResult>;
+}
+
+const AccessContext = createContext<AccessState>({ access: null, failed: false, rotate: async () => null });
+
 export function AgentStatusProvider({ children }: { children: React.ReactNode }) {
-	const [status, setStatus] = useState<AgentStatus | null>(null);
-	const refresh = useCallback(() => {
-		fetch("/api/mcp-access", { cache: "no-store" })
-			.then((r) => (r.ok ? r.json() : null))
-			.then((body) => {
-				const next = parseAgentStatus(body);
-				if (next) setStatus((prev) => (sameAgentStatus(prev, next) ? prev : next));
-			})
-			.catch(() => {/* keep the last status */});
-	}, []);
+	// A failed read keeps the last status.
+	const { value: body, error, reload, update } = useServerResource<McpAccess>("/api/mcp-access", { on: { "agent-changed": true } });
+	// Unchanged figures keep the same object, so readers skip a render.
+	const status = useStableValue(parseAgentStatus(body));
 	useEffect(() => {
-		refresh();
 		const onVisible = () => {
-			if (document.visibilityState === "visible") refresh();
+			if (document.visibilityState === "visible") void reload();
 		};
 		document.addEventListener("visibilitychange", onVisible);
 		return () => document.removeEventListener("visibilitychange", onVisible);
-	}, [refresh]);
-	useServerEvent("agent-changed", refresh);
-	useServerResync(refresh);
-	return <AgentStatusContext.Provider value={status}>{children}</AgentStatusContext.Provider>;
+	}, [reload]);
+	const rotate = useCallback(async () => {
+		const made = await send("/api/mcp-access", jsonInit("POST", { action: "rotate" }));
+		if (made.error === null) update(() => made.body as McpAccess);
+		return made.error;
+	}, [update]);
+	const access = useMemo<AccessState>(() => ({ access: body && { url: body.url, token: body.token }, failed: error !== null, rotate }), [body, error, rotate]);
+	return (
+		<AccessContext.Provider value={access}>
+			<AgentStatusContext.Provider value={status}>{children}</AgentStatusContext.Provider>
+		</AccessContext.Provider>
+	);
+}
+
+/** The address and token an outside app needs, from the status's read. */
+export function useMcpAccess(): AccessState {
+	return useContext(AccessContext);
 }
 
 /** The live status; null until the first read (or outside the provider). */

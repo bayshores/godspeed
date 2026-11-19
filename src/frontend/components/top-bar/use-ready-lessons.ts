@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import type { ChatListItem } from "@/shared/core";
 import { useServerEvent } from "@/frontend/components/server-events";
+import { getJson } from "@/frontend/lib/api";
 import { keepReady, type ReadyLesson } from "./live-pill-model";
 
 /** The lesson on screen, or null on another page. */
@@ -28,14 +29,9 @@ export function useReadyLessons(): ReadyLesson[] {
 	useEffect(() => drop(here), [drop, here]);
 
 	const read = useCallback(async (add: string | null) => {
-		try {
-			const res = await fetch("/api/chats", { cache: "no-store" });
-			if (!res.ok) return;
-			const { chats } = (await res.json()) as { chats: ChatListItem[] };
-			setReady((prev) => keepReady(prev, chats, add === hereRef.current ? null : add));
-		} catch {
-			// The next reply reads the list again.
-		}
+		const { body } = await getJson<{ chats: ChatListItem[] }>("/api/chats");
+		// A failed read: the next reply reads the list again.
+		if (body) setReady((prev) => keepReady(prev, body.chats, add === hereRef.current ? null : add));
 	}, []);
 
 	useServerEvent("turn-started", ({ chatId }) => drop(chatId));

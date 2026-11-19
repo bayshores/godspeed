@@ -2,19 +2,14 @@ import { data, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import type { HomeworkView, LessonKind } from "@/shared/core";
 import { Chat } from "@/frontend/components/chat";
 import type { ChatRead } from "@/frontend/components/lesson/use-lesson-server";
+import { loadJson } from "./load-json";
 import { PageTitle } from "./page-title";
 
 /** One lesson: its record (and a homework lesson's deadline) is read before
  *  the page shows, so a navigation keeps the old page until it's ready. */
 export async function lessonLoader({ params, request }: LoaderFunctionArgs) {
 	// The plan blocks' code loads with the record, so they draw with the first paint.
-	const [res] = await Promise.all([
-		fetch(`/api/chats/${encodeURIComponent(params.id ?? "")}`, { signal: request.signal }),
-		import("@/frontend/components/plan-block"),
-	]);
-	if (res.status === 404) throw data(null, { status: 404 });
-	if (!res.ok) throw new Error(`GET /api/chats/${params.id}: ${res.status}`);
-	const read = (await res.json()) as ChatRead;
+	const [read] = await Promise.all([loadJson<ChatRead>(`/api/chats/${encodeURIComponent(params.id ?? "")}`, request.signal), import("@/frontend/components/plan-block")]);
 	// An older build's Talk chat is kept on disk but never shown.
 	if (read.kind === "talk") throw data(null, { status: 404 });
 	const chat = { ...read, kind: read.kind as LessonKind | undefined };
@@ -50,6 +45,7 @@ export function LessonPage() {
 				// A teacher turn that outlived its client: the remounted view must
 				// attach (busy shimmer + poll), never resurrect the stale record.
 				initiallyInFlight={chat.turnInFlight}
+				initialStats={chat}
 			/>
 		</>
 	);

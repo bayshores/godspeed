@@ -4,8 +4,9 @@ import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import type { TerminalRole } from "@/frontend/components/terminal/terminal-model";
-import { logLines, rememberedAgent, type FolderView, type Launch, type LaunchChoice } from "./agent-folder-model";
-import { postAgentFolder, saveAgent, savedAgent } from "./agent-folder-api";
+import { logLines, rememberedAgent, type Launch, type LaunchChoice } from "./agent-folder-model";
+import { saveAgent, savedAgent } from "./agent-folder-api";
+import { useAgentFolderView } from "./agent-folder-context";
 
 /**
  * The godspeed folder and its "Start Claude Code" button: open(agent)
@@ -18,21 +19,13 @@ import { postAgentFolder, saveAgent, savedAgent } from "./agent-folder-api";
  * when it failed.
  */
 export function useAgentFolder() {
-	const [view, setView] = useState<FolderView | null>(null);
+	const { view, reload, post } = useAgentFolderView();
 	const [launch, setLaunch] = useState<Launch | null>(null);
 	const [starting, setStarting] = useState(false);
 	const [failed, setFailed] = useState<string | null>(null);
 	const status = useAgentStatus();
 	const terminals = useTerminals();
 	const showTerminal = useTeacher()?.showTerminal;
-
-	const load = useCallback(() => {
-		fetch("/api/agent-folder", { cache: "no-store" })
-			.then((r) => (r.ok ? (r.json() as Promise<FolderView>) : null))
-			.then((v) => v && setView(v))
-			.catch(() => {/* the button sets it up on click */});
-	}, []);
-	useEffect(load, [load]);
 
 	/** Resolves to true once the agent starts (or, outside the desktop app, the folder is made).
 	 *  `resume`: the teacher's chat to go back to. */
@@ -45,14 +38,14 @@ export function useAgentFolder() {
 				const why = await terminals.start(role, agent, resume);
 				setStarting(false);
 				setFailed(why);
-				if (!why) load();
+				if (!why) void reload();
 				if (!why) showTerminal?.(role);
 				return !why;
 			}
 			const launch: Pick<Launch, "agent" | "helperOnly"> = role === "helper" ? { agent, helperOnly: true } : { agent };
 			setLaunch({ ...launch, made: "wait" });
 			try {
-				setView(await postAgentFolder({ action: "setup" }));
+				await post({ action: "setup" });
 				setLaunch({ ...launch, made: "done" });
 				return true;
 			} catch (err) {
@@ -60,7 +53,7 @@ export function useAgentFolder() {
 				return false;
 			}
 		},
-		[terminals, load, showTerminal],
+		[terminals, reload, post, showTerminal],
 	);
 
 	const open = useCallback((agent: FolderAgent, resume?: string) => start("teacher", agent, resume), [start]);
@@ -72,23 +65,23 @@ export function useAgentFolder() {
 		const folder = await window.lh?.pickFolder?.();
 		if (!folder) return null;
 		try {
-			setView(await postAgentFolder({ action: "setup", folder }));
+			await post({ action: "setup", folder });
 			setLaunch(null);
 			return null;
 		} catch (err) {
 			return (err as Error).message;
 		}
-	}, []);
+	}, [post]);
 
 	/** Start an agent with the learner's own command (empty: the usual one again). Resolves to an error message, if any. */
 	const setStartCommand = useCallback(async (agent: FolderAgent, command: string): Promise<string | null> => {
 		try {
-			setView(await postAgentFolder({ action: "set-start-command", agent, command }));
+			await post({ action: "set-start-command", agent, command });
 			return null;
 		} catch (err) {
 			return (err as Error).message;
 		}
-	}, []);
+	}, [post]);
 
 	const lines = launch && view ? logLines(launch, { connected: !!status?.connected, teaching: !!status?.teaching, helperHere: !!status?.helperHere }, view.short) : [];
 	const busy = starting || launch?.made === "wait";

@@ -8,8 +8,8 @@
  */
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import type { FolderAgent } from "@/shared/core";
-import { postAgentFolder, savedAgent } from "@/frontend/components/agent-folder/agent-folder-api";
-import type { FolderView } from "@/frontend/components/agent-folder/agent-folder-model";
+import { savedAgent } from "@/frontend/components/agent-folder/agent-folder-api";
+import { useAgentFolderView } from "@/frontend/components/agent-folder/agent-folder-context";
 import { AgentStatusContext, type AgentStatus } from "@/frontend/components/agent-status";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { readBase64 } from "@/frontend/lib/read-base64";
@@ -82,7 +82,8 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const [records, setRecords] = useState<Records>({ teacher: null, helper: null });
 	// The first list has answered: before it, no record says whether an agent runs.
 	const [loaded, setLoaded] = useState(false);
-	const [folder, setFolder] = useState("~/godspeed");
+	const { view: folderView, post: postFolder } = useAgentFolderView();
+	const folder = folderView?.short ?? "~/godspeed";
 	// The terminals that have checked in at least once.
 	const [checked, setChecked] = useState<ReadonlySet<string>>(new Set());
 	const [quietSince, setQuietSince] = useState<number | null>(null);
@@ -129,10 +130,6 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 				return old?.id === s.id ? { ...r, [role]: { ...old, ended: s.ended, prompt: s.prompt, url: s.url } } : r;
 			});
 		});
-		fetch("/api/agent-folder", { cache: "no-store" })
-			.then((res) => (res.ok ? (res.json() as Promise<FolderView>) : null))
-			.then((v) => v && on && setFolder(v.short))
-			.catch(() => {/* a start sets it */});
 		return () => {
 			on = false;
 			off();
@@ -217,13 +214,11 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const start = useCallback(
 		async (role: TerminalRole, agent: FolderAgent, resume?: string): Promise<string | null> => {
 			if (!lh) return UNSTARTED;
-			let view: FolderView;
 			try {
-				view = await postAgentFolder({ action: "setup" });
+				await postFolder({ action: "setup" });
 			} catch (err) {
 				return reason(err);
 			}
-			setFolder(view.short);
 			try {
 				const { id } = await lh.start(role, agent, resume);
 				if (resume) resumed.current.set(id, resume);
@@ -233,7 +228,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 				return reason(err);
 			}
 		},
-		[lh],
+		[lh, postFolder],
 	);
 
 	const refused = teacherStartRefused(teacher, !!status?.outsideHere);
@@ -244,7 +239,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 			if (role === "teacher" && refused === "outside") {
 				// The folder is still set up: "Set up my folder" does its part.
 				try {
-					setFolder((await postAgentFolder({ action: "setup" })).short);
+					await postFolder({ action: "setup" });
 				} catch (err) {
 					return reason(err);
 				}
@@ -252,7 +247,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 			}
 			return start(role, agent, resume);
 		},
-		[refused, start],
+		[refused, start, postFolder],
 	);
 
 	// The helper starts by itself, once per teacher run.

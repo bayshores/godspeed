@@ -18,11 +18,16 @@ import { WhatsNew } from "@/frontend/components/whats-new";
 import { FolderNotice } from "@/frontend/components/agent-folder/folder-notice";
 import { OldSetupNotice } from "@/frontend/components/agent-folder/old-setup";
 import { TerminalsProvider } from "@/frontend/components/terminal/use-terminals";
+import { AgentFolderProvider } from "@/frontend/components/agent-folder/agent-folder-context";
 import { PageTitle } from "./page-title";
 
-/** The agents' terminals follow the agent's live status. */
+/** The agents' terminals follow the agent's live status, in the godspeed folder. */
 function Terminals({ children }: { children: React.ReactNode }) {
-	return <TerminalsProvider status={useAgentStatus()}>{children}</TerminalsProvider>;
+	return (
+		<AgentFolderProvider>
+			<TerminalsProvider status={useAgentStatus()}>{children}</TerminalsProvider>
+		</AgentFolderProvider>
+	);
 }
 
 /** Around every screen: the providers, the app frame (or the onboarding on

@@ -1,19 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { parseSavedRules, type SavedRule } from "@/shared/core";
-import { useServerEvent } from "@/frontend/components/server-events";
+import { useServerResource } from "@/frontend/components/use-server-resource";
 
 /** The rules an agent saved, for the "Saved by" labels. Reloads when a
  *  rule changes, and when `rules` (the list on screen) changes, since the
  *  server drops the marks of rules the learner removed. */
 export function useSavedRules(rules: unknown): SavedRule[] {
-	const [saved, setSaved] = useState<SavedRule[]>([]);
-	const load = useCallback(() => {
-		fetch("/api/rules", { cache: "no-store" })
-			.then((r) => (r.ok ? r.json() : null))
-			.then((body: unknown) => setSaved(parseSavedRules(body)))
-			.catch(() => {});
-	}, []);
-	useEffect(load, [load, rules]);
-	useServerEvent("rules-changed", load);
-	return saved;
+	const { value, reload } = useServerResource<unknown>("/api/rules", { on: { "rules-changed": true } });
+	// The mount read is the shared hook's own.
+	const mounted = useRef(false);
+	useEffect(() => {
+		if (mounted.current) void reload();
+		mounted.current = true;
+	}, [rules, reload]);
+	return useMemo(() => parseSavedRules(value), [value]);
 }
