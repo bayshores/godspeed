@@ -6,13 +6,12 @@
  */
 
 import { useState } from "react";
-import { createPortal } from "react-dom";
-import { useNavigate } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
+import { useOpenInSpace } from "@/frontend/components/use-join-space";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { useMinute } from "@/frontend/components/countdown";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
-import { NOTICE_STACK_ID } from "@/frontend/components/top-bar/pill-panel";
+import { InNoticeStack } from "@/frontend/components/top-bar/pill-panel";
 import { quietSpaces, quietLine, quietTitle, snoozeEnd, type QuietSpace } from "./quiet-notice-model";
 
 const SNOOZED_KEY = "lh:quiet-snoozed";
@@ -28,9 +27,9 @@ function readSnoozed(): Record<string, number> {
 }
 
 export function QuietNotice() {
-	const { spaces, setActive } = useSpaces();
+	const { spaces } = useSpaces();
 	const now = useMinute();
-	const navigate = useNavigate();
+	const openInSpace = useOpenInSpace();
 	const [snoozed, setSnoozed] = useState(() => (typeof window === "undefined" ? {} : readSnoozed()));
 	if (typeof document === "undefined" || now === null) return null;
 	const snooze = (spaceId: string) => {
@@ -42,18 +41,18 @@ export function QuietNotice() {
 		writeStorage(SNOOZED_KEY, JSON.stringify(next));
 	};
 	const openPath = window.lh?.openPath;
-	return createPortal(
-		<QuietNoticeView
-			quiet={quietSpaces(spaces, snoozed, now)}
-			now={now}
-			onShowFolder={openPath && ((entry) => void openPath(entry.folder))}
-			onSee={(entry) => {
-				setActive(entry.spaceId);
-				navigate("/space/files");
-			}}
-			onDismiss={(entry) => snooze(entry.spaceId)}
-		/>,
-		document.getElementById(NOTICE_STACK_ID) ?? document.body,
+	return (
+		<InNoticeStack>
+			<QuietNoticeView
+				quiet={quietSpaces(spaces, snoozed, now)}
+				now={now}
+				onShowFolder={openPath && ((entry) => void openPath(entry.folder))}
+				onSee={(entry) => {
+					openInSpace(entry.spaceId, "/space/files");
+				}}
+				onDismiss={(entry) => snooze(entry.spaceId)}
+			/>
+		</InNoticeStack>
 	);
 }
 

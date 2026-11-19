@@ -1,7 +1,7 @@
 /**
  * useProgress: the active
- * space's ProgressPayload from GET /api/progress, shared by the space
- * Overview and the topic Graph page.
+ * space's ProgressPayload from GET /api/progress. The space pages share one
+ * read (ProgressProvider in the space layout); a page outside it reads its own.
  *
  * Re-reads when the space changes, when a turn settles (new answers), when
  * background activity changes (a graph build or the topic grouper
@@ -10,6 +10,7 @@
  * Events are debounced, so a burst of updates causes one read.
  */
 
+import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { localDay, type ProgressPayload, type ServerEventType } from "@/shared/core";
 import { getJson } from "@/frontend/lib/api";
 import { useTrailing } from "@/frontend/lib/use-trailing";
@@ -39,14 +40,29 @@ export function useProgressRefresh(load: () => void): void {
 	useServerResync(load);
 }
 
-export function useProgress(): {
+interface Progress {
 	/** null until the first response (or after an error with no data yet). */
 	data: ProgressPayload | null;
 	error: string | null;
 	/** Read it again now (Try again). */
 	refresh: () => Promise<void>;
-} {
+}
+
+/** The active space's progress; `read` false reads nothing. */
+function useRead(read: boolean): Progress {
 	const { active } = useSpaces();
-	const { value, error, reload } = useServerResource<ProgressPayload>(progressUrl(active), { on: RELOAD_ON, debounceMs: REFRESH_DEBOUNCE_MS });
-	return { data: value, error, refresh: reload };
+	const { value, error, reload } = useServerResource<ProgressPayload>(read ? progressUrl(active) : null, { on: RELOAD_ON, debounceMs: REFRESH_DEBOUNCE_MS });
+	return useMemo(() => ({ data: value, error, refresh: reload }), [value, error, reload]);
+}
+
+const ProgressContext = createContext<Progress | null>(null);
+
+export function ProgressProvider({ children }: { children: ReactNode }) {
+	return <ProgressContext.Provider value={useRead(true)}>{children}</ProgressContext.Provider>;
+}
+
+export function useProgress(): Progress {
+	const shared = useContext(ProgressContext);
+	const own = useRead(shared === null);
+	return shared ?? own;
 }

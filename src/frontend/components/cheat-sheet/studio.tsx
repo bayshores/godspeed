@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useCallback, useState } from "react";
+import { Link } from "react-router";
 import { currentVersion, DEFAULT_TEACHER_NAME, type CheatSheetView } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
-import { useSpaces } from "@/frontend/components/space-context";
+import { useJoinSpace } from "@/frontend/components/use-join-space";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { fileBrowserName } from "@/frontend/components/files/files-model";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
@@ -26,15 +26,7 @@ import { remakeSheet, sheetPdfFile, sheetPdfPath, showSheetPdf, useCheatSheet, u
  * pointed at, or a change.
  */
 export function CheatSheetStudio({ spaceId, deadlineId, deadlineName }: { spaceId: string; deadlineId: string; deadlineName: string }) {
-	const navigate = useNavigate();
-	const { active, setActive } = useSpaces();
-	const [joined, setJoined] = useState(active === spaceId);
-	useEffect(() => {
-		if (!joined) {
-			if (active === spaceId) setJoined(true);
-			else setActive(spaceId);
-		} else if (active !== spaceId) navigate("/space", { replace: true });
-	}, [active, spaceId, joined, setActive, navigate]);
+	useJoinSpace(spaceId);
 
 	const { view, loadError, reload, act } = useCheatSheet(spaceId, deadlineId);
 	if (view) return <Studio view={view} spaceId={spaceId} deadlineId={deadlineId} act={act} />;

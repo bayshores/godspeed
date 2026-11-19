@@ -6,6 +6,7 @@ import { useMinute } from "@/frontend/components/countdown";
 import { setNoticesOpen, useNotices } from "@/frontend/components/notice-store";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { useSpaces } from "@/frontend/components/space-context";
+import { useOpenInSpace } from "@/frontend/components/use-join-space";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { needsYou, teacherTerminalState } from "@/frontend/components/terminal/terminal-model";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
@@ -55,7 +56,8 @@ export function PillProvider({ children }: { children: ReactNode }) {
 	const teacher = useTeacher();
 	const agent = useAgentStatus();
 	const terminals = useTerminals();
-	const { spaces, setActive } = useSpaces();
+	const { spaces } = useSpaces();
+	const openInSpace = useOpenInSpace();
 	const { feed } = useActivity();
 	const { worker } = useWorker();
 	const { deadlines } = useOpenDeadlines();
@@ -141,11 +143,10 @@ export function PillProvider({ children }: { children: ReactNode }) {
 			closeNotices();
 			if (thing.kind === "ready") void navigate(`/chat/${encodeURIComponent(thing.key)}`);
 			if (thing.due) {
-				setActive(thing.due.spaceId);
-				void navigate(deadlineHref(thing.due.id));
+				openInSpace(thing.due.spaceId, deadlineHref(thing.due.id));
 			}
 		},
-		[closeNotices, navigate, setActive],
+		[closeNotices, navigate, openInSpace],
 	);
 
 	const api = useMemo(

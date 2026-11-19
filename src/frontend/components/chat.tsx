@@ -2,22 +2,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 import { useChatSession } from "@/frontend/components/session";
 import { visibleQueuedSteers } from "@/frontend/components/session-core";
-import { prefersReducedMotion, usePresence } from "@/frontend/components/presence";
-import { cn } from "@/frontend/lib/utils";
-import { lazyComponent } from "@/frontend/lib/lazy-component";
+import { prefersReducedMotion } from "@/frontend/components/presence";
 import { JobsContext } from "@/frontend/components/jobs-context";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { StatsBar } from "@/frontend/components/stats-bar";
 import { agentWaiting, lessonAgentWaiting, useAgentStatus } from "@/frontend/components/agent-status";
 import { latestTree } from "@/frontend/components/plan-latest";
-import { MermaidOverlay, SessionMermaidContext } from "@/frontend/components/session-overlay";
-import { AbortTurnDialog, type AbortMode } from "@/frontend/components/abort-turn-dialog";
+import { SessionMermaidContext } from "@/frontend/components/session-overlay";
 import { currentUserThinkingOpen, setAllUserThinkingOpen } from "@/frontend/components/thinking-block";
 import {
 	activeProblemOf,
 	answerTakesFiles,
 	DEFAULT_TEACHER_NAME,
-	dismissedAnswer,
 	findPendingToolCall,
 	firstPhase,
 	homeworkProblems,
@@ -25,7 +21,6 @@ import {
 	phaseTimeline,
 	planStepBar,
 	questionNeedsReveal,
-	toolQuestionKind,
 	topicParts,
 	type HomeworkView,
 	type LessonKind,
@@ -35,7 +30,7 @@ import {
 	type QuestionAnswerData,
 	withOpenReview,
 } from "@/shared/core";
-import { escAbortTarget, goAheadLabel, initialPromptOwed, problemPosed, restoreUnsent, sendBlockedReason, stuckClaimMinutes, stuckRetry } from "@/frontend/components/lesson/chat-helpers";
+import { goAheadLabel, initialPromptOwed, problemPosed, restoreUnsent, sendBlockedReason, stuckClaimMinutes, stuckRetry } from "@/frontend/components/lesson/chat-helpers";
 import { holdsDraft } from "@/frontend/components/lesson/lesson-drafts-model";
 import { lastLearnerText, lessonError, retryAction } from "@/frontend/components/lesson/lesson-error-model";
 import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts";
@@ -60,18 +55,16 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
+import { LessonOverlays, useLessonOverlays } from "@/frontend/components/lesson/lesson-overlays";
+import { useLessonAbort } from "@/frontend/components/lesson/use-lesson-abort";
 import { useTeacherLesson } from "@/frontend/components/teacher/teacher-provider";
 import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
 import { lessonPluginContext } from "@/frontend/components/lesson/lesson-plugins-model";
 import { PluginWindow } from "@/frontend/components/lesson/plugin-window";
 import { useSpaces } from "@/frontend/components/space-context";
 import { usePluginsAt } from "@/frontend/lib/use-plugins-at";
-import { jsonInit, send as sendRequest } from "@/frontend/lib/api";
 import { useStableValue } from "@/frontend/lib/use-stable-value";
 import { useNow } from "@/frontend/components/use-now";
-
-// The plan popup (and dagre, its layout engine) loads on first open.
-const PlanPopup = lazyComponent(() => import("@/frontend/components/plan-block").then((m) => m.PlanPopup));
 
 /** A lesson with no topic pages. */
 const NO_PAGES: ReadonlyMap<string, string> = new Map();
@@ -127,7 +120,7 @@ export function Chat({
 	// THE SESSION HOOK: the record is native history; the view is derived
 	// client-side (core/view.ts projectView).
 	const session = useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
-	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissProblem, keepGoing, dropKept, status, error, stop, clearError, resumeStream } = session;
+	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, keepGoing, dropKept, status, error, clearError, resumeStream } = session;
 	const { turnInFlight, localStreamRef, jobs, turns, pricing, summarizeAt, adoptAppendOnly } = useLessonServer({
 		chatId,
 		session,
@@ -208,15 +201,23 @@ export function Chat({
 	const now = useNow(Boolean(claimedAt), 30_000);
 	const stuckMinutes = busy ? stuckClaimMinutes(claimedAt, now) : null;
 
-	// The abort is always the remote kill (turns are server processes); a
-	// local view also detaches at once and keeps the partial. A failed view
-	// with a reply still running detaches too, so the send after it is not
-	// taken for a recovery that re-attaches.
-	const abortInFlightTurn = useCallback(() => {
-		if (localStreamRef.current || status === "error") stop();
-		// A failed abort is transient: the turn settles on its own.
-		void sendRequest("/api/activity/abort", jsonInit("POST", { kind: "turn", id: chatId }));
-	}, [chatId, stop, status, localStreamRef]);
+	/* The reading-thinking channel: thoughts noted in the box while reading,
+	 * kept when the check opens and riding its answer (or its dismissal) as
+	 * the separate readingThinking field. Each question has its own. */
+	const readingThinkingRef = useRef("");
+	const overlays = useLessonOverlays();
+	const { abortInFlightTurn, abortAsk, setAbortAsk, confirmAbort } = useLessonAbort({
+		chatId,
+		session,
+		localStreamRef,
+		pendingRef,
+		activeProblemRef,
+		busyRef,
+		readingThinkingRef,
+		focusOpen: overlays.focusOpen,
+		closeMermaid: overlays.closeMermaid,
+		skipReview,
+	});
 
 	// The stuck-turn line stops the turn and runs it again at once (its
 	// wording is the confirmation); send() waits until the stopped turn ends.
@@ -236,10 +237,6 @@ export function Chat({
 	// A teach-phase check waits behind "Check your understanding".
 	const requiresReveal = pending !== null && pending.appPosed?.kind !== "review" && questionNeedsReveal(pending.tool, pending.input, phase);
 
-	/* The reading-thinking channel: thoughts noted in the box while reading,
-	 * kept when the check opens and riding its answer (or its dismissal) as
-	 * the separate readingThinking field. Each question has its own. */
-	const readingThinkingRef = useRef("");
 	const pendingQuestionId = pending?.toolCallId ?? null;
 	const draftsLoaded = drafts.draft !== null;
 	const draftRef = useRef(drafts.draft);
@@ -254,81 +251,6 @@ export function Chat({
 		window.addEventListener(kbdEventForAction("toggle-user-thinking"), onToggle);
 		return () => window.removeEventListener(kbdEventForAction("toggle-user-thinking"), onToggle);
 	}, []);
-
-	// ── overlays: the plan, mermaid and figure focus, abort confirm ──
-	const [planOpen, setPlanOpen] = useState(false);
-	const planPresence = usePresence(planOpen);
-	const openPlan = useCallback(() => setPlanOpen(true), []);
-	const [mermaidFocus, setMermaidFocus] = useState<string | null>(null);
-	const [figureFocus, setFigureFocus] = useState<{ svg: string; inverted: boolean } | null>(null);
-	const mermaidPresence = usePresence(mermaidFocus !== null);
-	const figurePresence = usePresence(figureFocus !== null);
-	// The last focus each overlay showed, held through its exit fade.
-	const lastMermaidRef = useRef(mermaidFocus);
-	if (mermaidFocus !== null) lastMermaidRef.current = mermaidFocus;
-	const lastFigureRef = useRef(figureFocus);
-	if (figureFocus !== null) lastFigureRef.current = figureFocus;
-
-	// THE LAYERED ESC: an open focus claims Esc first (the plan's dialog
-	// takes its own); then the abort chain: a question or problem opens its
-	// confirm, a running reply stops at once (what it wrote stays).
-	// The handler reads refs — the window listener is mount-scoped.
-	const [abortAsk, setAbortAsk] = useState<AbortMode | null>(null);
-	const escStateRef = useRef({ abortAsk, mermaid: false });
-	escStateRef.current = { abortAsk, mermaid: mermaidFocus !== null || figureFocus !== null };
-	useEffect(() => {
-		const onAbort = () => {
-			const s = escStateRef.current;
-			const target = escAbortTarget({
-				abortAsk: s.abortAsk !== null,
-				mermaidFocus: s.mermaid,
-				pending: pendingRef.current !== null,
-				problem: activeProblemRef.current !== null,
-				busy: busyRef.current,
-			});
-			if (target === "question" || target === "problem") setAbortAsk(target);
-			else if (target === "turn") abortInFlightTurn();
-			else if (target === "mermaid") setMermaidFocus(null);
-		};
-		window.addEventListener("lh:kbd-abort-turn", onAbort);
-		return () => window.removeEventListener("lh:kbd-abort-turn", onAbort);
-	}, [abortInFlightTurn]);
-	const confirmAbort = useCallback(
-		() => {
-			setAbortAsk(null);
-			const p = pendingRef.current;
-			// A question from earlier is skipped alone: the teacher writes on.
-			if (p?.appPosed?.kind === "review") {
-				skipReview();
-				return;
-			}
-			// The opener has no call of its own: its skip is an answer of none,
-			// sent after the running turn is stopped, as the dialog says.
-			if (p?.appPosed?.kind === "opener") {
-				if (busyRef.current) abortInFlightTurn();
-				void send({ type: "opener-answer", topicDoneCallId: p.appPosed.ref, answer: null });
-				return;
-			}
-			// A skip is the question's answer, marked dismissed: the teacher moves
-			// on at once. A running reply stops first; the send waits for it to end.
-			if (p) {
-				const question = (p.input as { question?: string } | null)?.question ?? "";
-				const reading = readingThinkingRef.current.trim() || undefined;
-				readingThinkingRef.current = "";
-				const answer = dismissedAnswer(toolQuestionKind(p.tool), question);
-				if (busyRef.current) abortInFlightTurn();
-				void submitAnswer(p.toolCallId, reading ? { ...answer, readingThinking: reading } : answer, []);
-				return;
-			}
-			// The practice discard: the silent marker route.
-			const problem = activeProblemRef.current;
-			if (problem) {
-				void dismissProblem(problem.toolCallId);
-				if (busyRef.current) abortInFlightTurn();
-			}
-		},
-		[abortInFlightTurn, submitAnswer, dismissProblem, send, skipReview],
-	);
 
 	// ── the answer box ──
 	const [text, setText] = useState("");
@@ -521,11 +443,6 @@ export function Chat({
 			resumeStream();
 		}
 	};
-	const mermaidActions = useMemo(
-		() => ({ openMermaid: setMermaidFocus, openFigure: (svg: string, inverted: boolean) => setFigureFocus({ svg, inverted }) }),
-		[],
-	);
-
 	const sheet = useSheetDock(chatId, deadlineId);
 	// A plugin's window lies over the page; opening the cheat sheet closes it. It and the
 	// Teacher's window are both made of the bar and hang over the same corner, so one shows at a time.
@@ -570,7 +487,7 @@ export function Chat({
 
 	return (
 		<ChatActionsContext.Provider value={chatActions}>
-			<SessionMermaidContext.Provider value={mermaidActions}>
+			<SessionMermaidContext.Provider value={overlays.mermaidActions}>
 				<JobsContext.Provider value={jobs}>
 					<LessonStepsContext.Provider value={stepNumbers}>
 						<div className="@container/lesson flex h-full min-w-0 flex-1 flex-col">
@@ -589,7 +506,7 @@ export function Chat({
 								<LessonWorkFrame chatId={chatId}>
 									<div ref={sessionFindScopeRef} data-dock={sheetOpen ? "" : undefined} className="lh-dots lh-lesson-body relative h-full">
 										<LessonScroll
-											steps={<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onPick={openPick} onOpenPlan={openPlan} />}
+											steps={<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onPick={openPick} onOpenPlan={overlays.openPlan} />}
 											restKey={[pending?.toolCallId, problem?.toolCallId, problem?.part, lessonStop.card?.key].join(" ")}
 											busy={busy}
 											contextRef={scrollContextRef}
@@ -611,7 +528,7 @@ export function Chat({
 														arrivalsLive={arrivalsLive}
 														pageMarks={pageMarks}
 														arrive={arrive}
-														onOpenPlan={openPlan}
+														onOpenPlan={overlays.openPlan}
 													/>
 												</Pane>
 											}
@@ -660,20 +577,12 @@ export function Chat({
 											</div>
 										)}
 
-										{/* The session-scoped focuses: absolute over the lesson area, below
-										    the lesson's bar; each fades out through usePresence. */}
-										{mermaidPresence.mounted && lastMermaidRef.current !== null && (
-											<div className={cn("absolute inset-0 z-40", mermaidPresence.state === "closed" && "lh-fade")} data-state={mermaidPresence.state}>
-												<MermaidOverlay chart={lastMermaidRef.current} onClose={() => setMermaidFocus(null)} />
-											</div>
-										)}
-										{figurePresence.mounted && lastFigureRef.current !== null && (
-											<div className={cn("absolute inset-0 z-40", figurePresence.state === "closed" && "lh-fade")} data-state={figurePresence.state}>
-												<MermaidOverlay svg={lastFigureRef.current.svg} inverted={lastFigureRef.current.inverted} onClose={() => setFigureFocus(null)} />
-											</div>
-										)}
-										{planPresence.mounted && <PlanPopup tree={planTree} messages={messages} onClose={() => setPlanOpen(false)} state={planPresence.state} />}
-										<AbortTurnDialog mode={abortAsk} onClose={() => setAbortAsk(null)} onConfirm={confirmAbort} busy={busy && pending?.appPosed?.kind !== "review"} />
+										<LessonOverlays
+											overlays={overlays}
+											planTree={planTree}
+											messages={messages}
+											abort={{ mode: abortAsk, onClose: () => setAbortAsk(null), onConfirm: confirmAbort, busy: busy && pending?.appPosed?.kind !== "review" }}
+										/>
 									</div>
 								</LessonWorkFrame>
 							</div>

@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
 import { mockState, type MockView } from "@/shared/core";
-import { useSpaces } from "@/frontend/components/space-context";
+import { useJoinSpace } from "@/frontend/components/use-join-space";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { MockBar } from "./mock-bar";
 import { mockAnnouncement } from "./mock-model";
@@ -17,15 +15,7 @@ import { useMock } from "./use-mock";
  */
 /** `initial`: the mock as the route's loader read it. */
 export function MockPage({ spaceId, mockId, initial }: { spaceId: string; mockId: string; initial: MockView }) {
-	const navigate = useNavigate();
-	const { active, setActive } = useSpaces();
-	const [joined, setJoined] = useState(active === spaceId);
-	useEffect(() => {
-		if (!joined) {
-			if (active === spaceId) setJoined(true);
-			else setActive(spaceId);
-		} else if (active !== spaceId) navigate("/space", { replace: true });
-	}, [active, spaceId, joined, setActive, navigate]);
+	useJoinSpace(spaceId);
 
 	const { view, loadError, reload } = useMock(spaceId, mockId, initial);
 	if (!view) {

@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState, type FocusEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useLocation } from "react-router";
 import { keyboardFocus } from "@/frontend/components/focus-hygiene";
 import { PRESENT_MS } from "@/frontend/components/notice-stack-model";
@@ -9,6 +10,12 @@ import { BARS } from "./bar-look";
 
 /** Where the notices outside the panel portal into. */
 export const NOTICE_STACK_ID = "lh-notices";
+
+/** Where a notice card shows: the notice stack, or the page body when
+ *  there is none (as in tests). */
+export function InNoticeStack({ children }: { children: ReactNode }) {
+	return createPortal(children, document.getElementById(NOTICE_STACK_ID) ?? document.body);
+}
 
 /** With no pill on screen (the first steps): the window's top right corner. */
 const FLOATING = { top: 12, right: 16, least: 0, hang: false };

@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useMinute } from "@/frontend/components/countdown";
 import { useSpaceRecord } from "@/frontend/components/files/space-record";
 import { NoticeCard } from "@/frontend/components/notice-card";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { NOTICE_STACK_ID } from "@/frontend/components/top-bar/pill-panel";
+import { InNoticeStack } from "@/frontend/components/top-bar/pill-panel";
 import { send } from "@/frontend/lib/api";
 import { readNews } from "./work-model";
 
@@ -30,8 +29,9 @@ export function ReadNotice() {
 		setClosed(round);
 		void send(`/api/spaces/${encodeURIComponent(record.id)}/work`, { method: "DELETE" });
 	};
-	return createPortal(
-		<NoticeCard data-testid="read-notice" role="status" title={title} close={{ onClick: close, testId: "read-notice-close" }} />,
-		document.getElementById(NOTICE_STACK_ID) ?? document.body,
+	return (
+		<InNoticeStack>
+			<NoticeCard data-testid="read-notice" role="status" title={title} close={{ onClick: close, testId: "read-notice-close" }} />
+		</InNoticeStack>
 	);
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
+import { useOpenInSpace } from "@/frontend/components/use-join-space";
 import { jsonInit, send } from "@/frontend/lib/api";
 
 type Space = { id: string };
@@ -13,6 +14,7 @@ type Space = { id: string };
 export function useCloseSpace() {
 	const { active, setActive, refresh } = useSpaces();
 	const navigate = useNavigate();
+	const openInSpace = useOpenInSpace();
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -39,8 +41,7 @@ export function useCloseSpace() {
 		},
 		reopen: async (space: Space): Promise<boolean> => {
 			if (!(await write(space, false))) return false;
-			setActive(space.id);
-			navigate("/space");
+			openInSpace(space.id, "/space");
 			return true;
 		},
 	};

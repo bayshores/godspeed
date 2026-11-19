@@ -9,23 +9,23 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { useNavigate, useLocation } from "react-router";
+import { useLocation } from "react-router";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { useSpaces } from "@/frontend/components/space-context";
+import { useOpenInSpace } from "@/frontend/components/use-join-space";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
-import { NOTICE_STACK_ID } from "@/frontend/components/top-bar/pill-panel";
+import { InNoticeStack } from "@/frontend/components/top-bar/pill-panel";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { changeNames, changeTitle, mergeChange, type FolderChange } from "./files-notice-model";
 
 export function FilesNotice() {
 	const [changes, setChanges] = useState<FolderChange[]>([]);
-	const { spaces, active, setActive } = useSpaces();
+	const { spaces, active } = useSpaces();
 	const agent = useAgentStatus();
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
-	const navigate = useNavigate();
+	const openInSpace = useOpenInSpace();
 	// The space whose Files page is open, if any.
 	const onFilesOf = useLocation().pathname === "/space/files" ? active : null;
 	const onFilesRef = useRef(onFilesOf);
@@ -41,20 +41,20 @@ export function FilesNotice() {
 	});
 	const dismiss = (entry: FolderChange) => setChanges((list) => list.filter((e) => e !== entry));
 	if (typeof document === "undefined") return null;
-	return createPortal(
-		<FilesNoticeView
-			changes={changes}
-			agentConnected={agent?.connected !== false}
-			teacher={teacher}
-			nameOf={(id) => spaces.find((c) => c.id === id)?.name ?? null}
-			onSee={(entry) => {
-				dismiss(entry);
-				setActive(entry.spaceId);
-				navigate("/space/files");
-			}}
-			onDismiss={dismiss}
-		/>,
-		document.getElementById(NOTICE_STACK_ID) ?? document.body,
+	return (
+		<InNoticeStack>
+			<FilesNoticeView
+				changes={changes}
+				agentConnected={agent?.connected !== false}
+				teacher={teacher}
+				nameOf={(id) => spaces.find((c) => c.id === id)?.name ?? null}
+				onSee={(entry) => {
+					dismiss(entry);
+					openInSpace(entry.spaceId, "/space/files");
+				}}
+				onDismiss={dismiss}
+			/>
+		</InNoticeStack>
 	);
 }
 

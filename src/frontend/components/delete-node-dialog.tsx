@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { send, serverError } from "@/frontend/lib/api";
 import { spaceQuery, useSpaces } from "@/frontend/components/space-context";
 import { DeleteFoot, FailureRow } from "@/frontend/components/ui/delete-dialog-parts";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 
 type Node = { id: string; name: string };
 
@@ -25,37 +26,33 @@ export function DeleteNodeDialog({
 }) {
 	const { active: activeSpaceId } = useSpaces();
 	const { mounted, state, shown } = useLastWhileClosing(nodes && nodes.length > 0 ? nodes : null);
-	const [busy, setBusy] = useState(false);
-	const [failure, setFailure] = useState<string | null>(null);
+	// It stays busy while it closes after the delete.
+	const { busy, error: failure, run: guard, reset } = useGuardedAction({ stayBusy: true });
 
 	// Each open starts clean, once the exit has played.
 	useEffect(() => {
-		if (!mounted) {
-			setBusy(false);
-			setFailure(null);
-		}
-	}, [mounted]);
+		if (!mounted) reset();
+	}, [mounted, reset]);
 
 	// One at a time, in order: the graph's revision count must see them in
 	// order. A failure stops the rest (a graph run may be in progress).
 	const run = async () => {
-		if (!nodes || nodes.length === 0 || busy) return;
-		setBusy(true);
-		setFailure(null);
-		const dead: string[] = [];
-		let revision = 0;
-		for (const n of nodes) {
-			const { error, body, status } = await send(`/api/graph/nodes/${encodeURIComponent(n.id)}${spaceQuery(activeSpaceId)}`, { method: "DELETE" });
-			if (error) {
-				setFailure(status === 0 ? "Delete failed: network error. Try again." : (serverError(body) ?? `Delete failed (${status})`));
-				setBusy(false);
-				if (dead.length > 0) onDeleted(dead, revision);
-				return;
+		if (!nodes || nodes.length === 0) return;
+		await guard(async () => {
+			const dead: string[] = [];
+			let revision = 0;
+			for (const n of nodes) {
+				const { error, body, status } = await send(`/api/graph/nodes/${encodeURIComponent(n.id)}${spaceQuery(activeSpaceId)}`, { method: "DELETE" });
+				if (error) {
+					if (dead.length > 0) onDeleted(dead, revision);
+					return status === 0 ? "Delete failed: network error. Try again." : (serverError(body) ?? `Delete failed (${status})`);
+				}
+				dead.push(n.id);
+				revision = (body as { graphRevision?: number }).graphRevision ?? revision;
 			}
-			dead.push(n.id);
-			revision = (body as { graphRevision?: number }).graphRevision ?? revision;
-		}
-		onDeleted(dead, revision);
+			onDeleted(dead, revision);
+			return null;
+		});
 	};
 
 	if (!mounted || !shown) return null;

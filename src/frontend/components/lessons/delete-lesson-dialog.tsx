@@ -6,6 +6,7 @@ import { DeleteFoot, FailureRow } from "@/frontend/components/ui/delete-dialog-p
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import type { ChatDeleteMode, ChatListItem } from "@/shared/core";
 import { send, serverError } from "@/frontend/lib/api";
+import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 
 type Lesson = Pick<ChatListItem, "id" | "title">;
 
@@ -29,31 +30,27 @@ export function DeleteLessonDialog({
 }) {
 	const { mounted, state, shown } = useLastWhileClosing(chat);
 	const [traces, setTraces] = useState(false);
-	const [busy, setBusy] = useState(false);
-	const [failure, setFailure] = useState<string | null>(null);
+	// It stays busy while it closes after the delete.
+	const { busy, error: failure, run: guard, reset } = useGuardedAction({ stayBusy: true });
 
 	// Each open starts clean, once the exit has played.
 	useEffect(() => {
 		if (!mounted) {
 			setTraces(false);
-			setBusy(false);
-			setFailure(null);
+			reset();
 		}
-	}, [mounted]);
+	}, [mounted, reset]);
 
 	const run = async () => {
-		if (!chat || busy) return;
+		if (!chat) return;
 		const mode: ChatDeleteMode = traces ? "delete-nodes" : "preserve-graph";
-		setBusy(true);
-		setFailure(null);
-		const { error, body, status } = await send(`/api/chats/${chat.id}?mode=${mode}`, { method: "DELETE" });
-		if (error) {
-			setFailure(status === 0 ? "Delete failed: network error. Try again." : (serverError(body) ?? `Delete failed (${status})`));
-			setBusy(false);
-			return;
-		}
-		forgetLessonDraft(chat.id);
-		onDeleted(chat.id);
+		await guard(async () => {
+			const { error, body, status } = await send(`/api/chats/${chat.id}?mode=${mode}`, { method: "DELETE" });
+			if (error) return status === 0 ? "Delete failed: network error. Try again." : (serverError(body) ?? `Delete failed (${status})`);
+			forgetLessonDraft(chat.id);
+			onDeleted(chat.id);
+			return null;
+		});
 	};
 
 	if (!mounted || !shown) return null;

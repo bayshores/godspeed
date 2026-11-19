@@ -13,6 +13,7 @@ import { FootQuestion } from "@/frontend/components/ui/foot-question";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { tabListKeys } from "@/frontend/components/ui/tab-list";
 import { cn } from "@/frontend/lib/utils";
+import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { SMALL_KEY } from "./controls.tsx";
 
 /** Escape can ask to leave while the page is scrolled past its head. */
@@ -34,8 +35,7 @@ export function InstructionsPanel({
 }) {
 	const [activePath, setActivePath] = useState(parts[0]?.path ?? "");
 	const [drafts, setDrafts] = useState<Record<string, string>>({});
-	const [error, setError] = useState<string | null>(null);
-	const [busy, setBusy] = useState(false);
+	const { busy, error, run } = useGuardedAction();
 	// "clear" is Reset on a part with no saved version: it only drops typed text.
 	const [asking, setAsking] = useState<"reset" | "clear" | "discard" | null>(null);
 	const part = parts.find((p) => p.path === activePath) ?? parts[0];
@@ -73,11 +73,8 @@ export function InstructionsPanel({
 	async function change(init: RequestInit, failure: string) {
 		if (!part) return;
 		const path = part.path;
-		setError(null);
-		setBusy(true);
-		const { error } = await send(`/api/settings/prompts/${path}`, init);
-		setBusy(false);
-		if (error) return setError(failure);
+		const ok = await run(async () => ((await send(`/api/settings/prompts/${path}`, init)).error ? failure : null));
+		if (!ok) return;
 		forget(path);
 		onChanged();
 	}

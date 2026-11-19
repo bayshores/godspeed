@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { DEFAULT_TEACHER_NAME, hasProblems, planDays } from "@/shared/core";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaces } from "@/frontend/components/space-context";
+import { useJoinSpace } from "@/frontend/components/use-join-space";
 import { DeadlineDialog } from "@/frontend/components/space-page/deadline-dialog";
 import { studioPath } from "@/frontend/components/cheat-sheet/use-cheat-sheet";
 import { useMinute } from "@/frontend/components/countdown";
@@ -35,14 +36,8 @@ import { useDeadlineRequest } from "./use-deadline-request";
  */
 export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlineId: string }) {
 	const navigate = useNavigate();
-	const { active, setActive, activeSpace } = useSpaces();
-	const [joined, setJoined] = useState(active === spaceId);
-	useEffect(() => {
-		if (!joined) {
-			if (active === spaceId) setJoined(true);
-			else setActive(spaceId);
-		} else if (active !== spaceId) navigate("/space", { replace: true });
-	}, [active, spaceId, joined, setActive, navigate]);
+	const { activeSpace } = useSpaces();
+	useJoinSpace(spaceId);
 
 	const { data, error, refresh } = useProgress();
 	const { record, reload } = useSpaceRecord(spaceId);

@@ -17,37 +17,32 @@
  *
  * The name is the learner's choice (Settings → General → Teacher name) and
  * only ever shown on screen.
+ *
+ * Each job has its own hook: Follow (use-follow.ts), the recent changes and
+ * what the pill offers from them (use-recent-actions.ts), the tour
+ * (use-tour.ts) and the panel. This provider joins them into one context.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { useLocation, useNavigate } from "react-router";
-import type { AgentAction } from "@/shared/core";
-import { isAgentEntry } from "@/shared/core";
-import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
+import { useLocation } from "react-router";
+import { useServerEvent } from "@/frontend/components/server-events";
 import { useDoneSound } from "./use-done-sound";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useActivity } from "@/frontend/components/activity-dock";
 import { useSpaces } from "@/frontend/components/space-context";
-import { prefersReducedMotion, usePresence } from "@/frontend/components/presence";
+import { usePresence } from "@/frontend/components/presence";
 import { useSettings } from "@/frontend/components/settings-context";
-import { getJson } from "@/frontend/lib/api";
-import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useWindowPage } from "@/frontend/components/terminal/use-terminal-lines";
 import { TeacherPanel, panelFillsWindow } from "./teacher-panel";
 import { TeacherContext, useTeacher, type TeacherApi, type LessonPresence } from "./teacher-context";
 import { useTeacherPanel } from "./use-teacher-panel";
 import { panelBody, panelStarts, shownScreen } from "./dock-model";
-import { STEP_MS, nextStep } from "./tour";
-import { FOLLOW_DEFAULT, FOLLOW_KEY, GO_OFFER_MS, followMoves, followReady, followReducer, goOffer, heldStill, OPEN_SHEET_EVENT, openWaits, parseFollow, safePage, sheetDeadline, type FollowEvent, type FollowState } from "./follow";
-import { agentDoing, freshAction } from "./follow-status";
-import { dialogOpen, highlight, isInView, learnerDialogOpen, pickTarget, sleep, targetElements, waitForTarget } from "./dom";
-
-/** A run of visits waits this long first, so changes made together are
- *  seen together. */
-const GATHER_MS = 250;
-const RECENT_LIMIT = 20;
+import { agentDoing } from "./follow-status";
+import { useFollow } from "./use-follow";
+import { useRecentActions } from "./use-recent-actions";
+import { useTour } from "./use-tour";
 
 // Most of the app reads the teacher from here.
 export { useTeacher };
@@ -68,52 +63,10 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	const agent = useAgentStatus();
 	const { feed } = useActivity();
 	const spaces = useSpaces();
-	const navigate = useNavigate();
 	const { pathname } = useLocation();
 	useWindowPage(pathname, spaces.active);
 
-	// ── refs the async tour reads (always the latest render's values) ──
-	const live = useRef({ name, pathname, spaces, navigate });
-	live.current = { name, pathname, spaces, navigate };
-	const alive = useRef(true);
-	useEffect(() => {
-		alive.current = true;
-		return () => {
-			alive.current = false;
-		};
-	}, []);
-
-	// ── Follow ──
-	const followRef = useRef<FollowState>(FOLLOW_DEFAULT);
-	const [followOn, setFollowOn] = useState(FOLLOW_DEFAULT.on);
-	const dispatchFollow = useCallback((e: FollowEvent) => {
-		const next = followReducer(followRef.current, e);
-		followRef.current = next;
-		setFollowOn(next.on);
-	}, []);
-	useEffect(() => {
-		if (!parseFollow(readStorage(FOLLOW_KEY))) dispatchFollow({ type: "toggle", on: false });
-	}, [dispatchFollow]);
-	const setFollow = useCallback(
-		(on: boolean) => {
-			writeStorage(FOLLOW_KEY, on ? "1" : "0");
-			dispatchFollow({ type: "toggle", on });
-		},
-		[dispatchFollow],
-	);
-	// While Follow is on, note when the learner types or has a dialog open.
-	useEffect(() => {
-		if (!followOn) return;
-		const busy = () => dispatchFollow({ type: "busy", at: Date.now() });
-		document.addEventListener("input", busy, true);
-		const t = setInterval(() => {
-			if (dialogOpen()) busy();
-		}, 250);
-		return () => {
-			document.removeEventListener("input", busy, true);
-			clearInterval(t);
-		};
-	}, [followOn, dispatchFollow]);
+	const { followRef, followOn, dispatchFollow, setFollow } = useFollow();
 
 	// ── the lesson screen ──
 	const [lesson, setLessonState] = useState<LessonPresence | null>(null);
@@ -123,45 +76,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	const lessonRef = useRef(lesson);
 	lessonRef.current = lesson;
 
-	// ── recent changes ──
-	const [recent, setRecent] = useState<AgentAction[]>([]);
-	const loadRecent = useCallback(() => {
-		void getJson<{ actions?: AgentAction[] }>("/api/agent-actions").then(({ body }) => {
-			if (Array.isArray(body?.actions)) setRecent(body.actions.slice(0, RECENT_LIMIT));
-		});
-	}, []);
-	useEffect(loadRecent, [loadRecent]);
-	useServerResync(loadRecent);
-
-	// The agent's newest change, while it is fresh.
-	const [fresh, setFresh] = useState<AgentAction | null>(null);
-	useEffect(() => {
-		const now = freshAction(recent, Date.now());
-		setFresh(now?.action ?? null);
-		if (!now) return;
-		const t = setTimeout(() => setFresh(null), now.leftMs);
-		return () => clearTimeout(t);
-	}, [recent]);
-
-	// "Go to": with Follow off, the newest change on another page.
-	const [offer, setOffer] = useState<AgentAction | null>(null);
-	useEffect(() => {
-		const next = goOffer(recent, { follow: followOn, path: pathname, now: Date.now() });
-		setOffer(next);
-		if (!next) return;
-		const t = setTimeout(() => setOffer(null), GO_OFFER_MS - (Date.now() - Date.parse(next.at)));
-		return () => clearTimeout(t);
-	}, [recent, followOn, pathname]);
-
-	// A held open: what the agent opened while the window held, until it is
-	// reached, replaced or stale.
-	const [held, setHeld] = useState<AgentAction | null>(null);
-	useEffect(() => {
-		if (!held) return;
-		if (!heldStill(held, { path: pathname, now: Date.now() })) return setHeld(null);
-		const t = setTimeout(() => setHeld(null), GO_OFFER_MS - (Date.now() - Date.parse(held.at)));
-		return () => clearTimeout(t);
-	}, [held, pathname]);
+	const { recent, add, fresh, offer, held, setHeld } = useRecentActions(followOn, pathname);
 
 	// ── what it's doing ──
 	const doing = useMemo(
@@ -173,145 +88,18 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	const panel = useTeacherPanel();
 	const { open: panelOpen, setOpen: setPanelOpen, showTerminal, setList } = panel;
 	useDoneSound(panelOpen);
-
-	// ── the tour ──
-	const queue = useRef<AgentAction[]>([]);
-	// Changes that go to their page whatever Follow says, each with whether
-	// the learner clicked for it (an agent's open never jumps a hold).
-	const forced = useRef(new Map<string, boolean>());
-	const running = useRef(false);
-	const holds = useCallback(() => openWaits({ path: live.current.pathname, lessonDraft: !!lessonRef.current?.draft, dialog: learnerDialogOpen() }), []);
-
-	// asked: the learner clicked to go there, so unsent text doesn't hold it.
-	// False when the window held it, so there is nothing to light up.
-	const showPage = useCallback(async (action: AgentAction, asked: boolean): Promise<boolean> => {
-		const page = safePage(action.page);
-		if (!page) return true;
-		const { pathname: path, spaces: space, navigate: nav } = live.current;
-		// A move Follow would make waits as Go to while the window holds.
-		if (!asked && page !== path && holds()) {
-			setHeld(action);
-			return false;
-		}
-		const moves = followMoves({ page, spaceId: action.spaceId }, { path, activeSpace: space.active, lessonDraft: !!lessonRef.current?.draft, asked });
-		if (moves.switchSpace) space.setActive(moves.switchSpace.to);
-		if (moves.go) {
-			nav(moves.go);
-			const end = Date.now() + 4000;
-			while (live.current.pathname !== moves.go && Date.now() < end && alive.current) await sleep(60);
-			await sleep(200);
-		}
-		return true;
-	}, [holds]);
-
-	const waitUntilFollowReady = useCallback(async () => {
-		while (alive.current && !followReady(followRef.current, dialogOpen(), Date.now())) {
-			if (dialogOpen()) dispatchFollow({ type: "busy", at: Date.now() });
-			await sleep(250);
-		}
-	}, [dispatchFollow]);
-
-	// One change: its page (when following or `go`), then its item lit up.
-	const visit = useCallback(
-		async (action: AgentAction, go: boolean, asked: boolean) => {
-			const following = go || followRef.current.on;
-			// The lesson you are reading: the reply is right here.
-			if (!go && action.page.startsWith("/chat/") && action.page === live.current.pathname) return;
-			if (following && !(await showPage(action, asked))) return;
-			const els = await waitForTarget(action.target, following ? 4000 : 1200, () => alive.current);
-			const el = pickTarget(els);
-			if (el && following && !isInView(el)) {
-				el.scrollIntoView({ block: "center", behavior: prefersReducedMotion() ? "auto" : "smooth" });
-				await sleep(prefersReducedMotion() ? 60 : 450);
-			}
-			for (const e of els) highlight(e);
-			await sleep(STEP_MS);
-		},
-		[showPage],
-	);
-
-	// Many changes at once: the last one's page, every item lit together.
-	const burst = useCallback(
-		async (actions: AgentAction[]) => {
-			const last = actions.at(-1);
-			if (followRef.current.on && last) await showPage(last, false);
-			await sleep(300);
-			for (const e of actions.flatMap((a) => targetElements(a.target))) highlight(e);
-			await sleep(STEP_MS * 2);
-		},
-		[showPage],
-	);
-
-	const run = useCallback(async () => {
-		if (running.current) return;
-		running.current = true;
-		// Changes made together arrive a moment apart: gather them first.
-		await sleep(GATHER_MS);
-		try {
-			for (;;) {
-				if (!alive.current) return;
-				await waitUntilFollowReady();
-				// A click (or an open) jumps the line and goes to its page.
-				const [forcedId, asked] = [...forced.current][0] ?? [];
-				if (forcedId) {
-					forced.current.delete(forcedId);
-					const i = queue.current.findIndex((a) => a.id === forcedId);
-					const [action] = i >= 0 ? queue.current.splice(i, 1) : [];
-					if (action && !asked && holds()) setHeld(action);
-					else if (action) await visit(action, true, !!asked);
-					continue;
-				}
-				const step = nextStep(queue.current);
-				if (step.step === "done") break;
-				if (step.step === "burst") {
-					queue.current = [];
-					await burst(step.actions);
-				} else {
-					queue.current = step.rest;
-					await visit(step.action, false, false);
-				}
-			}
-		} finally {
-			running.current = false;
-		}
-	}, [burst, visit, waitUntilFollowReady, holds]);
-
 	// The panel stays while the page shows; across the whole window it gets out of the way.
 	const stepAside = useCallback(() => {
 		if (panelFillsWindow()) setPanelOpen(false);
 		else setList(false);
 	}, [setPanelOpen, setList]);
 
+	const { take, go } = useTour({ followRef, dispatchFollow, lessonRef, setHeld, stepAside });
 	useServerEvent("agent-action", (action) => {
 		if (!action || typeof action.id !== "string") return;
-		setRecent((list) => [action, ...list.filter((a) => a.id !== action.id)].slice(0, RECENT_LIMIT));
-		// The app's and the learner's own entries are listed, never visited, and so are a
-		// background check's.
-		if (!isAgentEntry(action) || action.background) return;
-		if (action.open) {
-			// The lesson's own deadline's cheat sheet opens beside the lesson.
-			const sheet = sheetDeadline(action.page);
-			if (sheet && !window.dispatchEvent(new CustomEvent(OPEN_SHEET_EVENT, { detail: sheet, cancelable: true }))) return stepAside();
-			if (holds()) return setHeld(action);
-			stepAside();
-			setHeld(null);
-			forced.current.set(action.id, false);
-		}
-		queue.current.push(action);
-		void run();
+		add(action);
+		take(action);
 	});
-
-	const go = useCallback(
-		(action: AgentAction) => {
-			stepAside();
-			setHeld((h) => (h?.id === action.id ? null : h));
-			// Not queued twice if it is still waiting.
-			queue.current = [...queue.current.filter((a) => a.id !== action.id), action];
-			forced.current.set(action.id, true);
-			void run();
-		},
-		[run, stepAside],
-	);
 
 	const terminals = useTerminals();
 	const view = panelBody(!!terminals?.available);

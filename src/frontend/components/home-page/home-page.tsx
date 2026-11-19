@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import { hasProblems, type DeadlineProgress } from "@/shared/core";
 import { useSpaces } from "@/frontend/components/space-context";
+import { useOpenInSpace } from "@/frontend/components/use-join-space";
 import { SpaceDialog } from "@/frontend/components/space-dialog";
 import { useMinute } from "@/frontend/components/countdown";
 import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
@@ -32,16 +33,15 @@ export function HomePage() {
 	const [progressReady, setProgressReady] = useState(false);
 	if (!progressReady && shown.length > 0 && spacesSettled(shownIds, spacesProgress) && newFiles.settled) setProgressReady(true);
 	const nowMs = useMinute();
-	const navigate = useNavigate();
+	const openInSpace = useOpenInSpace();
 	const [addingSpace, setAddingSpace] = useState(false);
 	// The dialog compares its mode by identity: one object per open.
 	const createMode = useMemo(() => (addingSpace ? { kind: "create" as const } : null), [addingSpace]);
 	const addDeadline = useCallback(
 		(spaceId: string) => {
-			setActive(spaceId);
-			navigate(ADD_DEADLINE_HREF);
+			openInSpace(spaceId, ADD_DEADLINE_HREF);
 		},
-		[setActive, navigate],
+		[openInSpace],
 	);
 	const lesson = useLessonStart();
 

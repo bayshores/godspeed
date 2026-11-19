@@ -25,7 +25,7 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 | `turn-settled` | `{chatId}` | `end_turn` on a live entry, after `persist_turn`, so fetches read saved data |
 | `jobs-changed` | `{chatId?}` | every job-store write that changed something |
 | `activity-changed` | `{}` | an extraction run changed phase, a deadline request or space check started or ended, or a background work item was queued, taken or dropped (`engine::bridge`, `agent::extraction::extraction_runs`, `services::spaces::deadline_requests`) |
-| `chats-changed` | `{}` | a lesson was created, renamed, moved to another space or deleted. The lesson list and the progress hook (`use-progress.ts`) read it |
+| `chats-changed` | `{}` | a lesson was created, renamed, moved to another space or deleted. The lesson list and the progress hook (`use-progress.tsx`) read it |
 | `spaces-changed` | `{}` | a space was created, edited, closed or deleted, or its files changed |
 | `agent-changed` | `{}` | outside agent connected, started or stopped teaching, was renamed or lapsed, a helper arrived, or compacting started or lapsed |
 | `record-changed` | `{chatId}` | a lesson record changed without a turn: a problem discard, Keep going at a stop, an answer to a question from earlier, a kept sentence's part dropped or brought back, an answer that leaves a sibling question open, or a finished compaction. The `keep-going`, `review` and `kept` routes also emit it during a turn |
@@ -50,7 +50,7 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 - Handlers read refs (`localStreamRef`, `turnInFlightRef`, `statusRef`), never stale render state.
 - On `turn-started`, a lesson ignores event when `localStreamRef.current` is held (its own turn just began) or it is already attached. Otherwise it attaches to running turn (`GET /api/chats/{id}/stream`).
 - While attached, stream's final event settles turn. A `turn-settled` refetch (`syncFromServer`) would swap in a stale snapshot, so it is skipped. An error status detaches and refetches.
-- A record read from the server goes through `useServerResource` (`src/frontend/components/use-server-resource.ts`): it names the events that read it again (with an optional test on the payload), reads again on reconnect, lets the newest read win and keeps the last value when a read fails. Each record has one owner in the window (a provider or one hook); other components read from it.
+- A record read from the server goes through `useServerResource` (`src/frontend/components/use-server-resource.ts`): it names the events that read it again (with an optional test on the payload), reads again on reconnect, lets the newest read win and keeps the last value when a read fails. Each record has one owner in the window (a provider or one hook); other components read from it. The space pages share one progress read (`ProgressProvider` in the space layout); a page outside them reads its own.
 - Bursty events coalesce into one fetch per window with a trailing debounce (`debounceMs`, or `useTrailing` in `src/frontend/lib/use-trailing.ts`): 250 ms for the lesson list and the activity feed, 400 ms for progress.
 - Every consumer refetches once when channel opens or reopens.
 

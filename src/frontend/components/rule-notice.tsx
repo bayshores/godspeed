@@ -5,11 +5,10 @@
  * in it or the rule is being edited.
  */
 
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
 import { DEFAULT_TEACHER_NAME, parseWhere, type RuleWhere } from "@/shared/core";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
-import { NOTICE_STACK_ID } from "@/frontend/components/top-bar/pill-panel";
+import { InNoticeStack } from "@/frontend/components/top-bar/pill-panel";
 import { RuleEditBox, useSavedRule } from "@/frontend/components/saved-rule";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
@@ -33,19 +32,18 @@ export function RuleNotice() {
 		if (next && where) setSaved({ key: Date.now(), text: next.text, label: next.label, where });
 	});
 	if (!saved || typeof document === "undefined") return null;
-	return createPortal(<Card key={saved.key} saved={saved} onDone={() => setSaved(null)} />, document.getElementById(NOTICE_STACK_ID) ?? document.body);
+	return (
+		<InNoticeStack>
+			<Card key={saved.key} saved={saved} onDone={() => setSaved(null)} />
+		</InNoticeStack>
+	);
 }
 
 function Card({ saved, onDone }: { saved: Saved; onDone: () => void }) {
 	const api = useSavedRule(saved.where, saved.text);
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
-	const { held, handlers } = useHeld();
 	const { mode } = api;
-	useEffect(() => {
-		if (held || mode.kind === "editing") return;
-		const id = window.setTimeout(onDone, mode.kind === "removed" ? AFTER_UNDO_MS : SHOW_MS);
-		return () => window.clearTimeout(id);
-	}, [held, mode.kind, onDone]);
+	const handlers = useHeld(mode.kind === "editing" ? null : mode.kind === "removed" ? AFTER_UNDO_MS : SHOW_MS, onDone, mode.kind);
 
 	return (
 		<NoticeCard

@@ -4,6 +4,7 @@ import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { FIELD } from "@/frontend/components/ui/field";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { send, serverError } from "@/frontend/lib/api";
+import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { cn } from "@/frontend/lib/utils";
 
 /** GET /api/web-search: the saved key's last characters and its searches
@@ -36,23 +37,22 @@ function usageLine(limit: number | null): string {
 export function WebSearch() {
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const [view, setView] = useState<WebSearchView | null>(null);
-	const [error, setError] = useState<string | null>(null);
 	const [key, setKey] = useState("");
-	const [busy, setBusy] = useState(false);
+	const { busy, error, setError, run: guard } = useGuardedAction();
 	useEffect(() => {
 		request("/api/web-search").then(setView, (e: Error) => setError(e.message));
-	}, []);
+	}, [setError]);
 
-	const run = (call: Promise<WebSearchView>) => {
-		setBusy(true);
-		setError(null);
-		call
-			.then((next) => {
-				setView(next);
+	const run = (call: () => Promise<WebSearchView>) =>
+		void guard(async () => {
+			try {
+				setView(await call());
 				setKey("");
-			}, (e: Error) => setError(e.message))
-			.finally(() => setBusy(false));
-	};
+				return null;
+			} catch (e) {
+				return (e as Error).message;
+			}
+		});
 	const hasKey = !!view?.keyEnd;
 	const works = hasKey && !view.error;
 
@@ -94,7 +94,7 @@ export function WebSearch() {
 										Key ending in {view.keyEnd}
 									</span>
 									{works && <span className="bg-ans-right px-2 py-0.5 text-sm text-background">Works</span>}
-									<button type="button" data-testid="web-search-remove" disabled={busy} onClick={() => run(request("/api/web-search/key", { method: "DELETE" }))} className="lh-btn ml-auto shrink-0">
+									<button type="button" data-testid="web-search-remove" disabled={busy} onClick={() => run(() => request("/api/web-search/key", { method: "DELETE" }))} className="lh-btn ml-auto shrink-0">
 										Remove key
 									</button>
 								</div>
@@ -104,7 +104,7 @@ export function WebSearch() {
 								className="flex flex-col gap-2"
 								onSubmit={(e) => {
 									e.preventDefault();
-									run(request("/api/web-search/key", { method: "PUT", body: JSON.stringify({ key }) }));
+									run(() => request("/api/web-search/key", { method: "PUT", body: JSON.stringify({ key }) }));
 								}}
 							>
 								<label htmlFor="web-search-key-input" className="text-[15px] text-ink-2">

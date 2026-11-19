@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useSpaces } from "@/frontend/components/space-context";
 import { CheckRow } from "@/frontend/components/ui/check-row";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { jsonInit, send, serverError } from "@/frontend/lib/api";
 
 type Lesson = { id: string; title: string; spaceId?: string };
@@ -19,19 +20,17 @@ function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; 
 	const { spaces } = useSpaces();
 	const from = lesson.spaceId ?? null;
 	const [target, setTarget] = useState<string | null>(from);
-	const [busy, setBusy] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const { busy, error, run } = useGuardedAction();
 	const close = () => {
 		if (!busy) onClose();
 	};
-	const move = async () => {
-		setBusy(true);
-		setError(null);
-		const { error, body, status } = await send(`/api/chats/${lesson.id}/space`, jsonInit("PUT", { spaceId: target ?? "none" }));
-		if (error) setError(status === 0 ? error : (serverError(body) ?? `Move failed (${status})`));
-		else onMoved(lesson.id);
-		setBusy(false);
-	};
+	const move = () =>
+		run(async () => {
+			const { error, body, status } = await send(`/api/chats/${lesson.id}/space`, jsonInit("PUT", { spaceId: target ?? "none" }));
+			if (error) return status === 0 ? error : (serverError(body) ?? `Move failed (${status})`);
+			onMoved(lesson.id);
+			return null;
+		});
 	const options: { id: string | null; name: string }[] = [
 		...spaces.filter((c) => !c.closed || c.id === from).map((c) => ({ id: c.id as string | null, name: c.name })),
 		{ id: null, name: "No space" },

@@ -25,6 +25,7 @@ import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialo
 import { FIELD } from "@/frontend/components/ui/field";
 import { FootQuestion } from "@/frontend/components/ui/foot-question";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
+import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { Segmented } from "@/frontend/components/ui/segmented";
 
 /** What the dialog opens on. One object per open: the dialog compares it by identity. */
@@ -60,8 +61,7 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 	const [seed] = useState<DeadlineDraft>(() => (saved ? draftFrom(saved) : mode.waiting ? draftFromWaiting(mode.waiting) : NEW_DEADLINE));
 	const [draft, setDraft] = useState(seed);
 	const [filter, setFilter] = useState("");
-	const [error, setError] = useState<string | null>(null);
-	const [busy, setBusy] = useState(false);
+	const { busy, error, setError, run } = useGuardedAction();
 	const [asking, setAsking] = useState<"discard" | "remove" | null>(null);
 	const change = (patch: Partial<DeadlineDraft>) => setDraft((d) => ({ ...d, ...patch }));
 
@@ -86,27 +86,25 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 		const problem = draftProblem(draft);
 		if (problem) return setError(problem);
 		if (saved && !unsaved) return onClose();
-		setBusy(true);
-		setError(null);
-		const { error: failed, body } = saved
-			? await send(`${base}/${encodeURIComponent(saved.id)}`, jsonInit("PUT", updateBody(saved, draft)))
-			: await send(base, jsonInit("POST", addBody(draft, mode.waiting)));
-		setBusy(false);
-		if (failed) return setError(saved && isGone(body) ? `${saved.name} was removed while you were editing it, so your changes weren't saved.` : failed);
-		onClose();
+		const ok = await run(async () => {
+			const { error: failed, body } = saved
+				? await send(`${base}/${encodeURIComponent(saved.id)}`, jsonInit("PUT", updateBody(saved, draft)))
+				: await send(base, jsonInit("POST", addBody(draft, mode.waiting)));
+			if (!failed) return null;
+			return saved && isGone(body) ? `${saved.name} was removed while you were editing it, so your changes weren't saved.` : failed;
+		});
+		if (ok) onClose();
 	};
 	const remove = async () => {
 		if (!saved) return;
-		setBusy(true);
-		setError(null);
-		const { error: failed, body } = await send(`${base}/${encodeURIComponent(saved.id)}`, { method: "DELETE" });
-		setBusy(false);
-		// Already removed (by an agent) is what was asked for.
-		if (failed && !isGone(body)) {
+		const ok = await run(async () => {
+			const { error: failed, body } = await send(`${base}/${encodeURIComponent(saved.id)}`, { method: "DELETE" });
+			// Already removed (by an agent) is what was asked for.
+			if (!failed || isGone(body)) return null;
 			setAsking(null);
-			return setError(failed);
-		}
-		onRemoved();
+			return failed;
+		});
+		if (ok) onRemoved();
 	};
 
 	const foot =
