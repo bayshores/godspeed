@@ -191,6 +191,32 @@ mod tests {
 		assert!(locks.held.lock().is_empty());
 	}
 
+	#[test]
+	fn many_threads_on_a_few_keys_never_share_a_lock_and_leave_no_entry() {
+		use std::sync::atomic::{AtomicUsize, Ordering};
+		const KEYS: [&str; 3] = ["a", "b", "c"];
+		let locks = Locks::new();
+		let inside: Arc<[AtomicUsize; 3]> = Arc::new([AtomicUsize::new(0), AtomicUsize::new(0), AtomicUsize::new(0)]);
+		let threads: Vec<_> = (0..8)
+			.map(|thread| {
+				let (locks, inside) = (locks.clone(), inside.clone());
+				std::thread::spawn(move || {
+					for round in 0..2000 {
+						let at = (thread + round) % KEYS.len();
+						let _guard = locks.lock(LockKey::Chat(KEYS[at]));
+						assert_eq!(inside[at].fetch_add(1, Ordering::SeqCst), 0, "two threads hold {}", KEYS[at]);
+						let _again = (round % 7 == 0).then(|| locks.lock(LockKey::Chat(KEYS[at])));
+						inside[at].fetch_sub(1, Ordering::SeqCst);
+					}
+				})
+			})
+			.collect();
+		for thread in threads {
+			thread.join().unwrap();
+		}
+		assert!(locks.held.lock().is_empty(), "every entry went with its last guard");
+	}
+
 	/// The panic message of `take` run on its own thread, or None when it did not panic.
 	#[cfg(any(test, feature = "lock-order-check"))]
 	fn panic_of(take: impl FnOnce(&Locks) + Send + 'static) -> Option<String> {
