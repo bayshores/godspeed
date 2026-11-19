@@ -21,7 +21,7 @@ import { GraphBar } from "./graph-bar.tsx";
 import { GraphFoot } from "./graph-foot.tsx";
 import { useGraphCosts } from "./use-graph-costs.ts";
 import { useGraphSnapshot } from "./use-graph-snapshot.ts";
-import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
+import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
 import { lazyComponent } from "@/frontend/lib/lazy-component";
 import type { Aim, Flight } from "./constellation-camera.ts";
 import type { InView } from "./use-in-view.ts";

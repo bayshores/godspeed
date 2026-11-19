@@ -954,7 +954,7 @@ body {
    when the shell's window.lh exists.
 
    - .lh-drag        window-drag region, on a dedicated mask div in
-                       home.tsx placed FIRST in the page DOM (the shim lets the
+                       study-page.tsx placed FIRST in the page DOM (the shim lets the
                        last listed element under the pointer decide)
    - .lh-no-drag     carve-out for interactive elements inside a drag band
                        (native interactive elements carve out on their own in

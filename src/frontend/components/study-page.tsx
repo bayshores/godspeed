@@ -6,13 +6,13 @@ import { useSpaces } from "@/frontend/components/space-context";
 import { useReplayOnChange } from "@/frontend/components/motion";
 import { useProgress } from "@/frontend/components/use-progress";
 import { displayName } from "@/frontend/components/overview/overview-model";
-import { DeadlineStarts } from "@/frontend/components/home/deadline-starts";
-import { FactsPicker } from "@/frontend/components/home/facts-picker";
+import { DeadlineStarts } from "@/frontend/components/study-page/deadline-starts";
+import { FactsPicker } from "@/frontend/components/study-page/facts-picker";
 import { useGraphSnapshot } from "@/frontend/components/graph/use-graph-snapshot";
-import { SuggestionList } from "@/frontend/components/home/suggestions";
-import { homeSuggestions } from "@/frontend/components/home/suggestions-model";
-import { TopicBox } from "@/frontend/components/home/topic-box";
-import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
+import { SuggestionList } from "@/frontend/components/study-page/suggestions";
+import { studyPageSuggestions } from "@/frontend/components/study-page/suggestions-model";
+import { TopicBox } from "@/frontend/components/study-page/topic-box";
+import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
@@ -57,7 +57,7 @@ export function NewLesson() {
 	const studyPath = useCallback((topicId: string) => void studyPathTopic(topicId), [studyPathTopic]);
 
 	const deadlines = useMemo(() => (progress?.deadlines ?? []).filter((d) => d.daysUntil >= 0 && !d.done), [progress]);
-	const suggestions = useMemo(() => homeSuggestions(progress), [progress]);
+	const suggestions = useMemo(() => studyPageSuggestions(progress), [progress]);
 
 	return (
 		<div className="flex h-full min-h-0 flex-col" data-testid="home">

@@ -5,7 +5,7 @@ import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaces } from "@/frontend/components/space-context";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { useMinute } from "@/frontend/components/countdown";
-import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
+import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
 import { useProgress } from "@/frontend/components/use-progress";
 import { PickSpace } from "@/frontend/components/pick-space";
 import { useSpaceRecord } from "@/frontend/components/files/space-record";

@@ -3,7 +3,7 @@ import { LazyChainTableOverlay as ChainTableOverlay } from "@/frontend/component
 
 /**
  * "Start from facts": the chain table in select mode. The picks ride the
- * new lesson's creation (its opening context); Home holds them, so they
+ * new lesson's creation (its opening context); the Study page holds them, so they
  * survive a Teach/Practice switch.
  */
 export function FactsPicker({

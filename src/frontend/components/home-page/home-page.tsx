@@ -4,7 +4,7 @@ import { hasProblems, type DeadlineProgress } from "@/shared/core";
 import { useSpaces } from "@/frontend/components/space-context";
 import { SpaceDialog } from "@/frontend/components/space-dialog";
 import { useMinute } from "@/frontend/components/countdown";
-import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
+import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
 import { ADD_DEADLINE_HREF } from "@/frontend/components/space-page/deadlines-tab-model";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";

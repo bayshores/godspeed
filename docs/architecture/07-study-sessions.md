@@ -9,7 +9,7 @@ Started from:
 - Study in a topic's or a fact's panel on Graph tab, or Study on Progress tab
 - "Go over it with {teacher}" on a mock's results
 - Study on a space's path (§6.3)
-- "Start from facts" (chain table in select mode, `src/frontend/components/home/facts-picker.tsx`)
+- "Start from facts" (chain table in select mode, `src/frontend/components/study-page/facts-picker.tsx`)
 - MCP `start_lesson` tool
 
 Older `teach` and `practice` lessons on disk keep working with their own agents. Practice lessons are never extracted into the graph.

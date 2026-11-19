@@ -1,6 +1,6 @@
 import type { RouteObject } from "react-router";
 import { HomePage } from "@/frontend/components/home-page/home-page";
-import { NewLesson } from "@/frontend/components/home";
+import { NewLesson } from "@/frontend/components/study-page";
 import { GraphScreen } from "@/frontend/components/graph/graph-screen";
 import { SpaceOverview } from "@/frontend/components/overview/space-overview";
 import { FilesPage } from "@/frontend/components/files/files-page";

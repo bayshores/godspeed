@@ -1,5 +1,5 @@
 /**
- * Home's "Suggested for <space>" rows: which lesson is
+ * The Study page's "Suggested for <space>" rows: which lesson is
  * Continue (the newest unfinished lesson), Next up (a path's next topic
  * before the next file), which Work-on-next list counts (the soonest open
  * deadline with files, else the space's), the two-row cap, and the
@@ -9,13 +9,13 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { DeadlineProgress, LessonProgress, PathTopicProgress, ProgressPayload, TopicProgress, WorkOnNextItem } from "../../src/shared/core/index.ts";
 import {
-	homeSuggestions,
+	studyPageSuggestions,
 	suggestionKey,
 	suggestionLine,
 	upcomingDeadline,
 	workOnNextList,
 	WORK_ON_NEXT_ROWS,
-} from "../../src/frontend/components/home/suggestions-model.ts";
+} from "../../src/frontend/components/study-page/suggestions-model.ts";
 
 function lesson(chatId: string, updatedAt: string, over: Partial<LessonProgress> = {}): LessonProgress {
 	return { chatId, title: chatId, kind: "teach", updatedAt, answers: [], right: 0, answered: 0, score: null, ...over };
@@ -81,15 +81,15 @@ function payload(over: Partial<ProgressPayload> = {}): ProgressPayload {
 	};
 }
 
-describe("homeSuggestions", () => {
+describe("studyPageSuggestions", () => {
 	it("nothing loaded: no rows", () => {
-		assert.deepEqual(homeSuggestions(null), []);
-		assert.deepEqual(homeSuggestions(payload()), []);
+		assert.deepEqual(studyPageSuggestions(null), []);
+		assert.deepEqual(studyPageSuggestions(payload()), []);
 	});
 
 	it("Continue is the newest unfinished lesson (lessons come newest first), then Next up, then Work on next", () => {
 		const file = { fileId: "f4", name: "Lecture 4.pdf", facts: 22, inLessons: 0, share: 0 };
-		const rows = homeSuggestions(
+		const rows = studyPageSuggestions(
 			payload({
 				lessons: [lesson("newest", "2026-10-27T12:00:00Z", { unfinished: true }), lesson("older", "2026-10-26T12:00:00Z", { unfinished: true })],
 				nextUp: file,
@@ -102,7 +102,7 @@ describe("homeSuggestions", () => {
 	});
 
 	it("Continue skips finished lessons and picks the newest unfinished one", () => {
-		const rows = homeSuggestions(
+		const rows = studyPageSuggestions(
 			payload({
 				lessons: [lesson("done-new", "2026-10-27T12:00:00Z"), lesson("open-mid", "2026-10-26T12:00:00Z", { unfinished: true }), lesson("open-old", "2026-10-25T12:00:00Z", { unfinished: true })],
 			}),
@@ -111,21 +111,21 @@ describe("homeSuggestions", () => {
 	});
 
 	it("with no unfinished lesson there is no Continue row", () => {
-		const rows = homeSuggestions(payload({ lessons: [lesson("a", "2026-10-27T12:00:00Z"), lesson("b", "2026-10-26T12:00:00Z")] }));
+		const rows = studyPageSuggestions(payload({ lessons: [lesson("a", "2026-10-27T12:00:00Z"), lesson("b", "2026-10-26T12:00:00Z")] }));
 		assert.deepEqual(rows.map((r) => r.kind), []);
 	});
 
 	it("in a space with a path, Next up is the topic its Study takes, with its place", () => {
 		const step = (id: string, name: string): PathTopicProgress => ({ id, name, covers: "c", answered: 0, right: 0, wrong: 0, dontKnow: 0, rate: null, status: "untested", color: "var(--lh-ink-3)" });
 		const file = { fileId: "f4", name: "Lecture 4.pdf", facts: 22, inLessons: 0, share: 0 };
-		const rows = homeSuggestions(payload({ nextUp: file, path: { goal: "backend developer", topics: [step("p1", "Git"), step("p2", "HTTP")], nextId: "p2" } }));
+		const rows = studyPageSuggestions(payload({ nextUp: file, path: { goal: "backend developer", topics: [step("p1", "Git"), step("p2", "HTTP")], nextId: "p2" } }));
 		assert.deepEqual(rows.map((r) => r.kind), ["path"]);
 		assert.equal(suggestionLine(rows[0]!), "Next up, 2 of 2 on the path");
 		assert.equal(suggestionKey(rows[0]!), "path:p2");
 	});
 
 	it(`at most ${WORK_ON_NEXT_ROWS} Work-on-next rows, each with its topic`, () => {
-		const rows = homeSuggestions(
+		const rows = studyPageSuggestions(
 			payload({ overall: { topicIds: [], counts: { strong: 0, shaky: 0, weak: 0, untested: 0 }, workOnNext: [item("a"), item("b", "untested"), item("c")] } }),
 		);
 		assert.equal(rows.length, WORK_ON_NEXT_ROWS);
@@ -133,14 +133,14 @@ describe("homeSuggestions", () => {
 	});
 
 	it("a Work-on-next item whose topic is gone is skipped", () => {
-		const rows = homeSuggestions(
+		const rows = studyPageSuggestions(
 			payload({ overall: { topicIds: [], counts: { strong: 0, shaky: 0, weak: 0, untested: 0 }, workOnNext: [item("zz"), item("d")] } }),
 		);
 		assert.deepEqual(rows.map((r) => (r.kind === "work-on-next" ? r.topic.id : "")), ["d"]);
 	});
 
 	it("row keys are unique per kind and id", () => {
-		const rows = homeSuggestions(
+		const rows = studyPageSuggestions(
 			payload({ lessons: [lesson("x", "2026-10-27T12:00:00Z", { unfinished: true })], overall: { topicIds: [], counts: { strong: 0, shaky: 0, weak: 0, untested: 0 }, workOnNext: [item("a"), item("c")] } }),
 		);
 		assert.deepEqual(rows.map(suggestionKey), ["continue:x", "work:a", "work:c"]);

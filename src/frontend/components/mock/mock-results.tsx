@@ -1,7 +1,7 @@
 import { DEFAULT_TEACHER_NAME, MOCK_LANGUAGES, localDay, longDay, minutesUsed, pauseTotal, questionResult, solvedCount, type MockQuestion, type MockView } from "@/shared/core";
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
-import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
+import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import { MockBar } from "./mock-bar";

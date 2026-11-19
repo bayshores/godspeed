@@ -10,7 +10,7 @@ import { spaceFilePathOf } from "@/frontend/components/files/space-files-api";
 import { useSpaceRecord } from "@/frontend/components/files/space-record";
 import { jsonInit, send } from "@/frontend/lib/api";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
-import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
+import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { useProgress } from "@/frontend/components/use-progress";
 import { JobFrame } from "@/frontend/components/work/job-frame";

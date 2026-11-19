@@ -14,7 +14,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import type { DeadlineProgress, FileCoverage, LessonProgress, TopicProgress } from "../../src/shared/core/index.ts";
-import type { Suggestion } from "../../src/frontend/components/home/suggestions-model.ts";
+import type { Suggestion } from "../../src/frontend/components/study-page/suggestions-model.ts";
 
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, {
@@ -27,10 +27,10 @@ Object.assign(globalThis, {
 	self: globalThis,
 });
 
-const { TopicBox, isStartKey } = await import("../../src/frontend/components/home/topic-box.tsx");
-const { SuggestionList } = await import("../../src/frontend/components/home/suggestions.tsx");
-const { DeadlineStarts } = await import("../../src/frontend/components/home/deadline-starts.tsx");
-const { useLessonStart } = await import("../../src/frontend/components/home/use-lesson-start.ts");
+const { TopicBox, isStartKey } = await import("../../src/frontend/components/study-page/topic-box.tsx");
+const { SuggestionList } = await import("../../src/frontend/components/study-page/suggestions.tsx");
+const { DeadlineStarts } = await import("../../src/frontend/components/study-page/deadline-starts.tsx");
+const { useLessonStart } = await import("../../src/frontend/components/study-page/use-lesson-start.ts");
 const { takeStartFiles } = await import("../../src/frontend/components/lesson/start-files.ts");
 const NO_FILES = { files: [], error: null, add: () => {}, remove: () => {}, clear: () => {}, restore: () => {} };
 const { MemoryRouter, useLocation } = await import("react-router");
@@ -122,7 +122,7 @@ function row(html: string, testid: string): string {
 
 // ─── static ─────────────────────────────────────────────────────────────────
 
-describe("Home: the topic box", () => {
+describe("Study page: the topic box", () => {
 	it("the box: the placeholder, Start from facts and the filled Study", () => {
 		const html = box();
 		assert.ok(html.includes('placeholder="A topic, a homework method, or a question you&#x27;re stuck on"'));
@@ -156,7 +156,7 @@ describe("Home: the topic box", () => {
 	});
 });
 
-describe("Home: suggestions", () => {
+describe("Study page: suggestions", () => {
 	it("the label names the space; no space: just Suggested", () => {
 		assert.ok(list().includes(">Suggested for CSE 21</h2>"));
 		assert.ok(list({ spaceLabel: null }).includes(">Suggested</h2>"));
@@ -204,7 +204,7 @@ describe("Home: suggestions", () => {
 
 // ─── clicks ─────────────────────────────────────────────────────────────────
 
-describe("Home: actions", () => {
+describe("Study page: actions", () => {
 	let root: Root | null = null;
 	afterEach(async () => {
 		await act(async () => root?.unmount());

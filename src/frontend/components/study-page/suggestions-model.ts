@@ -1,5 +1,5 @@
 /**
- * Home's "Suggested for <space>" rows, derived from the
+ * The Study page's "Suggested for <space>" rows, derived from the
  * space's ProgressPayload (src/shared/core/progress.ts). Pure, unit-tested.
  *
  *  - Continue: the newest lesson the server marks unfinished (lessons
@@ -21,7 +21,7 @@ import type {
 import { pathNext } from "@/shared/core";
 import { rightLabel } from "@/frontend/components/deadline/deadline-model";
 
-/** How many "Work on next" rows Home shows. */
+/** How many "Work on next" rows the Study page shows. */
 export const WORK_ON_NEXT_ROWS = 2;
 
 export type Suggestion =
@@ -36,12 +36,12 @@ export function upcomingDeadline(deadlines: readonly DeadlineProgress[]): Deadli
 	return deadlines.find((d) => d.daysUntil >= 0 && !d.done && d.files.length > 0) ?? null;
 }
 
-/** The "Work on next" list Home draws from. */
+/** The "Work on next" list the Study page draws from. */
 export function workOnNextList(data: Pick<ProgressPayload, "deadlines" | "overall">): WorkOnNextItem[] {
 	return upcomingDeadline(data.deadlines)?.workOnNext ?? data.overall.workOnNext;
 }
 
-export function homeSuggestions(data: ProgressPayload | null): Suggestion[] {
+export function studyPageSuggestions(data: ProgressPayload | null): Suggestion[] {
 	if (!data) return [];
 	const out: Suggestion[] = [];
 	const unfinished = data.lessons.find((l) => l.unfinished);
