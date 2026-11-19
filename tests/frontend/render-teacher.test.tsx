@@ -34,7 +34,7 @@ Object.assign(globalThis, {
 globalThis.fetch = (() => new Promise(() => {})) as typeof fetch;
 
 const { TeacherPanel, agentLine } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
-const { PANEL_HEIGHT, PANEL_WIDTH, draggedHeight, keyedHeight, panelLayout, panelBody, panelStarts, shownScreen, storedHeight } = await import("../../src/frontend/components/teacher/dock-model.ts");
+const { PANEL_WIDTH, panelLayout, panelBody, panelStarts, shownScreen } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { waitingNotice } = await import("../../src/frontend/components/agent-status.tsx");
 const { ActivityList, TeacherActivity } = await import("../../src/frontend/components/teacher/teacher-activity.tsx");
 const { PanelHead } = await import("../../src/frontend/components/teacher/panel-head.tsx");
@@ -110,12 +110,12 @@ describe("the panel", () => {
 		assert.match(html, /data-testid="teacher-panel-agent"[^>]*class="[^"]*font-mono[^"]*"[^>]*>(<[^>]*>)*Ready</);
 		assert.doesNotMatch(html, /teacher-panel-name|teacher-panel-close|role="switch"/);
 	});
-	it("hangs from the top bar at the window's right edge as a window of the bar's sheet, with no blur", () => {
+	it("runs from the top bar down the window's right edge to its bottom, made of the bar's sheet, with no blur", () => {
 		const html = renderToStaticMarkup(panel());
-		assert.match(html, /^<div data-state="open" style="right:0" class="lh-hang fixed top-\(--lh-bar-h\) z-\[41\]"><section[^>]*data-testid="teacher-panel"/);
+		assert.match(html, /^<div data-state="open" style="right:0;--lh-hang-r:0px" class="lh-hang fixed top-\(--lh-bar-h\) z-\[41\] bottom-0"><section[^>]*data-testid="teacher-panel"/);
 		const section = /<section[^>]*>/.exec(html)![0];
 		assert.match(section, /class="lh-popup lh-hang-body /);
-		assert.match(section, new RegExp(`width:${PANEL_WIDTH.initial}px;height:${PANEL_HEIGHT.initial}px`));
+		assert.match(section, new RegExp(`width:${PANEL_WIDTH.initial}px;height:100%`));
 		assert.doesNotMatch(section, /border-l|bg-panel|blur/);
 	});
 	it("the status line says the teacher is off with no agent, and shows the waiting notice once while work waits", () => {
@@ -129,49 +129,24 @@ describe("the panel", () => {
 		const html = renderToStaticMarkup(panel({ agent: { ...IDLE, pendingWork: 2 } }));
 		assert.equal(html.split(`>${waitingNotice("Ada", false)}<`).length - 1, 1, "in the head, not again in Activity");
 	});
-	const at = (width: number, height = 852) => ({ width, height });
-	it("a window lies over the page at the size the learner left it, without pushing", () => {
-		assert.deepEqual(panelLayout(at(1440), 1440, { width: 620, height: 460 }), { width: 620, height: 460, push: 0 });
-		assert.deepEqual(panelLayout(at(800), 800, { width: 900, height: 320 }), { width: 800, height: 320, push: 0 }, "never wider than the window");
-	});
-	it("docked it is as wide as the learner left it, pushing the page while it keeps 480 px", () => {
-		const docked = (w: number, wanted: number) => panelLayout(at(w), w, { width: wanted, height: "full" });
-		assert.deepEqual(docked(1440, 440), { width: 440, height: null, push: 440 });
-		assert.deepEqual(docked(1440, 900), { width: 900, height: null, push: 900 });
-		assert.deepEqual(docked(1100, 900), { width: 620, height: null, push: 620 }, "narrower than asked: the page keeps 480");
-		assert.deepEqual(docked(840, 440), { width: 360, height: null, push: 360 }, "down to its narrowest");
+	it("is as wide as the learner left it, pushing the page while it keeps 480 px", () => {
+		const docked = (w: number, wanted: number) => panelLayout(w, w, wanted);
+		assert.deepEqual(docked(1440, 440), { width: 440, push: 440 });
+		assert.deepEqual(docked(1440, 900), { width: 900, push: 900 });
+		assert.deepEqual(docked(1100, 900), { width: 620, push: 620 }, "narrower than asked: the page keeps 480");
+		assert.deepEqual(docked(840, 440), { width: 360, push: 360 }, "down to its narrowest");
 		for (let w = 640; w <= 2000; w += 10) {
 			for (const wanted of [PANEL_WIDTH.min, PANEL_WIDTH.initial, PANEL_WIDTH.max]) {
 				const { width, push } = docked(w, wanted);
 				assert.ok(push === 0 || (push === width && w - push >= 480 && width >= PANEL_WIDTH.min), `${w}, ${wanted}`);
 			}
 		}
-		assert.deepEqual(panelLayout(at(1440, 400), 1440, { width: 620, height: 460 }), { width: 620, height: null, push: 620 }, "a window taller than the room is docked");
 	});
-	it("docked it covers a page with no room for its narrowest; a narrow window gets it across its whole width", () => {
-		const docked = (w: number, wanted: number) => panelLayout(at(w), w, { width: wanted, height: "full" });
-		assert.deepEqual(docked(800, 440), { width: 440, height: null, push: 0 });
-		assert.deepEqual(docked(700, 900), { width: 700, height: null, push: 0 });
-		assert.deepEqual(docked(600, 440), { width: 600, height: null, push: 0 });
-		assert.deepEqual(panelLayout(at(600), 600, { width: 440, height: 460 }), { width: 600, height: null, push: 0 }, "a window too");
-	});
-	it("its bottom edge drags the height, docks near the window's bottom and comes back up out of the dock", () => {
-		assert.equal(draggedHeight(460, 500, 560, 852), 520);
-		assert.equal(draggedHeight(460, 500, 100, 852), PANEL_HEIGHT.min, "no shorter than the screen's 10 rows");
-		assert.equal(draggedHeight(460, 500, 860, 852), "full", "within 40 px of the bottom it docks");
-		assert.equal(draggedHeight(852, 898, 500, 852), 454, "dragged up from the dock it is a window again");
-		assert.equal(keyedHeight(460, "ArrowDown", 852), 476);
-		assert.equal(keyedHeight(460, "ArrowUp", 852), 444);
-		assert.equal(keyedHeight(800, "ArrowDown", 852), "full");
-		assert.equal(keyedHeight(852, "ArrowUp", 852), 796, "out of the dock in one press");
-		assert.equal(keyedHeight(460, "End", 852), "full");
-		assert.equal(keyedHeight(460, "Home", 852), PANEL_HEIGHT.min);
-		assert.equal(keyedHeight(460, "ArrowLeft", 852), null);
-		assert.equal(storedHeight(null), PANEL_HEIGHT.initial);
-		assert.equal(storedHeight("full"), "full");
-		assert.equal(storedHeight("512"), 512);
-		assert.equal(storedHeight("12"), PANEL_HEIGHT.min);
-		assert.equal(storedHeight("tall"), PANEL_HEIGHT.initial);
+	it("covers a page with no room for its narrowest; a narrow window gets it across its whole width", () => {
+		const docked = (w: number, wanted: number) => panelLayout(w, w, wanted);
+		assert.deepEqual(docked(800, 440), { width: 440, push: 0 });
+		assert.deepEqual(docked(700, 900), { width: 700, push: 0 });
+		assert.deepEqual(docked(600, 440), { width: 600, push: 0 });
 	});
 	it("shows a key that starts the teacher: the start pair before any start, Start again once it ended, and in a browser above Activity", () => {
 		const ended = { id: "t1", role: "teacher" as const, agent: "claude" as const, startedAt: 0, ended: { stopped: true as const, code: null }, prompt: null, url: false };
@@ -191,13 +166,13 @@ describe("the panel", () => {
 		assert.equal(panelBody(true), "terminal");
 		assert.equal(panelBody(false), "activity");
 	});
-	it("never dims the page, and has edges and a corner to drag unless it takes the whole window", () => {
+	it("never dims the page, and has a left edge to drag and no other, unless it takes the whole window", () => {
 		const wasWidth = window.innerWidth;
 		try {
 			Object.assign(window, { innerWidth: 800 });
 			const over = mount(panel());
 			assert.ok(over.querySelector("[data-testid='teacher-panel-scrim']") === null);
-			for (const grip of ["resize-teacher", "resize-teacher-height", "resize-teacher-corner"]) assert.ok(over.querySelector(`[data-testid='${grip}']`) !== null, grip);
+			assert.deepEqual([...over.querySelectorAll("[data-testid^='resize-teacher']")].map((grip) => grip.getAttribute("data-testid")), ["resize-teacher"]);
 			assert.ok(over.querySelector("[data-whole]") === null);
 			Object.assign(window, { innerWidth: 600 });
 			const whole = mount(panel());
