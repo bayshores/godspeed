@@ -57,13 +57,27 @@ Keep godspeed small, tidy and easy to read. The checks below enforce these rules
 - No import cycles. Keep the import law (`eslint.config.mjs`).
 - Split a file that does two jobs when you touch it. Never grow it further.
 
+**One owner, one way**
+- Search before you write (`graphify query`): a helper, hook, type or component that does the job is used, not copied. The second copy is the moment to make the shared one.
+- Server data has one owner in the browser (a provider or one hook). Every other component reads from it. Never fetch the same record a second time and keep the copies in step with an event.
+- To change one field, send that field; the server merges it under its lock (as `PATCH /api/settings/general` does). Never read a record, change it and send the whole thing back.
+- A fixed set of values (a role, a status, a kind) is one type with its values named once, never the same strings compared in many files. Saved text stays the same.
+
+**Two languages, one truth**
+- The server decides, the browser shows. No TypeScript copy of logic the Rust server runs. A number or text the server knows is sent by the server.
+- Code only tests call is dead code, and knip cannot see it. An export in `src/shared/core` needs a user in `src/frontend`; check with a search before you finish.
+
+**Failures are seen**
+- No silent failure: an error is shown, logged with where it happened, or handled for a stated reason. A damaged data file is kept aside, never read as empty and overwritten. Rust specifics: `docs/rust-server.md`.
+
 **Plain names and short comments**
 - One name per idea, everywhere (UI, code, tools, tests). Example: "deadline", never mixed with "exam" or "assignment".
 - Comments are short and say why, not what. No dates, history, plan phases or "owner ruling" notes in code; git and `docs/` keep history. Trim old ones in code you change.
 
 **Done means clean**
 - `npm run check` passes: typecheck (unused variables and parameters are errors), tests, lint, `npm run deadcode` (knip) and `npm run rust:check` (cargo test, clippy, cargo machete). CI runs the same.
-- Before calling a change finished, reread the diff and cut anything unused, duplicated or over-built.
+- Before calling a change finished, reread the diff and cut anything unused, duplicated or over-built. Ask of each new piece: is this data already loaded somewhere, does a helper already do this, does the server already know this, can two copies disagree?
+- A new class of mistake gets a rule here or, better, a check in `npm run check`, in the same change that fixes it.
 
 # Docs
 
