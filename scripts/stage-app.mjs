@@ -9,9 +9,12 @@
  * rides along in the UI. Apple silicon Macs and Windows link ONNX Runtime into the server.
  *
  * `--app <options>` also builds the app's own binary, with `tauri build --no-bundle <options>`.
- * The server and the app each end in a release link of several minutes, so the two builds run
- * side by side. One target folder takes one cargo at a time, and one cargo for both would mix
- * their dependencies' features, so the server has its own folder, target/server/.
+ * The server and the app each end in a release link of several minutes, and each link takes
+ * several GB of memory. With 12 GB or more the two builds run side by side: one target folder
+ * takes one cargo at a time, and one cargo for both would mix their dependencies' features, so
+ * the server has its own folder, target/server/. With less memory (GitHub's 7 GB Apple chip
+ * Mac) side by side they swap, so they run in a row in one folder, where the second build
+ * reuses what the first compiled.
  */
 import { execFileSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
@@ -73,7 +76,9 @@ for (const file of fs.readdirSync(pdfjs, { recursive: true })) {
 if (!fs.existsSync(path.join(pdfjsOut, "build", "pdf.worker.min.mjs"))) fail("pdf.js's worker is missing, run `npm ci` first.");
 
 const triple = execFileSync("rustc", ["--print", "host-tuple"], { encoding: "utf8" }).trim();
-const builds = [["cargo", ["build", "--release", "-p", "gs-server", "--target", triple, "--target-dir", path.join("target", "server")]]];
+const together = os.totalmem() >= 12 * 2 ** 30;
+const serverTarget = together ? path.join("target", "server") : "target";
+const builds = [["cargo", ["build", "--release", "-p", "gs-server", "--target", triple, "--target-dir", serverTarget]]];
 if (process.argv[2] === "--app") {
 	// The app's build step copies externalBin and fails without it, and the server is still being
 	// built, so this build names none. The bundler reads the list again from its own options.
@@ -89,10 +94,8 @@ function start([command, args]) {
 	});
 	return { child, done };
 }
-// Each release link takes several GB of memory. Side by side the two builds end sooner where both
-// fit; with less memory (GitHub's 7 GB Apple chip Mac) they swap and take longer than in a row.
 const codes = [];
-if (os.totalmem() >= 12 * 2 ** 30) {
+if (together) {
 	const running = builds.map(start);
 	for (const { child, done } of running) {
 		// One failed build ends the other: its minutes would be wasted.
@@ -110,7 +113,7 @@ if (os.totalmem() >= 12 * 2 ** 30) {
 const failed = codes.findIndex((code) => code !== 0);
 if (failed !== -1) fail(`\`${builds[failed][0]} ${builds[failed][1].slice(0, 2).join(" ")}\` failed (${codes[failed]}).`);
 
-const server = path.join(ROOT, "target", "server", triple, "release", WINDOWS ? "godspeed-server.exe" : "godspeed-server");
+const server = path.join(ROOT, serverTarget, triple, "release", WINDOWS ? "godspeed-server.exe" : "godspeed-server");
 const staged = path.join(ROOT, "crates", "shell", "binaries", `godspeed-server-${triple}${WINDOWS ? ".exe" : ""}`);
 fs.mkdirSync(path.dirname(staged), { recursive: true });
 fs.copyFileSync(server, staged);

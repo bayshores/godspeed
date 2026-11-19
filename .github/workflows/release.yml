@@ -382,7 +382,7 @@ jobs:
         timeout-minutes: 5
         run: |
           set -euo pipefail
-          for bin in "target/${{ matrix.triple }}/release/godspeed" "target/server/${{ matrix.triple }}/release/godspeed-server" .stage/libpdfium.so .stage/libonnxruntime.so; do
+          for bin in "target/${{ matrix.triple }}/release/godspeed" "crates/shell/binaries/godspeed-server-${{ matrix.triple }}" .stage/libpdfium.so .stage/libonnxruntime.so; do
             for need in GLIBC:2.35 GLIBCXX:3.4.30; do
               name=${need%%:*} limit=${need#*:}
               newest=$(objdump -T "$bin" | { grep -o "${name}_[0-9.]*" || true; } | sed "s/${name}_//" | sort -V | tail -n 1)
