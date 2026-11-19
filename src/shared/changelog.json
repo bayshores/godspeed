@@ -1,5 +1,26 @@
 [
 	{
+		"version": "0.6.77",
+		"date": "2026-11-18",
+		"changes": [
+			"The top bar says what the teacher is doing in one pill, with the countdown to your next deadline inside it.",
+			"The teacher's terminal opens when the teacher needs you and closes once that is settled, and you can still open and close it yourself.",
+			"The terminal is always a column down the right side of the window that moves the page aside. The floating window is gone.",
+			"The teacher's panel has a Chats key that lists your earlier chats and starts a new one.",
+			"The words in the top bar are flat like the tabs, where before they were raised keys.",
+			"A lesson's text holds only the lesson. The Space context and Graph context rows and the plan diagram are gone, and Lesson stats moved into More.",
+			"The box under an open problem asks for Your work, and a question for the teacher goes to its terminal.",
+			"On Today and Progress, a card's key sits in its head beside the title.",
+			"The Activity list is tiles with no lines between them, and Graph costs moved to its end.",
+			"Today's week of deadlines becomes a short list when there is no room for eight columns.",
+			"A Graph with no topics yet says so in the middle of the page.",
+			"The striped band that said a page was waiting for the teacher is gone, and the pill says it.",
+			"In the terminal, the key that ends the teacher reads Turn off Teacher.",
+			"A lesson with no title is named Untitled lesson.",
+			"Deleting a space while its files are still being read no longer fails and leaves its folder behind."
+		]
+	},
+	{
 		"version": "0.6.76",
 		"date": "2026-11-18",
 		"changes": [
