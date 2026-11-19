@@ -19,10 +19,6 @@ const CHANGELOG: readonly ChangelogEntry[] = entries;
 
 const VERSION = /^(\d+)\.(\d+)\.(\d+)$/;
 
-export function isVersion(value: unknown): value is string {
-	return typeof value === "string" && VERSION.test(value);
-}
-
 /** Negative when a is older than b, 0 when equal, positive when newer.
  *  Anything that isn't "x.y.z" sorts as oldest. */
 export function compareVersions(a: string, b: string): number {

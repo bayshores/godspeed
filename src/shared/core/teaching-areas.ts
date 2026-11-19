@@ -1,10 +1,9 @@
 /**
  * The Teaching section's six areas: each groups the prompt parts, switches
- * and learner rules for one part of the teacher's job. Also the rule
- * cleanup and the "learner's rules" section added to every agent's prompt.
+ * and learner rules for one part of the teacher's job, and the limits and
+ * one-line cleanup a rule gets before it is sent. The server cleans it again.
  * Browser-safe: pure data and string building.
  */
-import { isRecord } from "./is-record.ts";
 
 export type AreaId = "voice" | "teaching" | "questions" | "facts" | "demos" | "files";
 
@@ -89,29 +88,4 @@ export function oneLine(raw: string, max: number): string {
 	return [...line].slice(0, max).join("").trim();
 }
 
-/** A rule list made safe to store: strings only, cleaned, no blanks or
- *  repeats, at most RULES_MAX. Non-arrays read as no rules. */
-function sanitizeRules(raw: unknown): string[] {
-	if (!Array.isArray(raw)) return [];
-	const out: string[] = [];
-	for (const entry of raw) {
-		if (typeof entry !== "string") continue;
-		const rule = oneLine(entry, RULE_MAX_CHARS);
-		if (rule && !out.includes(rule)) out.push(rule);
-	}
-	return out.slice(0, RULES_MAX);
-}
-
 export type AreaRules = Partial<Record<AreaId, string[]>>;
-
-/** Area rules made safe to store: known areas only, empty lists dropped. */
-export function sanitizeAreaRules(raw: unknown): AreaRules {
-	const out: AreaRules = {};
-	if (!isRecord(raw)) return out;
-	for (const area of TEACHING_AREAS) {
-		const rules = sanitizeRules(raw[area.id]);
-		if (rules.length) out[area.id] = rules;
-	}
-	return out;
-}
-

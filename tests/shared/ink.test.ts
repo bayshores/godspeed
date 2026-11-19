@@ -6,8 +6,9 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { contrast, darkBackground, inkFor, readableAccent, shiftHex, tintFor, type InkLevel } from "../../src/shared/core/ink.ts";
+import { contrast, darkBackground, inkFor, readableAccent, shiftHex, tintFor } from "../../src/shared/core/ink.ts";
 
+type InkLevel = Parameters<typeof inkFor>[1];
 const MINIMUM: Record<InkLevel, number> = { text: 7, body: 6, muted: 4.5, faint: 4.5, edge: 3 };
 const LEVELS = Object.keys(MINIMUM) as InkLevel[];
 

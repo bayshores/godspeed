@@ -81,12 +81,6 @@ export function citeLabel(cite: Cite): string {
 	return `${url.host.replace(/^www\./, "")}${url.pathname === "/" ? "" : url.pathname}`;
 }
 
-/** The text with each mark written out in words, for readers that show
- *  plain text (the Markdown export, fact extraction). */
-export function citesInWords(text: string): string {
-	return replaceCiteMarks(text, (mark) => (mark.kind === "passage" ? "" : ` (${mark.kind === "file" ? citeLabel(mark) : mark.url})`));
-}
-
 /** The text with every mark taken out, for places a mark can't show. */
 export function withoutCiteMarks(text: string): string {
 	return replaceCiteMarks(text, () => "");

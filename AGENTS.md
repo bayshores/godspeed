@@ -65,7 +65,8 @@ Keep godspeed small, tidy and easy to read. The checks below enforce these rules
 
 **Two languages, one truth**
 - The server decides, the browser shows. No TypeScript copy of logic the Rust server runs. A number or text the server knows is sent by the server.
-- Code only tests call is dead code, and knip cannot see it. An export in `src/shared/core` needs a user in `src/frontend`; check with a search before you finish.
+- Code only tests call is dead code, and knip cannot see it. An export in `src/shared/core` needs a user in `src/frontend` (`tests/shared/core-is-used.test.ts` fails otherwise).
+- A name, limit or text that must be written in both languages gets a line in `tests/shared/rust-twins.test.ts` (event names: `event-names.test.ts`; desktop commands: `tests/desktop/bridge-names.test.ts` and `crates/shell/tests/command_lists.rs`).
 
 **Failures are seen**
 - No silent failure: an error is shown, logged with where it happened, or handled for a stated reason. A damaged data file is kept aside, never read as empty and overwritten. Rust specifics: `docs/rust-server.md`.

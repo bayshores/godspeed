@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { CITE_TAG, citeLabel, citesInWords, citeView, fileCiteMark, replaceCiteMarks, withoutCiteMarks, type CiteMark } from "../../src/shared/core/citations.ts";
+import { CITE_TAG, citeLabel, citeView, fileCiteMark, replaceCiteMarks, withoutCiteMarks, type CiteMark } from "../../src/shared/core/citations.ts";
 
 const PASSAGE = "[[f_1a2b3c4d5e6f:7]]";
 const FILE = "[[f_1a2b3c4d5e6f/p. 12/Week 6 slides.pdf]]";
@@ -133,17 +133,12 @@ describe("citeLabel", () => {
 });
 
 describe("plain-text readers", () => {
-	it("citesInWords writes a source in words and drops an unchecked id", () => {
-		assert.equal(citesInWords(`A ${FILE} B ${WEB} C ${PASSAGE}`), "A  (Week 6 slides.pdf, p. 12) B  (https://example.com/page) C ");
-	});
-
 	it("withoutCiteMarks removes every mark", () => {
 		assert.equal(withoutCiteMarks(`A ${FILE} B ${WEB} C ${PASSAGE}.`), "A  B  C .");
 	});
 
-	it("both leave text without a mark unchanged", () => {
+	it("leaves text without a mark unchanged", () => {
 		const text = "Nothing here, only [[1,2],[3,4]] and `[[x]]`.";
-		assert.equal(citesInWords(text), text);
 		assert.equal(withoutCiteMarks(text), text);
 	});
 });

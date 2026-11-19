@@ -25,7 +25,8 @@ import { absorbed, errorBodyMessage, pendingCallTool, SessionModel } from "../..
 import type { ChatInput } from "../../src/shared/core/input-events.ts";
 import type { LhMessage } from "../../src/shared/core/native-messages.ts";
 import { newUserMessage, newAnswerResult, newSideQuestion, newNextMessage, newProblemDismissedMarker, needsContinuation } from "../../src/shared/core/native-messages.ts";
-import { newCompactionMarker, projectView } from "../../src/shared/core/index.ts";
+import { projectView } from "../../src/shared/core/index.ts";
+import { newCompactionMarker } from "../compaction-marker.ts";
 import { dismissedAnswer } from "../../src/shared/core/question-core.ts";
 import { oldThinkingMessage } from "../old-records.ts";
 import { buildAnswer, type QuestionAnswerData, type QuestionData } from "../../src/shared/core/question-core.ts";

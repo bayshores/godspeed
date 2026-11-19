@@ -237,14 +237,6 @@ export function openProblemText(number: string): string {
 	return `[OPEN PROBLEM ${number}] The learner picked problem ${number} in the problem list. Open exactly that one now per the session rules, even if it is done.`;
 }
 
-/** The compaction marker's model-facing header. The marker's content is
- *  this header + the summary, in place of the dropped span. It tells the
- *  model the cut is routine, the summary replaces everything before it,
- *  and what follows is verbatim, so it neither re-asks covered ground nor
- *  distrusts the seam. */
-export const COMPACTED_HISTORY_HEADER =
-	"[SESSION HISTORY COMPACTED] The transcript before this point was summarized to fit the context window; the summary below replaces it. Everything after this message is the verbatim recent transcript.";
-
 /** A SNAPSHOT of the plan at plan_init, rendered as a block in the chat
  *  flow. It never reaches the model; it reappears identically on reload
  *  because it lives in the record. */
@@ -262,9 +254,10 @@ export interface PlanBlockData {
 }
 
 /** The list view's shape (messageCount instead of full messages) + the
- *  per-session status the picker renders. `phase` and `pendingQuestion`
- *  derive from the stored record's native messages; the store computes
- *  them in listChats.
+ *  per-session status the picker renders. `phase`, `pendingQuestion` and
+ *  `pendingProblem` derive from the stored record's native messages; the
+ *  server computes them in summarize() (crates/store/src/chats.rs), which
+ *  also sends the record's other small fields (`version`) that nothing here reads.
  *
  *  Phase semantics (three phases, event-driven): probe ends at a concluded
  *  probe_done (clean result, not ok:false); plan ends at the first

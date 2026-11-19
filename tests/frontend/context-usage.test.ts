@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { AssistantMessage } from "@earendil-works/pi-ai";
-import { measuredContextTokens, newCompactionMarker, type LhMessage } from "../../src/shared/core/index.ts";
+import { measuredContextTokens, type LhMessage } from "../../src/shared/core/index.ts";
+import { newCompactionMarker } from "../compaction-marker.ts";
 import { SessionModel } from "../../src/frontend/components/session-core.ts";
 
 function assistant(id: string, stopReason: AssistantMessage["stopReason"] = "stop", total = 999_999): LhMessage {

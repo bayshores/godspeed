@@ -7,7 +7,7 @@
  * (appearance-model.ts). Browser-safe, pure.
  */
 
-export type InkLevel = "text" | "body" | "muted" | "faint" | "edge";
+type InkLevel = "text" | "body" | "muted" | "faint" | "edge";
 
 /** Each level's contrast minimum (WCAG ratio) and its default gray. Every
  *  text level is at least 4.5 (small text); an edge (field borders, empty

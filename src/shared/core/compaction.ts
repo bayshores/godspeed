@@ -1,127 +1,14 @@
 /**
- * COMPACTION, the frontend's share: the marker helpers the transcript
- * uses. The Rust server shortens the record
- * (crates/core/src/session/compaction.rs) and sends the lesson size where it
- * does; the cutoff rule here is kept for
- * tests/shared/compaction-native-parity.test.ts. See
- * docs/compaction-accounting.md.
+ * COMPACTION, the frontend's share: reading a compaction marker. The Rust
+ * server writes the marker and shortens the record
+ * (crates/core/src/session/compaction.rs). See docs/compaction-accounting.md.
  *
  * A compaction marker (LhMarkerMessage, customType "compaction") carries a
  * summary plus the cut (firstKeptMessageId): the model sees the summary,
  * then every message from the cut onward. Full history stays in the record.
  */
 
-import { COMPACTED_HISTORY_HEADER } from "./contracts/chat.ts";
 import type { LhMessage, LhMarkerMessage } from "./native-messages.ts";
-import { newMessageId } from "./message-id.ts";
-import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import type { SystemMessage } from "@earendil-works/pi-ai";
-
-// ─── constants (the tunables) ────────────────────────────────────────────────
-
-/** Kept-recent tail budget (pi's default):
- * ~20k tokens of verbatim recent transcript always ride after the
- * summary — recency is cheap insurance against summary loss. */
-export const KEEP_RECENT_TOKENS = 20_000;
-
-// ─── token estimate (chars/4) ─────────────────────────────────────────────────
-
-/** Pi 1.4.0's heuristic: text + thinking + toolCall name/args for
- * assistants, content text plus a fixed image allowance for other roles. NEVER JSON.stringify of the
- * whole message — record scaffolding (ids, usage, responseId, app-side
- * details, escaped quotes/backslashes) inflates ~3x (once measured at 84k
- * estimated vs ~30k real). */
-export function estimateMessageTokens(message: LhMessage | AgentMessage): number {
-	const content: unknown = (message as { content?: unknown }).content;
-	let chars = 0;
-	if ((message as { role?: string }).role === "assistant") {
-		for (const block of (Array.isArray(content) ? content : []) as Array<{
-			type: string;
-			text?: string;
-			thinking?: string;
-			name?: string;
-			arguments?: unknown;
-		}>) {
-			if (block.type === "text") chars += block.text?.length ?? 0;
-			else if (block.type === "thinking") chars += block.thinking?.length ?? 0;
-			else if (block.type === "toolCall") chars += (block.name?.length ?? 0) + JSON.stringify(block.arguments ?? {}).length;
-		}
-	} else {
-		chars += textCharsOfContent(content) + textCharsOfContent((message as { attachments?: unknown }).attachments);
-		if (message.role === "system") {
-			const system = message as SystemMessage;
-			for (const section of Object.values(system.sections ?? {})) chars += section?.length ?? 0;
-			if (system.toolsAdded) chars += JSON.stringify(system.toolsAdded).length;
-		}
-	}
-	return Math.ceil(chars / 4);
-}
-
-// Pi coding-agent 1.4.0 estimateTokens: fixed image allowance, NOT a
-// measurement of encrypted reasoning or actual provider vision tokens.
-const ESTIMATED_IMAGE_CHARS = 4_800;
-function textCharsOfContent(content: unknown): number {
-	if (typeof content === "string") return content.length;
-	if (!Array.isArray(content)) return 0;
-	let chars = 0;
-	for (const block of content as Array<string | { type?: string; text?: string }>) {
-		if (typeof block === "string") chars += block.length;
-		else if (block?.type === "image") chars += ESTIMATED_IMAGE_CHARS;
-		else if (block?.type === "text") chars += block.text?.length ?? 0;
-	}
-	return chars;
-}
-
-// ─── the cut walk ────────────────────────────────────────────────────────────
-
-/** Model-visible entry adapter for the local Pi 1.4.0 cutoff port.
- * Compaction entries are boundaries, not ordinary cut candidates; UI-only
- * markers have no context, just like native metadata entries. */
-function cutMessage(message: LhMessage): LhMessage | null {
-	if (message.role !== "custom") return message;
-	if (["compaction", "plan-block", "problem-dismissed"].includes(message.customType)) return null;
-	return message;
-}
-
-/** Local port of pi-coding-agent 1.4.0 findCutPoint (MIT).
- * Walk backwards to >= budget, then choose the nearest valid cut AT OR
- * AFTER that entry. If oversized trailing results exhaust the budget,
- * retain their preceding assistant call, not the entire session.
- * No encrypted-signature sizing and no exact retained-token guarantee.
- * Returns the first kept record index; a zero/no-progress cut drops nothing.
- * Keep this and estimateMessageTokens aligned deliberately when upgrading Pi.
- */
-export function compactionCutIndex(messages: readonly LhMessage[], keepRecentTokens = KEEP_RECENT_TOKENS): number {
-	const previous = activeCompactionOf(messages);
-	const previousKept = previous ? keptIndexFor(messages, previous) : -1;
-	const start = Math.max(0, previousKept);
-	const points: number[] = [];
-	for (let i = start; i < messages.length; i++) {
-		const message = cutMessage(messages[i]!);
-		if (message && (message.role === "user" || message.role === "assistant" || message.role === "custom")) points.push(i);
-	}
-	if (!points.length) return start;
-	let cut = points[0]!;
-	let accumulated = 0;
-	for (let i = messages.length - 1; i >= start; i--) {
-		const message = cutMessage(messages[i]!);
-		const tokens = message ? estimateMessageTokens(message) : 0;
-		if (tokens === 0) continue;
-		accumulated += tokens;
-		if (accumulated >= keepRecentTokens) {
-			cut = points.find((candidate) => candidate >= i) ?? points.at(-1)!;
-			break;
-		}
-	}
-	// Native entries preserve adjacent non-context metadata, but never walk
-	// backwards across a previous compaction entry.
-	while (cut > start) {
-		const before = messages[cut - 1]!;
-		if ((before.role === "custom" && before.customType === "compaction") || cutMessage(before)) break;
-		cut--;
-	}
-	return cut;
-}
 
 // ─── the marker ──────────────────────────────────────────────────────────────
 
@@ -143,22 +30,6 @@ export interface CompactionDetails {
 	local?: boolean;
 }
 
-/** Build the compaction marker. Content is the FULL model-facing text
- * (header + summary — single-sourced header); the marker rides the
- * record at the compaction MOMENT (near the transcript end), while the
- * cut it names sits deep in history: the UI renders both places. */
-export function newCompactionMarker(summary: string, details: CompactionDetails): LhMarkerMessage {
-	return {
-		id: newMessageId(),
-		role: "custom",
-		customType: "compaction",
-		content: `${COMPACTED_HISTORY_HEADER}\n\n${summary.trim()}`,
-		display: true,
-		details,
-		timestamp: Date.now(),
-	};
-}
-
 /** The ACTIVE compaction marker: the newest one in the record (chained
  * compactions — the last one rules; older markers fall inside the
  * dropped span and never render). */
@@ -175,15 +46,4 @@ export function activeCompactionOf(messages: readonly LhMessage[]): (LhMarkerMes
 		}
 	}
 	return null;
-}
-
-/** The index of the first KEPT message, or -1 when the record's active
- * marker names an id that no longer exists (corrupt/foreign) — callers
- * fall back to rendering everything (honest degradation, never throw). */
-export function keptIndexFor(messages: readonly LhMessage[], marker: LhMarkerMessage & { details: CompactionDetails }): number {
-	const id = marker.details.firstKeptMessageId;
-	for (let i = 0; i < messages.length; i++) {
-		if (messages[i]!.id === id) return i;
-	}
-	return -1;
 }

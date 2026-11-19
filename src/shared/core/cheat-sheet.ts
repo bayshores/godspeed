@@ -12,7 +12,7 @@ import type { DeadlineKind } from "./contracts.ts";
 // ─── the record ─────────────────────────────────────────────────────────────
 
 /** A page's size in PDF points (72 to the inch). */
-export interface SheetPage {
+interface SheetPage {
 	widthPt: number;
 	heightPt: number;
 }
@@ -70,7 +70,7 @@ export interface SheetRule {
 	at: string;
 }
 
-export interface CheatSheet {
+interface CheatSheet {
 	deadlineId: string;
 	/** Oldest first, the last VERSIONS_KEPT. */
 	versions: SheetVersion[];

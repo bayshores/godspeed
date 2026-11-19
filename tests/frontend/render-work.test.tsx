@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import type { SpaceFile, SpaceFileStatus, SpaceRecord, SpaceSummary } from "../../src/shared/core/index.ts";
+import type { SpaceFile, SpaceRecord, SpaceSummary } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, {
@@ -32,7 +32,7 @@ const { MemoryRouter } = await import("react-router");
 const summary = (id: string, name: string, over: Partial<SpaceSummary> = {}): SpaceSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", closed: false, fileCount: 3, color: 1, filesLeft: 0, ...over });
 const SPACES = [summary("spc_ml", "Machine Learning", { filesLeft: 2 }), summary("spc_bio", "Biology")];
 
-const file = (id: string, status: SpaceFileStatus): SpaceFile => ({ id, origin: "copied", name: `${id}.pdf`, path: `${id}.pdf`, kind: "study", contentFp: "", status, addedAt: "" });
+const file = (id: string, status: SpaceFile["status"]): SpaceFile => ({ id, origin: "copied", name: `${id}.pdf`, path: `${id}.pdf`, kind: "study", contentFp: "", status, addedAt: "" });
 const record = (over: Partial<SpaceRecord>): SpaceRecord => ({ id: "spc_ml", name: "Machine Learning", description: "", createdAt: "", updatedAt: "", closed: false, files: [], color: 1, ...over });
 
 let root: Root | null = null;

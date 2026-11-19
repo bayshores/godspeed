@@ -6,9 +6,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { files, filesProgress, jobFrame, readNews, spaceFrame, tabWorkTag, workProgress, workerName, workState } from "../../src/frontend/components/work/work-model.ts";
-import type { SpaceFile, SpaceFileStatus, SpaceSummary, SpaceWork } from "../../src/shared/core/index.ts";
+import type { SpaceFile, SpaceSummary, SpaceWork } from "../../src/shared/core/index.ts";
 
-const file = (id: string, status: SpaceFileStatus, extra: Partial<SpaceFile> = {}): SpaceFile => ({
+const file = (id: string, status: SpaceFile["status"], extra: Partial<SpaceFile> = {}): SpaceFile => ({
 	id,
 	origin: "copied",
 	name: `${id}.pdf`,

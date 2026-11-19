@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { citesInWords, fileCiteMark, replaceCiteMarks, type CiteMark } from "../../src/shared/core/citations.ts";
+import { fileCiteMark, replaceCiteMarks, type CiteMark } from "../../src/shared/core/citations.ts";
 
 interface Case {
 	name: string;
@@ -25,12 +25,14 @@ describe("citations_quotes shared cases", () => {
 	for (const { name, output } of cases) {
 		it(name, () => {
 			const { text, name: file, quote } = output.args;
+			// "words" is the server's plain-text form of a mark; the browser has no copy of it.
+			const { words: _words, ...result } = output.result as Record<string, unknown>;
 			if (text !== undefined) {
-				assert.deepEqual({ ...read(text), words: citesInWords(text) }, output.result);
+				assert.deepEqual(read(text), result);
 				return;
 			}
 			const mark = fileCiteMark("f_1a2b3c4d5e6f", "p. 3", file!, quote);
-			assert.deepEqual({ mark, marks: read(mark).marks, words: citesInWords(`It frees memory. ${mark} Then $x+1$ and \`free\`.`) }, output.result);
+			assert.deepEqual({ mark, marks: read(mark).marks }, result);
 		});
 	}
 });

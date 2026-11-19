@@ -30,7 +30,7 @@ type SpaceFileOrigin = "copied" | "linked";
  *  - ready: facts are in the space graph (or, for info files, readable)
  *  - failed: the last attempt failed (see `error`)
  *  - needs-whisper: a recording, but whisper.cpp/ffmpeg are not installed */
-export type SpaceFileStatus = "pending" | "extracting" | "ready" | "failed" | "needs-whisper";
+type SpaceFileStatus = "pending" | "extracting" | "ready" | "failed" | "needs-whisper";
 
 /** Installs the speech tool recordings need (whisper.cpp and ffmpeg). */
 export const SPEECH_TOOL_INSTALL = "brew install whisper-cpp ffmpeg";

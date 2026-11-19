@@ -23,7 +23,6 @@ Object.assign(globalThis, {
 	IS_REACT_ACT_ENVIRONMENT: true,
 });
 
-const { sanitizeUserSettings } = await import("../../src/shared/core/settings.ts");
 const { pickedLabel } = await import("../../src/frontend/components/onboarding/space-step-model.ts");
 const { DoneStep } = await import("../../src/frontend/components/onboarding/done-step.tsx");
 const { StepSheet } = await import("../../src/frontend/components/onboarding/step-sheet.tsx");
@@ -32,14 +31,6 @@ const { Constellation, DOTS, LINKS, dotDelay } = await import("../../src/fronten
 const { createRoot } = await import("react-dom/client");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { SpaceProvider, useSpaces } = await import("../../src/frontend/components/space-context.tsx");
-
-describe("the onboarded setting", () => {
-	it("the sanitizer keeps a boolean and drops anything else", () => {
-		assert.equal(sanitizeUserSettings({ general: { onboarded: true } })?.general?.onboarded, true);
-		assert.equal(sanitizeUserSettings({ general: { onboarded: false } })?.general?.onboarded, false);
-		assert.equal(sanitizeUserSettings({ general: { onboarded: "yes" } })?.general?.onboarded, undefined);
-	});
-});
 
 describe("onboarding screen helpers", () => {
 	it("pickedLabel: a folder path or up to three file names", () => {

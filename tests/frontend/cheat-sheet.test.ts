@@ -7,7 +7,6 @@ import { describe, it } from "node:test";
 import {
 	pageCaption,
 	pageSizeLabel,
-	type SheetPage,
 } from "../../src/shared/core/cheat-sheet.ts";
 import {
 	artboards,
@@ -26,6 +25,7 @@ import {
 } from "../../src/frontend/components/cheat-sheet/canvas-model.ts";
 import { DOCK_MIN_W, dockWidth, makeTarget, parseDockState, pickSheet } from "../../src/frontend/components/cheat-sheet/dock-model.ts";
 
+type SheetPage = Parameters<typeof pageSizeLabel>[0][number];
 const A4: SheetPage = { widthPt: 595.28, heightPt: 841.89 };
 const LETTER: SheetPage = { widthPt: 612, heightPt: 792 };
 

@@ -5,7 +5,7 @@
  */
 import { daysBetween, topicStatus, type TopicStatus } from "./progress.ts";
 
-export interface PlanTopic {
+interface PlanTopic {
 	id: string;
 	name: string;
 	/** Right rate; null = not tried yet. */

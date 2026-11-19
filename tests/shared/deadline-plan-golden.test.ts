@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { planDays, type PlanTopic } from "../../src/shared/core/deadline-plan.ts";
+import { planDays } from "../../src/shared/core/deadline-plan.ts";
 
 interface Case {
 	name: string;
@@ -13,7 +13,7 @@ interface Case {
 		args: {
 			today: string;
 			due?: string;
-			topics?: PlanTopic[];
+			topics?: Parameters<typeof planDays>[2][number][];
 		};
 		result: unknown;
 	};

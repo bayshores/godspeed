@@ -41,7 +41,7 @@ const { FollowButton } = await import("../../src/frontend/components/teacher/fol
 const { TeacherChats } = await import("../../src/frontend/components/teacher/teacher-chats.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 import type { TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
-const { DEFAULT_TEACHER_NAME, sanitizeUserSettings } = await import("../../src/shared/core/settings.ts");
+const { DEFAULT_TEACHER_NAME } = await import("../../src/shared/core/settings.ts");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { MemoryRouter } = await import("react-router");
 const noEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
@@ -284,18 +284,6 @@ describe("the teacher's Activity", () => {
 describe("the teacher name setting", () => {
 	it("defaults to Teacher", () => {
 		assert.equal(DEFAULT_TEACHER_NAME, "Teacher");
-	});
-	it("is one clean line, at most 40 characters", () => {
-		const kept = (teacherName: string) => sanitizeUserSettings({ general: { teacherName } })?.general?.teacherName;
-		assert.equal(kept("  Comet\n\tthe\u0000 Great  "), "Comet the Great");
-		assert.equal(kept("x".repeat(100))?.length, 40);
-		assert.equal(kept("   "), undefined);
-		assert.equal(kept("a\u202eb"), "a b", "no direction tricks");
-	});
-	it("the stored record keeps a clean name and drops an empty one", () => {
-		assert.equal(sanitizeUserSettings({ general: { teacherName: " Nova " } })?.general?.teacherName, "Nova");
-		assert.equal(sanitizeUserSettings({ general: { teacherName: "  " } })?.general?.teacherName, undefined);
-		assert.equal(sanitizeUserSettings({ general: { teacherName: 5 } })?.general?.teacherName, undefined);
 	});
 });
 

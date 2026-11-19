@@ -1,0 +1,139 @@
+/**
+ * Values the browser and the Rust server each hold a copy of. A change on one
+ * side only fails here. Each Rust value is read from its source file as text.
+ */
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { describe, it } from "node:test";
+import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS } from "../../src/shared/core/attachments.ts";
+import { MAX_LINKED_FILES, SIGNATURE_MAX, SPACE_ICONS, SUPPORTED_SPACE_FILE_EXTENSIONS } from "../../src/shared/core/contracts/space.ts";
+import { isQuestionTool } from "../../src/shared/core/pending.ts";
+import { subscriptionLabel } from "../../src/shared/core/prices.ts";
+import { RAMP_COLORS, rampColor, tally, topicStatus } from "../../src/shared/core/progress.ts";
+import { FACTORY_SETTINGS } from "../../src/shared/core/settings.ts";
+import { TOOL_SWITCH_LABELS } from "../../src/shared/core/tool-switches.ts";
+
+const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf-8");
+const ts = (name: string) => read(`src/shared/core/${name}.ts`);
+const rust = (path: string) => read(`crates/core/src/${path}.rs`);
+
+/** What follows `= ` in `const NAME ... = <value>;`, in either language. */
+function valueOf(source: string, name: string): string {
+	const found = new RegExp(`const ${name}\\b[^=]*=([\\s\\S]*?);\\s*$`, "m").exec(source)?.[1];
+	assert.ok(found !== undefined, `no const ${name} found`);
+	return found.trim();
+}
+const quoted = (text: string) => [...text.matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1]!);
+function strings(source: string, name: string): string[] {
+	const found = quoted(valueOf(source, name));
+	assert.ok(found.length > 0, `const ${name} holds no text`);
+	return found;
+}
+const number = (source: string, name: string) => Number(valueOf(source, name).replaceAll("_", ""));
+
+describe("question tools", () => {
+	it("are the same names", () => {
+		const names = strings(rust("messages/pending"), "QUESTION_TOOLS");
+		assert.deepEqual(strings(ts("pending"), "QUESTION_TOOLS"), names);
+		for (const name of names) assert.equal(isQuestionTool(name), true, name);
+	});
+});
+
+describe("plan labels", () => {
+	it("are the same prefixes and labels", () => {
+		const pairs = strings(rust("session/prices"), "PLAN_LABELS");
+		assert.deepEqual(strings(ts("prices"), "PLAN_LABELS"), pairs);
+		for (let i = 0; i < pairs.length; i += 2) assert.equal(subscriptionLabel(`${pairs[i]}model`), pairs[i + 1]);
+	});
+});
+
+describe("tool switches", () => {
+	const source = rust("session/tool_switches");
+	it("the toggleable tools are the same", () => {
+		const names = strings(source, "TOGGLEABLE_TOOLS");
+		assert.deepEqual(strings(ts("tool-switches"), "TOGGLEABLE_TOOLS"), names);
+		assert.deepEqual(Object.keys(TOOL_SWITCH_LABELS), names);
+	});
+	it("the switch labels are the same", () => {
+		const match = /fn switch_label[\s\S]*?\{\s*match tool \{([\s\S]*?)_ =>/.exec(source)?.[1] ?? "";
+		const pairs = Object.fromEntries([...match.matchAll(/"(\w+)" => "([^"]+)"/g)].map((m) => [m[1]!, m[2]!]));
+		assert.ok(Object.keys(pairs).length > 0);
+		assert.deepEqual(TOOL_SWITCH_LABELS, pairs);
+	});
+});
+
+describe("space limits", () => {
+	const source = rust("contracts/space");
+	it("signature length and linked file count are the same", () => {
+		assert.equal(SIGNATURE_MAX, number(source, "SIGNATURE_MAX"));
+		assert.equal(MAX_LINKED_FILES, number(source, "MAX_LINKED_FILES"));
+	});
+	it("the subject icons are the same, in order", () => {
+		const inRust = [...valueOf(source, "SPACE_ICONS").matchAll(/\("([\w-]+)", "([^"]+)"\)/g)].map((m) => [m[1], m[2]]);
+		assert.ok(inRust.length > 0);
+		assert.deepEqual(Object.entries(SPACE_ICONS), inRust);
+	});
+	it("the supported file extensions are the same, in order", () => {
+		const inRust = ["TEXT", "CODE", "DOCUMENT", "TRANSCRIPT", "RECORDING"].flatMap((kind) => strings(source, `${kind}_EXTENSIONS`));
+		assert.deepEqual([...SUPPORTED_SPACE_FILE_EXTENSIONS], inRust);
+	});
+});
+
+describe("attachment limits", () => {
+	const inRust = rust("messages/attachments");
+	const inTs = ts("attachments");
+	it("the count is the same", () => {
+		assert.equal(MAX_ATTACHMENTS, number(inRust, "MAX_ATTACHMENTS"));
+	});
+	it("the size limits are the same", () => {
+		for (const name of ["MAX_IMAGE_BYTES", "MAX_PDF_BYTES"]) assert.equal(valueOf(inTs, name), valueOf(inRust, name), name);
+	});
+	it("the accepted types are the same", () => {
+		for (const name of ["IMAGE_TYPES", "HEIC_TYPES", "PDF_TYPE"]) assert.deepEqual(strings(inTs, name), strings(inRust, name), name);
+		assert.equal(ATTACHMENT_ACCEPT, [...strings(inRust, "IMAGE_TYPES"), ...strings(inRust, "PDF_TYPE")].join(","));
+	});
+	it("the refusals are the same words", () => {
+		assert.deepEqual(strings(inTs, "HEIC_REFUSAL"), strings(inRust, "HEIC_REFUSAL"));
+		const tooMany = valueOf(inTs, "TOO_MANY_REFUSAL").replaceAll("`", "").replace("${MAX_ATTACHMENTS}", String(MAX_ATTACHMENTS));
+		assert.equal(tooMany, strings(inRust, "TOO_MANY_REFUSAL")[0]);
+	});
+});
+
+describe("progress thresholds", () => {
+	it("a hinted answer counts the same", () => {
+		const weight = Number(/const HINTED_WEIGHT: f64 = ([\d.]+);/.exec(rust("study/answers"))?.[1]);
+		assert.equal(tally([{ outcome: "hinted" }]).rate, weight);
+	});
+	it("the status cut-offs are the same", () => {
+		const body = /fn topic_status[\s\S]*?\n\}/.exec(rust("study/progress"))?.[0] ?? "";
+		const [strong, shaky] = [...body.matchAll(/r >= ([\d.]+)/g)].map((m) => Number(m[1]));
+		assert.equal(strong, 0.85);
+		assert.equal(shaky, 0.55);
+		assert.equal(topicStatus(strong!), "strong");
+		assert.equal(topicStatus(strong! - 0.001), "shaky");
+		assert.equal(topicStatus(shaky!), "shaky");
+		assert.equal(topicStatus(shaky! - 0.001), "weak");
+		assert.equal(topicStatus(null), "untested");
+	});
+	it("the colour steps are the same", () => {
+		const limits = /fn ramp_color[\s\S]*?\[([\d., ]+)\]\.iter/.exec(rust("study/progress"))?.[1]?.split(",").map(Number) ?? [];
+		assert.equal(limits.length, RAMP_COLORS.length - 1);
+		limits.forEach((limit, i) => {
+			assert.equal(rampColor(limit - 0.001), RAMP_COLORS[i]);
+			assert.equal(rampColor(limit), RAMP_COLORS[i + 1]);
+		});
+	});
+});
+
+describe("factory settings", () => {
+	it("the defaults the browser reads are the ones the server sends", () => {
+		const source = rust("records/settings");
+		const teacherName = /DEFAULT_TEACHER_NAME: &str = "([^"]+)"/.exec(source)?.[1];
+		const general = /"general": \{([^}]*)\}/.exec(source)?.[1] ?? "";
+		const inRust = Object.fromEntries([...general.matchAll(/"(\w+)": (true|false|"[^"]*"|DEFAULT_TEACHER_NAME)/g)].map((m) => [m[1]!, m[2] === "DEFAULT_TEACHER_NAME" ? teacherName : JSON.parse(m[2]!)]));
+		assert.deepEqual(FACTORY_SETTINGS.general, inRust);
+		assert.equal(/"graph": \{ "enabled": (true|false)/.exec(source)?.[1], String(FACTORY_SETTINGS.graph.enabled));
+		assert.match(source, /"background": null,\s*"fontFamily": null/);
+		assert.deepEqual(FACTORY_SETTINGS.appearance, { background: null, fontFamily: null });
+	});
+});

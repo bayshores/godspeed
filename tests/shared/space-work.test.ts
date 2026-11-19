@@ -4,9 +4,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { isWaitingFile } from "../../src/shared/core/space-work.ts";
-import type { SpaceFile, SpaceFileStatus } from "../../src/shared/core/contracts.ts";
+import type { SpaceFile } from "../../src/shared/core/contracts.ts";
 
-const file = (id: string, status: SpaceFileStatus, kind: "study" | "info" = "study"): SpaceFile => ({
+const file = (id: string, status: SpaceFile["status"], kind: "study" | "info" = "study"): SpaceFile => ({
 	id,
 	origin: "copied",
 	name: `${id}.pdf`,
