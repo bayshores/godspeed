@@ -19,10 +19,6 @@
  * is the exception: its answered card moves to where the answer happened,
  * right above the teacher's reaction, leaving a "moved" part where it was asked.
  *
- * Plan blocks: a plan-block marker has no message of its own — its data part
- * splices into the preceding assistant group, IN FLOW right after the last
- * successful plan_init call (the presentation moment).
- *
  * Question tools on the wire: the agent's closing
  * tool_execution_end carries the in-memory "Question posed" placeholder —
  * projectView IGNORES clean question executions (the part stays
@@ -37,12 +33,12 @@ import type { LhMarkerMessage, LhMessage } from "./native-messages.ts";
 import { PRACTICE_CONCLUDE_TOOL, SEND_TO_USER_TOOL, sendToUserText } from "./native-messages.ts";
 import { answeredCallIds, interruptedQuestions, sideHeldQuestions } from "./native-scans.ts";
 import { problemInputForConclude } from "./practice-problem.ts";
-import { activeCompactionOf, type CompactionDetails } from "./compaction.ts";
+import { activeCompactionOf } from "./compaction.ts";
 import { isQuestionTool, type AppPosed } from "./pending.ts";
 import { dismissedAnswer } from "./question-grading.ts";
 import { shownOpeners, type ShownOpener } from "./topic-end.ts";
 import type { SubagentArtifactData, SubagentResultMeta } from "./contracts/jobs.ts";
-import type { PlanBlockData, ReviewDetails, ReviewQuestion } from "./contracts/chat.ts";
+import type { ReviewDetails, ReviewQuestion } from "./contracts/chat.ts";
 import { pdfNoteOf, type AttachmentPart } from "./attachments.ts";
 import { joinPlots } from "./plot-view.ts";
 import { joinKept } from "./kept-view.ts";
@@ -128,17 +124,6 @@ function applyResult(part: LhViewPart, result: ToolResultMessage): void {
 		part.state = "output-available";
 		part.output = result.details;
 	}
-}
-
-/** Does this assistant group carry a successful plan_init (the splice target)? */
-function lastSuccessfulPlanInit(parts: LhViewPart[]): number {
-	let idx = -1;
-	parts.forEach((p, i) => {
-		if (p.type !== "tool-plan_init") return;
-		const ok = (p.output as { ok?: unknown } | undefined)?.ok;
-		if (ok === true) idx = i;
-	});
-	return idx;
 }
 
 /** Project the native record (+ live turn working list) into the client's
@@ -529,7 +514,7 @@ function applyResultTo(part: LhViewPart | undefined, result: ToolResultMessage):
 	// rendered nothing) is dropped from the view — the record keeps it.
 }
 
-/** A marker's projected message (handoff/steers) or splice (plan block). */
+/** A marker's projected message (handoff, steers and the like). */
 function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[], homework: boolean): void {
 	switch (marker.customType) {
 		case "graph-context": {
@@ -663,36 +648,6 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[], homework: 
 				role: "user",
 				parts: [{ type: "data-from-earlier", id: `fe_${marker.id}`, data: { sitting: details.sitting, rows: [details] } satisfies FromEarlierData }],
 			});
-			return;
-		}
-		case "compaction": {
-			// THE MOMENT DIVIDER: minimal centered small
-			// text at the compaction moment — where the user currently is
-			// (the marker appends at the record's tail). Clicking opens the
-			// full summary. The cut divider is emitted by the fold loop at
-			// the kept boundary (see projectView).
-			out.push({
-				id: marker.id,
-				role: "user",
-				parts: [
-					{
-					type: "data-compaction",
-					id: `cm_${marker.id}`,
-					data: { content: marker.content, details: marker.details as CompactionDetails },
-				},
-				],
-			});
-			return;
-		}
-		case "plan-block": {
-			// No message of its own: splice into the preceding assistant
-			// group, IN FLOW after the last successful plan_init call.
-			const group = out[out.length - 1];
-			if (!group || group.role !== "assistant") return;
-			const idx = lastSuccessfulPlanInit(group.parts);
-			if (idx === -1) return;
-			const { block } = marker.details as { planCallId: string; block: PlanBlockData };
-			group.parts.splice(idx + 1, 0, { type: "data-plan-block", id: marker.id, data: block });
 			return;
 		}
 	}

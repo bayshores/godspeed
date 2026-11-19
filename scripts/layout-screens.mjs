@@ -204,6 +204,13 @@ export const SCREENS = [
 		shows: "[data-testid=delete-lesson-dialog]",
 	},
 	{
+		name: "Lesson, its stats pop-up",
+		url: "/chat/{lesson}",
+		ready: "[data-testid=lesson-more]",
+		setup: `document.querySelector("[data-testid=lesson-more]").click(); ${pause}; document.querySelector("[data-testid=ctx-stats]").click()`,
+		shows: "[data-testid=stats-detail][data-state=open]",
+	},
+	{
 		name: "Lesson with Find open in the bar",
 		url: "/chat/{lesson}",
 		ready: "[data-testid=cite-list]",

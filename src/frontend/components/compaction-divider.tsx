@@ -1,29 +1,14 @@
 import type { CompactionDetails } from "@/shared/core";
 import { pagesLabel } from "@/frontend/components/usage-format";
 
-/** What one divider carries: the marker's full model-facing content (the
+/** What the divider carries: the marker's full model-facing content (the
  *  [SESSION HISTORY COMPACTED] header + the summary) and its details.
  *  The content is deliberately UNRENDERED: the compaction summary is
- *  model-facing plumbing. The dividers mark
+ *  model-facing plumbing. The divider marks
  *  WHERE the cut landed and how big it was; nothing opens. */
 export interface CompactionDividerData {
 	content: string;
 	details: CompactionDetails;
-}
-
-/** The moment divider: minimal centered small text where
- *  the user currently is — the retrying-message register (SystemLine's
- *  exact spaces), NO horizontal rule. The transcript's quiet note that
- *  history was just summarized; the cut divider below carries the seam.
- *  Plain text, no affordance. */
-export function CompactionMomentDivider({ data: _data }: { data: CompactionDividerData }) {
-	return (
-		<div className="flex w-full items-center justify-center py-1">
-			<span data-testid="compaction-divider" className="px-1.5 text-sm text-ink-2">
-				Lesson summarized
-			</span>
-		</div>
-	);
 }
 
 /** The cut divider: the LONGER divider at the actual

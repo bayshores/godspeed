@@ -212,10 +212,10 @@ test("pending → exact copy → submit → saved/answered copy never changes so
 	}
 });
 
-test("a skipped question's card draws its math, as the question did", () => {
+test("a skipped question's line draws its math, as the question did", () => {
 	const skipped = { kind: "quiz", dismissed: true, questionText: "Set the slider to $h=0.01$.", answers: [], answeredAt: "2026-11-16T00:00:00Z" };
 	const html = renderToStaticMarkup(<AnsweredCard answer={skipped as never} />);
 	assert.match(html, /class="katex/);
 	assert.doesNotMatch(html, /\$h=0\.01\$/);
-	assert.match(html, /\(skipped\)/);
+	assert.match(html, /Skipped:/);
 });

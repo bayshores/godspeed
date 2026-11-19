@@ -1,7 +1,5 @@
-import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { PlanBlock } from "../../src/frontend/components/plan-block.tsx";
 import {
 	blockLayout,
 	edgePathD,
@@ -12,9 +10,9 @@ import {
 	nodeWidth,
 	estimateLineWidth,
 } from "../../src/frontend/components/plan-block-model.ts";
-import type { PlanBlockData, PlanTree } from "../../src/shared/core/contracts.ts";
+import type { PlanTree } from "../../src/shared/core/contracts.ts";
 
-// Plan blocks: the pure layered layout and the frozen-snapshot card.
+// Plan diagram: the pure layered layout.
 // "The plan" dialog is tested with the plan row (render-plan-row.test.tsx).
 
 const CHAIN: PlanTree = {
@@ -29,7 +27,7 @@ const CHAIN: PlanTree = {
 	],
 };
 
-describe("plan block layout (pure)", () => {
+describe("plan diagram layout (pure)", () => {
 	it("layers a chain top-down, one node per depth row", () => {
 		const layout = blockLayout(CHAIN.nodes, CHAIN.edges);
 		assert.ok(layout.y.get("a")! < layout.y.get("b")! && layout.y.get("b")! < layout.y.get("c")!, "one row per depth, top-down");
@@ -127,49 +125,4 @@ describe("plan block layout (pure)", () => {
 		assert.ok(nodeWidth(["a"]) === NODE_W_MIN);
 		assert.ok(Math.abs(estimateLineWidth("The normal-form ladder") - 145.2) < 0.5);
 	});
-});
-
-describe("plan block render", () => {
-	it("the card fills the column, statuses AS CARRIED (never re-derived)", () => {
-		const data: PlanBlockData = {
-			kind: "full",
-			at: "2026-09-09T12:00:00Z",
-			current: null,
-			nodes: [
-				{ id: "a", title: "Alpha node", status: "visited" },
-				{ id: "b", title: "Beta node", status: "upcoming" },
-			],
-			edges: [{ from: "a", to: "b" }],
-		};
-		const html = renderToStaticMarkup(<PlanBlock data={data} onOpen={() => {}} />);
-		assert.match(html, /data-testid="plan-block-full"/);
-		// A card on the lesson's background, like the other cards in the text.
-		assert.match(html, /data-testid="plan-block-full"[^>]*class="[^"]*lh-well/);
-		// Fills the column UP TO the chat-font cap: the svg is w-full +
-		// mx-auto with maxWidth = extent × TEXT_CAP_SCALE, so node text never
-		// renders past the 16px prose size.
-		assert.match(html, /<svg[^>]*class="block h-auto w-full mx-auto"/);
-		// The reading font, not the mono UI font — via the
-		// runtime var (the font-prose utility would bake the @theme literal
-		// and ignore the Appearance reading-font override).
-		assert.match(html, /<svg[^>]*font-family:var\(--font-prose\)/);
-		// Lines + outlines at the app's standard 1px border weight.
-		assert.match(html, /<rect[^>]*stroke-width="1"/);
-		assert.match(html, /max-width:161.5px/); // (98+16) × 17/12
-		// Centered text: every title line
-		// anchors to its box's midline — the old x=12 left inset is gone.
-		assert.match(html, /<text[^>]*x="49"[^>]*text-anchor="middle"/); // 98/2
-		assert.ok(!/x="12"/.test(html), "no left-inset text");
-		// Panel-colored boxes with ink outlines; no node shows progress.
-		assert.match(html, /<rect[^>]*class="fill-panel stroke-ink"/);
-		// Two stacked nodes: 2*NODE_H + GAP_Y = 136 extent + GRAPH_PAD on
-		// every side (strokes/glow never clip at the edges). The width
-		// rides the hug now: 96-min boxes, not the old 160 slabs.
-		assert.match(html, /viewBox="-8 -8 114 152"/);
-		// Snapshot statuses render as carried.
-		assert.match(html, /data-testid="plan-node-a" data-status="visited"/);
-		assert.match(html, /data-testid="plan-node-b" data-status="upcoming"/);
-		assert.ok(html.includes('aria-label="Open the full plan"'), "the trigger names itself (tooltip copy)");
-	});
-
 });

@@ -125,6 +125,37 @@ describe("the folded line", () => {
 	});
 });
 
+describe("the row unfolds itself when the plan arrives or changes", () => {
+	const folded = (el: HTMLElement) => el.querySelector('[data-testid="plan-fold"]')!.getAttribute("aria-expanded") === "false";
+	const rerender = (node: React.ReactNode) => act(async () => root!.render(node));
+
+	it("stays folded on a lesson that already has its plan, and when only a step's status changes", async () => {
+		const el = await mount(<PlanRow {...base} />);
+		assert.ok(folded(el));
+		const done = { ...bar, currentIndex: 2, steps: bar.steps.map((s, i) => ({ ...s, status: i < 2 ? ("visited" as const) : ("current" as const) })) };
+		await rerender(<PlanRow {...base} stepBar={done} />);
+		assert.ok(folded(el));
+	});
+
+	it("opens when a plan appears where there was none, without writing the learner's choice", async () => {
+		const el = await mount(<PlanRow {...base} stepBar={null} />);
+		assert.equal(el.querySelector('[data-testid="plan-fold"]'), null);
+		await rerender(<PlanRow {...base} />);
+		assert.ok(!folded(el));
+		assert.equal(localStorage.getItem(STEPS_OPEN), null);
+	});
+
+	it("opens again when the plan's steps change, even after the learner folded it", async () => {
+		const el = await mount(<PlanRow {...base} />);
+		await act(async () => el.querySelector<HTMLButtonElement>('[data-testid="plan-fold"]')!.click());
+		await act(async () => el.querySelector<HTMLButtonElement>('[data-testid="plan-fold"]')!.click());
+		assert.ok(folded(el));
+		const longer = { ...bar, steps: [...bar.steps, { id: "d", title: "Momentum", status: "upcoming" as const, answers: [] }] };
+		await rerender(<PlanRow {...base} stepBar={longer} />);
+		assert.ok(!folded(el));
+	});
+});
+
 describe("the plan row of a plan lesson", () => {
 	unfold();
 

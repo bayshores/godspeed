@@ -753,7 +753,6 @@ describe("the reading pane", () => {
 		arrivalsLive: false,
 		pageMarks: new Map(),
 		arrive: () => undefined,
-		onOpenPlan: () => {},
 		...over,
 	});
 	const pane = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}) => renderToStaticMarkup(<ReadingPane {...readingProps(over)} />);

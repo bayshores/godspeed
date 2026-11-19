@@ -1,29 +1,18 @@
 /**
  * SPACES PINS — static renders of the space
- * surfaces: the lesson's space card, a Files-page row, and the switcher's
+ * surfaces: a Files-page row and the switcher's
  * closed state outside a provider (reads as "No space").
  */
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 import { describe, it } from "node:test";
-import { SpaceContextCard } from "../../src/frontend/components/graph-context-card.tsx";
 import { FileRow } from "../../src/frontend/components/files/file-row.tsx";
 import { spaceQuery, spaceName } from "../../src/frontend/components/space-context.tsx";
 
 (globalThis as { React?: typeof React }).React = React;
 
 describe("space surfaces", () => {
-	it("the space card is collapsed scaffolding naming the space and file count", () => {
-		const html = renderToStaticMarkup(
-			<SpaceContextCard data={{ spaceId: "cls_a", name: "MATH 20C", description: "Calc III", files: [{ name: "syllabus.pdf", kind: "info", path: "/x" }] }} />,
-		);
-		assert.ok(html.includes('data-testid="space-context-card"'));
-		assert.ok(html.includes("Space context"));
-		assert.ok(html.includes("MATH 20C, 1 file"));
-		assert.ok(!html.includes("space-context-body"), "collapsed by default");
-	});
-
 	it("a file row says Study or Info, shows Failed + Retry and its studied facts, and always has the More menu", () => {
 		const base = { id: "f_1", name: "notes.md", path: "f_1/notes.md", kind: "study" as const, contentFp: "", addedAt: "" };
 		const actions = { onKind: () => {}, onRetry: () => {}, onRemove: () => {} };

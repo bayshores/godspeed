@@ -10,7 +10,7 @@ import { newCompactionMarker } from "../compaction-marker.ts";
 
 /**
  * COMPACTION in the frontend: the active marker is the NEWEST one (chained
- * compactions rule last), and the view draws its dividers.
+ * compactions rule last), and the view draws its divider.
  */
 
 // ─── the marker + the active scan ───────────────────────────────────────────
@@ -31,11 +31,10 @@ describe("the active compaction marker", () => {
 });
 
 // ---------------------------------------------------------------------------
-// THE VIEW FOLD: two dividers from one marker —
-// the minimal moment divider where the user is, the longer cut divider
-// at the kept boundary. Both carry the full summary payload.
+// THE VIEW FOLD: one marker makes one divider, the cut divider at the
+// kept boundary, carrying the full summary payload.
 // ---------------------------------------------------------------------------
-describe("projectView compaction dividers", () => {
+describe("projectView compaction divider", () => {
 	const record = (): LhMessage[] => [
 		{ id: "old1", role: "user", content: "earliest", timestamp: 1 },
 		{ id: "kept", role: "user", content: "recent", timestamp: 2 },
@@ -57,15 +56,8 @@ describe("projectView compaction dividers", () => {
 		assert.equal((part.data as { content: string }).content.includes("SUMMARY TEXT"), true);
 	});
 
-	it("emits the moment divider at the marker (the transcript tail)", () => {
+	it("draws nothing at the marker itself (only the cut divider marks the compaction)", () => {
 		const view = projectView(record());
-		const moment = view.find((m) => m.parts.some((p) => p.type === "data-compaction"));
-		assert.ok(moment, "the moment divider exists");
-		const part = moment!.parts.find((p) => p.type === "data-compaction")!;
-		assert.equal((part.data as { details: { tokensBefore: number } }).details.tokensBefore, 12345);
-		// and it renders AFTER the kept message (the compaction moment is
-		// the tail — where the user is when it happens)
-		const keptIdx = view.findIndex((m) => m.parts.some((p) => p.type === "text" && p.text === "recent"));
-		assert.ok(view.indexOf(moment!) > keptIdx);
+		assert.ok(!view.some((m) => m.parts.some((p) => p.type === "data-compaction")));
 	});
 });

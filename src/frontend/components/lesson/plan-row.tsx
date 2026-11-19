@@ -7,7 +7,7 @@ import { lazyComponent } from "@/frontend/lib/lazy-component";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { cn } from "@/frontend/lib/utils";
 import type { HomeworkProblem, LessonKind, LessonStop, PlanStepBar } from "@/shared/core";
-import { foldedLine, homeworkRow, openingLabel, rowColumns, planBranches, practiceRow, stepsRow, type RowBlock, type RowStep, type Tone } from "./plan-row-model";
+import { foldedLine, homeworkRow, openingLabel, rowColumns, planArrived, planBranches, planSignature, practiceRow, stepsRow, type RowBlock, type RowStep, type Tone } from "./plan-row-model";
 import type { PracticeProgress } from "./practice-progress";
 
 // The map draws with dagre, which loads with the plan blocks, not the lesson.
@@ -68,12 +68,25 @@ export const PlanRow = memo(function PlanRow({
 	const { spaces } = useSpaces();
 	const space = spaces.find((c) => c.id === spaceId);
 	const color = space ? spaceColorVar(space.color) : "var(--color-ink)";
-
 	// No problems yet: the desk shows the assignment while the teacher reads it, or the lesson says why not.
-	if (homework?.problems.length === 0) return null;
+	const steps = homework ? (homework.problems.length > 0 ? homeworkRow(homework.problems, homework.open, homework.blocked) : null) : kind !== "practice" && stepBar ? stepsRow(stepBar, stop) : null;
+
+	// The row lives as long as the lesson, so it sees a plan arrive or change. It then unfolds
+	// without writing the learner's choice; a lesson opened with its plan already there stays as kept.
+	const [open, setOpen] = useState(() => readStorage(STEPS_OPEN_KEY) === "1");
+	const plan = homework ? null : planSignature(steps);
+	const [planSeen, setPlanSeen] = useState(plan);
+	if (plan !== planSeen) {
+		setPlanSeen(plan);
+		if (planArrived(planSeen, plan)) setOpen(true);
+	}
+	const toggle = () => {
+		setOpen(!open);
+		writeStorage(STEPS_OPEN_KEY, open ? null : "1");
+	};
+
 	if (homework || kind !== "practice") {
-		const steps = homework ? homeworkRow(homework.problems, homework.open, homework.blocked) : stepBar && stepsRow(stepBar, stop);
-		return steps && <StepsRow steps={steps} edges={homework ? null : edges} color={color} onJump={onJump} onPick={homework ? onPick : null} blocked={homework?.blocked ?? null} onOpenPlan={onOpenPlan} />;
+		return steps && <StepsRow steps={steps} edges={homework ? null : edges} color={color} onJump={onJump} onPick={homework ? onPick : null} blocked={homework?.blocked ?? null} onOpenPlan={onOpenPlan} open={open} onToggle={toggle} />;
 	}
 	const summary = practice && practiceRow(practice);
 	if (!summary) return null;
@@ -110,6 +123,8 @@ function StepsRow({
 	onPick,
 	blocked,
 	onOpenPlan,
+	open,
+	onToggle,
 }: {
 	steps: RowStep[];
 	edges: Edges | null;
@@ -118,6 +133,8 @@ function StepsRow({
 	onPick: ((number: string | null) => void) | null;
 	blocked: string | null;
 	onOpenPlan: () => void;
+	open: boolean;
+	onToggle: () => void;
 }) {
 	const [said, setSaid] = useState("");
 	const pick =
@@ -144,16 +161,11 @@ function StepsRow({
 		return () => ro.disconnect();
 	}, [list]);
 	const columns = rowColumns(n, width, CELL.min, CELL_GAP);
-	const [open, setOpen] = useState(() => readStorage(STEPS_OPEN_KEY) === "1");
 	const fold = useFold(open);
-	const toggle = () => {
-		setOpen(!open);
-		writeStorage(STEPS_OPEN_KEY, open ? null : "1");
-	};
 	const line = foldedLine(steps, onPick !== null);
 	return (
 		<div className="flex min-w-0 shrink-0 flex-col">
-			<button type="button" data-testid="plan-fold" aria-expanded={open} onClick={toggle} className="group flex min-w-0 items-center gap-4 text-left text-[15px] leading-snug">
+			<button type="button" data-testid="plan-fold" aria-expanded={open} onClick={onToggle} className="group flex min-w-0 items-center gap-4 text-left text-[15px] leading-snug">
 				<span className="flex min-w-0 items-baseline gap-2.5">
 					<span className="shrink-0 font-count text-ink-2 group-hover:text-ink">{line.count}</span>
 					{/* Unfolded, the row below names the step. */}

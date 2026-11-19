@@ -17,7 +17,6 @@ import { describe, it } from "node:test";
 import { OpenProblemPane } from "../../src/frontend/components/lesson/open-problem-pane.tsx";
 import { ConcludeCard, ProblemCard, ThinkingCard } from "../../src/frontend/components/practice-cards.tsx";
 import { ChatActionsContext } from "../../src/frontend/components/chat-actions-context.ts";
-import { GraphContextCard } from "../../src/frontend/components/graph-context-card.tsx";
 import { projectView } from "../../src/shared/core/view.ts";
 import type { ArtifactPartProps } from "../../src/shared/core";
 import { PRACTICE_PROBLEM_TOOL, type LhMessage } from "../../src/shared/core/native-messages.ts";
@@ -190,33 +189,10 @@ describe("the practice view projection", () => {
 	});
 });
 
-// ── the graph-context card (a session's map pick; collapsed by default) ─────
+// ── the graph-context marker (a session's map pick) ─────────────────────────
 
-describe("GraphContextCard", () => {
-	it("collapsed: counts only — the statements stay hidden until expanded", () => {
-		const html = renderToStaticMarkup(
-			<GraphContextCard data={{ propositions: [
-				{ id: "n1", name: "Modus ponens", statement: "If P implies Q and P holds, Q holds." },
-				{ id: "n2", name: "Soundness", statement: "A valid argument from true premises has a true conclusion." },
-			], chains: ["Modus ponens → Soundness"] }} />,
-		);
-		assert.ok(html.includes('data-testid="graph-context-card"'));
-		assert.ok(html.includes("2 facts"));
-		assert.ok(html.includes("1 chain"));
-		// minimal: the collapsed bar carries NO statement text
-		assert.ok(!html.includes("If P implies Q"));
-		assert.ok(!html.includes("graph-context-body"));
-	});
-
-	it("zero chains: the chain count stays out of the summary", () => {
-		const html = renderToStaticMarkup(
-			<GraphContextCard data={{ propositions: [{ id: "n1", name: "A", statement: "S." }], chains: [] }} />,
-		);
-		assert.ok(html.includes("1 fact</span>"));
-		assert.ok(!html.includes("chain"));
-	});
-
-	it("the marker projects to the card's part (projectView fold)", () => {
+describe("graph-context marker", () => {
+	it("projects to a data part the view keeps (no card draws it)", () => {
 		const marker = { id: "g1", role: "custom", customType: "graph-context", content: "", display: true, details: { propositions: [{ id: "n1", name: "A", statement: "S." }], chains: [] }, timestamp: 1 };
 		const view = projectView([marker as unknown as LhMessage]);
 		assert.equal((view[0]!.parts[0] as { type: string }).type, "data-graph-context");

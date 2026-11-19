@@ -58,7 +58,6 @@ const props = (over: Partial<Props> = {}): Props => ({
 	arrivalsLive: false,
 	pageMarks: new Map(),
 	arrive: () => undefined,
-	onOpenPlan: () => {},
 	...over,
 });
 const pane = (over: Partial<Props> = {}) => renderToStaticMarkup(<ReadingPane {...props(over)} />);
@@ -72,7 +71,8 @@ describe("the desk", () => {
 		assert.equal(count(out, /lh-sheet lh-paper/g), 3, "the top sheet over two edges for five files");
 		assert.match(out, /data-testid="agent-at-work"[\s\S]*data-testid="stop-turn"/);
 		assert.doesNotMatch(out, /data-testid="user-message"/);
-		assert.match(out, /data-testid="space-context-card"/);
+		assert.doesNotMatch(out, /Space context/, "the scaffolding card is not drawn");
+		assert.doesNotMatch(out, /class="[^"]*empty:hidden/, "and leaves no hidden box behind");
 	});
 
 	it("says nothing the pill says: no Thinking, no teacher's name, no clock", () => {

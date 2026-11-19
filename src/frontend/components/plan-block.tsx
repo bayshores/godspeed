@@ -2,7 +2,7 @@ import { useId, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/frontend/lib/utils";
 import { usePanZoomViewport, ZoomControls } from "@/frontend/components/pan-zoom-viewport";
-import type { PlanBlockData, PlanNodeStatus, PlanTree } from "@/shared/core";
+import type { PlanNodeStatus, PlanTree } from "@/shared/core";
 import { derivedNodeStatus, derivePlanStatuses } from "@/shared/core";
 import { Hint } from "@/frontend/components/ui/hint";
 import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
@@ -11,16 +11,8 @@ import type { PopupMessage } from "@/frontend/components/plan-latest";
 import { ARROW_HEAD, blockLayout, edgePathD, HEAD_H, HEAD_W, LINE_H, NODE_H, NODE_W_MIN, STROKE_W, wrapTitle, type LayoutNode } from "@/frontend/components/plan-block-model";
 
 /**
- * PLAN BLOCKS: persisted `data-plan-block` parts render as DAG cards in
- * the transcript flow, the plan dialog shows the live plan, and the plan
- * row of a branching plan carries it drawn tiny.
- *
- * - The card shows the whole DAG. The SVG scales to the column width
- *   (viewBox = layout extent + GRAPH_PAD, so strokes never clip), capped
- *   at the reading text size (TEXT_CAP_SCALE).
- * - Clicking it opens the LIVE plan in "The plan" dialog: the diagram,
- *   statuses derived at click time. Cards are frozen
- *   snapshots rendered as carried; the dialog is the live view.
+ * The plan dialog shows the live plan as a diagram, and the plan row of a
+ * branching plan carries it drawn tiny (PlanMiniMap).
  *
  * Placement and edge geometry live in plan-block-model.ts; the SVG skin
  * is here. Pan/zoom uses fit-floor semantics: fully zoomed out IS the fit.
@@ -30,10 +22,6 @@ import { ARROW_HEAD, blockLayout, edgePathD, HEAD_H, HEAD_W, LINE_H, NODE_H, NOD
  *  geometry (half bleeds outside the extent), so the outermost node
  *  borders would clip at the svg edge without it. */
 const GRAPH_PAD = 8;
-/** Node titles render at text-xs (12px) in svg units. The card scales up
- *  to fill the column but never past the reading text size (17px): the
- *  width cap that makes that hold. */
-const TEXT_CAP_SCALE = 17 / 12;
 
 const BOX: Record<PlanNodeStatus, string> = {
 	// 50%-opacity fill instead of true transparency: a routed edge passing
@@ -48,9 +36,6 @@ const TEXT: Record<PlanNodeStatus, string> = {
 	current: "fill-ink text-xs font-medium",
 	upcoming: "fill-ink-2 text-xs",
 };
-// The card shows no progress: every node looks the same.
-const MONO_BOX = "fill-panel stroke-ink";
-const MONO_TEXT = "fill-ink text-xs";
 
 /** The diagram itself: positioned nodes + bezier edges. Pure-ish render:
  *  every input is data, so SSR render tests pin the whole thing. The root
@@ -63,9 +48,6 @@ function PlanDiagram({
 	statusOf,
 	markerId,
 	pad,
-	textCapScale,
-	naturalSize,
-	monochrome,
 }: {
 	nodes: readonly LayoutNode[];
 	edges: ReadonlyArray<{ from: string; to: string }>;
@@ -74,14 +56,6 @@ function PlanDiagram({
 	/** Pads the viewBox by this many svg units so centered strokes never
 	 *  clip at the extent edges. */
 	pad: number;
-	/** Caps the rendered width at extent × scale: the card fills the
-	 *  column but never grows past reading size. */
-	textCapScale?: number;
-	/** Renders at the viewBox width in px (1 svg unit = 1 px at zoom 1);
-	 *  the dialog's transform math depends on it. */
-	naturalSize?: boolean;
-	/** The card's mode: every node the same, statuses never show. */
-	monochrome?: boolean;
 }) {
 	const layout = useMemo(() => blockLayout(nodes, edges), [nodes, edges]);
 	const w = Math.max(layout.width, 1);
@@ -95,13 +69,14 @@ function PlanDiagram({
 	return (
 		<svg
 			viewBox={`${ox - pad} ${oy - pad} ${vbW} ${vbH}`}
-			className={`block h-auto${naturalSize ? "" : " w-full"}${textCapScale ? " mx-auto" : ""}`}
+			className="block h-auto"
 			style={{
 				// The READING font via the runtime var, NOT the font-prose
 				// utility: @theme inline bakes the literal into utilities,
 				// which would ignore the Appearance reading-font override.
 				fontFamily: "var(--font-prose)",
-				...(textCapScale ? { maxWidth: `${Math.round(vbW * textCapScale * 100) / 100}px` } : naturalSize ? { width: `${vbW}px` } : {}),
+				// 1 svg unit = 1 px at zoom 1; the dialog's transform math depends on it.
+				width: `${vbW}px`,
 			}}
 			role="img"
 			aria-label="Plan diagram"
@@ -132,7 +107,7 @@ function PlanDiagram({
 				// A link is dark only when BOTH its ends are: a light box's
 				// outgoing links stay light even when they point into covered
 				// territory.
-				const dim = !monochrome && (statusOf(e.from) === "upcoming" || statusOf(e.to) === "upcoming");
+				const dim = (statusOf(e.from) === "upcoming" || statusOf(e.to) === "upcoming");
 				return (
 					<path
 						key={`${e.from}->${e.to}`}
@@ -152,9 +127,9 @@ function PlanDiagram({
 				const y0 = (nodeH - lines.length * LINE_H) / 2 + 10;
 				return (
 					<g key={n.id} transform={`translate(${layout.x.get(n.id) ?? 0}, ${layout.y.get(n.id) ?? 0})`} data-testid={`plan-node-${n.id}`} data-status={status}>
-						<rect width={nodeW} height={nodeH} className={monochrome ? MONO_BOX : BOX[status]} strokeWidth={STROKE_W} />
+						<rect width={nodeW} height={nodeH} className={BOX[status]} strokeWidth={STROKE_W} />
 						{lines.map((line, i) => (
-							<text key={i} x={nodeW / 2} y={y0 + i * LINE_H} textAnchor="middle" className={monochrome ? MONO_TEXT : TEXT[status]}>
+							<text key={i} x={nodeW / 2} y={y0 + i * LINE_H} textAnchor="middle" className={TEXT[status]}>
 								{line}
 							</text>
 						))}
@@ -162,29 +137,6 @@ function PlanDiagram({
 				);
 			})}
 		</svg>
-	);
-}
-
-/**
- * A persisted plan-block part, rendered as carried (snapshot statuses,
- * never re-derived): a card that opens the live plan dialog.
- */
-export function PlanBlock({ data, onOpen }: { data: PlanBlockData; onOpen: () => void }) {
-	const markerId = useId().replace(/[^a-zA-Z0-9-]/g, "");
-	const statusMap = useMemo(() => new Map(data.nodes.map((n) => [n.id, n.status] as const)), [data]);
-	const statusOf = (id: string): PlanNodeStatus => statusMap.get(id) ?? "upcoming";
-	return (
-		<Hint label="Open the full plan" side="bottom">
-			<button
-				type="button"
-				data-testid="plan-block-full"
-				aria-label="Open the full plan"
-				onClick={onOpen}
-				className="block w-full lh-well rounded px-4 py-3 text-left"
-			>
-				<PlanDiagram nodes={data.nodes} edges={data.edges} statusOf={statusOf} markerId={markerId} pad={GRAPH_PAD} textCapScale={TEXT_CAP_SCALE} monochrome />
-			</button>
-		</Hint>
 	);
 }
 
@@ -301,7 +253,7 @@ export function PlanPopup({
 							transition: panning || !settled ? "none" : "transform 180ms ease-out, opacity 160ms ease-out",
 						}}
 					>
-						<PlanDiagram nodes={tree.nodes} edges={tree.edges} statusOf={statusOf} markerId={markerId} pad={GRAPH_PAD} naturalSize />
+						<PlanDiagram nodes={tree.nodes} edges={tree.edges} statusOf={statusOf} markerId={markerId} pad={GRAPH_PAD} />
 					</div>
 					<ZoomControls fitLabel="Fit plan to screen" fitTestId="plan-popup-fit" onStep={stepZoom} onFit={fitView} />
 				</div>

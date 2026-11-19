@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { foldedLine, homeworkRow, homeworkStartLabel, jumpTarget, openingLabel, planBranches, practiceRow, rightCountLabel, rowColumns, startProblemLabel, stepsRow } from "../../src/frontend/components/lesson/plan-row-model.ts";
+import { foldedLine, homeworkRow, homeworkStartLabel, jumpTarget, openingLabel, planArrived, planBranches, planSignature, practiceRow, rightCountLabel, rowColumns, startProblemLabel, stepsRow } from "../../src/frontend/components/lesson/plan-row-model.ts";
 import type { HomeworkProblem, LessonStop, PlanStepBar } from "../../src/shared/core/index.ts";
 
 const bar: PlanStepBar = {
@@ -149,5 +149,32 @@ describe("rowColumns", () => {
 		assert.equal(rowColumns(7, 4 * 150 + 3 * 12, 150, 12), 4, "7 in room for 4: 4 and 3");
 		assert.equal(rowColumns(3, 100, 150, 12), 1, "too narrow for two: one a line");
 		assert.equal(rowColumns(5, null, 150, 12), 5, "unmeasured: one line");
+	});
+});
+
+describe("telling a new plan from the same one", () => {
+	const steps = stepsRow(bar)!;
+	const signature = planSignature(steps);
+
+	it("has no signature without steps", () => {
+		assert.equal(planSignature(null), null);
+		assert.equal(planSignature([]), null);
+	});
+
+	it("a step becoming done or current is the same plan", () => {
+		const later = stepsRow({ ...bar, currentIndex: 2, steps: bar.steps.map((s, i) => ({ ...s, status: i < 2 ? "visited" : "current" })) })!;
+		assert.equal(planSignature(later), signature);
+		assert.equal(planArrived(signature, planSignature(later)), false);
+	});
+
+	it("a plan where there was none, a reworded step and an added step are new", () => {
+		assert.equal(planArrived(null, signature), true);
+		assert.equal(planArrived(signature, planSignature(stepsRow({ ...bar, steps: bar.steps.map((s) => (s.id === "c" ? { ...s, title: "Variance of the estimate" } : s)) }))), true);
+		assert.equal(planArrived(signature, planSignature(stepsRow({ ...bar, steps: [...bar.steps, { id: "d", title: "Momentum", status: "upcoming", answers: [] }] }))), true);
+	});
+
+	it("a plan going away is not an arrival", () => {
+		assert.equal(planArrived(signature, null), false);
+		assert.equal(planArrived(null, null), false);
 	});
 });

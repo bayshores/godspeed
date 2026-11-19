@@ -1,6 +1,6 @@
 /**
  * Usage/token presentation helpers, shared by the activity dock and the
- * stats bar. Pure; exported for tests.
+ * lesson stats. Pure; exported for tests.
  */
 
 /** The plan labels, or "–" when none (never a fake zero). */
@@ -20,34 +20,18 @@ export function formatTokens(n: number): string {
  *  so learner-facing lengths read in pages instead of tokens. */
 const TOKENS_PER_PAGE = 500;
 
+const pageCount = (tokens: number): number => Math.max(1, Math.round(tokens / TOKENS_PER_PAGE));
+
 /** 40000 → "about 80 pages", 400 → "about 1 page". */
 export function pagesLabel(tokens: number): string {
-	const pages = Math.max(1, Math.round(tokens / TOKENS_PER_PAGE));
+	const pages = pageCount(tokens);
 	return `about ${pages} page${pages === 1 ? "" : "s"}`;
 }
 
-/** Split a provider-qualified stamp "provider:id" into its two
- *  coordinates. No colon = a bare id. */
-function splitQualified(id: string): { provider: string | null; id: string } {
-	const colon = id.indexOf(":");
-	if (colon === -1) return { provider: null, id };
-	return { provider: id.slice(0, colon), id: id.slice(colon + 1) };
-}
-
-/**
- * "z-ai/glm-5.3-flash" → "glm-5.3-flash": vendor prefix dropped, the
- * name kept exactly as its provider writes it; a trailing all-digit
- * date segment ("qwen3.8-max-0902") is dropped.
- *
- * A "provider:id" stamp keeps its provider as a quiet suffix
- * ("glm-5.3-flash · provider"): the same model via two providers is
- * different bookkeeping.
- */
-export function prettyModel(id: string): string {
-	const { provider, id: bare } = splitQualified(id);
-	const short = bare.includes("/") ? bare.slice(bare.lastIndexOf("/") + 1) : bare;
-	const parts = short.split("-");
-	const trimmed = /^\d+$/.test(parts[parts.length - 1] ?? "") ? parts.slice(0, -1) : parts;
-	const pretty = trimmed.join("-");
-	return provider ? `${pretty} (${provider})` : pretty;
+/** The lesson's size against where it gets summarized: "about 79 of 80 pages",
+ *  "about 79 pages" while that point is unknown, null while the size is. */
+export function lessonSizeLabel(tokens: number | null, summarizeAt: number | null): string | null {
+	if (tokens === null) return null;
+	if (summarizeAt === null || summarizeAt <= 0) return pagesLabel(tokens);
+	return `about ${pageCount(tokens)} of ${pageCount(summarizeAt)} pages`;
 }

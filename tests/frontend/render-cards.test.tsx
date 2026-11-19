@@ -301,10 +301,14 @@ describe("render smoke tests", () => {
 		assert.match(html, /Somewhat/);
 	});
 
-	it("AnsweredCard renders dismissal as skipped", () => {
+	it("AnsweredCard renders dismissal as one quiet line, with no card box", () => {
 		const answer = { ...buildAnswer(quizQD(), { dontKnow: true }), dismissed: true };
 		const html = renderToStaticMarkup(<AnsweredCard answer={answer} />);
-		assert.match(html, /skipped/);
+		assert.match(html, /data-testid="answered-card"/);
+		assert.match(html, /Skipped:/);
+		assert.match(html, /truncate/, "the question is cut to one line");
+		assert.doesNotMatch(html, /lh-well|lh-sheet|rounded/, "no card box");
+		assert.doesNotMatch(html, /\(skipped\)/);
 	});
 });
 

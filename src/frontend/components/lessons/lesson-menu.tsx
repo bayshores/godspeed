@@ -6,7 +6,7 @@ import { dispositionFileName, saveBlob } from "@/frontend/components/artifacts/d
 
 /**
  * THE LESSON MENU (a Progress row's More button or a right-click, and the open lesson's More): Rename,
- * Export as Markdown, Move to another space, Delete (the destructive
+ * Export as Markdown, Move to another space, Lesson stats (the open lesson only), Delete (the destructive
  * action last), then below a gap the extraction coverage block. MenuShell owns
  * placement, focus and arrow keys; the list owns dismissal. From the open
  * lesson's More in the top bar (`bar`) it hangs from the bar and Rename shows
@@ -32,6 +32,7 @@ export function LessonMenu({
 	anchorRef,
 	onRename,
 	onMove,
+	onStats,
 	onDelete,
 	onClose,
 	bar,
@@ -41,6 +42,8 @@ export function LessonMenu({
 	anchorRef: RefObject<HTMLElement | null>;
 	onRename: () => void;
 	onMove: () => void;
+	/** Only the open lesson's menu has stats to show. */
+	onStats?: () => void;
 	onDelete: () => void;
 	onClose: () => void;
 	bar?: boolean;
@@ -73,6 +76,11 @@ export function LessonMenu({
 			<button role="menuitem" type="button" data-testid="ctx-move-space" onClick={onMove} className={`${ITEM} text-ink`}>
 				Move to another space
 			</button>
+			{onStats && (
+				<button role="menuitem" type="button" data-testid="ctx-stats" onClick={onStats} className={`${ITEM} text-ink`}>
+					Lesson stats
+				</button>
+			)}
 			<button role="menuitem" type="button" data-testid="ctx-delete" onClick={onDelete} className={`${ITEM} text-ans-wrong`}>
 				Delete
 			</button>

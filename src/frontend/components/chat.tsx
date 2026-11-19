@@ -5,7 +5,6 @@ import { visibleQueuedSteers } from "@/frontend/components/session-core";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { JobsContext } from "@/frontend/components/jobs-context";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
-import { StatsBar } from "@/frontend/components/stats-bar";
 import { agentWaiting, lessonAgentWaiting, useAgentStatus } from "@/frontend/components/agent-status";
 import { latestTree } from "@/frontend/components/plan-latest";
 import { SessionMermaidContext } from "@/frontend/components/session-overlay";
@@ -497,7 +496,7 @@ export function Chat({
 								spaceId={spaceId}
 								sheet={spaceId ? { open: sheetOpen, onToggle: toggleSheet } : undefined}
 								plugins={{ words: lessonPlugins ?? [], open: openPlugin?.id ?? null, onToggle: togglePlugin }}
-								stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={summarizeAt} pricing={pricing} />}
+								usage={{ turns, contextTokens, summarizeAt, pricing }}
 								scopeRef={sessionFindScopeRef}
 								scrollContextRef={scrollContextRef}
 							/>
@@ -528,7 +527,6 @@ export function Chat({
 														arrivalsLive={arrivalsLive}
 														pageMarks={pageMarks}
 														arrive={arrive}
-														onOpenPlan={overlays.openPlan}
 													/>
 												</Pane>
 											}

@@ -5,6 +5,7 @@ import { LessonMenu } from "@/frontend/components/lessons/lesson-menu";
 import { MoveLessonDialog } from "@/frontend/components/lessons/move-lesson-dialog";
 import { barWord } from "@/frontend/components/top-bar/bar-look";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
+import { LessonStats, type LessonUsage } from "./lesson-stats";
 
 type Lesson = { id: string; title: string; spaceId?: string };
 
@@ -13,17 +14,21 @@ type Lesson = { id: string; title: string; spaceId?: string };
  * Progress row has, hanging from the bar. Rename turns the title into its
  * field; a delete leaves the lesson for its space's Progress page (the
  * lesson's space is the bar's lit tab); a move keeps the lesson open and
- * reads its record again, so the bar marks the new space.
+ * reads its record again, so the bar marks the new space. Lesson stats opens
+ * its pop-up from the same key.
  */
-export function LessonMore({ chatId, title, spaceId, onRename }: { chatId: string; title: string; spaceId: string | undefined; onRename: () => void }) {
+export function LessonMore({ chatId, title, spaceId, usage, onRename }: { chatId: string; title: string; spaceId: string | undefined; usage: LessonUsage; onRename: () => void }) {
 	const navigate = useNavigate();
 	const revalidator = useRevalidator();
 	const anchorRef = useRef<HTMLButtonElement>(null);
 	const [open, setOpen] = useState(false);
+	const [statsOpen, setStatsOpen] = useState(false);
 	const [deleting, setDeleting] = useState<Lesson | null>(null);
 	const [moving, setMoving] = useState<Lesson | null>(null);
 	const close = useCallback(() => setOpen(false), []);
 	useMenuDismiss(open, close, anchorRef);
+	const closeStats = useCallback(() => setStatsOpen(false), []);
+	useMenuDismiss(statsOpen, closeStats, anchorRef);
 	const pick = (act: () => void) => () => {
 		setOpen(false);
 		act();
@@ -38,7 +43,10 @@ export function LessonMore({ chatId, title, spaceId, onRename }: { chatId: strin
 				aria-label={`More for ${title}`}
 				aria-haspopup="menu"
 				aria-expanded={open}
-				onClick={() => setOpen((o) => !o)}
+				onClick={() => {
+					setStatsOpen(false);
+					setOpen((o) => !o);
+				}}
 				className={barWord(open)}
 			>
 				More
@@ -50,9 +58,11 @@ export function LessonMore({ chatId, title, spaceId, onRename }: { chatId: strin
 				onClose={close}
 				onRename={pick(onRename)}
 				onMove={pick(() => setMoving(lesson))}
+				onStats={pick(() => setStatsOpen(true))}
 				onDelete={pick(() => setDeleting(lesson))}
 				bar
 			/>
+			<LessonStats open={statsOpen} anchorRef={anchorRef} usage={usage} />
 			<DeleteLessonDialog chat={deleting} onClose={() => setDeleting(null)} onDeleted={() => void navigate("/space")} />
 			<MoveLessonDialog
 				lesson={moving}

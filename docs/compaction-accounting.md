@@ -1,6 +1,6 @@
 # Compaction and usage accounting
 
-How a long lesson is shortened, how the size meter is measured and how token usage is counted. Read this before you change the cutoff rule, the meter or the usage numbers.
+How a long lesson is shortened, how the lesson's size is measured and how token usage is counted. Read this before you change the cutoff rule, the lesson's size or the usage numbers.
 
 ## Where the code lives
 
@@ -9,8 +9,8 @@ How a long lesson is shortened, how the size meter is measured and how token usa
 | `crates/core/src/session/compaction.rs` | Cutoff rule, token estimate, `local_summary`, compaction marker. The copy the server runs. |
 | `crates/services/src/turns/compaction.rs` | When shortening and the summary run. |
 | `src/shared/core/compaction.ts` | What the screens need to draw a shortened lesson (`activeCompactionOf`). The rule itself is Rust only. |
-| `src/shared/core/context-usage.ts` | `measuredContextTokens`, the meter's number. |
-| `src/frontend/components/stats-bar.tsx` | The meter (`contextMeter`). |
+| `src/shared/core/context-usage.ts` | `measuredContextTokens`, the lesson's size. |
+| `src/frontend/components/lesson/lesson-stats.tsx` | The Lesson stats pop-up from the open lesson's More; the size's words are `lessonSizeLabel` in `usage-format.ts`. |
 | `src/shared/core/prices.ts`, `src/shared/core/cost-summary.ts` | Usage totals and plan labels. |
 
 Tests:
@@ -57,15 +57,15 @@ Token estimates follow the same package:
 
 Only cutoff selection is ported. godspeed keeps its own teaching summary prompt, plan continuity, storage, threshold, scheduling and lifecycle, and does not use the package's coding summary or split-turn summary calls.
 
-## The lesson's size meter
+## The lesson's size
 
-Shows `tokens / summarize point`, for example "33k / 40k", never a percentage.
+The Lesson stats pop-up (open lesson's More menu) shows it in pages against the summarize point, for example "about 79 of 80 pages" (500 tokens a page), "about 79 pages" while the summarize point is unknown, and no row while the size is unknown. Never a percentage.
 
 - Number: the latest completed response's `input + output + cacheRead + cacheWrite`. Reasoning is already inside output. `totalTokens` is not used.
 - A response counts only if it ended with `stop`, `length` or `toolUse` and its usage is finite, not negative and not all zero. Partial stream updates, errors and aborts don't count.
-- A compaction marker clears every earlier reading. Summary runs never feed the meter.
+- A compaction marker clears every earlier reading. Summary runs never feed the size.
 - Maximum: the summarize point the server sends as `summarizeAt` with `GET /api/chats/{id}`: 40,000, capped by window minus reserve (`effective_threshold_tokens`).
-- Hidden until the lesson reaches 80% of the summarize point, and while either number is unknown.
+- Shown at any size.
 
 ## Usage, not dollars
 

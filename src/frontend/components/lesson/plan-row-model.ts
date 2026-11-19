@@ -112,6 +112,16 @@ export function stepsRow(bar: PlanStepBar, stop: LessonStop | null = null): RowS
 	});
 }
 
+/** The plan's step keys and names as one string, so a new or reworded plan can be told from a step becoming done or current. Null with no steps. */
+export function planSignature(steps: readonly RowBlock[] | null): string | null {
+	return steps && steps.length > 0 ? JSON.stringify(steps.map((s) => [s.key, s.name])) : null;
+}
+
+/** Whether the plan now on screen is new or changed since the one last seen. */
+export function planArrived(seen: string | null, now: string | null): boolean {
+	return now !== null && now !== seen;
+}
+
 /** Whether the plan branches: some step has two or more steps right before
  *  or after it. A plan that is one chain needs no map. */
 export function planBranches(stepIds: readonly string[], edges: ReadonlyArray<{ from: string; to: string }>): boolean {

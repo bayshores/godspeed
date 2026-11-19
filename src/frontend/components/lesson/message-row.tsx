@@ -1,5 +1,4 @@
 import { Fragment, memo } from "react";
-import { lazyComponent } from "@/frontend/lib/lazy-component";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { paleSpaceColor } from "@/frontend/components/space-color";
 import { useSpaceColor } from "@/frontend/components/space-context";
@@ -14,8 +13,7 @@ import { AnsweredCard } from "@/frontend/components/answered-card";
 import { isPrediction } from "@/frontend/components/answered-card-model";
 import { PhaseDivider } from "@/frontend/components/phase-divider";
 import { ThinkingCard, type PracticeThinkingData } from "@/frontend/components/practice-cards";
-import { SpaceContextCard, GraphContextCard, type SpaceContextData, type GraphContextData } from "@/frontend/components/graph-context-card";
-import { CompactionCutDivider, CompactionMomentDivider, type CompactionDividerData } from "@/frontend/components/compaction-divider";
+import { CompactionCutDivider, type CompactionDividerData } from "@/frontend/components/compaction-divider";
 import { Separator } from "@/frontend/components/ui/separator";
 import { cn } from "@/frontend/lib/utils";
 import {
@@ -30,7 +28,6 @@ import {
 	type KeptCardData,
 	type LhViewMessage,
 	type LhViewPart,
-	type PlanBlockData,
 	type QuestionAnswerData,
 } from "@/shared/core";
 import { STEP_TOOLS } from "./agent-at-work-model";
@@ -42,10 +39,6 @@ import { FromEarlierCard } from "./from-earlier-card";
 import { KeptCard } from "./kept-card";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { startProblemLabel } from "./plan-row-model";
-
-// A plan diagram (and dagre, its layout engine) is its own chunk; the
-// lesson loader reads it with the record, so it is in the first paint.
-const PlanBlock = lazyComponent(() => import("@/frontend/components/plan-block").then((m) => m.PlanBlock));
 
 /** The quiet system line: centered and muted, the transcript's voice
  *  for events that are not speech. */
@@ -74,7 +67,6 @@ interface MessageRowProps {
 	/** Each Study topic's stored page mark, by the text it sits in (topicPageMarks). */
 	pageMarks: ReadonlyMap<string, string>;
 	arrive: Arrive;
-	onOpenPlan: () => void;
 }
 
 /**
@@ -82,7 +74,7 @@ interface MessageRowProps {
  * streams only the message being written redraws — every other row keeps
  * its previous message object (reuseUnchangedMessages) and skips.
  */
-export const MessageRow = memo(function MessageRow({ message: m, spaceId, index: mi, echo, teachSeam, streamingLast, hideSteps, pageMarks, arrive, onOpenPlan }: MessageRowProps) {
+export const MessageRow = memo(function MessageRow({ message: m, spaceId, index: mi, echo, teachSeam, streamingLast, hideSteps, pageMarks, arrive }: MessageRowProps) {
 	if (m.role === "user" && isSubagentSteer(m)) {
 		// Sub-agent delivery: no bubble — the artifact card sits in the column.
 		return (
@@ -99,6 +91,8 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 			</div>
 		);
 	}
+	// The teacher's own scaffolding (space and graph context) is read by the desk and the model, never drawn.
+	if (m.role === "user" && m.parts.every((p) => p.type === "data-graph-context" || p.type === "data-space-context")) return null;
 	if (m.role === "user" && m.parts.some((p) => p.type.startsWith("data-") && !isAttachmentPart(p))) {
 		// Marker cards (custom messages): user-side scaffolding as cards; a
 		// thinking card's files sit under it.
@@ -137,7 +131,6 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 						streaming={streamingLast && pi === m.parts.length - 1}
 						hideSteps={hideSteps}
 						arrive={arrive}
-						onOpenPlan={onOpenPlan}
 					/>
 				))}
 				</MessageContent>
@@ -170,12 +163,6 @@ function UserMessage({ message, spaceId, echo, className }: { message: LhViewMes
 
 function MarkerPart({ part }: { part: LhViewPart }) {
 	switch (part.type) {
-		case "data-graph-context":
-			return <GraphContextCard data={part.data as GraphContextData} />;
-		case "data-space-context":
-			return <SpaceContextCard data={part.data as SpaceContextData} />;
-		case "data-compaction":
-			return <CompactionMomentDivider data={part.data as CompactionDividerData} />;
 		case "data-compaction-cut":
 			return <CompactionCutDivider data={part.data as CompactionDividerData} />;
 		case "data-practice-thinking":
@@ -203,7 +190,7 @@ function SignalLine({ testId, children }: { testId: string; children: string }) 
 
 /** Whether AssistantPart draws anything for this part (kept in step with it). */
 function partShows(part: LhViewPart, hideSteps: boolean): boolean {
-	if (part.type === "text" || part.type === "reasoning" || part.type === "data-plan-block") return true;
+	if (part.type === "text" || part.type === "reasoning") return true;
 	if (!part.type.startsWith("tool-")) return false;
 	const tool = part.type.slice("tool-".length);
 	if (hideSteps && STEP_TOOLS.has(tool)) return false;
@@ -222,7 +209,6 @@ function AssistantPart({
 	streaming,
 	hideSteps,
 	arrive,
-	onOpenPlan,
 }: {
 	part: LhViewPart;
 	slot: string;
@@ -235,7 +221,6 @@ function AssistantPart({
 	streaming: boolean;
 	hideSteps: boolean;
 	arrive: Arrive;
-	onOpenPlan: () => void;
 }) {
 	if (hideSteps && STEP_TOOLS.has(part.type.slice("tool-".length))) return null;
 	// A tool call that errored BACK TO THE AGENT is invisible work (the agent
@@ -277,13 +262,6 @@ function AssistantPart({
 					</div>
 				);
 			return separator && !hideSteps ? <Separator className="my-3" /> : null;
-		case "data-plan-block":
-			// A frozen snapshot of the plan, rendered as carried.
-			return (
-				<div className={cn("flex flex-col", arrive(slot))}>
-					<PlanBlock data={part.data as PlanBlockData} onOpen={onOpenPlan} />
-				</div>
-			);
 		case "tool-quiz":
 		case "tool-probe":
 		case "tool-ask_user_question":

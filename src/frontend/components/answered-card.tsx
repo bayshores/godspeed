@@ -114,9 +114,12 @@ export function AnsweredCard({
 	const step = useStepNumber(input);
 	if (answer.dismissed) {
 		return (
-			<div data-testid="answered-card" className={cn(CARD, "text-[15px] text-ink-2")}>
-				{/* The question's math and code draw as they did when it was asked. */}
-				<ToolContentResponse>{`${answer.questionText} (skipped)`}</ToolContentResponse>
+			<div data-testid="answered-card" className="flex items-baseline gap-1.5 text-[15px] text-ink-2">
+				<span className="shrink-0">Skipped:</span>
+				{/* The question's math and code still draw, squeezed onto one line that ends in an ellipsis. */}
+				<div className="max-h-7 min-w-0 flex-1 truncate [&_p]:m-0 [&_p]:inline [&_pre]:inline [&_pre]:whitespace-pre">
+					<ToolContentResponse>{answer.questionText}</ToolContentResponse>
+				</div>
 			</div>
 		);
 	}

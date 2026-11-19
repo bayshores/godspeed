@@ -15,6 +15,7 @@ A UI change must fit the app as if it was always there. Working is not finished.
 
 - Each fact shows in one place. No status, name, instruction or count repeated in a second label, sentence or chip visible at the same time.
 - A sentence never repeats the label of the button beside it.
+- The lesson text holds only lesson content: nothing the teacher was handed, no status of the app, no copy of the plan (the step row is its one home).
 - Failure help shows when it fails, not always.
 - Before calling a UI change finished, read every word on the changed screen in each state (empty, working, failed) and cut what is said twice.
 
@@ -66,7 +67,7 @@ The top bar is the one place for a page's own actions and for where the learner 
 
 - Page tabs (Progress, Files, Graph, Deadlines) and keys inside a card stay on the page.
 - Bar words are real buttons or links, never a clickable span: the bar is the window's drag band, and only buttons, links and fields are cut out of it (`crates/shell/src/shim.js`).
-- Crowded, the bar gives way in this order (`space-tabs.tsx`): the pill's words, then the unlit tabs' names down to 8 letters, then those tabs scroll with the lit tab kept in view. The lit tab and its crumb never give way to the other tabs; in a strip too narrow for both, the crumb's name gives way down to 12 letters (`CrumbName`), then the lit tab's name down to its dot. The wordmark and the clock leave below 1200 points while a page has words in the bar, and below 760 always (`.lh-bar-spare`).
+- Crowded, the bar gives way in this order (`space-tabs.tsx`): the pill's words and its deadline's name (the countdown stays), then the unlit tabs' names down to 8 letters, then those tabs scroll with the lit tab kept in view. The lit tab and its crumb never give way to the other tabs; in a strip too narrow for both, the crumb's name gives way down to 12 letters (`CrumbName`), then the lit tab's name down to its dot. The wordmark and the clock leave below 1200 points while a page has words in the bar, and below 760 always (`.lh-bar-spare`).
 - Below 1100 points a page's words take a line of their own above the bar's, at its right end, so the bar is two lines tall (`.lh-bar-actions` in `globals.css`). Whatever sits under the bar reads its height from `--lh-bar-h`, never a fixed 48 points. A menu from a page's word hangs from that word's line and may cover the line below while it is open. Windows that stay open, the teacher's window and a plugin's window, hang under the whole bar and read `--lh-bar-h`.
 - Before calling a bar change finished, check that no page draws its actions under the bar, and look at the bar at 1440, 1100 and 800 points wide with the longest real names.
 

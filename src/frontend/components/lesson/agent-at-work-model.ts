@@ -1,5 +1,4 @@
 import { isQuestionTool, type JobRecord, type LhViewMessage, type LhViewPart } from "@/shared/core";
-import type { SpaceContextData } from "@/frontend/components/graph-context-card";
 
 /**
  * What the teacher is doing in the reply it is working on, read from that
@@ -42,7 +41,11 @@ export const STEP_TOOLS: ReadonlySet<string> = new Set([
 ]);
 
 /** The space's files as the lesson's space card lists them, with the path the teacher can open. */
-export type CardFile = SpaceContextData["files"][number];
+export interface CardFile {
+	name: string;
+	kind: "study" | "info";
+	path: string | null;
+}
 
 const IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp)$/i;
 

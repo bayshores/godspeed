@@ -58,7 +58,7 @@ The agent writes a plan tree with `plan_init`: a mermaid-subset graph, parsed wi
 | Study session on space topics | the app, when the lesson starts (§7) |
 | Study session with no space topics | the agent, with `plan_init` in its first reply (§7) |
 
-Progress is never written into the tree. Statuses (`current`, `visited`, upcoming) derive from tagged `quiz`, `explain` and `problem` calls in the transcript. The plan row (`src/frontend/components/lesson/plan-row.tsx`, steps from `src/shared/core/plan-step-bar.ts`) and plan blocks (`src/frontend/components/plan-block-model.ts`) draw that. The row is one folded line ("Step 2 of 5", the step's name and a slim bar, `foldedLine` in `plan-row-model.ts`) that unfolds into every step by name; a branching plan also gets a small map there that opens the plan dialog. Whether it is unfolded is kept for every lesson (`lh:steps-open`); it starts folded.
+Progress is never written into the tree. Statuses (`current`, `visited`, upcoming) derive from tagged `quiz`, `explain` and `problem` calls in the transcript. The plan row (`src/frontend/components/lesson/plan-row.tsx`, steps from `src/shared/core/plan-step-bar.ts`) and the plan dialog (`src/frontend/components/plan-block.tsx`, layout in `plan-block-model.ts`) draw that. The lesson text holds no copy of the plan: a stored `plan-block` marker is ignored by the view. The row is one folded line ("Step 2 of 5", the step's name and a slim bar, `foldedLine` in `plan-row-model.ts`) that unfolds into every step by name; a branching plan also gets a small map there that opens the plan dialog. Whether it is unfolded is kept for every lesson (`lh:steps-open`); it starts folded. It also unfolds once, without saving, when a plan lesson's plan arrives or its steps change (`planArrived` in `plan-row-model.ts`); a lesson that opens with its plan already there stays as kept.
 
 Older teach lessons start with a prober: `probe_done` files the assessment and queues a handoff steer; every later turn builds the teacher. Phases (`core::messages::phases`): probe, plan, teach.
 
@@ -80,7 +80,7 @@ An answer's files go into the question call's tool result (`new_answer_result`),
 
 ### Space and date context
 
-A space lesson starts with a `space-context` marker holding the space card (`services::spaces::space_card`). A hidden `today-context` marker gives the model today's date, time, time zone and the space's open deadlines. A new one is added before the learner's message when the day or deadlines changed, or compaction cut the last one out of view (`core::spaces::today_note`, `services::app::today_note`).
+A space lesson starts with a `space-context` marker holding the space card (`services::spaces::space_card`). The lesson text does not draw it: the desk reads its files, and so does the model. A hidden `today-context` marker gives the model today's date, time, time zone and the space's open deadlines. A new one is added before the learner's message when the day or deadlines changed, or compaction cut the last one out of view (`core::spaces::today_note`, `services::app::today_note`).
 
 ### Compaction
 

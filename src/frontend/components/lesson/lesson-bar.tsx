@@ -1,10 +1,11 @@
-import type { ReactNode, RefObject } from "react";
+import type { RefObject } from "react";
 import { useSessionFind } from "@/frontend/components/session-find";
 import type { SessionScrollContext } from "@/frontend/components/session-navigation";
 import { BarFind } from "@/frontend/components/top-bar/bar-find";
 import { barWord } from "@/frontend/components/top-bar/bar-look";
 import { BarActions, BarCrumb, CrumbName } from "@/frontend/components/top-bar/bar-slots";
 import { LessonMore } from "./lesson-more";
+import type { LessonUsage } from "./lesson-stats";
 import { pluginWordTestId } from "./plugin-window";
 import { useLessonSpace } from "./use-lesson-space";
 import type { useTitleRename } from "./use-title-rename";
@@ -12,7 +13,7 @@ import type { useTitleRename } from "./use-title-rename";
 /**
  * THE OPEN LESSON IN THE TOP BAR: its name after the lit space tab (renames
  * in place on a click, or F2), and on the bar's right the plugins' words,
- * the lesson's size, Find, the cheat sheet and More (the lesson menu).
+ * Find, the cheat sheet and More (the lesson menu, which holds Lesson stats).
  * Opening Find swaps the words for the find field.
  */
 export function LessonBar({
@@ -21,7 +22,7 @@ export function LessonBar({
 	spaceId,
 	sheet,
 	plugins,
-	stats,
+	usage,
 	scopeRef,
 	scrollContextRef,
 }: {
@@ -32,8 +33,8 @@ export function LessonBar({
 	sheet?: { open: boolean; onToggle: () => void };
 	/** The plugins that show in lessons, each a word; `open` is the one whose window is open. */
 	plugins: { words: readonly { id: string; label: string }[]; open: string | null; onToggle: (id: string) => void };
-	/** The lesson size button. */
-	stats: ReactNode;
+	/** What More's Lesson stats shows. */
+	usage: LessonUsage;
 	scopeRef: RefObject<HTMLDivElement | null>;
 	scrollContextRef: RefObject<SessionScrollContext | null>;
 }) {
@@ -69,14 +70,13 @@ export function LessonBar({
 								{w.label}
 							</button>
 						))}
-						{stats}
 						{findBar}
 						{sheet && (
 							<button type="button" data-testid="lesson-cheat-sheet" aria-pressed={sheet.open} onClick={sheet.onToggle} className={barWord(sheet.open)}>
 								Cheat sheet
 							</button>
 						)}
-						<LessonMore chatId={chatId} title={rename.title} spaceId={spaceId} onRename={rename.start} />
+						<LessonMore chatId={chatId} title={rename.title} spaceId={spaceId} usage={usage} onRename={rename.start} />
 					</>
 				)}
 			</BarActions>

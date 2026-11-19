@@ -100,7 +100,7 @@ async function mount(props: Partial<React.ComponentProps<typeof LessonBar>> = {}
 				<BarSlotsProvider>
 					<AppBar />
 					<main>
-						<LessonBar chatId="ses_1" rename={rename()} spaceId="c21" plugins={{ words: [], open: null, onToggle() {} }} stats={<button type="button">3k</button>} scopeRef={{ current: null }} scrollContextRef={{ current: null }} {...props} />
+						<LessonBar chatId="ses_1" rename={rename()} spaceId="c21" plugins={{ words: [], open: null, onToggle() {} }} usage={{ turns: [], contextTokens: null, summarizeAt: null }} scopeRef={{ current: null }} scrollContextRef={{ current: null }} {...props} />
 						<ActiveSpace />
 					</main>
 				</BarSlotsProvider>
@@ -155,10 +155,10 @@ describe("the open lesson in the top bar", () => {
 		assert.ok(q("bar-crumb")!.contains(q("lesson-title")));
 	});
 
-	it("lays its words out in order: plugins, the size, Find, Cheat sheet, More", async () => {
+	it("lays its words out in order: plugins, Find, Cheat sheet, More", async () => {
 		const plugins = { words: [{ id: "memes", label: "Memes" }], open: null, onToggle() {} };
 		await mount({ sheet: { open: false, onToggle() {} }, plugins });
-		assert.deepEqual(words(), ["Memes", "3k", "Find in lesson", "Cheat sheet", "More for Study: counting"]);
+		assert.deepEqual(words(), ["Memes", "Find in lesson", "Cheat sheet", "More for Study: counting"]);
 	});
 
 	it("Find is the magnifying glass with its key, and says both to a screen reader", async () => {
@@ -222,7 +222,7 @@ describe("More in the bar", () => {
 		assert.ok(q("lesson-menu"));
 		assert.equal(q("lesson-more")!.getAttribute("aria-expanded"), "true");
 		assert.match(q("lesson-more")!.className, /lh-btn-on/, "held down while its menu is open");
-		assert.deepEqual([...document.querySelectorAll("[data-testid=lesson-menu] [role=menuitem]")].map((b) => b.getAttribute("data-testid")), ["ctx-rename", "ctx-export-md", "ctx-move-space", "ctx-delete"]);
+		assert.deepEqual([...document.querySelectorAll("[data-testid=lesson-menu] [role=menuitem]")].map((b) => b.getAttribute("data-testid")), ["ctx-rename", "ctx-export-md", "ctx-move-space", "ctx-stats", "ctx-delete"]);
 		const renameItem = q("ctx-rename")!;
 		assert.equal(renameItem.querySelector("kbd")!.textContent, "F2");
 		assert.equal(renameItem.getAttribute("aria-keyshortcuts"), "F2");
@@ -247,6 +247,17 @@ describe("More in the bar", () => {
 		await pick("delete-confirm");
 		assert.ok(asked.includes("DELETE /api/chats/ses_1?mode=preserve-graph"));
 		assert.equal(router!.state.location.pathname, "/space");
+	});
+
+	it("Lesson stats closes the menu and opens the stats pop-up from the More key, at any lesson size", async () => {
+		const usage = { turns: [], contextTokens: 3_000, summarizeAt: 40_000, pricing: { unpriced: 0, subscription: 0 } };
+		await mount({ usage });
+		assert.ok(q("stats-detail") === null);
+		await click(q("lesson-more")!);
+		await pick("ctx-stats");
+		const detail = q("stats-detail")!;
+		assert.match(detail.textContent!, /Lesson stats.*Lesson sizeabout 6 of 80 pages.*Replies0/);
+		assert.equal(q("lesson-more")!.getAttribute("aria-expanded"), "false", "the menu closed");
 	});
 
 	it("Move keeps the lesson open and reads its record again, so the bar can mark the new space", async () => {

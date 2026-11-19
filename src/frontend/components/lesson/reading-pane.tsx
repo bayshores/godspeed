@@ -44,7 +44,6 @@ export function ReadingPane({
 	arrivalsLive,
 	pageMarks,
 	arrive,
-	onOpenPlan,
 }: {
 	/** The lesson's space. */
 	spaceId: string | undefined;
@@ -71,7 +70,6 @@ export function ReadingPane({
 	/** Each Study topic's stored page mark, by the text it sits in. */
 	pageMarks: ReadonlyMap<string, string>;
 	arrive: Arrive;
-	onOpenPlan: () => void;
 }) {
 	const last = messages.length - 1;
 	const jobs = useContext(JobsContext);
@@ -117,7 +115,6 @@ export function ReadingPane({
 					hideSteps={!!shownDesk && mi === shown.length - 1}
 					pageMarks={pageMarks}
 					arrive={arrive}
-					onOpenPlan={onOpenPlan}
 				/>
 			))}
 			{shownDesk && (

@@ -4,7 +4,7 @@
  */
 import type { LhMessage } from "../native-messages.ts";
 import type { Phase3 } from "../phases.ts";
-import type { PlanNodeStatus, PlanTree } from "./plan.ts";
+import type { PlanTree } from "./plan.ts";
 import type { EmissionStats } from "./graph.ts";
 import type { QuestionAnswerData } from "../question-data.ts";
 
@@ -235,22 +235,6 @@ export const NEXT_PROBLEM_TEXT =
  *  teacher reads it. */
 export function openProblemText(number: string): string {
 	return `[OPEN PROBLEM ${number}] The learner picked problem ${number} in the problem list. Open exactly that one now per the session rules, even if it is done.`;
-}
-
-/** A SNAPSHOT of the plan at plan_init, rendered as a block in the chat
- *  flow. It never reaches the model; it reappears identically on reload
- *  because it lives in the record. */
-export interface PlanBlockData {
-	/** The plan renders IN FLOW once, at authoring; position derives live
-	 *  from the transcript. */
-	kind: "full";
-	at: string;
-	/** The current node at snapshot time (the glow target; null = none). */
-	current: string | null;
-	/** All nodes of the authored tree. Statuses are the snapshot's,
-	 * derived at emission time — the block never re-derives at render. */
-	nodes: Array<{ id: string; title: string; status: PlanNodeStatus }>;
-	edges: Array<{ from: string; to: string }>;
 }
 
 /** The list view's shape (messageCount instead of full messages) + the
