@@ -15,6 +15,7 @@
  */
 import { execFileSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
@@ -79,20 +80,33 @@ if (process.argv[2] === "--app") {
 	const options = [...process.argv.slice(3), "--config", JSON.stringify({ bundle: { externalBin: [] } })];
 	builds.push([process.execPath, [path.join(ROOT, "node_modules", "@tauri-apps", "cli", "tauri.js"), "build", "--no-bundle", ...options]]);
 }
-const running = builds.map(([command, args]) => spawn(command, args, { cwd: ROOT, stdio: "inherit" }));
-const codes = await Promise.all(
-	running.map(
-		(child) =>
-			new Promise((resolve) => {
-				child.on("error", (err) => resolve(err.message));
-				child.on("exit", (code, signal) => {
-					// One failed build ends the other: its minutes would be wasted.
-					if (code !== 0) for (const other of running) if (other !== child) other.kill();
-					resolve(code ?? signal);
-				});
-			}),
-	),
-);
+/** A build under way; `done` settles with its exit code, its signal, or why it did not start. */
+function start([command, args]) {
+	const child = spawn(command, args, { cwd: ROOT, stdio: "inherit" });
+	const done = new Promise((resolve) => {
+		child.on("error", (err) => resolve(err.message));
+		child.on("exit", (code, signal) => resolve(code ?? signal));
+	});
+	return { child, done };
+}
+// Each release link takes several GB of memory. Side by side the two builds end sooner where both
+// fit; with less memory (GitHub's 7 GB Apple chip Mac) they swap and take longer than in a row.
+const codes = [];
+if (os.totalmem() >= 12 * 2 ** 30) {
+	const running = builds.map(start);
+	for (const { child, done } of running) {
+		// One failed build ends the other: its minutes would be wasted.
+		void done.then((code) => {
+			if (code !== 0) for (const other of running) if (other.child !== child) other.child.kill();
+		});
+	}
+	codes.push(...(await Promise.all(running.map((build) => build.done))));
+} else {
+	for (const build of builds) {
+		codes.push(await start(build).done);
+		if (codes.at(-1) !== 0) break;
+	}
+}
 const failed = codes.findIndex((code) => code !== 0);
 if (failed !== -1) fail(`\`${builds[failed][0]} ${builds[failed][1].slice(0, 2).join(" ")}\` failed (${codes[failed]}).`);
 
