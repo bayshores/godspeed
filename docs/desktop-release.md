@@ -40,9 +40,9 @@ The release workflow's package job runs these steps on each OS.
 3. `node scripts/fetch-pdfium.mjs` downloads pdfium's library into `.stage/` and checks its sha256.
 4. Linux and Intel Macs: `node scripts/fetch-onnxruntime.mjs` downloads Microsoft's ONNX Runtime library (from its NuGet package) into `.stage/` the same way.
 5. Mac: `node scripts/compile-icon.mjs` compiles the icon into `.stage/Assets.car`.
-6. `node scripts/stage-app.mjs` builds the UI (`dist-ui/`), builds the release server for this OS's target triple into `crates/shell/binaries/`, and copies the pdf.js files to `.stage/pdfjs-dist/`. It refuses a UI folder holding `data/` or a secrets file.
+6. `TAURI_APP_PATH=crates/shell node scripts/stage-app.mjs --app --config crates/shell/tauri.bundle.conf.json --config crates/shell/tauri.bundle.<macos|windows|linux>.conf.json --target <triple>` builds the UI (`dist-ui/`), copies the pdf.js files to `.stage/pdfjs-dist/`, then builds the release server and the app's binary side by side, and copies the server to `crates/shell/binaries/`. It refuses a UI folder holding `data/` or a secrets file. The Intel Mac build adds `--config crates/shell/tauri.bundle.macos-intel.conf.json`.
 7. `node scripts/smoke-server.mjs` starts that server from a folder of the staged files, with a throwaway home and data folder, and checks `/`, `/api/boot`, `/api/graph`, `/api/settings` and a pdf.js file.
-8. `TAURI_APP_PATH=crates/shell npx tauri build --config crates/shell/tauri.bundle.conf.json --config crates/shell/tauri.bundle.<macos|windows|linux>.conf.json --target <triple> --bundles <app,dmg | nsis | appimage,deb>`. The Intel Mac build adds `--config crates/shell/tauri.bundle.macos-intel.conf.json`.
+8. `npx tauri bundle`, with step 6's options and `--bundles <app,dmg | nsis | appimage,deb>`, packs, signs and notarizes what step 6 built. It compiles nothing.
 9. `node scripts/release-assets.mjs <mac|mac-intel|windows|linux>` copies the bundler's files into `dist/` under the download names, with their `.sig` files. For `mac` it also zips the app for Electron installs.
 10. `node scripts/smoke-app.mjs <the app's binary>` starts the packaged app once and waits for its "window open" log line.
 11. Mac, tag push only: the signature checks (below). Linux: the glibc check.
@@ -56,8 +56,9 @@ The checks job runs beside it on each OS, on its own runner, because its builds 
 Notes:
 
 - ONNX Runtime: Apple Silicon Macs and Windows link it into the server. Linux loads it from the resources folder, the Intel Mac app from `Contents/Frameworks`. Intel Macs get 1.23.2, the last version Microsoft released for them, and `ort` asks for no newer API there (`crates/search/Cargo.toml`).
-- `tauri build` runs `stage-app.mjs` again as its `beforeBuildCommand`; it is fast since everything is built.
-- On a Mac tag push, step 8 is tried up to three times, 60 s apart, but only when its log shows Apple's timestamp or notary service not answering (`A timestamp was expected but was not found`, `The timestamp service is not available`, `NSURLErrorDomain`, `HTTP status code: 5xx`). The compile is already done, so a retry only bundles, signs and notarizes. Any other failure, such as a wrong identity or a rejected app, fails at once. Tauri's `codesign` and `notarytool` calls have no retry of their own.
+- Step 6 runs two cargo builds at once, because the server and the app each end in a release link of several minutes. The app is built by `tauri build --no-bundle` into `target/`, the server by `cargo build -p gs-server` into `target/server/`: one target folder takes one cargo at a time. One cargo building both would give the two programs each other's dependency features (the server's TLS library and the app's would both end up in each), so they stay two builds. Without `--app`, `stage-app.mjs` builds only the server, as CI's desktop job does.
+- The app's build step copies `externalBin` and fails when the file is missing, so step 6 builds the app with an empty `externalBin` list. The bundler reads the real list from its own options.
+- On a Mac tag push, step 8 is tried up to three times, 60 s apart, but only when its log shows Apple's timestamp or notary service not answering (`A timestamp was expected but was not found`, `The timestamp service is not available`, `NSURLErrorDomain`, `HTTP status code: 5xx`). Any other failure, such as a wrong identity or a rejected app, fails at once. Tauri's `codesign` and `notarytool` calls have no retry of their own.
 - With `TAURI_SIGNING_PRIVATE_KEY` set, the bundler writes a `.sig` beside each updater file.
 - `smoke-app.mjs` starts the installed setup on Windows, the installed `.deb` and the AppImage on Linux, and the `.app` on the Mac. It refuses to run outside CI, because a packaged app uses the real godspeed data of whoever runs it. It reads the app's output through pipes and stops the app with its whole process tree, so nothing the app started can keep the step open. The smoke and check steps have limits of 5 to 10 minutes.
 - The self-test runs the demo runner in the real app on that OS. Planted errors and a probe value come back, every loopback request is blocked, downloads and navigations from a demo change nothing, and an invoke from the demo window is refused.
@@ -83,7 +84,7 @@ The zip keeps symlinks, signatures and the notarization ticket.
 
 - `npm run desktop:local`: unsigned Apple Silicon Mac app for trying out.
 - `npm run desktop:dist`: runs `scripts/mac-dist.sh`, which makes the signed and notarized Mac app and DMG.
-- Windows or Linux: steps 1 to 4, then step 8 with `--no-sign` added.
+- Windows or Linux: steps 1 to 4, then steps 6 and 8, step 8 with `--no-sign` added.
 
 `scripts/mac-dist.sh` needs:
 
@@ -95,7 +96,7 @@ The zip keeps symlinks, signatures and the notarization ticket.
 | `APPLE_PASSWORD` | login keychain item `godspeed-notary` for `$APPLE_ID` |
 | `APPLE_SIGNING_IDENTITY` | the `Developer ID Application: … (<team>)` certificate in the keychain |
 
-It then fetches the model and pdfium, compiles the icon, runs `tauri build` with the bundle and macOS configs for `app,dmg`, checks the app with `xcrun stapler validate` and `spctl --assess`, and runs `release-assets.mjs mac`.
+It then fetches the model and pdfium, compiles the icon, runs `stage-app.mjs --app` and `tauri bundle` with the bundle and macOS configs for `app,dmg`, checks the app with `xcrun stapler validate` and `spctl --assess`, and runs `release-assets.mjs mac`.
 
 ## CI
 
@@ -200,7 +201,7 @@ Mac release binaries ship without symbols, so a panic in `logs/main.log` lists r
 | Step | Command |
 |---|---|
 | 1. Download the artifact for that version and platform | `gh run download <run id> -n symbols-mac -R bayshores/godspeed` |
-| 2. Find the symbol file | `find godspeed.dSYM -path '*DWARF*' -type f` |
+| 2. Find the symbol file (the app's and the server's are listed) | `find . -path '*DWARF*' -type f` |
 | 3. Turn the addresses into names | `atos -o <that file> -l <load address> <address> <address> ...` |
 
 ## Secrets

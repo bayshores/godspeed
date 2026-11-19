@@ -251,6 +251,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         if: matrix.platform == 'mac-intel' || matrix.platform == 'windows'
         with:
+          prefix-key: v1-rust
           key: release-${{ matrix.platform }}
           save-if: ${{ github.ref_type != 'tag' }}
       - run: npm ci
@@ -260,8 +261,8 @@ jobs:
         run: node scripts/fetch-onnxruntime.mjs
       - if: runner.os == 'macOS'
         run: node scripts/compile-icon.mjs
-      # Stage once here so the smoke runs before the slow bundler (tauri build stages again, cached).
-      - run: node scripts/stage-app.mjs
+      # The server and the app's binary, built side by side. The smoke runs before the bundler.
+      - run: node scripts/stage-app.mjs --app --config crates/shell/tauri.bundle.conf.json ${{ matrix.config }} --target ${{ matrix.triple }}
       # Short checks get short limits, so a hung one fails in minutes, not at the job's 3 hours.
       - name: Smoke-test the release server
         timeout-minutes: 5
@@ -287,7 +288,7 @@ jobs:
             fi
           done
 
-      - name: Build, sign and notarize (macOS release)
+      - name: Bundle, sign and notarize (macOS release)
         if: github.event_name == 'push' && runner.os == 'macOS'
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -299,16 +300,16 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         # Apple's timestamp and notary services sometimes do not answer. Only those failures are
-        # tried again, up to three times in all; the compile is done, so a retry only bundles,
-        # signs and notarizes. Any other failure (a wrong identity, a rejected app) fails at once.
+        # tried again, up to three times in all. Any other failure (a wrong identity, a rejected
+        # app) fails at once.
         run: |
-          log="$RUNNER_TEMP/tauri-build.log"
+          log="$RUNNER_TEMP/tauri-bundle.log"
           for try in 1 2 3; do
-            if npx tauri build --config crates/shell/tauri.bundle.conf.json ${{ matrix.config }} --target ${{ matrix.triple }} --bundles ${{ matrix.bundles }} 2>&1 | tee "$log"; then
+            if npx tauri bundle --config crates/shell/tauri.bundle.conf.json ${{ matrix.config }} --target ${{ matrix.triple }} --bundles ${{ matrix.bundles }} 2>&1 | tee "$log"; then
               exit 0
             fi
             if ! grep -qE 'A timestamp was expected but was not found|The timestamp service is not available|NSURLErrorDomain|HTTP status code: 5[0-9][0-9]' "$log"; then
-              echo "::error::tauri build failed (see the log above); not an Apple network failure, so it is not tried again."
+              echo "::error::tauri bundle failed (see the log above); not an Apple network failure, so it is not tried again."
               exit 1
             fi
             if [[ $try -lt 3 ]]; then
@@ -318,20 +319,20 @@ jobs:
           done
           echo "::error::Apple's timestamp or notary service did not answer in 3 tries: $(grep -m1 -E 'A timestamp was expected|The timestamp service|NSURLErrorDomain|HTTP status code: 5' "$log")"
           exit 1
-      - name: Build (Windows and Linux release)
+      - name: Bundle (Windows and Linux release)
         if: github.event_name == 'push' && runner.os != 'macOS'
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: npx tauri build --config crates/shell/tauri.bundle.conf.json ${{ matrix.config }} --target ${{ matrix.triple }} --bundles ${{ matrix.bundles }}
+        run: npx tauri bundle --config crates/shell/tauri.bundle.conf.json ${{ matrix.config }} --target ${{ matrix.triple }} --bundles ${{ matrix.bundles }}
       # A throwaway key still writes the .sig files, so the feeds job rehearses too. Without an
       # Apple identity the bundler signs nothing on the Mac.
-      - name: Build (rehearsal, no Apple signing, throwaway updater key)
+      - name: Bundle (rehearsal, no Apple signing, throwaway updater key)
         if: github.event_name != 'push'
         run: |
           npx tauri signer generate --ci -p "" -w "$RUNNER_TEMP/rehearsal.key"
           TAURI_SIGNING_PRIVATE_KEY="$RUNNER_TEMP/rehearsal.key" TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" \
-            npx tauri build --config crates/shell/tauri.bundle.conf.json ${{ matrix.config }} --target ${{ matrix.triple }} --bundles ${{ matrix.bundles }}
+            npx tauri bundle --config crates/shell/tauri.bundle.conf.json ${{ matrix.config }} --target ${{ matrix.triple }} --bundles ${{ matrix.bundles }}
 
       - run: node scripts/release-assets.mjs ${{ matrix.platform }}
 
@@ -381,7 +382,7 @@ jobs:
         timeout-minutes: 5
         run: |
           set -euo pipefail
-          for bin in "target/${{ matrix.triple }}/release/godspeed" "target/${{ matrix.triple }}/release/godspeed-server" .stage/libpdfium.so .stage/libonnxruntime.so; do
+          for bin in "target/${{ matrix.triple }}/release/godspeed" "target/server/${{ matrix.triple }}/release/godspeed-server" .stage/libpdfium.so .stage/libonnxruntime.so; do
             for need in GLIBC:2.35 GLIBCXX:3.4.30; do
               name=${need%%:*} limit=${need#*:}
               newest=$(objdump -T "$bin" | { grep -o "${name}_[0-9.]*" || true; } | sed "s/${name}_//" | sort -V | tail -n 1)
@@ -412,6 +413,8 @@ jobs:
           path: |
             target/${{ matrix.triple }}/release/*.dSYM
             target/${{ matrix.triple }}/release/*.pdb
+            target/server/${{ matrix.triple }}/release/*.dSYM
+            target/server/${{ matrix.triple }}/release/*.pdb
 
       - name: Upload the downloads to the draft
         if: github.event_name == 'push'

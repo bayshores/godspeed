@@ -1,5 +1,4 @@
 {
-  "build": { "beforeBuildCommand": "node scripts/stage-app.mjs" },
   "bundle": {
     "externalBin": ["binaries/godspeed-server"],
     "resources": { "../../dist-ui/": "ui/", "../../models/": "models/", "../../.stage/pdfjs-dist/": "pdfjs-dist/" },

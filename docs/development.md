@@ -158,7 +158,7 @@ Shared helpers sit in `tests/` itself.
 | `compile-icon.mjs` | Compiles the Mac app icon into `.stage/Assets.car`. |
 | `dev-resources.mjs` | Makes `.dev-resources/`, the folder a debug server runs in. |
 | `dev-fresh.sh` | The `dev:fresh` instance. |
-| `stage-app.mjs` | Assembles what `tauri build` bundles. |
+| `stage-app.mjs` | Builds what `tauri bundle` packs: the UI, the pdf.js files, the release server and, with `--app`, the app's binary beside it. |
 | `smoke-server.mjs`, `smoke-app.mjs` | Start the release server, or the packaged app, once to prove it runs. |
 | `mac-dist.sh` | Builds, signs and notarizes the Mac app and DMG. |
 | `release-assets.mjs` | Gives the bundler's outputs their download names. |

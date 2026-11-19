@@ -24,7 +24,9 @@ export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Develope
 node scripts/fetch-model.mjs
 node scripts/fetch-pdfium.mjs
 node scripts/compile-icon.mjs
-TAURI_APP_PATH=crates/shell npx tauri build -c crates/shell/tauri.bundle.conf.json -c crates/shell/tauri.bundle.macos.conf.json --bundles app,dmg
+export TAURI_APP_PATH=crates/shell
+node scripts/stage-app.mjs --app -c crates/shell/tauri.bundle.conf.json -c crates/shell/tauri.bundle.macos.conf.json
+npx tauri bundle -c crates/shell/tauri.bundle.conf.json -c crates/shell/tauri.bundle.macos.conf.json --bundles app,dmg
 
 app=target/release/bundle/macos/godspeed.app
 xcrun stapler validate "$app"
