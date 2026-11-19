@@ -66,7 +66,7 @@ The top bar is the one place for a page's own actions and for where the learner 
 | Find | A magnifying glass in the bar, on every page that can find; open, its field takes the place of that page's own words only, so on Files and Graph the space's Edit space stays, and on a lesson every word gives way | `BarFind` |
 | A shortcut | Inside the button whose action it is, read from the key registry | `KeyHint` and `keyShortcutProps` |
 
-- No keycap (`.lh-btn`) in the top bar or in a page's own bar (the mock's): every word there is flat like the tabs, and a key inside the pill is a flat chip. `npm run layout` fails a keycap in a bar. A pop-up that hangs from the bar keeps its keys.
+- No key (`.lh-btn`) in the top bar or in a page's own bar (the mock's): every word there is flat like the tabs, and a key inside the pill is a flat chip. `npm run layout` fails a key in a bar. A pop-up that hangs from the bar keeps its keys.
 - A bar word is there only while it acts or tells something: no status for a thing that is not made yet, and no switched-off key for it (the cheat sheet's Show in Finder and Print show once the sheet is made).
 - Page tabs (Progress, Files, Graph, Deadlines) and keys inside a card stay on the page.
 - Bar words are real buttons or links, never a clickable span: the bar is the window's drag band, and only buttons, links and fields are cut out of it (`crates/shell/src/shim.js`).
@@ -126,5 +126,6 @@ Interface and lesson text are one face, Literata, so they stay apart by size, we
 - Dates and counts are DotGothic16 (`font-count`). Code and the agent's screen are the system monospace.
 - Italic only where a book would set it (a work's title, a term as it is defined), never for decoration.
 - Every button is a key, never a bare word: `lh-btn-main` for a view's one main action, `lh-btn` for the others, `lh-btn-quiet` (a lighter key) for its lesser ones, `barWord` on a dark bar.
+- A key is a tile like the g in the logo: a face inside a 2-point ink edge, on a dithered ink shadow down and to the right, with square corners. Pressing slides it into its shadow. A key's own color goes in `--lh-key` (its face) and `--lh-key-hover`, never in a fill, edge or corner utility.
 - A key takes its size from `lh-btn`, or `lh-btn-small` for a key in a row, a line of text or a card's corner. A new key never gets a height or font size of its own.
 - Before calling a UI change finished, check that a new key uses one of those two sizes and that no interface text is set at lesson text's size and weight.

@@ -532,40 +532,68 @@ body {
 	}
 }
 
-/* Buttons are keycaps: a hard-cornered face on a darker bottom edge, which
-   sinks while pressed. .lh-btn-main is the one bright key of a view;
-   .lh-btn-quiet is a lighter key for its lesser actions. In the components
-   layer, so a size utility on one button wins. */
+/* Buttons are tiles, drawn like the g tile in the logo: a face inside an ink
+   edge, on a dithered ink shadow down and to the right. Pressing slides the
+   tile into its shadow. .lh-btn-main is the one dark key of a view;
+   .lh-btn-quiet is a paler key for its lesser actions. The shadow (::before)
+   and the face (::after) lie behind the label, so the focus ring stays
+   whole. --lh-key is the face, --lh-key-hover the face under the pointer.
+   In the components layer, so a size utility on one button wins. */
 @layer components {
 	.lh-btn {
-		--lh-key: color-mix(in srgb, var(--foreground) 26%, var(--background));
-		--lh-key-hover: color-mix(in srgb, var(--foreground) 34%, var(--background));
-		--lh-lip: 4px;
+		--lh-key: color-mix(in srgb, #fff 22%, var(--background));
+		--lh-key-hover: color-mix(in srgb, #fff 38%, var(--background));
+		--lh-key-edge: var(--foreground);
+		--lh-key-face: var(--lh-key);
+		/* How far the shadow falls. */
+		--lh-drop: 4px;
+		--lh-pad: 18px;
+		position: relative;
+		isolation: isolate;
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
 		height: 40px;
-		padding: 0 18px;
-		/* The bottom edge is a border, so the label centers on the face. */
-		border: 0 solid transparent;
-		border-bottom: var(--lh-lip) solid color-mix(in srgb, var(--lh-key) 48%, #000);
-		border-radius: 5px;
-		background: var(--lh-key) padding-box;
+		/* The label centers on the face, which leaves the shadow's room right and below. */
+		padding: 0 calc(var(--lh-pad) + var(--lh-drop) / 2) var(--lh-drop) calc(var(--lh-pad) - var(--lh-drop) / 2);
+		border: 0;
+		border-radius: 0;
+		background: none;
 		font-family: var(--font-ui);
 		font-size: 15px;
-		/* A touch above regular, so a legend holds its own on the key's grey face. */
+		/* A touch above regular, so a legend holds its own inside the ink edge. */
 		font-weight: 450;
 		line-height: 1.4;
 		white-space: nowrap;
 		color: var(--foreground);
+	}
+	.lh-btn::before,
+	.lh-btn::after {
+		content: "";
+		position: absolute;
+		z-index: -1;
+		pointer-events: none;
+	}
+	/* The shadow: the edge's ink through a one-pixel checker. */
+	.lh-btn::before {
+		inset: var(--lh-drop) 0 0 var(--lh-drop);
+		background: var(--lh-key-edge);
+		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'%3E%3Crect width='1' height='1'/%3E%3Crect x='1' y='1' width='1' height='1'/%3E%3C/svg%3E") 0 0 / 2px 2px;
+	}
+	.lh-btn::after {
+		inset: 0 var(--lh-drop) var(--lh-drop) 0;
+		border: 2px solid var(--lh-key-edge);
+		background: var(--lh-key-face);
 		transition: background-color var(--lh-dur-fast) var(--lh-ease-out);
 	}
 	.lh-btn:hover {
-		background-color: var(--lh-key-hover);
+		--lh-key-face: var(--lh-key-hover);
 	}
 	.lh-btn:active {
-		border-top-width: var(--lh-lip);
-		border-bottom-width: 0;
+		translate: var(--lh-drop) var(--lh-drop);
+	}
+	.lh-btn:active::before {
+		visibility: hidden;
 	}
 	.lh-btn:disabled {
 		opacity: 0.5;
@@ -575,26 +603,29 @@ body {
 	.lh-btn-danger {
 		--lh-key: var(--color-ans-wrong);
 		--lh-key-hover: var(--color-ans-wrong-hover);
+		--lh-key-edge: var(--color-ans-wrong);
 		font-weight: 560;
 		color: var(--background);
 	}
 	.lh-btn-main {
 		--lh-key: var(--lh-tint);
-		--lh-key-hover: color-mix(in srgb, var(--lh-tint) 88%, #fff);
+		--lh-key-hover: color-mix(in srgb, var(--lh-tint) 82%, #fff);
 		/* Light letters on a dark key read thinner than dark on light. */
 		font-weight: 560;
 		color: var(--background);
 	}
 	.lh-btn-quiet {
-		--lh-key: color-mix(in srgb, var(--foreground) 10%, var(--background));
-		--lh-key-hover: color-mix(in srgb, var(--foreground) 16%, var(--background));
-		border-bottom-color: color-mix(in srgb, var(--foreground) 26%, var(--background));
+		--lh-key: color-mix(in srgb, #fff 12%, var(--background));
+		--lh-key-hover: color-mix(in srgb, #fff 28%, var(--background));
+		--lh-key-edge: color-mix(in srgb, var(--foreground) 70%, var(--background));
+		--lh-drop: 3px;
 	}
 	/* A small key: one that sits in a line of text or a card's corner. */
 	.lh-btn-small {
+		--lh-drop: 3px;
+		--lh-pad: 10px;
 		gap: 6px;
 		height: 30px;
-		padding: 0 10px;
 		font-size: 14px;
 	}
 }

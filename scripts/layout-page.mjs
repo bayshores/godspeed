@@ -23,7 +23,7 @@
  *   turn") whose sides are not the reading inset or its narrow step, two sheets in one page
  *   column side by side or one above the other at a gap that is not the shared one, or a page
  *   title not in the shared title class.
- * - bar key: a keycap (.lh-btn) in the app's top bar or a page's own bar, where words are flat
+ * - bar key: a key (.lh-btn) in the app's top bar or a page's own bar, where words are flat
  *   like the tabs.
  * - empty box: a sheet or well (.lh-sheet, .lh-well) at least 160 px wide and 120 px tall that
  *   shows no words, picture, control or writing box: a column with nothing in it.
@@ -537,7 +537,7 @@ function turnFoot() {
 function barKeys() {
 	return [...document.querySelectorAll(":is(.lh-app-bar, .lh-own-bar) .lh-btn")]
 		.filter((key) => shown(key) && !key.closest(".lh-popup, [role=dialog], [role=menu]"))
-		.map((key) => finding("bar key", [key], `${label(key)} is a keycap in a bar`));
+		.map((key) => finding("bar key", [key], `${label(key)} is a key in a bar`));
 }
 
 /** Empty box: a box is drawn for what it holds. A field or a chip is smaller than this. A box
