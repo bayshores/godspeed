@@ -1,8 +1,10 @@
 [
 	{
-		"version": "0.6.78",
+		"version": "0.6.79",
 		"date": "2026-11-19",
 		"changes": [
+			"Keys look like the tile in godspeed's logo, with an ink edge and a dotted shadow, and a pressed key slides into its shadow. They used to be round keycaps.",
+			"While the teacher works, its desk fills the lesson's page. The file it reads lies straight and bigger, and the lines it reads get a highlighter bar in the margin.",
 			"Pop out, in the terminal's bottom row, puts the teacher's terminal in a window of its own beside godspeed. Put back returns it.",
 			"When the terminal leaves a page too little room, the terminal's head shows a Hide key.",
 			"The cheat sheet and mock exam pages fit the room the open terminal leaves them. In a narrow window the sheet sits over its chat.",
