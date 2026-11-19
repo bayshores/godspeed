@@ -31,6 +31,17 @@ pub fn derived_node_status(statuses: &PlanStatuses, node_id: &str) -> &'static s
 	}
 }
 
+/// A plan_init result that saved its tree.
+fn is_plan_written(message: &Json) -> bool {
+	Role::ToolResult.is(message) && message["toolName"].as_str() == Some("plan_init") && message["details"]["ok"] == Json::Bool(true)
+}
+
+/// Whether a Study lesson's agent writes its plan: the app made no tree at its birth, or the agent
+/// already wrote one. Fixed for the whole lesson, so its tool list never changes mid-lesson.
+pub fn agent_writes_plan(record: &Json) -> bool {
+	record["tree"]["nodes"].as_arr().is_none_or(Vec::is_empty) || record["messages"].items().iter().any(is_plan_written)
+}
+
 /// `derivePlanStatusesLh`: statuses from the native record's tagging calls, in any state. A tag
 /// that is not a node of the tree moves nothing, and consecutive repeats count as one stay.
 /// `opener_nodes` maps each topic_done whose opener is shown to the opener question's node: that
@@ -76,6 +87,19 @@ mod tests {
 		assert_eq!(derived_node_status(&s, "b"), "visited");
 		assert_eq!(derived_node_status(&s, "c"), "upcoming");
 		assert!(derive_plan_statuses_lh(&tree, &[], &HashMap::new()).current.is_none());
+	}
+
+	fn plan_result(call: &str, ok: bool) -> Json {
+		json!({ "role": "toolResult", "toolName": "plan_init", "toolCallId": call, "details": { "ok": ok } })
+	}
+
+	#[test]
+	fn the_agent_writes_the_plan_of_a_lesson_born_without_one() {
+		let app_made = json!({ "nodes": [{ "id": "topic", "title": "Sets" }], "edges": [] });
+		assert!(agent_writes_plan(&json!({ "messages": [] })));
+		assert!(agent_writes_plan(&json!({ "tree": { "nodes": [], "edges": [] }, "messages": [] })));
+		assert!(!agent_writes_plan(&json!({ "tree": app_made, "messages": [plan_result("c1", false)] })));
+		assert!(agent_writes_plan(&json!({ "tree": app_made, "messages": [plan_result("c1", true)] })));
 	}
 
 	#[test]

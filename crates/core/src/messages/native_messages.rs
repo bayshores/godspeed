@@ -5,7 +5,7 @@
 
 use std::collections::HashSet;
 
-use gs_base::{clock, ids, text};
+use gs_base::{clock, text};
 use gs_json::{Json, Obj, json, stringify};
 
 use crate::messages::role::Role;
@@ -156,11 +156,6 @@ pub fn new_answer_result(tool_call_id: &str, tool_name: &str, answer: &Json, att
 /// The probe-to-teach handoff wake. The id is fixed per chat so redelivery does nothing.
 pub fn new_handoff_message(chat_id: &str) -> Json {
 	Json::Obj(marker(format!("steer_probe_{chat_id}"), "probe-handoff", HANDOFF_TEXT, true, json!({ "chatId": chat_id })))
-}
-
-/// The plan-block marker for a plan_init call.
-pub fn new_plan_block_message(plan_call_id: &str, block: Json) -> Json {
-	Json::Obj(marker(ids::timed("pb"), "plan-block", "", true, json!({ "planCallId": plan_call_id, "block": block })))
 }
 
 /// The hidden marker carrying today's note for the model.

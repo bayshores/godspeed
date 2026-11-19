@@ -14,7 +14,6 @@ use gs_core::session::compaction::{
 use gs_core::session::cost_summary::graph_cost_summary;
 use gs_core::session::jobs::{accumulate_job_usage, build_abort_steer, build_subagent_steer, is_subagent_failure, pi_usage_to_step, set_steer_ui_inverted, steer_delivered};
 use gs_core::session::plan::{derive_plan_statuses_lh, derived_node_status};
-use gs_core::session::plan_blocks::plan_blocks_for;
 use gs_core::session::plan_step_bar::{plan_position_lh, step_position};
 use gs_core::session::plan_tree::create_tree;
 use gs_core::session::practice_outcomes::practice_outcomes;
@@ -100,17 +99,6 @@ fn mask_marker(message: &Json) -> Json {
 	)
 }
 
-/// Same masking as `maskBlock` in the Node recorder.
-fn mask_block(message: &Json) -> Json {
-	let mut out = mask_marker(message);
-	if let Some(at) = out.get_mut("details").and_then(|d| d.get_mut("block")).and_then(|b| b.get_mut("at"))
-		&& at.as_str().is_some()
-	{
-		*at = Json::from("<iso>");
-	}
-	out
-}
-
 fn context_json(e: &ContextTokenEstimate) -> Json {
 	let mut out = Obj::new();
 	out.insert("tokens", e.tokens);
@@ -152,8 +140,6 @@ fn check_chat(chat: &Json, want: &Json) {
 	};
 	check("nodeStatuses", node_statuses);
 	check("cost", session_cost(chat));
-	check("blocks", plan_blocks_for(&[], messages, tree, messages).iter().map(mask_block).collect());
-	check("blocksAgain", plan_blocks_for(messages, messages, tree, messages).iter().map(mask_block).collect());
 }
 
 #[test]
@@ -275,13 +261,6 @@ fn plan_trees_match_node() {
 		Ok(tree) => object(vec![("tree", tree)]),
 		Err(error) => object(vec![("error", error.into())]),
 	});
-}
-
-#[test]
-fn plan_blocks_match_node() {
-	let case = golden("plan: blocks");
-	let transcript = arr(&case["transcript"]);
-	each(&case["blocks"], "plan blocks", |i| plan_blocks_for(arr(&i["record"]), arr(&i["fresh"]), i.get("tree").and_then(present), transcript).iter().map(mask_block).collect());
 }
 
 #[test]

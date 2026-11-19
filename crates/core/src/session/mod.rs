@@ -8,7 +8,6 @@ pub mod plan;
 pub mod jobs;
 pub mod probe;
 pub mod plan_tree;
-pub mod plan_blocks;
 pub mod plan_step_bar;
 pub mod work_pages;
 pub mod practice_outcomes;

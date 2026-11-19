@@ -4583,25 +4583,6 @@
 				}
 			},
 			{
-				"name": "plan block",
-				"built": {
-					"id": "<id>",
-					"role": "custom",
-					"customType": "plan-block",
-					"content": "",
-					"display": true,
-					"details": {
-						"planCallId": "plan_1",
-						"block": {
-							"steps": [
-								"a"
-							]
-						}
-					},
-					"timestamp": 0
-				}
-			},
-			{
 				"name": "today",
 				"built": {
 					"id": "<id>",

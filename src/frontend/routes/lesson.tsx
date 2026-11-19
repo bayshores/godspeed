@@ -9,7 +9,7 @@ import { PageTitle } from "./page-title";
 /** One lesson: its record (and a homework lesson's deadline) is read before
  *  the page shows, so a navigation keeps the old page until it's ready. */
 export async function lessonLoader({ params, request }: LoaderFunctionArgs) {
-	// The plan blocks' code loads with the record, so they draw with the first paint.
+	// The plan map's code loads with the record, so an unfolded step row draws with the first paint.
 	const [read] = await Promise.all([loadJson<ChatRead>(`/api/chats/${encodeURIComponent(params.id ?? "")}`, request.signal), import("@/frontend/components/plan-block")]);
 	// An older build's Talk chat is kept on disk but never shown.
 	if (read.kind === "talk") throw data(null, { status: 404 });

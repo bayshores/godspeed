@@ -19,7 +19,7 @@ use gs_agent::tools::rules::SaveRule;
 use gs_agent::tools::side::LessonSide;
 use gs_agent::tools::space_actions::SpaceActions;
 use gs_base::{clock, text, time};
-use gs_core::session::plan_blocks::agent_writes_plan;
+use gs_core::session::plan::agent_writes_plan;
 use gs_core::spaces::space_tools::ToolOutcome;
 use gs_core::graph::ports::GraphStore;
 use gs_core::records::settings_resolution::graph_tools_enabled;

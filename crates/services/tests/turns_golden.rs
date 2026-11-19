@@ -8,7 +8,6 @@ use std::sync::Arc;
 
 use gs_base::config::Paths;
 use gs_base::{fsx, ids};
-use gs_core::messages::role::is_custom;
 use gs_core::messages::attachments::ChatAttachment;
 use gs_json::{Json, json, parse, stringify_pretty};
 use gs_services::App;
@@ -103,7 +102,7 @@ fn projected_tokens_match_node() {
 	assert_eq!(Json::Arr(got), case("projected tokens"));
 }
 
-/// What the save minted (ids, a plan block's times) as fixed text, like the golden spec.
+/// What the save minted (ids) as fixed text, like the golden spec.
 fn masked(messages: &[Json], known: &HashSet<String>) -> Json {
 	Json::Arr(
 		messages
@@ -113,12 +112,6 @@ fn masked(messages: &[Json], known: &HashSet<String>) -> Json {
 				let o = out.as_obj_mut().unwrap();
 				if o.get("id").and_then(Json::as_str).is_some_and(|id| !known.contains(id)) {
 					o.insert("id", "<new>");
-				}
-				if is_custom(m, "plan-block") {
-					o.insert("timestamp", "<now>");
-					let mut details = m["details"].clone();
-					details.get_mut("block").and_then(Json::as_obj_mut).unwrap().insert("at", "<now>");
-					o.insert("details", details);
 				}
 				out
 			})
@@ -147,12 +140,6 @@ fn turn_saves_match_node() {
 	let quiz = user("u1", "quiz me");
 	let turn = vec![quiz.clone(), call("quiz", "q1"), result("quiz", "q1", false, None), call("ask_user_question", "q2"), result("ask_user_question", "q2", true, None)];
 	assert_eq!(persist_case(vec![quiz], None, 1, turn), case("persist drops a clean question placeholder"));
-
-	let tree = json!({ "nodes": [{ "id": "a", "title": "Limits" }, { "id": "b", "title": "Derivatives" }], "edges": [{ "from": "a", "to": "b" }] });
-	let plan = user("u1", "plan it");
-	let first = persist_case(vec![plan.clone()], Some(tree.clone()), 1, vec![plan.clone(), call("plan_init", "p1"), result("plan_init", "p1", false, Some(json!({ "ok": true }))), reply(None, "Here is the plan.", None)]);
-	let failed = persist_case(vec![plan.clone()], Some(tree), 1, vec![plan, call("plan_init", "p1"), result("plan_init", "p1", true, Some(json!({ "ok": false })))]);
-	assert_eq!(json!({ "first": first, "failed": failed }), case("persist a plan block once"));
 
 	let turn = vec![user("a", "1"), user("b", "2"), user("c", "3"), reply(None, "four", None)];
 	assert_eq!(persist_case(Vec::new(), None, 3, turn), case("persist with a base past the record"));

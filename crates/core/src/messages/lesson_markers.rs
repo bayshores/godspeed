@@ -10,7 +10,7 @@ use super::message_id::new_message_id;
 use super::native_messages::marker;
 
 /// Markers the agent never sees: the model view, both compaction paths and every other view of
-/// the lesson for the agent skip them. A plan block is a snapshot for the window; a problem
+/// the lesson for the agent skip them. A plan block is a marker from lessons saved when the app still drew one; a problem
 /// dismissal reaches the agent as the synthesized conclude pair; Keep going reaches it as the
 /// opener's answer or the go-ahead; a question from earlier reaches it as one [From earlier] line;
 /// a keep's verdict as its note after his answer; a dropped analogy as one [Analogy dropped] line.

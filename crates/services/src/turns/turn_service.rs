@@ -11,7 +11,6 @@ use gs_core::messages::citations::{CiteMark, replace_cite_marks};
 use gs_core::messages::lesson_markers::new_keep_check_marker;
 use gs_core::messages::message_id::new_message_id;
 use gs_core::messages::pending::is_question_tool;
-use gs_core::session::plan_blocks::plan_blocks_for;
 use gs_core::study::kept::keep_verdicts;
 use gs_core::study::topic_parts::first_topic;
 use gs_engine::turn::ui_stream::SettleError;
@@ -33,7 +32,6 @@ pub const LEFTOVER_IDLE_MS: i64 = 5 * 60_000;
 /// - each message gets an id;
 /// - a cleanly posed question's placeholder result is never saved (the record ends at the
 ///   unanswered call); an errored question call is (the model's retry context);
-/// - one frozen plan block per successful plan_init call;
 /// - in a Study lesson, one keep-check verdict per new quiz that carries a keep.
 ///
 /// Returns the stamped new messages. Err is `SettleError::NotSaved`.
@@ -58,12 +56,11 @@ fn save_turn(app: &App, chat_id: &str, base_count: usize, turn_messages: &[Json]
 	let messages = record["messages"].items();
 	let transcript: Vec<Json> = messages.iter().chain(&stamped).cloned().collect();
 	let tree = record.get("tree").filter(|t| !t.is_null());
-	let blocks = plan_blocks_for(messages, &stamped, tree, &transcript);
 	// Only a Study quiz takes a keep; one sent to another lesson's quiz is ignored.
 	let study = record["kind"].as_str() == Some("study");
 	let verdicts: Vec<Json> = if study { keep_verdicts(&transcript, first_topic(tree), &|source| passage_mark(app, source)) } else { Vec::new() };
 	let verdicts = verdicts.into_iter().map(new_keep_check_marker);
-	let all: Vec<Json> = transcript.into_iter().chain(blocks).chain(verdicts).collect();
+	let all: Vec<Json> = transcript.into_iter().chain(verdicts).collect();
 	app.stores.chats.save_messages(chat_id, &all)?;
 	Ok(stamped)
 }

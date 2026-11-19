@@ -44,7 +44,7 @@ Each lesson row in the progress payload carries `step` (`{ done, total }`, the n
 
 ### The study agent
 
-The teacher's prompt and tools, without the planning part (`teacher/10-planning.md`) and the deadline changes (the learner makes those outside lessons). `plan_init` is in the list only when `agent_writes_plan` is true (`core::session::plan_blocks`): the app made no tree, or the agent already wrote one. That is fixed for the whole lesson, so the tool list stays the same every turn. It adds:
+The teacher's prompt and tools, without the planning part (`teacher/10-planning.md`) and the deadline changes (the learner makes those outside lessons). `plan_init` is in the list only when `agent_writes_plan` is true (`core::session::plan`): the app made no tree, or the agent already wrote one. That is fixed for the whole lesson, so the tool list stays the same every turn. It adds:
 
 - `problem` and `conclude` (`agent::tools::practice`; `problem` carries topic's `nodeId`)
 - `topic_done`
