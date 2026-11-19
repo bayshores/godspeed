@@ -230,7 +230,7 @@ describe("the deadline page", () => {
 		assert.match(html, /data-testid="deadline-ask"[^>]*lh-btn-main[^>]*>Ask marco<\/button>.*>Pick files</);
 		assert.ok(!html.includes('data-testid="deadline-day-row"'), "no list of every file");
 		assert.match(html, /A plan shows up once it knows what&#x27;s on it\./);
-		assert.match(html, /data-testid="deadline-progress"[^>]*>Not measured yet</);
+		assert.ok(!html.includes('data-testid="deadline-progress"'), "nothing measured, nothing said");
 		assert.ok(!html.includes('data-testid="deadline-topics"'));
 	});
 	it("a request: Ask waits while it runs, and one that changed nothing says why in place of the offer", () => {

@@ -82,6 +82,7 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 	// that carry their own solutionReveal fall back to it.
 	const input = (part.input ?? {}) as { outcome?: string; verdict?: string; solutionReveal?: string };
 	const outcome = typeof input.outcome === "string" ? input.outcome : "";
+	const label = OUTCOME_LABEL[outcome];
 	const verdict = typeof input.verdict === "string" ? input.verdict : "";
 	const reveal =
 		typeof part.reveal === "string" ? part.reveal : typeof input.solutionReveal === "string" ? input.solutionReveal : "";
@@ -98,11 +99,8 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 
 	return (
 		<div data-testid="conclude-card" className={`${STACK} relative`}>
-			{/* The heading row: the outcome tag, then what the card is. */}
-			<div className="flex items-center gap-2.5">
-				{(OUTCOME_LABEL[outcome] ?? "") !== "" && <ResultTag tone={OUTCOME_TONE[outcome] ?? "plain"}>{OUTCOME_LABEL[outcome]!}</ResultTag>}
-				<span className="font-count text-[15px] text-ink-2">Concluded</span>
-			</div>
+			{/* How the problem ended, said once: its outcome, or plain "Concluded" for one with no name here. */}
+			{label ? <ResultTag tone={OUTCOME_TONE[outcome] ?? "plain"}>{label}</ResultTag> : <span className="font-count text-[15px] text-ink-2">Concluded</span>}
 			{verdict.length > 0 && (
 				<div className="text-ink-2" style={PROSE_16}>
 					<ToolContentResponse>{verdict}</ToolContentResponse>

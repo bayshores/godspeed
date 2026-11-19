@@ -62,6 +62,7 @@ interface DeadlineBodyProps {
 export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps) {
 	const { deadline: d, nowMs } = props;
 	const past = !d.done && isOverdue(d, nowMs);
+	const progress = progressWords(d);
 	const tallies = new Map(props.topics.map((t) => [t.id, t]));
 	const interview = d.kind === "interview";
 	return (
@@ -90,9 +91,11 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 					<span data-testid="deadline-when" className="font-count text-xl text-ink">
 						{whenLine(d)}
 					</span>
-					<span data-testid="deadline-progress" className="bg-highlight px-2 py-0.5 text-[15px] leading-snug text-ink">
-						{progressWords(d) ?? "Not measured yet"}
-					</span>
+					{progress && (
+						<span data-testid="deadline-progress" className="bg-highlight px-2 py-0.5 text-[15px] leading-snug text-ink">
+							{progress}
+						</span>
+					)}
 				</div>
 			</header>
 

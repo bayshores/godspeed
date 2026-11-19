@@ -93,7 +93,7 @@ describe("the practice transcript cards", () => {
 		assert.match(html, /data-testid="conclude-card"/);
 		assert.match(html, /Solved with hints/);
 		assert.match(html, /Pair them; each pair is even\./, "the committed solution, verbatim");
-		assert.match(html, /Concluded/); // the plain eyebrow
+		assert.ok(!html.includes("Concluded"), "the outcome says how it ended, once");
 		assert.match(html, /Solved/); // the outcome rides the quiz chip
 		assert.match(html, /Model solution/); // the labeled hero after the divider
 		assert.ok(html.indexOf("Solved") < html.indexOf("Model solution"), "chip at the top");
