@@ -45,7 +45,7 @@ const draft = (over: Partial<AttachmentDraft> = {}): AttachmentDraft => ({
 
 function composer(over: { attachments?: AttachmentDraft; busy?: boolean; turn?: BoxTurn } = {}) {
 	const attachments = over.attachments ?? draft();
-	const view = lessonBox({ busy: over.busy ?? false, hasText: false, hasFiles: attachments.files.length > 0, turn: over.turn ?? { kind: "problem" } });
+	const view = lessonBox({ busy: over.busy ?? false, hasText: false, hasFiles: attachments.files.length > 0, turn: over.turn ?? { kind: "problem", picked: false } });
 	return renderToStaticMarkup(<LessonBox view={view} value="" onChange={() => {}} onAct={() => {}} onFocus={() => {}} attachments={attachments} boxRef={null} />);
 }
 

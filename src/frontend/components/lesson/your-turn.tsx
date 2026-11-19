@@ -1,12 +1,12 @@
 import { useRef, useState, type RefObject } from "react";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
-import { DEFAULT_TEACHER_NAME, DONT_KNOW, type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, DONT_KNOW, type DockSelection, type findPendingToolCall, type ProblemChoices, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import type { AttachmentDraft } from "./attachment-tray";
 import { LessonBox } from "./lesson-box";
 import { HELP_LINES, lessonBox, questionTurn, type BoxAction, type BoxView } from "./lesson-box-model";
-import { OpenProblemPane } from "./open-problem-pane";
+import { OpenProblemPane, type ProblemPicks } from "./open-problem-pane";
 import { ProblemFile, type ProblemFileRef } from "./problem-file";
 import { TurnScroll } from "./turn-scroll";
 import { StopCard } from "./stop-card";
@@ -25,7 +25,10 @@ export interface YourTurnProps {
 	reviewRefused: boolean;
 	/** The open problem, with its line ("Problem 2", practice only) and, for
 	 *  homework, the part the learner is on and the file it is from. */
-	problem: { toolCallId: string; statement: string; line: string | null; part: string | null; file: ProblemFileRef | null } | null;
+	problem: { toolCallId: string; statement: string; choices: ProblemChoices | null; line: string | null; part: string | null; file: ProblemFileRef | null } | null;
+	/** What is picked among the open problem's choices. */
+	problemPicked: DockSelection;
+	onPickProblem: (picked: DockSelection) => void;
 	/** Opens the discard confirm for the open problem. */
 	onDiscardProblem: () => void;
 	/** The answer box, for the problem row to bring him back to his work. */
@@ -81,6 +84,8 @@ export function YourTurn({
 	onSkipQuestion,
 	reviewRefused,
 	problem,
+	problemPicked,
+	onPickProblem,
 	onDiscardProblem,
 	boxRef,
 	stop,
@@ -102,7 +107,7 @@ export function YourTurn({
 	const [picked, setPicked] = useState(false);
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 
-	const turn = revealPending ? ({ kind: "read-first" } as const) : pending ? questionTurn(pending.tool, pending.input, picked, pending.appPosed?.kind) : problem ? ({ kind: "problem" } as const) : null;
+	const turn = revealPending ? ({ kind: "read-first" } as const) : pending ? questionTurn(pending.tool, pending.input, picked, pending.appPosed?.kind) : problem ? ({ kind: "problem", picked: problemPicked.selected.size > 0 } as const) : null;
 	const view = turn && lessonBox({ busy, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
 
 	const act = (action: BoxAction) => {
@@ -115,6 +120,11 @@ export function YourTurn({
 	useEnterSubmits(() => {
 		if (view && view.button.action !== "send" && !view.button.disabled) act(view.button.action);
 	});
+
+	const picks: ProblemPicks | null =
+		problem?.choices && view
+			? { choices: problem.choices, picked: problemPicked, onPick: onPickProblem, onLeaveRows: () => boxRef.current?.focus(), onEnter: view.button.action === "send" && !view.button.disabled ? onSend : null }
+			: null;
 
 	const help = view?.help;
 	const exit = view && EXIT[view.exit];
@@ -169,7 +179,7 @@ export function YourTurn({
 						busy={busy && !fromEarlier}
 					/>
 				)}
-				{!pending && problem && <OpenProblemPane statement={problem.statement} part={problem.part} />}
+				{!pending && problem && <OpenProblemPane statement={problem.statement} part={problem.part} picks={picks} />}
 				{!pending && !problem && stop && <StopCard view={stop.view} onAction={stop.onAction} />}
 			</TurnScroll>
 

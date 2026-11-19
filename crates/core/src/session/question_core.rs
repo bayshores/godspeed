@@ -381,6 +381,42 @@ pub fn explain_input_object() -> Json {
 	object(&["type", "nodeId", "question", "correctAnswer"], fields)
 }
 
+/// The fewest and most choices a problem can show as tick rows.
+const PROBLEM_OPTIONS_MIN: usize = 2;
+const PROBLEM_OPTIONS_MAX: usize = 8;
+
+/// The two fields that give a problem tick rows like a quiz's: `options` and `multiSelect`. They
+/// sit right after `statement` in the pose's schema.
+pub fn problem_choice_fields() -> Vec<(&'static str, Json)> {
+	let items = object(&["label"], vec![("label", string("The choice as the learner reads it (markdown + LaTeX). A bare claim, no letter and no reasoning."))]);
+	let options = json!({
+		"type": "array",
+		"items": items,
+		"description": "OPTIONAL \u{2014} for a choice problem: 2 to 8 choices as a JSON ARRAY of objects, never a JSON-encoded string. The learner sees them as lettered tick rows (A, B, C, ...) under the statement, with the work box below for reasoning, and the message they send starts with the letters they picked. The statement never lists the choices again. Leave out for a problem answered in free work.",
+	});
+	vec![
+		("options", options),
+		("multiSelect", boolean("Only with options: true when the problem is select all that apply, so the learner may pick several. Leave out for a single pick.")),
+	]
+}
+
+/// A problem's choice rules, so a pose that would show broken tick rows goes back to the teacher.
+pub fn problem_choice_problems(input: &Json) -> Vec<String> {
+	let Some(options) = input.get("options").filter(|o| !o.is_null()) else {
+		return if input["multiSelect"] == Json::Bool(true) { vec!["multiSelect needs options \u{2014} pass the choices in options, or leave multiSelect out.".to_owned()] } else { Vec::new() };
+	};
+	let items = options.items();
+	if !(PROBLEM_OPTIONS_MIN..=PROBLEM_OPTIONS_MAX).contains(&items.len()) {
+		return vec![format!("options has {} items \u{2014} a choice problem needs {PROBLEM_OPTIONS_MIN} to {PROBLEM_OPTIONS_MAX}. For a problem with no choices, leave options out.", items.len())];
+	}
+	items
+		.iter()
+		.enumerate()
+		.filter(|(_, option)| text::trim(option["label"].str_or_empty()).is_empty())
+		.map(|(i, _)| format!("options[{i}].label is empty \u{2014} every option needs a label."))
+		.collect()
+}
+
 /// The ask input. There is no `mode`: it follows from whether options are present.
 pub fn ask_input_schema() -> Json {
 	let option = object(
@@ -424,6 +460,25 @@ mod tests {
 		assert_eq!(stringify(&compact_answer_for_model(&json!({ "kind": "ask", "dismissed": true, "text": "x" }))), r#"{"kind":"ask","dismissed":true}"#);
 		assert_eq!(confidence_level(50.0), 2);
 		assert_eq!(confidence_level(f64::NAN), 3);
+	}
+
+	#[test]
+	fn a_problem_takes_two_to_eight_labelled_choices() {
+		let with = |options: Json, multi: Json| json!({ "statement": "s", "options": options, "multiSelect": multi });
+		let labels = |n: usize| (0..n).map(|i| json!({ "label": format!("claim {i}") })).collect::<Json>();
+		assert!(problem_choice_problems(&json!({ "statement": "s" })).is_empty(), "no choices is a plain problem");
+		assert!(problem_choice_problems(&with(labels(2), Json::Null)).is_empty());
+		assert!(problem_choice_problems(&with(labels(8), json!(true))).is_empty());
+		assert!(problem_choice_problems(&json!({ "statement": "s", "multiSelect": false })).is_empty());
+		for count in [0, 1, 9] {
+			let problems = problem_choice_problems(&with(labels(count), Json::Null));
+			assert_eq!(problems.len(), 1, "{count} options");
+			assert!(problems[0].contains(&format!("{count} items")) && problems[0].contains("2 to 8"), "{problems:?}");
+		}
+		let blank = problem_choice_problems(&with(json!([{ "label": "ok" }, { "label": "  " }]), Json::Null));
+		assert_eq!(blank, vec!["options[1].label is empty \u{2014} every option needs a label.".to_owned()]);
+		let alone = problem_choice_problems(&json!({ "statement": "s", "multiSelect": true }));
+		assert!(alone[0].starts_with("multiSelect needs options"), "{alone:?}");
 	}
 
 	#[test]

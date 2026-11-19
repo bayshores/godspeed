@@ -208,18 +208,19 @@ export function LessonScroll({
 
 	return (
 		<div className="lh-lesson-room @container/room flex min-h-0 min-w-0 flex-col [grid-area:main]">
-			{/* A sheet of its own, so the page scrolls under its edge; shown only when the step line draws something, and
+			{/* A sheet of its own. The page scrolls in the window a gap under it, where every sheet's top edge stops, so the
+			    lesson text and "Your turn" begin at one height. Shown only when the step line draws something, and
 			    then it steps in with the reply's text (the step replays when :has() shows it). */}
 			<div className="lh-page shrink-0 pt-(--lh-gap) [&:not(:has(>section>div>*))]:hidden">
 				<Pane className={cn("@container/strip lh-block-in [--lh-block-delay:var(--lh-dur-fast)]", READING_MEASURE, pair && PAIR)}>
 					<div className="px-(--lh-reading-inset) py-4 @max-[640px]/strip:px-(--lh-reading-inset-narrow)">{steps}</div>
 				</Pane>
 			</div>
-			<Conversation className="min-h-0 min-w-0 flex-1" initial="instant" contextRef={contextRef} targetScrollTop={target}>
+			<Conversation className="my-(--lh-gap) min-h-0 min-w-0 flex-1" initial="instant" contextRef={contextRef} targetScrollTop={target}>
 				<SessionMessageNavigation />
-				<ConversationContent className="gap-0 p-0" scrollClassName="[overflow-anchor:none] [container-type:size]">
-					{/* Side by side the page ends a gap under the sheets, so "Your turn" has the window's height to fill. */}
-					<div ref={pageRef} className={cn("lh-page pt-(--lh-gap) pb-(--lh-page-end)", pair && "@min-[1280px]/room:pb-(--lh-gap)")}>
+				<ConversationContent className="gap-0 p-0" scrollClassName={cn("lh-lesson-window [overflow-anchor:none] [container-type:size]", pair && "lh-lesson-pair")}>
+					{/* Side by side the sheets end at the window's foot, so "Your turn" has the window's height to fill. */}
+					<div ref={pageRef} className={cn("lh-page pb-(--lh-page-end)", pair && "@min-[1280px]/room:pb-0")}>
 						<div ref={columnRef} data-testid="lesson-column" className={cn("@container/column flex flex-col gap-(--lh-gap)", READING_MEASURE, pair && [PAIR, PAIR_GRID])}>
 							{reading}
 							{hasTurn && (

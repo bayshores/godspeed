@@ -13,12 +13,14 @@ import {
 	activeProblemOf,
 	answerTakesFiles,
 	DEFAULT_TEACHER_NAME,
+	emptyDockSelection,
 	findPendingToolCall,
 	firstPhase,
 	homeworkProblems,
 	kbdEventForAction,
 	phaseTimeline,
 	planStepBar,
+	problemChoicesOf,
 	questionNeedsReveal,
 	topicParts,
 	type HomeworkView,
@@ -26,9 +28,11 @@ import {
 	type LhMessage,
 	type PlanTree,
 	type ChatAttachment,
+	type DockSelection,
 	type QuestionAnswerData,
 	withOpenReview,
 } from "@/shared/core";
+import { problemMessage } from "@/frontend/components/lesson/problem-choices-model";
 import { goAheadLabel, initialPromptOwed, problemPosed, restoreUnsent, sendBlockedReason, stuckClaimMinutes, stuckRetry } from "@/frontend/components/lesson/chat-helpers";
 import { holdsDraft } from "@/frontend/components/lesson/lesson-drafts-model";
 import { lastLearnerText, lessonError, retryAction } from "@/frontend/components/lesson/lesson-error-model";
@@ -270,7 +274,7 @@ export function Chat({
 	}, [draftsLoaded, applyText]);
 
 	// Follow never takes the window away from unsent text.
-	const draftHeld = drafts.draft !== null && holdsDraft(drafts.draft, pendingQuestionId);
+	const draftHeld = drafts.draft !== null && holdsDraft(drafts.draft, pendingQuestionId ?? activeProblem?.toolCallId ?? null);
 	// The teacher's status in a lesson: Talking while it writes, Thinking
 	// while the turn runs.
 	useTeacherLesson(status === "streaming", busy, draftHeld);
@@ -303,16 +307,27 @@ export function Chat({
 		[openBlocked, send],
 	);
 
-	// The problem's work in the box, once the teacher is free.
+	// What is picked among the open problem's choices, kept like the box's text.
+	const problemId = activeProblem?.toolCallId ?? null;
+	const problemChoices = useMemo(() => (activeProblem ? problemChoicesOf(activeProblem.input) : null), [activeProblem]);
+	const problemPicked = (problemId && drafts.draft?.questions[problemId]?.form?.selection) || emptyDockSelection();
+	const pickProblem = (selection: DockSelection) => {
+		if (problemId) saveQuestion(problemId, { form: { selection } });
+	};
+
+	// The problem's work in the box, with its picks, once the teacher is free.
 	const onSend = () => {
 		const t = textRef.current.trim();
-		if (busy || (!t && attachments.files.length === 0)) return;
+		const picked = problemPicked;
+		if (busy || (!t && picked.selected.size === 0 && attachments.files.length === 0)) return;
 		const drafts = attachments.files;
 		editText("");
+		pickProblem(emptyDockSelection());
 		attachments.clear();
-		void send({ type: "text", text: t, ...(drafts.length > 0 ? { attachments: drafts.map((f) => f.attachment) } : {}) }).then((sent) => {
+		void send({ type: "text", text: problemMessage(picked.selected, t), ...(drafts.length > 0 ? { attachments: drafts.map((f) => f.attachment) } : {}) }).then((sent) => {
 			if (sent) return;
 			editText(restoreUnsent(t, textRef.current));
+			pickProblem(picked);
 			attachments.restore(drafts);
 		});
 	};
@@ -476,6 +491,7 @@ export function Chat({
 	const problem = activeProblem && {
 		toolCallId: activeProblem.toolCallId,
 		statement: (activeProblem.input as { statement: string }).statement,
+		choices: problemChoices,
 		line: !openProblem && practice ? `Problem ${practice.blocks.length}` : null,
 		part: openProblem ? (problems?.part ?? null) : null,
 		file: openProblem && homework?.assignment ? { ...homework.assignment, page: openProblem.page } : null,
@@ -544,6 +560,8 @@ export function Chat({
 													onSkipQuestion={() => setAbortAsk("question")}
 													reviewRefused={reviewRefused}
 													problem={problem}
+													problemPicked={problemPicked}
+													onPickProblem={pickProblem}
 													onDiscardProblem={() => setAbortAsk("problem")}
 													stop={lessonStop.card}
 													busy={busy}

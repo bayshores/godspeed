@@ -4,6 +4,8 @@
  */
 
 import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
+import { healEncodedArguments } from "./argument-heal.ts";
+import { isRecord } from "./is-record.ts";
 import { PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, type LhMarkerMessage, type LhMessage } from "./native-messages.ts";
 
 /** The ids of tool calls whose results are CLEAN (not errored) — the only
@@ -88,4 +90,24 @@ export function activeProblemOf(
 		}
 	}
 	return null;
+}
+
+/** The choices a problem shows as tick rows. */
+export interface ProblemChoices {
+	labels: string[];
+	/** Select all that apply. */
+	multiSelect: boolean;
+}
+
+const CHOICE_FIELDS = { properties: { options: { type: "array" }, multiSelect: { type: "boolean" } } };
+
+/** The choices a problem's pose carries, read as the display reads any model-authored input:
+ *  a pose with none, or with options that are not all labelled, shows none. The server has
+ *  already refused a pose with a wrong number of options. */
+export function problemChoicesOf(input: unknown): ProblemChoices | null {
+	const healed = healEncodedArguments(input, CHOICE_FIELDS);
+	if (!isRecord(healed) || !Array.isArray(healed.options)) return null;
+	const labels = healed.options.map((o) => (isRecord(o) && typeof o.label === "string" ? o.label.trim() : ""));
+	if (labels.length === 0 || labels.some((label) => label === "")) return null;
+	return { labels, multiSelect: healed.multiSelect === true };
 }

@@ -10,6 +10,7 @@ use gs_base::clock;
 use gs_core::graph::chains::resolve_target_id;
 use gs_core::messages::native_messages::active_problem_of;
 use gs_core::session::argument_heal::heal_encoded_arguments;
+use gs_core::session::question_core::{problem_choice_fields, problem_choice_problems};
 use gs_core::study::topic_end::{ends_topic, long_problem_stop, topic_stop};
 use gs_engine::turn::tool_execute::{conclude_result, invalid_input_result, problem_result, study_conclude_result};
 use gs_json::{Json, json, stringify};
@@ -84,29 +85,28 @@ impl TurnGate {
 }
 
 fn problem_parameters() -> Json {
-	object(
-		&["statement", "mode", "modelSolution"],
-		vec![
-			(
-				"statement",
-				string("REQUIRED \u{2014} the problem as the learner sees it (markdown + LaTeX). Must be self-contained and solvable from the session's material. NEVER announces the target proposition."),
-			),
-			("mode", one_of_literals(&["recall", "discrimination", "composition"], "REQUIRED \u{2014} the demand mode: recall, discrimination, or composition (bare words, no quotes).")),
-			(
-				"target",
-				json!({
-					"type": "array",
-					"items": { "type": "string" },
-					"minItems": 1,
-					"description": "The proposition id(s) this problem exercises, from the session context's [id] list \u{2014} include when the material is in the map (the outcome counts toward the learner's readiness for them); OMIT entirely when it is not (a topic session poses untagged problems). Names are normalized to ids at the seam; an unknown proposition is rejected.",
-				}),
-			),
-			(
-				"modelSolution",
-				string("REQUIRED \u{2014} the full solution, moves in order, committed BEFORE the learner sees the problem. This IS the reveal \u{2014} conclude shows it verbatim; never re-author it."),
-			),
-		],
-	)
+	let mut fields = vec![(
+		"statement",
+		string("REQUIRED \u{2014} the problem as the learner sees it (markdown + LaTeX). Starts with the problem itself, never a title or heading line: godspeed already titles it \"Problem N\". Must be self-contained and solvable from the session's material. When you pass options, the statement never lists them again and never says how many to pick: the rows say \"Select all that apply\" themselves. NEVER announces the target proposition."),
+	)];
+	fields.extend(problem_choice_fields());
+	fields.extend([
+		("mode", one_of_literals(&["recall", "discrimination", "composition"], "REQUIRED \u{2014} the demand mode: recall, discrimination, or composition (bare words, no quotes).")),
+		(
+			"target",
+			json!({
+				"type": "array",
+				"items": { "type": "string" },
+				"minItems": 1,
+				"description": "The proposition id(s) this problem exercises, from the session context's [id] list \u{2014} include when the material is in the map (the outcome counts toward the learner's readiness for them); OMIT entirely when it is not (a topic session poses untagged problems). Names are normalized to ids at the seam; an unknown proposition is rejected.",
+			}),
+		),
+		(
+			"modelSolution",
+			string("REQUIRED \u{2014} the full solution, moves in order, committed BEFORE the learner sees the problem. This IS the reveal \u{2014} conclude shows it verbatim; never re-author it."),
+		),
+	]);
+	object(&["statement", "mode", "modelSolution"], fields)
 }
 
 /// The problem schema of a study session: it also names the plan node the problem is about.
@@ -158,6 +158,10 @@ fn problem_tool(gate: &Arc<TurnGate>, graph_nodes: Option<GraphNodes>, parameter
 	FnTool::immediate("problem", description, parameters, move |args| {
 		if let Some(problem) = plan_nodes.as_ref().and_then(|nodes| node_id_problem(&nodes(), args["nodeId"].str_or_empty())) {
 			return invalid_input_result("problem", &[problem]);
+		}
+		let choice_problems = problem_choice_problems(&args);
+		if !choice_problems.is_empty() {
+			return invalid_input_result("problem", &choice_problems);
 		}
 		let mut active = gate.problem_active.lock();
 		if *active {
@@ -350,5 +354,42 @@ mod tests {
 		let out = conclude(&practice(26), "solved", Json::Null).await;
 		assert_eq!((out["content"][0]["text"].as_str(), out["details"]["stop"]["kind"].as_str()), (Some(CONCLUDE_ACK_TEXT), Some("problem")));
 		assert_eq!(conclude(&practice(20), "solved", Json::Null).await, conclude_result(None), "under 25 minutes: no stop");
+	}
+
+	async fn pose(input: Json) -> Json {
+		let gate = TurnGate::new(false);
+		let tools = study_problem_tools(&gate, record(vec![]), None, Arc::new(|| vec!["reg".to_owned()]));
+		let tool = tools.into_iter().find(|t| t.name() == "problem").unwrap();
+		tool.execute(input, ToolContext { tool_call_id: "p1".to_owned(), abort: Abort::new() }).await.unwrap()
+	}
+
+	#[tokio::test]
+	async fn a_choice_problem_takes_two_to_eight_labelled_options() {
+		let labels = |n: usize| (0..n).map(|i| json!({ "label": format!("choice {i}") })).collect::<Vec<_>>();
+		let with = |extra: Json| {
+			let mut input = json!({ "statement": "s", "mode": "recall", "modelSolution": "m", "nodeId": "reg" });
+			for (key, value) in extra.as_obj().unwrap().iter() {
+				input.as_obj_mut().unwrap().insert(key, value.clone());
+			}
+			input
+		};
+		let problem_of = |out: &Json| out["details"]["problems"][0].as_str().unwrap_or_default().to_owned();
+		let out = pose(with(json!({ "options": labels(1) }))).await;
+		assert_eq!(out["isError"].as_bool(), Some(true));
+		assert!(problem_of(&out).contains("1 items"), "{}", problem_of(&out));
+		assert!(problem_of(&pose(with(json!({ "options": labels(9) }))).await).contains("9 items"));
+		assert!(problem_of(&pose(with(json!({ "options": [{ "label": "a" }, { "label": "  " }] }))).await).contains("options[1].label is empty"));
+		assert!(problem_of(&pose(with(json!({ "multiSelect": true }))).await).contains("multiSelect needs options"));
+		assert_ne!(pose(with(json!({ "options": labels(2), "multiSelect": true }))).await["isError"].as_bool(), Some(true), "two options is enough");
+	}
+
+	#[test]
+	fn the_pose_schema_offers_options_and_multi_select_as_optional() {
+		for parameters in [problem_parameters(), study_problem_parameters()] {
+			assert!(parameters["properties"]["options"]["items"]["properties"]["label"].as_obj().is_some());
+			assert_eq!(parameters["properties"]["multiSelect"]["type"].as_str(), Some("boolean"));
+			let required: Vec<&str> = parameters["required"].as_arr().unwrap().iter().filter_map(Json::as_str).collect();
+			assert!(!required.contains(&"options") && !required.contains(&"multiSelect"));
+		}
 	}
 }

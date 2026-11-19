@@ -4,7 +4,9 @@ import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { ResultTag, type ResultTone } from "@/frontend/components/result-tag";
 import { CARD } from "@/frontend/components/ui/card-parts";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
-import type { ArtifactPartProps } from "@/shared/core";
+import { problemChoicesOf, type ArtifactPartProps } from "@/shared/core";
+import { OptionMark } from "@/frontend/components/lesson/choice-rows";
+import { choiceLetter } from "@/frontend/components/lesson/problem-choices-model";
 
 /**
  * The practice transcript cards: three quiet records in the stream —
@@ -46,12 +48,25 @@ export function ProblemCard({ part }: ArtifactPartProps) {
 	// card's container. The commitment never renders, only the call's statement.
 	const input = (part.input ?? {}) as { statement?: string };
 	const statement = typeof input.statement === "string" ? input.statement : "";
+	const choices = problemChoicesOf(part.input);
 	return (
 		<div data-testid="problem-card" data-problem-call={part.toolCallId} className={`${STACK} scroll-mt-4`}>
 			<div className="font-count text-[15px] text-ink-2">Problem</div>
 			<div className="text-ink-2" style={PROSE_16}>
 				<ToolContentResponse>{statement}</ToolContentResponse>
 			</div>
+			{choices && (
+				<ol data-testid="problem-card-choices" className="flex flex-col gap-1.5 text-ink-2" style={PROSE_16}>
+					{choices.labels.map((label, i) => (
+						<li key={i} className="flex items-start gap-3">
+							<OptionMark picked={false}>{choiceLetter(i)}</OptionMark>
+							<span className="min-w-0 flex-1">
+								<ToolContentResponse>{label}</ToolContentResponse>
+							</span>
+						</li>
+					))}
+				</ol>
+			)}
 		</div>
 	);
 }

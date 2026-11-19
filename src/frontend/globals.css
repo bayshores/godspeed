@@ -695,6 +695,34 @@ body {
 	}
 }
 
+/* The lesson's window (LessonScroll's scroller): it begins a gap under the step line and ends a
+   gap above the window's foot, and a sheet it cuts keeps its stepped corners at both edges, as
+   a whole sheet has them. The corners are cut at the column's sides, and side by side at the
+   lesson text's sides only, since "Your turn" fits the window whole. */
+.lh-lesson-window {
+	--lh-col: min(var(--lh-pair), 872px);
+	--lh-cut-l: calc((100cqw - var(--lh-col)) / 2);
+	--lh-cut-r: calc(var(--lh-cut-l) + var(--lh-col));
+	--lh-px: linear-gradient(#000, #000);
+	mask:
+		var(--lh-px) left var(--lh-cut-l) top 0 / 8px 4px no-repeat,
+		var(--lh-px) left var(--lh-cut-l) top 4px / 4px 4px no-repeat,
+		var(--lh-px) left calc(var(--lh-cut-r) - 8px) top 0 / 8px 4px no-repeat,
+		var(--lh-px) left calc(var(--lh-cut-r) - 4px) top 4px / 4px 4px no-repeat,
+		var(--lh-px) left var(--lh-cut-l) bottom 0 / 8px 4px no-repeat,
+		var(--lh-px) left var(--lh-cut-l) bottom 4px / 4px 4px no-repeat,
+		var(--lh-px) left calc(var(--lh-cut-r) - 8px) bottom 0 / 8px 4px no-repeat,
+		var(--lh-px) left calc(var(--lh-cut-r) - 4px) bottom 4px / 4px 4px no-repeat,
+		var(--lh-px) 0 0 / 100% 100% no-repeat;
+	mask-composite: exclude;
+}
+@container room (width >= 1280px) {
+	.lh-lesson-window.lh-lesson-pair {
+		--lh-col: var(--lh-pair);
+		--lh-cut-r: calc(var(--lh-cut-l) + var(--lh-pair) - var(--lh-gap) - var(--lh-turn));
+	}
+}
+
 /* The lesson text and "Your turn" side by side (LessonScroll), measured on the page's room:
    the pair is the page's column, and "Your turn" is 688 where there is room, giving way first
    down to 560 so the text keeps at least 632 and is never narrower. */
@@ -709,14 +737,14 @@ body {
    sheet's foot, and scrolls in its own box when it is longer than that room. */
 @container room (width >= 1280px) {
 	.lh-text-fit {
-		min-height: calc(100cqh - 2 * var(--lh-gap));
+		min-height: 100cqh;
 	}
 	.lh-turn-fit {
 		position: sticky;
-		top: var(--lh-gap);
+		top: 0;
 		display: flex;
 		flex-direction: column;
-		height: calc(100cqh - 2 * var(--lh-gap));
+		height: 100cqh;
 	}
 	.lh-turn-scroll {
 		flex: 1 1 auto;

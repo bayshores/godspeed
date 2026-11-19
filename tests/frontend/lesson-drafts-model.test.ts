@@ -74,6 +74,14 @@ describe("lesson drafts", () => {
 		assert.equal(withoutEndedQuestions(kept, record), kept);
 	});
 
+	it("read back, keeps the picks of the problem still open", () => {
+		const posed = { id: "a1", role: "assistant", stopReason: "toolUse", content: [{ type: "toolCall", id: "p1", name: "problem", arguments: { statement: "s", mode: "recall", modelSolution: "m" } }] } as unknown as LhMessage;
+		const ack = { id: "r1", role: "toolResult", toolCallId: "p1", toolName: "problem", content: [], isError: false } as unknown as LhMessage;
+		const d = withQuestion(withQuestion(EMPTY_LESSON_DRAFT, "p1", { form }), "old", { form });
+		assert.deepEqual(Object.keys(withoutEndedQuestions(d, [posed, ack]).questions), ["p1"]);
+		assert.deepEqual(withoutEndedQuestions(d, []).questions, {}, "no open problem: its picks go");
+	});
+
 	it("a deleted lesson's saved drafts are removed", () => {
 		const store = new Map([["lh:lesson-draft:l1", "{}"], ["lh:lesson-draft:l2", "{}"]]);
 		(globalThis as { localStorage?: unknown }).localStorage = { removeItem: (k: string) => store.delete(k) };

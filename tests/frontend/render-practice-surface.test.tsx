@@ -32,7 +32,7 @@ const part = (over: Partial<ArtifactPartProps["part"]>): ArtifactPartProps["part
 // ── the open problem pane ────────────────────────────────────────────────────
 
 const pane = (over: Partial<React.ComponentProps<typeof OpenProblemPane>> = {}) =>
-	renderToStaticMarkup(<OpenProblemPane statement="Show that the sum is even." part={null} {...over} />);
+	renderToStaticMarkup(<OpenProblemPane statement="Show that the sum is even." part={null} picks={null} {...over} />);
 
 describe("OpenProblemPane", () => {
 	it("shows the whole statement and nothing to type into", () => {
@@ -66,6 +66,13 @@ describe("the practice transcript cards", () => {
 		assert.doesNotMatch(html, /Pair them\./, "the commitment stays hidden");
 		// No chevron, no collapsed bar.
 		assert.doesNotMatch(html, /<button/, "nothing collapsible");
+	});
+
+	it("ProblemCard: a problem with choices keeps them in the record as lettered rows", () => {
+		const input = { statement: "Which hold?", options: [{ label: "first claim" }, { label: "second claim" }], multiSelect: true };
+		const html = renderToStaticMarkup(<ProblemCard part={part({ input })} />);
+		assert.match(html, /data-testid="problem-card-choices"[\s\S]*>A<[\s\S]*first claim[\s\S]*>B<[\s\S]*second claim/);
+		assert.doesNotMatch(renderToStaticMarkup(<ProblemCard part={part({ input: { statement: "Plain." } })} />), /problem-card-choices/);
 	});
 
 	it("ProblemCard: draws nothing while its problem is open (Your turn shows it), and again once it is not", () => {

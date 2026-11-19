@@ -3,7 +3,7 @@
  * writing box, each waiting question's picks and reading thoughts). Saved
  * per lesson so leaving the lesson or a window reload never loses it. Pure.
  */
-import { answeredCallIds, danglingQuestionOf, isRecord, type LhMessage, type QuestionDraft, type QuestionFormDraft } from "@/shared/core";
+import { activeProblemOf, answeredCallIds, danglingQuestionOf, isRecord, type LhMessage, type QuestionDraft, type QuestionFormDraft } from "@/shared/core";
 import { isLocalMessage } from "@/frontend/components/session-core";
 
 export interface LessonDraft {
@@ -55,20 +55,23 @@ export function withoutSettled(d: LessonDraft, record: readonly LhMessage[]): Le
 }
 
 /** Reading the drafts back keeps only the question the saved record still
- *  waits on: one answered, skipped or left behind by a stopped turn never
- *  comes back. Returns `d` itself when nothing goes. */
+ *  waits on and the picks of the problem still open: one answered, skipped
+ *  or left behind by a stopped turn never comes back. Returns `d` itself
+ *  when nothing goes. */
 export function withoutEndedQuestions(d: LessonDraft, record: readonly LhMessage[]): LessonDraft {
-	const waiting = danglingQuestionOf(record.filter((m) => !isLocalMessage(m)))?.toolCallId;
-	const ended = Object.keys(d.questions).filter((id) => id !== waiting);
+	const saved = record.filter((m) => !isLocalMessage(m));
+	const waiting = danglingQuestionOf(saved)?.toolCallId;
+	const open = activeProblemOf(saved)?.toolCallId;
+	const ended = Object.keys(d.questions).filter((id) => id !== waiting && id !== open);
 	if (ended.length === 0) return d;
 	const questions = { ...d.questions };
 	for (const id of ended) delete questions[id];
 	return { ...d, questions };
 }
 
-/** Whether the learner has unsent text in what the lesson shows now. */
-export function holdsDraft(d: LessonDraft, questionId: string | null): boolean {
-	return d.composer.trim().length > 0 || (questionId !== null && d.questions[questionId] !== undefined);
+/** Whether the learner has unsent text, or picks on the question or problem `waitingId`. */
+export function holdsDraft(d: LessonDraft, waitingId: string | null): boolean {
+	return d.composer.trim().length > 0 || (waitingId !== null && d.questions[waitingId] !== undefined);
 }
 
 /** The stored form, or null when there is nothing to keep. */

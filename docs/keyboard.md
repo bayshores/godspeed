@@ -66,7 +66,7 @@ The Graph page's picture (`src/frontend/components/graph/constellation.tsx`) is 
 
 ## Question rows
 
-While a question is open, `src/frontend/components/question-dock.tsx` owns these keys. They work only when focus is not in a text field, and never with a modifier held.
+While a question is open, `src/frontend/components/question-dock.tsx` owns these keys. The rows of a choice problem (`open-problem-pane.tsx`) use the same keys through `use-choice-keys.ts`; there Enter sends and Tab moves to the "Your work" box. They work only when focus is not in a text field, and never with a modifier held.
 
 | Key | What it does |
 |---|---|

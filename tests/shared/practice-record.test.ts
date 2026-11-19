@@ -19,7 +19,7 @@ import {
 	type LhMessage,
 } from "../../src/shared/core/native-messages.ts";
 import { needsContinuation } from "../../src/shared/core/native-scans.ts";
-import { activeProblemOf, problemInputForConclude } from "../../src/shared/core/practice-problem.ts";
+import { activeProblemOf, problemChoicesOf, problemInputForConclude } from "../../src/shared/core/practice-problem.ts";
 import { projectView } from "../../src/shared/core/index.ts";
 
 // ── builders (native-shaped test fixtures) ───────────────────────────────────
@@ -266,5 +266,25 @@ describe("projectView renders the move-on signal", () => {
 		const dataOf = (messages: LhMessage[]) => projectView(messages).flatMap((m) => m.parts).find((p) => p.type === "data-practice-next")?.data;
 		assert.deepEqual(dataOf([note, newNextMessage()]), { homework: true, number: null });
 		assert.deepEqual(dataOf([newNextMessage()]), { homework: false, number: null });
+	});
+});
+
+describe("the choices a problem's pose carries", () => {
+	it("are its labels in order, with select all that apply only when asked", () => {
+		const options = [{ label: " $x<1$ " }, { label: "$x=1$" }];
+		assert.deepEqual(problemChoicesOf({ statement: "s", options }), { labels: ["$x<1$", "$x=1$"], multiSelect: false });
+		assert.deepEqual(problemChoicesOf({ statement: "s", options, multiSelect: true }), { labels: ["$x<1$", "$x=1$"], multiSelect: true });
+	});
+
+	it("read past options and multiSelect sent as encoded text", () => {
+		assert.deepEqual(problemChoicesOf({ options: '[{"label":"a"},{"label":"b"}]', multiSelect: "true" }), { labels: ["a", "b"], multiSelect: true });
+	});
+
+	it("are none for a problem without options or with an unlabelled one", () => {
+		assert.equal(problemChoicesOf({ statement: "s" }), null);
+		assert.equal(problemChoicesOf(null), null);
+		assert.equal(problemChoicesOf({ options: [] }), null);
+		assert.equal(problemChoicesOf({ options: [{ label: "a" }, { label: "  " }] }), null);
+		assert.equal(problemChoicesOf({ options: [{ label: "a" }, "b"] }), null);
 	});
 });

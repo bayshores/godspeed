@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use gs_core::contracts::space::MAX_HOMEWORK_PROBLEMS;
 use gs_core::messages::native_messages::active_problem_of;
+use gs_core::session::question_core::{problem_choice_fields, problem_choice_problems};
 use gs_base::clock;
 use gs_core::study::homework::{conclude_marks_done, picked_problem};
 use gs_core::study::topic_end::long_problem_stop;
@@ -77,15 +78,21 @@ fn post_problems_tool(homework: Arc<dyn HomeworkDeadline>) -> FnTool {
 
 fn problem_tool(homework: Arc<dyn HomeworkDeadline>, open: &Arc<Mutex<Option<String>>>) -> FnTool {
 	let open = open.clone();
-	let parameters = object(
-		&["number", "statement"],
-		vec![
-			("number", string("REQUIRED \u{2014} the problem's number as posted with post_problems.")),
-			("statement", string("REQUIRED \u{2014} the problem as the learner sees it while working (markdown + LaTeX): the assignment's wording. Never any part of its answer.")),
-		],
-	);
+	let mut fields = vec![
+		("number", string("REQUIRED \u{2014} the problem's number as posted with post_problems.")),
+		(
+			"statement",
+			string("REQUIRED \u{2014} the problem as the learner sees it while working (markdown + LaTeX): the assignment's wording, starting with the problem itself, never a title or heading line. When you pass options, the statement never lists them again and never says how many to pick: the rows say \"Select all that apply\" themselves. Never any part of its answer."),
+		),
+	];
+	fields.extend(problem_choice_fields());
+	let parameters = object(&["number", "statement"], fields);
 	let description = "Open one problem in the learner's Your turn panel, where it stays in view. Ends the turn: the learner's work and questions arrive as their messages (text and photos). Only one problem is open at a time; conclude it before opening the next.";
 	FnTool::immediate("problem", description, parameters, move |args| {
+		let choice_problems = problem_choice_problems(&args);
+		if !choice_problems.is_empty() {
+			return invalid_input_result("problem", &choice_problems);
+		}
 		let mut open = open.lock();
 		if let Some(number) = open.as_ref() {
 			return invalid_input_result("problem", &[format!("problem {number} is still open \u{2014} conclude it first")]);
@@ -207,5 +214,23 @@ mod tests {
 		let pick = json!({ "role": "custom", "customType": "practice-next", "details": { "number": "2" }, "timestamp": clock::now_ms() });
 		assert_eq!(conclude_one("movedOn", two.clone(), Some(pick.clone())).await["details"], Json::Null, "he picked problem 2: no break before it");
 		assert_eq!(conclude_one("solved", two, Some(pick)).await["details"]["stop"]["kind"].as_str(), Some("problem"), "solved on the way still stops");
+	}
+
+	#[tokio::test]
+	async fn a_choice_problem_needs_two_to_eight_options() {
+		let ctx = HomeworkToolContext { chat_id: "c".to_owned(), chat_store: record(vec![]).chat_store, homework: Arc::new(Deadline(Mutex::new(vec![json!({ "number": "1" })]))), jobs: None, side: LessonSide::default() };
+		let tool = homework_tools(&ctx, None).into_iter().find(|t| t.name() == "problem").unwrap();
+		let pose = |extra: Json| {
+			let mut input = json!({ "number": "1", "statement": "s" });
+			for (key, value) in extra.as_obj().unwrap().iter() {
+				input.as_obj_mut().unwrap().insert(key, value.clone());
+			}
+			tool.execute(input, ToolContext { tool_call_id: "p1".to_owned(), abort: Abort::new() })
+		};
+		let out = pose(json!({ "options": [{ "label": "only" }] })).await.unwrap();
+		assert_eq!(out["isError"].as_bool(), Some(true));
+		assert!(out["details"]["problems"][0].as_str().unwrap().contains("1 items"));
+		assert_eq!(pose(json!({ "multiSelect": true })).await.unwrap()["isError"].as_bool(), Some(true));
+		assert_ne!(pose(json!({ "options": [{ "label": "a" }, { "label": "b" }] })).await.unwrap()["isError"].as_bool(), Some(true));
 	}
 }

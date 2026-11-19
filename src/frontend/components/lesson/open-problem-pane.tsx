@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { toggleOption, type DockSelection, type ProblemChoices } from "@/shared/core";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
+import { ChoiceRows, SelectAllHint } from "./choice-rows";
+import { useChoiceKeys } from "./use-choice-keys";
 import { partMarks, toggled, type PartMarks } from "./problem-parts";
 import { proseVars } from "./question-parts";
 
@@ -18,19 +21,46 @@ function apply(root: HTMLElement, marks: PartMarks) {
 	}
 }
 
+/** What the learner picks among, for a problem that has choices. */
+export interface ProblemPicks {
+	choices: ProblemChoices;
+	picked: DockSelection;
+	onPick: (picked: DockSelection) => void;
+	/** Tab from the rows goes to the writing box. */
+	onLeaveRows: () => void;
+	/** Enter on a walked row sends, or null while nothing can be sent. */
+	onEnter: (() => void) | null;
+}
+
+/** The problem's choices as the quiz shows its own: lettered tick rows with their keys. */
+function ProblemChoiceRows({ choices, picked, onPick, onLeaveRows, onEnter }: ProblemPicks) {
+	const multi = choices.multiSelect;
+	const toggle = (index: number) => onPick(toggleOption(multi ? "multi-select" : "single-select", picked, index));
+	const { rootRef, walked } = useChoiceKeys({ count: choices.labels.length, toggle, onLeaveRows, onEnter });
+	return (
+		<div ref={rootRef} data-testid="problem-choices" className="flex flex-col gap-7">
+			{multi && <SelectAllHint />}
+			<ChoiceRows options={choices.labels.map((label) => ({ label }))} selected={picked.selected} multi={multi} walked={walked} onToggle={toggle} />
+		</div>
+	);
+}
+
 /**
  * The open problem under "Your turn": the whole problem, the part the teacher
  * marked open (data-part-current, where the page may rest) and every other
  * part folded to its first line, which opens it on a click and folds it on
- * the next. The learner works on it in the writing box under it.
+ * the next. A problem with choices shows them under its statement. The
+ * learner works on it in the writing box under it.
  */
 export function OpenProblemPane({
 	statement,
 	part,
+	picks,
 }: {
 	statement: string;
 	/** The part the learner is on, as the problem labels it (homework only). */
 	part: string | null;
+	picks: ProblemPicks | null;
 }) {
 	const statementRef = useRef<HTMLDivElement>(null);
 	// The other parts the learner opened; a newly marked part folds them again.
@@ -75,11 +105,12 @@ export function OpenProblemPane({
 	}, [part, opened]);
 
 	return (
-		<div data-testid="open-problem" className="flex flex-col gap-2">
+		<div data-testid="open-problem" className="flex flex-col gap-7">
 			{/* Holds a last-line fraction's denominator, which hangs 6px below its line box. */}
 			<div ref={statementRef} data-testid="problem-statement" className="pb-1.5" style={proseVars(18, 28)}>
 				<ToolContentResponse>{statement}</ToolContentResponse>
 			</div>
+			{picks && <ProblemChoiceRows {...picks} />}
 		</div>
 	);
 }

@@ -1,11 +1,13 @@
 import { useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
-import { ANSWER_ROW, PICKED, proseVars, QuestionText } from "@/frontend/components/lesson/question-parts";
+import { proseVars, QuestionText } from "@/frontend/components/lesson/question-parts";
+import { ChoiceRows, OptionMark, SelectAllHint } from "@/frontend/components/lesson/choice-rows";
+import { choiceLetter } from "@/frontend/components/lesson/problem-choices-model";
+import { typingIn, useChoiceKeys } from "@/frontend/components/lesson/use-choice-keys";
 import { ConfidenceLine } from "@/frontend/components/confidence-line";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { PickedRow } from "@/frontend/components/lesson/picked-row";
 import { prefersReducedMotion } from "@/frontend/components/presence";
-import { cn } from "@/frontend/lib/utils";
 import { useSound } from "@/frontend/components/sounds";
 import {
 	answerSound,
@@ -108,19 +110,6 @@ export function QuestionDock(props: QuestionDockProps) {
 	if (kind === "code") return <CodeQuestion {...props} input={parsed as WriteCodeInput} />;
 	return <QuestionDockForm {...props} input={parsed as QuizDisplayInput | AskToolInput | ExplainDisplayInput} />;
 }
-
-/** A row is 56 tall for one line, its tone as wide as the sheet's text. */
-const OPTION_ROW = cn(ANSWER_ROW, "items-start px-3 py-3.5");
-/** A choice's box: its letter, filled once picked. */
-function OptionMark({ picked, children }: { picked: boolean; children?: React.ReactNode }) {
-	return (
-		<span aria-hidden className={cn("flex size-7 shrink-0 items-center justify-center rounded-[2px] border-[1.5px] border-ink text-sm font-medium", picked ? "bg-ink text-background" : "bg-panel text-ink")}>
-			{children}
-		</span>
-	);
-}
-
-const letter = (i: number) => String.fromCharCode(65 + i);
 
 /** A question with its choices (or, answered in words, the question alone). */
 function QuestionDockForm({
@@ -234,91 +223,19 @@ function QuestionDockForm({
 		picked: () => [...sel.selected].sort((a, b) => a - b).map((i) => qd.options[i]!.label),
 	}));
 
-	/* ── The keyboard machine ──
-	   1–9 pick an option. ↑/↓ walk the options, clamped at the ends; Space
-	   acts on the walked row like a click; Enter submits once an answer
-	   exists. ←/→ move the confidence level. Tab
-	   from the rows goes to the writing box. Keys typed into a field keep
-	   their meaning, and modifier combos are never ours. */
-	const [kbdIdx, setKbdIdx] = useState<number | null>(null);
-	const rootRef = useRef<HTMLDivElement>(null);
+	// The rows' keys (use-choice-keys); ←/→ move the confidence level once an answer is
+	// picked (its line shows then).
 	const rowCount = qd.mode === "text" ? 0 : qd.options.length;
-
-	const focusRow = (idx: number) => {
-		const row = rootRef.current?.querySelector(`[data-kbdrow="${idx}"]`) as HTMLElement | null;
-		if (!row) return;
-		((row.querySelector("input") as HTMLElement | null) ?? row).focus();
-	};
-
+	const { rootRef, walked } = useChoiceKeys({ count: rowCount, toggle, onLeaveRows, onEnter: canSubmit ? submit : null });
 	useEffect(() => {
 		const onKeyDown = (e: KeyboardEvent) => {
-			const t = e.target as HTMLElement | null;
-			const typing =
-				!!t &&
-				((t.tagName === "INPUT" && (t as HTMLInputElement).type !== "range") ||
-					t.tagName === "TEXTAREA" ||
-					t.isContentEditable);
-			const modded = e.altKey || e.metaKey || e.ctrlKey;
-			// Tab is ours only from the rows or nowhere; elsewhere (the writing
-			// box included) it moves on as usual, so Submit stays reachable.
-			const ownsTab = !t || t === document.body || !!t.closest?.("[data-kbdrow]");
-			if (rowCount > 0 && e.key === "Tab" && !e.shiftKey && !modded && ownsTab) {
-				e.preventDefault();
-				e.stopPropagation();
-				if (t?.closest?.("[data-kbdrow]")) onLeaveRows();
-				else {
-					const idx = kbdIdx ?? 0;
-					setKbdIdx(idx);
-					focusRow(idx);
-				}
-				return;
-			}
-			if (typing || modded) return;
-			if (/^[1-9]$/.test(e.key) && rowCount > 0) {
-				const n = Number(e.key);
-				if (n <= rowCount) {
-					e.preventDefault();
-					setKbdIdx(n - 1);
-					toggle(n - 1);
-				}
-				return;
-			}
-			if (rowCount > 0 && e.key === "ArrowDown") {
-				e.preventDefault();
-				const next = Math.min((kbdIdx ?? -1) + 1, rowCount - 1);
-				setKbdIdx(next);
-				if (t?.closest?.("[data-kbdrow]")) focusRow(next);
-			} else if (rowCount > 0 && e.key === "ArrowUp") {
-				e.preventDefault();
-				const next = Math.max((kbdIdx ?? rowCount) - 1, 0);
-				setKbdIdx(next);
-				if (t?.closest?.("[data-kbdrow]")) focusRow(next);
-			} else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-				// Confidence, once an answer is picked (its line shows then).
-				if (!rated) return;
-				e.preventDefault();
-				setConfIdx((i) => stepConfidence(i, e.key === "ArrowRight" ? 1 : -1));
-			} else if (e.key === " ") {
-				if (kbdIdx === null) return; // plain Space keeps scrolling
-				e.preventDefault();
-				toggle(kbdIdx);
-			} else if (e.key === "Enter") {
-				if (kbdIdx === null || !canSubmit) return;
-				e.preventDefault();
-				// The lesson's own Enter listener must not submit it again.
-				e.stopPropagation();
-				submit();
-			}
+			if ((e.key !== "ArrowLeft" && e.key !== "ArrowRight") || !rated || typingIn(e.target as HTMLElement | null) || e.altKey || e.metaKey || e.ctrlKey) return;
+			e.preventDefault();
+			setConfIdx((i) => stepConfidence(i, e.key === "ArrowRight" ? 1 : -1));
 		};
 		document.addEventListener("keydown", onKeyDown);
 		return () => document.removeEventListener("keydown", onKeyDown);
 	});
-
-	// Keep the walked row visible (the column scrolls).
-	useEffect(() => {
-		if (kbdIdx === null) return;
-		rootRef.current?.querySelector(`[data-kbdrow="${kbdIdx}"]`)?.scrollIntoView({ block: "nearest" });
-	}, [kbdIdx]);
 
 	// A picked quiz answer is rated next; its line can sit below the fold.
 	const sureRef = useRef<HTMLDivElement>(null);
@@ -326,11 +243,10 @@ function QuestionDockForm({
 		if (rated) sureRef.current?.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
 	}, [rated]);
 
-	const walked = (i: number, picked: boolean) => i === kbdIdx && !picked && "ring-2 ring-inset ring-ink-3";
 	const level = confIdx === undefined ? null : ((confIdx + 1) as ConfidenceLevel);
 	const pickedMarks = [...sel.selected].map((i) => (
 		<OptionMark key={i} picked>
-			{letter(i)}
+			{choiceLetter(i)}
 		</OptionMark>
 	));
 
@@ -342,7 +258,7 @@ function QuestionDockForm({
 					<ToolContentResponse>{qd.context}</ToolContentResponse>
 				</div>
 			)}
-			{qd.mode === "multi-select" && !showFolded && <p className="-mt-4 text-[15px] text-ink-2">Select all that apply</p>}
+			{qd.mode === "multi-select" && !showFolded && <SelectAllHint />}
 
 			{showFolded && (
 				<PickedRow
@@ -358,35 +274,14 @@ function QuestionDockForm({
 			)}
 
 			{qd.mode !== "text" && !showFolded && (
-				<div className="flex flex-col gap-1" role={qd.mode === "multi-select" ? "group" : "radiogroup"}>
-					{qd.options.map((opt, i) => {
-						const isSel = sel.selected.has(i);
-						return (
-							<button
-								key={opt.value}
-								type="button"
-								role={qd.mode === "multi-select" ? "checkbox" : "radio"}
-								aria-checked={isSel}
-								data-kbdrow={i}
-								data-testid="question-option"
-								onClick={() => toggle(i)}
-								className={cn(OPTION_ROW, isSel ? PICKED : "hover:bg-tone", walked(i, isSel))}
-							>
-								<OptionMark picked={isSel}>{letter(i)}</OptionMark>
-								<span className="min-w-0 flex-1" style={proseVars(18, 28)}>
-									<ToolContentResponse>{opt.label}</ToolContentResponse>
-									{kind !== "quiz" && opt.description && (
-										// Only an ask's choices carry a second line: on a quiz it
-										// would give the answer away.
-										<span className="block" style={proseVars(15, 22, true)}>
-											<ToolContentResponse>{opt.description}</ToolContentResponse>
-										</span>
-									)}
-								</span>
-							</button>
-						);
-					})}
-				</div>
+				<ChoiceRows
+					// Only an ask's choices carry a second line: on a quiz it would give the answer away.
+					options={kind === "quiz" ? qd.options.map(({ label }) => ({ label })) : qd.options}
+					selected={sel.selected}
+					multi={qd.mode === "multi-select"}
+					walked={walked}
+					onToggle={toggle}
+				/>
 			)}
 
 			{rated && <ConfidenceLine ref={sureRef} level={level} onChange={(next) => setConfIdx(next - 1)} />}

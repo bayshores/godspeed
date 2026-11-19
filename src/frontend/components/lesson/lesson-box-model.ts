@@ -10,8 +10,9 @@ import { answerTakesFiles, parseAskInput, parseExplainInput, toolQuestionKind, t
 
 /** What waits in "Your turn". */
 export type BoxTurn =
-	/** The open problem, worked on in the box. */
-	| { kind: "problem" }
+	/** The open problem, worked on in the box. `picked`: a choice of its is picked, which is
+	 *  enough to send. */
+	| { kind: "problem"; picked: boolean }
 	/** A check waits behind "Check your understanding". */
 	| { kind: "read-first" }
 	/** The answer is picked above the box (choices, or the code editor).
@@ -81,7 +82,7 @@ export function lessonBox(s: {
 	const { turn } = s;
 	if (turn.kind === "problem") {
 		// Work goes in once the teacher is free.
-		const canSend = (s.hasText || s.hasFiles) && !s.busy;
+		const canSend = (s.hasText || s.hasFiles || turn.picked) && !s.busy;
 		return {
 			placeholder: "Your work",
 			size: "lines",

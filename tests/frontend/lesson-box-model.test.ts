@@ -31,15 +31,21 @@ describe("questionTurn", () => {
 
 describe("lessonBox, a problem", () => {
 	it("one Send for the work, once there is some and the teacher is free; Discard beside Your turn", () => {
-		const empty = box({ kind: "problem" });
+		const empty = box({ kind: "problem", picked: false });
 		assert.equal(empty.placeholder, "Your work");
 		assert.deepEqual(empty.button, { action: "send", label: "Send", filled: false, disabled: true });
 		assert.equal(empty.enter, null);
 		assert.equal(empty.exit, "discard");
-		assert.deepEqual(box({ kind: "problem" }, { hasText: true }).button, { action: "send", label: "Send", filled: true, disabled: false });
-		assert.equal(box({ kind: "problem" }, { hasFiles: true }).enter, "send", "a picture alone is work");
-		assert.equal(box({ kind: "problem" }, { hasText: true, busy: true }).button.disabled, true, "work waits for the teacher");
-		assert.equal(box({ kind: "problem" }, { busy: true }).exit, "discard");
+		assert.deepEqual(box({ kind: "problem", picked: false }, { hasText: true }).button, { action: "send", label: "Send", filled: true, disabled: false });
+		assert.equal(box({ kind: "problem", picked: false }, { hasFiles: true }).enter, "send", "a picture alone is work");
+		assert.equal(box({ kind: "problem", picked: false }, { hasText: true, busy: true }).button.disabled, true, "work waits for the teacher");
+		assert.equal(box({ kind: "problem", picked: false }, { busy: true }).exit, "discard");
+	});
+
+	it("a pick among the problem's choices is enough to send, once the teacher is free", () => {
+		assert.deepEqual(box({ kind: "problem", picked: true }).button, { action: "send", label: "Send", filled: true, disabled: false });
+		assert.equal(box({ kind: "problem", picked: true }).enter, "send");
+		assert.equal(box({ kind: "problem", picked: true }, { busy: true }).button.disabled, true);
 	});
 });
 
@@ -48,7 +54,7 @@ describe("lessonBox, the Attach button", () => {
 	const ask = { question: "q", options: [{ label: "a" }, { label: "b" }] };
 
 	it("shows only where what is sent carries the files", () => {
-		assert.equal(box({ kind: "problem" }).attach, true, "work is sent with its files");
+		assert.equal(box({ kind: "problem", picked: false }).attach, true, "work is sent with its files");
 		assert.equal(box({ kind: "read-first" }).attach, false, "Check your understanding sends nothing");
 		assert.equal(box(questionTurn("explain", { question: "why?", correctAnswer: "because" }, false)).attach, true, "a written answer");
 		assert.equal(box(questionTurn("ask_user_question", { question: "what next?" }, false)).attach, true, "an open ask");
@@ -122,7 +128,7 @@ describe("lessonBox, the box's size", () => {
 	it("three lines where the text is the answer or the work", () => {
 		assert.equal(box(questionTurn("explain", { question: "why?", correctAnswer: "because" }, false)).size, "lines");
 		assert.equal(box(questionTurn("ask_user_question", { question: "what next?" }, false)).size, "lines", "an open ask");
-		assert.equal(box({ kind: "problem" }).size, "lines");
+		assert.equal(box({ kind: "problem", picked: false }).size, "lines");
 	});
 });
 
@@ -178,8 +184,8 @@ describe("lessonBox, the Stuck? keys", () => {
 	});
 
 	it("an open problem: all three are lines to the teacher, and the problem stays open", () => {
-		assert.deepEqual(box({ kind: "problem" }).help, { dontKnow: "send", dontKnowDisabled: false, linesDisabled: false });
-		assert.deepEqual(box({ kind: "problem" }, { busy: true }).help, { dontKnow: "send", dontKnowDisabled: true, linesDisabled: true });
+		assert.deepEqual(box({ kind: "problem", picked: false }).help, { dontKnow: "send", dontKnowDisabled: false, linesDisabled: false });
+		assert.deepEqual(box({ kind: "problem", picked: false }, { busy: true }).help, { dontKnow: "send", dontKnowDisabled: true, linesDisabled: true });
 	});
 
 	it("none while reading first", () => {

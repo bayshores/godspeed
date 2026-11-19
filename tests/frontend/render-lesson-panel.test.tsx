@@ -26,7 +26,7 @@ import { TeacherContext, type TeacherApi } from "../../src/frontend/components/t
 import { SpaceProvider } from "../../src/frontend/components/space-context.tsx";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
 import { call, CONCLUDE_SOLVED, result, userText } from "../stop-fixtures.ts";
-import { activeProblemOf, CONFIDENCE_STOPS, findPendingToolCall, newUserMessage, projectView, reuseUnchangedMessages, type LhMessage, type QuestionAnswerData, type QuestionFormDraft, type SpaceSummary } from "../../src/shared/core/index.ts";
+import { activeProblemOf, CONFIDENCE_STOPS, emptyDockSelection, type DockSelection, findPendingToolCall, newUserMessage, projectView, reuseUnchangedMessages, type LhMessage, type QuestionAnswerData, type QuestionFormDraft, type SpaceSummary } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 const store = new Map<string, string>();
@@ -60,7 +60,7 @@ const quiz = { tool: "quiz", toolCallId: "q1", input: quizInput };
 const check = { tool: "quiz", toolCallId: "t1", input: { ...quizInput, type: "check" } };
 const written = { tool: "ask_user_question", toolCallId: "a1", input: { question: "Why does it converge?" } };
 const choice = { tool: "ask_user_question", toolCallId: "a2", input: { question: "How do you want to start?", options: [{ label: "From an example" }, { label: "From the definition" }] } };
-const problem = { toolCallId: "p1", statement: "Find E[N].", line: "Practice, problem 2", part: null, file: null };
+const problem = { toolCallId: "p1", statement: "Find E[N].", choices: null, line: "Practice, problem 2", part: null, file: null };
 
 const marco: TeacherApi = {
 	name: "marco",
@@ -101,6 +101,8 @@ function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 		onSkipQuestion: () => {},
 		reviewRefused: false,
 		problem: null,
+		problemPicked: emptyDockSelection(),
+		onPickProblem: () => {},
 		onDiscardProblem: () => {},
 		stop: null,
 		busy: false,
@@ -347,6 +349,32 @@ describe("Your turn in each state", () => {
 	it("a problem's work waits while the teacher writes", () => {
 		assert.match(html({ problem, busy: true, value: "E[N] = 2" }), /data-testid="composer-send"[^>]*disabled[\s\S]*?>Send</);
 		assert.match(html({ problem, value: "E[N] = 2" }), /data-testid="composer-send"(?![^>]*disabled)[^>]*>Send</);
+	});
+
+	it("a problem with choices shows them as lettered rows above the work box, and one without shows none", () => {
+		const choices = { labels: ["$x < 1$", "$x = 1$", "$x > 1$"], multiSelect: true };
+		const out = html({ problem: { ...problem, choices } });
+		assert.match(out, /data-testid="problem-statement"[\s\S]*Find E\[N\][\s\S]*data-testid="problem-choices"[\s\S]*Select all that apply[\s\S]*data-testid="composer"[\s\S]*Your work/);
+		assert.equal(out.split('data-testid="question-option"').length - 1, 3);
+		assert.match(out, /role="checkbox"[^>]*>(?:(?!<button)[\s\S])*?>A<[\s\S]*>B<[\s\S]*>C</, "lettered A, B, C");
+		const single = html({ problem: { ...problem, choices: { ...choices, multiSelect: false } } });
+		assert.match(single, /role="radio"/);
+		assert.doesNotMatch(single, /Select all that apply/);
+		const plain = html({ problem });
+		assert.doesNotMatch(plain, /problem-choices|question-option|Select all that apply/);
+	});
+
+	it("picking among a problem's choices saves the picks, and a pick alone can be sent", async () => {
+		const choices = { labels: ["first", "second", "third"], multiSelect: true };
+		const saved: DockSelection[] = [];
+		await mounted(turn({ problem: { ...problem, choices }, onPickProblem: (p) => saved.push(p) }), async (host, show) => {
+			await act(async () => optionNamed(host, "second").click());
+			assert.deepEqual(saved.map((p) => [...p.selected]), [[1]]);
+			assert.equal(host.querySelector<HTMLButtonElement>('[data-testid="composer-send"]')!.disabled, true, "nothing picked or typed yet");
+			await show(turn({ problem: { ...problem, choices }, problemPicked: { selected: new Set([1]) } }));
+			assert.equal(host.querySelector<HTMLButtonElement>('[data-testid="composer-send"]')!.disabled, false, "a pick is enough to send");
+			assert.equal(optionNamed(host, "second").getAttribute("aria-checked"), "true");
+		});
 	});
 
 	it("a homework problem shows only its statement", () => {
