@@ -3,7 +3,7 @@
  * card says what a background check changed ("Claude Code updated CSE 21"),
  * with Undo and a close key that removes it for good. An overdue card asks
  * "Done?" about the oldest deadline that just went by, with Done and Not yet,
- * unless Today's card shows that one. Both are the "quiet" kind: one at a
+ * on every page but Today, whose card asks. Both are the "quiet" kind: one at a
  * time, folded into the pill, never timed, so they wait for the learner.
  * Both wait while a lesson or mock is open.
  */
@@ -31,11 +31,12 @@ const AFTER_UNDO_MS = 3_000;
 export function SpaceNotice() {
 	const { pathname } = useLocation();
 	const now = useMinute();
-	const { deadlines, overdueAsked, onCard } = useOpenDeadlines();
+	const { deadlines, overdueAsked } = useOpenDeadlines();
 	const [checks, setChecks] = useState<SpaceCheck[]>([]);
 	useServerEvent("space-checked", (check) => setChecks((prev) => addCheck(prev, check)));
 	if (typeof document === "undefined" || followHeld(pathname, true)) return null;
-	const overdue = deadlines && now !== null ? overdueToAsk(deadlines, overdueAsked, now, onCard) : null;
+	// On Today the late card is the one place that asks.
+	const overdue = pathname !== "/" && deadlines && now !== null ? overdueToAsk(deadlines, overdueAsked, now) : null;
 	return (
 		<InNoticeStack>
 			{checks.map((check) => (

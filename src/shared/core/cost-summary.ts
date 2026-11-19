@@ -37,7 +37,7 @@ interface RecentRun {
 	merged?: EmissionStats;
 }
 
-/** The cost pill's whole payload: stage totals + recent runs. */
+/** The whole payload of Graph costs: stage totals + recent runs. */
 export interface GraphCostSummary {
 	/** The billable pipeline stages. */
 	stages: {

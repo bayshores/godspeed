@@ -70,13 +70,12 @@ export function todayLists(open: readonly OpenDeadline[], doneToday: readonly Op
 const OVERDUE_ASK_DAYS = 7;
 
 /** The overdue deadline to ask "Done?" about: the oldest one not done,
- *  past due by at most a week and not answered Not yet. The one on Today's
- *  card (`onCard`) is skipped, as the card already asks with its own Mark done. */
-export function overdueToAsk(open: readonly OpenDeadline[], asked: readonly string[], nowMs: number, onCard: string | null): OpenDeadline | null {
+ *  past due by at most a week and not answered Not yet. */
+export function overdueToAsk(open: readonly OpenDeadline[], asked: readonly string[], nowMs: number): OpenDeadline | null {
 	let oldest: OpenDeadline | null = null;
 	for (const d of open) {
 		const late = nowMs - dueAtMs(d);
-		if (d.done || late <= 0 || late > OVERDUE_ASK_DAYS * DAY || asked.includes(d.id) || d.id === onCard) continue;
+		if (d.done || late <= 0 || late > OVERDUE_ASK_DAYS * DAY || asked.includes(d.id)) continue;
 		if (!oldest || dueAtMs(d) < dueAtMs(oldest)) oldest = d;
 	}
 	return oldest;

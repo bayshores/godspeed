@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { DeadlineProgress, ProgressPayload, SpaceSummary } from "@/shared/core";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { Pane } from "@/frontend/components/ui/pane";
-import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { DeadlinesCard } from "./deadlines-card";
 import { mainRowId, shownCard, type TodayLists } from "./home-page-model";
 import { NextCard } from "./next-card";
@@ -54,13 +53,6 @@ export function TodayBody(p: TodayBodyProps) {
 	const [picked, setPicked] = useState<string | null>(null);
 	const card = p.lists && p.nowMs !== null ? shownCard(p.lists, picked, mainRowId(p.lists.today, p.deadlineProgress, p.nowMs)) : null;
 	const color = (d: OpenDeadline) => p.spaces.find((s) => s.id === d.spaceId)?.color;
-	// The top bar's overdue ask skips what the card shows: the card asks already.
-	const { setOnCard } = useOpenDeadlines();
-	const cardId = card?.id ?? null;
-	useEffect(() => {
-		setOnCard(cardId);
-		return () => setOnCard(null);
-	}, [cardId, setOnCard]);
 	const unfinished = useMemo(() => unfinishedAcross(p.spaces, p.spacesProgress, p.noSpaceProgress), [p.spaces, p.spacesProgress, p.noSpaceProgress]);
 	const topics = useMemo(() => topicsToWorkOn(p.spaces, p.spacesProgress), [p.spaces, p.spacesProgress]);
 	return (

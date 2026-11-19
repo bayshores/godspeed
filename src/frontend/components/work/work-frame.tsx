@@ -2,13 +2,9 @@ import type { ReactNode } from "react";
 import { cn } from "@/frontend/lib/utils";
 
 export interface Frame {
-	/** working: stripes slide. waiting: grey and still, no agent takes the work. */
-	state: "working" | "waiting";
 	text: string;
 	/** Beside the text: how far the work is ("6 of 17 files"). */
-	count?: string | null;
-	/** Buttons at the end of the tag. */
-	actions?: ReactNode;
+	count: string;
 }
 
 /**
@@ -24,17 +20,13 @@ export function WorkFrame({ frame, onPage, children }: { frame: Frame | null; on
 		<div className="flex h-full min-h-0 flex-col">
 			{frame && (
 				<div className={cn("shrink-0 pt-(--lh-gap)", onPage ? "lh-page" : "w-full")}>
-					<div data-testid="work-frame" data-state={frame.state} className="lh-work-stripes flex h-10 justify-end border-2 border-b-0 border-line pr-[22px]">
+					<div data-testid="work-frame" className="lh-work-stripes flex h-10 justify-end border-2 border-b-0 border-line pr-[22px]">
 						{/* Its right edge lines up with the page's column, where the space head ends its tabs. */}
-						<div
-							data-testid="work-frame-tag"
-							className={cn("flex min-w-0 items-center gap-3 border-x-2 border-line px-3.5 text-ink", frame.state === "waiting" ? "bg-tone" : "bg-highlight")}
-						>
+						<div data-testid="work-frame-tag" className="flex min-w-0 items-center gap-3 border-x-2 border-line bg-highlight px-3.5 text-ink">
 							<span title={frame.text} className="truncate text-[15px]">
 								{frame.text}
 							</span>
-							{frame.count && <span className="shrink-0 font-count text-base">{frame.count}</span>}
-							{frame.actions}
+							<span className="shrink-0 font-count text-base">{frame.count}</span>
 						</div>
 					</div>
 				</div>

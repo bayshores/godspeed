@@ -140,7 +140,7 @@ function Tile({
 	const off = tile.tone === "off";
 	return (
 		<div data-testid={`agent-window-${id}`} data-tone={tile.tone} className="lh-well flex min-w-0 flex-col overflow-hidden rounded">
-			<div aria-hidden data-state={tile.tone === "busy" ? "working" : undefined} className={cn("h-3 shrink-0", tile.tone === "busy" ? "lh-work-stripes" : off ? "bg-tone-2" : "bg-ink")} />
+			<div aria-hidden className={cn("h-3 shrink-0", tile.tone === "busy" ? "lh-work-stripes" : off ? "bg-tone-2" : "bg-ink")} />
 			<div className="flex min-w-0 items-start gap-4 p-4">
 				<span aria-hidden className={cn("flex size-16 shrink-0 items-center justify-center", tile.tone === "busy" ? "bg-highlight text-ink" : off ? "bg-tone text-ink-2" : "bg-ink text-background")}>
 					<PixelIcon name={icon} className="h-9" />

@@ -275,21 +275,16 @@ describe("overdueToAsk", () => {
 	const open = [d("old", "homework", "2026-11-06"), d("recent", "homework", "2026-11-10"), d("future", "homework", "2026-11-14"), d("ancient", "homework", "2026-10-20"), d("ticked", "homework", "2026-11-08", { done: true })];
 
 	it("is the oldest one past due by at most a week that is not done", () => {
-		assert.equal(overdueToAsk(open, [], NOW, null)?.id, "old");
+		assert.equal(overdueToAsk(open, [], NOW)?.id, "old");
 	});
 
 	it("goes on to the next after one is answered Not yet", () => {
-		assert.equal(overdueToAsk(open, ["old"], NOW, null)?.id, "recent");
-		assert.equal(overdueToAsk(open, ["old", "recent"], NOW, null), null);
-	});
-
-	it("skips the one on Today's card, which asks with its own Mark done", () => {
-		assert.equal(overdueToAsk(open, [], NOW, "old")?.id, "recent");
-		assert.equal(overdueToAsk(open, ["recent"], NOW, "old"), null);
+		assert.equal(overdueToAsk(open, ["old"], NOW)?.id, "recent");
+		assert.equal(overdueToAsk(open, ["old", "recent"], NOW), null);
 	});
 
 	it("skips one more than a week late, one not due yet and one with nothing open", () => {
-		assert.equal(overdueToAsk([open[2]!, open[3]!], [], NOW, null), null);
-		assert.equal(overdueToAsk([], [], NOW, null), null);
+		assert.equal(overdueToAsk([open[2]!, open[3]!], [], NOW), null);
+		assert.equal(overdueToAsk([], [], NOW), null);
 	});
 });

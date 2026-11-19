@@ -39,7 +39,7 @@ const { deadlines } = await fetch("/api/deadlines")${HTTP_OK}.then((r) => r.json
 const done = deadlines.find((d) => d.name === "Git branching exercises");
 await fetch(base("{pathSpace}") + "/" + done.id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ done: true }) })${HTTP_OK};`;
 
-/** A task due yesterday in the other space, so the top bar asks about it while the card shows Slope drills. */
+/** A task due yesterday in the other space, so the top bar asks about it on every page but Today. */
 const lateHomework = `const day = new Date(Date.now() - 86400000).toLocaleDateString("sv");
 await fetch("/api/spaces/{pathSpace}/deadlines", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "homework", name: "Cover letter draft", date: day, fileIds: [] }) })${HTTP_OK};`;
 /** Takes that homework away again, so the screens after it are as before. */
@@ -66,10 +66,7 @@ await fetch("/api/spaces/{pathSpace}", { method: "PUT", headers: { "content-type
 /** A right-click on the element the expression `el` finds. */
 const rightClick = (el) => `{ const el = ${el}; const at = el.getBoundingClientRect(); el.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: at.left + 10, clientY: at.top + 10 })); }`;
 
-/** The work frame with its tag, whether the work waits for an agent or the window started a
- *  stand-in helper for it. */
-const waitingFrame = "[data-testid=work-frame] [data-testid=work-frame-tag]";
-/** A file added to the space with no agent to read it, so every tab of the space is framed. It
+/** A file added to the space with no agent to read it, so the pill says that work waits. It
  *  can't be removed while it waits, so the stand-in agent started later takes it. */
 const waitingFile = `const form = new FormData();
 form.append("files", new File(["# Slopes\\n\\nRise over run."], "waiting-notes.md", { type: "text/markdown" }));
@@ -171,15 +168,13 @@ export const SCREENS = [
 		setup: `${pickTopic}; ${pause}; document.querySelector("[data-testid=topic-pane] [data-testid=fact-row]").click()`,
 		shows: "[data-testid=graph-panel] [data-testid=fact-pane]",
 	},
-	// Costs opens upward from the foot line.
-	{ name: "Graph, costs open", url: "/graph", ready: "[data-testid=graph-costs]", setup: `document.querySelector("[data-testid=graph-costs]").click()`, shows: "[data-testid=graph-costs-panel][data-state=open]" },
 	{
-		name: "Graph, costs open beside the docked panel",
+		name: "Graph beside the docked panel, whose Activity ends with the graph's costs",
 		url: "/graph",
-		ready: "[data-testid=graph-costs]",
+		ready: "[data-testid=graph-picture] [data-testid=graph-topic]",
 		// The page is narrowest here: the panel takes its room.
-		setup: `localStorage.setItem("lh:pane-height:teacher", "full"); ${openTeacher}; ${pause}; localStorage.removeItem("lh:pane-height:teacher"); ${pause}; ${pause}; ${pause}; document.querySelector("[data-testid=graph-costs]").click()`,
-		shows: "[data-testid=graph-costs-panel][data-state=open]",
+		setup: `localStorage.setItem("lh:pane-height:teacher", "full"); ${openTeacher}; ${pause}; localStorage.removeItem("lh:pane-height:teacher"); ${pause}; document.querySelector("[data-testid=teacher-panel-activity]").click()`,
+		shows: "[data-testid=activity-list] [data-testid=graph-costs]",
 	},
 	{
 		name: "Graph, a fact's menu",
@@ -280,9 +275,9 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: `localStorage.setItem("lh:pane-height:teacher", "full"); ${openTeacher}; ${pause}; localStorage.removeItem("lh:pane-height:teacher")`,
 		shows: "[data-testid=terminal-none] [data-testid=open-agent]",
 	},
-	{ name: "Progress while a file waits for an agent", before: waitingFile, url: "/space", ready: waitingFrame },
-	{ name: "Graph while a file waits for an agent", url: "/graph", ready: waitingFrame },
-	{ name: "Deadline while its request waits for an agent", before: waitingRequest, url: "/space/deadline/{deadline}", ready: waitingFrame },
+	{ name: "Progress while a file waits for an agent", before: waitingFile, url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]" },
+	{ name: "Graph while a file waits for an agent", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]" },
+	{ name: "Deadline while its request waits for an agent", before: waitingRequest, url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]" },
 	// The stand-in agent is started from the waiting lesson's teacher window, and the desk goes to work beside it.
 	{
 		name: "Lesson whose first reply an agent took",
@@ -305,7 +300,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	{ name: "Today with no deadline", before: dropDeadlines, url: "/", ready: "[data-testid=today-empty]" },
 	{ name: "Today on a busy day", before: busyDay, url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", shows: "[data-testid=week-later]" },
 	{ name: "Today, the week unfolded", url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", setup: `document.querySelector("[data-testid=week-more]").click()`, shows: "[data-testid=week-rest][data-state=open]" },
-	{ name: "Today with the overdue card", before: lateHomework, url: "/", ready: "[data-testid=overdue-notice] [data-testid=overdue-notice-done]" },
+	{ name: "Deadlines while the top bar asks about a late one", before: lateHomework, url: "/space/deadlines", ready: "[data-testid=overdue-notice] [data-testid=overdue-notice-done]" },
 	{
 		name: "Progress with a path, all shown",
 		before: `const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, activeSpace: "{pathSpace}" }) })${HTTP_OK}`,

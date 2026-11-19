@@ -1,16 +1,19 @@
-import type { AgentAction } from "@/shared/core";
+import type { AgentAction, GraphCostSummary } from "@/shared/core";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useActivity, type ActivityFeed } from "@/frontend/components/activity-dock";
 import { agentWaiting, useAgentStatus, waitingNotice } from "@/frontend/components/agent-status";
+import { useGraphCosts } from "@/frontend/components/graph/use-graph-costs";
+import { useSpaces } from "@/frontend/components/space-context";
 import { useNow } from "@/frontend/components/use-now";
 import { useTeacher } from "./teacher-context";
 import { BackgroundJobs } from "./background-jobs";
+import { GraphCosts } from "./graph-costs";
 import { pastLabel } from "./tour";
 import { agoLabel } from "./activity-model";
 
 /**
- * The teacher's Activity: the jobs running in the background and its
- * recent changes, a log to read. What it is doing now sits in the
+ * The teacher's Activity: the jobs running in the background, its recent
+ * changes and what the open space's graph took, a log to read. What it is doing now sits in the
  * panel's head, and Follow beside the pill. `underStatus` in the panel, whose status
  * line already says that work waits for the agent.
  * It scrolls inside its parent, which pads it.
@@ -21,9 +24,12 @@ export function TeacherActivity({ underStatus = false }: { underStatus?: boolean
 	const { feed } = useActivity();
 	const agent = useAgentStatus();
 	const name = teacher?.name ?? DEFAULT_TEACHER_NAME;
+	const { active, spaces } = useSpaces();
+	const costs = useGraphCosts(active);
 	return (
 		<ActivityList
 			name={name}
+			graph={costs && costs.runs.length > 0 ? { costs, space: spaces.find((s) => s.id === active)?.name ?? null } : null}
 			recent={teacher?.recent ?? []}
 			spaceNameOf={teacher?.spaceNameOf ?? (() => null)}
 			feed={feed}
@@ -39,19 +45,22 @@ export function ActivityList({
 	spaceNameOf,
 	feed,
 	waiting,
+	graph,
 }: {
 	name: string;
 	recent: readonly AgentAction[];
 	spaceNameOf: (id: string | null) => string | null;
 	feed: ActivityFeed;
 	waiting: string | null;
+	/** The open space's graph costs, once it has a run. */
+	graph: { costs: GraphCostSummary; space: string | null } | null;
 }) {
 	const now = useNow(recent.length > 0); // "2 min" stays true
 	const jobs = feed.jobs.length > 0 || feed.extractions.length > 0 || (feed.failed?.length ?? 0) > 0 || !!waiting;
 
 	return (
 		<div data-testid="activity-list" className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto">
-			{recent.length === 0 && !jobs && (
+			{recent.length === 0 && !jobs && !graph && (
 				<p data-testid="activity-empty" className="text-[15px] text-ink-2">
 					Nothing yet. What {name} reads and builds shows here.
 				</p>
@@ -84,6 +93,8 @@ export function ActivityList({
 					</div>
 				</section>
 			)}
+
+			{graph && <GraphCosts costs={graph.costs} space={graph.space} />}
 		</div>
 	);
 }

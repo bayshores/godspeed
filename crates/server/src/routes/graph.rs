@@ -1,4 +1,4 @@
-//! /api/graph (the graph view), /api/graph/costs (its cost pill), /api/graph/coverage/extract (a
+//! /api/graph (the graph view), /api/graph/costs (what building it took), /api/graph/coverage/extract (a
 //! lesson's manual extraction), /api/graph/import (No space's Add files), /api/graph/nodes/{id}
 //! (single-node deletion) and /api/progress (the Overview and topic Graph payload).
 

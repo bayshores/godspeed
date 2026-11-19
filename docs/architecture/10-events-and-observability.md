@@ -2,7 +2,7 @@
 
 Logging is one tagged line per event on stderr, for example `[chat <id>]` on turn services, `[extraction <id>]` on the pipeline, `[job <id>]` on runners.
 
-The activity feed shows running work: `services::jobs::observability` feeds `GET /api/activity`, shown in the Activity list, which the Activity key in the teacher panel's head drops over its screen. It lists running jobs, extraction runs, deadline requests, recently failed jobs and per-run usage in tokens. `POST /api/activity/abort` takes `{kind: "job" | "extraction" | "turn", id}`.
+The activity feed shows running work: `services::jobs::observability` feeds `GET /api/activity`, shown in the Activity list, which the Activity key in the teacher panel's head drops over its screen. It lists running jobs, extraction runs, deadline requests, recently failed jobs and per-run usage in tokens, then the teacher's recent changes and what building the open space's graph took (`GET /api/graph/costs`). `POST /api/activity/abort` takes `{kind: "job" | "extraction" | "turn", id}`.
 
 ### 10.1 The events channel
 

@@ -89,7 +89,6 @@ describe("The work frame around a space's pages", () => {
 	it("files being read: the striped frame and its tag, with the page still inside", async () => {
 		const files = [file("a", "ready"), file("week2", "extracting"), file("c", "pending")];
 		const host = await mount(page, record({ files, lastWork: { startedAt: "x", fileIds: ["a"], deadlineIds: [] } }));
-		assert.equal(host.querySelector('[data-testid="work-frame"]')?.getAttribute("data-state"), "working");
 		assert.equal(text(host, "work-frame-tag"), "Working on this page1 of 3 files");
 		assert.equal(text(host, "page"), "The page");
 	});

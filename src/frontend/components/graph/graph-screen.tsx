@@ -19,7 +19,6 @@ import { NotesImportErrors, useNotesImport } from "@/frontend/components/notes-i
 import { findMatches } from "./derive.ts";
 import { GraphBar } from "./graph-bar.tsx";
 import { GraphFoot } from "./graph-foot.tsx";
-import { useGraphCosts } from "./use-graph-costs.ts";
 import { useGraphSnapshot } from "./use-graph-snapshot.ts";
 import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
 import { lazyComponent } from "@/frontend/lib/lazy-component";
@@ -71,7 +70,6 @@ function GraphScreenBody() {
 	const refreshActivity = useActivity().refresh;
 	const notesImport = useNotesImport({ onStart: refreshActivity, onFinish: refresh });
 	const study = useLessonStart();
-	const costs = useGraphCosts(active);
 	const { studyTopics, start } = study;
 	const onStudy = useCallback((ids: string[]) => void studyTopics(ids), [studyTopics]);
 	const onStudyFact = useCallback((f: FactProgress) => void start({ title: "", picks: [{ id: f.id, name: f.name, statement: f.statement }] }), [start]);
@@ -117,7 +115,7 @@ function GraphScreenBody() {
 					)}
 				</div>
 			</div>
-			<GraphBar hasFacts={hasFacts} find={find} costs={costs} importNotes={active ? null : notesImport} />
+			<GraphBar hasFacts={hasFacts} find={find} importNotes={active ? null : notesImport} />
 			<GraphFoot
 				hasFacts={hasFacts}
 				topicCount={data?.topics.filter((t) => !t.ungrouped).length ?? 0}

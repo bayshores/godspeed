@@ -41,7 +41,8 @@ beforeEach(() => {
 		configurable: true,
 		value: { getItem: (k: string) => stored.get(k) ?? null, setItem: (k: string, v: string) => void stored.set(k, v), removeItem: (k: string) => void stored.delete(k) },
 	});
-	globalThis.fetch = (async () => Response.json(FOLDER)) as unknown as typeof fetch;
+	// The Activity list asks for the open space's graph costs: none here.
+	globalThis.fetch = (async (url: string) => (url.startsWith("/api/graph/costs") ? new Response(null, { status: 404 }) : Response.json(FOLDER))) as unknown as typeof fetch;
 });
 afterEach(() => {
 	globalThis.fetch = realFetch;
@@ -749,7 +750,7 @@ describe("the starter keys", () => {
 	it("none once the chat was used, by the learner's own line or before (a chat continued)", async () => {
 		const shell = fakeShell([teacher()]);
 		let used = false;
-		globalThis.fetch = (async (url: string) => Response.json(url.startsWith("/api/teacher-chats") ? { chats: used ? [{ id: "c1", agent: "claude", name: "hi", at: Date.now() }] : [] } : FOLDER)) as unknown as typeof fetch;
+		globalThis.fetch = (async (url: string) => (url.startsWith("/api/graph/costs") ? new Response(null, { status: 404 }) : Response.json(url.startsWith("/api/teacher-chats") ? { chats: used ? [{ id: "c1", agent: "claude", name: "hi", at: Date.now() }] : [] } : FOLDER))) as unknown as typeof fetch;
 		try {
 			await mounted(running, async () => {
 				await click("status");

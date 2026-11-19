@@ -1,17 +1,11 @@
 import type { ReactNode } from "react";
-import { StartAgentAction } from "./start-agent-action";
 import { useWorker } from "./use-worker";
 import { WorkFrame } from "./work-frame";
 import { jobFrame } from "./work-model";
 
-/** The work frame around a page one job works on. `doing`: what the job
- *  does, or null while none runs. */
+/** The work frame around a page one job works on, while an agent has the
+ *  job. `doing`: what the job does, or null while none runs. */
 export function JobFrame({ doing, children }: { doing: string | null; children: ReactNode }) {
 	const { worker } = useWorker();
-	const words = doing === null ? null : jobFrame(worker, doing);
-	return (
-		<WorkFrame frame={words && { ...words, actions: words.state === "waiting" ? <StartAgentAction /> : null }}>
-			{children}
-		</WorkFrame>
-	);
+	return <WorkFrame frame={doing === null ? null : jobFrame(worker, doing)}>{children}</WorkFrame>;
 }

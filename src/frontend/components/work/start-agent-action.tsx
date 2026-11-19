@@ -1,6 +1,6 @@
 import { useStartAgent } from "@/frontend/components/agent-folder/use-agent-folder";
 
-/** The work frame's button while no agent takes the work: turns the
+/** The lesson desk's key while no agent takes the lesson: turns the
  *  teacher on, starting the agent last started here. */
 export function StartAgentAction() {
 	const agent = useStartAgent();

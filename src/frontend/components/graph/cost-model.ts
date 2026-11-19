@@ -1,5 +1,5 @@
 /**
- * The Graph costs popup's words: the plan line, token counts, run ages.
+ * The words of Graph costs in the teacher's Activity: the plan line, token counts, run names.
  * Pure and unit-tested; the fold itself is server-side (core/cost-summary.ts).
  */
 import type { GraphCostSummary } from "@/shared/core";
@@ -10,16 +10,6 @@ export function fmtTokens(n: number | undefined): string {
 	if (n < 1000) return String(Math.round(n));
 	if (n < 1_000_000) return `${(n / 1000).toFixed(1)}k`;
 	return `${(n / 1_000_000).toFixed(2)}M`;
-}
-
-/** A run's age: "now", "12m", "3h", "2d". */
-export function timeAgo(startedAt: number, nowMs: number): string {
-	const mins = Math.round((nowMs - startedAt) / 60_000);
-	if (mins < 1) return "now";
-	if (mins < 60) return `${mins}m`;
-	const hours = Math.round(mins / 60);
-	if (hours < 24) return `${hours}h`;
-	return `${Math.round(hours / 24)}d`;
 }
 
 /** A run's name: a chat's title, or a notes file's name (its title is the file's path). */

@@ -21,8 +21,6 @@ export function workerName(agent: Pick<AgentStatus, "teaching" | "helperHere"> |
 }
 
 type WorkState =
-	/** Files wait and no agent takes work. */
-	| { kind: "waiting"; left: number }
 	/** `read`: the round's files finished so far; `total`: those and the ones still waiting. */
 	| { kind: "reading"; read: number; total: number }
 	| { kind: "grouping" };
@@ -40,10 +38,11 @@ export function filesProgress<S extends ProgressSpace>(spaces: readonly S[]): { 
 
 const isFresh = (work: SpaceWork | undefined, nowMs: number): work is SpaceWork & { endedAt: string } => !!work?.endedAt && nowMs - Date.parse(work.endedAt) < SHOWN_MS;
 
+/** Null while no agent takes the work: the pill says that it waits. */
 export function workState(i: { files: readonly SpaceFile[]; work: SpaceWork | undefined; grouping: boolean; working: boolean }): WorkState | null {
 	const waiting = i.files.filter(isWaitingFile).length;
 	if (waiting > 0) {
-		if (!i.working) return { kind: "waiting", left: waiting };
+		if (!i.working) return null;
 		const read = i.work?.endedAt ? 0 : (i.work?.fileIds.length ?? 0);
 		return { kind: "reading", read, total: read + waiting };
 	}
@@ -64,19 +63,16 @@ export function readNews(i: { files: readonly SpaceFile[]; work: SpaceWork | und
 
 /** What the work frame says. */
 interface FrameWords {
-	state: "working" | "waiting";
 	text: string;
-	count: string | null;
+	count: string;
 }
 
-const working = (count: string): FrameWords => ({ state: "working", text: "Working on this page", count });
+const working = (count: string): FrameWords => ({ text: "Working on this page", count });
 
 /** The frame of a space page. While it works it names no reader: the
  *  teacher and the helper may each read some of it. */
 export function spaceFrame(state: WorkState): FrameWords {
 	switch (state.kind) {
-		case "waiting":
-			return { state: "waiting", text: `${files(state.left)} ${state.left === 1 ? "is" : "are"} waiting.`, count: null };
 		case "reading":
 			return working(`${state.read} of ${files(state.total)}`);
 		case "grouping":
@@ -84,10 +80,10 @@ export function spaceFrame(state: WorkState): FrameWords {
 	}
 }
 
-/** The frame of a page one job works on (a lesson, a cheat sheet): what,
- *  or that it waits for the teacher. */
-export function jobFrame(worker: string | null, doing: string): FrameWords {
-	return worker ? working(doing) : { state: "waiting", text: "This page is waiting.", count: null };
+/** The frame of a page one job works on (a lesson, a cheat sheet): what it
+ *  does; null while no agent takes the job. */
+export function jobFrame(worker: string | null, doing: string): FrameWords | null {
+	return worker ? working(doing) : null;
 }
 
 /** The tag on the space's tab in the top bar. */

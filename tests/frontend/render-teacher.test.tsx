@@ -218,6 +218,7 @@ describe("the teacher's Activity", () => {
 			spaceNameOf={names}
 			feed={EMPTY}
 			waiting={null}
+			graph={null}
 			{...over}
 		/>
 	);
@@ -239,6 +240,20 @@ describe("the teacher's Activity", () => {
 		assert.ok(mount(list()).querySelector("[data-testid='activity-empty']") === null);
 		act(() => root?.unmount());
 		assert.ok(mount(list({ recent: [], waiting: waitingNotice("Ada", false) })).querySelector("[data-testid='activity-empty']") === null, "the waiting line is something");
+	});
+	it("the open space's graph costs come last: who paid, each stage's tokens, the latest runs; never a dollar figure", () => {
+		const tokens = { inputTokens: 1500, outputTokens: 45, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 };
+		const stage = { runs: 1, unpricedRuns: 0, subscriptionRuns: 1, subscriptionProviders: ["Your agent"], tokens };
+		const costs = { stages: { extraction: stage, audit: { runs: 0, unpricedRuns: 1, tokens: { ...tokens, inputTokens: undefined, outputTokens: undefined } } }, runs: [{ startedAt: Date.now() - 12 * 60_000, title: "/notes/Graphing quiz prep.md", tokens, merged: { nodes: 1 } }] };
+		const el = mount(list({ recent: [], graph: { costs: costs as never, space: "Lab Algebra" } }));
+		assert.ok(el.querySelector("[data-testid='activity-empty']") === null, "costs are something");
+		assert.equal(
+			el.querySelector("[data-testid='graph-costs']")?.textContent,
+			"Graph costs, Lab AlgebraOn your agent's plan. Nothing is billed per use. 1 run unpriced.Building facts1.5k in, 45 outChecking facts– in, – outGraphing quiz prep.md1 merged12 min",
+		);
+		assert.ok(!el.textContent?.includes("$"));
+		act(() => root?.unmount());
+		assert.ok(mount(list()).querySelector("[data-testid='graph-costs']") === null);
 	});
 	it("Recent hides when there is nothing yet", () => {
 		assert.ok(mount(list({ recent: [] })).querySelector("[data-testid='activity-recent']") === null);

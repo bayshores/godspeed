@@ -1767,12 +1767,7 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
    loops without a jump. */
 .lh-work-stripes {
 	background: repeating-linear-gradient(135deg, var(--lh-line) 0 5.657px, var(--lh-highlight) 5.657px 11.314px) 0 0 / 16px 100%;
-}
-.lh-work-stripes[data-state="working"] {
 	animation: lh-work-slide 1.6s linear infinite;
-}
-.lh-work-stripes[data-state="waiting"] {
-	background-image: repeating-linear-gradient(135deg, var(--lh-edge) 0 5.657px, var(--accent) 5.657px 11.314px);
 }
 @keyframes lh-work-slide {
 	to {
@@ -1780,7 +1775,7 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	}
 }
 @media (prefers-reduced-motion: reduce) {
-	.lh-work-stripes[data-state="working"] {
+	.lh-work-stripes {
 		animation: none;
 	}
 }

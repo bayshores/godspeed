@@ -2,7 +2,7 @@
  * The Graph page: the picture with its docked topic and fact panels over a
  * fixture ProgressPayload, picking and closing by mouse and Escape, Find,
  * the empty space, the foot line (counts) and the top bar's words (Find,
- * Costs, Add files), the
+ * Add files), the
  * opening reveal, and the screen's load failure.
  */
 import React, { act } from "react";
@@ -190,12 +190,6 @@ describe("the picked fact", () => {
 	});
 });
 
-const costsFixture = () => {
-	const tokens = { inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 };
-	const stage = { runs: 1, unpricedRuns: 0, tokens };
-	return { stages: { extraction: stage, audit: stage }, runs: [{ startedAt: 1, title: "Lecture 1", tokens }] };
-};
-
 describe("the foot line", () => {
 	const foot = (over: Partial<React.ComponentProps<typeof GraphFoot>> = {}) =>
 		renderToStaticMarkup(inRouter(<GraphFoot hasFacts topicCount={16} factCount={248} matches={null} onOpenChains={noop} inView={null} onWholeSpace={noop} {...over} />));
@@ -227,20 +221,20 @@ describe("the graph's words in the top bar", () => {
 	const bar = (over: Partial<React.ComponentProps<typeof GraphBar>> = {}) => {
 		function Words() {
 			const find = useBarFind(true);
-			return <GraphBar hasFacts find={find} costs={null} importNotes={null} {...over} />;
+			return <GraphBar hasFacts find={find} importNotes={null} {...over} />;
 		}
 		return <BarHost><Words /></BarHost>;
 	};
 	const words = (q: (id: string) => HTMLElement | null) => [...q("bar-actions")!.children].map((el) => el.getAttribute("data-testid")).filter(Boolean);
 
-	it("Find, then Costs, then Add files in the graph with no space; none of them in the foot", async () => {
-		const { q } = await mount(bar({ costs: costsFixture(), importNotes: { importing: false, onImportFiles: noop } }));
-		assert.deepEqual(words(q), ["graph-find", "graph-costs", "import-notes"]);
+	it("Find, then Add files in the graph with no space; neither in the foot", async () => {
+		const { q } = await mount(bar({ importNotes: { importing: false, onImportFiles: noop } }));
+		assert.deepEqual(words(q), ["graph-find", "import-notes"]);
 		assert.equal(q("import-notes")!.textContent, "Add files");
 	});
 
 	it("a space has no Add files here (its Files tab has it)", async () => {
-		const { q } = await mount(bar({ costs: costsFixture() }));
+		const { q } = await mount(bar());
 		assert.ok(q("import-notes") === null);
 	});
 
@@ -250,8 +244,8 @@ describe("the graph's words in the top bar", () => {
 		assert.equal(q("import-notes")!.hasAttribute("disabled"), true);
 	});
 
-	it("no facts: no magnifying glass; no runs: no Costs", async () => {
-		const { q } = await mount(bar({ hasFacts: false, costs: { ...costsFixture(), runs: [] } }));
+	it("no facts: no magnifying glass", async () => {
+		const { q } = await mount(bar({ hasFacts: false }));
 		assert.deepEqual(words(q), []);
 	});
 
@@ -384,13 +378,11 @@ describe("picking in the page", () => {
 /** The page as the screen builds it: the picture and its panels over the foot line, sharing one Find, whose words are in the bar's places, and the camera's view. */
 function Page({
 	data: given,
-	costs = null,
 	onChains = noop,
 	sources = null,
 	importNotes = null,
 }: {
 	data?: ReturnType<typeof fixture>;
-	costs?: ReturnType<typeof costsFixture> | null;
 	onChains?: () => void;
 	sources?: FactSources | null;
 	importNotes?: React.ComponentProps<typeof GraphBar>["importNotes"];
@@ -410,7 +402,7 @@ function Page({
 	}, [finding, fly]);
 	return inRouter(
 		<BarHost>
-			<GraphBar hasFacts={hasFacts} find={find} costs={costs} importNotes={importNotes} />
+			<GraphBar hasFacts={hasFacts} find={find} importNotes={importNotes} />
 			<GraphBody data={data} matches={matches} sources={sources} studying={false} studyError={null} onStudy={noop} onStudyFact={noop} onInView={setInView} aim={aim} onFly={fly} />
 			<GraphFoot
 				hasFacts={hasFacts}
@@ -473,12 +465,12 @@ describe("finding from the top bar", () => {
 		assert.equal(count(host!.innerHTML, 'data-dim="true"'), 0);
 	});
 
-	it("opening Find takes the place of Costs and Add files", async () => {
-		const { q } = await mount(<Page costs={costsFixture()} importNotes={{ importing: false, onImportFiles: noop }} />);
+	it("opening Find takes the place of Add files", async () => {
+		const { q } = await mount(<Page importNotes={{ importing: false, onImportFiles: noop }} />);
 		await act(async () => q("graph-find")!.click());
-		assert.ok(!q("graph-costs") && !q("import-notes"));
+		assert.ok(!q("import-notes"));
 		await act(async () => fire(box(q), "keydown", { key: "Escape" }));
-		assert.ok(q("graph-costs") && q("import-notes"));
+		assert.ok(q("import-notes"));
 	});
 
 	it("the find shortcut opens the field and focuses it; with no facts it does nothing", async () => {
@@ -551,17 +543,6 @@ describe("finding from the top bar", () => {
 		assert.equal(opened, 1);
 	});
 
-	it("Costs opens its pop-up, hung from the bar, and a second click closes it", async () => {
-		const { q } = await mount(<Page costs={costsFixture()} />);
-		const panel = () => document.querySelector('[data-testid="graph-costs-panel"]');
-		assert.ok(!panel());
-		await act(async () => q("graph-costs")!.click());
-		assert.ok(panel(), "the pop-up opens");
-		assert.equal(panel()!.parentElement!.className, "lh-hang", "hung from the bar");
-		assert.equal(q("graph-costs")!.getAttribute("aria-expanded"), "true");
-		await act(async () => q("graph-costs")!.click());
-		assert.equal(q("graph-costs")!.getAttribute("aria-expanded"), "false");
-	});
 });
 
 describe("keyboard focus", () => {
