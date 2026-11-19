@@ -466,6 +466,9 @@ impl SpaceStore {
 	pub fn delete_space(&self, id: &str) -> Result<bool, String> {
 		let dir = self.space_dir(id)?;
 		let _guard = self.locks.lock(LockKey::Space(id));
+		// A graph write in flight finishes first: a file added to the folder while it is being
+		// removed makes the removal fail and stay behind.
+		let _graph = self.locks.lock(LockKey::Graph(Some(id)));
 		if !dir.exists() {
 			return Ok(false);
 		}
@@ -731,6 +734,27 @@ mod tests {
 		assert!(rx.try_recv().is_ok());
 		assert!(store.get_space(&id).unwrap().get("lastWork").is_none());
 		assert!(!store.close_work(&id).unwrap() && !store.close_work("cls_nope").unwrap());
+	}
+
+	#[test]
+	fn a_delete_waits_for_a_graph_write_and_leaves_no_folder() {
+		let (store, _events, root) = store();
+		let made = store.create_space(&json!({ "name": "Algebra" })).unwrap();
+		let id = made["id"].as_str().unwrap().to_owned();
+		let graph = store.graph_dir(&id).unwrap();
+		let (locks, space_id) = (store.locks.clone(), id.clone());
+		let (started, wait) = std::sync::mpsc::channel();
+		let writer = std::thread::spawn(move || {
+			let _held = locks.lock(LockKey::Graph(Some(&space_id)));
+			started.send(()).unwrap();
+			std::thread::sleep(std::time::Duration::from_millis(100));
+			std::fs::create_dir_all(&graph).unwrap();
+			std::fs::write(graph.join("sources.json"), "{}").unwrap();
+		});
+		wait.recv().unwrap();
+		assert_eq!(store.delete_space(&id), Ok(true));
+		writer.join().unwrap();
+		assert!(!root.join(&id).exists());
 	}
 
 	/// A record in the shape it had before the renames (class.json, `archived`), with a color so reading

@@ -125,7 +125,7 @@ Requests run in parallel, so every read-modify-write of a file takes a lock from
 
 - Take at most one lock, or several in this order: space, chat, graph, app file.
 - Tests check this order (gs-base feature `lock-order-check`, turned on by the dev-dependencies of store, services, server and agent; no built server has it): `Locks::lock` panics when the thread already holds a lock that comes later (taking the same key again is fine; `try_lock` never waits, so it is not checked). Settings count as an app file that comes before the other app files.
-- Several of one kind go in id order. A space delete holds each of its lessons. This is not checked.
+- Several of one kind go in id order. A space delete holds each of its lessons, then its graph, so a graph write in flight finishes before the folder goes. This is not checked.
 - Of two app files, `settings.json` comes first. Reading settings takes its lock, so code holding another app file must not read settings unless it took `settings.json` first.
 - Locks are re-entrant on one thread, so a store may take the lock its caller holds.
 - A read that saves on the side while its caller may hold a later lock uses `try_lock`; if it gets the lock it leaves the save to a later read (a space's first color, `SpaceStore::get_space`).
