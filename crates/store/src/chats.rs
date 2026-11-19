@@ -25,7 +25,7 @@ use parking_lot::Mutex;
 
 use crate::app_file::write_stamped;
 
-const UNTITLED: &str = "Untitled session";
+const UNTITLED: &str = "Untitled lesson";
 
 /// What a write to the old Talk chat answers.
 pub const TALK_KEPT: &str = "The Talk chat is kept as it was and can't be changed";
@@ -196,7 +196,7 @@ impl ChatStore {
 	}
 
 	/// Renames a lesson. Not conversation activity: `updatedAt` stays put. A blank title becomes
-	/// "Untitled session".
+	/// "Untitled lesson".
 	pub fn rename_chat(&self, id: &str, title: &str) -> Result<Json, String> {
 		let title = text::trim(title);
 		let record = self.update(id, |record| set_field(record, "title", if title.is_empty() { UNTITLED } else { title }))?;
@@ -443,9 +443,9 @@ mod tests {
 	fn blank_titles_get_a_name() {
 		let fx = Fixture::new();
 		let lesson = fx.store.create_chat(" ", None, None, None).unwrap();
-		assert_eq!(lesson["title"], json!("Untitled session"));
+		assert_eq!(lesson["title"], json!("Untitled lesson"));
 		let id = lesson["id"].as_str().unwrap();
-		assert_eq!(fx.store.rename_chat(id, "  ").unwrap()["title"], json!("Untitled session"));
+		assert_eq!(fx.store.rename_chat(id, "  ").unwrap()["title"], json!("Untitled lesson"));
 	}
 
 	#[test]

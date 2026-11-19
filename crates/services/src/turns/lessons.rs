@@ -207,7 +207,7 @@ fn typed(app: &Arc<App>, scope: Option<&str>, title: &str, picks: Vec<Json>) -> 
 	} else if !topics.is_empty() {
 		study_title(&topics)
 	} else {
-		"Untitled session".to_owned()
+		"Untitled lesson".to_owned()
 	};
 	Ok(Start { title, picks, topics, note: None })
 }
