@@ -597,22 +597,6 @@ body {
 		padding: 0 10px;
 		font-size: 14px;
 	}
-	/* A key on a dark bar: the app's top bar or a page's own. */
-	.lh-btn-bar {
-		--lh-key: color-mix(in srgb, var(--lh-bar-ink) 26%, var(--lh-bar));
-		--lh-key-hover: color-mix(in srgb, var(--lh-bar-ink) 34%, var(--lh-bar));
-		flex-shrink: 0;
-		color: var(--lh-bar-ink);
-	}
-	/* A bar key whose panel is open or whose page is shown: held down, in the bar's ink. */
-	.lh-btn-bar.lh-btn-on {
-		--lh-key: var(--lh-bar-ink);
-		--lh-key-hover: var(--lh-bar-ink);
-		border-top-width: var(--lh-lip);
-		border-bottom-width: 0;
-		font-weight: 560;
-		color: var(--lh-bar);
-	}
 }
 
 /* A space file name or passage id in the agent's screen: a dotted

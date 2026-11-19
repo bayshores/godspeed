@@ -23,6 +23,8 @@
  *   turn") whose sides are not the reading inset or its narrow step, two sheets in one page
  *   column side by side or one above the other at a gap that is not the shared one, or a page
  *   title not in the shared title class.
+ * - bar key: a keycap (.lh-btn) in the app's top bar or a page's own bar, where words are flat
+ *   like the tabs.
  *
  * Each finding has a `key` naming its elements, the same from one read to the next while its
  * words (a clock) may change.
@@ -524,9 +526,16 @@ function turnFoot() {
 	return [finding("turn foot", [foot], `${label(foot)} spans ${Math.round(box.top)} to ${Math.round(box.bottom)} px, outside the lesson's window (${Math.round(view.top)} to ${Math.round(view.bottom)} px) beside the lesson text`)];
 }
 
+/** Bar key: a bar's words are flat like its tabs; a pop-up that hangs from the bar keeps its keys. */
+function barKeys() {
+	return [...document.querySelectorAll(":is(.lh-app-bar, .lh-own-bar) .lh-btn")]
+		.filter((key) => shown(key) && !key.closest(".lh-popup, [role=dialog], [role=menu]"))
+		.map((key) => finding("bar key", [key], `${label(key)} is a keycap in a bar`));
+}
+
 /** Every finding on the page as it is now, each once. */
 export function checkPage() {
-	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings()];
+	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys()];
 	const seen = new Set();
 	return all.filter((f) => !seen.has(f.key) && seen.add(f.key));
 }

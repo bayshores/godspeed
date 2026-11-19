@@ -25,7 +25,7 @@ export function AppMenu({ lit }: { lit: boolean }) {
 				aria-haspopup="menu"
 				aria-expanded={open}
 				onClick={() => setOpen((v) => !v)}
-				className={cn(barWord(open || lit), "mx-1.5")}
+				className={barWord(open || lit)}
 			>
 				Menu
 			</button>

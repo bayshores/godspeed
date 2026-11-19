@@ -60,11 +60,12 @@ The top bar is the one place for a page's own actions and for where the learner 
 
 | What | Where | How |
 |---|---|---|
-| A page's own actions | The bar's right side, after the teacher pill and before Menu, so the pill's changing words never move them | `BarActions`, each a small key in the bar's colors (`barWord`), held down and lit while its panel is open; Menu is the same key; never a row under the bar |
+| A page's own actions | The bar's right side, after the teacher pill and before Menu, so the pill's changing words never move them | `BarActions`, each a flat word as tall as the bar (`barWord`), a block of the bar's ink while its panel is open; Menu is the same word; never a row under the bar |
 | Where the learner is inside a space | After the lit space tab, on its paper, after a "›" | `BarCrumb`: a lesson's title, a deadline's name, "Cheat sheet" |
 | Find | A magnifying glass in the bar, on every page that can find; open, its field takes the place of that page's own words only, so on Files and Graph the space's Edit space stays, and on a lesson every word gives way | `BarFind` |
 | A shortcut | Inside the button whose action it is, read from the key registry | `KeyHint` and `keyShortcutProps` |
 
+- No keycap (`.lh-btn`) in the top bar or in a page's own bar (the mock's): every word there is flat like the tabs, and a key inside the pill is a flat chip. `npm run layout` fails a keycap in a bar. A pop-up that hangs from the bar keeps its keys.
 - Page tabs (Progress, Files, Graph, Deadlines) and keys inside a card stay on the page.
 - Bar words are real buttons or links, never a clickable span: the bar is the window's drag band, and only buttons, links and fields are cut out of it (`crates/shell/src/shim.js`).
 - Crowded, the bar gives way in this order (`space-tabs.tsx`): the pill's words and its deadline's name (the countdown stays), then the unlit tabs' names down to 8 letters, then those tabs scroll with the lit tab kept in view. The lit tab and its crumb never give way to the other tabs; in a strip too narrow for both, the crumb's name gives way down to 12 letters (`CrumbName`), then the lit tab's name down to its dot. The wordmark and the clock leave below 1200 points while a page has words in the bar, and below 760 always (`.lh-bar-spare`).

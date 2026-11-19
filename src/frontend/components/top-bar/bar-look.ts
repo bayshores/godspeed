@@ -6,9 +6,10 @@ export const barTabState = (lit: boolean) => (lit ? "bg-background font-medium t
 /** A word in a bar whose panel is open: a block of the bar's ink. */
 export const BAR_WORD_ON = "bg-bar-ink font-medium text-bar hover:bg-bar-ink";
 
-/** A page's own word in the top bar (bar-slots.tsx) and Menu: a small key in the bar's colors, the
- *  same on every page; `on` while its panel is open. */
-export const barWord = (on: boolean) => `lh-btn lh-btn-small lh-btn-bar self-center${on ? " lh-btn-on" : ""}`;
+/** A page's own word in the top bar (bar-slots.tsx), Menu, and a word in a page's own bar: flat
+ *  and as tall as the bar, like a tab, never a keycap; `on` while its panel is open. */
+export const barWord = (on: boolean) =>
+	`lh-press flex h-12 shrink-0 items-center gap-2 px-3 text-[15px] whitespace-nowrap disabled:pointer-events-none disabled:opacity-50 ${on ? BAR_WORD_ON : "text-bar-ink hover:bg-bar-ink/10"}`;
 
 /** What a pop-up hangs from, the nearest around its word: the page's words in the app's top bar
  *  (a line of their own in a narrow window), the app's top bar, or a page's own bar. */

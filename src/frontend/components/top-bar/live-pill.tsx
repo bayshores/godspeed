@@ -24,7 +24,7 @@ const OWN_FIT = "min-w-auto shrink-[1000]";
 /** The pill with nothing lit: a shade of the bar's ink, so its words, its countdown and its count read as one shape. */
 const QUIET = "bg-bar-ink/10 text-bar-ink";
 /** A key inside the pill, in the pill's own ink. */
-const PILL_KEY = "lh-btn lh-btn-small mr-2 shrink-0";
+const PILL_KEY = "lh-press mr-2 flex h-7 shrink-0 items-center px-2.5 text-[14px] whitespace-nowrap";
 
 /**
  * THE LIVE PILL, in every top bar: what is happening now, in one line and
@@ -116,12 +116,12 @@ export function LivePill({ own = false }: { own?: boolean }) {
 					</button>
 				)}
 				{thing?.action && (
-					<button type="button" data-testid="live-pill-act" onClick={() => pill.act(thing)} className={cn(PILL_KEY, "[--lh-key-hover:var(--foreground)] [--lh-key:var(--foreground)] text-background")}>
+					<button type="button" data-testid="live-pill-act" onClick={() => pill.act(thing)} className={cn(PILL_KEY, "bg-ink font-medium text-background")}>
 						Open
 					</button>
 				)}
 				{go && offer && (
-					<button type="button" data-testid="follow-go" title={offer.label} onClick={() => teacher.go(offer)} className={cn(PILL_KEY, "lh-btn-bar max-[900px]:hidden")}>
+					<button type="button" data-testid="follow-go" title={offer.label} onClick={() => teacher.go(offer)} className={cn(PILL_KEY, "max-[900px]:hidden", bright ? "bg-ink/15 hover:bg-ink/25" : "bg-bar-ink/20 hover:bg-bar-ink/30")}>
 						{go}
 					</button>
 				)}

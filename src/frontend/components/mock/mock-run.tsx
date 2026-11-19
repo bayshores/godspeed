@@ -3,6 +3,7 @@ import { DEFAULT_TEACHER_NAME, secondsLeft, starterCode, type Mock, type MockLan
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { MathBox } from "@/frontend/components/math-box";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
+import { barWord } from "@/frontend/components/top-bar/bar-look";
 import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
@@ -194,13 +195,13 @@ export function MockRun({ view }: { view: MockView }) {
 					</span>
 				) : (
 					timed && (
-						<button ref={pauseButton} type="button" data-testid="mock-pause" disabled={switching || ending} onClick={() => void pauseOrResume()} className="lh-btn lh-btn-bar">
+						<button ref={pauseButton} type="button" data-testid="mock-pause" disabled={switching || ending} onClick={() => void pauseOrResume()} className={barWord(false)}>
 							Pause
 						</button>
 					)
 				)}
 				{!paused && (
-					<button type="button" data-testid="mock-end" disabled={ending || switching} onClick={() => setConfirmEnd(true)} className="lh-btn lh-btn-bar">
+					<button type="button" data-testid="mock-end" disabled={ending || switching} onClick={() => setConfirmEnd(true)} className={barWord(false)}>
 						End mock
 					</button>
 				)}
