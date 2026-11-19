@@ -51,6 +51,11 @@ const MAX_ZOOM = 8;
 /** The steps − and + move between. */
 const STEPS = [0.1, 0.25, 0.33, 0.5, 0.67, 0.75, 1, 1.25, 1.5, 2, 3, 4, 6, 8];
 
+/** A canvas narrower than this has no room for a version's pages side by side. */
+const STACK_BELOW = 640;
+/** Before it is measured (width 0) a canvas does not stack. */
+export const stacksPages = (viewWidth: number): boolean => viewWidth > 0 && viewWidth < STACK_BELOW;
+
 const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
 /** Newest version first, left to right; each version's pages side by side,

@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { Link } from "react-router";
-import { currentVersion, DEFAULT_TEACHER_NAME, type CheatSheetView } from "@/shared/core";
+import { currentVersion, DEFAULT_TEACHER_NAME, pageSizeLabel, type CheatSheetView } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useJoinSpace } from "@/frontend/components/use-join-space";
 import { LoadFailed } from "@/frontend/components/load-failed";
@@ -8,22 +8,23 @@ import { fileBrowserName } from "@/frontend/components/files/files-model";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { barWord } from "@/frontend/components/top-bar/bar-look";
 import { BarActions, BarCrumb, CrumbName } from "@/frontend/components/top-bar/bar-slots";
+import { TerminalKey } from "@/frontend/components/terminal/terminal-key";
 import { Pane } from "@/frontend/components/ui/pane";
 import { printPdf } from "./print-pdf";
 import { SheetCanvas } from "./sheet-canvas";
 import { SheetChat } from "./sheet-chat";
 import { JobFrame } from "@/frontend/components/work/job-frame";
-import { OlderSheet, emptyChatLine, sheetPaper, versionLabel } from "./studio-states";
+import { OlderSheet, emptyChatLine, versionLabel } from "./studio-states";
 import { remakeSheet, sheetPdfFile, sheetPdfPath, showSheetPdf, useCheatSheet, useSheetFocus } from "./use-cheat-sheet";
 
 /**
  * THE CHEAT SHEET STUDIO: a page under the app's bar, whose crumb names the
- * sheet's deadline (a link back to it) and whose right side has the sheet's
- * paper, Show in Finder and Print. The canvas on
+ * sheet's deadline (a link back to it) and whose right side has, once the
+ * sheet is made, Show in Finder and Print. The canvas on
  * the left holds the PDF with the earlier versions beside it, or, before
  * there is a sheet, says what to ask for. On the right is the sheet's
- * chat: lines typed in the teacher's terminal ask about the sheet, a part
- * pointed at, or a change.
+ * chat, once something is in it: lines typed in the teacher's terminal ask
+ * about the sheet, a part pointed at, or a change.
  */
 export function CheatSheetStudio({ spaceId, deadlineId, deadlineName }: { spaceId: string; deadlineId: string; deadlineName: string }) {
 	useJoinSpace(spaceId);
@@ -95,16 +96,30 @@ function Studio({
 			.finally(() => setPrinting(false));
 	};
 
+	// Before anything is asked the page is the question alone: a chat with nothing in it gets no column.
+	const quiet = !current && view.sheet.messages.length === 0 && view.sheet.rules.length === 0;
+	const chat = (
+		<SheetChat
+			view={view}
+			spaceId={spaceId}
+			deadlineId={deadlineId}
+			act={act}
+			agentName={teacherName}
+			agentGone={agentGone}
+			pointed={pointed}
+			onClearPointed={() => setPointed(null)}
+			onShowVersion={current ? showVersion : undefined}
+			empty={current ? emptyChatLine(teacherName, true) : undefined}
+			bare={quiet}
+		/>
+	);
+
 	return (
 		<div className="flex h-full flex-col">
 			<StudioHead deadlineId={deadlineId} deadlineName={view.deadlineName} />
-			<BarActions>
-				<span data-testid="cheat-sheet-status" className="shrink-0 px-2.5 text-[15px] text-bar-ink">
-					{sheetPaper(view)}
-				</span>
-				{current &&
-					currentUrl &&
-					(desktop ? (
+			{current && currentUrl && (
+				<BarActions>
+					{desktop ? (
 						<button type="button" data-testid="cheat-sheet-show-file" onClick={() => void showSheetPdf(spaceId, deadlineId, current.n).then(setFailed)} className={fileButton}>
 							Show in {fileBrowserName(window.lh?.platform)}
 						</button>
@@ -112,11 +127,12 @@ function Studio({
 						<a data-testid="cheat-sheet-download" href={currentUrl} download={`${fileName}.pdf`} className={fileButton}>
 							Download PDF
 						</a>
-					))}
-				<button type="button" data-testid="cheat-sheet-print" disabled={!current || printing} onClick={print} className={barWord(false)}>
-					Print
-				</button>
-			</BarActions>
+					)}
+					<button type="button" data-testid="cheat-sheet-print" disabled={printing} onClick={print} className={barWord(false)}>
+						Print
+					</button>
+				</BarActions>
+			)}
 			{failed && (
 				<p role="alert" className="shrink-0 px-8 pt-3 text-[15px] text-ans-wrong">
 					{failed}
@@ -124,33 +140,32 @@ function Studio({
 			)}
 			<div className="min-h-0 flex-1">
 				<JobFrame doing={view.running ? (current ? "changing your sheet" : "making your sheet") : null}>
-					<div className="flex h-full gap-6 px-8 pt-6 pb-7">
-						<div className="lh-well flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded">
-							{current ? (
-								<SheetCanvas versions={view.sheet.versions} pdfUrl={pdfUrl} labelFor={versionLabel} focus={focus} onPoint={setPointed} />
-							) : (
-								<div data-testid="cheat-sheet-empty" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[18px] overflow-y-auto p-6 text-center">
-									<div aria-hidden className="h-[220px] w-[170px] shrink-0 bg-background" />
-									<h2 className="text-[28px] leading-tight text-ink">What do you want on your cheat sheet?</h2>
-									<p className="max-w-[520px] text-lg leading-[1.45] text-ink-2">{emptyChatLine(teacherName, false)}</p>
-									{view.sheet.olderFormat && !view.running && <OlderSheet onRemake={() => void remakeSheet(spaceId, deadlineId).then(setFailed)} />}
-								</div>
+					{/* Side by side where both fit; in less room the sheet is over its chat. */}
+					<div className="@container flex h-full flex-col">
+						<div className="flex min-h-0 flex-1 flex-col gap-6 px-8 pt-6 pb-7 @[768px]:flex-row">
+							<div className="lh-well flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded">
+								{current ? (
+									<SheetCanvas versions={view.sheet.versions} pdfUrl={pdfUrl} labelFor={versionLabel} focus={focus} onPoint={setPointed} paper={pageSizeLabel(current.pages)} />
+								) : (
+									<div data-testid="cheat-sheet-empty" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[18px] overflow-y-auto p-6 text-center">
+										<h2 className="text-[28px] leading-tight text-ink">What do you want on your cheat sheet?</h2>
+										<p className="max-w-[520px] text-lg leading-[1.45] text-ink-2">{emptyChatLine(teacherName, false)}</p>
+										{quiet && (
+											<>
+												<TerminalKey />
+												{chat}
+											</>
+										)}
+										{view.sheet.olderFormat && !view.running && <OlderSheet onRemake={() => void remakeSheet(spaceId, deadlineId).then(setFailed)} />}
+									</div>
+								)}
+							</div>
+							{!quiet && (
+								<Pane data-testid="cheat-sheet-panel" className="flex max-h-[40%] shrink-0 flex-col overflow-hidden @[768px]:max-h-none @[768px]:w-[clamp(340px,40%,480px)]">
+									{chat}
+								</Pane>
 							)}
 						</div>
-						<Pane data-testid="cheat-sheet-panel" className="flex w-[480px] shrink-0 flex-col overflow-hidden">
-							<SheetChat
-								view={view}
-								spaceId={spaceId}
-								deadlineId={deadlineId}
-								act={act}
-								agentName={teacherName}
-								agentGone={agentGone}
-								pointed={pointed}
-								onClearPointed={() => setPointed(null)}
-								onShowVersion={current ? showVersion : undefined}
-								empty={current ? emptyChatLine(teacherName, true) : undefined}
-							/>
-						</Pane>
 					</div>
 				</JobFrame>
 			</div>

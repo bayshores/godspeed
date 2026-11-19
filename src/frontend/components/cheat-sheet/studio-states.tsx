@@ -1,10 +1,4 @@
-import { currentVersion, pageSizeLabel, type CheatSheetView, type SheetVersion } from "@/shared/core";
-
-/** The studio bar's status: the newest version's paper, or that there is none yet. */
-export function sheetPaper(view: CheatSheetView): string {
-	const current = currentVersion(view.sheet);
-	return current ? pageSizeLabel(current.pages) : "Not made yet";
-}
+import type { SheetVersion } from "@/shared/core";
 
 /** A sheet an older godspeed made (HTML or blocks) can't become a PDF
  *  without the agent: one click asks for it again. */
@@ -31,5 +25,5 @@ export function versionLabel(v: SheetVersion, newest: boolean): string {
 export function emptyChatLine(agentName: string, made: boolean): string {
 	return made
 		? `Ask ${agentName} in the terminal about the sheet, point at a part that confuses you, or say what to change.`
-		: `Tell ${agentName} in the terminal what you want on it: the paper, one side or both, what to put first. ${agentName} reads the rules in your space info files, puts your weak topics and mistakes first, and makes it as a PDF.`;
+		: `Tell ${agentName} in the terminal which paper, one side or both, and what must be on it. Your weak topics and mistakes go first.`;
 }

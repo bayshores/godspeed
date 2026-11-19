@@ -131,10 +131,10 @@ describe("the panel", () => {
 	});
 	it("is as wide as the learner left it, pushing the page while it keeps 480 px", () => {
 		const docked = (w: number, wanted: number) => panelLayout(w, w, wanted);
-		assert.deepEqual(docked(1440, 440), { width: 440, push: 440 });
-		assert.deepEqual(docked(1440, 900), { width: 900, push: 900 });
-		assert.deepEqual(docked(1100, 900), { width: 620, push: 620 }, "narrower than asked: the page keeps 480");
-		assert.deepEqual(docked(840, 440), { width: 360, push: 360 }, "down to its narrowest");
+		assert.deepEqual(docked(1440, 440), { width: 440, push: 440, squeezed: false });
+		assert.deepEqual(docked(1440, 900), { width: 900, push: 900, squeezed: true });
+		assert.deepEqual(docked(1100, 900), { width: 620, push: 620, squeezed: true }, "narrower than asked: the page keeps 480");
+		assert.deepEqual(docked(840, 440), { width: 360, push: 360, squeezed: true }, "down to its narrowest");
 		for (let w = 640; w <= 2000; w += 10) {
 			for (const wanted of [PANEL_WIDTH.min, PANEL_WIDTH.initial, PANEL_WIDTH.max]) {
 				const { width, push } = docked(w, wanted);
@@ -144,9 +144,20 @@ describe("the panel", () => {
 	});
 	it("covers a page with no room for its narrowest; a narrow window gets it across its whole width", () => {
 		const docked = (w: number, wanted: number) => panelLayout(w, w, wanted);
-		assert.deepEqual(docked(800, 440), { width: 440, push: 0 });
-		assert.deepEqual(docked(700, 900), { width: 700, push: 0 });
-		assert.deepEqual(docked(600, 440), { width: 600, push: 0 });
+		assert.deepEqual(docked(800, 440), { width: 440, push: 0, squeezed: true });
+		assert.deepEqual(docked(700, 900), { width: 700, push: 0, squeezed: true });
+		assert.deepEqual(docked(600, 440), { width: 600, push: 0, squeezed: true });
+	});
+	it("is squeezed, and offers to hide, while it covers the page or leaves it under 800 px", () => {
+		const squeezed = (w: number, wanted: number) => panelLayout(w, w, wanted).squeezed;
+		assert.ok(!squeezed(1512, 620), "892 left: a laptop's whole screen with the panel as it comes");
+		assert.ok(squeezed(1512, 720), "792 left");
+		assert.ok(squeezed(1288, 620), "668 left");
+		assert.ok(!squeezed(1288, 480), "808 left");
+		const head = (hide: (() => void) | null) => renderToStaticMarkup(<PanelHead title={null} status="Idle" lit={false} working={false} list={null} need={null} back={null} hide={hide} />);
+		assert.ok(!head(null).includes("teacher-panel-hide"));
+		assert.match(head(() => {}), /data-testid="teacher-panel-hide"[^>]*>Hide</);
+		assert.ok(!head(() => {}).includes("lh-btn-main"), "never the screen's bright key");
 	});
 	it("shows a key that starts the teacher: the start pair before any start, Start again once it ended, and in a browser above Activity", () => {
 		const ended = { id: "t1", role: "teacher" as const, agent: "claude" as const, startedAt: 0, ended: { stopped: true as const, code: null }, prompt: null, url: false };
@@ -307,7 +318,7 @@ describe("Follow in the panel's head", () => {
 	const html = (over: Partial<TeacherApi>) =>
 		renderToStaticMarkup(
 			<TeacherContext.Provider value={api(over)}>
-				<PanelHead title={null} status="Idle" lit={false} working={false} list={{ open: false, onOpen: () => {} }} need={null} back={null} />
+				<PanelHead title={null} status="Idle" lit={false} working={false} list={{ open: false, onOpen: () => {} }} need={null} back={null} hide={null} />
 			</TeacherContext.Provider>,
 		);
 	it("says Following while it is on, and Follow once stopped, working or not", () => {

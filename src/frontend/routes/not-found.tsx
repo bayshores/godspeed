@@ -10,13 +10,11 @@ export function NotFound({ page }: { page?: string }) {
 	return (
 		<div className="h-full overflow-y-auto">
 			<PageTitle page={page} />
-			<div data-testid="not-found" className="mx-auto flex w-[520px] max-w-full flex-col gap-6 px-6 pt-[220px] pb-10">
+			<div data-testid="not-found" className="mx-auto flex w-[520px] max-w-full flex-col items-center gap-6 px-6 pt-[220px] pb-10 text-center">
 				<h1 className="text-[30px] leading-tight text-ink">This page doesn&apos;t exist.</h1>
-				<div>
-					<Link to="/" className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
-						Go to Today
-					</Link>
-				</div>
+				<Link to="/" className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
+					Go to Today
+				</Link>
 			</div>
 		</div>
 	);

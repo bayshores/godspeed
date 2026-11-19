@@ -10,7 +10,13 @@
  * left open (a quiz on the first step, unanswered), so the Lessons block on Progress has both groups
  * and a Show all. One more poses a practice problem longer than the window, still open. Their titles are of mixed length, one very long. One more lesson is made and
  * never sent: the window sends its first message, whose reply waits for an agent.
- * A second space, "Backend jobs",
+ * Four more deadlines, far off, carry the cheat sheet and mock pages: the midterm has a sheet of two
+ * pages with its chat and one saved rule, and a graded mock followed by a ready one; the quiz has a
+ * sheet with two versions and a paused mock; the review quiz has a mock being taken against the
+ * clock; the spring exam has nothing, so a screen can ask for a sheet and a mock with no agent to
+ * answer. The sheet and the mocks are made the way the window makes them, and the stand-in agent
+ * answers each request (a sheet's PDF is copied into the sheet's working folder, as an agent's own
+ * tools would write it). A second space, "Backend jobs",
  * has a path toward a goal and nothing else. The window installs the plugin
  * "Flashcards", marked as from the made-up plugin list (tests/fixtures/plugins/layout-list.json)
  * at an older tag, so its sheet shows Update. No model runs; every word is fixed here.
@@ -20,6 +26,8 @@ import * as path from "node:path";
 
 /** The made-up plugin that shows in a lesson and in a space, installed from this folder. */
 const PLUGIN_FOLDER = path.resolve(import.meta.dirname, "..", "tests", "fixtures", "plugins", "layout");
+
+const FIXTURES = path.resolve(import.meta.dirname, "..", "tests", "fixtures");
 
 const WEB_SOURCE = "[[https://example.com/lab-algebra/linear-equations]]";
 /** Every made-up name has letters that hang below the line (g, j, p, q, y), so the check for
@@ -61,6 +69,52 @@ const LONG_PROBLEM = [
 	"Say what each piece of her equation stands for, in words, and why the second train's time is shorter than the first train's. Then solve for $x$, and give both trains' speeds.",
 	"Last, check your answer: put both speeds back into the story and work out how far each train has gone when they pass. Do the two distances add up to 300 miles? If they do not, find the step where the equation and the story stopped agreeing, and fix it.",
 ].join("\n\n");
+
+/** Deadlines for the cheat sheet and mock pages, far off so Today stays as it was. */
+const MIDTERM = "Midterm: graphing and systems";
+const QUIZ = "Quiz 2: slopes and intercepts";
+const REVIEW_QUIZ = "Review quiz: equations by graphing";
+const SPRING_EXAM = "Spring exam: everything so far";
+
+const SHEET_ASKS = {
+	[MIDTERM]: "Make my cheat sheet for the midterm. Solving equations first, then graphing, and no more than two pages.",
+	[QUIZ]: "Make me a cheat sheet for quiz 2.",
+	short: "Make it fit on one page.",
+};
+const SHEET_REPLIES = {
+	[MIDTERM]: {
+		text: "I made your cheat sheet, two pages as you asked. Page 1 has the steps for solving an equation, lines and intercepts, and the mistakes to avoid. Page 2 has graphing a line, systems of two lines and word problems. The steps for solving come from your notes. [[PASSAGE]]",
+		new_rules: ["Two pages, letter size"],
+	},
+	[QUIZ]: { text: "Here is your cheat sheet. It has two pages: solving, then graphing." },
+	short: { text: "I cut it to one page by dropping the word problems and shortening the mistakes." },
+};
+
+const MOCK_QUESTIONS = [
+	{
+		title: "Why undo in reverse",
+		kind: "text",
+		statement: "In your own words, explain why we undo the steps of $2x + 3 = 11$ in reverse order. Then solve it and check your answer.",
+	},
+	{
+		title: "Solve ax + b = c",
+		kind: "code",
+		statement: "Write `solveLinear(a, b, c)` that returns the $x$ that solves $ax + b = c$. Here $a$ is never 0, and every number is a whole number.",
+		function_name: "solveLinear",
+		params: ["a", "b", "c"],
+		examples: [{ args: "[2, 3, 11]", expected: "4" }, { args: "[5, -7, 18]", expected: "5" }, { args: "[1, 0, 0]", expected: "0" }],
+	},
+	{
+		title: "Where two lines cross",
+		kind: "text",
+		statement: "The lines $y = 2x + 3$ and $y = -x + 9$ cross at one point.\n\nFind the point, and say how you could see from the graph alone that there is no second crossing.",
+	},
+];
+const MOCK_CODE = "function solveLinear(a, b, c) {\n\treturn (c - b) / a;\n}";
+const MOCK_GRADES = [
+	{ question: "q1", verdict: "right", feedback: "You said that adding 3 came last, so it is undone first, and you checked $x = 4$ in the equation. That is the whole idea." },
+	{ question: "q2", verdict: "partly", feedback: "The formula is right, but it returns a decimal when $c - b$ is not a multiple of $a$, for example `solveLinear(2, 1, 4)`. Say what your function should do then, or round on purpose." },
+];
 
 const HOMEWORK_PROBLEMS = {
 	[HOMEWORK_OPEN]: [
@@ -109,10 +163,10 @@ function standIn(dataDir, log) {
 }
 
 /** What a work item is for. A long item comes in pages and its first page is cut text, but its
- *  JSON starts with these fields, so they are read off the text. */
+ *  JSON starts with these fields, so they are read off the text. `text` is the whole item. */
 export function workOf(text) {
 	const field = (name) => new RegExp(`"${name}":"([^"\\\\]+)"`).exec(text)?.[1];
-	return { lessonId: field("lessonId"), task: field("task") };
+	return { lessonId: field("lessonId"), task: field("task"), text };
 }
 
 /** The day `days` from now on this computer's calendar, as YYYY-MM-DD. */
@@ -170,6 +224,19 @@ function shortLessonAnswer(lessonTurn, studied) {
 	return { text: "That is right." };
 }
 
+/** The answer to a cheat sheet request. The PDF is copied into the sheet's working folder, which
+ *  the request names, as an agent's own tools would write it there. The request is JSON text, so
+ *  the folder's line ends at an escaped newline. */
+function sheetAnswer(work, ids) {
+	const asked = work.text.split("The learner says:").pop();
+	const key = asked.includes(SHEET_ASKS.short) ? "short" : work.task.includes(MIDTERM) ? MIDTERM : QUIZ;
+	const folder = /Working folder: ([^"\\]+)\\n/.exec(work.text)?.[1];
+	if (!folder) throw new Error("the cheat sheet request does not name its working folder");
+	fs.copyFileSync(path.join(FIXTURES, key === "short" ? "layout-sheet-one-page.pdf" : "layout-sheet-two-pages.pdf"), path.join(folder, "sheet.pdf"));
+	const reply = SHEET_REPLIES[key];
+	return { tool_calls: [{ name: "sheet_reply", arguments: { ...reply, text: reply.text.replace("PASSAGE", ids.passage), pdf_path: "sheet.pdf" } }] };
+}
+
 /** The stand-in's answer to a work item, or null for one it does not expect. The lesson's first
  *  turn presents the plan; its second, after the plan's result, is the sourced reply with an open
  *  quiz, so the reply ends the reading pane. */
@@ -186,6 +253,9 @@ function answerFor(work, ids, lessonTurn) {
 			return { text: "Try this one.", tool_calls: [{ name: "problem", arguments: problem }] };
 		}
 	}
+	if (work.task?.startsWith("Cheat sheet: ")) return sheetAnswer(work, ids);
+	if (/^Mock \d+: questions$/.test(work.task ?? "")) return { tool_calls: [{ name: "write_mock_questions", arguments: { questions: MOCK_QUESTIONS } }] };
+	if (/^Mock \d+: grading$/.test(work.task ?? "")) return { tool_calls: [{ name: "grade_mock", arguments: { grades: MOCK_GRADES } }] };
 	if (work.task?.startsWith("Graph extraction")) {
 		return { tool_calls: [{ name: "submit_findings", arguments: { propositions: [{ id: "p1", name: "Undo in reverse", statement: "To solve ax + b = c, subtract b from both sides, then divide by a." }], chains: [], reteaches: [] } }] };
 	}
@@ -246,6 +316,10 @@ export async function seed(dataDir, page, log) {
 			{ kind: "homework", name: HOMEWORK_OPEN, date: inDays(10) },
 			{ kind: "homework", name: HOMEWORK_FIRST, date: inDays(11) },
 			{ kind: "homework", name: HOMEWORK_MANY, date: inDays(12) },
+			{ kind: "exam", name: MIDTERM, date: inDays(30), time: "09:00" },
+			{ kind: "quiz", name: QUIZ, date: inDays(32) },
+			{ kind: "quiz", name: REVIEW_QUIZ, date: inDays(34) },
+			{ kind: "exam", name: SPRING_EXAM, date: inDays(36) },
 		],
 	});
 	await agent.call("add_space_file", { space_id: space.id, kind: "study", name: "Graphing quiz prep.md", text: "# Solving by graphing\n\nTo solve ax + b = c, subtract b from both sides, then divide by a. Graphing y = ax + b and y = c gives the same x where the lines cross." });
@@ -274,6 +348,11 @@ export async function seed(dataDir, page, log) {
 	};
 	// The homework with a problem open has the made-up file as its assignment, so "Your turn" names it.
 	await agent.call("update_space_deadline", { space_id: space.id, deadline_id: deadlineNamed(HOMEWORK_OPEN), assignment_file_id: passage.split(":")[0] });
+	// A mock is written from a deadline's study facts or its "what it's like" file. The facts come
+	// from a graph run the check starts later, so the four deadlines have the file.
+	await agent.call("add_space_file", { space_id: space.id, kind: "info", name: "What the quizzes are like.md", text: "# What the quizzes are like\n\nShort written answers, a few lines of code, and one graph to read. Calculators are not allowed." });
+	const aboutId = (await agent.json("read_space", { space_id: space.id, files: true })).files.find((file) => file.name === "What the quizzes are like.md").id;
+	for (const name of [MIDTERM, QUIZ, REVIEW_QUIZ, SPRING_EXAM]) await agent.call("update_space_deadline", { space_id: space.id, deadline_id: deadlineNamed(name), about_file_id: aboutId });
 	const homeworkOpen = await homeworkLesson(HOMEWORK_OPEN);
 	const homeworkFirst = await homeworkLesson(HOMEWORK_FIRST);
 	const homeworkMany = await homeworkLesson(HOMEWORK_MANY);
@@ -328,11 +407,47 @@ export async function seed(dataDir, page, log) {
 		await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId, input: { type: "answer", toolCallId: quiz.id, answer } }) });
 	}
 	await drain();
+	const send = (url, body) => page.fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+	const midterm = deadlineNamed(MIDTERM);
+	const quiz = deadlineNamed(QUIZ);
+	const reviewQuiz = deadlineNamed(REVIEW_QUIZ);
+	const sheetOf = (deadlineId) => `/api/spaces/${space.id}/deadlines/${deadlineId}/cheat-sheet`;
+	const mockOf = async (deadlineId, n) => (await page.json(`/api/spaces/${space.id}/mocks?deadline=${deadlineId}`)).mocks.find((mock) => mock.n === n).id;
+	const mockAction = (mockId, body) => send(`/api/spaces/${space.id}/mocks/${mockId}`, body);
+	// The learner asks for the first sheets and mocks; each request is answered by the stand-in agent.
+	await send(sheetOf(midterm), { action: "ask", text: SHEET_ASKS[MIDTERM] });
+	await send(sheetOf(quiz), { action: "ask", text: SHEET_ASKS[QUIZ] });
+	await send(`/api/spaces/${space.id}/mocks`, { deadlineId: midterm, questions: 3, minutes: 30 });
+	await send(`/api/spaces/${space.id}/mocks`, { deadlineId: quiz, questions: 3, minutes: 90 });
+	await send(`/api/spaces/${space.id}/mocks`, { deadlineId: reviewQuiz, questions: 3, minutes: 240 });
+	await drain();
+	// The quiz's sheet is changed once, so it has two versions.
+	await send(sheetOf(quiz), { action: "ask", text: SHEET_ASKS.short });
+	// The midterm's mock is taken (paused once), ended with one question left blank, and graded.
+	const graded = await mockOf(midterm, 1);
+	await mockAction(graded, { action: "start" });
+	await mockAction(graded, { action: "pause" });
+	await mockAction(graded, { action: "resume" });
+	await mockAction(graded, { action: "answer", questionId: "q1", text: "Adding 3 happened last, so it comes off first. 2x = 8, so x = 4, and 2 times 4 plus 3 is 11.", seconds: 240, submitted: true });
+	await mockAction(graded, { action: "answer", questionId: "q2", text: "", language: "javascript", code: { javascript: MOCK_CODE }, seconds: 410, submitted: true });
+	await mockAction(graded, { action: "end" });
+	// The quiz's mock is paused, and the review quiz's is under way with its first answer saved.
+	const paused = await mockOf(quiz, 1);
+	await mockAction(paused, { action: "start" });
+	await mockAction(paused, { action: "pause" });
+	const running = await mockOf(reviewQuiz, 1);
+	await mockAction(running, { action: "start" });
+	await mockAction(running, { action: "answer", questionId: "q1", text: "Adding 3 happened last, so", seconds: 50, submitted: false });
+	await drain();
+	// The midterm's next mock is made once the last one is graded; it waits to be started.
+	await send(`/api/spaces/${space.id}/mocks`, { deadlineId: midterm, questions: 3 });
+	await drain();
+	const ready = await mockOf(midterm, 2);
 	// A lesson made as the window's Study does, whose first message the window sends when it opens: its reply waits for an agent.
 	await page.fetch("/api/chats", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: WAITING_TOPIC, spaceId: space.id }) });
 	const pending = (await agent.json("list_lessons", { space_id: space.id })).lessons.find((lesson) => lesson.title === WAITING_TOPIC).id;
 	const covers = (topic) => `Enough ${topic} to get a junior job by spring, with typing practice daily.`;
 	const steps = ["Git and pull requests", "HTTP and APIs", "SQL querying", "Typing in Python", "Caching layers", "Deploying apps", "Logging and paging", "Security group policy"];
 	const goal = await agent.json("create_space", { name: "Backend jobs", icon: "code", path: { goal: "backend developer jobs", topics: steps.map((name) => ({ name, covers: covers(name) })) } });
-	return { space: space.id, lesson: lessonId, written, longProblem, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), pathSpace: goal.space.id };
+	return { space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), pathSpace: goal.space.id };
 }

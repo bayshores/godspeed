@@ -25,6 +25,8 @@
  *   title not in the shared title class.
  * - bar key: a keycap (.lh-btn) in the app's top bar or a page's own bar, where words are flat
  *   like the tabs.
+ * - empty box: a sheet or well (.lh-sheet, .lh-well) at least 160 px wide and 120 px tall that
+ *   shows no words, picture, control or writing box: a column with nothing in it.
  *
  * Each finding has a `key` naming its elements, the same from one read to the next while its
  * words (a clock) may change.
@@ -90,6 +92,8 @@ export function cutOf(ink, clip) {
 const clips = (style) => style.overflowX !== "visible" || style.overflowY !== "visible";
 const CONTROLS = "button, input, select, textarea";
 const PICTURES = "img, svg, canvas, video, .katex, .xterm";
+/** One picture drawn by many boxes, which are not checked against each other. */
+const ONE_PICTURE = ".katex, .xterm, [data-picture]";
 
 /** A number per element, kept on the window, so a finding is matched by its elements across
  *  reads. */
@@ -183,11 +187,11 @@ const shown = (el) => el.checkVisibility({ opacityProperty: true, visibilityProp
 function overlaps() {
 	const items = [];
 	for (const el of document.body.querySelectorAll("*")) {
-		// Math is drawn by KaTeX, SVG by its own geometry and the agent's screen by xterm on
-		// stacked canvases: each is one picture. What the app marks aria-hidden is decoration (a
+		// Math is drawn by KaTeX, SVG by its own geometry, and the agent's screen (xterm) and a
+		// page drawn sharper where it is zoomed (data-picture) on stacked canvases: each is one picture. What the app marks aria-hidden is decoration (a
 		// backdrop, an icon in a button), not content.
 		if (
-			(el.closest(".katex, .xterm") && !el.matches(".katex, .xterm")) ||
+			(el.closest(ONE_PICTURE) && !el.matches(ONE_PICTURE)) ||
 			(el.closest("svg") && el.localName !== "svg") ||
 			el.closest("[aria-hidden=true]") ||
 			!shown(el)
@@ -305,6 +309,8 @@ function hiddens() {
 		let boxes = ownBoxes(el);
 		for (const clip of clipBoxes(el)) {
 			if (boxes.length === 0 || clip.right - clip.left <= SLACK || clip.bottom - clip.top <= SLACK) break;
+			// What the learner pans (data-pans) is reached by panning, as a scroller's is by scrolling.
+			if (clip.node.hasAttribute("data-pans")) break;
 			// A control's own overflow clips its label, not the control.
 			if ((control && clip.node === el) || (clip.fixed && scrolled)) continue;
 			const axes = { ...clip, x: clip.x && clip.style.textOverflow !== "ellipsis", y: clip.y && !(Number(clip.style.webkitLineClamp) > 0) };
@@ -400,7 +406,7 @@ function paints(el) {
 function covereds() {
 	const found = [];
 	for (const el of document.body.querySelectorAll("*")) {
-		if ((el.closest(".katex, .xterm") && !el.matches(".katex, .xterm")) || (el.closest("svg") && el.localName !== "svg") || el.closest("[aria-hidden=true]") || !shown(el)) continue;
+		if ((el.closest(ONE_PICTURE) && !el.matches(ONE_PICTURE)) || (el.closest("svg") && el.localName !== "svg") || el.closest("[aria-hidden=true]") || !shown(el)) continue;
 		const layer = layerOf(el);
 		let over = null;
 		for (const own of ownBoxes(el)) {
@@ -502,8 +508,9 @@ function spacings() {
 		if (right && offGap(right.box.left - ab.right, gap)) found.push(finding("spacing", [a, right.el], apart(right.el, right.box.left - ab.right, "side by side")));
 		if (below && offGap(below.box.top - ab.bottom, gap)) found.push(finding("spacing", [a, below.el], apart(below.el, below.box.top - ab.bottom, "one above the other")));
 	}
+	// A heading in rendered Markdown (.lh-prose) is its writer's, not the page's title.
 	for (const title of document.querySelectorAll(".lh-page h1")) {
-		if (shown(title) && !title.closest(".sr-only") && !title.classList.contains("sr-only") && !title.classList.contains("lh-page-title")) found.push(finding("spacing", [title], `${label(title)} is a page's h1 without the .lh-page-title class, so it is not the shared title size`));
+		if (shown(title) && !title.closest(".sr-only, .lh-prose") && !title.classList.contains("sr-only") && !title.classList.contains("lh-page-title")) found.push(finding("spacing", [title], `${label(title)} is a page's h1 without the .lh-page-title class, so it is not the shared title size`));
 	}
 	return found;
 }
@@ -533,9 +540,26 @@ function barKeys() {
 		.map((key) => finding("bar key", [key], `${label(key)} is a keycap in a bar`));
 }
 
+/** Empty box: a box is drawn for what it holds. A field or a chip is smaller than this. A box
+ *  inside aria-hidden is a drawing (the paper on the lesson's desk), and the well around a
+ *  drawing holds it. */
+const BOX_MIN = { width: 160, height: 120 };
+const HOLDS = `${CONTROLS}, ${PICTURES}, iframe, [contenteditable=true]`;
+const DRAWING = `[aria-hidden=true] :is(.lh-sheet, ${PICTURES})`;
+function emptyBoxes() {
+	return [...document.querySelectorAll(".lh-sheet, .lh-well")]
+		.filter((box) => {
+			if (!shown(box) || box.matches(HOLDS) || box.closest("[aria-hidden=true]")) return false;
+			const { width, height } = box.getBoundingClientRect();
+			if (width < BOX_MIN.width || height < BOX_MIN.height) return false;
+			return box.innerText.trim() === "" && ![...box.querySelectorAll(`${HOLDS}, ${DRAWING}`)].some(shown);
+		})
+		.map((box) => finding("empty box", [box], `${label(box)} is a box with nothing in it`));
+}
+
 /** Every finding on the page as it is now, each once. */
 export function checkPage() {
-	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys()];
+	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys(), ...emptyBoxes()];
 	const seen = new Set();
 	return all.filter((f) => !seen.has(f.key) && seen.add(f.key));
 }

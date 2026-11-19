@@ -1,0 +1,76 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 7 0 R /F2 8 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 1215 >>
+stream
+BT
+/F2 18 Tf 1 0 0 1 48 740 Tm (Lab Algebra: pop quiz cheat sheet) Tj
+/F2 13 Tf 1 0 0 1 48 716 Tm (Solving a linear equation) Tj
+/F1 11 Tf 1 0 0 1 48 697 Tm (To solve ax + b = c, undo each step in reverse.) Tj
+/F1 11 Tf 1 0 0 1 48 680 Tm (1. Subtract b from both sides: ax = c - b.) Tj
+/F1 11 Tf 1 0 0 1 48 663 Tm (2. Divide both sides by a: x = \(c - b\) / a.) Tj
+/F1 11 Tf 1 0 0 1 48 646 Tm (3. Put x back into the equation to check it.) Tj
+/F2 13 Tf 1 0 0 1 48 629 Tm (Reading a line) Tj
+/F1 11 Tf 1 0 0 1 48 610 Tm (Slope-intercept form: y = mx + b. m is the slope, b is where it crosses the y axis.) Tj
+/F1 11 Tf 1 0 0 1 48 593 Tm (Slope = rise over run = \(y2 - y1\) / \(x2 - x1\).) Tj
+/F1 11 Tf 1 0 0 1 48 576 Tm (Parallel lines have the same slope. Perpendicular lines have slopes that multiply to -1.) Tj
+/F2 13 Tf 1 0 0 1 48 559 Tm (Intercepts) Tj
+/F1 11 Tf 1 0 0 1 48 540 Tm (The y intercept: set x = 0. The x intercept: set y = 0.) Tj
+/F2 13 Tf 1 0 0 1 48 523 Tm (Mistakes to avoid) Tj
+/F1 11 Tf 1 0 0 1 48 504 Tm (Do not subtract b from only one side. Whatever you do to one side, do to the other.) Tj
+/F1 11 Tf 1 0 0 1 48 487 Tm (Do not forget the sign: in 5 - 2x = -7, the -2 stays with the x.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 7 0 R /F2 8 0 R >> >> >>
+endobj
+6 0 obj
+<< /Length 988 >>
+stream
+BT
+/F2 18 Tf 1 0 0 1 48 740 Tm (Graphing and systems) Tj
+/F2 13 Tf 1 0 0 1 48 716 Tm (Graph a line) Tj
+/F1 11 Tf 1 0 0 1 48 697 Tm (Mark the y intercept, then use the slope: up m, right 1, and repeat.) Tj
+/F2 13 Tf 1 0 0 1 48 680 Tm (Systems of two lines) Tj
+/F1 11 Tf 1 0 0 1 48 661 Tm (The solution is the point where the lines cross.) Tj
+/F1 11 Tf 1 0 0 1 48 644 Tm (Substitution: solve one equation for y, put it into the other.) Tj
+/F1 11 Tf 1 0 0 1 48 627 Tm (Elimination: add the equations so one letter cancels.) Tj
+/F1 11 Tf 1 0 0 1 48 610 Tm (No crossing \(same slope, different intercept\): no solution.) Tj
+/F1 11 Tf 1 0 0 1 48 593 Tm (Same line twice: infinitely many solutions.) Tj
+/F2 13 Tf 1 0 0 1 48 576 Tm (Word problems) Tj
+/F1 11 Tf 1 0 0 1 48 557 Tm (Name the unknown. Write what each sentence says as an equation. Solve. Check it in the story.) Tj
+/F1 11 Tf 1 0 0 1 48 540 Tm (Distance = speed x time. Two things moving toward each other: add their distances.) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+8 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000257 00000 n 
+0000001524 00000 n 
+0000001660 00000 n 
+0000002699 00000 n 
+0000002769 00000 n 
+trailer
+<< /Size 9 /Root 1 0 R >>
+startxref
+2844
+%%EOF

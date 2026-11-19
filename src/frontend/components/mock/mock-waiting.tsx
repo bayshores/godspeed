@@ -30,13 +30,13 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 
 	let body;
 	if (state === "ready") {
-		const time =
-			mock.format.minutes === undefined ? "There is no time limit." : "The time starts when you start and keeps running if you leave, unless you pause it.";
+		// The size already says when there is no time limit.
+		const time = mock.format.minutes === undefined ? "" : "The time starts when you start and keeps running if you leave, unless you pause it. ";
 		body = (
 			<>
 				<p className="text-[28px] leading-tight text-ink">Mock {mock.n} is ready</p>
 				<p className="max-w-[520px] text-lg leading-snug text-ink-2">
-					{size}. {time} {teacher} stays quiet until it ends, then grades everything.
+					{size}. {time}{teacher} stays quiet until it ends, then grades everything.
 				</p>
 				{fromAbout && (
 					<p data-testid="mock-from-about" className="max-w-[520px] text-[17px] leading-snug text-ink-2">

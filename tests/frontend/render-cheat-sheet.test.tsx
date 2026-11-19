@@ -44,7 +44,7 @@ Object.assign(globalThis, {
 // The chat scrolls to its end.
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
-const { OlderSheet, emptyChatLine, sheetPaper, versionLabel } = await import("../../src/frontend/components/cheat-sheet/studio-states.tsx");
+const { OlderSheet, emptyChatLine, versionLabel } = await import("../../src/frontend/components/cheat-sheet/studio-states.tsx");
 const { SheetChat, pointedLabel } = await import("../../src/frontend/components/cheat-sheet/sheet-chat.tsx");
 const { SheetCanvas } = await import("../../src/frontend/components/cheat-sheet/sheet-canvas.tsx");
 const { SheetDock } = await import("../../src/frontend/components/cheat-sheet/sheet-dock.tsx");
@@ -94,11 +94,6 @@ const view = (over: Partial<CheatSheetView> = {}): CheatSheetView => ({
 });
 
 describe("the studio's status", () => {
-	it("names the newest version's paper", () => {
-		assert.equal(sheetPaper(view()), "Not made yet");
-		assert.equal(sheetPaper(view({ sheet: { ...newCheatSheet("ddl_1", "t"), versions } })), "A4, front and back");
-	});
-
 	it("says an older sheet can't be shown, with one button to make it again", () => {
 		assert.match(renderToStaticMarkup(<OlderSheet onRemake={() => {}} />), /made by an older godspeed.*data-testid="cheat-sheet-remake"[^>]*>Make it again/);
 	});
@@ -106,7 +101,7 @@ describe("the studio's status", () => {
 	it("labels each version by what made it, and an empty chat by whether there is a sheet", () => {
 		assert.match(versionLabel(versions[1]!, true), /^Current, double sided, and a flowchart$/);
 		assert.match(versionLabel({ ...versions[1]!, fromFolder: true }, false), /^Nov 3, .*, From the working folder$/);
-		assert.match(emptyChatLine("Claude Code", false), /^Tell Claude Code in the terminal what you want on it.*Claude Code reads the rules in your space info files/);
+		assert.match(emptyChatLine("Claude Code", false), /^Tell Claude Code in the terminal which paper, one side or both, and what must be on it\./);
 		assert.match(emptyChatLine("Claude Code", true), /^Ask Claude Code in the terminal .*point at a part that confuses you/);
 	});
 });
@@ -345,25 +340,33 @@ describe("the cheat sheet studio's place in the top bar", () => {
 		assert.ok(q(el, "studio-bar") === null);
 	});
 
-	it("the paper, the file button and Print are words in the top bar", async () => {
+	it("the file button and Print are words in the top bar; the paper is said after the canvas's keys", async () => {
 		serveView(view({ sheet: { ...newCheatSheet("ddl_1", "t"), versions } }));
 		const el = mount(studio());
 		await settle();
 		const words = q(el, "bar-actions")!;
-		assert.equal(q(el, "cheat-sheet-status")!.parentElement, words);
-		assert.equal(q(el, "cheat-sheet-status")!.textContent, sheetPaper(view({ sheet: { ...newCheatSheet("ddl_1", "t"), versions } })));
+		assert.ok(!words.contains(q(el, "cheat-sheet-status")));
+		assert.equal(q(el, "cheat-sheet-status")!.textContent, "A4, front and back");
 		assert.equal(q(el, "cheat-sheet-download")!.getAttribute("href"), sheetPdfPath("cls_1", "ddl_1", 2));
 		assert.equal(q(el, "cheat-sheet-download")!.parentElement, words);
 		assert.equal(q(el, "cheat-sheet-print")!.parentElement, words);
 		assert.ok(q(el, "studio-bar") === null, "no title line on the page");
 	});
 
-	it("before a sheet is made Print is off and there is no file button", async () => {
+	it("before anything is asked the page is the question alone: no words in the bar for a sheet that isn't there, no chat column", async () => {
 		serveView(view());
 		const el = mount(studio());
 		await settle();
-		assert.equal(q(el, "cheat-sheet-status")!.textContent, "Not made yet");
-		assert.ok(q(el, "cheat-sheet-download") === null && q(el, "cheat-sheet-show-file") === null);
-		assert.equal(q(el, "cheat-sheet-print")!.hasAttribute("disabled"), true);
+		assert.ok(q(el, "cheat-sheet-empty") !== null);
+		for (const id of ["cheat-sheet-status", "cheat-sheet-download", "cheat-sheet-show-file", "cheat-sheet-print", "cheat-sheet-panel", "sheet-thread"]) assert.equal(q(el, id), null, id);
+	});
+
+	it("a request that waits or failed has its chat column before there is a sheet", async () => {
+		const asked = { ...newCheatSheet("ddl_1", "t"), messages: [{ id: "m1", role: "you" as const, text: "A4, both sides", at: "t" }] };
+		serveView(view({ sheet: asked, running: { messageId: "m1" } as CheatSheetView["running"] }));
+		const el = mount(studio());
+		await settle();
+		assert.ok(q(el, "cheat-sheet-empty") !== null && q(el, "cheat-sheet-panel") !== null);
+		assert.match(q(el, "sheet-thread")!.textContent ?? "", /A4, both sides/);
 	});
 });

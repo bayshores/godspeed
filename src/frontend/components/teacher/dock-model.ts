@@ -34,6 +34,8 @@ export const PANEL_WIDTH: PaneBounds = { initial: 620, min: 360, max: 900 };
 const DOCK_FULL_BELOW = 640;
 /** The page is never pushed narrower than this; the panel covers it instead. */
 const MIN_PAGE = 480;
+/** With less room than this beside the panel, a page's side by side parts stack or cramp. */
+const CRAMPED_PAGE = 800;
 
 /**
  * The open panel's width and how far it pushes the page left. It runs
@@ -41,11 +43,13 @@ const MIN_PAGE = 480;
  * pushes the page by that much, narrower when the page would drop under
  * 480; a page with no room for even the narrowest panel is covered
  * instead. A narrow window gets the panel across its whole width.
+ * `squeezed`: the panel covers the page or leaves it cramped, so the
+ * panel offers to hide.
  */
-export function panelLayout(windowWidth: number, pageWidth: number, wanted: number): { width: number; push: number } {
-	if (windowWidth < DOCK_FULL_BELOW) return { width: windowWidth, push: 0 };
+export function panelLayout(windowWidth: number, pageWidth: number, wanted: number): { width: number; push: number; squeezed: boolean } {
+	if (windowWidth < DOCK_FULL_BELOW) return { width: windowWidth, push: 0, squeezed: true };
 	const room = pageWidth - MIN_PAGE;
-	if (room < PANEL_WIDTH.min) return { width: Math.min(wanted, windowWidth), push: 0 };
+	if (room < PANEL_WIDTH.min) return { width: Math.min(wanted, windowWidth), push: 0, squeezed: true };
 	const width = Math.min(wanted, room);
-	return { width, push: width };
+	return { width, push: width, squeezed: pageWidth - width < CRAMPED_PAGE };
 }

@@ -40,6 +40,7 @@ export function SheetChat({
 	onClearPointed,
 	onShowVersion,
 	empty,
+	bare,
 	className,
 }: {
 	view: CheatSheetView;
@@ -56,6 +57,8 @@ export function SheetChat({
 	onShowVersion?: (n: number) => void;
 	/** The line an empty chat shows; absent when the page says it elsewhere. */
 	empty?: string;
+	/** Nothing is said yet and the page has no place for a chat: only what stands in the way of asking. */
+	bare?: boolean;
 	className?: string;
 }) {
 	const [failed, setFailed] = useState<string | null>(null);
@@ -85,6 +88,23 @@ export function SheetChat({
 	useTerminalLines("cheat sheet", sendLine);
 
 	const pagesOf = (n: number) => view.sheet.versions.find((v) => v.n === n)?.pages.length ?? 1;
+	const notes = (
+		<>
+			<NoAgentLine />
+			{(failed || view.newer) && (
+				<p role="alert" className="text-[15px] text-ans-wrong">
+					{view.newer ? "A newer godspeed saved this cheat sheet. Update godspeed to change it." : failed}
+				</p>
+			)}
+			{pointed && <PointedChip pointed={pointed} pages={pagesOf(pointed.region.n)} onClear={onClearPointed} />}
+		</>
+	);
+	if (bare)
+		return (
+			<div data-testid="sheet-box" className="flex flex-col items-center gap-2.5 empty:hidden">
+				{notes}
+			</div>
+		);
 
 	return (
 		<div data-testid="sheet-chat" className={cn("flex min-h-0 flex-1 flex-col", className)}>
@@ -130,14 +150,8 @@ export function SheetChat({
 				})}
 				<div ref={endRef} />
 			</div>
-			<div data-testid="sheet-box" className="flex shrink-0 flex-col gap-2.5 px-[22px] pb-[22px] empty:hidden">
-				<NoAgentLine />
-				{(failed || view.newer) && (
-					<p role="alert" className="text-[15px] text-ans-wrong">
-						{view.newer ? "A newer godspeed saved this cheat sheet. Update godspeed to change it." : failed}
-					</p>
-				)}
-				{pointed && <PointedChip pointed={pointed} pages={pagesOf(pointed.region.n)} onClear={onClearPointed} />}
+			<div data-testid="sheet-box" className="flex shrink-0 flex-col gap-2.5 px-[22px] pt-2.5 pb-[22px] empty:hidden">
+				{notes}
 			</div>
 		</div>
 	);

@@ -68,7 +68,7 @@ describe("before and after the answering", () => {
 	});
 	it("ready with no time limit, written from what it's like: why, once its deadline's files are read", async () => {
 		const html = page(<MockWaiting view={view({ format: { questions: 2 }, fromAbout: true })} state="ready" />);
-		assert.match(html, /2 questions, no time limit\. There is no time limit\./);
+		assert.match(html, /2 questions, no time limit\. Teacher stays quiet/);
 		assert.ok(!html.includes("mock-from-about"), "no guess before the files are read");
 		const files = [{ id: "f_guide", name: "Study guide.md", kind: "study", status: "failed" }];
 		const originalFetch = globalThis.fetch;
@@ -141,10 +141,10 @@ describe("answering", () => {
 		const html = page(<MockRun view={view({ startedAt: iso(-14), paused: { at: iso(-1), left: 31 * 60 + 9 } })} />);
 		assert.ok(!html.includes("mock-questions") && !html.includes("Idempotency") && !html.includes("math-box"), "nothing of the questions shows");
 		assert.match(html, /data-testid="mock-clock"[^>]*>31:09 left</);
-		assert.match(html, /data-testid="mock-paused-word"[^>]*>Paused</);
+		assert.equal(html.match(/31:09 left/g)?.length, 1, "the time left is said once, in the bar");
 		assert.ok(!html.includes('data-testid="mock-pause"'), "one Resume, on the paused screen");
 		assert.ok(!html.includes('data-testid="mock-end"'));
-		assert.match(html, />Mock 2 is paused<.*31:09 left\. The questions are hidden and nothing is saved until you resume\..*data-testid="mock-resume"[^>]*lh-btn-main[^>]*>Resume</);
+		assert.match(html, />Mock 2 is paused<.*>The questions are hidden and nothing is saved until you resume\..*data-testid="mock-resume"[^>]*lh-btn-main[^>]*>Resume</);
 	});
 });
 

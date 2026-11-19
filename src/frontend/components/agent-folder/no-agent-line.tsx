@@ -8,10 +8,12 @@ import { useStartAgent } from "./use-agent-folder";
 /**
  * Next to a control that needs the agent (Start lesson, Submit answer):
  * "Teacher is off" and the button that turns it on, while no agent is
- * here. Nothing otherwise.
+ * here. Nothing otherwise, and nothing while the open panel shows that
+ * button itself.
  */
 export function NoAgentLine({ className }: { className?: string }) {
-	if (agentHereNow(useAgentStatus(), useTerminals()) !== false) return null;
+	const panelStarts = useTeacher()?.panelStarts ?? false;
+	if (agentHereNow(useAgentStatus(), useTerminals()) !== false || panelStarts) return null;
 	return <Line className={className} />;
 }
 

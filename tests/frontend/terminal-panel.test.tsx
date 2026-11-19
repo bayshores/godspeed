@@ -25,6 +25,7 @@ const { TeacherContext } = await import("../../src/frontend/components/teacher/t
 const { useTeacherPanel } = await import("../../src/frontend/components/teacher/use-teacher-panel.ts");
 const { panelBody } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { NoAgentLine } = await import("../../src/frontend/components/agent-folder/no-agent-line.tsx");
+const { TerminalKey } = await import("../../src/frontend/components/terminal/terminal-key.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { FirstRunScreen } = await import("../../src/frontend/components/terminal/first-run-screen.tsx");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
@@ -548,6 +549,46 @@ describe("the screens", () => {
 			);
 		} finally {
 			again.remove();
+		}
+	});
+});
+
+describe("a page's Teacher is off line", () => {
+	it("is not there while the open panel shows the start key itself", async () => {
+		const shell = fakeShell();
+		const beside = (panelStarts: boolean) => (
+			<TeacherContext.Provider value={{ panelStarts } as never}>
+				<NoAgentLine />
+			</TeacherContext.Provider>
+		);
+		try {
+			await mounted(access(), async () => assert.ok(q("no-agent") !== null), beside(false));
+			await mounted(access(), async () => assert.equal(q("no-agent"), null), beside(true));
+		} finally {
+			shell.remove();
+		}
+	});
+});
+
+describe("a page that asks the learner to write in the terminal", () => {
+	it("has a key that opens it while the teacher runs and the panel is closed, and none before a start", async () => {
+		await mounted(access({}), async () => assert.equal(q("terminal-key"), null, "no terminal to open"), <TerminalKey />);
+		const shell = fakeShell([teacher()]);
+		try {
+			await mounted(
+				access({ teaching: true, terminals: [{ id: "t1", here: true }] }),
+				async () => {
+					assert.equal(text("terminal-key"), "Open the terminal");
+					await click("terminal-key");
+					assert.ok(onTerminal(), "the panel shows the teacher's screen");
+					assert.equal(q("terminal-key"), null, "nothing to open while it is open");
+					await click("close-panel");
+					assert.equal(text("terminal-key"), "Open the terminal");
+				},
+				<TerminalKey />,
+			);
+		} finally {
+			shell.remove();
 		}
 	});
 });

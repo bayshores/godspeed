@@ -12,8 +12,8 @@ import { cn } from "@/frontend/lib/utils";
  *  screen under it adds. */
 export function MockBar({ view, children }: { view: MockView; children?: ReactNode }) {
 	return (
-		<div data-testid="mock-bar" className="lh-own-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-12 shrink-0 select-none items-center gap-4 bg-bar px-6 text-bar-ink">
-			<Link to={deadlineHref(view.deadlineId)} data-testid="page-back" aria-label={view.deadlineName === null ? "Back" : undefined} className={cn(barWord(false), "max-w-[28ch] shrink")}>
+		<div data-testid="mock-bar" className="lh-own-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-12 shrink-0 select-none items-center gap-4 bg-bar px-6 text-bar-ink max-[860px]:gap-1.5">
+			<Link to={deadlineHref(view.deadlineId)} data-testid="page-back" aria-label={view.deadlineName === null ? "Back" : undefined} className={cn(barWord(false), "max-w-[40ch] min-w-0 shrink-[100]")}>
 				<PixelIcon name="chevron" className="-scale-x-100" />
 				{view.deadlineName !== null && <span className="truncate">{view.deadlineName}</span>}
 			</Link>

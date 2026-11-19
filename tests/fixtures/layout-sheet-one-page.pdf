@@ -1,0 +1,46 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 671 >>
+stream
+BT
+/F2 18 Tf 1 0 0 1 48 740 Tm (Lab Algebra: pop quiz cheat sheet) Tj
+/F2 13 Tf 1 0 0 1 48 716 Tm (Solving a linear equation) Tj
+/F1 11 Tf 1 0 0 1 48 697 Tm (To solve ax + b = c, undo each step in reverse.) Tj
+/F1 11 Tf 1 0 0 1 48 680 Tm (1. Subtract b from both sides: ax = c - b.) Tj
+/F1 11 Tf 1 0 0 1 48 663 Tm (2. Divide both sides by a: x = \(c - b\) / a.) Tj
+/F1 11 Tf 1 0 0 1 48 646 Tm (3. Put x back into the equation to check it.) Tj
+/F2 13 Tf 1 0 0 1 48 629 Tm (Reading a line) Tj
+/F1 11 Tf 1 0 0 1 48 610 Tm (Graph a line: mark the y intercept, then use the slope.) Tj
+/F1 11 Tf 1 0 0 1 48 593 Tm (A system's solution is the point where the lines cross.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000000973 00000 n 
+0000001043 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+1118
+%%EOF

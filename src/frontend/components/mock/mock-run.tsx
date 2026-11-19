@@ -20,7 +20,7 @@ const SAVE_EVERY_MS = 4000;
  * THE MOCK WHILE IT IS ANSWERED: the question on the left, the answer on
  * the right (an editor with Run examples, or the writing box). The bar
  * holds the questions, and on a timed mock the time left and Pause. Paused,
- * the questions are hidden until Resume and the bar says Paused. What is
+ * the questions are hidden until Resume and the time left stands. What is
  * typed is saved every few seconds, on every move and before a pause; the
  * teacher is not asked anything until the mock ends, by End mock or when
  * its time is up.
@@ -50,6 +50,11 @@ export function MockRun({ view }: { view: MockView }) {
 	// The server refuses answers while paused, and paused time isn't time on a question.
 	const pausedRef = useRef(paused);
 	const pauseButton = useRef<HTMLButtonElement>(null);
+	const questionKeys = useRef<HTMLOListElement>(null);
+	// The open question's key stays in view where the keys scroll.
+	useEffect(() => {
+		questionKeys.current?.querySelector("[aria-current]")?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+	}, [at]);
 	const resumeButton = useRef<HTMLButtonElement>(null);
 	useEffect(() => {
 		// The button that was pressed is gone, so focus goes to the one that undoes it.
@@ -164,9 +169,10 @@ export function MockRun({ view }: { view: MockView }) {
 					<div className="flex-1" aria-hidden />
 				) : (
 					<>
-						<ol data-testid="mock-questions" className="flex min-w-0 items-center gap-1.5">
+						{/* The deadline's name gives way first; with still more questions than room, they scroll in their place. */}
+						<ol ref={questionKeys} data-testid="mock-questions" className="flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
 							{questions.map((q, i) => (
-								<li key={q.id}>
+								<li key={q.id} className="shrink-0">
 									<button
 										type="button"
 										data-testid={`mock-question-${i + 1}`}
@@ -189,16 +195,10 @@ export function MockRun({ view }: { view: MockView }) {
 					</>
 				)}
 				{timed && <Clock mock={mock} onTimeUp={end} />}
-				{paused ? (
-					<span data-testid="mock-paused-word" className="text-[15px] text-bar-ink">
-						Paused
-					</span>
-				) : (
-					timed && (
-						<button ref={pauseButton} type="button" data-testid="mock-pause" disabled={switching || ending} onClick={() => void pauseOrResume()} className={barWord(false)}>
-							Pause
-						</button>
-					)
+				{timed && !paused && (
+					<button ref={pauseButton} type="button" data-testid="mock-pause" disabled={switching || ending} onClick={() => void pauseOrResume()} className={barWord(false)}>
+						Pause
+					</button>
 				)}
 				{!paused && (
 					<button type="button" data-testid="mock-end" disabled={ending || switching} onClick={() => setConfirmEnd(true)} className={barWord(false)}>
@@ -210,7 +210,7 @@ export function MockRun({ view }: { view: MockView }) {
 				<div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3.5 overflow-y-auto p-8 text-center">
 					<p className="text-[28px] leading-tight text-ink">Mock {mock.n} is paused</p>
 					<p className="max-w-[520px] text-lg leading-snug text-ink-2">
-						{clockText(mock.paused!.left)} left. The questions are hidden and nothing is saved until you resume.
+						The questions are hidden and nothing is saved until you resume.
 					</p>
 					<button ref={resumeButton} type="button" data-testid="mock-resume" disabled={switching} onClick={() => void pauseOrResume()} className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
 						Resume
@@ -305,7 +305,7 @@ function Clock({ mock, onTimeUp }: { mock: Mock; onTimeUp: () => void }) {
  *  question's examples as calls. */
 function QuestionPanel({ question: q, n, teacher }: { question: MockQuestion; n: number; teacher: string }) {
 	return (
-		<section data-testid="mock-question" className="flex w-[42%] max-w-[520px] min-w-[320px] shrink-0 flex-col gap-4 overflow-y-auto border-r-2 border-line px-7 py-6">
+		<section data-testid="mock-question" className="flex w-[42%] max-w-[520px] min-w-[320px] shrink-0 flex-col gap-4 overflow-y-auto px-7 py-6">
 			<h2 className="lh-card-title">
 				Question {n}: {q.title}
 			</h2>
@@ -322,7 +322,7 @@ function QuestionPanel({ question: q, n, teacher }: { question: MockQuestion; n:
 						</pre>
 					</div>
 				))}
-			<p className="mt-auto pt-4 text-[15px] text-ink-3">{teacher} stays quiet until the mock ends.</p>
+			<p className="mt-auto pt-4 text-[15px] text-balance text-ink-3">{teacher} stays quiet until the mock ends.</p>
 		</section>
 	);
 }

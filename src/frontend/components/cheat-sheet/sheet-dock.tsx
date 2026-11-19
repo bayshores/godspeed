@@ -159,12 +159,11 @@ function DockedSheet({ spaceId, deadlineId }: { spaceId: string; deadlineId: str
 			labelFor={versionLabel}
 			narrow
 			foot={
-				<div className="flex w-full items-center gap-2">
+				<div className="flex w-full flex-wrap items-center justify-between gap-2">
 					{/* Pointing sends a picture with a message, so it happens where the chat is. */}
 					<Link to={studioPath(deadlineId)} data-testid="sheet-dock-point" className="lh-btn text-[15px]">
 						Point at the sheet
 					</Link>
-					<span className="flex-1" />
 					<Link to={studioPath(deadlineId)} data-testid="sheet-dock-studio" className="lh-btn lh-btn-quiet text-[15px]">
 						Open full size
 					</Link>

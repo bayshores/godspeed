@@ -22,7 +22,9 @@ const LIT_KEY = "[--lh-key:var(--lh-highlight)] [--lh-key-hover:color-mix(in_srg
  * screen and there are chats to go back to), Follow (held down while the
  * window goes where the teacher works), and Activity. Chats and Activity
  * each drop their list over the top of the screen, one at a time. Background work's screen
- * has its name first, and Back. The pill that opened the panel closes it.
+ * has its name first, and Back. The pill that opened the panel closes it;
+ * while the page has too little room beside the panel, Hide here does
+ * too.
  * Under a name the status takes its own row.
  */
 export function PanelHead({
@@ -33,6 +35,7 @@ export function PanelHead({
 	list,
 	need,
 	back,
+	hide,
 }: {
 	/** Null on the teacher's screen: the pill above names it. */
 	title: string | null;
@@ -44,6 +47,8 @@ export function PanelHead({
 	/** Background work needs the learner: its key goes to its screen. */
 	need: (() => void) | null;
 	back: (() => void) | null;
+	/** The page is squeezed: the key that closes the panel. */
+	hide: (() => void) | null;
 }) {
 	const teacher = useTeacher();
 	const terminals = useTerminals();
@@ -137,6 +142,12 @@ export function PanelHead({
 					</span>
 				)}
 				<div className="flex min-w-0 flex-1 items-center gap-2">{inRow && statusChip}</div>
+				{hide && (
+					// A step above the quiet keys beside it, and never the screen's bright key.
+					<button type="button" data-testid="teacher-panel-hide" onClick={hide} className={cn("lh-btn h-8 shrink-0", TYPE)}>
+						Hide
+					</button>
+				)}
 				{needKey.mounted && (
 					<button type="button" data-testid="teacher-panel-need" data-state={needKey.state} onClick={() => need?.()} className={cn("lh-btn h-8 shrink-0 px-3", TYPE, LIT_KEY, "lh-pop")}>
 						Background work needs you

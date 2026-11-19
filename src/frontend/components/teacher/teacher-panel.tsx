@@ -78,13 +78,15 @@ export function TeacherPanel({
 	const line = agentLine(agent, name, doing);
 	const teacherStatus = screenStatusLine(teacherFacts, name);
 	const [wanted, setWanted] = usePaneWidth("teacher", PANEL_WIDTH);
-	const [{ width, whole }, setLayout] = useState({ width: wanted, whole: false });
+	const [{ width, whole, squeezed }, setLayout] = useState({ width: wanted, whole: false, squeezed: false });
+	// Only while the page has too little room beside the panel.
+	const hide = squeezed && teacher ? () => teacher.setPanelOpen(false) : null;
 	// Before paint, so the screen is never sized to another box first.
 	useLayoutEffect(() => {
 		const measure = () => {
 			const page = document.querySelector("main")?.getBoundingClientRect().width ?? window.innerWidth;
 			const layout = panelLayout(window.innerWidth, page, wanted);
-			setLayout({ width: layout.width, whole: layout.width >= window.innerWidth });
+			setLayout({ width: layout.width, whole: layout.width >= window.innerWidth, squeezed: layout.squeezed });
 			// On its way out it lets the page back at once.
 			document.documentElement.style.setProperty(PUSH_VAR, `${state === "open" ? layout.push : 0}px`);
 		};
@@ -115,6 +117,7 @@ export function TeacherPanel({
 					list={null}
 					need={null}
 					back={() => onScreen("teacher")}
+					hide={hide}
 				/>
 			) : (
 				<PanelHead
@@ -125,6 +128,7 @@ export function TeacherPanel({
 					list={onScreenView ? { open: list, onOpen: onList } : null}
 					need={onScreenView && helperCalls ? () => onScreen("helper") : null}
 					back={null}
+					hide={hide}
 				/>
 			)}
 

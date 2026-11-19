@@ -7,7 +7,7 @@ import { WAITING_TOPIC } from "./layout-seed.mjs";
  * `shows`. `ready` and `shows` name something drawn from the screen's data, not its frame, so the
  * check never runs on a screen still loading. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
- * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{pending}` and `{pathSpace}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
+ * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{pending}`, `{pathSpace}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
 export const WIDTHS = [1440, 1100, 800];
@@ -55,7 +55,7 @@ const homeworkTomorrow = `const day = new Date(Date.now() + 86_400_000);
 const date = day.getFullYear() + "-" + String(day.getMonth() + 1).padStart(2, "0") + "-" + String(day.getDate()).padStart(2, "0");
 await fetch("/api/spaces/{space}/deadlines/{homeworkOpenDeadline}", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ date }) })${HTTP_OK};`;
 /** Every deadline the seed made, so Today has none. */
-const dropDeadlines = ["{deadline}", "{homeworkOpenDeadline}", "{homeworkFirstDeadline}", "{homeworkManyDeadline}"].map((id) => `await fetch("/api/spaces/{space}/deadlines/${id}", { method: "DELETE" })${HTTP_OK};`).join("\n");
+const dropDeadlines = ["{deadline}", "{homeworkOpenDeadline}", "{homeworkFirstDeadline}", "{homeworkManyDeadline}", "{sheetMade}", "{sheetVersions}", "{mockRunDeadline}", "{waitingDeadline}"].map((id) => `await fetch("/api/spaces/{space}/deadlines/${id}", { method: "DELETE" })${HTTP_OK};`).join("\n");
 
 /** A folder that is always there and always empty, linked to the second space. */
 const linkedFolder = `await fetch("/api/spaces/{pathSpace}/folder", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: "/private/var/empty" }) })${HTTP_OK};`;
@@ -129,6 +129,18 @@ const LONG_TITLE = "Graphing linear equations, by hand, fast";
 const longTitle = `await fetch("/api/chats/{lesson}", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: ${JSON.stringify(LONG_TITLE)} }) })${HTTP_OK};`;
 /** The written-answer lesson moved out of its space, so the bar lights the + with the lesson's title after it. */
 const noSpace = `await fetch("/api/chats/{written}/space", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ spaceId: "none" }) })${HTTP_OK};`;
+
+/** A deadline with nothing made asks for its cheat sheet and for a mock, with no agent to answer. */
+const askSheet = `await fetch("/api/spaces/{space}/deadlines/{waitingDeadline}/cheat-sheet", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "ask", text: "Make my cheat sheet for the spring exam." }) })${HTTP_OK};`;
+const askMock = `await fetch("/api/spaces/{space}/mocks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ deadlineId: "{waitingDeadline}", questions: 5, minutes: 60 }) })${HTTP_OK};`;
+/** Both requests ended, so no agent that starts later takes them and the screens after are as before. */
+const dropAskedRequests = `await fetch("/api/spaces/{space}/deadlines/{waitingDeadline}/cheat-sheet", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "stop" }) })${HTTP_OK};
+const { mocks } = await fetch("/api/spaces/{space}/mocks?deadline={waitingDeadline}")${HTTP_OK}.then((r) => r.json());
+for (const mock of mocks) await fetch("/api/spaces/{space}/mocks/" + mock.id, { method: "DELETE" })${HTTP_OK};`;
+/** The cheat sheet page's pages drawn: pdf.js paints each into a canvas a moment after the page opens. */
+const sheetDrawn = (page) => `[data-testid=cheat-sheet-page]:nth-child(${page}) canvas`;
+const sheetPage = (deadline) => `/space/deadline/${deadline}/cheat-sheet`;
+const mockPage = (mock) => `/space/mock/{space}/${mock}`;
 
 export const SCREENS = [
 	{ name: "Today with a deadline", url: "/", ready: deadlineCard },
@@ -234,8 +246,9 @@ box.dispatchEvent(new Event("input", { bubbles: true })); ${pause}`,
 		ready: "[data-testid=cite-list]",
 		// The dock stays open for this screen only; the lessons after it open without it.
 		setup: `document.querySelector("[data-testid=lesson-cheat-sheet]").click(); ${pause}; localStorage.removeItem("lh:sheet-dock:{lesson}")`,
-		shows: "[data-testid=sheet-dock] [data-testid=sheet-dock-none]",
+		shows: "[data-testid=sheet-dock] [data-testid=sheet-dock-studio]",
 	},
+	{ name: "An address that is no page", url: "/nowhere", ready: "[data-testid=not-found]" },
 	{ name: "Space's plugin tab", url: "/space/plugin/flashcards", ready: "[data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Teacher's panel with no agent", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
 	{ name: "Teacher's panel, the other agents", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent-menu]").click()`, shows: "[data-testid=open-agent-choices][data-state=open]" },
@@ -266,7 +279,24 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	{ name: "Settings, Appearance", url: "/settings?section=appearance", ready: "[data-testid=appearance-preview]" },
 	{ name: "Settings, Appearance, the font list", url: "/settings?section=appearance", ready: "[data-testid=font-trigger]", setup: `document.querySelector("[data-testid=font-trigger]").click()`, shows: "[data-testid=font-menu][data-state=open] [data-testid=font-option-default]" },
 	{ name: "Settings, General", url: "/settings?section=general", ready: "[data-testid=teacher-name-row]" },
-	{ name: "Lesson whose first reply waits for an agent", url: waitingLesson, ready: desk("waiting") },
+	{ name: "Cheat sheet, not made", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]" },
+	{ name: "Cheat sheet, not made, beside the teacher's panel", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]", setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
+	{ name: "Cheat sheet, made, two pages", url: sheetPage("{sheetMade}"), ready: sheetDrawn(2), shows: "[data-testid=sheet-made]" },
+	{ name: "Cheat sheet, made, its rules folded", url: sheetPage("{sheetMade}"), ready: sheetDrawn(2), setup: `document.querySelector("[data-testid=sheet-rules-toggle]").click()`, shows: "[data-testid=sheet-rules-toggle][aria-expanded=false]" },
+	{ name: "Cheat sheet, made, beside the teacher's panel", url: sheetPage("{sheetMade}"), ready: sheetDrawn(2), setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
+	{ name: "Cheat sheet, two versions", url: sheetPage("{sheetVersions}"), ready: sheetDrawn(1), shows: "[data-testid=cheat-sheet-version] ~ [data-testid=cheat-sheet-version]" },
+	{ name: "Deadline with a graded mock and a ready one", url: "/space/deadline/{sheetMade}", ready: "[data-testid=deadline-mock-continue]" },
+	{ name: "Mock ready to start", url: mockPage("{mockReady}"), ready: "[data-testid=mock-ready] [data-testid=mock-start]" },
+	{ name: "Mock being taken against the clock", url: mockPage("{mockRunning}"), ready: "[data-testid=mock-run] [data-testid=mock-clock]" },
+	{ name: "Mock being taken, on a code question", url: mockPage("{mockRunning}"), ready: "[data-testid=mock-question-2]", setup: `document.querySelector("[data-testid=mock-question-2]").click()`, shows: "[data-testid=mock-run-examples]" },
+	{ name: "Mock being taken, asking to end it", url: mockPage("{mockRunning}"), ready: "[data-testid=mock-end]", setup: `document.querySelector("[data-testid=mock-end]").click()`, shows: "[data-testid=mock-end-confirm]" },
+	{ name: "Mock paused", url: mockPage("{mockPaused}"), ready: "[data-testid=mock-paused] [data-testid=mock-resume]" },
+	{ name: "Mock graded", url: mockPage("{mockGraded}"), ready: "[data-testid=mock-results] [data-testid=mock-feedback]" },
+	{ name: "Mock graded, an answer opened", url: mockPage("{mockGraded}"), ready: "[data-testid=mock-results] details summary", setup: `document.querySelector("[data-testid=mock-results] details summary").click()`, shows: "[data-testid=mock-results] details[open]" },
+	// The two screens below leave requests waiting for an agent; the lesson that follows them ends them.
+	{ name: "Cheat sheet while no agent is on it", before: askSheet, url: sheetPage("{waitingDeadline}"), ready: "[data-testid=sheet-working]" },
+	{ name: "Mock being written", before: askMock, url: "/space/deadline/{waitingDeadline}", ready: "[data-testid=deadline-mock-continue]", setup: `document.querySelector("[data-testid=deadline-mock-continue]").click()`, shows: "[data-testid=mock-writing]" },
+	{ name: "Lesson whose first reply waits for an agent", before: dropAskedRequests, url: waitingLesson, ready: desk("waiting") },
 	{
 		name: "Lesson whose first reply waits for an agent, beside the teacher's panel",
 		url: "/chat/{pending}",

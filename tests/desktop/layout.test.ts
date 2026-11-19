@@ -170,10 +170,24 @@ describe("the walk", () => {
 	});
 });
 
+describe("the screens", () => {
+	// A page the check never opens is a page nobody looked at.
+	it("open every page the router has, and one address it does not have", () => {
+		const router = fs.readFileSync(path.join(import.meta.dirname, "../../src/frontend/routes/router.tsx"), "utf8");
+		const pages = [...router.matchAll(/\bpath: "([^"*]+)"/g)].map((m) => m[1]!);
+		assert.ok(pages.length >= 9, "the router's pages were read");
+		const opened = SCREENS.map((s: { url: string }) => s.url.split("?")[0]!);
+		const shape = (page: string) => new RegExp(`^/${page.replace(/:[A-Za-z]+/g, "[^/]+")}$`);
+		for (const page of pages) assert.ok(opened.some((url) => shape(page).test(url)), `no screen opens /${page}`);
+		assert.ok(opened.includes("/"), "no screen opens Today");
+		assert.ok(opened.some((url) => url !== "/" && !pages.some((page) => shape(page).test(url))), "no screen opens an address that is no page");
+	});
+});
+
 describe("the stand-in agent", () => {
-	it("reads what a work item is for off its text, even when cut", () => {
+	it("reads what a work item is for off its text, even when cut, and keeps the text", () => {
 		const text = '{"status":"work","workId":"work_1","lessonId":"chat_lab","lessonTitle":"Slope","kind":"lesson","tools":[{"name":"x"';
-		assert.deepEqual(workOf(text), { lessonId: "chat_lab", task: undefined });
+		assert.deepEqual(workOf(text), { lessonId: "chat_lab", task: undefined, text });
 		assert.equal(workOf('{"status":"work","workId":"w","kind":"background task","task":"Graph extraction: a.md"}').task, "Graph extraction: a.md");
 	});
 });

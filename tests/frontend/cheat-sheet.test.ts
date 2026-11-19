@@ -10,6 +10,7 @@ import {
 } from "../../src/shared/core/cheat-sheet.ts";
 import {
 	artboards,
+	stacksPages,
 	bounds,
 	fitCamera,
 	fitWidthCamera,
@@ -92,6 +93,10 @@ describe("cheat sheet: the canvas", () => {
 		assert.ok(pinch.zoom > 1);
 		assert.deepEqual([pinch.x, pinch.y], [10, 10], "the point under the pointer stays");
 		assert.ok(wheelCamera(cam, { ...wheel, metaKey: true }, { x: 0, y: 0 }).zoom < 1);
+	});
+
+	it("stacks pages in a canvas under 640 px wide, and never before the canvas is measured", () => {
+		assert.deepEqual([0, 392, 639, 640, 872].map(stacksPages), [false, true, true, false, false]);
 	});
 
 	it("stacks a version's pages one under another for a narrow view, and fits its width with the top in view", () => {
