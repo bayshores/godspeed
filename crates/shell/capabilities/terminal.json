@@ -22,6 +22,8 @@
     "allow-terminal-add-file",
     "allow-terminal-stop",
     "allow-terminal-list",
+    "allow-start-drag",
+    "allow-title-bar-double-click",
     "allow-terminal-window-close",
     "allow-terminal-window-focus"
   ]

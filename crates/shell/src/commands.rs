@@ -74,7 +74,7 @@ pub mod appkit {
 
 	use tauri::{State, Webview};
 
-	use super::{AppOrigin, trusted};
+	use super::{AppOrigin, trusted, trusted_terminal};
 	use crate::mac::window::DoubleClick;
 	use crate::paths::Paths;
 	use crate::{mac, window};
@@ -101,16 +101,17 @@ pub mod appkit {
 		Ok(mac::window::drag_paths())
 	}
 
-	/// A double-click on the title bar does what System Settings says.
+	/// A double-click on the title bar a page draws does what System Settings says, to the
+	/// page's own window.
 	#[tauri::command]
 	pub fn title_bar_double_click(webview: Webview, origin: State<AppOrigin>) -> Result<(), String> {
-		trusted(&webview, &origin)?;
-		let main = window::main_window(&webview)?;
+		trusted_terminal(&webview, &origin)?;
+		let own = window::own_window(&webview)?;
 		match mac::window::double_click_action() {
-			DoubleClick::Minimize => main.minimize(),
+			DoubleClick::Minimize => own.minimize(),
 			DoubleClick::Nothing => Ok(()),
-			DoubleClick::Zoom if main.is_maximized().map_err(|err| err.to_string())? => main.unmaximize(),
-			DoubleClick::Zoom => main.maximize(),
+			DoubleClick::Zoom if own.is_maximized().map_err(|err| err.to_string())? => own.unmaximize(),
+			DoubleClick::Zoom => own.maximize(),
 		}
 		.map_err(|err| err.to_string())
 	}

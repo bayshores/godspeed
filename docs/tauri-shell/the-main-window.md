@@ -26,7 +26,7 @@ WebKit has no `-webkit-app-region`, so the shim copies Chromium's rule.
 
 1. On a plain primary `mousedown` while `html.lh-desktop[data-lh-platform="darwin"]` matches, the shim walks `.lh-drag, .lh-no-drag, .lh-drag :is(button, input, textarea, select, a, summary, [contenteditable])` in document order.
 2. The last element under the point decides: drag unless it matches the no-drag part.
-3. On a drag, the shim calls `preventDefault()` and invokes `start_drag`.
+3. On a drag, the shim calls `preventDefault()` and invokes `start_drag`. It drags the window the page is in (main, or the terminal window, whose head is a drag area too).
 4. The second press of a double click starts no drag, because the drag would swallow the mouse-up and WebKit would never send `dblclick`. That press remembers its point instead.
 5. A `mouseup` with `detail === 2` at the same point invokes `title_bar_double_click`. It reads `AppleActionOnDoubleClick`: `Minimize` minimizes, `None` does nothing, anything else toggles zoom.
 
@@ -87,7 +87,7 @@ Release builds register `tauri_plugin_single_instance` first. Debug builds skip 
 
 ### The terminal window
 
-The teacher's terminal popped out beside the main window. The page is `/terminal-window`; the shell only makes the window.
+The teacher's terminal popped out beside the main window. The page is `/terminal-window` (`routes/terminal-window.tsx`: the providers the main window has, from `routes/app-providers.tsx`, and no app frame, top bar or teacher provider); the shell only makes the window. The page is the teacher panel's head with the status line and "Put back", and the screen with its row. On the Mac the head is the title bar: it has the shim's drag class and the traffic lights' gutter.
 
 | Item | Value |
 |---|---|
@@ -95,15 +95,15 @@ The teacher's terminal popped out beside the main window. The page is `/terminal
 | Made by | `terminal_window_open(title)` from the main window only. When the window exists, the call brings it forward instead (unminimize, show, focus). |
 | Place | Its left edge on the main window's right edge, its top on the main window's top, on the screen the main window is on, inside that screen's work area. With no room at the right, it moves left until it fits and covers the main window's right part. Not remembered. |
 | Size | 720 × 900 logical, never taller than the main window's frame or the screen; minimum 400 × 300. The title bar's height is taken off the inner height after the build, so the frame is as tall as placed. Not remembered. |
-| Title | The system title bar, titled with the name the page passes: control characters dropped, cut at 60 characters, `godspeed` when nothing is left. The page's own title is not followed. |
+| Title | The name the page passes: control characters dropped, cut at 60 characters, `godspeed` when nothing is left. The page's own title is not followed. Windows and Linux show it in the system title bar. On the Mac the title bar is the page's, as main's is (overlay style, title hidden, the traffic lights centered on the page's head row at `{16, 28}`), and the name shows in Mission Control and the Window menu. |
 | Not always on top | It is an ordinary window. |
 | Built like main | `base_builder`, so the shim, the navigation rules, the color, the Windows browser arguments and the debug profile are main's; the menu bar is hidden after the build on Windows and Linux. |
 | Shown | Hidden until its first app page has loaded (then focused), or 5 s after it was made. In the screens lab it goes through `screens::appear` like main: unseen, never focused. |
 | Zoom | Shares main's factor (see Zoom). |
 | Focus | The app counts as focused when either window is: `notify.rs` shows no notification then. |
-| Closing | Its close button, `terminal_window_close` from either window, or the main window being destroyed. Nothing is remembered and nothing asks. |
+| Closing | Its close button, `terminal_window_close` from either window ("Put back"), or the main window being destroyed. Nothing is remembered and nothing asks. |
 
-The shell owns whether it is open. It pushes `terminal-window` `{open}` to the main window when the window is made, when it is destroyed and after every load of the main page, so a reloaded main page knows. When it is destroyed the shell also detaches every terminal it showed (`Terminals::window_closed`), because its page cannot say so; the main page attaches again.
+The shell owns whether it is open. It pushes `terminal-window` `{open}` to the main window when the window is made, when it is destroyed and after every load of the main page, so a reloaded main page knows. `terminal_window_close` also pushes `{open: false, back: true}`: a page asked to put the terminal back, so the main page opens its panel on the screen, which the close button does not ask. When the window is destroyed the shell also detaches every terminal it showed (`Terminals::window_closed`), because its page cannot say so; the main page attaches again when its panel mounts the screen's view. Its page never starts the helper or wakes the teacher, so two windows never start two agents.
 
 ### Links and navigation
 

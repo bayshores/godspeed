@@ -362,11 +362,17 @@ pub fn show_window(webview: Webview, origin: State<AppOrigin>) -> Result<(), Str
 	Ok(())
 }
 
-/// A press on a drag area of the Mac title bar.
+/// The window the calling page is in.
+pub fn own_window(webview: &Webview) -> Result<WebviewWindow, String> {
+	webview.app_handle().get_webview_window(webview.label()).ok_or_else(|| "no window".to_owned())
+}
+
+/// A press on a drag area of the Mac title bar, which each window's page draws: it drags the
+/// page's own window.
 #[tauri::command]
 pub fn start_drag(webview: Webview, origin: State<AppOrigin>) -> Result<(), String> {
-	trusted(&webview, &origin)?;
-	main_window(&webview)?.start_dragging().map_err(|e| e.to_string())
+	trusted_terminal(&webview, &origin)?;
+	own_window(&webview)?.start_dragging().map_err(|e| e.to_string())
 }
 
 /// A lone Alt shows or hides the menu bar (Windows, Linux).

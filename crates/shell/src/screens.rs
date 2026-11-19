@@ -8,7 +8,8 @@
 //! | `eval <js>` | the script's value as JSON (`null` for undefined; a promise is not awaited) |
 //! | `size <w> <h>` | `ok`, the window's inner size in points |
 //! | `snap <file>` | `ok` once the page is written as a PNG (two pixels a point, no title bar) |
-//! //! | `quit` | `ok`, then the app exits |
+//! | `window <label>` | `ok`: `nav`, `eval`, `size` and `snap` are for that window from now on (`main` at first, `terminal` once the page popped the terminal out) |
+//! | `quit` | `ok`, then the app exits |
 //!
 //! A command that fails answers `error: <why>`, a script that throws included. `LH_SCREENS_INIT`
 //! names a script that runs in the page before any of its own, for what the lab must set up
@@ -80,6 +81,7 @@ enum Request<'a> {
 	Eval(&'a str),
 	Size(f64, f64),
 	Snap(&'a str),
+	Window(&'a str),
 	Quit,
 }
 
@@ -93,6 +95,7 @@ fn parse(line: &str) -> Result<Request<'_>, String> {
 			size.map(|(width, height)| Request::Size(width, height)).ok_or_else(|| "size takes a width and a height".to_owned())
 		}
 		"snap" => Ok(Request::Snap(arg)),
+		"window" => Ok(Request::Window(arg)),
 		"quit" => Ok(Request::Quit),
 		other => Err(format!("unknown command {other}")),
 	}
@@ -100,6 +103,7 @@ fn parse(line: &str) -> Result<Request<'_>, String> {
 
 fn run(app: &AppHandle, ctl: &Path, out: &Path) {
 	let (mut offset, mut pending) = (0, String::new());
+	let mut label = crate::window::MAIN.to_owned();
 	loop {
 		std::thread::sleep(POLL);
 		let Ok(mut file) = std::fs::File::open(ctl) else { continue };
@@ -113,7 +117,7 @@ fn run(app: &AppHandle, ctl: &Path, out: &Path) {
 			let line: String = pending.drain(..=end).collect();
 			let request = parse(line.trim_end());
 			let quit = matches!(request, Ok(Request::Quit));
-			let answer = request.and_then(|request| answer(app, request)).unwrap_or_else(|err| format!("error: {err}"));
+			let answer = request.and_then(|request| answer(app, &mut label, request)).unwrap_or_else(|err| format!("error: {err}"));
 			if let Err(err) = OpenOptions::new().create(true).append(true).open(out).and_then(|mut out| writeln!(out, "{answer}")) {
 				log::line(&format!("cannot answer the lab: {err}"));
 			}
@@ -125,14 +129,19 @@ fn run(app: &AppHandle, ctl: &Path, out: &Path) {
 	}
 }
 
-fn answer(app: &AppHandle, request: Request) -> Result<String, String> {
-	let main = app.get_webview_window("main").ok_or("no window")?;
+fn answer(app: &AppHandle, label: &mut String, request: Request) -> Result<String, String> {
+	if let Request::Window(wanted) = request {
+		app.get_webview_window(wanted).ok_or("no window")?;
+		wanted.clone_into(label);
+		return Ok(ok());
+	}
+	let main = app.get_webview_window(label).ok_or("no window")?;
 	match request {
 		Request::Nav(url) => main.navigate(Url::parse(url).map_err(|err| err.to_string())?).map_err(|err| err.to_string()).map(|()| ok()),
 		Request::Eval(js) => eval(&main, js),
 		Request::Size(width, height) => main.set_size(LogicalSize::new(width, height)).map_err(|err| err.to_string()).map(|()| ok()),
 		Request::Snap(file) => crate::mac::screens::snapshot(&main, PathBuf::from(file)).map(|()| ok()),
-		Request::Quit => Ok(ok()),
+		Request::Window(_) | Request::Quit => Ok(ok()),
 	}
 }
 
@@ -178,6 +187,7 @@ mod tests {
 		assert_eq!(parse("nav http://127.0.0.1:48060/x?a=b"), Ok(Request::Nav("http://127.0.0.1:48060/x?a=b")));
 		assert_eq!(parse("eval document.title + ' x'"), Ok(Request::Eval("document.title + ' x'")));
 		assert_eq!(parse("snap /lab/a b.png"), Ok(Request::Snap("/lab/a b.png")));
+		assert_eq!(parse("window terminal"), Ok(Request::Window("terminal")));
 		assert_eq!(parse("quit"), Ok(Request::Quit));
 		assert_eq!(parse("jump"), Err("unknown command jump".to_owned()));
 	}

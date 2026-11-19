@@ -1,7 +1,9 @@
 //! The terminal window: the teacher's terminal popped out of the main window, so it stays in
 //! sight beside it. The shell owns whether it exists and tells the main page (`terminal-window`
-//! `{ open }`) when it is made, when it is gone and after every main page load. It is made only
-//! when the main page asks, never at launch, and its place and size are not remembered.
+//! `{ open }`) when it is made, when it is gone and after every main page load, and `{ open:
+//! false, back: true }` when a page asked to put the terminal back, so the main page shows it.
+//! It is made only when the main page asks, never at launch, and its place and size are not
+//! remembered. On the Mac its page draws the title bar, as the main window's does.
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -21,6 +23,10 @@ const SIZE: (f64, f64) = (720.0, 900.0);
 const MIN_SIZE: (f64, f64) = (400.0, 300.0);
 /// The longest title, so a long name never fills the title bar.
 const TITLE_MAX: usize = 60;
+/// Where the traffic lights sit: their centers on y 26, the middle of the page's head row (tao
+/// puts the first circle's left edge at x and its center at y - 2).
+#[cfg(target_os = "macos")]
+const TRAFFIC_LIGHTS: tauri::LogicalPosition<f64> = tauri::LogicalPosition { x: 16.0, y: 28.0 };
 
 /// A rectangle in logical points.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -98,6 +104,8 @@ fn create(app: &AppHandle, name: &str) -> Result<(), String> {
 				log::line(&format!("cannot show the terminal window: {err}"));
 			}
 		});
+	#[cfg(target_os = "macos")]
+	let builder = builder.title_bar_style(tauri::TitleBarStyle::Overlay).hidden_title(true).traffic_light_position(TRAFFIC_LIGHTS);
 	let terminal = builder.build().map_err(|err| err.to_string())?;
 	// The window exists now, so a step that fails is logged and the window goes on.
 	let finished = fit_frame_height(&terminal, place.height).and_then(|()| terminal.set_zoom(zoom::current(app)));
@@ -160,11 +168,15 @@ pub fn terminal_window_open(webview: Webview, origin: State<AppOrigin>, title: S
 	open(webview.app_handle(), &title)
 }
 
-/// Puts the terminal back: the window closes. Closing a window that is not there does nothing.
+/// Puts the terminal back: the window closes, and the main page is asked to show the terminal,
+/// which the window's own close button does not ask. Closing a window that is not there closes
+/// nothing.
 #[tauri::command(async)]
 pub fn terminal_window_close(webview: Webview, origin: State<AppOrigin>) -> Result<(), String> {
 	trusted_terminal(&webview, &origin)?;
-	close(webview.app_handle());
+	let app = webview.app_handle();
+	close(app);
+	push_to(app, MAIN, "terminal-window", &json!({ "open": false, "back": true }));
 	Ok(())
 }
 

@@ -52,7 +52,7 @@ The access rule and login route are in [rust-server.md](../rust-server.md#the-se
 }
 ```
 
-- `terminal.json` grants the terminal window's webview (`terminal`) only: the `terminal_*` commands, `terminal_window_close`, `terminal_window_focus`, `open_link`, `open_path`, `show_in_folder` and the four zoom commands. It has no folder picker, no update, bug report, print, drag path or window-opening command. `command_lists.rs` checks that every name in it is in `main.json` and that none of the main-only commands is.
+- `terminal.json` grants the terminal window's webview (`terminal`) only: the `terminal_*` commands, `terminal_window_close`, `terminal_window_focus`, `start_drag` and `title_bar_double_click` (its page draws its Mac title bar; both act on the calling page's own window), `open_link`, `open_path`, `show_in_folder` and the four zoom commands. It has no folder picker, no update, bug report, print, drag path or window-opening command. `command_lists.rs` checks that every name in it is in `main.json` and that none of the main-only commands is.
 - `print.json` grants `core:webview:allow-print` to the same webview on `windows` and `linux` only.
 - No `windows` key, because a window entry grants every webview in that window.
 - No `core:default`. The page uses no Tauri events or plugin JS.
