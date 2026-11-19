@@ -141,7 +141,7 @@ A run can restore a cache saved on its own branch or tag, or on main. A cache sa
 | Every Monday at 13:30 UTC | GitHub deletes caches unused for 7 days. |
 | By hand, **Run workflow** on main | Whenever the cache is cold. |
 
-The cache is cold when a release's `Swatinem/rust-cache` step says "No cache found", or when it restores an older key (the dependencies changed since the last rehearsal). The release still works; it is just slower (about 40 minutes on the Intel Mac instead of about 22, and about 33 instead of 17 on Windows). To warm it, run the rehearsal on main (or push to main) and wait for it to finish before pushing the tag.
+The cache is cold when a release's `Swatinem/rust-cache` step says "No cache found", or when it restores an older key (the dependencies changed since the last rehearsal). The release still works; it is just slower, because every dependency compiles again, which about doubles the Intel Mac and Windows jobs (warm, a rehearsal's Windows job takes about 12 minutes and its Intel Mac job about 19; a release adds Apple's signing on the Macs). To warm it, run the rehearsal on main (or push to main) and wait for it to finish before pushing the tag.
 
 The repository has 10 GB of cache space. When it is full GitHub deletes the caches used longest ago, so the release caches can be pushed out by CI's.
 
