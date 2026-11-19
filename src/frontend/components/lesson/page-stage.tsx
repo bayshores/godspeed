@@ -10,7 +10,8 @@ import { pdfPageUrl, useReadingDoc, type ReadingDoc } from "./use-reading-doc";
  * (globals.css .lh-desk-well), cut at its stepped corners. Before the teacher
  * opens a file it is a pile (PaperStack); a file it opens lies on top and the
  * view drifts down through all of it once, then settles on the part being read
- * (PageStage).
+ * (PageStage), whose lines the highlighter marks. The plan beside the paper
+ * names the file and the place, so the paper carries no label.
  */
 
 /** PDFs longer than this show only their first pages. */
@@ -22,12 +23,20 @@ const LETTER = 8.5 / 11;
 /** How far each sheet under the top one sticks out, up and to the right. */
 const EDGE_STEP = 8;
 
-/** The paper floats about the middle of the well, as tall as its pages are, and the well cuts it.
+/** The paper floats in the middle of the well, as tall as its pages are, and the well cuts it.
  *  It is a picture of the file, so screen readers skip it. */
-const FLOAT = "px-6 pt-10 [transform-origin:50%_170px]";
+const FLOAT = "px-6 pt-8";
 
+/** A page is never wider than this, so its type keeps the size of a printed page. */
+const PAGE = "mx-auto w-full max-w-[560px]";
+
+/** The paper lies over the well, so however long the file is, the well is only as tall as the desk. */
 function PaperWell({ children }: { children: ReactNode }) {
-	return <div className="lh-desk-well lh-sheet relative min-h-0 flex-1 overflow-hidden">{children}</div>;
+	return (
+		<div className="lh-desk-well lh-sheet relative min-h-0 flex-1">
+			<div className="absolute inset-0 overflow-hidden">{children}</div>
+		</div>
+	);
 }
 
 /** The pile before the teacher opens a file: the top sheet (page 1 of `path`, or blank) over
@@ -41,7 +50,7 @@ export function PaperStack({ path, edges, still, slot, arrive }: { path: string 
 	return (
 		<PaperWell>
 			<div aria-hidden className={cn(FLOAT, !still && "lh-float")}>
-				<div className={cn("relative mx-auto w-[360px] max-w-[calc(100%-24px)]", !still && "lh-float-2")}>
+				<div className={cn("relative mx-auto w-[440px] max-w-[calc(100%-24px)]", !still && "lh-float-2")}>
 					{under.map((n, i) => (
 						<div
 							key={n}
@@ -63,9 +72,9 @@ export function PaperStack({ path, edges, still, slot, arrive }: { path: string 
 	);
 }
 
-/** The file the teacher has open: its name and place over its pages, which drift through the
- *  whole file the first time and then move to each new place it reads. The pile's float waits
- *  while the pages drift, so one thing moves at a time. */
+/** The file the teacher has open: its pages, which drift through the whole file the first time
+ *  and then move to each new place it reads. The float and the highlighter wait while the pages
+ *  drift, so one thing moves at a time. */
 export function PageStage({ reading, className }: { reading: ReadingTarget; className?: string }) {
 	const doc = useReadingDoc(reading.path);
 	const scrollerRef = useRef<HTMLDivElement>(null);
@@ -111,18 +120,12 @@ export function PageStage({ reading, className }: { reading: ReadingTarget; clas
 
 	return (
 		// The file is not lesson text, and Find could never scroll into this stage.
-		<div data-session-find-exclude="" className={cn("flex min-h-0 min-w-0 flex-1 flex-col gap-2", className)}>
-			<div className="flex items-baseline gap-3 text-[15px]">
-				<span className="truncate text-ink-2" title={reading.name}>
-					{reading.name}
-				</span>
-				<span className="shrink-0 font-count text-ink-2">{whereLabel(reading, doc)}</span>
-			</div>
+		<div data-session-find-exclude="" className={cn("flex min-h-0 min-w-0 flex-1 flex-col", className)}>
 			<PaperWell>
 				<div ref={stageRef} className="h-full overflow-hidden">
 					<div aria-hidden className={cn("lh-float", FLOAT)}>
 						<div className="lh-float-2">
-							<div ref={scrollerRef} className="relative flex flex-col gap-4 will-change-transform">
+							<div ref={scrollerRef} className={cn("relative flex flex-col gap-4 will-change-transform", PAGE)}>
 								{doc?.kind === "text" && <TextPages text={doc.text} from={from} to={to} />}
 								{doc?.kind === "pdf" && reading.kind === "pdf" && <PdfPages path={reading.path} doc={doc} page={reading.page} />}
 							</div>
@@ -134,32 +137,31 @@ export function PageStage({ reading, className }: { reading: ReadingTarget; clas
 	);
 }
 
-function whereLabel(reading: ReadingTarget, doc: ReadingDoc | null): string {
-	if (reading.kind === "pdf") {
-		const total = doc?.kind === "pdf" ? ` of ${doc.pageCount}` : "";
-		return reading.page ? `page ${reading.page}${total}` : "";
-	}
-	if (reading.from && reading.to) return `lines ${reading.from} to ${reading.to}`;
-	return reading.from ? `from line ${reading.from}` : "";
-}
-
-/** One printed page of a text file, the lines being read marked in ink. */
+/** One printed page of a text file. The lines being read get the highlighter's bar in the
+ *  margin, one stroke drawn down beside them, and the lines around them fade. */
 function TextPage({ start, lines, from, to }: { start: number; lines: string[]; from: number | null; to: number | null }) {
+	const ranged = from !== null && to !== null;
+	const row = (line: string, i: number) => {
+		const n = start + i;
+		return (
+			<div key={n} data-reading-here={n === from ? "" : undefined} className="whitespace-pre-wrap break-words">
+				{line || " "}
+			</div>
+		);
+	};
+	if (!ranged) return <div className="text-[12px] leading-[1.55]">{lines.map(row)}</div>;
+	const a = Math.max(0, from - start);
+	const b = Math.min(lines.length, to - start + 1);
+	const faded = "opacity-40 transition-opacity duration-500";
 	return (
-		<div className="text-[10.5px] leading-[1.5]">
-			{lines.map((line, i) => {
-				const n = start + i;
-				const lit = from !== null && to !== null && n >= from && n <= to;
-				return (
-					<div
-						key={n}
-						data-reading-here={n === from ? "" : undefined}
-						className={cn("-ml-2 border-l-2 pl-1.5 whitespace-pre-wrap break-words", lit ? "border-[#1A1A1A] bg-black/[0.07] text-[#111]" : "border-transparent")}
-					>
-						{line || " "}
-					</div>
-				);
-			})}
+		<div className="text-[12px] leading-[1.55]">
+			{a > 0 && <div className={faded}>{lines.slice(0, a).map(row)}</div>}
+			{b > a && (
+				<div className="lh-read-mark -ml-5 pl-5 text-[#111]">
+					{lines.slice(a, b).map((line, i) => row(line, a + i))}
+				</div>
+			)}
+			{b < lines.length && <div className={faded}>{lines.slice(Math.max(a, b)).map((line, i) => row(line, Math.max(a, b) + i))}</div>}
 		</div>
 	);
 }
@@ -178,7 +180,7 @@ function PdfPages({ path, doc, page }: { path: string; doc: Extract<ReadingDoc, 
 	return Array.from({ length: Math.min(doc.pageCount, MAX_PDF_PAGES) }, (_, i) => i + 1).map((n) => (
 		<div key={n} data-reading-here={n === page ? "" : undefined} className="lh-sheet lh-paper relative overflow-hidden" style={{ aspectRatio: doc.aspect }}>
 			<img src={pdfPageUrl(path, n)} alt={`Page ${n}`} loading={page !== null && Math.abs(n - page) <= 1 ? "eager" : "lazy"} className="size-full object-contain" />
-			{n === page && <span className="absolute top-0 bottom-0 left-0 w-0.5 bg-[#1A1A1A]" />}
+			{n === page && <span className="lh-read-mark absolute top-0 bottom-0 left-0 w-1.5" />}
 		</div>
 	));
 }

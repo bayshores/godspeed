@@ -99,7 +99,7 @@ describe("the desk", () => {
 		assert.equal(count(out, /role="status"/g), 1, "one spinner");
 		assert.doesNotMatch(out, /opened a\.md/);
 		assert.doesNotMatch(out, />Plan</);
-		assert.match(out, /title="b\.md">b\.md</, "the file read now is on top");
+		assert.doesNotMatch(out, /title="b\.md"/, "the plan names the file, so the paper carries no label");
 	});
 
 	it("with no plan, shows the newest step alone, with the spinner", () => {

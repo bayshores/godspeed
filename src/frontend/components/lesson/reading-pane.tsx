@@ -22,7 +22,8 @@ import { cardFiles, deskMark, deskPaper, heldBack, nothingWritten, titleEcho, wa
  * the reading type, answered cards inline. The sheet is as tall as its
  * text; the page around it scrolls (LessonScroll).
  * Its foot holds one thing at a time: while the teacher works, the desk
- * (AgentAtWork) with Stop under it; once it has finished, the go-ahead key,
+ * (AgentAtWork), which grows to the sheet's foot, with Stop under it; once it
+ * has finished, the go-ahead key,
  * if the lesson waits for one. When the reply lands the desk fades out first
  * and the reply is held back until it has gone, so the two never stack.
  * Each message is a memoized row, so streaming redraws only the message
@@ -99,7 +100,7 @@ export function ReadingPane({
 	);
 	const startAgain = !busy && !shownDesk && !goAhead && nothingWritten(messages) ? onStartAgain : null;
 	return (
-		<div data-session-find-root="" className="lh-reading flex flex-col gap-4">
+		<div data-session-find-root="" className="lh-reading flex flex-1 flex-col gap-4">
 			{messages.length === 0 && !busy && <ConversationEmptyState title="New lesson" description="" />}
 			{shown.map((m, mi) => (
 				<MessageRow
@@ -118,8 +119,8 @@ export function ReadingPane({
 				/>
 			))}
 			{shownDesk && (
-				<ArrivalRow live={arrivalsLive}>
-					<div data-state={closing ? "closed" : "open"} data-desk-closing={closing || undefined} inert={closing} className={cn(closing && "lh-fade")}>
+				<ArrivalRow live={arrivalsLive} className="flex flex-1 flex-col">
+					<div data-state={closing ? "closed" : "open"} data-desk-closing={closing || undefined} inert={closing} className={cn("flex flex-1 flex-col", closing && "lh-fade")}>
 						<AgentAtWork state={shownDesk.state} work={shownDesk.work} split={shownDesk.split} paper={shownDesk.paper} arrive={arrive} foot={foot} />
 					</div>
 				</ArrivalRow>

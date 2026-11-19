@@ -12,8 +12,8 @@ import { planLines, type DeskState, type PlanLine } from "./wait-model";
  * THE DESK: where the reply will appear, while the teacher works on it. It shows paper, the
  * learner's own files, from the moment the turn starts; once the teacher has a plan or takes a
  * step it splits in place into the plan on the left and the paper on the right, the file the
- * teacher opened on top. It says nothing the top bar's pill says. `foot` is Stop and the lines
- * typed to the teacher that wait for it.
+ * teacher opened on top. It fills the sheet down to its foot, where `foot` rests: Stop and the
+ * lines typed to the teacher that wait for it. It says nothing the top bar's pill says.
  */
 export function AgentAtWork({
 	state,
@@ -36,8 +36,8 @@ export function AgentAtWork({
 	useReplayOnChange(ref, split, "lh-block-in");
 	const reading = split ? (work?.reading ?? null) : null;
 	return (
-		<div ref={ref} data-testid="agent-at-work" data-state={state} className="lh-desk @container/desk flex flex-col gap-4">
-			<div className={cn("flex h-[340px] gap-7 @max-[360px]/desk:h-auto", split && "@max-[560px]/desk:h-auto @max-[560px]/desk:flex-col")}>
+		<div ref={ref} data-testid="agent-at-work" data-state={state} className="lh-desk @container/desk flex flex-1 flex-col gap-6">
+			<div className={cn("flex min-h-[420px] flex-1 gap-7 @max-[360px]/desk:min-h-0", split && "@max-[560px]/desk:min-h-0 @max-[560px]/desk:flex-col")}>
 				{split && work && <WorkList work={work} slot={slot} arrive={arrive} />}
 				<div className={cn("flex min-w-0 flex-1 flex-col @max-[360px]/desk:hidden", split && "@max-[560px]/desk:h-[220px] @max-[560px]/desk:flex-none")}>
 					{reading ? (
@@ -52,30 +52,31 @@ export function AgentAtWork({
 	);
 }
 
-/** The plan, each item stepping in after the one above it, with the newest step under the
- *  current item; with no plan, the newest step alone. Only the current item spins. */
+/** The plan, each item stepping in after the one above it. The current item lies on a tile with
+ *  the newest step under it; with no plan, the newest step alone is that tile. Only the current
+ *  item spins. */
 function WorkList({ work, slot, arrive }: { work: AgentWork; slot: string; arrive: Arrive }) {
 	const lines = work.plan ? planLines(work.plan) : [];
 	const n = work.steps.length;
 	const step = n > 0 && (
-		<span key={n} className={cn("line-clamp-2 font-count text-[15px] leading-5 break-words text-ink-2", arrive(`${slot}:step:${n}`) && "lh-block-in")} style={{ "--lh-block-delay": "60ms" } as CSSProperties}>
+		<span key={n} className={cn("line-clamp-3 font-count text-[14px] leading-5 break-words text-ink-2", arrive(`${slot}:step:${n}`) && "lh-block-in")} style={{ "--lh-block-delay": "60ms" } as CSSProperties}>
 			{work.steps[n - 1]}
 		</span>
 	);
 	const hasNow = lines.some((line) => line.state === "now");
 	return (
-		<ol data-testid="desk-plan" className="flex w-[260px] shrink-0 flex-col gap-3 @max-[560px]/desk:w-full">
+		<ol data-testid="desk-plan" className="flex w-[300px] shrink-0 flex-col gap-1 @max-[560px]/desk:w-full">
 			{lines.map((line, i) => (
-				<li key={line.key} className={cn("flex gap-2.5", arrive(`${slot}:plan:${line.key}`) && "lh-block-in")} style={{ "--lh-block-delay": `${i * 40}ms` } as CSSProperties}>
+				<li key={line.key} className={cn(ROW, line.state === "now" && NOW, arrive(`${slot}:plan:${line.key}`) && "lh-block-in")} style={{ "--lh-block-delay": `${i * 40}ms` } as CSSProperties}>
 					<Mark state={line.state} />
-					<div className="flex min-w-0 flex-col gap-2">
+					<div className="flex min-w-0 flex-col gap-1.5">
 						<LineText line={line} />
 						{line.state === "now" && step}
 					</div>
 				</li>
 			))}
 			{!hasNow && step && (
-				<li className="flex gap-2.5">
+				<li className={cn(ROW, NOW)}>
 					<Mark state="now" />
 					<div className="min-w-0">{step}</div>
 				</li>
@@ -84,12 +85,17 @@ function WorkList({ work, slot, arrive }: { work: AgentWork; slot: string; arriv
 	);
 }
 
+/** Every row is padded like the tile, so the plan's words stay in one column. */
+const ROW = "flex gap-3 px-3 py-2.5";
+/** The current item: a tile in the well's shade, the paper's own ground. */
+const NOW = "lh-desk-well lh-sheet";
+
 function Mark({ state }: { state: PlanLine["state"] }) {
 	return (
-		<span className="flex h-5 w-4 shrink-0 items-center justify-center">
+		<span className="flex h-5 w-5 shrink-0 items-center justify-center">
 			{(state === "done" || state === "folded") && <PixelIcon name="check" className="text-ink-2" />}
-			{state === "now" && <BrailleSpinner label="Working" />}
-			{state === "next" && <span className="size-1.5 bg-tone-2" />}
+			{state === "now" && <BrailleSpinner className="h-5" label="Working" />}
+			{state === "next" && <span className="size-2 bg-tone-2" />}
 		</span>
 	);
 }

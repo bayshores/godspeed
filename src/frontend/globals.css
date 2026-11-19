@@ -1486,10 +1486,13 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 
 /* The lesson's desk (components/lesson/agent-at-work.tsx, page-stage.tsx):
    the learner's files as paper in a well cut at the sheet's stepped corners.
-   The pile floats on two uneven loops so it never sits still, and waits
-   while the pages drift (data-drifting). With no agent at the desk the
-   paper is pale and still. On a dark background the paper is dimmed, so
-   it never glares. */
+   The paper stands straight, so its type stays sharp, and floats a few
+   pixels on two uneven loops so it never sits still; it waits while the
+   pages drift (data-drifting). The lines being read get the lesson's
+   highlighter as a bar in the margin, drawn down once the pages settle,
+   and the lines around them fade. With no agent at
+   the desk the paper is pale and still. On a dark background the paper is
+   dimmed, so it never glares. */
 .lh-desk {
 	--lh-paper: #e9e9e7;
 	--lh-paper-lip: #bdbdb8;
@@ -1512,37 +1515,47 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 }
 @keyframes lh-float-a {
 	0% {
-		transform: translate(0, 0) rotate(-1deg);
+		transform: translate(0, 0);
 	}
 	50% {
-		transform: translate(2px, -3px) rotate(-0.6deg);
+		transform: translate(2px, -3px);
 	}
 	100% {
-		transform: translate(-1px, 2px) rotate(-1.3deg);
+		transform: translate(-1px, 2px);
 	}
 }
 @keyframes lh-float-b {
 	from {
-		transform: translateY(0) rotate(0);
+		transform: translateY(0);
 	}
 	to {
-		transform: translateY(-2px) rotate(0.3deg);
+		transform: translateY(-2px);
 	}
 }
 .lh-float {
-	transform: rotate(-1deg);
 	animation: lh-float-a 9s ease-in-out infinite alternate;
 }
 .lh-float-2 {
 	animation: lh-float-b 5.3s ease-in-out infinite alternate;
 }
+.lh-read-mark {
+	background: linear-gradient(var(--lh-highlight), var(--lh-highlight)) no-repeat 0 0 / 6px 100%;
+	animation: lh-mark-in 900ms var(--lh-ease-out) backwards;
+}
+@keyframes lh-mark-in {
+	from {
+		background-size: 6px 0%;
+	}
+}
 [data-drifting] .lh-float,
-[data-drifting] .lh-float-2 {
+[data-drifting] .lh-float-2,
+[data-drifting] .lh-read-mark {
 	animation-play-state: paused;
 }
 @media (prefers-reduced-motion: reduce) {
 	.lh-float,
-	.lh-float-2 {
+	.lh-float-2,
+	.lh-read-mark {
 		animation: none;
 	}
 }

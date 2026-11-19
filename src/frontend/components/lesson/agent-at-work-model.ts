@@ -260,8 +260,8 @@ export function lastRead(messages: readonly LhViewMessage[], files: readonly Car
 }
 
 /** A page holds this many printed rows; a long line wraps every ROW_CHARS characters. */
-export const ROWS_PER_PAGE = 44;
-const ROW_CHARS = 58;
+export const ROWS_PER_PAGE = 38;
+const ROW_CHARS = 64;
 
 /** A text file cut into pages by printed rows; `start` is the first line's number. */
 export function textPages(text: string): { start: number; lines: string[] }[] {

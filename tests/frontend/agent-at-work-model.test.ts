@@ -163,11 +163,11 @@ describe("textPages", () => {
 	});
 
 	it("counts a long line as the rows it wraps to", () => {
-		const long = "x".repeat(58 * 10);
+		const long = "x".repeat(64 * 10);
 		const pages = textPages([long, long, long, long, long].join("\n"));
 		assert.deepEqual(
 			pages.map((p) => p.start),
-			[1, 5],
+			[1, 4],
 		);
 	});
 });
