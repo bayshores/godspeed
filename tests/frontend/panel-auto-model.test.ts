@@ -12,9 +12,9 @@ import {
 	type PanelSeen,
 } from "../../src/frontend/components/teacher/panel-auto-model.ts";
 
-const SHUT: PanelSeen = { open: false, byApp: false };
-const BY_APP: PanelSeen = { open: true, byApp: true };
-const BY_LEARNER: PanelSeen = { open: true, byApp: false };
+const SHUT: PanelSeen = { open: false, byApp: false, popped: false };
+const BY_APP: PanelSeen = { open: true, byApp: true, popped: false };
+const BY_LEARNER: PanelSeen = { open: true, byApp: false, popped: false };
 const calm: PanelMemory = { need: null, replying: false, waiting: false };
 
 const step = (mem: PanelMemory, now: PanelNow, pane: PanelSeen, waitLeft = 0) => stepPanel(mem, now, pane, waitLeft);
@@ -47,6 +47,20 @@ describe("a need opens the panel", () => {
 		const gone = step(waiting.mem, { need: null, replying: false }, SHUT);
 		assert.equal(gone.act, null);
 		assert.equal(gone.mem.waiting, false);
+	});
+});
+
+describe("the teacher's screen is in its own window", () => {
+	const POPPED: PanelSeen = { open: false, byApp: false, popped: true };
+	it("a need opens no panel and is not kept for when the screen comes back", () => {
+		const came = step(calm, { need: "teacher", replying: false }, POPPED);
+		assert.equal(came.act, null);
+		assert.equal(came.mem.waiting, false);
+		assert.equal(act(came.mem, { need: "teacher", replying: false }, SHUT), null, "put back with the need still there: nothing opens");
+	});
+
+	it("a need that comes after it is put back opens the panel as before", () => {
+		assert.deepEqual(act(calm, { need: "teacher", replying: false }, SHUT), { open: "teacher" });
 	});
 });
 

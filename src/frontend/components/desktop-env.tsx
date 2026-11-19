@@ -50,8 +50,8 @@ declare global {
 				close: () => Promise<void>;
 				/** Brings the window to the front, out of the Dock if minimized; rejects when it isn't open. */
 				focus: () => Promise<void>;
-				/** The main page hears whether the window is open when it opens or closes, and after every load of the main page. */
-				onChange: (cb: (state: { open: boolean }) => void) => () => void;
+				/** The main page hears whether the window is open when it opens or closes, and after every load of the main page. `back`: a page asked to put the terminal back, so the main page shows it. */
+				onChange: (cb: (state: { open: boolean; back?: boolean }) => void) => () => void;
 			};
 			/** Opens an http, https or mailto link in the browser. */
 			openLink?: (url: string) => Promise<void>;

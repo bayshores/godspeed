@@ -1,15 +1,9 @@
 import { useEffect } from "react";
 import { Outlet } from "react-router";
 import { showsWelcome, useBoot } from "@/frontend/components/boot";
-import { DesktopEnv } from "@/frontend/components/desktop-env";
 import { AppShell } from "@/frontend/components/app-shell";
 import { ActivityProvider } from "@/frontend/components/activity-dock";
-import { ServerEventsProvider } from "@/frontend/components/server-events";
-import { SettingsProvider } from "@/frontend/components/settings-context";
-import { AgentStatusProvider, useAgentStatus } from "@/frontend/components/agent-status";
-import { AppearanceProvider } from "@/frontend/components/settings/appearance";
 import UpdateBanner from "@/frontend/components/update-banner";
-import { SpaceProvider } from "@/frontend/components/space-context";
 import { SoundProvider } from "@/frontend/components/sounds";
 import { Onboarding } from "@/frontend/components/onboarding/onboarding";
 import { RestartNotice } from "@/frontend/components/restart-notice";
@@ -17,18 +11,8 @@ import { PillPanel } from "@/frontend/components/top-bar/pill-panel";
 import { WhatsNew } from "@/frontend/components/whats-new";
 import { FolderNotice } from "@/frontend/components/agent-folder/folder-notice";
 import { OldSetupNotice } from "@/frontend/components/agent-folder/old-setup";
-import { TerminalsProvider } from "@/frontend/components/terminal/use-terminals";
-import { AgentFolderProvider } from "@/frontend/components/agent-folder/agent-folder-context";
+import { AppProviders } from "./app-providers";
 import { PageTitle } from "./page-title";
-
-/** The agents' terminals follow the agent's live status, in the godspeed folder. */
-function Terminals({ children }: { children: React.ReactNode }) {
-	return (
-		<AgentFolderProvider>
-			<TerminalsProvider status={useAgentStatus()}>{children}</TerminalsProvider>
-		</AgentFolderProvider>
-	);
-}
 
 /** Around every screen: the providers, the app frame (or the onboarding on
  *  first launch) and the notices. */
@@ -40,48 +24,33 @@ export function Root() {
 	// effect runs first, so the window shows with the saved colors.
 	useEffect(() => window.lh?.showWindow?.(), []);
 	return (
-		<>
-			<DesktopEnv />
-			{/* The notification channel rides OUTSIDE everything: the top bar,
-			    dock and pages all subscribe. */}
-			<ServerEventsProvider>
-				<SettingsProvider boot={boot}>
-					<AgentStatusProvider>
-						<Terminals>
-							<SpaceProvider initialActive={boot.activeSpace} initialSpaces={boot.spaces}>
-								<AppearanceProvider initial={boot.appearance}>
-									<div className="flex h-dvh flex-col">
-										<ActivityProvider>
-											<SoundProvider>
-												{boot.onboarding ? (
-													<>
-														<PageTitle />
-														<Onboarding />
-													</>
-												) : (
-													<AppShell welcome={welcome} whatsNewSince={welcome ? boot.whatsNewSince : null}>
-														<Outlet />
-													</AppShell>
-												)}
-											</SoundProvider>
-										</ActivityProvider>
-									</div>
-								</AppearanceProvider>
-							</SpaceProvider>
-							{/* Auto-update banner (pushed by the desktop shell) and the restart notice. */}
-							<PillPanel>
-								<UpdateBanner />
-								{boot.firstLoad === "restarted" && <RestartNotice />}
-								{!boot.onboarding && <OldSetupNotice />}
-							</PillPanel>
-							{/* "What's new" after an update (after the welcome screen when it
-							    shows); Settings reopens it. */}
-							{!boot.onboarding && <WhatsNew since={welcome ? null : boot.whatsNewSince} />}
-							{boot.folderNotice && <FolderNotice agent={boot.folderNotice} afterWelcome={welcome} />}
-						</Terminals>
-					</AgentStatusProvider>
-				</SettingsProvider>
-			</ServerEventsProvider>
-		</>
+		<AppProviders boot={boot}>
+			<div className="flex h-dvh flex-col">
+				<ActivityProvider>
+					<SoundProvider>
+						{boot.onboarding ? (
+							<>
+								<PageTitle />
+								<Onboarding />
+							</>
+						) : (
+							<AppShell welcome={welcome} whatsNewSince={welcome ? boot.whatsNewSince : null}>
+								<Outlet />
+							</AppShell>
+						)}
+					</SoundProvider>
+				</ActivityProvider>
+			</div>
+			{/* Auto-update banner (pushed by the desktop shell) and the restart notice. */}
+			<PillPanel>
+				<UpdateBanner />
+				{boot.firstLoad === "restarted" && <RestartNotice />}
+				{!boot.onboarding && <OldSetupNotice />}
+			</PillPanel>
+			{/* "What's new" after an update (after the welcome screen when it
+			    shows); Settings reopens it. */}
+			{!boot.onboarding && <WhatsNew since={welcome ? null : boot.whatsNewSince} />}
+			{boot.folderNotice && <FolderNotice agent={boot.folderNotice} afterWelcome={welcome} />}
+		</AppProviders>
 	);
 }

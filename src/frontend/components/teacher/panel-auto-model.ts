@@ -2,6 +2,7 @@
  * When the teacher's panel opens and closes by itself (use-teacher-panel.ts).
  * It opens when a need for the learner arises, once the learner has paused
  * typing, and closes when that need is settled or when a lesson reply starts.
+ * While the teacher's screen is in its own window it never opens: the pill lights.
  */
 import type { TerminalRole } from "@/frontend/components/terminal/terminal-model";
 
@@ -29,6 +30,8 @@ export interface PanelSeen {
 	open: boolean;
 	/** The panel opened by itself and the learner has not taken it over. */
 	byApp: boolean;
+	/** The teacher's screen is in its own window. */
+	popped: boolean;
 }
 
 export type PanelAct = { open: TerminalRole } | "close" | null;
@@ -57,7 +60,8 @@ export function stepPanel(mem: PanelMemory, now: PanelNow, pane: PanelSeen, wait
 	const settled = mem.need !== null && now.need === null;
 	const replyStarted = mem.replying === false && now.replying === true;
 
-	const waiting = (mem.waiting || arrived) && now.need !== null && !pane.open;
+	// A need that arrives while popped is not held for later: put back, the panel stays as it is.
+	const waiting = (mem.waiting || arrived) && now.need !== null && !pane.open && !pane.popped;
 	const opens = waiting && waitLeft === 0;
 	const closes = pane.open && ((settled && pane.byApp) || (replyStarted && now.need === null));
 

@@ -6,7 +6,10 @@
  * once that need is answered. The panel opens by itself when an agent's
  * terminal needs the learner and closes when that is settled or a lesson
  * reply starts (panel-auto-model.ts); opened that way it leaves the keyboard
- * where it is. Only a screen the learner opened takes the keyboard.
+ * where it is. Only a screen the learner opened takes the keyboard. When the
+ * teacher's screen pops out into its own window the panel closes; while it is
+ * there the panel never opens by itself, and asking to show that screen
+ * brings the window forward instead. Put back shows the screen here again.
  */
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { needsYou, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
@@ -30,11 +33,28 @@ const CLOSED: PanelState = { open: false, list: false, role: "teacher", focus: f
 /** `replying`: a reply is running in the open lesson, null with no lesson open. */
 export function useTeacherPanel(replying: boolean | null) {
 	const [state, setState] = useState<PanelState>(CLOSED);
-	const setOpen = useCallback((open: boolean) => setState(open ? { ...CLOSED, open } : CLOSED), []);
-	const showTerminal = useCallback((role: TerminalRole = "teacher") => setState({ open: true, list: false, role, focus: true, byApp: false }), []);
+	const showScreen = useCallback((role: TerminalRole) => setState({ open: true, list: false, role, focus: true, byApp: false }), []);
+	// Opened by the learner, the panel is on the teacher's screen, or on Activity while that is in its own window.
+	const setOpen = useCallback((open: boolean) => (open ? showScreen("teacher") : setState(CLOSED)), [showScreen]);
 	const setList = useCallback((list: boolean) => setState((s) => ({ ...s, list })), []);
 
 	const terminals = useTerminals();
+	const popped = !!terminals?.popped;
+	const focusWindow = terminals?.focusWindow;
+	// Popped out, the terminal has a window of its own: the column gives the page its room back.
+	useEffect(() => {
+		if (popped) setState(CLOSED);
+	}, [popped]);
+	// Put back, from either window: the screen shows here again, with the keyboard.
+	const putBacks = terminals?.putBacks ?? 0;
+	useEffect(() => {
+		if (putBacks > 0) showScreen("teacher");
+	}, [putBacks, showScreen]);
+	// The teacher's screen is in its window while popped; background work's still shows here.
+	const showTerminal = useCallback(
+		(role: TerminalRole = "teacher") => (popped && role === "teacher" ? focusWindow?.() : showScreen(role)),
+		[popped, focusWindow, showScreen],
+	);
 	// Background work's need answered: back to the teacher's screen, which
 	// the learner did not open, so it leaves the keyboard where it is.
 	const helper = terminals?.facts.helper ?? null;
@@ -75,7 +95,7 @@ export function useTeacherPanel(replying: boolean | null) {
 			return;
 		}
 		const waitLeft = typingWaitLeft(lastKey.current, Date.now());
-		const { mem, act } = stepPanel(seen.current, { need, replying }, { open, byApp }, waitLeft);
+		const { mem, act } = stepPanel(seen.current, { need, replying }, { open, byApp, popped }, waitLeft);
 		seen.current = mem;
 		if (act === "close") setState(CLOSED);
 		else if (act) setState({ open: true, list: false, role: act.open, focus: false, byApp: true });
@@ -83,7 +103,7 @@ export function useTeacherPanel(replying: boolean | null) {
 			const timer = setTimeout(pauseEnded, waitLeft);
 			return () => clearTimeout(timer);
 		}
-	}, [need, replying, open, byApp, loaded, pause]);
+	}, [need, replying, open, byApp, popped, loaded, pause]);
 
-	return { ...state, setOpen, showTerminal, setList };
+	return { ...state, setOpen, showTerminal, showScreen, setList };
 }

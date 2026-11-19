@@ -326,6 +326,21 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	},
 	// The longest starter key: "Get me ready for" the deadline's name.
 	{ name: "The agent's screen on a deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]", setup: openTeacher, shows: "[data-testid=terminal-starters] [data-testid=terminal-starter]" },
+	// The stand-in teacher runs by now. The window's own page, and the column of the main window while the shell says the window is open.
+	{
+		name: "The terminal window",
+		url: "/terminal-window",
+		ready: "[data-testid=terminal-window] [data-testid=teacher-panel-put-back]",
+		setup: `${pause}; document.querySelector("[data-testid=open-agent]")?.click()`,
+		shows: "[data-testid=terminal-window] [data-testid=terminal-starter]",
+	},
+	{
+		name: "Teacher's column while the terminal is in its window",
+		url: "/",
+		ready: deadlineCard,
+		setup: `window.__lhPush("terminal-window", { open: true }); ${pause}; ${openTeacher}`,
+		shows: "[data-testid=teacher-panel] [data-testid=teacher-panel-put-back]",
+	},
 	{ name: "Today with no deadline", before: dropDeadlines, url: "/", ready: "[data-testid=today-empty]" },
 	{ name: "Today on a busy day", before: busyDay, url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", shows: "[data-testid=week-later]" },
 	{ name: "Today, the week unfolded", url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", setup: `document.querySelector("[data-testid=week-more]").click()`, shows: "[data-testid=week-rest][data-state=open]" },

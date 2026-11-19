@@ -24,7 +24,7 @@ const FILE_GONE = "Can't find this file on your computer.";
 /** xterm loads with the first screen shown. */
 const TerminalView = lazyComponent(() => import("./terminal-view").then((m) => m.TerminalView));
 
-export function TerminalPane({ api, role, name, foot, focusOnOpen, starters = [] }: {
+export function TerminalPane({ api, role, name, foot, focusOnOpen, starters = [], popOut = null }: {
 	api: TerminalsApi;
 	role: TerminalRole;
 	/** What the screen's agent is called: the teacher's name, or background work's. */
@@ -35,6 +35,8 @@ export function TerminalPane({ api, role, name, foot, focusOnOpen, starters = []
 	focusOnOpen: boolean;
 	/** The starter keys' words (starter-model.ts); none leaves the row out. */
 	starters?: readonly string[];
+	/** Pops the screen out into a window of its own (api.popOut); none leaves its key out. */
+	popOut?: TerminalsApi["popOut"];
 }) {
 	const term = api[role]!;
 	const [focusKey, setFocusKey] = useState(0);
@@ -108,6 +110,7 @@ export function TerminalPane({ api, role, name, foot, focusOnOpen, starters = []
 							}
 						: null
 				}
+				onPopOut={popOut ? () => void popOut(name).then(setError) : null}
 				onStop={live ? () => void api.stop(role) : null}
 				off={`Turn off ${name}`}
 				get={foot.get}

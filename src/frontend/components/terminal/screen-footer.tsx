@@ -5,15 +5,17 @@ import { ScreenKey } from "./screen-key";
 import type { TerminalFooter } from "./terminal-model";
 
 /**
- * The slim row under a screen: Attach and Paste at the left, the sentence
+ * The slim row under a screen: Attach, Paste and Pop out at the left, the sentence
  * when there is one, then Turn off (the agent's whole process), and the one bright key (the assist key or
  * Start again) at the far right. A key shows only while it can act, and
  * fades in and out.
  */
-export function ScreenFooter({ text, onAttach, onPaste, onStop, off, get, assist, onStartAgain, again = "Start again", onNewChat = null }: {
+export function ScreenFooter({ text, onAttach, onPaste, onPopOut, onStop, off, get, assist, onStartAgain, again = "Start again", onNewChat = null }: {
 	text: string | null;
 	onAttach: ((files: File[]) => void) | null;
 	onPaste: (() => void) | null;
+	/** Moves the teacher's screen into a window of its own; null where it cannot. */
+	onPopOut: (() => void) | null;
 	onStop: (() => void) | null;
 	/** Stop's words: "Turn off Teacher". */
 	off: string;
@@ -46,6 +48,9 @@ export function ScreenFooter({ text, onAttach, onPaste, onStop, off, get, assist
 			</ScreenKey>
 			<ScreenKey testid="terminal-paste" onClick={onPaste} quiet>
 				Paste
+			</ScreenKey>
+			<ScreenKey testid="terminal-pop-out" onClick={onPopOut} quiet>
+				Pop out
 			</ScreenKey>
 			<p data-testid="terminal-footer" role="status" className={cn("min-w-0 flex-1 px-1.5 font-mono text-[13px] leading-snug text-ink", text && "min-w-56")}>
 				{text}

@@ -23,10 +23,11 @@ const { AgentNeed } = await import("../../src/frontend/components/onboarding/age
 const { TeacherPanel } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 const { useTeacherPanel } = await import("../../src/frontend/components/teacher/use-teacher-panel.ts");
-const { panelBody } = await import("../../src/frontend/components/teacher/dock-model.ts");
+const { panelBody, shownScreen } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { NoAgentLine } = await import("../../src/frontend/components/agent-folder/no-agent-line.tsx");
 const { TerminalKey } = await import("../../src/frontend/components/terminal/terminal-key.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
+const { TerminalWindow } = await import("../../src/frontend/components/terminal/terminal-window.tsx");
 const { FirstRunScreen } = await import("../../src/frontend/components/terminal/first-run-screen.tsx");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 
@@ -52,7 +53,8 @@ afterEach(() => {
 /** The teacher's panel as the provider holds it. */
 function PanelHost({ children }: { children?: React.ReactNode }) {
 	const panel = useTeacherPanel(null);
-	const view = panelBody(!!useTerminals()?.available);
+	const terminals = useTerminals();
+	const view = panelBody(!!terminals?.available, !!terminals?.popped && shownScreen(panel.role, !!terminals.helper) === "teacher");
 	const api: TeacherApi = {
 		name: "Ada",
 		follow: false,
@@ -84,7 +86,7 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 					list={panel.list}
 					onList={panel.setList}
 					screen={panel.role}
-					onScreen={panel.showTerminal}
+					onScreen={panel.showScreen}
 					focus={panel.focus}
 					state="open"
 				/>
@@ -913,6 +915,172 @@ describe("Restart now during a turn", () => {
 		} finally {
 			await act(async () => root.unmount());
 			host.remove();
+		}
+	});
+});
+
+describe("the terminal in a window of its own", () => {
+	const ON = access({ teaching: true, terminals: [{ id: "t1", here: true }] });
+	const attaches = (shell: { calls: string[] }) => shell.calls.filter((c) => c === "attach t1").length;
+
+	it("shows Pop out on the teacher's screen only where the shell has the window", async () => {
+		const shell = fakeShell([teacher(), teacher({ id: "h1", role: "helper" })]);
+		try {
+			await mounted(ON, async () => {
+				await click("open-terminal");
+				assert.equal(q("terminal-pop-out"), null, "an older shell: no window to make");
+			});
+		} finally {
+			shell.remove();
+		}
+		const withWindow = fakeShell([teacher(), teacher({ id: "h1", role: "helper" })], true);
+		try {
+			await mounted(access({ teaching: true, terminals: [{ id: "t1", here: true }, { id: "h1", here: true }] }), async () => {
+				await click("open-terminal");
+				assert.equal(text("terminal-pop-out"), "Pop out");
+				await click("terminal-pop-out");
+				assert.ok(withWindow.calls.includes("window open Ada"), "titled with the teacher's name");
+				await act(async () => withWindow.push({ id: "h1", ended: null, prompt: "menu", url: false }));
+				await settle();
+				await click("teacher-panel-need");
+				await faded();
+				assert.equal(q("terminal-pop-out"), null, "background work's screen stays in the panel");
+			});
+		} finally {
+			withWindow.remove();
+		}
+	});
+
+	it("while it is open the column shows Activity with Follow and Put back, and no terminal", async () => {
+		const shell = fakeShell([teacher()], true);
+		try {
+			await mounted(ON, async () => {
+				await click("open-terminal");
+				assert.ok(q("terminal-footer") !== null);
+				const before = attaches(shell);
+				await act(async () => shell.windowOpen(true));
+				await settle();
+				assert.ok(q("teacher-panel") === null, "the column closes: the page gets its room back");
+				await click("open-panel");
+				assert.ok(q("terminal-footer") === null && q("terminal-pop-out") === null, "the screen left the column");
+				assert.ok(q("activity-list") !== null, "Activity is the body");
+				assert.ok(q("follow-start") !== null || q("follow-stop") !== null, "Follow stays");
+				assert.equal(text("teacher-panel-put-back"), "Put back");
+				assert.ok(q("teacher-panel-activity") === null, "no Activity key: it is the body");
+				await click("teacher-panel-put-back");
+				assert.ok(shell.calls.includes("window close"));
+				assert.ok(q("terminal-footer") === null, "the shell's report brings it back, not the key");
+				await act(async () => shell.windowOpen(false, true));
+				await settle();
+				assert.ok(q("terminal-footer") !== null, "the screen shows in the column again");
+				assert.ok(attaches(shell) > before, "and attaches again, so its output comes here");
+			});
+		} finally {
+			shell.remove();
+		}
+	});
+
+	it("put back from the terminal window opens the column on the screen", async () => {
+		const shell = fakeShell([teacher()], true);
+		try {
+			await mounted(ON, async () => {
+				await act(async () => shell.windowOpen(true));
+				assert.ok(q("teacher-panel") === null);
+				await act(async () => shell.windowOpen(false, true));
+				await settle();
+				assert.ok(q("terminal-footer") !== null);
+			});
+		} finally {
+			shell.remove();
+		}
+	});
+
+	it("closing the window by its own button leaves a shut column shut", async () => {
+		const shell = fakeShell([teacher()], true);
+		try {
+			await mounted(ON, async () => {
+				await act(async () => shell.windowOpen(true));
+				await act(async () => shell.windowOpen(false));
+				await settle();
+				assert.ok(q("teacher-panel") === null);
+			});
+		} finally {
+			shell.remove();
+		}
+	});
+
+	it("a question brings no panel while it is open; the pill lights and a click there brings the window forward", async () => {
+		const shell = fakeShell([teacher()], true);
+		try {
+			await mounted(ON, async () => {
+				await act(async () => shell.windowOpen(true));
+				await act(async () => shell.push({ id: "t1", ended: null, prompt: "menu", url: false }));
+				await settle();
+				assert.ok(q("teacher-panel") === null, "the panel stays shut");
+				await click("status");
+				assert.ok(shell.calls.includes("window focus"));
+				assert.ok(q("teacher-panel") === null, "and opens no column");
+				await act(async () => shell.windowOpen(false));
+				await settle();
+				assert.ok(q("teacher-panel") === null, "a question that came meanwhile does not open it on the way back");
+			});
+		} finally {
+			shell.remove();
+		}
+	});
+
+	it("every key that shows the terminal brings the window forward instead, even with the column open", async () => {
+		const shell = fakeShell([teacher()], true);
+		try {
+			await mounted(
+				ON,
+				async () => {
+					await act(async () => shell.windowOpen(true));
+					await click("terminal-key");
+					assert.equal(shell.calls.filter((c) => c === "window focus").length, 1);
+					await click("open-panel");
+					assert.equal(text("terminal-key"), "Open the terminal", "the column holds no terminal, so the key stays");
+					await click("terminal-key");
+					assert.equal(shell.calls.filter((c) => c === "window focus").length, 2);
+					assert.ok(q("terminal-footer") === null);
+				},
+				<TerminalKey />,
+			);
+		} finally {
+			shell.remove();
+		}
+	});
+
+	it("is a page with the status line, Put back, the screen and its bottom row, and no other panel key", async () => {
+		const shell = fakeShell([teacher()], true);
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		try {
+			await act(async () =>
+				root.render(
+					<MemoryRouter>
+						<ServerEventsProvider connect={noEvents as never}>
+							<TerminalsProvider status={ON} inTerminalWindow>
+								<TerminalWindow />
+							</TerminalsProvider>
+						</ServerEventsProvider>
+					</MemoryRouter>,
+				),
+			);
+			for (let i = 0; i < 10 && !q("terminal-footer"); i++) await settle();
+			assert.ok(q("terminal-window") !== null && q("teacher-panel-agent") !== null);
+			assert.ok(q("terminal-footer") !== null, "the screen with its row");
+			assert.ok(shell.calls.includes("attach t1"), "it attaches itself");
+			for (const gone of ["terminal-pop-out", "teacher-panel-hide", "teacher-panel-activity", "teacher-panel-chats", "follow-start", "follow-stop", "teacher-panel-need"]) assert.equal(q(gone), null, gone);
+			await click("teacher-panel-put-back");
+			assert.deepEqual(shell.calls.filter((c) => c.startsWith("window")), ["window close"], "it only closes: the column is the main window's");
+			assert.equal(shell.calls.filter((c) => c.startsWith("start")).length, 0, "and starts nothing by itself");
+		} finally {
+			await act(async () => root.unmount());
+			await settle();
+			host.remove();
+			shell.remove();
 		}
 	});
 });

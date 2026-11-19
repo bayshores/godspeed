@@ -14,7 +14,8 @@
  *    screen, where the learner talks to it outside lessons, and Activity
  *    (teacher-activity.tsx); in a browser Activity alone. It stays open
  *    across pages, lessons too. It opens by itself for a need and closes
- *    when that is settled or a lesson reply starts.
+ *    when that is settled or a lesson reply starts. While the teacher's
+ *    screen is in a window of its own the panel shows Activity instead.
  *
  * The name is the learner's choice (Settings → General → Teacher name) and
  * only ever shown on screen.
@@ -103,13 +104,14 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	});
 
 	const terminals = useTerminals();
-	const view = panelBody(!!terminals?.available);
+	const screen = shownScreen(panel.role, !!terminals?.helper);
+	const view = panelBody(!!terminals?.available, !!terminals?.popped && screen === "teacher");
 	const shown = usePresence(panelOpen);
 	const starts =
 		panelOpen &&
 		panelStarts({
 			view,
-			screen: shownScreen(panel.role, !!terminals?.helper),
+			screen,
 			terminals: !!terminals?.available,
 			noAgent: noAgentHere(agent, terminals),
 			teacher: terminals?.teacher ?? null,
@@ -137,7 +139,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 						list={panel.list}
 						onList={panel.setList}
 						screen={panel.role}
-						onScreen={showTerminal}
+						onScreen={panel.showScreen}
 						focus={panel.focus}
 						state={shown.state}
 					/>,

@@ -31,6 +31,8 @@ A terminal is attached to at most one window, by label: `main`, or `terminal` (t
 | A window destroyed | Every terminal it showed is detached (`Terminals::window_closed`), so nothing is sent to it and no window may type until one attaches. |
 | Resize, answer, stop, list | Not tied to a window. |
 
+While the terminal window is open the main page mounts no view of the teacher's terminal (`TerminalsApi.popped`, [the terminal window](the-main-window.md#the-terminal-window)), so the two windows never fight over its output. Background work's terminal stays in the main window.
+
 The shell's `Outlet::push` takes a `To`: `To::Window(label)` for output and snapshots, `To::All` for state.
 
 ### While it runs
@@ -68,6 +70,7 @@ A question counts once unchanged for 2 s. `url` is true while the screen shows a
 | The learner is writing | A key in a writing box (text box, text field or editable element, not the terminal's screen) in the last 3 s holds the opening back until 3 s after the last key, if the need and the closed panel are still there. |
 | The need is settled | The panel closes, but only one that opened by itself and that the learner has not opened since. |
 | A lesson reply starts (the open lesson's `working` goes from false to true) with no need present | The panel closes, whoever opened it. A lesson already working when it first reports is no change. |
+| The teacher's terminal is popped out | The panel closes when it pops out, never opens by itself, and the need is not kept. The pill lights instead. |
 
 Size and dock are untouched, and the first terminal list after a reload is a start, not a change. Without a motion preference the panel hangs down from the bar; with reduced motion it appears and goes at once (`.lh-hang-body`).
 

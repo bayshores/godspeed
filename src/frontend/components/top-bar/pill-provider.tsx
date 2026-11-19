@@ -136,8 +136,8 @@ export function PillProvider({ children }: { children: ReactNode }) {
 			const does = pillClick({ main: lineAt(own).thing, own, panelOpen, notices: known });
 			if (does === "notices") return showNotices(pill);
 			closeNotices();
-			if (does === "close") setPanelOpen?.(false);
-			else if (does) showTerminal?.(does.open);
+			if (does === "close" || does === "open") setPanelOpen?.(does === "open");
+			else if (does) showTerminal?.(does.show);
 		},
 		[showNotices, closeNotices, panelOpen, known, setPanelOpen, showTerminal, lineAt],
 	);

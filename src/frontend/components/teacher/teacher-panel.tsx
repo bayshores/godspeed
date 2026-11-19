@@ -4,8 +4,8 @@
  * top bar down the window's right edge to its bottom, pushing the page
  * left to make room and covering it where there is none; the learner
  * drags its left edge. One head row (panel-head.tsx), then
- * the agent's screen (panel-screen.tsx), or in a browser Activity
- * (teacher-activity.tsx).
+ * the agent's screen (panel-screen.tsx), or Activity (teacher-activity.tsx)
+ * in a browser and while the teacher's screen is in a window of its own.
  */
 import { useEffect, useLayoutEffect, useState } from "react";
 import { cn } from "@/frontend/lib/utils";
@@ -81,6 +81,7 @@ export function TeacherPanel({
 	const [{ width, whole, squeezed }, setLayout] = useState({ width: wanted, whole: false, squeezed: false });
 	// Only while the page has too little room beside the panel.
 	const hide = squeezed && teacher ? () => teacher.setPanelOpen(false) : null;
+	const putBack = view === "popped" ? () => terminals?.putBack() : null;
 	// Before paint, so the screen is never sized to another box first.
 	useLayoutEffect(() => {
 		const measure = () => {
@@ -117,6 +118,7 @@ export function TeacherPanel({
 					list={null}
 					need={null}
 					back={() => onScreen("teacher")}
+					putBack={null}
 					hide={hide}
 				/>
 			) : (
@@ -126,8 +128,9 @@ export function TeacherPanel({
 					lit={teacherTerminalState(teacherFacts) === "needsYou"}
 					working={!teacherStatus && !!doing?.working && line === doing.text}
 					list={onScreenView ? { open: list, onOpen: onList } : null}
-					need={onScreenView && helperCalls ? () => onScreen("helper") : null}
+					need={view !== "activity" && helperCalls ? () => onScreen("helper") : null}
 					back={null}
+					putBack={putBack}
 					hide={hide}
 				/>
 			)}

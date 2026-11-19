@@ -22,6 +22,7 @@ describe("what the starters say", () => {
 	it("none on a lesson or a cheat sheet, where a typed line goes to the page", () => {
 		assert.deepEqual(on("/chat/abc"), []);
 		assert.deepEqual(on("/space/deadline/hw%206/cheat-sheet"), []);
+		assert.deepEqual(on("/terminal-window"), ["What should I study?", "What's due?", "What can you do?"], "the terminal window is on no page: the plain ones");
 	});
 });
 

@@ -22,9 +22,11 @@ const LIT_KEY = "[--lh-key:var(--lh-highlight)] [--lh-key-hover:color-mix(in_srg
  * screen and there are chats to go back to), Follow (held down while the
  * window goes where the teacher works), and Activity. Chats and Activity
  * each drop their list over the top of the screen, one at a time. Background work's screen
- * has its name first, and Back. The pill that opened the panel closes it;
- * while the page has too little room beside the panel, Hide here does
- * too.
+ * has its name first, and Back. While the teacher's screen is in a window of
+ * its own, Activity is the panel's body and its key gives way to Put back,
+ * which is also the only key in that window's head. The pill that opened the
+ * panel closes it; while the page has too little room beside the panel, Hide
+ * here does too.
  * Under a name the status takes its own row.
  */
 export function PanelHead({
@@ -35,6 +37,7 @@ export function PanelHead({
 	list,
 	need,
 	back,
+	putBack,
 	hide,
 }: {
 	/** Null on the teacher's screen: the pill above names it. */
@@ -47,6 +50,8 @@ export function PanelHead({
 	/** Background work needs the learner: its key goes to its screen. */
 	need: (() => void) | null;
 	back: (() => void) | null;
+	/** The teacher's screen is in its own window: the key that brings it back. */
+	putBack: (() => void) | null;
 	/** The page is squeezed: the key that closes the panel. */
 	hide: (() => void) | null;
 }) {
@@ -57,8 +62,10 @@ export function PanelHead({
 	const card = useRef<HTMLDivElement>(null);
 	const listId = useId();
 	const listOpen = !!list?.open;
+	// The teacher's own head: Chats and Follow, and not the terminal window's, which has no teacher.
+	const own = !!(list || putBack) && !!teacher;
 	// Before the teacher's first start the screen itself lists the chats.
-	const chatsThere = !!list && !!terminals?.facts.teacher && terminals.chats.length > 0;
+	const chatsThere = own && !!terminals?.facts.teacher && terminals.chats.length > 0;
 	const [chatsWanted, setChatsWanted] = useState(false);
 	const chatsOpen = chatsWanted && chatsThere && !listOpen;
 	const open = listOpen ? "activity" : chatsOpen ? "chats" : null;
@@ -90,9 +97,9 @@ export function PanelHead({
 	// gives the keyboard back to its key.
 	const onOpen = list?.onOpen;
 	useEffect(() => {
-		if (!open || !onOpen) return;
+		if (!open) return;
 		const close = () => {
-			onOpen(false);
+			onOpen?.(false);
 			setChatsWanted(false);
 		};
 		const onDown = (e: PointerEvent) => {
@@ -161,7 +168,7 @@ export function PanelHead({
 						aria-expanded={chatsOpen}
 						aria-controls={chatsOpen ? listId : undefined}
 						onClick={() => {
-							list.onOpen(false);
+							list?.onOpen(false);
 							setChatsWanted(!chatsOpen);
 						}}
 						className={cn(KEY, chatsOpen && HELD)}
@@ -169,7 +176,7 @@ export function PanelHead({
 						Chats
 					</button>
 				)}
-				{list && teacher && (
+				{own && (
 					<button
 						type="button"
 						data-testid={teacher.follow ? "follow-stop" : "follow-start"}
@@ -199,6 +206,11 @@ export function PanelHead({
 				{back && (
 					<button type="button" data-testid="teacher-panel-back" onClick={back} className={KEY}>
 						Back
+					</button>
+				)}
+				{putBack && (
+					<button type="button" data-testid="teacher-panel-put-back" onClick={putBack} className={KEY}>
+						Put back
 					</button>
 				)}
 			</div>

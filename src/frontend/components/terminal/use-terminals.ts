@@ -4,6 +4,8 @@
  * them. The helper starts by itself once the teacher has checked in and
  * background jobs wait; the shell stops it with the teacher. The teacher's
  * earlier chats come along, to go back to one.
+ * The teacher's terminal can pop out into a window of its own (`popped`);
+ * the main window starts the helper and wakes the teacher, never that window.
  * Outside the desktop app `available` is false and nothing here runs.
  */
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
@@ -68,6 +70,19 @@ export interface TerminalsApi {
 	wake: () => boolean;
 	/** A wake is starting the teacher and its terminal is not there yet. */
 	waking: boolean;
+	/** The teacher's terminal is in its own window, which the main window hears of. While it is,
+	 *  the main window never shows that terminal. */
+	popped: boolean;
+	/** Pops the teacher's terminal out, or brings its window forward, titled with the teacher's
+	 *  name. Resolves to why the shell refused, or null. Null where there is no such window to
+	 *  make: a browser, an older shell, the terminal window itself. */
+	popOut: ((name: string) => Promise<string | null>) | null;
+	/** Brings the terminal window forward. */
+	focusWindow: () => void;
+	/** Closes the terminal window and has the main window show the terminal again. */
+	putBack: () => void;
+	/** How many times a page asked for that: the panel shows the teacher's screen at each. */
+	putBacks: number;
 }
 
 const UNSTARTED = "Couldn't turn the teacher on. Try again.";
@@ -81,8 +96,9 @@ const ATTACH_UNREAD = "godspeed couldn't read that file.";
 /** A shell refusal's sentence, or null when it went through. */
 const refusal = (p: Promise<void> | undefined): Promise<string | null> => (p ?? Promise.resolve()).then(() => null, (err: unknown) => (typeof err === "string" ? err : null));
 
-function useTerminalsState(status: AgentStatus | null): TerminalsApi {
+function useTerminalsState(status: AgentStatus | null, inTerminalWindow: boolean): TerminalsApi {
 	const lh = typeof window === "undefined" ? undefined : window.lh?.terminals;
+	const windowLh = typeof window === "undefined" ? undefined : window.lh?.terminalWindow;
 	const [records, setRecords] = useState<Records>({ teacher: null, helper: null });
 	// The first list has answered: before it, no record says whether an agent runs.
 	const [loaded, setLoaded] = useState(false);
@@ -139,6 +155,22 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 			off();
 		};
 	}, [lh, put]);
+
+	// Only the main window hears whether the terminal window is open (the shell also says so after
+	// each load of this page).
+	const [popped, setPopped] = useState(false);
+	const [putBacks, countPutBack] = useReducer((n: number) => n + 1, 0);
+	useEffect(() => {
+		if (!windowLh || inTerminalWindow) return;
+		return windowLh.onChange(({ open, back }) => {
+			setPopped(open);
+			if (back) countPutBack();
+		});
+	}, [windowLh, inTerminalWindow]);
+	const popOut = useMemo(() => (windowLh && !inTerminalWindow ? (name: string) => refusal(windowLh.open(name)) : null), [windowLh, inTerminalWindow]);
+	// A window closed or not open any more is what these wanted.
+	const focusWindow = useCallback(() => void windowLh?.focus().catch(() => {/* it closed since */}), [windowLh]);
+	const putBack = useCallback(() => void windowLh?.close().catch(() => {/* it is gone already */}), [windowLh]);
 
 	// The list changes as a teacher run starts, is used and ends; a chat the agent said is gone leaves it.
 	const [chatsChanged, chatsChange] = useReducer((n: number) => n + 1, 0);
@@ -283,6 +315,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const helperTried = useRef<string | null>(null);
 	const helperWanted =
 		!!lh &&
+		!inTerminalWindow &&
 		helperShouldStart({
 			teacher,
 			teacherCheckedIn,
@@ -340,7 +373,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const waking = useRef(false);
 	const [wakingShown, setWaking] = useState(false);
 	const wake = useCallback(() => {
-		const agent = lh && loaded && !waking.current && wakeAgent({ teacher, agentHere, outsideHere, saved: savedAgent() });
+		const agent = lh && !inTerminalWindow && loaded && !waking.current && wakeAgent({ teacher, agentHere, outsideHere, saved: savedAgent() });
 		if (!agent) return false;
 		// With earlier chats the learner picks which one teaches.
 		if (chats.length > 0) return true;
@@ -351,11 +384,11 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 			setWaking(false);
 		});
 		return false;
-	}, [lh, loaded, teacher, agentHere, outsideHere, chats, start]);
+	}, [lh, inTerminalWindow, loaded, teacher, agentHere, outsideHere, chats, start]);
 
 	return useMemo(
-		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, start: startRole, changeChat, stop, answer, paste, send, addFile, wake, waking: wakingShown }),
-		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, startRole, changeChat, stop, answer, paste, send, addFile, wake, wakingShown],
+		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, start: startRole, changeChat, stop, answer, paste, send, addFile, wake, waking: wakingShown, popped, popOut, focusWindow, putBack, putBacks }),
+		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, startRole, changeChat, stop, answer, paste, send, addFile, wake, wakingShown, popped, popOut, focusWindow, putBack, putBacks],
 	);
 }
 
@@ -373,9 +406,10 @@ export const noAgentHere = (status: AgentStatus | null, terminals: TerminalsApi 
 
 const TerminalsContext = createContext<TerminalsApi | null>(null);
 
-/** Every surface below reads the agent's status as the terminals correct it. */
-export function TerminalsProvider({ status, children }: { status: AgentStatus | null; children: ReactNode }) {
-	const api = useTerminalsState(status);
+/** Every surface below reads the agent's status as the terminals correct it. `inTerminalWindow`:
+ *  this page is the terminal window, which starts nothing by itself. */
+export function TerminalsProvider({ status, inTerminalWindow = false, children }: { status: AgentStatus | null; inTerminalWindow?: boolean; children: ReactNode }) {
+	const api = useTerminalsState(status, inTerminalWindow);
 	const shown = useMemo(() => statusFromTerminals(status, api.teacher, api.agentHere), [status, api.teacher, api.agentHere]);
 	return createElement(TerminalsContext.Provider, { value: api }, createElement(AgentStatusContext.Provider, { value: shown }, children));
 }

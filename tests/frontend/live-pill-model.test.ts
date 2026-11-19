@@ -116,17 +116,17 @@ describe("the pill", () => {
 describe("a click on the pill", () => {
 	const [work] = pillThings({ ...nothing, work: helper });
 	it("opens the teacher's panel on the agent's screen, or closes it; it never holds one key in a card", () => {
-		assert.deepEqual(pillClick({ main: null, own: false, panelOpen: false, notices: 2 }), { open: "teacher" });
-		assert.deepEqual(pillClick({ main: work!, own: false, panelOpen: false, notices: 0 }), { open: "teacher" });
+		assert.deepEqual(pillClick({ main: null, own: false, panelOpen: false, notices: 2 }), "open");
+		assert.deepEqual(pillClick({ main: work!, own: false, panelOpen: false, notices: 0 }), "open");
 		assert.equal(pillClick({ main: work!, own: false, panelOpen: true, notices: 0 }), "close");
 	});
 	it("background work's need opens its own view, in the app's bar and in a page's own", () => {
 		const [need] = pillThings({ ...nothing, background: true });
 		assert.ok(need!.lit, "the pill lights");
-		assert.deepEqual(pillClick({ main: need!, own: false, panelOpen: false, notices: 0 }), { open: "helper" });
-		assert.deepEqual(pillClick({ main: need!, own: true, panelOpen: false, notices: 0 }), { open: "helper" });
+		assert.deepEqual(pillClick({ main: need!, own: false, panelOpen: false, notices: 0 }), { show: "helper" });
+		assert.deepEqual(pillClick({ main: need!, own: true, panelOpen: false, notices: 0 }), { show: "helper" });
 		const [teacher] = pillThings({ ...nothing, terminal: "needsYou", background: true });
-		assert.deepEqual(pillClick({ main: teacher!, own: true, panelOpen: false, notices: 0 }), { open: "teacher" }, "the teacher's own need first");
+		assert.deepEqual(pillClick({ main: teacher!, own: true, panelOpen: false, notices: 0 }), { show: "teacher" }, "the teacher's own need first");
 	});
 	it("in a page's own bar: the folded notices, or nothing to do", () => {
 		assert.equal(pillClick({ main: work!, own: true, panelOpen: false, notices: 1 }), "notices");

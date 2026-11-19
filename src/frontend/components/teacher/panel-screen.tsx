@@ -11,7 +11,7 @@ import { StartTeacher } from "./start-teacher";
 /**
  * The panel's screen: the agent's live screen (the teacher's, or
  * background work's while it needs the learner) with its sentence and
- * buttons under it, and the starter keys for the page on screen. Before
+ * buttons under it (the teacher's has Pop out too), and the starter keys for the page on screen. Before
  * godspeed has started an agent: what shows here and the start buttons,
  * or where an agent started outside godspeed shows its screen.
  */
@@ -33,5 +33,5 @@ export function PanelScreen({ name, role, focus }: { name: string; role: Termina
 				{!api.outsideHere && <StartTeacher />}
 			</div>
 		);
-	return <TerminalPane api={api} role={role} name={name} foot={terminalFooter(facts, name, true)} focusOnOpen={focus} starters={startersFor({ path: pathname, spaceName, deadlines: deadlines ?? [] })} />;
+	return <TerminalPane api={api} role={role} name={name} foot={terminalFooter(facts, name, true)} focusOnOpen={focus} starters={startersFor({ path: pathname, spaceName, deadlines: deadlines ?? [] })} popOut={role === "teacher" ? api.popOut : null} />;
 }

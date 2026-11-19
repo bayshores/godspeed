@@ -154,7 +154,7 @@ describe("the panel", () => {
 		assert.ok(squeezed(1512, 720), "792 left");
 		assert.ok(squeezed(1288, 620), "668 left");
 		assert.ok(!squeezed(1288, 480), "808 left");
-		const head = (hide: (() => void) | null) => renderToStaticMarkup(<PanelHead title={null} status="Idle" lit={false} working={false} list={null} need={null} back={null} hide={hide} />);
+		const head = (hide: (() => void) | null) => renderToStaticMarkup(<PanelHead title={null} status="Idle" lit={false} working={false} list={null} need={null} back={null} putBack={null} hide={hide} />);
 		assert.ok(!head(null).includes("teacher-panel-hide"));
 		assert.match(head(() => {}), /data-testid="teacher-panel-hide"[^>]*>Hide</);
 		assert.ok(!head(() => {}).includes("lh-btn-main"), "never the screen's bright key");
@@ -174,8 +174,10 @@ describe("the panel", () => {
 		assert.equal(shownScreen("helper", true), "helper");
 	});
 	it("is the screen in the desktop app (Activity hangs from its key), Activity in a browser, lessons too", () => {
-		assert.equal(panelBody(true), "terminal");
-		assert.equal(panelBody(false), "activity");
+		assert.equal(panelBody(true, false), "terminal");
+		assert.equal(panelBody(false, false), "activity");
+		assert.equal(panelBody(true, true), "popped", "its screen in a window of its own: Activity stays");
+		assert.equal(panelBody(false, true), "activity", "no screens in a browser, whatever is said of a window");
 	});
 	it("never dims the page, and has a left edge to drag and no other, unless it takes the whole window", () => {
 		const wasWidth = window.innerWidth;
@@ -318,7 +320,7 @@ describe("Follow in the panel's head", () => {
 	const html = (over: Partial<TeacherApi>) =>
 		renderToStaticMarkup(
 			<TeacherContext.Provider value={api(over)}>
-				<PanelHead title={null} status="Idle" lit={false} working={false} list={{ open: false, onOpen: () => {} }} need={null} back={null} hide={null} />
+				<PanelHead title={null} status="Idle" lit={false} working={false} list={{ open: false, onOpen: () => {} }} need={null} back={null} putBack={null} hide={null} />
 			</TeacherContext.Provider>,
 		);
 	it("says Following while it is on, and Follow once stopped, working or not", () => {

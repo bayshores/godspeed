@@ -47,11 +47,14 @@ interface FakeShell {
 	calls: string[];
 	/** A state push, as the shell sends one on every change. */
 	push: (state: Pick<TerminalRecord, "id" | "ended" | "prompt" | "url">) => void;
+	/** The shell telling the main page whether the terminal window is open (only with `withWindow`). */
+	windowOpen: (open: boolean, back?: boolean) => void;
 	remove: () => void;
 }
 
-/** Installs window.lh with terminals that start out as `list`. */
-export function fakeShell(list: TerminalRecord[] = []): FakeShell {
+/** Installs window.lh with terminals that start out as `list`, and with `withWindow` the terminal
+ *  window's calls too ("window open <title>", "window close", "window focus"). */
+export function fakeShell(list: TerminalRecord[] = [], withWindow = false): FakeShell {
 	const calls: string[] = [];
 	const states = new Set<(s: Pick<TerminalRecord, "id" | "ended" | "prompt" | "url">) => void>();
 	const call = (what: string) => {
@@ -77,11 +80,24 @@ export function fakeShell(list: TerminalRecord[] = []): FakeShell {
 			return () => states.delete(cb);
 		},
 	};
-	Object.assign(dom.window, { lh: { platform: "linux", terminals, openLink: (url: string) => call(`open ${url}`) } });
+	const changes = new Set<(state: { open: boolean; back?: boolean }) => void>();
+	const terminalWindow = {
+		open: (title: string) => call(`window open ${title}`),
+		close: () => call("window close"),
+		focus: () => call("window focus"),
+		onChange: (cb: (state: { open: boolean; back?: boolean }) => void) => {
+			changes.add(cb);
+			return () => changes.delete(cb);
+		},
+	};
+	Object.assign(dom.window, { lh: { platform: "linux", terminals, ...(withWindow && { terminalWindow }), openLink: (url: string) => call(`open ${url}`) } });
 	return {
 		calls,
 		push: (s) => {
 			for (const cb of states) cb(s);
+		},
+		windowOpen: (open, back) => {
+			for (const cb of changes) cb({ open, ...(back && { back }) });
 		},
 		remove: () => delete (dom.window as { lh?: unknown }).lh,
 	};
