@@ -1,6 +1,6 @@
 /**
  * THE TOP BAR, one for the whole window. From the left it holds the
- * date, Today, a tab per open space and the + (add a space, reopen a
+ * date, Home, a tab per open space and the + (add a space, reopen a
  * closed one), the page's own words (bar-slots.tsx), Menu and the
  * clock. The teacher has no place in it: the strip down the window's
  * right edge is the teacher's (strip/strip.tsx). In a

@@ -117,12 +117,12 @@ pub(super) fn asked(app: &App, record: &AskedRecord) -> HashSet<String> {
 	ids
 }
 
-/// The overdue deadlines the learner said Not yet to (Today asks about each once).
+/// The overdue deadlines the learner said Not yet to (Home asks about each once).
 pub fn overdue_asked(app: &App) -> Vec<String> {
 	read_record(app).overdue_asked.into_iter().collect()
 }
 
-/// The learner said Not yet to an overdue deadline: Today never asks about it again.
+/// The learner said Not yet to an overdue deadline: Home never asks about it again.
 pub fn not_yet(app: &App, space_id: &str, deadline_id: &str) -> Outcome<()> {
 	let Some(space) = app.stores.spaces.get_space(space_id) else { return refuse(404, "Unknown space") };
 	if !space["deadlines"].items().iter().any(|d| d["id"].as_str() == Some(deadline_id)) {

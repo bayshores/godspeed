@@ -1,6 +1,6 @@
 /**
  * Background work on a space, on screen: the work frame around a space's
- * pages (reading, done, Close). Today's line is in render-home-page.test.tsx.
+ * pages (reading, done, Close). Home's line is in render-home-page.test.tsx.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;

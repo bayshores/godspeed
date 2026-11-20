@@ -53,7 +53,7 @@ function useTabStrip(selected: string, tabs: number) {
 }
 
 /**
- * Today, then one tab per open space, then the + (add a space, reopen a
+ * Home, then one tab per open space, then the + (add a space, reopen a
  * closed one, the lessons with no space). A space's tab switches the window to it and opens its
  * Progress page; a right-click opens its menu. It carries a tag while the
  * teacher still has files of it to read. The lit tab, or the lit +, is
@@ -86,10 +86,10 @@ export function SpaceTabs({ selected }: { selected: string }) {
 		// Starts squeezed (every unlit name at its few letters) and grows to full
 		// names with the room the bar's chips leave; below squeezed, the tabs scroll.
 		<nav ref={navRef} aria-label="Spaces" data-testid="space-tabs" className="mr-auto flex max-w-max min-w-0 grow basis-[min-content] items-stretch">
-			<Link to="/" data-testid="nav-today" aria-current={selected === "today" ? "page" : undefined} className={cn(BAR_TAB, "shrink-0", barTabState(selected === "today"))}>
-				Today
+			<Link to="/" data-testid="nav-home" aria-current={selected === "today" ? "page" : undefined} className={cn(BAR_TAB, "shrink-0", barTabState(selected === "today"))}>
+				Home
 			</Link>
-			{/* Too many tabs to fit even squeezed: they scroll, fading out at a cut edge; Today and the + stay put. */}
+			{/* Too many tabs to fit even squeezed: they scroll, fading out at a cut edge; Home and the + stay put. */}
 			<div
 				ref={strip.ref}
 				data-testid="space-tabs-strip"

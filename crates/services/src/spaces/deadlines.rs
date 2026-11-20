@@ -92,12 +92,12 @@ fn deadlines_where(app: &App, keep: impl Fn(&Json) -> bool) -> Vec<Json> {
 	out
 }
 
-/// Every deadline not yet done (Today).
+/// Every deadline not yet done (Home).
 pub fn list_open_deadlines(app: &App) -> Vec<Json> {
 	deadlines_where(app, |d| !d["done"].truthy())
 }
 
-/// The deadlines ticked done on `day` (a local day, YYYY-MM-DD): Today keeps them, stamped, until
+/// The deadlines ticked done on `day` (a local day, YYYY-MM-DD): Home keeps them, stamped, until
 /// the day ends.
 pub fn list_deadlines_done_on(app: &App, day: &str) -> Vec<Json> {
 	let done_on = |at: &Json| at.as_str().and_then(time::parse_date).is_some_and(|ms| local_day(ms) == day);

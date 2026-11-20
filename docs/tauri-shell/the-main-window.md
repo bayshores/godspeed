@@ -51,7 +51,7 @@ Ladder: `[0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]`. Applying a factor sets the we
 | File | Mac only: Study (⌘N), Search Lessons (⌘⇧F), separator, Open godspeed Folder (asks the server for the folder off the menu's thread, then opens it in Finder). |
 | Edit | Mac and Windows: Undo, Redo, separator, Cut, Copy, Paste, Select All. Linux: Cut, Copy, Paste, Select All. GTK 3 has no Undo or Redo item, and a custom one would take Ctrl+Z from the page's editors. |
 | View | Reload (CmdOrCtrl+R), Toggle Developer Tools (⌥⌘I or Ctrl+Shift+I; works in debug builds or with cargo feature `devtools`), separator, Actual Size, Zoom In, Zoom Out, separator, Toggle Full Screen (Mac predefined; Windows and Linux a custom F11). |
-| Go | Mac only: Back (⌘[), Forward (⌘]), separator, Today, Graph (⌘G), Progress, Files, Deadlines. |
+| Go | Mac only: Back (⌘[), Forward (⌘]), separator, Home, Graph (⌘G), Progress, Files, Deadlines. |
 | Window | Mac: Minimize, Zoom, separator, Bring All to Front, set as the windows menu. Windows: Minimize, Close Window. Linux: custom Minimize and Close Window. |
 | Help | Report a Bug…; on the Mac set as the help menu. |
 

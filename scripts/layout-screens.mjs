@@ -23,7 +23,7 @@ const openTeacher = `document.querySelector("[data-testid=strip]").click()`;
 const peekOut = `document.querySelector("[data-strip]").dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }))`;
 const peekShown = "[data-testid=peek][data-state=open] [data-testid=peek-status]";
 const deadlineCard = "[data-teacher-target='deadline:{deadline}']";
-/** Today's every part at once, from both spaces so the blocks' colors differ: five deadlines on one
+/** Home's every part at once, from both spaces so the blocks' colors differ: five deadlines on one
  *  day (so it folds to three and "+2 more"), one late, one ticked done today, more across the week,
  *  two later. Dates count from the day the check runs. */
 const busyDay = `const day = (n) => new Date(Date.now() + n * 86400000).toLocaleDateString("sv");
@@ -44,7 +44,7 @@ const { deadlines } = await fetch("/api/deadlines")${HTTP_OK}.then((r) => r.json
 const done = deadlines.find((d) => d.name === "Git branching exercises");
 await fetch(base("{pathSpace}") + "/" + done.id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ done: true }) })${HTTP_OK};`;
 
-/** A task due yesterday in the other space, so the top bar asks about it on every page but Today. */
+/** A task due yesterday in the other space, so the top bar asks about it on every page but Home. */
 const lateHomework = `const day = new Date(Date.now() - 86400000).toLocaleDateString("sv");
 await fetch("/api/spaces/{pathSpace}/deadlines", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "homework", name: "Cover letter draft", date: day, fileIds: [] }) })${HTTP_OK};`;
 /** Takes that homework away again, so the screens after it are as before. */
@@ -59,7 +59,7 @@ await fetch("/api/spaces/{space}/deadlines/{homeworkOpenDeadline}", { method: "P
 const homeworkTomorrow = `const day = new Date(Date.now() + 86_400_000);
 const date = day.getFullYear() + "-" + String(day.getMonth() + 1).padStart(2, "0") + "-" + String(day.getDate()).padStart(2, "0");
 await fetch("/api/spaces/{space}/deadlines/{homeworkOpenDeadline}", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ date }) })${HTTP_OK};`;
-/** Every deadline the seed made, so Today has none. */
+/** Every deadline the seed made, so Home has none. */
 const dropDeadlines = ["{deadline}", "{homeworkOpenDeadline}", "{homeworkFirstDeadline}", "{homeworkManyDeadline}", "{homeworkPrintedDeadline}", "{sheetMade}", "{sheetVersions}", "{mockRunDeadline}", "{waitingDeadline}"].map((id) => `await fetch("/api/spaces/{space}/deadlines/${id}", { method: "DELETE" })${HTTP_OK};`).join("\n");
 
 /** A folder that is always there and always empty, linked to the second space. */
@@ -77,7 +77,7 @@ const waitingFile = `const form = new FormData();
 form.append("files", new File(["# Slopes\\n\\nRise over run."], "waiting-notes.md", { type: "text/markdown" }));
 await fetch("/api/spaces/{space}/files", { method: "POST", body: form })${HTTP_OK};`;
 /** The deadline asks for a study guide with no agent to make it. The deadline is deleted for
- *  "Today with no deadline", which ends the request. */
+ *  "Home with no deadline", which ends the request. */
 const waitingRequest = `await fetch("/api/spaces/{space}/deadlines/{deadline}/request", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "guide" }) })${HTTP_OK};`;
 
 /** The lesson made and never sent: opened at this address, the window sends its first message once,
@@ -149,11 +149,11 @@ const sheetPage = (deadline) => `/space/deadline/${deadline}/cheat-sheet`;
 const mockPage = (mock) => `/space/mock/{space}/${mock}`;
 
 export const SCREENS = [
-	{ name: "Today with a deadline", url: "/", ready: deadlineCard },
-	{ name: "Today, the Add deadline menu", url: "/", ready: "[data-testid=home-add-deadline][aria-haspopup=menu]", setup: `document.querySelector("[data-testid=home-add-deadline]").click()`, shows: "[data-testid=home-add-deadline-menu][data-state=open]" },
-	{ name: "Today, the Menu list", url: "/", ready: deadlineCard, setup: `document.querySelector("[data-testid=app-menu]").click()`, shows: "[data-testid=app-menu-list][data-state=open]" },
-	{ name: "Today, the plus list", url: "/", ready: deadlineCard, setup: `document.querySelector("[data-testid=spaces-plus]").click()`, shows: "[data-testid=spaces-plus-list][data-state=open]" },
-	{ name: "Today, a space tab's menu", url: "/", ready: deadlineCard, setup: rightClick(`document.querySelector("[data-testid=space-option-{space}]")`), shows: "[data-testid=space-menu][data-state=open]" },
+	{ name: "Home with a deadline", url: "/", ready: deadlineCard },
+	{ name: "Home, the Add deadline menu", url: "/", ready: "[data-testid=home-add-deadline][aria-haspopup=menu]", setup: `document.querySelector("[data-testid=home-add-deadline]").click()`, shows: "[data-testid=home-add-deadline-menu][data-state=open]" },
+	{ name: "Home, the Menu list", url: "/", ready: deadlineCard, setup: `document.querySelector("[data-testid=app-menu]").click()`, shows: "[data-testid=app-menu-list][data-state=open]" },
+	{ name: "Home, the plus list", url: "/", ready: deadlineCard, setup: `document.querySelector("[data-testid=spaces-plus]").click()`, shows: "[data-testid=spaces-plus-list][data-state=open]" },
+	{ name: "Home, a space tab's menu", url: "/", ready: deadlineCard, setup: rightClick(`document.querySelector("[data-testid=space-option-{space}]")`), shows: "[data-testid=space-menu][data-state=open]" },
 	{ name: "Progress", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]" },
 	{ name: "Progress, the strip's peek", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: peekOut, shows: peekShown },
 	{ name: "Progress, every unfinished lesson shown", url: "/space", ready: "[data-testid=unfinished-show-all]", setup: `document.querySelector("[data-testid=unfinished-show-all]").click()`, shows: "[data-testid=unfinished-lessons] li:nth-child(5)" },
@@ -273,7 +273,7 @@ box.dispatchEvent(new Event("input", { bubbles: true })); ${pause}`,
 	},
 	{ name: "An address that is no page", url: "/nowhere", ready: "[data-testid=not-found]" },
 	{ name: "Space's plugin tab", url: "/space/plugin/flashcards", ready: "[data-testid=plugin-frame][data-state=ready]" },
-	{ name: "Today, the strip's peek", url: "/", ready: deadlineCard, setup: peekOut, shows: peekShown },
+	{ name: "Home, the strip's peek", url: "/", ready: deadlineCard, setup: peekOut, shows: peekShown },
 	{ name: "Teacher's panel with no agent", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
 	{ name: "Teacher's panel, the other agents", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent-menu]").click()`, shows: "[data-testid=open-agent-choices][data-state=open]" },
 	{
@@ -365,9 +365,9 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: `${openTeacher}; ${whenThere("[data-testid=terminal-everything]")}; document.querySelector("[data-testid=terminal-everything]").click()`,
 		shows: "[data-testid=terminal-ideas] [data-testid=terminal-idea]",
 	},
-	// Onboarding's mark: the panel opens by itself on Today, once.
+	// Onboarding's mark: the panel opens by itself on Home, once.
 	{
-		name: "A new learner's first Today",
+		name: "A new learner's first look at Home",
 		before: `localStorage.setItem("lh:teacher-welcome", "1")`,
 		url: "/",
 		ready: deadlineCard,
@@ -388,9 +388,9 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: `window.__lhPush("terminal-window", { open: true }); ${pause}; ${openTeacher}`,
 		shows: "[data-testid=teacher-panel] [data-testid=teacher-panel-put-back]",
 	},
-	{ name: "Today with no deadline", before: dropDeadlines, url: "/", ready: "[data-testid=today-empty]" },
-	{ name: "Today on a busy day", before: busyDay, url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", shows: "[data-testid=week-later]" },
-	{ name: "Today, the week unfolded", url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", setup: `document.querySelector("[data-testid=week-more]").click()`, shows: "[data-testid=week-rest][data-state=open]" },
+	{ name: "Home with no deadline", before: dropDeadlines, url: "/", ready: "[data-testid=today-empty]" },
+	{ name: "Home on a busy day", before: busyDay, url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", shows: "[data-testid=week-later]" },
+	{ name: "Home, the week unfolded", url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", setup: `document.querySelector("[data-testid=week-more]").click()`, shows: "[data-testid=week-rest][data-state=open]" },
 	{ name: "Deadlines while the top bar asks about a late one", before: lateHomework, url: "/space/deadlines", ready: "[data-testid=overdue-notice] [data-testid=overdue-notice-done]" },
 	{
 		name: "Progress with a path, all shown",

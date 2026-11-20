@@ -13,7 +13,7 @@ flowchart TB
     LEARNER["the learner"]
 
     subgraph STAGE["Stage: the window (writes nothing on the server)"]
-        UI["Today, space pages, lesson screen, Graph page, teacher panel"]
+        UI["Home, space pages, lesson screen, Graph page, teacher panel"]
     end
 
     subgraph CLASSROOM["Classroom: writes data/chats"]

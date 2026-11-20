@@ -12,7 +12,7 @@ const SETTLE_MS = 300;
 /**
  * The lesson's stop (split out of chat.tsx): the stop read from the
  * record and the live stream, the one he has not kept going from, Done for
- * today, and the Concluded card lit once when he comes back from Today's
+ * today, and the Concluded card lit once when he comes back from Home's
  * Continue (?lit=stop).
  */
 export function useLessonStop({
@@ -40,14 +40,14 @@ export function useLessonStop({
 	// Stable while nothing in it changed, so streaming never redraws the plan row.
 	const stop = useStableValue(fresh);
 
-	// Done for today goes back to Today, its deadline's card lit when the lesson has one.
+	// Done for today goes back to Home, its deadline's card lit when the lesson has one.
 	const navigate = useNavigate();
 	const doneForToday = useCallback(() => {
 		navigate(deadlineId ? `/?lit=${encodeURIComponent(`deadline:${deadlineId}`)}` : "/");
 	}, [navigate, deadlineId]);
 	const atStop = stop && !stop.keptGoing ? stop : null;
 
-	// Back from Today's Continue: light the stop's card once, then drop the parameter.
+	// Back from Home's Continue: light the stop's card once, then drop the parameter.
 	const [params, setParams] = useSearchParams();
 	const lit = params.get("lit") === "stop";
 	const messagesRef = useRef(nativeMessages);

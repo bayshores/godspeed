@@ -16,7 +16,7 @@ import { CHIP } from "./styles";
 const STRIP = "@max-[539px]:w-full @max-[539px]:flex-row @max-[539px]:items-baseline @max-[539px]:gap-3 @max-[539px]:py-2";
 
 /**
- * Now, the biggest card on Today: the deadline picked in the week (the
+ * Now, the biggest card on Home: the deadline picked in the week (the
  * next thing to do until one is picked). Its tile, flush with the card's
  * left edge as on a space's Deadlines list, holds the time left (or how
  * late it is) in its space's color. Beside it its name as the title (which

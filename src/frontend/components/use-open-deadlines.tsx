@@ -1,7 +1,7 @@
 /**
  * The deadlines of every space not closed (GET /api/deadlines): the open
- * ones, for Today and the welcome screen, and the ones
- * ticked done today, which Today keeps with Undo. One shared read in
+ * ones, for Home and the welcome screen, and the ones
+ * ticked done today, which Home keeps with Undo. One shared read in
  * OpenDeadlinesProvider: it re-reads when spaces change (every deadline
  * edit announces spaces-changed) and after the events channel reconnects.
  * `markDone` ticks one done and `undo` unticks it (PUT done); a save that

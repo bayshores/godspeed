@@ -4,12 +4,12 @@ import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { Pane } from "@/frontend/components/ui/pane";
 import { AddDeadline } from "./add-deadline";
-import { todayEmpty, type TodayLists } from "./home-page-model";
+import { homeEmpty, type HomeLists } from "./home-page-model";
 import { WeekColumns } from "./week-columns";
 import { weekColumns } from "./week-columns-model";
 
 /**
- * Today's deadlines card: "Add" in its head, then the week as seven day
+ * Home's deadlines card: "Add" in its head, then the week as seven day
  * columns and Later. With no deadline at all, a sentence takes their place.
  */
 export function DeadlinesCard({
@@ -23,7 +23,7 @@ export function DeadlinesCard({
 }: {
 	spaces: readonly SpaceSummary[];
 	/** Null when the deadlines failed to load. */
-	lists: TodayLists | null;
+	lists: HomeLists | null;
 	nowMs: number;
 	/** The deadline the card above shows. */
 	picked: string | null;
@@ -32,7 +32,7 @@ export function DeadlinesCard({
 	onAdd: (spaceId: string) => void;
 }) {
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
-	const empty = lists && todayEmpty(lists, teacher);
+	const empty = lists && homeEmpty(lists, teacher);
 	return (
 		<Pane data-testid="today-deadlines" className="lh-card">
 			<div className="lh-card-head">

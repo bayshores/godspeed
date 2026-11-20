@@ -28,7 +28,7 @@ export const routes: RouteObject[] = [
 			{
 				errorElement: <PageError />,
 				children: [
-					// Today: what's coming up across every space, and one block per space.
+					// Home: what's coming up across every space, and one block per space.
 					{ index: true, element: <><PageTitle /><HomePage /></> },
 					// The start page: every new lesson is a study session.
 					{ path: "new", element: <><PageTitle page="Study" /><NewLesson /></> },

@@ -1,4 +1,4 @@
-/** Today's "Your spaces": each open space's topics by status, in words, and the new files its linked folder brought. Pure. */
+/** Home's "Your spaces": each open space's topics by status, in words, and the new files its linked folder brought. Pure. */
 import { isNewFolderFile, localDay, pathNext, rampColor, type ProgressPayload, type SpaceFile, type StatusCounts } from "@/shared/core";
 import { STATUS_LEGEND } from "@/frontend/components/overview/overview-model";
 

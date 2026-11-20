@@ -101,7 +101,7 @@ Routes:
 
 | Route | Screen |
 |---|---|
-| `/` | Today |
+| `/` | Home |
 | `/new` | Study: start a study session |
 | `/settings` | Settings |
 | `/graph` | Graph |
@@ -117,7 +117,7 @@ Component folders:
 
 | Folder | Holds |
 |---|---|
-| `top-bar/`, `home-page/`, `study-page/` | Top bar, Today, the Study page. |
+| `top-bar/`, `home-page/`, `study-page/` | Top bar, Home, the Study page. |
 | `space-page/`, `overview/`, `lessons/`, `files/`, `graph/`, `deadline/`, `cheat-sheet/`, `mock/` | Space pages, deadlines, cheat sheets, mocks. |
 | `lesson/`, `work/`, `teacher/`, `terminal/` | Lesson screen, work frame, teacher panel, the agent's terminal screen. |
 | `settings/`, `agent-folder/`, `onboarding/`, `welcome/`, `plugins/` | Settings, agent launcher, onboarding, welcome screen, a plugin's sandboxed frame. |

@@ -1,6 +1,6 @@
 //! /api/spaces/{id}/deadlines/{deadline_id}/request: what the deadline page asks the learner's
 //! agent to do on a deadline, and how that request stands. /api/spaces/{id}/checks/{run}/undo
-//! undoes a space check, and /api/deadlines/{space id}/{id}/not-yet answers Today's overdue ask.
+//! undoes a space check, and /api/deadlines/{space id}/{id}/not-yet answers Home's overdue ask.
 
 use std::sync::Arc;
 
@@ -43,7 +43,7 @@ async fn undo(State(app): State<Arc<App>>, Path((id, run)): Path<(String, String
 	reply::answer(undo_check(&app, &id, &run), |done| reply::json(200, &done))
 }
 
-/// POST: Not yet for an overdue deadline; Today never asks about it again.
+/// POST: Not yet for an overdue deadline; Home never asks about it again.
 async fn later(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(String, String)>) -> Result<Response, Unhandled> {
 	reply::answer(not_yet(&app, &id, &deadline_id), |()| reply::ok())
 }

@@ -51,12 +51,12 @@ afterEach(() => {
 	globalThis.fetch = realFetch;
 });
 
-/** Whether the page the host stands for is Today. */
-let onToday = false;
+/** Whether the page the host stands for is Home. */
+let onHome = false;
 
 /** The teacher's panel as the provider holds it. */
 function PanelHost({ children }: { children?: React.ReactNode }) {
-	const panel = useTeacherPanel(null, onToday);
+	const panel = useTeacherPanel(null, onHome);
 	const terminals = useTerminals();
 	const view = panelBody(!!terminals?.available, !!terminals?.popped && shownScreen(panel.role, !!terminals.helper) === "teacher");
 	const api: TeacherApi = {
@@ -777,7 +777,7 @@ describe("the Chats key in the panel's head", () => {
 	});
 });
 
-describe("a new learner's first Today", () => {
+describe("a new learner's first look at Home", () => {
 	const running = access({ teaching: true, terminals: [{ id: "t1", here: true }] });
 
 	it("opens the panel once, by itself, with the keyboard left where it is; never for anyone else or on another page", async () => {
@@ -785,9 +785,9 @@ describe("a new learner's first Today", () => {
 		try {
 			await mounted(running, async () => assert.ok(!onTerminal(), "no mark: nobody just finished onboarding"));
 			writeStorage(WELCOME_KEY, "1");
-			await mounted(running, async () => assert.ok(!onTerminal(), "not Today"));
-			assert.equal(readStorage(WELCOME_KEY), "1", "it still waits for Today");
-			onToday = true;
+			await mounted(running, async () => assert.ok(!onTerminal(), "not Home"));
+			assert.equal(readStorage(WELCOME_KEY), "1", "it still waits for Home");
+			onHome = true;
 			await mounted(running, async () => {
 				assert.ok(onTerminal());
 				assert.deepEqual(document.querySelectorAll('[data-testid="terminal-starter"]').length, 3, "with what to ask in front of them");
@@ -795,7 +795,7 @@ describe("a new learner's first Today", () => {
 			assert.equal(readStorage(WELCOME_KEY), null);
 			await mounted(running, async () => assert.ok(!onTerminal(), "once"));
 		} finally {
-			onToday = false;
+			onHome = false;
 			writeStorage(WELCOME_KEY, null);
 			shell.remove();
 		}

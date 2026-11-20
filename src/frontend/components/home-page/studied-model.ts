@@ -1,4 +1,4 @@
-/** Today's line on studying: the days of the last 7 (today and the six
+/** Home's line on studying: the days of the last 7 (today and the six
  *  before) with an answer in any open space or in a lesson with no space,
  *  and the answers. Pure. */
 import { localDay, type ProgressPayload } from "@/shared/core";

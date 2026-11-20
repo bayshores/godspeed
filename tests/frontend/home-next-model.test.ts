@@ -1,8 +1,8 @@
-/** Today's two blocks across spaces: the newest unfinished lessons, and the topics to work on next. */
+/** Home's two blocks across spaces: the newest unfinished lessons, and the topics to work on next. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ProgressPayload } from "../../src/shared/core/index.ts";
-import { topicsToWorkOn, unfinishedAcross } from "../../src/frontend/components/home-page/today-next-model.ts";
+import { topicsToWorkOn, unfinishedAcross } from "../../src/frontend/components/home-page/home-next-model.ts";
 
 const lesson = (chatId: string, updatedAt: string, over: Record<string, unknown> = {}) => ({ chatId, title: chatId, kind: "study", updatedAt, unfinished: true, step: { done: 1, total: 3 }, ...over });
 const item = (topicId: string, status: string) => ({ topicId, name: topicId, status, reason: "" });

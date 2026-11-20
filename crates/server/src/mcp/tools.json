@@ -1051,7 +1051,7 @@
 				"page": {
 					"type": "string",
 					"enum": [
-						"today",
+						"home",
 						"progress",
 						"files",
 						"deadlines",
@@ -1060,7 +1060,7 @@
 						"cheat_sheet",
 						"lesson"
 					],
-					"description": "today, a space's progress, files, deadlines or graph, a deadline, its cheat_sheet, or a lesson."
+					"description": "home, a space's progress, files, deadlines or graph, a deadline, its cheat_sheet, or a lesson."
 				},
 				"space_id": {
 					"type": "string",

@@ -38,7 +38,7 @@ export function keepReady(ready: readonly ReadyLesson[], chats: readonly ReadyLe
 
 /**
  * The soonest deadline in its last 24 hours, or null. `pathname`: none on
- * Today, which lists every open deadline with its time left, and not the
+ * Home, which lists every open deadline with its time left, and not the
  * one whose own page is open.
  */
 export function dueSoon(deadlines: readonly DueSoon[], nowMs: number, pathname: string): DueSoon | null {

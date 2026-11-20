@@ -27,9 +27,9 @@ import { useDeadlineMocks } from "./use-deadline-mocks";
 import { useDeadlineRequest } from "./use-deadline-request";
 
 /**
- * A deadline's page, opened from its row on Today, the space's Deadlines
+ * A deadline's page, opened from its row on Home, the space's Deadlines
  * tab or its Progress tab; the bar's tabs lead back. The page makes
- * the deadline's space the active one (Today lists every space);
+ * the deadline's space the active one (Home lists every space);
  * switching space afterwards goes to that space. Study works on today's
  * topics (all its topics once every one is strong). A test or interview
  * also has its mocks.

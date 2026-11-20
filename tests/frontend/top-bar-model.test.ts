@@ -27,7 +27,7 @@ describe("the lit tab", () => {
 		{ id: "c29", closed: false },
 		{ id: "old", closed: true },
 	];
-	it("Today on the first page", () => {
+	it("Home on the first page", () => {
 		assert.equal(selectedTab("/", "c21", spaces), "today");
 		assert.equal(selectedTab("/", "old", spaces), "today", "even with a closed space in the window");
 	});

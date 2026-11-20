@@ -135,7 +135,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 		onClose();
 	};
 	/** Leaves the space on screen before deleting it, so no page asks for it
-	 *  once it is gone, then goes to Today. Deleting another space keeps the
+	 *  once it is gone, then goes to Home. Deleting another space keeps the
 	 *  page. A refused delete comes back to it. */
 	const remove = async (space: SpaceRecord) => {
 		const wasActive = space.id === active;

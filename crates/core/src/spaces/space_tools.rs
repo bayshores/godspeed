@@ -9,7 +9,7 @@ pub use crate::contracts::space::DEADLINE_KINDS;
 pub const FILE_KINDS: [&str; 2] = ["study", "info"];
 
 /// The pages open_page opens.
-pub const OPEN_PAGES: [&str; 8] = ["today", "progress", "files", "deadlines", "graph", "deadline", "cheat_sheet", "lesson"];
+pub const OPEN_PAGES: [&str; 8] = ["home", "progress", "files", "deadlines", "graph", "deadline", "cheat_sheet", "lesson"];
 
 /// A page the learner can open to see what a space tool changed.
 #[derive(Clone, Debug, PartialEq)]

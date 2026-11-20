@@ -29,7 +29,7 @@ impl Plugin<Wry> for Notifications {
 }
 
 /// Hands the notification to the system, unless a window has the focus: the learner then sees
-/// the deadline on Today already, and a Mac may skip the banner of the app in front. The answer is
+/// the deadline on Home already, and a Mac may skip the banner of the app in front. The answer is
 /// whether it was handed over.
 pub fn show(app: &AppHandle, title: &str, body: &str) -> bool {
 	if window::focused(app).is_some() {

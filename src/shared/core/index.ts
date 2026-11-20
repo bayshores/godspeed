@@ -64,7 +64,7 @@ export * from "./new-files.ts";
 export * from "./linked-folder.ts";
 export * from "./deadline-plan.ts";
 export * from "./continue-study.ts";
-// Stops and openers: the state Today and the lesson window read.
+// Stops and openers: the state Home and the lesson window read.
 export * from "./topic-end.ts";
 export * from "./topic-parts.ts";
 // Plot formulas: the grammar the server checks them with, and their typeset form.

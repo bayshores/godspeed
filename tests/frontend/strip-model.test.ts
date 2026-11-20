@@ -112,7 +112,7 @@ describe("the deadline in its last day", () => {
 		assert.equal(dueSoon([], now, "/space"), null);
 	});
 
-	it("none on Today, which lists them, and not the one whose own page is open", () => {
+	it("none on Home, which lists them, and not the one whose own page is open", () => {
 		assert.equal(dueSoon(soon, now, "/"), null);
 		assert.equal(dueSoon(soon, now, "/space/deadline/sooner")?.id, "tonight");
 		assert.equal(dueSoon(soon, now, "/space/deadline/sooner/cheat-sheet")?.id, "tonight");

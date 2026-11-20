@@ -222,7 +222,7 @@ fn last_input(seen: &[Json]) -> String {
 	seen.iter().rev().find(|m| m["role"].as_str() == Some("user")).unwrap()["text"].as_str().unwrap().to_owned()
 }
 
-/// The Midterm as Today reads it.
+/// The Midterm as Home reads it.
 fn midterm(app: &App, space_id: &str, deadline_id: &str) -> Json {
 	let progress = progress_for(app, space_id, None).unwrap().unwrap();
 	progress["deadlines"].as_arr().unwrap().iter().find(|d| d["id"].as_str() == Some(deadline_id)).unwrap().clone()
@@ -399,7 +399,7 @@ async fn two_days_of_study_for_the_midterm() {
 	assert_eq!((at_stop["kind"].as_str(), at_stop["next"].as_str(), at_stop["keptGoing"].as_bool()), (Some("topic"), Some("Cross-validation"), Some(false)));
 	assert!(shown_openers(&record).is_empty(), "the opener waits for Keep going");
 
-	// Stop here stores nothing; Today reads Continue studying for Midterm.
+	// Stop here stores nothing; Home reads Continue studying for Midterm.
 	let today = midterm(app, &space_id, &deadline_id);
 	assert_eq!(today["continueStudy"]["stop"], json!({ "at": stop["at"], "next": "Cross-validation" }));
 	assert_eq!(today.get("studyEndedToday"), None);

@@ -1,5 +1,5 @@
 /**
- * The frame: the top bar's Today and space tabs with their right-click
+ * The frame: the top bar's Home and space tabs with their right-click
  * menu, the + with Add a space, the closed spaces and the lessons with no
  * space, Menu, the "Search
  * lessons" popup it opens, and a space page's head with its signature and
@@ -161,14 +161,14 @@ const pressEscape = () =>
 const settle = () => act(async () => new Promise((r) => setTimeout(r, 10)));
 
 describe("the top bar's tabs", () => {
-	it("Today, then one tab per open space, then the +", async () => {
+	it("Home, then one tab per open space, then the +", async () => {
 		await mount(<SpaceTabs selected="c29" />);
-		assert.deepEqual(texts("[data-testid='space-tabs'] a"), ["Today", "CSE 29", "CSE 212 left"]);
-		assert.equal(q("nav-today")!.getAttribute("href"), "/");
+		assert.deepEqual(texts("[data-testid='space-tabs'] a"), ["Home", "CSE 29", "CSE 212 left"]);
+		assert.equal(q("nav-home")!.getAttribute("href"), "/");
 		assert.ok(q("space-option-old") === null, "a closed space has no tab");
 		const strip = q("space-tabs-strip")!;
 		assert.ok(strip.lastElementChild!.firstElementChild === q("space-option-c21") && strip.nextElementSibling!.firstElementChild === q("spaces-plus"), "the + comes right after the last tab, outside the tabs' scroller");
-		assert.ok(strip.previousElementSibling === q("nav-today"), "Today sits before the scroller, so it never scrolls away");
+		assert.ok(strip.previousElementSibling === q("nav-home"), "Home sits before the scroller, so it never scrolls away");
 		assert.match(q("spaces-plus")!.className, /shrink-0/, "the + never squeezes; the tabs do");
 		assert.doesNotMatch(q("space-option-c21")!.className, /shrink-0/);
 		assert.match(q("space-option-c21")!.className, /grid-cols-\[auto_minmax\(auto,max-content\)_auto\]/, "a tab with a tag lets its name give way first");
@@ -188,7 +188,7 @@ describe("the top bar's tabs", () => {
 		await mount(<SpaceTabs selected="c29" />);
 		assert.equal(q("space-option-c29")!.getAttribute("aria-current"), "page");
 		assert.equal(q("space-option-c21")!.hasAttribute("aria-current"), false);
-		assert.equal(q("nav-today")!.hasAttribute("aria-current"), false);
+		assert.equal(q("nav-home")!.hasAttribute("aria-current"), false);
 		assert.equal(q("space-option-c29")!.getAttribute("data-teacher-target"), "space:c29");
 	});
 	it("a space's tab opens its Progress page and switches the window to it", async () => {
@@ -371,7 +371,7 @@ describe("a tab's right-click menu", () => {
 		assert.ok(q("space-option-c21") === null, "its tab is gone");
 		assert.equal(focused, 1);
 	});
-	it("closing the space on screen goes to Today", async () => {
+	it("closing the space on screen goes to Home", async () => {
 		await mount(<SpaceTabs selected="c29" />, { pathname: "/space" });
 		await openMenu("c29");
 		await click(q("space-menu-close")!);
@@ -410,9 +410,9 @@ describe("a tab's right-click menu", () => {
 		assert.equal(q("space-menu")?.getAttribute("data-state") ?? "closed", "closed");
 		assert.equal(focused, 1, "focus is back on the tab");
 	});
-	it("Today has no menu", async () => {
+	it("Home has no menu", async () => {
 		await mount(<SpaceTabs selected="c29" />);
-		assert.equal(await rightClick(q("nav-today")!), false);
+		assert.equal(await rightClick(q("nav-home")!), false);
 		assert.ok(q("space-menu") === null);
 	});
 });

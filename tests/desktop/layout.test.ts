@@ -179,7 +179,7 @@ describe("the screens", () => {
 		const opened = SCREENS.map((s: { url: string }) => s.url.split("?")[0]!);
 		const shape = (page: string) => new RegExp(`^/${page.replace(/:[A-Za-z]+/g, "[^/]+")}$`);
 		for (const page of pages) assert.ok(opened.some((url) => shape(page).test(url)), `no screen opens /${page}`);
-		assert.ok(opened.includes("/"), "no screen opens Today");
+		assert.ok(opened.includes("/"), "no screen opens Home");
 		assert.ok(opened.some((url) => url !== "/" && !pages.some((page) => shape(page).test(url))), "no screen opens an address that is no page");
 	});
 });

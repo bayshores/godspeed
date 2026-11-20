@@ -14,6 +14,6 @@ Two rules hold everywhere:
 | Library | `data/graph/*`, `data/spaces/<id>/graph/*` | extraction (only writer of facts and chains), topic grouping, derivation (§6) |
 | Spaces | `data/spaces/<id>/space.json`, `files/`, `cheat-sheets/`, `mocks/` | space records and files, linked folders, deadlines, cheat sheets, interviews and mocks (§6.1, §6.2) |
 | Search index | `data/search/`, `data/spaces/<id>/search/` | `crates/search` (`app.search`): facts and passages index for local search |
-| Stage | nothing on server | window: Today, space pages, lesson screen, Graph page, teacher panel. Reads and writes only through `/api` |
+| Stage | nothing on server | window: Home, space pages, lesson screen, Graph page, teacher panel. Reads and writes only through `/api` |
 | Plugins | `data/plugins/<id>/` (plugin files, its stored JSON in `data/`) | install, remove, storage, `ask_agent` (§8.2). On/off and setting values: `plugins` section of `settings.json` |
 | Machine room | `settings.json`, `prompts/`, `mcp-token`, `search-key`, `agent-notes.json`, `agent-seen.json`, `agent-rules.json`, `agent-actions.json`, `reminders.json`, `agent-folder.json`, `deadline-requests.json` | server process, `gs_base::config` (`Paths`), outside-agent boundary (§8.1). Shell writes `mcp-endpoint.json` |

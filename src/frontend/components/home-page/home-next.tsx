@@ -7,7 +7,7 @@ import { spaceColorVar } from "@/frontend/components/space-color";
 import { Pane } from "@/frontend/components/ui/pane";
 import { ProgressBar } from "@/frontend/components/ui/progress-bar";
 import { cn } from "@/frontend/lib/utils";
-import type { TopicItem, UnfinishedItem } from "./today-next-model";
+import type { TopicItem, UnfinishedItem } from "./home-next-model";
 
 const ROW_CLASS = "flex w-full flex-col gap-2 px-3 py-2 text-left";
 
@@ -17,12 +17,12 @@ function Square({ color }: { color: UnfinishedItem["color"] }) {
 }
 
 /**
- * The blocks under Today's deadlines: UNFINISHED lessons (newest first) and
+ * The blocks under Home's deadlines: UNFINISHED lessons (newest first) and
  * the topics to WORK ON NEXT, across every open space. A block with nothing
  * to show is not drawn. Each row is its own click; the key in a block's head
  * does what its first row does.
  */
-export function TodayNext({
+export function HomeNext({
 	unfinished,
 	topics,
 	busy,

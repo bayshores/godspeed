@@ -1,6 +1,6 @@
 /**
  * Background work on a space, in words: what the work frame on a space
- * page, Today, the space's tab and the strip say while its
+ * page, Home, the space's tab and the strip say while its
  * files are read, and the notice after. Pure.
  */
 import { isWaitingFile, type SpaceFile, type SpaceSummary, type SpaceWork } from "@/shared/core";

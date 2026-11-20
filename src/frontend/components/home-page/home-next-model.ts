@@ -1,4 +1,4 @@
-/** The two blocks under Today's deadlines: the unfinished lessons and the topics to work on next,
+/** The two blocks under Home's deadlines: the unfinished lessons and the topics to work on next,
  *  each across every open space. Pure. */
 import type { LessonProgress, ProgressPayload, SpaceColor, TopicStatus } from "@/shared/core";
 import { workOnNextList } from "@/frontend/components/study-page/suggestions-model";

@@ -67,7 +67,7 @@ export function useLessonStart() {
 		[post],
 	);
 
-	/** Study some of a space's topics, the active space's unless `spaceId` names one (Today). */
+	/** Study some of a space's topics, the active space's unless `spaceId` names one (Home). */
 	const studyTopics = useCallback(
 		(topicIds: readonly string[], spaceId?: string) => {
 			if (topicIds.length > 0) return post({ topicIds }, [], spaceId ?? active);

@@ -27,7 +27,7 @@ Design every feature as part of the whole app.
 - Before designing, list what the app already has that does part of the job (screen, control, stored thing, agent tool) and build on it. A new screen, tab, setting, tool or data file needs a reason the existing ones can't serve.
 - Reuse the names, controls, looks and flows the app uses for the same idea. One way per action, one home per thing.
 - A new feature that overlaps an old one: merge them or remove the old one in the same change. Two features never do the same job.
-- A plan says where the feature touches the rest of the app (Today, spaces, lessons, deadlines, the agent's pane, the agent's tools, the godspeed folder) and what changes there.
+- A plan says where the feature touches the rest of the app (Home, spaces, lessons, deadlines, the agent's pane, the agent's tools, the godspeed folder) and what changes there.
 
 # No guessing
 

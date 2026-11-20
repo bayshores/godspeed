@@ -1,5 +1,5 @@
 /**
- * Today: ticking a deadline done and undoing it (the shared read), the
+ * Home: ticking a deadline done and undoing it (the shared read), the
  * card (open and ticked done), the week's columns (picking, late, done,
  * "+N more"), Later, the whole page in each of its states, and a space's
  * fact grid on Progress.
@@ -34,8 +34,8 @@ Object.assign(globalThis, {
 
 const { MemoryRouter } = await import("react-router");
 const { NextCard } = await import("../../src/frontend/components/home-page/next-card.tsx");
-const { TodayBody } = await import("../../src/frontend/components/home-page/today-body.tsx");
-const { todayLists } = await import("../../src/frontend/components/home-page/home-page-model.ts");
+const { HomeBody } = await import("../../src/frontend/components/home-page/home-body.tsx");
+const { homeLists } = await import("../../src/frontend/components/home-page/home-page-model.ts");
 const { SpaceFacts } = await import("../../src/frontend/components/overview/space-facts.tsx");
 const { OpenDeadlinesProvider, useOpenDeadlines } = await import("../../src/frontend/components/use-open-deadlines.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
@@ -279,14 +279,14 @@ function spaceProgress(over: { counts?: [number, number, number, number]; files?
 const LA = space("spc_la", "Linear Algebra", { color: 2 });
 const OS = space("spc_os", "Operating Systems", { color: 5 });
 
-function page(props: Partial<React.ComponentProps<typeof TodayBody>> = {}): string {
+function page(props: Partial<React.ComponentProps<typeof HomeBody>> = {}): string {
 	return renderToStaticMarkup(
 		<MemoryRouter initialEntries={["/"]}>
-			<TodayBody
+			<HomeBody
 				nowMs={NOW}
 				ready
 				spaces={[LA, OS]}
-				lists={todayLists([], [], NOW)}
+				lists={homeLists([], [], NOW)}
 				deadlineProgress={new Map()}
 				spacesProgress={new Map([["spc_la", spaceProgress({ counts: [9, 3, 0, 6] })], ["spc_os", spaceProgress({ counts: [4, 1, 0, 12] })]])}
 				noSpaceProgress={null}
@@ -323,7 +323,7 @@ function nextProgress(over: { lesson?: boolean; topic?: boolean } = {}): Progres
 	} as unknown as ProgressPayload;
 }
 
-describe("Today, under the deadlines: Unfinished and Work on next", () => {
+describe("Home, under the deadlines: Unfinished and Work on next", () => {
 	const order = (html: string, ...ids: string[]) => ids.map((id) => html.indexOf(`data-testid="${id}"`));
 
 	it("both blocks sit after the deadlines and before the spaces, one key in each head", () => {
@@ -361,11 +361,11 @@ describe("Today, under the deadlines: Unfinished and Work on next", () => {
 		const started: string[][] = [];
 		const el = await mount(
 			<MemoryRouter initialEntries={["/"]}>
-				<TodayBody
+				<HomeBody
 					nowMs={NOW}
 					ready
 					spaces={[LA]}
-					lists={todayLists([], [], NOW)}
+					lists={homeLists([], [], NOW)}
 					deadlineProgress={new Map()}
 					spacesProgress={new Map([["spc_la", nextProgress()]])}
 					noSpaceProgress={null}
@@ -391,7 +391,7 @@ describe("Today, under the deadlines: Unfinished and Work on next", () => {
 	});
 });
 
-describe("Today, as a whole page", () => {
+describe("Home, as a whole page", () => {
 	const DONE_HW5 = { ...OPEN[2]!, done: true, doneAt: new Date(NOW).toISOString() };
 
 	it("waits in one block until everything is in", () => {
@@ -401,7 +401,7 @@ describe("Today, as a whole page", () => {
 	});
 
 	it("with deadlines: the app's name and days studied, the card, the week with Later, then the spaces, with one main key", () => {
-		const html = page({ lists: todayLists(LA_OPEN, [DONE_HW5], NOW) });
+		const html = page({ lists: homeLists(LA_OPEN, [DONE_HW5], NOW) });
 		const order = ["today-title", "today-studied", "today-card", "today-deadlines", "week-columns", "week-later", "today-spaces"].map((id) => html.indexOf(`data-testid="${id}"`));
 		assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1]!)), `sections in order: ${order.join(", ")}`);
 		assert.match(section(html, "today-title", "</h1>"), />godspeed$/);
@@ -418,7 +418,7 @@ describe("Today, as a whole page", () => {
 	});
 
 	it("the week: seven columns from today, today's head filled and named for a screen reader, a block per deadline", () => {
-		const html = page({ lists: todayLists([OPEN[0]!, ...LA_OPEN], [DONE_HW5], NOW) });
+		const html = page({ lists: homeLists([OPEN[0]!, ...LA_OPEN], [DONE_HW5], NOW) });
 		assert.equal(count(html, 'data-testid="week-day-'), 7);
 		const today = section(html, "week-day-2026-10-28", "</section>");
 		assert.match(today, /<h3 class="[^"]*bg-highlight[^"]*"><span aria-hidden="true">Wed<span class="font-count"> 28<\/span><\/span><span class="sr-only">Wednesday, today<\/span>/);
@@ -451,7 +451,7 @@ describe("Today, as a whole page", () => {
 	});
 
 	it("nothing due this week: seven empty days and Later, no sentence", () => {
-		const html = page({ lists: todayLists([LA_OPEN[2]!], [], NOW) });
+		const html = page({ lists: homeLists([LA_OPEN[2]!], [], NOW) });
 		assert.ok(!html.includes('data-testid="today-empty"'));
 		assert.equal(count(html, 'data-testid="week-day-'), 7);
 		assert.ok(section(html, "week-later", "</section>").includes('data-testid="week-item-fin"'));
@@ -483,10 +483,10 @@ describe("Today, as a whole page", () => {
 });
 
 describe("Picking in the week", () => {
-	function body(lists: ReturnType<typeof todayLists>, on: { done?: string[]; undone?: string[] } = {}) {
+	function body(lists: ReturnType<typeof homeLists>, on: { done?: string[]; undone?: string[] } = {}) {
 		return (
 			<MemoryRouter initialEntries={["/"]}>
-				<TodayBody
+				<HomeBody
 					nowMs={NOW}
 					ready
 					spaces={[LA, OS]}
@@ -515,7 +515,7 @@ describe("Picking in the week", () => {
 	const DONE_HW5 = { ...OPEN[2]!, done: true, doneAt: new Date(NOW).toISOString() };
 
 	it("the card shows the next thing until a block is picked; a click shows that one, pressed, and says so", async () => {
-		const el = await mount(body(todayLists(LA_OPEN, [DONE_HW5], NOW)));
+		const el = await mount(body(homeLists(LA_OPEN, [DONE_HW5], NOW)));
 		assert.equal(cardTitle(el), "Quiz 2");
 		assert.equal($(el, "week-item-q2")!.getAttribute("aria-pressed"), "true");
 		assert.equal($(el, "today-showing")!.textContent, "", "nothing said before a pick");
@@ -530,7 +530,7 @@ describe("Picking in the week", () => {
 
 	it("a picked one ticked done today: struck through with Undo and no main key", async () => {
 		const undone: string[] = [];
-		const el = await mount(body(todayLists(LA_OPEN, [DONE_HW5], NOW), { undone }));
+		const el = await mount(body(homeLists(LA_OPEN, [DONE_HW5], NOW), { undone }));
 		await act(async () => $(el, "week-item-hw5")!.click());
 		assert.equal(cardTitle(el), "HW 5");
 		assert.equal($(el, "today-start"), null);
@@ -540,27 +540,27 @@ describe("Picking in the week", () => {
 
 	it("Mark done on the picked one keeps it shown, struck through, once the lists say it is done", async () => {
 		const done: string[] = [];
-		const el = await mount(body(todayLists(LA_OPEN, [], NOW), { done }));
+		const el = await mount(body(homeLists(LA_OPEN, [], NOW), { done }));
 		await act(async () => $(el, "week-item-hw4")!.click());
 		await act(async () => $(el, "today-done")!.click());
 		assert.deepEqual(done, ["hw4"]);
 		const hw4Done = { ...LA_OPEN[1]!, done: true, doneAt: new Date(NOW).toISOString() };
-		await act(async () => root!.render(body(todayLists([LA_OPEN[0]!, LA_OPEN[2]!], [hw4Done], NOW))));
+		await act(async () => root!.render(body(homeLists([LA_OPEN[0]!, LA_OPEN[2]!], [hw4Done], NOW))));
 		assert.equal(cardTitle(el), "Homework 4");
 		assert.ok($(el, "today-undo"));
 	});
 
 	it("a pick that leaves the lists falls back to the next thing", async () => {
-		const el = await mount(body(todayLists(LA_OPEN, [], NOW)));
+		const el = await mount(body(homeLists(LA_OPEN, [], NOW)));
 		await act(async () => $(el, "week-item-hw4")!.click());
-		await act(async () => root!.render(body(todayLists([LA_OPEN[0]!], [], NOW))));
+		await act(async () => root!.render(body(homeLists([LA_OPEN[0]!], [], NOW))));
 		assert.equal(cardTitle(el), "Quiz 2");
 		assert.equal($(el, "today-showing")!.textContent, "Showing Quiz 2");
 	});
 
 	it("a day with more than four shows three and +N more, which unfolds the whole week; Show less folds it", async () => {
 		const busy = ["a", "b", "c", "e", "f"].map((id, i) => d(id, `Task ${id}`, "2026-10-30", `1${i}:00`));
-		const el = await mount(body(todayLists(busy, [], NOW)));
+		const el = await mount(body(homeLists(busy, [], NOW)));
 		const fri = () => $(el, "week-day-2026-10-30")!;
 		const shown = () => fri().querySelectorAll('[data-testid^="week-item-"]').length;
 		assert.equal(shown(), 3);
@@ -580,7 +580,7 @@ describe("Picking in the week", () => {
 	});
 
 	it("a Later block picks into the card, with its days left and its key", async () => {
-		const el = await mount(body(todayLists(LA_OPEN, [], NOW)));
+		const el = await mount(body(homeLists(LA_OPEN, [], NOW)));
 		await act(async () => $(el, "week-item-fin")!.click());
 		assert.equal(cardTitle(el), "Final");
 		assert.equal($(el, "week-item-fin")!.getAttribute("aria-pressed"), "true");
@@ -589,7 +589,7 @@ describe("Picking in the week", () => {
 
 	it("a day with four shows all four and no key", async () => {
 		const four = ["a", "b", "c", "e"].map((id) => d(id, `Task ${id}`, "2026-10-30"));
-		const el = await mount(body(todayLists(four, [], NOW)));
+		const el = await mount(body(homeLists(four, [], NOW)));
 		assert.equal($(el, "week-day-2026-10-30")!.querySelectorAll('[data-testid^="week-item-"]').length, 4);
 		assert.equal($(el, "week-more"), null);
 	});
@@ -600,7 +600,7 @@ const gridColumns = (html: string) => html.match(/--week-cols:([^"]*)"/)![1]!.sp
 
 describe("Later, the eighth column", () => {
 	it("after the seven days: its head, then blocks by date, each with its date always under the name", () => {
-		const html = page({ lists: todayLists([OPEN[4]!, LA_OPEN[2]!], [], NOW) });
+		const html = page({ lists: homeLists([OPEN[4]!, LA_OPEN[2]!], [], NOW) });
 		const later = section(html, "week-later", "</section>");
 		assert.ok(html.indexOf('data-testid="week-day-2026-11-03"') < html.indexOf('data-testid="week-later"'));
 		assert.match(later, /<h3 class="[^"]*text-ink-2[^"]*"><span aria-hidden="true">Later<\/span><span class="sr-only">Later<\/span>/);
@@ -612,7 +612,7 @@ describe("Later, the eighth column", () => {
 	});
 
 	it("an empty day takes the narrow-week share, a day with something a whole one; a block's second line is its time alone", () => {
-		const html = page({ lists: todayLists([d("q", "Quiz", "2026-10-29", "08:00"), OPEN[2]!], [], NOW) });
+		const html = page({ lists: homeLists([d("q", "Quiz", "2026-10-29", "08:00"), OPEN[2]!], [], NOW) });
 		assert.deepEqual(gridColumns(html).slice(0, 4), ["minmax(min-content, var(--day-empty))", "minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(min-content, var(--day-empty))"]);
 		assert.ok(html.includes("@max-[760px]:[--day-empty:0.6fr]"));
 		assert.match(section(html, "week-item-q", "</button>"), /hidden @min-\[1000px\]:block @max-\[600px\]:block">8:00 AM<\/span>/);
@@ -623,7 +623,7 @@ describe("Later, the eighth column", () => {
 	});
 
 	it("nothing after the week: seven columns and no Later", () => {
-		const html = page({ lists: todayLists([OPEN[0]!], [], NOW) });
+		const html = page({ lists: homeLists([OPEN[0]!], [], NOW) });
 		assert.ok(!html.includes('data-testid="week-later"'));
 		assert.equal(gridColumns(html).length, 7);
 	});
@@ -646,11 +646,11 @@ describe("Your spaces", () => {
 		const opened: string[] = [];
 		const el = await mount(
 			<MemoryRouter initialEntries={["/"]}>
-				<TodayBody
+				<HomeBody
 					nowMs={NOW}
 					ready
 					spaces={[LA]}
-					lists={todayLists([], [], NOW)}
+					lists={homeLists([], [], NOW)}
 					deadlineProgress={new Map()}
 					spacesProgress={new Map([["spc_la", spaceProgress()]])}
 					noSpaceProgress={null}

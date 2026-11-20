@@ -1,4 +1,4 @@
-/** Pure helpers for Today (home-page.tsx): per-space progress, which list a deadline goes in, which one the card shows and its words. */
+/** Pure helpers for Home (home-page.tsx): per-space progress, which list a deadline goes in, which one the card shows and its words. */
 import { hasProblems, localDay, longDay, nothingMorePlannedLine, planDays, type ContinueStudy, type DeadlineKind, type DeadlineProgress, type ProgressPayload } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
 import { DAY, HOUR, MINUTE, calendarDays, dueAtMs } from "@/frontend/components/countdown-model";
@@ -45,7 +45,7 @@ export function dueThisWeek(d: { date: string; time?: string }, nowMs: number): 
 	return calendarDays(nowMs, dueAtMs(d)) <= TODAY_DAYS;
 }
 
-export interface TodayLists {
+export interface HomeLists {
 	/** Open, due within the week or overdue, soonest first. */
 	today: OpenDeadline[];
 	/** Ticked done today. */
@@ -54,9 +54,9 @@ export interface TodayLists {
 	later: OpenDeadline[];
 }
 
-/** Today's three lists, each in the order given (soonest first). A done
+/** Home's three lists, each in the order given (soonest first). A done
  *  row leaves when the day turns, without a new read. */
-export function todayLists(open: readonly OpenDeadline[], doneToday: readonly OpenDeadline[], nowMs: number): TodayLists {
+export function homeLists(open: readonly OpenDeadline[], doneToday: readonly OpenDeadline[], nowMs: number): HomeLists {
 	const soon = (d: OpenDeadline) => dueThisWeek(d, nowMs);
 	const day = localDay(nowMs);
 	return {
@@ -132,7 +132,7 @@ function nothingMoreToday(progress: DeadlineProgress | undefined, nowMs: number)
 	return progress?.studyEndedToday === true && !planDays(localDay(nowMs), progress.date, progress.topics)[0]?.topics.length;
 }
 
-/** Today's card: what to do as its title, the one line under it, how far
+/** Home's card: what to do as its title, the one line under it, how far
  *  (its chip) and its main key. */
 interface CardWords {
 	title: string;
@@ -163,20 +163,20 @@ export function nextCard(d: OpenDeadline, progress: DeadlineProgress | undefined
 	return { title: d.name, line: left ? `${when}. ${left}` : when, ready, button: next ? "Continue" : "Study" };
 }
 
-/** What Today says in place of the week when there is no deadline at all. */
-export function todayEmpty(lists: TodayLists, teacher: string): string | null {
+/** What Home says in place of the week when there is no deadline at all. */
+export function homeEmpty(lists: HomeLists, teacher: string): string | null {
 	return lists.today.length + lists.done.length + lists.later.length > 0 ? null : `None yet. ${teacher} can add them from your files.`;
 }
 
 /** The deadline the card shows: the one picked in the week or Later while
  *  it is still there (open or ticked done today), else mainRowId's. */
-export function shownCard(lists: TodayLists, picked: string | null, mainId: string | null): OpenDeadline | null {
+export function shownCard(lists: HomeLists, picked: string | null, mainId: string | null): OpenDeadline | null {
 	const all = [...lists.today, ...lists.done, ...lists.later];
 	const find = (id: string | null) => (id === null ? undefined : all.find((d) => d.id === id));
 	return find(picked) ?? find(mainId) ?? null;
 }
 
-/** The row Today's card holds, with the page's one main button: a session
+/** The row Home's card holds, with the page's one main button: a session
  *  stopped before today, else the soonest row. A session that stopped today, or
  *  ended today with nothing more planned, is passed over, so with no other
  *  row there is no card. `deadlines` are soonest first. */

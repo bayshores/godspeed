@@ -13,7 +13,7 @@ export function NotFound({ page }: { page?: string }) {
 			<div data-testid="not-found" className="mx-auto flex w-[520px] max-w-full flex-col items-center gap-6 px-6 pt-[220px] pb-10 text-center">
 				<h1 className="text-[30px] leading-tight text-ink">This page doesn&apos;t exist.</h1>
 				<Link to="/" className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
-					Go to Today
+					Go to Home
 				</Link>
 			</div>
 		</div>

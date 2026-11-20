@@ -7,7 +7,7 @@ import { jsonInit, send } from "@/frontend/lib/api";
 type Space = { id: string };
 
 /**
- * Closes and reopens spaces. Closing the space on screen goes to Today;
+ * Closes and reopens spaces. Closing the space on screen goes to Home;
  * reopening one switches the window to it. A refused request keeps its
  * error and changes nothing.
  */

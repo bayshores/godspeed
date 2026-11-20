@@ -1,7 +1,7 @@
 import { cn } from "@/frontend/lib/utils";
 
 /** The block's size and type: the smaller one of a space's Deadlines list,
- *  the one a size up flush with Today's card, the band on the Progress
+ *  the one a size up flush with Home's card, the band on the Progress
  *  tab's next deadline, or the one at the head of a deadline's page. */
 const SIZES = {
 	head: { box: "size-[120px]", count: "text-[60px] leading-[1.15]", unit: "text-[15px]" },

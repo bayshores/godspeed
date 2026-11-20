@@ -1,6 +1,6 @@
 /**
  * Background work on a space, in words (work-model.ts): who does it, the
- * work frame's states and tag, and the lines on Today, the space's tab
+ * work frame's states and tag, and the lines on Home, the space's tab
  * and the strip's peek.
  */
 import assert from "node:assert/strict";

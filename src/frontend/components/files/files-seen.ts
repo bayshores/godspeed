@@ -3,7 +3,7 @@ import { isRecent } from "@/shared/core";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 
 /**
- * The Files tab's "new" mark and Today's new-files line: a folder scan found
+ * The Files tab's "new" mark and Home's new-files line: a folder scan found
  * files in a space since the learner last opened its Files page (and they
  * are still new).
  * What was seen is remembered per space in this browser only.

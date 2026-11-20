@@ -101,7 +101,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 			&item("page:back", "Back", Some("CmdOrCtrl+["))?,
 			&item("page:forward", "Forward", Some("CmdOrCtrl+]"))?,
 			&separator()?,
-			&item("page:go:/", "Today", None)?,
+			&item("page:go:/", "Home", None)?,
 			&item("page:jump-graph", "Graph", Some("CmdOrCtrl+G"))?,
 			&item("page:go:/space", "Progress", None)?,
 			&item("page:go:/space/files", "Files", None)?,

@@ -3,14 +3,14 @@ import type { DeadlineProgress, ProgressPayload, SpaceSummary } from "@/shared/c
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { DeadlinesCard } from "./deadlines-card";
-import { mainRowId, shownCard, type TodayLists } from "./home-page-model";
+import { mainRowId, shownCard, type HomeLists } from "./home-page-model";
 import { NextCard } from "./next-card";
 import { SpaceList } from "./space-list";
 import { StudiedLine } from "./studied-line";
-import { TodayNext } from "./today-next";
-import { topicsToWorkOn, unfinishedAcross } from "./today-next-model";
+import { HomeNext } from "./home-next";
+import { topicsToWorkOn, unfinishedAcross } from "./home-next-model";
 
-interface TodayBodyProps {
+interface HomeBodyProps {
 	/** Null before the first minute tick. */
 	nowMs: number | null;
 	/** Everything the first view needs is in, so nothing reflows under the reader. */
@@ -18,7 +18,7 @@ interface TodayBodyProps {
 	/** The open spaces. */
 	spaces: readonly SpaceSummary[];
 	/** Null when the deadlines failed to load. */
-	lists: TodayLists | null;
+	lists: HomeLists | null;
 	deadlineProgress: ReadonlyMap<string, DeadlineProgress>;
 	spacesProgress: ReadonlyMap<string, ProgressPayload>;
 	/** The lessons with no space; their answers count in the week line. */
@@ -48,7 +48,7 @@ interface TodayBodyProps {
  * to do until one is picked), the week with Later, the lessons left unfinished and the topics to work on next, then the spaces. With no
  * space yet, the spaces card alone, with the key for the first.
  */
-export function TodayBody(p: TodayBodyProps) {
+export function HomeBody(p: HomeBodyProps) {
 	// A pick that leaves the lists falls back to the next thing to do.
 	const [picked, setPicked] = useState<string | null>(null);
 	const card = p.lists && p.nowMs !== null ? shownCard(p.lists, picked, mainRowId(p.lists.today, p.deadlineProgress, p.nowMs)) : null;
@@ -104,7 +104,7 @@ export function TodayBody(p: TodayBodyProps) {
 								{picked !== null && card ? `Showing ${card.name}` : ""}
 							</p>
 						</div>
-						<TodayNext unfinished={unfinished} topics={topics} busy={p.busy} onOpenSpace={p.onOpenSpace} onStudyTopic={p.onStudyTopic} />
+						<HomeNext unfinished={unfinished} topics={topics} busy={p.busy} onOpenSpace={p.onOpenSpace} onStudyTopic={p.onStudyTopic} />
 						<div className="grid @[1100px]/page:col-start-2 @[1100px]/page:row-start-1">
 							<SpaceList spaces={p.spaces} progress={p.spacesProgress} errors={p.progressErrors} newFiles={p.newFiles} onOpen={p.onOpenSpace} />
 						</div>

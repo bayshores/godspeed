@@ -1,9 +1,9 @@
-/** Today's week: seven day columns from today, each with what is due that day, then Later. Pure. */
+/** Home's week: seven day columns from today, each with what is due that day, then Later. Pure. */
 import { localDay, monthDay } from "@/shared/core";
 import { dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { clockLabel } from "@/frontend/components/space-deadlines-model";
-import { dueWords, type TodayLists } from "./home-page-model";
+import { dueWords, type HomeLists } from "./home-page-model";
 
 export interface WeekItem {
 	deadline: OpenDeadline;
@@ -46,7 +46,7 @@ function item(d: OpenDeadline, nowMs: number, late: boolean, done: boolean, late
  *  the week. Today's column holds what is late first (oldest first), then
  *  what is still due today by time, then what was ticked done today; the
  *  other days hold what is due that day by time, and Later all the rest by date. */
-export function weekColumns(lists: TodayLists, nowMs: number): WeekColumn[] {
+export function weekColumns(lists: HomeLists, nowMs: number): WeekColumn[] {
 	const now = new Date(nowMs);
 	const byDue = [...lists.today].sort((a, b) => dueAtMs(a) - dueAtMs(b));
 	const days = Array.from({ length: 7 }, (_, i): WeekColumn => {

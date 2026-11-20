@@ -58,7 +58,7 @@ export function SpaceMenu({
 	space: SpaceSummary;
 	open: boolean;
 	anchorRef: RefObject<HTMLElement | null>;
-	/** Its tab is the lit one: closing it goes to Today. */
+	/** Its tab is the lit one: closing it goes to Home. */
 	onScreen: boolean;
 	onClose: () => void;
 	onDelete: (spaceId: string) => void;

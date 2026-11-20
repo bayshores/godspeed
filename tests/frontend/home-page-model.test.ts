@@ -6,12 +6,12 @@ import {
 	spacesSettled,
 	countLeft,
 	foldSpacesProgress,
-	todayLists,
+	homeLists,
 	mainRowId,
 	nextCard,
 	overdueToAsk,
 	shownCard,
-	todayEmpty,
+	homeEmpty,
 	type SpacesProgress,
 } from "../../src/frontend/components/home-page/home-page-model.ts";
 
@@ -101,20 +101,20 @@ function progress(extra: Partial<DeadlineProgress>): DeadlineProgress {
 	};
 }
 
-describe("todayLists", () => {
+describe("homeLists", () => {
 	const doneAt = (h: number, day = 11) => new Date(2026, 10, day, h).toISOString();
 
 	it("Today holds what is due today, in the six days after it, or overdue; Later holds the rest", () => {
 		const open = [d("late", "homework", "2026-11-09"), d("today", "quiz", "2026-11-11"), d("day6", "exam", "2026-11-17", { time: "23:59" }), d("day7", "exam", "2026-11-18", { time: "00:01" })];
-		const lists = todayLists(open, [], NOW);
+		const lists = homeLists(open, [], NOW);
 		assert.deepEqual(lists.today.map((x) => x.id), ["late", "today", "day6"]);
 		assert.deepEqual(lists.later.map((x) => x.id), ["day7"]);
 	});
 
 	it("a row ticked done stays until the day turns", () => {
 		const done = [d("now", "homework", "2026-11-12", { done: true, doneAt: doneAt(9) }), d("yesterday", "homework", "2026-11-10", { done: true, doneAt: doneAt(23, 10) })];
-		assert.deepEqual(todayLists([], done, NOW).done.map((x) => x.id), ["now"]);
-		assert.deepEqual(todayLists([], done, new Date(2026, 10, 12, 0, 1).getTime()).done, []);
+		assert.deepEqual(homeLists([], done, NOW).done.map((x) => x.id), ["now"]);
+		assert.deepEqual(homeLists([], done, new Date(2026, 10, 12, 0, 1).getTime()).done, []);
 	});
 });
 
@@ -232,15 +232,15 @@ describe("nextCard", () => {
 	});
 });
 
-describe("todayEmpty", () => {
+describe("homeEmpty", () => {
 	const far = d("Final", "exam", "2026-12-08", { id: "far" });
 
 	it("speaks only with no deadline at all, as Later shows in the week block", () => {
-		assert.equal(todayEmpty(todayLists([], [], NOW), "Halley"), "None yet. Halley can add them from your files.");
-		assert.equal(todayEmpty(todayLists([far], [], NOW), "Halley"), null);
-		assert.equal(todayEmpty(todayLists([d("quiz", "quiz", "2026-11-12"), far], [], NOW), "Halley"), null);
+		assert.equal(homeEmpty(homeLists([], [], NOW), "Halley"), "None yet. Halley can add them from your files.");
+		assert.equal(homeEmpty(homeLists([far], [], NOW), "Halley"), null);
+		assert.equal(homeEmpty(homeLists([d("quiz", "quiz", "2026-11-12"), far], [], NOW), "Halley"), null);
 		const done = d("PS1", "homework", "2026-11-10", { done: true, doneAt: new Date(NOW - 60_000).toISOString() });
-		assert.equal(todayEmpty(todayLists([], [done], NOW), "Halley"), null, "one done today still shows in the week");
+		assert.equal(homeEmpty(homeLists([], [done], NOW), "Halley"), null, "one done today still shows in the week");
 	});
 });
 
@@ -249,7 +249,7 @@ describe("shownCard: the deadline the card shows", () => {
 	const hw = d("PS4", "homework", "2026-11-13", { id: "hw" });
 	const done = d("PS1", "homework", "2026-11-10", { id: "ps1", done: true, doneAt: new Date(NOW - 60_000).toISOString() });
 	const far = d("Final", "exam", "2026-12-08", { id: "far" });
-	const lists = todayLists([quiz, hw, far], [done], NOW);
+	const lists = homeLists([quiz, hw, far], [done], NOW);
 
 	it("the main row until one is picked", () => {
 		assert.equal(shownCard(lists, null, "quiz")?.id, "quiz");

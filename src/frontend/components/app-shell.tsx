@@ -16,7 +16,7 @@ import { BarSlotsProvider } from "@/frontend/components/top-bar/bar-slots";
 import { SearchLessons } from "@/frontend/components/search-lessons";
 import { ReadNotice } from "@/frontend/components/work/read-notice";
 
-/** The view swap: switching between pages (Today, a lesson, Progress…)
+/** The view swap: switching between pages (Home, a lesson, Progress…)
  *  rises the incoming page in once. */
 function ViewSwap({ children }: { children: React.ReactNode }) {
 	const { pathname } = useLocation();

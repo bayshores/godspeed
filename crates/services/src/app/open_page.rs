@@ -51,8 +51,8 @@ fn space_target(space_id: Option<&str>) -> Json {
 /// holds the refusal.
 fn page_for(app: &App, args: &Json) -> Result<PageTarget, String> {
 	let page = args["page"].str_or_empty();
-	if page == "today" {
-		return Ok(PageTarget { path: "/".to_owned(), space_id: None, name: "Today".to_owned(), target: Json::Null, note: None });
+	if page == "home" {
+		return Ok(PageTarget { path: "/".to_owned(), space_id: None, name: "Home".to_owned(), target: Json::Null, note: None });
 	}
 	if let Some((path, name)) = space_page(page) {
 		let space_id = args["space_id"].as_str().filter(|id| *id != "none");
@@ -183,7 +183,7 @@ mod tests {
 		let lesson_id = app.stores.chats.create_chat("Sums", Some("study"), Some(&space_id), None).unwrap()["id"].str_or_empty().to_owned();
 		let tab = json!({ "kind": "space", "id": space_id });
 		let cases = [
-			(json!({ "page": "today" }), "/", None, "Today", Json::Null),
+			(json!({ "page": "home" }), "/", None, "Home", Json::Null),
 			(json!({ "page": "progress", "space_id": space_id }), "/space", Some(&space_id), "CSE 21's Progress", tab.clone()),
 			(json!({ "page": "files", "space_id": space_id }), "/space/files", Some(&space_id), "CSE 21's Files", tab.clone()),
 			(json!({ "page": "deadlines", "space_id": space_id }), "/space/deadlines", Some(&space_id), "CSE 21's Deadlines", tab.clone()),
@@ -198,7 +198,7 @@ mod tests {
 		}
 		let page = page_for(&app, &json!({ "page": "files", "space_id": space_id })).unwrap();
 		assert_eq!(with_space(&page), format!("/space/files?space={space_id}"));
-		assert_eq!(with_space(&page_for(&app, &json!({ "page": "today" })).unwrap()), "/");
+		assert_eq!(with_space(&page_for(&app, &json!({ "page": "home" })).unwrap()), "/");
 	}
 
 	#[test]

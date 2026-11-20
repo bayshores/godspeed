@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { OpenDeadline } from "../../src/frontend/components/deadlines-model.ts";
-import { todayLists } from "../../src/frontend/components/home-page/home-page-model.ts";
+import { homeLists } from "../../src/frontend/components/home-page/home-page-model.ts";
 import { cutColumn, weekColumns } from "../../src/frontend/components/home-page/week-columns-model.ts";
 
 // Mon Nov 16 2026, 2:00 PM local.
@@ -11,7 +11,7 @@ function d(id: string, date: string, extra: Partial<OpenDeadline> = {}): OpenDea
 	return { id, kind: "homework", name: id, date, fileIds: [], done: false, spaceId: "c21", spaceName: "CSE 21", ...extra };
 }
 
-const week = (open: OpenDeadline[], done: OpenDeadline[] = []) => weekColumns(todayLists(open, done, NOW), NOW);
+const week = (open: OpenDeadline[], done: OpenDeadline[] = []) => weekColumns(homeLists(open, done, NOW), NOW);
 const ids = (day: { items: { deadline: OpenDeadline }[] }) => day.items.map((i) => i.deadline.id);
 
 describe("weekColumns", () => {

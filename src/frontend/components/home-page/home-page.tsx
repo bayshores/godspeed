@@ -10,14 +10,14 @@ import { ADD_DEADLINE_HREF } from "@/frontend/components/space-page/deadlines-ta
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { highlight, waitForTarget } from "@/frontend/components/teacher/dom";
-import { spacesSettled, todayLists } from "./home-page-model";
-import { TodayBody } from "./today-body";
+import { spacesSettled, homeLists } from "./home-page-model";
+import { HomeBody } from "./home-body";
 import { useNewFiles } from "./use-new-files";
 import { useSpacesProgress } from "./use-spaces-progress";
 
 /**
  * TODAY ("/"): reads the open spaces, their deadlines, progress and new
- * files, and hands them to TodayBody. Its Start begins or continues the
+ * files, and hands them to HomeBody. Its Start begins or continues the
  * deadline's lesson; "Add a deadline" opens the dialog on a space's
  * Deadlines tab.
  */
@@ -74,7 +74,7 @@ export function HomePage() {
 	);
 
 	const ready = nowMs !== null && loaded && (deadlines !== null || deadlinesError !== null) && (shown.length === 0 || progressReady);
-	const lists = useMemo(() => (deadlines && nowMs !== null ? todayLists(deadlines, doneToday, nowMs) : null), [deadlines, doneToday, nowMs]);
+	const lists = useMemo(() => (deadlines && nowMs !== null ? homeLists(deadlines, doneToday, nowMs) : null), [deadlines, doneToday, nowMs]);
 
 	// Back from a lesson's Done for today (?lit=deadline:<id>): its card lights once.
 	const [params, setParams] = useSearchParams();
@@ -102,7 +102,7 @@ export function HomePage() {
 
 	return (
 		<div data-testid="home-page" className="h-full overflow-y-auto">
-			<TodayBody
+			<HomeBody
 				nowMs={nowMs}
 				ready={ready}
 				spaces={shown}

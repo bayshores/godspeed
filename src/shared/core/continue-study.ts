@@ -28,8 +28,8 @@ interface DeadlineSession {
 
 export type ContinueStudy = Pick<DeadlineSession, "chatId" | "done" | "total" | "stop" | "inTopic">;
 
-/** What Today's row and the deadline's path say when today's plan is empty
- *  after its session ended: with the space name on Today, alone as a
+/** What Home's row and the deadline's path say when today's plan is empty
+ *  after its session ended: with the space name on Home, alone as a
  *  sentence on the path. */
 export function nothingMorePlannedLine(spaceName?: string): string {
 	return spaceName ? `${spaceName}, nothing more is planned today.` : "Nothing more is planned today.";

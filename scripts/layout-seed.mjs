@@ -80,7 +80,7 @@ const LONG_PROBLEM = [
 	"Last, check your answer: put both speeds back into the story and work out how far each train has gone when they pass. Do the two distances add up to 300 miles? If they do not, find the step where the equation and the story stopped agreeing, and fix it.",
 ].join("\n\n");
 
-/** Deadlines for the cheat sheet and mock pages, far off so Today stays as it was. */
+/** Deadlines for the cheat sheet and mock pages, far off so Home stays as it was. */
 const MIDTERM = "Midterm: graphing and systems";
 const QUIZ = "Quiz 2: slopes and intercepts";
 const REVIEW_QUIZ = "Review quiz: equations by graphing";

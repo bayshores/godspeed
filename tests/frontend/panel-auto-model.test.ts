@@ -139,10 +139,10 @@ describe("a lesson reply starting closes the panel", () => {
 });
 
 describe("the new learner's first look", () => {
-	it("is the first Today after onboarding with the teacher on", () => {
-		assert.ok(welcomeNow({ marked: true, onToday: true, teacherOn: true }));
-		assert.ok(!welcomeNow({ marked: false, onToday: true, teacherOn: true }), "anyone who did not just finish onboarding");
-		assert.ok(!welcomeNow({ marked: true, onToday: false, teacherOn: true }), "it waits for Today");
-		assert.ok(!welcomeNow({ marked: true, onToday: true, teacherOn: false }), "it waits for the teacher");
+	it("is the first look at Home after onboarding with the teacher on", () => {
+		assert.ok(welcomeNow({ marked: true, onHome: true, teacherOn: true }));
+		assert.ok(!welcomeNow({ marked: false, onHome: true, teacherOn: true }), "anyone who did not just finish onboarding");
+		assert.ok(!welcomeNow({ marked: true, onHome: false, teacherOn: true }), "it waits for Home");
+		assert.ok(!welcomeNow({ marked: true, onHome: true, teacherOn: false }), "it waits for the teacher");
 	});
 });

@@ -300,7 +300,7 @@ describe("Delete space from a tab's menu", () => {
 			await new Promise((r) => setTimeout(r, 10));
 		});
 		assert.ok(calls.some((c) => `${c.method} ${c.url}` === "DELETE /api/spaces/cls_a"));
-		assert.deepEqual(pushed, ["/"], "to Today");
+		assert.deepEqual(pushed, ["/"], "to Home");
 		assert.equal(closed, 1);
 	});
 
@@ -367,7 +367,7 @@ describe("Delete space from a tab's menu", () => {
 });
 
 describe("Delete space, while the server deletes it", () => {
-	it("leaves the space first, so nothing asks for it again, then goes to Today", async () => {
+	it("leaves the space first, so nothing asks for it again, then goes to Home", async () => {
 		fakeFetch();
 		const deleting = held();
 		const fallback = globalThis.fetch;
@@ -394,7 +394,7 @@ describe("Delete space, while the server deletes it", () => {
 			[],
 			"neither the dialog nor the page behind it reads the deleted space",
 		);
-		assert.deepEqual(pushed, ["/"], "to Today");
+		assert.deepEqual(pushed, ["/"], "to Home");
 		assert.equal(closed, 1);
 		assert.ok(calls.some((c) => c.url === "/api/settings/general" && (c.body as { activeSpace?: string }).activeSpace === "none"));
 	});

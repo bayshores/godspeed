@@ -10,7 +10,7 @@
  * teacher's screen pops out into its own window the panel closes; while it is
  * there the panel never opens by itself, and asking to show that screen
  * brings the window forward instead. Put back shows the screen here again.
- * A new learner's first Today with the teacher on opens it once.
+ * A new learner's first look at Home with the teacher on opens it once.
  */
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { needsYou, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
@@ -32,8 +32,8 @@ interface PanelState {
 
 const CLOSED: PanelState = { open: false, list: false, role: "teacher", focus: false, byApp: false };
 
-/** `replying`: a reply is running in the open lesson, null with no lesson open. `onToday`: Today is the page. */
-export function useTeacherPanel(replying: boolean | null, onToday: boolean) {
+/** `replying`: a reply is running in the open lesson, null with no lesson open. `onHome`: Home is the page. */
+export function useTeacherPanel(replying: boolean | null, onHome: boolean) {
 	const [state, setState] = useState<PanelState>(CLOSED);
 	const showScreen = useCallback((role: TerminalRole) => setState({ open: true, list: false, role, focus: true, byApp: false }), []);
 	// Opened by the learner, the panel is on the teacher's screen, or on Activity while that is in its own window.
@@ -86,12 +86,12 @@ export function useTeacherPanel(replying: boolean | null, onToday: boolean) {
 	const need: TerminalRole | null = teacher && needsYou(teacher) ? "teacher" : helperNeeds ? "helper" : null;
 	const teacherOn = !!teacher && !teacher.term.ended;
 	useEffect(() => {
-		if (!welcomeNow({ marked: readStorage(WELCOME_KEY) !== null, onToday, teacherOn })) return;
+		if (!welcomeNow({ marked: readStorage(WELCOME_KEY) !== null, onHome, teacherOn })) return;
 		writeStorage(WELCOME_KEY, null);
 		// Already open, or in its own window, the learner has it in front of them. It answers no
 		// need, so no need settling closes it; the keyboard stays where it is.
 		setState((s) => (s.open || popped ? s : { open: true, list: false, role: "teacher", focus: false, byApp: false }));
-	}, [onToday, teacherOn, popped]);
+	}, [onHome, teacherOn, popped]);
 	const seen = useRef(FIRST_LOOK);
 	const started = useRef(false);
 	// Counts up when the typing pause may have ended, so the step looks again.

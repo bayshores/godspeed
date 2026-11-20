@@ -1,5 +1,5 @@
 /**
- * Today's new-files lines. Only a space whose linked folder brought files
+ * Home's new-files lines. Only a space whose linked folder brought files
  * the learner hasn't seen on its Files page (the summary's lastFoundAt
  * says so) has its record read (GET /api/spaces/:id), so most visits read
  * nothing. A failed read shows no line.

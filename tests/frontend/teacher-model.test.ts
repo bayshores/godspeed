@@ -124,7 +124,7 @@ describe("follow", () => {
 	});
 	it("names the page on the button", () => {
 		assert.equal(pageName("/chat/c1"), "lesson");
-		assert.equal(pageName("/"), "Today");
+		assert.equal(pageName("/"), "Home");
 		assert.equal(pageName("/space"), "Progress");
 		assert.equal(pageName("/space/files"), "Files");
 		assert.equal(pageName("/space/deadline/ddl_1"), "deadline");
