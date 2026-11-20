@@ -26,9 +26,8 @@ export function AppBar() {
 	const { actionsRef } = useBarHosts();
 	return (
 		<header data-testid="app-bar" className="lh-app-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-(--lh-bar-h) shrink-0 select-none items-stretch bg-bar text-bar-ink">
-			{/* Below 760px the wordmark and the clock give their room to Today and the pill; below 1200
-			    too while a page has words in the bar (.lh-bar-spare in globals.css). */}
-			<span className="lh-bar-spare flex shrink-0 items-center pr-4 pl-5 text-[17px] font-medium max-[760px]:hidden">godspeed</span>
+			{/* Below 760px the wordmark and the clock give their room to Today and the pill, on every page alike. */}
+			<span className="flex shrink-0 items-center pr-4 pl-5 text-[17px] font-medium max-[760px]:hidden">godspeed</span>
 			<SpaceTabs selected={selected} />
 			<LivePill />
 			{/* After the pill, so its changing words never move the page's. */}
@@ -42,7 +41,7 @@ export function AppBar() {
 function Clock() {
 	const minute = useMinute();
 	return (
-		<span data-testid="bar-clock" className="lh-bar-spare font-count flex shrink-0 items-center pr-5 pl-3 text-[15px] tabular-nums max-[760px]:hidden">
+		<span data-testid="bar-clock" className="font-count flex shrink-0 items-center pr-5 pl-3 text-[15px] tabular-nums max-[760px]:hidden">
 			{minute === null ? "" : clockText(new Date(minute))}
 		</span>
 	);
