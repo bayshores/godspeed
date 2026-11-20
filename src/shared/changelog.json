@@ -1,5 +1,28 @@
 [
 	{
+		"version": "0.6.81",
+		"date": "2026-11-20",
+		"changes": [
+			"Changing page moves now. Pages slide side by side in the order of the top bar, and a deadline, a lesson, a mock or a cheat sheet is laid on top from the bottom edge. With reduced motion turned on in your system, the new page is just there.",
+			"The lit tab in the top bar slides to the page you go to, and so does the underline under a space's tabs and Settings' sections.",
+			"A wait shows a spinner where the content will be. The key that started a lesson or a mock shows it too, and folds, overlays and Settings sections ease in and out.",
+			"The Study page shows your three soonest deadlines as rows with their days left and their keys, where it had a key for every deadline. Suggested is a card under the box.",
+			"A deadline's page opens with one card: the days left, the date, how far you are drawn as blocks, and Study. A homework has Study and Work on it there, and its problems are number tiles in two columns.",
+			"The Files page opens with the file count, each group is a card, and every file has a tile with its type, dark for study material. A file's menu is the three dots at the end of its row.",
+			"Before a cheat sheet is made, its page draws the blank paper beside the question.",
+			"The teacher's place is a strip down the window's right edge on every page. It marks what waits for you, resting the mouse on it lists what is live, and a click opens the teacher's panel.",
+			"The top bar starts with the date and is the same height on every page. In a window under 1100 points wide it is two lines tall everywhere.",
+			"The first page is named Home.",
+			"In a lesson you always type in the box under Your turn, and its keys follow what is waiting: Ask Teacher, Submit answer or Send. The cheat sheet page has the same box.",
+			"godspeed shows what the teacher can do: Try asking lines for the page you are on, and a list of everything, where one click sends a line.",
+			"A problem from a PDF is shown as the piece of its real page, in the theme's ink, with an As printed key for the white page. The part you are on stays clear.",
+			"A deadline can have several lessons. Continue opens the one you worked in last, and the deadline's page lists them.",
+			"A lesson that opens with a problem shows Your turn alone in the middle until the lesson text arrives. The teacher no longer announces a problem with a sentence that says nothing, and a problem's parts are lettered (a), (b), (c).",
+			"A check question shows in Your turn at once, your answer stays with its Right or Wrong while the teacher writes, and the lesson page no longer jumps when a reply lands.",
+			"In the teacher's chat list, pressing the chat that runs now goes to the lesson it last taught."
+		]
+	},
+	{
 		"version": "0.6.80",
 		"date": "2026-11-19",
 		"changes": [
