@@ -16,12 +16,14 @@
 
 `probe`, `quiz`, `ask_user_question`, `explain`, `recall` and `write_code`. The server only checks their input, and the call ends the turn. The "question posed" placeholder lives in memory, never saved.
 
-1. Call streams to window; question shows in dock.
+1. Call streams to window; question shows in dock at once, a check like any other question.
 2. Learner answers. The window grades multiple choice with `question-grading.ts` and builds answer. A `write_code` answer (`code-question.ts`) is never run or graded by the app; teacher reads it.
 3. Window posts it as an `answer` input event.
 4. Server saves it as call's tool result and next turn runs.
 
 Skip question sends the same `answer` with `dismissed: true` (`dismissedAnswer`), after stopping a running reply; the teacher moves on without asking it again.
+
+In the lesson text an answered question is a card (`AnsweredCard`, `src/frontend/components/answered-card.tsx`): the verdict chip (`ResultChip` on `ResultTag`: Right, Wrong, Didn't know; none on a prediction or an ask), the kind and step, the question, and under it what the learner picked as rows (a quiz or an ask with choices; none on "I don't know"). A quiz's right answer, its explanation and his thinking wait behind Why. An older saved answer may carry `readingThinking`, thoughts noted while reading; it is not drawn and not sent to the teacher.
 
 A question waiting in the saved record lets a lesson resume mid-question. Options are shuffled with a seed (the tool call id), so server and window show the same order.
 
@@ -46,7 +48,9 @@ In study, practice and homework lessons, the open problem sits in the turn sheet
 - A choice problem carries `options` (2 to 8 labels) and `multiSelect` on its `problem` call (`problem_choice_fields`, `problem_choice_problems`: the pose is refused with fewer, more, an empty label, or `multiSelect` alone; the statement never lists the choices). The open problem shows them as lettered rows under the statement (`ProblemChoiceRows`), the same rows and keys as a quiz (`ChoiceRows`, `useChoiceKeys`). Picks are kept per problem in the lesson draft, like the box text, and clear on Send. Send is open with a pick or work. The message is `I picked A and C.` (`problemMessage`), then a blank line and the work when there is any. Nothing is graded: the teacher reads the letters like any other work. The transcript card keeps the choices as a lettered list.
 - A message never ends problem (`active_problem_of`). Only teacher's `conclude` or learner's discard does.
 - Teacher may conclude one problem and pose the one learner asked for in same turn.
-- While a problem is open, its card in the transcript is not drawn (`openProblem` in `ChatActionsContext`). The card appears once the problem closes.
+- While a problem is open, its card in the transcript is not drawn (`openProblem` in `ChatActionsContext`). The card appears once the problem closes, its statement with no label above it (`ProblemCard`, `src/frontend/components/practice-cards.tsx`).
+- The conclusion's card (`ConcludeCard`) heads with the outcome as the answered card's small chip (`ResultTag`: Solved, Solved with hints, Moved on, Surrendered), then the verdict, then the model solution. A problem the teacher moved on from starts with its solution folded behind Show solution.
+- Concluding shows the model solution at once, so the teacher never concludes while parts it will still ask remain; it asks them first and concludes after the last (`conclude`'s description, `prompts/practice/00-base.md`, `prompts/study/10-study.md`).
 
 Earlier lessons hold the learner's work as `practice-thinking` markers, which still read back (`projectView` in `src/shared/core/view.ts`, `to_llm_messages`).
 

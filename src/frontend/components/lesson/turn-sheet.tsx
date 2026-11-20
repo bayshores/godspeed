@@ -4,7 +4,7 @@ import { paleSpaceColor } from "@/frontend/components/space-color";
 import { useSpaceColor } from "@/frontend/components/space-context";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
-import type { TurnNext } from "./turn-next-model";
+import { turnShown, type AnsweredQuestion, type TurnNext } from "./turn-next-model";
 import { YourTurn, type YourTurnProps } from "./your-turn";
 
 /**
@@ -15,47 +15,31 @@ import { YourTurn, type YourTurnProps } from "./your-turn";
  */
 export function TurnSheet({
 	spaceId,
-	requiresReveal,
-	onReveal,
 	next,
+	answered,
 	...turn
-}: Omit<YourTurnProps, "next"> & {
+}: Omit<YourTurnProps, "shown"> & {
 	spaceId: string | undefined;
-	/** A teach-phase check: it waits behind "Check your understanding". */
-	requiresReveal: boolean;
-	/** The learner opens the check. */
-	onReveal: () => void;
 	/** The next state; null while the teacher writes with no stop to go on from. */
 	next: TurnNext | null;
+	/** The question answered or skipped last, when that is the last thing the learner did. */
+	answered: AnsweredQuestion | null;
 }) {
 	const { pending, problem } = turn;
 	const color = useSpaceColor(spaceId);
 
-	// The reveal: false until the learner opens the check. Reset during
-	// render when a new question lands, and open at once only when it
-	// follows another of the teacher's questions (the reading already
-	// happened; a question from earlier fills the wait before it).
-	const pendingId = pending?.toolCallId ?? null;
-	const [revealed, setRevealed] = useState(false);
-	const prevPendingIdRef = useRef(pendingId);
-	const prevFromEarlierRef = useRef(false);
-	if (pendingId !== prevPendingIdRef.current) {
-		const wasQuestion = prevPendingIdRef.current !== null && !prevFromEarlierRef.current;
-		prevPendingIdRef.current = pendingId;
-		if (pendingId && requiresReveal) setRevealed(wasQuestion);
-	}
-	prevFromEarlierRef.current = pending?.appPosed?.kind === "review";
-
-	// While the teacher writes, the last next state's line stays, dimmed; after a question or a problem, none.
+	// The last next state's line, for the wait after anything but an answer; after a question or a problem, none.
 	const lastLineRef = useRef<string | null>(null);
 	if (pending || problem) lastLineRef.current = null;
 	else if (next) lastLineRef.current = next.line;
-	const shownNext = next ? { ...next, dim: false } : { line: lastLineRef.current, key: null, dim: true };
+	const shown = turnShown({ next, answered, lastLine: lastLineRef.current });
 	const swapKey = pending
 		? `ask:${pending.toolCallId}`
 		: problem
 			? `problem:${problem.toolCallId}`
-			: `next:${shownNext.line ?? ""}:${shownNext.line && shownNext.dim ? "dim" : ""}:${shownNext.key?.label ?? ""}`;
+			: shown.kind === "answered"
+				? `answered:${shown.answered.toolCallId}`
+				: `next:${shown.next.line ?? ""}:${shown.next.line && shown.dim ? "dim" : ""}:${shown.next.key?.label ?? ""}`;
 
 	return (
 		<aside
@@ -66,15 +50,7 @@ export function TurnSheet({
 		>
 			<Pane className="flex min-h-0 flex-1 flex-col">
 				<TurnSwap swapKey={swapKey}>
-					<YourTurn
-						{...turn}
-						next={shownNext}
-						revealPending={pending !== null && requiresReveal && !revealed}
-						onReveal={() => {
-							onReveal();
-							setRevealed(true);
-						}}
-					/>
+					<YourTurn {...turn} shown={shown} />
 				</TurnSwap>
 			</Pane>
 		</aside>

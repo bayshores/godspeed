@@ -55,7 +55,6 @@ describe("lessonBox, the Attach button", () => {
 
 	it("shows only where what is sent carries the files", () => {
 		assert.equal(box({ kind: "problem", picked: false }).attach, true, "work is sent with its files");
-		assert.equal(box({ kind: "read-first" }).attach, false, "Check your understanding sends nothing");
 		assert.equal(box(questionTurn("explain", { question: "why?", correctAnswer: "because" }, false)).attach, true, "a written answer");
 		assert.equal(box(questionTurn("ask_user_question", { question: "what next?" }, false)).attach, true, "an open ask");
 		assert.equal(box(questionTurn("ask_user_question", ask, true)).attach, true, "an ask with choices takes its own answer");
@@ -71,13 +70,6 @@ describe("lessonBox, the Attach button", () => {
 });
 
 describe("lessonBox, a question", () => {
-	it("read first: the box holds thoughts, Enter opens the check", () => {
-		const view = box({ kind: "read-first" });
-		assert.equal(view.placeholder, "Whatever comes to mind as you read.");
-		assert.deepEqual(view.button, { action: "reveal", label: "Check your understanding", filled: true, disabled: false });
-		assert.equal(view.enter, "reveal");
-		assert.equal(view.exit, "skip");
-	});
 
 	it("an ask with choices: the box text is its own answer until a pick, then reasoning", () => {
 		assert.equal(box({ kind: "choice", picked: false, ownAnswer: true }).placeholder, "Pick one above, or type your own answer");
@@ -127,11 +119,10 @@ describe("lessonBox, a question", () => {
 describe("lessonBox, the box's size", () => {
 	const quiz = { question: "q", options: [{ label: "a" }, { label: "b" }], correctAnswer: "a", explanation: "e" };
 
-	it("one line where the text is optional: choices, code and reading first", () => {
+	it("one line where the text is optional: choices and code", () => {
 		assert.equal(box(questionTurn("quiz", quiz, false)).size, "line");
 		assert.equal(box(questionTurn("ask_user_question", { question: "q", options: [{ label: "a" }, { label: "b" }] }, false)).size, "line", "an ask's own answer");
 		assert.equal(box(questionTurn("write_code", { question: "q" }, true)).size, "line");
-		assert.equal(box({ kind: "read-first" }).size, "line");
 	});
 
 	it("three lines where the text is the answer or the work", () => {
@@ -195,10 +186,6 @@ describe("lessonBox, the Stuck? keys", () => {
 	it("an open problem: all three are lines to the teacher, and the problem stays open", () => {
 		assert.deepEqual(box({ kind: "problem", picked: false }).help, { dontKnow: "send", dontKnowDisabled: false, linesDisabled: false });
 		assert.deepEqual(box({ kind: "problem", picked: false }, { busy: true }).help, { dontKnow: "send", dontKnowDisabled: true, linesDisabled: true });
-	});
-
-	it("none while reading first", () => {
-		assert.equal(box({ kind: "read-first" }).help, null);
 	});
 
 	it("while the teacher writes all wait, except I don't know on a question from earlier, which goes in like Submit", () => {

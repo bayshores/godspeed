@@ -17,7 +17,6 @@ export function useLessonAbort({
 	pendingRef,
 	activeProblemRef,
 	busyRef,
-	readingThinkingRef,
 	focusOpen,
 	closeMermaid,
 	skipReview,
@@ -28,8 +27,6 @@ export function useLessonAbort({
 	pendingRef: RefObject<ReturnType<typeof findPendingToolCall>>;
 	activeProblemRef: RefObject<ReturnType<typeof activeProblemOf>>;
 	busyRef: RefObject<boolean>;
-	/** The thoughts noted while reading: they ride a skipped question's answer. */
-	readingThinkingRef: RefObject<string>;
 	/** A diagram or figure is open: it takes Esc first. */
 	focusOpen: boolean;
 	closeMermaid: () => void;
@@ -91,11 +88,8 @@ export function useLessonAbort({
 			// on at once. A running reply stops first; the send waits for it to end.
 			if (p) {
 				const question = (p.input as { question?: string } | null)?.question ?? "";
-				const reading = readingThinkingRef.current.trim() || undefined;
-				readingThinkingRef.current = "";
-				const answer = dismissedAnswer(toolQuestionKind(p.tool), question);
 				if (busyRef.current) abortInFlightTurn();
-				void submitAnswer(p.toolCallId, reading ? { ...answer, readingThinking: reading } : answer, []);
+				void submitAnswer(p.toolCallId, dismissedAnswer(toolQuestionKind(p.tool), question), []);
 				return;
 			}
 			// The practice discard: the silent marker route.

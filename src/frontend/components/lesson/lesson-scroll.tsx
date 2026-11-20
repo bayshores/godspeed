@@ -29,6 +29,9 @@ const LEARNER = "[data-testid=user-message], [data-testid=practice-next-line]";
 /** How long after a turn ends a change in the page's height places it at once, not smoothly: the
  *  desk's exit and the reply's arrival. */
 const LANDING_MS = 400;
+/** The glide to a new resting place: firm enough to arrive in about a third of a second, with no
+ *  long creep at its end, which reads as the page shaking. */
+const SETTLE = { damping: 0.6, stiffness: 0.12, mass: 1 };
 
 /** Text blocks whose lines the window's top edge may cut. */
 const LINES = "p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th";
@@ -183,15 +186,15 @@ export function LessonScroll({
 		ro.observe(column);
 		return () => ro.disconnect();
 	}, [contextRef]);
-	// While the teacher works the page never gets shorter. WebKit lays the page out between a row
-	// leaving and the row that replaces it arriving (the desk taking Stop and the reply's steps), and
-	// would pull the page up by the gap, then glide back down.
+	// While the teacher works, and until its reply has landed, the page never gets shorter. WebKit lays
+	// the page out between a row leaving and the row that replaces it arriving (the desk taking Stop,
+	// the reply's steps, the desk leaving before the reply), and would pull the page up by the gap.
 	useLayoutEffect(() => {
 		const page = pageRef.current;
 		if (!page) return;
 		if (!busy) {
-			page.style.minHeight = "";
-			return;
+			const timer = setTimeout(() => (page.style.minHeight = ""), Math.max(0, landing.current - performance.now()));
+			return () => clearTimeout(timer);
 		}
 		const ro = new ResizeObserver(() => {
 			page.style.minHeight = `${page.offsetHeight}px`;
@@ -204,7 +207,9 @@ export function LessonScroll({
 		replyRef.current = false;
 		if (restKey === firstKey.current) return;
 		firstKey.current = restKey;
-		void contextRef.current?.scrollToBottom(prefersReducedMotion() ? "instant" : "smooth");
+		// What arrives with a landing reply is placed with it, not glided to.
+		const landed = performance.now() < landing.current;
+		void contextRef.current?.scrollToBottom(landed || prefersReducedMotion() ? "instant" : "smooth");
 		const frame = requestAnimationFrame(settleUp);
 		return () => cancelAnimationFrame(frame);
 	}, [restKey, contextRef, settleUp]);
@@ -219,7 +224,7 @@ export function LessonScroll({
 					<div className="px-(--lh-reading-inset) py-4 @max-[640px]/strip:px-(--lh-reading-inset-narrow)">{steps}</div>
 				</Pane>
 			</div>
-			<Conversation className="my-(--lh-gap) min-h-0 min-w-0 flex-1" initial="instant" contextRef={contextRef} targetScrollTop={target}>
+			<Conversation className="my-(--lh-gap) min-h-0 min-w-0 flex-1" initial="instant" resize="instant" {...SETTLE} contextRef={contextRef} targetScrollTop={target}>
 				<SessionMessageNavigation />
 				<ConversationContent className="gap-0 p-0" scrollClassName={cn("lh-lesson-window [overflow-anchor:none] [container-type:size]", hasTurn && "lh-lesson-pair")}>
 					{/* Side by side the sheets end at the window's foot, so "Your turn" has the window's height to fill. */}

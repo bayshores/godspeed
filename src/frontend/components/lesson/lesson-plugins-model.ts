@@ -54,21 +54,17 @@ function lastAnswered(messages: readonly LhViewMessage[]): PluginContext["lastAn
 	return null;
 }
 
-/**
- * What a plugin reads in a lesson. A question still behind "Check your
- * understanding" is not on screen yet, so it is left out.
- */
+/** What a plugin reads in a lesson. */
 export function lessonPluginContext(lesson: {
 	space: { id: string; name: string } | null;
 	title: string;
 	messages: readonly LhViewMessage[];
 	pending: OpenQuestion | null;
-	requiresReveal: boolean;
 }): PluginContext {
 	return {
 		space: lesson.space,
 		topic: lesson.title,
-		question: lesson.pending && !lesson.requiresReveal ? openQuestion(lesson.pending) : null,
+		question: lesson.pending ? openQuestion(lesson.pending) : null,
 		lastAnswered: lastAnswered(lesson.messages),
 		teacherMessage: teacherText(lesson.messages),
 	};

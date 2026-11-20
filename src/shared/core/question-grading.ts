@@ -98,7 +98,6 @@ export function buildAnswer(qd: QuestionData, req: AnswerRequest, tool?: string)
 		dontKnow: req.dontKnow === true,
 		answers: [],
 		thinking: req.thinking?.trim() || undefined,
-		readingThinking: req.readingThinking?.trim() || undefined,
 		answeredAt: new Date().toISOString(),
 	};
 	// resolve selected option values → OptionAnswer (in display order)
@@ -186,12 +185,9 @@ export function compactAnswerForModel(ad: QuestionAnswerData): Record<string, un
 	// incorrect and carries no confidence: both stay implicit.)
 	if (ad.correct !== undefined && !ad.dontKnow) out.correct = ad.correct;
 	if (ad.confidence !== undefined) out.confidence = ad.confidence;
-	// Two DISTINCT thinking channels, clearly keyed so the model never
-	// conflates them: reasoning on the question vs
-	// thinking while reading the teaching. `note` is the pre-rename key —
+	// The learner's reasoning on the question. `note` is the pre-rename key:
 	// old records replay through here too, so both feed `thinking`.
 	const thinking = ad.thinking ?? ad.note;
 	if (thinking) out.thinking = thinking;
-	if (ad.readingThinking) out.thinkingWhileReading = ad.readingThinking;
 	return out;
 }

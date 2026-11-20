@@ -21,7 +21,6 @@ import {
 	phaseTimeline,
 	planStepBar,
 	problemChoicesOf,
-	questionNeedsReveal,
 	topicParts,
 	type HomeworkView,
 	type LessonKind,
@@ -51,7 +50,7 @@ import { homeworkStartLabel } from "@/frontend/components/lesson/plan-row-model"
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
 import { topicPageMarks } from "@/frontend/components/citations/page-excerpt-model";
 import { TurnSheet } from "@/frontend/components/lesson/turn-sheet";
-import { turnNext, turnPlace, type NextAction } from "@/frontend/components/lesson/turn-next-model";
+import { lastAnswered, turnNext, turnPlace, type NextAction } from "@/frontend/components/lesson/turn-next-model";
 import { nothingWritten } from "@/frontend/components/lesson/wait-model";
 import type { QuestionHandle } from "@/frontend/components/question-dock";
 import { useTerminalLines } from "@/frontend/components/terminal/use-terminal-lines";
@@ -205,10 +204,6 @@ export function Chat({
 	const now = useNow(Boolean(claimedAt), 30_000);
 	const stuckMinutes = busy ? stuckClaimMinutes(claimedAt, now) : null;
 
-	/* The reading-thinking channel: thoughts noted in the box while reading,
-	 * kept when the check opens and riding its answer (or its dismissal) as
-	 * the separate readingThinking field. Each question has its own. */
-	const readingThinkingRef = useRef("");
 	const overlays = useLessonOverlays();
 	const { abortInFlightTurn, abortAsk, setAbortAsk, confirmAbort } = useLessonAbort({
 		chatId,
@@ -217,7 +212,6 @@ export function Chat({
 		pendingRef,
 		activeProblemRef,
 		busyRef,
-		readingThinkingRef,
 		focusOpen: overlays.focusOpen,
 		closeMermaid: overlays.closeMermaid,
 		skipReview,
@@ -235,19 +229,13 @@ export function Chat({
 		void send(stuck);
 	};
 
-	// The phase at every message (the teach seam) and the current phase.
+	// The phase at every message (the teach seam).
 	const phases = useMemo(() => phaseTimeline(messages, firstPhase(kind)), [messages, kind]);
-	const phase = phases.at(-1) ?? firstPhase(kind);
-	// A teach-phase check waits behind "Check your understanding".
-	const requiresReveal = pending !== null && pending.appPosed?.kind !== "review" && questionNeedsReveal(pending.tool, pending.input, phase);
 
 	const pendingQuestionId = pending?.toolCallId ?? null;
 	const draftsLoaded = drafts.draft !== null;
 	const draftRef = useRef(drafts.draft);
 	draftRef.current = drafts.draft;
-	useEffect(() => {
-		readingThinkingRef.current = pendingQuestionId ? (draftRef.current?.questions[pendingQuestionId]?.readingThinking ?? "") : "";
-	}, [pendingQuestionId, draftsLoaded]);
 
 	// ⌘T: set every "your thinking" row in the lesson to one state.
 	useEffect(() => {
@@ -363,17 +351,14 @@ export function Chat({
 	useTerminalLines("lesson", sendLine);
 
 	// THE ANSWER IS THE QUESTION CALL'S TOOL RESULT: one input event, one
-	// turn. The reading thoughts ride along, and so do the box's files for
-	// an answer that takes them. The box empties; a refused answer puts
-	// its text and files back.
-	const onSubmitAnswer = (output: QuestionAnswerData) => {
+	// turn. The box's files ride along for an answer that takes them. The
+	// box empties; a refused answer puts its text and files back.
+	const onSubmitAnswer = (answer: QuestionAnswerData) => {
 		if (!pending) return;
-		const reading = readingThinkingRef.current.trim() || undefined;
 		const typed = textRef.current;
 		const files = answerTakesFiles(pending.tool) ? attachments.files : [];
 		editText("");
 		if (files.length > 0) attachments.clear();
-		const answer = reading ? { ...output, readingThinking: reading } : output;
 		const posed = pending.appPosed;
 		const sending =
 			posed?.kind === "review"
@@ -386,17 +371,6 @@ export function Chat({
 			if (typed.trim()) editText(restoreUnsent(typed, textRef.current));
 			if (files.length > 0) attachments.restore(files);
 		});
-	};
-
-	// "Check your understanding": what was typed while reading is kept as
-	// the reading thoughts, and the box empties for the answer.
-	const revealCheck = () => {
-		const thoughts = textRef.current.trim();
-		if (!thoughts || !pendingQuestionId) return;
-		const all = readingThinkingRef.current ? `${readingThinkingRef.current}\n${thoughts}` : thoughts;
-		readingThinkingRef.current = all;
-		saveQuestion(pendingQuestionId, { readingThinking: all });
-		editText("");
 	};
 
 	// ── the plan row's data ──
@@ -489,14 +463,15 @@ export function Chat({
 	}, [teacherOpen]);
 	const space = spaces.find((s) => s.id === spaceId);
 	const pluginContext = useMemo(
-		() => lessonPluginContext({ space: space ? { id: space.id, name: space.name } : null, title: rename.title, messages, pending, requiresReveal }),
-		[space, rename.title, messages, pending, requiresReveal],
+		() => lessonPluginContext({ space: space ? { id: space.id, name: space.name } : null, title: rename.title, messages, pending }),
+		[space, rename.title, messages, pending],
 	);
 
 	// With nothing to answer, "Your turn" says what is next and holds the one key that goes on.
 	const { atStop } = lessonStop;
 	const goLabel = goAheadLabel({ kind, homework: problems !== null, startLabel: startLabel ?? null, teacherSpoke, posedAny });
 	const next = turnNext({ stop: atStop, homework: problems !== null, goLabel, busy, error: error !== null, nothingWritten: nothingWritten(messages) });
+	const answered = useMemo(() => lastAnswered(nativeMessages, messages), [nativeMessages, messages]);
 	const onNext = (action: NextAction) => {
 		if (action === "keep-going") {
 			if (atStop) keepGoing(atStop.stopOf);
@@ -569,8 +544,6 @@ export function Chat({
 													key={draftsLoaded ? "drafts" : "loading"}
 													spaceId={spaceId}
 													pending={pending}
-													requiresReveal={requiresReveal}
-													onReveal={revealCheck}
 													initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
 													onSaveQuestionDraft={(form) => {
 														if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
@@ -583,6 +556,7 @@ export function Chat({
 													onPickProblem={pickProblem}
 													onDiscardProblem={() => setAbortAsk("problem")}
 													next={next}
+													answered={answered}
 													onNext={onNext}
 													busy={busy}
 													boxRef={workBoxRef}

@@ -17,19 +17,18 @@ const form: QuestionFormDraft = { selection: { selected: new Set([1]) }, confide
 const answer = { dontKnow: true } as unknown as QuestionAnswerData;
 
 describe("lesson drafts", () => {
-	it("keeps each channel by its own id and drops what becomes empty", () => {
+	it("keeps each question's picks by its own id and drops what becomes empty", () => {
 		let d = withComposer(EMPTY_LESSON_DRAFT, "half a message");
 		d = withQuestion(d, "q1", { form });
-		d = withQuestion(d, "q1", { readingThinking: "noted while reading" });
-		assert.deepEqual(d.questions.q1, { form, readingThinking: "noted while reading" });
+		assert.deepEqual(d.questions.q1, { form });
 		assert.equal(d.questions.q2, undefined, "a different question never inherits the draft");
 		const empty = { selection: { selected: new Set<number>() }, code: "" };
-		d = withQuestion(d, "q1", { form: empty, readingThinking: "" });
+		d = withQuestion(d, "q1", { form: empty });
 		assert.deepEqual(d.questions, {});
 	});
 
 	it("survives storage: the selection Set round-trips, garbage reads as empty", () => {
-		const d = withQuestion(withComposer(EMPTY_LESSON_DRAFT, "hi"), "q1", { form, readingThinking: "r" });
+		const d = withQuestion(withComposer(EMPTY_LESSON_DRAFT, "hi"), "q1", { form });
 		const back = parseLessonDraft(serializeLessonDraft(d));
 		assert.deepEqual(back, d);
 		assert.ok(back.questions.q1!.form!.selection.selected instanceof Set);
@@ -47,6 +46,11 @@ describe("lesson drafts", () => {
 			`{"composer":${JSON.stringify(composer)},"questions":{"q1":{"form":{"selection":{"selected":[],"otherSelected":true,"dontKnow":false},"other":"Start from a picture"}}}}`;
 		assert.deepEqual(parseLessonDraft(own("")), { composer: "Start from a picture", questions: {} }, "an empty box takes it");
 		assert.equal(parseLessonDraft(own("I like visuals")).composer, "I like visuals\n\nStart from a picture", "box text first, then a blank line");
+	});
+
+	it("an older save's thoughts noted while reading move into the box", () => {
+		const reading = '{"composer":"","questions":{"q1":{"readingThinking":"noted while reading"}}}';
+		assert.deepEqual(parseLessonDraft(reading), { composer: "noted while reading", questions: {} });
 	});
 
 	it("drops a question only once the server saved its answer", () => {

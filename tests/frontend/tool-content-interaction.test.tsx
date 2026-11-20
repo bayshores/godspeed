@@ -54,7 +54,7 @@ test("actual select → submit → saved result → historical Why uses source d
 		assert.equal(paragraphs.length, 2, "recovered paragraphs remain distinct in Why");
 		assert.ok(!paragraphs[0]!.parentElement!.classList.contains("[&_p]:inline"));
 		const annotations = [...host.querySelectorAll('annotation[encoding="application/x-tex"]')].map(n => n.textContent);
-		assert.equal(annotations.filter(t => t === String.raw`\nabla f`).length, 3);
+		assert.equal(annotations.filter(t => t === String.raw`\nabla f`).length, 4, "the question, the pick, the option in Why and the explanation");
 		assert.deepEqual(persisted.details, saved);
 		assert.deepEqual(input, before);
 	} finally { await act(async () => root.unmount()); host.remove(); }

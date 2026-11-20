@@ -7,11 +7,13 @@
  * and the view projection (old thinking records' data part).
  */
 
-import React from "react";
+import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
 
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
+import { createRoot } from "react-dom/client";
+import { parseHTML } from "linkedom";
 import { describe, it } from "node:test";
 
 import { OpenProblemPane } from "../../src/frontend/components/lesson/open-problem-pane.tsx";
@@ -21,6 +23,23 @@ import { projectView } from "../../src/shared/core/view.ts";
 import type { ArtifactPartProps } from "../../src/shared/core";
 import { PRACTICE_PROBLEM_TOOL, type LhMessage } from "../../src/shared/core/native-messages.ts";
 import { oldThinkingMessage } from "../old-records.ts";
+
+const dom = parseHTML("<!doctype html><html><body></body></html>");
+Object.assign(globalThis, { window: dom.window, document: dom.document, Element: dom.window.Element, HTMLElement: dom.window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true });
+
+/** Mounts a node, runs the checks against it, and cleans up. */
+async function mounted(node: React.ReactNode, run: (host: HTMLElement) => Promise<void>) {
+	const host = document.createElement("div");
+	document.body.append(host);
+	const root = createRoot(host);
+	try {
+		await act(async () => root.render(node));
+		await run(host);
+	} finally {
+		await act(async () => root.unmount());
+		host.remove();
+	}
+}
 
 const part = (over: Partial<ArtifactPartProps["part"]>): ArtifactPartProps["part"] => ({
 	type: "tool-problem",
@@ -47,7 +66,7 @@ describe("OpenProblemPane", () => {
 // ── the transcript cards ─────────────────────────────────────────────────────
 
 describe("the practice transcript cards", () => {
-	it("ProblemCard: ALWAYS OPEN, the 'Problem' eyebrow + the statement — the commitment NEVER renders", () => {
+	it("ProblemCard: ALWAYS OPEN, the statement alone with no label above it — the commitment NEVER renders", () => {
 		const html = renderToStaticMarkup(
 			<ProblemCard
 				part={part({
@@ -61,8 +80,8 @@ describe("the practice transcript cards", () => {
 		);
 		assert.match(html, /data-testid="problem-card"/);
 		assert.match(html, /data-problem-call="call_p1"/, "the dock's show the whole problem scrolls to it");
-		assert.match(html, /Problem/);
-		assert.match(html, /Prove the parity claim\./);
+		assert.doesNotMatch(html, />Problem</, "nothing small above the statement's own title");
+		assert.match(html, /data-testid="problem-card"[^>]*><div[^>]*style="[^"]*--lh-prose-size:16px[\s\S]*Prove the parity claim\./, "the statement comes first");
 		assert.doesNotMatch(html, /Pair them\./, "the commitment stays hidden");
 		// No chevron, no collapsed bar.
 		assert.doesNotMatch(html, /<button/, "nothing collapsible");
@@ -101,14 +120,29 @@ describe("the practice transcript cards", () => {
 		assert.match(html, /Solved with hints/);
 		assert.match(html, /Pair them; each pair is even\./, "the committed solution, verbatim");
 		assert.ok(!html.includes("Concluded"), "the outcome says how it ended, once");
-		assert.match(html, /Solved/); // the outcome rides the quiz chip
-		assert.match(html, /Model solution/); // the labeled hero after the divider
+		// The outcome is the answered card's small chip, at the start of the head row, never a bar across the card.
+		assert.match(html, /data-testid="conclude-card"[^>]*><div class="flex flex-wrap items-center gap-2\.5"><span data-testid="conclude-outcome" class="inline-block shrink-0 rounded-sm px-\[9px\] py-0\.5 text-sm font-medium [^"]*">Solved with hints<\/span>/);
+		assert.match(html, /Model solution/); // the labeled hero
 		assert.ok(html.indexOf("Solved") < html.indexOf("Model solution"), "chip at the top");
 		assert.match(html, /The pairing came after R2\./);
 		// VERDICT FIRST: verdict under the heading row, then
 		// the divider, then the labeled model solution.
 		assert.ok(html.indexOf("The pairing came after R2.") < html.indexOf("Pair them; each pair is even."));
-		assert.doesNotMatch(html, /<button/, "nothing collapsible");
+		assert.doesNotMatch(html, /<button/, "a solved problem's solution is open, with nothing to press");
+	});
+
+	it("ConcludeCard: moved on, the model solution starts folded behind Show solution, which opens it", async () => {
+		const movedOn = <ConcludeCard part={part({ type: "tool-conclude", input: { outcome: "movedOn", verdict: "Left for later." }, reveal: "Pair them; each pair is even." })} />;
+		const html = renderToStaticMarkup(movedOn);
+		assert.match(html, /data-testid="conclude-outcome"[^>]*>Moved on<\/span><button[^>]*data-testid="show-solution" aria-expanded="false"[^>]*>Show solution</);
+		assert.match(html, /Left for later\./);
+		assert.doesNotMatch(html, /Pair them|Model solution/, "folded");
+		await mounted(movedOn, async (host) => {
+			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="show-solution"]')!.click());
+			assert.match(host.querySelector('[data-testid="model-solution"]')!.textContent!, /Model solution[\s\S]*Pair them; each pair is even\./);
+		});
+		const none = renderToStaticMarkup(<ConcludeCard part={part({ type: "tool-conclude", input: { outcome: "movedOn", verdict: "v" } })} />);
+		assert.doesNotMatch(none, /show-solution/, "no solution, no key");
 	});
 
 	it("ConcludeCard: legacy records fall back to their own solutionReveal", () => {

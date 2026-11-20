@@ -6,7 +6,6 @@ import type { BoxAction, BoxButton, BoxView } from "./lesson-box-model";
 const BUTTON_ID: Record<BoxButton["action"], string> = {
 	send: "composer-send",
 	submit: "question-submit",
-	reveal: "teach-check-reveal",
 };
 
 /**

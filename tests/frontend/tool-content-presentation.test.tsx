@@ -122,9 +122,9 @@ test("answers snapshot source text, not recovered labels or identities", () => {
 	assert.equal(answer.explanation, doubled);
 	assert.equal(answer.correct, true);
 	const before = structuredClone(answer);
-	// Closed: the question; opened: the question, the option and the explanation.
-	assert.deepEqual(tex(renderToStaticMarkup(<AnsweredCard answer={answer} input={source} />)), [String.raw`\nabla f`]);
-	assert.deepEqual(tex(renderToStaticMarkup(<AnsweredCard answer={answer} input={source} defaultOpen />)), Array(3).fill(String.raw`\nabla f`));
+	// Closed: the question and the pick; opened: those, the option and the explanation.
+	assert.deepEqual(tex(renderToStaticMarkup(<AnsweredCard answer={answer} input={source} />)), Array(2).fill(String.raw`\nabla f`));
+	assert.deepEqual(tex(renderToStaticMarkup(<AnsweredCard answer={answer} input={source} defaultOpen />)), Array(4).fill(String.raw`\nabla f`));
 	assert.deepEqual(answer, before);
 });
 
@@ -145,7 +145,7 @@ test("historical source join restores matrices while retaining recorded order, a
 	assert.equal(projection.correct, false);
 	assert.equal(projection.confidence, 70);
 	const html = renderToStaticMarkup(<AnsweredCard answer={answer} input={input} defaultOpen />);
-	assert.deepEqual(tex(html), [a.slice(1,-1), b.slice(1,-1), a.slice(1,-1), a.slice(1,-1)], "question, both options, explanation");
+	assert.deepEqual(tex(html), [a.slice(1,-1), b.slice(1,-1), b.slice(1,-1), a.slice(1,-1), a.slice(1,-1)], "question, the pick, both options, explanation");
 	assert.match(html, /Wrong/);
 	assert.deepEqual({ answer, input }, before);
 });

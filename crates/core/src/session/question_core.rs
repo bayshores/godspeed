@@ -45,9 +45,6 @@ pub fn compact_answer_for_model(ad: &Json) -> Json {
 	if thinking.truthy() {
 		out.insert("thinking", thinking.clone());
 	}
-	if ad["readingThinking"].truthy() {
-		out.insert("thinkingWhileReading", ad["readingThinking"].clone());
-	}
 	Json::Obj(out)
 }
 
@@ -185,7 +182,7 @@ pub fn explain_input_problems(input: &Json) -> Vec<String> {
 static QUESTION_ROLE: LazyLock<Json> = LazyLock::new(|| {
 	one_of_literals(
 		&["predict", "check"],
-		"REQUIRED \u{2014} the question's role in the teaching cycle, as a bare word (no quotes): predict = posed BEFORE you teach the step (its own turn; the learner answers, then your teaching resolves it \u{2014} arrives open, never collapsed); check = posed AFTER the step's teaching is complete (arrives collapsed behind the Check your understanding reveal). ONE question per turn either way.",
+		"REQUIRED \u{2014} the question's role in the teaching cycle, as a bare word (no quotes): predict = posed BEFORE you teach the step (its own turn; the learner answers, then your teaching resolves it); check = posed AFTER the step's teaching is complete. ONE question per turn either way.",
 	)
 });
 

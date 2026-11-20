@@ -530,12 +530,12 @@
 				{
 					"path": "teacher/20-teaching.md",
 					"shared": false,
-					"sourceSha": "92b5048e4e0aa4180edb87fd8cd6acf7bcc2a165dd215055d9f5ab8134b9b914"
+					"sourceSha": "7080f155dd3bc59873cb58173739d88719540aa88a90073738470944770d91ff"
 				},
 				{
 					"path": "teacher/28-predictions.md",
 					"shared": false,
-					"sourceSha": "57e5c07116231e2d7904e519d78f103f7de6e4bade9d145b39d0a8a88d1fe461"
+					"sourceSha": "312790b71fcfc42383344ae3c9b8477217a91634a092a027978b402142c4044e"
 				},
 				{
 					"path": "teacher/30-question-principles.md",
@@ -590,7 +590,7 @@
 				{
 					"path": "shared/20-question-tools.md",
 					"shared": true,
-					"sourceSha": "4e97c5bb00ba5800070d5b43b98949c39736ee1f3acc26e02b207bc647bed2c0"
+					"sourceSha": "0ed77f16a7e1ddf961b873eb52ea3751871ef5a3ad8a8142f8a49e4fa2eccbfa"
 				},
 				{
 					"path": "shared/25-confidence.md",

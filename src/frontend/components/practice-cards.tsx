@@ -1,8 +1,11 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { ResultTag, type ResultTone } from "@/frontend/components/result-tag";
-import { CARD } from "@/frontend/components/ui/card-parts";
+import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
+import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
+import { useFold } from "@/frontend/components/use-fold";
+import { cn } from "@/frontend/lib/utils";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { problemChoicesOf, type ArtifactPartProps } from "@/shared/core";
 import { OptionMark } from "@/frontend/components/lesson/choice-rows";
@@ -15,9 +18,10 @@ import { choiceLetter } from "@/frontend/components/lesson/problem-choices-model
  *   (like every card here; the Your turn panel holds the open problem,
  *   this is the record). The commitment NEVER renders — only the call's
  *   statement.
- * - ConcludeCard — the conclusion: outcome badge + verdict + the reveal
- *   (the committed solution, shown when the problem ended). A dismissal
- *   synthesis (outcome:"dismissed") renders as one muted line.
+ * - ConcludeCard — the conclusion: the outcome chip + verdict + the reveal
+ *   (the committed solution, shown when the problem ended; folded behind
+ *   "Show solution" when the teacher moved on). A dismissal synthesis
+ *   (outcome:"dismissed") renders as one muted line.
  * - ThinkingCard — the learner's work on a problem as older lessons
  *   saved it (today it is a plain message). The unified ThinkingBlock:
  *   the quiz quote-block language in a faint user-side shell, never
@@ -51,7 +55,6 @@ export function ProblemCard({ part }: ArtifactPartProps) {
 	const choices = problemChoicesOf(part.input);
 	return (
 		<div data-testid="problem-card" data-problem-call={part.toolCallId} className={`${STACK} scroll-mt-4`}>
-			<div className="font-count text-[15px] text-ink-2">Problem</div>
 			<div className="text-ink-2" style={PROSE_16}>
 				<ToolContentResponse>{statement}</ToolContentResponse>
 			</div>
@@ -93,7 +96,7 @@ const OUTCOME_TONE: Record<string, ResultTone> = {
 export function ConcludeCard({ part }: ArtifactPartProps) {
 	// The SOLUTION is the hero: the modelSolution committed at pose time
 	// (part.reveal, the view-seam join), shown verbatim, never re-authored.
-	// The verdict sits below in the quiz-explanation register. Old records
+	// The verdict sits above it in the quiz-explanation register. Old records
 	// that carry their own solutionReveal fall back to it.
 	const input = (part.input ?? {}) as { outcome?: string; verdict?: string; solutionReveal?: string };
 	const outcome = typeof input.outcome === "string" ? input.outcome : "";
@@ -101,6 +104,10 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 	const verdict = typeof input.verdict === "string" ? input.verdict : "";
 	const reveal =
 		typeof part.reveal === "string" ? part.reveal : typeof input.solutionReveal === "string" ? input.solutionReveal : "";
+	// A problem the teacher moved on from keeps its solution folded: he may come back to it.
+	const folds = outcome === "movedOn" && reveal.length > 0;
+	const [open, setOpen] = useState(!folds);
+	const fold = useFold(open);
 
 	// The dismissal synthesis: no verdict, no reveal — one muted line (the
 	// learner clicked; the record needs only the fact).
@@ -114,24 +121,45 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 
 	return (
 		<div data-testid="conclude-card" className={`${STACK} relative`}>
-			{/* How the problem ended, said once: its outcome, or plain "Concluded" for one with no name here. */}
-			{label ? <ResultTag tone={OUTCOME_TONE[outcome] ?? "plain"}>{label}</ResultTag> : <span className="font-count text-[15px] text-ink-2">Concluded</span>}
+			<div className="flex flex-wrap items-center gap-2.5">
+				{/* How the problem ended, said once: its outcome, or plain "Concluded" for one with no name here. */}
+				{label ? (
+					<ResultTag tone={OUTCOME_TONE[outcome] ?? "plain"} testId="conclude-outcome">
+						{label}
+					</ResultTag>
+				) : (
+					<span className="font-count text-[15px] text-ink-2">Concluded</span>
+				)}
+				{folds && (
+					<button
+						type="button"
+						data-testid="show-solution"
+						aria-expanded={open}
+						onClick={(e) => {
+							setOpen((v) => !v);
+							blurAfterPointerClick(e);
+						}}
+						className={cn(SMALL_BTN, "ml-auto", open && "bg-tone-2")}
+					>
+						Show solution
+					</button>
+				)}
+			</div>
 			{verdict.length > 0 && (
 				<div className="text-ink-2" style={PROSE_16}>
 					<ToolContentResponse>{verdict}</ToolContentResponse>
 				</div>
 			)}
-			{/* Then a rule, then the labeled model solution (the pose's
-			    commitment, verbatim). */}
-			{reveal.length > 0 && (
-				<>
+			{/* The labeled model solution: the pose's commitment, verbatim. */}
+			{reveal.length > 0 && fold.mounted && (
+				<div className="lh-collapse" data-state={fold.state} data-testid="model-solution">
 					<div className="flex flex-col gap-1">
 						<div className={LABEL_TEXT}>Model solution</div>
 						<div className="text-ink" style={{ ...PROSE_16, "--lh-ink-body": "var(--foreground)" } as React.CSSProperties}>
 							<ToolContentResponse>{reveal}</ToolContentResponse>
 						</div>
 					</div>
-				</>
+				</div>
 			)}
 		</div>
 	);

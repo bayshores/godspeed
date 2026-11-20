@@ -26,7 +26,7 @@ const KIND_TOOL = { quiz: "quiz", explain: "explain", code: "write_code", ask: "
 
 /** The verdict tag: Right / Wrong / Didn't know (quiz answers only; a
  *  prediction is never marked). */
-function ResultChip({ answer }: { answer: QuestionAnswerData }) {
+export function ResultChip({ answer }: { answer: QuestionAnswerData }) {
 	const [tone, word] = answer.dontKnow ? (["plain", "Didn't know"] as const) : answer.correct ? (["right", "Right"] as const) : (["wrong", "Wrong"] as const);
 	return (
 		<ResultTag tone={tone} testId="answer-result">
@@ -84,11 +84,11 @@ export function QuizWhy({ answer }: { answer: QuestionAnswerData }) {
 /**
  * An answered question in the lesson: one
  * compact card: the verdict, "Quiz, step 10, sure 4 of 5" and
- * a Why button over the question. A prediction has no verdict; under its
- * question it names the right answer when he missed, and on a plot what
- * the line gives. The rest opens under the toggle: the graded options and the
- * explanation (quiz), the committed answer (explain), the learner's
- * thinking.
+ * a Why button over the question, and under it what he picked (a quiz or an
+ * ask with choices). A prediction has no verdict; under his pick it names
+ * the right answer when he missed, and on a plot what the line gives. The
+ * rest opens under the toggle: the graded options and the explanation
+ * (quiz), the committed answer (explain), the learner's thinking.
  *
  * Quiz answers are GRADED; ask answers are a plain record of what was
  * said (never graded); explain and code answers are graded by the teacher
@@ -143,123 +143,114 @@ export function AnsweredCard({
 			: isCode
 				? !!thinking
 				: !!parsedDetails || descByIndex.size > 0 || !!thinking;
-	// What an ask or explain learner said stays in view (it is the record).
-	const said = isAsk ? (answer.options ?? []).filter((o) => selectedIdx.has(o.index)) : [];
+	// What he picked or said stays in view (it is the record); a quiz's right answer waits behind Why.
+	const said = isAsk || isQuiz ? (answer.options ?? []).filter((o) => selectedIdx.has(o.index)) : [];
 	const resultLine = guessResultLine(answer, input, plotValue);
 
 	return (
-		<>
-			{/* Thoughts noted while reading come before the question: their own
-			    block above the card. */}
-			{answer.readingThinking && (
-				<ThinkingBlock testId="reading-thinking-block" text={answer.readingThinking} defaultOpen />
-			)}
-			<div data-testid="answered-card" className={cn(CARD, "flex flex-col gap-2.5 text-card-foreground")}>
-				<div className="flex flex-wrap items-center gap-2.5">
-					{isQuiz && !isPrediction(answer) && <ResultChip answer={answer} />}
-					<span className="font-count text-[15px] text-ink-2">
-						<span data-testid="answer-kind">
-							{kindWords(questionKindLabel(answer.tool ?? KIND_TOOL[answer.kind], answer.questionType))}
-							{step !== undefined && `, step ${step}`}
-						</span>
-						{isQuiz && !answer.dontKnow && answer.confidence != null && (
-							<span data-testid="answered-confidence">, sure {confidenceLevel(answer.confidence)} of 5</span>
-						)}
+		<div data-testid="answered-card" className={cn(CARD, "flex flex-col gap-2.5 text-card-foreground")}>
+			<div className="flex flex-wrap items-center gap-2.5">
+				{isQuiz && !isPrediction(answer) && <ResultChip answer={answer} />}
+				<span className="font-count text-[15px] text-ink-2">
+					<span data-testid="answer-kind">
+						{kindWords(questionKindLabel(answer.tool ?? KIND_TOOL[answer.kind], answer.questionType))}
+						{step !== undefined && `, step ${step}`}
 					</span>
-					<span className="flex-1" aria-hidden />
-					{hasDetails && (
-						<button
-							type="button"
-							data-testid="answer-toggle"
-							aria-expanded={open}
-							onClick={(e) => {
-								setOpen((v) => !v);
-								blurAfterPointerClick(e);
-							}}
-							className={cn(SMALL_BTN, open && "bg-tone-2")}
-						>
-							{toggleLabel}
-						</button>
+					{isQuiz && !answer.dontKnow && answer.confidence != null && (
+						<span data-testid="answered-confidence">, sure {confidenceLevel(answer.confidence)} of 5</span>
 					)}
-				</div>
-				<div>
-					<div className="text-ink-2" style={proseVars(16, 24, "var(--muted-foreground)")}>
-						<ToolContentResponse>{answer.questionText}</ToolContentResponse>
-					</div>
-					{resultLine && (
-						<div data-testid="guess-result" className="text-ink" style={proseVars(16, 24, "var(--foreground)")}>
-							<ToolContentResponse>{resultLine}</ToolContentResponse>
-						</div>
-					)}
-				</div>
-				{(said.length > 0 || answer.other) && (
-					<div data-testid="answered-said" className="flex flex-col gap-1 text-[15px] text-ink">
-						{said.map((o) => (
-							<div key={o.index} className="rounded-sm bg-panel px-3 py-2">
-								<ToolContentResponse>{o.label}</ToolContentResponse>
-							</div>
-						))}
-						{/* The learner's own typed answer: a row like its siblings,
-						    quoted (the learner's words). */}
-						{answer.other && (
-							<div data-testid="answered-other" className="rounded-sm bg-panel px-3 py-2">
-								“{answer.other}”
-							</div>
-						)}
-					</div>
-				)}
-				{answer.text && <div className="lh-prose whitespace-pre-wrap border-l-2 border-tone-2 pl-3 text-ink">“{answer.text}”</div>}
-				{isCode && answer.code && (
-					<div data-testid="answered-code">
-						<MessageResponse>{fencedCode(answer.code, answer.language ?? "")}</MessageResponse>
-					</div>
-				)}
-				{(isCode || isExplain) && answer.dontKnow && <div className="text-[15px] text-ink-2">Answered “I don't know”.</div>}
-
-				{fold.mounted && (
-					<div className="lh-collapse" data-state={fold.state} data-testid="answer-details">
-						<div className="flex flex-col gap-2 pt-1">
-							{parsedDetails && (
-								<div className="text-ink-2" style={proseVars(15, 22, "var(--muted-foreground)")}>
-									<ToolContentResponse>{parsedDetails}</ToolContentResponse>
-								</div>
-							)}
-							{isQuiz ? (
-								<QuizWhy answer={answer} />
-							) : (
-								<>
-									{isAsk && descByIndex.size > 0 && (
-										<div className="flex flex-col gap-1 text-[15px]">
-											{/* The wrappers keep each text block's height auto: inside the
-											    fold's grid, the renderer's full height would otherwise fill
-											    the row and push the description under the next option. */}
-											{answer.options?.map((opt) => (
-												<div key={opt.index} className="rounded-sm bg-panel px-3 py-2">
-													<div style={proseVars(15, 22, selectedIdx.has(opt.index) ? "var(--foreground)" : "var(--muted-foreground)")}>
-														<ToolContentResponse>{opt.label}</ToolContentResponse>
-													</div>
-													{descByIndex.get(opt.index) && (
-														<div className="mt-0.5" style={proseVars(14, 20, "var(--muted-foreground)")}>
-															<ToolContentResponse>{descByIndex.get(opt.index)}</ToolContentResponse>
-														</div>
-													)}
-												</div>
-											))}
-										</div>
-									)}
-									{thinking && <ThinkingBlock testId="your-thinking" text={thinking} inCard />}
-									{isExplain && answer.committed && (
-										<div data-testid="committed-answer" className="rounded-sm bg-panel px-3 py-2 text-[15px] text-ink-2">
-											<span className="font-medium text-ink">The answer: </span>
-											<ToolContentResponse className="inline [&>p:first-child]:m-0 [&>p:first-child]:inline">{answer.committed}</ToolContentResponse>
-										</div>
-									)}
-								</>
-							)}
-						</div>
-					</div>
+				</span>
+				<span className="flex-1" aria-hidden />
+				{hasDetails && (
+					<button
+						type="button"
+						data-testid="answer-toggle"
+						aria-expanded={open}
+						onClick={(e) => {
+							setOpen((v) => !v);
+							blurAfterPointerClick(e);
+						}}
+						className={cn(SMALL_BTN, open && "bg-tone-2")}
+					>
+						{toggleLabel}
+					</button>
 				)}
 			</div>
-		</>
+			<div className="text-ink-2" style={proseVars(16, 24, "var(--muted-foreground)")}>
+				<ToolContentResponse>{answer.questionText}</ToolContentResponse>
+			</div>
+			{(said.length > 0 || answer.other) && (
+				<div data-testid="answered-said" className="flex flex-col gap-1 text-[15px] text-ink">
+					{said.map((o) => (
+						<div key={o.index} data-testid="answered-pick" className="rounded-sm bg-panel px-3 py-2">
+							<ToolContentResponse>{o.label}</ToolContentResponse>
+						</div>
+					))}
+					{/* The learner's own typed answer: a row like its siblings,
+					    quoted (the learner's words). */}
+					{answer.other && (
+						<div data-testid="answered-other" className="rounded-sm bg-panel px-3 py-2">
+							“{answer.other}”
+						</div>
+					)}
+				</div>
+			)}
+			{resultLine && (
+				<div data-testid="guess-result" className="text-ink" style={proseVars(16, 24, "var(--foreground)")}>
+					<ToolContentResponse>{resultLine}</ToolContentResponse>
+				</div>
+			)}
+			{answer.text && <div className="lh-prose whitespace-pre-wrap border-l-2 border-tone-2 pl-3 text-ink">“{answer.text}”</div>}
+			{isCode && answer.code && (
+				<div data-testid="answered-code">
+					<MessageResponse>{fencedCode(answer.code, answer.language ?? "")}</MessageResponse>
+				</div>
+			)}
+			{(isCode || isExplain) && answer.dontKnow && <div className="text-[15px] text-ink-2">Answered “I don't know”.</div>}
+
+			{fold.mounted && (
+				<div className="lh-collapse" data-state={fold.state} data-testid="answer-details">
+					<div className="flex flex-col gap-2 pt-1">
+						{parsedDetails && (
+							<div className="text-ink-2" style={proseVars(15, 22, "var(--muted-foreground)")}>
+								<ToolContentResponse>{parsedDetails}</ToolContentResponse>
+							</div>
+						)}
+						{isQuiz ? (
+							<QuizWhy answer={answer} />
+						) : (
+							<>
+								{isAsk && descByIndex.size > 0 && (
+									<div className="flex flex-col gap-1 text-[15px]">
+										{/* The wrappers keep each text block's height auto: inside the
+										    fold's grid, the renderer's full height would otherwise fill
+										    the row and push the description under the next option. */}
+										{answer.options?.map((opt) => (
+											<div key={opt.index} className="rounded-sm bg-panel px-3 py-2">
+												<div style={proseVars(15, 22, selectedIdx.has(opt.index) ? "var(--foreground)" : "var(--muted-foreground)")}>
+													<ToolContentResponse>{opt.label}</ToolContentResponse>
+												</div>
+												{descByIndex.get(opt.index) && (
+													<div className="mt-0.5" style={proseVars(14, 20, "var(--muted-foreground)")}>
+														<ToolContentResponse>{descByIndex.get(opt.index)}</ToolContentResponse>
+													</div>
+												)}
+											</div>
+										))}
+									</div>
+								)}
+								{thinking && <ThinkingBlock testId="your-thinking" text={thinking} inCard />}
+								{isExplain && answer.committed && (
+									<div data-testid="committed-answer" className="rounded-sm bg-panel px-3 py-2 text-[15px] text-ink-2">
+										<span className="font-medium text-ink">The answer: </span>
+										<ToolContentResponse className="inline [&>p:first-child]:m-0 [&>p:first-child]:inline">{answer.committed}</ToolContentResponse>
+									</div>
+								)}
+							</>
+						)}
+					</div>
+				</div>
+			)}
+		</div>
 	);
 }

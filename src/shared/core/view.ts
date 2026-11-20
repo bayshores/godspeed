@@ -332,7 +332,7 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 function openerParts(opener: ShownOpener): LhViewPart[] {
 	const question: LhViewPart = {
 		type: "tool-quiz",
-		toolCallId: `opener_${opener.topicDoneCallId}`,
+		toolCallId: openerQuestionId(opener.topicDoneCallId),
 		input: opener.quiz,
 		state: "input-available",
 		appPosed: { kind: "opener", ref: opener.topicDoneCallId } satisfies AppPosed,
@@ -343,6 +343,11 @@ function openerParts(opener: ShownOpener): LhViewPart[] {
 		question.output = opener.answer.answer ?? { ...dismissedAnswer("quiz", String(opener.quiz.question ?? "")), answeredAt };
 	}
 	return [...(opener.lead ? [{ type: "text", id: openerLeadId(opener.topicDoneCallId), text: opener.lead, state: "done" }] : []), question];
+}
+
+/** The question part id of a shown opener. */
+export function openerQuestionId(topicDoneCallId: string): string {
+	return `opener_${topicDoneCallId}`;
 }
 
 /** The text part id of a shown opener's lead. */

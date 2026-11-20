@@ -1009,7 +1009,7 @@
 	{
 		"name": "start_lesson",
 		"title": "Start or continue a lesson",
-		"description": "Start or continue a study session in godspeed taught by you. Give topic or deadline_id, not both. topic: a new session; it becomes the learner's first message; a path topic's name studies that topic. deadline_id: what the deadline's Study key does (continues its unfinished Study session, else starts one on its topics); with homework: true, its Work on key (continues its latest homework session, else starts one). With space_id the lesson belongs to that space: opens with the space's card, its facts go to that space's graph. You teach it through wait_for_work; learner follows in the godspeed window.",
+		"description": "Start or continue a study session in godspeed taught by you. Give topic or deadline_id, not both. topic: a new session; it becomes the learner's first message and the lesson's title in their top bar, so plain words, never file ids, paths or quoted file names; a path topic's name studies that topic. deadline_id: what the deadline's Study key does (continues its unfinished Study session, else starts one on its topics); with homework: true, its Work on key (continues its latest homework session, else starts one). With space_id the lesson belongs to that space: opens with the space's card, its facts go to that space's graph. You teach it through wait_for_work; learner follows in the godspeed window.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",

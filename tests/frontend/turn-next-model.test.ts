@@ -1,8 +1,9 @@
-/** "Your turn" with nothing to answer: what is next, its key and what the key does, and where the sheet is drawn. */
+/** "Your turn" with nothing to answer: what is next, its key and what the key does, what stays while the teacher writes, and where the sheet is drawn. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { turnNext, turnPlace } from "../../src/frontend/components/lesson/turn-next-model.ts";
-import type { LessonStop } from "../../src/shared/core/index.ts";
+import { lastAnswered, turnNext, turnPlace, turnShown } from "../../src/frontend/components/lesson/turn-next-model.ts";
+import { dismissedAnswer, projectView, type LessonStop, type LhMessage, type QuestionAnswerData } from "../../src/shared/core/index.ts";
+import { call, CONCLUDE_SOLVED, keepGoing, marker, OPENER_QUIZ, regularizationEnds, result, text, userText } from "../stop-fixtures.ts";
 
 const stop: LessonStop = { kind: "topic", at: "2026-11-18T21:48:00.000Z", nodeId: "reg", stopOf: "c1", next: "Cross-validation", activeMinutes: 48, keptGoing: false };
 const idle = { stop: null, homework: false, goLabel: "Continue", busy: false, error: false, nothingWritten: false };
@@ -48,5 +49,67 @@ describe("turnPlace", () => {
 
 	it("is drawn under the text too while it holds something to answer or press", () => {
 		assert.equal(turnPlace({ started: true, holds: true }), "both");
+	});
+});
+
+describe("turnShown", () => {
+	const next = { line: "Cross-validation is next.", key: { label: "Continue", action: "keep-going" as const } };
+	const answered = { toolCallId: "q1", answer: { kind: "quiz", questionText: "Which?", dontKnow: false, answers: [], answeredAt: "2026-11-19T10:00:00Z" } as QuestionAnswerData };
+
+	it("shows the next state whenever there is one, even right after an answer", () => {
+		assert.deepEqual(turnShown({ next, answered, lastLine: null }), { kind: "next", next, dim: false });
+	});
+
+	it("while the teacher writes: the question just answered, else the last next line dimmed with no key", () => {
+		assert.deepEqual(turnShown({ next: null, answered, lastLine: "Old line." }), { kind: "answered", answered });
+		assert.deepEqual(turnShown({ next: null, answered: null, lastLine: "Old line." }), { kind: "next", next: { line: "Old line.", key: null }, dim: true });
+	});
+});
+
+describe("lastAnswered", () => {
+	const QUIZ = { question: "Which planet is closest to the sun?", options: [{ label: "Venus" }, { label: "Mercury" }], correctAnswer: "Mercury", explanation: "Innermost." };
+	const answer = (picked: string): QuestionAnswerData => ({
+		kind: "quiz",
+		questionText: QUIZ.question,
+		options: [{ index: 1, label: "Venus" }, { index: 2, label: "Mercury" }],
+		dontKnow: false,
+		answers: [{ index: picked === "Venus" ? 1 : 2, label: picked, value: picked }],
+		correctIndices: [2],
+		correct: picked === "Mercury",
+		answeredAt: "2026-11-19T10:00:00Z",
+	});
+	const asked = [text("t0", "The planets, in order.", 1), call("q1", "quiz", QUIZ, 2)];
+	const of = (record: LhMessage[]) => lastAnswered(record, projectView(record));
+
+	it("is the question he answered, as its card reads it, while the teacher writes on after it", () => {
+		const record = [...asked, result("q1", "quiz", answer("Venus"), 3), text("t1", "Not quite.", 4), call("g1", "grep", {}, 4), result("g1", "grep", null, 4)];
+		const shown = of(record);
+		assert.equal(shown?.toolCallId, "q1");
+		assert.equal(shown?.answer.answers[0]?.label, "Venus");
+		assert.equal(shown?.answer.questionText, QUIZ.question);
+	});
+
+	it("is a skipped question too", () => {
+		const record = [...asked, result("q1", "quiz", { ...dismissedAnswer("quiz", QUIZ.question), answeredAt: "2026-11-19T10:00:00Z" }, 3)];
+		assert.equal(of(record)?.answer.dismissed, true);
+	});
+
+	it("is null once he did something else since: a line, Keep going, the next problem", () => {
+		const answered = [...asked, result("q1", "quiz", answer("Mercury"), 3)];
+		assert.equal(of([...answered, userText("u1", "Why?", 4)]), null);
+		assert.equal(of([...answered, keepGoing("c1", 4)]), null);
+		assert.equal(of([...answered, marker("n1", "practice-next", {}, 4)]), null);
+		assert.equal(of([text("t0", "Hi.", 1)]), null, "nothing answered yet");
+	});
+
+	it("skips what the learner did not do: a refused question call and the app's own notes", () => {
+		const record = [...asked, result("q1", "quiz", answer("Venus"), 3), call("q2", "quiz", { question: "Bad" }, 4), result("q2", "quiz", null, 4, true), marker("a1", "app-note", {}, 5)];
+		assert.equal(of(record)?.toolCallId, "q1");
+	});
+
+	it("finds an opener's answer in the view, where the opener's question lives", () => {
+		const record = [...regularizationEnds(), keepGoing("c1", 50), marker("oa1", "opener-answer", { topicDoneCallId: "t1", answer: { ...answer("Mercury"), questionText: OPENER_QUIZ.question } }, 51)];
+		assert.equal(of(record)?.toolCallId, "opener_t1");
+		assert.equal(of([...regularizationEnds(), call("c2", "conclude", CONCLUDE_SOLVED, 52)]), null, "no question answered");
 	});
 });

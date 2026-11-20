@@ -139,7 +139,7 @@ fn conclude_tool(ctx: &HomeworkToolContext, open: &Arc<Mutex<Option<String>>>) -
 			("verdict", string("REQUIRED \u{2014} what was right in the learner's work, or where it still breaks. Never the answer.")),
 		],
 	);
-	let description = "Close the open problem with the outcome and verdict; solved and solvedWithHints mark it done. Then say your closing words and END YOUR TURN: the next problem waits for the learner's go-ahead. When they asked for a different problem, that ask is the go-ahead: open it right after this result.";
+	let description = "Close the open problem with the outcome and verdict; solved and solvedWithHints mark it done. Then say your closing words and END YOUR TURN: the next problem waits for the learner's go-ahead. When they asked for a different problem, that ask is the go-ahead: open it right after this result. Never conclude while parts you will still ask remain: ask them first and conclude after the last part.";
 	FnTool::immediate("conclude", description, parameters, move |args| {
 		let mut open = open.lock();
 		let Some(number) = open.take() else {

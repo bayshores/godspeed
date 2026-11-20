@@ -173,15 +173,6 @@ export function questionKindLabel(tool: string, quizType: QuizQuestionType | und
 	return "Question";
 }
 
-/** The reveal law: a teach-phase CHECK (quiz or explain) collapses behind
- *  the "Check your understanding" reveal. A prediction never does (it
- *  precedes the teaching and gates it), and neither do probe/plan
- *  questions or ask. Records without a `type` render as checks. */
-export function questionNeedsReveal(tool: string, rawInput: unknown, phase: string): boolean {
-	if ((tool !== "quiz" && tool !== "explain") || phase !== "teach") return false;
-	return normalizeQuizType((rawInput as { type?: unknown } | null)?.type) !== "predict";
-}
-
 /** The DISPLAY parse for persisted quiz calls (tool-parts.ts): the base
  *  + `type` as an OPTIONAL plain string (old records carry none, and
  *  Value.Clean keeps a key only when the schema knows it — the dock would
@@ -219,8 +210,7 @@ const explainInputBase = Type.Object({
 
 /** The DISPLAY parse for persisted explain calls (tool-parts.ts): the
  *  base + `type` as an OPTIONAL plain string — exactly the quiz display
- *  pattern. Old records carry none; questionNeedsReveal treats them as
- *  checks (the standing default). nodeId stays stripped (unknown key). */
+ *  pattern. Old records carry none. nodeId stays stripped (unknown key). */
 export const explainDisplayInputSchema = Type.Object({
 	...explainInputBase.properties,
 	type: Type.Optional(Type.String()),

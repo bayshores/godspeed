@@ -56,7 +56,6 @@ export interface QuestionFormDraft {
 
 export interface QuestionDraft {
 	form?: QuestionFormDraft;
-	readingThinking?: string;
 }
 
 /**

@@ -1,6 +1,6 @@
 /**
  * Unsent lesson drafts: what the learner typed but hasn't sent yet (the
- * writing box, each waiting question's picks and reading thoughts). Saved
+ * writing box and each waiting question's picks). Saved
  * per lesson so leaving the lesson or a window reload never loses it. Pure.
  */
 import { activeProblemOf, answeredCallIds, danglingQuestionOf, isRecord, type LhMessage, type QuestionDraft, type QuestionFormDraft } from "@/shared/core";
@@ -25,7 +25,7 @@ function formEmpty(f: QuestionFormDraft | undefined): boolean {
 }
 
 function questionEmpty(q: QuestionDraft): boolean {
-	return formEmpty(q.form) && !q.readingThinking?.trim();
+	return formEmpty(q.form);
 }
 
 export function withComposer(d: LessonDraft, text: string): LessonDraft {
@@ -112,13 +112,14 @@ export function parseLessonDraft(raw: string | null): LessonDraft {
 	}
 	if (!isRecord(v)) return EMPTY_LESSON_DRAFT;
 	const questions: Record<string, QuestionDraft> = {};
-	// Older drafts kept an ask's own answer in a field of its own; it now goes in the box.
+	// Older drafts kept an ask's own answer and the thoughts noted while reading in fields of their own; both now go in the box.
 	const box = [str(v.composer)];
 	for (const [id, q] of Object.entries(isRecord(v.questions) ? v.questions : {})) {
 		if (!isRecord(q)) continue;
 		const form = parseForm(q.form);
 		if (isRecord(q.form)) box.push(str(q.form.other));
-		const draft: QuestionDraft = { ...(form ? { form } : {}), ...(typeof q.readingThinking === "string" ? { readingThinking: q.readingThinking } : {}) };
+		box.push(str(q.readingThinking));
+		const draft: QuestionDraft = form ? { form } : {};
 		if (!questionEmpty(draft)) questions[id] = draft;
 	}
 	return { composer: box.filter((t) => t.trim()).join("\n\n"), questions };

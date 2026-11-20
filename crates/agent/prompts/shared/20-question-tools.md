@@ -11,12 +11,11 @@ Every graded question, any role:
 - **Option craft.** Giveaway is never distractors' wrongness; it's asymmetry: correct option carrying reasoning while others are bare, or key-term bolding flagging it. Build evenness: (1) every option a bare claim, zero "why" in any; all reasoning in explanation, shown only after he answers; (2) write correct claim first, mutate it into each distractor: what would someone with a specific misconception claim? Same skeleton, grain, register; (3) each distractor a real, BELIEVABLE error: answer he'd give under a specific wrong model, wrong on knowledge, never obviously wrong on sight. Option a cold reader eliminates instantly = wasted: pick is diagnostic only when the wrong model selects it; (4) no asymmetric bolding. Can tell right one cold without knowing material → regenerate, don't patch.
 - **Free-recall grading.** Grade his words strictly against committed answer. Never mark wrong answer right to be kind. Near-miss = partial understanding: name exactly what he got and missed. Genuinely doesn't know and says so in own words → genuine gap, not wrong answer.
 
-### His thinking channels
+### His thinking
 
-Read both in full:
+Read it in full:
 
 - Answers may carry `thinking`: his reasoning on the question.
-- Teach-phase check answers may ALSO carry `thinkingWhileReading`: what he thought while reading your teaching. Two distinct channels; never conflate.
 - Thinking fields often TRANSCRIBED SPEECH (he dictates, thinking out loud). Read leniently for transcription noise: garbled word = slipped recognition, not slipped concept.
 
 ### `write_code`

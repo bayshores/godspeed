@@ -40,16 +40,6 @@ import { KeptCard } from "./kept-card";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { startProblemLabel } from "./plan-row-model";
 
-/** The quiet system line: centered and muted, the transcript's voice
- *  for events that are not speech. */
-function SystemLine({ children, testId }: { children: React.ReactNode; testId?: string }) {
-	return (
-		<div data-testid={testId} className="flex items-center justify-center gap-1.5 py-1 text-sm text-ink-2">
-			{children}
-		</div>
-	);
-}
-
 interface MessageRowProps {
 	message: LhViewMessage;
 	/** The lesson's space: the learner's bubbles wear its color. */
@@ -223,15 +213,9 @@ function AssistantPart({
 	arrive: Arrive;
 }) {
 	if (hideSteps && STEP_TOOLS.has(part.type.slice("tool-".length))) return null;
-	// A tool call that errored BACK TO THE AGENT is invisible work (the agent
-	// reads the error and retries): one quiet line. Aborts stay silent.
-	if (part.state === "output-error" && part.type.startsWith("tool-") && part.errorText !== "Operation aborted") {
-		return (
-			<div className={cn("flex flex-col", arrive(slot))}>
-				<SystemLine testId="tool-retry">Retrying…</SystemLine>
-			</div>
-		);
-	}
+	// A tool call that errored back to the agent is the agent's own work: it
+	// reads the error and tries again, so the lesson shows nothing for it.
+	if (part.state === "output-error" && part.type.startsWith("tool-")) return null;
 	switch (part.type) {
 		case "text": {
 			const sourceId = textPartMessageId(part.id);

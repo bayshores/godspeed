@@ -227,7 +227,9 @@ fn conclude_description(turn_end: &str) -> String {
 		END YOUR TURN{turn_end} The next problem waits for the learner's explicit go-ahead (a \
 		*Next problem* message, or their own words asking for the next one). The one exception: when the learner \
 		asked for a different problem or part, that ask is the go-ahead, so pose it right after this result. \
-		Between problems, answer their questions about the concluded one. Nothing may conclude unless a problem is active."
+		Between problems, answer their questions about the concluded one. Never conclude while parts you will still \
+		ask remain: concluding shows the solution at once, giving their answers away, so ask them first and conclude \
+		after the last part. Nothing may conclude unless a problem is active."
 	)
 }
 

@@ -172,7 +172,7 @@ Read only. In a space's tab only `space` is set, the rest null.
 |---|---|
 | `space` | `{ id, name }` of the lesson's space, or null in a lesson with no space. |
 | `topic` | The lesson's title. |
-| `question` | The open question: `{ id, text, options }`, `options` the choices' labels (empty for a question answered in words). Never holds its answer. Null when none is open and while one still waits behind "Check your understanding". The `id` is stable while it is open. |
+| `question` | The open question: `{ id, text, options }`, `options` the choices' labels (empty for a question answered in words). Never holds its answer. Null when none is open. The `id` is stable while it is open. |
 | `lastAnswered` | The last question answered or skipped: the same three fields, plus `answer` when the card shows one (a quiz's marked options joined with " and ", or an explain question's committed answer) and `correct` only for an answered graded quiz (never a prediction, "I don't know" or skip). |
 | `teacherMessage` | The teacher's last message as text, or null. |
 

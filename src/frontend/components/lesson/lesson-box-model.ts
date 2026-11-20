@@ -13,8 +13,6 @@ export type BoxTurn =
 	/** The open problem, worked on in the box. `picked`: a choice of its is picked, which is
 	 *  enough to send. */
 	| { kind: "problem"; picked: boolean }
-	/** A check waits behind "Check your understanding". */
-	| { kind: "read-first" }
 	/** The answer is picked above the box (choices, or the code editor).
 	 *  `ownAnswer`: an ask whose box text is the answer when nothing is
 	 *  picked (then `picked` says there is text). `appPosed`: the app asked it (the next topic's opener, or a question
@@ -23,7 +21,7 @@ export type BoxTurn =
 	/** The box text is the answer. */
 	| { kind: "written"; takesFiles: boolean };
 
-export type BoxAction = "send" | "submit" | "reveal";
+export type BoxAction = "send" | "submit";
 
 export interface BoxButton {
 	action: BoxAction;
@@ -44,8 +42,8 @@ export interface BoxView {
 	exit: "skip" | "discard";
 	/** Whether what the box sends carries attached files, so the Attach button shows. */
 	attach: boolean;
-	/** The "Stuck?" keys, or null while nothing is asked yet. */
-	help: HelpKeys | null;
+	/** The "Stuck?" keys. */
+	help: HelpKeys;
 }
 
 /** The lines the hint and simpler keys send, as if typed in the teacher's terminal. */
@@ -94,9 +92,6 @@ export function lessonBox(s: {
 			attach: true,
 			help: { dontKnow: "send", dontKnowDisabled: s.busy, linesDisabled: s.busy },
 		};
-	}
-	if (turn.kind === "read-first") {
-		return { placeholder: "Whatever comes to mind as you read.", size: "line", button: { action: "reveal", label: "Check your understanding", filled: true, disabled: false }, enter: "reveal", exit: "skip", attach: false, help: null };
 	}
 	// Words with nothing picked ask the teacher something; the question stays open.
 	if (turn.kind === "choice" && !turn.ownAnswer && !turn.picked && s.hasText) {

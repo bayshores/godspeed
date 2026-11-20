@@ -22,7 +22,7 @@ const answered = (id: string, tool: string, output: Partial<QuestionAnswerData>,
 const graded = (id: string, correct: boolean, extra: Partial<QuestionAnswerData> = {}) =>
 	answered(id, "quiz", { options: [{ index: 1, label: "Add" }, { index: 2, label: "Subtract" }], answers: [{ index: correct ? 2 : 1, label: correct ? "Subtract" : "Add", value: correct ? "s" : "a" }], correctIndices: [2], correct, ...extra });
 const lesson = (over: Partial<Parameters<typeof lessonPluginContext>[0]> = {}) =>
-	lessonPluginContext({ space, title: "Linear equations", messages: [teacher("Try this one.")], pending: null, requiresReveal: false, ...over });
+	lessonPluginContext({ space, title: "Linear equations", messages: [teacher("Try this one.")], pending: null, ...over });
 
 describe("a plugin's context in a lesson", () => {
 	it("with no questions: the space, the title and the teacher's last message", () => {
@@ -38,9 +38,6 @@ describe("a plugin's context in a lesson", () => {
 		assert.deepEqual(context.question, { id: "q1", text: "What do you undo first?", options: ["Add", "Subtract"] });
 		assert.equal(context.lastAnswered, null);
 		assert.doesNotMatch(JSON.stringify(context), /Undo the plus|"s"/);
-	});
-	it("a question behind Check your understanding is not on screen, so it is left out", () => {
-		assert.equal(lesson({ pending: quiz("q1", "What first?"), requiresReveal: true }).question, null);
 	});
 	it("a question the learner writes in words has no options; a broken one is left out", () => {
 		assert.deepEqual(lesson({ pending: { toolCallId: "e1", input: { question: "Why?", correctAnswer: "Because." } } }).question, { id: "e1", text: "Why?", options: [] });

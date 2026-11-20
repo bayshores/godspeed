@@ -220,6 +220,18 @@ describe("render smoke tests", () => {
 		assert.ok(open.includes('data-mark="check"') && open.includes('data-mark="x"'));
 	});
 
+	it("AnsweredCard shows a quiz's pick under the question, never the right answer beside a wrong one", () => {
+		const pick = (html: string) => [...html.matchAll(/data-testid="answered-pick"[^>]*>([\s\S]*?)<\/div>/g)].map((m) => m[1]!.replace(/<[^>]+>/g, ""));
+		const right = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(quizQD(), { values: ["Mercury"] })} />);
+		assert.deepEqual(pick(right), ["Mercury"]);
+		assert.ok(right.indexOf("answered-pick") > right.indexOf("Which planet"), "under the question");
+		const wrong = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(quizQD(), { values: ["Venus"] })} />);
+		assert.deepEqual(pick(wrong), ["Venus"]);
+		assert.doesNotMatch(wrong, /Mercury/, "the right answer waits behind Why");
+		const idk = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(quizQD(), { values: [], dontKnow: true })} />);
+		assert.ok(!idk.includes("answered-pick") && !idk.includes("answered-said"), "I don't know has no pick row");
+	});
+
 	it("AnsweredCard shows the confidence level on quiz answers", () => {
 		const answer = buildAnswer(quizQD(), { values: ["Venus"], confidence: 80 });
 		const html = renderToStaticMarkup(<AnsweredCard answer={answer} />);
@@ -552,29 +564,19 @@ describe("predict vs check rendering", () => {
 		assert.ok(!right.includes("guess-result"), "a right guess needs no line");
 	});
 
-	it("a plot guess says what he picked and what the line gives, right or not", () => {
+	it("a plot guess shows his pick as its row and says what the line gives, right or not", () => {
 		const options = normalizeOptions([{ label: "At 2, the leash's length." }, { label: "At 4." }]);
 		const qd: QuestionData = { kind: "quiz", question: "Where does the penalty put it?", mode: "single-select", options, correctIndices: [2], questionType: "predict" };
 		const input = { type: "predict", question: qd.question, options: [{ label: "At 2, the leash's length." }, { label: "At 4." }], correctAnswer: "At 4.", onPlot: { line: "penalty", x: 8 } };
 		const picked = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { values: [options[0]!.value] })} input={input} plotValue={4} />);
-		assert.match(picked, /You picked: at 2, the leash&#x27;s length\. The penalty line gives 4\./);
+		assert.match(picked, /data-testid="answered-pick"[^>]*>[\s\S]*?At 2, the leash&#x27;s length\.[\s\S]*data-testid="guess-result"[^>]*>[\s\S]*?The penalty line gives 4\./);
+		assert.doesNotMatch(picked, /You picked/, "the pick is said once, in its row");
 		assert.ok(!picked.includes('data-testid="answer-result"'), "no tag");
 		const right = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { values: [options[1]!.value] })} input={input} plotValue={4} />);
-		assert.match(right, /You picked: at 4\. The penalty line gives 4\./);
+		assert.match(right, /data-testid="answered-pick"[^>]*>[\s\S]*?At 4\./);
 		const unsure = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { dontKnow: true })} input={input} plotValue={4} />);
 		assert.match(unsure, /data-testid="guess-result"[^>]*>[\s\S]*?The penalty line gives 4\./);
-		assert.ok(!unsure.includes("You picked"));
-	});
-
-	it("a plot guess keeps a single capital letter, which names a quantity", () => {
-		const labels = [{ label: "N stays at 4." }, { label: "X = 2" }, { label: "A line at 4." }];
-		const options = normalizeOptions(labels);
-		const qd: QuestionData = { kind: "quiz", question: "What happens?", mode: "single-select", options, correctIndices: [1], questionType: "predict" };
-		const input = { type: "predict", question: qd.question, options: labels, correctAnswer: "N stays at 4.", onPlot: { line: "penalty", x: 8 } };
-		const said = (i: number) => renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { values: [options[i]!.value] })} input={input} plotValue={4} />);
-		assert.match(said(0), /You picked: N stays at 4\./);
-		assert.match(said(1), /You picked: X = 2\./);
-		assert.match(said(2), /You picked: a line at 4\./);
+		assert.ok(!unsure.includes("answered-pick"));
 	});
 
 	it("a quiz keeps its Right and Wrong tag", () => {
@@ -590,27 +592,11 @@ describe("predict vs check rendering", () => {
 		assert.ok(!html.includes("innermost"), "no inline explanation — behind the toggle");
 	});
 
-	it("the reading-thinking channel is LIFTED above the card as its own user-side block", () => {
-		const withReading = buildAnswer(quizQD(), {
-			values: ["Mercury"],
-			thinking: "answering thought",
-			readingThinking: "was unsure mid-paragraph",
-		});
-		const html = renderToStaticMarkup(<AnsweredCard answer={withReading} defaultOpen />);
-		// The unified ThinkingBlock: the reading thoughts render BEFORE the card as the
-		// banded user-thinking row, arriving EXPANDED (clearly sent).
-		const blockAt = html.indexOf("reading-thinking-block");
-		const cardAt = html.indexOf("answered-card");
-		assert.ok(blockAt !== -1, "the lifted block renders");
-		assert.ok(blockAt < cardAt, "it sits ABOVE the answered card");
-		assert.ok(html.includes("Your thinking"), "the plain label");
-		assert.ok(!html.includes("Your thinking while reading"), "the old verbose label is gone");
-		assert.ok(!html.includes("your-reading-thinking"), "the in-card inset is gone");
-		// EXPANDED ARRIVAL: transcript rows
-		// render their text; the in-card answer thinking stays collapsed.
-		assert.ok(html.includes('data-testid="your-thinking-trigger"'), "the answer thinking stays inside the card");
-		assert.ok(html.includes("was unsure mid-paragraph"), "the lifted row arrives expanded");
-		assert.ok(!html.includes("answering thought"), "the in-card row stays collapsed");
+	it("an old answer's thoughts noted while reading are left out, and records from before the rename still render", () => {
+		const old = { ...buildAnswer(quizQD(), { values: ["Mercury"], thinking: "answering thought" }), readingThinking: "was unsure mid-paragraph" };
+		const html = renderToStaticMarkup(<AnsweredCard answer={old} defaultOpen />);
+		assert.ok(!html.includes("was unsure mid-paragraph"), "the reading note is not drawn");
+		assert.ok(html.includes('data-testid="your-thinking-trigger"'), "the answer's own thinking stays inside the card");
 		const legacy = { ...buildAnswer(quizQD(), { values: ["Mercury"] }), note: "a 2026-09 answer" };
 		const legacyHtml = renderToStaticMarkup(<AnsweredCard answer={legacy} defaultOpen />);
 		assert.ok(legacyHtml.includes("a 2026-09 answer") || legacyHtml.includes('data-testid="your-thinking-trigger"'), "records from before the rename still render");

@@ -75,10 +75,6 @@ export interface QuestionAnswerData {
 	 *  replay through the same types, so it stays declared. Read via
 	 *  `thinking ?? note`. */
 	note?: string;
-	/** The learner's thinking WHILE READING the teaching prose: a
-	 *  separate channel from `thinking`, captured by the
-	 *  reading field and riding the check answer. Absent when empty. */
-	readingThinking?: string;
 	confidence?: number; // quiz only: the learner's stated probability (0-100, raw) that his selected answer is correct — never sent on "I don't know"
 	correct?: boolean; // quiz only
 	correctIndices?: number[]; // quiz only (rendering)
@@ -97,7 +93,6 @@ export interface AnswerRequest {
 	other?: string; // an ask's own answer, typed in the box with nothing picked
 	text?: string; // ask text-mode
 	thinking?: string; // the reasoning-on-the-question channel (was `note`)
-	readingThinking?: string; // the thinking-while-reading channel (check answers)
 	confidence?: number; // quiz only: 0-100, sent only when the learner picked a level
 }
 

@@ -15968,8 +15968,7 @@
 						],
 						"correct": true,
 						"confidence": 80,
-						"thinking": "because",
-						"thinkingWhileReading": "read"
+						"thinking": "because"
 					}
 				},
 				{
@@ -16159,7 +16158,7 @@
 									"const": "check"
 								}
 							],
-							"description": "REQUIRED — the question's role in the teaching cycle, as a bare word (no quotes): predict = posed BEFORE you teach the step (its own turn; the learner answers, then your teaching resolves it — arrives open, never collapsed); check = posed AFTER the step's teaching is complete (arrives collapsed behind the Check your understanding reveal). ONE question per turn either way."
+							"description": "REQUIRED — the question's role in the teaching cycle, as a bare word (no quotes): predict = posed BEFORE you teach the step (its own turn; the learner answers, then your teaching resolves it); check = posed AFTER the step's teaching is complete. ONE question per turn either way."
 						},
 						"nodeId": {
 							"type": "string",
@@ -16321,7 +16320,7 @@
 									"const": "check"
 								}
 							],
-							"description": "REQUIRED — the question's role in the teaching cycle, as a bare word (no quotes): predict = posed BEFORE you teach the step (its own turn; the learner answers, then your teaching resolves it — arrives open, never collapsed); check = posed AFTER the step's teaching is complete (arrives collapsed behind the Check your understanding reveal). ONE question per turn either way."
+							"description": "REQUIRED — the question's role in the teaching cycle, as a bare word (no quotes): predict = posed BEFORE you teach the step (its own turn; the learner answers, then your teaching resolves it); check = posed AFTER the step's teaching is complete. ONE question per turn either way."
 						},
 						"nodeId": {
 							"type": "string",

@@ -1,6 +1,6 @@
 # The two questions — predict, then check (the teaching cycle)
 
-Every teaching unit = **predict → teach → check** cycle. Two questions, entirely different jobs. Wrong `type` breaks learner's UI (check arrives collapsed after reading; prediction arrives open before). Roles not interchangeable.
+Every teaching unit = **predict → teach → check** cycle. Two questions, entirely different jobs. Wrong `type` mislabels his answer (a prediction is never marked right or wrong; a check is). Roles not interchangeable.
 
 ## The prediction (`type: "predict"`) — motivation
 
