@@ -110,6 +110,10 @@ export function YourTurn({
 }: YourTurnProps) {
 	// Whether the question above the box has an answer picked.
 	const [picked, setPicked] = useState(false);
+	// The open problem's page in the theme's ink, or on white as its file prints it.
+	const [printed, setPrinted] = useState(false);
+	// The problem whose page did not load: its words show, so there is no page to turn white.
+	const [pieceFailed, setPieceFailed] = useState<string | null>(null);
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 
 	const next = !pending && !problem && shown.kind === "next" ? shown : null;
@@ -140,6 +144,7 @@ export function YourTurn({
 		: null;
 
 	const exit = view.exit && EXIT[view.exit];
+	const fileShown = pending ? null : (problem?.file ?? null);
 	const onExit = view.exit === "skip" ? onSkipQuestion : onDiscardProblem;
 	const fromEarlier = pending?.appPosed?.kind === "review";
 	const title = fromEarlier ? "From earlier" : !pending && problem?.line ? problem.line : "Your turn";
@@ -152,12 +157,20 @@ export function YourTurn({
 			<TurnSwap swapKey={swapKey}>
 			<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
 				<h2 className="text-[28px] leading-tight text-ink">{title}</h2>
-				{!pending && problem?.file && <ProblemFile file={problem.file} />}
-				{exit && (
-					<button type="button" data-testid={exit.testId} onClick={onExit} className="lh-btn lh-btn-small lh-btn-quiet ml-auto">
-						{exit.label}
-					</button>
-				)}
+				{/* The keys stay on the title's line while they fit: a file's name shortens before a key drops under the title. */}
+				<div data-testid="turn-keys" className={cn("flex flex-1 basis-0 items-center justify-end gap-x-2 empty:hidden", fileShown ? "min-w-[min(100%,19rem)]" : "min-w-fit")}>
+					{fileShown && <ProblemFile file={fileShown} />}
+					{!pending && problem?.piece && pieceFailed !== problem.toolCallId && (
+						<button type="button" data-testid="piece-printed" aria-pressed={printed} onClick={() => setPrinted((on) => !on)} className={cn("lh-btn lh-btn-small", printed ? "lh-btn-main" : "lh-btn-quiet")}>
+							As printed
+						</button>
+					)}
+					{exit && (
+						<button type="button" data-testid={exit.testId} onClick={onExit} className="lh-btn lh-btn-small lh-btn-quiet">
+							{exit.label}
+						</button>
+					)}
+				</div>
 			</div>
 
 			{reviewRefused && (
@@ -182,7 +195,7 @@ export function YourTurn({
 						busy={busy && !fromEarlier}
 					/>
 				)}
-				{!pending && problem && <OpenProblemPane statement={problem.statement} piece={problem.piece} part={problem.part} picks={picks} />}
+				{!pending && problem && <OpenProblemPane statement={problem.statement} piece={problem.piece} printed={printed} onPieceFail={() => setPieceFailed(problem.toolCallId)} part={problem.part} picks={picks} />}
 				{!pending && !problem && shown.kind === "answered" && <AnsweredTurn answer={shown.answered.answer} />}
 				{next && (next.next.line || nextKey) && (
 					<div data-testid="turn-next" className="flex flex-wrap items-center gap-x-4 gap-y-2">

@@ -1,6 +1,6 @@
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
-import { dom, scrolled } from "../page-piece-dom.ts";
+import { dom } from "../page-piece-dom.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createRoot } from "react-dom/client";
@@ -103,22 +103,25 @@ describe("PagePiece", () => {
 		});
 	});
 
-	it("veils the parts the learner is not on and scrolls to the one they are on", async () => {
-		scrolled.length = 0;
-		await mounted(<PagePiece piece={PIECE} text="" part="b" />, async (host, rerender) => {
+	it("veils the parts the learner is not on and tells where the one they are on starts", async () => {
+		const placed: string[] = [];
+		const onPlace = (start: HTMLElement) => placed.push(start.style.top);
+		await mounted(<PagePiece piece={PIECE} text="" part="b" onPlace={onPlace} />, async (host, rerender) => {
 			const veilsOf = () => [...host.querySelectorAll<HTMLElement>('[data-testid="piece-veil"]')].map((v) => v.getAttribute("style"));
 			assert.equal(veilsOf().length, 3, "(a) over two parts and (c)");
 			assert.match(veilsOf()[0]!, /top:\s*57\.14/);
-			assert.deepEqual(scrolled.length, 1);
-			assert.match(scrolled[0]!, /^22\.2/);
-			assert.match(host.querySelector('[data-testid="piece-veil"]')!.className, /bg-\(--lh-sheet\) opacity-55/);
-			await rerender(<PagePiece piece={structuredClone(PIECE)} text="" part="b" />);
-			assert.equal(scrolled.length, 1, "a rebuilt piece does not scroll again");
-			await rerender(<PagePiece piece={PIECE} text="" part="a" />);
-			assert.equal(scrolled.length, 2);
+			assert.equal(placed.length, 1);
+			assert.match(placed[0]!, /^22\.2/);
+			assert.equal(host.querySelectorAll("[data-part-current]").length, 1, "where the page under the lesson text rests");
+			assert.match(host.querySelector('[data-testid="piece-veil"]')!.className, /opacity-55 bg-\(--lh-sheet\)/);
+			await rerender(<PagePiece piece={structuredClone(PIECE)} text="" part="b" onPlace={onPlace} />);
+			assert.equal(placed.length, 1, "a rebuilt piece is not placed again");
+			await rerender(<PagePiece piece={PIECE} text="" part="a" onPlace={onPlace} />);
+			assert.equal(placed.length, 2);
 			assert.equal(veilsOf().length, 2, "(b) and (c)");
-			await rerender(<PagePiece piece={PIECE} text="" part={null} />);
+			await rerender(<PagePiece piece={PIECE} text="" part={null} onPlace={onPlace} />);
 			assert.equal(veilsOf().length, 0);
+			assert.equal(host.querySelector("[data-part-current]"), null);
 		});
 	});
 });

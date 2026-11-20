@@ -26,30 +26,21 @@ const piece = problemPieceOf(PIECE_DETAILS)!;
 const veils = (host: HTMLElement) => host.querySelectorAll('[data-testid="piece-veil"]').length;
 
 describe("the open problem, printed in its file", () => {
-	it("shows the piece in place of the typed statement, with the choices and key kept", async () => {
+	it("shows the piece in place of the typed statement, in the box Your turn scrolls and not one of its own", async () => {
 		await mounted(<OpenProblemPane statement={PIECE_TEXT} piece={piece} part={null} picks={null} />, (host) => {
 			assert.equal(host.querySelectorAll("img").length, 2);
 			assert.equal(host.querySelector('[data-testid="problem-statement"]'), null);
-			assert.match(host.querySelector('[data-testid="problem-piece"] > div')!.className, /max-h-\[60vh\] overflow-y-auto/);
-			const key = host.querySelector('[data-testid="piece-printed"]')!;
-			assert.equal(key.textContent, "As printed");
-			assert.match(key.className, /ml-auto/);
-			assert.doesNotMatch(key.className, /w-full/);
+			assert.doesNotMatch(host.innerHTML, /max-h-|overflow-y/);
+			assert.ok([...host.querySelectorAll("img")].every((i) => i.getAttribute("src")!.includes("&ink=")));
 		});
 	});
 
-	it("As printed turns the pictures to the white page and back", async () => {
-		await mounted(<OpenProblemPane statement={PIECE_TEXT} piece={piece} part={null} picks={null} />, async (host) => {
-			const key = host.querySelector<HTMLElement>('[data-testid="piece-printed"]')!;
-			const srcs = () => [...host.querySelectorAll("img")].map((i) => i.getAttribute("src")!);
-			assert.equal(key.getAttribute("aria-pressed"), "false");
-			assert.ok(srcs().every((s) => s.includes("&ink=")));
-			await act(async () => key.click());
-			assert.equal(key.getAttribute("aria-pressed"), "true");
-			assert.ok(srcs().every((s) => !s.includes("ink=")));
+	it("draws the pictures on the white page, with no ink, when asked as printed", async () => {
+		await mounted(<OpenProblemPane statement={PIECE_TEXT} piece={piece} printed part="b" picks={null} />, (host) => {
+			assert.ok([...host.querySelectorAll("img")].every((i) => !i.getAttribute("src")!.includes("ink=")));
 			assert.match(host.querySelector("img")!.parentElement!.className, /bg-white/);
-			await act(async () => key.click());
-			assert.ok(srcs().every((s) => s.includes("&ink=")));
+			// A veil in the sheet's color would be a dark block on the white page.
+			assert.ok([...host.querySelectorAll('[data-testid="piece-veil"]')].every((veil) => /bg-white/.test(veil.className)));
 		});
 	});
 

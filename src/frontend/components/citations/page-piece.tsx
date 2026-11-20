@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
-import { prefersReducedMotion } from "@/frontend/components/presence";
 import { useAppearance } from "@/frontend/components/settings/appearance";
 import { useElementWidth } from "@/frontend/lib/use-element-width";
 import { cn } from "@/frontend/lib/utils";
@@ -14,7 +13,8 @@ const pct = (n: number) => `${n * 100}%`;
  * A problem as its file prints it: each stretch of a page cut out and stacked, drawn in the
  * theme's ink straight on the sheet (or on white, as printed). Its words stay in the page for
  * screen readers. The part the learner is on stays clear while the other labelled parts are
- * veiled in the sheet's color, and the piece scrolls to it. A picture that does not load gives
+ * veiled in the color under them; where that part starts is marked data-part-current and told
+ * to `onPlace`, for the page or box around it to rest there. A picture that does not load gives
  * way to the words.
  */
 export function PagePiece({
@@ -23,6 +23,7 @@ export function PagePiece({
 	quiet = false,
 	part = null,
 	printed = false,
+	onPlace,
 	onFail,
 }: {
 	piece: ProblemPiece;
@@ -30,6 +31,8 @@ export function PagePiece({
 	quiet?: boolean;
 	part?: string | null;
 	printed?: boolean;
+	/** Told where the part the learner is on starts, each time that place changes. */
+	onPlace?: (start: HTMLElement) => void;
 	/** Told once the words stand in for a picture that did not load. */
 	onFail?: () => void;
 }) {
@@ -42,8 +45,10 @@ export function PagePiece({
 	const anchorRef = useRef<HTMLSpanElement>(null);
 	// Keyed on the place, not the object: a caller that rebuilds the piece must not scroll again.
 	const place = current && `${current.part}:${current.at}`;
+	const onPlaceRef = useRef(onPlace);
+	onPlaceRef.current = onPlace;
 	useEffect(() => {
-		anchorRef.current?.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+		if (anchorRef.current) onPlaceRef.current?.(anchorRef.current);
 	}, [place]);
 
 	if (failedKey === key) {
@@ -78,9 +83,9 @@ export function PagePiece({
 						)}
 						{mark && <PageMarks boxes={[mark]} />}
 						{bands[i]!.map((band, k) => (
-							<span key={k} aria-hidden data-testid="piece-veil" className="absolute inset-x-0 bg-(--lh-sheet) opacity-55" style={{ top: pct(band.top), height: pct(band.height) }} />
+							<span key={k} aria-hidden data-testid="piece-veil" className={cn("absolute inset-x-0 opacity-55", printed ? "bg-white" : "bg-(--lh-sheet)")} style={{ top: pct(band.top), height: pct(band.height) }} />
 						))}
-						{current?.part === i && <span ref={anchorRef} aria-hidden className="absolute inset-x-0 h-0" style={{ top: pct(current.at) }} />}
+						{current?.part === i && <span ref={anchorRef} aria-hidden data-part-current="" className="absolute inset-x-0 h-0" style={{ top: pct(current.at) }} />}
 					</div>
 				);
 			})}

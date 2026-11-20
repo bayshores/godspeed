@@ -2,11 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import { toggleOption, type DockSelection, type ProblemChoices, type ProblemPieceText } from "@/shared/core";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { PagePiece } from "@/frontend/components/citations/page-piece";
+import { prefersReducedMotion } from "@/frontend/components/presence";
 import { ChoiceRows, SelectAllHint } from "./choice-rows";
 import { useChoiceKeys } from "./use-choice-keys";
 import { partMarks, toggled, type PartMarks } from "./problem-parts";
-import { cn } from "@/frontend/lib/utils";
 import { proseVars } from "./question-parts";
+
+/** Room kept above the part, so the fade at the top of the box does not cover its first line. */
+const LEAD = 32;
+
+/** Brings the start of the part the learner is on to the top of the box "Your turn" scrolls in.
+ *  Under the lesson text there is no such box, and the page itself rests on the part. */
+function restAt(start: HTMLElement) {
+	const box = start.closest<HTMLElement>(".lh-turn-scroll");
+	if (!box || box.scrollHeight <= box.clientHeight) return;
+	box.scrollTo({ top: box.scrollTop + start.getBoundingClientRect().top - box.getBoundingClientRect().top - LEAD, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+}
 
 const MARKED = "[data-part-current], [data-part-head], [data-part-fold]";
 const NAMES = ["data-part-current", "data-part-head", "data-part-fold", "role", "tabindex", "aria-expanded"];
@@ -52,26 +63,29 @@ function ProblemChoiceRows({ choices, picked, onPick, onLeaveRows, onEnter }: Pr
  * marked open (data-part-current, where the page may rest) and every other
  * part folded to its first line, which opens it on a click and folds it on
  * the next. A problem printed in a file shows that piece of the page in its
- * place, with a key to see it as printed. A problem with choices shows them
+ * place, in the theme's ink or as printed. A problem with choices shows them
  * under its statement. The learner works on it in the writing box under it.
  */
 export function OpenProblemPane({
 	statement,
 	piece,
+	printed = false,
+	onPieceFail,
 	part,
 	picks,
 }: {
 	statement: string;
 	/** Where the problem is printed in its file, and its words there. */
 	piece?: ProblemPieceText | null;
+	/** The piece on its white page, not in the theme's ink. */
+	printed?: boolean;
+	/** Told once the piece's words stand in for a picture that did not load. */
+	onPieceFail?: () => void;
 	/** The part the learner is on, as the problem labels it (homework only). */
 	part: string | null;
 	picks: ProblemPicks | null;
 }) {
 	const statementRef = useRef<HTMLDivElement>(null);
-	const [printed, setPrinted] = useState(false);
-	// Whether the page's picture is what shows; its words stand in when it does not load.
-	const [shown, setShown] = useState(true);
 	// The other parts the learner opened; a newly marked part folds them again.
 	const [opened, setOpened] = useState<readonly string[]>([]);
 	const [openedFor, setOpenedFor] = useState(part);
@@ -117,15 +131,8 @@ export function OpenProblemPane({
 		<div data-testid="open-problem" className="flex flex-col gap-7">
 			{/* Holds a last-line fraction's denominator, which hangs 6px below its line box. */}
 			{piece ? (
-				<div data-testid="problem-piece" className="flex flex-col gap-3" style={proseVars(18, 28)}>
-					<div className="max-h-[60vh] overflow-y-auto">
-						<PagePiece piece={piece.piece} text={piece.text} part={part} printed={printed} onFail={() => setShown(false)} />
-					</div>
-					{shown && (
-						<button type="button" data-testid="piece-printed" aria-pressed={printed} onClick={() => setPrinted((on) => !on)} className={cn("lh-btn lh-btn-small ml-auto", printed && "lh-btn-main")}>
-							As printed
-						</button>
-					)}
+				<div data-testid="problem-piece" style={proseVars(18, 28)}>
+					<PagePiece piece={piece.piece} text={piece.text} part={part} printed={printed} onPlace={restAt} onFail={onPieceFail} />
 				</div>
 			) : (
 				<div ref={statementRef} data-testid="problem-statement" className="pb-1.5" style={proseVars(18, 28)}>

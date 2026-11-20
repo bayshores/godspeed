@@ -27,6 +27,8 @@ import { TeacherContext, type TeacherApi } from "../../src/frontend/components/t
 import { SpaceProvider } from "../../src/frontend/components/space-context.tsx";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
 import { call, CONCLUDE_SOLVED, result, userText } from "../stop-fixtures.ts";
+import { PIECE_DETAILS } from "../piece-fixtures.ts";
+import { problemPieceOf } from "../../src/shared/core/problem-piece.ts";
 import { activeProblemOf, buildAnswer, CONFIDENCE_STOPS, dismissedAnswer, normalizeOptions, resolveCorrect, type QuestionData, emptyDockSelection, type DockSelection, findPendingToolCall, newUserMessage, projectView, reuseUnchangedMessages, type LhMessage, type QuestionAnswerData, type QuestionFormDraft, type SpaceSummary } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
@@ -445,7 +447,7 @@ describe("Your turn in each state", () => {
 		(window as unknown as { lh: unknown }).lh = { openPath: async (path: string) => void opened.push(path), showInFolder: async () => {} };
 		try {
 			const file = { name: "HW6.pdf", path: "/tmp/HW6.pdf", page: 2 };
-			assert.match(html({ problem: { ...problem, line: null, part: "b", file } }), /<h2[^>]*>Your turn<\/h2><button[^>]*data-testid="lesson-assignment"[^>]*title="HW6.pdf, page 2"/);
+			assert.match(html({ problem: { ...problem, line: null, part: "b", file } }), /<h2[^>]*>Your turn<\/h2><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="lesson-assignment"[^>]*title="HW6.pdf, page 2"/);
 			assert.doesNotMatch(html({ pending: quiz, problem: { ...problem, file } }), /lesson-assignment/, "not over a question asked while it is open");
 			await mounted(turn({ problem: { ...problem, file } }), async (host) => {
 				assert.equal(host.querySelector('[data-testid="lesson-assignment"]')!.textContent, "HW6.pdf, page 2");
@@ -508,12 +510,12 @@ describe("Your turn in each state", () => {
 	});
 
 	it("Skip question and Discard problem are the way out of each state, at the end of the title row", async () => {
-		const skip = /<h2[^>]*>Your turn<\/h2><button[^>]*data-testid="skip-question"[^>]*>Skip question<\/button><\/div>[\s\S]*data-testid="composer"/;
+		const skip = /<h2[^>]*>Your turn<\/h2><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="skip-question"[^>]*>Skip question<\/button><\/div><\/div>[\s\S]*data-testid="composer"/;
 		assert.match(html({ pending: quiz }), skip);
 		assert.match(html({ pending: { tool: "write_code", toolCallId: "w1", input: { question: "Write add.", language: "python" } } }), skip);
 		assert.match(html({ pending: written }), skip);
 		assert.match(html({ pending: quiz, busy: true }), skip, "Stop sits in the lesson text, not here");
-		assert.match(html({ problem, busy: true }), /<\/h2><button[^>]*data-testid="discard-problem"[\s\S]*data-testid="turn-foot"/);
+		assert.match(html({ problem, busy: true }), /<\/h2><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="discard-problem"[\s\S]*data-testid="turn-foot"/);
 		assert.doesNotMatch(html({ pending: quiz, busy: true }), /stop-turn/);
 
 
@@ -1046,5 +1048,29 @@ describe("reuseUnchangedMessages", () => {
 		assert.equal(out[0], prev[0]);
 		assert.notEqual(out[1], prev[1], "a2 joined a1's group: the group changed");
 		assert.equal(out.length, 2);
+	});
+});
+
+describe("Your turn with a problem printed in a file", () => {
+	const printedProblem = { ...problem, piece: problemPieceOf(PIECE_DETAILS)! };
+	const pageBox = (host: HTMLElement) => host.querySelector('[data-testid="page-piece"] > div')!;
+
+	it("keeps the As printed key on the title line, where a long piece cannot scroll it away", async () => {
+		await mounted(turn({ problem: printedProblem }), async (host) => {
+			const key = host.querySelector<HTMLElement>('[data-testid="piece-printed"]')!;
+			assert.equal(key.textContent, "As printed");
+			assert.equal(key.parentElement!.parentElement, host.querySelector("h2")!.parentElement);
+			assert.equal(key.getAttribute("aria-pressed"), "false");
+			assert.doesNotMatch(pageBox(host).className, /bg-white/);
+			await click(host, "piece-printed");
+			assert.equal(key.getAttribute("aria-pressed"), "true");
+			assert.match(pageBox(host).className, /bg-white/);
+			await click(host, "piece-printed");
+			assert.doesNotMatch(pageBox(host).className, /bg-white/);
+		});
+	});
+
+	it("has no As printed key for a typed problem", () => {
+		assert.doesNotMatch(html({ problem }), /piece-printed/);
 	});
 });
