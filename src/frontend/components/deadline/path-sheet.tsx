@@ -1,8 +1,6 @@
-import { MAIN_KEY } from "@/frontend/components/overview/styles";
 import type { ReactNode } from "react";
-import { hasProblems, studyLabel, nothingMorePlannedLine, topicStatus, type DeadlineProgress, type PlanDay } from "@/shared/core";
+import { nothingMorePlannedLine, topicStatus, type DeadlineProgress, type PlanDay } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
-import { Key } from "@/frontend/components/ui/key";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import type { Material, TopicTally } from "./deadline-model";
@@ -10,7 +8,7 @@ import { RampRow } from "./ramp-row";
 
 /**
  * THE PATH TO A DEADLINE: the topics that need work, weakest first, one
- * day at a time, the deadline's own day last, Study, then its mocks. An
+ * day at a time, the deadline's own day last, then its mocks. An
  * interview with nothing to plan from offers to ask for a study guide.
  */
 export function PathSheet({
@@ -19,12 +17,9 @@ export function PathSheet({
 	material,
 	tallies,
 	past,
-	busyOn,
-	startError,
 	teacherName,
 	requesting,
 	guideLine,
-	onStart,
 	onAskGuide,
 	mocks,
 }: {
@@ -34,16 +29,11 @@ export function PathSheet({
 	tallies: ReadonlyMap<string, TopicTally>;
 	/** Due already, and not done. */
 	past: boolean;
-	/** The id of the lesson start in flight, if any. */
-	busyOn: string | null;
-	/** Why the last Study start failed. */
-	startError: string | null;
 	teacherName: string;
 	/** A request to the agent runs on this deadline. */
 	requesting: boolean;
 	/** Why the last study guide request changed nothing. */
 	guideLine: string | null;
-	onStart: () => void;
 	/** Asks the teacher for a study guide (an interview with nothing to plan from). */
 	onAskGuide: () => void;
 	/** A test's or interview's mocks (path-mocks.tsx). */
@@ -100,17 +90,6 @@ export function PathSheet({
 						</li>
 					</ol>
 				</>
-			)}
-			{/* A homework's keys and their error sit in its Problems sheet. */}
-			{startError && !hasProblems(d.kind) && (
-				<p role="alert" data-testid="deadline-start-error" className="text-[15px] text-ans-wrong">
-					{startError}
-				</p>
-			)}
-			{ahead && !hasProblems(d.kind) && (
-				<Key data-testid="deadline-start" busy={busyOn === d.id} disabled={busyOn !== null} onClick={onStart} className={cn(MAIN_KEY, "self-end")}>
-					<span className="min-w-0 truncate">{studyLabel(d.continueStudy)}</span>
-				</Key>
 			)}
 			{mocks}
 		</Pane>

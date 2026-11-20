@@ -69,8 +69,8 @@ export function NewLesson() {
 						</Link>
 						<h1 className="lh-page-title">What do you want to study?</h1>
 					</div>
-					{/* Wide, the topic box and the deadlines are side by side and end together, with the suggestions under the deadlines. */}
-					<div className="grid gap-x-(--lh-head-gap) gap-y-3.5 @[1100px]/page:grid-cols-2">
+					{/* Wide, the topic box with the suggestions under it is the left half and the deadlines are the right. */}
+					<div className="grid items-start gap-x-(--lh-head-gap) gap-y-3.5 @[1100px]/page:grid-cols-2 @[1100px]/page:grid-rows-[auto_auto_1fr]">
 						<TopicBox
 							text={topic}
 							onText={(t) => {
@@ -86,7 +86,7 @@ export function NewLesson() {
 							onClearPicks={() => setPicks([])}
 							attachments={attachments}
 						/>
-						<div className="flex flex-col gap-3.5 @[1100px]/page:col-start-1 @[1100px]/page:row-start-2">
+						<div className="flex flex-col gap-3.5 empty:hidden">
 							<NoAgentLine />
 							{lesson.error && (
 								<p role="alert" data-testid="lesson-start-error" className="text-[15px] text-ans-wrong">
@@ -95,11 +95,11 @@ export function NewLesson() {
 							)}
 						</div>
 						{nowMs !== null && deadlines.length > 0 && (
-							<div className="grid pt-(--lh-head-gap) @[1100px]/page:col-start-2 @[1100px]/page:row-start-1 @[1100px]/page:pt-0">
+							<div className="flex flex-col pt-(--lh-gap) @[1100px]/page:col-start-2 @[1100px]/page:row-span-3 @[1100px]/page:row-start-1 @[1100px]/page:self-stretch @[1100px]/page:pt-0">
 								<DeadlineRows deadlines={deadlines} color={activeSpace ? spaceColorVar(activeSpace.color) : "var(--border)"} nowMs={nowMs} busyOn={lesson.busyOn} onStudy={(d) => void studyDeadline(d)} onWork={(d) => void workOnHomework(d)} />
 							</div>
 						)}
-						<div className="pt-(--lh-head-gap) @[1100px]/page:col-start-2 @[1100px]/page:row-start-2">
+						<div className="pt-(--lh-gap) empty:hidden @[1100px]/page:col-start-1">
 							<SuggestionList
 								key={activeSpaceId ?? "none"}
 								spaceLabel={activeSpace?.name ?? null}

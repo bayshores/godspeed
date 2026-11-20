@@ -78,7 +78,7 @@ export const NextDeadline = memo(function NextDeadline({
 						)}
 					</div>
 					{hasProblems(d.kind) ? (
-						<DeadlineKeys deadline={d} busyOn={busyOn} narrow onStudy={() => onStudy(d)} onWork={() => onWork(d)} />
+						<DeadlineKeys deadline={d} busyOn={busyOn} onStudy={() => onStudy(d)} onWork={() => onWork(d)} />
 					) : (
 						<Key data-testid="next-deadline-start" busy={busyOn === d.id} disabled={busyOn !== null} onClick={() => onStudy(d)} className={`${MAIN_KEY} self-end`}>
 							<span className="min-w-0 truncate">{studyLabel(d.continueStudy)}</span>

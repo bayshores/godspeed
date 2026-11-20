@@ -164,6 +164,12 @@ export function filterGroups(groups: readonly FileGroup[], query: string): FileG
 
 /** "27 study material, 19 space info" (the Files tab already counts the
  *  files); a kind with none is left out. */
+/** The letters after a file name's last dot, as its tile shows them ("PDF"); none for a name without them. */
+export function fileType(name: string): string {
+	const ext = /\.([A-Za-z0-9]{1,4})$/.exec(name)?.[1];
+	return ext ? ext.toUpperCase() : "";
+}
+
 export function filesSummary(files: readonly SpaceFile[]): string {
 	const info = files.filter((f) => f.kind === "info").length;
 	const study = files.length - info;

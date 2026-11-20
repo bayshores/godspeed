@@ -16,6 +16,7 @@ import {
 	dropTitle,
 	filesSummary,
 	fileState,
+	fileType,
 	filterGroups,
 	fileBrowserName,
 	studiedFill,
@@ -205,6 +206,14 @@ describe("files-model", () => {
 		assert.equal(filesSummary([]), "");
 	});
 
+
+	it("fileType is the letters after the last dot, for the row's tile", () => {
+		assert.equal(fileType("Lecture 3.final.pdf"), "PDF");
+		assert.equal(fileType("notes.md"), "MD");
+		assert.equal(fileType("talk.webm"), "WEBM");
+		assert.equal(fileType("README"), "");
+		assert.equal(fileType("archive.backup1"), "", "too long to be a type");
+	});
 
 	it("fileBrowserName", () => {
 		assert.equal(fileBrowserName("darwin"), "Finder");

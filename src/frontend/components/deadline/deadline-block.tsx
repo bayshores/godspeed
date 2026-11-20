@@ -6,7 +6,7 @@ import { Stamp } from "@/frontend/components/ui/stamp";
 import { cn } from "@/frontend/lib/utils";
 
 const GREY = "flex shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--border)_50%,var(--card))]";
-const BOX = { list: "w-24 self-stretch", head: "size-[120px]" };
+const BOX = { list: "w-24 self-stretch", head: "min-h-[120px] w-[120px] self-stretch" };
 
 /** A done deadline's block: the Done stamp on grey. */
 export function DoneBlock({ className }: { className: string }) {

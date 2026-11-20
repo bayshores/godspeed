@@ -7,7 +7,9 @@ import { useSpaces } from "@/frontend/components/space-context";
 import { useMinute } from "@/frontend/components/countdown";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { Hint } from "@/frontend/components/ui/hint";
+import { CountBlock } from "@/frontend/components/ui/count-block";
 import { Pane } from "@/frontend/components/ui/pane";
+import { spaceColorVar } from "@/frontend/components/space-color";
 import { BarFind } from "@/frontend/components/top-bar/bar-find";
 import { BarActions } from "@/frontend/components/top-bar/bar-slots";
 import { useBarFind } from "@/frontend/components/use-bar-find";
@@ -84,7 +86,8 @@ function useCollapsed(spaceId: string | null) {
 }
 
 function FilesPageBody() {
-	const { active } = useSpaces();
+	const { active, activeSpace } = useSpaces();
+	const color = activeSpace ? spaceColorVar(activeSpace.color) : "var(--border)";
 	const { record, folder, shortcuts, failed, reload } = useSpaceRecord(active);
 	const waited = useWaited(!!record);
 	const minute = useMinute();
@@ -255,19 +258,24 @@ function FilesPageBody() {
 						</BarActions>
 						{linking && <LinkFolderField initial={record.linkedFolder ?? ""} disabled={disabled} onLink={link} onCancel={() => setLinking(false)} />}
 						{(record.files.length > 0 || record.linkedFolder || showInFinder) && (
-							<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-								<div className="flex min-w-0 flex-1 flex-col gap-[3px]">
-									{record.files.length > 0 && (
-										<p data-testid="files-summary" className="text-[15px] text-ink-2">
-											{filesSummary(record.files)}
-											{arrived && `, ${arrived}`}
-											{removed && `, ${removed}`}
-										</p>
-									)}
-									{record.linkedFolder && <FolderStatusLine path={record.linkedFolder} status={folderStatus} now={minute} />}
+							<Pane data-testid="files-head" className="flex items-center overflow-hidden">
+								{record.files.length > 0 && (
+									<CountBlock color={color} count={String(record.files.length)} unit={record.files.length === 1 ? "file" : "files"} size="card" className="min-h-[96px]" />
+								)}
+								<div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 px-(--lh-inset) py-4">
+									<div className="flex min-w-0 flex-1 flex-col gap-1">
+										{record.files.length > 0 && (
+											<p data-testid="files-summary" className="text-[22px] leading-tight text-ink">
+												{filesSummary(record.files)}
+												{arrived && `, ${arrived}`}
+												{removed && `, ${removed}`}
+											</p>
+										)}
+										{record.linkedFolder && <FolderStatusLine path={record.linkedFolder} status={folderStatus} now={minute} />}
+									</div>
+									{showInFinder}
 								</div>
-								{showInFinder}
-							</div>
+							</Pane>
 						)}
 						{error && (
 							<p role="alert" data-testid="space-files-error" className="text-[15px] whitespace-pre-wrap text-ans-wrong">

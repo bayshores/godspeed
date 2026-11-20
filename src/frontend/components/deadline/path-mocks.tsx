@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { StepBlocks } from "@/frontend/components/overview/lesson-rows";
 import { Link } from "react-router";
 import { localDay, monthDay, type MockSummary } from "@/shared/core";
 import { mockHref, mockLine, openMock, openMockLabel } from "@/frontend/components/mock/mock-model";
@@ -147,6 +148,7 @@ function MockRow({ spaceId, mock: m, nowMs, onRemove }: { spaceId: string; mock:
 					<Link to={mockHref(spaceId, m.id)} className="lh-press flex min-w-0 flex-1 items-center gap-2.5 py-2 hover:text-ink">
 						<span className="w-[64px] shrink-0 text-[15px] text-ink">Mock {m.n}</span>
 						<span className="min-w-0 flex-1 truncate font-count text-base text-ink-2">{monthDay(localDay(new Date(m.endedAt ?? m.createdAt)))}</span>
+						{m.state === "graded" && <StepBlocks done={m.solved ?? 0} total={m.format.questions} />}
 						<span data-testid="deadline-mock-line" className="shrink-0 text-[15px] text-ink">
 							{mockLine(m, nowMs)}
 						</span>

@@ -4,7 +4,7 @@ import { cn } from "@/frontend/lib/utils";
  *  the one a size up flush with Home's card, the band on the Progress
  *  tab's next deadline, or the one at the head of a deadline's page. */
 const SIZES = {
-	head: { box: "size-[120px]", count: "text-[60px] leading-[1.15]", unit: "text-[15px]" },
+	head: { box: "min-h-[120px] w-[120px]", count: "text-[60px] leading-[1.15]", unit: "text-[15px]" },
 	band: { box: "w-[116px]", count: "text-[54px] leading-[1.2]", unit: "text-base" },
 	card: { box: "w-[112px]", count: "text-[42px] leading-[1.2]", unit: "text-base" },
 	list: { box: "w-24", count: "text-[34px] leading-[1.2]", unit: "text-base" },

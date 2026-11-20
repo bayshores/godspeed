@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Pane } from "@/frontend/components/ui/pane";
 import { RECENT_CHANGE_DAYS, dayLabel, localDay } from "@/shared/core";
 import { cn } from "@/frontend/lib/utils";
 import { SectionToggle } from "./files-sections";
@@ -19,7 +20,7 @@ export function RecentChanges({ changes, collapsed, onToggle }: { changes: reado
 	const shown = all ? changes : changes.slice(0, FIRST_SHOWN);
 	const more = changes.length - shown.length;
 	return (
-		<section data-testid="files-recent-changes" aria-label="Recent changes" className="flex w-full flex-col">
+		<Pane data-testid="files-recent-changes" aria-label="Recent changes" className="lh-card gap-1.5 pb-5">
 			<SectionToggle
 				label="Recent changes"
 				note={`last ${RECENT_CHANGE_DAYS} days`}
@@ -32,7 +33,7 @@ export function RecentChanges({ changes, collapsed, onToggle }: { changes: reado
 					{shown.map((c) => {
 						const removed = c.change === "removed";
 						return (
-							<li key={`${c.change}:${c.id}`} data-testid={`files-change-${c.change}-${c.id}`} className="flex items-center gap-3 py-1.5 pr-1 pl-[30px]">
+							<li key={`${c.change}:${c.id}`} data-testid={`files-change-${c.change}-${c.id}`} className="flex items-center gap-3 py-1.5">
 								<span title={c.name} className={cn("min-w-0 flex-1 truncate text-[15px]", removed ? "text-ink-3" : "text-ink")}>
 									{c.name}
 								</span>
@@ -44,12 +45,12 @@ export function RecentChanges({ changes, collapsed, onToggle }: { changes: reado
 				</ul>
 			)}
 			{!collapsed && more > 0 && (
-				<div className="pt-0.5 pr-1 pb-2 pl-[30px]">
+				<div className="flex justify-end pt-1">
 					<button type="button" data-testid="files-recent-changes-more" onClick={() => setAll(true)} className="lh-btn lh-btn-quiet text-[15px]">
 						Show {more} more
 					</button>
 				</div>
 			)}
-		</section>
+		</Pane>
 	);
 }

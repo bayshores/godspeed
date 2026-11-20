@@ -139,6 +139,7 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 							busyOn={lesson.busyOn}
 							startError={lesson.error ?? saveError}
 							onStart={onStart}
+							onWork={() => void workOnHomework(deadline)}
 							onEdit={() => setEditing(true)}
 							source={saved?.source}
 							teacherName={teacherName}
@@ -177,11 +178,7 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 										problems={saved?.problems ?? []}
 										files={record?.files ?? []}
 										assignmentId={assignmentId}
-										busyOn={lesson.busyOn}
-										error={lesson.error ?? saveError}
 										saving={saving}
-										onStudy={onStart}
-										onWork={() => void workOnHomework(deadline)}
 										onPickAssignment={(id) => void save({ assignmentFileId: id })}
 										onOpenAssignment={openAssignment}
 										onMarkDone={(done) => void save({ done })}

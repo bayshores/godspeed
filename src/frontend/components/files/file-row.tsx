@@ -4,14 +4,16 @@ import { CopyButton } from "@/frontend/components/copy-button";
 import { useMinute } from "@/frontend/components/countdown";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { SMALL_BTN } from "@/frontend/components/ui/card-parts";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { ProgressBar } from "@/frontend/components/ui/progress-bar";
 import { Tip } from "@/frontend/components/ui/tooltip";
 import { cn } from "@/frontend/lib/utils";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
-import { canRemove, canRetry, fileState, kindTitle, studiedFill, type FileState } from "./files-model";
+import { canRemove, canRetry, fileState, fileType, kindTitle, studiedFill, type FileState } from "./files-model";
 
 /**
- * ONE FILE ROW (Files page): the name (New for a few days after a scan
+ * ONE FILE ROW (Files page): a tile with its type, dark for study
+ * material; the name (New for a few days after a scan
  * found it; a linked folder's file names its path on hover), Study or
  * Info, the row's state ("8 of 12 facts studied" with its bar, "Building
  * facts", "Waiting", "Failed" with Retry) and More (Move to the
@@ -62,7 +64,7 @@ export const FileRow = memo(function FileRow({
 	const minute = useMinute();
 	const [menuOpen, setMenuOpen] = useState(false);
 	const name = (
-		<span title={file.origin === "linked" ? undefined : file.name} className="min-w-0 truncate text-[15px] text-ink">
+		<span title={file.origin === "linked" ? undefined : file.name} className="min-w-0 truncate text-[17px] text-ink">
 			{file.name}
 		</span>
 	);
@@ -70,8 +72,12 @@ export const FileRow = memo(function FileRow({
 		<li
 			data-testid={`space-file-${file.id}`}
 			data-teacher-target={`file:${file.id}`}
-			className={cn("flex flex-wrap items-center gap-x-3 gap-y-1 px-1 py-[7px] hover:bg-panel", menuOpen && "bg-panel")}
+			className={cn("-mx-2 flex flex-wrap items-center gap-x-3 gap-y-1 px-2 py-1.5 hover:bg-(--lh-well)", menuOpen && "bg-(--lh-well)")}
 		>
+			{/* Study material, which makes the facts, is the dark tile. */}
+			<span aria-hidden className={cn("flex h-8 w-12 shrink-0 items-center justify-center font-count text-sm", file.kind === "study" ? "bg-ink text-(--background)" : "lh-well text-ink-2")}>
+				{fileType(file.name)}
+			</span>
 			<span className="flex min-w-0 flex-1 items-center gap-2">
 				{file.origin === "linked" ? (
 					<Tip title="From your linked folder" body={<span className="break-all">{file.path}</span>} side="bottom" align="start">
@@ -122,7 +128,7 @@ function RowState({
 			}
 			return (
 				<span data-testid={`space-file-status-${fileId}`} className={cn(STATUS, "flex items-center gap-2 whitespace-nowrap")}>
-					<ProgressBar share={studiedFill(state)} className="w-14 shrink-0" />
+					<ProgressBar share={studiedFill(state)} className="w-20 shrink-0" />
 					{state.inLessons} of {state.facts} facts studied
 				</span>
 			);
@@ -218,9 +224,10 @@ function RowMenu({
 				data-testid={`space-file-menu-${file.id}`}
 				disabled={disabled}
 				onClick={() => setOpen((o) => !o)}
-				className="lh-btn lh-btn-small lh-btn-quiet shrink-0"
+				title="More"
+				className="lh-press flex size-8 shrink-0 items-center justify-center text-ink-2 hover:bg-tone hover:text-ink aria-expanded:bg-tone aria-expanded:text-ink"
 			>
-				More
+				<PixelIcon name="more" className="w-[15px]" />
 			</button>
 			<MenuShell
 				open={open}

@@ -3,7 +3,9 @@ import { Link } from "react-router";
 import type { FileCoverage, TopicProgress } from "@/shared/core";
 import { Key } from "@/frontend/components/ui/key";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
+import { StepBlocks } from "@/frontend/components/overview/lesson-rows";
 import { displayName, lessonHref } from "@/frontend/components/overview/overview-model";
+import { Pane } from "@/frontend/components/ui/pane";
 import { suggestionKey, suggestionLine, type Suggestion } from "./suggestions-model";
 
 const ACTION = "shrink-0 text-[15px]";
@@ -32,16 +34,16 @@ export const SuggestionList = memo(function SuggestionList({
 }) {
 	if (suggestions.length === 0) return null;
 	return (
-		<section data-testid="home-suggestions" className="lh-rise flex w-full flex-col gap-3">
+		<Pane data-testid="home-suggestions" className="lh-card lh-rise">
 			<div className="lh-card-head">
 				<h2 className="lh-card-title">{label ? `Suggested for ${label}` : "Suggested"}</h2>
 			</div>
-			<ul className="flex w-full flex-col">
+			<ul className="flex w-full flex-col gap-4">
 				{suggestions.map((s) => (
 					<SuggestionRow key={suggestionKey(s)} suggestion={s} busyOn={busyOn} onStudyFile={onStudyFile} onStudyTopic={onStudyTopic} onStudyPath={onStudyPath} />
 				))}
 			</ul>
-		</section>
+		</Pane>
 	);
 });
 
@@ -63,7 +65,7 @@ const SuggestionRow = memo(function SuggestionRow({
 	if (s.kind === "continue") {
 		title = s.lesson.title;
 		action = (
-			<Link to={lessonHref(s.lesson.chatId)} data-testid="home-continue" className={ACTION}>
+			<Link to={lessonHref(s.lesson.chatId)} data-testid="home-continue" className={`lh-btn ${ACTION}`}>
 				Open
 			</Link>
 		);
@@ -91,12 +93,15 @@ const SuggestionRow = memo(function SuggestionRow({
 		);
 	}
 	return (
-		<li data-testid={`home-suggestion-${s.kind}`} className="flex w-full items-center gap-3.5 px-1 py-[13px]">
-			<span className="flex min-w-0 flex-1 flex-col gap-0.5">
+		<li data-testid={`home-suggestion-${s.kind}`} className="flex w-full items-center gap-3.5">
+			<span className="flex min-w-0 flex-1 flex-col gap-1">
 				<span className="truncate text-[17px] leading-tight text-ink">
 					<InlineMath text={title} />
 				</span>
-				<span className="truncate text-base text-ink-2">{suggestionLine(s)}</span>
+				<span className="flex min-w-0 items-center gap-2.5 text-base text-ink-2">
+					{s.kind === "continue" && s.lesson.step && <StepBlocks done={s.lesson.step.done} total={s.lesson.step.total} />}
+					<span className="truncate">{suggestionLine(s)}</span>
+				</span>
 			</span>
 			{action}
 		</li>

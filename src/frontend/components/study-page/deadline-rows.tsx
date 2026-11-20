@@ -39,7 +39,7 @@ export function DeadlineRows({
 	onWork: (deadline: DeadlineProgress) => void;
 }) {
 	return (
-		<section className="flex flex-col gap-3">
+		<section className="flex flex-1 flex-col gap-3">
 			<div className="lh-card-head">
 				<h2 className="lh-card-title">Coming up</h2>
 				{deadlines.length > COMING_UP_ROWS && (
@@ -63,11 +63,11 @@ export function DeadlineRows({
 								</span>
 							</span>
 							<span className="flex shrink-0 items-center gap-2.5 pr-(--lh-inset)">
-								<Key data-testid="home-study-deadline" title={deadlineStudyLabel(d.continueStudy, d.name)} busy={busyOn === d.id} disabled={busyOn !== null} onClick={() => onStudy(d)} className="lh-btn-small">
+								<Key data-testid="home-study-deadline" title={deadlineStudyLabel(d.continueStudy, d.name)} busy={busyOn === d.id} disabled={busyOn !== null} onClick={() => onStudy(d)} className="text-[15px]">
 									{studyLabel(d.continueStudy)}
 								</Key>
 								{hasProblems(d.kind) && (
-									<Key data-testid="home-work-deadline" title={workLabel(d.name)} busy={busyOn === homeworkStartId(d.id)} disabled={busyOn !== null} onClick={() => onWork(d)} className="lh-btn-small">
+									<Key data-testid="home-work-deadline" title={workLabel(d.name)} busy={busyOn === homeworkStartId(d.id)} disabled={busyOn !== null} onClick={() => onWork(d)} className="text-[15px]">
 										{WORK_ON_IT}
 									</Key>
 								)}

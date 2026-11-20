@@ -147,11 +147,15 @@ function Studio({
 								{current ? (
 									<SheetCanvas versions={view.sheet.versions} pdfUrl={pdfUrl} labelFor={versionLabel} focus={focus} onPoint={setPointed} paper={pageSizeLabel(current.pages)} />
 								) : (
-									<div data-testid="cheat-sheet-empty" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[18px] overflow-y-auto p-6 text-center">
-										<h2 className="text-[28px] leading-tight text-ink">What do you want on your cheat sheet?</h2>
-										<p className="max-w-[520px] text-lg leading-[1.45] text-ink-2">{emptyChatLine(false)}</p>
-										{quiet && chat}
-										{view.sheet.olderFormat && !view.running && <OlderSheet onRemake={() => void remakeSheet(spaceId, deadlineId).then(setFailed)} />}
+									<div data-testid="cheat-sheet-empty" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-x-14 gap-y-6 overflow-y-auto p-8 @[900px]:flex-row">
+										{/* The paper the sheet will be on, still blank. */}
+										<div aria-hidden className="hidden aspect-[17/22] h-[min(78%,620px)] shrink-0 bg-white @[900px]:block" />
+										<div className="flex w-full max-w-[520px] flex-col gap-[18px]">
+											<h2 className="text-[34px] leading-[1.15] text-ink">What do you want on your cheat sheet?</h2>
+											<p className="text-lg leading-[1.45] text-ink-2">{emptyChatLine(false)}</p>
+											{quiet && chat}
+											{view.sheet.olderFormat && !view.running && <OlderSheet onRemake={() => void remakeSheet(spaceId, deadlineId).then(setFailed)} />}
+										</div>
 									</div>
 								)}
 							</div>
