@@ -176,8 +176,6 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 	// was summarized away. Everything before it stays visible to the
 	// user (full history is never hidden); only the MODEL's context jumps.
 	const compaction = activeCompactionOf(messages);
-	// The lesson works an assignment: its go-ahead line says so.
-	const homework = messages.some((m) => (m as { customType?: string }).customType === "homework-context");
 
 	for (const m of messages) {
 		const role = (m as { role?: string }).role;
@@ -207,7 +205,7 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 		}
 
 		if (role === "custom") {
-			projectMarker(m as LhMarkerMessage, out, homework);
+			projectMarker(m as LhMarkerMessage, out);
 			continue;
 		}
 
@@ -521,7 +519,7 @@ function applyResultTo(part: LhViewPart | undefined, result: ToolResultMessage):
 }
 
 /** A marker's projected message (handoff, steers and the like). */
-function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[], homework: boolean): void {
+function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 	switch (marker.customType) {
 		case "graph-context": {
 			// The session's map context: user-side —
@@ -599,18 +597,11 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[], homework: 
 			});
 			return;
 		}
-		case "practice-next": {
-			// The learner's explicit move-on signal: a compact
-			// centered system line — the mono-caps chrome register, not prose.
-			// The model reads the marker's content; the transcript never shows
-			// it (the label is chrome, single-sourced in the renderer).
-			out.push({
-				id: marker.id,
-				role: "user",
-				parts: [{ type: "data-practice-next", id: `pn_${marker.id}`, data: { homework, number: (marker.details as { number?: string } | undefined)?.number ?? null } }],
-			});
+		case "practice-next":
+			// The learner's go-ahead. Nothing is drawn for it: the part marks
+			// where the teacher's reply to it starts.
+			out.push({ id: marker.id, role: "user", parts: [{ type: "data-practice-next", id: `pn_${marker.id}` }] });
 			return;
-		}
 		case "teach-me":
 			// Kept from 0.6.74's Teach me this button: his ask, read as his line.
 			out.push({ id: marker.id, role: "user", parts: [{ type: "text", text: "Teach me this" }] });

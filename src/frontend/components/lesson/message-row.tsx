@@ -1,5 +1,4 @@
 import { Fragment, memo } from "react";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { paleSpaceColor } from "@/frontend/components/space-color";
 import { useSpaceColor } from "@/frontend/components/space-context";
 import { Message, MessageContent } from "@/frontend/components/ai-elements/message";
@@ -37,8 +36,6 @@ import { MessageAttachments } from "./message-attachments";
 import { drawnSeparators } from "./message-row-model";
 import { FromEarlierCard } from "./from-earlier-card";
 import { KeptCard } from "./kept-card";
-import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
-import { startProblemLabel } from "./plan-row-model";
 
 interface MessageRowProps {
 	message: LhViewMessage;
@@ -83,6 +80,8 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 	}
 	// The teacher's own scaffolding (space and graph context) is read by the desk and the model, never drawn.
 	if (m.role === "user" && m.parts.every((p) => p.type === "data-graph-context" || p.type === "data-space-context")) return null;
+	// The learner's go-ahead draws nothing: an empty mark the page rests the reply at, its margin taking back the row gap.
+	if (m.role === "user" && m.parts.every((p) => p.type === "data-practice-next")) return <div data-testid="go-ahead-mark" className="-mb-4" />;
 	if (m.role === "user" && m.parts.some((p) => p.type.startsWith("data-") && !isAttachmentPart(p))) {
 		// Marker cards (custom messages): user-side scaffolding as cards; a
 		// thinking card's files sit under it.
@@ -159,23 +158,9 @@ function MarkerPart({ part }: { part: LhViewPart }) {
 			return <ThinkingCard data={part.data as PracticeThinkingData} />;
 		case "data-from-earlier":
 			return <FromEarlierCard data={part.data as FromEarlierData} />;
-		case "data-practice-next": {
-			const { homework, number } = part.data as { homework: boolean; number: string | null };
-			return <SignalLine testId="practice-next-line">{number ? startProblemLabel(number) : homework ? "Start problem" : "Next problem"}</SignalLine>;
-		}
 		default:
 			return null;
 	}
-}
-
-/** The learner's go-ahead or request, as a compact centered line. */
-function SignalLine({ testId, children }: { testId: string; children: string }) {
-	return (
-		<div data-testid={testId} className={cn("my-4 flex items-center justify-center gap-2.5", LABEL_TEXT)}>
-			<PixelIcon name="chevron" />
-			{children}
-		</div>
-	);
 }
 
 /** Whether AssistantPart draws anything for this part (kept in step with it). */

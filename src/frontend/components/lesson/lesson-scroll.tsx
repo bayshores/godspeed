@@ -23,8 +23,8 @@ const PAIR_GRID = "@min-[1280px]/room:grid @min-[1280px]/room:grid-cols-[minmax(
 const KEY = "@min-[688px]/room:right-[max(34px,calc((100%-872px)/2-48px))]";
 const PAIR_KEY = "@min-[1280px]/room:right-[calc((100%-var(--lh-pair))/2+var(--lh-turn)+38px)]";
 
-/** What the learner last sent: the start of the teacher's reply to it. */
-const LEARNER = "[data-testid=user-message], [data-testid=practice-next-line]";
+/** What the learner last sent, or the mark of his go-ahead: the start of the teacher's reply to it. */
+const LEARNER = "[data-testid=user-message], [data-testid=go-ahead-mark]";
 
 /** How long after a turn ends a change in the page's height places it at once, not smoothly: the
  *  desk's exit and the reply's arrival. */

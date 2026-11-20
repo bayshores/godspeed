@@ -173,9 +173,9 @@ describe("activeProblemOf (the conclude-before-next-problem gate's fold)", () =>
 });
 
 describe("a homework pick in the view", () => {
-	it("draws the pick as its go-ahead line, and 0.6.74's Teach me this as his own line", () => {
+	it("marks the pick like any go-ahead, and draws 0.6.74's Teach me this as his own line", () => {
 		const pick = projectView([newOpenProblemMessage("2b")]).flatMap((m) => m.parts);
-		assert.deepEqual(pick.map((p) => [p.type, p.data]), [["data-practice-next", { homework: false, number: "2b" }]]);
+		assert.deepEqual(pick.map((p) => p.type), ["data-practice-next"]);
 		const old = { id: "m1", role: "custom", customType: "teach-me", content: "[TEACH ME] The learner asks you to teach the method of the open problem.", display: true, details: {}, timestamp: 1 } as LhMessage;
 		const view = projectView([old]);
 		assert.deepEqual([view[0]!.role, view[0]!.parts.map((p) => [p.type, p.text])], ["user", [["text", "Teach me this"]]]);
@@ -295,20 +295,8 @@ describe("projectView and a problem printed in a file", () => {
 // ── the transcript face of the signal ───────────────────────────────────────
 
 describe("projectView renders the move-on signal", () => {
-	it("the practice-next marker projects the compact part (the centered NEXT PROBLEM line)", () => {
-		const view = projectView([newNextMessage()]);
-		const parts = view[0]?.parts ?? [];
-		assert.ok(
-			parts.some((p) => p.type === "data-practice-next"),
-			"the data-practice-next part rides the view",
-		);
-	});
-
-	it("the line knows whether the lesson works an assignment", () => {
-		const note = { id: "h", role: "custom", customType: "homework-context", content: "…", display: false, timestamp: 1 } as unknown as LhMessage;
-		const dataOf = (messages: LhMessage[]) => projectView(messages).flatMap((m) => m.parts).find((p) => p.type === "data-practice-next")?.data;
-		assert.deepEqual(dataOf([note, newNextMessage()]), { homework: true, number: null });
-		assert.deepEqual(dataOf([newNextMessage()]), { homework: false, number: null });
+	it("the practice-next marker projects a part with no words, which marks where the reply starts", () => {
+		assert.deepEqual(projectView([newNextMessage()]).map((m) => [m.role, m.parts.map((p) => [p.type, p.data])]), [["user", [["data-practice-next", undefined]]]]);
 	});
 });
 
