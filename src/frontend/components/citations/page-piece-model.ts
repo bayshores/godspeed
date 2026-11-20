@@ -28,7 +28,7 @@ export function partAspect(part: PiecePart): number {
 }
 
 /** A stretch of one part, as fractions of that part's height from its top. */
-export interface Band {
+interface Band {
 	top: number;
 	height: number;
 }
