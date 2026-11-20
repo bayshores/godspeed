@@ -91,7 +91,7 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 		)
 	);
 	return (
-		<div data-testid="deadline-page" className={cn("@container flex w-full flex-col gap-(--lh-head-gap)", props.waited && "lh-set")}>
+		<div data-testid="deadline-page" className={cn("@container flex w-full flex-col gap-(--lh-gap)", props.waited && "lh-set")}>
 			<h1 data-testid="deadline-name" className="sr-only">
 				{d.name}
 			</h1>

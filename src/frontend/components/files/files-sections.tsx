@@ -62,7 +62,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 		<FileRow key={file.id} file={file} coverage={coverage.get(file.id)} disabled={disabled} teacher={teacher} actions={actions} />
 	);
 	return (
-		<Pane data-testid={`files-group-${group.key}`} aria-label={group.label} className="lh-card gap-1.5 pb-5">
+		<Pane data-testid={`files-group-${group.key}`} aria-label={group.label} className="lh-card gap-1.5">
 			<SectionToggle
 				label={group.label}
 				note={`${group.count} ${group.count === 1 ? "file" : "files"}`}

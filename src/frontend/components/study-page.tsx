@@ -70,7 +70,7 @@ export function NewLesson() {
 						<h1 className="lh-page-title">What do you want to study?</h1>
 					</div>
 					{/* Wide, the topic box with the suggestions under it is the left half and the deadlines are the right. */}
-					<div className="grid items-start gap-x-(--lh-head-gap) gap-y-3.5 @[1100px]/page:grid-cols-2 @[1100px]/page:grid-rows-[auto_auto_1fr]">
+					<div className="grid items-start gap-(--lh-gap) @[1100px]/page:grid-cols-2 @[1100px]/page:grid-rows-[auto_auto_1fr]">
 						<TopicBox
 							text={topic}
 							onText={(t) => {
@@ -95,11 +95,11 @@ export function NewLesson() {
 							)}
 						</div>
 						{nowMs !== null && deadlines.length > 0 && (
-							<div className="flex flex-col pt-(--lh-gap) @[1100px]/page:col-start-2 @[1100px]/page:row-span-3 @[1100px]/page:row-start-1 @[1100px]/page:self-stretch @[1100px]/page:pt-0">
+							<div className="flex flex-col @[1100px]/page:col-start-2 @[1100px]/page:row-span-3 @[1100px]/page:row-start-1 @[1100px]/page:self-stretch">
 								<DeadlineRows deadlines={deadlines} color={activeSpace ? spaceColorVar(activeSpace.color) : "var(--border)"} nowMs={nowMs} busyOn={lesson.busyOn} onStudy={(d) => void studyDeadline(d)} onWork={(d) => void workOnHomework(d)} />
 							</div>
 						)}
-						<div className="pt-(--lh-gap) empty:hidden @[1100px]/page:col-start-1">
+						<div className="empty:hidden @[1100px]/page:col-start-1">
 							<SuggestionList
 								key={activeSpaceId ?? "none"}
 								spaceLabel={activeSpace?.name ?? null}

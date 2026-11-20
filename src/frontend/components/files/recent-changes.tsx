@@ -20,7 +20,7 @@ export function RecentChanges({ changes, collapsed, onToggle }: { changes: reado
 	const shown = all ? changes : changes.slice(0, FIRST_SHOWN);
 	const more = changes.length - shown.length;
 	return (
-		<Pane data-testid="files-recent-changes" aria-label="Recent changes" className="lh-card gap-1.5 pb-5">
+		<Pane data-testid="files-recent-changes" aria-label="Recent changes" className="lh-card gap-1.5">
 			<SectionToggle
 				label="Recent changes"
 				note={`last ${RECENT_CHANGE_DAYS} days`}
