@@ -29,7 +29,7 @@ Object.assign(globalThis, {
 
 const { TopicBox, isStartKey } = await import("../../src/frontend/components/study-page/topic-box.tsx");
 const { SuggestionList } = await import("../../src/frontend/components/study-page/suggestions.tsx");
-const { DeadlineStarts } = await import("../../src/frontend/components/study-page/deadline-starts.tsx");
+const { DeadlineRows } = await import("../../src/frontend/components/study-page/deadline-rows.tsx");
 const { useLessonStart } = await import("../../src/frontend/components/study-page/use-lesson-start.ts");
 const { takeStartFiles } = await import("../../src/frontend/components/lesson/start-files.ts");
 const NO_FILES = { files: [], error: null, add: () => {}, remove: () => {}, clear: () => {}, restore: () => {} };
@@ -242,17 +242,32 @@ describe("Study page: actions", () => {
 		assert.deepEqual(practiced.map((t) => t.id), ["t2"]);
 	});
 
-	it("Study for each deadline, or Continue studying for it with its topics done, and Work on after a homework's; a click passes the deadline", async () => {
-		const ddl = (id: string, name: string, over: Partial<DeadlineProgress> = {}) => ({ id, name, kind: "exam", ...over }) as DeadlineProgress;
-		const deadlines = [ddl("mid", "Midterm", { continueStudy: { chatId: "chat_1", done: 0, total: 4 } }), ddl("hw6", "HW6", { kind: "homework" }), ddl("quiz", "Quiz 3")];
+	it("Coming up: the three soonest deadlines as rows with Study or Continue, Work on it for a homework, and the key to all of them; a click passes the deadline", async () => {
+		const ddl = (id: string, name: string, over: Partial<DeadlineProgress> = {}) =>
+			({ id, name, kind: "exam", date: "2026-11-22", daysUntil: 2, done: false, topics: [], ready: null, ...over }) as DeadlineProgress;
+		const deadlines = [
+			ddl("mid", "Midterm", { continueStudy: { chatId: "chat_1", done: 0, total: 4 }, ready: 0.5, topics: [{ id: "t1", name: "Slope", rate: 0.5 }] }),
+			ddl("hw6", "HW6", { kind: "homework", problems: { done: 1, total: 3 } }),
+			ddl("quiz", "Quiz 3"),
+			ddl("final", "Final"),
+		];
 		const clicked: string[] = [];
 		const host = await mount(
 			<MemoryRouter initialEntries={["/new"]}>
-				<DeadlineStarts deadlines={deadlines} busyOn={null} onStudy={(d) => clicked.push(d.id)} onWork={(d) => clicked.push(`work ${d.id}`)} />
+				<DeadlineRows deadlines={deadlines} color="#58a" nowMs={Date.parse("2026-11-20T12:00:00")} busyOn={null} onStudy={(d) => clicked.push(d.id)} onWork={(d) => clicked.push(`work ${d.id}`)} />
 			</MemoryRouter>,
 		);
+		const rows = [...host.querySelectorAll('[data-testid="home-deadlines"] > li')];
+		assert.equal(rows.length, 3, "the fourth waits behind the key");
+		assert.equal(host.querySelector('[data-testid="home-deadlines-all"]')!.textContent, "All 4");
+		assert.equal(host.querySelector('[data-testid="home-deadlines-all"]')!.getAttribute("href"), "/space/deadlines");
 		const buttons = [...host.querySelectorAll('[data-testid="home-deadlines"] button')] as HTMLButtonElement[];
-		assert.deepEqual(buttons.map((b) => b.textContent), ["Continue studying for Midterm, 0 of 4 topics", "Study for HW6", "Work on HW6", "Study for Quiz 3"]);
+		assert.deepEqual(buttons.map((b) => b.textContent), ["Continue", "Study", "Work on it", "Study"]);
+		assert.equal(buttons[0]!.getAttribute("title"), "Continue studying for Midterm, 0 of 4 topics");
+		assert.match(rows[0]!.textContent!, /50% ready/);
+		assert.match(rows[1]!.textContent!, /1 of 3 problems done/);
+		assert.equal(rows[1]!.querySelectorAll('[data-testid="step-blocks"] > span').length, 3);
+		assert.doesNotMatch(rows[2]!.textContent!, /ready|problems/, "nothing measured, nothing drawn");
 		await act(async () => buttons[0]!.click());
 		await act(async () => buttons[2]!.click());
 		assert.deepEqual(clicked, ["mid", "work hw6"]);

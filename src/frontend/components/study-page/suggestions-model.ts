@@ -3,7 +3,8 @@
  * space's ProgressPayload (src/shared/core/progress.ts). Pure, unit-tested.
  *
  *  - Continue: the newest lesson the server marks unfinished (lessons
- *    come newest first); with none, there is no Continue row.
+ *    come newest first) that no deadline row above already continues;
+ *    with none, there is no Continue row.
  *  - Next up: in a space with a path, the topic its Study takes; else the
  *    earliest study file not studied yet (payload.nextUp).
  *  - Work on next: the first two topics of the soonest open deadline
@@ -41,10 +42,18 @@ export function workOnNextList(data: Pick<ProgressPayload, "deadlines" | "overal
 	return upcomingDeadline(data.deadlines)?.workOnNext ?? data.overall.workOnNext;
 }
 
-export function studyPageSuggestions(data: ProgressPayload | null): Suggestion[] {
+/** The open deadlines ahead, soonest first: the Study page's "Coming up". */
+export function comingUp(data: ProgressPayload | null): DeadlineProgress[] {
+	return (data?.deadlines ?? []).filter((d) => d.daysUntil >= 0 && !d.done);
+}
+
+/** `shown` are the deadlines in rows above: a lesson one of their keys
+ *  continues is not suggested a second time. */
+export function studyPageSuggestions(data: ProgressPayload | null, shown: readonly DeadlineProgress[]): Suggestion[] {
 	if (!data) return [];
 	const out: Suggestion[] = [];
-	const unfinished = data.lessons.find((l) => l.unfinished);
+	const inRows = new Set(shown.map((d) => d.continueStudy?.chatId));
+	const unfinished = data.lessons.find((l) => l.unfinished && !inRows.has(l.chatId));
 	if (unfinished) out.push({ kind: "continue", lesson: unfinished });
 	const onPath = data.path ? pathNext(data.path) : null;
 	if (data.path && onPath) out.push({ kind: "path", topic: onPath.topic, position: onPath.position, total: data.path.topics.length });

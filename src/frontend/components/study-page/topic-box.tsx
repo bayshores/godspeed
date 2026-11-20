@@ -69,7 +69,7 @@ export function TopicBox({
 				placeholder="A topic, a homework method, or a question you're stuck on"
 				autoFocus
 				rows={2}
-				className="field-sizing-content max-h-60 min-h-[86px] w-full flex-1 resize-none bg-transparent pt-3 pb-3 font-prose text-[17px] leading-snug text-ink outline-none placeholder:text-ink-3"
+				className="field-sizing-content max-h-[60vh] min-h-[86px] w-full flex-1 resize-none bg-transparent pt-3 pb-3 font-prose text-[17px] leading-snug text-ink outline-none placeholder:text-ink-3"
 			/>
 			<div className="flex flex-wrap items-center gap-2">
 				<button type="button" data-testid="facts-picks-chip" disabled={!canPick && picks === 0} onClick={onOpenPicker} className="lh-btn text-[15px]">

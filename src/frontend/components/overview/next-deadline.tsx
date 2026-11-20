@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Link } from "react-router";
-import { hasProblems, longDay, rampColor, studyLabel, type DeadlineProgress } from "@/shared/core";
+import { hasProblems, longDay, studyLabel, type DeadlineProgress } from "@/shared/core";
 import { dueAtMs } from "@/frontend/components/countdown-model";
 import { countLeft } from "@/frontend/components/home-page/home-page-model";
 import { DeadlineKeys } from "@/frontend/components/deadline/deadline-keys";
@@ -8,7 +8,7 @@ import { Key } from "@/frontend/components/ui/key";
 import { CountBlock } from "@/frontend/components/ui/count-block";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { StepBlocks } from "./lesson-rows";
+import { DeadlineMarks } from "./deadline-marks";
 import { deadlineHref, progressWords } from "./overview-model";
 import { MAIN_KEY } from "./styles";
 
@@ -72,17 +72,7 @@ export const NextDeadline = memo(function NextDeadline({
 						</div>
 						{words && (
 							<div data-testid="next-deadline-progress" className="flex flex-col gap-2">
-								{d.problems ? (
-									<StepBlocks done={d.problems.done} total={d.problems.total} />
-								) : (
-									d.topics.length > 0 && (
-										<span aria-hidden className="flex flex-wrap gap-[3px]">
-											{d.topics.map((t) => (
-												<span key={t.id} title={t.name} className="size-3" style={{ background: rampColor(t.rate) }} />
-											))}
-										</span>
-									)
-								)}
+								<DeadlineMarks deadline={d} />
 								<p className="text-[15px] text-ink">{words}</p>
 							</div>
 						)}

@@ -9,6 +9,9 @@ export function workLabel(name: string): string {
 	return `Work on ${name}`;
 }
 
+/** The same key where the deadline's name is beside it. */
+export const WORK_ON_IT = "Work on it";
+
 /**
  * A homework or project deadline's two keys: Study for it first, in grey
  * (gone once its date passed, as Study is), and Work on it, filled. They
@@ -38,7 +41,7 @@ export function DeadlineKeys({
 	const study = deadlineStudyLabel(d.continueStudy, d.name);
 	const studyShort = narrow ? studyLabel(d.continueStudy) : deadlineStudyLabel(d.continueStudy && { ...d.continueStudy, total: undefined }, d.name);
 	const work = workLabel(d.name);
-	const workShort = narrow ? "Work on it" : work;
+	const workShort = narrow ? WORK_ON_IT : work;
 	return (
 		<div data-testid="deadline-keys" className={cn("flex flex-wrap justify-end gap-2.5", narrow && "items-end")}>
 			{d.daysUntil >= 0 && (

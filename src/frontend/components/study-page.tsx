@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { FileCoverage, GraphContextPick, TopicProgress } from "@/shared/core";
+import { useMinute } from "@/frontend/components/countdown";
+import { spaceColorVar } from "@/frontend/components/space-color";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useProgress } from "@/frontend/components/use-progress";
 import { displayName } from "@/frontend/components/overview/overview-model";
-import { DeadlineStarts } from "@/frontend/components/study-page/deadline-starts";
+import { COMING_UP_ROWS, DeadlineRows } from "@/frontend/components/study-page/deadline-rows";
 import { FactsPicker } from "@/frontend/components/study-page/facts-picker";
 import { useGraphSnapshot } from "@/frontend/components/graph/use-graph-snapshot";
 import { SuggestionList } from "@/frontend/components/study-page/suggestions";
-import { studyPageSuggestions } from "@/frontend/components/study-page/suggestions-model";
+import { comingUp, studyPageSuggestions } from "@/frontend/components/study-page/suggestions-model";
 import { TopicBox } from "@/frontend/components/study-page/topic-box";
 import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
@@ -17,12 +19,12 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
 /**
  * THE STUDY PAGE ("/new"): where every study session starts, in the
- * active space. "Progress" goes back to the space's Progress page. "Study for
- * <deadline>" for each upcoming deadline ("Continue studying for" while
- * its latest session is unfinished), the topic box ("Start from
- * facts" picks facts from the chain table; Enter or Study starts), then
- * "Suggested for <space>": Continue the latest lesson, Next up (the
- * earliest unstudied file) and Work on next (weak or untested topics).
+ * active space. "Progress" goes back to the space's Progress page. The
+ * topic box ("Start from facts" picks facts from the chain table; Enter or
+ * Study starts), beside it "Coming up" (the soonest deadlines, each with
+ * its Study key), then "Suggested for <space>": Continue the latest
+ * lesson, Next up (the earliest unstudied file) and Work on next (weak or
+ * untested topics).
  */
 export function NewLesson() {
 	const { active: activeSpaceId, activeSpace } = useSpaces();
@@ -52,8 +54,9 @@ export function NewLesson() {
 	const studyTopic = useCallback((t: TopicProgress) => void studyTopics([t.id]), [studyTopics]);
 	const studyPath = useCallback((topicId: string) => void studyPathTopic(topicId), [studyPathTopic]);
 
-	const deadlines = useMemo(() => (progress?.deadlines ?? []).filter((d) => d.daysUntil >= 0 && !d.done), [progress]);
-	const suggestions = useMemo(() => studyPageSuggestions(progress), [progress]);
+	const deadlines = useMemo(() => comingUp(progress), [progress]);
+	const suggestions = useMemo(() => studyPageSuggestions(progress, deadlines.slice(0, COMING_UP_ROWS)), [progress, deadlines]);
+	const nowMs = useMinute();
 
 	return (
 		<div className="flex h-full min-h-0 flex-col" data-testid="home">
@@ -66,25 +69,24 @@ export function NewLesson() {
 						</Link>
 						<h1 className="lh-page-title">What do you want to study?</h1>
 					</div>
-					{/* Wide, the ways to start take the left half and the suggestions the right. */}
-					<div className="grid items-start gap-(--lh-head-gap) @[1100px]/page:grid-cols-2">
-						<div className="flex flex-col gap-3.5">
-							{progress && deadlines.length > 0 && <DeadlineStarts deadlines={deadlines} busyOn={lesson.busyOn} onStudy={(d) => void studyDeadline(d)} onWork={(d) => void workOnHomework(d)} />}
-							<TopicBox
-								text={topic}
-								onText={(t) => {
-									topicRef.current = t;
-									setTopic(t);
-								}}
-								onStart={startTopic}
-								busyOn={lesson.busyOn}
-								inputRef={topicInputRef}
-								picks={picks.length}
-								canPick={(snapshot?.propositions.length ?? 0) > 0}
-								onOpenPicker={() => setPickerOpen(true)}
-								onClearPicks={() => setPicks([])}
-								attachments={attachments}
-							/>
+					{/* Wide, the topic box and the deadlines are side by side and end together, with the suggestions under the deadlines. */}
+					<div className="grid gap-x-(--lh-head-gap) gap-y-3.5 @[1100px]/page:grid-cols-2">
+						<TopicBox
+							text={topic}
+							onText={(t) => {
+								topicRef.current = t;
+								setTopic(t);
+							}}
+							onStart={startTopic}
+							busyOn={lesson.busyOn}
+							inputRef={topicInputRef}
+							picks={picks.length}
+							canPick={(snapshot?.propositions.length ?? 0) > 0}
+							onOpenPicker={() => setPickerOpen(true)}
+							onClearPicks={() => setPicks([])}
+							attachments={attachments}
+						/>
+						<div className="flex flex-col gap-3.5 @[1100px]/page:col-start-1 @[1100px]/page:row-start-2">
 							<NoAgentLine />
 							{lesson.error && (
 								<p role="alert" data-testid="lesson-start-error" className="text-[15px] text-ans-wrong">
@@ -92,15 +94,22 @@ export function NewLesson() {
 								</p>
 							)}
 						</div>
-						<SuggestionList
-							key={activeSpaceId ?? "none"}
-							spaceLabel={activeSpace?.name ?? null}
-							suggestions={suggestions}
-							busyOn={lesson.busyOn}
-							onStudyFile={studyFile}
-							onStudyTopic={studyTopic}
-							onStudyPath={studyPath}
-						/>
+						{nowMs !== null && deadlines.length > 0 && (
+							<div className="grid pt-(--lh-head-gap) @[1100px]/page:col-start-2 @[1100px]/page:row-start-1 @[1100px]/page:pt-0">
+								<DeadlineRows deadlines={deadlines} color={activeSpace ? spaceColorVar(activeSpace.color) : "var(--border)"} nowMs={nowMs} busyOn={lesson.busyOn} onStudy={(d) => void studyDeadline(d)} onWork={(d) => void workOnHomework(d)} />
+							</div>
+						)}
+						<div className="pt-(--lh-head-gap) @[1100px]/page:col-start-2 @[1100px]/page:row-start-2">
+							<SuggestionList
+								key={activeSpaceId ?? "none"}
+								spaceLabel={activeSpace?.name ?? null}
+								suggestions={suggestions}
+								busyOn={lesson.busyOn}
+								onStudyFile={studyFile}
+								onStudyTopic={studyTopic}
+								onStudyPath={studyPath}
+							/>
+						</div>
 					</div>
 				</div>
 			</div>
