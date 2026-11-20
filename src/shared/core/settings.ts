@@ -65,17 +65,22 @@ export interface AgentSettings {
 	rules?: AreaRules;
 }
 
-/** Appearance settings: the background and the reading font. Heading
+/** Appearance settings: the background, the reading font and the app icon. Heading
  *  weight and bold and italic colors (`mdRendering`) and the reading size
  *  (`proseFontSize`) are no longer read. */
 export interface AppearanceSettings {
 	/** The one user-chosen color; text, panels and borders derive from it
-	 *  in code. null = Paper, the light default. */
+	 *  in code. null = Graphite, the default. */
 	background?: string | null;
 	/** The reading font by name, user-chosen from installed fonts.
 	 *  null = Literata. */
 	fontFamily?: string | null;
+	/** The app icon picked for the Dock (Mac). null = the app's own. */
+	appIcon?: AppIcon | null;
 }
+
+/** The app icons Settings offers besides the app's own. */
+export type AppIcon = "paper" | "classic";
 
 /** Knowledge-graph settings. */
 export interface GraphSettings {
@@ -125,7 +130,7 @@ export const FACTORY_SETTINGS: FactorySettings = {
 	version: CURRENT_SETTINGS_VERSION,
 	general: { autoUpdate: true, activeSpace: "none", teacherName: DEFAULT_TEACHER_NAME, startupSound: true, sounds: true, deadlineReminders: true, menuBarCountdown: true },
 	appearance: {
-		background: null, // Paper
+		background: null, // Graphite
 		fontFamily: null, // Literata
 	},
 	graph: { enabled: true },

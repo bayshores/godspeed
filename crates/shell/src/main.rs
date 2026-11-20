@@ -99,6 +99,8 @@ fn main() {
 			commands::report_bug,
 			commands::list_fonts,
 			#[cfg(target_os = "macos")]
+			commands::appkit::apply_app_icon,
+			#[cfg(target_os = "macos")]
 			commands::appkit::print_pdf,
 			#[cfg(target_os = "macos")]
 			commands::appkit::drag_paths,
@@ -154,6 +156,10 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
 	first_run::run(&paths.user_data, &paths.updater_cache, &app.package_info().version.to_string());
 	#[cfg(not(target_os = "macos"))]
 	demo_webview::sweep(&paths.demo_data);
+	#[cfg(target_os = "macos")]
+	if let Err(err) = mac::app_icon::restore(&paths.data.join("settings.json")) {
+		log::line(&format!("app icon: {err}"));
+	}
 	app.manage(paths);
 	let server = match Server::choose() {
 		Ok(server) => server,

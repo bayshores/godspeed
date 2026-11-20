@@ -79,6 +79,8 @@ declare global {
 			onMenu?: (cb: (action: string) => void) => () => void;
 			/** Opens the system print sheet for a PDF in the data folder. Mac only. */
 			printPdf?: (path: string) => Promise<void>;
+			/** Puts the app icon saved in Settings on the Dock and on the app itself. Mac only. */
+			applyAppIcon?: () => Promise<void>;
 		};
 	}
 }

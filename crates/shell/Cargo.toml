@@ -55,8 +55,8 @@ block2.workspace = true
 # The menu bar countdown; only the Mac has it, so Linux never builds libappindicator.
 tauri = { workspace = true, features = ["tray-icon"] }
 objc2.workspace = true
-objc2-app-kit = { workspace = true, features = ["NSApplication", "NSBitmapImageRep", "NSFontManager", "NSGraphics", "NSGraphicsContext", "NSImage", "NSImageRep", "NSPasteboard", "NSPasteboardItem", "NSPrintInfo", "NSPrintOperation", "NSResponder", "NSScreen", "NSView", "NSWindow", "objc2-core-foundation"] }
-objc2-foundation = { workspace = true, features = ["NSArray", "NSDictionary", "NSError", "NSGeometry", "NSObjCRuntime", "NSRunLoop", "NSString", "NSTimer", "NSURL", "NSURLRequest", "NSURLResponse", "NSUserDefaults", "NSValue", "block2"] }
+objc2-app-kit = { workspace = true, features = ["NSApplication", "NSBitmapImageRep", "NSFontManager", "NSGraphics", "NSGraphicsContext", "NSImage", "NSImageRep", "NSPasteboard", "NSPasteboardItem", "NSPrintInfo", "NSPrintOperation", "NSResponder", "NSScreen", "NSView", "NSWindow", "NSWorkspace", "objc2-core-foundation"] }
+objc2-foundation = { workspace = true, features = ["NSArray", "NSData", "NSDictionary", "NSError", "NSGeometry", "NSObjCRuntime", "NSRunLoop", "NSString", "NSTimer", "NSURL", "NSURLRequest", "NSURLResponse", "NSUserDefaults", "NSValue", "block2"] }
 objc2-pdf-kit = { workspace = true, features = ["PDFDocument", "PDFPage", "objc2-app-kit"] }
 objc2-web-kit = { workspace = true, features = ["WKContentRuleList", "WKContentRuleListStore", "WKContentWorld", "WKFrameInfo", "WKNavigation", "WKNavigationAction", "WKNavigationDelegate", "WKNavigationResponse", "WKPreferences", "WKSnapshotConfiguration", "WKUserContentController", "WKUserScript", "WKWebView", "WKWebViewConfiguration", "WKWebsiteDataStore", "block2", "objc2-app-kit"] }
 

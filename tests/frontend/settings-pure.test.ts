@@ -12,6 +12,7 @@ import {
 	appearanceVars,
 	BACKGROUND_PRESETS,
 	derivedPalette,
+	GRAPHITE,
 	PAPER,
 	readableBackground,
 	resolveAppearance,
@@ -100,18 +101,20 @@ describe("derivedPalette — every surface and text color follows the background
 		assert.equal(derivedPalette("#000000")["--lh-bar"], "#000000");
 	});
 
-	it("Paper's palette is the stylesheet's default", () => {
+	it("Graphite's palette is the stylesheet's default", () => {
 		const css = fs.readFileSync("src/frontend/globals.css", "utf-8");
 		const root = css.slice(css.indexOf(":root {"), css.indexOf("}", css.indexOf(":root {")));
 		const declared = new Map([...root.matchAll(/(--[\w-]+):\s*([^;]+);/g)].map((m) => [m[1]!, m[2]!.trim()]));
 		// The shadcn aliases the stylesheet leaves out fall back on their own; every lh token is declared.
-		const palette = Object.entries(derivedPalette(PAPER)).filter(([name]) => name.startsWith("--lh-") || declared.has(name));
+		const palette = Object.entries(derivedPalette(GRAPHITE)).filter(([name]) => name.startsWith("--lh-") || declared.has(name));
 		for (const [name, value] of palette) assert.equal(declared.get(name), value, name);
+		// The page starts dark, before the saved appearance is read.
+		assert.match(fs.readFileSync("src/frontend/index.html", "utf-8"), /<html[^>]*class="dark"/);
 	});
 
 	it("on every preset, text reads at 4.5, the status colors read as text and edges show at 3", () => {
 		for (const { name, color } of BACKGROUND_PRESETS) {
-			const p = derivedPalette(color ?? PAPER);
+			const p = derivedPalette(color ?? GRAPHITE);
 			const surfaces = [p["--background"]!, p["--card"]!, p["--accent"]!];
 			const min = (ink: string, on: readonly string[]) => Math.min(...on.map((s) => contrast(ink, s)));
 			for (const level of ["--foreground", "--lh-ink-body", "--muted-foreground"]) {
@@ -141,6 +144,11 @@ describe("readableBackground — a picked color is made dark enough for the app"
 		}
 		const [r, , b] = [1, 3, 5].map((i) => parseInt(readableBackground("#3366cc").slice(i, i + 2), 16));
 		assert.ok(b! > r!, "blue stays blue");
+	});
+
+	it("Paper, the one light pick, keeps its own palette", () => {
+		assert.equal(readableBackground(PAPER), PAPER);
+		assert.deepEqual(appearanceVars(resolveAppearance({ background: PAPER })), derivedPalette(PAPER));
 	});
 
 	it("is what appearanceVars paints (the saved choice stays as picked)", () => {

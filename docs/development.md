@@ -155,6 +155,7 @@ Shared helpers sit in `tests/` itself.
 | `fetch-pdfium.mjs` | Downloads pdfium's library for this OS into `.stage/`. |
 | `fetch-onnxruntime.mjs` | Downloads ONNX Runtime's library into `.stage/` (Linux and Intel Macs). |
 | `fetch-library.mjs` | Shared download and checksum code for the two above. |
+| `make-icons.mjs` | Draws every app icon file. Run it after changing an icon drawing and commit what it writes. See [The app icon](desktop-release.md#the-app-icon). |
 | `compile-icon.mjs` | Compiles the Mac app icon into `.stage/Assets.car`. |
 | `dev-resources.mjs` | Makes `.dev-resources/`, the folder a debug server runs in. |
 | `dev-fresh.sh` | The `dev:fresh` instance. |

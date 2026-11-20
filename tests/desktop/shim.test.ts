@@ -67,6 +67,7 @@ test("every window.lh member calls its shell command with its arguments", async 
 	lh!.reportBug!();
 	await lh!.listFonts!();
 	await lh!.printPdf!("/a/b.pdf");
+	await lh!.applyAppIcon!();
 	await lh!.getUpdateState!();
 	await lh!.checkForUpdates!();
 	lh!.installUpdate!();
@@ -80,6 +81,7 @@ test("every window.lh member calls its shell command with its arguments", async 
 		["report_bug"],
 		["list_fonts"],
 		["print_pdf", { path: "/a/b.pdf" }],
+		["apply_app_icon"],
 		["update_state"],
 		["update_check"],
 		["update_install"],
@@ -142,10 +144,12 @@ test("the terminal window members call their commands and hear whether it is ope
 	assert.deepEqual(heard, [{ open: true }, { open: false }], "a push before the first listener is kept for it");
 });
 
-test("only the Mac prints through the system sheet", () => {
-	assert.equal(typeof page({ platform: "darwin" }).lh!.printPdf, "function");
-	assert.equal(page({ platform: "win32" }).lh!.printPdf, undefined);
-	assert.equal(page({ platform: "linux" }).lh!.printPdf, undefined);
+test("only the Mac prints through the system sheet and changes its app icon", () => {
+	for (const member of ["printPdf", "applyAppIcon"] as const) {
+		assert.equal(typeof page({ platform: "darwin" }).lh![member], "function", member);
+		assert.equal(page({ platform: "win32" }).lh![member], undefined, member);
+		assert.equal(page({ platform: "linux" }).lh![member], undefined, member);
+	}
 });
 
 test("a page that is not the app gets no window.lh and no listeners", () => {

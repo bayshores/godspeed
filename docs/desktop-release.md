@@ -17,9 +17,21 @@ How the desktop app is built, checked in CI and released, and how Electron insta
 - The Linux release job sets `APPIMAGE_EXTRACT_AND_RUN=1` (containers have no FUSE).
 - The container's Linux packages step keeps its downloaded packages in the cache for a week (key `debs-jammy-<year>-<week>`, saved by runs that are not a tag or a pull request), reads them from `azure.archive.ubuntu.com`, and gives a download 30 seconds and three tries: the package servers were once so slow that this one-minute step ran for up to an hour.
 
-### Mac icon
+### The app icon
 
-The Mac icon is the Icon Composer file `crates/shell/icons/icon.icon`. `node scripts/compile-icon.mjs` compiles it into `.stage/Assets.car` with `actool` from Xcode 26 or newer (needs macOS 26). `tauri.bundle.macos.conf.json` ships that file. The bundler can compile the icon itself, but its `actool` call crashes on GitHub's macOS 26 runners. `icon.icns` is the fallback for older macOS. Windows and Linux icons are committed; `npx tauri icon` regenerates them.
+`node scripts/make-icons.mjs` draws every icon file, and what it writes is committed. It needs `rsvg-convert` (librsvg), `magick` (ImageMagick) and `iconutil` (macOS).
+
+| File | For |
+|---|---|
+| `crates/shell/icons/icon.icon` | The Mac icon, an Icon Composer file. |
+| `crates/shell/icons/icon.icns` | The Mac icon on macOS older than 26. |
+| `crates/shell/icons/icon.ico`, `icon.png` | Windows and Linux. |
+| `crates/shell/icons/choices/*.png` | The icons Settings offers besides the app's own. See [App icon](tauri-shell/the-main-window.md#app-icon). |
+| `public/icon.png`, `public/app-icons/*.svg` | The page's own icon, and the pictures in Settings and on the welcome screen. |
+
+`crates/shell/icons/classic.svg` is the drawing of the Classic icon; the script reads it.
+
+`node scripts/compile-icon.mjs` compiles `icon.icon` into `.stage/Assets.car` with `actool` from Xcode 26 or newer (needs macOS 26). `tauri.bundle.macos.conf.json` ships that file. The bundler can compile the icon itself, but its `actool` call crashes on GitHub's macOS 26 runners.
 
 The menu bar countdown's icon, `crates/shell/icons/menu-bar-countdown.png`, is the g from `icon.icon/Assets/g.svg` drawn at 3 pixels per cell with one empty cell around it, black on clear (macOS tints it as a template image). Remake it whenever the g changes.
 

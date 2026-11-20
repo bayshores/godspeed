@@ -209,16 +209,26 @@ describe("GeneralSection (SSR)", () => {
 });
 
 describe("AppearanceSection (SSR)", () => {
-	it("the background presets plus Custom, with Paper picked at factory", () => {
+	it("the background presets plus Custom, with Graphite picked at factory", () => {
 		const html = renderToStaticMarkup(<AppearanceSection appearance={undefined} onSectionChange={() => {}} />);
 		for (const id of ["paper", "night", "black", "graphite", "midnight", "forest", "custom"]) {
 			assert.ok(html.includes(`data-testid="theme-${id}"`), id);
 		}
-		assert.ok(tagOf(html, "theme-paper").includes('aria-pressed="true"'));
+		assert.ok(tagOf(html, "theme-graphite").includes('aria-pressed="true"'));
+		assert.ok(tagOf(html, "theme-paper").includes('aria-pressed="false"'));
 		assert.ok(html.includes('data-testid="font-trigger"'));
 		assert.ok(!html.includes("slider-text-size"), "the text size is the desktop app's zoom");
 		assert.ok(html.includes('data-testid="appearance-preview"'));
 		assert.doesNotMatch(html, /Heading weight|Bold and italic|slider-heading-weight/);
+	});
+
+	it("Graphite saved as a color lights the Graphite tile, and Paper its own", () => {
+		const saved = renderToStaticMarkup(<AppearanceSection appearance={{ background: "#161616" }} onSectionChange={() => {}} />);
+		assert.ok(tagOf(saved, "theme-graphite").includes('aria-pressed="true"'));
+		assert.doesNotMatch(tagOf(saved, "theme-custom"), /border-2/);
+		const paper = renderToStaticMarkup(<AppearanceSection appearance={{ background: "#c9c7bd" }} onSectionChange={() => {}} />);
+		assert.ok(tagOf(paper, "theme-paper").includes('aria-pressed="true"'));
+		assert.ok(tagOf(paper, "theme-graphite").includes('aria-pressed="false"'));
 	});
 
 	it("the text size is a slider over the zoom ladder, at 100% before the shell answers, only in the desktop app", () => {
@@ -229,6 +239,21 @@ describe("AppearanceSection (SSR)", () => {
 			const slider = tagOf(html, "slider-text-size");
 			assert.ok(slider.includes('value="2"') && slider.includes('max="7"'));
 			assert.ok(html.includes(">100%<"));
+		} finally {
+			delete global.window;
+		}
+	});
+
+	it("the app icon is picked from three pictures, Graphite at factory, only in the Mac app", () => {
+		assert.ok(!renderToStaticMarkup(<AppearanceSection appearance={undefined} onSectionChange={() => {}} />).includes("group-app-icon"));
+		const global = globalThis as { window?: unknown };
+		global.window = { lh: { applyAppIcon() {} } };
+		try {
+			const html = renderToStaticMarkup(<AppearanceSection appearance={undefined} onSectionChange={() => {}} />);
+			for (const id of ["graphite", "paper", "classic"]) assert.ok(tagOf(html, `app-icon-${id}`).includes(`aria-pressed="${id === "graphite"}"`), id);
+			const picked = renderToStaticMarkup(<AppearanceSection appearance={{ appIcon: "classic" }} onSectionChange={() => {}} />);
+			assert.ok(tagOf(picked, "app-icon-classic").includes('aria-pressed="true"'));
+			assert.ok(tagOf(picked, "app-icon-graphite").includes('aria-pressed="false"'));
 		} finally {
 			delete global.window;
 		}

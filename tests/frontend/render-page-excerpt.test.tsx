@@ -72,7 +72,7 @@ describe("a topic's page", () => {
 			assert.equal(frame.tagName, "BUTTON");
 			assert.match(frame.getAttribute("style") ?? "", /height:\s*220px/);
 			const img = frame.querySelector("img")!;
-			assert.equal(img.getAttribute("src"), `/api/cited/${FILE}/page/14?w=1440&ink=33322c`);
+			assert.equal(img.getAttribute("src"), `/api/cited/${FILE}/page/14?w=1440&ink=cfcfcf`);
 			assert.equal(img.getAttribute("alt"), 'Lecture 6, page 14, marked "degree 12"');
 			const marks = frame.querySelectorAll<HTMLElement>('[data-testid="page-mark"]');
 			assert.equal(marks.length, 1);
@@ -84,7 +84,7 @@ describe("a topic's page", () => {
 
 	it("the page is drawn in the theme's ink, with no blending into the paper", async () => {
 		await rendered(excerpt(), pdf({ kind: "page", boxes: [BOX] }), (host) => {
-			assert.match(host.querySelector("img")!.getAttribute("src")!, /\?w=1440&ink=33322c$/);
+			assert.match(host.querySelector("img")!.getAttribute("src")!, /\?w=1440&ink=cfcfcf$/);
 			assert.doesNotMatch(host.querySelector('[data-testid="page-excerpt"]')!.innerHTML, /mix-blend-multiply dark/);
 		});
 	});
@@ -154,7 +154,7 @@ describe("the page in the teacher's text", () => {
 		await rendered(<CitedResponse text={text} page={mark} />, pdf({ kind: "page", boxes: [BOX] }), async (host, urls) => {
 			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="page-excerpt"]')!.click());
 			const dialog = document.querySelector('[data-testid="cite-dialog"]')!;
-			assert.equal(dialog.querySelector('[data-testid="cite-page"]')?.getAttribute("src"), `/api/cited/${FILE}/page/14?w=1440&ink=33322c`);
+			assert.equal(dialog.querySelector('[data-testid="cite-page"]')?.getAttribute("src"), `/api/cited/${FILE}/page/14?w=1440&ink=cfcfcf`);
 			assert.equal(dialog.querySelectorAll('[data-testid="page-mark"]').length, 1);
 			assert.ok(urls.every((u) => u.endsWith(`&quote=${encodeURIComponent("degree 12")}`)));
 		});

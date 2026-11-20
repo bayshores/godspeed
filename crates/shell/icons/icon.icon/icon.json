@@ -1,6 +1,6 @@
 {
   "fill": {
-    "solid": "srgb:0.78824,0.78039,0.74118,1.00000"
+    "solid": "srgb:0.08627,0.08627,0.08627,1.00000"
   },
   "groups": [
     {
@@ -9,11 +9,6 @@
           "glass": false,
           "image-name": "g.svg",
           "name": "g"
-        },
-        {
-          "glass": false,
-          "image-name": "tile.svg",
-          "name": "tile"
         }
       ],
       "shadow": {
@@ -29,8 +24,8 @@
       "layers": [
         {
           "glass": false,
-          "image-name": "dither.svg",
-          "name": "dither"
+          "image-name": "trail.svg",
+          "name": "trail"
         }
       ],
       "shadow": {

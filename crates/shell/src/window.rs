@@ -33,8 +33,8 @@ pub const WINDOWS: [&str; 2] = [MAIN, TERMINAL];
 /// The windows that can show a terminal.
 pub const TERMINAL_WINDOWS: [&str; 2] = WINDOWS;
 
-/// Paper, the window's color when no dark background is picked.
-const PAPER: Color = Color(0xc9, 0xc7, 0xbd, 0xff);
+/// Graphite, the window's color when no background is picked.
+const GRAPHITE: Color = Color(0x16, 0x16, 0x16, 0xff);
 
 /// A page that never asks to be shown still gets its window this long after it loaded.
 const SHOW_FALLBACK: Duration = Duration::from_secs(5);
@@ -155,11 +155,11 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 	Ok(main)
 }
 
-/// The window's own color, shown before the page paints: the dark background picked in Settings,
-/// Appearance, else Paper. Read for each new window, so a pick shows the next time it opens.
+/// The window's own color, shown before the page paints: the background picked in Settings,
+/// Appearance, else Graphite. Read for each new window, so a pick shows the next time it opens.
 fn background(settings: &Path) -> Color {
 	let saved = std::fs::read_to_string(settings).ok().and_then(|text| serde_json::from_str::<Value>(&text).ok());
-	saved.as_ref().and_then(|saved| saved.pointer("/appearance/background")).and_then(Value::as_str).and_then(|picked| picked.parse().ok()).unwrap_or(PAPER)
+	saved.as_ref().and_then(|saved| saved.pointer("/appearance/background")).and_then(Value::as_str).and_then(|picked| picked.parse().ok()).unwrap_or(GRAPHITE)
 }
 
 fn open_in_browser(url: &Url) {
@@ -407,16 +407,17 @@ mod tests {
 	}
 
 	#[test]
-	fn the_window_takes_the_picked_dark_background() {
+	fn the_window_takes_the_picked_background() {
 		assert_eq!(background_for("night", Some(r##"{"appearance":{"background":"#1b1d2a"}}"##)), Color(0x1b, 0x1d, 0x2a, 0xff));
 		assert_eq!(background_for("short", Some(r##"{"appearance":{"background":"#123"}}"##)), Color(0x11, 0x22, 0x33, 0xff));
+		assert_eq!(background_for("paper", Some(r##"{"appearance":{"background":"#c9c7bd"}}"##)), Color(0xc9, 0xc7, 0xbd, 0xff));
 	}
 
 	#[test]
-	fn the_window_is_paper_when_nothing_is_picked() {
-		assert_eq!(background_for("missing", None), PAPER);
+	fn the_window_is_graphite_when_nothing_is_picked() {
+		assert_eq!(background_for("missing", None), GRAPHITE);
 		for (name, text) in [("null", r#"{"appearance":{"background":null}}"#), ("no-appearance", r#"{"general":{}}"#), ("corrupt", "{"), ("not-a-color", r#"{"appearance":{"background":"paper"}}"#)] {
-			assert_eq!(background_for(name, Some(text)), PAPER, "{name}");
+			assert_eq!(background_for(name, Some(text)), GRAPHITE, "{name}");
 		}
 	}
 

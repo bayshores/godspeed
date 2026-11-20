@@ -5,7 +5,7 @@
 use gs_base::text;
 use gs_core::contracts::space::is_space_id;
 use gs_core::records::changelog::is_version;
-use gs_core::records::settings::{is_hex_color, sanitize_teacher_name};
+use gs_core::records::settings::{APP_ICONS, is_hex_color, sanitize_teacher_name};
 use gs_core::records::teaching_areas::{TEACHING_AREAS, sanitize_area_rules};
 use gs_core::session::tool_switches::WRITABLE_TOOL_KEYS;
 use gs_json::{Json, Obj};
@@ -168,6 +168,13 @@ fn parse_appearance(body: &Json) -> Parsed {
 		}
 		out.insert("fontFamily", v.clone());
 	}
+	if let Some(v) = raw.get("appIcon") {
+		let offered = v.is_null() || v.as_str().is_some_and(|name| APP_ICONS.contains(&name));
+		if !offered {
+			return Err(format!("appIcon must be one of {APP_ICONS:?} or null"));
+		}
+		out.insert("appIcon", v.clone());
+	}
 	Ok(Json::Obj(out))
 }
 
@@ -223,6 +230,9 @@ mod tests {
 		assert_eq!(ok, r##"{"background":"#FFF"}"##);
 		assert_eq!(run("appearance", r#"{"fontFamily":" "}"#).unwrap_err(), "fontFamily must be a non-empty string or null");
 		assert_eq!(run("appearance", r#"{"background":"red"}"#).unwrap_err(), "background must be a #hex color or null");
+		assert_eq!(run("appearance", r#"{"appIcon":"classic"}"#).unwrap(), r#"{"appIcon":"classic"}"#);
+		assert_eq!(run("appearance", r#"{"appIcon":null}"#).unwrap(), r#"{"appIcon":null}"#);
+		assert_eq!(run("appearance", r#"{"appIcon":"gold"}"#).unwrap_err(), r#"appIcon must be one of ["paper", "classic"] or null"#);
 	}
 
 	#[test]

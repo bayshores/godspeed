@@ -27,6 +27,8 @@
  *   like the tabs.
  * - empty box: a sheet or well (.lh-sheet, .lh-well) at least 160 px wide and 120 px tall that
  *   shows no words, picture, control or writing box: a column with nothing in it.
+ * - broken picture: an image the page shows did not load (a file the server does not hand out
+ *   as a picture, or a wrong address).
  *
  * Each finding has a `key` naming its elements, the same from one read to the next while its
  * words (a clock) may change.
@@ -557,9 +559,16 @@ function emptyBoxes() {
 		.map((box) => finding("empty box", [box], `${label(box)} is a box with nothing in it`));
 }
 
+function brokenPictures() {
+	// The writing box's editor spaces its lines with img elements that have no address.
+	return [...document.querySelectorAll("img[src]")]
+		.filter((img) => shown(img) && img.complete && img.naturalWidth === 0)
+		.map((img) => finding("broken picture", [img], `${label(img)} did not load ${img.getAttribute("src")}`));
+}
+
 /** Every finding on the page as it is now, each once. */
 export function checkPage() {
-	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys(), ...emptyBoxes()];
+	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys(), ...emptyBoxes(), ...brokenPictures()];
 	const seen = new Set();
 	return all.filter((f) => !seen.has(f.key) && seen.add(f.key));
 }

@@ -26,6 +26,7 @@ fn ui_type(ext: &str) -> &'static str {
 		".woff" => "font/woff",
 		".ttf" => "font/ttf",
 		".png" => "image/png",
+		".svg" => "image/svg+xml",
 		".mp3" => "audio/mpeg",
 		_ => "application/octet-stream",
 	}
@@ -112,6 +113,9 @@ mod tests {
 		let cache = |r: &Response| r.headers()[header::CACHE_CONTROL].to_str().unwrap().to_string();
 		assert_eq!(cache(&ui_file(&dir, &parts("/graph")).await.unwrap()), "no-cache");
 		assert_eq!(cache(&ui_file(&dir, &parts("/assets/a.js")).await.unwrap()), HASHED);
+		// A picture the page shows needs its own type: the window does not draw one sent as plain bytes.
+		gs_base::fsx::write_text_atomic(&dir.join("g.svg"), "<svg/>").unwrap();
+		assert_eq!(ui_file(&dir, &parts("/g.svg")).await.unwrap().headers()[header::CONTENT_TYPE], "image/svg+xml");
 		assert!(ui_file(&dir, &parts("/api/nope")).await.is_none());
 		assert!(ui_file(&dir, &parts("/..%2fserver.js")).await.is_none());
 		assert!(ui_file(&dir, &parts("/notes.bar")).await.is_none());

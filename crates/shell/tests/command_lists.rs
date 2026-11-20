@@ -53,7 +53,7 @@ fn the_three_command_lists_name_the_same_commands() {
 
 /// What the terminal window's page must never reach: the main window's own, the updater, the
 /// folder picker, printing and file paths, and the call that opens the window itself.
-const MAIN_ONLY: [&str; 11] = [
+const MAIN_ONLY: [&str; 12] = [
 	"show_window",
 	"toggle_menu",
 	"update_state",
@@ -62,6 +62,7 @@ const MAIN_ONLY: [&str; 11] = [
 	"pick_folder",
 	"report_bug",
 	"list_fonts",
+	"apply_app_icon",
 	"print_pdf",
 	"drag_paths",
 	"terminal_window_open",

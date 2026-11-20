@@ -94,6 +94,13 @@ pub mod appkit {
 		mac::print::print_pdf(&window::main_window(&webview)?, &pdf_in(&paths.data, &path)?)
 	}
 
+	/// The Dock and the app's own bundle take the app icon saved in Settings.
+	#[tauri::command]
+	pub fn apply_app_icon(webview: Webview, origin: State<AppOrigin>, paths: State<Paths>) -> Result<(), String> {
+		trusted(&webview, &origin)?;
+		mac::app_icon::apply(&paths.data.join("settings.json"))
+	}
+
 	/// The paths of the files being dragged over the window (WebKit gives the page none).
 	#[tauri::command]
 	pub fn drag_paths(webview: Webview, origin: State<AppOrigin>) -> Result<Vec<String>, String> {

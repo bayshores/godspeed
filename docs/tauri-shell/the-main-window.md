@@ -4,7 +4,7 @@
 |---|---|
 | Label | `main`, one at a time. |
 | Size | 1440 × 900 logical, centered, minimum 640 × 600. |
-| Color | `appearance.background` from `<data>/settings.json`, read for each new window, else Paper `#c9c7bd`. |
+| Color | `appearance.background` from `<data>/settings.json`, read for each new window, else Graphite `#161616`. |
 | Title | `godspeed`, then the page's `document.title` (empty and unchanged titles skipped). |
 | Mac title bar | `TitleBarStyle::Overlay`, `hidden_title(true)`, `traffic_light_position(16, 25)`. |
 | Windows and Linux title bar | The system title bar. The menu bar is hidden after build; a lone Alt press and release toggles it. |
@@ -155,3 +155,17 @@ Blob downloads (demo and visual cards, Export as Markdown) show a save dialog. O
 ### Printing
 
 Mac: `print_pdf(path)` canonicalizes the path and refuses anything that is not a `.pdf` file inside the data folder. It prints the PDF with PDFKit as a sheet on the main window, scaled to fit, on a copy of the shared print info. Windows and Linux keep the page's pdf.js and `window.print()` path; the `print` capability grants `core:webview:allow-print` there.
+
+### App icon
+
+Mac only. Settings, Appearance, App icon offers the app's own icon (Graphite) and the pictures in `crates/shell/icons/choices/`. The pick is `appearance.appIcon` in `settings.json`: `null` for the app's own, else the picture's name.
+
+| When | What `mac/app_icon.rs` does |
+|---|---|
+| A pick in Settings | The page saves the setting, then calls `apply_app_icon()`. The Dock takes the picture at once (`NSApplication.applicationIconImage`), and the app's bundle gets it as a custom icon (`NSWorkspace.setIcon`, what Finder's Get Info does), so the Dock, Finder and Spotlight keep it after quit. Graphite removes the custom icon. |
+| Every start | With a picture picked, the Dock takes it, and a bundle with no custom icon gets it back: an update replaces the bundle. With Graphite picked nothing is touched, so an icon the learner pasted in Finder stays. |
+
+- A custom icon adds the file `Icon\r` and a Finder flag to the bundle. `codesign --verify --deep` still passes; `--strict` does not.
+- A build run from `target/` has no bundle: only the Dock changes, until quit.
+- A bundle that cannot be written (a read-only disk) keeps its icon. The pick shows an error line in Settings; at start the failure goes to the log.
+- macOS draws a custom icon as it is: no Dark, Clear or Tinted look.

@@ -69,9 +69,9 @@ describe("onboarding screen helpers", () => {
 		assert.match(html, /<h1[^>]*>Add your first space<\/h1>/);
 		assert.ok(html.includes("inside"));
 	});
-	it("the wordmark: the pixel g on its tile beside the app's name", () => {
+	it("the wordmark: the app's icon beside the app's name", () => {
 		const html = renderToStaticMarkup(<Wordmark />);
-		assert.match(html, /<svg[^>]*viewBox="0 0 132 132"/);
+		assert.match(html, /<img[^>]*src="\/app-icons\/graphite\.svg"/);
 		assert.match(html, /<h1[^>]*>godspeed<\/h1>/);
 	});
 	it("dotDelay: dots appear left to right", () => {

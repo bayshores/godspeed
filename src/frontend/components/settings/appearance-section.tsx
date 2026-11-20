@@ -1,7 +1,7 @@
 /**
  * Settings → Appearance:
- * background presets on top, the reading font and the text size (the app's
- * zoom, desktop app only) on the left and a live lesson preview on the right. The preview uses the real lesson styles,
+ * background presets on top, the reading font, the text size (the app's
+ * zoom, desktop app only) and the app icon (Mac app only) on the left and a live lesson preview on the right. The preview uses the real lesson styles,
  * so every saved change shows in it (and in the app behind the page).
  */
 
@@ -10,7 +10,7 @@ import type { AppearanceSettings } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { inTerminal } from "@/frontend/components/focus-hygiene";
 import { cn } from "@/frontend/lib/utils";
-import { BACKGROUND_PRESETS, PAPER, appearanceToWrite, derivedPalette, readableBackground } from "./appearance-model.ts";
+import { APP_ICONS, BACKGROUND_PRESETS, GRAPHITE, appearanceToWrite, derivedPalette, readableBackground } from "./appearance-model.ts";
 import { DEFAULT_READING_FONT, FontMenuList } from "./font-menu";
 import { Slider } from "./controls.tsx";
 import { ZOOM_STOPS, zoomFactor, zoomIndex, zoomLabel } from "./text-size-model.ts";
@@ -49,12 +49,13 @@ export function AppearanceSection({
 	// Every write sends the section without the retired type fields.
 	const appearance = appearanceToWrite(stored);
 	const background = appearance.background ?? null;
-	const shownBackground = background ?? PAPER;
-	const isPreset = BACKGROUND_PRESETS.some((p) => p.color === background);
+	const shownBackground = background ?? GRAPHITE;
+	// By the color shown, so Graphite saved as its color lights the Graphite tile.
+	const isPreset = BACKGROUND_PRESETS.some((p) => (p.color ?? GRAPHITE) === shownBackground);
 
 	return (
 		// Wide, the controls take the left half and the preview the right.
-		<div className="grid grid-cols-[340px_minmax(0,1fr)] items-start gap-(--lh-gap) [grid-template-areas:'bg_bg'_'font_preview'] @[1100px]/page:grid-cols-2 @[1100px]/page:[grid-template-areas:'bg_preview'_'font_preview']">
+		<div className="grid grid-cols-[340px_minmax(0,1fr)] items-start gap-(--lh-gap) [grid-template-areas:'bg_bg'_'font_preview'_'icon_preview'] @[1100px]/page:grid-cols-2 @[1100px]/page:[grid-template-areas:'bg_preview'_'font_preview'_'icon_preview']">
 			<Pane data-testid="group-background" className="lh-card [grid-area:bg]">
 				<div className="lh-card-head">
 					<h2 className="lh-card-title">Background</h2>
@@ -64,8 +65,8 @@ export function AppearanceSection({
 						<ThemeTile
 							key={preset.name}
 							name={preset.name}
-							color={preset.color ?? PAPER}
-							on={preset.color === background}
+							color={preset.color ?? GRAPHITE}
+							on={(preset.color ?? GRAPHITE) === shownBackground}
 							onPick={() => onSectionChange({ ...appearance, background: preset.color })}
 						/>
 					))}
@@ -97,6 +98,18 @@ export function AppearanceSection({
 					</Control>
 				)}
 			</Pane>
+			{typeof window !== "undefined" && window.lh?.applyAppIcon && (
+				<Pane data-testid="group-app-icon" className="lh-card w-[340px] [grid-area:icon]">
+					<div className="lh-card-head">
+						<h2 className="lh-card-title">App icon</h2>
+					</div>
+					<div className="flex gap-(--lh-gap)">
+						{APP_ICONS.map(({ name, icon }) => (
+							<IconTile key={name} name={name} picture={icon ?? "graphite"} on={icon === (appearance.appIcon ?? null)} onPick={() => onSectionChange({ ...appearance, appIcon: icon })} />
+						))}
+					</div>
+				</Pane>
+			)}
 			<Preview />
 		</div>
 	);
@@ -142,6 +155,18 @@ function ThemeTile({ name, color, on, onPick }: { name: string; color: string; o
 				<span className="h-[5px] w-10" style={{ background: p["--foreground"] }} />
 				<span className="h-[3px] w-[70px] max-w-full" style={{ background: p["--foreground"] }} />
 				<span className="h-[3px] w-[54px] max-w-full" style={{ background: p["--foreground"] }} />
+			</span>
+			<span className={cn("text-sm text-ink", on && "font-medium")}>{name}</span>
+		</button>
+	);
+}
+
+/** One app icon: its picture in public/app-icons, and its name. */
+function IconTile({ name, picture, on, onPick }: { name: string; picture: string; on: boolean; onPick: () => void }) {
+	return (
+		<button type="button" aria-pressed={on} data-testid={`app-icon-${picture}`} onClick={onPick} className="lh-press flex flex-col items-center gap-1.5">
+			<span className={cn("rounded-[18px] border-2 p-1", on ? "border-ink" : "border-transparent")}>
+				<img src={`/app-icons/${picture}.svg`} alt="" className="block size-16" />
 			</span>
 			<span className={cn("text-sm text-ink", on && "font-medium")}>{name}</span>
 		</button>
