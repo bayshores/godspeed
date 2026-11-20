@@ -18,7 +18,7 @@ pub(crate) fn page_text(page: &PdfPage) -> Result<String, String> {
 
 /// The page text's UTF-16 units, each with the box of the character it came from (none for a line
 /// end the text adds).
-fn page_units(page: &PdfPage) -> Result<(Vec<u16>, Vec<Option<PdfRect>>), String> {
+pub(crate) fn page_units(page: &PdfPage) -> Result<(Vec<u16>, Vec<Option<PdfRect>>), String> {
 	let text = page.text().map_err(|_| INVALID.to_owned())?;
 	let view = page.boundaries().bounding().ok().map(|b| b.bounds);
 	let (mut units, mut boxes) = (Vec::new(), Vec::new());
@@ -87,7 +87,7 @@ fn page_units(page: &PdfPage) -> Result<(Vec<u16>, Vec<Option<PdfRect>>), String
 	Ok((text, text_boxes))
 }
 
-const NEWLINE: u16 = b'\n' as u16;
+pub(crate) const NEWLINE: u16 = b'\n' as u16;
 
 /// Where quoted words sit on a page, as fractions of the page image from its top left.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -100,7 +100,7 @@ pub struct QuoteBox {
 
 /// One box per line of the text from `start` to `end`: the union of its characters' boxes, turned
 /// and cropped the way the page renders.
-fn line_boxes(page: &PdfPage, boxes: &[Option<PdfRect>], text: &[u16], start: usize, end: usize) -> Vec<QuoteBox> {
+pub(crate) fn line_boxes(page: &PdfPage, boxes: &[Option<PdfRect>], text: &[u16], start: usize, end: usize) -> Vec<QuoteBox> {
 	let mut lines: Vec<(f32, f32, f32, f32)> = Vec::new();
 	let mut open = false;
 	for i in start..end.min(text.len()) {

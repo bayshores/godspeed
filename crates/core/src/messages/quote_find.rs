@@ -165,6 +165,26 @@ pub fn find_once(text: &str, quote: &str) -> Result<(usize, usize), QuoteMiss> {
 	}
 }
 
+/// Where the first words of something printed sit in a page's `text`, as UTF-16 offsets: the one
+/// place they start a line, or else the one place they are at all. Unlike a quote in a mark, the
+/// words may hold any character.
+pub fn find_start(text: &str, words: &str) -> Result<(usize, usize), QuoteMiss> {
+	let (needle, ..) = fold_for_match(words);
+	if needle.is_empty() {
+		return Err(QuoteMiss::Absent);
+	}
+	let (hay, from, soft) = fold_for_match(text);
+	let units = to_utf16(text);
+	let starts_line = |at: usize| units[..from[at]].iter().rev().find(|&&u| !is_space(u) || u == 0x0a).is_none_or(|&u| u == 0x0a);
+	let found: Vec<(usize, usize)> = (0..hay.len()).filter_map(|at| match_end(&hay, &soft, &needle, at).filter(|&end| end > at).map(|end| (at, end))).collect();
+	let at_line_starts: Vec<(usize, usize)> = found.iter().copied().filter(|&(at, _)| starts_line(at)).collect();
+	match (at_line_starts.as_slice(), found.as_slice()) {
+		(&[(at, end)], _) | (&[], &[(at, end)]) => Ok((from[at], from[end - 1] + 1)),
+		(&[], &[]) => Err(QuoteMiss::Absent),
+		_ => Err(QuoteMiss::Twice),
+	}
+}
+
 /// `find_once` for a quote the agent wrote, which must also be 2 or more words, or one code
 /// expression (a word holding something other than letters and digits), at most `QUOTE_MAX` long.
 pub fn check_quote(passage: &str, quote: &str) -> Result<(usize, usize), QuoteMiss> {
@@ -209,6 +229,17 @@ mod tests {
 		assert_eq!(find_once("I said \u{201c}hi\u{201d} twice", "\"hi\" twice"), Ok((7, 17)));
 		// Offsets count UTF-16 units, so an emoji before the words moves them by 2.
 		assert_eq!(find_once("\u{1f600} a b", "a b"), Ok((3, 6)));
+	}
+
+	#[test]
+	fn first_words_are_found_where_they_start_a_line() {
+		let page = "3. v = (hi + lo)/2\nsee step 3. Then\n  3. (12 points) For each $x$";
+		assert_eq!(find_start(page, "3. (12 points) For each $x$").map(|(start, _)| start), Ok(38));
+		assert_eq!(find_start(page, "Then").map(|(start, _)| start), Ok(31), "found once, though not at a line start");
+		assert_eq!(find_start("a 3. b\n3. b", "3. b").map(|(start, _)| start), Ok(7), "the line start wins");
+		assert_eq!(find_start(page, "3."), Err(QuoteMiss::Twice));
+		assert_eq!(find_start(page, "4. Next"), Err(QuoteMiss::Absent));
+		assert_eq!(find_start(page, "  "), Err(QuoteMiss::Absent));
 	}
 
 	#[test]

@@ -8,6 +8,8 @@ mod info;
 mod open;
 
 pub mod ops;
+pub mod piece;
+pub mod recolor;
 pub mod render;
 #[cfg(feature = "test-support")]
 pub mod test_support;
@@ -16,5 +18,6 @@ pub mod worker;
 
 pub use info::{PdfInfo, PdfPageInfo, may_hold_broken_formulas};
 pub use ops::{PdfSearchHit, PdfShape};
-pub use render::RenderedPdfPage;
+pub use piece::{Found, Piece, PieceLabel, PiecePart};
+pub use render::{PageCrop, RenderedPdfPage};
 pub use worker::Pdf;
