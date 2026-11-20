@@ -18,7 +18,7 @@ use gs_services::app::agent_rules::{RuleFailure, agent_saved_rules, edit_rule, r
 use gs_services::app::boot::boot_info;
 use gs_services::app::old_setup::remove_old_setup;
 use gs_services::app::prompt_segments::{prompt_segments, reset_prompt_segment, save_prompt_segment};
-use gs_services::app::reading_pages::{ReadingError, parse_page, reading_document, reading_pdf_page};
+use gs_services::app::reading_pages::{PieceQuery, ReadingError, parse_page, reading_document, reading_pdf_page};
 use gs_services::app::{agent_actions::recent_agent_actions, patch_settings_section, put_settings_section};
 use gs_services::spaces::citations::{cited_page, cited_passage, passage_range};
 
@@ -241,6 +241,8 @@ async fn cited(State(app): State<Arc<App>>, Path(file_id): Path<String>, uri: Ur
 	}
 }
 
-async fn cited_page_png(State(app): State<Arc<App>>, Path((file_id, n)): Path<(String, String)>) -> Result<Response, Unhandled> {
-	page_png(cited_page(&app, &file_id, &n).await)
+async fn cited_page_png(State(app): State<Arc<App>>, Path((file_id, n)): Path<(String, String)>, uri: Uri) -> Result<Response, Unhandled> {
+	let params = query(&uri);
+	let piece = PieceQuery { crop: param(&params, "crop"), w: param(&params, "w"), ink: param(&params, "ink") };
+	page_png(cited_page(&app, &file_id, &n, piece).await)
 }

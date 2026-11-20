@@ -7,6 +7,7 @@ use gs_json::{Json, Obj};
 
 use super::file_state::FileKind;
 use super::new_files::is_recent_change;
+use super::page_piece::check_piece;
 use super::space_path::read_path;
 use super::space_deadlines::{id_list, squash, with_files};
 use super::space_work::is_waiting_file;
@@ -49,6 +50,10 @@ fn clean_problem(p: &Json) -> Json {
 		out.insert(key, p[key].clone());
 	}
 	out.insert_present("page", p.get("page"));
+	// A piece that no longer holds is left off: the problem still reads from its text.
+	if let Some(piece) = p.get("piece").and_then(|piece| check_piece(piece).ok()) {
+		out.insert("piece", piece);
+	}
 	out.insert("done", p["done"].clone());
 	Json::Obj(out)
 }
@@ -313,6 +318,17 @@ mod tests {
 
 	fn file(id: &str, origin: &str, added: &str) -> Json {
 		json!({ "id": id, "origin": origin, "name": format!("{id}.pdf"), "path": id, "kind": "study", "contentFp": "x", "status": "ready", "addedAt": added })
+	}
+
+	#[test]
+	fn a_problem_keeps_its_piece_when_it_holds_and_reads_without_it_when_it_does_not() {
+		let piece = json!({ "fileId": "f1", "parts": [{ "page": 2, "crop": [0.1, 0.2, 0.9, 0.5], "aspect": 0.77 }] });
+		let deadline = |problems: Json| json!({ "id": "d1", "kind": "homework", "name": "H", "date": "2026-11-20", "fileIds": [], "done": false, "problems": problems });
+		let read = |problems: Json| read_deadline(&deadline(problems))["problems"].clone();
+		let posed = |piece: &Json| json!([{ "number": "1", "title": "t", "text": "x", "piece": piece, "done": false }]);
+		assert_eq!(read(posed(&piece))[0]["piece"], piece);
+		assert!(read(posed(&json!({ "fileId": "f1", "parts": [] })))[0].get("piece").is_none());
+		assert!(read(json!([{ "number": "1", "title": "t", "text": "x", "done": false }]))[0].get("piece").is_none());
 	}
 
 	#[test]

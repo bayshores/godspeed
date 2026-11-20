@@ -19,7 +19,7 @@ use gs_agent::tools::lesson_parts::LessonParts;
 use gs_agent::tools::lesson::{ProberToolContext, StudyToolContext, TeacherToolContext, prober_tools, study_tools, teacher_tools};
 use gs_agent::tools::mermaid_plan::parse_mermaid_plan;
 use gs_agent::tools::plan::PlanContext;
-use gs_agent::tools::ports::{ChatPort, Deliver, JobPort, Spawn};
+use gs_agent::tools::ports::{ChatPort, Deliver, JobPort, ProblemPages, Spawn};
 use gs_agent::tools::practice::{GraphNodes, PracticeToolContext, practice_tools};
 use gs_agent::tools::probe::ProbeDoneContext;
 use gs_agent::tools::questions::bare_question_tools;
@@ -39,6 +39,19 @@ use gs_json::{Json, Obj, json, parse, stringify};
 use gs_search::index::PassageRef;
 use gs_store::prompt_overrides::PromptOverrides;
 use parking_lot::Mutex;
+
+/// Pages that find nothing: the golden cases pose problems from typed words.
+struct NoPages;
+
+impl ProblemPages for NoPages {
+	fn find<'a>(&'a self, _source: &'a Json, _typed: Option<&'a str>) -> BoxFuture<'a, Result<Json, String>> {
+		Box::pin(async { Err("no pages here".to_owned()) })
+	}
+}
+
+fn no_pages() -> Arc<dyn ProblemPages> {
+	Arc::new(NoPages)
+}
 
 const FILE_TOOLS: [&str; 4] = ["read", "ls", "find", "grep"];
 const KINDS: [(&str, AgentKind); 5] = [
@@ -292,11 +305,11 @@ impl World {
 	}
 
 	fn practice(&self, chat_id: &str) -> PracticeToolContext {
-		PracticeToolContext { chat_id: chat_id.to_owned(), chat_store: self.chat_port(), graph_nodes: None, jobs: None, side: LessonSide::default() }
+		PracticeToolContext { chat_id: chat_id.to_owned(), chat_store: self.chat_port(), graph_nodes: None, jobs: None, side: LessonSide::default(), pages: no_pages() }
 	}
 
 	fn homework(&self, chat_id: &str, homework: Arc<Deadline>) -> HomeworkToolContext {
-		HomeworkToolContext { chat_id: chat_id.to_owned(), chat_store: self.chat_port(), homework, jobs: None, side: LessonSide::default() }
+		HomeworkToolContext { chat_id: chat_id.to_owned(), chat_store: self.chat_port(), homework, jobs: None, side: LessonSide::default(), pages: no_pages() }
 	}
 }
 
@@ -424,7 +437,7 @@ fn agents(prompts: &PromptOverrides) -> Json {
 	let rules = || Some("The learner's rules:\n- Use Python.".to_owned());
 	let off = || json!({ "research": false, "pdf": false });
 	let teacher = || TeacherToolContext { plan: w.plan("lesson"), jobs: w.jobs("lesson"), side: w.side() };
-	let study = StudyToolContext { teacher: teacher(), graph_nodes: Some(nodes_of(Vec::new())), check_marks: marks_kept(), writes_plan: false };
+	let study = StudyToolContext { teacher: teacher(), graph_nodes: Some(nodes_of(Vec::new())), check_marks: marks_kept(), pages: no_pages(), writes_plan: false };
 	let deadline = Deadline::new(Vec::new());
 	let explicit: Vec<Arc<dyn Tool>> = bare_question_tools().into_iter().map(FnTool::into_arc).collect();
 	json!({
@@ -470,7 +483,7 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	let mut prober_full = w.prober("lesson");
 	prober_full.side = w.side();
 	let teacher_full = TeacherToolContext { side: w.side(), ..w.teacher("lesson") };
-	let study_ctx = StudyToolContext { teacher: teacher_full.clone(), graph_nodes: Some(nodes_of(vec![json!({ "id": "n_a", "name": "Alpha" })])), check_marks: marks_kept(), writes_plan: false };
+	let study_ctx = StudyToolContext { teacher: teacher_full.clone(), graph_nodes: Some(nodes_of(vec![json!({ "id": "n_a", "name": "Alpha" })])), check_marks: marks_kept(), pages: no_pages(), writes_plan: false };
 	let study_planning = StudyToolContext { writes_plan: true, ..study_ctx.clone() };
 	let practice_full = PracticeToolContext { graph_nodes: Some(nodes_of(Vec::new())), jobs: Some(w.jobs("lesson")), side: w.side(), ..w.practice("lesson") };
 	let homework_full = HomeworkToolContext { jobs: Some(w.jobs("lesson")), side: w.side(), ..w.homework("lesson", Deadline::new(Vec::new())) };
@@ -679,7 +692,7 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	.collect();
 	let out = script(&reg, vec![("problem", with(&problem_args(), vec![("target", json!(["unknown"]))])), ("problem", with(&problem_args(), vec![("target", json!(["n_a"]))]))]).await;
 	case("practice: targets", json!({ "prepared": prepared, "out": out }));
-	let study_ctx = StudyToolContext { teacher: w.teacher("lesson"), graph_nodes: Some(nodes_of(Vec::new())), check_marks: marks_kept(), writes_plan: false };
+	let study_ctx = StudyToolContext { teacher: w.teacher("lesson"), graph_nodes: Some(nodes_of(Vec::new())), check_marks: marks_kept(), pages: no_pages(), writes_plan: false };
 	let reg = study_tools(&study_ctx, None, &LessonParts::new(&study_ctx.teacher.plan));
 	case(
 		"practice: study problem",

@@ -3,6 +3,7 @@
 
 use std::sync::Arc;
 
+use futures_util::future::BoxFuture;
 use gs_json::Json;
 use gs_store::chats::ChatStore;
 use gs_store::jobs::{CreateJobInit, JobStore};
@@ -46,3 +47,11 @@ pub type Deliver = Arc<dyn Fn(Json) + Send + Sync>;
 /// Starts the background runner for a fresh job. The input rides along because the spawn happens
 /// before the tool call is saved.
 pub type Spawn = Arc<dyn Fn(&Json, &Json) + Send + Sync>;
+
+/// Cuts a problem out of a file's page for the tools that pose one.
+pub trait ProblemPages: Send + Sync {
+	/// `source` as the tool takes it (`fileId`, `page`, `starts`, `ends`) and the words the teacher
+	/// typed for the problem, if any. Gives `{ piece, text }`, or why there is no piece, in words
+	/// for the teacher.
+	fn find<'a>(&'a self, source: &'a Json, typed: Option<&'a str>) -> BoxFuture<'a, Result<Json, String>>;
+}

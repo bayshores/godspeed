@@ -17,6 +17,7 @@ use super::jobs::{JobToolContext, demo_tool, pdf_tool, research_tool, visual_too
 use super::lesson_parts::LessonParts;
 use super::plan::{PlanContext, plan_init_tool};
 use super::plot::plot_tool;
+use super::ports::ProblemPages;
 use super::practice::{GraphNodes, PlanNodes, TurnGate, problem_is_active, study_problem_tools};
 use super::probe::{ProbeDoneContext, ProbeGate, probe_done_tool};
 use super::questions::{ask_user_question_tool, plan_node_ids, probe_explain_tool, probe_quiz_tool, study_quiz_tool, teach_explain_tool, teach_quiz_tool, write_code_tool};
@@ -47,6 +48,7 @@ pub struct StudyToolContext {
 	pub teacher: TeacherToolContext,
 	pub graph_nodes: Option<GraphNodes>,
 	pub check_marks: CheckMarks,
+	pub pages: Arc<dyn ProblemPages>,
 	/// The app made no plan for this lesson, so the agent writes it with plan_init.
 	pub writes_plan: bool,
 }
@@ -142,7 +144,7 @@ pub fn study_tools(ctx: &StudyToolContext, enabled: Option<&Json>, parts: &Arc<L
 	let recall = free_recall(enabled);
 	let question = if recall { teach_explain_tool(&ctx.teacher.plan) } else { study_quiz_tool(&ctx.teacher.plan) };
 	let mut tools = teacher_tools_asking(&ctx.teacher, enabled, question, ctx.writes_plan);
-	tools.extend(study_problem_tools(&gate, record.clone(), ctx.graph_nodes.clone(), plan_nodes.clone()));
+	tools.extend(study_problem_tools(&gate, record.clone(), ctx.graph_nodes.clone(), plan_nodes.clone(), &ctx.pages));
 	if !recall {
 		tools.push(plot_tool(record.clone(), parts));
 	}

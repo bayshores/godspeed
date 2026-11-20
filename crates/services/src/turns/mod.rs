@@ -13,6 +13,7 @@ mod job_host;
 mod lesson_agent;
 pub mod lesson_events;
 pub mod lessons;
+mod problem_pages;
 pub mod reply_nudges;
 pub mod review;
 pub mod turn_liveness;

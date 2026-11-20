@@ -16,7 +16,7 @@ use crate::graph::study_start::deadline_topics_for;
 use crate::spaces::space_card::{space_card_for, space_file_path};
 use crate::spaces::update_space_deadline;
 
-fn deadline_of<'a>(space: &'a Json, deadline_id: &str) -> Option<&'a Json> {
+pub(super) fn deadline_of<'a>(space: &'a Json, deadline_id: &str) -> Option<&'a Json> {
 	space["deadlines"].as_arr()?.iter().find(|d| d["id"].as_str() == Some(deadline_id))
 }
 

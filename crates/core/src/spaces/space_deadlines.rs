@@ -7,6 +7,7 @@ use gs_base::re::collapse_spaces;
 use gs_base::text;
 use gs_json::{Json, Obj, stringify};
 
+use super::page_piece::check_piece;
 use crate::contracts::space::{SpaceDeadlineError, MAX_HOMEWORK_PROBLEMS, is_calendar_date, is_clock_time, is_deadline_kind};
 
 fn refuse(code: &'static str, message: String) -> SpaceDeadlineError {
@@ -105,8 +106,17 @@ fn deadline_problems(problems: Option<&Json>) -> Result<Vec<Json>, SpaceDeadline
 		problem.insert("number", number.clone());
 		problem.insert("title", if title.is_empty() { number } else { title });
 		problem.insert("text", body);
-		if let Some(page) = p["page"].as_f64().filter(|n| n.fract() == 0.0 && *n > 0.0) {
-			problem.insert("page", page);
+		// A piece knows its pages, so a problem with one keeps no page of its own.
+		match p.get("piece").filter(|piece| !piece.is_null()) {
+			Some(piece) => {
+				let checked = check_piece(piece).map_err(|why| refuse("bad_problems", format!("Problem {} has a piece that does not hold: {why}", i + 1)))?;
+				problem.insert("piece", checked);
+			}
+			None => {
+				if let Some(page) = p["page"].as_f64().filter(|n| n.fract() == 0.0 && *n > 0.0) {
+					problem.insert("page", page);
+				}
+			}
 		}
 		problem.insert("done", p["done"].as_bool() == Some(true));
 		out.push(Json::Obj(problem));
@@ -322,5 +332,15 @@ mod tests {
 		assert_eq!(bad(json!([1])), "Problem 1 is not an object");
 		assert_eq!(bad(json!([{ "number": "1" }])), "Problem 1 needs a number and its text");
 		assert_eq!(bad(json!([{ "number": "1", "text": "a" }, { "number": "1", "text": "b" }])), "Two problems are numbered 1");
+	}
+
+	#[test]
+	fn a_problem_with_a_piece_keeps_the_checked_piece_and_no_page() {
+		let prev = json!({ "id": "d", "kind": "homework", "name": "HW", "date": "2026-11-02", "fileIds": [], "done": false });
+		let piece = json!({ "fileId": "f1", "parts": [{ "page": 2, "crop": [0.12554, 0.2, 0.9, 0.5], "aspect": 0.77, "extra": 1 }], "stray": true });
+		let out = changed_deadline(&known(), &prev, &json!({ "problems": [{ "number": "1", "text": "Show it.", "page": 3, "piece": piece }] }), "T").unwrap();
+		assert_eq!(stringify(&out["problems"]), r#"[{"number":"1","title":"1","text":"Show it.","piece":{"fileId":"f1","parts":[{"page":2,"crop":[0.1255,0.2,0.9,0.5],"aspect":0.77}]},"done":false}]"#);
+		let bad = json!({ "number": "2", "text": "x", "piece": { "fileId": "f1", "parts": [] } });
+		assert_eq!(code(changed_deadline(&known(), &prev, &json!({ "problems": [bad] }), "T")).1, "Problem 1 has a piece that does not hold: a piece has 1 to 4 parts");
 	}
 }

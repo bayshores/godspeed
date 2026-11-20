@@ -3,6 +3,7 @@
 //! the read tool resolves against), never anything inside a dot folder or another place the
 //! file tools refuse.
 
+use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -11,12 +12,98 @@ use gs_agent::fs_tools::protected::Protected;
 use gs_base::config::resolve;
 use gs_base::{fsx, text};
 use gs_json::{Json, json};
+use gs_pdf::PageCrop;
 
 use crate::App;
 
 pub(crate) const TEXT_MAX_BYTES: u64 = 2 * 1024 * 1024;
 const PAGE_DPI: f64 = 100.0;
 pub(crate) const CACHE_LIMIT: usize = 48;
+/// The widths a piece is drawn at: a width asked for is raised to the next one, so pieces of one
+/// page share pictures.
+const PIECE_WIDTHS: [u32; 5] = [480, 720, 960, 1440, 1920];
+const PIECE_DEFAULT_WIDTH: u32 = 960;
+/// The bytes the drawn pieces may hold; the oldest go first.
+const PIECE_CACHE_BYTES: usize = 32 * 1024 * 1024;
+
+/// Drawn pieces of PDF pages, oldest first, up to `PIECE_CACHE_BYTES`.
+#[derive(Default)]
+pub(crate) struct PieceCache {
+	pictures: VecDeque<(String, Arc<Vec<u8>>)>,
+	bytes: usize,
+}
+
+impl PieceCache {
+	fn get(&self, key: &str) -> Option<Arc<Vec<u8>>> {
+		self.pictures.iter().find(|(cached, _)| cached == key).map(|(_, png)| png.clone())
+	}
+
+	fn keep(&mut self, key: String, png: Arc<Vec<u8>>) {
+		self.bytes += png.len();
+		self.pictures.push_back((key, png));
+		while self.bytes > PIECE_CACHE_BYTES && self.pictures.len() > 1 {
+			if let Some((_, oldest)) = self.pictures.pop_front() {
+				self.bytes -= oldest.len();
+			}
+		}
+	}
+}
+
+/// The `crop`, `w` and `ink` a page's picture was asked for, as the request wrote them.
+#[derive(Clone, Copy, Default)]
+pub struct PieceQuery<'a> {
+	pub crop: Option<&'a str>,
+	pub w: Option<&'a str>,
+	pub ink: Option<&'a str>,
+}
+
+/// A piece of a page as drawn: where, how wide and in which print color.
+#[derive(Debug, PartialEq)]
+pub(crate) struct PieceView {
+	crop: PageCrop,
+	width: u32,
+	ink: Option<[u8; 3]>,
+}
+
+impl PieceQuery<'_> {
+	/// None when nothing was asked for (the whole page as it prints). Else the view, or why the
+	/// request is wrong.
+	pub(crate) fn view(self) -> Result<Option<PieceView>, ReadingError> {
+		if self.crop.is_none() && self.w.is_none() && self.ink.is_none() {
+			return Ok(None);
+		}
+		let crop = self.crop.map_or(Ok(PageCrop::WHOLE), read_crop)?;
+		let width = self.w.map_or(Ok(PIECE_DEFAULT_WIDTH), read_width)?;
+		let ink = self.ink.map(read_ink).transpose()?;
+		Ok(Some(PieceView { crop, width, ink }))
+	}
+}
+
+fn read_crop(raw: &str) -> Result<PageCrop, ReadingError> {
+	const BAD: ReadingError = ReadingError::Refused(400, "crop must be left,top,right,bottom, each from 0 to 1, with left before right and top before bottom");
+	let sides: Vec<f64> = raw.split(',').map(|side| side.trim().parse::<f64>().ok().filter(|n| (0.0..=1.0).contains(n)).ok_or(BAD)).collect::<Result<_, _>>()?;
+	match sides[..] {
+		[left, top, right, bottom] if left < right && top < bottom => Ok(PageCrop { left, top, right, bottom }),
+		_ => Err(BAD),
+	}
+}
+
+fn read_width(raw: &str) -> Result<u32, ReadingError> {
+	if raw.is_empty() || !raw.bytes().all(|b| b.is_ascii_digit()) {
+		return Err(ReadingError::Refused(400, "w must be a whole number of pixels"));
+	}
+	// Digits too many for a number are far above the widest.
+	let asked: u64 = raw.parse().unwrap_or(u64::MAX);
+	Ok(PIECE_WIDTHS.into_iter().find(|width| u64::from(*width) >= asked).unwrap_or(PIECE_WIDTHS[PIECE_WIDTHS.len() - 1]))
+}
+
+fn read_ink(raw: &str) -> Result<[u8; 3], ReadingError> {
+	let channel = |at: usize| raw.get(at..at + 2).and_then(|pair| u8::from_str_radix(pair, 16).ok());
+	match (raw.len(), raw.bytes().all(|b| b.is_ascii_hexdigit()), channel(0), channel(2), channel(4)) {
+		(6, true, Some(r), Some(g), Some(b)) => Ok([r, g, b]),
+		_ => Err(ReadingError::Refused(400, "ink must be six hex digits")),
+	}
+}
 
 /// Why a file or page can't be shown.
 #[derive(Debug, PartialEq)]
@@ -87,6 +174,19 @@ pub(crate) async fn render_pdf_page(app: &App, absolute: &Path, mtime_ms: f64, p
 	Ok(png)
 }
 
+/// The piece of one PDF page `view` asks for, as a PNG, cached by file version.
+pub(crate) async fn render_pdf_piece(app: &App, absolute: &Path, mtime_ms: f64, page: i64, view: &PieceView) -> Result<Arc<Vec<u8>>, ReadingError> {
+	let PieceView { crop, width, ink } = view;
+	let key = format!("{}:{mtime_ms}:{page}:{:?}:{width}:{ink:?}", absolute.display(), [crop.left, crop.top, crop.right, crop.bottom]);
+	if let Some(png) = app.misc.pieces.lock().get(&key) {
+		return Ok(png);
+	}
+	let number = u32::try_from(page).map_err(|_| ReadingError::Refused(404, "No such page"))?;
+	let png = Arc::new(app.pdf.render_page_piece(absolute, number, *crop, *width, *ink).await.map_err(ReadingError::Failed)?);
+	app.misc.pieces.lock().keep(key, png.clone());
+	Ok(png)
+}
+
 /// One PDF page of a file the teacher may show, as a PNG.
 pub async fn reading_pdf_page(app: &App, raw_path: &str, page: i64) -> Result<Arc<Vec<u8>>, ReadingError> {
 	let Servable { absolute, mtime_ms, .. } = servable(app, raw_path).await?;
@@ -130,6 +230,40 @@ mod tests {
 		for raw in ["", "0", "-1", "1.5", "abc", "NaN", "Infinity", "inf", "1e999", "0x", "0x+1", "1_000", "--1", "."] {
 			assert_eq!(parse_page(raw), None, "{raw}");
 		}
+	}
+
+	#[test]
+	fn a_piece_is_asked_for_with_a_crop_a_width_and_an_ink() {
+		let view = |crop, w, ink| PieceQuery { crop, w, ink }.view();
+		assert_eq!(view(None, None, None), Ok(None), "nothing asked: the page as it is");
+		assert_eq!(view(None, Some("1"), None), Ok(Some(PieceView { crop: PageCrop::WHOLE, width: 480, ink: None })));
+		let asked = view(Some("0.1,0.2,0.9,0.5"), None, Some("e6e4dc")).unwrap().unwrap();
+		assert_eq!((asked.crop, asked.width, asked.ink), (PageCrop { left: 0.1, top: 0.2, right: 0.9, bottom: 0.5 }, 960, Some([230, 228, 220])));
+		for (w, width) in [("480", 480), ("481", 720), ("961", 1440), ("1920", 1920), ("1921", 1920), ("99999999999999999999999", 1920), ("0", 480)] {
+			assert_eq!(view(None, Some(w), None).unwrap().unwrap().width, width, "{w}");
+		}
+		for crop in ["", "0,0,1", "0,0,1,1,1", "0,0,1,x", "0.5,0,0.5,1", "0,0.5,1,0.5", "0.9,0,0.1,1", "-0.1,0,1,1", "0,0,1.1,1", "nan,0,1,1", "0,0,inf,1", "0,0,1e999,1"] {
+			assert!(matches!(view(Some(crop), None, None), Err(ReadingError::Refused(400, _))), "{crop}");
+		}
+		for w in ["", "-1", "1.5", "abc", "0x10"] {
+			assert!(matches!(view(None, Some(w), None), Err(ReadingError::Refused(400, _))), "{w}");
+		}
+		for ink in ["", "fff", "fffffff", "#e6e4dc", "gggggg", "+12345"] {
+			assert!(matches!(view(None, None, Some(ink)), Err(ReadingError::Refused(400, _))), "{ink}");
+		}
+	}
+
+	#[test]
+	fn pieces_are_held_by_their_size_and_the_oldest_go_first() {
+		let mut cache = PieceCache::default();
+		let third = PIECE_CACHE_BYTES / 3 + 1;
+		for key in ["a", "b", "c"] {
+			cache.keep(key.to_owned(), Arc::new(vec![0; third]));
+		}
+		assert!(cache.get("a").is_none() && cache.get("b").is_some() && cache.get("c").is_some());
+		cache.keep("huge".to_owned(), Arc::new(vec![0; PIECE_CACHE_BYTES + 1]));
+		assert!(cache.get("huge").is_some() && cache.get("c").is_none(), "one picture over the limit stays alone");
+		assert_eq!(cache.bytes, PIECE_CACHE_BYTES + 1);
 	}
 
 	#[test]

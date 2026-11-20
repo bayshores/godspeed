@@ -17,7 +17,7 @@ use gs_search::index::PassageRef;
 
 use super::space_card::space_file_path;
 use crate::App;
-use crate::app::reading_pages::{CACHE_LIMIT, ReadingError, TEXT_MAX_BYTES, is_pdf, parse_page, render_pdf_page};
+use crate::app::reading_pages::{CACHE_LIMIT, PieceQuery, ReadingError, TEXT_MAX_BYTES, is_pdf, parse_page, render_pdf_page, render_pdf_piece};
 
 /// Whose file this is: the space record that holds it and the file itself.
 fn find_file<'a>(records: &'a [Json], file_id: &str) -> Option<(&'a Json, &'a Json)> {
@@ -237,14 +237,20 @@ async fn line_marks(on_disk: &Path, passages: &[Json], quote: &str) -> Option<Js
 	Some(json!({ "kind": "lines", "first": shown_start, "lines": shown, "spans": Json::from(shown_spans) }))
 }
 
-/// One page of a cited space PDF as a PNG; `page` is the address's text, read like `Number`.
-pub async fn cited_page(app: &App, file_id: &str, page: &str) -> Result<Arc<Vec<u8>>, ReadingError> {
+/// One page of a cited space PDF as a PNG, or the piece of it `piece` asks for; `page` is the
+/// address's text, read like `Number`.
+pub async fn cited_page(app: &App, file_id: &str, page: &str, piece: PieceQuery<'_>) -> Result<Arc<Vec<u8>>, ReadingError> {
 	let Some(page) = parse_page(page) else { return Err(ReadingError::Refused(400, "page must be a whole number from 1")) };
+	let view = piece.view()?;
 	let records = app.stores.spaces.list_space_records();
 	let on_disk = find_file(&records, file_id).filter(|(_, file)| is_pdf(Path::new(name_of(file)))).and_then(|(record, file)| space_file_path(app, record, file));
 	let Some(on_disk) = on_disk else { return Err(ReadingError::Refused(404, "No PDF for that file")) };
 	let meta = tokio::fs::metadata(&on_disk).await.ok().filter(std::fs::Metadata::is_file).ok_or(ReadingError::Refused(404, "No PDF for that file"))?;
-	render_pdf_page(app, Path::new(&on_disk), fsx::modified_ms(&meta), page).await
+	let (path, modified) = (Path::new(&on_disk), fsx::modified_ms(&meta));
+	match view {
+		Some(view) => render_pdf_piece(app, path, modified, page, &view).await,
+		None => render_pdf_page(app, path, modified, page).await,
+	}
 }
 
 #[cfg(test)]
@@ -516,11 +522,39 @@ mod tests {
 		make_space(&app);
 		let page = |file_id: &'static str, n: &'static str| {
 			let app = app.clone();
-			async move { cited_page(&app, file_id, n).await.map(|_| ()) }
+			async move { cited_page(&app, file_id, n, PieceQuery::default()).await.map(|_| ()) }
 		};
 		assert_eq!(page(SLIDES, "0").await, Err(ReadingError::Refused(400, "page must be a whole number from 1")));
 		assert_eq!(page(SLIDES, "1.5").await, Err(ReadingError::Refused(400, "page must be a whole number from 1")));
 		assert_eq!(page(NOTES, "1").await, Err(ReadingError::Refused(404, "No PDF for that file")));
 		assert_eq!(page(GONE, "1").await, Err(ReadingError::Refused(404, "No PDF for that file")));
+	}
+
+	#[tokio::test]
+	async fn a_piece_of_a_page_is_drawn_to_the_width_asked_and_kept_for_the_next_ask() {
+		if std::env::var_os("LH_PDFIUM_PATH").is_none() {
+			return;
+		}
+		let root = scratch_dir("cites-piece");
+		let app = test_app(&root);
+		make_space(&app);
+		let id = app.stores.spaces.list_space_records()[0]["id"].as_str().unwrap().to_owned();
+		std::fs::copy(concat!(env!("CARGO_MANIFEST_DIR"), "/../pdf/tests/fixtures/worksheet.pdf"), app.stores.spaces.files_dir(&id).unwrap().join("slides.pdf")).unwrap();
+		// A PNG says its size in its first chunk.
+		let size = |png: &[u8]| (u32::from_be_bytes(png[16..20].try_into().unwrap()), u32::from_be_bytes(png[20..24].try_into().unwrap()));
+		let ask = |crop, w, ink| {
+			let app = app.clone();
+			async move { cited_page(&app, SLIDES, "1", PieceQuery { crop, w, ink }).await }
+		};
+		let piece = ask(Some("0.1,0.1,0.6,0.3"), Some("700"), None).await.unwrap();
+		let (width, height) = size(&piece);
+		assert!((719..=722).contains(&width), "raised to 720: {width}");
+		assert!(height < width * 3 / 4, "a short piece: {height}");
+		assert!(Arc::ptr_eq(&piece, &ask(Some("0.1,0.1,0.6,0.3"), Some("700"), None).await.unwrap()), "the second ask is the kept picture");
+		let themed = ask(Some("0.1,0.1,0.6,0.3"), Some("700"), Some("e6e4dc")).await.unwrap();
+		assert!(!Arc::ptr_eq(&piece, &themed), "another ink is another picture");
+		assert_eq!(size(&ask(None, Some("960"), None).await.unwrap()).0, 960, "no crop: the whole page at the width asked");
+		assert_eq!(ask(Some("0.6,0.1,0.1,0.3"), None, None).await.map(|_| ()), Err(ReadingError::Refused(400, "crop must be left,top,right,bottom, each from 0 to 1, with left before right and top before bottom")));
+		assert_eq!(ask(None, Some("x"), None).await.map(|_| ()), Err(ReadingError::Refused(400, "w must be a whole number of pixels")));
 	}
 }

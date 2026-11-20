@@ -378,6 +378,13 @@ pub fn explain_input_object() -> Json {
 	object(&["type", "nodeId", "question", "correctAnswer"], fields)
 }
 
+/// The words of a posed problem: its `statement` argument, or when the teacher gave none (the
+/// problem is a piece of a page), the words of the piece in the result's `details`.
+pub fn posed_statement<'a>(arguments: &'a Json, details: &'a Json) -> &'a str {
+	let given = arguments["statement"].str_or_empty();
+	if given.trim().is_empty() { details["text"].str_or_empty() } else { given }
+}
+
 /// The fewest and most choices a problem can show as tick rows.
 const PROBLEM_OPTIONS_MIN: usize = 2;
 const PROBLEM_OPTIONS_MAX: usize = 8;
@@ -457,6 +464,16 @@ mod tests {
 		assert_eq!(stringify(&compact_answer_for_model(&json!({ "kind": "ask", "dismissed": true, "text": "x" }))), r#"{"kind":"ask","dismissed":true}"#);
 		assert_eq!(confidence_level(50.0), 2);
 		assert_eq!(confidence_level(f64::NAN), 3);
+	}
+
+	#[test]
+	fn a_posed_problem_reads_as_its_statement_or_else_the_words_of_its_piece() {
+		let piece = json!({ "piece": {}, "text": "From the page." });
+		assert_eq!(posed_statement(&json!({ "statement": "Typed." }), &piece), "Typed.");
+		assert_eq!(posed_statement(&json!({ "statement": "  " }), &piece), "From the page.");
+		assert_eq!(posed_statement(&json!({ "source": {} }), &piece), "From the page.");
+		assert_eq!(posed_statement(&json!({ "statement": "Typed." }), &Json::Null), "Typed.");
+		assert_eq!(posed_statement(&json!({}), &Json::Null), "");
 	}
 
 	#[test]

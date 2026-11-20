@@ -10,6 +10,7 @@ use gs_json::{Json, Obj};
 use gs_json::js_text::js_string;
 use crate::messages::role::{Role, is_ok_tool_result};
 use crate::messages::tool_calls;
+use super::question_core::posed_statement;
 
 const OUTCOMES: [&str; 5] = ["solved", "solvedWithHints", "movedOn", "surrendered", "dismissed"];
 
@@ -23,6 +24,7 @@ struct OpenProblem<'a> {
 	message_id: Option<&'a Json>,
 	call_id: &'a str,
 	args: &'a Json,
+	statement: &'a str,
 }
 
 /// `new Date(timestamp).toISOString()`: null and booleans read as numbers, text and objects
@@ -71,7 +73,7 @@ pub fn practice_outcomes(messages: &[Json]) -> Vec<Json> {
 		let Some(call_id) = m["toolCallId"].as_str() else { continue };
 		let Some(call) = calls.get(call_id) else { continue };
 		if call.name == "problem" {
-			open = Some(OpenProblem { message_id: call.message_id, call_id, args: call.args });
+			open = Some(OpenProblem { message_id: call.message_id, call_id, args: call.args, statement: posed_statement(call.args, &m["details"]) });
 			continue;
 		}
 		let Some(outcome) = call.args["outcome"].as_str().filter(|o| OUTCOMES.contains(o)) else { continue };
@@ -81,7 +83,7 @@ pub fn practice_outcomes(messages: &[Json]) -> Vec<Json> {
 			entry.insert("messageId", id.clone());
 		}
 		entry.insert("problemCallId", problem.call_id);
-		entry.insert("statement", problem.args["statement"].str_or_empty());
+		entry.insert("statement", problem.statement);
 		entry.insert("targets", targets_of(problem.args));
 		if let Some(node_id) = problem.args["nodeId"].as_str().filter(|n| !n.is_empty()) {
 			entry.insert("nodeId", node_id);
@@ -124,6 +126,16 @@ mod tests {
 		let out = practice_outcomes(&messages);
 		assert_eq!(out.len(), 1);
 		assert_eq!(stringify(&out[0]), r#"{"messageId":"m1","problemCallId":"p1","statement":"S","targets":["f1","f2"],"outcome":"solved","at":"2023-11-14T22:13:20.123Z"}"#);
+	}
+
+	#[test]
+	fn a_problem_from_a_page_has_the_words_of_its_piece() {
+		let messages = [
+			assistant("m1", json!([{ "type": "toolCall", "id": "p1", "name": "problem", "arguments": { "source": { "fileId": "f", "page": 1, "starts": "1." } } }, { "type": "toolCall", "id": "c1", "name": "conclude", "arguments": { "outcome": "solved" } }])),
+			json!({ "role": "toolResult", "toolCallId": "p1", "timestamp": 1, "isError": false, "details": { "piece": {}, "text": "1. First problem" } }),
+			result("c1", 2, false),
+		];
+		assert_eq!(practice_outcomes(&messages)[0]["statement"], Json::from("1. First problem"));
 	}
 
 	#[test]

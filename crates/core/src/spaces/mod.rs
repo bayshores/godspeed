@@ -7,6 +7,7 @@ pub mod kept_pages;
 pub mod lecture_transcript;
 pub mod new_files;
 pub mod linked_folder;
+pub mod page_piece;
 pub mod space_setup;
 pub mod space_tool_text;
 pub mod space_tools;

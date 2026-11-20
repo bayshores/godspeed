@@ -49,6 +49,8 @@ pub struct MiscState {
 	actions: Mutex<Option<Vec<Json>>>,
 	/// Rendered PDF pages for the reading view, oldest first.
 	pages: Mutex<VecDeque<(String, Arc<Vec<u8>>)>>,
+	/// Drawn pieces of cited PDF pages, held by their size.
+	pieces: Mutex<reading_pages::PieceCache>,
 	/// Where quoted words sit on cited PDF pages, oldest first.
 	pub(crate) quote_boxes: Mutex<VecDeque<(String, Json)>>,
 	/// Lines from the teacher's terminal waiting for the window to send them.

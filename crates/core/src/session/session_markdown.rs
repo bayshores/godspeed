@@ -15,6 +15,7 @@ use gs_json::{Json, Obj};
 
 use crate::messages::role::{Role, is_custom};
 use super::code_question::fenced_code;
+use super::question_core::posed_statement;
 use gs_json::js_text::{field_text, js_string, or_empty};
 use crate::contracts::chat::TOPIC_DONE_TOOL;
 use crate::messages::native_messages::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, SEND_TO_USER_TOOL, failed_output_call_ids, problem_input_for_conclude, user_facing_text_of};
@@ -147,8 +148,8 @@ fn tool_result_body(result: &Json, ctx: &MarkdownContext) -> (&'static str, Vec<
 	}
 
 	if tool == Some(PRACTICE_PROBLEM_TOOL) {
-		let statement = trimmed(&call_args["statement"]).unwrap_or("(no statement)");
-		return ("Problem", vec![statement.to_owned()]);
+		let statement = gs_base::text::trim(posed_statement(call_args, details));
+		return ("Problem", vec![if statement.is_empty() { "(no statement)" } else { statement }.to_owned()]);
 	}
 
 	if tool == Some(PRACTICE_CONCLUDE_TOOL) {
@@ -288,6 +289,12 @@ mod tests {
 		let text = session_markdown(&messages, None);
 		assert!(text.starts_with("### Problem\n\nSolve it\n\n### Concluded\n\n**Solved with hints.** Nice.\n\n> **Model solution**\n>\n> a\n> b"));
 		assert!(text.ends_with("### Concluded\n\nThe learner skipped this problem."));
+	}
+
+	#[test]
+	fn a_problem_from_a_page_shows_the_words_of_its_piece() {
+		let messages = [assistant(json!([{ "type": "toolCall", "id": "p1", "name": "problem", "arguments": { "source": {} } }])), result("problem", "p1", json!({ "piece": {}, "text": "1. First problem" }))];
+		assert_eq!(session_markdown(&messages, None), "### Problem\n\n1. First problem");
 	}
 
 	/// Regularization's conclude carries the stop; topic_done stores Cross-validation's opener.

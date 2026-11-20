@@ -40,15 +40,28 @@ impl FnTool {
 		FnTool { name: name.to_owned(), description: description.into(), parameters, mode: ExecutionMode::Parallel, prepare: None, run }
 	}
 
-	/// A tool that answers at once with a ready result record, no guard (the question tools).
+	/// A tool that answers with a ready result record, no guard (the question tools).
 	pub fn immediate<F>(name: &str, description: impl Into<String>, parameters: Json, answer: F) -> FnTool
 	where
 		F: Fn(Json) -> Json + Send + Sync + 'static,
 	{
 		let answer = Arc::new(answer);
-		let run: Run = Arc::new(move |args, _ctx| {
+		FnTool::immediate_async(name, description, parameters, move |args| {
 			let answer = answer.clone();
-			Box::pin(async move { Ok((*answer)(args)) })
+			async move { (*answer)(args) }
+		})
+	}
+
+	/// `immediate` for an answer that has to wait on something. A lock the answer takes must not
+	/// be held across that wait.
+	pub fn immediate_async<F, Fut>(name: &str, description: impl Into<String>, parameters: Json, answer: F) -> FnTool
+	where
+		F: Fn(Json) -> Fut + Send + Sync + 'static,
+		Fut: Future<Output = Json> + Send + 'static,
+	{
+		let run: Run = Arc::new(move |args, _ctx| {
+			let answer = answer(args);
+			Box::pin(async move { Ok(answer.await) })
 		});
 		FnTool { name: name.to_owned(), description: description.into(), parameters, mode: ExecutionMode::Parallel, prepare: None, run }
 	}

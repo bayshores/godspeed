@@ -15,6 +15,7 @@ pub mod plot;
 pub mod ports;
 pub mod practice;
 pub mod probe;
+mod problem_piece;
 pub mod questions;
 pub mod rules;
 pub mod side;
