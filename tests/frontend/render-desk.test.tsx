@@ -12,6 +12,9 @@ import { parseHTML } from "linkedom";
 import type { Place } from "../../src/frontend/components/desk/desk-model.ts";
 
 const dom = parseHTML("<html><body></body></html>");
+/** The system's reduced motion setting, as the app reads it. */
+const reduced = { matches: false };
+(dom.window as unknown as { matchMedia: () => typeof reduced }).matchMedia = () => reduced;
 Object.assign(globalThis, {
 	window: dom.window,
 	document: dom.document,
@@ -47,6 +50,7 @@ afterEach(() => {
 	act(() => root?.unmount());
 	root = null;
 	moving = [];
+	reduced.matches = false;
 	delete proto.getAnimations;
 	document.body.innerHTML = "";
 });
@@ -143,6 +147,17 @@ describe("the desk", () => {
 		assert.equal(inner.getAttribute("data-way"), null);
 		assert.equal(desk().getAttribute("data-way"), "right");
 		assert.equal(old().textContent, "Files of a");
+	});
+
+	it("just shows the new page with reduced motion, and makes no copy", async () => {
+		motionOn();
+		reduced.matches = true;
+		await show(<Desk place={at("/")}>Home</Desk>);
+		await show(<Desk place={at("space a", 1)}>Progress</Desk>);
+		assert.equal(desk().getAttribute("data-way"), null);
+		assert.equal(old().childNodes.length, 0);
+		assert.equal(moving.length, 0);
+		assert.equal(page().textContent, "Progress");
 	});
 
 	it("just shows the new page where nothing can move", async () => {
