@@ -14,6 +14,8 @@
  *
  * Pure types + tiny pure helpers.
  */
+import type { ProblemPiece } from "../problem-piece.ts";
+
 /** "study" files are turned into graph facts by the extraction pipeline;
  *  "info" files (syllabus, assignments) are never extracted — the teacher
  *  can only read them. */
@@ -158,8 +160,10 @@ export interface HomeworkProblem {
 	title: string;
 	/** The full problem text (markdown + LaTeX). */
 	text: string;
-	/** The page of the assignment file it is on. */
+	/** The page of the assignment file it is on; left out with a `piece`, whose first part names it. */
 	page?: number;
+	/** Where the problem is printed in the file, drawn instead of `text`. */
+	piece?: ProblemPiece;
 	done: boolean;
 }
 

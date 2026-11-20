@@ -10,15 +10,18 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { AppearanceSettings } from "@/shared/core";
-import { appearanceVars, resolveAppearance, staleVarNames } from "./appearance-model.ts";
+import { appearanceVars, bodyInkOf, resolveAppearance, staleVarNames } from "./appearance-model.ts";
 
 interface AppearanceContextValue {
 	/** Called by the settings dialog after a successful section PUT. */
 	onAppearanceChange: (delta: AppearanceSettings | undefined) => void;
+	/** The body text color the theme resolves to, "#rrggbb". */
+	bodyInk: string;
 }
 
 const AppearanceContext = createContext<AppearanceContextValue>({
 	onAppearanceChange: () => {},
+	bodyInk: bodyInkOf(resolveAppearance(undefined)),
 });
 
 export function useAppearance() {
@@ -51,6 +54,7 @@ export function AppearanceProvider({ initial, children }: { initial: AppearanceS
 		}
 	}, [key, vars, appearance]);
 
-	const value = useMemo(() => ({ onAppearanceChange: setDelta }), []);
+	const bodyInk = useMemo(() => bodyInkOf(appearance), [appearance]);
+	const value = useMemo(() => ({ onAppearanceChange: setDelta, bodyInk }), [bodyInk]);
 	return <AppearanceContext.Provider value={value}>{children}</AppearanceContext.Provider>;
 }

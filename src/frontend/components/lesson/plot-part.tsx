@@ -1,5 +1,6 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import katex from "katex";
+import { useElementWidth } from "@/frontend/lib/use-element-width";
 import { cn } from "@/frontend/lib/utils";
 import type { ArtifactPartProps } from "@/shared/core";
 import { heldBack, keyTops, labelPieces, lineEnd, linePath, liveText, pointMarks, readPlot, scale, sliderText, sliderTicks, ticks, formatNumber, type Plot, type Slider } from "./plot-part-model";
@@ -88,21 +89,6 @@ function StoredPlot({ input, output, open, guessAt }: { input: unknown; output: 
 	return <PlotFigure plot={open ? read.plot : heldBack(read.plot, guessAt)} open={open} />;
 }
 
-/** The left column's width, followed as the pane resizes. */
-function useWidth(initial: number): [number, React.RefObject<HTMLDivElement | null>] {
-	const ref = useRef<HTMLDivElement | null>(null);
-	const [width, setWidth] = useState(initial);
-	useLayoutEffect(() => {
-		const el = ref.current;
-		if (!el) return;
-		setWidth(el.clientWidth);
-		const observer = new ResizeObserver(() => setWidth(el.clientWidth));
-		observer.observe(el);
-		return () => observer.disconnect();
-	}, []);
-	return [width, ref];
-}
-
 function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
 	// A plot of points alone has no slider; its lines never read it.
 	const [slider, setSlider] = useState(plot.slider?.start ?? Number.NaN);
@@ -112,7 +98,7 @@ function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
 		const wait = setTimeout(() => setHeard(slider), LIVE_WAIT_MS);
 		return () => clearTimeout(wait);
 	}, [slider]);
-	const [width, ref] = useWidth(GUTTER + 510);
+	const [width, ref] = useElementWidth<HTMLDivElement>(GUTTER + 510);
 	// Opened before it was on screen: drawn at once. Opened while watched:
 	// the held-back parts draw in (globals.css .lh-draw-in).
 	const [openAtMount] = useState(open);

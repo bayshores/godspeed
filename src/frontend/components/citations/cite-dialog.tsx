@@ -2,8 +2,9 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { CodeLines, MarkedText, PageMarks } from "./page-excerpt";
-import type { FileCite, PassageCite } from "./page-excerpt-model";
+import type { CitedPassage, FileCite, PassageCite } from "./page-excerpt-model";
 import { useCited } from "./use-cited";
+import { usePageSrc } from "./use-page-src";
 
 /** The place in a space file a source or a passage id points at: the PDF
  *  page as an image, or the passage text, with the words the source quotes marked. */
@@ -31,18 +32,7 @@ function CiteSheet({ cite, state, onClose }: { cite: FileCite | PassageCite; sta
 						{"range" in cite ? cite.range : found.range}
 					</p>
 					{showImage ? (
-						<div className="relative shrink-0 border border-line">
-							<img
-								data-testid="cite-page"
-								src={`/api/cited/${cite.fileId}/page/${found.page}`}
-								alt={`Page ${found.page} of ${cite.name}`}
-								// Scrolled to the marked words once the page has its height.
-								onLoad={(e) => e.currentTarget.parentElement?.querySelector('[data-testid="page-mark"]')?.scrollIntoView({ block: "center" })}
-								onError={() => setBrokenImage(true)}
-								className="block w-full"
-							/>
-							{marks?.kind === "page" && <PageMarks boxes={marks.boxes} />}
-						</div>
+						<CitePage cite={cite} page={found.page!} marks={marks} onBroken={() => setBrokenImage(true)} />
 					) : marks?.kind === "lines" ? (
 						<CodeLines name={cite.name} marks={marks} />
 					) : (
@@ -56,3 +46,22 @@ function CiteSheet({ cite, state, onClose }: { cite: FileCite | PassageCite; sta
 	);
 }
 
+function CitePage({ cite, page, marks, onBroken }: { cite: FileCite | PassageCite; page: number; marks: CitedPassage["marks"] | null; onBroken: () => void }) {
+	const [src, frameRef] = usePageSrc<HTMLDivElement>(cite.fileId, page);
+	return (
+		<div ref={frameRef} className="relative shrink-0 border border-line">
+			{src && (
+				<img
+					data-testid="cite-page"
+					src={src}
+					alt={`Page ${page} of ${cite.name}`}
+					// Scrolled to the marked words once the page has its height.
+					onLoad={(e) => e.currentTarget.parentElement?.querySelector('[data-testid="page-mark"]')?.scrollIntoView({ block: "center" })}
+					onError={onBroken}
+					className="block w-full"
+				/>
+			)}
+			{marks?.kind === "page" && <PageMarks boxes={marks.boxes} />}
+		</div>
+	);
+}

@@ -107,6 +107,11 @@ function surfacesOf(background: string) {
 	};
 }
 
+/** The body text color of a resolved appearance: what `--lh-ink-body` is on the page. */
+export function bodyInkOf(a: EffectiveAppearance): string {
+	return surfacesOf(a.background === null ? PAPER : readableBackground(a.background)).body;
+}
+
 /** The palette a background implies. Text must read on the background and
  *  on every surface it sits on. */
 export function derivedPalette(background: string): Record<string, string> {

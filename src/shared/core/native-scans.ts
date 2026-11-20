@@ -8,6 +8,7 @@ import type { ToolResultMessage } from "@earendil-works/pi-ai";
 import { isQuestionTool } from "./pending.ts";
 import { TOPIC_DONE_TOOL } from "./contracts/chat.ts";
 import { PRACTICE_PROBLEM_TOOL, type LhMessage } from "./native-messages.ts";
+import { problemPieceOf } from "./problem-piece.ts";
 
 function isSideQuestion(m: LhMessage): boolean {
 	return m.role === "user" && m.side === true;
@@ -181,12 +182,12 @@ export function needsContinuation(record: readonly LhMessage[]): boolean {
 	const content = (owner as { content?: unknown }).content;
 	if (!Array.isArray(content)) return false;
 	const results = messages.slice(start) as ToolResultMessage[];
-	// A batch acking a problem POSE or a stored topic_done owes nothing:
+	// A batch acking a problem POSE (bare, or carrying the piece it is printed as) or a stored topic_done owes nothing:
 	// terminate:true ended that turn DELIBERATELY (the learner's next input
 	// is the next turn), and unlike a question's placeholder the result
 	// PERSISTS. Without this fold a reload would wake a phantom turn.
 	const endedTurn = results.some(
-		(m) => !m.isError && ((m.toolName === PRACTICE_PROBLEM_TOOL && m.details == null) || m.toolName === TOPIC_DONE_TOOL),
+		(m) => !m.isError && ((m.toolName === PRACTICE_PROBLEM_TOOL && (m.details == null || problemPieceOf(m.details) !== null)) || m.toolName === TOPIC_DONE_TOOL),
 	);
 	if (endedTurn) return false;
 	const answered = resultIdsFrom(messages.slice(ownerAt + 1));

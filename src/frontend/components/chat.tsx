@@ -21,6 +21,8 @@ import {
 	phaseTimeline,
 	planStepBar,
 	problemChoicesOf,
+	problemPieceOf,
+	problemStatementOf,
 	topicParts,
 	type HomeworkView,
 	type LessonKind,
@@ -475,13 +477,15 @@ export function Chat({
 	};
 	const stuckLine = stuck && stuckMinutes !== null ? { minutes: stuckMinutes, label: stuck.type === "text" ? "Stop and send again?" : "Stop and try again?", onStop: stopAndRetry } : null;
 	const errorLine = error && { text: lessonError(error.message).text, detail: error.message, onRetry: retry };
+	const problemPiece = useMemo(() => (activeProblem ? problemPieceOf(activeProblem.details) : null), [activeProblem]);
 	const problem = activeProblem && {
 		toolCallId: activeProblem.toolCallId,
-		statement: (activeProblem.input as { statement: string }).statement,
+		statement: problemStatementOf(activeProblem.input, activeProblem.details),
+		piece: problemPiece,
 		choices: problemChoices,
 		line: !openProblem && practice ? `Problem ${practice.blocks.length}` : null,
 		part: openProblem ? (problems?.part ?? null) : null,
-		file: openProblem && homework?.assignment ? { ...homework.assignment, page: openProblem.page } : null,
+		file: openProblem && homework?.assignment ? { ...homework.assignment, page: problemPiece?.piece.parts[0]?.page ?? openProblem.page } : null,
 	};
 
 	const turnShows = turnDrawn({

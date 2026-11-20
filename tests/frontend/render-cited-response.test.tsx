@@ -4,14 +4,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { parseHTML } from "linkedom";
+import "../page-piece-dom.ts";
 import { MessageResponse, ToolContentResponse } from "../../src/frontend/components/ai-elements/message.tsx";
 import { CitedResponse } from "../../src/frontend/components/citations/cited-response.tsx";
 import { CiteDialog } from "../../src/frontend/components/citations/cite-dialog.tsx";
 import { fileCiteMark } from "../../src/shared/core/index.ts";
-
-const dom = parseHTML("<html><body></body></html>");
-Object.assign(globalThis, { window: dom.window, document: dom.document, Element: dom.window.Element, HTMLElement: dom.window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true });
 
 const FILE = "f_1a2b3c4d5e6f";
 const slides = fileCiteMark(FILE, "p. 12", "Week 6 slides.pdf");
@@ -113,7 +110,7 @@ describe("opening a space file source", () => {
 	it("shows the PDF page as an image", async () => {
 		await opened(passage(12, "Drop the constants."), (dialog) => {
 			const page = dialog.querySelector('[data-testid="cite-page"]');
-			assert.equal(page?.getAttribute("src"), `/api/cited/${FILE}/page/12`);
+			assert.equal(page?.getAttribute("src"), `/api/cited/${FILE}/page/12?w=1440&ink=33322c`);
 			assert.equal(page?.getAttribute("alt"), "Page 12 of Week 6 slides.pdf");
 			assert.ok(dialog.querySelector('[data-testid="cite-text"]') === null);
 		});

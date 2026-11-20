@@ -3,13 +3,11 @@ import React, { act } from "react";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createRoot } from "react-dom/client";
-import { parseHTML } from "linkedom";
+import "../page-piece-dom.ts";
 import { CitedResponse } from "../../src/frontend/components/citations/cited-response.tsx";
 import { PageExcerpt } from "../../src/frontend/components/citations/page-excerpt.tsx";
 import { fileCiteMark } from "../../src/shared/core/index.ts";
 
-const dom = parseHTML("<html><body></body></html>");
-Object.assign(globalThis, { window: dom.window, document: dom.document, Element: dom.window.Element, HTMLElement: dom.window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true });
 
 const FILE = "f_1a2b3c4d5e6f";
 const page14 = { kind: "file" as const, fileId: FILE, range: "p. 14", name: "Lecture 6.pdf", quote: "degree 12" };
@@ -74,13 +72,20 @@ describe("a topic's page", () => {
 			assert.equal(frame.tagName, "BUTTON");
 			assert.match(frame.getAttribute("style") ?? "", /height:\s*220px/);
 			const img = frame.querySelector("img")!;
-			assert.equal(img.getAttribute("src"), `/api/cited/${FILE}/page/14`);
+			assert.equal(img.getAttribute("src"), `/api/cited/${FILE}/page/14?w=1440&ink=33322c`);
 			assert.equal(img.getAttribute("alt"), 'Lecture 6, page 14, marked "degree 12"');
 			const marks = frame.querySelectorAll<HTMLElement>('[data-testid="page-mark"]');
 			assert.equal(marks.length, 1);
 			const style = marks[0]!.getAttribute("style") ?? "";
 			assert.match(style, /left:\s*26\.642%/);
 			assert.match(style, /width:\s*18\.562%/);
+		});
+	});
+
+	it("the page is drawn in the theme's ink, with no blending into the paper", async () => {
+		await rendered(excerpt(), pdf({ kind: "page", boxes: [BOX] }), (host) => {
+			assert.match(host.querySelector("img")!.getAttribute("src")!, /\?w=1440&ink=33322c$/);
+			assert.doesNotMatch(host.querySelector('[data-testid="page-excerpt"]')!.innerHTML, /mix-blend-multiply dark/);
 		});
 	});
 
@@ -149,7 +154,7 @@ describe("the page in the teacher's text", () => {
 		await rendered(<CitedResponse text={text} page={mark} />, pdf({ kind: "page", boxes: [BOX] }), async (host, urls) => {
 			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="page-excerpt"]')!.click());
 			const dialog = document.querySelector('[data-testid="cite-dialog"]')!;
-			assert.equal(dialog.querySelector('[data-testid="cite-page"]')?.getAttribute("src"), `/api/cited/${FILE}/page/14`);
+			assert.equal(dialog.querySelector('[data-testid="cite-page"]')?.getAttribute("src"), `/api/cited/${FILE}/page/14?w=1440&ink=33322c`);
 			assert.equal(dialog.querySelectorAll('[data-testid="page-mark"]').length, 1);
 			assert.ok(urls.every((u) => u.endsWith(`&quote=${encodeURIComponent("degree 12")}`)));
 		});

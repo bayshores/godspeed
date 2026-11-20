@@ -21,6 +21,7 @@ import {
 import { needsContinuation } from "../../src/shared/core/native-scans.ts";
 import { activeProblemOf, problemChoicesOf, problemInputForConclude } from "../../src/shared/core/practice-problem.ts";
 import { projectView } from "../../src/shared/core/index.ts";
+import { PIECE_DETAILS } from "../piece-fixtures.ts";
 
 // ── builders (native-shaped test fixtures) ───────────────────────────────────
 
@@ -105,6 +106,13 @@ describe("activeProblemOf (the conclude-before-next-problem gate's fold)", () =>
 		const active = activeProblemOf(messages);
 		assert.equal(active?.toolCallId, "call_p1");
 		assert.deepEqual(active?.input, { statement: "Show that…", mode: "recall", modelSolution: "Show that…" });
+	});
+
+	it("gives the pose ack's details, where a piece rides", () => {
+		const messages = problemPose("call_pp", "");
+		(messages[1] as LhMessage & ToolResultMessage).details = PIECE_DETAILS;
+		assert.deepEqual(activeProblemOf(messages)?.details, PIECE_DETAILS);
+		assert.equal(activeProblemOf(problemPose())?.details, null);
 	});
 
 	it("the learner's messages keep it active (they never conclude)", () => {
@@ -204,6 +212,18 @@ describe("needsContinuation (a persisted pose ack owes nothing)", () => {
 		assert.equal(needsContinuation(messages), false);
 	});
 
+	it("a pose ack that carries the piece it is printed as still ends the turn", () => {
+		const messages = problemPose("call_pp", "");
+		(messages[1] as LhMessage & ToolResultMessage).details = PIECE_DETAILS;
+		assert.equal(needsContinuation(messages), false);
+	});
+
+	it("a pose ack with any other details is not a deliberate end", () => {
+		const messages = problemPose("call_px");
+		(messages[1] as LhMessage & ToolResultMessage).details = { piece: { fileId: "f_1", parts: [] }, text: "" };
+		assert.equal(needsContinuation(messages), true);
+	});
+
 	it("an ERROR result is not a pose — the agent loop continues past it, so a record ending there (an abort) is owed the wake like any interrupted tool", () => {
 		const messages = [...problemPose("call_pe")];
 		const err = messages[1] as LhMessage & ToolResultMessage;
@@ -246,6 +266,29 @@ describe("problemInputForConclude (the conclusion's hero is the pose's commitmen
 		const conclude = view.flatMap((m) => m.parts).find((p) => p.type === "tool-conclude");
 		assert.ok(conclude, "the conclude part projects");
 		assert.equal(conclude!.reveal, "Show that…", "the view-seam join carries the committed solution");
+	});
+});
+
+describe("projectView and a problem printed in a file", () => {
+	const problemPart = (view: ReturnType<typeof projectView>) => view.flatMap((m) => m.parts).find((p) => p.type === "tool-problem")!;
+
+	it("hands the piece to the problem's part, where a bare ack hands nothing", () => {
+		const bare = problemPart(projectView(problemPose()));
+		assert.equal(bare.state, "input-available");
+		assert.equal(bare.output, undefined);
+		const messages = problemPose("call_pp", "");
+		(messages[1] as LhMessage & ToolResultMessage).details = PIECE_DETAILS;
+		const printed = problemPart(projectView(messages));
+		assert.equal(printed.state, "output-available");
+		assert.deepEqual(printed.output, PIECE_DETAILS);
+	});
+
+	it("does the same for the live result of a turn still running", () => {
+		const [call] = problemPose("call_pp", "");
+		const live = (output: unknown) => ({ executions: new Map([["call_pp", { isError: false, output }]]), inFlight: true, streamingIds: new Set<string>() });
+		assert.equal(problemPart(projectView([call!], live(PIECE_DETAILS))).state, "output-available");
+		assert.equal(problemPart(projectView([call!], live(PIECE_DETAILS))).output, PIECE_DETAILS);
+		assert.equal(problemPart(projectView([call!], live(null))).state, "input-available");
 	});
 });
 

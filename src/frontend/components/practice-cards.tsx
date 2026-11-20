@@ -1,20 +1,22 @@
 import { useContext, useState } from "react";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
+import { PagePiece } from "@/frontend/components/citations/page-piece";
 import { ResultTag, type ResultTone } from "@/frontend/components/result-tag";
 import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
 import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
 import { useFold } from "@/frontend/components/use-fold";
 import { cn } from "@/frontend/lib/utils";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
-import { problemChoicesOf, type ArtifactPartProps } from "@/shared/core";
+import { problemChoicesOf, problemPieceOf, problemStatementOf, type ArtifactPartProps } from "@/shared/core";
 import { OptionMark } from "@/frontend/components/lesson/choice-rows";
 import { choiceLetter } from "@/frontend/components/lesson/problem-choices-model";
 
 /**
  * The practice transcript cards: three quiet records in the stream —
  *
- * - ProblemCard — a posed problem: the statement, compact-expandable
+ * - ProblemCard — a posed problem: the statement (or the piece of the file's
+ *   page it is printed on), compact-expandable
  *   (like every card here; the Your turn panel holds the open problem,
  *   this is the record). The commitment NEVER renders — only the call's
  *   statement.
@@ -50,13 +52,13 @@ export function ProblemCard({ part }: ArtifactPartProps) {
 	if (openProblem === part.toolCallId) return null;
 	// Always open, no chevron: the record IS the statement, in the answered
 	// card's container. The commitment never renders, only the call's statement.
-	const input = (part.input ?? {}) as { statement?: string };
-	const statement = typeof input.statement === "string" ? input.statement : "";
+	const statement = problemStatementOf(part.input, part.output);
+	const piece = problemPieceOf(part.output);
 	const choices = problemChoicesOf(part.input);
 	return (
 		<div data-testid="problem-card" data-problem-call={part.toolCallId} className={`${STACK} scroll-mt-4`}>
 			<div className="text-ink-2" style={PROSE_16}>
-				<ToolContentResponse>{statement}</ToolContentResponse>
+				{piece ? <PagePiece piece={piece.piece} text={piece.text} quiet /> : <ToolContentResponse>{statement}</ToolContentResponse>}
 			</div>
 			{choices && (
 				<ol data-testid="problem-card-choices" className="flex flex-col gap-1.5 text-ink-2" style={PROSE_16}>

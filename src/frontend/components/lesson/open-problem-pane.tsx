@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { toggleOption, type DockSelection, type ProblemChoices } from "@/shared/core";
+import { toggleOption, type DockSelection, type ProblemChoices, type ProblemPieceText } from "@/shared/core";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
+import { PagePiece } from "@/frontend/components/citations/page-piece";
 import { ChoiceRows, SelectAllHint } from "./choice-rows";
 import { useChoiceKeys } from "./use-choice-keys";
 import { partMarks, toggled, type PartMarks } from "./problem-parts";
+import { cn } from "@/frontend/lib/utils";
 import { proseVars } from "./question-parts";
 
 const MARKED = "[data-part-current], [data-part-head], [data-part-fold]";
@@ -49,20 +51,27 @@ function ProblemChoiceRows({ choices, picked, onPick, onLeaveRows, onEnter }: Pr
  * The open problem under "Your turn": the whole problem, the part the teacher
  * marked open (data-part-current, where the page may rest) and every other
  * part folded to its first line, which opens it on a click and folds it on
- * the next. A problem with choices shows them under its statement. The
- * learner works on it in the writing box under it.
+ * the next. A problem printed in a file shows that piece of the page in its
+ * place, with a key to see it as printed. A problem with choices shows them
+ * under its statement. The learner works on it in the writing box under it.
  */
 export function OpenProblemPane({
 	statement,
+	piece,
 	part,
 	picks,
 }: {
 	statement: string;
+	/** Where the problem is printed in its file, and its words there. */
+	piece?: ProblemPieceText | null;
 	/** The part the learner is on, as the problem labels it (homework only). */
 	part: string | null;
 	picks: ProblemPicks | null;
 }) {
 	const statementRef = useRef<HTMLDivElement>(null);
+	const [printed, setPrinted] = useState(false);
+	// Whether the page's picture is what shows; its words stand in when it does not load.
+	const [shown, setShown] = useState(true);
 	// The other parts the learner opened; a newly marked part folds them again.
 	const [opened, setOpened] = useState<readonly string[]>([]);
 	const [openedFor, setOpenedFor] = useState(part);
@@ -107,9 +116,22 @@ export function OpenProblemPane({
 	return (
 		<div data-testid="open-problem" className="flex flex-col gap-7">
 			{/* Holds a last-line fraction's denominator, which hangs 6px below its line box. */}
-			<div ref={statementRef} data-testid="problem-statement" className="pb-1.5" style={proseVars(18, 28)}>
-				<ToolContentResponse>{statement}</ToolContentResponse>
-			</div>
+			{piece ? (
+				<div data-testid="problem-piece" className="flex flex-col gap-3" style={proseVars(18, 28)}>
+					<div className="max-h-[60vh] overflow-y-auto">
+						<PagePiece piece={piece.piece} text={piece.text} part={part} printed={printed} onFail={() => setShown(false)} />
+					</div>
+					{shown && (
+						<button type="button" data-testid="piece-printed" aria-pressed={printed} onClick={() => setPrinted((on) => !on)} className={cn("lh-btn lh-btn-small ml-auto", printed && "lh-btn-main")}>
+							As printed
+						</button>
+					)}
+				</div>
+			) : (
+				<div ref={statementRef} data-testid="problem-statement" className="pb-1.5" style={proseVars(18, 28)}>
+					<ToolContentResponse>{statement}</ToolContentResponse>
+				</div>
+			)}
 			{picks && <ProblemChoiceRows {...picks} />}
 		</div>
 	);

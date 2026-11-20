@@ -1,7 +1,7 @@
 import { useState, type RefObject } from "react";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
-import { DEFAULT_TEACHER_NAME, DONT_KNOW, type DockSelection, type findPendingToolCall, type ProblemChoices, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, DONT_KNOW, type DockSelection, type findPendingToolCall, type ProblemChoices, type ProblemPieceText, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
 import { useSettings } from "@/frontend/components/settings-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { cn } from "@/frontend/lib/utils";
@@ -28,7 +28,7 @@ export interface YourTurnProps {
 	reviewRefused: boolean;
 	/** The open problem, with its line ("Problem 2", practice only) and, for
 	 *  homework, the part the learner is on and the file it is from. */
-	problem: { toolCallId: string; statement: string; choices: ProblemChoices | null; line: string | null; part: string | null; file: ProblemFileRef | null } | null;
+	problem: { toolCallId: string; statement: string; piece: ProblemPieceText | null; choices: ProblemChoices | null; line: string | null; part: string | null; file: ProblemFileRef | null } | null;
 	/** What is picked among the open problem's choices. */
 	problemPicked: DockSelection;
 	onPickProblem: (picked: DockSelection) => void;
@@ -182,7 +182,7 @@ export function YourTurn({
 						busy={busy && !fromEarlier}
 					/>
 				)}
-				{!pending && problem && <OpenProblemPane statement={problem.statement} part={problem.part} picks={picks} />}
+				{!pending && problem && <OpenProblemPane statement={problem.statement} piece={problem.piece} part={problem.part} picks={picks} />}
 				{!pending && !problem && shown.kind === "answered" && <AnsweredTurn answer={shown.answered.answer} />}
 				{next && (next.next.line || nextKey) && (
 					<div data-testid="turn-next" className="flex flex-wrap items-center gap-x-4 gap-y-2">

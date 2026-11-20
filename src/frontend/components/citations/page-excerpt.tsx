@@ -3,6 +3,7 @@ import type { HighlightOptions, HighlightResult } from "@streamdown/code";
 import { lazyCodePlugin } from "@/frontend/components/lazy-code-plugin";
 import { codeLanguage, codeRows, linesLabel, markRuns, pageBand, pageLabel, passageQuote, type CitedPassage, type FileCite } from "./page-excerpt-model";
 import { useCited } from "./use-cited";
+import { usePageSrc } from "./use-page-src";
 
 type Marks = NonNullable<CitedPassage["marks"]>;
 type CodeMarks = Extract<Marks, { kind: "lines" }>;
@@ -62,25 +63,28 @@ export function MarkedText({ before, marked, after }: { before: string; marked: 
 function PdfExcerpt({ cite, page, boxes, onOpen }: { cite: FileCite; page: number; boxes: readonly PageMarkBox[]; onOpen: () => void }) {
 	const [size, setSize] = useState<{ w: number; h: number } | null>(null);
 	const [broken, setBroken] = useState(false);
+	const [src, frameRef] = usePageSrc<HTMLButtonElement>(cite.fileId, page);
 	if (broken) return null;
 	const band = pageBand(size, boxes);
 	return (
 		<button
+			ref={frameRef}
 			type="button"
 			data-testid="page-excerpt"
 			onClick={onOpen}
 			className="relative block max-w-full overflow-hidden border border-border"
 			style={{ height: FRAME_H, width: band.landscape ? INSIDE_H * band.aspect + 2 : "100%" }}
 		>
-			{/* The page is drawn onto the pane's paper; the transform makes the span the blended group. */}
-			<span className="absolute inset-x-0 top-0 block mix-blend-multiply dark:mix-blend-normal" style={{ transform: `translateY(calc(${-band.at} * (100% - ${INSIDE_H}px)))` }}>
-				<img
-					src={`/api/cited/${cite.fileId}/page/${page}`}
-					alt={pageLabel(cite.name, page, cite.quote, boxes.length > 0)}
-					onLoad={(e) => setSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
-					onError={() => setBroken(true)}
-					className="block w-full"
-				/>
+			<span className="absolute inset-x-0 top-0 block" style={{ transform: `translateY(calc(${-band.at} * (100% - ${INSIDE_H}px)))` }}>
+				{src && (
+					<img
+						src={src}
+						alt={pageLabel(cite.name, page, cite.quote, boxes.length > 0)}
+						onLoad={(e) => setSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+						onError={() => setBroken(true)}
+						className="block w-full"
+					/>
+				)}
 				<PageMarks boxes={boxes} />
 			</span>
 		</button>

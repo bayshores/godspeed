@@ -29,6 +29,7 @@ export * from "./citations.ts";
 export * from "./native-messages.ts";
 export * from "./native-scans.ts";
 export * from "./practice-problem.ts";
+export * from "./problem-piece.ts";
 export * from "./today-note.ts";
 export * from "./space-work.ts";
 export * from "./compaction.ts";

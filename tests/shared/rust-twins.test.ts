@@ -12,6 +12,7 @@ import { subscriptionLabel } from "../../src/shared/core/prices.ts";
 import { RAMP_COLORS, rampColor, tally, topicStatus } from "../../src/shared/core/progress.ts";
 import { FACTORY_SETTINGS } from "../../src/shared/core/settings.ts";
 import { TOOL_SWITCH_LABELS } from "../../src/shared/core/tool-switches.ts";
+import { PIECE_WIDTHS } from "../../src/frontend/components/citations/page-piece-model.ts";
 import { TITLE_CUT } from "../../src/frontend/components/lesson/wait-model.ts";
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf-8");
@@ -142,5 +143,12 @@ describe("factory settings", () => {
 		assert.equal(/"graph": \{ "enabled": (true|false)/.exec(source)?.[1], String(FACTORY_SETTINGS.graph.enabled));
 		assert.match(source, /"background": null,\s*"fontFamily": null/);
 		assert.deepEqual(FACTORY_SETTINGS.appearance, { background: null, fontFamily: null });
+	});
+});
+
+describe("page picture widths", () => {
+	it("are the same steps", () => {
+		const inRust = read("crates/services/src/app/reading_pages.rs");
+		assert.deepEqual([...PIECE_WIDTHS], [...valueOf(inRust, "PIECE_WIDTHS").matchAll(/\d+/g)].map((m) => Number(m[0])));
 	});
 });

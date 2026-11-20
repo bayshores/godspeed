@@ -30,9 +30,10 @@
 
 import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
 import type { LhMarkerMessage, LhMessage } from "./native-messages.ts";
-import { PRACTICE_CONCLUDE_TOOL, SEND_TO_USER_TOOL, sendToUserText } from "./native-messages.ts";
+import { PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, SEND_TO_USER_TOOL, sendToUserText } from "./native-messages.ts";
 import { answeredCallIds, interruptedQuestions, sideHeldQuestions } from "./native-scans.ts";
 import { problemInputForConclude } from "./practice-problem.ts";
+import { problemPieceOf } from "./problem-piece.ts";
 import { activeCompactionOf } from "./compaction.ts";
 import { isQuestionTool, type AppPosed } from "./pending.ts";
 import { dismissedAnswer } from "./question-grading.ts";
@@ -434,8 +435,8 @@ export function reuseUnchangedMessages(
 
 /** The dock-owned tools: question tools (client-owned results — the dock
  *  mounts on the dangling call) and the practice pose (its ack is FINAL —
- *  details: null, never replaced — and the card + dock read the call's
- *  input; the placeholder must never flip the part to output-available).
+ *  details: null, or the piece it is printed as — and the card + dock read the call's
+ *  input; a bare placeholder must never flip the part to output-available).
  *  PRACTICE: problem joins the placeholder fork; conclude is
  *  a NORMAL tool part (its result acks with no payload, details null —
  *  but the ConcludeCard reads the call's input, and output-available with
@@ -469,7 +470,7 @@ function toolPartOf(
 			part.state = "output-error";
 			part.rawInput = block.arguments;
 			part.errorText = exec.errorText ?? "The tool call failed.";
-		} else if (isQuestion) {
+		} else if (isQuestion && !(block.name === PRACTICE_PROBLEM_TOOL && problemPieceOf(exec.output))) {
 			// The clean "Question posed" placeholder is IGNORED —
 			// question tools are client-owned; the dock mounts on the clean
 			// end, the answer arrives as a real toolResult.

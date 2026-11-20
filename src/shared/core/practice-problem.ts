@@ -8,16 +8,16 @@ import { healEncodedArguments } from "./argument-heal.ts";
 import { isRecord } from "./is-record.ts";
 import { PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, type LhMarkerMessage, type LhMessage } from "./native-messages.ts";
 
-/** The ids of tool calls whose results are CLEAN (not errored) — the only
- *  calls that ever happened (HONEST ACTIVATION, see activeProblemOf). */
-function cleanToolCallIds(messages: readonly LhMessage[]): Set<string> {
-	const ids = new Set<string>();
+/** The tool calls whose results are CLEAN (not errored) — the only calls that
+ *  ever happened (HONEST ACTIVATION, see activeProblemOf) — with each result's details. */
+function cleanToolCalls(messages: readonly LhMessage[]): Map<string, unknown> {
+	const calls = new Map<string, unknown>();
 	for (const m of messages) {
 		if ((m as { role?: string }).role !== "toolResult") continue;
 		const result = m as ToolResultMessage;
-		if (!result.isError) ids.add(result.toolCallId);
+		if (!result.isError) calls.set(result.toolCallId, result.details);
 	}
-	return ids;
+	return calls;
 }
 
 /** The problem call a conclusion closes, for the conclude card's reveal
@@ -35,7 +35,7 @@ export function problemInputForConclude(
 			),
 	);
 	if (mi < 0) return undefined;
-	const clean = cleanToolCallIds(messages);
+	const clean = cleanToolCalls(messages);
 	for (; mi >= 0; mi--) {
 		const m = messages[mi]!;
 		if ((m as { role?: string }).role !== "assistant") continue;
@@ -56,15 +56,16 @@ export function problemInputForConclude(
  *  NEWEST problem tool call with nothing concluding after it — either a
  *  conclude call or a dismissal marker deactivates. The ack result at pose
  *  time does NOT (the problem stays on screen through nudges; the
- *  panel's subject is the call, not a dangling result). */
+ *  panel's subject is the call, not a dangling result). `details` is the
+ *  ack's, where a problem printed in a file carries its piece. */
 export function activeProblemOf(
 	messages: readonly LhMessage[],
-): { toolCallId: string; input: unknown } | null {
+): { toolCallId: string; input: unknown; details: unknown } | null {
 	// HONEST ACTIVATION:
 	// calls count only through their RESULTS — a problem activates on its
 	// clean ack, a conclude frees on its clean ack; errored and dangling
 	// calls are skipped ("either it goes through or it doesn't").
-	const cleanCallIds = cleanToolCallIds(messages);
+	const clean = cleanToolCalls(messages);
 	for (let mi = messages.length - 1; mi >= 0; mi--) {
 		const m = messages[mi]!;
 		const role = (m as { role?: string }).role;
@@ -79,11 +80,11 @@ export function activeProblemOf(
 				const block = assistant.content[bi]!;
 				if (block.type !== "toolCall") continue;
 				if (block.name === PRACTICE_CONCLUDE_TOOL) {
-					if (cleanCallIds.has(block.id)) return null; // a CLEAN conclude frees
+					if (clean.has(block.id)) return null; // a CLEAN conclude frees
 					continue; // errored/dangling conclude: the free never happened
 				}
 				if (block.name !== PRACTICE_PROBLEM_TOOL) continue;
-				if (cleanCallIds.has(block.id)) return { toolCallId: block.id, input: block.arguments };
+				if (clean.has(block.id)) return { toolCallId: block.id, input: block.arguments, details: clean.get(block.id) };
 				// errored/dangling pose — it did not go through; keep scanning
 			}
 			continue;
