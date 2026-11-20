@@ -10,7 +10,7 @@ import type { AppearanceSettings } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { inTerminal } from "@/frontend/components/focus-hygiene";
 import { cn } from "@/frontend/lib/utils";
-import { BACKGROUND_PRESETS, PAPER, appearanceToWrite, derivedPalette, readableBackground } from "./appearance-model.ts";
+import { BACKGROUND_PRESETS, GRAPHITE, appearanceToWrite, derivedPalette, readableBackground } from "./appearance-model.ts";
 import { DEFAULT_READING_FONT, FontMenuList } from "./font-menu";
 import { Slider } from "./controls.tsx";
 import { ZOOM_STOPS, zoomFactor, zoomIndex, zoomLabel } from "./text-size-model.ts";
@@ -49,8 +49,9 @@ export function AppearanceSection({
 	// Every write sends the section without the retired type fields.
 	const appearance = appearanceToWrite(stored);
 	const background = appearance.background ?? null;
-	const shownBackground = background ?? PAPER;
-	const isPreset = BACKGROUND_PRESETS.some((p) => p.color === background);
+	const shownBackground = background ?? GRAPHITE;
+	// By the color shown, so Graphite saved as its color lights the Graphite tile.
+	const isPreset = BACKGROUND_PRESETS.some((p) => (p.color ?? GRAPHITE) === shownBackground);
 
 	return (
 		// Wide, the controls take the left half and the preview the right.
@@ -64,8 +65,8 @@ export function AppearanceSection({
 						<ThemeTile
 							key={preset.name}
 							name={preset.name}
-							color={preset.color ?? PAPER}
-							on={preset.color === background}
+							color={preset.color ?? GRAPHITE}
+							on={(preset.color ?? GRAPHITE) === shownBackground}
 							onPick={() => onSectionChange({ ...appearance, background: preset.color })}
 						/>
 					))}

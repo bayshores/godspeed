@@ -1,9 +1,9 @@
 /**
  * Appearance → CSS variables. The background is the one chosen color;
- * panels, edges, text and the accent tint derive from it here. Paper, the
- * default, is the one light background and is hand-picked. Any other pick
- * is dark: a light one is made dark first, and the text takes a hint of
- * the background's color while staying readable (core/ink.ts).
+ * panels, edges, text and the accent tint derive from it here. Graphite is
+ * the default. Paper is the one light background and is hand-picked. Any
+ * other pick is dark: a light one is made dark first, and the text takes a
+ * hint of the background's color while staying readable (core/ink.ts).
  */
 
 import { darkBackground, inkFor, readableAccent, resolveSettings, shiftHex, tintFor, type AppearanceSettings, type EffectiveAppearance } from "@/shared/core";
@@ -20,17 +20,20 @@ export function resolveAppearance(delta: AppearanceSettings | undefined): Effect
 	return resolveSettings(delta === undefined ? null : { version: 1, appearance: delta }).appearance;
 }
 
-/** Paper, the stylesheet's background when none is chosen. */
+/** Graphite, the stylesheet's background when none is chosen. */
+export const GRAPHITE = "#161616";
+
+/** Paper, the one light background. */
 export const PAPER = "#c9c7bd";
 
-/** The background presets. Paper is the factory (stored as null). */
+/** The background presets. Graphite is the factory (stored as null). */
 export const BACKGROUND_PRESETS: ReadonlyArray<{ name: string; color: string | null }> = [
-	{ name: "Paper", color: null },
+	{ name: "Graphite", color: null },
 	{ name: "Night", color: "#1b1b19" },
 	{ name: "Black", color: "#000000" },
-	{ name: "Graphite", color: "#161616" },
 	{ name: "Midnight", color: "#0d1320" },
 	{ name: "Forest", color: "#0e1712" },
+	{ name: "Paper", color: PAPER },
 ];
 
 /** The app's status colors (right, wrong, delete, the confidence and topic
@@ -109,7 +112,7 @@ function surfacesOf(background: string) {
 
 /** The body text color of a resolved appearance: what `--lh-ink-body` is on the page. */
 export function bodyInkOf(a: EffectiveAppearance): string {
-	return surfacesOf(a.background === null ? PAPER : readableBackground(a.background)).body;
+	return surfacesOf(a.background === null ? GRAPHITE : readableBackground(a.background)).body;
 }
 
 /** The palette a background implies. Text must read on the background and
@@ -154,8 +157,9 @@ export function derivedPalette(background: string): Record<string, string> {
 
 /** A picked background made dark enough that secondary text reads on
  *  every surface it implies (a light or mid color like #f4f1ea or #777777
- *  can't hold the app's light text). */
+ *  can't hold the app's light text). Paper has its own text and stays. */
 export function readableBackground(color: string): string {
+	if (color === PAPER) return PAPER;
 	return darkBackground(color, (b) => [shiftHex(b, 8), shiftHex(b, 22), shiftHex(b, 39)]);
 }
 

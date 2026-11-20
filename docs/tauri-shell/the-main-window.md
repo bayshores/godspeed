@@ -4,7 +4,7 @@
 |---|---|
 | Label | `main`, one at a time. |
 | Size | 1440 × 900 logical, centered, minimum 640 × 600. |
-| Color | `appearance.background` from `<data>/settings.json`, read for each new window, else Paper `#c9c7bd`. |
+| Color | `appearance.background` from `<data>/settings.json`, read for each new window, else Graphite `#161616`. |
 | Title | `godspeed`, then the page's `document.title` (empty and unchanged titles skipped). |
 | Mac title bar | `TitleBarStyle::Overlay`, `hidden_title(true)`, `traffic_light_position(16, 25)`. |
 | Windows and Linux title bar | The system title bar. The menu bar is hidden after build; a lone Alt press and release toggles it. |

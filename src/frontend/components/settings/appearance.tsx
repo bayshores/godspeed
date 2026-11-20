@@ -10,7 +10,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { AppearanceSettings } from "@/shared/core";
-import { appearanceVars, bodyInkOf, resolveAppearance, staleVarNames } from "./appearance-model.ts";
+import { PAPER, appearanceVars, bodyInkOf, resolveAppearance, staleVarNames } from "./appearance-model.ts";
 
 interface AppearanceContextValue {
 	/** Called by the settings dialog after a successful section PUT. */
@@ -43,7 +43,7 @@ export function AppearanceProvider({ initial, children }: { initial: AppearanceS
 		appliedRef.current = key;
 		const root = document.documentElement;
 		// Paper is the one light background.
-		root.classList.toggle("dark", appearance.background !== null);
+		root.classList.toggle("dark", appearance.background !== PAPER);
 		for (const name of staleVarNames([...appliedNamesRef.current], vars)) {
 			root.style.removeProperty(name);
 			appliedNamesRef.current.delete(name);

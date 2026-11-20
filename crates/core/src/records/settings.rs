@@ -135,7 +135,7 @@ fn sanitize_appearance(raw: &Json) -> Json {
 	let mut out = Obj::new();
 	if let Some(background) = raw.get("background") {
 		let color = hex_or_null(background);
-		// The two light colors older versions offered read as Paper.
+		// The two light colors older versions offered read as no pick.
 		let retired = color.as_str().is_some_and(|c| ["#f4f1ea", "#ffffff"].contains(&c.to_lowercase().as_str()));
 		out.insert("background", if retired { Json::Null } else { color });
 	}

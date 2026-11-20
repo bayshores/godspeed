@@ -31,7 +31,7 @@ describe("PagePiece", () => {
 			const imgs = images(host);
 			assert.deepEqual(
 				imgs.map((i) => i.getAttribute("src")),
-				["/api/cited/f_123/page/2?crop=0.1,0.6,0.9,0.95&w=1440&ink=33322c", "/api/cited/f_123/page/3?crop=0.1,0.05,0.9,0.5&w=1440&ink=33322c"],
+				["/api/cited/f_123/page/2?crop=0.1,0.6,0.9,0.95&w=1440&ink=cfcfcf", "/api/cited/f_123/page/3?crop=0.1,0.05,0.9,0.5&w=1440&ink=cfcfcf"],
 			);
 			for (const img of imgs) {
 				assert.equal(img.getAttribute("alt"), "");
@@ -69,7 +69,7 @@ describe("PagePiece", () => {
 	it("draws the same picture quietly at 60 percent", async () => {
 		await mounted(<PagePiece piece={PIECE} text="" quiet />, (host) => {
 			assert.match(host.querySelector('[data-testid="page-piece"]')!.className, /opacity-60/);
-			assert.match(images(host)[0]!.getAttribute("src")!, /ink=33322c/);
+			assert.match(images(host)[0]!.getAttribute("src")!, /ink=cfcfcf/);
 		});
 	});
 

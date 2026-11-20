@@ -192,16 +192,26 @@ describe("GeneralSection (SSR)", () => {
 });
 
 describe("AppearanceSection (SSR)", () => {
-	it("the background presets plus Custom, with Paper picked at factory", () => {
+	it("the background presets plus Custom, with Graphite picked at factory", () => {
 		const html = renderToStaticMarkup(<AppearanceSection appearance={undefined} onSectionChange={() => {}} />);
 		for (const id of ["paper", "night", "black", "graphite", "midnight", "forest", "custom"]) {
 			assert.ok(html.includes(`data-testid="theme-${id}"`), id);
 		}
-		assert.ok(tagOf(html, "theme-paper").includes('aria-pressed="true"'));
+		assert.ok(tagOf(html, "theme-graphite").includes('aria-pressed="true"'));
+		assert.ok(tagOf(html, "theme-paper").includes('aria-pressed="false"'));
 		assert.ok(html.includes('data-testid="font-trigger"'));
 		assert.ok(!html.includes("slider-text-size"), "the text size is the desktop app's zoom");
 		assert.ok(html.includes('data-testid="appearance-preview"'));
 		assert.doesNotMatch(html, /Heading weight|Bold and italic|slider-heading-weight/);
+	});
+
+	it("Graphite saved as a color lights the Graphite tile, and Paper its own", () => {
+		const saved = renderToStaticMarkup(<AppearanceSection appearance={{ background: "#161616" }} onSectionChange={() => {}} />);
+		assert.ok(tagOf(saved, "theme-graphite").includes('aria-pressed="true"'));
+		assert.doesNotMatch(tagOf(saved, "theme-custom"), /border-2/);
+		const paper = renderToStaticMarkup(<AppearanceSection appearance={{ background: "#c9c7bd" }} onSectionChange={() => {}} />);
+		assert.ok(tagOf(paper, "theme-paper").includes('aria-pressed="true"'));
+		assert.ok(tagOf(paper, "theme-graphite").includes('aria-pressed="false"'));
 	});
 
 	it("the text size is a slider over the zoom ladder, at 100% before the shell answers, only in the desktop app", () => {

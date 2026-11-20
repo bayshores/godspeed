@@ -19,7 +19,7 @@ describe("FACTORY_SETTINGS (the compiled factory layer)", () => {
 		// the master switch ONLY
 		assert.deepEqual(FACTORY_SETTINGS.graph, { enabled: true });
 		const a = FACTORY_SETTINGS.appearance;
-		assert.equal(a.background, null); // Paper
+		assert.equal(a.background, null); // Graphite
 		assert.equal(a.fontFamily, null); // Literata
 		assert.equal("proseFontSize" in a, false);
 		assert.equal("mdRendering" in a, false);

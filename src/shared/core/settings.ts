@@ -68,7 +68,7 @@ export interface AgentSettings {
  *  (`proseFontSize`) are no longer read. */
 export interface AppearanceSettings {
 	/** The one user-chosen color; text, panels and borders derive from it
-	 *  in code. null = Paper, the light default. */
+	 *  in code. null = Graphite, the default. */
 	background?: string | null;
 	/** The reading font by name, user-chosen from installed fonts.
 	 *  null = Literata. */
@@ -123,7 +123,7 @@ export const FACTORY_SETTINGS: FactorySettings = {
 	version: CURRENT_SETTINGS_VERSION,
 	general: { autoUpdate: true, activeSpace: "none", teacherName: DEFAULT_TEACHER_NAME, startupSound: true, sounds: true, deadlineReminders: true },
 	appearance: {
-		background: null, // Paper
+		background: null, // Graphite
 		fontFamily: null, // Literata
 	},
 	graph: { enabled: true },

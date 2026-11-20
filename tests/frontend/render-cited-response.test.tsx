@@ -110,7 +110,7 @@ describe("opening a space file source", () => {
 	it("shows the PDF page as an image", async () => {
 		await opened(passage(12, "Drop the constants."), (dialog) => {
 			const page = dialog.querySelector('[data-testid="cite-page"]');
-			assert.equal(page?.getAttribute("src"), `/api/cited/${FILE}/page/12?w=1440&ink=33322c`);
+			assert.equal(page?.getAttribute("src"), `/api/cited/${FILE}/page/12?w=1440&ink=cfcfcf`);
 			assert.equal(page?.getAttribute("alt"), "Page 12 of Week 6 slides.pdf");
 			assert.ok(dialog.querySelector('[data-testid="cite-text"]') === null);
 		});

@@ -35,13 +35,13 @@
 	outline-offset: 2px;
 }
 
-/* Palette: Paper, the default: an e-ink page with ink text. These are
-   exactly derivedPalette(PAPER) in
+/* Palette: Graphite, the default: a dark page with pale text. These are
+   exactly derivedPalette(GRAPHITE) in
    src/frontend/components/settings/appearance-model.ts (a test holds them
-   equal). A background picked in Settings, Appearance is dark and moves
-   every surface, text level and status color with it. Every text level is
-   at least 4.5:1. Interface and reading text are Literata, dates and
-   counts DotGothic16. */
+   equal). A background picked in Settings, Appearance moves every surface,
+   text level and status color with it; Paper is the one light pick. Every
+   text level is at least 4.5:1. Interface and reading text are Literata,
+   dates and counts DotGothic16. */
 :root {
 	/* The top bar's height: two lines in a narrow window (see .lh-bar-top). */
 	--lh-bar-h: 3rem;
@@ -67,47 +67,47 @@
 	/* The longest line of a sentence or paragraph outside lesson text. */
 	--lh-measure: 75ch;
 	--lh-title: clamp(34px, (100vw - var(--lh-strip) - var(--lh-dock-push, 0px) - 899px) * 999, 44px);
-	color-scheme: light;
+	color-scheme: dark;
 	--radius: 2px;
-	--background: #c9c7bd;
-	--foreground: #24231f;
-	--card: #d7d5cb;
-	--card-foreground: #24231f;
-	--primary: #24231f;
-	--primary-foreground: #c9c7bd;
-	--secondary: #d7d5cb;
-	--muted: #d7d5cb;
-	--muted-foreground: #4f4d45;
-	--accent: #cfcdc3;
-	--accent-foreground: #24231f;
-	--destructive: #78433c;
-	--border: #a9a79d;
-	--input: #a9a79d;
-	--ring: #4f4d45;
+	--background: #161616;
+	--foreground: #e6e6e6;
+	--card: #1e1e1e;
+	--card-foreground: #e6e6e6;
+	--primary: #e6e6e6;
+	--primary-foreground: #161616;
+	--secondary: #1e1e1e;
+	--muted: #1e1e1e;
+	--muted-foreground: #a9a9a9;
+	--accent: #2c2c2c;
+	--accent-foreground: #e6e6e6;
+	--destructive: #c4847a;
+	--border: #454545;
+	--input: #454545;
+	--ring: #a9a9a9;
 	/* Field borders and empty bars: the quietest line that still shows (3:1). */
-	--lh-edge: #6d6b62;
+	--lh-edge: #6b6b6b;
 	/* A pop-up's box, and a hovered row in it. */
-	--lh-tip: #dddbd1;
+	--lh-tip: #2a2a2a;
 	/* The top bar and the text on it. */
-	--lh-bar: #24231f;
-	--lh-bar-ink: #d7d5cb;
+	--lh-bar: #0a0a0a;
+	--lh-bar-ink: #e6e6e6;
 	/* The highlighter: a picked option, today's date. */
-	--lh-highlight: #d8cb8e;
+	--lh-highlight: #5a5332;
 	/* Status colors: right / wrong, the confidence ramp (levels 1 to 5) and
 	   the topic ramp (wrong to right). Each reads as text and carries
 	   text-background as a fill. */
-	--lh-ans-right: #3f5948;
-	--lh-ans-wrong: #78433c;
-	--lh-conf-1: #78433c;
-	--lh-conf-2: #6c4a2f;
-	--lh-conf-3: #5f5229;
-	--lh-conf-4: #52553a;
-	--lh-conf-5: #3f5948;
-	--lh-ramp-1: #78433c;
-	--lh-ramp-2: #6c4a2f;
-	--lh-ramp-3: #5f5229;
-	--lh-ramp-4: #52553a;
-	--lh-ramp-5: #3f5948;
+	--lh-ans-right: #739d81;
+	--lh-ans-wrong: #c4847a;
+	--lh-conf-1: #c4847a;
+	--lh-conf-2: #c0875a;
+	--lh-conf-3: #c2aa5c;
+	--lh-conf-4: #91976b;
+	--lh-conf-5: #739d81;
+	--lh-ramp-1: #c4847a;
+	--lh-ramp-2: #c0875a;
+	--lh-ramp-3: #c2aa5c;
+	--lh-ramp-4: #91976b;
+	--lh-ramp-5: #739d81;
 	/* The eight space colors, the same on every background, and the ink
 	   that sits on them. */
 	--lh-space-1: #6f8da6;
@@ -121,24 +121,24 @@
 	--lh-on-space: #24231f;
 	/* Mixed into a space color for the pale block of a row that can wait:
 	   white on Paper, black on a dark background. */
-	--lh-space-wash: #ffffff;
+	--lh-space-wash: #000000;
 	/* The Done stamp. */
 	--lh-stamp: #b3665c;
 	/* The work frame's line: ink on Paper, a grey on a dark background. */
-	--lh-line: #24231f;
+	--lh-line: #959595;
 	/* A sheet's fill and the lip under it. A well is a field's fill: the
 	   sheet color on the page, the page color on a sheet. */
-	--lh-sheet: #d7d5cb;
-	--lh-sheet-lip: #b0aea5;
+	--lh-sheet: #262626;
+	--lh-sheet-lip: #383838;
 	--lh-well: var(--lh-sheet);
-	/* The code editor's syntax colors (Shiki's github-light; .dark below
-	   swaps in github-dark, as the code blocks do). */
-	--lh-code-keyword: #b31d28;
-	--lh-code-string: #032f62;
-	--lh-code-number: #005cc5;
-	--lh-code-type: #8a3b00;
-	--lh-code-function: #5a32a3;
-	--lh-code-comment: #4f4d45;
+	/* The code editor's syntax colors (Shiki's github-dark; Paper below
+	   swaps in github-light, as the code blocks do). */
+	--lh-code-keyword: #ff7b72;
+	--lh-code-string: #a5d6ff;
+	--lh-code-number: #79c0ff;
+	--lh-code-type: #ffa657;
+	--lh-code-function: #d2a8ff;
+	--lh-code-comment: #8b949e;
 	/* Emphasis inks default to the regular text color. Explicit overrides
 	   land via the appearance settings vars. */
 	--lh-ink-strong: var(--foreground);
@@ -148,29 +148,29 @@
 	--lh-prose-leading: 1.65;
 	/* Lesson text sits a step below the text color so bold and italic
 	   (which stay at the full text color) stand out. */
-	--lh-ink-body: #33322c;
+	--lh-ink-body: #cfcfcf;
 	/* Bold words in lesson text sit on a highlighter block. */
 	--lh-mark-bg: var(--lh-highlight);
 	/* Markdown heading weight (appearance settings). */
 	--lh-heading-weight: 600;
 	/* The quietest text (labels, finished lessons, hints). */
-	--lh-ink-3: #535149;
+	--lh-ink-3: #959595;
 	/* The strongest ink: hover darkening, focus edges, graph strokes. */
-	--lh-ink-max: #000000;
+	--lh-ink-max: #ffffff;
 	/* The one accent (selected row, main button): ink on Paper, a pale
 	   tint of the background's hue on a dark background. */
-	--lh-tint: #24231f;
+	--lh-tint: #dedede;
 }
 
-/* A dark background (Settings, Appearance) sets its palette on <html>. */
-.dark {
-	color-scheme: dark;
-	--lh-code-keyword: #ff7b72;
-	--lh-code-string: #a5d6ff;
-	--lh-code-number: #79c0ff;
-	--lh-code-type: #ffa657;
-	--lh-code-function: #d2a8ff;
-	--lh-code-comment: #8b949e;
+/* Paper, the one light background: <html> loses its dark class and takes Paper's palette. */
+:root:not(.dark) {
+	color-scheme: light;
+	--lh-code-keyword: #b31d28;
+	--lh-code-string: #032f62;
+	--lh-code-number: #005cc5;
+	--lh-code-type: #8a3b00;
+	--lh-code-function: #5a32a3;
+	--lh-code-comment: #4f4d45;
 }
 
 /* Pop-ups (menus, notices, dialogs) are made of the top bar: its color and
