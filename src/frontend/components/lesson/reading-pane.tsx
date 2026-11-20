@@ -14,7 +14,7 @@ import { AgentAtWork } from "./agent-at-work";
 import { agentWork } from "./agent-at-work-model";
 import { ArrivalRow, type Arrive } from "./arrivals";
 import { MessageRow } from "./message-row";
-import { cardFiles, deskMark, deskState, heldBack, titleEcho } from "./wait-model";
+import { cardFiles, deskMark, deskState, heldBack } from "./wait-model";
 
 /**
  * THE READING PANE: the lesson as one document on the lesson text's sheet, in
@@ -29,7 +29,7 @@ import { cardFiles, deskMark, deskState, heldBack, titleEcho } from "./wait-mode
  */
 export function ReadingPane({
 	spaceId,
-	title,
+	echo,
 	messages,
 	phases,
 	status,
@@ -44,8 +44,8 @@ export function ReadingPane({
 }: {
 	/** The lesson's space. */
 	spaceId: string | undefined;
-	/** The lesson's title: a first message that only repeats it shows no bubble. */
-	title: string;
+	/** The index of the learner's first message when it only repeats the lesson's title (titleEcho): it shows no bubble. */
+	echo: number;
 	messages: readonly LhViewMessage[];
 	/** The phase at every message (phaseTimeline). */
 	phases: readonly Phase3[];
@@ -75,7 +75,6 @@ export function ReadingPane({
 	const closing = desk.mounted && desk.state === "closed" && !prefersReducedMotion();
 	const shownDesk = open || (closing ? desk.shown : null);
 	const shown = closing && desk.shown ? heldBack(messages, desk.shown.mark) : messages;
-	const echo = titleEcho(messages, title);
 	const foot = (busy || closing) && onStop && (
 		<div className="flex flex-col items-start gap-2 font-ui">
 			<QueuedSteersBody steers={queuedSteers} />

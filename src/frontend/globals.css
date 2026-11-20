@@ -723,6 +723,10 @@ body {
 		--lh-col: var(--lh-pair);
 		--lh-cut-r: calc(var(--lh-cut-l) + var(--lh-pair) - var(--lh-gap) - var(--lh-turn));
 	}
+	/* "Your turn" alone fits the window whole, so nothing is cut. */
+	.lh-lesson-window.lh-lesson-alone {
+		mask: none;
+	}
 }
 
 /* The lesson text and "Your turn" side by side (LessonScroll), measured on the page's room:

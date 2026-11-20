@@ -20,6 +20,7 @@ import {
 	isAttachmentPart,
 	messageAnchorId,
 	isQuestionTool,
+	PRACTICE_PROBLEM_TOOL,
 	teachStepIndex,
 	textPartMessageId,
 	type ArtifactPartProps,
@@ -56,6 +57,21 @@ interface MessageRowProps {
 	arrive: Arrive;
 }
 
+/** Never drawn: the teacher's own scaffolding (space and graph context), read by the desk and the
+ *  model, and the learner's go-ahead. */
+const UNDRAWN: ReadonlySet<string> = new Set(["data-graph-context", "data-space-context", "data-practice-next"]);
+
+/**
+ * Whether MessageRow draws anything for this message (kept in step with it; unsure counts as
+ * drawn). The page leaves the lesson text's sheet out while nothing in it is drawn. `openProblem`:
+ * the open problem's call, which shows in "Your turn" only.
+ */
+export function messageShows(m: LhViewMessage, echo: boolean, openProblem: string | null): boolean {
+	if (m.role !== "user") return m.parts.some((p) => partShows(p, false) && !(p.type === `tool-${PRACTICE_PROBLEM_TOOL}` && p.toolCallId === openProblem));
+	if (m.parts.every((p) => UNDRAWN.has(p.type))) return false;
+	return !(echo && m.parts.every((p) => p.type === "text"));
+}
+
 /**
  * ONE transcript row: memoized, so while a reply
  * streams only the message being written redraws — every other row keeps
@@ -78,10 +94,10 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 			</div>
 		);
 	}
-	// The teacher's own scaffolding (space and graph context) is read by the desk and the model, never drawn.
-	if (m.role === "user" && m.parts.every((p) => p.type === "data-graph-context" || p.type === "data-space-context")) return null;
-	// The learner's go-ahead draws nothing: an empty mark the page rests the reply at, its margin taking back the row gap.
-	if (m.role === "user" && m.parts.every((p) => p.type === "data-practice-next")) return <div data-testid="go-ahead-mark" className="-mb-4" />;
+	if (m.role === "user" && m.parts.every((p) => UNDRAWN.has(p.type))) {
+		// The go-ahead leaves an empty mark the page rests the reply at, its margin taking back the row gap.
+		return m.parts.some((p) => p.type === "data-practice-next") ? <div data-testid="go-ahead-mark" className="-mb-4" /> : null;
+	}
 	if (m.role === "user" && m.parts.some((p) => p.type.startsWith("data-") && !isAttachmentPart(p))) {
 		// Marker cards (custom messages): user-side scaffolding as cards; a
 		// thinking card's files sit under it.

@@ -899,8 +899,15 @@ describe("the turn sheet", () => {
 });
 
 describe("the lesson page's pair", () => {
-	const page = (turn: React.ReactNode | null) =>
-		renderToStaticMarkup(<LessonScroll steps={null} restKey="" busy={false} contextRef={{ current: null }} reading={<div data-testid="lesson-reading" />} turn={turn} />);
+	const page = (turn: React.ReactNode | null, reading: React.ReactNode | null = <div data-testid="lesson-reading" />) =>
+		renderToStaticMarkup(<LessonScroll steps={null} restKey="" busy={false} contextRef={{ current: null }} reading={reading} turn={turn} />);
+
+	it("draws Your turn alone, in the middle at its width in the pair, while the lesson text draws nothing", () => {
+		const alone = page(<aside data-testid="turn-sheet" />, null);
+		assert.match(alone, /data-testid="lesson-column" class="[^"]*@min-\[1280px\]\/room:max-w-\(--lh-turn\)/);
+		assert.match(alone, /lh-lesson-alone/);
+		assert.doesNotMatch(alone, /lesson-reading|room:grid|lh-lesson-pair/);
+	});
 
 	it("keeps Your turn beside the text for the whole lesson, and under it in a narrow room", () => {
 		const started = page(<aside data-testid="turn-sheet" />);
@@ -914,7 +921,7 @@ describe("the lesson page's pair", () => {
 describe("the reading pane", () => {
 	const readingProps = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}): React.ComponentProps<typeof ReadingPane> => ({
 		spaceId: undefined,
-		title: "Limits",
+		echo: -1,
 		messages: [],
 		phases: [],
 		status: "submitted",

@@ -71,6 +71,9 @@ const WRITTEN_REPLY = {
 };
 const OPEN_TOPICS = ["Inequalities on a number line", "Slope-intercept form, with every kind of mistake people make while plotting by hand and reading the result back"];
 /** A lesson whose open practice problem is one part longer than the window. */
+/** A lesson whose first reply is a problem and no words, so "Your turn" stands alone. */
+const PROBLEM_FIRST_TOPIC = "Slope from two points";
+const PROBLEM_FIRST = "A line passes through $(1, 2)$ and $(4, 11)$.\n\n(a) Find its slope.\n\n(b) Write its equation in the form $y = mx + b$.";
 const LONG_PROBLEM_TOPIC = "Equations from a story";
 const LONG_PROBLEM = [
 	"Two trains leave stations 300 miles apart at noon and run toward each other on the same line. The first runs at a steady $x$ miles an hour. The second runs 15 miles an hour faster than the first, but it stops for half an hour at a town halfway along before it goes on at the same speed.",
@@ -265,6 +268,10 @@ function answerFor(work, ids, lessonTurn) {
 	if (ids.sheetless && work.lessonId === ids.sheetless) return { text: "A pull request asks to merge one branch into another." };
 	if (ids.studied.includes(work.lessonId)) return shortLessonAnswer(lessonTurn, true);
 	if (ids.open.includes(work.lessonId)) return shortLessonAnswer(lessonTurn, false);
+	if (work.lessonId === ids.problemFirst) {
+		if (lessonTurn === 0) return { tool_calls: [{ name: "plan_init", arguments: { mermaid: "graph TD\n  first-step[First step] --> last-step[Last step]" } }] };
+		if (lessonTurn === 1) return { tool_calls: [{ name: "problem", arguments: { nodeId: "first-step", statement: PROBLEM_FIRST, mode: "recall", modelSolution: "(a) (11 - 2) / (4 - 1) = 3. (b) 2 = 3(1) + b, so b = -1: y = 3x - 1." } }] };
+	}
 	if (work.lessonId === ids.longProblem) {
 		if (lessonTurn === 0) return shortLessonAnswer(0, false);
 		if (lessonTurn === 1) {
@@ -386,6 +393,7 @@ export async function seed(dataDir, page, log) {
 	const open = [];
 	for (const topic of OPEN_TOPICS) open.push(await startLesson(topic));
 	const longProblem = await startLesson(LONG_PROBLEM_TOPIC);
+	const problemFirst = await startLesson(PROBLEM_FIRST_TOPIC);
 
 	// Answer every item until the queue stays empty for two teacher and two helper waits in a row. A respond answers with the
 	// next item when one waits. godspeed's own jobs (the space check) go to a helper, so an empty
@@ -394,12 +402,12 @@ export async function seed(dataDir, page, log) {
 	let helper = false;
 	const wait = () => agent.call("wait_for_work", { timeout_seconds: 3, ...(helper ? { helper: true } : {}) });
 	const turns = new Map();
-	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, studied, open, written, longProblem };
+	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, studied, open, written, longProblem, problemFirst };
 	const drain = async () => {
 		let reply = await wait();
 		for (let idle = 0, tries = 0; idle < 4; tries++) {
 			// Each added lesson is two items, and an item is two passes: the work, then its "turn done".
-			if (tries > 20 + 4 * (studied.length + open.length + 2)) throw new Error("the stand-in agent never ran out of work");
+			if (tries > 20 + 4 * (studied.length + open.length + 3)) throw new Error("the stand-in agent never ran out of work");
 			const header = JSON.parse(reply[0]);
 			if (header.status !== "work") {
 				if (header.status === "idle") helper = !helper;
@@ -477,5 +485,5 @@ export async function seed(dataDir, page, log) {
 	const sheetless = (await agent.json("start_lesson", { topic: "Git and pull requests", space_id: goal.space.id })).lessonId;
 	ids.sheetless = sheetless;
 	await drain();
-	return { sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
+	return { sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
 }

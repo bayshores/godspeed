@@ -18,6 +18,10 @@ import { type Pads, restingTop, wholeLineTop } from "./lesson-scroll-model";
 const READING_MEASURE = "mx-auto w-full max-w-[872px]";
 const PAIR = "@min-[1280px]/room:max-w-none";
 const PAIR_GRID = "@min-[1280px]/room:grid @min-[1280px]/room:grid-cols-[minmax(0,1fr)_var(--lh-turn)] @min-[1280px]/room:items-start";
+/** "Your turn" with no lesson text yet: in the middle, at the width it keeps in the pair. */
+const ALONE = "@min-[1280px]/room:max-w-(--lh-turn)";
+/** "Your turn" moving over as the lesson text's sheet arrives beside it. */
+const MAKE_ROOM = { duration: 240, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" };
 
 /** The jump key: in the gutter beside one column where the window leaves room, else in the sheet's side padding; in a pair, in the lesson text's. */
 const KEY = "@min-[688px]/room:right-[max(34px,calc((100%-872px)/2-48px))]";
@@ -71,7 +75,9 @@ function linesAt(root: Element, y: number, origin: number): { top: number; botto
  * lesson text's sheet and, once the lesson has started, "Your turn". With room for both they sit
  * side by side for the whole lesson and "Your turn" holds still while the text scrolls, always
  * inside the window, where only its question or problem scrolls (.lh-turn-fit); with less it sits
- * under the text, each sheet as tall as what it holds. The page rests where restingTop says: on open, when the
+ * under the text, each sheet as tall as what it holds. While the lesson text draws nothing (a
+ * lesson that opens with a problem), its sheet is left out and "Your turn" sits alone in the
+ * middle; when the text's sheet arrives, "Your turn" slides over to its side. The page rests where restingTop says: on open, when the
  * teacher asks (`restKey` changes) and while the teacher writes. When a reply lands it
  * holds still while the desk leaves, then is placed at once as the reply draws in. "Your turn"
  * fades out when it closes (a lesson reset) and, arriving with a reply, steps in after the
@@ -91,8 +97,8 @@ export function LessonScroll({
 	restKey: string;
 	busy: boolean;
 	contextRef: RefObject<StickToBottomContext | null>;
-	/** The lesson text's sheet. */
-	reading: ReactNode;
+	/** The lesson text's sheet; null while "Your turn" is up and the text draws nothing. */
+	reading: ReactNode | null;
 	/** "Your turn", once the lesson has started. */
 	turn: ReactNode | null;
 }) {
@@ -104,8 +110,26 @@ export function LessonScroll({
 	const [stepIn, setStepIn] = useState<boolean | null>(hasTurn ? false : null);
 	if (hasTurn !== (stepIn !== null)) setStepIn(hasTurn ? true : null);
 
+	const pair = hasTurn && reading !== null;
+	const alone = hasTurn && reading === null;
+
 	const columnRef = useRef<HTMLDivElement>(null);
 	const pageRef = useRef<HTMLDivElement>(null);
+	const turnRef = useRef<HTMLDivElement>(null);
+	// Where "Your turn" stood alone, to slide it from there when the text's sheet takes its side.
+	const aloneLeft = useRef<number | null>(null);
+	useLayoutEffect(() => {
+		const el = turnRef.current;
+		if (alone) {
+			aloneLeft.current = el?.getBoundingClientRect().left ?? null;
+			return;
+		}
+		const from = aloneLeft.current;
+		aloneLeft.current = null;
+		if (!el || from === null || !pair || prefersReducedMotion()) return;
+		const left = el.getBoundingClientRect().left;
+		if (left !== from) el.animate([{ transform: `translateX(${from - left}px)` }, { transform: "none" }], MAKE_ROOM);
+	});
 
 	// The teacher writing back while "Your turn" stays open makes its reply the newest thing.
 	const replyRef = useRef(false);
@@ -220,13 +244,14 @@ export function LessonScroll({
 			</div>
 			<Conversation className="my-(--lh-gap) min-h-0 min-w-0 flex-1" initial="instant" resize="instant" {...SETTLE} contextRef={contextRef} targetScrollTop={target}>
 				<SessionMessageNavigation />
-				<ConversationContent className="gap-0 p-0" scrollClassName={cn("lh-lesson-window [overflow-anchor:none] [container-type:size]", hasTurn && "lh-lesson-pair")}>
+				<ConversationContent className="gap-0 p-0" scrollClassName={cn("lh-lesson-window [overflow-anchor:none] [container-type:size]", pair && "lh-lesson-pair", alone && "lh-lesson-alone")}>
 					{/* Side by side the sheets end at the window's foot, so "Your turn" has the window's height to fill. */}
 					<div ref={pageRef} className={cn("lh-page pb-(--lh-page-end)", hasTurn && "@min-[1280px]/room:pb-0")}>
-						<div ref={columnRef} data-testid="lesson-column" className={cn("@container/column flex flex-col gap-(--lh-gap)", READING_MEASURE, hasTurn && [PAIR, PAIR_GRID])}>
+						<div ref={columnRef} data-testid="lesson-column" className={cn("@container/column flex flex-col gap-(--lh-gap)", READING_MEASURE, pair && [PAIR, PAIR_GRID], alone && ALONE)}>
 							{reading}
 							{hasTurn && (
 								<div
+									ref={turnRef}
 									data-state={closing ? "closed" : "open"}
 									inert={closing}
 									className={cn("lh-turn-fit min-w-0", closing ? "lh-fade" : stepIn && "lh-block-in")}

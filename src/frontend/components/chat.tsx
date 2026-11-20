@@ -49,11 +49,12 @@ import { LessonBar } from "@/frontend/components/lesson/lesson-bar";
 import { PlanRow } from "@/frontend/components/lesson/plan-row";
 import { LessonScroll } from "@/frontend/components/lesson/lesson-scroll";
 import { homeworkStartLabel } from "@/frontend/components/lesson/plan-row-model";
+import { messageShows } from "@/frontend/components/lesson/message-row";
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
 import { topicPageMarks } from "@/frontend/components/citations/page-excerpt-model";
 import { TurnSheet } from "@/frontend/components/lesson/turn-sheet";
 import { lastAnswered, turnNext, turnDrawn, type NextAction } from "@/frontend/components/lesson/turn-next-model";
-import { nothingWritten } from "@/frontend/components/lesson/wait-model";
+import { nothingWritten, titleEcho } from "@/frontend/components/lesson/wait-model";
 import type { QuestionHandle } from "@/frontend/components/question-dock";
 import { useTerminalLines } from "@/frontend/components/terminal/use-terminal-lines";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -493,6 +494,14 @@ export function Chat({
 		holds: pending !== null || problem !== null || next?.key != null || stuckLine !== null || errorLine !== null || reviewRefused,
 	});
 
+	const stoppedEmpty = unwritten && !busy && error === null;
+	const echo = useMemo(() => titleEcho(messages, rename.title), [messages, rename.title]);
+	// With "Your turn" up and nothing drawn in the lesson text (a lesson that opens with a problem), its sheet is left out.
+	const textShows = useMemo(
+		() => busy || stoppedEmpty || messages.length === 0 || messages.some((m, i) => messageShows(m, i === echo, chatActions.openProblem)),
+		[busy, stoppedEmpty, messages, echo, chatActions.openProblem],
+	);
+
 	return (
 		<ChatActionsContext.Provider value={chatActions}>
 			<SessionMermaidContext.Provider value={overlays.mermaidActions}>
@@ -518,15 +527,16 @@ export function Chat({
 										busy={busy}
 										contextRef={scrollContextRef}
 										reading={
+											turnShows && !textShows ? null : (
 											<Pane data-testid="lesson-reading" className="lh-text-fit flex min-w-0 flex-col">
 												<ReadingPane
 													spaceId={spaceId}
-													title={rename.title}
+													echo={echo}
 													messages={messages}
 													phases={phases}
 													status={status}
 													busy={busy}
-													stoppedEmpty={unwritten && !busy && error === null}
+													stoppedEmpty={stoppedEmpty}
 													waitingForAgent={waitingForAgent}
 													onStop={atStop ? null : abortInFlightTurn}
 													queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
@@ -535,6 +545,7 @@ export function Chat({
 													arrive={arrive}
 												/>
 											</Pane>
+											)
 										}
 										turn={
 											turnShows ? (

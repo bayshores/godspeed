@@ -7,7 +7,7 @@ import { WAITING_TOPIC } from "./layout-seed.mjs";
  * `shows`. `ready` and `shows` name something drawn from the screen's data, not its frame, so the
  * check never runs on a screen still loading. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
- * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{pending}`, `{sheetless}`, `{pathSpace}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
+ * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{pending}`, `{sheetless}`, `{pathSpace}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
 export const WIDTHS = [1440, 1100, 800];
@@ -257,6 +257,7 @@ box.dispatchEvent(new Event("input", { bubbles: true })); ${pause}`,
 		shows: "[data-testid=piece-printed][aria-pressed=true]",
 	},
 	{ name: "Lesson with a problem longer than the window", url: "/chat/{longProblem}", ready: "[data-testid=open-problem]" },
+	{ name: "Lesson that opens with a problem, Your turn alone", url: "/chat/{problemFirst}", ready: ".lh-lesson-alone [data-testid=open-problem]" },
 	{ name: "Homework lesson before a problem opens", url: "/chat/{homeworkFirst}", ready: "[data-testid=next-problem-button]" },
 	{ name: "Homework lesson with fourteen problems, the first done", url: "/chat/{homeworkMany}", ready: "[data-testid=plan-fold]" },
 	{ name: "Homework with fourteen problems, unfolded", url: "/chat/{homeworkMany}", ready: "[data-testid=plan-fold]", setup: unfoldSteps, shows: "[data-testid=plan-step][data-status=done] [data-testid=problem-pick]" },

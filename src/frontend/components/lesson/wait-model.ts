@@ -1,4 +1,4 @@
-import { isQuestionTool, type LhViewMessage } from "@/shared/core";
+import { isQuestionTool, PRACTICE_PROBLEM_TOOL, type LhViewMessage } from "@/shared/core";
 import type { AgentWork, CardFile } from "./agent-at-work-model";
 
 /**
@@ -83,12 +83,11 @@ export function heldBack(messages: readonly LhViewMessage[], mark: DeskMark): re
 	return [...kept.slice(0, -1), { ...last, parts }];
 }
 
-/** The learner has written and the teacher wrote nothing back: no words and no question (its
- *  first reply was stopped before it began). */
+/** The learner has written and the teacher wrote nothing back: no words, no question and no
+ *  problem (its first reply was stopped before it began). */
 export function nothingWritten(messages: readonly LhViewMessage[]): boolean {
 	const learner = messages.some((m) => m.role === "user" && m.parts.some((p) => p.type === "text"));
-	const wrote = messages.some(
-		(m) => m.role === "assistant" && m.parts.some((p) => (p.type === "text" ? !!p.text?.trim() : p.type.startsWith("tool-") && isQuestionTool(p.type.slice("tool-".length)))),
-	);
+	const asks = (tool: string) => isQuestionTool(tool) || tool === PRACTICE_PROBLEM_TOOL;
+	const wrote = messages.some((m) => m.role === "assistant" && m.parts.some((p) => (p.type === "text" ? !!p.text?.trim() : p.type.startsWith("tool-") && asks(p.type.slice("tool-".length)))));
 	return learner && !wrote;
 }

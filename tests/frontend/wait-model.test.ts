@@ -87,7 +87,8 @@ describe("nothingWritten", () => {
 		assert.equal(nothingWritten([user("Limits"), teacher({ type: "step-start" }, { type: "text", text: " " })]), true);
 	});
 
-	it("is false before the learner wrote, or once the teacher wrote or asked", () => {
+	it("is false before the learner wrote, or once the teacher wrote, asked or posed a problem", () => {
+		assert.equal(nothingWritten([user("Limits"), teacher({ type: "tool-problem", state: "output-available" })]), false);
 		assert.equal(nothingWritten([card(1)]), false);
 		assert.equal(nothingWritten([user("Limits"), teacher({ type: "text", text: "Here." })]), false);
 		assert.equal(nothingWritten([user("Limits"), teacher({ type: "tool-quiz", state: "input-available" })]), false);

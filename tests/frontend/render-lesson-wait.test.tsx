@@ -13,9 +13,11 @@ import { parseHTML } from "linkedom";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { ReadingPane } from "../../src/frontend/components/lesson/reading-pane.tsx";
+import { titleEcho } from "../../src/frontend/components/lesson/wait-model.ts";
 import { AgentStatusContext, type AgentStatus } from "../../src/frontend/components/agent-status.tsx";
 import { TeacherContext, type TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
-import { newUserMessage, projectView, type AttachmentPart, type LhViewMessage } from "../../src/shared/core/index.ts";
+import { MessageRow, messageShows } from "../../src/frontend/components/lesson/message-row.tsx";
+import { newNextMessage, newUserMessage, projectView, type AttachmentPart, type LhViewMessage } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 Object.assign(globalThis, {
@@ -44,7 +46,7 @@ const plan = { type: "tool-work_plan", toolCallId: "p", state: "output-available
 type Props = React.ComponentProps<typeof ReadingPane>;
 const props = (over: Partial<Props> = {}): Props => ({
 	spaceId: undefined,
-	title: TITLE,
+	echo: titleEcho(over.messages ?? [card(5), first], TITLE),
 	messages: [card(5), first],
 	phases: [],
 	status: "submitted",
@@ -148,6 +150,26 @@ describe("the title's bubble", () => {
 	it("shows a first message that says more than the title", () => {
 		const longer: LhViewMessage = { id: "u1", role: "user", parts: [{ type: "text", text: `${TITLE}, with proofs` }] };
 		assert.match(pane({ messages: [longer] }), /data-testid="user-message"[\s\S]*with proofs/);
+	});
+});
+
+describe("whether the lesson text draws anything", () => {
+	const shows = (messages: LhViewMessage[], open: string | null) => messages.some((m, i) => messageShows(m, i === titleEcho(messages, TITLE), open));
+	const problem = { type: "tool-problem", toolCallId: "p1", state: "output-available", input: { statement: "Find x." } };
+	const goAhead = projectView([newNextMessage()]);
+
+	it("nothing for the space's card, the title, a go-ahead and the open problem", () => {
+		assert.equal(shows([card(1), first, ...goAhead, teacher(problem)], "p1"), false);
+		const row = goAhead.map((m, i) => <MessageRow key={i} message={m} spaceId={undefined} index={i} echo={false} teachSeam={false} streamingLast={false} hideSteps={false} pageMarks={new Map()} arrive={() => undefined} />);
+		assert.equal(renderToStaticMarkup(<>{row}</>), '<div data-testid="go-ahead-mark" class="-mb-4"></div>', "a go-ahead's row is an empty mark");
+	});
+
+	it("something for the teacher's words, the learner's line, a file sent with the title and a problem no longer open", () => {
+		assert.equal(shows([card(1), first, teacher({ type: "text", text: "Bits." }, problem)], "p1"), true);
+		assert.equal(shows([card(1), first, teacher(problem), { id: "u2", role: "user", parts: [{ type: "text", text: "x = 2" }] }], "p1"), true);
+		const image: AttachmentPart = { type: "image", data: "QUJD", mimeType: "image/jpeg" };
+		assert.equal(shows(projectView([{ ...newUserMessage(TITLE, [image]), id: "u1" }]), null), true);
+		assert.equal(shows([card(1), first, teacher(problem)], null), true);
 	});
 });
 
