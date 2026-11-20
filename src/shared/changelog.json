@@ -1,5 +1,22 @@
 [
 	{
+		"version": "0.6.80",
+		"date": "2026-11-19",
+		"changes": [
+			"\"Your turn\" stays beside the lesson text for the whole lesson, so the page no longer drops to one column and back between problems. Its contents fade from one step to the next.",
+			"Between problems, \"Your turn\" says what is next and has one key that goes on: Continue, Next problem or Start problem N. It replaces the Keep going and Stop here card.",
+			"A problem can come with choices to tick, one or all that apply, above the box for your work. Send sends your picks with your work.",
+			"On a question with choices, words typed in the box with nothing picked go to the teacher, and the question stays open. Once you pick an answer, the words go with it as your reasoning.",
+			"While the teacher works, the lesson shows its plan, and the file it reads once it opens one. The pile of paper is gone, and so is the striped frame around a lesson.",
+			"The lesson page holds still while the teacher works, where it used to jump up and glide back.",
+			"The lesson text and \"Your turn\" start and end at the same height, and their edges keep their stepped corners where the window cuts them.",
+			"An open problem's title is its number, with Discard problem at the end of its title row and the Stuck keys in a row of their own.",
+			"The teacher no longer reads how sure you were about an earlier answer as a percent.",
+			"Code that numbers its own lines, like class pseudocode, no longer gets a second column of line numbers.",
+			"Math written as a block with its dollar signs on the lines of its first and last rows now shows as math instead of raw text."
+		]
+	},
+	{
 		"version": "0.6.79",
 		"date": "2026-11-19",
 		"changes": [
