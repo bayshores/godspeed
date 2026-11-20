@@ -36,8 +36,8 @@ export interface BoxButton {
 
 export interface BoxView {
 	placeholder: string;
-	/** "line": optional text, one line with the button beside it. "lines": text that is the
-	 *  answer or the work, three lines with the button inside the box. Both grow to five. */
+	/** "line": optional text, one line. "lines": text that is the
+	 *  answer or the work, three lines. The keys sit inside the box; both grow to five. */
 	size: "line" | "lines";
 	/** The ask key, then the answer key; a problem and the ask state have one. At most one is filled. */
 	keys: BoxButton[];

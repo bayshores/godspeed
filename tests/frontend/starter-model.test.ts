@@ -46,7 +46,7 @@ describe("everything the teacher can be asked", () => {
 	const idea = (f: IdeaFacts, start: string) => lines(f).find((i) => i.line.startsWith(start));
 
 	it("is grouped, and carries the learner's own names", () => {
-		assert.deepEqual(everything(facts()).map((g) => g.name), ["Learn", "Before a deadline", "Spaces and files", "About you"]);
+		assert.deepEqual(everything(facts()).map((g) => g.name), ["Learn", "Deadlines", "Spaces and files", "About you"]);
 		assert.deepEqual(idea(facts(), "Get me ready"), { line: "Get me ready for HW 6", needs: null }, "the soonest deadline");
 		assert.deepEqual(idea(facts(), "Help me with"), { line: "Help me with HW 6", needs: null });
 		assert.deepEqual(idea(facts(), "Make a cheat sheet"), { line: "Make a cheat sheet for HW 6", needs: null });

@@ -81,29 +81,26 @@ export function everything(f: IdeaFacts): IdeaGroup[] {
 			name: "Learn",
 			ideas: [
 				can(TEACH),
-				withThing(deadlines[0], (name) => `Get me ready for ${name}`, "Get me ready for a deadline", "needs a deadline"),
-				withThing(homework, (name) => `Help me with ${name}`, "Help me with my homework", "needs a homework deadline"),
 				can("Quiz me on what I've learned"),
+				can(PATH),
+				can("Help me prepare for an interview"),
 				{ line: "Draw it, show a demo or look it up", needs: "needs an open lesson" },
 			],
 		},
 		{
-			name: "Before a deadline",
+			name: "Deadlines",
 			ideas: [
+				can(DUE),
+				f.spaces > 0 ? can(ADD_DEADLINE) : { line: ADD_DEADLINE, needs: "needs a space" },
+				withThing(deadlines[0], (name) => `Get me ready for ${name}`, "Get me ready for a deadline", "needs a deadline"),
+				withThing(homework, (name) => `Help me with ${name}`, "Help me with my homework", "needs a homework deadline"),
 				withThing(sheet, (name) => `Make a cheat sheet for ${name}`, "Make a cheat sheet", "needs a deadline"),
 				withThing(mock, (name) => `Write a mock exam for ${name}`, "Write a mock exam", "needs an exam or quiz deadline"),
-				can("Help me prepare for an interview"),
-				can(PATH),
 			],
 		},
 		{
 			name: "Spaces and files",
-			ideas: [
-				can(SET_UP),
-				f.spaces > 0 ? can(ADD_DEADLINE) : { line: ADD_DEADLINE, needs: "needs a space" },
-				can(DUE),
-				space && space.files > 0 ? can(FIND) : { line: FIND, needs: "needs files in a space" },
-			],
+			ideas: [can(SET_UP), space && space.files > 0 ? can(FIND) : { line: FIND, needs: "needs files in a space" }],
 		},
 		{
 			name: "About you",

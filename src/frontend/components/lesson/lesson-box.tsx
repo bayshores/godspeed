@@ -65,18 +65,11 @@ export function LessonBox({
 	return (
 		<div data-testid="composer" data-size={view.size} className="flex shrink-0 flex-col gap-2" {...attachmentInputProps(taken)}>
 			<AttachmentTray draft={attachments} />
-			{view.size === "line" ? (
-				// The keys go under the box when the row is too narrow for both, and take that whole row.
-				<div className="flex flex-wrap items-end gap-x-3 gap-y-2.5">
-					<div className="lh-answer-line flex min-w-0 flex-[999_1_240px] flex-col lh-well rounded-[2px]">{box}</div>
-					<div className="flex min-w-0 flex-[1_1_auto] flex-wrap items-center gap-x-3 gap-y-2">{keys}</div>
-				</div>
-			) : (
-				<div className="lh-answer-lines flex flex-col lh-well rounded-[2px]">
-					{box}
-					<div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 pr-2.5 pb-2.5 pl-2">{keys}</div>
-				</div>
-			)}
+			{/* One shape whatever waits above it: the keys sit inside the box, under the text. */}
+			<div className={cn(view.size === "line" ? "lh-answer-line" : "lh-answer-lines", "flex flex-col lh-well rounded-[2px]")}>
+				{box}
+				<div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 pr-2.5 pb-2.5 pl-2">{keys}</div>
+			</div>
 		</div>
 	);
 }

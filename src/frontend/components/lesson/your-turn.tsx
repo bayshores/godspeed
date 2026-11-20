@@ -222,32 +222,30 @@ export function YourTurn({
 
 			<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
 			{(view.help || turn.kind === "ask") && (
-				<div data-testid="turn-foot" className="flex flex-wrap items-center gap-2.5">
-					{view.help ? (
-						<HelpKeys help={view.help} questionRef={questionRef} onHelpLine={onHelpLine} />
-					) : (
-						<>
-							<span className="mr-1 shrink-0 text-base text-ink-2">Try asking</span>
-							{ideas.map((line) => (
+				// Keys that wrap line up under the first key, not under the label.
+				<div data-testid="turn-foot" className="flex items-baseline gap-2.5">
+					<span className="mr-1 shrink-0 text-base text-ink-2">{view.help ? "Stuck?" : "Try asking"}</span>
+					<div className="flex min-w-0 flex-wrap items-center gap-2.5">
+						{view.help ? (
+							<HelpKeys help={view.help} questionRef={questionRef} onHelpLine={onHelpLine} />
+						) : (
+							ideas.map((line) => (
 								<button key={line} type="button" data-testid="lesson-idea" onClick={() => onHelpLine(line)} className={HELP_KEY}>
 									{line}
 								</button>
-							))}
-						</>
-					)}
+							))
+						)}
+					</div>
 				</div>
 			)}
 		</div>
 	);
 }
 
-/** "Stuck?" and its three keys. */
+/** The three "Stuck?" keys. */
 function HelpKeys({ help, questionRef, onHelpLine }: { help: NonNullable<BoxView["help"]>; questionRef: RefObject<QuestionHandle | null>; onHelpLine: (line: string) => void }) {
 	return (
 		<>
-			<span className="mr-1 shrink-0 text-base text-ink-2">
-				Stuck?
-			</span>
 			<button
 				type="button"
 				data-testid="help-dont-know"

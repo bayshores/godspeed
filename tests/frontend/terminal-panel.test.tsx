@@ -838,7 +838,8 @@ describe("the starter keys", () => {
 				assert.ok(q("terminal-ideas") === null);
 				await click("terminal-everything");
 				assert.equal(q("terminal-everything")?.getAttribute("aria-expanded"), "true");
-				assert.deepEqual([...q("terminal-ideas")!.querySelectorAll("h3")].map((h) => h.textContent), ["Learn", "Before a deadline", "Spaces and files", "About you"]);
+				assert.equal(starters().length, 0, "the list holds those lines, so the row keeps only its key");
+				assert.deepEqual([...q("terminal-ideas")!.querySelectorAll("h3")].map((h) => h.textContent), ["Learn", "Deadlines", "Spaces and files", "About you"]);
 				const off = [...document.querySelectorAll('[data-testid="terminal-idea-off"]')].map((r) => r.textContent);
 				assert.ok(off.includes("Make a cheat sheetneeds a deadline"));
 				assert.ok(off.every((line) => line?.includes("needs")));

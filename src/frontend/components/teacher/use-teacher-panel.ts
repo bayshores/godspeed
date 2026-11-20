@@ -88,8 +88,9 @@ export function useTeacherPanel(replying: boolean | null, onToday: boolean) {
 	useEffect(() => {
 		if (!welcomeNow({ marked: readStorage(WELCOME_KEY) !== null, onToday, teacherOn })) return;
 		writeStorage(WELCOME_KEY, null);
-		// Already open, or in its own window, the learner has it in front of them.
-		setState((s) => (s.open || popped ? s : { open: true, list: false, role: "teacher", focus: false, byApp: true }));
+		// Already open, or in its own window, the learner has it in front of them. It answers no
+		// need, so no need settling closes it; the keyboard stays where it is.
+		setState((s) => (s.open || popped ? s : { open: true, list: false, role: "teacher", focus: false, byApp: false }));
 	}, [onToday, teacherOn, popped]);
 	const seen = useRef(FIRST_LOOK);
 	const started = useRef(false);
