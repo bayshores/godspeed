@@ -213,6 +213,8 @@ fn a_start_script_draws_and_echoes_through_the_terminal() {
 	assert_eq!(*lock(&heard.typed), vec![id.clone()], "Enter with no question on the screen is a message to the agent");
 	until("the echo", || text(&terminals, &id).contains(&format!("got a{SECRET}")));
 	until("the end", || ended_of(&terminals, &id) == Some(Ended::Exited(0)));
+	// The server is told after the state says ended, so the two are not seen at the same moment.
+	until("the server hears it ended", || lock(&heard.live).last() == Some(&Vec::new()));
 
 	let pushes = lock(&heard.pushes);
 	let (to, _, snapshot) = pushes.iter().find(|(_, channel, _)| channel == "terminal-output").unwrap();
@@ -224,7 +226,6 @@ fn a_start_script_draws_and_echoes_through_the_terminal() {
 	let (to, _, last) = pushes.iter().rfind(|(_, channel, _)| channel == "terminal-state").unwrap();
 	assert_eq!(to, "all", "what the terminal is doing is for every window");
 	assert_eq!(last["ended"], json!({ "stopped": false, "code": 0 }));
-	assert_eq!(lock(&heard.live).last(), Some(&Vec::new()), "the server hears it ended");
 	assert_eq!(terminals.write(&id, "x", Some(MAIN)), Err(NOT_THERE.to_owned()));
 	std::fs::remove_dir_all(dir).unwrap();
 }
@@ -587,7 +588,7 @@ fn a_screen_that_breaks_stops_its_terminal_and_says_so() {
 	until("the end", || ended_of(&terminals, &id) == Some(Ended::Broken));
 	assert!(text(&terminals, &id).contains(BROKEN));
 	assert_eq!(terminals.list()[0]["ended"], json!({ "stopped": false, "code": null }));
-	assert_eq!(lock(&heard.live).last(), Some(&Vec::new()), "the server hears it ended");
+	until("the server hears it ended", || lock(&heard.live).last() == Some(&Vec::new()));
 	let pushes = lock(&heard.pushes);
 	let snapshot = pushes.iter().rev().find_map(|(_, _, p)| p["snapshot"].as_str()).unwrap();
 	assert!(String::from_utf8(gs_base::base64::decode(snapshot)).unwrap().contains("couldn't read"));
