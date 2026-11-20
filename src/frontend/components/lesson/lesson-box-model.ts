@@ -2,9 +2,9 @@
  * The lesson's answer box: for each thing that waits for the learner, the
  * box's size and button, what Enter does in it, the way out at the end of
  * the foot row and the "Stuck?" keys before it.
- * A problem's box takes his work, plain messages the teacher reads; talking
- * to the teacher, a question about the problem too, happens in its terminal
- * (use-terminal-lines.ts). Pure.
+ * A problem's box takes his work, plain messages the teacher reads. Under a
+ * question with choices and nothing picked, the box sends a side question
+ * like a line typed in the teacher's terminal (use-terminal-lines.ts). Pure.
  */
 import { answerTakesFiles, parseAskInput, parseExplainInput, toolQuestionKind, type AppPosed } from "@/shared/core";
 
@@ -72,6 +72,8 @@ export function questionTurn(tool: string, input: unknown, picked: boolean, appP
 	return { kind: "choice", picked, ...(appPosed ? { appPosed } : {}), ...(ask ? { ownAnswer: true as const } : {}) };
 }
 
+const ASK_OR_PICK = "Pick an answer, or ask the teacher something";
+
 export function lessonBox(s: {
 	/** A reply is being written (or waits for an agent). */
 	busy: boolean;
@@ -96,12 +98,24 @@ export function lessonBox(s: {
 	if (turn.kind === "read-first") {
 		return { placeholder: "Whatever comes to mind as you read.", size: "line", button: { action: "reveal", label: "Check your understanding", filled: true, disabled: false }, enter: "reveal", exit: "skip", attach: false, help: null };
 	}
+	// Words with nothing picked ask the teacher something; the question stays open.
+	if (turn.kind === "choice" && !turn.ownAnswer && !turn.picked && s.hasText) {
+		return {
+			placeholder: ASK_OR_PICK,
+			size: "line",
+			button: { action: "send", label: "Send", filled: !s.busy, disabled: s.busy },
+			enter: s.busy ? null : "send",
+			exit: "skip",
+			attach: false,
+			help: { dontKnow: "answer", dontKnowDisabled: s.busy && turn.appPosed !== "review", linesDisabled: s.busy },
+		};
+	}
 	const ready = turn.kind === "choice" ? turn.picked : s.hasText || (turn.takesFiles && s.hasFiles);
 	// An answer to a question from earlier wakes nobody, so it goes in while the teacher writes.
 	const canAnswer = !s.busy || (turn.kind === "choice" && turn.appPosed === "review");
 	const canSubmit = ready && canAnswer;
 	return {
-		placeholder: turn.kind === "written" ? "Your answer" : turn.ownAnswer && !turn.picked ? "Pick one above, or type your own answer" : "Your reasoning (optional)",
+		placeholder: turn.kind === "written" ? "Your answer" : turn.ownAnswer && !turn.picked ? "Pick one above, or type your own answer" : turn.picked ? "Your reasoning (optional)" : ASK_OR_PICK,
 		size: turn.kind === "written" ? "lines" : "line",
 		button: { action: "submit", label: "Submit answer", filled: true, disabled: !canSubmit },
 		enter: canSubmit ? "submit" : null,

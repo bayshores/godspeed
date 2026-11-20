@@ -230,19 +230,21 @@ describe("Your turn in each state", () => {
 		assert.match(out, /data-mode="question"/);
 		assert.match(out, /data-testid="question-dock"[\s\S]*Which planet is closest[\s\S]*data-testid="composer"/);
 		assert.match(out, /data-testid="question-submit"[^>]*disabled[^>]*>Submit answer</, "Submit waits for a pick");
-		assert.match(out, /Your reasoning \(optional\)/);
-		assert.doesNotMatch(out, /composer-send|Ask Teacher|a question for/, "questions to the teacher go in the terminal");
+		assert.match(out, /Pick an answer, or ask the teacher something/);
+		assert.doesNotMatch(out, /composer-send|Ask Teacher/);
 		assert.equal(out.split('data-testid="math-box"').length - 1, 1, "one writing box");
 		assert.equal(out.split("Submit answer").length - 1, 1, "one submit button");
 	});
 
 	it("Submit answer waits for a pick, then sends the answer with the box text as the thinking", async () => {
 		const answers: QuestionAnswerData[] = [];
-		await mounted(turn({ pending: quiz, value: "closest orbit", onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
+		const props = (value: string) => turn({ pending: quiz, value, onSubmitAnswer: (a) => answers.push(a) });
+		await mounted(props(""), async (host, show) => {
 			assert.equal(submitDisabled(host), true);
 			await click(host, "question-submit");
 			assert.equal(answers.length, 0, "a disabled Submit sends nothing");
 			await act(async () => optionNamed(host, "Mercury").click());
+			await show(props("closest orbit"));
 			assert.equal(submitDisabled(host), false);
 			await click(host, "question-submit");
 			assert.equal(answers.length, 1);
@@ -588,14 +590,15 @@ describe("Enter in the box", () => {
 		});
 	});
 
-	it("Enter submits a picked answer and does nothing before one is picked", async () => {
+	it("Enter before a pick sends the words to the teacher; after a pick it submits them as reasoning", async () => {
 		const answers: QuestionAnswerData[] = [];
-		const label = "Your reasoning (optional)";
-		await mounted(turn({ pending: quiz, value: "because", onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
-			await act(async () => void enter(await mathBoxView(host, label)));
+		let sent = 0;
+		await mounted(turn({ pending: quiz, value: "because", onSubmitAnswer: (a) => answers.push(a), onSend: () => sent++ }), async (host) => {
+			await act(async () => void enter(await mathBoxView(host, "Pick an answer, or ask the teacher something")));
 			assert.equal(answers.length, 0);
+			assert.equal(sent, 1, "a side question");
 			await act(async () => optionNamed(host, "Mercury").click());
-			await act(async () => void enter(await mathBoxView(host, label)));
+			await act(async () => void enter(await mathBoxView(host, "Your reasoning (optional)")));
 			assert.equal(answers.length, 1);
 			assert.equal(answers[0]!.thinking, "because");
 		});
@@ -685,9 +688,9 @@ describe("the question's keys", () => {
 });
 
 describe("writing folds the answer list", () => {
-	const label = "Your reasoning (optional)";
 	const focusBox = async (host: HTMLElement) => {
-		const content = (await mathBoxView(host, label)).contentDOM;
+		const picked = host.querySelector('[data-testid="picked-row"], [aria-checked="true"], [aria-pressed="true"]') !== null || host.innerHTML.includes("Your reasoning (optional)");
+		const content = (await mathBoxView(host, picked ? "Your reasoning (optional)" : "Pick an answer, or ask the teacher something")).contentDOM;
 		await act(async () => content.dispatchEvent(new dom.window.Event("focusin", { bubbles: true })));
 	};
 

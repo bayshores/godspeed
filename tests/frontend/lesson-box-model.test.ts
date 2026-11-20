@@ -85,12 +85,21 @@ describe("lessonBox, a question", () => {
 		assert.equal(box({ kind: "choice", picked: true, ownAnswer: true }).placeholder, "Your reasoning (optional)", "with a pick the text is reasoning");
 	});
 
-	it("choices: Submit waits for a pick; the box text is reasoning", () => {
-		const open = box({ kind: "choice", picked: false }, { hasText: true });
-		assert.equal(open.placeholder, "Your reasoning (optional)");
-		assert.equal(open.button.label, "Submit answer");
-		assert.equal(open.button.disabled, true);
-		assert.equal(open.enter, null);
+	it("choices: words with nothing picked are sent to the teacher; with a pick they are reasoning", () => {
+		const empty = box({ kind: "choice", picked: false });
+		assert.equal(empty.placeholder, "Pick an answer, or ask the teacher something");
+		assert.equal(empty.button.label, "Submit answer");
+		assert.equal(empty.button.disabled, true);
+		assert.equal(empty.enter, null);
+
+		const asking = box({ kind: "choice", picked: false }, { hasText: true });
+		assert.equal(asking.button.label, "Send");
+		assert.equal(asking.button.action, "send");
+		assert.equal(asking.enter, "send");
+		assert.equal(asking.exit, "skip", "the question stays open");
+		assert.equal(box({ kind: "choice", picked: false }, { hasText: true, busy: true }).button.disabled, true, "not while the teacher writes");
+
+		assert.equal(box({ kind: "choice", picked: true }, { hasText: true }).placeholder, "Your reasoning (optional)");
 
 		const picked = box({ kind: "choice", picked: true });
 		assert.equal(picked.button.disabled, false);

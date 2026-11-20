@@ -318,8 +318,17 @@ export function Chat({
 	};
 
 	// The problem's work in the box, with its picks, once the teacher is free.
+	// Under a waiting question the box's words are a side question instead.
 	const onSend = () => {
 		const t = textRef.current.trim();
+		if (pending) {
+			if (busy || !t) return;
+			editText("");
+			void sendLine(t, []).then((sent) => {
+				if (!sent) editText(restoreUnsent(t, textRef.current));
+			});
+			return;
+		}
 		const picked = problemPicked;
 		if (busy || (!t && picked.selected.size === 0 && attachments.files.length === 0)) return;
 		const drafts = attachments.files;
