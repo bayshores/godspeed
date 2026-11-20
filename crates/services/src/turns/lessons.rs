@@ -25,12 +25,13 @@ use gs_json::{Json, Obj};
 use crate::App;
 use crate::spaces::space_card::space_card_for;
 use crate::graph::graph::graph_store_for;
-use crate::graph::study_start::{deadline_study_for, path_study_for, study_topics_for, topic_study_for};
+use crate::graph::study_start::{deadline_study_for, nearest_topics_for, path_study_for, study_topics_for, topic_study_for};
 
 /// What a lesson starts from.
 pub enum LessonStart {
-	/// A typed topic (its title), with any facts picked for it (`{id, name, statement}`).
-	Typed { title: String, picks: Vec<Json> },
+	/// A typed topic (its title), with any facts picked for it (`{id, name, statement}`) and the
+	/// space topics nearest it (see `LessonStart::typed`).
+	Typed { title: String, picks: Vec<Json>, nearest: Vec<Json> },
 	/// Some of the space's topics.
 	Topics(Vec<String>),
 	/// One question of a graded mock, to go over.
@@ -39,6 +40,20 @@ pub enum LessonStart {
 	Deadline(String),
 	/// One topic of the space's path, by id.
 	PathTopic(String),
+}
+
+impl LessonStart {
+	/// A typed start. With nothing picked in a space, the fact search finds the topics nearest the
+	/// title, so the plan note says where the learner really stands on them. Run before
+	/// `create_lesson`, which holds the space's lock and so cannot wait on a search.
+	pub async fn typed(app: &App, scope: Option<&str>, title: &str, picks: Vec<Json>) -> Result<LessonStart, String> {
+		let title = gs_base::text::trim(title);
+		let nearest = match scope {
+			Some(space_id) if picks.is_empty() && !title.is_empty() => nearest_topics_for(app, space_id, title).await?,
+			_ => Vec::new(),
+		};
+		Ok(LessonStart::Typed { title: title.to_owned(), picks, nearest })
+	}
 }
 
 pub struct CreateLessonInput {
@@ -70,6 +85,8 @@ struct Start {
 	title: String,
 	picks: Vec<Json>,
 	topics: Vec<Json>,
+	/// With no topics: the space topics nearest the title.
+	nearest: Vec<Json>,
 	/// More for the teacher under the study plan.
 	note: Option<String>,
 }
@@ -123,7 +140,7 @@ pub fn create_lesson(app: &Arc<App>, input: CreateLessonInput) -> Result<Result<
 	}
 	// The first topic starts here, with no plot yet. With no topics the agent's plan_init writes
 	// the tree.
-	let topics = if start.topics.is_empty() { no_topics_text(&start.title) } else { study_context_text(&start.topics) };
+	let topics = if start.topics.is_empty() { no_topics_text(&start.title, &start.nearest) } else { study_context_text(&start.topics) };
 	let plan = format!("{topics}\n\n{NO_PLOT_YET}");
 	let context = match &start.note {
 		Some(note) => format!("{plan}\n\n{note}"),
@@ -146,7 +163,7 @@ fn start_of(app: &Arc<App>, scope: Option<&str>, start: &LessonStart) -> Result<
 			if study.topics.is_empty() {
 				return Ok(Err(NotFound { code: "topics_not_found", error: "No such topics" }));
 			}
-			Ok(Start { title: study_title(&study.topics), picks: study.picks, topics: study.topics, note: None })
+			Ok(Start { title: study_title(&study.topics), picks: study.picks, topics: study.topics, nearest: Vec::new(), note: None })
 		}
 		LessonStart::MockQuestion { mock_id, question_id } => {
 			let mock = match scope {
@@ -176,7 +193,7 @@ fn start_of(app: &Arc<App>, scope: Option<&str>, start: &LessonStart) -> Result<
 			} else {
 				tested
 			};
-			Ok(Start { title: format!("Go over: {title}"), picks: Vec::new(), topics, note: Some(note) })
+			Ok(Start { title: format!("Go over: {title}"), picks: Vec::new(), topics, nearest: Vec::new(), note: Some(note) })
 		}
 		LessonStart::Deadline(deadline_id) => {
 			let deadline = match scope {
@@ -188,9 +205,9 @@ fn start_of(app: &Arc<App>, scope: Option<&str>, start: &LessonStart) -> Result<
 			};
 			// A deadline with no topics yet is studied by name.
 			if deadline.topics.is_empty() {
-				return Ok(Ok(typed(app, scope, &format!("Study for {}", deadline.name), Vec::new())?));
+				return Ok(Ok(typed(app, scope, &format!("Study for {}", deadline.name), Vec::new(), Vec::new())?));
 			}
-			Ok(Start { title: study_title(&deadline.topics), picks: deadline.picks, topics: deadline.topics, note: None })
+			Ok(Start { title: study_title(&deadline.topics), picks: deadline.picks, topics: deadline.topics, nearest: Vec::new(), note: None })
 		}
 		LessonStart::PathTopic(topic_id) => {
 			let study = match scope {
@@ -201,15 +218,15 @@ fn start_of(app: &Arc<App>, scope: Option<&str>, start: &LessonStart) -> Result<
 				return Ok(Err(NotFound { code: "topics_not_found", error: "No such path topic" }));
 			};
 			let topics = vec![study.topic];
-			Ok(Start { title: study_title(&topics), picks: study.picks, topics, note: Some(study.note) })
+			Ok(Start { title: study_title(&topics), picks: study.picks, topics, nearest: Vec::new(), note: Some(study.note) })
 		}
-		LessonStart::Typed { title, picks } => Ok(typed(app, scope, gs_base::text::trim(title), picks.iter().take(MAX_STUDY_FACTS).cloned().collect())?),
+		LessonStart::Typed { title, picks, nearest } => Ok(typed(app, scope, gs_base::text::trim(title), picks.iter().take(MAX_STUDY_FACTS).cloned().collect(), nearest.clone())?),
 	})
 }
 
 /// A typed topic: its picked facts grouped into topics, or none when no picked fact is in one.
 /// Picked facts with nothing typed are titled after their topics.
-fn typed(app: &Arc<App>, scope: Option<&str>, title: &str, picks: Vec<Json>) -> Result<Start, String> {
+fn typed(app: &Arc<App>, scope: Option<&str>, title: &str, picks: Vec<Json>, nearest: Vec<Json>) -> Result<Start, String> {
 	let fact_ids: Vec<String> = picks.iter().filter_map(|p| p["id"].as_str().map(str::to_owned)).collect();
 	let topics = study_topics_for(app, scope, &fact_ids)?;
 	let title = if !title.is_empty() {
@@ -219,7 +236,7 @@ fn typed(app: &Arc<App>, scope: Option<&str>, title: &str, picks: Vec<Json>) -> 
 	} else {
 		"Untitled lesson".to_owned()
 	};
-	Ok(Start { title, picks, topics, note: None })
+	Ok(Start { title, picks, topics, nearest, note: None })
 }
 
 #[cfg(test)]
@@ -277,10 +294,10 @@ mod tests {
 		let root = scratch_dir("lesson-no-topics");
 		let app = test_app(&root);
 		let space_id = graded_mock(&app);
-		let (typed, title) = start(&app, &space_id, LessonStart::Typed { title: "Bayes' rule".to_owned(), picks: Vec::new() }).unwrap();
+		let (typed, title) = start(&app, &space_id, LessonStart::Typed { title: "Bayes' rule".to_owned(), picks: Vec::new(), nearest: Vec::new() }).unwrap();
 		assert_eq!(title, "Bayes' rule");
 		assert!(typed["tree"].is_null(), "no tree until the agent's plan_init: {:?}", typed["tree"]);
-		assert_eq!(study_plan(&typed), format!("{}\n\n{NO_PLOT_YET}", no_topics_text("Bayes' rule")));
+		assert_eq!(study_plan(&typed), format!("{}\n\n{NO_PLOT_YET}", no_topics_text("Bayes' rule", &[])));
 
 		let deadline_id = app.stores.spaces.get_space(&space_id).unwrap()["deadlines"][0]["id"].as_str().unwrap().to_owned();
 		let (by_deadline, title) = start(&app, &space_id, LessonStart::Deadline(deadline_id.clone())).unwrap();
@@ -289,10 +306,27 @@ mod tests {
 		assert!(by_deadline["tree"].is_null());
 		assert!(study_plan(&by_deadline).starts_with("[Study plan] \u{2014} no space topics for this: Study for Onsite."));
 
-		let practice = |deadline: &str| CreateLessonInput { space_id: Some(space_id.clone()), start: LessonStart::Typed { title: "Practice test".to_owned(), picks: Vec::new() }, for_deadline: Some(deadline.to_owned()) };
+		let practice = |deadline: &str| CreateLessonInput { space_id: Some(space_id.clone()), start: LessonStart::Typed { title: "Practice test".to_owned(), picks: Vec::new(), nearest: Vec::new() }, for_deadline: Some(deadline.to_owned()) };
 		let for_it = create_lesson(&app, practice(&deadline_id)).unwrap().unwrap();
 		assert_eq!((for_it.title.as_str(), for_it.chat["deadlineId"].as_str()), ("Practice test", Some(deadline_id.as_str())), "a typed lesson for the deadline");
 		assert_eq!(create_lesson(&app, practice("ddl_nope")).unwrap().map(|c| c.title), Err(NO_DEADLINE), "not a deadline of this space");
+	}
+
+	#[tokio::test]
+	async fn a_typed_start_names_the_nearest_topics_and_starts_without_them_when_the_search_fails() {
+		let root = scratch_dir("lesson-nearest");
+		let app = test_app(&root);
+		let space_id = graded_mock(&app);
+		let near = gs_json::json!({ "id": "tpc_1", "name": "Processes", "material": "concept", "status": "untested", "factIds": [] });
+		let (typed, _) = start(&app, &space_id, LessonStart::Typed { title: "Fork a child".to_owned(), picks: Vec::new(), nearest: vec![near.clone()] }).unwrap();
+		assert_eq!(study_plan(&typed), format!("{}\n\n{NO_PLOT_YET}", no_topics_text("Fork a child", &[near])));
+		assert!(study_plan(&typed).contains("\n- Processes: concept, untested\n\n"), "{}", study_plan(&typed));
+
+		// The test app has no search model: the search fails, and the lesson starts all the same.
+		let fact = gs_json::json!({ "id": "n_fork", "name": "fork", "statement": "fork returns twice.", "aliases": [], "createdAt": "t", "provenance": [] });
+		app.stores.graphs.append(Some(space_id.as_str()), gs_store::graph::Ledger::Nodes, &fact).unwrap();
+		let LessonStart::Typed { title, nearest, .. } = LessonStart::typed(&app, Some(&space_id), "  Fork a child ", Vec::new()).await.unwrap() else { panic!("a typed start") };
+		assert_eq!((title.as_str(), nearest.len()), ("Fork a child", 0));
 	}
 
 	/// A problem on `node` the learner solved, as a lesson stores it.
@@ -385,7 +419,7 @@ mod tests {
 		let deleting = app.locks.lock(LockKey::Space(&space_id));
 		let (starting, space) = (app.clone(), space_id.clone());
 		let started = std::thread::spawn(move || {
-			let input = CreateLessonInput { space_id: Some(space), start: LessonStart::Typed { title: "Sets".to_owned(), picks: Vec::new() }, for_deadline: None };
+			let input = CreateLessonInput { space_id: Some(space), start: LessonStart::Typed { title: "Sets".to_owned(), picks: Vec::new(), nearest: Vec::new() }, for_deadline: None };
 			create_lesson(&starting, input).unwrap().map(drop)
 		});
 		std::thread::sleep(std::time::Duration::from_millis(100));

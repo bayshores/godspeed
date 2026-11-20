@@ -121,7 +121,7 @@ function stepLabel(tool: string, input: Record<string, unknown>): string | null 
 		case "search_space_files":
 			return str(input.query) ? `searched your files for "${input.query as string}"` : null;
 		case "search_graph":
-			return "checked what you already studied";
+			return "searched your knowledge graph";
 		default:
 			return null;
 	}

@@ -6,7 +6,7 @@ use std::collections::{HashMap, HashSet};
 use gs_core::graph::graph::get_graph;
 use gs_core::spaces::space_path::path_lesson_note;
 use gs_core::study::review::reviewable_topics;
-use gs_core::study::study::{MAX_STUDY_FACTS, deadline_study_topic_ids, fact_space_order, study_topics, topic_study};
+use gs_core::study::study::{MAX_STUDY_FACTS, NEAREST_FACTS, deadline_study_topic_ids, fact_space_order, nearest_topics, study_topics, topic_study};
 use gs_json::{Json, Obj, json};
 
 use super::graph::graph_store_for;
@@ -20,6 +20,25 @@ pub fn study_topics_for(app: &App, scope: Option<&str>, fact_ids: &[String]) -> 
 	let space_order = progress.as_ref().map_or_else(HashMap::new, |p| fact_space_order(p["facts"].items(), &progress_files(record.as_ref())));
 	let topics = progress.as_ref().map_or(&[][..], |p| p["topics"].items());
 	Ok(study_topics(fact_ids, topics, &space_order))
+}
+
+/// The space topics nearest a typed goal, with where the learner stands on each: the topics of
+/// the facts the graph search finds for it. Empty when the space has no facts for it.
+pub async fn nearest_topics_for(app: &App, space_id: &str, goal: &str) -> Result<Vec<Json>, String> {
+	let graph = get_graph(graph_store_for(app, Some(space_id)).as_ref())?;
+	let hits = match app.search.search_facts(Some(space_id), &graph.nodes, goal, NEAREST_FACTS).await {
+		Ok(hits) => hits,
+		// A lesson still starts when the search cannot run (its model is missing); the teacher's
+		// own search_graph then shows it the same error.
+		Err(err) => {
+			eprintln!("[lesson start] finding the topics nearest \"{goal}\" failed: {err}");
+			return Ok(Vec::new());
+		}
+	};
+	if hits.is_empty() {
+		return Ok(Vec::new());
+	}
+	Ok(progress_for(app, space_id, None)?.map_or_else(Vec::new, |progress| nearest_topics(&hits, progress["topics"].items())))
 }
 
 /// A study session on space topics: its topics and their facts as the graph-context picks.

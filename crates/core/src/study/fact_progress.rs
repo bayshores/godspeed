@@ -10,7 +10,7 @@ use crate::spaces::file_state::FileKind;
 use crate::graph::session_clusters::birth_session_of;
 
 /// A fact's mark: its latest answer's outcome, or None when untested.
-fn fact_mark(fact: &Json) -> Option<&str> {
+pub fn fact_mark(fact: &Json) -> Option<&str> {
 	fact["answers"].items().last().and_then(|a| a["outcome"].as_str())
 }
 
@@ -39,6 +39,16 @@ pub fn topic_facts<'a>(facts: &'a [Json], topic: &Json) -> Vec<&'a Json> {
 /// A provenance point from a lesson (not a notes or file source).
 pub fn from_lesson(point: &Json) -> bool {
 	!point["chatId"].str_or_empty().starts_with("src_")
+}
+
+/// Where a fact comes from: "lessons", "files" (notes and space files), or "both".
+pub fn fact_from(fact: &Json) -> &'static str {
+	let points = fact["provenance"].items();
+	match (points.iter().any(from_lesson), points.iter().any(|p| !from_lesson(p))) {
+		(true, true) => "both",
+		(true, false) => "lessons",
+		_ => "files",
+	}
 }
 
 /// Coverage for every study file, in the space's file order: `{ fileId, name, facts, inLessons,
@@ -93,6 +103,13 @@ mod tests {
 		let topic = json!({ "members": ["a", "b", "c", "d", "f"] });
 		let ids: Vec<_> = topic_facts(&facts, &topic).iter().map(|f| f["id"].as_str().unwrap()).collect();
 		assert_eq!(ids, ["c", "d", "f", "a", "b"]);
+	}
+
+	#[test]
+	fn a_fact_comes_from_files_lessons_or_both() {
+		assert_eq!(fact_from(&json!({ "provenance": [{ "chatId": "src_a" }] })), "files");
+		assert_eq!(fact_from(&json!({ "provenance": [{ "chatId": "chat1" }] })), "lessons");
+		assert_eq!(fact_from(&json!({ "provenance": [{ "chatId": "src_a" }, { "chatId": "chat1" }] })), "both");
 	}
 
 	#[test]

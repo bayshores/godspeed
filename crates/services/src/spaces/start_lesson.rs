@@ -18,7 +18,7 @@ impl SpaceActions {
 		let lesson = match (topic, deadline_id) {
 			(None, None) => return ToolOutcome::Err("Give topic or deadline_id.".to_owned()),
 			(Some(topic), _) if args["homework"].truthy() => return ToolOutcome::Err(format!("homework takes deadline_id alone, not a topic (\"{topic}\").")),
-			(Some(topic), deadline_id) => self.topic_lesson(args, topic, deadline_id),
+			(Some(topic), deadline_id) => self.topic_lesson(args, topic, deadline_id).await,
 			(None, Some(deadline_id)) => self.deadline_lesson(args, deadline_id),
 		};
 		let (space_id, lesson) = match lesson {
@@ -40,7 +40,7 @@ impl SpaceActions {
 	}
 
 	/// A new lesson on a typed topic, for the deadline when one is named: its space, and the lesson.
-	fn topic_lesson(&self, args: &Json, topic: &str, deadline_id: Option<&str>) -> Result<(Option<String>, DeadlineLesson), String> {
+	async fn topic_lesson(&self, args: &Json, topic: &str, deadline_id: Option<&str>) -> Result<(Option<String>, DeadlineLesson), String> {
 		let scope = match deadline_id {
 			Some(id) => Some(self.deadline_space(args, id)?),
 			None => parse_space_scope(args["space_id"].as_str()).ok_or_else(|| format!("\"{}\" is not a space id. Use list_spaces.", template_text(args.get("space_id"))))?,
@@ -56,7 +56,7 @@ impl SpaceActions {
 		let on_path = space.as_ref().and_then(|s| s["path"]["topics"].items().iter().find(|t| t["name"].str_or_empty().to_lowercase() == topic.to_lowercase()).and_then(|t| t["id"].as_str()));
 		let start = match on_path {
 			Some(id) => LessonStart::PathTopic(id.to_owned()),
-			None => LessonStart::Typed { title: topic.to_owned(), picks: Vec::new() },
+			None => LessonStart::typed(&self.app, scope.as_deref(), topic, Vec::new()).await?,
 		};
 		let lesson = match create_lesson(&self.app, CreateLessonInput { space_id: scope.clone(), start, for_deadline: deadline_id.map(str::to_owned) })? {
 			Ok(created) => DeadlineLesson::New { chat_id: created.chat["id"].str_or_empty().to_owned(), title: created.title },

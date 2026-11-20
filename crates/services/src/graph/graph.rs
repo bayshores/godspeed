@@ -14,10 +14,15 @@ use gs_core::graph::graph::{get_graph, graph_snapshot};
 use gs_core::graph::graph_deletion::{ChatDeleteMode, ChatDeletionStats, delete_chat_traces, delete_node_traces};
 use gs_core::graph::ports::{GraphDeps, GraphStore};
 use gs_core::session::cost_summary::graph_cost_summary;
+use gs_core::study::progress::{fact_from, fact_mark};
 use gs_json::{Json, json};
 
 use super::extraction_runs::runs;
+use super::progress::progress_for;
 use crate::App;
+
+/// A fact's `asked` in the graph search when no answer of his counts for it.
+const NEVER_ASKED: &str = "never";
 
 /// One scope's graph ledgers: None is "No space", a space id its own graph.
 pub fn graph_store_for<'a>(app: &'a App, scope: Option<&'a str>) -> Box<dyn GraphStore + 'a> {
@@ -36,8 +41,9 @@ pub fn graph_view(app: &App, scope: Option<&str>) -> Result<Json, String> {
 	graph_snapshot(&GraphDeps { chat_store: app.stores.chats.as_ref(), graph_store: graph_store_for(app, scope).as_ref() })
 }
 
-/// One scope's facts for `query` (newest first without one), at most `limit`, with the chains
-/// whose conclusion or a premise is among them, at most `limit` too.
+/// One scope's facts for `query` (newest first without one), at most `limit`, each with where it
+/// comes from and the learner's latest answer on it, and the chains whose conclusion or a premise
+/// is among them, at most `limit` too.
 pub async fn search_graph(app: &App, scope: Option<&str>, query: Option<&str>, limit: usize) -> Result<Json, String> {
 	let graph = get_graph(graph_store_for(app, scope).as_ref())?;
 	let found: Vec<&Json> = match query.filter(|q| !text::trim(q).is_empty()) {
@@ -65,7 +71,16 @@ pub async fn search_graph(app: &App, scope: Option<&str>, query: Option<&str>, l
 		})
 		.take(limit)
 		.collect();
-	let facts: Vec<Json> = found.iter().map(|n| json!({ "id": n["id"], "name": n["name"], "statement": n["statement"] })).collect();
+	// The graph holds what files and lessons say, not what he knows: his answers say that.
+	let progress = if found.is_empty() { None } else { Some(progress_for(app, scope, None)?.ok_or("No such space")?) };
+	let rows: HashMap<&str, &Json> = progress.iter().flat_map(|p| p["facts"].items()).filter_map(|f| Some((f["id"].as_str()?, f))).collect();
+	let facts: Vec<Json> = found
+		.iter()
+		.map(|n| {
+			let asked = rows.get(n["id"].str_or_empty()).and_then(|row| fact_mark(row)).unwrap_or(NEVER_ASKED);
+			json!({ "id": n["id"], "name": n["name"], "statement": n["statement"], "from": fact_from(n), "asked": asked })
+		})
+		.collect();
 	Ok(json!({ "totalFacts": graph.nodes.len(), "facts": facts, "chains": chains }))
 }
 
@@ -169,8 +184,33 @@ mod tests {
 		}
 		let found = search_graph(&app, None, None, 2).await.unwrap();
 		assert_eq!(found["totalFacts"], json!(4));
-		assert_eq!(found["facts"], json!([{ "id": "c", "name": "C", "statement": "c holds." }, { "id": "b", "name": "B", "statement": "b holds." }]));
+		let fact = |id: &str| json!({ "id": id, "name": id.to_uppercase(), "statement": format!("{id} holds."), "from": "files", "asked": "never" });
+		assert_eq!(found["facts"], json!([fact("c"), fact("b")]));
 		assert_eq!(found["chains"], json!(["A, B → C", "A → B"]));
 		assert_eq!(search_graph(&app, None, Some("  "), 2).await.unwrap(), found);
+	}
+
+	#[tokio::test]
+	async fn a_found_fact_says_where_it_comes_from_and_his_latest_answer_on_it() {
+		let root = scratch_dir("search-graph-marks");
+		let app = test_app(&root);
+		let chat = app.stores.chats.create_chat("Limits", Some("study"), None, None).unwrap();
+		let chat_id = chat["id"].as_str().unwrap();
+		app.stores.chats
+			.save_messages(chat_id, &[
+				json!({ "role": "assistant", "id": "m1", "content": [{ "type": "toolCall", "id": "q1", "name": "quiz", "arguments": { "type": "check", "nodeId": "limits", "question": "Does it converge?" } }], "timestamp": 1 }),
+				json!({ "role": "toolResult", "toolCallId": "q1", "toolName": "quiz", "details": { "kind": "quiz", "correct": false }, "isError": false, "timestamp": 2 }),
+			])
+			.unwrap();
+		let store = graph_store_for(&app, None);
+		let mut asked = node("asked", "2026-01-02T00:00:00.000Z");
+		asked.as_obj_mut().unwrap().insert("provenance", json!([{ "chatId": "src_notes", "messageId": "" }, { "chatId": chat_id, "messageId": "m1" }]));
+		store.append_node(&asked).unwrap();
+		let mut read = node("read", "2026-01-01T00:00:00.000Z");
+		read.as_obj_mut().unwrap().insert("provenance", json!([{ "chatId": "src_notes", "messageId": "" }]));
+		store.append_node(&read).unwrap();
+		let found = search_graph(&app, None, None, 8).await.unwrap();
+		let marks: Vec<(&str, &str, &str)> = found["facts"].items().iter().map(|f| (f["id"].str_or_empty(), f["from"].str_or_empty(), f["asked"].str_or_empty())).collect();
+		assert_eq!(marks, [("asked", "both", "wrong"), ("read", "files", "never")], "a fact only read in a file is not one he holds");
 	}
 }

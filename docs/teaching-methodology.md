@@ -7,7 +7,7 @@ The theory godspeed teaches by. The agent prompts in `crates/agent/prompts/` are
 - **Current understanding** is what the learner holds: what they accept as obviously true, self-evident and safe to build on.
 - **Goal understanding** is what the learner wants to hold but doesn't yet. It is often hard to articulate, and pinning it down is part of defining it.
 
-Measuring brackets the current understanding (what is held, where it ends) and makes the goal concrete. Teaching moves the learner from the first state to the second. In a study session the teacher gets each topic's standing from the learner's past answers. In an older teach lesson a prober measures first.
+Measuring brackets the current understanding (what is held, where it ends) and makes the goal concrete. Teaching moves the learner from the first state to the second. In a study session the teacher gets each topic's standing from the learner's past answers. A fact that is only in the learner's files, with no answer from the learner, does not count as held. In an older teach lesson a prober measures first.
 
 ## 2. Learning is the goal feeling obviously true
 

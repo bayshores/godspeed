@@ -25,7 +25,7 @@ Older `teach` and `practice` lessons on disk keep working with their own agents.
 
 A typed subject (also MCP `start_lesson`) or a deadline with no space topics for it starts differently:
 
-1. The `study-context` marker holds the no-topics note (`no_topics_text`) instead of a topic list. It tells the agent to look up what the learner holds with `search_graph`, then write a plan of at most 8 nodes with `plan_init` in its first reply and start the first node.
+1. The `study-context` marker holds the no-topics note (`no_topics_text`) instead of a topic list. It tells the agent to look up what the files and lessons cover with `search_graph`, where a fact with `asked: never` is not held, then write a plan of at most 8 nodes with `plan_init` in its first reply and start the first node. For a typed subject in a space with no picked facts, the note ends with the nearest space topics and where the learner stands on each (`LessonStart::typed`, `nearest_topics_for`): the topics of the best 8 fact-search hits for the subject, 3 at most. A deadline with no topics gets no such lines. When the search cannot run, the lesson starts without them and the error is logged.
 2. The app saves no tree, so the plan row stays hidden until that `plan_init` call.
 3. The agent calls `plan_init` again, with the same slugs for nodes already worked on, when answers show the map is wrong or the learner asks for a change.
 4. The note tells the agent to leave `review` out of `topic_done`, since questions from earlier come only from space topics.

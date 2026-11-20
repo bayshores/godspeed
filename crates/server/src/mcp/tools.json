@@ -184,7 +184,7 @@
 	{
 		"name": "search_graph",
 		"title": "Search the knowledge graph",
-		"description": "Search one space's knowledge graph (each space has its own): facts (propositions) the learner learned and reasoning chains connecting them. No query: most recent facts.",
+		"description": "Search one space's knowledge graph (each space has its own): facts (propositions) from the learner's files and lessons, each with from (files, lessons or both) and asked (the learner's latest answer on it: right, hinted, wrong, dontKnow, or never), and reasoning chains connecting them. A fact never asked is not one the learner holds. No query: most recent facts.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",

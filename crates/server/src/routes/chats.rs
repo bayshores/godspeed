@@ -122,7 +122,7 @@ async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unh
 	} else if let Some(ids) = body["topicIds"].as_arr() {
 		LessonStart::Topics(strings(ids))
 	} else {
-		LessonStart::Typed { title: title.to_owned(), picks: picks_of(&body["graphContext"]) }
+		LessonStart::typed(&app, space_id.as_deref(), title, picks_of(&body["graphContext"])).await?
 	};
 	Ok(match create_lesson(&app, CreateLessonInput { space_id, start, for_deadline: None })? {
 		Ok(created) => reply::json(200, &json!({ "id": created.chat["id"], "title": created.title })),

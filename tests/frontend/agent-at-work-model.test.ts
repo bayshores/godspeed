@@ -105,7 +105,7 @@ describe("the space's files", () => {
 			[],
 			files,
 		);
-		assert.deepEqual(work.steps, ['searched your files for "handshake lemma"', "checked what you already studied", "read lines 1 to 21 of Week 7 Graphs.md"]);
+		assert.deepEqual(work.steps, ['searched your files for "handshake lemma"', "searched your knowledge graph", "read lines 1 to 21 of Week 7 Graphs.md"]);
 		assert.deepEqual(work.reading, { kind: "text", path: notes, name: "Week 7 Graphs.md", from: 1, to: 21 });
 	});
 

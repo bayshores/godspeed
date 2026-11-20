@@ -27,6 +27,12 @@ pub const FREE_TOPIC_ID: &str = "topic";
 /// A session holds at most this many facts.
 pub const MAX_STUDY_FACTS: usize = 64;
 
+/// A typed goal's fact search reads this many hits for its nearest topics.
+pub const NEAREST_FACTS: usize = 8;
+
+/// The no-topics note names at most this many nearest topics.
+const NEAREST_TOPICS: usize = 3;
+
 /// A weak topic whose newest answer was not right or solved with hints: taught first again (the
 /// status is a lifetime rate, so a topic can stay weak after the learner has caught up).
 pub fn is_latest_wrong(status: &str, latest: Option<&str>) -> bool {
@@ -125,6 +131,22 @@ pub fn study_topics(picked: &[String], topics: &[Json], space_order: &HashMap<St
 	in_space_order(groups, space_order)
 }
 
+/// The space topics nearest a typed goal: the topics of its fact search's `hits`, best hit first.
+/// The "Ungrouped" bucket is no topic.
+pub fn nearest_topics(hits: &[String], topics: &[Json]) -> Vec<Json> {
+	let mut near: Vec<Json> = Vec::new();
+	for hit in hits {
+		let Some(topic) = topics.iter().find(|t| !t["ungrouped"].truthy() && t["members"].items().iter().any(|m| m.as_str() == Some(hit.as_str()))) else { continue };
+		if near.iter().all(|n| n["id"] != topic["id"]) {
+			near.push(study_topic(topic, Vec::new()));
+		}
+		if near.len() == NEAREST_TOPICS {
+			break;
+		}
+	}
+	near
+}
+
 /// Where a topic stands on a Study click that moves on, lowest first: not strong and not studied
 /// today, then not strong but studied today, then strong.
 pub fn study_tier(status: &str, id: &str, studied_today: &HashSet<String>) -> u8 {
@@ -217,12 +239,21 @@ pub fn study_context_text(topics: &[Json]) -> String {
 }
 
 /// The study context of a session with no space topics: the agent writes the plan for `subject`.
-pub fn no_topics_text(subject: &str) -> String {
-	format!(
-		"[Study plan] \u{2014} no space topics for this: {subject}. You write the plan. `search_graph` if you have it: what he already holds. Then `plan_init` in first reply and start its first node. \
+/// `nearest` are the space topics its fact search found (see `nearest_topics`), listed with where
+/// he stands on each.
+pub fn no_topics_text(subject: &str, nearest: &[Json]) -> String {
+	let mut text = format!(
+		"[Study plan] \u{2014} no space topics for this: {subject}. You write the plan. `search_graph` if you have it: what his files and lessons cover; `asked: never` = not held, check before building on it. Then `plan_init` in first reply and start its first node. \
 		Map from what he holds to his goal, max 8 nodes, `-->` = must come first. Every node untested, no material named. \
 		Answers show map wrong, or he asks to change it: `plan_init` again, same slugs for nodes he worked on. No `review` in `topic_done`."
-	)
+	);
+	if !nearest.is_empty() {
+		text.push_str("\nNearest space topics by search (drop any that don't fit), where he stands from his track record:");
+		for t in nearest {
+			text.push_str(&format!("\n- {}: {}", t["name"].str_or_empty(), material_and_standing(t)));
+		}
+	}
+	text
 }
 
 /// The plan the app writes for a study session: one node per topic, in space order (the step bar
@@ -311,9 +342,25 @@ mod tests {
 
 	#[test]
 	fn with_no_topics_the_agent_writes_the_plan() {
-		let text = no_topics_text("Bayes' rule");
+		let text = no_topics_text("Bayes' rule", &[]);
 		assert!(text.starts_with("[Study plan] \u{2014} no space topics for this: Bayes' rule. You write the plan."), "{text}");
-		assert!(text.contains("`plan_init` in first reply") && text.contains("max 8 nodes") && text.ends_with("No `review` in `topic_done`."), "{text}");
+		assert!(text.contains("`asked: never` = not held") && text.contains("`plan_init` in first reply") && text.contains("max 8 nodes") && text.ends_with("No `review` in `topic_done`."), "{text}");
+	}
+
+	#[test]
+	fn a_typed_goal_gets_the_topics_of_its_best_hits_with_his_standing() {
+		let mut shell = topic("t2", "weak", &["c"]);
+		shell.as_obj_mut().unwrap().insert("material", "procedure");
+		shell.as_obj_mut().unwrap().insert("answers", json!([{ "outcome": "wrong" }]));
+		let mut rest = topic("ungrouped", "untested", &["z"]);
+		rest.as_obj_mut().unwrap().insert("ungrouped", true);
+		let topics = [topic("t1", "untested", &["a", "b"]), shell, topic("t3", "strong", &["d"]), topic("t4", "shaky", &["e"]), rest];
+		let hits = ["z", "c", "a", "b", "nope", "d", "e"].map(String::from);
+		let near = nearest_topics(&hits, &topics);
+		assert_eq!(ids(&near), ["t2", "t1", "t3"], "best hit first, a topic once, Ungrouped never, three at most");
+		let text = no_topics_text("Forks", &near);
+		assert!(text.ends_with("No `review` in `topic_done`.\nNearest space topics by search (drop any that don't fit), where he stands from his track record:\n- T2: procedure, weak (latest wrong)\n- T1: untested\n- T3: strong"), "{text}");
+		assert!(nearest_topics(&["nope".to_owned()], &topics).is_empty());
 	}
 
 	#[test]

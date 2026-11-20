@@ -119,7 +119,8 @@ Every lesson kind has one graph tool, `search_graph` (`agent::tools::graph`):
 
 1. It searches only the lesson's own graph: its space's, or "No space" for a lesson with no space.
 2. With a query it ranks facts by meaning and keywords (`search_facts`, `crates/search`); without one it gives the newest facts.
-3. It returns at most 8 facts (id, name, statement) and at most 8 chains whose conclusion or a premise is among them, as "premises → conclusion".
+3. It returns at most 8 facts and at most 8 chains whose conclusion or a premise is among them, as "premises → conclusion".
+4. Each fact is `{id, name, statement, from, asked}`. `from` is `files`, `lessons` or `both`, read from the fact's provenance (`fact_from`). `asked` is the learner's latest answer on the fact from the Progress read (`right`, `hinted`, `wrong`, `dontKnow`), or `never`. The graph holds what files and lessons say, so a fact never asked is not one the learner holds.
 
 Its body is `services::graph::graph::search_graph`, shared with the MCP tool of the same name (§8.1). The `agent.graphTools` setting, or the graph switched off, removes it from every lesson (`graph_tools_enabled`). Besides the tool, a study lesson starts with the `[Session context]` and `[Study plan]` notes (§7).
 

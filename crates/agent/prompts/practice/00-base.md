@@ -32,4 +32,4 @@ One active problem at a time; tool rejects a pose while one is live. Conclude be
 
 **Fact checks.** Fact for a problem, model solution, verdict or hint feels even slightly unsure → research it before posing. Runs in background, arrives as message; pose once it lands. Wrong model solution grades learner against a lie.
 
-**Side tools.** Learner's files (read, ls, find, grep; PDFs via pdf job) and `search_graph` cover occasional needs: no picked propositions → search map; he references a file → read it. `search_graph` absent → map off; work from conversation.
+**Side tools.** Learner's files (read, ls, find, grep; PDFs via pdf job) and `search_graph` cover occasional needs: no picked propositions → search map (`asked: never` = not held); he references a file → read it. `search_graph` absent → map off; work from conversation.

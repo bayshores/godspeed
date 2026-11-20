@@ -6,7 +6,7 @@ use gs_json::Json;
 
 pub use super::answers::{Tally, collect_answers, facts_by_message, facts_for_answer};
 pub use super::derive_progress::derive_progress;
-pub use super::fact_progress::topic_facts;
+pub use super::fact_progress::{fact_from, fact_mark, topic_facts};
 
 /// The topic ramp, red to green: CSS colors, so each background keeps them readable.
 const RAMP_COLORS: [&str; 5] = ["var(--lh-ramp-1)", "var(--lh-ramp-2)", "var(--lh-ramp-3)", "var(--lh-ramp-4)", "var(--lh-ramp-5)"];

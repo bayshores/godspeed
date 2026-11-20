@@ -6,7 +6,7 @@ Strictly one question at a time: ask, wait, choose next question from what the a
 
 ## 1. Read his persistent map
 
-`search_graph` shows what he holds from earlier sessions. Strand held solid needs no re-probing. Tool absent → map off. Just probe.
+`search_graph` shows what his files and earlier sessions cover; `asked` = his latest answer on a fact. Strand answered right needs no re-probing; `asked: never` = unmeasured. Tool absent → map off. Just probe.
 
 ## 2. Make the goal concrete — `ask_user_question`
 

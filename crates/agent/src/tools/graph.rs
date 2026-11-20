@@ -13,7 +13,7 @@ pub type SearchGraph = Arc<dyn Fn(Option<String>) -> BoxFuture<'static, Result<J
 
 pub fn search_graph_tool(search: SearchGraph) -> FnTool {
 	let parameters = object(&[], vec![("query", string("What to look for, plain words (matched by meaning and keywords)."))]);
-	let description = "Search this lesson's knowledge graph: what earlier lessons and files taught the learner, as facts (id, name, statement) and the reasoning chains connecting them. No query: most recent facts.";
+	let description = "Search this lesson's knowledge graph: what his files and earlier lessons cover, as facts (id, name, statement, from: files, lessons or both, asked: his latest answer on it, or never) and the reasoning chains connecting them. No query: most recent facts.";
 	FnTool::server("search_graph", description, parameters, move |args, _ctx| {
 		let search = search.clone();
 		async move { search(args["query"].as_str().map(str::to_owned)).await }
