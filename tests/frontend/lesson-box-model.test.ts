@@ -1,4 +1,4 @@
-/** The lesson's answer box: its size, button, Enter, the way out and the Stuck? keys per state. */
+/** The lesson's box: its size, keys, Enter, the way out and the Stuck? keys per state. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { lessonBox, questionTurn, type BoxTurn } from "../../src/frontend/components/lesson/lesson-box-model.ts";
@@ -7,7 +7,11 @@ import { projectView, withOpenReview } from "../../src/shared/core/view.ts";
 import type { ReviewQuestion } from "../../src/shared/core/contracts/chat.ts";
 import { call } from "../stop-fixtures.ts";
 
-const box = (turn: BoxTurn, over: Partial<Parameters<typeof lessonBox>[0]> = {}) => lessonBox({ busy: false, hasText: false, hasFiles: false, turn, ...over });
+const box = (turn: BoxTurn, over: Partial<Parameters<typeof lessonBox>[0]> = {}) => lessonBox({ teacher: "Teacher", busy: false, hasText: false, hasFiles: false, turn, ...over });
+type Box = ReturnType<typeof box>;
+/** The key that answers (Submit answer), and the key that sends the box's words (Send, or the ask key). */
+const submit = (view: Box) => view.keys.find((k) => k.action === "submit")!;
+const send = (view: Box) => view.keys.find((k) => k.action === "send")!;
 
 describe("questionTurn", () => {
 	const quiz = { question: "q", options: [{ label: "a" }, { label: "b" }], correctAnswer: "a", explanation: "e" };
@@ -30,22 +34,58 @@ describe("questionTurn", () => {
 });
 
 describe("lessonBox, a problem", () => {
-	it("one Send for the work, once there is some and the teacher is free; Discard beside Your turn", () => {
+	it("one Send for work and questions alike, once there is something; Discard beside Your turn", () => {
 		const empty = box({ kind: "problem", picked: false });
-		assert.equal(empty.placeholder, "Your work");
-		assert.deepEqual(empty.button, { action: "send", label: "Send", filled: false, disabled: true });
+		assert.equal(empty.placeholder, "Your work or a question");
+		assert.deepEqual(empty.keys, [{ action: "send", label: "Send", filled: false, disabled: true }]);
 		assert.equal(empty.enter, null);
 		assert.equal(empty.exit, "discard");
-		assert.deepEqual(box({ kind: "problem", picked: false }, { hasText: true }).button, { action: "send", label: "Send", filled: true, disabled: false });
+		assert.deepEqual(box({ kind: "problem", picked: false }, { hasText: true }).keys, [{ action: "send", label: "Send", filled: true, disabled: false }]);
 		assert.equal(box({ kind: "problem", picked: false }, { hasFiles: true }).enter, "send", "a picture alone is work");
-		assert.equal(box({ kind: "problem", picked: false }, { hasText: true, busy: true }).button.disabled, true, "work waits for the teacher");
 		assert.equal(box({ kind: "problem", picked: false }, { busy: true }).exit, "discard");
 	});
 
-	it("a pick among the problem's choices is enough to send, once the teacher is free", () => {
-		assert.deepEqual(box({ kind: "problem", picked: true }).button, { action: "send", label: "Send", filled: true, disabled: false });
+	it("a pick among the problem's choices is enough to send", () => {
+		assert.deepEqual(box({ kind: "problem", picked: true }).keys, [{ action: "send", label: "Send", filled: true, disabled: false }]);
 		assert.equal(box({ kind: "problem", picked: true }).enter, "send");
-		assert.equal(box({ kind: "problem", picked: true }, { busy: true }).button.disabled, true);
+	});
+
+	it("while the teacher writes, words and picks steer the reply; files wait", () => {
+		assert.equal(send(box({ kind: "problem", picked: false }, { hasText: true, busy: true })).disabled, false);
+		assert.equal(box({ kind: "problem", picked: true }, { busy: true }).enter, "send");
+		const withFile = box({ kind: "problem", picked: false }, { hasText: true, hasFiles: true, busy: true });
+		assert.equal(send(withFile).disabled, true, "a steer carries no files");
+		assert.equal(withFile.enter, null);
+	});
+});
+
+describe("lessonBox, nothing waiting", () => {
+	it("one key that asks the teacher, by its name; no way out and no Stuck? keys", () => {
+		const empty = box({ kind: "ask", nextKey: false });
+		assert.equal(empty.placeholder, "Your question");
+		assert.equal(empty.size, "line");
+		assert.deepEqual(empty.keys, [{ action: "send", label: "Ask Teacher", filled: false, disabled: true }]);
+		assert.equal(empty.enter, null);
+		assert.equal(empty.exit, null);
+		assert.equal(empty.help, null);
+		assert.equal(empty.attach, true);
+		assert.equal(send(box({ kind: "ask", nextKey: false }, { teacher: "Marco" })).label, "Ask Marco");
+	});
+
+	it("is the bright key once there is something to send, unless the next key shows above it", () => {
+		assert.deepEqual(send(box({ kind: "ask", nextKey: false }, { hasText: true })), { action: "send", label: "Ask Teacher", filled: true, disabled: false });
+		assert.equal(box({ kind: "ask", nextKey: false }, { hasFiles: true }).enter, "send", "a picture alone can be asked about");
+		const beside = box({ kind: "ask", nextKey: true }, { hasText: true });
+		assert.equal(send(beside).filled, false, "the next key stays the sheet's bright key");
+		assert.equal(send(beside).disabled, false);
+		assert.equal(beside.enter, "send");
+	});
+
+	it("while the teacher writes, words steer the reply; files wait", () => {
+		assert.equal(send(box({ kind: "ask", nextKey: false }, { hasText: true, busy: true })).disabled, false);
+		assert.equal(box({ kind: "ask", nextKey: false }, { hasText: true, busy: true }).enter, "send");
+		assert.equal(send(box({ kind: "ask", nextKey: false }, { hasText: true, hasFiles: true, busy: true })).disabled, true, "a steer carries no files");
+		assert.equal(send(box({ kind: "ask", nextKey: false }, { hasFiles: true, busy: true })).disabled, true);
 	});
 });
 
@@ -70,47 +110,66 @@ describe("lessonBox, the Attach button", () => {
 });
 
 describe("lessonBox, a question", () => {
-
-	it("an ask with choices: the box text is its own answer until a pick, then reasoning", () => {
-		assert.equal(box({ kind: "choice", picked: false, ownAnswer: true }).placeholder, "Pick one above, or type your own answer");
-		assert.equal(box({ kind: "choice", picked: true, ownAnswer: true }, { hasText: true }).button.disabled, false);
-		assert.equal(box({ kind: "choice", picked: true, ownAnswer: true }).placeholder, "Your reasoning (optional)", "with a pick the text is reasoning");
+	it("two keys in every question state: the ask key, then Submit answer; one is bright, the ask key only when Enter asks", () => {
+		const turns: BoxTurn[] = [{ kind: "choice", picked: false }, { kind: "choice", picked: true }, { kind: "choice", picked: true, ownAnswer: true }, { kind: "written", takesFiles: true }];
+		for (const turn of turns) {
+			for (const over of [{}, { hasText: true }, { busy: true, hasText: true }]) {
+				const view = box(turn, over);
+				assert.deepEqual(view.keys.map((k) => k.label), ["Ask Teacher", "Submit answer"]);
+				assert.deepEqual(view.keys.map((k) => k.filled), view.enter === "send" ? [true, false] : [false, true]);
+			}
+		}
 	});
 
-	it("choices: words with nothing picked are sent to the teacher; with a pick they are reasoning", () => {
+	it("an ask with choices: the box text is its own answer until a pick, then reasoning", () => {
+		assert.equal(box({ kind: "choice", picked: false, ownAnswer: true }).placeholder, "An answer or a question");
+		assert.equal(submit(box({ kind: "choice", picked: true, ownAnswer: true }, { hasText: true })).disabled, false);
+		assert.equal(box({ kind: "choice", picked: true, ownAnswer: true }).placeholder, "Your reasoning or a question", "with a pick the text is reasoning");
+		assert.equal(box({ kind: "choice", picked: true, ownAnswer: true }, { hasText: true }).enter, "submit");
+	});
+
+	it("choices: words with nothing picked can only be a question; with a pick Enter submits them as reasoning", () => {
 		const empty = box({ kind: "choice", picked: false });
-		assert.equal(empty.placeholder, "Pick an answer, or ask the teacher something");
-		assert.equal(empty.button.label, "Submit answer");
-		assert.equal(empty.button.disabled, true);
+		assert.equal(empty.placeholder, "Your reasoning or a question");
+		assert.equal(submit(empty).disabled, true);
+		assert.equal(send(empty).disabled, true, "nothing to ask yet");
 		assert.equal(empty.enter, null);
 
 		const asking = box({ kind: "choice", picked: false }, { hasText: true });
-		assert.equal(asking.button.label, "Send");
-		assert.equal(asking.button.action, "send");
+		assert.equal(send(asking).disabled, false);
+		assert.equal(submit(asking).disabled, true);
 		assert.equal(asking.enter, "send");
+		assert.deepEqual([send(asking).filled, submit(asking).filled], [true, false], "the bright key is the one Enter presses");
+		assert.deepEqual([send(empty).filled, submit(empty).filled], [false, true]);
 		assert.equal(asking.exit, "skip", "the question stays open");
-		assert.equal(box({ kind: "choice", picked: false }, { hasText: true, busy: true }).button.disabled, true, "not while the teacher writes");
+		const busy = box({ kind: "choice", picked: false }, { hasText: true, busy: true });
+		assert.equal(send(busy).disabled, true, "a question beside the open one waits for the teacher");
+		assert.equal(busy.enter, null);
 
-		assert.equal(box({ kind: "choice", picked: true }, { hasText: true }).placeholder, "Your reasoning (optional)");
-
-		const picked = box({ kind: "choice", picked: true });
-		assert.equal(picked.button.disabled, false);
+		const picked = box({ kind: "choice", picked: true }, { hasText: true });
+		assert.equal(submit(picked).disabled, false);
+		assert.equal(send(picked).disabled, false, "the words can still be asked instead");
 		assert.equal(picked.enter, "submit");
 		assert.equal(picked.exit, "skip");
+		assert.equal(send(box({ kind: "choice", picked: true })).disabled, true);
 	});
 
-	it("written: the box text is the answer", () => {
+	it("written: the box text is the answer, or a question through the ask key", () => {
 		const empty = box({ kind: "written", takesFiles: true });
-		assert.equal(empty.placeholder, "Your answer");
-		assert.equal(empty.button.disabled, true);
-		assert.equal(box({ kind: "written", takesFiles: true }, { hasText: true }).enter, "submit");
-		assert.equal(box({ kind: "written", takesFiles: true }, { hasFiles: true }).button.disabled, false, "a picture can be the answer");
-		assert.equal(box({ kind: "written", takesFiles: false }, { hasFiles: true }).button.disabled, true);
+		assert.equal(empty.placeholder, "An answer or a question");
+		assert.equal(submit(empty).disabled, true);
+		assert.equal(send(empty).disabled, true);
+		const typed = box({ kind: "written", takesFiles: true }, { hasText: true });
+		assert.equal(typed.enter, "submit");
+		assert.equal(send(typed).disabled, false);
+		assert.equal(submit(box({ kind: "written", takesFiles: true }, { hasFiles: true })).disabled, false, "a picture can be the answer");
+		assert.equal(submit(box({ kind: "written", takesFiles: false }, { hasFiles: true })).disabled, true);
 	});
 
-	it("teacher writing over a question: nothing submits, Skip question stays", () => {
+	it("teacher writing over a question: nothing submits or asks, Skip question stays", () => {
 		const view = box({ kind: "choice", picked: true }, { busy: true, hasText: true });
-		assert.equal(view.button.disabled, true);
+		assert.equal(submit(view).disabled, true);
+		assert.equal(send(view).disabled, true);
 		assert.equal(view.enter, null);
 		assert.equal(view.exit, "skip");
 	});
@@ -142,7 +201,7 @@ describe("lessonBox, the opener the app posed", () => {
 	it("keeps Skip question while a turn runs; Submit waits for the teacher", () => {
 		const view = box(questionTurn("quiz", quiz, true, "opener"), { busy: true, hasText: true });
 		assert.equal(view.exit, "skip");
-		assert.equal(view.button.disabled, true);
+		assert.equal(submit(view).disabled, true);
 		assert.equal(box(questionTurn("quiz", quiz, false, "opener"), { busy: true }).enter, null);
 	});
 });
@@ -164,10 +223,10 @@ describe("lessonBox, a question from earlier", () => {
 
 	it("takes its answer while the teacher writes, and the way out stays Skip question", () => {
 		const busy = box(questionTurn("quiz", quiz, true, "review"), { busy: true });
-		assert.equal(busy.button.disabled, false);
+		assert.equal(submit(busy).disabled, false);
 		assert.equal(busy.enter, "submit");
 		assert.equal(busy.exit, "skip");
-		assert.equal(box(questionTurn("quiz", quiz, false, "review"), { busy: true }).button.disabled, true, "nothing picked");
+		assert.equal(submit(box(questionTurn("quiz", quiz, false, "review"), { busy: true })).disabled, true, "nothing picked");
 	});
 });
 

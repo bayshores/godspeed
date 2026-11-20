@@ -1,6 +1,6 @@
 /**
  * "Your turn" with nothing to answer: what is next and the one key that goes
- * on, what stays while the teacher writes, and where the sheet is drawn. Pure.
+ * on, what stays while the teacher writes, and whether the sheet is drawn. Pure.
  */
 import { answerForPresentation, isQuestionTool, isRecord, openerQuestionId, type LessonStop, type LhMessage, type LhViewMessage, type QuestionAnswerData } from "@/shared/core";
 
@@ -110,12 +110,10 @@ function stopLine(stop: LessonStop): string | null {
 }
 
 /**
- * Where "Your turn" is drawn: nowhere before the lesson starts; then beside
- * the text for the whole lesson, so the pair never drops to one column and
- * back between problems. Under the text (a narrow room) only while it holds
- * something to answer or press, or a line about the turn.
+ * Whether "Your turn" is drawn: not before the lesson starts, unless it
+ * already holds something to press or a line about the turn; then for the
+ * whole lesson, beside the text or under it, so the box is always there.
  */
-export function turnPlace(s: { started: boolean; holds: boolean }): "both" | "beside" | null {
-	if (s.holds) return "both";
-	return s.started ? "beside" : null;
+export function turnDrawn(s: { started: boolean; holds: boolean }): boolean {
+	return s.started || s.holds;
 }

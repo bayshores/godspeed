@@ -50,7 +50,7 @@ import { homeworkStartLabel } from "@/frontend/components/lesson/plan-row-model"
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
 import { topicPageMarks } from "@/frontend/components/citations/page-excerpt-model";
 import { TurnSheet } from "@/frontend/components/lesson/turn-sheet";
-import { lastAnswered, turnNext, turnPlace, type NextAction } from "@/frontend/components/lesson/turn-next-model";
+import { lastAnswered, turnNext, turnDrawn, type NextAction } from "@/frontend/components/lesson/turn-next-model";
 import { nothingWritten } from "@/frontend/components/lesson/wait-model";
 import type { QuestionHandle } from "@/frontend/components/question-dock";
 import { useTerminalLines } from "@/frontend/components/terminal/use-terminal-lines";
@@ -75,10 +75,10 @@ const NO_PAGES: ReadonlyMap<string, string> = new Map();
 /**
  * THE LESSON: its title and words in the top bar (LessonBar), then one page that scrolls (LessonScroll):
  * the step line, the lesson text's sheet and "Your turn" beside it for the
- * whole lesson (or under it in a small room while something waits), with
- * the cheat sheet beside both when
- * docked. The learner talks to the teacher in its terminal; those lines
- * come here (useTerminalLines). This component owns the lesson's state and
+ * whole lesson (or under it in a small room), with the cheat sheet beside
+ * both when docked. The learner talks to the teacher in "Your turn"'s box;
+ * a line typed in the teacher's terminal comes here the same way
+ * (useTerminalLines). This component owns the lesson's state and
  * wiring; the pieces live in src/frontend/components/lesson/.
  */
 
@@ -270,7 +270,7 @@ export function Chat({
 	useTeacherLesson(status === "streaming", busy, draftHeld);
 	const attachments = useAttachmentDraft(chatId);
 
-	// A line typed to the teacher while it writes STEERS the reply (text
+	// A line sent to the teacher while it writes STEERS the reply (text
 	// only). Under a waiting question it is a side question, never while
 	// the teacher replies. An open problem is worked on in the box: plain
 	// messages.
@@ -307,38 +307,12 @@ export function Chat({
 		if (problemId) saveQuestion(problemId, { form: { selection } });
 	};
 
-	// The problem's work in the box, with its picks, once the teacher is free.
-	// Under a waiting question the box's words are a side question instead.
-	const onSend = () => {
-		const t = textRef.current.trim();
-		if (pending) {
-			if (busy || !t) return;
-			editText("");
-			void sendLine(t, []).then((sent) => {
-				if (!sent) editText(restoreUnsent(t, textRef.current));
-			});
-			return;
-		}
-		const picked = problemPicked;
-		if (busy || (!t && picked.selected.size === 0 && attachments.files.length === 0)) return;
-		const drafts = attachments.files;
-		editText("");
-		pickProblem(emptyDockSelection());
-		attachments.clear();
-		void send({ type: "text", text: problemMessage(picked.selected, t), ...(drafts.length > 0 ? { attachments: drafts.map((f) => f.attachment) } : {}) }).then((sent) => {
-			if (sent) return;
-			editText(restoreUnsent(t, textRef.current));
-			pickProblem(picked);
-			attachments.restore(drafts);
-		});
-	};
-
-	/* A LINE FROM THE TERMINAL: while a turn runs (ours or a wake) it
-	 * steers it; idle it is the learner's next message (a raced settle 409s
-	 * and falls back to exactly that). Under a waiting question it is a
-	 * side question; about the opener or a question from earlier, it leaves
-	 * that open too. False when the lesson can't take it now: it goes on to
-	 * the agent. */
+	/* A LINE FOR THE TEACHER, from the box or its terminal: while a turn
+	 * runs (ours or a wake) it steers it; idle it is the learner's next
+	 * message (a raced settle 409s and falls back to exactly that). Under a
+	 * waiting question it is a side question; about the opener or a question
+	 * from earlier, it leaves that open too. False when the lesson can't
+	 * take it now: a terminal line then goes on to the agent. */
 	const sendLine = (line: string, files: ChatAttachment[]): Promise<boolean> => {
 		const t = line.trim();
 		if (busy && !sideOpen) return t && files.length === 0 ? steer(t) : Promise.resolve(false);
@@ -351,6 +325,25 @@ export function Chat({
 		return send({ ...input, ...(files.length > 0 ? { attachments: files } : {}) });
 	};
 	useTerminalLines("lesson", sendLine);
+
+	// What the box holds, sent as a line: a problem's work goes with its
+	// picks. A line the lesson can't take is put back.
+	const sendBox = () => {
+		const t = textRef.current.trim();
+		const picked = pending ? emptyDockSelection() : problemPicked;
+		const files = attachments.files;
+		const line = problemMessage(picked.selected, t);
+		if (!line && files.length === 0) return;
+		editText("");
+		if (!pending) pickProblem(emptyDockSelection());
+		attachments.clear();
+		void sendLine(line, files.map((f) => f.attachment)).then((sent) => {
+			if (sent) return;
+			editText(restoreUnsent(t, textRef.current));
+			if (!pending) pickProblem(picked);
+			attachments.restore(files);
+		});
+	};
 
 	// THE ANSWER IS THE QUESTION CALL'S TOOL RESULT: one input event, one
 	// turn. The box's files ride along for an answer that takes them. The
@@ -434,7 +427,7 @@ export function Chat({
 	const retry = () => {
 		if (!error) return;
 		const action = retryAction(lessonError(error.message).kind, { boxHasText: textRef.current.trim().length > 0, lastText: lastLearnerText(nativeMessages) });
-		if (action.type === "send-box") onSend();
+		if (action.type === "send-box") sendBox();
 		else if (action.type === "resend") void send({ type: sideOpen ? "side" : "text", text: action.text });
 		else if (action.type === "continue") void send({ type: "continue" });
 		else {
@@ -491,7 +484,7 @@ export function Chat({
 		file: openProblem && homework?.assignment ? { ...homework.assignment, page: openProblem.page } : null,
 	};
 
-	const turnAt = turnPlace({
+	const turnShows = turnDrawn({
 		started: teacherSpoke || busy,
 		holds: pending !== null || problem !== null || next?.key != null || stuckLine !== null || errorLine !== null || reviewRefused,
 	});
@@ -539,9 +532,8 @@ export function Chat({
 												/>
 											</Pane>
 										}
-										turnBesideOnly={turnAt === "beside"}
 										turn={
-											turnAt ? (
+											turnShows ? (
 												<TurnSheet
 													// Remounts once the saved drafts are read, so the question starts from them.
 													key={draftsLoaded ? "drafts" : "loading"}
@@ -565,7 +557,7 @@ export function Chat({
 													boxRef={workBoxRef}
 													value={text}
 													onChange={editText}
-													onSend={onSend}
+													onSend={sendBox}
 													onHelpLine={(line) => void sendLine(line, [])}
 													attachments={attachments}
 													questionRef={questionRef}

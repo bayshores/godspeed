@@ -1,10 +1,11 @@
 /**
- * The lesson's answer box: for each thing that waits for the learner, the
- * box's size and button, what Enter does in it, the way out at the end of
- * the foot row and the "Stuck?" keys before it.
- * A problem's box takes his work, plain messages the teacher reads. Under a
- * question with choices and nothing picked, the box sends a side question
- * like a line typed in the teacher's terminal (use-terminal-lines.ts). Pure.
+ * The lesson's box, there for the whole lesson: for each state of "Your
+ * turn", the box's size and keys, what Enter does in it, the way out at the
+ * end of the title row and the "Stuck?" keys under it.
+ * The learner talks to the teacher here: beside an answer key, the ask key
+ * sends the box's words as a question and leaves what waits open. A
+ * problem's box takes work and questions alike, plain messages the teacher
+ * reads. With nothing waiting the box only asks. Pure.
  */
 import { answerTakesFiles, parseAskInput, parseExplainInput, toolQuestionKind, type AppPosed } from "@/shared/core";
 
@@ -19,7 +20,10 @@ export type BoxTurn =
 	 *  from earlier). */
 	| { kind: "choice"; picked: boolean; appPosed?: AppPosed["kind"]; ownAnswer?: true }
 	/** The box text is the answer. */
-	| { kind: "written"; takesFiles: boolean };
+	| { kind: "written"; takesFiles: boolean }
+	/** Nothing waits: the box asks the teacher something. `nextKey`: the
+	 *  next state's key shows above it, and stays the sheet's bright key. */
+	| { kind: "ask"; nextKey: boolean };
 
 export type BoxAction = "send" | "submit";
 
@@ -35,18 +39,19 @@ export interface BoxView {
 	/** "line": optional text, one line with the button beside it. "lines": text that is the
 	 *  answer or the work, three lines with the button inside the box. Both grow to five. */
 	size: "line" | "lines";
-	button: BoxButton;
+	/** The ask key, then the answer key; a problem and the ask state have one. At most one is filled. */
+	keys: BoxButton[];
 	/** What Enter in the box does; null makes a new line. */
 	enter: BoxAction | null;
-	/** The quiet way out at the end of the foot row. */
-	exit: "skip" | "discard";
+	/** The quiet way out at the end of the title row; none with nothing waiting. */
+	exit: "skip" | "discard" | null;
 	/** Whether what the box sends carries attached files, so the Attach button shows. */
 	attach: boolean;
-	/** The "Stuck?" keys. */
-	help: HelpKeys;
+	/** The "Stuck?" keys; none with nothing waiting. */
+	help: HelpKeys | null;
 }
 
-/** The lines the hint and simpler keys send, as if typed in the teacher's terminal. */
+/** The lines the hint and simpler keys send, as if typed in the box. */
 export const HELP_LINES = { hint: "Give me a hint", simpler: "Explain it simpler" } as const;
 
 export interface HelpKeys {
@@ -70,9 +75,9 @@ export function questionTurn(tool: string, input: unknown, picked: boolean, appP
 	return { kind: "choice", picked, ...(appPosed ? { appPosed } : {}), ...(ask ? { ownAnswer: true as const } : {}) };
 }
 
-const ASK_OR_PICK = "Pick an answer, or ask the teacher something";
-
 export function lessonBox(s: {
+	/** The teacher's name, for the ask key. */
+	teacher: string;
 	/** A reply is being written (or waits for an agent). */
 	busy: boolean;
 	hasText: boolean;
@@ -80,40 +85,47 @@ export function lessonBox(s: {
 	turn: BoxTurn;
 }): BoxView {
 	const { turn } = s;
+	// A line sent while the teacher writes steers the reply, and a steer carries no files.
+	const steers = !(s.busy && s.hasFiles);
 	if (turn.kind === "problem") {
-		// Work goes in once the teacher is free.
-		const canSend = (s.hasText || s.hasFiles || turn.picked) && !s.busy;
+		const canSend = (s.hasText || s.hasFiles || turn.picked) && steers;
 		return {
-			placeholder: "Your work",
+			placeholder: "Your work or a question",
 			size: "lines",
-			button: { action: "send", label: "Send", filled: canSend, disabled: !canSend },
+			keys: [{ action: "send", label: "Send", filled: canSend, disabled: !canSend }],
 			enter: canSend ? "send" : null,
 			exit: "discard",
 			attach: true,
 			help: { dontKnow: "send", dontKnowDisabled: s.busy, linesDisabled: s.busy },
 		};
 	}
-	// Words with nothing picked ask the teacher something; the question stays open.
-	if (turn.kind === "choice" && !turn.ownAnswer && !turn.picked && s.hasText) {
+	const ask = (canAsk: boolean, filled: boolean): BoxButton => ({ action: "send", label: `Ask ${s.teacher}`, filled, disabled: !canAsk });
+	if (turn.kind === "ask") {
+		const canAsk = (s.hasText || s.hasFiles) && steers;
 		return {
-			placeholder: ASK_OR_PICK,
+			placeholder: "Your question",
 			size: "line",
-			button: { action: "send", label: "Send", filled: !s.busy, disabled: s.busy },
-			enter: s.busy ? null : "send",
-			exit: "skip",
-			attach: false,
-			help: { dontKnow: "answer", dontKnowDisabled: s.busy && turn.appPosed !== "review", linesDisabled: s.busy },
+			keys: [ask(canAsk, canAsk && !turn.nextKey)],
+			enter: canAsk ? "send" : null,
+			exit: null,
+			attach: true,
+			help: null,
 		};
 	}
 	const ready = turn.kind === "choice" ? turn.picked : s.hasText || (turn.takesFiles && s.hasFiles);
 	// An answer to a question from earlier wakes nobody, so it goes in while the teacher writes.
 	const canAnswer = !s.busy || (turn.kind === "choice" && turn.appPosed === "review");
 	const canSubmit = ready && canAnswer;
+	// A question beside the open one waits for the teacher: its reply never steers.
+	const canAsk = s.hasText && !s.busy;
+	// Words under choices with none picked can only be a question.
+	const asksOnEnter = turn.kind === "choice" && !turn.ownAnswer && !turn.picked && canAsk;
 	return {
-		placeholder: turn.kind === "written" ? "Your answer" : turn.ownAnswer && !turn.picked ? "Pick one above, or type your own answer" : turn.picked ? "Your reasoning (optional)" : ASK_OR_PICK,
+		placeholder: turn.kind === "written" || (turn.ownAnswer && !turn.picked) ? "An answer or a question" : "Your reasoning or a question",
 		size: turn.kind === "written" ? "lines" : "line",
-		button: { action: "submit", label: "Submit answer", filled: true, disabled: !canSubmit },
-		enter: canSubmit ? "submit" : null,
+		// The bright key is the one Enter presses.
+		keys: [ask(canAsk, asksOnEnter), { action: "submit", label: "Submit answer", filled: !asksOnEnter, disabled: !canSubmit }],
+		enter: canSubmit ? "submit" : asksOnEnter ? "send" : null,
 		exit: "skip",
 		attach: turn.kind === "written" ? turn.takesFiles : turn.ownAnswer === true && !turn.appPosed,
 		help: { dontKnow: "answer", dontKnowDisabled: !canAnswer, linesDisabled: s.busy },

@@ -109,6 +109,7 @@ function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 		onPickProblem: () => {},
 		onDiscardProblem: () => {},
 		shown: NO_NEXT,
+		swapKey: "",
 		onNext: () => {},
 		busy: false,
 		value: "",
@@ -149,14 +150,15 @@ const optionNamed = (host: HTMLElement, label: string) => options(host).find((b)
 const submitDisabled = (host: HTMLElement) => host.querySelector<HTMLButtonElement>('[data-testid="question-submit"]')!.disabled;
 
 describe("Your turn in each state", () => {
-	it("next: the title, what is next and one main key at the row's end, with no box and no way out", () => {
+	it("next: the title, what is next and one main key at the row's end, then the box that asks, with no way out", () => {
 		for (const busy of [false, true]) {
 			const out = html({ busy, shown: shown(atStop) });
 			assert.match(out, /data-mode="next"/);
 			assert.match(out, /<h2[^>]*>Your turn<\/h2>[\s\S]*data-testid="turn-next"[\s\S]*data-testid="turn-next-line" class="[^"]*text-ink"[^>]*>Cross-validation is next\.<[\s\S]*data-testid="next-problem-button"/);
 			assert.match(out, /data-testid="next-problem-button" data-action="keep-going" class="lh-btn lh-btn-main ml-auto">Continue</);
-			assert.equal(out.split("<button").length - 1, 1, "one key");
-			assert.doesNotMatch(out, /data-testid="composer"|skip-question|discard-problem|stop-turn|Stop here|Keep going/);
+			assert.equal(out.split("lh-btn-main").length - 1, 1, "one bright key");
+			assert.match(out, /data-testid="turn-next"[\s\S]*data-testid="composer"[\s\S]*data-testid="composer-send"[^>]*disabled[^>]*>Ask Teacher</);
+			assert.doesNotMatch(out, /skip-question|discard-problem|stop-turn|Stop here|Keep going/);
 		}
 		const plain = html({ shown: shown(between) });
 		assert.doesNotMatch(plain, /turn-next-line/, "no line when nothing names what is next");
@@ -215,12 +217,26 @@ describe("Your turn in each state", () => {
 		assert.doesNotMatch(html(), /review-refused/);
 	});
 
-	it("nothing in it never asks for a message: no box, no Send", () => {
+	it("with nothing waiting the box asks the teacher, by its name", () => {
 		const out = html();
-		assert.doesNotMatch(out, /data-testid="composer"|composer-send|Message/);
+		assert.match(out, /data-testid="composer" data-size="line"[\s\S]*Your question[\s\S]*data-testid="composer-send"[^>]*disabled[^>]*>Ask Teacher</);
+		assert.equal(out.split('data-testid="math-box"').length - 1, 1, "one writing box");
+		assert.match(html({}, named), />Ask marco</);
+		assert.match(html({ value: "why?" }), /data-testid="composer-send"(?![^>]*disabled)[^>]*class="[^"]*lh-btn-main[^"]*"[^>]*>Ask Teacher</, "bright once there is something to ask");
+		assert.match(html({ value: "why?", shown: shown(atStop) }), /data-testid="composer-send"(?![^>]*disabled)[^>]*class="lh-btn shrink-0"[^>]*>Ask Teacher</, "the next key stays the bright one");
 	});
 
-	it("an open problem's box has no Teach me this: he asks the teacher in its terminal", () => {
+	it("the ask key sends the box's words, and steers while the teacher writes", async () => {
+		let sent = 0;
+		await mounted(turn({ value: "why does this converge?", onSend: () => sent++ }), async (host, show) => {
+			await click(host, "composer-send");
+			await show(turn({ value: "slower please", busy: true, onSend: () => sent++ }));
+			await click(host, "composer-send");
+		});
+		assert.equal(sent, 2);
+	});
+
+	it("an open problem's box has no Teach me this: he asks the teacher in the box", () => {
 		assert.doesNotMatch(html({ problem }), /teach-me|Teach me this/);
 	});
 
@@ -229,8 +245,8 @@ describe("Your turn in each state", () => {
 		assert.match(out, /data-mode="question"/);
 		assert.match(out, /data-testid="question-dock"[\s\S]*Which planet is closest[\s\S]*data-testid="composer"/);
 		assert.match(out, /data-testid="question-submit"[^>]*disabled[^>]*>Submit answer</, "Submit waits for a pick");
-		assert.match(out, /Pick an answer, or ask the teacher something/);
-		assert.doesNotMatch(out, /composer-send|Ask Teacher/);
+		assert.match(out, /Your reasoning or a question/);
+		assert.match(out, /data-testid="composer-send"[^>]*disabled[^>]*>Ask Teacher<\/button><button[^>]*data-testid="question-submit"/, "the ask key sits before Submit answer");
 		assert.equal(out.split('data-testid="math-box"').length - 1, 1, "one writing box");
 		assert.equal(out.split("Submit answer").length - 1, 1, "one submit button");
 	});
@@ -256,7 +272,7 @@ describe("Your turn in each state", () => {
 	it("Stuck? leads the foot row under the box while a question or a problem waits, never at a stop", () => {
 		const keys = /data-testid="composer"[\s\S]*data-testid="turn-foot"[^>]*><span[^>]*>Stuck\?<\/span>[\s\S]*?>I don(?:'|&#x27;)t know<[\s\S]*?>Give me a hint<[\s\S]*?>Explain it simpler</;
 		for (const over of [{ pending: quiz }, { pending: written }, { pending: choice }, { problem }]) assert.match(html(over), keys, JSON.stringify(Object.keys(over)));
-		for (const over of [{}, { shown: shown(atStop) }]) assert.doesNotMatch(html(over), /Stuck\?/);
+		for (const over of [{}, { shown: shown(atStop) }]) assert.doesNotMatch(html(over), /Stuck\?|turn-foot/);
 	});
 
 	it("I don't know answers the question in one click, with the box text as the thinking", async () => {
@@ -300,7 +316,7 @@ describe("Your turn in each state", () => {
 	it("a question answered in words: the box text is the answer", async () => {
 		const answers: QuestionAnswerData[] = [];
 		const out = html({ pending: written });
-		assert.match(out, /Your answer/);
+		assert.match(out, /An answer or a question/);
 		assert.match(out, /data-testid="question-submit"[^>]*disabled/, "an empty box is no answer");
 		assert.doesNotMatch(out, /question-option/);
 		await mounted(turn({ pending: written, value: "the steps shrink", onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
@@ -315,7 +331,7 @@ describe("Your turn in each state", () => {
 		const answers: QuestionAnswerData[] = [];
 		const out = html({ pending: choice });
 		assert.doesNotMatch(out, /other-option|Type your own answer|Your own answer/);
-		assert.match(out, /Pick one above, or type your own answer/);
+		assert.match(out, /An answer or a question/);
 		assert.match(out, /data-testid="question-submit"[^>]*disabled/, "an empty box and no pick is no answer");
 		await mounted(turn({ pending: choice, value: "Start from a picture", onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
 			assert.equal(submitDisabled(host), false);
@@ -337,12 +353,12 @@ describe("Your turn in each state", () => {
 		const answers: QuestionAnswerData[] = [];
 		const props = (value: string) => turn({ pending: choice, value, onSubmitAnswer: (a) => answers.push(a) });
 		await mounted(props(""), async (host, show) => {
-			const placeholder = () => host.innerHTML.match(/Pick one above, or type your own answer|Your reasoning \(optional\)/)?.[0];
-			assert.equal(placeholder(), "Pick one above, or type your own answer");
+			const placeholder = () => host.innerHTML.match(/An answer or a question|Your reasoning or a question/)?.[0];
+			assert.equal(placeholder(), "An answer or a question");
 			await act(async () => optionNamed(host, "From an example").click());
-			assert.equal(placeholder(), "Your reasoning (optional)", "with a pick the text is reasoning");
+			assert.equal(placeholder(), "Your reasoning or a question", "with a pick the text is reasoning");
 			await act(async () => optionNamed(host, "From an example").click());
-			assert.equal(placeholder(), "Pick one above, or type your own answer", "a second click clears the pick");
+			assert.equal(placeholder(), "An answer or a question", "a second click clears the pick");
 			await show(props("Start from a picture"));
 			await click(host, "question-submit");
 			assert.equal(answers[0]!.other, "Start from a picture");
@@ -366,15 +382,15 @@ describe("Your turn in each state", () => {
 		assert.match(out, /<h2[^>]*>Practice, problem 2<\/h2>/, "the problem's number is the title");
 		assert.doesNotMatch(out, />Your turn</);
 		assert.match(out, /data-testid="open-problem"[\s\S]*data-testid="problem-statement"[\s\S]*Find E\[N\]\./);
-		assert.match(out, /Your work/);
+		assert.match(out, /Your work or a question/);
 		assert.match(out, /data-testid="discard-problem"[^>]*>Discard problem</);
 		assert.doesNotMatch(out, /question-dock/);
 		assert.equal(out.split('data-testid="math-box"').length - 1, 1);
 	});
 
-	it("a problem's work waits while the teacher writes", () => {
-		assert.match(html({ problem, busy: true, value: "E[N] = 2" }), /data-testid="composer-send"[^>]*disabled[\s\S]*?>Send</);
-		assert.match(html({ problem, value: "E[N] = 2" }), /data-testid="composer-send"(?![^>]*disabled)[^>]*>Send</);
+	it("a problem's words go to the teacher at any time, one Send for work and questions", () => {
+		for (const busy of [false, true]) assert.match(html({ problem, busy, value: "E[N] = 2" }), /data-testid="composer-send"(?![^>]*disabled)[^>]*>Send</);
+		assert.doesNotMatch(html({ problem }), /Ask Teacher/);
 	});
 
 	it("a problem with choices shows them as lettered rows above the work box, and one without shows none", () => {
@@ -532,7 +548,7 @@ describe("Your turn in each state", () => {
 		};
 		const out = html({ problem, attachments: files });
 		assert.match(out, /data-testid="attachment-tray"[\s\S]*data-testid="draft-image"[\s\S]*data-testid="draft-pdf"[\s\S]*data-testid="math-box"/);
-		assert.match(out, /class="lh-answer-lines[\s\S]*data-testid="math-box"[\s\S]*data-testid="attach-button"[^>]*>[\s\S]*?Add pictures or PDFs<\/button><button[^>]*data-testid="composer-send"/);
+		assert.match(out, /class="lh-answer-lines[\s\S]*data-testid="math-box"[\s\S]*data-testid="attach-button"[^>]*>[\s\S]*?Add pictures or PDFs<\/button><div[^>]*><button[^>]*data-testid="composer-send"/);
 		assert.equal(out.split('data-testid="attach-button"').length - 1, 1, "one attach button");
 		const ask = html({ pending: choice });
 		assert.match(ask, /class="lh-answer-line [\s\S]*data-testid="attach-button"[\s\S]*data-testid="question-submit"/, "beside Submit when the box is one line");
@@ -557,7 +573,7 @@ describe("Enter in the box", () => {
 		const typed: string[] = [];
 		let sent = 0;
 		await mounted(turn({ problem, value: "x^2", onChange: (v) => typed.push(v), onSend: () => sent++ }), async (host) => {
-			const view = await mathBoxView(host, "Your work");
+			const view = await mathBoxView(host, "Your work or a question");
 			await act(async () => view.dispatch({ changes: { from: view.state.doc.length, insert: "+1" } }));
 			assert.deepEqual(typed, ["x^2+1"]);
 			await act(async () => void enter(view, true));
@@ -570,7 +586,7 @@ describe("Enter in the box", () => {
 	it("an empty Enter on a problem sends nothing", async () => {
 		let sent = 0;
 		await mounted(turn({ problem, onSend: () => sent++ }), async (host) => {
-			await act(async () => void enter(await mathBoxView(host, "Your work")));
+			await act(async () => void enter(await mathBoxView(host, "Your work or a question")));
 			assert.equal(sent, 0);
 		});
 	});
@@ -579,20 +595,31 @@ describe("Enter in the box", () => {
 		const answers: QuestionAnswerData[] = [];
 		let sent = 0;
 		await mounted(turn({ pending: quiz, value: "because", onSubmitAnswer: (a) => answers.push(a), onSend: () => sent++ }), async (host) => {
-			await act(async () => void enter(await mathBoxView(host, "Pick an answer, or ask the teacher something")));
+			await act(async () => void enter(await mathBoxView(host, "Your reasoning or a question")));
 			assert.equal(answers.length, 0);
 			assert.equal(sent, 1, "a side question");
 			await act(async () => optionNamed(host, "Mercury").click());
-			await act(async () => void enter(await mathBoxView(host, "Your reasoning (optional)")));
+			await act(async () => void enter(await mathBoxView(host, "Your reasoning or a question")));
 			assert.equal(answers.length, 1);
 			assert.equal(answers[0]!.thinking, "because");
+		});
+	});
+
+	it("Enter with nothing waiting asks the teacher; an empty Enter sends nothing", async () => {
+		let sent = 0;
+		await mounted(turn({ onSend: () => sent++ }), async (host, show) => {
+			await act(async () => void enter(await mathBoxView(host, "Your question")));
+			assert.equal(sent, 0);
+			await show(turn({ value: "why?", onSend: () => sent++ }));
+			await act(async () => void enter(await mathBoxView(host, "Your question")));
+			assert.equal(sent, 1);
 		});
 	});
 
 	it("Enter submits a written answer", async () => {
 		const answers: QuestionAnswerData[] = [];
 		await mounted(turn({ pending: written, value: "it settles", onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
-			await act(async () => void enter(await mathBoxView(host, "Your answer")));
+			await act(async () => void enter(await mathBoxView(host, "An answer or a question")));
 			assert.equal(answers[0]!.text, "it settles");
 		});
 	});
@@ -666,8 +693,7 @@ describe("the question's keys", () => {
 
 describe("writing folds the answer list", () => {
 	const focusBox = async (host: HTMLElement) => {
-		const picked = host.querySelector('[data-testid="picked-row"], [aria-checked="true"], [aria-pressed="true"]') !== null || host.innerHTML.includes("Your reasoning (optional)");
-		const content = (await mathBoxView(host, picked ? "Your reasoning (optional)" : "Pick an answer, or ask the teacher something")).contentDOM;
+		const content = (await mathBoxView(host, "Your reasoning or a question")).contentDOM;
 		await act(async () => content.dispatchEvent(new dom.window.Event("focusin", { bubbles: true })));
 	};
 
@@ -772,6 +798,20 @@ describe("the turn sheet", () => {
 		});
 	});
 
+	it("the box stays still while the rest swaps, so a line being typed keeps the keyboard", async () => {
+		await mounted(named(column({ next: atStop })), async (host, show) => {
+			const box = host.querySelector('[data-testid="composer"]')!;
+			assert.ok(!swap(host).contains(box), "the box is outside the part that swaps");
+			await show(named(column({ busy: true, next: null })));
+			assert.equal(swap(host).getAttribute("data-state"), "closed");
+			assert.equal(host.querySelector('[data-testid="composer"]'), box);
+			await exitPlays();
+			await show(named(column({ pending: quiz })));
+			await exitPlays();
+			assert.equal(host.querySelector('[data-testid="composer"]'), box, "the same box through every state");
+		});
+	});
+
 	it("while the teacher writes after anything but an answer, the last next line stays dimmed with no key; after a question, no line", async () => {
 		await mounted(named(column({ next: atStop })), async (host, show) => {
 			await show(named(column({ busy: true, next: null })));
@@ -803,7 +843,8 @@ describe("the turn sheet", () => {
 			assert.equal(picked.length, 1);
 			assert.match(picked[0]!.textContent!, /Venus[\s\S]*Wrong/, "the verdict sits beside the pick");
 			assert.equal(host.querySelectorAll('[data-testid="answer-result"]').length, 1);
-			assert.ok(host.querySelector('[data-testid="composer"]') === null && host.querySelector('[data-testid="turn-foot"]') === null);
+			assert.equal(host.querySelector('[data-testid="composer-send"]')!.textContent, "Ask marco", "the box stays, to ask");
+			assert.ok(host.querySelector('[data-testid="turn-foot"]') === null);
 			assert.ok(host.querySelector('[data-testid="turn-next"]') === null);
 			await show(named(column({ pending: { ...quiz, toolCallId: "q2" }, answered: pickedVenus })));
 			assert.equal(swap(host).getAttribute("data-state"), "closed", "the next question swaps in with the fade");
@@ -841,16 +882,15 @@ describe("the turn sheet", () => {
 });
 
 describe("the lesson page's pair", () => {
-	const page = (turn: React.ReactNode | null, turnBesideOnly: boolean) =>
-		renderToStaticMarkup(<LessonScroll steps={null} restKey="" busy={false} contextRef={{ current: null }} reading={<div data-testid="lesson-reading" />} turn={turn} turnBesideOnly={turnBesideOnly} />);
+	const page = (turn: React.ReactNode | null) =>
+		renderToStaticMarkup(<LessonScroll steps={null} restKey="" busy={false} contextRef={{ current: null }} reading={<div data-testid="lesson-reading" />} turn={turn} />);
 
-	it("keeps Your turn beside the text between problems, hidden only under the text in a narrow room", () => {
-		const between = page(<aside data-testid="turn-sheet" />, true);
-		assert.match(between, /data-testid="lesson-column" class="[^"]*@min-\[1280px\]\/room:grid/, "the pair stays");
-		assert.match(between, /class="lh-turn-fit min-w-0 @max-\[1280px\]\/room:hidden"[^>]*><aside data-testid="turn-sheet"/);
-		const waits = page(<aside data-testid="turn-sheet" />, false);
-		assert.doesNotMatch(waits, /room:hidden/, "with something to answer or press it shows under the text too");
-		assert.doesNotMatch(page(null, false), /turn-sheet|@min-\[1280px\]\/room:grid/, "before the lesson starts the text is one column");
+	it("keeps Your turn beside the text for the whole lesson, and under it in a narrow room", () => {
+		const started = page(<aside data-testid="turn-sheet" />);
+		assert.match(started, /data-testid="lesson-column" class="[^"]*@min-\[1280px\]\/room:grid/, "the pair stays");
+		assert.match(started, /class="lh-turn-fit min-w-0"[^>]*><aside data-testid="turn-sheet"/);
+		assert.doesNotMatch(started, /room:hidden/, "never hidden: the box is always there");
+		assert.doesNotMatch(page(null), /turn-sheet|@min-\[1280px\]\/room:grid/, "before the lesson starts the text is one column");
 	});
 });
 

@@ -71,8 +71,7 @@ function linesAt(root: Element, y: number, origin: number): { top: number; botto
  * lesson text's sheet and, once the lesson has started, "Your turn". With room for both they sit
  * side by side for the whole lesson and "Your turn" holds still while the text scrolls, always
  * inside the window, where only its question or problem scrolls (.lh-turn-fit); with less it sits
- * under the text, each sheet as tall as what it holds, and only while it holds something to
- * answer or press (`turnBesideOnly` hides it there otherwise). The page rests where restingTop says: on open, when the
+ * under the text, each sheet as tall as what it holds. The page rests where restingTop says: on open, when the
  * teacher asks (`restKey` changes) and while the teacher writes. When a reply lands it
  * holds still while the desk leaves, then is placed at once as the reply draws in. "Your turn"
  * fades out when it closes (a lesson reset) and, arriving with a reply, steps in after the
@@ -85,7 +84,6 @@ export function LessonScroll({
 	contextRef,
 	reading,
 	turn,
-	turnBesideOnly,
 }: {
 	/** The step line; nothing when the lesson has none. */
 	steps: ReactNode;
@@ -97,8 +95,6 @@ export function LessonScroll({
 	reading: ReactNode;
 	/** "Your turn", once the lesson has started. */
 	turn: ReactNode | null;
-	/** "Your turn" holds nothing to answer or press: drawn beside the text, never under it. */
-	turnBesideOnly: boolean;
 }) {
 	const held = useLastWhileClosing(turn);
 	const closing = held.mounted && held.state === "closed" && !prefersReducedMotion();
@@ -120,9 +116,7 @@ export function LessonScroll({
 		// The desk is leaving: the page holds still until the reply takes its place.
 		if (contentElement.querySelector("[data-desk-closing]")) return scrollElement.scrollTop;
 		const origin = contentElement.getBoundingClientRect().top;
-		// A "Your turn" hidden under the text is not there.
-		const drawn = contentElement.querySelector("[data-testid=turn-sheet]");
-		const sheetEl = drawn && drawn.getClientRects().length > 0 ? drawn : null;
+		const sheetEl = contentElement.querySelector("[data-testid=turn-sheet]");
 		const sheetBox = sheetEl?.getBoundingClientRect();
 		const partBox = contentElement.querySelector("[data-part-current]")?.getBoundingClientRect();
 		// With nothing waiting, a reply is read from its start once it has landed; while it is worked on, the desk shows.
@@ -235,7 +229,7 @@ export function LessonScroll({
 								<div
 									data-state={closing ? "closed" : "open"}
 									inert={closing}
-									className={cn("lh-turn-fit min-w-0", turnBesideOnly && "@max-[1280px]/room:hidden", closing ? "lh-fade" : stepIn && "lh-block-in")}
+									className={cn("lh-turn-fit min-w-0", closing ? "lh-fade" : stepIn && "lh-block-in")}
 									style={{ "--lh-block-delay": "240ms" } as CSSProperties}
 								>
 									{shownTurn}

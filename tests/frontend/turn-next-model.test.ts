@@ -1,7 +1,7 @@
 /** "Your turn" with nothing to answer: what is next, its key and what the key does, what stays while the teacher writes, and where the sheet is drawn. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { lastAnswered, turnNext, turnPlace, turnShown } from "../../src/frontend/components/lesson/turn-next-model.ts";
+import { lastAnswered, turnDrawn, turnNext, turnShown } from "../../src/frontend/components/lesson/turn-next-model.ts";
 import { dismissedAnswer, projectView, type LessonStop, type LhMessage, type QuestionAnswerData } from "../../src/shared/core/index.ts";
 import { call, CONCLUDE_SOLVED, keepGoing, marker, OPENER_QUIZ, regularizationEnds, result, text, userText } from "../stop-fixtures.ts";
 
@@ -41,14 +41,14 @@ describe("turnNext", () => {
 	});
 });
 
-describe("turnPlace", () => {
-	it("is nowhere before the lesson starts, then stays beside the text between problems and while the teacher writes", () => {
-		assert.equal(turnPlace({ started: false, holds: false }), null);
-		assert.equal(turnPlace({ started: true, holds: false }), "beside");
+describe("turnDrawn", () => {
+	it("is not drawn before the lesson starts, then stays for the whole lesson, so the box is always there", () => {
+		assert.equal(turnDrawn({ started: false, holds: false }), false);
+		assert.equal(turnDrawn({ started: true, holds: false }), true);
 	});
 
-	it("is drawn under the text too while it holds something to answer or press", () => {
-		assert.equal(turnPlace({ started: true, holds: true }), "both");
+	it("is drawn before the start too once it holds something to press", () => {
+		assert.equal(turnDrawn({ started: false, holds: true }), true);
 	});
 });
 

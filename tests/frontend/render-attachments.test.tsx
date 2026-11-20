@@ -45,7 +45,7 @@ const draft = (over: Partial<AttachmentDraft> = {}): AttachmentDraft => ({
 
 function composer(over: { attachments?: AttachmentDraft; busy?: boolean; turn?: BoxTurn } = {}) {
 	const attachments = over.attachments ?? draft();
-	const view = lessonBox({ busy: over.busy ?? false, hasText: false, hasFiles: attachments.files.length > 0, turn: over.turn ?? { kind: "problem", picked: false } });
+	const view = lessonBox({ teacher: "Teacher", busy: over.busy ?? false, hasText: false, hasFiles: attachments.files.length > 0, turn: over.turn ?? { kind: "problem", picked: false } });
 	return renderToStaticMarkup(<LessonBox view={view} value="" onChange={() => {}} onAct={() => {}} onFocus={() => {}} attachments={attachments} boxRef={null} />);
 }
 
@@ -74,7 +74,7 @@ describe("the lesson box's waiting files", () => {
 		assert.match(html, /data-testid="attachment-error"[^>]*>Can&#x27;t use HEIC photos yet\. Export as JPG\.</);
 	});
 
-	it("while the teacher writes, a problem's work waits and Send stays off", () => {
+	it("while the teacher writes, files wait and Send stays off: a line that steers carries none", () => {
 		assert.match(composer({ busy: true }), /data-testid="composer-send"[^>]*disabled/);
 	});
 });

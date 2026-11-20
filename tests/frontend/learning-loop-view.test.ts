@@ -162,8 +162,8 @@ describe("the two-day story, as the window draws it", () => {
 	it("Wednesday: questions from earlier fill the wait for the first reply, answered while the teacher writes", () => {
 		const bayes = findPendingToolCall(withOpenReview(projectView(start), answerOf(BAYES_WED)));
 		assert.deepEqual(bayes?.appPosed, { kind: "review", ref: { chatId: "chat_old", toolCallId: BAYES_WED.of.toolCallId } });
-		const box = lessonBox({ busy: true, hasText: false, hasFiles: false, turn: questionTurn("quiz", bayes!.input, true, "review") });
-		assert.equal(box.button.disabled, false, "Submit answer works while the teacher writes");
+		const box = lessonBox({ teacher: "Teacher", busy: true, hasText: false, hasFiles: false, turn: questionTurn("quiz", bayes!.input, true, "review") });
+		assert.equal(box.keys.find((k) => k.action === "submit")?.disabled, false, "Submit answer works while the teacher writes");
 		assert.equal(box.exit, "skip");
 
 		const [card] = cards(projectView(story(start, firstReplyWait)));

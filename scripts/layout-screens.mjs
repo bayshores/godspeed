@@ -206,6 +206,7 @@ export const SCREENS = [
 	{ name: "Progress with a homework next", before: `${homeworkCoversFile}\n${homeworkTomorrow}`, url: "/space", ready: "[data-testid=next-deadline] [data-testid=deadline-work]" },
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
 	{ name: "Lesson with a written-answer question", url: "/chat/{written}", ready: "[data-testid=question-dock]" },
+	{ name: "Lesson with a written-answer question beside the teacher's panel", url: "/chat/{written}", ready: "[data-testid=question-dock]", setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
 	{ name: "Lesson with a plugin's page open", url: "/chat/{lesson}", ready: "[data-testid=lesson-plugin-flashcards]", setup: `document.querySelector("[data-testid=lesson-plugin-flashcards]").click()`, shows: "[data-testid=plugin-window] [data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Lesson, its menu", url: "/chat/{lesson}", ready: "[data-testid=lesson-more]", setup: `document.querySelector("[data-testid=lesson-more]").click()`, shows: "[data-testid=lesson-menu][data-state=open]" },
 	{

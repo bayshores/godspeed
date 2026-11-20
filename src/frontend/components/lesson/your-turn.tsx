@@ -1,4 +1,4 @@
-import { useRef, useState, type RefObject } from "react";
+import { useState, type RefObject } from "react";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
 import { DEFAULT_TEACHER_NAME, DONT_KNOW, type DockSelection, type findPendingToolCall, type ProblemChoices, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
@@ -10,6 +10,7 @@ import { HELP_LINES, lessonBox, questionTurn, type BoxAction, type BoxView } fro
 import { OpenProblemPane, type ProblemPicks } from "./open-problem-pane";
 import { ProblemFile, type ProblemFileRef } from "./problem-file";
 import { TurnScroll } from "./turn-scroll";
+import { TurnSwap } from "./turn-swap";
 import { AnsweredTurn } from "./answered-turn";
 import type { NextAction, TurnShown } from "./turn-next-model";
 
@@ -36,14 +37,16 @@ export interface YourTurnProps {
 	boxRef: RefObject<{ focus(): void } | null>;
 	/** With nothing to answer: what is next and its key, or what stays while the teacher writes. */
 	shown: TurnShown;
+	/** Changes when what waits changes: the part above the box swaps then. */
+	swapKey: string;
 	onNext: (action: NextAction) => void;
 	busy: boolean;
 	/** The answer box's text. */
 	value: string;
 	onChange: (v: string) => void;
-	/** Sends the problem's work in the box. */
+	/** Sends what the box holds to the teacher: a question, or a problem's work. */
 	onSend: () => void;
-	/** Sends a "Stuck?" key's words, as a line typed in the teacher's terminal. */
+	/** Sends a "Stuck?" key's words, as a line typed in the box. */
 	onHelpLine: (line: string) => void;
 	attachments: AttachmentDraft;
 	/** The waiting question, for the lesson to read what is picked so far. */
@@ -56,24 +59,26 @@ export interface YourTurnProps {
 
 const HELP_KEY = "lh-btn lh-btn-small";
 
-const EXIT: Record<BoxView["exit"], { label: string; testId: string }> = {
+const EXIT: Record<NonNullable<BoxView["exit"]>, { label: string; testId: string }> = {
 	skip: { label: "Skip question", testId: "skip-question" },
 	discard: { label: "Discard problem", testId: "discard-problem" },
 };
 
 /**
  * YOUR TURN, the sheet beside the lesson's text (or under it), there for the
- * whole lesson once it has started (turnPlace). It holds one of:
- * - a waiting question (QuestionDock) and the answer box;
- * - the open problem, worked on in the box;
+ * whole lesson once it has started (turnDrawn). Above its box it holds one of:
+ * - a waiting question (QuestionDock);
+ * - the open problem;
  * - the next state: what is next and the one key that goes on (turnNext);
  * - while the teacher writes with nothing waiting, the question just
  *   answered (AnsweredTurn) or the last next line, dimmed (turnShown);
  * Its title is the problem's number when one is open ("Problem 3"), with the
- * way out of that state at the title row's end. Its foot row holds the
- * "Stuck?" keys, which ask for help in one click. Talking to the teacher
- * happens in its terminal. Beside the lesson text only the question or
- * problem shrinks to fit the window, scrolling in its own box (LessonScroll).
+ * way out of that state at the title row's end. The box at its foot is
+ * there in every state and stays still while the rest swaps: the learner
+ * answers in it, works in it and asks the teacher in it (lessonBox). Under
+ * it the "Stuck?" keys ask for help in one click. Beside the lesson text
+ * only the question or problem shrinks to fit the window, scrolling in its
+ * own box (LessonScroll).
  */
 export function YourTurn({
 	pending,
@@ -88,6 +93,7 @@ export function YourTurn({
 	onDiscardProblem,
 	boxRef,
 	shown,
+	swapKey,
 	onNext,
 	busy,
 	value,
@@ -103,46 +109,42 @@ export function YourTurn({
 	const [picked, setPicked] = useState(false);
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 
-	const turn = pending ? questionTurn(pending.tool, pending.input, picked, pending.appPosed?.kind) : problem ? ({ kind: "problem", picked: problemPicked.selected.size > 0 } as const) : null;
-	const view = turn && lessonBox({ busy, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
+	const next = !pending && !problem && shown.kind === "next" ? shown : null;
+	const nextKey = next?.next.key ?? null;
+	const turn = pending
+		? questionTurn(pending.tool, pending.input, picked, pending.appPosed?.kind)
+		: problem
+			? ({ kind: "problem", picked: problemPicked.selected.size > 0 } as const)
+			: ({ kind: "ask", nextKey: nextKey !== null } as const);
+	const view = lessonBox({ teacher, busy, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
 
 	const act = (action: BoxAction) => {
 		if (action === "send") onSend();
 		else questionRef.current?.submit();
 	};
-	// Enter away from the box presses the main button, unless that would
-	// send what is typed; with nothing to answer it presses the next key.
-	const next = !pending && !problem && shown.kind === "next" ? shown : null;
-	const nextKey = next?.next.key ?? null;
+	const canAct = (action: BoxAction) => view.keys.some((k) => k.action === action && !k.disabled);
+	// Enter away from the box submits the answer, never sends what is
+	// typed; with nothing to answer it presses the next key.
 	useEnterSubmits(() => {
-		if (view) {
-			if (view.button.action !== "send" && !view.button.disabled) act(view.button.action);
-		} else if (nextKey) onNext(nextKey.action);
+		if (canAct("submit")) act("submit");
+		else if (nextKey) onNext(nextKey.action);
 	});
 
-	const picks: ProblemPicks | null =
-		problem?.choices && view
-			? { choices: problem.choices, picked: problemPicked, onPick: onPickProblem, onLeaveRows: () => boxRef.current?.focus(), onEnter: view.button.action === "send" && !view.button.disabled ? onSend : null }
-			: null;
+	const picks: ProblemPicks | null = problem?.choices
+		? { choices: problem.choices, picked: problemPicked, onPick: onPickProblem, onLeaveRows: () => boxRef.current?.focus(), onEnter: canAct("send") ? onSend : null }
+		: null;
 
-	const exit = view && EXIT[view.exit];
-	const onExit = view?.exit === "skip" ? onSkipQuestion : onDiscardProblem;
+	const exit = view.exit && EXIT[view.exit];
+	const onExit = view.exit === "skip" ? onSkipQuestion : onDiscardProblem;
 	const fromEarlier = pending?.appPosed?.kind === "review";
 	const title = fromEarlier ? "From earlier" : !pending && problem?.line ? problem.line : "Your turn";
 
-	const mode = pending
-		? `question:${pending.toolCallId}`
-		: problem
-			? `practice:${problem.toolCallId}`
-			: shown.kind === "answered"
-				? `answered:${shown.answered.toolCallId}`
-				: "next";
-	// The opening state appears still; later states rise in.
-	const initialModeRef = useRef(mode);
+	const mode = pending ? "question" : problem ? "practice" : shown.kind === "answered" ? "answered" : "next";
 
 	return (
 		// The lesson text's inset, so both sheets share their edges.
-		<div data-testid="your-turn" data-mode={mode.split(":")[0]} className="lh-reading flex min-h-0 flex-1 flex-col gap-7">
+		<div data-testid="your-turn" data-mode={mode} className="lh-reading flex min-h-0 flex-1 flex-col gap-7">
+			<TurnSwap swapKey={swapKey}>
 			<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
 				<h2 className="text-[28px] leading-tight text-ink">{title}</h2>
 				{!pending && problem?.file && <ProblemFile file={problem.file} />}
@@ -159,7 +161,7 @@ export function YourTurn({
 				</p>
 			)}
 
-			<TurnScroll key={mode} className={mode === initialModeRef.current ? undefined : "lh-rise"}>
+			<TurnScroll>
 				{pending && (
 					<QuestionDock
 						ref={questionRef}
@@ -192,6 +194,7 @@ export function YourTurn({
 					</div>
 				)}
 			</TurnScroll>
+			</TurnSwap>
 
 			{stuck && (
 				<div data-testid="turn-stuck" className="flex flex-col items-start gap-2.5 bg-highlight px-3.5 py-3 text-base text-ink">
@@ -212,8 +215,8 @@ export function YourTurn({
 				</div>
 			)}
 
-			{view && <LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />}
-			{view && (
+			<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
+			{view.help && (
 				<div data-testid="turn-foot" className="flex flex-wrap items-center gap-2.5">
 					<HelpKeys help={view.help} questionRef={questionRef} onHelpLine={onHelpLine} />
 				</div>
@@ -223,7 +226,7 @@ export function YourTurn({
 }
 
 /** "Stuck?" and its three keys. */
-function HelpKeys({ help, questionRef, onHelpLine }: { help: BoxView["help"]; questionRef: RefObject<QuestionHandle | null>; onHelpLine: (line: string) => void }) {
+function HelpKeys({ help, questionRef, onHelpLine }: { help: NonNullable<BoxView["help"]>; questionRef: RefObject<QuestionHandle | null>; onHelpLine: (line: string) => void }) {
 	return (
 		<>
 			<span className="mr-1 shrink-0 text-base text-ink-2">
