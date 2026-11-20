@@ -131,6 +131,9 @@ fn sanitize_agent(raw: &Json) -> Json {
 	Json::Obj(out)
 }
 
+/// The app icons Settings offers besides the app's own, as `appearance.appIcon` names them.
+const APP_ICONS: [&str; 2] = ["paper", "classic"];
+
 fn sanitize_appearance(raw: &Json) -> Json {
 	let mut out = Obj::new();
 	if let Some(background) = raw.get("background") {
@@ -142,6 +145,10 @@ fn sanitize_appearance(raw: &Json) -> Json {
 	if let Some(font) = raw.get("fontFamily") {
 		let named = font.as_str().filter(|f| !gs_base::text::trim(f).is_empty());
 		out.insert("fontFamily", named.map_or(Json::Null, Json::from));
+	}
+	if let Some(icon) = raw.get("appIcon") {
+		let offered = icon.as_str().filter(|name| APP_ICONS.contains(name));
+		out.insert("appIcon", offered.map_or(Json::Null, Json::from));
 	}
 	// Retired: an old file's heading weight and bold and italic colors stay as stored and are never read.
 	out.insert_present("mdRendering", raw.get("mdRendering"));
@@ -201,6 +208,14 @@ mod tests {
 			clean(messy),
 			r#"{"version":7,"general":{"autoUpdate":true},"agent":{"tools":{"a":true},"rules":{"voice":["a"]}},"appearance":{"background":null,"fontFamily":null,"mdRendering":{"headingWeight":5000.4,"boldColor":"zzz","italicColor":null}},"graph":{"extractionChunkTokens":10},"future":{"a":[1]},"compaction":{"thresholdTokens":-5}}"#
 		);
+	}
+
+	#[test]
+	fn an_app_icon_is_one_of_the_offered_ones_or_the_app_s_own() {
+		assert_eq!(clean(r#"{"appearance":{"appIcon":"classic"}}"#), r#"{"version":3,"appearance":{"appIcon":"classic"}}"#);
+		for other in [r#""gold""#, "7", "null"] {
+			assert_eq!(clean(&format!(r#"{{"appearance":{{"appIcon":{other}}}}}"#)), r#"{"version":3,"appearance":{"appIcon":null}}"#, "{other}");
+		}
 	}
 
 	#[test]

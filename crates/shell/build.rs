@@ -33,6 +33,7 @@ fn main() {
 		"terminal_list",
 		"report_bug",
 		"list_fonts",
+		"apply_app_icon",
 		"print_pdf",
 		"drag_paths",
 		"title_bar_double_click",

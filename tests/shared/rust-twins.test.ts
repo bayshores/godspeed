@@ -12,6 +12,7 @@ import { subscriptionLabel } from "../../src/shared/core/prices.ts";
 import { RAMP_COLORS, rampColor, tally, topicStatus } from "../../src/shared/core/progress.ts";
 import { FACTORY_SETTINGS } from "../../src/shared/core/settings.ts";
 import { TOOL_SWITCH_LABELS } from "../../src/shared/core/tool-switches.ts";
+import { APP_ICONS } from "../../src/frontend/components/settings/appearance-model.ts";
 import { PIECE_WIDTHS } from "../../src/frontend/components/citations/page-piece-model.ts";
 import { TITLE_CUT } from "../../src/frontend/components/lesson/wait-model.ts";
 
@@ -143,6 +144,17 @@ describe("factory settings", () => {
 		assert.equal(/"graph": \{ "enabled": (true|false)/.exec(source)?.[1], String(FACTORY_SETTINGS.graph.enabled));
 		assert.match(source, /"background": null,\s*"fontFamily": null/);
 		assert.deepEqual(FACTORY_SETTINGS.appearance, { background: null, fontFamily: null });
+	});
+});
+
+describe("app icons", () => {
+	it("have the same names in Settings, on the server, in the Mac shell and as picture files", () => {
+		const offered = APP_ICONS.flatMap(({ icon }) => (icon === null ? [] : [icon]));
+		assert.deepEqual(strings(rust("records/settings"), "APP_ICONS"), offered);
+		const shell = read("crates/shell/src/mac/app_icon.rs");
+		assert.deepEqual([...shell.matchAll(/icons\/choices\/(\w+)\.png/g)].map((m) => m[1]), offered);
+		assert.deepEqual([...shell.matchAll(/\("(\w+)", include_bytes/g)].map((m) => m[1]), offered);
+		for (const picture of ["graphite", ...offered]) assert.ok(read(`public/app-icons/${picture}.svg`).startsWith("<svg"), picture);
 	});
 });
 

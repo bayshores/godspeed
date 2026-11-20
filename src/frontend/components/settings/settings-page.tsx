@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { LoadingLine } from "@/frontend/components/loading";
 import { useLitMarker } from "@/frontend/components/lit-marker";
 import { Travel } from "@/frontend/components/travel/travel";
+import type { AppearanceSettings } from "@/shared/core";
 import type { WriteResult } from "@/frontend/lib/api";
 import { useAppearance } from "./appearance.tsx";
 import { SettingsSection } from "./controls.tsx";
@@ -97,6 +98,15 @@ export function SettingsPage({ section }: { section?: string }) {
 		return failed === null;
 	};
 
+	// The Mac app reads a newly picked icon from the saved settings, so the save comes first.
+	const saveAppearance = async (next: AppearanceSettings) => {
+		const iconChanged = (next.appIcon ?? null) !== (record?.appearance?.appIcon ?? null);
+		if (!(await shown(saveSection("appearance", next)))) return;
+		onAppearanceChange(next);
+		const apply = window.lh?.applyAppIcon;
+		if (iconChanged && apply) await shown(apply().then(() => null, (failed: unknown) => String(failed)));
+	};
+
 	return (
 		// An area's full instructions are a deeper page; the sections lie side by side in the order of their tabs.
 		<Travel place={{ key: fullPage ? "instructions" : "sections", depth: fullPage ? 1 : 0, column: 0 }}>
@@ -163,7 +173,7 @@ export function SettingsPage({ section }: { section?: string }) {
 							)}
 							{active === "appearance" && (
 								<SettingsSection title="Appearance" testid="section-appearance">
-									<AppearanceSection appearance={record.appearance} onSectionChange={(next) => void shown(saveSection("appearance", next)).then((ok) => ok && onAppearanceChange(next))} />
+									<AppearanceSection appearance={record.appearance} onSectionChange={(next) => void saveAppearance(next)} />
 								</SettingsSection>
 							)}
 							{active === "general" && (

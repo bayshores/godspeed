@@ -6,7 +6,7 @@
  * hint of the background's color while staying readable (core/ink.ts).
  */
 
-import { darkBackground, inkFor, readableAccent, resolveSettings, shiftHex, tintFor, type AppearanceSettings, type EffectiveAppearance } from "@/shared/core";
+import { darkBackground, inkFor, readableAccent, resolveSettings, shiftHex, tintFor, type AppIcon, type AppearanceSettings, type EffectiveAppearance } from "@/shared/core";
 
 /** What an appearance write sends: the section without the retired
  *  heading weight and bold and italic colors an older version saved. */
@@ -34,6 +34,14 @@ export const BACKGROUND_PRESETS: ReadonlyArray<{ name: string; color: string | n
 	{ name: "Midnight", color: "#0d1320" },
 	{ name: "Forest", color: "#0e1712" },
 	{ name: "Paper", color: PAPER },
+];
+
+/** The app icons. Graphite is the app's own (stored as null). The stored names
+ *  are the server's APP_ICONS and the Mac shell's CHOICES. */
+export const APP_ICONS: ReadonlyArray<{ name: string; icon: AppIcon | null }> = [
+	{ name: "Graphite", icon: null },
+	{ name: "Paper", icon: "paper" },
+	{ name: "Classic", icon: "classic" },
 ];
 
 /** The app's status colors (right, wrong, delete, the confidence and topic

@@ -31,8 +31,8 @@ function same(inTypes: string[], inShim: string[], what: string) {
 test("window.lh has the same members in desktop-env.tsx and in shim.js", () => {
 	const typed = block(declared, "lh?: {\n", "\n\t\t};");
 	const shimmed = block(shim, "window.lh = {\n", "\n\t};");
-	const printPdf = /window\.lh\.(\w+) =/.exec(shim)?.[1];
-	same(names(typed, 3), [...names(shimmed, 2), ...(printPdf ? [printPdf] : [])].sort(), "window.lh members");
+	const macOnly = [...shim.matchAll(/window\.lh\.(\w+) =/g)].map((m) => m[1]!);
+	same(names(typed, 3), [...names(shimmed, 2), ...macOnly].sort(), "window.lh members");
 });
 
 test("window.lh.terminals has the same members in desktop-env.tsx and in shim.js", () => {

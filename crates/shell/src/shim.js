@@ -204,6 +204,9 @@
 		onOpenSettings: (cb) => subscribe("open-settings", cb),
 		onMenu: (cb) => subscribe("menu", cb),
 	};
-	// Only the Mac prints through the system's own sheet.
-	if (PLATFORM === "darwin") window.lh.printPdf = (path) => invoke("print_pdf", { path });
+	// Only the Mac prints through the system's own sheet and changes its Dock icon.
+	if (PLATFORM === "darwin") {
+		window.lh.printPdf = (path) => invoke("print_pdf", { path });
+		window.lh.applyAppIcon = () => invoke("apply_app_icon");
+	}
 })();

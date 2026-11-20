@@ -227,6 +227,21 @@ describe("AppearanceSection (SSR)", () => {
 		}
 	});
 
+	it("the app icon is picked from three pictures, Graphite at factory, only in the Mac app", () => {
+		assert.ok(!renderToStaticMarkup(<AppearanceSection appearance={undefined} onSectionChange={() => {}} />).includes("group-app-icon"));
+		const global = globalThis as { window?: unknown };
+		global.window = { lh: { applyAppIcon() {} } };
+		try {
+			const html = renderToStaticMarkup(<AppearanceSection appearance={undefined} onSectionChange={() => {}} />);
+			for (const id of ["graphite", "paper", "classic"]) assert.ok(tagOf(html, `app-icon-${id}`).includes(`aria-pressed="${id === "graphite"}"`), id);
+			const picked = renderToStaticMarkup(<AppearanceSection appearance={{ appIcon: "classic" }} onSectionChange={() => {}} />);
+			assert.ok(tagOf(picked, "app-icon-classic").includes('aria-pressed="true"'));
+			assert.ok(tagOf(picked, "app-icon-graphite").includes('aria-pressed="false"'));
+		} finally {
+			delete global.window;
+		}
+	});
+
 	it("Tab onto a hidden color picker rings its visible tile", () => {
 		const css = fs.readFileSync("src/frontend/globals.css", "utf-8");
 		assert.ok(css.includes(':root[data-tab-focus] :has(> input[type="color"]:focus-visible)'), "the ring rule for a picker's tile");

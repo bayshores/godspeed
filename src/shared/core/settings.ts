@@ -63,7 +63,7 @@ export interface AgentSettings {
 	rules?: AreaRules;
 }
 
-/** Appearance settings: the background and the reading font. Heading
+/** Appearance settings: the background, the reading font and the app icon. Heading
  *  weight and bold and italic colors (`mdRendering`) and the reading size
  *  (`proseFontSize`) are no longer read. */
 export interface AppearanceSettings {
@@ -73,7 +73,12 @@ export interface AppearanceSettings {
 	/** The reading font by name, user-chosen from installed fonts.
 	 *  null = Literata. */
 	fontFamily?: string | null;
+	/** The app icon picked for the Dock (Mac). null = the app's own. */
+	appIcon?: AppIcon | null;
 }
+
+/** The app icons Settings offers besides the app's own. */
+export type AppIcon = "paper" | "classic";
 
 /** Knowledge-graph settings. */
 export interface GraphSettings {
