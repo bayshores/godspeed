@@ -4,7 +4,7 @@
  * with Undo and a close key that removes it for good. An overdue card asks
  * "Done?" about the oldest deadline that just went by, with Done and Not yet,
  * on every page but Today, whose card asks. Both are the "quiet" kind: one at a
- * time, folded into the pill, never timed, so they wait for the learner.
+ * time, folded into the strip, never timed, so they wait for the learner.
  * Both wait while a lesson or mock is open.
  */
 
@@ -20,7 +20,7 @@ import { useSpaces } from "@/frontend/components/space-context";
 import { useOpenInSpace } from "@/frontend/components/use-join-space";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { followHeld } from "@/frontend/components/teacher/follow";
-import { InNoticeStack } from "@/frontend/components/top-bar/pill-panel";
+import { InNoticeStack } from "@/frontend/components/strip/peek-sheet";
 import { useHeld } from "@/frontend/components/use-held";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { send } from "@/frontend/lib/api";

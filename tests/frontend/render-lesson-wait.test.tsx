@@ -72,7 +72,7 @@ describe("the desk", () => {
 		assert.doesNotMatch(out, /class="[^"]*empty:hidden/, "and leaves no hidden box behind");
 	});
 
-	it("says nothing the pill says: no Thinking, no teacher's name, no clock", () => {
+	it("says nothing the strip says: no Thinking, no teacher's name, no clock", () => {
 		const out = pane();
 		assert.doesNotMatch(out, /Thinking|Teacher|Quigley/);
 		assert.doesNotMatch(out, /font-count/, "no count or clock while nothing is known");

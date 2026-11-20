@@ -33,7 +33,7 @@ Object.assign(globalThis, {
 // The start pair asks for the agent folder; these tests never answer.
 globalThis.fetch = (() => new Promise(() => {})) as typeof fetch;
 
-const { TeacherPanel, agentLine } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
+const { TeacherPanel, agentLine, teacherHead } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
 const { PANEL_WIDTH, panelLayout, panelBody, panelStarts, shownScreen } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { waitingNotice } = await import("../../src/frontend/components/agent-status.tsx");
 const { ActivityList, TeacherActivity } = await import("../../src/frontend/components/teacher/teacher-activity.tsx");
@@ -41,6 +41,7 @@ const { PanelHead } = await import("../../src/frontend/components/teacher/panel-
 const { TeacherChats } = await import("../../src/frontend/components/teacher/teacher-chats.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 import type { TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
+import type { TerminalFacts } from "../../src/frontend/components/terminal/terminal-model.ts";
 const { DEFAULT_TEACHER_NAME } = await import("../../src/shared/core/settings.ts");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { MemoryRouter } = await import("react-router");
@@ -105,14 +106,14 @@ describe("the panel", () => {
 		assert.ok(start.nextElementSibling === list, "the start pair, then the list");
 		assert.equal(el.querySelector("[data-testid='open-agent']")?.textContent, "Start Claude Code");
 	});
-	it("head: the teacher's status alone, in the screen's font; the pill names the panel and closes it", () => {
+	it("head: the teacher's status alone, in the screen's font; the strip names the panel and closes it", () => {
 		const html = renderToStaticMarkup(panel());
 		assert.match(html, /data-testid="teacher-panel-agent"[^>]*class="[^"]*font-mono[^"]*"[^>]*>(<[^>]*>)*Ready</);
 		assert.doesNotMatch(html, /teacher-panel-name|teacher-panel-close|role="switch"/);
 	});
-	it("runs from the top bar down the window's right edge to its bottom, made of the bar's sheet, with no blur", () => {
+	it("runs from the top bar to the window's bottom, sliding out of the strip, made of the bar's sheet, with no blur", () => {
 		const html = renderToStaticMarkup(panel());
-		assert.match(html, /^<div data-state="open" style="right:0;--lh-hang-r:0px" class="lh-hang fixed top-\(--lh-bar-h\) z-\[41\] bottom-0"><section[^>]*data-testid="teacher-panel"/);
+		assert.match(html, /^<div data-state="open" style="right:0;--lh-hang-r:0px" class="lh-hang fixed top-\(--lh-bar-h\) z-\[41\] lh-dock bottom-0"><section[^>]*data-testid="teacher-panel"/);
 		const section = /<section[^>]*>/.exec(html)![0];
 		assert.match(section, /class="lh-popup lh-hang-body /);
 		assert.match(section, new RegExp(`width:${PANEL_WIDTH.initial}px;height:100%`));
@@ -131,10 +132,10 @@ describe("the panel", () => {
 	});
 	it("is as wide as the learner left it, pushing the page while it keeps 480 px", () => {
 		const docked = (w: number, wanted: number) => panelLayout(w, w, wanted);
-		assert.deepEqual(docked(1440, 440), { width: 440, push: 440, squeezed: false });
-		assert.deepEqual(docked(1440, 900), { width: 900, push: 900, squeezed: true });
-		assert.deepEqual(docked(1100, 900), { width: 620, push: 620, squeezed: true }, "narrower than asked: the page keeps 480");
-		assert.deepEqual(docked(840, 440), { width: 360, push: 360, squeezed: true }, "down to its narrowest");
+		assert.deepEqual(docked(1440, 440), { width: 440, push: 440 });
+		assert.deepEqual(docked(1440, 900), { width: 900, push: 900 });
+		assert.deepEqual(docked(1100, 900), { width: 620, push: 620 }, "narrower than asked: the page keeps 480");
+		assert.deepEqual(docked(840, 440), { width: 360, push: 360 }, "down to its narrowest");
 		for (let w = 640; w <= 2000; w += 10) {
 			for (const wanted of [PANEL_WIDTH.min, PANEL_WIDTH.initial, PANEL_WIDTH.max]) {
 				const { width, push } = docked(w, wanted);
@@ -142,22 +143,36 @@ describe("the panel", () => {
 			}
 		}
 	});
-	it("covers a page with no room for its narrowest; a narrow window gets it across its whole width", () => {
+	it("covers a page with no room for its narrowest; a narrow window gets it across all its room", () => {
 		const docked = (w: number, wanted: number) => panelLayout(w, w, wanted);
-		assert.deepEqual(docked(800, 440), { width: 440, push: 0, squeezed: true });
-		assert.deepEqual(docked(700, 900), { width: 700, push: 0, squeezed: true });
-		assert.deepEqual(docked(600, 440), { width: 600, push: 0, squeezed: true });
+		assert.deepEqual(docked(800, 440), { width: 440, push: 0 });
+		assert.deepEqual(docked(700, 900), { width: 700, push: 0 });
+		assert.deepEqual(docked(600, 440), { width: 600, push: 0 });
 	});
-	it("is squeezed, and offers to hide, while it covers the page or leaves it under 800 px", () => {
-		const squeezed = (w: number, wanted: number) => panelLayout(w, w, wanted).squeezed;
-		assert.ok(!squeezed(1512, 620), "892 left: a laptop's whole screen with the panel as it comes");
-		assert.ok(squeezed(1512, 720), "792 left");
-		assert.ok(squeezed(1288, 620), "668 left");
-		assert.ok(!squeezed(1288, 480), "808 left");
-		const head = (hide: (() => void) | null) => renderToStaticMarkup(<PanelHead title={null} status="Idle" lit={false} working={false} list={null} need={null} back={null} putBack={null} hide={hide} />);
-		assert.ok(!head(null).includes("teacher-panel-hide"));
-		assert.match(head(() => {}), /data-testid="teacher-panel-hide"[^>]*>Hide</);
-		assert.ok(!head(() => {}).includes("lh-btn-main"), "never the screen's bright key");
+	it("takes the room left of the strip: the page's part of it can be narrower than the room", () => {
+		assert.deepEqual(panelLayout(1400, 1400, 620), { width: 620, push: 620 });
+		assert.deepEqual(panelLayout(1400, 900, 620), { width: 420, push: 420 }, "the page keeps 480");
+		assert.deepEqual(panelLayout(1400, 700, 900), { width: 900, push: 0 }, "no room for even the narrowest: it covers the page");
+	});
+	it("the head says the terminal's line while it starts or needs the learner, else the status line", () => {
+		const T0 = 1_000_000;
+		const facts = (over: Partial<TerminalFacts> = {}, prompt: "menu" | null = null): TerminalFacts => ({
+			term: { id: "t1", role: "teacher", agent: "claude", startedAt: T0, ended: null, prompt, url: false },
+			checkedIn: true,
+			outsideHere: false,
+			teaching: true,
+			now: T0 + 1000,
+			quietSince: null,
+			helperBusy: false,
+			turnWaits: false,
+			...over,
+		});
+		const doing = { text: "Reading notes", working: true };
+		assert.deepEqual(teacherHead({ agent: TEACHING, name: "Ada", doing: null, facts: null }), { status: "Ready", lit: false, working: false });
+		assert.deepEqual(teacherHead({ agent: TEACHING, name: "Ada", doing, facts: null }), { status: "Reading notes", lit: false, working: true }, "the square breathes while the line is the work it does");
+		assert.deepEqual(teacherHead({ agent: TEACHING, name: "Ada", doing, facts: facts({ checkedIn: false }) }), { status: "Ada is starting.", lit: false, working: false });
+		assert.deepEqual(teacherHead({ agent: TEACHING, name: "Ada", doing, facts: facts({}, "menu") }), { status: "Ada is asking you something.", lit: true, working: false });
+		assert.deepEqual(teacherHead({ agent: IDLE, name: "Ada", doing: null, facts: null }), { status: "Ada is off", lit: false, working: false });
 	});
 	it("shows a key that starts the teacher: the start pair before any start, Start again once it ended, and in a browser above Activity", () => {
 		const ended = { id: "t1", role: "teacher" as const, agent: "claude" as const, startedAt: 0, ended: { stopped: true as const, code: null }, prompt: null, url: false };
@@ -320,7 +335,7 @@ describe("Follow in the panel's head", () => {
 	const html = (over: Partial<TeacherApi>) =>
 		renderToStaticMarkup(
 			<TeacherContext.Provider value={api(over)}>
-				<PanelHead title={null} status="Idle" lit={false} working={false} list={{ open: false, onOpen: () => {} }} need={null} back={null} putBack={null} hide={null} />
+				<PanelHead title={null} status="Idle" lit={false} working={false} list={{ open: false, onOpen: () => {} }} need={null} back={null} putBack={null} />
 			</TeacherContext.Provider>,
 		);
 	it("says Following while it is on, and Follow once stopped, working or not", () => {

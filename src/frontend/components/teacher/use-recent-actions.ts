@@ -1,4 +1,4 @@
-/** The agent's recent changes, and what the teacher pill offers from them:
+/** The agent's recent changes, and what the strip's peek offers from them:
  *  the newest while it is fresh, "Go to" a change on another page, and an
  *  open the window held. */
 

@@ -1,8 +1,8 @@
 /**
- * The notices on screen, shared by the cards (notice-card.tsx), the pill
- * and its panel: each card adds itself, shows by itself for a while, then
- * folds into the pill until its count is clicked. The time stands
- * still while the pointer or keyboard focus is on the panel.
+ * The notices on screen, shared by the cards (notice-card.tsx), the strip
+ * and its peek: each card adds itself, shows by itself for a while, then
+ * folds into the strip until its count is asked for. The time stands
+ * still while the pointer or keyboard focus is on the peek.
  */
 
 import { useEffect, useId, useSyncExternalStore } from "react";
@@ -16,13 +16,11 @@ interface NoticeState {
 	shown: string[];
 	/** The ids of every notice mounted. */
 	known: string[];
-	/** How many wait folded in the pill, for its count. */
+	/** How many wait folded on the strip, for its count. */
 	waiting: number;
 	/** The folded notices were asked for. */
 	open: boolean;
-	/** The pill says this notice's title in its place. `bare`: nothing shows under it. */
-	said: { id: string; title: string; bare: boolean } | null;
-	/** The panel has something to show. */
+	/** A notice shows. */
 	up: boolean;
 }
 
@@ -31,7 +29,6 @@ const EMPTY: NoticeState = {
 	known: [],
 	waiting: 0,
 	open: false,
-	said: null,
 	up: false,
 };
 
@@ -39,9 +36,7 @@ let notices: Notice[] = [];
 let open = false;
 /** The teacher's panel is open where the cards hang. */
 let covered = false;
-/** How many pills are mounted; with none (the first steps) a notice keeps its title. */
-let pills = 0;
-/** Since when the panel is held; null while it is not. */
+/** Since when the peek is held; null while it is not. */
 let heldSince: number | null = null;
 let state = EMPTY;
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -50,16 +45,14 @@ const listeners = new Set<() => void>();
 function update() {
 	const now = heldSince ?? Date.now();
 	const view = noticeView(notices, now, open, covered);
-	const said = pills > 0 && !open && view.presenting ? { id: view.presenting.id, title: view.presenting.title, bare: view.presenting.bare } : null;
-	const up = open || view.shown.some((id) => id !== said?.id || !notices.find((n) => n.id === id)?.bare);
-	// A panel that closed under the pointer never says the pointer left.
+	const up = view.shown.length > 0;
+	// A peek that closed under the pointer never says the pointer left.
 	if (!up) heldSince = null;
 	state = {
 		shown: view.shown,
 		known: notices.map((n) => n.id),
 		waiting: view.waiting,
 		open,
-		said,
 		up,
 	};
 	if (timer !== null) clearTimeout(timer);
@@ -69,22 +62,22 @@ function update() {
 	for (const notify of listeners) notify();
 }
 
-/** The folded notices show, or fold again. Folding folds every notice. */
+/** The folded notices show, or fold again. Folding folds every notice, one still showing by itself too. */
 export function setNoticesOpen(next: boolean) {
-	if (open === next) return;
+	if (open === next && (next || !state.up)) return;
 	open = next;
 	if (!next) notices = notices.map((n) => (Number.isFinite(n.foldAt) ? { ...n, foldAt: 0 } : n));
 	update();
 }
 
-/** The teacher's panel opened under the pill (or closed): while it is open no card shows by itself. */
+/** The teacher's panel opened where the peek shows (or closed): while it is open no card shows by itself. */
 export function coverNotices(next: boolean) {
 	if (covered === next) return;
 	covered = next;
 	update();
 }
 
-/** The pointer or focus is on the panel (or left it). */
+/** The pointer or focus is on the peek (or left it). */
 export function holdNotices(held: boolean) {
 	if (held === (heldSince !== null)) return;
 	if (held) {
@@ -106,7 +99,7 @@ function subscribe(notify: () => void) {
 	};
 }
 
-/** What shows and what the pill says of it. */
+/** What shows and how many wait. */
 export function useNotices(): NoticeState {
 	return useSyncExternalStore(
 		subscribe,
@@ -115,36 +108,20 @@ export function useNotices(): NoticeState {
 	);
 }
 
-/** A pill is on screen while its bar is mounted. */
-export function usePillMounted() {
-	useEffect(() => {
-		pills += 1;
-		update();
-		return () => {
-			pills -= 1;
-			update();
-		};
-	}, []);
-}
-
 /**
- * A notice card adds itself while mounted. `shown`: false while it waits
- * folded or behind others. `said`: the pill says its title, so the card
- * leaves it out. A new title shows by itself again.
+ * A notice card adds itself while mounted, and shows unless it waits
+ * folded or behind others. A new title shows by itself again.
  */
-export function useNotice(title: string, kind: NoticeKind | null, bare: boolean, timed: boolean): { shown: boolean; said: boolean } {
+export function useNotice(title: string, kind: NoticeKind | null, timed: boolean): boolean {
 	const id = useId();
 	useEffect(() => {
-		notices = [...notices.filter((n) => n.id !== id), { id, title, kind, bare, foldAt: timed ? Infinity : Date.now() + PRESENT_MS }];
+		notices = [...notices.filter((n) => n.id !== id), { id, kind, foldAt: timed ? Infinity : Date.now() + PRESENT_MS }];
 		update();
 		return () => {
 			notices = notices.filter((n) => n.id !== id);
 			update();
 		};
-	}, [id, title, kind, bare, timed]);
-	const { known, shown, said } = useNotices();
-	return {
-		shown: !known.includes(id) || shown.includes(id),
-		said: said?.id === id,
-	};
+	}, [id, title, kind, timed]);
+	const { known, shown } = useNotices();
+	return !known.includes(id) || shown.includes(id);
 }

@@ -2,7 +2,7 @@
  * When the teacher's panel opens and closes by itself (use-teacher-panel.ts).
  * It opens when a need for the learner arises, once the learner has paused
  * typing, and closes when that need is settled or when a lesson reply starts.
- * While the teacher's screen is in its own window it never opens: the pill lights.
+ * While the teacher's screen is in its own window it never opens: the strip lights.
  */
 import type { TerminalRole } from "@/frontend/components/terminal/terminal-model";
 

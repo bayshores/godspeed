@@ -11,7 +11,7 @@ import { CHIP } from "./styles";
  * "Your spaces": a tile per open space, named as its tab names it (its
  * color square, then its name), with its topics by status and a chip for
  * the new files its linked folder brought. What the teacher is doing is
- * the top bar's pill, so the tile never says it. The tile opens the space
+ * the strip, so the tile never says it. The tile opens the space
  * as its tab does; the new-files chip opens its Files page.
  */
 export function SpaceList({

@@ -16,7 +16,7 @@ import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useOpenInSpace } from "@/frontend/components/use-join-space";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
-import { InNoticeStack } from "@/frontend/components/top-bar/pill-panel";
+import { InNoticeStack } from "@/frontend/components/strip/peek-sheet";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { changeNames, changeTitle, mergeChange, type FolderChange } from "./files-notice-model";
 

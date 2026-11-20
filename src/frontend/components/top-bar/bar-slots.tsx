@@ -5,7 +5,7 @@ import { Fit } from "./fit";
 /**
  * A page's own place in the top bar. The bar draws two hosts: the crumb,
  * which joins the lit tab ("CSE 21 › Work on HW6"), and the actions, on the
- * bar's right after the live pill. A page fills them with BarCrumb and
+ * bar's right. A page fills them with BarCrumb and
  * BarActions; its words stay the page's own components, with its state,
  * and leave the bar with the page.
  */
@@ -57,7 +57,7 @@ export function CrumbName({ text }: { text: string }) {
 	return <Fit text={text} least={text.slice(0, CRUMB_LETTERS)} />;
 }
 
-/** The page's words on the bar's right, after the live pill. */
+/** The page's words on the bar's right. */
 export function BarActions({ children }: { children: ReactNode }) {
 	const host = useContext(SlotsContext)?.actions;
 	return host ? createPortal(children, host) : null;

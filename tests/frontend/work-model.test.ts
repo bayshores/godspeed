@@ -1,7 +1,7 @@
 /**
  * Background work on a space, in words (work-model.ts): who does it, the
  * work frame's states and tag, and the lines on Today, the space's tab
- * and the top bar pill.
+ * and the strip's peek.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -35,7 +35,7 @@ describe("workerName", () => {
 });
 
 describe("the work frame of a space", () => {
-	it("no agent: no frame, the pill says that the files wait", () => {
+	it("no agent: no frame, the strip says that the files wait", () => {
 		assert.equal(workState({ ...base, working: false, files: [file("a", "pending"), file("b", "pending")], work: undefined }), null);
 	});
 
@@ -62,7 +62,7 @@ describe("the work frame of a space", () => {
 	});
 });
 
-describe("what the last round read, for the pill's notice", () => {
+describe("what the last round read, for the read notice", () => {
 	const round = (ids: string[]): SpaceWork => ({ startedAt: "x", endedAt: ENDED.toISOString(), fileIds: ids, deadlineIds: [] });
 	const news = (fs: SpaceFile[], work: SpaceWork | undefined, nowMs = NOW) => readNews({ files: fs, work, nowMs }, "Quigley");
 
@@ -111,7 +111,7 @@ describe("elsewhere", () => {
 		assert.equal(files(19), "19 files");
 	});
 
-	it("the top bar pill counts the files of every space being read, else names the work in progress", () => {
+	it("the strip's peek counts the files of every space being read, else names the work in progress", () => {
 		const spaces = [space({ filesLeft: 11, filesRead: 6 }), space({ filesLeft: 2 }), space({ filesLeft: 4, closed: true })];
 		const none = { extractions: [], jobs: [], requests: [] };
 		const demo = [{ kind: "demo" as const }];

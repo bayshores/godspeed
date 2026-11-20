@@ -48,7 +48,7 @@ export function spaceMenuDescription(closed: boolean): string {
 }
 
 /**
- * "Go to Files", the key the pill offers: with Follow off a fresh change
+ * "Go to Files", the key the strip's peek offers: with Follow off a fresh change
  * on another page, and with Follow on too a page the agent opened while
  * the window held. Null with nothing to offer.
  */

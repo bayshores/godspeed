@@ -1,5 +1,5 @@
 import { NoticeCard } from "@/frontend/components/notice-card";
-import { InNoticeStack } from "@/frontend/components/top-bar/pill-panel";
+import { InNoticeStack } from "@/frontend/components/strip/peek-sheet";
 import { useHeld } from "@/frontend/components/use-held";
 
 /** How long the notice stays (it waits while the pointer or focus is on it). */

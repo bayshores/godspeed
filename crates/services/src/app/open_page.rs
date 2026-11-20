@@ -1,6 +1,6 @@
 //! open_page: the agent opens a page in the learner's window, even with Follow off. The open is
 //! an activity entry marked `open`, which the window shows unless the learner has unsent lesson
-//! text, a running mock or a dialog (then the pill offers Go to), and the shell brings the window
+//! text, a running mock or a dialog (then the strip's peek offers Go to), and the shell brings the window
 //! forward, made again on that page when it was closed. A lesson on the cheat sheet's deadline
 //! opens the sheet beside itself instead.
 

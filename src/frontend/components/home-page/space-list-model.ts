@@ -31,7 +31,7 @@ export function spaceRow(progress: Pick<ProgressPayload, "overall" | "files" | "
 		const onPath = progress.path ? pathNext(progress.path) : null;
 		return { segments, line: onPath ? `Next up: ${onPath.topic.name}` : "No study files yet." };
 	}
-	// Its files are still being read: the top bar's pill says so.
+	// Its files are still being read: the strip says so.
 	return { segments, line: "" };
 }
 

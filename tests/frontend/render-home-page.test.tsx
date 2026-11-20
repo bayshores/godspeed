@@ -39,7 +39,7 @@ const { todayLists } = await import("../../src/frontend/components/home-page/hom
 const { SpaceFacts } = await import("../../src/frontend/components/overview/space-facts.tsx");
 const { OpenDeadlinesProvider, useOpenDeadlines } = await import("../../src/frontend/components/use-open-deadlines.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
-const { PillPanel } = await import("../../src/frontend/components/top-bar/pill-panel.tsx");
+const { PeekSheet } = await import("../../src/frontend/components/strip/peek-sheet.tsx");
 const { MAIN_KEY } = await import("../../src/frontend/components/overview/styles.ts");
 
 // Wed Oct 28 2026, 4:12 PM local.
@@ -125,7 +125,7 @@ describe("Ticking a deadline done", () => {
 		await mount(
 			<ServerEventsProvider connect={connect as never}>
 				<MemoryRouter>
-					<PillPanel>{null}</PillPanel>
+					<PeekSheet>{null}</PeekSheet>
 				</MemoryRouter>
 				<OpenDeadlinesProvider>
 					<Harness />
@@ -683,7 +683,7 @@ describe("Your spaces", () => {
 		assert.match(tag(row, "today-space-files"), /bg-highlight/);
 	});
 
-	it("a space with no files says what to add; one whose files are being read says nothing, as the top bar's pill says that", () => {
+	it("a space with no files says what to add; one whose files are being read says nothing, as the strip's peek says that", () => {
 		const progress = new Map([["spc_la", spaceProgress({ files: 0, facts: 0 })], ["spc_os", spaceProgress({ files: 4, facts: 0 })]]);
 		const html = page({ spaces: [LA, { ...OS, filesLeft: 4 }], spacesProgress: progress });
 		assert.match(section(html, "today-space-spc_la", "</li>"), />No study files yet\.</);

@@ -196,7 +196,7 @@ export function terminalFooter(f: TerminalFacts, name: string, underStatus: bool
 }
 
 /** What the teacher's terminal adds to its status (the status lines and
- *  the top bar pill): it starts, or it needs the learner. */
+ *  the strip): it starts, or it needs the learner. */
 export type TeacherTerminalState = "starting" | "needsYou";
 
 export function teacherTerminalState(f: TerminalFacts | null): TeacherTerminalState | null {

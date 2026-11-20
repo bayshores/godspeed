@@ -16,7 +16,7 @@ import { agoLabel, recentRows } from "./activity-model";
 /**
  * The teacher's Activity: the jobs running in the background, its recent
  * changes and what the open space's graph took, a log to read. What it is doing now sits in the
- * panel's head, and Follow beside the pill. `underStatus` in the panel, whose status
+ * panel's head, and Follow beside it. `underStatus` in the panel, whose status
  * line already says that work waits for the agent.
  * It scrolls inside its parent, which pads it.
  */

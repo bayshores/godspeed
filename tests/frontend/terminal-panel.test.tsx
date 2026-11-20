@@ -1009,7 +1009,7 @@ describe("the terminal in a window of its own", () => {
 		}
 	});
 
-	it("a question brings no panel while it is open; the pill lights and a click there brings the window forward", async () => {
+	it("a question brings no panel while it is open; the status lights and a click there brings the window forward", async () => {
 		const shell = fakeShell([teacher()], true);
 		try {
 			await mounted(ON, async () => {
@@ -1072,7 +1072,7 @@ describe("the terminal in a window of its own", () => {
 			assert.ok(q("terminal-window") !== null && q("teacher-panel-agent") !== null);
 			assert.ok(q("terminal-footer") !== null, "the screen with its row");
 			assert.ok(shell.calls.includes("attach t1"), "it attaches itself");
-			for (const gone of ["terminal-pop-out", "teacher-panel-hide", "teacher-panel-activity", "teacher-panel-chats", "follow-start", "follow-stop", "teacher-panel-need"]) assert.equal(q(gone), null, gone);
+			for (const gone of ["terminal-pop-out", "teacher-panel-activity", "teacher-panel-chats", "follow-start", "follow-stop", "teacher-panel-need"]) assert.equal(q(gone), null, gone);
 			await click("teacher-panel-put-back");
 			assert.deepEqual(shell.calls.filter((c) => c.startsWith("window")), ["window close"], "it only closes: the column is the main window's");
 			assert.equal(shell.calls.filter((c) => c.startsWith("start")).length, 0, "and starts nothing by itself");

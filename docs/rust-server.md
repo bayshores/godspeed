@@ -172,7 +172,7 @@ Locks outside `LockKey`, each guarding one piece of memory or one task:
 | `LH_DESKTOP_SERVER`, `LH_DESKTOP_API_SECRET` | `1` and the window's secret, set by the shell. See [Access](#access). |
 | `LH_SHELL` | `1` when the desktop shell started the server. Turns on the line protocol. |
 | `LH_PDFIUM_PATH` | pdfium's library file, when not in the working directory. |
-| `LH_SERVER_RESTARTED` | `1` after the shell restarted a crashed server. The first page then skips the welcome screen and shows the notice "godspeed restarted after a problem" in the top bar's pill panel. |
+| `LH_SERVER_RESTARTED` | `1` after the shell restarted a crashed server. The first page then skips the welcome screen and shows the notice "godspeed restarted after a problem" in the strip's peek. |
 | `LH_TERMINALS` | The desktop app's live terminal ids and the teacher's, `{"live":[…],"teacher":…}`. The shell's `terminals` message updates them. |
 | `LH_PLUGIN_LIST` | Debug builds only: a file read as godspeed's plugin list, each time the list is asked for, in place of GitHub's (`npm run layout` names `tests/fixtures/plugins/layout-list.json`). |
 | `GODSPEED_CONTRACT_NOW`, `GODSPEED_CONTRACT_CLOCK_FILE` | The contract suite's clock. |

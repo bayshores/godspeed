@@ -1,7 +1,7 @@
 /**
  * Background work on a space, in words: what the work frame on a space
- * page, Today, the space's tab and the top bar pill say while its
- * files are read, and the pill's notice after. Pure.
+ * page, Today, the space's tab and the strip say while its
+ * files are read, and the notice after. Pure.
  */
 import { isWaitingFile, type SpaceFile, type SpaceSummary, type SpaceWork } from "@/shared/core";
 import type { AgentStatus } from "@/frontend/components/agent-status";
@@ -38,7 +38,7 @@ export function filesProgress<S extends ProgressSpace>(spaces: readonly S[]): { 
 
 const isFresh = (work: SpaceWork | undefined, nowMs: number): work is SpaceWork & { endedAt: string } => !!work?.endedAt && nowMs - Date.parse(work.endedAt) < SHOWN_MS;
 
-/** Null while no agent takes the work: the pill says that it waits. */
+/** Null while no agent takes the work: the strip says that it waits. */
 export function workState(i: { files: readonly SpaceFile[]; work: SpaceWork | undefined; grouping: boolean; working: boolean }): WorkState | null {
 	const waiting = i.files.filter(isWaitingFile).length;
 	if (waiting > 0) {
@@ -49,7 +49,7 @@ export function workState(i: { files: readonly SpaceFile[]; work: SpaceWork | un
 	return i.grouping && i.working ? { kind: "grouping" } : null;
 }
 
-/** What the last round read, for the pill's notice, for a day after it
+/** What the last round read, for the notice, for a day after it
  *  ended; null while files wait or the round had no file. */
 export function readNews(i: { files: readonly SpaceFile[]; work: SpaceWork | undefined; nowMs: number }, teacher: string): string | null {
 	if (i.files.some(isWaitingFile) || !isFresh(i.work, i.nowMs)) return null;
@@ -91,7 +91,7 @@ export function tabWorkTag(space: Pick<SpaceSummary, "filesLeft">): string | nul
 	return space.filesLeft > 0 ? `${space.filesLeft} left` : null;
 }
 
-/** Background work, for the pill: what it is and how far it is. */
+/** Background work, for the strip: what it is and how far it is. */
 export interface WorkProgress {
 	doing: string;
 	count: string | null;

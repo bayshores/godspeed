@@ -16,7 +16,10 @@ export const WIDTHS = [1440, 1100, 800];
 export const HTTP_OK = `.then((r) => { if (!r.ok) throw new Error(r.url + " answered " + r.status); return r; })`;
 
 const pause = `await new Promise((done) => setTimeout(done, 100))`;
-const openTeacher = `document.querySelector("[data-testid=live-pill]").click()`;
+const openTeacher = `document.querySelector("[data-testid=strip]").click()`;
+/** The pointer comes to rest on the strip, so its peek slides out. */
+const peekOut = `document.querySelector("[data-strip]").dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }))`;
+const peekShown = "[data-testid=peek][data-state=open] [data-testid=peek-status]";
 const deadlineCard = "[data-teacher-target='deadline:{deadline}']";
 /** Today's every part at once, from both spaces so the blocks' colors differ: five deadlines on one
  *  day (so it folds to three and "+2 more"), one late, one ticked done today, more across the week,
@@ -66,7 +69,7 @@ await fetch("/api/spaces/{pathSpace}", { method: "PUT", headers: { "content-type
 /** A right-click on the element the expression `el` finds. */
 const rightClick = (el) => `{ const el = ${el}; const at = el.getBoundingClientRect(); el.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: at.left + 10, clientY: at.top + 10 })); }`;
 
-/** A file added to the space with no agent to read it, so the pill says that work waits. It
+/** A file added to the space with no agent to read it, so the strip says that work waits. It
  *  can't be removed while it waits, so the stand-in agent started later takes it. */
 const waitingFile = `const form = new FormData();
 form.append("files", new File(["# Slopes\\n\\nRise over run."], "waiting-notes.md", { type: "text/markdown" }));
@@ -150,6 +153,7 @@ export const SCREENS = [
 	{ name: "Today, the plus list", url: "/", ready: deadlineCard, setup: `document.querySelector("[data-testid=spaces-plus]").click()`, shows: "[data-testid=spaces-plus-list][data-state=open]" },
 	{ name: "Today, a space tab's menu", url: "/", ready: deadlineCard, setup: rightClick(`document.querySelector("[data-testid=space-option-{space}]")`), shows: "[data-testid=space-menu][data-state=open]" },
 	{ name: "Progress", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]" },
+	{ name: "Progress, the strip's peek", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: peekOut, shows: peekShown },
 	{ name: "Progress, every unfinished lesson shown", url: "/space", ready: "[data-testid=unfinished-show-all]", setup: `document.querySelector("[data-testid=unfinished-show-all]").click()`, shows: "[data-testid=unfinished-lessons] li:nth-child(5)" },
 	{ name: "Progress, a lesson's menu", url: "/space", ready: "[data-testid=lesson-row-menu]", setup: `document.querySelector("[data-testid=lesson-row-menu]").click()`, shows: "[data-testid=lesson-menu][data-state=open]" },
 	{ name: "Study", url: "/new", ready: "[data-testid=home-deadlines] [data-testid=home-study-deadline]", shows: "[data-testid=home-suggestions]" },
@@ -258,6 +262,7 @@ box.dispatchEvent(new Event("input", { bubbles: true })); ${pause}`,
 	},
 	{ name: "An address that is no page", url: "/nowhere", ready: "[data-testid=not-found]" },
 	{ name: "Space's plugin tab", url: "/space/plugin/flashcards", ready: "[data-testid=plugin-frame][data-state=ready]" },
+	{ name: "Today, the strip's peek", url: "/", ready: deadlineCard, setup: peekOut, shows: peekShown },
 	{ name: "Teacher's panel with no agent", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
 	{ name: "Teacher's panel, the other agents", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent-menu]").click()`, shows: "[data-testid=open-agent-choices][data-state=open]" },
 	{
@@ -392,7 +397,7 @@ for (let tries = 0; (await shell.list()).some((t) => t.role === "teacher" && !t.
 }
 await shell.start("teacher", "claude", "7c9e6679-7425-40de-944b-e07fc1f90ae7")`,
 		url: "/",
-		ready: "[data-testid=live-pill]",
+		ready: "[data-testid=strip]",
 		setup: `if (!document.querySelector("[data-teacher-panel]")) { ${openTeacher}; ${pause}; }
 for (let tries = 0; !document.querySelector("[data-testid=teacher-panel-chats]"); tries++) {
 	if (tries > 100) throw new Error("the Chats key never showed");

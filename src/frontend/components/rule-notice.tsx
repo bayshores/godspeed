@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { DEFAULT_TEACHER_NAME, parseWhere, type RuleWhere } from "@/shared/core";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
-import { InNoticeStack } from "@/frontend/components/top-bar/pill-panel";
+import { InNoticeStack } from "@/frontend/components/strip/peek-sheet";
 import { RuleEditBox, useSavedRule } from "@/frontend/components/saved-rule";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";

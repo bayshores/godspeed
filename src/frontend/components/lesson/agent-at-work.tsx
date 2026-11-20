@@ -12,7 +12,7 @@ import { planLines, type DeskState, type PlanLine } from "./wait-model";
  * THE DESK: where the reply will appear, while the teacher works on it. It shows only what the
  * teacher is doing in this reply: its plan, and once it opens a file, that file's pages beside
  * the plan, filling the sheet down to its foot. `foot` rests under it: Stop and the lines typed
- * to the teacher that wait for it. It says nothing the top bar's pill says.
+ * to the teacher that wait for it. It says nothing the strip says.
  */
 export function AgentAtWork({
 	state,

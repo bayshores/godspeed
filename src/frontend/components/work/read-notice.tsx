@@ -5,13 +5,13 @@ import { useSpaceRecord } from "@/frontend/components/files/space-record";
 import { NoticeCard } from "@/frontend/components/notice-card";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { InNoticeStack } from "@/frontend/components/top-bar/pill-panel";
+import { InNoticeStack } from "@/frontend/components/strip/peek-sheet";
 import { send } from "@/frontend/lib/api";
 import { readNews } from "./work-model";
 
 /**
  * What the agent read in the open space's last round of files, as a notice
- * that folds into the live pill. Closing it clears the round, which also
+ * that folds into the strip. Closing it clears the round, which also
  * clears it for a day.
  */
 export function ReadNotice() {

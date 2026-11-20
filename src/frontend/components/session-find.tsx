@@ -43,12 +43,13 @@ function publishHighlights(ranges: readonly Range[], index: number): void {
 
 /** One-Esc law: a surfaced menu/dialog/cheat sheet outranks this non-modal
  * bar, regardless of where focus happened to be left. Closed Radix exits
- * must not block Find once they have stopped being a surfaced layer. */
+ * must not block Find once they have stopped being a surfaced layer, and
+ * neither does a notice that came by itself (`data-lh-menu="quiet"`). */
 export function sessionFindHasForegroundLayer(doc: Document): boolean {
 	return Array.from(doc.querySelectorAll(
 		'[data-lh-menu], [data-radix-popper-content-wrapper], [role="menu"], [role="dialog"], [data-testid="cheat-sheet"]',
 	)).some((element) => {
-		if (element.getAttribute("data-state") === "closed" || element.hasAttribute("hidden")) return false;
+		if (element.getAttribute("data-state") === "closed" || element.hasAttribute("hidden") || element.getAttribute("data-lh-menu") === "quiet") return false;
 		const view = doc.defaultView;
 		if (typeof view?.getComputedStyle !== "function") return true;
 		const style = view.getComputedStyle(element);

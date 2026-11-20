@@ -9,7 +9,7 @@ import { useTerminals } from "./use-terminals";
 /**
  * The page of the terminal window the shell opens (pop out, in the screen's bottom row): the
  * teacher's screen with its head, which has the status line and Put back and nothing else. It
- * has no teacher provider, so the head shows no Follow, Chats or Hide. On the Mac the head is
+ * has no teacher provider, so the head shows no Follow or Chats. On the Mac the head is
  * the window's title bar: it drags the window and leaves the traffic lights their gutter.
  */
 export function TerminalWindow() {
@@ -30,7 +30,6 @@ export function TerminalWindow() {
 					need={null}
 					back={null}
 					putBack={() => terminals?.putBack()}
-					hide={null}
 				/>
 			</div>
 			<div className="flex min-h-0 flex-1 flex-col">

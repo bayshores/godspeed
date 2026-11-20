@@ -1,7 +1,7 @@
 /**
- * The teacher's panel, opened and closed from the pill only: it stays
+ * The teacher's panel, opened and closed from the strip only: it stays
  * while the learner works on the page, a lesson too. It runs from the
- * top bar down the window's right edge to its bottom, pushing the page
+ * top bar to the window's bottom, left of the strip, pushing the page
  * left to make room and covering it where there is none; the learner
  * drags its left edge. One head row (panel-head.tsx), then
  * the agent's screen (panel-screen.tsx), or Activity (teacher-activity.tsx)
@@ -12,7 +12,8 @@ import { cn } from "@/frontend/lib/utils";
 import { BarWindow, observeBar } from "@/frontend/components/ui/bar-window";
 import { ResizeHandle, usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import { agentWaiting, agentStatusLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
-import { needsYou, screenStatusLine, teacherTerminalState, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
+import { needsYou, screenStatusLine, teacherTerminalState, type TerminalFacts, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
+import { stripWidth } from "@/frontend/components/strip/strip-dom";
 import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { HELPER_NAME } from "@/frontend/components/work/work-model";
 import { useTeacher } from "./teacher-context";
@@ -34,6 +35,17 @@ export function agentLine(agent: AgentStatus | null, teacher: string, doing: Age
 	if (doing?.working) return doing.text;
 	if (agent.teaching) return "Ready";
 	return agentStatusLabel(agent, teacher);
+}
+
+/**
+ * What the teacher's own head says: its screen's line while its terminal
+ * starts or needs the learner (lit while it needs them), else the status
+ * line, with the square breathing while that line is the work it does.
+ */
+export function teacherHead(i: { agent: AgentStatus | null; name: string; doing: AgentDoing | null; facts: TerminalFacts | null }): { status: string | null; lit: boolean; working: boolean } {
+	const line = agentLine(i.agent, i.name, i.doing);
+	const screen = screenStatusLine(i.facts, i.name);
+	return { status: screen ?? line, lit: teacherTerminalState(i.facts) === "needsYou", working: !screen && !!i.doing?.working && line === i.doing.text };
 }
 
 /** The page's push while the panel is open (main's padding reads it). */
@@ -63,7 +75,7 @@ export function TeacherPanel({
 	onScreen: (role: TerminalRole) => void;
 	/** The learner opened the screen: it takes the keyboard. */
 	focus: boolean;
-	/** "closed" while it goes back up into the bar. */
+	/** "closed" while it goes back into the strip. */
 	state: "open" | "closed";
 }) {
 	const teacher = useTeacher();
@@ -74,20 +86,18 @@ export function TeacherPanel({
 	const teacherFacts = terminals?.facts.teacher ?? null;
 	const helperFacts = terminals?.facts.helper ?? null;
 	const helperCalls = !!helperFacts && !!needsYou(helperFacts);
-	const doing = teacher?.doing ?? null;
-	const line = agentLine(agent, name, doing);
-	const teacherStatus = screenStatusLine(teacherFacts, name);
+	const head = teacherHead({ agent, name, doing: teacher?.doing ?? null, facts: teacherFacts });
 	const [wanted, setWanted] = usePaneWidth("teacher", PANEL_WIDTH);
-	const [{ width, whole, squeezed }, setLayout] = useState({ width: wanted, whole: false, squeezed: false });
-	// Only while the page has too little room beside the panel.
-	const hide = squeezed && teacher ? () => teacher.setPanelOpen(false) : null;
+	const [{ width, whole }, setLayout] = useState({ width: wanted, whole: false });
 	const putBack = view === "popped" ? () => terminals?.putBack() : null;
 	// Before paint, so the screen is never sized to another box first.
 	useLayoutEffect(() => {
 		const measure = () => {
-			const page = document.querySelector("main")?.getBoundingClientRect().width ?? window.innerWidth;
-			const layout = panelLayout(window.innerWidth, page, wanted);
-			setLayout({ width: layout.width, whole: layout.width >= window.innerWidth, squeezed: layout.squeezed });
+			// The strip keeps the window's right edge: the panel and the page share what is left of it.
+			const room = window.innerWidth - stripWidth();
+			const page = (document.querySelector("main")?.getBoundingClientRect().width ?? window.innerWidth) - stripWidth();
+			const layout = panelLayout(room, page, wanted);
+			setLayout({ width: layout.width, whole: layout.width >= room });
 			// On its way out it lets the page back at once.
 			document.documentElement.style.setProperty(PUSH_VAR, `${state === "open" ? layout.push : 0}px`);
 		};
@@ -106,7 +116,7 @@ export function TeacherPanel({
 		[],
 	);
 	return (
-		<BarWindow right={0} width={width} height={null} state={state} data-teacher-panel="" data-whole={whole || undefined} data-testid="teacher-panel" aria-label={name}>
+		<BarWindow right={stripWidth()} width={width} height={null} state={state} data-teacher-panel="" data-whole={whole || undefined} data-testid="teacher-panel" aria-label={name}>
 			{/* Nothing to drag while it takes the whole window. */}
 			{!whole && <ResizeHandle paneKey="teacher" width={width} bounds={PANEL_WIDTH} onWidth={setWanted} label={`Resize ${name}'s panel`} />}
 			{background ? (
@@ -119,19 +129,17 @@ export function TeacherPanel({
 					need={null}
 					back={() => onScreen("teacher")}
 					putBack={null}
-					hide={hide}
 				/>
 			) : (
 				<PanelHead
 					title={null}
-					status={teacherStatus ?? line}
-					lit={teacherTerminalState(teacherFacts) === "needsYou"}
-					working={!teacherStatus && !!doing?.working && line === doing.text}
+					status={head.status}
+					lit={head.lit}
+					working={head.working}
 					list={onScreenView ? { open: list, onOpen: onList } : null}
 					need={view !== "activity" && helperCalls ? () => onScreen("helper") : null}
 					back={null}
 					putBack={putBack}
-					hide={hide}
 				/>
 			)}
 

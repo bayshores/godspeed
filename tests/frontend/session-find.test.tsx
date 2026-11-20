@@ -148,6 +148,11 @@ describe("sessionFindHasForegroundLayer — the one-Esc law", () => {
 		mount(`<div role="dialog" data-state="closed"></div>`);
 		assert.equal(sessionFindHasForegroundLayer(document), false);
 	});
+
+	it("a notice that came by itself is in front of nothing", () => {
+		mount(`<div data-lh-menu="quiet" data-state="open"></div>`);
+		assert.equal(sessionFindHasForegroundLayer(document), false);
+	});
 });
 
 describe("injectFindStyles — ::highlight rules ship outside the PostCSS pipeline", () => {

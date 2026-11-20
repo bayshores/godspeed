@@ -3,7 +3,7 @@ import type { AgentWork, CardFile } from "./agent-at-work-model";
 
 /**
  * The lesson while the teacher works on a reply: the desk at the foot of the lesson text,
- * which shows the teacher's plan and the file it reads, never words the top bar's pill already says.
+ * which shows the teacher's plan and the file it reads, never words the strip already says.
  * Pure.
  */
 
@@ -11,7 +11,7 @@ import type { AgentWork, CardFile } from "./agent-at-work-model";
 export type DeskState = "waiting" | "working";
 
 /** Whether the desk shows: from the teacher's first plan or step in this reply until the reply's
- *  text lands. Before that, Stop stands alone and the top bar's pill says the teacher works. */
+ *  text lands. Before that, Stop stands alone and the strip says the teacher works. */
 export function deskState({ busy, waitingForAgent, work }: { busy: boolean; waitingForAgent: boolean; work: AgentWork | null }): DeskState | null {
 	if (!busy || !work || work.replied || (work.plan === null && work.steps.length === 0)) return null;
 	return waitingForAgent ? "waiting" : "working";

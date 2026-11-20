@@ -216,7 +216,7 @@ One request to the learner's agent, as a work item labelled "<name> asked for…
 | At a time | One per plugin. A second while one runs is refused with "The teacher is still on this plugin's last request." |
 | Waiting | No time limit. If the request had `_meta.progressToken`, godspeed sends `notifications/progress` every 20 seconds, so a client library that gives up after a silent minute keeps waiting. |
 
-A running request shows under the plugin's name like a deadline request: a row in the teacher's Activity list, and the top bar's pill when it is the only work. The agent is told the request comes from a plugin and to answer it and do nothing else. Put nothing in a prompt you wouldn't show the learner. A failed ask is a tool error whose text says why.
+A running request shows under the plugin's name like a deadline request: a row in the teacher's Activity list, and the strip's peek when it is the only work. The agent is told the request comes from a plugin and to answer it and do nothing else. Put nothing in a prompt you wouldn't show the learner. A failed ask is a tool error whose text says why.
 
 ### read_space
 
@@ -295,7 +295,7 @@ No title of its own; godspeed shows the label.
 
 | Place | The page's box |
 |---|---|
-| A lesson | A window hanging from the top bar under the plugin's word, right edges aligned. 360 px wide, as tall as the page says, from 48 px up to the room under the top bar less 16 px; a taller page scrolls inside. Before the page says, 120 px tall. The word closes it; so do Escape, opening the cheat sheet and opening the Teacher's window. |
+| A lesson | A window hanging from the top bar under the plugin's word, right edges aligned, and clear of the strip. 360 px wide, as tall as the page says, from 48 px up to the room under the top bar less 16 px; a taller page scrolls inside. Before the page says, 120 px tall. The word closes it; so do Escape, opening the cheat sheet and opening the Teacher's window. |
 | A space | A tab that fills the space's page under its tabs. |
 
 In a lesson, report the page's height:

@@ -70,7 +70,7 @@ describe("the + list", () => {
 	});
 });
 
-describe("the pill's Go to key", () => {
+describe("the strip's Go to key", () => {
 	const offer: AgentAction = { id: "a1", at: "2026-11-01T10:00:00.000Z", agent: "Claude Code", label: "Reading 06_Counting.pdf", spaceId: "c21", target: null, page: "/space/files" };
 	it("nothing to offer, no key", () => {
 		assert.equal(goLabel({ following: false, offer: null, held: false }), null);

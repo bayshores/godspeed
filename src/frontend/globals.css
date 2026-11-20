@@ -45,11 +45,13 @@
 :root {
 	/* The top bar's height: two lines in a narrow window (see .lh-bar-top). */
 	--lh-bar-h: 3rem;
+	/* The strip down the window's right edge takes this much of every page; 0 where there is none. */
+	--lh-strip: 0px;
 	/* The widest every page's column gets, the lesson page's included, and its sides: 32px, or
-	   24px when the page's room (the window less the teacher's docked panel) is under 900. The
-	   clamp is that step at 900, so no page needs a container to measure its room. */
+	   24px when the page's room (the window less the strip and the teacher's docked panel) is
+	   under 900. The clamp is that step at 900, so no page needs a container to measure its room. */
 	--lh-page-w: 1460px;
-	--lh-page-side: clamp(24px, (100vw - var(--lh-dock-push, 0px) - 899px) * 999, 32px);
+	--lh-page-side: clamp(24px, (100vw - var(--lh-strip) - var(--lh-dock-push, 0px) - 899px) * 999, 32px);
 	/* One spacing for every page (docs/ui-rules.md): the top bar to a page's title, the title to
 	   what is under it, the gap between cards across and down (also a tab row to the first card),
 	   a card's inset, and the room under the last card. The title steps down with the sides. */
@@ -64,7 +66,7 @@
 	--lh-reading-inset-narrow: 28px;
 	/* The longest line of a sentence or paragraph outside lesson text. */
 	--lh-measure: 75ch;
-	--lh-title: clamp(34px, (100vw - var(--lh-dock-push, 0px) - 899px) * 999, 44px);
+	--lh-title: clamp(34px, (100vw - var(--lh-strip) - var(--lh-dock-push, 0px) - 899px) * 999, 44px);
 	color-scheme: light;
 	--radius: 2px;
 	--background: #c9c7bd;
@@ -1037,10 +1039,10 @@ body {
 body:has(.lh-own-bar) .lh-app-bar {
 	display: none;
 }
-/* That bar stays whole across the window while the teacher's panel pushes
-   its page aside: the panel sits under it, as under the app's bar. */
+/* That bar stays whole across the window while the strip and the teacher's
+   panel push its page aside: both sit under it, as under the app's bar. */
 .lh-own-bar {
-	margin-right: calc(-1 * var(--lh-dock-push, 0px));
+	margin-right: calc(-1 * (var(--lh-dock-push, 0px) + var(--lh-strip)));
 }
 @media (prefers-reduced-motion: no-preference) {
 	.lh-own-bar {
@@ -1050,14 +1052,14 @@ body:has(.lh-own-bar) .lh-app-bar {
 
 /* The date, a page's own words (bar-slots.tsx) and the clock. On one
    line the three sit in the bar itself: the date first, the words after
-   the pill, the clock after Menu. As the bar narrows, the pill's words go
-   first, then the unlit tabs' names down to a few letters, and then those
-   tabs scroll (space-tabs.tsx). */
+   the tabs, the clock after Menu. As the bar narrows, the unlit tabs'
+   names go down to a few letters, and then those tabs scroll
+   (space-tabs.tsx). */
 .lh-bar-top {
 	display: contents;
 }
 /* Below 1100 one line cannot hold it all, so the bar is two lines on every
-   page: these three above the tabs, the pill and Menu. No page changes the
+   page: these three above the tabs and Menu. No page changes the
    bar's height. */
 @media (max-width: 1099px) {
 	:root:has(.lh-app-bar):not(:has(.lh-own-bar)) {
@@ -1248,21 +1250,160 @@ body:has(.lh-own-bar) .lh-app-bar {
 .lh-hang[data-state="closed"] > .lh-hang-body > * {
 	animation: lh-fade-out 70ms var(--lh-ease-in) both;
 }
-/* The pill's panel: its rows are the notices. */
-.lh-hang-body > .lh-notices {
-	animation: none;
+
+/* The strip down the window's right edge (strip/strip.tsx): the teacher's
+   panel at its narrowest. It is made of the top bar and meets it square,
+   and the bar curves into it at the page's corner. Every page ends where
+   it starts (--lh-strip). Under the pointer it leans out toward the page
+   and its arrow steps that way; at rest, outside a lesson, the arrow
+   steps at the page once every few seconds. */
+:root:has(.lh-strip) {
+	--lh-strip: 28px;
 }
-.lh-hang[data-state="open"] .lh-notices > * {
-	animation: lh-row-in var(--lh-dur) var(--lh-ease-out) 50ms both;
+.lh-strip {
+	position: fixed;
+	top: var(--lh-bar-h);
+	right: 0;
+	bottom: 0;
+	z-index: 42;
+	width: var(--lh-strip);
 }
-/* The pill's new line rolls in from below. */
-.lh-pill-line {
-	animation: lh-pill-in var(--lh-dur) var(--lh-ease-out) both;
+.lh-strip::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	right: 100%;
+	width: 14px;
+	height: 14px;
+	pointer-events: none;
+	background: radial-gradient(circle at 0 100%, transparent 13.5px, var(--lh-bar) 14px);
 }
-@keyframes lh-pill-in {
+@media (hover: hover) {
+	.lh-strip:hover:not([data-open], [data-out]) {
+		width: calc(var(--lh-strip) + 6px);
+	}
+}
+@media (prefers-reduced-motion: no-preference) {
+	.lh-strip {
+		transition: width var(--lh-dur-fast) var(--lh-ease-out);
+	}
+	.lh-strip-arrow[data-beckon] {
+		animation: lh-strip-beckon 4s steps(1, end) infinite;
+	}
+	.lh-strip:hover:not([data-open]) .lh-strip-arrow {
+		animation: lh-strip-step 0.72s steps(1, end) infinite;
+	}
+}
+@keyframes lh-strip-beckon {
+	82% {
+		transform: translateX(-2px);
+	}
+	88% {
+		transform: translateX(-4px);
+	}
+	94% {
+		transform: translateX(-2px);
+	}
+}
+@keyframes lh-strip-step {
+	33% {
+		transform: translateX(-2px);
+	}
+	66% {
+		transform: translateX(-4px);
+	}
+}
+
+/* The strip's peek (strip/peek-sheet.tsx): a sheet that slides out of the
+   strip's top, under the bar, with the bar and the strip curving into it.
+   Its rows arrive after it, top first. With no strip (the first steps) it
+   floats in the window's top right corner. */
+.lh-peek {
+	top: 12px;
+	right: 16px;
+}
+.lh-peek-body {
+	border-radius: 14px;
+	animation: lh-pop-in var(--lh-dur) var(--lh-ease-out) both;
+}
+.lh-peek[data-state="closed"] > .lh-peek-body {
+	animation: lh-pop-out var(--lh-dur-fast) var(--lh-ease-in) both;
+	pointer-events: none;
+}
+:root:has(.lh-strip) .lh-peek {
+	top: var(--lh-bar-h);
+	right: var(--lh-strip);
+}
+:root:has(.lh-strip) .lh-peek::before,
+:root:has(.lh-strip) .lh-peek::after {
+	content: "";
+	position: absolute;
+	width: 14px;
+	height: 14px;
+	pointer-events: none;
+	background: radial-gradient(circle at 0 100%, transparent 13.5px, var(--lh-bar) 14px);
+	animation: lh-fade-in var(--lh-dur) var(--lh-ease-out) both;
+}
+:root:has(.lh-strip) .lh-peek::before {
+	top: 0;
+	right: 100%;
+}
+:root:has(.lh-strip) .lh-peek::after {
+	top: 100%;
+	right: 0;
+}
+:root:has(.lh-strip) .lh-peek[data-state="closed"]::before,
+:root:has(.lh-strip) .lh-peek[data-state="closed"]::after {
+	animation: lh-fade-out var(--lh-dur-fast) var(--lh-ease-in) both;
+}
+:root:has(.lh-strip) .lh-peek-body {
+	border-radius: 0 0 0 14px;
+	box-shadow: none;
+	animation: lh-side-in var(--lh-dur-slow) var(--lh-ease-out) both;
+}
+:root:has(.lh-strip) .lh-peek[data-state="closed"] > .lh-peek-body {
+	animation: lh-side-out var(--lh-dur-fast) var(--lh-ease-in) both;
+}
+.lh-peek[data-state="open"] .lh-peek-rows > *,
+.lh-peek[data-state="open"] .lh-notices > * {
+	animation: lh-side-row-in var(--lh-dur) var(--lh-ease-out) 50ms both;
+}
+.lh-peek[data-state="open"] .lh-peek-rows > :nth-child(2) {
+	animation-delay: 78ms;
+}
+.lh-peek[data-state="open"] .lh-peek-rows > :nth-child(3) {
+	animation-delay: 106ms;
+}
+.lh-peek[data-state="open"] .lh-peek-rows > :nth-child(n + 4) {
+	animation-delay: 134ms;
+}
+/* The teacher's docked panel slides out of the strip the same way. */
+.lh-dock > .lh-hang-body {
+	animation-name: lh-side-in;
+}
+.lh-dock[data-state="closed"] > .lh-hang-body {
+	animation-name: lh-side-out;
+}
+@keyframes lh-side-in {
+	from {
+		clip-path: inset(0 0 0 100%);
+	}
+	to {
+		clip-path: inset(0);
+	}
+}
+@keyframes lh-side-out {
+	from {
+		clip-path: inset(0);
+	}
+	to {
+		clip-path: inset(0 0 0 100%);
+	}
+}
+@keyframes lh-side-row-in {
 	from {
 		opacity: 0;
-		transform: translateY(9px);
+		transform: translateX(8px);
 	}
 }
 @keyframes lh-hang-in {
@@ -1406,8 +1547,11 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	.lh-hang::after,
 	.lh-hang-body,
 	.lh-hang-body > *,
+	.lh-peek::before,
+	.lh-peek::after,
+	.lh-peek-body,
+	.lh-peek-rows > *,
 	.lh-notices > *,
-	.lh-pill-line,
 	.lh-sheet-wrap::before {
 		animation: none !important;
 	}

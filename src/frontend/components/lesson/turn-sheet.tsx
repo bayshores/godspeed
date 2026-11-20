@@ -11,7 +11,7 @@ import { YourTurn, type YourTurnProps } from "./your-turn";
  * THE TURN SHEET, beside the lesson text's sheet or under it: "Your turn",
  * there for the whole lesson once it has started. Only its contents change,
  * inside the sheet that stays still. The teacher's status, terminal,
- * Activity and Follow live in the top bar's pill, as on every page.
+ * Activity and Follow live in the teacher's panel, as on every page.
  */
 export function TurnSheet({
 	spaceId,

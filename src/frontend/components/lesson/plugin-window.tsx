@@ -7,6 +7,7 @@ import { usePresence } from "@/frontend/components/presence";
 import { sessionFindHasForegroundLayer } from "@/frontend/components/session-find";
 import { BarWindow, barBottom, observeBar } from "@/frontend/components/ui/bar-window";
 import type { ShownPlugin } from "@/frontend/lib/use-plugins-at";
+import { stripWidth } from "@/frontend/components/strip/strip-dom";
 import { pluginWindowBox } from "./plugin-window-model";
 
 /** The plugin's word, among the lesson's words in the top bar. */
@@ -29,14 +30,14 @@ export function PluginWindow({ plugin, context, onClose }: { plugin: ShownPlugin
 
 function Window({ plugin, context, state, onClose }: { plugin: ShownPlugin; context: PluginContext; state: "open" | "closed"; onClose: () => void }) {
 	const [reported, setReported] = useState<number | null>(null);
-	const [at, setAt] = useState<{ edge: number; width: number; height: number; bar: number } | null>(null);
+	const [at, setAt] = useState<{ edge: number; width: number; height: number; strip: number; bar: number } | null>(null);
 
 	// Before paint, so it opens in place.
 	useLayoutEffect(() => {
 		const place = () => {
 			const word = document.querySelector(`[data-testid="${pluginWordTestId(plugin.id)}"]`)?.getBoundingClientRect().right;
 			// While Find has the bar the word is gone, and the window stays where it was.
-			setAt((now) => ({ edge: word ?? now?.edge ?? window.innerWidth, width: window.innerWidth, height: window.innerHeight, bar: barBottom() }));
+			setAt((now) => ({ edge: word ?? now?.edge ?? window.innerWidth, width: window.innerWidth, height: window.innerHeight, strip: stripWidth(), bar: barBottom() }));
 		};
 		place();
 		const observer = new ResizeObserver(place);

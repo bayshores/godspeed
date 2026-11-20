@@ -3,7 +3,6 @@ import { Link } from "react-router";
 import type { MockView } from "@/shared/core";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { barWord } from "@/frontend/components/top-bar/bar-look";
-import { LivePill } from "@/frontend/components/top-bar/live-pill";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 
@@ -19,7 +18,6 @@ export function MockBar({ view, children }: { view: MockView; children?: ReactNo
 			</Link>
 			<h1 className="shrink-0 text-lg font-medium">Mock {view.mock.n}</h1>
 			{children ?? <div className="flex-1" aria-hidden />}
-			<LivePill own />
 		</div>
 	);
 }

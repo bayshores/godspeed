@@ -21,7 +21,7 @@
  * only ever shown on screen.
  *
  * Each job has its own hook: Follow (use-follow.ts), the recent changes and
- * what the pill offers from them (use-recent-actions.ts), the tour
+ * what the strip's peek offers from them (use-recent-actions.ts), the tour
  * (use-tour.ts) and the panel. This provider joins them into one context.
  */
 
@@ -129,7 +129,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	return (
 		<TeacherContext.Provider value={api}>
 			{children}
-			{/* On the page's top layer. The pill closes it; it also closes by itself (use-teacher-panel.ts). */}
+			{/* On the page's top layer. The strip closes it; it also closes by itself (use-teacher-panel.ts). */}
 			{shown.mounted &&
 				createPortal(
 					<TeacherPanel

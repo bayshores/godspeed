@@ -12,13 +12,14 @@ const FLOOR = 48;
 const EDGE = 16;
 
 /**
- * The window with its right edge at `edge` (the plugin's word's), moved left only as far as keeps it `EDGE`
- * from the window's left side. Its height is the page's (`reported`, or START_HEIGHT before the
- * page says), from FLOOR up to the room under the bar, whose bottom is `bar`.
+ * The window with its right edge at `edge` (the plugin's word's), never over the strip down the
+ * window's right edge (`strip` wide), moved left only as far as keeps it `EDGE` from the window's
+ * left side. Its height is the page's (`reported`, or START_HEIGHT before the page says), from
+ * FLOOR up to the room under the bar, whose bottom is `bar`.
  */
-export function pluginWindowBox(edge: number, viewport: { width: number; height: number }, bar: number, reported: number | null): { right: number; width: number; height: number } {
+export function pluginWindowBox(edge: number, viewport: { width: number; height: number; strip: number }, bar: number, reported: number | null): { right: number; width: number; height: number } {
 	const width = Math.min(WIDTH, viewport.width - 2 * EDGE);
-	const right = Math.max(0, Math.min(viewport.width - edge, viewport.width - width - EDGE));
+	const right = Math.max(viewport.strip, Math.min(viewport.width - edge, viewport.width - width - EDGE));
 	const room = viewport.height - bar - EDGE;
 	const height = Math.max(FLOOR, Math.min(Math.ceil(reported ?? START_HEIGHT), room));
 	return { right, width, height };

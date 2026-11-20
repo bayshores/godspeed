@@ -749,7 +749,7 @@ describe("the turn sheet", () => {
 	// The old contents' exit (--lh-dur-fast) plays out.
 	const exitPlays = () => act(() => new Promise((done) => setTimeout(done, 150)));
 
-	it("is Your turn alone: no head, no Terminal, Activity or Follow (the pill has them), and no drag handle", () => {
+	it("is Your turn alone: no head, no Terminal, Activity or Follow (the strip has them), and no drag handle", () => {
 		const out = renderToStaticMarkup(named(column({ pending: quiz })));
 		assert.match(out, /data-testid="turn-sheet"[\s\S]*data-testid="your-turn"/);
 		assert.doesNotMatch(out, /separator|Resize/);
@@ -894,7 +894,7 @@ describe("the reading pane", () => {
 		}
 	});
 
-	it("no desk while no agent takes the turn; the pill says it instead", () => {
+	it("no desk while no agent takes the turn; the strip says it instead", () => {
 		const out = pane({ waitingForAgent: true });
 		assert.doesNotMatch(out, /data-testid="agent-at-work"/);
 		assert.ok(!out.includes("Thinking"), "no words while nothing works");

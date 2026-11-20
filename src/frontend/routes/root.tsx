@@ -7,7 +7,7 @@ import UpdateBanner from "@/frontend/components/update-banner";
 import { SoundProvider } from "@/frontend/components/sounds";
 import { Onboarding } from "@/frontend/components/onboarding/onboarding";
 import { RestartNotice } from "@/frontend/components/restart-notice";
-import { PillPanel } from "@/frontend/components/top-bar/pill-panel";
+import { PeekSheet } from "@/frontend/components/strip/peek-sheet";
 import { WhatsNew } from "@/frontend/components/whats-new";
 import { FolderNotice } from "@/frontend/components/agent-folder/folder-notice";
 import { OldSetupNotice } from "@/frontend/components/agent-folder/old-setup";
@@ -42,11 +42,11 @@ export function Root() {
 				</ActivityProvider>
 			</div>
 			{/* Auto-update banner (pushed by the desktop shell) and the restart notice. */}
-			<PillPanel>
+			<PeekSheet>
 				<UpdateBanner />
 				{boot.firstLoad === "restarted" && <RestartNotice />}
 				{!boot.onboarding && <OldSetupNotice />}
-			</PillPanel>
+			</PeekSheet>
 			{/* "What's new" after an update (after the welcome screen when it
 			    shows); Settings reopens it. */}
 			{!boot.onboarding && <WhatsNew since={welcome ? null : boot.whatsNewSince} />}

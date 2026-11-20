@@ -3,7 +3,7 @@ import { useLocation } from "react-router";
 import type { ChatListItem } from "@/shared/core";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { getJson } from "@/frontend/lib/api";
-import { keepReady, type ReadyLesson } from "./live-pill-model";
+import { keepReady, type ReadyLesson } from "./strip-model";
 
 /** The lesson on screen, or null on another page. */
 function lessonOnScreen(pathname: string): string | null {

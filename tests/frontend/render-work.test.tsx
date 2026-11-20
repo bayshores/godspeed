@@ -93,7 +93,7 @@ describe("The work frame around a space's pages", () => {
 		assert.equal(text(host, "page"), "The page");
 	});
 
-	it("a finished round shows no frame; the pill's notice says what it read", async () => {
+	it("a finished round shows no frame; the read notice says what it read", async () => {
 		const lastWork = { startedAt: "x", endedAt: new Date().toISOString(), fileIds: ["a"], deadlineIds: [] };
 		const host = await mount(page, record({ files: [file("old", "ready"), file("a", "ready")], lastWork }));
 		assert.ok(host.querySelector('[data-testid="work-frame"]') === null);

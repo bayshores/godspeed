@@ -11,7 +11,7 @@ import { useOpenInSpace } from "@/frontend/components/use-join-space";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { useMinute } from "@/frontend/components/countdown";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
-import { InNoticeStack } from "@/frontend/components/top-bar/pill-panel";
+import { InNoticeStack } from "@/frontend/components/strip/peek-sheet";
 import { quietSpaces, quietLine, quietTitle, snoozeEnd, type QuietSpace } from "./quiet-notice-model";
 
 const SNOOZED_KEY = "lh:quiet-snoozed";

@@ -61,18 +61,27 @@ The top bar is the one place for a page's own actions and for where the learner 
 
 | What | Where | How |
 |---|---|---|
-| A page's own actions | The bar's right side, after the teacher pill and before Menu, so the pill's changing words never move them | `BarActions`, each a flat word as tall as the bar (`barWord`), a block of the bar's ink while its panel is open; Menu is the same word; never a row under the bar |
+| A page's own actions | The bar's right side, before Menu | `BarActions`, each a flat word as tall as the bar (`barWord`), a block of the bar's ink while its panel is open; Menu is the same word; never a row under the bar |
 | Where the learner is inside a space | After the lit space tab, on its paper, after a "›" | `BarCrumb`: a lesson's title, a deadline's name, "Cheat sheet" |
 | Find | A magnifying glass in the bar, on every page that can find; open, its field takes the place of that page's own words only, so on Files and Graph the space's Edit space stays, and on a lesson every word gives way | `BarFind` |
 | A shortcut | Inside the button whose action it is, read from the key registry | `KeyHint` and `keyShortcutProps` |
 
-- No key (`.lh-btn`) in the top bar or in a page's own bar (the mock's): every word there is flat like the tabs, and a key inside the pill is a flat chip. `npm run layout` fails a key in a bar. A pop-up that hangs from the bar keeps its keys.
+- No key (`.lh-btn`) in the top bar or in a page's own bar (the mock's): every word there is flat like the tabs. `npm run layout` fails a key in a bar. A pop-up that hangs from the bar keeps its keys.
 - A bar word is there only while it acts or tells something: no status for a thing that is not made yet, and no switched-off key for it (the cheat sheet's Show in Finder and Print show once the sheet is made).
 - Page tabs (Progress, Files, Graph, Deadlines) and keys inside a card stay on the page.
 - Bar words are real buttons or links, never a clickable span: the bar is the window's drag band, and only buttons, links and fields are cut out of it (`crates/shell/src/shim.js`).
-- Crowded, the bar gives way in this order (`space-tabs.tsx`): the pill's words and its deadline's name (the countdown stays), then the unlit tabs' names down to 8 letters, then those tabs scroll with the lit tab kept in view. The lit tab and its crumb never give way to the other tabs; in a strip too narrow for both, the crumb's name gives way down to 12 letters (`CrumbName`), then the lit tab's name down to its dot. The date and the clock stay on every page at every width.
-- The bar is the same on every page: no page changes its height or takes a part of it away. Below 1100 points one line cannot hold it all, so it is two lines tall on every page, Today too: the date, the page's words and the clock above Today, the tabs, the pill and Menu (`.lh-bar-top` in `globals.css`). On that top line a Find field narrows before it would reach the date. Whatever sits under the bar reads its height from `--lh-bar-h`, never a fixed 48 points. A menu from a page's word hangs from that word's line and may cover the line below while it is open. Windows that stay open, the teacher's window and a plugin's window, hang under the whole bar and read `--lh-bar-h`.
+- Crowded, the bar gives way in this order (`space-tabs.tsx`): the unlit tabs' names down to 8 letters, then those tabs scroll with the lit tab kept in view. The lit tab and its crumb never give way to the other tabs; in a strip too narrow for both, the crumb's name gives way down to 12 letters (`CrumbName`), then the lit tab's name down to its dot. The date and the clock stay on every page at every width.
+- The bar is the same on every page: no page changes its height or takes a part of it away. Below 1100 points one line cannot hold it all, so it is two lines tall on every page, Today too: the date, the page's words and the clock above Today, the tabs and Menu (`.lh-bar-top` in `globals.css`). On that top line a Find field narrows before it would reach the date. Whatever sits under the bar reads its height from `--lh-bar-h`, never a fixed 48 points. A menu from a page's word hangs from that word's line and may cover the line below while it is open. Windows that stay open, the teacher's window and a plugin's window, hang under the whole bar and read `--lh-bar-h`.
 - Before calling a bar change finished, check that no page draws its actions under the bar, and look at the bar at 1440, 1100, 800 and 640 points wide with the longest real names, on Today and on a page with words in the bar.
+
+## The strip
+
+The strip is the teacher's panel at its narrowest, down the window's right edge under the top bar. What it holds and does is in [08.1.2](architecture/08.1.2-the-work-loop.md#the-strip).
+
+- It is 28 points wide (`--lh-strip`) on every page in the app shell and made of the top bar's dark. Nothing else sits on the window's right edge, and no page draws under it: a page ends where the strip starts.
+- Its marks (the square, the name, the arrow, "needs you", "your turn", the notices' count, a deadline's countdown) are plain words and shapes, never a key. Anything that needs a key or a longer line goes in its peek, which is a pop-up and keeps its keys.
+- A new thing the teacher says or waits for is a row in the peek or a notice, never a new mark or a control elsewhere in the bar.
+- Before calling a change to the strip, the peek or a page's right side finished, look at the page with the peek out and with the panel open, at 1512, 1100 and 800 points wide.
 
 ## Page layout
 
@@ -102,7 +111,7 @@ Every page, the lesson page included, uses one column and one set of spacing, so
 - Only screens that are one centered box (onboarding, dialogs, Not found) stay centered.
 - `npm run layout` reports a "Your turn" foot row outside the window beside the lesson text, a card whose inset is off, a reading surface whose sides are not the reading inset, two neighbouring sheets in a page's column at a gap that is not `--lh-gap`, and a page h1 without `.lh-page-title` (a heading in rendered Markdown is its writer's and does not count). What the learner pans is marked `data-pans`, and a part of it out of view is not reported as hidden. One picture drawn on stacked boxes (a cheat sheet page with its zoomed part drawn sharper over it) is marked `data-picture`, and its boxes are not checked against each other.
 - A page works in the narrowest room the teacher's panel leaves it (480 points). No column has a fixed width that starves its neighbour: it gives way, or the columns go one over the other (the cheat sheet over its chat under 768 points; its pages one under another in a canvas under 640).
-- The teacher's terminal can leave the panel for a window of its own: the key is "Pop out", a quiet key in the screen's bottom row, after Paste; the way back is "Put back", the panel head's last key and the only key in the window's head. The window holds the head's status line, the screen and its row, no Hide, Follow, Chats or Activity, and works down to 400 by 300 points. On the Mac its head is its title bar, one dark sheet with the traffic lights in it. Popping out closes the panel, so the page gets the room; while the window is open the panel is Activity alone and the teacher pill lit means the window needs the learner. "Put back" in either window opens the panel on the screen.
+- The teacher's terminal can leave the panel for a window of its own: the key is "Pop out", a quiet key in the screen's bottom row, after Paste; the way back is "Put back", the panel head's last key and the only key in the window's head. The window holds the head's status line, the screen and its row, no Follow, Chats or Activity, and works down to 400 by 300 points. On the Mac its head is its title bar, one dark sheet with the traffic lights in it. Popping out closes the panel, so the page gets the room; while the window is open the panel is Activity alone and the strip lit with "needs you" means the window needs the learner. "Put back" in either window opens the panel on the screen.
 - A view that fits its content (the cheat sheet canvas) fits it again when its room changes, until the learner moves the view.
 - Before calling a page change finished, look at it at 1512, 1100 and 800 points wide, with the teacher's panel open too.
 
@@ -114,7 +123,7 @@ The app moves in one register, quick and quiet, like an e-ink page redrawing. Th
 - Anything that replaces part of a page appears stepped (`.lh-block-in`, `.lh-set`), top to bottom, one thing moving at a time.
 - A new keyframe needs a reason the existing ones can't serve.
 - Every motion class has a reduced-motion switch: with reduced motion nothing is held, nothing animates and scrolls are instant.
-- A wait has the shape of what comes, at the place it will appear, and shows objects (the lesson's desk shows the learner's files as paper), not skeleton bars. It has one live element and repeats no word the top bar's pill already says.
+- A wait has the shape of what comes, at the place it will appear, and shows objects (the lesson's desk shows the learner's files as paper), not skeleton bars. It has one live element and repeats no word the strip already says.
 - Before calling a waiting state finished, reload a lesson mid-wait at 1440, 1100 and 800 points wide: it shows without motion, in place, and nothing jumps when the reply lands.
 
 ## Type

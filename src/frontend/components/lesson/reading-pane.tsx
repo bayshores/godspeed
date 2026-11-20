@@ -53,7 +53,7 @@ export function ReadingPane({
 	busy: boolean;
 	/** The first reply was stopped with nothing written, and no turn or error line is up. */
 	stoppedEmpty: boolean;
-	/** The turn waits for an agent to take it: the pill says so, and the desk lies still. */
+	/** The turn waits for an agent to take it: the strip says so, and the desk lies still. */
 	waitingForAgent: boolean;
 	/** Stops the running turn; null while the teacher reads ahead at a stop, which is not stopped. */
 	onStop: (() => void) | null;
