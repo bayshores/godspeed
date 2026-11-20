@@ -1588,8 +1588,10 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 .lh-desk:not([data-way]) > .lh-desk-old {
 	display: none;
 }
+/* Clipped, not hidden: a field that takes focus as its page arrives must not scroll the desk to itself. */
 .lh-desk[data-way] {
 	overflow: hidden;
+	overflow: clip;
 }
 /* The copy is a picture: nothing in it plays its own motion again. */
 .lh-desk-old *,
