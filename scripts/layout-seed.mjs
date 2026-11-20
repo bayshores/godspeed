@@ -3,9 +3,10 @@
  *
  * A small stand-in agent talks to the app over MCP, as Claude Code would: it makes the space
  * "Lab Algebra" with a deadline and one file, reads the file into one fact, starts a lesson and
- * answers it with a plan, then a sourced reply and an open quiz. Three homework deadlines get a homework lesson
+ * answers it with a plan, then a sourced reply and an open quiz. Four homework deadlines get a homework lesson
  * each: one has its problems posted and a problem open at part (b), one has its problems posted and a
- * teaching reply with no problem open, and one has fourteen problems with the first done and none open.
+ * teaching reply with no problem open, one has fourteen problems with the first done and none open, and
+ * one has a printed worksheet as its assignment, with a problem open as the piece of its pages, at part (b).
  * Eight more lessons are studied (a plan of two steps, a quiz on the last one, answered) and two are
  * left open (a quiz on the first step, unanswered), so the Lessons block on Progress has both groups
  * and a Show all. One more poses a practice problem longer than the window, still open. Their titles are of mixed length, one very long. One more lesson is made and
@@ -37,6 +38,15 @@ const DEADLINE = "Pop quiz: graphing";
 const HOMEWORK_OPEN = "Homework 3: graphing lines";
 const HOMEWORK_FIRST = "Homework 4: solving equations";
 const HOMEWORK_MANY = "Homework 5: graphing systems";
+/** A homework whose assignment is a printed worksheet: its problems show as pieces of its pages. */
+const HOMEWORK_PRINTED = "Homework 6: a printed worksheet";
+const WORKSHEET = path.resolve(import.meta.dirname, "..", "crates", "pdf", "tests", "fixtures", "worksheet.pdf");
+/** The worksheet's problems, pointed at by their first words; the second runs onto page 2. */
+const PRINTED_PROBLEMS = [
+	{ number: "1", title: "Flipping a coin", source: { page: 1, starts: "1. First problem" } },
+	{ number: "2", title: "A queue of lists", source: { page: 1, starts: "2. Second problem" } },
+	{ number: "3", title: "Counting handshakes", source: { page: 2, starts: "3. Third problem" } },
+];
 /** More problems than a row names, numbered as an assignment might ("2a"). */
 const MANY_NUMBERS = ["1", "2a", "2b", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"];
 
@@ -196,6 +206,13 @@ function homeworkAnswer(work, ids, lessonTurn) {
 		if (lessonTurn === 0) return { tool_calls: [{ name: "post_problems", arguments: { problems: HOMEWORK_PROBLEMS[HOMEWORK_FIRST] } }] };
 		return { text: "Before problem 1, here is the method. To solve $3x + 4 = 19$, undo each step in reverse: subtract 4 from both sides to get $3x = 15$, then divide both sides by 3 to get $x = 5$." };
 	}
+	// Posts the worksheet's problems by where they are printed and opens the second; after the
+	// learner says which part they start, marks part (b).
+	if (work.lessonId === ids.homeworkPrinted) {
+		if (lessonTurn === 0) return { tool_calls: [{ name: "post_problems", arguments: { problems: PRINTED_PROBLEMS } }, { name: "problem", arguments: { number: "2" } }] };
+		if (lessonTurn === 1) return { tool_calls: [{ name: "part", arguments: { part: "b" } }] };
+		return { text: "Part (b) it is. What does the loop change each time around?" };
+	}
 	// Posts its problems and opens the first; after the learner's answer, closes it solved.
 	if (work.lessonId === ids.homeworkMany) {
 		if (lessonTurn === 0) {
@@ -318,6 +335,7 @@ export async function seed(dataDir, page, log) {
 			{ kind: "homework", name: HOMEWORK_OPEN, date: inDays(10) },
 			{ kind: "homework", name: HOMEWORK_FIRST, date: inDays(11) },
 			{ kind: "homework", name: HOMEWORK_MANY, date: inDays(12) },
+			{ kind: "homework", name: HOMEWORK_PRINTED, date: inDays(13) },
 			{ kind: "exam", name: MIDTERM, date: inDays(30), time: "09:00" },
 			{ kind: "quiz", name: QUIZ, date: inDays(32) },
 			{ kind: "quiz", name: REVIEW_QUIZ, date: inDays(34) },
@@ -355,7 +373,10 @@ export async function seed(dataDir, page, log) {
 	await agent.call("add_space_file", { space_id: space.id, kind: "info", name: "What the quizzes are like.md", text: "# What the quizzes are like\n\nShort written answers, a few lines of code, and one graph to read. Calculators are not allowed." });
 	const aboutId = (await agent.json("read_space", { space_id: space.id, files: true })).files.find((file) => file.name === "What the quizzes are like.md").id;
 	for (const name of [MIDTERM, QUIZ, REVIEW_QUIZ, SPRING_EXAM]) await agent.call("update_space_deadline", { space_id: space.id, deadline_id: deadlineNamed(name), about_file_id: aboutId });
+	const worksheet = (await agent.json("add_space_file", { space_id: space.id, kind: "info", path: WORKSHEET })).file;
+	await agent.call("update_space_deadline", { space_id: space.id, deadline_id: deadlineNamed(HOMEWORK_PRINTED), assignment_file_id: worksheet.id });
 	const homeworkOpen = await homeworkLesson(HOMEWORK_OPEN);
+	const homeworkPrinted = await homeworkLesson(HOMEWORK_PRINTED);
 	const homeworkFirst = await homeworkLesson(HOMEWORK_FIRST);
 	const homeworkMany = await homeworkLesson(HOMEWORK_MANY);
 	const written = (await agent.json("start_lesson", { topic: WRITTEN_TOPIC, space_id: space.id })).lessonId;
@@ -373,7 +394,7 @@ export async function seed(dataDir, page, log) {
 	let helper = false;
 	const wait = () => agent.call("wait_for_work", { timeout_seconds: 3, ...(helper ? { helper: true } : {}) });
 	const turns = new Map();
-	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, studied, open, written, longProblem };
+	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, studied, open, written, longProblem };
 	const drain = async () => {
 		let reply = await wait();
 		for (let idle = 0, tries = 0; idle < 4; tries++) {
@@ -401,6 +422,7 @@ export async function seed(dataDir, page, log) {
 	// The learner says which part they start; the teacher marks it.
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkOpen, input: { type: "text", text: "I am starting part (b)." } }) });
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkMany, input: { type: "text", text: "They cross at (2, 7)." } }) });
+	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkPrinted, input: { type: "text", text: "I am starting part (b)." } }) });
 	// The learner answers each studied lesson's quiz right, and the teacher closes the lesson.
 	for (const chatId of studied) {
 		const { messages } = await page.json(`/api/chats/${chatId}`);
@@ -455,5 +477,5 @@ export async function seed(dataDir, page, log) {
 	const sheetless = (await agent.json("start_lesson", { topic: "Git and pull requests", space_id: goal.space.id })).lessonId;
 	ids.sheetless = sheetless;
 	await drain();
-	return { sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), pathSpace: goal.space.id };
+	return { sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
 }
