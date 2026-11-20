@@ -733,8 +733,8 @@ describe("the footer", () => {
 describe("the Chats key in the panel's head", () => {
 	const running = access({ teaching: true, terminals: [{ id: "t1", here: true }] });
 	const chats = [
-		{ id: "0f8fad5b-d9cb-469f-a165-70867728950e", agent: "claude", name: "Limits proof", at: Date.now(), open: true },
-		{ id: "7c9e6679-7425-40de-944b-e07fc1f90ae7", agent: "claude", name: "Slope", at: Date.now() - 3_600_000, open: false },
+		{ id: "0f8fad5b-d9cb-469f-a165-70867728950e", agent: "claude", name: "Limits proof", lesson: null, at: Date.now(), open: true },
+		{ id: "7c9e6679-7425-40de-944b-e07fc1f90ae7", agent: "claude", name: "Slope", lesson: null, at: Date.now() - 3_600_000, open: false },
 	];
 	const withChats = (list: unknown[]) => {
 		globalThis.fetch = (async (url: string) =>
@@ -859,7 +859,7 @@ describe("the starter keys", () => {
 	it("none once the chat was used, by the learner's own line or before (a chat continued)", async () => {
 		const shell = fakeShell([teacher()]);
 		let used = false;
-		globalThis.fetch = (async (url: string) => (url.startsWith("/api/graph/costs") ? new Response(null, { status: 404 }) : Response.json(url.startsWith("/api/teacher-chats") ? { chats: used ? [{ id: "c1", agent: "claude", name: "hi", at: Date.now(), open: true }] : [] } : FOLDER))) as unknown as typeof fetch;
+		globalThis.fetch = (async (url: string) => (url.startsWith("/api/graph/costs") ? new Response(null, { status: 404 }) : Response.json(url.startsWith("/api/teacher-chats") ? { chats: used ? [{ id: "c1", agent: "claude", name: "hi", lesson: null, at: Date.now(), open: true }] : [] } : FOLDER))) as unknown as typeof fetch;
 		try {
 			await mounted(running, async () => {
 				await click("status");

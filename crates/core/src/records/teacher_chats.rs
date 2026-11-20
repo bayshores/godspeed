@@ -1,6 +1,7 @@
 //! data/teacher-chats.json: the chats the teacher had in godspeed's terminal, so the learner can
 //! pick one to go back to. A chat is listed once something happened in it (a line typed to it, a
-//! lesson it taught); its name is the last lesson it taught, else the first line typed to it.
+//! lesson it taught); its name is the last lesson it taught, else the first line typed to it,
+//! and it keeps that lesson's id so the learner can go back to it.
 //! Pure: the store reads and writes the file.
 
 use gs_base::ids::is_uuid;
@@ -22,6 +23,8 @@ pub struct TeacherChat {
 	/// The folder it ran in: an agent keeps its chats per folder.
 	pub folder: String,
 	pub name: Option<String>,
+	/// The last lesson it taught.
+	pub lesson: Option<String>,
 	pub used: bool,
 	/// Last start or use, ms since the epoch.
 	pub at: i64,
@@ -29,7 +32,7 @@ pub struct TeacherChat {
 
 impl TeacherChat {
 	fn to_json(&self) -> Json {
-		json!({ "id": self.id.as_str(), "agent": self.agent.as_str(), "folder": self.folder.as_str(), "name": self.name.clone(), "used": self.used, "at": self.at })
+		json!({ "id": self.id.as_str(), "agent": self.agent.as_str(), "folder": self.folder.as_str(), "name": self.name.clone(), "lesson": self.lesson.clone(), "used": self.used, "at": self.at })
 	}
 
 	fn from_json(chat: &Json) -> Option<TeacherChat> {
@@ -40,6 +43,7 @@ impl TeacherChat {
 			agent: agent.to_owned(),
 			folder: chat["folder"].as_str()?.to_owned(),
 			name: chat["name"].as_str().map(str::to_owned),
+			lesson: chat["lesson"].as_str().map(str::to_owned),
 			used: chat["used"] == Json::Bool(true),
 			at: chat["at"].as_i64()?,
 		})
@@ -59,7 +63,7 @@ pub fn teacher_chats_json(chats: &[TeacherChat]) -> Json {
 pub fn started(chats: &mut Vec<TeacherChat>, id: &str, agent: &str, folder: &str, now: i64) {
 	let chat = match chats.iter().position(|c| c.id == id) {
 		Some(at) => TeacherChat { at: now, ..chats.remove(at) },
-		None => TeacherChat { id: id.to_owned(), agent: agent.to_owned(), folder: folder.to_owned(), name: None, used: false, at: now },
+		None => TeacherChat { id: id.to_owned(), agent: agent.to_owned(), folder: folder.to_owned(), name: None, lesson: None, used: false, at: now },
 	};
 	chats.insert(0, chat);
 	chats.truncate(KEPT);
@@ -84,12 +88,13 @@ pub fn typed(chats: &mut [TeacherChat], id: &str, line: &str, now: i64) {
 	}
 }
 
-/// The chat taught a lesson: used, and named after it.
-pub fn taught(chats: &mut [TeacherChat], id: &str, lesson: &str, now: i64) {
+/// The chat taught a lesson: used, named after its title and pointing at it.
+pub fn taught(chats: &mut [TeacherChat], id: &str, lesson_id: &str, title: &str, now: i64) {
 	if let Some(chat) = chats.iter_mut().find(|c| c.id == id) {
-		if !lesson.trim().is_empty() {
-			chat.name = Some(cut(lesson));
+		if !title.trim().is_empty() {
+			chat.name = Some(cut(title));
 		}
+		chat.lesson = Some(lesson_id.to_owned());
 		chat.used = true;
 		chat.at = now;
 	}
@@ -118,9 +123,12 @@ mod tests {
 		typed(&mut chats, A, "  why is   the sky\nblue?", 2);
 		typed(&mut chats, A, "and the sea?", 3);
 		assert_eq!(shown(&chats, "/f")[0].name.as_deref(), Some("why is the sky blue?"));
-		taught(&mut chats, A, "Limits proof", 4);
+		taught(&mut chats, A, "chat_limits", "Limits proof", 4);
 		typed(&mut chats, A, "thanks", 5);
 		assert_eq!(shown(&chats, "/f")[0].name.as_deref(), Some("Limits proof"));
+		assert_eq!(shown(&chats, "/f")[0].lesson.as_deref(), Some("chat_limits"), "a line after it keeps the lesson");
+		let back = parse_teacher_chats(&teacher_chats_json(&chats));
+		assert_eq!(back[0].lesson.as_deref(), Some("chat_limits"));
 		assert!(shown(&chats, "/other").is_empty(), "another folder's chats can't be opened here");
 	}
 

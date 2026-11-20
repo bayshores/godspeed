@@ -11,9 +11,10 @@ const CHAT_ROW = cn(ACTIVITY_ROW, "flex w-full items-baseline gap-3 py-2 text-le
 /**
  * The teacher's chats: New chat (with the agent menu beside it), then the
  * newest chats to go back to, each with how long ago it was used. While
- * the teacher runs (`running`), the chat it is in says "open now" and is
- * no key. An agent's name shows only when both agents have chats. Older
- * ones: `/resume` inside the agent.
+ * the teacher runs, the chat it is in says "open now", and pressing it goes
+ * back to that chat (`onOpen`) instead of starting it again. An agent's
+ * name shows only when both agents have chats. Older ones: `/resume`
+ * inside the agent.
  */
 export function TeacherChats({
 	chats,
@@ -22,7 +23,7 @@ export function TeacherChats({
 	onNew,
 	onResume,
 	busy,
-	running = false,
+	onOpen,
 }: {
 	chats: readonly TeacherChat[];
 	choice: LaunchChoice;
@@ -30,7 +31,8 @@ export function TeacherChats({
 	onNew: () => void;
 	onResume: (chat: TeacherChat) => void;
 	busy: boolean;
-	running?: boolean;
+	/** The teacher runs: a press on the chat it is in. */
+	onOpen?: (chat: TeacherChat) => void;
 }) {
 	const now = useNow(true, 60_000);
 	const mixed = new Set(chats.map((c) => c.agent)).size > 1;
@@ -50,11 +52,11 @@ export function TeacherChats({
 							{mixed && <span className="text-ink-2">, {AGENT_LABEL[chat.agent]}</span>}
 						</span>
 					);
-					return running && chat.open ? (
-						<div key={chat.id} data-testid="teacher-chat-open" aria-current="true" className={CHAT_ROW}>
+					return onOpen && chat.open ? (
+						<button key={chat.id} type="button" data-testid="teacher-chat-open" aria-current="true" onClick={() => onOpen(chat)} className={cn(CHAT_ROW, "lh-press hover:bg-(--lh-key-hover)")}>
 							{name}
 							<span className="shrink-0 text-ink-2">open now</span>
-						</div>
+						</button>
 					) : (
 						<button key={chat.id} type="button" data-testid="teacher-chat" disabled={busy} onClick={() => onResume(chat)} className={cn(CHAT_ROW, "lh-press hover:bg-(--lh-key-hover) disabled:cursor-default")}>
 							{name}

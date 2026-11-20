@@ -332,8 +332,8 @@ describe("Follow in the panel's head", () => {
 describe("the teacher's earlier chats", () => {
 	const now = Date.now();
 	const chats = [
-		{ id: "0f8fad5b-d9cb-469f-a165-70867728950e", agent: "claude" as const, name: "Limits proof", at: now - 2 * 3_600_000, open: true },
-		{ id: "7c9e6679-7425-40de-944b-e07fc1f90ae7", agent: "claude" as const, name: null, at: now - 5 * 60_000, open: false },
+		{ id: "0f8fad5b-d9cb-469f-a165-70867728950e", agent: "claude" as const, name: "Limits proof", lesson: "chat_limits", at: now - 2 * 3_600_000, open: true },
+		{ id: "7c9e6679-7425-40de-944b-e07fc1f90ae7", agent: "claude" as const, name: null, lesson: null, at: now - 5 * 60_000, open: false },
 	];
 	const list = (over: Partial<React.ComponentProps<typeof TeacherChats>> = {}) => (
 		<TeacherChats chats={chats} choice="claude" onChoose={() => {}} onNew={() => {}} onResume={() => {}} busy={false} {...over} />
@@ -344,10 +344,14 @@ describe("the teacher's earlier chats", () => {
 		const rows = [...el.querySelectorAll("[data-testid='teacher-chat']")].map((r) => r.textContent);
 		assert.deepEqual(rows, ["Limits proof2 hours", "A chat5 min"]);
 	});
-	it("while the teacher runs, the chat it is in says so and is no key", () => {
-		const el = mount(list({ running: true }));
-		assert.equal(el.querySelector("[data-testid='teacher-chat-open']")?.textContent, "Limits proofopen now");
-		assert.equal(el.querySelector("[data-testid='teacher-chat-open']")?.tagName, "DIV");
+	it("while the teacher runs, the chat it is in says so, and pressing it goes back to it instead of starting it again", () => {
+		const opened: string[] = [];
+		const resumed: string[] = [];
+		const el = mount(list({ onOpen: (c) => opened.push(c.id), onResume: (c) => resumed.push(c.id) }));
+		const open = el.querySelector("[data-testid='teacher-chat-open']") as HTMLElement;
+		assert.equal(open.textContent, "Limits proofopen now");
+		act(() => open.click());
+		assert.deepEqual([opened, resumed], [[chats[0]!.id], []]);
 		assert.deepEqual([...el.querySelectorAll("[data-testid='teacher-chat']")].map((r) => r.textContent), ["A chat5 min"]);
 	});
 	it("names the agent when both have chats", () => {

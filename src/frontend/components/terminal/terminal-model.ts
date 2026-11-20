@@ -40,6 +40,8 @@ export interface TeacherChat {
 	agent: FolderAgent;
 	/** The last lesson it taught, else the first line typed to it. */
 	name: string | null;
+	/** The last lesson it taught, while that lesson is kept. */
+	lesson: string | null;
 	/** Last used, ms since the epoch. */
 	at: number;
 	/** The teacher's terminal runs it now. */

@@ -37,7 +37,7 @@ pub fn typed(app: &App, terminal: &str, line: &str) {
 pub fn taught(app: &App, terminal: Option<&str>, conversation: &str) {
 	let Some(id) = terminal.and_then(|t| app.bridge.terminal_chat(t)) else { return };
 	let Some(title) = app.stores.chats.get_chat(conversation).and_then(|chat| chat["title"].as_str().map(str::to_owned)) else { return };
-	app.stores.teacher_chats.update(|chats| teacher_chats::taught(chats, &id, &title, clock::now_ms()));
+	app.stores.teacher_chats.update(|chats| teacher_chats::taught(chats, &id, conversation, &title, clock::now_ms()));
 	changed(app);
 }
 
@@ -45,12 +45,12 @@ fn changed(app: &App) {
 	app.events.emit(EventKind::TeacherChatsChanged, json!({}));
 }
 
-/// The chats the terminal offers: `[{id, agent, name, at, open}]`, newest first. `open`: the
-/// teacher's terminal runs it now.
+/// The chats the terminal offers: `[{id, agent, name, lesson, at, open}]`, newest first. `open`:
+/// the teacher's terminal runs it now. `lesson`: the last lesson it taught, while that lesson is kept.
 pub fn shown(app: &App) -> Json {
 	let chats = teacher_chats::shown(&app.stores.teacher_chats.read(), &agent_folder(app));
 	let open = app.bridge.teacher_chat();
-	Json::Arr(chats.iter().map(|c| json!({ "id": c.id.as_str(), "agent": c.agent.as_str(), "name": c.name.clone(), "at": c.at, "open": open.as_deref() == Some(c.id.as_str()) })).collect())
+	Json::Arr(chats.iter().map(|c| json!({ "id": c.id.as_str(), "agent": c.agent.as_str(), "name": c.name.clone(), "lesson": c.lesson.clone().filter(|l| app.stores.chats.get_chat(l).is_some()), "at": c.at, "open": open.as_deref() == Some(c.id.as_str()) })).collect())
 }
 
 /// The agent said the chat is gone: it leaves the list.
