@@ -130,7 +130,7 @@ export function SheetDock({
 			) : !cards ? null : shown ? (
 				<DockedSheet key={shown} spaceId={spaceId} deadlineId={shown} />
 			) : (
-				<div data-testid="sheet-dock-none" className="flex min-h-0 flex-1 flex-col items-start gap-3 bg-background px-4 py-5 text-[15px] text-ink-2">
+				<div data-testid="sheet-dock-none" className="flex min-h-0 flex-1 flex-col items-start gap-3 px-4 pt-2 pb-5 text-[15px] text-ink-2">
 					<p>No cheat sheet yet.</p>
 					{target ? (
 						<Link to={studioPath(target)} data-testid="sheet-dock-make" className="lh-btn lh-btn-main text-[15px]">

@@ -244,6 +244,8 @@ function answerFor(work, ids, lessonTurn) {
 	const homework = homeworkAnswer(work, ids, lessonTurn);
 	if (homework) return homework;
 	if (work.lessonId === ids.written) return WRITTEN_REPLY;
+	// The lesson is made last, so until then no id is here to match work that has no lesson.
+	if (ids.sheetless && work.lessonId === ids.sheetless) return { text: "A pull request asks to merge one branch into another." };
 	if (ids.studied.includes(work.lessonId)) return shortLessonAnswer(lessonTurn, true);
 	if (ids.open.includes(work.lessonId)) return shortLessonAnswer(lessonTurn, false);
 	if (work.lessonId === ids.longProblem) {
@@ -449,5 +451,9 @@ export async function seed(dataDir, page, log) {
 	const covers = (topic) => `Enough ${topic} to get a junior job by spring, with typing practice daily.`;
 	const steps = ["Git and pull requests", "HTTP and APIs", "SQL querying", "Typing in Python", "Caching layers", "Deploying apps", "Logging and paging", "Security group policy"];
 	const goal = await agent.json("create_space", { name: "Backend jobs", icon: "code", path: { goal: "backend developer jobs", topics: steps.map((name) => ({ name, covers: covers(name) })) } });
-	return { space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), pathSpace: goal.space.id };
+	// A lesson in the space with no deadline: its cheat sheet column has no sheet to show.
+	const sheetless = (await agent.json("start_lesson", { topic: "Git and pull requests", space_id: goal.space.id })).lessonId;
+	ids.sheetless = sheetless;
+	await drain();
+	return { sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), pathSpace: goal.space.id };
 }

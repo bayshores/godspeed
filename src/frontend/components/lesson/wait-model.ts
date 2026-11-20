@@ -25,11 +25,18 @@ const textOf = (m: LhViewMessage) =>
 		.map((p) => p.text ?? "")
 		.join("\n");
 
+/** What ends a title the server cut short. */
+export const TITLE_CUT = "…";
+
 /** The index of the learner's first message when its words only repeat the lesson's title (a
- *  new lesson sends its title as its first message), else -1. */
+ *  new lesson sends its title as its first message, and a long one is saved cut), else -1. */
 export function titleEcho(messages: readonly LhViewMessage[], title: string): number {
 	const first = messages.findIndex((m) => m.role === "user" && m.parts.some((p) => p.type === "text"));
-	return first !== -1 && flat(title) !== "" && flat(textOf(messages[first]!)) === flat(title) ? first : -1;
+	const name = flat(title);
+	if (first === -1 || name === "") return -1;
+	const said = flat(textOf(messages[first]!));
+	const cut = name.endsWith(TITLE_CUT) && said.startsWith(name.slice(0, -TITLE_CUT.length));
+	return said === name || cut ? first : -1;
 }
 
 /** The space's files, from its card: the lesson's first message. */

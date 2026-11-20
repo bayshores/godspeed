@@ -282,7 +282,9 @@ export function Chat({
 	const freshProblems = useMemo(() => (kind === "homework" ? homeworkProblems(homework?.problems ?? [], messages) : null), [kind, homework, messages]);
 	const problems = useStableValue(freshProblems);
 	const startLabel = problems && homeworkStartLabel(problems.problems);
-	const teacherSpoke = useMemo(() => nativeMessages.some((m) => (m as { role?: string }).role === "assistant"), [nativeMessages]);
+	const unwritten = useMemo(() => nothingWritten(messages), [messages]);
+	// A reply saved with nothing in it (stopped before it began) is not the teacher speaking.
+	const teacherSpoke = useMemo(() => !unwritten && nativeMessages.some((m) => (m as { role?: string }).role === "assistant"), [unwritten, nativeMessages]);
 	const posedAny = useMemo(() => problemPosed(nativeMessages), [nativeMessages]);
 
 	// A pick from the homework's problem list. Why none can open yet: the
@@ -470,7 +472,7 @@ export function Chat({
 	// With nothing to answer, "Your turn" says what is next and holds the one key that goes on.
 	const { atStop } = lessonStop;
 	const goLabel = goAheadLabel({ kind, homework: problems !== null, startLabel: startLabel ?? null, teacherSpoke, posedAny });
-	const next = turnNext({ stop: atStop, homework: problems !== null, goLabel, busy, error: error !== null, nothingWritten: nothingWritten(messages) });
+	const next = turnNext({ stop: atStop, homework: problems !== null, goLabel, busy, error: error !== null, nothingWritten: unwritten });
 	const answered = useMemo(() => lastAnswered(nativeMessages, messages), [nativeMessages, messages]);
 	const onNext = (action: NextAction) => {
 		if (action === "keep-going") {
@@ -527,6 +529,7 @@ export function Chat({
 													phases={phases}
 													status={status}
 													busy={busy}
+													stoppedEmpty={unwritten && !busy && error === null}
 													waitingForAgent={waitingForAgent}
 													onStop={atStop ? null : abortInFlightTurn}
 													queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
