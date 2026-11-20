@@ -1,6 +1,6 @@
 /**
- * Settings → General: the teacher's name, sounds, deadline reminders and
- * updates.
+ * Settings → General: the teacher's name, sounds, deadline reminders, the Mac menu bar
+ * countdown and updates.
  */
 
 import { DEFAULT_TEACHER_NAME, resolveSettings, type UserSettings } from "@/shared/core";
@@ -52,6 +52,15 @@ export function GeneralSection({
 							onChange={(on) => onGeneralChange({ deadlineReminders: on })}
 						/>
 					</SettingsRow>
+					{window.lh.platform === "darwin" && (
+						<SettingsRow label="Menu bar countdown" testid="menu-bar-countdown-row">
+							<Toggle
+								checked={effective.general.menuBarCountdown}
+								label="Menu bar countdown"
+								onChange={(on) => onGeneralChange({ menuBarCountdown: on })}
+							/>
+						</SettingsRow>
+					)}
 				</SettingsGroup>
 			)}
 			<SettingsGroup label="Updates" testid="group-updates">

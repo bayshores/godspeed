@@ -86,6 +86,9 @@ fn parse_general(body: &Json) -> Parsed {
 	if let Some(v) = boolean(raw, "deadlineReminders")? {
 		out.insert("deadlineReminders", v);
 	}
+	if let Some(v) = boolean(raw, "menuBarCountdown")? {
+		out.insert("menuBarCountdown", v);
+	}
 	Ok(Json::Obj(out))
 }
 
@@ -197,6 +200,8 @@ mod tests {
 		assert_eq!(run("general", r#"{"onboarded":null}"#).unwrap_err(), "onboarded must be a boolean");
 		assert_eq!(run("general", r#"{"deadlineReminders":false,"sounds":true}"#).unwrap(), r#"{"sounds":true,"deadlineReminders":false}"#);
 		assert_eq!(run("general", r#"{"deadlineReminders":"off"}"#).unwrap_err(), "deadlineReminders must be a boolean");
+		assert_eq!(run("general", r#"{"menuBarCountdown":false}"#).unwrap(), r#"{"menuBarCountdown":false}"#);
+		assert_eq!(run("general", r#"{"menuBarCountdown":"off"}"#).unwrap_err(), "menuBarCountdown must be a boolean");
 	}
 
 	#[test]

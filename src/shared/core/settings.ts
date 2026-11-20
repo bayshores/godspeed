@@ -42,6 +42,8 @@ export interface GeneralSettings {
 	sounds?: boolean;
 	/** One system notification a day for a deadline 3 days away or less (default ON). */
 	deadlineReminders?: boolean;
+	/** The Mac menu bar item that counts down to the next deadline (default ON; the Mac app only). */
+	menuBarCountdown?: boolean;
 }
 
 /** The teacher's name when none is set. */
@@ -121,7 +123,7 @@ export interface FactorySettings {
 
 export const FACTORY_SETTINGS: FactorySettings = {
 	version: CURRENT_SETTINGS_VERSION,
-	general: { autoUpdate: true, activeSpace: "none", teacherName: DEFAULT_TEACHER_NAME, startupSound: true, sounds: true, deadlineReminders: true },
+	general: { autoUpdate: true, activeSpace: "none", teacherName: DEFAULT_TEACHER_NAME, startupSound: true, sounds: true, deadlineReminders: true, menuBarCountdown: true },
 	appearance: {
 		background: null, // Paper
 		fontFamily: null, // Literata

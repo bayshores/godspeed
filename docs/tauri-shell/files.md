@@ -16,11 +16,12 @@
 | `first_run.rs` | One-time data backup, cleanup of Electron leftovers. |
 | `quit.rs` | The one exit routine: stop the agents' terminals, then the server, clean up, install a downloaded update. |
 | `server.rs` | Port choice, secret, spawn, ready wait, login tokens, restarts, stop, `mcp-endpoint.json`. |
-| `rpc.rs` | Reads the server's stdout lines, queues demo work, passes notifications, line clears, nudges and page opens on, and writes replies to its stdin. |
+| `rpc.rs` | Reads the server's stdout lines, queues demo work, passes notifications, line clears, nudges, page opens and the menu bar countdown on, and writes replies to its stdin. |
 | `notify.rs` | System notifications the server asks for. |
 | `terminal_window.rs` | The terminal window: its place and size, its commands, the `terminal-window` push. |
 | `window.rs` | Window labels, the builder every window shares, main window, navigation rules, `open_link`, show fallback, title, downloads, pending `open-settings` push, window commands. |
-| `menu.rs` | Application menu. |
+| `menu.rs` | Application menu, and the handler for every menu click, the menu bar item's too. |
+| `menu_bar_countdown.rs` | Mac only: the menu bar item (the g logo, the time left to the nearest deadline, a menu of the coming ones), drawn from the server's `menu_bar_countdown` lines. |
 | `zoom.rs` | Zoom ladder, `zoom` push, zoom commands. |
 | `commands.rs` | Trust check `trusted()` and OS commands. Mac-only commands sit in its `appkit` module. |
 | `fonts.rs` | Installed font families for `list_fonts`. |

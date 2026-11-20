@@ -7,14 +7,15 @@ use std::sync::Arc;
 
 use gs_base::tasks::detach;
 use gs_base::{clock, num, time};
-use gs_core::contracts::space::deadline_due_at;
-use gs_core::spaces::today_note::{local_day, relative_day};
+use gs_core::contracts::space::is_upcoming;
+use gs_core::spaces::today_note::{due_sentence, local_day};
 use gs_core::study::homework::problems_done;
 use gs_core::study::progress::days_between;
 use gs_json::Json;
 use gs_shell_rpc::ShellLink;
 
 use crate::App;
+use crate::app::settings_record::general_switch_on;
 use crate::graph::progress::progress_for;
 use crate::spaces::list_open_deadlines;
 
@@ -36,11 +37,11 @@ struct Reminder {
 /// `ready_of` gives that deadline's readiness, 0 to 1, when it is known.
 fn reminder_text(deadlines: &[Json], now_ms: i64, ready_of: impl FnOnce(&Json) -> Option<f64>) -> Option<Reminder> {
 	let today = local_day(now_ms);
-	let (deadline, days) = deadlines.iter().filter(|d| !d["done"].truthy() && due_at(d).is_some_and(|due| due > now_ms)).find_map(|d| {
+	let (deadline, days) = deadlines.iter().filter(|d| is_upcoming(d, now_ms)).find_map(|d| {
 		let days = days_between(&today, d["date"].as_str()?);
 		(days <= MOST_DAYS_AWAY).then_some((d, days))
 	})?;
-	let title = format!("{} is {}", deadline["name"].str_or_empty(), relative_day(days));
+	let title = due_sentence(deadline["name"].str_or_empty(), days);
 	let space = deadline["spaceName"].str_or_empty();
 	// As the app counts it: problems first, readiness for a deadline without problems.
 	let body = if let Some(problems) = problems_done(&deadline["problems"]) {
@@ -51,12 +52,6 @@ fn reminder_text(deadlines: &[Json], now_ms: i64, ready_of: impl FnOnce(&Json) -
 		format!("{space}.")
 	};
 	Some(Reminder { title, body })
-}
-
-/// The local moment a deadline is due: its time, or 23:59.
-pub(crate) fn due_at(deadline: &Json) -> Option<i64> {
-	let (date, at) = deadline_due_at(deadline);
-	time::parse_date(&format!("{date}T{at}"))
 }
 
 /// Whether the day's reminder is due at `now_ms`: none went out today (`last_day` is the day of
@@ -88,7 +83,7 @@ pub fn start_deadline_reminders(app: &Arc<App>) {
 /// The day counts as reminded only once the shell handed the notification to the system; while
 /// the window has the focus it does not, and a later check tries again.
 async fn remind(app: &App, shell: &ShellLink, now_ms: i64, at_start: bool) {
-	if !reminders_on(app) || !is_due(now_ms, app.stores.reminders.last_reminder_day().as_deref(), at_start) {
+	if !general_switch_on(app, "deadlineReminders") || !is_due(now_ms, app.stores.reminders.last_reminder_day().as_deref(), at_start) {
 		return;
 	}
 	let Some(reminder) = reminder_text(&list_open_deadlines(app), now_ms, |d| ready_of(app, d)) else { return };
@@ -103,12 +98,6 @@ async fn remind(app: &App, shell: &ShellLink, now_ms: i64, at_start: bool) {
 	}
 }
 
-/// Only an explicit `general.deadlineReminders: false` turns them off.
-fn reminders_on(app: &App) -> bool {
-	let record = app.stores.settings.read_settings().ok().flatten();
-	record.is_none_or(|r| r["general"]["deadlineReminders"].as_bool() != Some(false))
-}
-
 /// How ready the learner is for a deadline, as the space's Progress shows it.
 fn ready_of(app: &App, deadline: &Json) -> Option<f64> {
 	let progress = progress_for(app, deadline["spaceId"].as_str()?, None).ok()??;
@@ -117,15 +106,12 @@ fn ready_of(app: &App, deadline: &Json) -> Option<f64> {
 
 #[cfg(test)]
 mod tests {
-	use std::io::Write;
-
-	use gs_base::config::Paths;
 	use gs_json::json;
 	use gs_shell_rpc::{ToServer, ToShell, read_lines};
 	use tokio::sync::mpsc;
 
 	use super::*;
-	use crate::app::test_support::scratch_dir;
+	use crate::app::test_support::{scratch_dir, test_app_with_shell};
 	use crate::spaces::add_space_deadline;
 
 	const DAY_MS: i64 = 24 * 60 * 60 * 1000;
@@ -199,28 +185,6 @@ mod tests {
 		assert!(is_due(nine() + 10 * 60 * 60 * 1000, Some(&yesterday), false), "woke at 19:00 after sleeping through 9:00");
 	}
 
-	/// Hands each line the server writes to the shell to the test.
-	struct Lines(mpsc::UnboundedSender<Vec<u8>>);
-
-	impl Write for Lines {
-		fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-			let _ = self.0.send(buf.to_vec());
-			Ok(buf.len())
-		}
-		fn flush(&mut self) -> std::io::Result<()> {
-			Ok(())
-		}
-	}
-
-	fn app_with_shell(root: &std::path::Path) -> (Arc<App>, mpsc::UnboundedReceiver<Vec<u8>>) {
-		let (tx, rx) = mpsc::unbounded_channel();
-		for name in ["data", "home", "tmp", "res"] {
-			std::fs::create_dir_all(root.join(name)).unwrap();
-		}
-		let app = App::new(Paths::new(root.join("data"), root.join("home"), root.join("tmp"), root.join("res")), Some(ShellLink::new(Lines(tx))));
-		(app, rx)
-	}
-
 	fn add_quiz(app: &App) {
 		let space = app.stores.spaces.create_space(&json!({ "name": "Algebra" })).unwrap();
 		add_space_deadline(app, space["id"].as_str().unwrap(), &json!({ "kind": "quiz", "name": "Quiz 2", "date": day_after(2) })).unwrap();
@@ -250,7 +214,7 @@ mod tests {
 	#[tokio::test]
 	async fn one_reminder_a_day_however_often_it_checks() {
 		let root = scratch_dir("reminder-once");
-		let (app, mut lines) = app_with_shell(&root);
+		let (app, mut lines) = test_app_with_shell(&root);
 		add_quiz(&app);
 		assert_eq!(check(&app, &mut lines, nine(), true).await, Some(("Quiz 2 is in 2 days".into(), "Algebra.".into())));
 		assert_eq!(app.stores.reminders.last_reminder_day(), Some(day_after(0)));
@@ -261,7 +225,7 @@ mod tests {
 	#[tokio::test]
 	async fn a_notification_not_shown_is_tried_again_at_the_next_check() {
 		let root = scratch_dir("reminder-focused");
-		let (app, mut lines) = app_with_shell(&root);
+		let (app, mut lines) = test_app_with_shell(&root);
 		add_quiz(&app);
 		assert!(check(&app, &mut lines, nine(), false).await.is_some());
 		assert_eq!(app.stores.reminders.last_reminder_day(), None);
@@ -272,7 +236,7 @@ mod tests {
 	#[tokio::test]
 	async fn the_switch_off_sends_and_saves_nothing() {
 		let root = scratch_dir("reminder-off");
-		let (app, mut lines) = app_with_shell(&root);
+		let (app, mut lines) = test_app_with_shell(&root);
 		add_quiz(&app);
 		gs_base::fsx::write_text_atomic(&app.paths.settings_file, r#"{"version":3,"general":{"deadlineReminders":false}}"#).unwrap();
 		assert_eq!(check(&app, &mut lines, nine(), true).await, None);

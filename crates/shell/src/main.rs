@@ -15,6 +15,8 @@ mod log;
 #[cfg(target_os = "macos")]
 mod mac;
 mod menu;
+#[cfg(target_os = "macos")]
+mod menu_bar_countdown;
 mod notify;
 mod old_app;
 mod open;

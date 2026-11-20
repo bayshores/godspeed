@@ -189,6 +189,23 @@ describe("GeneralSection (SSR)", () => {
 			delete global.window;
 		}
 	});
+
+	it("the menu bar countdown is on by default and off when the record says so, only in the Mac app", () => {
+		const global = globalThis as { window?: unknown };
+		try {
+			assert.ok(!render({ version: 1 }).includes("menu-bar-countdown-row"), "a browser has no menu bar");
+			global.window = { lh: { platform: "win32" } };
+			assert.ok(!render({ version: 1 }).includes("menu-bar-countdown-row"), "only the Mac has this menu bar item");
+			global.window = { lh: { platform: "darwin" } };
+			const on = render({ version: 1 });
+			assert.ok(on.includes("menu-bar-countdown-row"));
+			assert.ok(tagOf(on, "toggle-menu-bar-countdown").includes('aria-checked="true"'));
+			const off = render({ version: 1, general: { menuBarCountdown: false } });
+			assert.ok(tagOf(off, "toggle-menu-bar-countdown").includes('aria-checked="false"'));
+		} finally {
+			delete global.window;
+		}
+	});
 });
 
 describe("AppearanceSection (SSR)", () => {

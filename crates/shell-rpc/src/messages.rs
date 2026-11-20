@@ -28,6 +28,18 @@ pub enum ToShell {
 	/// The agent opened a page: bring the window forward, and send a window made again (or still
 	/// loading) to `page`, an app path with its `?space=`.
 	ShowWindow { page: String },
+	/// The menu bar item (Mac): the time left to the nearest deadline beside the logo, or the logo
+	/// alone, and a menu row for each coming deadline.
+	MenuBarCountdown { title: Option<String>, rows: Vec<CountdownRow> },
+	/// The setting turned the menu bar item off: remove it.
+	MenuBarCountdownOff,
+}
+
+/// One deadline in the menu bar item's menu, and the app page it opens.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CountdownRow {
+	pub text: String,
+	pub page: String,
 }
 
 /// Shell to server.
@@ -113,6 +125,13 @@ mod tests {
 		round_trip(ToShell::AgentFolder { id: 6, folder: Some("/Users/sam/godspeed".into()) }, r#"{"t":"agent_folder","id":6,"folder":"/Users/sam/godspeed"}"#);
 		round_trip(ToShell::AgentFolder { id: 7, folder: None }, r#"{"t":"agent_folder","id":7,"folder":null}"#);
 		round_trip(ToShell::ShowWindow { page: "/space/files?space=spc_1".into() }, r#"{"t":"show_window","page":"/space/files?space=spc_1"}"#);
+		let row = CountdownRow { text: "Quiz 2 is tomorrow".into(), page: "/space/deadline/dl_1?space=spc_1".into() };
+		round_trip(
+			ToShell::MenuBarCountdown { title: Some("1d".into()), rows: vec![row] },
+			r#"{"t":"menu_bar_countdown","title":"1d","rows":[{"text":"Quiz 2 is tomorrow","page":"/space/deadline/dl_1?space=spc_1"}]}"#,
+		);
+		round_trip(ToShell::MenuBarCountdown { title: None, rows: vec![] }, r#"{"t":"menu_bar_countdown","title":null,"rows":[]}"#);
+		round_trip(ToShell::MenuBarCountdownOff, r#"{"t":"menu_bar_countdown_off"}"#);
 	}
 
 	#[test]

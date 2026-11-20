@@ -21,6 +21,8 @@ How the desktop app is built, checked in CI and released, and how Electron insta
 
 The Mac icon is the Icon Composer file `crates/shell/icons/icon.icon`. `node scripts/compile-icon.mjs` compiles it into `.stage/Assets.car` with `actool` from Xcode 26 or newer (needs macOS 26). `tauri.bundle.macos.conf.json` ships that file. The bundler can compile the icon itself, but its `actool` call crashes on GitHub's macOS 26 runners. `icon.icns` is the fallback for older macOS. Windows and Linux icons are committed; `npx tauri icon` regenerates them.
 
+The menu bar countdown's icon, `crates/shell/icons/menu-bar-countdown.png`, is the g from `icon.icon/Assets/g.svg` drawn at 3 pixels per cell with one empty cell around it, black on clear (macOS tints it as a template image). Remake it whenever the g changes.
+
 ### Not yet checked by a person on Windows and Linux
 
 CI builds and self-tests both systems. Nobody has tried these by hand:

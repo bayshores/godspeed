@@ -20,6 +20,8 @@ One JSON object per line, UTF-8, ending `\n`. Field `t` names the message. The s
 | server to shell | `{"t":"clear_line","terminal":"<32 hex>","line":"…"}` | The learner's line went to a lesson or cheat sheet page. In Claude Code's teacher terminal, the shell clears that line from the agent's input box within 3 s. |
 | server to shell | `{"t":"nudge","terminal":"<32 hex>","line":"…"}` | The quiet teacher has work waiting. The shell types the line into the teacher's input and sends it (see [While it runs](terminals.md#while-it-runs)). |
 | server to shell | `{"t":"show_window","page":"<app path>?space=<id or none>"}` | The agent opened a page. The shell brings the window forward and sends a window that has not loaded to that page. |
+| server to shell | `{"t":"menu_bar_countdown","title":"3d"\|null,"rows":[{"text":"Quiz 2 is tomorrow","page":"/space/deadline/<id>?space=<id>"},…]}` | Mac only. Show the menu bar item, made the first time: the title beside the logo (none shows the logo alone) and a menu row for each deadline. Sent at the start and each time the words change. |
+| server to shell | `{"t":"menu_bar_countdown_off"}` | Mac only. The setting is off: remove the menu bar item. |
 
 - Unknown lines are logged to stderr and skipped on both sides.
 - stdin EOF stops the server, on every OS.

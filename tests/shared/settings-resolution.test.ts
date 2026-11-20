@@ -12,7 +12,7 @@ import type { UserSettings } from "../../src/shared/core/settings.ts";
 describe("resolveSettings", () => {
 	it("null record (first boot): every knob lands on its factory default", () => {
 		const eff = resolveSettings(null);
-		assert.deepEqual(eff.general, { autoUpdate: true, activeSpace: "none", teacherName: "Teacher", startupSound: true, sounds: true, deadlineReminders: true });
+		assert.deepEqual(eff.general, { autoUpdate: true, activeSpace: "none", teacherName: "Teacher", startupSound: true, sounds: true, deadlineReminders: true, menuBarCountdown: true });
 		assert.deepEqual(eff.agent.tools, {});
 		assert.deepEqual(eff.agent.rules, {});
 		assert.equal(eff.appearance.background, null);
@@ -25,7 +25,7 @@ describe("resolveSettings", () => {
 	it("explicit record values win over every factory default", () => {
 		const record: UserSettings = {
 			version: 1,
-			general: { autoUpdate: false, startupSound: false, sounds: false, deadlineReminders: false },
+			general: { autoUpdate: false, startupSound: false, sounds: false, deadlineReminders: false, menuBarCountdown: false },
 			agent: {
 				tools: { research: false },
 				rules: { voice: ["No jokes"] },
@@ -38,6 +38,7 @@ describe("resolveSettings", () => {
 		assert.equal(eff.general.startupSound, false);
 		assert.equal(eff.general.sounds, false);
 		assert.equal(eff.general.deadlineReminders, false);
+		assert.equal(eff.general.menuBarCountdown, false);
 		assert.deepEqual(eff.agent.tools, { research: false });
 		assert.deepEqual(eff.agent.rules, { voice: ["No jokes"] });
 		assert.equal(eff.appearance.background, "#123456");

@@ -4,6 +4,8 @@
 use gs_core::records::settings::CURRENT_SETTINGS_VERSION;
 use gs_json::{Json, json};
 
+use crate::App;
+
 /// The saved record, or the bare one a first write starts from.
 pub fn record_or_new(record: Option<Json>) -> Json {
 	record.unwrap_or_else(|| json!({ "version": CURRENT_SETTINGS_VERSION }))
@@ -17,6 +19,12 @@ pub fn with_field(mut record: Json, section: &str, key: &str, value: impl Into<J
 		obj.insert(section, fields);
 	}
 	record
+}
+
+/// A `general` switch that is on unless the saved record says exactly `false`.
+pub fn general_switch_on(app: &App, key: &str) -> bool {
+	let record = app.stores.settings.read_settings().ok().flatten();
+	record.is_none_or(|r| r["general"][key].as_bool() != Some(false))
 }
 
 #[cfg(test)]

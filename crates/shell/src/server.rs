@@ -298,6 +298,9 @@ impl Server {
 			return;
 		}
 		self.stop();
+		// Its countdown would no longer change.
+		#[cfg(target_os = "macos")]
+		crate::menu_bar_countdown::remove(app);
 		ask_after_stop(app.clone());
 	}
 

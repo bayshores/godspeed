@@ -59,6 +59,19 @@ The bar's order on the Mac is godspeed, File, Edit, View, Go, Window, Help. Wind
 
 Settings…, Check for Updates… and every File and Go item except Open godspeed Folder reopen the window if gone, unminimize and focus it. Check for Updates… then pushes `open-settings` with `general` and starts a manual check. Settings… and a File or Go item push `menu` with the item's id: a keyboard action id (`open-settings`, `new-session`, `sessions-search`, `jump-graph`), `go:<path>`, `back` or `forward`. The page runs it (`keyboard-shortcuts.tsx`). Menu keys never reach the page, so each runs once.
 
+### Menu bar countdown
+
+On the Mac, `menu_bar_countdown.rs` draws a menu bar item from the server's `menu_bar_countdown` lines ([The line protocol](the-line-protocol.md#the-line-protocol)). The server decides every word ([architecture/06.1](../architecture/06.1-spaces.md#menu-bar-countdown)); the shell only draws them.
+
+| Part | What it is |
+|---|---|
+| Item | The g logo (`icons/menu-bar-countdown.png`, a template image so macOS tints it) and the title beside it, for example "3d". Made under the fixed id `menu-bar-countdown` on the first line, then only its title and menu change. `menu_bar_countdown_off` removes it, and so does a server that stopped for good (`Server::stopped`), so an old countdown never stays. |
+| Deadline rows | One item per row, id `page:go:<page>`, so `menu::handle` runs them like the Go menu's items. A single "&" in the text is written "&&", since the Mac drops a lone one. |
+| Open godspeed | Id `open-window`: `window::bring_forward` with no page. |
+| Quit godspeed | The app menu's `quit` id and label. |
+
+A left click shows the menu (the tray's default). Its clicks reach `menu::handle` through `RunEvent::MenuEvent` like the app menu's, so the item registers no menu handler of its own; one would run each click twice. Tauri's `tray-icon` feature is on for the Mac only, so Linux never builds libappindicator.
+
 Every item acts on the main window, except Close Window (Windows and Linux), which closes the window that has the focus. The Mac has no Close Window item, so ⌘W does nothing in either window.
 
 A push sent before the page has loaded waits in one slot (`window::push_when_loaded`) and goes out when it loads; a later one replaces it.

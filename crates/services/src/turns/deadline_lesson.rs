@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use gs_base::clock;
+use gs_core::contracts::space::due_at;
 use gs_core::study::homework::has_problems;
 use gs_core::study::topic_end::lesson_stop;
 
@@ -12,7 +13,6 @@ use super::homework::create_homework;
 use super::lesson_events::keep_going;
 use super::lessons::{CreateLessonInput, Created, LessonStart, NotFound, create_lesson};
 use crate::App;
-use crate::app::deadline_reminder::due_at;
 use crate::graph::progress::progress_for;
 
 #[derive(Debug, PartialEq)]

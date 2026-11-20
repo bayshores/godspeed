@@ -255,8 +255,9 @@ async function main() {
 
 	fs.rmSync(RUN, { recursive: true, force: true });
 	for (const dir of ["data", "home", "tmp"]) fs.mkdirSync(path.join(RUN, dir), { recursive: true });
-	// Silent from the first page load: the run's windows are hidden, but their sounds are heard.
-	fs.writeFileSync(path.join(RUN, "data", "settings.json"), JSON.stringify({ version: 3, general: { startupSound: false, sounds: false } }));
+	// Silent from the first page load: the run's windows are hidden, but their sounds are heard. The menu bar item stays
+	// off so a check never adds one to the owner's menu bar.
+	fs.writeFileSync(path.join(RUN, "data", "settings.json"), JSON.stringify({ version: 3, general: { startupSound: false, sounds: false, menuBarCountdown: false } }));
 	standInAgent(path.join(RUN, "home"));
 	const port = await freePort();
 	const pageSource = fs.readFileSync(path.join(import.meta.dirname, "layout-page.mjs"), "utf8").replace(/^export /gm, "");

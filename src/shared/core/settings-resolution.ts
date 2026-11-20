@@ -58,6 +58,7 @@ export function resolveSettings(record: UserSettings | null): EffectiveSettings 
 			startupSound: record?.general?.startupSound ?? FACTORY_SETTINGS.general.startupSound,
 			sounds: record?.general?.sounds ?? FACTORY_SETTINGS.general.sounds,
 			deadlineReminders: record?.general?.deadlineReminders ?? FACTORY_SETTINGS.general.deadlineReminders,
+			menuBarCountdown: record?.general?.menuBarCountdown ?? FACTORY_SETTINGS.general.menuBarCountdown,
 		},
 		agent: {
 			tools: agent.tools ?? {},

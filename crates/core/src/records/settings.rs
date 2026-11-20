@@ -41,7 +41,7 @@ const OBJECT_PROTOTYPE_KEYS: [&str; 12] = [
 pub fn factory_settings() -> Json {
 	json!({
 		"version": CURRENT_SETTINGS_VERSION,
-		"general": { "autoUpdate": true, "activeSpace": "none", "teacherName": DEFAULT_TEACHER_NAME, "startupSound": true, "sounds": true, "deadlineReminders": true },
+		"general": { "autoUpdate": true, "activeSpace": "none", "teacherName": DEFAULT_TEACHER_NAME, "startupSound": true, "sounds": true, "deadlineReminders": true, "menuBarCountdown": true },
 		"appearance": {
 			"background": null,
 			"fontFamily": null,
@@ -96,6 +96,9 @@ fn sanitize_general(raw: &Json) -> Json {
 	}
 	if let Some(reminders) = raw["deadlineReminders"].as_bool() {
 		out.insert("deadlineReminders", reminders);
+	}
+	if let Some(countdown) = raw["menuBarCountdown"].as_bool() {
+		out.insert("menuBarCountdown", countdown);
 	}
 	Json::Obj(out)
 }
@@ -220,6 +223,12 @@ mod tests {
 	fn deadline_reminders_keep_only_a_boolean() {
 		assert_eq!(clean(r#"{"general":{"deadlineReminders":false}}"#), r#"{"version":3,"general":{"deadlineReminders":false}}"#);
 		assert_eq!(clean(r#"{"general":{"deadlineReminders":"no"}}"#), r#"{"version":3,"general":{}}"#);
+	}
+
+	#[test]
+	fn menu_bar_countdown_keeps_only_a_boolean() {
+		assert_eq!(clean(r#"{"general":{"menuBarCountdown":false}}"#), r#"{"version":3,"general":{"menuBarCountdown":false}}"#);
+		assert_eq!(clean(r#"{"general":{"menuBarCountdown":"no"}}"#), r#"{"version":3,"general":{}}"#);
 	}
 
 	#[test]

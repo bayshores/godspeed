@@ -1,4 +1,4 @@
-//! Space files and folders, the agent folder, briefings and today's note.
+//! Space files and folders, the agent folder, briefings, today's note and the menu bar countdown.
 
 pub mod file_groups;
 pub mod file_state;
@@ -16,6 +16,7 @@ pub mod agent_folder;
 pub mod old_setup;
 pub mod agent_briefing;
 pub mod today_note;
+pub mod menu_bar_countdown;
 pub mod time_zone_names;
 pub mod deadline_requests;
 pub mod check_lines;

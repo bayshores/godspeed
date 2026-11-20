@@ -1,6 +1,6 @@
 //! App-level services: boot, onboarding, welcome, what's new, settings bodies, the agent folder,
 //! old setups, agent memory, agent rules, agent actions, today's note, reading pages, the web
-//! search key, deadline reminders and the pages the agent opens.
+//! search key, deadline reminders, the menu bar countdown and the pages the agent opens.
 
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -15,6 +15,7 @@ pub mod agent_memory;
 pub mod agent_rules;
 pub mod boot;
 pub mod deadline_reminder;
+pub mod menu_bar_countdown;
 pub(crate) mod disk;
 mod folder_files;
 pub mod old_setup;
@@ -55,4 +56,6 @@ pub struct MiscState {
 	pub(crate) quote_boxes: Mutex<VecDeque<(String, Json)>>,
 	/// Lines from the teacher's terminal waiting for the window to send them.
 	lines: terminal_lines::Lines,
+	/// Poked when a settings section is saved, so the menu bar countdown reads its switch again.
+	pub(crate) settings_saved: tokio::sync::Notify,
 }

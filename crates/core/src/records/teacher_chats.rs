@@ -69,7 +69,8 @@ pub fn started(chats: &mut Vec<TeacherChat>, id: &str, agent: &str, folder: &str
 	chats.truncate(KEPT);
 }
 
-fn cut(name: &str) -> String {
+/// `name` on one line, cut to at most `NAME_MAX` characters with "…".
+pub(crate) fn cut_name(name: &str) -> String {
 	let line = name.split_whitespace().collect::<Vec<_>>().join(" ");
 	if line.chars().count() <= NAME_MAX {
 		return line;
@@ -81,7 +82,7 @@ fn cut(name: &str) -> String {
 pub fn typed(chats: &mut [TeacherChat], id: &str, line: &str, now: i64) {
 	if let Some(chat) = chats.iter_mut().find(|c| c.id == id) {
 		if chat.name.is_none() && !line.trim().is_empty() {
-			chat.name = Some(cut(line));
+			chat.name = Some(cut_name(line));
 		}
 		chat.used = true;
 		chat.at = now;
@@ -92,7 +93,7 @@ pub fn typed(chats: &mut [TeacherChat], id: &str, line: &str, now: i64) {
 pub fn taught(chats: &mut [TeacherChat], id: &str, lesson_id: &str, title: &str, now: i64) {
 	if let Some(chat) = chats.iter_mut().find(|c| c.id == id) {
 		if !title.trim().is_empty() {
-			chat.name = Some(cut(title));
+			chat.name = Some(cut_name(title));
 		}
 		chat.lesson = Some(lesson_id.to_owned());
 		chat.used = true;

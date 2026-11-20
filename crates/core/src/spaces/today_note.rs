@@ -147,6 +147,11 @@ pub fn relative_day(days: i64) -> String {
 	}
 }
 
+/// "Quiz 2 is tomorrow": the reminder's title and the menu bar countdown's row.
+pub fn due_sentence(name: &str, days: i64) -> String {
+	format!("{name} is {}", relative_day(days))
+}
+
 /// An exam or interview happens at its time; the rest is due by it.
 fn is_sitting(deadline: &Json) -> bool {
 	matches!(deadline["kind"].as_str(), Some("exam" | "interview"))

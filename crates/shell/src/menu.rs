@@ -9,6 +9,12 @@ use tauri::{AppHandle, Manager, Wry};
 use crate::server::Server;
 use crate::{bug_report, log, open, update, window, zoom};
 
+/// Shared with the menu bar countdown's menu.
+pub const QUIT: &str = "quit";
+pub const QUIT_TEXT: &str = "Quit godspeed";
+/// Only the menu bar countdown's menu has it.
+pub const OPEN_WINDOW: &str = "open-window";
+
 #[cfg(target_os = "macos")]
 const DEVTOOLS_KEYS: &str = "Alt+CmdOrCtrl+I";
 #[cfg(not(target_os = "macos"))]
@@ -23,7 +29,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 	let about = PredefinedMenuItem::about(app, Some("About godspeed"), Some(about))?;
 	let check = item("check-updates", "Check for Updates…", None)?;
 	// The predefined Quit is unsupported on GTK 3, so every OS shares this one.
-	let quit = item("quit", "Quit godspeed", Some("CmdOrCtrl+Q"))?;
+	let quit = item(QUIT, QUIT_TEXT, Some("CmdOrCtrl+Q"))?;
 	let sep1 = separator()?;
 	#[cfg(target_os = "macos")]
 	let (hide, hide_others, sep2) = (PredefinedMenuItem::hide(app, None)?, PredefinedMenuItem::hide_others(app, None)?, separator()?);
@@ -131,7 +137,8 @@ pub fn handle(app: &AppHandle, event: MenuEvent) {
 	match id {
 		"open-folder" => open_folder(app),
 		"check-updates" => check_for_updates(app),
-		"quit" => app.exit(0),
+		QUIT => app.exit(0),
+		OPEN_WINDOW => window::bring_forward(app, None),
 		"reload" => {
 			if let Some(main) = main {
 				let _ = main.reload();

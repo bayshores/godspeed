@@ -15,7 +15,7 @@ describe("FACTORY_SETTINGS (the compiled factory layer)", () => {
 	it("pins the factory defaults", () => {
 		assert.equal(CURRENT_SETTINGS_VERSION, 3);
 		assert.equal("compaction" in FACTORY_SETTINGS, false, "the summarize point is fixed, not a setting");
-		assert.deepEqual(FACTORY_SETTINGS.general, { autoUpdate: true, activeSpace: "none", teacherName: "Teacher", startupSound: true, sounds: true, deadlineReminders: true });
+		assert.deepEqual(FACTORY_SETTINGS.general, { autoUpdate: true, activeSpace: "none", teacherName: "Teacher", startupSound: true, sounds: true, deadlineReminders: true, menuBarCountdown: true });
 		// the master switch ONLY
 		assert.deepEqual(FACTORY_SETTINGS.graph, { enabled: true });
 		const a = FACTORY_SETTINGS.appearance;

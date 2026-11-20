@@ -81,6 +81,7 @@ fn store_section(app: &App, section: &str, parsed: Json) -> Result<Json, String>
 		fields.insert(section, parsed);
 	}
 	app.stores.settings.write_settings(&next)?;
+	app.misc.settings_saved.notify_one();
 	Ok(next)
 }
 

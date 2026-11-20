@@ -30,6 +30,7 @@ pub fn resolve_settings(record: Option<&Json>) -> Json {
 			"startupSound": or(&general["startupSound"], &factory["general"]["startupSound"]),
 			"sounds": or(&general["sounds"], &factory["general"]["sounds"]),
 			"deadlineReminders": or(&general["deadlineReminders"], &factory["general"]["deadlineReminders"]),
+			"menuBarCountdown": or(&general["menuBarCountdown"], &factory["general"]["menuBarCountdown"]),
 		},
 		"agent": {
 			"tools": or(&record["agent"]["tools"], &json!({})),

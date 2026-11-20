@@ -48,6 +48,17 @@ fn line(out: &mut BufReader<ChildStdout>) -> String {
 	line
 }
 
+/// The next line that answers the shell, past the menu bar countdown the server sends on its
+/// own on the Mac.
+fn answer(out: &mut BufReader<ChildStdout>) -> String {
+	loop {
+		let line = line(out);
+		if !line.starts_with("{\"t\":\"menu_bar_countdown") {
+			return line;
+		}
+	}
+}
+
 /// The status line and headers of a GET.
 fn get(port: u16, target: &str, headers: &str) -> String {
 	let mut conn = TcpStream::connect(("127.0.0.1", port)).unwrap();
@@ -89,7 +100,7 @@ fn a_login_token_opens_the_api_once() {
 	let (mut child, mut out) = start(&dir, port, Some(&secret));
 	let token = "c0".repeat(32);
 	writeln!(child.stdin.as_mut().unwrap(), "{{\"t\":\"login\",\"id\":1,\"token\":\"{token}\"}}").unwrap();
-	assert_eq!(line(&mut out), "{\"t\":\"login_ok\",\"id\":1}\n");
+	assert_eq!(answer(&mut out), "{\"t\":\"login_ok\",\"id\":1}\n");
 
 	let window = format!("Cookie: gs_desktop={secret}\r\nSec-Fetch-Site: same-origin\r\n");
 	assert!(get(port, "/api/nothing-here", "Sec-Fetch-Site: same-origin\r\n").starts_with("HTTP/1.1 403"), "no access without the cookie");

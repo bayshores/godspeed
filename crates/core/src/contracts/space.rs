@@ -104,6 +104,17 @@ pub fn deadline_due_at(deadline: &Json) -> (String, String) {
 	(deadline["date"].str_or_empty().to_owned(), deadline["time"].as_str().unwrap_or("23:59").to_owned())
 }
 
+/// The local moment a deadline is due: its time, or 23:59.
+pub fn due_at(deadline: &Json) -> Option<i64> {
+	let (date, at) = deadline_due_at(deadline);
+	gs_base::time::parse_date(&format!("{date}T{at}"))
+}
+
+/// Not done and not yet due at `now_ms`.
+pub fn is_upcoming(deadline: &Json, now_ms: i64) -> bool {
+	!deadline["done"].truthy() && due_at(deadline).is_some_and(|due| due > now_ms)
+}
+
 /// Soonest first, then by time, then by name (`compareDeadlines`).
 pub fn compare_deadlines(a: &Json, b: &Json) -> Ordering {
 	let (da, ta) = deadline_due_at(a);
