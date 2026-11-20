@@ -127,3 +127,14 @@ test("recovery converges after one pass, including multiple debris characters", 
 		assert.equal(repairMathForDisplay(once), once);
 	}
 });
+
+test("transformMathDelimiters, a glued display block", async (t) => {
+	await t.test("puts the dollars of a multi-line block on lines of their own", () => {
+		const source = "watch:\n\n$$\\begin{aligned}\nT(3) &= T(2) + c\\\\\nT(1) &= K + c\n\\end{aligned}$$\n\nPlug back up.";
+		assert.equal(transformMathDelimiters(source), "watch:\n\n$$\n\\begin{aligned}\nT(3) &= T(2) + c\\\\\nT(1) &= K + c\n\\end{aligned}\n$$\n\nPlug back up.");
+	});
+
+	await t.test("leaves one-line $$ math, a block already on its own lines, and code alone", () => {
+		for (const source of ["a $$x^2$$ b", "$$x^2$$", "$$\nx^2\n$$", "```\n$$a\nb$$\n```"]) assert.equal(transformMathDelimiters(source), source);
+	});
+});

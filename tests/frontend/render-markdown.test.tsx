@@ -134,6 +134,15 @@ describe("render — standard dollar math + legacy compatibility (streamdown + K
 		assert.match(html, /\$5 and \$10/);
 	});
 
+	it("renders $$ math that opens on the line of its first row as one display block", () => {
+		const md = "Unroll $n = 3$ and watch:\n\n$$\\begin{aligned}\nT(3) &= T(2) + c\\\\\nT(1) &= T(0) + c = K + c\n\\end{aligned}$$\n\nPlug back up: $T(3) = K + 3c$.";
+		const html = render(md);
+		assert.match(html, /katex-display/);
+		const visible = html.replace(/<annotation[\s\S]*?<\/annotation>/g, "");
+		assert.doesNotMatch(visible, /&amp;=|end\{aligned\}/, "no raw TeX in the text");
+		assert.match(html, /Plug back up/);
+	});
+
 	it("renders standard $...$ math inline", () => {
 		const html = render("The map $f(x) = x^2$ is smooth.");
 		assert.ok(html.includes("katex"), "single-dollar math renders");

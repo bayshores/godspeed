@@ -74,6 +74,10 @@ Recovery checks the original TeX context before changing a run of backslashes.
 
 Unbalanced, unsupported or ambiguous content is not rewritten into new math. This is escaping recovery, not general TeX repair, with no language-specific decoders.
 
+### Display blocks with glued dollars
+
+Every lesson text, the teacher's prose included, goes through `transformMathDelimiters` in `MessageResponse`. Besides turning `\(...\)` and `\[...\]` into dollar math, it fixes one authoring slip: a display block whose `$$` sits on the line of its first and last rows (`$$\begin{aligned}` ... `\end{aligned}$$`). Markdown opens a math block only at `$$` alone on its line, so this would show as raw TeX. The pass moves both `$$` onto lines of their own, in prose only. One-line `$$...$$` math and blocks already on their own lines stay as written.
+
 ## Saved answers
 
 `answerForPresentation` joins the display text the outside agent wrote to the original tool call, without changing the recorded answer.

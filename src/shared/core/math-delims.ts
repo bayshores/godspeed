@@ -35,9 +35,25 @@ function spaceTags(body: string): string {
 	return body.replace(/<(?=[A-Za-z!/?])/g, "< ");
 }
 
+/** A display block written "$$\begin{aligned}" ... "\end{aligned}$$", its
+ * dollars on the lines of its first and last rows. Markdown opens a math
+ * block only at "$$" alone on its line, so this reads as prose. */
+const GLUED_BLOCK = /(^|\n)([ \t]*)\$\$(?=\S)((?:(?!\$\$)[^\n])*(?:\n(?![ \t]*\n)(?:(?!\$\$)[^\n])*)+?)\$\$[ \t]*(?=\n|$)/g;
+
+/** Puts the dollars of a glued display block on lines of their own, in
+ * prose only, so it reads as one math block. */
+function unglueDisplayBlocks(markdown: string): string {
+	if (!markdown.includes("$$")) return markdown;
+	return readContentSpans(markdown).map(span =>
+		span.kind === "prose" ? span.raw.replace(GLUED_BLOCK, (_, lead: string, indent: string, body: string) => `${lead}${indent}$$\n${body}\n${indent}$$`) : span.raw,
+	).join("");
+}
+
 /** Read old \(...\)/\[...\] syntax without touching literal content or
- * reparsing native math as Markdown. Dollar authoring remains native. */
-export function transformMathDelimiters(markdown: string): string {
+ * reparsing native math as Markdown. Dollar authoring remains native, except
+ * a glued display block, which gets its dollars on lines of their own. */
+export function transformMathDelimiters(source: string): string {
+	const markdown = unglueDisplayBlocks(source);
 	let offset = 0;
 	return readContentSpans(markdown).map(span => {
 		const start = offset; offset += span.raw.length;
