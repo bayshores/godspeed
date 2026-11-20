@@ -150,7 +150,7 @@ Important answer-detail fields:
 | `dontKnow`, `dismissed` | Explicit don't-know or skipped state |
 | `thinking` | Learner reasoning about the question |
 | `note` | Legacy name for that same channel; use `thinking ?? note` |
-| `readingThinking` | Separate learner thinking while reading the teaching |
+| `readingThinking` | Older records only: learner thinking while reading the teaching |
 | `confidence` | Self-reported confidence that the selected quiz answer is right, saved as 20/40/60/80/100 for levels 1 to 5 (older answers use 0/30/50/70/90/100) |
 | `correct`, `correctIndices` | Mechanical quiz grading in displayed-option order |
 | `committed`, `explanation` | Teacher's committed answer / quiz explanation, not learner speech |
