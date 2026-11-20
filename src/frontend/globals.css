@@ -491,9 +491,9 @@ body {
 	.lh-tab[aria-current="true"] {
 		color: var(--foreground);
 	}
-	.lh-tab[aria-current="page"],
-	.lh-tab[aria-current="true"] {
-		border-bottom-color: var(--foreground);
+	/* The lit tab's underline: one line that slides to it (lit-marker.ts). */
+	.lh-tab-line {
+		border-bottom: 2px solid var(--foreground);
 	}
 }
 
@@ -669,7 +669,8 @@ body {
 
 /* The page under everything: paper with a faint dot grid. */
 .lh-dots {
-	background-image: radial-gradient(color-mix(in oklab, var(--foreground) 10%, transparent) 1px, transparent 1px);
+	--lh-dots: radial-gradient(color-mix(in oklab, var(--foreground) 10%, transparent) 1px, transparent 1px);
+	background-image: var(--lh-dots);
 	background-size: 16px 16px;
 }
 
@@ -1107,8 +1108,9 @@ body:has(.lh-own-bar) .lh-app-bar {
    Nothing bounces, nothing overshoots.
 
    Tokens: --lh-dur-fast (exits, presses) · --lh-dur (enters, state
-   changes) · --lh-dur-slow (larger surfaces: dialogs, view swaps) ·
-   --lh-ease-out (enters) · --lh-ease-in (exits).
+   changes) · --lh-dur-slow (larger surfaces: dialogs) · --lh-dur-page
+   (a whole page traveling, THE DESK below) · --lh-ease-out (enters) ·
+   --lh-ease-in (exits).
 
    Enters take --lh-dur, exits --lh-dur-fast, held on screen by presence
    (usePresence, useLastWhileClosing) so nothing pops away. Anything that
@@ -1122,8 +1124,8 @@ body:has(.lh-own-bar) .lh-app-bar {
    - .lh-hang      a pop-up out of the top bar: grows down, rows after it
    - .lh-dialog    dialog panels: fade + 2% scale
    - .lh-fade      backdrops and anything that only fades
-   - .lh-rise      one-shot arrival (messages, cards, view content):
-                   fade + 4px rise (no exit)
+   - .lh-rise      one-shot arrival (messages, cards): fade + 4px rise
+                   (no exit)
    - .lh-press     pressable things that are not keys: ease the hover colors,
                    dip to 97% while pressed
    - .lh-collapse  a folding section: grid-rows 0fr ↔ 1fr (data-state)
@@ -1134,6 +1136,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 	--lh-dur-fast: 110ms;
 	--lh-dur: 160ms;
 	--lh-dur-slow: 220ms;
+	--lh-dur-page: 420ms;
 	--lh-ease-out: cubic-bezier(0.2, 0, 0, 1);
 	--lh-ease-in: cubic-bezier(0.4, 0, 1, 1);
 }
@@ -1541,7 +1544,105 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	min-height: 0;
 }
 
+/* A page's own words in the top bar (bar-slots.tsx) fade in with the page. */
+.lh-bar-actions > *,
+[data-testid="bar-crumb"] > * {
+	animation: lh-fade-in var(--lh-dur) var(--lh-ease-out) both;
+}
+
+/* The mark of the lit one of a row of tabs (lit-marker.ts): one box under
+   the tabs, moved to the lit one. It slides only when another tab lights. */
+.lh-lit-marker {
+	position: absolute;
+	z-index: -1;
+	pointer-events: none;
+}
+.lh-lit-marker[data-slide] {
+	transition: var(--lh-dur-slow) var(--lh-ease-out);
+	transition-property: left, top, width, height;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   THE DESK (components/desk/desk.tsx). The one large move: the pages are
+   sheets lying on a desk, and a page change travels from one to the next.
+   A still copy of the old page (.lh-desk-old) leaves while the new page
+   (.lh-desk-page) arrives. data-way, set only while they travel:
+   - right, left   the pages lie side by side in the order of their tabs,
+                   a strip of bare desk between them
+   - up            a deeper page (a lesson) is laid on top from the bottom
+                   edge; the page under it stays still
+   - down          that sheet is taken off again
+   Reduced motion: nothing travels, the new page is just there. */
+.lh-desk {
+	position: relative;
+	height: 100%;
+}
+.lh-desk-page {
+	height: 100%;
+}
+.lh-desk-old {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+.lh-desk:not([data-way]) > .lh-desk-old {
+	display: none;
+}
+.lh-desk[data-way] {
+	overflow: hidden;
+}
+/* The copy is a picture: nothing in it plays its own motion again. */
+.lh-desk-old *,
+.lh-desk-old *::before,
+.lh-desk-old *::after {
+	animation: none !important;
+	transition: none !important;
+}
+@keyframes lh-desk-leave {
+	to {
+		transform: var(--lh-desk-to);
+	}
+}
+@keyframes lh-desk-arrive {
+	from {
+		transform: var(--lh-desk-from);
+	}
+}
+.lh-desk[data-way="right"] {
+	--lh-desk-to: translateX(calc(-100% - 40px));
+	--lh-desk-from: translateX(calc(100% + 40px));
+}
+.lh-desk[data-way="left"] {
+	--lh-desk-to: translateX(calc(100% + 40px));
+	--lh-desk-from: translateX(calc(-100% - 40px));
+}
+.lh-desk[data-way="up"] {
+	--lh-desk-from: translateY(100%);
+}
+.lh-desk[data-way="down"] {
+	--lh-desk-to: translateY(100%);
+}
+.lh-desk:is([data-way="right"], [data-way="left"], [data-way="down"]) > .lh-desk-old {
+	animation: lh-desk-leave var(--lh-dur-page) var(--lh-ease-out) both;
+}
+.lh-desk:is([data-way="right"], [data-way="left"], [data-way="up"]) > .lh-desk-page {
+	animation: lh-desk-arrive var(--lh-dur-page) var(--lh-ease-out) both;
+}
+/* The sheet on top hides the page under it: it carries the desk's own paper. */
+.lh-desk[data-way="up"] > .lh-desk-page,
+.lh-desk[data-way="down"] > .lh-desk-old {
+	z-index: 1;
+	background-color: var(--background);
+	background-image: var(--lh-dots);
+	background-size: 16px 16px;
+}
+.lh-desk[data-way="up"] > .lh-desk-page {
+	position: relative;
+}
+
 @media (prefers-reduced-motion: reduce) {
+	.lh-bar-actions > *,
+	[data-testid="bar-crumb"] > *,
 	.lh-pop,
 	.lh-dialog,
 	.lh-fade,
@@ -1566,7 +1667,8 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 		color: var(--muted-foreground) !important;
 	}
 	.lh-press,
-	.lh-collapse {
+	.lh-collapse,
+	.lh-lit-marker {
 		transition-duration: 0ms !important;
 	}
 	.lh-press:active:not(:disabled) {

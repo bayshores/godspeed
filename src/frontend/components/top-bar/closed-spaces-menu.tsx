@@ -45,7 +45,7 @@ export function ClosedSpacesMenu({ lit, onAdd, onDelete }: { lit: boolean; onAdd
 				aria-haspopup="menu"
 				aria-expanded={open}
 				onClick={() => (open ? close() : setOpen(true))}
-				className={cn(BAR_TAB, "shrink-0", barTabState(lit && !open))}
+				className={cn(BAR_TAB, "shrink-0", barTabState(lit && !open), lit && open && "bg-bar")}
 			>
 				<PixelIcon name="plus" />
 			</button>

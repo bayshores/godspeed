@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
+import { useLitMarker } from "@/frontend/components/lit-marker";
 import { useSpaces } from "@/frontend/components/space-context";
 import { SpaceDialog } from "@/frontend/components/space-dialog";
 import { useMinute } from "@/frontend/components/countdown";
@@ -31,6 +32,8 @@ export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 	const share = useStudiedShare();
 	const counts = useTabCounts(share);
 	// The dialog compares its mode by identity: one object per open.
+	const tabsRef = useRef<HTMLElement>(null);
+	const underline = useLitMarker(tabsRef, '[aria-current="page"]', pathname);
 	const editMode = useMemo(() => (editing ? { kind: "edit" as const, spaceId: editing } : null), [editing]);
 	return (
 		<div data-testid="space-head" className={cn("lh-page shrink-0", activeSpace ? "pt-4" : "pt-(--lh-page-top)")}>
@@ -41,7 +44,8 @@ export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 			)}
 			{/* In a page squeezed narrow the tabs wrap, so none hides behind a scroll. */}
 			<div className={cn("lh-tabs items-center", !activeSpace && "mt-(--lh-head-gap)")}>
-				<nav aria-label={activeSpace?.name ?? "Lessons with no space"} className="flex min-w-0 flex-[0_1_auto] flex-wrap gap-x-1.5">
+				<nav ref={tabsRef} aria-label={activeSpace?.name ?? "Lessons with no space"} className="relative isolate flex min-w-0 flex-[0_1_auto] flex-wrap gap-x-1.5">
+					<div ref={underline} hidden aria-hidden className="lh-lit-marker lh-tab-line" />
 					{spaceTabs(activeSpace ? "space" : "none", plugins).map((t) => {
 						const selected = t.href === pathname;
 						const count = tabCount(t, counts);

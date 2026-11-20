@@ -427,9 +427,12 @@ describe("the +", () => {
 		const plus = q("spaces-plus")!;
 		assert.equal(plus.getAttribute("aria-haspopup"), "menu");
 		assert.equal(plus.getAttribute("aria-expanded"), "false");
-		assert.match(plus.className, /bg-background/, "lit");
+		assert.match(plus.className, /text-ink/, "lit: the paper's ink");
+		assert.ok(plus.closest("[data-lit]"), "the paper slides under it");
 		await openList();
 		assert.equal(plus.getAttribute("aria-expanded"), "true");
+		assert.match(plus.className, /\bbg-bar(\s|$)/, "with its list open it is the bar's color over the paper");
+		assert.doesNotMatch(plus.className, /text-ink/);
 	});
 	it("reads the lessons only while its list is open", async () => {
 		await mount(<SpaceTabs selected="c29" />);

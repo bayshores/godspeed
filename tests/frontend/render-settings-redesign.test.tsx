@@ -28,6 +28,11 @@ Object.assign(globalThis, {
 	// The agent menu (MenuShell) places itself on the next frame.
 	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
 	cancelAnimationFrame: (id: number) => clearTimeout(id),
+	// The tabs' underline watches the row's size (lit-marker.ts).
+	ResizeObserver: class {
+		observe() {}
+		disconnect() {}
+	},
 	IS_REACT_ACT_ENVIRONMENT: true,
 });
 

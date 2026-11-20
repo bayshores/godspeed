@@ -18,7 +18,16 @@ import { SettingsProvider } from "../../src/frontend/components/settings-context
 const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 
 const dom = parseHTML("<html><body></body></html>");
-Object.assign(globalThis, { window: dom.window, document: dom.document, CustomEvent: dom.window.CustomEvent });
+Object.assign(globalThis, {
+	window: dom.window,
+	document: dom.document,
+	CustomEvent: dom.window.CustomEvent,
+	// The tabs' underline watches the row's size (lit-marker.ts).
+	ResizeObserver: class {
+		observe() {}
+		disconnect() {}
+	},
+});
 const originalFetch = globalThis.fetch;
 const roots: { root: Root; host: HTMLElement }[] = [];
 const state = (over: Partial<UpdateState> = {}): UpdateState => ({ status: "idle", version: null, revision: 0, ...over });

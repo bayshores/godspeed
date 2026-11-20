@@ -3,7 +3,6 @@ import { Link } from "react-router";
 import type { FileCoverage, GraphContextPick, TopicProgress } from "@/shared/core";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { useSpaces } from "@/frontend/components/space-context";
-import { useReplayOnChange } from "@/frontend/components/motion";
 import { useProgress } from "@/frontend/components/use-progress";
 import { displayName } from "@/frontend/components/overview/overview-model";
 import { DeadlineStarts } from "@/frontend/components/study-page/deadline-starts";
@@ -46,9 +45,6 @@ export function NewLesson() {
 	const snapshot = useGraphSnapshot(activeSpaceId).value;
 
 	const topicInputRef = useRef<HTMLTextAreaElement>(null);
-	// Switching space swaps the view: it rises in once.
-	const viewRef = useRef<HTMLDivElement>(null);
-	useReplayOnChange(viewRef, activeSpaceId, "lh-rise");
 
 	const { start, studyTopics, studyPathTopic, studyDeadline, workOnHomework } = lesson;
 	const startTopic = () => void start({ title: topicRef.current, picks, files: attachments.files.map((f) => f.attachment) });
@@ -62,7 +58,7 @@ export function NewLesson() {
 	return (
 		<div className="flex h-full min-h-0 flex-col" data-testid="home">
 			<div className="min-h-0 flex-1 overflow-y-auto">
-				<div ref={viewRef} className="@container/page lh-page flex flex-col gap-(--lh-head-gap) pt-(--lh-page-top) pb-(--lh-page-end)" style={{ animationDuration: "var(--lh-dur-slow)" }}>
+				<div className="@container/page lh-page flex flex-col gap-(--lh-head-gap) pt-(--lh-page-top) pb-(--lh-page-end)">
 					<div className="flex flex-col items-start gap-2.5">
 						<Link to="/space" data-testid="page-back" className="lh-btn lh-btn-quiet text-[15px]">
 							<PixelIcon name="chevron" className="-scale-x-100" />

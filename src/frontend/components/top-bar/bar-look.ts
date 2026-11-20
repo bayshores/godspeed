@@ -1,7 +1,8 @@
-/** A top bar tab: the lit one is a block of the page's paper. A tab whose
- *  menu hangs open under it stays the bar's color, so the two read as one. */
+/** A top bar tab: the lit one lies on a block of the page's paper, the marker space-tabs.tsx
+ *  slides under it, so its ink waits for the paper to arrive. A tab whose menu hangs open under it stays
+ *  the bar's color, so the two read as one. */
 export const BAR_TAB = "lh-press flex min-w-0 items-center gap-2 px-4 text-[15px] whitespace-nowrap";
-export const barTabState = (lit: boolean) => (lit ? "bg-background font-medium text-ink" : "text-bar-ink hover:bg-bar-ink/10");
+export const barTabState = (lit: boolean) => (lit ? "font-medium text-ink motion-safe:delay-75" : "text-bar-ink hover:bg-bar-ink/10");
 
 /** A page's own word in the top bar (bar-slots.tsx), Menu, and a word in a page's own bar: flat
  *  and as tall as the bar, like a tab, never a key; `on` while its panel is open: a block of the bar's ink. */

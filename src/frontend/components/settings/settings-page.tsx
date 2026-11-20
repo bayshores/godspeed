@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { useLitMarker } from "@/frontend/components/lit-marker";
 import type { WriteResult } from "@/frontend/lib/api";
 import { useAppearance } from "./appearance.tsx";
 import { SettingsSection } from "./controls.tsx";
@@ -74,6 +75,8 @@ export function SettingsPage({ section }: { section?: string }) {
 		};
 	}, []);
 	const [active, setActive] = useState<SectionId>(initialSection);
+	const navRef = useRef<HTMLElement>(null);
+	const underline = useLitMarker(navRef, '[aria-current="true"]', active);
 	// Teaching's full instructions fill the page, heading and tabs included.
 	const [fullPage, setFullPage] = useState(false);
 	const current = SECTIONS.find((s) => s.id === active) ?? SECTIONS[0];
@@ -96,7 +99,8 @@ export function SettingsPage({ section }: { section?: string }) {
 		<div ref={contentRef} data-testid="settings-page" className="h-full overflow-y-auto">
 			<div className="@container/page lh-page flex flex-col pt-(--lh-page-top) pb-(--lh-page-end)">
 				{!fullPage && <h1 className="lh-page-title">Settings</h1>}
-				<nav hidden={fullPage} aria-label="Settings sections" data-testid="settings-nav" className="lh-tabs mt-(--lh-head-gap) mb-(--lh-gap)">
+				<nav ref={navRef} hidden={fullPage} aria-label="Settings sections" data-testid="settings-nav" className="lh-tabs relative isolate mt-(--lh-head-gap) mb-(--lh-gap)">
+					<div ref={underline} hidden aria-hidden className="lh-lit-marker lh-tab-line" />
 					{SECTIONS.map((s) => {
 						const on = active === s.id;
 						return (

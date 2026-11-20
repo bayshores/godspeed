@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
+import { useLitMarker } from "@/frontend/components/lit-marker";
 import { useSpaces } from "@/frontend/components/space-context";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { SpaceDialog, type SpaceDialogMode } from "@/frontend/components/space-dialog";
@@ -57,7 +58,8 @@ function useTabStrip(selected: string, tabs: number) {
  * closed one, the lessons with no space). A space's tab switches the window to it and opens its
  * Progress page; a right-click opens its menu. It carries a tag while the
  * teacher still has files of it to read. The lit tab, or the lit +, is
- * followed by the page's crumb (bar-slots.tsx) on the same paper.
+ * followed by the page's crumb (bar-slots.tsx) on the same paper: one
+ * block that slides to whatever is lit ([data-lit]).
  */
 export function SpaceTabs({ selected }: { selected: string }) {
 	const { spaces, setActive } = useSpaces();
@@ -73,8 +75,11 @@ export function SpaceTabs({ selected }: { selected: string }) {
 	const strip = useTabStrip(selected, openSpaces.length);
 	const menuSpace = openSpaces.find((s) => s.id === tabMenu.shownId);
 	const navRef = useRef<HTMLElement>(null);
+	// After the strip has brought the lit tab into sight. A page change slides it too, as the crumb comes or goes.
+	const { pathname } = useLocation();
+	const paper = useLitMarker(navRef, "[data-lit]", `${selected} ${pathname}`);
 	const { crumbRef } = useBarHosts();
-	const crumb = <span ref={crumbRef} data-testid="bar-crumb" className="flex shrink-[9999] items-center gap-4 bg-background pr-4 text-[15px] font-medium whitespace-nowrap text-ink empty:hidden" />;
+	const crumb = <span ref={crumbRef} data-testid="bar-crumb" className="flex shrink-[9999] items-center gap-4 pr-4 text-[15px] font-medium whitespace-nowrap text-ink empty:hidden" />;
 	useEffect(() => {
 		if (!refocus) return;
 		setRefocus(false);
@@ -85,8 +90,9 @@ export function SpaceTabs({ selected }: { selected: string }) {
 	return (
 		// Starts squeezed (every unlit name at its few letters) and grows to full
 		// names with the room the bar's chips leave; below squeezed, the tabs scroll.
-		<nav ref={navRef} aria-label="Spaces" data-testid="space-tabs" className="mr-auto flex max-w-max min-w-0 grow basis-[min-content] items-stretch">
-			<Link to="/" data-testid="nav-home" aria-current={selected === "today" ? "page" : undefined} className={cn(BAR_TAB, "shrink-0", barTabState(selected === "today"))}>
+		<nav ref={navRef} aria-label="Spaces" data-testid="space-tabs" className="relative isolate mr-auto flex max-w-max min-w-0 grow basis-[min-content] items-stretch">
+			<div ref={paper} hidden aria-hidden className="lh-lit-marker bg-background" />
+			<Link to="/" data-testid="nav-home" aria-current={selected === "today" ? "page" : undefined} data-lit={selected === "today" ? "" : undefined} className={cn(BAR_TAB, "shrink-0", barTabState(selected === "today"))}>
 				Home
 			</Link>
 			{/* Too many tabs to fit even squeezed: they scroll, fading out at a cut edge; Home and the + stay put. */}
@@ -155,7 +161,7 @@ export function SpaceTabs({ selected }: { selected: string }) {
 				})}
 			</div>
 			{/* Outside the strip, the + and its crumb never scroll away; the crumb gives way after the tabs. */}
-			<div className={selected === "plus" ? "flex items-stretch" : "contents"}>
+			<div data-lit={selected === "plus" ? "" : undefined} className={selected === "plus" ? "flex items-stretch" : "contents"}>
 				<ClosedSpacesMenu lit={selected === "plus"} onAdd={() => setDialog(CREATE)} onDelete={onDelete} />
 				{selected === "plus" && crumb}
 			</div>

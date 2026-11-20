@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef, type RefObject } from "react";
 /** Replays an element's one-shot motion class (.lh-rise, .lh-block-in): the class is removed, a
  *  reflow restarts it, and it is put back. Reduced motion: those classes are inert, so this does
  *  nothing visible. */
-export function replay(el: HTMLElement | null, cls: string): void {
+function replay(el: HTMLElement | null, cls: string): void {
 	if (!el) return;
 	el.classList.remove(cls);
 	void el.offsetWidth;
