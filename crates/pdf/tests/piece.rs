@@ -31,7 +31,7 @@ async fn a_problem_is_cut_from_its_first_words_to_the_next_problem() {
 	assert_eq!(first.text, "1. First problem: a fair coin is flipped three times.\n(a) How many outcomes are there?\n(b) What is the chance of f(b) heads exactly twice?");
 	assert_eq!(first.labels.iter().map(|l| l.label.as_str()).collect::<Vec<_>>(), ["a", "b"]);
 	assert!(first.labels[0].y > crop.top && first.labels[1].y > first.labels[0].y && first.labels[1].y < crop.bottom);
-	assert_eq!(first.mark, None);
+	assert_eq!((first.mark, first.parts[0].aspect), (None, 612.0 / 792.0));
 }
 
 #[tokio::test]
@@ -60,7 +60,7 @@ async fn words_that_are_not_on_the_page_give_its_lines_and_a_scan_says_so() {
 	let missing = pdf.find_piece(&fixture("worksheet.pdf"), 1, "4. Fourth".to_owned(), None, find).await.unwrap();
 	let Found::Missing(lines) = missing else { panic!("{missing:?}") };
 	assert_eq!(lines[1], "1. First problem: a fair coin is flipped three times.");
-	assert_eq!(pdf.find_piece(&fixture("image-only.pdf"), 1, "anything".to_owned(), None, find).await, Ok(Found::Scan));
+	assert_eq!(pdf.find_piece(&fixture("image-only.pdf"), 1, "anything".to_owned(), None, find).await, Ok(Found::Scan { aspect: 612.0 / 792.0 }));
 	assert_eq!(pdf.find_piece(&fixture("worksheet.pdf"), 9, "1. First".to_owned(), None, find).await, Err("Invalid page request.".to_owned()));
 }
 

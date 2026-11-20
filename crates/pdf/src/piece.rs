@@ -29,6 +29,8 @@ const FOLIO: f64 = 0.03;
 pub struct PiecePart {
 	pub page: u32,
 	pub crop: PageCrop,
+	/// The whole page's width over its height.
+	pub aspect: f64,
 }
 
 /// Where one labelled part of a problem starts: `y` is a fraction of its page from the top.
@@ -54,8 +56,9 @@ pub struct Piece {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Found {
 	Piece(Piece),
-	/// The page has no words to speak of (a scan), so nothing can be looked for on it.
-	Scan,
+	/// The page has no words to speak of (a scan), so nothing can be looked for on it; the page's
+	/// width over its height.
+	Scan { aspect: f64 },
 	/// The first words are not on the page, or not just once; the page's own lines, to quote from.
 	Missing(Vec<String>),
 }
@@ -116,6 +119,11 @@ impl Look {
 		let (start, end) = (blocks.first()?.0 as f64 / height, blocks.last()?.1 as f64 / height);
 		Some(PageCrop { left: self.left, right: self.right, top: (start - PAD).max(0.0), bottom: (end + PAD).min(last as f64 / height) })
 	}
+}
+
+fn aspect_of(page: &PdfPage) -> f64 {
+	let (width, height) = page_size(page);
+	width / height.max(1.0)
 }
 
 /// How a line labels a part, and the label inside it: "(a)", "a)" or "a.".
@@ -201,13 +209,14 @@ impl Pdf {
 			let (text, boxes) = page_units(&first)?;
 			let whole = from_utf16(&text);
 			if whole.chars().filter(|c| !c.is_whitespace()).count() < SCAN_UNITS {
-				return Ok(Found::Scan);
+				return Ok(Found::Scan { aspect: aspect_of(&first) });
 			}
 			let missing = || Found::Missing(whole.lines().take(MISSING_LINES).map(|line| line.chars().take(MISSING_LINE_UNITS).collect()).collect());
 			let Some((s0, s1)) = find(&whole, &starts) else { return Ok(missing()) };
 			let Some(start) = line_boxes(&first, &boxes, &text, s0, s1).into_iter().next() else { return Ok(missing()) };
 			let look = Look::at(&first)?;
-			let part = |crop: Option<PageCrop>, page: u32| crop.map(|crop| PiecePart { page, crop });
+			let aspect = aspect_of(&first);
+			let part = |crop: Option<PageCrop>, page: u32| crop.map(|crop| PiecePart { page, crop, aspect });
 			let end_here = ends.as_deref().and_then(|ends| find(&from_utf16(&text[s1..]), ends)).map(|(e0, e1)| (e0 + s1, e1 + s1));
 			if let Some((e0, e1)) = end_here {
 				let said = from_utf16(&text[s0..e0]).trim_end().to_owned();
@@ -217,7 +226,7 @@ impl Pdf {
 				return Ok(Found::Piece(match cut {
 					Some(cut) => Piece { parts: vec![cut], text: said, labels, mark: None },
 					// The next thing is printed above this one: columns, which a cut across can't follow.
-					None => Piece { parts: vec![PiecePart { page: number, crop: PageCrop::WHOLE }], text: said, labels, mark: Some(start) },
+					None => Piece { parts: vec![PiecePart { page: number, crop: PageCrop::WHOLE, aspect }], text: said, labels, mark: Some(start) },
 				}));
 			}
 			let Some(own) = part(look.crop(start.y, 1.0, false, true), number) else { return Ok(missing()) };
@@ -254,7 +263,7 @@ fn run_on(doc: &PdfDocument, number: u32, ends: &str, find: &impl Fn(&str, &str)
 		let until = end.and_then(|(e0, e1)| line_boxes(&page, &boxes, &text, e0, e1).into_iter().next()).map(|end| end.y);
 		let upto = end.map_or(text.len(), |(e0, _)| e0);
 		if let Some(crop) = look.crop(0.0, until.unwrap_or(1.0), true, until.is_none()) {
-			parts.push(PiecePart { page: next, crop });
+			parts.push(PiecePart { page: next, crop, aspect: aspect_of(&page) });
 		}
 		said.push(from_utf16(&text[..upto]));
 		lines.extend(lines_of(&page, next, &text, &boxes, 0, upto));
