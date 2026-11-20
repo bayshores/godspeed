@@ -45,6 +45,9 @@ pub struct CreateLessonInput {
 	/// None is "No space".
 	pub space_id: Option<String>,
 	pub start: LessonStart,
+	/// A deadline of the space the lesson is for, though it does not start from the deadline's
+	/// topics (a practice test for it).
+	pub for_deadline: Option<String>,
 }
 
 /// A new lesson: `title` is the whole title (the record's may be shortened), the first message.
@@ -60,6 +63,8 @@ pub struct NotFound {
 	pub code: &'static str,
 	pub error: &'static str,
 }
+
+const NO_DEADLINE: NotFound = NotFound { code: "deadline_not_found", error: "No such deadline" };
 
 struct Start {
 	title: String,
@@ -81,13 +86,18 @@ pub fn create_lesson(app: &Arc<App>, input: CreateLessonInput) -> Result<Result<
 			None => return Ok(Err(NotFound { code: "space_not_found", error: "No such space" })),
 		},
 	};
+	if let Some(id) = &input.for_deadline
+		&& !cls.as_ref().is_some_and(|c| c["deadlines"].items().iter().any(|d| d["id"].as_str() == Some(id)))
+	{
+		return Ok(Err(NO_DEADLINE));
+	}
 	let start = match start_of(app, scope, &input.start)? {
 		Ok(start) => start,
 		Err(not_found) => return Ok(Err(not_found)),
 	};
 	let deadline_id = match &input.start {
 		LessonStart::Deadline(id) => Some(id.as_str()),
-		_ => None,
+		_ => input.for_deadline.as_deref(),
 	};
 	let space_id = cls.as_ref().and_then(|c| c["id"].as_str());
 	let chat = app.stores.chats.create_chat(&title_from_prompt(&start.title), Some("study"), space_id, deadline_id)?;
@@ -174,7 +184,7 @@ fn start_of(app: &Arc<App>, scope: Option<&str>, start: &LessonStart) -> Result<
 				None => None,
 			};
 			let Some(deadline) = deadline else {
-				return Ok(Err(NotFound { code: "deadline_not_found", error: "No such deadline" }));
+				return Ok(Err(NO_DEADLINE));
 			};
 			// A deadline with no topics yet is studied by name.
 			if deadline.topics.is_empty() {
@@ -239,7 +249,7 @@ mod tests {
 	}
 
 	fn start(app: &Arc<App>, space_id: &str, start: LessonStart) -> Result<(Json, String), NotFound> {
-		create_lesson(app, CreateLessonInput { space_id: Some(space_id.to_owned()), start }).unwrap().map(|created| (app.stores.chats.get_chat(created.chat["id"].as_str().unwrap()).unwrap(), created.title))
+		create_lesson(app, CreateLessonInput { space_id: Some(space_id.to_owned()), start, for_deadline: None }).unwrap().map(|created| (app.stores.chats.get_chat(created.chat["id"].as_str().unwrap()).unwrap(), created.title))
 	}
 
 	fn study_plan(chat: &Json) -> &str {
@@ -278,6 +288,11 @@ mod tests {
 		assert_eq!(by_deadline["deadlineId"].as_str(), Some(deadline_id.as_str()));
 		assert!(by_deadline["tree"].is_null());
 		assert!(study_plan(&by_deadline).starts_with("[Study plan] \u{2014} no space topics for this: Study for Onsite."));
+
+		let practice = |deadline: &str| CreateLessonInput { space_id: Some(space_id.clone()), start: LessonStart::Typed { title: "Practice test".to_owned(), picks: Vec::new() }, for_deadline: Some(deadline.to_owned()) };
+		let for_it = create_lesson(&app, practice(&deadline_id)).unwrap().unwrap();
+		assert_eq!((for_it.title.as_str(), for_it.chat["deadlineId"].as_str()), ("Practice test", Some(deadline_id.as_str())), "a typed lesson for the deadline");
+		assert_eq!(create_lesson(&app, practice("ddl_nope")).unwrap().map(|c| c.title), Err(NO_DEADLINE), "not a deadline of this space");
 	}
 
 	/// A problem on `node` the learner solved, as a lesson stores it.
@@ -370,7 +385,7 @@ mod tests {
 		let deleting = app.locks.lock(LockKey::Space(&space_id));
 		let (starting, space) = (app.clone(), space_id.clone());
 		let started = std::thread::spawn(move || {
-			let input = CreateLessonInput { space_id: Some(space), start: LessonStart::Typed { title: "Sets".to_owned(), picks: Vec::new() } };
+			let input = CreateLessonInput { space_id: Some(space), start: LessonStart::Typed { title: "Sets".to_owned(), picks: Vec::new() }, for_deadline: None };
 			create_lesson(&starting, input).unwrap().map(drop)
 		});
 		std::thread::sleep(std::time::Duration::from_millis(100));

@@ -13,6 +13,10 @@ import { jsonInit, send } from "@/frontend/lib/api";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
 import { LoadFailed } from "@/frontend/components/load-failed";
+import { LessonCard } from "@/frontend/components/overview/lesson-card";
+import { LessonMenuLayer } from "@/frontend/components/overview/lesson-menu-layer";
+import { lessonsFor } from "@/frontend/components/overview/lesson-record-model";
+import { useLessonActions } from "@/frontend/components/overview/use-lesson-actions";
 import { useProgress } from "@/frontend/components/use-progress";
 import { JobFrame } from "@/frontend/components/work/job-frame";
 import { AboutSheet } from "./about-sheet";
@@ -32,7 +36,8 @@ import { useDeadlineRequest } from "./use-deadline-request";
  * the deadline's space the active one (Home lists every space);
  * switching space afterwards goes to that space. Study works on today's
  * topics (all its topics once every one is strong). A test or interview
- * also has its mocks.
+ * also has its mocks. A deadline with two lessons or more lists them: with
+ * one, Study already opens it.
  */
 export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlineId: string }) {
 	const navigate = useNavigate();
@@ -80,6 +85,8 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 		[saved, save],
 	);
 	const plan = useMemo(() => (current && deadline ? planDays(current.today, deadline.date, deadline.topics) : []), [current, deadline]);
+	const lessonActions = useLessonActions(current?.lessons ?? null, spaceId);
+	const lessons = useMemo(() => lessonsFor(lessonActions.shown ?? [], deadlineId), [lessonActions.shown, deadlineId]);
 
 	const { studyDeadline, workOnHomework } = lesson;
 	const assignmentId = saved?.assignmentFileId;
@@ -159,6 +166,7 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 									/>
 								)
 							}
+							lessons={lessons.length > 1 && <LessonCard title="Lessons" name="deadline" lessons={lessons} deadlines={current.deadlines} actions={lessonActions} />}
 							homework={
 								hasProblems(deadline.kind) && (
 									<HomeworkCard
@@ -189,6 +197,7 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 					)}
 				</div>
 				<DeadlineDialog mode={editMode} onClose={() => setEditing(false)} onRemoved={() => navigate("/space/deadlines")} />
+				<LessonMenuLayer actions={lessonActions} />
 			</div>
 		</JobFrame>
 	);

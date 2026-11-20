@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, type ReactNode } from "react";
+import { memo, useMemo, type ReactNode } from "react";
 import type { SpaceNote, DeadlineProgress, ProgressPayload } from "@/shared/core";
 import { SpaceFacts } from "./space-facts";
 import { ConfidenceCard } from "./confidence-card";
@@ -10,7 +10,7 @@ import { NextDeadline } from "./next-deadline";
 import { PathBlock } from "./path-block";
 import { hasCalibration, mostNeeded, upcomingDeadlines } from "./overview-model";
 import { TeacherNote } from "./teacher-note";
-import { UnfinishedLessons } from "./unfinished-lessons";
+import { LessonCard } from "./lesson-card";
 import { useLessonActions } from "./use-lesson-actions";
 import { useStickyTop } from "./use-sticky-top";
 
@@ -73,7 +73,6 @@ export const OverviewBody = memo(function OverviewBody({
 	const needed = useMemo(() => mostNeeded(upcoming), [upcoming]);
 	const actions = useLessonActions(data?.lessons ?? null, data?.spaceId ?? null);
 	const { unfinished, finished } = useMemo(() => splitLessons(actions.shown ?? []), [actions.shown]);
-	const problemsOf = useCallback((id: string) => data?.deadlines.find((d) => d.id === id)?.problems, [data]);
 
 	const spaceData = hasSpace && data && nowMs !== null ? data : null;
 	const next = upcoming[0] ?? null;
@@ -111,7 +110,7 @@ export const OverviewBody = memo(function OverviewBody({
 								{startError}
 							</p>
 						)}
-						{unfinished.length > 0 && <UnfinishedLessons lessons={unfinished} problemsOf={problemsOf} actions={actions} />}
+						{data && unfinished.length > 0 && <LessonCard title="Unfinished" name="unfinished" lessons={unfinished} deadlines={data.deadlines} actions={actions} headKey />}
 						{spaceData?.path && !pathFirst && <PathBlock path={spaceData.path} main={false} busy={busy} onStudy={onStudyPath} />}
 						{hasSpace && needed && <MostNeeded needed={needed} busy={busy} onStudy={onStudy} />}
 					</div>

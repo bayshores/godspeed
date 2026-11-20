@@ -38339,7 +38339,7 @@
 						{
 							"chatId": "chat_cwa1fgeg_dd4b665c",
 							"deadlineId": "ddl_ee4e0c1163e8",
-							"createdAt": "2026-11-10T01:55:07.336Z",
+							"updatedAt": "2026-11-10T03:43:48.864Z",
 							"done": null,
 							"total": 3
 						}
@@ -53085,7 +53085,7 @@
 						{
 							"chatId": "c1",
 							"deadlineId": "d1",
-							"createdAt": "2026-11-01T00:00:00.000Z",
+							"updatedAt": "2026-11-03T00:00:00.000Z",
 							"done": 1,
 							"total": 3
 						}
@@ -69460,35 +69460,35 @@
 					{
 						"chatId": "c1",
 						"deadlineId": "d1",
-						"createdAt": "2026-11-01T10:00:00.000Z",
+						"updatedAt": "2026-11-01T10:00:00.000Z",
 						"done": 1,
 						"total": 3
 					},
 					{
 						"chatId": "c2",
 						"deadlineId": "d1",
-						"createdAt": "2026-11-02T10:00:00.000Z",
+						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 3,
 						"total": 3
 					},
 					{
 						"chatId": "c3",
 						"deadlineId": "d2",
-						"createdAt": "2026-11-02T10:00:00.000Z",
+						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 0,
 						"total": 4
 					},
 					{
 						"chatId": "c4",
 						"deadlineId": "d2",
-						"createdAt": "2026-11-02T10:00:00.000Z",
+						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 2,
 						"total": 4
 					},
 					{
 						"chatId": "c5",
 						"deadlineId": "d3",
-						"createdAt": "2026-11-03T10:00:00.000Z",
+						"updatedAt": "2026-11-03T10:00:00.000Z",
 						"done": 0,
 						"total": 0
 					}
@@ -69506,35 +69506,35 @@
 					{
 						"chatId": "c1",
 						"deadlineId": "d1",
-						"createdAt": "2026-11-01T10:00:00.000Z",
+						"updatedAt": "2026-11-01T10:00:00.000Z",
 						"done": 1,
 						"total": 3
 					},
 					{
 						"chatId": "c2",
 						"deadlineId": "d1",
-						"createdAt": "2026-11-02T10:00:00.000Z",
+						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 3,
 						"total": 3
 					},
 					{
 						"chatId": "c3",
 						"deadlineId": "d2",
-						"createdAt": "2026-11-02T10:00:00.000Z",
+						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 0,
 						"total": 4
 					},
 					{
 						"chatId": "c4",
 						"deadlineId": "d2",
-						"createdAt": "2026-11-02T10:00:00.000Z",
+						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 2,
 						"total": 4
 					},
 					{
 						"chatId": "c5",
 						"deadlineId": "d3",
-						"createdAt": "2026-11-03T10:00:00.000Z",
+						"updatedAt": "2026-11-03T10:00:00.000Z",
 						"done": 0,
 						"total": 0
 					}
@@ -69556,35 +69556,35 @@
 					{
 						"chatId": "c1",
 						"deadlineId": "d1",
-						"createdAt": "2026-11-01T10:00:00.000Z",
+						"updatedAt": "2026-11-01T10:00:00.000Z",
 						"done": 1,
 						"total": 3
 					},
 					{
 						"chatId": "c2",
 						"deadlineId": "d1",
-						"createdAt": "2026-11-02T10:00:00.000Z",
+						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 3,
 						"total": 3
 					},
 					{
 						"chatId": "c3",
 						"deadlineId": "d2",
-						"createdAt": "2026-11-02T10:00:00.000Z",
+						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 0,
 						"total": 4
 					},
 					{
 						"chatId": "c4",
 						"deadlineId": "d2",
-						"createdAt": "2026-11-02T10:00:00.000Z",
+						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 2,
 						"total": 4
 					},
 					{
 						"chatId": "c5",
 						"deadlineId": "d3",
-						"createdAt": "2026-11-03T10:00:00.000Z",
+						"updatedAt": "2026-11-03T10:00:00.000Z",
 						"done": 0,
 						"total": 0
 					}
@@ -69602,35 +69602,35 @@
 					{
 						"chatId": "c1",
 						"deadlineId": "d1",
-						"createdAt": "2026-11-01T10:00:00.000Z",
+						"updatedAt": "2026-11-01T10:00:00.000Z",
 						"done": 1,
 						"total": 3
 					},
 					{
 						"chatId": "c2",
 						"deadlineId": "d1",
-						"createdAt": "2026-11-02T10:00:00.000Z",
+						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 3,
 						"total": 3
 					},
 					{
 						"chatId": "c3",
 						"deadlineId": "d2",
-						"createdAt": "2026-11-02T10:00:00.000Z",
+						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 0,
 						"total": 4
 					},
 					{
 						"chatId": "c4",
 						"deadlineId": "d2",
-						"createdAt": "2026-11-02T10:00:00.000Z",
+						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 2,
 						"total": 4
 					},
 					{
 						"chatId": "c5",
 						"deadlineId": "d3",
-						"createdAt": "2026-11-03T10:00:00.000Z",
+						"updatedAt": "2026-11-03T10:00:00.000Z",
 						"done": 0,
 						"total": 0
 					}

@@ -124,7 +124,7 @@ async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unh
 	} else {
 		LessonStart::Typed { title: title.to_owned(), picks: picks_of(&body["graphContext"]) }
 	};
-	Ok(match create_lesson(&app, CreateLessonInput { space_id, start })? {
+	Ok(match create_lesson(&app, CreateLessonInput { space_id, start, for_deadline: None })? {
 		Ok(created) => reply::json(200, &json!({ "id": created.chat["id"], "title": created.title })),
 		Err(not_found) => reply::coded(404, not_found.error, not_found.code),
 	})

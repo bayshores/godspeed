@@ -59,6 +59,10 @@ await fetch("/api/spaces/{space}/deadlines/{homeworkOpenDeadline}", { method: "P
 const homeworkTomorrow = `const day = new Date(Date.now() + 86_400_000);
 const date = day.getFullYear() + "-" + String(day.getMonth() + 1).padStart(2, "0") + "-" + String(day.getDate()).padStart(2, "0");
 await fetch("/api/spaces/{space}/deadlines/{homeworkOpenDeadline}", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ date }) })${HTTP_OK};`;
+/** Two Study lessons on the exam, so its page lists them. */
+const twoLessons = `for (let n = 0; n < 2; n++) await fetch("/api/chats", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ spaceId: "{space}", deadlineId: "{deadline}" }) })${HTTP_OK};`;
+const dropTwoLessons = `const { chats } = await fetch("/api/chats?space={space}")${HTTP_OK}.then((r) => r.json());
+for (const c of chats.filter((c) => c.deadlineId === "{deadline}" && c.kind === "study")) await fetch("/api/chats/" + c.id + "?mode=preserve-graph", { method: "DELETE" })${HTTP_OK};`;
 /** Every deadline the seed made, so Home has none. */
 const dropDeadlines = ["{deadline}", "{homeworkOpenDeadline}", "{homeworkFirstDeadline}", "{homeworkManyDeadline}", "{homeworkPrintedDeadline}", "{sheetMade}", "{sheetVersions}", "{mockRunDeadline}", "{waitingDeadline}"].map((id) => `await fetch("/api/spaces/{space}/deadlines/${id}", { method: "DELETE" })${HTTP_OK};`).join("\n");
 
@@ -204,7 +208,8 @@ export const SCREENS = [
 	},
 	{ name: "Deadlines", url: "/space/deadlines", ready: "[data-testid=deadline-open]" },
 	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]" },
-	{ name: "Homework deadline with its two keys", url: "/space/deadline/{homeworkOpenDeadline}", ready: "[data-testid=homework-card] [data-testid=deadline-work]" },
+	{ name: "Deadline with two lessons", before: twoLessons, url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-lessons] li:nth-child(2)" },
+	{ name: "Homework deadline with its two keys", before: dropTwoLessons, url: "/space/deadline/{homeworkOpenDeadline}", ready: "[data-testid=homework-card] [data-testid=deadline-work]" },
 	{ name: "Progress with a homework next", before: `${homeworkCoversFile}\n${homeworkTomorrow}`, url: "/space", ready: "[data-testid=next-deadline] [data-testid=deadline-work]" },
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
 	{ name: "Lesson with a written-answer question", url: "/chat/{written}", ready: "[data-testid=question-dock]" },

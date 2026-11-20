@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { dayWord, keyLabel, pendingEdits, shownRows, splitLessons, stepBlocks, withEdits } from "../../src/frontend/components/overview/lesson-record-model.ts";
+import { dayWord, keyLabel, lessonsFor, pendingEdits, shownRows, splitLessons, stepBlocks, withEdits } from "../../src/frontend/components/overview/lesson-record-model.ts";
 import type { LessonProgress } from "../../src/shared/core/index.ts";
 
 const lesson = (chatId: string, day: number, over: Partial<LessonProgress> = {}): LessonProgress => ({
@@ -63,8 +63,16 @@ describe("dayWord", () => {
 	});
 });
 
+describe("lessonsFor", () => {
+	it("keeps the deadline's lessons, the one last worked in first", () => {
+		const all = [lesson("study", 1, { deadlineId: "exam" }), lesson("other", 5, { deadlineId: "quiz" }), lesson("practice", 3, { deadlineId: "exam" }), lesson("loose", 4)];
+		assert.deepEqual(lessonsFor(all, "exam").map((l) => l.chatId), ["practice", "study"]);
+		assert.deepEqual(lessonsFor(all, "none"), []);
+	});
+});
+
 describe("stepBlocks", () => {
-	const problems = (id: string) => (id === "hw" ? { done: 1, total: 4 } : undefined);
+	const problems = [{ id: "hw", problems: { done: 1, total: 4 } }, { id: "exam" }];
 
 	it("a homework shows its deadline's problems; any other lesson its plan's steps", () => {
 		assert.deepEqual(stepBlocks({ kind: "homework", deadlineId: "hw", step: { done: 2, total: 3 } }, problems), { done: 1, total: 4 });

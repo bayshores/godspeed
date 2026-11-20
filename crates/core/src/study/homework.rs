@@ -34,9 +34,9 @@ pub fn problems_done(problems: &Json) -> Option<Json> {
 	Some(json!({ "done": list.iter().filter(|p| p["done"].truthy()).count(), "total": list.len() }))
 }
 
-/// The chat id of the latest homework session on a deadline, which Work on reopens.
+/// The chat id of the homework session on a deadline created last, which Work on reopens.
 pub fn latest_homework(deadline_id: &str, sessions: &[Json]) -> Option<String> {
-	latest_session(deadline_id, sessions).and_then(|s| s["chatId"].as_str().map(str::to_owned))
+	latest_session(deadline_id, sessions, "createdAt").and_then(|s| s["chatId"].as_str().map(str::to_owned))
 }
 
 /// Whether a conclude outcome marks the problem done.

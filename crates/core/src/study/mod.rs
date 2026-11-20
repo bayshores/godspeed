@@ -26,11 +26,11 @@ mod work_on_next;
 use gs_base::text::cmp16;
 use gs_json::Json;
 
-/// The session on `deadline_id` created last (the first one wins a tie).
-pub(crate) fn latest_session<'a>(deadline_id: &str, sessions: &'a [Json]) -> Option<&'a Json> {
+/// The session on `deadline_id` whose `at` field (a time) is the latest; the first one wins a tie.
+pub(crate) fn latest_session<'a>(deadline_id: &str, sessions: &'a [Json], at: &str) -> Option<&'a Json> {
 	let mut latest: Option<&Json> = None;
 	for s in sessions {
-		if s["deadlineId"].as_str() == Some(deadline_id) && latest.is_none_or(|l| cmp16(s["createdAt"].str_or_empty(), l["createdAt"].str_or_empty()).is_gt()) {
+		if s["deadlineId"].as_str() == Some(deadline_id) && latest.is_none_or(|l| cmp16(s[at].str_or_empty(), l[at].str_or_empty()).is_gt()) {
 			latest = Some(s);
 		}
 	}

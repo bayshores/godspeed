@@ -15,7 +15,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { Root } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { parseHTML } from "linkedom";
-import type { DeadlineProgress } from "../../src/shared/core/index.ts";
+import type { DeadlineProgress, LessonProgress } from "../../src/shared/core/index.ts";
+import type { LessonActions } from "../../src/frontend/components/overview/use-lesson-actions.ts";
 import { SELECT, SELECT_ARROW } from "../../src/frontend/components/ui/field.ts";
 
 const dom = parseHTML("<html><body></body></html>");
@@ -330,6 +331,60 @@ describe("a homework's Problems sheet", () => {
 
 	it("shows in the page's homework slot", () => {
 		assert.match(render(deadline(), { homework: <p>slot</p> }), /<p>slot<\/p>/);
+	});
+});
+
+// ─── Its lessons ────────────────────────────────────────────────────────────
+
+const { LessonCard } = await import("../../src/frontend/components/overview/lesson-card.tsx");
+
+describe("a deadline's lessons", () => {
+	const lesson = (chatId: string, title: string, step: { done: number; total: number }): LessonProgress => ({
+		chatId,
+		title,
+		kind: "study",
+		updatedAt: "2026-11-02T12:00:00Z",
+		answers: [],
+		right: 0,
+		answered: 0,
+		score: null,
+		step,
+		unfinished: true,
+		deadlineId: "d1",
+	});
+	const none = () => {};
+	const actions: LessonActions = {
+		shown: null,
+		menuId: null,
+		lastMenuId: null,
+		anchorRef: { current: null },
+		renamingId: null,
+		renameFailedId: null,
+		deleting: null,
+		moving: null,
+		onMenu: none,
+		closeMenu: none,
+		startRename: none,
+		commitRename: none,
+		cancelRename: none,
+		startMove: none,
+		startDelete: none,
+		endDialog: none,
+	};
+
+	it("sit under the path in the order given, each opening its lesson, with no key of their own", () => {
+		const lessons = [lesson("c2", "Practice test", { done: 2, total: 7 }), lesson("c1", "Study for Midterm", { done: 1, total: 3 })];
+		const html = render(deadline(), { lessons: <LessonCard title="Lessons" name="deadline" lessons={lessons} deadlines={[]} actions={actions} /> });
+		const at = html.indexOf('data-testid="deadline-lessons"');
+		assert.ok(at > html.indexOf('data-testid="deadline-path"'), "after the path");
+		const card = html.slice(at);
+		assert.match(card, />Lessons<\/h2>.*href="\/chat\/c2".*Practice test.*href="\/chat\/c1".*Study for Midterm/s);
+		assert.equal(count(card, 'aria-label="Step 2 of 7"'), 1);
+		assert.ok(!card.includes("deadline-key"), "the path's key opens the first");
+	});
+
+	it("are left out with no slot filled", () => {
+		assert.ok(!render().includes("deadline-lessons"));
 	});
 });
 

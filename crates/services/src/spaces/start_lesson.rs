@@ -1,6 +1,6 @@
-//! start_lesson: a new lesson on a topic, or a deadline's lesson as its Study or Work on key
-//! starts it. A new lesson's title is the learner's first message; a continued one is where they
-//! left it.
+//! start_lesson: a new lesson on a topic (for a deadline when one is named with it), or a
+//! deadline's lesson as its Study or Work on key starts it. A new lesson's title is the learner's
+//! first message; a continued one is where they left it.
 
 use gs_core::contracts::space::parse_space_scope;
 use gs_core::spaces::space_tools::ToolOutcome;
@@ -16,10 +16,9 @@ impl SpaceActions {
 		let topic = args["topic"].as_str().map(str::trim).filter(|t| !t.is_empty());
 		let deadline_id = args["deadline_id"].as_str();
 		let lesson = match (topic, deadline_id) {
-			(Some(_), Some(_)) => return ToolOutcome::Err("Give topic or deadline_id, not both.".to_owned()),
 			(None, None) => return ToolOutcome::Err("Give topic or deadline_id.".to_owned()),
-			(Some(topic), None) if args["homework"].truthy() => return ToolOutcome::Err(format!("homework needs deadline_id, not a topic (\"{topic}\").")),
-			(Some(topic), None) => self.topic_lesson(args, topic),
+			(Some(topic), _) if args["homework"].truthy() => return ToolOutcome::Err(format!("homework takes deadline_id alone, not a topic (\"{topic}\").")),
+			(Some(topic), deadline_id) => self.topic_lesson(args, topic, deadline_id),
 			(None, Some(deadline_id)) => self.deadline_lesson(args, deadline_id),
 		};
 		let (space_id, lesson) = match lesson {
@@ -40,10 +39,11 @@ impl SpaceActions {
 		self.done(json!({ "status": status, "lessonId": chat_id, "title": title }), vec![shown])
 	}
 
-	/// A new lesson on a typed topic: its space, and the lesson.
-	fn topic_lesson(&self, args: &Json, topic: &str) -> Result<(Option<String>, DeadlineLesson), String> {
-		let Some(scope) = parse_space_scope(args["space_id"].as_str()) else {
-			return Err(format!("\"{}\" is not a space id. Use list_spaces.", template_text(args.get("space_id"))));
+	/// A new lesson on a typed topic, for the deadline when one is named: its space, and the lesson.
+	fn topic_lesson(&self, args: &Json, topic: &str, deadline_id: Option<&str>) -> Result<(Option<String>, DeadlineLesson), String> {
+		let scope = match deadline_id {
+			Some(id) => Some(self.deadline_space(args, id)?),
+			None => parse_space_scope(args["space_id"].as_str()).ok_or_else(|| format!("\"{}\" is not a space id. Use list_spaces.", template_text(args.get("space_id"))))?,
 		};
 		let space = match &scope {
 			Some(id) => Some(self.app.stores.spaces.get_space(id).ok_or_else(|| no_space_text(id))?),
@@ -58,7 +58,7 @@ impl SpaceActions {
 			Some(id) => LessonStart::PathTopic(id.to_owned()),
 			None => LessonStart::Typed { title: topic.to_owned(), picks: Vec::new() },
 		};
-		let lesson = match create_lesson(&self.app, CreateLessonInput { space_id: scope.clone(), start })? {
+		let lesson = match create_lesson(&self.app, CreateLessonInput { space_id: scope.clone(), start, for_deadline: deadline_id.map(str::to_owned) })? {
 			Ok(created) => DeadlineLesson::New { chat_id: created.chat["id"].str_or_empty().to_owned(), title: created.title },
 			Err(not_found) => return Err(not_found.error.to_owned()),
 		};
@@ -67,13 +67,18 @@ impl SpaceActions {
 
 	/// The deadline's lesson, as its Study key (or with `homework`, its Work on key) starts it.
 	fn deadline_lesson(&self, args: &Json, deadline_id: &str) -> Result<(Option<String>, DeadlineLesson), String> {
-		let given = args["space_id"].as_str();
-		let found = deadline_with_space(&self.app, deadline_id).and_then(|d| d["spaceId"].as_str().map(str::to_owned)).filter(|space_id| given.is_none_or(|g| g == space_id));
-		let Some(space_id) = found else { return Err(format!("No deadline \"{deadline_id}\". Use read_space.")) };
+		let space_id = self.deadline_space(args, deadline_id)?;
 		if self.app.stores.spaces.get_space(&space_id).is_some_and(|s| s["closed"].truthy()) {
 			return Err(CLOSED_SPACE.to_owned());
 		}
 		let lesson = deadline_lesson(&self.app, &space_id, deadline_id, args["homework"].truthy())??;
 		Ok((Some(space_id), lesson))
+	}
+
+	/// The deadline's space, which a given space_id must be.
+	fn deadline_space(&self, args: &Json, deadline_id: &str) -> Result<String, String> {
+		let given = args["space_id"].as_str();
+		let found = deadline_with_space(&self.app, deadline_id).and_then(|d| d["spaceId"].as_str().map(str::to_owned)).filter(|space_id| given.is_none_or(|g| g == space_id));
+		found.ok_or_else(|| format!("No deadline \"{deadline_id}\". Use read_space."))
 	}
 }

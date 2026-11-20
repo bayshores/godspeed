@@ -1,7 +1,8 @@
 /** A space's lessons on Progress: the unfinished ones beside the finished
  *  ones, how many of each show, the day a finished row names, a row's step
- *  blocks, and the edits shown before the payload has them. Pure. */
-import type { LessonProgress } from "@/shared/core";
+ *  blocks, and the edits shown before the payload has them. Also the
+ *  lessons one deadline's page lists. Pure. */
+import type { DeadlineProgress, LessonProgress } from "@/shared/core";
 
 /** Unfinished lessons shown until "Show all". */
 export const UNFINISHED_SHOWN = 3;
@@ -21,6 +22,12 @@ export function shownRows<T>(rows: readonly T[], limit: number, shownAll: boolea
 	return { rows: rows.slice(0, limit), showAll: rows.length };
 }
 
+/** The lessons for one deadline, the one last worked in first: the one its
+ *  Study key continues while it is unfinished. */
+export function lessonsFor(lessons: readonly LessonProgress[], deadlineId: string): LessonProgress[] {
+	return lessons.filter((l) => l.deadlineId === deadlineId).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
 /** An unfinished lesson's key: "Work on it" for homework, else "Continue". */
 export function keyLabel(lesson: Pick<LessonProgress, "kind">): string {
 	return lesson.kind === "homework" ? "Work on it" : "Continue";
@@ -30,9 +37,9 @@ export function keyLabel(lesson: Pick<LessonProgress, "kind">): string {
  *  lesson's are the steps of its plan. Null with neither. */
 export function stepBlocks(
 	lesson: Pick<LessonProgress, "kind" | "step" | "deadlineId">,
-	problemsOf: (deadlineId: string) => { done: number; total: number } | undefined,
+	deadlines: readonly Pick<DeadlineProgress, "id" | "problems">[],
 ): { done: number; total: number } | null {
-	const problems = lesson.kind === "homework" && lesson.deadlineId ? problemsOf(lesson.deadlineId) : undefined;
+	const problems = lesson.kind === "homework" ? deadlines.find((d) => d.id === lesson.deadlineId)?.problems : undefined;
 	const blocks = problems ?? lesson.step;
 	return blocks && blocks.total > 0 ? blocks : null;
 }

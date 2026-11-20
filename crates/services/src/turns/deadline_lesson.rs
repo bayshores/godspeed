@@ -52,7 +52,7 @@ pub fn deadline_lesson(app: &Arc<App>, space_id: &str, deadline_id: &str, homewo
 		}
 		return Ok(Ok(continued(app, chat_id)));
 	}
-	Ok(created(create_lesson(app, CreateLessonInput { space_id: Some(space_id.to_owned()), start: LessonStart::Deadline(deadline_id.to_owned()) })?))
+	Ok(created(create_lesson(app, CreateLessonInput { space_id: Some(space_id.to_owned()), start: LessonStart::Deadline(deadline_id.to_owned()), for_deadline: None })?))
 }
 
 fn no_deadline(deadline_id: &str) -> String {

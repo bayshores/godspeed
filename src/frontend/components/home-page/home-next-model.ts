@@ -32,8 +32,7 @@ export function unfinishedAcross(spaces: readonly SpaceRef[], progress: Readonly
 	if (noSpace) sources.push({ spaceId: null, color: undefined, payload: noSpace });
 	return sources
 		.flatMap(({ spaceId, color, payload }) => {
-			const problemsOf = (deadlineId: string) => payload.deadlines.find((d) => d.id === deadlineId)?.problems;
-			return payload.lessons.filter((l) => l.unfinished).map((lesson) => ({ lesson, spaceId, color, blocks: stepBlocks(lesson, problemsOf) }));
+			return payload.lessons.filter((l) => l.unfinished).map((lesson) => ({ lesson, spaceId, color, blocks: stepBlocks(lesson, payload.deadlines) }));
 		})
 		.sort((a, b) => b.lesson.updatedAt.localeCompare(a.lesson.updatedAt))
 		.slice(0, TODAY_NEXT_ROWS);

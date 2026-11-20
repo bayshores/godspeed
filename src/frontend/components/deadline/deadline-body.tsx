@@ -15,7 +15,7 @@ import type { RequestKind } from "./request-model";
  * ONE DEADLINE'S PAGE (pure view, the render-test seam): the time left
  * with when and how far it is (a chip) beside it; its topics as a
  * strip colored by how you do; what it's like; a homework's problems; What's
- * on it and the path to it with its mocks. The deadline's name is the top bar's
+ * on it and the path to it with its mocks, then its lessons once it has two. The deadline's name is the top bar's
  * crumb (the page keeps it as a hidden h1), and Cheat sheet and Edit deadline
  * are words at the bar's right. An interview has no cheat sheet, and no
  * What's on it until files are linked.
@@ -57,6 +57,8 @@ interface DeadlineBodyProps {
 	homework?: ReactNode;
 	/** A test's or interview's mocks (path-mocks.tsx). */
 	mocks?: ReactNode;
+	/** The lessons for it, once there are two (lesson-card.tsx). */
+	lessons?: ReactNode;
 }
 
 export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps) {
@@ -123,7 +125,7 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 							/>
 						)}
 					</div>
-					<div className="w-full @4xl:w-[400px] @4xl:shrink-0">
+					<div className="flex w-full flex-col gap-(--lh-gap) @4xl:w-[400px] @4xl:shrink-0">
 						<PathSheet
 							deadline={d}
 							plan={props.plan}
@@ -139,6 +141,7 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 							onAskGuide={() => props.onRequest("guide")}
 							mocks={props.mocks}
 						/>
+						{props.lessons}
 					</div>
 				</div>
 			</div>

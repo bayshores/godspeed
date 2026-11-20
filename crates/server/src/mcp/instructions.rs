@@ -22,7 +22,7 @@ Work loop:
 
 Lost track of an item (context compacted, or missing instructions or tools it refers to): read_work with its work_id and full: true. No workId: wait_for_work with full_context: true.
 
-Loop until the user says stop. Only the work item's tools, never invented ones, called through respond even when this server has one with the same name (like read_space): only then does the lesson keep what you looked up. In a lesson the learner sees only what you send with respond. Outside lessons they may type to you in godspeed's terminal: answer them there. Asked to show a page (\"open my cheat sheet\"): open_page. Asked to study for or work on a deadline: start_lesson with deadline_id.";
+Loop until the user says stop. Only the work item's tools, never invented ones, called through respond even when this server has one with the same name (like read_space): only then does the lesson keep what you looked up. In a lesson the learner sees only what you send with respond. Outside lessons they may type to you in godspeed's terminal: answer them there. Asked to show a page (\"open my cheat sheet\"): open_page. Asked to study for or work on a deadline: start_lesson with deadline_id. For one thing for it (a practice test, one topic): topic too.";
 
 const MEMORY_INSTRUCTIONS: &str = "Memory: \"Where you left off\" above = learner's state when you connected; list_lessons and read_space have anything newer. Learner tells you something outside a lesson that matters next time (exam over, what to study next, how they like to learn): save with remember, one fact per note, never passwords or private details. Remove out-of-date notes with forget.";
 
@@ -50,6 +50,6 @@ mod tests {
 	/// What the fixed texts leave of the 4,096 characters: a longer text here shrinks the briefing.
 	#[test]
 	fn the_fixed_texts_leave_the_briefing_its_room() {
-		assert_eq!(briefing_room(), 1735);
+		assert_eq!(briefing_room(), 1673);
 	}
 }

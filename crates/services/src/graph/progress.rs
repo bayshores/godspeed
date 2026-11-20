@@ -215,7 +215,7 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 			let mut session = Obj::new();
 			session.insert("chatId", c["id"].clone());
 			session.insert("deadlineId", c["deadlineId"].clone());
-			session.insert_present("createdAt", c.get("createdAt"));
+			session.insert_present("updatedAt", c.get("updatedAt"));
 			session.extend(readout.plan.clone().unwrap_or_default());
 			deadline_sessions.push(Json::Obj(session));
 		}
@@ -429,6 +429,26 @@ pub(super) mod tests {
 		let d = midterm(&app, &space_id, &deadline_id);
 		assert_eq!(d["continueStudy"]["chatId"], json!(study));
 		assert_eq!(d["continueHomework"], json!(homework));
+	}
+
+	#[test]
+	fn study_continues_the_deadlines_lesson_worked_in_last() {
+		let root = scratch_dir("progress-last-worked");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Algorithms" })).unwrap()["id"].str_or_empty().to_owned();
+		let deadline_id = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "Midterm", "kind": "exam", "date": "2099-01-15" })).unwrap()["id"].str_or_empty().to_owned();
+		let lesson = |title: &str| {
+			// Each lesson's time is its own clock tick.
+			clock::advance(5);
+			app.stores.chats.create_chat(title, Some("study"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned()
+		};
+		let (study, practice) = (lesson("Study for Midterm"), lesson("Practice test"));
+		assert_eq!(midterm(&app, &space_id, &deadline_id)["continueStudy"]["chatId"], json!(practice), "the practice test, made and worked in last");
+		clock::advance(5);
+		app.stores.chats.save_messages(&study, &[]).unwrap();
+		assert_eq!(midterm(&app, &space_id, &deadline_id)["continueStudy"]["chatId"], json!(study), "back in the older one");
+		let unfinished = |app: &App| progress_for(app, space_id.as_str(), None).unwrap().unwrap()["lessons"].items().iter().filter(|l| l["unfinished"].truthy()).count();
+		assert_eq!(unfinished(&app), 2, "both stay to go back to");
 	}
 
 	#[test]

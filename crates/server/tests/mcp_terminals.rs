@@ -189,9 +189,19 @@ async fn start_lesson_starts_or_continues_a_deadlines_study_or_homework() {
 	let more = gs_json::parse(&start(format!(r#"{{"deadline_id":"{homework}","homework":true}}"#)).await).unwrap();
 	assert_eq!((more["status"].as_str(), &more["lessonId"]), (Some("continued"), &work["lessonId"]));
 
-	assert_eq!(start(format!(r#"{{"topic":"Sums","deadline_id":"{exam}"}}"#)).await, "Give topic or deadline_id, not both.");
+	// A later clock tick than the Study session's last message.
+	gs_base::clock::advance(5);
+	let practice = gs_json::parse(&start(format!(r#"{{"topic":"Practice test","deadline_id":"{exam}"}}"#)).await).unwrap();
+	assert_eq!((practice["status"].as_str(), practice["title"].as_str()), (Some("started"), Some("Practice test")));
+	let made = app.stores.chats.get_chat(practice["lessonId"].str_or_empty()).unwrap();
+	assert_eq!((made["deadlineId"].as_str(), made["spaceId"].as_str()), (Some(exam.as_str()), Some(space_id.as_str())), "a topic lesson for the deadline, in its space");
+	let back = gs_json::parse(&start(format!(r#"{{"deadline_id":"{exam}"}}"#)).await).unwrap();
+	assert_eq!((back["status"].as_str(), &back["lessonId"]), (Some("continued"), &practice["lessonId"]), "Study continues the lesson worked in last");
+
 	assert_eq!(start("{}".to_owned()).await, "Give topic or deadline_id.");
-	assert_eq!(start(r#"{"topic":"Sums","homework":true}"#.to_owned()).await, "homework needs deadline_id, not a topic (\"Sums\").");
+	assert_eq!(start(r#"{"topic":"Sums","homework":true}"#.to_owned()).await, "homework takes deadline_id alone, not a topic (\"Sums\").");
+	assert_eq!(start(format!(r#"{{"topic":"Sums","deadline_id":"{exam}","homework":true}}"#)).await, "homework takes deadline_id alone, not a topic (\"Sums\").");
+	assert_eq!(start(format!(r#"{{"topic":"Sums","deadline_id":"{exam}","space_id":"spc_other"}}"#)).await, format!("No deadline \"{exam}\". Use read_space."));
 	assert_eq!(start(r#"{"deadline_id":"ddl_gone"}"#.to_owned()).await, "No deadline \"ddl_gone\". Use read_space.");
 	assert_eq!(start(format!(r#"{{"deadline_id":"{exam}","space_id":"spc_other"}}"#)).await, format!("No deadline \"{exam}\". Use read_space."));
 	assert_eq!(start(format!(r#"{{"deadline_id":"{exam}","homework":true}}"#)).await, "Midterm is not homework or a project, so it has no problems to work on. Leave homework out to study for it.");

@@ -12,7 +12,6 @@ use super::calibration::calibration;
 use super::continue_study::{continue_study_for, ended_today_for, plan_finished};
 use super::fact_progress::{file_coverage, from_lesson, next_up_file};
 use super::homework::{latest_homework, problems_done};
-use super::latest_session;
 use super::path_progress::path_progress;
 use super::progress::{days_between, ramp_color, topic_status};
 use super::topic_links::{TopicLink, topic_columns, topic_links};
@@ -220,21 +219,16 @@ fn lesson_rows(input: &Json, by_lesson: &[&[Json]], lesson_at: &HashMap<&str, us
 	rows
 }
 
-/// Whether a lesson is left to go back to. Of the lessons started from one deadline only the
-/// latest can be; a homework lesson while its deadline is not done and not every problem is. A
-/// lesson with a plan until the plan is finished; one with none while something waits for the
-/// learner or nothing is answered yet.
+/// Whether a lesson is left to go back to. A homework lesson, only its deadline's latest, while
+/// the deadline is not done and not every problem is. Any other lesson with a plan until the plan
+/// is finished; one with none while something waits for the learner or nothing is answered yet.
 fn is_unfinished(lesson: &Json, tally: &Tally, input: &Json, deadlines: &HashMap<&str, &Json>) -> bool {
-	let chat_id = lesson["id"].as_str();
-	if let Some(deadline_id) = lesson["deadlineId"].as_str() {
-		if lesson["kind"].as_str() == Some("homework") {
-			// No problems posted yet is not every problem done.
-			let open = deadlines.get(deadline_id).is_some_and(|d| !d["done"].truthy() && problems_done(&d["problems"]).is_none_or(|p| p["done"] != p["total"]));
-			return open && latest_homework(deadline_id, input["homeworkSessions"].items()).as_deref() == chat_id;
-		}
-		if latest_session(deadline_id, input["deadlineSessions"].items()).map(|s| s["chatId"].as_str()) != Some(chat_id) {
-			return false;
-		}
+	if let Some(deadline_id) = lesson["deadlineId"].as_str()
+		&& lesson["kind"].as_str() == Some("homework")
+	{
+		// No problems posted yet is not every problem done.
+		let open = deadlines.get(deadline_id).is_some_and(|d| !d["done"].truthy() && problems_done(&d["problems"]).is_none_or(|p| p["done"] != p["total"]));
+		return open && latest_homework(deadline_id, input["homeworkSessions"].items()).as_deref() == lesson["id"].as_str();
 	}
 	match lesson.get("plan") {
 		Some(plan) => !plan_finished(plan),
@@ -377,18 +371,17 @@ mod tests {
 	}
 
 	#[test]
-	fn of_a_deadlines_study_sessions_only_the_latest_can_be_unfinished() {
+	fn each_of_a_deadlines_study_lessons_is_unfinished_by_its_own_plan() {
 		let plan = json!({ "done": 1, "total": 3 });
-		let session = |id: &str, at: &str| json!({ "chatId": id, "deadlineId": "d1", "createdAt": at, "done": 1, "total": 3 });
+		let session = |id: &str, at: &str| json!({ "chatId": id, "deadlineId": "d1", "updatedAt": at, "done": 1, "total": 3 });
 		let r = rows(
 			json!([lesson("old", "study", json!({ "deadlineId": "d1", "plan": plan })), lesson("new", "study", json!({ "deadlineId": "d1", "plan": plan }))]),
 			json!([{ "id": "d1", "kind": "exam", "name": "Midterm", "date": "2026-12-01", "done": false }]),
 			json!([session("old", "2026-11-01"), session("new", "2026-11-02")]),
 			json!([]),
 		);
-		assert_eq!(r["old"].get("unfinished"), None, "an older session");
+		assert_eq!(r["old"]["unfinished"], json!(true), "the one not worked in last stays to go back to");
 		assert_eq!((r["new"]["unfinished"].clone(), r["new"]["deadlineId"].clone()), (json!(true), json!("d1")));
-		assert_eq!(r["old"]["step"], json!({ "done": 1, "total": 3 }), "every planned lesson keeps its step");
 	}
 
 	#[test]
