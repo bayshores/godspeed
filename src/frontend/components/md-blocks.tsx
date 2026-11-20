@@ -38,6 +38,7 @@ import { CopyButton } from "@/frontend/components/copy-button";
 import { chartSize, useSessionMermaid } from "@/frontend/components/session-overlay";
 import { SMALL_BTN } from "@/frontend/components/ui/card-parts";
 import { CiteMark } from "@/frontend/components/citations/cite-mark";
+import { numbersOwnLines } from "./md-code-model";
 
 // ─── The one affordance: the hover-reveal corner copy ────────────────────────
 
@@ -197,7 +198,7 @@ function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
 
 	const startMatch = /startLine=(\d+)/.exec(meta);
 	const startLine = startMatch ? Number.parseInt(startMatch[1]!, 10) : undefined;
-	const lineNumbers = !/\bnoLineNumbers\b/.test(meta);
+	const lineNumbers = !/\bnoLineNumbers\b/.test(meta) && !numbersOwnLines(source);
 	return (
 		<div className="group/md relative z-0" data-testid="md-code">
 			<CopyCorner className="absolute top-1.5 right-2 z-10" getText={() => source} label="Copy code" />
