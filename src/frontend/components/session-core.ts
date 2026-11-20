@@ -38,7 +38,7 @@ import {
 	type QuestionAnswerData,
 } from "../../shared/core";
 import { jsonInit } from "@/frontend/lib/api";
-import { keepGoingOwesNext } from "./lesson/stop-card-model";
+import { keepGoingOwesNext } from "./lesson/lesson-stop-model";
 
 type SessionStatus = "ready" | "submitted" | "streaming" | "error";
 

@@ -1,6 +1,7 @@
 /**
  * The lesson's turn sheet: Your turn in each of its states (with the
- * answer box, its size, the question above it and the foot row), when it shows, the box's Enter
+ * answer box, its size, the question above it and the foot row, or what is
+ * next and its key), how its contents swap, where it shows, the box's Enter
  * rules, the question's keys, folding and saved drafts, the read-first
  * reveal, the reading pane's desk and Stop, the practice
  * progress, and the view's message reuse.
@@ -16,11 +17,11 @@ import { mathBoxView, stubCodeMirrorDom } from "../math-box-dom.ts";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { YourTurn } from "../../src/frontend/components/lesson/your-turn.tsx";
-import { stopCard } from "../../src/frontend/components/lesson/stop-card-model.ts";
-import { TurnSheet, yourTurnShown } from "../../src/frontend/components/lesson/turn-sheet.tsx";
+import { TurnSheet } from "../../src/frontend/components/lesson/turn-sheet.tsx";
+import type { NextAction, TurnNext } from "../../src/frontend/components/lesson/turn-next-model.ts";
+import { LessonScroll } from "../../src/frontend/components/lesson/lesson-scroll.tsx";
 import type { QuestionHandle } from "../../src/frontend/components/question-dock.tsx";
 import { practiceProgress } from "../../src/frontend/components/lesson/practice-progress.ts";
-import { GoAheadKey } from "../../src/frontend/components/lesson/go-ahead-key.tsx";
 import { ReadingPane } from "../../src/frontend/components/lesson/reading-pane.tsx";
 import { TeacherContext, type TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 import { SpaceProvider } from "../../src/frontend/components/space-context.tsx";
@@ -61,6 +62,10 @@ const check = { tool: "quiz", toolCallId: "t1", input: { ...quizInput, type: "ch
 const written = { tool: "ask_user_question", toolCallId: "a1", input: { question: "Why does it converge?" } };
 const choice = { tool: "ask_user_question", toolCallId: "a2", input: { question: "How do you want to start?", options: [{ label: "From an example" }, { label: "From the definition" }] } };
 const problem = { toolCallId: "p1", statement: "Find E[N].", choices: null, line: "Practice, problem 2", part: null, file: null };
+const NO_NEXT = { line: null, key: null, dim: false };
+const atStop: TurnNext = { line: "Cross-validation is next.", key: { label: "Continue", action: "keep-going" } };
+const between: TurnNext = { line: null, key: { label: "Next problem", action: "next" } };
+const shown = (next: TurnNext, dim = false) => ({ ...next, dim });
 
 const marco: TeacherApi = {
 	name: "marco",
@@ -104,7 +109,8 @@ function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 		problemPicked: emptyDockSelection(),
 		onPickProblem: () => {},
 		onDiscardProblem: () => {},
-		stop: null,
+		next: NO_NEXT,
+		onNext: () => {},
 		busy: false,
 		value: "",
 		onChange: () => {},
@@ -144,14 +150,52 @@ const optionNamed = (host: HTMLElement, label: string) => options(host).find((b)
 const submitDisabled = (host: HTMLElement) => host.querySelector<HTMLButtonElement>('[data-testid="question-submit"]')!.disabled;
 
 describe("Your turn in each state", () => {
-	it("a stop: the card, with no box and no way out", () => {
-		const view = stopCard({ kind: "topic", at: "2026-11-18T21:48:00.000Z", nodeId: "reg", stopOf: "c1", next: "Cross-validation", activeMinutes: 48, keptGoing: false });
+	it("next: the title, what is next and one main key at the row's end, with no box and no way out", () => {
 		for (const busy of [false, true]) {
-			const out = html({ busy, stop: { key: "c1", view, onAction: () => {} } });
-			assert.match(out, /data-mode="stop"/);
-			assert.match(out, /data-testid="stop-card"[\s\S]*Cross-validation is next\./);
-			assert.doesNotMatch(out, /data-testid="composer"|skip-question|discard-problem|stop-turn/);
+			const out = html({ busy, next: shown(atStop) });
+			assert.match(out, /data-mode="next"/);
+			assert.match(out, /<h2[^>]*>Your turn<\/h2>[\s\S]*data-testid="turn-next"[\s\S]*data-testid="turn-next-line" class="[^"]*text-ink"[^>]*>Cross-validation is next\.<[\s\S]*data-testid="next-problem-button"/);
+			assert.match(out, /data-testid="next-problem-button" data-action="keep-going" class="lh-btn lh-btn-main ml-auto">Continue</);
+			assert.equal(out.split("<button").length - 1, 1, "one key");
+			assert.doesNotMatch(out, /data-testid="composer"|skip-question|discard-problem|stop-turn|Stop here|Keep going/);
 		}
+		const plain = html({ next: shown(between) });
+		assert.doesNotMatch(plain, /turn-next-line/, "no line when nothing names what is next");
+		assert.match(plain, /data-action="next"[^>]*>Next problem</);
+	});
+
+	it("the key sends its own action: keep going at a stop, the go-ahead between problems; Enter away from a field presses it", async () => {
+		const pressed: NextAction[] = [];
+		const onNext = (a: NextAction) => pressed.push(a);
+		await mounted(turn({ next: shown(atStop), onNext }), async (host, show) => {
+			await click(host, "next-problem-button");
+			await show(turn({ next: shown(between), onNext }));
+			await click(host, "next-problem-button");
+			const enter = new window.Event("keydown", { bubbles: true, cancelable: true });
+			Object.defineProperty(enter, "key", { value: "Enter" });
+			await act(async () => document.body.dispatchEvent(enter));
+		});
+		assert.deepEqual(pressed, ["keep-going", "next", "next"]);
+	});
+
+	it("the last topic: one line and Done for today", () => {
+		const out = html({ next: shown({ line: "That was the last topic.", key: { label: "Done for today", action: "done-for-today" } }) });
+		assert.match(out, />That was the last topic\.<[\s\S]*data-action="done-for-today"[^>]*>Done for today</);
+	});
+
+	it("while the teacher writes: the next line dimmed, with no key", () => {
+		const out = html({ busy: true, next: { line: "Cross-validation is next.", key: null, dim: true } });
+		assert.match(out, /data-testid="turn-next-line" class="[^"]*text-ink-2"[^>]*>Cross-validation is next\.</);
+		assert.doesNotMatch(out, /next-problem-button/);
+		assert.doesNotMatch(html({ busy: true, next: { line: null, key: null, dim: true } }), /turn-next/, "with no line, the title alone");
+	});
+
+	it("Start again after a first reply stopped with nothing written", () => {
+		assert.match(html({ next: shown({ line: null, key: { label: "Start again", action: "start-again" } }) }), /data-action="start-again"[^>]*>Start again</);
+	});
+
+	it("a question or a problem takes the sheet over the next state", () => {
+		for (const over of [{ pending: quiz }, { problem }]) assert.doesNotMatch(html({ ...over, next: shown(atStop) }), /turn-next|next-problem-button/);
 	});
 
 	it("an app-posed opener keeps Skip question while a turn runs", () => {
@@ -175,11 +219,6 @@ describe("Your turn in each state", () => {
 	it("nothing in it never asks for a message: no box, no Send", () => {
 		const out = html();
 		assert.doesNotMatch(out, /data-testid="composer"|composer-send|Message/);
-	});
-
-	it("with only the go-ahead waiting, there is nothing in the column to draw", () => {
-		assert.doesNotMatch(html(), /next-problem-button/);
-		assert.equal(yourTurnShown({ pending: false, problem: false, stop: false, stuck: false, error: false, reviewRefused: false }), false);
 	});
 
 	it("an open problem's box has no Teach me this: he asks the teacher in its terminal", () => {
@@ -216,8 +255,7 @@ describe("Your turn in each state", () => {
 	it("Stuck? leads the foot row under the box while a question or a problem waits, never while reading first or at a stop", () => {
 		const keys = /data-testid="composer"[\s\S]*data-testid="turn-foot"[^>]*><span[^>]*>Stuck\?<\/span>[\s\S]*?>I don(?:'|&#x27;)t know<[\s\S]*?>Give me a hint<[\s\S]*?>Explain it simpler</;
 		for (const over of [{ pending: quiz }, { pending: written }, { pending: choice }, { problem }]) assert.match(html(over), keys, JSON.stringify(Object.keys(over)));
-		const view = stopCard({ kind: "topic", at: "2026-11-18T21:48:00.000Z", nodeId: "reg", stopOf: "c1", next: "Cross-validation", activeMinutes: 48, keptGoing: false });
-		for (const over of [{}, { pending: check, revealPending: true }, { stop: { key: "c1", view, onAction: () => {} } }]) assert.doesNotMatch(html(over), /Stuck\?/);
+		for (const over of [{}, { pending: check, revealPending: true }, { next: shown(atStop) }]) assert.doesNotMatch(html(over), /Stuck\?/);
 	});
 
 	it("I don't know answers the question in one click, with the box text as the thinking", async () => {
@@ -517,7 +555,7 @@ describe("Your turn in each state", () => {
 	});
 
 	it("mouse-first: no key hint and no em-dash in any state", () => {
-		for (const over of [{}, { busy: true }, { next: "Next problem" }, { pending: quiz }, { pending: written }, { pending: check, revealPending: true }, { problem }]) {
+		for (const over of [{}, { busy: true }, { next: shown(atStop) }, { pending: quiz }, { pending: written }, { pending: check, revealPending: true }, { problem }]) {
 			const out = html(over);
 			assert.ok(!out.includes("Enter") && !out.includes("—"), JSON.stringify(Object.keys(over)));
 		}
@@ -723,9 +761,13 @@ describe("saved drafts", () => {
 });
 
 describe("the turn sheet", () => {
-	const column = (over: Partial<React.ComponentProps<typeof TurnSheet>> = {}) => (
-		<TurnSheet {...turnProps(over)} spaceId={undefined} requiresReveal={false} onReveal={() => {}} {...over} />
+	type SheetProps = React.ComponentProps<typeof TurnSheet>;
+	const column = ({ next = { line: null, key: null }, ...over }: Partial<SheetProps> = {}) => (
+		<TurnSheet {...turnProps(over)} spaceId={undefined} requiresReveal={false} onReveal={() => {}} {...over} next={next} />
 	);
+	const swap = (host: HTMLElement) => host.querySelector('[data-testid="turn-swap"]')!;
+	// The old contents' exit (--lh-dur-fast) plays out.
+	const exitPlays = () => act(() => new Promise((done) => setTimeout(done, 150)));
 
 	it("is Your turn alone: no head, no Terminal, Activity or Follow (the pill has them), and no drag handle", () => {
 		const out = renderToStaticMarkup(named(column({ pending: quiz })));
@@ -734,10 +776,36 @@ describe("the turn sheet", () => {
 		assert.doesNotMatch(out, /teacher-head|teacher-terminal-open|teacher-activity-open|follow-/);
 	});
 
-	it("shows only while something waits for the learner", () => {
-		const none = { pending: false, problem: false, stop: false, stuck: false, error: false, reviewRefused: false };
-		assert.equal(yourTurnShown(none), false);
-		for (const key of Object.keys(none)) assert.equal(yourTurnShown({ ...none, [key]: true }), true, key);
+	it("a new state fades the old contents out in the sheet that stays, then rises in", async () => {
+		await mounted(named(column({ pending: quiz })), async (host, show) => {
+			const sheet = host.querySelector('[data-testid="turn-sheet"]');
+			assert.doesNotMatch(swap(host).className, /lh-rise|lh-fade/, "the contents it opened with are just there");
+			await show(named(column({ next: between })));
+			assert.equal(swap(host).getAttribute("data-state"), "closed");
+			assert.match(swap(host).className, /lh-fade/);
+			assert.ok(host.querySelector('[data-testid="question-dock"]'), "the question is held while it fades");
+			await exitPlays();
+			assert.equal(host.querySelector('[data-testid="turn-sheet"]'), sheet, "the sheet never left");
+			assert.match(swap(host).className, /lh-rise/);
+			assert.ok(host.querySelector('[data-testid="question-dock"]') === null);
+			assert.equal(host.querySelector('[data-testid="next-problem-button"]')!.textContent, "Next problem");
+		});
+	});
+
+	it("while the teacher writes, the last next line stays dimmed with no key; after a question, the title alone", async () => {
+		await mounted(named(column({ next: atStop })), async (host, show) => {
+			await show(named(column({ busy: true, next: null })));
+			await exitPlays();
+			assert.match(host.querySelector('[data-testid="turn-next-line"]')!.className, /text-ink-2/);
+			assert.equal(host.querySelector('[data-testid="turn-next-line"]')!.textContent, "Cross-validation is next.");
+			assert.ok(host.querySelector('[data-testid="next-problem-button"]') === null);
+			await show(named(column({ pending: quiz })));
+			await exitPlays();
+			await show(named(column({ busy: true, next: null })));
+			await exitPlays();
+			assert.ok(host.querySelector('[data-testid="turn-next"]') === null);
+			assert.match(host.querySelector("h2")!.textContent!, /Your turn/);
+		});
 	});
 
 	it("a teach-phase check waits behind Check your understanding until it is opened", async () => {
@@ -757,11 +825,28 @@ describe("the turn sheet", () => {
 		await mounted(named(column({ pending: quiz })), async (host, show) => {
 			assert.equal(host.querySelector('[data-testid="your-turn"]')!.getAttribute("data-mode"), "question");
 			await show(named(column({ pending: check, requiresReveal: true })));
+			await exitPlays();
 			assert.equal(host.querySelector('[data-testid="your-turn"]')!.getAttribute("data-mode"), "question", "the reading already happened");
 			await show(named(column()));
+			await exitPlays();
 			await show(named(column({ pending: { ...check, toolCallId: "t2" }, requiresReveal: true })));
+			await exitPlays();
 			assert.equal(host.querySelector('[data-testid="your-turn"]')!.getAttribute("data-mode"), "reveal", "after a gap the learner reads first again");
 		});
+	});
+});
+
+describe("the lesson page's pair", () => {
+	const page = (turn: React.ReactNode | null, turnBesideOnly: boolean) =>
+		renderToStaticMarkup(<LessonScroll steps={null} restKey="" busy={false} contextRef={{ current: null }} reading={<div data-testid="lesson-reading" />} turn={turn} turnBesideOnly={turnBesideOnly} />);
+
+	it("keeps Your turn beside the text between problems, hidden only under the text in a narrow room", () => {
+		const between = page(<aside data-testid="turn-sheet" />, true);
+		assert.match(between, /data-testid="lesson-column" class="[^"]*@min-\[1280px\]\/room:grid/, "the pair stays");
+		assert.match(between, /class="lh-turn-fit min-w-0 @max-\[1280px\]\/room:hidden"[^>]*><aside data-testid="turn-sheet"/);
+		const waits = page(<aside data-testid="turn-sheet" />, false);
+		assert.doesNotMatch(waits, /room:hidden/, "with something to answer or press it shows under the text too");
+		assert.doesNotMatch(page(null, false), /turn-sheet|@min-\[1280px\]\/room:grid/, "before the lesson starts the text is one column");
 	});
 });
 
@@ -775,8 +860,6 @@ describe("the reading pane", () => {
 		busy: true,
 		waitingForAgent: false,
 		onStop: () => {},
-		onStartAgain: () => {},
-		goAhead: null,
 		queuedSteers: [],
 		arrivalsLive: false,
 		pageMarks: new Map(),
@@ -799,17 +882,11 @@ describe("the reading pane", () => {
 		assert.doesNotMatch(pane({ onStop: null }), /stop-turn/, "the teacher reading ahead at a stop is not stopped");
 	});
 
-	it("the go-ahead key sits at the foot once the teacher is done: Next problem, Continue or Start problem N", async () => {
-		const idle = { busy: false, status: "ready" as const, onStop: null };
-		for (const label of ["Next problem", "Continue", "Start problem 3"]) {
-			assert.match(pane({ ...idle, goAhead: { label, onGo: () => {} } }), new RegExp(`data-testid="next-problem-button"[^>]*>${label}<`));
+	it("no key that moves the lesson on at the foot of the text: those are in Your turn", () => {
+		const stopped: React.ComponentProps<typeof ReadingPane>["messages"] = [{ id: "u1", role: "user", parts: [{ type: "text", text: "Limits" }] }];
+		for (const over of [{ busy: false, status: "ready" as const, onStop: null }, { busy: false, status: "ready" as const, messages: stopped }]) {
+			assert.doesNotMatch(pane(over), /next-problem-button|Start again|Continue/);
 		}
-		assert.doesNotMatch(pane(idle), /next-problem-button/);
-		let went = 0;
-		await mounted(<GoAheadKey label="Continue" onGo={() => went++} />, async (host) => {
-			await click(host, "next-problem-button");
-			assert.equal(went, 1);
-		});
 	});
 
 	it("no desk while no agent takes the turn; the pill says it instead", () => {

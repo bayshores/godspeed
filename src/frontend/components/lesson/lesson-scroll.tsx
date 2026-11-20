@@ -6,7 +6,7 @@ import { SessionMessageNavigation } from "@/frontend/components/session-navigati
 import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
-import { keepPair, type Pads, restingTop, wholeLineTop } from "./lesson-scroll-model";
+import { type Pads, restingTop, wholeLineTop } from "./lesson-scroll-model";
 
 /**
  * The lesson text's reading measure: the page's one width of its own. Everything else takes
@@ -65,14 +65,15 @@ function linesAt(root: Element, y: number, origin: number): { top: number; botto
 
 /**
  * THE LESSON PAGE: the step line pinned on top, then the page that scrolls as a whole: the
- * lesson text's sheet and, while something waits, "Your turn". With room for both they sit side
- * by side and "Your turn" holds still while the text scrolls, always inside the window, where
- * only its question or problem scrolls (.lh-turn-fit); with less it sits under the text, each
- * sheet as tall as what it holds. The page rests where restingTop says: on open, when the
+ * lesson text's sheet and, once the lesson has started, "Your turn". With room for both they sit
+ * side by side for the whole lesson and "Your turn" holds still while the text scrolls, always
+ * inside the window, where only its question or problem scrolls (.lh-turn-fit); with less it sits
+ * under the text, each sheet as tall as what it holds, and only while it holds something to
+ * answer or press (`turnBesideOnly` hides it there otherwise). The page rests where restingTop says: on open, when the
  * teacher asks (`restKey` changes) and while the teacher writes. When a reply lands it
  * holds still while the desk leaves, then is placed at once as the reply draws in. "Your turn"
- * fades out when it closes and, arriving with a reply, steps in after the reply's text. Scrolled
- * up, the key in the corner brings the learner back.
+ * fades out when it closes (a lesson reset) and, arriving with a reply, steps in after the
+ * reply's text. Scrolled up, the key in the corner brings the learner back.
  */
 export function LessonScroll({
 	steps,
@@ -81,6 +82,7 @@ export function LessonScroll({
 	contextRef,
 	reading,
 	turn,
+	turnBesideOnly,
 }: {
 	/** The step line; nothing when the lesson has none. */
 	steps: ReactNode;
@@ -90,16 +92,15 @@ export function LessonScroll({
 	contextRef: RefObject<StickToBottomContext | null>;
 	/** The lesson text's sheet. */
 	reading: ReactNode;
-	/** "Your turn", while something waits. */
+	/** "Your turn", once the lesson has started. */
 	turn: ReactNode | null;
+	/** "Your turn" holds nothing to answer or press: drawn beside the text, never under it. */
+	turnBesideOnly: boolean;
 }) {
 	const held = useLastWhileClosing(turn);
 	const closing = held.mounted && held.state === "closed" && !prefersReducedMotion();
 	const shownTurn = closing ? held.shown : turn;
 	const hasTurn = shownTurn !== null;
-	const [paired, setPaired] = useState(hasTurn);
-	const pair = keepPair(paired, hasTurn, busy);
-	if (pair !== paired) setPaired(pair);
 	// Shown when the page opened, "Your turn" is just there; arriving later, it steps in.
 	const [stepIn, setStepIn] = useState<boolean | null>(hasTurn ? false : null);
 	if (hasTurn !== (stepIn !== null)) setStepIn(hasTurn ? true : null);
@@ -116,7 +117,9 @@ export function LessonScroll({
 		// The desk is leaving: the page holds still until the reply takes its place.
 		if (contentElement.querySelector("[data-desk-closing]")) return scrollElement.scrollTop;
 		const origin = contentElement.getBoundingClientRect().top;
-		const sheetEl = contentElement.querySelector("[data-testid=turn-sheet]");
+		// A "Your turn" hidden under the text is not there.
+		const drawn = contentElement.querySelector("[data-testid=turn-sheet]");
+		const sheetEl = drawn && drawn.getClientRects().length > 0 ? drawn : null;
 		const sheetBox = sheetEl?.getBoundingClientRect();
 		const partBox = contentElement.querySelector("[data-part-current]")?.getBoundingClientRect();
 		// With nothing waiting, a reply is read from its start once it has landed; while it is worked on, the desk shows.
@@ -212,22 +215,22 @@ export function LessonScroll({
 			    lesson text and "Your turn" begin at one height. Shown only when the step line draws something, and
 			    then it steps in with the reply's text (the step replays when :has() shows it). */}
 			<div className="lh-page shrink-0 pt-(--lh-gap) [&:not(:has(>section>div>*))]:hidden">
-				<Pane className={cn("@container/strip lh-block-in [--lh-block-delay:var(--lh-dur-fast)]", READING_MEASURE, pair && PAIR)}>
+				<Pane className={cn("@container/strip lh-block-in [--lh-block-delay:var(--lh-dur-fast)]", READING_MEASURE, hasTurn && PAIR)}>
 					<div className="px-(--lh-reading-inset) py-4 @max-[640px]/strip:px-(--lh-reading-inset-narrow)">{steps}</div>
 				</Pane>
 			</div>
 			<Conversation className="my-(--lh-gap) min-h-0 min-w-0 flex-1" initial="instant" contextRef={contextRef} targetScrollTop={target}>
 				<SessionMessageNavigation />
-				<ConversationContent className="gap-0 p-0" scrollClassName={cn("lh-lesson-window [overflow-anchor:none] [container-type:size]", pair && "lh-lesson-pair")}>
+				<ConversationContent className="gap-0 p-0" scrollClassName={cn("lh-lesson-window [overflow-anchor:none] [container-type:size]", hasTurn && "lh-lesson-pair")}>
 					{/* Side by side the sheets end at the window's foot, so "Your turn" has the window's height to fill. */}
-					<div ref={pageRef} className={cn("lh-page pb-(--lh-page-end)", pair && "@min-[1280px]/room:pb-0")}>
-						<div ref={columnRef} data-testid="lesson-column" className={cn("@container/column flex flex-col gap-(--lh-gap)", READING_MEASURE, pair && [PAIR, PAIR_GRID])}>
+					<div ref={pageRef} className={cn("lh-page pb-(--lh-page-end)", hasTurn && "@min-[1280px]/room:pb-0")}>
+						<div ref={columnRef} data-testid="lesson-column" className={cn("@container/column flex flex-col gap-(--lh-gap)", READING_MEASURE, hasTurn && [PAIR, PAIR_GRID])}>
 							{reading}
 							{hasTurn && (
 								<div
 									data-state={closing ? "closed" : "open"}
 									inert={closing}
-									className={cn("lh-turn-fit min-w-0", closing ? "lh-fade" : stepIn && "lh-block-in")}
+									className={cn("lh-turn-fit min-w-0", turnBesideOnly && "@max-[1280px]/room:hidden", closing ? "lh-fade" : stepIn && "lh-block-in")}
 									style={{ "--lh-block-delay": "240ms" } as CSSProperties}
 								>
 									{shownTurn}
@@ -236,7 +239,7 @@ export function LessonScroll({
 						</div>
 					</div>
 				</ConversationContent>
-				<ConversationScrollButton className={cn(KEY, pair && PAIR_KEY)} />
+				<ConversationScrollButton className={cn(KEY, hasTurn && PAIR_KEY)} />
 			</Conversation>
 		</div>
 	);

@@ -1,37 +1,9 @@
-/** The stop card's words and dark button, what Keep going owes, and the card that lights on return. */
+/** What Keep going owes, and the card that lights on return. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { keepGoingOwesNext, stopCard, stopLightSelector } from "../../src/frontend/components/lesson/stop-card-model.ts";
-import { lessonStop, type LessonStop } from "../../src/shared/core/index.ts";
+import { keepGoingOwesNext, stopLightSelector } from "../../src/frontend/components/lesson/lesson-stop-model.ts";
+import { lessonStop } from "../../src/shared/core/index.ts";
 import { call, CONCLUDE_SOLVED, keepGoing, marker, problemStop, regularizationEnds, result, text, topicStop, TREE, userText } from "../stop-fixtures.ts";
-
-const stop: LessonStop = { kind: "topic", at: "2026-11-18T21:48:00.000Z", nodeId: "reg", stopOf: "c1", next: "Cross-validation", activeMinutes: 48, keptGoing: false };
-const buttons = (s: LessonStop) => stopCard(s).buttons.map((b) => `${b.label}${b.dark ? " (dark)" : ""}`);
-
-describe("stopCard", () => {
-	it("a topic end names what is next; from 25 active minutes Stop here is dark", () => {
-		assert.equal(stopCard(stop).lead, "That finishes this topic.");
-		assert.equal(stopCard(stop).next, "Cross-validation is next.");
-		assert.deepEqual(buttons(stop), ["Keep going", "Stop here (dark)"]);
-		assert.deepEqual(buttons({ ...stop, activeMinutes: 25 }), ["Keep going", "Stop here (dark)"]);
-		assert.deepEqual(buttons({ ...stop, activeMinutes: 24 }), ["Keep going (dark)", "Stop here"]);
-	});
-
-	it("the last topic has one dark Done for today", () => {
-		const end = stopCard({ ...stop, kind: "end", next: null, activeMinutes: 3 });
-		assert.equal(end.lead, "That finishes this topic.");
-		assert.equal(end.next, "Nothing more is planned today.");
-		assert.deepEqual(buttons({ ...stop, kind: "end", next: null }), ["Done for today (dark)"]);
-	});
-
-	it("a long problem: the next step, problem n, or no second line in practice", () => {
-		const problem: LessonStop = { ...stop, kind: "problem", next: "Cross-validation", activeMinutes: 26 };
-		assert.equal(stopCard(problem).lead, "That finishes this problem.");
-		assert.equal(stopCard(problem).next, "Next is Cross-validation.");
-		assert.equal(stopCard({ ...problem, next: "problem 4" }).next, "Next is problem 4.");
-		assert.equal(stopCard({ ...problem, next: null }).next, null);
-	});
-});
 
 describe("keepGoingOwesNext", () => {
 	const [p, pr, c, cr] = regularizationEnds();
@@ -54,7 +26,7 @@ describe("keepGoingOwesNext", () => {
 
 	it("owes nothing when the teacher went on past the stop with no Keep going", () => {
 		const typedOn = [...concluded, userText("u", "ok, go on", 50), call("q2", "quiz", { question: "?", type: "check", nodeId: "cv" }, 51)];
-		assert.equal(lessonStop(typedOn, TREE)?.keptGoing, true, "the stop card does not come back");
+		assert.equal(lessonStop(typedOn, TREE)?.keptGoing, true, "the stop does not come back");
 		assert.equal(keepGoingOwesNext(typedOn), false);
 		const asked = [...concluded, userText("u", "why does lambda shrink the weights?", 50), text("a", "The penalty grows with them.", 51)];
 		assert.equal(lessonStop(asked, TREE)?.keptGoing, false, "a question about the finished topic keeps the stop");

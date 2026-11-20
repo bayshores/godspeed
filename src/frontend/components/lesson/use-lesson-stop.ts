@@ -4,15 +4,16 @@ import { useNavigate, useSearchParams } from "react-router";
 import { lessonStop, type HomeworkProblem, type LessonKind, type LhMessage, type PlanTree } from "@/shared/core";
 import { highlight, isInView } from "@/frontend/components/teacher/dom";
 import { useStableValue } from "@/frontend/lib/use-stable-value";
-import { stopCard, stopLightSelector, type StopAction } from "./stop-card-model";
+import { stopLightSelector } from "./lesson-stop-model";
 
 /** How long the reading pane takes to stick to its bottom on open. */
 const SETTLE_MS = 300;
 
 /**
  * The lesson's stop (split out of chat.tsx): the stop read from the
- * record and the live stream, the stop card's buttons, and the Concluded
- * card lit once when he comes back from Today's Continue (?lit=stop).
+ * record and the live stream, the one he has not kept going from, Done for
+ * today, and the Concluded card lit once when he comes back from Today's
+ * Continue (?lit=stop).
  */
 export function useLessonStop({
 	nativeMessages,
@@ -20,7 +21,6 @@ export function useLessonStop({
 	tree,
 	problems,
 	deadlineId,
-	keepGoing,
 	scopeRef,
 	scrollContextRef,
 }: {
@@ -30,7 +30,6 @@ export function useLessonStop({
 	/** A homework lesson's problems. */
 	problems: readonly HomeworkProblem[] | null;
 	deadlineId: string | undefined;
-	keepGoing: (stopOf: string) => void;
 	scopeRef: React.RefObject<HTMLElement | null>;
 	scrollContextRef: React.RefObject<StickToBottomContext | null>;
 }) {
@@ -41,18 +40,12 @@ export function useLessonStop({
 	// Stable while nothing in it changed, so streaming never redraws the plan row.
 	const stop = useStableValue(fresh);
 
+	// Done for today goes back to Today, its deadline's card lit when the lesson has one.
 	const navigate = useNavigate();
-	const onAction = useCallback(
-		(action: StopAction) => {
-			if (action === "keep-going") {
-				if (stop) keepGoing(stop.stopOf);
-				return;
-			}
-			navigate(deadlineId ? `/?lit=${encodeURIComponent(`deadline:${deadlineId}`)}` : "/");
-		},
-		[stop, keepGoing, navigate, deadlineId],
-	);
-	const card = useMemo(() => (stop && !stop.keptGoing ? { key: stop.stopOf, view: stopCard(stop), onAction } : null), [stop, onAction]);
+	const doneForToday = useCallback(() => {
+		navigate(deadlineId ? `/?lit=${encodeURIComponent(`deadline:${deadlineId}`)}` : "/");
+	}, [navigate, deadlineId]);
+	const atStop = stop && !stop.keptGoing ? stop : null;
 
 	// Back from Today's Continue: light the stop's card once, then drop the parameter.
 	const [params, setParams] = useSearchParams();
@@ -83,5 +76,5 @@ export function useLessonStop({
 		return () => clearTimeout(timer);
 	}, [lit, stop, scopeRef, scrollContextRef, setParams]);
 
-	return { stop, card };
+	return { stop, atStop, doneForToday };
 }

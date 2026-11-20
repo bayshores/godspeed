@@ -1,7 +1,7 @@
 /**
  * The lesson while the teacher works: Stop alone until the teacher plans or takes a step, then
  * the desk with the plan and the file it reads, the title's bubble left out,
- * the start key while no agent is here, Start again after a stopped first reply, and the landing:
+ * the start key while no agent is here, no Start again at the foot of the text, and the landing:
  * the desk leaves before the reply shows, which then draws in, also when an answered question's
  * reply grows the same message.
  */
@@ -51,8 +51,6 @@ const props = (over: Partial<Props> = {}): Props => ({
 	busy: true,
 	waitingForAgent: false,
 	onStop: () => {},
-	onStartAgain: () => {},
-	goAhead: null,
 	queuedSteers: [],
 	arrivalsLive: false,
 	pageMarks: new Map(),
@@ -141,7 +139,7 @@ describe("the title's bubble", () => {
 	it("keeps the files sent with the title, without the title's words", () => {
 		const image: AttachmentPart = { type: "image", data: "QUJD", mimeType: "image/jpeg" };
 		const withFile = projectView([{ ...newUserMessage(TITLE, [image]), id: "u1" }]);
-		const out = pane({ messages: withFile, busy: false, status: "ready", onStop: null, onStartAgain: null });
+		const out = pane({ messages: withFile, busy: false, status: "ready", onStop: null });
 		assert.match(out, /data-testid="user-message"[\s\S]*data-testid="message-image"/);
 		assert.doesNotMatch(out, new RegExp(TITLE));
 	});
@@ -153,15 +151,8 @@ describe("the title's bubble", () => {
 });
 
 describe("Start again", () => {
-	const stopped = { busy: false, status: "ready" as const };
-	it("steps in at the foot after a first reply was stopped with nothing written", () => {
-		assert.match(pane(stopped), /data-testid="next-problem-button"[^>]*>Start again</);
-	});
-
-	it("is not there after an error, with a go-ahead waiting, or once the teacher wrote", () => {
-		assert.doesNotMatch(pane({ ...stopped, onStartAgain: null }), /Start again/);
-		assert.doesNotMatch(pane({ ...stopped, goAhead: { label: "Continue", onGo: () => {} } }), /Start again/);
-		assert.doesNotMatch(pane({ ...stopped, messages: [card(1), first, teacher({ type: "text", text: "Here." })] }), /Start again/);
+	it("is not at the foot of the text after a first reply was stopped with nothing written: Your turn holds it", () => {
+		assert.doesNotMatch(pane({ busy: false, status: "ready" }), /Start again|next-problem-button/);
 	});
 });
 

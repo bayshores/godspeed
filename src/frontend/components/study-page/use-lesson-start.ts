@@ -95,7 +95,7 @@ export function useLessonStart() {
 	/** Continue a Study session at its stop: Keep going is stored first, so
 	 *  the next topic's opener shows with no agent, then the lesson opens
 	 *  with the stop's card lit once. A failed read or store opens it at the
-	 *  stop, where the card offers Keep going again. */
+	 *  stop, where Your turn offers its key again. */
 	const continueStopped = useCallback(
 		async (chatId: string) => {
 			if (busy) return;

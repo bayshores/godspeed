@@ -13,19 +13,17 @@ import type { LhViewMessage, Phase3 } from "@/shared/core";
 import { AgentAtWork } from "./agent-at-work";
 import { agentWork } from "./agent-at-work-model";
 import { ArrivalRow, type Arrive } from "./arrivals";
-import { GoAheadKey } from "./go-ahead-key";
 import { MessageRow } from "./message-row";
-import { cardFiles, deskMark, deskState, heldBack, nothingWritten, titleEcho } from "./wait-model";
+import { cardFiles, deskMark, deskState, heldBack, titleEcho } from "./wait-model";
 
 /**
  * THE READING PANE: the lesson as one document on the lesson text's sheet, in
  * the reading type, answered cards inline. The sheet is as tall as its
  * text; the page around it scrolls (LessonScroll).
- * Its foot holds one thing at a time: while the teacher works, the desk
- * (AgentAtWork), which grows to the sheet's foot, with Stop under it; once it
- * has finished, the go-ahead key,
- * if the lesson waits for one. When the reply lands the desk fades out first
- * and the reply is held back until it has gone, so the two never stack.
+ * While the teacher works its foot holds the desk (AgentAtWork), which grows
+ * to the sheet's foot, with Stop under it; the keys that move the lesson on
+ * are in "Your turn". When the reply lands the desk fades out first and the
+ * reply is held back until it has gone, so the two never stack.
  * Each message is a memoized row, so streaming redraws only the message
  * being written.
  */
@@ -38,8 +36,6 @@ export function ReadingPane({
 	busy,
 	waitingForAgent,
 	onStop,
-	onStartAgain,
-	goAhead,
 	queuedSteers,
 	arrivalsLive,
 	pageMarks,
@@ -58,10 +54,6 @@ export function ReadingPane({
 	waitingForAgent: boolean;
 	/** Stops the running turn; null while the teacher reads ahead at a stop, which is not stopped. */
 	onStop: (() => void) | null;
-	/** Runs the lesson's turn again after a stop left it with nothing from the teacher; null after an error, whose line has Try again. */
-	onStartAgain: (() => void) | null;
-	/** The key that moves the lesson on ("Next problem", "Continue", "Start problem 3"); null when none waits. */
-	goAhead: { label: string; onGo: () => void } | null;
 	/** Lines typed to the teacher that wait for its reply to end. */
 	queuedSteers: QueuedSteerLine[];
 	arrivalsLive: boolean;
@@ -92,7 +84,6 @@ export function ReadingPane({
 			</div>
 		</div>
 	);
-	const startAgain = !busy && !shownDesk && !goAhead && nothingWritten(messages) ? onStartAgain : null;
 	return (
 		<div data-session-find-root="" className="lh-reading flex flex-1 flex-col gap-4">
 			{messages.length === 0 && !busy && <ConversationEmptyState title="New lesson" description="" />}
@@ -120,8 +111,6 @@ export function ReadingPane({
 				</ArrivalRow>
 			)}
 			{!shownDesk && foot}
-			{!shownDesk && goAhead && <GoAheadKey label={goAhead.label} onGo={goAhead.onGo} />}
-			{startAgain && <GoAheadKey label="Start again" onGo={startAgain} />}
 		</div>
 	);
 }

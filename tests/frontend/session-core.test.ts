@@ -1966,7 +1966,7 @@ describe("Keep going and the opener", () => {
 		assert.deepEqual(posts(calls, "/api/chat"), []);
 	});
 
-	it("a failed Keep going brings the stop card back and says Keep going didn't save", async () => {
+	it("a failed Keep going brings the stop back and says Keep going didn't save", async () => {
 		for (const kept of [() => Response.json({ error: "No stop on that call" }, { status: 400 }), () => { throw new Error("Failed to fetch"); }]) {
 			const { fetch } = scripted(true, regularizationEnds(), kept);
 			const m = model({ initialMessages: regularizationEnds(), fetch });

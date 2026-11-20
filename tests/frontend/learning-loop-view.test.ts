@@ -17,7 +17,8 @@ import { keptCardView } from "../../src/frontend/components/lesson/kept-card-mod
 import { lessonBox, questionTurn } from "../../src/frontend/components/lesson/lesson-box-model.ts";
 import { liveText, readPlot } from "../../src/frontend/components/lesson/plot-part-model.ts";
 import { answerAnchorSelector, toolCardSelector } from "../../src/frontend/components/lesson/step-context.ts";
-import { keepGoingOwesNext, stopCard, stopLightSelector } from "../../src/frontend/components/lesson/stop-card-model.ts";
+import { keepGoingOwesNext, stopLightSelector } from "../../src/frontend/components/lesson/lesson-stop-model.ts";
+import { turnNext } from "../../src/frontend/components/lesson/turn-next-model.ts";
 import {
 	activeProblemOf,
 	fileCiteMark,
@@ -224,12 +225,13 @@ describe("the two-day story, as the window draws it", () => {
 		assert.deepEqual((conclude.output as { stop: unknown }).stop, topicStop("reg", 48, 48));
 	});
 
-	it("the stop names the next topic, with Stop here dark at 48 minutes, and no opener shows yet", () => {
+	it("the stop names the next topic in Your turn, its Continue keeps going, and no opener shows yet", () => {
 		const stop = lessonStop(wednesday, TREE)!;
 		assert.deepEqual(stop, { kind: "topic", at: iso(48), nodeId: "reg", stopOf: "c1", next: "Cross-validation", activeMinutes: 48, keptGoing: false });
-		const card = stopCard(stop);
-		assert.deepEqual([card.lead, card.next], ["That finishes this topic.", "Cross-validation is next."]);
-		assert.deepEqual(card.buttons.map((b) => [b.label, b.dark]), [["Keep going", false], ["Stop here", true]]);
+		assert.deepEqual(turnNext({ stop, homework: false, goLabel: "Continue", busy: false, error: false, nothingWritten: false }), {
+			line: "Cross-validation is next.",
+			key: { label: "Continue", action: "keep-going" },
+		});
 		assert.deepEqual(yourTurn(wednesday), { pending: null, problem: null });
 		assert.ok(!parts(projectView(wednesday)).some((p) => p.appPosed), "the opener waits for Keep going");
 	});
@@ -242,7 +244,7 @@ describe("the two-day story, as the window draws it", () => {
 		assert.deepEqual(findPendingToolCall(view), { toolCallId: "opener_t1", tool: "quiz", input: OPENER_QUIZ, appPosed: { kind: "opener", ref: "t1" } });
 		assert.equal(needsContinuation(record), false, "nothing for the agent to continue");
 		assert.equal(keepGoingOwesNext(record), false, "no go-ahead is sent");
-		assert.equal(lessonStop(record, TREE)?.keptGoing, true, "the stop card is gone");
+		assert.equal(lessonStop(record, TREE)?.keptGoing, true, "the stop is passed");
 		assert.equal(stopLightSelector(record, "c1"), toolCardSelector("c1"), "the Concluded card lights");
 
 		const lead = parts(view).find((p) => p.id === openerLeadId("t1"))!;
@@ -271,7 +273,7 @@ describe("the two-day story, as the window draws it", () => {
 		const stopped = story(wednesday, continued, openerAnswered, teacherWritesSat, crossValidationEnds);
 		const stop = lessonStop(stopped, TREE)!;
 		assert.deepEqual([stop.kind, stop.nodeId, stop.next, stop.keptGoing], ["topic", "cv", "Model selection", false]);
-		assert.equal(stopCard(stop).next, "Model selection is next.");
+		assert.equal(turnNext({ stop, homework: false, goLabel: "Continue", busy: false, error: false, nothingWritten: false })?.line, "Model selection is next.");
 
 		const going = story(stopped, keptGoingOn.slice(0, 1));
 		assert.equal(lessonStop(going, TREE)?.keptGoing, true);
@@ -282,8 +284,10 @@ describe("the two-day story, as the window draws it", () => {
 	it("the last topic, ended by a right quiz, is the end of the lesson", () => {
 		const stop = lessonStop(saturday, TREE)!;
 		assert.deepEqual([stop.kind, stop.nodeId, stop.stopOf, stop.next, stop.keptGoing], ["end", "ms", "t3", null, false]);
-		const card = stopCard(stop);
-		assert.deepEqual([card.lead, card.next, card.buttons], ["That finishes this topic.", "Nothing more is planned today.", [{ action: "done-for-today", label: "Done for today", dark: true }]]);
+		assert.deepEqual(turnNext({ stop, homework: false, goLabel: "Continue", busy: false, error: false, nothingWritten: false }), {
+			line: "That was the last topic.",
+			key: { label: "Done for today", action: "done-for-today" },
+		});
 		assert.equal(stopLightSelector(saturday, "t3"), answerAnchorSelector("q_ms"), "his right answer lights");
 		assert.deepEqual(yourTurn(saturday), { pending: null, problem: null });
 	});

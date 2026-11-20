@@ -55,17 +55,11 @@ describe("stuckRetry", () => {
 });
 
 describe("goAheadLabel", () => {
-	const idle = { kind: "study" as const, homework: false, startLabel: null, teacherSpoke: true, posedAny: false, pending: false, problem: false, busy: false, error: false, stop: false };
+	const idle = { kind: "study" as const, homework: false, startLabel: null, teacherSpoke: true, posedAny: false };
 
-	it("study says Continue once the teacher has spoken and nothing waits, with no problem ever posed", () => {
+	it("study says Continue once the teacher has spoken, with no problem ever posed", () => {
 		assert.equal(goAheadLabel(idle), "Continue");
 		assert.equal(goAheadLabel({ ...idle, teacherSpoke: false }), null);
-	});
-
-	it("no key beside an error line: its Try again answers the learner first", () => {
-		assert.equal(goAheadLabel({ ...idle, error: true }), null);
-		assert.equal(goAheadLabel({ ...idle, kind: "practice", posedAny: true, error: true }), null);
-		assert.equal(goAheadLabel({ ...idle, kind: "homework", homework: true, startLabel: "Start Problem 1", error: true }), null);
 	});
 
 	it("practice needs a posed problem", () => {
@@ -82,12 +76,6 @@ describe("goAheadLabel", () => {
 
 	it("a teach lesson that never posed a problem never gets it", () => {
 		assert.equal(goAheadLabel({ ...idle, kind: "teach" }), null);
-	});
-
-	it("waits while a question, a problem, a reply or a stop card is up", () => {
-		for (const busy of [{ pending: true }, { problem: true }, { busy: true }, { stop: true }]) {
-			assert.equal(goAheadLabel({ ...idle, ...busy }), null);
-		}
 	});
 });
 

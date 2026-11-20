@@ -43,12 +43,3 @@ export function wholeLineTop(rest: number, lines: { top: number; bottom: number 
 	const cut = lines.filter((l) => l.top < rest && l.bottom > rest && rest - l.top <= SNAP_REACH);
 	return cut.length === 0 ? rest : Math.max(0, Math.min(...cut.map((l) => l.top)));
 }
-
-/**
- * Whether the lesson text and "Your turn" sit as a pair: while something waits, and on
- * through the teacher's reply to it, so the text does not jump to the middle and back
- * between one question and the next.
- */
-export function keepPair(paired: boolean, turn: boolean, busy: boolean): boolean {
-	return turn || (paired && busy);
-}

@@ -76,7 +76,7 @@ export function HomePage() {
 	const ready = nowMs !== null && loaded && (deadlines !== null || deadlinesError !== null) && (shown.length === 0 || progressReady);
 	const lists = useMemo(() => (deadlines && nowMs !== null ? todayLists(deadlines, doneToday, nowMs) : null), [deadlines, doneToday, nowMs]);
 
-	// Back from a lesson's Stop here (?lit=deadline:<id>): its card lights once.
+	// Back from a lesson's Done for today (?lit=deadline:<id>): its card lights once.
 	const [params, setParams] = useSearchParams();
 	const lit = params.get("lit");
 	useEffect(() => {

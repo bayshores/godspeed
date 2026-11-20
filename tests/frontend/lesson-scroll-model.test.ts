@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { keepPair, restingTop, wholeLineTop } from "../../src/frontend/components/lesson/lesson-scroll-model.ts";
+import { restingTop, wholeLineTop } from "../../src/frontend/components/lesson/lesson-scroll-model.ts";
 
 /** Where the lesson page rests: its end, unless that hides the start of the newest thing. */
 
@@ -64,17 +64,5 @@ describe("the top line at rest", () => {
 	it("stays when the edge falls between lines or deep inside a tall block", () => {
 		assert.equal(wholeLineTop(110, []), 110);
 		assert.equal(wholeLineTop(400, [{ top: 100, bottom: 600 }]), 400);
-	});
-});
-
-describe("whether the text and Your turn stay a pair", () => {
-	it("while something waits, and through the teacher's reply after it", () => {
-		assert.equal(keepPair(false, true, false), true);
-		assert.equal(keepPair(true, false, true), true);
-	});
-
-	it("not once the reply is done with nothing waiting, nor for a reply nothing preceded", () => {
-		assert.equal(keepPair(true, false, false), false);
-		assert.equal(keepPair(false, false, true), false);
 	});
 });

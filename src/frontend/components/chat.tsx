@@ -50,7 +50,9 @@ import { LessonScroll } from "@/frontend/components/lesson/lesson-scroll";
 import { homeworkStartLabel } from "@/frontend/components/lesson/plan-row-model";
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
 import { topicPageMarks } from "@/frontend/components/citations/page-excerpt-model";
-import { TurnSheet, yourTurnShown } from "@/frontend/components/lesson/turn-sheet";
+import { TurnSheet } from "@/frontend/components/lesson/turn-sheet";
+import { turnNext, turnPlace, type NextAction } from "@/frontend/components/lesson/turn-next-model";
+import { nothingWritten } from "@/frontend/components/lesson/wait-model";
 import type { QuestionHandle } from "@/frontend/components/question-dock";
 import { useTerminalLines } from "@/frontend/components/terminal/use-terminal-lines";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -73,8 +75,8 @@ const NO_PAGES: ReadonlyMap<string, string> = new Map();
 
 /**
  * THE LESSON: its title and words in the top bar (LessonBar), then one page that scrolls (LessonScroll):
- * the step line, the lesson text's sheet and "Your turn" beside it (or
- * under it in a small room) while something waits for the learner, with
+ * the step line, the lesson text's sheet and "Your turn" beside it for the
+ * whole lesson (or under it in a small room while something waits), with
  * the cheat sheet beside both when
  * docked. The learner talks to the teacher in its terminal; those lines
  * come here (useTerminalLines). This component owns the lesson's state and
@@ -411,7 +413,6 @@ export function Chat({
 		tree: planTree,
 		problems: problems?.problems ?? null,
 		deadlineId,
-		keepGoing,
 		scopeRef: sessionFindScopeRef,
 		scrollContextRef,
 	});
@@ -483,9 +484,16 @@ export function Chat({
 		[space, rename.title, messages, pending, requiresReveal],
 	);
 
-	// The go-ahead waits for the learner at the foot of the lesson text, unless a stop card is up.
-	const goLabel = goAheadLabel({ kind, homework: problems !== null, startLabel: startLabel ?? null, teacherSpoke, posedAny, pending: pending !== null, problem: activeProblem !== null, busy, error: error !== null, stop: lessonStop.card !== null });
-	const goAhead = goLabel ? { label: goLabel, onGo: () => void send({ type: "next" }) } : null;
+	// With nothing to answer, "Your turn" says what is next and holds the one key that goes on.
+	const { atStop } = lessonStop;
+	const goLabel = goAheadLabel({ kind, homework: problems !== null, startLabel: startLabel ?? null, teacherSpoke, posedAny });
+	const next = turnNext({ stop: atStop, homework: problems !== null, goLabel, busy, error: error !== null, nothingWritten: nothingWritten(messages) });
+	const onNext = (action: NextAction) => {
+		if (action === "keep-going") {
+			if (atStop) keepGoing(atStop.stopOf);
+		} else if (action === "done-for-today") lessonStop.doneForToday();
+		else void send({ type: action === "start-again" ? "continue" : "next" });
+	};
 	const stuckLine = stuck && stuckMinutes !== null ? { minutes: stuckMinutes, label: stuck.type === "text" ? "Stop and send again?" : "Stop and try again?", onStop: stopAndRetry } : null;
 	const errorLine = error && { text: lessonError(error.message).text, detail: error.message, onRetry: retry };
 	const problem = activeProblem && {
@@ -497,7 +505,10 @@ export function Chat({
 		file: openProblem && homework?.assignment ? { ...homework.assignment, page: openProblem.page } : null,
 	};
 
-	const turnShown = yourTurnShown({ pending: pending !== null, problem: problem !== null, stop: lessonStop.card !== null, stuck: stuckLine !== null, error: errorLine !== null, reviewRefused });
+	const turnAt = turnPlace({
+		started: teacherSpoke || busy,
+		holds: pending !== null || problem !== null || next?.key != null || stuckLine !== null || errorLine !== null || reviewRefused,
+	});
 
 	return (
 		<ChatActionsContext.Provider value={chatActions}>
@@ -520,7 +531,7 @@ export function Chat({
 								<div ref={sessionFindScopeRef} data-dock={sheetOpen ? "" : undefined} className="lh-dots lh-lesson-body relative h-full">
 									<LessonScroll
 										steps={<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onPick={openPick} onOpenPlan={overlays.openPlan} />}
-										restKey={[pending?.toolCallId, problem?.toolCallId, problem?.part, lessonStop.card?.key].join(" ")}
+										restKey={[pending?.toolCallId, problem?.toolCallId, problem?.part, atStop?.stopOf].join(" ")}
 										busy={busy}
 										contextRef={scrollContextRef}
 										reading={
@@ -533,9 +544,7 @@ export function Chat({
 													status={status}
 													busy={busy}
 													waitingForAgent={waitingForAgent}
-													onStop={lessonStop.card ? null : abortInFlightTurn}
-													onStartAgain={error ? null : () => void send({ type: "continue" })}
-													goAhead={goAhead}
+													onStop={atStop ? null : abortInFlightTurn}
 													queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
 													arrivalsLive={arrivalsLive}
 													pageMarks={pageMarks}
@@ -543,8 +552,9 @@ export function Chat({
 												/>
 											</Pane>
 										}
+										turnBesideOnly={turnAt === "beside"}
 										turn={
-											turnShown ? (
+											turnAt ? (
 												<TurnSheet
 													// Remounts once the saved drafts are read, so the question starts from them.
 													key={draftsLoaded ? "drafts" : "loading"}
@@ -563,7 +573,8 @@ export function Chat({
 													problemPicked={problemPicked}
 													onPickProblem={pickProblem}
 													onDiscardProblem={() => setAbortAsk("problem")}
-													stop={lessonStop.card}
+													next={next}
+													onNext={onNext}
 													busy={busy}
 													boxRef={workBoxRef}
 													value={text}

@@ -1,38 +1,9 @@
 /**
- * The stop card in Your turn: its words and buttons for the lesson's stop,
- * and what Keep going leads to when no opener is stored. Pure.
+ * A lesson's stop: what Keep going leads to when no opener is stored, and
+ * the card that lights when he comes back to it. Pure.
  */
-import { isQuestionTool, lessonStop, PRACTICE_CONCLUDE_TOOL, shownOpeners, type LessonStop, type LhMessage } from "@/shared/core";
+import { isQuestionTool, lessonStop, PRACTICE_CONCLUDE_TOOL, shownOpeners, type LhMessage } from "@/shared/core";
 import { answerAnchorSelector, toolCardSelector } from "./step-context";
-
-/** From this many active minutes on, Stop here is the dark button. */
-const STOP_HERE_MINUTES = 25;
-
-export type StopAction = "keep-going" | "stop-here" | "done-for-today";
-
-export interface StopCardView {
-	/** Line 1. */
-	lead: string;
-	/** Line 2; null leaves it out. */
-	next: string | null;
-	buttons: Array<{ action: StopAction; label: string; dark: boolean }>;
-}
-
-/** The card for a stop he has not kept going from. */
-export function stopCard(stop: LessonStop): StopCardView {
-	if (stop.kind === "end") {
-		return { lead: "That finishes this topic.", next: "Nothing more is planned today.", buttons: [{ action: "done-for-today", label: "Done for today", dark: true }] };
-	}
-	const long = stop.activeMinutes >= STOP_HERE_MINUTES;
-	return {
-		lead: stop.kind === "topic" ? "That finishes this topic." : "That finishes this problem.",
-		next: stop.next === null ? null : stop.kind === "topic" ? `${stop.next} is next.` : `Next is ${stop.next}.`,
-		buttons: [
-			{ action: "keep-going", label: "Keep going", dark: !long },
-			{ action: "stop-here", label: "Stop here", dark: long },
-		],
-	};
-}
 
 /** Keep going was pressed and the turn ended with no opener for its stop,
  *  and he has not sent anything since: the window owes the go-ahead. */

@@ -78,3 +78,7 @@ While a question is open, `src/frontend/components/question-dock.tsx` owns these
 | Tab | From the rows, moves focus to the lesson's writing box. With nothing focused, moves focus into the rows. |
 
 From the writing box, Tab moves on as usual, so it reaches Submit.
+
+## The next key in Your turn
+
+With no question or problem open, Enter away from a text field presses "Your turn"'s one key ("Continue", "Next problem", "Start problem N", "Done for today" or "Start again"), also at a stop.
