@@ -121,7 +121,7 @@ The app moves in one register, quick and quiet, like an e-ink page redrawing. Th
 
 - Things enter in `--lh-dur` (160 ms) and leave in `--lh-dur-fast` (110 ms). A leaving thing is held on screen by presence (`usePresence`, `useLastWhileClosing`) until its exit has played; nothing pops away.
 - Anything that replaces part of a page appears stepped (`.lh-block-in`, `.lh-set`), top to bottom, one thing moving at a time.
-- A page change is the one large move (`--lh-dur-page`, 420 ms): the pages are sheets on a desk (`Desk`, `components/desk/`). A still copy of the old page leaves while the new one arrives.
+- A page change is the one large move (`--lh-dur-page`, 420 ms): the pages are sheets lying side by side (`Travel`, `components/travel/`). A still copy of the old page leaves while the new one arrives.
 
   | From, to | The window travels |
   |---|---|
@@ -130,7 +130,7 @@ The app moves in one register, quick and quiet, like an e-ink page redrawing. Th
   | To a deeper page (a deadline's page or the start page, then a lesson, a mock, a cheat sheet) | The deeper page is laid on top from the bottom edge |
   | Back from a deeper page | That sheet is taken off, downward |
 
-- A new page takes its place in `desk-model.ts` (its depth and its column). A page never animates its own arrival.
+- A new page takes its place in `travel-model.ts` (its depth and its column). A page never animates its own arrival.
 - The lit one of a row of tabs is marked by one box that slides to it (`useLitMarker`): the paper under the lit tab of the top bar, the underline of a space's tabs and of Settings. A tab never draws its own lit background or underline.
 - A page's own words in the top bar fade in with the page.
 - A new keyframe needs a reason the existing ones can't serve.

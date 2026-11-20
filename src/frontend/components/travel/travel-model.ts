@@ -1,5 +1,5 @@
 /**
- * Where a page lies on the desk, and which way the window travels from one
+ * Where a page lies among the others, and which way the window travels from one
  * page to the next. Pure.
  */
 import type { SpaceSummary } from "@/shared/core";

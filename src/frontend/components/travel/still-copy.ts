@@ -28,8 +28,8 @@ export function stillCopy(page: HTMLElement): StillCopy {
 		frame.removeAttribute("srcdoc");
 	}
 	// A page caught while a page inside it travels: only what arrives is kept.
-	for (const old of node.querySelectorAll(".lh-desk-old")) old.replaceChildren();
-	for (const desk of node.querySelectorAll(".lh-desk[data-way]")) desk.removeAttribute("data-way");
+	for (const old of node.querySelectorAll(".lh-travel-old")) old.replaceChildren();
+	for (const inner of node.querySelectorAll(".lh-travel[data-way]")) inner.removeAttribute("data-way");
 	return {
 		node,
 		scroll: () => {

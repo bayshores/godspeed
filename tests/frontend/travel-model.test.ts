@@ -1,9 +1,9 @@
 /**
- * Where a page lies on the desk and which way the window travels to it.
+ * Where a page lies among the others and which way the window travels to it.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { pagePlace, wayBetween } from "../../src/frontend/components/desk/desk-model.ts";
+import { pagePlace, wayBetween } from "../../src/frontend/components/travel/travel-model.ts";
 
 const SPACES = [
 	{ id: "a", closed: false },

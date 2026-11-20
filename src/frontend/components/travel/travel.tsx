@@ -1,6 +1,6 @@
 import { Component, createRef, type ReactNode } from "react";
 import { prefersReducedMotion } from "@/frontend/components/presence";
-import { wayBetween, type Place, type Way } from "./desk-model";
+import { wayBetween, type Place, type Way } from "./travel-model";
 import { stillCopy, type StillCopy } from "./still-copy";
 
 interface Props {
@@ -14,13 +14,13 @@ interface Leaving {
 }
 
 /**
- * The desk the pages lie on. When the page changes, a still copy of the old
+ * The pages lie side by side. When the page changes, a still copy of the old
  * one leaves while the new one arrives (globals.css moves them): side by
  * side in the order of the tabs, or a deeper page laid on top from the
  * bottom edge. A class, because only getSnapshotBeforeUpdate sees the old
  * page before React replaces it.
  */
-export class Desk extends Component<Props> {
+export class Travel extends Component<Props> {
 	private readonly root = createRef<HTMLDivElement>();
 	private readonly page = createRef<HTMLDivElement>();
 	private readonly old = createRef<HTMLDivElement>();
@@ -31,7 +31,7 @@ export class Desk extends Component<Props> {
 		const way = wayBetween(prev.place, this.props.place);
 		const page = this.page.current;
 		// With motion off the new page is just there. A page inside a traveling page does not travel too.
-		if (!way || !page || prefersReducedMotion() || this.root.current?.parentElement?.closest(".lh-desk[data-way]")) return null;
+		if (!way || !page || prefersReducedMotion() || this.root.current?.parentElement?.closest(".lh-travel[data-way]")) return null;
 		this.rest();
 		return { way, copy: stillCopy(page) };
 	}
@@ -64,12 +64,12 @@ export class Desk extends Component<Props> {
 
 	render() {
 		return (
-			<div ref={this.root} className="lh-desk">
-				<div ref={this.page} className="lh-desk-page">
+			<div ref={this.root} className="lh-travel">
+				<div ref={this.page} className="lh-travel-page">
 					{this.props.children}
 				</div>
 				{/* After the page, so a search of the document finds the live page first. */}
-				<div ref={this.old} aria-hidden inert className="lh-desk-old" />
+				<div ref={this.old} aria-hidden inert className="lh-travel-old" />
 			</div>
 		);
 	}

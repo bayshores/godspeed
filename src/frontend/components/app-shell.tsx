@@ -4,8 +4,8 @@ import { RuleNotice } from "@/frontend/components/rule-notice";
 import { SpaceNotice } from "@/frontend/components/space-notice";
 import { FilesNotice } from "@/frontend/components/files-notice";
 import { QuietNotice } from "@/frontend/components/quiet-notice";
-import { Desk } from "@/frontend/components/desk/desk";
-import { pagePlace } from "@/frontend/components/desk/desk-model";
+import { Travel } from "@/frontend/components/travel/travel";
+import { pagePlace } from "@/frontend/components/travel/travel-model";
 import { useSpaces } from "@/frontend/components/space-context";
 import { OpenDeadlinesProvider } from "@/frontend/components/use-open-deadlines";
 import { ActiveSpaceRecordProvider } from "@/frontend/components/files/space-record";
@@ -17,11 +17,11 @@ import { BarSlotsProvider } from "@/frontend/components/top-bar/bar-slots";
 import { SearchLessons } from "@/frontend/components/search-lessons";
 import { ReadNotice } from "@/frontend/components/work/read-notice";
 
-/** The window's page on the desk: a page change travels (desk.tsx). */
-function PageDesk({ children }: { children: React.ReactNode }) {
+/** The window's page: a page change travels (travel.tsx). */
+function PageTravel({ children }: { children: React.ReactNode }) {
 	const { pathname } = useLocation();
 	const { spaces, active } = useSpaces();
-	return <Desk place={pagePlace(pathname, active, spaces)}>{children}</Desk>;
+	return <Travel place={pagePlace(pathname, active, spaces)}>{children}</Travel>;
 }
 
 /** The app frame: the top bar over the page, and the welcome screen over
@@ -51,7 +51,7 @@ export function AppShell({
 							<AppBar />
 							{/* The strip keeps the window's right edge, and the teacher's open panel pushes the page further left (teacher-panel.tsx sets the var). */}
 							<main id="lh-page" tabIndex={-1} className="lh-dots min-h-0 min-w-0 flex-1 pr-[calc(var(--lh-dock-push,0px)+var(--lh-strip))] motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)">
-								<PageDesk>{children}</PageDesk>
+								<PageTravel>{children}</PageTravel>
 							</main>
 						</BarSlotsProvider>
 						<ReadNotice />

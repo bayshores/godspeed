@@ -1109,7 +1109,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 
    Tokens: --lh-dur-fast (exits, presses) · --lh-dur (enters, state
    changes) · --lh-dur-slow (larger surfaces: dialogs) · --lh-dur-page
-   (a whole page traveling, THE DESK below) · --lh-ease-out (enters) ·
+   (a whole page traveling, PAGE TRAVEL below) · --lh-ease-out (enters) ·
    --lh-ease-in (exits).
 
    Enters take --lh-dur, exits --lh-dur-fast, held on screen by presence
@@ -1563,82 +1563,82 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   THE DESK (components/desk/desk.tsx). The one large move: the pages are
-   sheets lying on a desk, and a page change travels from one to the next.
-   A still copy of the old page (.lh-desk-old) leaves while the new page
-   (.lh-desk-page) arrives. data-way, set only while they travel:
+   PAGE TRAVEL (components/travel/travel.tsx). The one large move: the pages are
+   sheets lying side by side, and a page change travels from one to the next.
+   A still copy of the old page (.lh-travel-old) leaves while the new page
+   (.lh-travel-page) arrives. data-way, set only while they travel:
    - right, left   the pages lie side by side in the order of their tabs,
-                   a strip of bare desk between them
+                   a strip of bare background between them
    - up            a deeper page (a lesson) is laid on top from the bottom
                    edge; the page under it stays still
    - down          that sheet is taken off again
    Reduced motion: nothing travels, the new page is just there. */
-.lh-desk {
+.lh-travel {
 	position: relative;
 	height: 100%;
 }
-.lh-desk-page {
+.lh-travel-page {
 	height: 100%;
 }
-.lh-desk-old {
+.lh-travel-old {
 	position: absolute;
 	inset: 0;
 	pointer-events: none;
 }
-.lh-desk:not([data-way]) > .lh-desk-old {
+.lh-travel:not([data-way]) > .lh-travel-old {
 	display: none;
 }
-/* Clipped, not hidden: a field that takes focus as its page arrives must not scroll the desk to itself. */
-.lh-desk[data-way] {
+/* Clipped, not hidden: a field that takes focus as its page arrives must not scroll the traveling pages to itself. */
+.lh-travel[data-way] {
 	overflow: hidden;
 	overflow: clip;
 }
 /* The copy is a picture: nothing in it plays its own motion again. */
-.lh-desk-old *,
-.lh-desk-old *::before,
-.lh-desk-old *::after {
+.lh-travel-old *,
+.lh-travel-old *::before,
+.lh-travel-old *::after {
 	animation: none !important;
 	transition: none !important;
 }
-@keyframes lh-desk-leave {
+@keyframes lh-travel-leave {
 	to {
-		transform: var(--lh-desk-to);
+		transform: var(--lh-travel-to);
 	}
 }
-@keyframes lh-desk-arrive {
+@keyframes lh-travel-arrive {
 	from {
-		transform: var(--lh-desk-from);
+		transform: var(--lh-travel-from);
 	}
 }
-.lh-desk[data-way="right"] {
-	--lh-desk-to: translateX(calc(-100% - 40px));
-	--lh-desk-from: translateX(calc(100% + 40px));
+.lh-travel[data-way="right"] {
+	--lh-travel-to: translateX(calc(-100% - 40px));
+	--lh-travel-from: translateX(calc(100% + 40px));
 }
-.lh-desk[data-way="left"] {
-	--lh-desk-to: translateX(calc(100% + 40px));
-	--lh-desk-from: translateX(calc(-100% - 40px));
+.lh-travel[data-way="left"] {
+	--lh-travel-to: translateX(calc(100% + 40px));
+	--lh-travel-from: translateX(calc(-100% - 40px));
 }
-.lh-desk[data-way="up"] {
-	--lh-desk-from: translateY(100%);
+.lh-travel[data-way="up"] {
+	--lh-travel-from: translateY(100%);
 }
-.lh-desk[data-way="down"] {
-	--lh-desk-to: translateY(100%);
+.lh-travel[data-way="down"] {
+	--lh-travel-to: translateY(100%);
 }
-.lh-desk:is([data-way="right"], [data-way="left"], [data-way="down"]) > .lh-desk-old {
-	animation: lh-desk-leave var(--lh-dur-page) var(--lh-ease-out) both;
+.lh-travel:is([data-way="right"], [data-way="left"], [data-way="down"]) > .lh-travel-old {
+	animation: lh-travel-leave var(--lh-dur-page) var(--lh-ease-out) both;
 }
-.lh-desk:is([data-way="right"], [data-way="left"], [data-way="up"]) > .lh-desk-page {
-	animation: lh-desk-arrive var(--lh-dur-page) var(--lh-ease-out) both;
+.lh-travel:is([data-way="right"], [data-way="left"], [data-way="up"]) > .lh-travel-page {
+	animation: lh-travel-arrive var(--lh-dur-page) var(--lh-ease-out) both;
 }
-/* The sheet on top hides the page under it: it carries the desk's own paper. */
-.lh-desk[data-way="up"] > .lh-desk-page,
-.lh-desk[data-way="down"] > .lh-desk-old {
+/* The sheet on top hides the page under it: it carries the page background. */
+.lh-travel[data-way="up"] > .lh-travel-page,
+.lh-travel[data-way="down"] > .lh-travel-old {
 	z-index: 1;
 	background-color: var(--background);
 	background-image: var(--lh-dots);
 	background-size: 16px 16px;
 }
-.lh-desk[data-way="up"] > .lh-desk-page {
+.lh-travel[data-way="up"] > .lh-travel-page {
 	position: relative;
 }
 

@@ -1,5 +1,5 @@
 import { Outlet, useLocation } from "react-router";
-import { Desk } from "@/frontend/components/desk/desk";
+import { Travel } from "@/frontend/components/travel/travel";
 import { useSpaces } from "@/frontend/components/space-context";
 import { SpaceHead } from "@/frontend/components/space-page/space-head";
 import { spaceTabs } from "@/frontend/components/space-page/space-head-model";
@@ -12,7 +12,7 @@ import { usePluginsAt } from "@/frontend/lib/use-plugins-at";
  *  in spaces are read once and handed to the head and to a plugin's tab,
  *  and the space's progress is read once for the head and every tab. The
  *  head stays still while the tab's page travels under it, in the order of
- *  the tabs; another space starts on a desk of its own. */
+ *  the tabs; another space starts its own. */
 export function SpaceLayout() {
 	const pluginsAt = usePluginsAt("space");
 	const { pathname } = useLocation();
@@ -24,9 +24,9 @@ export function SpaceLayout() {
 				<SpaceHead plugins={pluginsAt.plugins ?? []} />
 				<div className="min-h-0 flex-1">
 					<SpaceWorkFrame>
-						<Desk key={active ?? "none"} place={{ key: pathname, depth: 0, column }}>
+						<Travel key={active ?? "none"} place={{ key: pathname, depth: 0, column }}>
 							<Outlet context={pluginsAt} />
-						</Desk>
+						</Travel>
 					</SpaceWorkFrame>
 				</div>
 			</div>
