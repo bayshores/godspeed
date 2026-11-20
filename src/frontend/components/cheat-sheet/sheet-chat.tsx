@@ -2,11 +2,15 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import type { ChatAttachment, CheatSheetView, SheetMessage, SheetRegion, SheetRule } from "@/shared/core";
 import { CitedResponse } from "@/frontend/components/citations/cited-response";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
+import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
+import { restoreUnsent } from "@/frontend/components/lesson/chat-helpers";
+import { LessonBox } from "@/frontend/components/lesson/lesson-box";
 import { savedDay } from "@/frontend/components/rule-chips";
 import { useTerminalLines } from "@/frontend/components/terminal/use-terminal-lines";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import type { Pointed } from "./canvas-model";
+import { sheetBox } from "./sheet-box-model";
 import { sheetFilePath } from "./use-cheat-sheet";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 
@@ -25,9 +29,10 @@ const NOTE = "flex items-center gap-2.5 lh-well self-start rounded px-2.5 py-1.5
  * messages with the part they pointed at, their pictures and the problem
  * they were on, the agent's answers (markdown and math) with a "Made
  * version N" note that shows that version on the canvas and the rules it
- * saved. The learner writes in the teacher's terminal: each line comes
- * here (useTerminalLines) with the part pointed at; Stop while the agent
- * works, Try again when it failed.
+ * saved. The learner writes in the box at its foot (the lesson's box, with
+ * sheetBox's one key); a line typed in the teacher's terminal comes the
+ * same way (useTerminalLines). Both carry the part pointed at. Stop while
+ * the agent works, Try again when it failed.
  */
 export function SheetChat({
 	view,
@@ -57,11 +62,14 @@ export function SheetChat({
 	onShowVersion?: (n: number) => void;
 	/** The line an empty chat shows; absent when the page says it elsewhere. */
 	empty?: string;
-	/** Nothing is said yet and the page has no place for a chat: only what stands in the way of asking. */
+	/** Nothing is said yet and the page has no place for a chat: only the box and what stands in the way of asking. */
 	bare?: boolean;
 	className?: string;
 }) {
 	const [failed, setFailed] = useState<string | null>(null);
+	const [text, setText] = useState("");
+	const attachments = useAttachmentDraft(`cheat-sheet:${deadlineId}`);
+	const boxRef = useRef<{ focus(): void }>(null);
 	const busy = view.running !== null;
 	const messages = view.sheet.messages;
 	const endRef = useRef<HTMLDivElement>(null);
@@ -86,6 +94,21 @@ export function SheetChat({
 		return true;
 	};
 	useTerminalLines("cheat sheet", sendLine);
+	const sendBox = () => {
+		const typed = text;
+		const files = attachments.files;
+		setText("");
+		attachments.clear();
+		void sendLine(typed, files.map((f) => f.attachment)).then((sent) => {
+			if (sent) return;
+			setText((draft) => restoreUnsent(typed, draft));
+			attachments.restore(files);
+		});
+	};
+	// The part pointed at goes with the next line, so the box is ready for it.
+	useEffect(() => {
+		if (pointed) boxRef.current?.focus();
+	}, [pointed]);
 
 	const pagesOf = (n: number) => view.sheet.versions.find((v) => v.n === n)?.pages.length ?? 1;
 	const notes = (
@@ -99,10 +122,21 @@ export function SheetChat({
 			{pointed && <PointedChip pointed={pointed} pages={pagesOf(pointed.region.n)} onClear={onClearPointed} />}
 		</>
 	);
+	const box = (
+		<LessonBox
+			view={sheetBox({ teacher: agentName, made: view.sheet.versions.length > 0, blocked: busy || !!view.newer, hasText: text.trim().length > 0, hasFiles: attachments.files.length > 0, pointed: !!pointed })}
+			value={text}
+			onChange={setText}
+			onAct={sendBox}
+			attachments={attachments}
+			boxRef={boxRef}
+		/>
+	);
 	if (bare)
 		return (
-			<div data-testid="sheet-box" className="flex flex-col items-center gap-2.5 empty:hidden">
+			<div data-testid="sheet-box" className="flex w-full max-w-[520px] flex-col gap-2.5 text-left">
 				{notes}
+				{box}
 			</div>
 		);
 
@@ -150,8 +184,9 @@ export function SheetChat({
 				})}
 				<div ref={endRef} />
 			</div>
-			<div data-testid="sheet-box" className="flex shrink-0 flex-col gap-2.5 px-[22px] pt-2.5 pb-[22px] empty:hidden">
+			<div data-testid="sheet-box" className="flex shrink-0 flex-col gap-2.5 px-[22px] pt-2.5 pb-[22px]">
 				{notes}
+				{box}
 			</div>
 		</div>
 	);
@@ -248,7 +283,7 @@ function SheetRules({ rules, agentName, onRemove }: { rules: readonly SheetRule[
 	);
 }
 
-/** The part of the sheet pointed at, waiting to go with the next line typed in the terminal. */
+/** The part of the sheet pointed at, waiting to go with the next line. */
 function PointedChip({ pointed, pages, onClear }: { pointed: Pointed; pages: number; onClear: () => void }) {
 	return (
 		<div data-testid="sheet-pointed-chip" className="flex max-w-full items-center gap-2.5 lh-well self-start rounded py-1.5 pr-2 pl-1.5">

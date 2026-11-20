@@ -20,10 +20,9 @@ export function versionLabel(v: SheetVersion, newest: boolean): string {
 	return `${newest ? "Current" : when(v.at)}, ${v.fromFolder ? "From the working folder" : v.prompt || "From the files you sent"}`;
 }
 
-/** What an empty chat says, before and after the sheet is made. The
- *  learner writes in the teacher's terminal. */
-export function emptyChatLine(agentName: string, made: boolean): string {
+/** What an empty chat says, before and after the sheet is made. */
+export function emptyChatLine(made: boolean): string {
 	return made
-		? `Ask ${agentName} in the terminal about the sheet, point at a part that confuses you, or say what to change.`
-		: `Tell ${agentName} in the terminal which paper, one side or both, and what must be on it. Your weak topics and mistakes go first.`;
+		? "Ask about the sheet, point at a part that confuses you, or say what to change."
+		: "Say which paper, one side or both, and what must be on it. Your weak topics and mistakes go first.";
 }

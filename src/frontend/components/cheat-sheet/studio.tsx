@@ -8,7 +8,6 @@ import { fileBrowserName } from "@/frontend/components/files/files-model";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { barWord } from "@/frontend/components/top-bar/bar-look";
 import { BarActions, BarCrumb, CrumbName } from "@/frontend/components/top-bar/bar-slots";
-import { TerminalKey } from "@/frontend/components/terminal/terminal-key";
 import { Pane } from "@/frontend/components/ui/pane";
 import { printPdf } from "./print-pdf";
 import { SheetCanvas } from "./sheet-canvas";
@@ -22,9 +21,9 @@ import { remakeSheet, sheetPdfFile, sheetPdfPath, showSheetPdf, useCheatSheet, u
  * sheet's deadline (a link back to it) and whose right side has, once the
  * sheet is made, Show in Finder and Print. The canvas on
  * the left holds the PDF with the earlier versions beside it, or, before
- * there is a sheet, says what to ask for. On the right is the sheet's
- * chat, once something is in it: lines typed in the teacher's terminal ask
- * about the sheet, a part pointed at, or a change.
+ * there is a sheet, says what to ask for over the box that asks. On the
+ * right is the sheet's chat, once something is in it: its box asks about
+ * the sheet, a part pointed at, or a change.
  */
 export function CheatSheetStudio({ spaceId, deadlineId, deadlineName }: { spaceId: string; deadlineId: string; deadlineName: string }) {
 	useJoinSpace(spaceId);
@@ -109,7 +108,7 @@ function Studio({
 			pointed={pointed}
 			onClearPointed={() => setPointed(null)}
 			onShowVersion={current ? showVersion : undefined}
-			empty={current ? emptyChatLine(teacherName, true) : undefined}
+			empty={current ? emptyChatLine(true) : undefined}
 			bare={quiet}
 		/>
 	);
@@ -149,13 +148,8 @@ function Studio({
 								) : (
 									<div data-testid="cheat-sheet-empty" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[18px] overflow-y-auto p-6 text-center">
 										<h2 className="text-[28px] leading-tight text-ink">What do you want on your cheat sheet?</h2>
-										<p className="max-w-[520px] text-lg leading-[1.45] text-ink-2">{emptyChatLine(teacherName, false)}</p>
-										{quiet && (
-											<>
-												<TerminalKey />
-												{chat}
-											</>
-										)}
+										<p className="max-w-[520px] text-lg leading-[1.45] text-ink-2">{emptyChatLine(false)}</p>
+										{quiet && chat}
 										{view.sheet.olderFormat && !view.running && <OlderSheet onRemake={() => void remakeSheet(spaceId, deadlineId).then(setFailed)} />}
 									</div>
 								)}
