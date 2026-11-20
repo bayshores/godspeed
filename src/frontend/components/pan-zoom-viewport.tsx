@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { fitGraphView, fitZoomFor, zoomedGraphView, type Viewport } from "@/frontend/components/pan-zoom";
 import { Hint } from "@/frontend/components/ui/hint";
+import { ownWheel } from "@/frontend/lib/own-wheel";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
 /**
@@ -44,7 +45,7 @@ export function usePanZoomViewport(box: { w: number; h: number }, ready: boolean
 	useEffect(() => {
 		const el = viewportRef.current;
 		if (!el) return;
-		const onWheel = (e: WheelEvent) => {
+		return ownWheel(el, (e) => {
 			e.preventDefault();
 			const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
 			const factor = Math.exp(-dy * 0.0015);
@@ -53,9 +54,7 @@ export function usePanZoomViewport(box: { w: number; h: number }, ready: boolean
 				zoomedGraphView(v, factor, fitZoom, { x: e.clientX - rect.left, y: e.clientY - rect.top }, box, size),
 			);
 			userAdjustedRef.current = true;
-		};
-		el.addEventListener("wheel", onWheel, { passive: false });
-		return () => el.removeEventListener("wheel", onWheel);
+		});
 	}, [fitZoom, box, size]);
 
 	// Panning is per-frame: the caller turns the transform transition off

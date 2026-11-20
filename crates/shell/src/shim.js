@@ -60,6 +60,69 @@
 		e.preventDefault();
 	});
 
+	// A pinch or ⌘/Ctrl + scroll steps the zoom, except over a view that zooms itself.
+	// Must match OWN_ZOOM in src/frontend/lib/own-wheel.ts.
+	const OWN_ZOOM = "data-lh-own-zoom";
+	const ownZoom = (e) => e.target instanceof Element && e.target.closest(`[${OWN_ZOOM}]`);
+	const RUN_GAP_MS = 100;
+	const STEP_PX = 20;
+	let travel = 0;
+	// One step for each event at most, so one notch of a mouse wheel is one size.
+	const zoomBy = (px) => {
+		travel += px;
+		if (Math.abs(travel) < STEP_PX) return;
+		void invoke("zoom_step", { dir: travel < 0 ? 1 : -1 });
+		travel = 0;
+	};
+
+	// WebKit on the Mac reports a pinch as gesture events: `scale` is its size against its start.
+	// The last scale counted, or 0 with no pinch of the app's.
+	let pinch = 0;
+	for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
+		window.addEventListener(
+			type,
+			(e) => {
+				if (type === "gesturestart") {
+					pinch = ownZoom(e) ? 0 : 1;
+					travel = 0;
+				}
+				if (!pinch) return;
+				e.preventDefault();
+				if (type === "gestureend") pinch = 0;
+				else if (type === "gesturechange") {
+					// A wheel's pinch is 100 px for each e-fold; this one counts the same.
+					zoomBy(-100 * Math.log(e.scale / pinch));
+					pinch = e.scale;
+				}
+			},
+			{ capture: true },
+		);
+	}
+
+	// Other web views send a pinch as wheels with Ctrl held. The keys at the start of a run of
+	// wheels decide for the whole run, so a key pressed while a scroll still coasts never zooms.
+	let lastWheel = -Infinity;
+	let zooming = false;
+	window.addEventListener(
+		"wheel",
+		(e) => {
+			const held = e.ctrlKey || e.metaKey;
+			if (e.timeStamp - lastWheel > RUN_GAP_MS) {
+				zooming = held;
+				if (!pinch) travel = 0;
+			}
+			lastWheel = e.timeStamp;
+			if (!held || !zooming || ownZoom(e)) return;
+			e.preventDefault();
+			// The terminal would scroll, or hand the wheel to its program.
+			e.stopPropagation();
+			// A pinch counted from its gesture events is not counted again.
+			if (pinch) return;
+			zoomBy(e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY);
+		},
+		{ capture: true, passive: false },
+	);
+
 	// The window never sends a navigation to the browser (it cannot tell this page from a demo
 	// iframe), so a click on a web or mail link goes out here.
 	window.addEventListener("click", (e) => {

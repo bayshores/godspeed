@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { pageCaption, type SheetVersion } from "@/shared/core";
+import { ownWheel } from "@/frontend/lib/own-wheel";
 import { cn } from "@/frontend/lib/utils";
 import { KEY_ON_INK } from "@/frontend/components/ui/card-parts";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
@@ -149,17 +150,14 @@ export function SheetCanvas({
 		fitTo(focus.n);
 	}, [sized, focus, fitTo]);
 
-	// Wheel: a native listener, since React's is passive and can't stop the page zooming.
 	useEffect(() => {
 		const el = box.current;
 		if (!el) return;
-		const onWheel = (e: WheelEvent) => {
+		return ownWheel(el, (e) => {
 			e.preventDefault();
 			const r = el.getBoundingClientRect();
 			move((c) => wheelCamera(c, e, { x: e.clientX - r.left, y: e.clientY - r.top }));
-		};
-		el.addEventListener("wheel", onWheel, { passive: false });
-		return () => el.removeEventListener("wheel", onWheel);
+		});
 	}, [move]);
 
 	const drag = useRef<{ id: number; x: number; y: number } | null>(null);

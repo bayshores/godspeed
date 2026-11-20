@@ -8,6 +8,7 @@
  */
 import { useCallback, useEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
 import { prefersReducedMotion } from "@/frontend/components/presence";
+import { ownWheel } from "@/frontend/lib/own-wheel";
 import type { Sky } from "./constellation-layout.ts";
 import {
 	between,
@@ -176,10 +177,10 @@ export function useCamera({
 				pinch = g.scale;
 			}
 		};
-		el.addEventListener("wheel", onWheel, { passive: false });
+		const offWheel = ownWheel(el, onWheel);
 		for (const t of GESTURES) el.addEventListener(t, onGesture);
 		return () => {
-			el.removeEventListener("wheel", onWheel);
+			offWheel();
 			for (const t of GESTURES) el.removeEventListener(t, onGesture);
 			cancelAnimationFrame(raf);
 		};

@@ -199,6 +199,56 @@ test("the zoom keys the menu does not claim step the zoom", () => {
 	assert.deepEqual(invoked, [["zoom_step", { dir: 1 }], ["zoom_step", { dir: 1 }], ["zoom_step", { dir: -1 }], ["zoom_reset"]]);
 });
 
+/** A wheel at `at` milliseconds; a pinch is a wheel with Ctrl held. */
+const wheel = (at: number, deltaY: number, keys: object = { ctrlKey: true }) => ({ timeStamp: at, deltaY, deltaMode: 0, ...keys });
+
+test("a pinch or a scroll with the key held steps the zoom, one size for each wheel at most", () => {
+	const { fire, invoked } = page();
+	assert.equal(fire("wheel", wheel(1000, -8)), true);
+	assert.deepEqual(invoked, [], "a small move is not a step yet");
+	assert.equal(fire("wheel", wheel(1010, -14)), true);
+	assert.equal(fire("wheel", wheel(1020, 25)), true);
+	assert.equal(fire("wheel", wheel(2000, -120, { metaKey: true })), true);
+	assert.equal(fire("wheel", wheel(3000, 3, { ctrlKey: true, deltaMode: 1 })), true);
+	assert.deepEqual(invoked, [["zoom_step", { dir: 1 }], ["zoom_step", { dir: -1 }], ["zoom_step", { dir: 1 }], ["zoom_step", { dir: -1 }]]);
+});
+
+test("a key pressed while a scroll still coasts does not zoom, and a plain scroll is left alone", () => {
+	const { fire, invoked } = page();
+	assert.equal(fire("wheel", wheel(1000, 40, {})), false);
+	assert.equal(fire("wheel", wheel(1016, 40, { metaKey: true })), false);
+	assert.equal(fire("wheel", wheel(1032, 40, { ctrlKey: true })), false);
+	assert.deepEqual(invoked, []);
+	assert.equal(fire("wheel", wheel(1500, 40, { metaKey: true })), true, "a new scroll with the key held zooms");
+	assert.deepEqual(invoked, [["zoom_step", { dir: -1 }]]);
+});
+
+test("the Mac's pinch events step the zoom by how far the pinch has grown, and its wheels are not counted again", () => {
+	const { fire, invoked } = page();
+	assert.equal(fire("gesturestart", { scale: 1 }), true);
+	assert.equal(fire("gesturechange", { scale: 1.1 }), true);
+	assert.deepEqual(invoked, [], "a tenth bigger is not a step yet");
+	assert.equal(fire("gesturechange", { scale: 1.3 }), true);
+	assert.equal(fire("wheel", wheel(1000, -60)), true);
+	assert.equal(fire("gesturechange", { scale: 1 }), true);
+	assert.equal(fire("gestureend", { scale: 1 }), true);
+	assert.deepEqual(invoked, [["zoom_step", { dir: 1 }], ["zoom_step", { dir: -1 }]]);
+});
+
+test("a view that zooms itself keeps its pinch", () => {
+	const ownWheel = readFileSync(new URL("../../src/frontend/lib/own-wheel.ts", import.meta.url), "utf8");
+	const mark = /const OWN_ZOOM = "([^"]+)"/.exec(ownWheel)?.[1];
+	assert.ok(mark && SOURCE.includes(`const OWN_ZOOM = "${mark}"`), "the page and the shim name the mark the same");
+	const { document, fire, invoked } = page({ body: `<div ${mark}><p id="in"></p></div><p id="out"></p>` });
+	assert.equal(fire("wheel", wheel(1000, -40), document.querySelector("#in")), false);
+	assert.deepEqual(invoked, []);
+	assert.equal(fire("gesturestart", { scale: 1 }, document.querySelector("#in")), false);
+	assert.equal(fire("gesturechange", { scale: 2 }, document.querySelector("#in")), false);
+	assert.deepEqual(invoked, []);
+	assert.equal(fire("wheel", wheel(2000, -40), document.querySelector("#out")), true);
+	assert.deepEqual(invoked, [["zoom_step", { dir: 1 }]]);
+});
+
 test("the browser's own context menu never shows", () => {
 	assert.equal(page().fire("contextmenu"), true);
 });
