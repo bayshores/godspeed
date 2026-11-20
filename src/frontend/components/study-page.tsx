@@ -48,7 +48,7 @@ export function NewLesson() {
 
 	const { start, studyTopics, studyPathTopic, studyDeadline, workOnHomework } = lesson;
 	const startTopic = () => void start({ title: topicRef.current, picks, files: attachments.files.map((f) => f.attachment) });
-	const studyFile = useCallback((file: FileCoverage) => void start({ title: displayName(file.name) }), [start]);
+	const studyFile = useCallback((file: FileCoverage) => void start({ title: displayName(file.name), id: file.name }), [start]);
 	const studyTopic = useCallback((t: TopicProgress) => void studyTopics([t.id]), [studyTopics]);
 	const studyPath = useCallback((topicId: string) => void studyPathTopic(topicId), [studyPathTopic]);
 
@@ -69,7 +69,7 @@ export function NewLesson() {
 					{/* Wide, the ways to start take the left half and the suggestions the right. */}
 					<div className="grid items-start gap-(--lh-head-gap) @[1100px]/page:grid-cols-2">
 						<div className="flex flex-col gap-3.5">
-							{progress && deadlines.length > 0 && <DeadlineStarts deadlines={deadlines} busy={lesson.busy} onStudy={(d) => void studyDeadline(d)} onWork={(d) => void workOnHomework(d)} />}
+							{progress && deadlines.length > 0 && <DeadlineStarts deadlines={deadlines} busyOn={lesson.busyOn} onStudy={(d) => void studyDeadline(d)} onWork={(d) => void workOnHomework(d)} />}
 							<TopicBox
 								text={topic}
 								onText={(t) => {
@@ -77,7 +77,7 @@ export function NewLesson() {
 									setTopic(t);
 								}}
 								onStart={startTopic}
-								busy={lesson.busy}
+								busyOn={lesson.busyOn}
 								inputRef={topicInputRef}
 								picks={picks.length}
 								canPick={(snapshot?.propositions.length ?? 0) > 0}
@@ -96,7 +96,7 @@ export function NewLesson() {
 							key={activeSpaceId ?? "none"}
 							spaceLabel={activeSpace?.name ?? null}
 							suggestions={suggestions}
-							busy={lesson.busy}
+							busyOn={lesson.busyOn}
 							onStudyFile={studyFile}
 							onStudyTopic={studyTopic}
 							onStudyPath={studyPath}

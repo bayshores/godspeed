@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { isAttachmentPart, type LhViewPart } from "@/shared/core";
 import { SMALL_BTN } from "@/frontend/components/ui/card-parts";
+import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { cn } from "@/frontend/lib/utils";
 import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
 
@@ -12,6 +13,8 @@ import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
  */
 export function MessageAttachments({ parts }: { parts: readonly LhViewPart[] }) {
 	const [open, setOpen] = useState<string | null>(null);
+	// The picture stays up through its fade-out.
+	const overlay = useLastWhileClosing(open);
 	const files = parts.filter(isAttachmentPart);
 	if (files.length === 0) return null;
 	const openPath = typeof window !== "undefined" ? window.lh?.openPath : undefined;
@@ -41,14 +44,14 @@ export function MessageAttachments({ parts }: { parts: readonly LhViewPart[] }) 
 					</button>
 				);
 			})}
-			{open !== null && <PictureOverlay src={open} onClose={() => setOpen(null)} />}
+			{overlay.mounted && overlay.shown !== null && <PictureOverlay src={overlay.shown} state={overlay.state} onClose={() => setOpen(null)} />}
 		</div>
 	);
 }
 
 /** One picture full size over the whole window; a click or Esc closes it. */
-function PictureOverlay({ src, onClose }: { src: string; onClose: () => void }) {
-	const dialogRef = useDialogFocus<HTMLDivElement>();
+function PictureOverlay({ src, state, onClose }: { src: string; state: "open" | "closed"; onClose: () => void }) {
+	const dialogRef = useDialogFocus<HTMLDivElement>(state === "open");
 	// Claimed at the document level so Esc never reaches the lesson's stop chain.
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
@@ -68,8 +71,9 @@ function PictureOverlay({ src, onClose }: { src: string; onClose: () => void }) 
 			role="dialog"
 			aria-modal="true"
 			aria-label="Picture"
+			data-state={state}
 			onClick={onClose}
-			className="lh-no-drag fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-background/90 p-8"
+			className="lh-fade lh-no-drag fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-background/90 p-8"
 		>
 			<img src={src} alt="Your picture" className="max-h-full max-w-full object-contain" />
 		</div>,

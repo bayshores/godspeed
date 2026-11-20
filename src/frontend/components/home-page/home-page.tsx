@@ -112,7 +112,7 @@ export function HomePage() {
 				noSpaceProgress={spacesProgress.noSpace}
 				progressErrors={spacesProgress.errors}
 				newFiles={newFiles.lines}
-				busy={lesson.busy}
+				busyOn={lesson.busyOn}
 				lessonError={lesson.error}
 				onStart={onStart}
 				onDone={markDone}

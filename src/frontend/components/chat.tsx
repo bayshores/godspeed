@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 import { useChatSession } from "@/frontend/components/session";
 import { visibleQueuedSteers } from "@/frontend/components/session-core";
-import { prefersReducedMotion } from "@/frontend/components/presence";
+import { prefersReducedMotion, usePresence } from "@/frontend/components/presence";
 import { JobsContext } from "@/frontend/components/jobs-context";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { agentWaiting, lessonAgentWaiting, useAgentStatus } from "@/frontend/components/agent-status";
@@ -446,6 +446,8 @@ export function Chat({
 	const [pluginId, setPluginId] = useState<string | null>(null);
 	const openPlugin = lessonPlugins?.find((p) => p.id === pluginId) ?? null;
 	const sheetOpen = !!spaceId && sheet.state.open;
+	// The dock stays mounted through its fade-out; the grid still follows sheetOpen.
+	const dock = usePresence(sheetOpen);
 	const toggleSheet = () => {
 		setPluginId(null);
 		sheet.update({ open: !sheetOpen });
@@ -582,8 +584,8 @@ export function Chat({
 											) : null
 										}
 									/>
-									{spaceId && sheetOpen && (
-										<div className="flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap) [grid-area:dock]">
+									{spaceId && dock.mounted && (
+										<div data-state={dock.state} className="lh-fade flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap) [grid-area:dock]">
 											<SheetDock
 												spaceId={spaceId}
 												sessionDeadlineId={deadlineId}

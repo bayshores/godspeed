@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { cn } from "@/frontend/lib/utils";
+import { LoadingLine, useWaited } from "@/frontend/components/loading";
 import { DEFAULT_TEACHER_NAME, fileGroups, type FileCoverage, type FolderStatus } from "@/shared/core";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { useSpaces } from "@/frontend/components/space-context";
@@ -84,6 +86,7 @@ function useCollapsed(spaceId: string | null) {
 function FilesPageBody() {
 	const { active } = useSpaces();
 	const { record, folder, shortcuts, failed, reload } = useSpaceRecord(active);
+	const waited = useWaited(!!record);
 	const minute = useMinute();
 	const linked = !!record?.linkedFolder;
 	// A new minute (not the first one) re-reads the folder's status.
@@ -222,9 +225,9 @@ function FilesPageBody() {
 			}}
 		>
 			<h1 className="sr-only">Files</h1>
-			<div className="@container/page lh-page flex flex-col gap-(--lh-gap) pt-(--lh-gap) pb-(--lh-page-end)">
+			<div className={cn("@container/page lh-page flex flex-col gap-(--lh-gap) pt-(--lh-gap) pb-(--lh-page-end)", waited && "lh-set")}>
 				{!active && <PickSpace line="Pick a space to see its files." />}
-				{active && !record && !failed && <p className="text-[15px] text-ink-2">Loading…</p>}
+				{active && !record && !failed && <LoadingLine className="text-[15px]" />}
 				{active && !record && failed && <LoadFailed message="Couldn't load this space's files." onRetry={() => void reload()} />}
 				{record && actions && (
 					<>

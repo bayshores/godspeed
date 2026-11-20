@@ -84,7 +84,7 @@ function list(props: Partial<React.ComponentProps<typeof SuggestionList>> = {}) 
 			<SuggestionList
 				spaceLabel="CSE 21"
 				suggestions={SUGGESTIONS}
-				busy={false}
+				busyOn={null}
 				onStudyFile={() => {}}
 				onStudyTopic={() => {}}
 				onStudyPath={() => {}}
@@ -101,7 +101,7 @@ function box(props: Partial<React.ComponentProps<typeof TopicBox>> = {}) {
 				text=""
 				onText={() => {}}
 				onStart={() => {}}
-				busy={false}
+				busyOn={null}
 				picks={0}
 				canPick
 				onOpenPicker={() => {}}
@@ -228,7 +228,7 @@ describe("Study page: actions", () => {
 				<SuggestionList
 					spaceLabel="CSE 21"
 					suggestions={SUGGESTIONS}
-					busy={false}
+					busyOn={null}
 					onStudyFile={(f) => learned.push(f)}
 					onStudyTopic={(t) => practiced.push(t)}
 					onStudyPath={() => {}}
@@ -248,7 +248,7 @@ describe("Study page: actions", () => {
 		const clicked: string[] = [];
 		const host = await mount(
 			<MemoryRouter initialEntries={["/new"]}>
-				<DeadlineStarts deadlines={deadlines} busy={false} onStudy={(d) => clicked.push(d.id)} onWork={(d) => clicked.push(`work ${d.id}`)} />
+				<DeadlineStarts deadlines={deadlines} busyOn={null} onStudy={(d) => clicked.push(d.id)} onWork={(d) => clicked.push(`work ${d.id}`)} />
 			</MemoryRouter>,
 		);
 		const buttons = [...host.querySelectorAll('[data-testid="home-deadlines"] button')] as HTMLButtonElement[];
@@ -258,10 +258,14 @@ describe("Study page: actions", () => {
 		assert.deepEqual(clicked, ["mid", "work hw6"]);
 	});
 
-	it("busy: the start buttons are disabled", () => {
-		const html = list({ busy: true });
-		assert.match(html, /data-testid="home-study-file"[^>]*disabled/);
-		assert.match(html, /data-testid="home-study-topic"[^>]*disabled/);
+	it("a start in flight: the key pressed shows it works and the others are only disabled", () => {
+		const html = list({ busyOn: FILE.name });
+		const key = (testid: string) => html.match(new RegExp(`<button[^>]*data-testid="${testid}"[^>]*>`))![0];
+		assert.match(key("home-study-file"), /disabled=""/);
+		assert.match(key("home-study-file"), /aria-busy="true"/);
+		assert.match(key("home-study-topic"), /disabled=""/);
+		assert.ok(!key("home-study-topic").includes("aria-busy"));
+		assert.equal(html.split("braille-spinner").length - 1, 1, "one spinner, on the pressed key");
 	});
 
 	it("Enter starts; Shift+Enter and an IME composition's Enter don't", () => {
@@ -311,6 +315,32 @@ describe("Study page: actions", () => {
 			await act(async () => lesson().start({ title: "Induction" }));
 			assert.equal(lesson().error, null);
 			assert.deepEqual(pushed, ["/chat/chat_1?prompt=Induction"]);
+		} finally {
+			globalThis.fetch = original;
+		}
+	});
+
+	it("busyOn names the start in flight, and is null again when a start fails", async () => {
+		const original = globalThis.fetch;
+		try {
+			let release!: () => void;
+			const gate = new Promise<void>((resolve) => (release = resolve));
+			const { lesson } = await harness(() => false);
+			const hang = globalThis.fetch;
+			globalThis.fetch = (async (...args: Parameters<typeof fetch>) => {
+				await gate;
+				return hang(...args);
+			}) as typeof fetch;
+			assert.equal(lesson().busyOn, null);
+			let started!: Promise<void>;
+			await act(async () => {
+				started = Promise.resolve(lesson().studyDeadline({ id: "d1" }));
+			});
+			assert.equal(lesson().busyOn, "d1");
+			assert.equal(lesson().busy, true);
+			release();
+			await act(async () => started);
+			assert.equal(lesson().busyOn, null);
 		} finally {
 			globalThis.fetch = original;
 		}

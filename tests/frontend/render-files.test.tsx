@@ -437,6 +437,8 @@ describe("FilesPage", () => {
 		fakeFetch();
 		await mount();
 		await act(async () => q("files-group-toggle-lecture")!.click());
+		assert.equal(q("space-file-f1")!.closest(".lh-collapse")!.getAttribute("data-state"), "closed", "the rows fold shut before they leave");
+		await act(() => new Promise((r) => setTimeout(r, 200)));
 		assert.ok(q("space-file-f1") === null);
 		assert.equal(q("files-group-toggle-lecture")!.getAttribute("aria-expanded"), "false");
 		await act(async () => root?.unmount());

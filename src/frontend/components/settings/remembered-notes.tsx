@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { LoadingLine } from "@/frontend/components/loading";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { savedDay } from "@/frontend/components/rule-chips";
@@ -55,7 +56,7 @@ export function RememberedNotes() {
 	return (
 		<SettingsGroup label="Remembered" about={`Notes ${teacher} saved when you told it something worth keeping`} testid="remembered-notes">
 			{notes === null ? (
-				<p>{error ?? "Loading…"}</p>
+				error ? <p>{error}</p> : <LoadingLine />
 			) : notes.length === 0 ? (
 				<p>Nothing yet. {teacher} saves notes here when you tell it something worth keeping.</p>
 			) : (

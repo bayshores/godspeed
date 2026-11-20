@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { DEFAULT_TEACHER_NAME, MOCK_LANGUAGES, localDay, longDay, minutesUsed, pauseTotal, questionResult, solvedCount, type MockQuestion, type MockView } from "@/shared/core";
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
+import { Key } from "@/frontend/components/ui/key";
 import { Pane } from "@/frontend/components/ui/pane";
+import { useFold } from "@/frontend/components/use-fold";
 import { cn } from "@/frontend/lib/utils";
 import { MockBar } from "./mock-bar";
 import { RESULT_WORD, pauseLine, spentText, usedLine } from "./mock-model";
@@ -31,7 +34,7 @@ export function MockResults({ view }: { view: MockView }) {
 						</div>
 						<ol className="flex flex-col">
 							{mock.questions.map((q, i) => (
-								<QuestionRow key={q.id} n={i + 1} question={q} view={view} teacher={teacher} busy={lesson.busy} onGoOver={() => void lesson.goOverMock(mock.id, q.id, spaceId)} />
+								<QuestionRow key={q.id} n={i + 1} question={q} view={view} teacher={teacher} busyOn={lesson.busyOn} onGoOver={() => void lesson.goOverMock(mock.id, q.id, spaceId)} />
 							))}
 						</ol>
 					</section>
@@ -60,11 +63,13 @@ export function MockResults({ view }: { view: MockView }) {
 
 /** One question: its number, title, how it went and the time it took;
  *  under them the feedback, what was written, and Go over it. */
-function QuestionRow({ n, question: q, view, teacher, busy, onGoOver }: { n: number; question: MockQuestion; view: MockView; teacher: string; busy: boolean; onGoOver: () => void }) {
+function QuestionRow({ n, question: q, view, teacher, busyOn, onGoOver }: { n: number; question: MockQuestion; view: MockView; teacher: string; busyOn: string | null; onGoOver: () => void }) {
 	const { mock } = view;
 	const result = questionResult(mock, q.id) ?? "blank";
 	const answer = mock.answers[q.id];
 	const grade = mock.grades?.[q.id];
+	const [wroteOpen, setWroteOpen] = useState(false);
+	const wrote = useFold(wroteOpen);
 	return (
 		<li data-testid={`mock-result-${q.id}`} className="flex gap-3.5 px-1 py-4">
 			<span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-sm border-[1.5px] border-ink font-count text-lg leading-none text-ink">
@@ -84,14 +89,22 @@ function QuestionRow({ n, question: q, view, teacher, busy, onGoOver }: { n: num
 					</div>
 				)}
 				{grade && answer && (
-					<details className="text-[15px] text-ink-2">
-						<summary className="lh-press cursor-pointer select-none hover:text-ink">What you wrote{q.kind === "code" && answer.language ? ` in ${MOCK_LANGUAGES[answer.language]}` : ""}</summary>
-						<pre className={cn("mt-1.5 overflow-x-auto lh-well rounded-sm px-3 py-2 leading-relaxed whitespace-pre-wrap text-ink", q.kind === "code" ? "font-mono text-[13.5px]" : "font-prose text-[15px]")}>{answer.text}</pre>
-					</details>
+					<div className="text-[15px] text-ink-2">
+						<button type="button" aria-expanded={wroteOpen} onClick={() => setWroteOpen((v) => !v)} className="lh-press cursor-pointer select-none text-left hover:text-ink">
+							What you wrote{q.kind === "code" && answer.language ? ` in ${MOCK_LANGUAGES[answer.language]}` : ""}
+						</button>
+						{wrote.mounted && (
+							<div className="lh-collapse" data-state={wrote.state}>
+								<div>
+									<pre className={cn("mt-1.5 overflow-x-auto lh-well rounded-sm px-3 py-2 leading-relaxed whitespace-pre-wrap text-ink", q.kind === "code" ? "font-mono text-[13.5px]" : "font-prose text-[15px]")}>{answer.text}</pre>
+								</div>
+							</div>
+						)}
+					</div>
 				)}
-				<button type="button" data-testid="mock-go-over" disabled={busy} onClick={onGoOver} className="lh-btn self-start text-[15px]">
+				<Key data-testid="mock-go-over" busy={busyOn === q.id} disabled={busyOn !== null} onClick={onGoOver} className="self-start text-[15px]">
 					Go over it with {teacher}
-				</button>
+				</Key>
 			</div>
 		</li>
 	);

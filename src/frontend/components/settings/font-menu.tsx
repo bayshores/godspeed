@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { LoadingLine } from "@/frontend/components/loading";
 import { fuzzyScore } from "@/shared/core";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
@@ -114,7 +115,7 @@ export function FontMenuList({
 				aria-label="Search fonts"
 				className="mb-1.5 h-9 w-full lh-well rounded px-2.5 text-[15px] text-ink placeholder:text-ink-3"
 			/>
-			{!families && <div className="px-2 py-3 text-center text-[15px] text-ink-2">Loading fonts…</div>}
+			{!families && <LoadingLine className="justify-center px-2 py-3 text-[15px]">Loading fonts…</LoadingLine>}
 			<ul ref={listRef} data-testid="font-list" className="flex max-h-72 flex-col overflow-y-auto">
 				{families &&
 					results.map((family, i) => {

@@ -1,4 +1,5 @@
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
+import { LoadingBox } from "@/frontend/components/loading";
 import { Pane } from "@/frontend/components/ui/pane";
 import type { About } from "./use-deadline-about";
 
@@ -43,7 +44,7 @@ export function AboutSheet({
 					</button>
 				</div>
 			) : (
-				<div className="h-24 w-full bg-tone" aria-hidden />
+				<LoadingBox className="h-24 bg-tone" />
 			)}
 			<button type="button" data-testid="deadline-about-ask" disabled={requesting} onClick={onAsk} className="lh-btn lh-btn-quiet self-start text-[15px]">
 				Ask {teacherName} to rewrite

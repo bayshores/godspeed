@@ -129,12 +129,16 @@ The app moves in one register, quick and quiet, like an e-ink page redrawing. Th
   | A space's tabs | Sideways under the space's head, in the order of the tabs; the head stays still |
   | To a deeper page (a deadline's page or the start page, then a lesson, a mock, a cheat sheet) | The deeper page is laid on top from the bottom edge |
   | Back from a deeper page | That sheet is taken off, downward |
+  | Settings sections, a mock's questions, a mock's screens (waiting, answering, results) | Sideways, in their order |
+  | An area's full instructions in Settings | Laid on top from the bottom edge, and taken off downward |
 
 - A new page takes its place in `travel-model.ts` (its depth and its column). A page never animates its own arrival.
 - The lit one of a row of tabs is marked by one box that slides to it (`useLitMarker`): the paper under the lit tab of the top bar, the underline of a space's tabs and of Settings. A tab never draws its own lit background or underline.
 - A page's own words in the top bar fade in with the page.
 - A new keyframe needs a reason the existing ones can't serve.
 - Every motion class has a reduced-motion switch: with reduced motion nothing is held, nothing animates and scrolls are instant.
+- A wait while data is read is `LoadingBox` (a still box in the size of what comes) or `LoadingLine` (where it has no size yet), in `components/loading.tsx`. Its one live element is the spinner. What replaces a wait the learner saw steps in (`useWaited` with `.lh-set`); what was there at first render never animates.
+- A failed load rises in (`LoadFailed`).
 - A wait has the shape of what comes, at the place it will appear, and shows objects (the lesson's desk shows the learner's files as paper), not skeleton bars. It has one live element and repeats no word the strip already says.
 - Before calling a waiting state finished, reload a lesson mid-wait at 1440, 1100 and 800 points wide: it shows without motion, in place, and nothing jumps when the reply lands.
 

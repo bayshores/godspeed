@@ -1,4 +1,6 @@
 import { memo, useMemo, type ReactNode } from "react";
+import { useWaited } from "@/frontend/components/loading";
+import { cn } from "@/frontend/lib/utils";
 import type { SpaceNote, DeadlineProgress, ProgressPayload } from "@/shared/core";
 import { SpaceFacts } from "./space-facts";
 import { ConfidenceCard } from "./confidence-card";
@@ -33,7 +35,7 @@ export const OverviewBody = memo(function OverviewBody({
 	note,
 	data,
 	nowMs,
-	busy,
+	busyOn,
 	startError,
 	onStudy,
 	onStudyPath,
@@ -50,8 +52,8 @@ export const OverviewBody = memo(function OverviewBody({
 	data: ProgressPayload | null;
 	/** The window's clock (null before the first client render). */
 	nowMs: number | null;
-	/** A lesson is starting. */
-	busy: boolean;
+	/** The id of the lesson start in flight, if any. */
+	busyOn: string | null;
 	/** Why the last lesson didn't start. */
 	startError: string | null;
 	/** "Most needed" → Study. */
@@ -70,6 +72,7 @@ export const OverviewBody = memo(function OverviewBody({
 	pickSpace?: ReactNode;
 }) {
 	const upcoming = useMemo(() => (data && nowMs !== null ? upcomingDeadlines(data.deadlines, nowMs) : []), [data, nowMs]);
+	const waited = useWaited(data !== null && nowMs !== null);
 	const needed = useMemo(() => mostNeeded(upcoming), [upcoming]);
 	const actions = useLessonActions(data?.lessons ?? null, data?.spaceId ?? null);
 	const { unfinished, finished } = useMemo(() => splitLessons(actions.shown ?? []), [actions.shown]);
@@ -88,17 +91,17 @@ export const OverviewBody = memo(function OverviewBody({
 			    side grows to 340 so a deadline's name and a lesson's keep to fewer lines. */}
 			<div className="flex flex-col gap-(--lh-gap) @[762px]:flex-row @[762px]:items-start">
 				{side && (
-					<div ref={sideRef} data-testid="progress-side" style={{ top: sideTop }} className="flex min-w-0 flex-col gap-(--lh-gap) @[762px]:sticky @[762px]:w-[280px] @[762px]:shrink-0 @[1200px]:w-[340px]">
+					<div ref={sideRef} data-testid="progress-side" style={{ top: sideTop }} className={cn("flex min-w-0 flex-col gap-(--lh-gap) @[762px]:sticky @[762px]:w-[280px] @[762px]:shrink-0 @[1200px]:w-[340px]", waited && "lh-set")}>
 						{spaceData &&
 							(pathFirst ? (
-								<PathBlock path={spaceData.path!} main busy={busy} onStudy={onStudyPath} />
+								<PathBlock path={spaceData.path!} main busyOn={busyOn} onStudy={onStudyPath} />
 							) : (
 								<NextDeadline
 									deadline={next}
 									none={spaceData.deadlines.length === 0 ? "No deadlines yet" : "Nothing is coming up."}
 									color={color}
 									nowMs={nowMs!}
-									busy={busy}
+									busyOn={busyOn}
 									onStudy={onStudyDeadline}
 									onWork={onWorkDeadline}
 									onAddDeadline={onAddDeadline}
@@ -111,11 +114,11 @@ export const OverviewBody = memo(function OverviewBody({
 							</p>
 						)}
 						{data && unfinished.length > 0 && <LessonCard title="Unfinished" name="unfinished" lessons={unfinished} deadlines={data.deadlines} actions={actions} headKey />}
-						{spaceData?.path && !pathFirst && <PathBlock path={spaceData.path} main={false} busy={busy} onStudy={onStudyPath} />}
-						{hasSpace && needed && <MostNeeded needed={needed} busy={busy} onStudy={onStudy} />}
+						{spaceData?.path && !pathFirst && <PathBlock path={spaceData.path} main={false} busyOn={busyOn} onStudy={onStudyPath} />}
+						{hasSpace && needed && <MostNeeded needed={needed} busyOn={busyOn} onStudy={onStudy} />}
 					</div>
 				)}
-				<div className="flex min-w-0 flex-1 flex-col gap-(--lh-gap)">
+				<div className={cn("flex min-w-0 flex-1 flex-col gap-(--lh-gap)", waited && "lh-set")}>
 					{note && <TeacherNote note={note} nowMs={nowMs} />}
 					<LessonRecord finished={actions.shown ? finished : null} none={actions.shown?.length === 0} nowMs={nowMs} actions={actions} />
 					{hasSpace && data && <SpaceFacts progress={data} />}

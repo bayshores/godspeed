@@ -194,7 +194,7 @@ describe("The card", () => {
 	function card(props: Partial<React.ComponentProps<typeof NextCard>> = {}) {
 		return renderToStaticMarkup(
 			<MemoryRouter initialEntries={["/"]}>
-				<NextCard deadline={OPEN[3]!} progress={progressFor("mid", { ready: 0.4, date: "2026-11-05" })} color={2} nowMs={NOW} busy={false} onStart={() => {}} onDone={() => {}} onUndo={() => {}} {...props} />
+				<NextCard deadline={OPEN[3]!} progress={progressFor("mid", { ready: 0.4, date: "2026-11-05" })} color={2} nowMs={NOW} busyOn={null} onStart={() => {}} onDone={() => {}} onUndo={() => {}} {...props} />
 			</MemoryRouter>,
 		);
 	}
@@ -219,16 +219,17 @@ describe("The card", () => {
 
 	it("holds the page's one main button, beside a quiet Mark done, each as wide as its label", () => {
 		assert.ok(tag(html, "today-start").includes("lh-btn-main"));
-		assert.ok(tag(html, "today-start").includes(`class="${MAIN_KEY}"`), "the Progress page's main key");
+		assert.ok(tag(html, "today-start").includes(`class="lh-btn ${MAIN_KEY}"`), "the Progress page's main key");
 		assert.match(section(html, "today-start", "</button>"), />Study$/);
 		assert.ok(tag(html, "today-done").includes("lh-btn-quiet"));
 		assert.ok(!html.includes("w-full justify-center"));
 	});
 
-	it("homework is worked on; the main key waits while a lesson starts", () => {
-		const hw = card({ deadline: OPEN[2]!, progress: progressFor("hw5", { problems: { done: 2, total: 7 } }), busy: true });
-		assert.match(section(hw, "today-start", "</button>"), />Work on it$/);
-		assert.match(tag(hw, "today-start"), /disabled/);
+	it("homework is worked on; the main key shows it works while its lesson starts", () => {
+		const hw = card({ deadline: OPEN[2]!, progress: progressFor("hw5", { problems: { done: 2, total: 7 } }), busyOn: "homework hw5" });
+		assert.match(section(hw, "today-start", "</button>"), />Work on it<\/span>/);
+		assert.match(tag(hw, "today-start"), /disabled=""[^>]*aria-busy="true"|aria-busy="true"[^>]*disabled=""/);
+		assert.match(hw, /data-testid="today-start"[^>]*>.*braille-spinner/s);
 		assert.match(section(hw, "today-card-ready", "</span>"), />2 of 7 problems done$/);
 	});
 
@@ -236,7 +237,7 @@ describe("The card", () => {
 		const undone: string[] = [];
 		const el = await mount(
 			<MemoryRouter initialEntries={["/"]}>
-				<NextCard deadline={{ ...OPEN[2]!, done: true, doneAt: new Date(NOW).toISOString() }} progress={undefined} color={3} nowMs={NOW} busy={false} onStart={() => {}} onDone={() => {}} onUndo={(x) => undone.push(x.id)} />
+				<NextCard deadline={{ ...OPEN[2]!, done: true, doneAt: new Date(NOW).toISOString() }} progress={undefined} color={3} nowMs={NOW} busyOn={null} onStart={() => {}} onDone={() => {}} onUndo={(x) => undone.push(x.id)} />
 			</MemoryRouter>,
 		);
 		assert.ok(el.querySelector("h2")!.className.includes("line-through"));
@@ -292,7 +293,7 @@ function page(props: Partial<React.ComponentProps<typeof HomeBody>> = {}): strin
 				noSpaceProgress={null}
 				progressErrors={new Map()}
 								newFiles={new Map()}
-				busy={false}
+				busyOn={null}
 				lessonError={null}
 				onStart={() => {}}
 				onDone={() => {}}
@@ -371,7 +372,7 @@ describe("Home, under the deadlines: Unfinished and Work on next", () => {
 					noSpaceProgress={null}
 					progressErrors={new Map()}
 					newFiles={new Map()}
-					busy={false}
+					busyOn={null}
 					lessonError={null}
 					onStart={() => {}}
 					onDone={() => {}}
@@ -496,7 +497,7 @@ describe("Picking in the week", () => {
 					noSpaceProgress={null}
 					progressErrors={new Map()}
 										newFiles={new Map()}
-					busy={false}
+					busyOn={null}
 					lessonError={null}
 					onStart={() => {}}
 					onDone={(x) => on.done?.push(x.id)}
@@ -656,7 +657,7 @@ describe("Your spaces", () => {
 					noSpaceProgress={null}
 					progressErrors={new Map()}
 										newFiles={new Map([["spc_la", "2 new files since Monday"]])}
-					busy={false}
+					busyOn={null}
 					lessonError={null}
 						onStart={() => {}}
 					onDone={() => {}}

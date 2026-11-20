@@ -1,5 +1,7 @@
 import { deadlineStudyLabel, studyLabel, type DeadlineProgress } from "@/shared/core";
 import { BIG_KEY, MAIN_KEY } from "@/frontend/components/overview/styles";
+import { homeworkStartId } from "@/frontend/components/study-page/use-lesson-start";
+import { Key } from "@/frontend/components/ui/key";
 import { cn } from "@/frontend/lib/utils";
 
 /** The key that works on a homework or project. */
@@ -19,14 +21,14 @@ export function workLabel(name: string): string {
  */
 export function DeadlineKeys({
 	deadline: d,
-	busy,
+	busyOn,
 	narrow = false,
 	onStudy,
 	onWork,
 }: {
-	deadline: Pick<DeadlineProgress, "name" | "done" | "daysUntil" | "continueStudy">;
-	/** A lesson is starting. */
-	busy: boolean;
+	deadline: Pick<DeadlineProgress, "id" | "name" | "done" | "daysUntil" | "continueStudy">;
+	/** The id of the lesson start in flight, if any. */
+	busyOn: string | null;
 	/** A side card's keys, under the deadline's name: short, label width, at the right. */
 	narrow?: boolean;
 	onStudy: () => void;
@@ -40,13 +42,13 @@ export function DeadlineKeys({
 	return (
 		<div data-testid="deadline-keys" className={cn("flex flex-wrap justify-end gap-2.5", narrow && "items-end")}>
 			{d.daysUntil >= 0 && (
-				<button type="button" data-testid="deadline-study" title={study} disabled={busy} onClick={onStudy} className={BIG_KEY}>
+				<Key data-testid="deadline-study" title={study} busy={busyOn === d.id} disabled={busyOn !== null} onClick={onStudy} className={BIG_KEY}>
 					<span className="min-w-0 truncate">{studyShort}</span>
-				</button>
+				</Key>
 			)}
-			<button type="button" data-testid="deadline-work" title={work} disabled={busy} onClick={onWork} className={MAIN_KEY}>
+			<Key data-testid="deadline-work" title={work} busy={busyOn === homeworkStartId(d.id)} disabled={busyOn !== null} onClick={onWork} className={MAIN_KEY}>
 				<span className="min-w-0 truncate">{workShort}</span>
-			</button>
+			</Key>
 		</div>
 	);
 }

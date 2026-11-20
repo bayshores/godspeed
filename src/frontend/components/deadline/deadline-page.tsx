@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { LoadingBox, useWaited } from "@/frontend/components/loading";
 import { useNavigate } from "react-router";
 import { DEFAULT_TEACHER_NAME, hasProblems, planDays } from "@/shared/core";
 import { spaceColorVar } from "@/frontend/components/space-color";
@@ -54,6 +55,7 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 	const [editing, setEditing] = useState(false);
 
 	const current = data && data.spaceId === spaceId ? data : null;
+	const waited = useWaited(current !== null && nowMs !== null);
 	const deadline = current?.deadlines.find((d) => d.id === deadlineId) ?? null;
 	const saved = record?.deadlines?.find((d) => d.id === deadlineId) ?? null;
 	const material = useMemo(
@@ -133,7 +135,8 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 							material={material}
 							plan={plan}
 							nowMs={nowMs}
-							busy={lesson.busy}
+							waited={waited}
+							busyOn={lesson.busyOn}
 							startError={lesson.error ?? saveError}
 							onStart={onStart}
 							onEdit={() => setEditing(true)}
@@ -174,7 +177,7 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 										problems={saved?.problems ?? []}
 										files={record?.files ?? []}
 										assignmentId={assignmentId}
-										busy={lesson.busy}
+										busyOn={lesson.busyOn}
 										error={lesson.error ?? saveError}
 										saving={saving}
 										onStudy={onStart}
@@ -190,9 +193,9 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 						<LoadFailed message="Couldn't load this deadline." onRetry={refresh} />
 					) : (
 						// Plain boxes until the space's progress arrives, so nothing jumps.
-						<div className="flex flex-col gap-(--lh-head-gap)" aria-hidden>
-							<div className="h-[120px] w-full bg-panel" />
-							<div className="h-[320px] w-full bg-panel" />
+						<div className="flex flex-col gap-(--lh-head-gap)">
+							<div className="h-[120px] w-full bg-panel" aria-hidden />
+							<LoadingBox className="h-[320px] bg-panel" />
 						</div>
 					)}
 				</div>

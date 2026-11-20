@@ -4,6 +4,7 @@ import { keyLabel } from "@/frontend/components/overview/lesson-record-model";
 import { ROW, StepBlocks } from "@/frontend/components/overview/lesson-rows";
 import { STATUS_LEGEND, lessonHref } from "@/frontend/components/overview/overview-model";
 import { spaceColorVar } from "@/frontend/components/space-color";
+import { Key } from "@/frontend/components/ui/key";
 import { Pane } from "@/frontend/components/ui/pane";
 import { ProgressBar } from "@/frontend/components/ui/progress-bar";
 import { cn } from "@/frontend/lib/utils";
@@ -25,14 +26,14 @@ function Square({ color }: { color: UnfinishedItem["color"] }) {
 export function HomeNext({
 	unfinished,
 	topics,
-	busy,
+	busyOn,
 	onOpenSpace,
 	onStudyTopic,
 }: {
 	unfinished: readonly UnfinishedItem[];
 	topics: readonly TopicItem[];
-	/** A lesson is starting. */
-	busy: boolean;
+	/** The id of the lesson start in flight, if any. */
+	busyOn: string | null;
 	onOpenSpace: (spaceId: string) => void;
 	onStudyTopic: (spaceId: string, topicId: string) => void;
 }) {
@@ -86,14 +87,14 @@ export function HomeNext({
 				<Pane data-testid="today-work-on-next" className="lh-card self-start only:col-span-full">
 					<div className="lh-card-head">
 						<h2 className="lh-card-title">Work on next</h2>
-						<button type="button" data-testid="today-topic-key" disabled={busy} onClick={() => onStudyTopic(topics[0]!.spaceId, topics[0]!.topicId)} className="lh-btn shrink-0">
+						<Key data-testid="today-topic-key" busy={busyOn === topics[0]!.topicId} disabled={busyOn !== null} onClick={() => onStudyTopic(topics[0]!.spaceId, topics[0]!.topicId)} className="shrink-0">
 							Study
-						</button>
+						</Key>
 					</div>
 					<ul className="-mx-3 flex flex-col gap-1">
 						{topics.map((t) => (
 							<li key={`${t.spaceId}:${t.topicId}`}>
-								<button type="button" data-testid="today-topic-row" disabled={busy} onClick={() => onStudyTopic(t.spaceId, t.topicId)} className={cn(ROW, ROW_CLASS)}>
+								<button type="button" data-testid="today-topic-row" disabled={busyOn !== null} onClick={() => onStudyTopic(t.spaceId, t.topicId)} className={cn(ROW, ROW_CLASS)}>
 									<span className="flex items-start gap-2.5">
 										<Square color={t.color} />
 										<span className="min-w-0 flex-1 truncate text-[17px] leading-snug text-ink">

@@ -158,7 +158,7 @@ function body(props: Partial<Props> = {}) {
 				color="var(--lh-space-1)"
 				data={{ ...PAYLOAD, deadlines: DEADLINES, facts: FACTS }}
 				nowMs={NOW}
-				busy={false}
+				busyOn={null}
 				startError={null}
 				onStudy={() => {}}
 				onStudyPath={() => {}}
@@ -292,7 +292,7 @@ describe("The next deadline", () => {
 	});
 
 	it("the button is off while a lesson is starting; a lesson that didn't start says so", () => {
-		assert.match(tag(render({ busy: true }), "deadline-work"), /disabled=""/);
+		assert.match(tag(render({ busyOn: "elsewhere" }), "deadline-work"), /disabled=""/);
 		assert.match(render({ startError: "Couldn't start the lesson. Try again." }), /data-testid="start-error"[^>]*>Couldn&#x27;t start the lesson\. Try again\.</);
 		assert.ok(!render().includes("start-error"));
 	});

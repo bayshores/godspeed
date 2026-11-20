@@ -11,6 +11,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LoadingBox } from "@/frontend/components/loading";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
@@ -237,9 +238,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 				<LoadFailed message="Couldn't load this space." onRetry={() => void reload()} />
 			) : loading ? (
 				// As tall as the fields, so the dialog doesn't jump when the space arrives.
-				<p data-testid="space-dialog-loading" className="flex min-h-[420px] items-center justify-center text-[15px] text-ink-2">
-					Loading…
-				</p>
+				<LoadingBox data-testid="space-dialog-loading" className="min-h-[420px]" />
 			) : (
 				<>
 					<label className="flex flex-col gap-1.5">

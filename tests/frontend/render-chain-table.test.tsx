@@ -321,6 +321,10 @@ describe("ChainTableOverlay — the lifted practice pick", () => {
 		assert.match(overlay(), /data-testid="chain-table-overlay"[^>]*class="[^"]*fixed top-\(--lh-bar-h\) /);
 	});
 
+	it("fades in and out: an open overlay carries the fade class and its open state", () => {
+		assert.match(overlay(), /data-testid="chain-table-overlay" data-state="open" class="lh-fade /);
+	});
+
 	it("browse mode: Delete stays", () => {
 		const html = overlay({ controlledSelection: new Set(["a"]) });
 		assert.ok(html.includes('data-testid="chain-delete"'));

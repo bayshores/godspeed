@@ -4,6 +4,7 @@ import { hasProblems, longDay, rampColor, studyLabel, type DeadlineProgress } fr
 import { dueAtMs } from "@/frontend/components/countdown-model";
 import { countLeft } from "@/frontend/components/home-page/home-page-model";
 import { DeadlineKeys } from "@/frontend/components/deadline/deadline-keys";
+import { Key } from "@/frontend/components/ui/key";
 import { CountBlock } from "@/frontend/components/ui/count-block";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
@@ -26,7 +27,7 @@ export const NextDeadline = memo(function NextDeadline({
 	none,
 	color,
 	nowMs,
-	busy,
+	busyOn,
 	onStudy,
 	onWork,
 	onAddDeadline,
@@ -38,8 +39,8 @@ export const NextDeadline = memo(function NextDeadline({
 	/** The space's color. */
 	color: string;
 	nowMs: number;
-	/** A lesson is starting. */
-	busy: boolean;
+	/** The id of the lesson start in flight, if any. */
+	busyOn: string | null;
 	onStudy: (d: DeadlineProgress) => void;
 	onWork: (d: DeadlineProgress) => void;
 	onAddDeadline: () => void;
@@ -87,11 +88,11 @@ export const NextDeadline = memo(function NextDeadline({
 						)}
 					</div>
 					{hasProblems(d.kind) ? (
-						<DeadlineKeys deadline={d} busy={busy} narrow onStudy={() => onStudy(d)} onWork={() => onWork(d)} />
+						<DeadlineKeys deadline={d} busyOn={busyOn} narrow onStudy={() => onStudy(d)} onWork={() => onWork(d)} />
 					) : (
-						<button type="button" data-testid="next-deadline-start" disabled={busy} onClick={() => onStudy(d)} className={`${MAIN_KEY} self-end`}>
+						<Key data-testid="next-deadline-start" busy={busyOn === d.id} disabled={busyOn !== null} onClick={() => onStudy(d)} className={`${MAIN_KEY} self-end`}>
 							<span className="min-w-0 truncate">{studyLabel(d.continueStudy)}</span>
-						</button>
+						</Key>
 					)}
 				</div>
 			</div>

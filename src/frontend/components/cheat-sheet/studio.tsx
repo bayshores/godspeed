@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { LoadingBox } from "@/frontend/components/loading";
 import { Link } from "react-router";
 import { currentVersion, DEFAULT_TEACHER_NAME, pageSizeLabel, type CheatSheetView } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
@@ -33,7 +34,7 @@ export function CheatSheetStudio({ spaceId, deadlineId, deadlineName }: { spaceI
 	return (
 		<div className="flex h-full flex-col">
 			<StudioHead deadlineId={deadlineId} deadlineName={deadlineName} />
-			{loadError ? <LoadFailed message="Couldn't load this cheat sheet." onRetry={() => void reload()} className="px-8 py-6" /> : <div className="flex-1" aria-hidden />}
+			{loadError ? <LoadFailed message="Couldn't load this cheat sheet." onRetry={() => void reload()} className="px-8 py-6" /> : <LoadingBox className="flex-1" />}
 		</div>
 	);
 }

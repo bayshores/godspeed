@@ -8,6 +8,7 @@
  * starts clean.
  */
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { LoadingLine } from "@/frontend/components/loading";
 import type { FactProgress } from "@/shared/core";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useProgress } from "@/frontend/components/use-progress";
@@ -111,7 +112,7 @@ function GraphScreenBody() {
 					) : progress.error ? (
 						<LoadFailed message="Couldn't load your graph." onRetry={refresh} className="py-10" />
 					) : (
-						<p className="py-10 text-center text-[15px] text-ink-2">Loading…</p>
+						<LoadingLine className="justify-center py-10 text-[15px]" />
 					)}
 				</div>
 			</div>

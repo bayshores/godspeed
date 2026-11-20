@@ -45,10 +45,12 @@ export function TeachingSection({
 		void getJson<{ segments: PromptSegmentInfo[] }>("/api/settings/prompts").then(({ body }) => (body ? setSegments(body.segments) : setSegmentsFailed(true)));
 	}, []);
 	useEffect(readSegments, [readSegments]);
-	useEffect(() => {
-		onFullPage(openArea !== null);
-		return () => onFullPage(false);
-	}, [openArea, onFullPage]);
+	// The page hears in the same update as the swap, so heading, tabs and section travel as one page.
+	const showArea = (area: TeachingArea | null) => {
+		setOpenArea(area);
+		onFullPage(area !== null);
+	};
+	useEffect(() => () => onFullPage(false), [onFullPage]);
 
 	if (openArea && segments) {
 		return (
@@ -57,7 +59,7 @@ export function TeachingSection({
 				parts={areaParts(openArea, segments)}
 				teacherName={teacherName}
 				onChanged={readSegments}
-				onClose={() => setOpenArea(null)}
+				onClose={() => showArea(null)}
 			/>
 		);
 	}
@@ -85,7 +87,7 @@ export function TeachingSection({
 							edited={segments !== null && areaEdited(area, segments)}
 							instructionsReady={segments !== null}
 							onSectionChange={onSectionChange}
-							onOpenInstructions={() => setOpenArea(area)}
+							onOpenInstructions={() => showArea(area)}
 						/>
 					) : (
 						<RememberedNotes />

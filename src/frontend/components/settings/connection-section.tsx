@@ -7,6 +7,7 @@
  */
 
 import { useState } from "react";
+import { LoadingLine } from "@/frontend/components/loading";
 import { useAgentStatus, useMcpAccess } from "@/frontend/components/agent-status";
 import { CopyButton } from "@/frontend/components/copy-button";
 import { ACCESS_ERROR, maskToken } from "@/frontend/components/mcp-access";
@@ -32,7 +33,7 @@ export function ConnectionSection() {
 		});
 	};
 
-	if (!access || !live) return <p className="text-xs text-ink-2">{failed ? ACCESS_ERROR : "Loading…"}</p>;
+	if (!access || !live) return failed ? <p className="text-xs text-ink-2">{ACCESS_ERROR}</p> : <LoadingLine className="text-xs" />;
 	const token = access.token;
 
 	return (

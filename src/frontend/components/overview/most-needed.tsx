@@ -1,10 +1,11 @@
 import { memo } from "react";
+import { Key } from "@/frontend/components/ui/key";
 import { Pane } from "@/frontend/components/ui/pane";
 import { joinAnd, type MostNeeded as Needed } from "./overview-model";
 
 /** MOST NEEDED (Progress, side column): the weakest topic on the deadlines
  *  ahead, the deadlines it is on, and "Study" to start a lesson on it. */
-export const MostNeeded = memo(function MostNeeded({ needed, busy, onStudy }: { needed: Needed; busy: boolean; onStudy: (topicId: string) => void }) {
+export const MostNeeded = memo(function MostNeeded({ needed, busyOn, onStudy }: { needed: Needed; busyOn: string | null; onStudy: (topicId: string) => void }) {
 	return (
 		<Pane data-testid="most-needed" className="lh-card">
 			<div className="lh-card-head">
@@ -17,9 +18,9 @@ export const MostNeeded = memo(function MostNeeded({ needed, busy, onStudy }: { 
 					</span>
 					<span className="text-base text-ink-2">On {joinAnd(needed.deadlines)}</span>
 				</span>
-				<button type="button" data-testid="most-needed-study" disabled={busy} onClick={() => onStudy(needed.topicId)} className="lh-btn shrink-0">
+				<Key data-testid="most-needed-study" busy={busyOn === needed.topicId} disabled={busyOn !== null} onClick={() => onStudy(needed.topicId)} className="shrink-0">
 					Study
-				</button>
+				</Key>
 			</div>
 		</Pane>
 	);

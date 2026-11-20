@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { LoadingLine } from "@/frontend/components/loading";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { FIELD } from "@/frontend/components/ui/field";
@@ -59,7 +60,7 @@ export function WebSearch() {
 	return (
 		<section data-testid="web-search" aria-label="Who searches" className="flex flex-col gap-4 pt-1 pb-4">
 			{!view ? (
-				<p className="text-[15px] text-ink-2">{error ?? "Loading…"}</p>
+				error ? <p className="text-[15px] text-ink-2">{error}</p> : <LoadingLine className="text-[15px]" />
 			) : (
 				<div className="grid items-start gap-4 min-[860px]:grid-cols-[290px_1fr]">
 					<Choice testid="web-search-agent" name={`${teacher} searches`} picked={!works}>

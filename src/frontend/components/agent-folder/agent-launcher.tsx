@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LoadingLine } from "@/frontend/components/loading";
 import { useMcpAccess } from "@/frontend/components/agent-status";
 import { CopyButton } from "@/frontend/components/copy-button";
 import { ACCESS_ERROR, maskToken } from "@/frontend/components/mcp-access";
@@ -90,7 +91,7 @@ export function Log({ lines }: { lines: LogLine[] }) {
 /** Any other MCP app: the address and the access token to paste into it. */
 export function OtherAppSetup() {
 	const { access, failed } = useMcpAccess();
-	if (!access) return <p className="text-[15px] text-ink-2">{failed ? ACCESS_ERROR : "Loading…"}</p>;
+	if (!access) return failed ? <p className="text-[15px] text-ink-2">{ACCESS_ERROR}</p> : <LoadingLine className="text-[15px]" />;
 	return (
 		<div className="flex w-full flex-col gap-3 text-left">
 			<p className="text-[15px] text-ink-2">

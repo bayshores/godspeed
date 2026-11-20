@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { GraphChain, GraphNode } from "@/shared/core";
+import { usePresence } from "@/frontend/components/presence";
 import { useSpaces } from "@/frontend/components/space-context";
 import { DeleteNodeDialog } from "@/frontend/components/delete-node-dialog";
 import { ChainTableBody } from "./chain-table";
@@ -36,6 +37,7 @@ export function ChainTableOverlay({
 	onSelectionChange?: (next: ReadonlySet<string>) => void;
 }) {
 	const { activeSpace } = useSpaces();
+	const presence = usePresence(open);
 	const [query, setQuery] = useState("");
 	const [sort, setSort] = useState<ChainSort>({ col: "name", dir: 1 });
 	const [internalSelection, setInternalSelection] = useState<ReadonlySet<string>>(() => new Set());
@@ -66,7 +68,7 @@ export function ChainTableOverlay({
 		return () => document.removeEventListener("keydown", onKeyDown);
 	}, [open, deleteOpen, onClose]);
 
-	if (!open) return null;
+	if (!presence.mounted) return null;
 	const selectedNodes = [...liveSelection].flatMap((id) => {
 		const n = byId.get(id);
 		return n ? [{ id: n.id, name: n.name }] : [];
@@ -75,7 +77,7 @@ export function ChainTableOverlay({
 	return (
 		<>
 			{/* Fixed under the top bar; the right edge follows the docked panel's push. */}
-			<div data-testid="chain-table-overlay" className="lh-dots fixed top-(--lh-bar-h) right-[calc(var(--lh-dock-push,0px)+var(--lh-strip))] bottom-0 left-0 z-40 flex flex-col bg-background">
+			<div data-testid="chain-table-overlay" data-state={presence.state} className="lh-fade lh-dots fixed top-(--lh-bar-h) right-[calc(var(--lh-dock-push,0px)+var(--lh-strip))] bottom-0 left-0 z-40 flex flex-col bg-background">
 				<ChainTableBody
 					nodes={nodes}
 					chains={chains}

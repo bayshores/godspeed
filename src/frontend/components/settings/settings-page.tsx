@@ -5,7 +5,9 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { LoadingLine } from "@/frontend/components/loading";
 import { useLitMarker } from "@/frontend/components/lit-marker";
+import { Travel } from "@/frontend/components/travel/travel";
 import type { WriteResult } from "@/frontend/lib/api";
 import { useAppearance } from "./appearance.tsx";
 import { SettingsSection } from "./controls.tsx";
@@ -96,6 +98,8 @@ export function SettingsPage({ section }: { section?: string }) {
 	};
 
 	return (
+		// An area's full instructions are a deeper page; the sections lie side by side in the order of their tabs.
+		<Travel place={{ key: fullPage ? "instructions" : "sections", depth: fullPage ? 1 : 0, column: 0 }}>
 		<div ref={contentRef} data-testid="settings-page" className="h-full overflow-y-auto">
 			<div className="@container/page lh-page flex flex-col pt-(--lh-page-top) pb-(--lh-page-end)">
 				{!fullPage && <h1 className="lh-page-title">Settings</h1>}
@@ -128,15 +132,13 @@ export function SettingsPage({ section }: { section?: string }) {
 						</p>
 					)}
 					{record === undefined ? (
-						<p className="text-xs text-ink-2">
-							Loading settings…
-						</p>
+						<LoadingLine className="text-xs">Loading settings…</LoadingLine>
 					) : record === null ? (
 						<p className="text-xs text-ink-2">
 							Settings could not be loaded. Refresh to retry.
 						</p>
 					) : (
-						<div>
+						<Travel place={{ key: active, depth: 0, column: SECTIONS.indexOf(current) }}>
 							{active === "connection" && (
 								<SettingsSection title="Connection" testid="section-connection">
 									<ConnectionSection />
@@ -172,15 +174,16 @@ export function SettingsPage({ section }: { section?: string }) {
 									/>
 								</SettingsSection>
 							)}
-						</div>
-					)}
-					{"hint" in current && (
-						<p data-testid="settings-hint" className="max-w-(--lh-measure) pt-(--lh-gap) text-sm text-ink-2">
-							{current.hint(desktop)}
-						</p>
+							{"hint" in current && (
+								<p data-testid="settings-hint" className="max-w-(--lh-measure) pt-(--lh-gap) text-sm text-ink-2">
+									{current.hint(desktop)}
+								</p>
+							)}
+						</Travel>
 					)}
 				</div>
 			</div>
 		</div>
+		</Travel>
 	);
 }

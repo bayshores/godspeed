@@ -5,6 +5,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { LoadingLine } from "@/frontend/components/loading";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -69,7 +70,7 @@ export function PluginsSection() {
 			return folder ? added(await installPlugin(folder)) : null;
 		});
 
-	if (!plugins) return <p className="text-xs text-ink-2">{plugins === null ? "Plugins could not be loaded." : "Loading…"}</p>;
+	if (!plugins) return plugins === null ? <p className="text-xs text-ink-2">Plugins could not be loaded.</p> : <LoadingLine className="text-xs" />;
 	const rows = addable(listed, plugins);
 	const addDoes = addAction(rows.length, !!pickFolder);
 	const sheetOpen = showAdd && rows.length > 0;

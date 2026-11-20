@@ -1,11 +1,12 @@
 import { memo, type ReactNode } from "react";
 import { Link } from "react-router";
 import type { FileCoverage, TopicProgress } from "@/shared/core";
+import { Key } from "@/frontend/components/ui/key";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { displayName, lessonHref } from "@/frontend/components/overview/overview-model";
 import { suggestionKey, suggestionLine, type Suggestion } from "./suggestions-model";
 
-const ACTION = "lh-btn shrink-0 text-[15px]";
+const ACTION = "shrink-0 text-[15px]";
 
 /**
  * "Suggested for <space>": Continue (the newest unfinished lesson, Open), Next up
@@ -16,7 +17,7 @@ const ACTION = "lh-btn shrink-0 text-[15px]";
 export const SuggestionList = memo(function SuggestionList({
 	spaceLabel: label,
 	suggestions,
-	busy,
+	busyOn,
 	onStudyFile,
 	onStudyTopic,
 	onStudyPath,
@@ -24,7 +25,7 @@ export const SuggestionList = memo(function SuggestionList({
 	/** The space's name; null = no space. */
 	spaceLabel: string | null;
 	suggestions: readonly Suggestion[];
-	busy: boolean;
+	busyOn: string | null;
 	onStudyFile: (file: FileCoverage) => void;
 	onStudyTopic: (topic: TopicProgress) => void;
 	onStudyPath: (topicId: string) => void;
@@ -37,7 +38,7 @@ export const SuggestionList = memo(function SuggestionList({
 			</div>
 			<ul className="flex w-full flex-col">
 				{suggestions.map((s) => (
-					<SuggestionRow key={suggestionKey(s)} suggestion={s} busy={busy} onStudyFile={onStudyFile} onStudyTopic={onStudyTopic} onStudyPath={onStudyPath} />
+					<SuggestionRow key={suggestionKey(s)} suggestion={s} busyOn={busyOn} onStudyFile={onStudyFile} onStudyTopic={onStudyTopic} onStudyPath={onStudyPath} />
 				))}
 			</ul>
 		</section>
@@ -46,13 +47,13 @@ export const SuggestionList = memo(function SuggestionList({
 
 const SuggestionRow = memo(function SuggestionRow({
 	suggestion: s,
-	busy,
+	busyOn,
 	onStudyFile,
 	onStudyTopic,
 	onStudyPath,
 }: {
 	suggestion: Suggestion;
-	busy: boolean;
+	busyOn: string | null;
 	onStudyFile: (file: FileCoverage) => void;
 	onStudyTopic: (topic: TopicProgress) => void;
 	onStudyPath: (topicId: string) => void;
@@ -69,24 +70,24 @@ const SuggestionRow = memo(function SuggestionRow({
 	} else if (s.kind === "next-up") {
 		title = displayName(s.file.name);
 		action = (
-			<button type="button" data-testid="home-study-file" disabled={busy} onClick={() => onStudyFile(s.file)} className={ACTION}>
+			<Key data-testid="home-study-file" busy={busyOn === s.file.name} disabled={busyOn !== null} onClick={() => onStudyFile(s.file)} className={ACTION}>
 				Study
-			</button>
+			</Key>
 		);
 	} else if (s.kind === "path") {
 		const topicId = s.topic.id;
 		title = s.topic.name;
 		action = (
-			<button type="button" data-testid="home-study-path" disabled={busy} onClick={() => onStudyPath(topicId)} className={ACTION}>
+			<Key data-testid="home-study-path" busy={busyOn === topicId} disabled={busyOn !== null} onClick={() => onStudyPath(topicId)} className={ACTION}>
 				Study
-			</button>
+			</Key>
 		);
 	} else {
 		title = s.topic.name;
 		action = (
-			<button type="button" data-testid="home-study-topic" disabled={busy} onClick={() => onStudyTopic(s.topic)} className={ACTION}>
+			<Key data-testid="home-study-topic" busy={busyOn === s.topic.id} disabled={busyOn !== null} onClick={() => onStudyTopic(s.topic)} className={ACTION}>
 				Study
-			</button>
+			</Key>
 		);
 	}
 	return (

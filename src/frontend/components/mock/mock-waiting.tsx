@@ -7,6 +7,7 @@ import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { useSpaceRecord } from "@/frontend/components/files/space-record";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
+import { Key } from "@/frontend/components/ui/key";
 import { cn } from "@/frontend/lib/utils";
 import { endedByTime, formatLine, fromAboutLine } from "./mock-model";
 import { postMock, removeMock } from "./use-mock";
@@ -20,8 +21,22 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 	const navigate = useNavigate();
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const [error, setError] = useState<string | null>(null);
+	// The request a key started; its key shows it works and the others wait.
+	const [pending, setPending] = useState<"start" | "retry" | "remove" | null>(null);
 	const { spaceId, mock } = view;
-	const act = async (action: string) => setError((await postMock(spaceId, mock.id, { action })).error);
+	const run = async (which: NonNullable<typeof pending>, request: () => Promise<string | null>) => {
+		setPending(which);
+		const failed = await request();
+		setPending(null);
+		setError(failed);
+	};
+	const act = (action: "start" | "retry") => run(action, async () => (await postMock(spaceId, mock.id, { action })).error);
+	const remove = () =>
+		run("remove", async () => {
+			const failed = await removeMock(spaceId, mock.id);
+			if (!failed) navigate(deadlineHref(view.deadlineId), { replace: true });
+			return failed;
+		});
 	const size = formatLine(mock.format);
 	// Its study files, to say why it was written from what it's like.
 	const { record } = useSpaceRecord(state === "ready" && mock.fromAbout ? spaceId : null);
@@ -43,9 +58,9 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 						{fromAbout}
 					</p>
 				)}
-				<button type="button" data-testid="mock-start" onClick={() => void act("start")} className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
+				<Key data-testid="mock-start" busy={pending === "start"} disabled={pending !== null} onClick={() => void act("start")} className={cn("lh-btn-main", BIG_BUTTON)}>
 					Start the mock
-				</button>
+				</Key>
 			</>
 		);
 	} else if (view.working) {
@@ -67,23 +82,13 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 				<p className="text-[23px] leading-snug text-ink">{state === "writing" ? "The mock wasn't written" : "The mock wasn't graded"}</p>
 				<p className="text-[17px] text-ink-2">{view.error ? `What went wrong: ${view.error}.` : "The request stopped before the answer came back."}</p>
 				<div className="flex items-center gap-2.5">
-					<button type="button" data-testid="mock-retry" onClick={() => void act("retry")} className="lh-btn lh-btn-main text-[15px]">
+					<Key data-testid="mock-retry" busy={pending === "retry"} disabled={pending !== null} onClick={() => void act("retry")} className="lh-btn-main text-[15px]">
 						Try again
-					</button>
+					</Key>
 					{state === "writing" && (
-						<button
-							type="button"
-							data-testid="mock-remove"
-							onClick={() =>
-								void removeMock(spaceId, mock.id).then((failed) => {
-									if (failed) setError(failed);
-									else navigate(deadlineHref(view.deadlineId), { replace: true });
-								})
-							}
-							className="lh-btn text-[15px]"
-						>
+						<Key data-testid="mock-remove" busy={pending === "remove"} disabled={pending !== null} onClick={() => void remove()} className="text-[15px]">
 							Remove this mock
-						</button>
+						</Key>
 					)}
 				</div>
 				<NoAgentLine />

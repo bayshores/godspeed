@@ -1,5 +1,5 @@
-/** A big key: the size of a page's main action and the grey key beside it. */
-export const BIG_KEY = "lh-btn h-12 max-w-full min-w-0 px-7 text-[17px]";
+/** The look of a big Key: the size of a page's main action and the grey key beside it. */
+export const BIG_KEY = "h-12 max-w-full min-w-0 px-7 text-[17px]";
 
 /** A page's one dark key: the next deadline's Study or Work on it, or, with none, the path's. */
 export const MAIN_KEY = `${BIG_KEY} lh-btn-main`;

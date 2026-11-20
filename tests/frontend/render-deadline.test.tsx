@@ -82,8 +82,9 @@ function page(d: DeadlineProgress, over: Partial<React.ComponentProps<typeof Dea
 				topics={[{ id: "t1", right: 2, answered: 5 }, { id: "t3", right: 3, answered: 5 }]}
 				material={material}
 				plan={planDays("2026-11-02", d.date, d.topics)}
+				waited={false}
 				nowMs={NOW}
-				busy={false}
+				busyOn={null}
 				startError={null}
 				onStart={() => {}}
 				onEdit={() => {}}
@@ -275,7 +276,7 @@ function homework(problems = HW_PROBLEMS, over: Partial<React.ComponentProps<typ
 				problems={problems}
 				files={[{ id: "a", name: "hw4.pdf" }]}
 				assignmentId="a"
-				busy={false}
+				busyOn={null}
 				error={null}
 				saving={false}
 				onStudy={() => {}}
@@ -448,7 +449,7 @@ describe("an interview's page", () => {
 
 describe("What it's like", () => {
 	it("holds its place while it loads, and offers Try again when it couldn't be read", () => {
-		assert.match(renderToStaticMarkup(about({ state: "loading" })), /<div class="h-24 w-full bg-tone" aria-hidden="true">/);
+		assert.match(renderToStaticMarkup(about({ state: "loading" })), /<div class="flex w-full items-center justify-center text-ink-2 h-24 bg-tone"><svg[^>]*data-testid="braille-spinner"[^>]*aria-label="Loading"/);
 		const failed = renderToStaticMarkup(about({ state: "failed" }));
 		assert.match(failed, /role="alert".*Couldn&#x27;t load what it&#x27;s like\..*data-testid="deadline-about-retry"/);
 		assert.match(failed, /Ask marco to rewrite/);

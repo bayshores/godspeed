@@ -17,7 +17,7 @@ export const HomeworkCard = memo(function HomeworkCard({
 	problems,
 	files,
 	assignmentId,
-	busy,
+	busyOn,
 	error,
 	saving,
 	onStudy,
@@ -31,7 +31,8 @@ export const HomeworkCard = memo(function HomeworkCard({
 	/** The space's files, for the assignment picker. */
 	files: readonly { id: string; name: string }[];
 	assignmentId: string | undefined;
-	busy: boolean;
+	/** The id of the lesson start in flight, if any. */
+	busyOn: string | null;
 	/** Why the last start failed. */
 	error: string | null;
 	saving: boolean;
@@ -102,7 +103,7 @@ export const HomeworkCard = memo(function HomeworkCard({
 				</p>
 			)}
 			<div className="mt-1">
-				<DeadlineKeys deadline={d} busy={busy} onStudy={onStudy} onWork={onWork} />
+				<DeadlineKeys deadline={d} busyOn={busyOn} onStudy={onStudy} onWork={onWork} />
 			</div>
 		</Pane>
 	);

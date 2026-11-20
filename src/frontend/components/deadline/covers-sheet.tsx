@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LoadingBox, useWaited } from "@/frontend/components/loading";
 import { Link } from "react-router";
 import { monthDay, type DeadlineProgress } from "@/shared/core";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -42,6 +43,7 @@ export function CoversSheet({
 	onLeaveOut: (fileIds: string[]) => void;
 }) {
 	const [showLeftOut, setShowLeftOut] = useState(false);
+	const waited = useWaited(!!m);
 	const before = d.kind === "exam" ? "before the exam" : "before it's due";
 	if (m && d.files.length === 0) {
 		return (
@@ -71,7 +73,7 @@ export function CoversSheet({
 		);
 	}
 	return (
-		<Pane data-testid="deadline-material" className="lh-card">
+		<Pane data-testid="deadline-material" className={cn("lh-card", waited && "lh-set")}>
 			<div className="lh-card-head">
 				<h2 className="lh-card-title">What&apos;s on it</h2>
 				<button type="button" data-testid="deadline-edit-files" onClick={onEdit} className="lh-btn lh-btn-quiet text-[15px]">
@@ -79,7 +81,7 @@ export function CoversSheet({
 				</button>
 			</div>
 			{!m ? (
-				<div className="h-40 w-full bg-tone" aria-hidden />
+				<LoadingBox className="h-40 bg-tone" />
 			) : (
 				<>
 					<p data-testid="deadline-material-summary" className="text-[15px] text-ink-2">

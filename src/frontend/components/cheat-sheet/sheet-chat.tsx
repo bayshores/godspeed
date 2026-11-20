@@ -8,6 +8,7 @@ import { LessonBox } from "@/frontend/components/lesson/lesson-box";
 import { savedDay } from "@/frontend/components/rule-chips";
 import { useTerminalLines } from "@/frontend/components/terminal/use-terminal-lines";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { useFold } from "@/frontend/components/use-fold";
 import { cn } from "@/frontend/lib/utils";
 import type { Pointed } from "./canvas-model";
 import { sheetBox } from "./sheet-box-model";
@@ -257,27 +258,32 @@ function AgentBody({ message, current, onShowVersion }: { message: Extract<Sheet
  *  the agent (the learner removes them, never adds). */
 function SheetRules({ rules, agentName, onRemove }: { rules: readonly SheetRule[]; agentName: string; onRemove: (rule: string) => void }) {
 	const [open, setOpen] = useState(true);
+	const fold = useFold(open);
 	if (rules.length === 0) return null;
 	return (
 		<div data-testid="sheet-rules" className="flex shrink-0 flex-col gap-3.5">
 			<button type="button" data-testid="sheet-rules-toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="lh-btn lh-btn-quiet self-start px-1 text-[15px]">
-				<PixelIcon name="chevron" className={open ? "rotate-90" : undefined} />
+				<PixelIcon name="chevron" className={cn("transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open && "rotate-90")} />
 				This sheet&apos;s rules ({rules.length})
 			</button>
-			{open && (
-				<ul className="flex flex-col items-start gap-1.5">
-					{rules.map((rule) => (
-						<li key={rule.text} data-testid="sheet-rule" className="flex max-w-full items-center lh-well gap-2.5 rounded py-1.5 pr-2 pl-3 text-base text-ink">
-							<span className="min-w-0 break-words">{rule.text}</span>
-							<span title={savedDay(rule.at)} className="shrink-0 text-sm whitespace-nowrap text-ink-2">
-								Saved by {agentName}
-							</span>
-							<button type="button" aria-label={`Remove rule: ${rule.text}`} onClick={() => onRemove(rule.text)} className="lh-press shrink-0 p-0.5 text-ink-2 hover:text-ink">
-								<PixelIcon name="close" className="h-[10.5px]" />
-							</button>
-						</li>
-					))}
-				</ul>
+			{fold.mounted && (
+				<div className="lh-collapse" data-state={fold.state}>
+					<div>
+						<ul className="flex flex-col items-start gap-1.5">
+							{rules.map((rule) => (
+								<li key={rule.text} data-testid="sheet-rule" className="flex max-w-full items-center lh-well gap-2.5 rounded py-1.5 pr-2 pl-3 text-base text-ink">
+									<span className="min-w-0 break-words">{rule.text}</span>
+									<span title={savedDay(rule.at)} className="shrink-0 text-sm whitespace-nowrap text-ink-2">
+										Saved by {agentName}
+									</span>
+									<button type="button" aria-label={`Remove rule: ${rule.text}`} onClick={() => onRemove(rule.text)} className="lh-press shrink-0 p-0.5 text-ink-2 hover:text-ink">
+										<PixelIcon name="close" className="h-[10.5px]" />
+									</button>
+								</li>
+							))}
+						</ul>
+					</div>
+				</div>
 			)}
 		</div>
 	);

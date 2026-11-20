@@ -1,6 +1,7 @@
 import { useId, useState, type RefObject } from "react";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
+import { Key } from "@/frontend/components/ui/key";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { Segmented } from "@/frontend/components/ui/segmented";
@@ -67,9 +68,9 @@ function MockBoxForm({ onWrite }: { onWrite: (questions: number, minutes: number
 					{error}
 				</p>
 			)}
-			<button type="button" data-testid="mock-box-write" disabled={busy} onClick={() => void write()} className="lh-btn lh-btn-main h-11 w-full justify-center text-[15px]">
-				{busy ? "Asking for the mock" : "Write the mock"}
-			</button>
+			<Key data-testid="mock-box-write" busy={busy} onClick={() => void write()} className="lh-btn-main h-11 w-full justify-center text-[15px]">
+				Write the mock
+			</Key>
 		</>
 	);
 }

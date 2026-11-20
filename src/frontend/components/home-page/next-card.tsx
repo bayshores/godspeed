@@ -6,6 +6,8 @@ import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { DoneBlock } from "@/frontend/components/deadline/deadline-block";
 import { blockColor } from "@/frontend/components/space-color";
+import { homeworkStartId } from "@/frontend/components/study-page/use-lesson-start";
+import { Key } from "@/frontend/components/ui/key";
 import { CountBlock } from "@/frontend/components/ui/count-block";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
@@ -30,7 +32,7 @@ export function NextCard({
 	progress,
 	color,
 	nowMs,
-	busy,
+	busyOn,
 	onStart,
 	onDone,
 	onUndo,
@@ -39,13 +41,15 @@ export function NextCard({
 	progress: DeadlineProgress | undefined;
 	color: SpaceColor | undefined;
 	nowMs: number;
-	/** A lesson is starting. */
-	busy: boolean;
+	/** The id of the lesson start in flight, if any. */
+	busyOn: string | null;
 	onStart: (d: OpenDeadline) => void;
 	onDone: (d: OpenDeadline) => void;
 	onUndo: (d: OpenDeadline) => void;
 }) {
 	const words = nextCard(d, progress, nowMs);
+	// The ids its key starts under: the deadline, its homework, or the session it goes on from.
+	const starting = busyOn !== null && [d.id, homeworkStartId(d.id), progress?.continueStudy?.chatId].includes(busyOn);
 	return (
 		<Pane data-testid="today-card" data-teacher-target={`deadline:${d.id}`} className="@container overflow-hidden">
 			<div className="flex min-h-[104px] flex-col @min-[540px]:flex-row @min-[540px]:items-center">
@@ -75,9 +79,9 @@ export function NextCard({
 						<button type="button" data-testid="today-done" onClick={() => onDone(d)} className="lh-btn lh-btn-quiet">
 							Mark done
 						</button>
-						<button type="button" data-testid="today-start" disabled={busy} onClick={() => onStart(d)} className={MAIN_KEY}>
+						<Key data-testid="today-start" busy={starting} disabled={busyOn !== null} onClick={() => onStart(d)} className={MAIN_KEY}>
 							{words.button}
-						</button>
+						</Key>
 					</span>
 				) : (
 					<span className="flex shrink-0 px-6 pb-5 @min-[540px]:py-4 @min-[540px]:pl-0">

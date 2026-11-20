@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { LoadingLine, useWaited } from "@/frontend/components/loading";
 import { Link, useSearchParams } from "react-router";
 import type { SpaceDeadline, DeadlineProgress, SheetCard } from "@/shared/core";
 import { studioPath, useSpaceSheets } from "@/frontend/components/cheat-sheet/use-cheat-sheet";
@@ -32,6 +33,7 @@ const LIST = "grid gap-(--lh-gap) @[1100px]/page:grid-cols-2";
 export function DeadlinesTab() {
 	const { active, activeSpace } = useSpaces();
 	const { record, failed, reload } = useSpaceRecord(active);
+	const waited = useWaited(!!record);
 	const progress = useProgress().data;
 	const { markDone, undo } = useOpenDeadlines();
 	const sheets = useSpaceSheets(active).view;
@@ -93,8 +95,10 @@ export function DeadlinesTab() {
 					<p data-testid="deadlines-none" className="text-[15px] text-ink-2">
 						Nothing is coming up.
 					</p>
+				) : lists ? (
+					<ul className={cn(LIST, waited && "lh-set")}>{lists.coming.map(row)}</ul>
 				) : (
-					<ul className={LIST}>{lists?.coming.map(row)}</ul>
+					<LoadingLine className="text-[15px]" />
 				)}
 			</section>
 			{lists && lists.past.length > 0 && (

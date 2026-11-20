@@ -2,6 +2,7 @@ import { MAIN_KEY } from "@/frontend/components/overview/styles";
 import type { ReactNode } from "react";
 import { hasProblems, studyLabel, nothingMorePlannedLine, topicStatus, type DeadlineProgress, type PlanDay } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
+import { Key } from "@/frontend/components/ui/key";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import type { Material, TopicTally } from "./deadline-model";
@@ -18,7 +19,7 @@ export function PathSheet({
 	material,
 	tallies,
 	past,
-	busy,
+	busyOn,
 	startError,
 	teacherName,
 	requesting,
@@ -33,7 +34,8 @@ export function PathSheet({
 	tallies: ReadonlyMap<string, TopicTally>;
 	/** Due already, and not done. */
 	past: boolean;
-	busy: boolean;
+	/** The id of the lesson start in flight, if any. */
+	busyOn: string | null;
 	/** Why the last Study start failed. */
 	startError: string | null;
 	teacherName: string;
@@ -106,9 +108,9 @@ export function PathSheet({
 				</p>
 			)}
 			{ahead && !hasProblems(d.kind) && (
-				<button type="button" data-testid="deadline-start" disabled={busy} onClick={onStart} className={cn(MAIN_KEY, "self-end")}>
+				<Key data-testid="deadline-start" busy={busyOn === d.id} disabled={busyOn !== null} onClick={onStart} className={cn(MAIN_KEY, "self-end")}>
 					<span className="min-w-0 truncate">{studyLabel(d.continueStudy)}</span>
-				</button>
+				</Key>
 			)}
 			{mocks}
 		</Pane>

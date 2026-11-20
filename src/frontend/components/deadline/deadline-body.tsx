@@ -1,4 +1,5 @@
 import { memo, type ReactNode } from "react";
+import { cn } from "@/frontend/lib/utils";
 import { rampColor, type DeadlineProgress, type PlanDay } from "@/shared/core";
 import { isOverdue } from "@/frontend/components/deadlines-model";
 import { STATUS_LEGEND, progressWords } from "@/frontend/components/overview/overview-model";
@@ -31,7 +32,7 @@ interface DeadlineBodyProps {
 	material: Material | null;
 	plan: readonly PlanDay[];
 	nowMs: number;
-	busy: boolean;
+	busyOn: string | null;
 	/** Why the last Study start failed. */
 	startError: string | null;
 	onStart: () => void;
@@ -59,6 +60,8 @@ interface DeadlineBodyProps {
 	mocks?: ReactNode;
 	/** The lessons for it, once there are two (lesson-card.tsx). */
 	lessons?: ReactNode;
+	/** The page showed its wait first, so its parts step in. */
+	waited: boolean;
 }
 
 export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps) {
@@ -68,7 +71,7 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 	const tallies = new Map(props.topics.map((t) => [t.id, t]));
 	const interview = d.kind === "interview";
 	return (
-		<div data-testid="deadline-page" className="@container flex w-full flex-col gap-(--lh-head-gap)">
+		<div data-testid="deadline-page" className={cn("@container flex w-full flex-col gap-(--lh-head-gap)", props.waited && "lh-set")}>
 			<h1 data-testid="deadline-name" className="sr-only">
 				{d.name}
 			</h1>
@@ -132,7 +135,7 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 							material={props.material}
 							tallies={tallies}
 							past={past}
-							busy={props.busy}
+							busyOn={props.busyOn}
 							startError={props.startError}
 							teacherName={props.teacherName}
 							requesting={props.requesting}

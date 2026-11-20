@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LoadingLine } from "@/frontend/components/loading";
 import { useNavigate } from "react-router";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { spaceName, useSpaces } from "@/frontend/components/space-context";
@@ -84,7 +85,7 @@ function Results({ onClose }: { onClose: () => void }) {
 				failed ? (
 					<LoadFailed message="Couldn't load your lessons." onRetry={() => void refresh()} className="py-3" />
 				) : (
-					<p className="py-3 text-[15px] text-ink-2">Loading…</p>
+					<LoadingLine className="py-3 text-[15px]" />
 				)
 			) : shown.length === 0 ? (
 				<p className="py-3 text-[15px] text-ink-2">{query.trim() ? "No lessons match." : "No lessons yet."}</p>

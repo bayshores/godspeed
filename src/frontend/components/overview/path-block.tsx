@@ -1,6 +1,7 @@
 import { memo, useState } from "react";
 import type { PathProgress } from "@/shared/core";
 import { RampRow } from "@/frontend/components/deadline/ramp-row";
+import { Key } from "@/frontend/components/ui/key";
 import { Pane } from "@/frontend/components/ui/pane";
 import { pathBlockView } from "./path-block-model";
 import { MAIN_KEY } from "./styles";
@@ -12,7 +13,7 @@ import { MAIN_KEY } from "./styles";
  * the page's one dark key; beside a deadline its Study is grey. The agent
  * writes and changes the path; the learner tells it how.
  */
-export const PathBlock = memo(function PathBlock({ path, main, busy, onStudy }: { path: PathProgress; main: boolean; busy: boolean; onStudy: (topicId: string) => void }) {
+export const PathBlock = memo(function PathBlock({ path, main, busyOn, onStudy }: { path: PathProgress; main: boolean; busyOn: string | null; onStudy: (topicId: string) => void }) {
 	const [shownAll, setShownAll] = useState(false);
 	const view = pathBlockView(path, shownAll);
 	const next = view.next;
@@ -32,15 +33,15 @@ export const PathBlock = memo(function PathBlock({ path, main, busy, onStudy }: 
 						<RampRow name={next.name} rate={next.rate} tally={next} />
 						<p className="text-base text-ink-2">{next.covers}</p>
 					</div>
-					<button
-						type="button"
+					<Key
 						data-testid="space-path-study"
-						disabled={busy}
+						busy={busyOn === next.id}
+						disabled={busyOn !== null}
 						onClick={() => onStudy(next.id)}
-						className={main ? MAIN_KEY : "lh-btn shrink-0"}
+						className={main ? MAIN_KEY : "shrink-0"}
 					>
 						Study
-					</button>
+					</Key>
 				</div>
 			)}
 			{view.rows.length > 0 && (

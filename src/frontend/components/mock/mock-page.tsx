@@ -1,6 +1,8 @@
 import { mockState, type MockView } from "@/shared/core";
+import { LoadingBox } from "@/frontend/components/loading";
 import { useJoinSpace } from "@/frontend/components/use-join-space";
 import { LoadFailed } from "@/frontend/components/load-failed";
+import { Travel } from "@/frontend/components/travel/travel";
 import { MockBar } from "./mock-bar";
 import { mockAnnouncement } from "./mock-model";
 import { MockResults } from "./mock-results";
@@ -21,27 +23,32 @@ export function MockPage({ spaceId, mockId, initial }: { spaceId: string; mockId
 	if (!view) {
 		return (
 			<div className="flex h-full flex-col">
-				{loadError ? <LoadFailed message="Couldn't load this mock." onRetry={() => void reload()} className="px-8 py-6" /> : <div className="flex-1" aria-hidden />}
+				{loadError ? <LoadFailed message="Couldn't load this mock." onRetry={() => void reload()} className="px-8 py-6" /> : <LoadingBox className="flex-1" />}
 			</div>
 		);
 	}
 	const state = mockState(view.mock);
+	const run = state === "running" || state === "paused";
+	// The mock's screens lie side by side in the order it goes through them.
+	const screen = run ? 1 : state === "graded" ? 2 : 0;
 	return (
 		<>
 			{/* Stays in place across the screens, so a change is read out. */}
 			<p role="status" className="sr-only">
 				{mockAnnouncement(view.mock, state)}
 			</p>
-			{state === "running" || state === "paused" ? (
-				<MockRun key={view.mock.id} view={view} />
-			) : state === "graded" ? (
-				<MockResults view={view} />
-			) : (
-				<div className="flex h-full flex-col">
-					<MockBar view={view} />
-					<MockWaiting view={view} state={state} />
-				</div>
-			)}
+			<Travel place={{ key: String(screen), depth: 0, column: screen }}>
+				{run ? (
+					<MockRun key={view.mock.id} view={view} />
+				) : state === "graded" ? (
+					<MockResults view={view} />
+				) : (
+					<div className="flex h-full flex-col">
+						<MockBar view={view} />
+						<MockWaiting view={view} state={state} />
+					</div>
+				)}
+			</Travel>
 		</>
 	);
 }

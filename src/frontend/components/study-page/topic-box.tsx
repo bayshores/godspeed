@@ -1,5 +1,7 @@
 import type { RefObject } from "react";
 import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
+import { TYPED_START } from "@/frontend/components/study-page/use-lesson-start";
+import { Key } from "@/frontend/components/ui/key";
 
 /** Enter starts the lesson; Shift+Enter is a new line, and an IME
  *  composition's Enter only confirms the text. */
@@ -18,7 +20,7 @@ export function TopicBox({
 	text,
 	onText,
 	onStart,
-	busy,
+	busyOn,
 	inputRef,
 	picks,
 	canPick,
@@ -29,7 +31,7 @@ export function TopicBox({
 	text: string;
 	onText: (text: string) => void;
 	onStart: () => void;
-	busy: boolean;
+	busyOn: string | null;
 	inputRef?: RefObject<HTMLTextAreaElement | null>;
 	/** How many facts are picked. */
 	picks: number;
@@ -80,9 +82,9 @@ export function TopicBox({
 				)}
 				<AttachButton draft={attachments} outlined />
 				<span className="flex-1" />
-				<button type="submit" data-testid="home-start" aria-disabled={empty || busy} disabled={busy} className="lh-btn lh-btn-main shrink-0 text-[15px]">
+				<Key type="submit" data-testid="home-start" aria-disabled={empty || busyOn !== null} busy={busyOn === TYPED_START} disabled={busyOn !== null} className="lh-btn-main shrink-0 text-[15px]">
 					Study
-				</button>
+				</Key>
 			</div>
 		</form>
 	);

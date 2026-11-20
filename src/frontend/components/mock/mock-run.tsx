@@ -4,6 +4,7 @@ import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { MathBox } from "@/frontend/components/math-box";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { barWord } from "@/frontend/components/top-bar/bar-look";
+import { Travel } from "@/frontend/components/travel/travel";
 import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
@@ -232,42 +233,47 @@ export function MockRun({ view }: { view: MockView }) {
 							</button>
 						</div>
 					)}
-					<div className="flex min-h-0 flex-1">
-						<QuestionPanel key={question.id} question={question} n={at + 1} teacher={teacher} />
-						<div className="flex min-w-0 flex-1 flex-col bg-background">
-							{question.kind === "code" ? (
-								<CodeAnswer
-									key={`${question.id}-${work.language}-${resets}`}
-									spaceId={spaceId}
-									mockId={mock.id}
-									question={question}
-									language={work.language}
-									code={work.code[work.language]}
-									teacher={teacher}
-									onCode={(code) => change({ code: { ...worksRef.current[question.id]!.code, [work.language]: code } })}
-									onLanguage={pickLanguage}
-									onStartOver={() => {
-										change({ code: { ...work.code, [work.language]: starterCode(question.fn, work.language) } });
-										setResets((n) => n + 1);
-									}}
-								/>
-							) : (
-								<div data-testid="mock-text-answer" className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-3">
-									<MathBox key={question.id} value={work.text} onChange={(text) => change({ text })} onEnter={() => false} placeholder="Write your answer here." ariaLabel="Your answer" />
+					{/* The questions lie side by side in their order. */}
+					<div className="min-h-0 flex-1">
+						<Travel place={{ key: question.id, depth: 0, column: at }}>
+							<div className="flex h-full min-h-0">
+								<QuestionPanel key={question.id} question={question} n={at + 1} teacher={teacher} />
+								<div className="flex min-w-0 flex-1 flex-col bg-background">
+									{question.kind === "code" ? (
+										<CodeAnswer
+											key={`${question.id}-${work.language}-${resets}`}
+											spaceId={spaceId}
+											mockId={mock.id}
+											question={question}
+											language={work.language}
+											code={work.code[work.language]}
+											teacher={teacher}
+											onCode={(code) => change({ code: { ...worksRef.current[question.id]!.code, [work.language]: code } })}
+											onLanguage={pickLanguage}
+											onStartOver={() => {
+												change({ code: { ...work.code, [work.language]: starterCode(question.fn, work.language) } });
+												setResets((n) => n + 1);
+											}}
+										/>
+									) : (
+										<div data-testid="mock-text-answer" className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-3">
+											<MathBox key={question.id} value={work.text} onChange={(text) => change({ text })} onEnter={() => false} placeholder="Write your answer here." ariaLabel="Your answer" />
+										</div>
+									)}
+									<div className="flex shrink-0 flex-wrap items-center justify-end gap-2.5 bg-panel px-5 py-3">
+										{errorLine}
+										{questions.length > 1 && (
+											<button type="button" data-testid="mock-skip" onClick={() => go(nextOpen(submitted, at) ?? (at + 1) % questions.length)} className="lh-btn text-[15px]">
+												{work.submitted ? "Next question" : "Skip for now"}
+											</button>
+										)}
+										<button type="button" data-testid="mock-submit" disabled={work.submitted} onClick={submit} className="lh-btn lh-btn-main text-[15px]">
+											{work.submitted ? "Submitted" : "Submit answer"}
+										</button>
+									</div>
 								</div>
-							)}
-							<div className="flex shrink-0 flex-wrap items-center justify-end gap-2.5 bg-panel px-5 py-3">
-								{errorLine}
-								{questions.length > 1 && (
-									<button type="button" data-testid="mock-skip" onClick={() => go(nextOpen(submitted, at) ?? (at + 1) % questions.length)} className="lh-btn text-[15px]">
-										{work.submitted ? "Next question" : "Skip for now"}
-									</button>
-								)}
-								<button type="button" data-testid="mock-submit" disabled={work.submitted} onClick={submit} className="lh-btn lh-btn-main text-[15px]">
-									{work.submitted ? "Submitted" : "Submit answer"}
-								</button>
 							</div>
-						</div>
+						</Travel>
 					</div>
 				</>
 			)}

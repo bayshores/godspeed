@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { cn } from "@/frontend/lib/utils";
+import { LoadingBox, useWaited } from "@/frontend/components/loading";
 import type { DeadlineProgress, ProgressPayload, SpaceSummary } from "@/shared/core";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -26,8 +28,8 @@ interface HomeBodyProps {
 	/** Why a space's progress failed to load. */
 	progressErrors: ReadonlyMap<string, string>;
 	newFiles: ReadonlyMap<string, string>;
-	/** A lesson is starting. */
-	busy: boolean;
+	/** The id of the lesson start in flight, if any. */
+	busyOn: string | null;
 	/** Why the last lesson start failed. */
 	lessonError: string | null;
 	onStart: (d: OpenDeadline) => void;
@@ -51,6 +53,7 @@ interface HomeBodyProps {
 export function HomeBody(p: HomeBodyProps) {
 	// A pick that leaves the lists falls back to the next thing to do.
 	const [picked, setPicked] = useState<string | null>(null);
+	const waited = useWaited(p.ready && p.nowMs !== null);
 	const card = p.lists && p.nowMs !== null ? shownCard(p.lists, picked, mainRowId(p.lists.today, p.deadlineProgress, p.nowMs)) : null;
 	const color = (d: OpenDeadline) => p.spaces.find((s) => s.id === d.spaceId)?.color;
 	const unfinished = useMemo(() => unfinishedAcross(p.spaces, p.spacesProgress, p.noSpaceProgress), [p.spaces, p.spacesProgress, p.noSpaceProgress]);
@@ -64,7 +67,7 @@ export function HomeBody(p: HomeBodyProps) {
 				{p.ready && p.nowMs !== null && p.spaces.length > 0 && <StudiedLine progress={p.spacesProgress} noSpace={p.noSpaceProgress} nowMs={p.nowMs} />}
 			</header>
 			{!p.ready || p.nowMs === null ? (
-				<div data-testid="home-loading" aria-hidden className="h-[320px] w-full bg-panel" />
+				<LoadingBox data-testid="home-loading" className="h-[320px] bg-panel" />
 			) : p.spaces.length === 0 ? (
 				<Pane className="lh-card">
 					<div className="lh-card-head">
@@ -80,7 +83,7 @@ export function HomeBody(p: HomeBodyProps) {
 			) : (
 				<>
 					{/* Wide, the spaces take a column beside the card and the week and end level with them; the blocks under run the page's width. */}
-					<div className="grid gap-(--lh-gap) @[1100px]/page:grid-cols-[minmax(0,1fr)_340px]">
+					<div className={cn("grid gap-(--lh-gap) @[1100px]/page:grid-cols-[minmax(0,1fr)_340px]", waited && "lh-set")}>
 						<div className="flex min-w-0 flex-col gap-(--lh-gap)">
 							{p.lessonError && (
 								<p role="alert" className="text-[15px] text-ans-wrong">
@@ -93,7 +96,7 @@ export function HomeBody(p: HomeBodyProps) {
 									progress={p.deadlineProgress.get(card.id)}
 									color={color(card)}
 									nowMs={p.nowMs}
-									busy={p.busy}
+									busyOn={p.busyOn}
 									onStart={p.onStart}
 									onDone={p.onDone}
 									onUndo={p.onUndo}
@@ -104,7 +107,7 @@ export function HomeBody(p: HomeBodyProps) {
 								{picked !== null && card ? `Showing ${card.name}` : ""}
 							</p>
 						</div>
-						<HomeNext unfinished={unfinished} topics={topics} busy={p.busy} onOpenSpace={p.onOpenSpace} onStudyTopic={p.onStudyTopic} />
+						<HomeNext unfinished={unfinished} topics={topics} busyOn={p.busyOn} onOpenSpace={p.onOpenSpace} onStudyTopic={p.onStudyTopic} />
 						<div className="grid @[1100px]/page:col-start-2 @[1100px]/page:row-start-1">
 							<SpaceList spaces={p.spaces} progress={p.spacesProgress} errors={p.progressErrors} newFiles={p.newFiles} onOpen={p.onOpenSpace} />
 						</div>

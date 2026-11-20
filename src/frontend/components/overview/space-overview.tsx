@@ -50,7 +50,7 @@ export function SpaceOverview() {
 				note={activeSpace?.note}
 				data={current}
 				nowMs={nowMs}
-				busy={lesson.busy}
+				busyOn={lesson.busyOn}
 				startError={lesson.error}
 				onStudy={study}
 				onStudyPath={studyPath}
