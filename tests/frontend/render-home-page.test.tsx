@@ -400,11 +400,11 @@ describe("Today, as a whole page", () => {
 		assert.ok(!html.includes('data-testid="today-studied"'));
 	});
 
-	it("with deadlines: the date and days studied, the card, the week with Later, then the spaces, with one main key", () => {
+	it("with deadlines: the app's name and days studied, the card, the week with Later, then the spaces, with one main key", () => {
 		const html = page({ lists: todayLists(LA_OPEN, [DONE_HW5], NOW) });
-		const order = ["today-date", "today-studied", "today-card", "today-deadlines", "week-columns", "week-later", "today-spaces"].map((id) => html.indexOf(`data-testid="${id}"`));
+		const order = ["today-title", "today-studied", "today-card", "today-deadlines", "week-columns", "week-later", "today-spaces"].map((id) => html.indexOf(`data-testid="${id}"`));
 		assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1]!)), `sections in order: ${order.join(", ")}`);
-		assert.match(section(html, "today-date", "</h1>"), />Wednesday, October 28$/);
+		assert.match(section(html, "today-title", "</h1>"), />godspeed$/);
 		assert.equal(count(html, "lh-btn-main"), 1);
 		assert.match(section(html, "today-card", "</h2>"), /Quiz 2/);
 		assert.ok(section(html, "week-day-2026-11-01", "</section>").includes('data-testid="week-item-hw4"'));
@@ -473,7 +473,7 @@ describe("Today, as a whole page", () => {
 		]);
 		const html = page({ spacesProgress: progress });
 		assert.match(section(html, "today-studied", "</p>"), /You studied 2 of the last 7 days and answered 3 questions\.$/);
-		assert.ok(section(html, "today-date", "</header>").includes('data-testid="today-studied"'), "in the head, beside the date");
+		assert.ok(section(html, "today-title", "</header>").includes('data-testid="today-studied"'), "in the head, beside the app's name");
 	});
 
 	it("answers only in a lesson with no space count", () => {

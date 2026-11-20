@@ -43,7 +43,7 @@ interface TodayBodyProps {
 
 /**
  * TODAY (the render seam of home-page.tsx), from the top of the window
- * down, each part lighter than the one before: the date and the days
+ * down, each part lighter than the one before: the app's name and the days
  * studied, the card with the deadline picked in the week (the next thing
  * to do until one is picked), the week with Later, the lessons left unfinished and the topics to work on next, then the spaces. With no
  * space yet, the spaces card alone, with the key for the first.
@@ -57,13 +57,10 @@ export function TodayBody(p: TodayBodyProps) {
 	const topics = useMemo(() => topicsToWorkOn(p.spaces, p.spacesProgress), [p.spaces, p.spacesProgress]);
 	return (
 		<div className="@container/page lh-page flex flex-col gap-(--lh-head-gap) pt-(--lh-page-top) pb-(--lh-page-end)">
-			{/* As tall as the title before the date is known, so nothing moves when it comes. */}
-			<header className="flex min-h-[calc(var(--lh-title)*1.2)] flex-wrap items-baseline gap-x-6 gap-y-2">
-				{p.nowMs !== null && (
-					<h1 data-testid="today-date" className="lh-page-title">
-						{new Date(p.nowMs).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-					</h1>
-				)}
+			<header className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
+				<h1 data-testid="today-title" className="lh-page-title">
+					godspeed
+				</h1>
 				{p.ready && p.nowMs !== null && p.spaces.length > 0 && <StudiedLine progress={p.spacesProgress} noSpace={p.noSpaceProgress} nowMs={p.nowMs} />}
 			</header>
 			{!p.ready || p.nowMs === null ? (

@@ -4,6 +4,11 @@
 import type { AgentAction, ChatListItem, SpaceSummary } from "@/shared/core";
 import { pageName } from "@/frontend/components/teacher/follow";
 
+/** The date: month, day, year, "11/07/2026". */
+export function dateText(d: Date): string {
+	return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+}
+
 /** The clock: 24-hour "17:51". */
 export function clockText(d: Date): string {
 	return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;

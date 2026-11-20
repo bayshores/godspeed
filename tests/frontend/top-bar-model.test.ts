@@ -4,13 +4,20 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { clockText, goLabel, hasLessonsWithNoSpace, plusName, selectedTab, spaceMenuDescription } from "../../src/frontend/components/top-bar/top-bar-model.ts";
+import { clockText, dateText, goLabel, hasLessonsWithNoSpace, plusName, selectedTab, spaceMenuDescription } from "../../src/frontend/components/top-bar/top-bar-model.ts";
 import type { AgentAction } from "../../src/shared/core/events.ts";
 
 describe("the clock", () => {
 	it("is 24-hour", () => {
 		assert.equal(clockText(new Date(2026, 10, 7, 9, 5)), "09:05");
 		assert.equal(clockText(new Date(2026, 10, 7, 17, 51)), "17:51");
+	});
+});
+
+describe("the date", () => {
+	it("is month, day, year, each short number padded", () => {
+		assert.equal(dateText(new Date(2026, 10, 19)), "11/19/2026");
+		assert.equal(dateText(new Date(2027, 0, 5)), "01/05/2027");
 	});
 });
 

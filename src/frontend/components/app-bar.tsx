@@ -1,6 +1,6 @@
 /**
  * THE TOP BAR, one for the whole window. From the left it holds the
- * wordmark, Today, a tab per open space and the + (add a space, reopen a
+ * date, Today, a tab per open space and the + (add a space, reopen a
  * closed one), the live pill (what is happening now; a click opens its
  * card), the page's own words (bar-slots.tsx), Menu and the clock.
  *
@@ -17,7 +17,7 @@ import { AppMenu } from "@/frontend/components/top-bar/app-menu";
 import { LivePill } from "@/frontend/components/top-bar/live-pill";
 import { SpaceTabs } from "@/frontend/components/top-bar/space-tabs";
 import { useBarHosts } from "@/frontend/components/top-bar/bar-slots";
-import { clockText, selectedTab } from "@/frontend/components/top-bar/top-bar-model";
+import { clockText, dateText, selectedTab } from "@/frontend/components/top-bar/top-bar-model";
 
 export function AppBar() {
 	const { pathname } = useLocation();
@@ -26,9 +26,7 @@ export function AppBar() {
 	const { actionsRef } = useBarHosts();
 	return (
 		<header data-testid="app-bar" className="lh-app-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-(--lh-bar-h) shrink-0 select-none items-stretch bg-bar text-bar-ink">
-			{/* Below 760px the wordmark and the clock give their room to Today and the pill; below 1200
-			    too while a page has words in the bar (.lh-bar-spare in globals.css). */}
-			<span className="lh-bar-spare flex shrink-0 items-center pr-4 pl-5 text-[17px] font-medium max-[760px]:hidden">godspeed</span>
+			<BarDate />
 			<SpaceTabs selected={selected} />
 			<LivePill />
 			{/* After the pill, so its changing words never move the page's. */}
@@ -36,6 +34,17 @@ export function AppBar() {
 			<AppMenu lit={selected === "menu"} />
 			<Clock />
 		</header>
+	);
+}
+
+/* Below 760px the date and the clock give their room to Today and the pill; below 1200 too while a
+   page has words in the bar (.lh-bar-spare in globals.css). */
+function BarDate() {
+	const minute = useMinute();
+	return (
+		<span data-testid="bar-date" className="lh-bar-spare font-count flex shrink-0 items-center pr-4 pl-5 text-[15px] tabular-nums max-[760px]:hidden">
+			{minute === null ? "" : dateText(new Date(minute))}
+		</span>
 	);
 }
 

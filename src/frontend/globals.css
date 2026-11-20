@@ -1008,7 +1008,7 @@ body {
                        the shim; manual use is for clickable NON-native
                        elements (spans/divs with onClick) only)
    - .lh-lights-gutter  the top bar's traffic-light gutter: lights
-                       end at x≈68, the wordmark starts at 80px (5rem)
+                       end at x≈68, the date starts at 80px (5rem)
    ───────────────────────────────────────────────────────────────────────── */
 /* 92px = measured lights' right edge (~75pt) + the lights' own 16px
    inset from the window edge — comfortable, symmetric air.
@@ -1048,7 +1048,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 /* A page's own words in the top bar (bar-slots.tsx). As the bar narrows,
    the pill's words go first, then the unlit tabs' names down to a few
    letters, and then those tabs scroll (space-tabs.tsx). While a page has
-   words here the wordmark and the clock leave below 1200, and below 1100
+   words here the date and the clock leave below 1200, and below 1100
    the words take a line of their own above the bar's, at its right end. */
 @media (max-width: 1199px) {
 	.lh-app-bar:has(.lh-bar-actions > *) .lh-bar-spare {
