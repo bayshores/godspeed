@@ -56,7 +56,11 @@ fn focused(webview: &Webview) -> Option<&str> {
 pub fn terminal_start(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, paths: State<Paths>, server: State<Server>, role: String, agent: String, resume: Option<String>) -> Result<Value, String> {
 	trusted_terminal(&webview, &origin)?;
 	let (Some(role), Some(agent)) = (Role::parse(&role), Agent::parse(&agent)) else { return Err(NOT_SET_UP.to_owned()) };
-	let folder = server.agent_folder().ok_or(super::NO_START)?.ok_or(NOT_SET_UP)?;
+	let Some(folder) = server.agent_folder() else {
+		log::line("terminal could not start: the server did not say where the godspeed folder is");
+		return Err(super::NO_START.to_owned());
+	};
+	let folder = folder.ok_or(NOT_SET_UP)?;
 	let id = terminals.start(role, agent, &folder, std::env::vars_os().collect(), &paths.data, resume.as_deref())?;
 	Ok(json!({ "id": id }))
 }

@@ -75,6 +75,7 @@ Everything lives in `App` (`crates/services/src/lib.rs`): `paths`, `events`, `lo
 - A fallible function returns `Result<T, String>`, or a small error enum when callers match on kind.
 - A route returns `Result<Response, Unhandled>`; `?` on any error answers an empty 500. A handler panic also answers an empty 500 and the server keeps running, but do not rely on it.
 - A background task nobody awaits starts with `tasks::detach(label, future)`, which prints `[label] task panicked: ...` if it panics. Keep a plain `tokio::spawn` only where the handle is awaited, stored or aborted.
+- A thread started with `std::thread::spawn` that runs code which may start a task enters the runtime first (`Handle::current()` taken before the spawn, `handle.enter()` inside), as the thread that reads the shell's messages does. Outside the runtime `tokio::spawn` panics.
 - Never hold a lock across `.await`. See [Locks](#locks).
 
 ### Tests
@@ -192,7 +193,7 @@ On Mac and Linux, an advisory lock on the data folder itself (no lock file) keep
 
 ### Stopping
 
-- The server stops on SIGTERM or SIGINT (Ctrl-C on Windows), and at the end of stdin: always with `LH_SHELL=1`, otherwise when stdin is a pipe.
+- The server stops on SIGTERM or SIGINT (Ctrl-C on Windows), and at the end of stdin: always with `LH_SHELL=1`, otherwise when stdin is a pipe. With `LH_SHELL=1` it also stops if handling one of the shell's messages panics; the shell then starts it again.
 - `gs_base::shutdown::wait()` ends long waits (event streams, `wait_for_work`). Open requests get 2 s, then the process exits with 143.
 - Log lines go to stderr; stdout belongs to the shell protocol.
 
