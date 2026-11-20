@@ -12,6 +12,7 @@ import { subscriptionLabel } from "../../src/shared/core/prices.ts";
 import { RAMP_COLORS, rampColor, tally, topicStatus } from "../../src/shared/core/progress.ts";
 import { FACTORY_SETTINGS } from "../../src/shared/core/settings.ts";
 import { TOOL_SWITCH_LABELS } from "../../src/shared/core/tool-switches.ts";
+import { TITLE_CUT } from "../../src/frontend/components/lesson/wait-model.ts";
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf-8");
 const ts = (name: string) => read(`src/shared/core/${name}.ts`);
@@ -36,6 +37,12 @@ describe("question tools", () => {
 		const names = strings(rust("messages/pending"), "QUESTION_TOOLS");
 		assert.deepEqual(strings(ts("pending"), "QUESTION_TOOLS"), names);
 		for (const name of names) assert.equal(isQuestionTool(name), true, name);
+	});
+});
+
+describe("a lesson title cut short", () => {
+	it("ends with the mark the lesson page looks for", () => {
+		assert.ok(rust("contracts/graph").includes(`format!("{}${TITLE_CUT}"`));
 	});
 });
 

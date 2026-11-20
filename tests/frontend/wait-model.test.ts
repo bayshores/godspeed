@@ -31,6 +31,11 @@ describe("titleEcho", () => {
 		assert.equal(titleEcho([card(1), user("Limits  of\nsequences")], "Limits of sequences"), 1);
 	});
 
+	it("finds it when the title was saved cut short", () => {
+		assert.equal(titleEcho([user("Limits of sequences, with every proof")], "Limits of sequences,…"), 0);
+		assert.equal(titleEcho([user("Series and their limits")], "Limits of sequences,…"), -1);
+	});
+
 	it("is -1 when the first message says more, or a later message repeats the title", () => {
 		assert.equal(titleEcho([user("Limits of sequences, with proofs")], "Limits of sequences"), -1);
 		assert.equal(titleEcho([user("Hi"), user("Limits")], "Limits"), -1);

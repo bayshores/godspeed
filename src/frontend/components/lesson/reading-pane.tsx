@@ -34,6 +34,7 @@ export function ReadingPane({
 	phases,
 	status,
 	busy,
+	stoppedEmpty,
 	waitingForAgent,
 	onStop,
 	queuedSteers,
@@ -50,6 +51,8 @@ export function ReadingPane({
 	phases: readonly Phase3[];
 	status: "ready" | "submitted" | "streaming" | "error";
 	busy: boolean;
+	/** The first reply was stopped with nothing written, and no turn or error line is up. */
+	stoppedEmpty: boolean;
 	/** The turn waits for an agent to take it: the pill says so, and the desk lies still. */
 	waitingForAgent: boolean;
 	/** Stops the running turn; null while the teacher reads ahead at a stop, which is not stopped. */
@@ -109,6 +112,11 @@ export function ReadingPane({
 						<AgentAtWork state={shownDesk.state} work={shownDesk.work} arrive={arrive} foot={foot} />
 					</div>
 				</ArrivalRow>
+			)}
+			{stoppedEmpty && (
+				<p data-testid="nothing-written" className="font-prose text-ink-2" style={{ fontSize: "var(--lh-prose-size)" }}>
+					The reply was stopped before anything was written.
+				</p>
 			)}
 			{!shownDesk && foot}
 		</div>

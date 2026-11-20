@@ -7,7 +7,7 @@ import { WAITING_TOPIC } from "./layout-seed.mjs";
  * `shows`. `ready` and `shows` name something drawn from the screen's data, not its frame, so the
  * check never runs on a screen still loading. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
- * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{pending}`, `{pathSpace}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
+ * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{pending}`, `{sheetless}`, `{pathSpace}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
 export const WIDTHS = [1440, 1100, 800];
@@ -81,9 +81,9 @@ const waitingLesson = `/chat/{pending}?prompt=${encodeURIComponent(WAITING_TOPIC
 /** The desk at the foot of that lesson, still while no agent takes the reply, at work once one does. */
 /** A lesson turn running: Stop at the lesson's foot. */
 const turnRuns = "[data-testid=stop-turn]";
-/** That lesson's reply stopped and the lesson deleted, so the screens after it are as before. A
+/** That lesson's reply stopped (a screen before may have stopped it already) and the lesson deleted, so the screens after it are as before. A
  *  lesson can't be deleted while its turn runs, so the delete is tried until the stop has ended it. */
-const dropWaitingLesson = `await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: "{pending}" }) })${HTTP_OK};
+const dropWaitingLesson = `await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: "{pending}" }) });
 for (let tries = 0; ; tries++) {
 	const res = await fetch("/api/chats/{pending}?mode=preserve-graph", { method: "DELETE" });
 	if (res.ok) break;
@@ -249,6 +249,13 @@ box.dispatchEvent(new Event("input", { bubbles: true })); ${pause}`,
 		setup: `document.querySelector("[data-testid=lesson-cheat-sheet]").click(); ${pause}; localStorage.removeItem("lh:sheet-dock:{lesson}")`,
 		shows: "[data-testid=sheet-dock] [data-testid=sheet-dock-studio]",
 	},
+	{
+		name: "Lesson in a space with no cheat sheet, the column open",
+		url: "/chat/{sheetless}",
+		ready: "[data-testid=next-problem-button]",
+		setup: `document.querySelector("[data-testid=lesson-cheat-sheet]").click(); ${pause}; localStorage.removeItem("lh:sheet-dock:{sheetless}")`,
+		shows: "[data-testid=sheet-dock-none]",
+	},
 	{ name: "An address that is no page", url: "/nowhere", ready: "[data-testid=not-found]" },
 	{ name: "Space's plugin tab", url: "/space/plugin/flashcards", ready: "[data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Teacher's panel with no agent", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
@@ -315,6 +322,14 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		ready: turnRuns,
 		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent]").click()`,
 		shows: ".lh-reading:not(:has([data-testid=work-frame-open])) [data-testid=stop-turn]",
+	},
+	// Stop is pressed at the first width; the widths after it open the lesson already stopped.
+	{
+		name: "Lesson whose first reply was stopped with nothing written",
+		url: "/chat/{pending}",
+		ready: `${turnRuns}, [data-testid=nothing-written]`,
+		setup: `document.querySelector("${turnRuns}")?.click()`,
+		shows: "[data-testid=nothing-written]",
 	},
 	// Starter keys show only while no lesson turn waits, so the waiting lesson goes first. The stand-in agent may already run.
 	{

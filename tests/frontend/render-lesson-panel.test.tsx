@@ -862,6 +862,7 @@ describe("the reading pane", () => {
 		phases: [],
 		status: "submitted",
 		busy: true,
+		stoppedEmpty: false,
 		waitingForAgent: false,
 		onStop: () => {},
 		queuedSteers: [],

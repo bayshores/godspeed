@@ -49,6 +49,7 @@ const props = (over: Partial<Props> = {}): Props => ({
 	phases: [],
 	status: "submitted",
 	busy: true,
+	stoppedEmpty: false,
 	waitingForAgent: false,
 	onStop: () => {},
 	queuedSteers: [],
@@ -153,6 +154,13 @@ describe("the title's bubble", () => {
 describe("Start again", () => {
 	it("is not at the foot of the text after a first reply was stopped with nothing written: Your turn holds it", () => {
 		assert.doesNotMatch(pane({ busy: false, status: "ready" }), /Start again|next-problem-button/);
+	});
+
+	it("leaves the text one line saying the reply was stopped, where the title's bubble is not drawn", () => {
+		const html = pane({ busy: false, status: "ready", stoppedEmpty: true });
+		assert.match(html, /data-testid="nothing-written"/);
+		assert.doesNotMatch(html, /user-message/);
+		assert.doesNotMatch(pane(), /nothing-written/);
 	});
 });
 
