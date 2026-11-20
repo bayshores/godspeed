@@ -560,7 +560,8 @@ function emptyBoxes() {
 }
 
 function brokenPictures() {
-	return [...document.querySelectorAll("img")]
+	// The writing box's editor spaces its lines with img elements that have no address.
+	return [...document.querySelectorAll("img[src]")]
 		.filter((img) => shown(img) && img.complete && img.naturalWidth === 0)
 		.map((img) => finding("broken picture", [img], `${label(img)} did not load ${img.getAttribute("src")}`));
 }
