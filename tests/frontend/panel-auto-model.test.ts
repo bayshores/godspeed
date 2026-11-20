@@ -6,6 +6,7 @@ import {
 	isWritingBox,
 	stepPanel,
 	typingWaitLeft,
+	welcomeNow,
 	type PanelAct,
 	type PanelMemory,
 	type PanelNow,
@@ -134,5 +135,14 @@ describe("a lesson reply starting closes the panel", () => {
 
 	it("does nothing to a panel that is shut", () => {
 		assert.equal(act(calm, { need: null, replying: true }, SHUT), null);
+	});
+});
+
+describe("the new learner's first look", () => {
+	it("is the first Today after onboarding with the teacher on", () => {
+		assert.ok(welcomeNow({ marked: true, onToday: true, teacherOn: true }));
+		assert.ok(!welcomeNow({ marked: false, onToday: true, teacherOn: true }), "anyone who did not just finish onboarding");
+		assert.ok(!welcomeNow({ marked: true, onToday: false, teacherOn: true }), "it waits for Today");
+		assert.ok(!welcomeNow({ marked: true, onToday: true, teacherOn: false }), "it waits for the teacher");
 	});
 });

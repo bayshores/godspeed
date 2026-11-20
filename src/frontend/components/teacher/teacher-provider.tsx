@@ -87,7 +87,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	);
 
 	// ── the panel ──
-	const panel = useTeacherPanel(lesson?.working ?? null);
+	const panel = useTeacherPanel(lesson?.working ?? null, pathname === "/");
 	const { open: panelOpen, setOpen: setPanelOpen, showTerminal, setList } = panel;
 	useDoneSound(panelOpen);
 	// The panel stays while the page shows; across the whole window it gets out of the way.

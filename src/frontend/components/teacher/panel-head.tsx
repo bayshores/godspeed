@@ -1,5 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { usePresence } from "@/frontend/components/presence";
+import { KEY_HELD } from "@/frontend/components/terminal/screen-key";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { cn } from "@/frontend/lib/utils";
 import { PanelChats } from "./panel-chats";
@@ -9,8 +10,6 @@ import { useTeacher } from "./teacher-context";
 /** The head's words are in the screen's font; its keys are plain words. */
 const TYPE = "font-mono text-[13px]";
 const KEY = cn("lh-btn lh-btn-quiet h-8 shrink-0", TYPE);
-/** A key held down: Follow while it is on, Chats and Activity while their list is open. */
-const HELD = "text-ink [--lh-key:var(--lh-key-hover)]";
 /** A key that needs the learner: lit like the chip that says so. */
 const LIT_KEY = "[--lh-key:var(--lh-highlight)] [--lh-key-hover:color-mix(in_srgb,var(--lh-highlight)_85%,#fff)] text-ink";
 
@@ -161,7 +160,7 @@ export function PanelHead({
 							list?.onOpen(false);
 							setChatsWanted(!chatsOpen);
 						}}
-						className={cn(KEY, chatsOpen && HELD)}
+						className={cn(KEY, chatsOpen && KEY_HELD)}
 					>
 						Chats
 					</button>
@@ -172,7 +171,7 @@ export function PanelHead({
 						data-testid={teacher.follow ? "follow-stop" : "follow-start"}
 						aria-pressed={teacher.follow}
 						onClick={() => teacher.setFollow(!teacher.follow)}
-						className={cn(KEY, teacher.follow && HELD)}
+						className={cn(KEY, teacher.follow && KEY_HELD)}
 					>
 						{teacher.follow ? "Following" : "Follow"}
 					</button>
@@ -188,7 +187,7 @@ export function PanelHead({
 							setChatsWanted(false);
 							list.onOpen(!listOpen);
 						}}
-						className={cn(KEY, listOpen && HELD)}
+						className={cn(KEY, listOpen && KEY_HELD)}
 					>
 						Activity
 					</button>

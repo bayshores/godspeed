@@ -1,6 +1,6 @@
 import { useLocation } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
-import { startersFor } from "@/frontend/components/terminal/starter-model";
+import { everything, startersFor } from "@/frontend/components/terminal/starter-model";
 import { terminalFooter, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
 import { TerminalPane } from "@/frontend/components/terminal/terminal-pane";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
@@ -11,14 +11,14 @@ import { StartTeacher } from "./start-teacher";
 /**
  * The panel's screen: the agent's live screen (the teacher's, or
  * background work's while it needs the learner) with its sentence and
- * buttons under it (the teacher's has Pop out too), and the starter keys for the page on screen. Before
+ * buttons under it (the teacher's has Pop out too), and what the teacher can be asked on the page on screen. Before
  * godspeed has started an agent: what shows here and the start buttons,
  * or where an agent started outside godspeed shows its screen.
  */
 export function PanelScreen({ name, role, focus }: { name: string; role: TerminalRole; focus: boolean }) {
 	const api = useTerminals();
 	const { pathname } = useLocation();
-	const spaceName = useSpaces().activeSpace?.name ?? null;
+	const { spaces, activeSpace } = useSpaces();
 	const { deadlines } = useOpenDeadlines();
 	const facts = api?.facts[role] ?? null;
 	if (!api) return null;
@@ -33,5 +33,21 @@ export function PanelScreen({ name, role, focus }: { name: string; role: Termina
 				{!api.outsideHere && <StartTeacher />}
 			</div>
 		);
-	return <TerminalPane api={api} role={role} name={name} foot={terminalFooter(facts, name, true)} focusOnOpen={focus} starters={startersFor({ path: pathname, spaceName, deadlines: deadlines ?? [] })} popOut={role === "teacher" ? api.popOut : null} />;
+	const ideaFacts = {
+		path: pathname,
+		space: activeSpace && { id: activeSpace.id, name: activeSpace.name, files: activeSpace.fileCount },
+		spaces: spaces.filter((s) => !s.closed).length,
+		deadlines: deadlines ?? [],
+	};
+	return (
+		<TerminalPane
+			api={api}
+			role={role}
+			name={name}
+			foot={terminalFooter(facts, name, true)}
+			focusOnOpen={focus}
+			ideas={role === "teacher" ? { starters: startersFor(ideaFacts), everything: everything(ideaFacts) } : null}
+			popOut={role === "teacher" ? api.popOut : null}
+		/>
+	);
 }

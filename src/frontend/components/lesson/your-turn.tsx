@@ -2,11 +2,12 @@ import { useState, type RefObject } from "react";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
 import { DEFAULT_TEACHER_NAME, DONT_KNOW, type DockSelection, type findPendingToolCall, type ProblemChoices, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
+import { useSettings } from "@/frontend/components/settings-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { cn } from "@/frontend/lib/utils";
 import type { AttachmentDraft } from "./attachment-tray";
 import { LessonBox } from "./lesson-box";
-import { HELP_LINES, lessonBox, questionTurn, type BoxAction, type BoxView } from "./lesson-box-model";
+import { HELP_LINES, lessonBox, lessonIdeas, questionTurn, type BoxAction, type BoxView } from "./lesson-box-model";
 import { OpenProblemPane, type ProblemPicks } from "./open-problem-pane";
 import { ProblemFile, type ProblemFileRef } from "./problem-file";
 import { TurnScroll } from "./turn-scroll";
@@ -58,6 +59,7 @@ export interface YourTurnProps {
 }
 
 const HELP_KEY = "lh-btn lh-btn-small";
+const NO_SWITCHES: Readonly<Record<string, boolean>> = {};
 
 const EXIT: Record<NonNullable<BoxView["exit"]>, { label: string; testId: string }> = {
 	skip: { label: "Skip question", testId: "skip-question" },
@@ -76,7 +78,8 @@ const EXIT: Record<NonNullable<BoxView["exit"]>, { label: string; testId: string
  * way out of that state at the title row's end. The box at its foot is
  * there in every state and stays still while the rest swaps: the learner
  * answers in it, works in it and asks the teacher in it (lessonBox). Under
- * it the "Stuck?" keys ask for help in one click. Beside the lesson text
+ * it one row of keys sends a line in one click: "Stuck?" with a question
+ * or a problem waiting, "Try asking" with nothing waiting. Beside the lesson text
  * only the question or problem shrinks to fit the window, scrolling in its
  * own box (LessonScroll).
  */
@@ -117,6 +120,8 @@ export function YourTurn({
 			? ({ kind: "problem", picked: problemPicked.selected.size > 0 } as const)
 			: ({ kind: "ask", nextKey: nextKey !== null } as const);
 	const view = lessonBox({ teacher, busy, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
+	// Nothing waits: the foot row offers what any lesson can be asked for.
+	const ideas = lessonIdeas(useSettings().record?.agent?.tools ?? NO_SWITCHES);
 
 	const act = (action: BoxAction) => {
 		if (action === "send") onSend();
@@ -216,9 +221,20 @@ export function YourTurn({
 			)}
 
 			<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
-			{view.help && (
+			{(view.help || turn.kind === "ask") && (
 				<div data-testid="turn-foot" className="flex flex-wrap items-center gap-2.5">
-					<HelpKeys help={view.help} questionRef={questionRef} onHelpLine={onHelpLine} />
+					{view.help ? (
+						<HelpKeys help={view.help} questionRef={questionRef} onHelpLine={onHelpLine} />
+					) : (
+						<>
+							<span className="mr-1 shrink-0 text-base text-ink-2">Try asking</span>
+							{ideas.map((line) => (
+								<button key={line} type="button" data-testid="lesson-idea" onClick={() => onHelpLine(line)} className={HELP_KEY}>
+									{line}
+								</button>
+							))}
+						</>
+					)}
 				</div>
 			)}
 		</div>

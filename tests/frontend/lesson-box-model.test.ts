@@ -1,7 +1,7 @@
 /** The lesson's box: its size, keys, Enter, the way out and the Stuck? keys per state. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { lessonBox, questionTurn, type BoxTurn } from "../../src/frontend/components/lesson/lesson-box-model.ts";
+import { lessonBox, lessonIdeas, questionTurn, type BoxTurn } from "../../src/frontend/components/lesson/lesson-box-model.ts";
 import { findPendingToolCall } from "../../src/shared/core/pending.ts";
 import { projectView, withOpenReview } from "../../src/shared/core/view.ts";
 import type { ReviewQuestion } from "../../src/shared/core/contracts/chat.ts";
@@ -56,6 +56,15 @@ describe("lessonBox, a problem", () => {
 		const withFile = box({ kind: "problem", picked: false }, { hasText: true, hasFiles: true, busy: true });
 		assert.equal(send(withFile).disabled, true, "a steer carries no files");
 		assert.equal(withFile.enter, null);
+	});
+});
+
+describe("lessonIdeas, the Try asking lines", () => {
+	it("four lines; a background job switched off in Settings takes its line with it", () => {
+		assert.deepEqual(lessonIdeas({}), ["Draw it", "Show a demo", "Look it up", "Quiz me"]);
+		assert.deepEqual(lessonIdeas({ demo: true, research: true }), lessonIdeas({}), "a job not named is on");
+		assert.deepEqual(lessonIdeas({ demo: false, research: false }), ["Draw it", "Quiz me"]);
+		assert.deepEqual(lessonIdeas({ visual: false, demo: false, research: false }), ["Quiz me"]);
 	});
 });
 

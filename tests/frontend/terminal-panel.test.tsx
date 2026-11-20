@@ -14,6 +14,8 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { TerminalRecord } from "../../src/frontend/components/terminal/terminal-model.ts";
 import type { TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
+import { WELCOME_KEY } from "../../src/frontend/components/teacher/panel-auto-model.ts";
+import { readStorage, writeStorage } from "../../src/frontend/lib/storage.ts";
 
 const { MemoryRouter } = await import("react-router");
 const { TerminalsProvider, useTerminals } = await import("../../src/frontend/components/terminal/use-terminals.ts");
@@ -49,9 +51,12 @@ afterEach(() => {
 	globalThis.fetch = realFetch;
 });
 
+/** Whether the page the host stands for is Today. */
+let onToday = false;
+
 /** The teacher's panel as the provider holds it. */
 function PanelHost({ children }: { children?: React.ReactNode }) {
-	const panel = useTeacherPanel(null);
+	const panel = useTeacherPanel(null, onToday);
 	const terminals = useTerminals();
 	const view = panelBody(!!terminals?.available, !!terminals?.popped && shownScreen(panel.role, !!terminals.helper) === "teacher");
 	const api: TeacherApi = {
@@ -772,24 +777,109 @@ describe("the Chats key in the panel's head", () => {
 	});
 });
 
+describe("a new learner's first Today", () => {
+	const running = access({ teaching: true, terminals: [{ id: "t1", here: true }] });
+
+	it("opens the panel once, by itself, with the keyboard left where it is; never for anyone else or on another page", async () => {
+		const shell = fakeShell([teacher()]);
+		try {
+			await mounted(running, async () => assert.ok(!onTerminal(), "no mark: nobody just finished onboarding"));
+			writeStorage(WELCOME_KEY, "1");
+			await mounted(running, async () => assert.ok(!onTerminal(), "not Today"));
+			assert.equal(readStorage(WELCOME_KEY), "1", "it still waits for Today");
+			onToday = true;
+			await mounted(running, async () => {
+				assert.ok(onTerminal());
+				assert.deepEqual(document.querySelectorAll('[data-testid="terminal-starter"]').length, 3, "with what to ask in front of them");
+			});
+			assert.equal(readStorage(WELCOME_KEY), null);
+			await mounted(running, async () => assert.ok(!onTerminal(), "once"));
+		} finally {
+			onToday = false;
+			writeStorage(WELCOME_KEY, null);
+			shell.remove();
+		}
+	});
+});
+
 describe("the starter keys", () => {
 	const running = access({ teaching: true, terminals: [{ id: "t1", here: true }] });
 	const starters = () => [...document.querySelectorAll('[data-testid="terminal-starter"]')].map((b) => b.textContent);
 
-	it("an unused chat shows three keys under Try asking; a click sends its words and the row goes", async () => {
+	// The harness has no space: the lines that start one.
+	const FIRST = ["Set up a space from my files", "Teach me a new topic", "Build me a path to a goal"];
+
+	it("an unused chat shows the page's keys under Try asking, then the key for the whole list; a click sends its words and the row folds into Ideas", async () => {
 		const shell = fakeShell([teacher()]);
 		try {
 			await mounted(running, async () => {
 				await click("status");
 				assert.equal(q("terminal-starters")?.firstElementChild?.textContent, "Try asking");
-				assert.deepEqual(starters(), ["What should I study?", "What's due?", "What can you do?"]);
-				assert.equal(document.querySelector('[data-testid="terminal-starter"]')?.getAttribute("title"), "What should I study?", "the first key's full words, for when it is cut");
+				assert.deepEqual(starters(), FIRST);
+				assert.equal(document.querySelector('[data-testid="terminal-starter"]')?.getAttribute("title"), FIRST[0], "a key's full words, for when it is cut");
+				assert.equal(text("terminal-everything"), "Everything Ada can do");
+				assert.ok(q("terminal-ideas-key") === null, "the row is there: nothing to bring back");
 				await click("terminal-starter");
-				assert.ok(shell.calls.includes("send What should I study?"));
+				assert.ok(shell.calls.includes(`send ${FIRST[0]}`));
 				await faded();
+				assert.ok(q("terminal-starters") === null);
+				assert.equal(text("terminal-ideas-key"), "Ideas");
+			});
+		} finally {
+			shell.remove();
+		}
+	});
+
+	it("Everything opens the whole list over the screen: a line that works is a key that sends it, one that cannot says what it needs", async () => {
+		const shell = fakeShell([teacher()]);
+		try {
+			await mounted(running, async () => {
+				await click("status");
+				assert.ok(q("terminal-ideas") === null);
+				await click("terminal-everything");
+				assert.equal(q("terminal-everything")?.getAttribute("aria-expanded"), "true");
+				assert.deepEqual([...q("terminal-ideas")!.querySelectorAll("h3")].map((h) => h.textContent), ["Learn", "Before a deadline", "Spaces and files", "About you"]);
+				const off = [...document.querySelectorAll('[data-testid="terminal-idea-off"]')].map((r) => r.textContent);
+				assert.ok(off.includes("Make a cheat sheetneeds a deadline"));
+				assert.ok(off.every((line) => line?.includes("needs")));
+				assert.ok(document.querySelector('[data-testid="terminal-idea-off"]')?.tagName !== "BUTTON", "no key");
+				const quiz = [...document.querySelectorAll<HTMLElement>('[data-testid="terminal-idea"]')].find((b) => b.textContent === "Quiz me on what I've learned");
+				await act(async () => quiz!.click());
+				await settle();
+				assert.ok(shell.calls.includes("send Quiz me on what I've learned"));
+				await faded();
+				assert.ok(q("terminal-ideas") === null, "the list goes with the line");
 				assert.ok(q("terminal-starters") === null);
 			});
 		} finally {
+			shell.remove();
+		}
+	});
+
+	it("the list closes on Esc and on a click outside it, and the row stays", async () => {
+		const shell = fakeShell([teacher()]);
+		const realFocus = dom.window.HTMLElement.prototype.focus;
+		let focused: unknown = null;
+		dom.window.HTMLElement.prototype.focus = function (this: HTMLElement) {
+			focused = this;
+		};
+		try {
+			await mounted(running, async () => {
+				await click("status");
+				await click("terminal-everything");
+				assert.ok(focused === q("terminal-ideas"), "the keyboard is in the list, so Esc is not typed into the agent");
+				await act(async () => void document.dispatchEvent(Object.assign(new dom.window.Event("keydown", { bubbles: true }), { key: "Escape" })));
+				await faded();
+				assert.ok(q("terminal-ideas") === null);
+				await click("terminal-everything");
+				await act(async () => void document.body.dispatchEvent(new dom.window.Event("pointerdown", { bubbles: true })));
+				await faded();
+				assert.ok(q("terminal-ideas") === null);
+				assert.equal(starters().length, 3);
+				assert.equal(shell.calls.filter((c) => c.startsWith("send ")).length, 0);
+			});
+		} finally {
+			dom.window.HTMLElement.prototype.focus = realFocus;
 			shell.remove();
 		}
 	});
@@ -820,6 +910,7 @@ describe("the starter keys", () => {
 				await settle();
 				await faded();
 				assert.ok(q("terminal-starters") === null, "a question");
+				assert.ok(q("terminal-ideas-key") === null, "and no Ideas key");
 				await act(async () => shell.push({ id: "t1", ended: null, prompt: null, url: false }));
 				await settle();
 				assert.equal(starters().length, 3);
@@ -832,7 +923,7 @@ describe("the starter keys", () => {
 		}
 	});
 
-	it("none once the chat was used, by the learner's own line or before (a chat continued)", async () => {
+	it("once the chat was used, by the learner's own line or before (a chat continued), the row is folded into the Ideas key, which brings it back and folds it again", async () => {
 		const shell = fakeShell([teacher()]);
 		let used = false;
 		globalThis.fetch = (async (url: string) => (url.startsWith("/api/graph/costs") ? new Response(null, { status: 404 }) : Response.json(url.startsWith("/api/teacher-chats") ? { chats: used ? [{ id: "c1", agent: "claude", name: "hi", lesson: null, at: Date.now(), open: true }] : [] } : FOLDER))) as unknown as typeof fetch;
@@ -844,6 +935,13 @@ describe("the starter keys", () => {
 				await say("teacher-chats-changed");
 				await faded();
 				assert.ok(q("terminal-starters") === null);
+				await click("terminal-ideas-key");
+				assert.equal(starters().length, 3);
+				assert.equal(q("terminal-ideas-key")?.getAttribute("aria-expanded"), "true");
+				await click("terminal-ideas-key");
+				await faded();
+				assert.ok(q("terminal-starters") === null);
+				assert.equal(text("terminal-ideas-key"), "Ideas");
 			});
 		} finally {
 			shell.remove();
@@ -868,6 +966,7 @@ describe("the starter keys", () => {
 			await settle();
 			assert.ok(q("first-run-screen") !== null);
 			assert.ok(q("terminal-starters") === null);
+			assert.ok(q("terminal-ideas-key") === null);
 		} finally {
 			await act(async () => root.unmount());
 			await settle();

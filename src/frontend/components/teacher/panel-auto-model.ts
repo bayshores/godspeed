@@ -3,8 +3,18 @@
  * It opens when a need for the learner arises, once the learner has paused
  * typing, and closes when that need is settled or when a lesson reply starts.
  * While the teacher's screen is in its own window it never opens: the strip lights.
+ * It also opens once for a new learner, the first time Today shows with the teacher on,
+ * so they see what the teacher can be asked.
  */
 import type { TerminalRole } from "@/frontend/components/terminal/terminal-model";
+
+/** Set when onboarding ends, removed once the panel has opened for it. */
+export const WELCOME_KEY = "lh:teacher-welcome";
+
+/** The new learner's first look is now: onboarding left its mark, Today shows and the teacher runs. */
+export function welcomeNow(w: { marked: boolean; onToday: boolean; teacherOn: boolean }): boolean {
+	return w.marked && w.onToday && w.teacherOn;
+}
 
 /** How long after the last key in a writing box the panel keeps waiting. */
 export const TYPING_PAUSE_MS = 3000;

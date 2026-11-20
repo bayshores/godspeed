@@ -19,6 +19,8 @@ import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useBoot } from "@/frontend/components/boot";
 import { useSettings } from "@/frontend/components/settings-context";
 import { showFocusRingAfterTab } from "@/frontend/components/focus-hygiene";
+import { WELCOME_KEY } from "@/frontend/components/teacher/panel-auto-model";
+import { writeStorage } from "@/frontend/lib/storage";
 import { cn } from "@/frontend/lib/utils";
 import { AgentStep } from "./agent-step";
 import { SpaceStep } from "./space-step";
@@ -54,6 +56,7 @@ export function Onboarding() {
 			setSaveFailed(true);
 			return;
 		}
+		writeStorage(WELCOME_KEY, "1");
 		await new Promise((r) => setTimeout(r, 600));
 		navigate("/", { replace: true });
 		void refresh();

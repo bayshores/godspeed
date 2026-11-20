@@ -7,7 +7,7 @@
  * problem's box takes work and questions alike, plain messages the teacher
  * reads. With nothing waiting the box only asks. Pure.
  */
-import { answerTakesFiles, parseAskInput, parseExplainInput, toolQuestionKind, type AppPosed } from "@/shared/core";
+import { answerTakesFiles, parseAskInput, parseExplainInput, toolQuestionKind, type AppPosed, type ToggleableTool } from "@/shared/core";
 
 /** What waits in "Your turn". */
 export type BoxTurn =
@@ -49,6 +49,21 @@ export interface BoxView {
 	attach: boolean;
 	/** The "Stuck?" keys; none with nothing waiting. */
 	help: HelpKeys | null;
+}
+
+/** What the teacher can be asked for in any lesson, and the background job each needs
+ *  (Settings switches a job off). */
+const LESSON_IDEAS: readonly { line: string; tool: ToggleableTool | null }[] = [
+	{ line: "Draw it", tool: "visual" },
+	{ line: "Show a demo", tool: "demo" },
+	{ line: "Look it up", tool: "research" },
+	{ line: "Quiz me", tool: null },
+];
+
+/** The "Try asking" lines under the box while nothing waits, each sent as if typed in it.
+ *  `tools`: the background jobs' switches from Settings; one not named is on. */
+export function lessonIdeas(tools: Readonly<Record<string, boolean>>): string[] {
+	return LESSON_IDEAS.filter((i) => i.tool === null || (tools[i.tool] ?? true)).map((i) => i.line);
 }
 
 /** The lines the hint and simpler keys send, as if typed in the box. */

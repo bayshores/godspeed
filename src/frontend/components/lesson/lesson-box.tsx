@@ -52,8 +52,8 @@ export function LessonBox({
 	const keys = (
 		<>
 			{view.attach && <AttachButton draft={attachments} />}
-			{/* Attach keeps the row's start; the keys that send keep its end. */}
-			<div className="ml-auto flex shrink-0 items-center gap-3">
+			{/* Attach keeps the row's start; the keys that send keep its end, on a row of their own in a narrow column. */}
+			<div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
 				{view.keys.map((b) => (
 					<button key={b.action} type="button" data-testid={BUTTON_ID[b.action]} disabled={b.disabled} onClick={() => onAct(b.action)} className={cn("lh-btn shrink-0", b.filled && "lh-btn-main")}>
 						{b.label}
@@ -69,12 +69,12 @@ export function LessonBox({
 				// The keys go under the box when the row is too narrow for both, and take that whole row.
 				<div className="flex flex-wrap items-end gap-x-3 gap-y-2.5">
 					<div className="lh-answer-line flex min-w-0 flex-[999_1_240px] flex-col lh-well rounded-[2px]">{box}</div>
-					<div className="flex flex-[1_0_auto] items-center gap-3">{keys}</div>
+					<div className="flex min-w-0 flex-[1_1_auto] flex-wrap items-center gap-x-3 gap-y-2">{keys}</div>
 				</div>
 			) : (
 				<div className="lh-answer-lines flex flex-col lh-well rounded-[2px]">
 					{box}
-					<div className="flex shrink-0 items-center gap-3 pr-2.5 pb-2.5 pl-2">{keys}</div>
+					<div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 pr-2.5 pb-2.5 pl-2">{keys}</div>
 				</div>
 			)}
 		</div>

@@ -269,10 +269,25 @@ describe("Your turn in each state", () => {
 		});
 	});
 
-	it("Stuck? leads the foot row under the box while a question or a problem waits, never at a stop", () => {
+	it("Stuck? leads the foot row under the box while a question or a problem waits; with nothing waiting the row is Try asking", () => {
 		const keys = /data-testid="composer"[\s\S]*data-testid="turn-foot"[^>]*><span[^>]*>Stuck\?<\/span>[\s\S]*?>I don(?:'|&#x27;)t know<[\s\S]*?>Give me a hint<[\s\S]*?>Explain it simpler</;
 		for (const over of [{ pending: quiz }, { pending: written }, { pending: choice }, { problem }]) assert.match(html(over), keys, JSON.stringify(Object.keys(over)));
-		for (const over of [{}, { shown: shown(atStop) }]) assert.doesNotMatch(html(over), /Stuck\?|turn-foot/);
+		const ideas = /data-testid="composer"[\s\S]*data-testid="turn-foot"[^>]*><span[^>]*>Try asking<\/span>[\s\S]*?>Draw it<[\s\S]*?>Show a demo<[\s\S]*?>Look it up<[\s\S]*?>Quiz me</;
+		for (const over of [{}, { shown: shown(atStop) }, { busy: true }]) {
+			assert.match(html(over), ideas, JSON.stringify(Object.keys(over)));
+			assert.doesNotMatch(html(over), /Stuck\?/);
+		}
+		for (const over of [{ pending: quiz }, { problem }]) assert.doesNotMatch(html(over), /Try asking/, "never both");
+	});
+
+	it("a Try asking key sends its words as a line to the teacher", async () => {
+		const lines: string[] = [];
+		await mounted(turn({ onHelpLine: (l) => lines.push(l) }), async (host) => {
+			const keys = [...host.querySelectorAll<HTMLElement>('[data-testid="lesson-idea"]')];
+			assert.deepEqual(keys.map((k) => k.textContent), ["Draw it", "Show a demo", "Look it up", "Quiz me"]);
+			await click(host, "lesson-idea");
+			assert.deepEqual(lines, ["Draw it"]);
+		});
 	});
 
 	it("I don't know answers the question in one click, with the box text as the thinking", async () => {
@@ -844,7 +859,7 @@ describe("the turn sheet", () => {
 			assert.match(picked[0]!.textContent!, /Venus[\s\S]*Wrong/, "the verdict sits beside the pick");
 			assert.equal(host.querySelectorAll('[data-testid="answer-result"]').length, 1);
 			assert.equal(host.querySelector('[data-testid="composer-send"]')!.textContent, "Ask marco", "the box stays, to ask");
-			assert.ok(host.querySelector('[data-testid="turn-foot"]') === null);
+			assert.match(host.querySelector('[data-testid="turn-foot"]')!.textContent!, /^Try asking/, "no Stuck? keys with nothing to answer");
 			assert.ok(host.querySelector('[data-testid="turn-next"]') === null);
 			await show(named(column({ pending: { ...quiz, toolCallId: "q2" }, answered: pickedVenus })));
 			assert.equal(swap(host).getAttribute("data-state"), "closed", "the next question swaps in with the fade");

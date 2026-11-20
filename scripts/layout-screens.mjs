@@ -16,6 +16,8 @@ export const WIDTHS = [1440, 1100, 800];
 export const HTTP_OK = `.then((r) => { if (!r.ok) throw new Error(r.url + " answered " + r.status); return r; })`;
 
 const pause = `await new Promise((done) => setTimeout(done, 100))`;
+/** Waits in the page, up to 10 s, for something a click before it brings. */
+const whenThere = (selector) => `for (let n = 0; n < 100 && !document.querySelector("${selector}"); n++) ${pause}`;
 const openTeacher = `document.querySelector("[data-testid=strip]").click()`;
 /** The pointer comes to rest on the strip, so its peek slides out. */
 const peekOut = `document.querySelector("[data-strip]").dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }))`;
@@ -348,6 +350,21 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	},
 	// The longest starter key: "Get me ready for" the deadline's name.
 	{ name: "The agent's screen on a deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]", setup: openTeacher, shows: "[data-testid=terminal-starters] [data-testid=terminal-starter]" },
+	{
+		name: "The agent's screen with everything the teacher can do",
+		url: "/",
+		ready: deadlineCard,
+		setup: `${openTeacher}; ${whenThere("[data-testid=terminal-everything]")}; document.querySelector("[data-testid=terminal-everything]").click()`,
+		shows: "[data-testid=terminal-ideas] [data-testid=terminal-idea]",
+	},
+	// Onboarding's mark: the panel opens by itself on Today, once.
+	{
+		name: "A new learner's first Today",
+		before: `localStorage.setItem("lh:teacher-welcome", "1")`,
+		url: "/",
+		ready: deadlineCard,
+		shows: "[data-testid=terminal-starters] [data-testid=terminal-starter]",
+	},
 	// The stand-in teacher runs by now. The window's own page, and the column of the main window while the shell says the window is open.
 	{
 		name: "The terminal window",
