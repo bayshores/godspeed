@@ -3,7 +3,7 @@
  * side only fails here. Each Rust value is read from its source file as text.
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS } from "../../src/shared/core/attachments.ts";
 import { MAX_LINKED_FILES, SIGNATURE_MAX, SPACE_ICONS, SUPPORTED_SPACE_FILE_EXTENSIONS } from "../../src/shared/core/contracts/space.ts";
@@ -155,6 +155,14 @@ describe("app icons", () => {
 		assert.deepEqual([...shell.matchAll(/icons\/choices\/(\w+)\.png/g)].map((m) => m[1]), offered);
 		assert.deepEqual([...shell.matchAll(/\("(\w+)", include_bytes/g)].map((m) => m[1]), offered);
 		for (const picture of ["graphite", ...offered]) assert.ok(read(`public/app-icons/${picture}.svg`).startsWith("<svg"), picture);
+	});
+});
+
+describe("files the page ships", () => {
+	it("each have a type the server sends them as", () => {
+		const types = read("crates/server/src/http/ui.rs");
+		const files = readdirSync(new URL("../../public", import.meta.url), { recursive: true, encoding: "utf-8" });
+		for (const file of files.filter((name) => name.includes("."))) assert.ok(types.includes(`"${file.slice(file.lastIndexOf("."))}" =>`), file);
 	});
 });
 

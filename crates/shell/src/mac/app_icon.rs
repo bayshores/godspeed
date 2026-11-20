@@ -79,7 +79,7 @@ mod tests {
 		let file = std::env::temp_dir().join(format!("gs-shell-app-icon-{name}-{}.json", std::process::id()));
 		let _ = std::fs::remove_file(&file);
 		if let Some(text) = text {
-			std::fs::write(&file, text).unwrap();
+			gs_base::fsx::write_text_atomic(&file, text).unwrap();
 		}
 		let picture = picked(&file);
 		let _ = std::fs::remove_file(&file);

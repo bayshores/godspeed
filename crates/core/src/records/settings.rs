@@ -132,7 +132,7 @@ fn sanitize_agent(raw: &Json) -> Json {
 }
 
 /// The app icons Settings offers besides the app's own, as `appearance.appIcon` names them.
-const APP_ICONS: [&str; 2] = ["paper", "classic"];
+pub const APP_ICONS: [&str; 2] = ["paper", "classic"];
 
 fn sanitize_appearance(raw: &Json) -> Json {
 	let mut out = Obj::new();
