@@ -13,7 +13,7 @@ use gs_agent::tools::space::{SpaceSearch, SpaceToolContext};
 use gs_agent::tools::fn_tool::FnTool;
 use gs_agent::tools::space_actions::SpaceActions;
 use gs_agent::tools::graph::SearchGraph;
-use gs_agent::tools::homework::{HomeworkDeadline, HomeworkToolContext, homework_tools};
+use gs_agent::tools::homework::{ProblemList, HomeworkToolContext, homework_tools};
 use gs_agent::tools::jobs::JobToolContext;
 use gs_agent::tools::lesson_parts::LessonParts;
 use gs_agent::tools::lesson::{ProberToolContext, StudyToolContext, TeacherToolContext, prober_tools, study_tools, teacher_tools};
@@ -157,7 +157,7 @@ impl Deadline {
 	}
 }
 
-impl HomeworkDeadline for Deadline {
+impl ProblemList for Deadline {
 	fn problems(&self) -> Vec<Json> {
 		self.problems.lock().clone()
 	}

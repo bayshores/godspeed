@@ -8,7 +8,7 @@ use gs_base::text;
 use gs_json::{Json, Obj, stringify};
 
 use super::page_piece::check_piece;
-use crate::contracts::space::{SpaceDeadlineError, MAX_HOMEWORK_PROBLEMS, is_calendar_date, is_clock_time, is_deadline_kind};
+use crate::contracts::space::{SpaceDeadlineError, MAX_FILE_PROBLEMS, is_calendar_date, is_clock_time, is_deadline_kind};
 
 fn refuse(code: &'static str, message: String) -> SpaceDeadlineError {
 	SpaceDeadlineError { code, message }
@@ -84,9 +84,9 @@ fn deadline_file(known: &HashSet<String>, file_id: Option<&Json>) -> Result<Stri
 }
 
 /// A problem list as the store keeps it: numbers unique, text trimmed.
-fn deadline_problems(problems: Option<&Json>) -> Result<Vec<Json>, SpaceDeadlineError> {
-	let list = problems.and_then(Json::as_arr).filter(|p| p.len() <= MAX_HOMEWORK_PROBLEMS);
-	let Some(list) = list else { return Err(refuse("bad_problems", format!("The problems must be a list of at most {MAX_HOMEWORK_PROBLEMS}"))) };
+pub fn checked_problems(problems: Option<&Json>) -> Result<Vec<Json>, SpaceDeadlineError> {
+	let list = problems.and_then(Json::as_arr).filter(|p| p.len() <= MAX_FILE_PROBLEMS);
+	let Some(list) = list else { return Err(refuse("bad_problems", format!("The problems must be a list of at most {MAX_FILE_PROBLEMS}"))) };
 	let mut seen = HashSet::new();
 	let mut out = Vec::new();
 	for (i, p) in list.iter().enumerate() {
@@ -200,10 +200,6 @@ pub fn changed_deadline(known: &HashSet<String>, prev: &Json, patch: &Json, now:
 	};
 	let assignment = file_field("assignmentFileId")?;
 	let about = file_field("aboutFileId")?;
-	let problems = match patch.get("problems") {
-		Some(p) => Some(deadline_problems(Some(p))?),
-		None => prev["problems"].as_arr().cloned(),
-	};
 	let prev_done = prev["done"].as_bool() == Some(true);
 	let done = patch["done"].as_bool().unwrap_or(prev_done);
 	// Ticking stamps the time; unticking clears it; leaving it alone keeps it.
@@ -233,9 +229,8 @@ pub fn changed_deadline(known: &HashSet<String>, prev: &Json, patch: &Json, now:
 	if let Some(about) = about {
 		base.insert("aboutFileId", about);
 	}
-	if let Some(problems) = problems.filter(|p| !p.is_empty()) {
-		base.insert("problems", Json::Arr(problems));
-	}
+	// The list is written through `problem_list`, never by a patch.
+	base.insert_present("problems", prev.get("problems").filter(|p| !p.items().is_empty()));
 	base.insert("done", done);
 	if let Some(done_at) = done_at {
 		base.insert("doneAt", done_at);
@@ -320,14 +315,12 @@ mod tests {
 
 	#[test]
 	fn problems_are_cleaned_and_refused_when_wrong() {
-		let prev = json!({ "id": "d", "kind": "homework", "name": "HW", "date": "2026-11-02", "fileIds": [], "done": false });
-		let patch = json!({ "problems": [{ "number": " 1 ", "text": " Show it. ", "page": 3, "done": true }, { "number": "2", "title": "  Two  parts ", "text": "x", "page": 1.5 }] });
-		let out = changed_deadline(&known(), &prev, &patch, "T").unwrap();
+		let list = json!([{ "number": " 1 ", "text": " Show it. ", "page": 3, "done": true }, { "number": "2", "title": "  Two  parts ", "text": "x", "page": 1.5 }]);
 		assert_eq!(
-			stringify(&out["problems"]),
+			stringify(&Json::Arr(checked_problems(Some(&list)).unwrap())),
 			r#"[{"number":"1","title":"1","text":"Show it.","page":3,"done":true},{"number":"2","title":"Two parts","text":"x","done":false}]"#
 		);
-		let bad = |p: Json| code(changed_deadline(&known(), &prev, &json!({ "problems": p }), "T")).1;
+		let bad = |p: Json| checked_problems(Some(&p)).unwrap_err().message;
 		assert_eq!(bad(json!("x")), "The problems must be a list of at most 60");
 		assert_eq!(bad(json!([1])), "Problem 1 is not an object");
 		assert_eq!(bad(json!([{ "number": "1" }])), "Problem 1 needs a number and its text");
@@ -336,11 +329,17 @@ mod tests {
 
 	#[test]
 	fn a_problem_with_a_piece_keeps_the_checked_piece_and_no_page() {
-		let prev = json!({ "id": "d", "kind": "homework", "name": "HW", "date": "2026-11-02", "fileIds": [], "done": false });
 		let piece = json!({ "fileId": "f1", "parts": [{ "page": 2, "crop": [0.12554, 0.2, 0.9, 0.5], "aspect": 0.77, "extra": 1 }], "stray": true });
-		let out = changed_deadline(&known(), &prev, &json!({ "problems": [{ "number": "1", "text": "Show it.", "page": 3, "piece": piece }] }), "T").unwrap();
-		assert_eq!(stringify(&out["problems"]), r#"[{"number":"1","title":"1","text":"Show it.","piece":{"fileId":"f1","parts":[{"page":2,"crop":[0.1255,0.2,0.9,0.5],"aspect":0.77}]},"done":false}]"#);
+		let out = checked_problems(Some(&json!([{ "number": "1", "text": "Show it.", "page": 3, "piece": piece }]))).unwrap();
+		assert_eq!(stringify(&Json::Arr(out)), r#"[{"number":"1","title":"1","text":"Show it.","piece":{"fileId":"f1","parts":[{"page":2,"crop":[0.1255,0.2,0.9,0.5],"aspect":0.77}]},"done":false}]"#);
 		let bad = json!({ "number": "2", "text": "x", "piece": { "fileId": "f1", "parts": [] } });
-		assert_eq!(code(changed_deadline(&known(), &prev, &json!({ "problems": [bad] }), "T")).1, "Problem 1 has a piece that does not hold: a piece has 1 to 4 parts");
+		assert_eq!(checked_problems(Some(&json!([bad]))).unwrap_err().message, "Problem 1 has a piece that does not hold: a piece has 1 to 4 parts");
+	}
+
+	#[test]
+	fn a_patch_never_writes_problems_and_keeps_the_deadlines_own() {
+		let prev = json!({ "id": "d", "kind": "homework", "name": "HW", "date": "2026-11-02", "fileIds": [], "problems": [{ "number": "1", "title": "1", "text": "x", "done": true }], "done": false });
+		let out = changed_deadline(&known(), &prev, &json!({ "problems": [], "name": "HW 1" }), "T").unwrap();
+		assert_eq!(out["problems"], prev["problems"]);
 	}
 }

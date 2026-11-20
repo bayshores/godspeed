@@ -96,7 +96,7 @@ impl SpacePages {
 mod tests {
 	use super::*;
 	use crate::app::test_support::{scratch_dir, test_app};
-	use crate::turns::homework::homework_deadline;
+	use crate::turns::homework::deadline_problem_list;
 
 	const WORKSHEET: &str = "f_aaaaaaaaaaaa";
 	const SCAN: &str = "f_bbbbbbbbbbbb";
@@ -182,9 +182,12 @@ mod tests {
 	async fn a_posted_piece_is_kept_with_its_deadline() {
 		let Some((_root, app, space, deadline)) = world("pages-kept") else { return };
 		let shown = cut(&problem_pages(&app, Some(&space), Some(&deadline)), json!({ "page": 1, "starts": "1. First problem", "ends": "2. Second problem" }), None).await.unwrap();
-		let homework = homework_deadline(&app, &space, &deadline);
+		let homework = deadline_problem_list(&app, &space, &deadline);
 		assert_eq!(homework.post(&[json!({ "number": "1", "title": "First", "text": shown["text"], "piece": shown["piece"] })]), None);
 		let kept = homework.problems();
 		assert_eq!((kept[0]["piece"].clone(), kept[0].get("page")), (shown["piece"].clone(), None));
+		let record = app.stores.spaces.get_space(&space).unwrap();
+		let sheet = record["files"].items().iter().find(|f| f["id"].as_str() == Some(WORKSHEET)).unwrap();
+		assert_eq!(sheet["problems"][0]["piece"], shown["piece"], "kept on the assignment file");
 	}
 }

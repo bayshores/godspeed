@@ -1,4 +1,4 @@
-import type { HomeworkProblem, LessonStop, PlanStep, PlanStepBar, StepAnswer } from "@/shared/core";
+import type { FileProblem, LessonStop, PlanStep, PlanStepBar, StepAnswer } from "@/shared/core";
 import type { PracticeProgress } from "./practice-progress";
 
 /** How a block or a list row reads: done in ink, the one in progress, the rest light. */
@@ -74,7 +74,7 @@ export function startProblemLabel(number: string): string {
 }
 
 /** The homework go-ahead for the first problem not done. Null when none is left. */
-export function homeworkStartLabel(problems: readonly HomeworkProblem[]): string | null {
+export function homeworkStartLabel(problems: readonly FileProblem[]): string | null {
 	const next = problems.find((p) => !p.done);
 	return next ? startProblemLabel(next.number) : null;
 }
@@ -85,7 +85,7 @@ export function openingLabel(number: string): string {
 }
 
 /** A problem's place in the assignment: the open one is current even when done. */
-function problemTone(problem: HomeworkProblem, open: string | null): Tone {
+function problemTone(problem: FileProblem, open: string | null): Tone {
 	return problem.number === open ? "current" : problem.done ? "done" : "later";
 }
 
@@ -143,7 +143,7 @@ export function planBranches(stepIds: readonly string[], edges: ReadonlyArray<{ 
 /** A homework lesson's row: every problem in order, each one a pick. The
  *  open one takes him to his work; `blocked` is why no other can open yet.
  *  Null with no problems. */
-export function homeworkRow(problems: readonly HomeworkProblem[], open: string | null, blocked: string | null): RowStep[] | null {
+export function homeworkRow(problems: readonly FileProblem[], open: string | null, blocked: string | null): RowStep[] | null {
 	if (problems.length === 0) return null;
 	return problems.map((p) => {
 		const tone = problemTone(p, open);

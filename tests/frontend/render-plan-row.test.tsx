@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
-import type { SpaceSummary, HomeworkProblem, PlanStepBar } from "../../src/shared/core/index.ts";
+import type { SpaceSummary, FileProblem, PlanStepBar } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 // linkedom's document has no "oninput"; without it React would watch text
@@ -61,7 +61,7 @@ const bar: PlanStepBar = {
 	],
 };
 
-const problems: HomeworkProblem[] = [
+const problems: FileProblem[] = [
 	{ number: "1", title: "Gradient", text: "…", done: true },
 	{ number: "2", title: "Step size", text: "…", done: false },
 	{ number: "3", title: "Momentum", text: "…", done: false },

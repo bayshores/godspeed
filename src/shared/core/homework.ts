@@ -3,19 +3,20 @@
  * lesson with hints only. The agent posts the problems (post_problems), opens
  * one (problem) and marks it done when the learner's own work is right
  * (conclude). Pure and browser-safe: the server saves the list on the
- * deadline, the lesson screen folds the same calls over its messages.
+ * assignment file (on the deadline when it has none), the lesson screen
+ * folds the same calls over its messages.
  */
-import type { SpaceDeadline, HomeworkProblem } from "./contracts/space.ts";
+import type { SpaceDeadline, FileProblem } from "./contracts/space.ts";
 
 /** A problem as the agent posts it; done is the app's to keep. */
-type PostedProblem = Omit<HomeworkProblem, "done">;
+type PostedProblem = Omit<FileProblem, "done">;
 
 /** What a homework lesson shows of its deadline: its name, its problems
  *  when the page loaded and its assignment file (the path opens it on the
  *  desktop). */
 export interface HomeworkView {
 	name: string;
-	problems: HomeworkProblem[];
+	problems: FileProblem[];
 	assignment: { name: string; path: string | null } | null;
 }
 
@@ -25,7 +26,7 @@ export function hasProblems(kind: SpaceDeadline["kind"]): boolean {
 }
 
 /** The posted list, each problem keeping its done mark by number. */
-function mergeProblems(previous: readonly HomeworkProblem[], posted: readonly PostedProblem[]): HomeworkProblem[] {
+function mergeProblems(previous: readonly FileProblem[], posted: readonly PostedProblem[]): FileProblem[] {
 	const done = new Map(previous.map((p) => [p.number, p.done]));
 	return posted.map((p) => ({ ...p, done: done.get(p.number) ?? false }));
 }
@@ -43,9 +44,9 @@ type ViewMessage = { parts: ReadonlyArray<{ type: string; state?: string; input?
  *  the page loaded, then every post_problems and done mark in the messages
  *  since, the number of the problem open now and the part marked in it. */
 export function homeworkProblems(
-	initial: readonly HomeworkProblem[],
+	initial: readonly FileProblem[],
 	messages: readonly ViewMessage[],
-): { problems: HomeworkProblem[]; open: string | null; part: string | null } {
+): { problems: FileProblem[]; open: string | null; part: string | null } {
 	let problems = [...initial];
 	let open: string | null = null;
 	let part: string | null = null;

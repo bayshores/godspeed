@@ -6,7 +6,7 @@ import { useFold } from "@/frontend/components/use-fold";
 import { lazyComponent } from "@/frontend/lib/lazy-component";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { cn } from "@/frontend/lib/utils";
-import type { HomeworkProblem, LessonKind, LessonStop, PlanStepBar } from "@/shared/core";
+import type { FileProblem, LessonKind, LessonStop, PlanStepBar } from "@/shared/core";
 import { foldedLine, homeworkRow, openingLabel, rowColumns, planArrived, planBranches, planSignature, practiceRow, stepsRow, type RowBlock, type RowStep, type Tone } from "./plan-row-model";
 import type { PracticeProgress } from "./practice-progress";
 
@@ -58,7 +58,7 @@ export const PlanRow = memo(function PlanRow({
 	/** The lesson's stop: the row stays on a topic that just ended. */
 	stop: LessonStop | null;
 	/** `blocked`: why no problem can open yet. */
-	homework: { problems: readonly HomeworkProblem[]; open: string | null; blocked: string | null } | null;
+	homework: { problems: readonly FileProblem[]; open: string | null; blocked: string | null } | null;
 	practice: PracticeProgress | null;
 	onJump: (toolCallId: string) => void;
 	/** A problem picked (its number), or null for the open one: go to the work. */

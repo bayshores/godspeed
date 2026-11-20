@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 import { useNavigate, useSearchParams } from "react-router";
-import { lessonStop, type HomeworkProblem, type LessonKind, type LhMessage, type PlanTree } from "@/shared/core";
+import { lessonStop, type FileProblem, type LessonKind, type LhMessage, type PlanTree } from "@/shared/core";
 import { highlight, isInView } from "@/frontend/components/teacher/dom";
 import { useStableValue } from "@/frontend/lib/use-stable-value";
 import { stopLightSelector } from "./lesson-stop-model";
@@ -28,7 +28,7 @@ export function useLessonStop({
 	kind: LessonKind;
 	tree: PlanTree | null;
 	/** A homework lesson's problems. */
-	problems: readonly HomeworkProblem[] | null;
+	problems: readonly FileProblem[] | null;
 	deadlineId: string | undefined;
 	scopeRef: React.RefObject<HTMLElement | null>;
 	scrollContextRef: React.RefObject<StickToBottomContext | null>;

@@ -553,7 +553,7 @@ mod tests {
 		let app = test_app(&root);
 		let space_id = app.stores.spaces.create_space(&json!({ "name": "Algorithms" })).unwrap()["id"].str_or_empty().to_owned();
 		let deadline_id = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "HW6", "kind": "homework", "date": "2099-01-15" })).unwrap()["id"].str_or_empty().to_owned();
-		let problems = super::super::homework::homework_deadline(&app, &space_id, &deadline_id);
+		let problems = super::super::homework::deadline_problem_list(&app, &space_id, &deadline_id);
 		assert_eq!(problems.post(&[json!({ "number": "2b", "title": "Sums", "text": "Sum 1 to n." })]), None);
 		problems.mark_done("2b");
 		let chat_id = app.stores.chats.create_chat("HW6", Some("homework"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned();

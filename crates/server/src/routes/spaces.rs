@@ -11,6 +11,7 @@ use axum::response::Response;
 use gs_base::{clock, text};
 use gs_core::contracts::space::{FILE_KIND_PROBLEM, SIGNATURE_MAX, clean_signature, is_space_color, is_space_icon, is_space_id};
 use gs_core::spaces::file_state::FileKind;
+use gs_core::spaces::problem_list::with_problem_lists;
 use gs_core::spaces::today_note::local_day;
 use gs_json::{Json, Obj, json};
 use gs_services::App;
@@ -97,7 +98,7 @@ async fn read(State(app): State<Arc<App>>, Path(id): Path<String>, uri: Uri) -> 
 	}
 	let Some(record) = app.stores.spaces.get_space(&id) else { return reply::no_such_space() };
 	let shortcuts = space_shortcut_dir(&app, &id).map_or(Json::Null, Json::from);
-	reply::json(200, &json!({ "space": record, "folder": folder_status_of(&app, &id), "shortcuts": shortcuts }))
+	reply::json(200, &json!({ "space": with_problem_lists(&record), "folder": folder_status_of(&app, &id), "shortcuts": shortcuts }))
 }
 
 /// PUT /api/spaces/{id} { name?, description?, closed?, signature?, icon?, color?, rules? } (a

@@ -5,6 +5,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use gs_base::{clock, time};
+use gs_core::spaces::problem_list::with_problem_lists;
 use gs_core::spaces::today_note::local_day;
 use gs_core::graph::graph::get_graph;
 use gs_core::session::plan_step_bar::{current_step_title, plan_position_lh};
@@ -233,7 +234,7 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 		"chains": graph.chains,
 		"topics": topics,
 		"files": progress_files(record.as_ref()),
-		"deadlines": record.as_ref().map_or_else(|| json!([]), |r| r["deadlines"].as_arr().map_or_else(|| json!([]), |d| Json::Arr(d.clone()))),
+		"deadlines": record.as_ref().map_or_else(|| json!([]), |r| with_problem_lists(r)["deadlines"].as_arr().map_or_else(|| json!([]), |d| Json::Arr(d.clone()))),
 		"lessons": lessons,
 		"deadlineSessions": deadline_sessions,
 		"homeworkSessions": homework_sessions,

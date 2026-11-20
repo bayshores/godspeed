@@ -141,8 +141,9 @@ export interface SpaceDeadline {
 	source?: string;
 	/** The assignment itself (homework, project): the space file it is in. */
 	assignmentFileId?: string;
-	/** The assignment's problems, as the agent read them from its file. */
-	problems?: HomeworkProblem[];
+	/** The assignment's problems, as the agent read them from its file.
+	 *  The server keeps them on the assignment file and fills this in. */
+	problems?: FileProblem[];
 	/** What it is like ("What it's like.md", written by the teacher): the
 	 *  space info file it is in. */
 	aboutFileId?: string;
@@ -151,10 +152,10 @@ export interface SpaceDeadline {
 	doneAt?: string;
 }
 
-/** One problem of an assignment. The learner works on it in a homework
+/** One numbered problem of a file. The learner works on it in a homework
  *  session; it is done once the teacher marks the learner's work right. */
-export interface HomeworkProblem {
-	/** As the assignment numbers it ("Q1", "2b"); unique in its deadline. */
+export interface FileProblem {
+	/** As the file numbers it ("Q1", "2b"); unique in its list. */
 	number: string;
 	/** A few words: "Largest step that converges". */
 	title: string;

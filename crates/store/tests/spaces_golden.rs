@@ -154,6 +154,7 @@ fn the_scenario_matches_node() {
 			"saveFiles" => other(store.save_files(id, step["files"].as_arr().unwrap().clone(), step["removed"].items())),
 			"add" => outcome(store.add_deadline(id, &step["init"])),
 			"updateDeadline" => outcome(store.update_deadline(id, s(&step["deadline"]), &step["patch"])),
+			"saveProblems" => outcome(store.save_problems(id, s(&step["deadline"]), &step["problems"]).map(|()| Json::Null)),
 			"removeDeadline" => other(store.remove_deadline(id, s(&step["deadline"])).map(Json::Bool)),
 			"delete" => other(store.delete_space(id).map(Json::Bool)),
 			"closeWork" => other(store.close_work(id).map(Json::Bool)),

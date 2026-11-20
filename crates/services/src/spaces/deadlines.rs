@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use gs_base::{locale, time};
 use gs_core::contracts::space::compare_deadlines;
+use gs_core::spaces::problem_list::with_problem_lists;
 use gs_core::spaces::today_note::local_day;
 use gs_json::{Json, json};
 use gs_store::spaces::SpaceError;
@@ -24,6 +25,7 @@ fn deadline_failure(err: SpaceError) -> SpaceFailure {
 
 pub fn list_space_deadlines(app: &App, space_id: &str) -> SpaceOutcome<Json> {
 	let Some(record) = app.stores.spaces.get_space(space_id) else { return no_space() };
+	let record = with_problem_lists(&record);
 	Ok(if record["deadlines"].is_null() { json!([]) } else { record["deadlines"].clone() })
 }
 
@@ -34,6 +36,14 @@ pub fn add_space_deadline(app: &App, space_id: &str, init: &Json) -> SpaceOutcom
 		return no_space();
 	}
 	app.stores.spaces.add_deadline(space_id, init).map_err(deadline_failure)
+}
+
+/// Saves a deadline's problem list where it lives (`problem_list`).
+pub fn save_deadline_problems(app: &App, space_id: &str, deadline_id: &str, problems: &Json) -> SpaceOutcome<()> {
+	if app.stores.spaces.get_space(space_id).is_none() {
+		return no_space();
+	}
+	app.stores.spaces.save_problems(space_id, deadline_id, problems).map_err(deadline_failure)
 }
 
 pub fn update_space_deadline(app: &Arc<App>, space_id: &str, deadline_id: &str, patch: &Json) -> SpaceOutcome<Json> {
@@ -76,6 +86,7 @@ fn deadlines_where(app: &App, keep: impl Fn(&Json) -> bool) -> Vec<Json> {
 		if record["closed"].truthy() {
 			continue;
 		}
+		let record = with_problem_lists(&record);
 		for d in record["deadlines"].items().iter() {
 			if !keep(d) {
 				continue;
@@ -107,6 +118,7 @@ pub fn list_deadlines_done_on(app: &App, day: &str) -> Vec<Json> {
 /// A deadline with its space (deadline ids are unique across spaces): `{ spaceId, deadline }`.
 pub fn deadline_with_space(app: &App, deadline_id: &str) -> Option<Json> {
 	app.stores.spaces.list_space_records().into_iter().find_map(|record| {
+		let record = with_problem_lists(&record);
 		let deadline = record["deadlines"].as_arr()?.iter().find(|d| d["id"].as_str() == Some(deadline_id))?;
 		Some(json!({ "spaceId": record["id"], "deadline": deadline }))
 	})

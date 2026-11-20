@@ -22,6 +22,7 @@ pub mod deadline_requests;
 pub mod check_lines;
 pub mod space_deadlines;
 pub mod prep_upgrade;
+pub mod problem_list;
 pub mod space_path;
 pub mod space_record;
 pub mod space_work;

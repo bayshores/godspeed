@@ -10,15 +10,16 @@ use gs_json::{Json, json};
 pub const SPEECH_TOOL_INSTALL: &str = "brew install whisper-cpp ffmpeg";
 /// The most files a linked folder may hold before the scan stops.
 pub const MAX_LINKED_FILES: usize = 500;
-pub const MAX_HOMEWORK_PROBLEMS: usize = 60;
+/// The most problems one file's list holds.
+pub const MAX_FILE_PROBLEMS: usize = 60;
 /// Longest signature, in characters.
 pub const SIGNATURE_MAX: usize = 60;
 /// Longest space note, in characters.
 pub const NOTE_MAX: usize = 280;
 /// v9: the record file is space.json (class.json before). v10: adds `prep`. v11: the "interview"
 /// kind, a deadline's `aboutFileId` and the space's `waitingDeadline`; `prep` is upgraded away.
-/// v12: the space's `path`.
-pub const CURRENT_SPACE_VERSION: i64 = 12;
+/// v12: the space's `path`. v13: a homework's problem list lives on its assignment file.
+pub const CURRENT_SPACE_VERSION: i64 = 13;
 /// The most topics a path holds.
 pub const MAX_PATH_TOPICS: usize = 40;
 /// Longest path goal, in characters (it follows "Path to").

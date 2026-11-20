@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { foldedLine, homeworkRow, homeworkStartLabel, jumpTarget, openingLabel, planArrived, planBranches, planSignature, practiceRow, rightCountLabel, rowColumns, startProblemLabel, stepsRow } from "../../src/frontend/components/lesson/plan-row-model.ts";
-import type { HomeworkProblem, LessonStop, PlanStepBar } from "../../src/shared/core/index.ts";
+import type { FileProblem, LessonStop, PlanStepBar } from "../../src/shared/core/index.ts";
 
 const bar: PlanStepBar = {
 	currentIndex: 1,
@@ -44,7 +44,7 @@ describe("the plan row's logic", () => {
 	});
 
 	it("a homework row: every problem by its own number, each one a pick that says what it does", () => {
-		const problems: HomeworkProblem[] = [
+		const problems: FileProblem[] = [
 			{ number: "1", title: "Gradient", text: "", done: true },
 			{ number: "2b", title: "Step size", text: "", done: false },
 			{ number: "Ex. 4", title: "Momentum", text: "", done: false },
@@ -61,7 +61,7 @@ describe("the plan row's logic", () => {
 	});
 
 	it("while no problem can open, every other cell says why, on hover too", () => {
-		const problems: HomeworkProblem[] = [
+		const problems: FileProblem[] = [
 			{ number: "1", title: "Gradient", text: "", done: true },
 			{ number: "2", title: "Step size", text: "", done: false },
 		];
@@ -81,7 +81,7 @@ describe("the plan row's logic", () => {
 	});
 
 	it("the homework go-ahead names the first problem not done, as the assignment numbers it", () => {
-		const problem = (number: string, done: boolean): HomeworkProblem => ({ number, title: "", text: "", done });
+		const problem = (number: string, done: boolean): FileProblem => ({ number, title: "", text: "", done });
 		assert.equal(homeworkStartLabel([problem("1", true), problem("2", false), problem("3", false)]), "Start problem 2");
 		assert.equal(homeworkStartLabel([problem("1", true), problem("Ex. 4", false)]), "Start Ex. 4");
 		assert.equal(homeworkStartLabel([problem("1", true), problem("2", true)]), null);
@@ -115,7 +115,7 @@ describe("the plan row at a stop", () => {
 });
 
 describe("foldedLine", () => {
-	const problems: HomeworkProblem[] = [
+	const problems: FileProblem[] = [
 		{ number: "1", title: "Gradient", text: "…", done: true },
 		{ number: "2a", title: "Step size", text: "…", done: false },
 		{ number: "2b", title: "2b", text: "…", done: false },

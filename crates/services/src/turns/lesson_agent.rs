@@ -30,7 +30,7 @@ use gs_engine::turn::faux::Engine;
 use gs_json::{Json, json};
 
 use super::chat_handler::send_first_message;
-use super::homework::homework_deadline;
+use super::homework::deadline_problem_list;
 use super::job_host::run_job;
 use super::problem_pages::problem_pages;
 use crate::App;
@@ -167,7 +167,7 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 			create_practice_agent(&ctx, opts)
 		}
 		(Some("homework"), Some(space_id), Some(deadline_id)) if !space_id.is_empty() && !deadline_id.is_empty() => {
-			let ctx = HomeworkToolContext { chat_id, chat_store: chats, homework: homework_deadline(app, space_id, deadline_id), jobs: Some(jobs), side, pages: problem_pages(app, Some(space_id), Some(deadline_id)) };
+			let ctx = HomeworkToolContext { chat_id, chat_store: chats, homework: deadline_problem_list(app, space_id, deadline_id), jobs: Some(jobs), side, pages: problem_pages(app, Some(space_id), Some(deadline_id)) };
 			create_homework_agent(&ctx, opts)
 		}
 		(Some("study"), ..) => {

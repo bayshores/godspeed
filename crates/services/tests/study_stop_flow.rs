@@ -285,7 +285,7 @@ async fn a_homework_problem_of_25_active_minutes_names_the_next_problem() {
 	let space_id = app.stores.spaces.create_space(&json!({ "name": "Machine Learning Foundations" })).unwrap()["id"].as_str().unwrap().to_owned();
 	let deadline_id = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "Homework 3", "kind": "homework", "date": "2099-01-20" })).unwrap()["id"].as_str().unwrap().to_owned();
 	let problems = json!([{ "number": "1", "text": "Fit ridge regression for three values of lambda." }, { "number": "2", "text": "Pick lambda by 5-fold cross-validation." }]);
-	app.stores.spaces.update_deadline(&space_id, &deadline_id, &json!({ "problems": problems })).unwrap();
+	app.stores.spaces.save_problems(&space_id, &deadline_id, &problems).unwrap();
 	let created = create_homework(app, &space_id, &deadline_id).unwrap().unwrap();
 	let chat_id = created.chat["id"].as_str().unwrap().to_owned();
 	send(app, &chat_id, text("Let's start.")).await;
