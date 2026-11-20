@@ -106,7 +106,7 @@ describe("a page's words in the top bar", () => {
 		assert.ok(word.closest("[data-testid='app-bar']"), "in the bar");
 		assert.equal(word.parentElement?.getAttribute("data-testid"), "bar-actions");
 		assert.ok(!document.querySelector("main [data-testid='page-word']"), "not on the page");
-		const bar = [...q("app-bar")!.children].map((el) => el.getAttribute("data-testid"));
+		const bar = [...q("app-bar")!.querySelectorAll("[data-testid]")].map((el) => el.getAttribute("data-testid"));
 		assert.ok(bar.indexOf("bar-actions") > bar.indexOf("space-tabs") && bar.indexOf("bar-actions") < bar.indexOf("app-menu"));
 	});
 

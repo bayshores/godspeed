@@ -52,7 +52,7 @@ export function BarFind({
 		);
 	}
 	return (
-		<div role="search" aria-label={label} data-testid={testIds.field} onKeyDown={onKeyDown} className="flex items-center pl-1.5">
+		<div role="search" aria-label={label} data-testid={testIds.field} onKeyDown={onKeyDown} className="flex min-w-0 items-center pl-1.5">
 			<input
 				ref={inputRef}
 				aria-label={label}
@@ -60,7 +60,7 @@ export function BarFind({
 				value={query}
 				onChange={(event) => onQuery(event.target.value)}
 				spellCheck={false}
-				className="h-[30px] w-[220px] rounded-[2px] bg-bar-ink/10 px-3 text-[15px] text-bar-ink outline-none placeholder:text-bar-ink/60"
+				className="h-[30px] w-[220px] min-w-[8ch] shrink rounded-[2px] bg-bar-ink/10 px-3 text-[15px] text-bar-ink outline-none placeholder:text-bar-ink/60"
 			/>
 			{count !== undefined && (
 				<output aria-live="polite" data-testid={`${testIds.field}-count`} className="font-count min-w-[7ch] px-3 text-[15px] whitespace-nowrap">

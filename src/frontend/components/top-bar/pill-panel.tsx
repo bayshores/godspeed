@@ -60,15 +60,8 @@ export function PillPanel({ children }: { children: ReactNode }) {
 			);
 		};
 		place();
-		// The bar gains a line when a page puts its words in it in a narrow window; the line is padding.
-		const bar = visiblePill()?.closest(BARS);
-		const grown = new ResizeObserver(place);
-		if (bar) grown.observe(bar, { box: "border-box" });
 		window.addEventListener("resize", place);
-		return () => {
-			grown.disconnect();
-			window.removeEventListener("resize", place);
-		};
+		return () => window.removeEventListener("resize", place);
 	}, [up, pathname]);
 	return (
 		<div

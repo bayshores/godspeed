@@ -12,7 +12,7 @@ export const barWord = (on: boolean) =>
 	`lh-press flex h-12 shrink-0 items-center gap-2 px-3 text-[15px] whitespace-nowrap disabled:pointer-events-none disabled:opacity-50 ${on ? BAR_WORD_ON : "text-bar-ink hover:bg-bar-ink/10"}`;
 
 /** What a pop-up hangs from, the nearest around its word: the page's words in the app's top bar
- *  (a line of their own in a narrow window), the app's top bar, or a page's own bar. */
+ *  (on the bar's top line in a narrow window), the app's top bar, or a page's own bar. */
 export const BARS = ".lh-bar-actions, .lh-app-bar, .lh-own-bar";
 
 /** One entry of a top bar menu. */

@@ -9,10 +9,10 @@ export function barBottom(): number {
 	return bottom;
 }
 
-/** Has `observer` see the top bar and the page's words in it change size: a page putting its words
- *  in the bar can give it a second line, or move them, with no window resize. */
+/** Has `observer` see the top bar and the page's words in it change size: a page's words come,
+ *  go and change with no window resize. */
 export function observeBar(observer: ResizeObserver): void {
-	// The second line is padding, so only the border box grows.
+	// The bar's second line, in a narrow window, is padding: only the border box grows.
 	for (const bar of document.querySelectorAll(BARS)) observer.observe(bar, { box: "border-box" });
 }
 

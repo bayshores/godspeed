@@ -43,7 +43,7 @@
    at least 4.5:1. Interface and reading text are Literata, dates and
    counts DotGothic16. */
 :root {
-	/* The top bar's height: two lines in a narrow window while a page has words in it (see .lh-bar-actions). */
+	/* The top bar's height: two lines in a narrow window (see .lh-bar-top). */
 	--lh-bar-h: 3rem;
 	/* The widest every page's column gets, the lesson page's included, and its sides: 32px, or
 	   24px when the page's room (the window less the teacher's docked panel) is under 900. The
@@ -1021,8 +1021,11 @@ body {
 .lh-desktop {
 	--lh-zoom: 1;
 }
+.lh-desktop[data-lh-platform="darwin"] {
+	--lh-lights: calc(92px / var(--lh-zoom));
+}
 .lh-desktop[data-lh-platform="darwin"] .lh-lights-gutter {
-	padding-left: calc(92px / var(--lh-zoom));
+	padding-left: var(--lh-lights);
 }
 .lh-desktop .lh-wco-gutter {
 	padding-right: 0.75rem;
@@ -1045,25 +1048,40 @@ body:has(.lh-own-bar) .lh-app-bar {
 	}
 }
 
-/* A page's own words in the top bar (bar-slots.tsx). As the bar narrows,
-   the pill's words go first, then the unlit tabs' names down to a few
-   letters, and then those tabs scroll (space-tabs.tsx). Below 1100 the
-   words take a line of their own above the bar's, at its right end. The
-   date and the clock never leave for them: the bar's own line looks
-   the same on every page. */
+/* The date, a page's own words (bar-slots.tsx) and the clock. On one
+   line the three sit in the bar itself: the date first, the words after
+   the pill, the clock after Menu. As the bar narrows, the pill's words go
+   first, then the unlit tabs' names down to a few letters, and then those
+   tabs scroll (space-tabs.tsx). */
+.lh-bar-top {
+	display: contents;
+}
+/* Below 1100 one line cannot hold it all, so the bar is two lines on every
+   page: these three above the tabs, the pill and Menu. No page changes the
+   bar's height. */
 @media (max-width: 1099px) {
-	:root:has(.lh-app-bar .lh-bar-actions > *) {
+	:root:has(.lh-app-bar):not(:has(.lh-own-bar)) {
 		--lh-bar-h: 6rem;
 	}
-	.lh-app-bar:has(.lh-bar-actions > *) {
+	.lh-app-bar {
 		position: relative;
 		padding-top: 3rem;
 	}
-	.lh-bar-actions:not(:empty) {
+	.lh-bar-top {
 		position: absolute;
 		top: 0;
 		right: 0;
+		left: var(--lh-lights, 0px);
+		display: flex;
 		height: 3rem;
+	}
+	.lh-desktop .lh-bar-top {
+		right: 0.75rem;
+	}
+	.lh-bar-actions {
+		flex-shrink: 1;
+		min-width: 0;
+		margin-left: auto;
 	}
 }
 
