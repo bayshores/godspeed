@@ -1546,6 +1546,7 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 
 /* A page's own words in the top bar (bar-slots.tsx) fade in with the page. */
 .lh-bar-actions > *,
+.lh-bar-zoom,
 [data-testid="bar-crumb"] > * {
 	animation: lh-fade-in var(--lh-dur) var(--lh-ease-out) both;
 }
@@ -1644,6 +1645,7 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 
 @media (prefers-reduced-motion: reduce) {
 	.lh-bar-actions > *,
+	.lh-bar-zoom,
 	[data-testid="bar-crumb"] > *,
 	.lh-pop,
 	.lh-dialog,

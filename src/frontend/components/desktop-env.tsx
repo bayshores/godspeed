@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type { UpdateState } from "@/frontend/components/settings/update-settings.tsx";
 import type { FolderAgent } from "@/shared/core";
 import type { TerminalRecord, TerminalRole } from "@/frontend/components/terminal/terminal-model";
+import { useZoom } from "@/frontend/components/use-zoom";
 
 declare global {
 	interface Window {
@@ -98,11 +99,10 @@ export function DesktopEnv() {
 			document.documentElement.classList.add("lh-desktop");
 			document.documentElement.dataset.lhPlatform = window.lh.platform ?? "";
 		}
-		const setZoomVar = (factor: number) => document.documentElement.style.setProperty("--lh-zoom", String(factor));
-		const off = window.lh?.onZoom?.(setZoomVar);
-		// The first paint can beat the first push.
-		void window.lh?.getZoom?.().then(setZoomVar);
-		return off;
 	}, []);
+	const zoom = useZoom();
+	useEffect(() => {
+		document.documentElement.style.setProperty("--lh-zoom", String(zoom));
+	}, [zoom]);
 	return null;
 }

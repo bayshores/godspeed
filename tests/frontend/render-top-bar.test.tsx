@@ -50,6 +50,7 @@ Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
 const { createRoot } = await import("react-dom/client");
 const { SpaceTabs } = await import("../../src/frontend/components/top-bar/space-tabs.tsx");
 const { AppMenu } = await import("../../src/frontend/components/top-bar/app-menu.tsx");
+const { BarZoom } = await import("../../src/frontend/components/top-bar/bar-zoom.tsx");
 const { SearchLessons } = await import("../../src/frontend/components/search-lessons.tsx");
 const { SpaceHead } = await import("../../src/frontend/components/space-page/space-head.tsx");
 const { HeadSignature } = await import("../../src/frontend/components/space-page/head-signature.tsx");
@@ -210,6 +211,43 @@ describe("Menu", () => {
 		assert.equal(q("menu-search-lessons")!.getAttribute("aria-keyshortcuts"), ariaKey("sessions-search"));
 		assert.equal(q("settings-entry")!.getAttribute("aria-keyshortcuts"), ariaKey("open-settings"));
 		assert.equal(q("settings-entry")!.getAttribute("href"), "/settings");
+	});
+});
+
+describe("the app's size in the bar", () => {
+	const lhWindow = window as unknown as { lh?: object };
+	afterEach(() => {
+		delete lhWindow.lh;
+	});
+
+	it("shows while the app is not at 100%, follows the shell, and a click puts it back", async () => {
+		const set: number[] = [];
+		let push: (factor: number) => void = () => {};
+		lhWindow.lh = {
+			getZoom: async () => 1.25,
+			onZoom: (cb: (factor: number) => void) => ((push = cb), () => {}),
+			setZoom: async (factor: number) => void set.push(factor),
+		};
+		await mount(<BarZoom />);
+		assert.equal(q("bar-zoom")!.textContent, "125%");
+		assert.equal(q("bar-zoom")!.getAttribute("aria-label"), "Text size 125%, back to 100%");
+		act(() => push(1.5));
+		assert.equal(q("bar-zoom")!.textContent, "150%");
+		act(() => q("bar-zoom")!.click());
+		assert.deepEqual(set, [1]);
+		act(() => push(1));
+		assert.equal(q("bar-zoom"), null);
+	});
+
+	it("shows nothing at 100%", async () => {
+		lhWindow.lh = { getZoom: async () => 1, onZoom: () => () => {} };
+		await mount(<BarZoom />);
+		assert.equal(q("bar-zoom"), null);
+	});
+
+	it("shows nothing in a browser", async () => {
+		await mount(<BarZoom />);
+		assert.equal(q("bar-zoom"), null);
 	});
 });
 

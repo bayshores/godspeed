@@ -1,8 +1,8 @@
 /**
  * THE TOP BAR, one for the whole window. From the left it holds the
  * date, Home, a tab per open space and the + (add a space, reopen a
- * closed one), the page's own words (bar-slots.tsx), Menu and the
- * clock. The teacher has no place in it: the strip down the window's
+ * closed one), the page's own words (bar-slots.tsx), the app's size
+ * while it is not 100%, Menu and the clock. The teacher has no place in it: the strip down the window's
  * right edge is the teacher's (strip/strip.tsx). In a
  * window too narrow for one line it is two lines on every page: the
  * date, the page's words and the clock above the rest (globals.css).
@@ -17,6 +17,7 @@ import { useLocation } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useMinute } from "@/frontend/components/countdown";
 import { AppMenu } from "@/frontend/components/top-bar/app-menu";
+import { BarZoom } from "@/frontend/components/top-bar/bar-zoom";
 import { SpaceTabs } from "@/frontend/components/top-bar/space-tabs";
 import { useBarHosts } from "@/frontend/components/top-bar/bar-slots";
 import { clockText, dateText, selectedTab } from "@/frontend/components/top-bar/top-bar-model";
@@ -35,6 +36,7 @@ export function AppBar() {
 				<div ref={actionsRef} data-testid="bar-actions" className="lh-bar-actions flex shrink-0 items-center" />
 				<Clock />
 			</div>
+			<BarZoom />
 			<AppMenu lit={selected === "menu"} />
 		</header>
 	);

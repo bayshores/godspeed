@@ -43,6 +43,7 @@ Ladder: `[0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]`. Applying a factor sets the we
   - Wheels less than 100 ms apart are one run, and the keys at its start decide for all of it, so a key pressed while a scroll coasts does not zoom.
   - A view that zooms itself (the graph, a cheat sheet, a diagram or plan in focus) takes its wheel with `ownWheel` in `src/frontend/lib/own-wheel.ts`, which marks it `data-lh-own-zoom`. The shim leaves a wheel or pinch over that mark alone.
   - A wheel inside a demo or plugin frame never reaches the shim. Linux's web view keeps a pinch to itself.
+- While the factor is not 1 the top bar shows it ("125%", `BarZoom` in `src/frontend/components/top-bar/bar-zoom.tsx`); a click calls `set_zoom` with 1. The page reads the factor through `useZoom` (`src/frontend/components/use-zoom.ts`) only.
 - Settings > Appearance "Text size" is a slider over the ladder. It calls `set_zoom` and follows every `zoom` push, so the keys and the menu move it too. The browser build has no slider.
 - The shim saves each pushed factor in `localStorage["lh-zoom"]` and calls `set_zoom` with it at document start.
 

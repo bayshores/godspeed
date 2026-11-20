@@ -10,6 +10,7 @@ import type { AppearanceSettings } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { inTerminal } from "@/frontend/components/focus-hygiene";
 import { cn } from "@/frontend/lib/utils";
+import { useZoom } from "@/frontend/components/use-zoom";
 import { APP_ICONS, BACKGROUND_PRESETS, GRAPHITE, appearanceToWrite, derivedPalette, readableBackground } from "./appearance-model.ts";
 import { DEFAULT_READING_FONT, FontMenuList } from "./font-menu";
 import { Slider } from "./controls.tsx";
@@ -117,11 +118,7 @@ export function AppearanceSection({
 
 /** The app's zoom on its ladder; it follows ⌘+ and ⌘− too. */
 function TextSize() {
-	const [factor, setFactor] = useState(1);
-	useEffect(() => {
-		void window.lh?.getZoom?.().then(setFactor);
-		return window.lh?.onZoom?.(setFactor);
-	}, []);
+	const factor = useZoom();
 	return (
 		<Slider
 			value={zoomIndex(factor)}
