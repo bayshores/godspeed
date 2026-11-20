@@ -9,15 +9,16 @@
 <p align="center"><b>godspeed is in alpha. Things change fast between updates.</b></p>
 
 <p align="center">
-  <a href="https://github.com/bayshores/godspeed/releases/latest/download/godspeed-mac-apple-silicon.dmg"><img src="https://img.shields.io/badge/Mac_(Apple_chip)-c9c6bb?style=for-the-badge" alt="Download for Mac with an Apple chip"></a>
-  <a href="https://github.com/bayshores/godspeed/releases/latest/download/godspeed-mac-intel.dmg"><img src="https://img.shields.io/badge/Mac_(Intel)-c9c6bb?style=for-the-badge" alt="Download for Mac with an Intel chip"></a>
-  <a href="https://github.com/bayshores/godspeed/releases/latest/download/godspeed-windows-x64-setup.exe"><img src="https://img.shields.io/badge/Windows-c9c6bb?style=for-the-badge" alt="Download for Windows"></a>
-  <a href="https://github.com/bayshores/godspeed/releases/latest/download/godspeed-linux-x64.AppImage"><img src="https://img.shields.io/badge/Linux-c9c6bb?style=for-the-badge" alt="Download for Linux"></a>
+  <a href="https://github.com/bayshores/godspeed/releases/latest/download/godspeed-mac-apple-silicon.dmg"><img src="https://img.shields.io/badge/Mac_(Apple_chip)-2a2a2a?style=for-the-badge" alt="Download for Mac with an Apple chip"></a>
+  <a href="https://github.com/bayshores/godspeed/releases/latest/download/godspeed-mac-intel.dmg"><img src="https://img.shields.io/badge/Mac_(Intel)-2a2a2a?style=for-the-badge" alt="Download for Mac with an Intel chip"></a>
+  <a href="https://github.com/bayshores/godspeed/releases/latest/download/godspeed-windows-x64-setup.exe"><img src="https://img.shields.io/badge/Windows-2a2a2a?style=for-the-badge" alt="Download for Windows"></a>
+  <a href="https://github.com/bayshores/godspeed/releases/latest/download/godspeed-linux-x64.AppImage"><img src="https://img.shields.io/badge/Linux-2a2a2a?style=for-the-badge" alt="Download for Linux"></a>
 </p>
 
 <p align="center">
   <a href="https://learnatgodspeed.com/">Website</a>&emsp;
   <a href="#how-it-works">How it works</a>&emsp;
+  <a href="#where-it-came-from">Where it came from</a>&emsp;
   <a href="#get-started">Get started</a>&emsp;
   <a href="docs/development.md">Docs</a>&emsp;
   <a href="https://github.com/bayshores/godspeed/issues">Issues</a>
@@ -31,10 +32,23 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/lesson.gif" alt="One topic of a godspeed lesson: Home says what to study next, the teacher reads the lecture notes, explains and quotes them, a question is answered right, a sentence is kept, and the lesson stops at the end of the topic and goes back to Home" width="1000">
+  <img src="docs/assets/lesson.gif" alt="One topic of a godspeed lesson: a deadline is picked on Home, the teacher reads the lecture notes, quotes them and draws a plot, a guess on the plot is checked, a question is answered right, and the lesson stops at the end of the topic and goes back to Home" width="1000">
 </p>
 
 <p align="center"><sub>Recorded in the app on a made-up machine learning space. The teacher's replies are scripted, so a live agent takes longer to answer.</sub></p>
+
+## What a lesson looks like
+
+The GIF up top is one topic of a lesson, and it goes like this.
+
+1. Home shows what's due, and you pick a deadline and hit Continue.
+2. While the teacher gets ready you can watch its plan and the page of your lecture it's reading.
+3. It explains a step at a time, quotes your own lecture and draws a plot when one helps.
+4. You guess before you're told and say how sure you are, and the plot shows you what really happens.
+5. Then it checks that you got it with a question you have to answer on your own.
+6. Every topic ends at a stopping point, so you can quit there and pick it back up from Home.
+
+After a right answer the teacher can give you one sentence to keep, and it shows up again later. Questions from older lessons come back when they're due too, and godspeed asks and grades those itself without calling your agent.
 
 ## Why I made it
 
@@ -42,18 +56,26 @@ I was using Claude to study for discrete math and it kept going in circles. I'd 
 
 So godspeed keeps all of that outside the chat. It saves your lessons, your answers, how sure you were on each one and a graph of what you know, and whatever agent you use (Claude Code, Codex or anything else with MCP) teaches from that.
 
-## What a lesson looks like
+## Where it came from
 
-The GIF up top is one topic of a lesson, and it goes like this.
+godspeed is a fork of [LearnHarness](https://github.com/amosblomqvist/learnharness) by Amos Blomqvist, and the way it teaches comes from there. Working out where your understanding stops, building up from that one step at a time and saving what you learn as a graph were all in LearnHarness before I touched anything.
 
-1. Home tells you what to study next, and one button starts it.
-2. While the teacher gets ready you can watch its plan and the page of your lecture it's reading.
-3. It explains a step at a time and quotes your own lecture.
-4. You answer and say how sure you are.
-5. If you get it right the teacher can give you one sentence to keep, and it shows up again later.
-6. Every topic ends at a stopping point, so you can quit there and pick it back up from Home.
+I forked it in late October because I couldn't hook it up to the Claude plan I was already paying for, and I didn't want to buy API credits on top of that. So the first thing I changed was who does the teaching. godspeed has no model built in, and the agent you already use connects to it over MCP and teaches from there.
 
-Questions from older lessons come back when they're due, and godspeed asks and grades those itself without calling your agent.
+After that I kept changing it to fit how I actually study, and about 1,500 commits later it's pretty much its own app. Spaces, files, deadlines, homework, mocks, cheat sheets, paths, plugins, the calculator and the look all got added here.
+
+### The Rust rewrite
+
+LearnHarness is an Electron app with a Next.js server, and godspeed was too until version 0.6.1. That's when I moved everything under the screens to Rust and swapped Electron for Tauri, and the React screens stayed the same.
+
+| | Before | After |
+| --- | --- | --- |
+| Mac download | 202 MB | 49 MB |
+| Windows download | 210 MB | 40 MB |
+| Linux AppImage | 429 MB | 127 MB |
+| Server memory when idle | 71 MB | about 10 MB |
+
+It isn't noticeably faster to use, it's just a lot smaller and lighter on your computer.
 
 ## What's in it
 
@@ -71,6 +93,25 @@ Questions from older lessons come back when they're due, and godspeed asks and g
 | Plugins | Small add-ons for a lesson or a space, like one that turns the question you're on into a meme. A plugin can't open your files. Add one in Settings or [make your own](docs/plugins.md). They're new, so how they work can still change. |
 | Calculator | End a calculation with `=` in any box and the answer shows up in grey. It does algebra, derivatives and integrals too. |
 | Your agent's screen | Click your teacher's name in the top bar to open it. You can ask your agent to set up spaces or add deadlines there. |
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/home.png" alt="Home in godspeed: the next deadline with a Continue button, the week of deadlines, an unfinished lesson and the topics to work on next"></td>
+    <td width="50%"><img src="docs/assets/progress.png" alt="Progress for a space: how ready you are for the midterm, one square for each fact, and a chart of how sure you were against how often you were right"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Home</sub></td>
+    <td align="center"><sub>Progress</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/deadline.png" alt="A deadline page: how ready you are for the exam, the files that are on it, and the topics that still need work"></td>
+    <td width="50%"><img src="docs/assets/files.png" alt="Files for a space: four lectures with how many of their facts you have studied, and the syllabus"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>A deadline</sub></td>
+    <td align="center"><sub>Files</sub></td>
+  </tr>
+</table>
 
 ## How it works
 
