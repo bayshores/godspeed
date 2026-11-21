@@ -17,7 +17,7 @@ export function NotePage({ note, obsidian, asked, landing }: { note: VaultNote; 
 	const style = landing === undefined ? undefined : ({ "--lh-block-delay": `${landing}ms` } as CSSProperties);
 	if (note.saving || !note.path) {
 		return (
-			<div data-testid="note-page" data-saving className={cn("lh-note-page lh-note-page-saving flex flex-col gap-2 p-4", enter)} style={style}>
+			<div data-testid="note-page" data-whole data-saving className={cn("lh-note-page lh-note-page-saving flex flex-col gap-2 p-4", enter)} style={style}>
 				<span className={cn("shrink-0 leading-snug break-words text-ink-2", nameSize(note.name))}>{note.name}</span>
 				<span className="sr-only">Saving</span>
 				<span aria-hidden className="absolute bottom-0 left-0 h-2 w-1/2 bg-tone-2" />
@@ -43,14 +43,14 @@ export function NotePage({ note, obsidian, asked, landing }: { note: VaultNote; 
 	const band = <span aria-hidden className="absolute inset-x-0 bottom-0 h-2" style={{ background: note.color }} />;
 	if (!canOpenNote(obsidian)) {
 		return (
-			<div data-testid="note-page" className={cn("lh-note-page flex flex-col gap-2 p-4", lit, enter)} style={style}>
+			<div data-testid="note-page" data-whole className={cn("lh-note-page flex flex-col gap-2 p-4", lit, enter)} style={style}>
 				{body}
 				{band}
 			</div>
 		);
 	}
 	return (
-		<button type="button" data-testid="note-page" title={label} onClick={() => openNote(note.path!, obsidian)} className={cn("group lh-note-page flex flex-col gap-2 p-4 text-left", lit, enter)} style={style}>
+		<button type="button" data-testid="note-page" data-whole title={label} onClick={() => openNote(note.path!, obsidian)} className={cn("group lh-note-page flex flex-col gap-2 p-4 text-left", lit, enter)} style={style}>
 			{body}
 			{band}
 		</button>

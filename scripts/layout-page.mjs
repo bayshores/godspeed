@@ -31,8 +31,9 @@
  *   window scrolls into empty page under its last sheet (a height kept from another window size).
  * - cut start: the question or problem in "Your turn" (.lh-turn-scroll) is scrolled past its
  *   first line, though the walk did not scroll that box: it opened cut.
- * - cut tail: a line marked data-whole (that the notes are saved) lies partly or wholly past the
- *   edge of a box that scrolls it, other than the page itself: it opened cut or out of sight.
+ * - cut tail: a part marked data-whole (the notes' pages and the line that they are saved) lies past
+ *   the edge of a box that scrolls it, or in the end it fades, other than the page itself: it
+ *   opened cut or faded away.
  * - broken picture: an image the page shows did not load (a file the server does not hand out
  *   as a picture, or a wrong address).
  *
@@ -605,7 +606,11 @@ function cutStarts() {
 		.map((box) => finding("cut start", [box], `${label(box)} is scrolled ${Math.round(box.scrollTop)}px past its first line`));
 }
 
-/** Cut tail: a data-whole line past the edge of a scrolling box above it, which the learner would never scroll to. */
+/** How far a scrolling box fades its cut ends (TurnScroll's mask). */
+const FADE_EDGE = 24;
+
+/** Cut tail: a data-whole line past the edge of a scrolling box above it, or in the part of an
+ *  end that box fades, where the learner sees it cut or faded away. */
 function cutTails() {
 	const found = [];
 	const main = mainScroller();
@@ -613,9 +618,14 @@ function cutTails() {
 		if (!shown(line)) continue;
 		const box = line.getBoundingClientRect();
 		for (let node = line.parentElement; node && node !== document.body; node = node.parentElement) {
-			if (!SCROLLS.includes(getComputedStyle(node).overflowY) || node === window.__layoutScrolled || node === main) continue;
+			const style = getComputedStyle(node);
+			const faded = style.maskImage && style.maskImage !== "none";
+			// The page's own scroller hides what is below the fold; a box that fades its ends is a pane, never the page.
+			if (!SCROLLS.includes(style.overflowY) || node === window.__layoutScrolled || (node === main && !faded)) continue;
 			const edge = node.getBoundingClientRect();
-			if (box.bottom > edge.bottom + 1 || box.top < edge.top - 1) {
+			const top = faded && node.scrollTop > 1 ? FADE_EDGE : 0;
+			const bottom = faded && node.scrollTop + node.clientHeight < node.scrollHeight - 1 ? FADE_EDGE : 0;
+			if (box.bottom > edge.bottom - bottom + 1 || box.top < edge.top + top - 1) {
 				found.push(finding("cut tail", [line, node], `${label(line)} is cut by the edge of ${label(node)}`));
 				break;
 			}
