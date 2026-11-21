@@ -8,14 +8,15 @@ import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
 
 import assert from "node:assert/strict";
-import { afterEach, describe, it } from "node:test";
-import { renderToStaticMarkup } from "react-dom/server";
-import { createRoot, type Root } from "react-dom/client";
+import { after, afterEach, describe, it } from "node:test";
+import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import type { DeadlineProgress, FactProgress, ProgressPayload, SpaceSummary } from "../../src/shared/core/index.ts";
 import type { OpenDeadline } from "../../src/frontend/components/deadlines-model.ts";
 
 const dom = parseHTML("<html><body></body></html>");
+// linkedom's document has no "oninput"; without it React would watch text fields by their focus.
+(dom.document as unknown as { oninput: null }).oninput = null;
 Object.assign(globalThis, {
 	window: dom.window,
 	document: dom.document,
@@ -23,6 +24,7 @@ Object.assign(globalThis, {
 	HTMLElement: dom.window.HTMLElement,
 	Node: dom.window.Node,
 	MutationObserver: dom.window.MutationObserver,
+	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
 	self: globalThis,
 	ResizeObserver: class {
@@ -32,9 +34,13 @@ Object.assign(globalThis, {
 	},
 });
 
+// react-dom reads the DOM when it loads, so it loads after the globals above.
+const { renderToStaticMarkup } = await import("react-dom/server");
+const { createRoot } = await import("react-dom/client");
 const { MemoryRouter } = await import("react-router");
 const { NextCard } = await import("../../src/frontend/components/home-page/next-card.tsx");
 const { HomeBody } = await import("../../src/frontend/components/home-page/home-body.tsx");
+const { useLessonStart } = await import("../../src/frontend/components/study-page/use-lesson-start.ts");
 const { homeLists } = await import("../../src/frontend/components/home-page/home-page-model.ts");
 const { SpaceFacts } = await import("../../src/frontend/components/overview/space-facts.tsx");
 const { OpenDeadlinesProvider, useOpenDeadlines } = await import("../../src/frontend/components/use-open-deadlines.tsx");
@@ -303,6 +309,7 @@ function page(props: Partial<React.ComponentProps<typeof HomeBody>> = {}): strin
 				onAddDeadline={() => {}}
 				onOpenSpace={() => {}}
 				onStudyTopic={() => {}}
+				onStudyTyped={() => {}}
 				{...props}
 			/>
 		</MemoryRouter>,
@@ -382,6 +389,7 @@ describe("Home, under the deadlines: Unfinished and Work on next", () => {
 					onAddDeadline={() => {}}
 					onOpenSpace={(id) => opened.push(id)}
 					onStudyTopic={(spaceId, topicId) => started.push([spaceId, topicId])}
+					onStudyTyped={() => {}}
 				/>
 			</MemoryRouter>,
 		);
@@ -507,6 +515,7 @@ describe("Picking in the week", () => {
 					onAddDeadline={() => {}}
 					onOpenSpace={() => {}}
 					onStudyTopic={() => {}}
+					onStudyTyped={() => {}}
 				/>
 			</MemoryRouter>
 		);
@@ -630,6 +639,126 @@ describe("Later, the eighth column", () => {
 	});
 });
 
+describe("Home's study line", () => {
+	const posts: Record<string, unknown>[] = [];
+	const original = globalThis.fetch;
+	afterEach(() => {
+		globalThis.fetch = original;
+		posts.length = 0;
+	});
+	after(() => {
+		Reflect.deleteProperty(globalThis, "requestAnimationFrame");
+		Reflect.deleteProperty(globalThis, "cancelAnimationFrame");
+	});
+
+	function Harness({ spaces }: { spaces: SpaceSummary[] }) {
+		const { start, busyOn } = useLessonStart();
+		return (
+			<HomeBody
+				nowMs={NOW}
+				ready
+				spaces={spaces}
+				lists={homeLists([], [], NOW)}
+				deadlineProgress={new Map()}
+				spacesProgress={new Map()}
+				noSpaceProgress={null}
+				progressErrors={new Map()}
+				newFiles={new Map()}
+				busyOn={busyOn}
+				lessonError={null}
+				onStart={() => {}}
+				onDone={() => {}}
+				onUndo={() => {}}
+				onRetry={() => {}}
+				onAddSpace={() => {}}
+				onAddDeadline={() => {}}
+				onOpenSpace={() => {}}
+				onStudyTopic={() => {}}
+				onStudyTyped={(spaceId, title) => void start({ title, spaceId })}
+			/>
+		);
+	}
+	async function line(spaces = [LA, OS]) {
+		// The chip's menu places itself on a frame.
+		Object.assign(globalThis, {
+			requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
+			cancelAnimationFrame: (id: number) => clearTimeout(id),
+		});
+		globalThis.fetch = (async (_url: RequestInfo | URL, init?: RequestInit) => {
+			if (init?.method === "POST") posts.push(JSON.parse(String(init.body)));
+			return Response.json({ id: "c1", title: "Eigenvalues" });
+		}) as typeof fetch;
+		return mount(
+			<MemoryRouter initialEntries={["/"]}>
+				<Harness spaces={spaces} />
+			</MemoryRouter>,
+		);
+	}
+	const $ = (testid: string) => document.querySelector<HTMLElement>(`[data-testid="${testid}"]`);
+	const type = (text: string) =>
+		act(async () => {
+			const input = $("home-study-input")!;
+			// linkedom gives an input no default type, so React would not see a text field.
+			Object.defineProperty(input, "type", { value: "text" });
+			Object.defineProperty(input, "value", { configurable: true, writable: true, value: text });
+			input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+		});
+	const pressEnter = () =>
+		act(async () => {
+			const e = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
+			Object.defineProperty(e, "key", { value: "Enter" });
+			$("home-study-input")!.dispatchEvent(e);
+			await new Promise((r) => setTimeout(r, 10));
+		});
+	const click = (testid: string) =>
+		act(async () => {
+			$(testid)!.click();
+			await new Promise((r) => setTimeout(r, 10));
+		});
+
+	it("Enter on a typed topic starts its lesson in the space the chip shows", async () => {
+		await line();
+		assert.ok($("home-study-space")!.textContent!.includes("Linear Algebra"), "the first open space without an active one");
+		await type("Eigenvalues");
+		await pressEnter();
+		assert.deepEqual(posts, [{ title: "Eigenvalues", spaceId: "spc_la" }]);
+	});
+
+	it("picking another space in the chip changes the space the lesson goes in", async () => {
+		await line();
+		await click("home-study-space");
+		await click("home-study-space-spc_os");
+		assert.ok($("home-study-space")!.textContent!.includes("Operating Systems"));
+		await type("Deadlock");
+		await click("home-study-start");
+		assert.deepEqual(posts, [{ title: "Deadlock", spaceId: "spc_os" }]);
+	});
+
+	it("an empty line starts nothing from the key or from Enter", async () => {
+		await line();
+		await type("   ");
+		await click("home-study-start");
+		await pressEnter();
+		assert.deepEqual(posts, []);
+	});
+
+	it("with one open space there is no chip, and the line still starts a lesson in it", async () => {
+		await line([OS]);
+		assert.ok($("home-study-space") === null);
+		await type("Deadlock");
+		await pressEnter();
+		assert.deepEqual(posts, [{ title: "Deadlock", spaceId: "spc_os" }]);
+	});
+
+	it("is drawn once the page is ready and there is a space, with its name for a screen reader", () => {
+		const html = page();
+		assert.match(tag(html, "home-study-input"), /aria-label="What do you want to study\?"/);
+		assert.match(tag(html, "home-study-input"), /placeholder="What do you want to study\?"/);
+		assert.ok(!page({ ready: false }).includes("home-study"));
+		assert.ok(!page({ spaces: [] }).includes("home-study"));
+	});
+});
+
 describe("Your spaces", () => {
 	it("one tile per space: its color square and name as its tab shows them, the topic bar with words for a screen reader, the counts, and the tile opens the space", () => {
 		const html = page();
@@ -667,6 +796,7 @@ describe("Your spaces", () => {
 					onAddDeadline={() => {}}
 					onOpenSpace={(id) => opened.push(id)}
 					onStudyTopic={() => {}}
+					onStudyTyped={() => {}}
 				/>
 			</MemoryRouter>,
 		);

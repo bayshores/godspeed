@@ -10,6 +10,7 @@ import type { SpaceFile, FileCoverage } from "../../src/shared/core/index.ts";
 import { groupFileSeries } from "../../src/shared/core/file-series.ts";
 import { fileGroups } from "../../src/shared/core/file-groups.ts";
 import {
+	askInsideLine,
 	canRemove,
 	canRetry,
 	confirmCopy,
@@ -238,5 +239,12 @@ describe("files-model", () => {
 		assert.equal(fileBrowserName("darwin"), "Finder");
 		assert.equal(fileBrowserName("win32"), "File Explorer");
 		assert.equal(fileBrowserName("linux"), "Files");
+	});
+});
+
+describe("askInsideLine", () => {
+	it("quotes the trimmed search, with line breaks and control characters made spaces", () => {
+		assert.equal(askInsideLine("  eigenvalues "), 'Find "eigenvalues" in my files');
+		assert.equal(askInsideLine("a\nb\u0007c"), 'Find "a b c" in my files');
 	});
 });

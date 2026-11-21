@@ -9,6 +9,7 @@ import { mainRowId, shownCard, type HomeLists } from "./home-page-model";
 import { NextCard } from "./next-card";
 import { SpaceList } from "./space-list";
 import { StudiedLine } from "./studied-line";
+import { StudyLine } from "./study-line";
 import { HomeNext } from "./home-next";
 import { topicsToWorkOn, unfinishedAcross } from "./home-next-model";
 
@@ -41,6 +42,8 @@ interface HomeBodyProps {
 	onOpenSpace: (spaceId: string) => void;
 	/** Starts a lesson on one topic of a space. */
 	onStudyTopic: (spaceId: string, topicId: string) => void;
+	/** Starts a lesson on a typed topic in one space. */
+	onStudyTyped: (spaceId: string, title: string) => void;
 }
 
 /**
@@ -58,13 +61,15 @@ export function HomeBody(p: HomeBodyProps) {
 	const color = (d: OpenDeadline) => p.spaces.find((s) => s.id === d.spaceId)?.color;
 	const unfinished = useMemo(() => unfinishedAcross(p.spaces, p.spacesProgress, p.noSpaceProgress), [p.spaces, p.spacesProgress, p.noSpaceProgress]);
 	const topics = useMemo(() => topicsToWorkOn(p.spaces, p.spacesProgress), [p.spaces, p.spacesProgress]);
+	const head = p.ready && p.nowMs !== null && p.spaces.length > 0 ? p.nowMs : null;
 	return (
 		<div className="@container/page lh-page flex flex-col gap-(--lh-head-gap) pt-(--lh-page-top) pb-(--lh-page-end)">
 			<header className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
 				<h1 data-testid="today-title" className="lh-page-title">
 					godspeed
 				</h1>
-				{p.ready && p.nowMs !== null && p.spaces.length > 0 && <StudiedLine progress={p.spacesProgress} noSpace={p.noSpaceProgress} nowMs={p.nowMs} />}
+				{head !== null && <StudiedLine progress={p.spacesProgress} noSpace={p.noSpaceProgress} nowMs={head} />}
+				{head !== null && <StudyLine spaces={p.spaces} busyOn={p.busyOn} onStudy={p.onStudyTyped} />}
 			</header>
 			{!p.ready || p.nowMs === null ? (
 				<LoadingBox data-testid="home-loading" className="h-[320px] bg-panel" />

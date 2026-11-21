@@ -243,13 +243,14 @@ Add these under the repository's **Settings → Secrets and variables → Action
 
 1. If the change touches `crates/shell`, the bundle config, the updater or the workflows, run the manual Desktop release workflow first.
 2. Install the Windows and Linux artifacts by hand and open them. Check window buttons and dragging, the top bar at narrow widths, zoom, onboarding and the agent connection, a lesson and resume, and a demo.
-3. Bump `package.json` and the lockfile to the release version.
-4. Add its notes to `src/shared/changelog.json`.
-5. Run `npm run check`.
-6. Push a matching `v...` tag.
-7. Wait for all four package jobs, the feeds job and the verify job. If one fails, fix the cause and rerun the workflow on the tag. The gate rejects leftover assets.
-8. The owner reads the draft, adds anything the notes still need, and publishes it.
-9. Check the real update path from an installed older version.
+3. Read the `none:` rows of `docs/features.md`, then open the Home control of each row added or changed since the last release in the real app.
+4. Bump `package.json` and the lockfile to the release version.
+5. Add its notes to `src/shared/changelog.json`.
+6. Run `npm run check`.
+7. Push a matching `v...` tag.
+8. Wait for all four package jobs, the feeds job and the verify job. If one fails, fix the cause and rerun the workflow on the tag. The gate rejects leftover assets.
+9. The owner reads the draft, adds anything the notes still need, and publishes it.
+10. Check the real update path from an installed older version.
 
 ## Electron installs
 

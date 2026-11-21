@@ -31,7 +31,7 @@ Read only the files your task touches. A "§N" in any doc is the file that start
 | [08.1.3-agent-tools-and-notes.md](08.1.3-agent-tools-and-notes.md) | You change the other agent tools, agent notes, saved rules or web search. |
 | [08.1.4-claude-codes-start.md](08.1.4-claude-codes-start.md) | You change the arguments, settings or flags every Claude Code start passes. |
 | [08.1.5-claude-codes-wake.md](08.1.5-claude-codes-wake.md) | You change how the waiter hook wakes a Claude Code session when work arrives. |
-| [08.2-plugins.md](08.2-plugins.md) | You change how the app hosts a plugin. Writing one is in [plugins.md](../plugins.md). |
+| [08.2-plugins.md](08.2-plugins.md) | You change how the app hosts a plugin. Writing one is in [plugins/README.md](../plugins/README.md). |
 | [09-invariants.md](09-invariants.md) | You want the rules that always hold and what the build enforces. |
 | [10-events-and-observability.md](10-events-and-observability.md) | You change logging, the events channel or what still polls. Also holds §10.1 to §10.5. |
 | [11-testing.md](11-testing.md) | You add a test. |

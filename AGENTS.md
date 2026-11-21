@@ -28,6 +28,7 @@ Design every feature as part of the whole app.
 - Reuse the names, controls, looks and flows the app uses for the same idea. One way per action, one home per thing.
 - A new feature that overlaps an old one: merge them or remove the old one in the same change. Two features never do the same job.
 - A plan says where the feature touches the rest of the app (Home, spaces, lessons, deadlines, the agent's pane, the agent's tools, the godspeed folder) and what changes there.
+- A feature is finished only when a learner can find it from the screen (a visible control, or for a thing only the teacher makes, a control on the page where it will show) and it has a row in `docs/features.md`. A plan says where the learner finds it.
 
 # No guessing
 
@@ -92,12 +93,13 @@ Read only what the task needs. One topic per file; a README in each docs folder 
 | Task | Read |
 |---|---|
 | Any screen, control, pop-up or label | `docs/ui-rules.md` |
+| Adding, moving or removing a feature | `docs/features.md` |
 | Commands, file layout, testing | `docs/development.md` |
 | Layers, data ownership, chat turn, graph, study, agent boundary | `docs/architecture/README.md` |
 | Rust crates, server process, locks | `docs/rust-server.md` |
 | Desktop shell, `window.lh`, terminals, updates | `docs/tauri-shell/README.md` |
 | Building and releasing the desktop app | `docs/desktop-release.md` |
-| Writing a plugin | `docs/plugins.md` |
+| Writing a plugin | `docs/plugins/README.md` |
 | Teaching behavior and prompts | `docs/teaching-methodology.md` |
 | Compaction | `docs/compaction-accounting.md` |
 | Broken math or escaping in tool-call text | `docs/tool-content-recovery.md` |

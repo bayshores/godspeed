@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { clockText, dateText, goLabel, hasLessonsWithNoSpace, plusName, selectedTab, spaceMenuDescription } from "../../src/frontend/components/top-bar/top-bar-model.ts";
+import { clockText, dateText, goLabel, hasLessonsWithNoSpace, plusName, selectedTab } from "../../src/frontend/components/top-bar/top-bar-model.ts";
 import type { AgentAction } from "../../src/shared/core/events.ts";
 
 describe("the clock", () => {
@@ -63,10 +63,6 @@ describe("the + list", () => {
 	it("its name says what the list offers", () => {
 		assert.equal(plusName(false), "Add a space");
 		assert.equal(plusName(true), "Add a space or reopen a closed one");
-	});
-	it("a tab and a closed row tell a screen reader they have a menu", () => {
-		assert.equal(spaceMenuDescription(false), "Has a menu with Close and Delete space");
-		assert.equal(spaceMenuDescription(true), "Has a menu with Reopen and Delete space");
 	});
 });
 

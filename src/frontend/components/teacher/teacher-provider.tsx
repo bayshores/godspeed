@@ -118,12 +118,27 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 			outside: !!terminals?.outsideHere,
 		});
 
+	// One line a page key handed over; the panel's screen sends it and clears it, or it goes when the panel closes.
+	const [asking, setAsking] = useState<string | null>(null);
+	const ask = useCallback(
+		(line: string) => {
+			setAsking(line);
+			showTerminal("teacher");
+		},
+		[showTerminal],
+	);
+	useEffect(() => {
+		if (!panelOpen) setAsking(null);
+	}, [panelOpen]);
+	const waiting = useMemo(() => (asking === null ? null : { line: asking, clear: () => setAsking(null) }), [asking]);
+	const canAsk = !!terminals?.available && !terminals.outsideHere && !terminals.popped;
+
 	const spaceList = spaces.spaces;
 	const spaceNameOf = useCallback((id: string | null) => (id ? (spaceList.find((c) => c.id === id)?.name ?? null) : null), [spaceList]);
 
 	const api = useMemo<TeacherApi>(
-		() => ({ name, follow: followOn, setFollow, panelOpen, panelStarts: starts, setPanelOpen, showTerminal, recent, doing, setLesson, go, offer: held ?? offer, held: !!held, spaceNameOf }),
-		[name, followOn, setFollow, panelOpen, starts, setPanelOpen, showTerminal, recent, doing, setLesson, go, held, offer, spaceNameOf],
+		() => ({ name, follow: followOn, setFollow, panelOpen, panelStarts: starts, setPanelOpen, showTerminal, canAsk, ask, asking: waiting, recent, doing, setLesson, go, offer: held ?? offer, held: !!held, spaceNameOf }),
+		[name, followOn, setFollow, panelOpen, starts, setPanelOpen, showTerminal, canAsk, ask, waiting, recent, doing, setLesson, go, held, offer, spaceNameOf],
 	);
 
 	return (

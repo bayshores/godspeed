@@ -56,19 +56,11 @@ function MoreButton({ lesson, actions, className }: { lesson: LessonProgress; ac
 	);
 }
 
-/** The row's shell: a right-click opens the lesson menu; a failed rename says so under it. */
+/** The row's shell: lit while its menu is open; a failed rename says so under it. */
 function RowShell({ lesson, actions, itemClass, className, children }: { lesson: LessonProgress; actions: LessonActions; itemClass?: string; className: string; children: ReactNode }) {
 	return (
 		<li className={itemClass}>
-			<div
-				onContextMenu={(e) => {
-					e.preventDefault(); // the lesson menu instead of the native one
-					actions.onMenu(e.currentTarget, lesson.chatId);
-				}}
-				className={cn(ROW, className, actions.menuId === lesson.chatId && "bg-tone")}
-			>
-				{children}
-			</div>
+			<div className={cn(ROW, className, actions.menuId === lesson.chatId && "bg-tone")}>{children}</div>
 			{actions.renameFailedId === lesson.chatId && (
 				<p role="alert" data-testid="lesson-rename-failed" className="col-span-full px-3 pt-1 pb-2 text-[15px] text-ans-wrong">
 					Couldn&apos;t rename the lesson.

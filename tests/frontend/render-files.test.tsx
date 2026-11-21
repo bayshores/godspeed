@@ -59,6 +59,8 @@ const { CopyButton } = await import("../../src/frontend/components/copy-button.t
 const { BarHost } = await import("../bar-host.tsx");
 const { kbdEventForAction } = await import("../../src/shared/core/index.ts");
 const { FULL_LINE } = await import("../../src/frontend/components/files/files-pick-model.ts");
+const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
+type TeacherApi = import("../../src/frontend/components/teacher/teacher-context.ts").TeacherApi;
 
 function file(id: string, name: string, over: Partial<SpaceFile> = {}): SpaceFile {
 	return { id, origin: "copied", name, path: `${id}/${name}`, kind: "study", contentFp: "", status: "ready", addedAt: "", ...over };
@@ -124,7 +126,8 @@ const events = new Map<string, (raw: string) => void>();
 
 let root: Root | undefined;
 let host: HTMLElement | undefined;
-async function mount(initialActive: string | null = "cls_a") {
+/** `teacher`: the lines a page key hands the teacher, when the page can (canAsk). */
+async function mount(initialActive: string | null = "cls_a", teacher: { canAsk: boolean; lines: string[] } | null = null) {
 	host = document.createElement("div");
 	document.body.append(host);
 	root = createRoot(host);
@@ -142,7 +145,13 @@ async function mount(initialActive: string | null = "cls_a") {
 					<AgentStatusProvider>
 						<SpaceProvider initialActive={initialActive}>
 							<BarHost>
-								<FilesPage />
+								{teacher ? (
+									<TeacherContext.Provider value={{ name: "Ada", canAsk: teacher.canAsk, ask: (line) => void teacher.lines.push(line) } as TeacherApi}>
+										<FilesPage />
+									</TeacherContext.Provider>
+								) : (
+									<FilesPage />
+								)}
 							</BarHost>
 						</SpaceProvider>
 					</AgentStatusProvider>
@@ -461,6 +470,29 @@ describe("FilesPage", () => {
 		assert.ok(q("files-no-match") === null);
 	});
 
+	it("a search that finds no name offers to have the teacher look inside, and hands over what was typed", async () => {
+		fakeFetch();
+		const lines: string[] = [];
+		await mount("cls_a", { canAsk: true, lines });
+		await act(async () => q("files-find")!.click());
+		await typeInto(field(), "rosen 7");
+		assert.ok(q("files-ask-inside") === null, "names match: nothing to ask");
+		await typeInto(field(), "  eigen\nvalues\t ");
+		assert.equal(q("files-ask-inside")!.textContent, "Ask Ada to look inside");
+		assert.ok(!q("files-no-match")!.textContent!.includes("look inside"), "the sentence does not repeat the key");
+		await act(async () => q("files-ask-inside")!.click());
+		assert.deepEqual(lines, ['Find "eigen values" in my files']);
+	});
+
+	it("no such key where the teacher cannot be handed a line, or outside the app shell", async () => {
+		fakeFetch();
+		await mount("cls_a", { canAsk: false, lines: [] });
+		await act(async () => q("files-find")!.click());
+		await typeInto(field(), "zzz");
+		assert.ok(q("files-no-match"));
+		assert.ok(q("files-ask-inside") === null);
+	});
+
 	it("Escape clears the search and closes the field; reopened, it is empty", async () => {
 		fakeFetch();
 		await mount();
@@ -566,6 +598,48 @@ describe("FilesPage: picking files to study", () => {
 		await act(async () => q("files-picked-clear")!.click());
 		assert.equal(pressed("f1"), "false");
 		assert.equal(q("files-picked-bar")!.getAttribute("data-state"), "closed", "the bar leaves");
+	});
+
+	it("Pick files to study shows tick boxes and a bar that says none is picked; Cancel leaves", async () => {
+		fakeFetch();
+		await mount();
+		const ticks = () => q("files-page")!.querySelectorAll("[class*='border-ink'][class*='rounded-sm']").length;
+		assert.ok(q("files-pick"), "the key sits in the head");
+		assert.equal(q("files-pick")!.textContent, "Pick files to study");
+		assert.equal(ticks(), 0, "no tick boxes before");
+		await act(async () => q("files-pick")!.click());
+		assert.ok(q("files-pick") === null, "the key goes while picking");
+		assert.equal(ticks(), 7, "every row has an empty box");
+		assert.equal(q("files-picked-names")!.textContent, "No files picked yet");
+		assert.equal(q("files-picked-clear")!.textContent, "Cancel");
+		assert.ok((q("files-picked-study") as HTMLButtonElement).disabled, "Study waits for a pick");
+		await act(async () => q("files-picked-clear")!.click());
+		assert.equal(q("files-picked-bar")!.getAttribute("data-state"), "closed");
+		assert.equal(ticks(), 0, "the boxes go");
+		assert.ok(q("files-pick"), "and the key is back");
+	});
+
+	it("picking a file while picking ticks its box, and Clear leaves pick mode", async () => {
+		fakeFetch();
+		await mount();
+		await act(async () => q("files-pick")!.click());
+		await pick("f1");
+		assert.equal(q("files-picked-names")!.textContent, "Lecture 1 — Counting.pdf");
+		assert.equal(q("files-picked-clear")!.textContent, "Clear");
+		assert.ok(!(q("files-picked-study") as HTMLButtonElement).disabled);
+		assert.match(q("space-file-pick-f1")!.innerHTML, /bg-tint/, "its box is ticked");
+		assert.ok(q("files-pick") === null);
+		await act(async () => q("files-picked-clear")!.click());
+		assert.equal(q("files-picked-bar")!.getAttribute("data-state"), "closed");
+		assert.ok(q("files-pick"), "pick mode is over");
+		assert.ok(!/bg-tint/.test(q("space-file-pick-f1")!.innerHTML));
+	});
+
+	it("a space with no files has no Pick files key", async () => {
+		record = { ...RECORD, files: [] };
+		fakeFetch();
+		await mount();
+		assert.ok(q("files-pick") === null);
 	});
 
 	it("Study starts a lesson on the picked files, first picked first, and opens it", async () => {
