@@ -322,7 +322,7 @@ mod tests {
 			assert!(view["commands"]["claude"].as_str().unwrap().starts_with(&format!("cd /d \"{folder}\" && claude ")));
 		} else {
 			assert_eq!(view["short"].as_str(), Some("~/godspeed"));
-			assert_eq!(view["commands"]["claude"].as_str(), Some("cd ~/godspeed && claude --settings .godspeed/claude-settings.json \"Start teaching\""));
+			assert_eq!(view["commands"]["claude"].as_str(), Some("cd ~/godspeed && claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start teaching\""));
 		}
 	}
 
