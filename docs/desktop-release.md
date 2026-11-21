@@ -26,7 +26,7 @@ How the desktop app is built, checked in CI and released, and how Electron insta
 | `crates/shell/icons/icon.icon` | The Mac icon, an Icon Composer file. |
 | `crates/shell/icons/icon.icns` | The Mac icon on macOS older than 26. |
 | `crates/shell/icons/icon.ico`, `icon.png` | Windows and Linux. |
-| `crates/shell/icons/choices/*.png` | The icons Settings offers besides the app's own. See [App icon](tauri-shell/the-main-window.md#app-icon). |
+| `crates/shell/icons/choices/*.png` | The icons Settings offers besides the app's own. See [App icon](tauri-shell/magnifier-menu-bar-and-icon.md#app-icon). |
 | `public/icon.png`, `public/app-icons/*.svg` | The page's own icon, and the pictures in Settings and on the welcome screen. |
 
 `crates/shell/icons/classic.svg` is the drawing of the Classic icon; the script reads it.

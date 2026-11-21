@@ -41,7 +41,7 @@ A cut that drops no active history adds no marker. A cut that can't move past th
 
 ## The teacher session
 
-The teacher's own Claude Code chat is not the lesson record. It holds every work item the teacher took and every answer it sent, across lessons and jobs, so it grows on its own. Every Claude Code start sets `--autocompact 150000` ([Claude Code's start](architecture/08.1.1-the-godspeed-folder.md#claude-codes-start)), so Claude Code compacts it at 150,000 tokens. The helper's chat compacts the same way.
+The teacher's own Claude Code chat is not the lesson record. It holds every work item the teacher took and every answer it sent, across lessons and jobs, so it grows on its own. Every Claude Code start sets `--autocompact 150000` ([Claude Code's start](architecture/08.1.4-claude-codes-start.md#claude-codes-start)), so Claude Code compacts it at 150,000 tokens. The helper's chat compacts the same way.
 
 1. Claude Code's PreCompact hook (`compacting.mjs`) tells godspeed the session compacts. While it does, that session takes no work. With a helper here, the lesson turns it held go back in the queue and the helper answers them meanwhile ([the helper](architecture/08.1.2-the-work-loop.md#the-helper)). A mark that never ends lapses after 10 minutes.
 2. When the compaction ends, the SessionStart hook with matcher `compact` (`forget.mjs`) tells godspeed the session lost its context. godspeed forgets what that session has seen, so its next items come in full: instructions, tools and the lesson's messages.

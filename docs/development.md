@@ -178,7 +178,7 @@ Each is described in [architecture/README.md](architecture/README.md), in the se
 | Background jobs and the wake pipeline | 5 and 5.1 |
 | Compaction | 5, details in [compaction-accounting.md](compaction-accounting.md) |
 | The knowledge graph and extraction | 6 |
-| Spaces, linked folders, deadlines, source marks | 6.1 |
+| Spaces, linked folders, deadlines, source marks, problem lists, cheat sheets | 6.1 and 6.4 to 6.7 |
 | Interviews and mocks | 6.2 |
 | Study sessions | 7 |
 
