@@ -5,12 +5,16 @@ import { WAITING_TOPIC } from "./layout-seed.mjs";
  *
  * A screen opens at `url`, waits for `ready`, runs `setup` in the page (clicks), then waits for
  * `shows`. `ready` and `shows` name something drawn from the screen's data, not its frame, so the
- * check never runs on a screen still loading. `before` runs in the page first, on the screen
+ * check never runs on a screen still loading. `height` gives it a window higher than the
+ * check's own. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
  * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, `{pending}`, `{sheetless}`, `{pathSpace}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
 export const WIDTHS = [1440, 1100, 800];
+/** A window high enough for "Your turn" pinned under the lesson text (`height` on a screen). A screen too
+ *  low for it, as GitHub's Mac runner has, leaves that screen unchecked with a warning. */
+const TALL = 860;
 
 /** After a fetch in the page: an HTTP error throws, so a setup that failed is not walked past. */
 export const HTTP_OK = `.then((r) => { if (!r.ok) throw new Error(r.url + " answered " + r.status); return r; })`;
@@ -261,6 +265,10 @@ box.dispatchEvent(new Event("input", { bubbles: true })); ${pause}`,
 	{ name: "Lesson with a question of the learner's own before the step's answer", url: "/chat/{askedFirst}", ready: "[data-testid=lesson-sheet] ~ [data-testid=lesson-sheet] [data-testid=user-message]", shows: "[data-testid=question-dock]" },
 	{ name: "Lesson with a question whose choices are code, longer than the window", url: "/chat/{codeChoices}", ready: "[data-testid=question-dock] pre" },
 	{ name: "Lesson with a problem longer than the window", url: "/chat/{longProblem}", ready: "[data-testid=open-problem]" },
+	{ name: "Lesson with an open quiz in a tall window, Your turn pinned", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", height: TALL },
+	{ name: "Lesson with a question whose choices are code in a tall window", url: "/chat/{codeChoices}", ready: "[data-testid=question-dock] pre", height: TALL },
+	{ name: "Lesson with a problem longer than a tall window", url: "/chat/{longProblem}", ready: "[data-testid=open-problem]", height: TALL },
+	{ name: "Homework lesson before a problem opens, in a tall window", url: "/chat/{homeworkFirst}", ready: "[data-testid=next-problem-button]", height: TALL },
 	{ name: "Lesson that opens with a problem, Your turn alone", url: "/chat/{problemFirst}", ready: ".lh-lesson-alone [data-testid=open-problem]" },
 	{ name: "Homework lesson before a problem opens", url: "/chat/{homeworkFirst}", ready: "[data-testid=next-problem-button]" },
 	{ name: "Homework lesson with fourteen problems, the first done", url: "/chat/{homeworkMany}", ready: "[data-testid=plan-fold]" },

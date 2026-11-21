@@ -15,8 +15,8 @@ import { TurnPinned } from "./turn-pinned";
  * The lesson text's reading measure: the page's one width of its own. Everything else takes
  * the shared page width and sides (`.lh-page`). With room for both (1280 = the text's 632, the
  * gap, "Your turn"'s 560 and two page sides; a container query cannot read the tokens), the lesson text and "Your turn" sit side by side
- * across the page's width, sized by `.lh-lesson-room`; with less, "Your turn" sits under the
- * text in one column.
+ * across the page's width, sized by `.lh-lesson-room`; with less, the text is one column and
+ * "Your turn" is pinned under its window.
  */
 const READING_MEASURE = "mx-auto w-full max-w-[872px]";
 const PAIR = "@min-[1280px]/room:max-w-none";
@@ -51,6 +51,10 @@ const BLOCKS = "pre, img, figure, table, .katex-display";
 function sideBySide(column: HTMLElement | null): boolean {
 	return column !== null && getComputedStyle(column).display === "grid";
 }
+
+/** The room under the step line at which "Your turn" is pinned under the text's window: lower, a question
+ *  with its box and keys would leave the text a sliver, so there it stays in the page, under the text. */
+const PIN_ROOM = 640;
 
 /** Subscribes to what never changes. */
 const NO_CHANGE = () => () => {};
@@ -97,7 +101,8 @@ function linesAt(root: Element, y: number, origin: number): { top: number; botto
  * side by side for the whole lesson and "Your turn" holds still while the text scrolls, always
  * inside the window, where only its question or problem scrolls (.lh-turn-fit); with less it is
  * pinned at the window's foot, under the window the text scrolls in, only as tall as what the
- * learner can do now (TurnPinned), so the text keeps the window. While the lesson text draws nothing (a
+ * learner can do now (TurnPinned), so the text keeps the window, or, in a room too low for that
+ * (PIN_ROOM), it sits in the page under the text. While the lesson text draws nothing (a
  * lesson that opens with a problem), its sheet is left out and "Your turn" sits alone in the
  * middle; when the text's sheet arrives, "Your turn" slides over to its side. The page rests where restingTop says: on open, when the
  * teacher asks (`restKey` changes) and while the teacher writes. When a reply lands it
@@ -140,6 +145,7 @@ export function LessonScroll({
 	// "Your turn" is drawn into a box of its own, which stands in the page's column or at the window's
 	// foot. Moving the box keeps what the learner typed and picked, where drawing it anew would not.
 	const roomRef = useRef<HTMLDivElement>(null);
+	const underRef = useRef<HTMLDivElement>(null);
 	const pageSlot = useRef<HTMLDivElement>(null);
 	const footRef = useRef<HTMLDivElement>(null);
 	const footSlot = useRef<HTMLDivElement>(null);
@@ -149,9 +155,10 @@ export function LessonScroll({
 	const [pinned, setPinned] = useState(false);
 	useLayoutEffect(() => {
 		const room = roomRef.current;
-		if (!room || !hasTurn || !turnBox) return;
+		const under = underRef.current;
+		if (!room || !under || !hasTurn || !turnBox) return;
 		const place = () => {
-			const pin = pair && oneColumn(columnRef.current);
+			const pin = pair && oneColumn(columnRef.current) && under.clientHeight >= PIN_ROOM;
 			const slot = (pin ? footSlot : pageSlot).current;
 			if (slot && turnBox.parentElement !== slot) moveTurn(turnBox, slot);
 			// Shown and hidden here, with the move, so no frame draws the foot's room without its sheet.
@@ -161,6 +168,7 @@ export function LessonScroll({
 		place();
 		const ro = new ResizeObserver(place);
 		ro.observe(room);
+		ro.observe(under);
 		return () => ro.disconnect();
 	}, [hasTurn, pair, turnBox]);
 	// Where "Your turn" stood alone, to slide it from there when the text's sheet takes its side.
@@ -215,6 +223,17 @@ export function LessonScroll({
 		const text = contentElement.querySelector("[data-testid=lesson-reading]");
 		return busyRef.current || !text ? rest : wholeLineTop(rest, linesAt(text, rest, origin));
 	}, []);
+	/** The page holds still from now, and glides to its rest once nothing has changed size for a moment. */
+	const holdThenGlide = useCallback(() => {
+		hold.current.until = performance.now() + HOLD_MS;
+		clearTimeout(hold.current.timer);
+		hold.current.timer = window.setTimeout(() => {
+			const context = contextRef.current;
+			if (!context || context.state.escapedFromLock) return;
+			void context.scrollToBottom("smooth");
+			requestAnimationFrame(settleUp);
+		}, HOLD_MS);
+	}, [contextRef, settleUp]);
 	const target = useCallback<GetTargetScrollTop>((end, { scrollElement, contentElement }) => {
 		// The desk is leaving: the page holds still until the reply takes its place.
 		if (contentElement.querySelector("[data-desk-closing]")) return scrollElement.scrollTop;
@@ -222,18 +241,9 @@ export function LessonScroll({
 		const now = { view: `${roomRef.current?.clientWidth} ${roomRef.current?.clientHeight}`, height: columnRef.current?.offsetHeight ?? 0 };
 		const was = sized.current;
 		sized.current = now;
-		if (was && was.view === now.view && was.height !== now.height && !prefersReducedMotion()) {
-			hold.current.until = performance.now() + HOLD_MS;
-			clearTimeout(hold.current.timer);
-			hold.current.timer = window.setTimeout(() => {
-				const context = contextRef.current;
-				if (!context || context.state.escapedFromLock) return;
-				void context.scrollToBottom("smooth");
-				requestAnimationFrame(settleUp);
-			}, HOLD_MS);
-		}
+		if (was && was.view === now.view && was.height !== now.height && !prefersReducedMotion()) holdThenGlide();
 		return performance.now() < hold.current.until ? scrollElement.scrollTop : restOf(end, { scrollElement, contentElement });
-	}, [contextRef, settleUp, restOf]);
+	}, [holdThenGlide, restOf]);
 	useLayoutEffect(() => () => clearTimeout(hold.current.timer), []);
 
 	const wasBusy = useRef(busy);
@@ -249,14 +259,20 @@ export function LessonScroll({
 	}, [busy, settleUp]);
 	// The window, the step line above or "Your turn" pinned under it changing the height of the page's window keeps a
 	// page that rests where it should there. Under a window that gets lower the text keeps its place over the window's
-	// end, as far as the page's rest. A sheet about to glide is laid out once at its new size first, so the window may
-	// have had one more size in between (`seen`): the browser pulls the page along a window that grows, and placing the
-	// page here both brings it back and tells its follower the move was no scroll of the learner's.
+	// end, as far as the page's rest; under one that grows it stays where it was, and what is under it comes into view.
+	// The browser pulls a page at its end along a window that grows, also in the one layout a sheet about to glide gets
+	// at its new size (`seen`), so the page is put back from where it last stood (`top`), which also tells its follower
+	// the move was no scroll of the learner's. A sheet gliding (the room's own size has not changed) holds the page
+	// still like the sheets in the page do.
 	useLayoutEffect(() => {
 		const scroller = contextRef.current?.scrollRef.current;
-		if (!scroller) return;
+		const room = roomRef.current;
+		if (!scroller || !room) return;
+		const roomSize = () => `${room.clientWidth} ${room.clientHeight}`;
 		let width = scroller.offsetWidth;
 		let height = scroller.offsetHeight;
+		let view = roomSize();
+		let top = scroller.scrollTop;
 		const ro = new ResizeObserver(([entry]) => {
 			const context = contextRef.current;
 			const content = context?.contentRef.current;
@@ -264,34 +280,40 @@ export function LessonScroll({
 			const now = scroller.offsetHeight;
 			const sameWidth = scroller.offsetWidth === width;
 			if ((seen === height && now === height && sameWidth) || !context || !content) return;
-			const lost = Math.max(0, height - seen) + Math.max(0, seen - now);
+			const lower = Math.max(0, height - now);
+			const sameRoom = roomSize() === view;
 			height = now;
 			width = scroller.offsetWidth;
-			if (context.state.escapedFromLock) return;
-			const top = scroller.scrollTop;
-			const rest = restOf(context.state.targetScrollTop, { scrollElement: scroller, contentElement: content });
-			// A window of another width lays the page out anew: it is placed at its rest at once.
-			context.state.scrollTop = sameWidth ? Math.max(top, Math.min(top + lost, rest)) : rest;
-			// A glide on its way, or the one that follows the sheets' own glide, reaches the new rest by itself.
-			if (!context.state.animation && performance.now() >= hold.current.until) void context.scrollToBottom("instant");
+			view = roomSize();
+			if (!context.state.escapedFromLock) {
+				const rest = restOf(context.state.targetScrollTop, { scrollElement: scroller, contentElement: content });
+				// A window of another width lays the page out anew: it is placed at its rest at once.
+				context.state.scrollTop = sameWidth ? Math.max(top, Math.min(top + lower, rest)) : rest;
+				if (sameRoom && !prefersReducedMotion()) holdThenGlide();
+				// A glide on its way reaches the new rest by itself.
+				else if (!context.state.animation && performance.now() >= hold.current.until) void context.scrollToBottom("instant");
+			}
+			top = scroller.scrollTop;
 		});
 		ro.observe(scroller);
 		// The pull can reach the follower first, when the page was laid out before its frame: a scroll under a window
 		// whose new size is not handled yet is told to it as a size change under way, as it tells itself for the page's own.
-		const pulled = () => {
+		const scrolled = () => {
 			const state = contextRef.current?.state;
-			if (!state || state.resizeDifference || (scroller.offsetHeight === height && scroller.offsetWidth === width)) return;
-			state.resizeDifference = 1;
-			setTimeout(() => {
-				if (state.resizeDifference === 1) state.resizeDifference = 0;
-			}, 2);
+			if (scroller.offsetHeight === height && scroller.offsetWidth === width) top = scroller.scrollTop;
+			else if (state && !state.resizeDifference) {
+				state.resizeDifference = 1;
+				setTimeout(() => {
+					if (state.resizeDifference === 1) state.resizeDifference = 0;
+				}, 2);
+			}
 		};
-		scroller.addEventListener("scroll", pulled, { passive: true });
+		scroller.addEventListener("scroll", scrolled, { passive: true });
 		return () => {
 			ro.disconnect();
-			scroller.removeEventListener("scroll", pulled);
+			scroller.removeEventListener("scroll", scrolled);
 		};
-	}, [contextRef, restOf]);
+	}, [contextRef, restOf, holdThenGlide]);
 	// With reduced motion a landing reply's sheets change size at once: the page is placed before it is drawn, so it appears in place.
 	useLayoutEffect(() => {
 		const column = columnRef.current;
@@ -351,26 +373,28 @@ export function LessonScroll({
 					<div className="px-(--lh-reading-inset) py-4 @max-[640px]/strip:px-(--lh-reading-inset-narrow)">{steps}</div>
 				</Pane>
 			</div>
-			<Conversation className="my-(--lh-gap) min-h-0 min-w-0 flex-1" initial="instant" resize="instant" {...SETTLE} contextRef={contextRef} targetScrollTop={target}>
-				<SessionMessageNavigation />
-				<ConversationContent className="gap-0 p-0" scrollClassName={cn("lh-lesson-window [overflow-anchor:none] [container-type:size]", pair && "lh-lesson-pair", alone && "lh-lesson-alone")}>
-					{/* With "Your turn" beside it or pinned under its window, the text's sheet ends at the window's foot. */}
-					<div className={cn("lh-page", pair ? "pb-0" : "pb-(--lh-page-end)", alone && "@min-[1280px]/room:pb-0")}>
-						<div ref={columnRef} data-testid="lesson-column" className={cn("lh-lesson-column @container/column flex flex-col gap-(--lh-gap)", READING_MEASURE, pair && [PAIR, PAIR_GRID], alone && ALONE)}>
-							{reading}
-							{hasTurn && (
-								<div ref={pageSlot} className="contents">
-									{!turnBox && turnSheet}
-								</div>
-							)}
+			<div ref={underRef} className="flex min-h-0 min-w-0 flex-1 flex-col">
+				<Conversation className="my-(--lh-gap) min-h-0 min-w-0 flex-1" initial="instant" resize="instant" {...SETTLE} contextRef={contextRef} targetScrollTop={target}>
+					<SessionMessageNavigation />
+					<ConversationContent className="gap-0 p-0" scrollClassName={cn("lh-lesson-window [overflow-anchor:none] [container-type:size]", pair && "lh-lesson-pair", alone && "lh-lesson-alone", pinned && "lh-lesson-pinned")}>
+						{/* With "Your turn" beside it or pinned under its window, the text's sheet ends at the window's foot. */}
+						<div className={cn("lh-page", pinned ? "pb-0" : "pb-(--lh-page-end)", hasTurn && "@min-[1280px]/room:pb-0")}>
+							<div ref={columnRef} data-testid="lesson-column" className={cn("lh-lesson-column @container/column flex flex-col gap-(--lh-gap)", READING_MEASURE, pair && [PAIR, PAIR_GRID], alone && ALONE)}>
+								{reading}
+								{hasTurn && (
+									<div ref={pageSlot} className="contents">
+										{!turnBox && turnSheet}
+									</div>
+								)}
+							</div>
 						</div>
-					</div>
-				</ConversationContent>
-				<ConversationScrollButton className={cn(KEY, hasTurn && PAIR_KEY)} />
-			</Conversation>
-			{/* "Your turn" pinned (its height: .lh-turn-foot). */}
-			<div ref={footRef} hidden className="lh-turn-foot lh-page flex min-h-0 shrink-0 flex-col pb-(--lh-gap)">
-				<div ref={footSlot} className={cn("flex min-h-0 flex-col", READING_MEASURE)} />
+					</ConversationContent>
+					<ConversationScrollButton className={cn(KEY, hasTurn && PAIR_KEY)} />
+				</Conversation>
+				{/* "Your turn" pinned (its height: .lh-turn-foot). */}
+				<div ref={footRef} hidden className="lh-turn-foot lh-page flex min-h-0 shrink-0 flex-col pb-(--lh-gap)">
+					<div ref={footSlot} className={cn("flex min-h-0 flex-col", READING_MEASURE)} />
+				</div>
 			</div>
 			{hasTurn && turnBox && createPortal(turnSheet, turnBox)}
 		</div>

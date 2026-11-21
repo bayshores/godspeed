@@ -759,7 +759,8 @@ body {
 	}
 }
 /* In one column the lesson text's newest sheet fills what is left of its window as well, so a short lesson, or one
-   whose first reply is still written, shows no bare page under it. "Your turn" is pinned under
+   whose first reply is still written, shows no bare page under it. In a room high enough
+   (PIN_ROOM in LessonScroll) "Your turn" is pinned under
    that window (.lh-turn-foot) and closer set, so the text keeps more of the room. A question is
    shown whole before the text is: the text keeps a few lines, and only past that does the
    question or problem scroll in its own box. */
@@ -767,7 +768,7 @@ body {
 	.lh-lesson-column:has(> .lh-text-sheets) {
 		min-height: calc(100cqh - var(--lh-page-end));
 	}
-	.lh-lesson-pair .lh-lesson-column:has(> .lh-text-sheets) {
+	.lh-lesson-pinned .lh-lesson-column:has(> .lh-text-sheets) {
 		min-height: 100cqh;
 	}
 	.lh-text-sheets,
@@ -790,6 +791,7 @@ body {
 	flex: 1 1 auto;
 	overflow-y: auto;
 }
+/* Of the room under the step line; the text's window keeps 88 points between its two gaps. */
 .lh-turn-foot {
 	max-height: calc(100% - 136px);
 }

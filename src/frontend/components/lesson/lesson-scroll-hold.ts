@@ -2,8 +2,8 @@
  * While the teacher works the lesson's page never gets shorter. WebKit lays the page out between
  * a row leaving and the row that replaces it arriving (the desk taking Stop, the reply's steps,
  * the desk leaving before the reply), and would pull the page up by the gap. `page` is the
- * sheets' column, not the page around it: under each other, the text's sheet takes the room one
- * of them gave up, so no empty page stands under "Your turn". A lesson room of another size (the
+ * sheets' column, not the page around it: in one column the text's newest sheet takes the room
+ * a row gave up, so no empty page stands under it. A lesson room of another size (the
  * app's window, the Text size, the teacher's panel) lays the page out anew, so there the hold
  * starts over: kept, the old height would leave empty room to scroll into. Returns what ends the
  * watching; the height held stays on `page` until the caller takes it off.

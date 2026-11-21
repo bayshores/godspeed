@@ -18,6 +18,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { YourTurn } from "../../src/frontend/components/lesson/your-turn.tsx";
 import { TurnSheet } from "../../src/frontend/components/lesson/turn-sheet.tsx";
+import { TurnPinned } from "../../src/frontend/components/lesson/turn-pinned.ts";
 import type { NextAction, TurnNext } from "../../src/frontend/components/lesson/turn-next-model.ts";
 import { LessonScroll } from "../../src/frontend/components/lesson/lesson-scroll.tsx";
 import type { QuestionHandle } from "../../src/frontend/components/question-dock.tsx";
@@ -179,6 +180,23 @@ describe("Your turn in each state", () => {
 			await act(async () => document.body.dispatchEvent(enter));
 		});
 		assert.deepEqual(pressed, ["keep-going", "next", "next"]);
+	});
+
+	it("pinned at the window's foot with nothing to answer: no head, the key that goes on at the end of the Try asking row, and the box alone while the teacher works", () => {
+		const pinned = (n: React.ReactNode) => <TurnPinned.Provider value={true}>{n}</TurnPinned.Provider>;
+		const out = html({ shown: shown(atStop) }, pinned);
+		assert.match(out, /data-testid="your-turn"[^>]*class="[^"]*lh-turn-quiet/);
+		assert.doesNotMatch(out, /<h2/);
+		assert.match(out, /turn-next-line[^>]*>Cross-validation is next\.<\/p><\/div>[\s\S]*data-testid="composer"[\s\S]*data-testid="turn-foot"[\s\S]*Try asking[\s\S]*data-testid="next-problem-button"[^>]*>Continue</);
+		const busy = html({ busy: true, shown: shown({ line: "Cross-validation is next.", key: null }, true) }, pinned);
+		assert.match(busy, /data-testid="turn-swap"[^>]*class="[^"]*hidden[^"]*"><\/div>/);
+		assert.match(busy, /data-testid="composer"/);
+		assert.doesNotMatch(busy, /turn-next|turn-foot|<h2/);
+		for (const over of [{ pending: quiz }, { problem }]) {
+			const asked = html(over, pinned);
+			assert.match(asked, /<h2/, "a question or a problem keeps its head");
+			assert.doesNotMatch(asked, /lh-turn-quiet/);
+		}
 	});
 
 	it("the last topic: one line and Done for today", () => {

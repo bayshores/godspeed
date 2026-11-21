@@ -18,9 +18,10 @@ type Sheet = {
 
 /**
  * Where the lesson page rests, as a scroll position. Its end is the default: the lesson text's
- * newest words at the window's end. With no "Your turn", a reply that landed and is longer than
- * the window is read from its start (`reply`: where the learner's last message, or the page,
- * begins). Under the text, "Your turn" ends at the window's end; when that would hide the start
+ * newest words at the window's end. With no "Your turn" in the page (none drawn, or pinned under
+ * the window), a reply that landed and is longer than the window is read from its start (`reply`:
+ * where the learner's last message, or the page, begins). In the page of one column (alone, or
+ * in a room too low to pin it), "Your turn" ends at the window's end; when that would hide the start
  * of the newest thing, the page rests on that start instead: the learner's last message once the
  * teacher writes back while "Your turn" stays open, else the part the learner is on when it sits
  * deep in the sheet, else the sheet's top. Beside the text "Your turn" always fits the window, so
