@@ -1,5 +1,6 @@
 /**
- * One fact, opened from its topic: back to the topic and Close, what it
+ * One fact, opened from its topic: back to the topic (none before the
+ * space has topics) and Close, what it
  * says, its answers, where it came from (a space file opens on the
  * desktop, a lesson opens in the app), the facts it builds on and leads
  * to (each opens), and Study. A tall panel scrolls its middle, so Study
@@ -39,7 +40,8 @@ export function FactPane({
 	studyError,
 }: {
 	fact: FactProgress;
-	topicName: string;
+	/** The topic it was opened in, which the back key returns to; null opens it alone. */
+	topicName: string | null;
 	facts: readonly FactProgress[];
 	/** null while the snapshot loads. */
 	sources: FactSources | null;
@@ -57,10 +59,12 @@ export function FactPane({
 	return (
 		<Pane active data-testid="fact-pane" aria-label="Fact" className="flex min-h-0 flex-col gap-3.5 p-5">
 			<div className="flex shrink-0 items-center gap-2">
-				<button type="button" data-testid="fact-pane-back" onClick={onBack} title={topicName} className={`${CHIP} min-w-0`}>
-					<PixelIcon name="chevron" className="-scale-x-100" />
-					<span className="truncate">{topicName}</span>
-				</button>
+				{topicName !== null && (
+					<button type="button" data-testid="fact-pane-back" onClick={onBack} title={topicName} className={`${CHIP} min-w-0`}>
+						<PixelIcon name="chevron" className="-scale-x-100" />
+						<span className="truncate">{topicName}</span>
+					</button>
+				)}
 				<span className="flex-1" />
 				<CloseButton testid="fact-pane-close" onClick={onClose} />
 			</div>

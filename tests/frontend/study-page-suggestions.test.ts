@@ -68,6 +68,7 @@ function payload(over: Partial<ProgressPayload> = {}): ProgressPayload {
 		today: "2026-10-27",
 		topicsAt: null,
 		grouping: false,
+		minFactsForTopics: 4,
 		topics: [topic("a", "weak"), topic("b", "untested"), topic("c", "shaky"), topic("d", "weak")],
 		topicLinks: [],
 		facts: [],
