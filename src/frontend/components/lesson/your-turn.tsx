@@ -289,19 +289,21 @@ export function YourTurn({
 
 			<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
 			{(view.help || (turn.kind === "ask" && !(quiet && busy))) && (
-				// Keys that wrap line up under the first key, not under the label. The next key ends their last row.
+				// Keys that wrap line up under the first key, not under the label. The next key, no line of theirs, ends their last row.
 				<div data-testid="turn-foot" className="flex items-baseline gap-2.5">
 					<span className="mr-1 shrink-0 text-base text-ink-2">{view.help ? "Stuck?" : "Try asking"}</span>
 					<div className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
-						{view.help ? (
-							<HelpKeys help={view.help} questionRef={questionRef} onHelpLine={onHelpLine} />
-						) : (
-							ideas.map((line) => (
-								<button key={line} type="button" data-testid="lesson-idea" onClick={() => onHelpLine(line)} className={HELP_KEY}>
-									{line}
-								</button>
-							))
-						)}
+						<div className="contents">
+							{view.help ? (
+								<HelpKeys help={view.help} questionRef={questionRef} onHelpLine={onHelpLine} />
+							) : (
+								ideas.map((line) => (
+									<button key={line} type="button" data-testid="lesson-idea" onClick={() => onHelpLine(line)} className={HELP_KEY}>
+										{line}
+									</button>
+								))
+							)}
+						</div>
 						{quiet && nextButton}
 					</div>
 				</div>
