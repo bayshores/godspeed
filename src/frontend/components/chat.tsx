@@ -79,6 +79,7 @@ import { useLessonDocuments } from "@/frontend/components/lesson/use-lesson-docu
 import { lessonPluginContext } from "@/frontend/components/lesson/lesson-plugins-model";
 import { PluginWindow } from "@/frontend/components/lesson/plugin-window";
 import { useSpaces } from "@/frontend/components/space-context";
+import type { InstalledPlugin } from "@/frontend/lib/plugins-api";
 import { usePluginsAt } from "@/frontend/lib/use-plugins-at";
 import { useStableValue } from "@/frontend/lib/use-stable-value";
 import { useNow } from "@/frontend/components/use-now";
@@ -106,6 +107,7 @@ export function Chat({
 	initiallyInFlight,
 	initialStats,
 	initialJobs = null,
+	plugins: loadedPlugins,
 	openedReview = null,
 	kind = "teach",
 	initialTree,
@@ -142,6 +144,8 @@ export function Chat({
 	initialStats: LessonStats;
 	/** The lesson's jobs as the page's loader read them (null: the read failed). */
 	initialJobs?: JobRecord[] | null;
+	/** The installed plugins as the page's loader read them (null: the read failed). */
+	plugins?: InstalledPlugin[] | null;
 	/** The question from earlier the page's loader was served, if one shows now. */
 	openedReview?: ReviewQuestion | null;
 }) {
@@ -459,7 +463,7 @@ export function Chat({
 	}, [docGone, updateDock]);
 	// A plugin's window lies over the page; opening a panel closes it. It and the
 	// Teacher's window are both made of the bar and hang over the same corner, so one shows at a time.
-	const { plugins: lessonPlugins } = usePluginsAt("lesson");
+	const { plugins: lessonPlugins } = usePluginsAt("lesson", loadedPlugins);
 	const { spaces } = useSpaces();
 	const [pluginId, setPluginId] = useState<string | null>(null);
 	const openPlugin = lessonPlugins?.find((p) => p.id === pluginId) ?? null;

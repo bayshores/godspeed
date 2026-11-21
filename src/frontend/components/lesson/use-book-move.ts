@@ -216,9 +216,15 @@ export function useBookMove({
 		laid.current = beside;
 		before.current = moving.current ? null : shoot();
 	}
+	const shown = useRef<string | null>(null);
 	useLayoutEffect(() => {
 		const was = before.current;
 		before.current = null;
+		// The page as it opens was laid out once and has nothing to rest from: saying so would have it glide to its place.
+		const state = `${beside} ${open}`;
+		const opening = shown.current === null || shown.current === state;
+		shown.current = state;
+		if (opening) return;
 		// A move on its way ends where the page now is.
 		stop();
 		const now = was && !prefersReducedMotion() && typeof turnRef.current?.animate === "function" ? shoot() : null;

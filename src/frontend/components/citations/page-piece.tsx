@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { useAppearance } from "@/frontend/components/settings/appearance";
 import { useElementWidth } from "@/frontend/lib/use-element-width";
@@ -33,8 +33,8 @@ export function PagePiece({
 	quiet?: boolean;
 	part?: string | null;
 	printed?: boolean;
-	/** Told where the part the learner is on starts, each time that place changes. */
-	onPlace?: (start: HTMLElement) => void;
+	/** Told where the part the learner is on starts: as the piece is first drawn, and each time the learner moves on to another part (`moved`). */
+	onPlace?: (start: HTMLElement, moved: boolean) => void;
 	/** Told once the words stand in for a picture that did not load. */
 	onFail?: () => void;
 }) {
@@ -51,10 +51,12 @@ export function PagePiece({
 	const place = current && `${current.part}:${current.at}`;
 	const onPlaceRef = useRef(onPlace);
 	onPlaceRef.current = onPlace;
-	useEffect(() => {
-		if (anchorRef.current) onPlaceRef.current?.(anchorRef.current);
+	const placed = useRef(false);
+	// Before the piece is first drawn, so it opens resting on its part.
+	useLayoutEffect(() => {
+		if (anchorRef.current) onPlaceRef.current?.(anchorRef.current, placed.current);
+		placed.current = true;
 	}, [place]);
-
 	if (failedKey === key) {
 		return text ? (
 			<ToolContentResponse>{text}</ToolContentResponse>

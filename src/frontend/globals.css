@@ -861,6 +861,15 @@ body {
 .lh-answer-lines [data-testid="math-box"] > div[aria-hidden] {
 	min-height: 96px;
 }
+/* The box keeps its lowest height itself as well. While its editor is put in, one layout pass
+   sees the box with nothing in it; a problem scrolled to its part beside it (.lh-turn-scroll)
+   would grow for that pass and lose its place. */
+.lh-answer-line [data-testid="math-box"] {
+	min-height: 40px;
+}
+.lh-answer-lines [data-testid="math-box"] {
+	min-height: 96px;
+}
 
 /* The block cursor at the end of the text the teacher is writing. */
 .lh-streaming > :is(p, h1, h2, h3, h4, blockquote):last-child::after,
@@ -957,6 +966,9 @@ body {
 	border: 1px solid var(--border);
 	background: color-mix(in oklab, var(--background) 92%, black);
 	padding: 0.375rem;
+	/* Streamdown leaves a block out of sight undrawn, at a guessed height of 200px: the page under
+	   it would change height as the block comes near the window. Its own style is set on the element. */
+	content-visibility: visible !important;
 }
 [data-streamdown="code-block-header"] {
 	display: none;

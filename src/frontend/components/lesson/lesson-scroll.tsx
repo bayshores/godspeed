@@ -45,6 +45,10 @@ const SETTLE = { damping: 0.6, stiffness: 0.12, mass: 1 };
  *  Under the shut book's page it is pinned in any room while it is only its box and keys (`slim`). */
 const PIN_ROOM = 640;
 
+/** The room at which the right page keeps the task the learner last finished: lower, its box and keys
+ *  leave that task no line to show, so it is drawn in the text as in a narrow window. */
+const KEEP_ROOM = 460;
+
 /** Subscribes to what never changes. */
 const NO_CHANGE = () => () => {};
 
@@ -159,7 +163,7 @@ export function LessonScroll({
 			if (foot && pin) foot.hidden = false;
 			if (slot && turnBox.parentElement !== slot) moveTurn(turnBox, slot);
 			if (foot && !pin) foot.hidden = true;
-			onPlace(alone ? "alone" : pin ? "pinned" : stacked ? "under" : "beside");
+			onPlace(alone ? "alone" : pin ? "pinned" : stacked ? "under" : under.clientHeight < KEEP_ROOM ? "tight" : "beside");
 		};
 		place();
 		const ro = new ResizeObserver(place);

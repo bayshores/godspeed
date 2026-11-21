@@ -48,6 +48,28 @@ describe("the open problem, printed in its file", () => {
 		await mounted(<OpenProblemPane statement={PIECE_TEXT} piece={piece} part="b" picks={null} />, (host) => assert.equal(veils(host), 3));
 	});
 
+	it("opens resting on the part the learner is on, and glides to the part he moves on to", async () => {
+		const scrolls: ScrollToOptions[] = [];
+		const host = document.createElement("div");
+		host.className = "lh-turn-scroll";
+		// The box is shorter than the problem's page.
+		Object.defineProperty(host, "scrollHeight", { get: () => 400 });
+		Object.defineProperty(host, "clientHeight", { get: () => 100 });
+		Object.assign(host, { scrollTo: (to: ScrollToOptions) => scrolls.push(to) });
+		document.body.append(host);
+		const root = createRoot(host);
+		const pane = (part: string) => <OpenProblemPane statement={PIECE_TEXT} piece={piece} part={part} picks={null} />;
+		try {
+			await act(async () => root.render(pane("a")));
+			assert.deepEqual(scrolls.map((to) => to.behavior), ["auto"]);
+			await act(async () => root.render(pane("b")));
+			assert.deepEqual(scrolls.map((to) => to.behavior), ["auto", "smooth"]);
+		} finally {
+			await act(async () => root.unmount());
+			host.remove();
+		}
+	});
+
 	it("keeps the typed statement, and no key, for a problem with no piece", async () => {
 		await mounted(<OpenProblemPane statement="Show that the sum is even." part={null} picks={null} />, (host) => {
 			assert.match(host.querySelector('[data-testid="problem-statement"]')!.textContent ?? "", /Show that the sum is even\./);

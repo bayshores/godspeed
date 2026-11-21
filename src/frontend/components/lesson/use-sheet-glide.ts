@@ -11,7 +11,8 @@ const roomOf = (el: HTMLElement) => `${window.innerWidth} ${window.innerHeight} 
 
 /** Watches the sheets it is given and glides each to its new height; `hold` says whether they take their sizes at once from now. */
 function sheetGlide(): { ref: RefCallback<HTMLElement>; hold: (still: boolean) => void } {
-	const seen = new Map<HTMLElement, { box: Box; room: string }>();
+	// Null until a sheet's size is first seen: where it stood before the page was laid out around it is no size to glide from.
+	const seen = new Map<HTMLElement, { box: Box; room: string } | null>();
 	const gliding = new Map<HTMLElement, Animation>();
 	let watch: ResizeObserver | null = null;
 	let still = false;
@@ -26,6 +27,7 @@ function sheetGlide(): { ref: RefCallback<HTMLElement>; hold: (still: boolean) =
 			if (gliding.has(el)) continue;
 			const now = { box: boxOf(el), room: roomOf(el) };
 			seen.set(el, now);
+			if (!was) continue;
 			const ms = glideMs(was.box, now.box, was.room === now.room);
 			if (ms !== null) moves.push({ el, from: was.box.height, to: now.box.height, ms });
 		}
@@ -47,7 +49,7 @@ function sheetGlide(): { ref: RefCallback<HTMLElement>; hold: (still: boolean) =
 	const ref: RefCallback<HTMLElement> = (el) => {
 		if (!el || typeof ResizeObserver === "undefined" || typeof el.animate !== "function") return;
 		watch ??= new ResizeObserver(resized);
-		seen.set(el, { box: boxOf(el), room: roomOf(el) });
+		seen.set(el, null);
 		watch.observe(el);
 		return () => {
 			watch?.unobserve(el);

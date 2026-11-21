@@ -4,20 +4,22 @@ import { Chat } from "@/frontend/components/chat";
 import { askFromEarlier } from "@/frontend/components/lesson/use-from-earlier";
 import type { ChatRead } from "@/frontend/components/lesson/use-lesson-server";
 import { getJson } from "@/frontend/lib/api";
+import { fetchPlugins } from "@/frontend/lib/plugins-api";
 import { loadJson } from "./load-json";
 import { PageTitle } from "./page-title";
 
-/** One lesson: its record, its jobs and the question from earlier it may
+/** One lesson: its record, its jobs, the plugins its bar shows and the question from earlier it may
  *  show (and a homework lesson's or a lesson on files' problem list and
  *  documents) are read before the page shows, so a navigation keeps the old
  *  page until it's ready and the lesson opens with nothing left to arrive. */
 export async function lessonLoader({ params, request }: LoaderFunctionArgs) {
 	// The plan map's code loads with the record, so an unfolded step row draws with the first paint.
 	const id = params.id ?? "";
-	const [read, listedJobs, review] = await Promise.all([
+	const [read, listedJobs, review, plugins] = await Promise.all([
 		loadJson<ChatRead>(`/api/chats/${encodeURIComponent(id)}`, request.signal),
 		getJson<{ jobs?: JobRecord[] }>(`/api/jobs?chatId=${encodeURIComponent(id)}`, request.signal),
 		askFromEarlier(id, request.signal),
+		fetchPlugins(),
 		import("@/frontend/components/plan-block"),
 	]);
 	// An older build's Talk chat is kept on disk but never shown.
@@ -32,11 +34,11 @@ export async function lessonLoader({ params, request }: LoaderFunctionArgs) {
 		if (listed.body) problemList = listed.body.problems;
 		documents = shown.body;
 	}
-	return { chat, jobs: listedJobs.body ? (listedJobs.body.jobs ?? []) : null, review, problemList, documents, prompt: new URL(request.url).searchParams.get("prompt") ?? undefined };
+	return { chat, jobs: listedJobs.body ? (listedJobs.body.jobs ?? []) : null, review, plugins, problemList, documents, prompt: new URL(request.url).searchParams.get("prompt") ?? undefined };
 }
 
 export function LessonPage() {
-	const { chat, jobs, review, problemList, documents, prompt } = useLoaderData<typeof lessonLoader>();
+	const { chat, jobs, review, plugins, problemList, documents, prompt } = useLoaderData<typeof lessonLoader>();
 	return (
 		<>
 			<PageTitle page={chat.title || "Lesson"} />
@@ -62,6 +64,7 @@ export function LessonPage() {
 				initiallyInFlight={chat.turnInFlight}
 				initialStats={chat}
 				initialJobs={jobs}
+				plugins={plugins}
 				openedReview={review}
 			/>
 		</>

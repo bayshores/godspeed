@@ -34,7 +34,9 @@
  * - empty room: a page (.lh-page) in a box that scrolls is taller than what it holds, so the
  *   window scrolls into empty page under its last sheet (a height kept from another window size).
  * - cut start: the question or problem in "Your turn" (.lh-turn-scroll) is scrolled past its
- *   first line, though the walk did not scroll that box: it opened cut.
+ *   first line, though the walk did not scroll that box: it opened cut. A problem drawn as its
+ *   page rests on the part the learner is on (data-part-current), so that box is let through
+ *   while the part's start is in it.
  * - broken picture: an image the page shows did not load (a file the server does not hand out
  *   as a picture, or a wrong address).
  *
@@ -661,9 +663,18 @@ function emptyRooms() {
 }
 
 /** Cut start: a box in "Your turn" found scrolled, when the walk did not scroll it, opened that way. */
+/** Whether the box shows the start of the part the learner is on, where a problem's page rests. */
+function restsOnPart(box) {
+	const start = box.querySelector("[data-part-current]");
+	if (!start) return false;
+	const at = start.getBoundingClientRect().top;
+	const room = box.getBoundingClientRect();
+	return at >= room.top && at < room.bottom;
+}
+
 function cutStarts() {
 	return [...document.querySelectorAll(".lh-turn-scroll")]
-		.filter((box) => shown(box) && box.scrollTop > 1 && box !== window.__layoutScrolled)
+		.filter((box) => shown(box) && box.scrollTop > 1 && box !== window.__layoutScrolled && !restsOnPart(box))
 		.map((box) => finding("cut start", [box], `${label(box)} is scrolled ${Math.round(box.scrollTop)}px past its first line`));
 }
 

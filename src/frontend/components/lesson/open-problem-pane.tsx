@@ -11,12 +11,13 @@ import { proseVars } from "./question-parts";
 /** Room kept above the part, so the fade at the top of the box does not cover its first line. */
 const LEAD = 32;
 
-/** Brings the start of the part the learner is on to the top of the box "Your turn" scrolls in.
+/** Brings the start of the part the learner is on to the top of the box "Your turn" scrolls in:
+ *  glided to when he moves on to it (`moved`), there at once when the problem is first drawn on it.
  *  Under the lesson text there is no such box, and the page itself rests on the part. */
-function restAt(start: HTMLElement) {
+function restAt(start: HTMLElement, moved: boolean) {
 	const box = start.closest<HTMLElement>(".lh-turn-scroll");
 	if (!box || box.scrollHeight <= box.clientHeight) return;
-	box.scrollTo({ top: box.scrollTop + start.getBoundingClientRect().top - box.getBoundingClientRect().top - LEAD, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+	box.scrollTo({ top: box.scrollTop + start.getBoundingClientRect().top - box.getBoundingClientRect().top - LEAD, behavior: moved && !prefersReducedMotion() ? "smooth" : "auto" });
 }
 
 const MARKED = "[data-part-current], [data-part-head], [data-part-fold]";

@@ -203,7 +203,7 @@ export function YourTurn({
 		// The lesson text's inset, so both sheets share their edges.
 		<div data-testid="your-turn" data-mode={mode} className={cn("lh-reading flex min-h-0 flex-1 flex-col gap-7", quiet && "lh-turn-quiet")}>
 			{/* Moved between the page and the window's foot, it holds at once what it holds there. */}
-			<TurnSwap key={place === "beside" || place === "alone" ? "page" : "foot"} swapKey={boxAlone ? "box" : swapKey}>
+			<TurnSwap key={place === "pinned" || place === "under" ? "foot" : "page"} swapKey={boxAlone ? "box" : swapKey}>
 			{boxAlone ? null : (
 			<>
 			{!quiet && (
