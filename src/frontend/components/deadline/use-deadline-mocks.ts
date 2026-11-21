@@ -9,11 +9,20 @@ import { newMockBody } from "./mocks-model";
 
 const mocksUrl = (spaceId: string) => `/api/spaces/${encodeURIComponent(spaceId)}/mocks`;
 
+/** GET a deadline's mocks, newest first. */
+export const deadlineMocksUrl = (spaceId: string, deadlineId: string) => `${mocksUrl(spaceId)}?deadline=${encodeURIComponent(deadlineId)}`;
+
+/** A deadline's mocks as GET deadlineMocksUrl answers. */
+export interface DeadlineMocksRead {
+	mocks: MockSummary[];
+}
+
 /** The read both hooks below share: a deadline's mocks, newest first,
  *  read again whenever the space's mocks change; null until read. */
-function useMocksRead(spaceId: string, deadlineId: string | null) {
-	const { value, error, reload } = useServerResource<{ mocks: MockSummary[] }>(deadlineId ? `${mocksUrl(spaceId)}?deadline=${encodeURIComponent(deadlineId)}` : null, {
+function useMocksRead(spaceId: string, deadlineId: string | null, initial?: DeadlineMocksRead) {
+	const { value, error, reload } = useServerResource<DeadlineMocksRead>(deadlineId ? deadlineMocksUrl(spaceId, deadlineId) : null, {
 		on: { "mocks-changed": (e) => e.spaceId === spaceId },
+		initial,
 	});
 	return { mocks: value?.mocks ?? null, failed: error !== null, reload };
 }
@@ -21,12 +30,13 @@ function useMocksRead(spaceId: string, deadlineId: string | null) {
 /**
  * A deadline's mocks (GET /api/spaces/:id/mocks?deadline=). `write`
  * makes the next one and opens its page; `remove` removes one. Both give
- * back the error line, or null. `deadlineId` null reads nothing.
+ * back the error line, or null. `deadlineId` null reads nothing;
+ * `initial` is what the page's loader read.
  */
-export function useDeadlineMocks(spaceId: string, deadlineId: string | null) {
+export function useDeadlineMocks(spaceId: string, deadlineId: string | null, initial?: DeadlineMocksRead) {
 	const navigate = useNavigate();
 	const base = mocksUrl(spaceId);
-	const { mocks, failed, reload } = useMocksRead(spaceId, deadlineId);
+	const { mocks, failed, reload } = useMocksRead(spaceId, deadlineId, initial);
 
 	const write = useCallback(
 		async (questions: number, minutes: number | null): Promise<string | null> => {

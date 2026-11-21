@@ -108,15 +108,25 @@ describe("the route table", () => {
 	});
 
 	it("a deadline and a mock are read before their page shows", async () => {
-		const deadline = { id: "ddl_1", name: "Final", kind: "exam", date: "2026-12-01" };
-		serve({
+		const deadline = { id: "ddl_1", name: "Final", kind: "exam", date: "2026-12-01", aboutFileId: "f_1" };
+		const mocks = { mocks: [{ id: "mock_2", n: 2 }] };
+		const asked = serve({
 			"/api/deadlines/ddl_1": [200, { spaceId: "spc_1", deadline }],
+			"/api/spaces/spc_1/mocks?deadline=ddl_1": [200, mocks],
+			"/api/spaces/spc_1/deadlines/ddl_1/about": [200, { text: "Two hours, no notes." }],
 			"/api/spaces/spc_1/mocks/mock_1": [200, { mock: { id: "mock_1", n: 1 } }],
 		});
 		const page = await open("/space/deadline/ddl_1");
-		assert.deepEqual(Object.values(page.state.loaderData)[0], { spaceId: "spc_1", deadline });
+		assert.deepEqual(Object.values(page.state.loaderData)[0], { spaceId: "spc_1", deadline, mocks, about: "Two hours, no notes." }, "its mocks and what it's like are drawn as it opens");
+		const sheet = await open("/space/deadline/ddl_1/cheat-sheet");
+		assert.deepEqual(Object.values(sheet.state.loaderData)[0], { spaceId: "spc_1", deadline }, "the cheat sheet reads only the deadline");
 		const mock = await open("/space/mock/spc_1/mock_1");
 		assert.deepEqual(Object.values(mock.state.loaderData)[0], { spaceId: "spc_1", mockId: "mock_1", view: { mock: { id: "mock_1", n: 1 } } });
+		const homework = { id: "ddl_2", name: "Homework 1", kind: "homework", date: "2026-12-01" };
+		serve({ "/api/deadlines/ddl_2": [200, { spaceId: "spc_1", deadline: homework }] });
+		const plain = await open("/space/deadline/ddl_2");
+		assert.deepEqual(Object.values(plain.state.loaderData)[0], { spaceId: "spc_1", deadline: homework, mocks: null, about: null }, "a homework has no mocks and no about to read");
+		assert.equal(asked.filter((u) => u.includes("/mocks?")).length, 1);
 	});
 
 	it("the build gives the UI the app's version and homepage", () => {

@@ -55,6 +55,7 @@ const { FilesPage } = await import("../../src/frontend/components/files/files-pa
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { AgentStatusProvider } = await import("../../src/frontend/components/agent-status.tsx");
+const { ProgressProvider } = await import("../../src/frontend/components/use-progress.tsx");
 const { CopyButton } = await import("../../src/frontend/components/copy-button.tsx");
 const { BarHost } = await import("../bar-host.tsx");
 const { kbdEventForAction } = await import("../../src/shared/core/index.ts");
@@ -141,9 +142,11 @@ async function mount(initialActive: string | null = "cls_a") {
 				<ServerEventsProvider connect={connect as never}>
 					<AgentStatusProvider>
 						<SpaceProvider initialActive={initialActive}>
-							<BarHost>
-								<FilesPage />
-							</BarHost>
+							<ProgressProvider>
+								<BarHost>
+									<FilesPage />
+								</BarHost>
+							</ProgressProvider>
 						</SpaceProvider>
 					</AgentStatusProvider>
 				</ServerEventsProvider>

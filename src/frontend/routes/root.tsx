@@ -4,6 +4,7 @@ import { showsWelcome, useBoot } from "@/frontend/components/boot";
 import { AppShell } from "@/frontend/components/app-shell";
 import { ActivityProvider } from "@/frontend/components/activity-dock";
 import UpdateBanner from "@/frontend/components/update-banner";
+import { UpdateStateProvider } from "@/frontend/components/settings/update-settings";
 import { SoundProvider } from "@/frontend/components/sounds";
 import { Onboarding } from "@/frontend/components/onboarding/onboarding";
 import { RestartNotice } from "@/frontend/components/restart-notice";
@@ -25,32 +26,34 @@ export function Root() {
 	useEffect(() => window.lh?.showWindow?.(), []);
 	return (
 		<AppProviders boot={boot}>
-			<div className="flex h-dvh flex-col">
-				<ActivityProvider>
-					<SoundProvider>
-						{boot.onboarding ? (
-							<>
-								<PageTitle />
-								<Onboarding />
-							</>
-						) : (
-							<AppShell welcome={welcome} whatsNewSince={welcome ? boot.whatsNewSince : null}>
-								<Outlet />
-							</AppShell>
-						)}
-					</SoundProvider>
-				</ActivityProvider>
-			</div>
-			{/* Auto-update banner (pushed by the desktop shell) and the restart notice. */}
-			<PeekSheet>
-				<UpdateBanner />
-				{boot.firstLoad === "restarted" && <RestartNotice />}
-				{!boot.onboarding && <OldSetupNotice />}
-			</PeekSheet>
-			{/* "What's new" after an update (after the welcome screen when it
-			    shows); Settings reopens it. */}
-			{!boot.onboarding && <WhatsNew since={welcome ? null : boot.whatsNewSince} />}
-			{boot.folderNotice && <FolderNotice agent={boot.folderNotice} afterWelcome={welcome} />}
+			<UpdateStateProvider>
+				<div className="flex h-dvh flex-col">
+					<ActivityProvider>
+						<SoundProvider>
+							{boot.onboarding ? (
+								<>
+									<PageTitle />
+									<Onboarding />
+								</>
+							) : (
+								<AppShell welcome={welcome} whatsNewSince={welcome ? boot.whatsNewSince : null}>
+									<Outlet />
+								</AppShell>
+							)}
+						</SoundProvider>
+					</ActivityProvider>
+				</div>
+				{/* Auto-update banner (pushed by the desktop shell) and the restart notice. */}
+				<PeekSheet>
+					<UpdateBanner />
+					{boot.firstLoad === "restarted" && <RestartNotice />}
+					{!boot.onboarding && <OldSetupNotice />}
+				</PeekSheet>
+				{/* "What's new" after an update (after the welcome screen when it
+				    shows); Settings reopens it. */}
+				{!boot.onboarding && <WhatsNew since={welcome ? null : boot.whatsNewSince} />}
+				{boot.folderNotice && <FolderNotice agent={boot.folderNotice} afterWelcome={welcome} />}
+			</UpdateStateProvider>
 		</AppProviders>
 	);
 }

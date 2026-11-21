@@ -17,6 +17,7 @@ import { AppearanceSection } from "../../src/frontend/components/settings/appear
 import { GeneralSection } from "../../src/frontend/components/settings/general-section.tsx";
 import { sectionFor, SettingsPage } from "../../src/frontend/components/settings/settings-page.tsx";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
+import { UpdateStateProvider } from "../../src/frontend/components/settings/update-settings.tsx";
 
 const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 import { TEACHING_AREAS, type UserSettings } from "../../src/shared/core/index.ts";
@@ -153,7 +154,9 @@ describe("AreaDetail (SSR)", () => {
 describe("GeneralSection (SSR)", () => {
 	const render = (record: UserSettings) =>
 		renderToStaticMarkup(
-			<GeneralSection record={record} onGeneralChange={() => {}} />,
+			<UpdateStateProvider>
+				<GeneralSection record={record} onGeneralChange={() => {}} />
+			</UpdateStateProvider>,
 		);
 
 	it("teacher name and sounds, with no sliders and no graph switch", () => {

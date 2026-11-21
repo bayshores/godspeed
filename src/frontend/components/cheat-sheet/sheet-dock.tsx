@@ -8,7 +8,8 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { makeTarget, pickSheet, sheetChoices } from "./dock-model";
 import { SheetCanvas } from "./sheet-canvas";
 import { versionLabel } from "./studio-states";
-import { sheetPdfPath, studioPath, useCheatSheet, useSpaceSheets } from "./use-cheat-sheet";
+import { useSpaceSheets } from "./space-sheets";
+import { sheetPdfPath, studioPath, useCheatSheet } from "./use-cheat-sheet";
 
 /**
  * THE CHEAT SHEET BESIDE A LESSON, in the panel beside its page (DockPanel). It shows the

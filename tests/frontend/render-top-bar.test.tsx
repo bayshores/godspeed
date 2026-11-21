@@ -59,6 +59,7 @@ const { HeadSignature } = await import("../../src/frontend/components/space-page
 const { hasUnseenFiles } = await import("../../src/frontend/components/files/files-seen.ts");
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
+const { ProgressProvider } = await import("../../src/frontend/components/use-progress.tsx");
 const { MemoryRouter, useLocation } = await import("react-router");
 const { BarHost } = await import("../bar-host.tsx");
 
@@ -124,7 +125,7 @@ async function mount(node: React.ReactNode, { pathname = "/", active = "c29" as 
 			<MemoryRouter initialEntries={[pathname]}>
 				<ServerEventsProvider connect={quietEvents as never}>
 					<SpaceProvider initialActive={active} initialSpaces={spaces}>
-						{node}
+						<ProgressProvider>{node}</ProgressProvider>
 					</SpaceProvider>
 				</ServerEventsProvider>
 				<Spy />

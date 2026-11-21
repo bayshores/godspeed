@@ -1651,6 +1651,21 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 
 /* The mark of the lit one of a row of tabs (lit-marker.ts): one box under
    the tabs, moved to the lit one. It slides only when another tab lights. */
+/* The tab strip (SpaceTabs) fades out at an end that cuts tabs off. Its lit tab is never wider
+   than the strip, and while tabs are cut off, the strip less the fades' overhang past its padding
+   (2 × (24 − 16) px), so centered its dot and name are clear of both fades. */
+.lh-tab-strip[data-cut="end"] {
+	mask-image: linear-gradient(to right, black calc(100% - 24px), transparent);
+}
+.lh-tab-strip[data-cut="start"] {
+	mask-image: linear-gradient(to left, black calc(100% - 24px), transparent);
+}
+.lh-tab-strip[data-cut="both"] {
+	mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
+}
+.lh-tab-strip[data-cut] > [data-lit] {
+	max-width: calc(100% - 16px);
+}
 .lh-lit-marker {
 	position: absolute;
 	z-index: -1;

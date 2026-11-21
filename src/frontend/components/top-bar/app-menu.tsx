@@ -19,6 +19,9 @@ export function AppMenu({ lit }: { lit: boolean }) {
 	return (
 		<>
 			<button
+				// A new key when Settings comes or goes, so the lit look is there with the page instead of
+				// fading in; opening the menu still eases.
+				key={lit ? "lit" : "unlit"}
 				ref={anchorRef}
 				type="button"
 				data-testid="app-menu"

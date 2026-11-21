@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import { UpdateSettings, updateStatusText, MANUAL_UPDATE_HINT, AUTO_UPDATE_HINT, type UpdateState } from "../../src/frontend/components/settings/update-settings.tsx";
+import { UpdateSettings, UpdateStateProvider, updateStatusText, MANUAL_UPDATE_HINT, AUTO_UPDATE_HINT, type UpdateState } from "../../src/frontend/components/settings/update-settings.tsx";
 import UpdateBanner from "../../src/frontend/components/update-banner.tsx";
 import { SettingsPage } from "../../src/frontend/components/settings/settings-page.tsx";
 import viteConfig from "../../vite.config.ts";
@@ -62,7 +62,7 @@ function bridge(initial = state(), snapshot = Promise.resolve(initial)) {
 async function mount(element: React.ReactElement) {
 	const host = document.createElement("div"); document.body.append(host);
 	const root = createRoot(host); roots.push({ root, host });
-	await act(async () => { root.render(<ServerEventsProvider connect={quietEvents as never}>{element}</ServerEventsProvider>); });
+	await act(async () => { root.render(<ServerEventsProvider connect={quietEvents as never}><UpdateStateProvider>{element}</UpdateStateProvider></ServerEventsProvider>); });
 	return host;
 }
 
@@ -104,7 +104,7 @@ describe("version and contextual copy", () => {
 
 describe("General update rows", () => {
 	it("browser/SSR shows version and installed-version release notes, without inactive controls or claims", () => {
-		const html = renderToStaticMarkup(<UpdateSettings {...props} />);
+		const html = renderToStaticMarkup(<UpdateStateProvider><UpdateSettings {...props} /></UpdateStateProvider>);
 		assert.ok(html.includes("Version 0.3.7"));
 		assert.ok(html.includes(`${props.homepage}/releases/tag/v0.3.7`));
 		assert.ok(!html.includes("update-check")); assert.ok(!html.includes("row-auto-update"));

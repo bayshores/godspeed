@@ -84,6 +84,7 @@ function list(props: Partial<React.ComponentProps<typeof SuggestionList>> = {}) 
 			<SuggestionList
 				spaceLabel="CSE 21"
 				suggestions={SUGGESTIONS}
+				arrives={false}
 				busyOn={null}
 				onStudyFile={() => {}}
 				onStudyTopic={() => {}}
@@ -162,6 +163,11 @@ describe("Study page: suggestions", () => {
 		assert.ok(list({ spaceLabel: null }).includes(">Suggested</h2>"));
 	});
 
+	it("rises in only when it comes after the page opened", () => {
+		assert.doesNotMatch(list(), /lh-rise/, "the list the page opened with is just there");
+		assert.match(list({ arrives: true }), /lh-rise/);
+	});
+
 	it("nothing to suggest: nothing renders", () => {
 		assert.equal(list({ suggestions: [] }), "");
 	});
@@ -235,6 +241,7 @@ describe("Study page: actions", () => {
 				<SuggestionList
 					spaceLabel="CSE 21"
 					suggestions={SUGGESTIONS}
+					arrives={false}
 					busyOn={null}
 					onStudyFile={(f) => learned.push(f)}
 					onStudyTopic={(t) => practiced.push(t)}

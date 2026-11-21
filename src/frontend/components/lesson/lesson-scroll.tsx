@@ -42,7 +42,7 @@ const SETTLE = { damping: 0.6, stiffness: 0.12, mass: 1 };
 
 /** The room under the step line at which "Your turn" is pinned under the text's window: lower, a question
  *  with its box and keys would leave the text a sliver, so there it stays in the page, under the text.
- *  Under the shut book's page it is pinned in any room while it is only its box and keys (`slim`). */
+ *  While it is only its box and keys (`slim`) it is pinned in any room. */
 const PIN_ROOM = 640;
 
 /** The room at which the right page keeps the task the learner last finished: lower, its box and keys
@@ -153,9 +153,7 @@ export function LessonScroll({
 		const place = () => {
 			const column = columnRef.current;
 			const stacked = pair && oneColumn(column);
-			// The room is wide enough for the book (the column's container query lifts its reading measure).
-			const wide = column !== null && getComputedStyle(column).maxWidth === "none";
-			const pin = stacked && (under.clientHeight >= PIN_ROOM || (wide && slim));
+			const pin = stacked && (under.clientHeight >= PIN_ROOM || slim);
 			const slot = (pin ? footSlot : pageSlot).current;
 			const foot = footRef.current;
 			// Shown and hidden here, with the move, so no frame draws the foot's room without its sheet. Shown before

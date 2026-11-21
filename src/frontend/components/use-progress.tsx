@@ -1,7 +1,8 @@
 /**
  * useProgress: the active
- * space's ProgressPayload from GET /api/progress. The space pages share one
- * read (ProgressProvider in the space layout); a page outside it reads its own.
+ * space's ProgressPayload from GET /api/progress, read once for the window
+ * (ProgressProvider in the app shell), so a page that shows it opens with it
+ * drawn.
  *
  * Re-reads when the space changes, when a turn settles (new answers), when
  * background activity changes (a graph build or the topic grouper
@@ -48,21 +49,17 @@ interface Progress {
 	refresh: () => Promise<void>;
 }
 
-/** The active space's progress; `read` false reads nothing. */
-function useRead(read: boolean): Progress {
-	const { active } = useSpaces();
-	const { value, error, reload } = useServerResource<ProgressPayload>(read ? progressUrl(active) : null, { on: RELOAD_ON, debounceMs: REFRESH_DEBOUNCE_MS });
-	return useMemo(() => ({ data: value, error, refresh: reload }), [value, error, reload]);
-}
-
 const ProgressContext = createContext<Progress | null>(null);
 
 export function ProgressProvider({ children }: { children: ReactNode }) {
-	return <ProgressContext.Provider value={useRead(true)}>{children}</ProgressContext.Provider>;
+	const { active } = useSpaces();
+	const { value, error, reload } = useServerResource<ProgressPayload>(progressUrl(active), { on: RELOAD_ON, debounceMs: REFRESH_DEBOUNCE_MS });
+	const progress = useMemo(() => ({ data: value, error, refresh: reload }), [value, error, reload]);
+	return <ProgressContext.Provider value={progress}>{children}</ProgressContext.Provider>;
 }
 
 export function useProgress(): Progress {
 	const shared = useContext(ProgressContext);
-	const own = useRead(shared === null);
-	return shared ?? own;
+	if (!shared) throw new Error("useProgress outside ProgressProvider");
+	return shared;
 }

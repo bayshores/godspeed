@@ -1,5 +1,6 @@
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
+import { useWaited } from "@/frontend/components/loading";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { agentHereNow, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { cn } from "@/frontend/lib/utils";
@@ -13,16 +14,19 @@ import { useStartAgent } from "./use-agent-folder";
  */
 export function NoAgentLine({ className }: { className?: string }) {
 	const panelStarts = useTeacher()?.panelStarts ?? false;
-	if (agentHereNow(useAgentStatus(), useTerminals()) !== false || panelStarts) return null;
-	return <Line className={className} />;
+	const shown = agentHereNow(useAgentStatus(), useTerminals()) === false && !panelStarts;
+	// Only a line that comes after its page opened rises in; one the page opened with is just there.
+	const arrives = useWaited(shown);
+	if (!shown) return null;
+	return <Line arrives={arrives} className={className} />;
 }
 
-function Line({ className }: { className?: string }) {
+function Line({ arrives, className }: { arrives: boolean; className?: string }) {
 	const agent = useStartAgent();
 	const name = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	if (agent.starting) return null;
 	return (
-		<div data-testid="no-agent" className={cn("lh-rise flex flex-col gap-1 text-[15px]", className)}>
+		<div data-testid="no-agent" className={cn("flex flex-col gap-1 text-[15px]", arrives && "lh-rise", className)}>
 			<p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-ink">
 				<span aria-hidden className="size-2.5 shrink-0 bg-ink-3" />
 				{name} is off

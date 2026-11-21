@@ -746,6 +746,48 @@ function openingAllowed(animation, target) {
 /** A box in words for a finding. */
 const boxWords = (box) => `${Math.round(box.width)} by ${Math.round(box.height)} at ${Math.round(box.left)}, ${Math.round(box.top)}`;
 
+/** Reads frames as they are drawn. `next()` asks for the coming frame; `read` then runs inside it,
+ *  once it is laid out and the page's own ResizeObservers have run. A frame's own callback runs
+ *  before that, and a task after the frame runs after whatever was waiting: both read a state that
+ *  is never drawn, and what a ResizeObserver puts in its place would count as a move. `stop()`
+ *  ends it. */
+function drawnFrames(read) {
+	// Deeper than anything of the page's, so the probe changes no round of the page's observers.
+	const root = document.createElement("div");
+	root.style.cssText = "position:fixed;visibility:hidden;pointer-events:none;width:0;height:0;overflow:hidden";
+	let outer = root;
+	for (let depth = 0; depth < 200; depth++) outer = outer.appendChild(document.createElement("div"));
+	const inner = outer.appendChild(document.createElement("div"));
+	let due = null;
+	let flip = false;
+	// The inner box changes size in the outer one's callback, so its own callback runs in a later
+	// round of the same frame.
+	const first = new ResizeObserver(() => (inner.style.height = flip ? "2px" : "1px"));
+	const second = new ResizeObserver(() => {
+		if (due === null) return;
+		const now = due;
+		due = null;
+		read(now);
+	});
+	document.body.append(root);
+	first.observe(outer);
+	second.observe(inner);
+	return {
+		next() {
+			requestAnimationFrame((now) => {
+				due = now;
+				flip = !flip;
+				outer.style.height = flip ? "2px" : "1px";
+			});
+		},
+		stop() {
+			first.disconnect();
+			second.disconnect();
+			root.remove();
+		},
+	};
+}
+
 /** Starts the opening watch for a page about to open at `path`, in the page as it is before. What
  *  it follows that is in the page now is old; the new page's first paint is the first frame in
  *  which a shown sheet that is not old is there, or, for a page that traveled in with none, the
@@ -774,7 +816,7 @@ export function watchOpening(path) {
 			const bare = traveled && !arriving && !fresh;
 			if (location.pathname !== path || !(fresh || bare)) {
 				watch.framesBefore++;
-				requestAnimationFrame(frame);
+				frames.next();
 				return;
 			}
 			watch.firstAt = now;
@@ -823,13 +865,15 @@ export function watchOpening(path) {
 			seen.targets.add(target);
 		}
 		if (now - watch.firstAt < WATCH_MS) {
-			requestAnimationFrame(frame);
+			frames.next();
 			return;
 		}
+		frames.stop();
 		removeEventListener("scroll", onScroll, { capture: true });
 		watch.done = true;
 	};
-	requestAnimationFrame(frame);
+	const frames = drawnFrames(frame);
+	frames.next();
 }
 
 /** What the opening watch saw, once it is done: whether the new page painted, how many frames

@@ -22,27 +22,34 @@ const FADE = 24;
 // The dialog compares its mode by identity: one object for every open.
 const CREATE = { kind: "create" } as const;
 
-/** The tab strip's scroller: which of its ends cut tabs off, and the lit
+/** The tab strip's scroller: which of its ends cut tabs off (`data-cut`, which globals.css fades), and the lit
  *  tab (with the page's crumb) kept in sight as the window narrows or another tab lights. */
 function useTabStrip(selected: string, tabs: number) {
 	const ref = useRef<HTMLDivElement>(null);
-	const [cut, setCut] = useState({ start: false, end: false });
+	// Marked on the strip itself, not kept in state: the mark narrows the lit tab's room, so it is
+	// there in the same layout that brings the tab into sight, not a frame later.
 	const measure = useCallback(() => {
 		const el = ref.current;
 		if (!el) return;
 		const start = el.scrollLeft > 1;
 		const end = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
-		setCut((c) => (c.start === start && c.end === end ? c : { start, end }));
+		if (start || end) el.dataset.cut = start && end ? "both" : start ? "start" : "end";
+		else delete el.dataset.cut;
 	}, []);
 	useLayoutEffect(() => {
 		const el = ref.current;
 		if (!el) return;
-		const reveal = () => {
+		const show = () => {
 			const lit = el.querySelector<HTMLElement>("[data-lit]");
 			// Too narrow to keep the lit tab clear of both fades: centered, they fall on its padding.
 			const center = !!lit && lit.offsetWidth + 2 * FADE > el.clientWidth;
 			lit?.scrollIntoView?.({ block: "nearest", inline: center ? "center" : "nearest" });
+		};
+		const reveal = () => {
+			show();
 			measure();
+			// Again, in the room the mark left the lit tab.
+			show();
 		};
 		reveal();
 		const observer = new ResizeObserver(reveal);
@@ -50,7 +57,7 @@ function useTabStrip(selected: string, tabs: number) {
 		for (const tab of el.children) observer.observe(tab);
 		return () => observer.disconnect();
 	}, [selected, tabs, measure]);
-	return { ref, cut, measure };
+	return { ref, measure };
 }
 
 /**
@@ -105,10 +112,7 @@ export function SpaceTabs({ selected }: { selected: string }) {
 					if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY;
 				}}
 				className={cn(
-					"flex min-w-0 shrink-[9999] scroll-px-6 items-stretch overflow-x-auto [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden",
-					strip.cut.end && !strip.cut.start && "[mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)]",
-					strip.cut.start && !strip.cut.end && "[mask-image:linear-gradient(to_left,black_calc(100%-24px),transparent)]",
-					strip.cut.start && strip.cut.end && "[mask-image:linear-gradient(to_right,transparent,black_24px,black_calc(100%-24px),transparent)]",
+					"lh-tab-strip flex min-w-0 shrink-[9999] scroll-px-6 items-stretch overflow-x-auto [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden",
 				)}
 			>
 				{openSpaces.map((c) => {
@@ -116,7 +120,7 @@ export function SpaceTabs({ selected }: { selected: string }) {
 					const lit = selected === c.id;
 					// One wrapper either way, so lighting a tab never remounts its link (and its focus).
 					return (
-						<div key={c.id} data-lit={lit ? "" : undefined} className={lit ? cn("flex shrink-0 items-stretch", strip.cut.start || strip.cut.end ? "max-w-[calc(100%-16px)]" : "max-w-full") : "contents"}>
+						<div key={c.id} data-lit={lit ? "" : undefined} className={lit ? "flex max-w-full shrink-0 items-stretch" : "contents"}>
 							<Link
 								to="/space"
 								data-testid={`space-option-${c.id}`}

@@ -201,11 +201,18 @@ export function usePageRest({
 		return performance.now() < hold.current.until ? scrollElement.scrollTop : restOf(end, { scrollElement, contentElement });
 	}, [holdThenGlide, restOf]);
 	useLayoutEffect(() => () => clearTimeout(hold.current.timer), []);
-	// The page opens at its rest: its follower would place it one frame after the first is drawn.
+	// The page opens at its rest: its follower would place it one frame after the first is drawn. It is placed again
+	// with each layout before that frame, as where "Your turn" stands is only known once the page is laid out.
+	const drawn = useRef<boolean | null>(null);
 	useLayoutEffect(() => {
-		const state = contextRef.current?.state;
-		if (state) state.scrollTop = state.calculatedTargetScrollTop;
-	}, [contextRef]);
+		if (drawn.current) return;
+		if (drawn.current === null) requestAnimationFrame(() => (drawn.current = true));
+		drawn.current = false;
+		const context = contextRef.current;
+		const scroller = context?.scrollRef.current;
+		const content = context?.contentRef.current;
+		if (context && scroller && content) context.state.scrollTop = stood.current = restOf(context.state.targetScrollTop, { scrollElement: scroller, contentElement: content });
+	});
 	const wasBusy = useRef(busy);
 	const landing = useRef(0);
 	useLayoutEffect(() => {

@@ -16,7 +16,7 @@ import * as ReactDOMClient from "react-dom/client";
 import { flushSync } from "react-dom";
 import { parseHTML } from "linkedom";
 import UpdateBanner from "../../src/frontend/components/update-banner.tsx";
-import type { UpdateState } from "../../src/frontend/components/settings/update-settings.tsx";
+import { UpdateStateProvider, type UpdateState } from "../../src/frontend/components/settings/update-settings.tsx";
 
 // linkedom as the DOM for the interactive pass (first createRoot test in
 // the repo — the banner's push→render→click flow needs real effects).
@@ -31,7 +31,7 @@ describe("update banner (Wave C)", () => {
 	});
 
 	it("renders nothing with no bridge (browser / SSR)", () => {
-		const html = renderToStaticMarkup(<UpdateBanner />);
+		const html = renderToStaticMarkup(<UpdateStateProvider><UpdateBanner /></UpdateStateProvider>);
 		assert.equal(html, "");
 	});
 
@@ -44,7 +44,7 @@ describe("update banner (Wave C)", () => {
 			},
 			installUpdate: () => {},
 		};
-		const html = renderToStaticMarkup(<UpdateBanner />);
+		const html = renderToStaticMarkup(<UpdateStateProvider><UpdateBanner /></UpdateStateProvider>);
 		assert.equal(html, "");
 		void listeners;
 	});
@@ -64,7 +64,7 @@ describe("update banner (Wave C)", () => {
 		const host = document.createElement("div");
 		document.body.appendChild(host);
 		const root = ReactDOMClient.createRoot(host);
-		flushSync(() => root.render(<UpdateBanner />));
+		flushSync(() => root.render(<UpdateStateProvider><UpdateBanner /></UpdateStateProvider>));
 		assert.equal(host.innerHTML, "", "hidden before the push");
 
 		await new Promise((r) => setTimeout(r, 0));
@@ -92,7 +92,7 @@ describe("update banner (Wave C)", () => {
 		const host = document.createElement("div");
 		document.body.appendChild(host);
 		const root = ReactDOMClient.createRoot(host);
-		flushSync(() => root.render(<UpdateBanner />));
+		flushSync(() => root.render(<UpdateStateProvider><UpdateBanner /></UpdateStateProvider>));
 		await new Promise((r) => setTimeout(r, 0));
 		flushSync(() => pushed?.({ status: "downloading", version: "0.5.4", percent: 40, revision: 1 }));
 		assert.ok(host.innerHTML.includes("godspeed 0.5.4 is downloading"));
