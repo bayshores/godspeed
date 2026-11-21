@@ -22,6 +22,7 @@ use gs_files::walk::{SkippedFiles, walk_linked_folder};
 use gs_json::{Json, Obj, json};
 
 use super::space_card::space_file_path;
+use super::vault_skip::vault_skip;
 use super::files::{drop_file, file_in, import_running, mutate_files, new_file_id};
 use super::pipeline::enqueue_file;
 use super::state::SeenFile;
@@ -152,7 +153,7 @@ pub fn scan_linked_folder(app: &Arc<App>, space_id: &str, linking: bool) {
 		if !meta.is_dir() {
 			return Err(io::Error::other("not a folder"));
 		}
-		walk_linked_folder(Path::new(root), &app.spaces.text_checks)
+		walk_linked_folder(Path::new(root), &app.spaces.text_checks, &vault_skip(app, Path::new(root)))
 	});
 	let walk = match walked {
 		Ok(walk) => walk,
@@ -484,5 +485,37 @@ mod tests {
 		scans.into_iter().for_each(|scan| scan.join().unwrap());
 		let record = app.stores.spaces.get_space(&id).unwrap();
 		assert_eq!(record["files"].items().iter().filter(|f| f["path"].str_or_empty() == "week1.md").count(), 1);
+	}
+
+	#[tokio::test]
+	async fn a_scan_of_a_vault_skips_godspeeds_notes_but_reads_a_kept_one() {
+		let root = scratch_dir("scan-vault");
+		let app = test_app(&root);
+		let folder = root.join("vault");
+		let write = |rel: &str, text: &str| {
+			std::fs::create_dir_all(folder.join(rel).parent().unwrap()).unwrap();
+			fsx::write_text_atomic(&folder.join(rel), text).unwrap();
+		};
+		write("CSE 21/Sorting.md", "---\ngodspeed: tpc_1\n---\nSorting.\n");
+		write("Mine.md", "---\ngodspeed: keep\n---\nMy note.\n");
+		write("Loose.md", "# Loose\n\nA plain note.\n");
+		let space = app.stores.spaces.create_space(&json!({ "name": "Algebra" })).unwrap();
+		let id = space["id"].as_str().unwrap().to_owned();
+		app.stores.spaces.update_space(&id, &json!({ "linkedFolder": folder.to_string_lossy() })).unwrap();
+		crate::app::vault_settings::set_vault_field(&app, "path", json!(folder.to_string_lossy())).unwrap();
+		app.stores
+			.vault_notes
+			.update(|record| {
+				record.get_mut("folders").unwrap().set(id.as_str(), "CSE 21");
+				record.get_mut("notes").unwrap().set("tpc_1", json!({ "spaceId": id, "path": "CSE 21/Sorting.md", "state": "active" }));
+				record.get_mut("notes").unwrap().set("tpc_2", json!({ "spaceId": id, "path": "Mine.md", "state": "kept" }));
+				Ok(())
+			})
+			.unwrap();
+		scan_linked_folder(&app, &id, true);
+		let record = app.stores.spaces.get_space(&id).unwrap();
+		let mut paths: Vec<&str> = record["files"].items().iter().map(|f| f["path"].str_or_empty()).collect();
+		paths.sort_unstable();
+		assert_eq!(paths, ["Loose.md", "Mine.md"]);
 	}
 }

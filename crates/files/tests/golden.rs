@@ -17,7 +17,7 @@ use gs_files::text::{FileTextError, file_to_text, is_readable_space_file, looks_
 #[cfg(unix)]
 use gs_files::text::TextChecks;
 #[cfg(unix)]
-use gs_files::walk::walk_linked_folder;
+use gs_files::walk::{Skip, walk_linked_folder};
 use gs_json::{Json, parse};
 use gs_pdf::worker::Pdf;
 use support::{TempDir, write};
@@ -164,14 +164,14 @@ fn folder_walks_match_node() {
 					locked
 				}
 			};
-			let got = walk_linked_folder(&root, &checks).unwrap_err();
+			let got = walk_linked_folder(&root, &checks, &Skip::default()).unwrap_err();
 			assert_eq!(node_error_message(&got, "scandir", &root).replace(dir.path().to_str().unwrap(), "<dir>"), s(&error["message"]), "{name}");
 			continue;
 		}
 		let root = dir.path().join(format!("case-{i}"));
 		fs::create_dir(&root).unwrap();
 		build_tree(&root, c["tree"].as_arr().unwrap());
-		let got = walk_linked_folder(&root, &checks).unwrap();
+		let got = walk_linked_folder(&root, &checks, &Skip::default()).unwrap();
 		let want = &c["result"];
 		let mut want_files = strings(&want["files"]);
 		// The recording came from a case-insensitive disk, where library/ is the skipped Library/.

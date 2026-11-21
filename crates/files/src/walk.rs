@@ -1,5 +1,6 @@
 //! Which supported files a linked space folder holds.
 
+use std::collections::HashSet;
 use std::fs::DirEntry;
 use std::io;
 use std::path::Path;
@@ -28,6 +29,26 @@ pub struct SkippedFiles {
 	pub google: usize,
 }
 
+/// What a walk leaves out on top of its own rules, as POSIX-style paths relative to the root:
+/// the vault's notes folders and the notes godspeed wrote, whose facts are already in the graph.
+/// A path in `keep` is read anyway, even inside a skipped folder.
+#[derive(Debug, Default)]
+pub struct Skip {
+	pub dirs: HashSet<String>,
+	pub files: HashSet<String>,
+	pub keep: HashSet<String>,
+}
+
+impl Skip {
+	fn keeps_inside(&self, dir: &str) -> bool {
+		self.keep.iter().any(|k| k.strip_prefix(dir).is_some_and(|rest| rest.starts_with('/')))
+	}
+
+	fn file_is_skipped(&self, rel: &str, inside_skipped_dir: bool) -> bool {
+		(inside_skipped_dir || self.files.contains(rel)) && !self.keep.contains(rel)
+	}
+}
+
 #[derive(Debug, Default, PartialEq)]
 pub struct Walk {
 	/// Supported files as POSIX-style relative paths, folder by folder in name order.
@@ -43,13 +64,26 @@ pub struct Walk {
 /// noise folders are passed over; other files that can't be read are counted in `skipped`. An
 /// unreadable folder is not an empty one: the walk fails when the root can't be read (the error
 /// is for the caller to word, as `scandir`), and lists unreadable subfolders in `unreadable`.
-pub fn walk_linked_folder(root: &Path, checks: &TextChecks) -> io::Result<Walk> {
+pub fn walk_linked_folder(root: &Path, checks: &TextChecks, skip: &Skip) -> io::Result<Walk> {
 	let mut walk = Walk::default();
-	visit(root, "", checks, &mut walk)?;
+	visit(root, "", &Mode::Linked { checks, skip }, false, &mut walk)?;
 	Ok(walk)
 }
 
-fn visit(dir: &Path, rel: &str, checks: &TextChecks, walk: &mut Walk) -> io::Result<()> {
+/// Every Markdown file under `root`, at most `max`, by the same rules for hidden files and noise
+/// folders. Used to read an Obsidian vault, which has no supported-file or text checks to make.
+pub fn walk_markdown(root: &Path, max: usize) -> io::Result<Walk> {
+	let mut walk = Walk::default();
+	visit(root, "", &Mode::Markdown { max }, false, &mut walk)?;
+	Ok(walk)
+}
+
+enum Mode<'a> {
+	Linked { checks: &'a TextChecks, skip: &'a Skip },
+	Markdown { max: usize },
+}
+
+fn visit(dir: &Path, rel: &str, mode: &Mode, in_skipped: bool, walk: &mut Walk) -> io::Result<()> {
 	let entries = match std::fs::read_dir(dir).and_then(|it| it.collect::<io::Result<Vec<DirEntry>>>()) {
 		Ok(entries) => entries,
 		Err(err) if rel.is_empty() => return Err(err),
@@ -71,22 +105,50 @@ fn visit(dir: &Path, rel: &str, checks: &TextChecks, walk: &mut Walk) -> io::Res
 		let child_rel = if rel.is_empty() { name.clone() } else { format!("{rel}/{name}") };
 		let Ok(kind) = entry.file_type() else { continue };
 		if kind.is_dir() {
-			if !SKIPPED_DIRS.contains(&name.as_str()) {
-				visit(&entry.path(), &child_rel, checks, walk)?;
+			if SKIPPED_DIRS.contains(&name.as_str()) {
+				continue;
 			}
+			let in_skipped = match mode {
+				// Inside a skipped folder only the kept notes are read, so a folder holding none is not entered.
+				Mode::Linked { skip, .. } if skip.dirs.contains(&child_rel) => {
+					if !skip.keeps_inside(&child_rel) {
+						continue;
+					}
+					true
+				}
+				_ => in_skipped,
+			};
+			visit(&entry.path(), &child_rel, mode, in_skipped, walk)?;
 		} else if kind.is_file() {
-			match is_readable_space_file(&name, || checks.file_looks_like_text(&entry.path())) {
-				None => walk.unreadable.push(child_rel),
-				Some(false) => skip(&name, walk),
-				Some(true) if walk.files.len() == MAX_LINKED_FILES => walk.capped = true,
-				Some(true) => walk.files.push(child_rel),
+			match mode {
+				Mode::Markdown { max } => {
+					if extension_of(&name) != ".md" {
+						continue;
+					}
+					if walk.files.len() == *max {
+						walk.capped = true;
+					} else {
+						walk.files.push(child_rel);
+					}
+				}
+				Mode::Linked { checks, skip } => {
+					if skip.file_is_skipped(&child_rel, in_skipped) {
+						continue;
+					}
+					match is_readable_space_file(&name, || checks.file_looks_like_text(&entry.path())) {
+						None => walk.unreadable.push(child_rel),
+						Some(false) => skip_unreadable(&name, walk),
+						Some(true) if walk.files.len() == MAX_LINKED_FILES => walk.capped = true,
+						Some(true) => walk.files.push(child_rel),
+					}
+				}
 			}
 		}
 	}
 	Ok(())
 }
 
-fn skip(name: &str, walk: &mut Walk) {
+fn skip_unreadable(name: &str, walk: &mut Walk) {
 	let skipped = &mut walk.skipped;
 	skipped.count += 1;
 	if GOOGLE_STUB_EXTENSIONS.contains(&extension_of(name).as_str()) {

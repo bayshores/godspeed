@@ -30,6 +30,7 @@ pub(crate) mod settings_record;
 pub mod teacher_chats;
 pub mod teacher_nudge;
 pub mod terminal_lines;
+pub mod vault_settings;
 #[cfg(test)]
 pub(crate) mod test_support;
 pub mod today_note;

@@ -6,5 +6,6 @@ pub mod frontmatter;
 pub mod mistakes;
 pub mod note_file;
 pub mod note_keys;
+pub mod note_record;
 pub mod obsidian;
 pub mod sections;
