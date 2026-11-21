@@ -119,6 +119,11 @@ const unfoldSteps = `document.querySelector("[data-testid=plan-fold]").click(); 
 
 /** A click on the first topic with facts in the Graph's picture. */
 const pickTopic = `[...document.querySelectorAll("[data-testid=graph-topic]")].find((topic) => !/\\b0 facts/.test(topic.getAttribute("aria-label"))).click()`;
+/** A click on the topic that needs two topics first and leads to two more. */
+const pickMiddleTopic = `[...document.querySelectorAll("[data-testid=graph-topic]")].find((topic) => topic.getAttribute("aria-label").startsWith("Solving linear equations")).click()`;
+/** A click on the first loose square in the Graph's picture, where the second space's two facts wait for topics. */
+const pickSquare = `{ const at = document.querySelector("[data-testid=graph-loose] path").getBoundingClientRect();
+document.querySelector("[data-testid=graph-picture]").dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: at.left + at.width / 2, clientY: at.top + at.height / 2, detail: 1 })); }`;
 
 /** Waits for the Graph's camera to come to rest: a flight takes 0.3 s, so its zoom reads the same on two looks apart. `arrived` is the page expression that says the camera went where the screen asked; a narrow window shows the panel in the picture's place, and then there is nothing to wait for. */
 const cameraRests = (arrived) => `{ const picture = () => document.querySelector("[data-testid=graph-picture]");
@@ -204,6 +209,13 @@ export const SCREENS = [
 		ready: "[data-testid=graph-topic]",
 		setup: `${pickTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}; ${fitsWindow}`,
 		shows: "[data-testid=graph-panel] [data-testid=topic-pane]",
+	},
+	{
+		name: "Graph, a topic with several topics it needs and leads to",
+		url: "/graph",
+		ready: "[data-testid=graph-topic]",
+		setup: `${pickMiddleTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}; ${fitsWindow}`,
+		shows: "[data-testid=topic-pane]:has([data-testid=needs-first] li:nth-child(2)):has([data-testid=leads-to] li:nth-child(2))",
 	},
 	{
 		name: "Graph, zoomed by hand",
@@ -469,6 +481,9 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: `document.querySelector("[data-testid=space-path-show-all]").click()`,
 		shows: "[data-testid=space-path-rows] li:nth-child(7)",
 	},
+	// The path space is open: its two facts are too few to sort into topics.
+	{ name: "Graph, facts not sorted yet", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-sorts-next]", setup: fitsWindow },
+	{ name: "Graph, a fact picked before any topic", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-loose]", setup: pickSquare, shows: "[data-testid=graph-panel] [data-testid=fact-pane]" },
 	{ name: "Files, the linked folder's box", before: linkedFolder, url: "/space/files", ready: "[data-testid=space-folder]", setup: `document.querySelector("[data-testid=space-folder]").click()`, shows: "[data-testid=space-folder-box][data-state=open]" },
 	{ name: "The plus list with a closed space", before: closedSpace, url: "/", ready: "[data-testid=spaces-plus]", setup: `document.querySelector("[data-testid=spaces-plus]").click()`, shows: "[data-testid=spaces-plus-list][data-state=open] [data-testid=closed-space-{pathSpace}]" },
 	{ name: "A closed space's menu", url: "/", ready: "[data-testid=spaces-plus]", setup: `document.querySelector("[data-testid=spaces-plus]").click(); ${pause}; ${rightClick(`document.querySelector("[data-testid=closed-space-{pathSpace}]")`)}`, shows: "[data-testid=space-menu][data-state=open]" },

@@ -76,6 +76,7 @@ export function fixture(): ProgressPayload {
 		today: "2026-10-27",
 		topicsAt: "2026-10-26T00:00:00Z",
 		grouping: false,
+		minFactsForTopics: 4,
 		topics,
 		topicLinks: [
 			{ from: "t-deriv", to: "t-mini", weight: 2 },
@@ -121,5 +122,18 @@ export function fixture(): ProgressPayload {
 			workOnNext: [{ topicId: "t-mini", name: "Minibatch noise", status: "weak", reason: "overconfident" }],
 		},
 		totals: { answered: 21, right: 14, wrong: 7, dontKnow: 0, rate: 14 / 21 },
+	};
+}
+
+/** The same facts before any topic: the server's Ungrouped bucket holds them all. */
+export function unsorted(): ProgressPayload {
+	const data = fixture();
+	const members = data.facts.map((f) => f.id);
+	return {
+		...data,
+		topicsAt: null,
+		topics: [{ ...topic("ungrouped", "Ungrouped", 0, members, []), ungrouped: true }],
+		topicLinks: [],
+		facts: data.facts.map((f) => ({ ...f, topicId: "ungrouped" })),
 	};
 }

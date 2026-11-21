@@ -9,6 +9,7 @@ import { GraphEmpty } from "./graph-empty.tsx";
 import { TopicPane } from "./topic-pane.tsx";
 import { REVEAL_MS, type Reveal } from "./constellation-reveal.ts";
 import { FOOT } from "./graph-foot.tsx";
+import { nothingGrouped } from "./derive.ts";
 
 /** The docked panel's width, and the gap between it and the picture. */
 const PANEL = 340;
@@ -33,11 +34,13 @@ const topicButton = (id: string) => `[data-testid=graph-topic][data-topic-id=${J
 /** The picture over one progress payload (loaded lazily by graph-screen.tsx).
  *  A picked topic or fact docks its panel at the right and the picture
  *  re-fits beside it; with too little room the panel shows alone. A pick
- *  flies the camera into its topic, and closing it flies back. */
+ *  flies the camera into its topic, and closing it flies back. Before any
+ *  topic, a fact opens alone, where it is. */
 export function GraphBody({
 	data,
 	matches,
 	sources,
+	note,
 	studying,
 	studyError,
 	onStudy,
@@ -52,6 +55,8 @@ export function GraphBody({
 	matches: { topics: ReadonlySet<string>; facts: ReadonlySet<string> } | null;
 	/** Where facts came from and how they link; null while it loads. */
 	sources: FactSources | null;
+	/** The line under facts no topic holds yet; null while it is not said. */
+	note: string | null;
 	studying: boolean;
 	studyError: string | null;
 	onStudy: (topicIds: string[]) => void;
@@ -66,16 +71,22 @@ export function GraphBody({
 	const [selectedId, setSelectedId] = useState<string | null>(initialSelected);
 	const [factId, setFactId] = useState<string | null>(null);
 	const room = useRoom();
-	// The picture inks in once per opening of the tab; a re-fit, Find, pick or refresh never replays it.
+	// The picture inks in once per opening of the tab, and once more when the first topics arrive; a re-fit, Find, pick or refresh never replays it.
 	const [reveal, setReveal] = useState<Reveal | null>(() => (prefersReducedMotion() ? null : { start: performance.now(), at: null }));
+	const waiting = nothingGrouped(data.topics);
+	const [wasWaiting, setWasWaiting] = useState(waiting);
+	if (wasWaiting !== waiting) {
+		setWasWaiting(waiting);
+		if (!waiting && data.topics.length > 0 && !prefersReducedMotion()) setReveal({ start: performance.now(), at: null });
+	}
 	useEffect(() => {
+		if (!reveal) return;
 		const timer = window.setTimeout(() => setReveal(null), REVEAL_MS);
 		return () => window.clearTimeout(timer);
-	}, []);
+	}, [reveal]);
 	// A graph change keeps the pick; a topic or fact that is gone closes its panel.
 	const selected = selectedId ? data.topics.find((t) => t.id === selectedId) : undefined;
 	const fact = factId ? data.facts.find((f) => f.id === factId) : undefined;
-	const factTopic = fact ? data.topics.find((t) => t.id === fact.topicId) : undefined;
 
 	const narrow = room.width < NARROW;
 
@@ -114,10 +125,11 @@ export function GraphBody({
 		else if (selectedId) onFly({ to: "back" });
 	};
 	// A fact opens with its topic picked, so the picture shows where it sits, flying in unless it is already near.
+	// Before any topic it opens alone and the picture stays where it is.
 	const openFact = (id: string) => {
 		opening();
 		const topicId = data.facts.find((f) => f.id === id)?.topicId;
-		if (topicId) {
+		if (topicId && !waiting) {
 			setSelectedId(topicId);
 			onFly({ to: "topic", id: topicId, fact: id });
 		}
@@ -134,8 +146,8 @@ export function GraphBody({
 	const onEscape = useRef(() => {});
 	onEscape.current = () => {
 		const at = document.activeElement;
-		if (fact) backToTopic();
-		else if (selected) close();
+		if (fact && selected) backToTopic();
+		else if (fact || selected) close();
 		else if (!at || at === document.body || at.closest(`${PICTURE}, ${FOOT_LINE}`)) onFly({ to: "whole" });
 	};
 	useEffect(() => {
@@ -161,11 +173,11 @@ export function GraphBody({
 	// The picked topic never dims under Find.
 	const focus = matches && selected ? new Set([...matches.topics, selected.id]) : (matches?.topics ?? null);
 	const panel =
-		fact && factTopic ? (
+		fact ? (
 			<FactPane
 				key={fact.id}
 				fact={fact}
-				topicName={factTopic.name}
+				topicName={selected?.name ?? null}
 				facts={data.facts}
 				sources={sources}
 				onBack={backToTopic}
@@ -212,6 +224,7 @@ export function GraphBody({
 							bleed={bleed}
 								docked={!!panel}
 							reveal={reveal}
+							note={note}
 							pickedId={selected?.id ?? null}
 							pickedFactId={fact?.id ?? null}
 							focus={focus}
