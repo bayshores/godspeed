@@ -26,5 +26,6 @@
 | Side channels (extraction, usage, naming) swallow their own errors and never touch reply or save. The turn registry clears on every path |
 | Absent is not zero: unreported tokens and missing levels show as absent, never made up |
 | A model's tool input is checked against tool's JSON schema before tool runs (`engine::turn::validate`) |
+| The learner's own notes are only read, except a note marked `godspeed: keep`. One writer, `services::vault::write`, writes the notes folder. Its record `vault-notes.json` is kept aside when damaged. A key or section the learner changed is never overwritten (§8.1.4) |
 | Core barrel stays browser-safe (a doc comment, §2.1) |
 | `window.lh` members are declared in `desktop-env.tsx` and `shim.js`, kept in step by hand |

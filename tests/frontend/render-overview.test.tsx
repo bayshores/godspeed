@@ -152,23 +152,27 @@ const FACTS = [true, true, false, false, false].map((inLessons, i) => ({
 
 type Props = React.ComponentProps<typeof OverviewBody>;
 
+const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+
 function body(props: Partial<Props> = {}) {
 	return (
 		<MemoryRouter initialEntries={["/space"]}>
-			<OverviewBody
-				hasSpace
-				color="var(--lh-space-1)"
-				data={{ ...PAYLOAD, deadlines: DEADLINES, facts: FACTS }}
-				nowMs={NOW}
-				busyOn={null}
-				startError={null}
-				onStudy={() => {}}
-				onStudyPath={() => {}}
-				onStudyDeadline={() => {}}
-				onWorkDeadline={() => {}}
-				onAddDeadline={() => {}}
-				{...props}
-			/>
+			<ServerEventsProvider connect={quietEvents as never}>
+				<OverviewBody
+					hasSpace
+					color="var(--lh-space-1)"
+					data={{ ...PAYLOAD, deadlines: DEADLINES, facts: FACTS }}
+					nowMs={NOW}
+					busyOn={null}
+					startError={null}
+					onStudy={() => {}}
+					onStudyPath={() => {}}
+					onStudyDeadline={() => {}}
+					onWorkDeadline={() => {}}
+					onAddDeadline={() => {}}
+					{...props}
+				/>
+			</ServerEventsProvider>
 		</MemoryRouter>
 	);
 }
@@ -618,7 +622,6 @@ describe("clicks", () => {
 			host = document.createElement("div");
 			document.body.appendChild(host);
 			root = createRoot(host);
-			const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 			await act(async () =>
 				root!.render(
 					<MemoryRouter initialEntries={["/space"]}>

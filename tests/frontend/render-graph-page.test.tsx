@@ -71,7 +71,12 @@ Object.defineProperty(dom.document, "activeElement", { get: () => (focused?.isCo
 
 const noop = () => {};
 const NO_BLEED = { left: 0, right: 0, top: 0, bottom: 0 };
-const inRouter = (tree: React.ReactNode) => <MemoryRouter initialEntries={["/graph"]}>{tree}</MemoryRouter>;
+const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+const inRouter = (tree: React.ReactNode) => (
+	<MemoryRouter initialEntries={["/graph"]}>
+		<ServerEventsProvider connect={quietEvents as never}>{tree}</ServerEventsProvider>
+	</MemoryRouter>
+);
 const count = (html: string, needle: string) => html.split(needle).length - 1;
 const body = (over: Partial<React.ComponentProps<typeof GraphBody>> = {}) =>
 	inRouter(<GraphBody data={fixture()} matches={null} sources={null} note={null} studying={false} studyError={null} onStudy={noop} onStudyFact={noop} onInView={noop} aim={null} onFly={noop} {...over} />);
@@ -113,7 +118,7 @@ describe("the picked topic", () => {
 	const data = fixture();
 	const mini = data.topics.find((t) => t.id === "t-mini")!;
 	const html = renderToStaticMarkup(
-		<TopicPane topic={mini} topics={data.topics} links={data.topicLinks} facts={data.facts} onClose={noop} onSelectTopic={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} />,
+		inRouter(<TopicPane topic={mini} topics={data.topics} links={data.topicLinks} facts={data.facts} onClose={noop} onSelectTopic={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} />),
 	);
 
 	it("names the topic, with Close, its fact count and score, and the sure-miss note", () => {
@@ -668,7 +673,6 @@ describe("the graph screen", () => {
 			urls.push(url);
 			return Response.json({ error: "boom" }, { status: 500 });
 		}) as typeof fetch;
-		const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 		try {
 			host = document.createElement("div");
 			document.body.append(host);
@@ -697,7 +701,6 @@ describe("the graph screen", () => {
 	it("Whole space, once it is gone, hands focus back to the picture's Tab stop", async () => {
 		const original = globalThis.fetch;
 		globalThis.fetch = (async (url: string) => (url.startsWith("/api/progress") ? Response.json(fixture()) : Response.json({ error: "none" }, { status: 404 }))) as typeof fetch;
-		const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 		reducedMotion.matches = true;
 		try {
 			const { q, topic } = await mount(
@@ -723,7 +726,6 @@ describe("the graph screen", () => {
 });
 
 describe("the graph screen before any topic", () => {
-	const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 	it("the line names the teacher and counts the facts; while a grouping run goes the work frame says it, so the line is gone", async () => {
 		const original = globalThis.fetch;
 		reducedMotion.matches = true;

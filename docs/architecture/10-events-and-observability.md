@@ -37,6 +37,7 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 | `cheat-sheet-changed` | `{deadlineId}` | a cheat sheet's versions, chat or request changed (`services::cheat_sheets`) |
 | `deadline-request-changed` | `{spaceId, deadlineId}` | a deadline request started or ended (`services::spaces::deadline_requests`) |
 | `space-checked` | `{run, spaceId, agent, lines, said}` | a space check changed something: `lines` for the learner, `said` the agent's last line or null (`services::spaces::space_checks`) |
+| `vault-notes-changed` | `{}` | the notes folder setting changed, or a note godspeed writes there was written, found again, marked removed or began waiting (`services::vault`) |
 
 ### 10.3 Rules for emitters
 
@@ -58,5 +59,6 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 
 - Coverage block in lesson menu (`CoverageMenuBlock`, `src/frontend/components/extraction-coverage.tsx`) reads every 2 s while open, because events channel only reports extraction phases.
 - The 409 retry (`session-core.ts`) polls every 500 ms while another turn runs and gives up after 30 s.
+- The notes folder is looked at once a minute by the scanner (`vault::maintain::minute_check`), because files change outside godspeed; the window hears of a change by `vault-notes-changed`.
 - Dock clock ticks every second (`use-now.ts`), no network.
 - Mount fast paths stay: `initiallyInFlight`, mount-time `needsContinuation` check, and the `lh:chat-renamed` window event for instant same-tab updates.

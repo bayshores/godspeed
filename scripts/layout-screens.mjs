@@ -109,18 +109,17 @@ for (let tries = 0; ; tries++) {
  *  one page for each of the lab space's real topics, and the server's own "notes changed" event, which a write of the same setting sends,
  *  makes the page read again. */
 const RECALLS = ["How do you undo ax + b = c, one step at a time?", "When may you do the same thing to both sides of an equation?", "What do you do first to isolate the variable?", "What do the slope and the intercept tell you about a line?", "How does a word problem become an equation?"];
-const COLORS = ["#c0584a", "#d49a3a", "#6a9a5a", "#4a7aa8", "#6a9a5a"];
 const KINDS = ["godspeed", "kept", "mine", "godspeed", "godspeed"];
 /** Two more pages, so Progress has more than a row of them. */
 const EXTRA_PAGES = [
-	{ topicId: "extra-1", name: "Systems of equations", recall: "How many solutions can two lines share?", color: "#6a9a5a", kind: "godspeed", path: "Lab Algebra/Systems of equations.md", saving: false },
-	{ topicId: "extra-2", name: "Inequalities", recall: "When does an inequality flip?", color: "#4a7aa8", kind: "godspeed", path: "Lab Algebra/Inequalities.md", saving: false },
+	{ topicId: "extra-1", name: "Systems of equations", recall: "How many solutions can two lines share?", color: "", kind: "godspeed", path: "Lab Algebra/Systems of equations.md", saving: false },
+	{ topicId: "extra-2", name: "Inequalities", recall: "When does an inequality flip?", color: "", kind: "godspeed", path: "Lab Algebra/Inequalities.md", saving: false },
 ];
 /** The page-side list of the first `take` topics' pages (more with `extra`); the `waiting` ones are still being written. */
 const pagesOf = (take, { extra = false, waiting = [] } = {}) => `[...topics.slice(0, ${take}).map((topic, n) => ({
-	topicId: topic.id, name: topic.name, recall: ${JSON.stringify(RECALLS)}[n] ?? null, color: ${JSON.stringify(COLORS)}[n], kind: ${JSON.stringify(KINDS)}[n],
+	topicId: topic.id, name: topic.name, recall: ${JSON.stringify(RECALLS)}[n] ?? null, color: topic.color, kind: ${JSON.stringify(KINDS)}[n],
 	path: "Lab Algebra/" + topic.name + ".md", saving: false, ...(${JSON.stringify(waiting)}.includes(n) ? { kind: "godspeed", path: null, saving: true } : {}),
-})), ...${extra ? JSON.stringify(EXTRA_PAGES) : "[]"}]`;
+})), ...${extra ? JSON.stringify(EXTRA_PAGES) : "[]"}.map((page) => ({ ...page, color: topics[0].color }))]`;
 /** Answers the page's reads of the notes (a path with "vault-notes") with `answer`, then has the server say the notes changed. `status` is what the notes folder's own read says besides. */
 const notesAre = (answer, status = "{}") => `window.__realFetch ??= window.fetch.bind(window);
 const { topics: all } = await (await window.__realFetch("/api/progress?space={space}&today=" + new Date().toLocaleDateString("en-CA"))).json();

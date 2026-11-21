@@ -23,6 +23,7 @@ Read only the files your task touches. A "§N" in any doc is the file that start
 | [08.1.1-the-godspeed-folder.md](08.1.1-the-godspeed-folder.md) | You change the godspeed folder, the spaces folder or the agent start script. |
 | [08.1.2-the-work-loop.md](08.1.2-the-work-loop.md) | You change the work loop, the helper or work items. |
 | [08.1.3-agent-tools-and-notes.md](08.1.3-agent-tools-and-notes.md) | You change the other agent tools, agent notes, saved rules or web search. |
+| [08.1.4-vault-notes.md](08.1.4-vault-notes.md) | You change the notes folder, Obsidian notes, `write_vault_note`, `search_vault` or the pass that sends them. |
 | [08.2-plugins.md](08.2-plugins.md) | You change how the app hosts a plugin. Writing one is in [plugins.md](../plugins.md). |
 | [09-invariants.md](09-invariants.md) | You want the rules that always hold and what the build enforces. |
 | [10-events-and-observability.md](10-events-and-observability.md) | You change logging, the events channel or what still polls. Also holds §10.1 to §10.5. |

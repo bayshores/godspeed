@@ -32,7 +32,7 @@ async fn a_vault_is_picked_read_back_unlinked_and_its_notes_listed() {
 	let space_id = app.stores.spaces.create_space(&json!({ "name": "CSE 21" })).unwrap()["id"].str_or_empty().to_owned();
 	let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
 	let port = listener.local_addr().unwrap().port();
-	tokio::spawn(axum::serve(listener, gs_server::http::server(Arc::clone(&app), &Access::default())).into_future());
+	gs_base::tasks::spawn("test", axum::serve(listener, gs_server::http::server(Arc::clone(&app), &Access::default())).into_future());
 
 	let (code, status) = call(port, "GET", "/api/vault", "").await;
 	assert_eq!((code, status["state"].as_str(), status["words"].as_str(), status["folder"].is_null()), (200, Some("none"), Some("teacher"), true));
