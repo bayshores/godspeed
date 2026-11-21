@@ -131,8 +131,8 @@ export function confirmCopy(
 			if (source) {
 				const what = change.file.kind === "study" ? withFacts(factsOf([change.file]), "them") : "";
 				return {
-					title: `Remove ${change.file.name} and ${source.name}?`,
-					body: `They leave ${spaceName}${what}. Your original files are not touched. This cannot be undone.`,
+					title: "Remove 2 files?",
+					body: `${change.file.name} and ${source.name} leave ${spaceName}${what}. Your original files are not touched. This cannot be undone.`,
 					action: "Remove files",
 					danger: true,
 				};

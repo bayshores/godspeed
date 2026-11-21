@@ -94,8 +94,8 @@ describe("files-model", () => {
 		});
 		const pair = [file({ id: "p", name: "HW 3.pdf" }), file({ id: "t", name: "HW 3.tex", pdfId: "p" })];
 		assert.deepEqual(confirmCopy({ kind: "remove", file: pair[0]! }, "CSE 21", pair, new Map([["p", { ...cov(4, 0), fileId: "p" }]])), {
-			title: "Remove HW 3.pdf and HW 3.tex?",
-			body: "They leave CSE 21, along with the 4 facts built from them. Your original files are not touched. This cannot be undone.",
+			title: "Remove 2 files?",
+			body: "HW 3.pdf and HW 3.tex leave CSE 21, along with the 4 facts built from them. Your original files are not touched. This cannot be undone.",
 			action: "Remove files",
 			danger: true,
 		});

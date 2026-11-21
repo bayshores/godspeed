@@ -368,7 +368,7 @@ describe("FilesPage", () => {
 		assert.equal(q("files-picked-names")!.textContent, "HW 3.pdf");
 		await act(async () => q("space-file-menu-f_pdf")!.click());
 		await act(async () => q("space-file-remove-f_pdf")!.click());
-		assert.match(q("files-confirm")!.textContent!, /Remove HW 3\.pdf and HW 3\.tex\?/);
+		assert.match(q("files-confirm")!.textContent!, /Remove 2 files\?.*HW 3\.pdf and HW 3\.tex leave CSE 21/);
 		await act(async () => q("files-confirm-button")!.click());
 		assert.deepEqual(calls, [{ method: "DELETE", url: "/api/spaces/cls_a/files/f_pdf", body: undefined }], "the server removes the .tex with it");
 	});
@@ -555,6 +555,7 @@ describe("FilesPage: picking files to study", () => {
 		assert.equal(pressed("f2"), "true");
 		assert.ok(q("space-file-f1")!.hasAttribute("data-picked"));
 		assert.equal(q("files-picked-names")!.textContent, "Rosen 6.2 — Probability theory.pdf, Lecture 1 — Counting.pdf");
+		assert.match(q("files-picked-bar")!.className, /\bw-fit max-w-\[min\(880px,100%\)\] min-w-\[min\(560px,100%\)\]/, "as wide as the names need, 560 to 880, never past its room");
 		await pick("f2");
 		assert.equal(pressed("f2"), "false", "a second click lets it go");
 		assert.equal(q("files-picked-names")!.textContent, "Lecture 1 — Counting.pdf");
