@@ -193,7 +193,7 @@ mod tests {
 	/// Runs one check at `now_ms` (not the one after the start). The shell answers `shown` to a
 	/// notification; the answer is what it was asked to show.
 	async fn check(app: &Arc<App>, lines: &mut mpsc::UnboundedReceiver<Vec<u8>>, now_ms: i64, shown: bool) -> Option<(String, String)> {
-		let mut task = tokio::spawn({
+		let mut task = gs_base::tasks::spawn("test", {
 			let app = app.clone();
 			async move { remind(&app, app.shell.as_ref().unwrap(), now_ms, false).await }
 		});

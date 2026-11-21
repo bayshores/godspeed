@@ -363,7 +363,7 @@ mod tests {
 		let abort = Abort::new();
 		let mut opts = SubagentRunOptions::new("", Json::from("go"), 3);
 		opts.abort_signal = Some(abort.clone());
-		let run = tokio::spawn({
+		let run = gs_base::tasks::spawn("test", {
 			let bridge = bridge.clone();
 			async move { run_subagent(&bridge, Vec::new(), opts).await.err() }
 		});

@@ -51,12 +51,6 @@
 					8
 				],
 				"estimateTokens": 7573,
-				"context": {
-					"tokens": 23634,
-					"usageTokens": 23604,
-					"trailingTokens": 30,
-					"lastUsageIndex": 41
-				},
 				"cuts": [
 					0,
 					16,
@@ -143,12 +137,6 @@
 					176
 				],
 				"estimateTokens": 4187,
-				"context": {
-					"tokens": 31436,
-					"usageTokens": 31436,
-					"trailingTokens": 0,
-					"lastUsageIndex": 39
-				},
 				"cuts": [
 					0,
 					0,
@@ -229,12 +217,6 @@
 					525
 				],
 				"estimateTokens": 5749,
-				"context": {
-					"tokens": 5749,
-					"usageTokens": 0,
-					"trailingTokens": 5749,
-					"lastUsageIndex": null
-				},
 				"cuts": [
 					0,
 					0,
@@ -279,12 +261,6 @@
 					17
 				],
 				"estimateTokens": 740,
-				"context": {
-					"tokens": 14803,
-					"usageTokens": 14803,
-					"trailingTokens": 0,
-					"lastUsageIndex": 13
-				},
 				"cuts": [
 					0,
 					0,
@@ -336,12 +312,6 @@
 					279
 				],
 				"estimateTokens": 4351,
-				"context": {
-					"tokens": 36529,
-					"usageTokens": 36529,
-					"trailingTokens": 0,
-					"lastUsageIndex": 20
-				},
 				"cuts": [
 					0,
 					0,
@@ -394,12 +364,6 @@
 					67
 				],
 				"estimateTokens": 2854,
-				"context": {
-					"tokens": 37504,
-					"usageTokens": 37437,
-					"trailingTokens": 67,
-					"lastUsageIndex": 12
-				},
 				"cuts": [
 					0,
 					0,
@@ -436,12 +400,6 @@
 					28
 				],
 				"estimateTokens": 1668,
-				"context": {
-					"tokens": 26543,
-					"usageTokens": 26515,
-					"trailingTokens": 28,
-					"lastUsageIndex": 4
-				},
 				"cuts": [
 					0,
 					0,
@@ -502,12 +460,6 @@
 					504
 				],
 				"estimateTokens": 5028,
-				"context": {
-					"tokens": 20513,
-					"usageTokens": 20513,
-					"trailingTokens": 0,
-					"lastUsageIndex": 29
-				},
 				"cuts": [
 					0,
 					0,
@@ -583,12 +535,6 @@
 					389
 				],
 				"estimateTokens": 6279,
-				"context": {
-					"tokens": 34755,
-					"usageTokens": 34755,
-					"trailingTokens": 0,
-					"lastUsageIndex": 29
-				},
 				"cuts": [
 					0,
 					7,
@@ -654,12 +600,6 @@
 					172
 				],
 				"estimateTokens": 5994,
-				"context": {
-					"tokens": 23083,
-					"usageTokens": 23083,
-					"trailingTokens": 0,
-					"lastUsageIndex": 29
-				},
 				"cuts": [
 					0,
 					6,
@@ -5796,7 +5736,7 @@
 		]
 	},
 	{
-		"name": "compaction: thresholds and usage",
+		"name": "compaction: thresholds",
 		"output": {
 			"thresholds": [
 				{
@@ -5861,48 +5801,6 @@
 						50000
 					],
 					"output": 0
-				}
-			],
-			"usage": [
-				{
-					"input": {},
-					"output": 0
-				},
-				{
-					"input": {
-						"totalTokens": 100
-					},
-					"output": 100
-				},
-				{
-					"input": {
-						"totalTokens": 0,
-						"input": 10,
-						"output": 20,
-						"cacheRead": 30,
-						"cacheWrite": 40
-					},
-					"output": 100
-				},
-				{
-					"input": {
-						"input": 10
-					},
-					"output": 10
-				},
-				{
-					"input": {
-						"totalTokens": 5,
-						"input": 10
-					},
-					"output": 5
-				},
-				{
-					"input": {
-						"cacheRead": 1.5,
-						"cacheWrite": 2.25
-					},
-					"output": 3.75
 				}
 			]
 		}
@@ -6065,386 +5963,7 @@
 				0,
 				0
 			],
-			"total": 1234,
-			"contexts": [
-				{
-					"input": [],
-					"output": {
-						"tokens": 0,
-						"usageTokens": 0,
-						"trailingTokens": 0,
-						"lastUsageIndex": null
-					}
-				},
-				{
-					"input": [
-						{
-							"role": "user",
-							"content": "abcdefgh"
-						}
-					],
-					"output": {
-						"tokens": 2,
-						"usageTokens": 0,
-						"trailingTokens": 2,
-						"lastUsageIndex": null
-					}
-				},
-				{
-					"input": [
-						{
-							"role": "user",
-							"content": "abcdefgh"
-						},
-						{
-							"id": "u",
-							"role": "assistant",
-							"content": [
-								{
-									"type": "text",
-									"text": "tail"
-								}
-							],
-							"usage": {
-								"totalTokens": 50
-							}
-						},
-						{
-							"role": "user",
-							"content": "12345678"
-						}
-					],
-					"output": {
-						"tokens": 52,
-						"usageTokens": 50,
-						"trailingTokens": 2,
-						"lastUsageIndex": 1
-					}
-				},
-				{
-					"input": [
-						{
-							"id": "u",
-							"role": "assistant",
-							"content": [
-								{
-									"type": "text",
-									"text": "tail"
-								}
-							],
-							"usage": {
-								"input": 10,
-								"output": 5
-							}
-						},
-						{
-							"id": "u",
-							"role": "assistant",
-							"content": [
-								{
-									"type": "text",
-									"text": "tail"
-								}
-							],
-							"usage": {
-								"totalTokens": 0
-							}
-						},
-						{
-							"role": "user",
-							"content": "x"
-						}
-					],
-					"output": {
-						"tokens": 17,
-						"usageTokens": 15,
-						"trailingTokens": 2,
-						"lastUsageIndex": 0
-					}
-				},
-				{
-					"input": [
-						{
-							"id": "u",
-							"role": "assistant",
-							"content": [
-								{
-									"type": "text",
-									"text": "tail"
-								}
-							],
-							"usage": {
-								"totalTokens": 30
-							}
-						},
-						{
-							"id": "u",
-							"role": "assistant",
-							"content": [
-								{
-									"type": "text",
-									"text": "tail"
-								}
-							],
-							"usage": {
-								"totalTokens": 99
-							},
-							"stopReason": "aborted"
-						},
-						{
-							"id": "u",
-							"role": "assistant",
-							"content": [
-								{
-									"type": "text",
-									"text": "tail"
-								}
-							],
-							"usage": {
-								"totalTokens": 98
-							},
-							"stopReason": "error"
-						}
-					],
-					"output": {
-						"tokens": 32,
-						"usageTokens": 30,
-						"trailingTokens": 2,
-						"lastUsageIndex": 0
-					}
-				},
-				{
-					"input": [
-						{
-							"id": "u",
-							"role": "assistant",
-							"content": [
-								{
-									"type": "text",
-									"text": "tail"
-								}
-							],
-							"usage": {
-								"totalTokens": 30
-							}
-						},
-						{
-							"role": "custom",
-							"customType": "compaction",
-							"content": "s"
-						},
-						{
-							"role": "user",
-							"content": "abcd"
-						}
-					],
-					"output": {
-						"tokens": 3,
-						"usageTokens": 0,
-						"trailingTokens": 3,
-						"lastUsageIndex": null
-					}
-				},
-				{
-					"input": [
-						{
-							"id": "u",
-							"role": "assistant",
-							"content": [
-								{
-									"type": "text",
-									"text": "tail"
-								}
-							],
-							"usage": {
-								"totalTokens": 30
-							}
-						},
-						{
-							"role": "custom",
-							"customType": "plan-block",
-							"content": "s"
-						},
-						{
-							"role": "user",
-							"content": "abcd"
-						}
-					],
-					"output": {
-						"tokens": 32,
-						"usageTokens": 30,
-						"trailingTokens": 2,
-						"lastUsageIndex": 0
-					}
-				},
-				{
-					"input": [
-						{
-							"id": "n",
-							"role": "assistant",
-							"content": [
-								{
-									"type": "text",
-									"text": "no usage"
-								}
-							]
-						}
-					],
-					"output": {
-						"tokens": 2,
-						"usageTokens": 0,
-						"trailingTokens": 2,
-						"lastUsageIndex": null
-					}
-				},
-				{
-					"input": [
-						{
-							"role": "user",
-							"content": "hello world"
-						},
-						{
-							"role": "user",
-							"content": [
-								{
-									"type": "text",
-									"text": "abcd"
-								},
-								{
-									"type": "image"
-								},
-								"plain",
-								{
-									"type": "other",
-									"text": "zzzz"
-								},
-								null
-							]
-						},
-						{
-							"role": "user",
-							"content": [
-								{
-									"type": "text"
-								}
-							],
-							"attachments": [
-								{
-									"type": "text",
-									"text": "att"
-								}
-							]
-						},
-						{
-							"role": "user",
-							"content": 5
-						},
-						{
-							"role": "user"
-						},
-						{
-							"role": "assistant",
-							"content": [
-								{
-									"type": "text",
-									"text": "four"
-								},
-								{
-									"type": "thinking",
-									"thinking": "think"
-								},
-								{
-									"type": "toolCall",
-									"id": "c",
-									"name": "quiz",
-									"arguments": {
-										"a": 1,
-										"nested": [
-											1,
-											2
-										]
-									}
-								},
-								{
-									"type": "toolCall",
-									"id": "d",
-									"name": "plan"
-								},
-								{
-									"type": "other"
-								}
-							]
-						},
-						{
-							"role": "assistant",
-							"content": "not an array"
-						},
-						{
-							"role": "assistant",
-							"content": [
-								{
-									"type": "text",
-									"text": "😀\ud83d"
-								},
-								{
-									"type": "toolCall",
-									"id": "e",
-									"name": "emoji😀",
-									"arguments": {
-										"s": "😀"
-									}
-								}
-							]
-						},
-						{
-							"role": "toolResult",
-							"toolName": "quiz",
-							"content": [
-								{
-									"type": "text",
-									"text": "result text"
-								}
-							]
-						},
-						{
-							"role": "system",
-							"content": "sys",
-							"sections": {
-								"a": "1234",
-								"b": "12"
-							},
-							"toolsAdded": [
-								"x",
-								"y"
-							]
-						},
-						{
-							"role": "custom",
-							"customType": "today-context",
-							"content": "ctx"
-						},
-						{
-							"role": "custom",
-							"customType": "compaction",
-							"content": "summary"
-						},
-						{
-							"role": "custom",
-							"customType": "plan-block",
-							"content": ""
-						},
-						{
-							"role": "weird"
-						}
-					],
-					"output": {
-						"tokens": 1234,
-						"usageTokens": 0,
-						"trailingTokens": 1234,
-						"lastUsageIndex": null
-					}
-				}
-			]
+			"total": 1234
 		}
 	},
 	{

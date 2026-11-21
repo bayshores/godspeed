@@ -107,7 +107,7 @@ impl Pdf {
 			let (x1, y1) = (((crop.right * page_w).ceil() as u32).min(rgba.width()), ((crop.bottom * page_h).ceil() as u32).min(rgba.height()));
 			encode(&image::imageops::crop_imm(&rgba, x0, y0, x1.saturating_sub(x0).max(1), y1.saturating_sub(y0).max(1)).to_image())
 		};
-		tokio::task::spawn_blocking(finish).await.map_err(|e| format!("Page {number} could not be drawn: {e}"))?
+		gs_base::tasks::spawn_blocking("pdf", finish).await.map_err(|e| format!("Page {number} could not be drawn: {e}"))?
 	}
 }
 

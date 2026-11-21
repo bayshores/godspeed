@@ -74,7 +74,7 @@ async fn run_queue(app: Arc<App>, space_id: String) {
 		let Some(file_id) = next else { break };
 		app.spaces.queued.lock().remove(&format!("{space_id}:{file_id}"));
 		if !app.spaces.cancelled.lock().contains(&space_id) {
-			let run = tokio::spawn(process_file(app.clone(), space_id.clone(), file_id.clone()));
+			let run = gs_base::tasks::spawn("space-file", process_file(app.clone(), space_id.clone(), file_id.clone()));
 			if let Err(err) = run.await {
 				eprintln!("[spaces] processing {space_id}:{file_id} failed: {err}");
 			}

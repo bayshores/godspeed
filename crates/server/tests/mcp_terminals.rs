@@ -57,7 +57,7 @@ async fn an_ended_terminals_agent_is_refused_at_the_door_and_in_its_wait() {
 	assert!(!body.contains(CLOSED));
 
 	app.bridge.set_live_terminals(vec![TERMINAL.to_owned()], Some(TERMINAL.to_owned()));
-	let open = tokio::spawn({
+	let open = gs_base::tasks::spawn("test", {
 		let app = app.clone();
 		async move { wait(&app, Some(TERMINAL)).await }
 	});
@@ -75,7 +75,7 @@ async fn an_ended_terminals_agent_is_refused_at_the_door_and_in_its_wait() {
 async fn typing_in_the_terminal_ends_its_wait_with_a_note() {
 	let app = app();
 	app.bridge.set_live_terminals(vec![TERMINAL.to_owned()], Some(TERMINAL.to_owned()));
-	let open = tokio::spawn({
+	let open = gs_base::tasks::spawn("test", {
 		let app = app.clone();
 		async move { wait(&app, Some(TERMINAL)).await }
 	});
@@ -121,7 +121,7 @@ async fn what_the_teacher_terminal_starts_opens_and_its_running_waiter_needs_no_
 	let (_, body) = call(&app, Some(TERMINAL), Some("sess-1"), "start_lesson", r#"{"topic":"Cells"}"#).await;
 	assert!(body.contains("The lesson is in the godspeed window. Wait with the waiter"), "{body}");
 	call(&app, None, Some("sess-2"), "wait_for_work", r#"{"timeout_seconds":1}"#).await;
-	let waiter = tokio::spawn({
+	let waiter = gs_base::tasks::spawn("test", {
 		let app = app.clone();
 		async move { call(&app, Some(TERMINAL), Some("sess-1"), "wait_for_work", r#"{"timeout_seconds":5}"#).await }
 	});
@@ -146,7 +146,7 @@ async fn typing_while_respond_waits_for_a_follow_up_ends_the_turn_with_a_note() 
 			break;
 		}
 	}
-	let responding = tokio::spawn({
+	let responding = gs_base::tasks::spawn("test", {
 		let app = app.clone();
 		async move { call(&app, Some(TERMINAL), Some("sess-1"), "respond", &format!(r#"{{"work_id":"{work_id}","text":"Cells are small.","wait_seconds":5}}"#)).await }
 	});

@@ -101,7 +101,7 @@ async fn post_import(State(app): State<Arc<App>>, headers: HeaderMap, body: Body
 		return json(400, &json!({ "results": [], "error": "no files" }));
 	}
 	// Node runs a route to the end after its client leaves, so the imports outlive the request.
-	let imports = tokio::spawn(import_files(app, files));
+	let imports = gs_base::tasks::spawn("graph", import_files(app, files));
 	match imports.await {
 		Ok(results) => json(200, &json!({ "results": results })),
 		Err(_) => reply::empty(500),

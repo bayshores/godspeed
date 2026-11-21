@@ -4,7 +4,6 @@
 
 use std::collections::HashSet;
 use std::sync::Arc;
-use std::sync::atomic::Ordering;
 
 use gs_base::{clock, time};
 use gs_core::contracts::chat::extracts_facts;
@@ -14,13 +13,14 @@ use super::turn_service::{LEFTOVER_IDLE_MS, extract_when_idle, run_extraction, u
 use crate::App;
 use crate::spaces::space_checks::{check_spaces, check_spaces_now};
 
-/// Once per app run: extract what each lesson has left, now when it already sits idle, else once
-/// it has (its timer died with the last run).
-fn catch_up_lessons(app: &Arc<App>, now: i64) -> Result<(), String> {
-	if app.turns.lessons_caught_up.load(Ordering::SeqCst) || !app.stores.settings.effective_settings()?["graph"]["enabled"].truthy() {
+/// Once per agent session: extract what each lesson has left, now when it already sits idle, else
+/// once it has (its timer died with the last run). A run that failed is tried again when the next
+/// session waits; `runs.claim` keeps a lesson to one run at a time.
+fn catch_up_lessons(app: &Arc<App>, session: &str, now: i64) -> Result<(), String> {
+	if app.turns.lessons_caught_up.lock().contains(session) || !app.stores.settings.effective_settings()?["graph"]["enabled"].truthy() {
 		return Ok(());
 	}
-	app.turns.lessons_caught_up.store(true, Ordering::SeqCst);
+	app.turns.lessons_caught_up.lock().insert(session.to_owned());
 	let closed: HashSet<String> = app.stores.spaces.list_spaces().iter().filter(|c| c["closed"].truthy()).filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
 	for summary in app.stores.chats.list_chats() {
 		let Some(id) = summary["id"].as_str() else { continue };
@@ -43,10 +43,10 @@ fn catch_up_lessons(app: &Arc<App>, now: i64) -> Result<(), String> {
 	Ok(())
 }
 
-/// The agent started waiting for work.
-pub fn catch_up_for_agent(app: &Arc<App>, now: i64) {
+/// The agent with this session id started waiting for work.
+pub fn catch_up_for_agent(app: &Arc<App>, session: &str, now: i64) {
 	let run = || -> Result<(), String> {
-		catch_up_lessons(app, now)?;
+		catch_up_lessons(app, session, now)?;
 		check_spaces(app, now);
 		crate::vault::catch_up(app);
 		Ok(())
@@ -62,5 +62,32 @@ pub fn ask_about_new_deadlines(app: &Arc<App>) {
 	let now = clock::now_ms();
 	if app.bridge.agent_teaching(now) || app.bridge.contacted_teacher_terminal().is_some() {
 		check_spaces_now(app, now);
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use gs_json::json;
+
+	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
+
+	#[tokio::test]
+	async fn each_new_session_catches_up_once() {
+		let root = scratch_dir("catch-up");
+		let app = test_app(&root);
+		let id = app.stores.chats.create_chat("t", None, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
+		let taught = "A limit is the value a function approaches. ".repeat(20);
+		let said = json!({ "id": "msg_a", "role": "assistant", "content": [{ "type": "text", "text": taught }], "stopReason": "stop", "timestamp": 1 });
+		app.stores.chats.save_messages(&id, &[said]).unwrap();
+		let now = clock::now_ms();
+		let handed = |session: &str| {
+			app.turns.leftover_timers.lock().clear();
+			catch_up_lessons(&app, session, now).unwrap();
+			app.turns.leftover_timers.lock().contains_key(&id)
+		};
+		assert!(handed("session-a"), "the first wait hands the lesson out");
+		assert!(!handed("session-a"), "the same session waiting again does not");
+		assert!(handed("session-b"), "a new session tries the lesson again");
 	}
 }

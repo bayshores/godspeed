@@ -10,7 +10,7 @@ async fn clones_work_across_tasks() {
 	let tasks: Vec<_> = (0..8)
 		.map(|_| {
 			let pdf = pdf.clone();
-			tokio::spawn(async move { pdf.pdf_shape(&fixture("sample-3page.pdf")).await })
+			gs_base::tasks::spawn("test", async move { pdf.pdf_shape(&fixture("sample-3page.pdf")).await })
 		})
 		.collect();
 	for task in tasks {

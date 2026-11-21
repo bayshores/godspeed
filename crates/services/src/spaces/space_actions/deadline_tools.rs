@@ -6,6 +6,45 @@ use gs_json::{Json, Obj, json};
 use crate::spaces::{add_space_deadline, remove_space_deadline, update_space_deadline};
 use super::{SpaceActions, change, given, no_space, template_text};
 
+/// What `update_space_deadline` can change: its argument, the record's key and the word the
+/// Activity label uses for it.
+const EDITS: [(&str, &str, &str); 10] = [
+	("kind", "kind", "kind"),
+	("name", "name", "name"),
+	("date", "date", "date"),
+	("time", "time", "time"),
+	("file_ids", "fileIds", "files"),
+	("left_out_ids", "leftOutIds", "files"),
+	("source", "source", "source"),
+	("assignment_file_id", "assignmentFileId", "assignment sheet"),
+	("about_file_id", "aboutFileId", "info file"),
+	("done", "done", "done"),
+];
+
+/// The Activity label of a deadline edit: what was changed, as "Changing Test 2's date and files".
+/// A new date or time alone is a move.
+fn edit_label(name: &str, args: &Json) -> String {
+	match args["done"].as_bool() {
+		Some(true) => return format!("Marking {name} done"),
+		Some(false) => return format!("Marking {name} not done"),
+		None => {}
+	}
+	let mut words: Vec<&str> = Vec::new();
+	for (arg, _, word) in EDITS {
+		if given(args, arg) && !words.contains(&word) {
+			words.push(word);
+		}
+	}
+	if !words.is_empty() && words.iter().all(|w| matches!(*w, "date" | "time")) {
+		return format!("Moving {name}");
+	}
+	match words.split_last() {
+		None => format!("Changing {name}"),
+		Some((last, [])) => format!("Changing {name}'s {last}"),
+		Some((last, rest)) => format!("Changing {name}'s {} and {last}", rest.join(", ")),
+	}
+}
+
 /// A deadline's page in the window.
 fn deadline_page(deadline_id: &str) -> String {
 	format!("/space/deadline/{deadline_id}")
@@ -78,18 +117,7 @@ impl SpaceActions {
 			return no_space(space_id);
 		}
 		let mut patch = Obj::new();
-		for (arg, key) in [
-			("kind", "kind"),
-			("name", "name"),
-			("date", "date"),
-			("time", "time"),
-			("file_ids", "fileIds"),
-			("left_out_ids", "leftOutIds"),
-			("source", "source"),
-			("assignment_file_id", "assignmentFileId"),
-			("about_file_id", "aboutFileId"),
-			("done", "done"),
-		] {
+		for (arg, key, _) in EDITS {
 			if given(args, arg) {
 				patch.insert(key, args[arg].clone());
 			}
@@ -98,14 +126,7 @@ impl SpaceActions {
 			Ok(deadline) => deadline,
 			Err(failure) => return ToolOutcome::Err(failure.error),
 		};
-		let others = ["kind", "name", "file_ids", "left_out_ids", "source", "assignment_file_id", "about_file_id", "done"];
-		let moved = (given(args, "date") || given(args, "time")) && !others.iter().any(|k| given(args, k));
-		let name = deadline["name"].str_or_empty();
-		let label = match args["done"].as_bool() {
-			Some(true) => format!("Marking {name} done"),
-			Some(false) => format!("Marking {name} not done"),
-			_ => format!("{} {name}", if moved { "Moving" } else { "Changing" }),
-		};
+		let label = edit_label(deadline["name"].str_or_empty(), args);
 		self.done(json!({ "deadline": deadline }), vec![change(label, &Json::from(space_id), "deadline", deadline_id, &deadline_page(deadline_id))])
 	}
 
@@ -163,6 +184,17 @@ mod tests {
 		assert_eq!((added["deadlines"][1]["aboutFileId"].clone(), added["deadlines"][1]["fileIds"].clone()), (about, json!([guide])));
 		assert!(app.stores.spaces.get_space(&space_id).unwrap().get("waitingDeadline").is_none());
 		assert!(value(actions.read_space(&json!({ "space_id": space_id }))).0.get("waitingDeadline").is_none());
+	}
+
+	#[test]
+	fn an_edit_label_names_what_changed() {
+		let label = |args: Json| edit_label("Test 2", &args);
+		assert_eq!(label(json!({ "file_ids": [] })), "Changing Test 2's files");
+		assert_eq!(label(json!({ "date": "2026-11-24", "file_ids": [], "left_out_ids": [] })), "Changing Test 2's date and files");
+		assert_eq!(label(json!({ "kind": "exam", "source": "x", "about_file_id": null })), "Changing Test 2's kind, source and info file");
+		assert_eq!(label(json!({ "date": "2026-11-24", "time": "09:00" })), "Moving Test 2");
+		assert_eq!(label(json!({ "done": true, "name": "Test 2" })), "Marking Test 2 done");
+		assert_eq!(label(json!({})), "Changing Test 2");
 	}
 
 	#[test]

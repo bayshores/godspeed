@@ -391,7 +391,7 @@ async fn find_and_grep_stop_when_aborted() {
 async fn serve(routes: impl Fn(&str) -> Option<(&'static str, &'static str, Vec<u8>)> + Send + Sync + 'static) -> String {
 	let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
 	let origin = format!("http://{}", listener.local_addr().unwrap());
-	tokio::spawn(async move {
+	gs_base::tasks::spawn("test", async move {
 		loop {
 			let (mut socket, _) = listener.accept().await.unwrap();
 			let mut request = Vec::new();
@@ -441,13 +441,13 @@ async fn web_fetch_reads_text_and_words_failures() {
 async fn web_fetch_stops_when_aborted() {
 	let silent = TcpListener::bind("127.0.0.1:0").await.unwrap();
 	let url = format!("http://{}/slow", silent.local_addr().unwrap());
-	tokio::spawn(async move {
+	gs_base::tasks::spawn("test", async move {
 		let _held = silent.accept().await;
 		clock::sleep(60_000).await;
 	});
 	let abort = Abort::new();
 	let stopper = abort.clone();
-	tokio::spawn(async move {
+	gs_base::tasks::spawn("test", async move {
 		clock::sleep(100).await;
 		stopper.abort();
 	});
