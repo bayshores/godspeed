@@ -42,12 +42,17 @@ const SETTLE = { damping: 0.6, stiffness: 0.12, mass: 1 };
 
 /** The room under the step line at which "Your turn" is pinned under the text's window: lower, a question
  *  with its box and keys would leave the text a sliver, so there it stays in the page, under the text.
- *  Under the shut book's page it is pinned in any room while it is only its box and keys (`slim`). */
+ *  With nothing to answer and only its box and keys (`slim`) it is pinned in a lower room too. */
 const PIN_ROOM = 640;
 
+/** The room at which that strip is pinned in a narrow window: lower, at its tallest (the line saying what
+ *  is next over two rows of keys) it would be squeezed, so it stays in the page. Under the shut book's page
+ *  its keys are one row, and it is pinned in any room. */
+const STRIP_ROOM = 450;
+
 /** The room at which the right page keeps the task the learner last finished: lower, its box and keys
- *  leave that task no line to show, so it is drawn in the text as in a narrow window. */
-const KEEP_ROOM = 460;
+ *  leave that task a sliver, so it is drawn in the text as in a narrow window. */
+const KEEP_ROOM = 520;
 
 /** Subscribes to what never changes. */
 const NO_CHANGE = () => () => {};
@@ -74,8 +79,8 @@ function moveTurn(box: HTMLElement, slot: HTMLElement): void {
  * (.lh-turn-fit). With nothing to work on it is shut: one page in the middle with "Your turn" a
  * strip pinned under it. With less room it is
  * pinned at the window's foot, under the window the text scrolls in, only as tall as what the
- * learner can do now (TurnPlaceContext), so the text keeps the window, or, in a room too low for that
- * (PIN_ROOM), it sits in the page under the text. While the lesson text draws nothing (a
+ * learner can do now (TurnPlaceContext), so the text keeps the window, or, in a room too low for what it
+ * holds (PIN_ROOM, STRIP_ROOM), it sits in the page under the text. While the lesson text draws nothing (a
  * lesson that opens with a problem), its sheet is left out and "Your turn" sits alone in the
  * middle; when the text's sheet arrives, "Your turn" slides over to its side. Where the page
  * stands in its window is usePageRest's. "Your turn" fades out when it closes (a lesson reset)
@@ -155,7 +160,7 @@ export function LessonScroll({
 			const stacked = pair && oneColumn(column);
 			// The room is wide enough for the book (the column's container query lifts its reading measure).
 			const wide = column !== null && getComputedStyle(column).maxWidth === "none";
-			const pin = stacked && (under.clientHeight >= PIN_ROOM || (wide && slim));
+			const pin = stacked && (under.clientHeight >= PIN_ROOM || (slim && (wide || under.clientHeight >= STRIP_ROOM)));
 			const slot = (pin ? footSlot : pageSlot).current;
 			const foot = footRef.current;
 			// Shown and hidden here, with the move, so no frame draws the foot's room without its sheet. Shown before

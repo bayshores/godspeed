@@ -551,7 +551,7 @@ export function Chat({
 	// While it is shut and the teacher works, a task that streams in waits for the reply to land.
 	const turnPending = open || pending?.appPosed?.kind === "review" ? pending : null;
 	const turnProblem = open ? problem : null;
-	const slim = turnPending === null && stuckLine === null && errorLine === null && !reviewRefused && attachments.files.length === 0;
+	const slim = turnPending === null && turnProblem === null && stuckLine === null && errorLine === null && !reviewRefused && attachments.files.length === 0;
 	// Where the page last laid "Your turn" out: only beside the text or alone does it keep the finished task.
 	const [turnPlace, setTurnPlace] = useState<TurnPlace>("under");
 	const kept = !turnPending && !turnProblem && (turnPlace === "beside" || turnPlace === "alone") ? book.held : null;
