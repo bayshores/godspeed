@@ -58,6 +58,7 @@ const plan = { type: "tool-work_plan", toolCallId: "p", state: "output-available
 type Props = React.ComponentProps<typeof ReadingPane>;
 const props = (over: Partial<Props> = {}): Props => ({
 	spaceId: undefined,
+	stepNumbers: new Map(),
 	echo: titleEcho(over.messages ?? [card(5), first], TITLE),
 	messages: [card(5), first],
 	phases: [],

@@ -1,7 +1,7 @@
 import { useContext, useState, type RefObject } from "react";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
-import { DEFAULT_TEACHER_NAME, DONT_KNOW, type DockSelection, type findPendingToolCall, type ProblemChoices, type ProblemPieceText, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, DONT_KNOW, normalizeQuizType, questionKindLabel, type DockSelection, type findPendingToolCall, type ProblemChoices, type ProblemPieceText, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
 import { useSettings } from "@/frontend/components/settings-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { cn } from "@/frontend/lib/utils";
@@ -152,7 +152,8 @@ export function YourTurn({
 	const fileShown = pending ? null : (problem?.file ?? null);
 	const onExit = view.exit === "skip" ? onSkipQuestion : onDiscardProblem;
 	const fromEarlier = pending?.appPosed?.kind === "review";
-	const title = fromEarlier ? "From earlier" : !pending && problem?.line ? problem.line : "Your turn";
+	// The title says what waits, in the word its answered card will carry.
+	const title = fromEarlier ? "From earlier" : pending ? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type)) : (problem?.line ?? "Your turn");
 
 	const mode = pending ? "question" : problem ? "practice" : shown.kind === "answered" ? "answered" : "next";
 	// Pinned with nothing to answer: no title, the next key ends the foot row, and only a line saying what is next stands over the box.

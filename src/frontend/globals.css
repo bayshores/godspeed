@@ -758,18 +758,19 @@ body {
 		overflow-y: auto;
 	}
 }
-/* In one column the lesson text's sheet fills its window as well, so a short lesson, or one
+/* In one column the lesson text's newest sheet fills what is left of its window as well, so a short lesson, or one
    whose first reply is still written, shows no bare page under it. "Your turn" is pinned under
    that window (.lh-turn-foot) and closer set, so the text keeps more of the room. A question is
    shown whole before the text is: the text keeps a few lines, and only past that does the
    question or problem scroll in its own box. */
 @container room (width < 1280px) {
-	.lh-lesson-column:has(> .lh-text-fit) {
+	.lh-lesson-column:has(> .lh-text-sheets) {
 		min-height: calc(100cqh - var(--lh-page-end));
 	}
-	.lh-lesson-pair .lh-lesson-column:has(> .lh-text-fit) {
+	.lh-lesson-pair .lh-lesson-column:has(> .lh-text-sheets) {
 		min-height: 100cqh;
 	}
+	.lh-text-sheets,
 	.lh-text-fit {
 		flex: 1 1 auto;
 	}

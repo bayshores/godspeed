@@ -5,7 +5,6 @@ import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
 import { ResultTag } from "@/frontend/components/result-tag";
 import { ThinkingBlock } from "@/frontend/components/thinking-block";
 import { useFold } from "@/frontend/components/use-fold";
-import { useStepNumber } from "@/frontend/components/lesson/step-context";
 import { cn } from "@/frontend/lib/utils";
 import { MessageResponse, ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import type { QuestionAnswerData } from "@/shared/core";
@@ -83,7 +82,7 @@ export function QuizWhy({ answer }: { answer: QuestionAnswerData }) {
 
 /**
  * An answered question in the lesson: one
- * compact card: the verdict, "Quiz, step 10, sure 4 of 5" and
+ * compact card: the verdict, "Quiz, sure 4 of 5" and
  * a Why button over the question, and under it what he picked (a quiz or an
  * ask with choices). A prediction has no verdict; under his pick it names
  * the right answer when he missed, and on a plot what the line gives. The
@@ -111,7 +110,6 @@ export function AnsweredCard({
 	const answer = answerForPresentation(savedAnswer, input);
 	const [open, setOpen] = useState(defaultOpen);
 	const fold = useFold(open);
-	const step = useStepNumber(input);
 	if (answer.dismissed) {
 		return (
 			<div data-testid="answered-card" className="flex items-baseline gap-1.5 text-[15px] text-ink-2">
@@ -154,7 +152,6 @@ export function AnsweredCard({
 				<span className="font-count text-[15px] text-ink-2">
 					<span data-testid="answer-kind">
 						{kindWords(questionKindLabel(answer.tool ?? KIND_TOOL[answer.kind], answer.questionType))}
-						{step !== undefined && `, step ${step}`}
 					</span>
 					{isQuiz && !answer.dontKnow && answer.confidence != null && (
 						<span data-testid="answered-confidence">, sure {confidenceLevel(answer.confidence)} of 5</span>

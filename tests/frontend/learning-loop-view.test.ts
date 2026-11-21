@@ -16,7 +16,7 @@ import { fromEarlierRow } from "../../src/frontend/components/lesson/from-earlie
 import { keptCardView } from "../../src/frontend/components/lesson/kept-card-model.ts";
 import { lessonBox, questionTurn } from "../../src/frontend/components/lesson/lesson-box-model.ts";
 import { liveText, readPlot } from "../../src/frontend/components/lesson/plot-part-model.ts";
-import { answerAnchorSelector, toolCardSelector } from "../../src/frontend/components/lesson/step-context.ts";
+import { answerAnchorSelector, toolCardSelector } from "../../src/frontend/components/lesson/card-anchors.ts";
 import { keepGoingOwesNext, stopLightSelector } from "../../src/frontend/components/lesson/lesson-stop-model.ts";
 import { turnNext } from "../../src/frontend/components/lesson/turn-next-model.ts";
 import {

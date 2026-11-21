@@ -1,10 +1,10 @@
 import type { LhViewPart } from "@/shared/core";
 
 /**
- * The step separators a reply row draws: one only between two steps that
+ * The step starts a reply row leaves room at: only between two steps that
  * each show something. Steps of hidden work (a space-file search) would
- * otherwise stack empty lines. The next topic's opener (core/view.ts
- * openerParts) follows its stop's card with no line.
+ * otherwise stack empty room. The next topic's opener (core/view.ts
+ * openerParts) follows its stop's card with none.
  */
 export function drawnSeparators(parts: readonly LhViewPart[], shows: (part: LhViewPart) => boolean): Set<number> {
 	const drawn = new Set<number>();

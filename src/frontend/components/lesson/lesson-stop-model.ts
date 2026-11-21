@@ -3,7 +3,7 @@
  * the card that lights when he comes back to it. Pure.
  */
 import { isQuestionTool, lessonStop, PRACTICE_CONCLUDE_TOOL, shownOpeners, type LhMessage } from "@/shared/core";
-import { answerAnchorSelector, toolCardSelector } from "./step-context";
+import { answerAnchorSelector, toolCardSelector } from "./card-anchors";
 
 /** Keep going was pressed and the turn ended with no opener for its stop,
  *  and he has not sent anything since: the window owes the go-ahead. */

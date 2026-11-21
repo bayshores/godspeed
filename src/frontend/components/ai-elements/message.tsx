@@ -118,6 +118,9 @@ export const MessageResponse = memo(
         allowedTags={citeTags}
         plugins={streamdownPlugins}
         rehypePlugins={messageRehypePlugins}
+        // Only text still being written has unfinished marks to close. Closing them in whole text
+        // reads the ** of `char**` as an open bold and adds a stray ** at the end.
+        parseIncompleteMarkdown={props.isAnimating === true}
         {...props}
       >
         {content}
