@@ -8,7 +8,7 @@ import { useJoinSpace } from "@/frontend/components/use-join-space";
 import { DeadlineDialog } from "@/frontend/components/space-page/deadline-dialog";
 import { studioPath } from "@/frontend/components/cheat-sheet/use-cheat-sheet";
 import { useMinute } from "@/frontend/components/countdown";
-import { spaceFilePathOf } from "@/frontend/components/files/space-files-api";
+import { fileShowFor, showSpaceFile } from "@/frontend/components/files/show-space-file";
 import { useSpaceRecord } from "@/frontend/components/files/space-record";
 import { jsonInit, send } from "@/frontend/lib/api";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
@@ -96,10 +96,8 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 		const desktop = typeof window !== "undefined" ? window.lh : undefined;
 		const file = record?.files.find((f) => f.id === assignmentId);
 		if (!file || !desktop) return undefined;
-		const open = /\.pdf$/i.test(file.name) ? desktop.openPath : desktop.showInFolder;
-		return open && (() => void spaceFilePathOf(spaceId, file.id).then((path) => {
-				if (path) void open(path);
-			}));
+		const how = fileShowFor(file.name);
+		return (how === "open" ? desktop.openPath : desktop.showInFolder) && (() => void showSpaceFile(spaceId, file.id, how));
 	}, [record, assignmentId, spaceId]);
 	const onStart = useCallback(() => {
 		if (deadline) void studyDeadline(deadline);

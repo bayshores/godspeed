@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CiteDialog } from "@/frontend/components/citations/cite-dialog";
 import type { PassageCite } from "@/frontend/components/citations/page-excerpt-model";
-import { spaceFilePathOf } from "@/frontend/components/files/space-files-api";
+import { showSpaceFile } from "@/frontend/components/files/show-space-file";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { lazyComponent } from "@/frontend/lib/lazy-component";
 import type { ScreenLink } from "./terminal-links-model";
@@ -27,7 +27,6 @@ import { StarterKeys } from "./starter-keys";
 import { useSpaceFiles } from "./use-space-files";
 import type { TerminalsApi } from "./use-terminals";
 
-const FILE_GONE = "Can't find this file on your computer.";
 
 /** xterm loads with the first screen shown. */
 const TerminalView = lazyComponent(() => import("./terminal-view").then((m) => m.TerminalView));
@@ -109,9 +108,8 @@ export function TerminalPane({ api, role, name, foot, focusOnOpen, ideas = null,
 			setCite({ fileId: file.id, passage, name: file.name });
 			return;
 		}
-		void spaceFilePathOf(file.spaceId, file.id).then((path) => {
-			if (!path) setError(FILE_GONE);
-			else void (/\.pdf$/i.test(path) ? window.lh?.openPath?.(path) : window.lh?.showInFolder?.(path));
+		void showSpaceFile(file.spaceId, file.id).then((failed) => {
+			if (failed) setError(failed);
 		});
 	}, []);
 

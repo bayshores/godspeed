@@ -17,6 +17,8 @@ import { CloseButton, StudyButton } from "./pane-buttons.tsx";
 import { factCells } from "@/frontend/components/fact-cells";
 import { LinkRows } from "./link-rows.tsx";
 import { CHIP } from "./styles.ts";
+import { useFactFile } from "./use-fact-file.ts";
+import { fileBrowserName } from "@/frontend/components/files/files-model";
 
 /** What the page knows about where facts came from (the graph snapshot's maps). */
 export interface FactSources {
@@ -104,13 +106,12 @@ export function FactPane({
 
 /** Where the fact came from: a space file (open it or show it on the desktop) or a lesson. */
 function Source({ born, sources }: { born: string | null; sources: FactSources | null }) {
+	const onDisk = useFactFile(born);
 	if (!born || !sources) return null;
 	const file = sources.fileSources[born];
 	const lesson = sources.sessions[born];
 	if (!file && !lesson) return null;
 	const name = file ? file.split(/[\\/]/).pop()! : lesson!;
-	const desktop = typeof window !== "undefined" ? window.lh : undefined;
-	const pdf = !!file && /\.pdf$/i.test(file);
 	return (
 		<div data-testid="fact-source" className="flex flex-col gap-1.5 pt-3.5">
 			<span className="truncate text-base text-ink-2" title={name}>
@@ -118,24 +119,29 @@ function Source({ born, sources }: { born: string | null; sources: FactSources |
 			</span>
 			<span className="flex flex-wrap gap-2 empty:hidden">
 				{file ? (
-					<>
-						{pdf && desktop?.openPath && (
-							<button type="button" data-testid="fact-source-open" onClick={() => void desktop.openPath?.(file)} className={CHIP}>
-								Open
+					onDisk && (
+						<>
+							{onDisk.opens && (
+								<button type="button" data-testid="fact-source-open" onClick={() => onDisk.show("open")} className={CHIP}>
+									Open
+								</button>
+							)}
+							<button type="button" data-testid="fact-source-show" onClick={() => onDisk.show("folder")} className={CHIP}>
+								Show in {fileBrowserName(window.lh?.platform)}
 							</button>
-						)}
-						{desktop?.showInFolder && (
-							<button type="button" data-testid="fact-source-show" onClick={() => void desktop.showInFolder?.(file)} className={CHIP}>
-								Show in Finder
-							</button>
-						)}
-					</>
+						</>
+					)
 				) : (
 					<Link to={`/chat/${born}`} data-testid="fact-source-open" className={CHIP}>
 						Open
 					</Link>
 				)}
 			</span>
+			{onDisk?.error && (
+				<p role="alert" data-testid="fact-source-error" className="text-sm text-ans-wrong">
+					{onDisk.error}
+				</p>
+			)}
 		</div>
 	);
 }

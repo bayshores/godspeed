@@ -28,6 +28,7 @@ import type { Aim, Flight } from "../../src/frontend/components/graph/constellat
 import type { InView } from "../../src/frontend/components/graph/use-in-view.ts";
 import { FAINT } from "../../src/frontend/components/graph/styles.ts";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
+import { SpaceProvider } from "../../src/frontend/components/space-context.tsx";
 import { MemoryRouter } from "react-router";
 import { answers, fixture, unsorted } from "../graph-fixture.ts";
 import { DEFAULT_TEACHER_NAME } from "../../src/shared/core/index.ts";
@@ -161,7 +162,7 @@ describe("the picked fact", () => {
 			{ premises: ["f3", "f4"], conclusion: "f6" },
 			{ premises: ["f6"], conclusion: "f9" },
 		],
-		fileSources: { src_a: "/Users/me/cse/lecture 5.pdf" },
+		fileSources: { src_a: "lecture 5.pdf" },
 		sessions: { "chat-1": "Study: Minibatch noise" },
 	};
 	const pane = (over: Partial<React.ComponentProps<typeof FactPane>> = {}) =>
@@ -184,6 +185,65 @@ describe("the picked fact", () => {
 	it("a fact from a space file names the file", () => {
 		const html = pane({ fact: { ...f6, born: "src_a" } });
 		assert.match(html, /From lecture 5\.pdf/);
+	});
+
+	// A source only names its file: the space's record finds the file, the server its full path.
+	async function fromSpaceFile(path: string | null) {
+		const shown: string[] = [];
+		const opened: string[] = [];
+		Object.assign(dom.window, { lh: { platform: "darwin", showInFolder: async (p: string) => void shown.push(p), openPath: async (p: string) => void opened.push(p) } });
+		const original = globalThis.fetch;
+		globalThis.fetch = (async (url: string) => {
+			if (url === "/api/spaces/sp1") return Response.json({ space: { id: "sp1", files: [{ id: "f1", name: "lecture 5.pdf", sourceId: "src_a" }] }, folder: null });
+			if (url === "/api/spaces/sp1/files/f1") return path ? Response.json({ path }) : Response.json({ error: "gone" }, { status: 404 });
+			return Response.json({ error: "none" }, { status: 404 });
+		}) as typeof fetch;
+		const { q } = await mount(
+			inRouter(
+				<SpaceProvider initialActive="sp1" initialSpaces={[]}>
+					<FactPane fact={{ ...f6, born: "src_a" }} topicName={null} facts={data.facts} sources={sources} onBack={noop} onClose={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} />
+				</SpaceProvider>,
+			),
+		);
+		await until(() => q("fact-source-show"), "the file's keys");
+		return {
+			q,
+			shown,
+			opened,
+			click: (id: string) => act(async () => q(id)!.click()),
+			done: () => {
+				globalThis.fetch = original;
+				delete (dom.window as { lh?: unknown }).lh;
+			},
+		};
+	}
+
+	it("a fact from a space file shows and opens the file at its full path", async () => {
+		const page = await fromSpaceFile("/Users/me/cse/lecture 5.pdf");
+		try {
+			assert.equal(page.q("fact-source-show")!.textContent, "Show in Finder");
+			await page.click("fact-source-show");
+			await until(() => page.shown.length, "the file shown");
+			assert.deepEqual(page.shown, ["/Users/me/cse/lecture 5.pdf"]);
+			await page.click("fact-source-open");
+			await until(() => page.opened.length, "the file opened");
+			assert.deepEqual(page.opened, ["/Users/me/cse/lecture 5.pdf"]);
+			assert.equal(page.q("fact-source-error"), null);
+		} finally {
+			page.done();
+		}
+	});
+
+	it("a file that is not on this computer says so", async () => {
+		const page = await fromSpaceFile(null);
+		try {
+			await page.click("fact-source-show");
+			await until(() => page.q("fact-source-error"), "the error line");
+			assert.equal(page.q("fact-source-error")!.textContent, "Can't find this file on your computer.");
+			assert.deepEqual(page.shown, []);
+		} finally {
+			page.done();
+		}
 	});
 
 	it("before the graph loads: no source or links, the rest shows", () => {

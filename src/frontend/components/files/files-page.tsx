@@ -22,7 +22,6 @@ import type { WriteResult } from "@/frontend/lib/api";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { AddFilesButton } from "./add-files";
 import {
-	spaceFilePathOf,
 	linkSpaceFolder,
 	removeSpaceFile,
 	retrySpaceFile,
@@ -30,6 +29,7 @@ import {
 	unlinkSpaceFolder,
 	uploadSpaceFiles,
 } from "./space-files-api";
+import { showSpaceFile } from "./show-space-file";
 import { useSpaceRecord } from "./space-record";
 import { ConfirmDialog } from "./confirm-dialog";
 import type { FileRowActions, RowPick } from "./file-row";
@@ -184,7 +184,7 @@ function FilesPageBody() {
 
 	const actions = useMemo<FileRowActions | null>(() => {
 		if (!spaceId) return null;
-		const showInFolder = typeof window !== "undefined" ? window.lh?.showInFolder : undefined;
+		const desktop = typeof window !== "undefined" ? window.lh?.showInFolder : undefined;
 		return {
 			onKind: (file, kind) => {
 				if (kind === "info") setConfirm({ kind: "move", file });
@@ -192,12 +192,11 @@ function FilesPageBody() {
 			},
 			onRetry: (fileId) => void run(() => retrySpaceFile(spaceId, fileId)),
 			onRemove: (file) => setConfirm({ kind: "remove", file }),
-			show: showInFolder && {
+			show: desktop && {
 				label: `Show in ${fileBrowserName(window.lh?.platform)}`,
 				run: (fileId) =>
-					void spaceFilePathOf(spaceId, fileId).then((path) => {
-						if (path) void showInFolder(path);
-						else setError("Can't find this file on your computer.");
+					void showSpaceFile(spaceId, fileId, "folder").then((failed) => {
+						if (failed) setError(failed);
 					}),
 			},
 		};
