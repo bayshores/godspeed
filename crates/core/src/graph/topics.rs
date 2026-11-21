@@ -88,6 +88,16 @@ struct Topic {
 	material: Option<String>,
 }
 
+impl Topic {
+	fn of(topic: &Json) -> Self {
+		Self { id: topic["id"].str_or_empty().to_owned(), name: topic["name"].str_or_empty().to_owned(), members: topic["members"].strs().into_iter().map(str::to_owned).collect(), material: topic["material"].as_str().map(str::to_owned) }
+	}
+
+	fn json(self) -> Json {
+		topic_json(Json::from(self.id), Json::from(self.name), self.members, self.material.as_deref())
+	}
+}
+
 /// Hands out topic ids: an existing id the draft names, else the one an existing topic of the
 /// same name (case-insensitive) holds, else a fresh one.
 struct IdClaims<F> {
@@ -155,7 +165,24 @@ pub fn repair_topics(drafts: &[TopicDraft], fact_ids: &[String], chains: &[Json]
 		topics.push(Topic { id, name, members, material });
 	}
 
-	// Place the facts the draft left out by their chain neighbors.
+	let missing = place_by_neighbors(&mut topics, &mut topic_of, fact_ids, chains);
+	if !missing.is_empty() {
+		let rest = missing.into_iter().cloned();
+		match topics.iter_mut().find(|t| t.name.to_lowercase() == OTHER_TOPIC_NAME.to_lowercase()) {
+			Some(other) => other.members.extend(rest),
+			None => {
+				let id = claims.claim(None, OTHER_TOPIC_NAME);
+				let material = material_of.get(id.as_str()).map(|m| (*m).to_owned());
+				topics.push(Topic { id, name: OTHER_TOPIC_NAME.to_owned(), members: rest.collect(), material });
+			}
+		}
+	}
+	topics.into_iter().map(Topic::json).collect()
+}
+
+/// Puts each fact no topic holds into the topic most of its chain neighbors are in, repeated
+/// until nothing more can be placed. Returns the facts with no grouped neighbor.
+fn place_by_neighbors<'a>(topics: &mut [Topic], topic_of: &mut HashMap<String, usize>, fact_ids: &'a [String], chains: &[Json]) -> Vec<&'a String> {
 	let mut neighbors: HashMap<&str, HashSet<&str>> = HashMap::new();
 	for chain in chains {
 		let mut members = chain["premises"].strs();
@@ -195,18 +222,36 @@ pub fn repair_topics(drafts: &[TopicDraft], fact_ids: &[String], chains: &[Json]
 		}
 		missing = still;
 	}
-	if !missing.is_empty() {
-		let rest = missing.into_iter().cloned();
-		match topics.iter_mut().find(|t| t.name.to_lowercase() == OTHER_TOPIC_NAME.to_lowercase()) {
-			Some(other) => other.members.extend(rest),
-			None => {
-				let id = claims.claim(None, OTHER_TOPIC_NAME);
-				let material = material_of.get(id.as_str()).map(|m| (*m).to_owned());
-				topics.push(Topic { id, name: OTHER_TOPIC_NAME.to_owned(), members: rest.collect(), material });
-			}
+	missing
+}
+
+/// The current topics with each new fact beside its chain neighbors, and the new facts that have
+/// no grouped neighbor: those need the grouper.
+pub fn place_new_facts(current: &[Json], fact_ids: &[String], chains: &[Json]) -> (Vec<Json>, Vec<String>) {
+	let mut topics: Vec<Topic> = current.iter().map(Topic::of).collect();
+	let mut topic_of: HashMap<String, usize> = HashMap::new();
+	for (at, topic) in topics.iter().enumerate() {
+		topic_of.extend(topic.members.iter().map(|id| (id.clone(), at)));
+	}
+	let loose = place_by_neighbors(&mut topics, &mut topic_of, fact_ids, chains).into_iter().cloned().collect();
+	(topics.into_iter().map(Topic::json).collect(), loose)
+}
+
+/// The grouping after the grouper placed the new facts: each current topic keeps its members and
+/// its name, and gains the facts a placement gave it (matched by id, else by name); a placement
+/// that matches no topic is a new topic.
+pub fn add_placements(current: &[Json], placements: Vec<TopicDraft>) -> Vec<TopicDraft> {
+	let mut drafts: Vec<TopicDraft> = current.iter().map(Topic::of).map(|t| TopicDraft { id: Some(t.id), name: t.name, members: t.members, material: t.material }).collect();
+	let known = drafts.len();
+	for placement in placements {
+		let name = clean_topic_name(&placement.name).to_lowercase();
+		let by_id = drafts[..known].iter().position(|d| d.id == placement.id);
+		match by_id.or_else(|| drafts.iter().position(|d| clean_topic_name(&d.name).to_lowercase() == name)) {
+			Some(at) => drafts[at].members.extend(placement.members),
+			None => drafts.push(TopicDraft { id: None, ..placement }),
 		}
 	}
-	topics.into_iter().map(|t| topic_json(Json::from(t.id), Json::from(t.name), t.members, t.material.as_deref())).collect()
+	drafts
 }
 
 #[cfg(test)]
@@ -283,6 +328,24 @@ mod tests {
 				json!({ "id": "t9", "name": "Other", "members": ["d"], "material": "term" }),
 			]
 		);
+	}
+
+	#[test]
+	fn new_facts_join_their_neighbors_topic_and_the_rest_are_left_for_the_grouper() {
+		let current = [json!({ "id": "t1", "name": "Letters", "members": ["a"], "material": "term" }), json!({ "id": "t2", "name": "Numbers", "members": ["c"] })];
+		// b hangs on a, d on b; e has no chain; f hangs only on e.
+		let chains = [json!({ "premises": ["a"], "conclusion": "b" }), json!({ "premises": ["b"], "conclusion": "d" }), json!({ "premises": ["e"], "conclusion": "f" })];
+		let (topics, loose) = place_new_facts(&current, &ids(&["a", "b", "c", "d", "e", "f"]), &chains);
+		assert_eq!(topics, vec![json!({ "id": "t1", "name": "Letters", "members": ["a", "b", "d"], "material": "term" }), json!({ "id": "t2", "name": "Numbers", "members": ["c"] })]);
+		assert_eq!(loose, ids(&["e", "f"]));
+	}
+
+	#[test]
+	fn placements_add_to_a_topic_by_id_or_name_and_start_new_ones() {
+		let current = [json!({ "id": "t1", "name": "Letters", "members": ["a"] }), json!({ "id": "t2", "name": "Numbers", "members": ["c"] })];
+		let placed = add_placements(&current, vec![draft(Some("t2"), "Renamed", &["e"]), draft(None, " letters ", &["f"]), draft(Some("made-up"), "Shapes", &["g"]), draft(None, "shapes", &["h"])]);
+		let got: Vec<(Option<&str>, &str, Vec<&str>)> = placed.iter().map(|d| (d.id.as_deref(), d.name.as_str(), d.members.iter().map(String::as_str).collect())).collect();
+		assert_eq!(got, [(Some("t1"), "Letters", vec!["a", "f"]), (Some("t2"), "Numbers", vec!["c", "e"]), (None, "Shapes", vec!["g", "h"])]);
 	}
 
 	#[test]

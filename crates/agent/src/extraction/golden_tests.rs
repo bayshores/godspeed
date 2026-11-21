@@ -167,6 +167,7 @@ async fn the_pipeline_and_the_topic_grouper_match_node() {
 		facts: facts.clone(),
 		chains: graph.chains.clone(),
 		current: vec![json!({ "id": "tpc_aaaaaaaaaa", "name": "Old", "members": [ids[0].clone()], "material": "concept" })],
+		loose: None,
 		engine: host.engine(),
 		abort: None,
 	};
