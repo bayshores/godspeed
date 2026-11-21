@@ -8,6 +8,7 @@ The shim (`crates/shell/src/shim.js`) is an initialization script on every app w
 | `pickFolder()` | `pick_folder` | The dialog plugin's folder picker on the main window; the absolute path or `null`. |
 | `showInFolder(path)` | `show_in_folder` | Absolute path only; `tauri_plugin_opener::reveal_item_in_dir`. |
 | `openPath(path)` | `open_path` | Absolute paths only, canonicalized. A bundle folder (`.app` and the other bundle extensions in `open.rs`) is revealed. A folder or a `.pdf` file opens in its default app. Anything else does nothing. |
+| `openInObsidian(path)` | `open_in_obsidian` | Main window only. An absolute path to a file that exists; the shell builds `obsidian://open?path=` with the path percent-encoded and opens it, so the `obsidian:` scheme is never allowed in `open_link`. Anything else does nothing. |
 | `pathForFile(file)` | `drag_paths` (Mac), WebView2 message (Windows) | `Promise<string>`. See [File drops](the-main-window.md#file-drops). Linux resolves `""`. |
 | `showWindow()` | `show_window` | Shows and focuses the main window if hidden. |
 | `onZoom(cb)` | push `zoom` | The factor, pushed after every change and every page load. |

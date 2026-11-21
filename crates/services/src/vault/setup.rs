@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use gs_base::fsx;
 use gs_core::records::settings::resolve_vault;
+use gs_core::spaces::agent_folder::short_folder;
 use gs_core::vault::obsidian::vault_paths;
 use gs_json::{Json, json};
 
@@ -45,23 +46,35 @@ fn same_folder(a: &str, b: &str) -> bool {
 	a.trim_end_matches(['/', '\\']) == b.trim_end_matches(['/', '\\'])
 }
 
-/// What Settings shows: `{path, words, obsidian, vaults, notes, capped, state, message?}`.
+/// A folder as Settings names it: `{path, name, short, parent}`, `short` and `parent` with the
+/// home folder as `~`.
+fn folder_view(path: &str, home: &str) -> Json {
+	let folder = Path::new(path.trim_end_matches(['/', '\\']));
+	let name = folder.file_name().map_or_else(|| path.to_owned(), |name| name.to_string_lossy().into_owned());
+	let parent = folder.parent().map_or_else(String::new, |parent| short_folder(&parent.to_string_lossy(), home));
+	json!({ "path": path, "name": name, "short": short_folder(path, home), "parent": parent })
+}
+
+/// What Settings shows: `{folder, words, obsidian, vaults, notes, capped, state, message?}`.
+/// `folder` is the picked folder (`folder_view`) or null; `vaults` are the ones Obsidian lists.
 /// `state` is "none" without a folder, "ok", "missing" or "failed". `obsidian`: the folder is one
 /// of the listed vaults or holds `.obsidian`.
 pub fn vault_status(app: &App) -> Result<Json, String> {
 	let setting = setting(app)?;
-	let vaults = listed_vaults(&app.paths.home);
+	let home = app.paths.home.to_string_lossy().into_owned();
+	let listed = listed_vaults(&app.paths.home);
+	let vaults: Vec<Json> = listed.iter().map(|vault| folder_view(vault, &home)).collect();
 	let Some(path) = setting.path else {
-		return Ok(json!({ "path": null, "words": setting.words, "obsidian": false, "vaults": vaults, "notes": 0, "capped": false, "state": "none" }));
+		return Ok(json!({ "folder": null, "words": setting.words, "obsidian": false, "vaults": vaults, "notes": 0, "capped": false, "state": "none" }));
 	};
-	let obsidian = vaults.iter().any(|v| same_folder(v, &path)) || Path::new(&path).join(".obsidian").is_dir();
+	let obsidian = listed.iter().any(|v| same_folder(v, &path)) || Path::new(&path).join(".obsidian").is_dir();
 	let (state, message) = match rescan(app) {
 		Ok(_) => ("ok", None),
 		Err(err @ VaultError::Missing) => ("missing", Some(err.message())),
 		Err(err) => ("failed", Some(err.message())),
 	};
 	let (notes, capped) = with_reader(app, |reader| (reader.len(), reader.capped)).unwrap_or((0, false));
-	let mut out = json!({ "path": path, "words": setting.words, "obsidian": obsidian, "vaults": vaults, "notes": notes, "capped": capped, "state": state });
+	let mut out = json!({ "folder": folder_view(&path, &home), "words": setting.words, "obsidian": obsidian, "vaults": vaults, "notes": notes, "capped": capped, "state": state });
 	if let (Some(message), Some(fields)) = (message, out.as_obj_mut()) {
 		fields.insert("message", message);
 	}
@@ -123,15 +136,17 @@ mod tests {
 		fsx::write_text_atomic(&vault.join("A.md"), "alpha").unwrap();
 		let status = change_vault(&app, &json!({ "path": vault.to_string_lossy() })).unwrap();
 		assert_eq!((status["state"].as_str(), status["notes"].as_i64(), status["obsidian"].as_bool(), status["words"].as_str()), (Some("ok"), Some(1), Some(true), Some("teacher")));
+		assert_eq!(status["folder"]["name"].as_str(), Some("Notes"));
+		assert_eq!(status["folder"]["parent"].as_str(), Some(root.to_string_lossy().as_ref()), "a folder outside the home folder keeps its full parent");
 		let status = change_vault(&app, &json!({ "words": "mine" })).unwrap();
 		assert_eq!(status["words"].as_str(), Some("mine"));
-		assert_eq!(status["path"].as_str(), Some(vault.to_string_lossy().as_ref()), "one field at a time");
+		assert_eq!(status["folder"]["path"].as_str(), Some(vault.to_string_lossy().as_ref()), "one field at a time");
 		std::fs::remove_dir_all(&vault).unwrap();
 		let status = vault_status(&app).unwrap();
 		assert_eq!(status["state"].as_str(), Some("missing"));
 		assert!(status["message"].as_str().is_some());
 		let status = change_vault(&app, &json!({ "path": null })).unwrap();
-		assert_eq!((status["state"].as_str(), status["path"].is_null()), (Some("none"), true));
+		assert_eq!((status["state"].as_str(), status["folder"].is_null()), (Some("none"), true));
 	}
 
 	#[test]

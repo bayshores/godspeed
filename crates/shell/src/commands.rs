@@ -51,6 +51,13 @@ pub fn open_path(webview: Webview, origin: State<AppOrigin>, path: String) -> Re
 	open::open_path(&path)
 }
 
+/// Opens a note in Obsidian.
+#[tauri::command(async)]
+pub fn open_in_obsidian(webview: Webview, origin: State<AppOrigin>, path: String) -> Result<(), String> {
+	trusted(&webview, &origin)?;
+	open::open_in_obsidian(&path)
+}
+
 #[tauri::command]
 pub fn report_bug(webview: Webview, origin: State<AppOrigin>) -> Result<(), String> {
 	trusted(&webview, &origin)?;

@@ -16,6 +16,8 @@ declare global {
 			showInFolder?: (path: string) => Promise<void>;
 			/** Opens this folder in Finder (File Explorer), or this PDF in its default app. */
 			openPath?: (path: string) => Promise<void>;
+			/** Opens this note in Obsidian; the shell builds the obsidian:// link itself. */
+			openInObsidian?: (path: string) => Promise<void>;
 			/** The agents' terminals the shell runs (terminal/use-terminals.ts). */
 			terminals?: {
 				/** Resolves to the new terminal's id; rejects with a sentence saying why it couldn't start.

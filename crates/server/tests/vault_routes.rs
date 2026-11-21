@@ -35,12 +35,12 @@ async fn a_vault_is_picked_read_back_unlinked_and_its_notes_listed() {
 	tokio::spawn(axum::serve(listener, gs_server::http::server(Arc::clone(&app), &Access::default())).into_future());
 
 	let (code, status) = call(port, "GET", "/api/vault", "").await;
-	assert_eq!((code, status["state"].as_str(), status["words"].as_str(), status["path"].is_null()), (200, Some("none"), Some("teacher"), true));
+	assert_eq!((code, status["state"].as_str(), status["words"].as_str(), status["folder"].is_null()), (200, Some("none"), Some("teacher"), true));
 
 	let (code, status) = call(port, "PATCH", "/api/vault", &stringify(&json!({ "path": vault.to_string_lossy() }))).await;
 	assert_eq!((code, status["state"].as_str(), status["obsidian"].as_bool(), status["notes"].as_i64()), (200, Some("ok"), Some(true), Some(0)));
 	let (_, status) = call(port, "PATCH", "/api/vault", r#"{"words":"mine"}"#).await;
-	assert_eq!((status["words"].as_str(), status["path"].as_str()), (Some("mine"), Some(vault.to_string_lossy().as_ref())), "one field at a time");
+	assert_eq!((status["words"].as_str(), status["folder"]["path"].as_str()), (Some("mine"), Some(vault.to_string_lossy().as_ref())), "one field at a time");
 
 	let (code, refused) = call(port, "PATCH", "/api/vault", r#"{"color":"red"}"#).await;
 	assert_eq!(code, 400, "{refused:?}");
@@ -59,6 +59,6 @@ async fn a_vault_is_picked_read_back_unlinked_and_its_notes_listed() {
 	assert_eq!((code, retried["state"].as_str()), (200, Some("missing")));
 	assert!(retried["message"].as_str().is_some());
 	let (_, status) = call(port, "PATCH", "/api/vault", r#"{"path":null}"#).await;
-	assert_eq!((status["state"].as_str(), status["path"].is_null()), (Some("none"), true));
+	assert_eq!((status["state"].as_str(), status["folder"].is_null()), (Some("none"), true));
 	let _ = std::fs::remove_dir_all(&dir);
 }
