@@ -1,0 +1,1258 @@
+{
+  "version": "2.22",
+  "children": [
+    {
+      "type": "frame",
+      "id": "ATAfT",
+      "x": 0,
+      "y": 0,
+      "name": "1 · Quiet notice",
+      "fill": "#111111",
+      "layout": "vertical",
+      "gap": 40,
+      "padding": 64,
+      "children": [
+        {
+          "type": "text",
+          "id": "XVSM9",
+          "name": "Title",
+          "fill": "#E6E6E6",
+          "content": "1  Quiet notice",
+          "fontFamily": "Literata",
+          "fontSize": 48,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "CA0rB",
+          "name": "Row 1",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "U1gTuy",
+              "name": "end-teacher",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "zRCNj",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/1-end-teacher.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "EIIeh",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Lesson end: a notice lists the saved notes. A name opens one.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "RAQwc",
+              "name": "end-mine",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "h4rs7",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/1-end-mine.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "jOP1T",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "My words: one question in Your turn; Done for today, Skip and Save together in the box.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "qp7ot",
+          "name": "Row 2",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "L3nw18",
+              "name": "in-app",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "oT4Ed",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/1-in-app.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "MlnzY",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Graph: Open note sits beside Study in the topic panel.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ZJ6CE",
+              "name": "settings-vault",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "m36SI",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/1-settings-vault.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "E43VMf",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Settings, Teaching, Vault notes: the vault and who writes the note.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Y3HJG",
+          "name": "Row 3",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "VYmez",
+              "name": "settings-none",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "otuGJ",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/1-settings-none.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "rTWuf",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "No vault yet: Obsidian's vaults as keys, or a typed path.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "dVXNx",
+      "x": 2728,
+      "y": 0,
+      "name": "2 · Notes on Progress",
+      "fill": "#111111",
+      "layout": "vertical",
+      "gap": 40,
+      "padding": 64,
+      "children": [
+        {
+          "type": "text",
+          "id": "qQbcX",
+          "name": "Title",
+          "fill": "#E6E6E6",
+          "content": "2  Notes on Progress",
+          "fontFamily": "Literata",
+          "fontSize": 48,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "pRDFr",
+          "name": "Row 1",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "mSwzv",
+              "name": "end-teacher",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "MVCVO",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/2-end-teacher.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "vmPCC",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Lesson end: the notes land as papers under the last line.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "cuwgq",
+              "name": "end-mine",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "X4C6u5",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/2-end-mine.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "hjarr",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "My words: the paper being asked about is outlined; the one being written is dashed.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "h4JRi",
+          "name": "Row 2",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "U4NS9",
+              "name": "in-app",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Y1dej0",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/2-in-app.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "qulDR",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Progress: one row of note papers, weakest first. Hover shows Open; All 8 shows the rest.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "JmKXZ",
+              "name": "settings-vault",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "zTVF7",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/2-settings-vault.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "D8ucxs",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Settings, General, Vault notes, with a vault.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "IjanQ",
+          "name": "Row 3",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "i9RO21",
+              "name": "settings-none",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "HcsxT",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/2-settings-none.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "xdUB7",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "No vault yet: Obsidian's vaults as keys, or a typed path.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "zy1X6",
+      "x": 5456,
+      "y": 0,
+      "name": "3 · Questions at the end",
+      "fill": "#111111",
+      "layout": "vertical",
+      "gap": 40,
+      "padding": 64,
+      "children": [
+        {
+          "type": "text",
+          "id": "rLrO2",
+          "name": "Title",
+          "fill": "#E6E6E6",
+          "content": "3  Questions at the end",
+          "fontFamily": "Literata",
+          "fontSize": 48,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "ZCTuj",
+          "name": "Row 1",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "FeWQH",
+              "name": "end-teacher",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "GIwhP",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/3-end-teacher.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "v5bdn",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Lesson end: Your turn lists each note's recall question. A question opens its note.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "vZBzc",
+              "name": "end-mine",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "pCTwS",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/3-end-mine.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "Jju90",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "My words: the asked note is marked; the box sits at the foot.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "RKVXM",
+          "name": "Row 2",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "f5imsc",
+              "name": "in-app",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "L3lE8",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/3-in-app.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "P6KSZh",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Graph: a page mark before each topic that has a note.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "R6IGd",
+              "name": "settings-vault",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "sUqtE",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/3-settings-vault.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "l1HaW",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Settings, General, Vault notes: the folder.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "A5nqVg",
+          "name": "Row 3",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "Xf02n",
+              "name": "settings-none",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "vhre8",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/3-settings-none.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "jd7Ky",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "No vault yet: Obsidian's vaults as keys, or a typed path.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "I4rZM",
+              "name": "settings-flow",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "KKYr0",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/3-settings-flow.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "M1LHu8",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Settings, Teaching, Lesson flow: who writes the note.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "xV0fb",
+      "x": 8184,
+      "y": 0,
+      "name": "Note file",
+      "fill": "#111111",
+      "layout": "vertical",
+      "gap": 40,
+      "padding": 64,
+      "children": [
+        {
+          "type": "text",
+          "id": "TwpNc",
+          "name": "Title",
+          "fill": "#E6E6E6",
+          "content": "Note file",
+          "fontFamily": "Literata",
+          "fontSize": 48,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "n0HYe",
+          "name": "note-file",
+          "width": 1200,
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "s9Sqv",
+              "name": "Picture",
+              "width": 1200,
+              "height": 750,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "vault-notes/note-file.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "text",
+              "id": "a38Dy",
+              "name": "Caption",
+              "fill": "#B8B8B8",
+              "content": "The note file as a notes app shows it. The server writes the properties; the teacher writes the words.",
+              "fontFamily": "Literata",
+              "fontSize": 24,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "V25BF",
+      "x": 10912,
+      "y": 0,
+      "name": "2b · Notes on Progress, Obsidian shown",
+      "fill": "#111111",
+      "layout": "vertical",
+      "gap": 40,
+      "padding": 64,
+      "children": [
+        {
+          "type": "text",
+          "id": "ZM3oI",
+          "name": "Title",
+          "fill": "#E6E6E6",
+          "content": "2b  Notes on Progress, Obsidian shown",
+          "fontFamily": "Literata",
+          "fontSize": 48,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "lp89m",
+          "name": "Row 1",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "kPEIt",
+              "name": "end-teacher",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "vhxOP",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/2b-end-teacher.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "vDh7t",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Lesson end: the pages land in Your turn, \"Saved to Obsidian\" under them, the box right below.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "iI6V2",
+              "name": "end-mine",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "yIw3O",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/2b-end-mine.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "g5DcX7",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "My words: one ask, the asked page outlined, the box right under.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "HBMfJ",
+          "name": "Row 2",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "U4GMRs",
+              "name": "in-app-pixel",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "d6NdtO",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/2b-in-app-pixel.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "x1XVGQ",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Progress, variant A: a pixel mark in ink on each page. Hover shows Open in Obsidian.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "h2xSE",
+              "name": "in-app-words",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "NTTqZ",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/2b-in-app-words.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "kCgcS",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Progress, variant B: words only, no mark.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "cVuRx",
+          "name": "Row 3",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "Ni3HO",
+              "name": "in-app-folder",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "NYHpZ",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/2b-in-app-folder.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "UR1aB",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "A plain folder, not Obsidian: \"Notes\" and Show in Finder.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "YBM8W",
+              "name": "graph",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "gFRGa",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/2b-graph.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "tKhVX",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Graph: one quiet \"Open in Obsidian\" row ends the topic panel.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "UkXDP",
+          "name": "Row 4",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "uClgY",
+              "name": "settings-obsidian",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "NXKcy",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/2b-settings-obsidian.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "wNKkb",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Settings, General: the Obsidian vault, its link and Unlink.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "zglnr",
+              "name": "settings-none",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "qWVcE",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/2b-settings-none.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "yxsT6",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "Nothing picked yet: the vaults Obsidian lists, then Other folder.",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "OfMS2",
+          "name": "Row 5",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "F67n4k",
+              "name": "settings-folder",
+              "width": 1200,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "zcJ5L",
+                  "name": "Picture",
+                  "width": 1200,
+                  "height": 750,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "vault-notes/2b-settings-folder.png",
+                    "mode": "contain"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "ndhYL",
+                  "name": "Caption",
+                  "fill": "#B8B8B8",
+                  "content": "A plain folder picked: the group is \"Notes folder\".",
+                  "fontFamily": "Literata",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "ink": {
+      "type": "color",
+      "value": "#EDEDEF"
+    },
+    "bg": {
+      "type": "color",
+      "value": "#141416"
+    },
+    "panel": {
+      "type": "color",
+      "value": "#1B1B1E"
+    },
+    "line": {
+      "type": "color",
+      "value": "#2A2A2F"
+    },
+    "dim": {
+      "type": "color",
+      "value": "#8C8C94"
+    },
+    "faint": {
+      "type": "color",
+      "value": "#5A5A62"
+    },
+    "red": {
+      "type": "color",
+      "value": "#FF453A"
+    },
+    "blue": {
+      "type": "color",
+      "value": "#0A84FF"
+    },
+    "g-bg": {
+      "type": "color",
+      "value": "#000000"
+    },
+    "g-ink": {
+      "type": "color",
+      "value": "#E6E6E6"
+    },
+    "g-mute": {
+      "type": "color",
+      "value": "#8D8D8D"
+    },
+    "g-faint": {
+      "type": "color",
+      "value": "#5E5E5E"
+    },
+    "g-tone": {
+      "type": "color",
+      "value": "#141414"
+    },
+    "g-line": {
+      "type": "color",
+      "value": "#222222"
+    },
+    "g-red": {
+      "type": "color",
+      "value": "#EF4444"
+    },
+    "g-orange": {
+      "type": "color",
+      "value": "#F97316"
+    },
+    "g-yellow": {
+      "type": "color",
+      "value": "#EAB308"
+    },
+    "g-green": {
+      "type": "color",
+      "value": "#10B981"
+    }
+  },
+  "fileToken": "e46b8a32-cc64-4c22-8096-0b7960533b53",
+  "fonts": [
+    {
+      "name": "KaTeX_AMS",
+      "url": "fonts/localhost/34494743736fda75.woff2"
+    },
+    {
+      "name": "KaTeX_Caligraphic",
+      "url": "fonts/localhost/5bfa49cac46cd1d7.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Caligraphic",
+      "url": "fonts/localhost/9f8077e0b38a290c.woff2"
+    },
+    {
+      "name": "KaTeX_Fraktur",
+      "url": "fonts/localhost/f98f89272eca11ae.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Fraktur",
+      "url": "fonts/localhost/a5764c6e2784d028.woff2"
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/31050a1b1b123fb2.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/a4a4905b8b126f9f.woff2",
+      "style": "italic",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/c9b2b5ffd2f27aa5.woff2",
+      "style": "italic"
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/c884086c25cec855.woff2"
+    },
+    {
+      "name": "KaTeX_Math",
+      "url": "fonts/localhost/8fcb9d2de65ac71a.woff2",
+      "style": "italic",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Math",
+      "url": "fonts/localhost/db4883d0cff95ecb.woff2",
+      "style": "italic"
+    },
+    {
+      "name": "KaTeX_SansSerif",
+      "url": "fonts/localhost/886e61797a525d4a.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_SansSerif",
+      "url": "fonts/localhost/3d5fa3cb309f8d83.woff2",
+      "style": "italic"
+    },
+    {
+      "name": "KaTeX_SansSerif",
+      "url": "fonts/localhost/e45d5f4f4a7f2ff3.woff2"
+    },
+    {
+      "name": "KaTeX_Script",
+      "url": "fonts/localhost/63b80959f1fc5689.woff2"
+    },
+    {
+      "name": "KaTeX_Size1",
+      "url": "fonts/localhost/57fa599974a1bc0b.woff2"
+    },
+    {
+      "name": "KaTeX_Size2",
+      "url": "fonts/localhost/ee18713634a3be8c.woff2"
+    },
+    {
+      "name": "KaTeX_Size3",
+      "url": "fonts/localhost/19a7caadfb66bd27.woff2"
+    },
+    {
+      "name": "KaTeX_Size4",
+      "url": "fonts/localhost/9bed17fb92f26505.woff2"
+    },
+    {
+      "name": "KaTeX_Typewriter",
+      "url": "fonts/localhost/7a08883fffc6958c.woff2"
+    }
+  ]
+}
