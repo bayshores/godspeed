@@ -1,27 +1,24 @@
 /**
- * The picked topic, docked beside the picture: its name and Close, one
- * square per fact with the fact count and score under them, the
- * sure-miss note, the topics it needs first and leads to (each opens
- * that topic), its facts
- * (each opens the fact), and Study. A tall panel scrolls its middle, so
- * Study stays in view.
+ * The picked topic, as the slip under the picture: its name, the fact count
+ * and score, each fact as its moon (each opens the fact), the sure-miss
+ * note, the topics it needs first and leads to (each opens that topic),
+ * then its note in Obsidian and Study at the right, under Close. A tall
+ * slip scrolls its middle, so the keys stay in view.
  */
 import { useMemo } from "react";
 import { topicFacts, type FactProgress, type TopicLink, type TopicProgress } from "@/shared/core";
-import { Pane } from "@/frontend/components/ui/pane";
-import { factCells, UNSTUDIED_CELL } from "@/frontend/components/fact-cells";
-import { neighbors, sureMissNote, topicCountLine } from "./derive.ts";
-import { FactList } from "./fact-list.tsx";
+import { neighbors, sureMissNote, topicColor, topicCountLine } from "./derive.ts";
+import { LinkChips } from "./link-chips.tsx";
+import { NoteKey } from "./note-key.tsx";
 import { CloseButton, StudyButton } from "./pane-buttons.tsx";
-import { LinkRows } from "./link-rows.tsx";
-import { NoteRow } from "./note-row.tsx";
-import { GROUP_LABEL, SIDE_TITLE } from "./styles.ts";
+import { TopicMoons } from "./topic-moons.tsx";
 
 export function TopicPane({
 	topic,
 	topics,
 	links,
 	facts,
+	stacked,
 	onClose,
 	onSelectTopic,
 	onOpenFact,
@@ -33,6 +30,8 @@ export function TopicPane({
 	topics: readonly TopicProgress[];
 	links: readonly TopicLink[];
 	facts: readonly FactProgress[];
+	/** One column, for a narrow room. */
+	stacked: boolean;
 	onClose: () => void;
 	onSelectTopic: (id: string) => void;
 	onOpenFact: (id: string) => void;
@@ -43,43 +42,45 @@ export function TopicPane({
 	const byId = useMemo(() => new Map(topics.map((t) => [t.id, t])), [topics]);
 	const { needs, leadsTo } = useMemo(() => neighbors(topic.id, links, byId), [topic.id, links, byId]);
 	const list = useMemo(() => topicFacts(facts, topic), [facts, topic]);
-	const cells = useMemo(() => factCells(list), [list]);
 	const note = sureMissNote(topic);
+	const chips = (ts: readonly TopicProgress[]) => ts.map((t) => ({ id: t.id, name: t.name, mark: <span aria-hidden className="mx-1 size-[10px] shrink-0" style={{ background: topicColor(t) }} /> }));
+	const keys = (
+		<div className={`flex min-w-0 gap-3 ${stacked ? "items-end justify-between" : "flex-col items-end"}`}>
+			<NoteKey topicId={topic.id} />
+			<StudyButton testid="study-topic" busy={studying} error={studyError} onClick={() => onStudy([topic.id])} />
+		</div>
+	);
 	return (
-		<Pane active data-testid="topic-pane" aria-label="Topic" className="flex min-h-0 flex-col gap-[9px] p-4">
-			<div className="flex shrink-0 items-start gap-2">
-				<h2 title={topic.name} className={`${SIDE_TITLE} flex-1`}>
-					{topic.name}
-				</h2>
-				<CloseButton testid="topic-pane-close" onClick={onClose} />
-			</div>
-			<div className="-mx-4 flex min-h-0 shrink flex-col gap-[9px] overflow-y-auto px-4">
-				<div className="flex flex-col gap-1.5">
-					<span aria-hidden className="flex flex-wrap gap-[3px]">
-						{cells.map((color, i) => (
-							<span key={i} className={color === UNSTUDIED_CELL ? "size-[11px]" : "lh-block-in size-[11px]"} style={{ background: color }} />
-						))}
-					</span>
-					<span data-testid="topic-score" className="text-base text-ink-2">
-						{topicCountLine(list.length, topic)}
-					</span>
-				</div>
+		<section data-testid="topic-pane" aria-label="Topic" className={`lh-sheet relative flex min-h-0 ${stacked ? "flex-col gap-4 p-6" : "items-stretch gap-9 py-6 pr-6 pl-7"}`}>
+			<div className="lh-scroll-fade -mb-4 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
+				<h2 className={`${stacked ? "pr-12 " : ""}text-2xl leading-tight [overflow-wrap:anywhere] text-ink`}>{topic.name}</h2>
+				<p data-testid="topic-score" className="-mt-1 text-base text-ink-2">
+					{topicCountLine(list.length, topic)}
+				</p>
+				{list.length > 0 && <TopicMoons key={topic.id} facts={list} onOpen={onOpenFact} size={36} />}
 				{note && (
 					<p data-testid="topic-note" className="text-[15px] leading-snug text-ink-2">
 						{note}
 					</p>
 				)}
-				<LinkRows label="Needs first" empty="Nothing, start here" rows={needs} onOpen={onSelectTopic} testid="needs-first" rowTestid="topic-link" />
-				<LinkRows label="Leads to" empty="Nothing yet" rows={leadsTo} onOpen={onSelectTopic} testid="leads-to" rowTestid="topic-link" />
-				{list.length > 0 && (
-					<>
-						<span className={GROUP_LABEL}>Facts</span>
-						<FactList key={topic.id} facts={list} onOpen={onOpenFact} />
-					</>
-				)}
-				<NoteRow topicId={topic.id} />
+				<div className="mt-1 flex min-w-0 flex-wrap gap-x-7 gap-y-2">
+					<LinkChips key={`needs ${topic.id}`} label="Needs first" chips={chips(needs)} onOpen={onSelectTopic} testid="needs-first" chipTestid="topic-link" />
+					<LinkChips key={`leads ${topic.id}`} label="Leads to" chips={chips(leadsTo)} onOpen={onSelectTopic} testid="leads-to" chipTestid="topic-link" />
+				</div>
 			</div>
-			<StudyButton testid="study-topic" label="Study" busy={studying} error={studyError} onClick={() => onStudy([topic.id])} />
-		</Pane>
+			{stacked ? (
+				<>
+					<div className="absolute top-5 right-5">
+						<CloseButton testid="topic-pane-close" onClick={onClose} />
+					</div>
+					{keys}
+				</>
+			) : (
+				<div className="flex shrink-0 flex-col items-end justify-between gap-4">
+					<CloseButton testid="topic-pane-close" onClick={onClose} />
+					{keys}
+				</div>
+			)}
+		</section>
 	);
 }

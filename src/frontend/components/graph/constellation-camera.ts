@@ -207,7 +207,7 @@ export function starPitch(sky: Pick<Sky, "clusters" | "s">): number {
 }
 
 /**
- * A shot's camera on the picture laid out again (a panel docked or closed):
+ * A shot's camera on the picture laid out again (a panel opened or closed):
  * centred on the same point relative to the nearest topic, at the same
  * pitch, so near stays near. The whole space stays the whole space.
  */

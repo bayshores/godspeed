@@ -6,7 +6,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+	answerLine,
 	factCellLabel,
+	foldLinks,
+	sameWords,
+	topicColor,
 	factLinks,
 	neighbors,
 	findMatches,
@@ -32,6 +36,31 @@ describe("fact links", () => {
 });
 
 describe("panel helpers", () => {
+	it("answerLine: not asked yet, or the score and the last day", () => {
+		assert.equal(answerLine({ answers: [] }), "Not asked yet");
+		const line = answerLine(fact("x", "t", "x", answers("rw")));
+		assert.match(line, /^1 of 2 right, last [A-Z][a-z]{2} [A-Z][a-z]{2} \d{1,2}$/);
+	});
+
+	it("sameWords: a statement that only says the name again, or none, is the same words", () => {
+		assert.equal(sameWords("Bit", "Bit."), true);
+		assert.equal(sameWords("Bit", "  bit "), true);
+		assert.equal(sameWords("Bit", ""), true);
+		assert.equal(sameWords("Bit", "A bit holds 0 or 1."), false);
+	});
+
+	it("foldLinks: the first few and how many more; one more than fit, or open, shows all", () => {
+		const list = [1, 2, 3, 4, 5, 6, 7];
+		assert.deepEqual(foldLinks(list, 4, false), { shown: [1, 2, 3, 4], more: 3 });
+		assert.deepEqual(foldLinks(list.slice(0, 5), 4, false), { shown: [1, 2, 3, 4, 5], more: 0 });
+		assert.deepEqual(foldLinks(list, 4, true), { shown: list, more: 0 });
+	});
+
+	it("topicColor: quiet ink untested, the ramp once tested", () => {
+		assert.equal(topicColor({ status: "untested", rate: null }), "var(--lh-ink-3)");
+		assert.equal(topicColor({ status: "strong", rate: 0.9 }), "var(--lh-ramp-5)");
+	});
+
 	const data = fixture();
 	const byId = new Map(data.topics.map((t) => [t.id, t]));
 	const mini = byId.get("t-mini")!;

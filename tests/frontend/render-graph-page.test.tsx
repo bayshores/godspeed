@@ -1,6 +1,6 @@
 /**
- * The Graph page: the picture with its docked topic and fact panels over a
- * fixture ProgressPayload, picking and closing by mouse and Escape, Find,
+ * The Graph page: the picture with its topic and fact panels as a slip
+ * under it over a fixture ProgressPayload, picking and closing by mouse and Escape, Find,
  * the empty space, the foot line (counts) and the top bar's words (Find,
  * Add files), the
  * opening reveal, and the screen's load failure.
@@ -92,10 +92,10 @@ describe("the picture", () => {
 		for (const gone of ["deadline-pane", "work-on-next", "study-these", "level-columns", "cell-key", "Midterm 1"]) assert.ok(!html.includes(gone), gone);
 	});
 
-	it("a picked topic docks its panel beside the picture", () => {
+	it("a picked topic opens its panel as a slip under the picture", () => {
 		const picked = renderToStaticMarkup(body({ initialSelected: "t-var" }));
 		assert.equal(count(picked, 'data-testid="graph-picture"'), 1);
-		assert.match(picked, /data-testid="graph-panel"[\s\S]*data-testid="topic-pane"/);
+		assert.match(picked, /data-testid="graph-picture"[\s\S]*data-testid="graph-panel"[^>]*>[\s\S]*data-testid="topic-pane"/);
 	});
 
 	it("Find dims the topics it doesn't light", () => {
@@ -119,37 +119,43 @@ describe("the picked topic", () => {
 	const data = fixture();
 	const mini = data.topics.find((t) => t.id === "t-mini")!;
 	const html = renderToStaticMarkup(
-		inRouter(<TopicPane topic={mini} topics={data.topics} links={data.topicLinks} facts={data.facts} onClose={noop} onSelectTopic={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} />),
+		inRouter(<TopicPane topic={mini} topics={data.topics} links={data.topicLinks} facts={data.facts} stacked={false} onClose={noop} onSelectTopic={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} />),
 	);
 
 	it("names the topic, with Close, its fact count and score, and the sure-miss note", () => {
 		assert.match(html, /<h2[^>]*>Minibatch noise</);
-		assert.match(html, /data-testid="topic-pane-close"[\s\S]*?Close</);
+		assert.match(html, /data-testid="topic-pane-close"[^>]*aria-label="Close"/);
 		assert.match(html, /data-testid="topic-score"[^>]*>6 facts, 3 of 7 right</);
 		assert.match(html, /data-testid="topic-note"[^>]*>On 4 of the misses you picked 4 or 5, so you felt sure\.</);
 	});
 
-	it("needs first and leads to as rows, not keys", () => {
+	it("needs first and leads to as chips, not keys", () => {
 		const needs = html.slice(html.indexOf('data-testid="needs-first"'), html.indexOf('data-testid="leads-to"'));
 		assert.ok(needs.includes(">Needs first<"));
 		assert.ok(needs.includes("Variance") && needs.includes("Derivatives"));
-		assert.match(needs, /data-testid="topic-link"[^>]*class="lh-press /);
+		assert.match(needs, /data-testid="topic-link"[^>]*class="lh-link-chip /);
 		assert.ok(!needs.includes("lh-btn"));
 		assert.ok(html.slice(html.indexOf('data-testid="leads-to"')).includes("Momentum"));
 	});
 
-	it("Facts: the first four with their squares, Show all, math as KaTeX", () => {
-		assert.ok(html.includes(">Facts<"));
-		assert.equal(count(html, 'data-testid="fact-row"'), 4);
-		assert.ok(html.includes("Show all 6"));
-		assert.ok(html.includes('class="katex"'), "1/B renders through KaTeX");
-		assert.match(html, /role="img" aria-label="0 of 1 right"/);
+	it("a topic with no links leaves both groups out", () => {
+		const alone = renderToStaticMarkup(
+			inRouter(<TopicPane topic={mini} topics={data.topics} links={[]} facts={data.facts} stacked={false} onClose={noop} onSelectTopic={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} />),
+		);
+		assert.ok(!alone.includes("needs-first") && !alone.includes("leads-to"));
+	});
+
+	it("every fact is its moon, weakest first, named for a screen reader", () => {
+		assert.equal(count(html, 'data-testid="fact-moon"'), 6);
+		const labels = [...html.matchAll(/data-testid="fact-moon" aria-label="([^"]*)"/g)].map((m) => m[1]);
+		assert.equal(labels[0], "Minibatch gradient is unbiased, 0 of 1 right");
+		assert.ok(labels.includes("Noise can help escape flat regions, In a lesson, not answered"));
 	});
 
 	it("Study is the one main key, outside the part that scrolls", () => {
 		const scroller = html.slice(html.indexOf("overflow-y-auto"), html.indexOf('data-testid="study-topic"'));
-		assert.ok(scroller.includes('data-testid="fact-row"'), "the facts scroll");
-		assert.match(html, /data-testid="study-topic"[^>]*class="lh-btn lh-btn-main[^"]*"><span[^>]*>Study</);
+		assert.ok(scroller.includes('data-testid="fact-moon"'), "the moons scroll");
+		assert.match(html, /data-testid="study-topic"[^>]*class="lh-btn lh-btn-main"[^>]*>Study</);
 		assert.equal(count(html, "lh-btn-main"), 1);
 	});
 });
@@ -157,60 +163,106 @@ describe("the picked topic", () => {
 describe("the picked fact", () => {
 	const data = fixture();
 	const f6 = data.facts.find((f) => f.id === "f6")!;
+	const mini = data.topics.find((t) => t.id === "t-mini")!;
 	const sources: FactSources = {
 		chains: [
 			{ premises: ["f3", "f4"], conclusion: "f6" },
 			{ premises: ["f6"], conclusion: "f9" },
 		],
-		fileSources: { src_a: "lecture 5.pdf" },
+		fileSources: { src_a: "lecture 5.pdf", src_b: "notes/week 2.md" },
 		sessions: { "chat-1": "Study: Minibatch noise" },
 	};
-	const pane = (over: Partial<React.ComponentProps<typeof FactPane>> = {}) =>
-		renderToStaticMarkup(inRouter(<FactPane fact={f6} topicName="Minibatch noise" facts={data.facts} sources={sources} onBack={noop} onClose={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} {...over} />));
+	const props = (over: Partial<React.ComponentProps<typeof FactPane>> = {}): React.ComponentProps<typeof FactPane> => ({
+		fact: f6,
+		topic: mini,
+		facts: data.facts,
+		sources,
+		stacked: false,
+		onBack: noop,
+		onClose: noop,
+		onOpenFact: noop,
+		onStudy: noop,
+		studying: false,
+		studyError: null,
+		...over,
+	});
+	const pane = (over: Partial<React.ComponentProps<typeof FactPane>> = {}) => renderToStaticMarkup(inRouter(<FactPane {...props(over)} />));
 
-	it("back and Close, what it says, its answers, where it came from, what it builds on and leads to, and Study", () => {
+	it("the topic's tab and Close, its moon and answers, its name and what it says, its lesson, what it builds on and leads to, and Study", () => {
 		const html = pane();
 		assert.match(html, /data-testid="fact-pane-back"[\s\S]*?Minibatch noise/);
-		assert.match(html, /data-testid="fact-pane-close"[\s\S]*?Close</);
+		assert.match(html, /data-testid="fact-pane-close"[^>]*aria-label="Close"/);
+		assert.match(html, /<h2[^>]*>[\s\S]*?class="katex"/, "the name's math renders through KaTeX");
 		assert.ok(html.includes('data-testid="fact-statement"'));
-		assert.match(html, /1 of 2 right, last /);
-		assert.match(html, /From the lesson Study: Minibatch noise/);
-		assert.match(html, /data-testid="fact-source-open"[^>]*href="\/chat\/chat-1"/);
+		assert.match(html, /data-testid="fact-answers"[^>]*>1 of 2 right, last /);
+		assert.match(html, /data-testid="fact-source-open"[^>]*href="\/chat\/chat-1"[\s\S]*?>Study: Minibatch noise</);
+		assert.ok(!html.includes("From "), "no line saying where it came from: the key names it");
 		const builds = html.slice(html.indexOf('data-testid="builds-on"'), html.indexOf('data-testid="fact-leads-to"'));
 		assert.ok(builds.includes("Variance adds") && builds.includes("Variance scales"));
 		assert.ok(html.slice(html.indexOf('data-testid="fact-leads-to"')).includes("Batch size and learning rate"));
-		assert.match(html, /data-testid="study-fact"[^>]*class="lh-btn lh-btn-main[^"]*"><span[^>]*>Study</);
+		assert.match(html, /data-testid="study-fact"[^>]*class="lh-btn lh-btn-main"[^>]*>Study</);
 	});
 
-	it("a fact from a space file names the file", () => {
-		const html = pane({ fact: { ...f6, born: "src_a" } });
-		assert.match(html, /From lecture 5\.pdf/);
+	it("a statement that only says the name again shows once", () => {
+		const html = pane({ fact: { ...f6, statement: `${f6.name}.` } });
+		assert.ok(!html.includes('data-testid="fact-statement"'));
+	});
+
+	it("a fact never asked says so", () => {
+		assert.match(pane({ fact: { ...f6, answers: [] } }), /data-testid="fact-answers"[^>]*>Not asked yet</);
+	});
+
+	it("the topic's tab goes back to the topic; a fact opened with no topic has none", async () => {
+		let back = 0;
+		const { q } = await mount(inRouter(<FactPane {...props({ onBack: () => back++ })} />));
+		await act(async () => q("fact-pane-back")!.click());
+		assert.equal(back, 1);
+		assert.ok(!pane({ topic: null }).includes("fact-pane-back"));
+	});
+
+	it("a long list of links folds behind one chip that opens the rest", async () => {
+		const many: FactSources = { ...sources, chains: ["f1", "f2", "f3", "f4", "f5", "f7", "f8"].map((id) => ({ premises: ["f6"], conclusion: id })) };
+		const { q } = await mount(inRouter(<FactPane {...props({ sources: many })} />));
+		const leads = () => q("fact-leads-to")!.querySelectorAll("[data-testid=fact-link]").length;
+		assert.equal(leads(), 4);
+		assert.equal(q("links-more")!.textContent, "3 more");
+		await act(async () => q("links-more")!.click());
+		assert.equal(leads(), 7);
+		assert.equal(q("links-more"), null);
+	});
+
+	it("one link more than fit is shown, not folded", () => {
+		const five: FactSources = { ...sources, chains: ["f1", "f2", "f3", "f4", "f5"].map((id) => ({ premises: ["f6"], conclusion: id })) };
+		const html = pane({ sources: five });
+		assert.equal(count(html, 'data-testid="fact-link"'), 5);
+		assert.ok(!html.includes("links-more"));
 	});
 
 	// A source only names its file: the space's record finds the file, the server its full path.
-	async function fromSpaceFile(path: string | null) {
+	async function fromSpaceFile(born: "src_a" | "src_b", path: string | null) {
 		const shown: string[] = [];
 		const opened: string[] = [];
 		Object.assign(dom.window, { lh: { platform: "darwin", showInFolder: async (p: string) => void shown.push(p), openPath: async (p: string) => void opened.push(p) } });
 		const original = globalThis.fetch;
 		globalThis.fetch = (async (url: string) => {
-			if (url === "/api/spaces/sp1") return Response.json({ space: { id: "sp1", files: [{ id: "f1", name: "lecture 5.pdf", sourceId: "src_a" }] }, folder: null });
-			if (url === "/api/spaces/sp1/files/f1") return path ? Response.json({ path }) : Response.json({ error: "gone" }, { status: 404 });
+			if (url === "/api/spaces/sp1")
+				return Response.json({ space: { id: "sp1", files: [{ id: "f1", name: "lecture 5.pdf", sourceId: "src_a" }, { id: "f2", name: "week 2.md", sourceId: "src_b" }] }, folder: null });
+			if (url === "/api/spaces/sp1/files/f1" || url === "/api/spaces/sp1/files/f2") return path ? Response.json({ path }) : Response.json({ error: "gone" }, { status: 404 });
 			return Response.json({ error: "none" }, { status: 404 });
 		}) as typeof fetch;
 		const { q } = await mount(
 			inRouter(
 				<SpaceProvider initialActive="sp1" initialSpaces={[]}>
-					<FactPane fact={{ ...f6, born: "src_a" }} topicName={null} facts={data.facts} sources={sources} onBack={noop} onClose={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} />
+					<FactPane {...props({ fact: { ...f6, born }, topic: null })} />
 				</SpaceProvider>,
 			),
 		);
-		await until(() => q("fact-source-show"), "the file's keys");
+		await until(() => q("fact-source-open"), "the file's key");
 		return {
 			q,
 			shown,
 			opened,
-			click: (id: string) => act(async () => q(id)!.click()),
+			click: () => act(async () => q("fact-source-open")!.click()),
 			done: () => {
 				globalThis.fetch = original;
 				delete (dom.window as { lh?: unknown }).lh;
@@ -218,26 +270,38 @@ describe("the picked fact", () => {
 		};
 	}
 
-	it("a fact from a space file shows and opens the file at its full path", async () => {
-		const page = await fromSpaceFile("/Users/me/cse/lecture 5.pdf");
+	it("a PDF's key is named after it and opens it at its full path", async () => {
+		const page = await fromSpaceFile("src_a", "/Users/me/cse/lecture 5.pdf");
 		try {
-			assert.equal(page.q("fact-source-show")!.textContent, "Show in Finder");
-			await page.click("fact-source-show");
-			await until(() => page.shown.length, "the file shown");
-			assert.deepEqual(page.shown, ["/Users/me/cse/lecture 5.pdf"]);
-			await page.click("fact-source-open");
+			assert.equal(page.q("fact-source-open")!.textContent, "lecture 5.pdf");
+			await page.click();
 			await until(() => page.opened.length, "the file opened");
 			assert.deepEqual(page.opened, ["/Users/me/cse/lecture 5.pdf"]);
+			assert.deepEqual(page.shown, []);
 			assert.equal(page.q("fact-source-error"), null);
 		} finally {
 			page.done();
 		}
 	});
 
-	it("a file that is not on this computer says so", async () => {
-		const page = await fromSpaceFile(null);
+	it("any other file's key shows it in the file browser at its full path", async () => {
+		const page = await fromSpaceFile("src_b", "/Users/me/cse/notes/week 2.md");
 		try {
-			await page.click("fact-source-show");
+			assert.equal(page.q("fact-source-open")!.textContent, "week 2.md");
+			assert.equal(page.q("fact-source-open")!.getAttribute("title"), "Show week 2.md in Finder");
+			await page.click();
+			await until(() => page.shown.length, "the file shown");
+			assert.deepEqual(page.shown, ["/Users/me/cse/notes/week 2.md"]);
+			assert.deepEqual(page.opened, []);
+		} finally {
+			page.done();
+		}
+	});
+
+	it("a file that is not on this computer says so", async () => {
+		const page = await fromSpaceFile("src_b", null);
+		try {
+			await page.click();
 			await until(() => page.q("fact-source-error"), "the error line");
 			assert.equal(page.q("fact-source-error")!.textContent, "Can't find this file on your computer.");
 			assert.deepEqual(page.shown, []);
@@ -255,6 +319,12 @@ describe("the picked fact", () => {
 	it("a Study start that failed says so under the key", () => {
 		const html = pane({ studyError: "Couldn't start the lesson. Try again." });
 		assert.match(html.slice(html.indexOf('data-testid="study-fact"')), /data-testid="study-start-error"[^>]*>Couldn&#x27;t start the lesson\. Try again\.</);
+	});
+
+	it("stacked for a narrow room: one column, the moon beside the name", () => {
+		const html = pane({ stacked: true });
+		assert.match(html, /data-testid="fact-pane"[^>]*class="[^"]*flex-col/);
+		assert.ok(html.indexOf("<svg") < html.indexOf("<h2"), "the moon comes before the name");
 	});
 });
 
@@ -391,12 +461,12 @@ const frames = () => new Promise<void>((resolve) => requestAnimationFrame(() => 
 const escape = () => act(async () => fire(dom.window as unknown as Element, "keydown", { key: "Escape" }));
 
 describe("picking in the page", () => {
-	it("a topic opens its panel; a fact row opens the fact; Escape closes the fact, then the topic", async () => {
+	it("a topic opens its panel; a fact's moon opens the fact; Escape closes the fact, then the topic", async () => {
 		const { q, topic } = await mount(body());
 		assert.equal(topic("t-mini").tagName, "BUTTON", "each topic is a button");
 		await act(async () => topic("t-mini").click());
 		assert.ok(q("topic-pane"));
-		await act(async () => q("fact-row")!.click());
+		await act(async () => q("fact-moon")!.click());
 		assert.ok(q("fact-pane") && !q("topic-pane"));
 		await escape();
 		assert.ok(q("topic-pane") && !q("fact-pane"), "back to the topic");
@@ -417,7 +487,7 @@ describe("picking in the page", () => {
 
 	it("a fact's Close closes the fact and its topic", async () => {
 		const { q } = await mount(body({ initialSelected: "t-mini" }));
-		await act(async () => q("fact-row")!.click());
+		await act(async () => q("fact-moon")!.click());
 		await act(async () => q("fact-pane-close")!.click());
 		assert.ok(!q("fact-pane") && !q("topic-pane"));
 	});
@@ -431,7 +501,7 @@ describe("picking in the page", () => {
 		assert.ok(!q("topic-pane"));
 	});
 
-	it("with little room, the panel takes the picture's place", async () => {
+	it("in a room too low or too narrow for both, the panel takes the picture's place", async () => {
 		const box = Object.getOwnPropertyDescriptor(dom.window.HTMLElement.prototype, "clientWidth");
 		Object.defineProperty(dom.window.HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 900 });
 		try {
@@ -571,7 +641,7 @@ describe("finding from the top bar", () => {
 	it("Escape in the field clears it first, then closes the fact, then the topic", async () => {
 		const { q, topic } = await mount(<Page />);
 		await act(async () => topic("t-mini").click());
-		await act(async () => q("fact-row")!.click());
+		await act(async () => q("fact-moon")!.click());
 		await act(async () => q("graph-find")!.click());
 		await typeInto(box(q), "momentum");
 		await act(async () => fire(box(q), "keydown", { key: "Escape" }));
@@ -697,8 +767,8 @@ describe("keyboard focus", () => {
 	it("closing from inside the panel puts focus back on the topic; Escape on a fact lands on the topic's Close", async () => {
 		const { q, topic } = await mount(body());
 		await act(async () => topic("t-mini").click());
-		q("fact-row")!.focus();
-		await act(async () => q("fact-row")!.click());
+		q("fact-moon")!.focus();
+		await act(async () => q("fact-moon")!.click());
 		await escape();
 		assert.ok(active() === q("topic-pane-close"));
 		await act(async () => q("topic-pane-close")!.click());
@@ -825,7 +895,6 @@ describe("a picture too tall for its box", () => {
 				width={1192}
 				height={60}
 				bleed={NO_BLEED}
-				docked={false}
 				reveal={null}
 				pickedId={null}
 				pickedFactId={null}
@@ -910,7 +979,7 @@ describe("zooming the picture", () => {
 	it("zoomed out to several topics, the foot counts topics and facts in view", async () => {
 		const { q, topic } = await mount(<Page />);
 		await act(async () => topic("t-mini").click());
-		await wheel(700);
+		await wheel(400);
 		assert.ok(zoom() !== null, "still zoomed in");
 		const [, topics, facts] = q("graph-in-view")!.textContent!.match(/^(\d+)topics(\d+)facts$/) ?? [];
 		assert.ok(topics !== undefined, `counts, not a topic's name: ${q("graph-in-view")!.textContent}`);
@@ -933,7 +1002,7 @@ describe("zooming the picture", () => {
 		await wheel(-150);
 		assert.ok(zoom() !== null, "zoomed by hand");
 		await act(async () => topic("t-mini").click());
-		await act(async () => q("fact-row")!.click());
+		await act(async () => q("fact-moon")!.click());
 		assert.ok(q("fact-pane"));
 		await escape();
 		assert.ok(q("topic-pane") && !q("fact-pane"), "the fact first");
@@ -1013,7 +1082,7 @@ describe("the camera's small behaviours", () => {
 			fire(picture(), "wheel", { deltaY: -400, deltaMode: 0, ctrlKey: false, clientX: 600, clientY: 100 });
 			await frames();
 		});
-	const constellation = ({ onPick = noop, onPickFact = noop, bleed = NO_BLEED, docked = false, onInView = noop, aim = null }: { onPick?: (id: string | null) => void; onPickFact?: (id: string) => void; bleed?: typeof NO_BLEED; docked?: boolean; onInView?: (v: InView | null) => void; aim?: Aim | null } = {}) => {
+	const constellation = ({ onPick = noop, onPickFact = noop, bleed = NO_BLEED, onInView = noop, aim = null }: { onPick?: (id: string | null) => void; onPickFact?: (id: string) => void; bleed?: typeof NO_BLEED; onInView?: (v: InView | null) => void; aim?: Aim | null } = {}) => {
 		const data = fixture();
 		return (
 			<Constellation
@@ -1025,7 +1094,6 @@ describe("the camera's small behaviours", () => {
 				width={1192}
 				height={600}
 				bleed={bleed}
-				docked={docked}
 				reveal={null}
 				pickedId={null}
 				pickedFactId={null}
@@ -1052,7 +1120,6 @@ describe("the camera's small behaviours", () => {
 				width={1192}
 				height={60}
 				bleed={NO_BLEED}
-				docked={false}
 				reveal={null}
 				pickedId={null}
 				pickedFactId={null}
@@ -1107,17 +1174,12 @@ describe("the camera's small behaviours", () => {
 		assert.equal(fixture().facts.find((f) => f.id === opened[0])?.topicId, "t-deriv", "its fact opens");
 	});
 
-	it("with a panel docked, a topic name right of the box is hidden", async () => {
+	it("zoomed in, a topic name drawn right of the box shows", async () => {
 		const pastBox = () =>
 			[...host!.querySelectorAll<HTMLElement>("[data-testid=graph-topic]")].filter((b) => parseFloat(b.style.left) + parseFloat(b.style.width) > 1192).map((b) => b.style.opacity !== "0");
-		for (const docked of [false, true]) {
-			await mount(constellation({ bleed: WIDE, aim: onMini, docked }));
-			assert.ok(pastBox().length > 0, "a name right of the box");
-			assert.equal(pastBox().some(Boolean), !docked, docked ? "hidden beside a panel" : "shown with no panel");
-			await act(async () => root!.unmount());
-			host!.remove();
-			root = undefined;
-		}
+		await mount(constellation({ bleed: WIDE, aim: onMini }));
+		assert.ok(pastBox().length > 0, "a name right of the box");
+		assert.ok(pastBox().some(Boolean));
 	});
 
 	it("a click right after a drag that was cancelled still works", async () => {
@@ -1525,7 +1587,7 @@ describe("when the lines draw in", () => {
 		const { q, topic } = await mount(<Page data={data()} sources={sources} />);
 		await landOn(topic, "t-mini");
 		await windowEnds();
-		await act(async () => q("fact-row")!.click());
+		await act(async () => q("fact-moon")!.click());
 		assert.ok(q("fact-pane"), "the fact opened");
 		await step(400);
 		noLines("a fact open");

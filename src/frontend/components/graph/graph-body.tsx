@@ -1,30 +1,18 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FactProgress, ProgressPayload } from "@/shared/core";
 import { Constellation } from "./constellation.tsx";
-import type { Aim, Bleed, CameraMemory, Flight } from "./constellation-camera.ts";
+import type { Aim, CameraMemory, Flight } from "./constellation-camera.ts";
 import type { InView } from "./use-in-view.ts";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { FactPane, type FactSources } from "./fact-pane.tsx";
 import { GraphEmpty } from "./graph-empty.tsx";
+import { GraphLayout } from "./graph-layout.tsx";
+import { panelAlone } from "./graph-layout-model.ts";
 import { TopicPane } from "./topic-pane.tsx";
 import { REVEAL_MS, type Reveal } from "./constellation-reveal.ts";
-import { FOOT } from "./graph-foot.tsx";
 import { nothingGrouped } from "./derive.ts";
+import { useRoom } from "./use-room.ts";
 
-/** The docked panel's width, and the gap between it and the picture. */
-const PANEL = 340;
-const GAP = 16;
-/** With less room than this, the panel takes the picture's place. */
-const NARROW = 1000;
-/** The room before it is measured: the page's widest column, less its sides. */
-const WIDEST = 1192;
-const TALLEST = 600;
-/** The least height the picture gets, however short the window. */
-const MIN_HEIGHT = 120;
-/** The room kept between the picture and the foot line. */
-const ABOVE_FOOT = 16;
-/** The room a zoomed-in picture keeps clear under the tab row's rule. */
-const UNDER_TABS = 4;
 const PICTURE = "[data-testid=graph-picture]";
 const PANEL_BOX = "[data-testid=graph-panel]";
 const PANEL_CLOSE = "[data-testid=topic-pane-close], [data-testid=fact-pane-close]";
@@ -32,8 +20,8 @@ const FOOT_LINE = "[data-testid=graph-foot]";
 const topicButton = (id: string) => `[data-testid=graph-topic][data-topic-id=${JSON.stringify(id)}]`;
 
 /** The picture over one progress payload (loaded lazily by graph-screen.tsx).
- *  A picked topic or fact docks its panel at the right and the picture
- *  re-fits beside it; with too little room the panel shows alone. A pick
+ *  A picked topic or fact opens its panel as a slip under the picture
+ *  (graph-layout.tsx); with too little room the panel shows alone. A pick
  *  flies the camera into its topic, and closing it flies back. Before any
  *  topic, a fact opens alone, where it is. */
 export function GraphBody({
@@ -88,9 +76,9 @@ export function GraphBody({
 	const selected = selectedId ? data.topics.find((t) => t.id === selectedId) : undefined;
 	const fact = factId ? data.facts.find((f) => f.id === factId) : undefined;
 
-	const narrow = room.width < NARROW;
+	const alone = panelAlone(room);
 
-	// The camera outlives the picture, which a narrow window unmounts while a panel shows.
+	// The camera outlives the picture, which a small room unmounts while a panel shows.
 	const camera = useRef<CameraMemory>({ shot: null, back: null, done: 0 });
 	// A picked topic gone in a graph change closes with no flight back, so its saved view goes with it.
 	const gone = selectedId !== null && !selected;
@@ -108,7 +96,7 @@ export function GraphBody({
 	});
 	const focusIn = (box: string) => !!room.ref.current?.querySelector(box)?.contains(document.activeElement);
 	const opening = () => {
-		if (focusIn(PANEL_BOX) || (narrow && focusIn(PICTURE))) focusNext.current = PANEL_CLOSE;
+		if (focusIn(PANEL_BOX) || (alone && focusIn(PICTURE))) focusNext.current = PANEL_CLOSE;
 	};
 	const closing = () => {
 		if (selectedId && focusIn(PANEL_BOX)) focusNext.current = topicButton(selectedId);
@@ -158,28 +146,19 @@ export function GraphBody({
 		return () => window.removeEventListener("keydown", onKey);
 	}, []);
 
-	// The picture re-fits beside a panel that opens or closes with one short fade, kept in place so focus stays on its topic.
-	const pictureRef = useRef<HTMLDivElement>(null);
-	const beside = !!(selected || fact) && !narrow;
-	const shown = useRef(beside);
-	useLayoutEffect(() => {
-		if (shown.current === beside) return;
-		shown.current = beside;
-		if (!prefersReducedMotion()) pictureRef.current?.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: "cubic-bezier(0.2, 0, 0, 1)" });
-	}, [beside]);
-
 	if (data.topics.length === 0) return <GraphEmpty inSpace={data.spaceId !== null} />;
 
 	// The picked topic never dims under Find.
 	const focus = matches && selected ? new Set([...matches.topics, selected.id]) : (matches?.topics ?? null);
 	const panel =
-		fact ? (
+		fact ? (stacked: boolean) => (
 			<FactPane
 				key={fact.id}
 				fact={fact}
-				topicName={selected?.name ?? null}
+				topic={selected ?? null}
 				facts={data.facts}
 				sources={sources}
+				stacked={stacked}
 				onBack={backToTopic}
 				onClose={close}
 				onOpenFact={openFact}
@@ -187,13 +166,14 @@ export function GraphBody({
 				studying={studying}
 				studyError={studyError}
 			/>
-		) : selected ? (
+		) : selected ? (stacked: boolean) => (
 			<TopicPane
 				key={selected.id}
 				topic={selected}
 				topics={data.topics}
 				links={data.topicLinks}
 				facts={data.facts}
+				stacked={stacked}
 				onClose={close}
 				onSelectTopic={pick}
 				onOpenFact={openFact}
@@ -202,86 +182,33 @@ export function GraphBody({
 				studyError={studyError}
 			/>
 		) : null;
-	const width = panel ? room.width - PANEL - GAP : room.width;
-	// Zoomed in, the picture is drawn out to the window's sides, under a docked panel, up to just under the tab row and down to the foot line.
-	const bleed: Bleed = { left: room.edges.left, right: room.edges.right + room.width - width, top: Math.max(0, room.edges.top - UNDER_TABS), bottom: ABOVE_FOOT };
 	return (
-		<div ref={room.ref} className="w-full">
-			{panel && narrow ? (
-				<Dock className="mx-auto w-full max-w-[560px]" height={room.height}>
-					{panel}
-				</Dock>
-			) : (
-				<div className="flex items-start" style={{ gap: GAP }}>
-					<div ref={pictureRef} className="min-w-0 shrink-0" style={{ width }}>
-						<Constellation
-							topics={data.topics}
-							links={data.topicLinks}
-							facts={data.facts}
-							chains={sources?.chains ?? null}
-							width={width}
-							height={room.height}
-							bleed={bleed}
-								docked={!!panel}
-							reveal={reveal}
-							note={note}
-							pickedId={selected?.id ?? null}
-							pickedFactId={fact?.id ?? null}
-							focus={focus}
-							factMatches={matches?.facts ?? null}
-							onPick={pick}
-							onPickFact={openFact}
-							onInView={onInView}
-							camera={camera}
-							aim={aim}
-						/>
-					</div>
-					{panel && (
-						<Dock className="relative z-30 shrink-0" width={PANEL} height={room.height}>
-							{panel}
-						</Dock>
-					)}
-				</div>
+		<GraphLayout
+			room={room}
+			panel={panel}
+			onRefit={() => selected && onFly({ to: "topic", id: selected.id, fact: null })}
+			picture={({ width, height, bleed }) => (
+				<Constellation
+					topics={data.topics}
+					links={data.topicLinks}
+					facts={data.facts}
+					chains={sources?.chains ?? null}
+					width={width}
+					height={height}
+					bleed={bleed}
+					reveal={reveal}
+					note={note}
+					pickedId={selected?.id ?? null}
+					pickedFactId={fact?.id ?? null}
+					focus={focus}
+					factMatches={matches?.facts ?? null}
+					onPick={pick}
+					onPickFact={openFact}
+					onInView={onInView}
+					camera={camera}
+					aim={aim}
+				/>
 			)}
-		</div>
-	);
-}
-
-/** The room the page gives the picture and panel, kept current: its width,
- *  the height from its top to ABOVE_FOOT above the foot line, and how far
- *  the page reaches past its left, right and top. The page never scrolls. */
-function useRoom() {
-	const ref = useRef<HTMLDivElement>(null);
-	const [size, setSize] = useState({ width: WIDEST, height: TALLEST, edges: { left: 0, right: 0, top: 0 } });
-	useLayoutEffect(() => {
-		const el = ref.current;
-		if (!el) return;
-		const measure = () => {
-			const page = (el.closest("[data-testid=graph-page]") ?? document.documentElement).getBoundingClientRect();
-			const box = el.getBoundingClientRect();
-			const height = Math.max(MIN_HEIGHT, Math.floor(page.bottom - box.top - ABOVE_FOOT - FOOT));
-			const edges = { left: Math.round(box.left - page.left), right: Math.round(page.right - box.right), top: Math.round(box.top - page.top) };
-			const same = (o: typeof size) => o.width === el.clientWidth && o.height === height && o.edges.left === edges.left && o.edges.right === edges.right && o.edges.top === edges.top;
-			if (el.clientWidth > 0) setSize((o) => (same(o) ? o : { width: el.clientWidth, height, edges }));
-		};
-		measure();
-		const ro = new ResizeObserver(measure);
-		ro.observe(el);
-		if (el.parentElement) ro.observe(el.parentElement);
-		window.addEventListener("resize", measure);
-		return () => {
-			ro.disconnect();
-			window.removeEventListener("resize", measure);
-		};
-	}, []);
-	return { ref, ...size };
-}
-
-/** The docked panel: as tall as the picture's room at most, so its Study key stays in view and its middle scrolls. */
-function Dock({ className, width, height, children }: { className: string; width?: number; height: number; children: ReactNode }) {
-	return (
-		<aside data-testid="graph-panel" className={`lh-fade flex flex-col ${className}`} style={{ width, maxHeight: height }}>
-			{children}
-		</aside>
+		/>
 	);
 }

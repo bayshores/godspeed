@@ -191,7 +191,6 @@ export function Constellation({
 	width,
 	height,
 	bleed,
-	docked,
 	reveal,
 	note,
 	pickedId,
@@ -214,8 +213,6 @@ export function Constellation({
 	/** The most height it may take: a taller picture scales down evenly to fit. */
 	height: number;
 	bleed: Bleed;
-	/** A panel is docked right of the box: names stay left of the box's right edge. */
-	docked: boolean;
 	/** This opening's reveal while it runs; null once the picture is in. */
 	reveal: Reveal | null;
 	/** The line under facts no topic holds yet; null while it is not said. */
@@ -277,7 +274,7 @@ export function Constellation({
 	const around = zoomed ? drawnRect(cam, frame, bleed, MARGIN) : viewRect(cam, frame, MARGIN);
 	// Zoomed in, the picture is drawn past its box (out to the window's sides) and dissolves at its top and bottom.
 	/** Where a name or the name tag shows whole while zoomed in: the drawn area, short of its dissolving edges. */
-	const clear = zoomed ? { x0: -bleed.left, x1: shownW + (docked ? 0 : bleed.right), y0: BAND - bleed.top, y1: frame.h + bleed.bottom - BAND } : null;
+	const clear = zoomed ? { x0: -bleed.left, x1: shownW + bleed.right, y0: BAND - bleed.top, y1: frame.h + bleed.bottom - BAND } : null;
 	const nearView = (x: number, y: number) => x >= around.x0 && x <= around.x1 && y >= around.y0 && y <= around.y1;
 
 	// Fixed for each reveal: a re-fit never moves a running animation, and a
@@ -533,7 +530,7 @@ export function Constellation({
 			onPointerLeave={onLeave}
 			onClick={onClick}
 		>
-			{/* Zoomed in, stars drawn past the box are pointed at and clicked too: this layer reaches as far as the picture is drawn, under the names and a docked panel. */}
+			{/* Zoomed in, stars drawn past the box are pointed at and clicked too: this layer reaches as far as the picture is drawn, under the names. */}
 			{zoomed && <div data-testid="graph-hit-area" className="absolute" style={{ left: -bleed.left, top: -bleed.top, width: shownW + bleed.left + bleed.right, height: frame.h + bleed.top + bleed.bottom }} />}
 			<PictureSvg w={shownW} h={frame.h} out={zoomed ? bleed : null}>
 				{/* Lines are drawn in layout points under one transform, at the same weight on screen at any zoom. */}

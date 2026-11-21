@@ -60,7 +60,7 @@ A button is as wide as its words.
 
 A list of things to open (related topics, linked facts, files) is rows, not keys. Keys are for actions.
 
-- A row is a square in the thing's color and its name, like a topic's facts on Graph (`LinkRows`, `PANE_ROW` in `components/graph/`). The whole row is the click.
+- A row is a square in the thing's color and its name. Rows may wrap as chips, each a well with the thing's square or moon and its name, like the links in a Graph panel (`LinkChips` in `components/graph/link-chips.tsx`). The whole row or chip is the click.
 - A title wraps; it is never cut with "...". Only the top bar's names give way, as the Top bar section says.
 - `npm run layout` fails three or more keys stacked on three or more lines in one group ("key pile") and a cut title ("cut title"), outside pop-ups and bars.
 

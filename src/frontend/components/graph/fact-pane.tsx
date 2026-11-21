@@ -1,24 +1,20 @@
 /**
- * One fact, opened from its topic: back to the topic (none before the
- * space has topics) and Close, what it
- * says, its answers, where it came from (a space file opens on the
- * desktop, a lesson opens in the app), the facts it builds on and leads
- * to (each opens), and Study. A tall panel scrolls its middle, so Study
- * stays in view.
+ * One fact, as the slip under the picture: its moon with the answer line
+ * under it; its name and what it says; the facts it builds on and leads to
+ * (each opens); its file or lesson and Study at the right. The topic it was
+ * opened in stands on the top edge as a tab back to the topic, and Close
+ * sits at the top right. A tall slip scrolls its middle, so the keys stay
+ * in view. Stacked, for a narrow room, the moon sits beside the name and
+ * the keys under the words.
  */
 import { useMemo } from "react";
-import { Link } from "react-router";
-import { dayLabel, localDay, rightWords, tally, type FactProgress, type GraphChain } from "@/shared/core";
-import { Pane } from "@/frontend/components/ui/pane";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import type { FactProgress, GraphChain, TopicProgress } from "@/shared/core";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
-import { factLinks, PANEL_ANSWER_COLOR } from "./derive.ts";
-import { CloseButton, StudyButton } from "./pane-buttons.tsx";
-import { factCells } from "@/frontend/components/fact-cells";
-import { LinkRows } from "./link-rows.tsx";
-import { CHIP } from "./styles.ts";
-import { useFactFile } from "./use-fact-file.ts";
-import { fileBrowserName } from "@/frontend/components/files/files-model";
+import { answerLine, factLinks, sameWords } from "./derive.ts";
+import { FactMoon } from "./fact-moon.tsx";
+import { FactFileKey } from "./fact-file-key.tsx";
+import { LinkChips } from "./link-chips.tsx";
+import { CloseButton, StudyButton, TopicTab } from "./pane-buttons.tsx";
 
 /** What the page knows about where facts came from (the graph snapshot's maps). */
 export interface FactSources {
@@ -31,9 +27,10 @@ export interface FactSources {
 
 export function FactPane({
 	fact,
-	topicName,
+	topic,
 	facts,
 	sources,
+	stacked,
 	onBack,
 	onClose,
 	onOpenFact,
@@ -42,11 +39,13 @@ export function FactPane({
 	studyError,
 }: {
 	fact: FactProgress;
-	/** The topic it was opened in, which the back key returns to; null opens it alone. */
-	topicName: string | null;
+	/** The topic it was opened in, which the tab returns to; null opens it alone. */
+	topic: TopicProgress | null;
 	facts: readonly FactProgress[];
 	/** null while the snapshot loads. */
 	sources: FactSources | null;
+	/** One column, for a narrow room. */
+	stacked: boolean;
 	onBack: () => void;
 	/** Closes the fact and its topic. */
 	onClose: () => void;
@@ -55,100 +54,86 @@ export function FactPane({
 	studying: boolean;
 	studyError: string | null;
 }) {
-	const byId = useMemo(() => new Map(facts.map((f) => [f.id, f])), [facts]);
-	const links = useMemo(() => (sources ? factLinks(fact.id, sources.chains) : null), [fact.id, sources]);
-	const last = fact.answers.at(-1)?.answeredAt;
-	return (
-		<Pane active data-testid="fact-pane" aria-label="Fact" className="flex min-h-0 flex-col gap-3.5 p-5">
-			<div className="flex shrink-0 items-center gap-2">
-				{topicName !== null && (
-					<button type="button" data-testid="fact-pane-back" onClick={onBack} title={topicName} className={`${CHIP} min-w-0`}>
-						<PixelIcon name="chevron" className="-scale-x-100" />
-						<span className="truncate">{topicName}</span>
-					</button>
-				)}
-				<span className="flex-1" />
-				<CloseButton testid="fact-pane-close" onClick={onClose} />
-			</div>
-			<div className="-mx-5 flex min-h-0 shrink flex-col gap-3.5 overflow-y-auto px-5">
-				<p data-testid="fact-statement" className="text-[17px] leading-snug text-ink">
-					<InlineMath text={fact.statement || fact.name} />
+	const answers = (
+		<p data-testid="fact-answers" className={`text-base leading-snug text-ink-2 ${stacked ? "" : "text-center"}`}>
+			{answerLine(fact)}
+		</p>
+	);
+	const name = (
+		<h2 className="text-2xl leading-tight [overflow-wrap:anywhere] text-ink">
+			<InlineMath text={fact.name} />
+		</h2>
+	);
+	const words = (
+		<>
+			{!sameWords(fact.name, fact.statement) && (
+				<p data-testid="fact-statement" className="max-w-[72ch] text-[17px] leading-relaxed text-ink">
+					<InlineMath text={fact.statement} />
 				</p>
-				<div className="flex items-center gap-2.5 text-base text-ink-2" data-testid="fact-answers">
-					{fact.answers.length > 0 ? (
-						<>
-							<span aria-hidden className="flex flex-wrap gap-[3px]">
-								{fact.answers.slice(-12).map((a) => (
-									<span key={`${a.chatId}:${a.toolCallId}`} className="size-[11px]" style={{ background: PANEL_ANSWER_COLOR[a.outcome] }} />
-								))}
-							</span>
-							<span>
-								{rightWords(tally(fact.answers))}
-								{last ? `, last ${dayLabel(localDay(new Date(last)))}` : ""}
-							</span>
-						</>
-					) : (
-						<span>Not asked yet.</span>
-					)}
-				</div>
-				<Source born={fact.born} sources={sources} />
-				{links && (
-					<>
-						<FactLinks label="Builds on" ids={links.buildsOn} byId={byId} onOpen={onOpenFact} testid="builds-on" />
-						<FactLinks label="Leads to" ids={links.leadsTo} byId={byId} onOpen={onOpenFact} testid="fact-leads-to" />
-					</>
-				)}
-			</div>
-			<StudyButton testid="study-fact" label="Study" busy={studying} error={studyError} onClick={() => onStudy(fact)} />
-		</Pane>
+			)}
+			<FactLinks fact={fact} facts={facts} sources={sources} onOpen={onOpenFact} />
+		</>
+	);
+	const keys = (
+		<div className={`flex min-w-0 gap-3 ${stacked ? "items-end justify-between" : "flex-col items-end"}`}>
+			<FactFileKey born={fact.born} file={fact.born ? sources?.fileSources[fact.born] : undefined} lesson={fact.born ? sources?.sessions[fact.born] : undefined} />
+			<StudyButton testid="study-fact" busy={studying} error={studyError} onClick={() => onStudy(fact)} />
+		</div>
+	);
+	return (
+		<section data-testid="fact-pane" aria-label="Fact" className={`lh-sheet relative flex min-h-0 ${stacked ? "flex-col gap-4 p-6" : "items-stretch gap-9 py-6 pr-6 pl-7"}`}>
+			{topic && <TopicTab topic={topic} onClick={onBack} />}
+			{stacked ? (
+				<>
+					<div className="flex shrink-0 items-center gap-4 pr-12">
+						<FactMoon fact={fact} size={72} />
+						<div className="flex min-w-0 flex-col gap-1">
+							{name}
+							{answers}
+						</div>
+					</div>
+					<div className="absolute top-5 right-5">
+						<CloseButton testid="fact-pane-close" onClick={onClose} />
+					</div>
+					<div className="lh-scroll-fade -mb-4 flex min-h-0 flex-col gap-4 overflow-y-auto">{words}</div>
+					{keys}
+				</>
+			) : (
+				<>
+					<div className="flex w-[180px] shrink-0 flex-col items-center gap-3 pt-1">
+						<FactMoon fact={fact} size={90} />
+						{answers}
+					</div>
+					<div className="lh-scroll-fade -mb-4 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
+						{name}
+						{words}
+					</div>
+					<div className="flex shrink-0 flex-col items-end justify-between gap-4">
+						<CloseButton testid="fact-pane-close" onClick={onClose} />
+						{keys}
+					</div>
+				</>
+			)}
+		</section>
 	);
 }
 
-/** Where the fact came from: a space file (open it or show it on the desktop) or a lesson. */
-function Source({ born, sources }: { born: string | null; sources: FactSources | null }) {
-	const onDisk = useFactFile(born);
-	if (!born || !sources) return null;
-	const file = sources.fileSources[born];
-	const lesson = sources.sessions[born];
-	if (!file && !lesson) return null;
-	const name = file ? file.split(/[\\/]/).pop()! : lesson!;
+function FactLinks({ fact, facts, sources, onOpen }: { fact: FactProgress; facts: readonly FactProgress[]; sources: FactSources | null; onOpen: (id: string) => void }) {
+	const byId = useMemo(() => new Map(facts.map((f) => [f.id, f])), [facts]);
+	const links = useMemo(() => (sources ? factLinks(fact.id, sources.chains) : null), [fact.id, sources]);
+	if (!links) return null;
+	const chips = (ids: readonly string[]) =>
+		ids
+			.map((id) => byId.get(id))
+			.filter((f): f is FactProgress => !!f)
+			.map((f) => ({ id: f.id, name: f.name, shown: <InlineMath text={f.name} />, mark: <FactMoon fact={f} size={18} /> }));
+	const buildsOn = chips(links.buildsOn);
+	const leadsTo = chips(links.leadsTo);
+	if (buildsOn.length + leadsTo.length === 0) return null;
 	return (
-		<div data-testid="fact-source" className="flex flex-col gap-1.5 pt-3.5">
-			<span className="truncate text-base text-ink-2" title={name}>
-				From {file ? name : `the lesson ${name}`}
-			</span>
-			<span className="flex flex-wrap gap-2 empty:hidden">
-				{file ? (
-					onDisk && (
-						<>
-							{onDisk.opens && (
-								<button type="button" data-testid="fact-source-open" onClick={() => onDisk.show("open")} className={CHIP}>
-									Open
-								</button>
-							)}
-							<button type="button" data-testid="fact-source-show" onClick={() => onDisk.show("folder")} className={CHIP}>
-								Show in {fileBrowserName(window.lh?.platform)}
-							</button>
-						</>
-					)
-				) : (
-					<Link to={`/chat/${born}`} data-testid="fact-source-open" className={CHIP}>
-						Open
-					</Link>
-				)}
-			</span>
-			{onDisk?.error && (
-				<p role="alert" data-testid="fact-source-error" className="text-sm text-ans-wrong">
-					{onDisk.error}
-				</p>
-			)}
+		<div className="mt-2 flex min-w-0 flex-wrap gap-x-7 gap-y-2">
+			<LinkChips label="Builds on" chips={buildsOn} onOpen={onOpen} testid="builds-on" chipTestid="fact-link" />
+			<LinkChips label="Leads to" chips={leadsTo} onOpen={onOpen} testid="fact-leads-to" chipTestid="fact-link" />
 		</div>
 	);
-}
-function FactLinks({ label, ids, byId, onOpen, testid }: { label: string; ids: readonly string[]; byId: ReadonlyMap<string, FactProgress>; onOpen: (id: string) => void; testid: string }) {
-	const rows = ids
-		.map((id) => byId.get(id))
-		.filter((f): f is FactProgress => !!f)
-		.map((f) => ({ id: f.id, name: f.name, shown: <InlineMath text={f.name} />, color: factCells([f])[0]! }));
-	return <LinkRows label={label} rows={rows} onOpen={onOpen} testid={testid} rowTestid="fact-link" />;
 }

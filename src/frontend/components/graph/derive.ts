@@ -1,10 +1,15 @@
 /**
  * Pure helpers for the Graph page's panels: answer colors, score lines,
- * the sure-miss note, a topic's and a fact's links, what Find matches.
+ * the sure-miss note, a fact's answer line, a topic's and a fact's links
+ * and how many show before they fold, what Find matches.
  * Browser-safe, unit-tested.
  */
 import {
+	dayLabel,
+	localDay,
 	RAMP_COLORS,
+	rampColor,
+	UNTESTED_COLOR,
 	type AnswerOutcome,
 	type AnswerRef,
 	type FactProgress,
@@ -22,6 +27,11 @@ export const PANEL_ANSWER_COLOR: Record<AnswerOutcome, string> = {
 	wrong: RAMP_COLORS[0],
 	dontKnow: "var(--color-ans-dontknow)",
 };
+
+/** A topic's color: its score's ramp color once tested. */
+export function topicColor(t: Pick<TopicProgress, "status" | "rate">): string {
+	return t.status === "untested" ? UNTESTED_COLOR : rampColor(t.rate);
+}
 
 /** Wrong answers given at confidence 4–5. */
 function sureMisses(answers: readonly Pick<AnswerRef, "outcome" | "level">[]): number {
@@ -113,4 +123,23 @@ export function factLinks(factId: string, chains: readonly Pick<GraphChain, "pre
 		if (c.premises.includes(factId) && c.conclusion !== factId) leadsTo.add(c.conclusion);
 	}
 	return { buildsOn: [...buildsOn], leadsTo: [...leadsTo] };
+}
+
+/** A fact's answer line: "Not asked yet", or "1 of 3 right, last Fri Nov 20". */
+export function answerLine(f: Pick<FactProgress, "answers">): string {
+	if (f.answers.length === 0) return "Not asked yet";
+	const last = f.answers.at(-1)?.answeredAt;
+	return `${rightWords(tally(f.answers))}${last ? `, last ${dayLabel(localDay(new Date(last)))}` : ""}`;
+}
+
+/** True when a fact's statement only says its name again, so the panel shows it once. */
+export function sameWords(name: string, statement: string): boolean {
+	const plain = (s: string) => s.trim().replace(/[.\s]+$/, "").toLowerCase();
+	return !statement.trim() || plain(name) === plain(statement);
+}
+
+/** A list of links folded to its first `limit`, with how many more wait behind a chip; one more is shown rather than folded. */
+export function foldLinks<T>(list: readonly T[], limit: number, open: boolean): { shown: readonly T[]; more: number } {
+	if (open || list.length <= limit + 1) return { shown: list, more: 0 };
+	return { shown: list.slice(0, limit), more: list.length - limit };
 }
