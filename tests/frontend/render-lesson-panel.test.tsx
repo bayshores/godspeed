@@ -186,20 +186,22 @@ describe("Your turn in each state", () => {
 		assert.deepEqual(pressed, ["keep-going", "next", "next"]);
 	});
 
-	it("pinned at the window's foot with nothing to answer: no head, the key that goes on at the end of the Try asking row, and the box alone while the teacher works", () => {
-		const pinned = (n: React.ReactNode) => <TurnPlaceContext.Provider value="pinned">{n}</TurnPlaceContext.Provider>;
-		const out = html({ shown: shown(atStop) }, pinned);
-		assert.match(out, /data-testid="your-turn"[^>]*class="[^"]*lh-turn-quiet/);
-		assert.doesNotMatch(out, /<h2/);
-		assert.match(out, /turn-next-line[^>]*>Cross-validation is next\.<\/p><\/div>[\s\S]*data-testid="composer"[\s\S]*data-testid="turn-foot"[\s\S]*Try asking[\s\S]*data-testid="next-problem-button"[^>]*>Continue</);
-		const busy = html({ busy: true, shown: shown({ line: "Cross-validation is next.", key: null }, true) }, pinned);
-		assert.match(busy, /data-testid="turn-swap"[^>]*class="[^"]*hidden[^"]*"><\/div>/);
-		assert.match(busy, /data-testid="composer"/);
-		assert.doesNotMatch(busy, /turn-next|turn-foot|<h2/);
-		for (const over of [{ pending: quiz }, { problem }]) {
-			const asked = html(over, pinned);
-			assert.match(asked, /<h2/, "a question or a problem keeps its head");
-			assert.doesNotMatch(asked, /lh-turn-quiet/);
+	it("under the text with nothing to answer, pinned or in the page: no head, the key that goes on at the end of the Try asking keys, and the box alone while the teacher works", () => {
+		for (const place of ["pinned", "under"] as const) {
+			const there = (n: React.ReactNode) => <TurnPlaceContext.Provider value={place}>{n}</TurnPlaceContext.Provider>;
+			const out = html({ shown: shown(atStop) }, there);
+			assert.match(out, /data-testid="your-turn"[^>]*class="[^"]*lh-turn-quiet/);
+			assert.doesNotMatch(out, /<h2/);
+			assert.match(out, /turn-next-line[^>]*>Cross-validation is next\.<\/p><\/div>[\s\S]*data-testid="composer"[\s\S]*data-testid="turn-foot"[\s\S]*Try asking[\s\S]*Quiz me<\/button><button[^>]*data-testid="next-problem-button"[^>]*>Continue</);
+			const busy = html({ busy: true, shown: shown({ line: "Cross-validation is next.", key: null }, true) }, there);
+			assert.match(busy, /data-testid="turn-swap"[^>]*class="[^"]*hidden[^"]*"><\/div>/);
+			assert.match(busy, /data-testid="composer"/);
+			assert.doesNotMatch(busy, /turn-next|turn-foot|<h2/);
+			for (const over of [{ pending: quiz }, { problem }]) {
+				const asked = html(over, there);
+				assert.match(asked, /<h2/, "a question or a problem keeps its head");
+				assert.doesNotMatch(asked, /lh-turn-quiet/);
+			}
 		}
 	});
 

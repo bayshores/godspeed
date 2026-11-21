@@ -837,8 +837,8 @@ body {
 		padding: 28px var(--lh-reading-inset-narrow) 32px;
 	}
 }
-/* "Your turn" pinned with nothing to answer: a low sheet, so the lesson text keeps the window. */
-.lh-turn-foot .lh-reading.lh-turn-quiet {
+/* "Your turn" under the text with nothing to answer: a low sheet, so the lesson text keeps the window. */
+.lh-reading.lh-turn-quiet {
 	padding-block: 20px;
 }
 
@@ -1595,7 +1595,8 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	animation: lh-rise-in var(--lh-dur) var(--lh-ease-out) both;
 }
 
-/* The open problem's box on its page in the Document panel: the outline closes in on it once. */
+/* The open problem's box on its page in the Document panel: one that comes after the lesson
+   opened closes in on it once. */
 @keyframes lh-box-in {
 	from {
 		opacity: 0;
@@ -1605,6 +1606,8 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 .lh-doc-box {
 	outline: 2px solid var(--color-ink);
 	outline-offset: 4px;
+}
+.lh-doc-box-in {
 	animation: lh-box-in var(--lh-dur-slow) var(--lh-ease-out) both;
 }
 
@@ -2074,27 +2077,23 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	}
 }
 
-@keyframes lh-grow-in {
-	from {
-		width: 0;
-	}
-}
-
 .lh-ink {
 	mask-image: linear-gradient(90deg, #000 calc(var(--ink) - 3%), transparent calc(var(--ink) + 3%));
 	transition: --ink 600ms ease;
 	animation: lh-ink-in 900ms ease-out;
 }
 
+/* A bar that is there when its page opens is just there; it glides only when its share changes. */
 .lh-grow {
 	transition: width 600ms ease;
-	animation: lh-grow-in 900ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
 	.lh-ink,
 	.lh-grow {
 		transition: none;
+	}
+	.lh-ink {
 		animation: none;
 	}
 }

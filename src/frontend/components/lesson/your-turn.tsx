@@ -93,10 +93,10 @@ const EXIT: Record<NonNullable<BoxView["exit"]>, { label: string; testId: string
  * it one row of keys sends a line in one click: "Stuck?" with a question
  * or a problem waiting, "Try asking" with nothing waiting. Beside the lesson text
  * only the question or problem shrinks to fit the window, scrolling in its
- * own box (LessonScroll). Pinned at the window's foot under the text
- * (TurnPlaceContext) it is only as tall as what the learner can do now: with
+ * own box (LessonScroll). Under the text, pinned at the window's foot or in the page
+ * (TurnPlaceContext), it is only as tall as what the learner can do now: with
  * nothing to answer it has no title and the key that goes on ends the foot
- * row, and while the teacher works it is the box alone.
+ * row's keys, and while the teacher works it is the box alone.
  */
 export function YourTurn({
 	pending,
@@ -173,9 +173,9 @@ export function YourTurn({
 			: (problem?.line ?? keptTitle ?? "Your turn");
 
 	const mode = pending ? "question" : problem ? "practice" : kept ? "kept" : "next";
-	// Pinned with nothing to answer: no title, the next key ends the foot row, and only a line saying what is next stands over the box.
+	// Under the text with nothing to answer: no title, the next key ends the foot row, and only a line saying what is next stands over the box.
 	const place = useContext(TurnPlaceContext);
-	const quiet = place === "pinned" && !pending && !problem;
+	const quiet = (place === "pinned" || place === "under") && !pending && !problem;
 	const boxAlone = quiet && (busy || !next?.next.line);
 	const shownProblem = problem ?? keptProblem;
 	// The part that was open when the problem closed stays open, so the kept problem holds its height.
@@ -289,10 +289,10 @@ export function YourTurn({
 
 			<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
 			{(view.help || (turn.kind === "ask" && !(quiet && busy))) && (
-				// Keys that wrap line up under the first key, not under the label.
+				// Keys that wrap line up under the first key, not under the label. The next key ends their last row.
 				<div data-testid="turn-foot" className="flex items-baseline gap-2.5">
 					<span className="mr-1 shrink-0 text-base text-ink-2">{view.help ? "Stuck?" : "Try asking"}</span>
-					<div className="flex min-w-0 flex-wrap items-center gap-2.5">
+					<div className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
 						{view.help ? (
 							<HelpKeys help={view.help} questionRef={questionRef} onHelpLine={onHelpLine} />
 						) : (
@@ -302,8 +302,8 @@ export function YourTurn({
 								</button>
 							))
 						)}
+						{quiet && nextButton}
 					</div>
-					{quiet && nextButton}
 				</div>
 			)}
 		</div>

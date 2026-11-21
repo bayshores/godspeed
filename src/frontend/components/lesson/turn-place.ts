@@ -6,6 +6,7 @@ import { createContext } from "react";
  *  page under the text. */
 export type TurnPlace = "beside" | "tight" | "alone" | "pinned" | "under";
 
-/** The place "Your turn" is drawn in. Pinned, it is only as tall as what the learner can do
- *  now; beside the text or alone it also keeps the task he last finished. */
-export const TurnPlaceContext = createContext<TurnPlace>("under");
+/** The place "Your turn" is drawn in. Under the text, pinned or in the page, it is only as tall
+ *  as what the learner can do now; beside the text or alone it also keeps the task he last
+ *  finished. With no page around it, it is drawn whole. */
+export const TurnPlaceContext = createContext<TurnPlace>("beside");

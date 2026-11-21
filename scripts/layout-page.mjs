@@ -735,10 +735,11 @@ export function carried(inner, outer) {
 const BAR_WORDS = ".lh-bar-actions > *, .lh-bar-zoom, [data-testid=bar-crumb] > *";
 
 /** The moves the motion rule (docs/ui-rules.md) asks for, so they are not arrival motion: the
- *  pages' travel (Travel), a page's own words fading into the top bar with it, and the mark of
- *  the lit tab sliding to the lit tab (useLitMarker). */
+ *  pages' travel (Travel), a page's own words fading into the top bar with it, the mark of
+ *  the lit tab sliding to the lit tab (useLitMarker), and the parts of the pencil that writes
+ *  while the teacher works, a wait's one live element. */
 function openingAllowed(animation, target) {
-	if (target.matches(".lh-travel-page, .lh-travel-old")) return true;
+	if (target.matches(".lh-travel-page, .lh-travel-old") || target.closest(".lh-pencil")) return true;
 	if (animation.animationName === "lh-fade-in" && target.matches(BAR_WORDS)) return true;
 	return animation.transitionProperty !== undefined && target.matches(".lh-lit-marker");
 }

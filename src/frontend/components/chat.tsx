@@ -683,6 +683,7 @@ export function Chat({
 												shown={shownDoc}
 												place={place}
 												seq={docSeq}
+												there={dockThere}
 												onPick={(id) => updateDock({ fileId: id })}
 												onRetry={() => void reloadDocuments()}
 												onClose={() => updateDock({ panel: null })}
