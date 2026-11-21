@@ -20,6 +20,15 @@ A UI change must fit the app as if it was always there. Working is not finished.
 - Failure help shows when it fails, not always.
 - Before calling a UI change finished, read every word on the changed screen in each state (empty, working, failed) and cut what is said twice.
 
+## Obsidian and Notes folder
+
+| Where the notes go | The interface says |
+|---|---|
+| A folder Obsidian lists, or one that holds `.obsidian/` | "Obsidian": "Saved to Obsidian", "Open in Obsidian" |
+| Any other folder | "Notes folder" or "Notes": "Saved to your notes folder", "Show in Finder" |
+
+"Vault" is only a word in code and docs, never in the interface.
+
 ## No button behind a button
 
 A click does the thing; it does not open a box holding the button for the thing.

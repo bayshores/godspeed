@@ -48,6 +48,7 @@ pub fn catch_up_for_agent(app: &Arc<App>, session: &str, now: i64) {
 	let run = || -> Result<(), String> {
 		catch_up_lessons(app, session, now)?;
 		check_spaces(app, now);
+		crate::vault::catch_up(app);
 		Ok(())
 	};
 	if let Err(err) = run() {

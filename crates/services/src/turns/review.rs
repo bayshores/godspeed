@@ -147,6 +147,7 @@ pub fn answer_review(app: &App, chat_id: &str, of: &Json, answer: &Json) -> Resu
 		record
 	};
 	record_answer(app, &record, answer);
+	crate::vault::reviewed(app, record["spaceId"].str_or_empty());
 	app.events.emit(EventKind::RecordChanged, json!({ "chatId": chat_id }));
 	Ok(ReviewReply::Done)
 }

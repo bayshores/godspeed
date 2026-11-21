@@ -155,6 +155,8 @@ const FACTS = [true, true, false, false, false].map((inLessons, i) => ({
 
 type Props = React.ComponentProps<typeof OverviewBody>;
 
+const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+
 /** A teacher the page can hand lines to; `lines` collects them. */
 const teacherOf = (canAsk: boolean, lines: string[] = []) => ({ name: "Quigley", canAsk, ask: (line: string) => void lines.push(line) }) as unknown as TeacherApi;
 
@@ -162,20 +164,22 @@ function body(props: Partial<Props> = {}, teacher: TeacherApi | null = null) {
 	return (
 		<TeacherContext.Provider value={teacher}>
 		<MemoryRouter initialEntries={["/space"]}>
-			<OverviewBody
-				hasSpace
-				color="var(--lh-space-1)"
-				data={{ ...PAYLOAD, deadlines: DEADLINES, facts: FACTS }}
-				nowMs={NOW}
-				busyOn={null}
-				startError={null}
-				onStudy={() => {}}
-				onStudyPath={() => {}}
-				onStudyDeadline={() => {}}
-				onWorkDeadline={() => {}}
-				onAddDeadline={() => {}}
-				{...props}
-			/>
+			<ServerEventsProvider connect={quietEvents as never}>
+				<OverviewBody
+					hasSpace
+					color="var(--lh-space-1)"
+					data={{ ...PAYLOAD, deadlines: DEADLINES, facts: FACTS }}
+					nowMs={NOW}
+					busyOn={null}
+					startError={null}
+					onStudy={() => {}}
+					onStudyPath={() => {}}
+					onStudyDeadline={() => {}}
+					onWorkDeadline={() => {}}
+					onAddDeadline={() => {}}
+					{...props}
+				/>
+			</ServerEventsProvider>
 		</MemoryRouter>
 		</TeacherContext.Provider>
 	);
@@ -696,7 +700,6 @@ describe("clicks", () => {
 			host = document.createElement("div");
 			document.body.appendChild(host);
 			root = createRoot(host);
-			const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 			await act(async () =>
 				root!.render(
 					<MemoryRouter initialEntries={["/space"]}>

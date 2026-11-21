@@ -1,11 +1,12 @@
 /**
  * Settings → General: the teacher's name, sounds, deadline reminders, the Mac menu bar
- * countdown and updates.
+ * countdown, the notes folder and updates.
  */
 
 import { DEFAULT_TEACHER_NAME, resolveSettings, type UserSettings } from "@/shared/core";
 import type { GeneralPatch } from "@/frontend/components/settings-context";
 import { CommitInput, SettingsGroup, SettingsRow, Toggle } from "./controls.tsx";
+import { NotesFolderGroup } from "./notes-folder-group.tsx";
 import { UpdateSettings } from "./update-settings.tsx";
 
 export function GeneralSection({
@@ -63,6 +64,7 @@ export function GeneralSection({
 					)}
 				</SettingsGroup>
 			)}
+			<NotesFolderGroup />
 			<SettingsGroup label="Updates" testid="group-updates">
 				<UpdateSettings
 					autoUpdate={effective.general.autoUpdate}

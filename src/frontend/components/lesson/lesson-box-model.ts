@@ -23,9 +23,11 @@ export type BoxTurn =
 	| { kind: "written"; takesFiles: boolean }
 	/** Nothing waits: the box asks the teacher something. `nextKey`: the
 	 *  next state's key shows above it, and stays the sheet's bright key. */
-	| { kind: "ask"; nextKey: boolean };
+	| { kind: "ask"; nextKey: boolean }
+	/** A lesson end asks for the learner's own words on a note; `ready`: the text can be saved; `leave`: the label of the key that ends the day. */
+	| { kind: "words"; ready: boolean; leave: string | null };
 
-export type BoxAction = "send" | "submit";
+export type BoxAction = "send" | "submit" | "skip" | "save" | "leave";
 
 export interface BoxButton {
 	action: BoxAction;
@@ -112,6 +114,21 @@ export function lessonBox(s: {
 			exit: "discard",
 			attach: true,
 			help: { dontKnow: "send", dontKnowDisabled: s.busy, linesDisabled: s.busy },
+		};
+	}
+	if (turn.kind === "words") {
+		return {
+			placeholder: "One or two sentences",
+			size: "line",
+			keys: [
+				...(turn.leave ? [{ action: "leave" as const, label: turn.leave, filled: false, disabled: false }] : []),
+				{ action: "skip", label: "Skip", filled: false, disabled: false },
+				{ action: "save", label: "Save", filled: turn.ready, disabled: !turn.ready },
+			],
+			enter: turn.ready ? "save" : null,
+			exit: null,
+			attach: false,
+			help: null,
 		};
 	}
 	const ask = (canAsk: boolean, filled: boolean): BoxButton => ({ action: "send", label: `Ask ${s.teacher}`, filled, disabled: !canAsk });

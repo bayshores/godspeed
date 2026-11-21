@@ -19,7 +19,7 @@ import assert from "node:assert/strict";
 import { YourTurn } from "../../src/frontend/components/lesson/your-turn.tsx";
 import { TurnSheet } from "../../src/frontend/components/lesson/turn-sheet.tsx";
 import { TurnPlaceContext, type TurnPlace } from "../../src/frontend/components/lesson/turn-place.ts";
-import type { NextAction, TurnNext } from "../../src/frontend/components/lesson/turn-next-model.ts";
+import type { NextAction, TurnNext, TurnNotes } from "../../src/frontend/components/lesson/turn-next-model.ts";
 import { LessonScroll } from "../../src/frontend/components/lesson/lesson-scroll.tsx";
 import type { QuestionHandle } from "../../src/frontend/components/question-dock.tsx";
 import { practiceProgress } from "../../src/frontend/components/lesson/practice-progress.ts";
@@ -128,6 +128,8 @@ function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 		boxRef: { current: null },
 		stuck: null,
 		error: null,
+		onAnswerAsk: () => {},
+		askError: null,
 		...over,
 	};
 }
@@ -208,6 +210,44 @@ describe("Your turn in each state", () => {
 	it("the last topic: one line and Done for today", () => {
 		const out = html({ shown: shown({ line: "That was the last topic.", key: { label: "Done for today", action: "done-for-today" } }) });
 		assert.match(out, />That was the last topic\.<[\s\S]*data-action="done-for-today"[^>]*>Done for today</);
+	});
+
+	it("the last topic with notes: the pages and whether they are saved, no empty band before the box", () => {
+		const page = (topicId: string, saving: boolean) => ({ topicId, name: "Stars and bars", recall: null, color: "#888", kind: "godspeed" as const, path: saving ? null : "A/B.md", saving });
+		const end = (notes: TurnNotes) => shown({ line: "That was the last topic.", key: { label: "Done for today", action: "done-for-today" }, notes });
+		const saving = html({ shown: end({ pages: [page("t1", false), page("t2", true)], saved: "Saving to Obsidian", ask: null }) });
+		assert.equal(saving.split('data-testid="note-page"').length - 1, 2);
+		assert.match(saving, /data-saving/);
+		assert.match(saving, /data-testid="notes-saved"[^>]*>Saving to Obsidian</);
+		assert.match(html({ shown: end({ pages: [page("t1", false)], saved: "Saved to Obsidian", ask: null }) }), />Saved to Obsidian</);
+		const pinned = html({ shown: end({ pages: [page("t1", false)], saved: "Saved to Obsidian", ask: null }) }, (n) => <TurnPlaceContext.Provider value="pinned">{n}</TurnPlaceContext.Provider>);
+		assert.match(pinned, /note-page/);
+		assert.match(pinned, /overflow-x-auto/, "the pinned sheet is short, so its pages scroll sideways");
+		assert.match(pinned, />Saved to Obsidian</);
+	});
+
+	it("a My words ask: the ask is the line under the My words head, Done for today, Skip and Save are in the box and the limit is kept", async () => {
+		const ask = { topicId: "t1", name: "Stars and bars", maxLength: 10 };
+		const asking = shown({ line: "Explain stars and bars in your own words.", key: { label: "Done for today", action: "done-for-today" }, notes: { pages: [], saved: null, ask } });
+		const out = html({ shown: asking });
+		assert.match(out, /<h2[^>]*>My words<\/h2>[\s\S]*Explain stars and bars in your own words\./);
+		assert.match(out, /data-testid="words-leave"[^>]*>Done for today</);
+		assert.doesNotMatch(out, /next-problem-button/, "Done for today only in the box");
+		assert.match(out, /One or two sentences/);
+		assert.match(out, /data-testid="words-skip"[^>]*>Skip</);
+		assert.match(out, /data-testid="words-save"[^>]*disabled[^>]*>Save</);
+		const answers: unknown[] = [];
+		const onAnswerAsk = (topicId: string, reply: unknown) => answers.push([topicId, reply]);
+		const nexts: NextAction[] = [];
+		await mounted(turn({ shown: asking, value: "Halve it.", onAnswerAsk, onNext: (a: NextAction) => nexts.push(a) }), async (host) => {
+			await click(host, "words-save");
+			await click(host, "words-skip");
+			await click(host, "words-leave");
+		});
+		assert.deepEqual(answers, [["t1", { words: "Halve it." }], ["t1", { skip: true }]]);
+		assert.deepEqual(nexts, ["done-for-today"]);
+		assert.match(html({ shown: asking, value: "x".repeat(14) }), /Shorten it by 4 characters\./);
+		assert.match(html({ shown: asking, value: "x".repeat(14) }), /data-testid="words-save"[^>]*disabled/);
 	});
 
 	it("while the teacher writes: the next line dimmed, with no key", () => {

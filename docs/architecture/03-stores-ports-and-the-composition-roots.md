@@ -1,6 +1,6 @@
 ## 3. Stores, ports and the composition roots
 
-One store per kind of data file, never one generic interface. `Stores` (`crates/store`) is built once in `App::new`; it holds settings, prompt overrides, agent notes, agent rules, agent-seen marks, activity log (agent actions), MCP token, Tavily key (`search_key`), deadline reminders, jobs, graph ledgers (`GraphStores`, one `GraphStore` per graph folder), chats, spaces, cheat sheets, mocks.
+One store per kind of data file, never one generic interface. `Stores` (`crates/store`) is built once in `App::new`; it holds settings, prompt overrides, agent notes, agent rules, agent-seen marks, activity log (agent actions), MCP token, Tavily key (`search_key`), deadline reminders, vault notes (`vault_notes`, a damaged file is kept aside), jobs, graph ledgers (`GraphStores`, one `GraphStore` per graph folder), chats, spaces, cheat sheets, mocks.
 
 Stores persist and shape-guard; they never merge, dedupe or derive (readers do, in core).
 

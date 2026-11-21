@@ -93,6 +93,7 @@ To add a row:
 | Activity and graph costs | Teacher panel | `teacher-panel-activity` | Teacher's Activity | learner | |
 | Saved rules | Settings, Teaching | `area-detail` | | learner | `save_rule` |
 | Delete a remembered note | Settings, Teaching | `remembered-notes` | | learner | `forget` |
+| Notes in Obsidian or a notes folder | Settings, General; Progress; lesson end; Graph | `vault-pick` | Settings, General | teacher | `write_vault_note`, `search_vault` |
 | Add a remembered note | Settings, Teaching | none: only the teacher adds one; you can only delete | | teacher | `remember` |
 | Settings | Menu | `settings-entry` | | learner | `settings`, `open-settings` |
 | Teacher name and sounds | Settings, General | `teacher-name-row` | Settings, General | learner | |

@@ -3,6 +3,7 @@
 pub mod turns;
 pub mod jobs;
 pub mod spaces;
+pub mod vault;
 pub mod cheat_sheets;
 pub mod graph;
 pub mod app;
@@ -30,6 +31,7 @@ pub struct App {
 	pub turns: turns::TurnsState,
 	pub jobs: jobs::JobsState,
 	pub spaces: spaces::SpacesState,
+	pub vault: vault::VaultState,
 	pub cheat_sheets: cheat_sheets::CheatSheetsState,
 	pub graph: graph::GraphState,
 	pub misc: app::MiscState,
@@ -52,6 +54,7 @@ impl App {
 			turns: Default::default(),
 			jobs: Default::default(),
 			spaces: Default::default(),
+			vault: Default::default(),
 			cheat_sheets: Default::default(),
 			graph: Default::default(),
 			misc: Default::default(),

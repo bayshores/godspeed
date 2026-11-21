@@ -319,6 +319,7 @@ impl World {
 			space_actions: Some(space_actions()),
 			// Recorded before open_page; its tool is checked beside its code.
 			open_page: None,
+			write_vault_note: None,
 		}
 	}
 

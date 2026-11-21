@@ -10,7 +10,7 @@ All Rust lives in `crates/`, a Cargo workspace (`Cargo.toml` at repo root, toolc
 |---|---|
 | `json` (gs-json) | `Json`: JSON with JS key order, JS number text, lone surrogates |
 | `base` (gs-base) | JS-compatible text, numbers, dates, regex, sorting, ids, hashes, app clock, paths, events, locks, atomic writes, shutdown |
-| `core` (gs-core) | pure logic: `contracts`, `records`, `messages`, `session`, `graph`, `spaces`, `study`, `mocks` |
+| `core` (gs-core) | pure logic: `contracts`, `records`, `messages`, `session`, `graph`, `spaces`, `study`, `vault`, `mocks` |
 | `shell-rpc` (gs-shell-rpc) | line protocol between server and desktop shell |
 | `store` (gs-store) | every data file, read and written byte for byte as earlier versions did |
 | `media` | image re-encoding, SVG to PNG, PNG fixes |

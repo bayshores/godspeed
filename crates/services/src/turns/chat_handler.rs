@@ -40,6 +40,7 @@ use super::turn_service::{persist_turn, trigger_extraction};
 use crate::App;
 use crate::app::agent_actions::record_answer;
 use crate::app::today_note::today_note_for;
+use crate::graph::progress::lesson_ended;
 use crate::spaces::space_actions::SendFirstMessage;
 use crate::jobs::{note_steers_durable, reconcile_user_steers, register_live_agent, settle_steers, unregister_live_agent};
 
@@ -398,6 +399,9 @@ impl Settle {
 			trigger_extraction(app, chat_id, scope, chunk_tokens);
 		}
 		apply_parked_dismissal(app, chat_id)?;
+		if lesson_ended(app, chat_id) {
+			crate::vault::queue_lesson(app, chat_id);
+		}
 		end_turn(app, chat_id);
 		unregister_turn(app, chat_id);
 		unregister_live_agent(app, chat_id);

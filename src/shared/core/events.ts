@@ -80,6 +80,8 @@ export interface ServerEvents {
 	"terminal-line": { id: number; text: string; attachments: { name: string; mimeType: string; data: string }[] };
 	/** The teacher's chats in godspeed's terminal changed: one started, or was used or named. */
 	"teacher-chats-changed": Record<string, never>;
+	/** The vault's setting changed, or a note godspeed writes in it was written, found again or marked removed. */
+	"vault-notes-changed": Record<string, never>;
 	/** The teacher in godspeed's terminal finished answering the learner there ("done") or stopped to ask them something ("needs"). */
 	"agent-event": { kind: "done" | "needs" };
 	/** A deadline's cheat sheet or its agent request changed. */
@@ -118,5 +120,6 @@ export const SERVER_EVENT_TYPES = [
 	"terminal-line",
 	"agent-event",
 	"teacher-chats-changed",
+	"vault-notes-changed",
 ] as const satisfies readonly ServerEventType[];
 

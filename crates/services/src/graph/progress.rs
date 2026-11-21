@@ -4,6 +4,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+use gs_base::hash::sha256_text;
 use gs_base::{clock, time};
 use gs_core::spaces::problem_list::with_problem_lists;
 use gs_core::spaces::today_note::local_day;
@@ -66,6 +67,11 @@ fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 	Some(readout)
 }
 
+/// Whether the lesson's plan reached its end ("Done for today").
+pub fn lesson_ended(app: &App, chat_id: &str) -> bool {
+	lesson_readout(app, chat_id).and_then(|r| r.plan.as_ref().map(|plan| plan.contains_key("endedAt"))).unwrap_or(false)
+}
+
 /// Where a lesson's plan stands: its step bar's count (`done`, `total`), the stop it waits at
 /// until he keeps going (`stop`: `{at, next}`), when it reached its end (`endedAt`), and otherwise
 /// the topic it is in the middle of (`inTopic`, the current step's title).
@@ -126,27 +132,90 @@ pub fn hinted_problems(app: &App, space_id: &str) -> Vec<Json> {
 		.collect()
 }
 
-/// The space's mistakes: answers given wrong and problems solved only with hints, each with the
-/// topics its facts are in (the cheat sheet's Watch out block).
-pub fn space_mistakes(app: &App, space_id: &str, progress: &Json) -> Result<Vec<Json>, String> {
-	let index = facts_by_message(&get_graph(graph_store_for(app, Some(space_id)).as_ref())?.nodes);
-	let topic_of: HashMap<&str, &Json> = progress["facts"].items().iter().map(|f| (f["id"].str_or_empty(), &f["topicId"])).collect();
-	let topics_of = |fact_ids: &[String]| -> Vec<Json> {
+/// Which topic each fact is in, and the facts each answer counts for.
+pub struct TopicLookup {
+	index: HashMap<String, Vec<String>>,
+	topic_of: HashMap<String, String>,
+	/// The grouped topics' ids.
+	known: HashSet<String>,
+}
+
+impl TopicLookup {
+	/// The topics the facts are in, each once.
+	fn of_facts(&self, fact_ids: &[String]) -> Vec<String> {
 		let mut seen = HashSet::new();
-		fact_ids.iter().filter_map(|id| topic_of.get(id.as_str()).and_then(|t| t.as_str())).filter(|t| !t.is_empty() && seen.insert(*t)).map(Json::from).collect()
-	};
+		fact_ids.iter().filter_map(|id| self.topic_of.get(id)).filter(|t| !t.is_empty() && seen.insert(t.as_str())).cloned().collect()
+	}
+
+	/// The grouped topics an answer counts for: its facts' topics, else its plan node when that
+	/// is a topic (as the progress derivation counts it).
+	pub fn of_answer(&self, answer: &Json) -> Vec<String> {
+		let hit: Vec<String> = self.of_facts(&facts_for_answer(answer, &self.index)).into_iter().filter(|t| self.known.contains(t)).collect();
+		self.or_node(hit, answer)
+	}
+
+	/// `topics`, or the plan node of `of` when that is a topic and `topics` is empty.
+	fn or_node(&self, topics: Vec<String>, of: &Json) -> Vec<String> {
+		match of["nodeId"].as_str().filter(|n| self.known.contains(*n)) {
+			Some(node) if topics.is_empty() => vec![node.to_owned()],
+			_ => topics,
+		}
+	}
+}
+
+/// `progress` is `progress_for` of the space.
+pub fn topic_lookup(app: &App, space_id: &str, progress: &Json) -> Result<TopicLookup, String> {
+	Ok(TopicLookup {
+		index: facts_by_message(&get_graph(graph_store_for(app, Some(space_id)).as_ref())?.nodes),
+		topic_of: progress["facts"].items().iter().filter_map(|f| Some((f["id"].as_str()?.to_owned(), f["topicId"].as_str()?.to_owned()))).collect(),
+		known: progress["topics"].items().iter().filter(|t| !t["ungrouped"].truthy()).filter_map(|t| t["id"].as_str().map(str::to_owned)).collect(),
+	})
+}
+
+/// A mistake's id: the same each time it is read, short enough to send to the teacher.
+fn mistake_id(chat_id: &str, call_id: &str) -> String {
+	format!("m{}", &sha256_text(&format!("{chat_id}:{call_id}"))[..6])
+}
+
+/// The space's mistakes: answers given wrong and problems solved only with hints, each with an
+/// id and the topics its facts are in (the cheat sheet's Watch out block, and the vault notes).
+pub fn space_mistakes(app: &App, space_id: &str, progress: &Json) -> Result<Vec<Json>, String> {
+	let lookup = topic_lookup(app, space_id, progress)?;
 	let mut out = Vec::new();
 	for c in space_lessons(app, space_id) {
-		let Some(readout) = lesson_readout(app, c["id"].str_or_empty()) else { continue };
+		let chat_id = c["id"].str_or_empty();
+		let Some(readout) = lesson_readout(app, chat_id) else { continue };
 		for a in readout.answers.iter().filter(|a| a["outcome"].as_str() == Some("wrong")) {
-			out.push(json!({ "text": a["question"], "kind": "wrong", "at": a["answeredAt"], "topicIds": topics_of(&facts_for_answer(a, &index)) }));
+			let topics = lookup.of_answer(a);
+			out.push(json!({ "id": mistake_id(chat_id, a["toolCallId"].str_or_empty()), "text": a["question"], "kind": "wrong", "at": a["answeredAt"], "topicIds": topics }));
 		}
 		for o in readout.outcomes.iter().filter(|o| o["outcome"].as_str() == Some("solvedWithHints")) {
 			let targets: Vec<String> = o["targets"].items().iter().map(|t| t.str_or_empty().to_owned()).collect();
-			out.push(json!({ "text": o["statement"], "kind": "hint", "at": o["at"], "topicIds": topics_of(&targets) }));
+			out.push(json!({ "id": mistake_id(chat_id, o["problemCallId"].str_or_empty()), "text": o["statement"], "kind": "hint", "at": o["at"], "topicIds": lookup.or_node(lookup.of_facts(&targets), o) }));
 		}
 	}
 	Ok(out)
+}
+
+/// The grouped topics a lesson's answers since `since` (an ISO time) count for, each with how
+/// many answers, the most answered first.
+pub fn lesson_answered_topics(app: &App, chat_id: &str, since: Option<&str>) -> Result<Vec<(String, usize)>, String> {
+	let Some(space_id) = app.stores.chats.get_chat(chat_id).and_then(|c| c["spaceId"].as_str().map(str::to_owned)) else { return Ok(Vec::new()) };
+	let Some(readout) = lesson_readout(app, chat_id) else { return Ok(Vec::new()) };
+	let Some(progress) = progress_for(app, space_id.as_str(), None)? else { return Ok(Vec::new()) };
+	let lookup = topic_lookup(app, &space_id, &progress)?;
+	let since = since.and_then(time::parse_date);
+	let mut counts: Vec<(String, usize)> = Vec::new();
+	for answer in readout.answers.iter().filter(|a| since.is_none_or(|s| a["answeredAt"].as_str().and_then(time::parse_date).is_some_and(|at| at > s))) {
+		for topic in lookup.of_answer(answer) {
+			match counts.iter_mut().find(|(id, _)| *id == topic) {
+				Some((_, n)) => *n += 1,
+				None => counts.push((topic, 1)),
+			}
+		}
+	}
+	counts.sort_by_key(|(_, n)| std::cmp::Reverse(*n));
+	Ok(counts)
 }
 
 /// The space's files with the source id their facts are born under, and the problems listed for

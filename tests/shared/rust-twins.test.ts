@@ -15,6 +15,7 @@ import { TOOL_SWITCH_LABELS } from "../../src/shared/core/tool-switches.ts";
 import { APP_ICONS } from "../../src/frontend/components/settings/appearance-model.ts";
 import { PIECE_WIDTHS } from "../../src/frontend/components/citations/page-piece-model.ts";
 import { MAX_LESSON_FILES } from "../../src/frontend/components/files/files-pick-model.ts";
+import { VAULT_WORDS } from "../../src/frontend/components/vault/vault-model.ts";
 import { TITLE_CUT } from "../../src/frontend/components/lesson/wait-model.ts";
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf-8");
@@ -46,6 +47,12 @@ describe("question tools", () => {
 describe("a lesson title cut short", () => {
 	it("ends with the mark the lesson page looks for", () => {
 		assert.ok(rust("contracts/graph").includes(`format!("{}${TITLE_CUT}"`));
+	});
+});
+
+describe("who writes a note", () => {
+	it("is the same two values", () => {
+		assert.deepEqual([...VAULT_WORDS], strings(rust("records/settings"), "VAULT_WORDS"));
 	});
 });
 

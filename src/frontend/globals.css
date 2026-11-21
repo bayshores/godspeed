@@ -534,6 +534,43 @@ body {
 	}
 }
 
+/* A note as a page: lighter than the sheet it lies on, one corner folded over. A page still being
+   written is only its outline. */
+@layer components {
+	.lh-note-page {
+		position: relative;
+		width: 168px;
+		height: 212px;
+		flex-shrink: 0;
+		background: var(--color-tone);
+		clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+	}
+	.lh-note-page::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		right: 0;
+		width: 22px;
+		height: 22px;
+		background: linear-gradient(to bottom left, transparent 50%, var(--color-tone-2) 50%);
+	}
+	/* Pages in rows of whole pages: what does not fit a row wraps under it. */
+	.lh-note-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px;
+	}
+	.lh-note-page-saving {
+		background: transparent;
+		clip-path: none;
+		outline: 2px dashed var(--color-tone-2);
+		outline-offset: -2px;
+	}
+	.lh-note-page-saving::before {
+		content: none;
+	}
+}
+
 /* Buttons are tiles, drawn like the g tile in the logo: a face inside an ink
    edge, on a dithered ink shadow down and to the right. Pressing slides the
    tile into its shadow. .lh-btn-main is the one dark key of a view;

@@ -82,9 +82,14 @@ pub fn plan_position_lh(tree: &Json, messages: &[Json]) -> Json {
 /// The current step's title, a shown opener's question moving it as in `plan_position_lh`; none
 /// before the first tagged call or when that step has no title.
 pub fn current_step_title(tree: &Json, messages: &[Json]) -> Option<Json> {
-	let current = derive_plan_statuses_lh(tree, messages, &opener_nodes(messages)).current?;
+	let current = current_step_id(tree, messages)?;
 	let node = tree["nodes"].as_arr()?.iter().find(|n| id_of(n) == current)?;
 	node["title"].as_str().filter(|t| !t.is_empty()).map(Json::from)
+}
+
+/// The current step's node id, which is its topic's id.
+pub fn current_step_id(tree: &Json, messages: &[Json]) -> Option<String> {
+	derive_plan_statuses_lh(tree, messages, &opener_nodes(messages)).current
 }
 
 #[cfg(test)]
@@ -131,5 +136,6 @@ mod tests {
 		assert_eq!(current_step_title(&tree, &[call("a")]), Some(json!("Regularization")));
 		assert_eq!(current_step_title(&tree, &[call("a"), call("b")]), None);
 		assert_eq!(current_step_title(&tree, &[call("zz")]), None);
+		assert_eq!(current_step_id(&tree, &[call("b")]).as_deref(), Some("b"));
 	}
 }

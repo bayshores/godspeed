@@ -3,16 +3,27 @@
  * on, the finished task the right page keeps, whether the lesson's book is
  * open, and whether the sheet is drawn. Pure.
  */
+import { askLine, savedLine, type LessonAsk, type LessonNotes, type VaultNote } from "@/frontend/components/vault/note-pages-model";
 import { answerForPresentation, closedProblemOf, isQuestionTool, isRecord, openerQuestionId, PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, type LessonStop, type LhMessage, type LhViewMessage, type QuestionAnswerData } from "@/shared/core";
 
 /** What the next state's key does. */
 export type NextAction = "keep-going" | "next" | "done-for-today" | "start-again";
+
+/** What the last topic's "Your turn" shows of the lesson's notes: its pages, the line saying
+ *  whether they are saved and the "My words" ask it owes now, if any. */
+export interface TurnNotes {
+	pages: VaultNote[];
+	saved: string | null;
+	ask: LessonAsk | null;
+}
 
 /** The next state: a line saying what is next, and the key. */
 export interface TurnNext {
 	/** Null leaves the line out. */
 	line: string | null;
 	key: { label: string; action: NextAction } | null;
+	/** Only at the last topic, with notes to show. */
+	notes?: TurnNotes;
 }
 
 /**
@@ -22,7 +33,9 @@ export interface TurnNext {
  * stop, the go-ahead key shows once the teacher is done, unless an error line
  * is up (its Try again answers first), and Start again shows after a first
  * reply was stopped with nothing written. A problem list's key names its
- * problem, so its stop has no line.
+ * problem, so its stop has no line. At the last topic the lesson's notes
+ * show too: its pages, and while a "My words" ask is owed, the ask is the
+ * line.
  */
 export function turnNext(s: {
 	/** The stop he has not kept going from. */
@@ -35,9 +48,19 @@ export function turnNext(s: {
 	error: boolean;
 	/** A first reply was stopped before the teacher wrote anything (nothingWritten). */
 	nothingWritten: boolean;
+	/** The lesson's notes (useLessonNotes); null without a notes folder. */
+	notes: LessonNotes | null;
+	/** The notes go to an Obsidian vault. */
+	obsidian: boolean;
 }): TurnNext | null {
 	const { stop } = s;
-	if (stop?.kind === "end") return { line: "That was the last topic.", key: { label: "Done for today", action: "done-for-today" } };
+	if (stop?.kind === "end") {
+		const done = { label: "Done for today", action: "done-for-today" } as const;
+		const ask = s.notes?.asks[0] ?? null;
+		const pages = s.notes?.pages ?? [];
+		const line = ask ? askLine(ask.name) : "That was the last topic.";
+		return { line, key: done, ...(pages.length > 0 || ask ? { notes: { pages, saved: savedLine(pages, s.obsidian), ask } } : {}) };
+	}
 	if (stop) return { line: s.problemList ? null : stopLine(stop), key: s.goLabel ? { label: s.goLabel, action: "keep-going" } : null };
 	if (s.busy) return null;
 	if (s.error) return { line: null, key: null };

@@ -1,5 +1,5 @@
-//! Opening things for the learner: a file in the file manager, and a folder or PDF in its
-//! default app. Nothing here can launch a program the page names.
+//! Opening things for the learner: a file in the file manager, a folder or PDF in its default
+//! app, and a note in Obsidian. Nothing here can launch a program the page names.
 
 use std::path::{Path, PathBuf};
 
@@ -34,6 +34,29 @@ pub fn open_path(target: &str) -> Result<(), String> {
 	} else {
 		Ok(())
 	}
+}
+
+/// Opens a note in Obsidian. The link is built here from an absolute path, so the page never
+/// names the `obsidian:` scheme; a relative path, or a file that is not there, does nothing.
+pub fn open_in_obsidian(target: &str) -> Result<(), String> {
+	if !Path::new(target).is_absolute() || std::fs::metadata(target).is_err() {
+		return Ok(());
+	}
+	tauri_plugin_opener::open_url(obsidian_link(target), None::<&str>).map_err(|err| err.to_string())
+}
+
+/// `obsidian://open?path=` and the path with every byte but a letter, digit, `-`, `_`, `.` or `~`
+/// as `%XX`: Obsidian wants `/` as `%2F` and a space as `%20`, not `+`.
+fn obsidian_link(path: &str) -> String {
+	let mut link = String::from("obsidian://open?path=");
+	for byte in path.bytes() {
+		if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~') {
+			link.push(char::from(byte));
+		} else {
+			link.push_str(&format!("%{byte:02X}"));
+		}
+	}
+	link
 }
 
 /// Windows canonicalizes to `\\?\C:\…`, which Explorer's open call may not take; drive paths
@@ -80,6 +103,18 @@ mod tests {
 		assert_eq!(open_path("/gs-shell-open-nowhere"), Ok(()));
 		assert_eq!(show_in_folder("relative/file"), Ok(()));
 		assert_eq!(show_in_folder("/gs-shell-open-nowhere/gone.pdf"), Ok(()));
+	}
+
+	#[test]
+	fn the_obsidian_link_encodes_the_path_the_way_obsidian_reads_it() {
+		assert_eq!(obsidian_link("/Users/me/My Vault/CSE 21/Big-O.md"), "obsidian://open?path=%2FUsers%2Fme%2FMy%20Vault%2FCSE%2021%2FBig-O.md");
+		assert_eq!(obsidian_link("/v/Fourier & Laplace é.md"), "obsidian://open?path=%2Fv%2FFourier%20%26%20Laplace%20%C3%A9.md");
+	}
+
+	#[test]
+	fn a_note_that_is_not_absolute_or_not_there_is_not_opened() {
+		assert_eq!(open_in_obsidian("relative/note.md"), Ok(()));
+		assert_eq!(open_in_obsidian("/gs-shell-open-nowhere/note.md"), Ok(()));
 	}
 
 	#[test]

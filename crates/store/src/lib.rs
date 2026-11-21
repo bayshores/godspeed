@@ -17,6 +17,7 @@ pub mod spaces;
 pub mod cheat_sheets;
 pub mod mocks;
 pub mod reminders;
+pub mod vault_notes;
 mod app_file;
 mod file_cache;
 
@@ -59,6 +60,7 @@ pub struct Stores {
 	pub cheat_sheets: cheat_sheets::CheatSheetStore,
 	pub mocks: mocks::MockStore,
 	pub reminders: reminders::RemindersStore,
+	pub vault_notes: vault_notes::VaultNotesStore,
 }
 
 impl Stores {
@@ -81,6 +83,7 @@ impl Stores {
 			cheat_sheets: cheat_sheets::CheatSheetStore::new(paths, locks),
 			mocks: mocks::MockStore::new(paths, locks),
 			reminders: reminders::RemindersStore::new(paths),
+			vault_notes: vault_notes::VaultNotesStore::new(paths, locks),
 		}
 	}
 

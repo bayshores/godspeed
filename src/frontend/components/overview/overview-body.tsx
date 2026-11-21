@@ -12,6 +12,7 @@ import { NextDeadline } from "./next-deadline";
 import { PathBlock } from "./path-block";
 import { StartCard, StartTiles } from "./start-tiles";
 import { hasCalibration, mostNeeded, upcomingDeadlines } from "./overview-model";
+import { NotesCard } from "./notes-card";
 import { TeacherNote } from "./teacher-note";
 import { LessonCard } from "./lesson-card";
 import { useLessonActions } from "./use-lesson-actions";
@@ -133,6 +134,7 @@ export const OverviewBody = memo(function OverviewBody({
 				)}
 				<div className={cn("flex min-w-0 flex-1 flex-col gap-(--lh-gap)", waited && "lh-set")}>
 					{note && <TeacherNote note={note} nowMs={nowMs} />}
+					{hasSpace && <NotesCard spaceId={data?.spaceId ?? null} />}
 					<LessonRecord finished={actions.shown ? finished : null} none={actions.shown?.length === 0} nowMs={nowMs} actions={actions} />
 					{hasSpace && data && <SpaceFacts progress={data} />}
 					{data && hasCalibration(data.calibration.levels) && <ConfidenceCard calibration={data.calibration} />}

@@ -2,11 +2,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { bookOpen, heldTask, turnDrawn, turnNext, turnShown } from "../../src/frontend/components/lesson/turn-next-model.ts";
+import type { VaultNote } from "../../src/frontend/components/vault/note-pages-model.ts";
 import { dismissedAnswer, projectView, type LessonStop, type LhMessage, type QuestionAnswerData } from "../../src/shared/core/index.ts";
 import { call, CONCLUDE_SOLVED, keepGoing, marker, OPENER_QUIZ, regularizationEnds, result, text, userText } from "../stop-fixtures.ts";
 
 const stop: LessonStop = { kind: "topic", at: "2026-11-18T21:48:00.000Z", nodeId: "reg", stopOf: "c1", next: "Cross-validation", activeMinutes: 48, keptGoing: false };
-const idle = { stop: null, problemList: false, goLabel: "Continue", busy: false, error: false, nothingWritten: false };
+const idle = { stop: null, problemList: false, goLabel: "Continue", busy: false, error: false, nothingWritten: false, notes: null, obsidian: true };
 
 describe("turnNext", () => {
 	it("at a topic stop: what is next, and the go-ahead's label keeps going, also while the teacher reads ahead or an error shows", () => {
@@ -24,6 +25,18 @@ describe("turnNext", () => {
 
 	it("the last topic ends the day", () => {
 		assert.deepEqual(turnNext({ ...idle, stop: { ...stop, kind: "end", next: null } }), { line: "That was the last topic.", key: { label: "Done for today", action: "done-for-today" } });
+	});
+
+	it("the last topic shows the lesson's pages and whether they are saved, and a words ask is the line", () => {
+		const end = { ...stop, kind: "end", next: null } as const;
+		const page = (topicId: string, saving: boolean): VaultNote => ({ topicId, name: "Stars and bars", recall: null, color: "#888", kind: "godspeed", path: "A/B.md", saving });
+		const saving = [page("t1", false), page("t2", true)];
+		assert.equal(turnNext({ ...idle, stop: end, notes: { pages: saving, asks: [] } })?.notes?.saved, "Saving to Obsidian");
+		assert.equal(turnNext({ ...idle, stop: end, notes: { pages: [page("t1", false)], asks: [] } })?.notes?.saved, "Saved to Obsidian");
+		const asked = turnNext({ ...idle, stop: end, notes: { pages: saving, asks: [{ topicId: "t1", name: "Stars and bars", maxLength: 600 }] } });
+		assert.equal(asked?.line, "Explain stars and bars in your own words.");
+		assert.equal(asked?.key?.action, "done-for-today");
+		assert.equal(turnNext({ ...idle, stop: end, notes: { pages: [], asks: [] } })?.notes, undefined);
 	});
 
 	it("with no stop: the go-ahead once the teacher is done, none beside an error line, and nothing while the teacher writes", () => {

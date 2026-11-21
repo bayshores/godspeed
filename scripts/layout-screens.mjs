@@ -9,7 +9,7 @@ import { WAITING_TOPIC } from "./layout-seed.mjs";
  * check never runs on a screen still loading. `height` gives it a window higher than the
  * check's own. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
- * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, the lessons that stand at a state of "Your turn" `{explained}`, `{quizAnswered}`, `{concluded}`, `{skipped}`, `{discarded}` and `{lastTopic}`, `{pending}`, `{sheetless}`, `{pathSpace}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
+ * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, the lessons that stand at a state of "Your turn" `{explained}`, `{quizAnswered}`, `{concluded}`, `{skipped}`, `{discarded}` and `{lastTopic}`, `{pending}`, `{sheetless}`, `{pathSpace}`, `{vault}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
 const WIDTHS = [1440, 1100, 800];
@@ -116,6 +116,38 @@ for (let tries = 0; ; tries++) {
 	if (tries > 50) throw new Error("the waiting lesson was never deleted: " + res.status);
 	await new Promise((done) => setTimeout(done, 100));
 }`;
+
+
+/** What the notes folder tells the page, made up: the server writes no notes in this check, so the page's reads of them are answered here,
+ *  one page for each of the lab space's real topics, and the server's own "notes changed" event, which a write of the same setting sends,
+ *  makes the page read again. */
+const RECALLS = ["How do you undo ax + b = c, one step at a time?", "When may you do the same thing to both sides of an equation?", "What do you do first to isolate the variable?", "What do the slope and the intercept tell you about a line?", "How does a word problem become an equation?"];
+const KINDS = ["godspeed", "kept", "mine", "godspeed", "godspeed"];
+/** Two more pages, so Progress has more than a row of them. */
+const EXTRA_PAGES = [
+	{ topicId: "extra-1", name: "Systems of equations", recall: "How many solutions can two lines share?", color: "", kind: "godspeed", path: "Lab Algebra/Systems of equations.md", saving: false },
+	{ topicId: "extra-2", name: "Inequalities", recall: "When does an inequality flip?", color: "", kind: "godspeed", path: "Lab Algebra/Inequalities.md", saving: false },
+];
+/** The page-side list of the first `take` topics' pages (more with `extra`); the `waiting` ones are still being written. */
+const pagesOf = (take, { extra = false, waiting = [] } = {}) => `[...topics.slice(0, ${take}).map((topic, n) => ({
+	topicId: topic.id, name: topic.name, recall: ${JSON.stringify(RECALLS)}[n] ?? null, color: topic.color, kind: ${JSON.stringify(KINDS)}[n],
+	path: "Lab Algebra/" + topic.name + ".md", saving: false, ...(${JSON.stringify(waiting)}.includes(n) ? { kind: "godspeed", path: null, saving: true } : {}),
+})), ...${extra ? JSON.stringify(EXTRA_PAGES) : "[]"}.map((page) => ({ ...page, color: topics[0].color }))]`;
+/** Answers the page's reads of the notes (a path with "vault-notes") with `answer`, then has the server say the notes changed. `status` is what the notes folder's own read says besides. */
+const notesAre = (answer, status = "{}") => `window.__realFetch ??= window.fetch.bind(window);
+const { topics: all } = await (await window.__realFetch("/api/progress?space={space}&today=" + new Date().toLocaleDateString("en-CA"))).json();
+const topics = all.filter((topic) => !topic.ungrouped);
+window.fetch = (url, init) => {
+	const path = String(url);
+	if (path.includes("vault-notes")) return Promise.resolve(Response.json(${answer}));
+	if (path === "/api/vault" && !init?.method) return window.__realFetch(url, init).then(async (r) => Response.json({ ...(await r.json()), ...${status} }));
+	return window.__realFetch(url, init);
+};
+await window.__realFetch("/api/vault", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ words: "teacher" }) })${HTTP_OK}`;
+const spaceNotes = (pages) => notesAre(`{ notes: ${pages} }`);
+const lessonNotes = (pages, asks = "[]") => notesAre(`{ pages: ${pages}, asks: ${asks} }`);
+const ASKED = `[{ topicId: topics[0].id, name: topics[0].name, maxLength: 600 }]`;
+const unlinkVault = `await fetch("/api/vault", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: null }) })${HTTP_OK};`;
 
 /** Find opened in the top bar by its magnifying glass `key`, with `word` typed into its `field`. */
 const findWord = (key, field, word) => `document.querySelector("[data-testid=${key}]").click(); ${pause};
@@ -406,7 +438,29 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	},
 	{ name: "Settings, Appearance", url: "/settings?section=appearance", ready: "[data-testid=appearance-preview]" },
 	{ name: "Settings, Appearance, the font list", url: "/settings?section=appearance", ready: "[data-testid=font-trigger]", setup: `document.querySelector("[data-testid=font-trigger]").click()`, shows: "[data-testid=font-menu][data-state=open] [data-testid=font-option-default]" },
-	{ name: "Settings, General", url: "/settings?section=general", ready: "[data-testid=teacher-name-row]" },
+	{ name: "Settings, General", url: "/settings?section=general", ready: "[data-testid=teacher-name-row]", shows: "[data-testid=group-vault] [data-testid=vault-pick]" },
+	{
+		name: "Settings, General, an Obsidian vault picked",
+		before: `await fetch("/api/vault", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: "{vault}" }) })${HTTP_OK};`,
+		url: "/settings?section=general",
+		ready: "[data-testid=group-vault] [data-testid=vault-folder][data-state=ok]",
+		shows: "[data-testid=vault-unlink]",
+	},
+	{ name: "Progress with notes in Obsidian", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: spaceNotes(pagesOf(5, { extra: true })), shows: "[data-testid=notes-card] [data-testid=note-page]" },
+	{ name: "Progress with notes, all shown", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: `${spaceNotes(pagesOf(5, { extra: true }))};\n${whenThere("[data-testid=notes-all]")}; document.querySelector("[data-testid=notes-all]").click()`, shows: "[data-testid=notes-card][data-all] [data-testid=note-page]:nth-child(7)" },
+	{ name: "Graph, a topic with a note", url: "/graph", ready: "[data-testid=graph-topic]", setup: `${spaceNotes(pagesOf(5))}; ${pickTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}`, shows: "[data-testid=topic-pane] [data-testid=topic-note-open]" },
+	{ name: "Lesson end, the notes being saved", height: TALL, url: "/chat/{lastTopic}", ready: "[data-testid=your-turn]", setup: lessonNotes(pagesOf(3, { waiting: [2] })), shows: "[data-testid=end-notes] [data-saving]" },
+	{ name: "Lesson end, the notes saved", height: TALL, url: "/chat/{lastTopic}", ready: "[data-testid=your-turn]", setup: lessonNotes(pagesOf(3)), shows: "[data-testid=notes-saved]" },
+	{
+		name: "Lesson end, asked for my words",
+		height: TALL,
+		url: "/chat/{lastTopic}",
+		ready: "[data-testid=your-turn]",
+		setup: lessonNotes(pagesOf(3), ASKED),
+		shows: "[data-testid=words-leave]",
+	},
+	{ name: "Notes that could not be saved", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: notesAre(`{ notes: ${pagesOf(3, { waiting: [0, 1] })} }`, `{ waiting: { names: [topics[0].name, topics[1].name], why: "The disk is full." } }`), shows: "[data-testid=vault-notice] [data-testid=vault-notice-key]" },
+	{ name: "Progress with no notes folder", before: unlinkVault, url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]" },
 	{ name: "Cheat sheet, not made", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]" },
 	{ name: "Cheat sheet, not made, beside the teacher's panel", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]", setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
 	{ name: "Cheat sheet, made, two pages", url: sheetPage("{sheetMade}"), ready: sheetDrawn(2), shows: "[data-testid=sheet-made]" },

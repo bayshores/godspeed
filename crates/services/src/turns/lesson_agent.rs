@@ -43,6 +43,7 @@ use crate::spaces::citations::check_cites;
 use crate::spaces::space_card::space_card_for;
 use crate::spaces::space_search::space_search;
 use crate::jobs::deliver_job_result;
+use crate::vault::lesson_vault_tool;
 
 /// What one turn's agent is built from.
 pub(super) struct TurnAgent {
@@ -170,6 +171,7 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 		save_rule: Some(save_rule(app, lesson_scope)),
 		space_actions: Some(agent_space_actions(app)),
 		open_page: Some(agent_open_page(app)),
+		write_vault_note: lesson_vault_tool(app, &chat_id, record),
 	};
 	let teacher = || TeacherToolContext { plan: PlanContext { chat_id: chat_id.clone(), chat_store: chats.clone() }, jobs: jobs.clone(), side: side.clone() };
 

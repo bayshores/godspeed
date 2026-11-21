@@ -37,6 +37,9 @@
  *   first line, though the walk did not scroll that box: it opened cut. A problem drawn as its
  *   page rests on the part the learner is on (data-part-current), so that box is let through
  *   while the part's start is in it.
+ * - cut tail: a part marked data-whole (the notes' pages and the line that they are saved) lies past
+ *   the edge of a box that scrolls it, or in the end it fades, other than the page itself: it
+ *   opened cut or faded away.
  * - broken picture: an image the page shows did not load (a file the server does not hand out
  *   as a picture, or a wrong address).
  *
@@ -678,6 +681,34 @@ function cutStarts() {
 		.map((box) => finding("cut start", [box], `${label(box)} is scrolled ${Math.round(box.scrollTop)}px past its first line`));
 }
 
+/** How far a scrolling box fades its cut ends (TurnScroll's mask). */
+const FADE_EDGE = 24;
+
+/** Cut tail: a data-whole line past the edge of a scrolling box above it, or in the part of an
+ *  end that box fades, where the learner sees it cut or faded away. */
+function cutTails() {
+	const found = [];
+	const main = mainScroller();
+	for (const line of document.querySelectorAll("[data-whole]")) {
+		if (!shown(line)) continue;
+		const box = line.getBoundingClientRect();
+		for (let node = line.parentElement; node && node !== document.body; node = node.parentElement) {
+			const style = getComputedStyle(node);
+			const faded = style.maskImage && style.maskImage !== "none";
+			// The page's own scroller hides what is below the fold; a box that fades its ends is a pane, never the page.
+			if (!SCROLLS.includes(style.overflowY) || node === window.__layoutScrolled || (node === main && !faded)) continue;
+			const edge = node.getBoundingClientRect();
+			const top = faded && node.scrollTop > 1 ? FADE_EDGE : 0;
+			const bottom = faded && node.scrollTop + node.clientHeight < node.scrollHeight - 1 ? FADE_EDGE : 0;
+			if (box.bottom > edge.bottom - bottom + 1 || box.top < edge.top + top - 1) {
+				found.push(finding("cut tail", [line, node], `${label(line)} is cut by the edge of ${label(node)}`));
+				break;
+			}
+		}
+	}
+	return found;
+}
+
 function brokenPictures() {
 	// The writing box's editor spaces its lines with img elements that have no address.
 	return [...document.querySelectorAll("img[src]")]
@@ -977,7 +1008,7 @@ function keyChecks() {
 }
 
 export function checkPage() {
-	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys(), ...emptyBoxes(), ...hollowBoxes(), ...emptyRooms(), ...cutStarts(), ...brokenPictures(), ...keyChecks()];
+	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys(), ...emptyBoxes(), ...hollowBoxes(), ...emptyRooms(), ...cutStarts(), ...cutTails(), ...brokenPictures(), ...keyChecks()];
 	const seen = new Set();
 	return all.filter((f) => !seen.has(f.key) && seen.add(f.key));
 }

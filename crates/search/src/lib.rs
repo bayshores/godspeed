@@ -6,6 +6,7 @@ pub mod keyword;
 pub mod fusion;
 pub mod embed;
 pub mod index;
+pub mod vault;
 mod passages;
 mod facts;
 mod log;

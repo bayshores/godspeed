@@ -6,7 +6,7 @@ use std::sync::LazyLock;
 use crate::contracts::space::{SPACE_ICONS, SIGNATURE_MAX};
 
 /// Each tool's description, by tool name, in source order.
-pub const SPACE_TOOL_TEXT: [(&str, &str); 14] = [
+pub const SPACE_TOOL_TEXT: [(&str, &str); 16] = [
 	("list_spaces", "List learner's spaces, closed ones included, with file and lesson counts."),
 	("read_space", "Read one space: description, file counts per status (pending, extracting, ready, failed, needs-whisper) and files that couldn't be read, knowledge-graph topics with fact counts, deadlines (kind, date, time, done, files each covers), path (each topic's status, what the next covers), lessons, today's local date and time. files: true lists every file instead (id, kind, status, size, path on disk). To find something inside files: search_space_files."),
 	("search_space_files", "Search all of a space's files (readings, slides, transcripts, syllabus, assignments) by meaning and keywords. Returns best passages, each with id, file, place (page, slide, time or lines) and short snippet. Open needed ones with read_passage, not whole files."),
@@ -21,6 +21,8 @@ pub const SPACE_TOOL_TEXT: [(&str, &str); 14] = [
 	("link_space_folder", "Link a folder on this computer to a space. Supported files are added; from then on new files dropped there are added automatically and edited ones rebuilt (checked every minute while godspeed is open). godspeed sorts them into study material and space info itself while reading, never changes the folder. set_space_file_kind only to correct a kind."),
 	("start_lesson", "Start or continue a study session in godspeed taught by you. topic: a new session; it becomes the learner's first message and the lesson's title in their top bar, so plain words, never file ids, paths or quoted file names; a path topic's name studies that topic. deadline_id alone: what the deadline's Study key does (continues the unfinished session for it the learner last worked in, else starts one on its topics); with homework: true, its Work on key (continues its latest homework session, else starts one). topic with deadline_id: a new session for that deadline that is not its Study session. topic alone, while a deadline of its space due within 2 days has an unfinished session: sent back once, naming it. file_ids: a lesson on these files (a test with its key, a chapter); the first names it; ids from read_space with files:true. With space_id the lesson belongs to that space: opens with the space's card, its facts go to that space's graph. You teach it through wait_for_work; learner follows in the godspeed window."),
 	("open_page", "Open a page in the learner's godspeed window when they ask to see something (\"open my cheat sheet\"), even with Follow off; brings the window forward. Never jumps away from unsent lesson text, a running mock or an open dialog: then the window offers Go to instead."),
+	("search_vault", "Search the learner's Obsidian vault, their own notes and godspeed's, by words. Returns each note's name, path, owner (you or godspeed), class, confidence and a short snippet. With path instead of query: that whole note, cut at 20,000 characters. The vault is read only with this tool, never with file tools, and is never added to a graph. Look here before writing a note, so a note the learner already has is linked, not repeated."),
+	("write_vault_note", "Write what the learner answered about one idea into their Obsidian vault: a new note, or an update of godspeed's note for that topic (one note per topic). godspeed writes the file and its properties; you send the words. A note the learner changed is kept as they left it, and kept in the answer names what was left alone. If the learner already has a note on the idea, send covered_by (its path from search_vault) and nothing else: no note is written and the two are linked. waiting: the vault cannot be reached now, and the note is written once it can."),
 ];
 
 /// The argument descriptions both tool schemas share.
@@ -65,6 +67,22 @@ pub struct SpaceArgText {
 	pub path: &'static str,
 	pub path_goal: &'static str,
 	pub path_covers: &'static str,
+	pub vault_topic: &'static str,
+	pub vault_title: &'static str,
+	pub vault_text: &'static str,
+	pub vault_recall: &'static str,
+	pub vault_mistakes: &'static str,
+	pub vault_mistake_text: &'static str,
+	pub vault_mistake_kind: &'static str,
+	pub vault_mistake_id: &'static str,
+	pub vault_source: &'static str,
+	pub vault_links: &'static str,
+	pub vault_covered_by: &'static str,
+	pub vault_asked: &'static str,
+	pub vault_query: &'static str,
+	pub vault_path: &'static str,
+	pub vault_limit: &'static str,
+	pub vault_space: &'static str,
 }
 
 pub static SPACE_ARG_TEXT: LazyLock<SpaceArgText> = LazyLock::new(|| SpaceArgText {
@@ -108,4 +126,20 @@ pub static SPACE_ARG_TEXT: LazyLock<SpaceArgText> = LazyLock::new(|| SpaceArgTex
 	path: "Topics toward a goal with no syllabus, in order, in your own words. Sending it replaces the list; a topic keeps its progress while its name stays.",
 	path_goal: "What the learner works toward, read after \"Path to\", e.g. \"backend developer\".",
 	path_covers: "One line on what the topic covers.",
+	vault_topic: "The topic's id from read_space.",
+	vault_title: "The note's name, up to 80 characters. Names a new file only; an existing note keeps its name.",
+	vault_text: "What it is and when it applies, 2 to 5 sentences, Markdown, math as $...$. Up to 1,200 characters.",
+	vault_recall: "One question the learner can answer without their notes. Up to 200 characters.",
+	vault_mistakes: "What went wrong, at most 6. godspeed merges them by kind and keeps the newest wording.",
+	vault_mistake_text: "What went wrong and the fix, one line. Up to 160 characters.",
+	vault_mistake_kind: "The kind of mistake in 1 to 3 words. Reuse a kind the note already lists when it is the same mistake. Up to 30 characters.",
+	vault_mistake_id: "The id the notes block gave this mistake. Leave it out for a mistake you add yourself.",
+	vault_source: "One passage id from search_space_files: the note links the page it came from.",
+	vault_links: "Up to 6 names of notes in the vault, or notes written in the same pass, to list under Related.",
+	vault_covered_by: "The path of one of the learner's own notes that already covers the idea, from search_vault, or of a kept note the block listed (it then becomes this topic's note). Send nothing else with it.",
+	vault_asked: "true only when the learner asked for this note now (Note this): then a note the learner removed is written again.",
+	vault_query: "What to look for, in plain words.",
+	vault_path: "Instead of query: a note's path as search_vault gave it, relative to the vault.",
+	vault_limit: "Most notes to return (default 8).",
+	vault_space: "Only notes in this space's folder of the vault.",
 });

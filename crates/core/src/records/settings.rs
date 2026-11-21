@@ -134,6 +134,30 @@ fn sanitize_agent(raw: &Json) -> Json {
 	Json::Obj(out)
 }
 
+/// Who writes a note's "My words": the teacher, or the learner at a lesson's end.
+pub const VAULT_WORDS: [&str; 2] = ["teacher", "mine"];
+pub const DEFAULT_VAULT_WORDS: &str = "teacher";
+
+/// The vault section: the folder notes go in and who writes "My words". A bad value drops.
+pub fn sanitize_vault(raw: &Json) -> Json {
+	let mut out = Obj::new();
+	if let Some(path) = raw["path"].as_str().map(gs_base::text::trim).filter(|p| !p.is_empty()) {
+		out.insert("path", path);
+	}
+	if let Some(words) = raw["words"].as_str().filter(|w| VAULT_WORDS.contains(w)) {
+		out.insert("words", words);
+	}
+	Json::Obj(out)
+}
+
+/// The vault folder and the words choice with the default filled in. `record` is the saved
+/// settings, None on first boot.
+pub fn resolve_vault(record: Option<&Json>) -> (Option<String>, &'static str) {
+	let vault = record.map_or(&Json::Null, |r| &r["vault"]);
+	let words = VAULT_WORDS.iter().find(|w| vault["words"].as_str() == Some(w)).copied().unwrap_or(DEFAULT_VAULT_WORDS);
+	(vault["path"].as_str().map(str::to_owned), words)
+}
+
 /// The app icons Settings offers besides the app's own, as `appearance.appIcon` names them.
 pub const APP_ICONS: [&str; 2] = ["paper", "classic"];
 
@@ -179,7 +203,7 @@ pub fn sanitize_user_settings(raw: &Json) -> Option<Json> {
 	let version = raw["version"].as_f64().filter(|v| v.is_finite() && v.fract() == 0.0 && *v >= 1.0);
 	out.insert("version", version.unwrap_or(CURRENT_SETTINGS_VERSION as f64));
 	// `compaction` held only a retired knob: an old file's section rides along as stored.
-	let sections: [(&str, Section); 5] = [("general", sanitize_general), ("agent", sanitize_agent), ("appearance", sanitize_appearance), ("graph", sanitize_graph), ("plugins", sanitize_plugin_settings)];
+	let sections: [(&str, Section); 6] = [("general", sanitize_general), ("agent", sanitize_agent), ("appearance", sanitize_appearance), ("graph", sanitize_graph), ("plugins", sanitize_plugin_settings), ("vault", sanitize_vault)];
 	for (key, sanitize) in sections {
 		if raw[key].as_obj().is_some() {
 			out.insert(key, sanitize(&raw[key]));
@@ -219,6 +243,20 @@ mod tests {
 		for other in [r#""gold""#, "7", "null"] {
 			assert_eq!(clean(&format!(r#"{{"appearance":{{"appIcon":{other}}}}}"#)), r#"{"version":3,"appearance":{"appIcon":null}}"#, "{other}");
 		}
+	}
+
+	#[test]
+	fn the_vault_keeps_a_path_and_a_known_words_choice() {
+		assert_eq!(clean(r#"{"vault":{"path":" /Users/me/Notes ","words":"mine","x":1}}"#), r#"{"version":3,"vault":{"path":"/Users/me/Notes","words":"mine"}}"#);
+		assert_eq!(clean(r#"{"vault":{"path":"  ","words":"nobody"}}"#), r#"{"version":3,"vault":{}}"#);
+		assert_eq!(clean(r#"{"vault":{"path":5,"words":true}}"#), r#"{"version":3,"vault":{}}"#);
+	}
+
+	#[test]
+	fn the_vault_words_default_to_the_teacher() {
+		assert_eq!(resolve_vault(None), (None, "teacher"));
+		assert_eq!(resolve_vault(Some(&parse(r#"{"vault":{"path":"/n","words":"mine"}}"#).unwrap())), (Some("/n".to_owned()), "mine"));
+		assert_eq!(resolve_vault(Some(&parse(r#"{"vault":{"words":"x"}}"#).unwrap())), (None, "teacher"));
 	}
 
 	#[test]

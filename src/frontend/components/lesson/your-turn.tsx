@@ -7,6 +7,8 @@ import { useSettings } from "@/frontend/components/settings-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { cn } from "@/frontend/lib/utils";
 import type { AttachmentDraft } from "./attachment-tray";
+import { wordsOver } from "@/frontend/components/vault/note-pages-model";
+import { EndNotes, NotesSaved } from "./end-notes";
 import { LessonBox } from "./lesson-box";
 import { HELP_LINES, lessonBox, lessonIdeas, questionTurn, type BoxAction, type BoxView } from "./lesson-box-model";
 import { OpenProblemPane, type ProblemPicks } from "./open-problem-pane";
@@ -66,6 +68,10 @@ export interface YourTurnProps {
 	stuck: { minutes: number; label: string; onStop: () => void } | null;
 	/** The last send or reply failed. */
 	error: { text: string; detail: string; onRetry: () => void } | null;
+	/** Answers the "My words" ask at the last topic: with words, or by skipping it. */
+	onAnswerAsk: (topicId: string, reply: { words: string } | { skip: true }) => void;
+	/** Why the last answer to the ask was refused. */
+	askError: string | null;
 }
 
 const HELP_KEY = "lh-btn lh-btn-small";
@@ -123,6 +129,8 @@ export function YourTurn({
 	questionRef,
 	stuck,
 	error,
+	onAnswerAsk,
+	askError,
 }: YourTurnProps) {
 	// Whether the question above the box has an answer picked.
 	const [picked, setPicked] = useState(false);
@@ -134,17 +142,25 @@ export function YourTurn({
 
 	const next = !pending && !problem ? shown : null;
 	const nextKey = next?.next.key ?? null;
+	const notes = next?.next.notes ?? null;
+	const ask = notes?.ask ?? null;
+	const over = ask ? wordsOver(value, ask.maxLength) : 0;
 	const turn = pending
 		? questionTurn(pending.tool, pending.input, picked, pending.appPosed?.kind)
 		: problem
 			? ({ kind: "problem", picked: problemPicked.selected.size > 0 } as const)
-			: ({ kind: "ask", nextKey: nextKey !== null } as const);
+			: ask
+				? ({ kind: "words", ready: value.trim().length > 0 && over <= 0, leave: nextKey?.label ?? null } as const)
+				: ({ kind: "ask", nextKey: nextKey !== null } as const);
 	const view = lessonBox({ teacher, busy, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
 	// Nothing waits: the foot row offers what any lesson can be asked for.
 	const ideas = lessonIdeas(useSettings().record?.agent?.tools ?? NO_SWITCHES);
 
 	const act = (action: BoxAction) => {
 		if (action === "send") onSend();
+		else if (action === "leave" && nextKey) onNext(nextKey.action);
+		else if (action === "skip" && ask) onAnswerAsk(ask.topicId, { skip: true });
+		else if (action === "save" && ask) onAnswerAsk(ask.topicId, { words: value.trim() });
 		else questionRef.current?.submit();
 	};
 	const canAct = (action: BoxAction) => view.keys.some((k) => k.action === action && !k.disabled);
@@ -166,17 +182,23 @@ export function YourTurn({
 	// The title says what waits, in the word its answered card will carry.
 	const keptProblem = kept?.kind === "problem" ? kept : null;
 	const keptTitle = kept?.kind === "question" ? answeredKindLabel(kept.answer) : keptProblem?.line;
-	const title = fromEarlier
-		? "From earlier"
-		: pending
-			? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type))
-			: (problem?.line ?? keptTitle ?? "Your turn");
+	const title = ask
+		? "My words"
+		: fromEarlier
+			? "From earlier"
+			: pending
+				? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type))
+				: (problem?.line ?? keptTitle ?? "Your turn");
 
 	const mode = pending ? "question" : problem ? "practice" : kept ? "kept" : "next";
 	// Under the text with nothing to answer: no title, the next key ends the foot row, and only a line saying what is next stands over the box.
 	const place = useContext(TurnPlaceContext);
-	const quiet = (place === "pinned" || place === "under") && !pending && !problem;
+	const quiet = (place === "pinned" || place === "under") && !pending && !problem && !ask;
 	const boxAlone = quiet && (busy || !next?.next.line);
+	// With a "My words" ask, the key that ends the day sits in the box beside Skip and Save.
+	const rowKey = ask === null && !quiet;
+	// On the title's row, set right, where there is a title, so the sheet needs no row of its own for it.
+	const saved = notes && <NotesSaved notes={notes} />;
 	const shownProblem = problem ?? keptProblem;
 	// The part that was open when the problem closed stays open, so the kept problem holds its height.
 	const partRef = useRef<{ of: string; part: string | null } | null>(null);
@@ -188,14 +210,14 @@ export function YourTurn({
 		</button>
 	);
 
-	const nextRow = next && (next.next.line || (nextKey && !quiet)) && (
+	const nextRow = next && (next.next.line || (nextKey && rowKey)) && (
 		<div data-testid="turn-next" className="flex flex-wrap items-center gap-x-4 gap-y-2">
 			{next.next.line && (
 				<p data-testid="turn-next-line" className={cn("text-[18px] leading-[28px]", next.dim ? "text-ink-2" : "text-ink")}>
 					{next.next.line}
 				</p>
 			)}
-			{!quiet && nextButton}
+			{rowKey && nextButton}
 		</div>
 	);
 
@@ -209,6 +231,7 @@ export function YourTurn({
 			{!quiet && (
 			<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
 				<h2 className="text-[28px] leading-tight text-ink">{title}</h2>
+				{saved && <div className="ml-auto">{saved}</div>}
 				{/* The keys stay on the title's line while they fit: a file's name shortens before a key drops under the title. */}
 				<div data-testid="turn-keys" className={cn("flex flex-1 basis-0 items-center justify-end gap-x-2 empty:hidden", fileShown ? "min-w-[min(100%,19rem)]" : "min-w-fit")}>
 					{fileShown && <ProblemFile file={fileShown} />}
@@ -261,9 +284,11 @@ export function YourTurn({
 				)}
 				{kept?.kind === "question" && <AnsweredTurn answer={kept.answer} />}
 				{!kept && nextRow}
+				{notes && <EndNotes notes={notes} scroll={quiet} />}
 			</TurnScroll>
 			{/* Under a kept task the key stays in sight however long the task is. */}
 			{kept && nextRow}
+			{quiet && saved}
 			</>
 			)}
 			</TurnSwap>
@@ -287,6 +312,16 @@ export function YourTurn({
 				</div>
 			)}
 
+			{askError && (
+				<p role="alert" data-testid="notes-ask-error" className="text-[15px] text-ans-wrong">
+					{askError}
+				</p>
+			)}
+			{ask && over > 0 && (
+				<p role="status" data-testid="notes-ask-over" className="text-[15px] text-ink-2">
+					Shorten it by {over} characters.
+				</p>
+			)}
 			<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
 			{(view.help || (turn.kind === "ask" && !(quiet && busy))) && (
 				// Keys that wrap line up under the first key, not under the label. The next key, no line of theirs, ends their last row.

@@ -226,6 +226,7 @@
 		pickFolder: () => invoke("pick_folder"),
 		showInFolder: (path) => invoke("show_in_folder", { path }),
 		openPath: (path) => invoke("open_path", { path }),
+		openInObsidian: (path) => invoke("open_in_obsidian", { path }),
 		// The agents' terminals: the page names a role and an agent, never a program or a folder.
 		terminals: {
 			start: (role, agent, resume) => invoke("terminal_start", { role, agent, resume: resume ?? null }),

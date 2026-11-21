@@ -351,6 +351,7 @@ function shortLessonAnswer(lessonTurn, studied) {
 	return { text: "That is right." };
 }
 
+
 /** The sheet lessons: turn 0 writes the plan, turn 1 teaches the first step and asks about it,
  *  turn 2, after that answer, asks about the last step. Turn 3 closes it: after the last answer,
  *  or, where the learner asked something first (`asked`), with that question's answer. */
@@ -480,7 +481,21 @@ function answerFor(work, ids, lessonTurn) {
  * window, as the page itself would, and answers the status. `log` keeps a line per step. Answers the ids the
  * screens' addresses use.
  */
+/** Two vaults Obsidian lists in the throwaway home, the first holding one note: Settings shows them
+ *  as keys until a screen picks one. Returns the first vault's path. */
+function listVaults(dataDir) {
+	const home = path.join(dataDir, "..", "home");
+	const vaults = ["Documents/Lab notes", "Documents/Reading"].map((name) => path.join(home, name));
+	for (const vault of vaults) fs.mkdirSync(path.join(vault, ".obsidian"), { recursive: true });
+	fs.writeFileSync(path.join(vaults[0], "Slope.md"), "# Slope\n\nRise over run.\n");
+	const list = path.join(home, "Library", "Application Support", "obsidian");
+	fs.mkdirSync(list, { recursive: true });
+	fs.writeFileSync(path.join(list, "obsidian.json"), JSON.stringify({ vaults: Object.fromEntries(vaults.map((vault, n) => [`v${n}`, { path: vault, ts: 1 + n }])) }));
+	return fs.realpathSync(vaults[0]);
+}
+
 export async function seed(dataDir, page, log) {
+	const vault = listVaults(dataDir);
 	const agent = standIn(dataDir, log);
 	await agent.init();
 	const date = inDays(3);
@@ -692,5 +707,5 @@ export async function seed(dataDir, page, log) {
 		if (tries > 20) throw new Error("Lab Algebra's facts were never sorted into topics");
 		await drain();
 	}
-	return { ...turnStates, quizAnswered: studied[0], sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
+	return { vault, ...turnStates, quizAnswered: studied[0], sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
 }

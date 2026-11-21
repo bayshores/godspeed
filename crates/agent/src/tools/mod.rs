@@ -23,4 +23,5 @@ pub mod space_actions;
 #[cfg(test)]
 mod test_record;
 pub mod topic_done;
+pub mod vault_note;
 pub mod work_plan;

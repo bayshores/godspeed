@@ -58,6 +58,7 @@ import { messageShows } from "@/frontend/components/lesson/message-row";
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
 import { topicPageMarks } from "@/frontend/components/citations/page-excerpt-model";
 import { TurnSheet } from "@/frontend/components/lesson/turn-sheet";
+import { useLessonNotes } from "@/frontend/components/vault/use-lesson-notes";
 import { bookOpen, heldTask, turnNext, turnDrawn, type NextAction } from "@/frontend/components/lesson/turn-next-model";
 import type { TurnPlace } from "@/frontend/components/lesson/turn-place";
 import { useBook } from "@/frontend/components/lesson/use-book";
@@ -497,7 +498,8 @@ export function Chat({
 	// With nothing to answer, "Your turn" says what is next and holds the one key that goes on.
 	const { atStop } = lessonStop;
 	const goLabel = goAheadLabel({ kind, problemList: problems !== null, startLabel: startLabel ?? null, teacherSpoke, posedAny });
-	const next = turnNext({ stop: atStop, problemList: problems !== null, goLabel, busy, error: error !== null, nothingWritten: unwritten });
+	const lessonNotes = useLessonNotes(chatId, atStop?.kind === "end");
+	const next = turnNext({ stop: atStop, problemList: problems !== null, goLabel, busy, error: error !== null, nothingWritten: unwritten, notes: lessonNotes.notes, obsidian: lessonNotes.obsidian });
 	const onNext = (action: NextAction) => {
 		if (action === "keep-going") {
 			if (atStop) keepGoing(atStop.stopOf);
@@ -552,9 +554,10 @@ export function Chat({
 	const turnPending = open || pending?.appPosed?.kind === "review" ? pending : null;
 	const turnProblem = open ? problem : null;
 	const slim = turnPending === null && stuckLine === null && errorLine === null && !reviewRefused && attachments.files.length === 0;
-	// Where the page last laid "Your turn" out: only beside the text or alone does it keep the finished task.
+	// Where the page last laid "Your turn" out: only beside the text or alone does it keep the finished task,
+	// and the lesson's notes take its place there when they come.
 	const [turnPlace, setTurnPlace] = useState<TurnPlace>("under");
-	const kept = !turnPending && !turnProblem && (turnPlace === "beside" || turnPlace === "alone") ? book.held : null;
+	const kept = !turnPending && !turnProblem && !next?.notes && (turnPlace === "beside" || turnPlace === "alone") ? book.held : null;
 	const inTurn = activeProblem?.toolCallId ?? kept?.toolCallId ?? null;
 	// The demo's error report follows the writing box's rules: never past a
 	// waiting question, and a running turn is steered.
@@ -671,6 +674,8 @@ export function Chat({
 												questionRef={questionRef}
 												stuck={stuckLine}
 												error={errorLine}
+												onAnswerAsk={(topicId, reply) => void lessonNotes.answer(topicId, reply).then((saved) => saved && editText(""))}
+												askError={lessonNotes.answering.error}
 											/>
 										) : null
 									}

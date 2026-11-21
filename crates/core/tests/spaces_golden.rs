@@ -210,6 +210,22 @@ fn space_tool_text_matches_node() {
 		("path", a.path),
 		("pathGoal", a.path_goal),
 		("pathCovers", a.path_covers),
+		("vaultTopic", a.vault_topic),
+		("vaultTitle", a.vault_title),
+		("vaultText", a.vault_text),
+		("vaultRecall", a.vault_recall),
+		("vaultMistakes", a.vault_mistakes),
+		("vaultMistakeText", a.vault_mistake_text),
+		("vaultMistakeKind", a.vault_mistake_kind),
+		("vaultMistakeId", a.vault_mistake_id),
+		("vaultSource", a.vault_source),
+		("vaultLinks", a.vault_links),
+		("vaultCoveredBy", a.vault_covered_by),
+		("vaultAsked", a.vault_asked),
+		("vaultQuery", a.vault_query),
+		("vaultPath", a.vault_path),
+		("vaultLimit", a.vault_limit),
+		("vaultSpace", a.vault_space),
 	];
 	let want: Vec<(String, String)> = c["args"].as_obj().unwrap().iter().map(|(k, v)| (k.clone(), s(v).to_owned())).collect();
 	assert_eq!(args.iter().map(|(k, v)| ((*k).to_owned(), (*v).to_owned())).collect::<Vec<_>>(), want);

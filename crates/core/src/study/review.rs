@@ -262,6 +262,18 @@ pub fn pick_reviews(space: &ReviewSpace, sitting: &ReviewSitting) -> Vec<Json> {
 		.collect()
 }
 
+/// The local day a topic comes back from earlier, by the same walk and gaps `pick_reviews` uses:
+/// its rest counted from its last counted day. `deadline_days` is the nearest open deadline
+/// covering it. None until a day was right. `answers` and `outcomes` are as in ReviewSpace.
+pub fn next_review_day(answers: &[Json], outcomes: &[Json], topic_id: &str, deadline_days: Option<i64>) -> Option<String> {
+	let counted = counted_answers(answers, outcomes);
+	let walk = walk(counted.get(topic_id)?)?;
+	let mut parts = walk.anchor.split('-').map(|p| p.parse::<i64>().unwrap_or(0));
+	let (y, m, d) = (parts.next()?, parts.next()?, parts.next()?);
+	let (y, m, d) = time::civil_from_days(time::days_from_civil(y, m, d) + gap(walk.step, deadline_days));
+	Some(format!("{y}-{m:02}-{d:02}"))
+}
+
 /// The question each topic missed the last time it came back from earlier, by node id.
 fn missed_last(answers: &[Json]) -> HashMap<&str, String> {
 	let mut from_earlier: Vec<&Json> = answers.iter().filter(|a| a["tool"].as_str() == Some("review")).collect();
@@ -660,5 +672,18 @@ mod tests {
 		assert!(review_window_open(&record(kept), NOW, true), "he kept going and the go-ahead is his first input since the stop's sitting");
 		let topics = teaching_topics(&record(vec![at(json!({ "role": "toolResult", "toolCallId": "c1", "toolName": "conclude", "details": { "stop": stop }, "isError": false }), 2)]));
 		assert_eq!(topics, ["cv".to_owned()].into(), "Regularization ended");
+	}
+
+	#[test]
+	fn the_next_review_day_follows_the_walk_and_a_close_deadline() {
+		// eig: right on four days, the last on 10-22 at step 3 (rest 16 days).
+		assert_eq!(next_review_day(&past_answers(), &[], "eig", None).as_deref(), Some("2026-11-07"));
+		// An open deadline 6 days away covers it: at most a third of the days left, never under 2.
+		assert_eq!(next_review_day(&past_answers(), &[], "eig", Some(6)).as_deref(), Some("2026-10-24"));
+		// bayes was missed last, so it is back at step 1 (4 days) from its last day.
+		assert_eq!(next_review_day(&past_answers(), &[], "bayes", None).as_deref(), Some("2026-11-06"));
+		// No right answer yet, or no answers at all, has no day.
+		assert_eq!(next_review_day(&[quiz_answer("reg", "2026-11-01", "wrong")], &[], "reg", None), None);
+		assert_eq!(next_review_day(&[], &[], "reg", None), None);
 	}
 }
