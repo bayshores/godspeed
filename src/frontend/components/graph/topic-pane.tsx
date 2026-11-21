@@ -13,7 +13,8 @@ import { factCells, UNSTUDIED_CELL } from "@/frontend/components/fact-cells";
 import { neighbors, sureMissNote, topicCountLine } from "./derive.ts";
 import { FactList } from "./fact-list.tsx";
 import { CloseButton, StudyButton } from "./pane-buttons.tsx";
-import { CHIP, GROUP_LABEL, SIDE_TITLE } from "./styles.ts";
+import { LinkRows } from "./link-rows.tsx";
+import { GROUP_LABEL, SIDE_TITLE } from "./styles.ts";
 
 export function TopicPane({
 	topic,
@@ -45,7 +46,7 @@ export function TopicPane({
 	const note = sureMissNote(topic);
 	return (
 		<Pane active data-testid="topic-pane" aria-label="Topic" className="flex min-h-0 flex-col gap-[9px] p-4">
-			<div className="flex shrink-0 items-center gap-2">
+			<div className="flex shrink-0 items-start gap-2">
 				<h2 title={topic.name} className={`${SIDE_TITLE} flex-1`}>
 					{topic.name}
 				</h2>
@@ -67,8 +68,8 @@ export function TopicPane({
 						{note}
 					</p>
 				)}
-				<Related label="Needs first" empty="Nothing, start here" topics={needs} onSelect={onSelectTopic} testid="needs-first" />
-				<Related label="Leads to" empty="Nothing yet" topics={leadsTo} onSelect={onSelectTopic} testid="leads-to" />
+				<LinkRows label="Needs first" empty="Nothing, start here" rows={needs} onOpen={onSelectTopic} testid="needs-first" rowTestid="topic-link" />
+				<LinkRows label="Leads to" empty="Nothing yet" rows={leadsTo} onOpen={onSelectTopic} testid="leads-to" rowTestid="topic-link" />
 				{list.length > 0 && (
 					<>
 						<span className={GROUP_LABEL}>Facts</span>
@@ -78,24 +79,5 @@ export function TopicPane({
 			</div>
 			<StudyButton testid="study-topic" label="Study" busy={studying} error={studyError} onClick={() => onStudy([topic.id])} />
 		</Pane>
-	);
-}
-
-function Related({ label, empty, topics, onSelect, testid }: { label: string; empty: string; topics: readonly TopicProgress[]; onSelect: (id: string) => void; testid: string }) {
-	return (
-		<div className="flex flex-col gap-[9px]" data-testid={testid}>
-			<span className={GROUP_LABEL}>{label}</span>
-			{topics.length === 0 ? (
-				<span className="text-base text-ink-2">{empty}</span>
-			) : (
-				<span className="flex flex-wrap gap-2">
-					{topics.map((t) => (
-						<button key={t.id} type="button" data-testid="topic-chip" onClick={() => onSelect(t.id)} title={t.name} className={CHIP}>
-							<span className="truncate">{t.name}</span>
-						</button>
-					))}
-				</span>
-			)}
-		</div>
 	);
 }
