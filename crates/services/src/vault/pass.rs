@@ -412,7 +412,7 @@ fn askable(note: &Json) -> bool {
 }
 
 /// The lesson's pages and the asks it still owes: `{pages: [{topicId, name, standing, color,
-/// state, path?}], asks: [{topicId, name}]}`. None when the lesson does not exist.
+/// state, path?}], asks: [{topicId, name, maxLength}]}`. None when the lesson does not exist.
 pub fn lesson_vault_notes(app: &App, chat_id: &str) -> Result<Option<Json>, String> {
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(None) };
 	let Some(space_id) = record["spaceId"].as_str().filter(|s| !s.is_empty()) else { return Ok(Some(json!({ "pages": [], "asks": [] }))) };
@@ -443,7 +443,7 @@ pub fn lesson_vault_notes(app: &App, chat_id: &str) -> Result<Option<Json>, Stri
 		.iter()
 		.filter_map(Json::as_str)
 		.filter(|t| setup::setting(app).is_ok_and(|s| learner_writes(s.words)) && saved["notes"][*t]["path"].as_str().is_some() && askable(&saved["notes"][*t]))
-		.filter_map(|t| known.iter().find(|k| k.id == t).map(|k| json!({ "topicId": t, "name": k.name })))
+		.filter_map(|t| known.iter().find(|k| k.id == t).map(|k| json!({ "topicId": t, "name": k.name, "maxLength": WORDS_MAX })))
 		.collect();
 	Ok(Some(json!({ "pages": pages, "asks": asks })))
 }

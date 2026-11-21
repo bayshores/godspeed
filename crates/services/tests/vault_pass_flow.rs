@@ -223,6 +223,7 @@ async fn the_asks_stop_at_three_and_a_skipped_note_is_asked_once_more_then_never
 	let view = lesson_vault_notes(&f.app, &chat).unwrap().unwrap();
 	assert_eq!(view["pages"].items().len(), 4);
 	assert_eq!(view["asks"].items().len(), 3, "at most three asks");
+	assert_eq!(view["asks"][0]["maxLength"].as_i64(), Some(600), "each ask says how long the words may be");
 	let asked: Vec<String> = view["asks"].items().iter().map(|a| a["topicId"].as_str().unwrap().to_owned()).collect();
 
 	assert!(matches!(answer_ask(&f.app, &chat, &asked[0], Ask::Words("It halves the range.".to_owned())).unwrap(), AskReply::Done));
