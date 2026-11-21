@@ -63,13 +63,17 @@ describe("the route table", () => {
 		for (const gone of ["/prep", "/space/mocks", "/space/lessons"]) assert.equal(matchRoutes(routes, gone)?.at(-1)?.route.path, "*", `${gone} is gone`);
 	});
 
-	it("a lesson is read first, and a lesson with a problem list reads it and its documents too", async () => {
+	it("a lesson is read first with its jobs and its question from earlier, and a lesson with a problem list reads it and its documents too", async () => {
 		const problems = { problems: [] };
 		const documents = { documents: [{ id: "f_test", name: "Test", pdf: true, pages: 2, aspect: 0.77 }], listFileId: "f_test" };
+		const jobs = [{ id: "job_1", status: "running" }];
+		const question = { of: { chatId: "chat_0", toolCallId: "q1" } };
 		const asked = serve({
 			"/api/chats/chat_1": [200, chat({ kind: "homework", spaceId: "spc_1", deadlineId: "ddl 1" })],
 			"/api/chats/chat_1/problems": [200, { problems }],
 			"/api/chats/chat_1/documents": [200, documents],
+			"/api/jobs?chatId=chat_1": [200, { jobs }],
+			"/api/chats/chat_1/review": [200, { question }],
 			"/api/chats/chat_2": [200, chat({ id: "chat_2", kind: "study", spaceId: "spc_1", fileIds: ["f_test"] })],
 			"/api/chats/chat_2/problems": [200, { problems }],
 			"/api/chats/chat_2/documents": [200, documents],
@@ -77,14 +81,18 @@ describe("the route table", () => {
 		});
 		const router = await open("/chat/chat_1?prompt=Begin");
 		assert.equal(router.state.errors, null);
-		const data = Object.values(router.state.loaderData)[0] as { chat: { id: string }; problemList: unknown; documents: unknown; prompt?: string };
+		const data = Object.values(router.state.loaderData)[0] as { chat: { id: string }; jobs: unknown; review: unknown; problemList: unknown; documents: unknown; prompt?: string };
 		assert.equal(data.chat.id, "chat_1");
 		assert.deepEqual(data.problemList, problems);
 		assert.deepEqual(data.documents, documents);
 		assert.equal(data.prompt, "Begin");
+		assert.deepEqual(data.jobs, jobs, "its job cards open as they stand");
+		assert.deepEqual(data.review, question, "a question from earlier is in the first drawing");
 		await open("/chat/chat_2");
-		await open("/chat/chat_3");
-		assert.deepEqual(asked, ["/api/chats/chat_1", "/api/chats/chat_1/problems", "/api/chats/chat_1/documents", "/api/chats/chat_2", "/api/chats/chat_2/problems", "/api/chats/chat_2/documents", "/api/chats/chat_3"], "a lesson on no files has none");
+		const plain = await open("/chat/chat_3");
+		assert.deepEqual(Object.values(plain.state.loaderData)[0], { chat: chat({ id: "chat_3", kind: "study", spaceId: "spc_1" }), jobs: null, review: null, problemList: undefined, documents: undefined, prompt: undefined }, "a failed jobs read is left to the page, a failed ask shows no question");
+		const first = (id: string) => [`/api/chats/${id}`, `/api/jobs?chatId=${id}`, `/api/chats/${id}/review`];
+		assert.deepEqual(asked, [...first("chat_1"), "/api/chats/chat_1/problems", "/api/chats/chat_1/documents", ...first("chat_2"), "/api/chats/chat_2/problems", "/api/chats/chat_2/documents", ...first("chat_3")], "a lesson on no files has none");
 	});
 
 	it("the Talk chat, a removed lesson, a removed deadline and a removed mock are not found", async () => {

@@ -8,17 +8,27 @@ function postReview(chatId: string, input: unknown) {
 	return send(`/api/chats/${encodeURIComponent(chatId)}/review`, jsonInit("POST", { input }));
 }
 
+/** The question from earlier the lesson may show now, or null: none shows, or the ask failed
+ *  (the next wait asks again). The lesson's loader asks once, whatever is open, so a reload
+ *  shows the one he asked the teacher about. */
+export async function askFromEarlier(chatId: string, signal?: AbortSignal): Promise<ReviewQuestion | null> {
+	const { error, body } = await send(`/api/chats/${encodeURIComponent(chatId)}/review`, { ...jsonInit("POST", { input: { type: "next" } }), signal });
+	return error ? null : ((body as { question?: ReviewQuestion | null }).question ?? null);
+}
+
 /**
- * Questions from earlier in a Study lesson. The route is asked once when
- * the lesson opens; then, while the teacher reads or writes, or no agent is
- * teaching, and nothing else is open, when that wait begins and when a turn
- * starts or ends; after an answer or a skip it is asked again, until the
- * wait ends (fromEarlierAsk). The server decides whether one may show, so no
+ * Questions from earlier in a Study lesson. It opens with the one its
+ * loader was served; then the route is asked while the teacher reads or
+ * writes, or no agent is teaching, and nothing else is open, when that wait
+ * begins and when a turn starts or ends; after an answer or a skip it is
+ * asked again, until the wait ends (fromEarlierAsk). The server decides whether one may show, so no
  * question is a normal answer. The question on screen stays open after the
  * wait ends, to be answered or skipped.
  */
-export function useFromEarlier({ chatId, waiting, open, busy, onAnswered }: {
+export function useFromEarlier({ chatId, opened, waiting, open, busy, onAnswered }: {
 	chatId: string;
+	/** The question the lesson opens with, as its loader was served it. */
+	opened: ReviewQuestion | null;
 	/** A Study lesson waiting on its teacher or its agent. */
 	waiting: boolean;
 	/** The teacher's question or a problem is open. */
@@ -28,15 +38,14 @@ export function useFromEarlier({ chatId, waiting, open, busy, onAnswered }: {
 	/** His answer was saved: show it, even while a turn runs. */
 	onAnswered: () => void;
 }) {
-	const [question, setQuestion] = useState<ReviewQuestion | null>(null);
+	const [question, setQuestion] = useState<ReviewQuestion | null>(opened);
 	// An answer or a skip on its way: the next ask waits for it, or the
 	// server would serve the same question again.
 	const [sending, setSending] = useState(false);
 	// His last answer was refused: the question was no longer due. Says so
 	// until the next question shows or the wait ends.
 	const [refused, setRefused] = useState(false);
-	const [asked, setAsked] = useState(false);
-	const ask = fromEarlierAsk({ first: !asked, waiting, open, shown: question !== null, sending, busy });
+	const ask = fromEarlierAsk({ waiting, open, shown: question !== null, sending, busy });
 
 	useEffect(() => {
 		if (!waiting) setRefused(false);
@@ -45,15 +54,11 @@ export function useFromEarlier({ chatId, waiting, open, busy, onAnswered }: {
 	useEffect(() => {
 		if (ask === null) return;
 		let live = true;
-		// A failed ask shows none; the next wait asks again.
-		void postReview(chatId, { type: "next" })
-			.then(({ error, body }) => {
-				const next = error ? null : (body as { question?: ReviewQuestion | null }).question;
-				if (!live || !next) return;
-				setQuestion(next);
-				setRefused(false);
-			})
-			.finally(() => setAsked(true));
+		void askFromEarlier(chatId).then((next) => {
+			if (!live || !next) return;
+			setQuestion(next);
+			setRefused(false);
+		});
 		return () => {
 			live = false;
 		};

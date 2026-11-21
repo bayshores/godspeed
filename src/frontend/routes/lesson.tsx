@@ -1,17 +1,25 @@
 import { data, useLoaderData, type LoaderFunctionArgs } from "react-router";
-import type { LessonDocuments, LessonKind, LessonProblemList } from "@/shared/core";
+import type { JobRecord, LessonDocuments, LessonKind, LessonProblemList } from "@/shared/core";
 import { Chat } from "@/frontend/components/chat";
+import { askFromEarlier } from "@/frontend/components/lesson/use-from-earlier";
 import type { ChatRead } from "@/frontend/components/lesson/use-lesson-server";
 import { getJson } from "@/frontend/lib/api";
 import { loadJson } from "./load-json";
 import { PageTitle } from "./page-title";
 
-/** One lesson: its record (and a homework lesson's or a lesson on files'
- *  problem list and documents) is read before the page shows, so a
- *  navigation keeps the old page until it's ready. */
+/** One lesson: its record, its jobs and the question from earlier it may
+ *  show (and a homework lesson's or a lesson on files' problem list and
+ *  documents) are read before the page shows, so a navigation keeps the old
+ *  page until it's ready and the lesson opens with nothing left to arrive. */
 export async function lessonLoader({ params, request }: LoaderFunctionArgs) {
 	// The plan map's code loads with the record, so an unfolded step row draws with the first paint.
-	const [read] = await Promise.all([loadJson<ChatRead>(`/api/chats/${encodeURIComponent(params.id ?? "")}`, request.signal), import("@/frontend/components/plan-block")]);
+	const id = params.id ?? "";
+	const [read, listedJobs, review] = await Promise.all([
+		loadJson<ChatRead>(`/api/chats/${encodeURIComponent(id)}`, request.signal),
+		getJson<{ jobs?: JobRecord[] }>(`/api/jobs?chatId=${encodeURIComponent(id)}`, request.signal),
+		askFromEarlier(id, request.signal),
+		import("@/frontend/components/plan-block"),
+	]);
 	// An older build's Talk chat is kept on disk but never shown.
 	if (read.kind === "talk") throw data(null, { status: 404 });
 	const chat = { ...read, kind: read.kind as LessonKind | undefined };
@@ -24,11 +32,11 @@ export async function lessonLoader({ params, request }: LoaderFunctionArgs) {
 		if (listed.body) problemList = listed.body.problems;
 		documents = shown.body;
 	}
-	return { chat, problemList, documents, prompt: new URL(request.url).searchParams.get("prompt") ?? undefined };
+	return { chat, jobs: listedJobs.body ? (listedJobs.body.jobs ?? []) : null, review, problemList, documents, prompt: new URL(request.url).searchParams.get("prompt") ?? undefined };
 }
 
 export function LessonPage() {
-	const { chat, problemList, documents, prompt } = useLoaderData<typeof lessonLoader>();
+	const { chat, jobs, review, problemList, documents, prompt } = useLoaderData<typeof lessonLoader>();
 	return (
 		<>
 			<PageTitle page={chat.title || "Lesson"} />
@@ -53,6 +61,8 @@ export function LessonPage() {
 				// attach (busy shimmer + poll), never resurrect the stale record.
 				initiallyInFlight={chat.turnInFlight}
 				initialStats={chat}
+				initialJobs={jobs}
+				openedReview={review}
 			/>
 		</>
 	);

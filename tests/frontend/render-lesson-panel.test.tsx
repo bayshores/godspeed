@@ -852,6 +852,19 @@ describe("the turn sheet", () => {
 		});
 	});
 
+	it("a key that changes while the sheet is first drawn, the page finding out it is pinned, swaps at once", async () => {
+		function FoundPinned() {
+			const [pinned, setPinned] = React.useState(false);
+			React.useLayoutEffect(() => setPinned(true), []);
+			return <TurnPinned.Provider value={pinned}>{turn({ busy: true })}</TurnPinned.Provider>;
+		}
+		await mounted(<FoundPinned />, async (host) => {
+			assert.equal(swap(host).getAttribute("data-state"), "open");
+			assert.doesNotMatch(swap(host).className, /lh-rise|lh-fade/, "nothing fades or rises as the lesson opens");
+			assert.match(swap(host).className, /hidden/, "pinned while the teacher works, it holds nothing");
+		});
+	});
+
 	it("the box stays still while the rest swaps, so a line being typed keeps the keyboard", async () => {
 		await mounted(named(column({ next: atStop })), async (host, show) => {
 			const box = host.querySelector('[data-testid="composer"]')!;

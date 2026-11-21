@@ -245,6 +245,15 @@ export function LessonScroll({
 		return performance.now() < hold.current.until ? scrollElement.scrollTop : restOf(end, { scrollElement, contentElement });
 	}, [holdThenGlide, restOf]);
 	useLayoutEffect(() => () => clearTimeout(hold.current.timer), []);
+	// The page opens at its rest: its follower would place it one frame after the first is drawn.
+	useLayoutEffect(() => {
+		const state = contextRef.current?.state;
+		if (state) state.scrollTop = state.calculatedTargetScrollTop;
+	}, [contextRef]);
+	// A step line the lesson opened with is just there; one that arrives later steps in.
+	const stepsRef = useRef<HTMLDivElement>(null);
+	const [stepsLate, setStepsLate] = useState(false);
+	useLayoutEffect(() => setStepsLate(stepsRef.current?.getClientRects().length === 0), []);
 
 	const wasBusy = useRef(busy);
 	const landing = useRef(0);
@@ -366,10 +375,10 @@ export function LessonScroll({
 	return (
 		<div ref={roomRef} className="lh-lesson-room @container/room flex min-h-0 min-w-0 flex-col [grid-area:main]">
 			{/* A sheet of its own. The page scrolls in the window a gap under it, where every sheet's top edge stops, so the
-			    lesson text and "Your turn" begin at one height. Shown only when the step line draws something, and
-			    then it steps in with the reply's text (the step replays when :has() shows it). */}
-			<div className="lh-page shrink-0 pt-(--lh-gap) [&:not(:has(>section>div>*))]:hidden">
-				<Pane className={cn("@container/strip lh-block-in [--lh-block-delay:var(--lh-dur-fast)]", READING_MEASURE, hasTurn && PAIR)}>
+			    lesson text and "Your turn" begin at one height. Shown only when the step line draws something; one that
+			    arrives after the lesson opened steps in with the reply's text (the step plays when :has() shows it). */}
+			<div ref={stepsRef} className="lh-page shrink-0 pt-(--lh-gap) [&:not(:has(>section>div>*))]:hidden">
+				<Pane className={cn("@container/strip", stepsLate && "lh-block-in [--lh-block-delay:var(--lh-dur-fast)]", READING_MEASURE, hasTurn && PAIR)}>
 					<div className="px-(--lh-reading-inset) py-4 @max-[640px]/strip:px-(--lh-reading-inset-narrow)">{steps}</div>
 				</Pane>
 			</div>

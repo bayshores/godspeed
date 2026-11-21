@@ -8,13 +8,12 @@ import { DOCK_DEFAULT_W, dockStateKey, dockWidth, parseDockState, type DockState
 /** The width keeps the cheat sheet's old key, so a width dragged before still holds. */
 const WIDTH_KEY = "lh:sheet-dock-width";
 
-/** The panel beside a lesson and what it shows, kept per lesson in this browser. It starts
- *  closed and reads storage after mount. The agent opening the lesson's own deadline's cheat
- *  sheet opens it here. */
+/** The panel beside a lesson and what it shows, kept per lesson in this browser and read for the
+ *  first render, so a panel left open is there when the lesson shows. The agent opening the
+ *  lesson's own deadline's cheat sheet opens it here. */
 export function useLessonDock(chatId: string, deadlineId: string | undefined) {
-	const [state, setState] = useState<DockState>({ panel: null });
 	const key = dockStateKey(chatId);
-	useEffect(() => setState(parseDockState(readStorage(key))), [key]);
+	const [state, setState] = useState<DockState>(() => parseDockState(readStorage(key)));
 	const update = useCallback(
 		(patch: Partial<DockState>) =>
 			setState((s) => {
@@ -57,11 +56,10 @@ export function DockPanel({
 	onClose: () => void;
 	children: ReactNode;
 }) {
-	const [width, setWidth] = useState(defaultWidth);
-	useEffect(() => {
+	const [width, setWidth] = useState(() => {
 		const saved = Number(readStorage(WIDTH_KEY));
-		setWidth(dockWidth(saved > 0 ? saved : defaultWidth, window.innerWidth));
-	}, [defaultWidth]);
+		return dockWidth(saved > 0 ? saved : defaultWidth, window.innerWidth);
+	});
 	const drag = useRef<{ x: number; w: number } | null>(null);
 
 	return (

@@ -4,6 +4,7 @@ import { useChatSession } from "@/frontend/components/session";
 import { visibleQueuedSteers } from "@/frontend/components/session-core";
 import { prefersReducedMotion, usePresence } from "@/frontend/components/presence";
 import { JobsContext } from "@/frontend/components/jobs-context";
+import { cn } from "@/frontend/lib/utils";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { agentWaiting, lessonAgentWaiting, useAgentStatus } from "@/frontend/components/agent-status";
 import { latestTree } from "@/frontend/components/plan-latest";
@@ -32,6 +33,8 @@ import {
 	type ChatAttachment,
 	type DockSelection,
 	type QuestionAnswerData,
+	type JobRecord,
+	type ReviewQuestion,
 	withOpenReview,
 } from "@/shared/core";
 import { problemMessage } from "@/frontend/components/lesson/problem-choices-model";
@@ -100,6 +103,8 @@ export function Chat({
 	initialPrompt,
 	initiallyInFlight,
 	initialStats,
+	initialJobs = null,
+	openedReview = null,
 	kind = "teach",
 	initialTree,
 	spaceId,
@@ -133,6 +138,10 @@ export function Chat({
 	initiallyInFlight?: boolean;
 	/** The stats row's figures from the route's read of the record. */
 	initialStats: LessonStats;
+	/** The lesson's jobs as the page's loader read them (null: the read failed). */
+	initialJobs?: JobRecord[] | null;
+	/** The question from earlier the page's loader was served, if one shows now. */
+	openedReview?: ReviewQuestion | null;
 }) {
 	// THE SESSION HOOK: the record is native history; the view is derived
 	// client-side (core/view.ts projectView).
@@ -143,6 +152,7 @@ export function Chat({
 		session,
 		initiallyInFlight: initiallyInFlight ?? false,
 		initialStats,
+		initialJobs,
 	});
 	const rename = useTitleRename(chatId, title);
 
@@ -205,6 +215,7 @@ export function Chat({
 	// its agent. The open one shows before the teacher's own question.
 	const { question: reviewQuestion, answer: answerReview, skip: skipReview, refused: reviewRefused } = useFromEarlier({
 		chatId,
+		opened: openedReview,
 		waiting: kind === "study" && (busy || noAgent),
 		open: teacherPending !== null || activeProblem !== null,
 		busy,
@@ -248,9 +259,6 @@ export function Chat({
 	const phases = useMemo(() => phaseTimeline(messages, firstPhase(kind)), [messages, kind]);
 
 	const pendingQuestionId = pending?.toolCallId ?? null;
-	const draftsLoaded = drafts.draft !== null;
-	const draftRef = useRef(drafts.draft);
-	draftRef.current = drafts.draft;
 
 	// ⌘T: set every "your thinking" row in the lesson to one state.
 	useEffect(() => {
@@ -260,8 +268,8 @@ export function Chat({
 	}, []);
 
 	// ── the answer box ──
-	const [text, setText] = useState("");
-	const textRef = useRef("");
+	const [text, setText] = useState(drafts.draft.composer);
+	const textRef = useRef(text);
 	const applyText = useCallback((v: string) => {
 		textRef.current = v;
 		setText(v);
@@ -274,12 +282,9 @@ export function Chat({
 		},
 		[applyText, saveComposer],
 	);
-	useEffect(() => {
-		if (draftsLoaded && draftRef.current?.composer) applyText(draftRef.current.composer);
-	}, [draftsLoaded, applyText]);
 
 	// Follow never takes the window away from unsent text.
-	const draftHeld = drafts.draft !== null && holdsDraft(drafts.draft, pendingQuestionId ?? activeProblem?.toolCallId ?? null);
+	const draftHeld = holdsDraft(drafts.draft, pendingQuestionId ?? activeProblem?.toolCallId ?? null);
 	// The teacher's status in a lesson: Talking while it writes, Thinking
 	// while the turn runs.
 	useTeacherLesson(status === "streaming", busy, draftHeld);
@@ -322,7 +327,7 @@ export function Chat({
 	// What is picked among the open problem's choices, kept like the box's text.
 	const problemId = activeProblem?.toolCallId ?? null;
 	const problemChoices = useMemo(() => (activeProblem ? problemChoicesOf(activeProblem.input) : null), [activeProblem]);
-	const problemPicked = (problemId && drafts.draft?.questions[problemId]?.form?.selection) || emptyDockSelection();
+	const problemPicked = (problemId && drafts.draft.questions[problemId]?.form?.selection) || emptyDockSelection();
 	const pickProblem = (selection: DockSelection) => {
 		if (problemId) saveQuestion(problemId, { form: { selection } });
 	};
@@ -477,6 +482,9 @@ export function Chat({
 	const panel = openPanel(lessonDock.state.panel, { sheet: !!spaceId, document: shownDoc !== null });
 	// The panel stays mounted through its fade-out; the grid still follows `panel`.
 	const dock = usePresence(panel !== null);
+	// A panel left open is just there when the lesson shows; one opened later fades in.
+	const [dockThere, setDockThere] = useState(panel !== null);
+	if (dockThere && panel === null) setDockThere(false);
 	const lastPanel = useRef(panel);
 	if (panel) lastPanel.current = panel;
 	const togglePanel = (kind: DockPanelKind) => {
@@ -591,12 +599,10 @@ export function Chat({
 									turn={
 										turnShows ? (
 											<TurnSheet
-												// Remounts once the saved drafts are read, so the question starts from them.
-												key={draftsLoaded ? "drafts" : "loading"}
 												sheetRef={sheetGlide}
 												spaceId={spaceId}
 												pending={pending}
-												initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
+												initialQuestionDraft={pendingQuestionId ? drafts.draft.questions[pendingQuestionId]?.form : undefined}
 												onSaveQuestionDraft={(form) => {
 													if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
 												}}
@@ -625,7 +631,7 @@ export function Chat({
 									}
 								/>
 								{dock.mounted && (
-									<div data-state={dock.state} className="lh-fade flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap) [grid-area:dock]">
+									<div data-state={dock.state} className={cn("flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap) [grid-area:dock]", !dockThere && "lh-fade")}>
 										{lastPanel.current === "document" && shownDoc ? (
 											<DocumentPanel
 												choices={docChoices}

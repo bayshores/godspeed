@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toggleOption, type DockSelection, type ProblemChoices, type ProblemPieceText } from "@/shared/core";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { PagePiece } from "@/frontend/components/citations/page-piece";
@@ -116,7 +116,8 @@ export function OpenProblemPane({
 			apply(root, new Map());
 		};
 	}, [part]);
-	useEffect(() => {
+	// Before the problem is drawn, so no frame shows every part open.
+	useLayoutEffect(() => {
 		const root = statementRef.current;
 		if (!part || !root) return;
 		const mark = () => apply(root, partMarks(root, part, opened));
