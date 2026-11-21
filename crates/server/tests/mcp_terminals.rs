@@ -66,7 +66,7 @@ async fn an_ended_terminals_agent_is_refused_at_the_door_and_in_its_wait() {
 	assert!(!body.contains(CLOSED));
 
 	app.bridge.set_live_terminals(vec![TERMINAL.to_owned()], Some(TERMINAL.to_owned()));
-	let open = tokio::spawn({
+	let open = gs_base::tasks::spawn("test", {
 		let app = app.clone();
 		async move { wait(&app, Some(TERMINAL)).await }
 	});
@@ -84,7 +84,7 @@ async fn an_ended_terminals_agent_is_refused_at_the_door_and_in_its_wait() {
 async fn typing_in_the_terminal_ends_its_wait_with_a_note() {
 	let app = app();
 	app.bridge.set_live_terminals(vec![TERMINAL.to_owned()], Some(TERMINAL.to_owned()));
-	let open = tokio::spawn({
+	let open = gs_base::tasks::spawn("test", {
 		let app = app.clone();
 		async move { wait(&app, Some(TERMINAL)).await }
 	});
@@ -158,7 +158,7 @@ async fn typing_while_respond_waits_for_a_follow_up_ends_the_turn_with_a_note() 
 			break;
 		}
 	}
-	let responding = tokio::spawn({
+	let responding = gs_base::tasks::spawn("test", {
 		let app = app.clone();
 		async move { woken(&app, Some(TERMINAL), "sess-1", "respond", &format!(r#"{{"work_id":"{work_id}","text":"Cells are small.","wait_seconds":5}}"#)).await }
 	});

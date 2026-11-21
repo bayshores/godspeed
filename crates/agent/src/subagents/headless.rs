@@ -90,7 +90,7 @@ impl HeadlessApi for RealHeadless {
 		Box::pin(async move {
 			// Font loading and drawing are slow CPU work: off the async threads.
 			let owned = svg.to_owned();
-			if let Ok(Ok(png)) = tokio::task::spawn_blocking(move || render_svg(&owned, RenderSvgOptions::default())).await {
+			if let Ok(Ok(png)) = gs_base::tasks::spawn_blocking("headless", move || render_svg(&owned, RenderSvgOptions::default())).await {
 				return Ok(png);
 			}
 			let (width, height) = svg_viewport(svg, RenderSvgOptions::default());
@@ -150,7 +150,7 @@ mod tests {
 		let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 		let link = ShellLink::new(Lines(tx));
 		let seen = Arc::new(parking_lot::Mutex::new(Vec::new()));
-		tokio::spawn({
+		gs_base::tasks::spawn("test", {
 			let (link, seen) = (link.clone(), seen.clone());
 			async move {
 				while let Some(line) = rx.recv().await {

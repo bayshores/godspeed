@@ -115,7 +115,7 @@ mod tests {
 		let grandchild = child.child();
 		grandchild.abort();
 		assert!(!child.is_aborted() && !parent.is_aborted());
-		let waiter = tokio::spawn({
+		let waiter = gs_base::tasks::spawn("test", {
 			let child = child.clone();
 			async move { child.aborted().await }
 		});

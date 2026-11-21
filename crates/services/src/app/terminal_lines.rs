@@ -15,6 +15,7 @@ use parking_lot::Mutex;
 use tokio::sync::oneshot;
 
 use super::agent_folder::agent_folder;
+use super::teacher_nudge::{JOB_WAITS, LESSON_WAITS};
 use crate::App;
 
 /// How long the window has to say the page sent the line.
@@ -32,8 +33,9 @@ pub struct Lines {
 /// agent reads the line as usual.
 pub async fn take_terminal_line(app: &App, terminal: Option<&str>, line: &str) -> Option<String> {
 	// godspeed's own nudge to the quiet teacher: the agent works on it, but it is not the learner's.
+	// Its exact words count even when its mark is gone, so a nudge never names a chat.
 	if let Some(terminal) = terminal
-		&& app.bridge.take_nudge_line(terminal, line)
+		&& (app.bridge.take_nudge_line(terminal, line) || is_nudge_text(line))
 	{
 		app.bridge.agent_prompted(terminal);
 		return None;
@@ -47,6 +49,10 @@ pub async fn take_terminal_line(app: &App, terminal: Option<&str>, line: &str) -
 		super::teacher_chats::typed(app, terminal, line);
 	}
 	page
+}
+
+fn is_nudge_text(line: &str) -> bool {
+	matches!(line.trim(), LESSON_WAITS | JOB_WAITS)
 }
 
 async fn to_page(app: &App, terminal: Option<&str>, line: &str) -> Option<String> {
@@ -93,6 +99,14 @@ fn read_attachments(dir: &Path, names: &[String]) -> Vec<Json> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[test]
+	fn the_nudge_words_are_the_nudge_and_other_lines_are_not() {
+		assert!(is_nudge_text(LESSON_WAITS));
+		assert!(is_nudge_text(" Your job is waiting.\n"));
+		assert!(!is_nudge_text("Your lesson is waiting. Why?"));
+		assert!(!is_nudge_text("why is the sky blue?"));
+	}
 
 	#[test]
 	fn reads_only_the_named_files_that_are_there() {

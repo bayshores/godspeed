@@ -34,14 +34,14 @@ async fn sent(rx: &mut mpsc::UnboundedReceiver<Vec<u8>>) -> ToShell {
 #[tokio::test]
 async fn requests_get_their_own_answers() {
 	let (link, mut rx) = link();
-	let demo = tokio::spawn({
+	let demo = gs_base::tasks::spawn("test", {
 		let link = link.clone();
 		async move { link.demo("<p>hi</p>", None).await }
 	});
 	let ToShell::Demo { id: demo_id, html, probe } = sent(&mut rx).await else { panic!("a demo request") };
 	assert_eq!((demo_id, html.as_str(), probe), (1, "<p>hi</p>", None));
 
-	let svg = tokio::spawn({
+	let svg = gs_base::tasks::spawn("test", {
 		let link = link.clone();
 		async move { link.svg("<svg/>", 9, 7).await }
 	});
@@ -60,7 +60,7 @@ async fn requests_get_their_own_answers() {
 #[tokio::test]
 async fn a_notification_answers_whether_it_went_to_the_system() {
 	let (link, mut rx) = link();
-	let shown = tokio::spawn({
+	let shown = gs_base::tasks::spawn("test", {
 		let link = link.clone();
 		async move { link.notify("Quiz 2 is tomorrow", "Algebra.").await }
 	});
@@ -73,7 +73,7 @@ async fn a_notification_answers_whether_it_went_to_the_system() {
 #[tokio::test]
 async fn an_answer_of_the_wrong_kind_is_skipped() {
 	let (link, mut rx) = link();
-	let demo = tokio::spawn({
+	let demo = gs_base::tasks::spawn("test", {
 		let link = link.clone();
 		async move { link.demo("<p>hi</p>", None).await }
 	});

@@ -338,9 +338,13 @@ impl Extraction {
 	}
 
 	/// Merges one job's findings under the graph's file lock.
-	fn merge(&self, source_id: &str, scope: Option<&str>, findings: &Json, source: &MergeSource) -> Result<Json, JobError> {
+	/// Merges under the graph's lock: the stats the run keeps, and the credit lines written, which
+	/// only the log reports.
+	fn merge(&self, source_id: &str, scope: Option<&str>, findings: &Json, source: &MergeSource) -> Result<(Json, Json), JobError> {
 		let _held = self.0.locks().lock(LockKey::Graph(scope));
-		merge_findings(source_id, findings, &ScopedGraph::new(self.0.graphs(), scope), source).map_err(JobError::Failed)
+		let mut stats = merge_findings(source_id, findings, &ScopedGraph::new(self.0.graphs(), scope), source).map_err(JobError::Failed)?;
+		let credits = stats.as_obj_mut().and_then(|o| o.remove("credits")).unwrap_or(Json::from(0));
+		Ok((stats, credits))
 	}
 
 	/// Appends the job's usage record to its source's log, success or failure (a failed job
@@ -460,8 +464,8 @@ impl Extraction {
 			}
 			let folded_at = time::iso_now();
 			let coverage: Vec<Json> = batch.iter().filter(|slot| slot.tokens > 0).map(|slot| json!({ "chatId": chat_id, "fp": slot.fp, "tokens": slot.tokens, "foldedAt": folded_at })).collect();
-			let stats = self.merge(chat_id, scope, &findings, &MergeSource { folded_at: folded_at.clone(), coverage: Some(coverage) })?;
-			eprintln!("[extraction {key}] merged: {} nodes, {} chains", gs_json::stringify(&stats["nodes"]), gs_json::stringify(&stats["chains"]));
+			let (stats, credits) = self.merge(chat_id, scope, &findings, &MergeSource { folded_at: folded_at.clone(), coverage: Some(coverage) })?;
+			eprintln!("[extraction {key}] merged: {} new facts, {} new chains, {} credits", gs_json::stringify(&stats["nodes"]), gs_json::stringify(&stats["chains"]), gs_json::stringify(&credits));
 			Ok(stats)
 		})
 		.await
@@ -515,7 +519,7 @@ impl Extraction {
 					return Ok(Stats::default().to_json());
 				}
 				self.set_phase(&key, ExtractionPhase::Merging, RunKind::Notes, Some(label), part);
-				let stats = self.merge(id, scope, &as_session_findings(&raw), &MergeSource { folded_at: imported_at.to_owned(), coverage: None })?;
+				let (stats, _) = self.merge(id, scope, &as_session_findings(&raw), &MergeSource { folded_at: imported_at.to_owned(), coverage: None })?;
 				// Counted before the usage write can fail.
 				merged.add(&stats);
 				Ok(stats)

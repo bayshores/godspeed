@@ -46,7 +46,7 @@ pub fn init_from_env() -> Result<(), String> {
 		let start = crate::time::parse_date(&iso).ok_or_else(|| format!("bad GODSPEED_CONTRACT_NOW: {iso}"))?;
 		CLOCK.offset.store(start - real_ms(), Ordering::SeqCst);
 		if let Ok(file) = std::env::var("GODSPEED_CONTRACT_CLOCK_FILE") {
-			tokio::spawn(watch_clock_file(PathBuf::from(file)));
+			crate::tasks::spawn("clock", watch_clock_file(PathBuf::from(file)));
 		}
 	}
 	Ok(())
@@ -133,7 +133,7 @@ mod tests {
 		let mut tasks = Vec::new();
 		for (name, delay) in [("b", 60_000), ("a", 30_000), ("late", 3_600_000)] {
 			let order = order.clone();
-			tasks.push(tokio::spawn(async move {
+			tasks.push(crate::tasks::spawn("test", async move {
 				sleep(delay).await;
 				order.lock().push(name);
 			}));

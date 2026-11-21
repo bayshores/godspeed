@@ -61,10 +61,10 @@ pub async fn serve(route: impl Fn(&str) -> Option<Route> + Send + Sync + 'static
 	let seen = Arc::new(Mutex::new(Vec::new()));
 	let route = Arc::new(route);
 	let log = seen.clone();
-	tokio::spawn(async move {
+	gs_base::tasks::spawn("test", async move {
 		loop {
 			let Ok((stream, _)) = listener.accept().await else { return };
-			tokio::spawn(answer(stream, route.clone(), log.clone()));
+			gs_base::tasks::spawn("test", answer(stream, route.clone(), log.clone()));
 		}
 	});
 	TestServer { origin, seen }

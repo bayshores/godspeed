@@ -36,7 +36,7 @@ fn unique<'a>(items: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
 }
 
 /// Merges one job's findings into the graph ledgers. `chat_id` is the job's source key: a chat,
-/// or a notes source ("src_..."). Returns `{ nodes, chains[, droppedChains] }`: what was
+/// or a notes source ("src_..."). Returns `{ nodes, chains, credits[, droppedChains] }`: what was
 /// appended, and the chains the simplification pass removed.
 ///
 /// New propositions always create nodes; `reteaches` ids naming an existing node append a
@@ -46,7 +46,7 @@ fn unique<'a>(items: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
 ///
 /// The caller holds this graph's lock: the simplification pass replaces the whole chain ledger.
 pub fn merge_findings(chat_id: &str, findings: &Json, ledgers: &dyn GraphStore, source: &MergeSource) -> Result<Json, String> {
-	let (mut node_count, mut chain_count) = (0, 0);
+	let (mut node_count, mut chain_count, mut credit_count) = (0, 0, 0);
 
 	// 1. Resolution: this job's propositions -> new graph node ids.
 	let nodes = ledgers.read_nodes()?;
@@ -92,6 +92,7 @@ pub fn merge_findings(chat_id: &str, findings: &Json, ledgers: &dyn GraphStore, 
 			continue;
 		}
 		ledgers.append_node(&credit_line(id, node, &now, point_of(chat_id, None)))?;
+		credit_count += 1;
 	}
 
 	// 1c. What each question tests: a point at the question's message on each idea, so the
@@ -113,6 +114,7 @@ pub fn merge_findings(chat_id: &str, findings: &Json, ledgers: &dyn GraphStore, 
 				continue;
 			}
 			ledgers.append_node(&credit_line(id, node, &now, point_of(chat_id, message_id)))?;
+			credit_count += 1;
 		}
 	}
 
@@ -169,6 +171,7 @@ pub fn merge_findings(chat_id: &str, findings: &Json, ledgers: &dyn GraphStore, 
 	let mut stats = Obj::new();
 	stats.insert("nodes", node_count);
 	stats.insert("chains", chain_count);
+	stats.insert("credits", credit_count);
 	if dropped > 0 {
 		stats.insert("droppedChains", dropped);
 	}
@@ -207,7 +210,7 @@ mod tests {
 		let entry = json!({ "chatId": "new", "fp": "f", "tokens": 3, "foldedAt": at() });
 		let source = MergeSource { folded_at: at(), coverage: Some(vec![entry.clone()]) };
 		let stats = merge_findings("new", &findings(), &memory, &source).unwrap();
-		assert_eq!(stats, json!({ "nodes": 2, "chains": 1 }));
+		assert_eq!(stats, json!({ "nodes": 2, "chains": 1, "credits": 3 }));
 
 		let ledgers = memory.ledgers.lock().unwrap();
 		// 2 old lines, 2 new nodes, n_a credited once (n_b already was), p1 and n_b pointed at m2.
@@ -229,8 +232,8 @@ mod tests {
 		let memory = Memory::with(vec![node("n_a", "A", &["x"]), node("n_b", "B", &["x"]), node("n_c", "C", &["x"])], vec![]);
 		let findings = json!({ "propositions": [], "reteaches": [], "chains": [{ "premises": ["n_a", "n_b"], "conclusion": "n_c" }] });
 		let source = MergeSource { folded_at: at(), coverage: None };
-		assert_eq!(merge_findings("src_1", &findings, &memory, &source).unwrap(), json!({ "nodes": 0, "chains": 1 }));
-		assert_eq!(merge_findings("src_1", &findings, &memory, &source).unwrap(), json!({ "nodes": 0, "chains": 0 }));
+		assert_eq!(merge_findings("src_1", &findings, &memory, &source).unwrap(), json!({ "nodes": 0, "chains": 1, "credits": 0 }));
+		assert_eq!(merge_findings("src_1", &findings, &memory, &source).unwrap(), json!({ "nodes": 0, "chains": 0, "credits": 0 }));
 		assert_eq!(memory.ledgers.lock().unwrap().checkpoints, [json!({ "chatId": "src_1", "foldedAt": at() }), json!({ "chatId": "src_1", "foldedAt": at() })]);
 	}
 
@@ -240,7 +243,7 @@ mod tests {
 		let memory = Memory::with(nodes, vec![chain("arg_old", &["n_a", "n_b"], "n_c", &["x"])]);
 		let findings = json!({ "propositions": [], "reteaches": [], "chains": [{ "premises": ["n_b", "n_a"], "conclusion": "n_c" }, { "premises": ["n_a"], "conclusion": "n_c" }] });
 		let stats = merge_findings("y", &findings, &memory, &MergeSource { folded_at: at(), coverage: Some(vec![]) }).unwrap();
-		assert_eq!(stats, json!({ "nodes": 0, "chains": 2, "droppedChains": 2 }));
+		assert_eq!(stats, json!({ "nodes": 0, "chains": 2, "credits": 0, "droppedChains": 2 }));
 		// The two-premise argument is derivable from the single one, so both of its lines go.
 		let chains = memory.chains();
 		assert_eq!(chains.len(), 1);

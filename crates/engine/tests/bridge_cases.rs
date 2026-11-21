@@ -36,7 +36,7 @@ fn reply(text: &str) -> AgentReply {
 #[tokio::test]
 async fn a_waiting_agent_takes_new_work_at_once() {
 	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
-	let waiting = tokio::spawn({
+	let waiting = gs_base::tasks::spawn("test", {
 		let bridge = bridge.clone();
 		async move { bridge.wait_for_work(60_000, agent_a()).await }
 	});
@@ -236,7 +236,7 @@ fn staying_on(agent: &str, lesson: &str) -> WaitOptions {
 
 fn waiting(bridge: &Bridge, opts: WaitOptions) -> tokio::task::JoinHandle<Option<gs_engine::bridge::WorkView>> {
 	let bridge = bridge.clone();
-	tokio::spawn(async move { bridge.wait_for_work(60_000, opts).await })
+	gs_base::tasks::spawn("test", async move { bridge.wait_for_work(60_000, opts).await })
 }
 
 #[tokio::test]

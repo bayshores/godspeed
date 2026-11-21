@@ -6,7 +6,7 @@ How a long lesson is shortened, how the lesson's size is measured and how token 
 
 | File | What it holds |
 |---|---|
-| `crates/core/src/session/compaction.rs` | Cutoff rule, token estimate, `local_summary`, compaction marker. The copy the server runs. |
+| `crates/core/src/session/compaction.rs` | Cutoff rule, token estimate, the lesson's size the threshold measures (`lesson_tokens`), `local_summary`, compaction marker. The copy the server runs. |
 | `crates/services/src/turns/compaction.rs` | When shortening and the summary run. |
 | `src/shared/core/compaction.ts` | What the screens need to draw a shortened lesson (`activeCompactionOf`). The rule itself is Rust only. |
 | `src/shared/core/context-usage.ts` | `measuredContextTokens`, the lesson's size. |
@@ -31,11 +31,13 @@ Tests:
 
 `effective_threshold_tokens` caps the summarize point at window minus reserve, but that cap is 183,616, so it never applies.
 
+The threshold measures the lesson's transcript only (`lesson_tokens`): the messages the model sees (the active summary, then every message from the cut onward), estimated as below. The system prompt and tool schemas (about 20,000 tokens) are left out, since no cut can shrink them; counting them kept a shortened lesson over the threshold, so it was cut again every turn. Provider-reported usage is not read here. After a cut the lesson holds the kept tail (about 20,000) and the summary (at most 6,000), so at least 10,000 tokens of new lesson fit before the next cut.
+
 1. Past the summarize point the server cuts the record at once and writes its own short version of the dropped part (`local_summary`), at the turn-start gate and when a turn settles, never during a live run.
 2. The compaction marker is written right away with that version. A turn that starts now goes ahead on it.
 3. After 5 quiet minutes the outside agent writes the real summary, replacing the marker's text in place.
 
-A cut that drops no active history adds no marker. Full history always stays in the record. The model sees the summary, then every message from the cut onward.
+A cut that drops no active history adds no marker. A cut that can't move past the previous kept boundary (the kept tail alone is over the threshold) adds none either, and says so in the log once for that boundary. Full history always stays in the record. The model sees the summary, then every message from the cut onward.
 
 ## The teacher session
 
@@ -76,6 +78,7 @@ The Lesson stats pop-up (open lesson's More menu) shows it in pages against the 
 - A compaction marker clears every earlier reading. Summary runs never feed the size.
 - Maximum: the summarize point the server sends as `summarizeAt` with `GET /api/chats/{id}`: 40,000, capped by window minus reserve (`effective_threshold_tokens`).
 - Shown at any size.
+- This number includes the system prompt and tool schemas, which the summarize point leaves out (see [When a lesson gets shortened](#when-a-lesson-gets-shortened)), so it can read above the summarize point while the lesson itself is under it.
 
 ## Usage, not dollars
 

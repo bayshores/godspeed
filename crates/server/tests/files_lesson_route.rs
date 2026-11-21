@@ -31,7 +31,7 @@ async fn a_paired_tex_is_refused_and_its_pdf_starts() {
 	app.stores.spaces.save_files(&space_id, vec![file("f_pdf", "HW 3.pdf"), tex], &[]).unwrap();
 	let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
 	let port = listener.local_addr().unwrap().port();
-	tokio::spawn(axum::serve(listener, gs_server::http::server(Arc::clone(&app), &Access::default())).into_future());
+	gs_base::tasks::spawn("test", axum::serve(listener, gs_server::http::server(Arc::clone(&app), &Access::default())).into_future());
 
 	let refused = post(port, r#"{"fileIds":["f_tex"]}"#).await;
 	assert!(refused.starts_with("HTTP/1.1 400 "), "{refused}");

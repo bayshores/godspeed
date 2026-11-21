@@ -124,7 +124,7 @@ mod tests {
 		let mut tasks = Vec::new();
 		for n in 0..3 {
 			let (line, order) = (waiters.clone(), order.clone());
-			tasks.push(tokio::spawn(async move {
+			tasks.push(gs_base::tasks::spawn("test", async move {
 				let ticket = line.wait(line.wakes(), std::future::pending(), std::future::pending()).await;
 				// The later ones get every chance to claim first.
 				tokio::task::yield_now().await;
@@ -146,7 +146,7 @@ mod tests {
 	#[tokio::test]
 	async fn a_waiter_that_went_away_gives_up_its_turn() {
 		let waiters = Arc::new(Waiters::default());
-		let first = tokio::spawn({
+		let first = gs_base::tasks::spawn("test", {
 			let waiters = waiters.clone();
 			async move { drop(waiters.wait(waiters.wakes(), std::future::pending(), std::future::pending()).await) }
 		});
@@ -155,7 +155,7 @@ mod tests {
 		}
 		let second = {
 			let waiters = waiters.clone();
-			tokio::spawn(async move { drop(waiters.wait(waiters.wakes(), std::future::pending(), std::future::pending()).await) })
+			gs_base::tasks::spawn("test", async move { drop(waiters.wait(waiters.wakes(), std::future::pending(), std::future::pending()).await) })
 		};
 		while waiters.line.lock().waiting.len() < 2 {
 			tokio::task::yield_now().await;
