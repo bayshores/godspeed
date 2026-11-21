@@ -13,7 +13,9 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { factLinks, PANEL_ANSWER_COLOR } from "./derive.ts";
 import { CloseButton, StudyButton } from "./pane-buttons.tsx";
-import { CHIP, GROUP_LABEL } from "./styles.ts";
+import { factCells } from "@/frontend/components/fact-cells";
+import { LinkRows } from "./link-rows.tsx";
+import { CHIP } from "./styles.ts";
 
 /** What the page knows about where facts came from (the graph snapshot's maps). */
 export interface FactSources {
@@ -133,34 +135,10 @@ function Source({ born, sources }: { born: string | null; sources: FactSources |
 		</div>
 	);
 }
-
-function FactLinks({
-	label,
-	ids,
-	byId,
-	onOpen,
-	testid,
-}: {
-	label: string;
-	ids: readonly string[];
-	byId: ReadonlyMap<string, FactProgress>;
-	onOpen: (id: string) => void;
-	testid: string;
-}) {
-	const shown = ids.map((id) => byId.get(id)).filter((f): f is FactProgress => !!f);
-	if (shown.length === 0) return null;
-	return (
-		<div className="flex flex-col gap-[9px]" data-testid={testid}>
-			<span className={GROUP_LABEL}>{label}</span>
-			<span className="flex flex-wrap gap-2">
-				{shown.map((f) => (
-					<button key={f.id} type="button" data-testid="fact-link" onClick={() => onOpen(f.id)} title={f.name} className={CHIP}>
-						<span className="truncate">
-							<InlineMath text={f.name} />
-						</span>
-					</button>
-				))}
-			</span>
-		</div>
-	);
+function FactLinks({ label, ids, byId, onOpen, testid }: { label: string; ids: readonly string[]; byId: ReadonlyMap<string, FactProgress>; onOpen: (id: string) => void; testid: string }) {
+	const rows = ids
+		.map((id) => byId.get(id))
+		.filter((f): f is FactProgress => !!f)
+		.map((f) => ({ id: f.id, name: f.name, shown: <InlineMath text={f.name} />, color: factCells([f])[0]! }));
+	return <LinkRows label={label} rows={rows} onOpen={onOpen} testid={testid} rowTestid="fact-link" />;
 }

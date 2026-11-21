@@ -65,28 +65,47 @@ pub fn sanitize_area_rules(raw: &Json) -> Json {
 }
 
 /// A title line, then one "- rule" line each.
-fn block(title: &str, rules: impl Iterator<Item = String>) -> String {
+fn block<'a>(title: &str, rules: impl Iterator<Item = &'a str>) -> String {
 	std::iter::once(title.to_owned()).chain(rules.map(|r| format!("- {r}"))).collect::<Vec<_>>().join("\n")
 }
 
-/// The section added after the instructions, or "" when there are no rules. Space rules only
-/// come with a lesson in that space: its name and its rules.
-pub fn learner_rules_section(rules: &Json, lesson_space: Option<(&str, &[String])>) -> String {
-	let mut blocks: Vec<String> = Vec::new();
+/// The rules a lesson follows, each list under its title: every area that has rules, in area
+/// order, then the lesson's space (its name and its rules) when it has some.
+fn rule_lists<'a>(rules: &'a Json, lesson_space: Option<(&str, &'a [String])>) -> Vec<(String, Vec<&'a str>)> {
+	let mut lists: Vec<(String, Vec<&str>)> = Vec::new();
 	for area in &TEACHING_AREAS {
-		let list = rules[area.id].as_arr().filter(|l| !l.is_empty());
-		if let Some(list) = list {
-			blocks.push(block(area.label, list.iter().map(|r| r.str_or_empty().to_owned())));
+		if let Some(list) = rules[area.id].as_arr().filter(|l| !l.is_empty()) {
+			lists.push((area.label.to_owned(), list.iter().map(|r| r.str_or_empty()).collect()));
 		}
 	}
 	if let Some((name, space_rules)) = lesson_space.filter(|(_, r)| !r.is_empty()) {
-		blocks.push(block(&format!("Rules for this space ({name})"), space_rules.iter().cloned()));
+		lists.push((format!("Rules for this space ({name})"), space_rules.iter().map(String::as_str).collect()));
 	}
+	lists
+}
+
+/// The section added after the instructions, or "" when there are no rules. Space rules only
+/// come with a lesson in that space.
+pub fn learner_rules_section(rules: &Json, lesson_space: Option<(&str, &[String])>) -> String {
+	let blocks: Vec<String> = rule_lists(rules, lesson_space).into_iter().map(|(title, list)| block(&title, list.into_iter())).collect();
 	if blocks.is_empty() {
 		return String::new();
 	}
 	let intro = ["## The learner's rules", "The learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins."];
 	intro.iter().map(|s| (*s).to_owned()).chain(blocks).collect::<Vec<_>>().join("\n\n")
+}
+
+/// The reply's shape, said again on every lesson item: a line read once in long instructions fades.
+const EVERY_TURN_SHAPE: &str = "One idea per reply, at most four short lines, then his move.";
+
+/// The block a lesson's later work items repeat: the same rules as `learner_rules_section`, one
+/// line each, then the reply's shape; the shape alone when there are no rules.
+pub fn every_turn_rules(rules: &Json, lesson_space: Option<(&str, &[String])>) -> String {
+	let lines: Vec<&str> = rule_lists(rules, lesson_space).into_iter().flat_map(|(_, list)| list).collect();
+	if lines.is_empty() {
+		return EVERY_TURN_SHAPE.to_owned();
+	}
+	format!("{}\n{EVERY_TURN_SHAPE}", block("His rules, every turn (they win):", lines.into_iter()))
 }
 
 #[cfg(test)]
@@ -114,5 +133,16 @@ mod tests {
 			learner_rules_section(&rules, Some(("CSE 21", &space_rules))),
 			"## The learner's rules\n\nThe learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.\n\nVoice\n- Short.\n\nRules for this space (CSE 21)\n- Use Python."
 		);
+	}
+
+	#[test]
+	fn every_turn_repeats_the_same_rules_then_the_shape() {
+		let rules = json!({ "voice": ["Short."], "files": ["No tables."] });
+		let space_rules = ["Use Python.".to_owned()];
+		assert_eq!(
+			every_turn_rules(&rules, Some(("CSE 21", &space_rules))),
+			"His rules, every turn (they win):\n- Short.\n- No tables.\n- Use Python.\nOne idea per reply, at most four short lines, then his move."
+		);
+		assert_eq!(every_turn_rules(&json!({}), Some(("CSE 21", &[]))), "One idea per reply, at most four short lines, then his move.");
 	}
 }

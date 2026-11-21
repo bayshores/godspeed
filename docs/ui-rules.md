@@ -44,7 +44,16 @@ A button is as wide as its words.
 
 - No button stretched across its sheet, row or page.
 - A button sits at the end of the row or sheet it acts on.
-- Before calling a UI change finished, look for a button wider than its label needs on the changed screen.
+- A key keeps at least 8 points beside its words: its padding comes from `lh-btn` or `lh-btn-small`, never a `px-` of its own.
+- `npm run layout` fails a key more than 96 points wider than its words ("wide key") and a key with less than 8 points beside its words ("tight key").
+
+## No key piles
+
+A list of things to open (related topics, linked facts, files) is rows, not keys. Keys are for actions.
+
+- A row is a square in the thing's color and its name, like a topic's facts on Graph (`LinkRows`, `PANE_ROW` in `components/graph/`). The whole row is the click.
+- A title wraps; it is never cut with "...". Only the top bar's names give way, as the Top bar section says.
+- `npm run layout` fails three or more keys stacked on three or more lines in one group ("key pile") and a cut title ("cut title"), outside pop-ups and bars.
 
 ## Look at the real window
 

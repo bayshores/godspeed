@@ -15,6 +15,7 @@ use gs_engine::bridge::{AgentReply, ReplyCall, UNNAMED_HELPER, WaitOptions, Work
 use gs_json::{Json, Obj, json, stringify};
 use gs_services::App;
 use gs_services::spaces::citations::check_cites;
+use gs_services::turns::every_turn_rules_for;
 use gs_services::turns::reply_nudges::reply_refusal;
 
 use super::TERMINAL_CLOSED;
@@ -72,12 +73,14 @@ fn idle(caller: Option<&str>, helper: bool) -> Json {
 
 /// A work item as text blocks: compact JSON naming its conversation, then its instructions and
 /// long message texts as plain text, where line breaks, quotes and LaTeX backslashes need no
-/// escaping.
+/// escaping. A lesson item without the instructions ends with the learner's rules again, since
+/// the rules at the end of instructions read once fade.
 fn describe(app: &App, view: &WorkView) -> Vec<String> {
 	let mut envelope = Obj::new();
 	envelope.insert("status", "work");
 	envelope.insert("workId", view.work_id.as_str());
-	if let Some(chat) = app.stores.chats.get_chat(&view.conversation) {
+	let lesson = app.stores.chats.get_chat(&view.conversation);
+	if let Some(chat) = &lesson {
 		envelope.insert("lessonId", chat["id"].clone());
 		envelope.insert("lessonTitle", chat["title"].clone());
 		envelope.insert("kind", if chat["kind"].is_null() { Json::from("teach") } else { chat["kind"].clone() });
@@ -121,10 +124,14 @@ fn describe(app: &App, view: &WorkView) -> Vec<String> {
 		envelope.insert("note", "You have what instructionsAsIn and toolsAsBefore point at. Lost it: read_work with this workId and full: true.");
 	}
 	let mut blocks = vec![stringify(&Json::Obj(envelope))];
-	if let Some(instructions) = view.instructions.as_deref().filter(|i| !i.is_empty()) {
+	let instructions = view.instructions.as_deref().filter(|i| !i.is_empty());
+	if let Some(instructions) = instructions {
 		blocks.push(format!("Instructions (your system prompt for this conversation; follow them exactly):\n\n{instructions}"));
 	}
 	blocks.extend(texts);
+	if let Some(lesson) = lesson.filter(|_| instructions.is_none()) {
+		blocks.push(every_turn_rules_for(app, &lesson));
+	}
 	blocks
 }
 
@@ -383,6 +390,37 @@ mod tests {
 	fn the_typed_notes_send_the_agent_back_to_waiting() {
 		assert_eq!(stringify(&json!({ "status": "idle", "note": typed_note(false) })), r#"{"status":"idle","note":"The learner typed to you in your terminal. Answer them there, then call wait_for_work again."}"#);
 		assert_eq!(typed_note(true), "The learner typed to you in your terminal. Answer them there, then call wait_for_work with helper: true again.");
+	}
+
+	fn view(conversation: &str, instructions: Option<&str>) -> WorkView {
+		WorkView {
+			work_id: "w_1".to_owned(),
+			conversation: conversation.to_owned(),
+			continued: instructions.is_none(),
+			instructions: instructions.map(str::to_owned),
+			instructions_as_in: None,
+			tools: None,
+			tools_as_before: None,
+			messages: Vec::new(),
+			label: None,
+			images: None,
+		}
+	}
+
+	#[test]
+	fn a_later_lesson_item_ends_with_his_rules_and_a_background_task_never() {
+		let dir = std::env::temp_dir().join(format!("gs-work-rules-{}", gs_base::ids::uuid()));
+		std::fs::create_dir_all(dir.join("data")).unwrap();
+		let app = App::new(gs_base::config::Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir.clone()), None);
+		let lesson = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
+		let shape = "One idea per reply, at most four short lines, then his move.";
+		assert_eq!(describe(&app, &view(&lesson, None)).last().map(String::as_str), Some(shape), "no rules: the shape alone");
+		app.stores.settings.write_settings(&json!({ "agent": { "rules": { "voice": ["Short."] } } })).unwrap();
+		assert_eq!(describe(&app, &view(&lesson, None)).last().map(String::as_str), Some(format!("His rules, every turn (they win):\n- Short.\n{shape}").as_str()));
+		let first = describe(&app, &view(&lesson, Some("The instructions.")));
+		assert!(first.last().unwrap().starts_with("Instructions"), "the instructions already end with the rules");
+		assert_eq!(describe(&app, &view("job_1", None)).len(), 1, "a background task gets none");
+		let _ = std::fs::remove_dir_all(&dir);
 	}
 
 	#[tokio::test]
