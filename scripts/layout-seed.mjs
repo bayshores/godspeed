@@ -225,6 +225,9 @@ function standIn(dataDir, log) {
 	return { init: () => rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "layout-stand-in", version: "1" } }), call, json };
 }
 
+/** How the server's refusal of a card tagged past an unasked plan step reads. */
+export const PLAN_ORDER_SENT_BACK = "comes first and nothing in this lesson asked it";
+
 /** What a work item is for. A long item comes in pages and its first page is cut text, but its
  *  JSON starts with these fields, so they are read off the text. `text` is the whole item. */
 export function workOf(text) {
@@ -490,12 +493,15 @@ export async function seed(dataDir, page, log) {
 	let helper = false;
 	const wait = () => agent.call("wait_for_work", { timeout_seconds: 3, ...(helper ? { helper: true } : {}) });
 	const turns = new Map();
+	const asked = new Map();
+	const resent = new Map();
 	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, studied, open, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices };
 	const drain = async () => {
 		let reply = await wait();
 		for (let idle = 0, tries = 0; idle < 4; tries++) {
-			// Each added lesson is two items, and an item is two passes: the work, then its "turn done".
-			if (tries > 20 + 4 * (studied.length + open.length + 7)) throw new Error("the stand-in agent never ran out of work");
+			// Each added lesson is two items, a studied one three (its card is sent back once), and an
+			// item is two passes: the work, then its "turn done".
+			if (tries > 20 + 4 * (open.length + 7) + 6 * studied.length) throw new Error("the stand-in agent never ran out of work");
 			const header = JSON.parse(reply[0]);
 			if (header.status !== "work") {
 				if (header.status === "idle") helper = !helper;
@@ -508,8 +514,15 @@ export async function seed(dataDir, page, log) {
 			for (let n = 2; n <= (header.pages ?? 1); n++) texts.push(...(await agent.call("read_work", { work_id: header.workId, page: n })));
 			const work = workOf(texts.slice(header.pages > 1 ? 1 : 0).join(""));
 			const turn = turns.get(work.lessonId) ?? 0;
-			const answer = answerFor(work, ids, turn);
-			if (work.lessonId) turns.set(work.lessonId, turn + 1);
+			// A card tagged past a plan step the lesson never asked comes back once; the same card
+			// sent again goes through, so the stand-in sends it again, without its text.
+			const sentBack = work.text.includes(PLAN_ORDER_SENT_BACK) && resent.get(work.lessonId) !== turn ? asked.get(work.lessonId) : undefined;
+			if (sentBack) resent.set(work.lessonId, turn);
+			const answer = sentBack ? { tool_calls: sentBack.tool_calls } : answerFor(work, ids, turn);
+			if (work.lessonId && !sentBack) {
+				turns.set(work.lessonId, turn + 1);
+				asked.set(work.lessonId, answer);
+			}
 			if (!answer) throw new Error(`the stand-in agent got work it does not expect: ${work.task ?? work.lessonId}`);
 			reply = await agent.call("respond", { work_id: header.workId, ...answer, wait_seconds: 0 });
 		}
