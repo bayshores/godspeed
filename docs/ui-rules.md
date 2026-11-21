@@ -64,7 +64,7 @@ The top bar is the one place for a page's own actions and for where the learner 
 | A page's own actions | The bar's right side, before Menu | `BarActions`, each a flat word as tall as the bar (`barWord`), a block of the bar's ink while its panel is open; Menu is the same word; never a row under the bar |
 | Where the learner is inside a space | After the lit space tab, on its paper, after a "›" | `BarCrumb`: a lesson's title, a deadline's name, "Cheat sheet" |
 | Find | A magnifying glass in the bar, on every page that can find; open, its field takes the place of that page's own words only, so on Files and Graph the space's Edit space stays, and on a lesson every word gives way | `BarFind` |
-| The app's size while it is not 100% | Before Menu, on Menu's line when the bar is two lines | `BarZoom`: the number ("125%"), there only while zoomed; a click goes back to 100% |
+| The app's size while it is not 100%, or the page's while a pinch magnifies it | Before Menu, on Menu's line when the bar is two lines | `BarZoom`: the number ("125%"), there only while zoomed or magnified; a click goes back to 100% |
 | A shortcut | Inside the button whose action it is, read from the key registry | `KeyHint` and `keyShortcutProps` |
 
 - No key (`.lh-btn`) in the top bar or in a page's own bar (the mock's): every word there is flat like the tabs. `npm run layout` fails a key in a bar. A pop-up that hangs from the bar keeps its keys.

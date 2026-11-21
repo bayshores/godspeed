@@ -38,14 +38,23 @@ Ladder: `[0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]`. Applying a factor sets the we
 
 - The menu owns `CmdOrCtrl+0`, `CmdOrCtrl+=` and `CmdOrCtrl+-`. muda has no Plus key.
 - The shim's `keydown` listener catches the keys the menu does not claim (⌘ or Ctrl with `=`, `+`, `-` or `0`) and calls `zoom_step` or `zoom_reset`. Menu keys never reach the page, so exactly one applies.
-- The shim steps the zoom on a trackpad pinch and on a scroll with ⌘ or Ctrl held: one `zoom_step` for every 20 px of travel, one for each event at most. Its listeners are in the capture phase, before the terminal takes the wheel.
+- A trackpad pinch, or a scroll with ⌘ or Ctrl held, does not change the factor: the shim sends it to the page as an `lh-pinch` event on `window` (`{ by, x, y }`: how much bigger, and the pointer's point), and the page magnifies there (Magnifier below). One mouse notch is a quarter at most. Its listeners are in the capture phase, before the terminal takes the wheel.
   - A pinch reaches it as `wheel` events with Ctrl held, and in WebKit on the Mac as `gesturestart`, `gesturechange` and `gestureend` too. A pinch counted from its gesture events is not counted again from its wheels.
-  - Wheels less than 100 ms apart are one run, and the keys at its start decide for all of it, so a key pressed while a scroll coasts does not zoom.
+  - Wheels less than 100 ms apart are one run, and the keys at its start decide for all of it, so a key pressed while a scroll coasts does not magnify.
   - A view that zooms itself (the graph, a cheat sheet, a diagram or plan in focus) takes its wheel with `ownWheel` in `src/frontend/lib/own-wheel.ts`, which marks it `data-lh-own-zoom`. The shim leaves a wheel or pinch over that mark alone.
   - A wheel inside a demo or plugin frame never reaches the shim. Linux's web view keeps a pinch to itself.
-- While the factor is not 1 the top bar shows it ("125%", `BarZoom` in `src/frontend/components/top-bar/bar-zoom.tsx`); a click calls `set_zoom` with 1. The page reads the factor through `useZoom` (`src/frontend/components/use-zoom.ts`) only.
+- While the factor is not 1 the top bar shows it ("125%", `BarZoom` in `src/frontend/components/top-bar/bar-zoom.tsx`); a click calls `set_zoom` with 1. While the page is magnified the same word shows the magnifier's size instead, and a click ends it. The page reads the factor through `useZoom` (`src/frontend/components/use-zoom.ts`) only.
 - Settings > Appearance "Text size" is a slider over the ladder. It calls `set_zoom` and follows every `zoom` push, so the keys and the menu move it too. The browser build has no slider.
 - The shim saves each pushed factor in `localStorage["lh-zoom"]` and calls `set_zoom` with it at document start.
+
+### Magnifier
+
+`src/frontend/components/magnifier/`. The page (inside `main#lh-page`) magnifies under an `lh-pinch` at its point, from 100% to 400%; the top bar, the teacher's panel and the strip stay as they are. The page keeps its layout: one `transform` on a box around it, none at 100%.
+
+- The point under the pointer stays under it. The shown part never leaves the page's room. Pinching out to 100% ends it.
+- While magnified, a scroll moves the shown part. At the room's edge in that direction the scroll is the page's own.
+- A mini map in the page's bottom-left corner shows the shown part as a box. A press or drag on it moves the part there.
+- It ends on a page change and with a click on the bar word. The terminal window has no magnifier.
 
 ### Menu
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
-import { visiblePart, type Artboard, type Camera } from "./canvas-model";
+import type { Camera } from "@/frontend/lib/camera";
+import { visiblePart, type Artboard } from "./canvas-model";
 import { drawPage } from "./pdf";
 
 /** The whole page is drawn once at this zoom; past it, the part on screen

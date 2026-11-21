@@ -60,19 +60,19 @@
 		e.preventDefault();
 	});
 
-	// A pinch or ⌘/Ctrl + scroll steps the zoom, except over a view that zooms itself.
+	// A pinch or ⌘/Ctrl + scroll magnifies the page at the pointer (magnifier.tsx), except over a
+	// view that zooms itself. The page gets it as a PINCH event: how much bigger, and where.
 	// Must match OWN_ZOOM in src/frontend/lib/own-wheel.ts.
 	const OWN_ZOOM = "data-lh-own-zoom";
+	// Must match PINCH in src/frontend/components/magnifier/magnifier-model.ts.
+	const PINCH = "lh-pinch";
 	const ownZoom = (e) => e.target instanceof Element && e.target.closest(`[${OWN_ZOOM}]`);
 	const RUN_GAP_MS = 100;
-	const STEP_PX = 20;
-	let travel = 0;
-	// One step for each event at most, so one notch of a mouse wheel is one size.
-	const zoomBy = (px) => {
-		travel += px;
-		if (Math.abs(travel) < STEP_PX) return;
-		void invoke("zoom_step", { dir: travel < 0 ? 1 : -1 });
-		travel = 0;
+	// One mouse wheel notch is 100 px: it magnifies by a quarter, not by e.
+	const MOST = 1.25;
+	const pinchBy = (px, e) => {
+		const by = Math.min(MOST, Math.max(1 / MOST, Math.exp(-px / 100)));
+		window.dispatchEvent(new CustomEvent(PINCH, { detail: { by, x: e.clientX, y: e.clientY } }));
 	};
 
 	// WebKit on the Mac reports a pinch as gesture events: `scale` is its size against its start.
@@ -82,16 +82,13 @@
 		window.addEventListener(
 			type,
 			(e) => {
-				if (type === "gesturestart") {
-					pinch = ownZoom(e) ? 0 : 1;
-					travel = 0;
-				}
+				if (type === "gesturestart") pinch = ownZoom(e) ? 0 : 1;
 				if (!pinch) return;
 				e.preventDefault();
 				if (type === "gestureend") pinch = 0;
 				else if (type === "gesturechange") {
 					// A wheel's pinch is 100 px for each e-fold; this one counts the same.
-					zoomBy(-100 * Math.log(e.scale / pinch));
+					pinchBy(-100 * Math.log(e.scale / pinch), e);
 					pinch = e.scale;
 				}
 			},
@@ -107,10 +104,7 @@
 		"wheel",
 		(e) => {
 			const held = e.ctrlKey || e.metaKey;
-			if (e.timeStamp - lastWheel > RUN_GAP_MS) {
-				zooming = held;
-				if (!pinch) travel = 0;
-			}
+			if (e.timeStamp - lastWheel > RUN_GAP_MS) zooming = held;
 			lastWheel = e.timeStamp;
 			if (!held || !zooming || ownZoom(e)) return;
 			e.preventDefault();
@@ -118,7 +112,7 @@
 			e.stopPropagation();
 			// A pinch counted from its gesture events is not counted again.
 			if (pinch) return;
-			zoomBy(e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY);
+			pinchBy(e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY, e);
 		},
 		{ capture: true, passive: false },
 	);

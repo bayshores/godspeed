@@ -20,10 +20,9 @@ import {
 	toWorld,
 	visiblePart,
 	wheelCamera,
-	zoomAt,
-	zoomLabel,
 	zoomStep,
 } from "../../src/frontend/components/cheat-sheet/canvas-model.ts";
+import { zoomAt, zoomLabel } from "../../src/frontend/lib/camera.ts";
 import { makeTarget, pickSheet } from "../../src/frontend/components/cheat-sheet/dock-model.ts";
 
 type SheetPage = Parameters<typeof pageSizeLabel>[0][number];
@@ -75,8 +74,9 @@ describe("cheat sheet: the canvas", () => {
 	it("zooms toward a point, keeping what is under it still, within 10% and 800%", () => {
 		const cam = zoomAt({ x: 0, y: 0, zoom: 1 }, 2, { x: 100, y: 50 });
 		assert.deepEqual(cam, { x: -100, y: -50, zoom: 2 });
-		assert.equal(zoomAt(cam, 100, { x: 0, y: 0 }).zoom, 8);
-		assert.equal(zoomAt(cam, 0.001, { x: 0, y: 0 }).zoom, 0.1);
+		const pinch = (deltaY: number) => ({ deltaX: 0, deltaY, deltaMode: 0, ctrlKey: true, metaKey: false });
+		assert.equal(wheelCamera(cam, pinch(-5000), { x: 0, y: 0 }).zoom, 8);
+		assert.equal(wheelCamera(cam, pinch(5000), { x: 0, y: 0 }).zoom, 0.1);
 	});
 
 	it("steps − and + through set zooms, and shows the zoom as a percent", () => {
