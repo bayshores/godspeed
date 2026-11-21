@@ -9,7 +9,8 @@
  */
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { LoadingLine } from "@/frontend/components/loading";
-import type { FactProgress } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, type FactProgress } from "@/shared/core";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useProgress } from "@/frontend/components/use-progress";
 import { useActivity } from "@/frontend/components/activity-dock";
@@ -17,7 +18,7 @@ import { LazyChainTableOverlay as ChainTableOverlay } from "@/frontend/component
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { useBarFind } from "@/frontend/components/use-bar-find";
 import { NotesImportErrors, useNotesImport } from "@/frontend/components/notes-import";
-import { findMatches } from "./derive.ts";
+import { findMatches, nothingGrouped, sortsNextLine } from "./derive.ts";
 import { GraphBar } from "./graph-bar.tsx";
 import { GraphFoot } from "./graph-foot.tsx";
 import { useGraphSnapshot } from "./use-graph-snapshot.ts";
@@ -77,6 +78,9 @@ function GraphScreenBody() {
 
 	const data = progress.data;
 	const hasFacts = (data?.facts.length ?? 0) > 0;
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
+	// While a grouping run goes, the space's work frame says so; the line is not said twice.
+	const note = data && nothingGrouped(data.topics) && !data.grouping ? sortsNextLine(teacher, data.facts.length) : null;
 	const find = useBarFind(hasFacts);
 	const matches = useMemo(() => (data ? findMatches(find.query, data.topics, data.facts) : null), [find.query, data]);
 	// Typing in Find shows the whole space, so every match is in view.
@@ -101,6 +105,7 @@ function GraphScreenBody() {
 							data={data}
 							matches={matches}
 							sources={sources}
+							note={note}
 							studying={study.busy}
 							studyError={study.error}
 							onStudy={onStudy}

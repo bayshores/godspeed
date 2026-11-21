@@ -117,8 +117,11 @@ if (document.scrollingElement.scrollHeight > innerHeight + 1 || frame.scrollHeig
 /** Unfolds a lesson's steps for this screen only; the lessons after it open folded. */
 const unfoldSteps = `document.querySelector("[data-testid=plan-fold]").click(); localStorage.removeItem("lh:steps-open")`;
 
-/** A click on the first topic with facts in the Graph's picture. */
-const pickTopic = `[...document.querySelectorAll("[data-testid=graph-topic]")].find((topic) => !/\\b0 facts/.test(topic.getAttribute("aria-label"))).click()`;
+/** The lab's facts are not sorted into topics: the Graph shows them as loose squares. */
+const looseFacts = "[data-testid=graph-picture] [data-testid=graph-loose]";
+/** A click on the first loose square in the Graph's picture. */
+const pickSquare = `{ const at = document.querySelector("[data-testid=graph-loose] path").getBoundingClientRect();
+document.querySelector("[data-testid=graph-picture]").dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: at.left + at.width / 2, clientY: at.top + at.height / 2, detail: 1 })); }`;
 
 /** Waits for the Graph's camera to come to rest: a flight takes 0.3 s, so its zoom reads the same on two looks apart. `arrived` is the page expression that says the camera went where the screen asked; a narrow window shows the panel in the picture's place, and then there is nothing to wait for. */
 const cameraRests = (arrived) => `{ const picture = () => document.querySelector("[data-testid=graph-picture]");
@@ -194,45 +197,31 @@ export const SCREENS = [
 		setup: `const rows = document.querySelectorAll("[data-testid=files-list] [data-testid^=space-file-pick-]"); rows[0].click(); ${pause}; rows[1].click()`,
 		shows: "[data-testid=files-picked-bar][data-state=open] [data-testid=files-picked-study]",
 	},
-	{ name: "Graph", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]", setup: fitsWindow },
+	{ name: "Graph, facts not sorted yet", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-sorts-next]", setup: fitsWindow },
 	{ name: "Graph, finding a word", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("graph-find", "graph-find-field", "undo"), shows: "[data-testid=graph-find-field]" },
 	{ name: "Graph, Find open", url: "/graph", ready: "[data-testid=graph-find]", setup: `document.querySelector("[data-testid=graph-find]").click(); ${pause}`, shows: "[data-testid=graph-find-field]" },
 	{ name: "Graph, finding a word nothing matches", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("graph-find", "graph-find-field", "zzzz"), shows: "[data-testid=graph-no-match]" },
 	{
-		name: "Graph, a topic picked",
-		url: "/graph",
-		ready: "[data-testid=graph-topic]",
-		setup: `${pickTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}; ${fitsWindow}`,
-		shows: "[data-testid=graph-panel] [data-testid=topic-pane]",
-	},
-	{
 		name: "Graph, zoomed by hand",
 		url: "/graph",
-		ready: "[data-testid=graph-picture] [data-testid=graph-topic]",
+		ready: looseFacts,
 		setup: `${wheelIn}; ${cameraRests(`zoom !== null`)}; ${fitsWindow}`,
 		shows: "[data-testid=graph-whole-space]",
 	},
 	{
 		name: "Graph, a fact picked",
 		url: "/graph",
-		ready: "[data-testid=graph-topic]",
-		setup: `${pickTopic}; ${pause}; document.querySelector("[data-testid=topic-pane] [data-testid=fact-row]").click()`,
+		ready: looseFacts,
+		setup: pickSquare,
 		shows: "[data-testid=graph-panel] [data-testid=fact-pane]",
 	},
 	{
 		name: "Graph beside the teacher's panel, whose Activity ends with the graph's costs",
 		url: "/graph",
-		ready: "[data-testid=graph-picture] [data-testid=graph-topic]",
+		ready: looseFacts,
 		// The page is narrowest here: the panel takes its room.
 		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-panel-activity]").click()`,
 		shows: "[data-testid=activity-list] [data-testid=graph-costs]",
-	},
-	{
-		name: "Graph, a fact's menu",
-		url: "/graph",
-		ready: "[data-testid=graph-topic]",
-		setup: `${pickTopic}; ${pause}; ${rightClick(`document.querySelector("[data-testid=topic-pane] [data-testid=fact-row]")`)}`,
-		shows: "[data-testid=fact-context-menu][data-state=open]",
 	},
 	{ name: "Deadlines", url: "/space/deadlines", ready: "[data-testid=deadline-open]" },
 	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]" },
@@ -398,7 +387,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		shows: "[data-testid=terminal-none] [data-testid=open-agent]",
 	},
 	{ name: "Progress while a file waits for an agent", before: waitingFile, url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]" },
-	{ name: "Graph while a file waits for an agent", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]" },
+	{ name: "Graph while a file waits for an agent", url: "/graph", ready: looseFacts },
 	{ name: "Deadline while its request waits for an agent", before: waitingRequest, url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]" },
 	// The stand-in agent is started from the waiting lesson's teacher window, and the lesson's start key goes.
 	{

@@ -16,6 +16,7 @@ import { APP_ICONS } from "../../src/frontend/components/settings/appearance-mod
 import { PIECE_WIDTHS } from "../../src/frontend/components/citations/page-piece-model.ts";
 import { MAX_LESSON_FILES } from "../../src/frontend/components/files/files-pick-model.ts";
 import { TITLE_CUT } from "../../src/frontend/components/lesson/wait-model.ts";
+import { MIN_FACTS_FOR_TOPICS } from "../../src/frontend/components/graph/derive.ts";
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf-8");
 const ts = (name: string) => read(`src/shared/core/${name}.ts`);
@@ -40,6 +41,12 @@ describe("question tools", () => {
 		const names = strings(rust("messages/pending"), "QUESTION_TOOLS");
 		assert.deepEqual(strings(ts("pending"), "QUESTION_TOOLS"), names);
 		for (const name of names) assert.equal(isQuestionTool(name), true, name);
+	});
+});
+
+describe("the fewest facts sorted into topics", () => {
+	it("is the same number the grouping run waits for", () => {
+		assert.equal(MIN_FACTS_FOR_TOPICS, number(rust("graph/topics"), "MIN_FACTS_FOR_TOPICS"));
 	});
 });
 
