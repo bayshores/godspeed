@@ -55,6 +55,7 @@ import { messageShows } from "@/frontend/components/lesson/message-row";
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
 import { topicPageMarks } from "@/frontend/components/citations/page-excerpt-model";
 import { TurnSheet } from "@/frontend/components/lesson/turn-sheet";
+import { useLessonNotes } from "@/frontend/components/vault/use-lesson-notes";
 import { lastAnswered, turnNext, turnDrawn, type NextAction } from "@/frontend/components/lesson/turn-next-model";
 import { nothingWritten, titleEcho } from "@/frontend/components/lesson/wait-model";
 import type { QuestionHandle } from "@/frontend/components/question-dock";
@@ -501,7 +502,8 @@ export function Chat({
 	// With nothing to answer, "Your turn" says what is next and holds the one key that goes on.
 	const { atStop } = lessonStop;
 	const goLabel = goAheadLabel({ kind, problemList: problems !== null, startLabel: startLabel ?? null, teacherSpoke, posedAny });
-	const next = turnNext({ stop: atStop, problemList: problems !== null, goLabel, busy, error: error !== null, nothingWritten: unwritten });
+	const lessonNotes = useLessonNotes(chatId, atStop?.kind === "end");
+	const next = turnNext({ stop: atStop, problemList: problems !== null, goLabel, busy, error: error !== null, nothingWritten: unwritten, notes: lessonNotes.notes, obsidian: lessonNotes.obsidian });
 	const answered = useMemo(() => lastAnswered(nativeMessages, messages), [nativeMessages, messages]);
 	const onNext = (action: NextAction) => {
 		if (action === "keep-going") {
@@ -620,6 +622,8 @@ export function Chat({
 												questionRef={questionRef}
 												stuck={stuckLine}
 												error={errorLine}
+												onAnswerAsk={(topicId, reply) => void lessonNotes.answer(topicId, reply).then((saved) => saved && editText(""))}
+												askError={lessonNotes.answering.error}
 											/>
 										) : null
 									}

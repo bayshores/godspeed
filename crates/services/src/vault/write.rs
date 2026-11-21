@@ -115,12 +115,21 @@ struct Seen {
 	link_names: HashSet<String>,
 }
 
+const DISK_FULL: &str = "The disk is full, so the note was not written.";
+const READ_ONLY: &str = "The vault cannot be written to: it is read-only or godspeed has no permission for it.";
+const NOT_WRITTEN: &str = "The note could not be written";
+
 fn io_failure(err: &io::Error) -> String {
 	match fsx::error_code(err) {
-		Some("ENOSPC") => "The disk is full, so the note was not written.".to_owned(),
-		Some("EROFS" | "EACCES" | "EPERM") => "The vault cannot be written to: it is read-only or godspeed has no permission for it.".to_owned(),
-		_ => format!("The note could not be written: {err}"),
+		Some("ENOSPC") => DISK_FULL.to_owned(),
+		Some("EROFS" | "EACCES" | "EPERM") => READ_ONLY.to_owned(),
+		_ => format!("{NOT_WRITTEN}: {err}"),
 	}
+}
+
+/// What the learner reads when a write the disk refused leaves its note waiting.
+fn disk_failure(why: &str) -> Option<&'static str> {
+	[(DISK_FULL, "The disk is full."), (READ_ONLY, "The folder is read-only."), (NOT_WRITTEN, "The note could not be written.")].into_iter().find(|(prefix, _)| why.starts_with(prefix)).map(|(_, line)| line)
 }
 
 /// "Nov 20" for today.
@@ -191,8 +200,15 @@ fn write_request(app: &App, req: Request, args: &Json) -> Result<Json, String> {
 		}),
 		Err(err) => Err(err),
 	};
+	let mut refused = None;
 	let outcome = match seen {
-		Ok(seen) => place(app, Path::new(&vault), &req, &space_name, &note_title, &topic, source, seen)?,
+		Ok(seen) => match place(app, Path::new(&vault), &req, &space_name, &note_title, &topic, source, seen) {
+			Ok(outcome) => outcome,
+			Err(why) => {
+				refused = Some(disk_failure(&why).ok_or(why)?);
+				Outcome::Waits
+			}
+		},
 		Err(VaultError::Missing) => Outcome::Waits,
 		Err(err) => return Err(err.message()),
 	};
@@ -209,17 +225,27 @@ fn write_request(app: &App, req: Request, args: &Json) -> Result<Json, String> {
 			Err(why)
 		}
 		Outcome::Waits => {
-			app.stores.vault_notes.update(|rec| keep_waiting(rec, &req, args))?;
+			app.stores.vault_notes.update(|rec| keep_waiting(rec, &req, args, refused))?;
 			notes_changed(app);
 			Ok(json!({ "status": "waiting", "name": note_name(&note_title), "path": null, "confidence": confidence_word(topic.status) }))
 		}
 	}
 }
 
-fn keep_waiting(rec: &mut Json, req: &Request, args: &Json) -> Result<(), String> {
+/// Keeps the request until the vault takes it. `refused` is why the disk would not; "Try again"
+/// repeats the write.
+fn keep_waiting(rec: &mut Json, req: &Request, args: &Json, refused: Option<&str>) -> Result<(), String> {
 	let notes = rec.get_mut("notes").and_then(Json::as_obj_mut).ok_or("vault-notes.json has no notes.")?;
 	let mut note = notes.get(&req.topic_id).cloned().unwrap_or_else(|| json!({ "spaceId": req.space_id, "state": NoteState::Active.as_str() }));
 	note.set("pending", args.clone());
+	match refused {
+		Some(why) => note.set("failure", why),
+		None => {
+			if let Some(fields) = note.as_obj_mut() {
+				fields.remove("failure");
+			}
+		}
+	}
 	notes.insert(&req.topic_id, note);
 	Ok(())
 }
@@ -384,6 +410,7 @@ fn save_note(rec: &mut Json, req: &Request, rel: &str, state: NoteState, merged:
 	}
 	if let Some(fields) = note.as_obj_mut() {
 		fields.remove("pending");
+		fields.remove("failure");
 	}
 	notes.insert(&req.topic_id, note);
 }
@@ -574,6 +601,22 @@ mod tests {
 		assert!(text.contains("My own body.") && !text.contains("Teacher words."), "{text}");
 		assert!(text.contains("Off by one") && text.contains("confidence"), "{text}");
 		assert_eq!(fx.app.stores.vault_notes.read()["notes"]["t1"]["state"].as_str(), Some("kept"));
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn a_folder_the_disk_refuses_keeps_the_note_waiting_until_try_again() {
+		use std::os::unix::fs::PermissionsExt;
+		let fx = Fixture::new(&[("t1", "Binary search")]);
+		std::fs::set_permissions(&fx.vault, std::fs::Permissions::from_mode(0o555)).unwrap();
+		let answer = write_vault_note(&fx.app, &fx.request("t1", json!({ "text": "Halve it." }))).unwrap();
+		assert_eq!(answer["status"].as_str(), Some("waiting"));
+		let status = super::super::vault_status(&fx.app).unwrap();
+		assert_eq!((status["waiting"]["count"].as_i64(), status["waiting"]["why"].as_str()), (Some(1), Some("The folder is read-only.")));
+		std::fs::set_permissions(&fx.vault, std::fs::Permissions::from_mode(0o755)).unwrap();
+		let status = super::super::retry_vault(&fx.app).unwrap();
+		assert!(status["waiting"].is_null());
+		assert!(fx.read("CSE 21/Binary search.md").contains("Halve it."));
 	}
 
 	#[test]

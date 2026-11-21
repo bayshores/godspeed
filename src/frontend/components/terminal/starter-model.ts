@@ -14,6 +14,7 @@ const FIND = "Find something in my files";
 const SET_UP = "Set up a space from my files";
 const PATH = "Build me a path to a goal";
 const ADD_DEADLINE = "Add a deadline";
+const NOTE = "Note this";
 
 /** Pages that take a line typed in the terminal themselves (a lesson, a cheat sheet). */
 const TALK_PAGE = /^\/chat\/|^\/space\/deadline\/[^/]+\/cheat-sheet/;
@@ -31,6 +32,8 @@ export interface IdeaFacts {
 	spaces: number;
 	/** The open deadlines of every space. */
 	deadlines: readonly { id: string; name: string; kind: DeadlineKind; spaceId: string; date: string; time?: string }[];
+	/** A notes folder is picked, so "Note this" works. */
+	notesFolder: boolean;
 }
 
 /** One line to send. `needs`: why it cannot work yet; such a line is shown, never sent. */
@@ -83,6 +86,7 @@ export function everything(f: IdeaFacts): IdeaGroup[] {
 				can(TEACH),
 				can("Quiz me on what I've learned"),
 				can(PATH),
+				f.notesFolder ? can(NOTE) : { line: NOTE, needs: "needs Obsidian or a notes folder" },
 				can("Help me prepare for an interview"),
 				{ line: "Draw it, show a demo or look it up", needs: "needs an open lesson" },
 			],

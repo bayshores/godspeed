@@ -1,37 +1,58 @@
-//! The pages of a space's Obsidian card on Progress.
+//! The pages of a note: a space's Obsidian card on Progress and a lesson's end.
 
+use gs_core::study::progress::TopicStatus;
 use gs_core::vault::note_record::NoteState;
 use gs_json::{Json, json};
 
-use super::topic_data::space_topics;
+use super::topic_data::{TopicFacts, space_topics};
 use crate::App;
 
-/// One page per note of the space: `{topicId, name, recall, color, kind, path, saving}`. `kind` is
-/// godspeed (godspeed writes it), kept (handed over with `keep`) or mine (the learner's own).
-/// `saving` is true while the note waits for the vault. A removed note has no page. None when the space does not exist.
+/// One page: `{topicId, name, recall, color, kind, path, saving}`. `kind` is godspeed (godspeed
+/// writes it), kept (handed over with `keep`) or mine (the learner's own). `saving` is true while
+/// the note waits for the vault. `note` is the note's record, null for one not written yet.
+pub(super) fn page(topic: &TopicFacts, note: &Json, kind: &str, saving: bool) -> Json {
+	let path = note["path"].as_str();
+	let name = path.map_or_else(|| topic.name.clone(), |p| p.rsplit('/').next().unwrap_or(p).trim_end_matches(".md").to_owned());
+	json!({ "topicId": topic.id, "name": name, "recall": note["recall"].clone(), "color": topic.color, "kind": kind, "path": path, "saving": saving })
+}
+
+pub(super) fn kind_of(state: NoteState) -> Option<&'static str> {
+	match state {
+		NoteState::Active => Some("godspeed"),
+		NoteState::Kept => Some("kept"),
+		NoteState::Yours => Some("mine"),
+		NoteState::Removed => None,
+	}
+}
+
+/// How soon a topic wants its note read again: the weakest first.
+fn want(status: TopicStatus) -> u8 {
+	match status {
+		TopicStatus::Weak => 0,
+		TopicStatus::Shaky => 1,
+		TopicStatus::Untested => 2,
+		TopicStatus::Strong => 3,
+	}
+}
+
+/// `{notes: [page]}`, the weakest topic first and then by name. A removed note has no page. None
+/// when the space does not exist.
 pub fn space_vault_notes(app: &App, space_id: &str) -> Result<Option<Json>, String> {
 	let Some(topics) = space_topics(app, space_id)? else { return Ok(None) };
 	let record = app.stores.vault_notes.read();
-	let mut pages: Vec<Json> = record["notes"]
+	let mut pages: Vec<(u8, Json)> = record["notes"]
 		.as_obj()
 		.into_iter()
 		.flatten()
 		.filter(|(_, note)| note["spaceId"].as_str() == Some(space_id))
 		.filter_map(|(topic_id, note)| {
-			let kind = match NoteState::parse(note["state"].str_or_empty())? {
-				NoteState::Active => "godspeed",
-				NoteState::Kept => "kept",
-				NoteState::Yours => "mine",
-				NoteState::Removed => return None,
-			};
+			let kind = kind_of(NoteState::parse(note["state"].str_or_empty())?)?;
 			let topic = topics.iter().find(|t| t.id == *topic_id)?;
-			let path = note["path"].as_str();
-			let name = path.map_or_else(|| topic.name.clone(), |p| p.rsplit('/').next().unwrap_or(p).trim_end_matches(".md").to_owned());
-			Some(json!({ "topicId": topic_id, "name": name, "recall": note["recall"].clone(), "color": topic.color, "kind": kind, "path": path, "saving": !note["pending"].is_null() }))
+			Some((want(topic.status), page(topic, note, kind, !note["pending"].is_null())))
 		})
 		.collect();
-	pages.sort_by(|a, b| a["name"].str_or_empty().cmp(b["name"].str_or_empty()));
-	Ok(Some(json!({ "notes": pages })))
+	pages.sort_by(|(a, page_a), (b, page_b)| a.cmp(b).then_with(|| page_a["name"].str_or_empty().cmp(page_b["name"].str_or_empty())));
+	Ok(Some(json!({ "notes": pages.into_iter().map(|(_, page)| page).collect::<Vec<_>>() })))
 }
 
 #[cfg(test)]

@@ -14,6 +14,7 @@ import { neighbors, sureMissNote, topicCountLine } from "./derive.ts";
 import { FactList } from "./fact-list.tsx";
 import { CloseButton, StudyButton } from "./pane-buttons.tsx";
 import { LinkRows } from "./link-rows.tsx";
+import { NoteRow } from "./note-row.tsx";
 import { GROUP_LABEL, SIDE_TITLE } from "./styles.ts";
 
 export function TopicPane({
@@ -76,6 +77,7 @@ export function TopicPane({
 						<FactList key={topic.id} facts={list} onOpen={onOpenFact} />
 					</>
 				)}
+				<NoteRow topicId={topic.id} />
 			</div>
 			<StudyButton testid="study-topic" label="Study" busy={studying} error={studyError} onClick={() => onStudy([topic.id])} />
 		</Pane>

@@ -27,6 +27,8 @@ export interface VaultStatus {
 	state: "none" | "ok" | "missing" | "failed";
 	/** Why the folder cannot be read, with "missing" and "failed". */
 	message?: string;
+	/** Notes the folder has not taken yet, and why; null with none waiting. */
+	waiting: { count: number; why: string } | null;
 }
 
 /** The group's head: "Obsidian" while the learner picks among Obsidian's vaults or holds one. */
@@ -41,6 +43,21 @@ export function pickLine(status: VaultStatus): string {
 /** What names the picked folder: a vault by its name, any other folder by its path. */
 export function folderTitle(folder: VaultFolder, obsidian: boolean): string {
 	return obsidian ? folder.name : folder.short;
+}
+
+/** Where the notes are said to go: "Obsidian" for a vault, else "your notes folder". */
+export function destination(obsidian: boolean): string {
+	return obsidian ? "Obsidian" : "your notes folder";
+}
+
+/** The failure notice's first line: "Couldn't save 2 notes to Obsidian." */
+export function waitingLine(count: number, obsidian: boolean): string {
+	return `Couldn't save ${plural(count, "note")} to ${destination(obsidian)}.`;
+}
+
+/** What opening a note says: Obsidian for a vault it knows, else the file browser (named by `browser`). */
+export function openLabel(obsidian: boolean, browser: string): string {
+	return obsidian ? "Open in Obsidian" : `Show in ${browser}`;
 }
 
 /** The line under the folder's name; its problem, when it has one. */

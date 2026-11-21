@@ -5,6 +5,7 @@ import { terminalFooter, type TerminalRole } from "@/frontend/components/termina
 import { TerminalPane } from "@/frontend/components/terminal/terminal-pane";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
+import { useVault } from "@/frontend/components/vault/vault-context";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { StartTeacher } from "./start-teacher";
 
@@ -20,6 +21,7 @@ export function PanelScreen({ name, role, focus }: { name: string; role: Termina
 	const { pathname } = useLocation();
 	const { spaces, activeSpace } = useSpaces();
 	const { deadlines } = useOpenDeadlines();
+	const { status: vault } = useVault();
 	const facts = api?.facts[role] ?? null;
 	if (!api) return null;
 	if (!facts)
@@ -38,6 +40,7 @@ export function PanelScreen({ name, role, focus }: { name: string; role: Termina
 		space: activeSpace && { id: activeSpace.id, name: activeSpace.name, files: activeSpace.fileCount },
 		spaces: spaces.filter((s) => !s.closed).length,
 		deadlines: deadlines ?? [],
+		notesFolder: vault?.folder != null,
 	};
 	return (
 		<TerminalPane

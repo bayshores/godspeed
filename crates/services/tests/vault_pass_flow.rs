@@ -173,11 +173,11 @@ async fn leaving_a_lesson_or_finding_one_at_the_start_sends_it_once() {
 
 	let g = Fixture::new(&[("t1", "Binary search")]);
 	let found = g.lesson(&["t1"]);
-	catch_up_for_agent(&g.app, clock::now_ms());
+	catch_up_for_agent(&g.app, "session-1", clock::now_ms());
 	let view = answer(&g.app, false, AgentReply { text: Some("Done.".to_owned()), tool_calls: Vec::new() }).await;
 	assert_eq!(view.label.as_deref(), Some("Notes: CSE 21"));
 	sent(&g, &found).await;
-	catch_up_for_agent(&g.app, clock::now_ms());
+	catch_up_for_agent(&g.app, "session-1", clock::now_ms());
 	no_item(&g.app, false).await;
 }
 
@@ -222,6 +222,7 @@ async fn the_asks_stop_at_three_and_a_skipped_note_is_asked_once_more_then_never
 
 	let view = lesson_vault_notes(&f.app, &chat).unwrap().unwrap();
 	assert_eq!(view["pages"].items().len(), 4);
+	assert_eq!(view["pages"][0]["kind"].as_str(), Some("godspeed"));
 	assert_eq!(view["asks"].items().len(), 3, "at most three asks");
 	assert_eq!(view["asks"][0]["maxLength"].as_i64(), Some(600), "each ask says how long the words may be");
 	let asked: Vec<String> = view["asks"].items().iter().map(|a| a["topicId"].as_str().unwrap().to_owned()).collect();

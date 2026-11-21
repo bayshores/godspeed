@@ -26,6 +26,7 @@ use gs_json::{Json, json};
 use gs_search::vault::VaultOwner;
 use parking_lot::Mutex;
 
+use super::notes_list::{kind_of, page};
 use super::topic_data::{TopicFacts, space_topics};
 use super::write::{picked_vault, write_vault_note, write_vault_words};
 use super::{notes_changed, setup, with_reader};
@@ -411,8 +412,9 @@ fn askable(note: &Json) -> bool {
 	!note["words"].truthy() && note["skips"].as_i64().unwrap_or(0) < SKIPS_BEFORE_NEVER
 }
 
-/// The lesson's pages and the asks it still owes: `{pages: [{topicId, name, standing, color,
-/// state, path?}], asks: [{topicId, name, maxLength}]}`. None when the lesson does not exist.
+/// The lesson's pages (the shape `notes_list::page` makes, in the order the topics were
+/// answered) and the asks it still owes: `{pages, asks: [{topicId, name, maxLength}]}`. None when
+/// the lesson does not exist.
 pub fn lesson_vault_notes(app: &App, chat_id: &str) -> Result<Option<Json>, String> {
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(None) };
 	let Some(space_id) = record["spaceId"].as_str().filter(|s| !s.is_empty()) else { return Ok(Some(json!({ "pages": [], "asks": [] }))) };
@@ -426,17 +428,13 @@ pub fn lesson_vault_notes(app: &App, chat_id: &str) -> Result<Option<Json>, Stri
 	for (id, _) in lesson_answered_topics(app, chat_id, None)? {
 		let Some(facts) = known.iter().find(|t| t.id == id) else { continue };
 		let note = &saved["notes"][id.as_str()];
-		let state = if note["path"].is_null() { None } else { note["state"].as_str() };
-		let status = match state {
-			Some(state) if state != "removed" => state,
-			_ if sending.contains(&id) || fresh.contains(&id) => "saving",
-			_ => continue,
-		};
-		let mut page = json!({ "topicId": id, "name": facts.name, "standing": confidence_word(facts.status), "color": facts.color, "state": status });
-		if let Some(path) = note["path"].as_str().filter(|_| status != "saving") {
-			page.set("path", path);
+		let waiting = !note["pending"].is_null();
+		let kind = if note["path"].is_null() { None } else { NoteState::parse(note["state"].str_or_empty()).and_then(kind_of) };
+		match kind {
+			Some(kind) => pages.push(page(facts, note, kind, waiting)),
+			None if waiting || sending.contains(&id) || fresh.contains(&id) => pages.push(page(facts, &json!({}), "godspeed", true)),
+			None => {}
 		}
-		pages.push(page);
 	}
 	let asks: Vec<Json> = saved["asks"][chat_id]
 		.items()

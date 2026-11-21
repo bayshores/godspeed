@@ -7,7 +7,7 @@ const CSE = { id: "s1", name: "CSE 21", files: 3 };
 const deadline = (id: string, name: string, kind: IdeaFacts["deadlines"][number]["kind"], date: string, spaceId = "s1") => ({ id, name, kind, date, spaceId });
 const HW = deadline("hw 6", "HW 6", "homework", "2026-11-20");
 const MIDTERM = deadline("mt", "Midterm 2", "exam", "2026-11-25");
-const facts = (over: Partial<IdeaFacts> = {}): IdeaFacts => ({ path: "/", space: CSE, spaces: 1, deadlines: [MIDTERM, HW], ...over });
+const facts = (over: Partial<IdeaFacts> = {}): IdeaFacts => ({ path: "/", space: CSE, spaces: 1, deadlines: [MIDTERM, HW], notesFolder: false, ...over });
 const on = (path: string, over: Partial<IdeaFacts> = {}) => startersFor(facts({ path, ...over }));
 
 describe("the lines for a page", () => {
@@ -65,6 +65,11 @@ describe("everything the teacher can be asked", () => {
 		assert.deepEqual(idea(bare, "What do I know"), { line: "What do I know?", needs: "needs a space" });
 		assert.equal(idea(bare, "Teach me")?.needs, null);
 		assert.equal(idea(facts(), "Draw it")?.needs, "needs an open lesson");
+	});
+
+	it("Note this waits for a notes folder", () => {
+		assert.deepEqual(idea(facts(), "Note this"), { line: "Note this", needs: "needs Obsidian or a notes folder" });
+		assert.deepEqual(idea(facts({ notesFolder: true }), "Note this"), { line: "Note this", needs: null });
 	});
 
 	it("a deadline's kind decides its jobs: no mock for homework, no cheat sheet for an interview", () => {

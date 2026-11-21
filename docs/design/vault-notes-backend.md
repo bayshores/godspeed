@@ -28,6 +28,19 @@ Where the feature touches the app, what the server decides, what the teacher wri
 
 A damaged record is kept aside, never read as empty and overwritten.
 
+A write the disk refuses (full, read-only) is kept as waiting, with the reason on the note record (`failure`), and `POST /api/vault/retry` writes it again.
+
+## What the window reads
+
+| Route | Answer |
+|---|---|
+| `GET` and `PATCH /api/vault` | `{folder, words, obsidian, vaults, notes, capped, state, message?, waiting}`. `waiting` is `{count, why}` while notes wait, else null; `why` is a line ready to show ("The disk is full.", "The folder is read-only.", "Can't find this vault.") |
+| `POST /api/vault/retry` | The same answer, after the notes that waited were written again |
+| `GET /api/spaces/{id}/vault-notes` and `GET /api/chats/{id}/vault-notes` | Pages, `{topicId, name, recall, color, kind: "godspeed" \| "kept" \| "mine", path, saving}`. A space's come weakest first, then by name; a lesson's in the order the topics were answered, with `{asks: [{topicId, name, maxLength}]}` beside them |
+| `POST /api/chats/{id}/vault-words` | `{topicId, words}` or `{topicId, skip: true}`, the answer to one ask |
+
+The event `vault-notes-changed` makes every reader read again.
+
 ## The vault index
 
 Every `.md` outside hidden folders (`crates/files/src/walk.rs` already skips `.obsidian`, `.trash` and `.git`), titles and text, in the offline search (`crates/search`), at most 5,000 notes, checked every minute like a linked folder. The picker reads Obsidian's vault list from `obsidian.json` (`~/Library/Application Support/obsidian/` on the Mac, `%APPDATA%\obsidian\` on Windows, `~/.config/obsidian/` on Linux); a missing or unreadable list just leaves the path field.

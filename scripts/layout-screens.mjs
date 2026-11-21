@@ -8,7 +8,7 @@ import { WAITING_TOPIC } from "./layout-seed.mjs";
  * check never runs on a screen still loading. `height` gives it a window higher than the
  * check's own. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
- * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, `{pending}`, `{sheetless}`, `{pathSpace}`, `{vault}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
+ * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, `{pending}`, `{sheetless}`, `{pathSpace}`, `{ended}`, `{vault}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
 export const WIDTHS = [1440, 1100, 800];
@@ -103,6 +103,32 @@ for (let tries = 0; ; tries++) {
 	if (tries > 50) throw new Error("the waiting lesson was never deleted: " + res.status);
 	await new Promise((done) => setTimeout(done, 100));
 }`;
+
+
+/** What the notes folder tells the page, made up: the server writes no notes in this check, so the page's reads of them are answered here
+ *  and the server's own "notes changed" event, which a write of the same setting sends, makes the page read again. */
+const PAGES = [
+	{ topicId: "ungrouped", name: "Stars and bars", recall: "How many ways can you split 7 identical stars into 3 bins?", color: "#c0584a", kind: "godspeed", path: "Lab Algebra/Stars and bars.md", saving: false },
+	{ topicId: "t2", name: "Counting strings and subsets", recall: "When do you add counts, and when do you multiply them? Name one case of each.", color: "#d49a3a", kind: "kept", path: "Lab Algebra/Counting.md", saving: false },
+	{ topicId: "t3", name: "Pigeonhole", recall: "Why must two of five socks in four drawers share a drawer?", color: "#6a9a5a", kind: "mine", path: "Lab Algebra/Pigeonhole.md", saving: false },
+	{ topicId: "t4", name: "Combinations", recall: "Why is choosing 3 of 5 the same as leaving out 2?", color: "#6a9a5a", kind: "godspeed", path: "Lab Algebra/Combinations.md", saving: false },
+	{ topicId: "t5", name: "Binomial theorem", recall: null, color: "#4a7aa8", kind: "godspeed", path: "Lab Algebra/Binomial theorem.md", saving: false },
+	{ topicId: "t6", name: "Inclusion and exclusion", recall: "What do you subtract after adding two overlapping sets?", color: "#4a7aa8", kind: "godspeed", path: "Lab Algebra/Inclusion.md", saving: false },
+	{ topicId: "t7", name: "Permutations", recall: "How many orders can 4 people stand in?", color: "#6a9a5a", kind: "godspeed", path: "Lab Algebra/Permutations.md", saving: false },
+];
+/** Answers the page's reads of the notes (a path with "vault-notes") with `answer`, then has the server say the notes changed. `status` also changes what the notes folder's own read says. */
+const notesAre = (answer, status = "{}") => `window.__realFetch ??= window.fetch.bind(window);
+window.fetch = (url, init) => {
+	const path = String(url);
+	if (path.includes("vault-notes")) return Promise.resolve(Response.json(${answer}));
+	if (path === "/api/vault" && !init?.method) return window.__realFetch(url, init).then(async (r) => Response.json({ ...(await r.json()), ...${status} }));
+	return window.__realFetch(url, init);
+};
+await window.__realFetch("/api/vault", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ words: "teacher" }) })${HTTP_OK}`;
+const spaceNotes = (pages) => notesAre(`{ notes: ${JSON.stringify(pages)} }`);
+const lessonNotes = (pages, asks = []) => notesAre(`{ pages: ${JSON.stringify(pages)}, asks: ${JSON.stringify(asks)} }`);
+const savingPages = PAGES.slice(0, 3).map((page, n) => (n === 2 ? { ...page, kind: "godspeed", path: null, saving: true } : page));
+const unlinkVault = `await fetch("/api/vault", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: null }) })${HTTP_OK};`;
 
 /** Find opened in the top bar by its magnifying glass `key`, with `word` typed into its `field`. */
 const findWord = (key, field, word) => `document.querySelector("[data-testid=${key}]").click(); ${pause};
@@ -379,6 +405,21 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		ready: "[data-testid=group-vault] [data-testid=vault-folder][data-state=ok]",
 		shows: "[data-testid=vault-unlink]",
 	},
+	{ name: "Progress with notes in Obsidian", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: spaceNotes(PAGES), shows: "[data-testid=notes-card] [data-testid=note-page]" },
+	{ name: "Progress with notes, all shown", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: `${spaceNotes(PAGES)};\n${whenThere("[data-testid=notes-all]")}; document.querySelector("[data-testid=notes-all]").click()`, shows: "[data-testid=notes-card][data-all] [data-testid=note-page]:nth-child(7)" },
+	{ name: "Graph, a topic with a note", url: "/graph", ready: "[data-testid=graph-topic]", setup: `${spaceNotes(PAGES)}; ${pickTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}`, shows: "[data-testid=topic-pane] [data-testid=topic-note-open]" },
+	{ name: "Lesson end, the notes being saved", height: TALL, url: "/chat/{ended}", ready: "[data-testid=your-turn] [data-testid=next-problem-button]", setup: lessonNotes(savingPages), shows: "[data-testid=end-notes] [data-saving]" },
+	{ name: "Lesson end, the notes saved", height: TALL, url: "/chat/{ended}", ready: "[data-testid=your-turn] [data-testid=next-problem-button]", setup: lessonNotes(PAGES.slice(0, 3)), shows: "[data-testid=notes-saved]" },
+	{
+		name: "Lesson end, asked for my words",
+		height: TALL,
+		url: "/chat/{ended}",
+		ready: "[data-testid=your-turn] [data-testid=next-problem-button]",
+		setup: lessonNotes(PAGES.slice(0, 3), [{ topicId: "ungrouped", name: "Stars and bars", maxLength: 600 }]),
+		shows: "[data-testid=words-save]",
+	},
+	{ name: "Notes that could not be saved", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: notesAre("{ notes: [] }", `{ waiting: { count: 2, why: "The disk is full." } }`), shows: "[data-testid=vault-notice] [data-testid=vault-notice-key]" },
+	{ name: "Progress with no notes folder", before: unlinkVault, url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]" },
 	{ name: "Cheat sheet, not made", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]" },
 	{ name: "Cheat sheet, not made, beside the teacher's panel", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]", setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
 	{ name: "Cheat sheet, made, two pages", url: sheetPage("{sheetMade}"), ready: sheetDrawn(2), shows: "[data-testid=sheet-made]" },

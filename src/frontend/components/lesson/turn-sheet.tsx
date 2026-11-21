@@ -41,7 +41,7 @@ export function TurnSheet({
 			? `problem:${problem.toolCallId}`
 			: shown.kind === "answered"
 				? `answered:${shown.answered.toolCallId}`
-				: `next:${shown.next.line ?? ""}:${shown.next.line && shown.dim ? "dim" : ""}:${shown.next.key?.label ?? ""}`;
+				: `next:${shown.next.notes?.ask?.topicId ?? ""}:${shown.next.line ?? ""}:${shown.next.line && shown.dim ? "dim" : ""}:${shown.next.key?.label ?? ""}`;
 
 	return (
 		<aside

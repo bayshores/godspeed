@@ -3,6 +3,7 @@ import { KeyboardShortcuts } from "@/frontend/components/keyboard-shortcuts";
 import { RuleNotice } from "@/frontend/components/rule-notice";
 import { SpaceNotice } from "@/frontend/components/space-notice";
 import { FilesNotice } from "@/frontend/components/files-notice";
+import { VaultNotice } from "@/frontend/components/vault/vault-notice";
 import { QuietNotice } from "@/frontend/components/quiet-notice";
 import { Travel } from "@/frontend/components/travel/travel";
 import { pagePlace } from "@/frontend/components/travel/travel-model";
@@ -63,6 +64,7 @@ export function AppShell({
 						<SpaceNotice />
 						<RuleNotice />
 						<FilesNotice />
+						<VaultNotice />
 						{/* Last, so the keyboard goes from it into its peek, which root.tsx draws next. */}
 						<Strip />
 					</TeacherProvider>

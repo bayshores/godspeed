@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { folderLine, folderTitle, pickLine, vaultHead, type VaultFolder, type VaultStatus } from "../../src/frontend/components/vault/vault-model.ts";
+import { folderLine, folderTitle, openLabel, pickLine, vaultHead, waitingLine, type VaultFolder, type VaultStatus } from "../../src/frontend/components/vault/vault-model.ts";
 
 const folder = (name: string, parent: string): VaultFolder => ({ path: `/h/${name}`, name, short: `${parent}/${name}`, parent });
-const status = (over: Partial<VaultStatus>): VaultStatus => ({ folder: null, words: "teacher", obsidian: false, vaults: [], notes: 0, capped: false, state: "none", ...over });
+const status = (over: Partial<VaultStatus>): VaultStatus => ({ folder: null, words: "teacher", obsidian: false, vaults: [], notes: 0, capped: false, state: "none", waiting: null, ...over });
 
 describe("the notes folder group", () => {
 	it("is Obsidian while the learner picks among Obsidian's vaults or holds one, else Notes folder", () => {
@@ -31,5 +31,17 @@ describe("the notes folder group", () => {
 		assert.equal(folderLine(plain, "Finder"), "1 note. It is not an Obsidian vault, so notes open in Finder.");
 		assert.match(folderLine({ ...plain, capped: true }, "Finder"), /as many as godspeed reads/);
 		assert.equal(folderLine({ ...plain, state: "missing", message: "Can't find this folder." }, "Finder"), "Can't find this folder.");
+	});
+});
+
+describe("saying where a note opens and what failed", () => {
+	it("opens in Obsidian for a vault and in the file browser for any other folder", () => {
+		assert.equal(openLabel(true, "Finder"), "Open in Obsidian");
+		assert.equal(openLabel(false, "Finder"), "Show in Finder");
+	});
+
+	it("counts the notes that could not be saved", () => {
+		assert.equal(waitingLine(2, true), "Couldn't save 2 notes to Obsidian.");
+		assert.equal(waitingLine(1, false), "Couldn't save 1 note to your notes folder.");
 	});
 });

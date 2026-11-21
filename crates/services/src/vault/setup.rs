@@ -55,17 +55,18 @@ fn folder_view(path: &str, home: &str) -> Json {
 	json!({ "path": path, "name": name, "short": short_folder(path, home), "parent": parent })
 }
 
-/// What Settings shows: `{folder, words, obsidian, vaults, notes, capped, state, message?}`.
+/// What Settings shows: `{folder, words, obsidian, vaults, notes, capped, state, waiting, message?}`.
 /// `folder` is the picked folder (`folder_view`) or null; `vaults` are the ones Obsidian lists.
 /// `state` is "none" without a folder, "ok", "missing" or "failed". `obsidian`: the folder is one
-/// of the listed vaults or holds `.obsidian`.
+/// of the listed vaults or holds `.obsidian`. `waiting` is `{count, why}` while notes wait for a
+/// folder that is missing or a disk that refused them, else null.
 pub fn vault_status(app: &App) -> Result<Json, String> {
 	let setting = setting(app)?;
 	let home = app.paths.home.to_string_lossy().into_owned();
 	let listed = listed_vaults(&app.paths.home);
 	let vaults: Vec<Json> = listed.iter().map(|vault| folder_view(vault, &home)).collect();
 	let Some(path) = setting.path else {
-		return Ok(json!({ "folder": null, "words": setting.words, "obsidian": false, "vaults": vaults, "notes": 0, "capped": false, "state": "none" }));
+		return Ok(json!({ "folder": null, "words": setting.words, "obsidian": false, "vaults": vaults, "notes": 0, "capped": false, "state": "none", "waiting": null }));
 	};
 	let obsidian = listed.iter().any(|v| same_folder(v, &path)) || Path::new(&path).join(".obsidian").is_dir();
 	let (state, message) = match rescan(app) {
@@ -74,11 +75,22 @@ pub fn vault_status(app: &App) -> Result<Json, String> {
 		Err(err) => ("failed", Some(err.message())),
 	};
 	let (notes, capped) = with_reader(app, |reader| (reader.len(), reader.capped)).unwrap_or((0, false));
-	let mut out = json!({ "folder": folder_view(&path, &home), "words": setting.words, "obsidian": obsidian, "vaults": vaults, "notes": notes, "capped": capped, "state": state });
+	let mut out = json!({ "folder": folder_view(&path, &home), "words": setting.words, "obsidian": obsidian, "vaults": vaults, "notes": notes, "capped": capped, "state": state, "waiting": waiting_view(app, state == "missing", obsidian) });
 	if let (Some(message), Some(fields)) = (message, out.as_obj_mut()) {
 		fields.insert("message", message);
 	}
 	Ok(out)
+}
+
+fn waiting_view(app: &App, missing: bool, obsidian: bool) -> Json {
+	let record = app.stores.vault_notes.read();
+	let waiting: Vec<&Json> = record["notes"].as_obj().into_iter().flatten().map(|(_, note)| note).filter(|note| !note["pending"].is_null()).collect();
+	let missing_line = if obsidian { "Can't find this vault." } else { "Can't find this folder." };
+	let why = if missing { Some(missing_line) } else { waiting.iter().find_map(|note| note["failure"].as_str()) };
+	match why {
+		Some(why) if !waiting.is_empty() => json!({ "count": waiting.len(), "why": why }),
+		_ => Json::Null,
+	}
 }
 
 /// Changes the vault setting one field at a time: `path` (a folder, or null to unlink) and

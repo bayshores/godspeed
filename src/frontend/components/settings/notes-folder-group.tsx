@@ -5,13 +5,13 @@
 
 import { useState } from "react";
 import { LinkFolderField } from "@/frontend/components/files/linked-folder";
-import { fileBrowserName } from "@/frontend/components/files/files-model";
 import { useSettings } from "@/frontend/components/settings-context";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { Segmented } from "@/frontend/components/ui/segmented";
 import { useGuardedAction } from "@/frontend/components/use-guarded-action";
-import { canOpenNote, openNote } from "@/frontend/components/vault/open-note";
+import { browserName, canOpenNote, openNote } from "@/frontend/components/vault/open-note";
 import { useVault } from "@/frontend/components/vault/vault-context";
-import { folderLine, folderTitle, pickLine, vaultHead, VAULT_WORDS, type VaultFolder, type VaultStatus, type VaultWords } from "@/frontend/components/vault/vault-model";
+import { folderLine, folderTitle, openLabel, pickLine, vaultHead, VAULT_WORDS, type VaultFolder, type VaultStatus, type VaultWords } from "@/frontend/components/vault/vault-model";
 import { cn } from "@/frontend/lib/utils";
 import { QUIET_KEY, SettingsGroup, SMALL_KEY } from "./controls.tsx";
 
@@ -68,7 +68,7 @@ function FolderBlock({ status }: { status: VaultStatus }) {
 							{folderTitle(folder, status.obsidian)}
 						</span>
 						<p data-testid="vault-line" className={cn("text-[15px]", problem ? "text-ans-wrong" : "text-ink-2")}>
-							{folderLine(status, fileBrowserName(typeof window === "undefined" ? undefined : window.lh?.platform))}
+							{folderLine(status, browserName())}
 						</p>
 					</div>
 					<div className="flex flex-wrap items-center gap-2">
@@ -84,12 +84,13 @@ function FolderBlock({ status }: { status: VaultStatus }) {
 						) : (
 							canOpenNote(status.obsidian) && (
 								<button type="button" data-testid="vault-open" onClick={() => openNote(folder.path, status.obsidian)} className={QUIET_KEY}>
-									{status.obsidian ? "Open in Obsidian" : `Show in ${fileBrowserName(window.lh?.platform)}`}
+									{status.obsidian && <PixelIcon name="crystal" className="h-4" />}
+									{openLabel(status.obsidian, browserName())}
 								</button>
 							)
 						)}
 						<span className="flex-1" />
-						<button type="button" data-testid="vault-unlink" disabled={busy} onClick={() => void run(() => change({ path: null }))} className={cn(QUIET_KEY, "text-ans-wrong hover:text-ans-wrong-hover")}>
+						<button type="button" data-testid="vault-unlink" disabled={busy} onClick={() => void run(() => change({ path: null }))} className={QUIET_KEY}>
 							Unlink
 						</button>
 					</div>
