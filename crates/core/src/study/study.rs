@@ -138,7 +138,12 @@ pub fn nearest_topics(hits: &[String], topics: &[Json]) -> Vec<Json> {
 	for hit in hits {
 		let Some(topic) = topics.iter().find(|t| !t["ungrouped"].truthy() && t["members"].items().iter().any(|m| m.as_str() == Some(hit.as_str()))) else { continue };
 		if near.iter().all(|n| n["id"] != topic["id"]) {
-			near.push(study_topic(topic, Vec::new()));
+			let mut shown = study_topic(topic, Vec::new());
+			// The answers its status is computed from, so a status on one answer reads as that.
+			if let Some(o) = shown.as_obj_mut() {
+				o.insert("answered", topic["answers"].items().len());
+			}
+			near.push(shown);
 		}
 		if near.len() == NEAREST_TOPICS {
 			break;
@@ -250,7 +255,12 @@ pub fn no_topics_text(subject: &str, nearest: &[Json]) -> String {
 	if !nearest.is_empty() {
 		text.push_str("\nNearest space topics by search (drop any that don't fit), where he stands from his track record:");
 		for t in nearest {
-			text.push_str(&format!("\n- {}: {}", t["name"].str_or_empty(), material_and_standing(t)));
+			let count = match t["answered"].as_i64().unwrap_or(0) {
+				0 => String::new(),
+				1 => ", 1 answer".to_owned(),
+				n => format!(", {n} answers"),
+			};
+			text.push_str(&format!("\n- {}: {}{count}", t["name"].str_or_empty(), material_and_standing(t)));
 		}
 	}
 	text
@@ -354,12 +364,14 @@ mod tests {
 		shell.as_obj_mut().unwrap().insert("answers", json!([{ "outcome": "wrong" }]));
 		let mut rest = topic("ungrouped", "untested", &["z"]);
 		rest.as_obj_mut().unwrap().insert("ungrouped", true);
-		let topics = [topic("t1", "untested", &["a", "b"]), shell, topic("t3", "strong", &["d"]), topic("t4", "shaky", &["e"]), rest];
+		let mut strong = topic("t3", "strong", &["d"]);
+		strong.as_obj_mut().unwrap().insert("answers", json!([{ "outcome": "right" }, { "outcome": "right" }]));
+		let topics = [topic("t1", "untested", &["a", "b"]), shell, strong, topic("t4", "shaky", &["e"]), rest];
 		let hits = ["z", "c", "a", "b", "nope", "d", "e"].map(String::from);
 		let near = nearest_topics(&hits, &topics);
 		assert_eq!(ids(&near), ["t2", "t1", "t3"], "best hit first, a topic once, Ungrouped never, three at most");
 		let text = no_topics_text("Forks", &near);
-		assert!(text.ends_with("No `review` in `topic_done`.\nNearest space topics by search (drop any that don't fit), where he stands from his track record:\n- T2: procedure, weak (latest wrong)\n- T1: untested\n- T3: strong"), "{text}");
+		assert!(text.ends_with("No `review` in `topic_done`.\nNearest space topics by search (drop any that don't fit), where he stands from his track record:\n- T2: procedure, weak (latest wrong), 1 answer\n- T1: untested\n- T3: strong, 2 answers"), "{text}");
 		assert!(nearest_topics(&["nope".to_owned()], &topics).is_empty());
 	}
 

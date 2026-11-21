@@ -1,10 +1,12 @@
 //! The question tools: client-answered, so each call only checks the
 //! authoring rules and returns the "question posed" placeholder that ends the turn.
 
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use gs_core::session::argument_heal::heal_encoded_arguments;
 use gs_core::session::code_question::{write_code_input_problems, write_code_input_schema};
+use gs_core::session::plan_step_bar::skipped_node;
 use gs_core::session::question_core::{
 	ask_input_schema, ask_option_problems, explain_input_base, explain_input_object, explain_input_problems, parse_options_if_string, probe_quiz_input_schema, quiz_input_object, quiz_input_problems,
 	study_quiz_input_object, without_broken_keep,
@@ -12,6 +14,7 @@ use gs_core::session::question_core::{
 use gs_engine::turn::tool_execute::{invalid_input_result, question_result};
 use gs_engine::turn::validate::validate_tool_arguments;
 use gs_json::{Json, json, stringify_pretty};
+use parking_lot::Mutex;
 
 use super::fn_tool::FnTool;
 use super::plan::PlanContext;
@@ -170,15 +173,48 @@ pub fn node_id_problem(known: &[String], node_id: &str) -> Option<String> {
 	Some(format!("nodeId \"{node_id}\" matches no node in this session's plan map. {hint}"))
 }
 
+/// A Study turn's plan-order check, shared by its question and its problem: the first tagged call
+/// on a node that skips an earlier node nothing in the lesson asked is refused, once a node, so a
+/// skip his answers justify goes through when sent again.
+pub struct PlanOrder {
+	record: PlanContext,
+	warned: Mutex<HashSet<String>>,
+}
+
+impl PlanOrder {
+	pub fn new(record: &PlanContext) -> Arc<PlanOrder> {
+		Arc::new(PlanOrder { record: record.clone(), warned: Mutex::default() })
+	}
+
+	/// The refusal for a call tagged `node_id`, or none.
+	pub(super) fn refusal(&self, node_id: &str) -> Option<String> {
+		let chat = self.record.chat_store.get_chat(&self.record.chat_id)?;
+		let earlier = skipped_node(&chat["tree"], chat["messages"].items(), node_id)?;
+		self.warned.lock().insert(node_id.to_owned()).then(|| {
+			format!("nodeId \"{node_id}\": \"{earlier}\" comes first and nothing in this lesson asked it. Ask it first. His answers in this lesson justify skipping it: send the same call again.")
+		})
+	}
+}
+
+/// A question's authoring problems with its plan-node check, then in Study, once nothing else is
+/// wrong, its plan-order check.
+fn with_plan_checks(problems: Vec<String>, known: &[String], args: &Json, order: Option<&PlanOrder>) -> Vec<String> {
+	let mut problems = with_node_check(problems, known, args);
+	if let Some(order) = order.filter(|_| problems.is_empty()) {
+		problems.extend(order.refusal(args["nodeId"].str_or_empty()));
+	}
+	problems
+}
+
 /// The teach quiz: the shared authoring rules plus the plan-node check.
 pub fn teach_quiz_tool(ctx: &PlanContext) -> FnTool {
-	node_quiz_tool(ctx, quiz_input_object())
+	node_quiz_tool(ctx, quiz_input_object(), None)
 }
 
 /// The Study quiz: the teach quiz whose schema adds `standalone`, which marks a quiz godspeed may
-/// ask again weeks later, `onPlot` and `keep`.
-pub fn study_quiz_tool(ctx: &PlanContext) -> FnTool {
-	node_quiz_tool(ctx, study_quiz_input_object()).prepared(prepare_study_quiz)
+/// ask again weeks later, `onPlot` and `keep`, with the plan-order check.
+pub fn study_quiz_tool(ctx: &PlanContext, order: &Arc<PlanOrder>) -> FnTool {
+	node_quiz_tool(ctx, study_quiz_input_object(), Some(order.clone())).prepared(prepare_study_quiz)
 }
 
 /// The Study quiz's preparation: a keep that breaks its own rules leaves the prepared copy, so the
@@ -207,16 +243,27 @@ fn with_node_check(mut problems: Vec<String>, known: &[String], args: &Json) -> 
 	problems
 }
 
-fn node_quiz_tool(ctx: &PlanContext, schema: Json) -> FnTool {
+fn node_quiz_tool(ctx: &PlanContext, schema: Json, order: Option<Arc<PlanOrder>>) -> FnTool {
 	let ctx = ctx.clone();
-	FnTool::immediate("quiz", quiz_description("quiz", true), schema, move |args| verdict("quiz", &with_node_check(quiz_input_problems(&args), &plan_node_ids(&ctx), &args))).sequential().prepared(prepare_question_arguments)
+	FnTool::immediate("quiz", quiz_description("quiz", true), schema, move |args| verdict("quiz", &with_plan_checks(quiz_input_problems(&args), &plan_node_ids(&ctx), &args, order.as_deref())))
+		.sequential()
+		.prepared(prepare_question_arguments)
 }
 
 /// The teach free-recall tool, with the same plan-node check.
 pub fn teach_explain_tool(ctx: &PlanContext) -> FnTool {
+	node_explain_tool(ctx, None)
+}
+
+/// The Study free-recall tool: the teach one with the plan-order check.
+pub fn study_explain_tool(ctx: &PlanContext, order: &Arc<PlanOrder>) -> FnTool {
+	node_explain_tool(ctx, Some(order.clone()))
+}
+
+fn node_explain_tool(ctx: &PlanContext, order: Option<Arc<PlanOrder>>) -> FnTool {
 	let ctx = ctx.clone();
 	FnTool::immediate("explain", explain_description("explain", true), explain_input_object(), move |args| {
-		verdict("explain", &with_node_check(explain_input_problems(&args), &plan_node_ids(&ctx), &args))
+		verdict("explain", &with_plan_checks(explain_input_problems(&args), &plan_node_ids(&ctx), &args, order.as_deref()))
 	})
 	.sequential()
 	.prepared(prepare_question_arguments)

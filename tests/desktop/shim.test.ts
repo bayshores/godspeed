@@ -21,12 +21,14 @@ function page({ body = "", platform = "darwin", origin = ORIGIN, stored = null, 
 	const { document, Element, Event } = parseHTML(`<!doctype html><html><body>${body}</body></html>`);
 	const invoked: Invoked = [];
 	const posted: unknown[] = [];
+	const pinches: { by: number; x: number; y: number }[] = [];
 	const storage = new Map<string, string>();
 	if (stored !== null) storage.set("lh-zoom", stored);
 	const window: Record<string, unknown> = {
 		innerWidth: 1000,
 		innerHeight: 800,
 		addEventListener: (type: string, listener: EventListener) => document.addEventListener(type, listener),
+		dispatchEvent: (e: CustomEvent) => pinches.push(e.detail),
 		chrome: { webview: { postMessageWithAdditionalObjects: (message: unknown, objects: unknown[]) => posted.push([message, objects]) } },
 		__TAURI_INTERNALS__: {
 			invoke: async (cmd: string, args?: unknown) => {
@@ -46,7 +48,7 @@ function page({ body = "", platform = "darwin", origin = ORIGIN, stored = null, 
 		return event.defaultPrevented;
 	};
 	const lh = window.lh as Record<string, (...args: unknown[]) => unknown> | undefined;
-	return { document, window, lh, invoked, posted, storage, fire };
+	return { document, window, lh, invoked, posted, storage, fire, pinches };
 }
 
 /** Gives each element on the page its box, as the browser's layout would. */
@@ -200,53 +202,60 @@ test("the zoom keys the menu does not claim step the zoom", () => {
 });
 
 /** A wheel at `at` milliseconds; a pinch is a wheel with Ctrl held. */
-const wheel = (at: number, deltaY: number, keys: object = { ctrlKey: true }) => ({ timeStamp: at, deltaY, deltaMode: 0, ...keys });
+const wheel = (at: number, deltaY: number, keys: object = { ctrlKey: true }) => ({ timeStamp: at, deltaY, deltaMode: 0, clientX: 300, clientY: 200, ...keys });
+/** How much bigger each pinch the page was sent made it, to two places. */
+const sizes = (pinches: { by: number }[]) => pinches.map((p) => Math.round(p.by * 100) / 100);
 
-test("a pinch or a scroll with the key held steps the zoom, one size for each wheel at most", () => {
-	const { fire, invoked } = page();
-	assert.equal(fire("wheel", wheel(1000, -8)), true);
-	assert.deepEqual(invoked, [], "a small move is not a step yet");
-	assert.equal(fire("wheel", wheel(1010, -14)), true);
-	assert.equal(fire("wheel", wheel(1020, 25)), true);
+test("a pinch or a scroll with the key held is sent to the page with where it is, a mouse notch a quarter at most", () => {
+	const { fire, invoked, pinches } = page();
+	assert.equal(fire("wheel", wheel(1000, -10)), true);
+	assert.equal(fire("wheel", wheel(1010, 10)), true);
 	assert.equal(fire("wheel", wheel(2000, -120, { metaKey: true })), true);
 	assert.equal(fire("wheel", wheel(3000, 3, { ctrlKey: true, deltaMode: 1 })), true);
-	assert.deepEqual(invoked, [["zoom_step", { dir: 1 }], ["zoom_step", { dir: -1 }], ["zoom_step", { dir: 1 }], ["zoom_step", { dir: -1 }]]);
+	assert.deepEqual(sizes(pinches), [1.11, 0.9, 1.25, 0.8]);
+	assert.deepEqual([pinches[0]!.x, pinches[0]!.y], [300, 200]);
+	assert.deepEqual(invoked, [], "the app's size stays");
 });
 
-test("a key pressed while a scroll still coasts does not zoom, and a plain scroll is left alone", () => {
-	const { fire, invoked } = page();
+test("a key pressed while a scroll still coasts does not magnify, and a plain scroll is left alone", () => {
+	const { fire, pinches } = page();
 	assert.equal(fire("wheel", wheel(1000, 40, {})), false);
 	assert.equal(fire("wheel", wheel(1016, 40, { metaKey: true })), false);
 	assert.equal(fire("wheel", wheel(1032, 40, { ctrlKey: true })), false);
-	assert.deepEqual(invoked, []);
-	assert.equal(fire("wheel", wheel(1500, 40, { metaKey: true })), true, "a new scroll with the key held zooms");
-	assert.deepEqual(invoked, [["zoom_step", { dir: -1 }]]);
+	assert.deepEqual(pinches, []);
+	assert.equal(fire("wheel", wheel(1500, -10, { metaKey: true })), true, "a new scroll with the key held magnifies");
+	assert.deepEqual(sizes(pinches), [1.11]);
 });
 
-test("the Mac's pinch events step the zoom by how far the pinch has grown, and its wheels are not counted again", () => {
-	const { fire, invoked } = page();
-	assert.equal(fire("gesturestart", { scale: 1 }), true);
-	assert.equal(fire("gesturechange", { scale: 1.1 }), true);
-	assert.deepEqual(invoked, [], "a tenth bigger is not a step yet");
-	assert.equal(fire("gesturechange", { scale: 1.3 }), true);
+test("the Mac's pinch events are sent by how far the pinch has grown, and its wheels are not counted again", () => {
+	const { fire, pinches } = page();
+	assert.equal(fire("gesturestart", { scale: 1, clientX: 10, clientY: 20 }), true);
+	assert.equal(fire("gesturechange", { scale: 1.1, clientX: 10, clientY: 20 }), true);
+	assert.equal(fire("gesturechange", { scale: 1.21, clientX: 10, clientY: 20 }), true);
 	assert.equal(fire("wheel", wheel(1000, -60)), true);
-	assert.equal(fire("gesturechange", { scale: 1 }), true);
+	assert.equal(fire("gesturechange", { scale: 1, clientX: 10, clientY: 20 }), true);
 	assert.equal(fire("gestureend", { scale: 1 }), true);
-	assert.deepEqual(invoked, [["zoom_step", { dir: 1 }], ["zoom_step", { dir: -1 }]]);
+	assert.deepEqual(sizes(pinches), [1.1, 1.1, 0.83]);
+	assert.deepEqual([pinches[0]!.x, pinches[0]!.y], [10, 20]);
 });
 
 test("a view that zooms itself keeps its pinch", () => {
 	const ownWheel = readFileSync(new URL("../../src/frontend/lib/own-wheel.ts", import.meta.url), "utf8");
 	const mark = /const OWN_ZOOM = "([^"]+)"/.exec(ownWheel)?.[1];
 	assert.ok(mark && SOURCE.includes(`const OWN_ZOOM = "${mark}"`), "the page and the shim name the mark the same");
-	const { document, fire, invoked } = page({ body: `<div ${mark}><p id="in"></p></div><p id="out"></p>` });
+	const { document, fire, pinches } = page({ body: `<div ${mark}><p id="in"></p></div><p id="out"></p>` });
 	assert.equal(fire("wheel", wheel(1000, -40), document.querySelector("#in")), false);
-	assert.deepEqual(invoked, []);
 	assert.equal(fire("gesturestart", { scale: 1 }, document.querySelector("#in")), false);
 	assert.equal(fire("gesturechange", { scale: 2 }, document.querySelector("#in")), false);
-	assert.deepEqual(invoked, []);
-	assert.equal(fire("wheel", wheel(2000, -40), document.querySelector("#out")), true);
-	assert.deepEqual(invoked, [["zoom_step", { dir: 1 }]]);
+	assert.deepEqual(pinches, []);
+	assert.equal(fire("wheel", wheel(2000, -10), document.querySelector("#out")), true);
+	assert.deepEqual(sizes(pinches), [1.11]);
+});
+
+test("the page and the shim name the pinch event the same", () => {
+	const model = readFileSync(new URL("../../src/frontend/components/magnifier/magnifier-model.ts", import.meta.url), "utf8");
+	const name = /export const PINCH = "([^"]+)"/.exec(model)?.[1];
+	assert.ok(name && SOURCE.includes(`const PINCH = "${name}"`));
 });
 
 test("the browser's own context menu never shows", () => {

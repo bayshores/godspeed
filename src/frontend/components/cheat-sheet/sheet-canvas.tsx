@@ -16,14 +16,12 @@ import {
 	stacksPages,
 	toWorld,
 	wheelCamera,
-	zoomAt,
-	zoomLabel,
 	zoomStep,
 	type Artboard,
 	type Pointed,
-	type Camera,
 	type Rect,
 } from "./canvas-model";
+import { zoomAt, zoomLabel, type Camera } from "@/frontend/lib/camera";
 import { drawPage, usePdfs } from "./pdf";
 import { PdfPage } from "./pdf-page";
 

@@ -535,7 +535,7 @@
 				{
 					"path": "teacher/28-predictions.md",
 					"shared": false,
-					"sourceSha": "8f762295df96a3ccb97cf9c870b642b9c4ad74d5e67db8564e2c558d9858945a"
+					"sourceSha": "2965b5acdf5bb3cd72fdb6b1bb2d88b19f5cfe2a0dd43a5e62de75bc00dd0de2"
 				},
 				{
 					"path": "teacher/30-question-principles.md",
@@ -560,7 +560,7 @@
 				{
 					"path": "shared/11-learner-first.md",
 					"shared": true,
-					"sourceSha": "ab29280433a6fa56348eba0c1947249cf2b4e650f6af5ef397da82b365891101"
+					"sourceSha": "50035fee316bb1af3da3eb417c08aa22958c2d83701d7f74c90b9c3aae82a405"
 				},
 				{
 					"path": "shared/12-space-context.md",
@@ -580,7 +580,7 @@
 				{
 					"path": "shared/15-accuracy.md",
 					"shared": true,
-					"sourceSha": "8d914fe64951fe218cfc3b61cd10bd5de3781a252280a6202aa177cfbc314afb"
+					"sourceSha": "f708f5851cab816daaa40b713d4c886c19ff6e0712ab05953ae6a0e3e757a711"
 				},
 				{
 					"path": "shared/16-mental-model.md",
@@ -610,7 +610,7 @@
 				{
 					"path": "shared/40-formatting.md",
 					"shared": true,
-					"sourceSha": "0d7130507fd950c525296f2f21de0eb92b2df78db7a1d373540c3071b099062a"
+					"sourceSha": "4845994ca512d5665d3ba0c287b24d462b96bcffc6c1702a73c9ae7d5a14f855"
 				},
 				{
 					"path": "prober/10-probe-doctrine.md",

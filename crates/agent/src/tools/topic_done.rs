@@ -30,6 +30,9 @@ pub type CheckMarks = Arc<dyn Fn(&str) -> CheckedMarks + Send + Sync>;
 
 const LEAD_MAX: usize = 700;
 
+/// The refusal when no topic awaits its topic_done.
+const NOTHING_FINISHED: &str = "No topic is finished since the last topic_done: `conclude` on a problem or a right `quiz` tagged with its node ends one; `write_code` ends none. Don't pose a question only to close it: go on with the plan.";
+
 /// The free-recall description is these two sentences alone.
 const DESCRIPTION_START: &str = "Study only. Call after the conclude that finishes a topic, once you have read what the next topic needs.";
 
@@ -178,14 +181,17 @@ impl TopicDone {
 	fn run(&self, args: &Json) -> Result<Json, String> {
 		let messages = record_messages(&self.record.chat_store, &self.record.chat_id);
 		let node_id = args["nodeId"].str_or_empty();
-		// The topic this turn's conclude finished, else the one the record's newest graded event did.
-		let this_turn = self.gate.topic_ended();
-		let finished = this_turn.as_ref().map(|t| (t.node_id.clone(), false)).or_else(|| finished_topic(&messages));
+		// The topic this turn's conclude finished, else the one the record's newest graded event did;
+		// one whose topic_done is already stored counts as none.
+		let finished = match self.gate.topic_ended() {
+			Some(turn) => (!turn.stored).then_some((turn.node_id, false)),
+			None => finished_topic(&messages),
+		}
+		.filter(|(done, _)| !topic_done_stored(&messages, done));
 		let mut problems = Vec::new();
 		match &finished {
-			None => problems.push("Finish this topic first: conclude its problem, or wait for a right answer to a quiz on it.".to_owned()),
+			None => problems.push(NOTHING_FINISHED.to_owned()),
 			Some((done, _)) if done != node_id => problems.push(format!("nodeId: \"{node_id}\" is not the topic you just finished (\"{done}\").")),
-			Some((done, _)) if this_turn.as_ref().is_some_and(|t| t.stored) || topic_done_stored(&messages, done) => problems.push(format!("topic_done for \"{done}\" is already stored.")),
 			Some(_) => {}
 		}
 		let lead = args["opener"]["lead"].as_str().map(|lead| {
@@ -398,7 +404,7 @@ mod tests {
 	#[tokio::test]
 	async fn the_gate_wants_the_topic_just_finished_once() {
 		let (tool, _) = tool_on(Vec::new(), true);
-		assert_eq!(call(&tool, sent()).await.unwrap_err(), "Finish this topic first: conclude its problem, or wait for a right answer to a quiz on it.");
+		assert_eq!(call(&tool, sent()).await.unwrap_err(), NOTHING_FINISHED);
 
 		let (tool, gate) = tool_on(Vec::new(), true);
 		concluded_now(&gate);
@@ -409,14 +415,16 @@ mod tests {
 			["nodeId: \"n4\" is not the topic you just finished (\"n3\").", "opener.lead: removed source mark f_bad:9; it does not point at a passage."]
 		);
 		assert!(call(&tool, sent()).await.is_ok(), "this turn's conclude finished n3");
-		assert_eq!(call(&tool, sent()).await.unwrap_err(), "topic_done for \"n3\" is already stored.");
+		assert_eq!(call(&tool, sent()).await.unwrap_err(), NOTHING_FINISHED);
 
 		let stored = [quiz_ended(), vec![
 			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "t0", "name": "topic_done", "arguments": { "nodeId": "n3" } }], "timestamp": 3_000 }),
 			json!({ "role": "toolResult", "toolCallId": "t0", "toolName": "topic_done", "details": { "part": "topic_done", "v": 1 }, "isError": false, "timestamp": 3_000 }),
 		]].concat();
 		let (tool, _) = tool_on(stored, true);
-		assert_eq!(call(&tool, sent()).await.unwrap_err(), "topic_done for \"n3\" is already stored.");
+		assert_eq!(call(&tool, sent()).await.unwrap_err(), NOTHING_FINISHED);
+		let next = with(with(sent(), &["nodeId"], json!("n4")), &["opener", "quiz", "nodeId"], json!("n5"));
+		assert_eq!(call(&tool, next).await.unwrap_err(), NOTHING_FINISHED, "a stored topic is not named as the one just finished");
 	}
 
 	#[tokio::test]

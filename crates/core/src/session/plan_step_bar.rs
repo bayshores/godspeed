@@ -49,6 +49,20 @@ pub(crate) fn ordered_plan_ids(tree: &Json) -> Vec<&str> {
 	out
 }
 
+/// The first plan node before `node_id` in learning order that nothing in the record tagged (a
+/// shown opener's question counts): a first tagged call on `node_id` skips it. None once
+/// `node_id` itself is tagged, or when it is in no plan.
+pub fn skipped_node(tree: &Json, messages: &[Json], node_id: &str) -> Option<String> {
+	let order = ordered_plan_ids(tree);
+	let at = order.iter().position(|id| *id == node_id)?;
+	let statuses = derive_plan_statuses_lh(tree, messages, &opener_nodes(messages));
+	let tagged = |id: &str| statuses.current.as_deref() == Some(id) || statuses.visited.contains(id);
+	if tagged(node_id) {
+		return None;
+	}
+	order[..at].iter().find(|id| !tagged(id)).map(|id| (*id).to_owned())
+}
+
 /// The step bar's count: the current step's number, or the steps done while none is current.
 pub fn step_position(statuses: &[&str]) -> usize {
 	statuses.iter().position(|s| *s == "current").map_or_else(|| statuses.iter().filter(|s| **s == "visited").count(), |i| i + 1)
@@ -102,6 +116,17 @@ mod tests {
 		assert_eq!(plan_position_lh(&tree, &[]), json!({ "done": 0, "total": 3 }));
 		assert_eq!(plan_position_lh(&tree, &[call("a"), call("b")]), json!({ "done": 2, "total": 3 }));
 		assert_eq!(step_position(&["visited", "upcoming", "visited"]), 2);
+	}
+
+	#[test]
+	fn a_first_call_on_a_node_skips_the_earlier_untagged_ones() {
+		let tree = json!({ "nodes": [{ "id": "c" }, { "id": "a" }, { "id": "b" }], "edges": [{ "from": "a", "to": "c" }] });
+		assert_eq!(skipped_node(&tree, &[], "a"), None, "the first node skips nothing");
+		assert_eq!(skipped_node(&tree, &[], "b").as_deref(), Some("a"), "learning order, prerequisites first");
+		assert_eq!(skipped_node(&tree, &[call("a")], "b").as_deref(), Some("c"));
+		assert_eq!(skipped_node(&tree, &[call("a"), call("c")], "b"), None);
+		assert_eq!(skipped_node(&tree, &[call("b")], "b"), None, "a node already tagged goes on");
+		assert_eq!(skipped_node(&tree, &[], "zz"), None);
 	}
 
 	#[test]

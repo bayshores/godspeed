@@ -166,7 +166,7 @@ mod tests {
 		let scripted = Scripted::new();
 		scripted.reply(faux_assistant_message(calls, "toolUse"));
 		let mut options = AgentOptions::new(Engine { model: faux_model("m", "p", "faux", "Faux", 1000.0, 100.0), respond: scripted });
-		options.tools = heal_tool_record(vec![crate::tools::questions::study_quiz_tool(&plan), plot_tool(record, &parts)]).into_iter().map(FnTool::into_arc).collect();
+		options.tools = heal_tool_record(vec![crate::tools::questions::study_quiz_tool(&plan, &crate::tools::questions::PlanOrder::new(&plan)), plot_tool(record, &parts)]).into_iter().map(FnTool::into_arc).collect();
 		options.before_tool_call = hooked.then(|| parts.hook());
 		let agent = Agent::new(options);
 		agent.prompt(vec![json!({ "role": "user", "content": "go", "timestamp": 1 })], Abort::new()).await.unwrap();

@@ -23,7 +23,7 @@ use gs_core::session::plan::agent_writes_plan;
 use gs_core::spaces::space_tools::ToolOutcome;
 use gs_core::graph::ports::GraphStore;
 use gs_core::records::settings_resolution::graph_tools_enabled;
-use gs_core::records::teaching_areas::learner_rules_section;
+use gs_core::records::teaching_areas::{every_turn_rules, learner_rules_section};
 use gs_core::session::tool_switches::switched_off;
 use gs_engine::turn::agent::Agent;
 use gs_engine::turn::faux::Engine;
@@ -61,6 +61,21 @@ fn lesson_space_rules(app: &App, space_id: Option<&str>) -> Option<(String, Vec<
 	let cls = app.stores.spaces.get_space(space_id?)?;
 	let rules = cls["rules"].items().iter().filter_map(|r| r.as_str().map(str::to_owned)).collect();
 	Some((cls["name"].str_or_empty().to_owned(), rules))
+}
+
+/// The learner's rules and his lesson's space rules, as both rule texts take them.
+fn with_lesson_rules<T>(app: &App, effective: &Json, space_id: Option<&str>, text: impl FnOnce(&Json, Option<(&str, &[String])>) -> T) -> T {
+	let space_rules = lesson_space_rules(app, space_id);
+	text(&effective["agent"]["rules"], space_rules.as_ref().map(|(name, rules)| (name.as_str(), rules.as_slice())))
+}
+
+/// The rules block a lesson's later work items end with (`every_turn_rules`).
+pub fn every_turn_rules_for(app: &App, lesson: &Json) -> String {
+	let effective = app.stores.settings.effective_settings().unwrap_or_else(|err| {
+		eprintln!("[work item] reading the settings for the learner's rules failed: {err}");
+		Json::Null
+	});
+	with_lesson_rules(app, &effective, lesson["spaceId"].as_str(), every_turn_rules)
 }
 
 /// search_graph over the lesson's own graph only, a few facts and chains at a time.
@@ -131,7 +146,6 @@ fn agent_space_actions(app: &Arc<App>) -> SpaceActions {
 pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json, turn: TurnAgent) -> Arc<Agent> {
 	let TurnAgent { chat_id, messages, teaching, side_turn, engine } = turn;
 	let lesson_scope = record["spaceId"].as_str();
-	let space_rules = lesson_space_rules(app, lesson_scope);
 	let toggles = Some(&effective["agent"]["tools"]).filter(|t| !t.is_null()).cloned();
 	let pdf_on = !switched_off(toggles.as_ref(), "pdf");
 	let opts = AgentBuildOptions {
@@ -139,7 +153,7 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 		on_usage: None,
 		tools: None,
 		tool_toggles: toggles,
-		learner_rules: Some(learner_rules_section(&effective["agent"]["rules"], space_rules.as_ref().map(|(name, rules)| (name.as_str(), rules.as_slice())))),
+		learner_rules: Some(with_lesson_rules(app, effective, lesson_scope, learner_rules_section)),
 		chat_id: Some(chat_id.clone()),
 		side_turn,
 		..AgentBuildOptions::new(engine, &app.stores.prompt_overrides)

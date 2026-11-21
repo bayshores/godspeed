@@ -611,8 +611,75 @@ function brokenPictures() {
 }
 
 /** Every finding on the page as it is now, each once. */
+/** Keys: a key's words keep room inside its edge; a list of things to open is rows, not a pile
+ *  of keys; a key is as wide as its words; a title wraps, it is never cut. A bar's own words
+ *  (the crumb that gives way) are the bar's, not a title. */
+const KEY_PAD_MIN = 8;
+/** The tallest key size (BIG_KEY and MAIN_KEY, 48), with room for its shadow. */
+const KEY_MAX_H = 54;
+const OUTSIDE_PAGE = ".lh-app-bar, .lh-own-bar, .lh-popup, [role=dialog], [role=menu], [aria-hidden=true]";
+const keyText = (key) => key.innerText.replace(/\s+/g, " ").trim();
+
+/** Whether a key's side padding leaves its words room: less than KEY_PAD_MIN on a side is tight. */
+export function tightPad(left, right) {
+	return Math.min(left, right) < KEY_PAD_MIN;
+}
+
+/** How many lines a set of boxes' tops sit on, rounding a pixel or two of difference away. */
+export function linesOf(tops) {
+	const lines = [];
+	for (const top of [...tops].sort((a, b) => a - b)) if (lines.length === 0 || top - lines.at(-1) > SLACK) lines.push(top);
+	return lines.length;
+}
+
+/** A key is wide when it is more than 96 points wider than its words and padding need. */
+export function tooWide(width, need) {
+	return width - need > 96;
+}
+
+function keyChecks() {
+	const found = [];
+	// A key clipped to a pixel (text for screen readers until focused) is not on the page.
+	const keys = [...document.querySelectorAll(".lh-btn")].filter((key) => {
+		const { width, height } = key.getBoundingClientRect();
+		return shown(key) && width > SLACK && height > SLACK && !key.closest(OUTSIDE_PAGE);
+	});
+	for (const key of keys) {
+		if (keyText(key).length < 2) continue;
+		const style = getComputedStyle(key);
+		const left = parseFloat(style.paddingLeft);
+		const right = parseFloat(style.paddingRight);
+		if (tightPad(left, right)) found.push(finding("tight key", [key], `${label(key)} keeps ${Math.min(left, right)} px beside its words; a key keeps at least ${KEY_PAD_MIN}`));
+		const range = document.createRange();
+		range.selectNodeContents(key);
+		const words = range.getBoundingClientRect().width;
+		const { width } = key.getBoundingClientRect();
+		if (tooWide(width, words + left + right)) found.push(finding("wide key", [key], `${label(key)} is ${Math.round(width)} px wide for ${Math.round(words)} px of words`));
+	}
+	// A pile: three or more keys stacked on three or more lines in one group. A card drawn as one
+	// big key (a deadline's row) is taller than any key size and is not counted.
+	// Only a key that is its whole item counts: a row that holds words and a key of its own is a row.
+	const bare = (key) => {
+		const item = key.closest("li") ?? key;
+		return keyText(item) === keyText(key);
+	};
+	const small = keys.filter((key) => key.getBoundingClientRect().height <= KEY_MAX_H && bare(key));
+	const groupOf = (key) => key.closest("ul, ol") ?? key.parentElement?.closest(":not(li)");
+	for (const group of new Set(small.map(groupOf))) {
+		if (!group) continue;
+		const inGroup = small.filter((key) => groupOf(key) === group);
+		if (inGroup.length >= 3 && linesOf(inGroup.map((key) => key.getBoundingClientRect().top)) >= 3) found.push(finding("key pile", [group], `${label(group)} stacks ${inGroup.length} keys; a list of things to open is rows`));
+	}
+	for (const title of document.querySelectorAll("h1, h2, h3, h4, .lh-card-title")) {
+		if (!shown(title) || title.closest(OUTSIDE_PAGE)) continue;
+		const cut = [title, ...title.querySelectorAll("*")].find((el) => getComputedStyle(el).textOverflow === "ellipsis" && el.scrollWidth > el.clientWidth + 1);
+		if (cut) found.push(finding("cut title", [title], `${label(title)} is cut with "..."; a title wraps`));
+	}
+	return found;
+}
+
 export function checkPage() {
-	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys(), ...emptyBoxes(), ...emptyRooms(), ...cutStarts(), ...brokenPictures()];
+	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys(), ...emptyBoxes(), ...emptyRooms(), ...cutStarts(), ...brokenPictures(), ...keyChecks()];
 	const seen = new Set();
 	return all.filter((f) => !seen.has(f.key) && seen.add(f.key));
 }

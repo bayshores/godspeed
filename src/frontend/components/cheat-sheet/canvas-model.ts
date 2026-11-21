@@ -6,18 +6,13 @@
  * pointer and wheel numbers.
  */
 import { pageCaption, type ChatAttachment, type SheetRegion, type SheetVersion } from "@/shared/core";
+import { zoomAt, type Camera } from "@/frontend/lib/camera";
 
 /** A part of a page the learner drew a box around, ready to send. */
 export interface Pointed {
 	region: SheetRegion;
 	/** The part drawn as a picture, sent first with the message. */
 	picture: ChatAttachment;
-}
-
-export interface Camera {
-	x: number;
-	y: number;
-	zoom: number;
 }
 
 export interface Rect {
@@ -137,13 +132,6 @@ export function fitCamera(box: Rect, view: Rect, pad = 64): Camera {
 	};
 }
 
-/** Zoom to `zoom`, keeping the world point under the screen point still. */
-export function zoomAt(cam: Camera, zoom: number, at: { x: number; y: number }): Camera {
-	const next = clampZoom(zoom);
-	const k = next / cam.zoom;
-	return { zoom: next, x: at.x - (at.x - cam.x) * k, y: at.y - (at.y - cam.y) * k };
-}
-
 /** The next step in or out from the zoom now (− and +). */
 export function zoomStep(zoom: number, dir: 1 | -1): number {
 	const eps = 0.001;
@@ -165,13 +153,8 @@ interface Wheel {
  *  pointer, any other scroll pans. */
 export function wheelCamera(cam: Camera, e: Wheel, at: { x: number; y: number }): Camera {
 	const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
-	if (e.ctrlKey || e.metaKey) return zoomAt(cam, cam.zoom * Math.exp((-e.deltaY * unit) / 300), at);
+	if (e.ctrlKey || e.metaKey) return zoomAt(cam, clampZoom(cam.zoom * Math.exp((-e.deltaY * unit) / 300)), at);
 	return { ...cam, x: cam.x - e.deltaX * unit, y: cam.y - e.deltaY * unit };
-}
-
-/** "100%". */
-export function zoomLabel(zoom: number): string {
-	return `${Math.round(zoom * 100)}%`;
 }
 
 /** Where a world rectangle is on screen. */

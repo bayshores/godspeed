@@ -35,6 +35,7 @@ pub use agent_catch_up::{ask_about_new_deadlines, catch_up_for_agent};
 pub use attachments::{AttachmentError, store_attachments};
 pub use chat_handler::{ChatReply, handle_chat_input, send_first_message};
 pub use chats::{Refusal, quiesce_chat_for_rewrite, running_work_blocker};
+pub use lesson_agent::every_turn_rules_for;
 pub use lessons::create_lesson;
 pub use turn_liveness::is_turn_running;
 pub use turn_runs::{abort_turn, clear_turn_failure};
@@ -66,4 +67,6 @@ pub struct TurnsState {
 	review_skips: Mutex<HashMap<String, review::Skips>>,
 	/// The reply nudges each Study lesson was sent, by chat and topic (reply-nudges).
 	nudged: Mutex<HashSet<(String, String, Nudge)>>,
+	/// Each Study lesson's latest wall send-back, by chat (reply-nudges).
+	walls: Mutex<HashMap<String, reply_nudges::Wall>>,
 }

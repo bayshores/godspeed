@@ -1,10 +1,17 @@
-//! The two checks on a Study reply's own words before it is stored, each sent back once a topic: a
+//! The checks on a Study reply's own words before it is stored. Two are sent back once a topic: a
 //! curve written out as a table or as lines of numbers (a plot's job) and a list of questions (a
 //! reply asks one). Code is never read. Of the tool calls, only a quiz's question, a problem's
-//! statement and an opener's lead are read, for a curve (`services::turns::reply_nudges`).
+//! statement and an opener's lead are read, for a curve (`services::turns::reply_nudges`). The
+//! third, a wall of prose right after his own message or a miss, is sent back once a learner input.
 
+use gs_json::Json;
 use markdown::mdast::Node;
 use markdown::{Constructs, ParseOptions};
+
+use super::progress::{answer_outcome, is_answer_data};
+use crate::messages::role::{Role, is_custom};
+use crate::messages::tool_calls;
+use crate::session::question_core::normalize_quiz_type;
 
 /// What a reply's words are sent back for.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -18,9 +25,80 @@ impl Nudge {
 	pub fn refusal(self) -> &'static str {
 		match self {
 			Nudge::CurveTable => "not sent: these rows read as points of one curve. Send `plot` with the rows as `points` and a prediction instead. If the table is not a curve, send the reply again as it is.",
-			Nudge::QuestionList => "not sent: a reply holds one question. Ask the first one now, through `quiz` or `problem` when it checks understanding. If these are not questions for the learner, send the reply again as it is.",
+			Nudge::QuestionList => "not sent: a reply holds one question. Keep one, cut the rest; never answer one to make the list shorter. If these are not questions for the learner, send the reply again as it is.",
 		}
 	}
+}
+
+/// Added to the question list's refusal while a problem is open.
+pub const OPEN_PROBLEM_NOTE: &str = "A problem is open: its parts are already asked; don't list them again.";
+
+/// More plain prose than this after his own message or a miss is sent back once. The owner's
+/// lessons: the replies he rejected ran 159 to 271 words, while an 80-word cap hit 44% of replies.
+pub const WALL_WORDS: usize = 150;
+
+/// What the teacher reads when a reply of `words` words of prose is sent back.
+pub fn wall_refusal(words: usize) -> String {
+	format!(
+		"not sent: {words} words right after his own message or a miss. One idea in at most four short lines, then his move; give away no more than before. He asked for the full rule or a worked example and it needs the length: send it again as it is."
+	)
+}
+
+/// The words of plain prose in a reply: fenced code, display math (`$$`, `\[`) and table rows
+/// aside. A word holds a letter or digit.
+pub fn prose_words(text: &str) -> usize {
+	let mut closing: Option<&str> = None;
+	let mut words = 0;
+	for line in text.lines().map(str::trim) {
+		if let Some(end) = closing {
+			if line.contains(end) {
+				closing = None;
+			}
+			continue;
+		}
+		if let Some(fence) = ["```", "~~~"].into_iter().find(|f| line.starts_with(f)) {
+			closing = Some(fence);
+			continue;
+		}
+		if let Some((open, end)) = [("$$", "$$"), ("\\[", "\\]")].into_iter().find(|(open, _)| line.starts_with(open)) {
+			if !line[open.len()..].contains(end) {
+				closing = Some(end);
+			}
+			continue;
+		}
+		if !line.starts_with('|') {
+			words += line.split_whitespace().filter(|w| w.chars().any(char::is_alphanumeric)).count();
+		}
+	}
+	words
+}
+
+/// The learner input a reply must stay short after, by its message id: his newest input when it
+/// is a message he typed, or an answer graded wrong or "I don't know" (a prediction is never
+/// graded). A go-ahead or Keep going click, a right answer or no input since the last reply: none.
+/// So is the goal that opens the lesson: the first reply to it may hold the worked example.
+pub fn short_reply_input(messages: &[Json]) -> Option<String> {
+	let missed = |answer: &Json| matches!(answer_outcome(answer), Some("wrong" | "dontKnow"));
+	for (at, m) in messages.iter().enumerate().rev() {
+		let id = || Some(m["id"].as_str().map_or_else(|| at.to_string(), str::to_owned));
+		match Role::of(m) {
+			Some(Role::User) => return messages[..at].iter().any(|earlier| Role::Assistant.is(earlier)).then(id).flatten(),
+			Some(Role::Assistant) => return None,
+			Some(Role::ToolResult) if is_answer_data(&m["details"]) => return (missed(&m["details"]) && !is_prediction(messages, m)).then(id).flatten(),
+			Some(Role::Custom) if is_custom(m, "review") => return missed(&m["details"]["answer"]).then(id).flatten(),
+			Some(Role::Custom) if matches!(m["customType"].as_str(), Some("practice-next" | "teach-me" | "opener-answer" | "keep-going")) => return None,
+			_ => {}
+		}
+	}
+	None
+}
+
+/// Whether an answer is to a prediction: its own question type, else its call's.
+fn is_prediction(messages: &[Json], answer: &Json) -> bool {
+	let call_id = answer["toolCallId"].as_str();
+	let call = messages.iter().filter(|m| Role::Assistant.is(m)).flat_map(tool_calls).find(|b| b["id"].as_str() == call_id);
+	let kind = if answer["details"]["questionType"].is_null() { call.map_or(&Json::Null, |b| &b["arguments"]["type"]) } else { &answer["details"]["questionType"] };
+	normalize_quiz_type(kind) == Some("predict")
 }
 
 /// The nudges a reply's words call for, in this order: a curve, then a question list.
@@ -113,7 +191,55 @@ fn number(cell: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+	use gs_json::json;
+
 	use super::*;
+
+	#[test]
+	fn prose_words_leave_out_code_display_math_and_table_rows() {
+		assert_eq!(prose_words("One idea, then **his** move. - 42"), 6);
+		let reply = "Two words.\n\n```rust\nlet x = 1;\n```\n$$\na + b\n$$\n$$x = 2$$\n\\[\ny\n\\]\n\\[ z \\]\n| a | b |\n|---|---|\n| 1 | 2 |\nInline $x$ and `code` count.";
+		assert_eq!(prose_words(reply), 7);
+		assert_eq!(prose_words("~~~\nnever closed\nstill code"), 0);
+	}
+
+	fn typed(id: &str) -> Json {
+		json!({ "id": id, "role": "user", "content": "Why does it hold?" })
+	}
+
+	fn answered(id: &str, kind: &str, details: Json) -> [Json; 2] {
+		[
+			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q1", "name": "quiz", "arguments": { "type": kind } }] }),
+			json!({ "id": id, "role": "toolResult", "toolCallId": "q1", "toolName": "quiz", "details": details }),
+		]
+	}
+
+	#[test]
+	fn a_typed_message_or_a_missed_answer_wants_a_short_reply() {
+		let note = json!({ "role": "custom", "customType": "app-note", "content": "x" });
+		let replied = json!({ "role": "assistant", "content": [{ "type": "text", "text": "Because." }] });
+		assert_eq!(short_reply_input(&[typed("m0"), replied, typed("m1"), note]).as_deref(), Some("m1"), "an app note is no input");
+		let wrong = answered("m2", "check", json!({ "kind": "quiz", "correct": false }));
+		assert_eq!(short_reply_input(&wrong).as_deref(), Some("m2"));
+		let unsure = answered("m3", "check", json!({ "kind": "quiz", "dontKnow": true }));
+		assert_eq!(short_reply_input(&unsure).as_deref(), Some("m3"));
+		let review = json!({ "id": "m4", "role": "custom", "customType": "review", "details": { "answer": { "kind": "quiz", "correct": false } } });
+		assert_eq!(short_reply_input(&[review]).as_deref(), Some("m4"));
+	}
+
+	#[test]
+	fn a_right_answer_a_prediction_or_a_click_wants_none() {
+		assert_eq!(short_reply_input(&answered("m1", "check", json!({ "kind": "quiz", "correct": true }))), None);
+		assert_eq!(short_reply_input(&answered("m1", "predict", json!({ "kind": "quiz", "correct": false }))), None);
+		assert_eq!(short_reply_input(&answered("m1", "check", json!({ "kind": "quiz", "correct": false, "questionType": "predict" }))), None);
+		for click in ["practice-next", "keep-going", "opener-answer"] {
+			assert_eq!(short_reply_input(&[typed("m1"), json!({ "role": "custom", "customType": click, "content": "" })]), None, "{click}");
+		}
+		let replied = json!({ "role": "assistant", "content": [{ "type": "text", "text": "Because." }] });
+		assert_eq!(short_reply_input(&[typed("m1"), replied]), None, "already answered");
+		assert_eq!(short_reply_input(&[typed("m1")]), None, "the goal that opens the lesson");
+		assert_eq!(short_reply_input(&[]), None);
+	}
 
 	#[test]
 	fn a_table_of_numbers_reads_as_a_curve() {

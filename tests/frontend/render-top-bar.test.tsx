@@ -51,6 +51,8 @@ const { createRoot } = await import("react-dom/client");
 const { SpaceTabs } = await import("../../src/frontend/components/top-bar/space-tabs.tsx");
 const { AppMenu } = await import("../../src/frontend/components/top-bar/app-menu.tsx");
 const { BarZoom } = await import("../../src/frontend/components/top-bar/bar-zoom.tsx");
+const { MagnifiedPage, MagnifierProvider } = await import("../../src/frontend/components/magnifier/magnifier.tsx");
+const { PINCH } = await import("../../src/frontend/components/magnifier/magnifier-model.ts");
 const { SearchLessons } = await import("../../src/frontend/components/search-lessons.tsx");
 const { SpaceHead } = await import("../../src/frontend/components/space-page/space-head.tsx");
 const { HeadSignature } = await import("../../src/frontend/components/space-page/head-signature.tsx");
@@ -248,6 +250,37 @@ describe("the app's size in the bar", () => {
 	it("shows nothing in a browser", async () => {
 		await mount(<BarZoom />);
 		assert.equal(q("bar-zoom"), null);
+	});
+
+	it("a pinch magnifies the page at the pointer, the bar says how much, and a click puts it back", async () => {
+		lhWindow.lh = { getZoom: async () => 1.25, onZoom: () => () => {} };
+		await mount(
+			<MagnifierProvider>
+				<BarZoom />
+				<MagnifiedPage>
+					<p>Page</p>
+				</MagnifiedPage>
+			</MagnifierProvider>,
+		);
+		const box = q("magnifier")!;
+		Object.assign(box, { getBoundingClientRect: () => ({ left: 0, top: 48, right: 1000, bottom: 848, width: 1000, height: 800 }) });
+		Object.defineProperties(box, { clientWidth: { value: 1000 }, clientHeight: { value: 800 } });
+		// What the window would hit: the page below the 48-point bar, the bar above it.
+		Object.assign(document, { elementFromPoint: (_x: number, y: number) => (y >= 48 ? box.querySelector("p") : document.body) });
+		const pinch = (by: number, x: number, y: number) => act(() => void window.dispatchEvent(new CustomEvent(PINCH, { detail: { by, x, y } })));
+		pinch(2, 300, 248);
+		const shown = box.firstElementChild as HTMLElement;
+		assert.equal(shown.style.transform, "translate(-300px, -200px) scale(2)");
+		assert.equal(q("bar-zoom")!.textContent, "200%");
+		assert.equal(q("bar-zoom")!.getAttribute("aria-label"), "Magnified 200%, back to 100%");
+		assert.ok(q("mini-map"));
+		pinch(2, 0, 10);
+		assert.equal(q("bar-zoom")!.textContent, "200%", "a pinch over the top bar leaves the page alone");
+		assert.equal(shown.style.transform, "translate(-300px, -200px) scale(2)");
+		act(() => q("bar-zoom")!.click());
+		assert.equal(shown.style.transform, "");
+		assert.equal(q("mini-map"), null);
+		assert.equal(q("bar-zoom")!.textContent, "125%", "the app's own size shows again");
 	});
 });
 
