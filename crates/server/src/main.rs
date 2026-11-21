@@ -105,9 +105,14 @@ fn listen_for_terminals(app: &App, shell: &ShellLink) {
 fn watch_for_stop(shell: Option<ShellLink>) {
 	detach("shutdown", stop_on_signal());
 	if let Some(shell) = shell {
+		// What the shell's messages set off may start a task, which a thread outside the runtime cannot.
+		let runtime = tokio::runtime::Handle::current();
 		std::thread::spawn(move || {
+			let _in_runtime = runtime.enter();
+			// A panic while handling a message stops the server too: one that no longer hears the
+			// shell cannot start a terminal, and the shell starts a stopped server again.
+			let _stop = StopWhenDone;
 			shell.listen(std::io::stdin().lock());
-			shutdown::trigger();
 		});
 	} else if stdin_is_pipe() {
 		std::thread::spawn(|| {
@@ -122,6 +127,14 @@ fn watch_for_stop(shell: Option<ShellLink>) {
 			std::process::exit(143);
 		});
 	});
+}
+
+struct StopWhenDone;
+
+impl Drop for StopWhenDone {
+	fn drop(&mut self) {
+		shutdown::trigger();
+	}
 }
 
 #[cfg(unix)]

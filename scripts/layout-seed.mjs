@@ -95,6 +95,44 @@ const LONG_PROBLEM = [
 	"Last, check your answer: put both speeds back into the story and work out how far each train has gone when they pass. Do the two distances add up to 300 miles? If they do not, find the step where the equation and the story stopped agreeing, and fix it.",
 ].join("\n\n");
 
+/** Two lessons whose two steps each have a sheet in the lesson text. In the first both steps'
+ *  questions are answered; in the second the learner asks something of their own while the last
+ *  step's question is still open. */
+const TWO_SHEETS_TOPIC = "Two-step equations";
+const ASKED_FIRST_TOPIC = "Checking a solution";
+const ASKED_FIRST = "Why do I check it at all?";
+const SHEET_STEPS = [
+	{
+		text: "To solve $2x + 3 = 11$, undo what was done to $x$, last step first. Adding 3 came last, so subtract 3 from both sides: $2x = 8$.",
+		quiz: { type: "predict", nodeId: "first-step", question: "What is left to undo in $2x = 8$?", options: ["The multiplying by 2", "The adding of 3"], correctAnswer: "The multiplying by 2", explanation: "The 3 is gone, so only the 2 is left on $x$." },
+	},
+	{
+		text: "Your pick, the multiplying by 2, holds. Divide both sides by 2 and $x = 4$.\n\nNow the last step, the check: put the answer back into the equation you started from.",
+		quiz: { type: "check", nodeId: "last-step", question: "Which line checks $x = 4$ in $2x + 3 = 11$?", options: ["$2 \\cdot 4 + 3 = 11$", "$4 + 3 = 11$"], correctAnswer: "$2 \\cdot 4 + 3 = 11$", explanation: "The 4 goes where $x$ was, so it is still multiplied by 2." },
+	},
+];
+const SHEET_ENDS = {
+	answered: "Your pick, $2 \\cdot 4 + 3 = 11$, holds: 8 and 3 make 11, so $x = 4$ solves it.",
+	asked: "A check catches a slip in the steps. If the two sides do not come out equal, one of the steps was wrong, and you find it before anyone else does.",
+};
+/** A lesson whose question shows code and whose four choices are code blocks: more than the window holds. */
+const CODE_CHOICES_TOPIC = "A function that solves it";
+const fenced = (body) => "```js\nfunction solveLinear(a, b, c) {\n" + body + "\n}\n```";
+const CODE_CHOICES = [
+	fenced("\tconst left = c - b;\n\treturn left / a;"),
+	fenced("\tconst left = c + b;\n\treturn left / a;"),
+	fenced("\tconst left = c - b;\n\treturn left * a;"),
+	fenced("\tconst left = c / a;\n\treturn left - b;"),
+];
+const CODE_QUIZ = {
+	type: "check",
+	nodeId: "first-step",
+	question: "`solveLinear(a, b, c)` returns the number that solves the equation. It is called like this:\n\n```js\nsolveLinear(2, 3, 11); // 4\n```\n\nWhich version is correct?",
+	options: CODE_CHOICES.map((label) => ({ label, value: label })),
+	correctAnswer: CODE_CHOICES[0],
+	explanation: "Subtract b first, then divide by a.",
+};
+
 /** Deadlines for the cheat sheet and mock pages, far off so Home stays as it was. */
 const MIDTERM = "Midterm: graphing and systems";
 const QUIZ = "Quiz 2: slopes and intercepts";
@@ -266,6 +304,16 @@ function shortLessonAnswer(lessonTurn, studied) {
 	return { text: "That is right." };
 }
 
+/** The sheet lessons: turn 0 writes the plan, turn 1 teaches the first step and asks about it,
+ *  turn 2, after that answer, asks about the last step. Turn 3 closes it: after the last answer,
+ *  or, where the learner asked something first (`asked`), with that question's answer. */
+function sheetLessonAnswer(lessonTurn, asked) {
+	if (lessonTurn === 0) return shortLessonAnswer(0, false);
+	const step = SHEET_STEPS[lessonTurn - 1];
+	if (!step) return { text: asked ? SHEET_ENDS.asked : SHEET_ENDS.answered };
+	return { text: step.text, tool_calls: [{ name: "quiz", arguments: { ...step.quiz, options: step.quiz.options.map((label) => ({ label, value: label })) } }] };
+}
+
 /** The answer to a cheat sheet request. The PDF is copied into the sheet's working folder, which
  *  the request names, as an agent's own tools would write it there. The request is JSON text, so
  *  the folder's line ends at an escaped newline. */
@@ -290,6 +338,12 @@ function answerFor(work, ids, lessonTurn) {
 	if (ids.sheetless && work.lessonId === ids.sheetless) return { text: "A pull request asks to merge one branch into another." };
 	if (ids.studied.includes(work.lessonId)) return shortLessonAnswer(lessonTurn, true);
 	if (ids.open.includes(work.lessonId)) return shortLessonAnswer(lessonTurn, false);
+	if (work.lessonId === ids.twoSheets) return sheetLessonAnswer(lessonTurn, false);
+	if (work.lessonId === ids.askedFirst) return sheetLessonAnswer(lessonTurn, true);
+	if (work.lessonId === ids.codeChoices) {
+		if (lessonTurn === 0) return shortLessonAnswer(0, false);
+		if (lessonTurn === 1) return { text: "Here is the function from your notes, written four ways.", tool_calls: [{ name: "quiz", arguments: CODE_QUIZ }] };
+	}
 	if (work.lessonId === ids.problemFirst) {
 		if (lessonTurn === 0) return { tool_calls: [{ name: "plan_init", arguments: { mermaid: "graph TD\n  first-step[First step] --> last-step[Last step]" } }] };
 		if (lessonTurn === 1) return { tool_calls: [{ name: "problem", arguments: { nodeId: "first-step", statement: PROBLEM_FIRST, mode: "recall", modelSolution: "(a) (11 - 2) / (4 - 1) = 3. (b) 2 = 3(1) + b, so b = -1: y = 3x - 1." } }] };
@@ -425,6 +479,9 @@ export async function seed(dataDir, page, log) {
 	for (const topic of OPEN_TOPICS) open.push(await startLesson(topic));
 	const longProblem = await startLesson(LONG_PROBLEM_TOPIC);
 	const problemFirst = await startLesson(PROBLEM_FIRST_TOPIC);
+	const twoSheets = await startLesson(TWO_SHEETS_TOPIC);
+	const askedFirst = await startLesson(ASKED_FIRST_TOPIC);
+	const codeChoices = await startLesson(CODE_CHOICES_TOPIC);
 
 	// Answer every item until the queue stays empty for two teacher and two helper waits in a row. A respond answers with the
 	// next item when one waits. godspeed's own jobs (the space check) go to a helper, so an empty
@@ -433,12 +490,12 @@ export async function seed(dataDir, page, log) {
 	let helper = false;
 	const wait = () => agent.call("wait_for_work", { timeout_seconds: 3, ...(helper ? { helper: true } : {}) });
 	const turns = new Map();
-	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, studied, open, written, longProblem, problemFirst };
+	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, studied, open, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices };
 	const drain = async () => {
 		let reply = await wait();
 		for (let idle = 0, tries = 0; idle < 4; tries++) {
 			// Each added lesson is two items, and an item is two passes: the work, then its "turn done".
-			if (tries > 20 + 4 * (studied.length + open.length + 4)) throw new Error("the stand-in agent never ran out of work");
+			if (tries > 20 + 4 * (studied.length + open.length + 7)) throw new Error("the stand-in agent never ran out of work");
 			const header = JSON.parse(reply[0]);
 			if (header.status !== "work") {
 				if (header.status === "idle") helper = !helper;
@@ -463,13 +520,19 @@ export async function seed(dataDir, page, log) {
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkMany, input: { type: "text", text: "They cross at (2, 7)." } }) });
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkPrinted, input: { type: "text", text: "I am starting part (b)." } }) });
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: filesLesson, input: { type: "text", text: "The slope is 3." } }) });
-	// The learner answers each studied lesson's quiz right, and the teacher closes the lesson.
-	for (const chatId of studied) {
+	const say = (chatId, input) => page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId, input }) });
+	/** The learner picks the right answer of the lesson's open quiz. The answer keeps the choices, as the question box's does, so the answered card shows the pick. */
+	const answerQuiz = async (chatId) => {
 		const { messages } = await page.json(`/api/chats/${chatId}`);
 		const quiz = messages.flatMap((m) => (Array.isArray(m.content) ? m.content : [])).findLast((block) => block.type === "toolCall" && block.name === "quiz");
-		const answer = { kind: "quiz", tool: "quiz", questionText: "What is x when x + 3 = 7?", dontKnow: false, answers: [{ label: "4", value: "4", index: 1 }], correct: true, answeredAt: new Date().toISOString() };
-		await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId, input: { type: "answer", toolCallId: quiz.id, answer } }) });
-	}
+		const { question, options, correctAnswer } = quiz.arguments;
+		const index = options.findIndex((option) => (option.value ?? option.label) === correctAnswer) + 1;
+		const answer = { kind: "quiz", tool: "quiz", questionText: question, dontKnow: false, options: options.map((option, at) => ({ index: at + 1, label: option.label })), answers: [{ label: correctAnswer, value: correctAnswer, index }], correct: true, answeredAt: new Date().toISOString() };
+		await say(chatId, { type: "answer", toolCallId: quiz.id, answer });
+	};
+	// The learner answers each studied lesson's quiz right, and the teacher closes the lesson. The
+	// sheet lessons' first step is answered too, and their teacher asks about the last.
+	for (const chatId of [...studied, twoSheets, askedFirst]) await answerQuiz(chatId);
 	await drain();
 	const send = (url, body) => page.fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 	const midterm = deadlineNamed(MIDTERM);
@@ -484,6 +547,9 @@ export async function seed(dataDir, page, log) {
 	await send(`/api/spaces/${space.id}/mocks`, { deadlineId: midterm, questions: 3, minutes: 30 });
 	await send(`/api/spaces/${space.id}/mocks`, { deadlineId: quiz, questions: 3, minutes: 90 });
 	await send(`/api/spaces/${space.id}/mocks`, { deadlineId: reviewQuiz, questions: 3, minutes: 240 });
+	// One sheet lesson's last step is answered; in the other the learner asks first and its question stays open.
+	await answerQuiz(twoSheets);
+	await say(askedFirst, { type: "side", text: ASKED_FIRST });
 	await drain();
 	// The quiz's sheet is changed once, so it has two versions.
 	await send(sheetOf(quiz), { action: "ask", text: SHEET_ASKS.short });
@@ -517,5 +583,5 @@ export async function seed(dataDir, page, log) {
 	const sheetless = (await agent.json("start_lesson", { topic: "Git and pull requests", space_id: goal.space.id })).lessonId;
 	ids.sheetless = sheetless;
 	await drain();
-	return { sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
+	return { sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
 }

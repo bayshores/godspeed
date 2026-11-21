@@ -1,5 +1,6 @@
 import { useContext, useMemo } from "react";
 import { useAgentStatus } from "@/frontend/components/agent-status";
+import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { ConversationEmptyState } from "@/frontend/components/ai-elements/conversation";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/frontend/components/queued-steers";
@@ -7,20 +8,25 @@ import { JobsContext } from "@/frontend/components/jobs-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { Pane } from "@/frontend/components/ui/pane";
+import { spaceColorVar } from "@/frontend/components/space-color";
+import { useSpaceColor } from "@/frontend/components/space-context";
 import { StartAgentAction } from "@/frontend/components/work/start-agent-action";
 import { cn } from "@/frontend/lib/utils";
 import type { LhViewMessage, Phase3 } from "@/shared/core";
 import { AgentAtWork } from "./agent-at-work";
 import { agentWork } from "./agent-at-work-model";
 import { ArrivalRow, type Arrive } from "./arrivals";
-import { MessageRow } from "./message-row";
+import { MessageRow, messageShows } from "./message-row";
+import { stepSheets, type SheetRow } from "./step-sheets-model";
 import { cardFiles, deskMark, deskState, heldBack } from "./wait-model";
 
 /**
- * THE READING PANE: the lesson as one document on the lesson text's sheet, in
- * the reading type, answered cards inline. The sheet is as tall as its
- * text; the page around it scrolls (LessonScroll).
- * While the teacher works its foot holds the desk (AgentAtWork), which grows
+ * THE READING PANE: the lesson text in the reading type, answered cards
+ * inline, one sheet per step (stepSheets) with the step's number on a tab at
+ * its left edge. A sheet is as tall as its text and the newest fills the
+ * window; the page around them scrolls (LessonScroll).
+ * While the teacher works the newest sheet's foot holds the desk (AgentAtWork), which grows
  * to the sheet's foot, with Stop under it; the keys that move the lesson on
  * are in "Your turn". When the reply lands the desk fades out first and the
  * reply is held back until it has gone, so the two never stack.
@@ -29,6 +35,7 @@ import { cardFiles, deskMark, deskState, heldBack } from "./wait-model";
  */
 export function ReadingPane({
 	spaceId,
+	stepNumbers,
 	echo,
 	messages,
 	phases,
@@ -44,6 +51,8 @@ export function ReadingPane({
 }: {
 	/** The lesson's space. */
 	spaceId: string | undefined;
+	/** The plan's step numbers by plan node, for the sheets' tabs. */
+	stepNumbers: ReadonlyMap<string, number>;
 	/** The index of the learner's first message when it only repeats the lesson's title (titleEcho): it shows no bubble. */
 	echo: number;
 	messages: readonly LhViewMessage[];
@@ -86,41 +95,83 @@ export function ReadingPane({
 			</div>
 		</div>
 	);
+	const openProblem = useContext(ChatActionsContext)?.openProblem ?? null;
+	const spaceColor = useSpaceColor(spaceId);
+	// A row or a sheet with nothing drawn on it is left out; with no sheet drawn, the newest still stands for the desk.
+	const sheets = useMemo(() => {
+		const rowShows = ({ index, from, to }: SheetRow) => {
+			const m = shown[index]!;
+			if (from === 0 && teachSeam(shown, phases, index)) return true;
+			return messageShows(to - from === m.parts.length ? m : { ...m, parts: m.parts.slice(from, to) }, index === echo, openProblem);
+		};
+		const all = stepSheets(shown, stepNumbers).map((sheet) => ({ ...sheet, rows: sheet.rows.filter(rowShows) }));
+		const drawn = all.filter((sheet) => sheet.rows.length > 0);
+		return drawn.length > 0 ? drawn : all.slice(-1);
+	}, [shown, stepNumbers, phases, echo, openProblem]);
 	return (
-		<div data-session-find-root="" className="lh-reading flex flex-1 flex-col gap-4">
-			{messages.length === 0 && !busy && <ConversationEmptyState title="New lesson" description="" />}
-			{shown.map((m, mi) => (
-				<MessageRow
-					key={m.id || `m-${mi}`}
-					message={m}
-					spaceId={spaceId}
-					index={mi}
-					echo={mi === echo}
-					// The inferred teach seam: teaching begins at the group where
-					// the phase fold flips to teach (exactly one per lesson).
-					teachSeam={m.role === "assistant" && mi > 0 && phases[mi] === "teach" && phases[mi - 1] !== "teach"}
-					streamingLast={status === "streaming" && mi === last}
-					hideSteps={!!shownDesk && mi === shown.length - 1}
-					pageMarks={pageMarks}
-					arrive={arrive}
-				/>
-			))}
-			{shownDesk && (
-				<ArrivalRow live={arrivalsLive} className="flex flex-1 flex-col">
-					<div data-state={closing ? "closed" : "open"} data-desk-closing={closing || undefined} inert={closing} className={cn("flex flex-1 flex-col", closing && "lh-fade")}>
-						<AgentAtWork state={shownDesk.state} work={shownDesk.work} arrive={arrive} foot={foot} />
-					</div>
-				</ArrivalRow>
-			)}
-			{stoppedEmpty && (
-				<p data-testid="nothing-written" className="font-prose text-ink-2" style={{ fontSize: "var(--lh-prose-size)" }}>
-					The reply was stopped before anything was written.
-				</p>
-			)}
-			{!shownDesk && foot}
+		<div data-testid="lesson-reading" data-session-find-root="" className="flex min-w-0 flex-col gap-(--lh-gap)">
+			{sheets.map((sheet, si) => {
+				const newest = si === sheets.length - 1;
+				const first = sheet.rows[0];
+				return (
+					<Pane key={first ? `${shown[first.index]!.id || first.index}:${first.from}` : "empty"} data-testid="lesson-sheet" className={cn("flex min-w-0 flex-col", newest && "lh-text-fit")}>
+						{sheet.label && (
+							<span data-testid="sheet-step" className={STEP_TAB} style={{ background: spaceColor ? spaceColorVar(spaceColor) : "var(--color-ink-2)" }}>
+								<span className="sr-only">{sheet.counts} </span>
+								{sheet.label}
+							</span>
+						)}
+						<div className="lh-reading flex flex-1 flex-col gap-4">
+							{newest && messages.length === 0 && !busy && <ConversationEmptyState title="New lesson" description="" />}
+							{sheet.rows.map(({ index: mi, from, to }) => {
+								const m = shown[mi]!;
+								return (
+									<MessageRow
+										key={m.id || `m-${mi}`}
+										message={m}
+										spaceId={spaceId}
+										index={mi}
+										echo={mi === echo}
+										teachSeam={teachSeam(shown, phases, mi)}
+										streamingLast={status === "streaming" && mi === last}
+										hideSteps={!!shownDesk && mi === shown.length - 1}
+										pageMarks={pageMarks}
+										arrive={arrive}
+										from={from}
+										to={to}
+									/>
+								);
+							})}
+							{newest && shownDesk && (
+								<ArrivalRow live={arrivalsLive} className="flex flex-1 flex-col">
+									<div data-state={closing ? "closed" : "open"} data-desk-closing={closing || undefined} inert={closing} className={cn("flex flex-1 flex-col", closing && "lh-fade")}>
+										<AgentAtWork state={shownDesk.state} work={shownDesk.work} arrive={arrive} foot={foot} />
+									</div>
+								</ArrivalRow>
+							)}
+							{newest && stoppedEmpty && (
+								<p data-testid="nothing-written" className="font-prose text-ink-2" style={{ fontSize: "var(--lh-prose-size)" }}>
+									The reply was stopped before anything was written.
+								</p>
+							)}
+							{newest && !shownDesk && foot}
+						</div>
+					</Pane>
+				);
+			})}
 		</div>
 	);
 }
+
+/** The inferred teach seam: teaching begins at the group where the phase fold flips to teach
+ *  (exactly one per lesson), and the row draws the divider. */
+function teachSeam(messages: readonly LhViewMessage[], phases: readonly Phase3[], index: number): boolean {
+	return messages[index]!.role === "assistant" && index > 0 && phases[index] === "teach" && phases[index - 1] !== "teach";
+}
+
+/** The step's number on a tab at the sheet's left edge, in the margin beside its first line. */
+const STEP_TAB =
+	"absolute left-0 top-10 grid h-8 w-10 place-items-center font-count text-[20px] leading-none text-on-space @max-[640px]/column:top-7 @max-[640px]/column:h-6 @max-[640px]/column:w-[22px] @max-[640px]/column:text-[15px]";
 
 /** While the turn waits for an agent: the key that turns the teacher on, when none is here and
  *  godspeed is not starting one by itself, and the teacher's panel does not show its own. */

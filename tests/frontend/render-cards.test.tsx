@@ -24,7 +24,6 @@ import { JobsContext } from "../../src/frontend/components/jobs-context.ts";
 import { ChatActionsContext } from "../../src/frontend/components/chat-actions-context.ts";
 import type { JobRecord } from "../../src/shared/core/contracts.ts";
 import { AnsweredCard } from "../../src/frontend/components/answered-card.tsx";
-import { LessonStepsContext } from "../../src/frontend/components/lesson/step-context.ts";
 import {
 	buildAnswer,
 	normalizeOptions,
@@ -289,14 +288,10 @@ describe("render smoke tests", () => {
 		);
 	});
 
-	it("AnsweredCard shows the plan step it checked (Check, step N)", () => {
+	it("AnsweredCard names its kind and not its step, which the sheet's tab says", () => {
 		const answer = buildAnswer(quizQD(), { values: ["Mercury"] });
-		const html = renderToStaticMarkup(
-			<LessonStepsContext.Provider value={new Map([["n2", 10]])}>
-				<AnsweredCard answer={answer} input={{ ...quizInput, nodeId: "n2" }} />
-			</LessonStepsContext.Provider>,
-		);
-		assert.match(html, /data-testid="answer-kind"[^>]*>Quiz, step 10</);
+		const html = renderToStaticMarkup(<AnsweredCard answer={answer} input={{ ...quizInput, nodeId: "n2" }} />);
+		assert.match(html, /data-testid="answer-kind"[^>]*>Quiz</);
 		assert.match(html, />Right</);
 	});
 

@@ -11,7 +11,6 @@ import { useFold } from "@/frontend/components/use-fold";
 import { cn } from "@/frontend/lib/utils";
 import { answerForPresentation, citeLabel, confidenceLevel, questionKindLabel, type KeptCardData, type QuestionAnswerData } from "@/shared/core";
 import { keptCardView } from "./kept-card-model";
-import { useStepNumber } from "./step-context";
 
 /** A quiet word button on the card. */
 const QUIET_BTN = "lh-btn lh-btn-small lh-btn-quiet shrink-0";
@@ -69,7 +68,6 @@ export function KeptCard({ kept, answer: savedAnswer, input, toolCallId }: { kep
 	const why = useFold(whyOpen);
 	const phrase = useFold(view.phrase?.shown ?? false);
 	const analogy = useFold(view.analogy?.shown ?? false);
-	const step = useStepNumber(input);
 	const answer = answerForPresentation(savedAnswer, input);
 	const drop = actions?.dropKept;
 	// Dropping or bringing back the phrase removes the button he pressed, so
@@ -148,7 +146,6 @@ export function KeptCard({ kept, answer: savedAnswer, input, toolCallId }: { kep
 							<ResultTag tone="right">Right</ResultTag>
 							<span className="font-count text-[15px] text-ink-2">
 								{questionKindLabel(answer.tool ?? "quiz", answer.questionType)}
-								{step !== undefined && `, step ${step}`}
 								{answer.confidence != null && `, sure ${confidenceLevel(answer.confidence)} of 5`}
 							</span>
 						</div>

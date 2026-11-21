@@ -6,6 +6,7 @@ import { SessionMessageNavigation } from "@/frontend/components/session-navigati
 import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
+import { holdPageHeight } from "./lesson-scroll-hold";
 import { type Pads, restingTop, wholeLineTop } from "./lesson-scroll-model";
 
 /**
@@ -204,9 +205,7 @@ export function LessonScroll({
 		ro.observe(column);
 		return () => ro.disconnect();
 	}, [contextRef]);
-	// While the teacher works, and until its reply has landed, the page never gets shorter. WebKit lays
-	// the page out between a row leaving and the row that replaces it arriving (the desk taking Stop,
-	// the reply's steps, the desk leaving before the reply), and would pull the page up by the gap.
+	// The page keeps its height while the teacher works, and until its reply has landed.
 	useLayoutEffect(() => {
 		const page = pageRef.current;
 		if (!page) return;
@@ -214,12 +213,10 @@ export function LessonScroll({
 			const timer = setTimeout(() => (page.style.minHeight = ""), Math.max(0, landing.current - performance.now()));
 			return () => clearTimeout(timer);
 		}
-		const ro = new ResizeObserver(() => {
-			page.style.minHeight = `${page.offsetHeight}px`;
-		});
-		ro.observe(page);
-		return () => ro.disconnect();
-	}, [busy]);
+		const scroller = contextRef.current?.scrollRef.current;
+		if (!scroller) return;
+		return holdPageHeight(page, scroller);
+	}, [busy, contextRef]);
 	const firstKey = useRef(restKey);
 	useLayoutEffect(() => {
 		replyRef.current = false;

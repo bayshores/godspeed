@@ -40,7 +40,7 @@ import { holdsDraft } from "@/frontend/components/lesson/lesson-drafts-model";
 import { lastLearnerText, lessonError, retryAction } from "@/frontend/components/lesson/lesson-error-model";
 import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts";
 import { useArrivals } from "@/frontend/components/lesson/arrivals";
-import { LessonStepsContext, answerAnchorSelector } from "@/frontend/components/lesson/step-context";
+import { answerAnchorSelector } from "@/frontend/components/lesson/card-anchors";
 import { practiceProgress } from "@/frontend/components/lesson/practice-progress";
 import { useLessonServer, type LessonStats } from "@/frontend/components/lesson/use-lesson-server";
 import { useTitleRename } from "@/frontend/components/lesson/use-title-rename";
@@ -58,7 +58,6 @@ import { lastAnswered, turnNext, turnDrawn, type NextAction } from "@/frontend/c
 import { nothingWritten, titleEcho } from "@/frontend/components/lesson/wait-model";
 import type { QuestionHandle } from "@/frontend/components/question-dock";
 import { useTerminalLines } from "@/frontend/components/terminal/use-terminal-lines";
-import { Pane } from "@/frontend/components/ui/pane";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
@@ -546,117 +545,114 @@ export function Chat({
 		<ChatActionsContext.Provider value={chatActions}>
 			<SessionMermaidContext.Provider value={overlays.mermaidActions}>
 				<JobsContext.Provider value={jobs}>
-					<LessonStepsContext.Provider value={stepNumbers}>
-						<div className="@container/lesson flex h-full min-w-0 flex-1 flex-col">
-							<LessonBar
-								chatId={chatId}
-								rename={rename}
-								spaceId={spaceId}
-								doc={shownDoc ? { open: panel === "document", onToggle: () => togglePanel("document") } : undefined}
-								sheet={spaceId ? { open: panel === "sheet", onToggle: () => togglePanel("sheet") } : undefined}
-								plugins={{ words: lessonPlugins ?? [], open: openPlugin?.id ?? null, onToggle: togglePlugin }}
-								usage={{ turns, contextTokens, summarizeAt, pricing }}
-								scopeRef={sessionFindScopeRef}
-								scrollContextRef={scrollContextRef}
-							/>
-							<PluginWindow plugin={openPlugin} context={pluginContext} onClose={closePlugin} />
-							<div className="min-h-0 flex-1">
-								<div ref={sessionFindScopeRef} data-dock={panel ? "" : undefined} className="lh-dots lh-lesson-body relative h-full">
-									<LessonScroll
-										steps={<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} problemList={planProblems} practice={stablePractice} onJump={jumpToAnswer} onPick={openPick} onOpenPlan={overlays.openPlan} />}
-										restKey={[pending?.toolCallId, problem?.toolCallId, problem?.part, atStop?.stopOf].join(" ")}
-										busy={busy}
-										contextRef={scrollContextRef}
-										reading={
-											turnShows && !textShows ? null : (
-											<Pane data-testid="lesson-reading" className="lh-text-fit flex min-w-0 flex-col">
-												<ReadingPane
-													spaceId={spaceId}
-													echo={echo}
-													messages={messages}
-													phases={phases}
-													status={status}
-													busy={busy}
-													stoppedEmpty={stoppedEmpty}
-													waitingForAgent={waitingForAgent}
-													onStop={atStop ? null : abortInFlightTurn}
-													queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
-													arrivalsLive={arrivalsLive}
-													pageMarks={pageMarks}
-													arrive={arrive}
-												/>
-											</Pane>
-											)
-										}
-										turn={
-											turnShows ? (
-												<TurnSheet
-													// Remounts once the saved drafts are read, so the question starts from them.
-													key={draftsLoaded ? "drafts" : "loading"}
-													spaceId={spaceId}
-													pending={pending}
-													initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
-													onSaveQuestionDraft={(form) => {
-														if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
-													}}
-													onSubmitAnswer={onSubmitAnswer}
-													onSkipQuestion={() => setAbortAsk("question")}
-													reviewRefused={reviewRefused}
-													problem={problem}
-													problemPicked={problemPicked}
-													onPickProblem={pickProblem}
-													onDiscardProblem={() => setAbortAsk("problem")}
-													next={next}
-													answered={answered}
-													onNext={onNext}
-													busy={busy}
-													boxRef={workBoxRef}
-													value={text}
-													onChange={editText}
-													onSend={sendBox}
-													onHelpLine={(line) => void sendLine(line, [])}
-													attachments={attachments}
-													questionRef={questionRef}
-													stuck={stuckLine}
-													error={errorLine}
-												/>
-											) : null
-										}
-									/>
-									{dock.mounted && (
-										<div data-state={dock.state} className="lh-fade flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap) [grid-area:dock]">
-											{lastPanel.current === "document" && shownDoc ? (
-												<DocumentPanel
-													choices={docChoices}
-													shown={shownDoc}
-													place={place}
-													seq={docSeq}
-													onPick={(id) => updateDock({ fileId: id })}
-													onRetry={() => void reloadDocuments()}
-													onClose={() => updateDock({ panel: null })}
-												/>
-											) : lastPanel.current === "sheet" && spaceId ? (
-												<SheetDock
-													spaceId={spaceId}
-													sessionDeadlineId={deadlineId}
-													picked={lessonDock.state.deadlineId}
-													onPick={(id) => updateDock({ deadlineId: id })}
-													onClose={() => updateDock({ panel: null })}
-												/>
-											) : null}
-										</div>
-									)}
+					<div className="@container/lesson flex h-full min-w-0 flex-1 flex-col">
+						<LessonBar
+							chatId={chatId}
+							rename={rename}
+							spaceId={spaceId}
+							doc={shownDoc ? { open: panel === "document", onToggle: () => togglePanel("document") } : undefined}
+							sheet={spaceId ? { open: panel === "sheet", onToggle: () => togglePanel("sheet") } : undefined}
+							plugins={{ words: lessonPlugins ?? [], open: openPlugin?.id ?? null, onToggle: togglePlugin }}
+							usage={{ turns, contextTokens, summarizeAt, pricing }}
+							scopeRef={sessionFindScopeRef}
+							scrollContextRef={scrollContextRef}
+						/>
+						<PluginWindow plugin={openPlugin} context={pluginContext} onClose={closePlugin} />
+						<div className="min-h-0 flex-1">
+							<div ref={sessionFindScopeRef} data-dock={panel ? "" : undefined} className="lh-dots lh-lesson-body relative h-full">
+								<LessonScroll
+									steps={<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} problemList={planProblems} practice={stablePractice} onJump={jumpToAnswer} onPick={openPick} onOpenPlan={overlays.openPlan} />}
+									restKey={[pending?.toolCallId, problem?.toolCallId, problem?.part, atStop?.stopOf].join(" ")}
+									busy={busy}
+									contextRef={scrollContextRef}
+									reading={
+										turnShows && !textShows ? null : (
+										<ReadingPane
+											spaceId={spaceId}
+											stepNumbers={stepNumbers}
+											echo={echo}
+											messages={messages}
+											phases={phases}
+											status={status}
+											busy={busy}
+											stoppedEmpty={stoppedEmpty}
+											waitingForAgent={waitingForAgent}
+											onStop={atStop ? null : abortInFlightTurn}
+											queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
+											arrivalsLive={arrivalsLive}
+											pageMarks={pageMarks}
+											arrive={arrive}
+										/>
+										)
+									}
+									turn={
+										turnShows ? (
+											<TurnSheet
+												// Remounts once the saved drafts are read, so the question starts from them.
+												key={draftsLoaded ? "drafts" : "loading"}
+												spaceId={spaceId}
+												pending={pending}
+												initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
+												onSaveQuestionDraft={(form) => {
+													if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
+												}}
+												onSubmitAnswer={onSubmitAnswer}
+												onSkipQuestion={() => setAbortAsk("question")}
+												reviewRefused={reviewRefused}
+												problem={problem}
+												problemPicked={problemPicked}
+												onPickProblem={pickProblem}
+												onDiscardProblem={() => setAbortAsk("problem")}
+												next={next}
+												answered={answered}
+												onNext={onNext}
+												busy={busy}
+												boxRef={workBoxRef}
+												value={text}
+												onChange={editText}
+												onSend={sendBox}
+												onHelpLine={(line) => void sendLine(line, [])}
+												attachments={attachments}
+												questionRef={questionRef}
+												stuck={stuckLine}
+												error={errorLine}
+											/>
+										) : null
+									}
+								/>
+								{dock.mounted && (
+									<div data-state={dock.state} className="lh-fade flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap) [grid-area:dock]">
+										{lastPanel.current === "document" && shownDoc ? (
+											<DocumentPanel
+												choices={docChoices}
+												shown={shownDoc}
+												place={place}
+												seq={docSeq}
+												onPick={(id) => updateDock({ fileId: id })}
+												onRetry={() => void reloadDocuments()}
+												onClose={() => updateDock({ panel: null })}
+											/>
+										) : lastPanel.current === "sheet" && spaceId ? (
+											<SheetDock
+												spaceId={spaceId}
+												sessionDeadlineId={deadlineId}
+												picked={lessonDock.state.deadlineId}
+												onPick={(id) => updateDock({ deadlineId: id })}
+												onClose={() => updateDock({ panel: null })}
+											/>
+										) : null}
+									</div>
+								)}
 
-									<LessonOverlays
-										overlays={overlays}
-										planTree={planTree}
-										messages={messages}
-										abort={{ mode: abortAsk, onClose: () => setAbortAsk(null), onConfirm: confirmAbort, busy: busy && pending?.appPosed?.kind !== "review" }}
-									/>
-								</div>
+								<LessonOverlays
+									overlays={overlays}
+									planTree={planTree}
+									messages={messages}
+									abort={{ mode: abortAsk, onClose: () => setAbortAsk(null), onConfirm: confirmAbort, busy: busy && pending?.appPosed?.kind !== "review" }}
+								/>
 							</div>
 						</div>
-					</LessonStepsContext.Provider>
+					</div>
 				</JobsContext.Provider>
 			</SessionMermaidContext.Provider>
 		</ChatActionsContext.Provider>

@@ -1,5 +1,6 @@
 //! Started by the desktop shell (`LH_SHELL=1`), the server says it is ready on stdout, logs the
-//! window in with a token the shell sent, and stops when its stdin closes.
+//! window in with a token the shell sent, keeps hearing the shell after a typed line, and stops
+//! when its stdin closes.
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
@@ -68,6 +69,15 @@ fn get(port: u16, target: &str, headers: &str) -> String {
 	answer.split("\r\n\r\n").next().unwrap().to_owned()
 }
 
+/// The status line of a PUT with a JSON body, sent as the window sends it.
+fn put(port: u16, target: &str, secret: &str, body: &str) -> String {
+	let mut conn = TcpStream::connect(("127.0.0.1", port)).unwrap();
+	write!(conn, "PUT {target} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\nCookie: gs_desktop={secret}\r\nSec-Fetch-Site: same-origin\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}", body.len()).unwrap();
+	let mut answer = String::new();
+	conn.read_to_string(&mut answer).unwrap();
+	answer.split("\r\n").next().unwrap().to_owned()
+}
+
 fn free_port() -> u16 {
 	std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap().local_addr().unwrap().port()
 }
@@ -116,6 +126,29 @@ fn a_login_token_opens_the_api_once() {
 
 	assert!(get(port, "/api/nothing-here", &window).starts_with("HTTP/1.1 404"), "the window's cookie gets through");
 	assert!(get(port, "/api/nothing-here", &format!("Cookie: gs_desktop={secret}\r\nSec-Fetch-Site: cross-site\r\n")).starts_with("HTTP/1.1 403"));
+
+	drop(child.stdin.take());
+	child.wait().unwrap();
+	std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn still_answers_the_shell_after_enter_in_the_teachers_terminal_during_a_lesson() {
+	let dir = temp_dir();
+	let secret = "5e".repeat(32);
+	let port = free_port();
+	let (mut child, mut out) = start(&dir, port, Some(&secret));
+	let teacher = "ab".repeat(16);
+	let stdin = child.stdin.as_mut().unwrap();
+	writeln!(stdin, "{{\"t\":\"terminals\",\"live\":[\"{teacher}\"],\"teacher\":\"{teacher}\"}}").unwrap();
+	// An answer to a later message says the server took the one before.
+	writeln!(stdin, "{{\"t\":\"agent_folder\",\"id\":1}}").unwrap();
+	assert_eq!(answer(&mut out), "{\"t\":\"agent_folder\",\"id\":1,\"folder\":null}\n");
+	assert_eq!(put(port, "/api/talk-page", &secret, "{\"page\":\"lesson\",\"path\":null,\"space\":null}"), "HTTP/1.1 200 OK");
+
+	writeln!(stdin, "{{\"t\":\"typed\",\"terminal\":\"{teacher}\"}}").unwrap();
+	writeln!(stdin, "{{\"t\":\"agent_folder\",\"id\":2}}").unwrap();
+	assert_eq!(answer(&mut out), "{\"t\":\"agent_folder\",\"id\":2,\"folder\":null}\n");
 
 	drop(child.stdin.take());
 	child.wait().unwrap();

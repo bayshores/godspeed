@@ -13,7 +13,6 @@ import { isPrediction } from "@/frontend/components/answered-card-model";
 import { PhaseDivider } from "@/frontend/components/phase-divider";
 import { ThinkingCard, type PracticeThinkingData } from "@/frontend/components/practice-cards";
 import { CompactionCutDivider, type CompactionDividerData } from "@/frontend/components/compaction-divider";
-import { Separator } from "@/frontend/components/ui/separator";
 import { cn } from "@/frontend/lib/utils";
 import {
 	firstSourceTextParts,
@@ -55,6 +54,9 @@ interface MessageRowProps {
 	/** Each Study topic's stored page mark, by the text it sits in (topicPageMarks). */
 	pageMarks: ReadonlyMap<string, string>;
 	arrive: Arrive;
+	/** The parts this row draws, for a reply that runs over two sheets (stepSheets): `from` up to, not including, `to`. All of them when left out. */
+	from?: number;
+	to?: number;
 }
 
 /** Never drawn: the teacher's own scaffolding (space and graph context), read by the desk and the
@@ -77,7 +79,7 @@ export function messageShows(m: LhViewMessage, echo: boolean, openProblem: strin
  * streams only the message being written redraws — every other row keeps
  * its previous message object (reuseUnchangedMessages) and skips.
  */
-export const MessageRow = memo(function MessageRow({ message: m, spaceId, index: mi, echo, teachSeam, streamingLast, hideSteps, pageMarks, arrive }: MessageRowProps) {
+export const MessageRow = memo(function MessageRow({ message: m, spaceId, index: mi, echo, teachSeam, streamingLast, hideSteps, pageMarks, arrive, from = 0, to = m.parts.length }: MessageRowProps) {
 	if (m.role === "user" && isSubagentSteer(m)) {
 		// Sub-agent delivery: no bubble — the artifact card sits in the column.
 		return (
@@ -112,7 +114,7 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 		return <UserMessage message={m} spaceId={spaceId} echo={echo} className={arrive(`${mi}`)} />;
 	}
 	// The teach seam's step: -1 = before the whole group; a later index =
-	// at that step boundary, replacing its plain hairline.
+	// at that step boundary, in place of its room.
 	const seamStep = teachSeam ? teachStepIndex(m.parts) : null;
 	// A native message lives in exactly one view group, so the row can pick
 	// its anchors alone.
@@ -121,15 +123,15 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 	const pages = excerptParts(m.parts, pageMarks);
 	return (
 		<Fragment>
-			{seamStep === -1 && <PhaseDivider phase="teach" />}
+			{seamStep === -1 && from === 0 && <PhaseDivider phase="teach" />}
 			<Message className="max-w-full">
 				<MessageContent className="w-full">
-				{m.parts.map((part, pi) => (
+				{m.parts.map((part, pi) => pi >= from && pi < to && (
 					<AssistantPart
 						key={part.type === "text" ? part.id || pi : pi}
 						part={part}
 						slot={`${mi}:${pi}`}
-						separator={separators.has(pi)}
+						separator={separators.has(pi) && pi > from}
 						teachBoundary={seamStep === pi}
 						anchor={part.type === "text" && part.id && anchors.has(part.id) ? part.id : undefined}
 						page={pages.get(pi)}
@@ -203,7 +205,7 @@ function AssistantPart({
 }: {
 	part: LhViewPart;
 	slot: string;
-	/** Draw this step-start's hairline (drawnSeparators). */
+	/** This step-start sits between two replies that both draw (drawnSeparators): room is left there. */
 	separator: boolean;
 	teachBoundary: boolean;
 	anchor?: string;
@@ -246,7 +248,7 @@ function AssistantPart({
 						<PhaseDivider phase="teach" />
 					</div>
 				);
-			return separator && !hideSteps ? <Separator className="my-3" /> : null;
+			return separator && !hideSteps ? <div aria-hidden className="h-3" /> : null;
 		case "tool-quiz":
 		case "tool-probe":
 		case "tool-ask_user_question":

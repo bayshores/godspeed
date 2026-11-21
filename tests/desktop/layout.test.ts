@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, scrolledWords, SCROLL_TO, snapName, standInAgent } from "../../scripts/layout.mjs";
-import { cross, cutOf, inkOf, lineBox, meet, offGap, offInset, outside, probes, scrollerClip, sticksOut } from "../../scripts/layout-page.mjs";
+import { cross, cutOf, inkOf, lineBox, meet, offGap, offInset, outside, probes, roomUnder, scrollerClip, sticksOut } from "../../scripts/layout-page.mjs";
 import { workOf } from "../../scripts/layout-seed.mjs";
 import { SCREENS } from "../../scripts/layout-screens.mjs";
 
@@ -44,6 +44,13 @@ describe("spacing", () => {
 		assert.ok(offGap(22, 24));
 		assert.ok(offGap(32, 24));
 		assert.ok(!offGap(48, 24), "columns that end at different heights");
+	});
+
+	it("a page has empty room when it ends well under the last thing it holds", () => {
+		assert.equal(roomUnder(584, 584), 0);
+		assert.equal(roomUnder(584.4, 583), 0, "rounding");
+		assert.equal(roomUnder(584, 507), 77);
+		assert.equal(roomUnder(500, 584), 0, "what it holds may reach past it");
 	});
 
 	it("a box's sides are off unless all of them match one of the allowed insets", () => {

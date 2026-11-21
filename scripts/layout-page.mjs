@@ -27,6 +27,10 @@
  *   like the tabs.
  * - empty box: a sheet or well (.lh-sheet, .lh-well) at least 160 px wide and 120 px tall that
  *   shows no words, picture, control or writing box: a column with nothing in it.
+ * - empty room: a page (.lh-page) in a box that scrolls is taller than what it holds, so the
+ *   window scrolls into empty page under its last sheet (a height kept from another window size).
+ * - cut start: the question or problem in "Your turn" (.lh-turn-scroll) is scrolled past its
+ *   first line, though the walk did not scroll that box: it opened cut.
  * - broken picture: an image the page shows did not load (a file the server does not hand out
  *   as a picture, or a wrong address).
  *
@@ -451,6 +455,8 @@ export function scrollMain(top) {
 	if (!el) return false;
 	const before = el.scrollTop;
 	el.scrollTop = top === "end" ? el.scrollHeight : top;
+	// Cut start leaves out the box the walk itself scrolled.
+	window.__layoutScrolled = top === 0 ? null : el;
 	return el.scrollTop !== before;
 }
 
@@ -559,6 +565,44 @@ function emptyBoxes() {
 		.map((box) => finding("empty box", [box], `${label(box)} is a box with nothing in it`));
 }
 
+/** How much of a page's box lies under the last thing it holds, in whole pixels; rounding is none. */
+export function roomUnder(pageEnd, lastEnd) {
+	const room = Math.round(pageEnd - lastEnd);
+	return room > SLACK ? room : 0;
+}
+
+/** Empty room: a page that scrolls ends with the last thing it holds. A page that fits its
+ *  window may be taller than what it holds (a short page fills the window). */
+function emptyRooms() {
+	const found = [];
+	for (const page of document.querySelectorAll(".lh-page")) {
+		if (!shown(page)) continue;
+		let scroller = page.parentElement;
+		while (scroller && !SCROLLS.includes(getComputedStyle(scroller).overflowY)) scroller = scroller.parentElement;
+		if (!scroller || scroller.scrollHeight <= scroller.clientHeight + 1) continue;
+		let last = null;
+		let lastEnd = -Infinity;
+		for (const child of page.children) {
+			const style = getComputedStyle(child);
+			if (!shown(child) || ["absolute", "fixed"].includes(style.position)) continue;
+			const end = child.getBoundingClientRect().bottom + parseFloat(style.marginBottom);
+			if (end > lastEnd) [last, lastEnd] = [child, end];
+		}
+		if (!last) continue;
+		const style = getComputedStyle(page);
+		const room = roomUnder(page.getBoundingClientRect().bottom - parseFloat(style.paddingBottom) - parseFloat(style.borderBottomWidth), lastEnd);
+		if (room) found.push(finding("empty room", [page], `${label(last)} ends ${room}px above the end of its page, which the window scrolls into`));
+	}
+	return found;
+}
+
+/** Cut start: a box in "Your turn" found scrolled, when the walk did not scroll it, opened that way. */
+function cutStarts() {
+	return [...document.querySelectorAll(".lh-turn-scroll")]
+		.filter((box) => shown(box) && box.scrollTop > 1 && box !== window.__layoutScrolled)
+		.map((box) => finding("cut start", [box], `${label(box)} is scrolled ${Math.round(box.scrollTop)}px past its first line`));
+}
+
 function brokenPictures() {
 	// The writing box's editor spaces its lines with img elements that have no address.
 	return [...document.querySelectorAll("img[src]")]
@@ -568,7 +612,7 @@ function brokenPictures() {
 
 /** Every finding on the page as it is now, each once. */
 export function checkPage() {
-	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys(), ...emptyBoxes(), ...brokenPictures()];
+	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys(), ...emptyBoxes(), ...emptyRooms(), ...cutStarts(), ...brokenPictures()];
 	const seen = new Set();
 	return all.filter((f) => !seen.has(f.key) && seen.add(f.key));
 }

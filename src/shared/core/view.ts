@@ -39,7 +39,7 @@ import { isQuestionTool, type AppPosed } from "./pending.ts";
 import { dismissedAnswer } from "./question-grading.ts";
 import { shownOpeners, type ShownOpener } from "./topic-end.ts";
 import type { SubagentArtifactData, SubagentResultMeta } from "./contracts/jobs.ts";
-import type { ReviewDetails, ReviewQuestion } from "./contracts/chat.ts";
+import type { OpenerAnswerDetails, ReviewDetails, ReviewQuestion } from "./contracts/chat.ts";
 import { pdfNoteOf, type AttachmentPart } from "./attachments.ts";
 import { joinPlots } from "./plot-view.ts";
 import { joinKept } from "./kept-view.ts";
@@ -62,6 +62,8 @@ export interface LhViewPart extends Record<string, unknown> {
 	data?: unknown;
 	/** An answered question's files (pictures, PDF notes), as their own parts. */
 	files?: LhViewPart[];
+	/** On an opener's lead: the plan node its question starts. */
+	opens?: string;
 }
 
 /** A view message: user (bubble) or assistant (one continuous run). */
@@ -149,9 +151,18 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 	// the Keep going marker sits.
 	const openers = shownOpeners(messages);
 
+	const answeredOpeners = new Set<string>();
+
 	const lastAssistant = (): LhViewMessage | undefined => {
 		const last = out[out.length - 1];
 		return last && last.role === "assistant" ? last : undefined;
+	};
+	/** Adds a step's parts to the teacher's open group, or starts one under `id`. */
+	const pushToGroup = (id: string, parts: LhViewPart[]) => {
+		if (parts.length === 0) return;
+		const group = lastAssistant();
+		if (group) group.parts.push({ type: "step-start" }, ...parts);
+		else out.push({ id, role: "assistant", parts: [{ type: "step-start" }, ...parts] });
 	};
 	const findToolPart = (toolCallId: string): LhViewPart | undefined => {
 		for (let i = out.length - 1; i >= 0; i--) {
@@ -205,7 +216,15 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 		}
 
 		if (role === "custom") {
-			projectMarker(m as LhMarkerMessage, out);
+			const marker = m as LhMarkerMessage;
+			// An answered opener's card draws where he answered, under whatever was said since it was posed.
+			const opener = marker.customType === "opener-answer" ? openers.get((marker.details as OpenerAnswerDetails | null | undefined)?.topicDoneCallId ?? "") : undefined;
+			if (opener?.answer?.timestamp === marker.timestamp && !answeredOpeners.has(opener.topicDoneCallId)) {
+				answeredOpeners.add(opener.topicDoneCallId);
+				pushToGroup(`opener_${opener.topicDoneCallId}_answer`, [openerQuestion(opener)]);
+				continue;
+			}
+			projectMarker(marker, out);
 			continue;
 		}
 
@@ -221,11 +240,7 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 			}
 			applyResultTo(findToolPart(result.toolCallId), result);
 			const opener = openers.get(result.toolCallId);
-			if (opener) {
-				const group = lastAssistant();
-				if (group) group.parts.push({ type: "step-start" }, ...openerParts(opener));
-				else out.push({ id: `opener_${opener.topicDoneCallId}`, role: "assistant", parts: [{ type: "step-start" }, ...openerParts(opener)] });
-			}
+			if (opener) pushToGroup(`opener_${opener.topicDoneCallId}`, openerParts(opener));
 			continue;
 		}
 
@@ -325,10 +340,17 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 	return out;
 }
 
-/** A shown opener's parts: its lead as teacher text, then its question as
- *  a quiz part the app posed. Answered once an opener-answer exists; a skip
- *  shows as a skipped question. */
+/** A shown opener where it was posed: its lead as teacher text, then its
+ *  question while it waits. Once answered, the question draws at its answer. */
 function openerParts(opener: ShownOpener): LhViewPart[] {
+	const opens = typeof opener.quiz.nodeId === "string" ? { opens: opener.quiz.nodeId } : {};
+	const lead: LhViewPart[] = opener.lead ? [{ type: "text", id: openerLeadId(opener.topicDoneCallId), text: opener.lead, state: "done", ...opens }] : [];
+	return opener.answer ? lead : [...lead, openerQuestion(opener)];
+}
+
+/** An opener's question as a quiz part the app posed. Answered once an
+ *  opener-answer exists; a skip shows as a skipped question. */
+function openerQuestion(opener: ShownOpener): LhViewPart {
 	const question: LhViewPart = {
 		type: "tool-quiz",
 		toolCallId: openerQuestionId(opener.topicDoneCallId),
@@ -341,7 +363,7 @@ function openerParts(opener: ShownOpener): LhViewPart[] {
 		question.state = "output-available";
 		question.output = opener.answer.answer ?? { ...dismissedAnswer("quiz", String(opener.quiz.question ?? "")), answeredAt };
 	}
-	return [...(opener.lead ? [{ type: "text", id: openerLeadId(opener.topicDoneCallId), text: opener.lead, state: "done" }] : []), question];
+	return question;
 }
 
 /** The question part id of a shown opener. */
@@ -618,8 +640,8 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 			return;
 		case "keep-going":
 		case "opener-answer":
-			// Drawn at the stop instead: the opener's parts after its
-			// topic_done result (openerParts), answered by its answer.
+			// The opener draws from its topic_done result (openerParts) and
+			// its first answer (openerQuestion); nothing else is drawn here.
 			return;
 		case "app-note":
 			// Hidden lines for the agent only.
