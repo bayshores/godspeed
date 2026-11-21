@@ -177,7 +177,7 @@ export function YourTurn({
 	const boxAlone = quiet && (busy || !next?.next.line);
 	// With a "My words" ask, the key that ends the day sits in the box beside Skip and Save.
 	const rowKey = ask === null && !quiet;
-	// Under the title where there is one, so the sheet needs no row of its own for it.
+	// On the title's row, set right, where there is a title, so the sheet needs no row of its own for it.
 	const saved = notes && <NotesSaved notes={notes} />;
 	const nextButton = nextKey && (
 		<button type="button" data-testid="next-problem-button" data-action={nextKey.action} onClick={() => onNext(nextKey.action)} className="lh-btn lh-btn-main ml-auto shrink-0">
@@ -194,7 +194,7 @@ export function YourTurn({
 			{!quiet && (
 			<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
 				<h2 className="text-[28px] leading-tight text-ink">{title}</h2>
-				{saved}
+				{saved && <div className="ml-auto">{saved}</div>}
 				{/* The keys stay on the title's line while they fit: a file's name shortens before a key drops under the title. */}
 				<div data-testid="turn-keys" className={cn("flex flex-1 basis-0 items-center justify-end gap-x-2 empty:hidden", fileShown ? "min-w-[min(100%,19rem)]" : "min-w-fit")}>
 					{fileShown && <ProblemFile file={fileShown} />}
@@ -246,8 +246,8 @@ export function YourTurn({
 						{rowKey && nextButton}
 					</div>
 				)}
+				{notes && <EndNotes notes={notes} scroll={quiet} />}
 			</TurnScroll>
-			{notes && <EndNotes notes={notes} scroll={quiet} />}
 			{quiet && saved}
 			</>
 			)}
