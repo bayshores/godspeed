@@ -33,8 +33,8 @@ impl Nudge {
 /// Added to the question list's refusal while a problem is open.
 pub const OPEN_PROBLEM_NOTE: &str = "A problem is open: its parts are already asked; don't list them again.";
 
-/// More plain prose than this after his own message or a miss is sent back once. The owner's
-/// lessons: the replies he rejected ran 159 to 271 words, while an 80-word cap hit 44% of replies.
+/// More plain prose than this after the learner's own message or a miss is sent back once
+/// (docs/teaching-methodology.md says why 150).
 pub const WALL_WORDS: usize = 150;
 
 /// What the teacher reads when a reply of `words` words of prose is sent back.

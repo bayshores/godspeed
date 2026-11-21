@@ -48,7 +48,7 @@ impl ModelDownload {
 				None => {
 					let (tx, rx) = watch::channel(None);
 					*pending = Some(rx.clone());
-					gs_base::tasks::spawn("transcribe", download_and_report(self.pending.clone(), url.to_owned(), file, tx));
+					gs_base::tasks::detach("transcribe", download_and_report(self.pending.clone(), url.to_owned(), file, tx));
 					rx
 				}
 			}

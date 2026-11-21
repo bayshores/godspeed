@@ -16,6 +16,7 @@ use super::native_messages::{
 use super::app_notes::opener_answer_text;
 use super::lesson_markers::new_opener_answer_marker;
 use super::pending::answer_takes_files;
+use crate::spaces::problem_list::lesson_list_owner;
 use crate::study::topic_end::shown_openers;
 
 /// A malformed input event: the honest 400.
@@ -270,13 +271,7 @@ pub fn input_appends(record: &Json, input: &ChatInput, attachments: &[Json]) -> 
 			Ok(with_dismissal_conclusion(messages, new_next_message()))
 		}
 		ChatInput::Open { number } => {
-			// A homework lesson and a lesson on files have a problem list to pick from.
-			let listed = match record["kind"].as_str() {
-				Some("homework") => true,
-				Some("study") => !record["fileIds"].items().is_empty(),
-				_ => false,
-			};
-			if !listed {
+			if lesson_list_owner(record).is_none() {
 				return refuse("open input is for a lesson with a problem list");
 			}
 			if dangling_question_of(messages).is_some() {

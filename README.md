@@ -85,7 +85,7 @@ It isn't noticeably faster to use, it's just a lot smaller and lighter on your c
 | Files | PDFs, Word and PowerPoint files, EPUB books, notes, code, transcripts and lecture recordings. Or link a folder, Google Drive works too. |
 | Deadlines | Exams, homework, quizzes, projects and interviews. Home shows the next one big, with a button to start studying for it, and the week ahead as seven day columns with a Later column after them. |
 | Paths | No syllabus? Tell your agent your goal, like "I want to become a backend developer", and it writes a path of topics in order. Study takes the next one you haven't got down yet. |
-| Knowledge graph | What you've learned, as one picture of the space that zooms like a map. Each topic is a figure of its facts, and a fact lights up as you get it right. |
+| Knowledge graph | What your files and lessons cover, as one picture of the space that zooms like a map. Each topic is a figure of its facts, and a fact lights up as you get it right. |
 | Progress | How ready you are for each deadline, and whether your confidence matches your results. |
 | Homework | Attach the assignment and the teacher goes through it one problem at a time. It gives you hints but never the answer. |
 | Mocks | Take a mock on any exam, quiz or interview deadline, timed or not. |
@@ -126,6 +126,7 @@ What you learn is saved as facts linked back to the lesson they came from, so th
 Download it with the buttons at the top, and it updates itself after that.
 
 - Mac needs macOS 14 or newer.
+- Claude Code needs version 2.1.330 or newer. If godspeed says it needs an update, run `claude update`.
 - Windows will say "Windows protected your PC" because the app isn't signed there. Click **More info**, then **Run anyway**.
 - Linux also has a [.deb](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-linux-x64.deb) for Ubuntu 22.04 or newer and Debian 12 or newer.
 

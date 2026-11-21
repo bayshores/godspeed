@@ -18,7 +18,3 @@ export function zoomIndex(factor: number): number {
 export function zoomFactor(index: number): number {
 	return LADDER[index]!;
 }
-
-export function zoomLabel(index: number): string {
-	return `${Math.round(zoomFactor(index) * 100)}%`;
-}

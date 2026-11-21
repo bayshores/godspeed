@@ -28,13 +28,13 @@ const MATERIALS: &str = "term (definitions, names, notation or values to know by
 /// How many of a topic's facts the placing job names, to show what the topic holds.
 const TOPIC_SAMPLE_FACTS: usize = 6;
 
-pub fn topic_grouper_instructions() -> String {
+pub(super) fn topic_grouper_instructions() -> String {
 	format!(
 		"You are the topic grouper of a learning app. You receive the facts of one space's knowledge graph (id, name, statement) and the space's current topics, if any.\n\n{TOPIC_GROUPING_RULE}\n\nAlso give each topic its material, the main work it asks of a learner: {MATERIALS}.\n\nSubmit the whole grouping with one submit_topics call. For a topic that already exists, keep its id; leave id out for a new topic. Members are fact ids from the list."
 	)
 }
 
-pub fn topic_placer_instructions() -> String {
+fn topic_placer_instructions() -> String {
 	format!(
 		"You are the topic grouper of a learning app. You receive the new facts of one space's knowledge graph (id, name, statement) and the space's topics (id, name, some of the facts each holds).\n\n{TOPIC_PLACING_RULE}\n\nGive each new topic its material, the main work it asks of a learner: {MATERIALS}.\n\nSubmit every placement with one submit_topics call: one topic for each that gets new facts, with its id when it exists and no id when it is new. Members are the new facts' ids only."
 	)
@@ -82,7 +82,7 @@ pub struct TopicGrouperInput {
 
 
 /// The facts one per line, then the current topics as JSON.
-pub fn topic_grouper_prompt(space_name: &str, facts: &[Json], current: &[Json]) -> String {
+fn topic_grouper_prompt(space_name: &str, facts: &[Json], current: &[Json]) -> String {
 	let lines: Vec<String> = facts.iter().map(|f| format!("{} | {} | {}", f["id"].str_or_empty(), f["name"].str_or_empty(), collapse_spaces(f["statement"].str_or_empty()))).collect();
 	let current = if current.is_empty() {
 		"(none yet \u{2014} this is the first grouping)".to_owned()
@@ -94,7 +94,7 @@ pub fn topic_grouper_prompt(space_name: &str, facts: &[Json], current: &[Json]) 
 }
 
 /// The new facts one per line, then each topic on a line with the names of some of its facts.
-pub fn topic_placer_prompt(space_name: &str, facts: &[Json], loose: &[String], current: &[Json]) -> String {
+fn topic_placer_prompt(space_name: &str, facts: &[Json], loose: &[String], current: &[Json]) -> String {
 	let name_of = |id: &str| facts.iter().find(|f| f["id"].as_str() == Some(id)).map_or("", |f| f["name"].str_or_empty());
 	let new: Vec<String> = facts.iter().filter(|f| loose.iter().any(|id| f["id"].as_str() == Some(id))).map(|f| format!("{} | {} | {}", f["id"].str_or_empty(), f["name"].str_or_empty(), collapse_spaces(f["statement"].str_or_empty()))).collect();
 	let topics: Vec<String> = current

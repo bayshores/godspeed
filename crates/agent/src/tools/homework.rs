@@ -34,9 +34,7 @@ pub trait ProblemList: Send + Sync {
 	fn mark_done(&self, number: &str);
 	/// The one file every posted problem is printed in: a lesson on files' first file. None for a
 	/// deadline, whose problems may come from any file of the space.
-	fn file_id(&self) -> Option<String> {
-		None
-	}
+	fn file_id(&self) -> Option<String>;
 }
 
 #[derive(Clone)]
@@ -280,6 +278,9 @@ mod tests {
 			for p in self.0.lock().iter_mut().filter(|p| p["number"].as_str() == Some(number)) {
 				p.as_obj_mut().unwrap().insert("done", true);
 			}
+		}
+		fn file_id(&self) -> Option<String> {
+			None
 		}
 	}
 

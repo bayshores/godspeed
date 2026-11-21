@@ -7,6 +7,7 @@
  */
 import { pageCaption, type ChatAttachment, type SheetRegion, type SheetVersion } from "@/shared/core";
 import { zoomAt, type Camera } from "@/frontend/lib/camera";
+import { wheelUnit } from "@/frontend/lib/own-wheel";
 
 /** A part of a page the learner drew a box around, ready to send. */
 export interface Pointed {
@@ -152,7 +153,7 @@ interface Wheel {
 /** What a wheel does: a pinch or Ctrl/⌘ + scroll zooms toward the
  *  pointer, any other scroll pans. */
 export function wheelCamera(cam: Camera, e: Wheel, at: { x: number; y: number }): Camera {
-	const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
+	const unit = wheelUnit(e.deltaMode);
 	if (e.ctrlKey || e.metaKey) return zoomAt(cam, clampZoom(cam.zoom * Math.exp((-e.deltaY * unit) / 300)), at);
 	return { ...cam, x: cam.x - e.deltaX * unit, y: cam.y - e.deltaY * unit };
 }

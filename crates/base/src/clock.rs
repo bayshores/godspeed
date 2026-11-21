@@ -46,7 +46,7 @@ pub fn init_from_env() -> Result<(), String> {
 		let start = crate::time::parse_date(&iso).ok_or_else(|| format!("bad GODSPEED_CONTRACT_NOW: {iso}"))?;
 		CLOCK.offset.store(start - real_ms(), Ordering::SeqCst);
 		if let Ok(file) = std::env::var("GODSPEED_CONTRACT_CLOCK_FILE") {
-			crate::tasks::spawn("clock", watch_clock_file(PathBuf::from(file)));
+			crate::tasks::detach("clock", watch_clock_file(PathBuf::from(file)));
 		}
 	}
 	Ok(())

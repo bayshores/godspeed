@@ -15,7 +15,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent, type RefObject } from "react";
 import { rampColor, type FactProgress, type GraphChain, type TopicLink, type TopicProgress } from "@/shared/core";
-import { factCellLabel, factLinks, neighbors, topicCountLine } from "./derive.ts";
+import { factCellLabel, factLinks, neighbors, nothingGrouped, topicCountLine } from "./derive.ts";
 import { NAME_GAP, NAME_LINE, layoutSky, restLines, type Cluster, type Rect, type Seg, type Sky, type Star } from "./constellation-layout.ts";
 import { makeRouter, toStars } from "./constellation-routes.ts";
 import { NAME_PX, fitPicture, namesHidden } from "./constellation-fit.ts";
@@ -265,7 +265,7 @@ export function Constellation({
 	const frame: Frame = useMemo(() => ({ w: shownW, h: Math.max(shownH, height), scale, skyW: sky.width, skyH: sky.height }), [shownW, shownH, height, scale, sky]);
 
 	// No topic yet: the facts are loose squares, with no name, hover or pick of their bucket.
-	const loose = sky.clusters.length > 0 && sky.clusters.every((k) => k.muted);
+	const loose = nothingGrouped(topics);
 	const boxRef = useRef<HTMLDivElement>(null);
 	const { figures, placed } = useFigures(sky, chains, nn);
 	const { cam, zoomed, zMax, flyTo, drag, dragging, landed } = useCamera({ sky, placed, frame, nn, memory: camera, aim, box: boxRef });

@@ -31,7 +31,7 @@ Tests:
 
 `effective_threshold_tokens` caps the summarize point at window minus reserve, but that cap is 183,616, so it never applies.
 
-The threshold measures the lesson's transcript only (`lesson_tokens`): the messages the model sees (the active summary, then every message from the cut onward), estimated as below. The system prompt and tool schemas (about 20,000 tokens) are left out, since no cut can shrink them; counting them kept a shortened lesson over the threshold, so it was cut again every turn. Provider-reported usage is not read here. After a cut the lesson holds the kept tail (about 20,000) and the summary (at most 6,000), so at least 10,000 tokens of new lesson fit before the next cut.
+The threshold measures the lesson's transcript only (`lesson_tokens`): the messages the model sees (the active summary, then every message from the cut onward), estimated as below. The system prompt and tool schemas (about 20,000 tokens) are left out, since no cut can shrink them; counting them would keep a shortened lesson over the threshold, so it would be cut again every turn. Provider-reported usage is not read here. After a cut the lesson holds the kept tail (about 20,000) and the summary (at most 6,000), so at least 10,000 tokens of new lesson fit before the next cut.
 
 1. Past the summarize point the server cuts the record at once and writes its own short version of the dropped part (`local_summary`), at the turn-start gate and when a turn settles, never during a live run.
 2. The compaction marker is written right away with that version. A turn that starts now goes ahead on it.
