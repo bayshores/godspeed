@@ -166,12 +166,12 @@ mod tests {
 		std::fs::create_dir_all(&folder).unwrap();
 		let add = |path: &std::path::Path, lesson_id: &str| actions.add_space_file(&json!({ "space_id": space_id, "path": path.to_string_lossy(), "kind": "info", "lesson_id": lesson_id }));
 		let built = folder.join("Practice test.md");
-		std::fs::write(&built, "Problem 1.").unwrap();
+		gs_base::fsx::write_text_atomic(&built, "Problem 1.").unwrap();
 		let (first, changes) = value(add(&built, &lesson));
 		assert_eq!(changes[0].label, "Adding Practice test.md");
 		assert_eq!(first["file"]["madeFrom"], json!("made/Algebra/Practice test.md"));
 		assert_eq!(first["file"]["lessonId"], json!(lesson));
-		std::fs::write(&built, "Problem 1, fixed.").unwrap();
+		gs_base::fsx::write_text_atomic(&built, "Problem 1, fixed.").unwrap();
 		let (second, changes) = value(add(&built, &lesson));
 		assert_eq!(changes[0].label, "Changing Practice test.md");
 		assert_eq!(second["file"]["id"], first["file"]["id"], "the next build keeps the file's id");
@@ -184,7 +184,7 @@ mod tests {
 
 		// A file from anywhere else is the learner's: a second copy, never replaced.
 		let own = root.join("Notes.md");
-		std::fs::write(&own, "Mine.").unwrap();
+		gs_base::fsx::write_text_atomic(&own, "Mine.").unwrap();
 		for _ in 0..2 {
 			let (copied, _) = value(actions.add_space_file(&json!({ "space_id": space_id, "path": own.to_string_lossy(), "kind": "study" })));
 			assert_eq!(copied["file"].get("madeFrom"), None);
