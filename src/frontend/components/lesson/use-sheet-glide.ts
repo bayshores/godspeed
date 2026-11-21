@@ -6,8 +6,12 @@ import { glideMs, type Box } from "./sheet-glide-model";
 const EASING = "cubic-bezier(0.2, 0, 0, 1)";
 
 const boxOf = (el: HTMLElement): Box => ({ width: el.offsetWidth, height: el.offsetHeight });
-/** The window a sheet is laid out in: the app's, and the lesson's own window when the sheet scrolls in it (it changes size as the pinned "Your turn" does). */
-const roomOf = (el: HTMLElement) => `${window.innerWidth} ${window.innerHeight} ${el.closest(".lh-lesson-window")?.clientHeight ?? ""}`;
+/** The window a sheet is laid out in: the app's, and the lesson's own window when the sheet scrolls in it (it changes size as the pinned
+ *  "Your turn" does, and is laid out for a pinned one a moment after that one left). */
+const roomOf = (el: HTMLElement) => {
+	const lesson = el.closest(".lh-lesson-window");
+	return `${window.innerWidth} ${window.innerHeight} ${lesson?.clientHeight ?? ""} ${lesson?.classList.contains("lh-lesson-pinned") ?? ""}`;
+};
 
 /** Watches the sheets it is given and glides each to its new height; `hold` says whether they take their sizes at once from now. */
 function sheetGlide(): { ref: RefCallback<HTMLElement>; hold: (still: boolean) => void } {
@@ -16,6 +20,14 @@ function sheetGlide(): { ref: RefCallback<HTMLElement>; hold: (still: boolean) =
 	const gliding = new Map<HTMLElement, Animation>();
 	let watch: ResizeObserver | null = null;
 	let still = false;
+	// A window that changed lays the sheets out more than once before the next frame (the height kept while
+	// the teacher works is given up after the first), and none of it glides.
+	let anew = false;
+	const laidOutAnew = () => {
+		if (anew) return;
+		anew = true;
+		requestAnimationFrame(() => (anew = false));
+	};
 	const hold = (now: boolean) => {
 		still = now;
 		if (still) for (const glide of gliding.values()) glide.finish();
@@ -28,7 +40,8 @@ function sheetGlide(): { ref: RefCallback<HTMLElement>; hold: (still: boolean) =
 			const now = { box: boxOf(el), room: roomOf(el) };
 			seen.set(el, now);
 			if (!was) continue;
-			const ms = glideMs(was.box, now.box, was.room === now.room);
+			if (was.room !== now.room) laidOutAnew();
+			const ms = glideMs(was.box, now.box, !anew);
 			if (ms !== null) moves.push({ el, from: was.box.height, to: now.box.height, ms });
 		}
 		if (moves.length === 0 || still || prefersReducedMotion()) return;

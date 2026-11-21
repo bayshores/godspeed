@@ -186,7 +186,7 @@ export function LessonScroll({
 		if (left !== from) el.animate([{ transform: `translateX(${from - left}px)` }, { transform: "none" }], MAKE_ROOM);
 	});
 
-	const rest = usePageRest({ contextRef, roomRef, columnRef, turnRef, footRef, busy, restKey, beside, open, shutting, onShut, onRest });
+	const rest = usePageRest({ contextRef, roomRef, columnRef, turnRef, footRef, busy, pinned, restKey, beside, open, shutting, onShut, onRest });
 	// A step line the lesson opened with is just there; one that arrives later steps in.
 	const stepsRef = useRef<HTMLDivElement>(null);
 	const [stepsLate, setStepsLate] = useState(false);

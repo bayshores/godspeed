@@ -66,6 +66,7 @@ export function usePageRest({
 	turnRef,
 	footRef,
 	busy,
+	pinned,
 	restKey,
 	beside,
 	open,
@@ -79,6 +80,8 @@ export function usePageRest({
 	turnRef: RefObject<HTMLElement | null>;
 	footRef: RefObject<HTMLElement | null>;
 	busy: boolean;
+	/** "Your turn" is pinned under the text's window, not in the page. */
+	pinned: boolean;
 	restKey: string;
 	/** The book lies open in a room wide enough for both pages. */
 	beside: boolean;
@@ -299,9 +302,12 @@ export function usePageRest({
 		return () => ro.disconnect();
 	}, [contextRef]);
 	// The sheets keep their height together while the teacher works, and until its reply has landed.
+	const wasPinned = useRef(pinned);
 	useLayoutEffect(() => {
 		const column = columnRef.current;
 		if (!column) return;
+		const moved = wasPinned.current !== pinned;
+		wasPinned.current = pinned;
 		if (!busy) {
 			// The book's pages on their way keep the column's height themselves (placePage).
 			const free = () => performance.now() >= moveEnd.current && (column.style.minHeight = "");
@@ -310,8 +316,10 @@ export function usePageRest({
 		}
 		const room = roomRef.current;
 		if (!room) return;
+		// "Your turn" left the window's foot for the page, or went back: the height kept was the other layout's.
+		if (moved) column.style.minHeight = "";
 		return holdPageHeight(column, room);
-	}, [busy]);
+	}, [busy, pinned]);
 	const firstKey = useRef(restKey);
 	useLayoutEffect(() => {
 		replyRef.current = false;
