@@ -14,16 +14,20 @@ import { AgentAtWork } from "./agent-at-work";
 import { agentWork } from "./agent-at-work-model";
 import { ArrivalRow, type Arrive } from "./arrivals";
 import { MessageRow } from "./message-row";
+import { PencilLine } from "./pencil-line";
+import { useReplyHold } from "./use-reply-hold";
 import { cardFiles, deskMark, deskState, heldBack } from "./wait-model";
 
 /**
  * THE READING PANE: the lesson as one document on the lesson text's sheet, in
  * the reading type, answered cards inline. The sheet is as tall as its
  * text; the page around it scrolls (LessonScroll).
- * While the teacher works its foot holds the desk (AgentAtWork), which grows
- * to the sheet's foot, with Stop under it; the keys that move the lesson on
- * are in "Your turn". When the reply lands the desk fades out first and the
- * reply is held back until it has gone, so the two never stack.
+ * While the teacher works its foot holds the pencil (PencilLine) with Stop at
+ * the row's end, then, once the teacher plans or takes a step, the desk
+ * (AgentAtWork), which grows to the sheet's foot, with Stop under it; the
+ * keys that move the lesson on are in "Your turn". When the reply lands the desk fades out first and the
+ * reply is held back until it has gone, so the two never stack; under the pencil it is held until
+ * its turn ends (useReplyHold), so its words take the pencil's place in one step.
  * Each message is a memoized row, so streaming redraws only the message
  * being written.
  */
@@ -74,11 +78,18 @@ export function ReadingPane({
 	const desk = useLastWhileClosing(open);
 	const closing = desk.mounted && desk.state === "closed" && !prefersReducedMotion();
 	const shownDesk = open || (closing ? desk.shown : null);
-	const shown = closing && desk.shown ? heldBack(messages, desk.shown.mark) : messages;
+	// The reply's first part or its words are here and the pencil is still up: they wait a moment for the turn to end.
+	const arriving = !!work?.replied || replying?.parts.at(-1)?.type === "reasoning";
+	const early = useReplyHold(busy && !shownDesk && arriving, deskMark(messages));
+	const mark = closing && desk.shown ? desk.shown.mark : early;
+	const shown = mark ? heldBack(messages, mark) : messages;
+	// Until the desk has something to show, the pencil stands where the reply will begin.
 	const foot = (busy || closing) && onStop && (
-		<div className="flex flex-col items-start gap-2 font-ui">
+		<div className="flex flex-col gap-2 font-ui">
 			<QueuedSteersBody steers={queuedSteers} />
-			<div className="flex flex-wrap items-center gap-3">
+			<div className="flex flex-wrap items-center justify-end gap-3">
+				{busy && !shownDesk && <PencilLine state={waitingForAgent ? "waiting" : "working"} />}
+				<span className="flex-1" />
 				{waitingForAgent && <StartKey />}
 				<button type="button" data-testid="stop-turn" onClick={onStop} className="lh-btn lh-btn-quiet">
 					Stop

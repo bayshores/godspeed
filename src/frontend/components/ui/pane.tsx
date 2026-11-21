@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import type { HTMLAttributes, ReactNode, Ref } from "react";
 import { cn } from "@/frontend/lib/utils";
 
 /**
@@ -10,7 +10,7 @@ export function Pane({
 	className,
 	children,
 	...rest
-}: { name?: ReactNode; active?: boolean; children: ReactNode } & HTMLAttributes<HTMLElement>) {
+}: { name?: ReactNode; active?: boolean; children: ReactNode; ref?: Ref<HTMLElement> } & HTMLAttributes<HTMLElement>) {
 	return (
 		<section {...rest} data-active={active || undefined} className={cn("relative lh-sheet", className)}>
 			{name && <h2 className="truncate px-4 pt-3 text-lg text-ink">{name}</h2>}

@@ -1,4 +1,4 @@
-import { useState, type RefObject } from "react";
+import { useContext, useState, type RefObject } from "react";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
 import { DEFAULT_TEACHER_NAME, DONT_KNOW, type DockSelection, type findPendingToolCall, type ProblemChoices, type ProblemPieceText, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
@@ -11,6 +11,7 @@ import { HELP_LINES, lessonBox, lessonIdeas, questionTurn, type BoxAction, type 
 import { OpenProblemPane, type ProblemPicks } from "./open-problem-pane";
 import { ProblemFile, type ProblemFileRef } from "./problem-file";
 import { TurnScroll } from "./turn-scroll";
+import { TurnPinned } from "./turn-pinned";
 import { TurnSwap } from "./turn-swap";
 import { AnsweredTurn } from "./answered-turn";
 import type { NextAction, TurnShown } from "./turn-next-model";
@@ -81,7 +82,11 @@ const EXIT: Record<NonNullable<BoxView["exit"]>, { label: string; testId: string
  * it one row of keys sends a line in one click: "Stuck?" with a question
  * or a problem waiting, "Try asking" with nothing waiting. Beside the lesson text
  * only the question or problem shrinks to fit the window, scrolling in its
- * own box (LessonScroll).
+ * own box (LessonScroll). Pinned at the window's foot under the text
+ * (TurnPinned) it is only as tall as what the learner can do now: with
+ * nothing to answer it has no title and the key that goes on ends the foot
+ * row, and while the teacher works it is the box alone (the lesson text
+ * shows the question just answered).
  */
 export function YourTurn({
 	pending,
@@ -150,11 +155,22 @@ export function YourTurn({
 	const title = fromEarlier ? "From earlier" : !pending && problem?.line ? problem.line : "Your turn";
 
 	const mode = pending ? "question" : problem ? "practice" : shown.kind === "answered" ? "answered" : "next";
+	// Pinned with nothing to answer: no title, the next key ends the foot row, and only a line saying what is next stands over the box.
+	const quiet = useContext(TurnPinned) && !pending && !problem;
+	const boxAlone = quiet && (busy || !next?.next.line);
+	const nextButton = nextKey && (
+		<button type="button" data-testid="next-problem-button" data-action={nextKey.action} onClick={() => onNext(nextKey.action)} className="lh-btn lh-btn-main ml-auto shrink-0">
+			{nextKey.label}
+		</button>
+	);
 
 	return (
 		// The lesson text's inset, so both sheets share their edges.
-		<div data-testid="your-turn" data-mode={mode} className="lh-reading flex min-h-0 flex-1 flex-col gap-7">
-			<TurnSwap swapKey={swapKey}>
+		<div data-testid="your-turn" data-mode={mode} className={cn("lh-reading flex min-h-0 flex-1 flex-col gap-7", quiet && "lh-turn-quiet")}>
+			<TurnSwap swapKey={boxAlone ? "box" : swapKey}>
+			{boxAlone ? null : (
+			<>
+			{!quiet && (
 			<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
 				<h2 className="text-[28px] leading-tight text-ink">{title}</h2>
 				{/* The keys stay on the title's line while they fit: a file's name shortens before a key drops under the title. */}
@@ -172,6 +188,7 @@ export function YourTurn({
 					)}
 				</div>
 			</div>
+			)}
 
 			{reviewRefused && (
 				<p data-testid="review-refused" className="text-base text-ink-2">
@@ -197,21 +214,19 @@ export function YourTurn({
 				)}
 				{!pending && problem && <OpenProblemPane statement={problem.statement} piece={problem.piece} printed={printed} onPieceFail={() => setPieceFailed(problem.toolCallId)} part={problem.part} picks={picks} />}
 				{!pending && !problem && shown.kind === "answered" && <AnsweredTurn answer={shown.answered.answer} />}
-				{next && (next.next.line || nextKey) && (
+				{next && (next.next.line || (nextKey && !quiet)) && (
 					<div data-testid="turn-next" className="flex flex-wrap items-center gap-x-4 gap-y-2">
 						{next.next.line && (
 							<p data-testid="turn-next-line" className={cn("text-[18px] leading-[28px]", next.dim ? "text-ink-2" : "text-ink")}>
 								{next.next.line}
 							</p>
 						)}
-						{nextKey && (
-							<button type="button" data-testid="next-problem-button" data-action={nextKey.action} onClick={() => onNext(nextKey.action)} className="lh-btn lh-btn-main ml-auto">
-								{nextKey.label}
-							</button>
-						)}
+						{!quiet && nextButton}
 					</div>
 				)}
 			</TurnScroll>
+			</>
+			)}
 			</TurnSwap>
 
 			{stuck && (
@@ -234,7 +249,7 @@ export function YourTurn({
 			)}
 
 			<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
-			{(view.help || turn.kind === "ask") && (
+			{(view.help || (turn.kind === "ask" && !(quiet && busy))) && (
 				// Keys that wrap line up under the first key, not under the label.
 				<div data-testid="turn-foot" className="flex items-baseline gap-2.5">
 					<span className="mr-1 shrink-0 text-base text-ink-2">{view.help ? "Stuck?" : "Try asking"}</span>
@@ -249,6 +264,7 @@ export function YourTurn({
 							))
 						)}
 					</div>
+					{quiet && nextButton}
 				</div>
 			)}
 		</div>

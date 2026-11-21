@@ -758,6 +758,47 @@ body {
 		overflow-y: auto;
 	}
 }
+/* In one column the lesson text's sheet fills its window as well, so a short lesson, or one
+   whose first reply is still written, shows no bare page under it. "Your turn" is pinned under
+   that window (.lh-turn-foot) and closer set, so the text keeps more of the room. A question is
+   shown whole before the text is: the text keeps a few lines, and only past that does the
+   question or problem scroll in its own box. */
+@container room (width < 1280px) {
+	.lh-lesson-column:has(> .lh-text-fit) {
+		min-height: calc(100cqh - var(--lh-page-end));
+	}
+	.lh-lesson-pair .lh-lesson-column:has(> .lh-text-fit) {
+		min-height: 100cqh;
+	}
+	.lh-text-fit {
+		flex: 1 1 auto;
+	}
+}
+.lh-turn-foot .lh-turn-fit {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+/* Pinned, the sheet is as tall as what it holds and only gets lower to fit. */
+.lh-turn-foot [data-testid="turn-sheet"],
+.lh-turn-foot [data-testid="turn-sheet"] > .lh-sheet,
+.lh-turn-foot .lh-reading {
+	flex: 0 1 auto;
+}
+.lh-turn-foot .lh-turn-scroll {
+	flex: 1 1 auto;
+	overflow-y: auto;
+}
+.lh-turn-foot {
+	max-height: calc(100% - 136px);
+}
+.lh-turn-foot .lh-reading {
+	padding-block: 28px;
+}
+.lh-turn-foot .lh-reading,
+.lh-turn-foot [data-testid="turn-swap"] {
+	gap: 20px;
+}
 
 /* A reading surface: the lesson text's sheet and "Your turn". */
 .lh-reading {
@@ -767,6 +808,10 @@ body {
 	.lh-reading {
 		padding: 28px var(--lh-reading-inset-narrow) 32px;
 	}
+}
+/* "Your turn" pinned with nothing to answer: a low sheet, so the lesson text keeps the window. */
+.lh-turn-foot .lh-reading.lh-turn-quiet {
+	padding-block: 20px;
 }
 
 /* The answer box is as tall as its text, up to five lines, then scrolls. One line is as tall
@@ -1860,6 +1905,90 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	}
 }
 
+/* The pencil at the foot of the lesson text while the teacher works on a
+   reply (components/lesson/pencil-line.tsx). It writes a line of
+   handwriting in hard steps, lifts, goes back and writes it again over the
+   faded line, so the row is never empty once it has written. The component
+   sets the line's width and step count. Reduced motion: the written line
+   and the pencil at its end, still. */
+.lh-pencil {
+	--lh-pencil-ms: 2600ms;
+	position: relative;
+	flex: none;
+	width: calc(var(--lh-pencil-w) + 32px);
+	height: 32px;
+}
+.lh-pencil-ink,
+.lh-pencil-ghost {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	color: var(--lh-ink-body);
+}
+.lh-pencil-ink {
+	opacity: 0.8;
+	animation: lh-pencil-ink var(--lh-pencil-ms) steps(var(--lh-pencil-steps), end) infinite;
+}
+.lh-pencil-ghost {
+	opacity: 0.3;
+	animation: lh-appear 1ms steps(1, end) calc(var(--lh-pencil-ms) * 0.68) backwards;
+}
+.lh-pencil-tip {
+	position: absolute;
+	bottom: 4px;
+	left: 0;
+	color: var(--lh-tint);
+	animation: lh-pencil-move var(--lh-pencil-ms) steps(var(--lh-pencil-steps), end) infinite;
+}
+.lh-pencil[data-state="waiting"] .lh-pencil-tip {
+	color: var(--lh-ink-3);
+	animation: none;
+}
+@keyframes lh-pencil-ink {
+	0% {
+		clip-path: inset(0 100% 0 0);
+	}
+	68%,
+	86% {
+		clip-path: inset(0 0 0 0);
+		animation-timing-function: steps(1, end);
+	}
+	86.01%,
+	100% {
+		clip-path: inset(0 100% 0 0);
+	}
+}
+@keyframes lh-pencil-move {
+	0% {
+		transform: translate(0, 0);
+	}
+	68% {
+		transform: translate(var(--lh-pencil-w), 0);
+		animation-timing-function: steps(1, end);
+	}
+	74%,
+	86% {
+		transform: translate(calc(var(--lh-pencil-w) + 4px), -6px);
+		animation-timing-function: steps(1, end);
+	}
+	86.01%,
+	100% {
+		transform: translate(0, -6px);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.lh-pencil-ink,
+	.lh-pencil-tip {
+		animation: none;
+	}
+	.lh-pencil-ghost {
+		display: none;
+	}
+	.lh-pencil[data-state="working"] .lh-pencil-tip {
+		transform: translate(var(--lh-pencil-w), 0);
+	}
+}
+
 /* Space cover ink: the studied part of a space's signature, masked with a
    soft edge at --ink. A registered property so the edge can ease: it
    fills in from the left when the page opens, and moves when progress
@@ -1948,8 +2077,10 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 
    - .lh-block-in      a bar block, fact square, sheet of paper or plan
                        item that steps in (--lh-block-delay);
-   - .lh-set           a reply that landed: its blocks step in top to
-                       bottom, 30 ms apart, the eighth and later together;
+   - .lh-set           what replaced a wait: its blocks step in top to
+                       bottom, 30 ms apart, the eighth and later together
+                       (a reply that landed prints line by line instead,
+                       citations/use-print-in.ts);
    - .lh-flash-right/-wrong  a checked answer's card flips to inverse green
                        or red for a beat, then settles;
    - the streaming block cursor blinks. */

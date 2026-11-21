@@ -39,6 +39,7 @@ import { holdsDraft } from "@/frontend/components/lesson/lesson-drafts-model";
 import { lastLearnerText, lessonError, retryAction } from "@/frontend/components/lesson/lesson-error-model";
 import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts";
 import { useArrivals } from "@/frontend/components/lesson/arrivals";
+import { useSheetGlide } from "@/frontend/components/lesson/use-sheet-glide";
 import { LessonStepsContext, answerAnchorSelector } from "@/frontend/components/lesson/step-context";
 import { practiceProgress } from "@/frontend/components/lesson/practice-progress";
 import { useLessonServer, type LessonStats } from "@/frontend/components/lesson/use-lesson-server";
@@ -138,6 +139,7 @@ export function Chat({
 	const sessionFindScopeRef = useRef<HTMLDivElement | null>(null);
 	const scrollContextRef = useRef<StickToBottomContext | null>(null);
 	const arrive = useArrivals();
+	const sheetGlide = useSheetGlide();
 	const [arrivalsLive, setArrivalsLive] = useState(false);
 	useEffect(() => setArrivalsLive(true), []);
 
@@ -530,7 +532,7 @@ export function Chat({
 										contextRef={scrollContextRef}
 										reading={
 											turnShows && !textShows ? null : (
-											<Pane data-testid="lesson-reading" className="lh-text-fit flex min-w-0 flex-col">
+											<Pane ref={sheetGlide} data-testid="lesson-reading" className="lh-text-fit flex min-w-0 flex-col">
 												<ReadingPane
 													spaceId={spaceId}
 													echo={echo}
@@ -554,6 +556,7 @@ export function Chat({
 												<TurnSheet
 													// Remounts once the saved drafts are read, so the question starts from them.
 													key={draftsLoaded ? "drafts" : "loading"}
+													sheetRef={sheetGlide}
 													spaceId={spaceId}
 													pending={pending}
 													initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}

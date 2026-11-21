@@ -1,13 +1,15 @@
 /**
  * While the teacher works the lesson's page never gets shorter. WebKit lays the page out between
  * a row leaving and the row that replaces it arriving (the desk taking Stop, the reply's steps,
- * the desk leaving before the reply), and would pull the page up by the gap. A window of another
- * size lays the page out anew, so there the hold starts over: kept, the old height would leave
- * empty page under the sheets to scroll into. Returns what ends the watching; the height held
- * stays on the page until the caller takes it off.
+ * the desk leaving before the reply), and would pull the page up by the gap. `page` is the
+ * sheets' column, not the page around it: under each other, the text's sheet takes the room one
+ * of them gave up, so no empty page stands under "Your turn". A lesson room of another size (the
+ * app's window, the Text size, the teacher's panel) lays the page out anew, so there the hold
+ * starts over: kept, the old height would leave empty room to scroll into. Returns what ends the
+ * watching; the height held stays on `page` until the caller takes it off.
  */
-export function holdPageHeight(page: HTMLElement, scroller: HTMLElement): () => void {
-	const windowSize = () => `${scroller.clientWidth} ${scroller.clientHeight}`;
+export function holdPageHeight(page: HTMLElement, room: HTMLElement): () => void {
+	const windowSize = () => `${room.clientWidth} ${room.clientHeight}`;
 	let held = windowSize();
 	const ro = new ResizeObserver(() => {
 		const now = windowSize();
@@ -16,6 +18,6 @@ export function holdPageHeight(page: HTMLElement, scroller: HTMLElement): () => 
 		page.style.minHeight = `${page.offsetHeight}px`;
 	});
 	ro.observe(page);
-	ro.observe(scroller);
+	ro.observe(room);
 	return () => ro.disconnect();
 }

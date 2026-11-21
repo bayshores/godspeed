@@ -157,7 +157,7 @@ describe("Your turn in each state", () => {
 			const out = html({ busy, shown: shown(atStop) });
 			assert.match(out, /data-mode="next"/);
 			assert.match(out, /<h2[^>]*>Your turn<\/h2>[\s\S]*data-testid="turn-next"[\s\S]*data-testid="turn-next-line" class="[^"]*text-ink"[^>]*>Cross-validation is next\.<[\s\S]*data-testid="next-problem-button"/);
-			assert.match(out, /data-testid="next-problem-button" data-action="keep-going" class="lh-btn lh-btn-main ml-auto">Continue</);
+			assert.match(out, /data-testid="next-problem-button" data-action="keep-going" class="lh-btn lh-btn-main ml-auto shrink-0">Continue</);
 			assert.equal(out.split("lh-btn-main").length - 1, 1, "one bright key");
 			assert.match(out, /data-testid="turn-next"[\s\S]*data-testid="composer"[\s\S]*data-testid="composer-send"[^>]*disabled[^>]*>Ask Teacher</);
 			assert.doesNotMatch(out, /skip-question|discard-problem|stop-turn|Stop here|Keep going/);

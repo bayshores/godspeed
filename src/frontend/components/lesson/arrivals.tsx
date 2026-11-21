@@ -6,8 +6,8 @@ import { cn } from "@/frontend/lib/utils";
  * first render shows — a reopened lesson — never animates. Slots are keyed
  * by POSITION (message index, part index), not id: an optimistic message
  * that later swaps its local id for the server's keeps its slot, so the
- * remount never replays. Agent text that arrives draws in block by block
- * (.lh-set) instead; reasoning is left alone. */
+ * remount never replays. Agent text that arrives prints line by line
+ * (usePrintIn) instead; reasoning is left alone. */
 const ARRIVAL_WINDOW_MS = 400;
 
 export type Arrive = (slot: string) => string | undefined;
