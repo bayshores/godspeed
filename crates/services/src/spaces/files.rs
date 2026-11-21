@@ -207,8 +207,8 @@ pub fn replace_copied_file(app: &Arc<App>, space_id: &str, file_id: &str, bytes:
 	Ok(patched.unwrap_or(file))
 }
 
-/// Copies a file from an absolute path on this computer (MCP add_space_file), as the agent's kind.
-pub fn add_file_from_path(app: &Arc<App>, space_id: &str, abs_path: &str, kind: FileKind) -> SpaceOutcome<Json> {
+/// The bytes of the file at an absolute path on this computer.
+fn read_at(abs_path: &str) -> SpaceOutcome<Vec<u8>> {
 	if !is_absolute(abs_path) {
 		return fail(400, "bad_path", "Give the file's full (absolute) path");
 	}
@@ -218,8 +218,28 @@ pub fn add_file_from_path(app: &Arc<App>, space_id: &str, abs_path: &str, kind: 
 	if !meta.is_file() {
 		return fail(400, "not_a_file", format!("{abs_path} is not a file"));
 	}
-	let bytes = std::fs::read(abs_path).map_err(|err| super::SpaceFailure::thrown(fsx::node_error_message(&err, "open", Path::new(abs_path))))?;
-	add_file(app, space_id, &node_basename(abs_path), &bytes, Some(kind), false)
+	std::fs::read(abs_path).map_err(|err| super::SpaceFailure::thrown(fsx::node_error_message(&err, "open", Path::new(abs_path))))
+}
+
+/// Copies a file from an absolute path on this computer (MCP add_space_file), as the agent's kind.
+pub fn add_file_from_path(app: &Arc<App>, space_id: &str, abs_path: &str, kind: FileKind) -> SpaceOutcome<Json> {
+	add_file(app, space_id, &node_basename(abs_path), &read_at(abs_path)?, Some(kind), false)
+}
+
+/// Copies in a file the agent built in the godspeed folder's made/ (a practice test, its .tex).
+/// It is the agent's own, as one it writes from text: adding it again by that name replaces it
+/// and keeps its id. `made_from` is where its source stays, from the godspeed folder, so a later
+/// session finds it to change and build again.
+pub fn add_made_file(app: &Arc<App>, space_id: &str, abs_path: &str, made_from: &str, kind: FileKind) -> Result<(Json, bool), String> {
+	let bytes = read_at(abs_path).map_err(|failure| failure.error)?;
+	let (file, replaced) = write_agent_file(app, space_id, &node_basename(abs_path), &bytes, kind)?;
+	let kept = patch_file(app, space_id, file["id"].str_or_empty(), &[("madeFrom", Some(made_from.into()))]);
+	Ok((kept.unwrap_or(file), replaced))
+}
+
+/// Marks a file as made or added for a lesson, so the agent's briefing lists it with that lesson.
+pub fn tie_file_to_lesson(app: &Arc<App>, space_id: &str, file_id: &str, lesson_id: &str) -> Option<Json> {
+	patch_file(app, space_id, file_id, &[("lessonId", Some(lesson_id.into()))])
 }
 
 /// `path.basename`: the last part, trailing separators ignored.

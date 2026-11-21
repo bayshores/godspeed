@@ -2,8 +2,12 @@
 //! deadline's lesson as its Study or Work on key starts it, or a lesson on files. A new lesson's
 //! title is the learner's first message; a continued one is where they left it.
 
-use gs_core::contracts::space::parse_space_scope;
+use std::sync::Arc;
+
+use gs_base::clock;
+use gs_core::contracts::space::{due_at, parse_space_scope};
 use gs_core::spaces::space_tools::ToolOutcome;
+use gs_core::spaces::today_note::when_label;
 use gs_json::{Json, json};
 
 use super::deadline_with_space;
@@ -11,6 +15,37 @@ use super::space_actions::{CLOSED_SPACE, SpaceActions, change, no_space_text, te
 use crate::turns::deadline_lesson::{DeadlineLesson, deadline_lesson};
 use crate::turns::files_lesson::files_lesson;
 use crate::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
+use crate::App;
+use crate::graph::progress::progress_for;
+
+/// How soon a deadline must be due for a new topic lesson in its space to be sent back.
+const NEAR_DEADLINE_MS: i64 = 2 * 24 * 60 * 60 * 1000;
+
+/// A deadline of the space is due within two days and has an unfinished lesson: a new lesson on
+/// a topic would start beside it with none of its record. The words that send the call back,
+/// naming that lesson; None when no deadline is that near, or this call was sent back before.
+fn near_deadline_ask(app: &Arc<App>, space_id: &str, topic: &str) -> Result<Option<String>, String> {
+	let Some(progress) = progress_for(app, space_id, None)? else { return Ok(None) };
+	let now = clock::now_ms();
+	let near = progress["deadlines"].items().iter().find_map(|d| {
+		due_at(d).filter(|due| !d["done"].truthy() && (now..=now + NEAR_DEADLINE_MS).contains(due))?;
+		let (lesson, homework) = match d["continueStudy"]["chatId"].as_str() {
+			Some(lesson) => (lesson, ""),
+			None => (d["continueHomework"].as_str()?, ", homework: true"),
+		};
+		Some((d, lesson, homework))
+	});
+	let Some((deadline, lesson, homework)) = near else { return Ok(None) };
+	let (id, name) = (deadline["id"].str_or_empty(), deadline["name"].str_or_empty());
+	if !app.turns.near_deadline_asked.lock().insert((id.to_owned(), topic.to_lowercase())) {
+		return Ok(None);
+	}
+	let title = app.stores.chats.get_chat(lesson).map(|chat| chat["title"].str_or_empty().to_owned()).unwrap_or_default();
+	Ok(Some(format!(
+		"{name} is due {} and its lesson \"{title}\" (lesson_id \"{lesson}\") is unfinished. To go on with it: start_lesson with deadline_id \"{id}\"{homework} and no topic. For a new lesson on \"{topic}\" that counts for {name}: add deadline_id \"{id}\" to this call. For a lesson apart from {name}: send this call again.",
+		when_label(deadline)
+	)))
+}
 
 impl SpaceActions {
 	pub async fn start_lesson(&self, args: &Json) -> ToolOutcome {
@@ -54,6 +89,12 @@ impl SpaceActions {
 		if space.as_ref().is_some_and(|s| s["closed"].truthy()) {
 			return Err(CLOSED_SPACE.to_owned());
 		}
+		if deadline_id.is_none()
+			&& let Some(space_id) = &scope
+			&& let Some(ask) = near_deadline_ask(&self.app, space_id, topic)?
+		{
+			return Err(ask);
+		}
 		// A path topic's name studies that topic, so its answers count for it.
 		let on_path = space.as_ref().and_then(|s| s["path"]["topics"].items().iter().find(|t| t["name"].str_or_empty().to_lowercase() == topic.to_lowercase()).and_then(|t| t["id"].as_str()));
 		let start = match on_path {
@@ -96,5 +137,48 @@ impl SpaceActions {
 		let given = args["space_id"].as_str();
 		let found = deadline_with_space(&self.app, deadline_id).and_then(|d| d["spaceId"].as_str().map(str::to_owned)).filter(|space_id| given.is_none_or(|g| g == space_id));
 		found.ok_or_else(|| format!("No deadline \"{deadline_id}\". Use read_space."))
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use gs_core::spaces::today_note::wall_clock;
+
+	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
+	use crate::spaces::space_actions::{Mark, SendFirstMessage, space_actions};
+
+	#[tokio::test]
+	async fn a_new_topic_lesson_beside_a_near_deadlines_unfinished_lesson_is_sent_back_once() {
+		let root = scratch_dir("start-lesson-near-deadline");
+		let app = test_app(&root);
+		let send: SendFirstMessage = Arc::new(|_, _| Box::pin(async { Ok(()) }));
+		let actions = space_actions(&app, Some("Teacher"), send, Mark::Started);
+		let space_with = |name: &str, date: &str| {
+			let space_id = app.stores.spaces.create_space(&json!({ "name": name })).unwrap()["id"].str_or_empty().to_owned();
+			let deadline_id = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "Test 2", "kind": "exam", "date": date })).unwrap()["id"].str_or_empty().to_owned();
+			(space_id, deadline_id)
+		};
+		let tomorrow = wall_clock(clock::now_ms() + 24 * 60 * 60 * 1000).day;
+		let (near, near_deadline) = space_with("Systems", &tomorrow);
+		let (far, far_deadline) = space_with("Algebra", "2099-01-15");
+		let lesson_id = |outcome: ToolOutcome| match outcome {
+			ToolOutcome::Ok { value, .. } => value["lessonId"].str_or_empty().to_owned(),
+			ToolOutcome::Err(error) => panic!("{error}"),
+		};
+
+		assert!(!lesson_id(actions.start_lesson(&json!({ "space_id": near, "topic": "pipes" })).await).is_empty(), "the deadline has no lesson to go on with yet");
+		let study = lesson_id(actions.start_lesson(&json!({ "deadline_id": near_deadline })).await);
+		let apart = json!({ "space_id": near, "topic": "execvp" });
+		let when = when_label(&json!({ "date": tomorrow }));
+		let sent_back = format!(
+			"Test 2 is due {when} and its lesson \"Study for Test 2\" (lesson_id \"{study}\") is unfinished. To go on with it: start_lesson with deadline_id \"{near_deadline}\" and no topic. For a new lesson on \"execvp\" that counts for Test 2: add deadline_id \"{near_deadline}\" to this call. For a lesson apart from Test 2: send this call again."
+		);
+		assert_eq!(actions.start_lesson(&apart).await, ToolOutcome::Err(sent_back));
+		assert_ne!(lesson_id(actions.start_lesson(&apart).await), study, "the same call again starts the lesson apart");
+		assert!(!lesson_id(actions.start_lesson(&json!({ "space_id": near, "topic": "fork", "deadline_id": near_deadline })).await).is_empty(), "a lesson for the deadline is never sent back");
+
+		lesson_id(actions.start_lesson(&json!({ "deadline_id": far_deadline })).await);
+		assert!(!lesson_id(actions.start_lesson(&json!({ "space_id": far, "topic": "matrices" })).await).is_empty(), "a deadline weeks away sends nothing back");
 	}
 }

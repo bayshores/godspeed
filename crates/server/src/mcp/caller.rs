@@ -15,6 +15,8 @@ pub struct Caller {
 	pub guessed: Option<String>,
 	/// initialize or server/discover: the request returns the instructions.
 	pub wants_instructions: bool,
+	/// That request comes from a session the folder's waiter wakes.
+	pub woken: bool,
 }
 
 /// The caller of a POST body (a message or a batch); a body that is not JSON names nobody.
@@ -36,6 +38,7 @@ pub fn caller_of(body: Option<&Json>) -> Caller {
 		}
 		if matches!(method, Some("initialize" | "server/discover")) {
 			caller.wants_instructions = true;
+			caller.woken = woken(&m["params"]["_meta"]);
 		}
 	}
 	caller
@@ -81,9 +84,11 @@ mod tests {
 	#[test]
 	fn names_the_caller() {
 		let init = json!({ "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": { "clientInfo": { "name": "codex-mcp-client" } } });
-		assert_eq!(caller_of(Some(&init)), Caller { name: Some("Codex".into()), guessed: None, wants_instructions: true });
+		assert_eq!(caller_of(Some(&init)), Caller { name: Some("Codex".into()), guessed: None, wants_instructions: true, woken: false });
 		let waiter = json!({ "method": "tools/call", "params": { "_meta": { "godspeed/agent": "s1" } } });
-		assert_eq!(caller_of(Some(&waiter)), Caller { name: None, guessed: Some("Claude Code".into()), wants_instructions: false });
+		assert_eq!(caller_of(Some(&waiter)), Caller { name: None, guessed: Some("Claude Code".into()), wants_instructions: false, woken: false });
+		let folder = json!({ "method": "initialize", "params": { "clientInfo": { "name": "claude-code" }, "_meta": { "godspeed/wakes": true } } });
+		assert!(caller_of(Some(&folder)).woken);
 		assert_eq!(caller_of(None), Caller::default());
 	}
 
