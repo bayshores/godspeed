@@ -222,7 +222,8 @@ describe("Your turn in each state", () => {
 		assert.match(html({ shown: end({ pages: [page("t1", false)], saved: "Saved to Obsidian", ask: null }) }), />Saved to Obsidian</);
 		const pinned = html({ shown: end({ pages: [page("t1", false)], saved: "Saved to Obsidian", ask: null }) }, (n) => <TurnPlaceContext.Provider value="pinned">{n}</TurnPlaceContext.Provider>);
 		assert.match(pinned, /note-page/);
-		assert.match(pinned, /overflow-x-auto/, "the pinned sheet is short, so its pages scroll sideways");
+		assert.match(pinned, /overflow-x-auto/, "the sheet is short, so its pages keep one row that scrolls sideways");
+		assert.match(saving, /overflow-x-auto/, "on the right page too");
 		assert.match(pinned, />Saved to Obsidian</);
 	});
 

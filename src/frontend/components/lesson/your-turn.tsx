@@ -284,7 +284,7 @@ export function YourTurn({
 				)}
 				{kept?.kind === "question" && <AnsweredTurn answer={kept.answer} />}
 				{!kept && nextRow}
-				{notes && <EndNotes notes={notes} scroll={quiet} />}
+				{notes && <EndNotes notes={notes} />}
 			</TurnScroll>
 			{/* Under a kept task the key stays in sight however long the task is. */}
 			{kept && nextRow}
