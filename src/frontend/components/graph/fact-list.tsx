@@ -14,6 +14,7 @@ import { DeleteNodeDialog } from "@/frontend/components/delete-node-dialog";
 import { factCells } from "@/frontend/components/fact-cells";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { factCellLabel } from "./derive.ts";
+import { PANE_ROW } from "./styles.ts";
 
 const FACTS_SHOWN = 4;
 const MENU_CLASS = "lh-popup flex w-fit min-w-40 flex-col gap-0.5 p-1.5 text-[13.5px]";
@@ -58,7 +59,7 @@ export function FactList({
 				))}
 			</ul>
 			{folded && (
-				<button type="button" data-testid="facts-show-all" onClick={() => setShowAll(true)} className="lh-btn lh-btn-quiet self-start px-1 text-[15px]">
+				<button type="button" data-testid="facts-show-all" onClick={() => setShowAll(true)} className="lh-btn lh-btn-quiet lh-btn-small self-start">
 					Show all {facts.length}
 				</button>
 			)}
@@ -106,7 +107,7 @@ const FactRow = memo(function FactRow({
 				data-testid="fact-row"
 				onClick={() => onOpen(fact.id)}
 				onContextMenu={(e) => onMenu(fact, e)}
-				className="lh-press -mx-1 flex w-[calc(100%+8px)] items-center gap-2 px-1 py-1 text-left text-base text-ink hover:bg-tone"
+				className={PANE_ROW}
 			>
 				<span role="img" aria-label={factCellLabel(fact)} className="size-[9px] shrink-0" style={{ background: factCells([fact])[0] }} />
 				<span className="min-w-0 flex-1 truncate">

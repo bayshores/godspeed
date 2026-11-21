@@ -121,11 +121,12 @@ describe("the picked topic", () => {
 		assert.match(html, /data-testid="topic-note"[^>]*>On 4 of the misses you picked 4 or 5, so you felt sure\.</);
 	});
 
-	it("needs first and leads to as small outlined buttons", () => {
+	it("needs first and leads to as rows, not keys", () => {
 		const needs = html.slice(html.indexOf('data-testid="needs-first"'), html.indexOf('data-testid="leads-to"'));
 		assert.ok(needs.includes(">Needs first<"));
 		assert.ok(needs.includes("Variance") && needs.includes("Derivatives"));
-		assert.match(needs, /data-testid="topic-chip"[^>]*class="lh-btn h-auto/);
+		assert.match(needs, /data-testid="topic-link"[^>]*class="lh-press /);
+		assert.ok(!needs.includes("lh-btn"));
 		assert.ok(html.slice(html.indexOf('data-testid="leads-to"')).includes("Momentum"));
 	});
 
@@ -719,7 +720,7 @@ describe("zooming the picture", () => {
 	it("a topic named in the panel's Leads to is picked and drawn as its figure", async () => {
 		const { q, topic } = await mount(<Page />);
 		await act(async () => topic("t-mini").click());
-		const chip = [...q("leads-to")!.querySelectorAll<HTMLElement>('[data-testid="topic-chip"]')].find((c) => c.textContent!.includes("Momentum"))!;
+		const chip = [...q("leads-to")!.querySelectorAll<HTMLElement>('[data-testid="topic-link"]')].find((c) => c.textContent!.includes("Momentum"))!;
 		await act(async () => chip.click());
 		assert.match(q("topic-pane")!.querySelector("h2")!.textContent!, /Momentum/);
 		assert.ok(isNear());

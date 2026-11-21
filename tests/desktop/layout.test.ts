@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, scrolledWords, SCROLL_TO, snapName, standInAgent } from "../../scripts/layout.mjs";
-import { cross, cutOf, inkOf, lineBox, meet, offGap, offInset, outside, probes, roomUnder, scrollerClip, sticksOut } from "../../scripts/layout-page.mjs";
+import { cross, cutOf, inkOf, lineBox, linesOf, meet, offGap, offInset, outside, probes, roomUnder, scrollerClip, sticksOut, tightPad, tooWide } from "../../scripts/layout-page.mjs";
 import { workOf } from "../../scripts/layout-seed.mjs";
 import { SCREENS } from "../../scripts/layout-screens.mjs";
 
@@ -118,6 +118,21 @@ describe("cut-off letters", () => {
 		assert.deepEqual(cutOf(inkOf(text, metrics), box(0, 97.2, 200, 143.2)), { top: 0, bottom: 2 });
 		assert.deepEqual(cutOf(inkOf(text, metrics), box(0, 97.2, 200, 144)), { top: 0, bottom: 0 });
 		assert.deepEqual(cutOf({ top: 10, bottom: 20 }, box(0, 12, 50, 30)), { top: 2, bottom: 0 });
+	});
+});
+
+describe("keys", () => {
+	it("a key with less than 8 points beside its words is tight", () => {
+		assert.equal(tightPad(4, 4), true);
+		assert.equal(tightPad(8, 20), false);
+	});
+	it("keys on three lines are a pile, a row of keys is one line", () => {
+		assert.equal(linesOf([10, 11, 10]), 1);
+		assert.equal(linesOf([10, 50, 90]), 3);
+	});
+	it("a key far wider than its words is wide", () => {
+		assert.equal(tooWide(300, 80), true);
+		assert.equal(tooWide(120, 80), false);
 	});
 });
 
