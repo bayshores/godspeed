@@ -3,8 +3,8 @@ import type { KeptPart } from "@/shared/core";
 
 /**
  * What cards get from the lesson: the chat id, the writing box's send rules
- * (sendText, sendBlocked), a kept card's drop and bring back and the open
- * problem's call id (its card waits until it closes). Its own
+ * (sendText, sendBlocked), a kept card's drop and bring back and the call of
+ * the task "Your turn" shows (its card is left out of the lesson text). Its own
  * module so the cards don't import chat.tsx, which renders them.
  */
 export const ChatActionsContext = createContext<{
@@ -13,5 +13,6 @@ export const ChatActionsContext = createContext<{
 	sendBlocked: string | null;
 	sendText: (text: string) => void;
 	dropKept: (of: string, part: KeptPart, back: boolean) => void;
-	openProblem: string | null;
+	/** The open problem, or the finished task kept beside the text: shown once, in "Your turn". */
+	inTurn: string | null;
 } | null>(null);

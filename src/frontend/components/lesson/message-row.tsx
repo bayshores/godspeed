@@ -1,4 +1,6 @@
-import { Fragment, memo } from "react";
+import { Fragment, memo, useContext } from "react";
+import { FiledCard } from "@/frontend/components/filed-card";
+import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { paleSpaceColor } from "@/frontend/components/space-color";
 import { useSpaceColor } from "@/frontend/components/space-context";
 import { Message, MessageContent } from "@/frontend/components/ai-elements/message";
@@ -18,7 +20,6 @@ import {
 	isAttachmentPart,
 	messageAnchorId,
 	isQuestionTool,
-	PRACTICE_PROBLEM_TOOL,
 	teachStepIndex,
 	textPartMessageId,
 	type ArtifactPartProps,
@@ -65,11 +66,12 @@ const UNDRAWN: ReadonlySet<string> = new Set(["data-graph-context", "data-space-
 
 /**
  * Whether MessageRow draws anything for this message (kept in step with it; unsure counts as
- * drawn). The page leaves the lesson text's sheet out while nothing in it is drawn. `openProblem`:
- * the open problem's call, which shows in "Your turn" only.
+ * drawn). The page leaves the lesson text's sheet out while nothing in it is drawn. `inTurn`:
+ * the call of the task "Your turn" shows (the open problem, or the task kept beside the text),
+ * which is drawn there only.
  */
-export function messageShows(m: LhViewMessage, echo: boolean, openProblem: string | null): boolean {
-	if (m.role !== "user") return m.parts.some((p) => partShows(p, false) && !(p.type === `tool-${PRACTICE_PROBLEM_TOOL}` && p.toolCallId === openProblem));
+export function messageShows(m: LhViewMessage, echo: boolean, inTurn: string | null): boolean {
+	if (m.role !== "user") return m.parts.some((p) => partShows(p, false) && (inTurn === null || p.toolCallId !== inTurn));
 	if (m.parts.every((p) => UNDRAWN.has(p.type))) return false;
 	return !(echo && m.parts.every((p) => p.type === "text"));
 }
@@ -215,6 +217,7 @@ function AssistantPart({
 	hideSteps: boolean;
 	arrive: Arrive;
 }) {
+	const inTurn = useContext(ChatActionsContext)?.inTurn ?? null;
 	if (hideSteps && STEP_TOOLS.has(part.type.slice("tool-".length))) return null;
 	// A tool call that errored back to the agent is the agent's own work: it
 	// reads the error and tries again, so the lesson shows nothing for it.
@@ -244,20 +247,25 @@ function AssistantPart({
 		case "tool-ask_user_question":
 		case "tool-explain":
 		case "tool-recall":
-		case "tool-write_code":
+		case "tool-write_code": {
 			// Pending questions live in the Your-turn panel; answered ones
 			// render as graded records (the step bar jumps to them).
 			if (part.state !== "output-available") return null;
+			// Asked while "Your turn" still shows the answer, so the card filed into the text later is no arrival.
+			const rise = arrive(slot);
 			return (
-				<div data-answer-call={part.toolCallId} className={cn("flex scroll-mt-4 flex-col gap-2", arrive(slot), arrive(slot) && answerFlash(part.output as QuestionAnswerData))}>
-					{part.kept ? (
-						<KeptCard kept={part.kept as KeptCardData} answer={part.output as QuestionAnswerData} input={part.input} toolCallId={part.toolCallId!} />
-					) : (
-						<AnsweredCard answer={part.output as QuestionAnswerData} input={part.input} plotValue={part.plotValue as number | undefined} />
-					)}
-					{part.files && <MessageAttachments parts={part.files} />}
-				</div>
+				<FiledCard away={part.toolCallId === inTurn}>
+					<div data-answer-call={part.toolCallId} className={cn("flex scroll-mt-4 flex-col gap-2", rise, rise && answerFlash(part.output as QuestionAnswerData))}>
+						{part.kept ? (
+							<KeptCard kept={part.kept as KeptCardData} answer={part.output as QuestionAnswerData} input={part.input} toolCallId={part.toolCallId!} />
+						) : (
+							<AnsweredCard answer={part.output as QuestionAnswerData} input={part.input} plotValue={part.plotValue as number | undefined} />
+						)}
+						{part.files && <MessageAttachments parts={part.files} />}
+					</div>
+				</FiledCard>
 			);
+		}
 		default: {
 			if (!part.type.startsWith("tool-")) return null;
 			// A tool call being written: the live card (spinner + activity

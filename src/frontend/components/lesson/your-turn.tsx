@@ -1,4 +1,5 @@
-import { useContext, useState, type RefObject } from "react";
+import { useContext, useRef, useState, type RefObject } from "react";
+import { answeredKindLabel } from "@/frontend/components/answered-card-model";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
 import { DEFAULT_TEACHER_NAME, DONT_KNOW, normalizeQuizType, questionKindLabel, type DockSelection, type findPendingToolCall, type ProblemChoices, type ProblemPieceText, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
@@ -11,12 +12,18 @@ import { HELP_LINES, lessonBox, lessonIdeas, questionTurn, type BoxAction, type 
 import { OpenProblemPane, type ProblemPicks } from "./open-problem-pane";
 import { ProblemFile, type ProblemFileRef } from "./problem-file";
 import { TurnScroll } from "./turn-scroll";
-import { TurnPinned } from "./turn-pinned";
+import { TurnPlaceContext } from "./turn-place";
 import { TurnSwap } from "./turn-swap";
 import { AnsweredTurn } from "./answered-turn";
 import type { NextAction, TurnShown } from "./turn-next-model";
 
 type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
+
+/** A finished task as "Your turn" keeps it: the question with the learner's answer, or the
+ *  problem with its line ("Problem 2", practice only). */
+export type KeptTask =
+	| { kind: "question"; toolCallId: string; answer: QuestionAnswerData }
+	| { kind: "problem"; toolCallId: string; statement: string; piece: ProblemPieceText | null; line: string | null; discarded: boolean };
 
 export interface YourTurnProps {
 	pending: Pending | null;
@@ -37,6 +44,8 @@ export interface YourTurnProps {
 	onDiscardProblem: () => void;
 	/** The answer box, for the problem row to bring him back to his work. */
 	boxRef: RefObject<{ focus(): void } | null>;
+	/** The task the learner last finished, kept above the box until the lesson goes on. */
+	kept: KeptTask | null;
 	/** With nothing to answer: what is next and its key, or what stays while the teacher writes. */
 	shown: TurnShown;
 	/** Changes when what waits changes: the part above the box swaps then. */
@@ -72,9 +81,11 @@ const EXIT: Record<NonNullable<BoxView["exit"]>, { label: string; testId: string
  * whole lesson once it has started (turnDrawn). Above its box it holds one of:
  * - a waiting question (QuestionDock);
  * - the open problem;
- * - the next state: what is next and the one key that goes on (turnNext);
- * - while the teacher writes with nothing waiting, the question just
- *   answered (AnsweredTurn) or the last next line, dimmed (turnShown);
+ * - the task the learner last finished, dimmed and not pressable (the
+ *   question with his answer, AnsweredTurn, or the problem as it stood),
+ *   with what is next and its key under it, over the box;
+ * - the next state: what is next and the one key that goes on (turnNext),
+ *   or, while the teacher writes, the last next line, dimmed (turnShown);
  * Its title is the problem's number when one is open ("Problem 3"), with the
  * way out of that state at the title row's end. The box at its foot is
  * there in every state and stays still while the rest swaps: the learner
@@ -83,10 +94,9 @@ const EXIT: Record<NonNullable<BoxView["exit"]>, { label: string; testId: string
  * or a problem waiting, "Try asking" with nothing waiting. Beside the lesson text
  * only the question or problem shrinks to fit the window, scrolling in its
  * own box (LessonScroll). Pinned at the window's foot under the text
- * (TurnPinned) it is only as tall as what the learner can do now: with
+ * (TurnPlaceContext) it is only as tall as what the learner can do now: with
  * nothing to answer it has no title and the key that goes on ends the foot
- * row, and while the teacher works it is the box alone (the lesson text
- * shows the question just answered).
+ * row, and while the teacher works it is the box alone.
  */
 export function YourTurn({
 	pending,
@@ -100,6 +110,7 @@ export function YourTurn({
 	onPickProblem,
 	onDiscardProblem,
 	boxRef,
+	kept,
 	shown,
 	swapKey,
 	onNext,
@@ -121,7 +132,7 @@ export function YourTurn({
 	const [pieceFailed, setPieceFailed] = useState<string | null>(null);
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 
-	const next = !pending && !problem && shown.kind === "next" ? shown : null;
+	const next = !pending && !problem ? shown : null;
 	const nextKey = next?.next.key ?? null;
 	const turn = pending
 		? questionTurn(pending.tool, pending.input, picked, pending.appPosed?.kind)
@@ -153,22 +164,46 @@ export function YourTurn({
 	const onExit = view.exit === "skip" ? onSkipQuestion : onDiscardProblem;
 	const fromEarlier = pending?.appPosed?.kind === "review";
 	// The title says what waits, in the word its answered card will carry.
-	const title = fromEarlier ? "From earlier" : pending ? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type)) : (problem?.line ?? "Your turn");
+	const keptProblem = kept?.kind === "problem" ? kept : null;
+	const keptTitle = kept?.kind === "question" ? answeredKindLabel(kept.answer) : keptProblem?.line;
+	const title = fromEarlier
+		? "From earlier"
+		: pending
+			? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type))
+			: (problem?.line ?? keptTitle ?? "Your turn");
 
-	const mode = pending ? "question" : problem ? "practice" : shown.kind === "answered" ? "answered" : "next";
+	const mode = pending ? "question" : problem ? "practice" : kept ? "kept" : "next";
 	// Pinned with nothing to answer: no title, the next key ends the foot row, and only a line saying what is next stands over the box.
-	const quiet = useContext(TurnPinned) && !pending && !problem;
+	const place = useContext(TurnPlaceContext);
+	const quiet = place === "pinned" && !pending && !problem;
 	const boxAlone = quiet && (busy || !next?.next.line);
+	const shownProblem = problem ?? keptProblem;
+	// The part that was open when the problem closed stays open, so the kept problem holds its height.
+	const partRef = useRef<{ of: string; part: string | null } | null>(null);
+	if (problem) partRef.current = { of: problem.toolCallId, part: problem.part };
+	const shownPart = shownProblem && partRef.current?.of === shownProblem.toolCallId ? partRef.current.part : null;
 	const nextButton = nextKey && (
 		<button type="button" data-testid="next-problem-button" data-action={nextKey.action} onClick={() => onNext(nextKey.action)} className="lh-btn lh-btn-main ml-auto shrink-0">
 			{nextKey.label}
 		</button>
 	);
 
+	const nextRow = next && (next.next.line || (nextKey && !quiet)) && (
+		<div data-testid="turn-next" className="flex flex-wrap items-center gap-x-4 gap-y-2">
+			{next.next.line && (
+				<p data-testid="turn-next-line" className={cn("text-[18px] leading-[28px]", next.dim ? "text-ink-2" : "text-ink")}>
+					{next.next.line}
+				</p>
+			)}
+			{!quiet && nextButton}
+		</div>
+	);
+
 	return (
 		// The lesson text's inset, so both sheets share their edges.
 		<div data-testid="your-turn" data-mode={mode} className={cn("lh-reading flex min-h-0 flex-1 flex-col gap-7", quiet && "lh-turn-quiet")}>
-			<TurnSwap swapKey={boxAlone ? "box" : swapKey}>
+			{/* Moved between the page and the window's foot, it holds at once what it holds there. */}
+			<TurnSwap key={place === "beside" || place === "alone" ? "page" : "foot"} swapKey={boxAlone ? "box" : swapKey}>
 			{boxAlone ? null : (
 			<>
 			{!quiet && (
@@ -213,19 +248,22 @@ export function YourTurn({
 						busy={busy && !fromEarlier}
 					/>
 				)}
-				{!pending && problem && <OpenProblemPane statement={problem.statement} piece={problem.piece} printed={printed} onPieceFail={() => setPieceFailed(problem.toolCallId)} part={problem.part} picks={picks} />}
-				{!pending && !problem && shown.kind === "answered" && <AnsweredTurn answer={shown.answered.answer} />}
-				{next && (next.next.line || (nextKey && !quiet)) && (
-					<div data-testid="turn-next" className="flex flex-wrap items-center gap-x-4 gap-y-2">
-						{next.next.line && (
-							<p data-testid="turn-next-line" className={cn("text-[18px] leading-[28px]", next.dim ? "text-ink-2" : "text-ink")}>
-								{next.next.line}
+				{/* One element while the problem is open and after it closes, so its page is not drawn anew. */}
+				{!pending && shownProblem && (
+					<div data-testid={keptProblem ? "kept-problem" : undefined} inert={keptProblem !== null} className={cn("flex flex-col gap-7", keptProblem && "opacity-60")}>
+						<OpenProblemPane statement={shownProblem.statement} piece={shownProblem.piece} printed={printed} onPieceFail={() => setPieceFailed(shownProblem.toolCallId)} part={shownPart} picks={problem ? picks : null} />
+						{keptProblem?.discarded && (
+							<p data-testid="kept-problem-discarded" className="text-[18px] leading-[28px]">
+								Discarded
 							</p>
 						)}
-						{!quiet && nextButton}
 					</div>
 				)}
+				{kept?.kind === "question" && <AnsweredTurn answer={kept.answer} />}
+				{!kept && nextRow}
 			</TurnScroll>
+			{/* Under a kept task the key stays in sight however long the task is. */}
+			{kept && nextRow}
 			</>
 			)}
 			</TurnSwap>

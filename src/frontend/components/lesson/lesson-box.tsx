@@ -68,7 +68,7 @@ export function LessonBox({
 			{/* One shape whatever waits above it: the keys sit inside the box, under the text. */}
 			<div className={cn(view.size === "line" ? "lh-answer-line" : "lh-answer-lines", "flex flex-col lh-well rounded-[2px]")}>
 				{box}
-				<div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 pr-2.5 pb-2.5 pl-2">{keys}</div>
+				<div data-testid="composer-keys" className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 pr-2.5 pb-2.5 pl-2">{keys}</div>
 			</div>
 		</div>
 	);

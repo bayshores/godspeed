@@ -8,8 +8,8 @@ import { useFold } from "@/frontend/components/use-fold";
 import { cn } from "@/frontend/lib/utils";
 import { MessageResponse, ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import type { QuestionAnswerData } from "@/shared/core";
-import { answerForPresentation, confidenceLevel, fencedCode, parseAskInput, parseQuizInput, questionKindLabel } from "@/shared/core";
-import { guessResultLine, isPrediction } from "./answered-card-model";
+import { answerForPresentation, confidenceLevel, fencedCode, parseAskInput, parseQuizInput } from "@/shared/core";
+import { answeredKindLabel, guessResultLine, isPrediction } from "./answered-card-model";
 
 /** Lesson prose at a given size/leading/color (the markdown renderer reads
  *  these variables). */
@@ -19,9 +19,6 @@ export function proseVars(size: number, leading: number, ink: string): React.CSS
 
 /** The board names a prediction as the learner's own; other kinds keep their word. */
 const kindWords = (label: string) => (label === "Prediction" ? "Your prediction" : label);
-
-/** Old answers carry no tool name: their kind stands in for it. */
-const KIND_TOOL = { quiz: "quiz", explain: "explain", code: "write_code", ask: "ask" } as const;
 
 /** The verdict tag: Right / Wrong / Didn't know (quiz answers only; a
  *  prediction is never marked). */
@@ -151,7 +148,7 @@ export function AnsweredCard({
 				{isQuiz && !isPrediction(answer) && <ResultChip answer={answer} />}
 				<span className="font-count text-[15px] text-ink-2">
 					<span data-testid="answer-kind">
-						{kindWords(questionKindLabel(answer.tool ?? KIND_TOOL[answer.kind], answer.questionType))}
+						{kindWords(answeredKindLabel(answer))}
 					</span>
 					{isQuiz && !answer.dontKnow && answer.confidence != null && (
 						<span data-testid="answered-confidence">, sure {confidenceLevel(answer.confidence)} of 5</span>

@@ -1,8 +1,9 @@
 /**
  * "Your turn" with nothing to answer: what is next and the one key that goes
- * on, what stays while the teacher writes, and whether the sheet is drawn. Pure.
+ * on, the finished task the right page keeps, whether the lesson's book is
+ * open, and whether the sheet is drawn. Pure.
  */
-import { answerForPresentation, isQuestionTool, isRecord, openerQuestionId, type LessonStop, type LhMessage, type LhViewMessage, type QuestionAnswerData } from "@/shared/core";
+import { answerForPresentation, closedProblemOf, isQuestionTool, isRecord, openerQuestionId, PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, type LessonStop, type LhMessage, type LhViewMessage, type QuestionAnswerData } from "@/shared/core";
 
 /** What the next state's key does. */
 export type NextAction = "keep-going" | "next" | "done-for-today" | "start-again";
@@ -44,64 +45,85 @@ export function turnNext(s: {
 	return { line: null, key: s.nothingWritten ? { label: "Start again", action: "start-again" } : null };
 }
 
-/** A question the learner answered or skipped, as its answered card reads it. */
-export interface AnsweredQuestion {
-	toolCallId: string;
-	answer: QuestionAnswerData;
-}
-
 /** What "Your turn" shows with nothing waiting: the next state, or, while the
- *  teacher writes with no stop to go on from, the last thing the learner acted
- *  on, dimmed. */
-export type TurnShown = { kind: "next"; next: TurnNext; dim: boolean } | { kind: "answered"; answered: AnsweredQuestion };
-
-/**
- * The next state, when there is one. While the teacher writes, the question
- * the learner just answered or skipped stays; after anything else he did, the
- * last next state's line stays, with no key. `lastLine` is that line.
- */
-export function turnShown(s: { next: TurnNext | null; answered: AnsweredQuestion | null; lastLine: string | null }): TurnShown {
-	if (s.next) return { kind: "next", next: s.next, dim: false };
-	if (s.answered) return { kind: "answered", answered: s.answered };
-	return { kind: "next", next: { line: s.lastLine, key: null }, dim: true };
+ *  teacher writes with no stop to go on from, its last line, dimmed. */
+export interface TurnShown {
+	next: TurnNext;
+	dim: boolean;
 }
 
-/** The markers of what the learner did other than answer a question: going on
- *  from a stop, to the next problem, asking to be taught, dropping a problem,
- *  answering a question from earlier. */
-const OTHER_MOVES: ReadonlySet<string> = new Set(["keep-going", "practice-next", "teach-me", "problem-dismissed", "review"]);
+/** The next state, when there is one; while the teacher writes, the last
+ *  next state's line (`lastLine`) stays, with no key. */
+export function turnShown(s: { next: TurnNext | null; lastLine: string | null }): TurnShown {
+	return s.next ? { next: s.next, dim: false } : { next: { line: s.lastLine, key: null }, dim: true };
+}
+
+/** The task the learner last finished, kept on the right page until the lesson goes on: a
+ *  question he answered or skipped, or a problem that was concluded or discarded. */
+type HeldTask =
+	| { kind: "question"; toolCallId: string; answer: QuestionAnswerData }
+	| { kind: "problem"; toolCallId: string; input: unknown; details: unknown; discarded: boolean };
+
+/** The markers of the learner going on: from a stop, to the next problem, or asking to be taught. */
+const GO_ON: ReadonlySet<string> = new Set(["keep-going", "practice-next", "teach-me"]);
 
 /**
- * The question the learner answered or skipped last, when that is the last
- * thing he did: null once he has sent a line or made another move since.
- * `record` is the saved lesson, read for what he did; `view` holds the
- * answer as the lesson shows it (an opener's question lives only there).
+ * The task the right page keeps, or null. A finished task stays through
+ * lines the learner types and what the teacher writes back, and through a
+ * question from earlier. It goes once he went on and the teacher's reply to
+ * that landed whole with words in it: a reply still on its way, stopped or
+ * failed keeps it. It also goes when nothing can follow it (`goOn`: a key
+ * to go on stands, or a turn runs). A problem still open is no held task.
+ * `record` is the saved lesson; `view` holds a question's answer as the
+ * lesson shows it (an opener's question lives only there).
  */
-export function lastAnswered(record: readonly LhMessage[], view: readonly LhViewMessage[]): AnsweredQuestion | null {
-	const id = lastAnswerId(record);
-	if (id === null) return null;
+export function heldTask(record: readonly LhMessage[], view: readonly LhViewMessage[], s: { busy: boolean; goOn: boolean }): HeldTask | null {
+	if (!s.busy && !s.goOn) return null;
+	const found = lastFinished(record, s.busy);
+	if (found === null) return null;
+	if (found.kind === "problem") {
+		const problem = closedProblemOf(record);
+		return problem && { kind: "problem", ...problem };
+	}
 	for (const message of view) {
-		const part = message.parts.find((p) => p.toolCallId === id && p.state === "output-available");
+		const part = message.parts.find((p) => p.toolCallId === found.id && p.state === "output-available");
 		if (!part) continue;
 		const saved = part.output as QuestionAnswerData | undefined;
-		return typeof saved?.questionText === "string" ? { toolCallId: id, answer: answerForPresentation(saved, part.input) } : null;
+		return typeof saved?.questionText === "string" ? { kind: "question", toolCallId: found.id, answer: answerForPresentation(saved, part.input) } : null;
 	}
 	return null;
 }
 
-function lastAnswerId(record: readonly LhMessage[]): string | null {
+/** What the learner finished last, read from the end of the record. */
+function lastFinished(record: readonly LhMessage[], busy: boolean): { kind: "question"; id: string } | { kind: "problem" } | null {
+	// Of the teacher's replies after the place the walk stands at: whether the newest ended whole, and whether any holds words.
+	let whole: boolean | null = null;
+	let words = false;
 	for (let i = record.length - 1; i >= 0; i--) {
 		const m = record[i]!;
-		if (m.role === "user") return null;
-		if (m.role === "toolResult" && isQuestionTool(m.toolName) && !m.isError) return m.toolCallId;
-		if (m.role !== "custom") continue;
-		if (m.customType === "opener-answer") {
-			const ref = isRecord(m.details) ? m.details.topicDoneCallId : undefined;
-			return typeof ref === "string" ? openerQuestionId(ref) : null;
+		if (m.role === "assistant") {
+			whole ??= m.stopReason === "stop" || m.stopReason === "length";
+			words ||= m.content.some((block) => block.type === "text" && block.text.trim() !== "");
+		} else if (m.role === "toolResult" && !m.isError) {
+			if (isQuestionTool(m.toolName)) return { kind: "question", id: m.toolCallId };
+			if (m.toolName === PRACTICE_CONCLUDE_TOOL) return { kind: "problem" };
+			if (m.toolName === PRACTICE_PROBLEM_TOOL) return null;
+		} else if (m.role === "custom") {
+			if (m.customType === "opener-answer") {
+				const ref = isRecord(m.details) ? m.details.topicDoneCallId : undefined;
+				return typeof ref === "string" ? { kind: "question", id: openerQuestionId(ref) } : null;
+			}
+			if (m.customType === "problem-dismissed") return { kind: "problem" };
+			if (GO_ON.has(m.customType) && !busy && whole === true && words) return null;
 		}
-		if (OTHER_MOVES.has(m.customType)) return null;
 	}
 	return null;
+}
+
+/** Whether the lesson's book is open, so the right page shows: the teacher asks, a problem is
+ *  open, or a finished task is kept. A question from earlier shows wherever the box stands. */
+export function bookOpen(s: { question: "teacher" | "review" | null; problem: boolean; held: boolean }): boolean {
+	return s.question === "teacher" || s.problem || s.held;
 }
 
 /** What a topic or problem stop says is next. */

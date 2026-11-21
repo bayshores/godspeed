@@ -3,8 +3,16 @@
  * right or wrong: a missed one names the right answer, and a guess on a plot
  * says what the drawn line gives (his pick shows above it). Pure.
  */
-import type { QuestionAnswerData } from "@/shared/core";
+import { questionKindLabel, type QuestionAnswerData } from "@/shared/core";
 import { formatNumber } from "./lesson/plot-part-model";
+
+/** Old answers carry no tool name: their kind stands in for it. */
+const KIND_TOOL = { quiz: "quiz", explain: "explain", code: "write_code", ask: "ask" } as const;
+
+/** The word an answered question is headed with (Prediction, Quiz, Explain, Code, Question). */
+export function answeredKindLabel(answer: QuestionAnswerData): string {
+	return questionKindLabel(answer.tool ?? KIND_TOOL[answer.kind], answer.questionType);
+}
 
 /** A prediction: the quiz the learner answers before the teaching. */
 export function isPrediction(answer: QuestionAnswerData): boolean {

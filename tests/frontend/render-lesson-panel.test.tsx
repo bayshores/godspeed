@@ -18,7 +18,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { YourTurn } from "../../src/frontend/components/lesson/your-turn.tsx";
 import { TurnSheet } from "../../src/frontend/components/lesson/turn-sheet.tsx";
-import { TurnPinned } from "../../src/frontend/components/lesson/turn-pinned.ts";
+import { TurnPlaceContext, type TurnPlace } from "../../src/frontend/components/lesson/turn-place.ts";
 import type { NextAction, TurnNext } from "../../src/frontend/components/lesson/turn-next-model.ts";
 import { LessonScroll } from "../../src/frontend/components/lesson/lesson-scroll.tsx";
 import type { QuestionHandle } from "../../src/frontend/components/question-dock.tsx";
@@ -69,7 +69,7 @@ const problem = { toolCallId: "p1", statement: "Find E[N].", piece: null, choice
 const NO_NEXT = { kind: "next", next: { line: null, key: null }, dim: false } as const;
 const atStop: TurnNext = { line: "Cross-validation is next.", key: { label: "Continue", action: "keep-going" } };
 const between: TurnNext = { line: null, key: { label: "Next problem", action: "next" } };
-const shown = (next: TurnNext, dim = false) => ({ kind: "next" as const, next, dim });
+const shown = (next: TurnNext, dim = false) => ({ next, dim });
 
 const marco: TeacherApi = {
 	name: "marco",
@@ -111,6 +111,7 @@ function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 		problemPicked: emptyDockSelection(),
 		onPickProblem: () => {},
 		onDiscardProblem: () => {},
+		kept: null,
 		shown: NO_NEXT,
 		swapKey: "",
 		onNext: () => {},
@@ -183,7 +184,7 @@ describe("Your turn in each state", () => {
 	});
 
 	it("pinned at the window's foot with nothing to answer: no head, the key that goes on at the end of the Try asking row, and the box alone while the teacher works", () => {
-		const pinned = (n: React.ReactNode) => <TurnPinned.Provider value={true}>{n}</TurnPinned.Provider>;
+		const pinned = (n: React.ReactNode) => <TurnPlaceContext.Provider value="pinned">{n}</TurnPlaceContext.Provider>;
 		const out = html({ shown: shown(atStop) }, pinned);
 		assert.match(out, /data-testid="your-turn"[^>]*class="[^"]*lh-turn-quiet/);
 		assert.doesNotMatch(out, /<h2/);
@@ -822,9 +823,7 @@ describe("saved drafts", () => {
 
 describe("the turn sheet", () => {
 	type SheetProps = React.ComponentProps<typeof TurnSheet>;
-	const column = ({ next = { line: null, key: null }, answered = null, ...over }: Partial<SheetProps> = {}) => (
-		<TurnSheet {...turnProps(over)} spaceId={undefined} {...over} next={next} answered={answered} />
-	);
+	const column = ({ next = { line: null, key: null }, ...over }: Partial<SheetProps> = {}) => <TurnSheet {...turnProps(over)} spaceId={undefined} {...over} next={next} />;
 	const swap = (host: HTMLElement) => host.querySelector('[data-testid="turn-swap"]')!;
 	// The old contents' exit (--lh-dur-fast) plays out.
 	const exitPlays = () => act(() => new Promise((done) => setTimeout(done, 150)));
@@ -856,7 +855,7 @@ describe("the turn sheet", () => {
 		function FoundPinned() {
 			const [pinned, setPinned] = React.useState(false);
 			React.useLayoutEffect(() => setPinned(true), []);
-			return <TurnPinned.Provider value={pinned}>{turn({ busy: true })}</TurnPinned.Provider>;
+			return <TurnPlaceContext.Provider value={pinned ? "pinned" : "under"}>{turn({ busy: true })}</TurnPlaceContext.Provider>;
 		}
 		await mounted(<FoundPinned />, async (host) => {
 			assert.equal(swap(host).getAttribute("data-state"), "open");
@@ -895,15 +894,17 @@ describe("the turn sheet", () => {
 		});
 	});
 
-	const pickedVenus = { toolCallId: "q1", answer: buildAnswer(quizQD, { values: ["Venus"] }) };
+	const keptQuestion = (answer: QuestionAnswerData) => ({ kind: "question" as const, toolCallId: "q1", answer });
+	const pickedVenus = keptQuestion(buildAnswer(quizQD, { values: ["Venus"] }));
 	const optionRows = (host: HTMLElement) => [...host.querySelectorAll('[data-testid="answered-turn-option"]')];
 
-	it("while the teacher writes after an answer, the question stays dimmed with the pick and its verdict, until the next thing swaps in", async () => {
+	it("after an answer the question is kept, dimmed with the pick and its verdict, until the next thing swaps in", async () => {
 		await mounted(named(column({ pending: quiz })), async (host, show) => {
-			await show(named(column({ busy: true, next: null, answered: pickedVenus })));
+			await show(named(column({ busy: true, next: null, kept: pickedVenus })));
 			await exitPlays();
 			const pane = host.querySelector('[data-testid="answered-turn"]')!;
-			assert.equal(host.querySelector('[data-testid="your-turn"]')!.getAttribute("data-mode"), "answered");
+			assert.equal(host.querySelector('[data-testid="your-turn"]')!.getAttribute("data-mode"), "kept");
+			assert.match(host.querySelector("h2")!.textContent!, /Quiz/, "titled as the question was");
 			assert.ok(pane.hasAttribute("inert"), "nothing in it can be pressed");
 			assert.match(pane.textContent!, /Which planet is closest to the sun\?/);
 			const picked = optionRows(host).filter((r) => r.hasAttribute("data-picked"));
@@ -913,7 +914,7 @@ describe("the turn sheet", () => {
 			assert.equal(host.querySelector('[data-testid="composer-send"]')!.textContent, "Ask marco", "the box stays, to ask");
 			assert.match(host.querySelector('[data-testid="turn-foot"]')!.textContent!, /^Try asking/, "no Stuck? keys with nothing to answer");
 			assert.ok(host.querySelector('[data-testid="turn-next"]') === null);
-			await show(named(column({ pending: { ...quiz, toolCallId: "q2" }, answered: pickedVenus })));
+			await show(named(column({ pending: { ...quiz, toolCallId: "q2" } })));
 			assert.equal(swap(host).getAttribute("data-state"), "closed", "the next question swaps in with the fade");
 			await exitPlays();
 			assert.ok(host.querySelector('[data-testid="answered-turn"]') === null);
@@ -921,36 +922,61 @@ describe("the turn sheet", () => {
 		});
 	});
 
-	it("once the reply lands with nothing waiting, the next state takes over", async () => {
-		await mounted(named(column({ busy: true, next: null, answered: pickedVenus })), async (host, show) => {
-			await show(named(column({ next: between, answered: pickedVenus })));
+	it("once the reply lands, the key that goes on joins the kept question with no swap; the next state alone follows when it goes", async () => {
+		await mounted(named(column({ busy: true, next: null, kept: pickedVenus })), async (host, show) => {
+			const pane = host.querySelector('[data-testid="answered-turn"]')!;
+			await show(named(column({ next: atStop, kept: pickedVenus })));
+			assert.equal(swap(host).getAttribute("data-state"), "open", "nothing fades");
+			assert.equal(host.querySelector('[data-testid="answered-turn"]'), pane);
+			assert.equal(host.querySelector('[data-testid="turn-next-line"]')!.textContent, "Cross-validation is next.");
+			assert.equal(host.querySelector('[data-testid="next-problem-button"]')!.textContent, "Continue");
+			assert.ok(!host.querySelector('.lh-turn-scroll')!.contains(host.querySelector('[data-testid="turn-next"]')), "the key stays in sight under a long task");
+			await show(named(column({ next: between })));
 			await exitPlays();
 			assert.ok(host.querySelector('[data-testid="answered-turn"]') === null);
 			assert.equal(host.querySelector('[data-testid="next-problem-button"]')!.textContent, "Next problem");
 		});
 	});
 
+	it("a problem that closes is kept where it stood, dimmed and not pressable, with no way out and no swap", async () => {
+		const keptProblem = { kind: "problem" as const, toolCallId: problem.toolCallId, statement: problem.statement, piece: null, line: problem.line, discarded: false };
+		await mounted(named(column({ problem })), async (host, show) => {
+			const statement = host.querySelector('[data-testid="open-problem"]')!;
+			await show(named(column({ busy: true, next: null, kept: keptProblem })));
+			assert.equal(swap(host).getAttribute("data-state"), "open", "the same problem, so nothing fades");
+			assert.equal(host.querySelector('[data-testid="open-problem"]'), statement, "its statement is not drawn anew");
+			assert.ok(host.querySelector('[data-testid="kept-problem"]')!.hasAttribute("inert"));
+			assert.match(host.querySelector("h2")!.textContent!, /Practice, problem 2/);
+			assert.ok(host.querySelector('[data-testid="discard-problem"]') === null);
+			assert.ok(host.querySelector('[data-testid="kept-problem-discarded"]') === null);
+			assert.match(host.querySelector('[data-testid="turn-foot"]')!.textContent!, /^Try asking/, "no Stuck? keys once it is closed");
+			await show(named(column({ next: between, kept: { ...keptProblem, discarded: true } })));
+			assert.equal(host.querySelector('[data-testid="kept-problem-discarded"]')!.textContent, "Discarded");
+			assert.equal(host.querySelector('[data-testid="next-problem-button"]')!.textContent, "Next problem");
+		});
+	});
+
 	it("a skipped question says Skipped instead of a pick; I don't know is its verdict alone", () => {
-		const skipped = renderToStaticMarkup(named(column({ busy: true, next: null, answered: { toolCallId: "q1", answer: { ...dismissedAnswer("quiz", quizInput.question), answeredAt: "2026-11-19T10:00:00Z" } } })));
+		const skipped = renderToStaticMarkup(named(column({ busy: true, next: null, kept: keptQuestion({ ...dismissedAnswer("quiz", quizInput.question), answeredAt: "2026-11-19T10:00:00Z" }) })));
 		assert.match(skipped, /data-testid="answered-turn-skipped"[^>]*>Skipped</);
 		assert.doesNotMatch(skipped, /answered-turn-option|answer-result/);
-		const unsure = renderToStaticMarkup(named(column({ busy: true, next: null, answered: { toolCallId: "q1", answer: buildAnswer(quizQD, { dontKnow: true }) } })));
+		const unsure = renderToStaticMarkup(named(column({ busy: true, next: null, kept: keptQuestion(buildAnswer(quizQD, { dontKnow: true })) })));
 		assert.match(unsure, /data-testid="answer-result"[^>]*>Didn(?:'|&#x27;)t know</);
 		assert.doesNotMatch(unsure, /answered-turn-option|answered-turn-skipped/);
 	});
 
 	it("a right pick reads Right; a prediction shows the pick with no verdict", () => {
-		const right = renderToStaticMarkup(named(column({ busy: true, next: null, answered: { toolCallId: "q1", answer: buildAnswer(quizQD, { values: ["Mercury"] }) } })));
+		const right = renderToStaticMarkup(named(column({ busy: true, next: null, kept: keptQuestion(buildAnswer(quizQD, { values: ["Mercury"] })) })));
 		assert.match(right, /data-picked="true"[\s\S]*?Mercury[\s\S]*?data-testid="answer-result"[^>]*>Right</);
-		const guess = renderToStaticMarkup(named(column({ busy: true, next: null, answered: { toolCallId: "q1", answer: buildAnswer({ ...quizQD, questionType: "predict" }, { values: ["Venus"] }) } })));
+		const guess = renderToStaticMarkup(named(column({ busy: true, next: null, kept: keptQuestion(buildAnswer({ ...quizQD, questionType: "predict" }, { values: ["Venus"] })) })));
 		assert.match(guess, /data-picked="true"/);
 		assert.doesNotMatch(guess, /answer-result/, "a guess is never marked");
 	});
 });
 
 describe("the lesson page's pair", () => {
-	const page = (turn: React.ReactNode | null, reading: React.ReactNode | null = <div data-testid="lesson-reading" />) =>
-		renderToStaticMarkup(<LessonScroll steps={null} restKey="" busy={false} contextRef={{ current: null }} reading={reading} turn={turn} />);
+	const page = (turn: React.ReactNode | null, reading: React.ReactNode | null = <div data-testid="lesson-reading" />, open = true, place: TurnPlace = "beside") =>
+		renderToStaticMarkup(<LessonScroll steps={null} restKey="" busy={false} contextRef={{ current: null }} reading={reading} turn={turn} open={open} shutting={false} onShut={() => {}} onRest={() => {}} slim place={place} onPlace={() => {}} />);
 
 	it("draws Your turn alone, in the middle at its width in the pair, while the lesson text draws nothing", () => {
 		const alone = page(<aside data-testid="turn-sheet" />, null);
@@ -959,12 +985,23 @@ describe("the lesson page's pair", () => {
 		assert.doesNotMatch(alone, /lesson-reading|room:grid|lh-lesson-pair/);
 	});
 
-	it("keeps Your turn beside the text for the whole lesson, and under it in a narrow room", () => {
+	it("open, Your turn is beside the text; in a narrow room it is under it", () => {
 		const started = page(<aside data-testid="turn-sheet" />);
-		assert.match(started, /data-testid="lesson-column" class="[^"]*@min-\[1280px\]\/room:grid/, "the pair stays");
+		assert.match(started, /data-testid="lesson-column" class="[^"]*@min-\[1280px\]\/room:grid/, "the pair");
+		assert.match(started, /lh-lesson-pair/);
 		assert.match(started, /class="lh-turn-fit min-w-0"[^>]*><aside data-testid="turn-sheet"/);
-		assert.doesNotMatch(started, /room:hidden/, "never hidden: the box is always there");
-		assert.doesNotMatch(page(null), /turn-sheet|@min-\[1280px\]\/room:grid/, "before the lesson starts the text is one column");
+		assert.doesNotMatch(started, /room:hidden|lh-lesson-closed/, "never hidden: the box is always there");
+	});
+
+	it("shut, the text is one page as wide as the open book's left page, from before the lesson starts", () => {
+		const shut = page(<aside data-testid="turn-sheet" />, undefined, false, "pinned");
+		assert.match(shut, /lh-lesson-closed/);
+		assert.match(shut, /data-testid="lesson-column" class="[^"]*@min-\[1280px\]\/room:max-w-none/, "the column keeps the pair's width, so the text's inset never changes");
+		assert.doesNotMatch(shut, /@min-\[1280px\]\/room:grid|lh-lesson-pair/);
+		assert.match(shut, /room:max-w-\(--lh-text\)/, "the pinned Your turn is as wide as the page");
+		const before = page(null, undefined, false, "under");
+		assert.match(before, /lh-lesson-closed/);
+		assert.doesNotMatch(before, /turn-sheet|@min-\[1280px\]\/room:grid/);
 	});
 });
 
@@ -984,6 +1021,8 @@ describe("the reading pane", () => {
 		arrivalsLive: false,
 		pageMarks: new Map(),
 		arrive: () => undefined,
+		bookTurns: false,
+		onDesk: () => {},
 		...over,
 	});
 	const pane = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}) => renderToStaticMarkup(<ReadingPane {...readingProps(over)} />);
@@ -1044,7 +1083,7 @@ describe("the reading pane", () => {
 		);
 		assert.match(bubble, /data-testid="user-message"[^>]*style="[^"]*var\(--lh-space-5\)/);
 		assert.doesNotMatch(bubble, /--lh-space-3/);
-		assert.match(inSpaces(named(<TurnSheet {...turnProps()} spaceId="spc_lesson" next={null} answered={null} />)), /--lh-pale:[^"]*var\(--lh-space-5\)/);
+		assert.match(inSpaces(named(<TurnSheet {...turnProps()} spaceId="spc_lesson" next={null} />)), /--lh-pale:[^"]*var\(--lh-space-5\)/);
 		assert.doesNotMatch(pane({ messages, busy: false, status: "ready" }), /data-testid="user-message"[^>]*style=/, "a lesson with no space keeps the plain bubble");
 	});
 });

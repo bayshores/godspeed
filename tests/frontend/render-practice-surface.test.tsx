@@ -95,9 +95,9 @@ describe("the practice transcript cards", () => {
 	});
 
 	it("ProblemCard: draws nothing while its problem is open (Your turn shows it), and again once it is not", () => {
-		const card = (openProblem: string | null) =>
+		const card = (inTurn: string | null) =>
 			renderToStaticMarkup(
-				<ChatActionsContext.Provider value={{ chatId: "c1", sendBlocked: null, sendText: () => {}, dropKept: () => {}, openProblem }}>
+				<ChatActionsContext.Provider value={{ chatId: "c1", sendBlocked: null, sendText: () => {}, dropKept: () => {}, inTurn }}>
 					<ProblemCard part={part({ input: { statement: "Prove the parity claim." } })} />
 				</ChatActionsContext.Provider>,
 			);

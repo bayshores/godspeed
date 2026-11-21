@@ -93,6 +93,34 @@ export function activeProblemOf(
 	return null;
 }
 
+/** The problem closed last, with none open since: by its conclusion, or by the learner
+ *  discarding it. The same honest fold as activeProblemOf: only clean calls count. */
+export function closedProblemOf(
+	messages: readonly LhMessage[],
+): { toolCallId: string; input: unknown; details: unknown; discarded: boolean } | null {
+	const clean = cleanToolCalls(messages);
+	let closed: "concluded" | "discarded" | null = null;
+	for (let mi = messages.length - 1; mi >= 0; mi--) {
+		const m = messages[mi]!;
+		const role = (m as { role?: string }).role;
+		if (role === "custom") {
+			if ((m as LhMarkerMessage).customType === "problem-dismissed") closed ??= "discarded";
+			continue;
+		}
+		if (role !== "assistant") continue;
+		const assistant = m as AssistantMessage;
+		for (let bi = assistant.content.length - 1; bi >= 0; bi--) {
+			const block = assistant.content[bi]!;
+			if (block.type !== "toolCall" || !clean.has(block.id)) continue;
+			if (block.name === PRACTICE_CONCLUDE_TOOL) closed ??= "concluded";
+			else if (block.name === PRACTICE_PROBLEM_TOOL) {
+				return closed ? { toolCallId: block.id, input: block.arguments, details: clean.get(block.id), discarded: closed === "discarded" } : null;
+			}
+		}
+	}
+	return null;
+}
+
 /** The choices a problem shows as tick rows. */
 export interface ProblemChoices {
 	labels: string[];
