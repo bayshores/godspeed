@@ -135,5 +135,5 @@ pub static SPACE_ARG_TEXT: LazyLock<SpaceArgText> = LazyLock::new(|| SpaceArgTex
 	vault_query: "What to look for, in plain words.",
 	vault_path: "Instead of query: a note's path as search_vault gave it, relative to the vault.",
 	vault_limit: "Most notes to return (default 8).",
-	vault_space: "Only notes whose class is this space's name.",
+	vault_space: "Only notes in this space's folder of the vault.",
 });

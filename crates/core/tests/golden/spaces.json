@@ -21691,7 +21691,7 @@
 				"vaultQuery": "What to look for, in plain words.",
 				"vaultPath": "Instead of query: a note's path as search_vault gave it, relative to the vault.",
 				"vaultLimit": "Most notes to return (default 8).",
-				"vaultSpace": "Only notes whose class is this space's name."
+				"vaultSpace": "Only notes in this space's folder of the vault."
 			},
 			"deadlineKinds": [
 				"exam",

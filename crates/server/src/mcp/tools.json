@@ -1144,7 +1144,7 @@
 				},
 				"space_id": {
 					"type": "string",
-					"description": "Only notes whose class is this space's name."
+					"description": "Only notes in this space's folder of the vault."
 				}
 			},
 			"required": []

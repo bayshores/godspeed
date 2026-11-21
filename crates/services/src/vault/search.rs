@@ -31,17 +31,21 @@ pub fn search_vault(app: &App, args: &Json) -> Result<Json, String> {
 	}
 	let query = args["query"].as_str().map(str::trim).filter(|q| !q.is_empty()).ok_or("Send a query or a path.")?;
 	let limit = args["limit"].as_i64().map_or(SEARCH_DEFAULT_LIMIT, |n| n.clamp(1, SEARCH_MAX_LIMIT as i64) as usize);
-	let space = match args["space_id"].as_str().filter(|s| !s.is_empty()) {
-		Some(id) => Some(app.stores.spaces.get_space(id).ok_or_else(|| crate::spaces::space_actions::no_space_text(id))?["name"].str_or_empty().to_lowercase()),
+	// A space's notes are the ones in its folder, which the learner cannot change by editing a key.
+	let folder = match args["space_id"].as_str().filter(|s| !s.is_empty()) {
+		Some(id) => {
+			app.stores.spaces.get_space(id).ok_or_else(|| crate::spaces::space_actions::no_space_text(id))?;
+			Some(app.stores.vault_notes.read()["folders"][id].as_str().map(|f| format!("{f}/")).unwrap_or_default())
+		}
 		None => None,
 	};
 	with_reader(app, |reader| {
-		let hits = reader.search(query, if space.is_some() { NARROWING_POOL } else { limit });
+		let hits = reader.search(query, if folder.is_some() { NARROWING_POOL } else { limit });
 		let notes: Vec<Json> = hits
 			.into_iter()
 			.filter_map(|hit| {
 				let note = reader.note(&hit.path)?;
-				if space.as_deref().is_some_and(|name| note.space.as_deref().map(str::to_lowercase).as_deref() != Some(name)) {
+				if folder.as_deref().is_some_and(|prefix| prefix.is_empty() || !hit.path.starts_with(prefix)) {
 					return None;
 				}
 				let mut out = json!({ "name": hit.name, "path": hit.path, "owner": owner_word(hit.owner == VaultOwner::Godspeed), "snippet": hit.snippet });
@@ -93,9 +97,11 @@ mod tests {
 		assert_eq!(found["indexed"].as_i64(), Some(2));
 		let owner = |name: &str| found["notes"].items().iter().find(|n| n["name"].as_str() == Some(name)).map(|n| n["owner"].as_str().unwrap().to_owned());
 		assert_eq!((owner("Pigeonhole").as_deref(), owner("Binary search").as_deref()), (Some("you"), Some("godspeed")));
+		fx.write("Mine/Claims.md", "---\nclass: CSE 21\n---\nPigeonhole, claiming the class.\n");
 		let only = search_vault(&fx.app, &json!({ "query": "pigeonhole", "space_id": fx.space_id })).unwrap();
-		assert_eq!(only["notes"].items().len(), 1, "only the notes of that space's class");
-		assert_eq!(only["notes"][0]["class"].as_str(), Some("CSE 21"));
+		assert_eq!(only["notes"].items().len(), 1, "only the notes in that space's folder, whatever their class key says");
+		assert_eq!(only["notes"][0]["name"].as_str(), Some("Binary search"));
+		assert_eq!(search_vault(&fx.app, &json!({ "query": "pigeonhole", "space_id": "space_nope" })).unwrap_err(), crate::spaces::space_actions::no_space_text("space_nope"));
 		assert_eq!(search_vault(&fx.app, &json!({ "query": "pigeonhole", "limit": 1 })).unwrap()["notes"].items().len(), 1);
 	}
 
