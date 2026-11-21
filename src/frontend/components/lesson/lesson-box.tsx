@@ -8,6 +8,7 @@ const BUTTON_ID: Record<BoxButton["action"], string> = {
 	submit: "question-submit",
 	skip: "words-skip",
 	save: "words-save",
+	leave: "words-leave",
 };
 
 /**

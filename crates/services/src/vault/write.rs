@@ -225,19 +225,20 @@ fn write_request(app: &App, req: Request, args: &Json) -> Result<Json, String> {
 			Err(why)
 		}
 		Outcome::Waits => {
-			app.stores.vault_notes.update(|rec| keep_waiting(rec, &req, args, refused))?;
+			app.stores.vault_notes.update(|rec| keep_waiting(rec, &req, args, refused, &note_title))?;
 			notes_changed(app);
 			Ok(json!({ "status": "waiting", "name": note_name(&note_title), "path": null, "confidence": confidence_word(topic.status) }))
 		}
 	}
 }
 
-/// Keeps the request until the vault takes it. `refused` is why the disk would not; "Try again"
-/// repeats the write.
-fn keep_waiting(rec: &mut Json, req: &Request, args: &Json, refused: Option<&str>) -> Result<(), String> {
+/// Keeps the request until the vault takes it, with the note's name for the failure notice.
+/// `refused` is why the disk would not; "Try again" repeats the write.
+fn keep_waiting(rec: &mut Json, req: &Request, args: &Json, refused: Option<&str>, name: &str) -> Result<(), String> {
 	let notes = rec.get_mut("notes").and_then(Json::as_obj_mut).ok_or("vault-notes.json has no notes.")?;
 	let mut note = notes.get(&req.topic_id).cloned().unwrap_or_else(|| json!({ "spaceId": req.space_id, "state": NoteState::Active.as_str() }));
 	note.set("pending", args.clone());
+	note.set("title", name);
 	match refused {
 		Some(why) => note.set("failure", why),
 		None => {
@@ -612,7 +613,7 @@ mod tests {
 		let answer = write_vault_note(&fx.app, &fx.request("t1", json!({ "text": "Halve it." }))).unwrap();
 		assert_eq!(answer["status"].as_str(), Some("waiting"));
 		let status = super::super::vault_status(&fx.app).unwrap();
-		assert_eq!((status["waiting"]["count"].as_i64(), status["waiting"]["why"].as_str()), (Some(1), Some("The folder is read-only.")));
+		assert_eq!((status["waiting"]["names"][0].as_str(), status["waiting"]["why"].as_str()), (Some("Binary search"), Some("The folder is read-only.")));
 		std::fs::set_permissions(&fx.vault, std::fs::Permissions::from_mode(0o755)).unwrap();
 		let status = super::super::retry_vault(&fx.app).unwrap();
 		assert!(status["waiting"].is_null());

@@ -10,7 +10,7 @@ Where the feature touches the app, what the server decides, what the teacher wri
 | Progress | Next deadline, path, Most needed, Facts, Lessons | Concept 2 only |
 | Graph | The topic panel and the picture | Concepts 1 and 3, in different places |
 | Files | The real record of the space's files | Nothing. The linked folder scan skips godspeed's notes |
-| Lessons | "Your turn" next states (`turn-next-model.ts`), "Done for today" at the last topic | The "My words" asks. The lesson text never changes |
+| Lessons | "Your turn" next states (`turn-next-model.ts`), "Done for today" at the last topic | The "My words" asks: the head says "My words", and Done for today sits in the box beside Skip and Save (Save is the main key). In the short pinned sheet the pages scroll sideways. The lesson text never changes |
 | Strip and peek | Notices (`notice-store.ts`) | Failures always; saved notes in concept 1 |
 | Teacher's pane | "Everything <teacher> can do", whose dim lines say what they need | One line, "Note this", dim with "needs a vault" until one is picked |
 | Agent tools | `search_graph`, `search_space_files` | `write_vault_note` (MCP, and a lesson tool while a vault is picked) and `search_vault` (MCP only). Nothing writes outside godspeed's folders today, and `search_space_files` searches files read into the graph, which the vault never is |
@@ -34,7 +34,7 @@ A write the disk refuses (full, read-only) is kept as waiting, with the reason o
 
 | Route | Answer |
 |---|---|
-| `GET` and `PATCH /api/vault` | `{folder, words, obsidian, vaults, notes, capped, state, message?, waiting}`. `waiting` is `{count, why}` while notes wait, else null; `why` is a line ready to show ("The disk is full.", "The folder is read-only.", "Can't find this vault.") |
+| `GET` and `PATCH /api/vault` | `{folder, words, obsidian, vaults, notes, capped, state, message?, waiting}`. `waiting` is `{names, why}` while notes wait (`names` are the waiting notes' titles, kept on the record), else null; `why` is a line ready to show ("The disk is full.", "The folder is read-only.", "Can't find this vault.") |
 | `POST /api/vault/retry` | The same answer, after the notes that waited were written again |
 | `GET /api/spaces/{id}/vault-notes` and `GET /api/chats/{id}/vault-notes` | Pages, `{topicId, name, recall, color, kind: "godspeed" \| "kept" \| "mine", path, saving}`. A space's come weakest first, then by name; a lesson's in the order the topics were answered, with `{asks: [{topicId, name, maxLength}]}` beside them |
 | `POST /api/chats/{id}/vault-words` | `{topicId, words}` or `{topicId, skip: true}`, the answer to one ask |

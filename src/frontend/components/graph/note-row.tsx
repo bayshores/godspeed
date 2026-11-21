@@ -13,7 +13,7 @@ export function NoteRow({ topicId }: { topicId: string }) {
 	if (!path || !canOpenNote(obsidian)) return null;
 	return (
 		<button type="button" data-testid="topic-note-open" onClick={() => openNote(path, obsidian)} className={PANE_ROW}>
-			<PixelIcon name="crystal" className="h-4 shrink-0 text-ink" />
+			<PixelIcon name="crystal" className="h-[18px] shrink-0 text-ink" />
 			<span className="min-w-0 underline underline-offset-2">{openLabel(obsidian, browserName())}</span>
 		</button>
 	);

@@ -262,3 +262,11 @@ describe("lessonBox, the Stuck? keys", () => {
 		assert.deepEqual(box(questionTurn("quiz", quiz, false, "review"), { busy: true }).help, { dontKnow: "answer", dontKnowDisabled: false, linesDisabled: true });
 	});
 });
+
+describe("lessonBox, a My words ask", () => {
+	it("the key that ends the day comes first, Save is the main key once the words fit", () => {
+		const ready = box({ kind: "words", ready: true, leave: "Done for today" }).keys;
+		assert.deepEqual(ready.map((k) => [k.action, k.filled]), [["leave", false], ["skip", false], ["save", true]]);
+		assert.equal(box({ kind: "words", ready: false, leave: null }).keys.some((k) => k.action === "leave"), false);
+	});
+});

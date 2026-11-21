@@ -27,8 +27,8 @@ export interface VaultStatus {
 	state: "none" | "ok" | "missing" | "failed";
 	/** Why the folder cannot be read, with "missing" and "failed". */
 	message?: string;
-	/** Notes the folder has not taken yet, and why; null with none waiting. */
-	waiting: { count: number; why: string } | null;
+	/** The names of the notes the folder has not taken yet, and why; null with none waiting. */
+	waiting: { names: string[]; why: string } | null;
 }
 
 /** The group's head: "Obsidian" while the learner picks among Obsidian's vaults or holds one. */
@@ -50,9 +50,10 @@ export function destination(obsidian: boolean): string {
 	return obsidian ? "Obsidian" : "your notes folder";
 }
 
-/** The failure notice's first line: "Couldn't save 2 notes to Obsidian." */
-export function waitingLine(count: number, obsidian: boolean): string {
-	return `Couldn't save ${plural(count, "note")} to ${destination(obsidian)}.`;
+/** The failure notice's first line: "Couldn't save Stars and bars and Combinations to Obsidian." Three or more: "A, B and 3 more". */
+export function waitingLine(names: string[], obsidian: boolean): string {
+	const named = names.length <= 2 ? names.join(" and ") : `${names.slice(0, 2).join(", ")} and ${names.length - 2} more`;
+	return `Couldn't save ${named} to ${destination(obsidian)}.`;
 }
 
 /** What opening a note says: Obsidian for a vault it knows, else the file browser (named by `browser`). */

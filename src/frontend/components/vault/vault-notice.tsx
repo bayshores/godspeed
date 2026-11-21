@@ -19,7 +19,7 @@ export function VaultNotice() {
 	const [closed, setClosed] = useState<string | null>(null);
 	const waiting = status?.waiting ?? null;
 	if (!status || !waiting || typeof document === "undefined") return null;
-	const title = waitingLine(waiting.count, status.obsidian);
+	const title = waitingLine(waiting.names, status.obsidian);
 	const key = `${title} ${waiting.why}`;
 	if (closed === key) return null;
 	const gone = status.state === "missing";

@@ -105,19 +105,26 @@ for (let tries = 0; ; tries++) {
 }`;
 
 
-/** What the notes folder tells the page, made up: the server writes no notes in this check, so the page's reads of them are answered here
- *  and the server's own "notes changed" event, which a write of the same setting sends, makes the page read again. */
-const PAGES = [
-	{ topicId: "ungrouped", name: "Stars and bars", recall: "How many ways can you split 7 identical stars into 3 bins?", color: "#c0584a", kind: "godspeed", path: "Lab Algebra/Stars and bars.md", saving: false },
-	{ topicId: "t2", name: "Counting strings and subsets", recall: "When do you add counts, and when do you multiply them? Name one case of each.", color: "#d49a3a", kind: "kept", path: "Lab Algebra/Counting.md", saving: false },
-	{ topicId: "t3", name: "Pigeonhole", recall: "Why must two of five socks in four drawers share a drawer?", color: "#6a9a5a", kind: "mine", path: "Lab Algebra/Pigeonhole.md", saving: false },
-	{ topicId: "t4", name: "Combinations", recall: "Why is choosing 3 of 5 the same as leaving out 2?", color: "#6a9a5a", kind: "godspeed", path: "Lab Algebra/Combinations.md", saving: false },
-	{ topicId: "t5", name: "Binomial theorem", recall: null, color: "#4a7aa8", kind: "godspeed", path: "Lab Algebra/Binomial theorem.md", saving: false },
-	{ topicId: "t6", name: "Inclusion and exclusion", recall: "What do you subtract after adding two overlapping sets?", color: "#4a7aa8", kind: "godspeed", path: "Lab Algebra/Inclusion.md", saving: false },
-	{ topicId: "t7", name: "Permutations", recall: "How many orders can 4 people stand in?", color: "#6a9a5a", kind: "godspeed", path: "Lab Algebra/Permutations.md", saving: false },
+/** What the notes folder tells the page, made up: the server writes no notes in this check, so the page's reads of them are answered here,
+ *  one page for each of the lab space's real topics, and the server's own "notes changed" event, which a write of the same setting sends,
+ *  makes the page read again. */
+const RECALLS = ["How do you undo ax + b = c, one step at a time?", "When may you do the same thing to both sides of an equation?", "What do you do first to isolate the variable?", "What do the slope and the intercept tell you about a line?", "How does a word problem become an equation?"];
+const COLORS = ["#c0584a", "#d49a3a", "#6a9a5a", "#4a7aa8", "#6a9a5a"];
+const KINDS = ["godspeed", "kept", "mine", "godspeed", "godspeed"];
+/** Two more pages, so Progress has more than a row of them. */
+const EXTRA_PAGES = [
+	{ topicId: "extra-1", name: "Systems of equations", recall: "How many solutions can two lines share?", color: "#6a9a5a", kind: "godspeed", path: "Lab Algebra/Systems of equations.md", saving: false },
+	{ topicId: "extra-2", name: "Inequalities", recall: "When does an inequality flip?", color: "#4a7aa8", kind: "godspeed", path: "Lab Algebra/Inequalities.md", saving: false },
 ];
-/** Answers the page's reads of the notes (a path with "vault-notes") with `answer`, then has the server say the notes changed. `status` also changes what the notes folder's own read says. */
+/** The page-side list of the first `take` topics' pages (more with `extra`); the `waiting` ones are still being written. */
+const pagesOf = (take, { extra = false, waiting = [] } = {}) => `[...topics.slice(0, ${take}).map((topic, n) => ({
+	topicId: topic.id, name: topic.name, recall: ${JSON.stringify(RECALLS)}[n] ?? null, color: ${JSON.stringify(COLORS)}[n], kind: ${JSON.stringify(KINDS)}[n],
+	path: "Lab Algebra/" + topic.name + ".md", saving: false, ...(${JSON.stringify(waiting)}.includes(n) ? { kind: "godspeed", path: null, saving: true } : {}),
+})), ...${extra ? JSON.stringify(EXTRA_PAGES) : "[]"}]`;
+/** Answers the page's reads of the notes (a path with "vault-notes") with `answer`, then has the server say the notes changed. `status` is what the notes folder's own read says besides. */
 const notesAre = (answer, status = "{}") => `window.__realFetch ??= window.fetch.bind(window);
+const { topics: all } = await (await window.__realFetch("/api/progress?space={space}&today=" + new Date().toLocaleDateString("en-CA"))).json();
+const topics = all.filter((topic) => !topic.ungrouped);
 window.fetch = (url, init) => {
 	const path = String(url);
 	if (path.includes("vault-notes")) return Promise.resolve(Response.json(${answer}));
@@ -125,9 +132,9 @@ window.fetch = (url, init) => {
 	return window.__realFetch(url, init);
 };
 await window.__realFetch("/api/vault", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ words: "teacher" }) })${HTTP_OK}`;
-const spaceNotes = (pages) => notesAre(`{ notes: ${JSON.stringify(pages)} }`);
-const lessonNotes = (pages, asks = []) => notesAre(`{ pages: ${JSON.stringify(pages)}, asks: ${JSON.stringify(asks)} }`);
-const savingPages = PAGES.slice(0, 3).map((page, n) => (n === 2 ? { ...page, kind: "godspeed", path: null, saving: true } : page));
+const spaceNotes = (pages) => notesAre(`{ notes: ${pages} }`);
+const lessonNotes = (pages, asks = "[]") => notesAre(`{ pages: ${pages}, asks: ${asks} }`);
+const ASKED = `[{ topicId: topics[0].id, name: topics[0].name, maxLength: 600 }]`;
 const unlinkVault = `await fetch("/api/vault", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: null }) })${HTTP_OK};`;
 
 /** Find opened in the top bar by its magnifying glass `key`, with `word` typed into its `field`. */
@@ -417,20 +424,20 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		ready: "[data-testid=group-vault] [data-testid=vault-folder][data-state=ok]",
 		shows: "[data-testid=vault-unlink]",
 	},
-	{ name: "Progress with notes in Obsidian", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: spaceNotes(PAGES), shows: "[data-testid=notes-card] [data-testid=note-page]" },
-	{ name: "Progress with notes, all shown", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: `${spaceNotes(PAGES)};\n${whenThere("[data-testid=notes-all]")}; document.querySelector("[data-testid=notes-all]").click()`, shows: "[data-testid=notes-card][data-all] [data-testid=note-page]:nth-child(7)" },
-	{ name: "Graph, a topic with a note", url: "/graph", ready: "[data-testid=graph-topic]", setup: `${spaceNotes(PAGES)}; ${pickTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}`, shows: "[data-testid=topic-pane] [data-testid=topic-note-open]" },
-	{ name: "Lesson end, the notes being saved", height: TALL, url: "/chat/{ended}", ready: "[data-testid=your-turn] [data-testid=next-problem-button]", setup: lessonNotes(savingPages), shows: "[data-testid=end-notes] [data-saving]" },
-	{ name: "Lesson end, the notes saved", height: TALL, url: "/chat/{ended}", ready: "[data-testid=your-turn] [data-testid=next-problem-button]", setup: lessonNotes(PAGES.slice(0, 3)), shows: "[data-testid=notes-saved]" },
+	{ name: "Progress with notes in Obsidian", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: spaceNotes(pagesOf(5, { extra: true })), shows: "[data-testid=notes-card] [data-testid=note-page]" },
+	{ name: "Progress with notes, all shown", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: `${spaceNotes(pagesOf(5, { extra: true }))};\n${whenThere("[data-testid=notes-all]")}; document.querySelector("[data-testid=notes-all]").click()`, shows: "[data-testid=notes-card][data-all] [data-testid=note-page]:nth-child(7)" },
+	{ name: "Graph, a topic with a note", url: "/graph", ready: "[data-testid=graph-topic]", setup: `${spaceNotes(pagesOf(5))}; ${pickTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}`, shows: "[data-testid=topic-pane] [data-testid=topic-note-open]" },
+	{ name: "Lesson end, the notes being saved", height: TALL, url: "/chat/{ended}", ready: "[data-testid=your-turn]", setup: lessonNotes(pagesOf(3, { waiting: [2] })), shows: "[data-testid=end-notes] [data-saving]" },
+	{ name: "Lesson end, the notes saved", height: TALL, url: "/chat/{ended}", ready: "[data-testid=your-turn]", setup: lessonNotes(pagesOf(3)), shows: "[data-testid=notes-saved]" },
 	{
 		name: "Lesson end, asked for my words",
 		height: TALL,
 		url: "/chat/{ended}",
-		ready: "[data-testid=your-turn] [data-testid=next-problem-button]",
-		setup: lessonNotes(PAGES.slice(0, 3), [{ topicId: "ungrouped", name: "Stars and bars", maxLength: 600 }]),
-		shows: "[data-testid=words-save]",
+		ready: "[data-testid=your-turn]",
+		setup: lessonNotes(pagesOf(3), ASKED),
+		shows: "[data-testid=words-leave]",
 	},
-	{ name: "Notes that could not be saved", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: notesAre("{ notes: [] }", `{ waiting: { count: 2, why: "The disk is full." } }`), shows: "[data-testid=vault-notice] [data-testid=vault-notice-key]" },
+	{ name: "Notes that could not be saved", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: notesAre(`{ notes: ${pagesOf(3, { waiting: [0, 1] })} }`, `{ waiting: { names: [topics[0].name, topics[1].name], why: "The disk is full." } }`), shows: "[data-testid=vault-notice] [data-testid=vault-notice-key]" },
 	{ name: "Progress with no notes folder", before: unlinkVault, url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]" },
 	{ name: "Cheat sheet, not made", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]" },
 	{ name: "Cheat sheet, not made, beside the teacher's panel", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]", setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },

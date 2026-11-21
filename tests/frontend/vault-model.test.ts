@@ -41,7 +41,8 @@ describe("saying where a note opens and what failed", () => {
 	});
 
 	it("counts the notes that could not be saved", () => {
-		assert.equal(waitingLine(2, true), "Couldn't save 2 notes to Obsidian.");
-		assert.equal(waitingLine(1, false), "Couldn't save 1 note to your notes folder.");
+		assert.equal(waitingLine(["Stars and bars", "Combinations"], true), "Couldn't save Stars and bars and Combinations to Obsidian.");
+		assert.equal(waitingLine(["Pigeonhole"], false), "Couldn't save Pigeonhole to your notes folder.");
+		assert.equal(waitingLine(["A", "B", "C", "D", "E"], true), "Couldn't save A, B and 3 more to Obsidian.");
 	});
 });

@@ -139,7 +139,7 @@ export function YourTurn({
 		: problem
 			? ({ kind: "problem", picked: problemPicked.selected.size > 0 } as const)
 			: ask
-				? ({ kind: "words", ready: value.trim().length > 0 && over <= 0 } as const)
+				? ({ kind: "words", ready: value.trim().length > 0 && over <= 0, leave: nextKey?.label ?? null } as const)
 				: ({ kind: "ask", nextKey: nextKey !== null } as const);
 	const view = lessonBox({ teacher, busy, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
 	// Nothing waits: the foot row offers what any lesson can be asked for.
@@ -147,6 +147,7 @@ export function YourTurn({
 
 	const act = (action: BoxAction) => {
 		if (action === "send") onSend();
+		else if (action === "leave" && nextKey) onNext(nextKey.action);
 		else if (action === "skip" && ask) onAnswerAsk(ask.topicId, { skip: true });
 		else if (action === "save" && ask) onAnswerAsk(ask.topicId, { words: value.trim() });
 		else questionRef.current?.submit();
@@ -168,15 +169,14 @@ export function YourTurn({
 	const onExit = view.exit === "skip" ? onSkipQuestion : onDiscardProblem;
 	const fromEarlier = pending?.appPosed?.kind === "review";
 	// The title says what waits, in the word its answered card will carry.
-	const title = fromEarlier ? "From earlier" : pending ? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type)) : (problem?.line ?? "Your turn");
+	const title = ask ? "My words" : fromEarlier ? "From earlier" : pending ? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type)) : (problem?.line ?? "Your turn");
 
 	const mode = pending ? "question" : problem ? "practice" : shown.kind === "answered" ? "answered" : "next";
 	// Pinned with nothing to answer: no title, the next key ends the foot row, and only a line saying what is next stands over the box.
 	const quiet = useContext(TurnPinned) && !pending && !problem;
 	const boxAlone = quiet && (busy || !next?.next.line);
-	// With a "My words" ask, the key that ends the day sits in the head; pinned there is no head, so it sits by the ask.
-	const headKey = ask !== null && !quiet;
-	const rowKey = ask !== null ? quiet : !quiet;
+	// With a "My words" ask, the key that ends the day sits in the box beside Skip and Save.
+	const rowKey = ask === null && !quiet;
 	const nextButton = nextKey && (
 		<button type="button" data-testid="next-problem-button" data-action={nextKey.action} onClick={() => onNext(nextKey.action)} className="lh-btn lh-btn-main ml-auto shrink-0">
 			{nextKey.label}
@@ -194,7 +194,6 @@ export function YourTurn({
 				<h2 className="text-[28px] leading-tight text-ink">{title}</h2>
 				{/* The keys stay on the title's line while they fit: a file's name shortens before a key drops under the title. */}
 				<div data-testid="turn-keys" className={cn("flex flex-1 basis-0 items-center justify-end gap-x-2 empty:hidden", fileShown ? "min-w-[min(100%,19rem)]" : "min-w-fit")}>
-					{headKey && nextButton}
 					{fileShown && <ProblemFile file={fileShown} />}
 					{!pending && problem?.piece && pieceFailed !== problem.toolCallId && (
 						<button type="button" data-testid="piece-printed" aria-pressed={printed} onClick={() => setPrinted((on) => !on)} className={cn("lh-btn lh-btn-small", printed ? "lh-btn-main" : "lh-btn-quiet")}>
@@ -244,7 +243,7 @@ export function YourTurn({
 						{rowKey && nextButton}
 					</div>
 				)}
-				{notes && <EndNotes notes={notes} pages={!quiet} />}
+				{notes && <EndNotes notes={notes} scroll={quiet} />}
 			</TurnScroll>
 			</>
 			)}

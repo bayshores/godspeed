@@ -88,7 +88,7 @@ fn waiting_view(app: &App, missing: bool, obsidian: bool) -> Json {
 	let missing_line = if obsidian { "Can't find this vault." } else { "Can't find this folder." };
 	let why = if missing { Some(missing_line) } else { waiting.iter().find_map(|note| note["failure"].as_str()) };
 	match why {
-		Some(why) if !waiting.is_empty() => json!({ "count": waiting.len(), "why": why }),
+		Some(why) if !waiting.is_empty() => json!({ "why": why, "names": waiting.iter().filter_map(|note| note["title"].as_str()).collect::<Vec<_>>() }),
 		_ => Json::Null,
 	}
 }

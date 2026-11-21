@@ -215,26 +215,31 @@ describe("Your turn in each state", () => {
 		assert.match(saving, /data-testid="notes-saved"[^>]*>Saving to Obsidian</);
 		assert.match(html({ shown: end({ pages: [page("t1", false)], saved: "Saved to Obsidian", ask: null }) }), />Saved to Obsidian</);
 		const pinned = html({ shown: end({ pages: [page("t1", false)], saved: "Saved to Obsidian", ask: null }) }, (n) => <TurnPinned.Provider value={true}>{n}</TurnPinned.Provider>);
-		assert.doesNotMatch(pinned, /note-page/, "the pinned sheet is too short for pages");
+		assert.match(pinned, /note-page/);
+		assert.match(pinned, /overflow-x-auto/, "the pinned sheet is short, so its pages scroll sideways");
 		assert.match(pinned, />Saved to Obsidian</);
 	});
 
-	it("a My words ask: the ask is the line, Done for today is in the head, Skip and Save are in the box and the limit is kept", async () => {
+	it("a My words ask: the ask is the line under the My words head, Done for today, Skip and Save are in the box and the limit is kept", async () => {
 		const ask = { topicId: "t1", name: "Stars and bars", maxLength: 10 };
 		const asking = shown({ line: "Explain stars and bars in your own words.", key: { label: "Done for today", action: "done-for-today" }, notes: { pages: [], saved: null, ask } });
 		const out = html({ shown: asking });
-		assert.match(out, /<h2[^>]*>Your turn<\/h2>[\s\S]*data-action="done-for-today"[\s\S]*Explain stars and bars in your own words\./);
-		assert.equal(out.split("done-for-today").length - 1, 1, "Done for today once");
+		assert.match(out, /<h2[^>]*>My words<\/h2>[\s\S]*Explain stars and bars in your own words\./);
+		assert.match(out, /data-testid="words-leave"[^>]*>Done for today</);
+		assert.doesNotMatch(out, /next-problem-button/, "Done for today only in the box");
 		assert.match(out, /One or two sentences/);
 		assert.match(out, /data-testid="words-skip"[^>]*>Skip</);
 		assert.match(out, /data-testid="words-save"[^>]*disabled[^>]*>Save</);
 		const answers: unknown[] = [];
 		const onAnswerAsk = (topicId: string, reply: unknown) => answers.push([topicId, reply]);
-		await mounted(turn({ shown: asking, value: "Halve it.", onAnswerAsk }), async (host) => {
+		const nexts: NextAction[] = [];
+		await mounted(turn({ shown: asking, value: "Halve it.", onAnswerAsk, onNext: (a: NextAction) => nexts.push(a) }), async (host) => {
 			await click(host, "words-save");
 			await click(host, "words-skip");
+			await click(host, "words-leave");
 		});
 		assert.deepEqual(answers, [["t1", { words: "Halve it." }], ["t1", { skip: true }]]);
+		assert.deepEqual(nexts, ["done-for-today"]);
 		assert.match(html({ shown: asking, value: "x".repeat(14) }), /Shorten it by 4 characters\./);
 		assert.match(html({ shown: asking, value: "x".repeat(14) }), /data-testid="words-save"[^>]*disabled/);
 	});
