@@ -173,7 +173,7 @@ export function YourTurn({
 
 	const mode = pending ? "question" : problem ? "practice" : shown.kind === "answered" ? "answered" : "next";
 	// Pinned with nothing to answer: no title, the next key ends the foot row, and only a line saying what is next stands over the box.
-	const quiet = useContext(TurnPinned) && !pending && !problem;
+	const quiet = useContext(TurnPinned) && !pending && !problem && !ask;
 	const boxAlone = quiet && (busy || !next?.next.line);
 	// With a "My words" ask, the key that ends the day sits in the box beside Skip and Save.
 	const rowKey = ask === null && !quiet;
