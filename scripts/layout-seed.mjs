@@ -11,7 +11,10 @@
  * has as its assignment: its problems are posted from their pages, the first is done and the second open.
  * Eight more lessons are studied (a plan of two steps, a quiz on the last one, answered) and two are
  * left open (a quiz on the first step, unanswered), so the Lessons block on Progress has both groups
- * and a Show all. One more poses a practice problem longer than the window, still open. Their titles are of mixed length, one very long. One more lesson is made and
+ * and a Show all. Five more each stop at one state of "Your turn" with nothing to answer: the
+ * teacher explained and asked nothing; a problem was concluded, which ended its topic; a quiz was
+ * skipped and worked through; a problem was discarded; the plan's one topic ended, the last.
+ * One more poses a practice problem longer than the window, still open. Their titles are of mixed length, one very long. One more lesson is made and
  * never sent: the window sends its first message, whose reply waits for an agent.
  * Four more deadlines, far off, carry the cheat sheet and mock pages: the midterm has a sheet of two
  * pages with its chat and one saved rule, and a graded mock followed by a ready one; the quiz has a
@@ -132,6 +135,21 @@ const CODE_QUIZ = {
 	correctAnswer: CODE_CHOICES[0],
 	explanation: "Subtract b first, then divide by a.",
 };
+
+/** Lessons that each stop at one state of "Your turn" with nothing to answer: the teacher
+ *  explained and asked nothing; a problem concluded, which ends its topic; a question skipped
+ *  and answered; a problem discarded; the last topic ended. A quiz answered and its reply is a
+ *  studied lesson's state. */
+const EXPLAINED_TOPIC = "Isolating the variable";
+const EXPLAINED = "To get $x$ alone in $4x - 1 = 7$, undo the subtraction first: add 1 to both sides to get $4x = 8$. Then undo the multiplying: divide both sides by 4, and $x = 2$.";
+const CONCLUDED_TOPIC = "Slope from a graph";
+const SKIPPED_TOPIC = "Equations with fractions";
+const DISCARDED_TOPIC = "Equations with variables on both sides";
+const LAST_TOPIC = "Checking by substitution";
+/** A plan of one step, so the topic its quiz ends is the last. */
+const ONE_STEP = "graph TD\n  only-step[Put it back]";
+/** The problem the concluded and the discarded lessons pose. */
+const STEP_PROBLEM = { nodeId: "first-step", statement: "Solve $3x + 2 = x + 10$ and check your answer.", mode: "recall", modelSolution: "2x = 8, so x = 4; 3(4) + 2 = 14 = 4 + 10." };
 
 /** Deadlines for the cheat sheet and mock pages, far off so Home stays as it was. */
 const MIDTERM = "Midterm: graphing and systems";
@@ -317,6 +335,30 @@ function sheetLessonAnswer(lessonTurn, asked) {
 	return { text: step.text, tool_calls: [{ name: "quiz", arguments: { ...step.quiz, options: step.quiz.options.map((label) => ({ label, value: label })) } }] };
 }
 
+/** The lessons that stop at a state of "Your turn". Each writes the plan first; then the
+ *  explained one only teaches; the concluded one poses a problem, concludes it solved after the
+ *  learner's answer and ends the topic; the skipped one asks a quiz and, after the skip, works it
+ *  through; the discarded one poses a problem the learner drops; the last-topic one quizzes its one
+ *  step and, after the right answer, ends it. */
+function turnStateAnswer(work, ids, lessonTurn) {
+	const plan = (mermaid) => ({ text: "Here is the plan.", tool_calls: [{ name: "plan_init", arguments: { mermaid } }] });
+	const twoSteps = "graph TD\n  first-step[First step] --> last-step[Last step]";
+	const quiz = (nodeId) => ({ type: "check", nodeId, question: "What is x when 3x = 12?", options: [{ label: "4", value: "4" }, { label: "9", value: "9" }], explanation: "Divide both sides by 3.", correctAnswer: "4" });
+	const turns = {
+		[ids.explained]: [plan(twoSteps), { text: EXPLAINED }],
+		[ids.concluded]: [
+			plan(twoSteps),
+			{ text: "Try this one.", tool_calls: [{ name: "problem", arguments: STEP_PROBLEM }] },
+			{ tool_calls: [{ name: "conclude", arguments: { outcome: "solved", verdict: "x = 4, and your check holds: both sides are 14.", rung: null, missClass: null, retest: false } }] },
+			{ tool_calls: [{ name: "topic_done", arguments: { nodeId: "first-step" } }] },
+		],
+		[ids.skipped]: [plan(twoSteps), { text: "Try this one.", tool_calls: [{ name: "quiz", arguments: quiz("first-step") }] }, { text: "Here it is worked through: divide both sides of $3x = 12$ by 3, and $x = 4$." }],
+		[ids.discarded]: [plan(twoSteps), { text: "Try this one.", tool_calls: [{ name: "problem", arguments: STEP_PROBLEM }] }],
+		[ids.lastTopic]: [plan(ONE_STEP), { text: "Put your answer back into the equation to check it.", tool_calls: [{ name: "quiz", arguments: quiz("only-step") }] }, { tool_calls: [{ name: "topic_done", arguments: { nodeId: "only-step" } }] }],
+	};
+	return turns[work.lessonId]?.[lessonTurn] ?? null;
+}
+
 /** The answer to a cheat sheet request. The PDF is copied into the sheet's working folder, which
  *  the request names, as an agent's own tools would write it there. The request is JSON text, so
  *  the folder's line ends at an escaped newline. */
@@ -334,8 +376,8 @@ function sheetAnswer(work, ids) {
  *  turn presents the plan; its second, after the plan's result, is the sourced reply with an open
  *  quiz, so the reply ends the reading pane. */
 function answerFor(work, ids, lessonTurn) {
-	const homework = homeworkAnswer(work, ids, lessonTurn);
-	if (homework) return homework;
+	const scripted = homeworkAnswer(work, ids, lessonTurn) ?? turnStateAnswer(work, ids, lessonTurn);
+	if (scripted) return scripted;
 	if (work.lessonId === ids.written) return WRITTEN_REPLY;
 	// The lesson is made last, so until then no id is here to match work that has no lesson.
 	if (ids.sheetless && work.lessonId === ids.sheetless) return { text: "A pull request asks to merge one branch into another." };
@@ -485,6 +527,7 @@ export async function seed(dataDir, page, log) {
 	const twoSheets = await startLesson(TWO_SHEETS_TOPIC);
 	const askedFirst = await startLesson(ASKED_FIRST_TOPIC);
 	const codeChoices = await startLesson(CODE_CHOICES_TOPIC);
+	const turnStates = { explained: await startLesson(EXPLAINED_TOPIC), concluded: await startLesson(CONCLUDED_TOPIC), skipped: await startLesson(SKIPPED_TOPIC), discarded: await startLesson(DISCARDED_TOPIC), lastTopic: await startLesson(LAST_TOPIC) };
 
 	// Answer every item until the queue stays empty for two teacher and two helper waits in a row. A respond answers with the
 	// next item when one waits. godspeed's own jobs (the space check) go to a helper, so an empty
@@ -495,13 +538,13 @@ export async function seed(dataDir, page, log) {
 	const turns = new Map();
 	const asked = new Map();
 	const resent = new Map();
-	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, studied, open, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices };
+	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, studied, open, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, ...turnStates };
 	const drain = async () => {
 		let reply = await wait();
 		for (let idle = 0, tries = 0; idle < 4; tries++) {
-			// Each added lesson is two items, a studied one three (its card is sent back once), and an
+			// Each added lesson is two items, a study lesson three (its card is sent back once), and an
 			// item is two passes: the work, then its "turn done".
-			if (tries > 20 + 4 * (open.length + 7) + 6 * studied.length) throw new Error("the stand-in agent never ran out of work");
+			if (tries > 20 + 4 * (open.length + 7) + 6 * (studied.length + Object.keys(turnStates).length)) throw new Error("the stand-in agent never ran out of work");
 			const header = JSON.parse(reply[0]);
 			if (header.status !== "work") {
 				if (header.status === "idle") helper = !helper;
@@ -533,16 +576,27 @@ export async function seed(dataDir, page, log) {
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkMany, input: { type: "text", text: "They cross at (2, 7)." } }) });
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkPrinted, input: { type: "text", text: "I am starting part (b)." } }) });
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: filesLesson, input: { type: "text", text: "The slope is 3." } }) });
+	/** The lesson's newest call of the tool `name`. */
+	const lastCall = async (chatId, name) => {
+		const { messages } = await page.json(`/api/chats/${chatId}`);
+		return messages.flatMap((m) => (Array.isArray(m.content) ? m.content : [])).findLast((block) => block.type === "toolCall" && block.name === name);
+	};
 	const say = (chatId, input) => page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId, input }) });
 	/** The learner picks the right answer of the lesson's open quiz. The answer keeps the choices, as the question box's does, so the answered card shows the pick. */
 	const answerQuiz = async (chatId) => {
-		const { messages } = await page.json(`/api/chats/${chatId}`);
-		const quiz = messages.flatMap((m) => (Array.isArray(m.content) ? m.content : [])).findLast((block) => block.type === "toolCall" && block.name === "quiz");
+		const quiz = await lastCall(chatId, "quiz");
 		const { question, options, correctAnswer } = quiz.arguments;
 		const index = options.findIndex((option) => (option.value ?? option.label) === correctAnswer) + 1;
 		const answer = { kind: "quiz", tool: "quiz", questionText: question, dontKnow: false, options: options.map((option, at) => ({ index: at + 1, label: option.label })), answers: [{ label: correctAnswer, value: correctAnswer, index }], correct: true, answeredAt: new Date().toISOString() };
 		await say(chatId, { type: "answer", toolCallId: quiz.id, answer });
 	};
+	// The learner answers the concluded lesson's problem, skips the skipped one's quiz, answers the last-topic one's quiz right and drops the discarded one's problem, as the window's Skip and Discard do.
+	await say(turnStates.concluded, { type: "text", text: "x = 4, and 3(4) + 2 = 14 = 4 + 10." });
+	const skip = await lastCall(turnStates.skipped, "quiz");
+	await say(turnStates.skipped, { type: "answer", toolCallId: skip.id, answer: { kind: "quiz", questionText: skip.arguments.question, dontKnow: false, answers: [], dismissed: true, answeredAt: new Date().toISOString() } });
+	await answerQuiz(turnStates.lastTopic);
+	const dropped = await lastCall(turnStates.discarded, "problem");
+	await page.fetch(`/api/chats/${turnStates.discarded}/dismiss`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ input: { type: "dismiss-problem", problemCallId: dropped.id } }) });
 	// The learner answers each studied lesson's quiz right, and the teacher closes the lesson. The
 	// sheet lessons' first step is answered too, and their teacher asks about the last.
 	for (const chatId of [...studied, twoSheets, askedFirst]) await answerQuiz(chatId);
@@ -596,5 +650,5 @@ export async function seed(dataDir, page, log) {
 	const sheetless = (await agent.json("start_lesson", { topic: "Git and pull requests", space_id: goal.space.id })).lessonId;
 	ids.sheetless = sheetless;
 	await drain();
-	return { sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
+	return { ...turnStates, quizAnswered: studied[0], sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
 }
