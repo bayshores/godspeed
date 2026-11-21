@@ -1,6 +1,5 @@
 /**
- * The frame: the top bar's Home and space tabs with their right-click
- * menu, the + with Add a space, the closed spaces and the lessons with no
+ * The frame: the top bar's Home and space tabs, the + with Add a space, the closed spaces and the lessons with no
  * space, Menu, the "Search
  * lessons" popup it opens, and a space page's head with its signature and
  * tabs.
@@ -54,6 +53,7 @@ const { BarZoom } = await import("../../src/frontend/components/top-bar/bar-zoom
 const { MagnifiedPage, MagnifierProvider } = await import("../../src/frontend/components/magnifier/magnifier.tsx");
 const { PINCH } = await import("../../src/frontend/components/magnifier/magnifier-model.ts");
 const { SearchLessons } = await import("../../src/frontend/components/search-lessons.tsx");
+const { KeyboardShortcuts } = await import("../../src/frontend/components/keyboard-shortcuts.tsx");
 const { SpaceHead } = await import("../../src/frontend/components/space-page/space-head.tsx");
 const { HeadSignature } = await import("../../src/frontend/components/space-page/head-signature.tsx");
 const { hasUnseenFiles } = await import("../../src/frontend/components/files/files-seen.ts");
@@ -137,29 +137,6 @@ async function mount(node: React.ReactNode, { pathname = "/", active = "c29" as 
 const q = (testid: string) => document.querySelector<HTMLElement>(`[data-testid="${testid}"]`);
 const texts = (selector: string) => [...document.querySelectorAll(selector)].map((el) => el.textContent);
 const click = (el: HTMLElement) => act(async () => el.click());
-/** A right-click, or the context-menu key on a focused element. */
-const rightClick = async (el: HTMLElement) => {
-	const event = new dom.window.Event("contextmenu", { bubbles: true, cancelable: true });
-	await act(async () => {
-		el.dispatchEvent(event);
-	});
-	return event.defaultPrevented;
-};
-/** A key on a focused element; returns whether it was claimed. */
-const press = async (el: HTMLElement, key: string, shiftKey = false) => {
-	const event = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
-	Object.assign(event, { key, shiftKey });
-	await act(async () => {
-		el.dispatchEvent(event);
-	});
-	return event.defaultPrevented;
-};
-const pressEscape = () =>
-	act(async () => {
-		const esc = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
-		Object.assign(esc, { key: "Escape" });
-		document.dispatchEvent(esc);
-	});
 /** Lets the request and the space list's re-read finish. */
 const settle = () => act(async () => new Promise((r) => setTimeout(r, 10)));
 
@@ -209,10 +186,29 @@ describe("Menu", () => {
 		assert.equal(q("app-menu")!.textContent, "Menu");
 		assert.equal(q("app-menu")!.getAttribute("aria-expanded"), "false");
 		await click(q("app-menu")!);
-		assert.deepEqual(texts("[data-testid='app-menu-list'] [role='menuitem']"), ["Search lessons", "Settings"].map((l, i) => l + keyText(["sessions-search", "open-settings"][i] as KeyAction)));
+		const lines: [string, KeyAction][] = [["Search lessons", "sessions-search"], ["Keyboard shortcuts", "shortcuts"], ["Settings", "open-settings"]];
+		assert.deepEqual(texts("[data-testid='app-menu-list'] [role='menuitem']"), lines.map(([label, action]) => label + keyText(action)));
 		assert.equal(q("menu-search-lessons")!.getAttribute("aria-keyshortcuts"), ariaKey("sessions-search"));
+		assert.equal(q("menu-shortcuts")!.getAttribute("aria-keyshortcuts"), ariaKey("shortcuts"));
 		assert.equal(q("settings-entry")!.getAttribute("aria-keyshortcuts"), ariaKey("open-settings"));
 		assert.equal(q("settings-entry")!.getAttribute("href"), "/settings");
+	});
+
+	it("Keyboard shortcuts opens the list, with the rows that are only listed", async () => {
+		await mount(
+			<>
+				<AppMenu lit={false} />
+				<KeyboardShortcuts />
+			</>,
+		);
+		assert.ok(q("shortcuts") === null, "closed until asked for");
+		await click(q("app-menu")!);
+		await click(q("menu-shortcuts")!);
+		await act(async () => {});
+		assert.equal(q("shortcuts")!.getAttribute("aria-label"), "Keyboard shortcuts");
+		const list = q("shortcuts")!.textContent!;
+		for (const row of ["Pick an answer by its number", "Keep the calculator's answer", "Magnify the page, or pinch"]) assert.ok(list.includes(row), row);
+		assert.equal(q("app-menu-list")?.getAttribute("data-state") ?? "closed", "closed", "the menu closes");
 	});
 });
 
@@ -387,107 +383,6 @@ describe("a space page's head", () => {
 	});
 });
 
-describe("a tab's right-click menu", () => {
-	const openMenu = async (id: string) => {
-		assert.equal(await rightClick(q(`space-option-${id}`)!), true, "not the browser's menu");
-		await act(async () => {});
-	};
-	it("has Close and Delete space, and marks its tab while open", async () => {
-		await mount(<SpaceTabs selected="c29" />);
-		assert.ok(q("space-menu") === null);
-		await openMenu("c21");
-		assert.equal(q("space-menu")!.getAttribute("role"), "menu");
-		assert.deepEqual(texts("[data-testid='space-menu'] [role='menuitem']"), ["Close", "Delete space"]);
-		assert.match(q("space-option-c21")!.className, /(^| )bg-bar-ink\/10( |$)/, "the tab stays marked");
-		assert.doesNotMatch(q("space-option-c29")!.className, /(^| )bg-bar-ink\/10( |$)/);
-	});
-	it("opens from the keyboard too, and says so to a screen reader", async () => {
-		await mount(<SpaceTabs selected="c29" />);
-		assert.equal(q("space-option-c21")!.getAttribute("aria-description"), "Has a menu with Close and Delete space");
-		assert.equal(await press(q("space-option-c21")!, "ContextMenu"), true);
-		assert.equal(q("space-menu")!.getAttribute("data-state"), "open", "the context-menu key");
-		await pressEscape();
-		assert.equal(await press(q("space-option-c21")!, "F10"), false, "F10 alone is not it");
-		assert.equal(q("space-menu")?.getAttribute("data-state") ?? "closed", "closed");
-		assert.equal(await press(q("space-option-c21")!, "F10", true), true);
-		assert.equal(q("space-menu")!.getAttribute("data-state"), "open", "Shift+F10");
-	});
-	it("a left-click on its tab closes it", async () => {
-		await mount(<SpaceTabs selected="c29" />);
-		await openMenu("c21");
-		await click(q("space-option-c21")!);
-		await act(async () => {});
-		assert.equal(q("space-menu")?.getAttribute("data-state") ?? "closed", "closed");
-	});
-	it("Close closes the space and leaves the window where it is", async () => {
-		await mount(<SpaceTabs selected="c29" />);
-		await openMenu("c21");
-		await click(q("space-menu-close")!);
-		await settle();
-		assert.ok(requests.includes('PUT /api/spaces/c21 {"closed":true}'));
-		assert.equal(q("space-menu")?.getAttribute("data-state") ?? "closed", "closed");
-		assert.deepEqual(pushed, [], "another space's page stays");
-		assert.ok(!requests.some((r) => r.startsWith("PATCH /api/settings/general")), "the window stays on its space");
-	});
-	it("after Close, focus goes to the tab that is lit", async () => {
-		const spaces = [...SPACES];
-		await mount(<SpaceTabs selected="c29" />, { spaces });
-		let focused = 0;
-		q("space-option-c29")!.focus = () => void focused++; // linkedom does not move focus
-		await openMenu("c21");
-		// The server's list once the space is closed.
-		spaces[1] = { ...spaces[1]!, closed: true };
-		await click(q("space-menu-close")!);
-		await settle();
-		assert.ok(q("space-option-c21") === null, "its tab is gone");
-		assert.equal(focused, 1);
-	});
-	it("closing the space on screen goes to Home", async () => {
-		await mount(<SpaceTabs selected="c29" />, { pathname: "/space" });
-		await openMenu("c29");
-		await click(q("space-menu-close")!);
-		await settle();
-		assert.ok(requests.includes('PUT /api/spaces/c29 {"closed":true}'));
-		assert.deepEqual(pushed, ["/"]);
-		assert.ok(requests.some((r) => r.startsWith("PATCH /api/settings/general") && r.includes('"activeSpace":"none"')));
-	});
-	it("a refused Close says why in the menu and changes nothing", async () => {
-		refused = "PUT /api/spaces/c29";
-		await mount(<SpaceTabs selected="c29" />, { pathname: "/space" });
-		await openMenu("c29");
-		await click(q("space-menu-close")!);
-		await settle();
-		assert.equal(q("space-menu-error")!.textContent, "The space is busy. Try again.");
-		assert.equal(q("space-menu-error")!.getAttribute("role"), "alert");
-		assert.equal(q("space-menu")!.getAttribute("data-state"), "open", "the menu stays to show it");
-		assert.deepEqual(pushed, []);
-		assert.ok(!requests.some((r) => r.startsWith("PATCH /api/settings/general")));
-	});
-	it("Delete space opens the delete question", async () => {
-		await mount(<SpaceTabs selected="c29" />);
-		await openMenu("c21");
-		await click(q("space-menu-delete")!);
-		await settle();
-		assert.equal(q("space-dialog")!.getAttribute("aria-label"), "Delete CSE 21?");
-		assert.ok(q("space-delete-confirm"));
-	});
-	it("Escape closes it and gives focus back to the tab", async () => {
-		await mount(<SpaceTabs selected="c29" />);
-		const tab = q("space-option-c21")!;
-		let focused = 0;
-		tab.focus = () => void focused++; // linkedom does not move focus
-		await openMenu("c21");
-		await pressEscape();
-		assert.equal(q("space-menu")?.getAttribute("data-state") ?? "closed", "closed");
-		assert.equal(focused, 1, "focus is back on the tab");
-	});
-	it("Home has no menu", async () => {
-		await mount(<SpaceTabs selected="c29" />);
-		assert.equal(await rightClick(q("nav-home")!), false);
-		assert.ok(q("space-menu") === null);
-	});
-});
-
 describe("the +", () => {
 	const openList = async () => {
 		await click(q("spaces-plus")!);
@@ -565,45 +460,5 @@ describe("the +", () => {
 		assert.equal(q("spaces-plus-list")!.getAttribute("data-state"), "open");
 		assert.deepEqual(pushed, []);
 		assert.ok(!requests.some((r) => r.startsWith("PATCH /api/settings/general")));
-	});
-	it("a right-click on a closed row has Reopen and Delete space; Escape closes that menu first", async () => {
-		await mount(<SpaceTabs selected="c29" />);
-		await openList();
-		assert.equal(await rightClick(q("closed-space-old")!), true);
-		await act(async () => {});
-		assert.deepEqual(texts("[data-testid='space-menu'] [role='menuitem']"), ["Reopen", "Delete space"]);
-		assert.match(q("closed-space-old")!.className, /(^| )bg-accent( |$)/, "the row stays marked");
-		assert.equal(q("closed-space-old")!.getAttribute("aria-description"), "Has a menu with Reopen and Delete space");
-		await pressEscape();
-		assert.equal(q("space-menu")?.getAttribute("data-state") ?? "closed", "closed");
-		assert.equal(q("spaces-plus-list")!.getAttribute("data-state"), "open", "the list stays");
-		await pressEscape();
-		assert.equal(q("spaces-plus-list")?.getAttribute("data-state") ?? "closed", "closed");
-	});
-	it("a closed row's menu opens from the keyboard too", async () => {
-		await mount(<SpaceTabs selected="c29" />);
-		await openList();
-		assert.equal(await press(q("closed-space-old")!, "F10", true), true);
-		await act(async () => {});
-		assert.deepEqual(texts("[data-testid='space-menu'] [role='menuitem']"), ["Reopen", "Delete space"]);
-	});
-	it("Reopen in a closed row's menu reopens and switches to it", async () => {
-		await mount(<SpaceTabs selected="c29" />);
-		await openList();
-		await rightClick(q("closed-space-old")!);
-		await act(async () => {});
-		await click(q("space-menu-close")!);
-		await settle();
-		assert.ok(requests.includes('PUT /api/spaces/old {"closed":false}'));
-		assert.deepEqual(pushed, ["/space"]);
-	});
-	it("Delete space in a closed row's menu opens the delete question", async () => {
-		await mount(<SpaceTabs selected="c29" />);
-		await openList();
-		await rightClick(q("closed-space-old")!);
-		await act(async () => {});
-		await click(q("space-menu-delete")!);
-		await settle();
-		assert.equal(q("space-dialog")!.getAttribute("aria-label"), "Delete MATH 18?");
 	});
 });

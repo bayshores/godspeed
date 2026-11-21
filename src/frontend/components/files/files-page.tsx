@@ -34,7 +34,7 @@ import { useSpaceRecord } from "./space-record";
 import { ConfirmDialog } from "./confirm-dialog";
 import type { FileRowActions, RowPick } from "./file-row";
 import { FileGroupSection } from "./files-sections";
-import { confirmCopy, dropTitle, entryRows, fileBrowserName, filesSummary, filterGroups, type FileConfirm } from "./files-model";
+import { askInsideLine, confirmCopy, dropTitle, entryRows, fileBrowserName, filesSummary, filterGroups, type FileConfirm } from "./files-model";
 import { FULL_LINE, MAX_LESSON_FILES, keepListed, pickedNames, togglePick } from "./files-pick-model";
 import { newSince } from "./folder-status-model";
 import { FolderStatusLine, LinkedFolderButton, LinkFolderButton, LinkFolderField, ROW_BUTTON } from "./linked-folder";
@@ -52,8 +52,9 @@ import { PickSpace } from "@/frontend/components/pick-space";
  * read sorts it into study material or space info. Unlink, Remove and Move
  * to Space info ask first, saying how many facts go.
  *
- * A click on a row picks its file; with any picked, the picked bar rises
- * with their names, Clear and Study, which starts a lesson on them in the
+ * "Pick files to study" in the head, or a click on a row, starts picking: every
+ * row shows a tick box and the picked bar rises, with the picked names, Clear
+ * (Cancel while none is picked) and Study, which starts a lesson on them in the
  * order they were picked. Picks last while the learner stays on the page.
  *
  * Coverage and work (problems, lesson) per file come from the shared
@@ -110,7 +111,9 @@ function FilesPageBody() {
 		if (linked && prev !== null && minute !== prev) void reload();
 	}, [linked, minute, reload]);
 	const { data } = useProgress();
-	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
+	const teacherApi = useTeacher();
+	const teacher = teacherApi?.name ?? DEFAULT_TEACHER_NAME;
+	const askTeacher = teacherApi?.canAsk ? teacherApi.ask : null;
 	const [confirm, setConfirm] = useState<FileConfirm | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(0);
@@ -137,6 +140,8 @@ function FilesPageBody() {
 	const study = useGuardedAction();
 	const { setError: setStudyError } = study;
 	const [picked, setPicked] = useState<readonly string[]>([]);
+	const [picking, setPicking] = useState(false);
+	const boxes = picking || picked.length > 0;
 	// A click on a held row says why it no longer picks, where a refusal shows.
 	const onPick = useCallback(
 		(fileId: string, held: boolean) => {
@@ -148,6 +153,7 @@ function FilesPageBody() {
 	const clearPicks = useCallback(() => {
 		setStudyError(null);
 		setPicked([]);
+		setPicking(false);
 	}, [setStudyError]);
 	const full = picked.length >= MAX_LESSON_FILES;
 	const pickOf = useCallback((fileId: string): RowPick => (picked.includes(fileId) ? "picked" : full ? "held" : "free"), [picked, full]);
@@ -236,6 +242,11 @@ function FilesPageBody() {
 	};
 
 	const showRecent = !searching && changes.length > 0;
+	const noMatch = (
+		<p data-testid="files-no-match" className="text-[15px] text-ink-2">
+			No file names have “{query.trim()}”.
+		</p>
+	);
 	const showInFinder = shortcuts && openPath && (
 		<Hint label={`Shortcuts to these files in your godspeed folder, for you and ${teacher}.`} side="bottom">
 			<button type="button" data-testid="files-show-shortcuts" onClick={() => void openPath(shortcuts)} className={ROW_BUTTON}>
@@ -313,6 +324,11 @@ function FilesPageBody() {
 										{record.linkedFolder && <FolderStatusLine path={record.linkedFolder} status={folderStatus} now={minute} />}
 									</div>
 									{showInFinder}
+									{record.files.length > 0 && !boxes && (
+										<button type="button" data-testid="files-pick" onClick={() => setPicking(true)} className="lh-btn shrink-0">
+											Pick files to study
+										</button>
+									)}
 								</div>
 							</Pane>
 						)}
@@ -333,9 +349,16 @@ function FilesPageBody() {
 							</Pane>
 						)}
 						{searching && shown.length === 0 && (
-							<p data-testid="files-no-match" className="text-[15px] text-ink-2">
-								No file names have “{query.trim()}”.
-							</p>
+							askTeacher ? (
+								<Pane className="lh-card flex-row flex-wrap items-center justify-end gap-4">
+									<div className="min-w-0 flex-1 basis-[160px]">{noMatch}</div>
+									<Key data-testid="files-ask-inside" onClick={() => askTeacher(askInsideLine(query))} className="shrink-0">
+										Ask {teacher} to look inside
+									</Key>
+								</Pane>
+							) : (
+								noMatch
+							)
 						)}
 						{(showRecent || shown.length > 0) && (
 							// Wide, recent changes take a column beside the files.
@@ -356,6 +379,7 @@ function FilesPageBody() {
 											work={work}
 											pickOf={pickOf}
 											onPick={onPick}
+											boxes={boxes}
 											disabled={disabled}
 											teacher={teacher}
 											actions={actions}
@@ -367,8 +391,8 @@ function FilesPageBody() {
 					</>
 				)}
 			</div>
-			<PickedBar open={picked.length > 0} line={pickedLine} failure={study.error} testids={{ bar: "files-picked-bar", line: "files-picked-names", clear: "files-picked-clear" }} onClear={clearPicks}>
-				<Key data-testid="files-picked-study" busy={study.busy} onClick={() => void study.run(() => lesson.studyFiles(picked))} className={ON_INK_MAIN}>
+			<PickedBar open={boxes} line={picked.length > 0 ? pickedLine : "No files picked yet"} clearLabel={picked.length > 0 ? "Clear" : "Cancel"} failure={study.error} testids={{ bar: "files-picked-bar", line: "files-picked-names", clear: "files-picked-clear" }} onClear={clearPicks}>
+				<Key data-testid="files-picked-study" busy={study.busy} disabled={picked.length === 0} onClick={() => void study.run(() => lesson.studyFiles(picked))} className={ON_INK_MAIN}>
 					Study
 				</Key>
 			</PickedBar>

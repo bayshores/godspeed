@@ -42,11 +42,6 @@ export function plusName(closed: boolean): string {
 	return closed ? "Add a space or reopen a closed one" : "Add a space";
 }
 
-/** Tells a screen reader that a tab or a closed row has a menu. */
-export function spaceMenuDescription(closed: boolean): string {
-	return `Has a menu with ${closed ? "Reopen" : "Close"} and Delete space`;
-}
-
 /**
  * "Go to Files", the key the strip's peek offers: with Follow off a fresh change
  * on another page, and with Follow on too a page the agent opened while

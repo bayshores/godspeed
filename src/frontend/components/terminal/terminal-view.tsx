@@ -60,7 +60,7 @@ function keepKey(e: KeyboardEvent) {
 	e.stopPropagation();
 }
 
-export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }: {
+export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink, onAttached }: {
 	id: string;
 	/** The agent has ended: the screen stays, greyed, and takes no keys. */
 	ended: boolean;
@@ -72,6 +72,8 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }
 	/** The space files whose names link. */
 	files: readonly LinkFile[];
 	onLink: (link: ScreenLink) => void;
+	/** The shell now shows this terminal in this window: only then does it take a typed line. */
+	onAttached?: (id: string) => void;
 }) {
 	const box = useRef<HTMLDivElement>(null);
 	const host = useRef<HTMLDivElement>(null);
@@ -83,6 +85,8 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }
 		linking.current = { files, onLink };
 		relink.current?.();
 	}, [files, onLink]);
+	const attached = useRef(onAttached);
+	attached.current = onAttached;
 
 	useEffect(() => {
 		const lh = window.lh?.terminals;
@@ -155,7 +159,10 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }
 		};
 		// Sized first, so the screen the shell sends is drawn at this size.
 		void fitBox().then(() => {
-			if (shown) lh.attach(id).catch(() => {/* it ended: the screen stays empty */});
+			if (shown)
+				lh.attach(id)
+					.then(() => shown && attached.current?.(id))
+					.catch(() => {/* it ended: the screen stays empty */});
 		});
 		// A drag of the panel's edge sizes the agent once it rests.
 		let rest: ReturnType<typeof setTimeout> | undefined;

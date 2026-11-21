@@ -90,9 +90,9 @@ It isn't noticeably faster to use, it's just a lot smaller and lighter on your c
 | Homework | Attach the assignment and the teacher goes through it one problem at a time. It gives you hints but never the answer. |
 | Mocks | Take a mock on any exam, quiz or interview deadline, timed or not. |
 | Cheat sheets | Your agent makes a PDF cheat sheet for a deadline, and you tell it what to change. |
-| Plugins | Small add-ons for a lesson or a space, like one that turns the question you're on into a meme. A plugin can't open your files. Add one in Settings or [make your own](docs/plugins.md). They're new, so how they work can still change. |
+| Plugins | Small add-ons for a lesson or a space, like one that turns the question you're on into a meme. A plugin can't open your files. Add one in Settings or [make your own](docs/plugins/README.md). They're new, so how they work can still change. |
 | Calculator | End a calculation with `=` in any box and the answer shows up in grey. It does algebra, derivatives and integrals too. |
-| Your agent's screen | Click your teacher's name in the top bar to open it. You can ask your agent to set up spaces or add deadlines there. |
+| Your agent's screen | Click your teacher's strip on the window's right edge to open it. You can ask your agent to set up spaces or add deadlines there. |
 
 <table>
   <tr>

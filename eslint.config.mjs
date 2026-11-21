@@ -9,6 +9,7 @@ import importPlugin from "eslint-plugin-import";
  *   src/frontend/**   imports only "@/shared/core" (the pure core barrel)
  *   src/frontend/**   talks to the server only through lib/api.ts and keeps browser
  *                     storage only through lib/storage.ts (AGENTS.md, "One owner, one way")
+ *   src/frontend/**   opens no right-click menu: every action has a visible control
  *
  * tests/ and scripts/ are outside the law.
  */
@@ -18,6 +19,7 @@ const FRONTEND_MESSAGE =
 
 const FETCH_MESSAGE = "Use `send` or `getJson` from lib/api.ts. If a request cannot (a stream, a download), add the file to FETCH_ALLOWED in eslint.config.mjs with the reason.";
 const STORAGE_MESSAGE = "Use `readStorage` and `writeStorage` from lib/storage.ts: they never throw in a private window.";
+const CONTEXT_MENU_MESSAGE = "A right-click menu hides its actions. Give each action a visible control (a key, a row's More key) instead.";
 
 const fetchGlobals = [{ name: "fetch", message: FETCH_MESSAGE }];
 const fetchProperties = ["window", "globalThis"].map((object) => ({ object, property: "fetch", message: FETCH_MESSAGE }));
@@ -73,6 +75,7 @@ export default defineConfig([
 		rules: {
 			"no-restricted-globals": ["error", ...fetchGlobals, ...storageGlobals],
 			"no-restricted-properties": ["error", ...fetchProperties, ...storageProperties],
+			"no-restricted-syntax": ["error", { selector: 'JSXAttribute[name.name="onContextMenu"]', message: CONTEXT_MENU_MESSAGE }],
 		},
 	},
 	{

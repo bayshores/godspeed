@@ -56,6 +56,19 @@ describe("the shortcut groups", () => {
 	});
 });
 
+describe("the rows that are only listed", () => {
+	it("a gesture or typed text is never dispatched, and its keycaps are drawn", () => {
+		for (const id of ["question-pick-number", "calculator-keep", "page-magnify"] as const) {
+			const row = KEYBOARD_ACTIONS.find((a) => a.id === id)!;
+			assert.equal(row.displayOnly, true, id);
+			assert.equal(actionForBinding(row.binding) === id, false, `${id} is never dispatched`);
+		}
+		assert.deepEqual(bindingKeys(bindingForAction("question-pick-number")), ["1-9"]);
+		assert.deepEqual(bindingKeys(bindingForAction("calculator-keep")), ["Tab"]);
+		assert.deepEqual(bindingKeys(bindingForAction("page-magnify")), [IS_MAC ? "⌘" : "Ctrl", "Scroll"]);
+	});
+});
+
 describe("bindingKeys: one keycap per key", () => {
 	const mod = IS_MAC ? "⌘" : "Ctrl";
 	it("modifiers first, then the key", () => {

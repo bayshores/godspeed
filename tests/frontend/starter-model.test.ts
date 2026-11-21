@@ -17,7 +17,7 @@ describe("the lines for a page", () => {
 
 	it("a space's pages name the space; the Graph leaves out what it shows", () => {
 		assert.deepEqual(on("/space"), ["What should I study in CSE 21?", "What do I know in CSE 21?", "Find something in my files", "Teach me a new topic"]);
-		assert.deepEqual(on("/space/files"), on("/space"));
+		assert.deepEqual(on("/space/files"), ["What should I study in CSE 21?", "What do I know in CSE 21?", "Teach me a new topic"], "Files has its own key for looking inside");
 		assert.deepEqual(on("/space/deadline/done-one"), on("/space"), "a deadline no longer open is just a space page");
 		assert.deepEqual(on("/graph"), ["What should I study in CSE 21?", "Find something in my files", "Teach me a new topic"]);
 		assert.ok(!on("/space", { space: { ...CSE, files: 0 } }).includes("Find something in my files"), "no files to look in");

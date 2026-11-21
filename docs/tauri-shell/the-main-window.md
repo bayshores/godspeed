@@ -144,7 +144,7 @@ WebKit asks `on_navigation` about every frame without saying which. So the shell
 
 ### Context menus
 
-The shim adds a `contextmenu` listener on `window` that calls `preventDefault()`. The app's own menus handle the event earlier.
+The shim adds a `contextmenu` listener on `window` that calls `preventDefault()`, so the browser's own menu never shows. The app opens no right-click menu of its own (ESLint fails `onContextMenu` in `src/frontend`), so a right-click does nothing.
 
 ### Spellcheck and text substitution
 
