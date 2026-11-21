@@ -160,7 +160,7 @@ mod tests {
 		let slots = Arc::new(BgLlmSlots::default());
 		let release = Arc::new(Notify::new());
 		let running = Arc::new(AtomicUsize::new(0));
-		let tasks: Vec<_> = (0..4).map(|_| tokio::spawn(hold(slots.clone(), release.clone(), running.clone(), None))).collect();
+		let tasks: Vec<_> = (0..4).map(|_| gs_base::tasks::spawn("test", hold(slots.clone(), release.clone(), running.clone(), None))).collect();
 		settle().await;
 		assert_eq!(running.load(Ordering::SeqCst), 3);
 		assert_eq!(slots.0.lock().queue.len(), 1);
@@ -183,11 +183,11 @@ mod tests {
 		let slots = Arc::new(BgLlmSlots::default());
 		let release = Arc::new(Notify::new());
 		let running = Arc::new(AtomicUsize::new(0));
-		let holders: Vec<_> = (0..3).map(|_| tokio::spawn(hold(slots.clone(), release.clone(), running.clone(), None))).collect();
+		let holders: Vec<_> = (0..3).map(|_| gs_base::tasks::spawn("test", hold(slots.clone(), release.clone(), running.clone(), None))).collect();
 		settle().await;
 		let abort = Abort::new();
-		let doomed = tokio::spawn(hold(slots.clone(), release.clone(), running.clone(), Some(abort.clone())));
-		let next = tokio::spawn(hold(slots.clone(), release.clone(), running.clone(), None));
+		let doomed = gs_base::tasks::spawn("test", hold(slots.clone(), release.clone(), running.clone(), Some(abort.clone())));
+		let next = gs_base::tasks::spawn("test", hold(slots.clone(), release.clone(), running.clone(), None));
 		settle().await;
 		abort.abort();
 		assert_eq!(doomed.await.unwrap(), Err(QueuedAbort));
@@ -219,7 +219,7 @@ mod tests {
 	#[tokio::test]
 	async fn a_dropped_critical_section_gives_its_permit_back() {
 		let slots = Arc::new(BgLlmSlots::default());
-		let task = tokio::spawn({
+		let task = gs_base::tasks::spawn("test", {
 			let slots = slots.clone();
 			async move { with_bg_llm_slot(&slots, None, std::future::pending::<()>).await }
 		});

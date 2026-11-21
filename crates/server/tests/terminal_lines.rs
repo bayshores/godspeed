@@ -45,7 +45,7 @@ async fn a_line_for_the_lesson_on_screen_goes_to_the_window_and_the_hook_blocks_
 	app.bridge.typed(TEACHER, clock::now_ms());
 
 	// The window answers once it got the line.
-	let window = tokio::spawn({
+	let window = gs_base::tasks::spawn("test", {
 		let app = app.clone();
 		async move {
 			loop {

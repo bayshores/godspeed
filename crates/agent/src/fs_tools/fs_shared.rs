@@ -37,7 +37,7 @@ fn home_join(home: &Path, rest: &str) -> PathBuf {
 
 /// Runs blocking file work on its own thread, so a long walk never holds the server's workers.
 pub async fn off_thread(work: impl FnOnce() -> Result<Json, String> + Send + 'static) -> Result<Json, String> {
-	tokio::task::spawn_blocking(work).await.map_err(|e| e.to_string())?
+	gs_base::tasks::spawn_blocking("fs", work).await.map_err(|e| e.to_string())?
 }
 
 /// 50 KB prints as "50.0KB".

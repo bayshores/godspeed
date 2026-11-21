@@ -52,7 +52,7 @@ pub fn topic_grouping_running(app: &App, space_id: &str) -> bool {
 
 /// Asks for a grouping run 20 s from now; a later request starts the wait over.
 pub fn schedule_topic_grouping(app: &Arc<App>, space_id: &str) {
-	let timer = tokio::spawn({
+	let timer = gs_base::tasks::spawn("topics", {
 		let (app, space_id) = (app.clone(), space_id.to_owned());
 		async move {
 			clock::sleep(TOPIC_GROUPING_DEBOUNCE_MS).await;

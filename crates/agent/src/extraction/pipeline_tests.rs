@@ -198,7 +198,7 @@ async fn an_abort_while_waiting_for_the_graph_lock_ends_the_import() {
 	let host = host();
 	let extraction = Extraction::new(host.clone());
 	let held = host.state.graph_lock_for_tests().await;
-	let run = tokio::spawn({
+	let run = gs_base::tasks::spawn("test", {
 		let extraction = extraction.clone();
 		async move { extraction.import_notes(NotesImportInput { file_path: "a.md".into(), text: "x".into(), scope: None, source_id: Some("src_a".into()), may_be_space_info: false }).await }
 	});
@@ -218,7 +218,7 @@ async fn a_lesson_run_that_ends_early_lets_go_of_its_claim() {
 	write_lesson(&host, "chat_dropped", 1);
 	let extraction = Extraction::new(host.clone());
 	let held = host.state.graph_lock_for_tests().await;
-	let run = tokio::spawn({
+	let run = gs_base::tasks::spawn("test", {
 		let extraction = extraction.clone();
 		async move { extraction.run_extraction("chat_dropped").await }
 	});

@@ -99,7 +99,7 @@ A space lesson starts with a `space-context` marker holding the space card (`ser
 
 ### Compaction
 
-A lesson past 40,000 tokens (`compaction.thresholdTokens` in `factory_settings`, not a setting) is shortened between turns, so a turn never waits for a summary (`services::turns::compaction`).
+A lesson whose transcript passes 40,000 tokens (`compaction.thresholdTokens` in `factory_settings`, not a setting) is shortened between turns, so a turn never waits for a summary (`services::turns::compaction`). The threshold measures only what the model sees of the lesson, the summary and the kept messages (`lesson_tokens`), never the system prompt or tool schemas, which no cut can shrink.
 
 1. Server cuts old part at once and writes its own short version without a model (`local_summary`, `core::session::compaction`).
 2. After 5 quiet minutes outside agent writes real summary, replacing local one.

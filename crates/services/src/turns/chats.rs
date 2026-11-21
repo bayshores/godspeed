@@ -122,7 +122,7 @@ pub async fn delete_chat_session(app: &Arc<App>, chat_id: &str, mode: ChatDelete
 	// On its own task: a request whose client goes away is dropped at its next await, and once the
 	// wind-down has aborted the lesson's extraction the delete must still finish.
 	let (app, chat_id) = (app.clone(), chat_id.to_owned());
-	tokio::spawn(async move { run_delete(&app, &chat_id, mode).await }).await.unwrap_or_else(|err| Err(err.to_string()))
+	gs_base::tasks::spawn("chat", async move { run_delete(&app, &chat_id, mode).await }).await.unwrap_or_else(|err| Err(err.to_string()))
 }
 
 async fn run_delete(app: &Arc<App>, chat_id: &str, mode: ChatDeleteMode) -> Result<Result<Deleted, Refusal>, String> {

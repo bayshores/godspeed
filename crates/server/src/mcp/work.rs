@@ -178,11 +178,13 @@ pub async fn wait_for_work(call: &ToolCall<'_>, args: &Json) -> Json {
 			None => ended_or_idle(call, true),
 		};
 	}
+	// An agent with no session id catches up once for all such agents.
+	let session = agent.clone().unwrap_or_default();
 	let opts = WaitOptions { conversation: lesson_id.map(str::to_owned), agent, full, and_others: true, helper: false, terminal };
 	// Waiting counts the agent as working at once, so what godspeed queues for it now (catch-up)
 	// reaches this same wait.
 	let wait = app.bridge.wait_for_work(wait_ms(args["timeout_seconds"].as_f64()), opts);
-	let view = started_then(wait, || gs_services::turns::agent_catch_up::catch_up_for_agent(app, clock::now_ms())).await;
+	let view = started_then(wait, || gs_services::turns::agent_catch_up::catch_up_for_agent(app, &session, clock::now_ms())).await;
 	match view {
 		Some(view) => work_result(app, &view),
 		None => ended_or_idle(call, false),

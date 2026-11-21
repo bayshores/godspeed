@@ -19,7 +19,7 @@ async fn waits_for_a_stopping_server_then_gives_up() {
 
 	let other = File::open(&paths.data).unwrap();
 	other.lock().unwrap();
-	let waiting = tokio::spawn({
+	let waiting = gs_base::tasks::spawn("test", {
 		let paths = paths.clone();
 		async move { data_lock::lock(&paths).await }
 	});
@@ -28,7 +28,7 @@ async fn waits_for_a_stopping_server_then_gives_up() {
 	drop(other);
 	let held = waiting.await.unwrap().unwrap().expect("taken once the other server exits");
 
-	let waiting = tokio::spawn({
+	let waiting = gs_base::tasks::spawn("test", {
 		let paths = paths.clone();
 		async move { data_lock::lock(&paths).await }
 	});
