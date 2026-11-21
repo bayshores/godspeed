@@ -95,7 +95,7 @@ mod tests {
 	}
 
 	fn lesson(app: &App, messages: &[Json]) -> String {
-		let id = app.stores.chats.create_chat("Midterm", Some("study"), None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		let id = app.stores.chats.create_chat("Midterm", Some("study"), None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		app.stores.chats.save_messages(&id, messages).unwrap();
 		id
 	}

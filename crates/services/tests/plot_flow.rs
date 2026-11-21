@@ -88,7 +88,7 @@ async fn settled(app: &App, chat_id: &str) {
 
 /// A Study lesson on Regularization whose learner asked to start.
 async fn study_lesson(app: &Arc<App>) -> String {
-	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None).unwrap()["id"].as_str().unwrap().to_owned();
+	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 	let tree = json!({ "nodes": [{ "id": "reg", "title": "Regularization" }], "edges": [] });
 	app.stores.chats.save_tree(&chat_id, &tree).unwrap();
 	let input = ChatInput::Text { text: "Teach me Regularization.".to_owned(), attachments: None, about: None };

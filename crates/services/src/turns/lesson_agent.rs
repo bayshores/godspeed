@@ -30,7 +30,7 @@ use gs_engine::turn::faux::Engine;
 use gs_json::{Json, json};
 
 use super::chat_handler::send_first_message;
-use super::homework::homework_deadline;
+use super::lesson_problems::lesson_problem_list;
 use super::job_host::run_job;
 use super::problem_pages::problem_pages;
 use crate::App;
@@ -161,21 +161,21 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 
 	let pages = problem_pages(app, lesson_scope, None);
 	let kind = record["kind"].as_str();
-	match (kind, lesson_scope, record["deadlineId"].as_str()) {
-		(Some("practice"), ..) => {
+	match (kind, lesson_problem_list(app, record)) {
+		(Some("practice"), _) => {
 			let ctx = PracticeToolContext { chat_id, chat_store: chats, graph_nodes: Some(graph_nodes(app, lesson_scope)), jobs: Some(jobs), side, pages };
 			create_practice_agent(&ctx, opts)
 		}
-		(Some("homework"), Some(space_id), Some(deadline_id)) if !space_id.is_empty() && !deadline_id.is_empty() => {
-			let ctx = HomeworkToolContext { chat_id, chat_store: chats, homework: homework_deadline(app, space_id, deadline_id), jobs: Some(jobs), side, pages: problem_pages(app, Some(space_id), Some(deadline_id)) };
+		(Some("homework"), Some(homework)) => {
+			let ctx = HomeworkToolContext { chat_id, chat_store: chats, homework, jobs: Some(jobs), side, pages: problem_pages(app, lesson_scope, record["deadlineId"].as_str()) };
 			create_homework_agent(&ctx, opts)
 		}
-		(Some("study"), ..) => {
+		(Some("study"), problems) => {
 			let marks_app = app.clone();
 			let check_marks = Arc::new(move |text: &str| check_cites(&marks_app, text));
 			// Study sends deadline changes outside lessons, so it has no deadline tools.
 			let teacher = TeacherToolContext { side: LessonSide { space_actions: None, ..side.clone() }, ..teacher() };
-			create_study_agent(&StudyToolContext { teacher, graph_nodes: Some(graph_nodes(app, lesson_scope)), check_marks, pages, writes_plan: agent_writes_plan(record) }, opts)
+			create_study_agent(&StudyToolContext { teacher, graph_nodes: Some(graph_nodes(app, lesson_scope)), check_marks, pages, writes_plan: agent_writes_plan(record), problems }, opts)
 		}
 		_ if teaching => create_teacher_agent(Some(&teacher()), opts),
 		_ => {

@@ -180,7 +180,7 @@ mod tests {
 		let app = test_app(&root);
 		let space_id = app.stores.spaces.create_space(&json!({ "name": "CSE 21" })).unwrap()["id"].str_or_empty().to_owned();
 		let deadline_id = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "HW6", "kind": "homework", "date": "2099-01-15" })).unwrap()["id"].str_or_empty().to_owned();
-		let lesson_id = app.stores.chats.create_chat("Sums", Some("study"), Some(&space_id), None).unwrap()["id"].str_or_empty().to_owned();
+		let lesson_id = app.stores.chats.create_chat("Sums", Some("study"), Some(&space_id), None, &[]).unwrap()["id"].str_or_empty().to_owned();
 		let tab = json!({ "kind": "space", "id": space_id });
 		let cases = [
 			(json!({ "page": "home" }), "/", None, "Home", Json::Null),
@@ -243,7 +243,7 @@ mod tests {
 		set_window(&app, Some(WindowPage { path: "/space/files".to_owned(), space_id: Some(space_id.clone()) }));
 		assert_eq!(note(open_page(&app, None, &files)), "The learner is already on that page, so nothing moved.");
 
-		let lesson_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned();
+		let lesson_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), Some(&deadline_id), &[]).unwrap()["id"].str_or_empty().to_owned();
 		set_window(&app, Some(WindowPage { path: format!("/chat/{lesson_id}"), space_id: Some(space_id.clone()) }));
 		assert!(note(open_page(&app, None, &sheet)).starts_with(BESIDE_LESSON));
 	}

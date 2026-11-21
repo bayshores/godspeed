@@ -370,7 +370,7 @@ describe("a deadline's lessons", () => {
 
 	it("sit under the path in the order given, each opening its lesson, with no key of their own", () => {
 		const lessons = [lesson("c2", "Practice test", { done: 2, total: 7 }), lesson("c1", "Study for Midterm", { done: 1, total: 3 })];
-		const html = render(deadline(), { lessons: <LessonCard title="Lessons" name="deadline" lessons={lessons} deadlines={[]} actions={actions} /> });
+		const html = render(deadline(), { lessons: <LessonCard title="Lessons" name="deadline" lessons={lessons} actions={actions} /> });
 		const at = html.indexOf('data-testid="deadline-lessons"');
 		assert.ok(at > html.indexOf('data-testid="deadline-path"'), "after the path");
 		const card = html.slice(at);

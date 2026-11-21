@@ -55,7 +55,7 @@ mod tests {
 	fn a_park_lands_only_when_its_problem_is_open() {
 		let root = scratch_dir("park");
 		let app = test_app(&root);
-		let id = app.stores.chats.create_chat("t", None, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		let id = app.stores.chats.create_chat("t", None, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		park_dismissal(&app, &id, discard("call_gone"));
 		apply_parked_dismissal(&app, &id).unwrap();
 		assert_eq!(app.stores.chats.get_chat(&id).unwrap()["messages"], json!([]), "nothing to discard: dropped");

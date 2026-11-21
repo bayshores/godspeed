@@ -72,17 +72,14 @@ describe("lessonsFor", () => {
 });
 
 describe("stepBlocks", () => {
-	const problems = [{ id: "hw", problems: { done: 1, total: 4 } }, { id: "exam" }];
-
-	it("a homework shows its deadline's problems; any other lesson its plan's steps", () => {
-		assert.deepEqual(stepBlocks({ kind: "homework", deadlineId: "hw", step: { done: 2, total: 3 } }, problems), { done: 1, total: 4 });
-		assert.deepEqual(stepBlocks({ kind: "teach", step: { done: 2, total: 3 } }, problems), { done: 2, total: 3 });
+	it("a lesson with problems shows them; any other lesson its plan's steps", () => {
+		assert.deepEqual(stepBlocks({ problems: { done: 1, total: 4 }, step: { done: 2, total: 3 } }), { done: 1, total: 4 });
+		assert.deepEqual(stepBlocks({ step: { done: 2, total: 3 } }), { done: 2, total: 3 });
 	});
 
-	it("a homework with no deadline found falls back to its steps; nothing to draw is null", () => {
-		assert.deepEqual(stepBlocks({ kind: "homework", deadlineId: "gone", step: { done: 1, total: 2 } }, problems), { done: 1, total: 2 });
-		assert.equal(stepBlocks({ kind: "practice" }, problems), null);
-		assert.equal(stepBlocks({ kind: "teach", step: { done: 0, total: 0 } }, problems), null);
+	it("nothing to draw is null", () => {
+		assert.equal(stepBlocks({}), null);
+		assert.equal(stepBlocks({ step: { done: 0, total: 0 } }), null);
 	});
 });
 

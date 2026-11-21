@@ -105,6 +105,10 @@ export interface SpaceFile {
 	/** A recording whose lecture transcript is already in the space: that
 	 *  file's id. It is not transcribed and has no facts of its own. */
 	transcriptId?: string;
+	/** A .tex file whose PDF (same name, same folder) is in the space: that
+	 *  file's id. The PDF is read into facts and shown; the .tex is its
+	 *  source. Set by the server whenever the file list changes. */
+	pdfId?: string;
 }
 
 /** A file that left the space (gone from its linked folder, or removed by
@@ -141,8 +145,9 @@ export interface SpaceDeadline {
 	source?: string;
 	/** The assignment itself (homework, project): the space file it is in. */
 	assignmentFileId?: string;
-	/** The assignment's problems, as the agent read them from its file. */
-	problems?: HomeworkProblem[];
+	/** The assignment's problems, as the agent read them from its file.
+	 *  The server keeps them on the assignment file and fills this in. */
+	problems?: FileProblem[];
 	/** What it is like ("What it's like.md", written by the teacher): the
 	 *  space info file it is in. */
 	aboutFileId?: string;
@@ -151,10 +156,10 @@ export interface SpaceDeadline {
 	doneAt?: string;
 }
 
-/** One problem of an assignment. The learner works on it in a homework
+/** One numbered problem of a file. The learner works on it in a homework
  *  session; it is done once the teacher marks the learner's work right. */
-export interface HomeworkProblem {
-	/** As the assignment numbers it ("Q1", "2b"); unique in its deadline. */
+export interface FileProblem {
+	/** As the file numbers it ("Q1", "2b"); unique in its list. */
 	number: string;
 	/** A few words: "Largest step that converges". */
 	title: string;
@@ -321,7 +326,7 @@ export function isSpaceId(id: unknown): id is string {
  *  read as they are; documents (PDF, Word, PowerPoint, EPUB) have their text
  *  pulled out and saved. A file with no extension is read as plain text
  *  when its bytes are text (the server checks). */
-const TEXT_EXTENSIONS = [".md", ".markdown", ".txt"] as const;
+const TEXT_EXTENSIONS = [".md", ".markdown", ".txt", ".tex"] as const;
 const CODE_EXTENSIONS = [
 	".c", ".h", ".cpp", ".cc", ".hpp", ".py", ".java", ".js", ".jsx", ".ts", ".tsx", ".go", ".rs",
 	".rb", ".swift", ".kt", ".cs", ".sql", ".sh", ".r", ".scala", ".hs", ".lua", ".php",

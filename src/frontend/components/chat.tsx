@@ -16,7 +16,7 @@ import {
 	emptyDockSelection,
 	findPendingToolCall,
 	firstPhase,
-	homeworkProblems,
+	lessonProblems,
 	kbdEventForAction,
 	phaseTimeline,
 	planStepBar,
@@ -24,7 +24,8 @@ import {
 	problemPieceOf,
 	problemStatementOf,
 	topicParts,
-	type HomeworkView,
+	type LessonDocuments,
+	type LessonProblemList,
 	type LessonKind,
 	type LhMessage,
 	type PlanTree,
@@ -49,7 +50,7 @@ import { useFromEarlier } from "@/frontend/components/lesson/use-from-earlier";
 import { LessonBar } from "@/frontend/components/lesson/lesson-bar";
 import { PlanRow } from "@/frontend/components/lesson/plan-row";
 import { LessonScroll } from "@/frontend/components/lesson/lesson-scroll";
-import { homeworkStartLabel } from "@/frontend/components/lesson/plan-row-model";
+import { problemStartLabel } from "@/frontend/components/lesson/plan-row-model";
 import { messageShows } from "@/frontend/components/lesson/message-row";
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
 import { topicPageMarks } from "@/frontend/components/citations/page-excerpt-model";
@@ -64,7 +65,12 @@ import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { LessonOverlays, useLessonOverlays } from "@/frontend/components/lesson/lesson-overlays";
 import { useLessonAbort } from "@/frontend/components/lesson/use-lesson-abort";
 import { useTeacherLesson } from "@/frontend/components/teacher/teacher-provider";
-import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
+import { SheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
+import { useLessonDock } from "@/frontend/components/lesson/lesson-dock";
+import { openPanel, type DockPanelKind } from "@/frontend/components/lesson/lesson-dock-model";
+import { DocumentPanel } from "@/frontend/components/lesson/document-panel";
+import { documentChoices, problemDocument, problemPlace, shownDocument } from "@/frontend/components/lesson/document-model";
+import { useLessonDocuments } from "@/frontend/components/lesson/use-lesson-documents";
 import { lessonPluginContext } from "@/frontend/components/lesson/lesson-plugins-model";
 import { PluginWindow } from "@/frontend/components/lesson/plugin-window";
 import { useSpaces } from "@/frontend/components/space-context";
@@ -78,9 +84,10 @@ const NO_PAGES: ReadonlyMap<string, string> = new Map();
 /**
  * THE LESSON: its title and words in the top bar (LessonBar), then one page that scrolls (LessonScroll):
  * the step line, the lesson text's sheet and "Your turn" beside it for the
- * whole lesson (or under it in a small room), with the cheat sheet beside
- * both when docked. The learner talks to the teacher in "Your turn"'s box;
- * a line typed in the teacher's terminal comes here the same way
+ * whole lesson (or under it in a small room), with the panel beside both
+ * when one is open: the lesson's document or the cheat sheet. The learner
+ * talks to the teacher in "Your turn"'s box; a line typed in the teacher's
+ * terminal comes here the same way
  * (useTerminalLines). This component owns the lesson's state and
  * wiring; the pieces live in src/frontend/components/lesson/.
  */
@@ -97,7 +104,8 @@ export function Chat({
 	initialTree,
 	spaceId,
 	deadlineId,
-	homework,
+	problemList,
+	documents: loadedDocuments,
 }: {
 	chatId: string;
 	title: string;
@@ -106,8 +114,11 @@ export function Chat({
 	spaceId?: string;
 	deadlineId?: string;
 	initialMessages: LhMessage[];
-	/** A homework lesson's deadline: its problems fill the plan row. */
-	homework?: HomeworkView;
+	/** A homework lesson's or a lesson on files' problem list: its problems
+	 *  fill the plan row. */
+	problemList?: LessonProblemList;
+	/** The files its Document panel shows, as the page's loader read them (null: the read failed). */
+	documents?: LessonDocuments | null;
 	/** Memory-only settlement notice supplied on reopening. */
 	initialError?: string;
 	/** Practice lessons show their problems instead of a plan; study
@@ -282,16 +293,21 @@ export function Chat({
 	const questionRef = useRef<QuestionHandle>(null);
 	const sendBlocked = sendBlockedReason(sideOpen);
 
-	// A homework lesson's problems: the deadline's list plus this lesson's posts and done marks.
-	const freshProblems = useMemo(() => (kind === "homework" ? homeworkProblems(homework?.problems ?? [], messages) : null), [kind, homework, messages]);
+	// The lesson's problems: its list plus this lesson's posts and done marks. A lesson on files
+	// with none listed is a plan lesson.
+	const freshProblems = useMemo(() => {
+		if (kind !== "homework" && !problemList) return null;
+		const folded = lessonProblems(problemList?.problems ?? [], messages);
+		return kind === "homework" || folded.problems.length > 0 ? folded : null;
+	}, [kind, problemList, messages]);
 	const problems = useStableValue(freshProblems);
-	const startLabel = problems && homeworkStartLabel(problems.problems);
+	const startLabel = problems && problemStartLabel(problems.problems);
 	const unwritten = useMemo(() => nothingWritten(messages), [messages]);
 	// A reply saved with nothing in it (stopped before it began) is not the teacher speaking.
 	const teacherSpoke = useMemo(() => !unwritten && nativeMessages.some((m) => (m as { role?: string }).role === "assistant"), [unwritten, nativeMessages]);
 	const posedAny = useMemo(() => problemPosed(nativeMessages), [nativeMessages]);
 
-	// A pick from the homework's problem list. Why none can open yet: the
+	// A pick from the lesson's problem list. Why none can open yet: the
 	// lesson's own words for a reply under way, or the question waiting.
 	const openBlocked = busy ? (waitingForAgent ? `Waiting for ${teacherName}` : "The teacher is writing.") : pending ? "Answer the question first." : null;
 	const workBoxRef = useRef<{ focus(): void }>(null);
@@ -376,7 +392,7 @@ export function Chat({
 	const planTree = useMemo(() => latestTree(messages) ?? initialTree ?? null, [messages, initialTree]);
 	const freshBar = useMemo(() => (kind === "practice" || kind === "homework" ? null : planStepBar(planTree, messages)), [kind, planTree, messages]);
 	const openProblem = problems?.open ? problems.problems.find((p) => p.number === problems.open) : undefined;
-	const planHomework = useMemo(() => (problems ? { problems: problems.problems, open: problems.open, blocked: openBlocked } : null), [problems, openBlocked]);
+	const planProblems = useMemo(() => (problems ? { problems: problems.problems, open: problems.open, blocked: openBlocked } : null), [problems, openBlocked]);
 	// Stable while nothing in it changed, so streaming never redraws the bar.
 	const stepBar = useStableValue(freshBar);
 	const planEdges = useStableValue(planTree?.edges ?? null);
@@ -439,19 +455,33 @@ export function Chat({
 			resumeStream();
 		}
 	};
-	const sheet = useSheetDock(chatId, deadlineId);
-	// A plugin's window lies over the page; opening the cheat sheet closes it. It and the
+	// The panel beside the lesson: its document (a lesson built on files with a PDF) or the cheat sheet (a lesson in a space).
+	const lessonDock = useLessonDock(chatId, deadlineId);
+	const { documents: docView, reload: reloadDocuments } = useLessonDocuments(chatId, loadedDocuments);
+	const documents = docView?.documents ?? null;
+	const shownDoc = shownDocument(documents ?? [], lessonDock.state.fileId);
+	const docChoices = documentChoices(documents ?? []);
+	const [docSeq, setDocSeq] = useState(0);
+	// A remembered Document panel whose files all left the space closes.
+	const docGone = documents !== null && shownDoc === null && lessonDock.state.panel === "document";
+	const { update: updateDock } = lessonDock;
+	useEffect(() => {
+		if (docGone) updateDock({ panel: null });
+	}, [docGone, updateDock]);
+	// A plugin's window lies over the page; opening a panel closes it. It and the
 	// Teacher's window are both made of the bar and hang over the same corner, so one shows at a time.
 	const { plugins: lessonPlugins } = usePluginsAt("lesson");
 	const { spaces } = useSpaces();
 	const [pluginId, setPluginId] = useState<string | null>(null);
 	const openPlugin = lessonPlugins?.find((p) => p.id === pluginId) ?? null;
-	const sheetOpen = !!spaceId && sheet.state.open;
-	// The dock stays mounted through its fade-out; the grid still follows sheetOpen.
-	const dock = usePresence(sheetOpen);
-	const toggleSheet = () => {
+	const panel = openPanel(lessonDock.state.panel, { sheet: !!spaceId, document: shownDoc !== null });
+	// The panel stays mounted through its fade-out; the grid still follows `panel`.
+	const dock = usePresence(panel !== null);
+	const lastPanel = useRef(panel);
+	if (panel) lastPanel.current = panel;
+	const togglePanel = (kind: DockPanelKind) => {
 		setPluginId(null);
-		sheet.update({ open: !sheetOpen });
+		updateDock({ panel: panel === kind ? null : kind });
 	};
 	const togglePlugin = (id: string) => {
 		setPluginId(pluginId === id ? null : id);
@@ -470,8 +500,8 @@ export function Chat({
 
 	// With nothing to answer, "Your turn" says what is next and holds the one key that goes on.
 	const { atStop } = lessonStop;
-	const goLabel = goAheadLabel({ kind, homework: problems !== null, startLabel: startLabel ?? null, teacherSpoke, posedAny });
-	const next = turnNext({ stop: atStop, homework: problems !== null, goLabel, busy, error: error !== null, nothingWritten: unwritten });
+	const goLabel = goAheadLabel({ kind, problemList: problems !== null, startLabel: startLabel ?? null, teacherSpoke, posedAny });
+	const next = turnNext({ stop: atStop, problemList: problems !== null, goLabel, busy, error: error !== null, nothingWritten: unwritten });
 	const answered = useMemo(() => lastAnswered(nativeMessages, messages), [nativeMessages, messages]);
 	const onNext = (action: NextAction) => {
 		if (action === "keep-going") {
@@ -482,6 +512,14 @@ export function Chat({
 	const stuckLine = stuck && stuckMinutes !== null ? { minutes: stuckMinutes, label: stuck.type === "text" ? "Stop and send again?" : "Stop and try again?", onStop: stopAndRetry } : null;
 	const errorLine = error && { text: lessonError(error.message).text, detail: error.message, onRetry: retry };
 	const problemPiece = useMemo(() => (activeProblem ? problemPieceOf(activeProblem.details) : null), [activeProblem]);
+	const listFileId = docView?.listFileId ?? null;
+	const place = useStableValue(activeProblem ? problemPlace(problemPiece?.piece ?? null, openProblem?.page, listFileId) : null);
+	const placeDoc = problemDocument(documents ?? [], place, openProblem ? listFileId : null);
+	const showProblem = () => {
+		setPluginId(null);
+		updateDock({ panel: "document", ...(place ? { fileId: place.fileId } : {}) });
+		setDocSeq((n) => n + 1);
+	};
 	const problem = activeProblem && {
 		toolCallId: activeProblem.toolCallId,
 		statement: problemStatementOf(activeProblem.input, activeProblem.details),
@@ -489,7 +527,7 @@ export function Chat({
 		choices: problemChoices,
 		line: !openProblem && practice ? `Problem ${practice.blocks.length}` : null,
 		part: openProblem ? (problems?.part ?? null) : null,
-		file: openProblem && homework?.assignment ? { ...homework.assignment, page: problemPiece?.piece.parts[0]?.page ?? openProblem.page } : null,
+		file: placeDoc ? { document: placeDoc, page: place?.page, first: placeDoc.id === listFileId, onShow: showProblem } : null,
 	};
 
 	const turnShows = turnDrawn({
@@ -514,7 +552,8 @@ export function Chat({
 							chatId={chatId}
 							rename={rename}
 							spaceId={spaceId}
-							sheet={spaceId ? { open: sheetOpen, onToggle: toggleSheet } : undefined}
+							doc={shownDoc ? { open: panel === "document", onToggle: () => togglePanel("document") } : undefined}
+							sheet={spaceId ? { open: panel === "sheet", onToggle: () => togglePanel("sheet") } : undefined}
 							plugins={{ words: lessonPlugins ?? [], open: openPlugin?.id ?? null, onToggle: togglePlugin }}
 							usage={{ turns, contextTokens, summarizeAt, pricing }}
 							scopeRef={sessionFindScopeRef}
@@ -522,9 +561,9 @@ export function Chat({
 						/>
 						<PluginWindow plugin={openPlugin} context={pluginContext} onClose={closePlugin} />
 						<div className="min-h-0 flex-1">
-							<div ref={sessionFindScopeRef} data-dock={sheetOpen ? "" : undefined} className="lh-dots lh-lesson-body relative h-full">
+							<div ref={sessionFindScopeRef} data-dock={panel ? "" : undefined} className="lh-dots lh-lesson-body relative h-full">
 								<LessonScroll
-									steps={<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onPick={openPick} onOpenPlan={overlays.openPlan} />}
+									steps={<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} problemList={planProblems} practice={stablePractice} onJump={jumpToAnswer} onPick={openPick} onOpenPlan={overlays.openPlan} />}
 									restKey={[pending?.toolCallId, problem?.toolCallId, problem?.part, atStop?.stopOf].join(" ")}
 									busy={busy}
 									contextRef={scrollContextRef}
@@ -585,15 +624,27 @@ export function Chat({
 										) : null
 									}
 								/>
-								{spaceId && dock.mounted && (
+								{dock.mounted && (
 									<div data-state={dock.state} className="lh-fade flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap) [grid-area:dock]">
-										<SheetDock
-											spaceId={spaceId}
-											sessionDeadlineId={deadlineId}
-											picked={sheet.state.deadlineId}
-											onPick={(id) => sheet.update({ deadlineId: id })}
-											onClose={() => sheet.update({ open: false })}
-										/>
+										{lastPanel.current === "document" && shownDoc ? (
+											<DocumentPanel
+												choices={docChoices}
+												shown={shownDoc}
+												place={place}
+												seq={docSeq}
+												onPick={(id) => updateDock({ fileId: id })}
+												onRetry={() => void reloadDocuments()}
+												onClose={() => updateDock({ panel: null })}
+											/>
+										) : lastPanel.current === "sheet" && spaceId ? (
+											<SheetDock
+												spaceId={spaceId}
+												sessionDeadlineId={deadlineId}
+												picked={lessonDock.state.deadlineId}
+												onPick={(id) => updateDock({ deadlineId: id })}
+												onClose={() => updateDock({ panel: null })}
+											/>
+										) : null}
 									</div>
 								)}
 

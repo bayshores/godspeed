@@ -1,6 +1,6 @@
-//! start_lesson: a new lesson on a topic (for a deadline when one is named with it), or a
-//! deadline's lesson as its Study or Work on key starts it. A new lesson's title is the learner's
-//! first message; a continued one is where they left it.
+//! start_lesson: a new lesson on a topic (for a deadline when one is named with it), a
+//! deadline's lesson as its Study or Work on key starts it, or a lesson on files. A new lesson's
+//! title is the learner's first message; a continued one is where they left it.
 
 use gs_core::contracts::space::parse_space_scope;
 use gs_core::spaces::space_tools::ToolOutcome;
@@ -9,6 +9,7 @@ use gs_json::{Json, json};
 use super::deadline_with_space;
 use super::space_actions::{CLOSED_SPACE, SpaceActions, change, no_space_text, template_text};
 use crate::turns::deadline_lesson::{DeadlineLesson, deadline_lesson};
+use crate::turns::files_lesson::files_lesson;
 use crate::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
 
 impl SpaceActions {
@@ -16,7 +17,8 @@ impl SpaceActions {
 		let topic = args["topic"].as_str().map(str::trim).filter(|t| !t.is_empty());
 		let deadline_id = args["deadline_id"].as_str();
 		let lesson = match (topic, deadline_id) {
-			(None, None) => return ToolOutcome::Err("Give topic or deadline_id.".to_owned()),
+			_ if args.get("file_ids").is_some() => self.files_lesson(args, topic, deadline_id),
+			(None, None) => return ToolOutcome::Err("Give topic, deadline_id or file_ids.".to_owned()),
 			(Some(topic), _) if args["homework"].truthy() => return ToolOutcome::Err(format!("homework takes deadline_id alone, not a topic (\"{topic}\").")),
 			(Some(topic), deadline_id) => self.topic_lesson(args, topic, deadline_id).await,
 			(None, Some(deadline_id)) => self.deadline_lesson(args, deadline_id),
@@ -63,6 +65,20 @@ impl SpaceActions {
 			Err(not_found) => return Err(not_found.error.to_owned()),
 		};
 		Ok((scope, lesson))
+	}
+
+	/// A lesson on files, tied to the deadline when one is named.
+	fn files_lesson(&self, args: &Json, topic: Option<&str>, deadline_id: Option<&str>) -> Result<(Option<String>, DeadlineLesson), String> {
+		if topic.is_some() || args["homework"].truthy() {
+			return Err("file_ids takes no topic and no homework: the first file names the lesson.".to_owned());
+		}
+		let space_id = match args["space_id"].as_str() {
+			Some(given) => Some(parse_space_scope(Some(given)).flatten().ok_or_else(|| format!("\"{given}\" is not a space id. Use list_spaces."))?),
+			None => None,
+		};
+		let file_ids: Vec<String> = args["file_ids"].items().iter().filter_map(|id| id.as_str().map(str::to_owned)).collect();
+		let (space_id, lesson) = files_lesson(&self.app, space_id.as_deref(), &file_ids, deadline_id)??;
+		Ok((Some(space_id), lesson))
 	}
 
 	/// The deadline's lesson, as its Study key (or with `homework`, its Work on key) starts it.

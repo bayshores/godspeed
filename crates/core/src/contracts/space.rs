@@ -10,15 +10,16 @@ use gs_json::{Json, json};
 pub const SPEECH_TOOL_INSTALL: &str = "brew install whisper-cpp ffmpeg";
 /// The most files a linked folder may hold before the scan stops.
 pub const MAX_LINKED_FILES: usize = 500;
-pub const MAX_HOMEWORK_PROBLEMS: usize = 60;
+/// The most problems one file's list holds.
+pub const MAX_FILE_PROBLEMS: usize = 60;
 /// Longest signature, in characters.
 pub const SIGNATURE_MAX: usize = 60;
 /// Longest space note, in characters.
 pub const NOTE_MAX: usize = 280;
 /// v9: the record file is space.json (class.json before). v10: adds `prep`. v11: the "interview"
 /// kind, a deadline's `aboutFileId` and the space's `waitingDeadline`; `prep` is upgraded away.
-/// v12: the space's `path`.
-pub const CURRENT_SPACE_VERSION: i64 = 12;
+/// v12: the space's `path`. v13: a homework's problem list lives on its assignment file.
+pub const CURRENT_SPACE_VERSION: i64 = 13;
 /// The most topics a path holds.
 pub const MAX_PATH_TOPICS: usize = 40;
 /// Longest path goal, in characters (it follows "Path to").
@@ -139,7 +140,7 @@ pub fn parse_space_scope(raw: Option<&str>) -> Option<Option<String>> {
 	}
 }
 
-const TEXT_EXTENSIONS: [&str; 3] = [".md", ".markdown", ".txt"];
+const TEXT_EXTENSIONS: [&str; 4] = [".md", ".markdown", ".txt", ".tex"];
 const CODE_EXTENSIONS: [&str; 24] = [
 	".c", ".h", ".cpp", ".cc", ".hpp", ".py", ".java", ".js", ".jsx", ".ts", ".tsx", ".go", ".rs", ".rb", ".swift", ".kt", ".cs", ".sql", ".sh", ".r", ".scala", ".hs", ".lua", ".php",
 ];
@@ -170,6 +171,15 @@ pub fn extension_of(name: &str) -> String {
 	let ext = text::slice16(name, dot as i64, None).to_lowercase();
 	static SHAPE: LazyLock<Re> = LazyLock::new(|| Re::new(r"^\.[a-z0-9]{1,10}$", ""));
 	if SHAPE.test(&ext) { ext } else { String::new() }
+}
+
+/// A file's name as lessons and suggestions show it, without its extension ("Lecture 3.pdf" →
+/// "Lecture 3"). The Files page shows the whole name.
+pub fn display_name(name: &str) -> String {
+	match text::last_index_of16(name, ".") {
+		Some(dot) if dot > 0 => text::slice16(name, 0, Some(dot as i64)),
+		_ => name.to_owned(),
+	}
 }
 
 /// The base name of an upload, control characters dropped; "file" when nothing is left.
@@ -227,6 +237,7 @@ mod tests {
 		assert_eq!(extension_of("a.b/c"), "");
 		assert_eq!(extension_of(".env"), ".env");
 		assert_eq!(extension_of("x.tar-gz"), "");
+		assert_eq!((display_name("Lecture 3 \u{2014} Expectation.pdf").as_str(), display_name(".env").as_str(), display_name("notes").as_str()), ("Lecture 3 \u{2014} Expectation", ".env", "notes"));
 		assert_eq!(safe_name("dir\\sub/..//"), "file");
 		assert_eq!(safe_name(" a\u{1}b.pdf "), "ab.pdf");
 		assert!(is_supported_space_file("lec.pptx") && is_supported_space_file("Book.EPUB") && is_recording_or_captions("a.srt") && !is_supported_space_file("a.zip"));

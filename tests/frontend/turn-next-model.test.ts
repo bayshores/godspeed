@@ -6,7 +6,7 @@ import { dismissedAnswer, projectView, type LessonStop, type LhMessage, type Que
 import { call, CONCLUDE_SOLVED, keepGoing, marker, OPENER_QUIZ, regularizationEnds, result, text, userText } from "../stop-fixtures.ts";
 
 const stop: LessonStop = { kind: "topic", at: "2026-11-18T21:48:00.000Z", nodeId: "reg", stopOf: "c1", next: "Cross-validation", activeMinutes: 48, keptGoing: false };
-const idle = { stop: null, homework: false, goLabel: "Continue", busy: false, error: false, nothingWritten: false };
+const idle = { stop: null, problemList: false, goLabel: "Continue", busy: false, error: false, nothingWritten: false };
 
 describe("turnNext", () => {
 	it("at a topic stop: what is next, and the go-ahead's label keeps going, also while the teacher reads ahead or an error shows", () => {
@@ -19,7 +19,7 @@ describe("turnNext", () => {
 		const problem: LessonStop = { ...stop, kind: "problem" };
 		assert.equal(turnNext({ ...idle, stop: problem })?.line, "Next is Cross-validation.");
 		assert.deepEqual(turnNext({ ...idle, goLabel: "Next problem", stop: { ...problem, next: null } }), { line: null, key: { label: "Next problem", action: "keep-going" } });
-		assert.deepEqual(turnNext({ ...idle, homework: true, goLabel: "Start problem 4", stop: { ...problem, next: "problem 4" } }), { line: null, key: { label: "Start problem 4", action: "keep-going" } });
+		assert.deepEqual(turnNext({ ...idle, problemList: true, goLabel: "Start problem 4", stop: { ...problem, next: "problem 4" } }), { line: null, key: { label: "Start problem 4", action: "keep-going" } });
 	});
 
 	it("the last topic ends the day", () => {

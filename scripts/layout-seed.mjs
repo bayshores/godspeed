@@ -7,6 +7,8 @@
  * each: one has its problems posted and a problem open at part (b), one has its problems posted and a
  * teaching reply with no problem open, one has fourteen problems with the first done and none open, and
  * one has a printed worksheet as its assignment, with a problem open as the piece of its pages, at part (b).
+ * A lesson on files works from a practice quiz of two pages and its answer key, which no deadline
+ * has as its assignment: its problems are posted from their pages, the first is done and the second open.
  * Eight more lessons are studied (a plan of two steps, a quiz on the last one, answered) and two are
  * left open (a quiz on the first step, unanswered), so the Lessons block on Progress has both groups
  * and a Show all. One more poses a practice problem longer than the window, still open. Their titles are of mixed length, one very long. One more lesson is made and
@@ -47,6 +49,16 @@ const PRINTED_PROBLEMS = [
 	{ number: "2", title: "A queue of lists", source: { page: 1, starts: "2. Second problem" } },
 	{ number: "3", title: "Counting handshakes", source: { page: 2, starts: "3. Third problem" } },
 ];
+/** The lesson on files: a practice quiz and its answer key, its problems pointed at by their first
+ *  words. Problem 2 ends where page 2's running title starts, so its cut leaves that title out. */
+const QUIZ_FILES = ["Graphing practice quiz.pdf", "Graphing practice quiz key.pdf"].map((name) => path.join(FIXTURES, name));
+const QUIZ_PROBLEMS = [
+	{ number: "1", title: "Slope through two points", source: { page: 1, starts: "1. Find the slope" } },
+	{ number: "2", title: "Graphing y = 2x - 3", source: { page: 1, starts: "2. Graph the line", ends: "Graphing practice quiz, continued" } },
+	{ number: "3", title: "Solve and check", source: { page: 2, starts: "3. Solve" } },
+	{ number: "4", title: "Taxi fares", source: { page: 2, starts: "4. A taxi" } },
+];
+
 /** More problems than a row names, numbered as an assignment might ("2a"). */
 const MANY_NUMBERS = ["1", "2a", "2b", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"];
 
@@ -254,6 +266,16 @@ function homeworkAnswer(work, ids, lessonTurn) {
 		if (lessonTurn === 1) return { tool_calls: [{ name: "part", arguments: { part: "b" } }] };
 		return { text: "Part (b) it is. What does the loop change each time around?" };
 	}
+	// The lesson on files writes its plan and posts the quiz's problems from its pages, then opens
+	// the first; after the learner's answer it closes it solved, then opens the second.
+	if (work.lessonId === ids.filesLesson) {
+		const pose = (number, nodeId, modelSolution) => ({ name: "problem", arguments: { number, nodeId, mode: "recall", modelSolution } });
+		if (lessonTurn === 0) return { text: "Here is the plan.", tool_calls: [{ name: "plan_init", arguments: { mermaid: "graph TD\n  slope[Slope] --> graph-a-line[Graph a line]" } }, { name: "post_problems", arguments: { problems: QUIZ_PROBLEMS } }] };
+		if (lessonTurn === 1) return { tool_calls: [pose("1", "slope", "(11 - 2) / (4 - 1) = 3.")] };
+		if (lessonTurn === 2) return { tool_calls: [{ name: "conclude", arguments: { outcome: "solved", verdict: "Slope 3: up 9 over 3 steps, as you found.", rung: null, missClass: null, retest: false } }] };
+		if (lessonTurn === 3) return { tool_calls: [pose("2", "graph-a-line", "(a) (0, -3). (b) (2, 1). (c) No: 2 times 3 minus 3 is 3.")] };
+		return null;
+	}
 	// Posts its problems and opens the first; after the learner's answer, closes it solved.
 	if (work.lessonId === ids.homeworkMany) {
 		if (lessonTurn === 0) {
@@ -435,11 +457,20 @@ export async function seed(dataDir, page, log) {
 	const aboutId = (await agent.json("read_space", { space_id: space.id, files: true })).files.find((file) => file.name === "What the quizzes are like.md").id;
 	for (const name of [MIDTERM, QUIZ, REVIEW_QUIZ, SPRING_EXAM]) await agent.call("update_space_deadline", { space_id: space.id, deadline_id: deadlineNamed(name), about_file_id: aboutId });
 	const worksheet = (await agent.json("add_space_file", { space_id: space.id, kind: "info", path: WORKSHEET })).file;
+	// The worksheet's source: a .tex with its name, so the two are one row on Files. It is never read, so the work loop gets nothing new.
+	// Written beside the data folder, as a file added by text is always Markdown.
+	const worksheetTex = path.join(path.dirname(dataDir), "worksheet.tex");
+	fs.writeFileSync(worksheetTex, "\\documentclass{article}\n\\begin{document}\nHomework 6\n\\end{document}\n");
+	await agent.call("add_space_file", { space_id: space.id, kind: "info", path: worksheetTex });
 	await agent.call("update_space_deadline", { space_id: space.id, deadline_id: deadlineNamed(HOMEWORK_PRINTED), assignment_file_id: worksheet.id });
 	const homeworkOpen = await homeworkLesson(HOMEWORK_OPEN);
 	const homeworkPrinted = await homeworkLesson(HOMEWORK_PRINTED);
 	const homeworkFirst = await homeworkLesson(HOMEWORK_FIRST);
 	const homeworkMany = await homeworkLesson(HOMEWORK_MANY);
+	// The lesson on files starts as the teacher's start_lesson starts one, on the quiz with its key.
+	const quizFiles = [];
+	for (const file of QUIZ_FILES) quizFiles.push((await agent.json("add_space_file", { space_id: space.id, kind: "info", path: file })).file.id);
+	const filesLesson = (await agent.json("start_lesson", { space_id: space.id, file_ids: quizFiles })).lessonId;
 	const written = (await agent.json("start_lesson", { topic: WRITTEN_TOPIC, space_id: space.id })).lessonId;
 	const startLesson = async (topic) => (await agent.json("start_lesson", { topic, space_id: space.id })).lessonId;
 	const studied = [];
@@ -459,12 +490,12 @@ export async function seed(dataDir, page, log) {
 	let helper = false;
 	const wait = () => agent.call("wait_for_work", { timeout_seconds: 3, ...(helper ? { helper: true } : {}) });
 	const turns = new Map();
-	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, studied, open, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices };
+	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, studied, open, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices };
 	const drain = async () => {
 		let reply = await wait();
 		for (let idle = 0, tries = 0; idle < 4; tries++) {
 			// Each added lesson is two items, and an item is two passes: the work, then its "turn done".
-			if (tries > 20 + 4 * (studied.length + open.length + 6)) throw new Error("the stand-in agent never ran out of work");
+			if (tries > 20 + 4 * (studied.length + open.length + 7)) throw new Error("the stand-in agent never ran out of work");
 			const header = JSON.parse(reply[0]);
 			if (header.status !== "work") {
 				if (header.status === "idle") helper = !helper;
@@ -488,6 +519,7 @@ export async function seed(dataDir, page, log) {
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkOpen, input: { type: "text", text: "I am starting part (b)." } }) });
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkMany, input: { type: "text", text: "They cross at (2, 7)." } }) });
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkPrinted, input: { type: "text", text: "I am starting part (b)." } }) });
+	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: filesLesson, input: { type: "text", text: "The slope is 3." } }) });
 	const say = (chatId, input) => page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId, input }) });
 	/** The learner picks the right answer of the lesson's open quiz. The answer keeps the choices, as the question box's does, so the answered card shows the pick. */
 	const answerQuiz = async (chatId) => {
@@ -551,5 +583,5 @@ export async function seed(dataDir, page, log) {
 	const sheetless = (await agent.json("start_lesson", { topic: "Git and pull requests", space_id: goal.space.id })).lessonId;
 	ids.sheetless = sheetless;
 	await drain();
-	return { sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
+	return { sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
 }

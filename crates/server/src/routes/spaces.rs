@@ -11,6 +11,7 @@ use axum::response::Response;
 use gs_base::{clock, text};
 use gs_core::contracts::space::{FILE_KIND_PROBLEM, SIGNATURE_MAX, clean_signature, is_space_color, is_space_icon, is_space_id};
 use gs_core::spaces::file_state::FileKind;
+use gs_core::spaces::problem_list::with_problem_lists;
 use gs_core::spaces::today_note::local_day;
 use gs_json::{Json, Obj, json};
 use gs_services::App;
@@ -24,7 +25,6 @@ use gs_services::spaces::{
 use gs_services::spaces::deadline_requests::overdue_asked;
 use gs_services::spaces::space_card::space_file_path;
 use gs_services::turns::ask_about_new_deadlines;
-use gs_services::turns::homework::homework_view;
 
 use crate::http::form;
 use crate::http::paths::{param, query};
@@ -41,7 +41,6 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/spaces/{id}/folder", ApiRoute::new().put(link).delete(unlink).into_route())
 		.route("/api/spaces/{id}/deadlines", ApiRoute::new().get(deadlines).post(add_deadline).into_route())
 		.route("/api/spaces/{id}/deadlines/{deadline_id}", ApiRoute::new().put(change_deadline).delete(remove_deadline).into_route())
-		.route("/api/spaces/{id}/deadlines/{deadline_id}/homework", ApiRoute::new().get(homework).into_route())
 		.route("/api/spaces/{id}/deadlines/{deadline_id}/about", ApiRoute::new().get(about).into_route())
 		.route("/api/deadlines", ApiRoute::new().get(open_deadlines).into_route())
 		.route("/api/deadlines/{id}", ApiRoute::new().get(deadline).into_route())
@@ -97,7 +96,7 @@ async fn read(State(app): State<Arc<App>>, Path(id): Path<String>, uri: Uri) -> 
 	}
 	let Some(record) = app.stores.spaces.get_space(&id) else { return reply::no_such_space() };
 	let shortcuts = space_shortcut_dir(&app, &id).map_or(Json::Null, Json::from);
-	reply::json(200, &json!({ "space": record, "folder": folder_status_of(&app, &id), "shortcuts": shortcuts }))
+	reply::json(200, &json!({ "space": with_problem_lists(&record), "folder": folder_status_of(&app, &id), "shortcuts": shortcuts }))
 }
 
 /// PUT /api/spaces/{id} { name?, description?, closed?, signature?, icon?, color?, rules? } (a
@@ -349,16 +348,6 @@ async fn remove_deadline(State(app): State<Arc<App>>, Path((id, deadline_id)): P
 	match remove_space_deadline(&app, &id, &deadline_id) {
 		Ok(removed) => Ok(reply::json(200, &json!({ "ok": true, "mocksRemoved": removed }))),
 		Err(failure) => refused(failure),
-	}
-}
-
-/// GET /api/spaces/{id}/deadlines/{deadline_id}/homework: what a homework lesson shows of its
-/// deadline. 404 once the space or deadline is gone.
-async fn homework(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(String, String)>) -> Response {
-	let view = if is_space_id(&id) { homework_view(&app, &id, &deadline_id) } else { None };
-	match view {
-		Some(homework) => reply::json(200, &json!({ "homework": homework })),
-		None => error(404, "No such deadline"),
 	}
 }
 

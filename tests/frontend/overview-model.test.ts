@@ -7,7 +7,6 @@ import { describe, it } from "node:test";
 import {
 	calibrationTakeaway,
 	deadlineHref,
-	displayName,
 	hasCalibration,
 	isLevelOverconfident,
 	joinAnd,
@@ -31,13 +30,6 @@ const lvl = (level: 1 | 2 | 3 | 4 | 5, right: number, answered: number): Calibra
 });
 
 describe("overview-model", () => {
-	it("displayName drops the extension only", () => {
-		assert.equal(displayName("Lecture 3 — Expectation.pdf"), "Lecture 3 — Expectation");
-		assert.equal(displayName("ps1.1.txt"), "ps1.1");
-		assert.equal(displayName("README"), "README");
-		assert.equal(displayName(".hidden"), ".hidden");
-	});
-
 	it("links: the lesson, a question's message anchor", () => {
 		assert.equal(lessonHref("chat 1"), "/chat/chat%201");
 		assert.equal(questionHref("c1", "m7"), "/chat/c1#message-m7");

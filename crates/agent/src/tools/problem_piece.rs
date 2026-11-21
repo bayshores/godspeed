@@ -13,16 +13,15 @@ pub(super) const NO_STATEMENT: &str = "give the statement, or a source to show t
 const TEXT_MAX: i64 = 8000;
 
 /// The `source` field: where a problem is printed. In homework the file may be left out.
-pub(super) fn source_field(homework: bool) -> Json {
-	let (required, file_id): (&[&str], _) = if homework {
-		(&["page", "starts"], "The space file the problem is printed in (a PDF). Left out: the deadline's assignment file.")
-	} else {
-		(&["fileId", "page", "starts"], "The space file the problem is printed in (a PDF).")
-	};
+/// The `source` schema; `default_file` says which file a source without `fileId` is in, and
+/// without one `fileId` is required.
+pub(super) fn source_field(default_file: Option<&str>) -> Json {
+	let file_id = format!("The space file the problem is printed in (a PDF).{}", default_file.map(|d| format!(" Left out: {d}")).unwrap_or_default());
+	let required: &[&str] = if default_file.is_some() { &["page", "starts"] } else { &["fileId", "page", "starts"] };
 	object(
 		required,
 		vec![
-			("fileId", string(file_id)),
+			("fileId", string(&file_id)),
 			("page", integer(1, "The page the problem starts on.")),
 			("starts", string_min(1, "The problem's first words exactly as the page prints them: plain words before any math, one line's worth.")),
 			("ends", string_min(1, "The first words of what is printed right after the problem. Left out: the problem ends with its page.")),

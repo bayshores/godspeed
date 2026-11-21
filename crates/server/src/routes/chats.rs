@@ -32,8 +32,11 @@ use gs_services::jobs::steer_live_chat;
 use gs_services::turns::chat_handler::{ChatReply, REVIEW_NOT_OPEN, ReplyBody, handle_chat_input};
 use gs_services::turns::chats::{delete_chat_session, session_coverage};
 use gs_services::turns::compaction::summarize_at_tokens;
+use gs_services::turns::deadline_lesson::DeadlineLesson;
 use gs_services::turns::dismissal_park::park_dismissal;
+use gs_services::turns::files_lesson::files_lesson;
 use gs_services::turns::homework::create_homework;
+use gs_services::turns::lesson_problems::{documents_view, problems_view};
 use gs_services::turns::lesson_events::{KeepGoing, KeptDrop, drop_kept_part, keep_going};
 use gs_services::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
 use gs_services::turns::review::{ReviewReply, answer_review, next_review, skip_review};
@@ -54,7 +57,9 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/chats/{id}/dismiss", ApiRoute::new().post(dismiss).into_route())
 		.route("/api/chats/{id}/keep-going", ApiRoute::new().post(keep_going_at).into_route())
 		.route("/api/chats/{id}/kept", ApiRoute::new().post(kept).into_route())
+		.route("/api/chats/{id}/documents", ApiRoute::new().get(documents).into_route())
 		.route("/api/chats/{id}/markdown", ApiRoute::new().get(markdown).into_route())
+		.route("/api/chats/{id}/problems", ApiRoute::new().get(problems).into_route())
 		.route("/api/chats/{id}/review", ApiRoute::new().post(review).into_route())
 		.route("/api/chats/{id}/steer", ApiRoute::new().post(steer).into_route())
 		.route("/api/chats/{id}/stream", ApiRoute::new().get(stream).into_route())
@@ -100,12 +105,21 @@ async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandl
 
 /// POST /api/chats: a study session (typed, picked facts, topics, a mock's
 /// question, a deadline or a path topic), or with `homework: true` a homework session on the
-/// deadline.
+/// deadline. With `fileIds` a lesson on files, which answers `continued: true` when an earlier
+/// lesson goes on, so the window sends no first message; refused with 400 and the reason.
 async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhandled> {
 	let body = fields(body).await?;
 	let title = body["title"].as_str().unwrap_or_default();
 	let Some(space_id) = parse_space_scope(body["spaceId"].as_str()) else { return Ok(error(400, "bad spaceId")) };
 	let deadline_id = body["deadlineId"].as_str();
+	// A lesson on files may go on in an earlier lesson or be its deadline's homework.
+	if let Some(ids) = body["fileIds"].as_arr() {
+		return Ok(match files_lesson(&app, space_id.as_deref(), &strings(ids), deadline_id)? {
+			Ok((_, DeadlineLesson::New { chat_id, title })) => reply::json(200, &json!({ "id": chat_id, "title": title, "continued": false })),
+			Ok((_, DeadlineLesson::Continued { chat_id, title })) => reply::json(200, &json!({ "id": chat_id, "title": title, "continued": true })),
+			Err(refused) => error(400, &refused),
+		});
+	}
 	if body["homework"] == Json::Bool(true) {
 		let (Some(space_id), Some(deadline_id)) = (space_id.as_deref(), deadline_id) else { return Ok(error(400, "homework needs a spaceId and a deadlineId")) };
 		return Ok(match create_homework(&app, space_id, deadline_id)? {
@@ -159,6 +173,25 @@ async fn read(State(app): State<Arc<App>>, Path(id): Path<String>) -> Result<Res
 	out.insert("coverage", session_coverage(&app, &chat)?);
 	out.insert("summarizeAt", summarize_at_tokens(&app.stores.settings.effective_settings()?, &agent_model()));
 	Ok(reply::json(200, &Json::Obj(out)))
+}
+
+/// GET /api/chats/{id}/problems: a homework lesson's or a lesson on files' problem list,
+/// `{ problems: { problems } }`. 404 for a lesson without one, or once its space or deadline is
+/// gone.
+async fn problems(State(app): State<Arc<App>>, Path(id): Path<String>) -> Response {
+	match app.stores.chats.get_chat(&id).and_then(|chat| problems_view(&app, &chat)) {
+		Some(view) => reply::json(200, &json!({ "problems": view })),
+		None => error(404, "No problem list"),
+	}
+}
+
+/// GET /api/chats/{id}/documents: what the lesson's Document panel shows, `{ documents,
+/// listFileId }` (`documents_view`); empty for a lesson that has none.
+async fn documents(State(app): State<Arc<App>>, Path(id): Path<String>) -> Response {
+	match app.stores.chats.get_chat(&id) {
+		Some(chat) => reply::json(200, &documents_view(&app, &chat).await),
+		None => error(404, "Not found"),
+	}
 }
 
 /// PUT /api/chats/{id}: rename. `updatedAt` stays, so the lesson list order does not change.

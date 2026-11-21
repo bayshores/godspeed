@@ -200,6 +200,7 @@ fn space_tool_text_matches_node() {
 		("topic", a.topic),
 		("lessonSpace", a.lesson_space),
 		("lessonDeadline", a.lesson_deadline),
+		("lessonFiles", a.lesson_files),
 		("homework", a.homework),
 		("page", a.page),
 		("pageSpace", a.page_space),

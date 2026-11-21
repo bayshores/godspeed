@@ -63,19 +63,28 @@ describe("the route table", () => {
 		for (const gone of ["/prep", "/space/mocks", "/space/lessons"]) assert.equal(matchRoutes(routes, gone)?.at(-1)?.route.path, "*", `${gone} is gone`);
 	});
 
-	it("a lesson is read first, and a homework lesson reads its deadline's problems too", async () => {
-		const homework = { problems: [] };
+	it("a lesson is read first, and a lesson with a problem list reads it and its documents too", async () => {
+		const problems = { problems: [] };
+		const documents = { documents: [{ id: "f_test", name: "Test", pdf: true, pages: 2, aspect: 0.77 }], listFileId: "f_test" };
 		const asked = serve({
 			"/api/chats/chat_1": [200, chat({ kind: "homework", spaceId: "spc_1", deadlineId: "ddl 1" })],
-			"/api/spaces/spc_1/deadlines/ddl%201/homework": [200, { homework }],
+			"/api/chats/chat_1/problems": [200, { problems }],
+			"/api/chats/chat_1/documents": [200, documents],
+			"/api/chats/chat_2": [200, chat({ id: "chat_2", kind: "study", spaceId: "spc_1", fileIds: ["f_test"] })],
+			"/api/chats/chat_2/problems": [200, { problems }],
+			"/api/chats/chat_2/documents": [200, documents],
+			"/api/chats/chat_3": [200, chat({ id: "chat_3", kind: "study", spaceId: "spc_1" })],
 		});
 		const router = await open("/chat/chat_1?prompt=Begin");
 		assert.equal(router.state.errors, null);
-		const data = Object.values(router.state.loaderData)[0] as { chat: { id: string }; homework: unknown; prompt?: string };
+		const data = Object.values(router.state.loaderData)[0] as { chat: { id: string }; problemList: unknown; documents: unknown; prompt?: string };
 		assert.equal(data.chat.id, "chat_1");
-		assert.deepEqual(data.homework, homework);
+		assert.deepEqual(data.problemList, problems);
+		assert.deepEqual(data.documents, documents);
 		assert.equal(data.prompt, "Begin");
-		assert.deepEqual(asked, ["/api/chats/chat_1", "/api/spaces/spc_1/deadlines/ddl%201/homework"]);
+		await open("/chat/chat_2");
+		await open("/chat/chat_3");
+		assert.deepEqual(asked, ["/api/chats/chat_1", "/api/chats/chat_1/problems", "/api/chats/chat_1/documents", "/api/chats/chat_2", "/api/chats/chat_2/problems", "/api/chats/chat_2/documents", "/api/chats/chat_3"], "a lesson on no files has none");
 	});
 
 	it("the Talk chat, a removed lesson, a removed deadline and a removed mock are not found", async () => {

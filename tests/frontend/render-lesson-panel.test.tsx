@@ -464,18 +464,33 @@ describe("Your turn in each state", () => {
 		assert.match(out, /Find E\[N\]\./);
 	});
 
-	it("a homework problem's file and page sit at the end of the title line, and open the file", async () => {
+	it("a homework problem's page sits at the end of the title line and shows that page in the Document panel", async () => {
+		let shown = 0;
+		const pdf = { id: "f_hw", name: "HW6", path: "/tmp/HW6.pdf", pdf: true, pages: 4, aspect: 0.77 };
+		const file = { document: pdf, page: 2, first: true, onShow: () => void shown++ };
+		assert.match(html({ problem: { ...problem, line: null, part: "b", file } }), /<h2[^>]*>Your turn<\/h2><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="lesson-assignment"[^>]*title="Page 2"/);
+		assert.doesNotMatch(html({ pending: quiz, problem: { ...problem, file } }), /lesson-assignment/, "not over a question asked while it is open");
+		assert.match(html({ problem: { ...problem, file: { ...file, document: { ...pdf, name: "HW6 key" }, first: false } } }), /title="HW6 key, page 2"/, "another file is named");
+		assert.doesNotMatch(html({ problem: { ...problem, file: { ...file, page: undefined } } }), /lesson-assignment/, "no page, no key");
+		await mounted(turn({ problem: { ...problem, file } }), async (host) => {
+			assert.equal(host.querySelector('[data-testid="lesson-assignment"]')!.textContent, "Page 2");
+			await click(host, "lesson-assignment");
+		});
+		assert.equal(shown, 1);
+	});
+
+	it("a homework problem in a file that is not a PDF names it, and the desktop shows it in its folder", async () => {
+		const notes = { id: "f_hw", name: "HW6 notes", path: "/tmp/HW6 notes.docx", pdf: false };
+		const file = { document: notes, page: 2, first: true, onShow: () => assert.fail("no panel for it") };
+		assert.doesNotMatch(html({ problem: { ...problem, file } }), /lesson-assignment/, "nothing on the web");
 		const opened: string[] = [];
-		(window as unknown as { lh: unknown }).lh = { openPath: async (path: string) => void opened.push(path), showInFolder: async () => {} };
+		(window as unknown as { lh: unknown }).lh = { showInFolder: async (path: string) => void opened.push(path) };
 		try {
-			const file = { name: "HW6.pdf", path: "/tmp/HW6.pdf", page: 2 };
-			assert.match(html({ problem: { ...problem, line: null, part: "b", file } }), /<h2[^>]*>Your turn<\/h2><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="lesson-assignment"[^>]*title="HW6.pdf, page 2"/);
-			assert.doesNotMatch(html({ pending: quiz, problem: { ...problem, file } }), /lesson-assignment/, "not over a question asked while it is open");
 			await mounted(turn({ problem: { ...problem, file } }), async (host) => {
-				assert.equal(host.querySelector('[data-testid="lesson-assignment"]')!.textContent, "HW6.pdf, page 2");
+				assert.equal(host.querySelector('[data-testid="lesson-assignment"]')!.textContent, "HW6 notes");
 				await click(host, "lesson-assignment");
 			});
-			assert.deepEqual(opened, ["/tmp/HW6.pdf"]);
+			assert.deepEqual(opened, ["/tmp/HW6 notes.docx"]);
 		} finally {
 			delete (window as unknown as { lh?: unknown }).lh;
 		}

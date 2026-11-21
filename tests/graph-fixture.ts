@@ -85,6 +85,7 @@ export function fixture(): ProgressPayload {
 		facts,
 		files: [],
 		nextUp: null,
+		fileWork: [],
 		lessons: [],
 		calibration: { levels: [], sureButWrong: [] },
 		deadlines: [

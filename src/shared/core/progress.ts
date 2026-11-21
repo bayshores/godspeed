@@ -183,12 +183,23 @@ export function topicFacts(facts: readonly FactProgress[], topic: Pick<TopicProg
 export interface FileCoverage {
 	fileId: string;
 	name: string;
+	/** The name lessons and suggestions show, without its extension. */
+	displayName: string;
 	/** Facts born in this file. */
 	facts: number;
 	/** Of those, how many also came up in a lesson. */
 	inLessons: number;
 	/** inLessons / facts; null when the file has no facts yet. */
 	share: number | null;
+}
+
+/** A file with a problem list: how many of its problems
+ *  are done, and the lesson its blocks reopen (an unfinished one first,
+ *  then the newest). */
+export interface FileWork {
+	fileId: string;
+	problems: { done: number; total: number };
+	lessonId?: string;
 }
 
 // ─── lessons + calibration ──────────────────────────────────────────────────
@@ -208,6 +219,9 @@ export interface LessonProgress {
 	score: number | null;
 	/** Where the lesson's plan is, as its step bar counts it; absent with no plan. */
 	step?: { done: number; total: number };
+	/** How many of its problems are done: a homework lesson's deadline's, a
+	 *  lesson on files its first file's. Absent with none listed. */
+	problems?: { done: number; total: number };
 	/** Set while the lesson has not reached its end. */
 	unfinished?: true;
 	/** The deadline it was started from. */
@@ -351,6 +365,8 @@ export interface ProgressPayload {
 	/** Study files only, in space order (empty for "No space"). */
 	files: FileCoverage[];
 	nextUp: FileCoverage | null;
+	/** Every file, study or info, with a problem list, in space order. */
+	fileWork: FileWork[];
 	/** Newest activity first. */
 	lessons: LessonProgress[];
 	calibration: Calibration;

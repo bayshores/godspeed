@@ -55,6 +55,8 @@ impl SpaceActions {
 					if f["error"].truthy() {
 						entry.insert("error", f["error"].clone());
 					}
+					// A .tex names the PDF built from it, so the teacher finds the source to edit.
+					entry.insert_present("pdfId", f.get("pdfId"));
 					if let Some(size) = sizes.get(f["id"].str_or_empty()).filter(|s| s.truthy()) {
 						entry.insert("size", size.clone());
 					}

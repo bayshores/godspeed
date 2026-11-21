@@ -1,5 +1,5 @@
 import { memo } from "react";
-import type { DeadlineProgress, HomeworkProblem } from "@/shared/core";
+import type { DeadlineProgress, FileProblem } from "@/shared/core";
 import { SELECT, SELECT_ARROW } from "@/frontend/components/ui/field";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
@@ -21,7 +21,7 @@ export const HomeworkCard = memo(function HomeworkCard({
 	onMarkDone,
 }: {
 	deadline: DeadlineProgress;
-	problems: readonly HomeworkProblem[];
+	problems: readonly FileProblem[];
 	/** The space's files, for the assignment picker. */
 	files: readonly { id: string; name: string }[];
 	assignmentId: string | undefined;

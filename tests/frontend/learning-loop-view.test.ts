@@ -228,7 +228,7 @@ describe("the two-day story, as the window draws it", () => {
 	it("the stop names the next topic in Your turn, its Continue keeps going, and no opener shows yet", () => {
 		const stop = lessonStop(wednesday, TREE)!;
 		assert.deepEqual(stop, { kind: "topic", at: iso(48), nodeId: "reg", stopOf: "c1", next: "Cross-validation", activeMinutes: 48, keptGoing: false });
-		assert.deepEqual(turnNext({ stop, homework: false, goLabel: "Continue", busy: false, error: false, nothingWritten: false }), {
+		assert.deepEqual(turnNext({ stop, problemList: false, goLabel: "Continue", busy: false, error: false, nothingWritten: false }), {
 			line: "Cross-validation is next.",
 			key: { label: "Continue", action: "keep-going" },
 		});
@@ -273,7 +273,7 @@ describe("the two-day story, as the window draws it", () => {
 		const stopped = story(wednesday, continued, openerAnswered, teacherWritesSat, crossValidationEnds);
 		const stop = lessonStop(stopped, TREE)!;
 		assert.deepEqual([stop.kind, stop.nodeId, stop.next, stop.keptGoing], ["topic", "cv", "Model selection", false]);
-		assert.equal(turnNext({ stop, homework: false, goLabel: "Continue", busy: false, error: false, nothingWritten: false })?.line, "Model selection is next.");
+		assert.equal(turnNext({ stop, problemList: false, goLabel: "Continue", busy: false, error: false, nothingWritten: false })?.line, "Model selection is next.");
 
 		const going = story(stopped, keptGoingOn.slice(0, 1));
 		assert.equal(lessonStop(going, TREE)?.keptGoing, true);
@@ -284,7 +284,7 @@ describe("the two-day story, as the window draws it", () => {
 	it("the last topic, ended by a right quiz, is the end of the lesson", () => {
 		const stop = lessonStop(saturday, TREE)!;
 		assert.deepEqual([stop.kind, stop.nodeId, stop.stopOf, stop.next, stop.keptGoing], ["end", "ms", "t3", null, false]);
-		assert.deepEqual(turnNext({ stop, homework: false, goLabel: "Continue", busy: false, error: false, nothingWritten: false }), {
+		assert.deepEqual(turnNext({ stop, problemList: false, goLabel: "Continue", busy: false, error: false, nothingWritten: false }), {
 			line: "That was the last topic.",
 			key: { label: "Done for today", action: "done-for-today" },
 		});

@@ -270,8 +270,14 @@ pub fn input_appends(record: &Json, input: &ChatInput, attachments: &[Json]) -> 
 			Ok(with_dismissal_conclusion(messages, new_next_message()))
 		}
 		ChatInput::Open { number } => {
-			if record["kind"].as_str() != Some("homework") {
-				return refuse("open input is a homework session affordance");
+			// A homework lesson and a lesson on files have a problem list to pick from.
+			let listed = match record["kind"].as_str() {
+				Some("homework") => true,
+				Some("study") => !record["fileIds"].items().is_empty(),
+				_ => false,
+			};
+			if !listed {
+				return refuse("open input is for a lesson with a problem list");
 			}
 			if dangling_question_of(messages).is_some() {
 				return refuse("open input waits for the pending question's answer");
@@ -437,7 +443,7 @@ mod tests {
 	}
 
 	#[test]
-	fn open_picks_a_homework_problem_unless_a_question_waits_or_it_is_already_open() {
+	fn open_picks_a_listed_problem_unless_a_question_waits_or_it_is_already_open() {
 		let pose = |number: &str| json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "p1", "name": "problem", "arguments": { "number": number } }] });
 		let posed = json!({ "role": "toolResult", "toolCallId": "p1", "isError": false });
 		let lesson = |kind: &str, messages: &[Json]| json!({ "kind": kind, "messages": messages });
@@ -450,7 +456,8 @@ mod tests {
 		assert_eq!(appends[0]["content"].as_str(), Some(open_problem_text("2b").as_str()));
 		assert_eq!(input_appends(&lesson("homework", &[pose("1"), posed.clone()]), &pick("2b"), &[]).unwrap().len(), 1, "another one open: the teacher closes it");
 		assert_eq!(error_of(input_appends(&lesson("homework", &[pose("2b"), posed.clone()]), &pick("2b"), &[])), "that problem is already open");
-		assert_eq!(error_of(input_appends(&lesson("study", &[]), &pick("1"), &[])), "open input is a homework session affordance");
+		assert_eq!(error_of(input_appends(&lesson("study", &[]), &pick("1"), &[])), "open input is for a lesson with a problem list");
+		assert_eq!(input_appends(&json!({ "kind": "study", "fileIds": ["f_test"], "messages": [] }), &pick("1"), &[]).unwrap().len(), 1, "a lesson on files has one");
 		let question = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q1", "name": "quiz", "arguments": { "question": "?" } }] });
 		assert_eq!(error_of(input_appends(&lesson("homework", &[question]), &pick("1"), &[])), "open input waits for the pending question's answer");
 	}

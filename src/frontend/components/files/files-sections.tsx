@@ -1,10 +1,11 @@
 import { memo } from "react";
-import { dayLabel, type FileCoverage, type FileGroup } from "@/shared/core";
+import { dayLabel, type FileCoverage, type FileGroup, type FileWork } from "@/shared/core";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useFold } from "@/frontend/components/use-fold";
 import { cn } from "@/frontend/lib/utils";
-import { FileRow, type FileRowActions } from "./file-row";
+import { FileRow, type FileRowActions, type RowPick } from "./file-row";
+import { entryRows } from "./files-model";
 
 /** A section's header, the top of its sheet: the chevron (right when folded),
  *  its name and a note after it ("28 files"). Clicking it folds the section. */
@@ -45,6 +46,9 @@ export const FileGroupSection = memo(function FileGroupSection({
 	collapsed,
 	onToggle,
 	coverage,
+	work,
+	pickOf,
+	onPick,
 	disabled,
 	teacher,
 	actions,
@@ -53,14 +57,29 @@ export const FileGroupSection = memo(function FileGroupSection({
 	collapsed: boolean;
 	onToggle: (key: string) => void;
 	coverage: ReadonlyMap<string, FileCoverage>;
+	work: ReadonlyMap<string, FileWork>;
+	pickOf: (fileId: string) => RowPick;
+	onPick: (fileId: string, held: boolean) => void;
 	disabled?: boolean;
 	teacher: string;
 	actions: FileRowActions;
 }) {
 	const fold = useFold(!collapsed);
-	const row = (file: FileGroup["items"][number]["files"][number]) => (
-		<FileRow key={file.id} file={file} coverage={coverage.get(file.id)} disabled={disabled} teacher={teacher} actions={actions} />
-	);
+	const rows = (files: FileGroup["items"][number]["files"]) =>
+		entryRows(files).map(({ file, source }) => (
+			<FileRow
+				key={file.id}
+				file={file}
+				source={source}
+				coverage={coverage.get(file.id)}
+				work={work.get(file.id)}
+				pick={pickOf(file.id)}
+				onPick={onPick}
+				disabled={disabled}
+				teacher={teacher}
+				actions={actions}
+			/>
+		));
 	return (
 		<Pane data-testid={`files-group-${group.key}`} aria-label={group.label} className="lh-card gap-1.5">
 			<SectionToggle
@@ -77,7 +96,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 						<ul className="flex flex-col">
 							{group.items.map((item) =>
 								item.label === null ? (
-									row(item.files[0]!)
+									rows(item.files)
 								) : (
 									<li key={item.key} data-testid={`files-item-${item.key}`} className="flex items-start gap-3 py-[5px]">
 										<div className="flex w-[110px] shrink-0 flex-col pt-1.5">
@@ -86,7 +105,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 											</span>
 											{item.date && <span className="font-count text-sm text-ink-2">{dayLabel(item.date)}</span>}
 										</div>
-										<ul className="flex min-w-0 flex-1 flex-col">{item.files.map(row)}</ul>
+										<ul className="flex min-w-0 flex-1 flex-col">{rows(item.files)}</ul>
 									</li>
 								),
 							)}

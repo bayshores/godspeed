@@ -115,7 +115,7 @@ fn machine_learning_space(app: &App, wednesday: &str) -> (String, String) {
 
 	// Each earlier topic: a quiz he got right, then the topic_done that stored its question.
 	let earlier = |nodes: &[&str], tag: &str| {
-		let chat_id = app.stores.chats.create_chat("Study earlier topics", Some("study"), Some(&space_id), None).unwrap()["id"].as_str().unwrap().to_owned();
+		let chat_id = app.stores.chats.create_chat("Study earlier topics", Some("study"), Some(&space_id), None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		let mut messages = Vec::new();
 		for node in nodes {
 			let name = TOPICS.iter().find(|(id, _)| id == node).unwrap().1;
@@ -284,7 +284,7 @@ async fn two_days_of_study_for_the_midterm() {
 	let saturday = day_after(&wednesday, 3);
 	let (space_id, deadline_id) = machine_learning_space(app, &wednesday);
 	let plan = json!({ "nodes": [{ "id": "reg", "title": "Regularization" }, { "id": "cv", "title": "Cross-validation" }, { "id": "ms", "title": "Model selection" }], "edges": [{ "from": "reg", "to": "cv" }, { "from": "cv", "to": "ms" }] });
-	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].as_str().unwrap().to_owned();
+	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), Some(&deadline_id), &[]).unwrap()["id"].as_str().unwrap().to_owned();
 	app.stores.chats.save_tree(&chat_id, &plan).unwrap();
 	let chat = chat_id.as_str();
 	// He thinks for 3 minutes 45 before each input, and the agent takes 2 minutes to answer.

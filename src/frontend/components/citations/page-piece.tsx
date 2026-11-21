@@ -6,6 +6,7 @@ import { cn } from "@/frontend/lib/utils";
 import type { ProblemPiece } from "@/shared/core";
 import { PageMarks } from "./page-excerpt";
 import { markBox, partAspect, partSrc, pieceWidth, veils } from "./page-piece-model";
+import { SteadyImg } from "./steady-img";
 
 const pct = (n: number) => `${n * 100}%`;
 
@@ -15,7 +16,8 @@ const pct = (n: number) => `${n * 100}%`;
  * screen readers. The part the learner is on stays clear while the other labelled parts are
  * veiled in the color under them; where that part starts is marked data-part-current and told
  * to `onPlace`, for the page or box around it to rest there. A picture that does not load gives
- * way to the words.
+ * way to the words. A drawn picture never goes blank when its column changes width: it is asked
+ * for again only once the column is wider than it has been, and keeps showing while that loads.
  */
 export function PagePiece({
 	piece,
@@ -38,6 +40,8 @@ export function PagePiece({
 }) {
 	const { bodyInk } = useAppearance();
 	const [width, boxRef] = useElementWidth<HTMLDivElement>(0);
+	const widest = useRef(0);
+	widest.current = Math.max(widest.current, width);
 	// A failure belongs to the piece that had it, not to the next one this component draws.
 	const key = JSON.stringify(piece);
 	const [failedKey, setFailedKey] = useState<string | null>(null);
@@ -60,7 +64,7 @@ export function PagePiece({
 			</p>
 		);
 	}
-	const asked = pieceWidth(width, window.devicePixelRatio || 1);
+	const asked = pieceWidth(widest.current, window.devicePixelRatio || 1);
 	return (
 		<div ref={boxRef} data-testid="page-piece" data-picture="" className={cn("relative flex w-full flex-col gap-2", quiet && "opacity-60")}>
 			<span className="sr-only">{text}</span>
@@ -68,17 +72,16 @@ export function PagePiece({
 				const mark = markBox(piece, i);
 				return (
 					<div key={i} className={cn("relative w-full", printed && "bg-white")} style={{ aspectRatio: partAspect(p) }}>
-						{width > 0 && (
-							<img
+						{widest.current > 0 && (
+							<SteadyImg
+								// A new piece starts afresh; the same piece keeps its picture while a new one loads.
+								key={`${key}:${i}`}
 								src={partSrc(piece.fileId, p, asked, printed ? null : bodyInk)}
 								alt=""
-								loading="lazy"
-								decoding="async"
-								onError={() => {
+								onFail={() => {
 									setFailedKey(key);
 									onFail?.();
 								}}
-								className="absolute inset-0 block h-full w-full"
 							/>
 						)}
 						{mark && <PageMarks boxes={[mark]} />}

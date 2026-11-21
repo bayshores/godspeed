@@ -4,9 +4,7 @@ import { lessonStop, type ChatAttachment, type DeadlineProgress, type GraphConte
 import { useSpaces } from "@/frontend/components/space-context";
 import { holdStartFiles } from "@/frontend/components/lesson/start-files";
 import { useWake } from "@/frontend/components/teacher/use-wake";
-import { getJson, jsonInit, send } from "@/frontend/lib/api";
-
-const LESSON_START_FAILED = "Couldn't start the lesson. Try again.";
+import { getJson, jsonInit, send, type WriteResult } from "@/frontend/lib/api";
 
 /** What `busyOn` names while the typed-topic start runs. */
 export const TYPED_START = "typed";
@@ -17,15 +15,16 @@ export const homeworkStartId = (deadlineId: string) => `homework ${deadlineId}`;
 
 /** What a start sends POST /api/chats: a typed topic (its title and any
  *  facts picked for it), some space topics, one question of a mock, a
- *  deadline, or a topic of the space's path. On picked
- *  facts with no title, topics or a deadline the server picks the
+ *  deadline, a topic of the space's path, or files of the space. On picked
+ *  facts with no title, topics, a deadline or files the server picks the
  *  session's topics and writes its title. */
 type StartBody =
 	| { title: string; graphContext?: { propositions: readonly GraphContextPick[] } }
 	| { topicIds: readonly string[] }
 	| { mockQuestion: { mockId: string; questionId: string } }
 	| { deadlineId: string; homework?: true }
-	| { pathTopicId: string };
+	| { pathTopicId: string }
+	| { fileIds: readonly string[] };
 
 /**
  * Every Study start (the start page, its suggestions, a deadline, the
@@ -34,8 +33,8 @@ type StartBody =
  * queue (the lesson shows "Waiting for Teacher") and, in the desktop
  * app, starts the agent last started there (TerminalsApi.wake). The session's title,
  * as the server returns it, is its first message, with any pictures and
- * PDFs added to the topic. A start that fails sets `error` for the screen
- * to show. `busyOn` is the id of the start in flight (a deadline, topic,
+ * PDFs added to the topic. A start that fails sets `error`, the server's
+ * reason, for the screen to show, and resolves to it. `busyOn` is the id of the start in flight (a deadline, topic,
  * path topic, chat or mock question id; topic ids joined by a comma;
  * TYPED_START or `id` for a typed topic), so only the key pressed shows
  * it is working.
@@ -48,20 +47,26 @@ export function useLessonStart() {
 	const wake = useWake();
 
 	const post = useCallback(
-		async (startId: string, body: StartBody, files: readonly ChatAttachment[] = [], spaceId = active) => {
-			if (busyOn !== null) return;
+		async (startId: string, body: StartBody, files: readonly ChatAttachment[] = [], spaceId = active): Promise<WriteResult> => {
+			if (busyOn !== null) return null;
 			setBusyOn(startId);
 			setError(null);
 			const { error: failed, body: made } = await send("/api/chats", jsonInit("POST", { ...body, ...(spaceId ? { spaceId } : {}) }));
 			if (failed) {
 				setBusyOn(null);
-				setError(LESSON_START_FAILED);
-				return;
+				setError(failed);
+				return failed;
 			}
-			const { id, title } = made as { id: string; title: string };
+			const { id, title, continued } = made as { id: string; title: string; continued?: boolean };
+			// A lesson on files may go on where it was: it gets no first message.
+			if (continued) {
+				navigate(`/chat/${encodeURIComponent(id)}`);
+				return null;
+			}
 			holdStartFiles(id, files);
 			wake?.();
 			navigate(`/chat/${id}?prompt=${encodeURIComponent(title)}`);
+			return null;
 		},
 		[busyOn, active, navigate, wake],
 	);
@@ -85,6 +90,12 @@ export function useLessonStart() {
 		},
 		[post, active],
 	);
+
+	/** Study files, the first one first: the server goes on in the unfinished
+	 *  lesson on the first, or starts its deadline's homework when it is the
+	 *  assignment sheet, or a new lesson on them. Its `busyOn` is the ids
+	 *  joined by a comma. */
+	const studyFiles = useCallback((fileIds: readonly string[]) => post(fileIds.join(","), { fileIds }), [post]);
 
 	/** Study one topic of the space's path. */
 	const studyPathTopic = useCallback((pathTopicId: string) => post(pathTopicId, { pathTopicId }), [post]);
@@ -133,6 +144,7 @@ export function useLessonStart() {
 	return {
 		start,
 		studyTopics,
+		studyFiles,
 		studyPathTopic,
 		goOverMock,
 		studyDeadline,

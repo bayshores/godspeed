@@ -13,6 +13,7 @@ use gs_json::Json;
 
 use super::fn_tool::FnTool;
 use super::heal::heal_tool_record;
+use super::homework::ProblemList;
 use super::jobs::{JobToolContext, demo_tool, pdf_tool, research_tool, visual_tool};
 use super::lesson_parts::LessonParts;
 use super::plan::{PlanContext, plan_init_tool};
@@ -51,6 +52,8 @@ pub struct StudyToolContext {
 	pub pages: Arc<dyn ProblemPages>,
 	/// The app made no plan for this lesson, so the agent writes it with plan_init.
 	pub writes_plan: bool,
+	/// A lesson on files: its first file's problem list.
+	pub problems: Option<Arc<dyn ProblemList>>,
 }
 
 /// `explain: true` in the resolved settings arms free-recall checks (explain or recall, quiz or
@@ -144,7 +147,7 @@ pub fn study_tools(ctx: &StudyToolContext, enabled: Option<&Json>, parts: &Arc<L
 	let recall = free_recall(enabled);
 	let question = if recall { teach_explain_tool(&ctx.teacher.plan) } else { study_quiz_tool(&ctx.teacher.plan) };
 	let mut tools = teacher_tools_asking(&ctx.teacher, enabled, question, ctx.writes_plan);
-	tools.extend(study_problem_tools(&gate, record.clone(), ctx.graph_nodes.clone(), plan_nodes.clone(), &ctx.pages));
+	tools.extend(study_problem_tools(&gate, record.clone(), ctx.graph_nodes.clone(), plan_nodes.clone(), &ctx.pages, ctx.problems.as_ref()));
 	if !recall {
 		tools.push(plot_tool(record.clone(), parts));
 	}

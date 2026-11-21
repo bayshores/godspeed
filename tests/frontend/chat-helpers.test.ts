@@ -55,7 +55,7 @@ describe("stuckRetry", () => {
 });
 
 describe("goAheadLabel", () => {
-	const idle = { kind: "study" as const, homework: false, startLabel: null, teacherSpoke: true, posedAny: false };
+	const idle = { kind: "study" as const, problemList: false, startLabel: null, teacherSpoke: true, posedAny: false };
 
 	it("study says Continue once the teacher has spoken, with no problem ever posed", () => {
 		assert.equal(goAheadLabel(idle), "Continue");
@@ -68,7 +68,7 @@ describe("goAheadLabel", () => {
 	});
 
 	it("homework needs a start label and the teacher having spoken", () => {
-		const homework = { ...idle, kind: "homework" as const, homework: true };
+		const homework = { ...idle, kind: "homework" as const, problemList: true };
 		assert.equal(goAheadLabel({ ...homework, startLabel: "Start Problem 2" }), "Start Problem 2");
 		assert.equal(goAheadLabel(homework), null);
 		assert.equal(goAheadLabel({ ...homework, startLabel: "Start Problem 2", teacherSpoke: false }), null);

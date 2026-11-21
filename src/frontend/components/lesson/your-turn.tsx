@@ -28,7 +28,7 @@ export interface YourTurnProps {
 	/** His answer to a question from earlier was refused: it was no longer due. */
 	reviewRefused: boolean;
 	/** The open problem, with its line ("Problem 2", practice only) and, for
-	 *  homework, the part the learner is on and the file it is from. */
+	 *  a listed problem, the part the learner is on and the file it is from. */
 	problem: { toolCallId: string; statement: string; piece: ProblemPieceText | null; choices: ProblemChoices | null; line: string | null; part: string | null; file: ProblemFileRef | null } | null;
 	/** What is picked among the open problem's choices. */
 	problemPicked: DockSelection;

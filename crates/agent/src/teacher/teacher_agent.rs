@@ -36,7 +36,7 @@ const SIDE_TURN_REFUSAL: &str = "A question is already waiting for the learner. 
 fn switches(kind: AgentKind) -> &'static [&'static str] {
 	match kind {
 		AgentKind::Prober | AgentKind::Practice | AgentKind::Homework => &["research", "pdf"],
-		AgentKind::Teacher | AgentKind::Study => &TOGGLEABLE_TOOLS,
+		AgentKind::Teacher | AgentKind::Study | AgentKind::StudyFiles => &TOGGLEABLE_TOOLS,
 	}
 }
 
@@ -80,8 +80,8 @@ impl<'a> AgentBuildOptions<'a> {
 /// the run; this covers a question mixed with other calls. Practice-like agents wait on a pose too,
 /// and Study on a stored topic_done.
 fn question_stopper(kind: AgentKind) -> FinishFn {
-	let poses_problems = matches!(kind, AgentKind::Practice | AgentKind::Study | AgentKind::Homework);
-	let ends_topics = kind == AgentKind::Study;
+	let poses_problems = matches!(kind, AgentKind::Practice | AgentKind::Study | AgentKind::StudyFiles | AgentKind::Homework);
+	let ends_topics = matches!(kind, AgentKind::Study | AgentKind::StudyFiles);
 	Box::new(move |turn| {
 		let stops = |name: &str| is_question_tool(name) || (poses_problems && name == PRACTICE_PROBLEM_TOOL) || (ends_topics && name == TOPIC_DONE_TOOL);
 		let called: HashSet<&str> = turn.message["content"]
@@ -181,7 +181,8 @@ pub fn create_practice_agent(ctx: &PracticeToolContext, mut opts: AgentBuildOpti
 pub fn create_study_agent(ctx: &StudyToolContext, mut opts: AgentBuildOptions) -> Arc<Agent> {
 	let parts = LessonParts::new(&ctx.teacher.plan);
 	let tools = registry(&mut opts, |enabled| study_tools(ctx, enabled, &parts));
-	build_agent(AgentKind::Study, opts, tools, Some(parts.hook()))
+	let kind = if ctx.problems.is_some() { AgentKind::StudyFiles } else { AgentKind::Study };
+	build_agent(kind, opts, tools, Some(parts.hook()))
 }
 
 /// Homework: one deadline's problems, one at a time, hints only.

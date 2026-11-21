@@ -200,7 +200,7 @@ mod tests {
 		let root = scratch_dir("move-turn");
 		let app = test_app(&root);
 		let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Algebra" })).unwrap()["id"].as_str().unwrap().to_owned();
-		let chat_id = app.stores.chats.create_chat("Sets", None, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		let chat_id = app.stores.chats.create_chat("Sets", None, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		// The learner's message is being written ahead of its turn.
 		let writing = app.locks.lock(LockKey::Chat(&chat_id));
 		let (moving, lesson, target) = (app.clone(), chat_id.clone(), space_id.clone());
@@ -220,7 +220,7 @@ mod tests {
 		let root = scratch_dir("move-deleted");
 		let app = test_app(&root);
 		let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Algebra" })).unwrap()["id"].as_str().unwrap().to_owned();
-		let chat_id = app.stores.chats.create_chat("Sets", None, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		let chat_id = app.stores.chats.create_chat("Sets", None, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		// The space's delete holds it while the move arrives.
 		let deleting = app.locks.lock(LockKey::Space(&space_id));
 		let (moving, lesson, target) = (app.clone(), chat_id.clone(), space_id.clone());

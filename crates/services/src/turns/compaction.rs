@@ -257,7 +257,7 @@ mod tests {
 
 	/// A lesson whose record projects far over any test threshold.
 	fn over_threshold_chat(app: &App) -> String {
-		let chat = app.stores.chats.create_chat("Sets", None, None, None).unwrap();
+		let chat = app.stores.chats.create_chat("Sets", None, None, None, &[]).unwrap();
 		let id = chat["id"].as_str().unwrap().to_owned();
 		app.stores.chats.save_messages(&id, &[big("m1"), big("m2"), big("m3"), new_user_message("recent", &[])]).unwrap();
 		id

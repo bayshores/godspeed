@@ -73,6 +73,7 @@ function payload(over: Partial<ProgressPayload> = {}): ProgressPayload {
 		facts: [],
 		files: [],
 		nextUp: null,
+		fileWork: [],
 		lessons: [],
 		calibration: { levels: [], sureButWrong: [] },
 		deadlines: [],
@@ -92,7 +93,7 @@ describe("studyPageSuggestions", () => {
 	});
 
 	it("Continue is the newest unfinished lesson (lessons come newest first), then Next up, then Work on next", () => {
-		const file = { fileId: "f4", name: "Lecture 4.pdf", facts: 22, inLessons: 0, share: 0 };
+		const file = { fileId: "f4", name: "Lecture 4.pdf", displayName: "Lecture 4", facts: 22, inLessons: 0, share: 0 };
 		const rows = suggest(
 			payload({
 				lessons: [lesson("newest", "2026-10-27T12:00:00Z", { unfinished: true }), lesson("older", "2026-10-26T12:00:00Z", { unfinished: true })],
@@ -135,7 +136,7 @@ describe("studyPageSuggestions", () => {
 
 	it("in a space with a path, Next up is the topic its Study takes, with its place", () => {
 		const step = (id: string, name: string): PathTopicProgress => ({ id, name, covers: "c", answered: 0, right: 0, wrong: 0, dontKnow: 0, rate: null, status: "untested", color: "var(--lh-ink-3)" });
-		const file = { fileId: "f4", name: "Lecture 4.pdf", facts: 22, inLessons: 0, share: 0 };
+		const file = { fileId: "f4", name: "Lecture 4.pdf", displayName: "Lecture 4", facts: 22, inLessons: 0, share: 0 };
 		const rows = suggest(payload({ nextUp: file, path: { goal: "backend developer", topics: [step("p1", "Git"), step("p2", "HTTP")], nextId: "p2" } }));
 		assert.deepEqual(rows.map((r) => r.kind), ["path"]);
 		assert.equal(suggestionLine(rows[0]!), "Next up, 2 of 2 on the path");
@@ -199,7 +200,8 @@ describe("suggestionLine", () => {
 		assert.equal(suggestionLine({ kind: "continue", lesson: { ...l, step: { done: 2, total: 4 } } }), "Continue, step 2 of 4");
 		assert.equal(suggestionLine({ kind: "continue", lesson: { ...l, step: { done: 0, total: 4 } } }), "Continue", "nothing shown yet");
 		assert.equal(suggestionLine({ kind: "continue", lesson: l }), "Continue", "no plan");
-		const file = { fileId: "f", name: "a.pdf", facts: 12, inLessons: 0, share: 0 };
+		assert.equal(suggestionLine({ kind: "continue", lesson: { ...l, step: { done: 2, total: 4 }, problems: { done: 1, total: 6 } } }), "Continue, 1 of 6 problems done", "its problems, as its blocks show");
+		const file = { fileId: "f", name: "a.pdf", displayName: "a", facts: 12, inLessons: 0, share: 0 };
 		assert.equal(suggestionLine({ kind: "next-up", file }), "Next up, 12 facts");
 		assert.equal(suggestionLine({ kind: "next-up", file: { ...file, facts: 1 } }), "Next up, 1 fact");
 		const item = { topicId: "a", name: "Topic a", status: "weak" as const, reason: "" };

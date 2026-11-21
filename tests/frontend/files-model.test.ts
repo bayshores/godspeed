@@ -44,7 +44,7 @@ const CSE21 = named([
 	"syllabus.txt",
 	"Digital_Note_Sheet_STUDENT_GUIDE.pdf",
 ]);
-const cov = (facts: number, inLessons: number): FileCoverage => ({ fileId: "f_1", name: "L1.pdf", facts, inLessons, share: facts ? inLessons / facts : null });
+const cov = (facts: number, inLessons: number): FileCoverage => ({ fileId: "f_1", name: "L1.pdf", displayName: "L1", facts, inLessons, share: facts ? inLessons / facts : null });
 
 describe("files-model", () => {
 	it("fileState follows the pipeline status", () => {
@@ -90,6 +90,13 @@ describe("files-model", () => {
 			title: "Remove HW.pdf?",
 			body: "It leaves CSE 21, along with the 1 fact built from it. Your original file is not touched. This cannot be undone.",
 			action: "Remove file",
+			danger: true,
+		});
+		const pair = [file({ id: "p", name: "HW 3.pdf" }), file({ id: "t", name: "HW 3.tex", pdfId: "p" })];
+		assert.deepEqual(confirmCopy({ kind: "remove", file: pair[0]! }, "CSE 21", pair, new Map([["p", { ...cov(4, 0), fileId: "p" }]])), {
+			title: "Remove 2 files?",
+			body: "HW 3.pdf and HW 3.tex leave CSE 21, along with the 4 facts built from them. Your original files are not touched. This cannot be undone.",
+			action: "Remove files",
 			danger: true,
 		});
 		assert.equal(
@@ -155,6 +162,18 @@ describe("files-model", () => {
 			["Other"],
 			"only other files: one group",
 		);
+	});
+
+	it("a .tex follows its PDF in one entry; a .tex whose PDF is gone, or a second on one PDF, keeps its own", () => {
+		const groups = fileGroups([
+			file({ id: "t", name: "HW 3.tex", pdfId: "p" }),
+			file({ id: "a", name: "Algebra.md" }),
+			file({ id: "p", name: "HW 3.pdf" }),
+			file({ id: "s", name: "Old.tex", pdfId: "gone" }),
+			file({ id: "u", name: "Zeta.tex", pdfId: "p" }),
+		]);
+		assert.deepEqual(groups[0]!.items.map((i) => i.files.map((f) => f.id)), [["a"], ["p", "t"], ["s"], ["u"]], "a second .tex on one PDF keeps its own entry");
+		assert.equal(groups[0]!.count, 5);
 	});
 
 	it("a transcript series joins the one notes series most like it, never on a tie, too few shared numbers, a mixed series or numbered chapters", () => {

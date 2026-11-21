@@ -194,7 +194,7 @@ mod tests {
 	async fn a_found_fact_says_where_it_comes_from_and_his_latest_answer_on_it() {
 		let root = scratch_dir("search-graph-marks");
 		let app = test_app(&root);
-		let chat = app.stores.chats.create_chat("Limits", Some("study"), None, None).unwrap();
+		let chat = app.stores.chats.create_chat("Limits", Some("study"), None, None, &[]).unwrap();
 		let chat_id = chat["id"].as_str().unwrap();
 		app.stores.chats
 			.save_messages(chat_id, &[

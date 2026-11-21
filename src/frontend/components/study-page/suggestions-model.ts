@@ -21,6 +21,7 @@ import type {
 } from "@/shared/core";
 import { pathNext } from "@/shared/core";
 import { rightLabel } from "@/frontend/components/deadline/deadline-model";
+import { stepBlocks } from "@/frontend/components/overview/lesson-record-model";
 
 /** How many "Work on next" rows the Study page shows. */
 export const WORK_ON_NEXT_ROWS = 2;
@@ -81,8 +82,9 @@ export function suggestionKey(s: Suggestion): string {
  *  the one its step bar shows. */
 export function suggestionLine(s: Suggestion): string {
 	if (s.kind === "continue") {
-		const { step } = s.lesson;
-		return step && step.done > 0 ? `Continue, step ${step.done} of ${step.total}` : "Continue";
+		const blocks = stepBlocks(s.lesson);
+		if (blocks && s.lesson.problems) return `Continue, ${blocks.done} of ${blocks.total} problems done`;
+		return blocks && blocks.done > 0 ? `Continue, step ${blocks.done} of ${blocks.total}` : "Continue";
 	}
 	if (s.kind === "next-up") return `Next up, ${s.file.facts} ${s.file.facts === 1 ? "fact" : "facts"}`;
 	if (s.kind === "path") return `Next up, ${s.position} of ${s.total} on the path`;

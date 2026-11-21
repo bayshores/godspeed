@@ -13,13 +13,16 @@ import type { useTitleRename } from "./use-title-rename";
 /**
  * THE OPEN LESSON IN THE TOP BAR: its name after the lit space tab (renames
  * in place on a click, or F2), and on the bar's right the plugins' words,
- * Find, the cheat sheet and More (the lesson menu, which holds Lesson stats).
+ * Find, Document (a lesson built on files), the cheat sheet and More (the
+ * lesson menu, which holds Lesson stats). Document and Cheat sheet each open
+ * their panel beside the lesson, one at a time.
  * Opening Find swaps the words for the find field.
  */
 export function LessonBar({
 	chatId,
 	rename,
 	spaceId,
+	doc,
 	sheet,
 	plugins,
 	usage,
@@ -29,6 +32,8 @@ export function LessonBar({
 	chatId: string;
 	rename: ReturnType<typeof useTitleRename>;
 	spaceId: string | undefined;
+	/** The lesson's file beside it (a lesson with a PDF to show). */
+	doc?: { open: boolean; onToggle: () => void };
 	/** The cheat sheet beside the session (a session in a space). */
 	sheet?: { open: boolean; onToggle: () => void };
 	/** The plugins that show in lessons, each a word; `open` is the one whose window is open. */
@@ -71,6 +76,11 @@ export function LessonBar({
 							</button>
 						))}
 						{findBar}
+						{doc && (
+							<button type="button" data-testid="lesson-document" aria-pressed={doc.open} onClick={doc.onToggle} className={barWord(doc.open)}>
+								Document
+							</button>
+						)}
 						{sheet && (
 							<button type="button" data-testid="lesson-cheat-sheet" aria-pressed={sheet.open} onClick={sheet.onToggle} className={barWord(sheet.open)}>
 								Cheat sheet

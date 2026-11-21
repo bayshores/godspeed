@@ -1,0 +1,59 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 7 0 R /F2 8 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 692 >>
+stream
+BT /F2 18 Tf 1 0 0 1 56 732 Tm (Graphing practice quiz) Tj ET
+BT /F1 11 Tf 1 0 0 1 56 700 Tm (Answer every problem. Show your work.) Tj ET
+BT /F2 12 Tf 1 0 0 1 56 664 Tm (1. Find the slope of the line through \(1, 2\) and \(4, 11\).) Tj ET
+BT /F1 11 Tf 1 0 0 1 56 644 Tm (Say what the slope means for the graph.) Tj ET
+BT /F2 12 Tf 1 0 0 1 56 508 Tm (2. Graph the line y = 2x - 3.) Tj ET
+BT /F1 11 Tf 1 0 0 1 76 488 Tm (\(a\) Where does the line cross the y axis?) Tj ET
+BT /F1 11 Tf 1 0 0 1 76 472 Tm (\(b\) Give one more point on the line, then draw it.) Tj ET
+BT /F1 11 Tf 1 0 0 1 76 456 Tm (\(c\) Is the point \(3, 4\) on the line? Say why.) Tj ET
+BT /F1 10 Tf 1 0 0 1 300 40 Tm (1) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 7 0 R /F2 8 0 R >> >> >>
+endobj
+6 0 obj
+<< /Length 402 >>
+stream
+BT /F2 18 Tf 1 0 0 1 56 732 Tm (Graphing practice quiz, continued) Tj ET
+BT /F2 12 Tf 1 0 0 1 56 696 Tm (3. Solve 3x + 4 = 19 and check your answer by graphing.) Tj ET
+BT /F2 12 Tf 1 0 0 1 56 536 Tm (4. A taxi charges $3 plus $2 per mile.) Tj ET
+BT /F1 11 Tf 1 0 0 1 56 516 Tm (Write y, the cost of a trip of x miles, then find the cost of a 7 mile trip.) Tj ET
+BT /F1 10 Tf 1 0 0 1 300 40 Tm (2) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+8 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000257 00000 n 
+0000001000 00000 n 
+0000001136 00000 n 
+0000001589 00000 n 
+0000001659 00000 n 
+trailer
+<< /Size 9 /Root 1 0 R >>
+startxref
+1734
+%%EOF

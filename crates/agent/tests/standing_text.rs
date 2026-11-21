@@ -2,7 +2,8 @@
 //! instructions: a line naming a Study-only tool, field, stop or note only in Study; the case-first,
 //! analogy and prediction lines in Study and ordinary lessons; the marks line in every lesson
 //! agent; the broken formulas line beside the work plan; the voice line in every agent;
-//! the deadline tools sentence in every lesson agent but Study. Each line is said once, and the sentences it replaced are gone. No size is
+//! the deadline tools sentence in every lesson agent but Study; how to work from files only in a
+//! lesson on files. Each line is said once, and the sentences it replaced are gone. No size is
 //! pinned, so later prompt edits do not trip it.
 
 use gs_agent::teacher::prompt_segments::AgentKind;
@@ -10,9 +11,9 @@ use gs_agent::teacher::teacher_agent::compose_instructions;
 use gs_base::config::Paths;
 use gs_store::prompt_overrides::PromptOverrides;
 
-use AgentKind::{Homework, Practice, Prober, Study, Teacher};
+use AgentKind::{Homework, Practice, Prober, Study, StudyFiles, Teacher};
 
-const EVERY: [AgentKind; 5] = [Prober, Teacher, Practice, Study, Homework];
+const EVERY: [AgentKind; 6] = [Prober, Teacher, Practice, Study, StudyFiles, Homework];
 
 /// S, the place to stop.
 const S: &str = "godspeed offers a stop at the end of each topic and long problem; stopping there costs him nothing.";
@@ -44,6 +45,9 @@ const D: &str = "- Offered an analogy → next prediction is one where analogy a
 const P2: &str = "Card says nothing when his pick was right and names right answer when not, so open with one plain sentence that names his pick in a few of its words and says whether it holds. Your prose resolution is the real explanation; land correction on the attempt.";
 const M: &str = "Marks in message text only, never inside a question, problem or other tool call, unless a field's description asks for one.";
 const E: &str = "No moralizing. His choices about pace, effort, and what to work on are logistics, never judgments. Never mention time away, missed days, or what he did not do.";
+/// A test is listed with its sources before it is posed.
+const FILES: &str = "Test or worksheet: list every problem with `source` in one `post_problems` first, then pose them in order with `problem` and its `number`.";
+const PASTE: &str = "Never ask him to paste a file.";
 const DEADLINE_TOOLS: &str = "Learner asks to add, move or remove a deadline mid-lesson → deadline tools (list_spaces gives space id), say what changed in one line, back to where lesson was.";
 
 /// Sentences the lines above replaced or removed: no agent reads them any more.
@@ -79,14 +83,14 @@ fn lands_in(line: &str, readers: &[AgentKind]) {
 #[test]
 fn the_study_only_lines_reach_study_alone() {
 	for line in [S, F, F_VERDICT, F_RESUMED, EXTRA_QUESTION, OUTSIDE_DEADLINES, F3, G, I, K, PLOT, PROBLEMS, PHRASE] {
-		lands_in(line, &[Study]);
+		lands_in(line, &[Study, StudyFiles]);
 	}
 }
 
 #[test]
 fn the_case_analogy_and_prediction_lines_reach_study_and_ordinary_lessons() {
 	for line in [B, C, D, P2] {
-		lands_in(line, &[Study, Teacher]);
+		lands_in(line, &[Study, StudyFiles, Teacher]);
 	}
 }
 
@@ -98,12 +102,18 @@ fn the_marks_line_reaches_every_lesson_agent_and_the_voice_line_every_agent() {
 
 #[test]
 fn the_broken_formulas_line_reaches_the_agents_that_plan_their_reads() {
-	lands_in(FORMULAS, &[Prober, Teacher, Study]);
+	lands_in(FORMULAS, &[Prober, Teacher, Study, StudyFiles]);
 }
 
 #[test]
 fn the_deadline_tools_sentence_reaches_every_lesson_agent_but_study() {
 	lands_in(DEADLINE_TOOLS, &[Prober, Teacher, Practice, Homework]);
+}
+
+#[test]
+fn the_files_lines_reach_a_lesson_on_files_alone() {
+	lands_in(FILES, &[StudyFiles]);
+	lands_in(PASTE, &[StudyFiles]);
 }
 
 #[test]

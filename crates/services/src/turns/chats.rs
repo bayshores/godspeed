@@ -205,7 +205,7 @@ mod tests {
 	fn a_fact_merged_while_a_lesson_is_deleted_stays() {
 		let root = scratch_dir("delete-merge");
 		let app = test_app(&root);
-		let chat_id = app.stores.chats.create_chat("Sets", None, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		let chat_id = app.stores.chats.create_chat("Sets", None, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		app.stores.graphs.append(None, Ledger::Nodes, &fact("n_gone", &chat_id)).unwrap();
 		// An extraction's merge holds the graph while the delete arrives.
 		let merging = app.locks.lock(LockKey::Graph(None));
@@ -222,7 +222,7 @@ mod tests {
 	fn a_delete_waits_out_an_extraction_that_claimed_the_lesson_but_is_not_listed_yet() {
 		let root = scratch_dir("delete-claimed");
 		let app = test_app(&root);
-		let chat_id = app.stores.chats.create_chat("Sets", None, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		let chat_id = app.stores.chats.create_chat("Sets", None, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		assert!(runs(&app).claim(&chat_id));
 		let delete = delete_on_another_thread(&app, &chat_id);
 		std::thread::sleep(Duration::from_millis(200));
@@ -235,7 +235,7 @@ mod tests {
 	async fn a_delete_whose_request_goes_away_during_the_wind_down_still_finishes() {
 		let root = scratch_dir("delete-gone");
 		let app = test_app(&root);
-		let chat_id = app.stores.chats.create_chat("Sets", None, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		let chat_id = app.stores.chats.create_chat("Sets", None, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		assert!(runs(&app).claim(&chat_id));
 		// The window closes while the delete waits out the extraction.
 		tokio::select! {
@@ -256,7 +256,7 @@ mod tests {
 	fn a_turn_that_starts_while_a_delete_waits_refuses_the_delete() {
 		let root = scratch_dir("delete-turn");
 		let app = test_app(&root);
-		let chat_id = app.stores.chats.create_chat("Sets", None, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		let chat_id = app.stores.chats.create_chat("Sets", None, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		// The learner's message is being written ahead of its turn.
 		let writing = app.locks.lock(LockKey::Chat(&chat_id));
 		let delete = delete_on_another_thread(&app, &chat_id);

@@ -1,12 +1,12 @@
 //! The homework tools: post_problems saves the assignment's
-//! problems on its deadline, problem opens one in the learner's Your turn panel (it ends the turn,
+//! problems (on its assignment file, or on the deadline when it has none), problem opens one in the learner's Your turn panel (it ends the turn,
 //! but carries no solution: homework is hints only), part marks the part the learner is on there,
 //! conclude closes it and marks it done when the learner's own work was right. The side tools are
-//! practice's.
+//! practice's. A lesson on files posts its first file's problems with the same post_problems.
 
 use std::sync::Arc;
 
-use gs_core::contracts::space::MAX_HOMEWORK_PROBLEMS;
+use gs_core::contracts::space::MAX_FILE_PROBLEMS;
 use gs_core::messages::native_messages::active_problem_of;
 use gs_core::session::question_core::{problem_choice_fields, problem_choice_problems};
 use gs_base::clock;
@@ -26,19 +26,24 @@ use super::problem_piece::{NO_STATEMENT, source_field, typed, with_piece};
 use gs_core::session::schema::{object, one_of_literals, string};
 use super::side::LessonSide;
 
-/// The session's deadline, read and written through the space store.
-pub trait HomeworkDeadline: Send + Sync {
+/// The session's problem list, read and written through the space store.
+pub trait ProblemList: Send + Sync {
 	fn problems(&self) -> Vec<Json>;
 	/// Saves the list (done marks kept by number); the refusal text when refused.
 	fn post(&self, problems: &[Json]) -> Option<String>;
 	fn mark_done(&self, number: &str);
+	/// The one file every posted problem is printed in: a lesson on files' first file. None for a
+	/// deadline, whose problems may come from any file of the space.
+	fn file_id(&self) -> Option<String> {
+		None
+	}
 }
 
 #[derive(Clone)]
 pub struct HomeworkToolContext {
 	pub chat_id: String,
 	pub chat_store: Arc<dyn ChatPort>,
-	pub homework: Arc<dyn HomeworkDeadline>,
+	pub homework: Arc<dyn ProblemList>,
 	pub jobs: Option<JobToolContext>,
 	pub side: LessonSide,
 	/// Cuts problems out of the deadline's assignment file, or of another file of the space.
@@ -58,7 +63,7 @@ fn open_problem_of(ctx: &HomeworkToolContext) -> Option<String> {
 }
 
 /// The posted problem with this number.
-fn stored_problem(homework: &Arc<dyn HomeworkDeadline>, number: &str) -> Option<Json> {
+fn stored_problem(homework: &Arc<dyn ProblemList>, number: &str) -> Option<Json> {
 	homework.problems().into_iter().find(|p| p["number"].as_str() == Some(number))
 }
 
@@ -89,23 +94,46 @@ async fn posted_problem(item: &Json, next: Option<&Json>, pages: &Arc<dyn Proble
 	Ok(posted)
 }
 
-fn post_problems_tool(homework: Arc<dyn HomeworkDeadline>, pages: Arc<dyn ProblemPages>) -> FnTool {
+/// A lesson on files lists its first file's problems: a source names that file or none.
+fn in_lesson_file(item: &Json, file_id: &str) -> Result<Json, String> {
+	let mut item = item.clone();
+	if let Some(source) = item.get_mut("source").filter(|source| source.as_obj().is_some()) {
+		match source["fileId"].as_str().filter(|id| !id.is_empty()) {
+			Some(named) if named != file_id => return Err(format!("its source is in {named}, but this lesson lists the problems of {file_id} only")),
+			_ => source.set("fileId", file_id),
+		}
+	}
+	Ok(item)
+}
+
+/// post_problems: the whole list in one call. With a lesson on files every source is in its first
+/// file (`ProblemList::file_id`).
+pub(super) fn post_problems_tool(homework: Arc<dyn ProblemList>, pages: Arc<dyn ProblemPages>) -> FnTool {
+	let first_file = homework.file_id();
+	let default_file = if first_file.is_some() { "the lesson's first file, the only one its list takes." } else { "the deadline's assignment file." };
 	let problem = object(
 		&["number", "title"],
 		vec![
 			("number", string("As the assignment numbers it, e.g. \"1\", \"2b\", \"Q3\". Unique.")),
 			("title", string("A few words on what it asks.")),
 			("text", string("The problem as the assignment states it (markdown + LaTeX), with any parts. Required unless you pass source.")),
-			("source", source_field(true)),
+			("source", source_field(Some(default_file))),
 			("page", json!({ "type": "integer", "minimum": 1, "description": "The assignment page it is on." })),
 		],
 	);
-	let parameters = object(&["problems"], vec![("problems", json!({ "type": "array", "items": problem, "minItems": 1, "maxItems": MAX_HOMEWORK_PROBLEMS }))]);
+	let parameters = object(&["problems"], vec![("problems", json!({ "type": "array", "items": problem, "minItems": 1, "maxItems": MAX_FILE_PROBLEMS }))]);
 	let description = "Save the assignment's problems, all of them in order, in one call. The learner sees them as the session's list with how many are done. Calling it again replaces the list; a problem keeps its done mark by number.";
 	FnTool::immediate_async("post_problems", description, parameters, move |args| {
-		let (homework, pages) = (homework.clone(), pages.clone());
+		let (homework, pages, first_file) = (homework.clone(), pages.clone(), first_file.clone());
 		async move {
-			let items = args["problems"].items();
+			let named = |item: &Json| item["number"].str_or_empty().to_owned();
+			let items = match &first_file {
+				Some(file_id) => match args["problems"].items().iter().map(|item| in_lesson_file(item, file_id).map_err(|why| format!("problem {}: {why}", named(item)))).collect::<Result<Vec<_>, _>>() {
+					Ok(items) => items,
+					Err(why) => return invalid_input_result("post_problems", &[why]),
+				},
+				None => args["problems"].items().to_vec(),
+			};
 			let mut posted = Vec::with_capacity(items.len());
 			for (at, item) in items.iter().enumerate() {
 				match posted_problem(item, items.get(at + 1), &pages).await {
@@ -122,7 +150,7 @@ fn post_problems_tool(homework: Arc<dyn HomeworkDeadline>, pages: Arc<dyn Proble
 	.sequential()
 }
 
-fn problem_tool(homework: Arc<dyn HomeworkDeadline>, open: &Arc<Mutex<Option<String>>>) -> FnTool {
+fn problem_tool(homework: Arc<dyn ProblemList>, open: &Arc<Mutex<Option<String>>>) -> FnTool {
 	let open = open.clone();
 	let mut fields = vec![
 		("number", string("REQUIRED \u{2014} the problem's number as posted with post_problems.")),
@@ -166,7 +194,7 @@ fn problem_tool(homework: Arc<dyn HomeworkDeadline>, open: &Arc<Mutex<Option<Str
 	.sequential()
 }
 
-fn part_tool(homework: Arc<dyn HomeworkDeadline>, open: &Arc<Mutex<Option<String>>>) -> FnTool {
+fn part_tool(homework: Arc<dyn ProblemList>, open: &Arc<Mutex<Option<String>>>) -> FnTool {
 	let open = open.clone();
 	let parameters = object(&["part"], vec![("part", string("REQUIRED \u{2014} the part as the problem labels it, e.g. \"a\", \"b\", \"2\"."))]);
 	let description = "For a problem with parts: mark the part the learner works on now, when they start it. Their panel opens that part and folds the others. Doesn't end the turn.";
@@ -240,7 +268,7 @@ mod tests {
 
 	struct Deadline(Mutex<Vec<Json>>);
 
-	impl HomeworkDeadline for Deadline {
+	impl ProblemList for Deadline {
 		fn problems(&self) -> Vec<Json> {
 			self.0.lock().clone()
 		}

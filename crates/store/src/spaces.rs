@@ -16,7 +16,8 @@ use gs_base::config::Paths;
 use gs_base::events::{EventKind, Events};
 use gs_base::locks::{LockKey, Locks};
 use gs_base::{clock, fsx, ids, time};
-use gs_core::spaces::space_deadlines::{changed_deadline, file_ids_of, new_deadline};
+use gs_core::spaces::problem_list::{ListOwner, hand_list_to_file, with_problem_list};
+use gs_core::spaces::space_deadlines::{changed_deadline, checked_problems, file_ids_of, new_deadline};
 use gs_core::contracts::space::{CURRENT_SPACE_VERSION, SpaceDeadlineError, compare_deadlines, is_space_color, is_space_id, next_space_color};
 use gs_core::spaces::space_record::{clean_name, newer_version, read_space_record, summarize};
 use gs_core::spaces::space_work::{work_after_deadline, work_after_files};
@@ -423,12 +424,31 @@ impl SpaceStore {
 		let Some(prev) = deadlines.iter().find(|d| d["id"].as_str() == Some(deadline_id)) else {
 			return Err(SpaceDeadlineError { code: "deadline_not_found", message: format!("No deadline \"{deadline_id}\" in this space") }.into());
 		};
-		let next = changed_deadline(&file_ids_of(&record), prev, patch, &time::iso_now())?;
+		let mut next = changed_deadline(&file_ids_of(&record), prev, patch, &time::iso_now())?;
+		let mut files = record["files"].as_arr().cloned().unwrap_or_default();
+		hand_list_to_file(&mut files, &mut next);
+		record.set("files", files);
 		for d in deadlines.iter_mut().filter(|d| d["id"].as_str() == Some(deadline_id)) {
 			*d = next.clone();
 		}
 		self.save_deadlines(&mut record, deadlines)?;
 		Ok(next)
+	}
+
+	/// Saves a problem list (checked first) where `problems_of` reads it: a deadline's on its
+	/// assignment file, or on the deadline when it has none; a file's on the file.
+	pub fn save_problems(&self, id: &str, owner: ListOwner, problems: &Json) -> Result<(), SpaceError> {
+		let _guard = self.locks.lock(LockKey::Space(id));
+		let record = self.require_space(id)?;
+		let list = checked_problems(Some(problems))?;
+		let Some(mut record) = with_problem_list(&record, owner, list) else {
+			return Err(match owner {
+				ListOwner::Deadline(deadline_id) => SpaceDeadlineError { code: "deadline_not_found", message: format!("No deadline \"{deadline_id}\" in this space") }.into(),
+				ListOwner::File(file_id) => SpaceError::Other(format!("No file \"{file_id}\" in this space")),
+			});
+		};
+		let deadlines = record["deadlines"].as_arr().cloned().unwrap_or_default();
+		Ok(self.save_deadlines(&mut record, deadlines)?)
 	}
 
 	/// False when the space has no such deadline.
@@ -498,10 +518,10 @@ mod tests {
 		let made = store.create_space(&json!({ "name": "  Math   101 ", "description": " Discrete " })).unwrap();
 		let id = made["id"].as_str().unwrap().to_owned();
 		assert_eq!(made["name"], Json::from("Math 101"));
-		assert_eq!(made["version"], Json::from(12));
+		assert_eq!(made["version"], Json::from(13));
 		assert!(rx.try_recv().is_ok());
 		let on_disk = std::fs::read_to_string(root.join(&id).join("space.json")).unwrap();
-		assert!(on_disk.starts_with("{\n\t\"id\": \"spc_") && on_disk.ends_with("\n}") && on_disk.contains("\"version\": 12"));
+		assert!(on_disk.starts_with("{\n\t\"id\": \"spc_") && on_disk.ends_with("\n}") && on_disk.contains("\"version\": 13"));
 
 		let updated = store.update_space(&id, &json!({ "rules": ["Be brief"], "icon": "cpu", "linkedFolder": "/x" })).unwrap();
 		assert_eq!(stringify(&updated["rules"]), r#"["Be brief"]"#);
@@ -560,6 +580,107 @@ mod tests {
 		assert!(!store.remove_deadline(&id, late["id"].as_str().unwrap()).unwrap());
 	}
 
+	/// A space with files f1 and f2 and one homework deadline, its id.
+	fn homework_space(store: &SpaceStore) -> (String, String) {
+		let id = store.create_space(&json!({ "name": "A" })).unwrap()["id"].as_str().unwrap().to_owned();
+		let file = |f: &str| json!({ "id": f, "origin": "copied", "name": format!("{f}.pdf"), "path": "p", "kind": "study", "contentFp": "x", "status": "ready", "addedAt": "t" });
+		store.save_files(&id, vec![file("f1"), file("f2")], &[]).unwrap();
+		let deadline = store.add_deadline(&id, &json!({ "kind": "homework", "name": "HW", "date": "2026-12-01" })).unwrap();
+		(id, deadline["id"].as_str().unwrap().to_owned())
+	}
+
+	fn numbers_of(store: &SpaceStore, id: &str, deadline_id: &str) -> Vec<String> {
+		let record = store.get_space(id).unwrap();
+		let deadline = record["deadlines"].items().iter().find(|d| d["id"].as_str() == Some(deadline_id)).unwrap();
+		gs_core::spaces::problem_list::problem_list(&record, deadline).iter().map(|p| format!("{}{}", p["number"].str_or_empty(), if p["done"].truthy() { "+" } else { "" })).collect()
+	}
+
+	fn list(numbers: &[(&str, bool)]) -> Json {
+		Json::Arr(numbers.iter().map(|(n, done)| json!({ "number": n, "text": "x", "done": done })).collect())
+	}
+
+	#[test]
+	fn problems_are_saved_on_the_assignment_file_or_else_on_the_deadline() {
+		let (store, _, _) = store();
+		let (id, hw) = homework_space(&store);
+		store.save_problems(&id, ListOwner::Deadline(&hw), &list(&[("1", true)])).unwrap();
+		assert!(store.get_space(&id).unwrap()["deadlines"][0]["problems"].truthy(), "no assignment file: on the deadline");
+		assert_eq!(numbers_of(&store, &id, &hw), ["1+"]);
+
+		store.update_deadline(&id, &hw, &json!({ "assignmentFileId": "f1" })).unwrap();
+		store.save_problems(&id, ListOwner::Deadline(&hw), &list(&[("1", true), ("2", false)])).unwrap();
+		let record = store.get_space(&id).unwrap();
+		assert_eq!(record["files"][0]["problems"].items().len(), 2);
+		assert!(record["deadlines"][0].get("problems").is_none());
+		assert_eq!(numbers_of(&store, &id, &hw), ["1+", "2"]);
+
+		match store.save_problems(&id, ListOwner::Deadline("ddl_nope"), &list(&[])).unwrap_err() {
+			SpaceError::Deadline(e) => assert_eq!(e.code, "deadline_not_found"),
+			other => panic!("{other:?}"),
+		}
+		match store.save_problems(&id, ListOwner::Deadline(&hw), &json!("x")).unwrap_err() {
+			SpaceError::Deadline(e) => assert_eq!(e.code, "bad_problems"),
+			other => panic!("{other:?}"),
+		}
+	}
+
+	#[test]
+	fn a_new_assignment_file_shows_its_own_list_and_the_old_file_keeps_its_list() {
+		let (store, _, _) = store();
+		let (id, hw) = homework_space(&store);
+		store.update_deadline(&id, &hw, &json!({ "assignmentFileId": "f1" })).unwrap();
+		store.save_problems(&id, ListOwner::Deadline(&hw), &list(&[("1", true)])).unwrap();
+		store.update_deadline(&id, &hw, &json!({ "assignmentFileId": "f2" })).unwrap();
+		assert!(numbers_of(&store, &id, &hw).is_empty());
+		store.update_deadline(&id, &hw, &json!({ "assignmentFileId": "f1" })).unwrap();
+		assert_eq!(numbers_of(&store, &id, &hw), ["1+"], "the list stayed with f1");
+		store.update_deadline(&id, &hw, &json!({ "assignmentFileId": null })).unwrap();
+		assert!(numbers_of(&store, &id, &hw).is_empty(), "no file: the deadline's own list, which it handed on");
+	}
+
+	#[test]
+	fn a_first_assignment_file_takes_the_deadlines_list_unless_it_has_its_own() {
+		let (store, _, _) = store();
+		let (id, hw) = homework_space(&store);
+		store.save_problems(&id, ListOwner::Deadline(&hw), &list(&[("1", true)])).unwrap();
+		store.update_deadline(&id, &hw, &json!({ "assignmentFileId": "f1" })).unwrap();
+		let record = store.get_space(&id).unwrap();
+		assert!(record["deadlines"][0].get("problems").is_none());
+		assert_eq!(numbers_of(&store, &id, &hw), ["1+"], "moved onto f1");
+
+		let other = store.add_deadline(&id, &json!({ "kind": "homework", "name": "HW 2", "date": "2026-12-02", "assignmentFileId": "f2" })).unwrap();
+		let other = other["id"].as_str().unwrap();
+		store.save_problems(&id, ListOwner::Deadline(other), &list(&[("7", false)])).unwrap();
+		let third = store.add_deadline(&id, &json!({ "kind": "homework", "name": "HW 3", "date": "2026-12-03" })).unwrap();
+		let third = third["id"].as_str().unwrap();
+		store.save_problems(&id, ListOwner::Deadline(third), &list(&[("3", true)])).unwrap();
+		store.update_deadline(&id, third, &json!({ "assignmentFileId": "f2" })).unwrap();
+		assert_eq!(numbers_of(&store, &id, third), ["7"], "the file's own list wins");
+		assert_eq!(numbers_of(&store, &id, other), ["7"]);
+		store.update_deadline(&id, third, &json!({ "name": "HW 3b" })).unwrap();
+		store.update_deadline(&id, third, &json!({ "assignmentFileId": null })).unwrap();
+		assert_eq!(numbers_of(&store, &id, third), ["3+"], "back to none: its own list and done marks are back");
+		assert_eq!(numbers_of(&store, &id, other), ["7"]);
+	}
+
+	#[test]
+	fn a_removed_assignment_file_leaves_its_deadline_with_no_problems() {
+		let (store, _, _) = store();
+		let (id, hw) = homework_space(&store);
+		store.update_deadline(&id, &hw, &json!({ "assignmentFileId": "f1" })).unwrap();
+		store.save_problems(&id, ListOwner::Deadline(&hw), &list(&[("1", false)])).unwrap();
+		let other = store.add_deadline(&id, &json!({ "kind": "homework", "name": "HW 2", "date": "2026-12-02" })).unwrap();
+		let other = other["id"].as_str().unwrap();
+		store.save_problems(&id, ListOwner::Deadline(other), &list(&[("2", true)])).unwrap();
+		store.update_deadline(&id, other, &json!({ "assignmentFileId": "f1" })).unwrap();
+		assert_eq!(numbers_of(&store, &id, other), ["1"]);
+		let kept = store.get_space(&id).unwrap()["files"][1].clone();
+		store.save_files(&id, vec![kept], &[]).unwrap();
+		assert!(numbers_of(&store, &id, &hw).is_empty());
+		assert!(store.get_space(&id).unwrap()["deadlines"][0].get("assignmentFileId").is_none());
+		assert_eq!(numbers_of(&store, &id, other), ["2+"], "its own list shows again once the file leaves");
+	}
+
 	#[test]
 	fn a_deadline_goes_back_only_while_it_is_as_it_was_left() {
 		let (store, _, _) = store();
@@ -595,7 +716,7 @@ mod tests {
 		let id = store.create_space(&json!({ "name": "A" })).unwrap()["id"].as_str().unwrap().to_owned();
 		let file = root.join(&id).join("space.json");
 		let text = std::fs::read_to_string(&file).unwrap();
-		fsx::write_text_atomic(&file, &text.replace("\"version\": 12", "\"version\": 13")).unwrap();
+		fsx::write_text_atomic(&file, &text.replace("\"version\": 13", "\"version\": 14")).unwrap();
 		assert!(store.get_space(&id).is_none());
 		fsx::write_text_atomic(&file, "{ nope").unwrap();
 		assert!(store.get_space(&id).is_none() && store.list_spaces().is_empty());
@@ -659,9 +780,9 @@ mod tests {
 		fsx::write_text_atomic(&root.join("cls_e1").join("space.json"), &colored).unwrap();
 		fsx::write_text_atomic(&root.join("cls_e2").join("class.json"), &old_record("cls_e2").replace("\t\"color\": 1,\n", "")).unwrap();
 		let record = store.get_space("cls_e2").unwrap();
-		assert_eq!((record["color"].clone(), record["version"].clone()), (Json::from(2), Json::from(12)));
+		assert_eq!((record["color"].clone(), record["version"].clone()), (Json::from(2), Json::from(13)));
 		let saved = std::fs::read_to_string(root.join("cls_e2").join("space.json")).unwrap();
-		assert!(saved.contains("\"closed\": true,\n\t\"files\": [],\n\t\"color\": 2,\n\t\"version\": 12\n}"));
+		assert!(saved.contains("\"closed\": true,\n\t\"files\": [],\n\t\"color\": 2,\n\t\"version\": 13\n}"));
 		assert!(!root.join("cls_e2").join("class.json").exists());
 		assert!(rx.try_recv().is_err(), "a read is quiet");
 		// The colored one is only read.
@@ -799,7 +920,7 @@ mod tests {
 		store.update_space("cls_b1", &json!({ "name": "New" })).unwrap();
 		assert_eq!(names(&dir), ["space.json"]);
 		let saved = std::fs::read_to_string(dir.join("space.json")).unwrap();
-		assert!(saved.contains("\"name\": \"New\"") && saved.ends_with("\"version\": 12\n}"));
+		assert!(saved.contains("\"name\": \"New\"") && saved.ends_with("\"version\": 13\n}"));
 		// space.json wins over a class.json left beside it.
 		fsx::write_text_atomic(&dir.join("class.json"), &old_record("cls_b1")).unwrap();
 		assert_eq!(store.get_space("cls_b1").unwrap()["name"], Json::from("New"));

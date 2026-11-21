@@ -13,11 +13,13 @@ use gs_core::session::argument_heal::heal_encoded_arguments;
 use gs_core::session::question_core::{problem_choice_fields, problem_choice_problems};
 use gs_core::study::topic_end::{ends_topic, long_problem_stop, topic_stop};
 use gs_engine::turn::tool_execute::{conclude_result, invalid_input_result, problem_result, study_conclude_result};
-use gs_json::{Json, json, stringify};
+use gs_core::study::homework::conclude_marks_done;
+use gs_json::{Json, json, quote, stringify};
 use parking_lot::Mutex;
 
 use super::fn_tool::FnTool;
 use super::heal::heal_tool_record;
+use super::homework::{ProblemList, post_problems_tool};
 use super::jobs::{JobToolContext, pdf_tool, research_tool};
 use super::plan::PlanContext;
 use super::questions::node_id_problem;
@@ -93,7 +95,7 @@ fn problem_parameters() -> Json {
 	)];
 	fields.extend(problem_choice_fields());
 	fields.extend([
-		("source", source_field(false)),
+		("source", source_field(None)),
 		("mode", one_of_literals(&["recall", "discrimination", "composition"], "REQUIRED \u{2014} the demand mode: recall, discrimination, or composition (bare words, no quotes).")),
 		(
 			"target",
@@ -112,8 +114,9 @@ fn problem_parameters() -> Json {
 	object(&["mode", "modelSolution"], fields)
 }
 
-/// The problem schema of a study session: it also names the plan node the problem is about.
-fn study_problem_parameters() -> Json {
+/// The problem schema of a study session: it also names the plan node the problem is about, and
+/// in a lesson with a problem list (`listed`) may name a listed problem by number.
+fn study_problem_parameters(listed: bool) -> Json {
 	let mut parameters = problem_parameters();
 	let node_id = string("REQUIRED \u{2014} the topic this problem is about: a node id from the [Study plan].");
 	if let Some(schema) = parameters.as_obj_mut() {
@@ -122,9 +125,24 @@ fn study_problem_parameters() -> Json {
 		}
 		if let Some(properties) = schema.get_mut("properties").and_then(Json::as_obj_mut) {
 			properties.insert("nodeId", node_id);
+			if listed {
+				properties.insert("number", string("A listed problem's number (post_problems). One listed with its page needs no statement or source."));
+			}
 		}
 	}
 	parameters
+}
+
+/// The listed problem a pose names by number, or the refusal.
+fn listed_problem(list: &Arc<dyn ProblemList>, number: &str) -> Result<Json, Json> {
+	let listed = list.problems();
+	if listed.is_empty() {
+		return Err(invalid_input_result("problem", &["no problems are listed yet \u{2014} post them with post_problems first".to_owned()]));
+	}
+	listed.iter().find(|p| p["number"].as_str() == Some(number)).cloned().ok_or_else(|| {
+		let numbers: Vec<&str> = listed.iter().map(|p| p["number"].str_or_empty()).collect();
+		invalid_input_result("problem", &[format!("no problem numbered {}; the numbers are {}", quote(number), numbers.join(", "))])
+	})
 }
 
 /// Names silently become ids, so the record carries the canonical ones (the mastery trace groups on
@@ -151,8 +169,9 @@ fn normalize_target(mut args: Json, graph_nodes: Option<&GraphNodes>) -> Json {
 }
 
 /// Why a pose is refused before its source is looked at, if it is: the problem checks, the
-/// statement or source, a problem already active, and the targets.
-fn pose_refusal(args: &Json, gate: &TurnGate, graph_nodes: Option<&GraphNodes>, plan_nodes: Option<&PlanNodes>) -> Option<Json> {
+/// statement or source (a listed problem's own piece will do), a problem already active, and the
+/// targets.
+fn pose_refusal(args: &Json, gate: &TurnGate, graph_nodes: Option<&GraphNodes>, plan_nodes: Option<&PlanNodes>, has_piece: bool) -> Option<Json> {
 	if let Some(problem) = plan_nodes.and_then(|nodes| node_id_problem(&nodes(), args["nodeId"].str_or_empty())) {
 		return Some(invalid_input_result("problem", &[problem]));
 	}
@@ -160,7 +179,7 @@ fn pose_refusal(args: &Json, gate: &TurnGate, graph_nodes: Option<&GraphNodes>, 
 	if !choice_problems.is_empty() {
 		return Some(invalid_input_result("problem", &choice_problems));
 	}
-	if typed(&args["statement"]).is_none() && args["source"].is_null() {
+	if typed(&args["statement"]).is_none() && args["source"].is_null() && !has_piece {
 		return Some(invalid_input_result("problem", &[NO_STATEMENT.to_owned()]));
 	}
 	if *gate.problem_active.lock() {
@@ -183,9 +202,10 @@ fn pose_refusal(args: &Json, gate: &TurnGate, graph_nodes: Option<&GraphNodes>, 
 	None
 }
 
-/// The pose, with its extra checks for a study session (`plan_nodes`). A `source` is looked up
-/// before the problem becomes active; the calls run one at a time, so nothing poses in between.
-fn problem_tool(gate: &Arc<TurnGate>, graph_nodes: Option<GraphNodes>, parameters: Json, plan_nodes: Option<PlanNodes>, pages: &Arc<dyn ProblemPages>) -> FnTool {
+/// The pose, with its extra checks for a study session (`plan_nodes`) and, in a lesson with a
+/// problem list, its listed problems by number. A `source` is looked up before the problem becomes
+/// active; the calls run one at a time, so nothing poses in between.
+fn problem_tool(gate: &Arc<TurnGate>, graph_nodes: Option<GraphNodes>, parameters: Json, plan_nodes: Option<PlanNodes>, pages: &Arc<dyn ProblemPages>, list: Option<Arc<dyn ProblemList>>) -> FnTool {
 	let description = "Pose one practice problem. Ends the turn \u{2014} the problem stays in view beside the lesson, and the \
 		learner's work and questions on it arrive back as their messages. The modelSolution rides this call's \
 		arguments and stays hidden from the learner until you conclude (conclude shows it verbatim \u{2014} the \
@@ -193,13 +213,23 @@ fn problem_tool(gate: &Arc<TurnGate>, graph_nodes: Option<GraphNodes>, parameter
 	let (gate, run_nodes, prepare_nodes, pages) = (gate.clone(), graph_nodes.clone(), graph_nodes, pages.clone());
 	let plain = problem_parameters();
 	FnTool::immediate_async("problem", description, parameters, move |args| {
-		let (gate, run_nodes, plan_nodes, pages) = (gate.clone(), run_nodes.clone(), plan_nodes.clone(), pages.clone());
+		let (gate, run_nodes, plan_nodes, pages, list) = (gate.clone(), run_nodes.clone(), plan_nodes.clone(), pages.clone(), list.clone());
 		async move {
-			if let Some(refusal) = pose_refusal(&args, &gate, run_nodes.as_ref(), plan_nodes.as_ref()) {
+			let listed = match (&list, args["number"].as_str()) {
+				(Some(list), Some(number)) => match listed_problem(list, number) {
+					Ok(listed) => Some(listed),
+					Err(refusal) => return refusal,
+				},
+				_ => None,
+			};
+			let piece = listed.as_ref().map(|p| &p["piece"]).filter(|piece| !piece.is_null());
+			if let Some(refusal) = pose_refusal(&args, &gate, run_nodes.as_ref(), plan_nodes.as_ref(), piece.is_some()) {
 				return refusal;
 			}
 			let mut shown = None;
-			if !args["source"].is_null() {
+			if let (Some(piece), None, true) = (piece, typed(&args["statement"]), args["source"].is_null()) {
+				shown = listed.as_ref().map(|p| json!({ "piece": piece.clone(), "text": p["text"].clone() }));
+			} else if !args["source"].is_null() {
 				match pages.find(&args["source"], typed(&args["statement"])).await {
 					Ok(found) => shown = Some(found),
 					Err(why) => return invalid_input_result("problem", &[why]),
@@ -285,15 +315,21 @@ fn conclude_tool(gate: &Arc<TurnGate>, record: PlanContext) -> FnTool {
 }
 
 /// Study's conclude: one that finishes its problem's topic ends on that topic's stop and tells the
-/// agent to call topic_done; otherwise it is practice's.
-fn study_conclude_tool(gate: &Arc<TurnGate>, record: PlanContext) -> FnTool {
+/// agent to call topic_done; otherwise it is practice's. A listed problem solved is marked done.
+fn study_conclude_tool(gate: &Arc<TurnGate>, record: PlanContext, list: Option<Arc<dyn ProblemList>>) -> FnTool {
 	let description = conclude_description(
 		", with no further tool calls. When this conclude finishes a topic, the verdict is your closing words: write no other prose, then read what the next topic needs and call topic_done in its own reply.",
 	);
 	let ended = gate.clone();
 	gated_conclude(description, gate, record, move |args, messages| {
 		let now = clock::now_ms();
-		let stop = match ends_topic(args, active_problem_of(messages).as_ref()) {
+		let active = active_problem_of(messages);
+		if let (Some(list), Some(number)) = (&list, active.as_ref().and_then(|a| a.input["number"].as_str()))
+			&& conclude_marks_done(&args["outcome"])
+		{
+			list.mark_done(number);
+		}
+		let stop = match ends_topic(args, active.as_ref()) {
 			Some(node_id) => {
 				ended.set_topic_ended(&node_id, false);
 				Some(topic_stop(messages, &node_id, now))
@@ -305,9 +341,16 @@ fn study_conclude_tool(gate: &Arc<TurnGate>, record: PlanContext) -> FnTool {
 }
 
 /// A study session's problem and conclude, under the turn gate topic_done shares. The problem
-/// names its plan node like a quiz does.
-pub fn study_problem_tools(gate: &Arc<TurnGate>, record: PlanContext, graph_nodes: Option<GraphNodes>, plan_nodes: PlanNodes, pages: &Arc<dyn ProblemPages>) -> Vec<FnTool> {
-	vec![problem_tool(gate, graph_nodes, study_problem_parameters(), Some(plan_nodes), pages), study_conclude_tool(gate, record)]
+/// names its plan node like a quiz does. A lesson on files has its first file's problem list
+/// (`list`): post_problems fills it, a pose may name one of it, and conclude marks it done.
+pub fn study_problem_tools(gate: &Arc<TurnGate>, record: PlanContext, graph_nodes: Option<GraphNodes>, plan_nodes: PlanNodes, pages: &Arc<dyn ProblemPages>, list: Option<&Arc<dyn ProblemList>>) -> Vec<FnTool> {
+	let mut tools = Vec::new();
+	if let Some(list) = list {
+		tools.push(post_problems_tool(list.clone(), pages.clone()));
+	}
+	tools.push(problem_tool(gate, graph_nodes, study_problem_parameters(list.is_some()), Some(plan_nodes), pages, list.cloned()));
+	tools.push(study_conclude_tool(gate, record, list.cloned()));
+	tools
 }
 
 /// The practice agent's whole registry. Any side tool `enabled` sets to false is dropped;
@@ -315,7 +358,7 @@ pub fn study_problem_tools(gate: &Arc<TurnGate>, record: PlanContext, graph_node
 pub fn practice_tools(ctx: &PracticeToolContext, enabled: Option<&Json>) -> Vec<FnTool> {
 	let gate = TurnGate::new(problem_is_active(&ctx.chat_store, &ctx.chat_id));
 	let record = PlanContext { chat_id: ctx.chat_id.clone(), chat_store: ctx.chat_store.clone() };
-	let mut tools = vec![problem_tool(&gate, ctx.graph_nodes.clone(), problem_parameters(), None, &ctx.pages), conclude_tool(&gate, record)];
+	let mut tools = vec![problem_tool(&gate, ctx.graph_nodes.clone(), problem_parameters(), None, &ctx.pages, None), conclude_tool(&gate, record)];
 	tools.extend(practice_side_tools(ctx.jobs.as_ref(), &ctx.side, enabled));
 	heal_tool_record(tools)
 }
@@ -359,7 +402,7 @@ mod tests {
 
 	fn study_conclude(minutes: i64) -> (FnTool, Arc<TurnGate>) {
 		let gate = TurnGate::new(true);
-		let tools = study_problem_tools(&gate, record(worked(minutes)), None, Arc::new(|| vec!["reg".to_owned()]), &no_pages());
+		let tools = study_problem_tools(&gate, record(worked(minutes)), None, Arc::new(|| vec!["reg".to_owned()]), &no_pages(), None);
 		(tools.into_iter().find(|t| t.name() == "conclude").unwrap(), gate)
 	}
 
@@ -393,7 +436,7 @@ mod tests {
 
 	async fn pose_with(input: Json, pages: Arc<dyn ProblemPages>) -> (Json, Arc<TurnGate>) {
 		let gate = TurnGate::new(false);
-		let tools = study_problem_tools(&gate, record(vec![]), None, Arc::new(|| vec!["reg".to_owned()]), &pages);
+		let tools = study_problem_tools(&gate, record(vec![]), None, Arc::new(|| vec!["reg".to_owned()]), &pages, None);
 		let tool = tools.into_iter().find(|t| t.name() == "problem").unwrap();
 		(tool.execute(input, ToolContext { tool_call_id: "p1".to_owned(), abort: Abort::new() }).await.unwrap(), gate)
 	}
@@ -463,9 +506,82 @@ mod tests {
 		assert_ne!(pose(with(json!({ "options": labels(2), "multiSelect": true }))).await["isError"].as_bool(), Some(true), "two options is enough");
 	}
 
+	/// A lesson on files' list: f_test's problems, 1 cut from its page and 2 typed.
+	struct FirstFile(Mutex<Vec<Json>>);
+
+	impl ProblemList for FirstFile {
+		fn problems(&self) -> Vec<Json> {
+			self.0.lock().clone()
+		}
+		fn post(&self, problems: &[Json]) -> Option<String> {
+			*self.0.lock() = problems.to_vec();
+			None
+		}
+		fn mark_done(&self, number: &str) {
+			for p in self.0.lock().iter_mut().filter(|p| p["number"].as_str() == Some(number)) {
+				p.set("done", true);
+			}
+		}
+		fn file_id(&self) -> Option<String> {
+			Some("f_test".to_owned())
+		}
+	}
+
+	fn first_file() -> Arc<FirstFile> {
+		Arc::new(FirstFile(Mutex::new(vec![
+			json!({ "number": "1", "title": "Limits", "text": "1. Find the limit.", "piece": { "fileId": "f_test" }, "done": false }),
+			json!({ "number": "2", "title": "Series", "text": "Sum it.", "done": false }),
+		])))
+	}
+
+	fn files_tools(list: &Arc<FirstFile>, messages: Vec<Json>, pages: &Arc<FakePages>, active: bool) -> Vec<FnTool> {
+		let list: Arc<dyn ProblemList> = list.clone();
+		let pages: Arc<dyn ProblemPages> = pages.clone();
+		study_problem_tools(&TurnGate::new(active), record(messages), None, Arc::new(|| vec!["reg".to_owned()]), &pages, Some(&list))
+	}
+
+	async fn run(tools: &[FnTool], name: &str, args: Json) -> Json {
+		tools.iter().find(|t| t.name() == name).unwrap().execute(args, ToolContext { tool_call_id: "t1".to_owned(), abort: Abort::new() }).await.unwrap()
+	}
+
+	#[tokio::test]
+	async fn a_lesson_on_files_lists_only_its_first_files_problems() {
+		let pages = FakePages::new(Ok(json!({ "piece": { "fileId": "f_test" }, "text": "3. Prove it." })));
+		let tools = files_tools(&first_file(), vec![], &pages, false);
+		let other = json!({ "problems": [{ "number": "3", "title": "Proof", "source": { "fileId": "f_key", "page": 1, "starts": "3. Prove" } }] });
+		let out = run(&tools, "post_problems", other).await;
+		assert!(out["content"][0]["text"].str_or_empty().contains("problem 3: its source is in f_key, but this lesson lists the problems of f_test only"), "{out:?}");
+		assert!(pages.asked.lock().is_empty(), "nothing is looked up");
+		let unnamed = json!({ "problems": [{ "number": "3", "title": "Proof", "source": { "page": 1, "starts": "3. Prove" } }] });
+		assert_ne!(run(&tools, "post_problems", unnamed).await["isError"].as_bool(), Some(true));
+		assert_eq!(pages.asked.lock()[0].0["fileId"].as_str(), Some("f_test"), "a source names the first file");
+	}
+
+	#[tokio::test]
+	async fn a_listed_problem_is_posed_by_number_and_solved_marks_it_done() {
+		let list = first_file();
+		let pages = FakePages::new(Err("no pages".to_owned()));
+		let tools = files_tools(&list, vec![], &pages, false);
+		let by_number = |number: &str| json!({ "number": number, "mode": "recall", "modelSolution": "m", "nodeId": "reg" });
+		let out = run(&tools, "problem", by_number("1")).await;
+		assert_eq!((out["details"]["piece"]["fileId"].as_str(), out["details"]["text"].as_str()), (Some("f_test"), Some("1. Find the limit.")), "{out:?}");
+		let tools = files_tools(&list, vec![], &pages, false);
+		assert!(run(&tools, "problem", by_number("9")).await["content"][0]["text"].str_or_empty().contains("no problem numbered \"9\"; the numbers are 1, 2"));
+		assert!(run(&tools, "problem", by_number("2")).await["content"][0]["text"].str_or_empty().contains(NO_STATEMENT), "a typed problem needs its statement");
+
+		let posed = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "p1", "name": "problem", "arguments": by_number("1") }], "timestamp": clock::now_ms() });
+		let result = json!({ "role": "toolResult", "toolCallId": "p1", "toolName": "problem", "details": null, "isError": false, "timestamp": clock::now_ms() });
+		let open = || files_tools(&list, vec![posed.clone(), result.clone()], &pages, true);
+		conclude(open().iter().find(|t| t.name() == "conclude").unwrap(), "movedOn", Json::Null).await;
+		assert_eq!(list.0.lock()[0]["done"], json!(false), "moved on: not done");
+		conclude(open().iter().find(|t| t.name() == "conclude").unwrap(), "solved", Json::Null).await;
+		assert_eq!(list.0.lock()[0]["done"], json!(true));
+	}
+
 	#[test]
 	fn the_pose_schema_offers_options_and_multi_select_as_optional() {
-		for parameters in [problem_parameters(), study_problem_parameters()] {
+		assert!(study_problem_parameters(true)["properties"]["number"].as_obj().is_some() && study_problem_parameters(false)["properties"].get("number").is_none());
+		for parameters in [problem_parameters(), study_problem_parameters(false), study_problem_parameters(true)] {
 			assert_eq!(parameters["properties"]["source"]["required"], json!(["fileId", "page", "starts"]));
 			assert!(!parameters["required"].items().contains(&Json::from("statement")), "a source may stand in for it");
 			assert!(parameters["properties"]["options"]["items"]["properties"]["label"].as_obj().is_some());

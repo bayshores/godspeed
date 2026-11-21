@@ -8,6 +8,7 @@ use gs_json::{Json, Obj};
 use super::file_state::FileKind;
 use super::new_files::is_recent_change;
 use super::page_piece::check_piece;
+use super::problem_list::move_lists_to_files;
 use super::space_path::read_path;
 use super::space_deadlines::{id_list, squash, with_files};
 use super::space_work::is_waiting_file;
@@ -40,7 +41,7 @@ fn is_space_deadline(v: &Json) -> bool {
 		&& v["done"].as_bool().is_some()
 }
 
-fn is_homework_problem(v: &Json) -> bool {
+fn is_file_problem(v: &Json) -> bool {
 	is_str(&v["number"]) && is_str(&v["title"]) && is_str(&v["text"]) && v.get("page").is_none_or(|p| matches!(p, Json::Num(_))) && v["done"].as_bool().is_some()
 }
 
@@ -56,6 +57,21 @@ fn clean_problem(p: &Json) -> Json {
 	}
 	out.insert("done", p["done"].clone());
 	Json::Obj(out)
+}
+
+/// A saved problem list, each problem checked and cleaned; None when no problem holds.
+fn read_problems(v: &Json) -> Option<Json> {
+	let problems = v.as_arr().filter(|p| p.iter().any(is_file_problem))?;
+	Some(Json::Arr(problems.iter().filter(|p| is_file_problem(p)).map(clean_problem).collect()))
+}
+
+/// A file as saved, its problem list cleaned like a deadline's.
+fn read_file(f: &Json) -> Json {
+	let mut out = f.clone();
+	if let Some(obj) = out.as_obj_mut() {
+		obj.set_or_remove("problems", read_problems(&f["problems"]));
+	}
+	out
 }
 
 /// A v3 deadline as saved.
@@ -77,8 +93,8 @@ fn read_deadline(d: &Json) -> Json {
 			out.insert(key, d[key].clone());
 		}
 	}
-	if let Some(problems) = d["problems"].as_arr().filter(|p| p.iter().any(is_homework_problem)) {
-		out.insert("problems", Json::Arr(problems.iter().filter(|p| is_homework_problem(p)).map(clean_problem).collect()));
+	if let Some(problems) = read_problems(&d["problems"]) {
+		out.insert("problems", problems);
 	}
 	out.insert("done", d["done"].clone());
 	if d["done"].as_bool() == Some(true) && is_str(&d["doneAt"]) {
@@ -176,12 +192,12 @@ fn read_work(v: &Json) -> Option<Json> {
 pub fn read_space_record(parsed: &Json, now: i64, fresh_color: impl FnOnce() -> i64) -> Option<Json> {
 	let (id, name) = (parsed["id"].as_str()?, parsed["name"].as_str()?);
 	let (created_at, updated_at) = (parsed["createdAt"].as_str()?, parsed["updatedAt"].as_str()?);
-	let files: Vec<Json> = parsed["files"].items().iter().filter(|f| is_space_file(f)).cloned().collect();
+	let mut files: Vec<Json> = parsed["files"].items().iter().filter(|f| is_space_file(f)).map(read_file).collect();
 	let removed = recent_removed(&parsed["removedFiles"], now);
 	// A removed file drops out of every deadline that covered it; the next write persists that.
 	let known: HashSet<&str> = files.iter().filter_map(|f| f["id"].as_str()).collect();
 	let keep_known = |ids: Vec<String>| ids.into_iter().filter(|f| known.contains(f.as_str())).collect::<Vec<_>>();
-	let deadlines = read_deadlines(parsed).map(|list| {
+	let mut deadlines = read_deadlines(parsed).map(|list| {
 		let mut cleaned: Vec<Json> = list
 			.into_iter()
 			.map(|d| {
@@ -194,6 +210,12 @@ pub fn read_space_record(parsed: &Json, now: i64, fresh_color: impl FnOnce() -> 
 		cleaned
 	});
 	let waiting = read_waiting_deadline(&parsed["waitingDeadline"], &known);
+	// v13 moved each homework's problem list onto its assignment file.
+	if parsed["version"].as_f64().is_none_or(|v| v < 13.0)
+		&& let Some(deadlines) = deadlines.as_mut()
+	{
+		move_lists_to_files(&mut files, deadlines);
+	}
 	let rules = sanitize_rules(&parsed["rules"]);
 
 	let mut out = Obj::new();
@@ -332,6 +354,55 @@ mod tests {
 	}
 
 	#[test]
+	fn a_v12_record_moves_each_homework_list_onto_its_assignment_file() {
+		let problem = |number: &str, done: bool| json!({ "number": number, "title": number, "text": "x", "done": done });
+		let homework = |id: &str, file: Option<&str>, problems: Json| {
+			let mut d = json!({ "id": id, "kind": "homework", "name": id, "date": "2026-11-20", "fileIds": [], "problems": problems, "done": false });
+			if let Some(file) = file {
+				d.set("assignmentFileId", file);
+			}
+			d
+		};
+		let parsed = |version: i64| {
+			json!({
+				"id": "spc_a", "name": "n", "createdAt": "c", "updatedAt": "u", "version": version,
+				"files": [file("f1", "copied", "t"), file("f2", "copied", "t")],
+				"deadlines": [
+					homework("d1", Some("f1"), json!([problem("1", false), problem("2", false)])),
+					homework("d2", Some("f1"), json!([problem("1", true)])),
+					homework("d3", Some("f2"), json!([problem("3", false)])),
+					homework("d4", None, json!([problem("4", false)])),
+					homework("d5", Some("gone"), json!([problem("5", true)])),
+				],
+			})
+		};
+		let record = read_space_record(&parsed(12), 0, || 1).unwrap();
+		let deadline = |id: &str| record["deadlines"].items().iter().find(|d| d["id"].as_str() == Some(id)).unwrap().clone();
+		assert_eq!(record["files"][0]["problems"], json!([problem("1", true)]), "two deadlines on one file: the list with more done marks");
+		assert_eq!(record["files"][1]["problems"], json!([problem("3", false)]));
+		for id in ["d1", "d2", "d3"] {
+			assert!(deadline(id).get("problems").is_none(), "{id} reads its file's list now");
+		}
+		assert_eq!(deadline("d4")["problems"], json!([problem("4", false)]), "no assignment file: the deadline keeps its list");
+		assert_eq!(deadline("d5")["problems"], json!([problem("5", true)]), "a file not in the space: the deadline keeps its list");
+		assert!(deadline("d5").get("assignmentFileId").is_none());
+
+		let current = read_space_record(&parsed(13), 0, || 1).unwrap();
+		assert!(current["files"][0].get("problems").is_none(), "a v13 record is read as saved");
+	}
+
+	#[test]
+	fn a_files_problem_list_is_cleaned_like_a_deadlines() {
+		let mut f = file("f1", "copied", "t");
+		f.set("problems", json!([{ "number": "1", "title": "t", "text": "x", "done": true, "extra": 1 }, { "number": 2 }]));
+		let mut empty = file("f2", "copied", "t");
+		empty.set("problems", json!([{ "number": 2 }]));
+		let record = read_space_record(&json!({ "id": "spc_a", "name": "n", "createdAt": "c", "updatedAt": "u", "version": 13, "files": [f, empty] }), 0, || 1).unwrap();
+		assert_eq!(stringify(&record["files"][0]["problems"]), r#"[{"number":"1","title":"t","text":"x","done":true}]"#);
+		assert!(record["files"][1].get("problems").is_none());
+	}
+
+	#[test]
 	fn a_record_reads_with_its_fields_in_a_fixed_order() {
 		let parsed = json!({
 			"version": 6, "updatedAt": "u", "createdAt": "c", "name": "CSE 21", "id": "cls_a", "icon": "cpu", "rules": [" be brief ", "be brief"],
@@ -398,8 +469,8 @@ mod tests {
 	fn a_record_without_its_basics_does_not_read() {
 		assert!(read_space_record(&json!({ "id": "cls_a", "name": "n", "createdAt": "c" }), 0, || 1).is_none());
 		assert!(read_space_record(&json!([]), 0, || 1).is_none());
-		assert_eq!(newer_version(&json!({ "version": 13 })), Some(13.0));
-		assert_eq!(newer_version(&json!({ "version": 12 })), None);
+		assert_eq!(newer_version(&json!({ "version": 14 })), Some(14.0));
+		assert_eq!(newer_version(&json!({ "version": 13 })), None);
 	}
 
 	#[test]

@@ -1,6 +1,6 @@
 /**
  * The open lesson in the top bar: its name after the lit space tab, then on
- * the bar's right the plugins, the size, Find, "Cheat sheet", "More" and the
+ * the bar's right the plugins, the size, Find, "Document", "Cheat sheet", "More" and the
  * homework file, Find taking their place, and the bar lighting the lesson's
  * own space.
  */
@@ -196,6 +196,25 @@ describe("the open lesson in the top bar", () => {
 		assert.equal(word.getAttribute("aria-pressed"), "true");
 		await click(word);
 		assert.equal(toggled, 1);
+	});
+
+	it("Document sits between Find and Cheat sheet, toggles and says whether it is open", async () => {
+		let toggled = 0;
+		await mount({ doc: { open: true, onToggle: () => void toggled++ }, sheet: { open: false, onToggle: () => {} } });
+		const word = q("lesson-document")!;
+		assert.equal(word.textContent, "Document");
+		assert.equal(word.getAttribute("aria-pressed"), "true");
+		assert.match(word.className, /bg-bar-ink /, "lit as the bar lights a word with an open panel");
+		assert.ok(word.querySelector("kbd") === null, "a flat word, no key");
+		const order = [...document.querySelectorAll("[data-testid]")].map((el) => el.getAttribute("data-testid")).filter((id) => id === "lesson-find" || id === "lesson-document" || id === "lesson-cheat-sheet");
+		assert.deepEqual(order, ["lesson-find", "lesson-document", "lesson-cheat-sheet"]);
+		await click(word);
+		assert.equal(toggled, 1);
+	});
+
+	it("a lesson with no PDF to show, or whose file left the space, has no Document", async () => {
+		await mount({ doc: undefined });
+		assert.ok(q("lesson-document") === null);
 	});
 
 	it("renaming swaps the name for a field in the bar", async () => {

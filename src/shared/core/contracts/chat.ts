@@ -42,6 +42,9 @@ export interface ChatRecord {
 	/** The deadline a Study session was started from; absent for any other
 	 *  start (and on records from before). Its Study button reopens it. */
 	deadlineId?: string;
+	/** A lesson on files: the files it works from, the first one first. Set
+	 *  at birth; the first file names it and holds its problem list. */
+	fileIds?: string[];
 	/** The session's plan tree (vision §2) — written by plan tools via saveTree. */
 	tree?: PlanTree;
 	/** Append-only usage log: one entry per model

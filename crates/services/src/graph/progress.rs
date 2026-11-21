@@ -5,6 +5,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use gs_base::{clock, time};
+use gs_core::spaces::problem_list::with_problem_lists;
 use gs_core::spaces::today_note::local_day;
 use gs_core::graph::graph::get_graph;
 use gs_core::session::plan_step_bar::{current_step_title, plan_position_lh};
@@ -148,7 +149,8 @@ pub fn space_mistakes(app: &App, space_id: &str, progress: &Json) -> Result<Vec<
 	Ok(out)
 }
 
-/// The space's files with the source id their facts are born under.
+/// The space's files with the source id their facts are born under, and the problems listed for
+/// each.
 pub(super) fn progress_files(record: Option<&Json>) -> Vec<Json> {
 	let Some(record) = record else { return Vec::new() };
 	let space_id = record["id"].str_or_empty();
@@ -156,7 +158,13 @@ pub(super) fn progress_files(record: Option<&Json>) -> Vec<Json> {
 		.iter()
 		.map(|f| {
 			let source_id = f["sourceId"].as_str().map_or_else(|| source_id_for(space_id, f["id"].str_or_empty()), str::to_owned);
-			json!({ "id": f["id"], "name": f["name"], "kind": f["kind"], "sourceId": source_id })
+			let mut file = Obj::new();
+			for key in ["id", "name", "kind"] {
+				file.insert(key, f[key].clone());
+			}
+			file.insert("sourceId", source_id);
+			file.insert_present("problems", f.get("problems"));
+			Json::Obj(file)
 		})
 		.collect()
 }
@@ -199,7 +207,7 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 			homework_sessions.push(json!({ "chatId": c["id"], "deadlineId": c["deadlineId"], "createdAt": c["createdAt"] }));
 		}
 		let Some(readout) = lesson_readout(app, c["id"].str_or_empty()) else { continue };
-		let mut lesson = picked(c, &["id", "title", "kind", "updatedAt", "deadlineId", "pendingQuestion", "pendingProblem"]);
+		let mut lesson = picked(c, &["id", "title", "kind", "updatedAt", "deadlineId", "fileIds", "pendingQuestion", "pendingProblem"]);
 		lesson.insert("answers", readout.answers.clone());
 		if let Some(plan) = &readout.plan {
 			lesson.insert("plan", plan.clone());
@@ -233,7 +241,7 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 		"chains": graph.chains,
 		"topics": topics,
 		"files": progress_files(record.as_ref()),
-		"deadlines": record.as_ref().map_or_else(|| json!([]), |r| r["deadlines"].as_arr().map_or_else(|| json!([]), |d| Json::Arr(d.clone()))),
+		"deadlines": record.as_ref().map_or_else(|| json!([]), |r| with_problem_lists(r)["deadlines"].as_arr().map_or_else(|| json!([]), |d| Json::Arr(d.clone()))),
 		"lessons": lessons,
 		"deadlineSessions": deadline_sessions,
 		"homeworkSessions": homework_sessions,
@@ -312,7 +320,7 @@ pub(super) mod tests {
 		let deadline = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "Onsite", "kind": "interview", "date": "2099-01-15" })).unwrap();
 		let mock = gs_core::mocks::mock::new_mock("mock_0000abcd", deadline["id"].str_or_empty(), 1.0, &json!({ "questions": 2 }), "2026-11-11T10:00:00.000Z");
 		app.stores.mocks.write_mock(&space_id, &mock).unwrap();
-		let chat_id = app.stores.chats.create_chat("Strings", Some("study"), Some(&space_id), None).unwrap()["id"].str_or_empty().to_owned();
+		let chat_id = app.stores.chats.create_chat("Strings", Some("study"), Some(&space_id), None, &[]).unwrap()["id"].str_or_empty().to_owned();
 		// A review answer holds the lesson and reads progress while a space delete holds the space
 		// and waits for the lesson.
 		let (done_tx, done_rx) = channel();
@@ -340,7 +348,7 @@ pub(super) mod tests {
 		let space_id = app.stores.spaces.create_space(&json!({ "name": "Machine Learning Foundations" })).unwrap()["id"].str_or_empty().to_owned();
 		let deadline = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "Midterm", "kind": "exam", "date": "2099-01-15" })).unwrap();
 		let deadline_id = deadline["id"].str_or_empty().to_owned();
-		let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned();
+		let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), Some(&deadline_id), &[]).unwrap()["id"].str_or_empty().to_owned();
 		app.stores.chats.save_tree(&chat_id, &tree()).unwrap();
 
 		assert_eq!(midterm(&app, &space_id, &deadline_id)["continueStudy"].get("inTopic"), None, "nothing asked yet");
@@ -386,7 +394,7 @@ pub(super) mod tests {
 		let app = test_app(&root);
 		let space_id = app.stores.spaces.create_space(&json!({ "name": "Machine Learning Foundations" })).unwrap()["id"].str_or_empty().to_owned();
 		let deadline_id = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "Midterm", "kind": "exam", "date": "2099-01-15" })).unwrap()["id"].str_or_empty().to_owned();
-		let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned();
+		let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), Some(&deadline_id), &[]).unwrap()["id"].str_or_empty().to_owned();
 		assert_eq!(midterm(&app, &space_id, &deadline_id)["continueStudy"], json!({ "chatId": chat_id }), "no plan yet: reopened, nothing to count");
 		app.stores.chats.save_tree(&chat_id, &tree()).unwrap();
 		assert_eq!(midterm(&app, &space_id, &deadline_id)["continueStudy"], json!({ "chatId": chat_id, "done": 0, "total": 3 }));
@@ -397,7 +405,7 @@ pub(super) mod tests {
 		let root = scratch_dir("progress-lesson-plan");
 		let app = test_app(&root);
 		let space_id = app.stores.spaces.create_space(&json!({ "name": "Machine Learning Foundations" })).unwrap()["id"].str_or_empty().to_owned();
-		let chat_id = app.stores.chats.create_chat("Regularization", Some("study"), Some(&space_id), None).unwrap()["id"].str_or_empty().to_owned();
+		let chat_id = app.stores.chats.create_chat("Regularization", Some("study"), Some(&space_id), None, &[]).unwrap()["id"].str_or_empty().to_owned();
 		app.stores.chats.save_tree(&chat_id, &tree()).unwrap();
 		let row = |app: &App| progress_for(app, space_id.as_str(), None).unwrap().unwrap()["lessons"].items().iter().find(|l| l["chatId"].as_str() == Some(chat_id.as_str())).unwrap().clone();
 
@@ -418,14 +426,14 @@ pub(super) mod tests {
 		let app = test_app(&root);
 		let space_id = app.stores.spaces.create_space(&json!({ "name": "Algorithms" })).unwrap()["id"].str_or_empty().to_owned();
 		let deadline_id = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "HW6", "kind": "homework", "date": "2099-01-15" })).unwrap()["id"].str_or_empty().to_owned();
-		let homework = app.stores.chats.create_chat("HW6", Some("homework"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned();
+		let homework = app.stores.chats.create_chat("HW6", Some("homework"), Some(&space_id), Some(&deadline_id), &[]).unwrap()["id"].str_or_empty().to_owned();
 		let d = midterm(&app, &space_id, &deadline_id);
 		assert_eq!(d.get("continueStudy"), None, "Study would reopen the homework");
 		assert_eq!(d["continueHomework"], json!(homework));
 		app.stores.chats.save_messages(&homework, &ended("c1", "reg")).unwrap();
 		assert_eq!(midterm(&app, &space_id, &deadline_id).get("studyEndedToday"), None, "homework is not studying");
 
-		let study = app.stores.chats.create_chat("Study for HW6", Some("study"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned();
+		let study = app.stores.chats.create_chat("Study for HW6", Some("study"), Some(&space_id), Some(&deadline_id), &[]).unwrap()["id"].str_or_empty().to_owned();
 		let d = midterm(&app, &space_id, &deadline_id);
 		assert_eq!(d["continueStudy"]["chatId"], json!(study));
 		assert_eq!(d["continueHomework"], json!(homework));
@@ -440,7 +448,7 @@ pub(super) mod tests {
 		let lesson = |title: &str| {
 			// Each lesson's time is its own clock tick.
 			clock::advance(5);
-			app.stores.chats.create_chat(title, Some("study"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned()
+			app.stores.chats.create_chat(title, Some("study"), Some(&space_id), Some(&deadline_id), &[]).unwrap()["id"].str_or_empty().to_owned()
 		};
 		let (study, practice) = (lesson("Study for Midterm"), lesson("Practice test"));
 		assert_eq!(midterm(&app, &space_id, &deadline_id)["continueStudy"]["chatId"], json!(practice), "the practice test, made and worked in last");
@@ -456,7 +464,7 @@ pub(super) mod tests {
 		let root = scratch_dir("progress-practice-solved");
 		let app = test_app(&root);
 		let space_id = app.stores.spaces.create_space(&json!({ "name": "Algorithms" })).unwrap()["id"].str_or_empty().to_owned();
-		let chat_id = app.stores.chats.create_chat("Recurrences", Some("practice"), Some(&space_id), None).unwrap()["id"].str_or_empty().to_owned();
+		let chat_id = app.stores.chats.create_chat("Recurrences", Some("practice"), Some(&space_id), None, &[]).unwrap()["id"].str_or_empty().to_owned();
 		let row = |app: &App| progress_for(app, space_id.as_str(), None).unwrap().unwrap()["lessons"].items()[0].clone();
 		assert_eq!(row(&app)["unfinished"], json!(true), "nothing done yet");
 		app.stores.chats.save_messages(&chat_id, &hinted("1", "rec", "n_rec")).unwrap();

@@ -9,6 +9,7 @@ use gs_base::fsx;
 use gs_core::contracts::space::{DOCUMENT_EXTENSIONS, FILE_NOT_FOUND, extension_of, is_recording_file, is_transcript_file};
 use gs_core::spaces::file_state::{FileKind, FileStatus};
 use gs_core::spaces::lecture_transcript::transcript_for;
+use gs_core::spaces::tex_source::tex_output_for;
 use gs_files::fingerprint::fingerprint_file;
 use gs_files::text::file_to_text;
 use gs_agent::extraction::extraction::NotesImportInput;
@@ -104,6 +105,7 @@ pub(super) enum TextError {
 /// Brings one file's facts up to date with its current content and kind:
 ///  - info: no facts (old ones removed); readable by the teacher
 ///  - a recording its lecture's transcript covers: no facts, never read
+///  - a .tex whose PDF is in the space: no facts (the PDF has them)
 ///  - study, unchanged: nothing
 ///  - study, new or changed: old facts removed, the new text imported
 async fn process_file(app: Arc<App>, space_id: String, file_id: String) {
@@ -113,7 +115,11 @@ async fn process_file(app: Arc<App>, space_id: String, file_id: String) {
 	// First, before the file is even looked for: hashing a video on Google Drive would download
 	// it, and a covered recording needs no file at all.
 	if let Some(transcript) = transcript_for(&file, record["files"].items()) {
-		use_transcript(app, &record, &file, transcript["id"].str_or_empty());
+		take_facts_from(app, &record, &file, Some(transcript["id"].str_or_empty()));
+		return;
+	}
+	if tex_output_for(&file, record["files"].items()).is_some() {
+		take_facts_from(app, &record, &file, None);
 		return;
 	}
 	let Some(abs) = space_file_path(app, &record, &file).filter(|p| Path::new(p).exists()) else {
@@ -243,10 +249,10 @@ fn sorts_on_read(file: &Json) -> bool {
 	!file["kindChosen"].truthy() && !file["contentFp"].truthy() && !is_transcript_file(name) && !is_recording_file(name)
 }
 
-/// A recording covered by its lecture's transcript: ready with no facts of its own (any from an
-/// earlier transcription go, so nothing is in the graph twice). Its saved transcript stays in case
-/// it is needed again.
-fn use_transcript(app: &Arc<App>, record: &Json, file: &Json, transcript_id: &str) {
+/// A file whose facts come from another (a recording from its lecture's transcript, a .tex from
+/// its PDF): ready with no facts of its own (any from an earlier read go, so nothing is in the
+/// graph twice). A recording's saved transcript stays in case it is needed again.
+fn take_facts_from(app: &Arc<App>, record: &Json, file: &Json, transcript_id: Option<&str>) {
 	let space_id = record["id"].str_or_empty();
 	let file_id = file["id"].str_or_empty();
 	if let Some(source_id) = file["sourceId"].as_str().filter(|s| !s.is_empty())
@@ -259,7 +265,7 @@ fn use_transcript(app: &Arc<App>, record: &Json, file: &Json, transcript_id: &st
 	}
 	// Gone since the check: the scan handles it.
 	let sig = space_file_path(app, record, file).and_then(|p| stat_sig(Path::new(&p)).ok());
-	patch_file(app, space_id, file_id, &[("status", Some(FileStatus::Ready.into())), ("contentFp", Some("".into())), ("statSig", sig.map(Json::from)), ("sourceId", None), ("transcriptId", Some(transcript_id.into())), ("error", None)]);
+	patch_file(app, space_id, file_id, &[("status", Some(FileStatus::Ready.into())), ("contentFp", Some("".into())), ("statSig", sig.map(Json::from)), ("sourceId", None), ("transcriptId", transcript_id.map(Json::from)), ("error", None)]);
 }
 
 /// A file's text for the notes pipeline: a recording's or document's saved (or freshly made)

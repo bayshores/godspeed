@@ -103,7 +103,7 @@ fn right(tool_call_id: &str) -> ChatInput {
 
 /// A Study lesson on Regularization whose learner asked to start.
 async fn study_lesson(app: &Arc<App>) -> String {
-	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None).unwrap()["id"].as_str().unwrap().to_owned();
+	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 	let tree = json!({ "nodes": [{ "id": "reg", "title": "Regularization" }], "edges": [] });
 	app.stores.chats.save_tree(&chat_id, &tree).unwrap();
 	send(app, &chat_id, text("Teach me Regularization.")).await;
@@ -195,7 +195,7 @@ async fn a_dropped_analogy_reaches_the_teacher_once_and_not_when_brought_back() 
 async fn only_a_study_lesson_stores_a_verdict() {
 	let fx = Fixture::new();
 	for (kind, verdicts) in [(Some("study"), 1), (None, 0), (Some("practice"), 0)] {
-		let chat_id = fx.app.stores.chats.create_chat("Lesson", kind, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		let chat_id = fx.app.stores.chats.create_chat("Lesson", kind, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		let reply = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q1", "name": "quiz", "arguments": quiz(leash()) }] });
 		persist_turn(&fx.app, &chat_id, 0, &[reply]).unwrap();
 		let checks = messages(&fx.app, &chat_id).iter().filter(|m| is_custom(m, "keep-check")).count();

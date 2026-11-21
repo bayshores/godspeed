@@ -2,7 +2,7 @@
  *  ones, how many of each show, the day a finished row names, a row's step
  *  blocks, and the edits shown before the payload has them. Also the
  *  lessons one deadline's page lists. Pure. */
-import type { DeadlineProgress, LessonProgress } from "@/shared/core";
+import type { LessonProgress } from "@/shared/core";
 
 /** Unfinished lessons shown until "Show all". */
 export const UNFINISHED_SHOWN = 3;
@@ -33,14 +33,10 @@ export function keyLabel(lesson: Pick<LessonProgress, "kind">): string {
 	return lesson.kind === "homework" ? "Work on it" : "Continue";
 }
 
-/** A homework lesson's blocks are its deadline's problems; any other
- *  lesson's are the steps of its plan. Null with neither. */
-export function stepBlocks(
-	lesson: Pick<LessonProgress, "kind" | "step" | "deadlineId">,
-	deadlines: readonly Pick<DeadlineProgress, "id" | "problems">[],
-): { done: number; total: number } | null {
-	const problems = lesson.kind === "homework" ? deadlines.find((d) => d.id === lesson.deadlineId)?.problems : undefined;
-	const blocks = problems ?? lesson.step;
+/** A lesson's blocks are its problems (a homework's or a lesson on files'),
+ *  else the steps of its plan. Null with neither. */
+export function stepBlocks(lesson: Pick<LessonProgress, "step" | "problems">): { done: number; total: number } | null {
+	const blocks = lesson.problems ?? lesson.step;
 	return blocks && blocks.total > 0 ? blocks : null;
 }
 

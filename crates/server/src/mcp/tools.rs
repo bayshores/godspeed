@@ -91,6 +91,7 @@ mod tests {
 	use gs_core::spaces::space_path::PATH_COVERS_MAX;
 	use gs_core::spaces::space_tools::{SPACE_ARG_TEXT, SPACE_TOOL_TEXT};
 	use gs_core::records::agent_notes::NOTE_MAX_CHARS;
+	use gs_services::turns::files_lesson::MAX_LESSON_FILES;
 
 	use super::*;
 
@@ -133,5 +134,7 @@ mod tests {
 			assert_eq!(covers["maxLength"].as_f64(), Some(PATH_COVERS_MAX as f64), "{tool}");
 		}
 		assert_eq!(input_schema("remember").unwrap()["properties"]["text"]["maxLength"].as_f64(), Some(NOTE_MAX_CHARS as f64));
+		let files = &input_schema("start_lesson").unwrap()["properties"]["file_ids"];
+		assert_eq!((files["description"].as_str(), files["maxItems"].as_f64()), (Some(SPACE_ARG_TEXT.lesson_files), Some(MAX_LESSON_FILES as f64)));
 	}
 }

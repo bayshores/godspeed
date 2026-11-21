@@ -170,6 +170,30 @@ export const SCREENS = [
 	{ name: "Files", url: "/space/files", ready: "[data-testid=files-list] > *" },
 	{ name: "Files, Find open", url: "/space/files", ready: "[data-testid=files-find]", setup: findWord("files-find", "files-search", "notes"), shows: "[data-testid=files-search]" },
 	{ name: "Files, a file's menu", url: "/space/files", ready: "[data-testid=files-list] button[aria-label^='More for']", setup: `document.querySelector("[data-testid=files-list] button[aria-label^='More for']").click()`, shows: "[data-testid^=space-file-menu-body-][data-state=open]" },
+	// The worksheet and its .tex are one row; its menu and Remove act on both.
+	{
+		name: "Files, a .tex and its PDF's menu",
+		url: "/space/files",
+		ready: "[data-testid=files-list] [data-testid^=space-file-source-]",
+		setup: `document.querySelector("[data-testid^=space-file-source-]").closest("li").querySelector("button[aria-label^='More for']").click()`,
+		shows: "[data-testid^=space-file-menu-body-][data-state=open]",
+	},
+	{
+		name: "Files, removing a .tex and its PDF asks first",
+		url: "/space/files",
+		ready: "[data-testid=files-list] [data-testid^=space-file-source-]",
+		setup: `document.querySelector("[data-testid^=space-file-source-]").closest("li").querySelector("button[aria-label^='More for']").click(); ${pause}; document.querySelector("[data-testid^=space-file-remove-]").click()`,
+		shows: "[data-testid=files-confirm]",
+	},
+	// Picking files to study. The homework assignments (the made-up notes and the worksheet) carry problem lists, drawn as blocks after their names.
+	{ name: "Files, a file's problems as blocks", url: "/space/files", ready: "[data-testid=files-list] [data-testid^=space-file-blocks-]" },
+	{
+		name: "Files, two files picked",
+		url: "/space/files",
+		ready: "[data-testid=files-list] [data-testid^=space-file-pick-]",
+		setup: `const rows = document.querySelectorAll("[data-testid=files-list] [data-testid^=space-file-pick-]"); rows[0].click(); ${pause}; rows[1].click()`,
+		shows: "[data-testid=files-picked-bar][data-state=open] [data-testid=files-picked-study]",
+	},
 	{ name: "Graph", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]", setup: fitsWindow },
 	{ name: "Graph, finding a word", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("graph-find", "graph-find-field", "undo"), shows: "[data-testid=graph-find-field]" },
 	{ name: "Graph, Find open", url: "/graph", ready: "[data-testid=graph-find]", setup: `document.querySelector("[data-testid=graph-find]").click(); ${pause}`, shows: "[data-testid=graph-find-field]" },
@@ -259,6 +283,33 @@ box.dispatchEvent(new Event("input", { bubbles: true })); ${pause}`,
 		ready: "[data-testid=page-piece] img",
 		setup: `document.querySelector("[data-testid=piece-printed]").click()`,
 		shows: "[data-testid=piece-printed][aria-pressed=true]",
+	},
+	// The Document panel: the worksheet's pages beside the lesson, the open problem boxed. It stays open for this screen only.
+	{
+		name: "Homework lesson with the Document panel open",
+		url: "/chat/{homeworkPrinted}",
+		ready: "[data-testid=page-piece] img",
+		setup: `document.querySelector("[data-testid=lesson-document]").click(); ${pause}; localStorage.removeItem("lh:sheet-dock:{homeworkPrinted}")`,
+		shows: "[data-testid=document-dock] [data-testid=document-box]",
+	},
+	// The lesson on files (`{filesLesson}`): a practice quiz with its answer key, problem 1 done and problem 2 open as its page.
+	{ name: "Lesson on files as it opens", url: "/chat/{filesLesson}", ready: "[data-testid=page-piece] img" },
+	{
+		name: "Lesson on files with the Document panel open",
+		url: "/chat/{filesLesson}",
+		ready: "[data-testid=page-piece] img",
+		setup: `document.querySelector("[data-testid=lesson-document]").click(); ${pause}; localStorage.removeItem("lh:sheet-dock:{filesLesson}")`,
+		shows: "[data-testid=document-dock]:has([data-testid=document-dock-pick]) [data-testid=document-box]",
+	},
+	{
+		name: "Lesson on files with the answer key in the Document panel",
+		url: "/chat/{filesLesson}",
+		ready: "[data-testid=page-piece] img",
+		setup: `document.querySelector("[data-testid=lesson-document]").click(); ${whenThere("[data-testid=document-dock-pick]")};
+const pick = document.querySelector("select[data-testid=document-dock-pick]");
+Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set.call(pick, pick.options[1].value);
+pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStorage.removeItem("lh:sheet-dock:{filesLesson}")`,
+		shows: "[data-testid=document-pages] [data-testid=document-page]:only-child img",
 	},
 	{ name: "Lesson with two steps, a sheet for each", url: "/chat/{twoSheets}", ready: "[data-testid=lesson-sheet] ~ [data-testid=lesson-sheet] [data-testid=sheet-step]" },
 	{ name: "Lesson with two steps beside the teacher's panel", url: "/chat/{twoSheets}", ready: "[data-testid=lesson-sheet] ~ [data-testid=lesson-sheet] [data-testid=sheet-step]", setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },

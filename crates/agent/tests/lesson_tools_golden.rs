@@ -13,7 +13,7 @@ use gs_agent::tools::space::{SpaceSearch, SpaceToolContext};
 use gs_agent::tools::fn_tool::FnTool;
 use gs_agent::tools::space_actions::SpaceActions;
 use gs_agent::tools::graph::SearchGraph;
-use gs_agent::tools::homework::{HomeworkDeadline, HomeworkToolContext, homework_tools};
+use gs_agent::tools::homework::{ProblemList, HomeworkToolContext, homework_tools};
 use gs_agent::tools::jobs::JobToolContext;
 use gs_agent::tools::lesson_parts::LessonParts;
 use gs_agent::tools::lesson::{ProberToolContext, StudyToolContext, TeacherToolContext, prober_tools, study_tools, teacher_tools};
@@ -54,11 +54,12 @@ fn no_pages() -> Arc<dyn ProblemPages> {
 }
 
 const FILE_TOOLS: [&str; 4] = ["read", "ls", "find", "grep"];
-const KINDS: [(&str, AgentKind); 5] = [
+const KINDS: [(&str, AgentKind); 6] = [
 	("prober", AgentKind::Prober),
 	("teacher", AgentKind::Teacher),
 	("practice", AgentKind::Practice),
 	("study", AgentKind::Study),
+	("studyFiles", AgentKind::StudyFiles),
 	("homework", AgentKind::Homework),
 ];
 
@@ -157,7 +158,7 @@ impl Deadline {
 	}
 }
 
-impl HomeworkDeadline for Deadline {
+impl ProblemList for Deadline {
 	fn problems(&self) -> Vec<Json> {
 		self.problems.lock().clone()
 	}
@@ -173,6 +174,27 @@ impl HomeworkDeadline for Deadline {
 
 	fn mark_done(&self, number: &str) {
 		self.done.lock().push(number.to_owned());
+	}
+}
+
+/// A lesson on files' list: its first file's.
+struct FirstFile(Arc<Deadline>);
+
+impl ProblemList for FirstFile {
+	fn problems(&self) -> Vec<Json> {
+		self.0.problems()
+	}
+
+	fn post(&self, problems: &[Json]) -> Option<String> {
+		self.0.post(problems)
+	}
+
+	fn mark_done(&self, number: &str) {
+		self.0.mark_done(number);
+	}
+
+	fn file_id(&self) -> Option<String> {
+		Some("f_test".to_owned())
 	}
 }
 
@@ -437,7 +459,7 @@ fn agents(prompts: &PromptOverrides) -> Json {
 	let rules = || Some("The learner's rules:\n- Use Python.".to_owned());
 	let off = || json!({ "research": false, "pdf": false });
 	let teacher = || TeacherToolContext { plan: w.plan("lesson"), jobs: w.jobs("lesson"), side: w.side() };
-	let study = StudyToolContext { teacher: teacher(), graph_nodes: Some(nodes_of(Vec::new())), check_marks: marks_kept(), pages: no_pages(), writes_plan: false };
+	let study = StudyToolContext { teacher: teacher(), graph_nodes: Some(nodes_of(Vec::new())), check_marks: marks_kept(), pages: no_pages(), writes_plan: false, problems: None };
 	let deadline = Deadline::new(Vec::new());
 	let explicit: Vec<Arc<dyn Tool>> = bare_question_tools().into_iter().map(FnTool::into_arc).collect();
 	json!({
@@ -483,8 +505,9 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	let mut prober_full = w.prober("lesson");
 	prober_full.side = w.side();
 	let teacher_full = TeacherToolContext { side: w.side(), ..w.teacher("lesson") };
-	let study_ctx = StudyToolContext { teacher: teacher_full.clone(), graph_nodes: Some(nodes_of(vec![json!({ "id": "n_a", "name": "Alpha" })])), check_marks: marks_kept(), pages: no_pages(), writes_plan: false };
+	let study_ctx = StudyToolContext { teacher: teacher_full.clone(), graph_nodes: Some(nodes_of(vec![json!({ "id": "n_a", "name": "Alpha" })])), check_marks: marks_kept(), pages: no_pages(), writes_plan: false, problems: None };
 	let study_planning = StudyToolContext { writes_plan: true, ..study_ctx.clone() };
+	let study_files = StudyToolContext { writes_plan: true, problems: Some(Arc::new(FirstFile(Deadline::new(Vec::new())))), ..study_ctx.clone() };
 	let practice_full = PracticeToolContext { graph_nodes: Some(nodes_of(Vec::new())), jobs: Some(w.jobs("lesson")), side: w.side(), ..w.practice("lesson") };
 	let homework_full = HomeworkToolContext { jobs: Some(w.jobs("lesson")), side: w.side(), ..w.homework("lesson", Deadline::new(Vec::new())) };
 
@@ -496,6 +519,7 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	case("registry: teacher free recall and toggles", describe(&teacher_tools(&teacher_full, Some(&json!({ "explain": true, "demo": false, "visual": false })))));
 	case("registry: study full", describe(&study_tools(&study_ctx, None, &LessonParts::new(&study_ctx.teacher.plan))));
 	case("registry: study writing its plan", describe(&study_tools(&study_planning, None, &LessonParts::new(&study_planning.teacher.plan))));
+	case("registry: study on files", describe(&study_tools(&study_files, None, &LessonParts::new(&study_files.teacher.plan))));
 	case("registry: practice minimal", describe(&practice_tools(&w.practice("lesson"), None)));
 	case("registry: practice full", describe(&practice_tools(&practice_full, Some(&json!({ "pdf": false })))));
 	case("registry: homework full", describe(&homework_tools(&homework_full, None)));
@@ -692,7 +716,7 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	.collect();
 	let out = script(&reg, vec![("problem", with(&problem_args(), vec![("target", json!(["unknown"]))])), ("problem", with(&problem_args(), vec![("target", json!(["n_a"]))]))]).await;
 	case("practice: targets", json!({ "prepared": prepared, "out": out }));
-	let study_ctx = StudyToolContext { teacher: w.teacher("lesson"), graph_nodes: Some(nodes_of(Vec::new())), check_marks: marks_kept(), pages: no_pages(), writes_plan: false };
+	let study_ctx = StudyToolContext { teacher: w.teacher("lesson"), graph_nodes: Some(nodes_of(Vec::new())), check_marks: marks_kept(), pages: no_pages(), writes_plan: false, problems: None };
 	let reg = study_tools(&study_ctx, None, &LessonParts::new(&study_ctx.teacher.plan));
 	case(
 		"practice: study problem",

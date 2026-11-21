@@ -24,7 +24,7 @@ import {
 	zoomLabel,
 	zoomStep,
 } from "../../src/frontend/components/cheat-sheet/canvas-model.ts";
-import { DOCK_MIN_W, dockWidth, makeTarget, parseDockState, pickSheet } from "../../src/frontend/components/cheat-sheet/dock-model.ts";
+import { makeTarget, pickSheet } from "../../src/frontend/components/cheat-sheet/dock-model.ts";
 
 type SheetPage = Parameters<typeof pageSizeLabel>[0][number];
 const A4: SheetPage = { widthPt: 595.28, heightPt: 841.89 };
@@ -162,14 +162,5 @@ describe("cheat sheet: beside a session", () => {
 		assert.equal(makeTarget([card("quiz", false), card("mid", false)], "mid"), "mid");
 		assert.equal(makeTarget([card("old", false, true), card("quiz", false)], undefined), "quiz");
 		assert.equal(makeTarget([], "mid"), null);
-	});
-
-	it("remembers whether it is open and which sheet, and keeps a width the session can live beside", () => {
-		assert.deepEqual(parseDockState('{"open":true,"deadlineId":"ddl_1"}'), { open: true, deadlineId: "ddl_1" });
-		assert.deepEqual(parseDockState("nope"), { open: false });
-		assert.deepEqual(parseDockState(null), { open: false });
-		assert.equal(dockWidth(900, 1440), 440);
-		assert.equal(dockWidth(100, 1200), DOCK_MIN_W);
-		assert.equal(dockWidth(500.4, 1600), 500);
 	});
 });
