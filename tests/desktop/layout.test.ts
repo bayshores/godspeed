@@ -5,7 +5,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, scrolledWords, SCROLL_TO, snapName, standInAgent } from "../../scripts/layout.mjs";
 import { cross, cutOf, inkOf, lineBox, linesOf, meet, offGap, offInset, outside, probes, roomUnder, scrollerClip, sticksOut, tightPad, tooWide } from "../../scripts/layout-page.mjs";
-import { workOf } from "../../scripts/layout-seed.mjs";
+import { PLAN_ORDER_SENT_BACK, workOf } from "../../scripts/layout-seed.mjs";
 import { SCREENS } from "../../scripts/layout-screens.mjs";
 
 const box = (left: number, top: number, right: number, bottom: number) => ({ left, top, right, bottom });
@@ -211,6 +211,11 @@ describe("the stand-in agent", () => {
 		const text = '{"status":"work","workId":"work_1","lessonId":"chat_lab","lessonTitle":"Slope","kind":"lesson","tools":[{"name":"x"';
 		assert.deepEqual(workOf(text), { lessonId: "chat_lab", task: undefined, text });
 		assert.equal(workOf('{"status":"work","workId":"w","kind":"background task","task":"Graph extraction: a.md"}').task, "Graph extraction: a.md");
+	});
+
+	it("knows the server's words for a card it sends back for plan order", () => {
+		const server = fs.readFileSync(new URL("../../crates/agent/src/tools/questions.rs", import.meta.url), "utf-8");
+		assert.ok(server.includes(PLAN_ORDER_SENT_BACK));
 	});
 });
 
