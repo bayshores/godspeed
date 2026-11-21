@@ -6,12 +6,15 @@
 //!     spaceId, path (relative to the vault),
 //!     keys, sections                                     what godspeed last wrote (note_record)
 //!     kinds: [mistake kinds already written],
+//!     mistakeIds: [mistakes already sent to a note],
+//!     words: true once "My words" is written, skips: how many asks were skipped,
 //!     recall                                             the note's recall question
 //!     state: active | yours | kept | removed,
 //!     pending                                            the write_vault_note request waiting for the vault
 //! } }
 //! keyUpdates: { <space id>: "2026-11-20" }               the last key-only update of a space
-//! asks:       { <lesson id>: [topic id] }                "My words" asks still owed
+//! asks:       { <lesson id>: [topic id] }                "My words" asks of a lesson end
+//! passes:     { <lesson id>: "2026-11-20T10:00:00Z" }    when a lesson's answers were last sent to the teacher
 //! ```
 //!
 //! Lock order: settings.json first, then this file; code holding this file never reads settings.
@@ -26,7 +29,7 @@ use gs_json::{Json, Obj};
 use crate::app_file::AppFile;
 
 const FILE: &str = "vault-notes.json";
-const MAPS: [&str; 4] = ["folders", "notes", "keyUpdates", "asks"];
+const MAPS: [&str; 5] = ["folders", "notes", "keyUpdates", "asks", "passes"];
 
 pub struct VaultNotesStore {
 	file: AppFile,
@@ -47,7 +50,7 @@ impl VaultNotesStore {
 		VaultNotesStore { file: AppFile::new(paths, locks, FILE, 1), path: paths.data.join(FILE) }
 	}
 
-	/// The saved record: an object holding `folders`, `notes`, `keyUpdates` and `asks`.
+	/// The saved record: an object holding `folders`, `notes`, `keyUpdates`, `asks` and `passes`.
 	pub fn read(&self) -> Json {
 		with_maps(&self.file.read())
 	}
@@ -85,9 +88,9 @@ mod tests {
 	}
 
 	#[test]
-	fn a_missing_file_reads_as_four_empty_maps_and_an_update_saves_with_the_version() {
+	fn a_missing_file_reads_as_five_empty_maps_and_an_update_saves_with_the_version() {
 		let (store, data) = store();
-		assert_eq!(stringify(&store.read()), r#"{"folders":{},"notes":{},"keyUpdates":{},"asks":{}}"#);
+		assert_eq!(stringify(&store.read()), r#"{"folders":{},"notes":{},"keyUpdates":{},"asks":{},"passes":{}}"#);
 		store
 			.update(|r| {
 				r.get_mut("folders").unwrap().set("spc_a", "CSE 21");
@@ -104,7 +107,7 @@ mod tests {
 	fn a_damaged_file_is_kept_aside_and_never_overwritten() {
 		let (store, data) = store();
 		fsx::write_text_atomic(&data.join("vault-notes.json"), "{ not json").unwrap();
-		assert_eq!(stringify(&store.read()), r#"{"folders":{},"notes":{},"keyUpdates":{},"asks":{}}"#);
+		assert_eq!(stringify(&store.read()), r#"{"folders":{},"notes":{},"keyUpdates":{},"asks":{},"passes":{}}"#);
 		assert_eq!(asides(&data).len(), 1);
 		assert_eq!(std::fs::read_to_string(data.join(&asides(&data)[0])).unwrap(), "{ not json");
 		store
@@ -123,7 +126,7 @@ mod tests {
 		fsx::write_text_atomic(&data.join("vault-notes.json"), "[1, 2]").unwrap();
 		store.update(|_| Ok(())).unwrap();
 		assert_eq!(std::fs::read_to_string(data.join(&asides(&data)[0])).unwrap(), "[1, 2]");
-		assert_eq!(stringify(&store.read()), r#"{"folders":{},"notes":{},"keyUpdates":{},"asks":{}}"#);
+		assert_eq!(stringify(&store.read()), r#"{"folders":{},"notes":{},"keyUpdates":{},"asks":{},"passes":{}}"#);
 		let _ = std::fs::remove_dir_all(data.parent().unwrap());
 	}
 

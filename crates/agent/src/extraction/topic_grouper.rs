@@ -11,7 +11,9 @@ use gs_core::graph::topics::{TopicDraft, repair_topics, topic_name_problem};
 use gs_engine::bridge::Bridge;
 use gs_engine::turn::abort::Abort;
 use gs_engine::turn::faux::Engine;
+use gs_engine::turn::tool::Tool;
 use gs_json::{Json, json, stringify_pretty};
+use std::sync::Arc;
 
 use super::submit_agent::{SubmitAgentOptions, run_submit_agent};
 use crate::subagents::pi_run::RunError;
@@ -49,6 +51,15 @@ fn submit_schema() -> Json {
 	})
 }
 
+/// A lesson's notes riding the grouping item, so one agent turn serves both.
+pub struct RidingNotes {
+	/// The notes block.
+	pub block: String,
+	pub tool: Arc<dyn Tool>,
+	/// One write per topic, plus the grouping's own turns.
+	pub topics: usize,
+}
+
 pub struct TopicGrouperInput {
 	/// The space's display name (prompt and work-item label).
 	pub space_name: String,
@@ -60,6 +71,7 @@ pub struct TopicGrouperInput {
 	/// None: the outside agent.
 	pub engine: Option<Engine>,
 	pub abort: Option<Abort>,
+	pub notes: Option<RidingNotes>,
 }
 
 
@@ -105,8 +117,19 @@ fn drafts(submitted: &Json) -> Vec<TopicDraft> {
 
 /// Asks the model for a grouping, then repairs it so every current fact is in exactly one topic.
 pub async fn group_topics(bridge: &Bridge, input: TopicGrouperInput) -> Result<Vec<Json>, RunError> {
-	let prompt = topic_grouper_prompt(&input.space_name, &input.facts, &input.current);
-	let mut opts = SubmitAgentOptions::new("submit_topics", "Submit the full topic grouping for the space's facts.", submit_schema(), topic_grouper_instructions(), Json::from(prompt), "the topic grouper never submitted topics");
+	let mut prompt = topic_grouper_prompt(&input.space_name, &input.facts, &input.current);
+	let mut instructions = topic_grouper_instructions();
+	let mut lookups: Vec<Arc<dyn Tool>> = Vec::new();
+	let mut max_turns = None;
+	if let Some(notes) = input.notes {
+		prompt = format!("{prompt}\n\n{}", notes.block);
+		instructions.push_str("\n\nThe prompt ends with a [Vault notes] block. Write its notes with write_vault_note first, then submit the grouping.");
+		lookups.push(notes.tool);
+		max_turns = Some(notes.topics + 6);
+	}
+	let mut opts = SubmitAgentOptions::new("submit_topics", "Submit the full topic grouping for the space's facts.", submit_schema(), instructions, Json::from(prompt), "the topic grouper never submitted topics");
+	opts.lookups = lookups;
+	opts.max_turns = max_turns;
 	opts.task_label = Some(format!("Topic grouping: {}", input.space_name));
 	opts.validate = Some(Box::new(|value| {
 		let problem = grouping_problem(value);

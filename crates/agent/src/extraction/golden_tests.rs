@@ -163,6 +163,7 @@ async fn the_pipeline_and_the_topic_grouper_match_node() {
 	]);
 	let requests = script(&host, &topic_replies, "submit_topics");
 	let input = TopicGrouperInput {
+		notes: None,
 		space_name: "Algorithms".into(),
 		facts: facts.clone(),
 		chains: graph.chains.clone(),

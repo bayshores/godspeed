@@ -134,6 +134,11 @@ impl Sections {
 		Some(hash(&self.chunks[self.at(kind)?].text))
 	}
 
+	/// The section as it stands, without the blank lines after it.
+	pub fn text_of(&self, kind: Kind) -> Option<String> {
+		Some(self.chunks[self.at(kind)?].text.trim_end().to_owned())
+	}
+
 	/// The list lines of a section, without its heading.
 	pub fn list_lines(&self, kind: Kind) -> Vec<String> {
 		let Some(at) = self.at(kind) else { return Vec::new() };

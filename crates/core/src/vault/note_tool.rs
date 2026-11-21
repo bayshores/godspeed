@@ -11,3 +11,7 @@ pub const SEARCH_DEFAULT_LIMIT: usize = 8;
 pub const SEARCH_MAX_LIMIT: usize = 30;
 /// A whole note read with `path` is cut here.
 pub const WHOLE_NOTE_CHARS: usize = 20_000;
+/// Most "My words" asks at one lesson end.
+pub const ASKS_MAX: usize = 3;
+/// The longest "My words" the learner types.
+pub const WORDS_MAX: usize = 600;

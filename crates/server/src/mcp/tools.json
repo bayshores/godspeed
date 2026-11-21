@@ -1197,6 +1197,10 @@
 					"items": {
 						"type": "object",
 						"properties": {
+							"id": {
+								"type": "string",
+								"description": "The id the notes block gave this mistake. Leave it out for a mistake you add yourself."
+							},
 							"text": {
 								"type": "string",
 								"minLength": 1,
@@ -1233,7 +1237,11 @@
 				"covered_by": {
 					"type": "string",
 					"minLength": 1,
-					"description": "The path of one of the learner's own notes that already covers the idea, from search_vault. Send nothing else with it."
+					"description": "The path of one of the learner's own notes that already covers the idea, from search_vault, or of a kept note the block listed (it then becomes this topic's note). Send nothing else with it."
+				},
+				"asked": {
+					"type": "boolean",
+					"description": "true only when the learner asked for this note now (Note this): then a note the learner removed is written again."
 				}
 			},
 			"required": [

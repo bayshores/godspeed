@@ -4,8 +4,9 @@
 
 use std::path::Path;
 
-use gs_base::fsx;
+use gs_base::{clock, fsx};
 use gs_core::vault::frontmatter::{Doc, scalar_block};
+use gs_core::spaces::today_note::local_day;
 use gs_core::vault::note_keys::OWNER_KEY;
 use gs_core::vault::note_record::NoteState;
 use gs_json::{Json, json};
@@ -24,7 +25,7 @@ pub fn minute_check(app: &App) {
 		return;
 	}
 	let mut changed = false;
-	for step in [follow_files, take_over_kept, write_waiting] {
+	for step in [follow_files, take_over_kept, write_waiting, refresh_keys] {
 		match step(app) {
 			Ok(did) => changed |= did,
 			Err(err) => log("check", &err),
@@ -141,6 +142,47 @@ fn write_waiting(app: &App) -> Result<bool, String> {
 		}
 	}
 	Ok(!waiting.is_empty())
+}
+
+/// Once a day per space, the notes it has are written again with no new words, so their
+/// `confidence`, `next_review` and `test` follow the record. A note whose file is gone is left
+/// for `follow_files`. A review the learner answered asks for it again the same day.
+fn refresh_keys(app: &App) -> Result<bool, String> {
+	let Some(vault) = super::setup::setting(app)?.path else { return Ok(false) };
+	let today = local_day(clock::now_ms());
+	let record = app.stores.vault_notes.read();
+	let mut wrote = false;
+	for space in app.stores.spaces.list_space_records().iter().filter(|s| !s["closed"].truthy()) {
+		let space_id = space["id"].str_or_empty();
+		if record["keyUpdates"][space_id].as_str() == Some(today.as_str()) {
+			continue;
+		}
+		let due: Vec<&str> = record["notes"].as_obj().into_iter().flatten().filter(|(_, n)| n["spaceId"].as_str() == Some(space_id) && n["pending"].is_null() && matches!(NoteState::parse(n["state"].str_or_empty()), Some(NoteState::Active | NoteState::Kept)) && n["path"].as_str().is_some_and(|p| Path::new(&vault).join(p).is_file())).map(|(topic, _)| topic.as_str()).collect();
+		for topic in due {
+			if let Err(why) = write_vault_note(app, &json!({ "space_id": space_id, "topic_id": topic })) {
+				log(&format!("keys of {topic} not refreshed"), &why);
+			}
+			wrote = true;
+		}
+		app.stores.vault_notes.update(|rec| {
+			rec.get_mut("keyUpdates").and_then(Json::as_obj_mut).ok_or("vault-notes.json has no keyUpdates.")?.insert(space_id, today.as_str());
+			Ok(())
+		})?;
+	}
+	Ok(wrote)
+}
+
+/// A review was answered: the space's notes get their keys again at the next check.
+pub fn reviewed(app: &App, space_id: &str) {
+	let cleared = app.stores.vault_notes.update(|rec| {
+		if let Some(days) = rec.get_mut("keyUpdates").and_then(Json::as_obj_mut) {
+			days.remove(space_id);
+		}
+		Ok(())
+	});
+	if let Err(why) = cleared {
+		log("review not marked", &why);
+	}
 }
 
 #[cfg(test)]

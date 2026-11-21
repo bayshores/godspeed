@@ -6,6 +6,7 @@ mod index;
 mod lesson_tool;
 mod maintain;
 mod notes_list;
+mod pass;
 mod search;
 mod setup;
 mod source;
@@ -23,11 +24,12 @@ use crate::App;
 use index::VaultReader;
 
 pub use lesson_tool::lesson_vault_tool;
-pub use maintain::minute_check;
+pub use maintain::{minute_check, reviewed};
 pub use notes_list::space_vault_notes;
+pub use pass::{Ask, AskReply, PassState, Taken, answer_ask, catch_up, lesson_left, lesson_vault_notes, queue_lesson, send_waiting, take_for_grouping};
 pub use search::search_vault;
 pub use setup::{change_vault, retry_vault, vault_status};
-pub use write::{picked_vault, write_vault_note};
+pub use write::{picked_vault, write_vault_note, write_vault_words};
 
 pub const NO_VAULT: &str = "No vault picked. The learner picks one in Settings.";
 
@@ -35,6 +37,7 @@ pub const NO_VAULT: &str = "No vault picked. The learner picks one in Settings."
 #[derive(Default)]
 pub struct VaultState {
 	reader: Mutex<Option<VaultReader>>,
+	pass: PassState,
 }
 
 /// Why the vault cannot be used now.

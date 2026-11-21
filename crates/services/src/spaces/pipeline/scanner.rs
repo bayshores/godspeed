@@ -48,6 +48,7 @@ pub fn start_space_scanner(app: &Arc<App>) {
 				}
 			}
 			crate::vault::minute_check(&timer);
+			crate::vault::send_waiting(&timer);
 		}
 	});
 	let startup = app.clone();

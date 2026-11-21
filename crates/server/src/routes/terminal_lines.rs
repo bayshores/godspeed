@@ -41,7 +41,10 @@ async fn talk_page(State(app): State<Arc<App>>, body: Body) -> Result<Response, 
 		}
 		Some(_) => return Ok(error(400, "path must be an app path")),
 	};
+	let was = app.bridge.window_page().map(|w| w.path);
+	let now = window.as_ref().map(|w| w.path.clone());
 	app.bridge.set_talk_page(page, window);
+	gs_services::vault::lesson_left(&app, was.as_deref(), now.as_deref());
 	Ok(reply::ok())
 }
 

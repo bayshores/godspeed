@@ -130,6 +130,7 @@ async fn group_once(app: &Arc<App>, space_id: &str) -> Result<(), String> {
 
 	let run_key = topic_run_key(space_id);
 	let abort = runs(app).start_background_graph_run(&app.events, &run_key, &format!("Topic grouping: {space_name}"));
+	let taken = crate::vault::take_for_grouping(app, space_id).await;
 	let current: Vec<Json> = resolve_topics(last.as_ref(), &fact_ids).into_iter().filter(|t| !t["ungrouped"].truthy()).collect();
 	let input = TopicGrouperInput {
 		space_name: space_name.to_owned(),
@@ -138,8 +139,12 @@ async fn group_once(app: &Arc<App>, space_id: &str) -> Result<(), String> {
 		current,
 		engine: None,
 		abort: Some(abort.clone()),
+		notes: taken.as_ref().map(|t| t.riding()),
 	};
 	let grouped = with_bg_llm_slot(&app.graph.bg_llm, Some(&abort), || group_topics(&app.bridge, input)).await;
+	if let Some(taken) = taken {
+		taken.done(app, matches!(grouped, Ok(Ok(_))));
+	}
 	// The space lock: a space delete that stopped this run finishes before the run ends.
 	let _guard = app.locks.lock(LockKey::Space(space_id));
 	let result = match grouped {

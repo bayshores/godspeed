@@ -10,10 +10,10 @@ use gs_base::{clock, fsx};
 use gs_core::spaces::space_shortcuts::{safe_entry_name, unique_name};
 use gs_core::spaces::today_note::{day_label, local_day};
 use gs_core::vault::base_file::base_text;
-use gs_core::vault::frontmatter::{Doc, Owner};
+use gs_core::vault::frontmatter::{Doc, Owner, scalar_block};
 use gs_core::vault::mistakes::{MAX_KINDS, Mistake, line_kind};
 use gs_core::vault::note_file::{self, Merged, NoteData, Source, note_name};
-use gs_core::vault::note_keys::confidence_word;
+use gs_core::vault::note_keys::{OWNER_KEY, confidence_word};
 use gs_core::vault::note_record::{NoteState, written_fields, written_of};
 use gs_core::vault::note_tool::{LINKS_MAX, MISTAKE_KIND_MAX, MISTAKE_TEXT_MAX, RECALL_MAX, TEXT_MAX, TITLE_MAX};
 use gs_core::vault::sections::{Kind, Sections};
@@ -35,9 +35,15 @@ struct Request {
 	text: Option<String>,
 	recall: Option<String>,
 	mistakes: Vec<(String, String)>,
+	/// The ids the notes block gave the mistakes, so a later block leaves them out.
+	mistake_ids: Vec<String>,
 	source: Option<String>,
 	links: Vec<String>,
 	covered_by: Option<String>,
+	/// The learner asked for this note, so a note they removed is written again.
+	asked: bool,
+	/// Typed at a lesson end; the tools cannot send it.
+	words: Option<String>,
 }
 
 fn limited(args: &Json, key: &str, max: usize) -> Result<Option<String>, String> {
@@ -58,6 +64,7 @@ impl Request {
 		if mistakes.len() > MAX_KINDS {
 			return Err(format!("Send at most {MAX_KINDS} mistakes."));
 		}
+		let mistake_ids = args["mistakes"].items().iter().filter_map(|m| m["id"].as_str().filter(|id| !id.is_empty()).map(str::to_owned)).collect();
 		let links: Vec<String> = args["links"].items().iter().filter_map(|l| l.as_str().map(str::to_owned)).collect();
 		if links.len() > LINKS_MAX {
 			return Err(format!("Link at most {LINKS_MAX} notes."));
@@ -69,9 +76,12 @@ impl Request {
 			text: limited(args, "text", TEXT_MAX)?,
 			recall: limited(args, "recall", RECALL_MAX)?,
 			mistakes,
+			mistake_ids,
 			source: args["source"].as_str().filter(|s| !s.is_empty()).map(str::to_owned),
 			links,
 			covered_by: args["covered_by"].as_str().filter(|s| !s.is_empty()).map(str::to_owned),
+			asked: args["asked"].truthy(),
+			words: None,
 		};
 		let alongside = request.title.is_some() || request.text.is_some() || request.recall.is_some() || !request.mistakes.is_empty() || request.source.is_some() || !request.links.is_empty();
 		if request.covered_by.is_some() && alongside {
@@ -86,12 +96,20 @@ pub fn picked_vault(app: &App) -> bool {
 	super::setup::setting(app).is_ok_and(|s| s.path.is_some())
 }
 
+#[derive(PartialEq)]
+enum Covered {
+	Learner,
+	/// Handed over with `godspeed: keep`.
+	Kept,
+	Godspeed,
+}
+
 /// What is read from the vault before its record is locked.
 struct Seen {
 	/// The note whose `godspeed` key names the topic, wherever it is now.
 	found: Option<String>,
-	/// A note of the learner's at `covered_by`: Some(true) when it is not godspeed's.
-	covered: Option<bool>,
+	/// Whose note is at `covered_by`.
+	covered: Option<Covered>,
 	has_space_note: bool,
 	taken_files: HashSet<String>,
 	link_names: HashSet<String>,
@@ -134,7 +152,19 @@ enum Outcome {
 /// Writes the note for `args` and answers `{status, name, path, confidence, next_review?, kept?}`.
 /// `status` is written, updated, linked or waiting.
 pub fn write_vault_note(app: &App, args: &Json) -> Result<Json, String> {
-	let req = Request::parse(args)?;
+	write_request(app, Request::parse(args)?, args)
+}
+
+/// Writes what the learner typed at a lesson end as the note's "My words". Answers like
+/// `write_vault_note`.
+pub fn write_vault_words(app: &App, space_id: &str, topic_id: &str, words: &str) -> Result<Json, String> {
+	let args = json!({ "space_id": space_id, "topic_id": topic_id });
+	let mut req = Request::parse(&args)?;
+	req.words = Some(words.to_owned());
+	write_request(app, req, &args)
+}
+
+fn write_request(app: &App, req: Request, args: &Json) -> Result<Json, String> {
 	let setting = super::setup::setting(app)?;
 	let vault = setting.path.ok_or(NO_VAULT)?;
 	let space = app.stores.spaces.get_space(&req.space_id).ok_or_else(|| no_space_text(&req.space_id))?;
@@ -150,7 +180,11 @@ pub fn write_vault_note(app: &App, args: &Json) -> Result<Json, String> {
 	let seen = match rescan(app) {
 		Ok(_) => with_reader(app, |r| Seen {
 			found: r.path_of_topic(&topic.id).map(str::to_owned),
-			covered: req.covered_by.as_deref().and_then(|p| r.note(p)).map(|n| n.owner.is_none()),
+			covered: req.covered_by.as_deref().and_then(|p| r.note(p)).map(|n| match n.owner {
+				None => Covered::Learner,
+				Some(Owner::Keep) => Covered::Kept,
+				Some(Owner::Topic(_)) => Covered::Godspeed,
+			}),
 			has_space_note: !r.paths_named(&space_name).is_empty(),
 			taken_files: r.file_names(),
 			link_names: r.names(),
@@ -198,7 +232,7 @@ fn place(app: &App, vault: &Path, req: &Request, space_name: &str, note_title: &
 		}
 	}
 	if let Some(path) = &req.covered_by
-		&& seen.covered != Some(true)
+		&& !matches!(seen.covered, Some(Covered::Learner | Covered::Kept))
 	{
 		return Err(format!("covered_by must be the path of one of the learner's notes, and {path} is not."));
 	}
@@ -216,25 +250,31 @@ fn place(app: &App, vault: &Path, req: &Request, space_name: &str, note_title: &
 		mistakes: req.mistakes.iter().map(|(kind, text)| Mistake { kind: kind.clone(), text: text.clone(), date: today_label() }).collect(),
 		links: req.links.clone(),
 		source,
-		words: None,
+		words: req.words.clone(),
 	};
 	app.stores.vault_notes.update(|rec| {
 		let existing = rec["notes"][req.topic_id.as_str()].clone();
 		let state = NoteState::parse(existing["state"].str_or_empty()).unwrap_or(NoteState::Active);
-		if state == NoteState::Removed {
+		if state == NoteState::Removed && !req.asked {
 			return Ok(Outcome::Refused(REMOVED.to_owned()));
 		}
 		let recorded = existing["path"].as_str().map(str::to_owned);
-		let current = seen.found.clone().or_else(|| recorded.clone().filter(|p| vault.join(p).is_file()));
+		let mut current = seen.found.clone().or_else(|| recorded.clone().filter(|p| vault.join(p).is_file()));
+		let mut handed = false;
 		if let Some(covered) = &req.covered_by {
 			if current.is_some() {
 				return Ok(Outcome::Refused("This topic already has a note, so it cannot be marked as covered.".to_owned()));
 			}
-			save_note(rec, req, covered, NoteState::Yours, None, None);
-			return Ok(Outcome::Done(answer("linked", covered, topic, &[])));
+			if seen.covered == Some(Covered::Kept) {
+				hand_over(vault, covered, &req.topic_id)?;
+				(current, handed) = (Some(covered.clone()), true);
+			} else {
+				save_note(rec, req, covered, NoteState::Yours, None, None);
+				return Ok(Outcome::Done(answer("linked", covered, topic, &[])));
+			}
 		}
 		let Some(rel) = current else {
-			if let Some(gone) = recorded {
+			if let Some(gone) = recorded.filter(|_| !req.asked) {
 				if is_icloud_placeholder(vault, &gone) {
 					return Ok(Outcome::Waits);
 				}
@@ -248,7 +288,7 @@ fn place(app: &App, vault: &Path, req: &Request, space_name: &str, note_title: &
 		let text = fsx::read_text(&vault.join(&rel)).map_err(|e| format!("The note {rel} could not be read: {e}"))?;
 		let last = written_of(&existing);
 		let doc_owner = Doc::parse(&text).owner();
-		let kept = state == NoteState::Kept;
+		let kept = state == NoteState::Kept || handed;
 		let merged = match doc_owner {
 			None => {
 				save_note(rec, req, &rel, NoteState::Yours, None, Some(&text));
@@ -265,6 +305,14 @@ fn place(app: &App, vault: &Path, req: &Request, space_name: &str, note_title: &
 		left.extend(merged.kept_sections.iter().cloned());
 		Ok(Outcome::Done(answer("updated", &rel, topic, &left)))
 	})
+}
+
+/// A note handed over with `godspeed: keep` gets the topic's id in place of `keep`.
+fn hand_over(vault: &Path, rel: &str, topic_id: &str) -> Result<(), String> {
+	let file = vault.join(rel);
+	let mut doc = Doc::parse(&fsx::read_text(&file).map_err(|e| format!("The note {rel} could not be read: {e}"))?);
+	doc.set_block(OWNER_KEY, &scalar_block(OWNER_KEY, topic_id));
+	fsx::write_text_atomic(&file, &doc.render()).map_err(|e| io_failure(&e))
 }
 
 /// File names of the notes godspeed recorded, for `links` to the notes of the same lesson.
@@ -321,6 +369,18 @@ fn save_note(rec: &mut Json, req: &Request, rel: &str, state: NoteState, merged:
 	}
 	if let Some(recall) = &req.recall {
 		note.set("recall", recall.as_str());
+	}
+	if !req.mistake_ids.is_empty() {
+		let mut ids: Vec<String> = note["mistakeIds"].items().iter().filter_map(|id| id.as_str().map(str::to_owned)).collect();
+		for id in &req.mistake_ids {
+			if !ids.contains(id) {
+				ids.push(id.clone());
+			}
+		}
+		note.set("mistakeIds", Json::Arr(ids.into_iter().map(Json::from).collect()));
+	}
+	if req.words.is_some() {
+		note.set("words", true);
 	}
 	if let Some(fields) = note.as_obj_mut() {
 		fields.remove("pending");
@@ -423,6 +483,47 @@ mod tests {
 		assert_eq!(why, REMOVED);
 		assert_eq!(fx.app.stores.vault_notes.read()["notes"]["t1"]["state"].as_str(), Some("removed"));
 		assert!(!fx.vault.join("CSE 21/Binary search.md").exists());
+	}
+
+	#[test]
+	fn asked_writes_a_removed_note_again() {
+		let fx = Fixture::new(&[("t1", "Binary search")]);
+		write_vault_note(&fx.app, &fx.request("t1", json!({ "text": "x" }))).unwrap();
+		std::fs::remove_file(fx.vault.join("CSE 21/Binary search.md")).unwrap();
+		write_vault_note(&fx.app, &fx.request("t1", json!({ "text": "again" }))).unwrap_err();
+		let answer = write_vault_note(&fx.app, &fx.request("t1", json!({ "text": "again", "asked": true }))).unwrap();
+		assert_eq!(answer["status"].as_str(), Some("written"));
+		assert_eq!(fx.app.stores.vault_notes.read()["notes"]["t1"]["state"].as_str(), Some("active"));
+	}
+
+	#[test]
+	fn a_kept_note_no_name_matched_becomes_the_topics_note_when_the_teacher_covers_it() {
+		let fx = Fixture::new(&[("t1", "Binary search")]);
+		fx.write("Mine/Halving.md", "---\ngodspeed: keep\n---\nMy own words.\n");
+		super::super::rescan(&fx.app).unwrap();
+		let answer = write_vault_note(&fx.app, &fx.request("t1", json!({ "covered_by": "Mine/Halving.md" }))).unwrap();
+		assert_eq!((answer["status"].as_str(), answer["path"].as_str()), (Some("updated"), Some("Mine/Halving.md")));
+		let text = fx.read("Mine/Halving.md");
+		assert!(text.contains("godspeed: t1") && !text.contains("godspeed: keep") && text.contains("My own words."), "{text}");
+		assert_eq!(fx.app.stores.vault_notes.read()["notes"]["t1"]["state"].as_str(), Some("kept"));
+	}
+
+	#[test]
+	fn the_mistake_ids_sent_are_remembered_once() {
+		let fx = Fixture::new(&[("t1", "Binary search")]);
+		let mistakes = json!([{ "id": "m1a2b3c", "kind": "Off by one", "text": "Used < for <=." }]);
+		write_vault_note(&fx.app, &fx.request("t1", json!({ "text": "x", "mistakes": mistakes }))).unwrap();
+		write_vault_note(&fx.app, &fx.request("t1", json!({ "mistakes": mistakes }))).unwrap();
+		assert_eq!(gs_json::stringify(&fx.app.stores.vault_notes.read()["notes"]["t1"]["mistakeIds"]), r#"["m1a2b3c"]"#);
+	}
+
+	#[test]
+	fn words_typed_at_a_lesson_end_become_my_words() {
+		let fx = Fixture::new(&[("t1", "Binary search")]);
+		write_vault_note(&fx.app, &fx.request("t1", json!({ "text": "x" }))).unwrap();
+		write_vault_words(&fx.app, &fx.space_id, "t1", "It halves the range.").unwrap();
+		assert!(fx.read("CSE 21/Binary search.md").contains("## My words\nIt halves the range."));
+		assert_eq!(fx.app.stores.vault_notes.read()["notes"]["t1"]["words"].as_bool(), Some(true));
 	}
 
 	#[test]

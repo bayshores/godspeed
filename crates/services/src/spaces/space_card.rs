@@ -79,7 +79,7 @@ pub fn space_topics(app: &App, space_id: &str) -> Result<Vec<Json>, String> {
 	let graph = get_graph(graph_store_for(app, Some(space_id)).as_ref())?;
 	let snapshot = app.stores.graphs.read_topics(Some(space_id))?;
 	let fact_ids: Vec<String> = graph.nodes.iter().filter_map(|n| n["id"].as_str().map(str::to_owned)).collect();
-	Ok(resolve_topics(snapshot.as_ref(), &fact_ids).iter().map(|t| json!({ "name": t["name"], "facts": t["members"].as_arr().map_or(0, Vec::len) })).collect())
+	Ok(resolve_topics(snapshot.as_ref(), &fact_ids).iter().map(|t| json!({ "id": t["id"], "name": t["name"], "facts": t["members"].as_arr().map_or(0, Vec::len) })).collect())
 }
 
 /// Puts (or replaces, or removes) a lesson's space card: the first space-context marker is

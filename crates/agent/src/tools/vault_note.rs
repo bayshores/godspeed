@@ -21,7 +21,7 @@ fn limited(max: usize, description: &str) -> Json {
 
 pub fn write_vault_note_tool(write: WriteVaultNote) -> FnTool {
 	let t = &*SPACE_ARG_TEXT;
-	let mistake = object(&["text", "kind"], vec![("text", limited(MISTAKE_TEXT_MAX, t.vault_mistake_text)), ("kind", limited(MISTAKE_KIND_MAX, t.vault_mistake_kind))]);
+	let mistake = object(&["text", "kind"], vec![("id", string(t.vault_mistake_id)), ("text", limited(MISTAKE_TEXT_MAX, t.vault_mistake_text)), ("kind", limited(MISTAKE_KIND_MAX, t.vault_mistake_kind))]);
 	let mut mistakes = array(mistake, 0, t.vault_mistakes);
 	if let Some(fields) = mistakes.as_obj_mut() {
 		fields.insert("maxItems", MAX_KINDS as f64);
@@ -41,6 +41,7 @@ pub fn write_vault_note_tool(write: WriteVaultNote) -> FnTool {
 			("source", string(t.vault_source)),
 			("links", links),
 			("covered_by", string(t.vault_covered_by)),
+			("asked", json!({ "type": "boolean", "description": t.vault_asked })),
 		],
 	);
 	let description = SPACE_TOOL_TEXT.iter().find(|(tool, _)| *tool == "write_vault_note").map_or("", |(_, text)| *text);
@@ -63,7 +64,7 @@ mod tests {
 		assert!(tool.description().starts_with("Write what the learner answered"));
 		let schema = tool.parameters();
 		assert!(schema.get("required").is_none());
-		for key in ["topic_id", "title", "text", "recall", "mistakes", "source", "links", "covered_by"] {
+		for key in ["topic_id", "title", "text", "recall", "mistakes", "source", "links", "covered_by", "asked"] {
 			assert!(schema["properties"][key]["description"].as_str().is_some(), "{key}");
 		}
 		assert!(schema["properties"].get("space_id").is_none());
