@@ -7,23 +7,6 @@
 		}
 	},
 	{
-		"name": "projected tokens",
-		"output": [
-			[
-				174,
-				1674
-			],
-			[
-				1340,
-				1340
-			],
-			[
-				13,
-				1513
-			]
-		]
-	},
-	{
 		"name": "persist plain turn",
 		"output": {
 			"stamped": [

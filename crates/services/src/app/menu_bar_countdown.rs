@@ -96,7 +96,7 @@ mod tests {
 		let (app, mut lines) = test_app_with_shell(&root);
 		let space = app.stores.spaces.create_space(&json!({ "name": "Algebra" })).unwrap();
 		let space_id = space["id"].as_str().unwrap().to_owned();
-		tokio::spawn(run(app.clone(), app.shell.clone().unwrap(), app.events.subscribe()));
+		gs_base::tasks::spawn("test", run(app.clone(), app.shell.clone().unwrap(), app.events.subscribe()));
 		assert_eq!(next(&mut lines).await, logo_alone(), "no deadline yet");
 
 		let in_two_days = local_day(clock::now_ms() + 2 * DAY_MS);
@@ -114,7 +114,7 @@ mod tests {
 	async fn the_switch_off_removes_the_item_once() {
 		let root = scratch_dir("countdown-off");
 		let (app, mut lines) = test_app_with_shell(&root);
-		tokio::spawn(run(app.clone(), app.shell.clone().unwrap(), app.events.subscribe()));
+		gs_base::tasks::spawn("test", run(app.clone(), app.shell.clone().unwrap(), app.events.subscribe()));
 		assert_eq!(next(&mut lines).await, logo_alone());
 
 		patch_settings_section(&app, "general", &json!({ "menuBarCountdown": false })).unwrap();

@@ -36,7 +36,7 @@ async fn no_route_writes_or_deletes_the_old_talk_chat() {
 	let before = std::fs::read(&record).unwrap();
 	let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
 	let port = listener.local_addr().unwrap().port();
-	tokio::spawn(axum::serve(listener, gs_server::http::server(Arc::clone(&app), &Access::default())).into_future());
+	gs_base::tasks::spawn("test", axum::serve(listener, gs_server::http::server(Arc::clone(&app), &Access::default())).into_future());
 
 	for mode in ["preserve-graph", "delete-nodes"] {
 		let answer = delete(port, &format!("/api/chats/chat_talk?mode={mode}")).await;

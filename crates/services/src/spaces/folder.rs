@@ -308,7 +308,7 @@ fn triage_new_files(app: &Arc<App>, space_id: &str, added_ids: Vec<String>, gone
 	app.spaces.triaging.lock().insert(space_id.to_owned(), triage);
 	let (app, space_id) = (app.clone(), space_id.to_owned());
 	detach("spaces", async move {
-		let run = tokio::spawn(triage_files(app.clone(), space_id.clone(), added_ids, gone, announce));
+		let run = gs_base::tasks::spawn("folder", triage_files(app.clone(), space_id.clone(), added_ids, gone, announce));
 		if let Err(err) = run.await {
 			eprintln!("[spaces] new files in {space_id}: {err}");
 		}
@@ -472,16 +472,15 @@ mod tests {
 		let held = app.locks.lock(LockKey::Space(&id));
 		let scans: Vec<_> = (0..2)
 			.map(|_| {
-				let (app, id, runtime) = (app.clone(), id.clone(), tokio::runtime::Handle::current());
-				std::thread::spawn(move || {
-					let _entered = runtime.enter();
-					scan_linked_folder(&app, &id, true);
-				})
+				let (app, id) = (app.clone(), id.clone());
+				gs_base::tasks::spawn_blocking("test", move || scan_linked_folder(&app, &id, true))
 			})
 			.collect();
 		std::thread::sleep(std::time::Duration::from_millis(200));
 		drop(held);
-		scans.into_iter().for_each(|scan| scan.join().unwrap());
+		for scan in scans {
+			scan.await.unwrap();
+		}
 		let record = app.stores.spaces.get_space(&id).unwrap();
 		assert_eq!(record["files"].items().iter().filter(|f| f["path"].str_or_empty() == "week1.md").count(), 1);
 	}

@@ -8,11 +8,9 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::{Arc, Weak};
 
-use gs_agent::teacher::prompt_segments::AgentKind;
-use gs_agent::teacher::teacher_agent::compose_instructions;
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
-use gs_base::{ids, text, time};
+use gs_base::{ids, time};
 use gs_core::contracts::chat::extracts_facts;
 use gs_core::messages::app_notes::app_note_for;
 use gs_core::messages::attachments::ChatAttachment;
@@ -122,7 +120,7 @@ pub fn send_first_message(app: &Arc<App>) -> SendFirstMessage {
 /// still be saved and its turn run.
 pub fn handle_chat_input(app: &Arc<App>, chat_id: &str, input: TurnInput) -> ReplyFuture {
 	let (app, chat_id) = (app.clone(), chat_id.to_owned());
-	Box::pin(async move { tokio::spawn(async move { run(&app, &chat_id, input).await }).await.unwrap_or_else(ChatReply::thrown) })
+	Box::pin(async move { gs_base::tasks::spawn("chat", async move { run(&app, &chat_id, input).await }).await.unwrap_or_else(ChatReply::thrown) })
 }
 
 fn input_files(input: &TurnInput) -> Option<&[ChatAttachment]> {
@@ -157,7 +155,7 @@ async fn run(app: &Arc<App>, chat_id: &str, input: TurnInput) -> ChatReply {
 
 	// The compaction gate: a record still over the threshold is shortened now, at once (no
 	// model). It runs before the appends and begin_turn, and the record is read again after it.
-	ensure_compacted(app, &compaction_deps(app, &record, &effective), chat_id);
+	ensure_compacted(app, &compaction_deps(app, &effective), chat_id);
 
 	let accepted = match write_ahead(app, chat_id, &input, &attachments) {
 		Ok(accepted) => accepted,
@@ -436,32 +434,18 @@ fn kick(app: &Arc<App>, chat_id: &str) {
 	let id = chat_id.to_owned();
 	let build = Arc::new(move || {
 		let app = weak.upgrade()?;
-		let fresh = app.stores.chats.get_chat(&id)?;
+		app.stores.chats.get_chat(&id)?;
 		let effective = app.stores.settings.effective_settings().ok()?;
-		Some(compaction_deps(&app, &fresh, &effective))
+		Some(compaction_deps(&app, &effective))
 	});
 	kick_compaction(app, build, chat_id);
 }
 
-/// The agent the next turn builds for this record.
-fn agent_kind_of(record: &Json) -> AgentKind {
-	match record["kind"].as_str() {
-		Some("practice") => AgentKind::Practice,
-		Some("study") if record["fileIds"].as_arr().is_some_and(|ids| !ids.is_empty()) => AgentKind::StudyFiles,
-		Some("study") => AgentKind::Study,
-		Some("homework") => AgentKind::Homework,
-		_ if has_probe_done(record["messages"].items()) => AgentKind::Teacher,
-		_ => AgentKind::Prober,
-	}
-}
-
 /// The compaction settings for a lesson, shared by the turn-start gate and the settle kick.
-fn compaction_deps(app: &Arc<App>, record: &Json, effective: &Json) -> CompactionDeps {
+fn compaction_deps(app: &Arc<App>, effective: &Json) -> CompactionDeps {
 	let engine = agent_engine(&app.bridge);
-	let agent_kind = agent_kind_of(record);
 	let threshold_tokens = summarize_at_tokens(effective, &engine.model);
-	let system_prompt_tokens = (text::len16(&compose_instructions(agent_kind, &app.stores.prompt_overrides)) as f64 / 4.0).ceil();
-	CompactionDeps { model_id: model_id_of(&engine.model), engine, threshold_tokens, system_prompt_tokens }
+	CompactionDeps { model_id: model_id_of(&engine.model), engine, threshold_tokens }
 }
 
 /// Wires the wake pipeline to this composition at start-up: its steers run turns through
@@ -517,7 +501,7 @@ mod tests {
 		let app = test_app(&root);
 		let chat_id = lesson(&app);
 		assert!(begin_turn(&app, &chat_id));
-		let starting = tokio::spawn({
+		let starting = gs_base::tasks::spawn("test", {
 			let (app, chat_id) = (app.clone(), chat_id.clone());
 			async move {
 				let _unstarted = Unstarted { app: &app, chat_id: &chat_id };
@@ -650,11 +634,11 @@ mod tests {
 		let mut events = app.events.subscribe();
 		// The turn is held up after its input is saved, before its handle is registered.
 		let held = app.jobs.wake.lock();
-		let request = tokio::spawn(handle_chat_input(&app, &chat_id, text("What is a set?")));
+		let request = gs_base::tasks::spawn("test", handle_chat_input(&app, &chat_id, text("What is a set?")));
 		std::thread::sleep(std::time::Duration::from_millis(200));
 		assert!(std::iter::from_fn(|| events.try_recv().ok()).any(|e| e.kind == EventKind::TurnStarted));
 		assert!(saved(&app, &chat_id, "What is a set?"));
-		let attach = tokio::spawn({
+		let attach = gs_base::tasks::spawn("test", {
 			let (app, chat_id) = (app.clone(), chat_id.clone());
 			async move { attach_turn(&app, &chat_id).await.is_some() }
 		});

@@ -32,8 +32,10 @@ pub fn start_teacher_nudges(app: &Arc<App>) {
 			if let Some(terminal) = app.bridge.contacted_teacher_terminal()
 				&& caught_up.as_deref() != Some(terminal.as_str())
 			{
+				// The chat it runs is the session its waits will name, once its start hook said it.
+				let session = app.bridge.terminal_chat(&terminal).unwrap_or_else(|| terminal.clone());
 				caught_up = Some(terminal);
-				catch_up_for_agent(&app, now);
+				catch_up_for_agent(&app, &session, now);
 			}
 			if let Some((terminal, lesson)) = app.bridge.nudge_for_teacher(now) {
 				let line = if lesson { LESSON_WAITS } else { JOB_WAITS };

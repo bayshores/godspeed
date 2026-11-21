@@ -1,6 +1,7 @@
 # stdout is the line protocol to the desktop shell: only the server's ShellLink writes there.
-# Time and file writes go through gs-base, so the contract clock can move every timer and every
-# write is atomic (crates/base/src/clock.rs, fsx.rs).
+# Time, file writes and tasks go through gs-base, so the contract clock can move every timer, every
+# write is atomic and a task started outside the runtime still runs (crates/base/src/clock.rs,
+# fsx.rs, tasks.rs).
 disallowed-methods = [
 	{ path = "std::time::SystemTime::now", reason = "use gs_base::clock::now_ms" },
 	{ path = "tokio::time::sleep", reason = "use gs_base::clock::sleep" },
@@ -11,4 +12,8 @@ disallowed-methods = [
 	{ path = "tokio::fs::write", reason = "use gs_base::fsx::write_atomic or write_text_atomic" },
 	{ path = "std::io::stdout", reason = "stdout is the desktop shell's protocol; log to stderr" },
 	{ path = "tokio::io::stdout", reason = "stdout is the desktop shell's protocol; log to stderr" },
+	{ path = "tokio::spawn", reason = "use gs_base::tasks::spawn or detach, which work outside the runtime" },
+	{ path = "tokio::task::spawn", reason = "use gs_base::tasks::spawn or detach, which work outside the runtime" },
+	{ path = "tokio::task::spawn_blocking", reason = "use gs_base::tasks::spawn_blocking, which works outside the runtime" },
+	{ path = "tokio::runtime::Handle::current", reason = "panics outside the runtime; start tasks with gs_base::tasks" },
 ]

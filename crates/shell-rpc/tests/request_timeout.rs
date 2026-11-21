@@ -7,7 +7,7 @@ use gs_shell_rpc::ShellLink;
 #[tokio::test]
 async fn an_unanswered_request_times_out() {
 	let link = ShellLink::new(std::io::sink());
-	let waiting = tokio::spawn({
+	let waiting = gs_base::tasks::spawn("test", {
 		let link = link.clone();
 		async move { link.demo("", None).await }
 	});

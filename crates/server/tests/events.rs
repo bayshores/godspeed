@@ -18,7 +18,7 @@ async fn serve() -> (Arc<App>, u16) {
 	let app = App::new(Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir), None);
 	let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
 	let port = listener.local_addr().unwrap().port();
-	tokio::spawn(axum::serve(listener, gs_server::http::server(app.clone(), &Access::default())).into_future());
+	gs_base::tasks::spawn("test", axum::serve(listener, gs_server::http::server(app.clone(), &Access::default())).into_future());
 	(app, port)
 }
 

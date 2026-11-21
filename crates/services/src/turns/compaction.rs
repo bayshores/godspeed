@@ -1,7 +1,7 @@
 //! The compaction service (compaction.ts): the trigger plumbing around core's cuts and markers. A
 //! turn never waits on a summary:
 //!
-//! - shorten: past the threshold godspeed cuts the record and writes its own short version of what
+//! - shorten: once the lesson's transcript (`lesson_tokens`) is past the threshold godspeed cuts the record and writes its own short version of what
 //!   it dropped (`local_summary`), at once and without a model, at the turn-start gate and when a
 //!   turn settles;
 //! - refine: once the chat has been quiet for REFINE_QUIET_MS, the session's own model writes the
@@ -18,11 +18,10 @@ use gs_base::locks::LockKey;
 use gs_base::tasks::detach;
 use gs_base::{clock, ids, text, time};
 use gs_core::messages::compaction_marks::active_compaction_of;
-use gs_core::messages::native_messages::to_llm_messages;
 use gs_core::session::prices::CallUsage;
 use gs_core::session::compaction::{
-	KEEP_RECENT_TOKENS, build_compaction_prompt, compaction_cut_index, compaction_span, effective_threshold_tokens, estimate_context_tokens, estimate_tokens, local_summary, new_compaction_marker,
-	plan_tree_to_text, serialize_for_summary,
+	KEEP_RECENT_TOKENS, build_compaction_prompt, compaction_cut_index, compaction_span, effective_threshold_tokens, lesson_tokens, local_summary, new_compaction_marker, plan_tree_to_text,
+	serialize_for_summary,
 };
 use gs_engine::turn::faux::Engine;
 use gs_json::{Json, json};
@@ -45,8 +44,6 @@ pub struct CompactionDeps {
 	pub model_id: String,
 	/// min(the fixed threshold, context window - reserve).
 	pub threshold_tokens: f64,
-	/// The composed system prompt's estimate (chars / 4).
-	pub system_prompt_tokens: f64,
 }
 
 /// The token count at which a lesson on `model` is summarized, under the effective settings.
@@ -57,19 +54,8 @@ pub fn summarize_at_tokens(effective: &Json, model: &Json) -> f64 {
 /// Builds a chat's deps from its record as it is then; none when the chat is gone.
 pub type BuildDeps = Arc<dyn Fn() -> Option<CompactionDeps> + Send + Sync>;
 
-/// What the next model call would carry: the last provider-reported usage plus an estimate of
-/// what came after it; without a usable anchor, the estimate over the cut-honoring projection
-/// plus the system prompt the anchor would have counted.
-pub fn projected_context_tokens(messages: &[Json], system_prompt_tokens: f64) -> f64 {
-	let est = estimate_context_tokens(messages);
-	if est.last_usage_index.is_some() {
-		return est.tokens;
-	}
-	estimate_tokens(&to_llm_messages(messages)) + system_prompt_tokens
-}
-
-/// Cuts the record and adds godspeed's own short version of what was cut, when it projects over
-/// the threshold. Never while a turn owns the chat.
+/// Cuts the record and adds godspeed's own short version of what was cut, when the lesson's
+/// transcript is over the threshold. Never while a turn owns the chat.
 fn shorten(app: &App, deps: &CompactionDeps, chat_id: &str) -> Result<(), String> {
 	// A turn begins under the chat's lock, so this check holds until the save.
 	let _guard = app.locks.lock(LockKey::Chat(chat_id));
@@ -78,7 +64,7 @@ fn shorten(app: &App, deps: &CompactionDeps, chat_id: &str) -> Result<(), String
 	}
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(()) };
 	let messages = record["messages"].items();
-	let tokens_before = projected_context_tokens(messages, deps.system_prompt_tokens);
+	let tokens_before = lesson_tokens(messages);
 	if tokens_before <= deps.threshold_tokens {
 		return Ok(());
 	}
@@ -88,13 +74,16 @@ fn shorten(app: &App, deps: &CompactionDeps, chat_id: &str) -> Result<(), String
 	}
 	// The span runs from the previous kept boundary to the cut; the previous summary rides along.
 	// When the cut can't move past that boundary, the kept tail alone carries the projection, and
-	// shortening again can't help.
+	// shortening again can't help. Said once per boundary, not at every turn.
 	let previous = active_compaction_of(messages);
 	let prev_kept = previous.and_then(|p| messages.iter().position(|m| m["id"] == p["details"]["firstKeptMessageId"]));
 	if let (Some(_), Some(kept)) = (previous, prev_kept)
 		&& cut <= kept
 	{
-		eprintln!("[chat {chat_id}] compaction skipped — the kept tail alone exceeds the threshold (raise it or shrink the tail)");
+		let boundary = (chat_id.to_owned(), gs_json::stringify(&messages[kept]["id"]));
+		if app.turns.compaction_skips.lock().insert(boundary) {
+			eprintln!("[chat {chat_id}] compaction skipped: the kept tail alone exceeds the threshold");
+		}
 		return Ok(());
 	}
 	let start = prev_kept.filter(|&kept| kept > 0);
@@ -274,7 +263,7 @@ mod tests {
 
 	fn deps(threshold_tokens: f64, script: &Arc<Scripted>) -> CompactionDeps {
 		let engine = Engine { model: faux_model("faux", "faux", "test", "Test", 1_000_000.0, 32_000.0), respond: script.clone() };
-		CompactionDeps { engine, model_id: "faux:test".to_owned(), threshold_tokens, system_prompt_tokens: 100.0 }
+		CompactionDeps { engine, model_id: "faux:test".to_owned(), threshold_tokens }
 	}
 
 	fn summary_reply(script: &Arc<Scripted>, summary: &str) {
@@ -306,9 +295,62 @@ mod tests {
 		assert_eq!(marker["details"]["local"], Json::Bool(true));
 		assert!(marker["content"].as_str().unwrap().contains("godspeed shortened the earlier part"));
 		assert!(marker["details"]["tokensBefore"].as_f64().unwrap() > 40_000.0);
-		assert!(projected_context_tokens(app.stores.chats.get_chat(&chat_id).unwrap()["messages"].items(), 100.0) < 40_000.0);
+		assert!(lesson_tokens(app.stores.chats.get_chat(&chat_id).unwrap()["messages"].items()) < 40_000.0);
 		let changed: Vec<Json> = std::iter::from_fn(|| events.try_recv().ok()).filter(|e| e.kind == EventKind::RecordChanged).map(|e| e.payload).collect();
 		assert_eq!(changed, [json!({ "chatId": chat_id })]);
+	}
+
+	/// About 1,000 tokens of a teacher's reply.
+	fn reply_of_1k(label: &str) -> Json {
+		json!({ "id": format!("msg_{label}"), "role": "assistant", "content": [{ "type": "text", "text": format!("{label} {}", "y".repeat(4_000)) }], "stopReason": "stop", "usage": { "input": 60_000, "output": 500 }, "timestamp": 1 })
+	}
+
+	/// One turn of about 1,000 tokens: a short answer and the reply.
+	fn turn_of_1k(label: &str) -> [Json; 2] {
+		[new_user_message(&format!("{label} answer"), &[]), reply_of_1k(label)]
+	}
+
+	fn lesson_of(app: &App, chat_id: &str) -> f64 {
+		lesson_tokens(app.stores.chats.get_chat(chat_id).unwrap()["messages"].items())
+	}
+
+	#[test]
+	fn a_shortened_lesson_has_room_and_the_next_turns_add_no_marker_until_it_is_over_again() {
+		let root = scratch_dir("compaction-room");
+		let app = test_app(&root);
+		let chat_id = app.stores.chats.create_chat("Sets", None, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
+		let opening: Vec<Json> = (0..45).flat_map(|i| turn_of_1k(&format!("t{i}"))).collect();
+		app.stores.chats.save_messages(&chat_id, &opening).unwrap();
+		let deps = deps(40_000.0, &Scripted::new());
+		ensure_compacted(&app, &deps, &chat_id);
+		assert_eq!(markers(&app, &chat_id).len(), 1);
+		assert!(lesson_of(&app, &chat_id) <= 30_000.0, "at least 10k of room: {}", lesson_of(&app, &chat_id));
+		let mut first_over = None;
+		for i in 0..20 {
+			add(&app, &chat_id, &turn_of_1k(&format!("n{i}")));
+			let over = lesson_of(&app, &chat_id) > 40_000.0;
+			let before = markers(&app, &chat_id).len();
+			ensure_compacted(&app, &deps, &chat_id);
+			let added = markers(&app, &chat_id).len() - before;
+			assert_eq!(added, usize::from(over), "turn {i}: a marker only past the threshold");
+			if over && first_over.is_none() {
+				first_over = Some(i);
+			}
+		}
+		assert!(first_over.is_none_or(|i| i >= 10), "only {first_over:?} turns fit");
+	}
+
+	#[test]
+	fn a_lesson_under_the_threshold_is_not_cut_whatever_its_usage_says() {
+		let root = scratch_dir("compaction-opening");
+		let app = test_app(&root);
+		let chat_id = app.stores.chats.create_chat("Sets", None, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
+		let card = json!({ "name": "Sets", "files": [] });
+		let mut messages = vec![gs_core::messages::native_messages::new_space_context_message(&card)];
+		messages.extend((0..30).flat_map(|i| turn_of_1k(&format!("t{i}"))));
+		app.stores.chats.save_messages(&chat_id, &messages).unwrap();
+		ensure_compacted(&app, &deps(40_000.0, &Scripted::new()), &chat_id);
+		assert!(active(&app, &chat_id).is_none(), "every reply reports 60k of usage, but the lesson is about 30k");
 	}
 
 	#[test]

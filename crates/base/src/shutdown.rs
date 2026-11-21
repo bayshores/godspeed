@@ -28,7 +28,7 @@ mod tests {
 
 	#[tokio::test]
 	async fn waiters_end_after_trigger() {
-		let waiter = tokio::spawn(wait());
+		let waiter = crate::tasks::spawn("test", wait());
 		assert!(!is_stopping());
 		trigger();
 		waiter.await.unwrap();
