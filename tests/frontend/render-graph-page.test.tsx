@@ -579,23 +579,36 @@ describe("before any topic", () => {
 		assert.ok(!q("fact-pane") && !q("graph-panel"));
 	});
 
-	it("when the topics arrive they ink in as the squares fade out; with reduced motion they are simply there", async () => {
-		const leaving = () => host!.querySelector("[data-testid=graph-picture] svg .lh-fade[data-state=closed]");
+	it("when the topics arrive each fact travels from its square to its place while the names ink in; with reduced motion all is simply there", async () => {
+		/** Each drawn fact's centre, from the picture's square paths, sorted. */
+		const centres = (root: ParentNode | string) => {
+			const ds = typeof root === "string" ? [...root.matchAll(/<path d="(M[^"]*)"/g)].map((m) => m[1]!) : [...root.querySelectorAll("[data-testid=graph-picture] svg g[fill]:not([fill=none]) > path")].map((p) => p.getAttribute("d")!);
+			return ds
+				.flatMap((d) => [...d.matchAll(/M([\d.-]+) ([\d.-]+)h([\d.]+)v/g)].map((m) => `${(+m[1]! + +m[3]! / 2).toFixed(0)},${(+m[2]! + +m[3]! / 2).toFixed(0)}`))
+				.sort();
+		};
 		await mount(waiting());
 		// The tab's own opening is over before the topics come.
 		await act(async () => new Promise((resolve) => setTimeout(resolve, REVEAL_MS + 20)));
-		assert.ok(!host!.querySelector(".lh-reveal"));
+		const squaresWere = centres(host!);
+		assert.equal(squaresWere.length, 12);
 		await act(async () => root!.render(body({ data: fixture() })));
-		assert.ok(host!.querySelector("[data-testid=graph-topic].lh-reveal"), "the topics ink in");
-		assert.ok(leaving(), "the squares fade out");
+		assert.deepEqual(centres(host!), squaresWere, "each fact starts where its square was");
+		assert.ok(host!.querySelector("[data-testid=graph-topic].lh-reveal"), "the names ink in");
+		assert.ok(!host!.querySelector("[data-testid=graph-picture] svg .lh-reveal"), "the facts travel instead of inking in");
 		assert.ok(!host!.querySelector("[data-testid=graph-sorts-next]"));
-		await act(async () => root!.unmount());
-		host!.remove();
+		await act(async () => new Promise((resolve) => setTimeout(resolve, 500)));
 		reducedMotion.matches = true;
 		try {
+			const settled = centres(renderToStaticMarkup(body({ data: fixture() })));
+			assert.deepEqual(centres(host!), settled, "each fact lands in its place");
+			assert.notDeepEqual(settled, squaresWere);
+			await act(async () => root!.unmount());
+			host!.remove();
 			await mount(waiting());
 			await act(async () => root!.render(body({ data: fixture() })));
-			assert.ok(host!.querySelector("[data-testid=graph-topic]") && !host!.querySelector(".lh-reveal") && !leaving());
+			assert.deepEqual(centres(host!), settled, "with reduced motion they are there at once");
+			assert.ok(!host!.querySelector(".lh-reveal"));
 		} finally {
 			reducedMotion.matches = false;
 		}

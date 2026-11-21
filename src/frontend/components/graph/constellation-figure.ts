@@ -15,7 +15,7 @@ export interface FigureLine {
 }
 
 type Chains = readonly Pick<GraphChain, "premises" | "conclusion">[];
-type Place = { cx: number; cy: number };
+export type Place = { cx: number; cy: number };
 
 /** A fact is lit when its latest answer was right. */
 export const isLit = (f: Pick<FactProgress, "answers"> | undefined) => !!f && factMark(f) === "right";

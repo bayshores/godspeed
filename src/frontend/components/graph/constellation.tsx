@@ -5,8 +5,9 @@
  * pointing at a star inks in the facts it builds on and leads to. A picture
  * taller than its box is drawn smaller; names shrink with it until too small
  * to read, then show only when lit, at full size; hover boxes never shrink.
- * It inks in as the tab opens, and again when the first topics arrive.
- * Before then the facts stand as loose squares with one line under them.
+ * It inks in as the tab opens. Before any topic the facts stand as loose
+ * squares with one line under them; when the first topics arrive, each fact
+ * travels from its square to its place while names and lines ink in.
  *
  * A camera looks at the picture (use-camera.ts): zoomed in, stars stop
  * growing at 12 points and only the gaps grow, and once the picture is near
@@ -24,9 +25,10 @@ import { BAND, PictureSvg } from "./constellation-edges.tsx";
 import { FigureLayer, NameTag, TAG_H, TAG_PX, starHalf, tagLabel, useDrawIn } from "./constellation-figure-layer.tsx";
 import { tagSpot, tipSpot } from "./constellation-tips.ts";
 import { useCamera } from "./use-camera.ts";
-import { useDrawnSky, useFigures } from "./use-figure.ts";
+import { useArrival, useDrawnSky, useFigures } from "./use-figure.ts";
 import { useInViewReport, type InView } from "./use-in-view.ts";
-import { usePresence } from "@/frontend/components/presence";
+import { prefersReducedMotion } from "@/frontend/components/presence";
+import type { Place } from "./constellation-figure.ts";
 import { DIM, FADE, FAINT } from "./styles.ts";
 
 const DIM_NAME = "color-mix(in srgb, var(--muted-foreground) 62%, var(--background))";
@@ -382,7 +384,18 @@ export function Constellation({
 	const ramp = nearRamp(pitch, cam.z);
 	const moons = pitch >= MOON_PITCH;
 	const ext = near ? starHalf(moons) : d / 2;
-	const { drawn: moved, t: glide } = useDrawnSky(sky, figures, near);
+	const { drawn: figured, t: glide } = useDrawnSky(sky, figures, near);
+	// The loose squares' centres on screen as last drawn; when the first topics arrive, each fact sets off from there.
+	const looseAt = useRef<Map<string, [number, number]> | null>(null);
+	const [wasLoose, setWasLoose] = useState(loose);
+	const [arrival, setArrival] = useState<Map<string, Place> | null>(null);
+	if (wasLoose !== loose) {
+		setWasLoose(loose);
+		const from = looseAt.current;
+		if (!loose && from && !prefersReducedMotion()) setArrival(new Map([...from].map(([id, [x, y]]) => [id, { cx: (x - tx) / kk, cy: (y - ty) / kk }])));
+	}
+	const moved = useArrival(figured, loose ? null : arrival);
+	if (loose) looseAt.current = new Map(moved.stars.map((st) => [st.id, [sx(st.cx), sy(st.cy)]]));
 	// Topic names: at their laid-out size scaled with the picture, never above 13 points.
 	const tiny = namesHidden(kk);
 	const namePlace = (k: Cluster, shown: boolean) => {
@@ -490,14 +503,6 @@ export function Constellation({
 
 	useInViewReport(moved, zoomed ? view : null, factById, onInView);
 
-	// The loose squares as last drawn, so they fade out as the first topics ink in.
-	const leaving = usePresence(loose);
-	const lastLoose = useRef<[string, string][]>([]);
-	if (loose) {
-		const byColor = new Map<string, Star[]>();
-		for (const st of moved.stars) (byColor.get(st.color) ?? byColor.set(st.color, []).get(st.color)!).push(st);
-		lastLoose.current = [...byColor].map(([color, stars]) => [color, sq(stars)]);
-	}
 	const looseK = loose ? sky.clusters[0]! : null;
 
 	const lineW = (w: number) => w / cam.z;
@@ -559,16 +564,9 @@ export function Constellation({
 				{/* Near, the figures take the squares' place, fading with the glide; Ungrouped keeps its squares. */}
 				{moved.clusters.filter((k) => k.muted || glide < 1).map((k) => (
 					<g key={k.topic.id} data-testid={loose ? "graph-loose" : undefined} shapeRendering="crispEdges" opacity={(k.muted ? 1 : 1 - glide) * (lit && !lit.has(k.topic.id) ? DIM : 1)} style={k.muted || glide === 0 ? { transition: `opacity ${FADE}` } : undefined}>
-						<ClusterStars k={k} sq={sq} keep={keep} at={startOf(k.topic.id) ?? null} />
+						<ClusterStars k={k} sq={sq} keep={keep} at={arrival ? null : (startOf(k.topic.id) ?? null)} />
 					</g>
 				))}
-				{!loose && leaving.mounted && (
-					<g className="lh-fade" data-state="closed" shapeRendering="crispEdges">
-						{lastLoose.current.map(([fill, d]) => (
-							<path key={fill} d={d} fill={fill} />
-						))}
-					</g>
-				)}
 				{near && <FigureLayer clusters={nearClusters.filter((k) => !k.muted)} figures={figures} factById={factById} at={(x, y) => [sx(x), sy(y)]} shown={nearView} moons={moons} lit={lit} keep={keep} drawIn={drawIn} pointId={star?.id ?? null} />}
 				{found.length > 0 && !near && <path shapeRendering="crispEdges" d={sq(found.map((s) => moved.starById.get(s.id) ?? s))} fill="var(--foreground)" />}
 				{star && starLinks && !near && (

@@ -117,9 +117,11 @@ if (document.scrollingElement.scrollHeight > innerHeight + 1 || frame.scrollHeig
 /** Unfolds a lesson's steps for this screen only; the lessons after it open folded. */
 const unfoldSteps = `document.querySelector("[data-testid=plan-fold]").click(); localStorage.removeItem("lh:steps-open")`;
 
-/** The lab's facts are not sorted into topics: the Graph shows them as loose squares. */
-const looseFacts = "[data-testid=graph-picture] [data-testid=graph-loose]";
-/** A click on the first loose square in the Graph's picture. */
+/** A click on the first topic with facts in the Graph's picture. */
+const pickTopic = `[...document.querySelectorAll("[data-testid=graph-topic]")].find((topic) => !/\\b0 facts/.test(topic.getAttribute("aria-label"))).click()`;
+/** A click on the topic that needs two topics first and leads to two more. */
+const pickMiddleTopic = `[...document.querySelectorAll("[data-testid=graph-topic]")].find((topic) => topic.getAttribute("aria-label").startsWith("Solving linear equations")).click()`;
+/** A click on the first loose square in the Graph's picture, where the second space's two facts wait for topics. */
 const pickSquare = `{ const at = document.querySelector("[data-testid=graph-loose] path").getBoundingClientRect();
 document.querySelector("[data-testid=graph-picture]").dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: at.left + at.width / 2, clientY: at.top + at.height / 2, detail: 1 })); }`;
 
@@ -197,31 +199,52 @@ export const SCREENS = [
 		setup: `const rows = document.querySelectorAll("[data-testid=files-list] [data-testid^=space-file-pick-]"); rows[0].click(); ${pause}; rows[1].click()`,
 		shows: "[data-testid=files-picked-bar][data-state=open] [data-testid=files-picked-study]",
 	},
-	{ name: "Graph, facts not sorted yet", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-sorts-next]", setup: fitsWindow },
+	{ name: "Graph", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]", setup: fitsWindow },
 	{ name: "Graph, finding a word", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("graph-find", "graph-find-field", "undo"), shows: "[data-testid=graph-find-field]" },
 	{ name: "Graph, Find open", url: "/graph", ready: "[data-testid=graph-find]", setup: `document.querySelector("[data-testid=graph-find]").click(); ${pause}`, shows: "[data-testid=graph-find-field]" },
 	{ name: "Graph, finding a word nothing matches", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("graph-find", "graph-find-field", "zzzz"), shows: "[data-testid=graph-no-match]" },
 	{
+		name: "Graph, a topic picked",
+		url: "/graph",
+		ready: "[data-testid=graph-topic]",
+		setup: `${pickTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}; ${fitsWindow}`,
+		shows: "[data-testid=graph-panel] [data-testid=topic-pane]",
+	},
+	{
+		name: "Graph, a topic with several topics it needs and leads to",
+		url: "/graph",
+		ready: "[data-testid=graph-topic]",
+		setup: `${pickMiddleTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}; ${fitsWindow}`,
+		shows: "[data-testid=topic-pane]:has([data-testid=needs-first] li:nth-child(2)):has([data-testid=leads-to] li:nth-child(2))",
+	},
+	{
 		name: "Graph, zoomed by hand",
 		url: "/graph",
-		ready: looseFacts,
+		ready: "[data-testid=graph-picture] [data-testid=graph-topic]",
 		setup: `${wheelIn}; ${cameraRests(`zoom !== null`)}; ${fitsWindow}`,
 		shows: "[data-testid=graph-whole-space]",
 	},
 	{
 		name: "Graph, a fact picked",
 		url: "/graph",
-		ready: looseFacts,
-		setup: pickSquare,
+		ready: "[data-testid=graph-topic]",
+		setup: `${pickTopic}; ${pause}; document.querySelector("[data-testid=topic-pane] [data-testid=fact-row]").click()`,
 		shows: "[data-testid=graph-panel] [data-testid=fact-pane]",
 	},
 	{
 		name: "Graph beside the teacher's panel, whose Activity ends with the graph's costs",
 		url: "/graph",
-		ready: looseFacts,
+		ready: "[data-testid=graph-picture] [data-testid=graph-topic]",
 		// The page is narrowest here: the panel takes its room.
 		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-panel-activity]").click()`,
 		shows: "[data-testid=activity-list] [data-testid=graph-costs]",
+	},
+	{
+		name: "Graph, a fact's menu",
+		url: "/graph",
+		ready: "[data-testid=graph-topic]",
+		setup: `${pickTopic}; ${pause}; ${rightClick(`document.querySelector("[data-testid=topic-pane] [data-testid=fact-row]")`)}`,
+		shows: "[data-testid=fact-context-menu][data-state=open]",
 	},
 	{ name: "Deadlines", url: "/space/deadlines", ready: "[data-testid=deadline-open]" },
 	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]" },
@@ -387,7 +410,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		shows: "[data-testid=terminal-none] [data-testid=open-agent]",
 	},
 	{ name: "Progress while a file waits for an agent", before: waitingFile, url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]" },
-	{ name: "Graph while a file waits for an agent", url: "/graph", ready: looseFacts },
+	{ name: "Graph while a file waits for an agent", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]" },
 	{ name: "Deadline while its request waits for an agent", before: waitingRequest, url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]" },
 	// The stand-in agent is started from the waiting lesson's teacher window, and the lesson's start key goes.
 	{
@@ -458,6 +481,9 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: `document.querySelector("[data-testid=space-path-show-all]").click()`,
 		shows: "[data-testid=space-path-rows] li:nth-child(7)",
 	},
+	// The path space is open: its two facts are too few to sort into topics.
+	{ name: "Graph, facts not sorted yet", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-sorts-next]", setup: fitsWindow },
+	{ name: "Graph, a fact picked before any topic", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-loose]", setup: pickSquare, shows: "[data-testid=graph-panel] [data-testid=fact-pane]" },
 	{ name: "Files, the linked folder's box", before: linkedFolder, url: "/space/files", ready: "[data-testid=space-folder]", setup: `document.querySelector("[data-testid=space-folder]").click()`, shows: "[data-testid=space-folder-box][data-state=open]" },
 	{ name: "The plus list with a closed space", before: closedSpace, url: "/", ready: "[data-testid=spaces-plus]", setup: `document.querySelector("[data-testid=spaces-plus]").click()`, shows: "[data-testid=spaces-plus-list][data-state=open] [data-testid=closed-space-{pathSpace}]" },
 	{ name: "A closed space's menu", url: "/", ready: "[data-testid=spaces-plus]", setup: `document.querySelector("[data-testid=spaces-plus]").click(); ${pause}; ${rightClick(`document.querySelector("[data-testid=closed-space-{pathSpace}]")`)}`, shows: "[data-testid=space-menu][data-state=open]" },
