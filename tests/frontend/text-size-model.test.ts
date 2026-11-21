@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { ZOOM_STOPS, zoomFactor, zoomIndex, zoomLabel } from "../../src/frontend/components/settings/text-size-model.ts";
+import { ZOOM_STOPS, zoomFactor, zoomIndex } from "../../src/frontend/components/settings/text-size-model.ts";
+import { zoomLabel } from "../../src/frontend/lib/camera.ts";
 
 describe("text size stops", () => {
 	it("are the shell's zoom ladder", () => {
@@ -11,7 +12,7 @@ describe("text size stops", () => {
 	});
 
 	it("show as percents", () => {
-		assert.deepEqual(Array.from({ length: ZOOM_STOPS }, (_, i) => zoomLabel(i)), ["75%", "90%", "100%", "110%", "125%", "150%", "175%", "200%"]);
+		assert.deepEqual(Array.from({ length: ZOOM_STOPS }, (_, i) => zoomLabel(zoomFactor(i))), ["75%", "90%", "100%", "110%", "125%", "150%", "175%", "200%"]);
 	});
 
 	it("find the stop nearest a factor", () => {

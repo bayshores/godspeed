@@ -57,6 +57,11 @@ let onHome = false;
 /** The teacher's panel as the provider holds it. */
 function PanelHost({ children }: { children?: React.ReactNode }) {
 	const panel = useTeacherPanel(null, onHome);
+	const [line, setLine] = React.useState<string | null>(null);
+	// The provider clears a line when the panel closes unsent.
+	React.useEffect(() => {
+		if (!panel.open) setLine(null);
+	}, [panel.open]);
 	const terminals = useTerminals();
 	const view = panelBody(!!terminals?.available, !!terminals?.popped && shownScreen(panel.role, !!terminals.helper) === "teacher");
 	const api: TeacherApi = {
@@ -67,6 +72,12 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 		panelStarts: false,
 		setPanelOpen: panel.setOpen,
 		showTerminal: panel.showTerminal,
+		canAsk: true,
+		ask: (l) => {
+			setLine(l);
+			panel.showTerminal();
+		},
+		asking: line === null ? null : { line, clear: () => setLine(null) },
 		recent: [],
 		doing: null,
 		setLesson: () => {},
@@ -80,6 +91,7 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 			<TeacherStatus name="Ada" line="Ready" testid="status" />
 			<button type="button" data-testid="open-panel" onClick={() => panel.setOpen(true)} />
 			<button type="button" data-testid="open-terminal" onClick={() => panel.showTerminal()} />
+			<button type="button" data-testid="ask-find" onClick={() => api.ask("Find sums in my files")} />
 			<button type="button" data-testid="close-panel" onClick={() => panel.setOpen(false)} />
 			{children}
 			{panel.open && (
@@ -899,6 +911,91 @@ describe("the starter keys", () => {
 		} finally {
 			shell.remove();
 		}
+	});
+
+	describe("a line a page key hands the teacher", () => {
+		const sends = (shell: { calls: string[] }) => shell.calls.filter((c) => c.startsWith("send "));
+		const LINE = "send Find sums in my files";
+
+		it("opens the panel and is sent once, when the teacher can take it, and never again", async () => {
+			const shell = fakeShell([teacher()]);
+			try {
+				await mounted(running, async (render) => {
+					assert.ok(q("teacher-panel") === null);
+					await click("ask-find");
+					assert.ok(q("teacher-panel") !== null, "the panel opens on the teacher's screen");
+					assert.deepEqual(sends(shell), [LINE]);
+					await render(running);
+					await say("teacher-chats-changed");
+					assert.deepEqual(sends(shell), [LINE], "not again");
+				});
+			} finally {
+				shell.remove();
+			}
+		});
+
+		it("waits for the screen to be shown in this window: the shell refuses a line before that", async () => {
+			const shell = fakeShell([teacher()]);
+			const terminals = (dom.window as unknown as { lh: { terminals: { attach: (id: string) => Promise<void> } } }).lh.terminals;
+			let attach!: () => void;
+			terminals.attach = () => new Promise<void>((done) => (attach = done));
+			try {
+				await mounted(running, async () => {
+					await click("ask-find");
+					assert.ok(q("teacher-panel") !== null);
+					assert.deepEqual(sends(shell), [], "checked in, but not attached yet");
+					await act(async () => attach());
+					await settle();
+					assert.deepEqual(sends(shell), [LINE]);
+				});
+			} finally {
+				shell.remove();
+			}
+		});
+
+		it("waits while the teacher has not checked in, then goes once it has", async () => {
+			const shell = fakeShell([teacher()]);
+			try {
+				await mounted(access({ teaching: true, terminals: [{ id: "t1", here: false }] }), async (render) => {
+					await click("ask-find");
+					assert.ok(q("teacher-panel") !== null);
+					assert.deepEqual(sends(shell), [], "not yet");
+					await render(running);
+					assert.deepEqual(sends(shell), [LINE]);
+				});
+			} finally {
+				shell.remove();
+			}
+		});
+
+		it("is dropped when the panel closes unsent", async () => {
+			const shell = fakeShell([teacher()]);
+			try {
+				await mounted(access({ teaching: true, terminals: [{ id: "t1", here: false }] }), async (render) => {
+					await click("ask-find");
+					await click("close-panel");
+					await render(running);
+					await click("open-panel");
+					assert.deepEqual(sends(shell), [], "the closed panel took the line with it");
+				});
+			} finally {
+				shell.remove();
+			}
+		});
+
+		it("a refusal shows where a starter key's refusal shows", async () => {
+			const shell = fakeShell([teacher()]);
+			const terminals = (dom.window as unknown as { lh: { terminals: { send: () => Promise<void> } } }).lh.terminals;
+			terminals.send = () => Promise.reject("Show the terminal and click in it first.");
+			try {
+				await mounted(running, async () => {
+					await click("ask-find");
+					assert.equal(text("terminal-footer"), "Show the terminal and click in it first.");
+				});
+			} finally {
+				shell.remove();
+			}
+		});
 	});
 
 	it("none while the screen asks or a lesson turn waits", async () => {

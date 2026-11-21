@@ -262,6 +262,15 @@ pub fn shortcut_path_problem(app: &App, path: &str) -> Option<String> {
 	})
 }
 
+/// Where a file sits from the godspeed folder ("made/Algebra/Practice test.pdf") when it is in
+/// the folder's made/, where the agent builds files for the learner. None for any other path.
+pub fn made_path(app: &App, path: &str) -> Option<String> {
+	let folder = resolve(Path::new(&agent_folder(app)));
+	let at = resolve(Path::new(path));
+	let from_folder = at.strip_prefix(&folder).ok()?;
+	from_folder.starts_with("made").then(|| from_folder.to_string_lossy().replace('\\', "/"))
+}
+
 /// Keep spaces/ in step with the spaces while a folder is set up.
 fn watch_space_shortcuts(app: &Arc<App>) {
 	watch_shortcuts(app, |app| {
@@ -313,7 +322,7 @@ mod tests {
 			assert!(view["commands"]["claude"].as_str().unwrap().starts_with(&format!("cd /d \"{folder}\" && claude ")));
 		} else {
 			assert_eq!(view["short"].as_str(), Some("~/godspeed"));
-			assert_eq!(view["commands"]["claude"].as_str(), Some("cd ~/godspeed && claude --settings .godspeed/claude-settings.json \"Start teaching\""));
+			assert_eq!(view["commands"]["claude"].as_str(), Some("cd ~/godspeed && claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start teaching\""));
 		}
 	}
 

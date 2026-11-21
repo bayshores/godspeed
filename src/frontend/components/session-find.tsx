@@ -41,13 +41,13 @@ function publishHighlights(ranges: readonly Range[], index: number): void {
 	CSS.highlights.set(SESSION_FIND_ACTIVE_HIGHLIGHT, active);
 }
 
-/** One-Esc law: a surfaced menu/dialog/cheat sheet outranks this non-modal
+/** One-Esc law: a surfaced menu or dialog outranks this non-modal
  * bar, regardless of where focus happened to be left. Closed Radix exits
  * must not block Find once they have stopped being a surfaced layer, and
  * neither does a notice that came by itself (`data-lh-menu="quiet"`). */
 export function sessionFindHasForegroundLayer(doc: Document): boolean {
 	return Array.from(doc.querySelectorAll(
-		'[data-lh-menu], [data-radix-popper-content-wrapper], [role="menu"], [role="dialog"], [data-testid="cheat-sheet"]',
+		'[data-lh-menu], [data-radix-popper-content-wrapper], [role="menu"], [role="dialog"]',
 	)).some((element) => {
 		if (element.getAttribute("data-state") === "closed" || element.hasAttribute("hidden") || element.getAttribute("data-lh-menu") === "quiet") return false;
 		const view = doc.defaultView;

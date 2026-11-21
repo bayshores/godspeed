@@ -30,7 +30,9 @@ import { FAINT } from "../../src/frontend/components/graph/styles.ts";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
 import { ProgressProvider } from "../../src/frontend/components/use-progress.tsx";
 import { MemoryRouter } from "react-router";
-import { answers, fixture } from "../graph-fixture.ts";
+import { answers, fixture, unsorted } from "../graph-fixture.ts";
+import { DEFAULT_TEACHER_NAME } from "../../src/shared/core/index.ts";
+import { REVEAL_MS } from "../../src/frontend/components/graph/constellation-reveal.ts";
 
 // The picture measures names, so the static renders need a DOM too.
 const dom = parseHTML("<html><body></body></html>");
@@ -73,7 +75,7 @@ const NO_BLEED = { left: 0, right: 0, top: 0, bottom: 0 };
 const inRouter = (tree: React.ReactNode) => <MemoryRouter initialEntries={["/graph"]}>{tree}</MemoryRouter>;
 const count = (html: string, needle: string) => html.split(needle).length - 1;
 const body = (over: Partial<React.ComponentProps<typeof GraphBody>> = {}) =>
-	inRouter(<GraphBody data={fixture()} matches={null} sources={null} studying={false} studyError={null} onStudy={noop} onStudyFact={noop} onInView={noop} aim={null} onFly={noop} {...over} />);
+	inRouter(<GraphBody data={fixture()} matches={null} sources={null} note={null} studying={false} studyError={null} onStudy={noop} onStudyFact={noop} onInView={noop} aim={null} onFly={noop} {...over} />);
 
 describe("the picture", () => {
 	const html = renderToStaticMarkup(body());
@@ -203,6 +205,11 @@ describe("the foot line", () => {
 		assert.match(html, /data-testid="open-chain-table"[^>]*>[\s\S]*?248[\s\S]*?facts</);
 		assert.match(text(foot({ topicCount: 1, factCount: 1 })), /1topic1fact/);
 		for (const gone of ["graph-find", "graph-costs", "import-notes", "Add files", "Costs"]) assert.ok(!html.includes(gone), gone);
+	});
+
+	it("before any topic it counts only facts, and zoomed in keeps them beside Whole space", () => {
+		assert.equal(text(foot({ topicCount: 0, factCount: 12 })), "12facts");
+		assert.equal(text(foot({ topicCount: 0, factCount: 12, inView: { topics: 0, facts: 0, lit: 0, name: null } })), "12factsWhole space");
 	});
 
 	it("with no facts there are no counts", () => {
@@ -405,7 +412,7 @@ function Page({
 	return inRouter(
 		<BarHost>
 			<GraphBar hasFacts={hasFacts} find={find} importNotes={importNotes} />
-			<GraphBody data={data} matches={matches} sources={sources} studying={false} studyError={null} onStudy={noop} onStudyFact={noop} onInView={setInView} aim={aim} onFly={fly} />
+			<GraphBody data={data} matches={matches} sources={sources} note={null} studying={false} studyError={null} onStudy={noop} onStudyFact={noop} onInView={setInView} aim={aim} onFly={fly} />
 			<GraphFoot
 				hasFacts={hasFacts}
 				topicCount={data.topics.length}
@@ -547,6 +554,68 @@ describe("finding from the top bar", () => {
 
 });
 
+describe("before any topic", () => {
+	const NOTE = "Quigley sorts these 12 facts into topics next.";
+	const waiting = (over: Partial<React.ComponentProps<typeof GraphBody>> = {}) => body({ data: unsorted(), note: NOTE, ...over });
+	/** The loose squares' centres, read from their drawn paths. */
+	const squares = () =>
+		[...host!.querySelectorAll("[data-testid=graph-loose] path")].flatMap((p) => [...p.getAttribute("d")!.matchAll(/M([\d.-]+) ([\d.-]+)h([\d.]+)/g)].map((m) => ({ x: +m[1]! + +m[3]! / 2, y: +m[2]! + +m[3]! / 2 })));
+	const picture = () => host!.querySelector<HTMLElement>("[data-testid=graph-picture]")!;
+
+	it("the facts are loose squares with the line under them, and no topic or Ungrouped anywhere", () => {
+		const html = renderToStaticMarkup(waiting());
+		assert.ok(html.includes('data-testid="graph-loose"'));
+		assert.equal(count(html, NOTE), 1);
+		assert.ok(!html.includes('data-testid="graph-topic"') && !html.includes("Ungrouped"));
+		assert.ok(!renderToStaticMarkup(waiting({ note: null })).includes("graph-sorts-next"), "no line, nothing said");
+	});
+
+	it("a square opens its fact alone: no back key, no topic panel, and Escape closes it", async () => {
+		const { q } = await mount(waiting());
+		const [at] = squares();
+		assert.ok(at, "a square is drawn");
+		await act(async () => void fire(picture(), "click", { clientX: at.x, clientY: at.y, detail: 1 }));
+		assert.ok(q("fact-pane") && !q("topic-pane") && !q("fact-pane-back"));
+		await escape();
+		assert.ok(!q("fact-pane") && !q("graph-panel"));
+	});
+
+	it("when the topics arrive each fact travels from its square to its place while the names ink in; with reduced motion all is simply there", async () => {
+		/** Each drawn fact's centre, from the picture's square paths, sorted. */
+		const centres = (root: ParentNode | string) => {
+			const ds = typeof root === "string" ? [...root.matchAll(/<path d="(M[^"]*)"/g)].map((m) => m[1]!) : [...root.querySelectorAll("[data-testid=graph-picture] svg g[fill]:not([fill=none]) > path")].map((p) => p.getAttribute("d")!);
+			return ds
+				.flatMap((d) => [...d.matchAll(/M([\d.-]+) ([\d.-]+)h([\d.]+)v/g)].map((m) => `${(+m[1]! + +m[3]! / 2).toFixed(0)},${(+m[2]! + +m[3]! / 2).toFixed(0)}`))
+				.sort();
+		};
+		await mount(waiting());
+		// The tab's own opening is over before the topics come.
+		await act(async () => new Promise((resolve) => setTimeout(resolve, REVEAL_MS + 20)));
+		const squaresWere = centres(host!);
+		assert.equal(squaresWere.length, 12);
+		await act(async () => root!.render(body({ data: fixture() })));
+		assert.deepEqual(centres(host!), squaresWere, "each fact starts where its square was");
+		assert.ok(host!.querySelector("[data-testid=graph-topic].lh-reveal"), "the names ink in");
+		assert.ok(!host!.querySelector("[data-testid=graph-picture] svg .lh-reveal"), "the facts travel instead of inking in");
+		assert.ok(!host!.querySelector("[data-testid=graph-sorts-next]"));
+		await act(async () => new Promise((resolve) => setTimeout(resolve, 500)));
+		reducedMotion.matches = true;
+		try {
+			const settled = centres(renderToStaticMarkup(body({ data: fixture() })));
+			assert.deepEqual(centres(host!), settled, "each fact lands in its place");
+			assert.notDeepEqual(settled, squaresWere);
+			await act(async () => root!.unmount());
+			host!.remove();
+			await mount(waiting());
+			await act(async () => root!.render(body({ data: fixture() })));
+			assert.deepEqual(centres(host!), settled, "with reduced motion they are there at once");
+			assert.ok(!host!.querySelector(".lh-reveal"));
+		} finally {
+			reducedMotion.matches = false;
+		}
+	});
+});
+
 describe("keyboard focus", () => {
 	const active = () => document.activeElement;
 
@@ -658,12 +727,43 @@ describe("the graph screen", () => {
 	});
 });
 
+describe("the graph screen before any topic", () => {
+	const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+	it("the line names the teacher and counts the facts; while a grouping run goes the work frame says it, so the line is gone", async () => {
+		const original = globalThis.fetch;
+		reducedMotion.matches = true;
+		try {
+			for (const grouping of [false, true]) {
+				globalThis.fetch = (async (url: string) => (url.startsWith("/api/progress") ? Response.json({ ...unsorted(), grouping }) : Response.json({ error: "none" }, { status: 404 }))) as typeof fetch;
+				const { q } = await mount(
+					<MemoryRouter initialEntries={["/graph"]}>
+						<ServerEventsProvider connect={quietEvents as never}>
+							<ProgressProvider>
+								<GraphScreen />
+							</ProgressProvider>
+						</ServerEventsProvider>
+					</MemoryRouter>,
+				);
+				await until(() => q("graph-loose"), "the loose facts");
+				assert.equal(q("graph-sorts-next")?.textContent ?? null, grouping ? null : `${DEFAULT_TEACHER_NAME} sorts these 12 facts into topics next.`);
+				assert.equal(q("graph-foot")!.textContent, "12facts");
+				await act(async () => root!.unmount());
+				host!.remove();
+			}
+		} finally {
+			reducedMotion.matches = false;
+			globalThis.fetch = original;
+		}
+	});
+});
+
 describe("a picture too tall for its box", () => {
 	it("draws smaller, and its names, too small to read, let the pointer through to the stars", () => {
 		const data = fixture();
 		const html = renderToStaticMarkup(
 			<Constellation
 				topics={data.topics}
+				note={null}
 				links={data.topicLinks}
 				facts={data.facts}
 				chains={null}
@@ -863,6 +963,7 @@ describe("the camera's small behaviours", () => {
 		return (
 			<Constellation
 				topics={data.topics}
+				note={null}
 				links={data.topicLinks}
 				facts={data.facts}
 				chains={null}
@@ -889,6 +990,7 @@ describe("the camera's small behaviours", () => {
 		const small = (
 			<Constellation
 				topics={data.topics}
+				note={null}
 				links={data.topicLinks}
 				facts={data.facts}
 				chains={null}

@@ -2,7 +2,8 @@
  * layout-seed.mjs — the made-up data `npm run layout` walks, written by the real server.
  *
  * A small stand-in agent talks to the app over MCP, as Claude Code would: it makes the space
- * "Lab Algebra" with a deadline and one file, reads the file into one fact, starts a lesson and
+ * "Lab Algebra" with a deadline and one file, reads the file into ten facts that the stand-in sorts
+ * into five linked topics, starts a lesson and
  * answers it with a plan, then a sourced reply and an open quiz. Four homework deadlines get a homework lesson
  * each: one has its problems posted and a problem open at part (b), one has its problems posted and a
  * teaching reply with no problem open, one has fourteen problems with the first done and none open, and
@@ -23,7 +24,7 @@
  * answer. The sheet and the mocks are made the way the window makes them, and the stand-in agent
  * answers each request (a sheet's PDF is copied into the sheet's working folder, as an agent's own
  * tools would write it). A second space, "Backend jobs",
- * has a path toward a goal and nothing else. The window installs the plugin
+ * has a path toward a goal and one file read into two facts, too few to sort into topics. The window installs the plugin
  * "Flashcards", marked as from the made-up plugin list (tests/fixtures/plugins/layout-list.json)
  * at an older tag, so its sheet shows Update. No model runs; every word is fixed here.
  */
@@ -39,6 +40,31 @@ const WEB_SOURCE = "[[https://example.com/lab-algebra/linear-equations]]";
 /** Every made-up name has letters that hang below the line (g, j, p, q, y), so the check for
  *  cut-off letters has something to catch. */
 const DEADLINE = "Pop quiz: graphing";
+/** Lab Algebra's facts by topic, so the Graph has topics that need and lead to others: Solving
+ *  linear equations needs the first two and leads to the last two. */
+const LAB_TOPICS = [
+	{ name: "Inverse operations", material: "concept", facts: [["Undo in reverse", "To solve ax + b = c, subtract b from both sides, then divide by a."], ["Inverse operations", "Subtraction undoes addition and division undoes multiplication."]] },
+	{ name: "Equality rules", material: "term", facts: [["Same change both sides", "Doing the same operation to both sides of an equation keeps it true."], ["No dividing by zero", "Dividing both sides of an equation by zero is never allowed."]] },
+	{ name: "Solving linear equations", material: "procedure", facts: [["Isolate the variable", "Solving ax + b = c means isolating x by undoing each operation on it."], ["Check a solution", "Putting the answer back into the equation checks it."]] },
+	{ name: "Graphing lines", material: "procedure", facts: [["Slope-intercept form", "y = mx + b has slope m and y-intercept b."], ["Crossing point", "Where two lines cross is the solution both equations share."]] },
+	{ name: "Word problems", material: "procedure", facts: [["Translate words", "A word problem becomes an equation once each quantity has a symbol."], ["Units check", "An answer's units must match what the question asks for."]] },
+];
+const LAB_FACTS = LAB_TOPICS.flatMap((t) => t.facts);
+const local = (name) => `p${LAB_FACTS.findIndex(([n]) => n === name) + 1}`;
+/** Each chain joins two topics, which links them. */
+const LAB_CHAINS = [
+	[["Inverse operations"], "Isolate the variable"],
+	[["Same change both sides"], "Isolate the variable"],
+	[["Undo in reverse"], "Check a solution"],
+	[["Isolate the variable"], "Crossing point"],
+	[["Isolate the variable"], "Translate words"],
+].map(([premises, conclusion]) => ({ premises: premises.map(local), conclusion: local(conclusion) }));
+/** The second space's one file and its two facts. */
+const BACKEND_FILE = "HTTP basics.md";
+const BACKEND_FACTS = [
+	["Status codes", "A 4xx status means the request was wrong; a 5xx status means the server failed."],
+	["Idempotent methods", "Sending a PUT or DELETE twice leaves the server as sending it once does."],
+];
 /** Three homework deadlines, each worked in its own lesson ("Work on <name>"). */
 const HOMEWORK_OPEN = "Homework 3: graphing lines";
 const HOMEWORK_FIRST = "Homework 4: solving equations";
@@ -404,7 +430,15 @@ function answerFor(work, ids, lessonTurn) {
 	if (/^Mock \d+: questions$/.test(work.task ?? "")) return { tool_calls: [{ name: "write_mock_questions", arguments: { questions: MOCK_QUESTIONS } }] };
 	if (/^Mock \d+: grading$/.test(work.task ?? "")) return { tool_calls: [{ name: "grade_mock", arguments: { grades: MOCK_GRADES } }] };
 	if (work.task?.startsWith("Graph extraction")) {
-		return { tool_calls: [{ name: "submit_findings", arguments: { propositions: [{ id: "p1", name: "Undo in reverse", statement: "To solve ax + b = c, subtract b from both sides, then divide by a." }], chains: [], reteaches: [] } }] };
+		const backend = work.task.includes(BACKEND_FILE);
+		const propositions = (backend ? BACKEND_FACTS : LAB_FACTS).map(([name, statement], i) => ({ id: `p${i + 1}`, name, statement }));
+		return { tool_calls: [{ name: "submit_findings", arguments: { propositions, chains: backend ? [] : LAB_CHAINS, reteaches: [] } }] };
+	}
+	// godspeed's own grouping of Lab Algebra's facts, a background job: the facts come one per line as "id | name | statement".
+	if (work.task?.startsWith("Topic grouping")) {
+		const ids = new Map([...work.text.matchAll(/(n_[0-9a-z]+) \| ([^|]+?) \|/g)].map((m) => [m[2], m[1]]));
+		const topics = LAB_TOPICS.map((t) => ({ name: t.name, material: t.material, members: t.facts.map(([name]) => ids.get(name)).filter(Boolean) }));
+		return { tool_calls: [{ name: "submit_topics", arguments: { topics } }] };
 	}
 	if (work.lessonId === ids.lesson && lessonTurn === 0) {
 		return {
@@ -646,9 +680,17 @@ export async function seed(dataDir, page, log) {
 	const covers = (topic) => `Enough ${topic} to get a junior job by spring, with typing practice daily.`;
 	const steps = ["Git and pull requests", "HTTP and APIs", "SQL querying", "Typing in Python", "Caching layers", "Deploying apps", "Logging and paging", "Security group policy"];
 	const goal = await agent.json("create_space", { name: "Backend jobs", icon: "code", path: { goal: "backend developer jobs", topics: steps.map((name) => ({ name, covers: covers(name) })) } });
+	await agent.call("add_space_file", { space_id: goal.space.id, kind: "study", name: BACKEND_FILE, text: "# HTTP basics\n\nA 4xx status means the request was wrong; a 5xx status means the server failed. PUT and DELETE are idempotent." });
 	// A lesson in the space with no deadline: its cheat sheet column has no sheet to show.
 	const sheetless = (await agent.json("start_lesson", { topic: "Git and pull requests", space_id: goal.space.id })).lessonId;
 	ids.sheetless = sheetless;
 	await drain();
+	// Lab Algebra's facts are sorted into topics a while after the last file is read; the stand-in answers that too.
+	for (let tries = 0; ; tries++) {
+		const { topics } = await page.json(`/api/progress?space=${space.id}&today=${inDays(0)}`);
+		if (topics.some((topic) => !topic.ungrouped)) break;
+		if (tries > 20) throw new Error("Lab Algebra's facts were never sorted into topics");
+		await drain();
+	}
 	return { ...turnStates, quizAnswered: studied[0], sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
 }

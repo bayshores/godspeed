@@ -10,7 +10,8 @@ How the Tauri desktop app (`crates/shell`) works: window, server child, page bri
 | [demo-checks.md](demo-checks.md) | You run or add a shell demo check. |
 | [window-lh.md](window-lh.md) | You change the `window.lh` bridge the page uses. |
 | [terminals.md](terminals.md) | You change the agent terminals the shell owns. |
-| [the-main-window.md](the-main-window.md) | You change window behavior: zoom, menu, single instance, links, file drops, startup sound, downloads, printing or the app icon. |
+| [the-main-window.md](the-main-window.md) | You change window behavior: zoom, menu, single instance, links, file drops, startup sound, downloads or printing. |
+| [magnifier-menu-bar-and-icon.md](magnifier-menu-bar-and-icon.md) | You change the page magnifier under a pinch, the Mac menu bar countdown or the app icon. |
 | [the-server-child.md](the-server-child.md) | You change how the shell finds, starts, logs in to, restarts, stops or logs the server child. |
 | [api-protection.md](api-protection.md) | You change who may call the server. |
 | [updates.md](updates.md) | You change update statuses, when it checks, install on quit or local drill builds. |

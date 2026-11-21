@@ -18,8 +18,9 @@ use super::topic_links::{TopicLink, topic_columns, topic_links};
 use super::work_on_next::{TopicView, status_counts, work_on_next};
 use crate::contracts::space::compare_deadlines;
 use crate::graph::session_clusters::birth_session_of;
-use crate::graph::topics::resolve_topics;
+use crate::graph::topics::{MIN_FACTS_FOR_TOPICS, resolve_topics};
 use crate::records::newer_first;
+use crate::spaces::problem_list::{ListOwner, lesson_list_owner};
 
 /// The progress payload for GET /api/progress.
 ///
@@ -117,6 +118,7 @@ pub fn derive_progress(input: &Json) -> Json {
 	out.insert("today", input["today"].clone());
 	out.insert("topicsAt", input["topics"]["at"].clone());
 	out.insert("grouping", input["grouping"].as_bool() == Some(true));
+	out.insert("minFactsForTopics", MIN_FACTS_FOR_TOPICS);
 	out.insert("topics", topics);
 	out.insert("topicLinks", links.iter().map(TopicLink::to_json).collect::<Json>());
 	out.insert("facts", fact_rows);
@@ -184,12 +186,12 @@ fn fact_rows(facts: &[Json], topic_of_fact: &HashMap<String, String>, fact_answe
 		.collect()
 }
 
-/// The problem list a lesson works on: a homework lesson's deadline's, a lesson on files its first
-/// file's. Empty for any other.
+/// The problem list a lesson works on (`lesson_list_owner`); empty for any other lesson.
 fn lesson_problems<'a>(lesson: &Json, deadlines: &HashMap<&str, &'a Json>, files: &HashMap<&str, &'a Json>) -> &'a [Json] {
-	let list = match lesson["kind"].as_str() {
-		Some("homework") => lesson["deadlineId"].as_str().and_then(|id| deadlines.get(id)),
-		_ => lesson["fileIds"][0].as_str().and_then(|id| files.get(id)),
+	let list = match lesson_list_owner(lesson) {
+		Some(ListOwner::Deadline(id)) => deadlines.get(id),
+		Some(ListOwner::File(id)) => files.get(id),
+		None => None,
 	};
 	list.map_or(&[], |holder| holder["problems"].items())
 }

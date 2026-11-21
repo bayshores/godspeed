@@ -23,7 +23,7 @@ use crate::spaces::folder::stat_sig;
 use crate::spaces::text_cache::{drop_file_texts, read_cached_text, write_cached_text};
 use crate::App;
 use crate::graph::extraction::extraction;
-use crate::graph::topics::schedule_topic_grouping;
+use crate::graph::topics::schedule_whole_topic_grouping;
 
 /// Queues one file for processing (once while it waits).
 pub fn enqueue_file(app: &Arc<App>, space_id: &str, file_id: &str) {
@@ -81,7 +81,7 @@ async fn run_queue(app: Arc<App>, space_id: String) {
 		}
 		let drained = app.spaces.queues.lock().get(&space_id).is_none_or(|q| q.waiting.is_empty());
 		if drained && !app.spaces.cancelled.lock().contains(&space_id) {
-			schedule_topic_grouping(&app, &space_id);
+			schedule_whole_topic_grouping(&app, &space_id);
 		}
 	}
 	app.spaces.settled.notify_waiters();

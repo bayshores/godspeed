@@ -12,13 +12,17 @@ const DUE = "What's due?";
 const TEACH = "Teach me a new topic";
 const FIND = "Find something in my files";
 const SET_UP = "Set up a space from my files";
-const PATH = "Build me a path to a goal";
+/** The two lines the Progress page sends with its own keys. */
+export const PATH_LINE = "Build me a path to a goal";
+export const CHANGE_PATH_LINE = "I want to change my path";
 const ADD_DEADLINE = "Add a deadline";
 
 /** Pages that take a line typed in the terminal themselves (a lesson, a cheat sheet). */
 const TALK_PAGE = /^\/chat\/|^\/space\/deadline\/[^/]+\/cheat-sheet/;
 /** A space's own pages. */
 const SPACE_PAGE = /^\/space(\/|$)/;
+/** The Files page, where a search that finds no name has its own key for asking the teacher to look inside. */
+const FILES_PAGE = /^\/space\/files(\/|$)/;
 /** The Graph, which shows what the learner knows in the active space. */
 const GRAPH_PAGE = /^\/graph(\/|$)/;
 
@@ -56,10 +60,10 @@ export function startersFor(f: IdeaFacts): string[] {
 	const open = /^\/space\/deadline\/([^/]+)$/.exec(f.path)?.[1];
 	const deadline = open === undefined ? undefined : f.deadlines.find((d) => d.id === decodeURIComponent(open));
 	if (deadline) return [`Get me ready for ${deadline.name}`, `What am I weakest at for ${deadline.name}?`, DUE];
-	const find = f.space && f.space.files > 0 ? [FIND] : [];
+	const find = f.space && f.space.files > 0 && !FILES_PAGE.test(f.path) ? [FIND] : [];
 	if (f.space && GRAPH_PAGE.test(f.path)) return [`What should I study in ${f.space.name}?`, ...find, TEACH];
 	if (f.space && SPACE_PAGE.test(f.path)) return [`What should I study in ${f.space.name}?`, knows(f.space.name), ...find, TEACH];
-	if (f.spaces === 0) return [SET_UP, TEACH, PATH];
+	if (f.spaces === 0) return [SET_UP, TEACH, PATH_LINE];
 	return [STUDY, TEACH, ADD_DEADLINE, ...find];
 }
 
@@ -82,7 +86,7 @@ export function everything(f: IdeaFacts): IdeaGroup[] {
 			ideas: [
 				can(TEACH),
 				can("Quiz me on what I've learned"),
-				can(PATH),
+				can(PATH_LINE),
 				can("Help me prepare for an interview"),
 				{ line: "Draw it, show a demo or look it up", needs: "needs an open lesson" },
 			],

@@ -11,7 +11,7 @@ export interface DockState {
 	fileId?: string;
 }
 
-export const DOCK_MIN_W = 320;
+const DOCK_MIN_W = 320;
 export const DOCK_DEFAULT_W = 340;
 /** The lesson keeps at least this much room beside the panel for its page. */
 const SESSION_MIN_W = 1000;

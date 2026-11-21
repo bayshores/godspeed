@@ -52,6 +52,8 @@ const { SpaceOverview } = await import("../../src/frontend/components/overview/s
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { ProgressProvider } = await import("../../src/frontend/components/use-progress.tsx");
+const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
+type TeacherApi = import("../../src/frontend/components/teacher/teacher-context.ts").TeacherApi;
 
 // ─── fixture ────────────────────────────────────────────────────────────────
 
@@ -87,6 +89,7 @@ const PAYLOAD = {
 	today: "2026-10-27",
 	topicsAt: null,
 	grouping: false,
+	minFactsForTopics: 4,
 	topics: [],
 	topicLinks: [],
 	facts: [],
@@ -152,8 +155,12 @@ const FACTS = [true, true, false, false, false].map((inLessons, i) => ({
 
 type Props = React.ComponentProps<typeof OverviewBody>;
 
-function body(props: Partial<Props> = {}) {
+/** A teacher the page can hand lines to; `lines` collects them. */
+const teacherOf = (canAsk: boolean, lines: string[] = []) => ({ name: "Quigley", canAsk, ask: (line: string) => void lines.push(line) }) as unknown as TeacherApi;
+
+function body(props: Partial<Props> = {}, teacher: TeacherApi | null = null) {
 	return (
+		<TeacherContext.Provider value={teacher}>
 		<MemoryRouter initialEntries={["/space"]}>
 			<OverviewBody
 				hasSpace
@@ -170,10 +177,11 @@ function body(props: Partial<Props> = {}) {
 				{...props}
 			/>
 		</MemoryRouter>
+		</TeacherContext.Provider>
 	);
 }
 
-const render = (props: Partial<Props> = {}) => renderToStaticMarkup(body(props));
+const render = (props: Partial<Props> = {}, teacher: TeacherApi | null = null) => renderToStaticMarkup(body(props, teacher));
 
 /** The opening tag of the element carrying `testid`. */
 function tag(html: string, testid: string): string {
@@ -234,6 +242,47 @@ describe("Progress, top to bottom", () => {
 	});
 });
 
+// ─── a new space ────────────────────────────────────────────────────────────
+
+describe("Start this space", () => {
+	const EMPTY = { ...PAYLOAD, files: [], nextUp: null, lessons: [], facts: [] };
+
+	it("a space with nothing in it: one card with four tiles in place of the empty boxes", () => {
+		const html = render({ data: EMPTY }, teacherOf(true));
+		assert.match(text(section(html, "space-start")), /Start this space Add files Notes, readings, recordings or a syllabus\. Add a deadline An exam, homework, quiz, project or interview\. Ask Quigley for a path No syllabus\? The topics toward your goal, in order\. Study something new One lesson on any topic, right now\./);
+		for (const id of ["next-deadline-none", "lesson-record", "space-facts", "progress-side"]) assert.ok(!html.includes(id), `${id} is replaced by the card`);
+		assert.match(tag(html, "space-start-files"), /href="\/space\/files"/);
+		assert.match(tag(html, "space-start-study"), /href="\/new"/);
+		assert.match(html, /grid-cols-2/, "two columns once the page is wide");
+	});
+
+	it("no path tile when the teacher cannot be asked", () => {
+		for (const teacher of [teacherOf(false), null]) {
+			const html = render({ data: EMPTY }, teacher);
+			assert.ok(html.includes("space-start-files") && html.includes("space-start-deadline") && html.includes("space-start-study"));
+			assert.ok(!html.includes("space-start-path"));
+		}
+	});
+
+	it("anything in the space brings back the usual boxes", () => {
+		for (const data of [{ ...EMPTY, files: FILES }, { ...EMPTY, deadlines: DEADLINES }, { ...EMPTY, path: path(3, 0) }, { ...EMPTY, lessons: [lesson("c1", "Sets", "r")] }]) {
+			assert.ok(!render({ data }, teacherOf(true)).includes('data-testid="space-start"'));
+		}
+	});
+
+	it("the tiles click through", async () => {
+		const lines: string[] = [];
+		let added = 0;
+		host = document.createElement("div");
+		document.body.appendChild(host);
+		root = createRoot(host);
+		await act(async () => root!.render(body({ data: EMPTY, onAddDeadline: () => added++ }, teacherOf(true, lines))));
+		for (const id of ["space-start-deadline", "space-start-path"]) await act(async () => (host!.querySelector(`[data-testid="${id}"]`) as HTMLButtonElement).click());
+		assert.equal(added, 1);
+		assert.deepEqual(lines, ["Build me a path to a goal"]);
+	});
+});
+
 // ─── the teacher's note ─────────────────────────────────────────────────────
 
 describe("The teacher's note", () => {
@@ -282,15 +331,22 @@ describe("The next deadline", () => {
 		assert.match(text(html), /Reading Friday Nov 6 Study/);
 	});
 
-	it("no deadlines: one line and Add a deadline", () => {
-		const html = render({ data: PAYLOAD });
-		assert.match(text(section(html, "next-deadline-none")), /No deadlines yet Add a deadline/);
-		assert.ok(!html.includes('data-testid="next-deadline"'));
+	it("no deadlines and no path: one line over the ways to add them, with no key of its own", () => {
+		const html = render({ data: PAYLOAD }, teacherOf(true));
+		assert.match(text(section(html, "next-deadline-none")), /No deadlines yet Add a deadline Ask Quigley for a path $/);
+		assert.ok(!html.includes('data-testid="next-deadline"') && !html.includes("next-deadline-add"));
+		for (const id of ["space-start-files", "space-start-study", 'data-testid="space-start"']) assert.ok(!html.includes(id), `${id} is for an empty space`);
+	});
+
+	it("no deadlines and a teacher that cannot be asked: only Add a deadline", () => {
+		const html = render({ data: PAYLOAD }, teacherOf(false));
+		assert.ok(html.includes("space-start-deadline") && !html.includes("space-start-path"));
 	});
 
 	it("only done or past ones: nothing is coming up", () => {
-		const html = render({ data: { ...PAYLOAD, deadlines: DEADLINES.slice(2) } });
+		const html = render({ data: { ...PAYLOAD, deadlines: DEADLINES.slice(2) } }, teacherOf(true));
 		assert.match(text(section(html, "next-deadline-none")), /Nothing is coming up\. Add a deadline/);
+		assert.ok(html.includes("next-deadline-add") && !html.includes("space-start-"));
 	});
 
 	it("the button is off while a lesson is starting; a lesson that didn't start says so", () => {
@@ -337,6 +393,15 @@ describe("The path", () => {
 
 	it("no path: no block", () => {
 		assert.ok(!render().includes("space-path"));
+	});
+
+	it("a quiet key asks the teacher to change it, only where the teacher can be asked", () => {
+		const data = { ...PAYLOAD, path: path(3, 0) };
+		const html = render({ data }, teacherOf(true));
+		assert.match(text(section(html, "path-change", "</button>")), /Ask Quigley to change it/);
+		assert.match(tag(html, "path-change"), /lh-btn-quiet/);
+		assert.ok(!render({ data }, teacherOf(false)).includes("path-change"));
+		assert.ok(!render({ data }).includes("path-change"));
 	});
 });
 
@@ -496,11 +561,11 @@ function serve(respond: (url: string, init?: RequestInit) => Response) {
 }
 
 describe("clicks", () => {
-	async function mount(props: Partial<Props>) {
+	async function mount(props: Partial<Props>, teacher: TeacherApi | null = null) {
 		host = document.createElement("div");
 		document.body.appendChild(host);
 		root = createRoot(host);
-		await act(async () => root!.render(body(props)));
+		await act(async () => root!.render(body(props, teacher)));
 		return host;
 	}
 	const click = (el: HTMLElement, testid: string) => act(async () => (el.querySelector(`[data-testid="${testid}"]`) as HTMLButtonElement).click());
@@ -525,11 +590,28 @@ describe("clicks", () => {
 		assert.equal(el.querySelector('[data-testid="space-path-show-all"]'), null);
 	});
 
-	it("Add a deadline, with none", async () => {
+	it("Add a deadline, with none ahead", async () => {
 		let added = 0;
-		const el = await mount({ data: PAYLOAD, onAddDeadline: () => added++ });
+		const el = await mount({ data: { ...PAYLOAD, deadlines: DEADLINES.slice(2) }, onAddDeadline: () => added++ });
 		await click(el, "next-deadline-add");
 		assert.equal(added, 1);
+	});
+
+	it("with no deadline and no path, Add a deadline opens the Deadlines tab and the path tile asks the teacher", async () => {
+		let added = 0;
+		const lines: string[] = [];
+		const el = await mount({ data: PAYLOAD, onAddDeadline: () => added++ }, teacherOf(true, lines));
+		await click(el, "space-start-deadline");
+		await click(el, "space-start-path");
+		assert.equal(added, 1);
+		assert.deepEqual(lines, ["Build me a path to a goal"]);
+	});
+
+	it("Ask to change the path sends the line", async () => {
+		const lines: string[] = [];
+		const el = await mount({ data: { ...PAYLOAD, path: path(3, 0) } }, teacherOf(true, lines));
+		await click(el, "path-change");
+		assert.deepEqual(lines, ["I want to change my path"]);
 	});
 	describe("the Lessons block", () => {
 		const ROWS = [lesson("c1", "Induction", "rw"), { ...lesson("c2", "Pointers", "r"), updatedAt: "2026-10-26T12:00:00Z" }];
@@ -545,7 +627,7 @@ describe("clicks", () => {
 			assert.equal(q(el, "lesson-show-all"), null);
 		});
 
-		it("More and a right-click on the row open the lesson menu", async () => {
+		it("More opens the lesson menu and a second click closes it", async () => {
 			serve(() => Response.json({}));
 			const el = await mount({ data: { ...PAYLOAD, lessons: ROWS } });
 			await click(el, "lesson-row-menu");
@@ -553,16 +635,12 @@ describe("clicks", () => {
 			await click(el, "lesson-row-menu");
 			await act(async () => new Promise((r) => setTimeout(r, 400))); // the exit plays
 			assert.equal(document.querySelector('[data-testid="lesson-menu"]'), null, "a second click closes it");
-			const row = q(el, "lesson-row")!.parentElement!;
-			await act(async () => row.dispatchEvent(new dom.window.Event("contextmenu", { bubbles: true, cancelable: true })));
-			assert.ok(document.querySelector('[data-testid="lesson-menu"]'), "opened by a right-click");
 		});
 
-		it("an unfinished row's right-click opens the same menu, and a rename shows there at once", async () => {
+		it("an unfinished row's More opens the same menu, and a rename shows there at once", async () => {
 			serve(() => Response.json({}));
 			const el = await mount({ data: { ...PAYLOAD, lessons: [...ROWS, { ...lesson("u1", "Half done", ""), unfinished: true }] } });
-			const row = el.querySelector('[data-testid="unfinished-lessons"] [data-testid="lesson-row"]')!.parentElement!;
-			await act(async () => row.dispatchEvent(new dom.window.Event("contextmenu", { bubbles: true, cancelable: true })));
+			await click(el.querySelector<HTMLElement>('[data-testid="unfinished-lessons"]')!, "lesson-row-menu");
 			assert.ok(document.querySelector('[data-testid="lesson-menu"]'));
 			await act(async () => (document.querySelector('[data-testid="ctx-rename"]') as HTMLButtonElement).click());
 			assert.ok(el.querySelector('[data-testid="unfinished-lessons"] [data-testid="lesson-rename-input"]'), "renamed in place, in its own column");

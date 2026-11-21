@@ -1,5 +1,6 @@
 import { useLocation } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
+import { useTeacher } from "./teacher-context";
 import { everything, startersFor } from "@/frontend/components/terminal/starter-model";
 import { terminalFooter, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
 import { TerminalPane } from "@/frontend/components/terminal/terminal-pane";
@@ -17,6 +18,7 @@ import { StartTeacher } from "./start-teacher";
  */
 export function PanelScreen({ name, role, focus }: { name: string; role: TerminalRole; focus: boolean }) {
 	const api = useTerminals();
+	const teacher = useTeacher();
 	const { pathname } = useLocation();
 	const { spaces, activeSpace } = useSpaces();
 	const { deadlines } = useOpenDeadlines();
@@ -48,6 +50,7 @@ export function PanelScreen({ name, role, focus }: { name: string; role: Termina
 			focusOnOpen={focus}
 			ideas={role === "teacher" ? { starters: startersFor(ideaFacts), everything: everything(ideaFacts) } : null}
 			popOut={role === "teacher" ? api.popOut : null}
+			ask={role === "teacher" ? (teacher?.asking ?? null) : null}
 		/>
 	);
 }

@@ -1,3 +1,8 @@
+/** Pixels per unit of a wheel event's delta: a line is 16, a page 400. */
+export function wheelUnit(deltaMode: number): number {
+	return deltaMode === 1 ? 16 : deltaMode === 2 ? 400 : 1;
+}
+
 /** Must match OWN_ZOOM in crates/shell/src/shim.js. */
 const OWN_ZOOM = "data-lh-own-zoom";
 

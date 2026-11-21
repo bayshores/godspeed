@@ -1,9 +1,9 @@
 import { useCallback, useRef, useState } from "react";
 import type { SpaceSummary } from "@/shared/core";
-import { spaceColorVar } from "@/frontend/components/space-color";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { SpaceMenuItems } from "./space-menu-items";
 
 /** The deadlines card's "Add" key: one space opens its dialog at once;
  *  several open a menu of spaces first. */
@@ -32,24 +32,14 @@ export function AddDeadline({ spaces, onPick }: { spaces: readonly SpaceSummary[
 			{!single && (
 				<MenuShell open={open} anchorRef={anchorRef} testid="home-add-deadline-menu" preferredSide="down" align="right" menuClass="lh-popup flex w-[236px] flex-col gap-0.5 p-1.5">
 					<span className="px-2.5 py-1 text-sm text-ink-2">Which space?</span>
-					{spaces.map((c) => (
-						<button
-							role="menuitem"
-							key={c.id}
-							type="button"
-							data-testid={`home-add-deadline-${c.id}`}
-							onClick={() => {
-								setOpen(false);
-								onPick(c.id);
-							}}
-							className="lh-press flex w-full items-center gap-2.5 px-2.5 py-1.5 text-left text-[15px] text-ink hover:bg-tone"
-						>
-							<span aria-hidden className="size-3 shrink-0" style={{ background: spaceColorVar(c.color) }} />
-							<span title={c.name} className="min-w-0 flex-1 truncate">
-								{c.name}
-							</span>
-						</button>
-					))}
+					<SpaceMenuItems
+						spaces={spaces}
+						testidPrefix="home-add-deadline"
+						onPick={(id) => {
+							setOpen(false);
+							onPick(id);
+						}}
+					/>
 				</MenuShell>
 			)}
 		</>

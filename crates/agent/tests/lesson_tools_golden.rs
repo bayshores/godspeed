@@ -175,6 +175,10 @@ impl ProblemList for Deadline {
 	fn mark_done(&self, number: &str) {
 		self.done.lock().push(number.to_owned());
 	}
+
+	fn file_id(&self) -> Option<String> {
+		None
+	}
 }
 
 /// A lesson on files' list: its first file's.

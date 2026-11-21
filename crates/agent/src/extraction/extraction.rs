@@ -337,8 +337,7 @@ impl Extraction {
 		Ok(run_submit_agent(self.0.bridge(), opts).await?)
 	}
 
-	/// Merges one job's findings under the graph's file lock.
-	/// Merges under the graph's lock: the stats the run keeps, and the credit lines written, which
+	/// Merges one job's findings under the graph's lock: the stats the run keeps, and the credit lines written, which
 	/// only the log reports.
 	fn merge(&self, source_id: &str, scope: Option<&str>, findings: &Json, source: &MergeSource) -> Result<(Json, Json), JobError> {
 		let _held = self.0.locks().lock(LockKey::Graph(scope));

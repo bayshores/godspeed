@@ -41,6 +41,14 @@ pub fn taught(app: &App, terminal: Option<&str>, conversation: &str) {
 	changed(app);
 }
 
+/// The lesson the chat in this terminal taught last, while that lesson is kept: a wait from the
+/// terminal that names no lesson stays on it.
+pub fn last_lesson(app: &App, terminal: Option<&str>) -> Option<String> {
+	let id = terminal.and_then(|t| app.bridge.terminal_chat(t))?;
+	let lesson = app.stores.teacher_chats.read().into_iter().find(|c| c.id == id)?.lesson?;
+	app.stores.chats.get_chat(&lesson).is_some().then_some(lesson)
+}
+
 fn changed(app: &App) {
 	app.events.emit(EventKind::TeacherChatsChanged, json!({}));
 }

@@ -6,7 +6,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use gs_agent::tools::homework::ProblemList;
-use gs_core::spaces::problem_list::{ListOwner, problems_of};
+use gs_core::spaces::problem_list::{ListOwner, lesson_list_owner, problems_of};
 use gs_core::contracts::space::display_name;
 use gs_core::study::homework::merge_problems;
 use gs_json::{Json, json};
@@ -14,7 +14,6 @@ use gs_json::{Json, json};
 use super::homework::{deadline_of, file_of};
 use crate::App;
 use crate::app::reading_pages::is_pdf;
-use crate::spaces::save_problems;
 use crate::spaces::space_card::space_file_path;
 
 /// Whose list a lesson works on.
@@ -41,14 +40,12 @@ impl ListOf {
 	}
 }
 
-/// The lesson's space and whose list it works on: a homework lesson its deadline's, a study
-/// lesson on files its first file's. None for any other lesson.
+/// The lesson's space and whose list it works on (`lesson_list_owner`).
 fn list_of(record: &Json) -> Option<(String, ListOf)> {
 	let space_id = record["spaceId"].as_str().filter(|id| !id.is_empty())?.to_owned();
-	let of = match record["kind"].as_str() {
-		Some("homework") => ListOf::Deadline(record["deadlineId"].as_str().filter(|id| !id.is_empty())?.to_owned()),
-		Some("study") => ListOf::File(record["fileIds"][0].as_str()?.to_owned()),
-		_ => return None,
+	let of = match lesson_list_owner(record)? {
+		ListOwner::Deadline(id) => ListOf::Deadline(id.to_owned()),
+		ListOwner::File(id) => ListOf::File(id.to_owned()),
 	};
 	Some((space_id, of))
 }
@@ -116,7 +113,7 @@ struct SpaceProblems {
 impl SpaceProblems {
 	/// Saves the problems; the error text when they could not be saved.
 	fn save(&self, next: Vec<Json>) -> Option<String> {
-		save_problems(&self.app, &self.space_id, self.of.owner(), &Json::Arr(next)).err().map(|failure| failure.error)
+		self.app.stores.spaces.save_problems(&self.space_id, self.of.owner(), &Json::Arr(next)).err().map(|err| err.to_string())
 	}
 }
 
@@ -142,7 +139,9 @@ impl ProblemList for SpaceProblems {
 				p
 			})
 			.collect();
-		self.save(next);
+		if let Some(err) = self.save(next) {
+			eprintln!("[problems] marking {number} done failed: {err}");
+		}
 	}
 
 	fn file_id(&self) -> Option<String> {

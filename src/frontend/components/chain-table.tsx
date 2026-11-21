@@ -4,6 +4,7 @@ import type { GraphChain, GraphNode } from "@/shared/core";
 import { LatexGlyph } from "@/frontend/components/latex-glyph";
 import { ON_INK, ON_INK_MAIN, PICKED_COLUMN, PickedBar } from "@/frontend/components/picked-bar";
 import { FIELD } from "@/frontend/components/ui/field";
+import { TickMark } from "@/frontend/components/ui/tick-mark";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { countLine, factCount, groupChains, groupName, matchingChains, tickState, type ChainSort, type ReasoningChain } from "./chain-table-model";
@@ -315,15 +316,7 @@ function TickBox({
 				onChange={(e) => onToggle(e.target.checked)}
 				className="peer sr-only"
 			/>
-			<span
-				aria-hidden
-				className={cn(
-					"flex size-5 items-center justify-center rounded-sm peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink",
-					checked || mixed ? "bg-tint text-background" : "border-2 border-ink bg-background",
-				)}
-			>
-				{checked ? <PixelIcon name="check" className="h-[9px]" /> : mixed && <PixelIcon name="minus" className="h-[9px]" />}
-			</span>
+			<TickMark checked={checked} mixed={mixed} className="peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink" />
 		</label>
 	);
 }

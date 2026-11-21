@@ -5,7 +5,9 @@
  * pointing at a star inks in the facts it builds on and leads to. A picture
  * taller than its box is drawn smaller; names shrink with it until too small
  * to read, then show only when lit, at full size; hover boxes never shrink.
- * It inks in as the tab opens.
+ * It inks in as the tab opens. Before any topic the facts stand as loose
+ * squares with one line under them; when the first topics arrive, each fact
+ * travels from its square to its place while names and lines ink in.
  *
  * A camera looks at the picture (use-camera.ts): zoomed in, stars stop
  * growing at 12 points and only the gaps grow, and once the picture is near
@@ -13,7 +15,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent, type RefObject } from "react";
 import { rampColor, type FactProgress, type GraphChain, type TopicLink, type TopicProgress } from "@/shared/core";
-import { factCellLabel, factLinks, neighbors, topicCountLine } from "./derive.ts";
+import { factCellLabel, factLinks, neighbors, nothingGrouped, topicCountLine } from "./derive.ts";
 import { NAME_GAP, NAME_LINE, layoutSky, restLines, type Cluster, type Rect, type Seg, type Sky, type Star } from "./constellation-layout.ts";
 import { makeRouter, toStars } from "./constellation-routes.ts";
 import { NAME_PX, fitPicture, namesHidden } from "./constellation-fit.ts";
@@ -23,8 +25,10 @@ import { BAND, PictureSvg } from "./constellation-edges.tsx";
 import { FigureLayer, NameTag, TAG_H, TAG_PX, starHalf, tagLabel, useDrawIn } from "./constellation-figure-layer.tsx";
 import { tagSpot, tipSpot } from "./constellation-tips.ts";
 import { useCamera } from "./use-camera.ts";
-import { useDrawnSky, useFigures } from "./use-figure.ts";
+import { useArrival, useDrawnSky, useFigures } from "./use-figure.ts";
 import { useInViewReport, type InView } from "./use-in-view.ts";
+import { prefersReducedMotion } from "@/frontend/components/presence";
+import type { Place } from "./constellation-figure.ts";
 import { DIM, FADE, FAINT } from "./styles.ts";
 
 const DIM_NAME = "color-mix(in srgb, var(--muted-foreground) 62%, var(--background))";
@@ -33,6 +37,8 @@ const ARROW = 7;
 const HIT = 12;
 const REACH = 8;
 const TIP_W = 260;
+/** The room between loose facts and the line under them, in screen points. */
+const NOTE_GAP = 22;
 /** Near, figures are drawn for what is in view and this much around it, in screen points. */
 const MARGIN = 60;
 
@@ -187,6 +193,7 @@ export function Constellation({
 	bleed,
 	docked,
 	reveal,
+	note,
 	pickedId,
 	pickedFactId,
 	focus,
@@ -211,6 +218,8 @@ export function Constellation({
 	docked: boolean;
 	/** This opening's reveal while it runs; null once the picture is in. */
 	reveal: Reveal | null;
+	/** The line under facts no topic holds yet; null while it is not said. */
+	note: string | null;
 	pickedId: string | null;
 	pickedFactId: string | null;
 	/** Topics Find keeps lit; null with nothing typed. */
@@ -255,6 +264,8 @@ export function Constellation({
 	// Zoomed in, the view takes the whole room's height, not only the fitted picture's.
 	const frame: Frame = useMemo(() => ({ w: shownW, h: Math.max(shownH, height), scale, skyW: sky.width, skyH: sky.height }), [shownW, shownH, height, scale, sky]);
 
+	// No topic yet: the facts are loose squares, with no name, hover or pick of their bucket.
+	const loose = nothingGrouped(topics);
 	const boxRef = useRef<HTMLDivElement>(null);
 	const { figures, placed } = useFigures(sky, chains, nn);
 	const { cam, zoomed, zMax, flyTo, drag, dragging, landed } = useCamera({ sky, placed, frame, nn, memory: camera, aim, box: boxRef });
@@ -269,10 +280,12 @@ export function Constellation({
 	const clear = zoomed ? { x0: -bleed.left, x1: shownW + (docked ? 0 : bleed.right), y0: BAND - bleed.top, y1: frame.h + bleed.bottom - BAND } : null;
 	const nearView = (x: number, y: number) => x >= around.x0 && x <= around.x1 && y >= around.y0 && y <= around.y1;
 
-	// Fixed for this mount: a re-fit never moves a running animation, and a
+	// Fixed for each reveal: a re-fit never moves a running animation, and a
 	// remount mid-reveal starts each one where it would be by now.
-	const [opening] = useState(() => (reveal ? { at: frozenDelays(reveal, sky), elapsed: performance.now() - reveal.start } : null));
-	const inAt = reveal ? opening : null;
+	const startOpening = (r: Reveal) => ({ reveal: r, at: frozenDelays(r, sky), elapsed: performance.now() - r.start });
+	const [opening, setOpening] = useState(() => (reveal ? startOpening(reveal) : null));
+	if (reveal && opening?.reveal !== reveal) setOpening(startOpening(reveal));
+	const inAt = reveal && opening?.reveal === reveal ? opening : null;
 	const startOf = (id: string) => {
 		const at = inAt?.at.get(id);
 		return at === undefined ? undefined : at - inAt!.elapsed;
@@ -371,7 +384,18 @@ export function Constellation({
 	const ramp = nearRamp(pitch, cam.z);
 	const moons = pitch >= MOON_PITCH;
 	const ext = near ? starHalf(moons) : d / 2;
-	const { drawn: moved, t: glide } = useDrawnSky(sky, figures, near);
+	const { drawn: figured, t: glide } = useDrawnSky(sky, figures, near);
+	// The loose squares' centres on screen as last drawn; when the first topics arrive, each fact sets off from there.
+	const looseAt = useRef<Map<string, [number, number]> | null>(null);
+	const [wasLoose, setWasLoose] = useState(loose);
+	const [arrival, setArrival] = useState<Map<string, Place> | null>(null);
+	if (wasLoose !== loose) {
+		setWasLoose(loose);
+		const from = looseAt.current;
+		if (!loose && from && !prefersReducedMotion()) setArrival(new Map([...from].map(([id, [x, y]]) => [id, { cx: (x - tx) / kk, cy: (y - ty) / kk }])));
+	}
+	const moved = useArrival(figured, loose ? null : arrival);
+	if (loose) looseAt.current = new Map(moved.stars.map((st) => [st.id, [sx(st.cx), sy(st.cy)]]));
 	// Topic names: at their laid-out size scaled with the picture, never above 13 points.
 	const tiny = namesHidden(kk);
 	const namePlace = (k: Cluster, shown: boolean) => {
@@ -436,7 +460,7 @@ export function Constellation({
 		const { x, y } = local(e);
 		const st = nearestStar(moved, x, y, HIT / kk);
 		setPtrStar(st?.id ?? null);
-		setHoverId(st ? null : (clusterAt(sky, x, y, REACH / kk)?.topic.id ?? null));
+		setHoverId(st || loose ? null : (clusterAt(sky, x, y, REACH / kk)?.topic.id ?? null));
 	};
 	const onLeave = () => {
 		setPtrStar(null);
@@ -449,7 +473,7 @@ export function Constellation({
 		const { x, y } = local(e);
 		const st = nearestStar(moved, x, y, HIT / kk);
 		if (st) onPickFact(st.id);
-		else onPick(clusterAt(sky, x, y, REACH / kk)?.topic.id ?? null);
+		else onPick(loose ? null : (clusterAt(sky, x, y, REACH / kk)?.topic.id ?? null));
 	};
 
 	const pointed = star && ptrStar ? factById.get(star.id) : undefined;
@@ -478,6 +502,8 @@ export function Constellation({
 	const topicTip = hovered ? tipSpot(sky, toLayoutRect(namePlace(hovered, true)), hovered.tipW / kk, 16 / kk, 6 / kk, lit ?? new Set([hovered.topic.id]), inked, view) : null;
 
 	useInViewReport(moved, zoomed ? view : null, factById, onInView);
+
+	const looseK = loose ? sky.clusters[0]! : null;
 
 	const lineW = (w: number) => w / cam.z;
 	const shownLinks = starLinks?.segs.map((g) => {
@@ -537,8 +563,8 @@ export function Constellation({
 				</g>
 				{/* Near, the figures take the squares' place, fading with the glide; Ungrouped keeps its squares. */}
 				{moved.clusters.filter((k) => k.muted || glide < 1).map((k) => (
-					<g key={k.topic.id} shapeRendering="crispEdges" opacity={(k.muted ? 1 : 1 - glide) * (lit && !lit.has(k.topic.id) ? DIM : 1)} style={k.muted || glide === 0 ? { transition: `opacity ${FADE}` } : undefined}>
-						<ClusterStars k={k} sq={sq} keep={keep} at={startOf(k.topic.id) ?? null} />
+					<g key={k.topic.id} data-testid={loose ? "graph-loose" : undefined} shapeRendering="crispEdges" opacity={(k.muted ? 1 : 1 - glide) * (lit && !lit.has(k.topic.id) ? DIM : 1)} style={k.muted || glide === 0 ? { transition: `opacity ${FADE}` } : undefined}>
+						<ClusterStars k={k} sq={sq} keep={keep} at={arrival ? null : (startOf(k.topic.id) ?? null)} />
 					</g>
 				))}
 				{near && <FigureLayer clusters={nearClusters.filter((k) => !k.muted)} figures={figures} factById={factById} at={(x, y) => [sx(x), sy(y)]} shown={nearView} moons={moons} lit={lit} keep={keep} drawIn={drawIn} pointId={star?.id ?? null} />}
@@ -554,7 +580,7 @@ export function Constellation({
 					</g>
 				)}
 			</PictureSvg>
-			{sky.clusters.map((k) => {
+			{(loose ? [] : sky.clusters).map((k) => {
 				const id = k.topic.id;
 				const picked = id === pickedId;
 				const dim = lit && !lit.has(id);
@@ -629,10 +655,14 @@ export function Constellation({
 					</button>
 				);
 			})}
-			{/* Facts with no topic yet stand alone: one line says why. */}
-			{!zoomed && sky.clusters.length === 1 && sky.clusters[0]!.muted && (
-				<p data-testid="graph-no-topics" className="pointer-events-none absolute text-center text-[15px] text-ink-2" style={{ left: 0, width: shownW, top: namePlace(sky.clusters[0]!, true).top + namePlace(sky.clusters[0]!, true).h + 26 }}>
-					No topics yet. They show once these facts are grouped.
+			{/* Facts with no topic yet: one line under them says what comes. */}
+			{looseK && note && !zoomed && (
+				<p
+					data-testid="graph-sorts-next"
+					className={startOf(looseK.topic.id) === undefined ? "pointer-events-none absolute text-center text-[15px] text-ink-2" : "lh-reveal pointer-events-none absolute text-center text-[15px] text-ink-2"}
+					style={{ left: 0, width: shownW, top: Math.round(sy(looseK.cy) + looseK.r * kk + NOTE_GAP), ["--lh-at" as string]: `${(startOf(looseK.topic.id) ?? 0) + NAME_AFTER}ms` }}
+				>
+					{note}
 				</p>
 			)}
 			{/* The score inks in near the name: no box over the picture. */}

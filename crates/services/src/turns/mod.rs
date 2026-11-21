@@ -68,6 +68,9 @@ pub struct TurnsState {
 	review_skips: Mutex<HashMap<String, review::Skips>>,
 	/// The reply nudges each Study lesson was sent, by chat and topic (reply-nudges).
 	nudged: Mutex<HashSet<(String, String, Nudge)>>,
+	/// The new topic lessons sent back once for a near deadline's unfinished lesson, by deadline
+	/// and topic (start_lesson).
+	pub(crate) near_deadline_asked: Mutex<HashSet<(String, String)>>,
 	/// Each Study lesson's latest wall send-back, by chat (reply-nudges).
 	walls: Mutex<HashMap<String, reply_nudges::Wall>>,
 }

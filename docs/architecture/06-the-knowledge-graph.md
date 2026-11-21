@@ -111,7 +111,7 @@ The same pipeline reads notes and space files:
 
 - Deleting a proposition removes every stored chain referencing it, as premise or conclusion.
 - Deleting an implication node (any `arg_` id) removes exactly that stored chain.
-- One confirm dialog (`src/frontend/components/delete-node-dialog.tsx`) opens from a fact's right-click menu and from chain table's Delete.
+- One confirm dialog (`src/frontend/components/delete-node-dialog.tsx`) opens from All facts' Delete. The topic sheet's fact rows only open the fact.
 
 ### The teacher's graph tool
 
@@ -132,12 +132,12 @@ Its body is `services::graph::graph::search_graph`, shared with the MCP tool of 
 |---|---|---|
 | Page | `src/frontend/components/graph/graph-screen.tsx` | Loads the data, holds Find's state, the foot line and the chain table, and holds the camera's latest flight (the picture asks for picks, the foot line and Find for the whole space). |
 | Top bar | `graph-bar.tsx`, `import-notes.tsx`, `use-bar-find.ts` | Find (with facts) and, with no space, Add files, in that order before Edit space. Opening Find swaps Add files for its field. What building the graph took (`GET /api/graph/costs`) is at the end of the teacher's Activity (`teacher/graph-costs.tsx`). |
-| Foot line | `graph-foot.tsx` | The counts (the fact count opens the chain table). While something is typed in Find it says what matches. Zoomed in, the counts are what is in view and Whole space flies out. With one topic in view the line reads its name and how many of its facts are lit ("16 of 18 lit"). |
+| Foot line | `graph-foot.tsx` | The counts (the fact count opens the chain table). While something is typed in Find it says what matches. Zoomed in, the counts are what is in view and Whole space flies out. With one topic in view the line reads its name and how many of its facts are lit ("16 of 18 lit"). Before any topic it counts only facts. |
 | Picture and panel | `graph-body.tsx` | Measures the room (its width, its height down to 16 px above the foot line, and how far the page reaches past it), docks the picked topic's or fact's panel, asks for a flight on each pick and close, handles Escape. |
-| Picture | `constellation.tsx` | One SVG: every fact is a square star, grouped by topic with the topic's name under it; lines join topics that build on each other. Topics are buttons on top. Zoomed in, it adds no words except the pointed fact's name tag, and it is drawn past its box: out to the window's sides and under a docked panel, dissolving in 24 px pixel dither (`constellation-edges.tsx`) just under the tab row and just above the foot line. Stars drawn past the box are pointed at, clicked, dragged and zoomed like the rest. |
-| Layout | `constellation-layout.ts`, `constellation-routes.ts` | Where groups sit (by a topic's `column`, start on the left), and which lines are drawn and how they route around names. Facts with no topic yet (only Ungrouped) stand in the middle of the page, with one line under them that says topics come once they are grouped. Pure, unit-tested. |
+| Picture | `constellation.tsx` | One SVG: every fact is a square star, grouped by topic with the topic's name under it; lines join topics that build on each other. Topics are buttons on top. Zoomed in, it adds no words except the pointed fact's name tag, and it is drawn past its box: out to the window's sides and under a docked panel, dissolving in 24 px pixel dither (`constellation-edges.tsx`) just under the tab row and just above the foot line. Stars drawn past the box are pointed at, clicked, dragged and zoomed like the rest. Before any topic the facts are plain squares with no name, and one line under them says the teacher sorts them into topics next (with fewer facts than the server sorts, the progress payload's `minFactsForTopics`, it says topics appear at that many); while the grouping run goes the work frame says it instead. A square opens its fact alone, with no back key. |
+| Layout | `constellation-layout.ts`, `constellation-routes.ts` | Where groups sit (by a topic's `column`, start on the left), and which lines are drawn and how they route around names. Facts with no topic yet (only Ungrouped) stand loose, twice as far apart, in the middle of the page. Pure, unit-tested. |
 | Fit | `constellation-fit.ts` | The scale that fits the picture in its room: smaller when it is too tall, never larger. Names that would be under 11 px are not drawn at rest. Pure, unit-tested. |
-| Reveal | `constellation-reveal.ts` | When each cluster, name and line inks in as the tab opens. Pure. |
+| Reveal | `constellation-reveal.ts` | When each cluster, name and line inks in as the tab opens. When the first topics arrive, each fact travels from its loose square to its place (`useArrival` in `use-figure.ts`) while names and lines ink in. Pure. |
 | Camera | `use-camera.ts`, `constellation-camera.ts` | Zoom and pan: the wheel or a pinch zooms toward the pointer, a drag pans while zoomed in, a pick flies in. The maths is pure and unit-tested; the camera outlives the picture while a narrow window shows a panel in its place. |
 | Figure | `constellation-figure.ts`, `use-figure.ts`, `constellation-figure-layer.tsx` | Near, each topic is a figure: its facts placed by what they need, its links as lines, a fact's path. The maths is pure and unit-tested; `use-figure.ts` glides facts into place and the layer draws lines, arrows, facts and the pointed fact's name tag. |
 | Moon | `constellation-moon.ts` | A fact's moon as pixel cells, by its phase. Pure, unit-tested. |
@@ -176,4 +176,12 @@ The picture inks in once each time the tab opens, in 0.9 s (a change to the grap
 
 A graph change keeps the pick; a picked topic or fact that is gone closes its panel.
 
-The topic grouper (`agent::extraction::topic_grouper`, scheduled by `services::graph::topics`) groups a graph's facts into topics. It labels each topic's material as term, procedure, concept or proof, and appends a full snapshot to `topics.jsonl`. Older snapshots may have no material. A topic keeping its id across a regroup keeps its stored material (`repair_topics`, `core::graph::topics`). No layout is stored.
+The topic grouper (`agent::extraction::topic_grouper`, scheduled by `services::graph::topics`) groups a graph's facts into topics. It labels each topic's material as term, procedure, concept or proof. Every run appends a full snapshot to `topics.jsonl`. Older snapshots may have no material. A topic keeping its id across a regroup keeps its stored material (`repair_topics`, `core::graph::topics`). No layout is stored.
+
+A run does one of three things:
+
+| When | What runs | Model call |
+|---|---|---|
+| First grouping, or a space's file queue just drained | The grouper gets every fact and the current topics | Yes |
+| New facts that all have a chain neighbor in a topic | Each joins the topic most of its neighbors are in (`place_new_facts`) | No |
+| New facts, some with no grouped neighbor | The rest are placed as above; the grouper gets only the loose facts, and each topic as its name and six of its facts' names (`add_placements` merges its answer) | Yes, a small one |

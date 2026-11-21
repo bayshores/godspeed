@@ -27,6 +27,14 @@ export interface TeacherApi {
 	 *  when none is named; background work's shows as its own view with
 	 *  Back), which takes the keyboard. */
 	showTerminal: (role?: TerminalRole) => void;
+	/** The teacher can be handed a line by a page key (ask): godspeed runs it in its own
+	 *  terminal here, so not in a browser, with an outside agent or popped out. */
+	canAsk: boolean;
+	/** A page key hands the teacher one line: the panel opens on its screen and sends it once the
+	 *  teacher can take it. A second line replaces one not yet sent. */
+	ask: (line: string) => void;
+	/** The line waiting to be sent (ask), which the panel's screen takes; `clear` once it has. */
+	asking: { line: string; clear: () => void } | null;
 	/** Newest first. */
 	recent: AgentAction[];
 	/** What the agent is doing now; null while no agent is connected. */

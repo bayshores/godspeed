@@ -11,12 +11,13 @@ A desktop learning app. Its screens are a React app built with Vite (`src/fronte
 | Doc | Covers |
 |---|---|
 | [architecture/README.md](architecture/README.md) | Layers, the import law, the systems and how they talk, the rules that always hold. |
-| [plugins.md](plugins.md) | Writing a plugin: manifest, host tools, look, trying it, getting it listed. |
+| [plugins/README.md](plugins/README.md) | Writing a plugin: manifest, host tools, look, trying it, getting it listed. |
 | [rust-server.md](rust-server.md) | The crates, rules every Rust module follows, locks, the server process and its environment variables. |
 | [tauri-shell/README.md](tauri-shell/README.md) | The desktop shell. |
 | [desktop-release.md](desktop-release.md) | Builds, CI and releases on all three operating systems. |
 | [teaching-methodology.md](teaching-methodology.md) | The theory of teaching the agent prompts are built from. |
 | [keyboard.md](keyboard.md) | Keyboard shortcuts. |
+| [features.md](features.md) | Every feature, the control that reaches it and who makes it; checked by `tests/shared/features.test.ts`. |
 | [compaction-accounting.md](compaction-accounting.md) | How long lessons get shortened, the size meter, usage counts. |
 | [tool-content-recovery.md](tool-content-recovery.md) | How broken LaTeX in tool calls is repaired for display. |
 | `crates/agent/prompts/README.md` | How the agent prompts are put together. |
@@ -185,7 +186,7 @@ Each is described in [architecture/README.md](architecture/README.md), in the se
 | Background jobs and the wake pipeline | 5 and 5.1 |
 | Compaction | 5, details in [compaction-accounting.md](compaction-accounting.md) |
 | The knowledge graph and extraction | 6 |
-| Spaces, linked folders, deadlines, source marks | 6.1 |
+| Spaces, linked folders, deadlines, source marks, problem lists, cheat sheets | 6.1 and 6.4 to 6.7 |
 | Interviews and mocks | 6.2 |
 | Study sessions | 7 |
 

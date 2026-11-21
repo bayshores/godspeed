@@ -109,10 +109,23 @@ const HELPER_PROMPT: &str = "Start as the helper";
 /// Settings Claude Code loads at launch (--settings), so they apply before the folder is trusted.
 const CLAUDE_SETTINGS: &str = ".godspeed/claude-settings.json";
 
-/// The waiter, as CLAUDE.md tells Claude Code to run it (the allow rule matches this text).
-const WAITER: &str = "node .godspeed/wait-for-work.mjs";
+/// Claude Code's arguments for every start, teacher and helper: the folder's settings and server
+/// and none of the learner's own servers, skills or subagents, which every request would carry;
+/// the chat compacts at 150,000 tokens. The Skill tool is refused, not every slash command, so
+/// /compact, /clear, /model and /resume still work in the terminal. The flags that take several
+/// values (--mcp-config, --disallowedTools) come before a one-value flag, so a prompt after them
+/// stays the prompt.
+const CLAUDE_ARGS: [&str; 10] = ["--settings", CLAUDE_SETTINGS, "--strict-mcp-config", "--mcp-config", ".mcp.json", "--disallowedTools", "Agent", "Skill", "--autocompact", "150000"];
 
-const CLAUDE_ARGS: [&str; 3] = ["--settings", CLAUDE_SETTINGS, START_PROMPT];
+/// Set by the helper's Claude Code start script: its waiter waits as the helper's.
+const HELPER_ENV: &str = "GODSPEED_HELPER";
+
+/// The oldest Claude Code with every flag above and the Stop hook's asyncRewake.
+const CLAUDE_MIN_VERSION: &str = "2.1.330";
+
+fn claude_args(prompt: Option<&str>) -> Vec<String> {
+	CLAUDE_ARGS.iter().copied().chain(prompt).map(str::to_owned).collect()
+}
 
 /// A folder the generated scripts and TOML can quote safely: absolute, no quotes, no line breaks.
 pub fn usable_folder(folder: &str) -> bool {
@@ -149,25 +162,39 @@ pub fn mcp_json(folder: &str, platform: Platform) -> String {
 	format!("{}\n", stringify_pretty(&json!({ "mcpServers": { "godspeed": server } }), "\t"))
 }
 
+/// The waiter's hook timeout in seconds: two hours of waiting (the waiter's own limit) and a
+/// minute to spare.
+const WAITER_TIMEOUT_S: u32 = 7260;
+
 /// .godspeed/claude-settings.json: turns on the folder's server, lets the agent use godspeed's
-/// tools, the waiter and web search (what an interview is like is looked up online) without asking, tells
+/// tools and web search (what an interview is like is looked up online) without asking, tells
 /// the app when the session starts compacting and when it lost its context, hands each line the
 /// learner types to the app first (typed.mjs), and says which chat runs, when the agent stopped and
-/// when it asks the learner something (agent-event.mjs: the chats to go back to, the window's sound). Fetching a page still
-/// asks: text hidden in a space file could send the learner's data out.
+/// when it asks the learner something (agent-event.mjs: the chats to go back to, the window's sound).
+/// After each turn the waiter waits for work in the background and wakes the agent with it
+/// (asyncRewake). The Artifact tool, claude.ai connectors and the skills and plugins synced from
+/// claude.ai stay off, and `GODSPEED_WAKES` tells the connector this session is woken that way.
+/// Fetching a page still asks: text hidden in a space file could send the learner's data out.
 pub fn claude_settings(folder: &str, platform: Platform) -> String {
-	let hook = |script: &str| json!([{ "type": "command", "command": "node", "args": [join(folder, platform, &[".godspeed", script])], "timeout": 10 }]);
+	let script = |name: &str| join(folder, platform, &[".godspeed", name]);
+	let hook = |name: &str| json!([{ "type": "command", "command": "node", "args": [script(name)], "timeout": 10 }]);
 	let forget = hook("forget.mjs");
 	let event = hook("agent-event.mjs");
+	let waiter = json!({ "type": "command", "command": "node", "args": [script("wait-for-work.mjs")], "asyncRewake": true, "timeout": WAITER_TIMEOUT_S });
 	let settings = json!({
 		"enabledMcpjsonServers": ["godspeed"],
-		"permissions": { "allow": ["mcp__godspeed__*", format!("Bash({WAITER})"), format!("Bash({WAITER} *)"), "WebSearch"] },
+		"enableArtifact": false,
+		"disableClaudeAiConnectors": true,
+		"syncClaudeAiSkills": false,
+		"syncClaudeAiPlugins": false,
+		"env": { "GODSPEED_WAKES": "1" },
+		"permissions": { "allow": ["mcp__godspeed__*", "WebSearch"] },
 		"hooks": {
 			"PreCompact": [{ "hooks": hook("compacting.mjs") }],
 			"UserPromptSubmit": [{ "hooks": hook("typed.mjs") }],
 			"SessionStart": [{ "matcher": "compact", "hooks": forget.clone() }, { "hooks": event.clone() }],
 			"SessionEnd": [{ "matcher": "clear", "hooks": forget }],
-			"Stop": [{ "hooks": event.clone() }],
+			"Stop": [{ "hooks": [event[0].clone(), waiter] }],
 			"Notification": [{ "matcher": "permission_prompt|elicitation_dialog", "hooks": event }],
 		},
 	});
@@ -227,7 +254,7 @@ fn cmd_quote(arg: &str) -> String {
 fn helper_args(agent: FolderAgent, folder: &str, platform: Platform) -> Vec<String> {
 	match agent {
 		FolderAgent::Codex => codex_args(folder, platform, Some(HELPER_PROMPT)),
-		FolderAgent::Claude => vec!["--settings".to_owned(), CLAUDE_SETTINGS.to_owned(), HELPER_PROMPT.to_owned()],
+		FolderAgent::Claude => claude_args(Some(HELPER_PROMPT)),
 	}
 }
 
@@ -244,7 +271,7 @@ fn teacher_starts(agent: FolderAgent, folder: &str, platform: Platform, quote: f
 	let quoted = |args: Vec<String>| args.iter().map(|a| quote(a)).collect::<Vec<_>>();
 	let base = match agent {
 		FolderAgent::Codex => codex_args(folder, platform, None),
-		FolderAgent::Claude => vec!["--settings".to_owned(), CLAUDE_SETTINGS.to_owned()],
+		FolderAgent::Claude => claude_args(None),
 	};
 	let fresh = quoted(base.clone());
 	let mut outside = fresh.clone();
@@ -278,13 +305,13 @@ pub fn copy_command(agent: FolderAgent, folder: &str, home: &str, platform: Plat
 		if agent == FolderAgent::Codex {
 			return format!("\"{}\"", start_script_path(folder, StartTarget::Codex, platform));
 		}
-		let args: Vec<String> = CLAUDE_ARGS.iter().map(|a| cmd_quote(a)).collect();
+		let args: Vec<String> = claude_args(Some(START_PROMPT)).iter().map(|a| cmd_quote(a)).collect();
 		return format!("cd /d \"{folder}\" && {start} {}", args.join(" "));
 	}
 	static HOME_RELATIVE: LazyLock<Re> = LazyLock::new(|| Re::new(r"^~[\w./-]*$", ""));
 	let short = short_folder(folder, home);
 	let cd = if HOME_RELATIVE.test(&short) { short } else { posix_quote(folder) };
-	let args = if agent == FolderAgent::Claude { CLAUDE_ARGS.iter().map(|a| (*a).to_owned()).collect() } else { codex_args(folder, platform, Some(START_PROMPT)) };
+	let args = if agent == FolderAgent::Claude { claude_args(Some(START_PROMPT)) } else { codex_args(folder, platform, Some(START_PROMPT)) };
 	let args: Vec<String> = args.iter().map(|a| posix_quote(a)).collect();
 	format!("cd {cd} && {start} {}", args.join(" "))
 }
@@ -299,9 +326,21 @@ fn not_installed(agent: FolderAgent) -> &'static str {
 // The folder's connector and hooks run with plain `node`.
 const NEEDS_NODE: &str = "godspeed needs Node.js. Install it from https://nodejs.org, then click Start again in godspeed.";
 
-/// How a start script ends when what it starts isn't there; the app's terminal reads these.
+/// How a start script ends when what it starts isn't there or is too old; the app's terminal
+/// reads these.
 const EXIT_NOT_INSTALLED: u8 = 3;
 const EXIT_NO_NODE: u8 = 4;
+const EXIT_OLD_AGENT: u8 = 6;
+
+fn too_old() -> String {
+	format!("godspeed needs Claude Code {CLAUDE_MIN_VERSION} or newer. Update it (run: claude update), then click Start again in godspeed.")
+}
+
+/// The version check: Claude Code's own `--version`, read by the folder's script. The learner's own
+/// command isn't asked, since a launcher may not pass the flag on.
+fn version_check(agent: FolderAgent, own: Option<&str>) -> bool {
+	agent == FolderAgent::Claude && own.is_none()
+}
 
 /// What a start script checks is installed (the program, and what it says when it isn't). The
 /// learner's own command is checked by its first word when that is a plain program name; anything
@@ -330,7 +369,15 @@ pub fn start_script(target: StartTarget, folder: &str, platform: Platform, comma
 		let mut lines = vec!["@echo off".to_owned(), format!("cd /d \"{folder}\"")];
 		lines.extend(check.map(|(program, missing)| format!("where {program} >nul 2>nul || (echo {missing} & exit /b {EXIT_NOT_INSTALLED})")));
 		lines.push(format!("where node >nul 2>nul || (echo {NEEDS_NODE} & exit /b {EXIT_NO_NODE})"));
+		if version_check(agent, own) {
+			// A bracket would end cmd's block early.
+			let echo = too_old().replace('(', "^(").replace(')', "^)");
+			lines.push(format!("claude --version 2>nul | node .godspeed\\new-enough.mjs {CLAUDE_MIN_VERSION} || (echo {echo} & exit /b {EXIT_OLD_AGENT})"));
+		}
 		let start = own.unwrap_or(name);
+		if target == StartTarget::ClaudeHelper {
+			lines.push(format!("set {HELPER_ENV}=1"));
+		}
 		if helper {
 			let args: Vec<String> = helper_args(agent, folder, platform).iter().map(|a| cmd_quote(a)).collect();
 			lines.push(format!("{start} {}", args.join(" ")));
@@ -346,9 +393,15 @@ pub fn start_script(target: StartTarget, folder: &str, platform: Platform, comma
 	let mut lines = vec!["#!/bin/sh".to_owned(), format!("cd {} || exit 1", posix_quote(folder))];
 	lines.extend(check.map(|(program, missing)| format!("command -v {program} >/dev/null 2>&1 || {{ echo {}; exit {EXIT_NOT_INSTALLED}; }}", posix_quote(&missing))));
 	lines.push(format!("command -v node >/dev/null 2>&1 || {{ echo {}; exit {EXIT_NO_NODE}; }}", posix_quote(NEEDS_NODE)));
+	if version_check(agent, own) {
+		lines.push(format!("claude --version 2>/dev/null | node .godspeed/new-enough.mjs {CLAUDE_MIN_VERSION} || {{ echo {}; exit {EXIT_OLD_AGENT}; }}", posix_quote(&too_old())));
+	}
 	// The learner's own command may start with a variable (A=b claude), which exec can't run.
 	let start = own.map_or_else(|| format!("exec {name}"), str::to_owned);
 	let then = |args: &[String]| if own.is_some() { format!("{start} {}; exit $?", args.join(" ")) } else { format!("{start} {}", args.join(" ")) };
+	if target == StartTarget::ClaudeHelper {
+		lines.push(format!("export {HELPER_ENV}=1"));
+	}
 	if helper {
 		let args: Vec<String> = helper_args(agent, folder, platform).iter().map(|a| posix_quote(a)).collect();
 		lines.push(format!("{start} {}", args.join(" ")));
@@ -399,7 +452,7 @@ mod tests {
 	#[test]
 	fn files_and_commands() {
 		assert_eq!(mcp_json("/h/godspeed/", Platform::Darwin), "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/h/godspeed/.godspeed/connect.mjs\"\n\t\t\t],\n\t\t\t\"env\": {\n\t\t\t\t\"GODSPEED_TERMINAL\": \"${GODSPEED_TERMINAL:-}\",\n\t\t\t\t\"GODSPEED_DATA_DIR\": \"${GODSPEED_DATA_DIR:-}\"\n\t\t\t}\n\t\t}\n\t}\n}\n");
-		assert_eq!(copy_command(FolderAgent::Claude, "/h/godspeed", "/h", Platform::Darwin, &none()), "cd ~/godspeed && claude --settings .godspeed/claude-settings.json \"Start teaching\"");
+		assert_eq!(copy_command(FolderAgent::Claude, "/h/godspeed", "/h", Platform::Darwin, &none()), "cd ~/godspeed && claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start teaching\"");
 		assert!(start_script(StartTarget::Codex, "/h/my godspeed", Platform::Linux, &none()).contains("cd \"/h/my godspeed\" || exit 1\n"));
 		assert_eq!(start_script_path("C:\\g", StartTarget::Codex, Platform::Win32), "C:\\g\\.godspeed\\start-codex.cmd");
 		assert_eq!(start_script_path("/g", StartTarget::ClaudeHelper, Platform::Darwin), "/g/.godspeed/start-claude-helper.command");
@@ -418,7 +471,7 @@ mod tests {
 	#[test]
 	fn settings_allow_web_search_and_hook_every_compaction() {
 		let settings = gs_json::parse(&claude_settings("/Users/me/godspeed", Platform::Darwin)).unwrap();
-		assert_eq!(gs_json::stringify(&settings["permissions"]["allow"]), r#"["mcp__godspeed__*","Bash(node .godspeed/wait-for-work.mjs)","Bash(node .godspeed/wait-for-work.mjs *)","WebSearch"]"#);
+		assert_eq!(gs_json::stringify(&settings["permissions"]["allow"]), r#"["mcp__godspeed__*","WebSearch"]"#);
 		assert_eq!(gs_json::stringify(&settings["hooks"]["PreCompact"]), r#"[{"hooks":[{"type":"command","command":"node","args":["/Users/me/godspeed/.godspeed/compacting.mjs"],"timeout":10}]}]"#);
 		assert_eq!(gs_json::stringify(&settings["hooks"]["UserPromptSubmit"]), r#"[{"hooks":[{"type":"command","command":"node","args":["/Users/me/godspeed/.godspeed/typed.mjs"],"timeout":10}]}]"#);
 		assert_eq!(gs_json::stringify(&settings["hooks"]["Notification"]), r#"[{"matcher":"permission_prompt|elicitation_dialog","hooks":[{"type":"command","command":"node","args":["/Users/me/godspeed/.godspeed/agent-event.mjs"],"timeout":10}]}]"#);
@@ -426,22 +479,45 @@ mod tests {
 	}
 
 	#[test]
+	fn the_waiter_wakes_the_agent_after_each_turn_and_the_learners_extras_stay_off() {
+		let settings = gs_json::parse(&claude_settings("/Users/me/godspeed", Platform::Darwin)).unwrap();
+		assert_eq!(
+			gs_json::stringify(&settings["hooks"]["Stop"]),
+			r#"[{"hooks":[{"type":"command","command":"node","args":["/Users/me/godspeed/.godspeed/agent-event.mjs"],"timeout":10},{"type":"command","command":"node","args":["/Users/me/godspeed/.godspeed/wait-for-work.mjs"],"asyncRewake":true,"timeout":7260}]}]"#
+		);
+		for (key, off) in [("enableArtifact", false), ("disableClaudeAiConnectors", true), ("syncClaudeAiSkills", false), ("syncClaudeAiPlugins", false)] {
+			assert_eq!(settings[key].as_bool(), Some(off), "{key}");
+		}
+		assert_eq!(settings["env"]["GODSPEED_WAKES"].as_str(), Some("1"));
+	}
+
+	#[test]
+	fn an_old_claude_code_ends_the_script_with_6() {
+		let mac = start_script(StartTarget::ClaudeHelper, "/Users/me/godspeed", Platform::Darwin, &none());
+		assert!(mac.contains("\nclaude --version 2>/dev/null | node .godspeed/new-enough.mjs 2.1.330 || { echo \"godspeed needs Claude Code 2.1.330 or newer. Update it (run: claude update), then click Start again in godspeed.\"; exit 6; }\n"), "{mac}");
+		let win = start_script(StartTarget::Claude, "C:\\gs", Platform::Win32, &none());
+		assert!(win.contains("\r\nclaude --version 2>nul | node .godspeed\\new-enough.mjs 2.1.330 || (echo godspeed needs Claude Code 2.1.330 or newer. Update it ^(run: claude update^), then click Start again in godspeed. & exit /b 6)\r\n"), "{win}");
+		assert!(!start_script(StartTarget::Claude, "/Users/me/godspeed", Platform::Linux, &own_claude()).contains("--version"), "a launcher may not pass the flag on");
+		assert!(!start_script(StartTarget::Codex, "/Users/me/godspeed", Platform::Linux, &none()).contains("--version"));
+	}
+
+	#[test]
 	fn the_teacher_goes_back_to_a_chat_starts_quiet_in_godspeed_and_teaches_outside() {
 		let claude = start_script(StartTarget::Claude, "/Users/me/godspeed", Platform::Darwin, &none());
-		assert!(claude.contains("\nif [ -n \"$GODSPEED_RESUME\" ]; then exec claude --settings .godspeed/claude-settings.json --resume \"$GODSPEED_RESUME\"; fi\n"), "{claude}");
-		assert!(claude.contains("\nif [ -n \"$GODSPEED_TERMINAL\" ]; then exec claude --settings .godspeed/claude-settings.json; fi\n"), "{claude}");
-		assert!(claude.ends_with("\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"), "{claude}");
+		assert!(claude.contains("\nif [ -n \"$GODSPEED_RESUME\" ]; then exec claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 --resume \"$GODSPEED_RESUME\"; fi\n"), "{claude}");
+		assert!(claude.contains("\nif [ -n \"$GODSPEED_TERMINAL\" ]; then exec claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000; fi\n"), "{claude}");
+		assert!(claude.ends_with("\nexec claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start teaching\"\n"), "{claude}");
 		let codex = start_script(StartTarget::Codex, "/Users/me/godspeed", Platform::Linux, &none());
 		assert!(codex.contains("then exec codex resume -c "), "{codex}");
 		assert!(codex.contains(" \"$GODSPEED_RESUME\"; fi\n"), "{codex}");
 		let win = start_script(StartTarget::Claude, "C:\\Users\\me\\godspeed", Platform::Win32, &none());
-		assert!(win.contains("\r\nif defined GODSPEED_RESUME (claude --settings .godspeed/claude-settings.json --resume %GODSPEED_RESUME% & exit /b)\r\n"), "{win}");
+		assert!(win.contains("\r\nif defined GODSPEED_RESUME (claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 --resume %GODSPEED_RESUME% & exit /b)\r\n"), "{win}");
 		assert!(copy_command(FolderAgent::Claude, "/Users/me/godspeed", "/Users/me", Platform::Darwin, &none()).ends_with(" \"Start teaching\""), "an agent started outside godspeed starts teaching");
 	}
 
 	#[test]
 	fn the_helper_starts_each_agent_with_its_own_prompt() {
-		assert!(start_script(StartTarget::ClaudeHelper, "/Users/me/godspeed", Platform::Linux, &none()).ends_with("\nexec claude --settings .godspeed/claude-settings.json \"Start as the helper\"\n"));
+		assert!(start_script(StartTarget::ClaudeHelper, "/Users/me/godspeed", Platform::Linux, &none()).ends_with("\nexport GODSPEED_HELPER=1\nexec claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start as the helper\"\n"));
 		let codex = start_script(StartTarget::CodexHelper, "/Users/me/godspeed", Platform::Linux, &none());
 		assert!(codex.contains(r#" -c "hooks.UserPromptSubmit=[{hooks=[{type='command',command='node \"/Users/me/godspeed/.godspeed/typed.mjs\"',timeout=10}]}]" "#), "{codex}");
 		assert!(codex.ends_with(concat!(r#" -c "hooks.PermissionRequest=[{hooks=[{type='command',command='node \"/Users/me/godspeed/.godspeed/agent-event.mjs\"',timeout=10}]}]" "Start as the helper""#, "\n")), "{codex}");
@@ -452,15 +528,15 @@ mod tests {
 	#[test]
 	fn the_learners_own_command_starts_the_agent() {
 		let own = own_claude();
-		assert_eq!(copy_command(FolderAgent::Claude, "/Users/me/godspeed", "/Users/me", Platform::Darwin, &own), "cd ~/godspeed && standardcompute launch claude -- --settings .godspeed/claude-settings.json \"Start teaching\"");
+		assert_eq!(copy_command(FolderAgent::Claude, "/Users/me/godspeed", "/Users/me", Platform::Darwin, &own), "cd ~/godspeed && standardcompute launch claude -- --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start teaching\"");
 		assert!(copy_command(FolderAgent::Codex, "/Users/me/godspeed", "/Users/me", Platform::Darwin, &own).starts_with("cd ~/godspeed && codex -c "), "Codex keeps the usual one");
-		assert_eq!(copy_command(FolderAgent::Claude, "C:\\gs", "C:\\Users\\me", Platform::Win32, &own), "cd /d \"C:\\gs\" && standardcompute launch claude -- --settings .godspeed/claude-settings.json \"Start teaching\"");
+		assert_eq!(copy_command(FolderAgent::Claude, "C:\\gs", "C:\\Users\\me", Platform::Win32, &own), "cd /d \"C:\\gs\" && standardcompute launch claude -- --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start teaching\"");
 
 		let script = start_script(StartTarget::Claude, "/Users/me/godspeed", Platform::Darwin, &own);
 		assert!(script.contains("\ncommand -v standardcompute >/dev/null 2>&1 || { echo \"godspeed couldn't find standardcompute. Check the command under Change command in godspeed.\"; exit 3; }\n"), "{script}");
-		assert!(script.ends_with("\nstandardcompute launch claude -- --settings .godspeed/claude-settings.json \"Start teaching\"\n"));
+		assert!(script.ends_with("\nstandardcompute launch claude -- --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start teaching\"\n"));
 		assert!(!script.contains("command -v claude") && !script.contains("exec "));
-		assert!(start_script(StartTarget::ClaudeHelper, "/Users/me/godspeed", Platform::Linux, &own).ends_with("\nstandardcompute launch claude -- --settings .godspeed/claude-settings.json \"Start as the helper\"\n"));
+		assert!(start_script(StartTarget::ClaudeHelper, "/Users/me/godspeed", Platform::Linux, &own).ends_with("\nexport GODSPEED_HELPER=1\nstandardcompute launch claude -- --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start as the helper\"\n"));
 		assert!(start_script(StartTarget::Codex, "/Users/me/godspeed", Platform::Linux, &own).contains("\nexec codex -c "));
 
 		let codex = StartCommands { claude: None, codex: Some("standardcompute launch codex --".to_owned()) };

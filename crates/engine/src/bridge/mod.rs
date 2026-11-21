@@ -69,6 +69,8 @@ struct WorkItem {
 	claims: u64,
 	/// The agent lost its context while holding it: its reply does not count as seen.
 	agent_forgot: bool,
+	/// Its agent took it back once with its context intact; a second time waits for the claim.
+	taken_back: bool,
 	/// The item as the agent reads it, in pages of text blocks; page 1 goes out with the item.
 	pages: Vec<Vec<String>>,
 	/// Pages not read yet; a reply waits until none are left.
@@ -137,7 +139,7 @@ struct State {
 	/// Terminals whose agent took a line (typed, or godspeed's nudge) and has not stopped since.
 	prompting: HashSet<String>,
 	/// terminal → its agent's last tool call, and its last stop: a call after the stop means it
-	/// is at work on something (a turn a finished background waiter began has no line).
+	/// is at work on something (a turn the waiter's wake began has no line).
 	tool_at: HashMap<String, i64>,
 	stop_at: HashMap<String, i64>,
 	/// teacher terminal → the nudge line godspeed sent it and when, until its prompt hook hands
@@ -150,11 +152,10 @@ struct State {
 	outside_contact: i64,
 }
 
-/// A teacher's wait under way: the lesson it stays on, and the agent that waits.
+/// A teacher's wait under way: the lesson it stays on.
 struct Wait {
 	id: u64,
 	on: Option<String>,
-	agent: Option<String>,
 	/// The app terminal the wait came from.
 	terminal: Option<String>,
 }

@@ -5,7 +5,7 @@ import { CoverageMenuBlock } from "@/frontend/components/extraction-coverage";
 import { dispositionFileName, saveBlob } from "@/frontend/components/artifacts/download";
 
 /**
- * THE LESSON MENU (a Progress row's More button or a right-click, and the open lesson's More): Rename,
+ * THE LESSON MENU (a Progress row's More button, and the open lesson's More): Rename,
  * Export as Markdown, Move to another space, Lesson stats (the open lesson only), Delete (the destructive
  * action last), then below a gap the extraction coverage block. MenuShell owns
  * placement, focus and arrow keys; the list owns dismissal. From the open

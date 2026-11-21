@@ -42,7 +42,7 @@ export function HomeNext({
 	return (
 		<div className="grid gap-(--lh-gap) @[700px]/page:grid-cols-2 @[1100px]/page:col-span-2">
 			{unfinished.length > 0 && (
-				<Pane data-testid="today-unfinished" className="lh-card self-start only:col-span-full">
+				<Pane data-testid="today-unfinished" className="lh-card only:col-span-full">
 					<div className="lh-card-head">
 						<h2 className="lh-card-title">Unfinished</h2>
 						<Link
@@ -84,7 +84,7 @@ export function HomeNext({
 				</Pane>
 			)}
 			{topics.length > 0 && (
-				<Pane data-testid="today-work-on-next" className="lh-card self-start only:col-span-full">
+				<Pane data-testid="today-work-on-next" className="lh-card only:col-span-full">
 					<div className="lh-card-head">
 						<h2 className="lh-card-title">Work on next</h2>
 						<Key data-testid="today-topic-key" busy={busyOn === topics[0]!.topicId} disabled={busyOn !== null} onClick={() => onStudyTopic(topics[0]!.spaceId, topics[0]!.topicId)} className="shrink-0">

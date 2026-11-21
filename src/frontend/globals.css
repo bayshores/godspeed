@@ -2149,7 +2149,7 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
    - .lh-set           what replaced a wait: its blocks step in top to
                        bottom, 30 ms apart, the eighth and later together
                        (a reply that landed prints line by line instead,
-                       citations/use-print-in.ts);
+                       lesson/use-print-in.ts);
    - .lh-flash-right/-wrong  a checked answer's card flips to inverse green
                        or red for a beat, then settles;
    - the streaming block cursor blinks. */

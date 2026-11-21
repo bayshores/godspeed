@@ -1,6 +1,7 @@
 /**
  * The Edit space dialog, mounted over linkedom with a fake fetch: Save
- * writes only the fields the learner changed. The dialog has no file list
+ * writes only the fields the learner changed; Close space and Delete space
+ * sit in its foot. The dialog has no file list
  * and no deadlines (those have their own tabs).
  */
 import React, { act, useEffect } from "react";
@@ -97,7 +98,7 @@ function fakeFetch() {
 let root: Root | undefined;
 let host: HTMLElement | undefined;
 let closed = 0;
-async function mount(mode: { kind: "create" } | { kind: "edit" | "delete"; spaceId: string }, active = "cls_a") {
+async function mount(mode: { kind: "create" } | { kind: "edit"; spaceId: string }, active = "cls_a") {
 	host = document.createElement("div");
 	document.body.append(host);
 	root = createRoot(host);
@@ -288,22 +289,7 @@ describe("Delete space", () => {
 	});
 });
 
-describe("Delete space from a tab's menu", () => {
-	it("opens straight on the delete question", async () => {
-		fakeFetch();
-		await mount({ kind: "delete", spaceId: "cls_a" });
-		assert.equal(q("space-dialog")!.getAttribute("aria-label"), "Delete CSE 21?");
-		assert.match(q("space-delete-confirm")!.textContent!, /This cannot be undone\./);
-		assert.ok(q("space-name") === null, "no fields to edit");
-		await click(q("space-delete-confirm-button"));
-		await act(async () => {
-			await new Promise((r) => setTimeout(r, 10));
-		});
-		assert.ok(calls.some((c) => `${c.method} ${c.url}` === "DELETE /api/spaces/cls_a"));
-		assert.deepEqual(pushed, ["/"], "to Home");
-		assert.equal(closed, 1);
-	});
-
+describe("Delete space in Edit space", () => {
 	it("deleting a space the window is not on keeps the page", async () => {
 		fakeFetch();
 		const fallback = globalThis.fetch;
@@ -311,7 +297,8 @@ describe("Delete space from a tab's menu", () => {
 			if (String(input) === "/api/spaces") return Response.json({ spaces: [{ id: "cls_a", name: "CSE 21" }, { id: "cls_b", name: "MATH 18" }] });
 			return fallback(input, init);
 		}) as typeof fetch;
-		await mount({ kind: "delete", spaceId: "cls_a" }, "cls_b");
+		await mount({ kind: "edit", spaceId: "cls_a" }, "cls_b");
+		await click(q("space-delete"));
 		await click(q("space-delete-confirm-button"));
 		await act(async () => {
 			await new Promise((r) => setTimeout(r, 10));
@@ -322,47 +309,90 @@ describe("Delete space from a tab's menu", () => {
 		assert.ok(!calls.some((c) => c.url === "/api/settings/general"), "the window stays on its own space");
 	});
 
-	it("Cancel, Close and Esc close the dialog instead of going to Edit space", async () => {
+	it("Cancel, Close and Esc on the question go back to the fields and delete nothing", async () => {
 		fakeFetch();
-		await mount({ kind: "delete", spaceId: "cls_a" });
+		await mount({ kind: "edit", spaceId: "cls_a" });
+		await click(q("space-delete"));
 		await click(q("space-delete-cancel"));
-		assert.equal(closed, 1);
+		assert.ok(q("space-name"), "back on the fields");
+		await click(q("space-delete"));
 		assert.equal(await pressEscape(), true);
-		assert.equal(closed, 2);
+		assert.ok(q("space-name"), "Esc goes back too");
+		await click(q("space-delete"));
 		await click(q("space-dialog-close"));
-		assert.equal(closed, 3);
-		assert.ok(q("space-name") === null, "never the edit fields");
+		assert.ok(q("space-name"), "so does the close key");
+		assert.equal(closed, 0);
 		assert.deepEqual(calls, [], "nothing deleted");
 	});
+});
 
-	it("a refused delete stays on the question with its error", async () => {
+describe("Close space in Edit space", () => {
+	it("is in the foot of Edit space, beside Delete space", async () => {
 		fakeFetch();
-		const fallback = globalThis.fetch;
-		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-			if (String(input) === "/api/spaces/cls_a" && init?.method === "DELETE") return Response.json({ error: "Counting: a turn is running" }, { status: 409 });
-			return fallback(input, init);
-		}) as typeof fetch;
-		await mount({ kind: "delete", spaceId: "cls_a" });
-		await click(q("space-delete-confirm-button"));
+		await mount({ kind: "edit", spaceId: "cls_a" });
+		assert.equal(q("space-close")!.textContent, "Close space");
+		assert.ok(q("space-close")!.nextElementSibling === q("space-delete"));
+	});
+
+	it("is not in Add a space, on the delete question or on the discard question", async () => {
+		fakeFetch();
+		await mount({ kind: "create" });
+		assert.ok(q("space-close") === null, "not while adding");
+		await act(async () => root?.unmount());
+		host?.remove();
+		await mount({ kind: "edit", spaceId: "cls_a" });
+		await click(q("space-delete"));
+		assert.ok(q("space-close") === null, "not on the delete question");
+		await click(q("space-delete-cancel"));
+		await typeInto(q("space-name"), "CSE 21 B");
+		await pressEscape();
+		assert.ok(q("space-discard"), "asking to discard");
+		assert.ok(q("space-close") === null, "not on the discard question");
+	});
+
+	it("closes the space, goes to Home and closes the dialog", async () => {
+		fakeFetch();
+		await mount({ kind: "edit", spaceId: "cls_a" });
+		await click(q("space-close"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.deepEqual(calls[0], { method: "PUT", url: "/api/spaces/cls_a", body: { closed: true } });
+		assert.deepEqual(pushed, ["/"], "to Home");
+		assert.equal(closed, 1);
+		assert.ok(calls.some((c) => c.url === "/api/settings/general" && (c.body as { activeSpace?: string }).activeSpace === "none"));
+	});
+
+	it("saves what was typed before closing the space", async () => {
+		fakeFetch();
+		await mount({ kind: "edit", spaceId: "cls_a" });
+		await typeInto(q("space-name"), "CSE 21 B");
+		await click(q("space-close"));
 		await act(async () => {
 			await new Promise((r) => setTimeout(r, 20));
 		});
-		assert.match(q("space-dialog-error")!.textContent!, /a turn is running/);
-		assert.ok(q("space-delete-confirm"), "still the question");
-		assert.equal(closed, 0);
+		const writes = calls.filter((c) => c.method === "PUT" && c.url === "/api/spaces/cls_a").map((c) => c.body);
+		assert.deepEqual(writes, [{ name: "CSE 21 B" }, { closed: true }]);
+		assert.equal(closed, 1);
 	});
 
-	it("a space that can't be read says so, and Delete space stays off", async () => {
+	it("a refused close says why and keeps the dialog open", async () => {
 		fakeFetch();
 		const fallback = globalThis.fetch;
 		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-			if (String(input) === "/api/spaces/cls_a" && (init?.method ?? "GET") === "GET") return Response.json({ error: "boom" }, { status: 500 });
+			if (String(input) === "/api/spaces/cls_a" && init?.method === "PUT") return Response.json({ error: "The space is busy. Try again." }, { status: 409 });
 			return fallback(input, init);
 		}) as typeof fetch;
-		await mount({ kind: "delete", spaceId: "cls_a" });
-		assert.equal(q("space-dialog")!.getAttribute("aria-label"), "Delete CSE 21?", "named from the space list");
-		assert.match(q("load-failed")!.textContent!, /Couldn't load this space\./);
-		assert.equal((q("space-delete-confirm-button") as HTMLButtonElement).disabled, true);
+		await mount({ kind: "edit", spaceId: "cls_a" });
+		await click(q("space-close"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 20));
+		});
+		assert.equal(q("space-dialog-error")!.textContent, "The space is busy. Try again.");
+		assert.equal(q("space-dialog-error")!.getAttribute("role"), "alert");
+		assert.equal(closed, 0);
+		assert.deepEqual(pushed, []);
+		assert.ok(q("space-name"), "still the fields");
 	});
 });
 

@@ -3,8 +3,9 @@
  * the space's counts ("N facts" opens All facts). Zoomed in, the counts are
  * what is in view (the topic's name and how many of its facts are lit when it
  * is the only one) and Whole space flies back out. While something is typed
- * in the top bar's Find, the line says what matches. Find, Costs and, with no
- * space, Add files are words in the top bar.
+ * in the top bar's Find, the line says what matches. Before any topic it
+ * counts only facts. Find, Costs and, with no space, Add files are words in
+ * the top bar.
  */
 import type { InView } from "./use-in-view.ts";
 
@@ -31,7 +32,7 @@ export function GraphFoot({
 	onWholeSpace,
 }: {
 	hasFacts: boolean;
-	/** Topics other than Ungrouped. */
+	/** Topics other than Ungrouped; 0 before any topic, when only facts are counted. */
 	topicCount: number;
 	factCount: number;
 	/** Find's lit topics and facts; null with nothing typed. */
@@ -41,6 +42,16 @@ export function GraphFoot({
 	inView: InView | null;
 	onWholeSpace: () => void;
 }) {
+	const wholeSpace = (
+		<button
+			type="button"
+			data-testid="graph-whole-space"
+			onClick={onWholeSpace}
+			className="lh-fade border-b-2 border-transparent pb-1 text-[15px] text-ink-2 transition-colors hover:border-foreground hover:text-ink"
+		>
+			Whole space
+		</button>
+	);
 	return (
 		<div className="pointer-events-none absolute inset-x-0 bottom-0" style={{ height: FOOT }}>
 			<div data-testid="graph-foot" className="lh-page pointer-events-auto flex h-11 items-center gap-6 pt-1">
@@ -53,12 +64,12 @@ export function GraphFoot({
 							</span>
 						) : (
 							<span className="flex items-baseline gap-5">
-								<Count n={matches.topics.size} word="topic" />
+								{topicCount > 0 && <Count n={matches.topics.size} word="topic" />}
 								<Count n={matches.facts.size} word="fact" />
 							</span>
 						)}
 					</span>
-				) : hasFacts && inView ? (
+				) : hasFacts && inView && topicCount > 0 ? (
 					<>
 						{/* Plain words: the in-view counts open nothing, so All facts stays one click away at the whole space. */}
 						<span data-testid="graph-in-view" className="flex items-baseline gap-6 border-b-2 border-transparent pb-1">
@@ -75,22 +86,17 @@ export function GraphFoot({
 								<Count n={inView.facts} word="fact" />
 							)}
 						</span>
-						<button
-							type="button"
-							data-testid="graph-whole-space"
-							onClick={onWholeSpace}
-							className="lh-fade border-b-2 border-transparent pb-1 text-[15px] text-ink-2 transition-colors hover:border-foreground hover:text-ink"
-						>
-							Whole space
-						</button>
+						{wholeSpace}
 					</>
 				) : (
 					hasFacts && (
 						<>
 							{/* The same unseen underline as the button beside it, so both sit on one line. */}
-							<span className="border-b-2 border-transparent pb-1">
-								<Count n={topicCount} word="topic" />
-							</span>
+							{topicCount > 0 && (
+								<span className="border-b-2 border-transparent pb-1">
+									<Count n={topicCount} word="topic" />
+								</span>
+							)}
 							<button
 								type="button"
 								data-testid="open-chain-table"
@@ -100,6 +106,8 @@ export function GraphFoot({
 							>
 								<Count n={factCount} word="fact" />
 							</button>
+							{/* Zoomed in before any topic: nothing to count in view, so the space's facts stay. */}
+							{inView && wholeSpace}
 						</>
 					)
 				)}

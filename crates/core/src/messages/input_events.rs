@@ -16,6 +16,7 @@ use super::native_messages::{
 use super::app_notes::opener_answer_text;
 use super::lesson_markers::new_opener_answer_marker;
 use super::pending::answer_takes_files;
+use crate::spaces::problem_list::lesson_list_owner;
 use crate::study::topic_end::shown_openers;
 
 /// A malformed input event: the honest 400.
@@ -270,13 +271,7 @@ pub fn input_appends(record: &Json, input: &ChatInput, attachments: &[Json]) -> 
 			Ok(with_dismissal_conclusion(messages, new_next_message()))
 		}
 		ChatInput::Open { number } => {
-			// A homework lesson and a lesson on files have a problem list to pick from.
-			let listed = match record["kind"].as_str() {
-				Some("homework") => true,
-				Some("study") => !record["fileIds"].items().is_empty(),
-				_ => false,
-			};
-			if !listed {
+			if lesson_list_owner(record).is_none() {
 				return refuse("open input is for a lesson with a problem list");
 			}
 			if dangling_question_of(messages).is_some() {
@@ -446,7 +441,8 @@ mod tests {
 	fn open_picks_a_listed_problem_unless_a_question_waits_or_it_is_already_open() {
 		let pose = |number: &str| json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "p1", "name": "problem", "arguments": { "number": number } }] });
 		let posed = json!({ "role": "toolResult", "toolCallId": "p1", "isError": false });
-		let lesson = |kind: &str, messages: &[Json]| json!({ "kind": kind, "messages": messages });
+		// A homework lesson's list is its deadline's.
+		let lesson = |kind: &str, messages: &[Json]| json!({ "kind": kind, "deadlineId": if kind == "homework" { "ddl_1" } else { "" }, "messages": messages });
 		let pick = |number: &str| ChatInput::Open { number: number.into() };
 		assert_eq!(parse_chat_input(&json!({ "type": "open", "number": "2b" })).unwrap(), pick("2b"));
 		assert_eq!(error_of(parse_chat_input(&json!({ "type": "open", "number": " " }))), "open input requires the problem's number");
@@ -458,6 +454,7 @@ mod tests {
 		assert_eq!(error_of(input_appends(&lesson("homework", &[pose("2b"), posed.clone()]), &pick("2b"), &[])), "that problem is already open");
 		assert_eq!(error_of(input_appends(&lesson("study", &[]), &pick("1"), &[])), "open input is for a lesson with a problem list");
 		assert_eq!(input_appends(&json!({ "kind": "study", "fileIds": ["f_test"], "messages": [] }), &pick("1"), &[]).unwrap().len(), 1, "a lesson on files has one");
+		assert_eq!(error_of(input_appends(&json!({ "kind": "homework", "messages": [] }), &pick("1"), &[])), "open input is for a lesson with a problem list", "a homework with no deadline has none");
 		let question = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q1", "name": "quiz", "arguments": { "question": "?" } }] });
 		assert_eq!(error_of(input_appends(&lesson("homework", &[question]), &pick("1"), &[])), "open input waits for the pending question's answer");
 	}

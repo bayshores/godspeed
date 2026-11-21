@@ -31,13 +31,23 @@ Tests:
 
 `effective_threshold_tokens` caps the summarize point at window minus reserve, but that cap is 183,616, so it never applies.
 
-The threshold measures the lesson's transcript only (`lesson_tokens`): the messages the model sees (the active summary, then every message from the cut onward), estimated as below. The system prompt and tool schemas (about 20,000 tokens) are left out, since no cut can shrink them; counting them kept a shortened lesson over the threshold, so it was cut again every turn. Provider-reported usage is not read here. After a cut the lesson holds the kept tail (about 20,000) and the summary (at most 6,000), so at least 10,000 tokens of new lesson fit before the next cut.
+The threshold measures the lesson's transcript only (`lesson_tokens`): the messages the model sees (the active summary, then every message from the cut onward), estimated as below. The system prompt and tool schemas (about 20,000 tokens) are left out, since no cut can shrink them; counting them would keep a shortened lesson over the threshold, so it would be cut again every turn. Provider-reported usage is not read here. After a cut the lesson holds the kept tail (about 20,000) and the summary (at most 6,000), so at least 10,000 tokens of new lesson fit before the next cut.
 
 1. Past the summarize point the server cuts the record at once and writes its own short version of the dropped part (`local_summary`), at the turn-start gate and when a turn settles, never during a live run.
 2. The compaction marker is written right away with that version. A turn that starts now goes ahead on it.
 3. After 5 quiet minutes the outside agent writes the real summary, replacing the marker's text in place.
 
 A cut that drops no active history adds no marker. A cut that can't move past the previous kept boundary (the kept tail alone is over the threshold) adds none either, and says so in the log once for that boundary. Full history always stays in the record. The model sees the summary, then every message from the cut onward.
+
+## The teacher session
+
+The teacher's own Claude Code chat is not the lesson record. It holds every work item the teacher took and every answer it sent, across lessons and jobs, so it grows on its own. Every Claude Code start sets `--autocompact 150000` ([Claude Code's start](architecture/08.1.4-claude-codes-start.md#claude-codes-start)), so Claude Code compacts it at 150,000 tokens. The helper's chat compacts the same way.
+
+1. Claude Code's PreCompact hook (`compacting.mjs`) tells godspeed the session compacts. While it does, that session takes no work. With a helper here, the lesson turns it held go back in the queue and the helper answers them meanwhile ([the helper](architecture/08.1.2-the-work-loop.md#the-helper)). A mark that never ends lapses after 10 minutes.
+2. When the compaction ends, the SessionStart hook with matcher `compact` (`forget.mjs`) tells godspeed the session lost its context. godspeed forgets what that session has seen, so its next items come in full: instructions, tools and the lesson's messages.
+3. An item the teacher still held comes back to it at once, in full, the next time its waiter waits.
+
+The lesson record is unchanged by this: its own shortening (above) and the teacher's compaction are separate.
 
 ## The cutoff rule
 

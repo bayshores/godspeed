@@ -49,6 +49,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 	work,
 	pickOf,
 	onPick,
+	boxes,
 	disabled,
 	teacher,
 	actions,
@@ -60,6 +61,8 @@ export const FileGroupSection = memo(function FileGroupSection({
 	work: ReadonlyMap<string, FileWork>;
 	pickOf: (fileId: string) => RowPick;
 	onPick: (fileId: string, held: boolean) => void;
+	/** Rows show their tick boxes. */
+	boxes: boolean;
 	disabled?: boolean;
 	teacher: string;
 	actions: FileRowActions;
@@ -75,6 +78,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 				work={work.get(file.id)}
 				pick={pickOf(file.id)}
 				onPick={onPick}
+				boxes={boxes}
 				disabled={disabled}
 				teacher={teacher}
 				actions={actions}

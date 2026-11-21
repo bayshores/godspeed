@@ -8,8 +8,8 @@ import { cn } from "@/frontend/lib/utils";
 import { barWord, MENU_ITEM } from "./bar-look";
 
 /**
- * Menu, at the top bar's right: Search lessons and Settings. `lit` while
- * Settings is on screen.
+ * Menu, at the top bar's right: Search lessons, Keyboard shortcuts and
+ * Settings. `lit` while Settings is on screen.
  */
 export function AppMenu({ lit }: { lit: boolean }) {
 	const [open, setOpen] = useState(false);
@@ -46,6 +46,20 @@ export function AppMenu({ lit }: { lit: boolean }) {
 				>
 					Search lessons
 					<KeyHint action="sessions-search" />
+				</button>
+				<button
+					role="menuitem"
+					type="button"
+					data-testid="menu-shortcuts"
+					onClick={() => {
+						close();
+						window.dispatchEvent(new CustomEvent(kbdEventForAction("shortcuts")));
+					}}
+					{...keyShortcutProps("shortcuts")}
+					className={cn(MENU_ITEM, "justify-between gap-2")}
+				>
+					Keyboard shortcuts
+					<KeyHint action="shortcuts" />
 				</button>
 				<Link role="menuitem" to="/settings" data-testid="settings-entry" onClick={close} {...keyShortcutProps("open-settings")} className={cn(MENU_ITEM, "justify-between gap-2")}>
 					Settings

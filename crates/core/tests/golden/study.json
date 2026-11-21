@@ -15483,6 +15483,7 @@
 				"today": "2026-11-10",
 				"topicsAt": "2026-11-10T03:50:20.303Z",
 				"grouping": false,
+				"minFactsForTopics": 4,
 				"topics": [
 					{
 						"id": "tpc_5a47fef091",
@@ -32448,6 +32449,7 @@
 				"today": "2026-11-10",
 				"topicsAt": "2026-11-07T03:36:33.330Z",
 				"grouping": false,
+				"minFactsForTopics": 4,
 				"topics": [
 					{
 						"id": "tpc_445f4c9615",
@@ -38562,6 +38564,7 @@
 				"today": "2026-11-10",
 				"topicsAt": null,
 				"grouping": false,
+				"minFactsForTopics": 4,
 				"topics": [],
 				"topicLinks": [],
 				"facts": [],
@@ -39022,6 +39025,7 @@
 				"today": "2026-10-30",
 				"topicsAt": "2026-11-10T03:50:20.303Z",
 				"grouping": false,
+				"minFactsForTopics": 4,
 				"nextUp": {
 					"fileId": "f_2d91a60e711a",
 					"name": "2026-10-05 Kakogiserujuw Hehubopobe (rilagipih lecture).pdf",
@@ -40093,6 +40097,7 @@
 				"today": "2026-11-04",
 				"topicsAt": "2026-11-10T03:50:20.303Z",
 				"grouping": false,
+				"minFactsForTopics": 4,
 				"nextUp": {
 					"fileId": "f_2d91a60e711a",
 					"name": "2026-10-05 Kakogiserujuw Hehubopobe (rilagipih lecture).pdf",
@@ -41165,6 +41170,7 @@
 				"today": "2027-01-15",
 				"topicsAt": "2026-11-10T03:50:20.303Z",
 				"grouping": true,
+				"minFactsForTopics": 4,
 				"nextUp": {
 					"fileId": "f_2d91a60e711a",
 					"name": "2026-10-05 Kakogiserujuw Hehubopobe (rilagipih lecture).pdf",
@@ -42236,6 +42242,7 @@
 				"today": "2026-11-12",
 				"topicsAt": "2026-11-07T03:36:33.330Z",
 				"grouping": false,
+				"minFactsForTopics": 4,
 				"nextUp": {
 					"fileId": "f_ae52305ed927",
 					"name": "2026-09-28 cevuwupu - 29-pi26-b1.pdf",
@@ -43019,6 +43026,7 @@
 				"today": "2026-11-10",
 				"topicsAt": null,
 				"grouping": false,
+				"minFactsForTopics": 4,
 				"topics": [
 					{
 						"id": "ungrouped",
@@ -47447,6 +47455,7 @@
 				"today": "2026-11-10",
 				"topicsAt": "2026-11-07T03:36:33.330Z",
 				"grouping": false,
+				"minFactsForTopics": 4,
 				"topics": [
 					{
 						"id": "tpc_445f4c9615",
@@ -53064,6 +53073,7 @@
 				"today": "2026-11-10",
 				"topicsAt": null,
 				"grouping": false,
+				"minFactsForTopics": 4,
 				"topics": [],
 				"topicLinks": [],
 				"facts": [],
@@ -53509,6 +53519,7 @@
 				"today": "2026-11-10",
 				"topicsAt": "2026-11-09T00:00:00.000Z",
 				"grouping": false,
+				"minFactsForTopics": 4,
 				"topics": [
 					{
 						"id": "T1",
