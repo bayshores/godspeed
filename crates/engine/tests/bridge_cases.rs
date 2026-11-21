@@ -177,6 +177,28 @@ async fn a_helper_in_a_job_answers_a_compacting_teachers_lesson_first() {
 }
 
 #[tokio::test]
+async fn a_teacher_gets_its_unanswered_item_back_at_once_one_time_and_again_after_it_lost_its_context() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	let system = json!({ "role": "system", "content": "Teach well.", "timestamp": 0 });
+	let lesson = park(&bridge, vec![system, user("hi")], "chat_l1", &Abort::new());
+	clock::sleep(5).await;
+	let first = bridge.wait_for_work(0, teacher()).await.unwrap();
+	let second = bridge.wait_for_work(0, teacher()).await.expect("a turn that ended without answering gets the item again");
+	assert_ne!(second.work_id, first.work_id);
+	assert!(bridge.wait_for_work(0, teacher()).await.is_none(), "but is not woken with it over and over");
+	// It compacts with no helper here; once it is back, the item is its own again, in full.
+	bridge.agent_compacting("main-1", clock::now_ms());
+	assert!(bridge.wait_for_work(0, teacher()).await.is_none(), "not while it compacts");
+	bridge.forget_agent("main-1", false);
+	let again = bridge.wait_for_work(0, teacher()).await.unwrap();
+	assert_ne!(again.work_id, second.work_id);
+	assert_eq!(again.instructions.as_deref(), Some("Teach well."));
+	assert!(bridge.wait_for_work(0, teacher()).await.is_none(), "taken back once");
+	bridge.respond_to_work(&again.work_id, reply("Hi."), 0).unwrap();
+	lesson.await.unwrap();
+}
+
+#[tokio::test]
 async fn the_helper_leaves_a_job_the_teacher_is_in_the_middle_of() {
 	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
 	bridge.mark_asked("job_read");

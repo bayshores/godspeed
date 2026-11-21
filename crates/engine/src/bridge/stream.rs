@@ -60,6 +60,7 @@ impl Bridge {
 				terminal: None,
 				claims: 0,
 				agent_forgot: false,
+				taken_back: false,
 				pages: Vec::new(),
 				unread: Default::default(),
 				reply: Some(tx),

@@ -104,8 +104,11 @@ fn claimable(state: &State, item: &WorkItem, now: i64, taker: &WaitOptions) -> b
 	if held && !covers {
 		return false;
 	}
-	// An agent may take its own item again (a compaction lost its workId).
-	if agent.is_some() && item.agent.as_deref() == agent {
+	// An agent takes its own item back at once after it lost its context (compacted or cleared),
+	// and one time when its turn ended without an answer (interrupted, or answered in its
+	// terminal). After that it waits for the claim to run out like anyone, so an agent that never
+	// answers is not woken with the same item over and over.
+	if agent.is_some() && item.agent.as_deref() == agent && (item.agent_forgot || !item.taken_back) {
 		return true;
 	}
 	item.claimed_at.is_none_or(|at| now - at > CLAIM_TIMEOUT_MS)
@@ -156,7 +159,7 @@ impl<'a> Waiting<'a> {
 		let mut s = bridge.0.state.lock();
 		s.waits += 1;
 		let id = s.waits;
-		s.waiting.push(Wait { id, on: opts.conversation.clone(), agent: opts.agent.clone(), terminal: opts.terminal.clone() });
+		s.waiting.push(Wait { id, on: opts.conversation.clone(), terminal: opts.terminal.clone() });
 		Waiting { bridge, id }
 	}
 }
@@ -196,6 +199,9 @@ impl Bridge {
 			return if ended { Claim::Ended } else { Claim::Nothing };
 		};
 		let item = &mut s.items[i];
+		if item.claimed_at.is_some() && !item.agent_forgot && opts.agent.is_some() && item.agent == opts.agent {
+			item.taken_back = true;
+		}
 		item.claimed_at = Some(now);
 		item.claims += 1;
 		item.agent = opts.agent.clone();
@@ -269,12 +275,6 @@ impl Bridge {
 		let i = pick(&s, now, &opts)?;
 		let item = &s.items[i];
 		(now - item.created_at >= NUDGE_AFTER_MS).then(|| (terminal, !is_background(&item.conversation)))
-	}
-
-	/// This agent has a wait under way (Claude Code's waiter runs while the agent talks to the
-	/// learner), so it needs no second one for a lesson it starts.
-	pub fn agent_waiting(&self, agent: Option<&str>) -> bool {
-		agent.is_some_and(|agent| self.0.state.lock().waiting.iter().any(|wait| wait.agent.as_deref() == Some(agent)))
 	}
 
 	/// This agent holds a background item it has not answered yet.

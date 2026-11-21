@@ -139,10 +139,10 @@ Any other MCP app works too, and **Other app** shows the address and token (Stre
 <br>
 
 - While godspeed is open it runs an MCP server on your computer. Only programs on your computer that hold the token can connect.
-- While you think, Claude Code waits in a background script, so it spends no tokens until you answer.
+- While you think, Claude Code waits in a background hook, so it spends no tokens until you answer. godspeed starts it without your own plugins, MCP servers and skills, which every request would otherwise carry.
 - A second session of your agent reads your files and builds the graph in the background, so the teacher stays free for you.
 - **Change command** under **Settings → Connection** sets what godspeed runs instead of `claude` or `codex`.
-- In Claude Code, `/setup-spaces` builds your spaces from your course files.
+- Ask your agent to set up your spaces, and it builds them from your course files.
 - Agents can save short notes about you (like "the midterm is over") so the next one knows. You can see and delete them under **Settings → Teaching → Remembered**.
 
 </details>

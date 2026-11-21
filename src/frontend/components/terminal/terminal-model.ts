@@ -33,6 +33,7 @@ export interface TerminalRecord {
 const EXIT_NOT_INSTALLED = 3;
 const EXIT_NO_NODE = 4;
 const EXIT_CHAT_GONE = 5;
+const EXIT_OLD_AGENT = 6;
 
 /** A chat the teacher had in godspeed's terminal, to go back to (GET /api/teacher-chats). */
 export interface TeacherChat {
@@ -106,7 +107,7 @@ export interface TerminalFacts {
 type NeedsYou = "prompt" | "no-check-in" | "not-teaching" | "crashed" | "missing";
 
 const crashed = (ended: TerminalEnded | null) => ended?.stopped === false && ended.code !== 0;
-const missing = (ended: TerminalEnded | null) => ended?.stopped === false && (ended.code === EXIT_NOT_INSTALLED || ended.code === EXIT_NO_NODE);
+const missing = (ended: TerminalEnded | null) => ended?.stopped === false && (ended.code === EXIT_NOT_INSTALLED || ended.code === EXIT_NO_NODE || ended.code === EXIT_OLD_AGENT);
 
 /** Why the learner is needed at this terminal's screen, or null. The
  *  timers only count for the teacher; a learner's own Stop needs nothing. */
@@ -166,6 +167,8 @@ function screenWords(f: TerminalFacts, name: string): ScreenWords {
 	if (ended) {
 		if (ended.code === EXIT_NOT_INSTALLED) return { need: `${agent} isn't installed on this computer.`, rest: null, more: { get: GET_AGENT[term.agent], ...again } };
 		if (ended.code === EXIT_NO_NODE) return { need: `godspeed needs Node.js to connect ${agent}.`, rest: null, more: { get: GET_NODE, ...again } };
+		// The screen above says how to update.
+		if (ended.code === EXIT_OLD_AGENT) return { need: `${agent} needs an update.`, rest: null, more: again };
 		if (ended.code === EXIT_CHAT_GONE) return { need: "Couldn't open that chat.", rest: null, more: again };
 		if (ended.code === 0) return { need: null, rest: `${name} closed.`, more: again };
 		return { need: `${name} closed with an error.`, rest: null, more: again };

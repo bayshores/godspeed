@@ -37,6 +37,16 @@ Tests:
 
 A cut that drops no active history adds no marker. Full history always stays in the record. The model sees the summary, then every message from the cut onward.
 
+## The teacher session
+
+The teacher's own Claude Code chat is not the lesson record. It holds every work item the teacher took and every answer it sent, across lessons and jobs, so it grows on its own. Every Claude Code start sets `--autocompact 150000` ([Claude Code's start](architecture/08.1.1-the-godspeed-folder.md#claude-codes-start)), so Claude Code compacts it at 150,000 tokens. The helper's chat compacts the same way.
+
+1. Claude Code's PreCompact hook (`compacting.mjs`) tells godspeed the session compacts. While it does, that session takes no work. With a helper here, the lesson turns it held go back in the queue and the helper answers them meanwhile ([the helper](architecture/08.1.2-the-work-loop.md#the-helper)). A mark that never ends lapses after 10 minutes.
+2. When the compaction ends, the SessionStart hook with matcher `compact` (`forget.mjs`) tells godspeed the session lost its context. godspeed forgets what that session has seen, so its next items come in full: instructions, tools and the lesson's messages.
+3. An item the teacher still held comes back to it at once, in full, the next time its waiter waits.
+
+The lesson record is unchanged by this: its own shortening (above) and the teacher's compaction are separate.
+
 ## The cutoff rule
 
 Cutoff selection is ported from **@earendil-works/pi-coding-agent 1.4.0** (`findCutPoint`), with no dependency on it. Upgrade the port on purpose and update the golden cases with it.

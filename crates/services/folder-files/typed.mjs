@@ -15,7 +15,9 @@ try {
 	const hook = JSON.parse(input);
 	const { url, token } = target();
 	const terminal = terminalHeader();
-	if (typeof hook.prompt === "string" && token && terminal["x-godspeed-terminal"]) {
+	// The waiter's wake comes through this hook too (Claude Code wraps it this way): nobody typed it.
+	const typed = typeof hook.prompt === "string" && !hook.prompt.startsWith("<task-notification>");
+	if (typed && token && terminal["x-godspeed-terminal"]) {
 		const res = await fetch(`${url.replace(/\/$/, "")}/line`, {
 			method: "POST",
 			headers: { "content-type": "application/json", authorization: `Bearer ${token}`, ...terminal },

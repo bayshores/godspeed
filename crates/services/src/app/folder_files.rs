@@ -14,15 +14,17 @@ use super::disk::write_file_atomic;
 /// Images the waiter saved for the agent are kept this long.
 const IMAGE_DAYS: i64 = 7;
 
-/// The agent's instructions and the space-setup skill, copied into the folder as they are.
+/// The agent's instructions and the space-setup steps they point at, copied into the folder as
+/// they are.
 const DOCS: [(&str, &str); 3] = [
 	("CLAUDE.md", include_str!("../../folder-files/CLAUDE.md")),
 	("AGENTS.md", include_str!("../../folder-files/AGENTS.md")),
-	(".claude/skills/setup-spaces/SKILL.md", include_str!("../../folder-files/setup-spaces.md")),
+	(".godspeed/setup-spaces.md", include_str!("../../folder-files/setup-spaces.md")),
 ];
 
-/// The waiter's and the hooks' scripts, copied into `.godspeed/` as they are.
-const SCRIPTS: [(&str, &str); 7] = [
+/// The waiter's, the hooks' and the start scripts' helper scripts, copied into `.godspeed/` as
+/// they are.
+const SCRIPTS: [(&str, &str); 8] = [
 	("connect.mjs", include_str!("../../folder-files/connect.mjs")),
 	("target.mjs", include_str!("../../folder-files/target.mjs")),
 	("wait-for-work.mjs", include_str!("../../folder-files/wait-for-work.mjs")),
@@ -30,6 +32,7 @@ const SCRIPTS: [(&str, &str); 7] = [
 	("compacting.mjs", include_str!("../../folder-files/compacting.mjs")),
 	("typed.mjs", include_str!("../../folder-files/typed.mjs")),
 	("agent-event.mjs", include_str!("../../folder-files/agent-event.mjs")),
+	("new-enough.mjs", include_str!("../../folder-files/new-enough.mjs")),
 ];
 
 /// Write a file only when it changed, so a refresh leaves the folder alone.
@@ -88,11 +91,14 @@ pub fn write_folder(folder: &str, platform: Platform, commands: &StartCommands) 
 	for (name, content) in DOCS {
 		put(&root.join(name), content, None)?;
 	}
-	// The command was /setup-classes before the rename.
-	let old_skill = root.join(".claude").join("skills").join("setup-classes");
-	match std::fs::remove_dir_all(&old_skill) {
-		Err(err) if err.kind() != std::io::ErrorKind::NotFound => return Err(fsx::node_error_message(&err, "rm", &old_skill)),
-		_ => {}
+	// Older godspeeds wrote the setup steps as a skill (/setup-classes, then /setup-spaces);
+	// the teacher starts with skills off, so they are a plain file now.
+	for name in ["setup-classes", "setup-spaces"] {
+		let old_skill = root.join(".claude").join("skills").join(name);
+		match std::fs::remove_dir_all(&old_skill) {
+			Err(err) if err.kind() != std::io::ErrorKind::NotFound => return Err(fsx::node_error_message(&err, "rm", &old_skill)),
+			_ => {}
+		}
 	}
 	put(&root.join(".mcp.json"), &mcp_json(folder, platform), None)?;
 	for (name, content) in SCRIPTS {
@@ -127,7 +133,7 @@ mod tests {
 		let folder = root.join("godspeed");
 		let name = folder.to_string_lossy().into_owned();
 		write_folder(&name, platform(), &StartCommands::default()).unwrap();
-		for file in ["CLAUDE.md", "AGENTS.md", ".mcp.json", ".claude/skills/setup-spaces/SKILL.md", ".godspeed/connect.mjs", ".godspeed/target.mjs", ".godspeed/wait-for-work.mjs", ".godspeed/forget.mjs", ".godspeed/compacting.mjs", ".godspeed/typed.mjs", ".godspeed/package.json", ".godspeed/claude-settings.json", ".godspeed/start-claude.sh", ".godspeed/start-claude-helper.sh", ".godspeed/start-codex.sh", ".godspeed/start-codex-helper.sh"] {
+		for file in ["CLAUDE.md", "AGENTS.md", ".mcp.json", ".godspeed/setup-spaces.md", ".godspeed/connect.mjs", ".godspeed/target.mjs", ".godspeed/wait-for-work.mjs", ".godspeed/forget.mjs", ".godspeed/compacting.mjs", ".godspeed/typed.mjs", ".godspeed/new-enough.mjs", ".godspeed/package.json", ".godspeed/claude-settings.json", ".godspeed/start-claude.sh", ".godspeed/start-claude-helper.sh", ".godspeed/start-codex.sh", ".godspeed/start-codex-helper.sh"] {
 			assert!(folder.join(file).is_file(), "{file}");
 		}
 		let first = std::fs::metadata(folder.join("CLAUDE.md")).unwrap().modified().unwrap();
@@ -143,14 +149,16 @@ mod tests {
 	}
 
 	#[test]
-	fn the_old_setup_skill_and_backup_script_go() {
+	fn the_old_setup_skills_and_backup_script_go() {
 		let root = scratch_dir("folder-files-old-skill");
-		let old = root.join(".claude/skills/setup-classes");
-		write_file_atomic(&old.join("SKILL.md"), "old").unwrap();
+		let old = [root.join(".claude/skills/setup-classes"), root.join(".claude/skills/setup-spaces")];
+		for skill in &old {
+			write_file_atomic(&skill.join("SKILL.md"), "old").unwrap();
+		}
 		let old_script = root.join(".godspeed/start-claude-backup.sh");
 		write_file_atomic(&old_script, "#!/bin/sh\n").unwrap();
 		write_folder(&root.to_string_lossy(), platform(), &StartCommands::default()).unwrap();
-		assert!(!old.exists() && root.join(".claude/skills/setup-spaces/SKILL.md").is_file());
+		assert!(old.iter().all(|skill| !skill.exists()) && root.join(".godspeed/setup-spaces.md").is_file());
 		assert!(!old_script.exists() && root.join(".godspeed/start-claude-helper.sh").is_file());
 	}
 

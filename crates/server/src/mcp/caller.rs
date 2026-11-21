@@ -65,10 +65,11 @@ pub fn agent_id_of(meta: &Json) -> Option<String> {
 	id.as_str().filter(|id| (1..=200).contains(&len16(id))).map(str::to_owned)
 }
 
-/// Waiting is free in Claude Code with the godspeed folder's waiter, and costs a model turn per
-/// call any other way.
-pub fn in_claude_code(caller: Option<&str>) -> bool {
-	caller == Some("Claude Code")
+/// The folder's connector says its Claude Code session runs with the folder's settings, whose
+/// Stop hook wakes it with each work item: it never waits itself. Waiting any other way costs a
+/// model turn per call.
+pub fn woken(meta: &Json) -> bool {
+	meta["godspeed/wakes"].as_bool() == Some(true)
 }
 
 #[cfg(test)]
