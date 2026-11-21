@@ -34,7 +34,7 @@ import { useSpaceRecord } from "./space-record";
 import { ConfirmDialog } from "./confirm-dialog";
 import type { FileRowActions, RowPick } from "./file-row";
 import { FileGroupSection } from "./files-sections";
-import { confirmCopy, dropTitle, entryRows, fileBrowserName, filesSummary, filterGroups, type FileConfirm } from "./files-model";
+import { askInsideLine, confirmCopy, dropTitle, entryRows, fileBrowserName, filesSummary, filterGroups, type FileConfirm } from "./files-model";
 import { FULL_LINE, MAX_LESSON_FILES, keepListed, pickedNames, togglePick } from "./files-pick-model";
 import { newSince } from "./folder-status-model";
 import { FolderStatusLine, LinkedFolderButton, LinkFolderButton, LinkFolderField, ROW_BUTTON } from "./linked-folder";
@@ -110,7 +110,9 @@ function FilesPageBody() {
 		if (linked && prev !== null && minute !== prev) void reload();
 	}, [linked, minute, reload]);
 	const { data } = useProgress();
-	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
+	const teacherApi = useTeacher();
+	const teacher = teacherApi?.name ?? DEFAULT_TEACHER_NAME;
+	const askTeacher = teacherApi?.canAsk ? teacherApi.ask : null;
 	const [confirm, setConfirm] = useState<FileConfirm | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(0);
@@ -236,6 +238,11 @@ function FilesPageBody() {
 	};
 
 	const showRecent = !searching && changes.length > 0;
+	const noMatch = (
+		<p data-testid="files-no-match" className="text-[15px] text-ink-2">
+			No file names have “{query.trim()}”.
+		</p>
+	);
 	const showInFinder = shortcuts && openPath && (
 		<Hint label={`Shortcuts to these files in your godspeed folder, for you and ${teacher}.`} side="bottom">
 			<button type="button" data-testid="files-show-shortcuts" onClick={() => void openPath(shortcuts)} className={ROW_BUTTON}>
@@ -333,9 +340,16 @@ function FilesPageBody() {
 							</Pane>
 						)}
 						{searching && shown.length === 0 && (
-							<p data-testid="files-no-match" className="text-[15px] text-ink-2">
-								No file names have “{query.trim()}”.
-							</p>
+							askTeacher ? (
+								<Pane className="lh-card flex-row flex-wrap items-center justify-end gap-4">
+									<div className="min-w-0 flex-1 basis-[160px]">{noMatch}</div>
+									<Key data-testid="files-ask-inside" onClick={() => askTeacher(askInsideLine(query))} className="shrink-0">
+										Ask {teacher} to look inside
+									</Key>
+								</Pane>
+							) : (
+								noMatch
+							)
 						)}
 						{(showRecent || shown.length > 0) && (
 							// Wide, recent changes take a column beside the files.

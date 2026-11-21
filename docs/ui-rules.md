@@ -55,6 +55,14 @@ A list of things to open (related topics, linked facts, files) is rows, not keys
 - A title wraps; it is never cut with "...". Only the top bar's names give way, as the Top bar section says.
 - `npm run layout` fails three or more keys stacked on three or more lines in one group ("key pile") and a cut title ("cut title"), outside pop-ups and bars.
 
+## Nothing hidden
+
+A feature has a control a learner can see.
+
+- A key, gesture, right-click or hover may repeat a visible control. It is never the only way to something.
+- A thing only the teacher makes has its asking control on the page where it will show, drawn before the thing exists.
+- Before calling a UI change finished, run `tests/shared/features.test.ts`, and read the changed screen for a control at rest that reaches each feature it touches.
+
 ## Look at the real window
 
 The Mac app draws with WebKit, not Chrome; a page right in a browser can overlap in the app.

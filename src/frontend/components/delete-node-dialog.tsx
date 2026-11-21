@@ -10,8 +10,7 @@ type Node = { id: string; name: string };
 
 /**
  * "Delete fact?": deletes facts for good, with every link and event that
- * names them. One fact (a fact's right-click menu) or many (the picked
- * facts in All facts). A failure shows the server's line with "Try again".
+ * names them. One fact or many (the picked facts in All facts). A failure shows the server's line with "Try again".
  */
 export function DeleteNodeDialog({
 	nodes,

@@ -107,7 +107,7 @@ The `access` unit tests and `crates/server/tests/shell.rs` cover the desktop acc
 - `route::ApiRoute::new().get(h).post(h).put(h).patch(h).delete(h).into_route()` builds one route path; register every route with it. OPTIONS answers 204 with Next's sorted `Allow`, other methods an empty 405, HEAD runs GET without the body, a panic an empty 500.
 - `reply`: `json(status, &v)`, `json_no_store`, `text`, `empty`, `no_store`, `not_found`, `Unhandled`, `json_body(body)` (`await req.json()`, None where it throws), `read_body` (cut at 210 MiB like `proxyClientMaxBodySize`), `body_text`.
 - `paths::search_params(query)` and `paths::param` read a query like `URLSearchParams`. `paths::decode_component` decodes one segment.
-- `ui` serves `ui/` and `/pdfjs/*`. `plugin_files` serves `/plugin-files/<id>/<path>` with the plugin's CSP, only for a Host of 127.0.0.1, localhost or [::1]. `events` is `GET /api/events`.
+- `ui` serves `ui/` and `/pdfjs/*`. `plugin_files` serves `/plugin-files/<id>/<path>` with the plugin's CSP, only for a Host of `localhost:<port>`: the window is on 127.0.0.1, so a plugin's frame is on another host. `events` is `GET /api/events`.
 
 Handlers take axum extractors: `State<Arc<App>>`, `Path<String>` (or `Path<(String, String)>`), `Uri` for the query, `HeaderMap`, `Body` last. Path params decode per segment like Next. Shared prefixes use the same names: `{id}` for a space or chat, `{deadline_id}`, `{file_id}`, `{section}`, `{*segment}`, `{n}`, `{file}`.
 

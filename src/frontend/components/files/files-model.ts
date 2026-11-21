@@ -160,6 +160,11 @@ export function dropTitle(count: number): string {
 	return `Drop to add ${count > 0 ? plural(count, "file") : "files"}`;
 }
 
+/** The line that hands a name search to the teacher, with no control character or line break from the typed text. */
+export function askInsideLine(query: string): string {
+	return `Find "${query.replace(/[\u0000-\u001f\u007f]+/g, " ").trim()}" in my files`;
+}
+
 /** The groups narrowed to entries with a file whose name has `query`
  *  (any case); groups left empty drop out. */
 export function filterGroups(groups: readonly FileGroup[], query: string): FileGroup[] {

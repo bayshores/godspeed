@@ -132,10 +132,9 @@ describe("sessionFindHasForegroundLayer — the one-Esc law", () => {
 		assert.equal(sessionFindHasForegroundLayer(document), false);
 	});
 
-	it("a surfaced menu/dialog/cheat sheet outranks the Find bar", () => {
+	it("a surfaced menu or dialog outranks the Find bar", () => {
 		for (const html of [
 			'<div data-lh-menu></div>',
-			'<div data-testid="cheat-sheet"></div>',
 			'<div role="dialog"></div>',
 			'<div data-radix-popper-content-wrapper></div>',
 		]) {

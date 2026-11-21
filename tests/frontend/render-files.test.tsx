@@ -59,6 +59,8 @@ const { CopyButton } = await import("../../src/frontend/components/copy-button.t
 const { BarHost } = await import("../bar-host.tsx");
 const { kbdEventForAction } = await import("../../src/shared/core/index.ts");
 const { FULL_LINE } = await import("../../src/frontend/components/files/files-pick-model.ts");
+const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
+type TeacherApi = import("../../src/frontend/components/teacher/teacher-context.ts").TeacherApi;
 
 function file(id: string, name: string, over: Partial<SpaceFile> = {}): SpaceFile {
 	return { id, origin: "copied", name, path: `${id}/${name}`, kind: "study", contentFp: "", status: "ready", addedAt: "", ...over };
@@ -124,7 +126,8 @@ const events = new Map<string, (raw: string) => void>();
 
 let root: Root | undefined;
 let host: HTMLElement | undefined;
-async function mount(initialActive: string | null = "cls_a") {
+/** `teacher`: the lines a page key hands the teacher, when the page can (canAsk). */
+async function mount(initialActive: string | null = "cls_a", teacher: { canAsk: boolean; lines: string[] } | null = null) {
 	host = document.createElement("div");
 	document.body.append(host);
 	root = createRoot(host);
@@ -142,7 +145,13 @@ async function mount(initialActive: string | null = "cls_a") {
 					<AgentStatusProvider>
 						<SpaceProvider initialActive={initialActive}>
 							<BarHost>
-								<FilesPage />
+								{teacher ? (
+									<TeacherContext.Provider value={{ name: "Ada", canAsk: teacher.canAsk, ask: (line) => void teacher.lines.push(line) } as TeacherApi}>
+										<FilesPage />
+									</TeacherContext.Provider>
+								) : (
+									<FilesPage />
+								)}
 							</BarHost>
 						</SpaceProvider>
 					</AgentStatusProvider>
@@ -459,6 +468,29 @@ describe("FilesPage", () => {
 		assert.ok(q("files-search") === null && q("files-find") && q("space-add-files"));
 		assert.ok(q("files-group-lecture"));
 		assert.ok(q("files-no-match") === null);
+	});
+
+	it("a search that finds no name offers to have the teacher look inside, and hands over what was typed", async () => {
+		fakeFetch();
+		const lines: string[] = [];
+		await mount("cls_a", { canAsk: true, lines });
+		await act(async () => q("files-find")!.click());
+		await typeInto(field(), "rosen 7");
+		assert.ok(q("files-ask-inside") === null, "names match: nothing to ask");
+		await typeInto(field(), "  eigen\nvalues\t ");
+		assert.equal(q("files-ask-inside")!.textContent, "Ask Ada to look inside");
+		assert.ok(!q("files-no-match")!.textContent!.includes("look inside"), "the sentence does not repeat the key");
+		await act(async () => q("files-ask-inside")!.click());
+		assert.deepEqual(lines, ['Find "eigen values" in my files']);
+	});
+
+	it("no such key where the teacher cannot be handed a line, or outside the app shell", async () => {
+		fakeFetch();
+		await mount("cls_a", { canAsk: false, lines: [] });
+		await act(async () => q("files-find")!.click());
+		await typeInto(field(), "zzz");
+		assert.ok(q("files-no-match"));
+		assert.ok(q("files-ask-inside") === null);
 	});
 
 	it("Escape clears the search and closes the field; reopened, it is empty", async () => {

@@ -76,8 +76,6 @@ const linkedFolder = `await fetch("/api/spaces/{pathSpace}/folder", { method: "P
 const closedSpace = `const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json());
 await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, activeSpace: "{space}" }) })${HTTP_OK};
 await fetch("/api/spaces/{pathSpace}", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ closed: true }) })${HTTP_OK};`;
-/** A right-click on the element the expression `el` finds. */
-const rightClick = (el) => `{ const el = ${el}; const at = el.getBoundingClientRect(); el.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: at.left + 10, clientY: at.top + 10 })); }`;
 
 /** A file added to the space with no agent to read it, so the strip says that work waits. It
  *  can't be removed while it waits, so the stand-in agent started later takes it. */
@@ -160,15 +158,18 @@ export const SCREENS = [
 	{ name: "Home with a deadline", url: "/", ready: deadlineCard },
 	{ name: "Home, the Add deadline menu", url: "/", ready: "[data-testid=home-add-deadline][aria-haspopup=menu]", setup: `document.querySelector("[data-testid=home-add-deadline]").click()`, shows: "[data-testid=home-add-deadline-menu][data-state=open]" },
 	{ name: "Home, the Menu list", url: "/", ready: deadlineCard, setup: `document.querySelector("[data-testid=app-menu]").click()`, shows: "[data-testid=app-menu-list][data-state=open]" },
+	{ name: "Home, the keyboard shortcuts list", url: "/", ready: deadlineCard, setup: `document.querySelector("[data-testid=app-menu]").click(); ${pause}; document.querySelector("[data-testid=menu-shortcuts]").click()`, shows: "[data-testid=shortcuts][data-state=open]" },
 	{ name: "Home, the plus list", url: "/", ready: deadlineCard, setup: `document.querySelector("[data-testid=spaces-plus]").click()`, shows: "[data-testid=spaces-plus-list][data-state=open]" },
-	{ name: "Home, a space tab's menu", url: "/", ready: deadlineCard, setup: rightClick(`document.querySelector("[data-testid=space-option-{space}]")`), shows: "[data-testid=space-menu][data-state=open]" },
 	{ name: "Progress", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]" },
+	{ name: "Progress, Edit space", url: "/space", ready: "[data-testid=space-edit]", setup: `document.querySelector("[data-testid=space-edit]").click()`, shows: "[data-testid=space-dialog][data-state=open] [data-testid=space-close]" },
 	{ name: "Progress, the strip's peek", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: peekOut, shows: peekShown },
 	{ name: "Progress, every unfinished lesson shown", url: "/space", ready: "[data-testid=unfinished-show-all]", setup: `document.querySelector("[data-testid=unfinished-show-all]").click()`, shows: "[data-testid=unfinished-lessons] li:nth-child(5)" },
 	{ name: "Progress, a lesson's menu", url: "/space", ready: "[data-testid=lesson-row-menu]", setup: `document.querySelector("[data-testid=lesson-row-menu]").click()`, shows: "[data-testid=lesson-menu][data-state=open]" },
 	{ name: "Study", url: "/new", ready: "[data-testid=home-deadlines] [data-testid=home-study-deadline]", shows: "[data-testid=home-suggestions]" },
 	{ name: "Files", url: "/space/files", ready: "[data-testid=files-list] > *" },
 	{ name: "Files, Find open", url: "/space/files", ready: "[data-testid=files-find]", setup: findWord("files-find", "files-search", "notes"), shows: "[data-testid=files-search]" },
+	// The app's own terminal runs here, so the page can hand the teacher a line: the key shows beside the sentence.
+	{ name: "Files, nothing found", url: "/space/files", ready: "[data-testid=files-find]", setup: findWord("files-find", "files-search", "zzzqx"), shows: "[data-testid=files-ask-inside]" },
 	{ name: "Files, a file's menu", url: "/space/files", ready: "[data-testid=files-list] button[aria-label^='More for']", setup: `document.querySelector("[data-testid=files-list] button[aria-label^='More for']").click()`, shows: "[data-testid^=space-file-menu-body-][data-state=open]" },
 	// The worksheet and its .tex are one row; its menu and Remove act on both.
 	{
@@ -226,13 +227,6 @@ export const SCREENS = [
 		// The page is narrowest here: the panel takes its room.
 		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-panel-activity]").click()`,
 		shows: "[data-testid=activity-list] [data-testid=graph-costs]",
-	},
-	{
-		name: "Graph, a fact's menu",
-		url: "/graph",
-		ready: "[data-testid=graph-topic]",
-		setup: `${pickTopic}; ${pause}; ${rightClick(`document.querySelector("[data-testid=topic-pane] [data-testid=fact-row]")`)}`,
-		shows: "[data-testid=fact-context-menu][data-state=open]",
 	},
 	{ name: "Deadlines", url: "/space/deadlines", ready: "[data-testid=deadline-open]" },
 	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]" },
@@ -471,7 +465,6 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	},
 	{ name: "Files, the linked folder's box", before: linkedFolder, url: "/space/files", ready: "[data-testid=space-folder]", setup: `document.querySelector("[data-testid=space-folder]").click()`, shows: "[data-testid=space-folder-box][data-state=open]" },
 	{ name: "The plus list with a closed space", before: closedSpace, url: "/", ready: "[data-testid=spaces-plus]", setup: `document.querySelector("[data-testid=spaces-plus]").click()`, shows: "[data-testid=spaces-plus-list][data-state=open] [data-testid=closed-space-{pathSpace}]" },
-	{ name: "A closed space's menu", url: "/", ready: "[data-testid=spaces-plus]", setup: `document.querySelector("[data-testid=spaces-plus]").click(); ${pause}; ${rightClick(`document.querySelector("[data-testid=closed-space-{pathSpace}]")`)}`, shows: "[data-testid=space-menu][data-state=open]" },
 	{
 		name: "Lesson with a 40-letter title among five open spaces",
 		before: `${moreSpaces}\n${longTitle}`,

@@ -544,7 +544,7 @@ describe("clicks", () => {
 			assert.equal(q(el, "lesson-show-all"), null);
 		});
 
-		it("More and a right-click on the row open the lesson menu", async () => {
+		it("More opens the lesson menu and a second click closes it", async () => {
 			serve(() => Response.json({}));
 			const el = await mount({ data: { ...PAYLOAD, lessons: ROWS } });
 			await click(el, "lesson-row-menu");
@@ -552,16 +552,12 @@ describe("clicks", () => {
 			await click(el, "lesson-row-menu");
 			await act(async () => new Promise((r) => setTimeout(r, 400))); // the exit plays
 			assert.equal(document.querySelector('[data-testid="lesson-menu"]'), null, "a second click closes it");
-			const row = q(el, "lesson-row")!.parentElement!;
-			await act(async () => row.dispatchEvent(new dom.window.Event("contextmenu", { bubbles: true, cancelable: true })));
-			assert.ok(document.querySelector('[data-testid="lesson-menu"]'), "opened by a right-click");
 		});
 
-		it("an unfinished row's right-click opens the same menu, and a rename shows there at once", async () => {
+		it("an unfinished row's More opens the same menu, and a rename shows there at once", async () => {
 			serve(() => Response.json({}));
 			const el = await mount({ data: { ...PAYLOAD, lessons: [...ROWS, { ...lesson("u1", "Half done", ""), unfinished: true }] } });
-			const row = el.querySelector('[data-testid="unfinished-lessons"] [data-testid="lesson-row"]')!.parentElement!;
-			await act(async () => row.dispatchEvent(new dom.window.Event("contextmenu", { bubbles: true, cancelable: true })));
+			await click(el.querySelector<HTMLElement>('[data-testid="unfinished-lessons"]')!, "lesson-row-menu");
 			assert.ok(document.querySelector('[data-testid="lesson-menu"]'));
 			await act(async () => (document.querySelector('[data-testid="ctx-rename"]') as HTMLButtonElement).click());
 			assert.ok(el.querySelector('[data-testid="unfinished-lessons"] [data-testid="lesson-rename-input"]'), "renamed in place, in its own column");

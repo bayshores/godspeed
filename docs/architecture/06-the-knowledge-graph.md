@@ -111,7 +111,7 @@ The same pipeline reads notes and space files:
 
 - Deleting a proposition removes every stored chain referencing it, as premise or conclusion.
 - Deleting an implication node (any `arg_` id) removes exactly that stored chain.
-- One confirm dialog (`src/frontend/components/delete-node-dialog.tsx`) opens from a fact's right-click menu and from chain table's Delete.
+- One confirm dialog (`src/frontend/components/delete-node-dialog.tsx`) opens from All facts' Delete. The topic sheet's fact rows only open the fact.
 
 ### The teacher's graph tool
 

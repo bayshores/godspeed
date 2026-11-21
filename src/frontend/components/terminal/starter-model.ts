@@ -19,6 +19,8 @@ const ADD_DEADLINE = "Add a deadline";
 const TALK_PAGE = /^\/chat\/|^\/space\/deadline\/[^/]+\/cheat-sheet/;
 /** A space's own pages. */
 const SPACE_PAGE = /^\/space(\/|$)/;
+/** The Files page, where a search that finds no name has its own key for asking the teacher to look inside. */
+const FILES_PAGE = /^\/space\/files(\/|$)/;
 /** The Graph, which shows what the learner knows in the active space. */
 const GRAPH_PAGE = /^\/graph(\/|$)/;
 
@@ -56,7 +58,7 @@ export function startersFor(f: IdeaFacts): string[] {
 	const open = /^\/space\/deadline\/([^/]+)$/.exec(f.path)?.[1];
 	const deadline = open === undefined ? undefined : f.deadlines.find((d) => d.id === decodeURIComponent(open));
 	if (deadline) return [`Get me ready for ${deadline.name}`, `What am I weakest at for ${deadline.name}?`, DUE];
-	const find = f.space && f.space.files > 0 ? [FIND] : [];
+	const find = f.space && f.space.files > 0 && !FILES_PAGE.test(f.path) ? [FIND] : [];
 	if (f.space && GRAPH_PAGE.test(f.path)) return [`What should I study in ${f.space.name}?`, ...find, TEACH];
 	if (f.space && SPACE_PAGE.test(f.path)) return [`What should I study in ${f.space.name}?`, knows(f.space.name), ...find, TEACH];
 	if (f.spaces === 0) return [SET_UP, TEACH, PATH];
