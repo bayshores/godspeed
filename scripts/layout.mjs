@@ -28,6 +28,8 @@ const POLL_MS = 20;
 const READY_MS = 60_000;
 /** The page is read this far apart until two reads in a row agree, at most READS times. */
 const SETTLE_MS = 400;
+/** Brings the key of an open menu or pop-up into the window; answers whether there is one. */
+const OPENER_IN_VIEW = `(() => { const opener = document.querySelector("[aria-haspopup][aria-expanded=true]"); opener?.scrollIntoView({ block: "nearest" }); return Boolean(opener); })()`;
 const READS = 6;
 /** Animations and transitions end at once, so a read never sees a screen mid-move. */
 const STILL = `if (!document.getElementById("layout-still")) {
@@ -324,6 +326,8 @@ async function main() {
 					console.warn(warnings.at(-1));
 					continue;
 				}
+				// A menu is opened from a key in view; a narrower window may have pushed its row out of the window.
+				if (await app.value(evalLine(OPENER_IN_VIEW))) await sleep(SETTLE_MS);
 				for (const at of SCROLL_TO) {
 					if (at !== 0 && !(await app.value(evalLine(scrollTo(at))))) continue;
 					const findings = await checkScreen(app, pageCheck);

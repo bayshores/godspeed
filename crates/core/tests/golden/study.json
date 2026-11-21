@@ -21054,6 +21054,7 @@
 					"inLessons": 0,
 					"share": 0
 				},
+				"fileWork": [],
 				"lessons": [],
 				"calibration": {
 					"levels": [
@@ -37284,6 +37285,7 @@
 					"inLessons": 0,
 					"share": 0
 				},
+				"fileWork": [],
 				"lessons": [],
 				"calibration": {
 					"levels": [
@@ -38565,6 +38567,7 @@
 				"facts": [],
 				"files": [],
 				"nextUp": null,
+				"fileWork": [],
 				"lessons": [
 					{
 						"chatId": "chat_cwa9680s_699cb0fe",
@@ -39027,6 +39030,7 @@
 					"inLessons": 0,
 					"share": 0
 				},
+				"fileWork": [],
 				"lessons": [],
 				"calibration": {
 					"levels": [
@@ -40097,6 +40101,7 @@
 					"inLessons": 0,
 					"share": 0
 				},
+				"fileWork": [],
 				"lessons": [],
 				"calibration": {
 					"levels": [
@@ -41168,6 +41173,7 @@
 					"inLessons": 0,
 					"share": 0
 				},
+				"fileWork": [],
 				"lessons": [],
 				"calibration": {
 					"levels": [
@@ -42238,6 +42244,7 @@
 					"inLessons": 0,
 					"share": 0
 				},
+				"fileWork": [],
 				"lessons": [],
 				"calibration": {
 					"levels": [
@@ -47126,6 +47133,7 @@
 					"inLessons": 0,
 					"share": 0
 				},
+				"fileWork": [],
 				"lessons": [],
 				"calibration": {
 					"levels": [
@@ -52276,6 +52284,7 @@
 					"inLessons": 0,
 					"share": 0
 				},
+				"fileWork": [],
 				"lessons": [],
 				"calibration": {
 					"levels": [
@@ -53060,6 +53069,7 @@
 				"facts": [],
 				"files": [],
 				"nextUp": null,
+				"fileWork": [],
 				"lessons": [],
 				"calibration": {
 					"levels": [
@@ -53805,6 +53815,7 @@
 					}
 				],
 				"nextUp": null,
+				"fileWork": [],
 				"lessons": [
 					{
 						"chatId": "c2",

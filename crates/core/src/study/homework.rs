@@ -96,16 +96,15 @@ fn problem_lines(problems: &[Json]) -> Vec<String> {
 }
 
 /// What the teacher knows when a lesson on files starts, under its study plan. `files` are
-/// `{ id, name, path }`, the first file first; `problems` are the first file's listed problems.
+/// `{ id, name, path, source? }` (`source`: the `{ name, path }` of the .tex a PDF is built from),
+/// the first file first; `problems` are the first file's listed problems.
 pub fn files_context_text(files: &[Json], problems: &[Json]) -> String {
-	let named: Vec<String> = files
-		.iter()
-		.map(|f| {
-			let at = f["path"].as_str().filter(|p| !p.is_empty()).map(|p| format!(", at {p}")).unwrap_or_default();
-			format!("{} (file id {}{at})", f["name"].str_or_empty(), f["id"].str_or_empty())
-		})
-		.collect();
+	let at = |f: &Json| f["path"].as_str().filter(|p| !p.is_empty()).map(|p| format!(", at {p}")).unwrap_or_default();
+	let named: Vec<String> = files.iter().map(|f| format!("{} (file id {}{})", f["name"].str_or_empty(), f["id"].str_or_empty(), at(f))).collect();
 	let mut lines = vec![format!("[Files] Lesson works from {}.", named.join("; "))];
+	for f in files.iter().filter(|f| f["source"].as_obj().is_some()) {
+		lines.push(format!("{} is built from {}{}.", f["name"].str_or_empty(), f["source"]["name"].str_or_empty(), at(&f["source"])));
+	}
 	if problems.is_empty() {
 		lines.push("No problems posted yet.".to_owned());
 	} else {
@@ -132,6 +131,8 @@ mod tests {
 	fn a_lesson_on_files_names_each_file_and_the_first_ones_problems() {
 		let files = [json!({ "id": "f1", "name": "Practice midterm.pdf", "path": "/s/Practice midterm.pdf" }), json!({ "id": "f2", "name": "Key.pdf", "path": null })];
 		assert_eq!(files_context_text(&files, &[]), "[Files] Lesson works from Practice midterm.pdf (file id f1, at /s/Practice midterm.pdf); Key.pdf (file id f2).\nNo problems posted yet.");
+		let built = [json!({ "id": "f3", "name": "HW 3.pdf", "path": "/s/HW 3.pdf", "source": { "name": "HW 3.tex", "path": "/s/HW 3.tex" } })];
+		assert_eq!(files_context_text(&built, &[]), "[Files] Lesson works from HW 3.pdf (file id f3, at /s/HW 3.pdf).\nHW 3.pdf is built from HW 3.tex, at /s/HW 3.tex.\nNo problems posted yet.");
 		let listed = [json!({ "number": "1", "title": "Limits", "done": true }), json!({ "number": "2", "title": "Series", "done": false })];
 		assert_eq!(
 			files_context_text(&files[..1], &listed),

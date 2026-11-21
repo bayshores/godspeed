@@ -70,10 +70,15 @@ export function upcomingDeadlines<T extends Due>(deadlines: readonly T[], nowMs:
 	return byDue(deadlines.filter((d) => !d.done && !isOverdue(d, nowMs)));
 }
 
+/** "2 of 7 problems done". */
+export function problemsDone(p: { done: number; total: number }): string {
+	return `${p.done} of ${p.total} problems done`;
+}
+
 /** How far a deadline is, in words: "2 of 7 problems done", or "19% ready"
  *  for one with no problems; null with nothing to count. */
 export function progressWords(d: Pick<DeadlineProgress, "problems" | "ready">): string | null {
-	if (d.problems) return `${d.problems.done} of ${d.problems.total} problems done`;
+	if (d.problems) return problemsDone(d.problems);
 	return d.ready !== null ? `${percent(d.ready)}% ready` : null;
 }
 

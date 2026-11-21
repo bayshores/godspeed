@@ -91,6 +91,7 @@ const PAYLOAD = {
 	facts: [],
 	files: FILES,
 	nextUp: FILES[3]!,
+	fileWork: [],
 	lessons: [
 		lesson("c1", "Gradient descent", "rrrrrrrrrwwwd"),
 		lesson("c2", "Bayesian knowledge tracing", "rrrrrwwwwdd"),

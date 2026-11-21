@@ -92,6 +92,13 @@ describe("files-model", () => {
 			action: "Remove file",
 			danger: true,
 		});
+		const pair = [file({ id: "p", name: "HW 3.pdf" }), file({ id: "t", name: "HW 3.tex", pdfId: "p" })];
+		assert.deepEqual(confirmCopy({ kind: "remove", file: pair[0]! }, "CSE 21", pair, new Map([["p", { ...cov(4, 0), fileId: "p" }]])), {
+			title: "Remove HW 3.pdf and HW 3.tex?",
+			body: "They leave CSE 21, along with the 4 facts built from them. Your original files are not touched. This cannot be undone.",
+			action: "Remove files",
+			danger: true,
+		});
 		assert.equal(
 			confirmCopy({ kind: "remove", file: files[3]! }, "CSE 21", files, coverage).body,
 			"It leaves CSE 21. Your original file is not touched. This cannot be undone.",
@@ -155,6 +162,18 @@ describe("files-model", () => {
 			["Other"],
 			"only other files: one group",
 		);
+	});
+
+	it("a .tex follows its PDF in one entry; a .tex whose PDF is gone, or a second on one PDF, keeps its own", () => {
+		const groups = fileGroups([
+			file({ id: "t", name: "HW 3.tex", pdfId: "p" }),
+			file({ id: "a", name: "Algebra.md" }),
+			file({ id: "p", name: "HW 3.pdf" }),
+			file({ id: "s", name: "Old.tex", pdfId: "gone" }),
+			file({ id: "u", name: "Zeta.tex", pdfId: "p" }),
+		]);
+		assert.deepEqual(groups[0]!.items.map((i) => i.files.map((f) => f.id)), [["a"], ["p", "t"], ["s"], ["u"]], "a second .tex on one PDF keeps its own entry");
+		assert.equal(groups[0]!.count, 5);
 	});
 
 	it("a transcript series joins the one notes series most like it, never on a tie, too few shared numbers, a mixed series or numbered chapters", () => {

@@ -1,52 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 import { Link } from "react-router";
 import { currentVersion } from "@/shared/core";
 import { LoadFailed } from "@/frontend/components/load-failed";
+import { DockPanel } from "@/frontend/components/lesson/lesson-dock";
 import { SELECT, SELECT_ARROW } from "@/frontend/components/ui/field";
-import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { readStorage, writeStorage } from "@/frontend/lib/storage";
-import { OPEN_SHEET_EVENT } from "@/frontend/components/teacher/follow";
-import { DOCK_DEFAULT_W, dockStateKey, dockWidth, makeTarget, parseDockState, pickSheet, sheetChoices, type DockState } from "./dock-model";
+import { makeTarget, pickSheet, sheetChoices } from "./dock-model";
 import { SheetCanvas } from "./sheet-canvas";
 import { versionLabel } from "./studio-states";
 import { sheetPdfPath, studioPath, useCheatSheet, useSpaceSheets } from "./use-cheat-sheet";
 
-const WIDTH_KEY = "lh:sheet-dock-width";
-
-/** Whether a session's sheet is open and which one, kept per session in
- *  this browser. It starts closed and reads storage after mount. The agent
- *  opening the session's own deadline's sheet opens it here. */
-export function useSheetDock(chatId: string, deadlineId: string | undefined) {
-	const [state, setState] = useState<DockState>({ open: false });
-	const key = dockStateKey(chatId);
-	useEffect(() => setState(parseDockState(readStorage(key))), [key]);
-	const update = useCallback(
-		(patch: Partial<DockState>) =>
-			setState((s) => {
-				const next = { ...s, ...patch };
-				writeStorage(key, JSON.stringify(next));
-				return next;
-			}),
-		[key],
-	);
-	useEffect(() => {
-		if (!deadlineId) return;
-		const opened = (e: Event) => {
-			if ((e as CustomEvent<string>).detail !== deadlineId) return;
-			e.preventDefault();
-			update({ open: true, deadlineId });
-		};
-		window.addEventListener(OPEN_SHEET_EVENT, opened);
-		return () => window.removeEventListener(OPEN_SHEET_EVENT, opened);
-	}, [deadlineId, update]);
-	return { state, update };
-}
-
 /**
- * THE CHEAT SHEET BESIDE A LESSON: a column beside the lesson's page, as
- * wide as the learner drags it. It shows the lesson's
- * deadline's sheet, else the space's next one that has a sheet (a picker
+ * THE CHEAT SHEET BESIDE A LESSON, in the panel beside its page (DockPanel). It shows the
+ * lesson's deadline's sheet, else the space's next one that has a sheet (a picker
  * when there are several), on the same canvas as the studio (pages one
  * under another, fit to width). It has no chat: asking about the sheet,
  * pointing at a part of it and making one all happen in the studio.
@@ -65,13 +31,6 @@ export function SheetDock({
 	onPick: (deadlineId: string) => void;
 	onClose: () => void;
 }) {
-	const [width, setWidth] = useState(DOCK_DEFAULT_W);
-	useEffect(() => {
-		const saved = Number(readStorage(WIDTH_KEY));
-		setWidth(dockWidth(saved > 0 ? saved : DOCK_DEFAULT_W, window.innerWidth));
-	}, []);
-	const drag = useRef<{ x: number; w: number } | null>(null);
-
 	const { view: cards, failed, reload } = useSpaceSheets(spaceId);
 	const choices = cards ? sheetChoices(cards.cards) : [];
 	const shown = cards ? pickSheet(cards.cards, sessionDeadlineId, picked) : null;
@@ -79,36 +38,14 @@ export function SheetDock({
 	const shownName = cards?.cards.find((c) => c.deadlineId === shown)?.name;
 
 	return (
-		<Pane data-testid="sheet-dock" aria-label="Cheat sheet" style={{ "--lh-dock-w": `${width}px` } as React.CSSProperties} className="lh-sheet-dock flex h-full min-h-0 shrink-0 flex-col">
-			<div
-				role="separator"
-				aria-orientation="vertical"
-				aria-label="Drag to resize the cheat sheet"
-				data-testid="sheet-dock-resize"
-				className="lh-dock-resize absolute top-0 bottom-0 -left-3 z-10 w-3 cursor-col-resize hover:bg-tone-2"
-				onPointerDown={(e) => {
-					e.currentTarget.setPointerCapture(e.pointerId);
-					drag.current = { x: e.clientX, w: width };
-				}}
-				onPointerMove={(e) => {
-					const d = drag.current;
-					if (d) setWidth(dockWidth(d.w + d.x - e.clientX, window.innerWidth));
-				}}
-				onPointerUp={() => {
-					drag.current = null;
-					writeStorage(WIDTH_KEY, String(width));
-				}}
-			/>
-			<header className="flex shrink-0 items-center gap-2 py-2.5 pr-2 pl-3">
-				{choices.length > 1 && shown ? (
+		<DockPanel
+			testId="sheet-dock"
+			label="Cheat sheet"
+			onClose={onClose}
+			header={
+				choices.length > 1 && shown ? (
 					<div className="relative min-w-0 flex-1">
-						<select
-							data-testid="sheet-dock-pick"
-							aria-label="Which cheat sheet"
-							value={shown}
-							onChange={(e) => onPick(e.target.value)}
-							className={SELECT}
-						>
+						<select data-testid="sheet-dock-pick" aria-label="Which cheat sheet" value={shown} onChange={(e) => onPick(e.target.value)} className={SELECT}>
 							{choices.map((c) => (
 								<option key={c.deadlineId} value={c.deadlineId}>
 									Cheat sheet for {c.name}
@@ -119,12 +56,9 @@ export function SheetDock({
 					</div>
 				) : (
 					<span className="min-w-0 flex-1 truncate px-1 text-[15px] font-medium text-ink">{shownName ? `Cheat sheet for ${shownName}` : "Cheat sheet"}</span>
-				)}
-				<button type="button" data-testid="sheet-dock-close" onClick={onClose} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
-					<PixelIcon name="close" />
-					Close
-				</button>
-			</header>
+				)
+			}
+		>
 			{failed ? (
 				<LoadFailed message="Couldn't load your cheat sheets." onRetry={() => void reload()} className="px-5 py-4" />
 			) : !cards ? null : shown ? (
@@ -141,7 +75,7 @@ export function SheetDock({
 					)}
 				</div>
 			)}
-		</Pane>
+		</DockPanel>
 	);
 }
 

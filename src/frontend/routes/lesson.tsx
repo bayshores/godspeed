@@ -1,5 +1,5 @@
 import { data, useLoaderData, type LoaderFunctionArgs } from "react-router";
-import type { LessonKind, LessonProblemList } from "@/shared/core";
+import type { LessonDocuments, LessonKind, LessonProblemList } from "@/shared/core";
 import { Chat } from "@/frontend/components/chat";
 import type { ChatRead } from "@/frontend/components/lesson/use-lesson-server";
 import { getJson } from "@/frontend/lib/api";
@@ -7,8 +7,8 @@ import { loadJson } from "./load-json";
 import { PageTitle } from "./page-title";
 
 /** One lesson: its record (and a homework lesson's or a lesson on files'
- *  problem list) is read before the page shows, so a navigation keeps the
- *  old page until it's ready. */
+ *  problem list and documents) is read before the page shows, so a
+ *  navigation keeps the old page until it's ready. */
 export async function lessonLoader({ params, request }: LoaderFunctionArgs) {
 	// The plan map's code loads with the record, so an unfolded step row draws with the first paint.
 	const [read] = await Promise.all([loadJson<ChatRead>(`/api/chats/${encodeURIComponent(params.id ?? "")}`, request.signal), import("@/frontend/components/plan-block")]);
@@ -16,15 +16,19 @@ export async function lessonLoader({ params, request }: LoaderFunctionArgs) {
 	if (read.kind === "talk") throw data(null, { status: 404 });
 	const chat = { ...read, kind: read.kind as LessonKind | undefined };
 	let problemList: LessonProblemList | undefined;
+	// null: a lesson with documents whose read failed, so the page reads them again.
+	let documents: LessonDocuments | null | undefined;
 	if (chat.kind === "homework" || (chat.kind === "study" && chat.fileIds?.length)) {
-		const listed = await getJson<{ problems: LessonProblemList }>(`/api/chats/${encodeURIComponent(chat.id)}/problems`, request.signal);
+		const at = `/api/chats/${encodeURIComponent(chat.id)}`;
+		const [listed, shown] = await Promise.all([getJson<{ problems: LessonProblemList }>(`${at}/problems`, request.signal), getJson<LessonDocuments>(`${at}/documents`, request.signal)]);
 		if (listed.body) problemList = listed.body.problems;
+		documents = shown.body;
 	}
-	return { chat, problemList, prompt: new URL(request.url).searchParams.get("prompt") ?? undefined };
+	return { chat, problemList, documents, prompt: new URL(request.url).searchParams.get("prompt") ?? undefined };
 }
 
 export function LessonPage() {
-	const { chat, problemList, prompt } = useLoaderData<typeof lessonLoader>();
+	const { chat, problemList, documents, prompt } = useLoaderData<typeof lessonLoader>();
 	return (
 		<>
 			<PageTitle page={chat.title || "Lesson"} />
@@ -39,6 +43,7 @@ export function LessonPage() {
 				spaceId={chat.spaceId}
 				deadlineId={chat.deadlineId}
 				problemList={problemList}
+				documents={documents}
 				// The record IS native agent history; the client view is derived
 				// app-side (core/view.ts projectView).
 				initialMessages={chat.messages}

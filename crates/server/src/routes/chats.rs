@@ -36,7 +36,7 @@ use gs_services::turns::deadline_lesson::DeadlineLesson;
 use gs_services::turns::dismissal_park::park_dismissal;
 use gs_services::turns::files_lesson::files_lesson;
 use gs_services::turns::homework::create_homework;
-use gs_services::turns::lesson_problems::problems_view;
+use gs_services::turns::lesson_problems::{documents_view, problems_view};
 use gs_services::turns::lesson_events::{KeepGoing, KeptDrop, drop_kept_part, keep_going};
 use gs_services::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
 use gs_services::turns::review::{ReviewReply, answer_review, next_review, skip_review};
@@ -57,6 +57,7 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/chats/{id}/dismiss", ApiRoute::new().post(dismiss).into_route())
 		.route("/api/chats/{id}/keep-going", ApiRoute::new().post(keep_going_at).into_route())
 		.route("/api/chats/{id}/kept", ApiRoute::new().post(kept).into_route())
+		.route("/api/chats/{id}/documents", ApiRoute::new().get(documents).into_route())
 		.route("/api/chats/{id}/markdown", ApiRoute::new().get(markdown).into_route())
 		.route("/api/chats/{id}/problems", ApiRoute::new().get(problems).into_route())
 		.route("/api/chats/{id}/review", ApiRoute::new().post(review).into_route())
@@ -174,13 +175,22 @@ async fn read(State(app): State<Arc<App>>, Path(id): Path<String>) -> Result<Res
 	Ok(reply::json(200, &Json::Obj(out)))
 }
 
-/// GET /api/chats/{id}/problems: a homework lesson's or a lesson on files' problem list and the
-/// file it is printed in, `{ problems: { problems, file } }`. 404 for a lesson without one, or
-/// once its space or deadline is gone.
+/// GET /api/chats/{id}/problems: a homework lesson's or a lesson on files' problem list,
+/// `{ problems: { problems } }`. 404 for a lesson without one, or once its space or deadline is
+/// gone.
 async fn problems(State(app): State<Arc<App>>, Path(id): Path<String>) -> Response {
 	match app.stores.chats.get_chat(&id).and_then(|chat| problems_view(&app, &chat)) {
 		Some(view) => reply::json(200, &json!({ "problems": view })),
 		None => error(404, "No problem list"),
+	}
+}
+
+/// GET /api/chats/{id}/documents: what the lesson's Document panel shows, `{ documents,
+/// listFileId }` (`documents_view`); empty for a lesson that has none.
+async fn documents(State(app): State<Arc<App>>, Path(id): Path<String>) -> Response {
+	match app.stores.chats.get_chat(&id) {
+		Some(chat) => reply::json(200, &documents_view(&app, &chat).await),
+		None => error(404, "Not found"),
 	}
 }
 

@@ -3,7 +3,8 @@
  * file names with counts, the linked folder, each row's kind and state
  * (coverage bar, Building facts, Failed + Retry), Move and Unlink writing
  * through the space routes, Add files and the Finder drop targets, search
- * and folded groups.
+ * and folded groups, picking files and starting a lesson on them from the
+ * picked bar.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -12,7 +13,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it, mock } from "node:test";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import type { SpaceFile, SpaceRecord, FileCoverage } from "../../src/shared/core/index.ts";
+import type { SpaceFile, SpaceRecord, FileCoverage, FileWork } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, {
@@ -49,6 +50,7 @@ Object.defineProperty(dom.window, "localStorage", {
 // to an old-IE way of watching text fields.
 (dom.document as unknown as { oninput: null }).oninput = null;
 const { createRoot } = await import("react-dom/client");
+const { MemoryRouter, useLocation } = await import("react-router");
 const { FilesPage } = await import("../../src/frontend/components/files/files-page.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
@@ -56,6 +58,7 @@ const { AgentStatusProvider } = await import("../../src/frontend/components/agen
 const { CopyButton } = await import("../../src/frontend/components/copy-button.tsx");
 const { BarHost } = await import("../bar-host.tsx");
 const { kbdEventForAction } = await import("../../src/shared/core/index.ts");
+const { FULL_LINE } = await import("../../src/frontend/components/files/files-pick-model.ts");
 
 function file(id: string, name: string, over: Partial<SpaceFile> = {}): SpaceFile {
 	return { id, origin: "copied", name, path: `${id}/${name}`, kind: "study", contentFp: "", status: "ready", addedAt: "", ...over };
@@ -85,7 +88,15 @@ const COVERAGE: FileCoverage[] = [
 	{ fileId: "f2", name: "Rosen 6.2 — Probability theory.pdf", displayName: "Rosen 6.2 — Probability theory", facts: 22, inLessons: 0, share: 0 },
 ];
 
+/** The progress payload's file work; none unless a test sets it. */
+let fileWork: FileWork[] = [];
+
 const calls: { method: string; url: string; body?: unknown }[] = [];
+let record = RECORD;
+/** What POST /api/chats answers. */
+let started: Response | (() => Response) = () => Response.json({ id: "chat_new", title: "Rosen 6.2 — Probability theory" });
+/** Every place the router went. */
+const went: string[] = [];
 let folderProblem: string | null = null;
 let recordFails = false;
 let agentTeaching = true;
@@ -100,12 +111,16 @@ function fakeFetch() {
 		if (url === "/api/mcp-access") return Response.json({ agentConnected: true, agentTeaching, pendingWork: 0 });
 		if (url.startsWith("/api/spaces/cls_a") && method === "GET") {
 			recordReads++;
-			return recordFails ? Response.json({ error: "boom" }, { status: 500 }) : Response.json({ space: RECORD, folder: { problem: folderProblem, checkedAt: null, settling: 0 } });
+			return recordFails ? Response.json({ error: "boom" }, { status: 500 }) : Response.json({ space: record, folder: { problem: folderProblem, checkedAt: null, settling: 0 } });
 		}
-		if (url.startsWith("/api/progress")) return Response.json({ spaceId: "cls_a", files: COVERAGE });
+		if (url.startsWith("/api/progress")) return Response.json({ spaceId: "cls_a", files: COVERAGE, fileWork });
+		if (url === "/api/chats" && method === "POST") return typeof started === "function" ? started() : started;
 		return Response.json({ ok: true });
 	}) as typeof fetch;
 }
+
+/** The server event handlers the page listens with. */
+const events = new Map<string, (raw: string) => void>();
 
 let root: Root | undefined;
 let host: HTMLElement | undefined;
@@ -113,18 +128,26 @@ async function mount(initialActive: string | null = "cls_a") {
 	host = document.createElement("div");
 	document.body.append(host);
 	root = createRoot(host);
-	const connect = () => ({ onEvent() {}, onOpen() {}, close() {} });
+	const connect = () => ({ onEvent: (name: string, cb: (raw: string) => void) => events.set(name, cb), onOpen() {}, close() {} });
+	function Where() {
+		const { pathname, search } = useLocation();
+		if (went.at(-1) !== pathname + search) went.push(pathname + search);
+		return null;
+	}
 	await act(async () => {
 		root!.render(
-			<ServerEventsProvider connect={connect as never}>
-				<AgentStatusProvider>
-					<SpaceProvider initialActive={initialActive}>
-						<BarHost>
-							<FilesPage />
-						</BarHost>
-					</SpaceProvider>
-				</AgentStatusProvider>
-			</ServerEventsProvider>,
+			<MemoryRouter initialEntries={["/files"]}>
+				<Where />
+				<ServerEventsProvider connect={connect as never}>
+					<AgentStatusProvider>
+						<SpaceProvider initialActive={initialActive}>
+							<BarHost>
+								<FilesPage />
+							</BarHost>
+						</SpaceProvider>
+					</AgentStatusProvider>
+				</ServerEventsProvider>
+			</MemoryRouter>,
 		);
 	});
 	// Let the record + progress fetches land.
@@ -152,6 +175,10 @@ afterEach(async () => {
 	root = undefined;
 	host = undefined;
 	calls.length = 0;
+	record = RECORD;
+	fileWork = [];
+	started = () => Response.json({ id: "chat_new", title: "Rosen 6.2 — Probability theory" });
+	went.length = 0;
 	folderProblem = null;
 	recordFails = false;
 	agentTeaching = true;
@@ -331,6 +358,37 @@ describe("FilesPage", () => {
 		assert.deepEqual(calls, [{ method: "DELETE", url: "/api/spaces/cls_a/files/f1", body: undefined }]);
 	});
 
+	it("a .tex and its PDF are one row, the PDF's: a click picks the PDF, and Remove names both", async () => {
+		record = { ...RECORD, files: [file("f_pdf", "HW 3.pdf"), file("f_tex", "HW 3.tex", { pdfId: "f_pdf" })] };
+		fakeFetch();
+		await mount();
+		assert.ok(q("space-file-f_tex") === null, "no row of its own");
+		assert.equal(q("space-file-source-f_pdf")!.textContent, ".tex");
+		await act(async () => q("space-file-pick-f_pdf")!.click());
+		assert.equal(q("files-picked-names")!.textContent, "HW 3.pdf");
+		await act(async () => q("space-file-menu-f_pdf")!.click());
+		await act(async () => q("space-file-remove-f_pdf")!.click());
+		assert.match(q("files-confirm")!.textContent!, /Remove HW 3\.pdf and HW 3\.tex\?/);
+		await act(async () => q("files-confirm-button")!.click());
+		assert.deepEqual(calls, [{ method: "DELETE", url: "/api/spaces/cls_a/files/f_pdf", body: undefined }], "the server removes the .tex with it");
+	});
+
+	it("a picked .tex whose PDF arrives joins the PDF's row and leaves the picks", async () => {
+		record = { ...RECORD, files: [file("f_tex", "HW 3.tex")] };
+		fakeFetch();
+		await mount();
+		await act(async () => q("space-file-pick-f_tex")!.click());
+		assert.equal(q("files-picked-names")!.textContent, "HW 3.tex");
+		record = { ...RECORD, files: [file("f_tex", "HW 3.tex", { pdfId: "f_pdf" }), file("f_pdf", "HW 3.pdf")] };
+		await act(async () => {
+			events.get("spaces-changed")!("{}");
+			await new Promise((r) => setTimeout(r, 20));
+		});
+		assert.ok(q("space-file-f_tex") === null);
+		assert.equal(q("space-file-pick-f_pdf")!.getAttribute("aria-pressed"), "false");
+		assert.equal(q("files-picked-bar")!.getAttribute("data-state"), "closed", "nothing is left picked");
+	});
+
 	it("files dropped anywhere on the page are added, and the page says so while they are dragged in", async () => {
 		fakeFetch();
 		await mount();
@@ -477,6 +535,125 @@ describe("FilesPage", () => {
 			q("space-folder-form")!.dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
 		});
 		assert.deepEqual(calls.at(-1), { method: "PUT", url: "/api/spaces/cls_a/folder", body: { path: "/Users/me/New" } });
+	});
+});
+
+describe("FilesPage: picking files to study", () => {
+	const pressed = (id: string) => q(`space-file-pick-${id}`)!.getAttribute("aria-pressed");
+	const pick = (id: string) => act(async () => q(`space-file-pick-${id}`)!.click());
+	const settle = () =>
+		act(async () => {
+			await new Promise((r) => setTimeout(r, 20));
+		});
+
+	it("a click on a row picks it; the bar rises with the names in click order, and Clear lets them all go", async () => {
+		fakeFetch();
+		await mount();
+		assert.ok(q("files-picked-bar") === null, "no bar with nothing picked");
+		await pick("f2");
+		await pick("f1");
+		assert.equal(pressed("f2"), "true");
+		assert.ok(q("space-file-f1")!.hasAttribute("data-picked"));
+		assert.equal(q("files-picked-names")!.textContent, "Rosen 6.2 — Probability theory.pdf, Lecture 1 — Counting.pdf");
+		await pick("f2");
+		assert.equal(pressed("f2"), "false", "a second click lets it go");
+		assert.equal(q("files-picked-names")!.textContent, "Lecture 1 — Counting.pdf");
+		await act(async () => q("space-file-retry-f4")!.click());
+		await act(async () => q("space-file-menu-f5")!.click());
+		assert.equal(pressed("f4"), "false", "Retry keeps its own click");
+		assert.equal(pressed("f5"), "false", "More keeps its own click");
+		await act(async () => q("files-picked-clear")!.click());
+		assert.equal(pressed("f1"), "false");
+		assert.equal(q("files-picked-bar")!.getAttribute("data-state"), "closed", "the bar leaves");
+	});
+
+	it("Study starts a lesson on the picked files, first picked first, and opens it", async () => {
+		fakeFetch();
+		await mount();
+		await pick("f2");
+		await pick("f1");
+		await act(async () => q("files-picked-study")!.click());
+		await settle();
+		assert.deepEqual(calls.find((c) => c.url === "/api/chats")?.body, { fileIds: ["f2", "f1"], spaceId: "cls_a" });
+		assert.equal(went.at(-1), `/chat/chat_new?prompt=${encodeURIComponent("Rosen 6.2 — Probability theory")}`);
+	});
+
+	it("a refused start says the server's reason on the bar, and the next pick takes it away", async () => {
+		fakeFetch();
+		started = () => Response.json({ error: "This space is closed." }, { status: 400 });
+		await mount();
+		await pick("f1");
+		await act(async () => q("files-picked-study")!.click());
+		await settle();
+		assert.equal(q("files-picked-names-failure")!.textContent, "This space is closed.");
+		assert.equal(q("files-picked-names-failure")!.getAttribute("role"), "alert");
+		assert.equal(went.at(-1), "/files", "the page stays");
+		await pick("f2");
+		assert.ok(q("files-picked-names-failure") === null);
+		assert.equal(q("files-picked-names")!.textContent, "Lecture 1 — Counting.pdf, Rosen 6.2 — Probability theory.pdf");
+	});
+
+	it("while Study runs its key shows it and a second click sends nothing", async () => {
+		fakeFetch();
+		let release!: () => void;
+		const gate = new Promise<void>((resolve) => (release = resolve));
+		const answer = Response.json({ error: "later" }, { status: 400 });
+		started = answer;
+		const plain = globalThis.fetch;
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (String(input) === "/api/chats") await gate;
+			return plain(input, init);
+		}) as typeof fetch;
+		await mount();
+		await pick("f1");
+		await act(async () => q("files-picked-study")!.click());
+		assert.equal(q("files-picked-study")!.getAttribute("aria-busy"), "true");
+		await act(async () => q("files-picked-study")!.click());
+		release();
+		await settle();
+		assert.equal(calls.filter((c) => c.url === "/api/chats").length, 1);
+		assert.equal(q("files-picked-study")!.getAttribute("aria-busy"), null);
+	});
+
+	it("at eight picked the other rows no longer pick", async () => {
+		record = { ...RECORD, files: Array.from({ length: 9 }, (_, i) => file(`p${i}`, `Practice ${i}.pdf`)) };
+		fakeFetch();
+		await mount();
+		for (let i = 0; i < 8; i++) await pick(`p${i}`);
+		assert.equal(q("space-file-pick-p8")!.getAttribute("aria-disabled"), "true", "the ninth is held back");
+		await pick("p8");
+		assert.equal(pressed("p8"), "false", "and does not pick");
+		assert.equal(q("files-picked-names-failure")!.textContent, FULL_LINE, "the bar says why");
+		assert.equal(q("space-file-pick-p0")!.getAttribute("aria-disabled"), null, "a picked one can still be let go");
+		await pick("p0");
+		assert.equal(q("space-file-pick-p8")!.getAttribute("aria-disabled"), null, "room again");
+		assert.ok(q("files-picked-names-failure") === null, "and the names are back");
+	});
+
+	it("a file's problems take the place of its facts, from the progress payload, and link to its lesson", async () => {
+		fileWork = [
+			{ fileId: "f1", problems: { done: 2, total: 4 }, lessonId: "chat_mid" },
+			{ fileId: "f2", problems: { done: 1, total: 3 } },
+			{ fileId: "f7", problems: { done: 0, total: 2 } },
+		];
+		fakeFetch();
+		await mount();
+		const linked = q("space-file-status-f1")!;
+		assert.equal(linked.textContent, "2 of 4 problems done", "in place of 31 of 31 facts studied");
+		assert.equal(linked.getAttribute("href"), "/chat/chat_mid");
+		assert.equal(linked.getAttribute("aria-label"), "Lecture 1 — Counting.pdf, 2 of 4 problems done");
+		assert.ok(linked.contains(q("space-file-blocks-f1")), "the blocks are part of the link");
+		assert.ok(!q("space-file-pick-f1")!.contains(linked), "the link sits beside the row's button");
+		await act(async () => linked.click());
+		assert.equal(went.at(-1), "/chat/chat_mid");
+		assert.equal(pressed("f1"), "false", "the link never picks");
+		const plain = q("space-file-status-f2")!;
+		assert.equal(plain.textContent, "1 of 3 problems done");
+		assert.ok(q("space-file-pick-f2")!.contains(plain), "with no lesson the blocks are part of the row's button");
+		await act(async () => q("space-file-blocks-f2")!.click());
+		assert.equal(pressed("f2"), "true", "and pick like the rest of the row");
+		assert.equal(q("space-file-status-f7")!.textContent, "Waiting", "a state that needs the learner keeps its words");
+		assert.ok(q("space-file-blocks-f7"), "after the blocks");
 	});
 });
 

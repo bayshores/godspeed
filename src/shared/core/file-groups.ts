@@ -116,9 +116,29 @@ function folderGroups(other: readonly SpaceFile[]): { groups: FileGroup[]; rest:
 	return { groups, rest };
 }
 
+/** Each .tex whose PDF is in the space (pdfId) leaves its own place and
+ *  follows the PDF in the PDF's item, so the two are one entry. The server
+ *  pairs one to one (tex_output_for). */
+function joinTexToPdf(files: readonly SpaceFile[], groups: FileGroup[]): FileGroup[] {
+	const ids = new Set(files.map((f) => f.id));
+	const texOf = new Map<string, SpaceFile>();
+	for (const t of files) if (t.pdfId && ids.has(t.pdfId) && !texOf.has(t.pdfId)) texOf.set(t.pdfId, t);
+	return groups.flatMap((group) => {
+		const items = group.items.flatMap((item) => {
+			// Only the .tex its PDF takes moves; any other keeps its own entry.
+			const list = item.files.filter((f) => !(f.pdfId && texOf.get(f.pdfId) === f)).flatMap((f) => {
+				const tex = texOf.get(f.id);
+				return tex ? [f, tex] : [f];
+			});
+			return list.length > 0 ? [{ ...item, files: list }] : [];
+		});
+		return items.length > 0 ? [{ ...group, count: items.reduce((n, i) => n + i.files.length, 0), items }] : [];
+	});
+}
+
 /** The groups: one per numbered series, a lecture's notes and transcript
  *  joined (pairSeries), one per linked subfolder of the rest, study groups
- *  first, then "Other". */
+ *  first, then "Other". A .tex and its PDF are one entry. */
 export function fileGroups(files: readonly SpaceFile[]): FileGroup[] {
 	const { series, other } = groupFileSeries(files);
 	const pairs = pairSeries(series);
@@ -130,5 +150,5 @@ export function fileGroups(files: readonly SpaceFile[]): FileGroup[] {
 	groups.sort((a, b) => Number(hasStudy(b)) - Number(hasStudy(a)));
 	const rest = folders.rest.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 	if (rest.length > 0) groups.push({ key: "other", label: "Other", count: rest.length, items: rest.map((f) => ({ key: f.id, label: null, date: null, files: [f] })) });
-	return groups;
+	return joinTexToPdf(files, groups);
 }

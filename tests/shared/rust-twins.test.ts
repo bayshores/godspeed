@@ -14,6 +14,7 @@ import { FACTORY_SETTINGS } from "../../src/shared/core/settings.ts";
 import { TOOL_SWITCH_LABELS } from "../../src/shared/core/tool-switches.ts";
 import { APP_ICONS } from "../../src/frontend/components/settings/appearance-model.ts";
 import { PIECE_WIDTHS } from "../../src/frontend/components/citations/page-piece-model.ts";
+import { MAX_LESSON_FILES } from "../../src/frontend/components/files/files-pick-model.ts";
 import { TITLE_CUT } from "../../src/frontend/components/lesson/wait-model.ts";
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf-8");
@@ -163,6 +164,12 @@ describe("files the page ships", () => {
 		const types = read("crates/server/src/http/ui.rs");
 		const files = readdirSync(new URL("../../public", import.meta.url), { recursive: true, encoding: "utf-8" });
 		for (const file of files.filter((name) => name.includes("."))) assert.ok(types.includes(`"${file.slice(file.lastIndexOf("."))}" =>`), file);
+	});
+});
+
+describe("files one lesson works from", () => {
+	it("are as many on the Files page as the server takes", () => {
+		assert.equal(MAX_LESSON_FILES, number(read("crates/services/src/turns/files_lesson.rs"), "MAX_LESSON_FILES"));
 	});
 });
 

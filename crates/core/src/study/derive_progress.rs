@@ -101,6 +101,7 @@ pub fn derive_progress(input: &Json) -> Json {
 	let files = file_coverage(input["files"].items(), facts);
 
 	let lesson_rows = lesson_rows(input, &by_lesson, &lesson_at);
+	let file_work = file_work(input, &lesson_rows);
 
 	let grouped: Vec<(&Json, TopicView)> = topics.iter().filter(|t| !t["ungrouped"].truthy()).map(|t| (t, TopicView::of(t))).collect();
 	let deadlines = deadline_rows(input, &grouped, &links);
@@ -122,6 +123,7 @@ pub fn derive_progress(input: &Json) -> Json {
 	let next_up = next_up_file(&files).cloned();
 	out.insert("files", files);
 	out.insert("nextUp", next_up);
+	out.insert("fileWork", file_work);
 	out.insert("lessons", lesson_rows);
 	out.insert("calibration", calibration(&all_answers, |id| titles.get(id).and_then(|t| t.as_str()).unwrap_or(id).to_owned()));
 	out.insert("deadlines", deadlines);
@@ -231,6 +233,37 @@ fn lesson_rows(input: &Json, by_lesson: &[&[Json]], lesson_at: &HashMap<&str, us
 		.collect();
 	rows.sort_by(newer_first);
 	rows
+}
+
+/// One row per file with a problem list, in space order: how many of its problems are done and
+/// the lesson its blocks reopen, an unfinished one first, then the newest (`rows` are newest
+/// first). A lesson is on the file that is its first, and a homework lesson
+/// on its deadline's assignment sheet, where that sheet's Study goes.
+fn file_work(input: &Json, rows: &[Json]) -> Vec<Json> {
+	let first_file: HashMap<&str, &str> = input["lessons"].items().iter().filter_map(|l| Some((l["id"].as_str()?, l["fileIds"][0].as_str()?))).collect();
+	let sheet_of: HashMap<&str, &str> = input["deadlines"].items().iter().filter_map(|d| Some((d["id"].as_str()?, d["assignmentFileId"].as_str()?))).collect();
+	let file_of = |row: &Json| {
+		let id = row["chatId"].str_or_empty();
+		match row["kind"].as_str() {
+			Some("homework") => row["deadlineId"].as_str().and_then(|d| sheet_of.get(d)).copied(),
+			_ => first_file.get(id).copied(),
+		}
+	};
+	input["files"]
+		.items()
+		.iter()
+		.filter_map(|f| {
+			let id = f["id"].as_str()?;
+			let problems = problems_done(&f["problems"])?;
+			let on_file: Vec<&Json> = rows.iter().filter(|r| file_of(r) == Some(id)).collect();
+			let lesson = on_file.iter().find(|r| r["unfinished"].truthy()).or_else(|| on_file.first());
+			let mut o = Obj::new();
+			o.insert("fileId", id);
+			o.insert("problems", problems);
+			o.insert_present("lessonId", lesson.map(|r| &r["chatId"]));
+			Some(Json::Obj(o))
+		})
+		.collect()
 }
 
 /// Whether a lesson is left to go back to. A homework lesson, only its deadline's latest, while
@@ -438,6 +471,40 @@ mod tests {
 		assert_eq!((r["test"]["problems"].clone(), r["test"]["unfinished"].clone()), (json!({ "done": 1, "total": 2 }), json!(true)), "a problem undone, though the plan ended");
 		assert_eq!((r["quiz"]["problems"].clone(), r["quiz"].get("unfinished")), (json!({ "done": 1, "total": 1 }), None), "every problem done");
 		assert_eq!((r["notes"].get("problems"), r["notes"].get("unfinished")), (None, None), "no problems: the plan decides");
+	}
+
+	#[test]
+	fn each_file_with_problems_gets_its_blocks_and_the_lesson_they_reopen() {
+		let undone = json!([{ "number": "1", "done": true }, { "number": "2", "done": false }]);
+		let at = |day: &str| format!("2026-11-{day}T10:00:00.000Z");
+		let input = json!({
+			"spaceId": "spc_a", "today": "2026-11-16", "facts": [], "chains": [], "topics": null, "deadlineSessions": [],
+			"files": [
+				{ "id": "f_test", "name": "Midterm 2022.pdf", "problems": undone },
+				{ "id": "f_key", "name": "Midterm 2022 key.pdf" },
+				{ "id": "f_hw", "name": "HW6.pdf", "problems": undone },
+				{ "id": "f_new", "name": "Quiz.pdf", "problems": [{ "number": "1", "done": false }] },
+				{ "id": "f_notes", "name": "Notes.pdf", "problems": [] },
+			],
+			"deadlines": [{ "id": "d1", "kind": "homework", "name": "HW6", "date": "2026-12-01", "done": false, "assignmentFileId": "f_hw" }],
+			"homeworkSessions": [{ "chatId": "hw", "deadlineId": "d1", "createdAt": "2026-11-01" }],
+			"lessons": [
+				lesson("old", "study", json!({ "fileIds": ["f_test"], "updatedAt": at("10") })),
+				lesson("newer", "study", json!({ "fileIds": ["f_test", "f_key"], "answers": answered("newer"), "updatedAt": at("12") })),
+				lesson("key", "study", json!({ "fileIds": ["f_key"], "updatedAt": at("11") })),
+				lesson("hw", "homework", json!({ "deadlineId": "d1", "updatedAt": at("09") })),
+			],
+		});
+		let out = derive_progress(&input);
+		assert_eq!(
+			out["fileWork"],
+			json!([
+				{ "fileId": "f_test", "problems": { "done": 1, "total": 2 }, "lessonId": "newer" },
+				{ "fileId": "f_hw", "problems": { "done": 1, "total": 2 }, "lessonId": "hw" },
+				{ "fileId": "f_new", "problems": { "done": 0, "total": 1 } },
+			]),
+			"the newest unfinished lesson, homework on its sheet, no row for a file without problems, a lesson on it or not",
+		);
 	}
 
 	#[test]

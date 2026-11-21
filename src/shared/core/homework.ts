@@ -12,11 +12,28 @@ import type { SpaceDeadline, FileProblem } from "./contracts/space.ts";
 /** A problem as the agent posts it; done is the app's to keep. */
 type PostedProblem = Omit<FileProblem, "done">;
 
-/** A lesson's problem list when the page loaded and the file it is printed
- *  in (the path opens it on the desktop). */
+/** A lesson's problem list when the page loaded. */
 export interface LessonProblemList {
 	problems: FileProblem[];
-	file: { name: string; path: string | null } | null;
+}
+
+/** A file the lesson's Document panel shows: `name` as lessons show it, `path` on disk (the
+ *  desktop opens it), and for a PDF that opens its page count and its first page's width over
+ *  its height. */
+export interface LessonDocument {
+	id: string;
+	name: string;
+	path: string | null;
+	pdf: boolean;
+	pages?: number;
+	aspect?: number;
+}
+
+/** What a lesson's Document panel shows (GET /api/chats/{id}/documents): its files, and the file
+ *  its problem list is printed in, null once that file has left the space. */
+export interface LessonDocuments {
+	documents: LessonDocument[];
+	listFileId: string | null;
 }
 
 /** The kinds of deadline that have problems to work on. */

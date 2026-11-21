@@ -1,9 +1,8 @@
 import { useMemo } from "react";
 import { chainsForSelection, formatChainLine } from "@/shared/core";
 import type { GraphChain, GraphNode } from "@/shared/core";
-import { usePresence } from "@/frontend/components/presence";
 import { LatexGlyph } from "@/frontend/components/latex-glyph";
-import { KEY_ON_INK } from "@/frontend/components/ui/card-parts";
+import { ON_INK, ON_INK_MAIN, PICKED_COLUMN, PickedBar } from "@/frontend/components/picked-bar";
 import { FIELD } from "@/frontend/components/ui/field";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
@@ -78,15 +77,13 @@ export function ChainTableBody({
 		() => groupChains(matchingChains(chains, byId, query), byId, sessions, fileSources, sort),
 		[chains, byId, query, sessions, fileSources, sort],
 	);
-	// The bar fades out before it unmounts.
-	const bar = usePresence(selection.size > 0);
 	const nameOf = (id: string) => byId.get(id)?.name ?? id;
 	const dateOf = (id: string) => byId.get(id)?.createdAt.slice(0, 10) ?? "";
 
 	return (
-		<div data-testid="chain-table" className="relative flex h-full min-h-0 flex-col">
-			<div className="min-h-0 flex-1 overflow-y-auto">
-				<div className="lh-page flex flex-col gap-(--lh-head-gap) pt-(--lh-page-top) pb-28">
+		<div data-testid="chain-table" className="flex h-full min-h-0 flex-col">
+			<div className={cn("min-h-0 flex-1 overflow-y-auto", PICKED_COLUMN)}>
+				<div className="lh-page flex flex-1 flex-col gap-(--lh-head-gap) pt-(--lh-page-top) pb-28">
 					<div className="flex flex-wrap items-center gap-3.5">
 						<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 							<h1 className="lh-page-title">All facts</h1>
@@ -185,45 +182,26 @@ export function ChainTableBody({
 						</div>
 					</div>
 				</div>
-			</div>
-
-			{bar.mounted && (
-				<div className="pointer-events-none absolute inset-x-0 bottom-7 z-10 flex justify-center px-4">
-					<div
-						data-testid="chain-selection-bar"
-						data-state={bar.state}
-						className="lh-pop pointer-events-auto flex h-14 w-[560px] max-w-full items-center gap-2.5 rounded-sm bg-ink pr-2.5 pl-5 text-background"
-					>
-						<span data-testid="chain-selected-summary" className="min-w-0 flex-1 truncate text-lg font-medium">
-							{factCount(selection.size)} picked
-						</span>
-						<button type="button" data-testid="chain-clear" onClick={onClear} className={ON_INK}>
-							Clear
+				<PickedBar
+					open={selection.size > 0}
+					line={`${factCount(selection.size)} picked`}
+					testids={{ bar: "chain-selection-bar", line: "chain-selected-summary", clear: "chain-clear" }}
+					onClear={onClear}
+				>
+					{selectMode ? (
+						<button type="button" data-testid="chain-practice-done" onClick={onSelect} aria-label={`Done picking: ${factCount(selection.size)} selected`} className={ON_INK_MAIN}>
+							Done
 						</button>
-						{selectMode ? (
-							<button
-								type="button"
-								data-testid="chain-practice-done"
-								onClick={onSelect}
-								aria-label={`Done picking: ${factCount(selection.size)} selected`}
-								className={cn(ON_INK, "text-ink [--lh-key:var(--background)] [--lh-key-hover:color-mix(in_srgb,var(--background)_90%,var(--foreground))]")}
-							>
-								Done
-							</button>
-						) : (
-							<button type="button" data-testid="chain-delete" onClick={onDelete} aria-label={`Delete ${selection.size} selected ${selection.size === 1 ? "fact" : "facts"}`} className={ON_INK}>
-								Delete
-							</button>
-						)}
-					</div>
-				</div>
-			)}
+					) : (
+						<button type="button" data-testid="chain-delete" onClick={onDelete} aria-label={`Delete ${selection.size} selected ${selection.size === 1 ? "fact" : "facts"}`} className={ON_INK}>
+							Delete
+						</button>
+					)}
+				</PickedBar>
+			</div>
 		</div>
 	);
 }
-
-/** A button on the dark picked bar: a key in the paper color. */
-const ON_INK = cn("lh-btn shrink-0 text-[15px] text-background", KEY_ON_INK);
 
 /** A chain's row (its facts as chips joined by ∧ and ⟹) and, opened,
  *  each fact's statement. */

@@ -325,13 +325,17 @@ describe("Study page: actions", () => {
 		return { lesson: () => lesson.current!, pushed, sent };
 	}
 
-	it("a start that fails says so, and a retry clears it", async () => {
+	it("a start that fails says the server's reason, and a retry clears it", async () => {
 		const original = globalThis.fetch;
 		let ok = false;
 		try {
 			const { lesson, pushed } = await harness(() => ok);
-			await act(async () => lesson().start({ title: "Induction" }));
-			assert.equal(lesson().error, "Couldn't start the lesson. Try again.");
+			let failed: string | null | undefined;
+			await act(async () => {
+				failed = await lesson().start({ title: "Induction" });
+			});
+			assert.equal(lesson().error, "boom");
+			assert.equal(failed, "boom", "the start resolves to the reason");
 			assert.equal(lesson().busy, false);
 			ok = true;
 			await act(async () => lesson().start({ title: "Induction" }));
@@ -354,7 +358,7 @@ describe("Study page: actions", () => {
 				return hang(...args);
 			}) as typeof fetch;
 			assert.equal(lesson().busyOn, null);
-			let started!: Promise<void>;
+			let started!: Promise<unknown>;
 			await act(async () => {
 				started = Promise.resolve(lesson().studyDeadline({ id: "d1" }));
 			});
@@ -388,16 +392,16 @@ describe("Study page: actions", () => {
 		}
 	});
 
-	it("studying a file sends its id; a lesson that goes on opens with no first message", async () => {
+	it("studying files sends their ids in order; a lesson that goes on opens with no first message", async () => {
 		const original = globalThis.fetch;
 		try {
 			const { lesson, sent, pushed } = await harness(() => true);
-			await act(async () => lesson().studyFile("f_test"));
-			assert.deepEqual(sent.at(-1), { fileIds: ["f_test"] });
+			await act(async () => lesson().studyFiles(["f_test", "f_key"]));
+			assert.deepEqual(sent.at(-1), { fileIds: ["f_test", "f_key"] });
 			assert.deepEqual(pushed, [`/chat/chat_1?prompt=${encodeURIComponent("Study: Counting, Sets")}`]);
 			const again = await harness(() => true);
 			globalThis.fetch = (async () => Response.json({ id: "chat_9", title: "Practice midterm", continued: true })) as typeof fetch;
-			await act(async () => again.lesson().studyFile("f_test"));
+			await act(async () => again.lesson().studyFiles(["f_test"]));
 			assert.deepEqual(again.pushed, ["/chat/chat_9"]);
 		} finally {
 			globalThis.fetch = original;

@@ -73,6 +73,7 @@ function payload(over: Partial<ProgressPayload> = {}): ProgressPayload {
 		facts: [],
 		files: [],
 		nextUp: null,
+		fileWork: [],
 		lessons: [],
 		calibration: { levels: [], sureButWrong: [] },
 		deadlines: [],

@@ -237,7 +237,17 @@ fn start_of(app: &Arc<App>, scope: Option<&str>, start: &LessonStart) -> Result<
 			let (Some(space), Some(first)) = (&space, files.first()) else {
 				return Ok(Err(NotFound { code: "file_not_found", error: "No such file" }));
 			};
-			let named: Vec<Json> = files.iter().map(|f| json!({ "id": f["id"], "name": f["name"], "path": space_file_path(app, space, f) })).collect();
+			let all = space["files"].items();
+			let named: Vec<Json> = files
+				.iter()
+				.map(|f| {
+					let mut entry = json!({ "id": f["id"], "name": f["name"], "path": space_file_path(app, space, f) });
+					if let Some(tex) = all.iter().find(|t| t["pdfId"] == f["id"]) {
+						entry.set("source", json!({ "name": tex["name"], "path": space_file_path(app, space, tex) }));
+					}
+					entry
+				})
+				.collect();
 			let note = files_context_text(&named, problems_of(space, ListOwner::File(first["id"].str_or_empty())));
 			Ok(Start { title: display_name(first["name"].str_or_empty()), picks: Vec::new(), topics: Vec::new(), nearest: Vec::new(), note: Some(note) })
 		}

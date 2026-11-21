@@ -94,6 +94,40 @@ describe("PagePiece", () => {
 		});
 	});
 
+	it("keeps its picture while its column changes width, and asks again only once the column is wider than it was", async () => {
+		let boxWidth = 600;
+		const resized: (() => void)[] = [];
+		const { ResizeObserver: before } = globalThis as unknown as { ResizeObserver: unknown };
+		Object.defineProperty(dom.window.HTMLElement.prototype, "clientWidth", { get: () => boxWidth, configurable: true });
+		Object.assign(globalThis, {
+			ResizeObserver: class {
+				constructor(callback: () => void) {
+					resized.push(callback);
+				}
+				observe() {}
+				disconnect() {}
+			},
+		});
+		const resize = (w: number) => act(async () => ((boxWidth = w), resized.forEach((r) => r())));
+		const sources = (host: HTMLElement) => images(host).map((i) => [i.getAttribute("src")!.replace(/^.*&w=(\d+).*$/, "$1"), i.getAttribute("aria-hidden") === "true" ? "loading" : "shown"]);
+		try {
+			await mounted(<PagePiece piece={SINGLE_PIECE} text="" />, async (host) => {
+				assert.deepEqual(sources(host), [["1440", "shown"]]);
+				await resize(300);
+				assert.deepEqual(sources(host), [["1440", "shown"]], "narrower: the same picture, asked for once");
+				await resize(800);
+				assert.deepEqual(sources(host), [["1440", "shown"], ["1920", "loading"]], "wider: the drawn picture stays while a sharper one loads");
+				await act(async () => images(host)[1]!.dispatchEvent(new dom.window.Event("load")));
+				assert.deepEqual(sources(host), [["1920", "shown"]]);
+				await resize(700);
+				assert.deepEqual(sources(host), [["1920", "shown"]]);
+			});
+		} finally {
+			Object.defineProperty(dom.window.HTMLElement.prototype, "clientWidth", { get: () => 600, configurable: true });
+			Object.assign(globalThis, { ResizeObserver: before });
+		}
+	});
+
 	it("marks where a problem starts on a page shown whole", async () => {
 		const whole: ProblemPiece = { fileId: "f_5", parts: [{ page: 4, crop: [0, 0, 1, 1], aspect: 0.75 }], mark: { page: 4, x: 0.1, y: 0.2, width: 0.3, height: 0.02 } };
 		await mounted(<PagePiece piece={whole} text="" />, (host) => {

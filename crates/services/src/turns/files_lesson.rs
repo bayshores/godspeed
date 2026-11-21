@@ -76,9 +76,13 @@ fn space_of(app: &App, space_id: Option<&str>, file_ids: &[String]) -> Result<Js
 	let spaces = app.stores.spaces.list_space_records();
 	let mut homes = Vec::new();
 	for id in file_ids {
-		let Some(home) = spaces.iter().position(|s| s["files"].items().iter().any(|f| f["id"].as_str() == Some(id.as_str()))) else {
+		let Some((home, file)) = spaces.iter().enumerate().find_map(|(at, s)| s["files"].items().iter().find(|f| f["id"].as_str() == Some(id.as_str())).map(|f| (at, f))) else {
 			return Err(format!("No file \"{id}\". Use read_space with files: true."));
 		};
+		// A paired .tex is the PDF's source; the lesson works from the PDF.
+		if let Some(pdf) = file["pdfId"].as_str().and_then(|pdf| spaces[home]["files"].items().iter().find(|f| f["id"].as_str() == Some(pdf))) {
+			return Err(format!("{} is the source of {}. Start the lesson on the PDF, file id {}.", file["name"].str_or_empty(), pdf["name"].str_or_empty(), pdf["id"].str_or_empty()));
+		}
 		if !homes.contains(&home) {
 			homes.push(home);
 		}
@@ -213,6 +217,12 @@ mod tests {
 		assert_eq!(refused(None, &["f_test"; 9], None), "Give 1 to 8 file ids.");
 		assert_eq!(refused(None, &["f_test", "f_test"], None), "File \"f_test\" is named twice.");
 		assert_eq!(refused(None, &["f_test"], Some("ddl_none")), "No deadline \"ddl_none\" in this space. Use read_space.");
+		let mut tex = file("f_tex", "Practice midterm.tex");
+		tex.set("pdfId", "f_test");
+		let mut files = app.stores.spaces.get_space(&space_id).unwrap()["files"].items().to_vec();
+		files.push(tex);
+		app.stores.spaces.save_files(&space_id, files, &[]).unwrap();
+		assert_eq!(refused(None, &["f_tex"], None), "Practice midterm.tex is the source of Practice midterm.pdf. Start the lesson on the PDF, file id f_test.");
 		app.stores.spaces.update_space(&space_id, &json!({ "closed": true })).unwrap();
 		assert_eq!(refused(None, &["f_test"], None), CLOSED_SPACE);
 	}

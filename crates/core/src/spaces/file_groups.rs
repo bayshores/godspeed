@@ -147,8 +147,28 @@ fn folder_groups<'a>(other: &[&'a Json]) -> (Vec<FileGroup<'a>>, Vec<&'a Json>) 
 	(groups, rest)
 }
 
+/// Each .tex whose PDF is in the space (`pdfId`) leaves its own place and follows the PDF in the
+/// PDF's item, so the two are one entry. The server pairs one to one (`tex_output_for`).
+fn join_tex_to_pdf<'a>(files: &'a [Json], groups: Vec<FileGroup<'a>>) -> Vec<FileGroup<'a>> {
+	let tex_of = |pdf: &Json| files.iter().find(|t| t["pdfId"].as_str().is_some_and(|id| pdf["id"].as_str() == Some(id)));
+	// Only the .tex its PDF takes moves; any other keeps its own entry.
+	let follows = |f: &Json| f["pdfId"].as_str().and_then(|id| files.iter().find(|p| p["id"].as_str() == Some(id))).and_then(tex_of).is_some_and(|t| std::ptr::eq(t, f));
+	groups
+		.into_iter()
+		.filter_map(|mut group| {
+			group.items.retain_mut(|item| {
+				item.files = item.files.iter().filter(|f| !follows(f)).flat_map(|&f| std::iter::once(f).chain(tex_of(f))).collect();
+				!item.files.is_empty()
+			});
+			group.count = group.items.iter().map(|i| i.files.len()).sum();
+			(!group.items.is_empty()).then_some(group)
+		})
+		.collect()
+}
+
 /// The groups: one per numbered series, a lecture's notes and transcript joined (`pair_series`),
-/// one per linked subfolder of the rest, study groups first, then "Other".
+/// one per linked subfolder of the rest, study groups first, then "Other". A .tex and its PDF
+/// are one entry.
 pub fn file_groups(files: &[Json]) -> Vec<FileGroup<'_>> {
 	let (series, other) = group_file_series(files);
 	let pairs = pair_series(files, &series);
@@ -166,7 +186,7 @@ pub fn file_groups(files: &[Json]) -> Vec<FileGroup<'_>> {
 		let items = rest.iter().map(|&f| FileItem { key: f["id"].str_or_empty().to_owned(), label: None, date: None, files: vec![f] }).collect();
 		groups.push(FileGroup { key: "other".to_owned(), label: "Other".to_owned(), count: rest.len(), items });
 	}
-	groups
+	join_tex_to_pdf(files, groups)
 }
 
 #[cfg(test)]
@@ -195,5 +215,17 @@ mod tests {
 		let ids: Vec<&str> = groups[0].items[0].files.iter().map(|f| f["id"].as_str().unwrap()).collect();
 		assert_eq!(ids, ["a", "c"]);
 		assert_eq!(groups[1].label, "Other");
+	}
+
+	#[test]
+	fn a_tex_follows_its_pdf_in_one_entry() {
+		let tex = json!({ "id": "t", "name": "HW 3.tex", "kind": "study", "origin": "copied", "path": "HW 3.tex", "pdfId": "p" });
+		let stale = json!({ "id": "s", "name": "Old.tex", "kind": "study", "origin": "copied", "path": "Old.tex", "pdfId": "gone" });
+		let second = json!({ "id": "u", "name": "Zeta.tex", "kind": "study", "origin": "copied", "path": "Zeta.tex", "pdfId": "p" });
+		let files = vec![tex, file("a", "Algebra.md", "study"), file("p", "HW 3.pdf", "study"), stale, second];
+		let groups = file_groups(&files);
+		let entries: Vec<Vec<&str>> = groups[0].items.iter().map(|i| i.files.iter().map(|f| f["id"].as_str().unwrap()).collect()).collect();
+		assert_eq!(entries, [vec!["a"], vec!["p", "t"], vec!["s"], vec!["u"]], "a second .tex on one PDF keeps its own entry");
+		assert_eq!(groups[0].count, 5);
 	}
 }

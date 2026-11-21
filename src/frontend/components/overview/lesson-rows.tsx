@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import type { LessonProgress } from "@/shared/core";
 import { cn } from "@/frontend/lib/utils";
-import { lessonHref } from "./overview-model";
+import { lessonHref, problemsDone } from "./overview-model";
 import { OUTCOME_BG } from "./styles";
 import type { LessonActions } from "./use-lesson-actions";
 
@@ -117,7 +117,7 @@ export function UnfinishedRow({ lesson: l, blocks, actions }: { lesson: LessonPr
 			<MoreButton lesson={l} actions={actions} className="-my-0.5" />
 			{blocks && (
 				<span className="col-span-2 flex">
-					<StepBlocks done={blocks.done} total={blocks.total} label={l.problems ? `${blocks.done} of ${blocks.total} problems done` : `Step ${blocks.done} of ${blocks.total}`} />
+					<StepBlocks done={blocks.done} total={blocks.total} label={l.problems ? problemsDone(blocks) : `Step ${blocks.done} of ${blocks.total}`} />
 				</span>
 			)}
 		</RowShell>

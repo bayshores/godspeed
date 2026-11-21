@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/frontend/lib/utils";
 import { LoadingLine, useWaited } from "@/frontend/components/loading";
-import { DEFAULT_TEACHER_NAME, fileGroups, type FileCoverage, type FolderStatus } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, fileGroups, type FileCoverage, type FileWork, type FolderStatus } from "@/shared/core";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useMinute } from "@/frontend/components/countdown";
@@ -14,6 +14,10 @@ import { BarFind } from "@/frontend/components/top-bar/bar-find";
 import { BarActions } from "@/frontend/components/top-bar/bar-slots";
 import { useBarFind } from "@/frontend/components/use-bar-find";
 import { useProgress } from "@/frontend/components/use-progress";
+import { useGuardedAction } from "@/frontend/components/use-guarded-action";
+import { ON_INK_MAIN, PICKED_COLUMN, PickedBar } from "@/frontend/components/picked-bar";
+import { Key } from "@/frontend/components/ui/key";
+import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
 import type { WriteResult } from "@/frontend/lib/api";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { AddFilesButton } from "./add-files";
@@ -28,9 +32,10 @@ import {
 } from "./space-files-api";
 import { useSpaceRecord } from "./space-record";
 import { ConfirmDialog } from "./confirm-dialog";
-import type { FileRowActions } from "./file-row";
+import type { FileRowActions, RowPick } from "./file-row";
 import { FileGroupSection } from "./files-sections";
-import { confirmCopy, dropTitle, fileBrowserName, filesSummary, filterGroups, type FileConfirm } from "./files-model";
+import { confirmCopy, dropTitle, entryRows, fileBrowserName, filesSummary, filterGroups, type FileConfirm } from "./files-model";
+import { FULL_LINE, MAX_LESSON_FILES, keepListed, pickedNames, togglePick } from "./files-pick-model";
 import { newSince } from "./folder-status-model";
 import { FolderStatusLine, LinkedFolderButton, LinkFolderButton, LinkFolderField, ROW_BUTTON } from "./linked-folder";
 import { RECENT_CHANGES_KEY, RecentChanges } from "./recent-changes";
@@ -47,9 +52,14 @@ import { PickSpace } from "@/frontend/components/pick-space";
  * read sorts it into study material or space info. Unlink, Remove and Move
  * to Space info ask first, saying how many facts go.
  *
- * Coverage per file comes from the shared progress payload; the record
- * re-reads on spaces-changed, so statuses update as files are built, and
- * each minute while a folder is linked, so its "checked" time stays true.
+ * A click on a row picks its file; with any picked, the picked bar rises
+ * with their names, Clear and Study, which starts a lesson on them in the
+ * order they were picked. Picks last while the learner stays on the page.
+ *
+ * Coverage and work (problems, lesson) per file come from the shared
+ * progress payload; the record re-reads on spaces-changed, so statuses
+ * update as files are built, and each minute while a folder is linked, so
+ * its "checked" time stays true.
  */
 export function FilesPage() {
 	const { active } = useSpaces();
@@ -117,7 +127,36 @@ function FilesPageBody() {
 		if (data && data.spaceId === active) for (const f of data.files) map.set(f.fileId, f);
 		return map;
 	}, [data, active]);
+	const work = useMemo(() => {
+		const map = new Map<string, FileWork>();
+		if (data && data.spaceId === active) for (const w of data.fileWork) map.set(w.fileId, w);
+		return map;
+	}, [data, active]);
+
+	const lesson = useLessonStart();
+	const study = useGuardedAction();
+	const { setError: setStudyError } = study;
+	const [picked, setPicked] = useState<readonly string[]>([]);
+	// A click on a held row says why it no longer picks, where a refusal shows.
+	const onPick = useCallback(
+		(fileId: string, held: boolean) => {
+			setStudyError(held ? FULL_LINE : null);
+			if (!held) setPicked((p) => togglePick(p, fileId));
+		},
+		[setStudyError],
+	);
+	const clearPicks = useCallback(() => {
+		setStudyError(null);
+		setPicked([]);
+	}, [setStudyError]);
+	const full = picked.length >= MAX_LESSON_FILES;
+	const pickOf = useCallback((fileId: string): RowPick => (picked.includes(fileId) ? "picked" : full ? "held" : "free"), [picked, full]);
+	const pickedLine = useMemo(() => pickedNames(picked, new Map(record?.files.map((f) => [f.id, f.name]))), [picked, record]);
 	const groups = useMemo(() => fileGroups(record?.files ?? []), [record]);
+	// A picked file whose row goes (it left the space, or a .tex joined its PDF's row) leaves the picks.
+	useEffect(() => {
+		if (record) setPicked((p) => keepListed(p, new Set(groups.flatMap((g) => g.items.flatMap((i) => entryRows(i.files).map((r) => r.file.id))))));
+	}, [record, groups]);
 	const shown = useMemo(() => filterGroups(groups, query), [groups, query]);
 	const searching = query.trim() !== "";
 	const arrived = useMemo(() => (record && minute !== null ? newSince(record.files, minute) : null), [record, minute]);
@@ -207,7 +246,7 @@ function FilesPageBody() {
 
 	return (
 		<div
-			className="h-full overflow-y-auto"
+			className={cn("h-full overflow-y-auto", PICKED_COLUMN)}
 			data-testid="files-page"
 			onDragOver={(e) => {
 				if (!Array.from(e.dataTransfer.types).includes("Files")) return;
@@ -228,7 +267,7 @@ function FilesPageBody() {
 			}}
 		>
 			<h1 className="sr-only">Files</h1>
-			<div className={cn("@container/page lh-page flex flex-col gap-(--lh-gap) pt-(--lh-gap) pb-(--lh-page-end)", waited && "lh-set")}>
+			<div className={cn("@container/page lh-page flex flex-1 flex-col gap-(--lh-gap) pt-(--lh-gap) pb-(--lh-page-end)", waited && "lh-set")}>
 				{!active && <PickSpace line="Pick a space to see its files." />}
 				{active && !record && !failed && <LoadingLine className="text-[15px]" />}
 				{active && !record && failed && <LoadFailed message="Couldn't load this space's files." onRetry={() => void reload()} />}
@@ -314,6 +353,9 @@ function FilesPageBody() {
 											collapsed={!searching && collapsed.has(group.key)}
 											onToggle={toggle}
 											coverage={coverage}
+											work={work}
+											pickOf={pickOf}
+											onPick={onPick}
 											disabled={disabled}
 											teacher={teacher}
 											actions={actions}
@@ -325,6 +367,11 @@ function FilesPageBody() {
 					</>
 				)}
 			</div>
+			<PickedBar open={picked.length > 0} line={pickedLine} failure={study.error} testids={{ bar: "files-picked-bar", line: "files-picked-names", clear: "files-picked-clear" }} onClear={clearPicks}>
+				<Key data-testid="files-picked-study" busy={study.busy} onClick={() => void study.run(() => lesson.studyFiles(picked))} className={ON_INK_MAIN}>
+					Study
+				</Key>
+			</PickedBar>
 			<ConfirmDialog copy={confirmText} onConfirm={onConfirm} onClose={closeConfirm} />
 		</div>
 	);

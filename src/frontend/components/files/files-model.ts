@@ -126,6 +126,17 @@ export function confirmCopy(
 			};
 		}
 		case "remove": {
+			// A PDF goes with the .tex it is built from.
+			const source = files.find((f) => f.pdfId === change.file.id);
+			if (source) {
+				const what = change.file.kind === "study" ? withFacts(factsOf([change.file]), "them") : "";
+				return {
+					title: `Remove ${change.file.name} and ${source.name}?`,
+					body: `They leave ${spaceName}${what}. Your original files are not touched. This cannot be undone.`,
+					action: "Remove files",
+					danger: true,
+				};
+			}
 			const what = change.file.kind === "study" ? withFacts(factsOf([change.file]), "it") : "";
 			return {
 				title: `Remove ${change.file.name}?`,
@@ -168,6 +179,12 @@ export function filterGroups(groups: readonly FileGroup[], query: string): FileG
 export function fileType(name: string): string {
 	const ext = /\.([A-Za-z0-9]{1,4})$/.exec(name)?.[1];
 	return ext ? ext.toUpperCase() : "";
+}
+
+/** An entry's rows: a .tex right after its PDF (where the groups put it)
+ *  is drawn in the PDF's row as its source. */
+export function entryRows(files: readonly SpaceFile[]): { file: SpaceFile; source?: SpaceFile }[] {
+	return files.flatMap((file, i) => (i > 0 && file.pdfId === files[i - 1]!.id ? [] : [{ file, source: files[i + 1]?.pdfId === file.id ? files[i + 1] : undefined }]));
 }
 
 export function filesSummary(files: readonly SpaceFile[]): string {

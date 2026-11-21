@@ -47,9 +47,9 @@ export function NewLesson() {
 
 	const topicInputRef = useRef<HTMLTextAreaElement>(null);
 
-	const { start, studyTopics, studyFile: studyFileId, studyPathTopic, studyDeadline, workOnHomework } = lesson;
+	const { start, studyTopics, studyFiles, studyPathTopic, studyDeadline, workOnHomework } = lesson;
 	const startTopic = () => void start({ title: topicRef.current, picks, files: attachments.files.map((f) => f.attachment) });
-	const studyFile = useCallback((file: FileCoverage) => void studyFileId(file.fileId), [studyFileId]);
+	const studyFile = useCallback((file: FileCoverage) => void studyFiles([file.fileId]), [studyFiles]);
 	const studyTopic = useCallback((t: TopicProgress) => void studyTopics([t.id]), [studyTopics]);
 	const studyPath = useCallback((topicId: string) => void studyPathTopic(topicId), [studyPathTopic]);
 

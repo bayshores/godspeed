@@ -11,6 +11,7 @@ use gs_base::tasks::detach;
 use gs_base::{events::EventKind, fsx, ids, time};
 use gs_core::spaces::file_state::{FileKind, FileStatus};
 use gs_core::spaces::lecture_transcript::recordings_to_recheck;
+use gs_core::spaces::tex_source::pair_tex_files;
 use gs_core::contracts::space::{safe_name, supported_space_file_extensions};
 use gs_core::graph::graph_deletion::delete_source_traces;
 use gs_files::text::{is_readable_space_file, looks_like_text};
@@ -44,14 +45,15 @@ pub(super) fn new_file_id() -> String {
 }
 
 /// Replaces the space's file list with `change(files)` and records `removed` in the Recent
-/// changes. Recordings a transcript now covers (or no longer covers) go back to pending and are
-/// queued. The record as saved; None for an unknown space.
+/// changes. Recordings a transcript now covers (or no longer covers), and .tex files whose PDF
+/// came or went, go back to pending and are queued. The record as saved; None for an unknown space.
 pub(super) fn mutate_files(app: &Arc<App>, space_id: &str, change: impl FnOnce(Vec<Json>) -> Vec<Json>, removed: &[Json]) -> Option<Json> {
 	let (next, recheck) = {
 		let _guard = app.locks.lock(LockKey::Space(space_id));
 		let record = app.stores.spaces.get_space(space_id)?;
 		let mut files = change(record["files"].items().to_vec());
-		let recheck = recordings_to_recheck(&files);
+		let mut recheck = recordings_to_recheck(&files);
+		recheck.extend(pair_tex_files(&mut files));
 		for file in &mut files {
 			if file["id"].as_str().is_some_and(|id| recheck.iter().any(|r| r == id))
 				&& let Some(obj) = file.as_obj_mut()
@@ -259,8 +261,8 @@ pub fn retry_file(app: &Arc<App>, space_id: &str, file_id: &str) -> SpaceOutcome
 	Ok(())
 }
 
-/// Removes a file and its facts. A copied file's copy is deleted; a linked file is refused (it
-/// would come back on the next scan).
+/// Removes a file and its facts, and a PDF's .tex with it (the two are one item). A copied file's
+/// copy is deleted; a linked file is refused (it would come back on the next scan).
 pub fn remove_file(app: &Arc<App>, space_id: &str, file_id: &str) -> SpaceOutcome<()> {
 	let record = app.stores.spaces.get_space(space_id);
 	let Some((record, file)) = record.and_then(|r| file_in(&r, file_id).cloned().map(|f| (r, f))) else {
@@ -271,6 +273,10 @@ pub fn remove_file(app: &Arc<App>, space_id: &str, file_id: &str) -> SpaceOutcom
 	}
 	if import_running(app, space_id, &file) {
 		return fail(409, "extraction_running", "This file is being turned into facts. Try again when it finishes.");
+	}
+	// The .tex first, so it is never left without its PDF and read on its own. Pairs are one to one.
+	if let Some(source) = record["files"].items().iter().find(|f| f["pdfId"].as_str() == Some(file_id)) {
+		drop_file(app, &record, source, true);
 	}
 	drop_file(app, &record, &file, true);
 	Ok(())
@@ -364,6 +370,22 @@ mod tests {
 		drop(held);
 		assert_eq!(replace.join().unwrap().map(drop), Err(404));
 		assert!(!app.paths.spaces.join(&id).exists());
+	}
+
+	#[tokio::test]
+	async fn a_tex_is_paired_with_its_pdf_and_removed_with_it() {
+		let root = scratch_dir("tex-pair");
+		let app = test_app(&root);
+		let space = app.stores.spaces.create_space(&json!({ "name": "Algebra" })).unwrap();
+		let id = space["id"].as_str().unwrap().to_owned();
+		let file = |fid: &str, name: &str| json!({ "id": fid, "origin": "copied", "name": name, "path": format!("{fid}/{name}"), "kind": "study", "contentFp": "", "status": "pending", "addedAt": "2030-01-01T00:00:00.000Z" });
+		app.stores.spaces.save_files(&id, vec![file("f_tex", "HW 3.tex"), file("f_pdf", "HW 3.pdf"), file("f_notes", "Notes.md")], &[]).unwrap();
+		let saved = mutate_files(&app, &id, |files| files, &[]).unwrap();
+		assert_eq!(saved["files"][0]["pdfId"].as_str(), Some("f_pdf"));
+		remove_file(&app, &id, "f_pdf").map_err(|failure| failure.status).unwrap();
+		let left = app.stores.spaces.get_space(&id).unwrap();
+		let names: Vec<&str> = left["files"].items().iter().map(|f| f["name"].str_or_empty()).collect();
+		assert_eq!(names, ["Notes.md"]);
 	}
 
 	#[test]

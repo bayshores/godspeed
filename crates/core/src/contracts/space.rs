@@ -140,7 +140,7 @@ pub fn parse_space_scope(raw: Option<&str>) -> Option<Option<String>> {
 	}
 }
 
-const TEXT_EXTENSIONS: [&str; 3] = [".md", ".markdown", ".txt"];
+const TEXT_EXTENSIONS: [&str; 4] = [".md", ".markdown", ".txt", ".tex"];
 const CODE_EXTENSIONS: [&str; 24] = [
 	".c", ".h", ".cpp", ".cc", ".hpp", ".py", ".java", ".js", ".jsx", ".ts", ".tsx", ".go", ".rs", ".rb", ".swift", ".kt", ".cs", ".sql", ".sh", ".r", ".scala", ".hs", ".lua", ".php",
 ];

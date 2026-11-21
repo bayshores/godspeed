@@ -675,7 +675,8 @@ body {
 }
 
 /* The lesson under the top bar: the page (the step line over one scrolling column, LessonScroll)
-   and, when docked, the cheat sheet beside it at the width the learner dragged it. */
+   and, when docked, the panel beside it (the cheat sheet or the Document panel) at the width the
+   learner dragged it. */
 .lh-lesson-body {
 	display: grid;
 	grid-template: "main" minmax(0, 1fr) / minmax(0, 1fr);
@@ -683,14 +684,14 @@ body {
 .lh-lesson-body[data-dock] {
 	grid-template: "main dock" minmax(0, 1fr) / minmax(0, 1fr) auto;
 }
-.lh-sheet-dock {
+.lh-lesson-dock {
 	width: var(--lh-dock-w);
 }
 @container lesson (max-width: 999px) {
 	.lh-lesson-body[data-dock] {
 		grid-template-columns: minmax(0, 1fr) minmax(0, 300px);
 	}
-	.lh-lesson-body[data-dock] .lh-sheet-dock {
+	.lh-lesson-body[data-dock] .lh-lesson-dock {
 		width: 100%;
 	}
 	.lh-lesson-body[data-dock] .lh-dock-resize {
@@ -1510,6 +1511,19 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	animation: lh-rise-in var(--lh-dur) var(--lh-ease-out) both;
 }
 
+/* The open problem's box on its page in the Document panel: the outline closes in on it once. */
+@keyframes lh-box-in {
+	from {
+		opacity: 0;
+		outline-offset: 14px;
+	}
+}
+.lh-doc-box {
+	outline: 2px solid var(--color-ink);
+	outline-offset: 4px;
+	animation: lh-box-in var(--lh-dur-slow) var(--lh-ease-out) both;
+}
+
 /* A plot's held-back lines and slider, once his guess is answered: drawn in
    left to right in four steps. */
 @keyframes lh-draw-in {
@@ -1651,6 +1665,7 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	.lh-dialog,
 	.lh-fade,
 	.lh-rise,
+	.lh-doc-box,
 	.lh-draw-in,
 	.lh-hang::before,
 	.lh-hang::after,

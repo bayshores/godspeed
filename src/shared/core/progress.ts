@@ -193,6 +193,15 @@ export interface FileCoverage {
 	share: number | null;
 }
 
+/** A file with a problem list: how many of its problems
+ *  are done, and the lesson its blocks reopen (an unfinished one first,
+ *  then the newest). */
+export interface FileWork {
+	fileId: string;
+	problems: { done: number; total: number };
+	lessonId?: string;
+}
+
 // ─── lessons + calibration ──────────────────────────────────────────────────
 
 export interface LessonProgress {
@@ -356,6 +365,8 @@ export interface ProgressPayload {
 	/** Study files only, in space order (empty for "No space"). */
 	files: FileCoverage[];
 	nextUp: FileCoverage | null;
+	/** Every file, study or info, with a problem list, in space order. */
+	fileWork: FileWork[];
 	/** Newest activity first. */
 	lessons: LessonProgress[];
 	calibration: Calibration;
