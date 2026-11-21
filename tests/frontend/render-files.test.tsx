@@ -600,6 +600,48 @@ describe("FilesPage: picking files to study", () => {
 		assert.equal(q("files-picked-bar")!.getAttribute("data-state"), "closed", "the bar leaves");
 	});
 
+	it("Pick files to study shows tick boxes and a bar that says none is picked; Cancel leaves", async () => {
+		fakeFetch();
+		await mount();
+		const ticks = () => q("files-page")!.querySelectorAll("[class*='border-ink'][class*='rounded-sm']").length;
+		assert.ok(q("files-pick"), "the key sits in the head");
+		assert.equal(q("files-pick")!.textContent, "Pick files to study");
+		assert.equal(ticks(), 0, "no tick boxes before");
+		await act(async () => q("files-pick")!.click());
+		assert.ok(q("files-pick") === null, "the key goes while picking");
+		assert.equal(ticks(), 7, "every row has an empty box");
+		assert.equal(q("files-picked-names")!.textContent, "No files picked yet");
+		assert.equal(q("files-picked-clear")!.textContent, "Cancel");
+		assert.ok((q("files-picked-study") as HTMLButtonElement).disabled, "Study waits for a pick");
+		await act(async () => q("files-picked-clear")!.click());
+		assert.equal(q("files-picked-bar")!.getAttribute("data-state"), "closed");
+		assert.equal(ticks(), 0, "the boxes go");
+		assert.ok(q("files-pick"), "and the key is back");
+	});
+
+	it("picking a file while picking ticks its box, and Clear leaves pick mode", async () => {
+		fakeFetch();
+		await mount();
+		await act(async () => q("files-pick")!.click());
+		await pick("f1");
+		assert.equal(q("files-picked-names")!.textContent, "Lecture 1 — Counting.pdf");
+		assert.equal(q("files-picked-clear")!.textContent, "Clear");
+		assert.ok(!(q("files-picked-study") as HTMLButtonElement).disabled);
+		assert.match(q("space-file-pick-f1")!.innerHTML, /bg-tint/, "its box is ticked");
+		assert.ok(q("files-pick") === null);
+		await act(async () => q("files-picked-clear")!.click());
+		assert.equal(q("files-picked-bar")!.getAttribute("data-state"), "closed");
+		assert.ok(q("files-pick"), "pick mode is over");
+		assert.ok(!/bg-tint/.test(q("space-file-pick-f1")!.innerHTML));
+	});
+
+	it("a space with no files has no Pick files key", async () => {
+		record = { ...RECORD, files: [] };
+		fakeFetch();
+		await mount();
+		assert.ok(q("files-pick") === null);
+	});
+
 	it("Study starts a lesson on the picked files, first picked first, and opens it", async () => {
 		fakeFetch();
 		await mount();

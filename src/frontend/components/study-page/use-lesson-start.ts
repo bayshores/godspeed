@@ -73,12 +73,13 @@ export function useLessonStart() {
 
 	/** Study a typed topic, with any facts picked for it and any files added,
 	 *  or the picked facts alone. `id` names the start in `busyOn` when a key
-	 *  other than the topic box's starts it. */
+	 *  other than the topic box's starts it; `spaceId` is the space it goes
+	 *  in when that isn't the active one (Home). */
 	const start = useCallback(
-		(req: { title: string; picks?: readonly GraphContextPick[]; files?: readonly ChatAttachment[]; id?: string }) => {
+		(req: { title: string; picks?: readonly GraphContextPick[]; files?: readonly ChatAttachment[]; id?: string; spaceId?: string }) => {
 			const title = req.title.trim();
 			const picks = req.picks ?? [];
-			if (title || picks.length > 0) return post(req.id ?? TYPED_START, { title, ...(picks.length > 0 ? { graphContext: { propositions: picks } } : {}) }, req.files);
+			if (title || picks.length > 0) return post(req.id ?? TYPED_START, { title, ...(picks.length > 0 ? { graphContext: { propositions: picks } } : {}) }, req.files, req.spaceId);
 		},
 		[post],
 	);

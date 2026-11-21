@@ -56,6 +56,13 @@ const dropLateHomework = `const { deadlines } = await fetch("/api/deadlines")${H
 const late = deadlines.find((d) => d.name === "Cover letter draft");
 if (late) await fetch("/api/spaces/{pathSpace}/deadlines/" + late.id, { method: "DELETE" })${HTTP_OK};`;
 
+/** A space with nothing in it, made and opened. It stays, so its screen is the last before Onboarding. */
+const newSpace = `const made = await fetch("/api/spaces", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "Backend development", description: "Become a backend developer" }) })${HTTP_OK}.then((r) => r.json());
+const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json());
+await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, activeSpace: made.space.id }) })${HTTP_OK};`;
+/** A lesson in that space, which is still the open one. */
+const lessonInNewSpace = `const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json());
+await fetch("/api/chats", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "HTTP basics", spaceId: settings.general.activeSpace }) })${HTTP_OK};`;
 /** The homework with a problem open covers the made-up file, as the exam does not, so it can be Progress's next deadline. */
 const homeworkCoversFile = `const { space } = await fetch("/api/spaces/{space}")${HTTP_OK}.then((r) => r.json());
 await fetch("/api/spaces/{space}/deadlines/{homeworkOpenDeadline}", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileIds: [space.files[0].id] }) })${HTTP_OK};`;
@@ -194,6 +201,13 @@ export const SCREENS = [
 		ready: "[data-testid=files-list] [data-testid^=space-file-pick-]",
 		setup: `const rows = document.querySelectorAll("[data-testid=files-list] [data-testid^=space-file-pick-]"); rows[0].click(); ${pause}; rows[1].click()`,
 		shows: "[data-testid=files-picked-bar][data-state=open] [data-testid=files-picked-study]",
+	},
+	{
+		name: "Files, picking files",
+		url: "/space/files",
+		ready: "[data-testid=files-head] [data-testid=files-pick]",
+		setup: `document.querySelector("[data-testid=files-pick]").click()`,
+		shows: "[data-testid=files-picked-bar][data-state=open] [data-testid=files-picked-clear]",
 	},
 	{ name: "Graph", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]", setup: fitsWindow },
 	{ name: "Graph, finding a word", url: "/graph", ready: "[data-testid=graph-find]", setup: findWord("graph-find", "graph-find-field", "undo"), shows: "[data-testid=graph-find-field]" },
@@ -459,7 +473,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		name: "Progress with a path, all shown",
 		before: `const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, activeSpace: "{pathSpace}" }) })${HTTP_OK}`,
 		url: "/space",
-		ready: "[data-testid=space-path-show-all]",
+		ready: "[data-testid=space-path-show-all] + [data-testid=path-change]",
 		setup: `document.querySelector("[data-testid=space-path-show-all]").click()`,
 		shows: "[data-testid=space-path-rows] li:nth-child(7)",
 	},
@@ -494,6 +508,9 @@ for (let tries = 0; !document.querySelector("[data-testid=teacher-panel-chats]")
 document.querySelector("[data-testid=teacher-panel-chats]").click()`,
 		shows: "[data-testid=teacher-panel-list] [data-testid=teacher-chat-open]",
 	},
+	{ name: "Progress, a new space", before: newSpace, url: "/space", ready: "[data-testid=space-start] [data-testid=space-start-path]" },
+	// With a lesson the new space is no longer empty: the deadline's place holds the two ways it still lacks.
+	{ name: "Progress, a lesson but no deadline", before: lessonInNewSpace, url: "/space", ready: "[data-testid=next-deadline-none] [data-testid=space-start-path]" },
 	{
 		name: "Onboarding",
 		before: `${dropLateHomework}; const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, onboarded: false }) })${HTTP_OK}`,

@@ -4,7 +4,8 @@ Every new lesson is a study session (`kind: "study"` on the chat record). No pro
 
 Started from:
 
-- "Study something new" on the Lessons sheet of a space's Progress page (study page, `/new`)
+- "Study something new" on the Lessons sheet of a space's Progress page (study page, `/new`), or the same words on the "Start this space" card of a space with nothing in it
+- The line in Home's head ("What do you want to study?"): a typed topic and the space it goes in (a chip, drawn when there are several open spaces; it starts on the active space), started in that space with `POST /api/chats` and its `spaceId`
 - Study or Continue on Home's card, a topic row in Home's Work on next block, or Study on a deadline page
 - Study in a topic's or a fact's panel on Graph tab, or Study on Progress tab
 - "Go over it with {teacher}" on a mock's results

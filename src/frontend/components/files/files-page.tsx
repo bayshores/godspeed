@@ -52,8 +52,9 @@ import { PickSpace } from "@/frontend/components/pick-space";
  * read sorts it into study material or space info. Unlink, Remove and Move
  * to Space info ask first, saying how many facts go.
  *
- * A click on a row picks its file; with any picked, the picked bar rises
- * with their names, Clear and Study, which starts a lesson on them in the
+ * "Pick files to study" in the head, or a click on a row, starts picking: every
+ * row shows a tick box and the picked bar rises, with the picked names, Clear
+ * (Cancel while none is picked) and Study, which starts a lesson on them in the
  * order they were picked. Picks last while the learner stays on the page.
  *
  * Coverage and work (problems, lesson) per file come from the shared
@@ -139,6 +140,8 @@ function FilesPageBody() {
 	const study = useGuardedAction();
 	const { setError: setStudyError } = study;
 	const [picked, setPicked] = useState<readonly string[]>([]);
+	const [picking, setPicking] = useState(false);
+	const boxes = picking || picked.length > 0;
 	// A click on a held row says why it no longer picks, where a refusal shows.
 	const onPick = useCallback(
 		(fileId: string, held: boolean) => {
@@ -150,6 +153,7 @@ function FilesPageBody() {
 	const clearPicks = useCallback(() => {
 		setStudyError(null);
 		setPicked([]);
+		setPicking(false);
 	}, [setStudyError]);
 	const full = picked.length >= MAX_LESSON_FILES;
 	const pickOf = useCallback((fileId: string): RowPick => (picked.includes(fileId) ? "picked" : full ? "held" : "free"), [picked, full]);
@@ -320,6 +324,11 @@ function FilesPageBody() {
 										{record.linkedFolder && <FolderStatusLine path={record.linkedFolder} status={folderStatus} now={minute} />}
 									</div>
 									{showInFinder}
+									{record.files.length > 0 && !boxes && (
+										<button type="button" data-testid="files-pick" onClick={() => setPicking(true)} className="lh-btn shrink-0">
+											Pick files to study
+										</button>
+									)}
 								</div>
 							</Pane>
 						)}
@@ -370,6 +379,7 @@ function FilesPageBody() {
 											work={work}
 											pickOf={pickOf}
 											onPick={onPick}
+											boxes={boxes}
 											disabled={disabled}
 											teacher={teacher}
 											actions={actions}
@@ -381,8 +391,8 @@ function FilesPageBody() {
 					</>
 				)}
 			</div>
-			<PickedBar open={picked.length > 0} line={pickedLine} failure={study.error} testids={{ bar: "files-picked-bar", line: "files-picked-names", clear: "files-picked-clear" }} onClear={clearPicks}>
-				<Key data-testid="files-picked-study" busy={study.busy} onClick={() => void study.run(() => lesson.studyFiles(picked))} className={ON_INK_MAIN}>
+			<PickedBar open={boxes} line={picked.length > 0 ? pickedLine : "No files picked yet"} clearLabel={picked.length > 0 ? "Clear" : "Cancel"} failure={study.error} testids={{ bar: "files-picked-bar", line: "files-picked-names", clear: "files-picked-clear" }} onClear={clearPicks}>
+				<Key data-testid="files-picked-study" busy={study.busy} disabled={picked.length === 0} onClick={() => void study.run(() => lesson.studyFiles(picked))} className={ON_INK_MAIN}>
 					Study
 				</Key>
 			</PickedBar>

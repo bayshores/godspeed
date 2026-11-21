@@ -22,7 +22,7 @@ To add a row:
 |---|---|---|---|---|---|
 | Home | Home | `nav-home` | | learner | |
 | Next deadline with its Start key | Home | `today-start` | | learner | |
-| Study page | Study | none: Home has no link to it; the one visible link is "Study something new" on a space's Progress | | learner | `new`, `new-session` |
+| Study page | Study | `home-study-input` | | learner | `new`, `new-session` |
 | Start a lesson from a typed topic | Study | `home-topic-input` | | learner | `start_lesson` |
 | Add a space | Top bar, plus list | `spaces-plus` | Home, the plus list | learner | `create_space` |
 | Switch between spaces | Top bar | `space-tabs` | | learner | |
@@ -37,7 +37,7 @@ To add a row:
 | Confidence against results | Progress | `overview-confidence` | | learner | |
 | Most needed topic | Progress | `most-needed` | | learner | |
 | Teacher's note | Progress | none: drawn only after the teacher wrote one | | teacher | |
-| Path to a goal | Progress | none: no control asks for it; the teacher builds it when asked in words | | teacher | |
+| Path to a goal | Progress | `space-start-path` | Progress, a new space | teacher | |
 | Files | Files | `nav-files` | | learner | `space/files` |
 | Add or drop files | Files | `space-add-files` | | learner | `add_space_file` |
 | Link a folder | Files | `space-pick-folder` | | learner | `link_space_folder` |
@@ -45,8 +45,8 @@ To add a row:
 | Show a space's shortcuts in Finder | Files | `files-show-shortcuts` | | learner | |
 | Move, retry, remove or show a file | Files, a file's More menu | `files-list` | Files | learner | `set_space_file_kind` |
 | Find a file by name | Files | `files-find` | Files, Find open | learner | |
-| Pick files, then Study | Files | none: a file row shows no sign that a click picks it | | learner | |
-| Search inside files | Files | none: only the teacher can, and only when asked in words; Find a file matches names | | teacher | `search_space_files` |
+| Pick files, then Study | Files | `files-pick` | Files, picking files | learner | |
+| Search inside files | Files | `files-ask-inside` | Files, nothing found | teacher | `search_space_files` |
 | Graph | Graph | `nav-graph` | | learner | `graph`, `jump-graph` |
 | Find on the Graph | Graph | `graph-find` | Graph, Find open | learner | |
 | Topic and fact panels | Graph | `graph-topic` | Graph, a topic picked | learner | |
@@ -80,7 +80,7 @@ To add a row:
 | Attach pictures or PDFs | Lesson | `attach-button` | | learner | |
 | Your thinking in a lesson | Lesson | none: ⌘T shows or hides all of it; a single row's own key shows only on that row | | learner | `toggle-user-thinking` |
 | Search lessons | Menu | `menu-search-lessons` | | learner | `sessions-search` |
-| Calculator | Any writing box | none: a sum ending in = shows the answer; no control | | learner | `calculator-keep` |
+| Calculator | Any writing box | `menu-shortcuts` | Home, the keyboard shortcuts list | learner | `calculator-keep` |
 | A plugin's lesson word and space tab | Lesson, space tabs | `plugins-add` | Settings, Plugins, Add | learner | `space/plugin/:id` |
 | Teacher's strip | Right edge | `strip` | | learner | |
 | Start the teacher | Teacher panel | `open-agent` | Teacher's panel with no agent | learner | |
@@ -113,7 +113,7 @@ To add a row:
 | Teacher folder and start command | Settings, Connection | `agent-folder-change` | | learner | |
 | Welcome screen | First launch | `welcome-go` | | learner | |
 | Onboarding | First launch | `onboarding-intro` | Onboarding | learner | |
-| Page magnifier | Any page | none: pinch, or scroll with ⌘ or Ctrl; its size word shows only while magnified | | learner | `page-magnify` |
+| Page magnifier | Any page | `menu-shortcuts` | Home, the keyboard shortcuts list | learner | `page-magnify` |
 | Keyboard shortcuts list | Menu | `menu-shortcuts` | | learner | `shortcuts` |
 | Back and Forward | Mac Go menu | none: the Mac menu and ⌘[ and ⌘] only | | learner | |
 | Open godspeed Folder | Mac File menu | none: the Mac menu only | | learner | |

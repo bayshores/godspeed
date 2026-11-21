@@ -30,6 +30,7 @@ export function PickedBar({
 	line,
 	failure,
 	testids,
+	clearLabel = "Clear",
 	onClear,
 	children,
 }: {
@@ -37,6 +38,8 @@ export function PickedBar({
 	line: string;
 	failure?: string | null;
 	testids: { bar: string; line: string; clear: string };
+	/** The first key's word; "Cancel" where the bar opens before anything is picked. */
+	clearLabel?: string;
 	onClear: () => void;
 	children: ReactNode;
 }) {
@@ -59,7 +62,7 @@ export function PickedBar({
 					</span>
 				)}
 				<button type="button" data-testid={testids.clear} onClick={onClear} className={ON_INK}>
-					Clear
+					{clearLabel}
 				</button>
 				{children}
 			</div>

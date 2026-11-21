@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, type ReactNode } from "react";
 import { Link } from "react-router";
 import { hasProblems, longDay, studyLabel, type DeadlineProgress } from "@/shared/core";
 import { dueAtMs } from "@/frontend/components/countdown-model";
@@ -20,7 +20,7 @@ import { MAIN_KEY } from "./styles";
  * key(s) at the end. In a card wider than a side column (a narrow window
  * stacks the columns) the time left is a tile down the card's left side and
  * the keys sit at the right, as on a Deadlines row. With none: one line and
- * "Add a deadline".
+ * "Add a deadline", or, with no deadline at all, one line over the ways to start.
  */
 export const NextDeadline = memo(function NextDeadline({
 	deadline: d,
@@ -31,6 +31,7 @@ export const NextDeadline = memo(function NextDeadline({
 	onStudy,
 	onWork,
 	onAddDeadline,
+	starts,
 }: {
 	/** The soonest open deadline; null with none ahead. */
 	deadline: DeadlineProgress | null;
@@ -44,7 +45,17 @@ export const NextDeadline = memo(function NextDeadline({
 	onStudy: (d: DeadlineProgress) => void;
 	onWork: (d: DeadlineProgress) => void;
 	onAddDeadline: () => void;
+	/** With no deadline at all: the ways to start, under the line. */
+	starts?: ReactNode;
 }) {
+	if (!d && starts) {
+		return (
+			<Pane data-testid="next-deadline-none" className="lh-card">
+				<p className="text-[17px] text-ink-2">{none}</p>
+				{starts}
+			</Pane>
+		);
+	}
 	if (!d) {
 		return (
 			<Pane data-testid="next-deadline-none" className="lh-card flex-row flex-wrap items-center justify-end gap-4">
