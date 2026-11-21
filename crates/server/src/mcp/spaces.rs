@@ -9,7 +9,6 @@ use gs_services::spaces::space_checks::as_check_call;
 use gs_services::spaces::{AGENT_FILE_READING_REFUSAL, unlink_folder};
 use gs_services::turns::send_first_message;
 
-use super::caller::in_claude_code;
 use super::reply::{failure, outcome, result};
 use super::tools::ToolCall;
 
@@ -25,11 +24,7 @@ pub async fn space_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Option<
 	}
 	let actions = space_actions(call.app, call.caller, send_first_message(call.app), mark);
 	match name {
-		"start_lesson" => {
-			// Asked first: the waiter may take the new lesson's first turn before the call returns.
-			let waiting = call.app.bridge.agent_waiting(agent.as_deref());
-			Some(started(call, actions.start_lesson(args).await, waiting))
-		}
+		"start_lesson" => Some(started(call, actions.start_lesson(args).await)),
 		"unlink_space_folder" => Some(unlink_space_folder(call, args)),
 		_ => actions.run(name, args).await.map(outcome),
 	}
@@ -38,19 +33,17 @@ pub async fn space_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Option<
 /// Where the new lesson is: the window opens it itself, or Follow does, or the learner does.
 const IN_WINDOW: &str = "The lesson is in the godspeed window.";
 
-/// start_lesson's answer also says how its turns come: by the agent's running waiter, else by the
-/// wait it starts. A continued lesson is where the learner left it.
-fn started(call: &ToolCall<'_>, done: ToolOutcome, waiting: bool) -> Json {
+/// start_lesson's answer also says how its turns come: they wake a session the folder's waiter
+/// wakes, any other agent waits for them. A continued lesson is where the learner left it.
+fn started(call: &ToolCall<'_>, done: ToolOutcome) -> Json {
 	let value = match done {
 		ToolOutcome::Ok { value, .. } => value,
 		ToolOutcome::Err(error) => return failure(&error),
 	};
 	let lesson_id = value["lessonId"].str_or_empty();
 	let continued = value["status"].as_str() == Some("continued");
-	let turns = if waiting {
-		"Your waiter already running brings its turns.".to_owned()
-	} else if in_claude_code(call.caller) {
-		super::work::waiter_hint(Some(lesson_id), false)
+	let turns = if call.woken() {
+		"Tell the user so in one short line, then end your turn; godspeed wakes you when work arrives.".to_owned()
 	} else if continued {
 		format!("Its next turns come through wait_for_work with lesson_id \"{lesson_id}\".")
 	} else {

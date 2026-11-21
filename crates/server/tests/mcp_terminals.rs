@@ -29,6 +29,15 @@ async fn wait(app: &Arc<App>, terminal: Option<&str>) -> (u16, String) {
 
 /// A tools/call from `terminal` and the agent session `agent`, when given.
 async fn call(app: &Arc<App>, terminal: Option<&str>, agent: Option<&str>, tool: &str, arguments: &str) -> (u16, String) {
+	send(app, terminal, agent.map(|a| format!(r#""godspeed/agent":"{a}""#)), tool, arguments).await
+}
+
+/// The same from a Claude Code session the folder's waiter wakes, as its connector sends it.
+async fn woken(app: &Arc<App>, terminal: Option<&str>, agent: &str, tool: &str, arguments: &str) -> (u16, String) {
+	send(app, terminal, Some(format!(r#""godspeed/agent":"{agent}","godspeed/wakes":true"#)), tool, arguments).await
+}
+
+async fn send(app: &Arc<App>, terminal: Option<&str>, meta: Option<String>, tool: &str, arguments: &str) -> (u16, String) {
 	let mut headers = HeaderMap::new();
 	headers.insert("host", HeaderValue::from_static("127.0.0.1:48065"));
 	headers.insert("authorization", HeaderValue::from_str(&format!("Bearer {TOKEN}")).unwrap());
@@ -37,7 +46,7 @@ async fn call(app: &Arc<App>, terminal: Option<&str>, agent: Option<&str>, tool:
 	if let Some(id) = terminal {
 		headers.insert("x-godspeed-terminal", HeaderValue::from_str(id).unwrap());
 	}
-	let meta = agent.map(|a| format!(r#","_meta":{{"godspeed/agent":"{a}"}}"#)).unwrap_or_default();
+	let meta = meta.map(|m| format!(r#","_meta":{{{m}}}"#)).unwrap_or_default();
 	let body = format!(r#"{{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{{"name":"{tool}","arguments":{arguments}{meta}}}}}"#);
 	let res = handle_mcp_request(app, &Method::POST, &headers, body.as_bytes()).await;
 	let status = res.status().as_u16();
@@ -107,7 +116,7 @@ fn opened(app: &App, label: &str) -> bool {
 }
 
 #[tokio::test]
-async fn what_the_teacher_terminal_starts_opens_and_its_running_waiter_needs_no_second() {
+async fn what_the_teacher_terminal_starts_opens_and_a_woken_session_ends_its_turn_for_its_turns() {
 	let app = app();
 	let helper = "f".repeat(32);
 	app.bridge.set_live_terminals(vec![TERMINAL.to_owned(), helper.clone()], Some(TERMINAL.to_owned()));
@@ -118,18 +127,21 @@ async fn what_the_teacher_terminal_starts_opens_and_its_running_waiter_needs_no_
 	call(&app, Some(TERMINAL), None, "create_space", r#"{"name":"Biology","icon":"dna"}"#).await;
 	assert!(opened(&app, "Creating Biology"), "the learner asked in the teacher's terminal");
 
-	let (_, body) = call(&app, Some(TERMINAL), Some("sess-1"), "start_lesson", r#"{"topic":"Cells"}"#).await;
-	assert!(body.contains("The lesson is in the godspeed window. Wait with the waiter"), "{body}");
-	call(&app, None, Some("sess-2"), "wait_for_work", r#"{"timeout_seconds":1}"#).await;
-	let waiter = gs_base::tasks::spawn("test", {
-		let app = app.clone();
-		async move { call(&app, Some(TERMINAL), Some("sess-1"), "wait_for_work", r#"{"timeout_seconds":5}"#).await }
-	});
-	gs_base::clock::sleep(50).await;
-	let (_, body) = call(&app, Some(TERMINAL), Some("sess-1"), "start_lesson", r#"{"topic":"Mitosis"}"#).await;
-	assert!(body.contains("The lesson is in the godspeed window. Your waiter already running brings its turns."), "{body}");
-	assert!(opened(&app, "Starting Mitosis"));
-	waiter.abort();
+	let (_, body) = woken(&app, Some(TERMINAL), "sess-1", "start_lesson", r#"{"topic":"Cells"}"#).await;
+	assert!(body.contains("The lesson is in the godspeed window. Tell the user so in one short line, then end your turn; godspeed wakes you when work arrives."), "{body}");
+	assert!(opened(&app, "Starting Cells"));
+	let (_, body) = call(&app, None, Some("sess-2"), "start_lesson", r#"{"topic":"Mitosis"}"#).await;
+	assert!(body.contains("The lesson is in the godspeed window. Call wait_for_work with lesson_id"), "nothing wakes an agent started some other way: {body}");
+}
+
+#[tokio::test]
+async fn a_woken_session_that_waits_itself_is_answered_at_once() {
+	let app = app();
+	app.bridge.set_live_terminals(vec![TERMINAL.to_owned()], Some(TERMINAL.to_owned()));
+	let before = std::time::Instant::now();
+	let (_, body) = woken(&app, Some(TERMINAL), "sess-1", "wait_for_work", r#"{"timeout_seconds":45}"#).await;
+	assert!(before.elapsed() < std::time::Duration::from_secs(5), "its waiter does the waiting");
+	assert!(body.contains(r#"Nothing to do right now. End your turn with only the word \\\"Waiting.\\\"; godspeed wakes you when work arrives."#), "{body}");
 }
 
 #[tokio::test]
@@ -148,14 +160,13 @@ async fn typing_while_respond_waits_for_a_follow_up_ends_the_turn_with_a_note() 
 	}
 	let responding = gs_base::tasks::spawn("test", {
 		let app = app.clone();
-		async move { call(&app, Some(TERMINAL), Some("sess-1"), "respond", &format!(r#"{{"work_id":"{work_id}","text":"Cells are small.","wait_seconds":5}}"#)).await }
+		async move { woken(&app, Some(TERMINAL), "sess-1", "respond", &format!(r#"{{"work_id":"{work_id}","text":"Cells are small.","wait_seconds":5}}"#)).await }
 	});
 	gs_base::clock::sleep(50).await;
 	app.bridge.typed(TERMINAL, gs_base::clock::now_ms());
 	let (status, body) = responding.await.unwrap();
 	assert_eq!(status, 200);
-	// The session id comes as Claude Code sends it, and its waiter ended when it took the turn.
-	assert!(body.contains(r#"{\"status\":\"turn_complete\",\"note\":\"Turn done. The learner typed to you in your terminal. Answer them there. Wait with the waiter"#), "{body}");
+	assert!(body.contains(r#"{\"status\":\"turn_complete\",\"note\":\"Turn done. The learner typed to you in your terminal. Answer them there, then end your turn; godspeed wakes you when work arrives.\"}"#), "{body}");
 }
 
 /// The text of a tool result.

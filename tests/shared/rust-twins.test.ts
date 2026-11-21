@@ -186,3 +186,11 @@ describe("page picture widths", () => {
 		assert.deepEqual([...PIECE_WIDTHS], [...valueOf(inRust, "PIECE_WIDTHS").matchAll(/\d+/g)].map((m) => Number(m[0])));
 	});
 });
+
+describe("start script exit codes", () => {
+	it("are the ones the terminal screen reads", () => {
+		const scripts = rust("spaces/agent_folder");
+		const screen = read("src/frontend/components/terminal/terminal-model.ts");
+		for (const name of ["EXIT_NOT_INSTALLED", "EXIT_NO_NODE", "EXIT_OLD_AGENT"]) assert.equal(number(screen, name), number(scripts, name), name);
+	});
+});

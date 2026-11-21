@@ -37,7 +37,7 @@ fn briefing_room() -> usize {
 }
 
 /// What initialize and server/discover hand over. (In Claude Code, the godspeed folder's
-/// CLAUDE.md says how to wait with the waiter.)
+/// CLAUDE.md says the waiter wakes it instead.)
 pub fn connect_instructions(app: &Arc<App>) -> String {
 	let briefing = gs_services::app::agent_memory::current_agent_briefing(app, briefing_room());
 	[INSTRUCTIONS, &briefing, MEMORY_INSTRUCTIONS, SPACE_INSTRUCTIONS].join("\n\n")

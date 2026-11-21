@@ -4,13 +4,15 @@
  * to the running godspeed app (its /api/mcp endpoint), adding the access
  * token from the app's data folder (found by target.mjs). Tool calls carry
  * Claude Code's session id, so godspeed sends this session only the
- * messages it hasn't seen yet. Messages in the 2026-07-28 MCP version get
+ * messages it hasn't seen yet, and say whether the folder's waiter wakes
+ * this session after each turn (GODSPEED_WAKES, set by its settings). Messages in the 2026-07-28 MCP version get
  * the headers that version requires. No dependencies — Node 18+.
  */
 import readline from "node:readline";
 import { NO_TOKEN, target, terminalHeader } from "./target.mjs";
 
 const agent = process.env.CLAUDE_CODE_SESSION_ID;
+const wakes = process.env.GODSPEED_WAKES === "1";
 
 /** Request id → the request still waiting for godspeed's answer. */
 const inFlight = new Map();
@@ -47,7 +49,7 @@ async function forward(line) {
 	// doesn't take a work item for an answer nobody reads.
 	if (message?.method === "notifications/cancelled") inFlight.get(message.params?.requestId)?.abort();
 	if (message?.method === "tools/call" && agent) {
-		message.params = { ...message.params, _meta: { ...message.params?._meta, "godspeed/agent": agent } };
+		message.params = { ...message.params, _meta: { ...message.params?._meta, "godspeed/agent": agent, ...(wakes ? { "godspeed/wakes": true } : {}) } };
 	}
 	const { url, token } = target();
 	if (!token) {

@@ -31,6 +31,7 @@ describe("when the screen opens by itself", () => {
 		assert.equal(needsYou(facts({}, { ended: { stopped: false, code: null } })), "crashed", "a screen godspeed could not read");
 		assert.equal(needsYou(facts({}, { ended: { stopped: false, code: 3 } })), "missing");
 		assert.equal(needsYou(facts({}, { ended: { stopped: false, code: 4 } })), "missing");
+		assert.equal(needsYou(facts({}, { ended: { stopped: false, code: 6 } })), "missing");
 	});
 
 	it("the learner's own Stop and a clean exit open nothing", () => {
@@ -115,6 +116,8 @@ describe("the footer's words", () => {
 		assert.equal(node.text, "godspeed needs Node.js to connect Claude Code.");
 		assert.deepEqual(node.get, { label: "Get Node.js", url: "https://nodejs.org" });
 		assert.equal(node.startAgain, true);
+		const old = words(facts({}, { ended: { stopped: false, code: 6 } }));
+		assert.deepEqual([old.text, old.get, old.startAgain], ["Claude Code needs an update.", null, true]);
 		const gone = words(facts({}, { ended: { stopped: false, code: 5 } }));
 		assert.deepEqual([gone.text, gone.startAgain], ["Couldn't open that chat.", true]);
 	});
@@ -144,6 +147,7 @@ describe("the footer's words", () => {
 			facts({}, { ended: { stopped: false, code: 0 } }),
 			facts({}, { ended: { stopped: false, code: 3 } }),
 			facts({}, { ended: { stopped: false, code: 4 } }),
+			facts({}, { ended: { stopped: false, code: 6 } }),
 		].flatMap((f) => [words(f).text, tab(f).text]);
 		for (const text of all) assert.ok(!text?.includes("—") && !text?.includes(" · "), text ?? "");
 	});
@@ -162,6 +166,7 @@ describe("the teacher's status line", () => {
 		assert.equal(screenStatusLine(facts({}, { ended: { stopped: false, code: 1 } }), "Ada"), "Ada closed with an error.");
 		assert.equal(screenStatusLine(facts({}, { ended: { stopped: false, code: 3 } }), "Ada"), "Claude Code isn't installed on this computer.");
 		assert.equal(screenStatusLine(facts({}, { ended: { stopped: false, code: 4 } }), "Ada"), "godspeed needs Node.js to connect Claude Code.");
+		assert.equal(screenStatusLine(facts({}, { ended: { stopped: false, code: 6 } }), "Ada"), "Claude Code needs an update.");
 		assert.equal(screenStatusLine(facts(), "Ada"), null);
 		assert.equal(screenStatusLine(facts({}, { ended: { stopped: true, code: null } }), "Ada"), null);
 		assert.equal(screenStatusLine(facts({ outsideHere: true }, { ended: { stopped: false, code: 1 } }), "Ada"), null, "an agent outside godspeed teaches now");
@@ -230,6 +235,7 @@ describe("starting the teacher hidden, and restarting", () => {
 		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: false, code: null } }) }), null, "a screen godspeed could not read");
 		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: false, code: 3 } }) }), null, "not installed");
 		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: false, code: 4 } }) }), null, "no Node.js");
+		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: false, code: 6 } }) }), null, "too old");
 	});
 
 	it("the status says no agent once godspeed's teacher ended or before it checked in, though the server still says connected", () => {
