@@ -205,13 +205,17 @@ describe("Your turn in each state", () => {
 		const opener = { ...quiz, input: { ...quizInput, type: "predict" }, appPosed: { kind: "opener" as const, ref: "t1" } };
 		const out = html({ pending: opener, busy: true });
 		assert.match(out, /data-testid="skip-question"[^>]*>Skip question</);
-		assert.doesNotMatch(out, /question-kind|Prediction/, "no small label over the question");
+		assert.match(out, /<h2[^>]*>Prediction</, "the title says what waits");
+		assert.doesNotMatch(out, /question-kind/, "no small label over the question");
 	});
 
-	it("a question from earlier is titled so", () => {
+	it("the title says what waits: a question's kind, or that it is from earlier", () => {
 		const fromEarlier = { ...quiz, appPosed: { kind: "review" as const, ref: { chatId: "c_old", toolCallId: "rv1" } } };
 		assert.match(html({ pending: fromEarlier }), /<h2[^>]*>From earlier</);
-		assert.match(html({ pending: quiz }), /<h2[^>]*>Your turn</);
+		assert.match(html({ pending: quiz }), /<h2[^>]*>Quiz</);
+		assert.match(html({ pending: { ...quiz, input: { ...quizInput, type: "predict" } } }), /<h2[^>]*>Prediction</);
+		assert.match(html({ pending: written }), /<h2[^>]*>Question</);
+		assert.match(html({}), /<h2[^>]*>Your turn</, "with nothing asked");
 	});
 
 	it("a refused answer from earlier says so in one quiet line", () => {
@@ -510,7 +514,7 @@ describe("Your turn in each state", () => {
 	});
 
 	it("Skip question and Discard problem are the way out of each state, at the end of the title row", async () => {
-		const skip = /<h2[^>]*>Your turn<\/h2><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="skip-question"[^>]*>Skip question<\/button><\/div><\/div>[\s\S]*data-testid="composer"/;
+		const skip = /<h2[^>]*>(Quiz|Code|Question)<\/h2><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="skip-question"[^>]*>Skip question<\/button><\/div><\/div>[\s\S]*data-testid="composer"/;
 		assert.match(html({ pending: quiz }), skip);
 		assert.match(html({ pending: { tool: "write_code", toolCallId: "w1", input: { question: "Write add.", language: "python" } } }), skip);
 		assert.match(html({ pending: written }), skip);

@@ -13,7 +13,6 @@ import { isPrediction } from "@/frontend/components/answered-card-model";
 import { PhaseDivider } from "@/frontend/components/phase-divider";
 import { ThinkingCard, type PracticeThinkingData } from "@/frontend/components/practice-cards";
 import { CompactionCutDivider, type CompactionDividerData } from "@/frontend/components/compaction-divider";
-import { Separator } from "@/frontend/components/ui/separator";
 import { cn } from "@/frontend/lib/utils";
 import {
 	firstSourceTextParts,
@@ -112,7 +111,7 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 		return <UserMessage message={m} spaceId={spaceId} echo={echo} className={arrive(`${mi}`)} />;
 	}
 	// The teach seam's step: -1 = before the whole group; a later index =
-	// at that step boundary, replacing its plain hairline.
+	// at that step boundary, in place of its room.
 	const seamStep = teachSeam ? teachStepIndex(m.parts) : null;
 	// A native message lives in exactly one view group, so the row can pick
 	// its anchors alone.
@@ -203,7 +202,7 @@ function AssistantPart({
 }: {
 	part: LhViewPart;
 	slot: string;
-	/** Draw this step-start's hairline (drawnSeparators). */
+	/** This step-start sits between two replies that both draw (drawnSeparators): room is left there. */
 	separator: boolean;
 	teachBoundary: boolean;
 	anchor?: string;
@@ -246,7 +245,7 @@ function AssistantPart({
 						<PhaseDivider phase="teach" />
 					</div>
 				);
-			return separator && !hideSteps ? <Separator className="my-3" /> : null;
+			return separator && !hideSteps ? <div aria-hidden className="h-3" /> : null;
 		case "tool-quiz":
 		case "tool-probe":
 		case "tool-ask_user_question":
