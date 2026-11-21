@@ -76,13 +76,10 @@ export function nothingGrouped(topics: readonly Pick<TopicProgress, "ungrouped">
 	return topics.length > 0 && topics.every((t) => t.ungrouped);
 }
 
-/** The fewest facts the server sorts into topics (crates/core/src/graph/topics.rs). */
-export const MIN_FACTS_FOR_TOPICS = 4;
-
 /** The line under facts not sorted yet: "Quigley sorts these 12 facts into
- *  topics next.", or, with too few to sort, when that comes. */
-export function sortsNextLine(teacher: string, facts: number): string {
-	if (facts < MIN_FACTS_FOR_TOPICS) return `${teacher} sorts facts into topics once there are ${MIN_FACTS_FOR_TOPICS}.`;
+ *  topics next.", or, with fewer than the server sorts (`least`), when topics come. */
+export function sortsNextLine(teacher: string, facts: number, least: number): string {
+	if (facts < least) return `Topics appear once this space has ${least} facts.`;
 	return `${teacher} sorts these ${facts} facts into topics next.`;
 }
 

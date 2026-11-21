@@ -93,9 +93,9 @@ describe("before any topic", () => {
 		assert.equal(nothingGrouped([]), false);
 	});
 
-	it("the line names the teacher and counts the facts; with too few to sort it says when that comes", () => {
-		assert.equal(sortsNextLine("Quigley", 12), "Quigley sorts these 12 facts into topics next.");
-		assert.equal(sortsNextLine("Quigley", 4), "Quigley sorts these 4 facts into topics next.");
-		assert.equal(sortsNextLine("Quigley", 1), "Quigley sorts facts into topics once there are 4.");
+	it("the line names the teacher and counts the facts; with fewer than the server sorts it says when topics come", () => {
+		assert.equal(sortsNextLine("Quigley", 12, 4), "Quigley sorts these 12 facts into topics next.");
+		assert.equal(sortsNextLine("Quigley", 4, 4), "Quigley sorts these 4 facts into topics next.");
+		assert.equal(sortsNextLine("Quigley", 1, 4), "Topics appear once this space has 4 facts.");
 	});
 });

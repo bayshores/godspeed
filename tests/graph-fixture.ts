@@ -76,6 +76,7 @@ export function fixture(): ProgressPayload {
 		today: "2026-10-27",
 		topicsAt: "2026-10-26T00:00:00Z",
 		grouping: false,
+		minFactsForTopics: 4,
 		topics,
 		topicLinks: [
 			{ from: "t-deriv", to: "t-mini", weight: 2 },

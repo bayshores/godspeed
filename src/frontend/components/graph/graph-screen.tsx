@@ -80,7 +80,7 @@ function GraphScreenBody() {
 	const hasFacts = (data?.facts.length ?? 0) > 0;
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	// While a grouping run goes, the space's work frame says so; the line is not said twice.
-	const note = data && nothingGrouped(data.topics) && !data.grouping ? sortsNextLine(teacher, data.facts.length) : null;
+	const note = data && nothingGrouped(data.topics) && !data.grouping ? sortsNextLine(teacher, data.facts.length, data.minFactsForTopics) : null;
 	const find = useBarFind(hasFacts);
 	const matches = useMemo(() => (data ? findMatches(find.query, data.topics, data.facts) : null), [find.query, data]);
 	// Typing in Find shows the whole space, so every match is in view.
