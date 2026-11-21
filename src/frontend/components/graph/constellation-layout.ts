@@ -178,11 +178,12 @@ export function layoutSky(topics: readonly TopicProgress[], links: readonly Topi
 	const factById = new Map(facts.map((f) => [f.id, f]));
 	const total = topics.reduce((n, t) => n + t.members.length, 0);
 	const s = starSize(total, width);
-	const c = s * 1.1;
-	const radius = (n: number) => c * Math.sqrt(Math.max(1, n)) + s / 2;
-
 	const grouped = topics.filter((t) => !t.ungrouped);
 	const loose = topics.filter((t) => t.ungrouped);
+	// Before any topic, the facts stand loose: twice the room between them.
+	const c = s * (grouped.length === 0 ? 2.2 : 1.1);
+	const radius = (n: number) => c * Math.sqrt(Math.max(1, n)) + s / 2;
+
 	const ids = new Set(grouped.map((t) => t.id));
 	const live = links.filter((l) => ids.has(l.from) && ids.has(l.to) && l.from !== l.to);
 	const levels = Math.max(0, ...grouped.map((t) => t.column)) + 1;

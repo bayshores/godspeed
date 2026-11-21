@@ -8,8 +8,7 @@ use gs_base::text;
 use gs_core::session::argument_heal::heal_encoded_arguments;
 use gs_core::session::code_question::{fenced_code, write_code_input_problems, write_code_input_schema};
 use gs_core::session::compaction::{
-	ContextTokenEstimate, KEEP_RECENT_TOKENS, build_compaction_prompt, calculate_context_tokens, compaction_cut_index, compaction_span, effective_threshold_tokens, estimate_context_tokens,
-	estimate_message_tokens, estimate_tokens, local_summary, new_compaction_marker, plan_tree_to_text, serialize_for_summary,
+	KEEP_RECENT_TOKENS, build_compaction_prompt, compaction_cut_index, compaction_span, effective_threshold_tokens, estimate_message_tokens, estimate_tokens, local_summary, new_compaction_marker, plan_tree_to_text, serialize_for_summary,
 };
 use gs_core::session::cost_summary::graph_cost_summary;
 use gs_core::session::jobs::{accumulate_job_usage, build_abort_steer, build_subagent_steer, is_subagent_failure, pi_usage_to_step, set_steer_ui_inverted, steer_delivered};
@@ -99,15 +98,6 @@ fn mask_marker(message: &Json) -> Json {
 	)
 }
 
-fn context_json(e: &ContextTokenEstimate) -> Json {
-	let mut out = Obj::new();
-	out.insert("tokens", e.tokens);
-	out.insert("usageTokens", e.usage_tokens);
-	out.insert("trailingTokens", e.trailing_tokens);
-	out.insert("lastUsageIndex", e.last_usage_index);
-	Json::Obj(out)
-}
-
 fn object(fields: Vec<(&str, Json)>) -> Json {
 	Json::Obj(fields.into_iter().collect::<Obj>())
 }
@@ -120,7 +110,6 @@ fn check_chat(chat: &Json, want: &Json) {
 	check("id", chat["id"].clone());
 	check("messageTokens", messages.iter().map(estimate_message_tokens).collect());
 	check("estimateTokens", estimate_tokens(messages).into());
-	check("context", context_json(&estimate_context_tokens(messages)));
 	check("cuts", [KEEP_RECENT_TOKENS, 5000.0, 1000.0, 100.0, 1.0, 0.0].iter().map(|keep| compaction_cut_index(messages, *keep)).collect());
 	let serialized = serialize_for_summary(messages);
 	let plan_text = plan_tree_to_text(tree, messages);
@@ -191,10 +180,9 @@ fn work_page_blocks_match_node() {
 }
 
 #[test]
-fn compaction_thresholds_and_usage_match_node() {
-	let case = golden("compaction: thresholds and usage");
+fn compaction_thresholds_match_node() {
+	let case = golden("compaction: thresholds");
 	each(&case["thresholds"], "threshold", |i| effective_threshold_tokens(i[0].as_f64(), i[1].as_f64()).into());
-	each(&case["usage"], "usage", |i| calculate_context_tokens(i).into());
 }
 
 #[test]
@@ -203,7 +191,6 @@ fn compaction_messages_match_node() {
 	let messages = arr(&case["messages"]);
 	same(&messages.iter().map(estimate_message_tokens).collect(), &case["each"], "each message");
 	same(&estimate_tokens(messages).into(), &case["total"], "total");
-	each(&case["contexts"], "context", |i| context_json(&estimate_context_tokens(arr(i))));
 }
 
 #[test]

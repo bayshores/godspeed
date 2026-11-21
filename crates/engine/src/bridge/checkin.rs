@@ -89,7 +89,7 @@ fn schedule_lapse(inner: &Arc<Inner>, now: i64) {
 	let check_ins = [s.last_contact, s.last_work].map(|at| at + CONNECTED_WINDOW_MS);
 	let Some(next) = check_ins.into_iter().chain(claim_ends(&s, false)).filter(|at| *at > now).min() else { return };
 	let weak = Arc::downgrade(inner);
-	s.lapse = Some(tokio::spawn(async move {
+	s.lapse = Some(gs_base::tasks::spawn("checkin", async move {
 		clock::sleep(next - now + 1000).await;
 		let Some(inner) = weak.upgrade() else { return };
 		// A newer check-in replaced this timer after it woke.

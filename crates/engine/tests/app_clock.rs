@@ -32,7 +32,7 @@ fn agent(name: &str) -> WaitOptions {
 #[tokio::test]
 async fn the_app_clock_ends_stuck_tools_and_stale_claims() {
 	// A tool that ignores its abort is dropped after the timeout plus the grace.
-	let stuck = tokio::spawn(server_execute("slow", ctx(&Abort::new()), |_| std::future::pending()));
+	let stuck = gs_base::tasks::spawn("test", server_execute("slow", ctx(&Abort::new()), |_| std::future::pending()));
 	settle().await;
 	clock::advance(30_000);
 	settle().await;
@@ -40,7 +40,7 @@ async fn the_app_clock_ends_stuck_tools_and_stale_claims() {
 	assert_eq!(stuck.await.unwrap(), Err("Tool \"slow\" timed out after 30s — the result was discarded".to_owned()));
 
 	// One that stops on its abort keeps the partial result it returns within the grace.
-	let partial = tokio::spawn(server_execute("read", ctx(&Abort::new()), |c| async move {
+	let partial = gs_base::tasks::spawn("test", server_execute("read", ctx(&Abort::new()), |c| async move {
 		c.abort.aborted().await;
 		Ok(Json::from("partial"))
 	}));
@@ -50,7 +50,7 @@ async fn the_app_clock_ends_stuck_tools_and_stale_claims() {
 
 	// The learner's Stop names itself instead of the timeout.
 	let run = Abort::new();
-	let stopped = tokio::spawn(server_execute("slow", ctx(&run), |_| std::future::pending()));
+	let stopped = gs_base::tasks::spawn("test", server_execute("slow", ctx(&run), |_| std::future::pending()));
 	settle().await;
 	run.abort();
 	settle().await;
@@ -117,11 +117,11 @@ async fn the_app_clock_ends_stuck_tools_and_stale_claims() {
 	bridge.set_live_terminals(vec![terminal.to_owned()], Some(terminal.to_owned()));
 	bridge.record_terminal_contact(None, clock::now_ms());
 	bridge.record_terminal_contact(Some(terminal), clock::now_ms());
-	let outside = tokio::spawn({
+	let outside = gs_base::tasks::spawn("test", {
 		let bridge = bridge.clone();
 		async move { bridge.wait_for_work(600_000, agent("outside-1")).await }
 	});
-	let inside = tokio::spawn({
+	let inside = gs_base::tasks::spawn("test", {
 		let bridge = bridge.clone();
 		async move { bridge.wait_for_work(600_000, WaitOptions { terminal: Some(terminal.to_owned()), ..agent("main-1") }).await }
 	});

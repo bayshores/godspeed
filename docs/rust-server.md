@@ -74,8 +74,7 @@ Everything lives in `App` (`crates/services/src/lib.rs`): `paths`, `events`, `lo
 - Emit with `app.events.emit(EventKind::X, json!({...}))`. Payload is the event minus `type`.
 - A fallible function returns `Result<T, String>`, or a small error enum when callers match on kind.
 - A route returns `Result<Response, Unhandled>`; `?` on any error answers an empty 500. A handler panic also answers an empty 500 and the server keeps running, but do not rely on it.
-- A background task nobody awaits starts with `tasks::detach(label, future)`, which prints `[label] task panicked: ...` if it panics. Keep a plain `tokio::spawn` only where the handle is awaited, stored or aborted.
-- A thread started with `std::thread::spawn` that runs code which may start a task enters the runtime first (`Handle::current()` taken before the spawn, `handle.enter()` inside), as the thread that reads the shell's messages does. Outside the runtime `tokio::spawn` panics.
+- Start every task through `gs_base::tasks`: `detach(label, future)` for one nobody awaits (it prints `[label] task panicked: ...` if it panics), `spawn(label, future)` where the handle is awaited, stored or aborted, and `spawn_blocking(label, work)`. They use the current runtime, else the one `main` stored with `set_runtime`, so a task started from a plain `std::thread` (the thread that reads the shell's messages) still runs, where `tokio::spawn` would panic. With no runtime at all `detach` logs `[label] no runtime` and returns, while `spawn` and `spawn_blocking` panic with that text, since they must hand back a handle; so code on a plain thread starts its tasks with `detach`. Clippy refuses `tokio::spawn`, `tokio::task::spawn`, `tokio::task::spawn_blocking` and `Handle::current` everywhere else (`clippy.toml`).
 - Never hold a lock across `.await`. See [Locks](#locks).
 
 ### Tests

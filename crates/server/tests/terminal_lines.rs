@@ -45,7 +45,7 @@ async fn a_line_for_the_lesson_on_screen_goes_to_the_window_and_the_hook_blocks_
 	app.bridge.typed(TEACHER, clock::now_ms());
 
 	// The window answers once it got the line.
-	let window = tokio::spawn({
+	let window = gs_base::tasks::spawn("test", {
 		let app = app.clone();
 		async move {
 			loop {
@@ -103,8 +103,11 @@ async fn the_window_hears_when_a_teacher_chat_starts_and_is_used() {
 	gs_services::app::teacher_chats::taught(&app, Some(TEACHER), &lesson);
 	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["name"], json!("Study for Midterm"));
 	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["lesson"], json!(lesson), "the lesson it taught, to go back to");
+	assert_eq!(gs_services::app::teacher_chats::last_lesson(&app, Some(TEACHER)), Some(lesson.clone()), "a wait from its terminal stays on it");
+	assert_eq!(gs_services::app::teacher_chats::last_lesson(&app, None), None, "an agent outside the terminals stays on none");
 	app.stores.chats.delete_chat(&lesson);
 	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["lesson"], json!(null), "a deleted lesson is not offered");
+	assert_eq!(gs_services::app::teacher_chats::last_lesson(&app, Some(TEACHER)), None, "nor stayed on");
 
 	app.bridge.set_live_terminals(vec![], None);
 	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["open"], json!(false), "the terminal ended");

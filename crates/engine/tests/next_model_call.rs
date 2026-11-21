@@ -30,7 +30,7 @@ impl Tool for Dispatch {
 	fn execute(&self, _args: Json, _ctx: ToolContext) -> BoxFuture<'_, Result<Json, String>> {
 		let agent = self.agent.get().and_then(Weak::upgrade).unwrap();
 		let gate = agent.next_model_call();
-		tokio::spawn(async move {
+		gs_base::tasks::spawn("test", async move {
 			gate.await;
 			agent.steer(json!({ "role": "user", "content": "background result", "timestamp": 1 }));
 		});

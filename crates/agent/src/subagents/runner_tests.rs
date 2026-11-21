@@ -250,7 +250,7 @@ async fn an_aborted_job_unwinds_without_writing_an_outcome() {
 	});
 	let host = setup("abort", Some(faux_engine(&script)), no_demo());
 	let id = job(&host, "visual", Some(json!({ "brief": "x" })));
-	let task = tokio::spawn(create_job_runner(host.clone()).run_job(id.clone(), None));
+	let task = gs_base::tasks::spawn("test", create_job_runner(host.clone()).run_job(id.clone(), None));
 	while !is_job_live(&host.aborts, &id) {
 		tokio::task::yield_now().await;
 	}

@@ -34,7 +34,7 @@ async fn the_first_api_route_moves_the_old_names() {
 	let app = App::new(Paths::new(data.clone(), dir.join("home"), dir.join("tmp"), dir.clone()), None);
 	let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
 	let port = listener.local_addr().unwrap().port();
-	tokio::spawn(axum::serve(listener, gs_server::http::server(Arc::clone(&app), &Access::default())).into_future());
+	gs_base::tasks::spawn("test", axum::serve(listener, gs_server::http::server(Arc::clone(&app), &Access::default())).into_future());
 
 	assert_eq!(status(port, "/api/classes").await, "HTTP/1.1 404 Not Found");
 	assert!(data.join("classes").exists() && data.join("prompts/shared/12-class-context.md").exists(), "a 404 moves nothing");

@@ -18,7 +18,7 @@ use super::topic_links::{TopicLink, topic_columns, topic_links};
 use super::work_on_next::{TopicView, status_counts, work_on_next};
 use crate::contracts::space::compare_deadlines;
 use crate::graph::session_clusters::birth_session_of;
-use crate::graph::topics::resolve_topics;
+use crate::graph::topics::{MIN_FACTS_FOR_TOPICS, resolve_topics};
 use crate::records::newer_first;
 
 /// The progress payload for GET /api/progress.
@@ -117,6 +117,7 @@ pub fn derive_progress(input: &Json) -> Json {
 	out.insert("today", input["today"].clone());
 	out.insert("topicsAt", input["topics"]["at"].clone());
 	out.insert("grouping", input["grouping"].as_bool() == Some(true));
+	out.insert("minFactsForTopics", MIN_FACTS_FOR_TOPICS);
 	out.insert("topics", topics);
 	out.insert("topicLinks", links.iter().map(TopicLink::to_json).collect::<Json>());
 	out.insert("facts", fact_rows);

@@ -43,6 +43,11 @@ impl ToolCall<'_> {
 	pub fn agent(&self) -> Option<String> {
 		self.terminal.and_then(|t| self.app.bridge.terminal_chat(t)).or_else(|| super::caller::agent_id_of(self.meta))
 	}
+
+	/// The folder's waiter wakes this session with each work item (`caller::woken`).
+	pub fn woken(&self) -> bool {
+		super::caller::woken(self.meta)
+	}
 }
 
 /// A tool's space_id argument, checked: absent or "none" is No space; otherwise the space must
@@ -101,6 +106,14 @@ mod tests {
 		assert_eq!(names.len(), 25);
 		assert_eq!(names[..3], ["wait_for_work", "respond", "read_work"]);
 		assert_eq!(names[22..], ["start_lesson", "open_page", "unlink_space_folder"]);
+	}
+
+	/// Claude Code defers MCP tools until a search finds them; the two every work item needs load
+	/// upfront, so no turn spends a search on them.
+	#[test]
+	fn the_answer_tools_load_upfront() {
+		let upfront: Vec<&str> = tool_list().as_arr().unwrap().iter().filter(|t| t["_meta"]["anthropic/alwaysLoad"].as_bool() == Some(true)).filter_map(|t| t["name"].as_str()).collect();
+		assert_eq!(upfront, ["respond", "read_work"]);
 	}
 
 	/// Clients and listings read a missing hint as the risky default, so every tool states all four.

@@ -70,6 +70,19 @@ export function neighbors(
 	};
 }
 
+/** True while the space has facts but none is in a topic yet: the server's
+ *  Ungrouped bucket is the only topic. */
+export function nothingGrouped(topics: readonly Pick<TopicProgress, "ungrouped">[]): boolean {
+	return topics.length > 0 && topics.every((t) => t.ungrouped);
+}
+
+/** The line under facts not sorted yet: "Quigley sorts these 12 facts into
+ *  topics next.", or, with fewer than the server sorts (`least`), when topics come. */
+export function sortsNextLine(teacher: string, facts: number, least: number): string {
+	if (facts < least) return `Topics appear once this space has ${least} facts.`;
+	return `${teacher} sorts these ${facts} facts into topics next.`;
+}
+
 /** What Find lights: the topics whose name matches or that hold a
  *  matching fact, and the matching facts (by name or statement, or every
  *  fact of a topic whose name matches); case-insensitive. null = nothing typed. */

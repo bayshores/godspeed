@@ -88,6 +88,7 @@ const PAYLOAD = {
 	today: "2026-10-27",
 	topicsAt: null,
 	grouping: false,
+	minFactsForTopics: 4,
 	topics: [],
 	topicLinks: [],
 	facts: [],

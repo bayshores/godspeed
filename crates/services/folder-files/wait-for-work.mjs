@@ -1,67 +1,154 @@
 #!/usr/bin/env node
 /**
- * The background waiter: waits for the next godspeed work item WITHOUT
- * the model polling. Claude Code runs it as a background task; the script
- * calls wait_for_work over and over itself (no tokens), and exits the
- * moment work arrives, printing the work item (see the output below). The
- * exit wakes the agent, which answers the item with `respond` as usual.
+ * The waiter: Claude Code's Stop hook (asyncRewake) in the folder's
+ * claude-settings.json. After each turn it waits in the background for the
+ * next godspeed work item WITHOUT the model polling: it calls
+ * wait_for_work over and over itself (no tokens). When an item arrives it
+ * writes the item to stderr and exits 2, which wakes the agent with the
+ * item as a message of its own; the agent answers it with `respond`.
  *
- *   node wait-for-work.mjs [--lesson <lesson id>] [--helper] [--max-minutes <n>]
+ * It reads the hook's JSON from stdin for the session id, so godspeed
+ * sends this session only the messages it hasn't seen yet. The helper's
+ * start script sets GODSPEED_HELPER=1: the waiter then takes the
+ * background jobs, and lesson turns only while the teacher session
+ * compacts its context.
  *
- * With --lesson it takes that lesson's turns, background jobs and other
- * lessons' turns no other waiter waits for. If the lesson is
- * deleted, it waits for any work instead. With
- * --helper it is the helper's: it takes the background jobs, and lesson
- * turns only while the teacher session compacts its context.
+ * Exit codes: 2 = a work item, or a failure the agent must tell the user
+ * (godspeed refused or was unreachable for over 5 minutes, or its token is
+ * missing), on stderr; 0 = nothing to say: no work in 2 hours (just under
+ * the hook's timeout), the terminal was closed in godspeed, another waiter
+ * already waits for this session, or this failure was already reported.
+ * godspeed nudges a quiet teacher in its terminal when work waits, and the
+ * turn that answers starts a new waiter.
  *
- * Exit codes: 0 = work item printed; 2 = nothing arrived within
- * --max-minutes (default 120; run it again to keep waiting); 1 = godspeed
- * refused or is unreachable for over 5 minutes (the message says why).
+ * One waiter per session: every turn's end starts one, also while an
+ * earlier one still waits (the learner typed to the agent meanwhile). A
+ * lock file per session in the temp folder holds the waiting one's pid.
  *
- * The item is CLAIMED for this agent (same as calling wait_for_work), so
- * read it and respond promptly — an unanswered claim is released to other
- * agents after 10 minutes. No dependencies — Node 18+.
+ * The item is CLAIMED for this agent (same as calling wait_for_work). An
+ * unanswered claim is released to other agents after 10 minutes. This
+ * agent gets it back at once one time, and again after it lost its
+ * context; after that only when the claim runs out.
  *
- * Images: the item's "[image N]" markers point at real images, which stdout
+ * Images: the item's "[image N]" markers point at real images, which text
  * can't carry. They are saved as files and listed in "imageFiles" (in
  * order), so the agent can open them.
- *
- * It sends Claude Code's session id (CLAUDE_CODE_SESSION_ID), so godspeed
- * sends this session only the messages it hasn't seen yet.
  *
  * The output is the result's text blocks, a blank line between them: the
  * item's JSON on the first line, then its instructions and long message
  * texts ("[text N]") as plain text. A long item comes in pages: the first
  * line is then a short header ("pages"), page 1 of the item follows, and
  * the agent reads the other pages with the read_work tool.
+ * No dependencies; Node 18+.
  */
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { NO_TOKEN, target, terminalHeader } from "./target.mjs";
 
-const args = process.argv.slice(2);
-const flag = (name) => {
-	const at = args.indexOf(name);
-	return at >= 0 ? args[at + 1] : undefined;
-};
-let lessonId = flag("--lesson");
-const helper = args.includes("--helper");
-const agent = process.env.CLAUDE_CODE_SESSION_ID;
-const asked = Number(flag("--max-minutes") ?? 120);
-const maxMinutes = Number.isFinite(asked) && asked > 0 ? asked : 120;
-const deadline = Date.now() + maxMinutes * 60_000;
+const MAX_WAIT_MS = 120 * 60_000;
 const UNREACHABLE_LIMIT_MS = 5 * 60_000;
+// The hook's timeout: Claude Code has ended a waiter by then, so an older lock is stale even if
+// its pid now belongs to another program.
+const LOCK_LIFE_MS = 7260_000;
+// godspeed's answer when the app terminal this agent runs in was closed.
+const TERMINAL_CLOSED = "This terminal was closed in godspeed.";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function fail(text) {
-	process.stdout.write(`${text}\n`);
+let input = "";
+if (!process.stdin.isTTY) for await (const chunk of process.stdin) input += chunk;
+let agent;
+try {
+	agent = JSON.parse(input).session_id;
+} catch {
+	/* not run as a hook */
+}
+if (typeof agent !== "string" || !agent) {
+	// A chat from an older godspeed still runs the waiter itself.
+	process.stdout.write("godspeed was updated. Close this window and open your agent from godspeed again.\n");
 	process.exit(1);
 }
+const helper = process.env.GODSPEED_HELPER === "1";
 
-// A window still open from an older godspeed passes --backup, and would teach as a second teacher.
-if (args.includes("--backup")) fail("godspeed was updated. Close this window and open your agent from godspeed again.");
+const dir = path.join(os.tmpdir(), "godspeed-waiters");
+const base = path.join(dir, agent.replace(/[^\w-]/g, "_"));
+const lock = `${base}.pid`;
+const failed = `${base}.failed`;
+
+const alive = (pid) => {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch (err) {
+		return err.code === "EPERM";
+	}
+};
+
+/** Takes this session's lock, unless a live waiter holds it. A temp folder it can't write
+ *  leaves it waiting unguarded: two waiters beat none. */
+function takeLock() {
+	try {
+		fs.mkdirSync(dir, { recursive: true });
+	} catch {
+		return true;
+	}
+	for (let tries = 0; tries < 2; tries++) {
+		try {
+			fs.writeFileSync(lock, String(process.pid), { flag: "wx" });
+			return true;
+		} catch (err) {
+			if (err.code !== "EEXIST") return true;
+		}
+		let pid = NaN;
+		let since = 0;
+		try {
+			pid = Number(fs.readFileSync(lock, "utf8"));
+			since = fs.statSync(lock).mtimeMs;
+		} catch {
+			/* it was just removed */
+		}
+		if (Number.isInteger(pid) && pid > 0 && alive(pid) && Date.now() - since < LOCK_LIFE_MS) return false;
+		// Its waiter ended without removing it (killed): take it over.
+		fs.rmSync(lock, { force: true });
+	}
+	return false;
+}
+
+if (!takeLock()) process.exit(0);
+process.on("exit", () => {
+	try {
+		if (fs.readFileSync(lock, "utf8") === String(process.pid)) fs.rmSync(lock);
+	} catch {
+		/* already gone */
+	}
+});
+
+const readFailed = () => {
+	try {
+		return fs.readFileSync(failed, "utf8");
+	} catch {
+		return null;
+	}
+};
+
+/** Wakes the agent with `text` once it is written (a pipe may take it in parts). Never settles. */
+function wake(text) {
+	process.stderr.write(`${text}\n`, () => process.exit(2));
+	return new Promise(() => {});
+}
+
+/** Wakes the agent with the failure, once: the turn that reports it ends in another waiter. */
+function fail(text) {
+	if (readFailed() === text) process.exit(0);
+	try {
+		fs.writeFileSync(failed, text);
+	} catch {
+		/* no temp folder: it is told each time */
+	}
+	return wake(text);
+}
 
 const EXTENSIONS = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp", "image/svg+xml": "svg" };
 
@@ -69,10 +156,10 @@ const EXTENSIONS = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif"
 function saveImages(content, workId) {
 	const blocks = (content ?? []).filter((c) => c?.type === "image" && typeof c.data === "string");
 	if (!blocks.length) return [];
-	const dir = fileURLToPath(new URL("./images/", import.meta.url));
-	fs.mkdirSync(dir, { recursive: true });
+	const images = fileURLToPath(new URL("./images/", import.meta.url));
+	fs.mkdirSync(images, { recursive: true });
 	return blocks.map((block, i) => {
-		const file = path.join(dir, `${String(workId).replace(/[^\w-]/g, "")}-${i + 1}.${EXTENSIONS[block.mimeType] ?? "png"}`);
+		const file = path.join(images, `${String(workId).replace(/[^\w-]/g, "")}-${i + 1}.${EXTENSIONS[block.mimeType] ?? "png"}`);
 		fs.writeFileSync(file, Buffer.from(block.data, "base64"));
 		return file;
 	});
@@ -94,8 +181,8 @@ const ENVELOPE = {
 /** One wait_for_work call. Returns the parsed tool result, or throws. */
 async function waitOnce() {
 	const { url, token } = target();
-	if (!token) fail(NO_TOKEN);
-	const meta = { ...(modern ? ENVELOPE : {}), ...(agent ? { "godspeed/agent": agent } : {}) };
+	if (!token) return fail(NO_TOKEN);
+	const meta = { ...(modern ? ENVELOPE : {}), "godspeed/agent": agent };
 	const res = await fetch(url, {
 		method: "POST",
 		headers: {
@@ -109,11 +196,7 @@ async function waitOnce() {
 			jsonrpc: "2.0",
 			id: 1,
 			method: "tools/call",
-			params: {
-				name: "wait_for_work",
-				arguments: { timeout_seconds: 55, ...(lessonId ? { lesson_id: lessonId } : {}), ...(helper ? { helper: true } : {}) },
-				...(Object.keys(meta).length ? { _meta: meta } : {}),
-			},
+			params: { name: "wait_for_work", arguments: { timeout_seconds: 55, ...(helper ? { helper: true } : {}) }, _meta: meta },
 		}),
 	});
 	const body = await res.text();
@@ -128,18 +211,16 @@ async function waitOnce() {
 		} catch {
 			/* plain text */
 		}
-		fail(`godspeed refused the request (${res.status}): ${detail}`);
+		if (detail === TERMINAL_CLOSED) process.exit(0);
+		return fail(`godspeed refused the request (${res.status}): ${detail}`);
 	}
 	if (!res.ok) throw new Error(`HTTP ${res.status}`);
 	const rpc = JSON.parse(body);
-	if (rpc.error) fail(`godspeed error: ${rpc.error.message}`);
+	if (rpc.error) return fail(`godspeed error: ${rpc.error.message}`);
 	const text = rpc.result?.content?.[0]?.text ?? "";
-	if (rpc.result?.isError && lessonId && text.startsWith("No lesson")) {
-		// The learner deleted the lesson it stayed on: wait for any work instead.
-		lessonId = undefined;
-		return { item: { status: "idle" } };
-	}
-	if (rpc.result?.isError) fail(`wait_for_work failed: ${text}`);
+	if (rpc.result?.isError && text === TERMINAL_CLOSED) process.exit(0);
+	if (rpc.result?.isError) return fail(`wait_for_work failed: ${text}`);
+	fs.rmSync(failed, { force: true });
 	const item = JSON.parse(text);
 	if (item.status === "work") {
 		const imageFiles = saveImages(rpc.result?.content, item.workId);
@@ -149,6 +230,7 @@ async function waitOnce() {
 	return { item, rest };
 }
 
+const deadline = Date.now() + MAX_WAIT_MS;
 let unreachableSince = null;
 while (Date.now() < deadline) {
 	let item, rest;
@@ -158,14 +240,12 @@ while (Date.now() < deadline) {
 	} catch {
 		// The app may be restarting: keep trying for a while.
 		unreachableSince ??= Date.now();
-		if (Date.now() - unreachableSince > UNREACHABLE_LIMIT_MS) fail(`Can't reach godspeed at ${target().url}. Is the app open?`);
+		if (Date.now() - unreachableSince > UNREACHABLE_LIMIT_MS) await fail(`Can't reach godspeed at ${target().url}. Is the app open?`);
 		await sleep(5_000);
 		continue;
 	}
 	if (item.status === "work") {
-		process.stdout.write(`${[JSON.stringify(item), ...rest].join("\n\n")}\n`);
-		process.exit(0);
+		await wake([JSON.stringify(item), ...rest].join("\n\n"));
 	}
 }
-process.stdout.write(`No work arrived in ${maxMinutes} minutes. Run the waiter again to keep waiting.\n`);
-process.exit(2);
+process.exit(0);

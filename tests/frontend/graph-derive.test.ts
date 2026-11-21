@@ -10,11 +10,13 @@ import {
 	factLinks,
 	neighbors,
 	findMatches,
+	nothingGrouped,
+	sortsNextLine,
 	sureMissNote,
 	topicCountLine,
 } from "../../src/frontend/components/graph/derive.ts";
 import { factMark, topicFacts } from "../../src/shared/core/progress.ts";
-import { answers, fact, fixture } from "../graph-fixture.ts";
+import { answers, fact, fixture, unsorted } from "../graph-fixture.ts";
 
 describe("fact links", () => {
 	it("factLinks: premises of chains concluding it, conclusions of chains it starts, each once", () => {
@@ -81,5 +83,19 @@ describe("panel helpers", () => {
 		assert.deepEqual([...weights.facts], ["f12"]);
 		const none = findMatches("zzz", data.topics, data.facts)!;
 		assert.equal(none.topics.size + none.facts.size, 0);
+	});
+});
+
+describe("before any topic", () => {
+	it("nothing is grouped while Ungrouped is the only topic; a space with topics, or none at all, is not waiting", () => {
+		assert.equal(nothingGrouped(unsorted().topics), true);
+		assert.equal(nothingGrouped(fixture().topics), false);
+		assert.equal(nothingGrouped([]), false);
+	});
+
+	it("the line names the teacher and counts the facts; with fewer than the server sorts it says when topics come", () => {
+		assert.equal(sortsNextLine("Quigley", 12, 4), "Quigley sorts these 12 facts into topics next.");
+		assert.equal(sortsNextLine("Quigley", 4, 4), "Quigley sorts these 4 facts into topics next.");
+		assert.equal(sortsNextLine("Quigley", 1, 4), "Topics appear once this space has 4 facts.");
 	});
 });

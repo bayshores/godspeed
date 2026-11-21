@@ -23,7 +23,6 @@ pub mod turn_runs;
 pub mod turn_service;
 
 use std::collections::{HashMap, HashSet};
-use std::sync::atomic::AtomicBool;
 
 use gs_core::messages::input_events::DismissInput;
 use gs_core::study::reply_nudges::Nudge;
@@ -61,12 +60,17 @@ pub struct TurnsState {
 	/// The leftover-extraction timer of each chat: its number, so a newer one replaces it.
 	leftover_timers: Mutex<HashMap<String, u64>>,
 	leftover_count: Mutex<u64>,
-	/// Catch-up ran its lesson pass this run.
-	lessons_caught_up: AtomicBool,
+	/// Each chat's kept boundary that a shortening could not move past, said once in the log.
+	compaction_skips: Mutex<HashSet<(String, String)>>,
+	/// The agent sessions catch-up ran its lesson pass for.
+	lessons_caught_up: Mutex<HashSet<String>>,
 	/// The questions from earlier skipped in each lesson's sitting (review).
 	review_skips: Mutex<HashMap<String, review::Skips>>,
 	/// The reply nudges each Study lesson was sent, by chat and topic (reply-nudges).
 	nudged: Mutex<HashSet<(String, String, Nudge)>>,
+	/// The new topic lessons sent back once for a near deadline's unfinished lesson, by deadline
+	/// and topic (start_lesson).
+	pub(crate) near_deadline_asked: Mutex<HashSet<(String, String)>>,
 	/// Each Study lesson's latest wall send-back, by chat (reply-nudges).
 	walls: Mutex<HashMap<String, reply_nudges::Wall>>,
 }

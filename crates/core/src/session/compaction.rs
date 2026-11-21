@@ -2,8 +2,9 @@
 //!
 //! Full history stays in the record. A compaction marker carries a summary plus the cut
 //! (`firstKeptMessageId`); the model-facing projection is the summary followed by every message
-//! from the cut onward. Tokens are estimated as Pi does: anchor on the provider-reported usage of
-//! the last assistant message and estimate by characters / 4 only what came after it.
+//! from the cut onward. The threshold measures that projection alone (`lesson_tokens`), by
+//! characters / 4 as Pi estimates, never the system prompt or tool schemas: those are the same
+//! after every cut, so counting them would leave a shortened lesson over the threshold.
 //!
 //! Two steps, so a turn never waits on a summary: past the threshold godspeed shortens the record
 //! itself at once (`local_summary`), and once the lesson has been quiet the session's model writes
@@ -24,6 +25,7 @@ use crate::messages::attachments::content_text;
 use crate::messages::compaction_marks::{active_compaction_of, kept_index_for};
 use crate::messages::lesson_markers::is_ui_only;
 use crate::messages::message_id::new_message_id;
+use crate::messages::native_messages::to_llm_messages;
 use crate::records::settings::factory_settings;
 
 /// Kept-recent tail budget: about 20k tokens of verbatim recent transcript always ride after the
@@ -49,17 +51,6 @@ pub fn effective_threshold_tokens(setting_tokens: Option<f64>, context_window_to
 		None => setting,
 		Some(window) => setting.min((window - COMPACTION_RESERVE_TOKENS).max(1.0)),
 	}
-}
-
-fn number(v: &Json, key: &str) -> f64 {
-	v[key].as_f64().unwrap_or(0.0)
-}
-
-/// Context tokens from a provider-reported usage block: the most honest measure of what the last
-/// request carried.
-pub fn calculate_context_tokens(usage: &Json) -> f64 {
-	let total = number(usage, "totalTokens");
-	if total != 0.0 { total } else { number(usage, "input") + number(usage, "output") + number(usage, "cacheRead") + number(usage, "cacheWrite") }
 }
 
 fn len_of(v: &Json) -> f64 {
@@ -118,50 +109,15 @@ pub fn estimate_message_tokens(message: &Json) -> f64 {
 	(chars / 4.0).ceil()
 }
 
-/// The newest assistant message carrying valid provider-reported usage: aborted and error
-/// messages and all-zero usage say nothing about the wire. The scan stops at the newest
-/// compaction marker, because usage captured before a compaction described the pre-cut context.
-fn last_assistant_usage_index(messages: &[Json]) -> Option<usize> {
-	for (i, m) in messages.iter().enumerate().rev() {
-		if is_custom(m, "compaction") {
-			return None;
-		}
-		if !Role::Assistant.is(m) || matches!(m["stopReason"].as_str(), Some("aborted" | "error")) {
-			continue;
-		}
-		if calculate_context_tokens(&m["usage"]) == 0.0 {
-			continue;
-		}
-		return Some(i);
-	}
-	None
-}
-
-/// What the trigger compares against the threshold.
-pub struct ContextTokenEstimate {
-	pub tokens: f64,
-	/// Provider-reported tokens from the usage anchor (0 when unanchored).
-	pub usage_tokens: f64,
-	/// Estimated tokens after the anchor (or everything, when unanchored).
-	pub trailing_tokens: f64,
-	pub last_usage_index: Option<usize>,
-}
-
-/// The trigger estimator: anchor on the last assistant usage the provider reported and estimate
-/// only what was appended after it. History the provider already counted is never re-estimated.
-pub fn estimate_context_tokens(messages: &[Json]) -> ContextTokenEstimate {
-	let Some(anchor) = last_assistant_usage_index(messages) else {
-		let trailing = estimate_tokens(messages);
-		return ContextTokenEstimate { tokens: trailing, usage_tokens: 0.0, trailing_tokens: trailing, last_usage_index: None };
-	};
-	let usage_tokens = calculate_context_tokens(&messages[anchor]["usage"]);
-	let trailing = estimate_tokens(&messages[anchor + 1..]);
-	ContextTokenEstimate { tokens: usage_tokens + trailing, usage_tokens, trailing_tokens: trailing, last_usage_index: Some(anchor) }
-}
-
 /// The plain heuristic over a whole message list.
 pub fn estimate_tokens(messages: &[Json]) -> f64 {
 	messages.iter().map(estimate_message_tokens).sum()
+}
+
+/// The lesson's size, what the threshold measures: the model-facing transcript (the summary and
+/// every message from the cut onward).
+pub fn lesson_tokens(messages: &[Json]) -> f64 {
+	estimate_tokens(&to_llm_messages(messages))
 }
 
 /// Whether a message can be a cut candidate. Compaction markers are boundaries and UI-only markers
@@ -400,12 +356,10 @@ mod tests {
 	}
 
 	#[test]
-	fn thresholds_and_usage() {
+	fn thresholds() {
 		assert_eq!(effective_threshold_tokens(None, None), 40_000.0);
 		assert_eq!(effective_threshold_tokens(Some(90_000.0), Some(50_000.0)), 33_616.0);
 		assert_eq!(effective_threshold_tokens(Some(5.0), Some(10.0)), 1.0);
-		assert_eq!(calculate_context_tokens(&json!({ "totalTokens": 7, "input": 1 })), 7.0);
-		assert_eq!(calculate_context_tokens(&json!({ "input": 1, "output": 2, "cacheRead": 3, "cacheWrite": 4 })), 10.0);
 	}
 
 	#[test]
@@ -418,13 +372,11 @@ mod tests {
 	}
 
 	#[test]
-	fn the_estimate_anchors_on_the_last_real_usage() {
-		let messages = [user("hello"), assistant("a", 100), user("abcdefgh"), json!({ "role": "assistant", "stopReason": "error", "content": [], "usage": { "input": 999 } })];
-		let estimate = estimate_context_tokens(&messages);
-		assert_eq!((estimate.tokens, estimate.usage_tokens, estimate.trailing_tokens, estimate.last_usage_index), (102.0, 100.0, 2.0, Some(1)));
-		let marker = json!({ "role": "custom", "customType": "compaction", "details": {} });
-		assert_eq!(estimate_context_tokens(&[assistant("a", 100), marker]).last_usage_index, None);
+	fn the_lesson_size_counts_the_model_facing_transcript_and_no_usage() {
 		assert_eq!(estimate_tokens(&[user("abcd"), user("abcd")]), 2.0);
+		let messages = [user("hello"), assistant("a", 50_000)];
+		assert_eq!(lesson_tokens(&messages), estimate_tokens(&to_llm_messages(&messages)), "a reported usage is not the lesson's size");
+		assert!(lesson_tokens(&messages) < 100.0);
 	}
 
 	#[test]

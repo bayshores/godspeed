@@ -359,6 +359,8 @@ export interface ProgressPayload {
 	topicsAt: string | null;
 	/** A topic-grouping run is going. */
 	grouping: boolean;
+	/** The fewest facts the server sorts into topics. */
+	minFactsForTopics: number;
 	topics: TopicProgress[];
 	topicLinks: TopicLink[];
 	facts: FactProgress[];

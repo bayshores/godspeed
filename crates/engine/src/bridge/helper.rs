@@ -59,7 +59,7 @@ impl Bridge {
 		someone_compacting(&s, now) && here(&s, now)
 	}
 
-	/// Whether this agent's waiter is a helper's (its turn hints say --helper).
+	/// Whether this agent waits as the helper (its waits say `helper: true`).
 	pub fn is_helper_agent(&self, agent: Option<&str>) -> bool {
 		is_helper(&self.0.state.lock(), agent)
 	}
