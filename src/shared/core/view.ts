@@ -62,6 +62,8 @@ export interface LhViewPart extends Record<string, unknown> {
 	data?: unknown;
 	/** An answered question's files (pictures, PDF notes), as their own parts. */
 	files?: LhViewPart[];
+	/** On an opener's lead: the plan node its question starts. */
+	opens?: string;
 }
 
 /** A view message: user (bubble) or assistant (one continuous run). */
@@ -341,7 +343,8 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 /** A shown opener where it was posed: its lead as teacher text, then its
  *  question while it waits. Once answered, the question draws at its answer. */
 function openerParts(opener: ShownOpener): LhViewPart[] {
-	const lead: LhViewPart[] = opener.lead ? [{ type: "text", id: openerLeadId(opener.topicDoneCallId), text: opener.lead, state: "done" }] : [];
+	const opens = typeof opener.quiz.nodeId === "string" ? { opens: opener.quiz.nodeId } : {};
+	const lead: LhViewPart[] = opener.lead ? [{ type: "text", id: openerLeadId(opener.topicDoneCallId), text: opener.lead, state: "done", ...opens }] : [];
 	return opener.answer ? lead : [...lead, openerQuestion(opener)];
 }
 

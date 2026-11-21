@@ -925,6 +925,7 @@ describe("the lesson page's pair", () => {
 describe("the reading pane", () => {
 	const readingProps = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}): React.ComponentProps<typeof ReadingPane> => ({
 		spaceId: undefined,
+		stepNumbers: new Map(),
 		echo: -1,
 		messages: [],
 		phases: [],
