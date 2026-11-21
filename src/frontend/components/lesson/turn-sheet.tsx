@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, type Ref } from "react";
 import { paleSpaceColor } from "@/frontend/components/space-color";
 import { useSpaceColor } from "@/frontend/components/space-context";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -16,9 +16,12 @@ export function TurnSheet({
 	spaceId,
 	next,
 	answered,
+	sheetRef,
 	...turn
 }: Omit<YourTurnProps, "shown" | "swapKey"> & {
 	spaceId: string | undefined;
+	/** The lesson page's glide (useSheetGlide). */
+	sheetRef?: Ref<HTMLElement>;
 	/** The next state; null while the teacher writes with no stop to go on from. */
 	next: TurnNext | null;
 	/** The question answered or skipped last, when that is the last thing the learner did. */
@@ -47,7 +50,8 @@ export function TurnSheet({
 			className="flex min-h-0 min-w-0 flex-1 flex-col"
 			style={{ "--lh-pale": color ? paleSpaceColor(color) : "var(--color-tone)" } as React.CSSProperties}
 		>
-			<Pane className="flex min-h-0 flex-1 flex-col">
+			{/* Its size starts from what it holds (flex-auto), so the sheet can glide to a new height. */}
+			<Pane ref={sheetRef} className="flex min-h-0 flex-auto flex-col">
 				<YourTurn {...turn} shown={shown} swapKey={swapKey} />
 			</Pane>
 		</aside>

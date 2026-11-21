@@ -18,6 +18,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { YourTurn } from "../../src/frontend/components/lesson/your-turn.tsx";
 import { TurnSheet } from "../../src/frontend/components/lesson/turn-sheet.tsx";
+import { TurnPinned } from "../../src/frontend/components/lesson/turn-pinned.ts";
 import type { NextAction, TurnNext } from "../../src/frontend/components/lesson/turn-next-model.ts";
 import { LessonScroll } from "../../src/frontend/components/lesson/lesson-scroll.tsx";
 import type { QuestionHandle } from "../../src/frontend/components/question-dock.tsx";
@@ -157,7 +158,7 @@ describe("Your turn in each state", () => {
 			const out = html({ busy, shown: shown(atStop) });
 			assert.match(out, /data-mode="next"/);
 			assert.match(out, /<h2[^>]*>Your turn<\/h2>[\s\S]*data-testid="turn-next"[\s\S]*data-testid="turn-next-line" class="[^"]*text-ink"[^>]*>Cross-validation is next\.<[\s\S]*data-testid="next-problem-button"/);
-			assert.match(out, /data-testid="next-problem-button" data-action="keep-going" class="lh-btn lh-btn-main ml-auto">Continue</);
+			assert.match(out, /data-testid="next-problem-button" data-action="keep-going" class="lh-btn lh-btn-main ml-auto shrink-0">Continue</);
 			assert.equal(out.split("lh-btn-main").length - 1, 1, "one bright key");
 			assert.match(out, /data-testid="turn-next"[\s\S]*data-testid="composer"[\s\S]*data-testid="composer-send"[^>]*disabled[^>]*>Ask Teacher</);
 			assert.doesNotMatch(out, /skip-question|discard-problem|stop-turn|Stop here|Keep going/);
@@ -179,6 +180,23 @@ describe("Your turn in each state", () => {
 			await act(async () => document.body.dispatchEvent(enter));
 		});
 		assert.deepEqual(pressed, ["keep-going", "next", "next"]);
+	});
+
+	it("pinned at the window's foot with nothing to answer: no head, the key that goes on at the end of the Try asking row, and the box alone while the teacher works", () => {
+		const pinned = (n: React.ReactNode) => <TurnPinned.Provider value={true}>{n}</TurnPinned.Provider>;
+		const out = html({ shown: shown(atStop) }, pinned);
+		assert.match(out, /data-testid="your-turn"[^>]*class="[^"]*lh-turn-quiet/);
+		assert.doesNotMatch(out, /<h2/);
+		assert.match(out, /turn-next-line[^>]*>Cross-validation is next\.<\/p><\/div>[\s\S]*data-testid="composer"[\s\S]*data-testid="turn-foot"[\s\S]*Try asking[\s\S]*data-testid="next-problem-button"[^>]*>Continue</);
+		const busy = html({ busy: true, shown: shown({ line: "Cross-validation is next.", key: null }, true) }, pinned);
+		assert.match(busy, /data-testid="turn-swap"[^>]*class="[^"]*hidden[^"]*"><\/div>/);
+		assert.match(busy, /data-testid="composer"/);
+		assert.doesNotMatch(busy, /turn-next|turn-foot|<h2/);
+		for (const over of [{ pending: quiz }, { problem }]) {
+			const asked = html(over, pinned);
+			assert.match(asked, /<h2/, "a question or a problem keeps its head");
+			assert.doesNotMatch(asked, /lh-turn-quiet/);
+		}
 	});
 
 	it("the last topic: one line and Done for today", () => {

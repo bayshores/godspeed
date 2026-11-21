@@ -11,7 +11,7 @@ import type { AgentWork, CardFile } from "./agent-at-work-model";
 export type DeskState = "waiting" | "working";
 
 /** Whether the desk shows: from the teacher's first plan or step in this reply until the reply's
- *  text lands. Before that, Stop stands alone and the strip says the teacher works. */
+ *  text lands. Before that, the pencil shows and the strip says the teacher works. */
 export function deskState({ busy, waitingForAgent, work }: { busy: boolean; waitingForAgent: boolean; work: AgentWork | null }): DeskState | null {
 	if (!busy || !work || work.replied || (work.plan === null && work.steps.length === 0)) return null;
 	return waitingForAgent ? "waiting" : "working";
@@ -62,7 +62,7 @@ export function planLines({ items, done }: { items: readonly string[]; done: num
 /** Where a desk that is leaving held the lesson: its message count, the newest message's part
  *  count and, when that message ends in text, how long the text was (an answered question's reply
  *  grows the same message, and its text can start as an empty part). */
-type DeskMark = { count: number; parts: number; text: number | null };
+export type DeskMark = { count: number; parts: number; text: number | null };
 
 /** The lesson's mark as it stands. */
 export function deskMark(messages: readonly LhViewMessage[]): DeskMark {

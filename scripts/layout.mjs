@@ -315,12 +315,13 @@ async function main() {
 				throw new Error(`${screen.name}: ${err.message}; picture: ${snap}; findings so far: ${path.join(RUN, "report.txt")}`);
 			}
 			for (const width of WIDTHS) {
-				await app.value(`size ${width} ${HEIGHT}`);
+				const height = screen.height ?? HEIGHT;
+				await app.value(`size ${width} ${height}`);
 				await sleep(SETTLE_MS);
 				// A screen smaller than the window squeezes it, and the check would judge another size.
 				const [shownWidth, shownHeight] = await app.value("eval [innerWidth, innerHeight]");
-				const problem = misfit({ width, height: HEIGHT }, { width: shownWidth, height: shownHeight });
-				if (problem && width === Math.min(...WIDTHS)) throw new Error(`${problem}: the screen is too small for the narrowest width`);
+				const problem = misfit({ width, height }, { width: shownWidth, height: shownHeight });
+				if (problem && width === Math.min(...WIDTHS) && !screen.height) throw new Error(`${problem}: the screen is too small for the narrowest width`);
 				if (problem) {
 					warnings.push(`WARNING: ${screen.name} at ${width} was NOT checked: ${problem}; the screen is too small`);
 					console.warn(warnings.at(-1));

@@ -40,6 +40,7 @@ import { holdsDraft } from "@/frontend/components/lesson/lesson-drafts-model";
 import { lastLearnerText, lessonError, retryAction } from "@/frontend/components/lesson/lesson-error-model";
 import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts";
 import { useArrivals } from "@/frontend/components/lesson/arrivals";
+import { useSheetGlide } from "@/frontend/components/lesson/use-sheet-glide";
 import { answerAnchorSelector } from "@/frontend/components/lesson/card-anchors";
 import { practiceProgress } from "@/frontend/components/lesson/practice-progress";
 import { useLessonServer, type LessonStats } from "@/frontend/components/lesson/use-lesson-server";
@@ -148,6 +149,7 @@ export function Chat({
 	const sessionFindScopeRef = useRef<HTMLDivElement | null>(null);
 	const scrollContextRef = useRef<StickToBottomContext | null>(null);
 	const arrive = useArrivals();
+	const sheetGlide = useSheetGlide();
 	const [arrivalsLive, setArrivalsLive] = useState(false);
 	useEffect(() => setArrivalsLive(true), []);
 
@@ -582,6 +584,7 @@ export function Chat({
 											arrivalsLive={arrivalsLive}
 											pageMarks={pageMarks}
 											arrive={arrive}
+											sheetRef={sheetGlide}
 										/>
 										)
 									}
@@ -590,6 +593,7 @@ export function Chat({
 											<TurnSheet
 												// Remounts once the saved drafts are read, so the question starts from them.
 												key={draftsLoaded ? "drafts" : "loading"}
+												sheetRef={sheetGlide}
 												spaceId={spaceId}
 												pending={pending}
 												initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}

@@ -1,4 +1,4 @@
-import { useContext, useMemo } from "react";
+import { useContext, useMemo, type Ref } from "react";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { ConversationEmptyState } from "@/frontend/components/ai-elements/conversation";
@@ -18,7 +18,9 @@ import { AgentAtWork } from "./agent-at-work";
 import { agentWork } from "./agent-at-work-model";
 import { ArrivalRow, type Arrive } from "./arrivals";
 import { MessageRow, messageShows } from "./message-row";
+import { PencilLine } from "./pencil-line";
 import { stepSheets, type SheetRow } from "./step-sheets-model";
+import { useReplyHold } from "./use-reply-hold";
 import { cardFiles, deskMark, deskState, heldBack } from "./wait-model";
 
 /**
@@ -26,10 +28,12 @@ import { cardFiles, deskMark, deskState, heldBack } from "./wait-model";
  * inline, one sheet per step (stepSheets) with the step's number on a tab at
  * its left edge. A sheet is as tall as its text and the newest fills the
  * window; the page around them scrolls (LessonScroll).
- * While the teacher works the newest sheet's foot holds the desk (AgentAtWork), which grows
- * to the sheet's foot, with Stop under it; the keys that move the lesson on
- * are in "Your turn". When the reply lands the desk fades out first and the
- * reply is held back until it has gone, so the two never stack.
+ * While the teacher works the newest sheet's foot holds the pencil (PencilLine) with Stop at
+ * the row's end, then, once the teacher plans or takes a step, the desk
+ * (AgentAtWork), which grows to the sheet's foot, with Stop under it; the
+ * keys that move the lesson on are in "Your turn". When the reply lands the desk fades out first and the
+ * reply is held back until it has gone, so the two never stack; under the pencil it is held until
+ * its turn ends (useReplyHold), so its words take the pencil's place in one step.
  * Each message is a memoized row, so streaming redraws only the message
  * being written.
  */
@@ -48,6 +52,7 @@ export function ReadingPane({
 	arrivalsLive,
 	pageMarks,
 	arrive,
+	sheetRef,
 }: {
 	/** The lesson's space. */
 	spaceId: string | undefined;
@@ -72,6 +77,8 @@ export function ReadingPane({
 	/** Each Study topic's stored page mark, by the text it sits in. */
 	pageMarks: ReadonlyMap<string, string>;
 	arrive: Arrive;
+	/** The newest sheet, for the lesson page's glide (useSheetGlide). */
+	sheetRef?: Ref<HTMLElement>;
 }) {
 	const last = messages.length - 1;
 	const jobs = useContext(JobsContext);
@@ -83,11 +90,18 @@ export function ReadingPane({
 	const desk = useLastWhileClosing(open);
 	const closing = desk.mounted && desk.state === "closed" && !prefersReducedMotion();
 	const shownDesk = open || (closing ? desk.shown : null);
-	const shown = closing && desk.shown ? heldBack(messages, desk.shown.mark) : messages;
+	// The reply's first part or its words are here and the pencil is still up: they wait a moment for the turn to end.
+	const arriving = !!work?.replied || replying?.parts.at(-1)?.type === "reasoning";
+	const early = useReplyHold(busy && !shownDesk && arriving, deskMark(messages));
+	const mark = closing && desk.shown ? desk.shown.mark : early;
+	const shown = mark ? heldBack(messages, mark) : messages;
+	// Until the desk has something to show, the pencil stands where the reply will begin.
 	const foot = (busy || closing) && onStop && (
-		<div className="flex flex-col items-start gap-2 font-ui">
+		<div className="flex flex-col gap-2 font-ui">
 			<QueuedSteersBody steers={queuedSteers} />
-			<div className="flex flex-wrap items-center gap-3">
+			<div className="flex flex-wrap items-center justify-end gap-3">
+				{busy && !shownDesk && <PencilLine state={waitingForAgent ? "waiting" : "working"} />}
+				<span className="flex-1" />
 				{waitingForAgent && <StartKey />}
 				<button type="button" data-testid="stop-turn" onClick={onStop} className="lh-btn lh-btn-quiet">
 					Stop
@@ -109,12 +123,12 @@ export function ReadingPane({
 		return drawn.length > 0 ? drawn : all.slice(-1);
 	}, [shown, stepNumbers, phases, echo, openProblem]);
 	return (
-		<div data-testid="lesson-reading" data-session-find-root="" className="flex min-w-0 flex-col gap-(--lh-gap)">
+		<div data-testid="lesson-reading" data-session-find-root="" className="lh-text-sheets flex min-w-0 flex-col gap-(--lh-gap)">
 			{sheets.map((sheet, si) => {
 				const newest = si === sheets.length - 1;
 				const first = sheet.rows[0];
 				return (
-					<Pane key={first ? `${shown[first.index]!.id || first.index}:${first.from}` : "empty"} data-testid="lesson-sheet" className={cn("flex min-w-0 flex-col", newest && "lh-text-fit")}>
+					<Pane key={first ? `${shown[first.index]!.id || first.index}:${first.from}` : "empty"} ref={newest ? sheetRef : undefined} data-testid="lesson-sheet" className={cn("flex min-w-0 flex-col", newest && "lh-text-fit")}>
 						{sheet.label && (
 							<span data-testid="sheet-step" className={STEP_TAB} style={{ background: spaceColor ? spaceColorVar(spaceColor) : "var(--color-ink-2)" }}>
 								<span className="sr-only">{sheet.counts} </span>

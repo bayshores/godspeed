@@ -1,9 +1,9 @@
 /**
- * The lesson while the teacher works: Stop alone until the teacher plans or takes a step, then
- * the desk with the plan and the file it reads, the title's bubble left out,
+ * The lesson while the teacher works: the pencil and Stop until the teacher plans or takes a
+ * step, then the desk with the plan and the file it reads, the title's bubble left out,
  * the start key while no agent is here, no Start again at the foot of the text, and the landing:
- * the desk leaves before the reply shows, which then draws in, also when an answered question's
- * reply grows the same message.
+ * the desk leaves before the reply shows, which then prints line by line, also when an answered
+ * question's reply grows the same message.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -29,6 +29,18 @@ Object.assign(globalThis, {
 	ResizeObserver: class {
 		observe() {}
 		disconnect() {}
+	},
+});
+
+// The page here lays nothing out: every line is 28 high and the reply's first paragraph is two lines.
+const printed: { tag: string; delay: number; duration: number; easing: string }[] = [];
+Object.assign(globalThis, { getComputedStyle: () => ({ lineHeight: "28px" }) });
+Object.assign(dom.window.HTMLElement.prototype, {
+	getBoundingClientRect(this: HTMLElement) {
+		return { height: this.textContent?.startsWith("First.") ? 56 : 28 };
+	},
+	animate(this: HTMLElement, _frames: unknown, timing: { delay: number; duration: number; easing: string }) {
+		printed.push({ tag: this.tagName, delay: timing.delay, duration: timing.duration, easing: timing.easing });
 	},
 });
 
@@ -65,8 +77,9 @@ const pane = (over: Partial<Props> = {}) => renderToStaticMarkup(<ReadingPane {.
 const count = (html: string, pattern: RegExp) => [...html.matchAll(pattern)].length;
 
 describe("the desk", () => {
-	it("opens on a new lesson as Stop alone, with no desk and no bubble for the title", () => {
+	it("opens on a new lesson as the pencil writing with Stop at the row's end, with no desk and no bubble for the title", () => {
 		const out = pane();
+		assert.match(out, /data-testid="pencil-line" data-state="working"[\s\S]*lh-pencil-ghost[\s\S]*lh-pencil-ink[\s\S]*lh-pencil-tip[\s\S]*data-testid="stop-turn"/);
 		assert.doesNotMatch(out, /data-testid="agent-at-work"/);
 		assert.doesNotMatch(out, /lh-paper/, "no paper before the teacher opens a file");
 		assert.match(out, /data-testid="stop-turn"/);
@@ -87,10 +100,18 @@ describe("the desk", () => {
 		assert.doesNotMatch(out, /\bborder(-edge)?\b(?!-)/);
 	});
 
-	it("offers the start key beside Stop while no agent takes the turn", () => {
+	it("lays the pencil down, with no ink, while no agent takes the turn", () => {
 		const out = pane({ waitingForAgent: true });
 		assert.doesNotMatch(out, /data-testid="agent-at-work"/);
-		assert.match(out, /data-testid="stop-turn"/);
+		assert.match(out, /data-testid="pencil-line" data-state="waiting"[\s\S]*lh-pencil-tip[\s\S]*data-testid="stop-turn"/);
+		assert.doesNotMatch(out, /lh-pencil-ink|lh-pencil-ghost/);
+	});
+
+	it("has no pencil beside the desk, whose spinner is the one live thing, or at a stop", () => {
+		const desk = pane({ messages: [card(1), first, teacher(read("r1", "/h/a.md"))] });
+		assert.match(desk, /data-testid="agent-at-work"[\s\S]*data-testid="stop-turn"/);
+		assert.doesNotMatch(desk, /pencil-line/);
+		assert.doesNotMatch(pane({ onStop: null }), /pencil-line/);
 	});
 
 	it("splits into the plan beside the file being read, the spinner only on the current item and only the newest step under it", () => {
@@ -188,7 +209,8 @@ describe("Start again", () => {
 });
 
 describe("the reply landing", () => {
-	it("waits for the desk to fade out, then draws in", async () => {
+	it("waits for the desk to fade out, then prints line by line", async () => {
+		printed.length = 0;
 		const host = document.createElement("div");
 		document.body.append(host);
 		const root = createRoot(host);
@@ -203,9 +225,77 @@ describe("the reply landing", () => {
 				await new Promise((done) => setTimeout(done, 200));
 			});
 			assert.ok(host.querySelector("[data-testid=agent-at-work]") === null);
-			assert.ok(host.querySelector(".lh-source-passage .lh-set") !== null, "the reply draws in block by block");
-			assert.ok(host.querySelector("[data-testid=cite-list].lh-block-in") !== null, "Sources come after the text");
+			assert.deepEqual(
+				printed.map((print) => print.tag),
+				["P", "P", "DIV"],
+				"the reply prints block by block, Sources after the text",
+			);
+			assert.deepEqual(
+				printed.map((print) => [print.delay, print.duration, print.easing]),
+				[
+					[0, 120, "steps(2, jump-start)"],
+					[120, 60, "steps(1, jump-start)"],
+					[180, 60, "steps(1, jump-start)"],
+				],
+				"a line at a time, each block when the one before it ends",
+			);
+			assert.ok(host.querySelector(".lh-set") === null);
 			assert.match(host.textContent ?? "", /First\.[\s\S]*Second\./);
+		} finally {
+			await act(async () => root.unmount());
+			host.remove();
+		}
+	});
+
+	it("under the pencil, holds the reply's words until its turn ends, so Stop never stands under them", async () => {
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		const waiting = props();
+		const words = { ...waiting, messages: [card(5), first, teacher({ type: "text", text: "Here it is." })] };
+		try {
+			await act(async () => root.render(<ReadingPane {...waiting} />));
+			await act(async () => root.render(<ReadingPane {...words} />));
+			assert.doesNotMatch(host.textContent ?? "", /Here it is/, "the words wait");
+			assert.ok(host.querySelector("[data-testid=pencil-line]") !== null, "and the pencil writes on");
+			await act(async () => root.render(<ReadingPane {...words} busy={false} status="ready" />));
+			assert.match(host.textContent ?? "", /Here it is/);
+			assert.ok(host.querySelector("[data-testid=stop-turn]") === null);
+		} finally {
+			await act(async () => root.unmount());
+			host.remove();
+		}
+	});
+
+	it("under the pencil, holds a reply's first part that leaves again before its words", async () => {
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		const waiting = props();
+		try {
+			await act(async () => root.render(<ReadingPane {...waiting} />));
+			const rows = host.querySelectorAll("[data-session-find-root] > *").length;
+			await act(async () => root.render(<ReadingPane {...waiting} messages={[card(5), first, teacher({ type: "reasoning", text: "" })]} />));
+			assert.equal(host.querySelectorAll("[data-session-find-root] > *").length, rows, "no row is added for it");
+		} finally {
+			await act(async () => root.unmount());
+			host.remove();
+		}
+	});
+
+	it("shows the words of a turn that goes on, with Stop under them", async () => {
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		const waiting = props();
+		try {
+			await act(async () => root.render(<ReadingPane {...waiting} />));
+			await act(async () => root.render(<ReadingPane {...waiting} messages={[card(5), first, teacher({ type: "text", text: "Here it is." })]} />));
+			await act(async () => {
+				await new Promise((done) => setTimeout(done, 450));
+			});
+			assert.match(host.textContent ?? "", /Here it is/);
+			assert.ok(host.querySelector("[data-testid=stop-turn]") !== null);
 		} finally {
 			await act(async () => root.unmount());
 			host.remove();

@@ -2,7 +2,6 @@ import { Fragment, memo } from "react";
 import { paleSpaceColor } from "@/frontend/components/space-color";
 import { useSpaceColor } from "@/frontend/components/space-context";
 import { Message, MessageContent } from "@/frontend/components/ai-elements/message";
-import { CitedResponse } from "@/frontend/components/citations/cited-response";
 import { excerptParts } from "@/frontend/components/citations/page-excerpt-model";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/frontend/components/ai-elements/reasoning";
 import { LiveToolCard } from "@/frontend/components/artifacts/live-tool-card";
@@ -36,6 +35,7 @@ import { MessageAttachments } from "./message-attachments";
 import { drawnSeparators } from "./message-row-model";
 import { FromEarlierCard } from "./from-earlier-card";
 import { KeptCard } from "./kept-card";
+import { ReplyPassage } from "./reply-passage";
 
 interface MessageRowProps {
 	message: LhViewMessage;
@@ -222,17 +222,7 @@ function AssistantPart({
 	switch (part.type) {
 		case "text": {
 			const sourceId = textPartMessageId(part.id);
-			return (
-				<div
-					id={anchor && sourceId ? messageAnchorId(sourceId) : undefined}
-					data-source-message-id={sourceId ?? undefined}
-					className="lh-source-passage"
-				>
-					{/* While it streams, an unclosed diagram fence shows "still drawing", not a doomed parse. A reply
-					    that just landed draws in block by block. */}
-					<CitedResponse text={part.text ?? ""} page={page} isAnimating={streaming} className={streaming ? "lh-streaming" : undefined} landed={!!arrive(slot)} />
-				</div>
-			);
+			return <ReplyPassage id={anchor && sourceId ? messageAnchorId(sourceId) : undefined} sourceId={sourceId ?? undefined} text={part.text ?? ""} page={page} streaming={streaming} landed={!!arrive(slot)} />;
 		}
 		case "reasoning":
 			return (
