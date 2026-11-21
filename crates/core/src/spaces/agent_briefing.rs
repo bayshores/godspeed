@@ -30,6 +30,8 @@ pub struct BriefingLesson {
 	pub space_id: Option<String>,
 	pub updated_at: String,
 	pub waiting: bool,
+	/// The names of the space files made or added for it (add_space_file with its lesson_id).
+	pub files: Vec<String>,
 }
 
 pub struct BriefingInput {
@@ -91,7 +93,8 @@ pub fn agent_briefing(input: &BriefingInput) -> Result<String, String> {
 		.map(|l| {
 			let space = name_of(&names, l.space_id.as_deref()).unwrap_or("No space");
 			let waiting = if l.waiting { ", waiting for the learner's answer" } else { "" };
-			Ok(format!("- {} ({space}), last active {}, lesson_id \"{}\"{waiting}", l.title, moment(&l.updated_at)?, l.id))
+			let files = if l.files.is_empty() { String::new() } else { format!(", its files: {}", l.files.join(", ")) };
+			Ok(format!("- {} ({space}), last active {}, lesson_id \"{}\"{waiting}{files}", l.title, moment(&l.updated_at)?, l.id))
 		})
 		.collect::<Result<Vec<String>, String>>()?;
 
@@ -210,8 +213,8 @@ mod tests {
 				BriefingSpace { id: "cls_b".into(), name: "Old".into(), closed: true, deadlines: vec![], missing_setup: vec![] },
 			],
 			lessons: vec![
-				BriefingLesson { id: "l1".into(), title: "Sets".into(), space_id: Some("cls_a".into()), updated_at: "2026-10-29T20:00:00.000Z".into(), waiting: true },
-				BriefingLesson { id: "l2".into(), title: "Free talk".into(), space_id: None, updated_at: "2026-10-28T20:00:00.000Z".into(), waiting: false },
+				BriefingLesson { id: "l1".into(), title: "Sets".into(), space_id: Some("cls_a".into()), updated_at: "2026-10-29T20:00:00.000Z".into(), waiting: true, files: vec!["Practice test.pdf".into(), "Formulas.md".into()] },
+				BriefingLesson { id: "l2".into(), title: "Free talk".into(), space_id: None, updated_at: "2026-10-28T20:00:00.000Z".into(), waiting: false, files: vec![] },
 			],
 			notes: vec![json!({ "id": "n1", "text": "Prefers short answers", "spaceId": "cls_a", "createdAt": "2026-10-27T20:00:00.000Z" })],
 			max_chars,
@@ -223,7 +226,7 @@ mod tests {
 		let text = agent_briefing(&input(10_000)).unwrap();
 		assert!(text.starts_with("## Where you left off\n\nNow: Fri Oct 30 2026, 12:00 PM (Pacific Time).\n\nSpace setup to finish"));
 		assert!(text.contains("- CSE 21 (space_id \"cls_a\"): no icon, no signature\n"));
-		assert!(text.contains("- Sets (CSE 21), last active Thu Oct 29 1:00 PM, lesson_id \"l1\", waiting for the learner's answer\n"));
+		assert!(text.contains("- Sets (CSE 21), last active Thu Oct 29 1:00 PM, lesson_id \"l1\", waiting for the learner's answer, its files: Practice test.pdf, Formulas.md\n"));
 		assert!(text.contains("- Free talk (No space), last active"));
 		assert!(text.contains("- CSE 21: Midterm (exam), due Mon Nov 2\n"));
 		assert!(text.ends_with("- Prefers short answers (CSE 21, saved Tue Oct 27, note_id \"n1\")"));
