@@ -81,3 +81,25 @@ Rhythm: predict (a prediction question can precede a step), step, check (pauses 
 ## 10. What this asks of the system
 
 Measuring must produce precise states, with edges and a concrete goal, because its precision is the ceiling on planning quality. The system owns the logistics (7a), plans for real (7b), teaches in single checked steps (5, 9), and delivers efficiently, explicit only where it helps absorption (8).
+
+## 11. Rules that keep a real lesson on the theory
+
+These rules apply Sections 5, 7a and 9 to what happens in a long lesson. The prompts hold each one, and the server backs some of them.
+
+| Situation | Rule | Why |
+|---|---|---|
+| The learner says he never learned a topic, or misses his first question on it | No prediction. One short worked example, then a check. The topic gets the "first" move whatever its standing says. | A prediction needs something held to reason from (Section 5). Without it the guess is noise, and the miss teaches nothing. |
+| His deadline makes him produce something from memory (a command, code, syntax, a definition, steps) | Ask for it as a typed answer (`problem` with no options). Choice questions are for quick checks of an idea. | Picking from options tests recognition. The deadline tests recall, so the check must too (Section 9). |
+| He asks to be shown, or for an example, while a problem is open | One worked example on another case, with his problem's answer still hidden. It counts as a hint, and the problem stays open. | Asking for help is not giving up. Only "I give up" or asking for this problem's solution is surrender. |
+| The teacher misjudged his answer | Say so in one line and grade it again. The problem stays open. | A wrong verdict that stands corrupts what is built on it (Section 5). |
+| A term, symbol, abbreviation or number appears for the first time | Say in plain words what it is (a number: what it counts and its unit), then use it. | An undefined term is a step he cannot take. |
+| He asks what a real deadline asks, allows or grades | Answer only from his words or a space file, with its mark. Otherwise say you don't know. A practice test the teacher made is not the real one. | One confident wrong claim about his exam costs his trust (accuracy, Section 10). |
+
+### Short replies
+
+A reply right after his own message or a miss carries one idea in at most four short lines, then waits for his move. Two things hold it there:
+
+1. Every lesson work item after the first ends with a short block: his saved rules for that lesson, one per line, then "One idea per reply, at most four short lines, then his move." Rules read once at the start of long instructions fade over a long lesson, so they are repeated where the agent reads last.
+2. The server sends back a reply of more than 150 words of plain prose (code, display math and table rows are not counted) once per learner input, when that input is a typed message or an answer graded wrong or "I don't know". The goal that opens the lesson is not such a message: the first reply may hold the worked example. The agent may send the same reply again when he asked for the full rule or a worked example and it needs the length.
+
+Why 150: in the owner's own lessons, a cap of 80 words would have hit 44% of all replies and did not separate good replies from bad ones, while the replies he rejected ran from 159 to 271 words. Each send-back and the reply that follows it are logged, so the limit can be checked against more lessons.

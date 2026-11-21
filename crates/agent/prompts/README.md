@@ -21,7 +21,7 @@ System prompts are composed per agent when the agent is built (`compose_instruct
 **After the fragments**, every agent's system prompt gets two optional parts, in this order (`teacher_agent.rs`):
 
 1. One note naming the tools the learner switched off in Settings (`switched_off_tools_note` in `crates/core/src/session/tool_switches.rs`), so the model doesn't plan around a tool the fragments still mention. Each agent's note covers only the switchable tools it carries (`switches` in `teacher_agent.rs`): the teacher can lose `research`, `demo`, `visual` and `pdf`; the prober, practice and homework can lose `research` and `pdf`. No tool off, no note.
-2. The learner's teaching rules (`learner_rules_section` in `crates/core/src/records/teaching_areas.rs`).
+2. The learner's teaching rules (`learner_rules_section` in `crates/core/src/records/teaching_areas.rs`). A lesson's later work items repeat the same rules in a short block of their own (`every_turn_rules`, same file).
 
 Only numeric-prefix files load (`\d+-*.md`), so other files like this README never enter the model's prompt.
 

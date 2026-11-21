@@ -21,7 +21,7 @@ use super::plot::plot_tool;
 use super::ports::ProblemPages;
 use super::practice::{GraphNodes, PlanNodes, TurnGate, problem_is_active, study_problem_tools};
 use super::probe::{ProbeDoneContext, ProbeGate, probe_done_tool};
-use super::questions::{ask_user_question_tool, plan_node_ids, probe_explain_tool, probe_quiz_tool, study_quiz_tool, teach_explain_tool, teach_quiz_tool, write_code_tool};
+use super::questions::{PlanOrder, ask_user_question_tool, plan_node_ids, probe_explain_tool, probe_quiz_tool, study_explain_tool, study_quiz_tool, teach_explain_tool, teach_quiz_tool, write_code_tool};
 use super::side::{LessonSide, file_tools, filter_enabled};
 use super::topic_done::{CheckMarks, topic_done_tool};
 use super::work_plan::work_plan_tool;
@@ -137,17 +137,19 @@ fn teacher_tools_asking(ctx: &TeacherToolContext, enabled: Option<&Json>, questi
 
 /// A study session's tools: the teacher's (its quiz takes `standalone` and `onPlot`; plan_init
 /// only when the agent writes the plan) plus practice's problem and conclude, the problem naming
-/// its plan node like a quiz, the plot in multiple-choice lessons (its guess checked by `parts`'
-/// hook), and topic_done after a finished topic.
+/// its plan node like a quiz, the question and the problem sharing one plan-order check, the plot
+/// in multiple-choice lessons (its guess checked by `parts`' hook), and topic_done after a
+/// finished topic.
 pub fn study_tools(ctx: &StudyToolContext, enabled: Option<&Json>, parts: &Arc<LessonParts>) -> Vec<FnTool> {
 	let plan = ctx.teacher.plan.clone();
 	let plan_nodes: PlanNodes = Arc::new(move || plan_node_ids(&plan));
 	let record = ctx.teacher.plan.clone();
 	let gate = TurnGate::new(problem_is_active(&record.chat_store, &record.chat_id));
+	let order = PlanOrder::new(&record);
 	let recall = free_recall(enabled);
-	let question = if recall { teach_explain_tool(&ctx.teacher.plan) } else { study_quiz_tool(&ctx.teacher.plan) };
+	let question = if recall { study_explain_tool(&ctx.teacher.plan, &order) } else { study_quiz_tool(&ctx.teacher.plan, &order) };
 	let mut tools = teacher_tools_asking(&ctx.teacher, enabled, question, ctx.writes_plan);
-	tools.extend(study_problem_tools(&gate, record.clone(), ctx.graph_nodes.clone(), plan_nodes.clone(), &ctx.pages, ctx.problems.as_ref()));
+	tools.extend(study_problem_tools(&gate, record.clone(), ctx.graph_nodes.clone(), (plan_nodes.clone(), order), &ctx.pages, ctx.problems.as_ref()));
 	if !recall {
 		tools.push(plot_tool(record.clone(), parts));
 	}
