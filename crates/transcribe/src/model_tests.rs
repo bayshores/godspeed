@@ -82,7 +82,7 @@ async fn download_case(replies: Vec<Reply>, calls: usize, before: Before, rounds
 		let round: Vec<_> = (0..calls)
 			.map(|_| {
 				let (download, paths, url) = (download.clone(), sandbox.paths.clone(), url.clone());
-				tokio::spawn(async move { download.ensure_from(&paths, &url).await })
+				gs_base::tasks::spawn("test", async move { download.ensure_from(&paths, &url).await })
 			})
 			.collect();
 		for handle in round {
@@ -156,7 +156,7 @@ async fn a_server_that_goes_quiet_fails_like_nodes_fetch() {
 		let models = sandbox.paths.data.join("models");
 		std::fs::remove_dir_all(&models).unwrap();
 		let (url, hits) = serve(vec![reply]);
-		let task = tokio::spawn({
+		let task = gs_base::tasks::spawn("test", {
 			let paths = sandbox.paths.clone();
 			async move { ModelDownload::default().ensure_from(&paths, &url).await }
 		});

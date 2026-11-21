@@ -155,7 +155,7 @@ async fn every_process_the_learners_program_started_is_ended_however_the_run_end
 
 	let request = Abort::new();
 	let stop = request.clone();
-	tokio::spawn(async move {
+	gs_base::tasks::spawn("test", async move {
 		clock::sleep(500).await;
 		stop.abort();
 	});

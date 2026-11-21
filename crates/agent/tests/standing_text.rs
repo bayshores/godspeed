@@ -1,9 +1,9 @@
 //! Where each teaching line of the guess, keep, stop and come-back work lands in the composed
 //! instructions: a line naming a Study-only tool, field, stop or note only in Study; the case-first,
-//! analogy and prediction lines in Study and ordinary lessons; the marks line in every lesson
-//! agent; the broken formulas line beside the work plan; the voice line in every agent;
-//! the deadline tools sentence in every lesson agent but Study; how to work from files only in a
-//! lesson on files. Each line is said once, and the sentences it replaced are gone. No size is
+//! analogy, prediction and teach-first lines in Study and ordinary lessons; the marks line in every
+//! lesson agent; the broken formulas line beside the work plan; the voice, terms, deadline claims
+//! and structure lines in every agent; the deadline tools sentence in every lesson agent but
+//! Study; how to work from files only in a lesson on files. Each line is said once, and the sentences it replaced are gone. No size is
 //! pinned, so later prompt edits do not trip it.
 
 use gs_agent::teacher::prompt_segments::AgentKind;
@@ -50,8 +50,22 @@ const FILES: &str = "Test or worksheet: list every problem with `source` in one 
 const PASTE: &str = "Never ask him to paste a file.";
 const DEADLINE_TOOLS: &str = "Learner asks to add, move or remove a deadline mid-lesson → deadline tools (list_spaces gives space id), say what changed in one line, back to where lesson was.";
 
+/// Teach first: no prediction on what he never learned.
+const TEACH_FIRST: &str = "Prediction he can't fully attempt is fine: attempt is the point, once he holds something to reason from. He says he never learned it, or missed his first question on it: no prediction; one short worked example, then a check.";
+const PLAN_ORDER: &str = "Work topics in plan order, first node first. Skip one only on his answers in this lesson; never tell him his files or earlier lessons cover it.";
+const NEVER_LEARNED: &str = "He says he never learned a topic, or misses its first question: it is first, whatever its line says.";
+const FIRST_OPENER: &str = "\"First\" topic's opener in `topic_done`: lead = its worked example; quiz = a prediction that example makes guessable.";
+const NO_MATERIAL: &str = "- **No material named**: first: one short worked example (space files when they have one; a picture when it is a layout or flow), no prediction before it; then one problem";
+const TYPED: &str = "What his deadline makes him produce from memory (command, code, syntax, definition, steps): `problem` with no `options`, his answer typed. `quiz` and choice problems only for quick checks of an idea. Beats the method's quizzing-tool lines.";
+const ONE_THING: &str = "Between problems, answer his questions about the last one; each answer ends its turn: no new problem, variation or question at its end.";
+const SHOW_ME: &str = "Asks to be shown, or for an example: one worked example on another case in chat, his problem's answer still hidden; a hint rung, not a new problem.";
+const MISJUDGED: &str = "Misjudged his answer: say so in one line, grade again; the problem stays open.";
+const TERMS: &str = "- Any term, symbol, abbreviation or number, the first time: say in plain words what it is (a number: what it counts and its unit, 'tag: 2 bytes'). Then use it.";
+const EXAM_CLAIMS: &str = "What a real deadline asks, allows or grades (format, reference sheet, kinds of questions): only from his words or a space file, with its mark. A practice test you made is not it. Neither: say you don't know.";
+const STRUCTURE: &str = "Structure only what it makes easier to read: code blocks for anything literal, a list for steps, a table only to compare 3+ things on 2+ properties, headings only in a long message with real sections. In doubt, shorter.";
+
 /// Sentences the lines above replaced or removed: no agent reads them any more.
-const GONE: [&str; 12] = [
+const GONE: [&str; 20] = [
 	"After `conclude`, say your closing words and end your turn.",
 	"After the last topic, wrap up in a few sentences",
 	"goes in your closing words as plain chat",
@@ -64,6 +78,14 @@ const GONE: [&str; 12] = [
 	"Do not draw that curve as a table.",
 	"Never ask a numbered list of questions in chat.",
 	"shows a page or a plot",
+	"Prediction he can't fully attempt is fine: attempt is the point.",
+	"Work topics in plan order. Every",
+	"first: teach with short worked example",
+	"Between problems, answer his questions about the last one.",
+	"lists and tables for anything enumerable or comparative",
+	"In doubt, structure it.",
+	"Default = structured document",
+	"Use fully when it fits",
 ];
 
 fn composed(kind: AgentKind) -> String {
@@ -82,14 +104,14 @@ fn lands_in(line: &str, readers: &[AgentKind]) {
 
 #[test]
 fn the_study_only_lines_reach_study_alone() {
-	for line in [S, F, F_VERDICT, F_RESUMED, EXTRA_QUESTION, OUTSIDE_DEADLINES, F3, G, I, K, PLOT, PROBLEMS, PHRASE] {
+	for line in [S, F, F_VERDICT, F_RESUMED, EXTRA_QUESTION, OUTSIDE_DEADLINES, F3, G, I, K, PLOT, PROBLEMS, PHRASE, PLAN_ORDER, NEVER_LEARNED, FIRST_OPENER, NO_MATERIAL, TYPED, ONE_THING, SHOW_ME, MISJUDGED] {
 		lands_in(line, &[Study, StudyFiles]);
 	}
 }
 
 #[test]
 fn the_case_analogy_and_prediction_lines_reach_study_and_ordinary_lessons() {
-	for line in [B, C, D, P2] {
+	for line in [B, C, D, P2, TEACH_FIRST] {
 		lands_in(line, &[Study, StudyFiles, Teacher]);
 	}
 }
@@ -98,6 +120,13 @@ fn the_case_analogy_and_prediction_lines_reach_study_and_ordinary_lessons() {
 fn the_marks_line_reaches_every_lesson_agent_and_the_voice_line_every_agent() {
 	lands_in(M, &EVERY);
 	lands_in(E, &EVERY);
+}
+
+#[test]
+fn the_terms_exam_claims_and_structure_lines_reach_every_agent() {
+	for line in [TERMS, EXAM_CLAIMS, STRUCTURE] {
+		lands_in(line, &EVERY);
+	}
 }
 
 #[test]

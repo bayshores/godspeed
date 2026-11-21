@@ -22,7 +22,7 @@ use super::heal::heal_tool_record;
 use super::homework::{ProblemList, post_problems_tool};
 use super::jobs::{JobToolContext, pdf_tool, research_tool};
 use super::plan::PlanContext;
-use super::questions::node_id_problem;
+use super::questions::{PlanOrder, node_id_problem};
 use super::ports::{ChatPort, ProblemPages};
 use super::problem_piece::{NO_STATEMENT, source_field, typed, with_piece};
 use gs_core::session::schema::{literals_or_null, object, one_of_literals, string};
@@ -169,9 +169,9 @@ fn normalize_target(mut args: Json, graph_nodes: Option<&GraphNodes>) -> Json {
 }
 
 /// Why a pose is refused before its source is looked at, if it is: the problem checks, the
-/// statement or source (a listed problem's own piece will do), a problem already active, and the
-/// targets.
-fn pose_refusal(args: &Json, gate: &TurnGate, graph_nodes: Option<&GraphNodes>, plan_nodes: Option<&PlanNodes>, has_piece: bool) -> Option<Json> {
+/// statement or source (a listed problem's own piece will do), a problem already active, the
+/// targets, and last, in Study, the plan order.
+fn pose_refusal(args: &Json, gate: &TurnGate, graph_nodes: Option<&GraphNodes>, plan_nodes: Option<&PlanNodes>, order: Option<&PlanOrder>, has_piece: bool) -> Option<Json> {
 	if let Some(problem) = plan_nodes.and_then(|nodes| node_id_problem(&nodes(), args["nodeId"].str_or_empty())) {
 		return Some(invalid_input_result("problem", &[problem]));
 	}
@@ -199,13 +199,13 @@ fn pose_refusal(args: &Json, gate: &TurnGate, graph_nodes: Option<&GraphNodes>, 
 			));
 		}
 	}
-	None
+	order.and_then(|order| order.refusal(args["nodeId"].str_or_empty())).map(|skip| invalid_input_result("problem", &[skip]))
 }
 
 /// The pose, with its extra checks for a study session (`plan_nodes`) and, in a lesson with a
 /// problem list, its listed problems by number. A `source` is looked up before the problem becomes
 /// active; the calls run one at a time, so nothing poses in between.
-fn problem_tool(gate: &Arc<TurnGate>, graph_nodes: Option<GraphNodes>, parameters: Json, plan_nodes: Option<PlanNodes>, pages: &Arc<dyn ProblemPages>, list: Option<Arc<dyn ProblemList>>) -> FnTool {
+fn problem_tool(gate: &Arc<TurnGate>, graph_nodes: Option<GraphNodes>, parameters: Json, plan: Option<(PlanNodes, Arc<PlanOrder>)>, pages: &Arc<dyn ProblemPages>, list: Option<Arc<dyn ProblemList>>) -> FnTool {
 	let description = "Pose one practice problem. Ends the turn \u{2014} the problem stays in view beside the lesson, and the \
 		learner's work and questions on it arrive back as their messages. The modelSolution rides this call's \
 		arguments and stays hidden from the learner until you conclude (conclude shows it verbatim \u{2014} the \
@@ -213,7 +213,7 @@ fn problem_tool(gate: &Arc<TurnGate>, graph_nodes: Option<GraphNodes>, parameter
 	let (gate, run_nodes, prepare_nodes, pages) = (gate.clone(), graph_nodes.clone(), graph_nodes, pages.clone());
 	let plain = problem_parameters();
 	FnTool::immediate_async("problem", description, parameters, move |args| {
-		let (gate, run_nodes, plan_nodes, pages, list) = (gate.clone(), run_nodes.clone(), plan_nodes.clone(), pages.clone(), list.clone());
+		let (gate, run_nodes, plan, pages, list) = (gate.clone(), run_nodes.clone(), plan.clone(), pages.clone(), list.clone());
 		async move {
 			let listed = match (&list, args["number"].as_str()) {
 				(Some(list), Some(number)) => match listed_problem(list, number) {
@@ -223,7 +223,8 @@ fn problem_tool(gate: &Arc<TurnGate>, graph_nodes: Option<GraphNodes>, parameter
 				_ => None,
 			};
 			let piece = listed.as_ref().map(|p| &p["piece"]).filter(|piece| !piece.is_null());
-			if let Some(refusal) = pose_refusal(&args, &gate, run_nodes.as_ref(), plan_nodes.as_ref(), piece.is_some()) {
+			let (plan_nodes, order) = plan.as_ref().map(|(nodes, order)| (nodes, order.as_ref())).unzip();
+			if let Some(refusal) = pose_refusal(&args, &gate, run_nodes.as_ref(), plan_nodes, order, piece.is_some()) {
 				return refusal;
 			}
 			let mut shown = None;
@@ -255,12 +256,12 @@ fn conclude_parameters() -> Json {
 				"outcome",
 				one_of_literals(
 					&["solved", "solvedWithHints", "movedOn", "surrendered", "dismissed"],
-					"REQUIRED \u{2014} the outcome: solved, solvedWithHints, movedOn, or surrendered \u{2014} bare words, no quotes (dismissed is synthesized, never yours).",
+					"REQUIRED \u{2014} the outcome: solved, solvedWithHints, movedOn (the learner asked for a different problem or part, in their words), or surrendered (the learner said they give up or asked for this problem's solution) \u{2014} bare words, no quotes (dismissed is synthesized, never yours). A question, \"show me\" or \"give me an example\" is neither: the problem stays open.",
 				),
 			),
 			(
 				"verdict",
-				string("REQUIRED \u{2014} the plain-language verdict: what was credited, where it broke. On a wrong answer: localize the break, do NOT give the correction."),
+				string("REQUIRED \u{2014} the plain-language verdict: what was credited, where it broke. On a wrong answer: localize the break, do NOT give the correction. A part the learner left blank is not credited."),
 			),
 			(
 				"rung",
@@ -343,12 +344,12 @@ fn study_conclude_tool(gate: &Arc<TurnGate>, record: PlanContext, list: Option<A
 /// A study session's problem and conclude, under the turn gate topic_done shares. The problem
 /// names its plan node like a quiz does. A lesson on files has its first file's problem list
 /// (`list`): post_problems fills it, a pose may name one of it, and conclude marks it done.
-pub fn study_problem_tools(gate: &Arc<TurnGate>, record: PlanContext, graph_nodes: Option<GraphNodes>, plan_nodes: PlanNodes, pages: &Arc<dyn ProblemPages>, list: Option<&Arc<dyn ProblemList>>) -> Vec<FnTool> {
+pub fn study_problem_tools(gate: &Arc<TurnGate>, record: PlanContext, graph_nodes: Option<GraphNodes>, plan: (PlanNodes, Arc<PlanOrder>), pages: &Arc<dyn ProblemPages>, list: Option<&Arc<dyn ProblemList>>) -> Vec<FnTool> {
 	let mut tools = Vec::new();
 	if let Some(list) = list {
 		tools.push(post_problems_tool(list.clone(), pages.clone()));
 	}
-	tools.push(problem_tool(gate, graph_nodes, study_problem_parameters(list.is_some()), Some(plan_nodes), pages, list.cloned()));
+	tools.push(problem_tool(gate, graph_nodes, study_problem_parameters(list.is_some()), Some(plan), pages, list.cloned()));
 	tools.push(study_conclude_tool(gate, record, list.cloned()));
 	tools
 }
@@ -382,7 +383,32 @@ mod tests {
 	use gs_engine::turn::tool::{Tool, ToolContext};
 
 	use super::*;
-	use crate::tools::test_record::{FakePages, learner_at, record};
+	use crate::tools::questions::study_quiz_tool;
+	use crate::tools::test_record::{FakePages, learner_at, planned_record, record};
+
+	/// The plan's node ids, and its order check on a record with no plan, which never refuses.
+	fn plan() -> (PlanNodes, Arc<PlanOrder>) {
+		(Arc::new(|| vec!["reg".to_owned()]), PlanOrder::new(&record(Vec::new())))
+	}
+
+	#[tokio::test]
+	async fn a_first_call_that_skips_an_earlier_node_is_refused_once_a_node() {
+		let tree = json!({ "nodes": [{ "id": "reg" }, { "id": "cv" }, { "id": "bias" }], "edges": [] });
+		let asked_reg = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q0", "name": "quiz", "arguments": { "nodeId": "reg" } }] });
+		let lesson = planned_record(tree, vec![asked_reg]);
+		let order = PlanOrder::new(&lesson);
+		let nodes: PlanNodes = Arc::new(|| ["reg", "cv", "bias"].map(str::to_owned).to_vec());
+		let quiz = study_quiz_tool(&lesson, &order);
+		let mut tools = study_problem_tools(&TurnGate::new(false), lesson, None, (nodes, order), &no_pages(), None);
+		tools.push(quiz);
+		let ask = |node: &str| json!({ "type": "check", "nodeId": node, "question": "Q?", "options": [{ "label": "A" }, { "label": "B" }], "explanation": "E.", "correctAnswer": "A" });
+		let pose = json!({ "statement": "s", "nodeId": "bias", "mode": "recall", "modelSolution": "m" });
+		let refused = run(&tools, "problem", pose).await;
+		assert_eq!(refused["isError"], json!(true), "{refused:?}");
+		assert!(refused["content"][0]["text"].str_or_empty().ends_with("- nodeId \"bias\": \"cv\" comes first and nothing in this lesson asked it. Ask it first. His answers in this lesson justify skipping it: send the same call again."), "{refused:?}");
+		assert_ne!(run(&tools, "quiz", ask("bias")).await["isError"], json!(true), "sent again, by either tool, it goes through");
+		assert_ne!(run(&tools, "quiz", ask("reg")).await["isError"], json!(true), "a node already asked never blocks");
+	}
 
 	/// A problem on `reg` posed `minutes` ago, worked on every 4 minutes since.
 	fn worked(minutes: i64) -> Vec<Json> {
@@ -402,7 +428,7 @@ mod tests {
 
 	fn study_conclude(minutes: i64) -> (FnTool, Arc<TurnGate>) {
 		let gate = TurnGate::new(true);
-		let tools = study_problem_tools(&gate, record(worked(minutes)), None, Arc::new(|| vec!["reg".to_owned()]), &no_pages(), None);
+		let tools = study_problem_tools(&gate, record(worked(minutes)), None, plan(), &no_pages(), None);
 		(tools.into_iter().find(|t| t.name() == "conclude").unwrap(), gate)
 	}
 
@@ -436,7 +462,7 @@ mod tests {
 
 	async fn pose_with(input: Json, pages: Arc<dyn ProblemPages>) -> (Json, Arc<TurnGate>) {
 		let gate = TurnGate::new(false);
-		let tools = study_problem_tools(&gate, record(vec![]), None, Arc::new(|| vec!["reg".to_owned()]), &pages, None);
+		let tools = study_problem_tools(&gate, record(vec![]), None, plan(), &pages, None);
 		let tool = tools.into_iter().find(|t| t.name() == "problem").unwrap();
 		(tool.execute(input, ToolContext { tool_call_id: "p1".to_owned(), abort: Abort::new() }).await.unwrap(), gate)
 	}
@@ -537,7 +563,7 @@ mod tests {
 	fn files_tools(list: &Arc<FirstFile>, messages: Vec<Json>, pages: &Arc<FakePages>, active: bool) -> Vec<FnTool> {
 		let list: Arc<dyn ProblemList> = list.clone();
 		let pages: Arc<dyn ProblemPages> = pages.clone();
-		study_problem_tools(&TurnGate::new(active), record(messages), None, Arc::new(|| vec!["reg".to_owned()]), &pages, Some(&list))
+		study_problem_tools(&TurnGate::new(active), record(messages), None, plan(), &pages, Some(&list))
 	}
 
 	async fn run(tools: &[FnTool], name: &str, args: Json) -> Json {

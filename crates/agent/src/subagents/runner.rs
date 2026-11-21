@@ -231,7 +231,7 @@ impl JobRunner {
 		}
 		let delivery = self.host.deliver(steer);
 		let id = job_id.to_owned();
-		tokio::spawn(async move {
+		gs_base::tasks::spawn("job", async move {
 			if let Err(e) = delivery.await {
 				eprintln!("[job {id}] pending delivery: {e}");
 			}

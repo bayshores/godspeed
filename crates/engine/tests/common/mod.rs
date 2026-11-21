@@ -36,5 +36,5 @@ impl SeenStore for Marks {
 pub fn park(bridge: &Bridge, messages: Vec<Json>, conversation: &str, abort: &Abort) -> JoinHandle<Json> {
 	let engine = agent_engine(bridge);
 	let (conversation, abort) = (conversation.to_owned(), abort.clone());
-	tokio::spawn(async move { faux::stream(&engine, messages, Some(conversation), &abort, &mut |_| {}).await })
+	gs_base::tasks::spawn("test", async move { faux::stream(&engine, messages, Some(conversation), &abort, &mut |_| {}).await })
 }

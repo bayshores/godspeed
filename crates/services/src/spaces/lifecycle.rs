@@ -65,7 +65,7 @@ pub async fn delete_space(app: &Arc<App>, id: &str) -> SpaceOutcome<Vec<String>>
 	// On its own task: a request whose client goes away is dropped at its next await, and once the
 	// waits have aborted the space's work the delete must still finish.
 	let (app, id) = (app.clone(), id.to_owned());
-	tokio::spawn(async move { run_delete_space(&app, &id).await }).await.unwrap_or_else(|err| Err(SpaceFailure::thrown(err.to_string())))
+	gs_base::tasks::spawn("space", async move { run_delete_space(&app, &id).await }).await.unwrap_or_else(|err| Err(SpaceFailure::thrown(err.to_string())))
 }
 
 async fn run_delete_space(app: &Arc<App>, id: &str) -> SpaceOutcome<Vec<String>> {
@@ -139,7 +139,7 @@ pub async fn move_chat_to_space(app: &Arc<App>, chat_id: &str, target: Option<&s
 	// On its own task, like a space delete: once the wind-down has aborted the lesson's extraction,
 	// the move finishes even if its request goes away.
 	let (app, chat_id, target) = (app.clone(), chat_id.to_owned(), target.map(str::to_owned));
-	tokio::spawn(async move { run_move(&app, &chat_id, target.as_deref()).await }).await.unwrap_or_else(|err| Err(SpaceFailure::thrown(err.to_string())))
+	gs_base::tasks::spawn("space", async move { run_move(&app, &chat_id, target.as_deref()).await }).await.unwrap_or_else(|err| Err(SpaceFailure::thrown(err.to_string())))
 }
 
 async fn run_move(app: &Arc<App>, chat_id: &str, target: Option<&str>) -> SpaceOutcome<Option<String>> {

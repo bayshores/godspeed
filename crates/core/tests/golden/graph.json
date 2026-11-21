@@ -81418,20 +81418,24 @@
 					{
 						"nodes": 3,
 						"chains": 6,
+						"credits": 6,
 						"droppedChains": 2
 					},
 					{
 						"nodes": 0,
 						"chains": 1,
+						"credits": 0,
 						"droppedChains": 2
 					},
 					{
 						"nodes": 3,
-						"chains": 2
+						"chains": 2,
+						"credits": 1
 					},
 					{
 						"nodes": 0,
-						"chains": 0
+						"chains": 0,
+						"credits": 0
 					}
 				],
 				"ledgers": {
@@ -82152,6 +82156,7 @@
 					{
 						"nodes": 3,
 						"chains": 6,
+						"credits": 6,
 						"droppedChains": 2
 					}
 				],
@@ -82708,11 +82713,13 @@
 				"results": [
 					{
 						"nodes": 3,
-						"chains": 1
+						"chains": 1,
+						"credits": 2
 					},
 					{
 						"nodes": 3,
-						"chains": 1
+						"chains": 1,
+						"credits": 0
 					}
 				],
 				"ledgers": {
@@ -83050,7 +83057,8 @@
 				"results": [
 					{
 						"nodes": 0,
-						"chains": 0
+						"chains": 0,
+						"credits": 0
 					}
 				],
 				"ledgers": {
@@ -83377,7 +83385,8 @@
 				"results": [
 					{
 						"nodes": 1,
-						"chains": 1
+						"chains": 1,
+						"credits": 2
 					}
 				],
 				"ledgers": {
@@ -84172,6 +84181,7 @@
 					{
 						"nodes": 2,
 						"chains": 1,
+						"credits": 7,
 						"droppedChains": 1
 					}
 				],
@@ -84848,11 +84858,13 @@
 				"results": [
 					{
 						"nodes": 1,
-						"chains": 1
+						"chains": 1,
+						"credits": 5
 					},
 					{
 						"nodes": 1,
-						"chains": 1
+						"chains": 1,
+						"credits": 1
 					}
 				],
 				"ledgers": {
@@ -84979,11 +84991,13 @@
 				"results": [
 					{
 						"nodes": 1,
-						"chains": 1
+						"chains": 1,
+						"credits": 5
 					},
 					{
 						"nodes": 1,
-						"chains": 1
+						"chains": 1,
+						"credits": 1
 					}
 				],
 				"ledgers": {

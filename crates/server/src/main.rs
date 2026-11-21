@@ -10,7 +10,7 @@ use axum::ServiceExt;
 use axum::extract::Request;
 use axum::serve::ListenerExt;
 use gs_base::config::Paths;
-use gs_base::tasks::detach;
+use gs_base::tasks::{self, detach};
 use gs_base::{clock, shutdown};
 use gs_server::{data_lock, http};
 use gs_services::App;
@@ -26,6 +26,7 @@ const FORCE_EXIT_MS: u64 = 2000;
 
 #[tokio::main]
 async fn main() -> ExitCode {
+	tasks::set_runtime();
 	if let Err(err) = clock::init_from_env() {
 		eprintln!("{err}");
 		return ExitCode::FAILURE;
@@ -105,10 +106,8 @@ fn listen_for_terminals(app: &App, shell: &ShellLink) {
 fn watch_for_stop(shell: Option<ShellLink>) {
 	detach("shutdown", stop_on_signal());
 	if let Some(shell) = shell {
-		// What the shell's messages set off may start a task, which a thread outside the runtime cannot.
-		let runtime = tokio::runtime::Handle::current();
+		// What the shell's messages set off starts its tasks on the stored runtime (gs_base::tasks).
 		std::thread::spawn(move || {
-			let _in_runtime = runtime.enter();
 			// A panic while handling a message stops the server too: one that no longer hears the
 			// shell cannot start a terminal, and the shell starts a stopped server again.
 			let _stop = StopWhenDone;

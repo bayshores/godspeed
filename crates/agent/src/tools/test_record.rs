@@ -9,11 +9,15 @@ use parking_lot::Mutex;
 use super::ports::{ChatPort, ProblemPages};
 use super::plan::PlanContext;
 
-struct Record(Mutex<Vec<Json>>);
+struct Record(Mutex<Vec<Json>>, Option<Json>);
 
 impl ChatPort for Record {
 	fn get_chat(&self, _id: &str) -> Option<Json> {
-		Some(json!({ "id": "c", "messages": Json::Arr(self.0.lock().clone()) }))
+		let mut chat = json!({ "id": "c", "messages": Json::Arr(self.0.lock().clone()) });
+		if let (Some(o), Some(tree)) = (chat.as_obj_mut(), &self.1) {
+			o.insert("tree", tree.clone());
+		}
+		Some(chat)
 	}
 	fn save_tree(&self, _id: &str, _tree: &Json) -> Result<(), String> {
 		Ok(())
@@ -22,7 +26,12 @@ impl ChatPort for Record {
 
 /// The lesson "c" holding `messages`.
 pub fn record(messages: Vec<Json>) -> PlanContext {
-	PlanContext { chat_id: "c".to_owned(), chat_store: Arc::new(Record(Mutex::new(messages))) }
+	PlanContext { chat_id: "c".to_owned(), chat_store: Arc::new(Record(Mutex::new(messages), None)) }
+}
+
+/// The lesson "c" with the plan `tree`, holding `messages`.
+pub fn planned_record(tree: Json, messages: Vec<Json>) -> PlanContext {
+	PlanContext { chat_id: "c".to_owned(), chat_store: Arc::new(Record(Mutex::new(messages), Some(tree))) }
 }
 
 /// A learner message `minutes_ago` minutes before the app clock's now.

@@ -4,8 +4,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, scrolledWords, SCROLL_TO, snapName, standInAgent } from "../../scripts/layout.mjs";
-import { cross, cutOf, inkOf, lineBox, meet, offGap, offInset, outside, probes, roomUnder, scrollerClip, sticksOut } from "../../scripts/layout-page.mjs";
-import { workOf } from "../../scripts/layout-seed.mjs";
+import { cross, cutOf, inkOf, lineBox, linesOf, meet, offGap, offInset, outside, probes, roomUnder, scrollerClip, sticksOut, tightPad, tooWide } from "../../scripts/layout-page.mjs";
+import { PLAN_ORDER_SENT_BACK, workOf } from "../../scripts/layout-seed.mjs";
 import { SCREENS } from "../../scripts/layout-screens.mjs";
 
 const box = (left: number, top: number, right: number, bottom: number) => ({ left, top, right, bottom });
@@ -121,6 +121,21 @@ describe("cut-off letters", () => {
 	});
 });
 
+describe("keys", () => {
+	it("a key with less than 8 points beside its words is tight", () => {
+		assert.equal(tightPad(4, 4), true);
+		assert.equal(tightPad(8, 20), false);
+	});
+	it("keys on three lines are a pile, a row of keys is one line", () => {
+		assert.equal(linesOf([10, 11, 10]), 1);
+		assert.equal(linesOf([10, 50, 90]), 3);
+	});
+	it("a key far wider than its words is wide", () => {
+		assert.equal(tooWide(300, 80), true);
+		assert.equal(tooWide(120, 80), false);
+	});
+});
+
 describe("the channel", () => {
 	it("an answer is ok, a JSON value or an error", () => {
 		assert.equal(readAnswer("ok"), "ok");
@@ -196,6 +211,11 @@ describe("the stand-in agent", () => {
 		const text = '{"status":"work","workId":"work_1","lessonId":"chat_lab","lessonTitle":"Slope","kind":"lesson","tools":[{"name":"x"';
 		assert.deepEqual(workOf(text), { lessonId: "chat_lab", task: undefined, text });
 		assert.equal(workOf('{"status":"work","workId":"w","kind":"background task","task":"Graph extraction: a.md"}').task, "Graph extraction: a.md");
+	});
+
+	it("knows the server's words for a card it sends back for plan order", () => {
+		const server = fs.readFileSync(new URL("../../crates/agent/src/tools/questions.rs", import.meta.url), "utf-8");
+		assert.ok(server.includes(PLAN_ORDER_SENT_BACK));
 	});
 });
 

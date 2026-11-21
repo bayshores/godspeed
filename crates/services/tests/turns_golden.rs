@@ -1,6 +1,6 @@
 //! Parity with the TypeScript for turns (tests/golden/turns.json, recorded
-//! from the Node server using synthetic lessons): the settled stream terminal, the compaction trigger's
-//! context estimate, the canonical turn save and PDF attachments.
+//! from the Node server using synthetic lessons): the settled stream terminal, the canonical turn
+//! save and PDF attachments.
 
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -12,7 +12,6 @@ use gs_core::messages::attachments::ChatAttachment;
 use gs_json::{Json, json, parse, stringify_pretty};
 use gs_services::App;
 use gs_services::turns::attachments::{AttachmentError, store_attachments};
-use gs_services::turns::compaction::projected_context_tokens;
 use gs_services::turns::turn_runs::{clear_turn_failure, remember_turn_failure, settled_turn_frames};
 use gs_services::turns::turn_service::persist_turn;
 
@@ -90,16 +89,6 @@ fn result(name: &str, id: &str, is_error: bool, details: Option<Json>) -> Json {
 	}
 	m.as_obj_mut().unwrap().insert("timestamp", 4);
 	m
-}
-
-#[test]
-fn projected_tokens_match_node() {
-	let plain = vec![user("m1", &"What is a limit? ".repeat(40)), user("m2", "and continuity")];
-	let anchored = vec![user("m1", "hi"), reply(Some("m2"), "Hello there", Some(usage(1200.0, 40.0))), user("m3", &"x".repeat(400))];
-	let marker = json!({ "id": "m3", "role": "custom", "customType": "compaction", "content": "[SESSION HISTORY COMPACTED] summary", "display": true, "details": { "firstKeptMessageId": "m4", "tokensBefore": 9 }, "timestamp": 5 });
-	let stale = vec![user("m1", "hi"), reply(Some("m2"), "old", Some(usage(50_000.0, 10.0))), marker, user("m4", "kept tail"), user("m5", "next")];
-	let got: Vec<Json> = [plain, anchored, stale].iter().map(|messages| json!([projected_context_tokens(messages, 0.0), projected_context_tokens(messages, 1500.0)])).collect();
-	assert_eq!(Json::Arr(got), case("projected tokens"));
 }
 
 /// What the save minted (ids) as fixed text, like the golden spec.

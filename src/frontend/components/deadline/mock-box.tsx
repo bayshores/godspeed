@@ -68,7 +68,7 @@ function MockBoxForm({ onWrite }: { onWrite: (questions: number, minutes: number
 					{error}
 				</p>
 			)}
-			<Key data-testid="mock-box-write" busy={busy} onClick={() => void write()} className="lh-btn-main h-11 w-full justify-center text-[15px]">
+			<Key data-testid="mock-box-write" busy={busy} onClick={() => void write()} className="lh-btn-main self-end">
 				Write the mock
 			</Key>
 		</>

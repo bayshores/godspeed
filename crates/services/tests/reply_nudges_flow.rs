@@ -1,15 +1,16 @@
 //! Study's reply nudges against a stored lesson: each is sent once a topic, so the same reply sent
 //! again goes through; a new topic gets its own, an opener's curve too, and a curve in a quiz's
-//! question or a problem's statement; only a Study lesson gets any.
+//! question or a problem's statement; only a Study lesson gets any. A wall of prose after his own
+//! message or a miss is sent back once a learner input.
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use gs_base::config::Paths;
 use gs_base::ids;
-use gs_core::study::reply_nudges::Nudge;
+use gs_core::study::reply_nudges::{Nudge, OPEN_PROBLEM_NOTE, wall_refusal};
 use gs_engine::bridge::ReplyCall;
-use gs_json::json;
+use gs_json::{Json, json};
 use gs_services::App;
 use gs_services::turns::reply_nudges::reply_refusal;
 
@@ -33,6 +34,10 @@ impl Fixture {
 		let tree = json!({ "nodes": [{ "id": "reg", "title": "Regularization" }, { "id": "cv", "title": "Cross-validation" }], "edges": [] });
 		self.app.stores.chats.save_tree(&chat_id, &tree).unwrap();
 		chat_id
+	}
+
+	fn record(&self, chat_id: &str, messages: &[Json]) {
+		self.app.stores.chats.save_messages(chat_id, messages).unwrap();
 	}
 }
 
@@ -103,4 +108,57 @@ fn only_a_study_lesson_is_nudged() {
 		assert_eq!(reply_refusal(&fx.app, &chat_id, Some(CURVE), &[]), None, "{kind:?}");
 	}
 	assert_eq!(reply_refusal(&fx.app, "chat_missing", Some(CURVE), &[]), None);
+}
+
+#[test]
+fn with_a_problem_open_the_question_list_says_its_parts_are_asked() {
+	let fx = Fixture::new();
+	let chat_id = fx.lesson(Some("study"));
+	let posed = [
+		json!({ "id": "a1", "role": "assistant", "content": [{ "type": "toolCall", "id": "p1", "name": "problem", "arguments": { "nodeId": "reg", "statement": "(a) Fit. (b) Score." } }] }),
+		json!({ "id": "r1", "role": "toolResult", "toolCallId": "p1", "toolName": "problem", "content": [], "details": {}, "isError": false }),
+	];
+	fx.record(&chat_id, &posed);
+	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(QUESTIONS), &[]), Some(format!("{} {OPEN_PROBLEM_NOTE}", Nudge::QuestionList.refusal())));
+}
+
+/// A reply of `n` words of prose, then a table and code that are not counted.
+fn wall(n: usize) -> String {
+	format!("{}\n\n| a | b |\n|---|---|\n| one two | three |\n\n```\nfour five six\n```", vec!["word"; n].join(" "))
+}
+
+#[test]
+fn a_wall_after_his_own_message_is_sent_back_once_that_input() {
+	let fx = Fixture::new();
+	let chat_id = fx.lesson(Some("study"));
+	let typed = |id: &str| json!({ "id": id, "role": "user", "content": "Why?", "timestamp": 1 });
+	let said = |id: &str| json!({ "id": id, "role": "assistant", "content": [{ "type": "text", "text": "Because." }] });
+	fx.record(&chat_id, &[typed("m0")]);
+	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(300)), &[]), None, "the first reply to the lesson's goal may be long");
+	fx.record(&chat_id, &[typed("m0"), said("a0"), typed("m1")]);
+	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(150)), &[]), None, "150 words is not over");
+	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(151)), &[]), Some(wall_refusal(151)));
+	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(151)), &[]), None, "the same reply sent again goes through");
+	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(300)), &[]), None, "once that input");
+
+	fx.record(&chat_id, &[typed("m0"), said("a0"), typed("m1"), said("a1"), typed("m2")]);
+	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(200)), &[]), Some(wall_refusal(200)), "his next message gets its own");
+	let both = format!("{}\n\n{QUESTIONS}", wall(200));
+	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&both), &[]), Some(Nudge::QuestionList.refusal().to_owned()), "the next reply for that input passes the wall; the question list still stands");
+}
+
+#[test]
+fn a_wall_after_a_right_card_answer_is_stored() {
+	let fx = Fixture::new();
+	let chat_id = fx.lesson(Some("study"));
+	let answered = |details: Json| {
+		[
+			json!({ "id": "a1", "role": "assistant", "content": [{ "type": "toolCall", "id": "q1", "name": "quiz", "arguments": { "type": "check", "nodeId": "reg" } }] }),
+			json!({ "id": "r1", "role": "toolResult", "toolCallId": "q1", "toolName": "quiz", "content": [], "details": details, "isError": false }),
+		]
+	};
+	fx.record(&chat_id, &answered(json!({ "kind": "quiz", "correct": true })));
+	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(200)), &[]), None);
+	fx.record(&chat_id, &answered(json!({ "kind": "quiz", "correct": false })));
+	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(200)), &[]), Some(wall_refusal(200)), "a miss wants a short reply");
 }

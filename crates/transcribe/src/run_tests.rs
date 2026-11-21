@@ -111,7 +111,7 @@ async fn the_work_folder_is_private_and_two_runs_do_not_mix() {
 async fn dropping_the_future_stops_the_program_and_removes_the_work_folder() {
 	let sandbox = Sandbox::new();
 	install(&sandbox.bin.join("ffmpeg"), "#!/bin/sh\necho $$ > \"$(dirname \"$0\")/pid\"\nexec sleep 30\n");
-	let task = tokio::spawn({
+	let task = gs_base::tasks::spawn("test", {
 		let (paths, path_env, recording, out) = (sandbox.paths.clone(), sandbox.path_env(), sandbox.recordings.join("talk.mp3"), sandbox.out.join("t.txt"));
 		async move { transcribe_with(&ModelDownload::default(), &paths, Some(&path_env), &[], &recording, &out).await }
 	});
