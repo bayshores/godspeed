@@ -79,7 +79,7 @@ Size and dock are untouched, and the first terminal list after a reload is a sta
 | Event | What happens |
 |---|---|
 | Stop | Record marked stopping; the server hears the new live set at once. Mac and Linux send SIGHUP to the script's process group (`portable-pty` makes it a session leader, `rustix` sends the signal), then SIGKILL 2 s later; Windows ends the Job Object. |
-| The script exits | `ended` is `{stopped: false, code}`; whatever it left running is hung up and killed the same way. Exit 3 means agent not found, 4 Node.js missing. A failed exit whose screen says "No conversation found with session ID" (Claude Code) or "No saved session found" (Codex) becomes 5: the chat to go back to is gone. |
+| The script exits | `ended` is `{stopped: false, code}`; whatever it left running is hung up and killed the same way. Exit 3 means agent not found, 4 Node.js missing, 6 Claude Code older than 2.1.330 (the window says it needs an update). A failed exit whose screen says "No conversation found with session ID" (Claude Code) or "No saved session found" (Codex) becomes 5: the chat to go back to is gone. |
 | The teacher ends | However it ended (Stop, exit, crash), the shell stops the helper as above. The page may be gone by then, so it doesn't do this itself. |
 | Quit | `quit.rs` stops every terminal before the server: all hang up at once (one already stopping too), and after 2 s every group is killed, also what a script that ended in the last 2 s left. A group is signalled no more once killed, since its pid may then belong to another program. |
 | Server crash | Terminals live on. The restarted server gets `LH_TERMINALS`, and the reloaded page calls `terminal_list`. |

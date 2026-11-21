@@ -231,7 +231,7 @@ impl JobRunner {
 		}
 		let delivery = self.host.deliver(steer);
 		let id = job_id.to_owned();
-		gs_base::tasks::spawn("job", async move {
+		gs_base::tasks::detach("job", async move {
 			if let Err(e) = delivery.await {
 				eprintln!("[job {id}] pending delivery: {e}");
 			}

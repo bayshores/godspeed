@@ -30,14 +30,11 @@ export interface ProblemPlace {
 	boxes: PageBox[];
 }
 
-/** A stretch that holds this much of its page or more is a page shown whole. */
-const WHOLE_PAGE = 0.9;
-
 function partBox(part: PiecePart, piece: ProblemPiece): PageBox {
 	const [left, top, right, bottom] = part.crop;
 	const { mark } = piece;
-	// A page with columns is cut whole, so the mark is where the problem is on it.
-	if (mark && mark.page === part.page && (right - left) * (bottom - top) >= WHOLE_PAGE) return { page: part.page, aspect: part.aspect, x: mark.x, y: mark.y, w: mark.width, h: mark.height };
+	// The server marks only a page it cuts whole (one with columns): the mark is where the problem is on it.
+	if (mark && mark.page === part.page) return { page: part.page, aspect: part.aspect, x: mark.x, y: mark.y, w: mark.width, h: mark.height };
 	return { page: part.page, aspect: part.aspect, x: left, y: top, w: right - left, h: bottom - top };
 }
 

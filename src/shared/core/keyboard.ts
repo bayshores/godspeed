@@ -1,7 +1,7 @@
 /**
  * Keyboard shortcuts — the single source of truth for every app action that
  * has a binding. This module is PURE (no React, no window access at module
- * scope beyond the guarded helpers) so it can render a cheat sheet and match
+ * scope beyond the guarded helpers) so it can render the shortcuts list and match
  * events without touching any component.
  *
  * Design:
@@ -23,21 +23,24 @@ export type KeyAction =
 	| "jump-graph"
 	| "new-session"
 	| "rename-session"
-	| "cheat-sheet"
+	| "shortcuts"
 	| "find"
 	| "question-focus"
 	| "question-next-row"
 	| "question-prev-row"
 	| "question-pick-row"
 	| "question-submit"
+	| "question-pick-number"
+	| "calculator-keep"
+	| "page-magnify"
 	| "open-settings"
 	| "toggle-user-thinking";
 
-/** Where the cheat sheet groups an action (display only — dispatch is
+/** Where the shortcuts list groups an action (display only — dispatch is
  *  global; a seam that isn't mounted simply no-ops). */
 type KeyScope = "global" | "chat";
 
-/** Each scope's heading, in display order (Settings and the cheat sheet). */
+/** Each scope's heading, in display order (the shortcuts list). */
 export const KEY_SCOPES: readonly { scope: KeyScope; label: string }[] = [
 	{ scope: "global", label: "Everywhere" },
 	{ scope: "chat", label: "In a lesson" },
@@ -45,13 +48,13 @@ export const KEY_SCOPES: readonly { scope: KeyScope; label: string }[] = [
 
 interface KeyActionDef {
 	id: KeyAction;
-	/** Cheat-sheet label. */
+	/** The label in the shortcuts list. */
 	label: string;
 	scope: KeyScope;
 	binding: string;
-	/** Display-only (cheat sheet) — contextual keys a SURFACE owns (the
-	 *  question dock's row machine); never dispatched from the registry,
-	 *  so they can't leak to pages where the surface isn't mounted. */
+	/** Display-only (shortcuts list) — contextual keys a SURFACE owns (the
+	 *  question dock's row machine), or a gesture; never dispatched from the
+	 *  registry, so they can't leak to pages where the surface isn't mounted. */
 	displayOnly?: boolean;
 }
 
@@ -65,7 +68,7 @@ export const KEYBOARD_ACTIONS: readonly KeyActionDef[] = [
 	// Mod+F is surface-scoped: the Files and Graph pages' Find and a lesson's
 	// text Find share one action/binding. Only the page on screen listens.
 	{ id: "find", label: "Find", scope: "global", binding: "mod+f" },
-	{ id: "cheat-sheet", label: "Show keyboard shortcuts", scope: "global", binding: "?" },
+	{ id: "shortcuts", label: "Show keyboard shortcuts", scope: "global", binding: "?" },
 	// The question dock's row machine — displayOnly: the dock owns
 	// the keys while a question is expanded; the registry never dispatches
 	// them, so bare arrows stay free everywhere else.
@@ -74,6 +77,12 @@ export const KEYBOARD_ACTIONS: readonly KeyActionDef[] = [
 	{ id: "question-prev-row", label: "Previous answer", scope: "chat", binding: "arrowup", displayOnly: true },
 	{ id: "question-pick-row", label: "Pick answer", scope: "chat", binding: "space", displayOnly: true },
 	{ id: "question-submit", label: "Submit answer", scope: "chat", binding: "enter", displayOnly: true },
+	// Number keys are drawn as one keycap, "1-9".
+	{ id: "question-pick-number", label: "Pick an answer by its number", scope: "chat", binding: "1-9", displayOnly: true },
+	// The writing box's calculator (math-box-calculator.ts): the sum ends with "=", Tab keeps the answer.
+	{ id: "calculator-keep", label: "Keep the calculator's answer, shown after a sum ending in =", scope: "chat", binding: "tab", displayOnly: true },
+	// The page magnifier (crates/shell/src/shim.js): a pinch has no key, so its label says it.
+	{ id: "page-magnify", label: "Magnify the page, or pinch", scope: "global", binding: "mod+scroll", displayOnly: true },
 ];
 
 /** The key map: each dispatched binding to its action. */
@@ -155,6 +164,7 @@ const KEY_GLYPH: Record<string, string> = {
 	tab: "⇥",
 	escape: "Esc",
 	space: "Space",
+	scroll: "Scroll",
 };
 
 /** A binding as its modifiers and its key ("mod+shift++" → ["mod", "shift"], "+"). */

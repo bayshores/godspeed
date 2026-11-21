@@ -14,7 +14,8 @@ import { useZoom } from "@/frontend/components/use-zoom";
 import { APP_ICONS, BACKGROUND_PRESETS, GRAPHITE, appearanceToWrite, derivedPalette, readableBackground } from "./appearance-model.ts";
 import { DEFAULT_READING_FONT, FontMenuList } from "./font-menu";
 import { Slider } from "./controls.tsx";
-import { ZOOM_STOPS, zoomFactor, zoomIndex, zoomLabel } from "./text-size-model.ts";
+import { ZOOM_STOPS, zoomFactor, zoomIndex } from "./text-size-model.ts";
+import { zoomLabel } from "@/frontend/lib/camera";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
@@ -126,7 +127,7 @@ function TextSize() {
 			max={ZOOM_STOPS - 1}
 			ariaLabel="Text size"
 			testid="slider-text-size"
-			label={zoomLabel}
+			label={(i) => zoomLabel(zoomFactor(i))}
 			onCommit={(index) => void window.lh?.setZoom?.(zoomFactor(index))}
 		/>
 	);

@@ -6,7 +6,11 @@
  * whole list over the screen's foot. The
  * teacher's panel and onboarding's first start show it. A space file name
  * in the screen opens the file (a PDF in its own app, anything else shown
- * in its folder), and a passage id opens the source popup.
+ * in its folder), and a passage id opens the source popup. A line a page key
+ * handed the teacher (`ask`) goes through the same send as a starter key,
+ * once the screen can take a line and the shell shows it in this window
+ * (the shell refuses a line to a screen not attached), and a refusal shows
+ * the same way.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CiteDialog } from "@/frontend/components/citations/cite-dialog";
@@ -28,7 +32,7 @@ const FILE_GONE = "Can't find this file on your computer.";
 /** xterm loads with the first screen shown. */
 const TerminalView = lazyComponent(() => import("./terminal-view").then((m) => m.TerminalView));
 
-export function TerminalPane({ api, role, name, foot, focusOnOpen, ideas = null, popOut = null }: {
+export function TerminalPane({ api, role, name, foot, focusOnOpen, ideas = null, popOut = null, ask = null }: {
 	api: TerminalsApi;
 	role: TerminalRole;
 	/** What the screen's agent is called: the teacher's name, or background work's. */
@@ -41,6 +45,8 @@ export function TerminalPane({ api, role, name, foot, focusOnOpen, ideas = null,
 	ideas?: { starters: readonly string[]; everything: readonly IdeaGroup[] } | null;
 	/** Pops the screen out into a window of its own (api.popOut); none leaves its key out. */
 	popOut?: TerminalsApi["popOut"];
+	/** A line to send as soon as the screen takes one; `clear` runs when it goes. */
+	ask?: { line: string; clear: () => void } | null;
 }) {
 	const term = api[role]!;
 	const [focusKey, setFocusKey] = useState(0);
@@ -60,7 +66,8 @@ export function TerminalPane({ api, role, name, foot, focusOnOpen, ideas = null,
 	// The Ideas key unfolded the row; the whole list is open.
 	const [rowWanted, setRowWanted] = useState(false);
 	const [listWanted, setListWanted] = useState(false);
-	const canAsk = !!ideas && ideas.starters.length > 0 && takesLine(api.facts[role]);
+	const takes = takesLine(api.facts[role]);
+	const canAsk = !!ideas && ideas.starters.length > 0 && takes;
 	const used = !!lastChat || sentFrom === term.id;
 	const rowShown = canAsk && (!used || rowWanted);
 	const listShown = rowShown && listWanted;
@@ -74,6 +81,15 @@ export function TerminalPane({ api, role, name, foot, focusOnOpen, ideas = null,
 		});
 		refocus();
 	};
+	// The screen the shell shows here; a new id is not attached until its view says so.
+	const [attachedId, setAttachedId] = useState<string | null>(null);
+	const ready = takes && attachedId === term.id;
+	useEffect(() => {
+		if (!ask || !ready) return;
+		// Cleared first, so a render in between cannot send it twice.
+		ask.clear();
+		sendIdea(ask.line);
+	}, [ask, ready, sendIdea]);
 	const row = useRef<HTMLDivElement>(null);
 	useMenuDismiss(listShown, useCallback(() => setListWanted(false), []), row);
 	const attaches = role === "teacher" && running;
@@ -110,7 +126,7 @@ export function TerminalPane({ api, role, name, foot, focusOnOpen, ideas = null,
 					void attach(Array.from(e.dataTransfer.files));
 				}}
 			>
-				<TerminalView key={term.id} id={term.id} ended={!live} focusOnOpen={focusOnOpen} focusKey={focusKey} files={files} onLink={onLink} />
+				<TerminalView key={term.id} id={term.id} ended={!live} focusOnOpen={focusOnOpen} focusKey={focusKey} files={files} onLink={onLink} onAttached={setAttachedId} />
 				{ideas && <IdeaList groups={listShown ? ideas.everything : null} label={`Everything ${name} can do`} onSend={sendIdea} />}
 			</div>
 			<div ref={row} className="shrink-0">

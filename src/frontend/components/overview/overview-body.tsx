@@ -10,6 +10,7 @@ import { splitLessons } from "./lesson-record-model";
 import { MostNeeded } from "./most-needed";
 import { NextDeadline } from "./next-deadline";
 import { PathBlock } from "./path-block";
+import { StartCard, StartTiles } from "./start-tiles";
 import { hasCalibration, mostNeeded, upcomingDeadlines } from "./overview-model";
 import { NotesCard } from "./notes-card";
 import { TeacherNote } from "./teacher-note";
@@ -26,9 +27,11 @@ import { useStickyTop } from "./use-sticky-top";
  * and the confidence chart. Each shows only once it has something to show,
  * but for the Lessons heading, which shows while loading too; a space's
  * deadline, path and facts are left out for "Lessons with no space". With
- * nothing in the side column the wide one takes the whole width. The side
- * column sticks while the record scrolls, so what to do stays in view; in
- * a narrow window it goes on top instead.
+ * nothing in the side column the wide one takes the whole width. A space with
+ * no files, deadline, path or lesson shows only the card of ways to start; one
+ * with no deadline and no path offers the ways to add them where the deadline
+ * would be. The side column sticks while the record scrolls, so what to do
+ * stays in view; in a narrow window it goes on top instead.
  */
 export const OverviewBody = memo(function OverviewBody({
 	hasSpace,
@@ -84,6 +87,15 @@ export const OverviewBody = memo(function OverviewBody({
 	const pathFirst = !!spaceData?.path && next === null;
 	const side = spaceData !== null || unfinished.length > 0 || startError !== null;
 	const [sideRef, sideTop] = useStickyTop();
+	// A space with nothing in it: one card of ways to start, in place of the empty boxes.
+	const blank = !!spaceData && spaceData.files.length === 0 && spaceData.deadlines.length === 0 && !spaceData.path && spaceData.lessons.length === 0;
+	if (blank) {
+		return (
+			<div data-testid="space-overview" className="@container lh-page flex flex-col gap-(--lh-gap) pt-(--lh-gap) pb-(--lh-page-end)">
+				<StartCard color={color} onAddDeadline={onAddDeadline} />
+			</div>
+		);
+	}
 
 	return (
 		<div data-testid="space-overview" className="@container lh-page flex flex-col gap-(--lh-gap) pt-(--lh-gap) pb-(--lh-page-end)">
@@ -106,6 +118,7 @@ export const OverviewBody = memo(function OverviewBody({
 									onStudy={onStudyDeadline}
 									onWork={onWorkDeadline}
 									onAddDeadline={onAddDeadline}
+									starts={spaceData.deadlines.length === 0 ? <StartTiles ways={["deadline", "path"]} color={color} onAddDeadline={onAddDeadline} /> : undefined}
 								/>
 							))}
 						{hasSpace && waiting}

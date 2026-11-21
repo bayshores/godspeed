@@ -115,7 +115,12 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 		],
 	)?;
 
-	let help = Submenu::with_items(app, "Help", true, &[&item("report-bug", "Report a Bug…", None)?])?;
+	let help = Submenu::with_items(
+		app,
+		"Help",
+		true,
+		&[&item("page:shortcuts", "Keyboard Shortcuts", None)?, &separator()?, &item("report-bug", "Report a Bug…", None)?],
+	)?;
 	#[cfg(target_os = "macos")]
 	help.set_as_help_menu_for_nsapp()?;
 

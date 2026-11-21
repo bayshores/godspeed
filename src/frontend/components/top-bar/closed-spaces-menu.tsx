@@ -8,31 +8,24 @@ import { useLessonList } from "@/frontend/components/lessons/use-lesson-list";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { BAR_TAB, barTabState, MENU_ITEM } from "./bar-look";
-import { SpaceMenu, useSpaceMenu } from "./space-menu";
-import { hasLessonsWithNoSpace, plusName, spaceMenuDescription } from "./top-bar-model";
+import { hasLessonsWithNoSpace, plusName } from "./top-bar-model";
 import { useCloseSpace } from "./use-close-space";
 
 /**
  * THE + after the last tab: "Add a space", then, when any space is closed,
  * one row per closed space, then, when there are any, "Lessons with no
  * space". A click on a closed space reopens it and switches the window to
- * it; a right-click opens its menu. `lit` while the window shows a closed
- * space or the lessons with no space.
+ * it. `lit` while the window shows a closed space or the lessons with no
+ * space.
  */
-export function ClosedSpacesMenu({ lit, onAdd, onDelete }: { lit: boolean; onAdd: () => void; onDelete: (spaceId: string) => void }) {
+export function ClosedSpacesMenu({ lit, onAdd }: { lit: boolean; onAdd: () => void }) {
 	const { spaces } = useSpaces();
 	const closed = spaces.filter((s) => s.closed);
 	const [open, setOpen] = useState(false);
 	const anchorRef = useRef<HTMLButtonElement>(null);
-	const rowMenu = useSpaceMenu();
-	const closeRowMenu = rowMenu.close;
-	const close = useCallback(() => {
-		setOpen(false);
-		closeRowMenu();
-	}, [closeRowMenu]);
+	const close = useCallback(() => setOpen(false), []);
 	useMenuDismiss(open, close, anchorRef);
 	const { busy, error, reopen } = useCloseSpace();
-	const menuSpace = closed.find((s) => s.id === rowMenu.shownId);
 	const name = plusName(closed.length > 0);
 	return (
 		<>
@@ -50,8 +43,7 @@ export function ClosedSpacesMenu({ lit, onAdd, onDelete }: { lit: boolean; onAdd
 				<PixelIcon name="plus" />
 			</button>
 			<MenuShell open={open} anchorRef={anchorRef} testid="spaces-plus-list" preferredSide="down" align="left" hang menuClass="lh-popup flex w-[260px] flex-col p-1.5">
-				{/* A press inside the list, off a row's menu, closes that menu. */}
-				<div className="flex flex-col" onPointerDown={closeRowMenu}>
+				<div className="flex flex-col">
 					<button
 						role="menuitem"
 						type="button"
@@ -77,13 +69,10 @@ export function ClosedSpacesMenu({ lit, onAdd, onDelete }: { lit: boolean; onAdd
 									type="button"
 									data-testid={`closed-space-${s.id}`}
 									disabled={busy}
-									aria-description={spaceMenuDescription(true)}
-									onContextMenu={(e) => rowMenu.onContextMenu(e, s.id)}
-									onKeyDown={(e) => rowMenu.onKeyDown(e, s.id)}
 									onClick={async () => {
 										if (await reopen(s)) close();
 									}}
-									className={cn(MENU_ITEM, "gap-2", rowMenu.openId === s.id && "bg-accent")}
+									className={cn(MENU_ITEM, "gap-2")}
 								>
 									<span aria-hidden className="size-2.5 shrink-0" style={{ background: spaceColorVar(s.color) }} />
 									<span title={s.name} className="min-w-0 truncate">
@@ -101,18 +90,6 @@ export function ClosedSpacesMenu({ lit, onAdd, onDelete }: { lit: boolean; onAdd
 					)}
 				</div>
 			</MenuShell>
-			{/* Outside the list's element, so a press in it isn't a press in the list. */}
-			{menuSpace && (
-				<SpaceMenu
-					key={menuSpace.id}
-					space={menuSpace}
-					open={rowMenu.openId === menuSpace.id}
-					anchorRef={rowMenu.anchorRef}
-					onScreen={false}
-					onClose={close}
-					onDelete={onDelete}
-				/>
-			)}
 		</>
 	);
 }

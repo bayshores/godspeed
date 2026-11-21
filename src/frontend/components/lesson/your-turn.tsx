@@ -7,7 +7,7 @@ import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { cn } from "@/frontend/lib/utils";
 import type { AttachmentDraft } from "./attachment-tray";
 import { wordsOver } from "@/frontend/components/vault/note-pages-model";
-import { EndNotes } from "./end-notes";
+import { EndNotes, NotesSaved } from "./end-notes";
 import { LessonBox } from "./lesson-box";
 import { HELP_LINES, lessonBox, lessonIdeas, questionTurn, type BoxAction, type BoxView } from "./lesson-box-model";
 import { OpenProblemPane, type ProblemPicks } from "./open-problem-pane";
@@ -245,6 +245,7 @@ export function YourTurn({
 				)}
 				{notes && <EndNotes notes={notes} scroll={quiet} />}
 			</TurnScroll>
+			{notes && <NotesSaved notes={notes} />}
 			</>
 			)}
 			</TurnSwap>

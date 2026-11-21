@@ -57,6 +57,9 @@ impl SpaceActions {
 					}
 					// A .tex names the PDF built from it, so the teacher finds the source to edit.
 					entry.insert_present("pdfId", f.get("pdfId"));
+					// Where the agent built the file, and the lesson it was for.
+					entry.insert_present("madeFrom", f.get("madeFrom"));
+					entry.insert_present("lessonId", f.get("lessonId"));
 					if let Some(size) = sizes.get(f["id"].str_or_empty()).filter(|s| s.truthy()) {
 						entry.insert("size", size.clone());
 					}

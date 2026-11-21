@@ -183,6 +183,7 @@ fn space_tool_text_matches_node() {
 		("filePath", a.file_path),
 		("fileName", a.file_name),
 		("fileText", a.file_text),
+		("fileLesson", a.file_lesson),
 		("folderPath", a.folder_path),
 		("fileKind", a.file_kind),
 		("fileIds", a.file_ids),
@@ -342,6 +343,7 @@ fn briefings_match_node() {
 				space_id: l["spaceId"].as_str().map(str::to_owned),
 				updated_at: s(&l["updatedAt"]).to_owned(),
 				waiting: l["waiting"].as_bool().unwrap(),
+				files: Vec::new(),
 			})
 			.collect();
 		let input = BriefingInput { now_ms: ms(s(&c["now"])), spaces, lessons, notes: list(&c["notes"]).to_vec(), max_chars: c["maxChars"].as_i64().unwrap() as usize };

@@ -111,7 +111,7 @@ The same pipeline reads notes and space files:
 
 - Deleting a proposition removes every stored chain referencing it, as premise or conclusion.
 - Deleting an implication node (any `arg_` id) removes exactly that stored chain.
-- One confirm dialog (`src/frontend/components/delete-node-dialog.tsx`) opens from a fact's right-click menu and from chain table's Delete.
+- One confirm dialog (`src/frontend/components/delete-node-dialog.tsx`) opens from All facts' Delete. The topic sheet's fact rows only open the fact.
 
 ### The teacher's graph tool
 
@@ -176,4 +176,12 @@ The picture inks in once each time the tab opens, in 0.9 s (a change to the grap
 
 A graph change keeps the pick; a picked topic or fact that is gone closes its panel.
 
-The topic grouper (`agent::extraction::topic_grouper`, scheduled by `services::graph::topics`) groups a graph's facts into topics. It labels each topic's material as term, procedure, concept or proof, and appends a full snapshot to `topics.jsonl`. Older snapshots may have no material. A topic keeping its id across a regroup keeps its stored material (`repair_topics`, `core::graph::topics`). No layout is stored.
+The topic grouper (`agent::extraction::topic_grouper`, scheduled by `services::graph::topics`) groups a graph's facts into topics. It labels each topic's material as term, procedure, concept or proof. Every run appends a full snapshot to `topics.jsonl`. Older snapshots may have no material. A topic keeping its id across a regroup keeps its stored material (`repair_topics`, `core::graph::topics`). No layout is stored.
+
+A run does one of three things:
+
+| When | What runs | Model call |
+|---|---|---|
+| First grouping, or a space's file queue just drained | The grouper gets every fact and the current topics | Yes |
+| New facts that all have a chain neighbor in a topic | Each joins the topic most of its neighbors are in (`place_new_facts`) | No |
+| New facts, some with no grouped neighbor | The rest are placed as above; the grouper gets only the loose facts, and each topic as its name and six of its facts' names (`add_placements` merges its answer) | Yes, a small one |

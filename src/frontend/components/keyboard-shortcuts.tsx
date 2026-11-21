@@ -52,13 +52,18 @@ export function KeyboardShortcuts() {
 			case "jump-graph":
 				navigateRef.current("/graph");
 				break;
-			case "cheat-sheet":
-				setShortcutsOpen(true);
-				break;
 			default:
 				// The mounted surface owns Find (session text / graph nodes) and the rest.
 				window.dispatchEvent(new CustomEvent(kbdEventForAction(action)));
 		}
+	}, []);
+
+	// The top bar's Menu opens the list through the same event as the other surfaces' actions.
+	useEffect(() => {
+		const name = kbdEventForAction("shortcuts");
+		const onOpen = () => setShortcutsOpen(true);
+		window.addEventListener(name, onOpen);
+		return () => window.removeEventListener(name, onOpen);
 	}, []);
 
 	useEffect(() => {

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocation } from "react-router";
 import { cn } from "@/frontend/lib/utils";
 import type { Camera } from "@/frontend/lib/camera";
+import { wheelUnit } from "@/frontend/lib/own-wheel";
 import { keepInRoom, panBy, pinchAt, PINCH, UNMAGNIFIED, type Pinch, type Room } from "./magnifier-model";
 import { MiniMap } from "./mini-map";
 
@@ -60,7 +61,7 @@ export function MagnifiedPage({ children }: { children: ReactNode }) {
 		// Not passive, so a scroll the magnifier takes does not scroll the page too.
 		const onWheel = (e: WheelEvent) => {
 			if (e.defaultPrevented || e.ctrlKey || e.metaKey) return;
-			const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
+			const unit = wheelUnit(e.deltaMode);
 			const next = panBy(camNow.current, e.deltaX * unit, e.deltaY * unit, roomOf(el));
 			if (!next) return;
 			e.preventDefault();

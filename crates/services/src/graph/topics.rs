@@ -2,8 +2,11 @@
 //! queue drains, a grouping run is asked for. Requests are debounced (20 s on the app clock) and
 //! single-flight per space (a request during a run queues exactly one more). A run is skipped with
 //! fewer than 4 facts, the graph off, files still waiting or being read, or the same fact set as
-//! the last snapshot. It shows in the activity dock (kind "topics"), runs on the outside agent,
-//! and appends one full snapshot to the graph's topics.jsonl.
+//! the last snapshot. The first grouping and the one after a file import group every fact. Any
+//! other run keeps the topics: each new fact joins its chain neighbors' topic with no model call,
+//! and only facts with no grouped neighbor go to the grouper, alone. A model run shows in the
+//! activity dock (kind "topics") and runs on the outside agent. Every run appends one full
+//! snapshot to the graph's topics.jsonl.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -11,12 +14,13 @@ use std::sync::Arc;
 use gs_agent::extraction::topic_grouper::{TopicGrouperInput, group_topics};
 use gs_agent::subagents::bg_llm_semaphore::with_bg_llm_slot;
 use gs_agent::subagents::pi_run::RunError;
+use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::tasks::detach;
 use gs_base::{clock, time};
 use gs_core::spaces::file_state::FileStatus;
 use gs_core::graph::graph::get_graph;
-use gs_core::graph::topics::{MIN_FACTS_FOR_TOPICS, resolve_topics, same_fact_set};
+use gs_core::graph::topics::{MIN_FACTS_FOR_TOPICS, place_new_facts, resolve_topics, same_fact_set};
 use gs_json::{Json, json};
 use gs_store::graph::Ledger;
 use parking_lot::Mutex;
@@ -35,6 +39,8 @@ struct Inner {
 	running: HashSet<String>,
 	/// Spaces asked for again while running: one more run follows.
 	again: HashSet<String>,
+	/// Spaces whose next run groups every fact: a file import changed what the graph holds.
+	whole: HashSet<String>,
 }
 
 #[derive(Default)]
@@ -70,6 +76,12 @@ pub fn schedule_topic_grouping(app: &Arc<App>, space_id: &str) {
 	}
 }
 
+/// Asks for a run that groups every fact, after a file import.
+pub fn schedule_whole_topic_grouping(app: &Arc<App>, space_id: &str) {
+	app.graph.topics.0.lock().whole.insert(space_id.to_owned());
+	schedule_topic_grouping(app, space_id);
+}
+
 /// Drops a pending run and stops a running one (the space is being deleted).
 pub fn cancel_topic_grouping(app: &App, space_id: &str) {
 	{
@@ -78,6 +90,7 @@ pub fn cancel_topic_grouping(app: &App, space_id: &str) {
 			timer.abort();
 		}
 		inner.again.remove(space_id);
+		inner.whole.remove(space_id);
 	}
 	runs(app).abort_extraction(&topic_run_key(space_id));
 }
@@ -125,18 +138,35 @@ async fn group_once(app: &Arc<App>, space_id: &str) -> Result<(), String> {
 	let fact_ids: Vec<String> = graph.nodes.iter().map(|f| f["id"].str_or_empty().to_owned()).collect();
 	let last = app.stores.graphs.read_topics(scope)?;
 	if same_fact_set(last.as_ref(), &fact_ids) {
+		app.graph.topics.0.lock().whole.remove(space_id);
 		return Ok(());
 	}
+
+	let current: Vec<Json> = resolve_topics(last.as_ref(), &fact_ids).into_iter().filter(|t| !t["ungrouped"].truthy()).collect();
+	let whole = current.is_empty() || app.graph.topics.0.lock().whole.contains(space_id);
+	let (current, loose) = if whole {
+		(current, None)
+	} else {
+		let (placed, loose) = place_new_facts(&current, &fact_ids, &graph.chains);
+		if loose.is_empty() {
+			let _guard = app.locks.lock(LockKey::Space(space_id));
+			write_topics(app, space_id, placed)?;
+			// No run starts or ends here, and the pages that show topics reload on this.
+			app.events.emit(EventKind::ActivityChanged, json!({}));
+			return Ok(());
+		}
+		(placed, Some(loose))
+	};
 
 	let run_key = topic_run_key(space_id);
 	let abort = runs(app).start_background_graph_run(&app.events, &run_key, &format!("Topic grouping: {space_name}"));
 	let taken = crate::vault::take_for_grouping(app, space_id).await;
-	let current: Vec<Json> = resolve_topics(last.as_ref(), &fact_ids).into_iter().filter(|t| !t["ungrouped"].truthy()).collect();
 	let input = TopicGrouperInput {
 		space_name: space_name.to_owned(),
 		facts: graph.nodes.iter().map(|f| json!({ "id": f["id"], "name": f["name"], "statement": f["statement"] })).collect(),
 		chains: graph.chains,
 		current,
+		loose,
 		engine: None,
 		abort: Some(abort.clone()),
 		notes: taken.as_ref().map(|t| t.riding()),
@@ -152,10 +182,52 @@ async fn group_once(app: &Arc<App>, space_id: &str) -> Result<(), String> {
 		Err(_) => Ok(()),
 		Ok(Err(err)) if abort.is_aborted() || err == RunError::Aborted => Ok(()),
 		Ok(Err(err)) => Err(err.to_string()),
-		// A space deleted mid-run: never recreate its folder.
-		Ok(Ok(_)) if app.stores.spaces.get_space(space_id).is_none() => Ok(()),
-		Ok(Ok(topics)) => app.stores.graphs.append(scope, Ledger::Topics, &json!({ "at": time::iso_now(), "topics": topics })),
+		Ok(Ok(topics)) => write_topics(app, space_id, topics),
 	};
 	runs(app).finish_background_graph_run(&app.events, &run_key);
 	result
+}
+
+/// Appends a grouping as the space's newest snapshot; the caller holds the space lock. A space
+/// deleted meanwhile is left alone: its folder is never recreated.
+fn write_topics(app: &App, space_id: &str, topics: Vec<Json>) -> Result<(), String> {
+	if app.stores.spaces.get_space(space_id).is_none() {
+		return Ok(());
+	}
+	app.stores.graphs.append(Some(space_id), Ledger::Topics, &json!({ "at": time::iso_now(), "topics": topics }))?;
+	app.graph.topics.0.lock().whole.remove(space_id);
+	Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+	use gs_store::graph::Ledger;
+
+	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
+
+	#[tokio::test]
+	async fn a_new_fact_with_a_grouped_neighbor_joins_its_topic_with_no_job() {
+		let root = scratch_dir("topics");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Algebra" })).unwrap()["id"].str_or_empty().to_owned();
+		let scope = Some(space_id.as_str());
+		let fact = |id: &str| json!({ "id": id, "name": id, "statement": format!("{id} holds."), "aliases": [], "createdAt": "t", "provenance": [{ "chatId": "c", "messageId": "" }] });
+		for id in ["n_a", "n_b", "n_c", "n_d"] {
+			app.stores.graphs.append(scope, Ledger::Nodes, &fact(id)).unwrap();
+		}
+		let topics = json!([{ "id": "tpc_1", "name": "Lines", "members": ["n_a", "n_b"], "material": "concept" }, { "id": "tpc_2", "name": "Slopes", "members": ["n_c", "n_d"] }]);
+		app.stores.graphs.append(scope, Ledger::Topics, &json!({ "at": "t", "topics": topics })).unwrap();
+		app.stores.graphs.append(scope, Ledger::Nodes, &fact("n_new")).unwrap();
+		app.stores.graphs.append(scope, Ledger::Chains, &json!({ "id": "ch_1", "premises": ["n_c"], "conclusion": "n_new", "createdAt": "t", "provenance": [{ "chatId": "c", "messageId": "" }] })).unwrap();
+
+		// A job for the grouper would wait for an agent that never comes.
+		tokio::select! {
+			done = group_once(&app, &space_id) => done.unwrap(),
+			() = clock::sleep(5_000) => panic!("a model was asked"),
+		}
+
+		let written = app.stores.graphs.read_topics(scope).unwrap().unwrap();
+		assert_eq!(written["topics"], json!([{ "id": "tpc_1", "name": "Lines", "members": ["n_a", "n_b"], "material": "concept" }, { "id": "tpc_2", "name": "Slopes", "members": ["n_c", "n_d", "n_new"] }]));
+	}
 }

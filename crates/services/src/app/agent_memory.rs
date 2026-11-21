@@ -11,10 +11,8 @@ use crate::App;
 /// The briefing, at most `max_chars` long. A note or lesson with a time that isn't one cannot be
 /// saved, so the briefing has no failure to report.
 pub fn current_agent_briefing(app: &App, max_chars: usize) -> String {
-	let spaces = app
-		.stores
-		.spaces
-		.list_space_records()
+	let records = app.stores.spaces.list_space_records();
+	let spaces = records
 		.iter()
 		.map(|record| BriefingSpace {
 			id: record["id"].str_or_empty().to_owned(),
@@ -24,12 +22,18 @@ pub fn current_agent_briefing(app: &App, max_chars: usize) -> String {
 			missing_setup: missing_setup(record).into_iter().map(str::to_owned).collect(),
 		})
 		.collect();
+	// A .tex is left out beside the PDF built from it: the two are one file.
+	let lesson_files = |lesson_id: &str| -> Vec<String> {
+		let made = records.iter().flat_map(|record| record["files"].items().iter());
+		made.filter(|f| f["lessonId"].as_str() == Some(lesson_id) && !f["pdfId"].truthy()).map(|f| f["name"].str_or_empty().to_owned()).collect()
+	};
 	let lessons = app
 		.stores
 		.chats
 		.list_chats()
 		.iter()
 		.map(|chat| BriefingLesson {
+			files: lesson_files(chat["id"].str_or_empty()),
 			id: chat["id"].str_or_empty().to_owned(),
 			title: chat["title"].str_or_empty().to_owned(),
 			space_id: chat["spaceId"].as_str().filter(|id| !id.is_empty()).map(str::to_owned),

@@ -2,6 +2,8 @@ import { memo, useState } from "react";
 import type { PathProgress } from "@/shared/core";
 import { RampRow } from "@/frontend/components/deadline/ramp-row";
 import { Key } from "@/frontend/components/ui/key";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
+import { CHANGE_PATH_LINE } from "@/frontend/components/terminal/starter-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { pathBlockView } from "./path-block-model";
 import { MAIN_KEY } from "./styles";
@@ -9,12 +11,13 @@ import { MAIN_KEY } from "./styles";
 /**
  * THE PATH (Progress, side column): the space's path toward its goal, the
  * topic Study takes with what it covers, the next three, and "Show all" for
- * the rest. With no deadline ahead it is the page's first card and its Study
+ * the rest, and a quiet key that asks the teacher to change it. With no deadline ahead it is the page's first card and its Study
  * the page's one dark key; beside a deadline its Study is grey. The agent
  * writes and changes the path; the learner tells it how.
  */
 export const PathBlock = memo(function PathBlock({ path, main, busyOn, onStudy }: { path: PathProgress; main: boolean; busyOn: string | null; onStudy: (topicId: string) => void }) {
 	const [shownAll, setShownAll] = useState(false);
+	const teacher = useTeacher();
 	const view = pathBlockView(path, shownAll);
 	const next = view.next;
 	return (
@@ -53,10 +56,19 @@ export const PathBlock = memo(function PathBlock({ path, main, busyOn, onStudy }
 					))}
 				</ul>
 			)}
-			{view.showAll !== null && (
-				<button type="button" data-testid="space-path-show-all" onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet self-start text-[15px]">
-					Show all {view.showAll}
-				</button>
+			{(view.showAll !== null || teacher?.canAsk) && (
+				<div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+					{view.showAll !== null && (
+						<button type="button" data-testid="space-path-show-all" onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet text-[15px]">
+							Show all {view.showAll}
+						</button>
+					)}
+					{teacher?.canAsk && (
+						<button type="button" data-testid="path-change" onClick={() => teacher.ask(CHANGE_PATH_LINE)} className="lh-btn lh-btn-quiet text-[15px]">
+							Ask {teacher.name} to change it
+						</button>
+					)}
+				</div>
 			)}
 		</Pane>
 	);

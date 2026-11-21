@@ -8,6 +8,7 @@ import { StepBlocks } from "@/frontend/components/overview/lesson-rows";
 import { lessonHref, problemsDone } from "@/frontend/components/overview/overview-model";
 import { SMALL_BTN } from "@/frontend/components/ui/card-parts";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { TickMark } from "@/frontend/components/ui/tick-mark";
 import { ProgressBar } from "@/frontend/components/ui/progress-bar";
 import { Tip } from "@/frontend/components/ui/tooltip";
 import { cn } from "@/frontend/lib/utils";
@@ -27,8 +28,8 @@ import { FULL_LINE } from "./files-pick-model";
  * "5 of 12 problems done" in place of its facts, a link to its lesson when
  * it has one.
  *
- * The row is one button that picks the file to study: the row is lit and
- * the tile shows a check. Controls with their own click (a state with Retry
+ * The row is one button that picks the file to study: the row is lit and,
+ * while picking, its tick box is ticked. Controls with their own click (a state with Retry
  * or the lesson link, More, the install line) sit beside it, never in it.
  * The hover tips inside it open on the pointer; for the keyboard and screen
  * readers the button carries their words as its description.
@@ -76,6 +77,7 @@ export const FileRow = memo(function FileRow({
 	work,
 	pick,
 	onPick,
+	boxes,
 	disabled,
 	teacher,
 	actions,
@@ -88,6 +90,8 @@ export const FileRow = memo(function FileRow({
 	pick: RowPick;
 	/** `held`: the row is past the limit, so the click only asks why. */
 	onPick: (fileId: string, held: boolean) => void;
+	/** Show the tick box: while picking, and once any file is picked. */
+	boxes: boolean;
 	disabled?: boolean;
 	/** The teacher's name, for the kind label's hover text. */
 	teacher: string;
@@ -134,16 +138,17 @@ export const FileRow = memo(function FileRow({
 					held && "cursor-not-allowed",
 				)}
 			>
-				{/* Study material, which makes the facts, is the dark tile; a picked file's is the tint with a check. */}
+				{boxes && <TickMark checked={picked} className={cn(held && "opacity-50")} />}
+				{/* Study material, which makes the facts, is the dark tile. */}
 				<span
 					aria-hidden
 					className={cn(
 						"flex h-8 w-12 shrink-0 items-center justify-center font-count text-sm transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
-						picked ? "bg-tint text-background" : file.kind === "study" ? "bg-ink text-(--background)" : "lh-well text-ink-2",
+						file.kind === "study" ? "bg-ink text-(--background)" : "lh-well text-ink-2",
 						held && "opacity-50",
 					)}
 				>
-					{picked ? <PixelIcon name="check" className="lh-pop h-[11px]" /> : fileType(file.name)}
+					{fileType(file.name)}
 				</span>
 				<span className={cn("flex min-w-0 flex-1 items-center gap-2", held && "opacity-50")}>
 					{file.origin === "linked" ? (

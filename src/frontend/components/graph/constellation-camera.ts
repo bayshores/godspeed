@@ -6,6 +6,7 @@
  * picture. Pure.
  */
 import { NAME_GAP, NAME_LINE, type Cluster, type Rect, type Sky } from "./constellation-layout.ts";
+import { wheelUnit } from "@/frontend/lib/own-wheel";
 
 /** `x`, `y`: the layout point at the view's centre. */
 export interface Cam {
@@ -181,7 +182,7 @@ export const easeOut = (t: number) => 1 - (1 - t) ** 3;
 
 /** One wheel event's zoom factor, at the speed of the app's other zoomable view. A pinch in a webview without gesture events arrives as a wheel with ctrlKey and small deltas, so it counts for more. */
 export function wheelFactor(deltaY: number, deltaMode: number, pinch: boolean): number {
-	const px = deltaMode === 1 ? deltaY * 16 : deltaMode === 2 ? deltaY * 400 : deltaY;
+	const px = deltaY * wheelUnit(deltaMode);
 	return Math.exp(-px * (pinch ? 0.01 : 0.0015));
 }
 

@@ -2,7 +2,7 @@
 
 godspeed writes one note per idea the learner worked on into a folder the learner picked: an Obsidian vault, or any other notes folder. A note keeps how well the learner knows the idea, their mistakes and a recall question. Later lessons and reviews update it. Issue #13.
 
-The words, the code, the stored data, the routes and the rules for who owns a key are in [08.1.4-vault-notes.md](../architecture/08.1.4-vault-notes.md). The teacher's block, its cost and the note file are in [vault-notes-backend.md](vault-notes-backend.md). The three concepts and why the second was built are in [vault-notes-concepts.md](vault-notes-concepts.md). The interface says "Obsidian" or "Notes folder", never "vault" (`docs/ui-rules.md`).
+The words, the code, the stored data, the routes and the rules for who owns a key are in [08.1.6-vault-notes.md](../architecture/08.1.6-vault-notes.md). The teacher's block, its cost and the note file are in [vault-notes-backend.md](vault-notes-backend.md). The three concepts and why the second was built are in [vault-notes-concepts.md](vault-notes-concepts.md). The interface says "Obsidian" or "Notes folder", never "vault" (`docs/ui-rules.md`).
 
 ## The story
 
@@ -64,7 +64,7 @@ A learner who wants godspeed to keep one of their own notes adds `godspeed: keep
 | Folder missing or renamed | Notes and words wait in the record and are written when it is back | Settings: "Can't find this vault." or "Can't find this folder.", with "Pick folder again". A failure notice |
 | Not in Obsidian's list | Works the same | "Show in Finder" for "Open" |
 | Disk read-only or full | The old note stays whole and the new text waits | Notice: "Couldn't save A and B to Obsidian." (more than two: "A, B and 3 more"), the line "The disk is full." or "The folder is read-only.", and "Try again" (or "Settings" when the folder is gone) |
-| Note deleted | Marked removed under the minute check's rules (08.1.4). Never made again except by "Note this" | Nothing |
+| Note deleted | Marked removed under the minute check's rules (08.1.6). Never made again except by "Note this" | Nothing |
 | `godspeed:` key taken out | The note is the learner's and never written again | Nothing |
 | Learner edited a section | That section is theirs and never rewritten. New mistakes still go at the end of "Mistakes to remember" | Their text, word for word |
 | Nothing worked on, or space closed or deleted | No block. godspeed never deletes a file in the folder | |

@@ -120,7 +120,7 @@ pub async fn handle_mcp_request(app: &Arc<App>, method: &Method, headers: &Heade
 	// Only a client's own name changes the shared one; a guess names just this request.
 	let agent = caller.as_ref().and_then(|c| c.name.clone().or_else(|| c.guessed.clone())).or_else(|| app.bridge.agent_name(now));
 	// Only initialize and server/discover hand instructions to the agent, so only they build the briefing.
-	let instructions = if caller.as_ref().is_some_and(|c| c.wants_instructions) { instructions::connect_instructions(app) } else { instructions::INSTRUCTIONS.to_owned() };
+	let instructions = caller.as_ref().filter(|c| c.wants_instructions).map(|c| instructions::connect_instructions(app, c.woken)).unwrap_or_default();
 	let exchange = Exchange { app, caller: agent.as_deref(), terminal: terminal.as_deref(), instructions: &instructions };
 	let too_large = post && raw.len() > MAX_BODY_BYTES;
 	let route = match &body {

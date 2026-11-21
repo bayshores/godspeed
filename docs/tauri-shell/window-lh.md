@@ -23,7 +23,7 @@ The shim (`crates/shell/src/shim.js`) is an initialization script on every app w
 | `onOpenSettings(cb)` | push `open-settings` | The Settings section a menu item asked for. |
 | `onMenu(cb)` | push `menu` | A Mac File or Go item: a keyboard action id, `go:<path>`, `back` or `forward`. A page the agent opened in a window made again: `go:<path>?space=<id or none>`. |
 | `printPdf(path)` | `print_pdf` | Mac only; absent on Windows and Linux. See [Printing](the-main-window.md#printing). |
-| `applyAppIcon()` | `apply_app_icon` | Mac only; absent on Windows and Linux. See [App icon](the-main-window.md#app-icon). |
+| `applyAppIcon()` | `apply_app_icon` | Mac only; absent on Windows and Linux. See [App icon](magnifier-menu-bar-and-icon.md#app-icon). |
 | `openLink(url)` | `open_link` | A web or mail link, as a link click sends it. |
 | `terminalWindow.open(title)` | `terminal_window_open` | Main window only. Opens the terminal window beside the main window, titled `title` (the teacher's name), or brings it forward when open. See [The terminal window](the-main-window.md#the-terminal-window). |
 | `terminalWindow.close()`, `terminalWindow.focus()` | `terminal_window_close`, `terminal_window_focus` | Either window. Close ("Put back") closes the window and has the main page show the terminal; focus rejects when it is not open. |

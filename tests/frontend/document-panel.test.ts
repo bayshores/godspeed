@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { LessonDocument, ProblemPiece } from "../../src/shared/core/index.ts";
-import { DOCK_MIN_W, dockWidth, openPanel, parseDockState } from "../../src/frontend/components/lesson/lesson-dock-model.ts";
+import { dockWidth, openPanel, parseDockState } from "../../src/frontend/components/lesson/lesson-dock-model.ts";
 import { documentChoices, pageAspects, pageAt, pageKeyWords, problemDocument, problemPlace, scrollTarget, shownDocument } from "../../src/frontend/components/lesson/document-model.ts";
 import { PIECE, SINGLE_PIECE } from "../piece-fixtures.ts";
 
@@ -35,7 +35,7 @@ describe("the panel beside a lesson", () => {
 
 	it("keeps a width the lesson can live beside", () => {
 		assert.equal(dockWidth(900, 1440), 440);
-		assert.equal(dockWidth(100, 1200), DOCK_MIN_W);
+		assert.equal(dockWidth(100, 1200), 320, "never narrower than 320");
 		assert.equal(dockWidth(500.4, 1600), 500);
 	});
 });

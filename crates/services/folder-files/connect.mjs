@@ -48,6 +48,10 @@ async function forward(line) {
 	// Closing a cancelled call's request makes godspeed stop its wait, so it
 	// doesn't take a work item for an answer nobody reads.
 	if (message?.method === "notifications/cancelled") inFlight.get(message.params?.requestId)?.abort();
+	// Told at the start too, so the instructions godspeed hands over describe the loop this session runs.
+	if (wakes && (message?.method === "initialize" || message?.method === "server/discover")) {
+		message.params = { ...message.params, _meta: { ...message.params?._meta, "godspeed/wakes": true } };
+	}
 	if (message?.method === "tools/call" && agent) {
 		message.params = { ...message.params, _meta: { ...message.params?._meta, "godspeed/agent": agent, ...(wakes ? { "godspeed/wakes": true } : {}) } };
 	}

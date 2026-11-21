@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use gs_base::{locale, time};
 use gs_core::contracts::space::compare_deadlines;
-use gs_core::spaces::problem_list::{ListOwner, with_problem_lists};
+use gs_core::spaces::problem_list::with_problem_lists;
 use gs_core::spaces::today_note::local_day;
 use gs_json::{Json, json};
 use gs_store::spaces::SpaceError;
@@ -36,14 +36,6 @@ pub fn add_space_deadline(app: &App, space_id: &str, init: &Json) -> SpaceOutcom
 		return no_space();
 	}
 	app.stores.spaces.add_deadline(space_id, init).map_err(deadline_failure)
-}
-
-/// Saves a problem list where it lives (`problems_of`).
-pub fn save_problems(app: &App, space_id: &str, owner: ListOwner, problems: &Json) -> SpaceOutcome<()> {
-	if app.stores.spaces.get_space(space_id).is_none() {
-		return no_space();
-	}
-	app.stores.spaces.save_problems(space_id, owner, problems).map_err(deadline_failure)
 }
 
 pub fn update_space_deadline(app: &Arc<App>, space_id: &str, deadline_id: &str, patch: &Json) -> SpaceOutcome<Json> {

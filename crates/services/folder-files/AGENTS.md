@@ -18,4 +18,6 @@ The learner's Obsidian vault is read only with `search_vault` and written only w
 
 `cheat-sheets/` holds one working folder per cheat sheet: its source and the PDF you make. A cheat sheet work item names the folder.
 
+`made/` is where you build a file for the learner (practice test, worksheet, formula sheet): one folder per space, `made/<space name>/`. Keep its source there, build beside it (LaTeX: `latexmk -pdf`, then `latexmk -c` to clear the leftovers), then `add_space_file` the PDF and its `.tex` from there, kind `info`, with the lesson's `lesson_id`. Only then does the learner have it: it opens in godspeed, and adding it again by the same name replaces it. Never leave a file for the learner only on disk, and never tell them about a file you haven't added.
+
 A tool says godspeed is unreachable or its access token wasn't found: tell the user exactly that message, stop.

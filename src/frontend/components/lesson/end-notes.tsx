@@ -8,9 +8,9 @@ import type { TurnNotes } from "./turn-next-model";
 const LAND_STEP = 150;
 
 /**
- * The last topic's notes in "Your turn": the pages land one at a time, each inking in once written,
- * and under them the line saying whether they are saved. The page asked about is lit. `scroll` keeps
- * the pages in one row that scrolls sideways, for the pinned sheet, which is short.
+ * The last topic's notes in "Your turn": the pages land one at a time, each inking in once written.
+ * The page asked about is lit. `scroll` keeps the pages in one row that scrolls sideways, for the
+ * pinned sheet, which is short.
  */
 export function EndNotes({ notes, scroll }: { notes: TurnNotes; scroll: boolean }) {
 	const { status } = useVault();
@@ -21,17 +21,20 @@ export function EndNotes({ notes, scroll }: { notes: TurnNotes; scroll: boolean 
 	});
 	if (notes.pages.length === 0) return null;
 	return (
-		<div data-testid="end-notes" className="flex flex-col gap-3">
-			<div className={cn("lh-note-row", scroll && "flex-nowrap overflow-x-auto")}>
-				{notes.pages.map((page, i) => (
-					<NotePage key={`${page.topicId}:${page.saving}`} note={page} obsidian={status?.obsidian ?? false} asked={notes.ask?.topicId === page.topicId} landing={landed.current.has(page.topicId) ? 0 : i * LAND_STEP} />
-				))}
-			</div>
-			{notes.saved && (
-				<p role="status" data-testid="notes-saved" className="text-base text-ink-2">
-					{notes.saved}
-				</p>
-			)}
+		<div data-testid="end-notes" className={cn("lh-note-row", scroll && "flex-nowrap overflow-x-auto")}>
+			{notes.pages.map((page, i) => (
+				<NotePage key={`${page.topicId}:${page.saving}`} note={page} obsidian={status?.obsidian ?? false} asked={notes.ask?.topicId === page.topicId} landing={landed.current.has(page.topicId) ? 0 : i * LAND_STEP} />
+			))}
 		</div>
+	);
+}
+
+/** Whether the pages are saved. It sits outside the scrolling question so a short sheet never cuts it. */
+export function NotesSaved({ notes }: { notes: TurnNotes }) {
+	if (notes.pages.length === 0 || !notes.saved) return null;
+	return (
+		<p role="status" data-testid="notes-saved" data-whole className="shrink-0 text-base text-ink-2">
+			{notes.saved}
+		</p>
 	);
 }

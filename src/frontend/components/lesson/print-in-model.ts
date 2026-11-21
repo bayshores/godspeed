@@ -3,8 +3,8 @@
  */
 
 /** One line's time, and the most a whole reply takes: a long reply prints its lines faster. */
-export const PRINT_LINE_MS = 60;
-export const PRINT_MOST_MS = 900;
+const PRINT_LINE_MS = 60;
+const PRINT_MOST_MS = 900;
 
 /** When a block starts, how long it takes and in how many steps (its lines). */
 interface PrintStep {

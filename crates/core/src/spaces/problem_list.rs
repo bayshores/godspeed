@@ -1,8 +1,7 @@
-//! Where a deadline's problem list lives. A document's numbered problems and their done marks
-//! belong to the file they are printed in, so a deadline with an assignment file reads and writes
-//! that file's list; a deadline without one keeps its own (problems the learner pasted). Every
-//! reader goes through `problem_list`, `problems_of` or `with_problem_lists`, every writer through
-//! `with_problem_list`.
+//! Where a problem list lives. A document's numbered problems and their done marks belong to the
+//! file they are printed in, so a deadline with an assignment file reads and writes that file's
+//! list; a deadline without one keeps its own (problems the learner pasted). A lesson works on one
+//! list (`lesson_list_owner`).
 
 use gs_json::Json;
 
@@ -34,6 +33,16 @@ pub fn problem_list<'a>(record: &'a Json, deadline: &'a Json) -> &'a [Json] {
 pub enum ListOwner<'a> {
 	Deadline(&'a str),
 	File(&'a str),
+}
+
+/// Whose list a lesson works on: a homework lesson its deadline's, a lesson on files its first
+/// file's. None for any other lesson.
+pub fn lesson_list_owner(lesson: &Json) -> Option<ListOwner<'_>> {
+	match lesson["kind"].as_str() {
+		Some("homework") => lesson["deadlineId"].as_str().filter(|id| !id.is_empty()).map(ListOwner::Deadline),
+		Some("study") => lesson["fileIds"][0].as_str().map(ListOwner::File),
+		_ => None,
+	}
 }
 
 fn position(list: &[Json], id: &str) -> Option<usize> {

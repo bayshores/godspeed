@@ -696,7 +696,7 @@
 	{
 		"name": "add_space_file",
 		"title": "Add a file to a space",
-		"description": "Copy a file from this computer into a space, or write one with name and text instead of path (one you wrote before by that name is replaced, keeps its id). Supported: .md .txt, code files (.c .py .java .js and the like), plain text with no extension, .pdf .docx .pptx .epub, .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Google Docs links (.gdoc) need saving as PDF or Word first. Study files are turned into facts by you, through wait_for_work.",
+		"description": "Copy a file from this computer into a space, or write one with name and text instead of path (one you wrote before by that name is replaced, keeps its id). A file you build for the learner (practice test, worksheet, its .tex source): build it in the godspeed folder's made/<space name>/ and add the finished file from there; adding it again by that name replaces it and keeps its id, and a .tex beside its PDF shows as one file. Supported: .md .txt, code files (.c .py .java .js and the like), plain text with no extension, .pdf .docx .pptx .epub, .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Google Docs links (.gdoc) need saving as PDF or Word first. Study files are turned into facts by you, through wait_for_work.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -723,6 +723,10 @@
 						"info"
 					],
 					"description": "\"study\" = study material turned into graph facts (notes, readings, transcripts, recordings); \"info\" = space info the teacher can read, never facts (syllabus, schedule, logistics)."
+				},
+				"lesson_id": {
+					"type": "string",
+					"description": "The lesson the file is for, if any: a later session is told the lesson has it."
 				}
 			},
 			"required": [
@@ -1015,7 +1019,7 @@
 	{
 		"name": "start_lesson",
 		"title": "Start or continue a lesson",
-		"description": "Start or continue a study session in godspeed taught by you. topic: a new session; it becomes the learner's first message and the lesson's title in their top bar, so plain words, never file ids, paths or quoted file names; a path topic's name studies that topic. deadline_id alone: what the deadline's Study key does (continues the unfinished session for it the learner last worked in, else starts one on its topics); with homework: true, its Work on key (continues its latest homework session, else starts one). topic with deadline_id: a new session for that deadline that is not its Study session. file_ids: a lesson on these files (a test with its key, a chapter); the first names it; ids from read_space with files:true. With space_id the lesson belongs to that space: opens with the space's card, its facts go to that space's graph. You teach it through wait_for_work; learner follows in the godspeed window.",
+		"description": "Start or continue a study session in godspeed taught by you. topic: a new session; it becomes the learner's first message and the lesson's title in their top bar, so plain words, never file ids, paths or quoted file names; a path topic's name studies that topic. deadline_id alone: what the deadline's Study key does (continues the unfinished session for it the learner last worked in, else starts one on its topics); with homework: true, its Work on key (continues its latest homework session, else starts one). topic with deadline_id: a new session for that deadline that is not its Study session. topic alone, while a deadline of its space due within 2 days has an unfinished session: sent back once, naming it. file_ids: a lesson on these files (a test with its key, a chapter); the first names it; ids from read_space with files:true. With space_id the lesson belongs to that space: opens with the space's card, its facts go to that space's graph. You teach it through wait_for_work; learner follows in the godspeed window.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",

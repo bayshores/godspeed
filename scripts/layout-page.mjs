@@ -31,6 +31,8 @@
  *   window scrolls into empty page under its last sheet (a height kept from another window size).
  * - cut start: the question or problem in "Your turn" (.lh-turn-scroll) is scrolled past its
  *   first line, though the walk did not scroll that box: it opened cut.
+ * - cut tail: a line marked data-whole (that the notes are saved) lies partly or wholly past the
+ *   edge of a box that scrolls it, other than the page itself: it opened cut or out of sight.
  * - broken picture: an image the page shows did not load (a file the server does not hand out
  *   as a picture, or a wrong address).
  *
@@ -603,6 +605,25 @@ function cutStarts() {
 		.map((box) => finding("cut start", [box], `${label(box)} is scrolled ${Math.round(box.scrollTop)}px past its first line`));
 }
 
+/** Cut tail: a data-whole line past the edge of a scrolling box above it, which the learner would never scroll to. */
+function cutTails() {
+	const found = [];
+	const main = mainScroller();
+	for (const line of document.querySelectorAll("[data-whole]")) {
+		if (!shown(line)) continue;
+		const box = line.getBoundingClientRect();
+		for (let node = line.parentElement; node && node !== document.body; node = node.parentElement) {
+			if (!SCROLLS.includes(getComputedStyle(node).overflowY) || node === window.__layoutScrolled || node === main) continue;
+			const edge = node.getBoundingClientRect();
+			if (box.bottom > edge.bottom + 1 || box.top < edge.top - 1) {
+				found.push(finding("cut tail", [line, node], `${label(line)} is cut by the edge of ${label(node)}`));
+				break;
+			}
+		}
+	}
+	return found;
+}
+
 function brokenPictures() {
 	// The writing box's editor spaces its lines with img elements that have no address.
 	return [...document.querySelectorAll("img[src]")]
@@ -679,7 +700,7 @@ function keyChecks() {
 }
 
 export function checkPage() {
-	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys(), ...emptyBoxes(), ...emptyRooms(), ...cutStarts(), ...brokenPictures(), ...keyChecks()];
+	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys(), ...emptyBoxes(), ...emptyRooms(), ...cutStarts(), ...cutTails(), ...brokenPictures(), ...keyChecks()];
 	const seen = new Set();
 	return all.filter((f) => !seen.has(f.key) && seen.add(f.key));
 }

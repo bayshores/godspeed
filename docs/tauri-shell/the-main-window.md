@@ -38,7 +38,7 @@ Ladder: `[0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]`. Applying a factor sets the we
 
 - The menu owns `CmdOrCtrl+0`, `CmdOrCtrl+=` and `CmdOrCtrl+-`. muda has no Plus key.
 - The shim's `keydown` listener catches the keys the menu does not claim (⌘ or Ctrl with `=`, `+`, `-` or `0`) and calls `zoom_step` or `zoom_reset`. Menu keys never reach the page, so exactly one applies.
-- A trackpad pinch, or a scroll with ⌘ or Ctrl held, does not change the factor: the shim sends it to the page as an `lh-pinch` event on `window` (`{ by, x, y }`: how much bigger, and the pointer's point), and the page magnifies there (Magnifier below). One mouse notch is a quarter at most. Its listeners are in the capture phase, before the terminal takes the wheel.
+- A trackpad pinch, or a scroll with ⌘ or Ctrl held, does not change the factor: the shim sends it to the page as an `lh-pinch` event on `window` (`{ by, x, y }`: how much bigger, and the pointer's point), and the page magnifies there ([Magnifier](magnifier-menu-bar-and-icon.md#magnifier)). One mouse notch is a quarter at most. Its listeners are in the capture phase, before the terminal takes the wheel.
   - A pinch reaches it as `wheel` events with Ctrl held, and in WebKit on the Mac as `gesturestart`, `gesturechange` and `gestureend` too. A pinch counted from its gesture events is not counted again from its wheels.
   - Wheels less than 100 ms apart are one run, and the keys at its start decide for all of it, so a key pressed while a scroll coasts does not magnify.
   - A view that zooms itself (the graph, a cheat sheet, a diagram or plan in focus) takes its wheel with `ownWheel` in `src/frontend/lib/own-wheel.ts`, which marks it `data-lh-own-zoom`. The shim leaves a wheel or pinch over that mark alone.
@@ -47,14 +47,7 @@ Ladder: `[0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]`. Applying a factor sets the we
 - Settings > Appearance "Text size" is a slider over the ladder. It calls `set_zoom` and follows every `zoom` push, so the keys and the menu move it too. The browser build has no slider.
 - The shim saves each pushed factor in `localStorage["lh-zoom"]` and calls `set_zoom` with it at document start.
 
-### Magnifier
-
-`src/frontend/components/magnifier/`. The page (inside `main#lh-page`) magnifies under an `lh-pinch` at its point, from 100% to 400%; the top bar, the teacher's panel and the strip stay as they are. The page keeps its layout: one `transform` on a box around it, none at 100%.
-
-- The point under the pointer stays under it. The shown part never leaves the page's room. Pinching out to 100% ends it.
-- While magnified, a scroll moves the shown part. At the room's edge in that direction the scroll is the page's own.
-- A mini map in the page's bottom-left corner shows the shown part as a box. A press or drag on it moves the part there.
-- It ends on a page change and with a click on the bar word. The terminal window has no magnifier.
+The magnifier is in [magnifier-menu-bar-and-icon.md](magnifier-menu-bar-and-icon.md#magnifier).
 
 ### Menu
 
@@ -74,19 +67,6 @@ The bar's order on the Mac is godspeed, File, Edit, View, Go, Window, Help. Wind
 
 Settings…, Check for Updates… and every File and Go item except Open godspeed Folder reopen the window if gone, unminimize and focus it. Check for Updates… then pushes `open-settings` with `general` and starts a manual check. Settings… and a File or Go item push `menu` with the item's id: a keyboard action id (`open-settings`, `new-session`, `sessions-search`, `jump-graph`), `go:<path>`, `back` or `forward`. The page runs it (`keyboard-shortcuts.tsx`). Menu keys never reach the page, so each runs once.
 
-### Menu bar countdown
-
-On the Mac, `menu_bar_countdown.rs` draws a menu bar item from the server's `menu_bar_countdown` lines ([The line protocol](the-line-protocol.md#the-line-protocol)). The server decides every word ([architecture/06.1](../architecture/06.1-spaces.md#menu-bar-countdown)); the shell only draws them.
-
-| Part | What it is |
-|---|---|
-| Item | The g logo (`icons/menu-bar-countdown.png`, a template image so macOS tints it) and the title beside it, for example "3d". Made under the fixed id `menu-bar-countdown` on the first line, then only its title and menu change. `menu_bar_countdown_off` removes it, and so does a server that stopped for good (`Server::stopped`), so an old countdown never stays. |
-| Deadline rows | One item per row, id `page:go:<page>`, so `menu::handle` runs them like the Go menu's items. A single "&" in the text is written "&&", since the Mac drops a lone one. |
-| Open godspeed | Id `open-window`: `window::bring_forward` with no page. |
-| Quit godspeed | The app menu's `quit` id and label. |
-
-A left click shows the menu (the tray's default). Its clicks reach `menu::handle` through `RunEvent::MenuEvent` like the app menu's, so the item registers no menu handler of its own; one would run each click twice. Tauri's `tray-icon` feature is on for the Mac only, so Linux never builds libappindicator.
-
 Every item acts on the main window, except Close Window (Windows and Linux), which closes the window that has the focus. The Mac has no Close Window item, so ⌘W does nothing in either window.
 
 A push sent before the page has loaded waits in one slot (`window::push_when_loaded`) and goes out when it loads; a later one replaces it.
@@ -99,6 +79,8 @@ A push sent before the page has loaded waits in one slot (`window::push_when_loa
 | Wayland may not focus | The compositor decides. |
 | The screens lab never focuses | `window::focus` and the app show skip it, so a check never takes the learner's screen. |
 | Browser mode has no shell | The page goes there; nothing brings a browser tab forward. |
+
+The Mac menu bar countdown is in [magnifier-menu-bar-and-icon.md](magnifier-menu-bar-and-icon.md#menu-bar-countdown).
 
 ### Single instance
 
@@ -144,7 +126,7 @@ WebKit asks `on_navigation` about every frame without saying which. So the shell
 
 ### Context menus
 
-The shim adds a `contextmenu` listener on `window` that calls `preventDefault()`. The app's own menus handle the event earlier.
+The shim adds a `contextmenu` listener on `window` that calls `preventDefault()`, so the browser's own menu never shows. The app opens no right-click menu of its own (ESLint fails `onContextMenu` in `src/frontend`), so a right-click does nothing.
 
 ### Spellcheck and text substitution
 
@@ -171,16 +153,4 @@ Blob downloads (demo and visual cards, Export as Markdown) show a save dialog. O
 
 Mac: `print_pdf(path)` canonicalizes the path and refuses anything that is not a `.pdf` file inside the data folder. It prints the PDF with PDFKit as a sheet on the main window, scaled to fit, on a copy of the shared print info. Windows and Linux keep the page's pdf.js and `window.print()` path; the `print` capability grants `core:webview:allow-print` there.
 
-### App icon
-
-Mac only. Settings, Appearance, App icon offers the app's own icon (Graphite) and the pictures in `crates/shell/icons/choices/`. The pick is `appearance.appIcon` in `settings.json`: `null` for the app's own, else the picture's name.
-
-| When | What `mac/app_icon.rs` does |
-|---|---|
-| A pick in Settings | The page saves the setting, then calls `apply_app_icon()`. The Dock takes the picture at once (`NSApplication.applicationIconImage`), and the app's bundle gets it as a custom icon (`NSWorkspace.setIcon`, what Finder's Get Info does), so the Dock, Finder and Spotlight keep it after quit. Graphite removes the custom icon. |
-| Every start | With a picture picked, the Dock takes it, and a bundle with no custom icon gets it back: an update replaces the bundle. With Graphite picked nothing is touched, so an icon the learner pasted in Finder stays. |
-
-- A custom icon adds the file `Icon\r` and a Finder flag to the bundle. `codesign --verify --deep` still passes; `--strict` does not.
-- A build run from `target/` has no bundle: only the Dock changes, until quit.
-- A bundle that cannot be written (a read-only disk) keeps its icon. The pick shows an error line in Settings; at start the failure goes to the log.
-- macOS draws a custom icon as it is: no Dark, Clear or Tinted look.
+The app icon is in [magnifier-menu-bar-and-icon.md](magnifier-menu-bar-and-icon.md#app-icon).

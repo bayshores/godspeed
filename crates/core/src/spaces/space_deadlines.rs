@@ -229,7 +229,7 @@ pub fn changed_deadline(known: &HashSet<String>, prev: &Json, patch: &Json, now:
 	if let Some(about) = about {
 		base.insert("aboutFileId", about);
 	}
-	// The list is written through `problem_list`, never by a patch.
+	// The list is written through `with_problem_list`, never by a patch.
 	base.insert_present("problems", prev.get("problems").filter(|p| !p.items().is_empty()));
 	base.insert("done", done);
 	if let Some(done_at) = done_at {

@@ -17,7 +17,7 @@ export interface LessonActions {
 	renameFailedId: string | null;
 	deleting: Lesson | null;
 	moving: Lesson | null;
-	/** Opens the lesson menu at the anchor (the row, or its More button); again on the same More closes it. */
+	/** Opens the lesson menu under its More button; again on the same one closes it. */
 	onMenu: (anchor: HTMLElement, chatId: string) => void;
 	closeMenu: () => void;
 	startRename: () => void;
