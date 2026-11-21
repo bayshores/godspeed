@@ -10,7 +10,6 @@ publish.workspace = true
 gs-json.workspace = true
 gs-base.workspace = true
 gs-core.workspace = true
-gs-files.workspace = true
 ort.workspace = true
 parking_lot.workspace = true
 tokenizers.workspace = true

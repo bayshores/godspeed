@@ -21634,7 +21634,9 @@
 				"remove_space_deadline": "Remove one deadline from a space (its files and facts untouched).",
 				"link_space_folder": "Link a folder on this computer to a space. Supported files are added; from then on new files dropped there are added automatically and edited ones rebuilt (checked every minute while godspeed is open). godspeed sorts them into study material and space info itself while reading, never changes the folder. set_space_file_kind only to correct a kind.",
 				"start_lesson": "Start or continue a study session in godspeed taught by you. topic: a new session; it becomes the learner's first message and the lesson's title in their top bar, so plain words, never file ids, paths or quoted file names; a path topic's name studies that topic. deadline_id alone: what the deadline's Study key does (continues the unfinished session for it the learner last worked in, else starts one on its topics); with homework: true, its Work on key (continues its latest homework session, else starts one). topic with deadline_id: a new session for that deadline that is not its Study session. file_ids: a lesson on these files (a test with its key, a chapter); the first names it; ids from read_space with files:true. With space_id the lesson belongs to that space: opens with the space's card, its facts go to that space's graph. You teach it through wait_for_work; learner follows in the godspeed window.",
-				"open_page": "Open a page in the learner's godspeed window when they ask to see something (\"open my cheat sheet\"), even with Follow off; brings the window forward. Never jumps away from unsent lesson text, a running mock or an open dialog: then the window offers Go to instead."
+				"open_page": "Open a page in the learner's godspeed window when they ask to see something (\"open my cheat sheet\"), even with Follow off; brings the window forward. Never jumps away from unsent lesson text, a running mock or an open dialog: then the window offers Go to instead.",
+				"search_vault": "Search the learner's Obsidian vault, their own notes and godspeed's, by words. Returns each note's name, path, owner (you or godspeed), class, confidence and a short snippet. With path instead of query: that whole note, cut at 20,000 characters. The vault is read only with this tool, never with file tools, and is never added to a graph. Look here before writing a note, so a note the learner already has is linked, not repeated.",
+				"write_vault_note": "Write what the learner answered about one idea into their Obsidian vault: a new note, or an update of godspeed's note for that topic (one note per topic). godspeed writes the file and its properties; you send the words. A note the learner changed is kept as they left it, and kept in the answer names what was left alone. If the learner already has a note on the idea, send covered_by (its path from search_vault) and nothing else: no note is written and the two are linked. waiting: the vault cannot be reached now, and the note is written once it can."
 			},
 			"args": {
 				"files": "List every file with its id (needed for file_ids). Default false.",
@@ -21675,7 +21677,21 @@
 				"pageLesson": "With lesson: the lesson's id from list_lessons.",
 				"path": "Topics toward a goal with no syllabus, in order, in your own words. Sending it replaces the list; a topic keeps its progress while its name stays.",
 				"pathGoal": "What the learner works toward, read after \"Path to\", e.g. \"backend developer\".",
-				"pathCovers": "One line on what the topic covers."
+				"pathCovers": "One line on what the topic covers.",
+				"vaultTopic": "The topic's id from read_space.",
+				"vaultTitle": "The note's name, up to 80 characters. Names a new file only; an existing note keeps its name.",
+				"vaultText": "What it is and when it applies, 2 to 5 sentences, Markdown, math as $...$. Up to 1,200 characters.",
+				"vaultRecall": "One question the learner can answer without their notes. Up to 200 characters.",
+				"vaultMistakes": "What went wrong, at most 6. godspeed merges them by kind and keeps the newest wording.",
+				"vaultMistakeText": "What went wrong and the fix, one line. Up to 160 characters.",
+				"vaultMistakeKind": "The kind of mistake in 1 to 3 words. Reuse a kind the note already lists when it is the same mistake. Up to 30 characters.",
+				"vaultSource": "One passage id from search_space_files: the note links the page it came from.",
+				"vaultLinks": "Up to 6 names of notes in the vault, or notes written in the same pass, to list under Related.",
+				"vaultCoveredBy": "The path of one of the learner's own notes that already covers the idea, from search_vault. Send nothing else with it.",
+				"vaultQuery": "What to look for, in plain words.",
+				"vaultPath": "Instead of query: a note's path as search_vault gave it, relative to the vault.",
+				"vaultLimit": "Most notes to return (default 8).",
+				"vaultSpace": "Only notes whose class is this space's name."
 			},
 			"deadlineKinds": [
 				"exam",

@@ -10,7 +10,7 @@ use gs_services::app::open_page::open_page;
 
 use super::reply::{failure, outcome};
 use super::schema::check_arguments;
-use super::{spaces, graph, lessons, memory, work};
+use super::{spaces, graph, lessons, memory, vault, work};
 
 static TOOLS: LazyLock<Json> = LazyLock::new(|| gs_json::parse(include_str!("tools.json")).unwrap_or_default());
 
@@ -81,6 +81,8 @@ pub async fn call_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Json {
 		"forget" => memory::forget(call, &args),
 		"save_rule" => memory::save_rule(call, &args),
 		"open_page" => outcome(open_page(call.app, call.caller, &args)),
+		"search_vault" => vault::search_vault(call, &args),
+		"write_vault_note" => vault::write_vault_note(call, &args),
 		other => spaces::space_tool(call, other, &args).await.unwrap_or_else(|| failure(&format!("Tool {other} not found"))),
 	}
 }
@@ -98,9 +100,9 @@ mod tests {
 	#[test]
 	fn lists_every_tool_in_order() {
 		let names: Vec<&str> = tool_list().as_arr().unwrap().iter().filter_map(|t| t["name"].as_str()).collect();
-		assert_eq!(names.len(), 25);
+		assert_eq!(names.len(), 27);
 		assert_eq!(names[..3], ["wait_for_work", "respond", "read_work"]);
-		assert_eq!(names[22..], ["start_lesson", "open_page", "unlink_space_folder"]);
+		assert_eq!(names[22..], ["start_lesson", "open_page", "unlink_space_folder", "search_vault", "write_vault_note"]);
 	}
 
 	/// Clients and listings read a missing hint as the risky default, so every tool states all four.

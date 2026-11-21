@@ -30,6 +30,7 @@ pub enum EventKind {
 	TerminalLine,
 	AgentEvent,
 	TeacherChatsChanged,
+	VaultNotesChanged,
 }
 
 impl EventKind {
@@ -54,6 +55,7 @@ impl EventKind {
 			EventKind::TerminalLine => "terminal-line",
 			EventKind::AgentEvent => "agent-event",
 			EventKind::TeacherChatsChanged => "teacher-chats-changed",
+			EventKind::VaultNotesChanged => "vault-notes-changed",
 		}
 	}
 }

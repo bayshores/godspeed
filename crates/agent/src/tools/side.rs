@@ -1,5 +1,5 @@
 //! The tools every lesson-like session may add beside its own: the space card and search, the
-//! graph search, the learner's rules, the deadline changes and opening a page. Each is present only when the
+//! graph search, the learner's rules, the deadline changes, opening a page and writing a vault note. Each is present only when the
 //! composition root passes its reader.
 
 use gs_core::session::tool_switches::filter_enabled_tools;
@@ -17,6 +17,7 @@ use super::graph::{SearchGraph, search_graph_tool};
 use super::open_page::{OpenPage, open_page_tool};
 use super::rules::{SaveRule, save_rule_tool};
 use super::space_actions::{SpaceActions, lesson_space_change_tools};
+use super::vault_note::{WriteVaultNote, write_vault_note_tool};
 
 #[derive(Clone, Default)]
 pub struct LessonSide {
@@ -29,6 +30,8 @@ pub struct LessonSide {
 	pub space_actions: Option<SpaceActions>,
 	/// "Open my cheat sheet", asked mid-lesson.
 	pub open_page: Option<OpenPage>,
+	/// "Note this", and the notes a lesson writes; only in a lesson started with a vault picked.
+	pub write_vault_note: Option<WriteVaultNote>,
 }
 
 impl LessonSide {
@@ -48,6 +51,9 @@ impl LessonSide {
 		}
 		if let Some(open) = &self.open_page {
 			tools.push(open_page_tool(open.clone()));
+		}
+		if let Some(write) = &self.write_vault_note {
+			tools.push(write_vault_note_tool(write.clone()));
 		}
 		tools
 	}

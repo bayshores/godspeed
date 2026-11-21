@@ -1117,5 +1117,135 @@
 			"idempotentHint": true,
 			"openWorldHint": false
 		}
+	},
+	{
+		"name": "search_vault",
+		"title": "Search the learner's vault",
+		"description": "Search the learner's Obsidian vault, their own notes and godspeed's, by words. Returns each note's name, path, owner (you or godspeed), class, confidence and a short snippet. With path instead of query: that whole note, cut at 20,000 characters. The vault is read only with this tool, never with file tools, and is never added to a graph. Look here before writing a note, so a note the learner already has is linked, not repeated.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"query": {
+					"type": "string",
+					"minLength": 1,
+					"description": "What to look for, in plain words."
+				},
+				"path": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Instead of query: a note's path as search_vault gave it, relative to the vault."
+				},
+				"limit": {
+					"description": "Most notes to return (default 8).",
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 30
+				},
+				"space_id": {
+					"type": "string",
+					"description": "Only notes whose class is this space's name."
+				}
+			},
+			"required": []
+		},
+		"annotations": {
+			"readOnlyHint": true,
+			"destructiveHint": false,
+			"idempotentHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "write_vault_note",
+		"title": "Write a vault note",
+		"description": "Write what the learner answered about one idea into their Obsidian vault: a new note, or an update of godspeed's note for that topic (one note per topic). godspeed writes the file and its properties; you send the words. A note the learner changed is kept as they left it, and kept in the answer names what was left alone. If the learner already has a note on the idea, send covered_by (its path from search_vault) and nothing else: no note is written and the two are linked. waiting: the vault cannot be reached now, and the note is written once it can.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"space_id": {
+					"type": "string"
+				},
+				"topic_id": {
+					"type": "string",
+					"minLength": 1,
+					"description": "The topic's id from read_space."
+				},
+				"title": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 80,
+					"description": "The note's name, up to 80 characters. Names a new file only; an existing note keeps its name."
+				},
+				"text": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 1200,
+					"description": "What it is and when it applies, 2 to 5 sentences, Markdown, math as $...$. Up to 1,200 characters."
+				},
+				"recall": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 200,
+					"description": "One question the learner can answer without their notes. Up to 200 characters."
+				},
+				"mistakes": {
+					"type": "array",
+					"maxItems": 6,
+					"description": "What went wrong, at most 6. godspeed merges them by kind and keeps the newest wording.",
+					"items": {
+						"type": "object",
+						"properties": {
+							"text": {
+								"type": "string",
+								"minLength": 1,
+								"maxLength": 160,
+								"description": "What went wrong and the fix, one line. Up to 160 characters."
+							},
+							"kind": {
+								"type": "string",
+								"minLength": 1,
+								"maxLength": 30,
+								"description": "The kind of mistake in 1 to 3 words. Reuse a kind the note already lists when it is the same mistake. Up to 30 characters."
+							}
+						},
+						"required": [
+							"text",
+							"kind"
+						]
+					}
+				},
+				"source": {
+					"type": "string",
+					"minLength": 1,
+					"description": "One passage id from search_space_files: the note links the page it came from."
+				},
+				"links": {
+					"type": "array",
+					"maxItems": 6,
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"description": "Up to 6 names of notes in the vault, or notes written in the same pass, to list under Related."
+				},
+				"covered_by": {
+					"type": "string",
+					"minLength": 1,
+					"description": "The path of one of the learner's own notes that already covers the idea, from search_vault. Send nothing else with it."
+				}
+			},
+			"required": [
+				"space_id",
+				"topic_id"
+			]
+		},
+		"annotations": {
+			"readOnlyHint": false,
+			"destructiveHint": false,
+			"idempotentHint": true,
+			"openWorldHint": false
+		}
 	}
 ]

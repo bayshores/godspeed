@@ -18,6 +18,8 @@ Set up spaces from the learner's files: `/setup-spaces` skill.
 
 `spaces/` here holds read-only shortcuts to the learner's space files. Prefer `search_space_files` and `read_passage` over opening whole files; add or change files only through godspeed's tools.
 
+The learner's Obsidian vault is read only with `search_vault` and written only with `write_vault_note`, never with your own file tools.
+
 `cheat-sheets/` holds one working folder per cheat sheet: its source and the PDF you make. A cheat sheet work item names the folder.
 
 A tool says godspeed is unreachable or its access token wasn't found: tell the user exactly that message, stop.

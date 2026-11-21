@@ -80,10 +80,20 @@ pub fn build(topic_id: &str, data: &NoteData) -> Merged {
 /// frontmatter to hold one. A note marked `keep` gets its keys updated and mistake lines
 /// added, and its body is never changed.
 pub fn merge(existing: &str, data: &NoteData, last: &Written) -> Option<Merged> {
+	merge_as(existing, data, last, false)
+}
+
+/// Like `merge` for a note the learner handed over, whose `godspeed` key already names its
+/// topic: its body is never changed.
+pub fn merge_handed_over(existing: &str, data: &NoteData, last: &Written) -> Option<Merged> {
+	merge_as(existing, data, last, true)
+}
+
+fn merge_as(existing: &str, data: &NoteData, last: &Written, handed_over: bool) -> Option<Merged> {
 	let doc = Doc::parse(existing);
 	let keep = match doc.owner()? {
 		Owner::Keep => true,
-		Owner::Topic(_) => false,
+		Owner::Topic(_) => handed_over,
 	};
 	Some(apply(doc, keep, data, last))
 }

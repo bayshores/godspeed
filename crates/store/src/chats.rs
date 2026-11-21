@@ -187,6 +187,12 @@ impl ChatStore {
 		self.update(id, |record| set_field(record, "tree", tree.clone())).map(drop)
 	}
 
+	/// Stamps whether a vault was picked when the lesson began, so its tool list never changes.
+	/// Quiet like a plan save.
+	pub fn set_vault_picked(&self, id: &str, picked: bool) -> Result<(), String> {
+		self.update(id, |record| set_field(record, "vaultPicked", picked)).map(drop)
+	}
+
 	/// Adds one entry to the turn log, once per turn id: a replayed persist appends nothing new,
 	/// while continuation turns that share a response message each keep their usage.
 	pub fn append_turn_usage(&self, id: &str, entry: &Json) -> Result<(), String> {

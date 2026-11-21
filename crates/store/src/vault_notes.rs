@@ -6,8 +6,9 @@
 //!     spaceId, path (relative to the vault),
 //!     keys, sections                                     what godspeed last wrote (note_record)
 //!     kinds: [mistake kinds already written],
+//!     recall                                             the note's recall question
 //!     state: active | yours | kept | removed,
-//!     text, words                                        waiting to be written, when set
+//!     pending                                            the write_vault_note request waiting for the vault
 //! } }
 //! keyUpdates: { <space id>: "2026-11-20" }               the last key-only update of a space
 //! asks:       { <lesson id>: [topic id] }                "My words" asks still owed

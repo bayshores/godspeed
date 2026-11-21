@@ -17,6 +17,7 @@ mod reply;
 mod schema;
 mod tools;
 mod transport;
+mod vault;
 mod work;
 
 use std::sync::Arc;
