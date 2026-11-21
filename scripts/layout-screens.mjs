@@ -8,7 +8,7 @@ import { WAITING_TOPIC } from "./layout-seed.mjs";
  * check never runs on a screen still loading. `height` gives it a window higher than the
  * check's own. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
- * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, `{pending}`, `{sheetless}`, `{pathSpace}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
+ * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, `{pending}`, `{sheetless}`, `{pathSpace}`, `{vault}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
 export const WIDTHS = [1440, 1100, 800];
@@ -371,7 +371,14 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	},
 	{ name: "Settings, Appearance", url: "/settings?section=appearance", ready: "[data-testid=appearance-preview]" },
 	{ name: "Settings, Appearance, the font list", url: "/settings?section=appearance", ready: "[data-testid=font-trigger]", setup: `document.querySelector("[data-testid=font-trigger]").click()`, shows: "[data-testid=font-menu][data-state=open] [data-testid=font-option-default]" },
-	{ name: "Settings, General", url: "/settings?section=general", ready: "[data-testid=teacher-name-row]" },
+	{ name: "Settings, General", url: "/settings?section=general", ready: "[data-testid=teacher-name-row]", shows: "[data-testid=group-vault] [data-testid=vault-pick]" },
+	{
+		name: "Settings, General, an Obsidian vault picked",
+		before: `await fetch("/api/vault", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: "{vault}" }) })${HTTP_OK};`,
+		url: "/settings?section=general",
+		ready: "[data-testid=group-vault] [data-testid=vault-folder][data-state=ok]",
+		shows: "[data-testid=vault-unlink]",
+	},
 	{ name: "Cheat sheet, not made", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]" },
 	{ name: "Cheat sheet, not made, beside the teacher's panel", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]", setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
 	{ name: "Cheat sheet, made, two pages", url: sheetPage("{sheetMade}"), ready: sheetDrawn(2), shows: "[data-testid=sheet-made]" },

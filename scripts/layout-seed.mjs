@@ -404,7 +404,21 @@ function answerFor(work, ids, lessonTurn) {
  * window, as the page itself would, and answers the status. `log` keeps a line per step. Answers the ids the
  * screens' addresses use.
  */
+/** Two vaults Obsidian lists in the throwaway home, the first holding one note: Settings shows them
+ *  as keys until a screen picks one. Returns the first vault's path. */
+function listVaults(dataDir) {
+	const home = path.join(dataDir, "..", "home");
+	const vaults = ["Documents/Lab notes", "Documents/Reading"].map((name) => path.join(home, name));
+	for (const vault of vaults) fs.mkdirSync(path.join(vault, ".obsidian"), { recursive: true });
+	fs.writeFileSync(path.join(vaults[0], "Slope.md"), "# Slope\n\nRise over run.\n");
+	const list = path.join(home, "Library", "Application Support", "obsidian");
+	fs.mkdirSync(list, { recursive: true });
+	fs.writeFileSync(path.join(list, "obsidian.json"), JSON.stringify({ vaults: Object.fromEntries(vaults.map((vault, n) => [`v${n}`, { path: vault, ts: 1 + n }])) }));
+	return fs.realpathSync(vaults[0]);
+}
+
 export async function seed(dataDir, page, log) {
+	const vault = listVaults(dataDir);
 	const agent = standIn(dataDir, log);
 	await agent.init();
 	const date = inDays(3);
@@ -596,5 +610,5 @@ export async function seed(dataDir, page, log) {
 	const sheetless = (await agent.json("start_lesson", { topic: "Git and pull requests", space_id: goal.space.id })).lessonId;
 	ids.sheetless = sheetless;
 	await drain();
-	return { sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
+	return { vault, sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
 }
