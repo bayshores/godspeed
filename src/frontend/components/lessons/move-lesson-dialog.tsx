@@ -45,10 +45,10 @@ function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; 
 			foot={
 				<>
 					<span className="flex-1" />
-					<button type="button" disabled={busy} onClick={onClose} className="lh-btn text-[15px]">
+					<button type="button" disabled={busy} onClick={onClose} className="lh-btn">
 						Cancel
 					</button>
-					<button type="button" data-testid="move-lesson-confirm" disabled={busy || target === from} onClick={() => void move()} className="lh-btn lh-btn-main text-[15px]">
+					<button type="button" data-testid="move-lesson-confirm" disabled={busy || target === from} onClick={() => void move()} className="lh-btn lh-btn-main">
 						Move
 					</button>
 				</>

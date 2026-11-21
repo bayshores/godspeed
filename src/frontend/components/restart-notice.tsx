@@ -16,7 +16,7 @@ export function RestartNotice() {
 			role="status"
 			title="godspeed restarted after a problem"
 			actions={
-				<button type="button" onClick={() => setOpen(false)} className="lh-btn text-[15px]">
+				<button type="button" onClick={() => setOpen(false)} className="lh-btn">
 					OK
 				</button>
 			}

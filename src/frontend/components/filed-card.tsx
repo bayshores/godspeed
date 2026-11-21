@@ -1,5 +1,5 @@
 import { createContext, useContext, useLayoutEffect, useRef, type ReactNode } from "react";
-import { prefersReducedMotion } from "@/frontend/components/presence";
+import { EASE_OUT, prefersReducedMotion } from "@/frontend/components/presence";
 
 /** Told of a card that begins to open in the lesson text, so the page keeps what is under it still (useFiledCardHold). */
 export const FilingContext = createContext<((card: HTMLElement, open: Animation) => void) | null>(null);
@@ -22,7 +22,7 @@ export function FiledCard({ away, children }: { away: boolean; children: ReactNo
 		// The room between two rows comes with the card, not before it.
 		const gap = parseFloat(getComputedStyle(card.parentElement!).rowGap) || 0;
 		card.style.overflow = "clip";
-		const open = card.animate([{ height: "0px", marginTop: `${-gap}px`, opacity: 0 }, { height: `${card.offsetHeight}px`, marginTop: "0px", opacity: 1 }], { duration: 220, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+		const open = card.animate([{ height: "0px", marginTop: `${-gap}px`, opacity: 0 }, { height: `${card.offsetHeight}px`, marginTop: "0px", opacity: 1 }], { duration: 220, easing: EASE_OUT });
 		const whole = () => (card.style.overflow = "");
 		open.finished.then(whole, whole);
 		onFile?.(card, open);

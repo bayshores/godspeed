@@ -59,12 +59,12 @@ export const PathBlock = memo(function PathBlock({ path, main, busyOn, onStudy }
 			{(view.showAll !== null || teacher?.canAsk) && (
 				<div className="flex flex-wrap items-center gap-x-4 gap-y-1">
 					{view.showAll !== null && (
-						<button type="button" data-testid="space-path-show-all" onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet text-[15px]">
+						<button type="button" data-testid="space-path-show-all" onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet">
 							Show all {view.showAll}
 						</button>
 					)}
 					{teacher?.canAsk && (
-						<button type="button" data-testid="path-change" onClick={() => teacher.ask(CHANGE_PATH_LINE)} className="lh-btn lh-btn-quiet text-[15px]">
+						<button type="button" data-testid="path-change" onClick={() => teacher.ask(CHANGE_PATH_LINE)} className="lh-btn lh-btn-quiet">
 							Ask {teacher.name} to change it
 						</button>
 					)}

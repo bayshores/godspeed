@@ -52,7 +52,7 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 			foot={
 				<>
 					<span className="flex-1" />
-					<button type="button" data-testid="folder-notice-later" className="lh-btn text-[15px]" onClick={later}>
+					<button type="button" data-testid="folder-notice-later" className="lh-btn" onClick={later}>
 						Later
 					</button>
 					<button
@@ -60,7 +60,7 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 						data-testid="folder-notice-setup"
 						disabled={busy}
 						onClick={() => void setUp()}
-						className="lh-btn lh-btn-main text-[15px]"
+						className="lh-btn lh-btn-main"
 					>
 						Set up my folder
 					</button>

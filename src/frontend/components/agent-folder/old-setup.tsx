@@ -25,15 +25,15 @@ export function OldSetupNotice() {
 			title={title}
 			actions={
 				removed ? (
-					<button type="button" onClick={() => setHidden(true)} className="lh-btn text-[15px]">
+					<button type="button" onClick={() => setHidden(true)} className="lh-btn">
 						OK
 					</button>
 				) : (
 					<>
-						<button type="button" data-testid="old-setup-later" onClick={() => setHidden(true)} className="lh-btn text-[15px]">
+						<button type="button" data-testid="old-setup-later" onClick={() => setHidden(true)} className="lh-btn">
 							Later
 						</button>
-						<button type="button" data-testid="old-setup-remove" disabled={busy} onClick={() => void remove()} className="lh-btn text-[15px]">
+						<button type="button" data-testid="old-setup-remove" disabled={busy} onClick={() => void remove()} className="lh-btn">
 							Remove
 						</button>
 					</>

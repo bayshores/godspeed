@@ -84,7 +84,7 @@ export function DeadlinesTab() {
 			<section className="flex flex-col gap-3">
 				<div className="lh-card-head">
 					<h2 className="lh-card-title">Coming up</h2>
-					<button type="button" data-testid="deadline-add" disabled={!record} onClick={() => setAdding(true)} className="lh-btn lh-btn-quiet text-[15px]">
+					<button type="button" data-testid="deadline-add" disabled={!record} onClick={() => setAdding(true)} className="lh-btn lh-btn-quiet">
 						<PixelIcon name="plus" />
 						Add a deadline
 					</button>

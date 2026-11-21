@@ -226,7 +226,7 @@ export function SheetCanvas({
 						setPointError(null);
 						setPointing((p) => !p);
 					}}
-					className={cn("lh-btn text-[15px]", pointing && "lh-btn-main")}
+					className={cn("lh-btn", pointing && "lh-btn-main")}
 				>
 					Point at the sheet
 				</button>
@@ -356,7 +356,7 @@ export function SheetCanvas({
 
 function ToolButton({ label, onClick, className, children }: { label: string; onClick: () => void; className?: string; children: React.ReactNode }) {
 	return (
-		<button type="button" aria-label={label} title={label} onClick={onClick} className={cn("lh-btn text-[15px]", className)}>
+		<button type="button" aria-label={label} title={label} onClick={onClick} className={cn("lh-btn", className)}>
 			{children}
 		</button>
 	);

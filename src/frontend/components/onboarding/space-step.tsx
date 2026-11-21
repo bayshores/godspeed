@@ -137,11 +137,11 @@ export function SpaceStep({ onDone }: { onDone: (spaceId: string | null) => void
 			)}
 			<div className="flex items-center pt-2">
 				{!madeId && (
-					<button type="button" data-testid="onboarding-skip" className="lh-btn lh-btn-quiet text-[15px]" onClick={() => onDone(null)}>
+					<button type="button" data-testid="onboarding-skip" className="lh-btn lh-btn-quiet" onClick={() => onDone(null)}>
 						Skip
 					</button>
 				)}
-				<button type="button" data-testid="onboarding-space-continue" disabled={!canSave} className="lh-btn lh-btn-main ml-auto text-[15px]" onClick={() => void save()}>
+				<button type="button" data-testid="onboarding-space-continue" disabled={!canSave} className="lh-btn lh-btn-main ml-auto" onClick={() => void save()}>
 					{busy ? "Adding…" : "Continue"}
 				</button>
 			</div>

@@ -187,10 +187,10 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 				foot={
 					<>
 						<span className="flex-1" />
-						<button type="button" data-testid="space-delete-cancel" disabled={busy} onClick={() => setAsking(null)} className="lh-btn text-[15px]">
+						<button type="button" data-testid="space-delete-cancel" disabled={busy} onClick={() => setAsking(null)} className="lh-btn">
 							Cancel
 						</button>
-						<button type="button" data-testid="space-delete-confirm-button" disabled={busy} onClick={() => void remove(record)} className="lh-btn lh-btn-danger text-[15px]">
+						<button type="button" data-testid="space-delete-confirm-button" disabled={busy} onClick={() => void remove(record)} className="lh-btn lh-btn-danger">
 							Delete space
 						</button>
 					</>
@@ -230,16 +230,16 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 					<>
 						{editing && (
 							<>
-								<button type="button" data-testid="space-close" disabled={busy} onClick={() => void closeSpace(editing)} className="lh-btn lh-btn-quiet text-[15px]">
+								<button type="button" data-testid="space-close" disabled={busy} onClick={() => void closeSpace(editing)} className="lh-btn lh-btn-quiet">
 									Close space
 								</button>
-								<button type="button" data-testid="space-delete" disabled={busy} onClick={() => setAsking("delete")} className="lh-btn lh-btn-quiet text-[15px] text-ans-wrong hover:text-ans-wrong-hover">
+								<button type="button" data-testid="space-delete" disabled={busy} onClick={() => setAsking("delete")} className="lh-btn lh-btn-quiet text-ans-wrong hover:text-ans-wrong-hover">
 									Delete space
 								</button>
 							</>
 						)}
 						<span className="flex-1" />
-						<button type="button" data-testid="space-save" disabled={busy || loadFailed || loading} onClick={() => void save()} className="lh-btn lh-btn-main text-[15px]">
+						<button type="button" data-testid="space-save" disabled={busy || loadFailed || loading} onClick={() => void save()} className="lh-btn lh-btn-main">
 							{mode.kind === "create" ? "Add space" : "Save"}
 						</button>
 					</>

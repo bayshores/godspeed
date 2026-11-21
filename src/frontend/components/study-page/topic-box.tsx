@@ -72,17 +72,17 @@ export function TopicBox({
 				className="field-sizing-content max-h-[60vh] min-h-[86px] w-full flex-1 resize-none bg-transparent pt-3 pb-3 font-prose text-[17px] leading-snug text-ink outline-none placeholder:text-ink-3"
 			/>
 			<div className="flex flex-wrap items-center gap-2">
-				<button type="button" data-testid="facts-picks-chip" disabled={!canPick && picks === 0} onClick={onOpenPicker} className="lh-btn text-[15px]">
+				<button type="button" data-testid="facts-picks-chip" disabled={!canPick && picks === 0} onClick={onOpenPicker} className="lh-btn">
 					{picks > 0 ? `${picks} ${picks === 1 ? "fact" : "facts"} picked` : "Start from facts"}
 				</button>
 				{picks > 0 && (
-					<button type="button" data-testid="facts-picks-clear" onClick={onClearPicks} className="lh-btn lh-btn-quiet text-[15px]">
+					<button type="button" data-testid="facts-picks-clear" onClick={onClearPicks} className="lh-btn lh-btn-quiet">
 						Clear
 					</button>
 				)}
 				<AttachButton draft={attachments} outlined />
 				<span className="flex-1" />
-				<Key type="submit" data-testid="home-start" aria-disabled={empty || busyOn !== null} busy={busyOn === TYPED_START} disabled={busyOn !== null} className="lh-btn-main shrink-0 text-[15px]">
+				<Key type="submit" data-testid="home-start" aria-disabled={empty || busyOn !== null} busy={busyOn === TYPED_START} disabled={busyOn !== null} className="lh-btn-main shrink-0">
 					Study
 				</Key>
 			</div>

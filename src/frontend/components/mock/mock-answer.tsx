@@ -95,7 +95,7 @@ export function CodeAnswer({
 			/>
 			<section data-testid="mock-examples" aria-label="Examples" className="flex max-h-[40%] shrink-0 flex-col gap-2.5 overflow-y-auto bg-panel px-5 py-3.5">
 				<div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
-					<button type="button" data-testid="mock-run-examples" disabled={running} onClick={() => void run()} className="lh-btn shrink-0 text-[15px]">
+					<button type="button" data-testid="mock-run-examples" disabled={running} onClick={() => void run()} className="lh-btn shrink-0">
 						{running ? "Running" : "Run examples"}
 					</button>
 					<p className="min-w-0 flex-1 basis-[260px] text-[15px] leading-snug text-ink-3">

@@ -21,7 +21,7 @@ export function AgentNeed({ open, onOpen }: { open: boolean; onOpen: () => void 
 	return (
 		<div data-testid="onboarding-agent-need" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[17px] text-ink">
 			<p>{line}</p>
-			<button type="button" data-testid="onboarding-agent-need-show" onClick={onOpen} className="lh-btn text-[15px]">
+			<button type="button" data-testid="onboarding-agent-need-show" onClick={onOpen} className="lh-btn">
 				Show its screen
 			</button>
 		</div>

@@ -4,7 +4,7 @@ import { KEY_ON_INK } from "@/frontend/components/ui/card-parts";
 import { cn } from "@/frontend/lib/utils";
 
 /** A key on the picked bar: a key in the paper color. */
-export const ON_INK = cn("lh-btn shrink-0 text-[15px] text-background", KEY_ON_INK);
+export const ON_INK = cn("lh-btn shrink-0 text-background", KEY_ON_INK);
 
 /** The bar's main key: the paper color itself, so it is the brightest thing on the bar. */
 export const ON_INK_MAIN = cn(ON_INK, "text-ink [--lh-key:var(--background)] [--lh-key-hover:color-mix(in_srgb,var(--background)_90%,var(--foreground))]");

@@ -46,7 +46,7 @@ export function RecentChanges({ changes, collapsed, onToggle }: { changes: reado
 			)}
 			{!collapsed && more > 0 && (
 				<div className="flex justify-end pt-1">
-					<button type="button" data-testid="files-recent-changes-more" onClick={() => setAll(true)} className="lh-btn lh-btn-quiet text-[15px]">
+					<button type="button" data-testid="files-recent-changes-more" onClick={() => setAll(true)} className="lh-btn lh-btn-quiet">
 						Show {more} more
 					</button>
 				</div>

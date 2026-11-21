@@ -70,7 +70,7 @@ export function QuietNoticeView({
 	onSee: (entry: QuietSpace) => void;
 	onDismiss: (entry: QuietSpace) => void;
 }) {
-	const button = "lh-btn text-[15px]";
+	const button = "lh-btn";
 	return (
 		<>
 			{quiet.map((entry) => (

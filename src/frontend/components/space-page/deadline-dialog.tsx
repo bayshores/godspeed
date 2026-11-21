@@ -124,7 +124,7 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 		) : (
 			<>
 				{saved && (
-					<button type="button" data-testid="deadline-remove" disabled={busy} onClick={() => setAsking("remove")} className="lh-btn lh-btn-quiet text-[15px] text-ans-wrong hover:text-ans-wrong-hover">
+					<button type="button" data-testid="deadline-remove" disabled={busy} onClick={() => setAsking("remove")} className="lh-btn lh-btn-quiet text-ans-wrong hover:text-ans-wrong-hover">
 						Remove deadline
 					</button>
 				)}
@@ -164,7 +164,7 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 					<input type="time" data-testid="deadline-time" value={draft.time} disabled={busy} onChange={(e) => change({ time: e.target.value })} className={FIELD} />
 				</label>
 				{draft.time !== "" && (
-					<button type="button" data-testid="deadline-time-clear" disabled={busy} onClick={() => change({ time: "" })} className="lh-btn lh-btn-quiet h-10 shrink-0 text-[15px]">
+					<button type="button" data-testid="deadline-time-clear" disabled={busy} onClick={() => change({ time: "" })} className="lh-btn lh-btn-quiet h-10 shrink-0">
 						Clear time
 					</button>
 				)}

@@ -18,6 +18,10 @@ import { useEffect, useState } from "react";
 /** Matches --lh-dur-fast in src/frontend/globals.css. */
 const EXIT_MS = 110;
 
+/** The --lh-ease-out and --lh-ease-in curves in globals.css, for animations run from code. */
+export const EASE_OUT = "cubic-bezier(0.2, 0, 0, 1)";
+export const EASE_IN = "cubic-bezier(0.4, 0, 1, 1)";
+
 // One live query for the app's lifetime: .matches follows the OS setting,
 // so hot callers (every fold, every countdown tick) skip a rebuild.
 let reducedMotionQuery: MediaQueryList | null = null;

@@ -95,7 +95,7 @@ function ChangeCard({ check, onDone }: { check: SpaceCheck; onDone: () => void }
 						e.stopPropagation();
 						void undo();
 					}}
-					className="lh-btn text-[15px]"
+					className="lh-btn"
 				>
 					Undo
 				</button>
@@ -141,10 +141,10 @@ function OverdueCard({ deadline: d }: { deadline: OpenDeadline }) {
 			title={`Is ${d.name} done?`}
 			actions={
 				<>
-					<button type="button" data-testid="overdue-notice-done" disabled={busy} onClick={() => markDone(d)} className="lh-btn text-[15px]">
+					<button type="button" data-testid="overdue-notice-done" disabled={busy} onClick={() => markDone(d)} className="lh-btn">
 						Mark done
 					</button>
-					<button type="button" data-testid="overdue-notice-not-yet" disabled={busy} onClick={() => void notYet()} className="lh-btn text-[15px]">
+					<button type="button" data-testid="overdue-notice-not-yet" disabled={busy} onClick={() => void notYet()} className="lh-btn">
 						Not yet
 					</button>
 				</>

@@ -115,15 +115,15 @@ export function UpdateSettings({
 			>
 				<span className="flex flex-wrap items-center gap-2">
 					{hasWhatsNew(version) ? (
-						<button type="button" onClick={() => openWhatsNew()} className="lh-btn lh-btn-quiet text-[15px]" data-testid="release-notes">Release notes</button>
-					) : releaseNotes && <a href={releaseNotes} target="_blank" rel="noopener noreferrer" className="lh-btn lh-btn-quiet text-[15px]" data-testid="release-notes">Release notes</a>}
+						<button type="button" onClick={() => openWhatsNew()} className="lh-btn lh-btn-quiet" data-testid="release-notes">Release notes</button>
+					) : releaseNotes && <a href={releaseNotes} target="_blank" rel="noopener noreferrer" className="lh-btn lh-btn-quiet" data-testid="release-notes">Release notes</a>}
 					{reportBug && (
-						<button type="button" className="lh-btn text-[15px]" data-testid="report-bug" onClick={() => reportBug()}>Report a bug</button>
+						<button type="button" className="lh-btn" data-testid="report-bug" onClick={() => reportBug()}>Report a bug</button>
 					)}
 					{active && (state.status === "downloaded" ? (
-						<button type="button" className="lh-btn lh-btn-main text-[15px]" data-testid="update-restart" onClick={() => window.lh?.installUpdate?.()}>Restart now</button>
+						<button type="button" className="lh-btn lh-btn-main" data-testid="update-restart" onClick={() => window.lh?.installUpdate?.()}>Restart now</button>
 					) : (
-						<button type="button" className="lh-btn text-[15px]" data-testid="update-check" disabled={busy} aria-busy={busy} onClick={check}>
+						<button type="button" className="lh-btn" data-testid="update-check" disabled={busy} aria-busy={busy} onClick={check}>
 							{busy && <BrailleSpinner label={state.status === "downloading" ? "Downloading update" : "Checking for updates"} />}
 							Check for updates
 						</button>

@@ -36,7 +36,7 @@ export const HomeworkCard = memo(function HomeworkCard({
 		<Pane data-testid="homework-card" className="@container lh-card">
 			<div className="lh-card-head">
 				<h2 className="lh-card-title">Problems</h2>
-				<button type="button" data-testid="homework-mark-done" disabled={saving} onClick={() => onMarkDone(!d.done)} className="lh-btn lh-btn-quiet text-[15px]">
+				<button type="button" data-testid="homework-mark-done" disabled={saving} onClick={() => onMarkDone(!d.done)} className="lh-btn lh-btn-quiet">
 					{d.done ? "Mark not done" : "Mark done"}
 				</button>
 			</div>
@@ -77,7 +77,7 @@ export const HomeworkCard = memo(function HomeworkCard({
 					<PixelIcon name="chevron" className={SELECT_ARROW} />
 				</span>
 				{assignmentId && onOpenAssignment && (
-					<button type="button" data-testid="homework-assignment-open" onClick={onOpenAssignment} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
+					<button type="button" data-testid="homework-assignment-open" onClick={onOpenAssignment} className="lh-btn lh-btn-quiet shrink-0">
 						Open
 					</button>
 				)}

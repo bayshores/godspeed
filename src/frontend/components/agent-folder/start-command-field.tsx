@@ -36,7 +36,7 @@ export function StartCommandField({ agent, saved, onSave }: { agent: FolderAgent
 					onChange={(e) => setCommand(e.target.value)}
 					className={`${FIELD} min-w-0 flex-1 font-mono`}
 				/>
-				<button type="submit" className="lh-btn lh-btn-main h-10 shrink-0 text-[15px]">
+				<button type="submit" className="lh-btn lh-btn-main h-10 shrink-0">
 					Save
 				</button>
 			</div>

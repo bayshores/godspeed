@@ -30,7 +30,7 @@ export function FootQuestion({
 				<span className="text-[15px] break-words text-ink">{line}</span>
 				{note && <span className="text-base text-ink-2">{note}</span>}
 			</span>
-			<button type="button" data-testid={`${testid}-keep`} disabled={busy} onClick={onKeep} className="lh-btn text-[15px]">
+			<button type="button" data-testid={`${testid}-keep`} disabled={busy} onClick={onKeep} className="lh-btn">
 				{keep}
 			</button>
 			<button
@@ -38,7 +38,7 @@ export function FootQuestion({
 				data-testid={`${testid}-go`}
 				disabled={busy}
 				onClick={onGo}
-				className={quiet ? "lh-btn lh-btn-quiet text-[15px] text-ans-wrong hover:text-ans-wrong-hover" : "lh-btn lh-btn-danger text-[15px]"}
+				className={quiet ? "lh-btn lh-btn-quiet text-ans-wrong hover:text-ans-wrong-hover" : "lh-btn lh-btn-danger"}
 			>
 				{go}
 			</button>

@@ -15,10 +15,10 @@ export function DeleteFoot({
 	return (
 		<>
 			<span className="flex-1" />
-			<button type="button" data-testid={cancelTestid} onClick={onClose} disabled={busy} className="lh-btn text-[15px]">
+			<button type="button" data-testid={cancelTestid} onClick={onClose} disabled={busy} className="lh-btn">
 				Cancel
 			</button>
-			<button type="button" data-testid={confirmTestid} onClick={onRun} disabled={busy} className="lh-btn lh-btn-danger text-[15px]">
+			<button type="button" data-testid={confirmTestid} onClick={onRun} disabled={busy} className="lh-btn lh-btn-danger">
 				{busy ? "Deleting…" : "Delete"}
 			</button>
 		</>
@@ -42,7 +42,7 @@ export function FailureRow({
 	return (
 		<div role="alert" data-testid={testid} className="flex flex-wrap items-center gap-2.5">
 			<span className="min-w-0 flex-1 basis-[200px] text-[15px] text-ans-wrong">{failure}</span>
-			<button type="button" data-testid={retryTestid} onClick={onRun} disabled={busy} className="lh-btn text-[15px]">
+			<button type="button" data-testid={retryTestid} onClick={onRun} disabled={busy} className="lh-btn">
 				Try again
 			</button>
 		</div>

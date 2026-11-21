@@ -21,7 +21,7 @@ export function ConfirmDialog({ copy, onConfirm, onClose }: { copy: ConfirmCopy 
 			foot={
 				<>
 					<span className="flex-1" />
-					<button type="button" data-testid="files-confirm-cancel" onClick={onClose} className="lh-btn text-[15px]">
+					<button type="button" data-testid="files-confirm-cancel" onClick={onClose} className="lh-btn">
 						Cancel
 					</button>
 					<button

@@ -1,9 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
-import { prefersReducedMotion } from "@/frontend/components/presence";
+import { EASE_IN as IN, EASE_OUT as OUT, prefersReducedMotion } from "@/frontend/components/presence";
 
-/** The app's curves for a thing that enters and one that leaves (--lh-ease-out, --lh-ease-in). */
-const OUT = "cubic-bezier(0.2, 0, 0, 1)";
-const IN = "cubic-bezier(0.4, 0, 1, 1)";
 /** The kept task leaving the right page before the book shuts (--lh-dur-fast). */
 const LEAVE_MS = 110;
 /** The two pages sliding apart or together. */

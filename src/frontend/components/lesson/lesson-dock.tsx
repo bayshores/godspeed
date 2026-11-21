@@ -86,7 +86,7 @@ export function DockPanel({
 			{/* Close stays level with the header's first line when what is before it wraps. */}
 			<header className="flex shrink-0 items-start gap-2 py-2.5 pr-2 pl-3">
 				{header}
-				<button type="button" data-testid={`${testId}-close`} onClick={onClose} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
+				<button type="button" data-testid={`${testId}-close`} onClick={onClose} className="lh-btn lh-btn-quiet shrink-0">
 					<PixelIcon name="close" />
 					Close
 				</button>

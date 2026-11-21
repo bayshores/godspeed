@@ -24,11 +24,11 @@ export function AgentStep({ connected, onNext }: { connected: boolean; onNext: (
 			<AgentLauncher />
 			<div className="flex items-center pt-2">
 				{connected ? (
-					<button type="button" data-testid="onboarding-agent-continue" className="lh-btn lh-btn-main ml-auto text-[15px]" onClick={onNext}>
+					<button type="button" data-testid="onboarding-agent-continue" className="lh-btn lh-btn-main ml-auto" onClick={onNext}>
 						Continue
 					</button>
 				) : (
-					<button type="button" data-testid="onboarding-later" className="lh-btn lh-btn-quiet text-[15px]" onClick={onNext}>
+					<button type="button" data-testid="onboarding-later" className="lh-btn lh-btn-quiet" onClick={onNext}>
 						I&apos;ll do this later
 					</button>
 				)}

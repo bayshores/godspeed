@@ -68,7 +68,7 @@ export function SheetDock({
 				<div data-testid="sheet-dock-none" className="flex min-h-0 flex-1 flex-col items-start gap-3 px-4 pt-2 pb-5 text-[15px] text-ink-2">
 					<p>No cheat sheet yet.</p>
 					{target ? (
-						<Link to={studioPath(target)} data-testid="sheet-dock-make" className="lh-btn lh-btn-main text-[15px]">
+						<Link to={studioPath(target)} data-testid="sheet-dock-make" className="lh-btn lh-btn-main">
 							Make one
 						</Link>
 					) : (
@@ -96,10 +96,10 @@ function DockedSheet({ spaceId, deadlineId }: { spaceId: string; deadlineId: str
 			foot={
 				<div className="flex w-full flex-wrap items-center justify-between gap-2">
 					{/* Pointing sends a picture with a message, so it happens where the chat is. */}
-					<Link to={studioPath(deadlineId)} data-testid="sheet-dock-point" className="lh-btn text-[15px]">
+					<Link to={studioPath(deadlineId)} data-testid="sheet-dock-point" className="lh-btn">
 						Point at the sheet
 					</Link>
-					<Link to={studioPath(deadlineId)} data-testid="sheet-dock-studio" className="lh-btn lh-btn-quiet text-[15px]">
+					<Link to={studioPath(deadlineId)} data-testid="sheet-dock-studio" className="lh-btn lh-btn-quiet">
 						Open full size
 					</Link>
 				</div>

@@ -55,10 +55,10 @@ function Card({ saved, onDone }: { saved: Saved; onDone: () => void }) {
 			actions={
 				(mode.kind === "saved" || mode.kind === "error") && (
 					<>
-						<button type="button" data-testid="rule-notice-undo" disabled={api.busy} onClick={api.undo} className="lh-btn text-[15px]">
+						<button type="button" data-testid="rule-notice-undo" disabled={api.busy} onClick={api.undo} className="lh-btn">
 							Undo
 						</button>
-						<button type="button" data-testid="rule-notice-edit" disabled={api.busy} onClick={api.edit} className="lh-btn text-[15px]">
+						<button type="button" data-testid="rule-notice-edit" disabled={api.busy} onClick={api.edit} className="lh-btn">
 							Edit
 						</button>
 					</>

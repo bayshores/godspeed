@@ -1,9 +1,7 @@
 import { useLayoutEffect, useState, type RefCallback } from "react";
-import { prefersReducedMotion } from "@/frontend/components/presence";
+import { EASE_OUT, prefersReducedMotion } from "@/frontend/components/presence";
 import { glideMs, type Box } from "./sheet-glide-model";
 
-/** The app's curve for a thing that enters (--lh-ease-out). */
-const EASING = "cubic-bezier(0.2, 0, 0, 1)";
 
 const boxOf = (el: HTMLElement): Box => ({ width: el.offsetWidth, height: el.offsetHeight });
 /** The window a sheet is laid out in: the app's, and the lesson's own window when the sheet scrolls in it (it changes size as the pinned
@@ -48,7 +46,7 @@ function sheetGlide(): { ref: RefCallback<HTMLElement>; hold: (still: boolean) =
 		const duration = Math.max(...moves.map((move) => move.ms));
 		for (const { el, from, to } of moves) {
 			el.style.overflow = "clip";
-			const glide = el.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration, easing: EASING });
+			const glide = el.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration, easing: EASE_OUT });
 			gliding.set(el, glide);
 			// At rest the sheet takes the height of what it holds now; if that changed meanwhile, it glides on from here.
 			const rest = () => {

@@ -163,7 +163,7 @@ function PeekRows({ strip }: { strip: StripState }) {
 							{row.lesson.title}
 						</span>
 						<span className={cn(LIT, "shrink-0 px-1.5 py-0.5")}>your turn</span>
-						<button type="button" data-testid="peek-open" onClick={() => strip.openLesson(row.lesson.id)} className="lh-btn shrink-0 text-[15px]">
+						<button type="button" data-testid="peek-open" onClick={() => strip.openLesson(row.lesson.id)} className="lh-btn shrink-0">
 							Open
 						</button>
 					</div>
@@ -179,7 +179,7 @@ function PeekRows({ strip }: { strip: StripState }) {
 					<span title={strip.offer.label} className="min-w-0 flex-1 truncate">
 						{strip.offer.label}
 					</span>
-					<button type="button" data-testid="follow-go" onClick={strip.offer.go} className="lh-btn shrink-0 text-[15px]">
+					<button type="button" data-testid="follow-go" onClick={strip.offer.go} className="lh-btn shrink-0">
 						{strip.offer.key}
 					</button>
 				</div>

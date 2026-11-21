@@ -39,14 +39,14 @@ export function AboutSheet({
 			) : about.state === "failed" ? (
 				<div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2">
 					<p className="min-w-0 flex-1 text-[17px] text-ink">Couldn&apos;t load what it&apos;s like.</p>
-					<button type="button" data-testid="deadline-about-retry" onClick={onRetry} className="lh-btn text-[15px]">
+					<button type="button" data-testid="deadline-about-retry" onClick={onRetry} className="lh-btn">
 						Try again
 					</button>
 				</div>
 			) : (
 				<LoadingBox className="h-24 bg-tone" />
 			)}
-			<button type="button" data-testid="deadline-about-ask" disabled={requesting} onClick={onAsk} className="lh-btn lh-btn-quiet self-start text-[15px]">
+			<button type="button" data-testid="deadline-about-ask" disabled={requesting} onClick={onAsk} className="lh-btn lh-btn-quiet self-start">
 				Ask {teacherName} to rewrite
 			</button>
 			{requestLine && (

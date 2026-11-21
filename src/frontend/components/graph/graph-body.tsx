@@ -3,7 +3,7 @@ import type { FactProgress, ProgressPayload } from "@/shared/core";
 import { Constellation } from "./constellation.tsx";
 import type { Aim, Bleed, CameraMemory, Flight } from "./constellation-camera.ts";
 import type { InView } from "./use-in-view.ts";
-import { prefersReducedMotion } from "@/frontend/components/presence";
+import { EASE_OUT, prefersReducedMotion } from "@/frontend/components/presence";
 import { FactPane, type FactSources } from "./fact-pane.tsx";
 import { GraphEmpty } from "./graph-empty.tsx";
 import { TopicPane } from "./topic-pane.tsx";
@@ -165,7 +165,7 @@ export function GraphBody({
 	useLayoutEffect(() => {
 		if (shown.current === beside) return;
 		shown.current = beside;
-		if (!prefersReducedMotion()) pictureRef.current?.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+		if (!prefersReducedMotion()) pictureRef.current?.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: EASE_OUT });
 	}, [beside]);
 
 	if (data.topics.length === 0) return <GraphEmpty inSpace={data.spaceId !== null} />;
