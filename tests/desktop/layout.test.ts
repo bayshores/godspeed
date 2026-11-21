@@ -4,9 +4,9 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, scrolledWords, SCROLL_TO, snapName, standInAgent } from "../../scripts/layout.mjs";
-import { cross, cutOf, inkOf, lineBox, meet, offGap, offInset, outside, probes, roomUnder, scrollerClip, sticksOut } from "../../scripts/layout-page.mjs";
+import { boxMoved, carried, cross, cutOf, emptyBand, hollow, inkOf, lineBox, meet, movedSince, offGap, offInset, outside, probes, roomUnder, scrollerClip, sticksOut } from "../../scripts/layout-page.mjs";
 import { workOf } from "../../scripts/layout-seed.mjs";
-import { SCREENS } from "../../scripts/layout-screens.mjs";
+import { SCREENS, widthsOf } from "../../scripts/layout-screens.mjs";
 
 const box = (left: number, top: number, right: number, bottom: number) => ({ left, top, right, bottom });
 
@@ -58,6 +58,65 @@ describe("spacing", () => {
 		assert.ok(offInset([24, 20, 24], [24]));
 		assert.ok(!offInset([28, 28], [56, 28]), "a reading surface in a narrow column");
 		assert.ok(offInset([56, 28], [56, 28]), "both sides take the same step");
+	});
+});
+
+describe("hollow box", () => {
+	it("finds the tallest band between two drawn things that nothing crosses", () => {
+		// A title and a key at the top, the writing box and the keys at the foot.
+		const band = emptyBand([box(0, 500, 300, 540), box(0, 20, 200, 48), box(220, 20, 300, 60), box(0, 560, 300, 600)]);
+		assert.deepEqual([band?.top, band?.bottom, band?.height], [60, 500, 440]);
+		assert.deepEqual(band?.above, box(220, 20, 300, 60), "the thing reaching lowest above it");
+		assert.deepEqual(band?.below, box(0, 500, 300, 540));
+	});
+
+	it("a tall thing beside short ones closes the band it crosses", () => {
+		assert.equal(emptyBand([box(0, 0, 100, 20), box(200, 0, 300, 400), box(0, 380, 100, 400)]), null);
+	});
+
+	it("room above the first thing and under the last is not a band, nor one thing alone", () => {
+		assert.equal(emptyBand([box(0, 300, 100, 320)]), null);
+		assert.equal(emptyBand([]), null);
+		assert.equal(emptyBand([box(0, 10, 100, 30), box(0, 30, 100, 50)]), null, "touching things leave no band");
+	});
+
+	it("a band is hollow past 160 px and past 35% of its sheet", () => {
+		assert.ok(hollow(200, 500));
+		assert.ok(!hollow(160, 300), "160 px is the least");
+		assert.ok(!hollow(300, 1000), "under 35% of a tall sheet");
+		assert.ok(hollow(351, 1000));
+	});
+});
+
+describe("the opening watch", () => {
+	const at = (left: number, top: number, width: number, height: number) => ({ left, top, width, height });
+
+	it("a box moved when it moves or changes size by more than 2 pixels", () => {
+		assert.ok(!boxMoved(at(0, 0, 100, 40), at(2, 1, 101, 42)), "rounding");
+		assert.ok(boxMoved(at(0, 0, 100, 40), at(0, 12, 100, 40)));
+		assert.ok(boxMoved(at(0, 0, 100, 40), at(0, 0, 100, 80)), "it grew");
+	});
+
+	it("names what moved or left since the first paint, and what is new", () => {
+		const first = { "1": at(0, 0, 100, 40), "2": at(0, 60, 100, 40), "3": at(0, 120, 100, 40) };
+		const later = { "1": at(0, 0, 100, 40), "2": at(0, 90, 100, 40), "4": at(0, 200, 100, 40) };
+		assert.deepEqual(movedSince(first, later), {
+			moved: [
+				{ id: "2", from: at(0, 60, 100, 40), to: at(0, 90, 100, 40) },
+				{ id: "3", from: at(0, 120, 100, 40), to: null },
+			],
+			arrived: ["4"],
+		});
+		assert.deepEqual(movedSince(first, first), { moved: [], arrived: [] });
+	});
+
+	it("a box carried by the box around it, or gone with it, is that box's move", () => {
+		const outer = { id: "1", from: at(0, 100, 600, 400), to: at(0, 140, 600, 400) };
+		assert.ok(carried({ id: "2", from: at(20, 120, 200, 40), to: at(20, 160, 200, 40) }, outer));
+		assert.ok(!carried({ id: "2", from: at(20, 120, 200, 40), to: at(20, 200, 200, 40) }, outer), "it moved further");
+		assert.ok(!carried({ id: "2", from: at(20, 120, 200, 40), to: at(20, 160, 200, 80) }, outer), "it grew too");
+		assert.ok(carried({ id: "2", from: at(20, 120, 200, 40), to: null }, { ...outer, to: null }), "it left with it");
+		assert.ok(!carried({ id: "2", from: at(20, 120, 200, 40), to: null }, outer), "it left on its own");
 	});
 });
 
@@ -165,6 +224,11 @@ describe("the walk", () => {
 		assert.deepEqual(SCROLL_TO, [0, 80, "end"]);
 		assert.equal(scrolledWords(80), "scrolled 80 px");
 		assert.equal(scrolledWords("end"), "scrolled to the end");
+	});
+
+	it("checks lessons at 1320 too, where the lesson's reading inset changes", () => {
+		assert.deepEqual(widthsOf({ url: "/chat/{lesson}" }), [1440, 1320, 1100, 800]);
+		assert.deepEqual(widthsOf({ url: "/space" }), [1440, 1100, 800]);
 	});
 
 	it("every screen has a name, an address and a selector to wait for", () => {

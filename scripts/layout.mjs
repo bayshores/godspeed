@@ -5,19 +5,25 @@
  * Chromium and WebKit lay some CSS out differently, and the Mac app draws with WebKit. This
  * builds the debug shell with its `screens` control channel (crates/shell/src/screens.rs), starts
  * it on a throwaway home and data folder, and has a stand-in agent write made-up data
- * (layout-seed.mjs). It then starts the app again with no agent connected, opens each screen in
- * layout-screens.mjs at each width, and runs layout-page.mjs in the page as it opens, scrolled a
- * little and scrolled to the end. A finding prints the
- * screen, the width, the check and the two elements, and saves a picture beside the report in
- * target/layout/. Mac only: elsewhere it passes at once. Two runs in one worktree share that
- * folder, so run one at a time.
+ * (layout-seed.mjs). It then starts the app again with no agent connected and walks the screens
+ * in layout-screens.mjs, two passes for each:
+ *
+ * | Pass | When | What |
+ * |---|---|---|
+ * | Opening | The first screen at each address, at its widest and narrowest width | With motion on, the page is opened from Home (Home itself from Progress) as a link opens it, not by a full load, and watched for 1.5 s from its first paint (watchOpening in layout-page.mjs) |
+ * | Still | Every screen, at every width (widthsOf) | A full load, motion off, checked as it opens, scrolled a little and scrolled to the end (checkPage) |
+ *
+ * A finding prints the screen (", opening" for the first pass), the width, the check and the
+ * elements, and saves a picture beside the report in target/layout/. With `LAYOUT_STATES` set to
+ * a folder, every lesson screen is also photographed there as it opens, at each width. Mac only:
+ * elsewhere it passes at once. Two runs in one worktree share that folder, so run one at a time.
  */
 import { execFileSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as net from "node:net";
 import * as path from "node:path";
 import { seed } from "./layout-seed.mjs";
-import { HTTP_OK, SCREENS, WIDTHS } from "./layout-screens.mjs";
+import { HTTP_OK, SCREENS, widthsOf } from "./layout-screens.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const RUN = path.join(ROOT, "target", "layout");
@@ -42,6 +48,32 @@ for (const animation of document.getAnimations()) {
 	try { animation.finish(); } catch {}
 }
 null`;
+
+/** An opening is watched this long at most once its page is ready; the watch itself is 1.5 s. */
+const OPENING_MS = 10_000;
+/** Waits up to 3 s until the page holds still: no page traveling, no animation that ends still playing. */
+const AT_REST = `for (let n = 0; n < 30; n++) {
+	const moving = document.querySelector(".lh-travel[data-way]") || document.getAnimations().some((a) => a.playState === "running" && a.effect?.getTiming().iterations !== Infinity);
+	if (!moving) return;
+	await new Promise((done) => setTimeout(done, 100));
+}`;
+
+/** An in-app page change, as a link makes it: the router follows the history's popstate and
+ *  keeps the old page up until the new one's data is read. */
+function goInApp(url) {
+	return `history.pushState(null, "", ${JSON.stringify(url)}); dispatchEvent(new PopStateEvent("popstate")); null`;
+}
+
+/** The page an opening starts from, and what it shows once its data is drawn: Home, or for Home
+ *  itself Progress. */
+function openingFrom(url) {
+	return url === "/" ? { url: "/space", ready: "[data-testid=space-overview] .lh-sheet" } : { url: "/", ready: "[data-testid=home-page] .lh-sheet" };
+}
+
+/** The widths an opening is watched at: a screen's widest and narrowest. */
+function openingWidths(widths) {
+	return [...new Set([Math.max(...widths), Math.min(...widths)])];
+}
 
 /** The channel's answer as a value: JSON, or an Error for `error: <why>`. */
 export function readAnswer(line) {
@@ -242,6 +274,55 @@ async function checkScreen(app, pageCheck) {
 	return last;
 }
 
+/** The opening pass for a screen at the address `url`: at each opening width, the page is opened
+ *  from its start page in the app and watched. Answers its findings as report lines, and
+ *  warnings. */
+async function watchOpenings(app, screen, url, ids, pageSource) {
+	const lines = [];
+	const warnings = [];
+	const from = openingFrom(url);
+	const inPage = (call) => evalLine(`(() => { ${pageSource}; return ${call}; })()`);
+	// A full load first: the screen before may have left a menu open and motion off.
+	await app.value("eval window.__layoutLeft = true");
+	await app.value(`nav ${app.origin}${from.url}`);
+	await app.ready(from.ready);
+	let atStart = true;
+	for (const width of openingWidths(widthsOf(screen))) {
+		const height = screen.height ?? HEIGHT;
+		await app.value(`size ${width} ${height}`);
+		await sleep(SETTLE_MS);
+		const [shownWidth, shownHeight] = await app.value("eval [innerWidth, innerHeight]");
+		// The still pass says why a width is not checked.
+		if (misfit({ width, height }, { width: shownWidth, height: shownHeight })) continue;
+		if (!atStart) {
+			await app.value(`eval ${goInApp(from.url)}`);
+			await app.ready(from.ready);
+		}
+		await app.run(AT_REST);
+		await app.value(inPage(`watchOpening(${JSON.stringify(new URL(url, app.origin).pathname)})`));
+		await app.value(`eval ${goInApp(url)}`);
+		atStart = false;
+		await app.ready(fill(screen.ready, ids));
+		let read = null;
+		for (const end = Date.now() + OPENING_MS; Date.now() < end; await sleep(100)) {
+			read = await app.value(inPage("openingFindings()"));
+			if (read.done) break;
+		}
+		const name = `${screen.name}, opening`;
+		if (!read.done) {
+			warnings.push(`WARNING: ${name} at ${width} was NOT watched: ${read.painted ? "the watch never ended" : "the new page never showed a sheet or traveled in"}`);
+			console.warn(warnings.at(-1));
+			continue;
+		}
+		if (read.findings.length === 0) continue;
+		const snap = path.join(RUN, snapName(name, width));
+		await app.value(`snap ${snap}`);
+		for (const finding of read.findings) lines.push(findingLine(name, width, finding));
+		lines.push(`  picture: ${snap}`);
+	}
+	return { lines, warnings };
+}
+
 async function main() {
 	if (process.platform !== "darwin") {
 		console.log("npm run layout runs on a Mac only (it needs the app's WebKit window); skipped.");
@@ -296,32 +377,45 @@ async function main() {
 
 	const failures = [];
 	const warnings = [];
+	/** The addresses whose opening was watched. */
+	const opened = new Set();
+	const states = process.env.LAYOUT_STATES;
+	if (states) fs.mkdirSync(states, { recursive: true });
 	app = await startApp(port, "walk");
 	try {
 		await app.ready();
 		for (const screen of SCREENS) {
+			const widths = widthsOf(screen);
 			try {
 				if (screen.before) await app.run(fill(screen.before, ids));
+				const url = fill(screen.url, ids);
+				// The terminal's page opens only in a window of its own, by a full load.
+				if (!opened.has(url) && url !== "/terminal-window") {
+					opened.add(url);
+					const opening = await watchOpenings(app, screen, url, ids, pageSource);
+					failures.push(...opening.lines);
+					warnings.push(...opening.warnings);
+				}
 				await app.value("eval window.__layoutLeft = true");
-				await app.value(`nav ${app.origin}${fill(screen.url, ids)}`);
+				await app.value(`nav ${app.origin}${url}`);
 				await app.ready(fill(screen.ready, ids));
 				if (screen.setup) await app.run(fill(screen.setup, ids));
 				if (screen.shows) await app.ready(fill(screen.shows, ids));
 			} catch (err) {
-				const snap = path.join(RUN, snapName(`${screen.name} not shown`, WIDTHS[0]));
+				const snap = path.join(RUN, snapName(`${screen.name} not shown`, widths[0]));
 				await app.send(`snap ${snap}`);
 				// What the screens before it found is still worth reading.
 				fs.writeFileSync(path.join(RUN, "report.txt"), `${[...failures, ...warnings].join("\n")}\n`);
 				throw new Error(`${screen.name}: ${err.message}; picture: ${snap}; findings so far: ${path.join(RUN, "report.txt")}`);
 			}
-			for (const width of WIDTHS) {
+			for (const width of widths) {
 				const height = screen.height ?? HEIGHT;
 				await app.value(`size ${width} ${height}`);
 				await sleep(SETTLE_MS);
 				// A screen smaller than the window squeezes it, and the check would judge another size.
 				const [shownWidth, shownHeight] = await app.value("eval [innerWidth, innerHeight]");
 				const problem = misfit({ width, height }, { width: shownWidth, height: shownHeight });
-				if (problem && width === Math.min(...WIDTHS) && !screen.height) throw new Error(`${problem}: the screen is too small for the narrowest width`);
+				if (problem && width === Math.min(...widths) && !screen.height) throw new Error(`${problem}: the screen is too small for the narrowest width`);
 				if (problem) {
 					warnings.push(`WARNING: ${screen.name} at ${width} was NOT checked: ${problem}; the screen is too small`);
 					console.warn(warnings.at(-1));
@@ -332,6 +426,7 @@ async function main() {
 				for (const at of SCROLL_TO) {
 					if (at !== 0 && !(await app.value(evalLine(scrollTo(at))))) continue;
 					const findings = await checkScreen(app, pageCheck);
+					if (states && at === 0 && screen.url.startsWith("/chat/")) await app.value(`snap ${path.join(states, snapName(screen.name, width))}`);
 					if (findings.length === 0) continue;
 					const name = at === 0 ? screen.name : `${screen.name}, ${scrolledWords(at)}`;
 					const snap = path.join(RUN, snapName(name, width));
@@ -347,7 +442,7 @@ async function main() {
 	}
 
 	const report = path.join(RUN, "report.txt");
-	const checked = `${SCREENS.length} screens at ${WIDTHS.join(", ")} points, each as it opens, ${SCROLL_TO.slice(1).map(scrolledWords).join(" and ")}, in ${Math.round((Date.now() - built) / 1000)} s (${Math.round((built - started) / 1000)} s to build)`;
+	const checked = `${SCREENS.length} screens at 1440, 1100 and 800 points (lessons at 1320 too), each as it opens, ${SCROLL_TO.slice(1).map(scrolledWords).join(" and ")}, and ${opened.size} openings watched, in ${Math.round((Date.now() - built) / 1000)} s (${Math.round((built - started) / 1000)} s to build)`;
 	fs.writeFileSync(report, `${[...failures, ...warnings, checked].join("\n")}\n`);
 	if (failures.length > 0) {
 		console.error(`${failures.join("\n")}\nlayout: broken layout found; ${checked}. Report: ${report}`);
