@@ -113,7 +113,7 @@ export const OverviewBody = memo(function OverviewBody({
 								{startError}
 							</p>
 						)}
-						{data && unfinished.length > 0 && <LessonCard title="Unfinished" name="unfinished" lessons={unfinished} deadlines={data.deadlines} actions={actions} headKey />}
+						{data && unfinished.length > 0 && <LessonCard title="Unfinished" name="unfinished" lessons={unfinished} actions={actions} headKey />}
 						{spaceData?.path && !pathFirst && <PathBlock path={spaceData.path} main={false} busyOn={busyOn} onStudy={onStudyPath} />}
 						{hasSpace && needed && <MostNeeded needed={needed} busyOn={busyOn} onStudy={onStudy} />}
 					</div>

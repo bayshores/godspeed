@@ -52,7 +52,7 @@ fn stopped() -> Vec<Json> {
 #[tokio::test]
 async fn keep_going_answers_each_case() {
 	let (app, port) = serve().await;
-	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None).unwrap()["id"].as_str().unwrap().to_owned();
+	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 	app.stores.chats.save_messages(&chat_id, &stopped()).unwrap();
 	let path = format!("/api/chats/{chat_id}/keep-going");
 
@@ -71,7 +71,7 @@ async fn keep_going_answers_each_case() {
 #[tokio::test]
 async fn kept_drops_and_brings_back_a_part_of_a_kept_sentence() {
 	let (app, port) = serve().await;
-	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None).unwrap()["id"].as_str().unwrap().to_owned();
+	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 	let keep = json!({ "text": "Lambda prices large weights.", "fits": "The leash fits one part.", "stops": "It stops at new data." });
 	app.stores.chats.save_messages(&chat_id, &[
 		json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q5", "name": "quiz", "arguments": { "nodeId": "reg", "keep": keep } }], "timestamp": 1 }),

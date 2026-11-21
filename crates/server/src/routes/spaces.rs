@@ -25,7 +25,6 @@ use gs_services::spaces::{
 use gs_services::spaces::deadline_requests::overdue_asked;
 use gs_services::spaces::space_card::space_file_path;
 use gs_services::turns::ask_about_new_deadlines;
-use gs_services::turns::homework::homework_view;
 
 use crate::http::form;
 use crate::http::paths::{param, query};
@@ -42,7 +41,6 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/spaces/{id}/folder", ApiRoute::new().put(link).delete(unlink).into_route())
 		.route("/api/spaces/{id}/deadlines", ApiRoute::new().get(deadlines).post(add_deadline).into_route())
 		.route("/api/spaces/{id}/deadlines/{deadline_id}", ApiRoute::new().put(change_deadline).delete(remove_deadline).into_route())
-		.route("/api/spaces/{id}/deadlines/{deadline_id}/homework", ApiRoute::new().get(homework).into_route())
 		.route("/api/spaces/{id}/deadlines/{deadline_id}/about", ApiRoute::new().get(about).into_route())
 		.route("/api/deadlines", ApiRoute::new().get(open_deadlines).into_route())
 		.route("/api/deadlines/{id}", ApiRoute::new().get(deadline).into_route())
@@ -350,16 +348,6 @@ async fn remove_deadline(State(app): State<Arc<App>>, Path((id, deadline_id)): P
 	match remove_space_deadline(&app, &id, &deadline_id) {
 		Ok(removed) => Ok(reply::json(200, &json!({ "ok": true, "mocksRemoved": removed }))),
 		Err(failure) => refused(failure),
-	}
-}
-
-/// GET /api/spaces/{id}/deadlines/{deadline_id}/homework: what a homework lesson shows of its
-/// deadline. 404 once the space or deadline is gone.
-async fn homework(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(String, String)>) -> Response {
-	let view = if is_space_id(&id) { homework_view(&app, &id, &deadline_id) } else { None };
-	match view {
-		Some(homework) => reply::json(200, &json!({ "homework": homework })),
-		None => error(404, "No such deadline"),
 	}
 }
 

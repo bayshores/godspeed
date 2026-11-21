@@ -99,7 +99,7 @@ async fn the_window_hears_when_a_teacher_chat_starts_and_is_used() {
 	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["open"], json!(true), "the teacher's terminal runs it");
 	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["lesson"], json!(null), "it taught no lesson yet");
 
-	let lesson = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None).unwrap()["id"].as_str().unwrap().to_owned();
+	let lesson = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 	gs_services::app::teacher_chats::taught(&app, Some(TEACHER), &lesson);
 	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["name"], json!("Study for Midterm"));
 	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["lesson"], json!(lesson), "the lesson it taught, to go back to");

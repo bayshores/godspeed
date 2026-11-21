@@ -55,7 +55,7 @@ const { ServerEventsProvider } = await import("../../src/frontend/components/ser
 // ─── fixture ────────────────────────────────────────────────────────────────
 
 function file(id: string, name: string, facts: number, inLessons: number): FileCoverage {
-	return { fileId: id, name, facts, inLessons, share: facts === 0 ? null : inLessons / facts };
+	return { fileId: id, name, displayName: name.replace(/\.[^.]+$/, ""), facts, inLessons, share: facts === 0 ? null : inLessons / facts };
 }
 
 function answers(chatId: string, outcomes: string): AnswerRef[] {
@@ -357,7 +357,7 @@ describe("Lessons", () => {
 		{ ...lesson("u1", "Induction proofs", "r"), updatedAt: hoursAgo(1), unfinished: true, step: { done: 3, total: 5 } },
 		{ ...lesson("s2", "Just looked", ""), updatedAt: "2026-10-20T12:00:00" },
 		{ ...lesson("s3", "Recursion", "rw"), updatedAt: hoursAgo(30) },
-		{ ...lesson("u2", "Work on Homework 4", ""), kind: "homework", updatedAt: hoursAgo(2), unfinished: true, step: { done: 2, total: 4 }, deadlineId: "d1" },
+		{ ...lesson("u2", "Work on Homework 4", ""), kind: "homework", updatedAt: hoursAgo(2), unfinished: true, step: { done: 2, total: 4 }, problems: { done: 2, total: 7 }, deadlineId: "d1" },
 	];
 	const html = () => render({ data: { ...PAYLOAD, deadlines: DEADLINES, lessons: LESSONS } });
 	const rowsOf = (h: string, testid: string) => section(h, testid, "</ul>").split("<li").slice(1);
@@ -368,7 +368,7 @@ describe("Lessons", () => {
 		assert.match(text(section(page, "lesson-record")), new RegExp(`> Lessons Study something new ${studyKeyRe} Yesterday Big-O basics More Recursion More Oct 20 Just looked More $`));
 	});
 
-	it("an unfinished row opens its lesson and shows its steps as blocks, a homework its deadline's problems; the card's key opens the first", () => {
+	it("an unfinished row opens its lesson and shows its steps as blocks, a homework its problems; the card's key opens the first", () => {
 		const rows = rowsOf(html(), "unfinished-lessons");
 		assert.equal(rows.length, 2);
 		assert.match(tag(rows[0]!, "lesson-row"), /href="\/chat\/u1"/);

@@ -173,6 +173,15 @@ pub fn extension_of(name: &str) -> String {
 	if SHAPE.test(&ext) { ext } else { String::new() }
 }
 
+/// A file's name as lessons and suggestions show it, without its extension ("Lecture 3.pdf" →
+/// "Lecture 3"). The Files page shows the whole name.
+pub fn display_name(name: &str) -> String {
+	match text::last_index_of16(name, ".") {
+		Some(dot) if dot > 0 => text::slice16(name, 0, Some(dot as i64)),
+		_ => name.to_owned(),
+	}
+}
+
 /// The base name of an upload, control characters dropped; "file" when nothing is left.
 pub fn safe_name(name: &str) -> String {
 	static TRAIL: LazyLock<Re> = LazyLock::new(|| Re::new(r"/+$", ""));
@@ -228,6 +237,7 @@ mod tests {
 		assert_eq!(extension_of("a.b/c"), "");
 		assert_eq!(extension_of(".env"), ".env");
 		assert_eq!(extension_of("x.tar-gz"), "");
+		assert_eq!((display_name("Lecture 3 \u{2014} Expectation.pdf").as_str(), display_name(".env").as_str(), display_name("notes").as_str()), ("Lecture 3 \u{2014} Expectation", ".env", "notes"));
 		assert_eq!(safe_name("dir\\sub/..//"), "file");
 		assert_eq!(safe_name(" a\u{1}b.pdf "), "ab.pdf");
 		assert!(is_supported_space_file("lec.pptx") && is_supported_space_file("Book.EPUB") && is_recording_or_captions("a.srt") && !is_supported_space_file("a.zip"));

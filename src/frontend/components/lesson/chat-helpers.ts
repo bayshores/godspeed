@@ -85,11 +85,11 @@ export function problemPosed(messages: readonly LhMessage[]): boolean {
 }
 
 /** The go-ahead key's label in "Your turn", or null. Study offers Continue
- *  once the teacher has spoken, homework its start label once the teacher has
- *  spoken, the other kinds "Next problem" once a problem was posed. When it
+ *  once the teacher has spoken, a lesson with a problem list its start label
+ *  once the teacher has spoken, the other kinds "Next problem" once a problem was posed. When it
  *  shows is turnNext's to say. */
-export function goAheadLabel(s: { kind: LessonKind; homework: boolean; startLabel: string | null; teacherSpoke: boolean; posedAny: boolean }): string | null {
-	if (s.homework) return s.teacherSpoke ? s.startLabel : null;
+export function goAheadLabel(s: { kind: LessonKind; problemList: boolean; startLabel: string | null; teacherSpoke: boolean; posedAny: boolean }): string | null {
+	if (s.problemList) return s.teacherSpoke ? s.startLabel : null;
 	if (s.kind === "study") return s.teacherSpoke ? "Continue" : null;
 	return s.posedAny ? "Next problem" : null;
 }

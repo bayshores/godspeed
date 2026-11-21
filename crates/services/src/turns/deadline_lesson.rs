@@ -59,18 +59,18 @@ fn no_deadline(deadline_id: &str) -> String {
 	format!("No deadline \"{deadline_id}\" in this space. Use read_space.")
 }
 
-fn continued(app: &App, chat_id: &str) -> DeadlineLesson {
+pub(super) fn continued(app: &App, chat_id: &str) -> DeadlineLesson {
 	let title = app.stores.chats.get_chat(chat_id).map(|c| c["title"].str_or_empty().to_owned()).unwrap_or_default();
 	DeadlineLesson::Continued { chat_id: chat_id.to_owned(), title }
 }
 
-fn created(made: Result<Created, NotFound>) -> Result<DeadlineLesson, String> {
+pub(super) fn created(made: Result<Created, NotFound>) -> Result<DeadlineLesson, String> {
 	made.map(|c| DeadlineLesson::New { chat_id: c.chat["id"].str_or_empty().to_owned(), title: c.title }).map_err(|not_found| not_found.error.to_owned())
 }
 
 /// Keep going is stored first, as the window does, so the next topic's opener shows. One that
 /// can't be stored leaves the lesson at its stop, where its card offers Keep going again.
-fn keep_going_at_stop(app: &App, chat_id: &str) {
+pub(super) fn keep_going_at_stop(app: &App, chat_id: &str) {
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return };
 	let Some(stop) = lesson_stop(record["messages"].items(), None, None).filter(|s| !s["keptGoing"].truthy()) else { return };
 	if let Err(err) = keep_going(app, chat_id, stop["stopOf"].str_or_empty()) {

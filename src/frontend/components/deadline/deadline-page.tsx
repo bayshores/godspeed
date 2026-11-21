@@ -170,7 +170,7 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 									/>
 								)
 							}
-							lessons={lessons.length > 1 && <LessonCard title="Lessons" name="deadline" lessons={lessons} deadlines={current.deadlines} actions={lessonActions} />}
+							lessons={lessons.length > 1 && <LessonCard title="Lessons" name="deadline" lessons={lessons} actions={lessonActions} />}
 							homework={
 								hasProblems(deadline.kind) && (
 									<HomeworkCard

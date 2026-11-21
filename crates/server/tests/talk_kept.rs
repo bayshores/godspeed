@@ -65,7 +65,7 @@ async fn no_route_writes_or_deletes_the_old_talk_chat() {
 	assert_eq!(std::fs::read_dir(app.paths.chats.join("chat_talk")).unwrap().count(), 1);
 	assert!(app.paths.chats.join("chat_talk/0123456789ab-Notes.pdf").exists());
 
-	let lesson = app.stores.chats.create_chat("Fractions", None, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+	let lesson = app.stores.chats.create_chat("Fractions", None, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 	assert!(delete(port, &format!("/api/chats/{lesson}?mode=preserve-graph")).await.starts_with("HTTP/1.1 200 "), "a lesson still deletes");
 	std::fs::remove_dir_all(dir).unwrap();
 }

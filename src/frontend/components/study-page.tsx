@@ -6,7 +6,6 @@ import { spaceColorVar } from "@/frontend/components/space-color";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useProgress } from "@/frontend/components/use-progress";
-import { displayName } from "@/frontend/components/overview/overview-model";
 import { COMING_UP_ROWS, DeadlineRows } from "@/frontend/components/study-page/deadline-rows";
 import { FactsPicker } from "@/frontend/components/study-page/facts-picker";
 import { useGraphSnapshot } from "@/frontend/components/graph/use-graph-snapshot";
@@ -48,9 +47,9 @@ export function NewLesson() {
 
 	const topicInputRef = useRef<HTMLTextAreaElement>(null);
 
-	const { start, studyTopics, studyPathTopic, studyDeadline, workOnHomework } = lesson;
+	const { start, studyTopics, studyFile: studyFileId, studyPathTopic, studyDeadline, workOnHomework } = lesson;
 	const startTopic = () => void start({ title: topicRef.current, picks, files: attachments.files.map((f) => f.attachment) });
-	const studyFile = useCallback((file: FileCoverage) => void start({ title: displayName(file.name), id: file.name }), [start]);
+	const studyFile = useCallback((file: FileCoverage) => void studyFileId(file.fileId), [studyFileId]);
 	const studyTopic = useCallback((t: TopicProgress) => void studyTopics([t.id]), [studyTopics]);
 	const studyPath = useCallback((topicId: string) => void studyPathTopic(topicId), [studyPathTopic]);
 

@@ -81,8 +81,8 @@ const RECORD: SpaceRecord = {
 	],
 };
 const COVERAGE: FileCoverage[] = [
-	{ fileId: "f1", name: "Lecture 1 — Counting.pdf", facts: 31, inLessons: 31, share: 1 },
-	{ fileId: "f2", name: "Rosen 6.2 — Probability theory.pdf", facts: 22, inLessons: 0, share: 0 },
+	{ fileId: "f1", name: "Lecture 1 — Counting.pdf", displayName: "Lecture 1 — Counting", facts: 31, inLessons: 31, share: 1 },
+	{ fileId: "f2", name: "Rosen 6.2 — Probability theory.pdf", displayName: "Rosen 6.2 — Probability theory", facts: 22, inLessons: 0, share: 0 },
 ];
 
 const calls: { method: string; url: string; body?: unknown }[] = [];

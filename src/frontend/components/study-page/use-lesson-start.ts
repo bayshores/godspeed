@@ -17,15 +17,16 @@ export const homeworkStartId = (deadlineId: string) => `homework ${deadlineId}`;
 
 /** What a start sends POST /api/chats: a typed topic (its title and any
  *  facts picked for it), some space topics, one question of a mock, a
- *  deadline, or a topic of the space's path. On picked
- *  facts with no title, topics or a deadline the server picks the
+ *  deadline, a topic of the space's path, or files of the space. On picked
+ *  facts with no title, topics, a deadline or files the server picks the
  *  session's topics and writes its title. */
 type StartBody =
 	| { title: string; graphContext?: { propositions: readonly GraphContextPick[] } }
 	| { topicIds: readonly string[] }
 	| { mockQuestion: { mockId: string; questionId: string } }
 	| { deadlineId: string; homework?: true }
-	| { pathTopicId: string };
+	| { pathTopicId: string }
+	| { fileIds: readonly string[] };
 
 /**
  * Every Study start (the start page, its suggestions, a deadline, the
@@ -58,7 +59,12 @@ export function useLessonStart() {
 				setError(LESSON_START_FAILED);
 				return;
 			}
-			const { id, title } = made as { id: string; title: string };
+			const { id, title, continued } = made as { id: string; title: string; continued?: boolean };
+			// A lesson on files may go on where it was: it gets no first message.
+			if (continued) {
+				navigate(`/chat/${encodeURIComponent(id)}`);
+				return;
+			}
 			holdStartFiles(id, files);
 			wake?.();
 			navigate(`/chat/${id}?prompt=${encodeURIComponent(title)}`);
@@ -85,6 +91,11 @@ export function useLessonStart() {
 		},
 		[post, active],
 	);
+
+	/** Study a file: the server goes on in the unfinished lesson on it, or
+	 *  starts its deadline's homework when it is the assignment sheet, or a
+	 *  new lesson on it. */
+	const studyFile = useCallback((fileId: string) => post(fileId, { fileIds: [fileId] }), [post]);
 
 	/** Study one topic of the space's path. */
 	const studyPathTopic = useCallback((pathTopicId: string) => post(pathTopicId, { pathTopicId }), [post]);
@@ -133,6 +144,7 @@ export function useLessonStart() {
 	return {
 		start,
 		studyTopics,
+		studyFile,
 		studyPathTopic,
 		goOverMock,
 		studyDeadline,

@@ -12,6 +12,7 @@ use gs_base::hash::sha256_text;
 use gs_base::locks::Locks;
 use gs_base::{clock, fsx, text, time};
 use gs_core::contracts::space::{CURRENT_SPACE_VERSION, is_space_color, next_space_color};
+use gs_core::spaces::problem_list::ListOwner;
 use gs_core::spaces::space_record::{read_space_record, summarize};
 use gs_json::{Json, Obj, json, parse, stringify, stringify_pretty};
 use gs_store::spaces::{SpaceError, SpaceStore};
@@ -154,7 +155,7 @@ fn the_scenario_matches_node() {
 			"saveFiles" => other(store.save_files(id, step["files"].as_arr().unwrap().clone(), step["removed"].items())),
 			"add" => outcome(store.add_deadline(id, &step["init"])),
 			"updateDeadline" => outcome(store.update_deadline(id, s(&step["deadline"]), &step["patch"])),
-			"saveProblems" => outcome(store.save_problems(id, s(&step["deadline"]), &step["problems"]).map(|()| Json::Null)),
+			"saveProblems" => outcome(store.save_problems(id, ListOwner::Deadline(s(&step["deadline"])), &step["problems"]).map(|()| Json::Null)),
 			"removeDeadline" => other(store.remove_deadline(id, s(&step["deadline"])).map(Json::Bool)),
 			"delete" => other(store.delete_space(id).map(Json::Bool)),
 			"closeWork" => other(store.close_work(id).map(Json::Bool)),

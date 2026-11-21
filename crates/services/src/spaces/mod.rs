@@ -26,7 +26,7 @@ mod prep_upgrade;
 mod state;
 mod text_cache;
 
-pub use deadlines::{add_space_deadline, deadline_about, deadline_with_space, list_deadlines_done_on, list_open_deadlines, list_space_deadlines, remove_space_deadline, save_deadline_problems, update_space_deadline};
+pub use deadlines::{add_space_deadline, deadline_about, deadline_with_space, list_deadlines_done_on, list_open_deadlines, list_space_deadlines, remove_space_deadline, save_problems, update_space_deadline};
 pub use files::{AGENT_FILE_READING_REFUSAL, add_copied_file, add_file_from_path, copied_file_problem, remove_file, retry_file, set_file_kind, source_id_for, write_agent_file};
 pub use folder::{folder_status_of, link_folder, scan_linked_folder, unlink_folder};
 pub use kept_pages::{keep_page, kept_pages_at};

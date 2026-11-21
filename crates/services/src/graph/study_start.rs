@@ -185,7 +185,7 @@ mod tests {
 
 	/// A Study session on the deadline whose messages are `messages`.
 	fn study_session(app: &App, space_id: &str, deadline_id: &str, nodes: &[&str], messages: &[Json]) {
-		let chat_id = app.stores.chats.create_chat("Study", Some("study"), Some(space_id), Some(deadline_id)).unwrap()["id"].str_or_empty().to_owned();
+		let chat_id = app.stores.chats.create_chat("Study", Some("study"), Some(space_id), Some(deadline_id), &[]).unwrap()["id"].str_or_empty().to_owned();
 		let tree_nodes: Vec<Json> = nodes.iter().map(|id| json!({ "id": id, "title": id })).collect();
 		app.stores.chats.save_tree(&chat_id, &json!({ "nodes": tree_nodes, "edges": [] })).unwrap();
 		app.stores.chats.save_messages(&chat_id, messages).unwrap();

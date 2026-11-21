@@ -49,7 +49,7 @@ const LESSON: LessonProgress = {
 	step: { done: 1, total: 11 },
 	unfinished: true,
 };
-const FILE: FileCoverage = { fileId: "f4", name: "Rosen 6.2 — Probability theory.pdf", facts: 22, inLessons: 0, share: 0 };
+const FILE: FileCoverage = { fileId: "f4", name: "Rosen 6.2 — Probability theory.pdf", displayName: "Rosen 6.2 — Probability theory", facts: 22, inLessons: 0, share: 0 };
 
 function topic(id: string, name: string, status: TopicProgress["status"], right: number, answered: number): TopicProgress {
 	return {
@@ -178,6 +178,13 @@ describe("Study page: suggestions", () => {
 		assert.match(html, /<a[^>]*href="\/chat\/c1"[^>]*data-testid="home-continue"|data-testid="home-continue"[^>]*href="\/chat\/c1"/);
 	});
 
+	it("Continue on a lesson with problems: its problems as blocks, as Home and Progress draw them", () => {
+		const listed: Suggestion[] = [{ kind: "continue", lesson: { ...LESSON, problems: { done: 2, total: 5 } } }];
+		const html = row(list({ suggestions: listed }), "home-suggestion-continue");
+		assert.ok(html.includes(">Continue, 2 of 5 problems done</span>"));
+		assert.equal(html.split('data-testid="step-blocks"')[1]!.split("</span></span>")[0]!.split("<span").length - 1, 5);
+	});
+
 	it("Continue with no step shown yet: no step", () => {
 		const fresh: Suggestion[] = [{ kind: "continue", lesson: { ...LESSON, step: { done: 0, total: 11 } } }];
 		assert.ok(row(list({ suggestions: fresh }), "home-suggestion-continue").includes(">Continue</span>"));
@@ -274,7 +281,7 @@ describe("Study page: actions", () => {
 	});
 
 	it("a start in flight: the key pressed shows it works and the others are only disabled", () => {
-		const html = list({ busyOn: FILE.name });
+		const html = list({ busyOn: FILE.fileId });
 		const key = (testid: string) => html.match(new RegExp(`<button[^>]*data-testid="${testid}"[^>]*>`))![0];
 		assert.match(key("home-study-file"), /disabled=""/);
 		assert.match(key("home-study-file"), /aria-busy="true"/);
@@ -376,6 +383,22 @@ describe("Study page: actions", () => {
 			assert.deepEqual(sent.at(-1), { topicIds: ["t1", "t2"] });
 			assert.deepEqual(pushed, [`/chat/chat_1?prompt=${encodeURIComponent("Study: Counting, Sets")}`]);
 			assert.ok(sent.every((body) => !("kind" in body)), "every new lesson is a study session");
+		} finally {
+			globalThis.fetch = original;
+		}
+	});
+
+	it("studying a file sends its id; a lesson that goes on opens with no first message", async () => {
+		const original = globalThis.fetch;
+		try {
+			const { lesson, sent, pushed } = await harness(() => true);
+			await act(async () => lesson().studyFile("f_test"));
+			assert.deepEqual(sent.at(-1), { fileIds: ["f_test"] });
+			assert.deepEqual(pushed, [`/chat/chat_1?prompt=${encodeURIComponent("Study: Counting, Sets")}`]);
+			const again = await harness(() => true);
+			globalThis.fetch = (async () => Response.json({ id: "chat_9", title: "Practice midterm", continued: true })) as typeof fetch;
+			await act(async () => again.lesson().studyFile("f_test"));
+			assert.deepEqual(again.pushed, ["/chat/chat_9"]);
 		} finally {
 			globalThis.fetch = original;
 		}

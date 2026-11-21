@@ -70,7 +70,7 @@ impl Fixture {
 
 	/// A Study lesson in the space on Regularization and Cross-validation holding `messages`.
 	fn lesson(&self, messages: &[Json]) -> String {
-		let id = self.app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&self.space_id), None).unwrap()["id"].as_str().unwrap().to_owned();
+		let id = self.app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&self.space_id), None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		let tree = json!({ "nodes": [{ "id": "reg", "title": "Regularization" }, { "id": "cv", "title": "Cross-validation" }], "edges": [] });
 		self.app.stores.chats.save_tree(&id, &tree).unwrap();
 		self.app.stores.chats.save_messages(&id, messages).unwrap();
@@ -162,7 +162,7 @@ async fn the_window_opens_at_a_sittings_start_and_after_his_first_input_on_a_ret
 	assert!(fx.next(&returned).is_some(), "his first input on a return");
 	fx.app.bridge.record_check_in(Some("Claude Code"), true, now);
 	assert_eq!(fx.next(&starting), None, "an agent is teaching and no turn runs");
-	let teach = fx.app.stores.chats.create_chat("Sets", Some("teach"), Some(&fx.space_id), None).unwrap()["id"].as_str().unwrap().to_owned();
+	let teach = fx.app.stores.chats.create_chat("Sets", Some("teach"), Some(&fx.space_id), None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 	assert_eq!(fx.next(&teach), None, "Study lessons only");
 	assert_eq!(next_review(&fx.app, "chat_gone").unwrap(), ReviewReply::UnknownLesson);
 }

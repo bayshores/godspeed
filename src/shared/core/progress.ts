@@ -183,6 +183,8 @@ export function topicFacts(facts: readonly FactProgress[], topic: Pick<TopicProg
 export interface FileCoverage {
 	fileId: string;
 	name: string;
+	/** The name lessons and suggestions show, without its extension. */
+	displayName: string;
 	/** Facts born in this file. */
 	facts: number;
 	/** Of those, how many also came up in a lesson. */
@@ -208,6 +210,9 @@ export interface LessonProgress {
 	score: number | null;
 	/** Where the lesson's plan is, as its step bar counts it; absent with no plan. */
 	step?: { done: number; total: number };
+	/** How many of its problems are done: a homework lesson's deadline's, a
+	 *  lesson on files its first file's. Absent with none listed. */
+	problems?: { done: number; total: number };
 	/** Set while the lesson has not reached its end. */
 	unfinished?: true;
 	/** The deadline it was started from. */

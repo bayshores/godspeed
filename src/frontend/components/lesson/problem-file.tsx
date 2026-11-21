@@ -1,8 +1,8 @@
-/** A homework problem's file and the page it is on. */
+/** The open listed problem's file and the page it is on. */
 export type ProblemFileRef = { name: string; path: string | null; page: number | undefined };
 
 /**
- * The open homework problem's source, "file.pdf, page N", among the keys of the
+ * The open listed problem's source, "file.pdf, page N", among the keys of the
  * "Your turn" title line: a click opens a PDF, or shows another file in its
  * folder. Nothing on the web, where the desktop cannot open files.
  */

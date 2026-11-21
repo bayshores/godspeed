@@ -1,8 +1,8 @@
 //! Lesson creation (lessons.ts): the one place a new lesson record is born (POST /api/chats and
 //! MCP start_lesson), so a lesson in a space always opens with its space card. Every new lesson
 //! is a study session: on a typed topic, picked facts, some of the space's topics, one question
-//! of a graded mock, a deadline, or one topic of the space's path. With no space topics for it,
-//! the agent writes the plan.
+//! of a graded mock, a deadline, one topic of the space's path, or some of its files. With no
+//! space topics for it, the agent writes the plan.
 //!
 //! Message order at birth: space card, graph-context picks, study plan; the caller then sends the
 //! learner's first message. A start from a deadline is recorded on the chat so that deadline's
@@ -13,17 +13,20 @@ use std::sync::Arc;
 
 use gs_base::locks::LockKey;
 use gs_core::contracts::graph::title_from_prompt;
+use gs_core::contracts::space::display_name;
 use gs_core::graph::chains::{chains_for_selection, format_chain_line};
 use gs_core::graph::graph::get_graph;
 use gs_core::messages::native_messages::{new_space_context_message, new_graph_context_message, new_study_context_message};
 use gs_core::mocks::mock::question_result;
 use gs_core::mocks::mock_requests::go_over_text;
+use gs_core::spaces::problem_list::{ListOwner, problems_of};
+use gs_core::study::homework::files_context_text;
 use gs_core::study::study::{FREE_TOPIC_ID, MAX_STUDY_FACTS, no_topics_text, study_context_text, study_plan_tree, study_title};
 use gs_core::study::topic_parts::NO_PLOT_YET;
-use gs_json::{Json, Obj};
+use gs_json::{Json, Obj, json};
 
 use crate::App;
-use crate::spaces::space_card::space_card_for;
+use crate::spaces::space_card::{space_card_for, space_file_path};
 use crate::graph::graph::graph_store_for;
 use crate::graph::study_start::{deadline_study_for, nearest_topics_for, path_study_for, study_topics_for, topic_study_for};
 
@@ -40,6 +43,8 @@ pub enum LessonStart {
 	Deadline(String),
 	/// One topic of the space's path, by id.
 	PathTopic(String),
+	/// Files of the space, the first one first (`files_lesson` decides when one starts).
+	Files(Vec<String>),
 }
 
 impl LessonStart {
@@ -72,7 +77,7 @@ pub struct Created {
 }
 
 /// The 404 refusals: `space_not_found`, `topics_not_found` (a path topic too),
-/// `deadline_not_found`.
+/// `deadline_not_found`, `file_not_found`.
 #[derive(Debug, PartialEq)]
 pub struct NotFound {
 	pub code: &'static str,
@@ -117,7 +122,11 @@ pub fn create_lesson(app: &Arc<App>, input: CreateLessonInput) -> Result<Result<
 		_ => input.for_deadline.as_deref(),
 	};
 	let space_id = cls.as_ref().and_then(|c| c["id"].as_str());
-	let chat = app.stores.chats.create_chat(&title_from_prompt(&start.title), Some("study"), space_id, deadline_id)?;
+	let file_ids = match &input.start {
+		LessonStart::Files(ids) => ids.as_slice(),
+		_ => &[],
+	};
+	let chat = app.stores.chats.create_chat(&title_from_prompt(&start.title), Some("study"), space_id, deadline_id, file_ids)?;
 	let chat_id = chat["id"].str_or_empty().to_owned();
 	let mut messages = Vec::new();
 	if let Some(cls) = &cls {
@@ -221,6 +230,17 @@ fn start_of(app: &Arc<App>, scope: Option<&str>, start: &LessonStart) -> Result<
 			Ok(Start { title: study_title(&topics), picks: study.picks, topics, nearest: Vec::new(), note: Some(study.note) })
 		}
 		LessonStart::Typed { title, picks, nearest } => Ok(typed(app, scope, gs_base::text::trim(title), picks.iter().take(MAX_STUDY_FACTS).cloned().collect(), nearest.clone())?),
+		LessonStart::Files(file_ids) => {
+			let space = scope.and_then(|id| app.stores.spaces.get_space(id));
+			let file = |id: &String| space.as_ref().and_then(|s| s["files"].items().iter().find(|f| f["id"].as_str() == Some(id.as_str())));
+			let files = file_ids.iter().map(file).collect::<Option<Vec<&Json>>>().unwrap_or_default();
+			let (Some(space), Some(first)) = (&space, files.first()) else {
+				return Ok(Err(NotFound { code: "file_not_found", error: "No such file" }));
+			};
+			let named: Vec<Json> = files.iter().map(|f| json!({ "id": f["id"], "name": f["name"], "path": space_file_path(app, space, f) })).collect();
+			let note = files_context_text(&named, problems_of(space, ListOwner::File(first["id"].str_or_empty())));
+			Ok(Start { title: display_name(first["name"].str_or_empty()), picks: Vec::new(), topics: Vec::new(), nearest: Vec::new(), note: Some(note) })
+		}
 	})
 }
 
@@ -400,7 +420,7 @@ mod tests {
 		let path = gs_json::json!({ "goal": "backend developer", "topics": [{ "id": "pth_git", "name": "Git", "covers": "Commits." }] });
 		let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Backend", "path": path })).unwrap()["id"].as_str().unwrap().to_owned();
 		let (first, _) = start(&app, &space_id, LessonStart::PathTopic("pth_git".to_owned())).unwrap();
-		let other = app.stores.chats.create_chat("Other", Some("study"), Some(&space_id), None).unwrap();
+		let other = app.stores.chats.create_chat("Other", Some("study"), Some(&space_id), None, &[]).unwrap();
 		let scope = Some(space_id.as_str());
 		for (id, chat) in [("n_revert", &first["id"]), ("n_other", &other["id"])] {
 			let fact = gs_json::json!({ "id": id, "name": id, "statement": "s", "aliases": [], "createdAt": "t", "provenance": [{ "chatId": chat, "messageId": "m1" }] });

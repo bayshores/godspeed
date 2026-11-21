@@ -6,6 +6,7 @@ use std::collections::{HashMap, HashSet};
 use gs_base::locale;
 use gs_json::{Json, Obj};
 
+use crate::contracts::space::display_name;
 use crate::spaces::file_state::FileKind;
 use crate::graph::session_clusters::birth_session_of;
 
@@ -71,6 +72,7 @@ pub fn file_coverage(files: &[Json], facts: &[Json]) -> Vec<Json> {
 			let mut o = Obj::new();
 			o.insert("fileId", f["id"].clone());
 			o.insert("name", f["name"].clone());
+			o.insert("displayName", display_name(f["name"].str_or_empty()));
 			o.insert("facts", facts);
 			o.insert("inLessons", in_lessons);
 			o.insert("share", (facts > 0).then(|| in_lessons as f64 / facts as f64));
@@ -127,7 +129,7 @@ mod tests {
 			json!({ "id": "f4", "name": "C", "kind": "study", "sourceId": "src_c" }),
 		];
 		let cov = file_coverage(&files, &facts);
-		assert_eq!(stringify(&Json::from(cov.clone())), r#"[{"fileId":"f1","name":"A","facts":2,"inLessons":1,"share":0.5},{"fileId":"f3","name":"B","facts":1,"inLessons":0,"share":0},{"fileId":"f4","name":"C","facts":0,"inLessons":0,"share":null}]"#);
+		assert_eq!(stringify(&Json::from(cov.clone())), r#"[{"fileId":"f1","name":"A","displayName":"A","facts":2,"inLessons":1,"share":0.5},{"fileId":"f3","name":"B","displayName":"B","facts":1,"inLessons":0,"share":0},{"fileId":"f4","name":"C","displayName":"C","facts":0,"inLessons":0,"share":null}]"#);
 		assert_eq!(next_up_file(&cov).map(|f| f["fileId"].as_str().unwrap()), Some("f3"));
 	}
 }

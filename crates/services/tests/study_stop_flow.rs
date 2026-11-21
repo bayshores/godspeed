@@ -11,6 +11,7 @@ use std::sync::Arc;
 use gs_base::config::Paths;
 use gs_base::{clock, ids};
 use gs_core::messages::role::is_custom;
+use gs_core::spaces::problem_list::ListOwner;
 use gs_core::contracts::chat::{CONCLUDE_ACK_TEXT, STUDY_TOPIC_END_ACK_TEXT, TOPIC_DONE_STORED_TEXT};
 use gs_core::messages::input_events::{About, ChatInput, TurnInput};
 use gs_core::study::topic_end::{lesson_stop, shown_openers};
@@ -127,7 +128,7 @@ fn topic_done_args() -> Json {
 
 /// A Study lesson on Regularization then Cross-validation with Regularization's problem posed.
 async fn study_lesson(app: &Arc<App>) -> String {
-	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None).unwrap()["id"].as_str().unwrap().to_owned();
+	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 	app.stores.chats.save_tree(&chat_id, &tree()).unwrap();
 	send(app, &chat_id, text("Teach me Regularization.")).await;
 	let problem = json!({ "statement": "Why does an L2 penalty shrink the weights?", "mode": "recall", "modelSolution": "The penalty grows with each weight, so smaller weights lower the loss.", "nodeId": "reg" });
@@ -260,7 +261,7 @@ async fn concluded(app: &Arc<App>, chat_id: &str, conclude: Json) -> Json {
 async fn a_practice_problem_of_25_active_minutes_ends_on_a_problem_stop() {
 	let _one = ONE_AT_A_TIME.lock().await;
 	let fx = Fixture::new();
-	let chat_id = fx.app.stores.chats.create_chat("Practice ridge regression", Some("practice"), None, None).unwrap()["id"].as_str().unwrap().to_owned();
+	let chat_id = fx.app.stores.chats.create_chat("Practice ridge regression", Some("practice"), None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 	send(&fx.app, &chat_id, text("Give me a problem.")).await;
 	let problem = json!({ "statement": "Pick lambda for a model that overfits.", "mode": "composition", "modelSolution": "Raise lambda until the validation error stops falling." });
 	answer(&fx.app, &chat_id, call("problem", problem)).await;
@@ -285,7 +286,7 @@ async fn a_homework_problem_of_25_active_minutes_names_the_next_problem() {
 	let space_id = app.stores.spaces.create_space(&json!({ "name": "Machine Learning Foundations" })).unwrap()["id"].as_str().unwrap().to_owned();
 	let deadline_id = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "Homework 3", "kind": "homework", "date": "2099-01-20" })).unwrap()["id"].as_str().unwrap().to_owned();
 	let problems = json!([{ "number": "1", "text": "Fit ridge regression for three values of lambda." }, { "number": "2", "text": "Pick lambda by 5-fold cross-validation." }]);
-	app.stores.spaces.save_problems(&space_id, &deadline_id, &problems).unwrap();
+	app.stores.spaces.save_problems(&space_id, ListOwner::Deadline(&deadline_id), &problems).unwrap();
 	let created = create_homework(app, &space_id, &deadline_id).unwrap().unwrap();
 	let chat_id = created.chat["id"].as_str().unwrap().to_owned();
 	send(app, &chat_id, text("Let's start.")).await;

@@ -18,6 +18,8 @@ pub enum AgentKind {
 	Teacher,
 	Practice,
 	Study,
+	/// A study lesson on files: Study plus how to work from them.
+	StudyFiles,
 	Homework,
 }
 
@@ -30,6 +32,8 @@ const PRACTICE_SHARED: [&str; 8] = ["10-voice.md", "11-learner-first.md", "12-sp
 const STUDY_SKIPPED: [&str; 2] = ["teacher/10-planning.md", "shared/14-deadline-changes.md"];
 /// The hint and claimed-answer rules study and homework problems run on.
 const HINT_RULES: [&str; 1] = ["20-hints.md"];
+/// How a lesson on files works from them, read only there.
+const FILES_PART: &str = "study/20-files.md";
 
 /// One part of an agent's prompt: its source text and the learner's saved version.
 #[derive(Debug, PartialEq)]
@@ -57,7 +61,7 @@ fn source_segments(kind: AgentKind) -> Vec<Source> {
 		AgentKind::Prober => parts.extend(folder("prober", None)),
 		AgentKind::Teacher => parts.extend(folder("teacher", None)),
 		AgentKind::Practice => parts.extend(folder("practice", None)),
-		AgentKind::Study => {
+		AgentKind::Study | AgentKind::StudyFiles => {
 			parts.extend(folder("teacher", None));
 			parts.extend(folder("practice", Some(&HINT_RULES)));
 			parts.extend(folder("study", None));
@@ -72,8 +76,8 @@ fn source_segments(kind: AgentKind) -> Vec<Source> {
 		_ => None,
 	};
 	parts.extend(folder("shared", allowed));
-	if kind == AgentKind::Study {
-		parts.retain(|(path, _)| !STUDY_SKIPPED.contains(path));
+	if matches!(kind, AgentKind::Study | AgentKind::StudyFiles) {
+		parts.retain(|(path, _)| !STUDY_SKIPPED.contains(path) && (kind == AgentKind::StudyFiles || *path != FILES_PART));
 	}
 	parts
 }
@@ -89,7 +93,7 @@ pub fn effective_prompt_segments(kind: AgentKind, prompts: &PromptOverrides) -> 
 
 /// Every segment path the lesson agents compose, sorted: what a saved version may be for.
 pub fn all_segment_paths() -> Vec<&'static str> {
-	let mut paths: Vec<&str> = [AgentKind::Prober, AgentKind::Teacher, AgentKind::Practice, AgentKind::Study, AgentKind::Homework].into_iter().flat_map(source_segments).map(|(path, _)| path).collect();
+	let mut paths: Vec<&str> = [AgentKind::Prober, AgentKind::Teacher, AgentKind::Practice, AgentKind::Study, AgentKind::StudyFiles, AgentKind::Homework].into_iter().flat_map(source_segments).map(|(path, _)| path).collect();
 	paths.sort_unstable();
 	paths.dedup();
 	paths

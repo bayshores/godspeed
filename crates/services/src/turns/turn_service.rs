@@ -173,7 +173,7 @@ mod tests {
 	fn a_turn_saves_its_own_messages_with_ids_and_no_question_placeholder() {
 		let root = scratch_dir("persist");
 		let app = test_app(&root);
-		let id = app.stores.chats.create_chat("t", None, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		let id = app.stores.chats.create_chat("t", None, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		let before = json!({ "id": "msg_user", "role": "user", "content": "hi", "timestamp": 1 });
 		app.stores.chats.save_messages(&id, std::slice::from_ref(&before)).unwrap();
 		let call = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "c1", "name": "quiz", "arguments": {} }], "stopReason": "toolUse" });

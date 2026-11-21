@@ -20,13 +20,14 @@ export interface TurnNext {
  * while the teacher reads ahead; the last topic ends the day instead. With no
  * stop, the go-ahead key shows once the teacher is done, unless an error line
  * is up (its Try again answers first), and Start again shows after a first
- * reply was stopped with nothing written. A homework key names its problem,
- * so its stop has no line.
+ * reply was stopped with nothing written. A problem list's key names its
+ * problem, so its stop has no line.
  */
 export function turnNext(s: {
 	/** The stop he has not kept going from. */
 	stop: LessonStop | null;
-	homework: boolean;
+	/** The lesson has a problem list (homework, a lesson on files). */
+	problemList: boolean;
 	/** The go-ahead key's label (goAheadLabel). */
 	goLabel: string | null;
 	busy: boolean;
@@ -36,7 +37,7 @@ export function turnNext(s: {
 }): TurnNext | null {
 	const { stop } = s;
 	if (stop?.kind === "end") return { line: "That was the last topic.", key: { label: "Done for today", action: "done-for-today" } };
-	if (stop) return { line: s.homework ? null : stopLine(stop), key: s.goLabel ? { label: s.goLabel, action: "keep-going" } : null };
+	if (stop) return { line: s.problemList ? null : stopLine(stop), key: s.goLabel ? { label: s.goLabel, action: "keep-going" } : null };
 	if (s.busy) return null;
 	if (s.error) return { line: null, key: null };
 	if (s.goLabel) return { line: null, key: { label: s.goLabel, action: "next" } };

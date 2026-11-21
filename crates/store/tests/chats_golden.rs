@@ -135,9 +135,9 @@ fn mask_created(text: &str) -> String {
 fn created_lessons_match_node() {
 	let lab = Lab::new();
 	let made = [
-		lab.store.create_chat("  Limits  ", None, Some("cls_1"), Some("")),
-		lab.store.create_chat("", None, None, Some("deadline_1")),
-		lab.store.create_chat("Study", Some("study"), Some("cls_2"), Some("d2")),
+		lab.store.create_chat("  Limits  ", None, Some("cls_1"), Some(""), &[]),
+		lab.store.create_chat("", None, None, Some("deadline_1"), &[]),
+		lab.store.create_chat("Study", Some("study"), Some("cls_2"), Some("d2"), &[]),
 	];
 	let want = golden("created lessons");
 	for (chat, want) in made.iter().zip(arr(&want)) {

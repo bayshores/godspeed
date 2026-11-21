@@ -1,23 +1,22 @@
 /**
- * Homework sessions: an assignment's problems, worked one at a time in the
- * lesson with hints only. The agent posts the problems (post_problems), opens
- * one (problem) and marks it done when the learner's own work is right
- * (conclude). Pure and browser-safe: the server saves the list on the
- * assignment file (on the deadline when it has none), the lesson screen
- * folds the same calls over its messages.
+ * A lesson's problem list: a homework lesson's assignment problems (worked
+ * one at a time with hints only) or a lesson on files' first file's. The
+ * agent posts the problems (post_problems), opens one (problem) and marks it
+ * done when the learner's own work is right (conclude). Pure and
+ * browser-safe: the server saves the list on its file (a homework's on the
+ * deadline when it has no assignment file), the lesson screen folds the same
+ * calls over its messages.
  */
 import type { SpaceDeadline, FileProblem } from "./contracts/space.ts";
 
 /** A problem as the agent posts it; done is the app's to keep. */
 type PostedProblem = Omit<FileProblem, "done">;
 
-/** What a homework lesson shows of its deadline: its name, its problems
- *  when the page loaded and its assignment file (the path opens it on the
- *  desktop). */
-export interface HomeworkView {
-	name: string;
+/** A lesson's problem list when the page loaded and the file it is printed
+ *  in (the path opens it on the desktop). */
+export interface LessonProblemList {
 	problems: FileProblem[];
-	assignment: { name: string; path: string | null } | null;
+	file: { name: string; path: string | null } | null;
 }
 
 /** The kinds of deadline that have problems to work on. */
@@ -40,10 +39,10 @@ function concludeMarksDone(outcome: unknown): boolean {
 
 type ViewMessage = { parts: ReadonlyArray<{ type: string; state?: string; input?: unknown; toolCallId?: string }> };
 
-/** The problems as a homework lesson sees them: the deadline's list when
- *  the page loaded, then every post_problems and done mark in the messages
- *  since, the number of the problem open now and the part marked in it. */
-export function homeworkProblems(
+/** The problems as a lesson sees them: its list when the page loaded, then
+ *  every post_problems and done mark in the messages since, the number of
+ *  the problem open now and the part marked in it. */
+export function lessonProblems(
 	initial: readonly FileProblem[],
 	messages: readonly ViewMessage[],
 ): { problems: FileProblem[]; open: string | null; part: string | null } {

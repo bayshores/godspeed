@@ -16,7 +16,7 @@ import {
 	emptyDockSelection,
 	findPendingToolCall,
 	firstPhase,
-	homeworkProblems,
+	lessonProblems,
 	kbdEventForAction,
 	phaseTimeline,
 	planStepBar,
@@ -24,7 +24,7 @@ import {
 	problemPieceOf,
 	problemStatementOf,
 	topicParts,
-	type HomeworkView,
+	type LessonProblemList,
 	type LessonKind,
 	type LhMessage,
 	type PlanTree,
@@ -48,7 +48,7 @@ import { useFromEarlier } from "@/frontend/components/lesson/use-from-earlier";
 import { LessonBar } from "@/frontend/components/lesson/lesson-bar";
 import { PlanRow } from "@/frontend/components/lesson/plan-row";
 import { LessonScroll } from "@/frontend/components/lesson/lesson-scroll";
-import { homeworkStartLabel } from "@/frontend/components/lesson/plan-row-model";
+import { problemStartLabel } from "@/frontend/components/lesson/plan-row-model";
 import { messageShows } from "@/frontend/components/lesson/message-row";
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
 import { topicPageMarks } from "@/frontend/components/citations/page-excerpt-model";
@@ -97,7 +97,7 @@ export function Chat({
 	initialTree,
 	spaceId,
 	deadlineId,
-	homework,
+	problemList,
 }: {
 	chatId: string;
 	title: string;
@@ -106,8 +106,9 @@ export function Chat({
 	spaceId?: string;
 	deadlineId?: string;
 	initialMessages: LhMessage[];
-	/** A homework lesson's deadline: its problems fill the plan row. */
-	homework?: HomeworkView;
+	/** A homework lesson's or a lesson on files' problem list: its problems
+	 *  fill the plan row. */
+	problemList?: LessonProblemList;
 	/** Memory-only settlement notice supplied on reopening. */
 	initialError?: string;
 	/** Practice lessons show their problems instead of a plan; study
@@ -281,16 +282,21 @@ export function Chat({
 	const questionRef = useRef<QuestionHandle>(null);
 	const sendBlocked = sendBlockedReason(sideOpen);
 
-	// A homework lesson's problems: the deadline's list plus this lesson's posts and done marks.
-	const freshProblems = useMemo(() => (kind === "homework" ? homeworkProblems(homework?.problems ?? [], messages) : null), [kind, homework, messages]);
+	// The lesson's problems: its list plus this lesson's posts and done marks. A lesson on files
+	// with none listed is a plan lesson.
+	const freshProblems = useMemo(() => {
+		if (kind !== "homework" && !problemList) return null;
+		const folded = lessonProblems(problemList?.problems ?? [], messages);
+		return kind === "homework" || folded.problems.length > 0 ? folded : null;
+	}, [kind, problemList, messages]);
 	const problems = useStableValue(freshProblems);
-	const startLabel = problems && homeworkStartLabel(problems.problems);
+	const startLabel = problems && problemStartLabel(problems.problems);
 	const unwritten = useMemo(() => nothingWritten(messages), [messages]);
 	// A reply saved with nothing in it (stopped before it began) is not the teacher speaking.
 	const teacherSpoke = useMemo(() => !unwritten && nativeMessages.some((m) => (m as { role?: string }).role === "assistant"), [unwritten, nativeMessages]);
 	const posedAny = useMemo(() => problemPosed(nativeMessages), [nativeMessages]);
 
-	// A pick from the homework's problem list. Why none can open yet: the
+	// A pick from the lesson's problem list. Why none can open yet: the
 	// lesson's own words for a reply under way, or the question waiting.
 	const openBlocked = busy ? (waitingForAgent ? `Waiting for ${teacherName}` : "The teacher is writing.") : pending ? "Answer the question first." : null;
 	const workBoxRef = useRef<{ focus(): void }>(null);
@@ -375,7 +381,7 @@ export function Chat({
 	const planTree = useMemo(() => latestTree(messages) ?? initialTree ?? null, [messages, initialTree]);
 	const freshBar = useMemo(() => (kind === "practice" || kind === "homework" ? null : planStepBar(planTree, messages)), [kind, planTree, messages]);
 	const openProblem = problems?.open ? problems.problems.find((p) => p.number === problems.open) : undefined;
-	const planHomework = useMemo(() => (problems ? { problems: problems.problems, open: problems.open, blocked: openBlocked } : null), [problems, openBlocked]);
+	const planProblems = useMemo(() => (problems ? { problems: problems.problems, open: problems.open, blocked: openBlocked } : null), [problems, openBlocked]);
 	// Stable while nothing in it changed, so streaming never redraws the bar.
 	const stepBar = useStableValue(freshBar);
 	const planEdges = useStableValue(planTree?.edges ?? null);
@@ -469,8 +475,8 @@ export function Chat({
 
 	// With nothing to answer, "Your turn" says what is next and holds the one key that goes on.
 	const { atStop } = lessonStop;
-	const goLabel = goAheadLabel({ kind, homework: problems !== null, startLabel: startLabel ?? null, teacherSpoke, posedAny });
-	const next = turnNext({ stop: atStop, homework: problems !== null, goLabel, busy, error: error !== null, nothingWritten: unwritten });
+	const goLabel = goAheadLabel({ kind, problemList: problems !== null, startLabel: startLabel ?? null, teacherSpoke, posedAny });
+	const next = turnNext({ stop: atStop, problemList: problems !== null, goLabel, busy, error: error !== null, nothingWritten: unwritten });
 	const answered = useMemo(() => lastAnswered(nativeMessages, messages), [nativeMessages, messages]);
 	const onNext = (action: NextAction) => {
 		if (action === "keep-going") {
@@ -488,7 +494,7 @@ export function Chat({
 		choices: problemChoices,
 		line: !openProblem && practice ? `Problem ${practice.blocks.length}` : null,
 		part: openProblem ? (problems?.part ?? null) : null,
-		file: openProblem && homework?.assignment ? { ...homework.assignment, page: problemPiece?.piece.parts[0]?.page ?? openProblem.page } : null,
+		file: openProblem && problemList?.file ? { ...problemList.file, page: problemPiece?.piece.parts[0]?.page ?? openProblem.page } : null,
 	};
 
 	const turnShows = turnDrawn({
@@ -524,7 +530,7 @@ export function Chat({
 							<div className="min-h-0 flex-1">
 								<div ref={sessionFindScopeRef} data-dock={sheetOpen ? "" : undefined} className="lh-dots lh-lesson-body relative h-full">
 									<LessonScroll
-										steps={<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onPick={openPick} onOpenPlan={overlays.openPlan} />}
+										steps={<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} problemList={planProblems} practice={stablePractice} onJump={jumpToAnswer} onPick={openPick} onOpenPlan={overlays.openPlan} />}
 										restKey={[pending?.toolCallId, problem?.toolCallId, problem?.part, atStop?.stopOf].join(" ")}
 										busy={busy}
 										contextRef={scrollContextRef}

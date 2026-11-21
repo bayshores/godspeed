@@ -7,13 +7,6 @@ import type { CalibrationLevel, DeadlineProgress, StatusCounts } from "@/shared/
 import { messageAnchorId } from "@/shared/core";
 import { byDue, isOverdue } from "@/frontend/components/deadlines-model";
 
-/** A file's name without its extension ("Lecture 3 — Expectation.pdf" →
- *  "Lecture 3 — Expectation"). The Files page shows the full name. */
-export function displayName(name: string): string {
-	const dot = name.lastIndexOf(".");
-	return dot > 0 ? name.slice(0, dot) : name;
-}
-
 /** A lesson's page. */
 export function lessonHref(chatId: string): string {
 	return `/chat/${encodeURIComponent(chatId)}`;

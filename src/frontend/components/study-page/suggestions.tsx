@@ -4,7 +4,8 @@ import type { FileCoverage, TopicProgress } from "@/shared/core";
 import { Key } from "@/frontend/components/ui/key";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { StepBlocks } from "@/frontend/components/overview/lesson-rows";
-import { displayName, lessonHref } from "@/frontend/components/overview/overview-model";
+import { stepBlocks } from "@/frontend/components/overview/lesson-record-model";
+import { lessonHref } from "@/frontend/components/overview/overview-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { suggestionKey, suggestionLine, type Suggestion } from "./suggestions-model";
 
@@ -60,6 +61,7 @@ const SuggestionRow = memo(function SuggestionRow({
 	onStudyTopic: (topic: TopicProgress) => void;
 	onStudyPath: (topicId: string) => void;
 }) {
+	const blocks = s.kind === "continue" ? stepBlocks(s.lesson) : null;
 	let title: string;
 	let action: ReactNode;
 	if (s.kind === "continue") {
@@ -70,9 +72,9 @@ const SuggestionRow = memo(function SuggestionRow({
 			</Link>
 		);
 	} else if (s.kind === "next-up") {
-		title = displayName(s.file.name);
+		title = s.file.displayName;
 		action = (
-			<Key data-testid="home-study-file" busy={busyOn === s.file.name} disabled={busyOn !== null} onClick={() => onStudyFile(s.file)} className={ACTION}>
+			<Key data-testid="home-study-file" busy={busyOn === s.file.fileId} disabled={busyOn !== null} onClick={() => onStudyFile(s.file)} className={ACTION}>
 				Study
 			</Key>
 		);
@@ -99,7 +101,7 @@ const SuggestionRow = memo(function SuggestionRow({
 					<InlineMath text={title} />
 				</span>
 				<span className="flex min-w-0 items-center gap-2.5 text-base text-ink-2">
-					{s.kind === "continue" && s.lesson.step && <StepBlocks done={s.lesson.step.done} total={s.lesson.step.total} />}
+					{blocks && <StepBlocks done={blocks.done} total={blocks.total} />}
 					<span className="truncate">{suggestionLine(s)}</span>
 				</span>
 			</span>

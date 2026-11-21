@@ -16,7 +16,7 @@ use gs_base::config::Paths;
 use gs_base::events::{EventKind, Events};
 use gs_base::locks::{LockKey, Locks};
 use gs_base::{clock, fsx, ids, time};
-use gs_core::spaces::problem_list::{hand_list_to_file, with_problem_list};
+use gs_core::spaces::problem_list::{ListOwner, hand_list_to_file, with_problem_list};
 use gs_core::spaces::space_deadlines::{changed_deadline, checked_problems, file_ids_of, new_deadline};
 use gs_core::contracts::space::{CURRENT_SPACE_VERSION, SpaceDeadlineError, compare_deadlines, is_space_color, is_space_id, next_space_color};
 use gs_core::spaces::space_record::{clean_name, newer_version, read_space_record, summarize};
@@ -435,14 +435,17 @@ impl SpaceStore {
 		Ok(next)
 	}
 
-	/// Saves a deadline's problem list (checked first) where `problem_list` reads it: on its
-	/// assignment file, or on the deadline when it has none.
-	pub fn save_problems(&self, id: &str, deadline_id: &str, problems: &Json) -> Result<(), SpaceError> {
+	/// Saves a problem list (checked first) where `problems_of` reads it: a deadline's on its
+	/// assignment file, or on the deadline when it has none; a file's on the file.
+	pub fn save_problems(&self, id: &str, owner: ListOwner, problems: &Json) -> Result<(), SpaceError> {
 		let _guard = self.locks.lock(LockKey::Space(id));
 		let record = self.require_space(id)?;
 		let list = checked_problems(Some(problems))?;
-		let Some(mut record) = with_problem_list(&record, deadline_id, list) else {
-			return Err(SpaceDeadlineError { code: "deadline_not_found", message: format!("No deadline \"{deadline_id}\" in this space") }.into());
+		let Some(mut record) = with_problem_list(&record, owner, list) else {
+			return Err(match owner {
+				ListOwner::Deadline(deadline_id) => SpaceDeadlineError { code: "deadline_not_found", message: format!("No deadline \"{deadline_id}\" in this space") }.into(),
+				ListOwner::File(file_id) => SpaceError::Other(format!("No file \"{file_id}\" in this space")),
+			});
 		};
 		let deadlines = record["deadlines"].as_arr().cloned().unwrap_or_default();
 		Ok(self.save_deadlines(&mut record, deadlines)?)
@@ -600,22 +603,22 @@ mod tests {
 	fn problems_are_saved_on_the_assignment_file_or_else_on_the_deadline() {
 		let (store, _, _) = store();
 		let (id, hw) = homework_space(&store);
-		store.save_problems(&id, &hw, &list(&[("1", true)])).unwrap();
+		store.save_problems(&id, ListOwner::Deadline(&hw), &list(&[("1", true)])).unwrap();
 		assert!(store.get_space(&id).unwrap()["deadlines"][0]["problems"].truthy(), "no assignment file: on the deadline");
 		assert_eq!(numbers_of(&store, &id, &hw), ["1+"]);
 
 		store.update_deadline(&id, &hw, &json!({ "assignmentFileId": "f1" })).unwrap();
-		store.save_problems(&id, &hw, &list(&[("1", true), ("2", false)])).unwrap();
+		store.save_problems(&id, ListOwner::Deadline(&hw), &list(&[("1", true), ("2", false)])).unwrap();
 		let record = store.get_space(&id).unwrap();
 		assert_eq!(record["files"][0]["problems"].items().len(), 2);
 		assert!(record["deadlines"][0].get("problems").is_none());
 		assert_eq!(numbers_of(&store, &id, &hw), ["1+", "2"]);
 
-		match store.save_problems(&id, "ddl_nope", &list(&[])).unwrap_err() {
+		match store.save_problems(&id, ListOwner::Deadline("ddl_nope"), &list(&[])).unwrap_err() {
 			SpaceError::Deadline(e) => assert_eq!(e.code, "deadline_not_found"),
 			other => panic!("{other:?}"),
 		}
-		match store.save_problems(&id, &hw, &json!("x")).unwrap_err() {
+		match store.save_problems(&id, ListOwner::Deadline(&hw), &json!("x")).unwrap_err() {
 			SpaceError::Deadline(e) => assert_eq!(e.code, "bad_problems"),
 			other => panic!("{other:?}"),
 		}
@@ -626,7 +629,7 @@ mod tests {
 		let (store, _, _) = store();
 		let (id, hw) = homework_space(&store);
 		store.update_deadline(&id, &hw, &json!({ "assignmentFileId": "f1" })).unwrap();
-		store.save_problems(&id, &hw, &list(&[("1", true)])).unwrap();
+		store.save_problems(&id, ListOwner::Deadline(&hw), &list(&[("1", true)])).unwrap();
 		store.update_deadline(&id, &hw, &json!({ "assignmentFileId": "f2" })).unwrap();
 		assert!(numbers_of(&store, &id, &hw).is_empty());
 		store.update_deadline(&id, &hw, &json!({ "assignmentFileId": "f1" })).unwrap();
@@ -639,7 +642,7 @@ mod tests {
 	fn a_first_assignment_file_takes_the_deadlines_list_unless_it_has_its_own() {
 		let (store, _, _) = store();
 		let (id, hw) = homework_space(&store);
-		store.save_problems(&id, &hw, &list(&[("1", true)])).unwrap();
+		store.save_problems(&id, ListOwner::Deadline(&hw), &list(&[("1", true)])).unwrap();
 		store.update_deadline(&id, &hw, &json!({ "assignmentFileId": "f1" })).unwrap();
 		let record = store.get_space(&id).unwrap();
 		assert!(record["deadlines"][0].get("problems").is_none());
@@ -647,10 +650,10 @@ mod tests {
 
 		let other = store.add_deadline(&id, &json!({ "kind": "homework", "name": "HW 2", "date": "2026-12-02", "assignmentFileId": "f2" })).unwrap();
 		let other = other["id"].as_str().unwrap();
-		store.save_problems(&id, other, &list(&[("7", false)])).unwrap();
+		store.save_problems(&id, ListOwner::Deadline(other), &list(&[("7", false)])).unwrap();
 		let third = store.add_deadline(&id, &json!({ "kind": "homework", "name": "HW 3", "date": "2026-12-03" })).unwrap();
 		let third = third["id"].as_str().unwrap();
-		store.save_problems(&id, third, &list(&[("3", true)])).unwrap();
+		store.save_problems(&id, ListOwner::Deadline(third), &list(&[("3", true)])).unwrap();
 		store.update_deadline(&id, third, &json!({ "assignmentFileId": "f2" })).unwrap();
 		assert_eq!(numbers_of(&store, &id, third), ["7"], "the file's own list wins");
 		assert_eq!(numbers_of(&store, &id, other), ["7"]);
@@ -665,10 +668,10 @@ mod tests {
 		let (store, _, _) = store();
 		let (id, hw) = homework_space(&store);
 		store.update_deadline(&id, &hw, &json!({ "assignmentFileId": "f1" })).unwrap();
-		store.save_problems(&id, &hw, &list(&[("1", false)])).unwrap();
+		store.save_problems(&id, ListOwner::Deadline(&hw), &list(&[("1", false)])).unwrap();
 		let other = store.add_deadline(&id, &json!({ "kind": "homework", "name": "HW 2", "date": "2026-12-02" })).unwrap();
 		let other = other["id"].as_str().unwrap();
-		store.save_problems(&id, other, &list(&[("2", true)])).unwrap();
+		store.save_problems(&id, ListOwner::Deadline(other), &list(&[("2", true)])).unwrap();
 		store.update_deadline(&id, other, &json!({ "assignmentFileId": "f1" })).unwrap();
 		assert_eq!(numbers_of(&store, &id, other), ["1"]);
 		let kept = store.get_space(&id).unwrap()["files"][1].clone();

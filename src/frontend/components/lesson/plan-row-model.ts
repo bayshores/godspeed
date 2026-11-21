@@ -4,7 +4,7 @@ import type { PracticeProgress } from "./practice-progress";
 /** How a block or a list row reads: done in ink, the one in progress, the rest light. */
 export type Tone = "done" | "current" | "later";
 
-/** One block of a practice row, or one step of a plan or homework lesson's row. */
+/** One block of a practice row, or one step of a plan lesson's or a problem list's row. */
 export interface RowBlock {
 	key: string;
 	tone: Tone;
@@ -20,7 +20,7 @@ interface RowSummary {
 	blocks: RowBlock[];
 }
 
-/** One step of a plan lesson's row, or one problem of a homework lesson's. */
+/** One step of a plan lesson's row, or one problem of a lesson's problem list. */
 export interface RowStep extends RowBlock {
 	/** "3" for a plan step, the assignment's own number ("2b") for a problem. */
 	number: string;
@@ -73,8 +73,8 @@ export function startProblemLabel(number: string): string {
 	return `Start ${problemName(number)}`;
 }
 
-/** The homework go-ahead for the first problem not done. Null when none is left. */
-export function homeworkStartLabel(problems: readonly FileProblem[]): string | null {
+/** The go-ahead of a lesson with a problem list: the first problem not done. Null when none is left. */
+export function problemStartLabel(problems: readonly FileProblem[]): string | null {
 	const next = problems.find((p) => !p.done);
 	return next ? startProblemLabel(next.number) : null;
 }
@@ -140,10 +140,10 @@ export function planBranches(stepIds: readonly string[], edges: ReadonlyArray<{ 
 	return false;
 }
 
-/** A homework lesson's row: every problem in order, each one a pick. The
- *  open one takes him to his work; `blocked` is why no other can open yet.
+/** The row of a lesson with a problem list (homework or a lesson on files):
+ *  every problem in order, each one a pick. The open one takes him to his work; `blocked` is why no other can open yet.
  *  Null with no problems. */
-export function homeworkRow(problems: readonly FileProblem[], open: string | null, blocked: string | null): RowStep[] | null {
+export function problemListRow(problems: readonly FileProblem[], open: string | null, blocked: string | null): RowStep[] | null {
 	if (problems.length === 0) return null;
 	return problems.map((p) => {
 		const tone = problemTone(p, open);
@@ -162,7 +162,7 @@ interface FoldedLine {
 }
 
 /**
- * The one line a plan or homework row folds into: "Step 2 of 5" and the step's name; with a
+ * The one line a plan or problem-list row folds into: "Step 2 of 5" and the step's name; with a
  * problem open, "Problem 2a" and its title (none when the title is only the number, which is
  * what a problem with no title saves); with nothing current, "1 of 14 done".
  */

@@ -7,7 +7,7 @@ import { lazyComponent } from "@/frontend/lib/lazy-component";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { cn } from "@/frontend/lib/utils";
 import type { FileProblem, LessonKind, LessonStop, PlanStepBar } from "@/shared/core";
-import { foldedLine, homeworkRow, openingLabel, rowColumns, planArrived, planBranches, planSignature, practiceRow, stepsRow, type RowBlock, type RowStep, type Tone } from "./plan-row-model";
+import { foldedLine, problemListRow, openingLabel, rowColumns, planArrived, planBranches, planSignature, practiceRow, stepsRow, type RowBlock, type RowStep, type Tone } from "./plan-row-model";
 import type { PracticeProgress } from "./practice-progress";
 
 // The map draws with dagre, which loads with the plan blocks, not the lesson.
@@ -30,9 +30,9 @@ type Edges = ReadonlyArray<{ from: string; to: string }>;
 
 /**
  * THE PLAN ROW, the step line pinned over the lesson's page: where the learner is in the
- * lesson. A plan or homework lesson shows one line, "Step 2 of 5", the
+ * lesson. A plan lesson or one with a problem list shows one line, "Step 2 of 5", the
  * step's name and a slim bar, which unfolds into every step by name over
- * a bar, with a small map of the plan when it branches; homework lists
+ * a bar, with a small map of the plan when it branches; a problem list lists
  * every problem the same way, each full name wrapping in its cell and the
  * lines evenly filled. Practice shows its count and blocks alone. A done
  * step goes back to its first answer. Every problem is a pick: the teacher
@@ -44,7 +44,7 @@ export const PlanRow = memo(function PlanRow({
 	stepBar,
 	edges,
 	stop,
-	homework,
+	problemList,
 	practice,
 	onJump,
 	onPick,
@@ -58,7 +58,7 @@ export const PlanRow = memo(function PlanRow({
 	/** The lesson's stop: the row stays on a topic that just ended. */
 	stop: LessonStop | null;
 	/** `blocked`: why no problem can open yet. */
-	homework: { problems: readonly FileProblem[]; open: string | null; blocked: string | null } | null;
+	problemList: { problems: readonly FileProblem[]; open: string | null; blocked: string | null } | null;
 	practice: PracticeProgress | null;
 	onJump: (toolCallId: string) => void;
 	/** A problem picked (its number), or null for the open one: go to the work. */
@@ -69,12 +69,12 @@ export const PlanRow = memo(function PlanRow({
 	const space = spaces.find((c) => c.id === spaceId);
 	const color = space ? spaceColorVar(space.color) : "var(--color-ink)";
 	// No problems yet: the desk shows the assignment once the teacher opens it, or the lesson says why not.
-	const steps = homework ? (homework.problems.length > 0 ? homeworkRow(homework.problems, homework.open, homework.blocked) : null) : kind !== "practice" && stepBar ? stepsRow(stepBar, stop) : null;
+	const steps = problemList ? (problemList.problems.length > 0 ? problemListRow(problemList.problems, problemList.open, problemList.blocked) : null) : kind !== "practice" && stepBar ? stepsRow(stepBar, stop) : null;
 
 	// The row lives as long as the lesson, so it sees a plan arrive or change. It then unfolds
 	// without writing the learner's choice; a lesson opened with its plan already there stays as kept.
 	const [open, setOpen] = useState(() => readStorage(STEPS_OPEN_KEY) === "1");
-	const plan = homework ? null : planSignature(steps);
+	const plan = problemList ? null : planSignature(steps);
 	const [planSeen, setPlanSeen] = useState(plan);
 	if (plan !== planSeen) {
 		setPlanSeen(plan);
@@ -85,8 +85,8 @@ export const PlanRow = memo(function PlanRow({
 		writeStorage(STEPS_OPEN_KEY, open ? null : "1");
 	};
 
-	if (homework || kind !== "practice") {
-		return steps && <StepsRow steps={steps} edges={homework ? null : edges} color={color} onJump={onJump} onPick={homework ? onPick : null} blocked={homework?.blocked ?? null} onOpenPlan={onOpenPlan} open={open} onToggle={toggle} />;
+	if (problemList || kind !== "practice") {
+		return steps && <StepsRow steps={steps} edges={problemList ? null : edges} color={color} onJump={onJump} onPick={problemList ? onPick : null} blocked={problemList?.blocked ?? null} onOpenPlan={onOpenPlan} open={open} onToggle={toggle} />;
 	}
 	const summary = practice && practiceRow(practice);
 	if (!summary) return null;
@@ -113,7 +113,7 @@ function Block({ block, color }: { block: RowBlock; color: string }) {
 }
 
 /** A lesson's steps folded into one line, unfolding into cells on evenly filled lines and the
- *  plan's map when it branches. With `onPick` (homework) every cell is a pick, said aloud as it
+ *  plan's map when it branches. With `onPick` (a problem list) every cell is a pick, said aloud as it
  *  goes out. */
 function StepsRow({
 	steps,

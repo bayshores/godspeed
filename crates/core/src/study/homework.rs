@@ -82,10 +82,35 @@ pub fn homework_context_text(space_id: &str, deadline: &Json, assignment: &Json,
 		lines.push("No problems are posted yet. Read the assignment and post them all with post_problems first.".to_owned());
 	} else {
 		lines.push("Its problems, posted before:".to_owned());
-		for p in problems {
-			lines.push(format!("- {}: {}{}", text(&p["number"]), text(&p["title"]), if p["done"].truthy() { " (done)" } else { "" }));
-		}
-		lines.push("Next is the first one not done unless the learner picks another.".to_owned());
+		lines.extend(problem_lines(problems));
+	}
+	lines.join("\n")
+}
+
+/// One line per listed problem with its done mark, then where to go on.
+fn problem_lines(problems: &[Json]) -> Vec<String> {
+	let text = |v: &Json| v.as_str().map_or_else(|| gs_json::stringify(v), str::to_owned);
+	let mut lines: Vec<String> = problems.iter().map(|p| format!("- {}: {}{}", text(&p["number"]), text(&p["title"]), if p["done"].truthy() { " (done)" } else { "" })).collect();
+	lines.push("Next is the first one not done unless the learner picks another.".to_owned());
+	lines
+}
+
+/// What the teacher knows when a lesson on files starts, under its study plan. `files` are
+/// `{ id, name, path }`, the first file first; `problems` are the first file's listed problems.
+pub fn files_context_text(files: &[Json], problems: &[Json]) -> String {
+	let named: Vec<String> = files
+		.iter()
+		.map(|f| {
+			let at = f["path"].as_str().filter(|p| !p.is_empty()).map(|p| format!(", at {p}")).unwrap_or_default();
+			format!("{} (file id {}{at})", f["name"].str_or_empty(), f["id"].str_or_empty())
+		})
+		.collect();
+	let mut lines = vec![format!("[Files] Lesson works from {}.", named.join("; "))];
+	if problems.is_empty() {
+		lines.push("No problems posted yet.".to_owned());
+	} else {
+		lines.push(format!("Problems of {}, posted before:", files.first().map_or("", |f| f["name"].str_or_empty())));
+		lines.extend(problem_lines(problems));
 	}
 	lines.join("\n")
 }
@@ -101,6 +126,17 @@ mod tests {
 		let previous = [json!({ "number": "1", "title": "A", "done": true }), json!({ "number": "2", "title": "B", "done": false })];
 		let posted = [json!({ "number": "1", "title": "A2" }), json!({ "number": "3", "title": "C" })];
 		assert_eq!(stringify(&Json::from(merge_problems(&previous, &posted))), r#"[{"number":"1","title":"A2","done":true},{"number":"3","title":"C","done":false}]"#);
+	}
+
+	#[test]
+	fn a_lesson_on_files_names_each_file_and_the_first_ones_problems() {
+		let files = [json!({ "id": "f1", "name": "Practice midterm.pdf", "path": "/s/Practice midterm.pdf" }), json!({ "id": "f2", "name": "Key.pdf", "path": null })];
+		assert_eq!(files_context_text(&files, &[]), "[Files] Lesson works from Practice midterm.pdf (file id f1, at /s/Practice midterm.pdf); Key.pdf (file id f2).\nNo problems posted yet.");
+		let listed = [json!({ "number": "1", "title": "Limits", "done": true }), json!({ "number": "2", "title": "Series", "done": false })];
+		assert_eq!(
+			files_context_text(&files[..1], &listed),
+			"[Files] Lesson works from Practice midterm.pdf (file id f1, at /s/Practice midterm.pdf).\nProblems of Practice midterm.pdf, posted before:\n- 1: Limits (done)\n- 2: Series\nNext is the first one not done unless the learner picks another."
+		);
 	}
 
 	#[test]

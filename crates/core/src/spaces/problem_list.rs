@@ -1,7 +1,7 @@
 //! Where a deadline's problem list lives. A document's numbered problems and their done marks
 //! belong to the file they are printed in, so a deadline with an assignment file reads and writes
 //! that file's list; a deadline without one keeps its own (problems the learner pasted). Every
-//! reader goes through `problem_list` or `with_problem_lists`, every writer through
+//! reader goes through `problem_list`, `problems_of` or `with_problem_lists`, every writer through
 //! `with_problem_list`.
 
 use gs_json::Json;
@@ -28,16 +28,40 @@ pub fn problem_list<'a>(record: &'a Json, deadline: &'a Json) -> &'a [Json] {
 	}
 }
 
-/// The record with `list` as the deadline's problem list, written where `problem_list` reads it.
-/// None when the record has no such deadline.
-pub fn with_problem_list(record: &Json, deadline_id: &str, list: Vec<Json>) -> Option<Json> {
-	let at = record["deadlines"].items().iter().position(|d| d["id"].as_str() == Some(deadline_id))?;
-	let file_at = assignment_at(record["files"].items(), &record["deadlines"][at]);
-	let mut next = record.clone();
-	let (key, index) = match file_at {
-		Some(f) => ("files", f),
-		None => ("deadlines", at),
+/// Whose problem list: a deadline's (its assignment file's, else its own) or a file's, as a
+/// lesson on files keeps its first file's.
+#[derive(Clone, Copy, Debug)]
+pub enum ListOwner<'a> {
+	Deadline(&'a str),
+	File(&'a str),
+}
+
+fn position(list: &[Json], id: &str) -> Option<usize> {
+	list.iter().position(|item| item["id"].as_str() == Some(id))
+}
+
+/// The owner's problem list; empty when the record has no such deadline or file.
+pub fn problems_of<'a>(record: &'a Json, owner: ListOwner) -> &'a [Json] {
+	match owner {
+		ListOwner::Deadline(id) => position(record["deadlines"].items(), id).map_or(&[], |at| problem_list(record, &record["deadlines"][at])),
+		ListOwner::File(id) => position(record["files"].items(), id).map_or(&[], |at| record["files"][at]["problems"].items()),
+	}
+}
+
+/// The record with `list` as the owner's problem list, written where `problems_of` reads it.
+/// None when the record has no such deadline or file.
+pub fn with_problem_list(record: &Json, owner: ListOwner, list: Vec<Json>) -> Option<Json> {
+	let (key, index) = match owner {
+		ListOwner::Deadline(id) => {
+			let at = position(record["deadlines"].items(), id)?;
+			match assignment_at(record["files"].items(), &record["deadlines"][at]) {
+				Some(f) => ("files", f),
+				None => ("deadlines", at),
+			}
+		}
+		ListOwner::File(id) => ("files", position(record["files"].items(), id)?),
 	};
+	let mut next = record.clone();
 	put(next.get_mut(key)?.as_arr_mut()?.get_mut(index)?, list);
 	Some(next)
 }
@@ -126,14 +150,17 @@ mod tests {
 	#[test]
 	fn a_list_is_written_where_it_is_read() {
 		let r = record(json!([{ "id": "f1" }]), json!([{ "id": "d1", "assignmentFileId": "f1" }, { "id": "d2" }]));
-		let on_file = with_problem_list(&r, "d1", vec![problem("1", false)]).unwrap();
+		let on_file = with_problem_list(&r, ListOwner::Deadline("d1"), vec![problem("1", false)]).unwrap();
 		assert_eq!(stringify(&on_file["files"][0]["problems"]), r#"[{"number":"1","title":"1","text":"x","done":false}]"#);
 		assert!(on_file["deadlines"][0].get("problems").is_none());
-		let own = with_problem_list(&r, "d2", vec![problem("2", true)]).unwrap();
+		let own = with_problem_list(&r, ListOwner::Deadline("d2"), vec![problem("2", true)]).unwrap();
 		assert_eq!(own["deadlines"][1]["problems"][0]["number"], json!("2"));
 		assert!(own["files"][0].get("problems").is_none());
-		assert!(with_problem_list(&on_file, "d1", Vec::new()).unwrap()["files"][0].get("problems").is_none(), "an empty list removes the field");
-		assert!(with_problem_list(&r, "nope", Vec::new()).is_none());
+		assert!(with_problem_list(&on_file, ListOwner::Deadline("d1"), Vec::new()).unwrap()["files"][0].get("problems").is_none(), "an empty list removes the field");
+		assert!(with_problem_list(&r, ListOwner::Deadline("nope"), Vec::new()).is_none());
+		let by_file = with_problem_list(&r, ListOwner::File("f1"), vec![problem("3", true)]).unwrap();
+		assert_eq!(problems_of(&by_file, ListOwner::File("f1")), problems_of(&by_file, ListOwner::Deadline("d1")), "a file's list is its deadline's");
+		assert!(problems_of(&by_file, ListOwner::File("gone")).is_empty() && with_problem_list(&r, ListOwner::File("gone"), Vec::new()).is_none());
 	}
 
 	#[test]

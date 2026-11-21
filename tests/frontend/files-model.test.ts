@@ -44,7 +44,7 @@ const CSE21 = named([
 	"syllabus.txt",
 	"Digital_Note_Sheet_STUDENT_GUIDE.pdf",
 ]);
-const cov = (facts: number, inLessons: number): FileCoverage => ({ fileId: "f_1", name: "L1.pdf", facts, inLessons, share: facts ? inLessons / facts : null });
+const cov = (facts: number, inLessons: number): FileCoverage => ({ fileId: "f_1", name: "L1.pdf", displayName: "L1", facts, inLessons, share: facts ? inLessons / facts : null });
 
 describe("files-model", () => {
 	it("fileState follows the pipeline status", () => {

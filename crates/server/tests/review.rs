@@ -42,7 +42,7 @@ async fn post(port: u16, path: &str, body: &Json) -> (u16, Json) {
 fn space_with_a_question(app: &App) -> (String, String) {
 	let space_id = app.stores.spaces.create_space(&json!({ "name": "Machine Learning Foundations" })).unwrap()["id"].as_str().unwrap().to_owned();
 	let lesson = |messages: &[Json]| {
-		let id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), None).unwrap()["id"].as_str().unwrap().to_owned();
+		let id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		app.stores.chats.save_tree(&id, &json!({ "nodes": [{ "id": "reg", "title": "Regularization" }], "edges": [] })).unwrap();
 		app.stores.chats.save_messages(&id, messages).unwrap();
 		id

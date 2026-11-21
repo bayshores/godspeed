@@ -27,7 +27,7 @@ export function useLessonStop({
 	nativeMessages: readonly LhMessage[];
 	kind: LessonKind;
 	tree: PlanTree | null;
-	/** A homework lesson's problems. */
+	/** The problems of a lesson with a problem list. */
 	problems: readonly FileProblem[] | null;
 	deadlineId: string | undefined;
 	scopeRef: React.RefObject<HTMLElement | null>;

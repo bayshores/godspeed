@@ -61,9 +61,10 @@ impl ChatStore {
 		Ok(self.chat_dir(id)?.with_extension("json"))
 	}
 
-	/// Starts a lesson. `kind` is absent for a teach lesson, and `space_id` for "No space".
+	/// Starts a lesson. `kind` is absent for a teach lesson, and `space_id` for "No space";
+	/// `file_ids` are the files a lesson on files works from, its first file first.
 	/// Returns the record as it landed on disk.
-	pub fn create_chat(&self, title: &str, kind: Option<&str>, space_id: Option<&str>, deadline_id: Option<&str>) -> Result<Json, String> {
+	pub fn create_chat(&self, title: &str, kind: Option<&str>, space_id: Option<&str>, deadline_id: Option<&str>, file_ids: &[String]) -> Result<Json, String> {
 		let now = time::iso_now();
 		let kind = kind.filter(|k| !k.is_empty());
 		if kind == Some("talk") {
@@ -81,6 +82,9 @@ impl ChatStore {
 			if let Some(value) = value.filter(|v| !v.is_empty()) {
 				record.insert(key, value);
 			}
+		}
+		if !file_ids.is_empty() {
+			record.insert("fileIds", file_ids.iter().map(String::as_str).map(Json::from).collect::<Vec<_>>());
 		}
 		let mut record = Json::Obj(record);
 		{
@@ -395,7 +399,7 @@ mod tests {
 	fn a_new_lesson_lands_with_tabs_and_a_version_stamp() {
 		let fx = Fixture::new();
 		let mut changes = fx.events.subscribe();
-		let record = fx.store.create_chat("  Limits  ", None, Some("cls_1"), Some("")).unwrap();
+		let record = fx.store.create_chat("  Limits  ", None, Some("cls_1"), Some(""), &[]).unwrap();
 		assert_eq!(keys(&record), ["id", "title", "createdAt", "updatedAt", "messages", "spaceId", "version"]);
 		assert_eq!(record["title"], json!("Limits"));
 		let id = record["id"].as_str().unwrap();
@@ -442,7 +446,7 @@ mod tests {
 	#[test]
 	fn blank_titles_get_a_name() {
 		let fx = Fixture::new();
-		let lesson = fx.store.create_chat(" ", None, None, None).unwrap();
+		let lesson = fx.store.create_chat(" ", None, None, None, &[]).unwrap();
 		assert_eq!(lesson["title"], json!("Untitled lesson"));
 		let id = lesson["id"].as_str().unwrap();
 		assert_eq!(fx.store.rename_chat(id, "  ").unwrap()["title"], json!("Untitled lesson"));
@@ -457,7 +461,7 @@ mod tests {
 		assert_eq!(fx.store.get_chat("chat_talk").unwrap()["messages"].as_arr().map(Vec::len), Some(1));
 		assert!(fx.store.list_chats().is_empty(), "not a lesson");
 		let kept = Err(TALK_KEPT.to_owned());
-		assert_eq!(fx.store.create_chat("Talk", Some("talk"), None, None).map(drop), kept);
+		assert_eq!(fx.store.create_chat("Talk", Some("talk"), None, None, &[]).map(drop), kept);
 		assert_eq!(fx.store.save_messages("chat_talk", &[]), kept);
 		assert_eq!(fx.store.save_tree("chat_talk", &json!({})), kept);
 		assert_eq!(fx.store.append_turn_usage("chat_talk", &json!({ "id": "t" })), kept);
@@ -573,7 +577,7 @@ mod tests {
 	#[test]
 	fn delete_removes_the_record_and_its_folder_once() {
 		let fx = Fixture::new();
-		let id = fx.store.create_chat("t", None, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		let id = fx.store.create_chat("t", None, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		let file = fx.store.save_attachment(&id, "a.png", b"png").unwrap();
 		assert_eq!(std::fs::read(&file).unwrap(), b"png");
 		assert_eq!(fx.store.save_attachment(&id, "dir/a.png", b"x").unwrap_err(), "Invalid attachment name: dir/a.png");

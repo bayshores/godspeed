@@ -94,7 +94,7 @@ fn setup(name: &str, engine: Option<Engine>, demo: Result<DemoRunResult, String>
 
 /// A lesson and a running job of `kind` in it.
 fn job(host: &Host, kind: &str, input: Option<Json>) -> String {
-	let chat = host.chats.create_chat("Lesson", None, None, None).unwrap();
+	let chat = host.chats.create_chat("Lesson", None, None, None, &[]).unwrap();
 	let init = CreateJobInit { kind, chat_id: chat["id"].as_str().unwrap(), tool_call_id: "call_job", activity: None, input };
 	host.jobs.create_job(&init).unwrap()["id"].as_str().unwrap().to_owned()
 }

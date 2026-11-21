@@ -198,7 +198,7 @@ async fn start_lesson_starts_or_continues_a_deadlines_study_or_homework() {
 	let back = gs_json::parse(&start(format!(r#"{{"deadline_id":"{exam}"}}"#)).await).unwrap();
 	assert_eq!((back["status"].as_str(), &back["lessonId"]), (Some("continued"), &practice["lessonId"]), "Study continues the lesson worked in last");
 
-	assert_eq!(start("{}".to_owned()).await, "Give topic or deadline_id.");
+	assert_eq!(start("{}".to_owned()).await, "Give topic, deadline_id or file_ids.");
 	assert_eq!(start(r#"{"topic":"Sums","homework":true}"#.to_owned()).await, "homework takes deadline_id alone, not a topic (\"Sums\").");
 	assert_eq!(start(format!(r#"{{"topic":"Sums","deadline_id":"{exam}","homework":true}}"#)).await, "homework takes deadline_id alone, not a topic (\"Sums\").");
 	assert_eq!(start(format!(r#"{{"topic":"Sums","deadline_id":"{exam}","space_id":"spc_other"}}"#)).await, format!("No deadline \"{exam}\". Use read_space."));
@@ -207,6 +207,31 @@ async fn start_lesson_starts_or_continues_a_deadlines_study_or_homework() {
 	assert_eq!(start(format!(r#"{{"deadline_id":"{exam}","homework":true}}"#)).await, "Midterm is not homework or a project, so it has no problems to work on. Leave homework out to study for it.");
 	app.stores.spaces.update_space(&space_id, &gs_json::json!({ "closed": true })).unwrap();
 	assert_eq!(start(format!(r#"{{"deadline_id":"{exam}"}}"#)).await, "This space is closed. Ask the learner to reopen it first.");
+}
+
+#[tokio::test]
+async fn start_lesson_starts_or_continues_a_lesson_on_files() {
+	let app = app();
+	let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Calculus" })).unwrap()["id"].str_or_empty().to_owned();
+	let file = |id: &str, name: &str| gs_json::json!({ "id": id, "origin": "copied", "name": name, "path": name, "kind": "info", "contentFp": "x", "status": "ready", "addedAt": "t" });
+	app.stores.spaces.save_files(&space_id, vec![file("f_test", "Practice midterm.pdf"), file("f_key", "Key.pdf")], &[]).unwrap();
+	let exam = app.stores.spaces.add_deadline(&space_id, &gs_json::json!({ "name": "Midterm", "kind": "exam", "date": "2099-01-15" })).unwrap()["id"].str_or_empty().to_owned();
+	let start = |args: String| {
+		let app = app.clone();
+		async move { text(&call(&app, None, None, "start_lesson", &args).await.1) }
+	};
+
+	let made = gs_json::parse(&start(format!(r#"{{"file_ids":["f_test","f_key"],"deadline_id":"{exam}"}}"#)).await).unwrap();
+	assert_eq!((made["status"].as_str(), made["title"].as_str()), (Some("started"), Some("Practice midterm")), "{made:?}");
+	let chat = app.stores.chats.get_chat(made["lessonId"].str_or_empty()).unwrap();
+	assert_eq!((chat["fileIds"].clone(), chat["deadlineId"].as_str(), chat["spaceId"].as_str()), (gs_json::json!(["f_test", "f_key"]), Some(exam.as_str()), Some(space_id.as_str())));
+	let again = gs_json::parse(&start(r#"{"file_ids":["f_test"]}"#.to_owned()).await).unwrap();
+	assert_eq!((again["status"].as_str(), &again["lessonId"]), (Some("continued"), &made["lessonId"]));
+
+	assert_eq!(start(r#"{"file_ids":["f_test"],"topic":"Limits"}"#.to_owned()).await, "file_ids takes no topic and no homework: the first file names the lesson.");
+	assert_eq!(start(format!(r#"{{"file_ids":["f_test"],"deadline_id":"{exam}","homework":true}}"#)).await, "file_ids takes no topic and no homework: the first file names the lesson.");
+	assert_eq!(start(r#"{"file_ids":["f_gone"]}"#.to_owned()).await, "No file \"f_gone\". Use read_space with files: true.");
+	assert!(start(r#"{"file_ids":["a","b","c","d","e","f","g","h","i"]}"#.to_owned()).await.contains("file_ids"), "more than 8 fails the schema");
 }
 
 #[tokio::test]

@@ -29,7 +29,7 @@ impl Fixture {
 	}
 
 	fn lesson(&self, kind: Option<&str>) -> String {
-		let chat_id = self.app.stores.chats.create_chat("Study for Midterm", kind, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		let chat_id = self.app.stores.chats.create_chat("Study for Midterm", kind, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		let tree = json!({ "nodes": [{ "id": "reg", "title": "Regularization" }, { "id": "cv", "title": "Cross-validation" }], "edges": [] });
 		self.app.stores.chats.save_tree(&chat_id, &tree).unwrap();
 		chat_id

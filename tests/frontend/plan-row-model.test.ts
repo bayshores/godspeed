@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { foldedLine, homeworkRow, homeworkStartLabel, jumpTarget, openingLabel, planArrived, planBranches, planSignature, practiceRow, rightCountLabel, rowColumns, startProblemLabel, stepsRow } from "../../src/frontend/components/lesson/plan-row-model.ts";
+import { foldedLine, problemListRow, problemStartLabel, jumpTarget, openingLabel, planArrived, planBranches, planSignature, practiceRow, rightCountLabel, rowColumns, startProblemLabel, stepsRow } from "../../src/frontend/components/lesson/plan-row-model.ts";
 import type { FileProblem, LessonStop, PlanStepBar } from "../../src/shared/core/index.ts";
 
 const bar: PlanStepBar = {
@@ -49,14 +49,14 @@ describe("the plan row's logic", () => {
 			{ number: "2b", title: "Step size", text: "", done: false },
 			{ number: "Ex. 4", title: "Momentum", text: "", done: false },
 		];
-		const row = homeworkRow(problems, "2b", null)!;
+		const row = problemListRow(problems, "2b", null)!;
 		assert.deepEqual(row.map((s) => [s.number, s.tone, s.done]), [["1", "done", true], ["2b", "current", false], ["Ex. 4", "later", false]]);
 		assert.deepEqual(row.map((s) => s.label), ["Problem 1, Gradient, done. Open it again", "Problem 2b, Step size, open now. Go to your work", "Ex. 4, Momentum. Open it"]);
-		assert.equal(homeworkRow([], null, null), null);
+		assert.equal(problemListRow([], null, null), null);
 	});
 
 	it("a done problem opened again is current and keeps its check", () => {
-		const row = homeworkRow([{ number: "1", title: "Gradient", text: "", done: true }], "1", null)!;
+		const row = problemListRow([{ number: "1", title: "Gradient", text: "", done: true }], "1", null)!;
 		assert.deepEqual([row[0]!.tone, row[0]!.done, row[0]!.label], ["current", true, "Problem 1, Gradient, done, open now. Go to your work"]);
 	});
 
@@ -65,7 +65,7 @@ describe("the plan row's logic", () => {
 			{ number: "1", title: "Gradient", text: "", done: true },
 			{ number: "2", title: "Step size", text: "", done: false },
 		];
-		const row = homeworkRow(problems, "2", "The teacher is writing.")!;
+		const row = problemListRow(problems, "2", "The teacher is writing.")!;
 		assert.deepEqual(row.map((s) => [s.label, s.hint]), [
 			["Problem 1, Gradient, done. The teacher is writing.", "Gradient. The teacher is writing."],
 			["Problem 2, Step size, open now. Go to your work", "Step size"],
@@ -82,10 +82,10 @@ describe("the plan row's logic", () => {
 
 	it("the homework go-ahead names the first problem not done, as the assignment numbers it", () => {
 		const problem = (number: string, done: boolean): FileProblem => ({ number, title: "", text: "", done });
-		assert.equal(homeworkStartLabel([problem("1", true), problem("2", false), problem("3", false)]), "Start problem 2");
-		assert.equal(homeworkStartLabel([problem("1", true), problem("Ex. 4", false)]), "Start Ex. 4");
-		assert.equal(homeworkStartLabel([problem("1", true), problem("2", true)]), null);
-		assert.equal(homeworkStartLabel([]), null);
+		assert.equal(problemStartLabel([problem("1", true), problem("2", false), problem("3", false)]), "Start problem 2");
+		assert.equal(problemStartLabel([problem("1", true), problem("Ex. 4", false)]), "Start Ex. 4");
+		assert.equal(problemStartLabel([problem("1", true), problem("2", true)]), null);
+		assert.equal(problemStartLabel([]), null);
 	});
 
 	it("a practice row: solved in ink, missed light, the count only once a problem is finished", () => {
@@ -132,13 +132,13 @@ describe("foldedLine", () => {
 	});
 
 	it("homework with a problem open: its number as the assignment writes it, and its title unless that is only the number", () => {
-		assert.deepEqual(foldedLine(homeworkRow(problems, "2a", null)!, true), { count: "Problem 2a", name: "Step size" });
-		assert.deepEqual(foldedLine(homeworkRow(problems, "2b", null)!, true), { count: "Problem 2b", name: null });
-		assert.deepEqual(foldedLine(homeworkRow(problems, "Ex. 4", null)!, true), { count: "Ex. 4", name: "Momentum" }, "a problem opened again");
+		assert.deepEqual(foldedLine(problemListRow(problems, "2a", null)!, true), { count: "Problem 2a", name: "Step size" });
+		assert.deepEqual(foldedLine(problemListRow(problems, "2b", null)!, true), { count: "Problem 2b", name: null });
+		assert.deepEqual(foldedLine(problemListRow(problems, "Ex. 4", null)!, true), { count: "Ex. 4", name: "Momentum" }, "a problem opened again");
 	});
 
 	it("homework with nothing open: how many are done", () => {
-		assert.deepEqual(foldedLine(homeworkRow(problems, null, null)!, true), { count: "2 of 4 done", name: null });
+		assert.deepEqual(foldedLine(problemListRow(problems, null, null)!, true), { count: "2 of 4 done", name: null });
 	});
 });
 

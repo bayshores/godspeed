@@ -37,9 +37,9 @@ describe("unfinishedAcross", () => {
 		assert.deepEqual(unfinishedAcross([A, B], progress, null), []);
 	});
 
-	it("gives a homework lesson its deadline's problems as blocks and a study lesson its steps", () => {
+	it("gives a lesson with problems those as blocks and a study lesson its steps", () => {
 		const progress = new Map([
-			["a", payload({ lessons: [lesson("hw", "2026-11-05", { kind: "homework", deadlineId: "d1" }), lesson("st", "2026-11-04")], deadlines: [{ id: "d1", problems: { done: 3, total: 4 } }] })],
+			["a", payload({ lessons: [lesson("hw", "2026-11-05", { kind: "homework", deadlineId: "d1", problems: { done: 3, total: 4 } }), lesson("st", "2026-11-04")] })],
 		]);
 		const out = unfinishedAcross([A], progress, null);
 		assert.deepEqual(out.map((x) => x.blocks), [{ done: 3, total: 4 }, { done: 1, total: 3 }]);

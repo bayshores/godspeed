@@ -182,10 +182,22 @@ fn fact_rows(facts: &[Json], topic_of_fact: &HashMap<String, String>, fact_answe
 		.collect()
 }
 
+/// The problem list a lesson works on: a homework lesson's deadline's, a lesson on files its first
+/// file's. Empty for any other.
+fn lesson_problems<'a>(lesson: &Json, deadlines: &HashMap<&str, &'a Json>, files: &HashMap<&str, &'a Json>) -> &'a [Json] {
+	let list = match lesson["kind"].as_str() {
+		Some("homework") => lesson["deadlineId"].as_str().and_then(|id| deadlines.get(id)),
+		_ => lesson["fileIds"][0].as_str().and_then(|id| files.get(id)),
+	};
+	list.map_or(&[], |holder| holder["problems"].items())
+}
+
 /// One row per lesson, newest first, each tallied over its own answers, with where its plan
-/// stands (`step`), whether it is `unfinished`, and the deadline it was started from.
+/// stands (`step`), how many of its problems are done (`problems`), whether it is `unfinished`,
+/// and the deadline it was started from.
 fn lesson_rows(input: &Json, by_lesson: &[&[Json]], lesson_at: &HashMap<&str, usize>) -> Vec<Json> {
 	let deadlines: HashMap<&str, &Json> = input["deadlines"].items().iter().map(|d| (d["id"].str_or_empty(), d)).collect();
+	let files: HashMap<&str, &Json> = input["files"].items().iter().map(|f| (f["id"].str_or_empty(), f)).collect();
 	let mut rows: Vec<Json> = input["lessons"]
 		.items()
 		.iter()
@@ -208,9 +220,11 @@ fn lesson_rows(input: &Json, by_lesson: &[&[Json]], lesson_at: &HashMap<&str, us
 			if plan["total"].as_f64().is_some_and(|t| t > 0.0) {
 				o.insert("step", gs_json::json!({ "done": plan["done"], "total": plan["total"] }));
 			}
-			if is_unfinished(l, &tally, input, &deadlines) {
+			let problems = problems_done(&Json::Arr(lesson_problems(l, &deadlines, &files).to_vec()));
+			if is_unfinished(l, &tally, input, &deadlines, problems.as_ref()) {
 				o.insert("unfinished", true);
 			}
+			o.insert_present("problems", problems.as_ref());
 			o.insert_present("deadlineId", l.get("deadlineId"));
 			Json::Obj(o)
 		})
@@ -220,15 +234,20 @@ fn lesson_rows(input: &Json, by_lesson: &[&[Json]], lesson_at: &HashMap<&str, us
 }
 
 /// Whether a lesson is left to go back to. A homework lesson, only its deadline's latest, while
-/// the deadline is not done and not every problem is. Any other lesson with a plan until the plan
-/// is finished; one with none while something waits for the learner or nothing is answered yet.
-fn is_unfinished(lesson: &Json, tally: &Tally, input: &Json, deadlines: &HashMap<&str, &Json>) -> bool {
+/// the deadline is not done and not every problem is (`problems`). A lesson on files with listed
+/// problems while one is not done. Any other lesson with a plan until the plan is finished; one
+/// with none while something waits for the learner or nothing is answered yet.
+fn is_unfinished(lesson: &Json, tally: &Tally, input: &Json, deadlines: &HashMap<&str, &Json>, problems: Option<&Json>) -> bool {
+	let all_done = problems.is_some_and(|p| p["done"] == p["total"]);
 	if let Some(deadline_id) = lesson["deadlineId"].as_str()
 		&& lesson["kind"].as_str() == Some("homework")
 	{
 		// No problems posted yet is not every problem done.
-		let open = deadlines.get(deadline_id).is_some_and(|d| !d["done"].truthy() && problems_done(&d["problems"]).is_none_or(|p| p["done"] != p["total"]));
+		let open = deadlines.get(deadline_id).is_some_and(|d| !d["done"].truthy() && !all_done);
 		return open && latest_homework(deadline_id, input["homeworkSessions"].items()).as_deref() == lesson["id"].as_str();
+	}
+	if problems.is_some() {
+		return !all_done;
 	}
 	match lesson.get("plan") {
 		Some(plan) => !plan_finished(plan),
@@ -396,6 +415,40 @@ mod tests {
 		assert_eq!(rows(lessons.clone(), homework(false, all_done), json!([]), sessions.clone())["new"].get("unfinished"), None, "every problem done");
 		assert_eq!(rows(lessons.clone(), homework(true, undone), json!([]), sessions.clone())["new"].get("unfinished"), None, "the deadline is done");
 		assert_eq!(rows(lessons, homework(false, json!([])), json!([]), sessions)["new"]["unfinished"], json!(true), "no problems posted yet");
+	}
+
+	#[test]
+	fn a_lesson_on_files_carries_its_first_files_problems_and_is_unfinished_while_one_is_undone() {
+		let files = json!([
+			{ "id": "f_test", "name": "Practice midterm.pdf", "problems": [{ "number": "1", "done": true }, { "number": "2", "done": false }] },
+			{ "id": "f_done", "name": "Quiz.pdf", "problems": [{ "number": "1", "done": true }] },
+			{ "id": "f_notes", "name": "Notes.pdf" },
+		]);
+		let plan = json!({ "done": 3, "total": 3, "endedAt": "2026-11-16T11:00:00.000Z" });
+		let input = json!({
+			"spaceId": "spc_a", "today": "2026-11-16", "facts": [], "chains": [], "topics": null, "files": files, "deadlines": [], "deadlineSessions": [], "homeworkSessions": [],
+			"lessons": [
+				lesson("test", "study", json!({ "fileIds": ["f_test", "f_notes"], "plan": plan })),
+				lesson("quiz", "study", json!({ "fileIds": ["f_done"] })),
+				lesson("notes", "study", json!({ "fileIds": ["f_notes"], "plan": plan })),
+			],
+		});
+		let out = derive_progress(&input);
+		let r: HashMap<&str, &Json> = out["lessons"].items().iter().map(|l| (l["chatId"].str_or_empty(), l)).collect();
+		assert_eq!((r["test"]["problems"].clone(), r["test"]["unfinished"].clone()), (json!({ "done": 1, "total": 2 }), json!(true)), "a problem undone, though the plan ended");
+		assert_eq!((r["quiz"]["problems"].clone(), r["quiz"].get("unfinished")), (json!({ "done": 1, "total": 1 }), None), "every problem done");
+		assert_eq!((r["notes"].get("problems"), r["notes"].get("unfinished")), (None, None), "no problems: the plan decides");
+	}
+
+	#[test]
+	fn a_homework_lesson_carries_its_deadlines_problems() {
+		let r = rows(
+			json!([lesson("hw", "homework", json!({ "deadlineId": "d1" }))]),
+			json!([{ "id": "d1", "kind": "homework", "name": "HW6", "date": "2026-12-01", "done": false, "problems": [{ "number": "1", "done": true }, { "number": "2", "done": false }] }]),
+			json!([]),
+			json!([{ "chatId": "hw", "deadlineId": "d1", "createdAt": "2026-11-01" }]),
+		);
+		assert_eq!(r["hw"]["problems"], json!({ "done": 1, "total": 2 }));
 	}
 
 	#[test]
