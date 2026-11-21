@@ -26,6 +26,7 @@ import { GraphScreen } from "../../src/frontend/components/graph/graph-screen.ts
 import { Constellation } from "../../src/frontend/components/graph/constellation.tsx";
 import type { Aim, Flight } from "../../src/frontend/components/graph/constellation-camera.ts";
 import type { InView } from "../../src/frontend/components/graph/use-in-view.ts";
+import type { PanelRoom } from "../../src/frontend/components/graph/use-link-fit.ts";
 import { FAINT } from "../../src/frontend/components/graph/styles.ts";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
 import { SpaceProvider } from "../../src/frontend/components/space-context.tsx";
@@ -57,6 +58,25 @@ Object.assign(globalThis, {
 Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
 // The reveal asks the media query once and reads its live value after.
 const reducedMotion = { matches: false };
+/** A slip's room at rest in a wide window. */
+const SLIP: PanelRoom = { stacked: false, width: 1100, height: 300 };
+/** Lays out each panel `base` points plus 60 per link chip, the way a browser would, while `run` goes. */
+async function withChipHeights(run: () => Promise<void>, base = 0) {
+	const proto = dom.window.HTMLElement.prototype;
+	const own = Object.getOwnPropertyDescriptor(proto, "offsetHeight");
+	Object.defineProperty(proto, "offsetHeight", {
+		configurable: true,
+		get(this: HTMLElement) {
+			return this.matches("[data-testid=fact-pane], [data-testid=topic-pane]") ? base + 60 * this.querySelectorAll("[data-testid=fact-link], [data-testid=topic-link], [data-testid=links-more]").length : 0;
+		},
+	});
+	try {
+		await run();
+	} finally {
+		if (own) Object.defineProperty(proto, "offsetHeight", own);
+		else delete (proto as { offsetHeight?: number }).offsetHeight;
+	}
+}
 Object.assign(dom.window, { matchMedia: () => reducedMotion });
 // The picture lays out again once the page's font is in.
 Object.assign(dom.document, { fonts: { ready: Promise.resolve() } });
@@ -119,7 +139,7 @@ describe("the picked topic", () => {
 	const data = fixture();
 	const mini = data.topics.find((t) => t.id === "t-mini")!;
 	const html = renderToStaticMarkup(
-		inRouter(<TopicPane topic={mini} topics={data.topics} links={data.topicLinks} facts={data.facts} stacked={false} onClose={noop} onSelectTopic={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} />),
+		inRouter(<TopicPane topic={mini} topics={data.topics} links={data.topicLinks} facts={data.facts} room={SLIP} onClose={noop} onSelectTopic={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} />),
 	);
 
 	it("names the topic, with Close, its fact count and score, and the sure-miss note", () => {
@@ -140,7 +160,7 @@ describe("the picked topic", () => {
 
 	it("a topic with no links leaves both groups out", () => {
 		const alone = renderToStaticMarkup(
-			inRouter(<TopicPane topic={mini} topics={data.topics} links={[]} facts={data.facts} stacked={false} onClose={noop} onSelectTopic={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} />),
+			inRouter(<TopicPane topic={mini} topics={data.topics} links={[]} facts={data.facts} room={SLIP} onClose={noop} onSelectTopic={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} />),
 		);
 		assert.ok(!alone.includes("needs-first") && !alone.includes("leads-to"));
 	});
@@ -177,7 +197,7 @@ describe("the picked fact", () => {
 		topic: mini,
 		facts: data.facts,
 		sources,
-		stacked: false,
+		room: SLIP,
 		onBack: noop,
 		onClose: noop,
 		onOpenFact: noop,
@@ -220,22 +240,50 @@ describe("the picked fact", () => {
 		assert.ok(!pane({ topic: null }).includes("fact-pane-back"));
 	});
 
-	it("a long list of links folds behind one chip that opens the rest", async () => {
+	it("at rest the links fold to what fits the slip whole; the chip opens them all, and then the slip scrolls", async () => {
 		const many: FactSources = { ...sources, chains: ["f1", "f2", "f3", "f4", "f5", "f7", "f8"].map((id) => ({ premises: ["f6"], conclusion: id })) };
-		const { q } = await mount(inRouter(<FactPane {...props({ sources: many })} />));
-		const leads = () => q("fact-leads-to")!.querySelectorAll("[data-testid=fact-link]").length;
-		assert.equal(leads(), 4);
-		assert.equal(q("links-more")!.textContent, "3 more");
-		await act(async () => q("links-more")!.click());
-		assert.equal(leads(), 7);
-		assert.equal(q("links-more"), null);
+		await withChipHeights(async () => {
+			const { q } = await mount(inRouter(<FactPane {...props({ sources: many })} />));
+			const leads = () => q("fact-leads-to")!.querySelectorAll("[data-testid=fact-link]").length;
+			assert.equal(leads(), 4, "four chips and the fold chip fill the 300 points");
+			assert.equal(q("links-more")!.textContent, "3 more");
+			assert.equal(q("fact-pane")!.style.maxHeight, "");
+			await act(async () => q("links-more")!.click());
+			assert.equal(leads(), 7);
+			assert.equal(q("links-more"), null);
+			assert.equal(q("fact-pane")!.style.maxHeight, "300px", "opened, the slip keeps its room and its middle scrolls");
+		});
 	});
 
-	it("one link more than fit is shown, not folded", () => {
+	it("words too tall for the slip with every link folded ask for the panel alone", async () => {
+		let tooTall = 0;
+		await withChipHeights(async () => {
+			const { q } = await mount(inRouter(<FactPane {...props({ room: { ...SLIP, onTooTall: () => tooTall++ } })} />));
+			assert.ok(q("fact-pane"));
+			assert.ok(tooTall > 0);
+			assert.equal(q("fact-pane")!.querySelectorAll("[data-testid=fact-link]").length, 0, "every link folded first");
+		}, 400);
+	});
+
+	it("links that fit show whole, with no fold chip", async () => {
 		const five: FactSources = { ...sources, chains: ["f1", "f2", "f3", "f4", "f5"].map((id) => ({ premises: ["f6"], conclusion: id })) };
-		const html = pane({ sources: five });
-		assert.equal(count(html, 'data-testid="fact-link"'), 5);
-		assert.ok(!html.includes("links-more"));
+		await withChipHeights(async () => {
+			const { q } = await mount(inRouter(<FactPane {...props({ sources: five })} />));
+			assert.equal(q("fact-leads-to")!.querySelectorAll("[data-testid=fact-link]").length, 5);
+			assert.equal(q("links-more"), null);
+		});
+	});
+
+	it("a topic's links fold the same way, shared between its two groups", async () => {
+		const others = Array.from({ length: 7 }, (_, i) => ({ ...data.topics[0]!, id: `t-other-${i}`, name: `Other ${i}` }));
+		const topics = [...data.topics, ...others];
+		const links = others.map((t, i) => (i % 2 ? { from: mini.id, to: t.id, weight: 1 } : { from: t.id, to: mini.id, weight: 1 }));
+		await withChipHeights(async () => {
+			const { q } = await mount(inRouter(<TopicPane topic={mini} topics={topics} links={links} facts={data.facts} room={SLIP} onClose={noop} onSelectTopic={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} />));
+			assert.equal(q("topic-pane")!.querySelectorAll("[data-testid=topic-link]").length, 3);
+			await act(async () => q("links-more")!.click());
+			assert.equal(q("topic-pane")!.querySelectorAll("[data-testid=topic-link]").length, others.length);
+		});
 	});
 
 	// A source only names its file: the space's record finds the file, the server its full path.
@@ -322,7 +370,7 @@ describe("the picked fact", () => {
 	});
 
 	it("stacked for a narrow room: one column, the moon beside the name", () => {
-		const html = pane({ stacked: true });
+		const html = pane({ room: { ...SLIP, stacked: true } });
 		assert.match(html, /data-testid="fact-pane"[^>]*class="[^"]*flex-col/);
 		assert.ok(html.indexOf("<svg") < html.indexOf("<h2"), "the moon comes before the name");
 	});

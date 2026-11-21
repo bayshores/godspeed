@@ -9,6 +9,7 @@ import { GraphEmpty } from "./graph-empty.tsx";
 import { GraphLayout } from "./graph-layout.tsx";
 import { panelAlone } from "./graph-layout-model.ts";
 import { TopicPane } from "./topic-pane.tsx";
+import type { PanelRoom } from "./use-link-fit.ts";
 import { REVEAL_MS, type Reveal } from "./constellation-reveal.ts";
 import { nothingGrouped } from "./derive.ts";
 import { useRoom } from "./use-room.ts";
@@ -151,14 +152,14 @@ export function GraphBody({
 	// The picked topic never dims under Find.
 	const focus = matches && selected ? new Set([...matches.topics, selected.id]) : (matches?.topics ?? null);
 	const panel =
-		fact ? (stacked: boolean) => (
+		fact ? (fits: PanelRoom) => (
 			<FactPane
 				key={fact.id}
 				fact={fact}
 				topic={selected ?? null}
 				facts={data.facts}
 				sources={sources}
-				stacked={stacked}
+				room={fits}
 				onBack={backToTopic}
 				onClose={close}
 				onOpenFact={openFact}
@@ -166,14 +167,14 @@ export function GraphBody({
 				studying={studying}
 				studyError={studyError}
 			/>
-		) : selected ? (stacked: boolean) => (
+		) : selected ? (fits: PanelRoom) => (
 			<TopicPane
 				key={selected.id}
 				topic={selected}
 				topics={data.topics}
 				links={data.topicLinks}
 				facts={data.facts}
-				stacked={stacked}
+				room={fits}
 				onClose={close}
 				onSelectTopic={pick}
 				onOpenFact={openFact}
@@ -185,6 +186,7 @@ export function GraphBody({
 	return (
 		<GraphLayout
 			room={room}
+			panelKey={fact?.id ?? selected?.id ?? null}
 			panel={panel}
 			onRefit={() => selected && onFly({ to: "topic", id: selected.id, fact: null })}
 			picture={({ width, height, bleed }) => (

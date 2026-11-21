@@ -8,7 +8,7 @@ import { describe, it } from "node:test";
 import {
 	answerLine,
 	factCellLabel,
-	foldLinks,
+	shareLinks,
 	sameWords,
 	topicColor,
 	factLinks,
@@ -49,11 +49,11 @@ describe("panel helpers", () => {
 		assert.equal(sameWords("Bit", "A bit holds 0 or 1."), false);
 	});
 
-	it("foldLinks: the first few and how many more; one more than fit, or open, shows all", () => {
-		const list = [1, 2, 3, 4, 5, 6, 7];
-		assert.deepEqual(foldLinks(list, 4, false), { shown: [1, 2, 3, 4], more: 3 });
-		assert.deepEqual(foldLinks(list.slice(0, 5), 4, false), { shown: [1, 2, 3, 4, 5], more: 0 });
-		assert.deepEqual(foldLinks(list, 4, true), { shown: list, more: 0 });
+	it("shareLinks: one link to each group in turn, as many as fit", () => {
+		assert.deepEqual(shareLinks([2, 11], 5), [2, 3]);
+		assert.deepEqual(shareLinks([4, 4], 3), [2, 1]);
+		assert.deepEqual(shareLinks([3, 0], 9), [3, 0]);
+		assert.deepEqual(shareLinks([3, 2], 0), [0, 0]);
 	});
 
 	it("topicColor: quiet ink untested, the ramp once tested", () => {

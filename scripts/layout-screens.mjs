@@ -262,7 +262,8 @@ export const SCREENS = [
 		url: "/graph",
 		ready: "[data-testid=graph-topic]",
 		setup: `${pickMiddleTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}; ${fitsWindow}`,
-		shows: "[data-testid=topic-pane]:has([data-testid=needs-first] [data-testid=topic-link] ~ [data-testid=topic-link]):has([data-testid=leads-to] [data-testid=topic-link] ~ [data-testid=topic-link])",
+		// Links that do not fit the slip whole fold behind "N more", so a group shows a chip either way.
+		shows: "[data-testid=topic-pane]:has([data-testid=needs-first] [data-testid=topic-link]):has([data-testid=leads-to] :is([data-testid=topic-link], [data-testid=links-more]))",
 	},
 	{
 		name: "Graph, zoomed by hand",
@@ -279,11 +280,11 @@ export const SCREENS = [
 		shows: "[data-testid=graph-panel] [data-testid=fact-pane]",
 	},
 	{
-		name: "Graph, a fact from a file that builds on two facts and leads to three",
+		name: "Graph, a fact from a file that builds on facts and leads to others",
 		url: "/graph",
 		ready: "[data-testid=graph-topic]",
 		setup: `${pickMiddleTopic}; ${pause}; document.querySelector("[data-testid=topic-pane] [data-testid=fact-moon][aria-label^='Isolate the variable']").click(); ${cameraRests(`picture().hasAttribute("data-near")`)}; ${fitsWindow}`,
-		shows: "[data-testid=fact-pane]:has([data-testid=fact-source-open]):has([data-testid=builds-on] [data-testid=fact-link] ~ [data-testid=fact-link]):has([data-testid=fact-leads-to] [data-testid=fact-link] ~ [data-testid=fact-link] ~ [data-testid=fact-link])",
+		shows: "[data-testid=fact-pane]:has([data-testid=fact-source-open]):has([data-testid=builds-on] [data-testid=fact-link]):has([data-testid=fact-leads-to] :is([data-testid=fact-link], [data-testid=links-more]))",
 	},
 	{
 		name: "Graph beside the teacher's panel, whose Activity ends with the graph's costs",

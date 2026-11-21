@@ -2,23 +2,25 @@
  * The picked topic, as the slip under the picture: its name, the fact count
  * and score, each fact as its moon (each opens the fact), the sure-miss
  * note, the topics it needs first and leads to (each opens that topic),
- * then its note in Obsidian and Study at the right, under Close. A tall
- * slip scrolls its middle, so the keys stay in view.
+ * then its note in Obsidian and Study at the right, under Close. At rest
+ * the links fold so the slip shows whole; opened, its middle scrolls and
+ * the keys stay in view.
  */
 import { useMemo } from "react";
 import { topicFacts, type FactProgress, type TopicLink, type TopicProgress } from "@/shared/core";
-import { neighbors, sureMissNote, topicColor, topicCountLine } from "./derive.ts";
+import { neighbors, shareLinks, sureMissNote, topicColor, topicCountLine } from "./derive.ts";
 import { LinkChips } from "./link-chips.tsx";
 import { NoteKey } from "./note-key.tsx";
 import { CloseButton, StudyButton } from "./pane-buttons.tsx";
 import { TopicMoons } from "./topic-moons.tsx";
+import { useLinkFit, type PanelRoom } from "./use-link-fit.ts";
 
 export function TopicPane({
 	topic,
 	topics,
 	links,
 	facts,
-	stacked,
+	room,
 	onClose,
 	onSelectTopic,
 	onOpenFact,
@@ -30,8 +32,7 @@ export function TopicPane({
 	topics: readonly TopicProgress[];
 	links: readonly TopicLink[];
 	facts: readonly FactProgress[];
-	/** One column, for a narrow room. */
-	stacked: boolean;
+	room: PanelRoom;
 	onClose: () => void;
 	onSelectTopic: (id: string) => void;
 	onOpenFact: (id: string) => void;
@@ -43,6 +44,9 @@ export function TopicPane({
 	const { needs, leadsTo } = useMemo(() => neighbors(topic.id, links, byId), [topic.id, links, byId]);
 	const list = useMemo(() => topicFacts(facts, topic), [facts, topic]);
 	const note = sureMissNote(topic);
+	const { stacked } = room;
+	const fit = useLinkFit(needs.length + leadsTo.length, room);
+	const [needsShown = 0, leadsShown = 0] = shareLinks([needs.length, leadsTo.length], fit.shown);
 	const chips = (ts: readonly TopicProgress[]) => ts.map((t) => ({ id: t.id, name: t.name, mark: <span aria-hidden className="mx-1 size-[10px] shrink-0" style={{ background: topicColor(t) }} /> }));
 	const keys = (
 		<div className={`flex min-w-0 gap-3 ${stacked ? "items-end justify-between" : "flex-col items-end"}`}>
@@ -51,8 +55,8 @@ export function TopicPane({
 		</div>
 	);
 	return (
-		<section data-testid="topic-pane" aria-label="Topic" className={`lh-sheet relative flex min-h-0 ${stacked ? "flex-col gap-4 p-6" : "items-stretch gap-9 py-6 pr-6 pl-7"}`}>
-			<div className="lh-scroll-fade -mb-4 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
+		<section ref={fit.box} data-testid="topic-pane" aria-label="Topic" style={fit.open ? { maxHeight: room.height } : undefined} className={`lh-sheet relative flex min-h-0 ${stacked ? "flex-col gap-4 p-6" : "items-stretch gap-9 py-6 pr-6 pl-7"}`}>
+			<div ref={fit.middle} className="lh-scroll-fade -mb-4 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
 				<h2 className={`${stacked ? "pr-12 " : ""}text-2xl leading-tight [overflow-wrap:anywhere] text-ink`}>{topic.name}</h2>
 				<p data-testid="topic-score" className="-mt-1 text-base text-ink-2">
 					{topicCountLine(list.length, topic)}
@@ -64,8 +68,8 @@ export function TopicPane({
 					</p>
 				)}
 				<div className="mt-1 flex min-w-0 flex-wrap gap-x-7 gap-y-2">
-					<LinkChips key={`needs ${topic.id}`} label="Needs first" chips={chips(needs)} onOpen={onSelectTopic} testid="needs-first" chipTestid="topic-link" />
-					<LinkChips key={`leads ${topic.id}`} label="Leads to" chips={chips(leadsTo)} onOpen={onSelectTopic} testid="leads-to" chipTestid="topic-link" />
+					<LinkChips label="Needs first" chips={chips(needs)} shown={needsShown} onOpen={onSelectTopic} onMore={fit.openAll} testid="needs-first" chipTestid="topic-link" />
+					<LinkChips label="Leads to" chips={chips(leadsTo)} shown={leadsShown} onOpen={onSelectTopic} onMore={fit.openAll} testid="leads-to" chipTestid="topic-link" />
 				</div>
 			</div>
 			{stacked ? (

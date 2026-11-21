@@ -3,18 +3,19 @@
  * under it; its name and what it says; the facts it builds on and leads to
  * (each opens); its file or lesson and Study at the right. The topic it was
  * opened in stands on the top edge as a tab back to the topic, and Close
- * sits at the top right. A tall slip scrolls its middle, so the keys stay
- * in view. Stacked, for a narrow room, the moon sits beside the name and
- * the keys under the words.
+ * sits at the top right. At rest the links fold so the slip shows whole;
+ * opened, its middle scrolls and the keys stay in view. Stacked, for a
+ * narrow room, the moon sits beside the name and the keys under the words.
  */
 import { useMemo } from "react";
 import type { FactProgress, GraphChain, TopicProgress } from "@/shared/core";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
-import { answerLine, factLinks, sameWords } from "./derive.ts";
+import { answerLine, factLinks, sameWords, shareLinks } from "./derive.ts";
 import { FactMoon } from "./fact-moon.tsx";
 import { FactFileKey } from "./fact-file-key.tsx";
 import { LinkChips } from "./link-chips.tsx";
 import { CloseButton, StudyButton, TopicTab } from "./pane-buttons.tsx";
+import { useLinkFit, type PanelRoom } from "./use-link-fit.ts";
 
 /** What the page knows about where facts came from (the graph snapshot's maps). */
 export interface FactSources {
@@ -30,7 +31,7 @@ export function FactPane({
 	topic,
 	facts,
 	sources,
-	stacked,
+	room,
 	onBack,
 	onClose,
 	onOpenFact,
@@ -44,8 +45,7 @@ export function FactPane({
 	facts: readonly FactProgress[];
 	/** null while the snapshot loads. */
 	sources: FactSources | null;
-	/** One column, for a narrow room. */
-	stacked: boolean;
+	room: PanelRoom;
 	onBack: () => void;
 	/** Closes the fact and its topic. */
 	onClose: () => void;
@@ -54,6 +54,10 @@ export function FactPane({
 	studying: boolean;
 	studyError: string | null;
 }) {
+	const { stacked } = room;
+	const links = useLinkChips(fact.id, facts, sources);
+	const fit = useLinkFit(links.buildsOn.length + links.leadsTo.length, room);
+	const [buildsOn = 0, leadsTo = 0] = shareLinks([links.buildsOn.length, links.leadsTo.length], fit.shown);
 	const answers = (
 		<p data-testid="fact-answers" className={`text-base leading-snug text-ink-2 ${stacked ? "" : "text-center"}`}>
 			{answerLine(fact)}
@@ -71,7 +75,12 @@ export function FactPane({
 					<InlineMath text={fact.statement} />
 				</p>
 			)}
-			<FactLinks fact={fact} facts={facts} sources={sources} onOpen={onOpenFact} />
+			{links.buildsOn.length + links.leadsTo.length > 0 && (
+				<div className="mt-2 flex min-w-0 flex-wrap gap-x-7 gap-y-2">
+					<LinkChips label="Builds on" chips={links.buildsOn} shown={buildsOn} onOpen={onOpenFact} onMore={fit.openAll} testid="builds-on" chipTestid="fact-link" />
+					<LinkChips label="Leads to" chips={links.leadsTo} shown={leadsTo} onOpen={onOpenFact} onMore={fit.openAll} testid="fact-leads-to" chipTestid="fact-link" />
+				</div>
+			)}
 		</>
 	);
 	const keys = (
@@ -81,7 +90,7 @@ export function FactPane({
 		</div>
 	);
 	return (
-		<section data-testid="fact-pane" aria-label="Fact" className={`lh-sheet relative flex min-h-0 ${stacked ? "flex-col gap-4 p-6" : "items-stretch gap-9 py-6 pr-6 pl-7"}`}>
+		<section ref={fit.box} data-testid="fact-pane" aria-label="Fact" style={fit.open ? { maxHeight: room.height } : undefined} className={`lh-sheet relative flex min-h-0 ${stacked ? "flex-col gap-4 p-6" : "items-stretch gap-9 py-6 pr-6 pl-7"}`}>
 			{topic && <TopicTab topic={topic} onClick={onBack} />}
 			{stacked ? (
 				<>
@@ -95,7 +104,9 @@ export function FactPane({
 					<div className="absolute top-5 right-5">
 						<CloseButton testid="fact-pane-close" onClick={onClose} />
 					</div>
-					<div className="lh-scroll-fade -mb-4 flex min-h-0 flex-col gap-4 overflow-y-auto">{words}</div>
+					<div ref={fit.middle} className="lh-scroll-fade -mb-4 flex min-h-0 flex-col gap-4 overflow-y-auto">
+						{words}
+					</div>
 					{keys}
 				</>
 			) : (
@@ -104,7 +115,7 @@ export function FactPane({
 						<FactMoon fact={fact} size={90} />
 						{answers}
 					</div>
-					<div className="lh-scroll-fade -mb-4 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
+					<div ref={fit.middle} className="lh-scroll-fade -mb-4 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
 						{name}
 						{words}
 					</div>
@@ -118,22 +129,16 @@ export function FactPane({
 	);
 }
 
-function FactLinks({ fact, facts, sources, onOpen }: { fact: FactProgress; facts: readonly FactProgress[]; sources: FactSources | null; onOpen: (id: string) => void }) {
-	const byId = useMemo(() => new Map(facts.map((f) => [f.id, f])), [facts]);
-	const links = useMemo(() => (sources ? factLinks(fact.id, sources.chains) : null), [fact.id, sources]);
-	if (!links) return null;
-	const chips = (ids: readonly string[]) =>
-		ids
-			.map((id) => byId.get(id))
-			.filter((f): f is FactProgress => !!f)
-			.map((f) => ({ id: f.id, name: f.name, shown: <InlineMath text={f.name} />, mark: <FactMoon fact={f} size={18} /> }));
-	const buildsOn = chips(links.buildsOn);
-	const leadsTo = chips(links.leadsTo);
-	if (buildsOn.length + leadsTo.length === 0) return null;
-	return (
-		<div className="mt-2 flex min-w-0 flex-wrap gap-x-7 gap-y-2">
-			<LinkChips label="Builds on" chips={buildsOn} onOpen={onOpen} testid="builds-on" chipTestid="fact-link" />
-			<LinkChips label="Leads to" chips={leadsTo} onOpen={onOpen} testid="fact-leads-to" chipTestid="fact-link" />
-		</div>
-	);
+/** The chips for the facts a fact builds on and leads to; none while the snapshot loads. */
+function useLinkChips(factId: string, facts: readonly FactProgress[], sources: FactSources | null) {
+	return useMemo(() => {
+		const byId = new Map(facts.map((f) => [f.id, f]));
+		const links = sources ? factLinks(factId, sources.chains) : { buildsOn: [], leadsTo: [] };
+		const chips = (ids: readonly string[]) =>
+			ids
+				.map((id) => byId.get(id))
+				.filter((f): f is FactProgress => !!f)
+				.map((f) => ({ id: f.id, name: f.name, shown: <InlineMath text={f.name} />, mark: <FactMoon fact={f} size={18} /> }));
+		return { buildsOn: chips(links.buildsOn), leadsTo: chips(links.leadsTo) };
+	}, [factId, facts, sources]);
 }

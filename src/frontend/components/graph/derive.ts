@@ -138,8 +138,17 @@ export function sameWords(name: string, statement: string): boolean {
 	return !statement.trim() || plain(name) === plain(statement);
 }
 
-/** A list of links folded to its first `limit`, with how many more wait behind a chip; one more is shown rather than folded. */
-export function foldLinks<T>(list: readonly T[], limit: number, open: boolean): { shown: readonly T[]; more: number } {
-	if (open || list.length <= limit + 1) return { shown: list, more: 0 };
-	return { shown: list.slice(0, limit), more: list.length - limit };
+/** How many links each group shows when `budget` links fit: one to each group in turn, until the budget or the links run out. */
+export function shareLinks(counts: readonly number[], budget: number): number[] {
+	const shown = counts.map(() => 0);
+	let left = Math.min(Math.max(0, budget), counts.reduce((a, b) => a + b, 0));
+	while (left > 0) {
+		counts.forEach((count, i) => {
+			if (left > 0 && shown[i]! < count) {
+				shown[i] = shown[i]! + 1;
+				left--;
+			}
+		});
+	}
+	return shown;
 }

@@ -7,7 +7,7 @@
 /** With less room than this, across or down, the panel takes the picture's place. */
 const NARROW = 760;
 const LOW = 470;
-/** The most of the room's height the slip takes; past it, its middle scrolls. */
+/** The most of the room's height the slip takes; its links fold to fit, and once opened its middle scrolls. */
 const SLIP_SHARE = 0.45;
 /** The topic's tab stands this far above the slip's top edge. */
 export const TAB_H = 36;

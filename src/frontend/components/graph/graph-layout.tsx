@@ -1,8 +1,9 @@
 /**
  * The Graph picture and its open panel in the page's room. The panel is a
- * slip under the picture, at most SLIP_SHARE of the room, and the picture
- * takes the room above it; in a room too small for both the panel takes the
- * picture's place. The picture fades in once as it re-fits around a panel
+ * slip under the picture, fitted at rest to SLIP_SHARE of the room, and the
+ * picture takes the room above it; in a room too small for both, or when the
+ * panel is too tall for the slip even with its links folded, the panel takes
+ * the picture's place. The picture fades in once as it re-fits around a panel
  * that opens or closes, and once the slip's height is known the picked
  * topic is fitted into the room again.
  */
@@ -10,6 +11,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import type { Bleed } from "./constellation-camera.ts";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { panelAlone, panelStacked, pictureHeight, slipCap, TAB_H } from "./graph-layout-model.ts";
+import type { PanelRoom } from "./use-link-fit.ts";
 import type { Room } from "./use-room.ts";
 
 /** The room a zoomed-in picture keeps clear under the tab row's rule. */
@@ -22,18 +24,23 @@ const REFIT = 24;
 
 export function GraphLayout({
 	room,
+	panelKey,
 	panel,
 	picture,
 	onRefit,
 }: {
 	room: Room;
-	/** The open panel, laid out stacked or not; null with nothing picked. */
-	panel: ((stacked: boolean) => ReactNode) | null;
+	/** Names the open panel (its fact or topic), so one too tall for the slip shows alone until another opens or the room changes. */
+	panelKey: string | null;
+	/** The open panel, laid out for the room it fits; null with nothing picked. */
+	panel: ((room: PanelRoom) => ReactNode) | null;
 	picture: (box: { width: number; height: number; bleed: Bleed }) => ReactNode;
 	/** The slip's height changed: fit the picked topic into the picture's new room. */
 	onRefit: () => void;
 }) {
-	const alone = !!panel && panelAlone(room);
+	const [tooTall, setTooTall] = useState<string | null>(null);
+	const tallKey = `${panelKey} ${room.width} ${room.height}`;
+	const alone = !!panel && (panelAlone(room) || tooTall === tallKey);
 	const slip = useSlipHeight(!!panel && !alone);
 	const cap = slipCap(room.height);
 	const height = pictureHeight(room.height, panel && !alone ? Math.min(cap, slip.height || cap) : 0);
@@ -63,7 +70,7 @@ export function GraphLayout({
 		return (
 			<div ref={room.ref} className="w-full">
 				<aside data-testid="graph-panel" className="lh-fade flex w-full flex-col" style={{ maxHeight: room.height, paddingTop: TAB_H }}>
-					{panel(panelStacked(room))}
+					{panel({ stacked: panelStacked(room), width: room.width, height: room.height - TAB_H })}
 				</aside>
 			</div>
 		);
@@ -75,7 +82,7 @@ export function GraphLayout({
 			<div ref={pictureRef}>{picture({ width: room.width, height, bleed })}</div>
 			{panel && (
 				<aside ref={slip.ref} data-testid="graph-panel" className="lh-rise absolute inset-x-0 bottom-0 z-30 flex flex-col" style={{ maxHeight: cap }}>
-					{panel(false)}
+					{panel({ stacked: false, width: room.width, height: cap, onTooTall: () => setTooTall(tallKey) })}
 				</aside>
 			)}
 		</div>
