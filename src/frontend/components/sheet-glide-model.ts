@@ -1,5 +1,5 @@
 /**
- * The lesson's sheets glide to a new height when what they hold changes. Pure.
+ * Sheets (the lesson's, the Graph slip) glide to a new height when what they hold changes. Pure.
  */
 
 export interface Box {
@@ -20,5 +20,10 @@ const MS_A_POINT = 0.35;
 export function glideMs(from: Box, to: Box, sameWindow: boolean): number | null {
 	const travel = Math.abs(to.height - from.height);
 	if (!sameWindow || from.width !== to.width || from.height === 0 || travel < 1) return null;
-	return Math.min(LONGEST_MS, SHORTEST_MS + travel * MS_A_POINT);
+	return travelGlideMs(travel);
+}
+
+/** How long a sheet's edge takes to glide `points`, so a sheet that also moves keeps time with its edge. */
+export function travelGlideMs(points: number): number {
+	return Math.min(LONGEST_MS, SHORTEST_MS + Math.abs(points) * MS_A_POINT);
 }

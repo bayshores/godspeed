@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { glideMs } from "../../src/frontend/components/sheet-glide-model.ts";
+import { glideMs, travelGlideMs } from "../../src/frontend/components/sheet-glide-model.ts";
 
 /** The lesson's sheets glide to a new height. */
 
@@ -11,6 +11,7 @@ describe("glideMs", () => {
 		assert.equal(glideMs(box(300), box(328), true), 110 + 28 * 0.35);
 		assert.equal(glideMs(box(300), box(100), true), 110 + 200 * 0.35);
 		assert.equal(glideMs(box(200), box(1400), true), 320);
+		assert.equal(travelGlideMs(-200), 110 + 200 * 0.35, "the same time for a sheet that moves its edge that far");
 	});
 
 	it("places a sheet at once when nothing changed or it was not drawn before", () => {

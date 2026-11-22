@@ -88,16 +88,13 @@ export function GraphBody({
 	}, [gone]);
 	// Keyboard focus follows the panel: a pick that hides the picture, or a
 	// change inside the panel, lands on the panel's Close; closing from inside
-	// the panel lands back on the topic's button. Applied after the render,
-	// or once a panel shown alone has left and the picture is back.
+	// the panel lands back on the topic's button. Applied after the render.
 	const focusNext = useRef<string | null>(null);
-	const moveFocus = () => {
-		const target = focusNext.current && room.ref.current?.querySelector<HTMLElement>(focusNext.current);
-		if (!target) return;
+	useLayoutEffect(() => {
+		const target = focusNext.current;
 		focusNext.current = null;
-		target.focus();
-	};
-	useLayoutEffect(moveFocus);
+		if (target) room.ref.current?.querySelector<HTMLElement>(target)?.focus();
+	});
 	const focusIn = (box: string) => !!room.ref.current?.querySelector(box)?.contains(document.activeElement);
 	const opening = () => {
 		if (focusIn(PANEL_BOX) || (alone && focusIn(PICTURE))) focusNext.current = PANEL_CLOSE;
@@ -192,10 +189,6 @@ export function GraphBody({
 			panelKey={fact?.id ?? selected?.id ?? null}
 			panel={panel}
 			onRefit={() => selected && onFly({ to: "topic", id: selected.id, fact: null })}
-			onGone={() => {
-				moveFocus();
-				focusNext.current = null;
-			}}
 			picture={({ width, height, bleed }) => (
 				<Constellation
 					topics={data.topics}

@@ -54,6 +54,10 @@ Object.assign(globalThis, {
 		unobserve() {}
 		disconnect() {}
 	},
+	MutationObserver: class {
+		observe() {}
+		disconnect() {}
+	},
 });
 Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
 // The reveal asks the media query once and reads its live value after.
