@@ -7,7 +7,7 @@
  * left to right with their panel; the rest, opened, step in on their own
  * while the ones already shown stay still.
  */
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { CHIP_GAP_MS, stepDelay } from "./slip-motion-model.ts";
 import { useStepIn } from "./use-step-in.ts";
 
@@ -48,10 +48,15 @@ export function LinkChips({
 }) {
 	const at = (step: number) => (stepFrom === null ? null : stepFrom + stepDelay(stepsBefore + step, CHIP_GAP_MS));
 	const labelStep = useStepIn(at(0));
-	// How many chips showed when the group was last drawn: one past them joined later, and steps in alone.
+	// How many chips showed once the group was on screen: one past them joined later ("N more") and steps in alone.
+	// Counted a frame after each change, so chips that come and go while the panel is laid out before it is
+	// drawn (its links folding, or folding again in another room) still step in with their group.
 	const drawn = useRef<number | null>(null);
-	useLayoutEffect(() => {
-		drawn.current = shown;
+	useEffect(() => {
+		const frame = requestAnimationFrame(() => {
+			drawn.current = shown;
+		});
+		return () => cancelAnimationFrame(frame);
 	});
 	if (chips.length === 0) return null;
 	const before = drawn.current;

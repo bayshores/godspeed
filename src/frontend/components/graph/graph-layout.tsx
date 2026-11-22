@@ -50,6 +50,7 @@ export function GraphLayout({
 	panel,
 	picture,
 	onRefit,
+	onCovering,
 }: {
 	room: Room;
 	/** Names the open panel (its fact or topic), so one too tall for the slip shows alone until another opens or the room changes. */
@@ -59,6 +60,8 @@ export function GraphLayout({
 	picture: (box: { width: number; height: number; bleed: Bleed }) => ReactNode;
 	/** The slip's height changed: fit the picked topic into the picture's new room. */
 	onRefit: () => void;
+	/** A panel is in the picture's place: true from the moment it opens there, false once it has gone or moved to the slip. */
+	onCovering: (covering: boolean) => void;
 }) {
 	// A closing panel stays on screen while it leaves, only where it can move (never with reduced motion).
 	const presence = usePresence(!!panel, canMove() ? LEAVE_MS : 0);
@@ -82,6 +85,14 @@ export function GraphLayout({
 	const covering = alone && !leaving;
 	const [covered, setCovered] = useState(covering);
 	if (covered && !covering) setCovered(false);
+	const coveringNow = useRef(onCovering);
+	coveringNow.current = onCovering;
+	const toldCovering = useRef(false);
+	useLayoutEffect(() => {
+		if (toldCovering.current === alone) return;
+		toldCovering.current = alone;
+		coveringNow.current(alone);
+	}, [alone]);
 	const live = {
 		width: room.width,
 		height: pictureHeight(room.height, beside ? Math.min(most, sheetHeight.height || cap) : 0),

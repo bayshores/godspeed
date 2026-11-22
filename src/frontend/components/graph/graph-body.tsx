@@ -89,6 +89,10 @@ export function GraphBody({
 	// Keyboard focus follows the panel: a pick that hides the picture, or a
 	// change inside the panel, lands on the panel's Close; closing from inside
 	// the panel lands back on the topic's button. Applied after the render.
+	// A panel in the picture's place: the foot line counts the whole space from the click until the panel has gone, not the
+	// view of a picture under it; the picture's latest view is told once the panel has gone.
+	const covering = useRef(false);
+	const pictureView = useRef<InView | null>(null);
 	const focusNext = useRef<string | null>(null);
 	useLayoutEffect(() => {
 		const target = focusNext.current;
@@ -189,6 +193,10 @@ export function GraphBody({
 			panelKey={fact?.id ?? selected?.id ?? null}
 			panel={panel}
 			onRefit={() => selected && onFly({ to: "topic", id: selected.id, fact: null })}
+			onCovering={(on) => {
+				covering.current = on;
+				onInView(on ? null : pictureView.current);
+			}}
 			picture={({ width, height, bleed }) => (
 				<Constellation
 					topics={data.topics}
@@ -206,7 +214,10 @@ export function GraphBody({
 					factMatches={matches?.facts ?? null}
 					onPick={pick}
 					onPickFact={openFact}
-					onInView={onInView}
+					onInView={(v) => {
+						pictureView.current = v;
+						if (!covering.current) onInView(v);
+					}}
 					camera={camera}
 					aim={aim}
 				/>
