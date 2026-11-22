@@ -90,7 +90,7 @@ export function FactPane({
 		</div>
 	);
 	return (
-		<section ref={fit.box} data-testid="fact-pane" aria-label="Fact" style={fit.open ? { maxHeight: room.height } : undefined} className={`lh-sheet relative flex min-h-0 ${stacked ? "flex-col gap-4 p-6" : "items-stretch gap-9 py-6 pr-6 pl-7"}`}>
+		<section ref={fit.box} data-testid="fact-pane" aria-label="Fact" className={`lh-sheet relative flex min-h-0 ${stacked ? "flex-col gap-4 p-6" : "items-stretch gap-9 py-6 pr-6 pl-7"}`}>
 			{topic && <TopicTab topic={topic} onClick={onBack} />}
 			{stacked ? (
 				<>

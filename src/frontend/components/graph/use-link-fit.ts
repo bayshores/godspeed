@@ -1,19 +1,23 @@
 /**
  * How many of a panel's links show at rest: as many as let the panel fit its
  * room whole, so nothing in it is cut; the rest wait behind an "N more" chip.
- * Opening them shows all, and then the panel's middle scrolls. Fitted before
- * paint, one link fewer at a time, and again from all when the room changes.
- * A panel too tall with every link folded says so, and shows alone.
+ * Opening them shows all, and the panel's middle scrolls past its greatest
+ * height. Fitted before paint, one link fewer at a time, and again from all
+ * when the room changes. With every link folded the name and words may grow
+ * the panel to its greatest height; one taller still says so, and shows alone.
  */
 import { useLayoutEffect, useRef, useState } from "react";
 
-/** The room a panel fits at rest; height 0 before it is known. */
+/** The room a panel fits at rest. */
 export interface PanelRoom {
 	/** One column, for a narrow room. */
 	stacked: boolean;
 	width: number;
+	/** The height the links fold to fit under. */
 	height: number;
-	/** Only in the slip: the panel is too tall for it even with every link folded. */
+	/** The greatest height, which only the name and words may grow the panel to. */
+	most: number;
+	/** Only in the slip: the panel is taller than its greatest height even with every link folded. */
 	onTooTall?: () => void;
 }
 
@@ -31,7 +35,7 @@ export function useLinkFit(total: number, room: PanelRoom) {
 		const needs = panel.offsetHeight + Math.max(0, words.scrollHeight - words.clientHeight || 0);
 		if (!(needs > room.height)) return;
 		if (fit.shown > 0) setFit((f) => ({ ...f, shown: f.shown - 1 }));
-		else room.onTooTall?.();
+		else if (needs > room.most) room.onTooTall?.();
 	});
-	return { box, middle, open, shown: open ? total : Math.min(fit.shown, total), openAll: () => setOpen(true) };
+	return { box, middle, shown: open ? total : Math.min(fit.shown, total), openAll: () => setOpen(true) };
 }

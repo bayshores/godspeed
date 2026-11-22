@@ -1,16 +1,17 @@
 /**
  * The Graph picture and its open panel in the page's room. The panel is a
- * slip under the picture, fitted at rest to SLIP_SHARE of the room, and the
- * picture takes the room above it; in a room too small for both, or when the
- * panel is too tall for the slip even with its links folded, the panel takes
- * the picture's place. The picture fades in once as it re-fits around a panel
- * that opens or closes, and once the slip's height is known the picked
- * topic is fitted into the room again.
+ * slip under the picture: its links fold to fit SLIP_SHARE of the room, its
+ * name and words may grow it further while the picture keeps its least
+ * height, and the picture takes the room above it. In a room too small for
+ * both, or when the panel is taller than that even with its links folded,
+ * the panel takes the picture's place. The picture fades in once as it
+ * re-fits around a panel that opens or closes, and once the slip's height is
+ * known the picked topic is fitted into the room again.
  */
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { Bleed } from "./constellation-camera.ts";
 import { prefersReducedMotion } from "@/frontend/components/presence";
-import { panelAlone, panelStacked, pictureHeight, slipCap, TAB_H } from "./graph-layout-model.ts";
+import { panelAlone, panelStacked, pictureHeight, slipCap, slipMost, TAB_H } from "./graph-layout-model.ts";
 import type { PanelRoom } from "./use-link-fit.ts";
 import type { Room } from "./use-room.ts";
 
@@ -43,7 +44,8 @@ export function GraphLayout({
 	const alone = !!panel && (panelAlone(room) || tooTall === tallKey);
 	const slip = useSlipHeight(!!panel && !alone);
 	const cap = slipCap(room.height);
-	const height = pictureHeight(room.height, panel && !alone ? Math.min(cap, slip.height || cap) : 0);
+	const most = slipMost(room.height);
+	const height = pictureHeight(room.height, panel && !alone ? Math.min(most, slip.height || cap) : 0);
 
 	const fitted = useRef(0);
 	const refit = useRef(onRefit);
@@ -70,7 +72,7 @@ export function GraphLayout({
 		return (
 			<div ref={room.ref} className="w-full">
 				<aside data-testid="graph-panel" className="lh-fade flex w-full flex-col" style={{ maxHeight: room.height, paddingTop: TAB_H }}>
-					{panel({ stacked: panelStacked(room), width: room.width, height: room.height - TAB_H })}
+					{panel({ stacked: panelStacked(room), width: room.width, height: room.height - TAB_H, most: room.height - TAB_H })}
 				</aside>
 			</div>
 		);
@@ -81,8 +83,8 @@ export function GraphLayout({
 		<div ref={room.ref} className="relative w-full" style={{ height: room.height }}>
 			<div ref={pictureRef}>{picture({ width: room.width, height, bleed })}</div>
 			{panel && (
-				<aside ref={slip.ref} data-testid="graph-panel" className="lh-rise absolute inset-x-0 bottom-0 z-30 flex flex-col" style={{ maxHeight: cap }}>
-					{panel({ stacked: false, width: room.width, height: cap, onTooTall: () => setTooTall(tallKey) })}
+				<aside ref={slip.ref} data-testid="graph-panel" className="lh-rise absolute inset-x-0 bottom-0 z-30 flex flex-col" style={{ maxHeight: most }}>
+					{panel({ stacked: false, width: room.width, height: cap, most, onTooTall: () => setTooTall(tallKey) })}
 				</aside>
 			)}
 		</div>

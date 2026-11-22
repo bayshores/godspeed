@@ -59,7 +59,7 @@ Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
 // The reveal asks the media query once and reads its live value after.
 const reducedMotion = { matches: false };
 /** A slip's room at rest in a wide window. */
-const SLIP: PanelRoom = { stacked: false, width: 1100, height: 300 };
+const SLIP: PanelRoom = { stacked: false, width: 1100, height: 300, most: 360 };
 /** Lays out each panel `base` points plus 60 per link chip, the way a browser would, while `run` goes. */
 async function withChipHeights(run: () => Promise<void>, base = 0) {
 	const proto = dom.window.HTMLElement.prototype;
@@ -240,22 +240,29 @@ describe("the picked fact", () => {
 		assert.ok(!pane({ topic: null }).includes("fact-pane-back"));
 	});
 
-	it("at rest the links fold to what fits the slip whole; the chip opens them all, and then the slip scrolls", async () => {
+	it("at rest the links fold to what fits the slip whole; the chip opens them all", async () => {
 		const many: FactSources = { ...sources, chains: ["f1", "f2", "f3", "f4", "f5", "f7", "f8"].map((id) => ({ premises: ["f6"], conclusion: id })) };
 		await withChipHeights(async () => {
 			const { q } = await mount(inRouter(<FactPane {...props({ sources: many })} />));
 			const leads = () => q("fact-leads-to")!.querySelectorAll("[data-testid=fact-link]").length;
 			assert.equal(leads(), 4, "four chips and the fold chip fill the 300 points");
 			assert.equal(q("links-more")!.textContent, "3 more");
-			assert.equal(q("fact-pane")!.style.maxHeight, "");
 			await act(async () => q("links-more")!.click());
 			assert.equal(leads(), 7);
 			assert.equal(q("links-more"), null);
-			assert.equal(q("fact-pane")!.style.maxHeight, "300px", "opened, the slip keeps its room and its middle scrolls");
 		});
 	});
 
-	it("words too tall for the slip with every link folded ask for the panel alone", async () => {
+	it("words a little taller than the share grow the slip, with no call for the panel alone", async () => {
+		let tooTall = 0;
+		await withChipHeights(async () => {
+			const { q } = await mount(inRouter(<FactPane {...props({ sources: { ...sources, chains: [] }, room: { ...SLIP, onTooTall: () => tooTall++ } })} />));
+			assert.ok(q("fact-pane"));
+			assert.equal(tooTall, 0);
+		}, 330);
+	});
+
+	it("words too tall for the slip's greatest height with every link folded ask for the panel alone", async () => {
 		let tooTall = 0;
 		await withChipHeights(async () => {
 			const { q } = await mount(inRouter(<FactPane {...props({ room: { ...SLIP, onTooTall: () => tooTall++ } })} />));

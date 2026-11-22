@@ -55,7 +55,7 @@ export function TopicPane({
 		</div>
 	);
 	return (
-		<section ref={fit.box} data-testid="topic-pane" aria-label="Topic" style={fit.open ? { maxHeight: room.height } : undefined} className={`lh-sheet relative flex min-h-0 ${stacked ? "flex-col gap-4 p-6" : "items-stretch gap-9 py-6 pr-6 pl-7"}`}>
+		<section ref={fit.box} data-testid="topic-pane" aria-label="Topic" className={`lh-sheet relative flex min-h-0 ${stacked ? "flex-col gap-4 p-6" : "items-stretch gap-9 py-6 pr-6 pl-7"}`}>
 			<div ref={fit.middle} className="lh-scroll-fade -mb-4 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
 				<h2 className={`${stacked ? "pr-12 " : ""}text-2xl leading-tight [overflow-wrap:anywhere] text-ink`}>{topic.name}</h2>
 				<p data-testid="topic-score" className="-mt-1 text-base text-ink-2">
