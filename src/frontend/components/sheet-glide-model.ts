@@ -9,7 +9,7 @@ export interface Box {
 
 /** The shortest and the longest glide, and the time each point of travel adds to the shortest. */
 const SHORTEST_MS = 110;
-const LONGEST_MS = 320;
+export const LONGEST_MS = 320;
 const MS_A_POINT = 0.35;
 
 /**

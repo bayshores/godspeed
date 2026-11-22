@@ -59,7 +59,7 @@ Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
 // The reveal asks the media query once and reads its live value after.
 const reducedMotion = { matches: false };
 /** A slip's room at rest in a wide window. */
-const SLIP: PanelRoom = { stacked: false, width: 1100, height: 300, most: 360 };
+const SLIP: PanelRoom = { stacked: false, width: 1100, height: 300, most: 360, motion: "still" };
 /** Lays out each panel `base` points plus 60 per link chip, the way a browser would, while `run` goes. */
 async function withChipHeights(run: () => Promise<void>, base = 0) {
 	const proto = dom.window.HTMLElement.prototype;

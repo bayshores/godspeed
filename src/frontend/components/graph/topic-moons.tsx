@@ -1,17 +1,31 @@
 /**
  * A topic's facts as their moons, weakest first: each moon a button that
  * opens its fact, its name in a tag over it while pointed at or focused.
+ * The row steps in left to right with its panel.
  */
 import { useRef, useState } from "react";
 import type { FactProgress } from "@/shared/core";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { factCellLabel } from "./derive.ts";
 import { FactMoon } from "./fact-moon.tsx";
+import { MOON_GAP_MS, stepDelay } from "./slip-motion-model.ts";
+import { stepIn } from "./use-step-in.ts";
 
 /** The tag's height and its gap over the moon. */
 const TAG_ABOVE = 40;
 
-export function TopicMoons({ facts, onOpen, size }: { facts: readonly FactProgress[]; onOpen: (id: string) => void; size: number }) {
+export function TopicMoons({
+	facts,
+	onOpen,
+	size,
+	stepFrom,
+}: {
+	facts: readonly FactProgress[];
+	onOpen: (id: string) => void;
+	size: number;
+	/** When the row starts stepping in, in ms after it mounts; null, it is simply there. */
+	stepFrom: number | null;
+}) {
 	const box = useRef<HTMLDivElement>(null);
 	const [tag, setTag] = useState<{ id: string; left: number; top: number; fromRight: boolean } | null>(null);
 	const point = (id: string, el: HTMLElement) => {
@@ -26,22 +40,25 @@ export function TopicMoons({ facts, onOpen, size }: { facts: readonly FactProgre
 	return (
 		<div ref={box} className="relative" onPointerLeave={() => setTag(null)}>
 			<ul className="flex flex-wrap gap-1" data-testid="topic-moons">
-				{facts.map((f) => (
-					<li key={f.id}>
-						<button
-							type="button"
-							data-testid="fact-moon"
-							aria-label={`${f.name}, ${factCellLabel(f)}`}
-							onClick={() => onOpen(f.id)}
-							onPointerEnter={(e) => point(f.id, e.currentTarget)}
-							onFocus={(e) => point(f.id, e.currentTarget)}
-							onBlur={() => setTag(null)}
-							className="lh-press block p-[3px] hover:bg-tone"
-						>
-							<FactMoon fact={f} size={size} />
-						</button>
-					</li>
-				))}
+				{facts.map((f, i) => {
+					const step = stepIn(stepFrom === null ? null : stepFrom + stepDelay(i, MOON_GAP_MS));
+					return (
+						<li key={f.id} className={step.className || undefined} style={step.style}>
+							<button
+								type="button"
+								data-testid="fact-moon"
+								aria-label={`${f.name}, ${factCellLabel(f)}`}
+								onClick={() => onOpen(f.id)}
+								onPointerEnter={(e) => point(f.id, e.currentTarget)}
+								onFocus={(e) => point(f.id, e.currentTarget)}
+								onBlur={() => setTag(null)}
+								className="lh-press block p-[3px] hover:bg-tone"
+							>
+								<FactMoon fact={f} size={size} />
+							</button>
+						</li>
+					);
+				})}
 			</ul>
 			{pointed && (
 				<span

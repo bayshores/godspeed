@@ -2161,6 +2161,8 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
                        bottom, 30 ms apart, the eighth and later together
                        (a reply that landed prints line by line instead,
                        lesson/use-print-in.ts);
+   - .lh-print         an opened fact's big moon prints its pixel rows top
+                       to bottom, in nine hard steps;
    - .lh-flash-right/-wrong  a checked answer's card flips to inverse green
                        or red for a beat, then settles;
    - the streaming block cursor blinks. */
@@ -2199,6 +2201,19 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 }
 .lh-set > :nth-child(n + 8) {
 	animation-delay: 210ms;
+}
+
+/* Its own keyframe: lh-draw-in uncovers left to right, a moon prints top to bottom, two of its 18 rows a step. */
+@keyframes lh-print-rows {
+	from {
+		clip-path: inset(0 0 100% 0);
+	}
+	to {
+		clip-path: inset(0);
+	}
+}
+.lh-print {
+	animation: lh-print-rows 180ms steps(9, end) both;
 }
 
 /* The Graph picture's reveal: each cluster and its name ink in at --lh-at,
@@ -2244,6 +2259,7 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 @media (prefers-reduced-motion: reduce) {
 	.lh-block-in,
 	.lh-set > *,
+	.lh-print,
 	.lh-reveal,
 	.lh-reveal-line,
 	.lh-flash-right [data-testid="answered-card"],

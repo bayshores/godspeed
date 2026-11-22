@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { glideMs } from "../../src/frontend/components/lesson/sheet-glide-model.ts";
+import { glideMs } from "../../src/frontend/components/sheet-glide-model.ts";
 
 /** The lesson's sheets glide to a new height. */
 

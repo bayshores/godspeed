@@ -3,9 +3,13 @@
  * topic needs first and leads to): its word, then a chip per link with the
  * link's moon or color square and its name; the whole chip opens it. Chips
  * wrap in one row. A group shows its first `shown` and folds the rest behind
- * an "N more" chip, which opens every group in the panel.
+ * an "N more" chip, which opens every group in the panel. The chips step in
+ * left to right with their panel; the rest, opened, step in on their own
+ * while the ones already shown stay still.
  */
-import type { ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { CHIP_GAP_MS, stepDelay } from "./slip-motion-model.ts";
+import { useStepIn } from "./use-step-in.ts";
 
 interface LinkChip {
 	id: string;
@@ -23,6 +27,8 @@ export function LinkChips({
 	label,
 	chips,
 	shown,
+	stepFrom,
+	stepsBefore,
 	onOpen,
 	onMore,
 	testid,
@@ -31,27 +37,50 @@ export function LinkChips({
 	label: string;
 	chips: readonly LinkChip[];
 	shown: number;
+	/** When its row starts stepping in, in ms after it mounts; null, it is simply there. */
+	stepFrom: number | null;
+	/** The steps of the row before this group (chipSteps of the group to its left). */
+	stepsBefore: number;
 	onOpen: (id: string) => void;
 	onMore: () => void;
 	testid: string;
 	chipTestid: string;
 }) {
+	const at = (step: number) => (stepFrom === null ? null : stepFrom + stepDelay(stepsBefore + step, CHIP_GAP_MS));
+	const labelStep = useStepIn(at(0));
+	// How many chips showed when the group was last drawn: one past them joined later, and steps in alone.
+	const drawn = useRef<number | null>(null);
+	useLayoutEffect(() => {
+		drawn.current = shown;
+	});
 	if (chips.length === 0) return null;
+	const before = drawn.current;
 	const more = chips.length - shown;
 	return (
 		<div data-testid={testid} className="flex min-w-0 flex-wrap items-center gap-2">
-			<span className="mr-1 text-base text-ink-2">{label}</span>
-			{chips.slice(0, shown).map((chip) => (
-				<button key={chip.id} type="button" data-testid={chipTestid} onClick={() => onOpen(chip.id)} title={chip.name} className={`${CHIP} text-ink`}>
+			<span className={`mr-1 text-base text-ink-2 ${labelStep.className}`} style={labelStep.style}>
+				{label}
+			</span>
+			{chips.slice(0, shown).map((chip, index) => (
+				<Chip key={chip.id} delay={before === null ? at(1 + index) : stepDelay(index - before, CHIP_GAP_MS)} testid={chipTestid} title={chip.name} onClick={() => onOpen(chip.id)} className="text-ink">
 					{chip.mark}
 					<span className="min-w-0">{chip.shown ?? chip.name}</span>
-				</button>
+				</Chip>
 			))}
 			{more > 0 && (
-				<button type="button" data-testid="links-more" onClick={onMore} className={`${CHIP} pl-3 text-ink-2 hover:text-ink`}>
+				<Chip delay={at(1 + shown)} testid="links-more" onClick={onMore} className="pl-3 text-ink-2 hover:text-ink">
 					{more} more
-				</button>
+				</Chip>
 			)}
 		</div>
+	);
+}
+
+function Chip({ delay, testid, title, onClick, className, children }: { delay: number | null; testid: string; title?: string; onClick: () => void; className: string; children: ReactNode }) {
+	const step = useStepIn(delay);
+	return (
+		<button type="button" data-testid={testid} onClick={onClick} title={title} className={`${CHIP} ${className} ${step.className}`} style={step.style}>
+			{children}
+		</button>
 	);
 }

@@ -11,7 +11,8 @@ const roomOf = (el: HTMLElement) => `${window.innerWidth} ${window.innerHeight} 
 
 /** Watches the sheets it is given and glides each to its new height. */
 function sheetGlide(): RefCallback<HTMLElement> {
-	const seen = new Map<HTMLElement, { box: Box; room: string }>();
+	// null until the browser first reports the sheet: what lays it out before paint (a fold) is never a glide.
+	const seen = new Map<HTMLElement, { box: Box; room: string } | null>();
 	const gliding = new Map<HTMLElement, Animation>();
 	let watch: ResizeObserver | null = null;
 	const resized = () => {
@@ -21,6 +22,7 @@ function sheetGlide(): RefCallback<HTMLElement> {
 			if (gliding.has(el)) continue;
 			const now = { box: boxOf(el), room: roomOf(el) };
 			seen.set(el, now);
+			if (!was) continue;
 			const ms = glideMs(was.box, now.box, was.room === now.room);
 			if (ms !== null) moves.push({ el, from: was.box.height, to: now.box.height, ms });
 		}
@@ -42,9 +44,14 @@ function sheetGlide(): RefCallback<HTMLElement> {
 	return (el) => {
 		if (!el || typeof ResizeObserver === "undefined" || typeof el.animate !== "function") return;
 		watch ??= new ResizeObserver(resized);
-		seen.set(el, { box: boxOf(el), room: roomOf(el) });
+		seen.set(el, null);
 		watch.observe(el);
+		// A change to what the sheet holds is caught as soon as it is made, before the frame is drawn: WebKit draws a
+		// size the resize watch reports first and a glide started there only from the next frame, so the sheet would snap.
+		const edits = new MutationObserver(resized);
+		edits.observe(el, { childList: true, subtree: true, characterData: true, attributes: true });
 		return () => {
+			edits.disconnect();
 			watch?.unobserve(el);
 			seen.delete(el);
 			const glide = gliding.get(el);
