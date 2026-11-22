@@ -41,6 +41,8 @@ function pane(messages: LhViewMessage[], over: Partial<Props> = {}): string {
 			arrivalsLive={false}
 			pageMarks={new Map()}
 			arrive={() => undefined}
+			bookTurns={false}
+			onDesk={() => {}}
 			{...over}
 		/>,
 	);

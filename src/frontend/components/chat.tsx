@@ -4,6 +4,7 @@ import { useChatSession } from "@/frontend/components/session";
 import { visibleQueuedSteers } from "@/frontend/components/session-core";
 import { prefersReducedMotion, usePresence } from "@/frontend/components/presence";
 import { JobsContext } from "@/frontend/components/jobs-context";
+import { cn } from "@/frontend/lib/utils";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { agentWaiting, lessonAgentWaiting, useAgentStatus } from "@/frontend/components/agent-status";
 import { latestTree } from "@/frontend/components/plan-latest";
@@ -32,6 +33,8 @@ import {
 	type ChatAttachment,
 	type DockSelection,
 	type QuestionAnswerData,
+	type JobRecord,
+	type ReviewQuestion,
 	withOpenReview,
 } from "@/shared/core";
 import { problemMessage } from "@/frontend/components/lesson/problem-choices-model";
@@ -56,7 +59,9 @@ import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
 import { topicPageMarks } from "@/frontend/components/citations/page-excerpt-model";
 import { TurnSheet } from "@/frontend/components/lesson/turn-sheet";
 import { useLessonNotes } from "@/frontend/components/vault/use-lesson-notes";
-import { lastAnswered, turnNext, turnDrawn, type NextAction } from "@/frontend/components/lesson/turn-next-model";
+import { bookOpen, heldTask, turnNext, turnDrawn, type NextAction } from "@/frontend/components/lesson/turn-next-model";
+import type { TurnPlace } from "@/frontend/components/lesson/turn-place";
+import { useBook } from "@/frontend/components/lesson/use-book";
 import { nothingWritten, titleEcho } from "@/frontend/components/lesson/wait-model";
 import type { QuestionHandle } from "@/frontend/components/question-dock";
 import { useTerminalLines } from "@/frontend/components/terminal/use-terminal-lines";
@@ -75,6 +80,7 @@ import { useLessonDocuments } from "@/frontend/components/lesson/use-lesson-docu
 import { lessonPluginContext } from "@/frontend/components/lesson/lesson-plugins-model";
 import { PluginWindow } from "@/frontend/components/lesson/plugin-window";
 import { useSpaces } from "@/frontend/components/space-context";
+import type { InstalledPlugin } from "@/frontend/lib/plugins-api";
 import { usePluginsAt } from "@/frontend/lib/use-plugins-at";
 import { useStableValue } from "@/frontend/lib/use-stable-value";
 import { useNow } from "@/frontend/components/use-now";
@@ -101,6 +107,9 @@ export function Chat({
 	initialPrompt,
 	initiallyInFlight,
 	initialStats,
+	initialJobs = null,
+	plugins: loadedPlugins,
+	openedReview = null,
 	kind = "teach",
 	initialTree,
 	spaceId,
@@ -134,6 +143,12 @@ export function Chat({
 	initiallyInFlight?: boolean;
 	/** The stats row's figures from the route's read of the record. */
 	initialStats: LessonStats;
+	/** The lesson's jobs as the page's loader read them (null: the read failed). */
+	initialJobs?: JobRecord[] | null;
+	/** The installed plugins as the page's loader read them (null: the read failed). */
+	plugins?: InstalledPlugin[] | null;
+	/** The question from earlier the page's loader was served, if one shows now. */
+	openedReview?: ReviewQuestion | null;
 }) {
 	// THE SESSION HOOK: the record is native history; the view is derived
 	// client-side (core/view.ts projectView).
@@ -144,13 +159,13 @@ export function Chat({
 		session,
 		initiallyInFlight: initiallyInFlight ?? false,
 		initialStats,
+		initialJobs,
 	});
 	const rename = useTitleRename(chatId, title);
 
 	const sessionFindScopeRef = useRef<HTMLDivElement | null>(null);
 	const scrollContextRef = useRef<StickToBottomContext | null>(null);
 	const arrive = useArrivals();
-	const sheetGlide = useSheetGlide();
 	const [arrivalsLive, setArrivalsLive] = useState(false);
 	useEffect(() => setArrivalsLive(true), []);
 
@@ -206,6 +221,7 @@ export function Chat({
 	// its agent. The open one shows before the teacher's own question.
 	const { question: reviewQuestion, answer: answerReview, skip: skipReview, refused: reviewRefused } = useFromEarlier({
 		chatId,
+		opened: openedReview,
 		waiting: kind === "study" && (busy || noAgent),
 		open: teacherPending !== null || activeProblem !== null,
 		busy,
@@ -249,9 +265,6 @@ export function Chat({
 	const phases = useMemo(() => phaseTimeline(messages, firstPhase(kind)), [messages, kind]);
 
 	const pendingQuestionId = pending?.toolCallId ?? null;
-	const draftsLoaded = drafts.draft !== null;
-	const draftRef = useRef(drafts.draft);
-	draftRef.current = drafts.draft;
 
 	// ⌘T: set every "your thinking" row in the lesson to one state.
 	useEffect(() => {
@@ -261,8 +274,8 @@ export function Chat({
 	}, []);
 
 	// ── the answer box ──
-	const [text, setText] = useState("");
-	const textRef = useRef("");
+	const [text, setText] = useState(drafts.draft.composer);
+	const textRef = useRef(text);
 	const applyText = useCallback((v: string) => {
 		textRef.current = v;
 		setText(v);
@@ -275,12 +288,9 @@ export function Chat({
 		},
 		[applyText, saveComposer],
 	);
-	useEffect(() => {
-		if (draftsLoaded && draftRef.current?.composer) applyText(draftRef.current.composer);
-	}, [draftsLoaded, applyText]);
 
 	// Follow never takes the window away from unsent text.
-	const draftHeld = drafts.draft !== null && holdsDraft(drafts.draft, pendingQuestionId ?? activeProblem?.toolCallId ?? null);
+	const draftHeld = holdsDraft(drafts.draft, pendingQuestionId ?? activeProblem?.toolCallId ?? null);
 	// The teacher's status in a lesson: Talking while it writes, Thinking
 	// while the turn runs.
 	useTeacherLesson(status === "streaming", busy, draftHeld);
@@ -323,7 +333,7 @@ export function Chat({
 	// What is picked among the open problem's choices, kept like the box's text.
 	const problemId = activeProblem?.toolCallId ?? null;
 	const problemChoices = useMemo(() => (activeProblem ? problemChoicesOf(activeProblem.input) : null), [activeProblem]);
-	const problemPicked = (problemId && drafts.draft?.questions[problemId]?.form?.selection) || emptyDockSelection();
+	const problemPicked = (problemId && drafts.draft.questions[problemId]?.form?.selection) || emptyDockSelection();
 	const pickProblem = (selection: DockSelection) => {
 		if (problemId) saveQuestion(problemId, { form: { selection } });
 	};
@@ -426,23 +436,6 @@ export function Chat({
 	// Click a done step: scroll back to its first answered question.
 	const jumpToAnswer = useCallback((toolCallId: string) => scrollToCard(answerAnchorSelector(toolCallId)), [scrollToCard]);
 
-	// The demo's error report follows the writing box's rules: never past a
-	// waiting question, and a running turn is steered.
-	const chatActions = useMemo(
-		() => ({
-			chatId,
-			sendBlocked,
-			sendText: (t: string) => {
-				if (sendBlocked !== null) return;
-				if (busyRef.current) void steer(t);
-				else void send({ type: "text", text: t });
-			},
-			dropKept,
-			openProblem: activeProblem?.toolCallId ?? null,
-		}),
-		[chatId, send, steer, sendBlocked, dropKept, activeProblem?.toolCallId],
-	);
-
 	// The error notice's Try again: send again what didn't go through, run a
 	// failed reply again, or read the lesson again (and attach to a running reply).
 	const retry = () => {
@@ -471,13 +464,16 @@ export function Chat({
 	}, [docGone, updateDock]);
 	// A plugin's window lies over the page; opening a panel closes it. It and the
 	// Teacher's window are both made of the bar and hang over the same corner, so one shows at a time.
-	const { plugins: lessonPlugins } = usePluginsAt("lesson");
+	const { plugins: lessonPlugins } = usePluginsAt("lesson", loadedPlugins);
 	const { spaces } = useSpaces();
 	const [pluginId, setPluginId] = useState<string | null>(null);
 	const openPlugin = lessonPlugins?.find((p) => p.id === pluginId) ?? null;
 	const panel = openPanel(lessonDock.state.panel, { sheet: !!spaceId, document: shownDoc !== null });
 	// The panel stays mounted through its fade-out; the grid still follows `panel`.
 	const dock = usePresence(panel !== null);
+	// A panel left open is just there when the lesson shows; one opened later fades in.
+	const [dockThere, setDockThere] = useState(panel !== null);
+	if (dockThere && panel === null) setDockThere(false);
 	const lastPanel = useRef(panel);
 	if (panel) lastPanel.current = panel;
 	const togglePanel = (kind: DockPanelKind) => {
@@ -504,7 +500,6 @@ export function Chat({
 	const goLabel = goAheadLabel({ kind, problemList: problems !== null, startLabel: startLabel ?? null, teacherSpoke, posedAny });
 	const lessonNotes = useLessonNotes(chatId, atStop?.kind === "end");
 	const next = turnNext({ stop: atStop, problemList: problems !== null, goLabel, busy, error: error !== null, nothingWritten: unwritten, notes: lessonNotes.notes, obsidian: lessonNotes.obsidian });
-	const answered = useMemo(() => lastAnswered(nativeMessages, messages), [nativeMessages, messages]);
 	const onNext = (action: NextAction) => {
 		if (action === "keep-going") {
 			if (atStop) keepGoing(atStop.stopOf);
@@ -532,6 +527,56 @@ export function Chat({
 		file: placeDoc ? { document: placeDoc, page: place?.page, first: placeDoc.id === listFileId, onShow: showProblem } : null,
 	};
 
+	// The task he last finished stays beside the text until the lesson goes on from it.
+	const held = useMemo(() => heldTask(nativeMessages, messages, { busy, goOn: next?.key != null || error !== null }), [nativeMessages, messages, busy, next?.key, error]);
+	const heldTurn = useMemo(
+		() =>
+			held &&
+			(held.kind === "question"
+				? held
+				: {
+						kind: held.kind,
+						toolCallId: held.toolCallId,
+						statement: problemStatementOf(held.input, held.details),
+						piece: problemPieceOf(held.details),
+						line: problems === null && practice ? `Problem ${practice.finished + (held.discarded ? 1 : 0)}` : null,
+						discarded: held.discarded,
+					}),
+		[held, problems, practice],
+	);
+	const opens = bookOpen({ question: pending ? (pending.appPosed?.kind === "review" ? "review" : "teacher") : null, problem: problem !== null, held: held !== null });
+	// The desk in the lesson text, also while it leaves: the book waits for it.
+	const [deskUp, setDeskUp] = useState(false);
+	const book = useBook(opens, heldTurn, busy, deskUp);
+	const { open } = book;
+	const sheetGlide = useSheetGlide(book.turning);
+	// While it is shut and the teacher works, a task that streams in waits for the reply to land.
+	const turnPending = open || pending?.appPosed?.kind === "review" ? pending : null;
+	const turnProblem = open ? problem : null;
+	const slim = turnPending === null && stuckLine === null && errorLine === null && !reviewRefused && attachments.files.length === 0;
+	// Where the page last laid "Your turn" out: only beside the text or alone does it keep the finished task,
+	// and the lesson's notes take its place there when they come.
+	const [turnPlace, setTurnPlace] = useState<TurnPlace>("under");
+	const kept = !turnPending && !turnProblem && !next?.notes && (turnPlace === "beside" || turnPlace === "alone") ? book.held : null;
+	const inTurn = activeProblem?.toolCallId ?? kept?.toolCallId ?? null;
+	// The demo's error report follows the writing box's rules: never past a
+	// waiting question, and a running turn is steered.
+	const chatActions = useMemo(
+		() => ({
+			chatId,
+			sendBlocked,
+			sendText: (t: string) => {
+				if (sendBlocked !== null) return;
+				if (busyRef.current) void steer(t);
+				else void send({ type: "text", text: t });
+			},
+			dropKept,
+			inTurn,
+		}),
+		[chatId, send, steer, sendBlocked, dropKept, inTurn],
+	);
+
+
 	const turnShows = turnDrawn({
 		started: teacherSpoke || busy,
 		holds: pending !== null || problem !== null || next?.key != null || stuckLine !== null || errorLine !== null || reviewRefused,
@@ -541,8 +586,8 @@ export function Chat({
 	const echo = useMemo(() => titleEcho(messages, rename.title), [messages, rename.title]);
 	// With "Your turn" up and nothing drawn in the lesson text (a lesson that opens with a problem), its sheet is left out.
 	const textShows = useMemo(
-		() => busy || stoppedEmpty || messages.length === 0 || messages.some((m, i) => messageShows(m, i === echo, chatActions.openProblem)),
-		[busy, stoppedEmpty, messages, echo, chatActions.openProblem],
+		() => busy || stoppedEmpty || messages.length === 0 || messages.some((m, i) => messageShows(m, i === echo, inTurn)),
+		[busy, stoppedEmpty, messages, echo, inTurn],
 	);
 
 	return (
@@ -569,6 +614,13 @@ export function Chat({
 									restKey={[pending?.toolCallId, problem?.toolCallId, problem?.part, atStop?.stopOf].join(" ")}
 									busy={busy}
 									contextRef={scrollContextRef}
+									open={open}
+									shutting={book.shutting}
+									onShut={book.shut}
+									onRest={book.rest}
+									slim={slim}
+									place={turnPlace}
+									onPlace={setTurnPlace}
 									reading={
 										turnShows && !textShows ? null : (
 										<ReadingPane
@@ -586,6 +638,8 @@ export function Chat({
 											arrivalsLive={arrivalsLive}
 											pageMarks={pageMarks}
 											arrive={arrive}
+											bookTurns={book.turning}
+											onDesk={setDeskUp}
 											sheetRef={sheetGlide}
 										/>
 										)
@@ -593,24 +647,22 @@ export function Chat({
 									turn={
 										turnShows ? (
 											<TurnSheet
-												// Remounts once the saved drafts are read, so the question starts from them.
-												key={draftsLoaded ? "drafts" : "loading"}
 												sheetRef={sheetGlide}
 												spaceId={spaceId}
-												pending={pending}
-												initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
+												pending={turnPending}
+												initialQuestionDraft={pendingQuestionId ? drafts.draft.questions[pendingQuestionId]?.form : undefined}
 												onSaveQuestionDraft={(form) => {
 													if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
 												}}
 												onSubmitAnswer={onSubmitAnswer}
 												onSkipQuestion={() => setAbortAsk("question")}
 												reviewRefused={reviewRefused}
-												problem={problem}
+												problem={turnProblem}
 												problemPicked={problemPicked}
 												onPickProblem={pickProblem}
 												onDiscardProblem={() => setAbortAsk("problem")}
-												next={next}
-												answered={answered}
+												next={book.shutting ? null : next}
+												kept={kept}
 												onNext={onNext}
 												busy={busy}
 												boxRef={workBoxRef}
@@ -629,13 +681,14 @@ export function Chat({
 									}
 								/>
 								{dock.mounted && (
-									<div data-state={dock.state} className="lh-fade flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap) [grid-area:dock]">
+									<div data-state={dock.state} className={cn("flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap) [grid-area:dock]", !dockThere && "lh-fade")}>
 										{lastPanel.current === "document" && shownDoc ? (
 											<DocumentPanel
 												choices={docChoices}
 												shown={shownDoc}
 												place={place}
 												seq={docSeq}
+												there={dockThere}
 												onPick={(id) => updateDock({ fileId: id })}
 												onRetry={() => void reloadDocuments()}
 												onClose={() => updateDock({ panel: null })}

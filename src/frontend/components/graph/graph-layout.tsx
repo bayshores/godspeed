@@ -16,7 +16,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import type { Bleed } from "./constellation-camera.ts";
-import { prefersReducedMotion, usePresence } from "@/frontend/components/presence";
+import { EASE_IN, EASE_OUT, prefersReducedMotion, usePresence } from "@/frontend/components/presence";
 import { LONGEST_MS, travelGlideMs } from "@/frontend/components/sheet-glide-model";
 import { useSheetGlide } from "@/frontend/components/use-sheet-glide";
 import { panelAlone, panelStacked, pictureHeight, slipCap, slipMost, TAB_H } from "./graph-layout-model.ts";
@@ -33,9 +33,6 @@ const PAST_FOOT_OVER_SLIP = 4;
 const REFIT = 24;
 /** The sheet's lip under what it holds (.lh-sheet's bottom border). */
 const LIP = 4;
-/** --lh-ease-out and --lh-ease-in, --lh-dur and --lh-dur-fast, for the panel's travel and the picture's fade. */
-const EASE_OUT = "cubic-bezier(0.2, 0, 0, 1)";
-const EASE_IN = "cubic-bezier(0.4, 0, 1, 1)";
 const FADE_IN_MS = 160;
 const FADE_OUT_MS = 110;
 /** A closing panel is held this long, the longest it takes to leave. */
@@ -103,7 +100,7 @@ export function GraphLayout({
 	if (!covering) held.current = { box: live, look: beside ? "beside" : "full" };
 	const look = covered ? "none" : held.current.look;
 
-	const glide = useSheetGlide();
+	const glide = useSheetGlide(false, true);
 	const travel = useTravel(arrival.motion, leaving, (el) => (alone ? { by: `${room.height}px`, points: room.height } : { by: `calc(100% + ${TAB_H}px)`, points: el.offsetHeight + TAB_H }), () => cover.current());
 	// A panel that replaced another holds still at the slip's foot while the edge uncovers it, for as long as a glide can take;
 	// one that grows in place ("N more") rides the edge up with what it already shows, and its new rows come up from the foot.

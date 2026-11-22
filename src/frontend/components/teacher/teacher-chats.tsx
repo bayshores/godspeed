@@ -39,7 +39,7 @@ export function TeacherChats({
 	return (
 		<div data-testid="teacher-chats" className="flex w-full flex-col gap-3.5 text-left">
 			<div className="flex flex-wrap items-center gap-2.5">
-				<button type="button" data-testid="teacher-chat-new" disabled={busy} onClick={onNew} className="lh-btn lh-btn-main text-[15px]">
+				<button type="button" data-testid="teacher-chat-new" disabled={busy} onClick={onNew} className="lh-btn lh-btn-main">
 					New chat
 				</button>
 				<AgentMenu choice={choice} onChoose={onChoose} className="text-[15px]" />

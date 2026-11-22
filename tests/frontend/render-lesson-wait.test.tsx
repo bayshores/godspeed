@@ -34,6 +34,8 @@ Object.assign(globalThis, {
 
 // The page here lays nothing out: every line is 28 high and the reply's first paragraph is two lines.
 const printed: { tag: string; delay: number; duration: number; easing: string }[] = [];
+// The blocks whose printing is paused.
+const held: string[] = [];
 Object.assign(globalThis, { getComputedStyle: () => ({ lineHeight: "28px" }) });
 Object.assign(dom.window.HTMLElement.prototype, {
 	getBoundingClientRect(this: HTMLElement) {
@@ -41,6 +43,8 @@ Object.assign(dom.window.HTMLElement.prototype, {
 	},
 	animate(this: HTMLElement, _frames: unknown, timing: { delay: number; duration: number; easing: string }) {
 		printed.push({ tag: this.tagName, delay: timing.delay, duration: timing.duration, easing: timing.easing });
+		const tag = this.tagName;
+		return { pause: () => held.push(tag), play: () => held.splice(held.indexOf(tag), 1) };
 	},
 });
 
@@ -71,6 +75,8 @@ const props = (over: Partial<Props> = {}): Props => ({
 	arrivalsLive: false,
 	pageMarks: new Map(),
 	arrive: () => undefined,
+	bookTurns: false,
+	onDesk: () => {},
 	...over,
 });
 const pane = (over: Partial<Props> = {}) => renderToStaticMarkup(<ReadingPane {...props(over)} />);
@@ -241,6 +247,27 @@ describe("the reply landing", () => {
 			);
 			assert.ok(host.querySelector(".lh-set") === null);
 			assert.match(host.textContent ?? "", /First\.[\s\S]*Second\./);
+		} finally {
+			await act(async () => root.unmount());
+			host.remove();
+		}
+	});
+
+	it("stays covered while the book's pages are on their way, and prints once they rest", async () => {
+		printed.length = 0;
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		const working = props({ messages: [card(1), first, teacher()], status: "streaming", arrive: () => "lh-rise" });
+		const landed = { ...working, busy: false, status: "ready" as const, bookTurns: true, messages: [card(1), first, teacher({ type: "text", text: "First.\n\nSecond." })] };
+		try {
+			await act(async () => root.render(<ReadingPane {...working} />));
+			await act(async () => root.render(<ReadingPane {...landed} />));
+			assert.match(host.textContent ?? "", /First\.[\s\S]*Second\./, "the reply is in the page at its full height");
+			assert.deepEqual(held, ["P", "P"], "and waits to print");
+			await act(async () => root.render(<ReadingPane {...landed} bookTurns={false} />));
+			assert.deepEqual(held, []);
+			assert.equal(printed.length, 2, "printed once");
 		} finally {
 			await act(async () => root.unmount());
 			host.remove();

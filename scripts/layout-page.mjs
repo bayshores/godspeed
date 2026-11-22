@@ -27,10 +27,16 @@
  *   like the tabs.
  * - empty box: a sheet or well (.lh-sheet, .lh-well) at least 160 px wide and 120 px tall that
  *   shows no words, picture, control or writing box: a column with nothing in it.
+ * - hollow box: a sheet (.lh-sheet) at least that size has an empty band between two things it
+ *   draws, taller than 160 px and than 35% of the sheet: a title at the top, keys at the foot
+ *   and nothing between. A sheet that is allowed to stretch past what it holds carries
+ *   `data-fills="<why>"`, and only such a sheet is let through.
  * - empty room: a page (.lh-page) in a box that scrolls is taller than what it holds, so the
  *   window scrolls into empty page under its last sheet (a height kept from another window size).
  * - cut start: the question or problem in "Your turn" (.lh-turn-scroll) is scrolled past its
- *   first line, though the walk did not scroll that box: it opened cut.
+ *   first line, though the walk did not scroll that box: it opened cut. A problem drawn as its
+ *   page rests on the part the learner is on (data-part-current), so that box is let through
+ *   while the part's start is in it.
  * - cut tail: a part marked data-whole (the notes' pages and the line that they are saved) lies past
  *   the edge of a box that scrolls it, or in the end it fades, other than the page itself: it
  *   opened cut or faded away.
@@ -39,6 +45,17 @@
  *
  * Each finding has a `key` naming its elements, the same from one read to the next while its
  * words (a clock) may change.
+ *
+ * The opening watch is the other half: watchOpening() is started before the walk opens a page
+ * in the app (not a full load), with motion on, and openingFindings() reads it once it is done.
+ * From the new page's first paint, the first frame that shows a sheet that was not there before
+ * (for a page with no sheet, the frame its travel in ends), it watches for 1.5 s:
+ *
+ * - moved after opening: a sheet or a word or key of a bar that was there at the first paint
+ *   moves, changes size or leaves; a sheet arrives later; the screen's scroller scrolls. Boxes
+ *   are measured by layout, so the page's own travel into the window does not count.
+ * - arrival motion: an animation or transition plays on something that was there at the first
+ *   paint, or inside it. The moves the motion rule asks for are let through (openingAllowed).
  */
 
 /** Pixels two boxes may cross, or a box may stick out, before it counts: rounding and
@@ -568,6 +585,55 @@ function emptyBoxes() {
 		.map((box) => finding("empty box", [box], `${label(box)} is a box with nothing in it`));
 }
 
+/** The tallest stretch, top to bottom, that lies between two of `boxes` and that none of them
+ *  crosses, with the box above it and the box below it; null when there is none. Room above
+ *  the first box and under the last is not between two. */
+export function emptyBand(boxes) {
+	const sorted = [...boxes].sort((a, b) => a.top - b.top);
+	let band = null;
+	let above = sorted[0];
+	for (const box of sorted.slice(1)) {
+		const height = box.top - above.bottom;
+		if (height > 0 && (!band || height > band.height)) band = { top: above.bottom, bottom: box.top, height, above, below: box };
+		if (box.bottom > above.bottom) above = box;
+	}
+	return band;
+}
+
+/** A band is hollow past 160 px and past 35% of its sheet's height: a sheet that tall holds
+ *  that much room between its things on purpose only when it says so (data-fills). */
+const HOLLOW = { least: 160, share: 0.35 };
+export function hollow(band, sheetHeight) {
+	return band > Math.max(HOLLOW.least, HOLLOW.share * sheetHeight);
+}
+
+/** What a sheet draws as one box: a control, a picture (one drawn by many boxes too, such as a
+ *  page of a PDF), a frame, an editor, a well or a sheet inside it. Anything else draws its own
+ *  lines of text. */
+const DRAWS_BOX = `${HOLDS}, ${ONE_PICTURE}, .lh-well, .lh-sheet`;
+
+/** Hollow box: a sheet with a tall empty band between two things it draws, cut to what shows. */
+function hollowBoxes() {
+	const found = [];
+	for (const sheet of document.querySelectorAll(".lh-sheet")) {
+		if (!shown(sheet) || sheet.hasAttribute("data-fills") || sheet.closest("[aria-hidden=true]")) continue;
+		const { width, height } = sheet.getBoundingClientRect();
+		if (width < BOX_MIN.width || height < BOX_MIN.height) continue;
+		const drawn = [];
+		for (const el of sheet.querySelectorAll("*")) {
+			if ((el.closest(ONE_PICTURE) && !el.matches(ONE_PICTURE)) || (el.closest("svg") && el.localName !== "svg") || !shown(el)) continue;
+			for (const box of el.matches(DRAWS_BOX) ? [el.getBoundingClientRect()] : ownBoxes(el)) {
+				const part = visiblePart(el, box);
+				if (part && part.bottom > part.top && part.right > part.left) drawn.push({ ...part, el });
+			}
+		}
+		const band = emptyBand(drawn);
+		if (!band || !hollow(band.height, height)) continue;
+		found.push(finding("hollow box", [sheet], `${label(sheet)} is ${Math.round(height)} px tall with an empty band of ${Math.round(band.height)} px (${Math.round((100 * band.height) / height)}%) between ${label(band.above.el)} and ${label(band.below.el)}`));
+	}
+	return found;
+}
+
 /** How much of a page's box lies under the last thing it holds, in whole pixels; rounding is none. */
 export function roomUnder(pageEnd, lastEnd) {
 	const room = Math.round(pageEnd - lastEnd);
@@ -600,9 +666,18 @@ function emptyRooms() {
 }
 
 /** Cut start: a box in "Your turn" found scrolled, when the walk did not scroll it, opened that way. */
+/** Whether the box shows the start of the part the learner is on, where a problem's page rests. */
+function restsOnPart(box) {
+	const start = box.querySelector("[data-part-current]");
+	if (!start) return false;
+	const at = start.getBoundingClientRect().top;
+	const room = box.getBoundingClientRect();
+	return at >= room.top && at < room.bottom;
+}
+
 function cutStarts() {
 	return [...document.querySelectorAll(".lh-turn-scroll")]
-		.filter((box) => shown(box) && box.scrollTop > 1 && box !== window.__layoutScrolled)
+		.filter((box) => shown(box) && box.scrollTop > 1 && box !== window.__layoutScrolled && !restsOnPart(box))
 		.map((box) => finding("cut start", [box], `${label(box)} is scrolled ${Math.round(box.scrollTop)}px past its first line`));
 }
 
@@ -639,6 +714,229 @@ function brokenPictures() {
 	return [...document.querySelectorAll("img[src]")]
 		.filter((img) => shown(img) && img.complete && img.naturalWidth === 0)
 		.map((img) => finding("broken picture", [img], `${label(img)} did not load ${img.getAttribute("src")}`));
+}
+
+/** How long after the new page's first paint its opening is watched. */
+const WATCH_MS = 1500;
+
+/** What the opening watch follows: the sheets, and the words and keys of the bars. A drawing
+ *  (aria-hidden) and the still copy of the page that leaves are not followed. */
+function followed() {
+	const sheets = [...document.querySelectorAll(".lh-sheet")].filter((el) => !el.closest("[aria-hidden=true], .lh-travel-old"));
+	const words = (el) => [...el.childNodes].some((node) => node.nodeType === Node.TEXT_NODE && node.data.trim());
+	const bar = [...document.querySelectorAll(":is(.lh-app-bar, .lh-own-bar) *")].filter((el) => !el.closest("[aria-hidden=true]") && (el.matches(`a, ${CONTROLS}`) || words(el)));
+	return { sheets, bar };
+}
+
+/** An element's box as layout places it, so a transform (the page's travel) does not move it. */
+function layoutBox(el) {
+	let left = 0;
+	let top = 0;
+	for (let node = el; node; node = node.offsetParent) {
+		left += node.offsetLeft;
+		top += node.offsetTop;
+	}
+	return { left, top, width: el.offsetWidth, height: el.offsetHeight };
+}
+
+/** Whether a layout box moved or changed size by more than SLACK. */
+export function boxMoved(a, b) {
+	return ["left", "top", "width", "height"].some((side) => Math.abs(a[side] - b[side]) > SLACK);
+}
+
+/** The boxes at the first paint and in a later frame, by id (an id missing later has left the
+ *  page): which moved or left, and which ids are new. */
+export function movedSince(first, later) {
+	const moved = Object.keys(first)
+		.filter((id) => !later[id] || boxMoved(first[id], later[id]))
+		.map((id) => ({ id, from: first[id], to: later[id] ?? null }));
+	return { moved, arrived: Object.keys(later).filter((id) => !(id in first)) };
+}
+
+/** Whether a move ought to be left out because the box around it moved: it left with it, or it
+ *  was carried the same way at the same size. `outer` and `inner` are moves from movedSince. */
+export function carried(inner, outer) {
+	if (!outer.to) return true;
+	if (!inner.to || inner.from.width !== inner.to.width || inner.from.height !== inner.to.height) return false;
+	const shift = (move, side) => move.to[side] - move.from[side];
+	return Math.abs(shift(inner, "left") - shift(outer, "left")) <= SLACK && Math.abs(shift(inner, "top") - shift(outer, "top")) <= SLACK;
+}
+
+/** A page's own words in the top bar fade in with the page (globals.css). */
+const BAR_WORDS = ".lh-bar-actions > *, .lh-bar-zoom, [data-testid=bar-crumb] > *";
+
+/** The moves the motion rule (docs/ui-rules.md) asks for, so they are not arrival motion: the
+ *  pages' travel (Travel), a page's own words fading into the top bar with it, the mark of
+ *  the lit tab sliding to the lit tab (useLitMarker), and the parts of the pencil that writes
+ *  while the teacher works, a wait's one live element. */
+function openingAllowed(animation, target) {
+	if (target.matches(".lh-travel-page, .lh-travel-old") || target.closest(".lh-pencil")) return true;
+	if (animation.animationName === "lh-fade-in" && target.matches(BAR_WORDS)) return true;
+	return animation.transitionProperty !== undefined && target.matches(".lh-lit-marker");
+}
+
+/** A box in words for a finding. */
+const boxWords = (box) => `${Math.round(box.width)} by ${Math.round(box.height)} at ${Math.round(box.left)}, ${Math.round(box.top)}`;
+
+/** Reads frames as they are drawn. `next()` asks for the coming frame; `read` then runs inside it,
+ *  once it is laid out and the page's own ResizeObservers have run. A frame's own callback runs
+ *  before that, and a task after the frame runs after whatever was waiting: both read a state that
+ *  is never drawn, and what a ResizeObserver puts in its place would count as a move. `stop()`
+ *  ends it. */
+function drawnFrames(read) {
+	// Deeper than anything of the page's, so the probe changes no round of the page's observers.
+	const root = document.createElement("div");
+	root.style.cssText = "position:fixed;visibility:hidden;pointer-events:none;width:0;height:0;overflow:hidden";
+	let outer = root;
+	for (let depth = 0; depth < 200; depth++) outer = outer.appendChild(document.createElement("div"));
+	const inner = outer.appendChild(document.createElement("div"));
+	let due = null;
+	let flip = false;
+	// The inner box changes size in the outer one's callback, so its own callback runs in a later
+	// round of the same frame.
+	const first = new ResizeObserver(() => (inner.style.height = flip ? "2px" : "1px"));
+	const second = new ResizeObserver(() => {
+		if (due === null) return;
+		const now = due;
+		due = null;
+		read(now);
+	});
+	document.body.append(root);
+	first.observe(outer);
+	second.observe(inner);
+	return {
+		next() {
+			requestAnimationFrame((now) => {
+				due = now;
+				flip = !flip;
+				outer.style.height = flip ? "2px" : "1px";
+			});
+		},
+		stop() {
+			first.disconnect();
+			second.disconnect();
+			root.remove();
+		},
+	};
+}
+
+/** Starts the opening watch for a page about to open at `path`, in the page as it is before. What
+ *  it follows that is in the page now is old; the new page's first paint is the first frame in
+ *  which a shown sheet that is not old is there, or, for a page that traveled in with none, the
+ *  first frame after its travel. The watch runs every frame from then for
+ *  WATCH_MS, and keeps what it saw on the window for openingFindings. */
+export function watchOpening(path) {
+	const before = followed();
+	const old = new WeakSet([...before.sheets, ...before.bar]);
+	const watch = { firstAt: null, framesBefore: 0, done: false, els: {}, moves: {}, arrivals: {}, motions: {}, scrolls: new Map() };
+	window.__layoutOpening = watch;
+	const scrolled = new Set();
+	const onScroll = (event) => scrolled.add(event.target === document ? document.scrollingElement : event.target);
+	addEventListener("scroll", onScroll, { capture: true, passive: true });
+	let first = null;
+	let traveled = false;
+	let atFirst = null;
+	let scrollAt = null;
+	const last = {};
+	const frame = (now) => {
+		const { sheets, bar } = followed();
+		if (!first) {
+			const fresh = sheets.some((el) => !old.has(el) && el.offsetWidth > 0 && el.checkVisibility({ visibilityProperty: true }));
+			// A page that draws no sheet (the Graph) is watched from the end of its travel in.
+			const arriving = document.querySelector(".lh-travel[data-way] > .lh-travel-page");
+			traveled ||= !!arriving;
+			const bare = traveled && !arriving && !fresh;
+			if (location.pathname !== path || !(fresh || bare)) {
+				watch.framesBefore++;
+				frames.next();
+				return;
+			}
+			watch.firstAt = now;
+			first = {};
+			for (const el of [...sheets, ...bar]) {
+				first[idOf(el)] = layoutBox(el);
+				watch.els[idOf(el)] = el;
+			}
+			const all = [...document.querySelectorAll("*")];
+			atFirst = new WeakSet(all);
+			scrollAt = new Map(all.filter((el) => el.scrollTop).map((el) => [el, el.scrollTop]));
+			scrolled.clear();
+		}
+		const ms = Math.round(now - watch.firstAt);
+		const later = {};
+		for (const [id, el] of Object.entries(watch.els)) if (el.isConnected) later[id] = layoutBox(el);
+		for (const el of sheets) if (!(idOf(el) in first)) later[idOf(el)] = layoutBox(el);
+		const { moved, arrived } = movedSince(first, later);
+		for (const move of moved) {
+			const seen = (watch.moves[move.id] ??= { ...move, at: ms, last: ms, steps: 0 });
+			if (!last[move.id] || !move.to || boxMoved(last[move.id], move.to)) seen.steps++;
+			Object.assign(seen, { to: move.to, last: ms });
+			last[move.id] = move.to;
+		}
+		for (const id of arrived) watch.arrivals[id] ??= { el: sheets.find((el) => String(idOf(el)) === id), at: ms };
+		for (const el of scrolled) {
+			const from = scrollAt.get(el) ?? 0;
+			if (Math.abs(el.scrollTop - from) <= SLACK) continue;
+			const seen = watch.scrolls.get(el);
+			if (seen) seen.to = el.scrollTop;
+			else watch.scrolls.set(el, { from, to: el.scrollTop, at: ms });
+		}
+		for (const animation of document.getAnimations()) {
+			const effect = animation.effect;
+			const target = effect?.target;
+			if (!target || animation.playState !== "running" || effect.getTiming().iterations === Infinity) continue;
+			// What arrived after the first paint is the arrival's to judge, not its motion.
+			if (!atFirst.has(target) || openingAllowed(animation, target)) continue;
+			// The innermost followed box it plays in names it best.
+			const owners = Object.values(watch.els).filter((el) => el.contains(target));
+			if (owners.length === 0) continue;
+			const owner = owners.reduce((outer, inner) => (outer.contains(inner) ? inner : outer));
+			const name = animation.animationName ?? (animation.transitionProperty ? `a transition of ${animation.transitionProperty}` : "a script's animation");
+			const key = `${idOf(owner)} ${name}`;
+			const seen = (watch.motions[key] ??= { owner, target, name, at: ms, ms: Math.round(effect.getComputedTiming().endTime), targets: new Set() });
+			seen.targets.add(target);
+		}
+		if (now - watch.firstAt < WATCH_MS) {
+			frames.next();
+			return;
+		}
+		frames.stop();
+		removeEventListener("scroll", onScroll, { capture: true });
+		watch.done = true;
+	};
+	const frames = drawnFrames(frame);
+	frames.next();
+}
+
+/** What the opening watch saw, once it is done: whether the new page painted, how many frames
+ *  of the old page it watched first, and its findings. */
+export function openingFindings() {
+	const watch = window.__layoutOpening;
+	if (!watch?.done) return { painted: watch?.firstAt != null, done: false, framesBefore: watch?.framesBefore ?? 0, findings: [] };
+	const after = (ms) => `${ms} ms after the page first showed`;
+	const found = [];
+	const moves = Object.values(watch.moves);
+	for (const move of moves) {
+		const el = watch.els[move.id];
+		const outer = moves.find((other) => other !== move && watch.els[other.id].contains(el));
+		if (outer && carried(move, outer)) continue;
+		if (!move.to) found.push(finding("moved after opening", [el], `${label(el)} left the page ${after(move.at)}`));
+		else found.push(finding("moved after opening", [el], `${label(el)} moved from ${boxWords(move.from)} to ${boxWords(move.to)}: first ${after(move.at)}, last at ${move.last} ms, in ${move.steps} ${move.steps === 1 ? "step" : "steps"}`));
+	}
+	const arrivals = Object.values(watch.arrivals).filter(({ el }) => el);
+	for (const { el, at } of arrivals) {
+		if (arrivals.some((other) => other.el !== el && other.el.contains(el))) continue;
+		found.push(finding("moved after opening", [el], `${label(el)} arrived ${after(at)}`));
+	}
+	const scroller = mainScroller();
+	const scroll = scroller && watch.scrolls.get(scroller);
+	if (scroll) found.push(finding("moved after opening", [scroller], `${label(scroller)} scrolled from ${Math.round(scroll.from)} to ${Math.round(scroll.to)} px, first ${after(scroll.at)}`));
+	for (const motion of Object.values(watch.motions)) {
+		const more = motion.targets.size - 1;
+		const inside = motion.owner === motion.target ? "" : ` inside ${label(motion.owner)}`;
+		found.push(finding("arrival motion", [motion.owner], `${label(motion.target)}${inside} plays ${motion.name} (${motion.ms} ms) ${after(motion.at)}${more > 0 ? `, and ${more} more ${more === 1 ? "thing" : "things"} there` : ""}`));
+	}
+	return { painted: true, done: true, framesBefore: watch.framesBefore, findings: found };
 }
 
 /** Every finding on the page as it is now, each once. */
@@ -710,7 +1008,7 @@ function keyChecks() {
 }
 
 export function checkPage() {
-	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys(), ...emptyBoxes(), ...emptyRooms(), ...cutStarts(), ...cutTails(), ...brokenPictures(), ...keyChecks()];
+	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys(), ...emptyBoxes(), ...hollowBoxes(), ...emptyRooms(), ...cutStarts(), ...cutTails(), ...brokenPictures(), ...keyChecks()];
 	const seen = new Set();
 	return all.filter((f) => !seen.has(f.key) && seen.add(f.key));
 }

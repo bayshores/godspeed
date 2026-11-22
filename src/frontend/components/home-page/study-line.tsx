@@ -73,7 +73,7 @@ function SpaceChip({ spaces, space, onPick }: { spaces: readonly SpaceSummary[];
 				aria-haspopup="menu"
 				aria-expanded={open}
 				onClick={() => setOpen((v) => !v)}
-				className="lh-btn lh-btn-quiet min-w-0 shrink-0 text-[15px]"
+				className="lh-btn lh-btn-quiet min-w-0 shrink-0"
 			>
 				<span aria-hidden className="size-3 shrink-0" style={{ background: spaceColorVar(space.color) }} />
 				{space.name}

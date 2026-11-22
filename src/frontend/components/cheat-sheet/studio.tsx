@@ -160,7 +160,7 @@ function Studio({
 								)}
 							</div>
 							{!quiet && (
-								<Pane data-testid="cheat-sheet-panel" className="flex max-h-[40%] shrink-0 flex-col overflow-hidden @[768px]:max-h-none @[768px]:w-[clamp(340px,40%,480px)]">
+								<Pane data-testid="cheat-sheet-panel" data-fills="a chat log fills its column" className="flex max-h-[40%] shrink-0 flex-col overflow-hidden @[768px]:max-h-none @[768px]:w-[clamp(340px,40%,480px)]">
 									{chat}
 								</Pane>
 							)}

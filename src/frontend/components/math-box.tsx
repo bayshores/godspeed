@@ -1,4 +1,5 @@
 import { useEffect, useImperativeHandle, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { MathBoxHandle } from "@/frontend/components/math-box-view";
 
 /** Keys typed in the box stay in it: Esc must not stop the turn, digits
@@ -55,7 +56,8 @@ export function MathBox({
 					latest.current.onChange(text);
 				},
 			});
-			setReady(true);
+			// The stand-in text leaves in the frame the editor arrives in, or the box is twice as tall for one frame.
+			flushSync(() => setReady(true));
 		});
 		return () => {
 			gone = true;

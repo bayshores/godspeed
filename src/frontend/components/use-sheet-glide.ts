@@ -1,20 +1,38 @@
-import { useState, type RefCallback } from "react";
-import { prefersReducedMotion } from "@/frontend/components/presence";
+import { useLayoutEffect, useState, type RefCallback } from "react";
+import { EASE_OUT, prefersReducedMotion } from "@/frontend/components/presence";
 import { glideMs, type Box } from "./sheet-glide-model";
 
-/** The app's curve for a thing that enters (--lh-ease-out). */
-const EASING = "cubic-bezier(0.2, 0, 0, 1)";
-
 const boxOf = (el: HTMLElement): Box => ({ width: el.offsetWidth, height: el.offsetHeight });
-/** The window a sheet is laid out in: the app's, and the lesson's own window when the sheet scrolls in it (it changes size as the pinned "Your turn" does). */
-const roomOf = (el: HTMLElement) => `${window.innerWidth} ${window.innerHeight} ${el.closest(".lh-lesson-window")?.clientHeight ?? ""}`;
+/** The window a sheet is laid out in: the app's, and the lesson's own window when the sheet scrolls in it (it changes size as the pinned
+ *  "Your turn" does, and is laid out for a pinned one a moment after that one left). */
+const roomOf = (el: HTMLElement) => {
+	const lesson = el.closest(".lh-lesson-window");
+	return `${window.innerWidth} ${window.innerHeight} ${lesson?.clientHeight ?? ""} ${lesson?.classList.contains("lh-lesson-pinned") ?? ""}`;
+};
 
-/** Watches the sheets it is given and glides each to its new height. */
-function sheetGlide(): RefCallback<HTMLElement> {
-	// null until the browser first reports the sheet: what lays it out before paint (a fold) is never a glide.
+/**
+ * Watches the sheets it is given and glides each to its new height; `hold` says whether they take their sizes at once from now.
+ * `early` also reads a sheet as soon as what it holds changes, before the frame is drawn: WebKit draws a size the resize watch
+ * reports first and a glide started there only from the next frame, so a sheet whose content is swapped whole would snap.
+ */
+function sheetGlide(early: boolean): { ref: RefCallback<HTMLElement>; hold: (still: boolean) => void } {
+	// Null until a sheet's size is first seen: where it stood before the page was laid out around it is no size to glide from.
 	const seen = new Map<HTMLElement, { box: Box; room: string } | null>();
 	const gliding = new Map<HTMLElement, Animation>();
 	let watch: ResizeObserver | null = null;
+	let still = false;
+	// A window that changed lays the sheets out more than once before the next frame (the height kept while
+	// the teacher works is given up after the first), and none of it glides.
+	let anew = false;
+	const laidOutAnew = () => {
+		if (anew) return;
+		anew = true;
+		requestAnimationFrame(() => (anew = false));
+	};
+	const hold = (now: boolean) => {
+		still = now;
+		if (still) for (const glide of gliding.values()) glide.finish();
+	};
 	const resized = () => {
 		const moves: { el: HTMLElement; from: number; to: number; ms: number }[] = [];
 		for (const [el, was] of seen) {
@@ -23,14 +41,15 @@ function sheetGlide(): RefCallback<HTMLElement> {
 			const now = { box: boxOf(el), room: roomOf(el) };
 			seen.set(el, now);
 			if (!was) continue;
-			const ms = glideMs(was.box, now.box, was.room === now.room);
+			if (was.room !== now.room) laidOutAnew();
+			const ms = glideMs(was.box, now.box, !anew);
 			if (ms !== null) moves.push({ el, from: was.box.height, to: now.box.height, ms });
 		}
-		if (moves.length === 0 || prefersReducedMotion()) return;
+		if (moves.length === 0 || still || prefersReducedMotion()) return;
 		const duration = Math.max(...moves.map((move) => move.ms));
 		for (const { el, from, to } of moves) {
 			el.style.overflow = "clip";
-			const glide = el.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration, easing: EASING });
+			const glide = el.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration, easing: EASE_OUT });
 			gliding.set(el, glide);
 			// At rest the sheet takes the height of what it holds now; if that changed meanwhile, it glides on from here.
 			const rest = () => {
@@ -41,17 +60,15 @@ function sheetGlide(): RefCallback<HTMLElement> {
 			glide.finished.then(rest, rest);
 		}
 	};
-	return (el) => {
+	const ref: RefCallback<HTMLElement> = (el) => {
 		if (!el || typeof ResizeObserver === "undefined" || typeof el.animate !== "function") return;
 		watch ??= new ResizeObserver(resized);
 		seen.set(el, null);
 		watch.observe(el);
-		// A change to what the sheet holds is caught as soon as it is made, before the frame is drawn: WebKit draws a
-		// size the resize watch reports first and a glide started there only from the next frame, so the sheet would snap.
-		const edits = new MutationObserver(resized);
-		edits.observe(el, { childList: true, subtree: true, characterData: true, attributes: true });
+		const edits = early ? new MutationObserver(resized) : null;
+		edits?.observe(el, { childList: true, subtree: true, characterData: true, attributes: true });
 		return () => {
-			edits.disconnect();
+			edits?.disconnect();
 			watch?.unobserve(el);
 			seen.delete(el);
 			const glide = gliding.get(el);
@@ -60,15 +77,20 @@ function sheetGlide(): RefCallback<HTMLElement> {
 			el.style.overflow = "";
 		};
 	};
+	return { ref, hold };
 }
 
 /**
- * The ref for the lesson's sheets: each glides to its new height where it would jump (a reply
- * landing, the desk opening, a key arriving in "Your turn"). Sheets that change together glide
- * together, in the same time, so the gap between them holds. What a sheet holds is laid out at
- * its new size at once and the sheet's edge uncovers or covers it. With reduced motion nothing
- * glides.
+ * The ref for sheets that glide to a new height where they would jump (in a lesson: a reply
+ * landing, the desk opening, a key arriving in "Your turn"; on the Graph: one panel replacing
+ * another in the slip). Sheets that change together glide together, in the same time, so the gap
+ * between them holds. What a sheet holds is laid out at its new size at once and the sheet's edge
+ * uncovers or covers it. While the book's pages are on their way (`still`) the sheets take their
+ * sizes at once: that move lays them out itself. With reduced motion nothing glides.
  */
-export function useSheetGlide(): RefCallback<HTMLElement> {
-	return useState(sheetGlide)[0];
+export function useSheetGlide(still: boolean, early = false): RefCallback<HTMLElement> {
+	const [glide] = useState(() => sheetGlide(early));
+	// Before the sizes of this render are seen.
+	useLayoutEffect(() => glide.hold(still), [glide, still]);
+	return glide.ref;
 }

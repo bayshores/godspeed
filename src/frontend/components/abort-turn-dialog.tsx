@@ -67,7 +67,7 @@ export function AbortTurnBody({
 			foot={
 				<>
 					<span className="flex-1" />
-					<button type="button" data-testid="abort-turn-cancel" onClick={onClose} className="lh-btn text-[15px]">
+					<button type="button" data-testid="abort-turn-cancel" onClick={onClose} className="lh-btn">
 						Cancel
 					</button>
 					<button

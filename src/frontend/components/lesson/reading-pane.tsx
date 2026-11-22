@@ -1,4 +1,4 @@
-import { useContext, useMemo, type Ref } from "react";
+import { useContext, useLayoutEffect, useMemo, type Ref } from "react";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { ConversationEmptyState } from "@/frontend/components/ai-elements/conversation";
@@ -20,6 +20,7 @@ import { ArrivalRow, type Arrive } from "./arrivals";
 import { MessageRow, messageShows } from "./message-row";
 import { PencilLine } from "./pencil-line";
 import { stepSheets, type SheetRow } from "./step-sheets-model";
+import { PrintWaitContext } from "./use-print-in";
 import { useReplyHold } from "./use-reply-hold";
 import { cardFiles, deskMark, deskState, heldBack } from "./wait-model";
 
@@ -52,6 +53,8 @@ export function ReadingPane({
 	arrivalsLive,
 	pageMarks,
 	arrive,
+	bookTurns,
+	onDesk,
 	sheetRef,
 }: {
 	/** The lesson's space. */
@@ -77,6 +80,10 @@ export function ReadingPane({
 	/** Each Study topic's stored page mark, by the text it sits in. */
 	pageMarks: ReadonlyMap<string, string>;
 	arrive: Arrive;
+	/** The book's pages are on their way (useBook's `turning`): a reply that landed prints once they stand still. */
+	bookTurns: boolean;
+	/** Told whether the desk is in the text, also while it leaves. */
+	onDesk: (up: boolean) => void;
 	/** The newest sheet, for the lesson page's glide (useSheetGlide). */
 	sheetRef?: Ref<HTMLElement>;
 }) {
@@ -95,6 +102,8 @@ export function ReadingPane({
 	const early = useReplyHold(busy && !shownDesk && arriving, deskMark(messages));
 	const mark = closing && desk.shown ? desk.shown.mark : early;
 	const shown = mark ? heldBack(messages, mark) : messages;
+	const deskUp = shownDesk !== null;
+	useLayoutEffect(() => onDesk(deskUp), [deskUp, onDesk]);
 	// Until the desk has something to show, the pencil stands where the reply will begin.
 	const foot = (busy || closing) && onStop && (
 		<div className="flex flex-col gap-2 font-ui">
@@ -109,20 +118,21 @@ export function ReadingPane({
 			</div>
 		</div>
 	);
-	const openProblem = useContext(ChatActionsContext)?.openProblem ?? null;
+	const inTurn = useContext(ChatActionsContext)?.inTurn ?? null;
 	const spaceColor = useSpaceColor(spaceId);
 	// A row or a sheet with nothing drawn on it is left out; with no sheet drawn, the newest still stands for the desk.
 	const sheets = useMemo(() => {
 		const rowShows = ({ index, from, to }: SheetRow) => {
 			const m = shown[index]!;
 			if (from === 0 && teachSeam(shown, phases, index)) return true;
-			return messageShows(to - from === m.parts.length ? m : { ...m, parts: m.parts.slice(from, to) }, index === echo, openProblem);
+			return messageShows(to - from === m.parts.length ? m : { ...m, parts: m.parts.slice(from, to) }, index === echo, inTurn);
 		};
 		const all = stepSheets(shown, stepNumbers).map((sheet) => ({ ...sheet, rows: sheet.rows.filter(rowShows) }));
 		const drawn = all.filter((sheet) => sheet.rows.length > 0);
 		return drawn.length > 0 ? drawn : all.slice(-1);
-	}, [shown, stepNumbers, phases, echo, openProblem]);
+	}, [shown, stepNumbers, phases, echo, inTurn]);
 	return (
+		<PrintWaitContext.Provider value={bookTurns}>
 		<div data-testid="lesson-reading" data-session-find-root="" className="lh-text-sheets flex min-w-0 flex-col gap-(--lh-gap)">
 			{sheets.map((sheet, si) => {
 				const newest = si === sheets.length - 1;
@@ -174,6 +184,7 @@ export function ReadingPane({
 				);
 			})}
 		</div>
+		</PrintWaitContext.Provider>
 	);
 }
 

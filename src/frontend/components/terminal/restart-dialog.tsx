@@ -17,10 +17,10 @@ export function RestartDialog({ name, open, onLater, onRestart }: { name: string
 			foot={
 				<>
 					<span className="flex-1" />
-					<button type="button" data-testid="restart-later" onClick={onLater} className="lh-btn text-[15px]">
+					<button type="button" data-testid="restart-later" onClick={onLater} className="lh-btn">
 						Later
 					</button>
-					<button type="button" data-testid="restart-now" onClick={onRestart} className="lh-btn lh-btn-main text-[15px]">
+					<button type="button" data-testid="restart-now" onClick={onRestart} className="lh-btn lh-btn-main">
 						Restart now
 					</button>
 				</>

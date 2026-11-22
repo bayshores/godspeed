@@ -225,10 +225,10 @@ export function MockRun({ view }: { view: MockView }) {
 							<p className="min-w-0 flex-1">
 								{submittedLine(questions.length, notSubmitted)} End Mock {mock.n} now? {teacher} grades what you have written.
 							</p>
-							<button type="button" data-testid="mock-end-keep" onClick={() => setConfirmEnd(false)} className="lh-btn text-[15px]">
+							<button type="button" data-testid="mock-end-keep" onClick={() => setConfirmEnd(false)} className="lh-btn">
 								Keep going
 							</button>
-							<button type="button" data-testid="mock-end-yes" disabled={ending} onClick={() => void end()} className="lh-btn lh-btn-main text-[15px]">
+							<button type="button" data-testid="mock-end-yes" disabled={ending} onClick={() => void end()} className="lh-btn lh-btn-main">
 								End mock
 							</button>
 						</div>
@@ -263,11 +263,11 @@ export function MockRun({ view }: { view: MockView }) {
 									<div className="flex shrink-0 flex-wrap items-center justify-end gap-2.5 bg-panel px-5 py-3">
 										{errorLine}
 										{questions.length > 1 && (
-											<button type="button" data-testid="mock-skip" onClick={() => go(nextOpen(submitted, at) ?? (at + 1) % questions.length)} className="lh-btn text-[15px]">
+											<button type="button" data-testid="mock-skip" onClick={() => go(nextOpen(submitted, at) ?? (at + 1) % questions.length)} className="lh-btn">
 												{work.submitted ? "Next question" : "Skip for now"}
 											</button>
 										)}
-										<button type="button" data-testid="mock-submit" disabled={work.submitted} onClick={submit} className="lh-btn lh-btn-main text-[15px]">
+										<button type="button" data-testid="mock-submit" disabled={work.submitted} onClick={submit} className="lh-btn lh-btn-main">
 											{work.submitted ? "Submitted" : "Submit answer"}
 										</button>
 									</div>

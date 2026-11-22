@@ -74,6 +74,7 @@ Keep godspeed small, tidy and easy to read. The checks below enforce these rules
 
 **Failures are seen**
 - No silent failure: an error is shown, logged with where it happened, or handled for a stated reason. A damaged data file is kept aside, never read as empty and overwritten. Rust specifics: `docs/rust-server.md`.
+- A box allowed to stretch past what it holds carries `data-fills="<reason>"`, which the layout check reads. Nothing else exempts a box from its hollow-box finding.
 
 **Plain names and short comments**
 - One name per idea, everywhere (UI, code, tools, tests). Example: "deadline", never mixed with "exam" or "assignment".

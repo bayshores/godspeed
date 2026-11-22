@@ -45,7 +45,7 @@ export const LessonCard = memo(function LessonCard({
 				))}
 			</ul>
 			{showAll !== null && (
-				<button type="button" data-testid={`${name}-show-all`} onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet self-start text-[15px]">
+				<button type="button" data-testid={`${name}-show-all`} onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet self-start">
 					Show all {showAll}
 				</button>
 			)}

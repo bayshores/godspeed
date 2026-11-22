@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { LoadingLine, useWaited } from "@/frontend/components/loading";
 import { Link, useSearchParams } from "react-router";
 import type { SpaceDeadline, DeadlineProgress, SheetCard } from "@/shared/core";
-import { studioPath, useSpaceSheets } from "@/frontend/components/cheat-sheet/use-cheat-sheet";
+import { useSpaceSheets } from "@/frontend/components/cheat-sheet/space-sheets";
+import { studioPath } from "@/frontend/components/cheat-sheet/use-cheat-sheet";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useMinute } from "@/frontend/components/countdown";
@@ -83,7 +84,7 @@ export function DeadlinesTab() {
 			<section className="flex flex-col gap-3">
 				<div className="lh-card-head">
 					<h2 className="lh-card-title">Coming up</h2>
-					<button type="button" data-testid="deadline-add" disabled={!record} onClick={() => setAdding(true)} className="lh-btn lh-btn-quiet text-[15px]">
+					<button type="button" data-testid="deadline-add" disabled={!record} onClick={() => setAdding(true)} className="lh-btn lh-btn-quiet">
 						<PixelIcon name="plus" />
 						Add a deadline
 					</button>

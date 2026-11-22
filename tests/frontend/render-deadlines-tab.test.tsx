@@ -30,6 +30,7 @@ const { DeadlinesTab } = await import("../../src/frontend/components/space-page/
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { OpenDeadlinesProvider } = await import("../../src/frontend/components/use-open-deadlines.tsx");
+const { ProgressProvider } = await import("../../src/frontend/components/use-progress.tsx");
 
 const DAY = 86_400_000;
 const day = (offset: number) => localDay(Date.now() + offset * DAY);
@@ -66,9 +67,11 @@ async function mount(deadlines: SpaceDeadline[], active: string | null = "cls_a"
 			<MemoryRouter initialEntries={[at]}>
 				<ServerEventsProvider connect={connect as never}>
 					<SpaceProvider initialActive={active}>
-						<OpenDeadlinesProvider>
-							<DeadlinesTab />
-						</OpenDeadlinesProvider>
+						<ProgressProvider>
+							<OpenDeadlinesProvider>
+								<DeadlinesTab />
+							</OpenDeadlinesProvider>
+						</ProgressProvider>
 					</SpaceProvider>
 				</ServerEventsProvider>
 			</MemoryRouter>,

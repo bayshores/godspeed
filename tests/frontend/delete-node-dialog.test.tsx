@@ -39,7 +39,7 @@ describe("DeleteNodeBody — the minimal screen", () => {
 		assert.match(html, /data-testid="delete-node-dialog-close"[\s\S]*?Close</);
 		assert.match(html, /data-testid="node-name-code"[^>]*font-count[^>]*>Kepler&#x27;s three laws</);
 		assert.match(html, /data-testid="node-permanence-line"[^>]*>This permanently deletes the fact\. This cannot be undone\./);
-		assert.match(html, /data-testid="node-delete-cancel"[^>]*class="lh-btn text-\[15px\]"/);
+		assert.match(html, /data-testid="node-delete-cancel"[^>]*class="lh-btn"/);
 		assert.match(html, /data-testid="node-delete-confirm"[^>]*lh-btn-danger/);
 	});
 

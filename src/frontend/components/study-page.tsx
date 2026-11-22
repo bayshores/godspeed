@@ -5,6 +5,7 @@ import { useMinute } from "@/frontend/components/countdown";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { useSpaces } from "@/frontend/components/space-context";
+import { useWaited } from "@/frontend/components/loading";
 import { useProgress } from "@/frontend/components/use-progress";
 import { COMING_UP_ROWS, DeadlineRows } from "@/frontend/components/study-page/deadline-rows";
 import { FactsPicker } from "@/frontend/components/study-page/facts-picker";
@@ -31,6 +32,7 @@ export function NewLesson() {
 	const { data } = useProgress();
 	// Progress for a space the window just left is never shown.
 	const progress = data && data.spaceId === activeSpaceId ? data : null;
+	const waited = useWaited(progress !== null);
 
 	const [topic, setTopic] = useState("");
 	/* The topic MIRROR: the start reads the ref, kept current at every
@@ -62,7 +64,7 @@ export function NewLesson() {
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<div className="@container/page lh-page flex flex-col gap-(--lh-head-gap) pt-(--lh-page-top) pb-(--lh-page-end)">
 					<div className="flex flex-col items-start gap-2.5">
-						<Link to="/space" data-testid="page-back" className="lh-btn lh-btn-quiet text-[15px]">
+						<Link to="/space" data-testid="page-back" className="lh-btn lh-btn-quiet">
 							<PixelIcon name="chevron" className="-scale-x-100" />
 							Progress
 						</Link>
@@ -103,6 +105,7 @@ export function NewLesson() {
 								key={activeSpaceId ?? "none"}
 								spaceLabel={activeSpace?.name ?? null}
 								suggestions={suggestions}
+								arrives={waited}
 								busyOn={lesson.busyOn}
 								onStudyFile={studyFile}
 								onStudyTopic={studyTopic}

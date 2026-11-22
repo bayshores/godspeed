@@ -11,7 +11,7 @@ import { PageTitle } from "./page-title";
 import { SpaceLayout } from "./space-layout";
 import { SettingsRoute } from "./settings";
 import { LessonPage, lessonLoader } from "./lesson";
-import { CheatSheetRoute, DeadlineRoute, deadlineLoader } from "./deadline";
+import { CheatSheetRoute, DeadlineRoute, deadlineLoader, deadlinePageLoader } from "./deadline";
 import { MockRoute, mockLoader } from "./mock";
 import { PluginTab } from "./plugin-tab";
 import { TerminalWindowRoute } from "./terminal-window";
@@ -52,7 +52,7 @@ export const routes: RouteObject[] = [
 							{ path: "space/plugin/:id", element: <PluginTab /> },
 						],
 					},
-					{ path: "space/deadline/:id", loader: deadlineLoader, element: <DeadlineRoute />, errorElement: <PageError page="Deadline" /> },
+					{ path: "space/deadline/:id", loader: deadlinePageLoader, element: <DeadlineRoute />, errorElement: <PageError page="Deadline" /> },
 					{ path: "space/deadline/:id/cheat-sheet", loader: deadlineLoader, element: <CheatSheetRoute />, errorElement: <PageError page="Cheat sheet" /> },
 					{ path: "space/mock/:spaceId/:mockId", loader: mockLoader, element: <MockRoute />, errorElement: <PageError page="Mock" /> },
 					{ id: "lesson", path: "chat/:id", loader: lessonLoader, element: <LessonPage />, errorElement: <PageError page="Lesson" /> },

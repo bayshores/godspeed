@@ -1,17 +1,25 @@
 import { WAITING_TOPIC } from "./layout-seed.mjs";
 
 /**
- * layout-screens.mjs — the screens `npm run layout` checks, in order, each at every width.
+ * layout-screens.mjs — the screens `npm run layout` checks, in order.
  *
- * A screen opens at `url`, waits for `ready`, runs `setup` in the page (clicks), then waits for
+ * Every screen is checked at 1440, 1100 and 800 points wide, a lesson ("/chat/") at 1320 too
+ * (widthsOf). A screen opens at `url`, waits for `ready`, runs `setup` in the page (clicks), then waits for
  * `shows`. `ready` and `shows` name something drawn from the screen's data, not its frame, so the
  * check never runs on a screen still loading. `height` gives it a window higher than the
  * check's own. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
- * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, `{pending}`, `{sheetless}`, `{pathSpace}`, `{ended}`, `{vault}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
+ * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, the lessons that stand at a state of "Your turn" `{explained}`, `{quizAnswered}`, `{concluded}`, `{skipped}`, `{discarded}` and `{lastTopic}`, `{pending}`, `{sheetless}`, `{pathSpace}`, `{vault}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
-export const WIDTHS = [1440, 1100, 800];
+const WIDTHS = [1440, 1100, 800];
+/** A lesson is also checked at 1320: between 1280 and about 1367 its reading inset changes. */
+const LESSON_WIDTHS = [1440, 1320, 1100, 800];
+
+/** The widths a screen is checked at, widest first. */
+export function widthsOf(screen) {
+	return screen.url.startsWith("/chat/") ? LESSON_WIDTHS : WIDTHS;
+}
 /** A window high enough for "Your turn" pinned under the lesson text (`height` on a screen). A screen too
  *  low for it, as GitHub's Mac runner has, leaves that screen unchecked with a warning. */
 const TALL = 860;
@@ -380,6 +388,13 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	{ name: "Lesson with a question whose choices are code in a tall window", url: "/chat/{codeChoices}", ready: "[data-testid=question-dock] pre", height: TALL },
 	{ name: "Lesson with a problem longer than a tall window", url: "/chat/{longProblem}", ready: "[data-testid=open-problem]", height: TALL },
 	{ name: "Homework lesson before a problem opens, in a tall window", url: "/chat/{homeworkFirst}", ready: "[data-testid=next-problem-button]", height: TALL },
+	// "Your turn" with nothing to answer, after each way a step can end.
+	{ name: "Lesson where the teacher explained and asked nothing, Your turn holds Continue", url: "/chat/{explained}", ready: "[data-testid=next-problem-button][data-action=next]" },
+	{ name: "Lesson with a quiz answered and the teacher's reply landed", url: "/chat/{quizAnswered}", ready: "[data-testid=next-problem-button][data-action=next]" },
+	{ name: "Lesson with a problem concluded, Continue to the next topic", url: "/chat/{concluded}", ready: "[data-testid=next-problem-button][data-action=keep-going]" },
+	{ name: "Lesson with a question skipped and the teacher's reply landed", url: "/chat/{skipped}", ready: "[data-testid=next-problem-button][data-action=next]" },
+	{ name: "Lesson with a problem discarded", url: "/chat/{discarded}", ready: "[data-testid=next-problem-button]" },
+	{ name: "Lesson at the end of its last topic, Done for today", url: "/chat/{lastTopic}", ready: "[data-testid=next-problem-button][data-action=done-for-today]" },
 	{ name: "Lesson that opens with a problem, Your turn alone", url: "/chat/{problemFirst}", ready: ".lh-lesson-alone [data-testid=open-problem]" },
 	{ name: "Homework lesson before a problem opens", url: "/chat/{homeworkFirst}", ready: "[data-testid=next-problem-button]" },
 	{ name: "Homework lesson with fourteen problems, the first done", url: "/chat/{homeworkMany}", ready: "[data-testid=plan-fold]" },
@@ -442,12 +457,12 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	{ name: "Progress with notes in Obsidian", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: spaceNotes(pagesOf(5, { extra: true })), shows: "[data-testid=notes-card] [data-testid=note-page]" },
 	{ name: "Progress with notes, all shown", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: `${spaceNotes(pagesOf(5, { extra: true }))};\n${whenThere("[data-testid=notes-all]")}; document.querySelector("[data-testid=notes-all]").click()`, shows: "[data-testid=notes-card][data-all] [data-testid=note-page]:nth-child(7)" },
 	{ name: "Graph, a topic with a note", url: "/graph", ready: "[data-testid=graph-topic]", setup: `${spaceNotes(pagesOf(5))}; ${pickTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}`, shows: "[data-testid=topic-pane] [data-testid=topic-note-open]" },
-	{ name: "Lesson end, the notes being saved", height: TALL, url: "/chat/{ended}", ready: "[data-testid=your-turn]", setup: lessonNotes(pagesOf(3, { waiting: [2] })), shows: "[data-testid=end-notes] [data-saving]" },
-	{ name: "Lesson end, the notes saved", height: TALL, url: "/chat/{ended}", ready: "[data-testid=your-turn]", setup: lessonNotes(pagesOf(3)), shows: "[data-testid=notes-saved]" },
+	{ name: "Lesson end, the notes being saved", height: TALL, url: "/chat/{lastTopic}", ready: "[data-testid=your-turn]", setup: lessonNotes(pagesOf(3, { waiting: [2] })), shows: "[data-testid=end-notes] [data-saving]" },
+	{ name: "Lesson end, the notes saved", height: TALL, url: "/chat/{lastTopic}", ready: "[data-testid=your-turn]", setup: lessonNotes(pagesOf(3)), shows: "[data-testid=notes-saved]" },
 	{
 		name: "Lesson end, asked for my words",
 		height: TALL,
-		url: "/chat/{ended}",
+		url: "/chat/{lastTopic}",
 		ready: "[data-testid=your-turn]",
 		setup: lessonNotes(pagesOf(3), ASKED),
 		shows: "[data-testid=words-leave]",

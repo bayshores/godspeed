@@ -233,7 +233,7 @@ export function CommitInput({
 }
 
 /** The settings' small key (a plain "Continue" or "Cancel"). */
-export const SMALL_KEY = "lh-btn shrink-0 text-[15px]";
+export const SMALL_KEY = "lh-btn shrink-0";
 
 /** A small key with no face, just a word ("Copy", "New token"). */
-export const QUIET_KEY = "lh-btn lh-btn-quiet text-[15px]";
+export const QUIET_KEY = "lh-btn lh-btn-quiet";

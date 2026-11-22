@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import { FiledCard } from "@/frontend/components/filed-card";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { PagePiece } from "@/frontend/components/citations/page-piece";
@@ -47,32 +48,33 @@ const STACK = `${CARD} my-1 flex flex-col gap-2.5`;
 const PROSE_16 = { "--lh-prose-size": "16px", "--lh-prose-leading": "1.5", "--lh-ink-body": "var(--muted-foreground)" } as React.CSSProperties;
 
 export function ProblemCard({ part }: ArtifactPartProps) {
-	// The open problem shows once, in Your turn.
-	const openProblem = useContext(ChatActionsContext)?.openProblem;
-	if (openProblem === part.toolCallId) return null;
+	// The open problem, or the one kept beside the text, shows once, in Your turn.
+	const inTurn = useContext(ChatActionsContext)?.inTurn;
 	// Always open, no chevron: the record IS the statement, in the answered
 	// card's container. The commitment never renders, only the call's statement.
 	const statement = problemStatementOf(part.input, part.output);
 	const piece = problemPieceOf(part.output);
 	const choices = problemChoicesOf(part.input);
 	return (
-		<div data-testid="problem-card" data-problem-call={part.toolCallId} className={`${STACK} scroll-mt-4`}>
-			<div className="text-ink-2" style={PROSE_16}>
-				{piece ? <PagePiece piece={piece.piece} text={piece.text} quiet /> : <ToolContentResponse>{statement}</ToolContentResponse>}
+		<FiledCard away={inTurn === part.toolCallId}>
+			<div data-testid="problem-card" data-problem-call={part.toolCallId} className={`${STACK} scroll-mt-4`}>
+				<div className="text-ink-2" style={PROSE_16}>
+					{piece ? <PagePiece piece={piece.piece} text={piece.text} quiet /> : <ToolContentResponse>{statement}</ToolContentResponse>}
+				</div>
+				{choices && (
+					<ol data-testid="problem-card-choices" className="flex flex-col gap-1.5 text-ink-2" style={PROSE_16}>
+						{choices.labels.map((label, i) => (
+							<li key={i} className="flex items-start gap-3">
+								<OptionMark picked={false}>{choiceLetter(i)}</OptionMark>
+								<span className="min-w-0 flex-1">
+									<ToolContentResponse>{label}</ToolContentResponse>
+								</span>
+							</li>
+						))}
+					</ol>
+				)}
 			</div>
-			{choices && (
-				<ol data-testid="problem-card-choices" className="flex flex-col gap-1.5 text-ink-2" style={PROSE_16}>
-					{choices.labels.map((label, i) => (
-						<li key={i} className="flex items-start gap-3">
-							<OptionMark picked={false}>{choiceLetter(i)}</OptionMark>
-							<span className="min-w-0 flex-1">
-								<ToolContentResponse>{label}</ToolContentResponse>
-							</span>
-						</li>
-					))}
-				</ol>
-			)}
-		</div>
+		</FiledCard>
 	);
 }
 

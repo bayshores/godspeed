@@ -51,6 +51,7 @@ const { OverviewBody } = await import("../../src/frontend/components/overview/ov
 const { SpaceOverview } = await import("../../src/frontend/components/overview/space-overview.tsx");
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
+const { ProgressProvider } = await import("../../src/frontend/components/use-progress.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 type TeacherApi = import("../../src/frontend/components/teacher/teacher-context.ts").TeacherApi;
 
@@ -704,7 +705,9 @@ describe("clicks", () => {
 					<MemoryRouter initialEntries={["/space"]}>
 						<ServerEventsProvider connect={quietEvents as never}>
 							<SpaceProvider initialActive={null} initialSpaces={[]}>
-								<SpaceOverview />
+								<ProgressProvider>
+									<SpaceOverview />
+								</ProgressProvider>
 							</SpaceProvider>
 						</ServerEventsProvider>
 					</MemoryRouter>,

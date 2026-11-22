@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { LhMessage, QuestionDraft } from "@/shared/core";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import {
@@ -13,34 +13,25 @@ import {
 } from "./lesson-drafts-model";
 
 /**
- * The lesson's unsent drafts, saved to localStorage on
- * every change. The draft is null until the stored copy is read after
- * mount, so the first render never depends on storage; saves before then
- * are ignored. Storage can be missing or full: the draft still lives in
- * memory for this visit.
+ * The lesson's unsent drafts, read from localStorage for the first render
+ * and saved on every change. The lesson page is drawn anew for each lesson,
+ * so the stored copy is read once. Storage can be missing or full: the draft
+ * still lives in memory for this visit.
  */
 export function useLessonDrafts(chatId: string, record: readonly LhMessage[]) {
-	const [draft, setDraft] = useState<LessonDraft | null>(null);
 	const key = lessonDraftKey(chatId);
-	const recordRef = useRef(record);
-	recordRef.current = record;
+	const [draft, setDraft] = useState<LessonDraft>(() => withoutEndedQuestions(parseLessonDraft(readStorage(key)), record));
 
 	useEffect(() => {
-		setDraft(withoutEndedQuestions(parseLessonDraft(readStorage(key)), recordRef.current));
-	}, [key]);
-
-	useEffect(() => {
-		if (!draft) return;
 		writeStorage(key, serializeLessonDraft(draft));
 	}, [key, draft]);
 
-	const loaded = draft !== null;
 	useEffect(() => {
-		if (loaded) setDraft((d) => d && withoutSettled(d, record));
-	}, [loaded, record]);
+		setDraft((d) => withoutSettled(d, record));
+	}, [record]);
 
-	const saveComposer = useCallback((text: string) => setDraft((d) => d && withComposer(d, text)), []);
-	const saveQuestion = useCallback((id: string, patch: Partial<QuestionDraft>) => setDraft((d) => d && withQuestion(d, id, patch)), []);
+	const saveComposer = useCallback((text: string) => setDraft((d) => withComposer(d, text)), []);
+	const saveQuestion = useCallback((id: string, patch: Partial<QuestionDraft>) => setDraft((d) => withQuestion(d, id, patch)), []);
 
 	return { draft, saveComposer, saveQuestion };
 }

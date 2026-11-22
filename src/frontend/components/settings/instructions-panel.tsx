@@ -132,7 +132,7 @@ export function InstructionsPanel({
 					question
 				) : (
 					<>
-						<button type="button" onClick={leave} className="lh-btn shrink-0 text-[15px]">
+						<button type="button" onClick={leave} className="lh-btn shrink-0">
 							<PixelIcon name="chevron" className="-scale-x-100" />
 							Teaching
 						</button>

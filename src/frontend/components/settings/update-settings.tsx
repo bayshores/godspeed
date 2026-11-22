@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { SettingsRow, Toggle } from "./controls.tsx";
 import { hasWhatsNew, openWhatsNew } from "@/frontend/components/whats-new";
@@ -18,10 +18,14 @@ export const MANUAL_UPDATE_HINT = "Checking downloads available updates. Downloa
 export const AUTO_UPDATE_HINT = "Check at startup and every 24 hours. Turning this off does not stop updates already in progress or ready to install.";
 const UPDATE_ERROR = "Couldn’t check for updates. Try again later.";
 
+interface UpdateRead {
+	state: UpdateState | null;
+	failed: boolean;
+}
+
 /** Subscribe before requesting the snapshot. IPC replies and pushes can
- * cross; a revision prevents an older reply from hiding a newer event.
- * The banner shares this read-only observer so late loads recover too. */
-export function useUpdateState() {
+ * cross; a revision prevents an older reply from hiding a newer event. */
+function useRead(): UpdateRead {
 	const [state, setState] = useState<UpdateState | null>(null);
 	const [failed, setFailed] = useState(false);
 	useEffect(() => {
@@ -41,7 +45,22 @@ export function useUpdateState() {
 		});
 		return () => { live = false; off?.(); };
 	}, []);
-	return { state, failed };
+	return useMemo(() => ({ state, failed }), [state, failed]);
+}
+
+const UpdateContext = createContext<UpdateRead | null>(null);
+
+/** The shell's update state, read once for the window: the banner and Settings share it, so
+ *  Settings opens with it drawn. */
+export function UpdateStateProvider({ children }: { children: ReactNode }) {
+	return <UpdateContext.Provider value={useRead()}>{children}</UpdateContext.Provider>;
+}
+
+/** The window's update state. */
+export function useUpdateState(): UpdateRead {
+	const shared = useContext(UpdateContext);
+	if (!shared) throw new Error("useUpdateState outside UpdateStateProvider");
+	return shared;
 }
 
 export function updateStatusText(state: UpdateState | null): string | null {
@@ -96,15 +115,15 @@ export function UpdateSettings({
 			>
 				<span className="flex flex-wrap items-center gap-2">
 					{hasWhatsNew(version) ? (
-						<button type="button" onClick={() => openWhatsNew()} className="lh-btn lh-btn-quiet text-[15px]" data-testid="release-notes">Release notes</button>
-					) : releaseNotes && <a href={releaseNotes} target="_blank" rel="noopener noreferrer" className="lh-btn lh-btn-quiet text-[15px]" data-testid="release-notes">Release notes</a>}
+						<button type="button" onClick={() => openWhatsNew()} className="lh-btn lh-btn-quiet" data-testid="release-notes">Release notes</button>
+					) : releaseNotes && <a href={releaseNotes} target="_blank" rel="noopener noreferrer" className="lh-btn lh-btn-quiet" data-testid="release-notes">Release notes</a>}
 					{reportBug && (
-						<button type="button" className="lh-btn text-[15px]" data-testid="report-bug" onClick={() => reportBug()}>Report a bug</button>
+						<button type="button" className="lh-btn" data-testid="report-bug" onClick={() => reportBug()}>Report a bug</button>
 					)}
 					{active && (state.status === "downloaded" ? (
-						<button type="button" className="lh-btn lh-btn-main text-[15px]" data-testid="update-restart" onClick={() => window.lh?.installUpdate?.()}>Restart now</button>
+						<button type="button" className="lh-btn lh-btn-main" data-testid="update-restart" onClick={() => window.lh?.installUpdate?.()}>Restart now</button>
 					) : (
-						<button type="button" className="lh-btn text-[15px]" data-testid="update-check" disabled={busy} aria-busy={busy} onClick={check}>
+						<button type="button" className="lh-btn" data-testid="update-check" disabled={busy} aria-busy={busy} onClick={check}>
 							{busy && <BrailleSpinner label={state.status === "downloading" ? "Downloading update" : "Checking for updates"} />}
 							Check for updates
 						</button>

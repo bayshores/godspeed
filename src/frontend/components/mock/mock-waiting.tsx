@@ -82,7 +82,7 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 				<p className="text-[23px] leading-snug text-ink">{state === "writing" ? "The mock wasn't written" : "The mock wasn't graded"}</p>
 				<p className="text-[17px] text-ink-2">{view.error ? `What went wrong: ${view.error}.` : "The request stopped before the answer came back."}</p>
 				<div className="flex items-center gap-2.5">
-					<Key data-testid="mock-retry" busy={pending === "retry"} disabled={pending !== null} onClick={() => void act("retry")} className="lh-btn-main text-[15px]">
+					<Key data-testid="mock-retry" busy={pending === "retry"} disabled={pending !== null} onClick={() => void act("retry")} className="lh-btn-main">
 						Try again
 					</Key>
 					{state === "writing" && (

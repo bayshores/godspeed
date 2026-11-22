@@ -98,7 +98,7 @@ export function LinkedFolderButton({
 						</button>
 					)}
 					<span className="flex-1" />
-					<button type="button" data-testid="space-unlink-folder" disabled={disabled} onClick={pick(onUnlink)} className="lh-btn lh-btn-quiet text-[15px] text-ans-wrong hover:text-ans-wrong-hover">
+					<button type="button" data-testid="space-unlink-folder" disabled={disabled} onClick={pick(onUnlink)} className="lh-btn lh-btn-quiet text-ans-wrong hover:text-ans-wrong-hover">
 						Unlink
 					</button>
 				</div>

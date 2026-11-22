@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toggleOption, type DockSelection, type ProblemChoices, type ProblemPieceText } from "@/shared/core";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { PagePiece } from "@/frontend/components/citations/page-piece";
@@ -11,12 +11,13 @@ import { proseVars } from "./question-parts";
 /** Room kept above the part, so the fade at the top of the box does not cover its first line. */
 const LEAD = 32;
 
-/** Brings the start of the part the learner is on to the top of the box "Your turn" scrolls in.
+/** Brings the start of the part the learner is on to the top of the box "Your turn" scrolls in:
+ *  glided to when he moves on to it (`moved`), there at once when the problem is first drawn on it.
  *  Under the lesson text there is no such box, and the page itself rests on the part. */
-function restAt(start: HTMLElement) {
+function restAt(start: HTMLElement, moved: boolean) {
 	const box = start.closest<HTMLElement>(".lh-turn-scroll");
 	if (!box || box.scrollHeight <= box.clientHeight) return;
-	box.scrollTo({ top: box.scrollTop + start.getBoundingClientRect().top - box.getBoundingClientRect().top - LEAD, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+	box.scrollTo({ top: box.scrollTop + start.getBoundingClientRect().top - box.getBoundingClientRect().top - LEAD, behavior: moved && !prefersReducedMotion() ? "smooth" : "auto" });
 }
 
 const MARKED = "[data-part-current], [data-part-head], [data-part-fold]";
@@ -116,7 +117,8 @@ export function OpenProblemPane({
 			apply(root, new Map());
 		};
 	}, [part]);
-	useEffect(() => {
+	// Before the problem is drawn, so no frame shows every part open.
+	useLayoutEffect(() => {
 		const root = statementRef.current;
 		if (!part || !root) return;
 		const mark = () => apply(root, partMarks(root, part, opened));

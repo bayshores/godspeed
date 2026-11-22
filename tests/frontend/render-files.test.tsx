@@ -55,6 +55,7 @@ const { FilesPage } = await import("../../src/frontend/components/files/files-pa
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { AgentStatusProvider } = await import("../../src/frontend/components/agent-status.tsx");
+const { ProgressProvider } = await import("../../src/frontend/components/use-progress.tsx");
 const { CopyButton } = await import("../../src/frontend/components/copy-button.tsx");
 const { BarHost } = await import("../bar-host.tsx");
 const { kbdEventForAction } = await import("../../src/shared/core/index.ts");
@@ -144,15 +145,17 @@ async function mount(initialActive: string | null = "cls_a", teacher: { canAsk: 
 				<ServerEventsProvider connect={connect as never}>
 					<AgentStatusProvider>
 						<SpaceProvider initialActive={initialActive}>
-							<BarHost>
-								{teacher ? (
-									<TeacherContext.Provider value={{ name: "Ada", canAsk: teacher.canAsk, ask: (line) => void teacher.lines.push(line) } as TeacherApi}>
+							<ProgressProvider>
+								<BarHost>
+									{teacher ? (
+										<TeacherContext.Provider value={{ name: "Ada", canAsk: teacher.canAsk, ask: (line) => void teacher.lines.push(line) } as TeacherApi}>
+											<FilesPage />
+										</TeacherContext.Provider>
+									) : (
 										<FilesPage />
-									</TeacherContext.Provider>
-								) : (
-									<FilesPage />
-								)}
-							</BarHost>
+									)}
+								</BarHost>
+							</ProgressProvider>
 						</SpaceProvider>
 					</AgentStatusProvider>
 				</ServerEventsProvider>

@@ -19,7 +19,7 @@ import {
 	type LhMessage,
 } from "../../src/shared/core/native-messages.ts";
 import { needsContinuation } from "../../src/shared/core/native-scans.ts";
-import { activeProblemOf, problemChoicesOf, problemInputForConclude } from "../../src/shared/core/practice-problem.ts";
+import { activeProblemOf, closedProblemOf, problemChoicesOf, problemInputForConclude } from "../../src/shared/core/practice-problem.ts";
 import { projectView } from "../../src/shared/core/index.ts";
 import { PIECE_DETAILS } from "../piece-fixtures.ts";
 
@@ -93,6 +93,32 @@ function concludeCall(outcome: string): LhMessage[] {
 		},
 	];
 }
+
+describe("closedProblemOf (the problem closed last, with none open since)", () => {
+	it("is the problem a clean conclude closed, with the pose ack's details", () => {
+		const posed = problemPose();
+		(posed[1] as LhMessage & ToolResultMessage).details = PIECE_DETAILS;
+		const closed = closedProblemOf([...posed, ...concludeCall("solved"), newUserMessage("thanks")]);
+		assert.equal(closed?.toolCallId, "call_p1");
+		assert.equal(closed?.discarded, false);
+		assert.deepEqual(closed?.details, PIECE_DETAILS);
+	});
+
+	it("is the problem the learner discarded", () => {
+		const closed = closedProblemOf([...problemPose(), newProblemDismissedMarker("call_p1")]);
+		assert.equal(closed?.toolCallId, "call_p1");
+		assert.equal(closed?.discarded, true);
+	});
+
+	it("is none while a problem is open, before any was posed, and for a conclude that failed", () => {
+		assert.equal(closedProblemOf([]), null);
+		assert.equal(closedProblemOf(problemPose()), null);
+		assert.equal(closedProblemOf([...problemPose(), ...concludeCall("solved"), ...problemPose("call_p2")]), null, "the next problem is open");
+		const failed = concludeCall("solved");
+		(failed[1]! as unknown as { isError: boolean }).isError = true;
+		assert.equal(closedProblemOf([...problemPose(), ...failed]), null);
+	});
+});
 
 // ── the active-problem fold ──────────────────────────────────────────────────
 

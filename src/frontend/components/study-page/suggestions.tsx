@@ -7,6 +7,7 @@ import { StepBlocks } from "@/frontend/components/overview/lesson-rows";
 import { stepBlocks } from "@/frontend/components/overview/lesson-record-model";
 import { lessonHref } from "@/frontend/components/overview/overview-model";
 import { Pane } from "@/frontend/components/ui/pane";
+import { cn } from "@/frontend/lib/utils";
 import { suggestionKey, suggestionLine, type Suggestion } from "./suggestions-model";
 
 const ACTION = "shrink-0 text-[15px]";
@@ -20,6 +21,7 @@ const ACTION = "shrink-0 text-[15px]";
 export const SuggestionList = memo(function SuggestionList({
 	spaceLabel: label,
 	suggestions,
+	arrives,
 	busyOn,
 	onStudyFile,
 	onStudyTopic,
@@ -28,6 +30,8 @@ export const SuggestionList = memo(function SuggestionList({
 	/** The space's name; null = no space. */
 	spaceLabel: string | null;
 	suggestions: readonly Suggestion[];
+	/** It comes after the page opened (the space's progress was read late), so it rises in. */
+	arrives: boolean;
 	busyOn: string | null;
 	onStudyFile: (file: FileCoverage) => void;
 	onStudyTopic: (topic: TopicProgress) => void;
@@ -35,7 +39,7 @@ export const SuggestionList = memo(function SuggestionList({
 }) {
 	if (suggestions.length === 0) return null;
 	return (
-		<Pane data-testid="home-suggestions" className="lh-card lh-rise">
+		<Pane data-testid="home-suggestions" className={cn("lh-card", arrives && "lh-rise")}>
 			<div className="lh-card-head">
 				<h2 className="lh-card-title">{label ? `Suggested for ${label}` : "Suggested"}</h2>
 			</div>

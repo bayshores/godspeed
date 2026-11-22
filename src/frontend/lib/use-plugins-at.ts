@@ -28,11 +28,15 @@ export interface PluginsAt {
 	reload: () => void;
 }
 
-/** Reads the installed plugins each time the screen opens, so a switch in Settings shows next time. */
-export function usePluginsAt(place: Place): PluginsAt {
-	const [all, setAll] = useState<InstalledPlugin[] | null | undefined>(undefined);
+/** Reads the installed plugins each time the screen opens, so a switch in Settings shows next time.
+ *  A screen whose loader read them passes them as `loaded` and opens with them. */
+export function usePluginsAt(place: Place, loaded?: InstalledPlugin[] | null): PluginsAt {
+	const [all, setAll] = useState(loaded);
 	const reload = useCallback(() => void fetchPlugins().then(setAll), []);
-	useEffect(reload, [reload]);
+	const read = loaded !== undefined;
+	useEffect(() => {
+		if (!read) reload();
+	}, [read, reload]);
 	const plugins = useMemo(() => (all ? pluginsAt(all, place) : all), [all, place]);
 	return { plugins, reload };
 }

@@ -16,7 +16,7 @@ const FULL: KeptCardData = { text: KEEP.text, fits: KEEP.fits, stops: KEEP.stops
 
 function render(kept: KeptCardData, dropKept: (of: string, part: KeptPart, back: boolean) => void = () => {}): string {
 	return renderToStaticMarkup(
-		<ChatActionsContext.Provider value={{ chatId: "c1", sendBlocked: null, sendText: () => {}, openProblem: null, dropKept }}>
+		<ChatActionsContext.Provider value={{ chatId: "c1", sendBlocked: null, sendText: () => {}, inTurn: null, dropKept }}>
 			<KeptCard kept={kept} answer={keepAnswer("right")} input={{ type: "check", nodeId: "reg" }} toolCallId="call_k" />
 		</ChatActionsContext.Provider>,
 	);
@@ -102,7 +102,7 @@ describe("KeptCard", () => {
 		const dropKept = (of: string, part: KeptPart, back: boolean) => void posted.push([of, part, back]);
 		const mount = (kept: KeptCardData) =>
 			root.render(
-				<ChatActionsContext.Provider value={{ chatId: "c1", sendBlocked: null, sendText: () => {}, openProblem: null, dropKept }}>
+				<ChatActionsContext.Provider value={{ chatId: "c1", sendBlocked: null, sendText: () => {}, inTurn: null, dropKept }}>
 					<KeptCard kept={kept} answer={keepAnswer("right")} input={{ type: "check", nodeId: "reg" }} toolCallId="call_k" />
 				</ChatActionsContext.Provider>,
 			);
@@ -139,7 +139,7 @@ describe("KeptCard", () => {
 		let kept = FULL;
 		const mount = () =>
 			root.render(
-				<ChatActionsContext.Provider value={{ chatId: "c1", sendBlocked: null, sendText: () => {}, openProblem: null, dropKept: (_of, _part, back) => void (kept = { ...kept, phraseDropped: !back }) }}>
+				<ChatActionsContext.Provider value={{ chatId: "c1", sendBlocked: null, sendText: () => {}, inTurn: null, dropKept: (_of, _part, back) => void (kept = { ...kept, phraseDropped: !back }) }}>
 					<KeptCard kept={kept} answer={keepAnswer("right")} input={{ type: "check", nodeId: "reg" }} toolCallId="call_k" />
 				</ChatActionsContext.Provider>,
 			);

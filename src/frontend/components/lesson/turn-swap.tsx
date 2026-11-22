@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { prefersReducedMotion, usePresence } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
 
@@ -6,7 +6,8 @@ import { cn } from "@/frontend/lib/utils";
  * The part of "Your turn" that changes with what waits, swapped when
  * `swapKey` changes: the old contents fade out (--lh-dur-fast, held as they
  * were by presence) and the new rise in. The contents the sheet opened with
- * are just there. With reduced motion they swap at once. The box under it
+ * are just there, also when their key changes before the sheet was first
+ * drawn (the page finding out it is pinned). With reduced motion they swap at once. The box under it
  * stays still, so a line being typed keeps the keyboard. With nothing
  * to hold (the pinned "Your turn" while the teacher works) it takes no room,
  * and what comes next waits for no fade.
@@ -16,12 +17,15 @@ export function TurnSwap({ swapKey, children }: { swapKey: string; children: Rea
 	const [swapped, setSwapped] = useState(false);
 	const same = swapKey === settled;
 	const presence = usePresence(same);
+	// Set once the work that drew the sheet has ended: a layout effect's change belongs to that first drawing.
+	const drawn = useRef(false);
+	useEffect(() => queueMicrotask(() => (drawn.current = true)), []);
 	const heldRef = useRef(children);
 	if (same) heldRef.current = children;
-	const leaving = !same && presence.mounted && heldRef.current !== null && !prefersReducedMotion();
+	const leaving = !same && drawn.current && presence.mounted && heldRef.current !== null && !prefersReducedMotion();
 	if (!same && !leaving) {
 		setSettled(swapKey);
-		setSwapped(true);
+		setSwapped(drawn.current);
 	}
 	const held = leaving ? heldRef.current : children;
 	return (

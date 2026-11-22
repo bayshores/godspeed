@@ -36,7 +36,7 @@ export function VaultNotice() {
 						data-testid="vault-notice-key"
 						disabled={again.busy}
 						onClick={() => (gone ? navigate("/settings") : void again.run(retry))}
-						className="lh-btn text-[15px]"
+						className="lh-btn"
 					>
 						{gone ? "Settings" : "Try again"}
 					</button>

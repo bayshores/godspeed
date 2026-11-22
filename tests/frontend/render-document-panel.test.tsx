@@ -58,7 +58,7 @@ function mount(over: Partial<React.ComponentProps<typeof DocumentPanel>> = {}) {
 	const host = document.createElement("div");
 	document.body.appendChild(host);
 	root = createRoot(host);
-	act(() => root!.render(<DocumentPanel choices={[TEST]} shown={TEST} place={null} seq={0} onPick={() => {}} onRetry={() => {}} onClose={() => {}} {...over} />));
+	act(() => root!.render(<DocumentPanel choices={[TEST]} shown={TEST} place={null} seq={0} there={false} onPick={() => {}} onRetry={() => {}} onClose={() => {}} {...over} />));
 	return host;
 }
 const q = (host: Element, id: string) => host.querySelector(`[data-testid='${id}']`);
@@ -98,13 +98,17 @@ describe("the Document panel", () => {
 		const page = boxes[0]!.closest("[data-testid='document-page']")!;
 		assert.ok(page === host.querySelector("[data-page='1']"), "on page 1");
 		assert.match(boxes[0]!.getAttribute("style")!, /left:10%;top:20%;width:80%;height:20(\.0+\d*)?%/);
-		assert.match(boxes[0]!.className, /lh-doc-box/);
+		assert.match(boxes[0]!.className, /lh-doc-box-in/, "in a panel opened after the lesson, the box closes in");
 		assert.match(page.firstElementChild!.getAttribute("style")!, /aspect-ratio:0\.5/, "its page has the piece's shape");
 		assert.match(host.querySelector("[data-page='2']")!.firstElementChild!.getAttribute("style")!, /aspect-ratio:0\.77/);
 		assert.equal(host.querySelectorAll("[data-testid='piece-veil']").length, 0, "nothing dimmed");
 		assert.ok(scrolls.length > 0, "the view went to the box");
 		assert.equal(page.querySelector("img")!.getAttribute("alt"), "Page 1, the open problem is on this page", "the box is only drawn, so the picture says so");
 		assert.equal(host.querySelector("[data-page='2'] img")!.getAttribute("alt"), "Page 2");
+		act(() => root!.unmount());
+		const there = mount({ place: problemPlace(SINGLE_PIECE, undefined, null), there: true });
+		assert.equal(q(there, "document-box")!.className.includes("lh-doc-box-in"), false, "in a panel open as the lesson showed, the box is just there");
+		there.remove();
 	});
 
 	it("has no box for a problem in another file", () => {

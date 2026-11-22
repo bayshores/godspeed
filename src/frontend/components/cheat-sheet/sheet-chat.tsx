@@ -165,7 +165,7 @@ export function SheetChat({
 							{view.running?.messageId === m.id && (
 								<p data-testid="sheet-working" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
 									<span>{agentGone ? "Waiting" : `${agentName} is on it`}</span>
-									<button type="button" data-testid="sheet-stop" onClick={() => post({ action: "stop" })} className="lh-btn lh-btn-quiet text-[15px]">
+									<button type="button" data-testid="sheet-stop" onClick={() => post({ action: "stop" })} className="lh-btn lh-btn-quiet">
 										Stop
 									</button>
 								</p>
@@ -175,7 +175,7 @@ export function SheetChat({
 									<span>
 										<span className="text-ans-wrong">{agentName} couldn&apos;t finish that.</span> {view.error.text}
 									</span>
-									<button type="button" data-testid="sheet-retry" onClick={() => post({ action: "retry" })} className="lh-btn text-[15px]">
+									<button type="button" data-testid="sheet-retry" onClick={() => post({ action: "retry" })} className="lh-btn">
 										Try again
 									</button>
 								</p>

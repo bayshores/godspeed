@@ -42,11 +42,14 @@ export function useLessonServer({
 	session,
 	initiallyInFlight,
 	initialStats,
+	initialJobs,
 }: {
 	chatId: string;
 	session: Session;
 	initiallyInFlight: boolean;
 	initialStats: LessonStats;
+	/** The lesson's jobs as the page's loader read them, so their cards open as they stand; null when that read failed. */
+	initialJobs: JobRecord[] | null;
 }) {
 	const { status, setMessages, continueIfOwed, adoptRecord, resumeStream, clearError, setReattachSettled } = session;
 
@@ -177,8 +180,8 @@ export function useLessonServer({
 	}, [status, chatId, syncFromServer]);
 
 	// ── central jobs: one fetch drives every job surface ──
-	const [jobs, setJobs] = useState<JobRecord[]>([]);
-	const jobStatusRef = useRef<Map<string, string>>(new Map());
+	const [jobs, setJobs] = useState<JobRecord[]>(initialJobs ?? []);
+	const jobStatusRef = useRef<Map<string, string>>(new Map(initialJobs?.map((j) => [j.id, j.status])));
 	const pendingSyncRef = useRef(false);
 	const fetchJobs = useCallback(async () => {
 		const { body: data } = await getJson<{ jobs?: JobRecord[]; turnInFlight?: boolean }>(`/api/jobs?chatId=${encodeURIComponent(chatId)}`);
@@ -204,9 +207,10 @@ export function useLessonServer({
 		}
 		setJobs(list);
 	}, [chatId, syncFromServer, adoptAppendOnly]);
+	// The loader's read failed: the page reads them itself.
 	useEffect(() => {
-		void fetchJobs();
-	}, [fetchJobs]);
+		if (initialJobs === null) void fetchJobs();
+	}, [initialJobs, fetchJobs]);
 	const fetchJobsSoon = useTrailing(() => void fetchJobs(), 250);
 	useServerEvent("jobs-changed", (p) => {
 		if (p.chatId == null || p.chatId === chatId) fetchJobsSoon();

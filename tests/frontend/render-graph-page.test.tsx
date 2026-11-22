@@ -30,6 +30,7 @@ import type { PanelRoom } from "../../src/frontend/components/graph/use-link-fit
 import { FAINT } from "../../src/frontend/components/graph/styles.ts";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
 import { SpaceProvider } from "../../src/frontend/components/space-context.tsx";
+import { ProgressProvider } from "../../src/frontend/components/use-progress.tsx";
 import { MemoryRouter } from "react-router";
 import { answers, fixture, unsorted } from "../graph-fixture.ts";
 import { DEFAULT_TEACHER_NAME } from "../../src/shared/core/index.ts";
@@ -870,7 +871,9 @@ describe("the graph screen", () => {
 				root!.render(
 					<MemoryRouter initialEntries={["/graph"]}>
 						<ServerEventsProvider connect={quietEvents as never}>
-							<GraphScreen />
+							<ProgressProvider>
+								<GraphScreen />
+							</ProgressProvider>
 						</ServerEventsProvider>
 					</MemoryRouter>,
 				),
@@ -895,7 +898,9 @@ describe("the graph screen", () => {
 			const { q, topic } = await mount(
 				<MemoryRouter initialEntries={["/graph"]}>
 					<ServerEventsProvider connect={quietEvents as never}>
-						<GraphScreen />
+						<ProgressProvider>
+							<GraphScreen />
+						</ProgressProvider>
 					</ServerEventsProvider>
 				</MemoryRouter>,
 			);
@@ -924,7 +929,9 @@ describe("the graph screen before any topic", () => {
 				const { q } = await mount(
 					<MemoryRouter initialEntries={["/graph"]}>
 						<ServerEventsProvider connect={quietEvents as never}>
-							<GraphScreen />
+							<ProgressProvider>
+								<GraphScreen />
+							</ProgressProvider>
 						</ServerEventsProvider>
 					</MemoryRouter>,
 				);

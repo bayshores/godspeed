@@ -28,7 +28,7 @@ import { canWriteMock, takesMocks } from "./mocks-model";
 import { PathMocks } from "./path-mocks";
 import { requestDoing, requestFailedLine, type RequestKind } from "./request-model";
 import { useDeadlineAbout } from "./use-deadline-about";
-import { useDeadlineMocks } from "./use-deadline-mocks";
+import { useDeadlineMocks, type DeadlineMocksRead } from "./use-deadline-mocks";
 import { useDeadlineRequest } from "./use-deadline-request";
 
 /**
@@ -40,7 +40,18 @@ import { useDeadlineRequest } from "./use-deadline-request";
  * also has its mocks. A deadline with two lessons or more lists them: with
  * one, Study already opens it.
  */
-export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlineId: string }) {
+export function DeadlinePage({
+	spaceId,
+	deadlineId,
+	initialMocks,
+	initialAbout,
+}: {
+	spaceId: string;
+	deadlineId: string;
+	/** What the route's loader read, so the page opens with them drawn. */
+	initialMocks?: DeadlineMocksRead;
+	initialAbout?: string;
+}) {
 	const navigate = useNavigate();
 	const { activeSpace } = useSpaces();
 	useJoinSpace(spaceId);
@@ -109,9 +120,9 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 	const running = requestState?.running ?? null;
 
 	const aboutFile = record?.files.find((f) => f.id === saved?.aboutFileId);
-	const { about, reload: reloadAbout } = useDeadlineAbout(spaceId, deadlineId, aboutFile ? `${aboutFile.id}:${aboutFile.contentFp}` : null);
+	const { about, reload: reloadAbout } = useDeadlineAbout(spaceId, deadlineId, aboutFile ? `${aboutFile.id}:${aboutFile.contentFp}` : null, initialAbout);
 	const withMocks = !!deadline && takesMocks(deadline.kind);
-	const mocks = useDeadlineMocks(spaceId, withMocks ? deadlineId : null);
+	const mocks = useDeadlineMocks(spaceId, withMocks ? deadlineId : null, initialMocks);
 
 	// The dialog compares its mode by identity: one object per open.
 	const files = record?.files;

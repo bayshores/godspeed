@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import type { CheatSheetView, SpaceSheetsView } from "@/shared/core";
+import type { CheatSheetView } from "@/shared/core";
 import { jsonInit, send } from "@/frontend/lib/api";
 import { useServerResource } from "@/frontend/components/use-server-resource";
 import type { Pointed } from "./canvas-model";
@@ -15,15 +15,6 @@ export function useCheatSheet(spaceId: string, deadlineId: string) {
 	const act = useCallback(async (body: Record<string, unknown>) => (await send(url, jsonInit("POST", body))).error, [url]);
 
 	return { view, loadError, reload, act };
-}
-
-/** A space's deadlines with where each sheet is, read again whenever a
- *  sheet or the space changes. */
-export function useSpaceSheets(spaceId: string | null) {
-	const { value: view, error, reload } = useServerResource<SpaceSheetsView>(spaceId ? `/api/spaces/${encodeURIComponent(spaceId)}/cheat-sheets` : null, {
-		on: { "cheat-sheet-changed": true, "spaces-changed": true },
-	});
-	return { view, failed: error !== null, reload };
 }
 
 /** The part pointed at and the version the chat asks to show, shared by

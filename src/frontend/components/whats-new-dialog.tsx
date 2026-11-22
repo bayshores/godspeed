@@ -48,7 +48,7 @@ export function WhatsNewDialog({
 			foot={
 				<>
 					<span className="flex-1" />
-					<button type="button" data-autofocus data-testid="whats-new-done" onClick={onClose} className="lh-btn lh-btn-main text-[15px]">
+					<button type="button" data-autofocus data-testid="whats-new-done" onClick={onClose} className="lh-btn lh-btn-main">
 						Got it
 					</button>
 				</>

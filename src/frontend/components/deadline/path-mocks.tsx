@@ -78,7 +78,7 @@ export function PathMocks({
 			{failed && (
 				<div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-2">
 					<p className="min-w-0 flex-1 text-[15px] text-ink">Couldn&apos;t load the mocks.</p>
-					<button type="button" data-testid="deadline-mocks-retry" onClick={onRetry} className="lh-btn text-[15px]">
+					<button type="button" data-testid="deadline-mocks-retry" onClick={onRetry} className="lh-btn">
 						Try again
 					</button>
 				</div>

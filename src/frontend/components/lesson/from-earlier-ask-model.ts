@@ -1,16 +1,13 @@
 /**
- * When a Study lesson asks the review route for a question from earlier:
- * once when the lesson opens, whatever is open, so a reload shows the one
- * he asked the teacher about; then while it waits on its teacher or its
- * agent, with nothing open, nothing shown and no answer or skip on its
- * way. The key changes when a turn starts or ends, so each one asks again:
+ * When an open Study lesson asks the review route for a question from
+ * earlier (the page's loader asks once before the lesson shows): while it
+ * waits on its teacher or its agent, with nothing open, nothing shown and
+ * no answer or skip on its way. The key changes when a turn starts or ends, so each one asks again:
  * with no agent connected the lesson waits the whole time, and Keep going
  * at a stop opens the server's window only once its go-ahead starts a
  * turn. Null: no ask. Pure.
  */
 export function fromEarlierAsk(s: {
-	/** The lesson has not asked yet. */
-	first: boolean;
 	/** A Study lesson waiting on its teacher or its agent. */
 	waiting: boolean;
 	/** The teacher's question or a problem is open. */
@@ -21,9 +18,8 @@ export function fromEarlierAsk(s: {
 	sending: boolean;
 	/** A turn runs. */
 	busy: boolean;
-}): "first" | "turn" | "no turn" | null {
+}): "turn" | "no turn" | null {
 	if (s.shown || s.sending) return null;
-	if (s.first) return "first";
 	if (!s.waiting || s.open) return null;
 	return s.busy ? "turn" : "no turn";
 }

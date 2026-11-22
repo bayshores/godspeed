@@ -32,10 +32,13 @@ export function PluginsSection() {
 	const [problem, setProblem] = useState<{ at: Place; text: string } | null>(null);
 
 	const load = useCallback(() => fetchPlugins().then(setPlugins), []);
+	// Both first, so a sheet shows once with its Update key, not before it.
 	useEffect(() => {
-		void load();
-		void fetchListed().then(setListed);
-	}, [load]);
+		void Promise.all([fetchPlugins(), fetchListed()]).then(([installed, list]) => {
+			setListed(list);
+			setPlugins(installed);
+		});
+	}, []);
 
 	const run = async (at: Place, action: () => Promise<string | null>) => {
 		setProblem(null);

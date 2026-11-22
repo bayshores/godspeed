@@ -39,10 +39,10 @@ export default function UpdateBanner() {
 			actions={
 				ready && (
 					<>
-						<button type="button" data-testid="update-later" onClick={() => setLater(true)} className="lh-btn text-[15px]">
+						<button type="button" data-testid="update-later" onClick={() => setLater(true)} className="lh-btn">
 							Later
 						</button>
-						<button type="button" data-testid="update-restart-now" onClick={() => (restartAsks(teacher, pendingTurns) ? setAsking(true) : install())} className="lh-btn lh-btn-main text-[15px]">
+						<button type="button" data-testid="update-restart-now" onClick={() => (restartAsks(teacher, pendingTurns) ? setAsking(true) : install())} className="lh-btn lh-btn-main">
 							Restart now
 						</button>
 					</>

@@ -72,7 +72,7 @@ export function DialogSheet({
 				>
 					<div className="flex shrink-0 items-center gap-2 pt-4 pr-3.5 pb-3.5 pl-6">
 						<h2 className="min-w-0 flex-1 truncate text-[22px] leading-tight text-ink">{title}</h2>
-						<button type="button" data-testid={`${testid}-close`} disabled={busy} onClick={onClose} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
+						<button type="button" data-testid={`${testid}-close`} disabled={busy} onClick={onClose} className="lh-btn lh-btn-quiet shrink-0">
 							<PixelIcon name="close" />
 							Close
 						</button>

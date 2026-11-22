@@ -4,7 +4,7 @@ import { SpaceDialog } from "@/frontend/components/space-dialog";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
-const CHOICE = "lh-btn max-w-full text-[15px]";
+const CHOICE = "lh-btn max-w-full";
 
 /** For a space page opened with no space: the spaces to switch to and
  *  "Add a space", right on the page. */

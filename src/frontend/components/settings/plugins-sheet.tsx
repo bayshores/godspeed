@@ -104,7 +104,7 @@ export function PluginSheet({
 					</div>
 				))}
 				{error && <ErrorLine text={error} />}
-				<div className="flex items-center justify-between gap-6 pt-(--lh-gap)">
+				<div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pt-(--lh-gap)">
 					{asking ? (
 						<RemoveQuestion
 							name={manifest.name}
@@ -118,7 +118,7 @@ export function PluginSheet({
 						/>
 					) : (
 						<>
-							<span className="text-[15px] text-ink-2">
+							<span className="max-w-full shrink-0 text-[15px] text-ink-2">
 								{manifest.version} by {manifest.author}
 							</span>
 							<span className="flex shrink-0 items-center gap-2">

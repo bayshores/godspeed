@@ -783,6 +783,9 @@ body {
 	mask-composite: exclude;
 }
 @container room (width >= 1280px) {
+	.lh-lesson-window.lh-lesson-closed {
+		--lh-col: var(--lh-text);
+	}
 	.lh-lesson-window.lh-lesson-pair {
 		--lh-col: var(--lh-pair);
 		--lh-cut-r: calc(var(--lh-cut-l) + var(--lh-pair) - var(--lh-gap) - var(--lh-turn));
@@ -795,10 +798,15 @@ body {
 
 /* The lesson text and "Your turn" side by side (LessonScroll), measured on the page's room:
    the pair is the page's column, and "Your turn" is 688 where there is room, giving way first
-   down to 560 so the text keeps at least 632 and is never narrower. */
+   down to 560 so the text keeps at least 632 and is never narrower. The text's page is as wide
+   shut as it is open, so its lines never wrap anew when the book opens or shuts. */
 .lh-lesson-room {
 	--lh-pair: min(100cqw - 2 * var(--lh-page-side), var(--lh-page-w));
+}
+.lh-lesson-room,
+.lh-lesson-closed :is(.lh-text-sheets, .lh-turn-fit) {
 	--lh-turn: clamp(560px, min((var(--lh-pair) - var(--lh-gap)) / 2, var(--lh-pair) - var(--lh-gap) - 632px), 688px);
+	--lh-text: calc(var(--lh-pair) - var(--lh-gap) - var(--lh-turn));
 }
 /* Side by side, the two sheets are the pages of an open book: both fill the page's window (the
    scroller is a size container, so 100cqh is its height), and the text's grows past it. "Your
@@ -809,7 +817,7 @@ body {
 	.lh-text-fit {
 		min-height: 100cqh;
 	}
-	.lh-turn-fit {
+	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit {
 		position: sticky;
 		top: 0;
 		display: flex;
@@ -819,6 +827,22 @@ body {
 	.lh-turn-scroll {
 		flex: 1 1 auto;
 		overflow-y: auto;
+	}
+	/* The shut book: one page in the middle of the pair's width, with "Your turn" pinned under
+	   its window. With "Your turn" in the page instead (or none yet), the text fills what is left
+	   of the window, as in the one column of a narrow room. */
+	.lh-lesson-closed :is(.lh-text-sheets, .lh-turn-fit) {
+		/* Inside the column 100cqw is the column's own width, so the pair is the column's whole width here. */
+		--lh-pair: 100%;
+		width: var(--lh-text);
+		margin-inline: auto;
+	}
+	.lh-lesson-closed:not(.lh-lesson-pinned) .lh-lesson-column {
+		min-height: calc(100cqh - var(--lh-page-end));
+	}
+	.lh-lesson-closed:not(.lh-lesson-pinned) :is(.lh-text-sheets, .lh-text-fit) {
+		flex: 1 1 auto;
+		min-height: 0;
 	}
 }
 /* In one column the lesson text's newest sheet fills what is left of its window as well, so a short lesson, or one
@@ -875,8 +899,8 @@ body {
 		padding: 28px var(--lh-reading-inset-narrow) 32px;
 	}
 }
-/* "Your turn" pinned with nothing to answer: a low sheet, so the lesson text keeps the window. */
-.lh-turn-foot .lh-reading.lh-turn-quiet {
+/* "Your turn" under the text with nothing to answer: a low sheet, so the lesson text keeps the window. */
+.lh-reading.lh-turn-quiet {
 	padding-block: 20px;
 }
 
@@ -897,6 +921,15 @@ body {
 }
 .lh-answer-lines .cm-editor .cm-content,
 .lh-answer-lines [data-testid="math-box"] > div[aria-hidden] {
+	min-height: 96px;
+}
+/* The box keeps its lowest height itself as well. While its editor is put in, one layout pass
+   sees the box with nothing in it; a problem scrolled to its part beside it (.lh-turn-scroll)
+   would grow for that pass and lose its place. */
+.lh-answer-line [data-testid="math-box"] {
+	min-height: 40px;
+}
+.lh-answer-lines [data-testid="math-box"] {
 	min-height: 96px;
 }
 
@@ -995,6 +1028,9 @@ body {
 	border: 1px solid var(--border);
 	background: color-mix(in oklab, var(--background) 92%, black);
 	padding: 0.375rem;
+	/* Streamdown leaves a block out of sight undrawn, at a guessed height of 200px: the page under
+	   it would change height as the block comes near the window. Its own style is set on the element. */
+	content-visibility: visible !important;
 }
 [data-streamdown="code-block-header"] {
 	display: none;
@@ -1621,7 +1657,8 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	animation: lh-rise-in var(--lh-dur) var(--lh-ease-out) both;
 }
 
-/* The open problem's box on its page in the Document panel: the outline closes in on it once. */
+/* The open problem's box on its page in the Document panel: one that comes after the lesson
+   opened closes in on it once. */
 @keyframes lh-box-in {
 	from {
 		opacity: 0;
@@ -1631,6 +1668,8 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 .lh-doc-box {
 	outline: 2px solid var(--color-ink);
 	outline-offset: 4px;
+}
+.lh-doc-box-in {
 	animation: lh-box-in var(--lh-dur-slow) var(--lh-ease-out) both;
 }
 
@@ -1677,6 +1716,21 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 
 /* The mark of the lit one of a row of tabs (lit-marker.ts): one box under
    the tabs, moved to the lit one. It slides only when another tab lights. */
+/* The tab strip (SpaceTabs) fades out at an end that cuts tabs off. Its lit tab is never wider
+   than the strip, and while tabs are cut off, the strip less the fades' overhang past its padding
+   (2 × (24 − 16) px), so centered its dot and name are clear of both fades. */
+.lh-tab-strip[data-cut="end"] {
+	mask-image: linear-gradient(to right, black calc(100% - 24px), transparent);
+}
+.lh-tab-strip[data-cut="start"] {
+	mask-image: linear-gradient(to left, black calc(100% - 24px), transparent);
+}
+.lh-tab-strip[data-cut="both"] {
+	mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
+}
+.lh-tab-strip[data-cut] > [data-lit] {
+	max-width: calc(100% - 16px);
+}
 .lh-lit-marker {
 	position: absolute;
 	z-index: -1;
@@ -2085,27 +2139,23 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	}
 }
 
-@keyframes lh-grow-in {
-	from {
-		width: 0;
-	}
-}
-
 .lh-ink {
 	mask-image: linear-gradient(90deg, #000 calc(var(--ink) - 3%), transparent calc(var(--ink) + 3%));
 	transition: --ink 600ms ease;
 	animation: lh-ink-in 900ms ease-out;
 }
 
+/* A bar that is there when its page opens is just there; it glides only when its share changes. */
 .lh-grow {
 	transition: width 600ms ease;
-	animation: lh-grow-in 900ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
 	.lh-ink,
 	.lh-grow {
 		transition: none;
+	}
+	.lh-ink {
 		animation: none;
 	}
 }
