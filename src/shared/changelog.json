@@ -1,5 +1,35 @@
 [
 	{
+		"version": "0.6.82",
+		"date": "2026-11-21",
+		"changes": [
+			"Graphite, the dark grey, is the default background. Paper is still in Settings, Appearance.",
+			"godspeed has a new icon, the pixel g on graphite. On a Mac, Settings, Appearance lets you pick it, the same drawing on paper, or the classic tile, and the Dock keeps your pick.",
+			"The Mac menu bar shows the time left to your nearest deadline, and its menu lists the next five. Clicking one opens it.",
+			"A trackpad pinch, or a scroll with ⌘ or Ctrl held, magnifies the page at the pointer up to 400%, with a small map of where you are. The top bar shows the size while you are zoomed, and a click on it goes back to 100%.",
+			"Home asks what you want to study and starts a lesson on any topic. An empty space shows one card with the ways to start it.",
+			"On the Files page you can pick files and press Study to get a lesson on them. The lesson can show the file in a panel beside it, and a .tex with its PDF counts as one file.",
+			"While the teacher writes, a pencil draws where the reply will begin, and the reply prints in line by line. The lesson's sheets glide to their new sizes instead of jumping.",
+			"A lesson is laid out as a book. With nothing asked it is one page in the middle, and it opens to two pages when the teacher asks you something. The right page keeps your last task with the key to go on. A lesson opens already in place instead of moving while it loads.",
+			"Each step of a lesson has its own sheet with its number on a tab, and your answer to a step shows where you gave it.",
+			"The Graph shows facts that are not in a topic yet as loose squares with one line under them, and when topics arrive each fact travels to its place.",
+			"On the Graph, a topic or fact you pick opens as a slip at the foot of the picture, where it had a box at the side. A fact shows its moon large, its words in a wide line, and what it builds on and leads to as keys. A topic shows its facts as moons you can click. The slip is laid up from the foot, and its edge glides when you go from one fact to the next.",
+			"The key for a fact's file on the Graph works. It opens a PDF and shows any other file in Finder, where Show in Finder did nothing.",
+			"godspeed can write what you learned into your Obsidian vault, or any notes folder, picked in Settings, General. At the end of a lesson the teacher writes one note for each idea you answered on and the lesson shows the note pages. Your own notes are linked, never changed.",
+			"The teacher explains before it tests when you say you never learned something or miss the first question, keeps replies short, works the plan in order, and asks what an exam makes you write as typed problems.",
+			"Asking a question or for an example in the middle of a problem keeps the problem open and no longer counts as wrong.",
+			"Practice tests and worksheets the teacher makes go into your space, tied to the lesson, and a new version replaces the old one. The next session knows the lesson has them.",
+			"When a deadline is less than 2 days away and its lesson is unfinished, the teacher goes back to that lesson instead of starting a new one, unless you ask for a new one.",
+			"The teacher costs far less to run. It starts without your own Claude Code plugins, servers and skills, sleeps between your answers instead of checking for them, and shortens its chat at 150,000 tokens. It needs Claude Code 2.1.330 or newer, and godspeed tells you if yours is older.",
+			"The helper sorts only new facts into topics after a lesson instead of the whole space, so it no longer runs out of room in long sessions.",
+			"The keyboard shortcuts list is in Menu and in Help, not only behind the ? key. Right-click menus are gone, and what they held is in each item's More key or in Edit space.",
+			"When Find on the Files page matches no file name, a key asks the teacher to look inside the files.",
+			"Pressing Enter in the teacher's terminal during a lesson no longer stops godspeed from starting a terminal until you restart it.",
+			"A lesson no longer scrolls into empty page after the window changes size, and a long lesson's clean-up no longer runs on every turn without making room.",
+			"The teacher's chat list names chats by what you said and leaves out chats that were never used."
+		]
+	},
+	{
 		"version": "0.6.81",
 		"date": "2026-11-20",
 		"changes": [
