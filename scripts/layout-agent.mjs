@@ -11,7 +11,8 @@
  * the file named by LAYOUT_TYPED, which the stand-in removes once it has done it): "follow <space id>"
  * starts a new chat, as after /clear (the jobs it took and never answered stay with the old chat;
  * while it held them its calls would make no steps), hands the app that line as the prompt hook
- * does, which begins its round of work, and reads the space as an agent would (four steps);
+ * does, which begins its round of work, reads the space as an agent would (four steps) and
+ * searches the web for its homework, told as the folder's tool hook tells it;
  * "change" adds a homework to the space in that round;
  * "done" takes the homework away and stops as the Stop hook says, which ends the round. It waits
  * for no work while its round lasts, since its next wait would end the round.
@@ -39,7 +40,7 @@ const call = async (method, params) => {
 };
 const tool = (name, args) => call("tools/call", { name, arguments: args });
 
-/** What the folder's hooks post: the chat started, a line typed to the agent, a stop. */
+/** What the folder's hooks post: the chat started, a line typed to the agent, a tool it uses, a stop. */
 const tell = async (route, body) => {
 	const { url, token } = target();
 	await fetch(new URL(route, url), { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}`, ...terminalHeader() }, body: JSON.stringify(body) });
@@ -68,6 +69,7 @@ async function typed(line) {
 		const found = await tool("search_space_files", { space_id: space, query: "graphing" });
 		const passage = /f_[0-9a-f]{12}:\d+/.exec(found)?.[0];
 		if (passage) await tool("read_passage", { space_id: space, passage_id: passage });
+		await tell("/api/mcp/agent-event", { event: "tool", tool: "WebSearch", subject: "lab algebra homework 7" });
 	} else if (word === "change") {
 		await tool("add_space_deadline", { space_id: space, deadlines: [{ kind: "homework", name: HOMEWORK, date: inDays(6) }] });
 		const { deadlines = [] } = JSON.parse((await tool("read_space", { space_id: space })) || "{}");

@@ -592,7 +592,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: `window.__lhPush("terminal-window", { open: true }); ${pause}; ${openTeacher}`,
 		shows: "[data-testid=teacher-panel] [data-testid=teacher-panel-put-back]",
 	},
-	// The stand-in teacher is typed a line and reads Lab Algebra: Follow's slip says what it does, at the foot of every page but a lesson's.
+	// The stand-in teacher is typed a line, reads Lab Algebra and searches the web: Follow's slip says what it does, at the foot of every page but a lesson's.
 	{
 		name: "Follow's slip while the teacher works",
 		url: "/space/deadlines",
@@ -609,6 +609,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		shows: "body:has([data-testid=follow-slip]) [data-testid=graph-panel] [data-testid=topic-pane]",
 	},
 	{ name: "Follow's slip beside the teacher's panel", url: "/", ready: deadlineCard, setup: openTeacher, shows: "body:has([data-testid=teacher-panel]) [data-testid=follow-slip]" },
+	// Its steps end with the web search, one of the agent's own tools.
 	{
 		name: "Follow's slip, its steps open",
 		url: "/settings?section=connection",
