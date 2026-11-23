@@ -787,12 +787,35 @@ describe("before any topic", () => {
 		await act(async () => new Promise((resolve) => setTimeout(resolve, REVEAL_MS + 20)));
 		const squaresWere = centres(host!);
 		assert.equal(squaresWere.length, 12);
-		await act(async () => root!.render(body({ data: fixture() })));
-		assert.deepEqual(centres(host!), squaresWere, "each fact starts where its square was");
-		assert.ok(host!.querySelector("[data-testid=graph-topic].lh-reveal"), "the names ink in");
-		assert.ok(!host!.querySelector("[data-testid=graph-picture] svg .lh-reveal"), "the facts travel instead of inking in");
-		assert.ok(!host!.querySelector("[data-testid=graph-sorts-next]"));
-		await act(async () => new Promise((resolve) => setTimeout(resolve, 500)));
+		// Frames and the clock are the test's own for the travel, so the facts are at their start exactly when the test looks.
+		const real = { frame: globalThis.requestAnimationFrame, cancel: globalThis.cancelAnimationFrame, now: performance.now };
+		let clock = performance.now();
+		const held = new Map<number, FrameRequestCallback>();
+		let ids = 0;
+		Object.assign(globalThis, {
+			requestAnimationFrame: (frame: FrameRequestCallback) => {
+				held.set(++ids, frame);
+				return ids;
+			},
+			cancelAnimationFrame: (id: number) => void held.delete(id),
+		});
+		performance.now = () => clock;
+		try {
+			await act(async () => root!.render(body({ data: fixture() })));
+			assert.deepEqual(centres(host!), squaresWere, "each fact starts where its square was");
+			assert.ok(host!.querySelector("[data-testid=graph-topic].lh-reveal"), "the names ink in");
+			assert.ok(!host!.querySelector("[data-testid=graph-picture] svg .lh-reveal"), "the facts travel instead of inking in");
+			assert.ok(!host!.querySelector("[data-testid=graph-sorts-next]"));
+			clock += 500;
+			while (held.size > 0) {
+				const due = [...held.values()];
+				held.clear();
+				await act(async () => due.forEach((frame) => frame(clock)));
+			}
+		} finally {
+			Object.assign(globalThis, { requestAnimationFrame: real.frame, cancelAnimationFrame: real.cancel });
+			performance.now = real.now;
+		}
 		reducedMotion.matches = true;
 		try {
 			const settled = centres(renderToStaticMarkup(body({ data: fixture() })));
