@@ -8,7 +8,7 @@ use gs_core::records::agent_seen::seen_mark;
 use gs_json::Json;
 
 use super::helper::{self, compacting_now, someone_compacting};
-use super::steps::begin_round;
+use super::steps::{begin_round, job_answered};
 use super::terminals::{closed, typed_lately};
 use super::render::{instructions_and_tools, prints_of};
 use super::view::{WorkView, remember_seen};
@@ -316,6 +316,7 @@ impl Bridge {
 		}
 		let message = to_assistant(reply);
 		let mut item = s.items.remove(i);
+		job_answered(&mut s, &item.conversation, clock::now_ms());
 		// The agent knows its own reply: the next delivery here starts at the tool results.
 		if !item.agent_forgot {
 			let (prints, lead) = prints_of(&item.context, Some(&message));

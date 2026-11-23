@@ -1,6 +1,7 @@
 //! The teacher's round of work: how it begins (the learner's line in the teacher's terminal, an
 //! asked job taken, an outside agent's first counted call, never godspeed's nudge), how it ends
-//! (the Stop hook, the next wait, quiet or stale by time, a closed terminal), and the 40 steps it
+//! (the Stop hook, the next wait, quiet or stale by time, a closed terminal; an outside agent is
+//! not quiet while it holds the asked job its round began with), and the 40 steps it
 //! keeps. Every time here is the app clock's now plus an offset, since the clock is shared by the
 //! whole binary. Two tests move it 20 s each, which ends no other test's round early.
 
@@ -221,4 +222,24 @@ async fn an_outside_agent_begins_a_round_with_its_first_call_and_ends_it_by_goin
 		clock::sleep(10).await;
 	}
 	panic!("the round's end by time never went out");
+}
+
+#[tokio::test]
+async fn an_outside_agent_holding_an_asked_job_keeps_its_round_until_it_answers() {
+	let (bridge, _rx) = bridge();
+	bridge.mark_asked("job_outside");
+	let job = park(&bridge, vec![json!({ "role": "user", "content": "what does HW7 cover", "timestamp": 1 })], "job_outside", &Abort::new());
+	clock::sleep(5).await;
+	let taken = clock::now_ms();
+	let work = bridge.wait_for_work(0, WaitOptions { agent: Some("outside-1".to_owned()), and_others: true, ..WaitOptions::default() }).await.unwrap();
+	assert_eq!(work.conversation, "job_outside");
+	assert!(steps(&bridge, taken + OUTSIDE_QUIET_MS + 5_000).is_some(), "not quiet while it holds the job");
+
+	let answered = clock::now_ms();
+	bridge.respond_to_work(&work.work_id, AgentReply { text: Some("Graphs.".to_owned()), tool_calls: Vec::new() }, 0).unwrap();
+	let live = steps(&bridge, answered + OUTSIDE_QUIET_MS - 1).is_some();
+	// Another test may move the clock 20 s at any moment, which rightly ends the round by its quiet.
+	assert!(live || clock::now_ms() - answered >= OUTSIDE_QUIET_MS, "its quiet counts from the answer, so the job's next item can go on in the round");
+	job.await.unwrap();
+	assert_eq!(steps(&bridge, clock::now_ms() + OUTSIDE_QUIET_MS), None, "quiet once it holds the job no more");
 }

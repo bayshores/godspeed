@@ -13,6 +13,7 @@ use gs_base::{clock, ids, time};
 use gs_core::session::teacher_steps::TeacherStep;
 use gs_json::{Json, Obj, json};
 
+use super::work::CLAIM_TIMEOUT_MS;
 use super::{Bridge, Inner, State};
 
 /// A round keeps this many steps; the oldest go first.
@@ -40,15 +41,33 @@ impl Round {
 	pub(super) fn terminal(&self) -> Option<&str> {
 		self.terminal.as_deref()
 	}
+}
 
-	fn ends_at(&self) -> i64 {
-		let stale = self.last_step + ROUND_STALE_MS;
-		if self.terminal.is_none() { stale.min(self.last_call + OUTSIDE_QUIET_MS) } else { stale }
-	}
+/// An agent outside godspeed's terminal holds the asked job its round began with: it works on it
+/// through respond, which makes no call that counts, so it is not quiet.
+fn holds_job(s: &State, round: &Round, now: i64) -> bool {
+	round.terminal.is_none()
+		&& round.asked.as_deref().is_some_and(|job| s.items.iter().any(|i| i.conversation == job && i.terminal.is_none() && i.claimed_at.is_some_and(|at| now - at <= CLAIM_TIMEOUT_MS)))
+}
 
-	fn over(&self, now: i64) -> bool {
-		now >= self.ends_at()
+/// When the round ends as it stands at `now`. While an outside agent holds its job, its quiet is
+/// looked at again `OUTSIDE_QUIET_MS` on, so its watch wakes after the job is answered.
+fn ends_at(s: &State, round: &Round, now: i64) -> i64 {
+	let stale = round.last_step + ROUND_STALE_MS;
+	match round.terminal {
+		Some(_) => stale,
+		None if holds_job(s, round, now) => stale.min(now + OUTSIDE_QUIET_MS),
+		None => stale.min(round.last_call + OUTSIDE_QUIET_MS),
 	}
+}
+
+fn over(s: &State, round: &Round, now: i64) -> bool {
+	now >= ends_at(s, round, now)
+}
+
+/// The live round, unless it is over by time.
+fn live(s: &State, now: i64) -> Option<&Round> {
+	s.round.as_ref().filter(|r| !over(s, r, now))
 }
 
 fn begin(s: &mut State, terminal: Option<&str>, asked: Option<&str>, now: i64) {
@@ -79,13 +98,16 @@ fn watch(inner: &Arc<Inner>) {
 	let weak = Arc::downgrade(inner);
 	detach("teacher-work", async move {
 		loop {
-			let due = weak.upgrade().and_then(|inner| inner.state.lock().round.as_ref().filter(|r| r.number == number).map(Round::ends_at));
+			let due = weak.upgrade().and_then(|inner| {
+				let s = inner.state.lock();
+				s.round.as_ref().filter(|r| r.number == number).map(|r| ends_at(&s, r, clock::now_ms()))
+			});
 			let Some(due) = due else { return };
 			clock::sleep_until(due).await;
 			let Some(inner) = weak.upgrade() else { return };
 			let over = {
 				let mut s = inner.state.lock();
-				s.round.as_ref().is_some_and(|r| r.number == number && r.over(clock::now_ms())) && end_round(&mut s)
+				s.round.as_ref().is_some_and(|r| r.number == number && over(&s, r, clock::now_ms())) && end_round(&mut s)
 			};
 			if over {
 				Bridge(inner).emit(EventKind::TeacherWork);
@@ -98,13 +120,21 @@ fn watch(inner: &Arc<Inner>) {
 /// The learner's line reached the teacher in its terminal, or the teacher took a job the learner
 /// asked for: a new round, true. That job's next work item goes on in the round it began.
 pub(super) fn begin_round(s: &mut State, terminal: Option<&str>, asked: Option<&str>, now: i64) -> bool {
-	let same_job = |r: &Round| asked.is_some() && r.asked.as_deref() == asked && r.terminal.as_deref() == terminal && !r.over(now);
-	if let Some(round) = s.round.as_mut().filter(|r| same_job(r)) {
+	let same_job = live(s, now).is_some_and(|r| asked.is_some() && r.asked.as_deref() == asked && r.terminal.as_deref() == terminal);
+	if let Some(round) = s.round.as_mut().filter(|_| same_job) {
 		round.last_call = now;
 		return false;
 	}
 	begin(s, terminal, asked, now);
 	true
+}
+
+/// An agent outside godspeed's terminal answered the job its round began with: its quiet counts
+/// from here, so the job's next work item can still go on in the round.
+pub(super) fn job_answered(s: &mut State, conversation: &str, now: i64) {
+	if let Some(round) = s.round.as_mut().filter(|r| r.terminal.is_none() && r.asked.as_deref() == Some(conversation)) {
+		round.last_call = round.last_call.max(now);
+	}
 }
 
 /// The round of the agent in `terminal` (None: outside godspeed) ends: true when it was live.
@@ -131,7 +161,7 @@ impl Bridge {
 	/// agent's live round; an agent outside godspeed's terminal begins one with its first call.
 	pub fn teacher_call(&self, terminal: Option<&str>, step: Option<TeacherStep>, now: i64) {
 		let mut s = self.0.state.lock();
-		let ended = s.round.as_ref().is_some_and(|r| r.over(now)) && end_round(&mut s);
+		let ended = s.round.is_some() && live(&s, now).is_none() && end_round(&mut s);
 		let began = s.round.is_none() && terminal.is_none();
 		if began {
 			begin(&mut s, None, None, now);
@@ -164,7 +194,7 @@ impl Bridge {
 	/// reads as ended; its wake tells the window.
 	pub fn teacher_work(&self, now: i64) -> Json {
 		let s = self.0.state.lock();
-		match s.round.as_ref().filter(|r| !r.over(now)) {
+		match live(&s, now) {
 			Some(round) => json!({ "live": true, "since": time::iso(round.since), "steps": round.steps.iter().cloned().collect::<Vec<_>>() }),
 			None => json!({ "live": false, "since": null, "steps": [] }),
 		}
