@@ -121,7 +121,8 @@ export interface RemovedFile {
 	at: string;
 }
 
-export type DeadlineKind = "exam" | "homework" | "quiz" | "project" | "interview";
+const DEADLINE_KINDS = ["exam", "homework", "quiz", "project", "interview"] as const;
+export type DeadlineKind = (typeof DEADLINE_KINDS)[number];
 
 /** One deadline of a space: added by the learner (Edit space) or by an
  *  outside agent from the syllabus (MCP add_space_deadline). Its topics are
@@ -291,6 +292,42 @@ export function deadlineDueAt(d: { date: string; time?: string }): { date: strin
 	return { date: d.date, time: d.time ?? "23:59" };
 }
 
+/** A space that looks to be missing a deadline (GET /api/deadlines `gaps`). The server made every
+ *  word; the teacher's own line about it never comes here. */
+export interface SpaceGap {
+	spaceId: string;
+	/** Answering (the quiet key) sends it back, so one gap is asked once. */
+	key: string;
+	title: string;
+	line: string;
+	/** The words of the key that waves it off. */
+	answer: string;
+	/** "Is it over?": the learner may close the space. */
+	close: boolean;
+	/** A rhythm gap only: the kind that came on a rhythm, the day the next one was expected and
+	 *  the name it would have. */
+	kind?: DeadlineKind;
+	day?: string;
+	label?: string;
+}
+
+/** The gaps in a read of GET /api/deadlines; what is not a gap is left out. */
+export function readGaps(value: unknown): SpaceGap[] {
+	if (!Array.isArray(value)) return [];
+	return value.filter((g): g is SpaceGap => {
+		if (typeof g !== "object" || g === null) return false;
+		const gap = g as Record<string, unknown>;
+		return (
+			isSpaceId(gap.spaceId) &&
+			[gap.key, gap.title, gap.line, gap.answer].every((word) => typeof word === "string") &&
+			typeof gap.close === "boolean" &&
+			(gap.kind === undefined || DEADLINE_KINDS.some((kind) => kind === gap.kind)) &&
+			(gap.day === undefined || isCalendarDate(gap.day)) &&
+			(gap.label === undefined || typeof gap.label === "string")
+		);
+	});
+}
+
 /** The list view: the record minus its file list, plus counts. */
 export interface SpaceSummary {
 	id: string;
@@ -303,8 +340,6 @@ export interface SpaceSummary {
 	fileCount: number;
 	/** When the newest file a folder scan found arrived. */
 	lastFoundAt?: string;
-	/** When the newest file from the linked folder arrived (or was linked). */
-	lastFolderFileAt?: string;
 	signature?: SpaceSignature;
 	icon?: SpaceIcon;
 	color: SpaceColor;
