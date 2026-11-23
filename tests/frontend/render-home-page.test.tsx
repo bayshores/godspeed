@@ -627,11 +627,11 @@ describe("Picking in the week", () => {
 		assert.equal($(el, "today-gap"), null);
 	});
 
-	it("a click on it shows it in the card: its days left, its name, the server's line and its keys; with no teacher to ask, Add it myself is the main key", async () => {
+	it("a click on it shows it in the card: its days left, its name, its space and the server's line, and its keys; with no teacher to ask, Add it myself is the main key", async () => {
 		const el = await mount(body(homeLists(LA_OPEN, [], NOW), {}, [HW7]));
 		await act(async () => $(el, "week-gap")!.click());
 		const card = $(el, "today-gap")!;
-		assert.match(card.textContent!, /^2\s*daysHW7\?It came every week\. None is on record after HW6\.None this weekAdd it myself$/);
+		assert.match(card.textContent!, /^2\s*daysHW7\?Linear Algebra\. It came every week\. None is on record after HW6\.None this weekAdd it myself$/);
 		assert.match(card.className, /lh-dashed/);
 		assert.equal($(el, "week-gap")!.getAttribute("aria-pressed"), "true");
 		assert.match($(el, "week-gap")!.getAttribute("style")!, /--lh-dash:\s*var\(--color-ink\)/, "picked, its dashes are ink");

@@ -4,6 +4,7 @@ import { LoadingBox, useWaited } from "@/frontend/components/loading";
 import type { DeadlineProgress, ProgressPayload, RhythmGap, SpaceSummary } from "@/shared/core";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { useLeavingList } from "@/frontend/components/presence";
+import { useSheetGlide } from "@/frontend/components/use-sheet-glide";
 import { Pane } from "@/frontend/components/ui/pane";
 import { DeadlinesCard } from "./deadlines-card";
 import { mainRowId, shownCard, type HomeLists } from "./home-page-model";
@@ -62,6 +63,7 @@ export function HomeBody(p: HomeBodyProps) {
 	const [picked, setPicked] = useState<WeekPick | null>(null);
 	const waited = useWaited(p.ready && p.nowMs !== null);
 	const outlines = useLeavingList(p.outlines);
+	const cardGlide = useSheetGlide(false, true);
 	const gap = picked?.kind === "gap" ? (p.outlines.find((g) => g.key === picked.key) ?? null) : null;
 	// An outline that has gone is let go, so one that comes back is never shown unasked.
 	if (picked?.kind === "gap" && !gap) setPicked(null);
@@ -105,18 +107,23 @@ export function HomeBody(p: HomeBodyProps) {
 									{p.lessonError}
 								</p>
 							)}
-							{gap && p.nowMs !== null && <NextGap gap={gap} color={space(gap.spaceId)?.color} spaceName={space(gap.spaceId)?.name ?? ""} nowMs={p.nowMs} />}
-							{card && (
-								<NextCard
-									deadline={card}
-									progress={p.deadlineProgress.get(card.id)}
-									color={color(card)}
-									nowMs={p.nowMs}
-									busyOn={p.busyOn}
-									onStart={p.onStart}
-									onDone={p.onDone}
-									onUndo={p.onUndo}
-								/>
+							{/* The card glides to the height of its other form, or of another deadline picked, so the page below moves once. */}
+							{(gap || card) && (
+								<div ref={cardGlide}>
+									{gap && <NextGap gap={gap} color={space(gap.spaceId)?.color} spaceName={space(gap.spaceId)?.name ?? ""} nowMs={p.nowMs} />}
+									{card && (
+										<NextCard
+											deadline={card}
+											progress={p.deadlineProgress.get(card.id)}
+											color={color(card)}
+											nowMs={p.nowMs}
+											busyOn={p.busyOn}
+											onStart={p.onStart}
+											onDone={p.onDone}
+											onUndo={p.onUndo}
+										/>
+									)}
+								</div>
 							)}
 							<DeadlinesCard spaces={p.spaces} lists={p.lists} outlines={outlines} nowMs={p.nowMs} picked={shown} onPick={setPicked} onRetry={p.onRetry} onAdd={p.onAddDeadline} />
 							<p aria-live="polite" data-testid="today-showing" className="sr-only">

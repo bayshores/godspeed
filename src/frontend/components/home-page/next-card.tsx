@@ -25,7 +25,8 @@ import { CHIP } from "./styles";
 /** A narrow card puts the tile above the words as a strip. */
 const STRIP = "@max-[539px]:w-full @max-[539px]:flex-row @max-[539px]:items-baseline @max-[539px]:gap-3 @max-[539px]:py-2";
 /** The gap form's three keys need more room: under the words, beside the tile, until the card is
- *  960 wide, then at the row's end. */
+ *  960 wide, then at the row's end, where its line may take two rows and the card keeps the
+ *  deadline form's height. */
 const GAP_ROW = "@min-[540px]:grid @min-[540px]:grid-cols-[auto_minmax(0,1fr)] @min-[960px]:grid-cols-[auto_minmax(0,1fr)_auto] @min-[960px]:items-center";
 const GAP_BLOCK = `${STRIP} @min-[540px]:row-span-2 @min-[960px]:row-span-1`;
 
@@ -106,7 +107,8 @@ export function NextCard({
  * The card's other form: an outline picked in the week, a deadline that
  * looks missing, drawn as its outline in dashes of its space's color. Its
  * days left where a deadline's are, with no fill, its name as the title
- * and the server's line under it. Its keys hand the teacher "Update
+ * and under it its space, as the deadline form starts its line, then the
+ * server's line. Its keys hand the teacher "Update
  * {space}", open the space's Add a deadline filled in, and wave it off;
  * with no teacher to ask, "Add it myself" is the main key.
  */
@@ -129,7 +131,7 @@ export function NextGap({ gap, color, spaceName, nowMs }: { gap: RhythmGap; colo
 						{answering.error}
 					</span>
 				) : (
-					gap.line
+					`${spaceName}. ${gap.line}`
 				)
 			}
 		>
@@ -177,7 +179,7 @@ function CardFrame({
 		<div className={cn("flex min-h-[104px] flex-col", outlined ? GAP_ROW : "@min-[540px]:flex-row @min-[540px]:items-center")}>
 			{block}
 			{/* The title's ink sits low in its line box, so the words sit 4px high to center on the keys. */}
-			<div className={cn("flex min-w-0 flex-1 flex-col gap-1 px-(--lh-inset) pt-3", outlined ? "pb-3 @min-[960px]:pb-5" : "pb-5")}>
+			<div className={cn("flex min-w-0 flex-1 flex-col gap-1 px-(--lh-inset) pt-3", outlined ? "pb-3 @min-[960px]:pb-1.5" : "pb-5")}>
 				<h2 className={cn("text-[28px] leading-tight break-words text-ink", struck && "line-through")}>{title}</h2>
 				<p data-testid="today-card-line" className="text-[17px] leading-snug text-ink-2">
 					{line}
