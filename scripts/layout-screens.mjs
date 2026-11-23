@@ -5,7 +5,8 @@ import { WAITING_TOPIC } from "./layout-seed.mjs";
  *
  * Every screen is checked at 1440, 1100 and 800 points wide, a lesson ("/chat/") at 1320 too
  * (widthsOf). A screen opens at `url`, waits for `ready`, runs `setup` in the page (clicks), then waits for
- * `shows`. `ready` and `shows` name something drawn from the screen's data, not its frame, so the
+ * `shows`; a `teacher` line is handed to the stand-in teacher before `shows`, as if typed in its terminal
+ * (layout-agent.mjs). `ready` and `shows` name something drawn from the screen's data, not its frame, so the
  * check never runs on a screen still loading. `height` gives it a window higher than the
  * check's own. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
@@ -82,6 +83,16 @@ await fetch("/api/spaces/{space}/deadlines/{homeworkOpenDeadline}", { method: "P
 const twoLessons = `for (let n = 0; n < 2; n++) await fetch("/api/chats", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ spaceId: "{space}", deadlineId: "{deadline}" }) })${HTTP_OK};`;
 const dropTwoLessons = `const { chats } = await fetch("/api/chats?space={space}")${HTTP_OK}.then((r) => r.json());
 for (const c of chats.filter((c) => c.deadlineId === "{deadline}" && c.kind === "study")) await fetch("/api/chats/" + c.id + "?mode=preserve-graph", { method: "DELETE" })${HTTP_OK};`;
+/** Waits in the page, up to 10 s, until the teacher's round of work has ended. */
+const roundEnded = `for (let n = 0; (await fetch("/api/teacher-work")${HTTP_OK}.then((r) => r.json())).live; n++) {
+	if (n > 100) throw new Error("the teacher's round of work never ended");
+	${pause};
+}`;
+/** The learner keeps typing, so Follow waits; the next full load ends it. */
+const keepTyping = `const type = () => document.dispatchEvent(new Event("input", { bubbles: true }));
+type();
+window.__layoutTyping ??= setInterval(type, 400);`;
+
 /** Every deadline the seed made, so Home has none. */
 const dropDeadlines = ["{deadline}", "{homeworkOpenDeadline}", "{homeworkFirstDeadline}", "{homeworkManyDeadline}", "{homeworkPrintedDeadline}", "{sheetMade}", "{sheetVersions}", "{mockRunDeadline}", "{waitingDeadline}"].map((id) => `await fetch("/api/spaces/{space}/deadlines/${id}", { method: "DELETE" })${HTTP_OK};`).join("\n");
 
@@ -554,7 +565,49 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: `window.__lhPush("terminal-window", { open: true }); ${pause}; ${openTeacher}`,
 		shows: "[data-testid=teacher-panel] [data-testid=teacher-panel-put-back]",
 	},
-	{ name: "Home with no deadline", before: dropDeadlines, url: "/", ready: "[data-testid=today-empty]" },
+	// The stand-in teacher is typed a line and reads Lab Algebra: Follow's slip says what it does, at the foot of every page but a lesson's.
+	{
+		name: "Follow's slip while the teacher works",
+		url: "/space/deadlines",
+		ready: "[data-testid=deadline-open]",
+		teacher: "follow {space}",
+		shows: "[data-testid=follow-slip] [data-testid=follow-slip-count]",
+	},
+	{ name: "Graph under Follow's slip", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]", setup: fitsWindow, shows: "[data-testid=follow-slip]" },
+	{
+		name: "Graph, a topic picked, over Follow's slip",
+		url: "/graph",
+		ready: "[data-testid=graph-topic]",
+		setup: `${pickTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}; ${fitsWindow}`,
+		shows: "body:has([data-testid=follow-slip]) [data-testid=graph-panel] [data-testid=topic-pane]",
+	},
+	{ name: "Follow's slip beside the teacher's panel", url: "/", ready: deadlineCard, setup: openTeacher, shows: "body:has([data-testid=teacher-panel]) [data-testid=follow-slip]" },
+	{
+		name: "Follow's slip, its steps open",
+		url: "/settings?section=connection",
+		ready: "[data-testid=agent-status]",
+		setup: `${whenThere("[data-testid=follow-slip-line]:not(:disabled)")}; document.querySelector("[data-testid=follow-slip-line]").click()`,
+		shows: "[data-testid=follow-slip-list]",
+	},
+	// The stand-in adds a homework while the learner types: Follow waits, and the slip says so with the way there.
+	{
+		name: "Follow's slip, paused while you type",
+		url: "/space/deadline/{deadline}",
+		ready: "[data-testid=deadline-page] [data-testid=deadline-when]",
+		setup: keepTyping,
+		teacher: "change",
+		shows: "[data-testid=follow-slip] [data-testid=follow-slip-go]",
+	},
+	// The round ends while its list is open, so "Done" stays until the list shuts. Taking the homework away is a change on Home.
+	{
+		name: "Follow's slip, done with its steps open",
+		url: "/",
+		ready: deadlineCard,
+		setup: `${whenThere("[data-testid=follow-slip-line]:not(:disabled)")}; document.querySelector("[data-testid=follow-slip-line]").click()`,
+		teacher: "done",
+		shows: "[data-testid=follow-slip][data-mark=done] [data-testid=follow-slip-list]",
+	},
+	{ name: "Home with no deadline", before: `${roundEnded}\n${dropDeadlines}`, url: "/", ready: "[data-testid=today-empty]" },
 	{ name: "Home on a busy day", before: busyDay, url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", shows: "[data-testid=week-later]" },
 	{ name: "Home, the week unfolded", url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", setup: `document.querySelector("[data-testid=week-more]").click()`, shows: "[data-testid=week-rest][data-state=open]" },
 	{ name: "Deadlines while the top bar asks about a late one", before: lateHomework, url: "/space/deadlines", ready: "[data-testid=overdue-notice] [data-testid=overdue-notice-done]" },

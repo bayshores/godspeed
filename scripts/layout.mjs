@@ -163,15 +163,27 @@ function freePort() {
 	});
 }
 
+/** Where a screen hands the stand-in teacher a line, as if typed in its terminal (layout-agent.mjs). */
+const typedFile = (home) => path.join(home, "typed");
+
 /** A Start in the check runs layout-agent.mjs, never a real agent: its `claude` and `codex` are
  *  first on the throwaway home's PATH. It throws when it can't write them, so the run stops
  *  before the window starts. */
 export function standInAgent(home) {
 	const bin = path.join(home, "bin");
 	fs.mkdirSync(bin);
-	const run = `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(import.meta.dirname, "layout-agent.mjs"))}\n`;
+	const run = `#!/bin/sh\nLAYOUT_TYPED=${JSON.stringify(typedFile(home))} exec ${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(import.meta.dirname, "layout-agent.mjs"))}\n`;
 	for (const name of ["claude", "codex"]) fs.writeFileSync(path.join(bin, name), run, { mode: 0o755 });
 	fs.writeFileSync(path.join(home, ".zshrc"), `export PATH=${JSON.stringify(bin)}:$PATH\n`);
+}
+
+/** Hands the stand-in teacher a screen's `teacher` line and waits until it has done it. */
+async function tellTeacher(line) {
+	const file = typedFile(path.join(RUN, "home"));
+	fs.writeFileSync(file, line);
+	for (const end = Date.now() + READY_MS; fs.existsSync(file); await sleep(100)) {
+		if (Date.now() > end) throw new Error(`the stand-in teacher never did "${line}"`);
+	}
 }
 
 /** The app with its control channel: one command line in, one answer line out. */
@@ -400,6 +412,7 @@ async function main() {
 				await app.value(`nav ${app.origin}${url}`);
 				await app.ready(fill(screen.ready, ids));
 				if (screen.setup) await app.run(fill(screen.setup, ids));
+				if (screen.teacher) await tellTeacher(fill(screen.teacher, ids));
 				if (screen.shows) await app.ready(fill(screen.shows, ids));
 			} catch (err) {
 				const snap = path.join(RUN, snapName(`${screen.name} not shown`, widths[0]));
