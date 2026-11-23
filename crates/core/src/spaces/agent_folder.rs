@@ -174,8 +174,8 @@ const WAITER_TIMEOUT_S: u32 = 7260;
 /// learner types to the app first (typed.mjs), and says which chat runs, when the agent stopped,
 /// when it asks the learner something and which of its own tools it uses (agent-event.mjs: the
 /// chats to go back to, the window's sound, Follow's slip; the tool hook runs in the background,
-/// so it never slows a tool). After each turn the waiter waits for work in the background and wakes the agent with it
-/// (asyncRewake). The Artifact tool, claude.ai connectors and the skills and plugins synced from
+/// so it never slows a tool). After each turn the waiter waits for work in the background and
+/// wakes the agent with it (asyncRewake). The Artifact tool, claude.ai connectors and the skills and plugins synced from
 /// claude.ai stay off, and `GODSPEED_WAKES` tells the connector this session is woken that way.
 /// Fetching a page still asks: text hidden in a space file could send the learner's data out.
 pub fn claude_settings(folder: &str, platform: Platform) -> String {
