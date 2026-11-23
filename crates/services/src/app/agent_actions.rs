@@ -7,8 +7,9 @@
 use std::sync::LazyLock;
 
 use gs_base::events::EventKind;
-use gs_base::re::{Re, collapse_spaces};
+use gs_base::re::Re;
 use gs_base::{clock, ids, text, time};
+use gs_core::records::agent_actions::short_label;
 use gs_json::{Json, Obj, json};
 
 use crate::App;
@@ -17,7 +18,6 @@ const ACTIONS_MAX: usize = 200;
 /// The same label on the same target within this window updates the newest entry instead of
 /// adding one (a lesson turn calls respond many times).
 const COALESCE_MS: i64 = 2 * 60_000;
-const LABEL_MAX: usize = 80;
 /// The `agent` of the app's own entries, which the teacher never flies to.
 const APP_SOURCE: &str = "godspeed";
 /// The `agent` of what the learner did in the app.
@@ -34,13 +34,6 @@ fn save(app: &App, list: &[Json]) {
 	if let Err(err) = app.stores.agent_actions.write_agent_actions(list) {
 		eprintln!("[agent-action] saving failed: {err}");
 	}
-}
-
-/// A label cut to a readable length.
-fn short_label(raw: &str) -> String {
-	let spaced = collapse_spaces(raw);
-	let one = text::trim(&spaced);
-	if text::len16(one) > LABEL_MAX { format!("{}…", text::trim_end(&text::slice16(one, 0, Some(LABEL_MAX as i64 - 1)))) } else { one.to_owned() }
 }
 
 fn same_target(a: &Json, b: &Json) -> bool {
@@ -214,6 +207,7 @@ pub fn recent_agent_actions(app: &App) -> Vec<Json> {
 
 #[cfg(test)]
 mod tests {
+	use gs_core::records::agent_actions::LABEL_MAX;
 	use gs_json::stringify;
 
 	use super::*;

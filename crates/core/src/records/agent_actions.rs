@@ -1,10 +1,20 @@
-//! The activity log's entries in data/agent-actions.json.
+//! The activity log's entries in data/agent-actions.json, and the length their labels are cut to.
 
+use gs_base::re::collapse_spaces;
+use gs_base::text;
 use gs_json::{Json, Obj, json};
 
 use super::space_id_of;
 
 const TARGET_KINDS: [&str; 4] = ["deadline", "file", "space", "lesson"];
+pub const LABEL_MAX: usize = 80;
+
+/// A label cut to a readable length: one line, at most `LABEL_MAX` characters.
+pub fn short_label(raw: &str) -> String {
+	let spaced = collapse_spaces(raw);
+	let one = text::trim(&spaced);
+	if text::len16(one) > LABEL_MAX { format!("{}…", text::trim_end(&text::slice16(one, 0, Some(LABEL_MAX as i64 - 1)))) } else { one.to_owned() }
+}
 
 /// The actions in a parsed agent-actions.json, oldest first; malformed entries are dropped.
 pub fn parse_agent_actions(raw: &Json) -> Vec<Json> {
