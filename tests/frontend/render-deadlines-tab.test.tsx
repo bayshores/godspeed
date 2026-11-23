@@ -11,6 +11,7 @@ import { afterEach, describe, it } from "node:test";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import { localDay, type SpaceDeadline, type SpaceRecord } from "../../src/shared/core/index.ts";
+import type { TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 (dom.document as unknown as { oninput: null }).oninput = null;
@@ -31,6 +32,7 @@ const { ServerEventsProvider } = await import("../../src/frontend/components/ser
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { OpenDeadlinesProvider } = await import("../../src/frontend/components/use-open-deadlines.tsx");
 const { ProgressProvider } = await import("../../src/frontend/components/use-progress.tsx");
+const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 
 const DAY = 86_400_000;
 const day = (offset: number) => localDay(Date.now() + offset * DAY);
@@ -46,7 +48,7 @@ let sheetCards: { deadlineId: string; status: string }[] = [];
 
 let root: Root | undefined;
 let host: HTMLElement | undefined;
-async function mount(deadlines: SpaceDeadline[], active: string | null = "cls_a", over: Partial<SpaceRecord> = {}, at = "/space/deadlines") {
+async function mount(deadlines: SpaceDeadline[], active: string | null = "cls_a", over: Partial<SpaceRecord> = {}, at = "/space/deadlines", teacher: Pick<TeacherApi, "name" | "canAsk" | "ask"> | null = null) {
 	served = { ...record(deadlines), ...over };
 	globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = String(input);
@@ -69,7 +71,9 @@ async function mount(deadlines: SpaceDeadline[], active: string | null = "cls_a"
 					<SpaceProvider initialActive={active}>
 						<ProgressProvider>
 							<OpenDeadlinesProvider>
-								<DeadlinesTab />
+								<TeacherContext.Provider value={teacher as TeacherApi | null}>
+									<DeadlinesTab />
+								</TeacherContext.Provider>
 							</OpenDeadlinesProvider>
 						</ProgressProvider>
 					</SpaceProvider>
@@ -133,6 +137,20 @@ describe("The Deadlines tab", () => {
 		await mount([]);
 		assert.equal(q("deadlines-none")!.textContent, "Nothing is coming up.");
 		assert.doesNotMatch(q("deadlines-tab")!.textContent!, /Done or past/);
+	});
+
+	it("asks the teacher to update the space, only where the teacher can be asked", async () => {
+		const asked: string[] = [];
+		await mount([], "cls_a", {}, "/space/deadlines", { name: "Claude", canAsk: true, ask: (line) => asked.push(line) });
+		assert.equal(q("deadlines-update")!.textContent, "Ask Claude to update");
+		await act(async () => q("deadlines-update")!.click());
+		assert.deepEqual(asked, ["Update CSE 21"]);
+		assert.ok(q("deadline-add"), "Add a deadline stays");
+		await act(async () => root?.unmount());
+		host?.remove();
+		await mount([], "cls_a", {}, "/space/deadlines", { name: "Claude", canAsk: false, ask: () => {} });
+		assert.equal(q("deadlines-update"), null);
+		assert.ok(q("deadline-add"));
 	});
 
 	it("Add a deadline opens the dialog for a new one", async () => {

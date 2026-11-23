@@ -13,6 +13,8 @@ import { dueThisWeek } from "@/frontend/components/home-page/home-page-model";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { PickSpace } from "@/frontend/components/pick-space";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
+import { updateLine } from "@/frontend/components/terminal/starter-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
@@ -39,6 +41,7 @@ export function DeadlinesTab() {
 	const { markDone, undo } = useOpenDeadlines();
 	const sheets = useSpaceSheets(active).view;
 	const nowMs = useMinute();
+	const teacher = useTeacher();
 	const [adding, setAdding] = useState(false);
 	// "Add a deadline" on another page lands here with ?add=1: the dialog opens once.
 	const [params, setParams] = useSearchParams();
@@ -84,10 +87,17 @@ export function DeadlinesTab() {
 			<section className="flex flex-col gap-3">
 				<div className="lh-card-head">
 					<h2 className="lh-card-title">Coming up</h2>
-					<button type="button" data-testid="deadline-add" disabled={!record} onClick={() => setAdding(true)} className="lh-btn lh-btn-quiet">
-						<PixelIcon name="plus" />
-						Add a deadline
-					</button>
+					<span className="flex flex-wrap items-center gap-2.5">
+						{teacher?.canAsk && (
+							<button type="button" data-testid="deadlines-update" onClick={() => teacher.ask(updateLine(activeSpace.name))} className="lh-btn lh-btn-quiet">
+								Ask {teacher.name} to update
+							</button>
+						)}
+						<button type="button" data-testid="deadline-add" disabled={!record} onClick={() => setAdding(true)} className="lh-btn lh-btn-quiet">
+							<PixelIcon name="plus" />
+							Add a deadline
+						</button>
+					</span>
 				</div>
 				<WaitingDeadline record={record} />
 				{!record && failed ? (
