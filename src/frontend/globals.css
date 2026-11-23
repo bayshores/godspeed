@@ -1472,7 +1472,8 @@ body:has(.lh-own-bar) .lh-app-bar {
    page's foot, from the window's left edge to the strip or the docked
    panel, which curves into it at that corner as the bar curves into the
    strip. Over the page, under the panel, the peek, the chain table and
-   dialogs. Its right end follows the panel as the page's side does. */
+   dialogs. Its right end is the open panel's left edge, whether the panel
+   pushes the page or lies over it. */
 .lh-follow-slip {
 	position: fixed;
 	left: 0;

@@ -86,7 +86,7 @@ const panel = (over: Partial<PanelProps> = {}) => (
 		onScreen={() => {}}
 		focus={false}
 		state="open"
-		onWhole={() => {}}
+		onBeside={() => {}}
 		{...over}
 	/>
 );

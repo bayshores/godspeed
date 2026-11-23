@@ -38,6 +38,12 @@ const PAUSE_LINE: Record<FollowPause, string> = {
 	dialog: "Paused while this is open",
 };
 
+/** The least of the page the slip needs in view beside the teacher's open panel; in less, the panel's own screen shows the work. */
+const LEAST_ROOM = 240;
+
+/** Whether the slip has room: `beside` is how much of the page is in view beside the open panel, null while it is shut. */
+export const slipFits = (beside: number | null): boolean => beside === null || beside >= LEAST_ROOM;
+
 /** The pages the slip may show on: not a lesson, a mock or a cheat sheet. */
 export function slipPlace(path: string): boolean {
 	return !path.startsWith("/chat/") && !path.startsWith("/space/mock/") && !/^\/space\/deadline\/[^/]+\/cheat-sheet$/.test(path);
@@ -46,8 +52,8 @@ export function slipPlace(path: string): boolean {
 export function slipView(i: {
 	follow: boolean;
 	path: string;
-	/** The teacher's open panel takes the whole window. */
-	panelWhole: boolean;
+	/** The page beside the teacher's panel has room for it (slipFits). */
+	room: boolean;
 	live: boolean;
 	rows: readonly TimelineRow[];
 	/** When the round was seen to end; null while it is live. */
@@ -58,7 +64,7 @@ export function slipView(i: {
 	open: boolean;
 	now: number;
 }): SlipView | null {
-	if (!i.follow || i.panelWhole || !slipPlace(i.path)) return null;
+	if (!i.follow || !i.room || !slipPlace(i.path)) return null;
 	const steps = plural(i.rows.length, "step");
 	const base = { past: i.rows, waiting: null, paused: false };
 	if (!i.live) {

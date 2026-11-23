@@ -106,7 +106,7 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 					onScreen={panel.showScreen}
 					focus={panel.focus}
 					state="open"
-					onWhole={() => {}}
+					onBeside={() => {}}
 				/>
 			)}
 		</TeacherContext.Provider>

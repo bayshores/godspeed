@@ -52,6 +52,7 @@ import { useRecentActions } from "./use-recent-actions";
 import { useTour } from "./use-tour";
 import { useTeacherWork } from "./use-teacher-work";
 import { roundTimeline } from "./timeline-model";
+import { slipFits } from "./follow-slip-model";
 import { useFollowSlip } from "./use-follow-slip";
 import { litRules } from "./lit-model";
 
@@ -94,6 +95,11 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	const { open: panelOpen, setOpen: setPanelOpen, showTerminal, setList } = panel;
 	useDoneSound(panelOpen);
 	const [panelWhole, setPanelWhole] = useState(false);
+	const [slipRoom, setSlipRoom] = useState(true);
+	const onBeside = useCallback((beside: number | null) => {
+		setPanelWhole(beside === 0);
+		setSlipRoom(slipFits(beside));
+	}, []);
 	// The panel stays while the page shows; across the whole window it gets out of the way.
 	const stepAside = useCallback(() => {
 		if (panelWhole) setPanelOpen(false);
@@ -111,7 +117,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	}, [since, clearLit]);
 	// While Follow waits, the slip offers the change it waits to show, or else an open the window held.
 	const slipPause = useMemo(() => (pause ? { why: pause.why, waiting: pause.waiting ?? held } : null), [pause, held]);
-	const slip = useFollowSlip({ follow: followOn, work, timeline, pause: slipPause, path: pathname, panelWhole });
+	const slip = useFollowSlip({ follow: followOn, work, timeline, pause: slipPause, path: pathname, room: slipRoom });
 
 	// ── what it's doing ──
 	// While the slip is up it says what the teacher does, and the other places say only "Working".
@@ -181,7 +187,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 						onScreen={panel.showScreen}
 						focus={panel.focus}
 						state={shown.state}
-						onWhole={setPanelWhole}
+						onBeside={onBeside}
 					/>,
 					document.body,
 				)}

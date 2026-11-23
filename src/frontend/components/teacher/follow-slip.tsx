@@ -25,7 +25,7 @@ import { useTeacher } from "./teacher-context";
 import type { FollowSlip as Slip } from "./use-follow-slip";
 import type { TimelineRow } from "./timeline-model";
 
-/** The line's height, and how far the page makes room for it. */
+/** The line's height. The page makes room for the line, and for the "Go to" key too once it drops under the line. */
 const LINE_H = 44;
 /** The page's room for the slip (main's foot padding reads it). */
 const PUSH_VAR = "--lh-follow-push";
@@ -53,13 +53,14 @@ export function FollowSlip() {
 	const shown = slip ?? (presence.mounted ? last.current : null);
 	const leaving = !slip && !!shown;
 	const travel = useSlipTravel(!shown?.still, leaving, (el) => ({ by: "100%", points: el.offsetHeight }));
-	usePush(!!slip, !!slip?.still);
+	const [lineH, setLineH] = useState(LINE_H);
+	usePush(!!slip, !!slip?.still, lineH);
 	const [cite, setCite] = useState<FileCite | PassageCite | null>(null);
 	return (
 		<>
 			{shown && teacher && (
 				<div ref={travel.ref} data-testid="follow-slip" data-state={presence.state} data-mark={shown.view.mark} inert={leaving} className="lh-popup lh-follow-slip">
-					<SlipBody slip={shown} go={teacher.go} onCite={setCite} />
+					<SlipBody slip={shown} go={teacher.go} onCite={setCite} onHeight={setLineH} />
 				</div>
 			)}
 			<CiteDialog cite={cite} onClose={() => setCite(null)} />
@@ -69,19 +70,19 @@ export function FollowSlip() {
 
 /** The page makes room for the slip while it is up, and gets it back the moment it starts to leave. Up with the
  *  window's first read of the round, the room is simply there: the page does not glide. */
-function usePush(up: boolean, still: boolean) {
+function usePush(up: boolean, still: boolean, height: number) {
 	useLayoutEffect(() => {
 		const root = document.documentElement.style;
 		const main = document.getElementById("lh-page");
 		if (!(up && still) || !main) {
-			root.setProperty(PUSH_VAR, up ? `${LINE_H}px` : "0px");
+			root.setProperty(PUSH_VAR, up ? `${height}px` : "0px");
 			return;
 		}
 		main.style.transition = "none";
-		root.setProperty(PUSH_VAR, `${LINE_H}px`);
+		root.setProperty(PUSH_VAR, `${height}px`);
 		void main.offsetHeight;
 		main.style.transition = "";
-	}, [up, still]);
+	}, [up, still, height]);
 	useEffect(
 		() => () => {
 			document.documentElement.style.removeProperty(PUSH_VAR);
@@ -90,7 +91,18 @@ function usePush(up: boolean, still: boolean) {
 	);
 }
 
-function SlipBody({ slip, go, onCite }: { slip: Slip; go: (action: NonNullable<Slip["view"]["waiting"]>) => void; onCite: (cite: FileCite | PassageCite) => void }) {
+function SlipBody({
+	slip,
+	go,
+	onCite,
+	onHeight,
+}: {
+	slip: Slip;
+	go: (action: NonNullable<Slip["view"]["waiting"]>) => void;
+	onCite: (cite: FileCite | PassageCite) => void;
+	/** The line's height, with the "Go to" key's row when it drops under the line. */
+	onHeight: (height: number) => void;
+}) {
 	const { view, open, setOpen } = slip;
 	const lists = view.past.length > 0;
 	const fold = useFold(open && lists);
@@ -103,6 +115,14 @@ function SlipBody({ slip, go, onCite }: { slip: Slip; go: (action: NonNullable<S
 	useReplayOnChange(count, view.count, "lh-block-in");
 	const key = view.waiting && goLabel({ following: true, offer: view.waiting, held: true });
 	const waiting = view.waiting;
+	const line = useRef<HTMLDivElement>(null);
+	useLayoutEffect(() => {
+		const el = line.current;
+		if (!el) return;
+		const observer = new ResizeObserver(() => onHeight(el.offsetHeight));
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, [onHeight]);
 	return (
 		<>
 			{fold.mounted && (
@@ -116,7 +136,9 @@ function SlipBody({ slip, go, onCite }: { slip: Slip; go: (action: NonNullable<S
 					</div>
 				</div>
 			)}
-			<div className="flex items-center gap-3 pr-4" style={{ height: LINE_H }}>
+			{/* In a narrow room beside the teacher's panel the "Go to" key drops under the line, so the words shorten
+			    only down to a few letters and the count always shows. */}
+			<div ref={line} className="flex flex-wrap items-center justify-end gap-x-3 pr-4">
 				<button
 					ref={button}
 					type="button"
@@ -125,7 +147,8 @@ function SlipBody({ slip, go, onCite }: { slip: Slip; go: (action: NonNullable<S
 					aria-controls={open && lists ? LIST_ID : undefined}
 					disabled={!lists}
 					onClick={() => setOpen(!open)}
-					className={cn("lh-press flex h-full min-w-0 flex-1 items-center gap-2.5 pl-4 text-left disabled:cursor-default", TYPE, lists && "hover:bg-bar-ink/10")}
+					style={{ height: LINE_H }}
+					className={cn("lh-press flex min-w-44 flex-1 items-center gap-2.5 pl-4 text-left disabled:cursor-default", TYPE, lists && "hover:bg-bar-ink/10")}
 				>
 					<Mark mark={view.mark} />
 					<span ref={words} style={STEP_IN} className="min-w-0 flex-1 truncate">
@@ -139,7 +162,7 @@ function SlipBody({ slip, go, onCite }: { slip: Slip; go: (action: NonNullable<S
 					{lists && <PixelIcon name="chevron" className={cn("h-[9px] transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open ? "rotate-90" : "-rotate-90")} />}
 				</button>
 				{key && waiting && (
-					<button type="button" data-testid="follow-slip-go" onClick={() => go(waiting)} className="lh-btn lh-btn-small shrink-0">
+					<button type="button" data-testid="follow-slip-go" onClick={() => go(waiting)} className="lh-btn lh-btn-small my-[7px] shrink-0">
 						{key}
 					</button>
 				)}

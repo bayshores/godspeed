@@ -22,8 +22,8 @@ export interface FollowSlip {
 	setOpen: (open: boolean) => void;
 }
 
-export function useFollowSlip(i: { follow: boolean; work: TeacherWork | null; timeline: TimelineRow[]; pause: TourPause | null; path: string; panelWhole: boolean }): FollowSlip | null {
-	const { follow, work, timeline, pause, path, panelWhole } = i;
+export function useFollowSlip(i: { follow: boolean; work: TeacherWork | null; timeline: TimelineRow[]; pause: TourPause | null; path: string; room: boolean }): FollowSlip | null {
+	const { follow, work, timeline, pause, path, room } = i;
 	const live = !!work?.live;
 	const [kept, setKept] = useState<Kept | null>(null);
 	if (live && work?.since && (kept?.since !== work.since || kept.rows !== timeline || kept.endedAt !== null)) setKept({ since: work.since, rows: timeline, endedAt: null });
@@ -37,8 +37,8 @@ export function useFollowSlip(i: { follow: boolean; work: TeacherWork | null; ti
 	const newest = timeline.at(-1)?.id;
 	useEffect(() => setNow(Date.now()), [newest, live, pause]);
 	const view = useMemo(
-		() => slipView({ follow, path, panelWhole, live, rows: kept?.rows ?? [], endedAt: kept?.endedAt ?? null, pause, open, now }),
-		[follow, path, panelWhole, live, kept, pause, open, now],
+		() => slipView({ follow, path, room, live, rows: kept?.rows ?? [], endedAt: kept?.endedAt ?? null, pause, open, now }),
+		[follow, path, room, live, kept, pause, open, now],
 	);
 	const [still, setStill] = useState(true);
 	if (still && work !== null && view === null) setStill(false);

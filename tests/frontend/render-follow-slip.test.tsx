@@ -24,6 +24,10 @@ Object.assign(globalThis, {
 	Node: dom.window.Node,
 	MutationObserver: dom.window.MutationObserver,
 	IS_REACT_ACT_ENVIRONMENT: true,
+	ResizeObserver: class {
+		observe() {}
+		disconnect() {}
+	},
 });
 
 const { createRoot } = await import("react-dom/client");

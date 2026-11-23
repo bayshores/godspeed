@@ -50,6 +50,8 @@ export function teacherHead(i: { agent: AgentStatus | null; name: string; doing:
 
 /** The page's push while the panel is open (main's padding reads it). */
 const PUSH_VAR = "--lh-dock-push";
+/** The open panel's width, whether it pushes the page or lies over it (Follow's slip ends at its edge). */
+const WIDTH_VAR = "--lh-dock-width";
 
 export function TeacherPanel({
 	name,
@@ -61,7 +63,7 @@ export function TeacherPanel({
 	onScreen,
 	focus,
 	state,
-	onWhole,
+	onBeside,
 }: {
 	name: string;
 	agent: AgentStatus | null;
@@ -75,8 +77,8 @@ export function TeacherPanel({
 	focus: boolean;
 	/** "closed" while it goes back into the strip. */
 	state: "open" | "closed";
-	/** Whether the open panel takes the whole window, with no page left beside it. */
-	onWhole: (whole: boolean) => void;
+	/** How much of the page is in view beside the open panel (0 when it takes the whole window), null once it closes. */
+	onBeside: (width: number | null) => void;
 }) {
 	const teacher = useTeacher();
 	const terminals = useTerminals();
@@ -99,7 +101,10 @@ export function TeacherPanel({
 			const layout = panelLayout(room, page, wanted);
 			setLayout({ width: layout.width, whole: layout.width >= room });
 			// On its way out it lets the page back at once.
-			document.documentElement.style.setProperty(PUSH_VAR, `${state === "open" ? layout.push : 0}px`);
+			const open = state === "open";
+			document.documentElement.style.setProperty(PUSH_VAR, `${open ? layout.push : 0}px`);
+			document.documentElement.style.setProperty(WIDTH_VAR, `${open ? layout.width : 0}px`);
+			onBeside(open ? Math.max(0, room - layout.width) : null);
 		};
 		measure();
 		// After layout, with the window's new size: a one-shot resize (zoom, a snap) can fire the
@@ -108,16 +113,15 @@ export function TeacherPanel({
 		observer.observe(document.documentElement);
 		observeBar(observer);
 		return () => observer.disconnect();
-	}, [wanted, state]);
+	}, [wanted, state, onBeside]);
 	useEffect(
 		() => () => {
 			document.documentElement.style.removeProperty(PUSH_VAR);
+			document.documentElement.style.removeProperty(WIDTH_VAR);
 		},
 		[],
 	);
-	const fills = whole && state === "open";
-	useEffect(() => onWhole(fills), [fills, onWhole]);
-	useEffect(() => () => onWhole(false), [onWhole]);
+	useEffect(() => () => onBeside(null), [onBeside]);
 	return (
 		<BarWindow right={stripWidth()} width={width} height={null} state={state} data-teacher-panel="" data-whole={whole || undefined} data-testid="teacher-panel" aria-label={name}>
 			{/* Nothing to drag while it takes the whole window. */}
