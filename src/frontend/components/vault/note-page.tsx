@@ -17,7 +17,7 @@ export function NotePage({ note, obsidian, asked, landing }: { note: VaultNote; 
 	const style = landing === undefined ? undefined : ({ "--lh-block-delay": `${landing}ms` } as CSSProperties);
 	if (note.saving || !note.path) {
 		return (
-			<div data-testid="note-page" data-whole data-saving className={cn("lh-note-page lh-note-page-saving flex flex-col gap-2 p-4", enter)} style={style}>
+			<div data-testid="note-page" data-whole data-saving className={cn("lh-note-page lh-note-page-saving lh-dashed flex flex-col gap-2 p-4", enter)} style={style}>
 				<span className={cn("shrink-0 leading-snug break-words text-ink-2", nameSize(note.name))}>{note.name}</span>
 				<span className="sr-only">Saving</span>
 				<span aria-hidden className="absolute bottom-0 left-0 h-2 w-1/2 bg-tone-2" />

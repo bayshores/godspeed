@@ -311,6 +311,13 @@ export interface SpaceGap {
 	label?: string;
 }
 
+/** A gap that came on a rhythm: drawn as an outline on its expected day, with its name. */
+export type RhythmGap = SpaceGap & Required<Pick<SpaceGap, "kind" | "day" | "label">>;
+
+export function isRhythmGap(gap: SpaceGap): gap is RhythmGap {
+	return gap.kind !== undefined && gap.day !== undefined && gap.label !== undefined;
+}
+
 /** The gaps in a read of GET /api/deadlines; what is not a gap is left out. */
 export function readGaps(value: unknown): SpaceGap[] {
 	if (!Array.isArray(value)) return [];

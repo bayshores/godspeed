@@ -6,7 +6,7 @@ import { useOpenInSpace } from "@/frontend/components/use-join-space";
 import { SpaceDialog } from "@/frontend/components/space-dialog";
 import { useMinute } from "@/frontend/components/countdown";
 import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
-import { ADD_DEADLINE_HREF } from "@/frontend/components/space-page/deadlines-tab-model";
+import { addDeadlineHref } from "@/frontend/components/space-page/deadlines-tab-model";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { highlight, waitForTarget } from "@/frontend/components/teacher/dom";
@@ -39,7 +39,7 @@ export function HomePage() {
 	const createMode = useMemo(() => (addingSpace ? { kind: "create" as const } : null), [addingSpace]);
 	const addDeadline = useCallback(
 		(spaceId: string) => {
-			openInSpace(spaceId, ADD_DEADLINE_HREF);
+			openInSpace(spaceId, addDeadlineHref());
 		},
 		[openInSpace],
 	);

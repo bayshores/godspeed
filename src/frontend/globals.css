@@ -119,6 +119,10 @@
 	--lh-space-7: #8e9467;
 	--lh-space-8: #a9836a;
 	--lh-on-space: #24231f;
+	/* How much of a space color a line drawn in it keeps, the rest being the ink
+	   (spaceLineColor): all of it on a dark background, half on Paper, so the
+	   line shows at 3:1 on the page, a sheet and a well. */
+	--lh-space-line-mix: 100%;
 	/* Mixed into a space color for the pale block of a row that can wait:
 	   white on Paper, black on a dark background. */
 	--lh-space-wash: #000000;
@@ -165,6 +169,7 @@
 /* Paper, the one light background: <html> loses its dark class and takes Paper's palette. */
 :root:not(.dark) {
 	color-scheme: light;
+	--lh-space-line-mix: 50%;
 	--lh-code-keyword: #b31d28;
 	--lh-code-string: #032f62;
 	--lh-code-number: #005cc5;
@@ -560,11 +565,16 @@ body {
 		flex-wrap: wrap;
 		gap: 12px;
 	}
+	/* What is not there yet, drawn as its outline: a 2px dashed edge inside the box, in --lh-dash
+	   (a space's line color) or the quiet line. A note page still being written, a deadline that
+	   looks missing. Never on a focusable box: the focus rule takes a focused box's outline away. */
+	.lh-dashed {
+		outline: 2px dashed var(--lh-dash, var(--color-tone-2));
+		outline-offset: -2px;
+	}
 	.lh-note-page-saving {
 		background: transparent;
 		clip-path: none;
-		outline: 2px dashed var(--color-tone-2);
-		outline-offset: -2px;
 	}
 	.lh-note-page-saving::before {
 		content: none;

@@ -21,3 +21,7 @@ export function useReplayOnChange(ref: RefObject<HTMLElement | null>, key: unkno
 		replay(ref.current, cls);
 	}, [ref, key, cls]);
 }
+
+/** A thing that joins a list after the list first drew (useArrivals): it steps in, once what left
+ *  in the same moment has played its exit (--lh-dur-fast). */
+export const JOINED = "lh-block-in [--lh-block-delay:var(--lh-dur-fast)]";
