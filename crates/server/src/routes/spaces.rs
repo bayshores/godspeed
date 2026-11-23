@@ -399,7 +399,7 @@ mod tests {
 			app.stores.spaces.add_deadline(&id, &json!({ "kind": kind, "name": name, "date": add_days(&today, -days) })).unwrap();
 		}
 		let res = open_deadlines(State(app.clone())).await;
-		let body = gs_json::parse(&String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap()).unwrap();
+		let body = gs_json::parse(core::str::from_utf8(&res.into_body().collect().await.unwrap().to_bytes()).unwrap()).unwrap();
 		let gaps = body["gaps"].items();
 		assert_eq!(gaps.len(), 1);
 		assert_eq!(gaps[0]["title"].as_str(), Some("Nothing coming up in CSE 29"));
