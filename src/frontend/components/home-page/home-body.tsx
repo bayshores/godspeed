@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { cn } from "@/frontend/lib/utils";
 import { LoadingBox, useWaited } from "@/frontend/components/loading";
-import type { DeadlineProgress, ProgressPayload, SpaceSummary } from "@/shared/core";
+import type { DeadlineProgress, ProgressPayload, RhythmGap, SpaceSummary } from "@/shared/core";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
+import { useLeavingList } from "@/frontend/components/presence";
 import { Pane } from "@/frontend/components/ui/pane";
 import { DeadlinesCard } from "./deadlines-card";
 import { mainRowId, shownCard, type HomeLists } from "./home-page-model";
-import { NextCard } from "./next-card";
+import { NextCard, NextGap } from "./next-card";
+import type { WeekPick } from "./week-columns-model";
 import { SpaceList } from "./space-list";
 import { StudiedLine } from "./studied-line";
 import { StudyLine } from "./study-line";
@@ -22,6 +24,8 @@ interface HomeBodyProps {
 	spaces: readonly SpaceSummary[];
 	/** Null when the deadlines failed to load. */
 	lists: HomeLists | null;
+	/** The open spaces' deadlines that look missing, drawn as outlines in the week. */
+	outlines: readonly RhythmGap[];
 	deadlineProgress: ReadonlyMap<string, DeadlineProgress>;
 	spacesProgress: ReadonlyMap<string, ProgressPayload>;
 	/** The lessons with no space; their answers count in the week line. */
@@ -49,16 +53,22 @@ interface HomeBodyProps {
 /**
  * TODAY (the render seam of home-page.tsx), from the top of the window
  * down, each part lighter than the one before: the app's name and the days
- * studied, the card with the deadline picked in the week (the next thing
- * to do until one is picked), the week with Later, the lessons left unfinished and the topics to work on next, then the spaces. With no
+ * studied, the card with the deadline or outline picked in the week (the
+ * next thing to do until one is picked; never an outline), the week with Later, the lessons left unfinished and the topics to work on next, then the spaces. With no
  * space yet, the spaces card alone, with the key for the first.
  */
 export function HomeBody(p: HomeBodyProps) {
 	// A pick that leaves the lists falls back to the next thing to do.
-	const [picked, setPicked] = useState<string | null>(null);
+	const [picked, setPicked] = useState<WeekPick | null>(null);
 	const waited = useWaited(p.ready && p.nowMs !== null);
-	const card = p.lists && p.nowMs !== null ? shownCard(p.lists, picked, mainRowId(p.lists.today, p.deadlineProgress, p.nowMs)) : null;
-	const color = (d: OpenDeadline) => p.spaces.find((s) => s.id === d.spaceId)?.color;
+	const outlines = useLeavingList(p.outlines);
+	const gap = picked?.kind === "gap" ? (p.outlines.find((g) => g.key === picked.key) ?? null) : null;
+	// An outline that has gone is let go, so one that comes back is never shown unasked.
+	if (picked?.kind === "gap" && !gap) setPicked(null);
+	const card = !gap && p.lists && p.nowMs !== null ? shownCard(p.lists, picked?.kind === "deadline" ? picked.key : null, mainRowId(p.lists.today, p.deadlineProgress, p.nowMs)) : null;
+	const shown: WeekPick | null = gap ? { kind: "gap", key: gap.key } : card ? { kind: "deadline", key: card.id } : null;
+	const space = (id: string) => p.spaces.find((s) => s.id === id);
+	const color = (d: OpenDeadline) => space(d.spaceId)?.color;
 	const unfinished = useMemo(() => unfinishedAcross(p.spaces, p.spacesProgress, p.noSpaceProgress), [p.spaces, p.spacesProgress, p.noSpaceProgress]);
 	const topics = useMemo(() => topicsToWorkOn(p.spaces, p.spacesProgress), [p.spaces, p.spacesProgress]);
 	const head = p.ready && p.nowMs !== null && p.spaces.length > 0 ? p.nowMs : null;
@@ -95,6 +105,7 @@ export function HomeBody(p: HomeBodyProps) {
 									{p.lessonError}
 								</p>
 							)}
+							{gap && p.nowMs !== null && <NextGap gap={gap} color={space(gap.spaceId)?.color} spaceName={space(gap.spaceId)?.name ?? ""} nowMs={p.nowMs} />}
 							{card && (
 								<NextCard
 									deadline={card}
@@ -107,9 +118,9 @@ export function HomeBody(p: HomeBodyProps) {
 									onUndo={p.onUndo}
 								/>
 							)}
-							<DeadlinesCard spaces={p.spaces} lists={p.lists} nowMs={p.nowMs} picked={card?.id ?? null} onPick={(d) => setPicked(d.id)} onRetry={p.onRetry} onAdd={p.onAddDeadline} />
+							<DeadlinesCard spaces={p.spaces} lists={p.lists} outlines={outlines} nowMs={p.nowMs} picked={shown} onPick={setPicked} onRetry={p.onRetry} onAdd={p.onAddDeadline} />
 							<p aria-live="polite" data-testid="today-showing" className="sr-only">
-								{picked !== null && card ? `Showing ${card.name}` : ""}
+								{picked !== null && (gap || card) ? `Showing ${gap?.label ?? card?.name}` : ""}
 							</p>
 						</div>
 						<HomeNext unfinished={unfinished} topics={topics} busyOn={p.busyOn} onOpenSpace={p.onOpenSpace} onStudyTopic={p.onStudyTopic} />

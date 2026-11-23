@@ -11,7 +11,8 @@ import assert from "node:assert/strict";
 import { after, afterEach, describe, it } from "node:test";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import type { DeadlineProgress, FactProgress, ProgressPayload, SpaceSummary } from "../../src/shared/core/index.ts";
+import type { DeadlineProgress, FactProgress, ProgressPayload, RhythmGap, SpaceSummary } from "../../src/shared/core/index.ts";
+import type { TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 import type { OpenDeadline } from "../../src/frontend/components/deadlines-model.ts";
 
 const dom = parseHTML("<html><body></body></html>");
@@ -37,7 +38,8 @@ Object.assign(globalThis, {
 // react-dom reads the DOM when it loads, so it loads after the globals above.
 const { renderToStaticMarkup } = await import("react-dom/server");
 const { createRoot } = await import("react-dom/client");
-const { MemoryRouter } = await import("react-router");
+const { MemoryRouter, useLocation } = await import("react-router");
+const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 const { NextCard } = await import("../../src/frontend/components/home-page/next-card.tsx");
 const { HomeBody } = await import("../../src/frontend/components/home-page/home-body.tsx");
 const { useLessonStart } = await import("../../src/frontend/components/study-page/use-lesson-start.ts");
@@ -294,6 +296,7 @@ function page(props: Partial<React.ComponentProps<typeof HomeBody>> = {}): strin
 				ready
 				spaces={[LA, OS]}
 				lists={homeLists([], [], NOW)}
+				outlines={[]}
 				deadlineProgress={new Map()}
 				spacesProgress={new Map([["spc_la", spaceProgress({ counts: [9, 3, 0, 6] })], ["spc_os", spaceProgress({ counts: [4, 1, 0, 12] })]])}
 				noSpaceProgress={null}
@@ -374,6 +377,7 @@ describe("Home, under the deadlines: Unfinished and Work on next", () => {
 					ready
 					spaces={[LA]}
 					lists={homeLists([], [], NOW)}
+					outlines={[]}
 					deadlineProgress={new Map()}
 					spacesProgress={new Map([["spc_la", nextProgress()]])}
 					noSpaceProgress={null}
@@ -492,14 +496,23 @@ describe("Home, as a whole page", () => {
 });
 
 describe("Picking in the week", () => {
-	function body(lists: ReturnType<typeof homeLists>, on: { done?: string[]; undone?: string[] } = {}) {
+	/** Where the window went, read after a key that leaves Home. */
+	let at = "";
+	function Where() {
+		const location = useLocation();
+		at = location.pathname + location.search;
+		return null;
+	}
+	function body(lists: ReturnType<typeof homeLists>, on: { done?: string[]; undone?: string[] } = {}, outlines: readonly RhythmGap[] = []) {
 		return (
 			<MemoryRouter initialEntries={["/"]}>
+				<Where />
 				<HomeBody
 					nowMs={NOW}
 					ready
 					spaces={[LA, OS]}
 					lists={lists}
+					outlines={outlines}
 					deadlineProgress={new Map()}
 					spacesProgress={new Map()}
 					noSpaceProgress={null}
@@ -597,6 +610,84 @@ describe("Picking in the week", () => {
 		assert.ok($(el, "today-start"));
 	});
 
+	const HW7: RhythmGap = { spaceId: "spc_la", key: "spc_la:hw6:1", title: "Homework in Linear Algebra this week?", line: "It came every week. None is on record after HW6.", answer: "None this week", close: false, kind: "homework", day: "2026-10-30", label: "HW7?" };
+
+	it("an outline sits on its day, dashed in its space's color with no fill, and is never the card's own pick", async () => {
+		const el = await mount(body(homeLists(LA_OPEN, [], NOW), {}, [HW7]));
+		const fri = $(el, "week-day-2026-10-30")!;
+		assert.deepEqual([...fri.querySelectorAll("button")].map((b) => b.getAttribute("data-testid")), ["week-item-q2", "week-gap"]);
+		const outline = $(el, "week-gap")!;
+		assert.equal(outline.textContent, "HW7?");
+		assert.equal(outline.getAttribute("aria-label"), "Homework in Linear Algebra this week? It came every week. None is on record after HW6.");
+		assert.equal(outline.getAttribute("aria-pressed"), "false");
+		assert.match(outline.getAttribute("style")!, /--lh-dash:\s*color-mix\(in srgb, var\(--lh-space-2\)/);
+		assert.doesNotMatch(outline.getAttribute("style")!, /background/);
+		assert.ok(outline.querySelector(".lh-dashed"));
+		assert.equal(cardTitle(el), "Quiz 2");
+		assert.equal($(el, "today-gap"), null);
+	});
+
+	it("a click on it shows it in the card: its days left, its name, the server's line and its keys; with no teacher to ask, Add it myself is the main key", async () => {
+		const el = await mount(body(homeLists(LA_OPEN, [], NOW), {}, [HW7]));
+		await act(async () => $(el, "week-gap")!.click());
+		const card = $(el, "today-gap")!;
+		assert.match(card.textContent!, /^2\s*daysHW7\?It came every week\. None is on record after HW6\.None this weekAdd it myself$/);
+		assert.match(card.className, /lh-dashed/);
+		assert.equal($(el, "week-gap")!.getAttribute("aria-pressed"), "true");
+		assert.match($(el, "week-gap")!.getAttribute("style")!, /--lh-dash:\s*var\(--color-ink\)/, "picked, its dashes are ink");
+		assert.equal($(el, "today-showing")!.textContent, "Showing HW7?");
+		assert.ok($(el, "today-gap-add")!.className.includes("lh-btn-main"));
+		assert.equal(count(el.innerHTML, "lh-btn-main"), 1);
+		assert.equal($(el, "today-card"), null);
+		await act(async () => $(el, "today-gap-add")!.click());
+		assert.equal(at, "/space/deadlines?add=1&kind=homework&name=HW7&date=2026-10-30");
+	});
+
+	it("with a teacher to ask, Ask is the main key and hands the teacher the space's update line", async () => {
+		const asked: string[] = [];
+		const teacher = { name: "Claude", canAsk: true, ask: (line: string) => asked.push(line) } as unknown as TeacherApi;
+		const el = await mount(<TeacherContext.Provider value={teacher}>{body(homeLists(LA_OPEN, [], NOW), {}, [HW7])}</TeacherContext.Provider>);
+		await act(async () => $(el, "week-gap")!.click());
+		assert.deepEqual([...$(el, "today-gap")!.querySelectorAll("button")].map((b) => b.textContent), ["None this week", "Add it myself", "Ask Claude"]);
+		assert.ok($(el, "today-gap-ask")!.className.includes("lh-btn-main"));
+		assert.ok(!$(el, "today-gap-add")!.className.includes("lh-btn-main"));
+		await act(async () => $(el, "today-gap-ask")!.click());
+		assert.deepEqual(asked, ["Update Linear Algebra"]);
+	});
+
+	it("its answer waves it off: the outline leaves and the card goes back to the next thing", async () => {
+		const posts: { url: string; body: unknown }[] = [];
+		const original = globalThis.fetch;
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			posts.push({ url: String(input), body: JSON.parse(String(init?.body)) });
+			return Response.json({ ok: true });
+		}) as typeof fetch;
+		try {
+			const el = await mount(body(homeLists(LA_OPEN, [], NOW), {}, [HW7]));
+			await act(async () => $(el, "week-gap")!.click());
+			await act(async () => $(el, "today-gap-answer")!.click());
+			assert.deepEqual(posts, [{ url: "/api/deadlines/spc_la/nothing-new", body: { key: "spc_la:hw6:1" } }]);
+			await act(async () => root!.render(body(homeLists(LA_OPEN, [], NOW), {}, [])));
+			assert.equal(cardTitle(el), "Quiz 2");
+			assert.equal($(el, "today-gap"), null);
+			assert.equal($(el, "week-gap")!.parentElement!.getAttribute("data-state"), "closed", "held while it fades");
+			assert.ok($(el, "week-gap")!.parentElement!.className.includes("lh-fade"));
+			await act(async () => void (await new Promise((r) => setTimeout(r, 200))));
+			assert.equal($(el, "week-gap"), null);
+		} finally {
+			globalThis.fetch = original;
+		}
+	});
+
+	it("an outline that joins the week after it first drew steps in, as a new deadline does; what was there at first is at rest", async () => {
+		const el = await mount(body(homeLists([LA_OPEN[1]!], [], NOW)));
+		assert.ok(!$(el, "week-item-hw4")!.parentElement!.className.includes("lh-block-in"));
+		await act(async () => root!.render(body(homeLists(LA_OPEN, [], NOW), {}, [HW7])));
+		assert.ok($(el, "week-gap")!.parentElement!.className.includes("lh-block-in"));
+		assert.ok($(el, "week-item-q2")!.parentElement!.className.includes("lh-block-in"));
+		assert.ok(!$(el, "week-item-hw4")!.parentElement!.className.includes("lh-block-in"));
+	});
+
 	it("a day with four shows all four and no key", async () => {
 		const four = ["a", "b", "c", "e"].map((id) => d(id, `Task ${id}`, "2026-10-30"));
 		const el = await mount(body(homeLists(four, [], NOW)));
@@ -659,6 +750,7 @@ describe("Home's study line", () => {
 				ready
 				spaces={spaces}
 				lists={homeLists([], [], NOW)}
+				outlines={[]}
 				deadlineProgress={new Map()}
 				spacesProgress={new Map()}
 				noSpaceProgress={null}
@@ -781,6 +873,7 @@ describe("Your spaces", () => {
 					ready
 					spaces={[LA]}
 					lists={homeLists([], [], NOW)}
+					outlines={[]}
 					deadlineProgress={new Map()}
 					spacesProgress={new Map([["spc_la", spaceProgress()]])}
 					noSpaceProgress={null}

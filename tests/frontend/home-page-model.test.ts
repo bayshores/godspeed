@@ -235,12 +235,13 @@ describe("nextCard", () => {
 describe("homeEmpty", () => {
 	const far = d("Final", "exam", "2026-12-08", { id: "far" });
 
-	it("speaks only with no deadline at all, as Later shows in the week block", () => {
-		assert.equal(homeEmpty(homeLists([], [], NOW), "Halley"), "None yet. Halley can add them from your files.");
-		assert.equal(homeEmpty(homeLists([far], [], NOW), "Halley"), null);
-		assert.equal(homeEmpty(homeLists([d("quiz", "quiz", "2026-11-12"), far], [], NOW), "Halley"), null);
+	it("speaks only with no deadline and no outline at all, as Later shows in the week block", () => {
+		assert.equal(homeEmpty(homeLists([], [], NOW), 0, "Halley"), "None yet. Halley can add them from your files.");
+		assert.equal(homeEmpty(homeLists([far], [], NOW), 0, "Halley"), null);
+		assert.equal(homeEmpty(homeLists([d("quiz", "quiz", "2026-11-12"), far], [], NOW), 0, "Halley"), null);
 		const done = d("PS1", "homework", "2026-11-10", { done: true, doneAt: new Date(NOW - 60_000).toISOString() });
-		assert.equal(homeEmpty(homeLists([], [done], NOW), "Halley"), null, "one done today still shows in the week");
+		assert.equal(homeEmpty(homeLists([], [done], NOW), 0, "Halley"), null, "one done today still shows in the week");
+		assert.equal(homeEmpty(homeLists([], [], NOW), 1, "Halley"), null, "an outline of a deadline that looks missing shows in the week");
 	});
 });
 

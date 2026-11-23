@@ -163,9 +163,9 @@ export function nextCard(d: OpenDeadline, progress: DeadlineProgress | undefined
 	return { title: d.name, line: left ? `${when}. ${left}` : when, ready, button: next ? "Continue" : "Study" };
 }
 
-/** What Home says in place of the week when there is no deadline at all. */
-export function homeEmpty(lists: HomeLists, teacher: string): string | null {
-	return lists.today.length + lists.done.length + lists.later.length > 0 ? null : `None yet. ${teacher} can add them from your files.`;
+/** What Home says in place of the week when there is no deadline and no outline at all. */
+export function homeEmpty(lists: HomeLists, outlines: number, teacher: string): string | null {
+	return lists.today.length + lists.done.length + lists.later.length + outlines > 0 ? null : `None yet. ${teacher} can add them from your files.`;
 }
 
 /** The deadline the card shows: the one picked in the week or Later while

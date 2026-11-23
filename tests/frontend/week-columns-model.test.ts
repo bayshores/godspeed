@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import type { RhythmGap } from "../../src/shared/core/index.ts";
 import type { OpenDeadline } from "../../src/frontend/components/deadlines-model.ts";
 import { homeLists } from "../../src/frontend/components/home-page/home-page-model.ts";
 import { cutColumn, weekColumns } from "../../src/frontend/components/home-page/week-columns-model.ts";
@@ -11,8 +12,11 @@ function d(id: string, date: string, extra: Partial<OpenDeadline> = {}): OpenDea
 	return { id, kind: "homework", name: id, date, fileIds: [], done: false, spaceId: "c21", spaceName: "CSE 21", ...extra };
 }
 
-const week = (open: OpenDeadline[], done: OpenDeadline[] = []) => weekColumns(homeLists(open, done, NOW), NOW);
-const ids = (day: { items: { deadline: OpenDeadline }[] }) => day.items.map((i) => i.deadline.id);
+const week = (open: OpenDeadline[], done: OpenDeadline[] = [], gaps: RhythmGap[] = []) => weekColumns(homeLists(open, done, NOW), gaps.map((item) => ({ item, leaving: false })), NOW);
+const ids = (day: { items: { key: string }[] }) => day.items.map((i) => i.key);
+function gap(key: string, day: string): RhythmGap {
+	return { spaceId: "c21", key, title: "Homework in CSE 21 this week?", line: "It came every week. None is on record after HW6.", answer: "None this week", close: false, kind: "homework", day, label: "HW7?" };
+}
 
 describe("weekColumns", () => {
 	it("seven days from today, today marked, Monday to Sunday on a Monday", () => {
@@ -27,7 +31,7 @@ describe("weekColumns", () => {
 
 	it("starts on today on any day, so a Sunday still sees the week ahead", () => {
 		const sunday = new Date(2026, 10, 22, 9).getTime();
-		assert.deepEqual(weekColumns({ today: [], done: [], later: [] }, sunday).map((x) => x.short), ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
+		assert.deepEqual(weekColumns({ today: [], done: [], later: [] }, [], sunday).map((x) => x.short), ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
 	});
 
 	it("each day holds what is due on it, by time", () => {
@@ -66,6 +70,38 @@ describe("weekColumns", () => {
 
 	it("nothing after the week, no Later column", () => {
 		assert.equal(week([d("soon", "2026-11-17")]).length, 7);
+	});
+
+	it("an outline sits on the day it was expected, by time as a deadline with no time, and reads its title and line", () => {
+		const days = week([d("morning", "2026-11-18", { time: "08:00" }), d("night", "2026-11-18")], [], [gap("g", "2026-11-18")]);
+		assert.deepEqual(ids(days[2]!), ["morning", "night", "g"]);
+		const outline = days[2]!.items[2]!;
+		assert.deepEqual([outline.kind, outline.name, outline.detail, outline.late, outline.done], ["gap", "HW7?", null, false, false]);
+		assert.equal(outline.label, "Homework in CSE 21 this week? It came every week. None is on record after HW6.");
+	});
+
+	it("an outline expected today sits after what is still due today and before what was done today", () => {
+		const done = d("ticked", "2026-11-20", { done: true, doneAt: new Date(NOW - 60_000).toISOString() });
+		assert.deepEqual(ids(week([d("tonight", "2026-11-16", { time: "21:00" }), d("lastweek", "2026-11-12")], [done], [gap("g", "2026-11-16")])[0]!), ["lastweek", "tonight", "g", "ticked"]);
+	});
+
+	it("an outline after the week makes Later, with its date under its name", () => {
+		const columns = week([d("soon", "2026-11-17")], [], [gap("g", "2026-11-25")]);
+		assert.equal(columns.length, 8);
+		assert.deepEqual(ids(columns[7]!), ["g"]);
+		assert.equal(columns[7]!.items[0]!.detail, "Nov 25");
+	});
+
+	it("an outline counts toward a day's fold like a block", () => {
+		const day = (n: number) => d(`hw${n}`, "2026-11-19", { time: `0${n}:00` });
+		const items = week([day(1), day(2), day(3), day(4)], [], [gap("g", "2026-11-19")])[3]!.items;
+		assert.deepEqual(cutColumn(items).rest.map((i) => i.key), ["hw4", "g"]);
+	});
+
+	it("one that is leaving keeps its place, marked", () => {
+		const columns = weekColumns(homeLists([], [], NOW), [{ item: gap("g", "2026-11-18"), leaving: true }], NOW);
+		const outline = columns[2]!.items[0]!;
+		assert.ok(outline.kind === "gap" && outline.leaving);
 	});
 });
 
