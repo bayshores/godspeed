@@ -38,6 +38,7 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 | `deadline-request-changed` | `{spaceId, deadlineId}` | a deadline request started or ended (`services::spaces::deadline_requests`) |
 | `space-checked` | `{run, spaceId, agent, lines, said}` | a space check changed something: `lines` for the learner, `said` the agent's last line or null (`services::spaces::space_checks`) |
 | `vault-notes-changed` | `{}` | the notes folder setting changed, or a note godspeed writes there was written, found again, marked removed or began waiting (`services::vault`) |
+| `teacher-work` | `{}` | the teacher's round of work began, gained a step or ended (`engine::bridge::steps`); the window reads it at `GET /api/teacher-work` |
 
 ### 10.3 Rules for emitters
 
