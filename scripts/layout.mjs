@@ -167,12 +167,14 @@ function freePort() {
 const typedFile = (home) => path.join(home, "typed");
 
 /** A Start in the check runs layout-agent.mjs, never a real agent: its `claude` and `codex` are
- *  first on the throwaway home's PATH. It throws when it can't write them, so the run stops
+ *  first on the throwaway home's PATH. The start script asks for the version first: that is
+ *  answered and done, or a second stand-in would run in the terminal, outside the helper's mark,
+ *  and take the lines meant for the teacher. It throws when it can't write them, so the run stops
  *  before the window starts. */
 export function standInAgent(home) {
 	const bin = path.join(home, "bin");
 	fs.mkdirSync(bin);
-	const run = `#!/bin/sh\nLAYOUT_TYPED=${JSON.stringify(typedFile(home))} exec ${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(import.meta.dirname, "layout-agent.mjs"))}\n`;
+	const run = `#!/bin/sh\n[ "$1" = --version ] && { echo "99.0.0 (stand-in)"; exit 0; }\nLAYOUT_TYPED=${JSON.stringify(typedFile(home))} exec ${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(import.meta.dirname, "layout-agent.mjs"))}\n`;
 	for (const name of ["claude", "codex"]) fs.writeFileSync(path.join(bin, name), run, { mode: 0o755 });
 	fs.writeFileSync(path.join(home, ".zshrc"), `export PATH=${JSON.stringify(bin)}:$PATH\n`);
 }

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -292,6 +293,8 @@ describe("the stand-in agent", () => {
 				const shim = path.join(home, "bin", name);
 				assert.match(fs.readFileSync(shim, "utf8"), /layout-agent\.mjs/);
 				assert.ok((fs.statSync(shim).mode & 0o111) !== 0, `${name} runs`);
+				// The start script's version check must end, and must not start an agent.
+				assert.match(execFileSync(shim, ["--version"], { encoding: "utf8", timeout: 5000 }), /^99\.0\.0 /);
 			}
 			assert.equal(fs.readFileSync(path.join(home, ".zshrc"), "utf8"), `export PATH=${JSON.stringify(path.join(home, "bin"))}:$PATH\n`);
 		} finally {
