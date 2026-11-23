@@ -6,7 +6,7 @@
 use gs_base::num;
 use gs_base::text::cmp16;
 use gs_base::time;
-use gs_json::Json;
+use gs_json::{Json, json};
 
 use super::space_record::newest;
 use super::today_note::{day_label, local_day};
@@ -46,6 +46,19 @@ pub struct Gap {
 	pub close: bool,
 	/// What the teacher is told.
 	pub agent_line: String,
+}
+
+impl Gap {
+	/// What the browser is sent: every word but the teacher's own line.
+	pub fn to_json(&self) -> Json {
+		let mut out = json!({ "spaceId": self.space_id, "key": self.key, "title": self.title, "line": self.line, "answer": self.answer, "close": self.close });
+		for (name, value) in [("kind", &self.kind), ("day", &self.day), ("label", &self.label)] {
+			if let Some(value) = value {
+				out.as_obj_mut().unwrap().insert(name, json!(value));
+			}
+		}
+		out
+	}
 }
 
 /// A kind's rhythm that has passed its newest deadline without a next one.

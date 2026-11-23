@@ -12,6 +12,7 @@ use gs_base::{clock, text};
 use gs_core::contracts::space::{FILE_KIND_PROBLEM, SIGNATURE_MAX, clean_signature, is_space_color, is_space_icon, is_space_id};
 use gs_core::spaces::file_state::FileKind;
 use gs_core::spaces::problem_list::with_problem_lists;
+use gs_core::spaces::space_gaps::Gap;
 use gs_core::spaces::today_note::local_day;
 use gs_json::{Json, Obj, json};
 use gs_services::App;
@@ -23,6 +24,7 @@ use gs_services::spaces::{
 	update_space, update_space_deadline,
 };
 use gs_services::spaces::deadline_requests::overdue_asked;
+use gs_services::spaces::gaps::open_gaps;
 use gs_services::spaces::space_card::space_file_path;
 use gs_services::turns::ask_about_new_deadlines;
 
@@ -362,10 +364,11 @@ async fn about(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(Strin
 
 /// GET /api/deadlines: from every space that is not closed, soonest due first, `deadlines` not
 /// yet done and `doneToday` ticked done today (Today), and `overdueAsked`, the ids the learner
-/// said Not yet to.
+/// said Not yet to, and `gaps`, the spaces that look to be missing a deadline.
 async fn open_deadlines(State(app): State<Arc<App>>) -> Response {
-	let today = local_day(clock::now_ms());
-	reply::json(200, &json!({ "deadlines": list_open_deadlines(&app), "doneToday": list_deadlines_done_on(&app, &today), "overdueAsked": overdue_asked(&app) }))
+	let now = clock::now_ms();
+	let gaps: Vec<Json> = open_gaps(&app, now).iter().map(Gap::to_json).collect();
+	reply::json(200, &json!({ "deadlines": list_open_deadlines(&app), "doneToday": list_deadlines_done_on(&app, &local_day(now)), "overdueAsked": overdue_asked(&app), "gaps": gaps }))
 }
 
 /// GET /api/deadlines/{id}: one deadline with its space id. 404 once it is gone.
@@ -373,5 +376,35 @@ async fn deadline(State(app): State<Arc<App>>, Path(id): Path<String>) -> Respon
 	match deadline_with_space(&app, &id) {
 		Some(owner) => reply::json(200, &owner),
 		None => error(404, "No such deadline"),
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use gs_core::study::deadline_plan::add_days;
+	use http_body_util::BodyExt;
+
+	use super::*;
+
+	#[tokio::test]
+	async fn the_open_deadlines_list_the_gaps_without_the_teachers_line() {
+		let root = std::env::temp_dir().join(format!("gs-gaps-list-{}", gs_base::ids::uuid()));
+		for name in ["data", "home", "tmp", "res"] {
+			std::fs::create_dir_all(root.join(name)).unwrap();
+		}
+		let app = App::new(gs_base::config::Paths::new(root.join("data"), root.join("home"), root.join("tmp"), root.join("res")), None);
+		let today = local_day(clock::now_ms());
+		let id = app.stores.spaces.create_space(&json!({ "name": "CSE 29" })).unwrap()["id"].str_or_empty().to_owned();
+		for (kind, name, days) in [("homework", "HW1", 9), ("exam", "Test 2", 2)] {
+			app.stores.spaces.add_deadline(&id, &json!({ "kind": kind, "name": name, "date": add_days(&today, -days) })).unwrap();
+		}
+		let res = open_deadlines(State(app.clone())).await;
+		let body = gs_json::parse(&String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap()).unwrap();
+		let gaps = body["gaps"].items();
+		assert_eq!(gaps.len(), 1);
+		assert_eq!(gaps[0]["title"].as_str(), Some("Nothing coming up in CSE 29"));
+		assert_eq!((gaps[0]["spaceId"].as_str(), gaps[0]["answer"].as_str(), gaps[0]["close"].as_bool()), (Some(id.as_str()), Some("Nothing new"), Some(false)));
+		assert!(gaps[0].get("agentLine").is_none() && gaps[0].get("agent_line").is_none() && gaps[0].get("day").is_none(), "no teacher line, no rhythm fields");
+		let _ = std::fs::remove_dir_all(&root);
 	}
 }
