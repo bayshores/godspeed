@@ -297,7 +297,6 @@ pub fn clean_name(name: &str) -> String {
 pub fn summarize(record: &Json) -> Json {
 	let files = record["files"].items();
 	let last_found = newest(files, |f| f["foundByScan"].as_bool() == Some(true)).filter(|s| !s.is_empty());
-	let last_folder_file = newest(files, |f| f["origin"].as_str() == Some("linked")).filter(|s| !s.is_empty());
 	let mut out = Obj::new();
 	for key in ["id", "name", "description", "createdAt", "updatedAt", "closed"] {
 		out.insert(key, record[key].clone());
@@ -308,9 +307,6 @@ pub fn summarize(record: &Json) -> Json {
 	out.insert("fileCount", files.len());
 	if let Some(at) = last_found {
 		out.insert("lastFoundAt", at);
-	}
-	if let Some(at) = last_folder_file {
-		out.insert("lastFolderFileAt", at);
 	}
 	for key in ["signature", "icon"] {
 		if record[key].truthy() {
@@ -485,7 +481,7 @@ mod tests {
 	}
 
 	#[test]
-	fn the_summary_names_the_newest_found_and_folder_files() {
+	fn the_summary_names_the_newest_found_file() {
 		let mut found = file("f2", "linked", "2026-10-05T00:00:00.000Z");
 		found.as_obj_mut().unwrap().insert("foundByScan", true);
 		let record = json!({
@@ -495,7 +491,7 @@ mod tests {
 		});
 		assert_eq!(
 			stringify(&summarize(&record)),
-			r#"{"id":"cls_a","name":"n","description":"","createdAt":"c","updatedAt":"u","closed":false,"linkedFolder":"/x","fileCount":3,"lastFoundAt":"2026-10-05T00:00:00.000Z","lastFolderFileAt":"2026-10-05T00:00:00.000Z","icon":"cpu","color":2,"filesLeft":0}"#
+			r#"{"id":"cls_a","name":"n","description":"","createdAt":"c","updatedAt":"u","closed":false,"linkedFolder":"/x","fileCount":3,"lastFoundAt":"2026-10-05T00:00:00.000Z","icon":"cpu","color":2,"filesLeft":0}"#
 		);
 	}
 

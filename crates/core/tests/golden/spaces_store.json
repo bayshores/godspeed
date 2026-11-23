@@ -1810,7 +1810,6 @@
 								"closed": false,
 								"fileCount": 4,
 								"lastFoundAt": "2026-10-03T00:00:00.000Z",
-								"lastFolderFileAt": "2026-10-01T00:00:00.000Z",
 								"color": 1,
 								"note": {
 									"text": "first",
@@ -3340,7 +3339,6 @@
 								"updatedAt": "<t61>",
 								"closed": false,
 								"fileCount": 2,
-								"lastFolderFileAt": "2026-10-01T00:00:00.000Z",
 								"color": 1,
 								"note": {
 									"text": "first",
@@ -4707,7 +4705,6 @@
 						"linkedFolder": "/Users/learner/Library/CloudStorage/GoogleDrive-learner@example.com/My Drive/Study/Classes/CSE 21",
 						"fileCount": 220,
 						"lastFoundAt": "2026-11-10T00:08:03.147Z",
-						"lastFolderFileAt": "2026-11-10T00:08:03.147Z",
 						"signature": {
 							"kind": "math",
 							"value": "\\binom{n}{k}"
@@ -4842,7 +4839,6 @@
 						"linkedFolder": "/Users/learner/Library/CloudStorage/GoogleDrive-learner@example.com/My Drive/Study/Classes/CSE 29",
 						"fileCount": 181,
 						"lastFoundAt": "2026-11-07T02:52:42.997Z",
-						"lastFolderFileAt": "2026-11-07T02:52:42.997Z",
 						"signature": {
 							"kind": "code",
 							"value": "*p"
