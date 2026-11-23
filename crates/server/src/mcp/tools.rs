@@ -74,6 +74,7 @@ pub async fn call_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Json {
 	if !matches!(name, "wait_for_work" | "respond") {
 		call.app.bridge.drop_typed(call.terminal);
 	}
+	super::teacher_work::note_call(call, name, &args);
 	match name {
 		"wait_for_work" => work::wait_for_work(call, &args).await,
 		"respond" => work::respond(call, &args).await,
@@ -95,6 +96,7 @@ pub async fn call_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Json {
 #[cfg(test)]
 mod tests {
 	use gs_core::contracts::space::{MAX_PATH_TOPICS, PATH_GOAL_MAX};
+	use gs_core::session::teacher_steps::{StepNames, round_call};
 	use gs_core::spaces::space_path::PATH_COVERS_MAX;
 	use gs_core::spaces::space_tools::{SPACE_ARG_TEXT, SPACE_TOOL_TEXT};
 	use gs_core::records::agent_notes::NOTE_MAX_CHARS;
@@ -116,6 +118,33 @@ mod tests {
 	fn the_answer_tools_load_upfront() {
 		let upfront: Vec<&str> = tool_list().as_arr().unwrap().iter().filter(|t| t["_meta"]["anthropic/alwaysLoad"].as_bool() == Some(true)).filter_map(|t| t["name"].as_str()).collect();
 		assert_eq!(upfront, ["respond", "read_work"]);
+	}
+
+	struct NoNames;
+
+	impl StepNames for NoNames {
+		fn space(&self, _: &str) -> Option<String> {
+			None
+		}
+		fn file(&self, _: &str, _: &str) -> Option<String> {
+			None
+		}
+		fn lesson(&self, _: &str) -> Option<String> {
+			None
+		}
+		fn obsidian(&self) -> bool {
+			false
+		}
+	}
+
+	/// A new tool fails here until teacher_steps.rs says what it is for Follow: the work loop, a
+	/// change the activity log names, or a step in words.
+	#[test]
+	fn every_tool_is_decided_for_the_teacher_s_round() {
+		for tool in tool_list().as_arr().unwrap() {
+			let name = tool["name"].as_str().unwrap();
+			assert!(round_call(name, &gs_json::json!({}), &NoNames).is_some(), "{name}");
+		}
 	}
 
 	/// Clients and listings read a missing hint as the risky default, so every tool states all four.

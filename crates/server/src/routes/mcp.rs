@@ -1,8 +1,9 @@
 //! /api/mcp (the MCP endpoint for outside agents), /api/mcp/forget (an agent lost its context),
 //! /api/mcp/compacting (an agent started compacting it), /api/mcp/line (a line the learner typed
-//! to it, for the page on screen), /api/mcp/agent-event (it stopped or needs the learner) and
-//! /api/mcp-access (Settings → Connection: the token, who is connected, rotating the token). The agents' routes check the
-//! token themselves; /api/mcp-access is for the desktop window only, like every other /api route.
+//! to it, for the page on screen), /api/mcp/agent-event (it stopped or needs the learner),
+//! /api/mcp-access (Settings → Connection: the token, who is connected, rotating the token) and
+//! /api/teacher-work (the teacher's round of work, for Follow's slip). The agents' routes check the
+//! token themselves; the other two are for the desktop window only, like every other /api route.
 
 use std::sync::Arc;
 
@@ -26,6 +27,7 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/mcp/line", ApiRoute::new().post(line).into_route())
 		.route("/api/mcp/agent-event", ApiRoute::new().post(agent_event).into_route())
 		.route("/api/mcp-access", ApiRoute::new().get(access).post(rotate).into_route())
+		.route("/api/teacher-work", ApiRoute::new().get(teacher_work).into_route())
 }
 
 async fn endpoint(State(app): State<Arc<App>>, method: Method, headers: HeaderMap, body: Body) -> Response {
@@ -61,6 +63,10 @@ fn view(app: &App) -> Result<Json, String> {
 
 async fn access(State(app): State<Arc<App>>) -> Result<Response, Unhandled> {
 	Ok(reply::json_no_store(200, &view(&app)?))
+}
+
+async fn teacher_work(State(app): State<Arc<App>>) -> Response {
+	reply::json_no_store(200, &app.bridge.teacher_work(gs_base::clock::now_ms()))
 }
 
 async fn rotate(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhandled> {

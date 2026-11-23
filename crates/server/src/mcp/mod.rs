@@ -15,6 +15,7 @@ mod memory;
 mod protocol;
 mod reply;
 mod schema;
+mod teacher_work;
 mod tools;
 mod transport;
 mod vault;

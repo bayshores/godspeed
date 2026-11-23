@@ -261,3 +261,83 @@ async fn open_page_opens_from_any_terminal_every_time_it_is_asked() {
 	let (_, body) = call(&app, None, None, "open_page", r#"{"page":"inbox"}"#).await;
 	assert!(body.contains(r#""isError":true"#), "{body}");
 }
+
+/// The teacher's round of work as GET /api/teacher-work sends it: its step words, or None.
+fn round(app: &App) -> Option<Vec<String>> {
+	let round = app.bridge.teacher_work(gs_base::clock::now_ms());
+	(round["live"] == gs_json::Json::Bool(true)).then(|| round["steps"].items().iter().map(|s| s["text"].str_or_empty().to_owned()).collect())
+}
+
+#[tokio::test]
+async fn the_teacher_terminal_s_reads_are_its_round_s_steps_and_only_its_own_wait_ends_it() {
+	let app = app();
+	let helper = "f".repeat(32);
+	app.bridge.set_live_terminals(vec![TERMINAL.to_owned(), helper.clone()], Some(TERMINAL.to_owned()));
+	let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "CSE 21" })).unwrap()["id"].str_or_empty().to_owned();
+	let space = format!(r#"{{"space_id":"{space_id}"}}"#);
+	call(&app, Some(TERMINAL), None, "read_space", &space).await;
+	assert_eq!(round(&app), None, "no line from the learner, no round");
+
+	app.bridge.chat_line(TERMINAL, gs_base::clock::now_ms());
+	call(&app, Some(TERMINAL), None, "read_space", &space).await;
+	call(&app, Some(&helper), None, "list_spaces", "{}").await;
+	call(&app, Some(TERMINAL), None, "update_space", &format!(r#"{{"space_id":"{space_id}","description":"Discrete math."}}"#)).await;
+	call(&app, Some(TERMINAL), None, "respond", r#"{"work_id":"w_gone_1","text":"Hi."}"#).await;
+	assert_eq!(round(&app), Some(vec!["Looking at CSE 21".to_owned()]), "the helper's read, the change and the work loop are no steps");
+
+	call(&app, Some(TERMINAL), Some("sess-1"), "wait_for_work", r#"{"timeout_seconds":1}"#).await;
+	assert!(round(&app).is_some(), "the folder's waiter waits while its session works");
+	woken(&app, Some(TERMINAL), "sess-1", "wait_for_work", r#"{"timeout_seconds":1}"#).await;
+	assert_eq!(round(&app), None, "the session's own wait says it is done");
+}
+
+#[tokio::test]
+async fn an_outside_agent_s_calls_count_unless_it_is_the_helper_or_holds_background_work() {
+	let app = app();
+	call(&app, None, None, "list_spaces", "{}").await;
+	assert_eq!(round(&app), Some(vec!["Looking at your spaces".to_owned()]), "its first call begins the round");
+	wait(&app, None).await;
+	assert_eq!(round(&app), None, "its wait ends it");
+
+	call(&app, None, Some("helper-1"), "wait_for_work", r#"{"timeout_seconds":1,"helper":true}"#).await;
+	call(&app, None, Some("helper-1"), "list_spaces", "{}").await;
+	assert_eq!(round(&app), None, "the helper's calls are not the teacher's");
+
+	// An asked job, taken by an outside agent: its round begins, and the agent's own calls count
+	// again only once it answered.
+	app.bridge.mark_asked("job_ask");
+	let engine = gs_engine::turn::models::agent_engine(&app.bridge);
+	let job = gs_base::tasks::spawn("test", async move {
+		let ask = vec![gs_json::json!({ "role": "user", "content": "what does HW6 cover", "timestamp": 1 })];
+		gs_engine::turn::faux::stream(&engine, ask, Some("job_ask".to_owned()), &gs_engine::turn::abort::Abort::new(), &mut |_| {}).await
+	});
+	gs_base::clock::sleep(20).await;
+	let (_, body) = call(&app, None, Some("bg-1"), "wait_for_work", r#"{"timeout_seconds":1}"#).await;
+	let work_id = body.split(r#"workId\":\""#).nth(1).and_then(|rest| rest.split('\\').next()).unwrap_or_else(|| panic!("no work: {body}")).to_owned();
+	call(&app, None, Some("bg-1"), "list_spaces", "{}").await;
+	assert_eq!(round(&app), Some(Vec::new()), "held background work is no step");
+	call(&app, None, Some("bg-1"), "respond", &format!(r#"{{"work_id":"{work_id}","text":"Limits.","wait_seconds":0}}"#)).await;
+	job.await.unwrap();
+	call(&app, None, Some("bg-1"), "list_spaces", "{}").await;
+	assert_eq!(round(&app), Some(vec!["Looking at your spaces".to_owned()]));
+}
+
+#[tokio::test]
+async fn the_window_reads_the_round_at_its_route() {
+	use tokio::io::{AsyncReadExt, AsyncWriteExt};
+	let app = app();
+	let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+	let port = listener.local_addr().unwrap().port();
+	gs_base::tasks::spawn("test", axum::serve(listener, gs_server::http::server(app.clone(), &gs_server::http::access::Access::default())).into_future());
+	let get = || async move {
+		let mut conn = tokio::net::TcpStream::connect(("127.0.0.1", port)).await.unwrap();
+		conn.write_all(b"GET /api/teacher-work HTTP/1.1\r\nhost: 127.0.0.1\r\nconnection: close\r\n\r\n").await.unwrap();
+		let mut answer = String::new();
+		conn.read_to_string(&mut answer).await.unwrap();
+		gs_json::parse(answer.split("\r\n\r\n").nth(1).unwrap_or("")).unwrap()
+	};
+	assert_eq!(get().await, gs_json::json!({ "live": false, "since": null, "steps": [] }));
+	call(&app, None, None, "list_spaces", "{}").await;
+	let live = get().await;
+	assert_eq!((live["live"].as_bool(), live["steps"][0]["text"].as_str()), (Some(true), Some("Looking at your spaces")), "{live:?}");
+}

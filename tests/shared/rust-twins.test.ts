@@ -194,3 +194,17 @@ describe("start script exit codes", () => {
 		for (const name of ["EXIT_NOT_INSTALLED", "EXIT_NO_NODE", "EXIT_OLD_AGENT"]) assert.equal(number(screen, name), number(scripts, name), name);
 	});
 });
+
+describe("the teacher's step words", () => {
+	it("use the lesson desk's verbs for the same tools", () => {
+		const desk = read("src/frontend/components/lesson/agent-at-work-model.ts");
+		const steps = rust("session/teacher_steps");
+		const stem = (word: string | undefined) => word?.toLowerCase().replace(/(ing|ed)$/, "");
+		const deskVerb = (tool: string) => (tool === "read_passage" ? /tool === "read_passage"[\s\S]*?steps: \[`(\w+)/ : new RegExp(`case "${tool}":[^\`"]*[\`"](\\w+)`)).exec(desk)?.[1];
+		const serverVerb = (tool: string) => new RegExp(tool === "read_passage" ? `fn read_passage[\\s\\S]*?format!\\("(\\w+)` : `"${tool}" => [\\s\\S]*?format!\\("(\\w+)`).exec(steps)?.[1];
+		for (const tool of ["search_space_files", "search_graph", "read_passage"]) {
+			assert.ok(deskVerb(tool) && serverVerb(tool), tool);
+			assert.equal(stem(serverVerb(tool)), stem(deskVerb(tool)), tool);
+		}
+	});
+});

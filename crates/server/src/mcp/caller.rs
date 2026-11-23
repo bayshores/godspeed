@@ -75,6 +75,12 @@ pub fn woken(meta: &Json) -> bool {
 	meta["godspeed/wakes"].as_bool() == Some(true)
 }
 
+/// The folder's waiter waits for its Claude Code session: it sends the session's id but never says
+/// the session is woken, as the session's own connector does.
+pub fn from_waiter(meta: &Json) -> bool {
+	meta["godspeed/agent"].as_str().is_some() && !woken(meta)
+}
+
 #[cfg(test)]
 mod tests {
 	use gs_json::json;
@@ -90,6 +96,14 @@ mod tests {
 		let folder = json!({ "method": "initialize", "params": { "clientInfo": { "name": "claude-code" }, "_meta": { "godspeed/wakes": true } } });
 		assert!(caller_of(Some(&folder)).woken);
 		assert_eq!(caller_of(None), Caller::default());
+	}
+
+	#[test]
+	fn tells_the_waiter_from_its_session() {
+		assert!(from_waiter(&json!({ "godspeed/agent": "s1" })));
+		assert!(!from_waiter(&json!({ "godspeed/agent": "s1", "godspeed/wakes": true })), "the session itself");
+		assert!(!from_waiter(&json!({ "x-codex-turn-metadata": "{\"session_id\":\"c\"}" })), "Codex waits itself");
+		assert!(!from_waiter(&Json::Null), "an agent outside godspeed");
 	}
 
 	#[test]

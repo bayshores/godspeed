@@ -46,6 +46,17 @@ fn same_folder(a: &str, b: &str) -> bool {
 	a.trim_end_matches(['/', '\\']) == b.trim_end_matches(['/', '\\'])
 }
 
+/// The folder is a vault Obsidian lists, or holds `.obsidian`: the interface calls it "Obsidian".
+fn in_obsidian(listed: &[String], path: &str) -> bool {
+	listed.iter().any(|v| same_folder(v, path)) || Path::new(path).join(".obsidian").is_dir()
+}
+
+/// The learner's notes folder is one Obsidian knows. It only picks a word, so settings that can't
+/// be read count as no Obsidian.
+pub fn notes_in_obsidian(app: &App) -> bool {
+	setting(app).ok().and_then(|s| s.path).is_some_and(|path| in_obsidian(&listed_vaults(&app.paths.home), &path))
+}
+
 /// A folder as Settings names it: `{path, name, short, parent}`, `short` and `parent` with the
 /// home folder as `~`.
 fn folder_view(path: &str, home: &str) -> Json {
@@ -68,7 +79,7 @@ pub fn vault_status(app: &App) -> Result<Json, String> {
 	let Some(path) = setting.path else {
 		return Ok(json!({ "folder": null, "words": setting.words, "obsidian": false, "vaults": vaults, "notes": 0, "capped": false, "state": "none", "waiting": null }));
 	};
-	let obsidian = listed.iter().any(|v| same_folder(v, &path)) || Path::new(&path).join(".obsidian").is_dir();
+	let obsidian = in_obsidian(&listed, &path);
 	let (state, message) = match rescan(app) {
 		Ok(_) => ("ok", None),
 		Err(err @ VaultError::Missing) => ("missing", Some(err.message())),
