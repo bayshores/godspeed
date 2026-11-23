@@ -8,10 +8,12 @@
 //! Check-ins: every authorized MCP request counts as the agent being connected; only the work
 //! loop (wait, respond, read) counts as teaching. Status changes go out as "agent-changed".
 //! A helper does the background jobs, and answers while a teacher compacts its context (`helper`).
+//! The teacher's round of work, for Follow's slip, is kept here too (`steps`).
 
 mod checkin;
 mod helper;
 mod render;
+mod steps;
 mod stream;
 mod terminals;
 mod view;
@@ -32,6 +34,7 @@ use waiters::Waiters;
 
 pub use checkin::display_agent_name;
 pub use helper::UNNAMED_HELPER;
+pub use steps::{OUTSIDE_QUIET_MS, ROUND_STALE_MS, ROUND_STEPS_MAX};
 pub use stream::agent_model;
 pub use terminals::WindowPage;
 pub use view::WorkView;
@@ -150,6 +153,10 @@ struct State {
 	waited: HashMap<String, i64>,
 	/// The last request from an agent outside the app's terminals.
 	outside_contact: i64,
+	/// The teacher's round of work, while it lasts.
+	round: Option<steps::Round>,
+	/// Counts rounds, so each has its own number.
+	rounds: u64,
 }
 
 /// A teacher's wait under way: the lesson it stays on.

@@ -11,6 +11,7 @@ use gs_base::events::EventKind;
 use gs_base::tasks::detach;
 
 use super::checkin::recent;
+use super::steps::{begin_round, end_round, end_round_of};
 use super::{Bridge, State};
 
 /// A typed message older than this no longer ends a wait: the agent read it some other way.
@@ -66,11 +67,16 @@ impl Bridge {
 		s.stop_at.retain(|id, _| live.contains(id));
 		s.nudged.retain(|id, _| live.contains(id));
 		s.waited.retain(|id, _| live.contains(id));
+		let gone = s.round.as_ref().and_then(|r| r.terminal()).is_some_and(|id| !live.contains(id));
+		let round_ended = gone && end_round(&mut s);
 		s.teacher_terminal = teacher.filter(|id| live.contains(id));
 		s.live_terminals = live;
 		drop(s);
 		if released {
 			self.emit(EventKind::AgentChanged);
+		}
+		if round_ended {
+			self.emit(EventKind::TeacherWork);
 		}
 		self.0.waiters.wake_all();
 	}
@@ -150,12 +156,16 @@ impl Bridge {
 	}
 
 	/// A line the learner typed went to the agent in this terminal: when it is the teacher's, its
-	/// next stop is an answer to the learner there.
-	pub fn chat_line(&self, terminal: &str) {
+	/// next stop is an answer to the learner there, and its round of work begins.
+	pub fn chat_line(&self, terminal: &str, now: i64) {
 		let mut s = self.0.state.lock();
-		if s.teacher_terminal.as_deref() == Some(terminal) {
-			s.chatting.insert(terminal.to_owned());
+		if s.teacher_terminal.as_deref() != Some(terminal) {
+			return;
 		}
+		s.chatting.insert(terminal.to_owned());
+		begin_round(&mut s, Some(terminal), None, now);
+		drop(s);
+		self.round_began();
 	}
 
 	/// The agent in this terminal took a line and works on it until it stops.
@@ -163,11 +173,15 @@ impl Bridge {
 		self.0.state.lock().prompting.insert(terminal.to_owned());
 	}
 
-	/// The agent in this terminal stopped (its Stop hook).
+	/// The agent in this terminal stopped (its Stop hook), which ends its round of work.
 	pub fn agent_stopped(&self, terminal: &str, now: i64) {
 		let mut s = self.0.state.lock();
 		s.prompting.remove(terminal);
 		s.stop_at.insert(terminal.to_owned(), now);
+		if end_round_of(&mut s, Some(terminal)) {
+			drop(s);
+			self.emit(EventKind::TeacherWork);
+		}
 	}
 
 	/// The agent in this terminal called one of godspeed's tools.

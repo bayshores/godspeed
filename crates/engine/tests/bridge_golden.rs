@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use gs_base::clock;
-use gs_base::events::Events;
+use gs_base::events::{EventKind, Events};
 use gs_base::re::Re;
 use gs_engine::bridge::{AgentReply, Bridge, ReplyCall, WaitOptions, WorkView, display_agent_name};
 use gs_engine::turn::abort::Abort;
@@ -217,7 +217,10 @@ async fn the_bridge_matches_agent_bridge_ts() {
 		}
 		let mut names = Vec::new();
 		while let Ok(e) = rx.try_recv() {
-			names.push(Json::from(e.kind.name()));
+			// The TS bridge kept no round of work for Follow, so it never told of one.
+			if e.kind != EventKind::TeacherWork {
+				names.push(Json::from(e.kind.name()));
+			}
 		}
 		steps.push(json!({ "result": result, "events": names }));
 	}

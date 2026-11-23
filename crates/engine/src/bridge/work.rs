@@ -8,6 +8,7 @@ use gs_core::records::agent_seen::seen_mark;
 use gs_json::Json;
 
 use super::helper::{self, compacting_now, someone_compacting};
+use super::steps::begin_round;
 use super::terminals::{closed, typed_lately};
 use super::render::{instructions_and_tools, prints_of};
 use super::view::{WorkView, remember_seen};
@@ -207,10 +208,17 @@ impl Bridge {
 		item.agent = opts.agent.clone();
 		item.terminal = opts.terminal.clone();
 		item.agent_forgot = false;
-		let background = is_background(&item.conversation);
+		let conversation = item.conversation.clone();
+		let background = is_background(&conversation);
+		// The teacher took a job the learner asked for: its round of work begins.
+		let asked = (!opts.helper && s.asked.contains(&conversation)).then_some(conversation);
+		let began = asked.is_some_and(|job| begin_round(&mut s, opts.terminal.as_deref(), Some(&job), now));
 		let view = self.view(&mut s, i, opts.full);
 		drop(s);
 		self.emit(if background { EventKind::ActivityChanged } else { EventKind::AgentChanged });
+		if began {
+			self.round_began();
+		}
 		Claim::Taken(Box::new(view))
 	}
 
