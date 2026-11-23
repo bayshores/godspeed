@@ -608,7 +608,9 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: `${pickTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}; ${fitsWindow}`,
 		shows: "body:has([data-testid=follow-slip]) [data-testid=graph-panel] [data-testid=topic-pane]",
 	},
-	{ name: "Follow's slip beside the teacher's panel", url: "/", ready: deadlineCard, setup: openTeacher, shows: "body:has([data-testid=teacher-panel]) [data-testid=follow-slip]" },
+	// A screen opens in the narrowest window, where the open panel covers the page and the slip has no room: it is gone
+	// once the panel is up, and back beside the panel in the wider windows.
+	{ name: "Follow's slip beside the teacher's panel", url: "/", ready: deadlineCard, setup: openTeacher, shows: "body:not(:has([data-testid=follow-slip])) [data-testid=teacher-panel]" },
 	// Its steps end with the web search, one of the agent's own tools.
 	{
 		name: "Follow's slip, its steps open",
