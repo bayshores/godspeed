@@ -85,7 +85,7 @@ To add a row:
 | Teacher's strip | Right edge | `strip` | | learner | |
 | Start the teacher | Teacher panel | `open-agent` | Teacher's panel with no agent | learner | |
 | Chats list | Teacher panel | `teacher-panel-chats` | Teacher's chats under the Chats key | learner | |
-| Follow, and the teacher opening pages | Teacher panel | `follow-start` | | learner | `open_page` |
+| Follow: its slip at the page's foot saying what the teacher does and listing its steps, what it changed staying lit, and the teacher opening pages | Teacher panel; the slip on every page but a lesson, a mock and a cheat sheet | `follow-start` | | learner | `open_page` |
 | Pop out the teacher | Teacher panel | `terminal-pop-out` | | learner | `terminal-window` |
 | Try asking | Teacher panel | `terminal-starters` | The agent's screen | learner | |
 | Everything the teacher can do | Teacher panel | `terminal-everything` | The agent's screen with everything the teacher can do | learner | |
