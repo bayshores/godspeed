@@ -26,7 +26,7 @@ pub fn topics_to_work_on(topics: &[Json]) -> Vec<Json> {
 }
 
 /// "YYYY-MM-DD" plus n days.
-fn add_days(day: &str, n: i64) -> String {
+pub fn add_days(day: &str, n: i64) -> String {
 	let mut p = day.split('-').map(|x| x.parse::<i64>().unwrap_or(0));
 	let (y, m, d) = (p.next().unwrap_or(0), p.next().unwrap_or(0), p.next().unwrap_or(0));
 	// Month overflow rolls into the next year like Date.UTC.

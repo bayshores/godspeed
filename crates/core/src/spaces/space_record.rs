@@ -280,7 +280,7 @@ pub fn newer_version(parsed: &Json) -> Option<f64> {
 }
 
 /// The newest `addedAt` among the files `pick` says yes to.
-fn newest(files: &[Json], pick: impl Fn(&Json) -> bool) -> Option<&str> {
+pub(super) fn newest(files: &[Json], pick: impl Fn(&Json) -> bool) -> Option<&str> {
 	files.iter().fold(None, |at: Option<&str>, f| {
 		let added = f["addedAt"].str_or_empty();
 		if pick(f) && at.is_none_or(|a| a.is_empty() || cmp16(added, a).is_gt()) { Some(added) } else { at }
