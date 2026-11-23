@@ -51,9 +51,6 @@ export function teacherHead(i: { agent: AgentStatus | null; name: string; doing:
 /** The page's push while the panel is open (main's padding reads it). */
 const PUSH_VAR = "--lh-dock-push";
 
-/** The open panel takes the whole window, with no page left beside it. */
-export const panelFillsWindow = (): boolean => document.querySelector("[data-teacher-panel][data-whole]") !== null;
-
 export function TeacherPanel({
 	name,
 	agent,
@@ -64,6 +61,7 @@ export function TeacherPanel({
 	onScreen,
 	focus,
 	state,
+	onWhole,
 }: {
 	name: string;
 	agent: AgentStatus | null;
@@ -77,6 +75,8 @@ export function TeacherPanel({
 	focus: boolean;
 	/** "closed" while it goes back into the strip. */
 	state: "open" | "closed";
+	/** Whether the open panel takes the whole window, with no page left beside it. */
+	onWhole: (whole: boolean) => void;
 }) {
 	const teacher = useTeacher();
 	const terminals = useTerminals();
@@ -115,6 +115,9 @@ export function TeacherPanel({
 		},
 		[],
 	);
+	const fills = whole && state === "open";
+	useEffect(() => onWhole(fills), [fills, onWhole]);
+	useEffect(() => () => onWhole(false), [onWhole]);
 	return (
 		<BarWindow right={stripWidth()} width={width} height={null} state={state} data-teacher-panel="" data-whole={whole || undefined} data-testid="teacher-panel" aria-label={name}>
 			{/* Nothing to drag while it takes the whole window. */}

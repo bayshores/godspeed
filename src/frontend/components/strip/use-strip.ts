@@ -94,7 +94,9 @@ export function useStrip() {
 		},
 		[leave, navigate],
 	);
-	const offered = teacher?.offer ?? null;
+	// While Follow's slip says why it waits, its "Go to" is the one: the peek leaves its own out.
+	const slip = teacher?.slip?.view ?? null;
+	const offered = slip?.paused ? null : (teacher?.offer ?? null);
 	const goWords = teacher && goLabel({ following: teacher.follow, offer: offered, held: teacher.held });
 	const go = teacher?.go;
 	const offer = useMemo(
@@ -123,7 +125,23 @@ export function useStrip() {
 	);
 
 	if (!teacher) return null;
-	return { name, view, status, panelOpen, waiting: notices.waiting, noticesOpen: notices.open, offer, due, openDue, click, showHelper, openLesson, inLesson: pathname.startsWith("/chat/") };
+	return {
+		name,
+		view,
+		status,
+		/** While Follow's slip is up, its line is what a screen reader hears; the other places say only "Working". */
+		slipLine: slip?.line ?? null,
+		panelOpen,
+		waiting: notices.waiting,
+		noticesOpen: notices.open,
+		offer,
+		due,
+		openDue,
+		click,
+		showHelper,
+		openLesson,
+		inLesson: pathname.startsWith("/chat/"),
+	};
 }
 
 /** What the strip and its peek draw. */

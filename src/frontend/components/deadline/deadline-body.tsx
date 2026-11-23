@@ -111,7 +111,7 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 				</button>
 			</BarActions>
 			{/* Cut to the sheet's corners, so the block follows them. */}
-			<Pane data-testid="deadline-head" className="@container/head overflow-hidden">
+			<Pane data-testid="deadline-head" data-teacher-target={`deadline:${d.id}`} className="@container/head overflow-hidden">
 				<header className="flex flex-col @[640px]/head:flex-row @[640px]/head:items-center">
 					<DeadlineBlock deadline={d} color={props.color} nowMs={nowMs} size="head" />
 					<div className="flex min-w-0 flex-1 flex-col gap-3 px-(--lh-inset) py-4">

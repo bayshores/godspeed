@@ -82,6 +82,7 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 		doing: null,
 		setLesson: () => {},
 		go: () => {},
+		slip: null,
 		offer: null,
 		held: false,
 		spaceNameOf: () => null,
@@ -105,6 +106,7 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 					onScreen={panel.showScreen}
 					focus={panel.focus}
 					state="open"
+					onWhole={() => {}}
 				/>
 			)}
 		</TeacherContext.Provider>

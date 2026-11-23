@@ -1,13 +1,11 @@
 /** The agent's recent changes, and what the strip's peek offers from them:
- *  the newest while it is fresh, "Go to" a change on another page, and an
- *  open the window held. */
+ *  "Go to" a change on another page, and an open the window held. */
 
 import { useCallback, useEffect, useState } from "react";
 import type { AgentAction } from "@/shared/core";
 import { useServerResync } from "@/frontend/components/server-events";
 import { getJson } from "@/frontend/lib/api";
 import { GO_OFFER_MS, goOffer, heldStill } from "./follow";
-import { freshAction } from "./follow-status";
 
 const RECENT_LIMIT = 20;
 
@@ -21,16 +19,6 @@ export function useRecentActions(followOn: boolean, pathname: string) {
 	useEffect(loadRecent, [loadRecent]);
 	useServerResync(loadRecent);
 	const add = useCallback((action: AgentAction) => setRecent((list) => [action, ...list.filter((a) => a.id !== action.id)].slice(0, RECENT_LIMIT)), []);
-
-	// The agent's newest change, while it is fresh.
-	const [fresh, setFresh] = useState<AgentAction | null>(null);
-	useEffect(() => {
-		const now = freshAction(recent, Date.now());
-		setFresh(now?.action ?? null);
-		if (!now) return;
-		const t = setTimeout(() => setFresh(null), now.leftMs);
-		return () => clearTimeout(t);
-	}, [recent]);
 
 	// "Go to": with Follow off, the newest change on another page.
 	const [offer, setOffer] = useState<AgentAction | null>(null);
@@ -52,5 +40,5 @@ export function useRecentActions(followOn: boolean, pathname: string) {
 		return () => clearTimeout(t);
 	}, [held, pathname]);
 
-	return { recent, add, fresh, offer, held, setHeld };
+	return { recent, add, offer, held, setHeld };
 }

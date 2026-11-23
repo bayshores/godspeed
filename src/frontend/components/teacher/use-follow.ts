@@ -29,13 +29,13 @@ export function useFollow() {
 	// While Follow is on, note when the learner types or has a dialog open.
 	useEffect(() => {
 		if (!followOn) return;
-		const busy = () => dispatchFollow({ type: "busy", at: Date.now() });
-		document.addEventListener("input", busy, true);
+		const typed = () => dispatchFollow({ type: "busy", at: Date.now(), why: "type" });
+		document.addEventListener("input", typed, true);
 		const t = setInterval(() => {
-			if (dialogOpen()) busy();
+			if (dialogOpen()) dispatchFollow({ type: "busy", at: Date.now(), why: "dialog" });
 		}, 250);
 		return () => {
-			document.removeEventListener("input", busy, true);
+			document.removeEventListener("input", typed, true);
 			clearInterval(t);
 		};
 	}, [followOn, dispatchFollow]);

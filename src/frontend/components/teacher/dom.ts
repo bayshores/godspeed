@@ -1,11 +1,12 @@
 /**
  * Follow's page helpers (browser only): finding a change's element
- * (data-teacher-target), lighting it up, and whether a dialog is open.
+ * (data-teacher-target), lighting a card up for a moment, and whether a dialog is open. What
+ * Follow's tour lights stays lit instead (lit-model.ts).
  */
 import type { AgentAction } from "@/shared/core";
 import { targetKey } from "./tour";
 
-/** How long a changed item stays lit. */
+/** How long a card stays lit when the learner comes back to it. */
 const HIGHLIGHT_MS = 900;
 
 interface Box {

@@ -350,7 +350,7 @@ describe("after godspeed's teacher ended, though the server still says connected
 		// What each surface shows, from the status every surface reads.
 		const words = () => {
 			const agent = status()!;
-			const doing = agentDoing({ agent, fresh: null, lesson: { streaming: true, working: true }, extractions: [], jobs: [] });
+			const doing = agentDoing({ agent, round: null, lesson: { streaming: true, working: true }, extractions: [], jobs: [] });
 			const facts = api!.facts.teacher;
 			return {
 				strip: stripView({ agent, terminal: teacherTerminalState(facts), working: !!doing?.working, background: false, work: null, ready: [], panelOpen: false }).square,

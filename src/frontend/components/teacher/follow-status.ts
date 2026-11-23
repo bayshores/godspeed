@@ -2,15 +2,12 @@
  * What the agent is doing right now, as one line: the Follow chip and the
  * panel's Activity tab show it. Pure.
  *
- * In order: its newest change while fresh, whether it is teaching at all,
- * the lesson on screen, a file or lesson it is reading for facts, a
+ * In order: its round of work while it lasts, whether it is teaching at
+ * all, the lesson on screen, a file or lesson it is reading for facts, a
  * background job, other work, idle. No agent connected: nothing.
  */
-import { isAgentEntry, type AgentAction, type JobKind } from "@/shared/core";
+import type { JobKind } from "@/shared/core";
 
-/** The newest change counts as "what it's doing now" this long, ahead of
- *  live work; then reading a file or a lesson shows. */
-export const NOW_WINDOW_MS = 8_000;
 /** A screen reader hears a new line at most this often. */
 export const ANNOUNCE_GAP_MS = 8_000;
 
@@ -31,8 +28,8 @@ interface Extraction {
 
 interface DoingInputs {
 	agent: { connected: boolean; teaching: boolean; helperHere: boolean; pendingWork: number; pendingTurns: number } | null;
-	/** The agent's newest change while it is fresh (freshAction). */
-	fresh: AgentAction | null;
+	/** What the teacher's live round says it does (its newest step or change, or "Working"); null with no live round. */
+	round: string | null;
 	/** The lesson on screen, if one is. */
 	lesson: { streaming: boolean; working: boolean } | null;
 	/** Oldest first, as the activity feed lists them. */
@@ -46,15 +43,6 @@ const JOB_TEXT: Record<JobKind, string> = {
 	visual: "Drawing a figure",
 	pdf: "Reading a PDF",
 };
-
-/** The agent's newest change (never the app's or the learner's own
- *  entries) while it is fresh, and how long it stays fresh. */
-export function freshAction(recent: readonly AgentAction[], now: number): { action: AgentAction; leftMs: number } | null {
-	const action = recent.find(isAgentEntry);
-	if (!action) return null;
-	const leftMs = NOW_WINDOW_MS - (now - Date.parse(action.at));
-	return leftMs > 0 ? { action, leftMs } : null;
-}
 
 /** How long a new line waits before a screen reader hears it, given when
  *  the last one was announced. */
@@ -79,7 +67,7 @@ function readingLine(run: Extraction): Omit<AgentDoing, "working"> {
 export function agentDoing(i: DoingInputs): AgentDoing | null {
 	const agent = i.agent;
 	if (!agent || !(agent.connected || agent.teaching)) return null;
-	if (i.fresh) return { text: i.fresh.label, working: true };
+	if (i.round) return { text: i.round, working: true };
 	// Connected but not running the work loop: queued work isn't being done.
 	if (!agent.teaching) return { text: "Not teaching yet", working: false };
 	if (i.lesson?.streaming) return { text: "Writing the lesson", working: true };

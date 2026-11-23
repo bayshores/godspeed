@@ -3,35 +3,11 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { AgentAction } from "../../src/shared/core/events.ts";
-import { ANNOUNCE_GAP_MS, NOW_WINDOW_MS, agentDoing, announceDelay, freshAction } from "../../src/frontend/components/teacher/follow-status.ts";
+import { ANNOUNCE_GAP_MS, agentDoing, announceDelay } from "../../src/frontend/components/teacher/follow-status.ts";
 
 const t = Date.parse("2026-11-02T12:00:00Z");
-const action = (over: Partial<AgentAction> = {}): AgentAction => ({
-	id: "act_1",
-	at: new Date(t).toISOString(),
-	agent: "Claude Code",
-	label: "Adding HW 5",
-	spaceId: "cls_a",
-	target: { kind: "deadline", id: "ddl_1" },
-	page: "/",
-	...over,
-});
 const teaching = { connected: true, teaching: true, helperHere: false, pendingWork: 0, pendingTurns: 0 };
-const none = { fresh: null, lesson: null, extractions: [], jobs: [] };
-
-describe("freshAction", () => {
-	it("the agent's newest change, while it is fresh", () => {
-		assert.deepEqual(freshAction([action()], t + 3000), { action: action(), leftMs: NOW_WINDOW_MS - 3000 });
-		assert.equal(freshAction([action()], t + NOW_WINDOW_MS), null);
-		assert.equal(freshAction([], t), null);
-	});
-	it("skips the app's own entries (a folder's new files)", () => {
-		const app = action({ id: "act_2", agent: "godspeed", label: "Added 3 files from Google Drive" });
-		assert.equal(freshAction([app], t)?.action ?? null, null);
-		assert.equal(freshAction([app, action()], t)?.action.id, "act_1");
-	});
-});
+const none = { round: null, lesson: null, extractions: [], jobs: [] };
 
 describe("agentDoing", () => {
 	it("nothing while no agent is connected", () => {
@@ -45,8 +21,9 @@ describe("agentDoing", () => {
 			working: false,
 		});
 	});
-	it("a fresh change comes first", () => {
-		assert.deepEqual(agentDoing({ ...none, agent: teaching, fresh: action(), lesson: { streaming: true, working: true } }), { text: "Adding HW 5", working: true });
+	it("the teacher's live round comes first, also before it runs its work loop", () => {
+		assert.deepEqual(agentDoing({ ...none, agent: teaching, round: "Reading HW7_F26.pdf", lesson: { streaming: true, working: true } }), { text: "Reading HW7_F26.pdf", working: true });
+		assert.deepEqual(agentDoing({ ...none, agent: { ...teaching, teaching: false }, round: "Working" }), { text: "Working", working: true });
 	});
 	it("the lesson on screen", () => {
 		assert.equal(agentDoing({ ...none, agent: teaching, lesson: { streaming: true, working: true } })?.text, "Writing the lesson");

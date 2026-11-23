@@ -86,6 +86,7 @@ const panel = (over: Partial<PanelProps> = {}) => (
 		onScreen={() => {}}
 		focus={false}
 		state="open"
+		onWhole={() => {}}
 		{...over}
 	/>
 );
@@ -330,6 +331,7 @@ describe("Follow in the panel's head", () => {
 		doing: { working: true, text: "Adding Lab 4" } as TeacherApi["doing"],
 		setLesson: () => {},
 		go: () => {},
+		slip: null,
 		offer: null,
 		held: false,
 		spaceNameOf: () => null,

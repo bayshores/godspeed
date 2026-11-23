@@ -3,9 +3,13 @@
  *
  *  - Follow: every "agent-action" event is a change the outside agent
  *    made. With Follow on, the window goes to the change's page and the
- *    changed item (data-teacher-target) lights up (tour.ts paces it). On
- *    by default; the learner turns it on and off, and the status line
- *    says what the agent is doing (follow-status.ts).
+ *    changed item (data-teacher-target) lights up (tour.ts paces it) and
+ *    stays lit (lit-model.ts: one style rule per mark, drawn here). On by
+ *    default; the learner turns it on and off, and the status line says
+ *    what the agent is doing (follow-status.ts).
+ *  - The round: what the teacher reads and changes while it works
+ *    (use-teacher-work.ts, timeline-model.ts), which Follow's slip shows at
+ *    the page's foot (use-follow-slip.ts, follow-slip.tsx).
  *  - Opens: a change marked `open` (a page the agent opened, a lesson
  *    the learner asked for) goes there with Follow off too. While the
  *    window holds (unsent lesson text, a mock, a dialog) it waits as a
@@ -22,7 +26,8 @@
  *
  * Each job has its own hook: Follow (use-follow.ts), the recent changes and
  * what the strip's peek offers from them (use-recent-actions.ts), the tour
- * (use-tour.ts) and the panel. This provider joins them into one context.
+ * (use-tour.ts), the round and its slip, and the panel. This provider joins
+ * them into one context.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -37,7 +42,7 @@ import { usePresence } from "@/frontend/components/presence";
 import { useSettings } from "@/frontend/components/settings-context";
 import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useWindowPage } from "@/frontend/components/terminal/use-terminal-lines";
-import { TeacherPanel, panelFillsWindow } from "./teacher-panel";
+import { TeacherPanel } from "./teacher-panel";
 import { TeacherContext, useTeacher, type TeacherApi, type LessonPresence } from "./teacher-context";
 import { useTeacherPanel } from "./use-teacher-panel";
 import { panelBody, panelStarts, shownScreen } from "./dock-model";
@@ -45,6 +50,10 @@ import { agentDoing } from "./follow-status";
 import { useFollow } from "./use-follow";
 import { useRecentActions } from "./use-recent-actions";
 import { useTour } from "./use-tour";
+import { useTeacherWork } from "./use-teacher-work";
+import { roundTimeline } from "./timeline-model";
+import { useFollowSlip } from "./use-follow-slip";
+import { litRules } from "./lit-model";
 
 // Most of the app reads the teacher from here.
 export { useTeacher };
@@ -78,25 +87,37 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	const lessonRef = useRef(lesson);
 	lessonRef.current = lesson;
 
-	const { recent, add, fresh, offer, held, setHeld } = useRecentActions(followOn, pathname);
-
-	// ── what it's doing ──
-	const doing = useMemo(
-		() => agentDoing({ agent, fresh, lesson, extractions: feed.extractions, jobs: feed.jobs }),
-		[agent, fresh, lesson, feed.extractions, feed.jobs],
-	);
+	const { recent, add, offer, held, setHeld } = useRecentActions(followOn, pathname);
 
 	// ── the panel ──
 	const panel = useTeacherPanel(lesson?.working ?? null, pathname === "/");
 	const { open: panelOpen, setOpen: setPanelOpen, showTerminal, setList } = panel;
 	useDoneSound(panelOpen);
+	const [panelWhole, setPanelWhole] = useState(false);
 	// The panel stays while the page shows; across the whole window it gets out of the way.
 	const stepAside = useCallback(() => {
-		if (panelFillsWindow()) setPanelOpen(false);
+		if (panelWhole) setPanelOpen(false);
 		else setList(false);
-	}, [setPanelOpen, setList]);
+	}, [panelWhole, setPanelOpen, setList]);
 
-	const { take, go } = useTour({ followRef, dispatchFollow, lessonRef, setHeld, stepAside });
+	const { take, go, pause, lit, clearLit } = useTour({ followRef, dispatchFollow, lessonRef, setHeld, stepAside });
+
+	// ── the round of work and Follow's slip ──
+	const work = useTeacherWork();
+	const timeline = useMemo(() => roundTimeline(work, recent), [work, recent]);
+	const since = work?.since ?? null;
+	useEffect(() => {
+		if (since) clearLit();
+	}, [since, clearLit]);
+	// While Follow waits, the slip offers the change it waits to show, or else an open the window held.
+	const slipPause = useMemo(() => (pause ? { why: pause.why, waiting: pause.waiting ?? held } : null), [pause, held]);
+	const slip = useFollowSlip({ follow: followOn, work, timeline, pause: slipPause, path: pathname, panelWhole });
+
+	// ── what it's doing ──
+	// While the slip is up it says what the teacher does, and the other places say only "Working".
+	const round = work?.live ? (slip ? "Working" : (timeline.at(-1)?.text ?? "Working")) : null;
+	const doing = useMemo(() => agentDoing({ agent, round, lesson, extractions: feed.extractions, jobs: feed.jobs }), [agent, round, lesson, feed.extractions, feed.jobs]);
+
 	useServerEvent("agent-action", (action) => {
 		if (!action || typeof action.id !== "string") return;
 		add(action);
@@ -137,13 +158,16 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	const spaceNameOf = useCallback((id: string | null) => (id ? (spaceList.find((c) => c.id === id)?.name ?? null) : null), [spaceList]);
 
 	const api = useMemo<TeacherApi>(
-		() => ({ name, follow: followOn, setFollow, panelOpen, panelStarts: starts, setPanelOpen, showTerminal, canAsk, ask, asking: waiting, recent, doing, setLesson, go, offer: held ?? offer, held: !!held, spaceNameOf }),
-		[name, followOn, setFollow, panelOpen, starts, setPanelOpen, showTerminal, canAsk, ask, waiting, recent, doing, setLesson, go, held, offer, spaceNameOf],
+		() => ({ name, follow: followOn, setFollow, panelOpen, panelStarts: starts, setPanelOpen, showTerminal, canAsk, ask, asking: waiting, recent, doing, setLesson, go, slip, offer: held ?? offer, held: !!held, spaceNameOf }),
+		[name, followOn, setFollow, panelOpen, starts, setPanelOpen, showTerminal, canAsk, ask, waiting, recent, doing, setLesson, go, slip, held, offer, spaceNameOf],
 	);
+	const marks = useMemo(() => litRules(lit, CSS.escape), [lit]);
 
 	return (
 		<TeacherContext.Provider value={api}>
 			{children}
+			{/* What the teacher changed stays lit: one rule per mark, so a row drawn again keeps it. */}
+			{marks && <style data-testid="teacher-lit">{marks}</style>}
 			{/* On the page's top layer. The strip closes it; it also closes by itself (use-teacher-panel.ts). */}
 			{shown.mounted &&
 				createPortal(
@@ -157,6 +181,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 						onScreen={panel.showScreen}
 						focus={panel.focus}
 						state={shown.state}
+						onWhole={setPanelWhole}
 					/>,
 					document.body,
 				)}

@@ -220,7 +220,7 @@
 }
 /* A dark page is close to the bar's color: a floating pop-up gets a thin
    line so its edge shows. */
-.dark .lh-popup:not(.lh-hang-body) {
+.dark .lh-popup:not(.lh-hang-body, .lh-follow-slip) {
 	box-shadow: inset 0 0 0 1px var(--border);
 }
 .lh-popup [role="menuitem"] {
@@ -1465,6 +1465,35 @@ body:has(.lh-own-bar) .lh-app-bar {
 	}
 	66% {
 		transform: translateX(-4px);
+	}
+}
+
+/* Follow's slip (teacher/follow-slip.tsx): the teacher's dark along the
+   page's foot, from the window's left edge to the strip or the docked
+   panel, which curves into it at that corner as the bar curves into the
+   strip. Over the page, under the panel, the peek, the chain table and
+   dialogs. Its right end follows the panel as the page's side does. */
+.lh-follow-slip {
+	position: fixed;
+	left: 0;
+	right: calc(var(--lh-dock-push, 0px) + var(--lh-strip));
+	bottom: 0;
+	z-index: 35;
+	border-radius: 0;
+}
+.lh-follow-slip::before {
+	content: "";
+	position: absolute;
+	right: 0;
+	bottom: 100%;
+	width: 14px;
+	height: 14px;
+	pointer-events: none;
+	background: radial-gradient(circle at 0 0, transparent 13.5px, var(--lh-bar) 14px);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.lh-follow-slip {
+		transition: right var(--lh-dur) var(--lh-ease-out);
 	}
 }
 

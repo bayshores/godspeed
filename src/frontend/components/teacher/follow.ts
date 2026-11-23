@@ -2,10 +2,10 @@
  * Follow mode. Pure.
  *
  * With Follow on (the default), the window goes to the page of each
- * change. Only the Follow chip's Stop turns it off. While you
- * type or a dialog is open it waits, and catches up RESUME_MS after you
- * stop. It never leaves a lesson where you have unsent text, or a mock,
- * unless you asked to go.
+ * change. The Follow key in the teacher's panel turns it off and on. While
+ * you type or a dialog is open it waits, and catches up RESUME_MS after you
+ * stop; the slip says why it waits. It never leaves a lesson where you have
+ * unsent text, or a mock, unless you asked to go.
  * With Follow off, a fresh change on another page offers a "Go to" button.
  * A page the agent opens goes there with Follow off too, unless the window
  * holds; then it waits as a "Go to" button with Follow on or off.
@@ -15,34 +15,37 @@ export const RESUME_MS = 3000;
 /** localStorage key (the learner's choice, remembered across restarts). */
 export const FOLLOW_KEY = "lh:follow";
 
+/** Why Follow waits: the learner types, or a dialog is open. */
+export type FollowPause = "type" | "dialog";
+
 export interface FollowState {
 	on: boolean;
-	/** Last time the learner was typing or had a dialog open. */
-	lastBusyAt: number | null;
+	/** The last time the learner was typing or had a dialog open, and which. */
+	busy: { at: number; why: FollowPause } | null;
 }
 
 export type FollowEvent =
 	| { type: "toggle"; on: boolean }
 	/** The learner is typing or a dialog is open, right now. */
-	| { type: "busy"; at: number };
+	| { type: "busy"; at: number; why: FollowPause };
 
-export const FOLLOW_DEFAULT: FollowState = { on: true, lastBusyAt: null };
+export const FOLLOW_DEFAULT: FollowState = { on: true, busy: null };
 
 export function followReducer(s: FollowState, e: FollowEvent): FollowState {
 	switch (e.type) {
 		case "toggle":
 			return { ...s, on: e.on };
 		case "busy":
-			return { ...s, lastBusyAt: e.at };
+			return { ...s, busy: { at: e.at, why: e.why } };
 	}
 }
 
-/** Whether Follow may act now: always when off; when on, only while the
- *  learner isn't busy and RESUME_MS have passed since they last were. */
-export function followReady(s: FollowState, busyNow: boolean, now: number): boolean {
-	if (!s.on) return true;
-	if (busyNow) return false;
-	return s.lastBusyAt === null || now - s.lastBusyAt >= RESUME_MS;
+/** Why Follow waits now, or null when it may act: never when off; when on,
+ *  while a dialog is open and until RESUME_MS after the learner was last busy. */
+export function followPause(s: FollowState, dialogNow: boolean, now: number): FollowPause | null {
+	if (!s.on) return null;
+	if (dialogNow) return "dialog";
+	return s.busy && now - s.busy.at < RESUME_MS ? s.busy.why : null;
 }
 
 /** Pages that show one space (the window's space must match first). A

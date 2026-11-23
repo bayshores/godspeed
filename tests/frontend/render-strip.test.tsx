@@ -456,6 +456,7 @@ describe("The strip", () => {
 		doing: null,
 		setLesson: () => {},
 		go: () => {},
+		slip: null,
 		offer: null,
 		held: false,
 		spaceNameOf: () => null,

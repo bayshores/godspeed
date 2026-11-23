@@ -74,7 +74,7 @@ export function Strip() {
 	const { view, status, name } = strip;
 	const host = rows.mounted ? document.getElementById(PEEK_ROWS_ID) : null;
 	const flag = view.flag;
-	const said = status && (status.working || status.lit) ? status.status : null;
+	const said = strip.slipLine ?? (status && (status.working || status.lit) ? status.status : null);
 	return (
 		<>
 			<div

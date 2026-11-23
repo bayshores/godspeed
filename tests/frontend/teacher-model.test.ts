@@ -12,7 +12,7 @@ import {
 	RESUME_MS,
 	followHeld,
 	followMoves,
-	followReady,
+	followPause,
 	followReducer,
 	goOffer,
 	heldStill,
@@ -71,14 +71,16 @@ describe("follow", () => {
 		assert.equal(off.on, false);
 		assert.equal(followReducer(off, { type: "toggle", on: true }).on, true);
 	});
-	it("waits while you type or a dialog is open, and catches up 3 s after", () => {
+	it("waits while you type or a dialog is open, says which, and catches up 3 s after", () => {
 		const t = 1_000_000;
-		assert.equal(followReady(followReducer(on, { type: "toggle", on: false }), true, t), true, "off never waits");
-		assert.equal(followReady(on, false, t), true);
-		assert.equal(followReady(on, true, t), false);
-		const typed = followReducer(on, { type: "busy", at: t });
-		assert.equal(followReady(typed, false, t + RESUME_MS - 1), false);
-		assert.equal(followReady(typed, false, t + RESUME_MS), true);
+		assert.equal(followPause(followReducer(on, { type: "toggle", on: false }), true, t), null, "off never waits");
+		assert.equal(followPause(on, false, t), null);
+		assert.equal(followPause(on, true, t), "dialog");
+		const typed = followReducer(on, { type: "busy", at: t, why: "type" });
+		assert.equal(followPause(typed, false, t + RESUME_MS - 1), "type");
+		assert.equal(followPause(typed, false, t + RESUME_MS), null);
+		const closed = followReducer(typed, { type: "busy", at: t + 1000, why: "dialog" });
+		assert.equal(followPause(closed, false, t + 1000 + RESUME_MS - 1), "dialog", "a dialog just closed still holds it, as a dialog");
 	});
 	it("holds the window on a mock, and on a lesson only with unsent text", () => {
 		assert.equal(followHeld("/space/mock/m1", false), true);

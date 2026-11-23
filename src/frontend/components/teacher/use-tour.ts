@@ -1,16 +1,51 @@
 /** The tour: the agent's changes visited one by one, each on its page (when
  *  following, or when the learner or the agent asked) with its item lit up.
- *  It runs between renders, so it reads the latest page and space from refs. */
+ *  It runs between renders, so it reads the latest page and space from refs.
+ *  What it lit stays lit (lit-model.ts), and while Follow waits it says why. */
 
-import { useCallback, useEffect, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { isAgentEntry, type AgentAction } from "@/shared/core";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { useSpaces } from "@/frontend/components/space-context";
 import type { LessonPresence } from "./teacher-context";
-import { STEP_MS, nextStep } from "./tour";
-import { followMoves, followReady, OPEN_SHEET_EVENT, openWaits, safePage, sheetDeadline, type FollowEvent, type FollowState } from "./follow";
-import { dialogOpen, highlight, isInView, learnerDialogOpen, pickTarget, sleep, targetElements, waitForTarget } from "./dom";
+import { STEP_MS, nextStep, targetKey } from "./tour";
+import { followMoves, followPause, OPEN_SHEET_EVENT, openWaits, safePage, sheetDeadline, type FollowEvent, type FollowPause, type FollowState } from "./follow";
+import { dialogOpen, isInView, learnerDialogOpen, pickTarget, sleep, targetElements, waitForTarget } from "./dom";
+import { dropLeft, LEAVE_MS, letGo, lightUp, type Lit } from "./lit-model";
+
+/** Follow waits, and why; `waiting` is the change it waits to show on another page. */
+export interface TourPause {
+	why: FollowPause;
+	waiting: AgentAction | null;
+}
+
+/** The lit marks: lighting keys on the page shown, and letting marks go (they fade, then leave). */
+function useLit(pathname: string) {
+	const [lit, setLit] = useState<Lit>(new Map());
+	const light = useCallback((keys: string[], page: string) => setLit((l) => lightUp(l, keys, page)), []);
+	const release = useCallback((keep: Parameters<typeof letGo>[1]) => setLit((l) => letGo(l, keep)), []);
+	// Another page: the marks lit elsewhere go.
+	useEffect(() => release((_, mark) => mark.page === pathname), [pathname, release]);
+	const leaving = [...lit.values()].some((m) => m.leaving);
+	useEffect(() => {
+		if (!leaving) return;
+		const t = setTimeout(() => setLit(dropLeft), prefersReducedMotion() ? 0 : LEAVE_MS);
+		return () => clearTimeout(t);
+	}, [leaving, lit]);
+	// The pointer over a lit thing lets its mark go: one listener for the page.
+	const any = [...lit.values()].some((m) => !m.leaving);
+	useEffect(() => {
+		if (!any) return;
+		const over = (e: PointerEvent) => {
+			const key = e.target instanceof Element ? e.target.closest("[data-teacher-target]")?.getAttribute("data-teacher-target") : null;
+			if (key) release((k) => k !== key);
+		};
+		document.addEventListener("pointerover", over);
+		return () => document.removeEventListener("pointerover", over);
+	}, [any, release]);
+	return { lit, light, release };
+}
 
 /** A run of visits waits this long first, so changes made together are
  *  seen together. */
@@ -42,6 +77,9 @@ export function useTour({
 			alive.current = false;
 		};
 	}, []);
+
+	const { lit, light, release } = useLit(pathname);
+	const [pause, setPause] = useState<TourPause | null>(null);
 
 	const queue = useRef<AgentAction[]>([]);
 	// Changes that go to their page whatever Follow says, each with whether
@@ -75,12 +113,21 @@ export function useTour({
 		[holds, lessonRef, setHeld],
 	);
 
+	// The learner clicked to go to a change: it goes at once, whatever Follow waits for.
+	const clicked = useCallback(() => [...forced.current.values()].some(Boolean), []);
 	const waitUntilFollowReady = useCallback(async () => {
-		while (alive.current && !followReady(followRef.current, dialogOpen(), Date.now())) {
-			if (dialogOpen()) dispatchFollow({ type: "busy", at: Date.now() });
+		for (;;) {
+			const dialog = dialogOpen();
+			const why = followPause(followRef.current, dialog, Date.now());
+			if (!alive.current || why === null || clicked()) break;
+			if (dialog) dispatchFollow({ type: "busy", at: Date.now(), why: "dialog" });
+			const here = live.current.pathname;
+			const waiting = queue.current.find((a) => safePage(a.page) !== null && a.page !== here) ?? null;
+			setPause((p) => (p?.why === why && p.waiting === waiting ? p : { why, waiting }));
 			await sleep(250);
 		}
-	}, [dispatchFollow, followRef]);
+		setPause(null);
+	}, [dispatchFollow, followRef, clicked]);
 
 	// One change: its page (when following or `go`), then its item lit up.
 	const visit = useCallback(
@@ -95,10 +142,10 @@ export function useTour({
 				el.scrollIntoView({ block: "center", behavior: prefersReducedMotion() ? "auto" : "smooth" });
 				await sleep(prefersReducedMotion() ? 60 : 450);
 			}
-			for (const e of els) highlight(e);
+			if (els.length > 0 && action.target) light([targetKey(action.target)], live.current.pathname);
 			await sleep(STEP_MS);
 		},
-		[showPage, followRef],
+		[showPage, followRef, light],
 	);
 
 	// Many changes at once: the last one's page, every item lit together.
@@ -107,10 +154,11 @@ export function useTour({
 			const last = actions.at(-1);
 			if (followRef.current.on && last) await showPage(last, false);
 			await sleep(300);
-			for (const e of actions.flatMap((a) => targetElements(a.target))) highlight(e);
+			const shown = actions.flatMap((a) => (a.target && targetElements(a.target).length > 0 ? [targetKey(a.target)] : []));
+			light(shown, live.current.pathname);
 			await sleep(STEP_MS * 2);
 		},
-		[showPage, followRef],
+		[showPage, followRef, light],
 	);
 
 	const run = useCallback(async () => {
@@ -120,10 +168,10 @@ export function useTour({
 		await sleep(GATHER_MS);
 		try {
 			for (;;) {
-				if (!alive.current) return;
+				if (!alive.current || (queue.current.length === 0 && forced.current.size === 0)) break;
 				await waitUntilFollowReady();
-				// A click (or an open) jumps the line and goes to its page.
-				const [forcedId, asked] = [...forced.current][0] ?? [];
+				// A click (or an open) jumps the line and goes to its page; a click first.
+				const [forcedId, asked] = [...forced.current].find(([, byLearner]) => byLearner) ?? [...forced.current][0] ?? [];
 				if (forcedId) {
 					forced.current.delete(forcedId);
 					const i = queue.current.findIndex((a) => a.id === forcedId);
@@ -178,5 +226,8 @@ export function useTour({
 		[run, stepAside, setHeld],
 	);
 
-	return { take, go };
+	/** A new round of work: every mark goes. */
+	const clearLit = useCallback(() => release(() => false), [release]);
+
+	return { take, go, pause, lit, clearLit };
 }

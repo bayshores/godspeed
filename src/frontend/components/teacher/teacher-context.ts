@@ -5,6 +5,7 @@ import { createContext, useContext } from "react";
 import type { AgentAction } from "@/shared/core";
 import type { TerminalRole } from "@/frontend/components/terminal/terminal-model";
 import type { AgentDoing } from "./follow-status";
+import type { FollowSlip } from "./use-follow-slip";
 
 export interface LessonPresence {
 	/** A teacher message is being written. */
@@ -41,8 +42,11 @@ export interface TeacherApi {
 	doing: AgentDoing | null;
 	/** A lesson screen reports itself (null when it leaves). */
 	setLesson: (p: LessonPresence | null) => void;
-	/** Go to a change (a Recent row): its page, then fly to it. */
+	/** Go to a change (the peek's or the slip's "Go to", a row of the slip's list): its page now,
+	 *  whatever Follow waits for, then its item lit. */
 	go: (action: AgentAction) => void;
+	/** Follow's slip at the page's foot while the teacher works; null while it does not show. */
+	slip: FollowSlip | null;
 	/** What "Go to" offers: a page the agent opened while the window held,
 	 *  else with Follow off a fresh change on another page. */
 	offer: AgentAction | null;
