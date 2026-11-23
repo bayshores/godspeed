@@ -91,8 +91,9 @@ export function HomePage() {
 		let alive = true;
 		void waitForTarget({ kind: "deadline", id: lit.slice("deadline:".length) }, 3000, () => alive).then((els) => {
 			if (!alive) return;
-			// What it holds: the card's face or a week block.
-			const row = els[0]?.firstElementChild;
+			// A week block, or the card's face: a sheet draws its face as images, which hide a color.
+			const el = els[0];
+			const row = el?.classList.contains("lh-sheet") ? el.firstElementChild : el;
 			if (row instanceof HTMLElement) highlight(row);
 			setParams(
 				(p) => {

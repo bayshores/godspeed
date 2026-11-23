@@ -443,7 +443,7 @@ describe("Lessons", () => {
 		const rows = rowsOf(html(), "unfinished-lessons");
 		assert.equal(rows.length, 2);
 		assert.match(tag(rows[0]!, "lesson-row"), /href="\/chat\/u1"/);
-		assert.match(tag(rows[0]!, "lesson-row"), /data-teacher-target="lesson:u1"/);
+		assert.match(rows[0]!, /data-teacher-target="lesson:u1"/);
 		assert.match(tag(rows[0]!, "step-blocks"), /aria-label="Step 3 of 5"/);
 		assert.match(tag(html(), "unfinished-key"), /href="\/chat\/u1"/);
 		assert.match(section(html(), "unfinished-key", "</a>"), />Continue(<|$)/);

@@ -138,8 +138,8 @@ function DeadlineRow({
 	onUndo: () => void;
 }) {
 	return (
-		<li data-testid={`deadline-row-${d.id}`} data-teacher-target={`deadline:${d.id}`}>
-			<Pane className="flex h-full min-h-[84px] items-center overflow-hidden hover:[--lh-sheet:var(--color-tone)]">
+		<li data-testid={`deadline-row-${d.id}`}>
+			<Pane data-teacher-target={`deadline:${d.id}`} className="flex h-full min-h-[84px] items-center overflow-hidden hover:[--lh-sheet:var(--color-tone)]">
 				<DeadlineBlock deadline={d} color={color} nowMs={nowMs} size="list" pale={!dueThisWeek(d, nowMs)} />
 				<span className="flex min-w-0 flex-1 flex-col gap-[3px] px-(--lh-inset) py-3">
 					{/* Stretched over the row, so a click anywhere opens the page. */}

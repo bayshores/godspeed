@@ -29,7 +29,6 @@ function TitleCell({ lesson, actions, className }: { lesson: LessonProgress; act
 		<Link
 			to={lessonHref(lesson.chatId)}
 			data-testid="lesson-row"
-			data-teacher-target={`lesson:${lesson.chatId}`}
 			title={lesson.title}
 			className={cn("min-w-0 text-[17px] leading-snug text-ink after:absolute after:inset-0", className)}
 		>
@@ -60,7 +59,9 @@ function MoreButton({ lesson, actions, className }: { lesson: LessonProgress; ac
 function RowShell({ lesson, actions, itemClass, className, children }: { lesson: LessonProgress; actions: LessonActions; itemClass?: string; className: string; children: ReactNode }) {
 	return (
 		<li className={itemClass}>
-			<div className={cn(ROW, className, actions.menuId === lesson.chatId && "bg-tone")}>{children}</div>
+			<div data-teacher-target={`lesson:${lesson.chatId}`} className={cn(ROW, className, actions.menuId === lesson.chatId && "bg-tone")}>
+				{children}
+			</div>
 			{actions.renameFailedId === lesson.chatId && (
 				<p role="alert" data-testid="lesson-rename-failed" className="col-span-full px-3 pt-1 pb-2 text-[15px] text-ans-wrong">
 					Couldn&apos;t rename the lesson.

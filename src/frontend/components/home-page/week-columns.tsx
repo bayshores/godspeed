@@ -92,23 +92,21 @@ export function WeekColumns({
 function WeekBlock({ item, dated, color, picked, onPick }: { item: WeekItem; dated: boolean; color: SpaceColor | undefined; picked: boolean; onPick: (d: OpenDeadline) => void }) {
 	const d = item.deadline;
 	return (
-		// The teacher points at the wrapper; a light lands on its first child, the block.
-		<div data-teacher-target={`deadline:${d.id}`}>
-			<button
-				type="button"
-				data-testid={`week-item-${d.id}`}
-				aria-pressed={picked}
-				aria-label={item.label}
-				title={d.name}
-				onClick={() => onPick(d)}
-				style={{ background: item.done && color ? paleSpaceColor(color) : blockColor(color) }}
-				className={cn("lh-press flex min-h-10 w-full flex-col items-start border-2 px-1.5 py-1 text-left text-on-space", picked ? "border-ink" : "border-transparent")}
-			>
-				{item.late && <span className="mb-0.5 bg-ans-wrong px-1 text-[12px] leading-[1.4] text-background">late</span>}
-				{/* Under 1000px of week a day's name is small and alone; from it, and in a row, its time shows under it. */}
-				<span className={cn("line-clamp-3 w-full text-[13px] leading-[1.3] hyphens-manual wrap-anywhere @min-[1000px]:text-[15px]", item.done && "line-through")}>{d.name}</span>
-				{item.detail && <span className={cn("w-full truncate text-[13px] leading-[1.3]", dated ? "block" : "hidden @min-[1000px]:block @max-[600px]:block")}>{item.detail}</span>}
-			</button>
-		</div>
+		<button
+			type="button"
+			data-testid={`week-item-${d.id}`}
+			data-teacher-target={`deadline:${d.id}`}
+			aria-pressed={picked}
+			aria-label={item.label}
+			title={d.name}
+			onClick={() => onPick(d)}
+			style={{ background: item.done && color ? paleSpaceColor(color) : blockColor(color) }}
+			className={cn("lh-press flex min-h-10 w-full flex-col items-start border-2 px-1.5 py-1 text-left text-on-space", picked ? "border-ink" : "border-transparent")}
+		>
+			{item.late && <span className="mb-0.5 bg-ans-wrong px-1 text-[12px] leading-[1.4] text-background">late</span>}
+			{/* Under 1000px of week a day's name is small and alone; from it, and in a row, its time shows under it. */}
+			<span className={cn("line-clamp-3 w-full text-[13px] leading-[1.3] hyphens-manual wrap-anywhere @min-[1000px]:text-[15px]", item.done && "line-through")}>{d.name}</span>
+			{item.detail && <span className={cn("w-full truncate text-[13px] leading-[1.3]", dated ? "block" : "hidden @min-[1000px]:block @max-[600px]:block")}>{item.detail}</span>}
+		</button>
 	);
 }

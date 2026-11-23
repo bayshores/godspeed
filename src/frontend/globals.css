@@ -1477,7 +1477,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 .lh-follow-slip {
 	position: fixed;
 	left: 0;
-	right: calc(var(--lh-dock-push, 0px) + var(--lh-strip));
+	right: calc(var(--lh-dock-width, 0px) + var(--lh-strip));
 	bottom: 0;
 	z-index: 35;
 	border-radius: 0;
@@ -1760,6 +1760,10 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 }
 .lh-tab-strip[data-cut] > [data-lit] {
 	max-width: calc(100% - 16px);
+}
+/* A tab on the bar's dark is marked in the bar's ink, as a pop-up is; the lit tab sits on the page's color. */
+.lh-tab-strip > :not([data-lit]) {
+	--lh-tint: var(--lh-bar-ink);
 }
 .lh-lit-marker {
 	position: absolute;
