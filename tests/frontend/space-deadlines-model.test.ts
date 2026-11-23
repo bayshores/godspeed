@@ -13,7 +13,7 @@ import {
 	deadlineDateLabel,
 	draftChanged,
 	draftFrom,
-	draftFromWaiting,
+	draftFromSeed,
 	draftProblem,
 	dueLabel,
 	fileDayLabel,
@@ -22,6 +22,8 @@ import {
 	kindLabel,
 	namePlaceholder,
 	NEW_DEADLINE,
+	seedFromGap,
+	seedFromWaiting,
 	toggleFile,
 	updateBody,
 	type DeadlineDraft,
@@ -68,13 +70,21 @@ describe("space-deadlines-model", () => {
 
 	it("an interview waiting for its date opens filled in, and is added under its own id with what it's like", () => {
 		const waiting = { id: "ddl_0a1b2c3d4e5f", name: "Onsite interview", aboutFileId: "f_about", fileIds: ["f_guide"] };
-		const seed = draftFromWaiting(waiting);
+		const seed = draftFromSeed(seedFromWaiting(waiting));
 		assert.deepEqual(seed, { kind: "interview", name: "Onsite interview", date: "", time: "", fileIds: ["f_guide"], done: false });
 		assert.equal(draftChanged(null, seed, seed), false, "opening it is not a change");
 		const dated = { ...seed, date: "2026-11-24", time: "14:00" };
 		assert.equal(draftChanged(null, dated, seed), true);
-		assert.deepEqual(addBody(dated, waiting), { id: "ddl_0a1b2c3d4e5f", kind: "interview", name: "Onsite interview", date: "2026-11-24", time: "14:00", fileIds: ["f_guide"], aboutFileId: "f_about" });
-		assert.deepEqual(addBody(dated, { ...waiting, aboutFileId: undefined }), { id: "ddl_0a1b2c3d4e5f", kind: "interview", name: "Onsite interview", date: "2026-11-24", time: "14:00", fileIds: ["f_guide"] });
+		assert.deepEqual(addBody(dated, seedFromWaiting(waiting)), { id: "ddl_0a1b2c3d4e5f", kind: "interview", name: "Onsite interview", date: "2026-11-24", time: "14:00", fileIds: ["f_guide"], aboutFileId: "f_about" });
+		assert.deepEqual(addBody(dated, seedFromWaiting({ ...waiting, aboutFileId: undefined })), { id: "ddl_0a1b2c3d4e5f", kind: "interview", name: "Onsite interview", date: "2026-11-24", time: "14:00", fileIds: ["f_guide"] });
+	});
+
+	it("an outline's Add it myself opens with its kind, its day and the name the server gives the next one, and is added as a new deadline", () => {
+		const gap = { spaceId: "spc_21", key: "spc_21:ddl_hw6:1", title: "Homework in CSE 21 this week?", line: "It came every week.", answer: "None this week", close: false, kind: "homework" as const, day: "2026-11-23", name: "HW7", label: "HW7?" };
+		const seed = draftFromSeed(seedFromGap(gap));
+		assert.deepEqual(seed, { kind: "homework", name: "HW7", date: "2026-11-23", time: "", fileIds: [], done: false });
+		assert.equal(draftChanged(null, seed, seed), false, "opening it is not a change");
+		assert.deepEqual(addBody(seed, seedFromGap(gap)), { kind: "homework", name: "HW7", date: "2026-11-23", fileIds: [] });
 	});
 
 	it("Interview is the fifth kind, with its own example name", () => {

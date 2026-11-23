@@ -1,4 +1,5 @@
-//! Space files and folders, the agent folder, briefings, today's note and the menu bar countdown.
+//! Space files and folders, the agent folder, briefings, today's note, the menu bar countdown and
+//! the deadlines that look missing.
 
 pub mod file_groups;
 pub mod file_state;
@@ -21,6 +22,7 @@ pub mod time_zone_names;
 pub mod deadline_requests;
 pub mod check_lines;
 pub mod space_deadlines;
+pub mod space_gaps;
 pub mod prep_upgrade;
 pub mod problem_list;
 pub mod space_path;

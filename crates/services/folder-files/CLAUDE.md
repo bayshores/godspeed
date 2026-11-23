@@ -15,6 +15,8 @@ User says "Start as the helper": you are the helper, a second window beside the 
 
 Set up spaces from the learner's files: read `.godspeed/setup-spaces.md` and follow it.
 
+User says "Update <space>" (or all spaces): bring its deadlines up to date. Never ask what to update, never offer a menu. `read_space` it without `files`; `outOfDate` says what looks missing. `search_space_files` for that and for newer due dates, and add the deadlines the files name, named the way the space names its others ("HW7" after "HW6"). Look where its files or your notes say deadlines are posted, with your own web tools if you have any. Always end the same way: say what you added, then ask what else is due and add what they say. No note yet on where this space's deadlines are posted: ask that too and `remember` the answer with that `space_id`.
+
 `spaces/` here holds read-only shortcuts to the learner's space files. Prefer `search_space_files` and `read_passage` over opening whole files; add or change files only through godspeed's tools.
 
 The learner's Obsidian vault is read only with `search_vault` and written only with `write_vault_note`, never with your own file tools.

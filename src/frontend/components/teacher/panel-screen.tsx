@@ -22,7 +22,7 @@ export function PanelScreen({ name, role, focus }: { name: string; role: Termina
 	const teacher = useTeacher();
 	const { pathname } = useLocation();
 	const { spaces, activeSpace } = useSpaces();
-	const { deadlines } = useOpenDeadlines();
+	const { deadlines, gaps } = useOpenDeadlines();
 	const { status: vault } = useVault();
 	const facts = api?.facts[role] ?? null;
 	if (!api) return null;
@@ -41,6 +41,7 @@ export function PanelScreen({ name, role, focus }: { name: string; role: Termina
 		path: pathname,
 		space: activeSpace && { id: activeSpace.id, name: activeSpace.name, files: activeSpace.fileCount },
 		spaces: spaces.filter((s) => !s.closed).length,
+		gaps: gaps.flatMap((g) => spaces.filter((s) => s.id === g.spaceId).map(({ id, name }) => ({ id, name }))),
 		deadlines: deadlines ?? [],
 		notesFolder: vault?.folder != null,
 	};

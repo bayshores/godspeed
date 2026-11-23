@@ -13,7 +13,7 @@ const SIZES = {
 /**
  * The block at a row's left: a big count over its unit ("6" over "days"),
  * on the space's color. `pale` washes the color out, for a row that can
- * wait.
+ * wait; no color draws no fill, for a deadline drawn as its outline.
  */
 export function CountBlock({
 	color,
@@ -23,7 +23,7 @@ export function CountBlock({
 	size,
 	className,
 }: {
-	color: string;
+	color: string | null;
 	pale?: boolean;
 	count: string;
 	unit: string;
@@ -34,8 +34,8 @@ export function CountBlock({
 	const s = SIZES[size];
 	return (
 		<span
-			className={cn("flex shrink-0 flex-col items-center justify-center self-stretch font-count", s.box, pale ? "text-ink" : "text-on-space", className)}
-			style={{ background: pale ? `color-mix(in srgb, ${color} 57%, var(--lh-space-wash))` : color }}
+			className={cn("flex shrink-0 flex-col items-center justify-center self-stretch font-count", s.box, pale || color === null ? "text-ink" : "text-on-space", className)}
+			style={color === null ? undefined : { background: pale ? `color-mix(in srgb, ${color} 57%, var(--lh-space-wash))` : color }}
 		>
 			{/* The digits sit low in their line, so the number is pulled up to leave the same room above it as below its unit. */}
 			<span className={cn(s.count, "-mt-[0.16em]")}>{count}</span>

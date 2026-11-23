@@ -96,6 +96,29 @@ window.__layoutTyping ??= setInterval(type, 400);`;
 /** Every deadline the seed made, so Home has none. */
 const dropDeadlines = ["{deadline}", "{homeworkOpenDeadline}", "{homeworkFirstDeadline}", "{homeworkManyDeadline}", "{homeworkPrintedDeadline}", "{sheetMade}", "{sheetVersions}", "{mockRunDeadline}", "{waitingDeadline}"].map((id) => `await fetch("/api/spaces/{space}/deadlines/${id}", { method: "DELETE" })${HTTP_OK};`).join("\n");
 
+/** A space whose only two deadlines are past and of different kinds: no rhythm, nothing coming up, so
+ *  every page asks whether it is missing a deadline. */
+const gapSpace = `const made = await fetch("/api/spaces", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "Gap check", description: "A space with nothing coming up" }) })${HTTP_OK}.then((r) => r.json());
+const day = (n) => new Date(Date.now() + n * 86400000).toLocaleDateString("sv");
+for (const [kind, name, n] of [["homework", "Problem set", -3], ["quiz", "Short quiz", -5]]) await fetch("/api/spaces/" + made.space.id + "/deadlines", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind, name, date: day(n), fileIds: [] }) })${HTTP_OK};`;
+/** Closes it, so the screens after it have no gap card. */
+const dropGapSpace = `const { spaces } = await fetch("/api/spaces")${HTTP_OK}.then((r) => r.json());
+const gapped = spaces.find((s) => s.name === "Gap check");
+if (gapped) await fetch("/api/spaces/" + gapped.id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ closed: true }) })${HTTP_OK};`;
+
+/** Three projects a week apart in the lab space, the newest 4 days ago, all ticked done: a fourth
+ *  looks missing in 3 days, so Home's week and the Deadlines tab draw its outline. */
+const projectRhythm = `const day = (n) => new Date(Date.now() + n * 86400000).toLocaleDateString("sv");
+const base = "/api/spaces/{space}/deadlines";
+const json = { "content-type": "application/json" };
+for (const [name, n] of [["Project 1", -18], ["Project 2", -11], ["Project 3", -4]]) {
+	const { deadline } = await fetch(base, { method: "POST", headers: json, body: JSON.stringify({ kind: "project", name, date: day(n), fileIds: [] }) })${HTTP_OK}.then((r) => r.json());
+	await fetch(base + "/" + deadline.id, { method: "PUT", headers: json, body: JSON.stringify({ done: true }) })${HTTP_OK};
+}`;
+/** Takes the projects away again, so the screens after them are as before. */
+const dropProjectRhythm = `const { deadlines } = await fetch("/api/spaces/{space}/deadlines")${HTTP_OK}.then((r) => r.json());
+for (const d of deadlines.filter((d) => /^Project \\d$/.test(d.name))) await fetch("/api/spaces/{space}/deadlines/" + d.id, { method: "DELETE" })${HTTP_OK};`;
+
 /** A folder that is always there and always empty, linked to the second space. */
 const linkedFolder = `await fetch("/api/spaces/{pathSpace}/folder", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: "/private/var/empty" }) })${HTTP_OK};`;
 /** The second space closed, so the plus list has a closed space; the first is the open one again. */
@@ -314,7 +337,11 @@ export const SCREENS = [
 		shows: "[data-testid=activity-list] [data-testid=graph-costs]",
 	},
 	{ name: "Deadlines", url: "/space/deadlines", ready: "[data-testid=deadline-open]" },
-	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]" },
+	{ name: "Deadlines, the key that asks the teacher to update", url: "/space/deadlines", ready: "[data-testid=deadlines-update]" },
+	{ name: "Home with the outline of a missing deadline", before: projectRhythm, url: "/", ready: "[data-testid=week-gap]" },
+	{ name: "Home, the outline picked into the card", url: "/", ready: "[data-testid=week-gap]", setup: `document.querySelector("[data-testid=week-gap]").click()`, shows: "[data-testid=today-gap] [data-testid=today-gap-add]" },
+	{ name: "Deadlines with the outline of a missing deadline", url: "/space/deadlines", ready: "[data-testid=gap-row] [data-testid=gap-row-add]" },
+	{ name: "Deadline", before: dropProjectRhythm, url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]" },
 	{ name: "Deadline with two lessons", before: twoLessons, url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-lessons] li:nth-child(2)" },
 	{ name: "Homework deadline with its two keys", before: dropTwoLessons, url: "/space/deadline/{homeworkOpenDeadline}", ready: "[data-testid=deadline-head] [data-testid=deadline-work]" },
 	{ name: "Progress with a homework next", before: `${homeworkCoversFile}\n${homeworkTomorrow}`, url: "/space", ready: "[data-testid=next-deadline] [data-testid=deadline-work]" },
@@ -656,9 +683,10 @@ document.querySelector("[data-testid=teacher-panel-chats]").click()`,
 	{ name: "Progress, a new space", before: newSpace, url: "/space", ready: "[data-testid=space-start] [data-testid=space-start-path]" },
 	// With a lesson the new space is no longer empty: the deadline's place holds the two ways it still lacks.
 	{ name: "Progress, a lesson but no deadline", before: lessonInNewSpace, url: "/space", ready: "[data-testid=next-deadline-none] [data-testid=space-start-path]" },
+	{ name: "Files while the top bar asks about a missing deadline", before: gapSpace, url: "/space/files", ready: "[data-testid=gap-notice] [data-testid=gap-notice-update]" },
 	{
 		name: "Onboarding",
-		before: `${dropLateHomework}; const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, onboarded: false }) })${HTTP_OK}`,
+		before: `${dropGapSpace}; ${dropLateHomework}; const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, onboarded: false }) })${HTTP_OK}`,
 		url: "/",
 		ready: "[data-testid=onboarding-intro]",
 	},

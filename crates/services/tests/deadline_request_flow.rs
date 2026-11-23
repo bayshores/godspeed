@@ -84,7 +84,7 @@ async fn a_request_that_links_files_ends_quietly_and_one_that_changes_nothing_sa
 	let saved = f.app.stores.spaces.get_space(&space_id).unwrap();
 	assert_eq!(saved["deadlines"][0]["source"], json!("Syllabus.pdf"));
 	let asked = gs_json::parse(&std::fs::read_to_string(f.app.paths.data.join("deadline-requests.json")).unwrap()).unwrap();
-	assert_eq!(stringify(&asked), format!(r#"{{"version":2,"asked":["{deadline_id}"],"checkedInfo":[],"weighed":[],"pathAsked":[],"overdueAsked":[]}}"#));
+	assert_eq!(stringify(&asked), format!(r#"{{"version":2,"asked":["{deadline_id}"],"checkedInfo":[],"weighed":[],"pathAsked":[],"overdueAsked":[],"gapAsked":[]}}"#));
 
 	request_deadline(&f.app, &space_id, &deadline_id, RequestKind::About).unwrap();
 	let about = answer(&f.app, false, AgentReply { text: Some("I read the files.\nThey don't say what the midterm is like.".to_owned()), tool_calls: Vec::new() }).await;

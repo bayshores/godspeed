@@ -10,6 +10,7 @@ use gs_json::{Json, Obj};
 
 use super::file_state::{FileKind, FileStatus};
 use super::prep_upgrade::{ABOUT_FILE_NAME, GUIDE_FILE_NAME};
+use super::space_deadlines::PAST_ADD_DAYS;
 use crate::contracts::space::MAX_PATH_TOPICS;
 use crate::messages::role::is_custom;
 use super::today_note::local_day;
@@ -127,6 +128,8 @@ pub struct AskedRecord {
 	pub path_asked: BTreeSet<String>,
 	/// Overdue deadlines the learner said Not yet to.
 	pub overdue_asked: BTreeSet<String>,
+	/// The keys of the gaps (`space_gaps`) the learner waved off, the newest per space.
+	pub gap_asked: BTreeSet<String>,
 }
 
 pub const ASKED_VERSION: u32 = 2;
@@ -145,6 +148,7 @@ impl AskedRecord {
 			weighed: string_set(&saved["weighed"]),
 			path_asked: string_set(&saved["pathAsked"]),
 			overdue_asked: string_set(&saved["overdueAsked"]),
+			gap_asked: string_set(&saved["gapAsked"]),
 		}
 	}
 
@@ -159,7 +163,15 @@ impl AskedRecord {
 		out.insert("weighed", self.weighed.iter().cloned().collect::<Vec<_>>());
 		out.insert("pathAsked", self.path_asked.iter().cloned().collect::<Vec<_>>());
 		out.insert("overdueAsked", self.overdue_asked.iter().cloned().collect::<Vec<_>>());
+		out.insert("gapAsked", self.gap_asked.iter().cloned().collect::<Vec<_>>());
 		Json::Obj(out)
+	}
+
+	/// The learner waved off a gap: its key replaces the space's older ones.
+	pub fn answer_gap(&mut self, key: &str) {
+		let space = key.split(':').next().unwrap_or_default();
+		self.gap_asked.retain(|asked| asked.split(':').next() != Some(space));
+		self.gap_asked.insert(key.to_owned());
 	}
 
 	/// A check that ended well: each of its reasons counts as asked.
@@ -311,6 +323,7 @@ pub fn check_text(space: &Json, reasons: &[Reason]) -> String {
 	let mut out = format!(
 		"Check space {} (space_id {}): act on each reason below. Deadline changes: only what files settle.\n\
 		- Never add a deadline twice: check list below first. Never make up a date.\n\
+		- Add past deadlines too: one due more than {PAST_ADD_DAYS} days ago is saved done.\n\
 		- file_ids and left_out_ids replace whole list: keep current links (read_space).\n\
 		- Never remove a deadline. One that looks cancelled: say so in last line.\n",
 		space["name"].str_or_empty(),
@@ -508,7 +521,13 @@ mod tests {
 		full.mark(&[Reason::Path { asked: "spc_a:h1".to_owned(), topics: 12, left: 3 }]);
 		full.mark(&[Reason::Path { asked: "spc_a:h2".to_owned(), topics: 22, left: 2 }]);
 		full.overdue_asked.insert("d_quiz".to_owned());
-		assert_eq!(gs_json::stringify(&full.to_json()), r#"{"asked":[],"since":"2026-11-01T11:00:00.000Z","checkedInfo":[],"weighed":[],"pathAsked":["spc_a:h2"],"overdueAsked":["d_quiz"]}"#);
+		full.answer_gap("spc_a:d_hw6:1");
+		full.answer_gap("spc_b:d_t2:recent");
+		full.answer_gap("spc_a:d_hw6:2");
+		assert_eq!(
+			gs_json::stringify(&full.to_json()),
+			r#"{"asked":[],"since":"2026-11-01T11:00:00.000Z","checkedInfo":[],"weighed":[],"pathAsked":["spc_a:h2"],"overdueAsked":["d_quiz"],"gapAsked":["spc_a:d_hw6:2","spc_b:d_t2:recent"]}"#
+		);
 		assert_eq!(AskedRecord::read(&full.to_json()), full);
 	}
 
@@ -518,6 +537,7 @@ mod tests {
 		let found = space_reasons(&space, None, "2026-11-02", &record("2026-11-01T11:00:00.000Z"), &HashSet::new());
 		let text = check_text(&space, &found);
 		assert!(text.starts_with("Check space CSE 21 (space_id spc_a)"));
+		assert!(text.contains("\n- Add past deadlines too: one due more than 7 days ago is saved done.\n"));
 		assert!(!text.contains("- Path:"), "the path rule only with a path reason");
 		assert!(text.contains("\nReasons:\n- Quiz 1 (deadline_id d_quiz) has nothing linked"));
 		assert!(text.contains("- Info file HW5.md (file_id f_hw5) new or changed"));

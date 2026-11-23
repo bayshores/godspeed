@@ -1,6 +1,6 @@
 /**
  * The strip's peek and its notices: at most 3 notices show, update and
- * restart first, one quiet-space notice at a time; the rest wait, hidden,
+ * restart first, one quiet notice (a gap card) at a time; the rest wait, hidden,
  * until one closes, and a waiting notice's time starts once it shows. A
  * notice keeps its own title and close key, folds into the strip after a
  * while and comes back when the peek's count asks for it. The peek is out
@@ -44,7 +44,7 @@ const { peekKeyboard, stripPointer, tuckPeek } = await import("../../src/fronten
 const { NoticeCard } = await import("../../src/frontend/components/notice-card.tsx");
 const { coverNotices, setNoticesOpen, useNotices } = await import("../../src/frontend/components/notice-store.ts");
 const { PRESENT_MS } = await import("../../src/frontend/components/notice-stack-model.ts");
-const { QuietNoticeView } = await import("../../src/frontend/components/quiet-notice.tsx");
+const { GapCard } = await import("../../src/frontend/components/gap-card.tsx");
 const { DoneNotice } = await import("../../src/frontend/components/done-notice.tsx");
 
 /** The notice stack's id in the page (peek-sheet.tsx). */
@@ -124,20 +124,25 @@ describe("The notices in the peek", () => {
 		assert.deepEqual(shownIds(), ["a", "c", "d"]);
 	});
 
-	it("two quiet spaces: one notice shows, the other waits", async () => {
-		const quiet = (spaceId: string) => ({ spaceId, name: spaceId.toUpperCase(), folder: `/drive/${spaceId}`, lastAt: new Date(2026, 10, 1).toISOString() });
-		const now = new Date(2026, 10, 6).getTime();
-		function TwoQuiet() {
+	it("two gap cards: one notice shows, the other waits", async () => {
+		const gap = (spaceId: string) => ({ spaceId, key: `${spaceId}:ddl_a:recent`, title: `Nothing coming up in ${spaceId}`, line: "Test 2 was the last, 2 days ago.", answer: "Nothing new", close: false });
+		function TwoGaps() {
 			const stack = useStack();
 			return (
 				<>
 					<PeekSheet>{null}</PeekSheet>
-					{stack && createPortal(<QuietNoticeView quiet={[quiet("cse21"), quiet("cse29")]} now={now} onSee={() => {}} onDismiss={() => {}} />, stack)}
+					{stack && createPortal(
+						<>
+							<GapCard gap={gap("spc_cse21")} onUpdate={() => {}} />
+							<GapCard gap={gap("spc_cse29")} onUpdate={() => {}} />
+						</>,
+						stack,
+					)}
 				</>
 			);
 		}
-		await mount(<TwoQuiet />);
-		const notices = cards('[data-testid="quiet-notice"]');
+		await mount(<TwoGaps />);
+		const notices = cards('[data-testid="gap-notice"]');
 		assert.equal(notices.length, 2);
 		assert.deepEqual(notices.map((n) => n.hasAttribute("hidden")), [false, true]);
 	});

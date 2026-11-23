@@ -11,7 +11,8 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import type { SpaceDeadline, SpaceFile, WaitingDeadline } from "../../src/shared/core/index.ts";
+import type { SpaceDeadline, SpaceFile } from "../../src/shared/core/index.ts";
+import { seedFromWaiting, type DeadlineSeed } from "../../src/frontend/components/space-deadlines-model.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 // linkedom's document has no "oninput"; without it React would watch text
@@ -65,12 +66,12 @@ let root: Root | undefined;
 let host: HTMLElement | undefined;
 let closed = 0;
 let removed = 0;
-async function mount(deadline: SpaceDeadline | null, files: readonly SpaceFile[] = FILES, waiting?: WaitingDeadline) {
+async function mount(deadline: SpaceDeadline | null, files: readonly SpaceFile[] = FILES, seed?: DeadlineSeed) {
 	fakeFetch();
 	host = document.createElement("div");
 	document.body.append(host);
 	root = createRoot(host);
-	const mode = { spaceId: "cls_a", deadline, files, ...(waiting ? { waiting } : {}) };
+	const mode = { spaceId: "cls_a", deadline, files, ...(seed ? { seed } : {}) };
 	await act(async () => {
 		root!.render(
 			<ServerEventsProvider connect={quietEvents}>
@@ -273,7 +274,7 @@ describe("Add a deadline", () => {
 
 	it("an interview waiting for its date opens filled in, and is added under its id", async () => {
 		const waiting = { id: "ddl_0a1b2c3d4e5f", name: "Onsite interview", aboutFileId: "f4", fileIds: ["f3"] };
-		await mount(null, FILES, waiting);
+		await mount(null, FILES, seedFromWaiting(waiting));
 		assert.equal(q("deadline-kind-interview")!.getAttribute("aria-checked"), "true");
 		assert.equal((q("deadline-name") as HTMLInputElement).value, "Onsite interview");
 		assert.equal((q("deadline-file-f3") as HTMLInputElement).checked, true);

@@ -56,6 +56,10 @@ To add a row:
 | Graph zoom and pan | Graph | none: scroll, pinch or drag only | | learner | |
 | Deadlines | Deadlines | `nav-deadlines` | | learner | `space/deadlines` |
 | Add a deadline | Home, Deadlines | `home-add-deadline` | Home, the Add deadline menu | learner | `add_space_deadline` |
+| A card when a space looks to be missing a deadline | Any page | `gap-notice` | Files while the top bar asks about a missing deadline | learner | |
+| The outline of a deadline that looks missing, in the week, which opens in the card above | Home | `week-gap` | Home with the outline of a missing deadline | learner | |
+| The outline of a deadline that looks missing, among the rows | Deadlines | `gap-row` | Deadlines with the outline of a missing deadline | learner | |
+| Ask the teacher to update a space | Deadlines | `deadlines-update` | Deadlines, the key that asks the teacher to update | learner | |
 | A deadline's page | Deadline | `deadline-open` | Deadlines | learner | `space/deadline/:id` |
 | Edit a deadline | Deadline | `deadline-edit` | | learner | `update_space_deadline` |
 | Mark a deadline done | Home | `today-done` | | learner | |

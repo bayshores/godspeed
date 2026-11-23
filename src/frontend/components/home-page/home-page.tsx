@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { hasProblems, type DeadlineProgress } from "@/shared/core";
+import { hasProblems, isRhythmGap, type DeadlineProgress, type RhythmGap } from "@/shared/core";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useOpenInSpace } from "@/frontend/components/use-join-space";
 import { SpaceDialog } from "@/frontend/components/space-dialog";
 import { useMinute } from "@/frontend/components/countdown";
 import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
-import { ADD_DEADLINE_HREF } from "@/frontend/components/space-page/deadlines-tab-model";
+import { addDeadlineHref } from "@/frontend/components/space-page/deadlines-tab-model";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { highlight, waitForTarget } from "@/frontend/components/teacher/dom";
@@ -24,8 +24,9 @@ import { useSpacesProgress } from "./use-spaces-progress";
 export function HomePage() {
 	const { spaces, loaded, setActive } = useSpaces();
 	const shown = useMemo(() => spaces.filter((c) => !c.closed), [spaces]);
-	const { deadlines, doneToday, error: deadlinesError, markDone, undo, reload: reloadDeadlines } = useOpenDeadlines();
+	const { deadlines, doneToday, gaps, error: deadlinesError, markDone, undo, reload: reloadDeadlines } = useOpenDeadlines();
 	const shownIds = useMemo(() => shown.map((c) => c.id), [shown]);
+	const outlines = useMemo(() => gaps.filter((g): g is RhythmGap => isRhythmGap(g) && shownIds.includes(g.spaceId)), [gaps, shownIds]);
 	const spacesProgress = useSpacesProgress(shownIds);
 	const newFiles = useNewFiles(shown);
 	// The sections' words need each space's progress and new files, so they
@@ -39,7 +40,7 @@ export function HomePage() {
 	const createMode = useMemo(() => (addingSpace ? { kind: "create" as const } : null), [addingSpace]);
 	const addDeadline = useCallback(
 		(spaceId: string) => {
-			openInSpace(spaceId, ADD_DEADLINE_HREF);
+			openInSpace(spaceId, addDeadlineHref());
 		},
 		[openInSpace],
 	);
@@ -115,6 +116,7 @@ export function HomePage() {
 				ready={ready}
 				spaces={shown}
 				lists={lists}
+				outlines={outlines}
 				deadlineProgress={deadlineProgress}
 				spacesProgress={spacesProgress.progress}
 				noSpaceProgress={spacesProgress.noSpace}

@@ -20,6 +20,7 @@ Read only the files your task touches. A "§N" in any doc is the file that start
 | [06.5-problem-lists.md](06.5-problem-lists.md) | You change where a deadline's or a file's problems and done marks are kept. |
 | [06.6-deadline-reminders-and-the-menu-bar.md](06.6-deadline-reminders-and-the-menu-bar.md) | You change the daily deadline notification or the Mac menu bar countdown. The shell's side is in [magnifier-menu-bar-and-icon.md](../tauri-shell/magnifier-menu-bar-and-icon.md). |
 | [06.7-cheat-sheets.md](06.7-cheat-sheets.md) | You change a deadline's cheat sheet: its record, its chat or its studio. |
+| [06.8-gaps.md](06.8-gaps.md) | You change how a deadline that looks missing is found, waved off or named to the teacher, or which agent adds are saved done. |
 | [07-study-sessions.md](07-study-sessions.md) | You change how a lesson starts, runs or ends, kept sentences or the chain table. |
 | [07.1-while-the-teacher-works.md](07.1-while-the-teacher-works.md) | You change what the lesson shows while the teacher works or how its reply lands. |
 | [07.2-lessons-on-files-and-homework.md](07.2-lessons-on-files-and-homework.md) | You change a lesson on files, the Document panel or homework sessions. |

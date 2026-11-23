@@ -333,6 +333,7 @@ fn briefings_match_node() {
 				closed: k["closed"].as_bool().unwrap(),
 				deadlines: list(&k["deadlines"]).to_vec(),
 				missing_setup: strings(&k["missingSetup"]),
+				out_of_date: None,
 			})
 			.collect();
 		let lessons = list(&c["lessons"])

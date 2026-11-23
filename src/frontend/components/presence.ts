@@ -13,7 +13,7 @@
  * as-is, so server and static renders match what callers render today.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 /** Matches --lh-dur-fast in src/frontend/globals.css. */
 const EXIT_MS = 110;
@@ -48,4 +48,25 @@ export function usePresence(open: boolean, exitMs: number = EXIT_MS): { mounted:
 		return () => clearTimeout(timer);
 	}, [open, mounted, exitMs]);
 	return { mounted: open || mounted, state: open ? "open" : "closed" };
+}
+
+/** usePresence for a list: what leaves `items` stays `exitMs` more, after them, marked `leaving`,
+ *  so its exit plays (.lh-fade with data-state="closed"). With reduced motion it goes at once. */
+export function useLeavingList<T extends { key: string }>(items: readonly T[], exitMs: number = EXIT_MS): { item: T; leaving: boolean }[] {
+	const [last, setLast] = useState(items);
+	const [gone, setGone] = useState<readonly T[]>([]);
+	// Read in the render that drops it, so the leaving one is never missing for a frame.
+	if (items !== last) {
+		const kept = new Set(items.map((item) => item.key));
+		const left = prefersReducedMotion() ? [] : last.filter((item) => !kept.has(item.key));
+		const leftKeys = new Set(left.map((item) => item.key));
+		setGone([...gone.filter((item) => !kept.has(item.key) && !leftKeys.has(item.key)), ...left]);
+		setLast(items);
+	}
+	useEffect(() => {
+		if (gone.length === 0) return;
+		const timer = setTimeout(() => setGone([]), exitMs);
+		return () => clearTimeout(timer);
+	}, [gone, exitMs]);
+	return useMemo(() => [...items.map((item) => ({ item, leaving: false })), ...gone.map((item) => ({ item, leaving: true }))], [items, gone]);
 }

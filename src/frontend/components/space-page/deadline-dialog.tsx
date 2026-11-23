@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import type { SpaceDeadline, SpaceFile, WaitingDeadline } from "@/shared/core";
+import type { SpaceDeadline, SpaceFile } from "@/shared/core";
 import {
 	addBody,
 	draftChanged,
 	draftFrom,
-	draftFromWaiting,
+	draftFromSeed,
 	draftProblem,
 	FILE_FILTER_FROM,
 	fileDayLabel,
@@ -16,6 +16,7 @@ import {
 	toggleFile,
 	updateBody,
 	type DeadlineDraft,
+	type DeadlineSeed,
 } from "@/frontend/components/space-deadlines-model";
 import { mocksRemovedLine, takesMocks } from "@/frontend/components/deadline/mocks-model";
 import { useMockCount } from "@/frontend/components/deadline/use-deadline-mocks";
@@ -33,8 +34,8 @@ interface DeadlineDialogMode {
 	spaceId: string;
 	/** The deadline to edit; null adds one. */
 	deadline: SpaceDeadline | null;
-	/** Adds the deadline that was waiting for its date, under its id. */
-	waiting?: WaitingDeadline;
+	/** A new one opens filled in with what is known of it (seedFromWaiting, seedFromGap). */
+	seed?: DeadlineSeed;
 	/** Every space file, in space order. */
 	files: readonly SpaceFile[];
 }
@@ -58,7 +59,7 @@ const isGone = (body: unknown) => (body as { code?: string } | null)?.code === "
 function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: DeadlineDialogMode; state: "open" | "closed"; onClose: () => void; onRemoved: () => void }) {
 	// The deadline as it was when the dialog opened: Save sends what differs from it.
 	const [saved] = useState(mode.deadline);
-	const [seed] = useState<DeadlineDraft>(() => (saved ? draftFrom(saved) : mode.waiting ? draftFromWaiting(mode.waiting) : NEW_DEADLINE));
+	const [seed] = useState<DeadlineDraft>(() => (saved ? draftFrom(saved) : mode.seed ? draftFromSeed(mode.seed) : NEW_DEADLINE));
 	const [draft, setDraft] = useState(seed);
 	const [filter, setFilter] = useState("");
 	const { busy, error, setError, run } = useGuardedAction();
@@ -89,7 +90,7 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 		const ok = await run(async () => {
 			const { error: failed, body } = saved
 				? await send(`${base}/${encodeURIComponent(saved.id)}`, jsonInit("PUT", updateBody(saved, draft)))
-				: await send(base, jsonInit("POST", addBody(draft, mode.waiting)));
+				: await send(base, jsonInit("POST", addBody(draft, mode.seed)));
 			if (!failed) return null;
 			return saved && isGone(body) ? `${saved.name} was removed while you were editing it, so your changes weren't saved.` : failed;
 		});

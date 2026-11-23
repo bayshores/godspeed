@@ -1,7 +1,8 @@
 /**
  * The space's Deadlines tab over linkedom with a fake fetch: "Coming up"
  * and "Done or past", each row's block and button, "Mark done" and "Undo",
- * "Add a deadline", and an interview waiting for its date.
+ * "Add a deadline", an interview waiting for its date, and a deadline that
+ * looks missing drawn as its outline.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -10,7 +11,8 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import { localDay, type SpaceDeadline, type SpaceRecord } from "../../src/shared/core/index.ts";
+import { localDay, type SpaceDeadline, type SpaceGap, type SpaceRecord } from "../../src/shared/core/index.ts";
+import type { TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 (dom.document as unknown as { oninput: null }).oninput = null;
@@ -31,6 +33,7 @@ const { ServerEventsProvider } = await import("../../src/frontend/components/ser
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { OpenDeadlinesProvider } = await import("../../src/frontend/components/use-open-deadlines.tsx");
 const { ProgressProvider } = await import("../../src/frontend/components/use-progress.tsx");
+const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 
 const DAY = 86_400_000;
 const day = (offset: number) => localDay(Date.now() + offset * DAY);
@@ -43,10 +46,11 @@ const calls: { method: string; url: string; body?: unknown }[] = [];
 const originalFetch = globalThis.fetch;
 let served = record([]);
 let sheetCards: { deadlineId: string; status: string }[] = [];
+let servedGaps: SpaceGap[] = [];
 
 let root: Root | undefined;
 let host: HTMLElement | undefined;
-async function mount(deadlines: SpaceDeadline[], active: string | null = "cls_a", over: Partial<SpaceRecord> = {}, at = "/space/deadlines") {
+async function mount(deadlines: SpaceDeadline[], active: string | null = "cls_a", over: Partial<SpaceRecord> = {}, at = "/space/deadlines", teacher: Pick<TeacherApi, "name" | "canAsk" | "ask"> | null = null) {
 	served = { ...record(deadlines), ...over };
 	globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = String(input);
@@ -55,7 +59,7 @@ async function mount(deadlines: SpaceDeadline[], active: string | null = "cls_a"
 		if (url === "/api/spaces") return Response.json({ spaces: [{ id: "cls_a", name: "CSE 21", color: 2 }] });
 		if (url === "/api/spaces/cls_a") return Response.json({ space: served });
 		if (url === "/api/spaces/cls_a/cheat-sheets") return Response.json({ spaceName: "CSE 21", cards: sheetCards });
-		if (url.startsWith("/api/deadlines")) return Response.json({ deadlines: [], doneToday: [] });
+		if (url === "/api/deadlines") return Response.json({ deadlines: [], doneToday: [], gaps: servedGaps });
 		return Response.json({ ok: true });
 	}) as typeof fetch;
 	host = document.createElement("div");
@@ -69,7 +73,9 @@ async function mount(deadlines: SpaceDeadline[], active: string | null = "cls_a"
 					<SpaceProvider initialActive={active}>
 						<ProgressProvider>
 							<OpenDeadlinesProvider>
-								<DeadlinesTab />
+								<TeacherContext.Provider value={teacher as TeacherApi | null}>
+									<DeadlinesTab />
+								</TeacherContext.Provider>
 							</OpenDeadlinesProvider>
 						</ProgressProvider>
 					</SpaceProvider>
@@ -91,8 +97,13 @@ afterEach(async () => {
 	root = undefined;
 	host = undefined;
 	calls.length = 0;
+	servedGaps = [];
 	globalThis.fetch = originalFetch;
 });
+
+const outline = (offset: number): SpaceGap => ({ spaceId: "cls_a", key: "cls_a:hw6:1", title: "Homework in CSE 21 this week?", line: "It came every week. None is on record after HW6.", answer: "None this week", close: false, kind: "homework", day: day(offset), name: "HW7", label: "HW7?" });
+/** The rows of Coming up and the outline, in the order drawn. */
+const order = () => [...document.querySelectorAll("[data-testid^='deadline-row-'], [data-testid='gap-row']")].map((el) => el.getAttribute("data-testid")!.replace("deadline-row-", ""));
 
 describe("The Deadlines tab", () => {
 	it("lists what is coming up soonest first, then done and missed ones latest first", async () => {
@@ -135,6 +146,20 @@ describe("The Deadlines tab", () => {
 		assert.doesNotMatch(q("deadlines-tab")!.textContent!, /Done or past/);
 	});
 
+	it("asks the teacher to update the space, only where the teacher can be asked", async () => {
+		const asked: string[] = [];
+		await mount([], "cls_a", {}, "/space/deadlines", { name: "Claude", canAsk: true, ask: (line) => asked.push(line) });
+		assert.equal(q("deadlines-update")!.textContent, "Ask Claude to update");
+		await act(async () => q("deadlines-update")!.click());
+		assert.deepEqual(asked, ["Update CSE 21"]);
+		assert.ok(q("deadline-add"), "Add a deadline stays");
+		await act(async () => root?.unmount());
+		host?.remove();
+		await mount([], "cls_a", {}, "/space/deadlines", { name: "Claude", canAsk: false, ask: () => {} });
+		assert.equal(q("deadlines-update"), null);
+		assert.ok(q("deadline-add"));
+	});
+
 	it("Add a deadline opens the dialog for a new one", async () => {
 		await mount([]);
 		await act(async () => q("deadline-add")!.click());
@@ -158,6 +183,52 @@ describe("The Deadlines tab", () => {
 	it("a space with no interview waiting shows no such row", async () => {
 		await mount([]);
 		assert.ok(q("waiting-deadline") === null);
+	});
+
+	it("a deadline that looks missing is an outline among the rows on its day: its name, its days left, the server's line and two keys", async () => {
+		servedGaps = [outline(5), { ...outline(5), spaceId: "cls_b", key: "cls_b:x:1" }];
+		await mount([d("final", "exam", 27), d("hw6", "homework", 2)]);
+		assert.deepEqual(order(), ["hw6", "gap-row", "final"], "the other space's outline is not drawn here");
+		const row = q("gap-row")!;
+		assert.match(row.textContent!, /^5\s*daysHW7\?It came every week\. None is on record after HW6\.None this weekAdd it myself$/);
+		assert.match(row.className, /lh-dashed/);
+		assert.equal(q("deadline-row-hw6")!.querySelector(".lh-dashed"), null, "a real row is not drawn in outline");
+	});
+
+	it("with only the outline coming up, it does not also say nothing is", async () => {
+		servedGaps = [outline(3)];
+		await mount([d("hw6", "homework", -10, true)]);
+		assert.ok(q("gap-row"));
+		assert.equal(q("deadlines-none"), null);
+	});
+
+	it("its answer waves it off, and it leaves", async () => {
+		servedGaps = [outline(3)];
+		await mount([]);
+		servedGaps = [];
+		await act(async () => q("gap-row-answer")!.click());
+		assert.deepEqual(calls, [{ method: "POST", url: "/api/deadlines/cls_a/nothing-new", body: { key: "cls_a:hw6:1" } }]);
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 200));
+		});
+		assert.equal(q("gap-row"), null);
+		assert.equal(q("deadlines-none")!.textContent, "Nothing is coming up.");
+	});
+
+	it("Add it myself opens Add a deadline with its kind, day and name", async () => {
+		servedGaps = [outline(3)];
+		await mount([]);
+		await act(async () => q("gap-row-add")!.click());
+		assert.equal(q("deadline-kind-homework")!.getAttribute("aria-checked"), "true");
+		assert.equal((q("deadline-name") as HTMLInputElement).value, "HW7");
+		assert.equal((q("deadline-date") as HTMLInputElement).value, day(3));
+	});
+
+	it("arriving from Home's Add it myself opens the dialog filled in", async () => {
+		await mount([], "cls_a", {}, `/space/deadlines?add=1&kind=quiz&name=Quiz+4&date=${day(4)}`);
+		assert.equal(q("deadline-kind-quiz")!.getAttribute("aria-checked"), "true");
+		assert.equal((q("deadline-name") as HTMLInputElement).value, "Quiz 4");
+		assert.equal((q("deadline-date") as HTMLInputElement).value, day(4));
 	});
 
 	it("with no space picked it offers the spaces", async () => {

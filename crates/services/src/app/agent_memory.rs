@@ -7,11 +7,14 @@ use gs_core::spaces::space_setup::missing_setup;
 use gs_json::{Json, json};
 
 use crate::App;
+use crate::spaces::gaps::open_gaps;
 
 /// The briefing, at most `max_chars` long. A note or lesson with a time that isn't one cannot be
 /// saved, so the briefing has no failure to report.
 pub fn current_agent_briefing(app: &App, max_chars: usize) -> String {
 	let records = app.stores.spaces.list_space_records();
+	let now_ms = clock::now_ms();
+	let gaps = open_gaps(app, now_ms);
 	let spaces = records
 		.iter()
 		.map(|record| BriefingSpace {
@@ -20,6 +23,7 @@ pub fn current_agent_briefing(app: &App, max_chars: usize) -> String {
 			closed: record["closed"].truthy(),
 			deadlines: record["deadlines"].as_arr().cloned().unwrap_or_default(),
 			missing_setup: missing_setup(record).into_iter().map(str::to_owned).collect(),
+			out_of_date: gaps.iter().find(|g| g.space_id == record["id"].str_or_empty()).map(|g| g.agent_line.clone()),
 		})
 		.collect();
 	// A .tex is left out beside the PDF built from it: the two are one file.
@@ -41,7 +45,7 @@ pub fn current_agent_briefing(app: &App, max_chars: usize) -> String {
 			waiting: chat["pendingQuestion"].truthy() || chat["pendingProblem"].truthy(),
 		})
 		.collect();
-	let input = BriefingInput { now_ms: clock::now_ms(), spaces, lessons, notes: app.stores.agent_notes.list_agent_notes(), max_chars };
+	let input = BriefingInput { now_ms, spaces, lessons, notes: app.stores.agent_notes.list_agent_notes(), max_chars };
 	agent_briefing(&input).unwrap_or_default()
 }
 

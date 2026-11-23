@@ -12,12 +12,14 @@ const ARRIVAL_WINDOW_MS = 400;
 
 export type Arrive = (slot: string) => string | undefined;
 
-export function useArrivals(): Arrive {
+/** `drawn`: false while what the slots belong to waits for its data, so what its first drawing
+ *  holds stays at rest; a list of deadlines steps in a row that joins it later. */
+export function useArrivals(drawn = true): Arrive {
 	const firstSeen = useRef(new Map<string, number | null>());
 	const live = useRef(false);
 	useEffect(() => {
-		live.current = true;
-	}, []);
+		if (drawn) live.current = true;
+	}, [drawn]);
 	return useCallback((slot: string) => {
 		const now = performance.now();
 		let at = firstSeen.current.get(slot);

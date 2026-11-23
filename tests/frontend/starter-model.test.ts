@@ -7,7 +7,7 @@ const CSE = { id: "s1", name: "CSE 21", files: 3 };
 const deadline = (id: string, name: string, kind: IdeaFacts["deadlines"][number]["kind"], date: string, spaceId = "s1") => ({ id, name, kind, date, spaceId });
 const HW = deadline("hw 6", "HW 6", "homework", "2026-11-20");
 const MIDTERM = deadline("mt", "Midterm 2", "exam", "2026-11-25");
-const facts = (over: Partial<IdeaFacts> = {}): IdeaFacts => ({ path: "/", space: CSE, spaces: 1, deadlines: [MIDTERM, HW], notesFolder: false, ...over });
+const facts = (over: Partial<IdeaFacts> = {}): IdeaFacts => ({ path: "/", space: CSE, spaces: 1, gaps: [], deadlines: [MIDTERM, HW], notesFolder: false, ...over });
 const on = (path: string, over: Partial<IdeaFacts> = {}) => startersFor(facts({ path, ...over }));
 
 describe("the lines for a page", () => {
@@ -29,6 +29,25 @@ describe("the lines for a page", () => {
 		assert.deepEqual(on("/terminal-window"), on("/"), "the terminal window is on no page");
 		assert.deepEqual(on("/space", { space: null }), ["What should I study?", "Teach me a new topic", "Add a deadline"], "no space picked");
 		assert.deepEqual(on("/", { space: null, spaces: 0, deadlines: [] }), ["Set up a space from my files", "Teach me a new topic", "Build me a path to a goal"]);
+	});
+
+	it("an update line comes first on a space's page when that space looks out of date", () => {
+		const gap = { gaps: [{ id: "s1", name: "CSE 21" }] };
+		assert.deepEqual(on("/space", gap), ["Update CSE 21", "What should I study in CSE 21?", "What do I know in CSE 21?", "Find something in my files"], "the last one drops out");
+		assert.equal(on("/space/files", gap)[0], "Update CSE 21");
+		assert.equal(on("/space/deadline/hw%206", gap)[0], "Update CSE 21");
+		assert.ok(!on("/space/deadlines", gap).includes("Update CSE 21"), "the Deadlines tab has its own key");
+		assert.deepEqual(on("/space/deadlines", gap), on("/space/deadlines"));
+		assert.deepEqual(on("/space", { gaps: [{ id: "s9", name: "CSE 29" }] }), on("/space"), "another space's gap is not this page's");
+	});
+
+	it("elsewhere the update line names the one space with a gap, or all of them", () => {
+		assert.deepEqual(on("/", { gaps: [{ id: "s2", name: "CSE 29" }] }), ["Update CSE 29", "What should I study?", "Teach me a new topic", "Add a deadline"]);
+		const two = [{ id: "s1", name: "CSE 21" }, { id: "s2", name: "CSE 29" }];
+		assert.equal(on("/", { gaps: two })[0], "Update my spaces");
+		assert.equal(on("/graph", { gaps: two })[0], "Update my spaces");
+		assert.equal(on("/space", { space: null, gaps: two })[0], "Update my spaces", "no space picked");
+		assert.deepEqual(on("/chat/abc", { gaps: two }), [], "a lesson takes its own line");
 	});
 
 	it("none on a lesson or a cheat sheet, where a typed line goes to the page", () => {
@@ -85,8 +104,17 @@ describe("everything the teacher can be asked", () => {
 		assert.equal(idea(facts({ space: null, deadlines: [other, HW] }), "Get me ready")?.line, "Get me ready for Essay");
 	});
 
+	it("Spaces and files always holds the update line: one space's on its page, all spaces' elsewhere", () => {
+		const group = (f: IdeaFacts) => everything(f).find((g) => g.name === "Spaces and files")!.ideas.map((i) => i.line);
+		assert.deepEqual(group(facts({ path: "/space" })), ["Update CSE 21", "Set up a space from my files", "Find something in my files"]);
+		assert.deepEqual(group(facts({ path: "/space/deadlines" }))[0], "Update CSE 21");
+		assert.deepEqual(group(facts({ path: "/" }))[0], "Update my spaces");
+		assert.deepEqual(group(facts({ path: "/space", space: null }))[0], "Update my spaces");
+		assert.deepEqual(group(facts({ space: null, spaces: 0, deadlines: [] })), ["Set up a space from my files", "Find something in my files"], "no space to update");
+	});
+
 	it("no line twice", () => {
-		for (const f of [facts(), facts({ space: null, spaces: 0, deadlines: [] })]) {
+		for (const f of [facts(), facts({ path: "/space" }), facts({ space: null, spaces: 0, deadlines: [] })]) {
 			const all = lines(f).map((i) => i.line);
 			assert.equal(new Set(all).size, all.length);
 		}

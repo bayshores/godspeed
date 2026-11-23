@@ -4,7 +4,6 @@ import { RuleNotice } from "@/frontend/components/rule-notice";
 import { SpaceNotice } from "@/frontend/components/space-notice";
 import { FilesNotice } from "@/frontend/components/files-notice";
 import { VaultNotice } from "@/frontend/components/vault/vault-notice";
-import { QuietNotice } from "@/frontend/components/quiet-notice";
 import { Travel } from "@/frontend/components/travel/travel";
 import { pagePlace } from "@/frontend/components/travel/travel-model";
 import { useSpaces } from "@/frontend/components/space-context";
@@ -89,7 +88,6 @@ export function AppShell({
 			    place in the tree only matters for the events it dispatches. */}
 			<KeyboardShortcuts />
 			<SearchLessons />
-			<QuietNotice />
 		</>
 	);
 }

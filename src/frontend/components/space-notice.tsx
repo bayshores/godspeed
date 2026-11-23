@@ -1,11 +1,12 @@
 /**
- * The two corner cards from godspeed's own upkeep of a space. A change
+ * The corner cards from godspeed's own upkeep of a space. A change
  * card says what a background check changed ("Claude Code updated CSE 21"),
  * with Undo and a close key that removes it for good. An overdue card asks
  * "Done?" about the oldest deadline that just went by, with Done and Not yet,
- * on every page but Home, whose card asks. Both are the "quiet" kind: one at a
- * time, folded into the strip, never timed, so they wait for the learner.
- * Both wait while a lesson or mock is open.
+ * on every page but Home, whose card asks. A gap card says a space looks to be
+ * missing a deadline (gap-card.tsx). All are the "quiet" kind: folded into the
+ * strip, never timed, so they wait for the learner. All wait while a lesson or
+ * mock is open.
  */
 
 import { useState } from "react";
@@ -14,6 +15,8 @@ import { useLocation } from "react-router";
 import { useMinute } from "@/frontend/components/countdown";
 import { overdueToAsk } from "@/frontend/components/home-page/home-page-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
+import { GapCard } from "@/frontend/components/gap-card";
+import { gapToShow } from "@/frontend/components/gap-card-model";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { useSpaces } from "@/frontend/components/space-context";
@@ -31,18 +34,23 @@ const AFTER_UNDO_MS = 3_000;
 export function SpaceNotice() {
 	const { pathname } = useLocation();
 	const now = useMinute();
-	const { deadlines, overdueAsked } = useOpenDeadlines();
+	const { deadlines, overdueAsked, gaps } = useOpenDeadlines();
+	const { spaces, active } = useSpaces();
 	const [checks, setChecks] = useState<SpaceCheck[]>([]);
+	// Gaps the learner handed the teacher: no card for them until the window starts again.
+	const [updated, setUpdated] = useState<ReadonlySet<string>>(new Set());
 	useServerEvent("space-checked", (check) => setChecks((prev) => addCheck(prev, check)));
 	if (typeof document === "undefined" || followHeld(pathname, true)) return null;
 	// On Home the late card is the one place that asks.
 	const overdue = pathname !== "/" && deadlines && now !== null ? overdueToAsk(deadlines, overdueAsked, now) : null;
+	const gap = gapToShow(gaps, { pathname, active }, new Set(spaces.map((s) => s.id)), updated);
 	return (
 		<InNoticeStack>
 			{checks.map((check) => (
 				<ChangeCard key={check.spaceId} check={check} onDone={() => setChecks((prev) => prev.filter((c) => c !== check))} />
 			))}
 			{overdue && now !== null && <OverdueCard key={overdue.id} deadline={overdue} />}
+			{gap && <GapCard key={gap.key} gap={gap} onUpdate={() => setUpdated((prev) => new Set(prev).add(gap.key))} />}
 		</InNoticeStack>
 	);
 }

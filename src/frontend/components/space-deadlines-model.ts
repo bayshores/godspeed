@@ -4,7 +4,7 @@
  * differs from the deadline it opened with, so an agent's change made
  * meanwhile is never undone. Pure and unit-tested.
  */
-import { clockLabel as coreClockLabel, dateInName, dayLabel, isCalendarDate, isClockTime, monthDay, type SpaceDeadline, type DeadlineKind, type WaitingDeadline } from "@/shared/core";
+import { clockLabel as coreClockLabel, dateInName, dayLabel, isCalendarDate, isClockTime, monthDay, type RhythmGap, type SpaceDeadline, type DeadlineKind, type WaitingDeadline } from "@/shared/core";
 
 export interface DeadlineDraft {
 	kind: DeadlineKind;
@@ -43,9 +43,30 @@ export function draftFrom(d: SpaceDeadline): DeadlineDraft {
 	return { kind: d.kind, name: d.name, date: d.date, time: d.time ?? "", fileIds: [...d.fileIds], done: d.done };
 }
 
-/** What "Add the date" opens with: the interview waiting for its date. */
-export function draftFromWaiting(w: WaitingDeadline): DeadlineDraft {
-	return { ...NEW_DEADLINE, kind: "interview", name: w.name, fileIds: [...w.fileIds] };
+/** A deadline to add, as far as it is known: what "Add a deadline" opens filled in with. */
+export interface DeadlineSeed {
+	kind: DeadlineKind;
+	name: string;
+	/** YYYY-MM-DD; left out, the learner gives it. */
+	date?: string;
+	fileIds?: readonly string[];
+	/** A waiting deadline's id and what it is like, so what was tied to it stays tied. */
+	id?: string;
+	aboutFileId?: string;
+}
+
+/** "Add the date": the interview waiting for its date. */
+export function seedFromWaiting(w: WaitingDeadline): DeadlineSeed {
+	return { kind: "interview", name: w.name, fileIds: w.fileIds, id: w.id, ...(w.aboutFileId ? { aboutFileId: w.aboutFileId } : {}) };
+}
+
+/** "Add it myself" on an outline: its kind, its day and the name the next one would have. */
+export function seedFromGap(gap: RhythmGap): DeadlineSeed {
+	return { kind: gap.kind, name: gap.name, date: gap.day };
+}
+
+export function draftFromSeed(seed: DeadlineSeed): DeadlineDraft {
+	return { ...NEW_DEADLINE, kind: seed.kind, name: seed.name, date: seed.date ?? "", fileIds: [...(seed.fileIds ?? [])] };
 }
 
 /** Why the draft can't be saved, as a message; null when it can. */
@@ -93,16 +114,16 @@ export function changedFields<T extends object>(seeded: T, now: T): Partial<T> {
 }
 
 /** What POST sends for a new deadline; one that was waiting for its date
- *  keeps its id and what it's like. */
-export function addBody(d: DeadlineDraft, waiting?: WaitingDeadline): DeadlineAddBody {
+ *  keeps its id and what it's like (its seed's). */
+export function addBody(d: DeadlineDraft, seed?: DeadlineSeed): DeadlineAddBody {
 	return {
-		...(waiting ? { id: waiting.id } : {}),
+		...(seed?.id ? { id: seed.id } : {}),
 		kind: d.kind,
 		name: d.name.trim(),
 		date: d.date,
 		...(d.time !== "" ? { time: d.time } : {}),
 		fileIds: [...d.fileIds],
-		...(waiting?.aboutFileId ? { aboutFileId: waiting.aboutFileId } : {}),
+		...(seed?.aboutFileId ? { aboutFileId: seed.aboutFileId } : {}),
 	};
 }
 

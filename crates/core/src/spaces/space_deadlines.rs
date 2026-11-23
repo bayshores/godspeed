@@ -9,6 +9,16 @@ use gs_json::{Json, Obj, stringify};
 
 use super::page_piece::check_piece;
 use crate::contracts::space::{SpaceDeadlineError, MAX_FILE_PROBLEMS, is_calendar_date, is_clock_time, is_deadline_kind};
+use crate::study::progress::days_between;
+
+/// A deadline an agent adds more than this many days after it was due is saved done: it keeps
+/// the space's history, and the learner has nothing to tick.
+pub const PAST_ADD_DAYS: i64 = 7;
+
+/// Whether an agent's new deadline due on `date` is saved done on `today` (both YYYY-MM-DD).
+pub fn saved_done(date: &str, today: &str) -> bool {
+	days_between(date, today) > PAST_ADD_DAYS
+}
 
 fn refuse(code: &'static str, message: String) -> SpaceDeadlineError {
 	SpaceDeadlineError { code, message }
@@ -169,7 +179,8 @@ pub fn new_deadline(known: &HashSet<String>, init: &Json, id: String) -> Result<
 	if let Some(about) = about {
 		base.insert("aboutFileId", about);
 	}
-	base.insert("done", false);
+	// Only an agent's late add comes in done (`saved_done`); it was never ticked, so no `doneAt`.
+	base.insert("done", init["done"].as_bool() == Some(true));
 	let file_ids = match init.get("fileIds") {
 		None | Some(Json::Null) => Vec::new(),
 		ids => deadline_files(known, ids)?,
@@ -279,6 +290,13 @@ mod tests {
 		assert_eq!(code(new_deadline(&known(), &json!({ "kind": "exam", "name": "n", "date": "2026-11-03", "source": 3 }), "i".into())), ("bad_source", "The source must be text".to_owned()));
 		assert_eq!(code(new_deadline(&known(), &json!({ "kind": "exam", "name": "n", "date": "2026-11-03", "assignmentFileId": "zz" }), "i".into())).1, "Not a file of this space: \"zz\"");
 		assert_eq!(code(new_deadline(&known(), &json!({ "kind": "interview", "name": "n", "date": "2026-11-03", "aboutFileId": "zz" }), "i".into())).1, "Not a file of this space: \"zz\"");
+	}
+
+	#[test]
+	fn a_late_add_is_saved_done_without_a_done_time() {
+		assert!(saved_done("2026-11-14", "2026-11-22") && !saved_done("2026-11-15", "2026-11-22"));
+		let d = new_deadline(&known(), &json!({ "kind": "homework", "name": "HW1", "date": "2026-10-05", "done": true }), "ddl_x".into()).unwrap();
+		assert_eq!(stringify(&d), r#"{"id":"ddl_x","kind":"homework","name":"HW1","date":"2026-10-05","fileIds":[],"done":true}"#);
 	}
 
 	#[test]
