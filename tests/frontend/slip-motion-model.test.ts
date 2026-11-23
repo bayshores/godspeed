@@ -1,18 +1,9 @@
 /** The Graph slip's motion (src/frontend/components/graph/slip-motion-model.ts). */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { blockDelay, chipSteps, CHIP_GAP_MS, MOON_GAP_MS, rowStart, stepDelay, travelMs } from "../../src/frontend/components/graph/slip-motion-model.ts";
+import { blockDelay, chipSteps, CHIP_GAP_MS, MOON_GAP_MS, rowStart, stepDelay } from "../../src/frontend/components/graph/slip-motion-model.ts";
 
 describe("the Graph slip's motion", () => {
-	it("travels in in 220 to 320 ms and out in 110 to 160 ms, longer the farther it goes", () => {
-		assert.equal(travelMs(0, "in"), 220);
-		assert.equal(travelMs(200, "in"), 270);
-		assert.equal(travelMs(900, "in"), 320);
-		assert.equal(travelMs(0, "out"), 110);
-		assert.equal(travelMs(200, "out"), 135);
-		assert.equal(travelMs(900, "out"), 160);
-	});
-
 	it("steps a row in left to right, the last by 160 ms however long the row", () => {
 		assert.deepEqual([0, 1, 2, 3].map((i) => stepDelay(i, CHIP_GAP_MS)), [0, 20, 40, 60]);
 		assert.equal(stepDelay(12, CHIP_GAP_MS), 160);

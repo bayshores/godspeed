@@ -11,16 +11,20 @@
  * picture's place covers it, and the picture is set aside only once the
  * panel has arrived. The picture re-fits with one short fade as a panel
  * opens or starts to leave, and once the slip's height is known the picked
- * topic is fitted into the room again.
+ * topic is fitted into the room again. Follow's slip lifting the page's foot
+ * (`room.foot`) re-fits nothing: the room's foot and this slip ride up over
+ * the picture, which keeps its size and camera and is cut at the new foot.
  */
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import type { Bleed } from "./constellation-camera.ts";
 import { EASE_IN, EASE_OUT, prefersReducedMotion, usePresence } from "@/frontend/components/presence";
 import { LONGEST_MS, travelGlideMs } from "@/frontend/components/sheet-glide-model";
+import { travelMs } from "@/frontend/components/slip-travel-model";
 import { useSheetGlide } from "@/frontend/components/use-sheet-glide";
+import { useSlipTravel } from "@/frontend/components/use-slip-travel";
 import { panelAlone, panelStacked, pictureHeight, slipCap, slipMost, TAB_H } from "./graph-layout-model.ts";
-import { travelMs, type PanelMotion } from "./slip-motion-model.ts";
+import type { PanelMotion } from "./slip-motion-model.ts";
 import type { PanelRoom } from "./use-link-fit.ts";
 import type { Room } from "./use-room.ts";
 
@@ -101,7 +105,7 @@ export function GraphLayout({
 	const look = covered ? "none" : held.current.look;
 
 	const glide = useSheetGlide(false, true);
-	const travel = useTravel(arrival.motion, leaving, (el) => (alone ? { by: `${room.height}px`, points: room.height } : { by: `calc(100% + ${TAB_H}px)`, points: el.offsetHeight + TAB_H }), () => cover.current());
+	const travel = useSlipTravel(arrival.motion !== "still", leaving, (el) => (alone ? { by: `${room.height - room.foot}px`, points: room.height - room.foot } : { by: `calc(100% + ${TAB_H}px)`, points: el.offsetHeight + TAB_H }), () => cover.current());
 	// A panel that replaced another holds still at the slip's foot while the edge uncovers it, for as long as a glide can take;
 	// one that grows in place ("N more") rides the edge up with what it already shows, and its new rows come up from the foot.
 	const [settled, setSettled] = useState(arrival.n);
@@ -177,15 +181,18 @@ export function GraphLayout({
 	useLayoutEffect(() => cover.current());
 
 	// The sheet glides to each new height; what it holds is laid out at its new size at once.
-	const inner = alone ? room.height - TAB_H - LIP : most - LIP;
+	const seen = room.height - room.foot;
+	const inner = alone ? seen - TAB_H - LIP : most - LIP;
 	const fits: Omit<PanelRoom, "motion"> = alone
 		? { stacked: panelStacked(room), width: room.width, height: inner, most: inner }
 		: { stacked: false, width: room.width, height: cap - LIP, most: inner, onTooTall: () => setTooTall(tallKey) };
 	// The panel travels inside a box that cuts it at the room's foot only, so the picture's bleed past its sides stays.
+	// Under a lifted foot the picture is cut where it would be drawn past the room, its sides and top left free.
+	const cut = room.foot > 0 ? { clipPath: `inset(-100vh -100vw calc(100% - ${seen + held.current.box.bleed.bottom}px) -100vw)` } : undefined;
 	return (
-		<div ref={room.ref} className="relative w-full" style={{ height: room.height }}>
+		<div ref={room.ref} className="relative w-full" style={{ height: seen }}>
 			{!covered && (
-				<div ref={pictureRef} inert={covering}>
+				<div ref={pictureRef} inert={covering} style={cut}>
 					{picture(held.current.box)}
 				</div>
 			)}
@@ -214,33 +221,6 @@ function useArrival(panelKey: string | null, mounted: boolean) {
 	if (panelKey !== null && panelKey !== arrival.key) setArrival({ key: panelKey, motion: arrival.key === null ? "open" : "swap", n: arrival.n + 1 });
 	else if (!mounted && arrival.key !== null) setArrival({ key: null, motion: "still", n: arrival.n });
 	return arrival;
-}
-
-/**
- * The panel arrives from past the room's foot by `away` (as a CSS length, and in points for its
- * time) each time it is drawn anew, and leaves the same way, kept there by presence until it is
- * gone. One that came with the page is simply there. `onArrived` follows an arrival.
- */
-function useTravel(motion: PanelMotion, leaving: boolean, away: (el: HTMLElement) => { by: string; points: number }, onArrived: () => void) {
-	const [el, setEl] = useState<HTMLElement | null>(null);
-	const now = useRef({ motion, away, onArrived });
-	now.current = { motion, away, onArrived };
-	useLayoutEffect(() => {
-		if (!el?.animate || now.current.motion === "still" || prefersReducedMotion()) return;
-		const { by, points } = now.current.away(el);
-		el.animate([{ transform: `translateY(${by})` }, { transform: "none" }], { duration: travelMs(points, "in"), easing: EASE_OUT }).finished.then(
-			() => now.current.onArrived(),
-			() => {},
-		);
-	}, [el]);
-	useLayoutEffect(() => {
-		if (!leaving || !el?.animate || prefersReducedMotion()) return;
-		const { by, points } = now.current.away(el);
-		const out = el.animate([{ transform: "none" }, { transform: `translateY(${by})` }], { duration: travelMs(points, "out"), easing: EASE_IN, fill: "forwards" });
-		// Opened again before it has left, it is back at once.
-		return () => out.cancel();
-	}, [leaving, el]);
-	return { ref: setEl, el };
 }
 
 /**

@@ -1,20 +1,10 @@
 /**
- * The Graph slip's motion, pure: how long it takes to travel in and out, and
- * when each of its parts steps in.
+ * The Graph slip's motion, pure: when each of its parts steps in. How long it travels in and
+ * out is shared with Follow's slip (slip-travel-model.ts).
  */
 
 /** How a panel came: with the page (nothing moves), into an empty slip, or replacing another in an open slip. */
 export type PanelMotion = "still" | "open" | "swap";
-
-/** The shortest and longest travel each way, and the time each point of travel adds. */
-const IN_MS = { shortest: 220, longest: 320, aPoint: 0.25 };
-const OUT_MS = { shortest: 110, longest: 160, aPoint: 0.125 };
-
-/** How long the slip takes to travel `points` in (as it arrives) or out (as it leaves). */
-export function travelMs(points: number, way: "in" | "out"): number {
-	const ms = way === "in" ? IN_MS : OUT_MS;
-	return Math.round(Math.min(ms.longest, ms.shortest + Math.max(0, points) * ms.aPoint));
-}
 
 /** The last of a row of steps starts by this, so a long row does not trail. */
 const LAST_BY_MS = 160;
