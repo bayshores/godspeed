@@ -62,7 +62,8 @@ function outline({ item: gap, leaving }: { item: RhythmGap; leaving: boolean }, 
 
 /** The due moment each sorts by: an outline is due at its day's end, as a deadline with no time. */
 const dueOf = (i: WeekItem) => (i.kind === "deadline" ? dueAtMs(i.deadline) : dueAtMs({ date: i.gap.day }));
-/** Soonest first; on the same moment a deadline before an outline (the sort keeps their order). */
+/** Soonest first; on the same moment an outline before a deadline (the sort keeps their order), so
+ *  the deadline added for an outline takes its place once the outline has faded. */
 const byTime = (items: WeekItem[]) => items.sort((a, b) => dueOf(a) - dueOf(b));
 
 /** Today and the six days after it, then Later when anything is due after
@@ -81,16 +82,16 @@ export function weekColumns(lists: HomeLists, outlines: readonly { item: RhythmG
 		const short = date.toLocaleDateString("en-US", { weekday: "short" });
 		const dueOn = byDue.filter((d) => localDay(dueAtMs(d)) === day);
 		const expected = soon.filter((o) => o.item.day === day).map((o) => outline(o, false));
-		if (i > 0) return { day, short, date: date.getDate(), long, today: false, items: byTime([...dueOn.map((d) => item(d, nowMs, false, false)), ...expected]) };
+		if (i > 0) return { day, short, date: date.getDate(), long, today: false, items: byTime([...expected, ...dueOn.map((d) => item(d, nowMs, false, false))]) };
 		const late = byDue.filter((d) => dueAtMs(d) <= nowMs);
 		const items = [
 			...late.map((d) => item(d, nowMs, true, false)),
-			...byTime([...dueOn.filter((d) => dueAtMs(d) > nowMs).map((d) => item(d, nowMs, false, false)), ...expected]),
+			...byTime([...expected, ...dueOn.filter((d) => dueAtMs(d) > nowMs).map((d) => item(d, nowMs, false, false))]),
 			...lists.done.map((d) => item(d, nowMs, false, true)),
 		];
 		return { day, short, date: date.getDate(), long: `${long}, today`, today: true, items };
 	});
-	const later = byTime([...lists.later.map((d) => item(d, nowMs, false, false, true)), ...outlines.filter((o) => !soon.includes(o)).map((o) => outline(o, true))]);
+	const later = byTime([...outlines.filter((o) => !soon.includes(o)).map((o) => outline(o, true)), ...lists.later.map((d) => item(d, nowMs, false, false, true))]);
 	if (later.length === 0) return days;
 	return [...days, { day: null, short: "Later", date: null, long: "Later", today: false, items: later }];
 }

@@ -615,7 +615,7 @@ describe("Picking in the week", () => {
 	it("an outline sits on its day, dashed in its space's color with no fill, and is never the card's own pick", async () => {
 		const el = await mount(body(homeLists(LA_OPEN, [], NOW), {}, [HW7]));
 		const fri = $(el, "week-day-2026-10-30")!;
-		assert.deepEqual([...fri.querySelectorAll("button")].map((b) => b.getAttribute("data-testid")), ["week-item-q2", "week-gap"]);
+		assert.deepEqual([...fri.querySelectorAll("button")].map((b) => b.getAttribute("data-testid")), ["week-gap", "week-item-q2"]);
 		const outline = $(el, "week-gap")!;
 		assert.equal(outline.textContent, "HW7?");
 		assert.equal(outline.getAttribute("aria-label"), "Homework in Linear Algebra this week? It came every week. None is on record after HW6.");

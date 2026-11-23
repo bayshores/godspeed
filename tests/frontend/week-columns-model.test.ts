@@ -72,10 +72,10 @@ describe("weekColumns", () => {
 		assert.equal(week([d("soon", "2026-11-17")]).length, 7);
 	});
 
-	it("an outline sits on the day it was expected, by time as a deadline with no time, and reads its title and line", () => {
+	it("an outline sits on the day it was expected, after what has a time and before a deadline with no time, and reads its title and line", () => {
 		const days = week([d("morning", "2026-11-18", { time: "08:00" }), d("night", "2026-11-18")], [], [gap("g", "2026-11-18")]);
-		assert.deepEqual(ids(days[2]!), ["morning", "night", "g"]);
-		const outline = days[2]!.items[2]!;
+		assert.deepEqual(ids(days[2]!), ["morning", "g", "night"]);
+		const outline = days[2]!.items[1]!;
 		assert.deepEqual([outline.kind, outline.name, outline.detail, outline.late, outline.done], ["gap", "HW7?", null, false, false]);
 		assert.equal(outline.label, "Homework in CSE 21 this week? It came every week. None is on record after HW6.");
 	});

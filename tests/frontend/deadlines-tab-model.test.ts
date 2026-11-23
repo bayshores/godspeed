@@ -33,13 +33,14 @@ describe("the outline in Coming up", () => {
 	it("sits on its day, after what is due earlier that day and before what comes later", () => {
 		assert.deepEqual(rows([timed, FINAL]), ["quiz", "HW7?", "final"]);
 	});
-	it("after a deadline due at the same day's end, first with nothing earlier, last with nothing later", () => {
-		assert.deepEqual(rows([HW6, FINAL]), ["hw6", "HW7?", "final"]);
+	it("before a deadline due at the same day's end, first with nothing earlier, last with nothing later", () => {
+		assert.deepEqual(rows([HW6, FINAL]), ["HW7?", "hw6", "final"]);
 		assert.deepEqual(rows([FINAL]), ["HW7?", "final"]);
 		assert.deepEqual(rows([]), ["HW7?"]);
 	});
-	it("one that is leaving keeps its place", () => {
+	it("one that is leaving keeps its place, before the deadline added for it", () => {
 		assert.deepEqual(rows([timed, FINAL], true), ["quiz", "HW7? leaving", "final"]);
+		assert.deepEqual(rows([timed, HW6, FINAL], true), ["quiz", "HW7? leaving", "hw6", "final"]);
 	});
 });
 
