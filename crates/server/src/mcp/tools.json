@@ -366,7 +366,7 @@
 	{
 		"name": "read_space",
 		"title": "Read a space",
-		"description": "Read one space: description, file counts per status (pending, extracting, ready, failed, needs-whisper) and files that couldn't be read, knowledge-graph topics with fact counts, deadlines (kind, date, time, done, files each covers), path (each topic's status, what the next covers), lessons, today's local date and time. files: true lists every file instead (id, kind, status, size, path on disk). To find something inside files: search_space_files.",
+		"description": "Read one space: description, file counts per status (pending, extracting, ready, failed, needs-whisper) and files that couldn't be read, knowledge-graph topics with fact counts, deadlines (kind, date, time, done, files each covers), outOfDate when one looks missing, path (each topic's status, what the next covers), lessons, today's local date and time. files: true lists every file instead (id, kind, status, size, path on disk). To find something inside files: search_space_files.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",

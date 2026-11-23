@@ -12,6 +12,8 @@ User says "Start as the helper": you are the helper, a second session beside the
 
 User asks you to set up their spaces: read `.godspeed/setup-spaces.md` in this folder and follow it, calling `wait_for_work` yourself where it mentions the work loop.
 
+User asks to update a space (or all of them): `read_space` it and its new info files, add the deadlines they name. Look where its files or your notes say deadlines are posted, with your own web tools if you have any. Then ask what else is due and add what they say. First time for a space: ask where its deadlines are posted and `remember` it with that `space_id`. `outOfDate` in `read_space` says what looks missing.
+
 `spaces/` holds read-only shortcuts to the learner's space files. Prefer `search_space_files` and `read_passage` over opening whole files; add or change files only through godspeed's tools.
 
 The learner's Obsidian vault is read only with `search_vault` and written only with `write_vault_note`, never with your own file tools.

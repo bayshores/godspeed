@@ -1,9 +1,11 @@
 //! How a space looks to an agent: summary, file counts, topics, deadlines and lessons.
 
+use gs_base::clock;
 use gs_core::spaces::file_state::FileStatus;
 use gs_json::{Json, Obj, json};
 
 use crate::spaces::files::file_in;
+use crate::spaces::gaps::open_gaps;
 use crate::spaces::space_card::{space_file_path, space_topics};
 use super::{SpaceActions, given, local_now};
 
@@ -43,6 +45,9 @@ impl SpaceActions {
 		view.insert("fileCounts", counts);
 		if let Some(name) = record["waitingDeadline"]["name"].as_str() {
 			view.insert("waitingDeadline", format!("{name}: an interview with no date yet. The next interview you add becomes it."));
+		}
+		if let Some(gap) = open_gaps(app, clock::now_ms()).into_iter().find(|g| g.space_id == space_id) {
+			view.insert("outOfDate", gap.agent_line);
 		}
 		if with_files {
 			let listed: Vec<Json> = files
@@ -140,5 +145,34 @@ impl SpaceActions {
 			.collect();
 		view.insert("lessons", lessons);
 		Ok(Some(Json::Obj(view)))
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use gs_core::spaces::today_note::local_day;
+	use gs_core::study::deadline_plan::add_days;
+
+	use super::super::tests::{actions, value};
+	use super::*;
+	use crate::app::agent_memory::current_agent_briefing;
+	use crate::app::test_support::{scratch_dir, test_app};
+	use crate::spaces::gaps::answer_gap;
+
+	#[test]
+	fn the_teacher_is_told_what_looks_missing_until_the_learner_waves_it_off() {
+		let app = test_app(&scratch_dir("space-view-out-of-date"));
+		let today = local_day(clock::now_ms());
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "CSE 29" })).unwrap()["id"].str_or_empty().to_owned();
+		for (kind, name, days) in [("homework", "HW2", 5), ("exam", "Test 2", 2)] {
+			app.stores.spaces.add_deadline(&space_id, &json!({ "kind": kind, "name": name, "date": add_days(&today, -days) })).unwrap();
+		}
+		let line = format!("No deadline on record after Test 2 ({}).", gs_core::spaces::today_note::day_label(&add_days(&today, -2)));
+		let read = || value(actions(&app).read_space(&json!({ "space_id": space_id }))).0;
+		assert_eq!(read()["outOfDate"], json!(line));
+		assert!(current_agent_briefing(&app, 4000).contains(&format!("- CSE 29 (space_id \"{space_id}\"): {line}\n")));
+		answer_gap(&app, &space_id, &format!("{space_id}:{}:recent", read()["deadlines"][1]["id"].str_or_empty())).unwrap();
+		assert!(read().get("outOfDate").is_none());
+		assert!(!current_agent_briefing(&app, 4000).contains(&line));
 	}
 }
