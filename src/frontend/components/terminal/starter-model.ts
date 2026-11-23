@@ -15,6 +15,8 @@ const SET_UP = "Set up a space from my files";
 /** The two lines the Progress page sends with its own keys. */
 export const PATH_LINE = "Build me a path to a goal";
 export const CHANGE_PATH_LINE = "I want to change my path";
+/** The line that asks the teacher to bring every space up to date. */
+const UPDATE_ALL = "Update my spaces";
 const ADD_DEADLINE = "Add a deadline";
 const NOTE = "Note this";
 
@@ -22,6 +24,8 @@ const NOTE = "Note this";
 const TALK_PAGE = /^\/chat\/|^\/space\/deadline\/[^/]+\/cheat-sheet/;
 /** A space's own pages. */
 const SPACE_PAGE = /^\/space(\/|$)/;
+/** The Deadlines tab, which has its own key for asking the teacher to update. */
+const DEADLINES_PAGE = /^\/space\/deadlines(\/|$)/;
 /** The Files page, where a search that finds no name has its own key for asking the teacher to look inside. */
 const FILES_PAGE = /^\/space\/files(\/|$)/;
 /** The Graph, which shows what the learner knows in the active space. */
@@ -34,6 +38,8 @@ export interface IdeaFacts {
 	space: { id: string; name: string; files: number } | null;
 	/** How many spaces are open. */
 	spaces: number;
+	/** The open spaces that look to be missing a deadline. */
+	gaps: readonly { id: string; name: string }[];
 	/** The open deadlines of every space. */
 	deadlines: readonly { id: string; name: string; kind: DeadlineKind; spaceId: string; date: string; time?: string }[];
 	/** A notes folder is picked, so "Note this" works. */
@@ -56,10 +62,31 @@ function near(f: IdeaFacts): IdeaFacts["deadlines"] {
 	return byDue(f.deadlines.filter((d) => !f.space || d.spaceId === f.space.id));
 }
 
+/** The line that asks the teacher to update a space. */
+export const updateLine = (name: string) => `Update ${name}`;
+
+/** The active space when the page on screen is one of its own. */
+function ownSpace(f: IdeaFacts): IdeaFacts["space"] {
+	return SPACE_PAGE.test(f.path) ? f.space : null;
+}
+
+/** First in the row when something looks missing: on a space's own page that space's line, except
+ *  on its Deadlines tab, which has a key for it; elsewhere the one space with a gap, or all. */
+function updateStarter(f: IdeaFacts): string[] {
+	const own = ownSpace(f);
+	if (own) return f.gaps.some((g) => g.id === own.id) && !DEADLINES_PAGE.test(f.path) ? [updateLine(own.name)] : [];
+	if (f.gaps.length === 0) return [];
+	return [f.gaps.length === 1 ? updateLine(f.gaps[0]!.name) : UPDATE_ALL];
+}
+
 /** The lines for the page at `f.path`, at most four, each one that works now. None where a
  *  typed line goes to the page. What the page shows or has a key for gets no line. */
 export function startersFor(f: IdeaFacts): string[] {
 	if (TALK_PAGE.test(f.path)) return [];
+	return [...updateStarter(f), ...pageStarters(f)].slice(0, 4);
+}
+
+function pageStarters(f: IdeaFacts): string[] {
 	const open = /^\/space\/deadline\/([^/]+)$/.exec(f.path)?.[1];
 	const deadline = open === undefined ? undefined : f.deadlines.find((d) => d.id === decodeURIComponent(open));
 	if (deadline) return [`Get me ready for ${deadline.name}`, `What am I weakest at for ${deadline.name}?`, DUE];
@@ -83,6 +110,7 @@ export function everything(f: IdeaFacts): IdeaGroup[] {
 	const sheet = deadlines.find((d) => d.kind !== "interview");
 	const mock = deadlines.find((d) => d.kind === "exam" || d.kind === "quiz" || d.kind === "interview");
 	const space = f.space ?? undefined;
+	const own = ownSpace(f);
 	return [
 		{
 			name: "Learn",
@@ -108,7 +136,11 @@ export function everything(f: IdeaFacts): IdeaGroup[] {
 		},
 		{
 			name: "Spaces and files",
-			ideas: [can(SET_UP), space && space.files > 0 ? can(FIND) : { line: FIND, needs: "needs files in a space" }],
+			ideas: [
+				...(f.spaces > 0 ? [can(own ? updateLine(own.name) : UPDATE_ALL)] : []),
+				can(SET_UP),
+				space && space.files > 0 ? can(FIND) : { line: FIND, needs: "needs files in a space" },
+			],
 		},
 		{
 			name: "About you",
