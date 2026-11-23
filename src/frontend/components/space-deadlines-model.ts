@@ -60,9 +60,9 @@ export function seedFromWaiting(w: WaitingDeadline): DeadlineSeed {
 	return { kind: "interview", name: w.name, fileIds: w.fileIds, id: w.id, ...(w.aboutFileId ? { aboutFileId: w.aboutFileId } : {}) };
 }
 
-/** "Add it myself" on an outline: its kind, its day and its name without the question mark. */
+/** "Add it myself" on an outline: its kind, its day and the name the next one would have. */
 export function seedFromGap(gap: RhythmGap): DeadlineSeed {
-	return { kind: gap.kind, name: gap.label.replace(/\?$/, ""), date: gap.day };
+	return { kind: gap.kind, name: gap.name, date: gap.day };
 }
 
 export function draftFromSeed(seed: DeadlineSeed): DeadlineDraft {

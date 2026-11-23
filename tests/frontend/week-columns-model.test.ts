@@ -15,7 +15,7 @@ function d(id: string, date: string, extra: Partial<OpenDeadline> = {}): OpenDea
 const week = (open: OpenDeadline[], done: OpenDeadline[] = [], gaps: RhythmGap[] = []) => weekColumns(homeLists(open, done, NOW), gaps.map((item) => ({ item, leaving: false })), NOW);
 const ids = (day: { items: { key: string }[] }) => day.items.map((i) => i.key);
 function gap(key: string, day: string): RhythmGap {
-	return { spaceId: "c21", key, title: "Homework in CSE 21 this week?", line: "It came every week. None is on record after HW6.", answer: "None this week", close: false, kind: "homework", day, label: "HW7?" };
+	return { spaceId: "c21", key, title: "Homework in CSE 21 this week?", line: "It came every week. None is on record after HW6.", answer: "None this week", close: false, kind: "homework", day, name: "HW7", label: "HW7?" };
 }
 
 describe("weekColumns", () => {

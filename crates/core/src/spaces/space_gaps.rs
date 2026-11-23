@@ -38,7 +38,9 @@ pub struct Gap {
 	pub kind: Option<String>,
 	/// The day the next one was expected, YYYY-MM-DD (rhythm only).
 	pub day: Option<String>,
-	/// The outline's name, "HW7?" (rhythm only).
+	/// The next one's name, "HW7", for a deadline added in its place (rhythm only).
+	pub name: Option<String>,
+	/// The outline's name: `name` asked, "HW7?" (rhythm only).
 	pub label: Option<String>,
 	/// The words of the key that waves it off.
 	pub answer: String,
@@ -52,7 +54,7 @@ impl Gap {
 	/// What the browser is sent: every word but the teacher's own line.
 	pub fn to_json(&self) -> Json {
 		let mut out = json!({ "spaceId": self.space_id, "key": self.key, "title": self.title, "line": self.line, "answer": self.answer, "close": self.close });
-		for (name, value) in [("kind", &self.kind), ("day", &self.day), ("label", &self.label)] {
+		for (name, value) in [("kind", &self.kind), ("day", &self.day), ("name", &self.name), ("label", &self.label)] {
 			if let Some(value) = value {
 				out.as_obj_mut().unwrap().insert(name, json!(value));
 			}
@@ -102,13 +104,13 @@ fn rhythm<'a>(deadlines: &'a [Json], last: &Json, (kind, word): (&'static str, &
 	Some(Rhythm { kind, word, spacing, newest, period, day: add_days(newest["date"].str_or_empty(), period * spacing) })
 }
 
-/// The next one's name: "HW6" gives "HW7?", a name with no number the kind's word ("Homework?").
+/// The next one's name: "HW6" gives "HW7", a name with no number the kind's word ("Homework").
 fn next_name(name: &str, word: &str) -> String {
 	let stem = name.trim_end_matches(|c: char| c.is_ascii_digit());
 	let digits = &name[stem.len()..];
 	match digits.parse::<u64>().ok().and_then(|n| n.checked_add(1)) {
-		Some(n) => format!("{stem}{n:0width$}?", width = digits.len()),
-		None => format!("{word}?"),
+		Some(n) => format!("{stem}{n:0width$}", width = digits.len()),
+		None => word.to_owned(),
 	}
 }
 
@@ -116,6 +118,7 @@ fn rhythm_gap(space: &Json, r: &Rhythm) -> Gap {
 	let (space_id, space_name) = (space["id"].str_or_empty(), space["name"].str_or_empty());
 	let (name, last_day) = (r.newest["name"].str_or_empty(), r.newest["date"].str_or_empty());
 	let weekly = WEEKLY.contains(&r.spacing);
+	let next = next_name(name, r.word);
 	let (when, came, answer) = if weekly { ("this week", "every week".to_owned(), "None this week") } else { ("soon", format!("about every {} days", r.spacing), "None for now") };
 	Gap {
 		space_id: space_id.to_owned(),
@@ -124,7 +127,8 @@ fn rhythm_gap(space: &Json, r: &Rhythm) -> Gap {
 		line: format!("It came {came}. None is on record after {name}."),
 		kind: Some(r.kind.to_owned()),
 		day: Some(r.day.clone()),
-		label: Some(next_name(name, r.word)),
+		label: Some(format!("{next}?")),
+		name: Some(next),
 		answer: answer.to_owned(),
 		close: false,
 		agent_line: format!("{} came about every {} days, none on record after {name} ({}).", r.word, r.spacing, day_label(last_day)),
@@ -165,6 +169,7 @@ fn nothing_coming_up(space: &Json, deadlines: &[Json], last: &Json, today: &str)
 		line,
 		kind: None,
 		day: None,
+		name: None,
 		label: None,
 		answer: answer.to_owned(),
 		close: !recent,
@@ -251,12 +256,20 @@ mod tests {
 				line: "It came every week. None is on record after HW6.".into(),
 				kind: Some("homework".into()),
 				day: Some("2026-11-23".into()),
+				name: Some("HW7".into()),
 				label: Some("HW7?".into()),
 				answer: "None this week".into(),
 				close: false,
 				agent_line: "Homework came about every 7 days, none on record after HW6 (Mon Nov 16).".into(),
 			}
 		);
+	}
+
+	#[test]
+	fn the_browser_gets_the_name_and_the_outline_but_not_the_teachers_line() {
+		let sent = space_gap(&cse_21(), TODAY).unwrap().to_json();
+		assert_eq!((sent["name"].str_or_empty(), sent["label"].str_or_empty(), sent["day"].str_or_empty()), ("HW7", "HW7?", "2026-11-23"));
+		assert!(sent["agentLine"].is_null() && sent["agent_line"].is_null());
 	}
 
 	#[test]
@@ -340,11 +353,12 @@ mod tests {
 		);
 		let gap = space_gap(&slow, "2026-10-25").unwrap();
 		assert_eq!((gap.title.as_str(), gap.line.as_str(), gap.answer.as_str()), ("Homework in Physics soon?", "It came about every 10 days. None is on record after Problem Set 3.", "None for now"));
-		assert_eq!((gap.label.as_deref(), gap.day.as_deref()), (Some("Problem Set 4?"), Some("2026-10-31")));
+		assert_eq!((gap.name.as_deref(), gap.label.as_deref(), gap.day.as_deref()), (Some("Problem Set 4"), Some("Problem Set 4?"), Some("2026-10-31")));
 		for (i, day) in ["2026-10-06", "2026-10-13", "2026-10-20"].iter().enumerate() {
 			slow = push(slow, deadline(&format!("ddl_q{i}"), "quiz", "Quiz", day, true));
 		}
-		assert_eq!(space_gap(&slow, "2026-10-25").and_then(|g| g.day), Some("2026-10-27".into()));
+		let quiz = space_gap(&slow, "2026-10-25").unwrap();
+		assert_eq!((quiz.day.as_deref(), quiz.name.as_deref(), quiz.label.as_deref()), (Some("2026-10-27"), Some("Quiz"), Some("Quiz?")), "a name with no number gives the kind's word");
 	}
 
 	#[test]
@@ -359,6 +373,7 @@ mod tests {
 				line: "Test 2 was the last, 2 days ago.".into(),
 				kind: None,
 				day: None,
+				name: None,
 				label: None,
 				answer: "Nothing new".into(),
 				close: false,
@@ -381,16 +396,16 @@ mod tests {
 
 	#[test]
 	fn the_next_name_counts_up_or_falls_back_to_the_kind() {
-		assert_eq!(next_name("HW6", "Homework"), "HW7?");
-		assert_eq!(next_name("Problem Set 3", "Homework"), "Problem Set 4?");
-		assert_eq!(next_name("Lab 09", "Project"), "Lab 10?");
-		assert_eq!(next_name("Lab 01", "Project"), "Lab 02?");
-		assert_eq!(next_name("Essay", "Homework"), "Homework?");
+		assert_eq!(next_name("HW6", "Homework"), "HW7");
+		assert_eq!(next_name("Problem Set 3", "Homework"), "Problem Set 4");
+		assert_eq!(next_name("Lab 09", "Project"), "Lab 10");
+		assert_eq!(next_name("Lab 01", "Project"), "Lab 02");
+		assert_eq!(next_name("Essay", "Homework"), "Homework");
 	}
 
 	#[test]
 	fn no_words_hold_a_dash_or_a_dot_divider() {
-		let words = |g: Gap| [g.title, g.line, g.answer, g.label.unwrap_or_default()];
+		let words = |g: Gap| [g.title, g.line, g.answer, g.name.unwrap_or_default(), g.label.unwrap_or_default()];
 		for gap in [space_gap(&cse_21(), TODAY), space_gap(&cse_29(), TODAY), space_gap(&cse_29(), "2026-12-05")] {
 			for text in words(gap.unwrap()) {
 				assert!(!text.contains('\u{2014}') && !text.contains(" \u{b7} "), "{text}");

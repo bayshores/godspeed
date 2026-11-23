@@ -304,18 +304,19 @@ export interface SpaceGap {
 	answer: string;
 	/** "Is it over?": the learner may close the space. */
 	close: boolean;
-	/** A rhythm gap only: the kind that came on a rhythm, the day the next one was expected and
-	 *  the name it would have. */
+	/** A rhythm gap only: the kind that came on a rhythm, the day the next one was expected, the
+	 *  name it would have ("HW7") and the outline's name ("HW7?"). */
 	kind?: DeadlineKind;
 	day?: string;
+	name?: string;
 	label?: string;
 }
 
 /** A gap that came on a rhythm: drawn as an outline on its expected day, with its name. */
-export type RhythmGap = SpaceGap & Required<Pick<SpaceGap, "kind" | "day" | "label">>;
+export type RhythmGap = SpaceGap & Required<Pick<SpaceGap, "kind" | "day" | "name" | "label">>;
 
 export function isRhythmGap(gap: SpaceGap): gap is RhythmGap {
-	return gap.kind !== undefined && gap.day !== undefined && gap.label !== undefined;
+	return gap.kind !== undefined && gap.day !== undefined && gap.name !== undefined && gap.label !== undefined;
 }
 
 /** The gaps in a read of GET /api/deadlines; what is not a gap is left out. */
@@ -330,7 +331,7 @@ export function readGaps(value: unknown): SpaceGap[] {
 			typeof gap.close === "boolean" &&
 			(gap.kind === undefined || DEADLINE_KINDS.some((kind) => kind === gap.kind)) &&
 			(gap.day === undefined || isCalendarDate(gap.day)) &&
-			(gap.label === undefined || typeof gap.label === "string")
+			[gap.name, gap.label].every((word) => word === undefined || typeof word === "string")
 		);
 	});
 }

@@ -610,7 +610,7 @@ describe("Picking in the week", () => {
 		assert.ok($(el, "today-start"));
 	});
 
-	const HW7: RhythmGap = { spaceId: "spc_la", key: "spc_la:hw6:1", title: "Homework in Linear Algebra this week?", line: "It came every week. None is on record after HW6.", answer: "None this week", close: false, kind: "homework", day: "2026-10-30", label: "HW7?" };
+	const HW7: RhythmGap = { spaceId: "spc_la", key: "spc_la:hw6:1", title: "Homework in Linear Algebra this week?", line: "It came every week. None is on record after HW6.", answer: "None this week", close: false, kind: "homework", day: "2026-10-30", name: "HW7", label: "HW7?" };
 
 	it("an outline sits on its day, dashed in its space's color with no fill, and is never the card's own pick", async () => {
 		const el = await mount(body(homeLists(LA_OPEN, [], NOW), {}, [HW7]));

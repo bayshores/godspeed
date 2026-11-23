@@ -27,7 +27,7 @@ describe("the Deadlines tab's lists", () => {
 });
 
 describe("the outline in Coming up", () => {
-	const gap: RhythmGap = { spaceId: "spc_21", key: "spc_21:ddl_hw6:1", title: "Homework in CSE 21 this week?", line: "It came every week.", answer: "None this week", close: false, kind: "homework", day: "2026-11-13", label: "HW7?" };
+	const gap: RhythmGap = { spaceId: "spc_21", key: "spc_21:ddl_hw6:1", title: "Homework in CSE 21 this week?", line: "It came every week.", answer: "None this week", close: false, kind: "homework", day: "2026-11-13", name: "HW7", label: "HW7?" };
 	const timed = { ...d("quiz", "quiz", "2026-11-13"), time: "10:00" };
 	const rows = (coming: SpaceDeadline[], leaving = false, joined: readonly string[] = []) => comingRows(coming, [{ item: gap, leaving }], (d) => joined.includes(d.id)).map((r) => (r.kind === "gap" ? `${r.gap.label}${r.leaving ? " leaving" : ""}` : r.deadline.id));
 	it("sits on its day, after what is due earlier that day and before what comes later", () => {

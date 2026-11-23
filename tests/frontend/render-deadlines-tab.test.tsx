@@ -101,7 +101,7 @@ afterEach(async () => {
 	globalThis.fetch = originalFetch;
 });
 
-const outline = (offset: number): SpaceGap => ({ spaceId: "cls_a", key: "cls_a:hw6:1", title: "Homework in CSE 21 this week?", line: "It came every week. None is on record after HW6.", answer: "None this week", close: false, kind: "homework", day: day(offset), label: "HW7?" });
+const outline = (offset: number): SpaceGap => ({ spaceId: "cls_a", key: "cls_a:hw6:1", title: "Homework in CSE 21 this week?", line: "It came every week. None is on record after HW6.", answer: "None this week", close: false, kind: "homework", day: day(offset), name: "HW7", label: "HW7?" });
 /** The rows of Coming up and the outline, in the order drawn. */
 const order = () => [...document.querySelectorAll("[data-testid^='deadline-row-'], [data-testid='gap-row']")].map((el) => el.getAttribute("data-testid")!.replace("deadline-row-", ""));
 

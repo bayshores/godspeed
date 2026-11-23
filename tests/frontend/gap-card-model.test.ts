@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import type { SpaceGap } from "../../src/shared/core/contracts/space.ts";
 import { gapToShow } from "../../src/frontend/components/gap-card-model.ts";
 
-const rhythm: SpaceGap = { spaceId: "spc_21", key: "spc_21:ddl_hw6:1", title: "Homework in CSE 21 this week?", line: "It came every week.", answer: "None this week", close: false, kind: "homework", day: "2026-11-23", label: "HW7?" };
+const rhythm: SpaceGap = { spaceId: "spc_21", key: "spc_21:ddl_hw6:1", title: "Homework in CSE 21 this week?", line: "It came every week.", answer: "None this week", close: false, kind: "homework", day: "2026-11-23", name: "HW7", label: "HW7?" };
 const nothing: SpaceGap = { spaceId: "spc_29", key: "spc_29:ddl_t2:recent", title: "Nothing coming up in CSE 29", line: "Test 2 was the last, 2 days ago.", answer: "Nothing new", close: false };
 const known = new Set(["spc_21", "spc_29"]);
 const none = new Set<string>();
