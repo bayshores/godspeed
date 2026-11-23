@@ -195,6 +195,23 @@ describe("start script exit codes", () => {
 	});
 });
 
+describe("the folder's agent event hook", () => {
+	const script = read("crates/services/folder-files/agent-event.mjs");
+	it("sends only events the server reads", () => {
+		const server = read("crates/server/src/mcp/mod.rs");
+		const line = /const event = (.*);/.exec(script)?.[1] ?? "";
+		const events = [...line.matchAll(/[?:] "(\w+)"/g)].map((m) => m[1]!);
+		assert.deepEqual(events, ["session", "stop", "tool", "needs"]);
+		for (const event of events) assert.ok(server.includes(`(Some("${event}")`), event);
+	});
+	it("cuts a subject only for tools that have words", () => {
+		const tools = strings(rust("session/teacher_steps"), "CLAUDE_OWN_TOOLS");
+		const cut = [...script.matchAll(/tool === "(\w+)"/g)].map((m) => m[1]!);
+		assert.ok(cut.length > 0);
+		for (const tool of cut) assert.ok(tools.includes(tool), tool);
+	});
+});
+
 describe("the teacher's step words", () => {
 	it("use the lesson desk's verbs for the same tools", () => {
 		const desk = read("src/frontend/components/lesson/agent-at-work-model.ts");

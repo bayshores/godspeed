@@ -9,6 +9,8 @@ use gs_base::re::Re;
 use gs_base::text::len16;
 use gs_json::{Json, Obj, json, stringify_pretty};
 
+use crate::session::teacher_steps::{CLAUDE_OWN_TOOLS, CODEX_OWN_TOOLS};
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FolderAgent {
 	Claude,
@@ -169,9 +171,10 @@ const WAITER_TIMEOUT_S: u32 = 7260;
 /// .godspeed/claude-settings.json: turns on the folder's server, lets the agent use godspeed's
 /// tools and web search (what an interview is like is looked up online) without asking, tells
 /// the app when the session starts compacting and when it lost its context, hands each line the
-/// learner types to the app first (typed.mjs), and says which chat runs, when the agent stopped and
-/// when it asks the learner something (agent-event.mjs: the chats to go back to, the window's sound).
-/// After each turn the waiter waits for work in the background and wakes the agent with it
+/// learner types to the app first (typed.mjs), and says which chat runs, when the agent stopped,
+/// when it asks the learner something and which of its own tools it uses (agent-event.mjs: the
+/// chats to go back to, the window's sound, Follow's slip; the tool hook runs in the background,
+/// so it never slows a tool). After each turn the waiter waits for work in the background and wakes the agent with it
 /// (asyncRewake). The Artifact tool, claude.ai connectors and the skills and plugins synced from
 /// claude.ai stay off, and `GODSPEED_WAKES` tells the connector this session is woken that way.
 /// Fetching a page still asks: text hidden in a space file could send the learner's data out.
@@ -181,6 +184,7 @@ pub fn claude_settings(folder: &str, platform: Platform) -> String {
 	let forget = hook("forget.mjs");
 	let event = hook("agent-event.mjs");
 	let waiter = json!({ "type": "command", "command": "node", "args": [script("wait-for-work.mjs")], "asyncRewake": true, "timeout": WAITER_TIMEOUT_S });
+	let own_tool = json!({ "type": "command", "command": "node", "args": [script("agent-event.mjs")], "async": true });
 	let settings = json!({
 		"enabledMcpjsonServers": ["godspeed"],
 		"enableArtifact": false,
@@ -196,6 +200,7 @@ pub fn claude_settings(folder: &str, platform: Platform) -> String {
 			"SessionEnd": [{ "matcher": "clear", "hooks": forget }],
 			"Stop": [{ "hooks": [event[0].clone(), waiter] }],
 			"Notification": [{ "matcher": "permission_prompt|elicitation_dialog", "hooks": event }],
+			"PreToolUse": [{ "matcher": CLAUDE_OWN_TOOLS.join("|"), "hooks": [own_tool] }],
 		},
 	});
 	format!("{}\n", stringify_pretty(&settings, "\t"))
@@ -205,12 +210,14 @@ pub fn claude_settings(folder: &str, platform: Platform) -> String {
 /// a timeout longer than wait_for_work's 600 s, the app terminal's id and data folder passed
 /// on to the connector (Codex gives a server only the variables it names), the prompt hook
 /// that hands each line the learner types to the app first, and the hooks that say when the agent
-/// stopped or asks for a permission (a hook given here needs no review).
+/// stopped, asks for a permission or runs a command or a patch, the last in the background (a hook
+/// given here needs no review).
 /// TOML literal strings ('...'), so no value needs escaping: the folder has no quotes in it.
 fn codex_args(folder: &str, platform: Platform, prompt: Option<&str>) -> Vec<String> {
 	let server = "mcp_servers.godspeed";
 	let connector = join(folder, platform, &[".godspeed", "connect.mjs"]);
-	let hook = |event: &str, script: &str| format!("hooks.{event}=[{{hooks=[{{type='command',command='node \"{}\"',timeout=10}}]}}]", join(folder, platform, &[".godspeed", script]));
+	let command = |script: &str| format!("command='node \"{}\"'", join(folder, platform, &[".godspeed", script]));
+	let hook = |event: &str, script: &str| format!("hooks.{event}=[{{hooks=[{{type='command',{},timeout=10}}]}}]", command(script));
 	vec![
 		"-c".to_owned(),
 		format!("{server}.command='node'"),
@@ -230,6 +237,8 @@ fn codex_args(folder: &str, platform: Platform, prompt: Option<&str>) -> Vec<Str
 		hook("Stop", "agent-event.mjs"),
 		"-c".to_owned(),
 		hook("PermissionRequest", "agent-event.mjs"),
+		"-c".to_owned(),
+		format!("hooks.PreToolUse=[{{matcher='{}',hooks=[{{type='command',{},async=true}}]}}]", CODEX_OWN_TOOLS.join("|"), command("agent-event.mjs")),
 	]
 	.into_iter()
 	.chain(prompt.map(str::to_owned))
@@ -475,7 +484,23 @@ mod tests {
 		assert_eq!(gs_json::stringify(&settings["hooks"]["PreCompact"]), r#"[{"hooks":[{"type":"command","command":"node","args":["/Users/me/godspeed/.godspeed/compacting.mjs"],"timeout":10}]}]"#);
 		assert_eq!(gs_json::stringify(&settings["hooks"]["UserPromptSubmit"]), r#"[{"hooks":[{"type":"command","command":"node","args":["/Users/me/godspeed/.godspeed/typed.mjs"],"timeout":10}]}]"#);
 		assert_eq!(gs_json::stringify(&settings["hooks"]["Notification"]), r#"[{"matcher":"permission_prompt|elicitation_dialog","hooks":[{"type":"command","command":"node","args":["/Users/me/godspeed/.godspeed/agent-event.mjs"],"timeout":10}]}]"#);
-		assert_eq!(settings["hooks"].as_obj().unwrap().keys().cloned().collect::<Vec<_>>(), ["PreCompact", "UserPromptSubmit", "SessionStart", "SessionEnd", "Stop", "Notification"]);
+		assert_eq!(settings["hooks"].as_obj().unwrap().keys().cloned().collect::<Vec<_>>(), ["PreCompact", "UserPromptSubmit", "SessionStart", "SessionEnd", "Stop", "Notification", "PreToolUse"]);
+	}
+
+	#[test]
+	fn the_agent_s_own_tools_are_told_in_the_background_by_the_names_that_have_words() {
+		let settings = gs_json::parse(&claude_settings("/Users/me/godspeed", Platform::Darwin)).unwrap();
+		assert_eq!(
+			gs_json::stringify(&settings["hooks"]["PreToolUse"]),
+			r#"[{"matcher":"WebSearch|WebFetch|Read|Grep|Glob|Bash|Edit|Write|NotebookEdit","hooks":[{"type":"command","command":"node","args":["/Users/me/godspeed/.godspeed/agent-event.mjs"],"async":true}]}]"#
+		);
+		let codex = start_script(StartTarget::Codex, "/Users/me/godspeed", Platform::Linux, &none());
+		assert!(codex.contains(r#" -c "hooks.PreToolUse=[{matcher='Bash|apply_patch',hooks=[{type='command',command='node \"/Users/me/godspeed/.godspeed/agent-event.mjs\"',async=true}]}]""#), "{codex}");
+		let matched = |matcher: &Json| matcher.str_or_empty().split('|').map(str::to_owned).collect::<Vec<_>>();
+		assert_eq!(matched(&settings["hooks"]["PreToolUse"][0]["matcher"]), CLAUDE_OWN_TOOLS);
+		for tool in CLAUDE_OWN_TOOLS.iter().chain(&CODEX_OWN_TOOLS) {
+			assert!(crate::session::teacher_steps::own_tool_step(tool, None).is_some(), "{tool} has no words");
+		}
 	}
 
 	#[test]
@@ -520,7 +545,8 @@ mod tests {
 		assert!(start_script(StartTarget::ClaudeHelper, "/Users/me/godspeed", Platform::Linux, &none()).ends_with("\nexport GODSPEED_HELPER=1\nexec claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start as the helper\"\n"));
 		let codex = start_script(StartTarget::CodexHelper, "/Users/me/godspeed", Platform::Linux, &none());
 		assert!(codex.contains(r#" -c "hooks.UserPromptSubmit=[{hooks=[{type='command',command='node \"/Users/me/godspeed/.godspeed/typed.mjs\"',timeout=10}]}]" "#), "{codex}");
-		assert!(codex.ends_with(concat!(r#" -c "hooks.PermissionRequest=[{hooks=[{type='command',command='node \"/Users/me/godspeed/.godspeed/agent-event.mjs\"',timeout=10}]}]" "Start as the helper""#, "\n")), "{codex}");
+		assert!(codex.contains(r#" -c "hooks.PermissionRequest=[{hooks=[{type='command',command='node \"/Users/me/godspeed/.godspeed/agent-event.mjs\"',timeout=10}]}]" "#), "{codex}");
+		assert!(codex.ends_with("async=true}]}]\" \"Start as the helper\"\n"), "{codex}");
 		let win = start_script(StartTarget::CodexHelper, "C:\\Users\\me\\godspeed", Platform::Win32, &none());
 		assert!(win.contains(r#" -c "hooks.Stop=[{hooks=[{type='command',command='node \"C:\Users\me\godspeed\.godspeed\agent-event.mjs\"',timeout=10}]}]" "#), "{win}");
 	}

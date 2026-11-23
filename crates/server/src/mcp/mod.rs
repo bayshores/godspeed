@@ -182,10 +182,12 @@ pub async fn handle_terminal_line(app: &App, headers: &HeaderMap, body: Option<J
 }
 
 /// /api/mcp/agent-event: the godspeed folder's hook says the agent in a terminal started a chat
-/// (`{ "event": "session", "session": <id>, "agent": "claude" }`), stopped (`"stop"`) or waits
-/// for the learner's say (`"needs"`). The teacher's chats are kept to go back to. The window may
-/// play its sound: for a stop only when the teacher was answering a line typed to it there (a
-/// lesson's reply has its own turn), for a need only from the teacher's terminal.
+/// (`{ "event": "session", "session": <id>, "agent": "claude" }`), stopped (`"stop"`), waits
+/// for the learner's say (`"needs"`) or uses one of its own tools (`{ "event": "tool", "tool":
+/// "WebSearch", "subject": "cse 21 hw7" }`). The teacher's chats are kept to go back to, and its
+/// own tools are steps of its round of work. The window may play its sound: for a stop only when
+/// the teacher was answering a line typed to it there (a lesson's reply has its own turn), for a
+/// need only from the teacher's terminal.
 pub fn handle_agent_event(app: &App, headers: &HeaderMap, body: Option<Json>) -> Response {
 	if let Some(refused) = refuse(app, headers) {
 		return refused;
@@ -203,8 +205,12 @@ pub fn handle_agent_event(app: &App, headers: &HeaderMap, body: Option<Json>) ->
 			app.bridge.take_chat(id).then_some("done")
 		}
 		(Some("needs"), id) if app.bridge.is_teacher_terminal(id) => Some("needs"),
-		(Some("stop" | "needs"), _) => None,
-		_ => return http_reply::json(400, &json!({ "error": "Send \"event\": \"session\", \"stop\" or \"needs\"." })),
+		(Some("tool"), Some(id)) => {
+			teacher_work::note_own_tool(app, id, body["tool"].str_or_empty(), body["subject"].as_str());
+			None
+		}
+		(Some("stop" | "needs" | "tool"), _) => None,
+		_ => return http_reply::json(400, &json!({ "error": "Send \"event\": \"session\", \"stop\", \"needs\" or \"tool\"." })),
 	};
 	if let Some(kind) = kind {
 		app.events.emit(EventKind::AgentEvent, json!({ "kind": kind }));

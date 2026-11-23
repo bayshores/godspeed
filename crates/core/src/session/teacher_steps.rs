@@ -1,7 +1,8 @@
-//! What the teacher's godspeed tool calls show while it works, for Follow's slip. A read or a
-//! note is a step in plain words. The work loop is none, and neither is a change: every change
-//! already writes the activity log, which the window shows beside the steps. Pure: the names a
-//! step uses come from the caller.
+//! What the teacher's tool calls show while it works, for Follow's slip. A godspeed read or note
+//! is a step in plain words. The work loop is none, and neither is a godspeed change: every change
+//! already writes the activity log, which the window shows beside the steps. The agent's own
+//! tools (web search, file reads, commands) are steps too. Pure: the names a step uses come from
+//! the caller.
 
 use gs_base::text;
 use gs_json::{Json, Obj};
@@ -81,6 +82,32 @@ pub fn round_call(tool: &str, args: &Json, names: &dyn StepNames) -> Option<Roun
 		_ => return None,
 	};
 	Some(RoundCall::Step(TeacherStep { text: short_label(&words), link: None }))
+}
+
+/// The agent's own tools that show as steps, by the names Claude Code's hook gives them; its
+/// hook's matcher is these.
+pub const CLAUDE_OWN_TOOLS: [&str; 9] = ["WebSearch", "WebFetch", "Read", "Grep", "Glob", "Bash", "Edit", "Write", "NotebookEdit"];
+/// Codex's hook reports only its commands and its patches.
+pub const CODEX_OWN_TOOLS: [&str; 2] = ["Bash", "apply_patch"];
+
+/// One of the agent's own tools, with the subject its hook kept (a file's or a site's name, the
+/// web search's words, a search's plain words). None for a tool not listed above.
+pub fn own_tool_step(tool: &str, subject: Option<&str>) -> Option<TeacherStep> {
+	let subject = subject.map(text::trim).filter(|s| !s.is_empty());
+	let words = match (tool, subject) {
+		("WebSearch", Some(query)) => format!("Searching the web for {}", quoted(query)),
+		("WebSearch", None) => "Searching the web".to_owned(),
+		("WebFetch" | "Read", Some(name)) => format!("Reading {name}"),
+		("WebFetch", None) => "Reading a web page".to_owned(),
+		("Read", None) => "Reading a file".to_owned(),
+		("Grep", Some(words)) => format!("Searching files for {}", quoted(words)),
+		("Grep", None) => "Searching files".to_owned(),
+		("Glob", _) => "Looking for files".to_owned(),
+		("Bash", _) => "Running a command".to_owned(),
+		("Edit" | "Write" | "NotebookEdit" | "apply_patch", _) => "Changing files".to_owned(),
+		_ => return None,
+	};
+	Some(TeacherStep { text: short_label(&words), link: None })
 }
 
 /// Words the learner or the agent wrote, in the quotes the window's lines use.
@@ -234,6 +261,34 @@ mod tests {
 		assert_eq!((by_slide.text.as_str(), by_slide.link.is_some()), ("Reading HW7_F26.pdf", true));
 		let no_place = read(json!({ "space_id": "spc_1", "file_id": "f_0123456789ab" }));
 		assert_eq!((no_place.text.as_str(), no_place.link), ("Reading HW7_F26.pdf", None), "the call itself is refused: nothing to open");
+	}
+
+	#[test]
+	fn the_agent_s_own_tools_say_what_they_look_at_and_nothing_else() {
+		let own = |tool: &str, subject: Option<&str>| own_tool_step(tool, subject).map(|step| (step.text, step.link));
+		let words = |tool: &str, subject: Option<&str>| own(tool, subject).map(|(text, _)| text);
+		assert_eq!(words("WebSearch", Some(" cse 21 hw7 ")).as_deref(), Some("Searching the web for “cse 21 hw7”"));
+		assert_eq!(words("WebFetch", Some("cse29.site")).as_deref(), Some("Reading cse29.site"));
+		assert_eq!(words("Read", Some("syllabus.pdf")).as_deref(), Some("Reading syllabus.pdf"));
+		assert_eq!(words("Grep", Some("due")).as_deref(), Some("Searching files for “due”"));
+		assert_eq!(words("Grep", None).as_deref(), Some("Searching files"));
+		assert_eq!(words("Grep", Some("  ")).as_deref(), Some("Searching files"));
+		assert_eq!(words("WebSearch", None).as_deref(), Some("Searching the web"));
+		assert_eq!(words("WebFetch", None).as_deref(), Some("Reading a web page"));
+		assert_eq!(words("Read", None).as_deref(), Some("Reading a file"));
+		assert_eq!(words("Glob", Some("x")).as_deref(), Some("Looking for files"), "a glob's pattern is never shown");
+		assert_eq!(words("Bash", Some("rm -rf ~")).as_deref(), Some("Running a command"), "a command is never shown");
+		for tool in ["Edit", "Write", "NotebookEdit", "apply_patch"] {
+			assert_eq!(words(tool, Some("notes.md")).as_deref(), Some("Changing files"), "{tool}");
+		}
+		for tool in CLAUDE_OWN_TOOLS.iter().chain(&CODEX_OWN_TOOLS) {
+			assert_eq!(own(tool, Some("x")).map(|(_, link)| link), Some(None), "{tool}: a step, with nothing to open");
+		}
+		for tool in ["Agent", "TodoWrite", "mcp__godspeed__read_space", "read_space", "webSearch"] {
+			assert_eq!(own_tool_step(tool, None), None, "{tool}");
+		}
+		let long = words("WebSearch", Some(&"how to find the inverse of a matrix ".repeat(4))).unwrap_or_default();
+		assert_eq!(text::len16(&long), LABEL_MAX);
 	}
 
 	#[test]

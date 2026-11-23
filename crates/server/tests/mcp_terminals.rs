@@ -37,7 +37,8 @@ async fn woken(app: &Arc<App>, terminal: Option<&str>, agent: &str, tool: &str, 
 	send(app, terminal, Some(format!(r#""godspeed/agent":"{agent}","godspeed/wakes":true"#)), tool, arguments).await
 }
 
-async fn send(app: &Arc<App>, terminal: Option<&str>, meta: Option<String>, tool: &str, arguments: &str) -> (u16, String) {
+/// A local request with the token, from `terminal` when given.
+fn headers(terminal: Option<&str>) -> HeaderMap {
 	let mut headers = HeaderMap::new();
 	headers.insert("host", HeaderValue::from_static("127.0.0.1:48065"));
 	headers.insert("authorization", HeaderValue::from_str(&format!("Bearer {TOKEN}")).unwrap());
@@ -46,9 +47,13 @@ async fn send(app: &Arc<App>, terminal: Option<&str>, meta: Option<String>, tool
 	if let Some(id) = terminal {
 		headers.insert("x-godspeed-terminal", HeaderValue::from_str(id).unwrap());
 	}
+	headers
+}
+
+async fn send(app: &Arc<App>, terminal: Option<&str>, meta: Option<String>, tool: &str, arguments: &str) -> (u16, String) {
 	let meta = meta.map(|m| format!(r#","_meta":{{{m}}}"#)).unwrap_or_default();
 	let body = format!(r#"{{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{{"name":"{tool}","arguments":{arguments}{meta}}}}}"#);
-	let res = handle_mcp_request(app, &Method::POST, &headers, body.as_bytes()).await;
+	let res = handle_mcp_request(app, &Method::POST, &headers(terminal), body.as_bytes()).await;
 	let status = res.status().as_u16();
 	(status, String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap())
 }
@@ -340,4 +345,66 @@ async fn the_window_reads_the_round_at_its_route() {
 	call(&app, None, None, "list_spaces", "{}").await;
 	let live = get().await;
 	assert_eq!((live["live"].as_bool(), live["steps"][0]["text"].as_str()), (Some(true), Some("Looking at your spaces")), "{live:?}");
+}
+
+/// The folder's hook in `terminal` says the agent uses one of its own tools: the answer's status.
+fn own_tool(app: &App, terminal: Option<&str>, tool: &str, subject: &str) -> u16 {
+	let body = gs_json::json!({ "event": "tool", "tool": tool, "subject": subject });
+	gs_server::mcp::handle_agent_event(app, &headers(terminal), Some(body)).status().as_u16()
+}
+
+/// Whether `text` is in any file under the app's data folder.
+fn written(dir: &std::path::Path, text: &str) -> bool {
+	std::fs::read_dir(dir).unwrap().flatten().any(|entry| {
+		let path = entry.path();
+		if path.is_dir() { written(&path, text) } else { std::fs::read(&path).is_ok_and(|bytes| String::from_utf8_lossy(&bytes).contains(text)) }
+	})
+}
+
+#[tokio::test]
+async fn the_teacher_terminal_s_own_tools_are_steps_shown_and_never_written_down() {
+	let app = app();
+	let helper = "f".repeat(32);
+	app.bridge.set_live_terminals(vec![TERMINAL.to_owned(), helper.clone()], Some(TERMINAL.to_owned()));
+	let mut events = app.events.subscribe();
+	assert_eq!(own_tool(&app, Some(TERMINAL), "WebSearch", "cse 21 hw7"), 200);
+	assert_eq!(round(&app), None, "a tool begins no round");
+
+	app.bridge.chat_line(TERMINAL, gs_base::clock::now_ms());
+	own_tool(&app, Some(TERMINAL), "WebSearch", "cse 21 hw7");
+	own_tool(&app, Some(&helper), "Read", "helper.pdf");
+	own_tool(&app, None, "Read", "outside.pdf");
+	own_tool(&app, Some(TERMINAL), "TodoWrite", "plan");
+	own_tool(&app, Some(TERMINAL), "Bash", "ignored");
+	assert_eq!(round(&app), Some(vec!["Searching the web for “cse 21 hw7”".to_owned(), "Running a command".to_owned()]), "the helper, an agent outside godspeed and an unlisted tool make no step");
+
+	let data = app.paths.data.clone();
+	assert!(!written(&data, "cse 21 hw7") && !written(&data, "helper.pdf"), "no subject in the data folder");
+	while let Ok(event) = events.try_recv() {
+		assert!(!gs_json::stringify(&event.payload).contains("cse 21"), "{event:?}");
+	}
+}
+
+#[tokio::test]
+async fn the_teacher_s_own_tools_make_no_step_while_it_holds_background_work() {
+	let app = app();
+	app.bridge.set_live_terminals(vec![TERMINAL.to_owned()], Some(TERMINAL.to_owned()));
+	app.bridge.set_terminal_chat(TERMINAL, "sess-1");
+	app.bridge.chat_line(TERMINAL, gs_base::clock::now_ms());
+	// Asked, so the teacher takes it at once rather than after the helper's grace.
+	app.bridge.mark_asked("job_check");
+	let engine = gs_engine::turn::models::agent_engine(&app.bridge);
+	let job = gs_base::tasks::spawn("test", async move {
+		let ask = vec![gs_json::json!({ "role": "user", "content": "read HW6", "timestamp": 1 })];
+		gs_engine::turn::faux::stream(&engine, ask, Some("job_check".to_owned()), &gs_engine::turn::abort::Abort::new(), &mut |_| {}).await
+	});
+	gs_base::clock::sleep(20).await;
+	let (_, body) = call(&app, Some(TERMINAL), Some("sess-1"), "wait_for_work", r#"{"timeout_seconds":1}"#).await;
+	let work_id = body.split(r#"workId\":\""#).nth(1).and_then(|rest| rest.split('\\').next()).unwrap_or_else(|| panic!("no work: {body}")).to_owned();
+	own_tool(&app, Some(TERMINAL), "Read", "HW6.pdf");
+	assert_eq!(round(&app), Some(Vec::new()), "held background work is no step");
+	call(&app, Some(TERMINAL), Some("sess-1"), "respond", &format!(r#"{{"work_id":"{work_id}","text":"Done.","wait_seconds":0}}"#)).await;
+	job.await.unwrap();
+	own_tool(&app, Some(TERMINAL), "Read", "HW6.pdf");
+	assert_eq!(round(&app), Some(vec!["Reading HW6.pdf".to_owned()]));
 }
