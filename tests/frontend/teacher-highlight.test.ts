@@ -48,9 +48,9 @@ describe("lit marks", () => {
 		const lit = letGo(lightUp(none, ["deadline:a", "file:f"], "/"), (key) => key !== "file:f");
 		const css = litRules(lit, (v) => v.replace(":", "\\:"));
 		const [rules, motion] = css.split("\n");
-		assert.equal(rules, '[data-teacher-target="deadline\\:a"]{background-color:color-mix(in srgb, var(--lh-tint) 16%, var(--background))!important;box-shadow:inset 2px 0 0 var(--lh-tint)!important}');
-		assert.match(motion ?? "", /^@media \(prefers-reduced-motion:no-preference\)\{\[data-teacher-target="deadline\\:a"\]\{transition:background-color var\(--lh-dur\)/);
-		assert.match(motion ?? "", /\[data-teacher-target="file\\:f"\]\{transition:background-color var\(--lh-dur-fast\) var\(--lh-ease-in\)/);
+		assert.equal(rules, '[data-teacher-target="deadline\\:a"]{box-shadow:inset 2px 0 0 var(--lh-tint),inset 0 0 0 100vmax color-mix(in srgb, var(--lh-tint) 16%, transparent)!important}');
+		assert.match(motion ?? "", /^@media \(prefers-reduced-motion:no-preference\)\{\[data-teacher-target="deadline\\:a"\]\{transition:box-shadow var\(--lh-dur\) var\(--lh-ease-out\)/);
+		assert.match(motion ?? "", /\[data-teacher-target="file\\:f"\]\{transition:box-shadow var\(--lh-dur-fast\) var\(--lh-ease-in\)/);
 		assert.ok(!(rules ?? "").includes("file"), "a leaving mark has no tint");
 	});
 });

@@ -38,11 +38,12 @@ export function dropLeft(lit: Lit): Lit {
 	return [...lit.values()].some((m) => m.leaving) ? new Map([...lit].filter(([, m]) => !m.leaving)) : lit;
 }
 
-const TINT = "color-mix(in srgb, var(--lh-tint) 16%, var(--background))";
-const EDGE = "inset 2px 0 0 var(--lh-tint)";
+/** The 2-point edge, then the tint over the whole face. Both are inset shadows, which lie over a
+ *  face drawn as background images (a sheet) as well as a plain one, and ease where colors would not. */
+const MARK = "inset 2px 0 0 var(--lh-tint),inset 0 0 0 100vmax color-mix(in srgb, var(--lh-tint) 16%, transparent)";
 
 /** One rule per mark, the selector's value passed through `escape` (CSS.escape in the page): a lit
- *  one has the tint and the edge and fades them in; a leaving one fades back to its own look. */
+ *  one has the edge and the tint and fades them in; a leaving one fades back to its own look. */
 export function litRules(lit: Lit, escape: (value: string) => string): string {
 	const on: string[] = [];
 	const off: string[] = [];
@@ -50,10 +51,10 @@ export function litRules(lit: Lit, escape: (value: string) => string): string {
 	const rules: string[] = [];
 	const motion: string[] = [];
 	if (on.length > 0) {
-		rules.push(`${on.join(",")}{background-color:${TINT}!important;box-shadow:${EDGE}!important}`);
-		motion.push(`${on.join(",")}{transition:background-color var(--lh-dur) var(--lh-ease-out),box-shadow var(--lh-dur) var(--lh-ease-out)}`);
+		rules.push(`${on.join(",")}{box-shadow:${MARK}!important}`);
+		motion.push(`${on.join(",")}{transition:box-shadow var(--lh-dur) var(--lh-ease-out)}`);
 	}
-	if (off.length > 0) motion.push(`${off.join(",")}{transition:background-color var(--lh-dur-fast) var(--lh-ease-in),box-shadow var(--lh-dur-fast) var(--lh-ease-in)}`);
+	if (off.length > 0) motion.push(`${off.join(",")}{transition:box-shadow var(--lh-dur-fast) var(--lh-ease-in)}`);
 	if (motion.length > 0) rules.push(`@media (prefers-reduced-motion:no-preference){${motion.join("")}}`);
 	return rules.join("\n");
 }

@@ -30,8 +30,10 @@ export function useRoom() {
 		const measure = () => {
 			const page = (pageEl ?? document.documentElement).getBoundingClientRect();
 			const box = el.getBoundingClientRect();
-			const foot = main ? Math.round(parseFloat(getComputedStyle(main).paddingBottom) || 0) : 0;
-			const height = Math.max(LEAST, Math.floor(page.bottom + foot - box.top - ABOVE_FOOT - FOOT));
+			const lifted = main ? parseFloat(getComputedStyle(main).paddingBottom) || 0 : 0;
+			const foot = Math.round(lifted);
+			// Measured with the exact lift, so the room's height holds still while the foot glides.
+			const height = Math.max(LEAST, Math.floor(page.bottom + lifted - box.top - ABOVE_FOOT - FOOT));
 			const edges = { left: Math.round(box.left - page.left), right: Math.round(page.right - box.right), top: Math.round(box.top - page.top) };
 			const same = (o: typeof size) =>
 				o.width === el.clientWidth && o.height === height && o.foot === foot && o.edges.left === edges.left && o.edges.right === edges.right && o.edges.top === edges.top;
