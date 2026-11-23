@@ -49,11 +49,13 @@ export function deadlineLists<T extends Listed>(deadlines: readonly T[], nowMs: 
 type ComingRow<T> = { kind: "deadline"; deadline: T } | { kind: "gap"; gap: RhythmGap; leaving: boolean };
 
 /** "Coming up" with the outlines placed by their day: due at the day's end, as a deadline with no
- *  time, so after what is due earlier that day and before a deadline with no time that day, whose
- *  row then takes the outline's place once it has faded. `coming` is soonest first. */
-export function comingRows<T extends Listed>(coming: readonly T[], gaps: readonly { item: RhythmGap; leaving: boolean }[]): ComingRow<T>[] {
+ *  time, so after what is due earlier that day and before a deadline with no time that day.
+ *  `coming` is soonest first. An outline that leaves as a deadline `joined` on its day gives way at
+ *  once, so the new row takes its place and the rows after it hold still. */
+export function comingRows<T extends Listed>(coming: readonly T[], gaps: readonly { item: RhythmGap; leaving: boolean }[], joined: (d: T) => boolean): ComingRow<T>[] {
 	const rows: ComingRow<T>[] = coming.map((deadline) => ({ kind: "deadline", deadline }));
 	for (const { item: gap, leaving } of gaps) {
+		if (leaving && coming.some((d) => d.date === gap.day && joined(d))) continue;
 		const at = dueAtMs({ date: gap.day });
 		const after = rows.findIndex((row) => row.kind === "deadline" && dueAtMs(row.deadline) >= at);
 		rows.splice(after < 0 ? rows.length : after, 0, { kind: "gap", gap, leaving });

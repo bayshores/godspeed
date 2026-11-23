@@ -29,7 +29,7 @@ describe("the Deadlines tab's lists", () => {
 describe("the outline in Coming up", () => {
 	const gap: RhythmGap = { spaceId: "spc_21", key: "spc_21:ddl_hw6:1", title: "Homework in CSE 21 this week?", line: "It came every week.", answer: "None this week", close: false, kind: "homework", day: "2026-11-13", label: "HW7?" };
 	const timed = { ...d("quiz", "quiz", "2026-11-13"), time: "10:00" };
-	const rows = (coming: SpaceDeadline[], leaving = false) => comingRows(coming, [{ item: gap, leaving }]).map((r) => (r.kind === "gap" ? `${r.gap.label}${r.leaving ? " leaving" : ""}` : r.deadline.id));
+	const rows = (coming: SpaceDeadline[], leaving = false, joined: readonly string[] = []) => comingRows(coming, [{ item: gap, leaving }], (d) => joined.includes(d.id)).map((r) => (r.kind === "gap" ? `${r.gap.label}${r.leaving ? " leaving" : ""}` : r.deadline.id));
 	it("sits on its day, after what is due earlier that day and before what comes later", () => {
 		assert.deepEqual(rows([timed, FINAL]), ["quiz", "HW7?", "final"]);
 	});
@@ -38,9 +38,11 @@ describe("the outline in Coming up", () => {
 		assert.deepEqual(rows([FINAL]), ["HW7?", "final"]);
 		assert.deepEqual(rows([]), ["HW7?"]);
 	});
-	it("one that is leaving keeps its place, before the deadline added for it", () => {
+	it("one that is leaving keeps its place, but gives way at once to a deadline that joins on its day", () => {
 		assert.deepEqual(rows([timed, FINAL], true), ["quiz", "HW7? leaving", "final"]);
 		assert.deepEqual(rows([timed, HW6, FINAL], true), ["quiz", "HW7? leaving", "hw6", "final"]);
+		assert.deepEqual(rows([timed, HW6, FINAL], true, ["hw6"]), ["quiz", "hw6", "final"]);
+		assert.deepEqual(rows([timed, HW6, FINAL], true, ["final"]), ["quiz", "HW7? leaving", "hw6", "final"]);
 	});
 });
 

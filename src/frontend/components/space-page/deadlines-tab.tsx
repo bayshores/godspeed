@@ -77,7 +77,7 @@ export function DeadlinesTab() {
 	}
 	const sheetOf = new Map(sheets?.cards.map((c) => [c.deadlineId, c]));
 	const lists = ready && nowMs !== null ? deadlineLists(record.deadlines ?? [], nowMs) : null;
-	const coming = lists && comingRows(lists.coming, shownOutlines);
+	const coming = lists && comingRows(lists.coming, shownOutlines, (d) => !!arrive(d.id));
 	const row = (d: SpaceDeadline) => (
 		<DeadlineRow
 			key={d.id}
