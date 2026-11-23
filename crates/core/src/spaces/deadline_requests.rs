@@ -127,6 +127,8 @@ pub struct AskedRecord {
 	pub path_asked: BTreeSet<String>,
 	/// Overdue deadlines the learner said Not yet to.
 	pub overdue_asked: BTreeSet<String>,
+	/// The keys of the gaps (`space_gaps`) the learner waved off, the newest per space.
+	pub gap_asked: BTreeSet<String>,
 }
 
 pub const ASKED_VERSION: u32 = 2;
@@ -145,6 +147,7 @@ impl AskedRecord {
 			weighed: string_set(&saved["weighed"]),
 			path_asked: string_set(&saved["pathAsked"]),
 			overdue_asked: string_set(&saved["overdueAsked"]),
+			gap_asked: string_set(&saved["gapAsked"]),
 		}
 	}
 
@@ -159,7 +162,15 @@ impl AskedRecord {
 		out.insert("weighed", self.weighed.iter().cloned().collect::<Vec<_>>());
 		out.insert("pathAsked", self.path_asked.iter().cloned().collect::<Vec<_>>());
 		out.insert("overdueAsked", self.overdue_asked.iter().cloned().collect::<Vec<_>>());
+		out.insert("gapAsked", self.gap_asked.iter().cloned().collect::<Vec<_>>());
 		Json::Obj(out)
+	}
+
+	/// The learner waved off a gap: its key replaces the space's older ones.
+	pub fn answer_gap(&mut self, key: &str) {
+		let space = key.split(':').next().unwrap_or_default();
+		self.gap_asked.retain(|asked| asked.split(':').next() != Some(space));
+		self.gap_asked.insert(key.to_owned());
 	}
 
 	/// A check that ended well: each of its reasons counts as asked.
@@ -508,7 +519,13 @@ mod tests {
 		full.mark(&[Reason::Path { asked: "spc_a:h1".to_owned(), topics: 12, left: 3 }]);
 		full.mark(&[Reason::Path { asked: "spc_a:h2".to_owned(), topics: 22, left: 2 }]);
 		full.overdue_asked.insert("d_quiz".to_owned());
-		assert_eq!(gs_json::stringify(&full.to_json()), r#"{"asked":[],"since":"2026-11-01T11:00:00.000Z","checkedInfo":[],"weighed":[],"pathAsked":["spc_a:h2"],"overdueAsked":["d_quiz"]}"#);
+		full.answer_gap("spc_a:d_hw6:1");
+		full.answer_gap("spc_b:d_t2:recent");
+		full.answer_gap("spc_a:d_hw6:2");
+		assert_eq!(
+			gs_json::stringify(&full.to_json()),
+			r#"{"asked":[],"since":"2026-11-01T11:00:00.000Z","checkedInfo":[],"weighed":[],"pathAsked":["spc_a:h2"],"overdueAsked":["d_quiz"],"gapAsked":["spc_a:d_hw6:2","spc_b:d_t2:recent"]}"#
+		);
 		assert_eq!(AskedRecord::read(&full.to_json()), full);
 	}
 

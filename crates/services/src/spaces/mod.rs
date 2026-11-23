@@ -10,6 +10,7 @@
 
 pub mod citations;
 pub mod deadline_requests;
+pub mod gaps;
 pub mod space_actions;
 pub mod space_card;
 pub mod space_checks;
