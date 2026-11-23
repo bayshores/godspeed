@@ -35,6 +35,7 @@ To add a row:
 | Progress | Progress | `nav-progress` | | learner | `space` |
 | Lessons on Progress | Progress | `lesson-record` | Progress | learner | `chat/:id` |
 | Confidence against results | Progress | `overview-confidence` | | learner | |
+| The deadline after the next one, on the next deadline's card | Progress | `next-deadline-next` | Progress with a homework next | learner | |
 | Most needed topic | Progress | `most-needed` | | learner | |
 | Teacher's note | Progress | none: drawn only after the teacher wrote one | | teacher | |
 | Path to a goal | Progress | `space-start-path` | Progress, a new space | teacher | |

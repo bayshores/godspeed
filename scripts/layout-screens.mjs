@@ -79,6 +79,8 @@ await fetch("/api/spaces/{space}/deadlines/{homeworkOpenDeadline}", { method: "P
 const homeworkTomorrow = `const day = new Date(Date.now() + 86_400_000);
 const date = day.getFullYear() + "-" + String(day.getMonth() + 1).padStart(2, "0") + "-" + String(day.getDate()).padStart(2, "0");
 await fetch("/api/spaces/{space}/deadlines/{homeworkOpenDeadline}", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ date }) })${HTTP_OK};`;
+const untickHomework = `await fetch("/api/spaces/{space}/deadlines/{homeworkOpenDeadline}", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ done: false }) })${HTTP_OK};`;
+const homeworkCard = "[data-teacher-target='deadline:{homeworkOpenDeadline}']";
 /** Two Study lessons on the exam, so its page lists them. */
 const twoLessons = `for (let n = 0; n < 2; n++) await fetch("/api/chats", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ spaceId: "{space}", deadlineId: "{deadline}" }) })${HTTP_OK};`;
 const dropTwoLessons = `const { chats } = await fetch("/api/chats?space={space}")${HTTP_OK}.then((r) => r.json());
@@ -344,8 +346,9 @@ export const SCREENS = [
 	{ name: "Deadline", before: dropProjectRhythm, url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]" },
 	{ name: "Deadline with two lessons", before: twoLessons, url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-lessons] li:nth-child(2)" },
 	{ name: "Homework deadline with its two keys", before: dropTwoLessons, url: "/space/deadline/{homeworkOpenDeadline}", ready: "[data-testid=deadline-head] [data-testid=deadline-work]" },
-	{ name: "Progress with a homework next", before: `${homeworkCoversFile}\n${homeworkTomorrow}`, url: "/space", ready: "[data-testid=next-deadline] [data-testid=deadline-work]" },
-	{ name: "Lesson with a sourced reply, an open quiz and the plan", url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
+	{ name: "Progress with a homework next", before: `${homeworkCoversFile}\n${homeworkTomorrow}`, url: "/space", ready: "[data-testid=next-deadline] [data-testid=deadline-work]", shows: "[data-testid=next-deadline-next]" },
+	{ name: "Progress, the next deadline marked done", url: "/space", ready: `${homeworkCard} [data-testid=next-deadline-done]`, setup: `document.querySelector("${homeworkCard} [data-testid=next-deadline-done]").click()`, shows: `${homeworkCard} [data-testid=next-deadline-undo]` },
+	{ name: "Lesson with a sourced reply, an open quiz and the plan", before: untickHomework, url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
 	{ name: "Lesson with a written-answer question", url: "/chat/{written}", ready: "[data-testid=question-dock]" },
 	{ name: "Lesson with a written-answer question beside the teacher's panel", url: "/chat/{written}", ready: "[data-testid=question-dock]", setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
 	{ name: "Lesson with a plugin's page open", url: "/chat/{lesson}", ready: "[data-testid=lesson-plugin-flashcards]", setup: `document.querySelector("[data-testid=lesson-plugin-flashcards]").click()`, shows: "[data-testid=plugin-window] [data-testid=plugin-frame][data-state=ready]" },

@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
 	calibrationTakeaway,
+	deadlineAfter,
 	deadlineHref,
 	hasCalibration,
 	isLevelOverconfident,
@@ -16,6 +17,7 @@ import {
 	percent,
 	progressWords,
 	questionHref,
+	shownDeadline,
 	upcomingDeadlines,
 } from "../../src/frontend/components/overview/overview-model.ts";
 import { splitInlineMath } from "../../src/frontend/components/overview/inline-math.tsx";
@@ -75,6 +77,29 @@ describe("deadlines on Progress", () => {
 	it("upcoming: open and still ahead, soonest first", () => {
 		const list = [due("later", "2026-11-05"), due("soon", "2026-10-29"), due("past", "2026-10-20"), due("done", "2026-10-28", { done: true }), due("tonight", "2026-10-27", { time: "23:00" })];
 		assert.deepEqual(upcomingDeadlines(list, NOW).map((d) => d.id), ["tonight", "soon", "later"]);
+	});
+
+	it("the card's deadline: the soonest ahead, the picked one while it is ahead or ticked done", () => {
+		const list = [due("a", "2026-10-28"), due("b", "2026-10-30"), due("past", "2026-10-20"), due("ticked", "2026-10-29", { done: true })];
+		const upcoming = upcomingDeadlines(list, NOW);
+		assert.equal(shownDeadline(list, upcoming, null)?.id, "a");
+		assert.equal(shownDeadline(list, upcoming, "b")?.id, "b");
+		assert.equal(shownDeadline(list, upcoming, "ticked")?.id, "ticked", "one just ticked done stays, for Undo");
+		assert.equal(shownDeadline(list, upcoming, "past")?.id, "a", "one whose date passed gives way");
+		assert.equal(shownDeadline(list, upcoming, "removed")?.id, "a");
+		assert.equal(shownDeadline([], [], "a"), null);
+	});
+
+	it("Next: the one due after, around to the soonest, none with no other", () => {
+		const [a, b, c] = [due("a", "2026-10-28"), due("b", "2026-10-30"), due("c", "2026-11-02")];
+		const upcoming = [a, b, c];
+		assert.equal(deadlineAfter(upcoming, a)?.id, "b");
+		assert.equal(deadlineAfter(upcoming, c)?.id, "a");
+		assert.equal(deadlineAfter([a], a), null);
+		const ticked = due("ticked", "2026-10-29", { done: true });
+		assert.equal(deadlineAfter(upcoming, ticked)?.id, "b", "from a ticked one, the one due after it");
+		assert.equal(deadlineAfter(upcoming, due("last", "2026-11-09", { done: true }))?.id, "a");
+		assert.equal(deadlineAfter([], ticked), null);
 	});
 
 	it("how far: problems done, else how ready, else nothing", () => {

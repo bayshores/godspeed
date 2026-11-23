@@ -70,6 +70,21 @@ export function upcomingDeadlines<T extends Due>(deadlines: readonly T[], nowMs:
 	return byDue(deadlines.filter((d) => !d.done && !isOverdue(d, nowMs)));
 }
 
+/** The deadline Progress's card shows: the picked one while it is still ahead or is ticked done,
+ *  else the soonest ahead; null with none. */
+export function shownDeadline<T extends Due>(deadlines: readonly T[], upcoming: readonly T[], pickedId: string | null): T | null {
+	const picked = pickedId === null ? undefined : (upcoming.find((d) => d.id === pickedId) ?? deadlines.find((d) => d.id === pickedId && d.done));
+	return picked ?? upcoming[0] ?? null;
+}
+
+/** Where "Next" goes from `current`: the one ahead due after it, the soonest after the last;
+ *  null with no other one ahead. */
+export function deadlineAfter<T extends Due>(upcoming: readonly T[], current: T): T | null {
+	const order = upcoming.some((d) => d.id === current.id) ? upcoming : byDue([...upcoming, current]);
+	const next = order[(order.findIndex((d) => d.id === current.id) + 1) % order.length]!;
+	return next.id === current.id ? null : next;
+}
+
 /** "2 of 7 problems done". */
 export function problemsDone(p: { done: number; total: number }): string {
 	return `${p.done} of ${p.total} problems done`;

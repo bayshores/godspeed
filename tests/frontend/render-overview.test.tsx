@@ -176,6 +176,8 @@ function body(props: Partial<Props> = {}, teacher: TeacherApi | null = null) {
 					onStudyPath={() => {}}
 					onStudyDeadline={() => {}}
 					onWorkDeadline={() => {}}
+					onDeadlineDone={() => {}}
+					onDeadlineUndo={() => {}}
 					onAddDeadline={() => {}}
 					{...props}
 				/>
@@ -305,7 +307,7 @@ describe("The teacher's note", () => {
 describe("The next deadline", () => {
 	it("the soonest open deadline still ahead: days left, name, day, its problems as blocks and in words, and its page", () => {
 		const html = section(render(), "next-deadline");
-		assert.match(text(html), /2 days HW 5 Thursday Oct 29 2 of 7 problems done/);
+		assert.match(text(html), /2 days HW 5 Thursday Oct 29 Next 2 of 7 problems done Mark done Study/);
 		assert.match(tag(html, "next-deadline-open"), /href="\/space\/deadline\/d1"/);
 		const blocks = section(html, "step-blocks", "</span></span>");
 		assert.equal(blocks.split("bg-ink").length - 1, 2, "two of seven blocks inked");
@@ -332,7 +334,7 @@ describe("The next deadline", () => {
 	it("nothing measured yet: name, day and key, with no blocks and no words", () => {
 		const html = section(render({ data: { ...PAYLOAD, deadlines: [deadline("d3", "Reading", "2026-11-06", { kind: "exam", topics: [], ready: null })] } }), "next-deadline");
 		assert.ok(!html.includes("next-deadline-progress") && !html.includes("Not measured"));
-		assert.match(text(html), /Reading Friday Nov 6 Study/);
+		assert.match(text(html), /Reading Friday Nov 6 Mark done Study/);
 	});
 
 	it("no deadlines and no path: one line over the ways to add them, with no key of its own", () => {
@@ -592,6 +594,37 @@ describe("clicks", () => {
 		await click(el, "space-path-show-all");
 		assert.equal(el.querySelectorAll('[data-testid="space-path-rows"] li').length, 7, "every other topic");
 		assert.equal(el.querySelector('[data-testid="space-path-show-all"]'), null);
+	});
+
+	it("Next turns the card to the deadline due after, and around to the soonest; with one ahead there is no Next", async () => {
+		const el = await mount({});
+		const name = () => el.querySelector('[data-testid="next-deadline-open"]')!.textContent;
+		assert.equal(name(), "HW 5");
+		await click(el, "next-deadline-next");
+		assert.equal(name(), "Midterm 2");
+		await click(el, "next-deadline-next");
+		assert.equal(name(), "HW 5");
+		assert.ok(!render({ data: { ...PAYLOAD, deadlines: [DEADLINES[0]!] } }).includes("next-deadline-next"));
+	});
+
+	it("Mark done keeps the card on that deadline: the stamp, Undo and no key to start, then Next moves on", async () => {
+		const ticked: string[] = [];
+		const unticked: string[] = [];
+		const props = { onDeadlineDone: (d: DeadlineProgress) => void ticked.push(d.id), onDeadlineUndo: (d: DeadlineProgress) => void unticked.push(d.id) };
+		const el = await mount(props);
+		await click(el, "next-deadline-done");
+		assert.deepEqual(ticked, ["d1"]);
+		// The save's answer: the same deadlines with that one done.
+		await act(async () => root!.render(body({ ...props, data: { ...PAYLOAD, deadlines: DEADLINES.map((d) => (d.id === "d1" ? { ...d, done: true } : d)) } })));
+		const card = el.querySelector('[data-testid="next-deadline"]')!;
+		assert.match(card.textContent!, /^Done\s*HW 5/);
+		assert.match(card.querySelector('[data-testid="next-deadline-open"]')!.className, /line-through/);
+		for (const gone of ["next-deadline-done", "deadline-keys"]) assert.equal(card.querySelector(`[data-testid="${gone}"]`), null);
+		await click(el, "next-deadline-undo");
+		assert.deepEqual(unticked, ["d1"]);
+		await click(el, "next-deadline-next");
+		assert.equal(el.querySelector('[data-testid="next-deadline-open"]')!.textContent, "Midterm 2");
+		assert.equal(el.querySelector('[data-testid="next-deadline-next"]'), null, "no other one is ahead");
 	});
 
 	it("Add a deadline, with none ahead", async () => {
