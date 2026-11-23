@@ -10,6 +10,7 @@ use gs_json::{Json, Obj};
 
 use super::file_state::{FileKind, FileStatus};
 use super::prep_upgrade::{ABOUT_FILE_NAME, GUIDE_FILE_NAME};
+use super::space_deadlines::PAST_ADD_DAYS;
 use crate::contracts::space::MAX_PATH_TOPICS;
 use crate::messages::role::is_custom;
 use super::today_note::local_day;
@@ -322,6 +323,7 @@ pub fn check_text(space: &Json, reasons: &[Reason]) -> String {
 	let mut out = format!(
 		"Check space {} (space_id {}): act on each reason below. Deadline changes: only what files settle.\n\
 		- Never add a deadline twice: check list below first. Never make up a date.\n\
+		- Add past deadlines too: one due more than {PAST_ADD_DAYS} days ago is saved done.\n\
 		- file_ids and left_out_ids replace whole list: keep current links (read_space).\n\
 		- Never remove a deadline. One that looks cancelled: say so in last line.\n",
 		space["name"].str_or_empty(),
@@ -535,6 +537,7 @@ mod tests {
 		let found = space_reasons(&space, None, "2026-11-02", &record("2026-11-01T11:00:00.000Z"), &HashSet::new());
 		let text = check_text(&space, &found);
 		assert!(text.starts_with("Check space CSE 21 (space_id spc_a)"));
+		assert!(text.contains("\n- Add past deadlines too: one due more than 7 days ago is saved done.\n"));
 		assert!(!text.contains("- Path:"), "the path rule only with a path reason");
 		assert!(text.contains("\nReasons:\n- Quiz 1 (deadline_id d_quiz) has nothing linked"));
 		assert!(text.contains("- Info file HW5.md (file_id f_hw5) new or changed"));

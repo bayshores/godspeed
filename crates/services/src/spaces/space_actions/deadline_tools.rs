@@ -1,6 +1,9 @@
 //! The tools that add, change and remove a space's deadlines.
 
+use gs_base::clock;
+use gs_core::spaces::space_deadlines::{PAST_ADD_DAYS, saved_done};
 use gs_core::spaces::space_tools::ToolOutcome;
+use gs_core::spaces::today_note::local_day;
 use gs_json::{Json, Obj, json};
 
 use crate::spaces::{add_space_deadline, remove_space_deadline, update_space_deadline};
@@ -57,6 +60,7 @@ impl SpaceActions {
 			return no_space(space_id);
 		}
 		let (mut added, mut refused) = (Vec::new(), Vec::new());
+		let today = local_day(clock::now_ms());
 		for d in args["deadlines"].items().iter() {
 			let mut init = Obj::new();
 			for key in ["kind", "name", "date"] {
@@ -82,6 +86,9 @@ impl SpaceActions {
 			if given(d, "about_file_id") {
 				init.insert("aboutFileId", d["about_file_id"].clone());
 			}
+			if d["date"].as_str().is_some_and(|date| saved_done(date, &today)) {
+				init.insert("done", true);
+			}
 			// An interview takes an old prep's waiting deadline, as the window's Add the date does.
 			if d["kind"].as_str() == Some("interview")
 				&& let Some(waiting) = self.app.stores.spaces.get_space(space_id).and_then(|r| r["waitingDeadline"]["id"].as_str().map(str::to_owned))
@@ -102,11 +109,16 @@ impl SpaceActions {
 			return ToolOutcome::Err(refused.iter().map(|r| format!("{}: {}", template_text(r.get("name")), r["error"].str_or_empty())).collect::<Vec<_>>().join("\n"));
 		}
 		let changes = added.iter().map(|d| change(format!("Adding {}", d["name"].str_or_empty()), &Json::from(space_id), "deadline", d["id"].str_or_empty(), &deadline_page(d["id"].str_or_empty()))).collect();
+		let late: Vec<&str> = added.iter().filter(|d| d["done"].truthy()).map(|d| d["name"].str_or_empty()).collect();
+		let note = (!late.is_empty()).then(|| format!("Saved as done, due more than {PAST_ADD_DAYS} days ago: {}.", late.join(", ")));
 		let mut value = json!({ "deadlines": added });
-		if !refused.is_empty()
-			&& let Some(obj) = value.as_obj_mut()
-		{
-			obj.insert("refused", refused);
+		if let Some(obj) = value.as_obj_mut() {
+			if !refused.is_empty() {
+				obj.insert("refused", refused);
+			}
+			if let Some(note) = note {
+				obj.insert("note", note);
+			}
 		}
 		self.done(value, changes)
 	}
@@ -214,5 +226,26 @@ mod tests {
 		assert_eq!(left, [json!("mock_00000003")]);
 		let (quiet, _) = value(actions(&app).remove_space_deadline(&json!({ "space_id": space_id, "deadline_id": screen })));
 		assert_eq!(quiet["note"], json!("Its mock is removed too."), "as the window says it");
+	}
+
+	#[test]
+	fn a_deadline_the_agent_adds_more_than_a_week_late_is_saved_done() {
+		let root = scratch_dir("space-actions-late-adds");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "CSE 21" })).unwrap()["id"].as_str().unwrap().to_owned();
+		let today = local_day(clock::now_ms());
+		let ago = |days: i64| gs_core::study::deadline_plan::add_days(&today, -days);
+		let deadlines = json!([
+			{ "kind": "homework", "name": "HW1", "date": ago(PAST_ADD_DAYS + 1) },
+			{ "kind": "homework", "name": "HW2", "date": ago(PAST_ADD_DAYS) },
+			{ "kind": "homework", "name": "HW3", "date": ago(40) },
+		]);
+		let (added, _) = value(actions(&app).add_space_deadline(&json!({ "space_id": space_id, "deadlines": deadlines })));
+		let done: Vec<bool> = added["deadlines"].items().iter().map(|d| d["done"].truthy()).collect();
+		assert_eq!(done, [true, false, true]);
+		assert!(added["deadlines"][0].get("doneAt").is_none(), "never ticked, so never done today");
+		assert_eq!(added["note"], json!("Saved as done, due more than 7 days ago: HW1, HW3."));
+		let (fresh, _) = value(actions(&app).add_space_deadline(&json!({ "space_id": space_id, "deadlines": [{ "kind": "exam", "name": "Final", "date": ago(-10) }] })));
+		assert!(fresh.get("note").is_none() && !fresh["deadlines"][0]["done"].truthy());
 	}
 }
