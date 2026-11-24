@@ -115,7 +115,6 @@ function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 		problem: null,
 		problemPicked: emptyDockSelection(),
 		onPickProblem: () => {},
-		onDiscardProblem: () => {},
 		kept: null,
 		shown: NO_NEXT,
 		swapKey: "",

@@ -7,11 +7,19 @@ export function proseVars(size: number, leading: number, quiet = false): React.C
 	return { "--lh-prose-size": `${size}px`, "--lh-prose-leading": `${leading / size}`, "--lh-ink-body": ink, "--lh-ink-strong": ink, "--lh-ink-italic": ink } as React.CSSProperties;
 }
 
-/** A question's own text, in reading type, the biggest text under "Your turn"; quiet once answered. */
-export function QuestionText({ children, quiet = false }: { children: string; quiet?: boolean }) {
+/** Longer than this, a question is a paragraph and is set at the size of one. */
+const SHORT_QUESTION = 140;
+
+/** A question's own text, in reading type: the largest text on the lesson page while it is short enough
+ *  to be a headline, with its kind (`tag`) as a small tag under it. Quiet once answered. */
+export function QuestionText({ children, quiet = false, tag = null }: { children: string; quiet?: boolean; tag?: string | null }) {
+	const big = children.length <= SHORT_QUESTION;
 	return (
-		<div data-session-find-root="" style={proseVars(22, 31, quiet)}>
-			<ToolContentResponse>{children}</ToolContentResponse>
+		<div className="flex flex-col items-start gap-3">
+			<div data-session-find-root="" style={big ? proseVars(28, 38, quiet) : proseVars(22, 31, quiet)}>
+				<ToolContentResponse>{children}</ToolContentResponse>
+			</div>
+			{tag && <h2 className="lh-kind">{tag}</h2>}
 		</div>
 	);
 }

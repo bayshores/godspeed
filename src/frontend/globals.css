@@ -854,17 +854,6 @@ body {
 		min-height: 0;
 	}
 }
-/* In one column the lesson text fills what is left of its window, so a question under a short
-   text stands just over the writing row. */
-@container room (width < 1280px) {
-	.lh-lesson-column:has(> .lh-text-sheets) {
-		min-height: calc(100cqh - 48px);
-	}
-	.lh-text-sheets,
-	.lh-text-fit {
-		flex: 1 1 auto;
-	}
-}
 /* The turn's task (YourTurn). In the page under the text it keeps a step's distance from it. As the
    right page of the open book it takes the room over the writing row, which rests at the page's
    foot; with no task the row rests there alone. */
@@ -881,6 +870,19 @@ body {
 		padding-top: 0;
 	}
 }
+/* A question answered in the code editor: the editor takes the room left over the writing row, under the
+   text and beside it, so a short lesson leaves no blank band under the code. */
+.lh-lesson-column:has(> .lh-turn-fit [data-kind="code"]) {
+	min-height: calc(100cqh - 48px);
+}
+.lh-lesson-column > .lh-turn-fit:has([data-kind="code"]) {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+}
+.lh-turn-fit:has([data-kind="code"]) :is(.lh-turn-task, .lh-turn-body) {
+	flex: 1 1 auto;
+}
 /* An open problem pinned over the text in one column: as tall as what it holds, up to three
    fifths of the room under the step line, where its problem scrolls in its own box. */
 .lh-turn-top {
@@ -888,11 +890,33 @@ body {
 }
 /* Each box down to the problem is as tall as what it holds and may shrink: a box that grew to fill
    (flex: 1) would size the pin by the whole problem, though the problem is cut to its folded height. */
-.lh-turn-top :is(.lh-turn-task, [data-testid="your-turn"], [data-testid="turn-swap"], .lh-turn-scroll) {
+.lh-turn-top :is(.lh-turn-task, [data-testid="your-turn"], [data-testid="turn-swap"], .lh-turn-body, .lh-turn-scroll) {
 	flex: 0 1 auto;
 }
 .lh-turn-top .lh-turn-scroll {
 	overflow-y: auto;
+}
+/* The part shown alone holds still: "Whole problem" shows the rest. */
+.lh-turn-top .lh-turn-scroll[data-part-alone] {
+	overflow-y: hidden;
+}
+/* The task's body: what is asked, and for a pinned problem with no tag its keys in the corner beside it.
+   The row gives way when the pin is capped, so the problem scrolls in its own box. */
+.lh-turn-body {
+	display: grid;
+	min-height: 0;
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-rows: minmax(0, 1fr);
+}
+.lh-turn-cornered {
+	grid-template-columns: minmax(0, 1fr) fit-content(45%);
+	align-items: start;
+	column-gap: 16px;
+}
+/* Pinned, the problem lies on a plate, so the text scrolls under something that is plainly not text. */
+.lh-turn-top .lh-turn-task {
+	background: var(--lh-well);
+	padding: 16px 20px 20px;
 }
 /* The tag that names what waits: a question's kind, a problem's number. */
 .lh-kind {
@@ -1031,6 +1055,20 @@ body {
 	border: 0;
 	background: transparent;
 	padding: 0.75rem 1rem;
+}
+/* A choice that is code lies bare on its plate: a box in a box is two things to read. Picked, the plate
+   turns to ink and the code keeps the page's color under it, so its colors still read. */
+.lh-choice [data-streamdown="code-block"] {
+	margin: 0;
+	border: 0;
+	background: transparent;
+	padding: 0;
+}
+.lh-choice[aria-checked="true"] [data-streamdown="code-block"] {
+	background: var(--background);
+}
+.lh-choice [data-streamdown="code-block-body"] {
+	padding: 0.5rem 0.75rem;
 }
 /* Each line is a span; streamdown makes it a block only with the gutter on. */
 [data-streamdown="code-block-body"] code > span {

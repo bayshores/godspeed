@@ -47,6 +47,8 @@ const noop = {
 	onReady: () => {},
 	boxText: "",
 	onLeaveRows: () => {},
+	tag: null,
+	onSkip: () => {},
 };
 
 describe("the code question", () => {
@@ -139,18 +141,20 @@ describe("keys typed in the editor stay in it", () => {
 describe("the answered code card", () => {
 	it("shows the question and the code as a code block, no verdict", () => {
 		const answer = buildCodeAnswer(task, { code: "int max(int a, int b) {\n    return a > b ? a : b;\n}", dontKnow: false, thinking: "ternary" }, "write_code");
-		const html = renderToStaticMarkup(<AnsweredCard answer={answer} input={task} />);
+		const closed = renderToStaticMarkup(<AnsweredCard answer={answer} input={task} />);
+		assert.match(closed, /data-testid="answer-toggle"[^>]*aria-label="Details"/, "the code waits behind the line's key");
+		assert.ok(!closed.includes('data-testid="answered-code"'));
+		const html = renderToStaticMarkup(<AnsweredCard answer={answer} input={task} defaultOpen />);
 		assert.match(html, /data-testid="answer-kind"[^>]*>Code</);
 		assert.ok(!html.includes('data-testid="answer-result"'), "graded later by the teacher");
 		assert.match(html, /data-testid="answered-code"/);
 		assert.match(html, /data-streamdown="code-block"/, "the app's code block");
 		assert.ok(html.includes("return a &gt; b ? a : b;"));
-		assert.match(html, /data-testid="answer-toggle"[^>]*>Details/, "the thinking waits behind Details");
 	});
 
 	it("an I don't know answer says so and shows no code", () => {
 		const answer = buildCodeAnswer(task, { code: "", dontKnow: true }, "write_code");
-		const html = renderToStaticMarkup(<AnsweredCard answer={answer} input={task} />);
+		const html = renderToStaticMarkup(<AnsweredCard answer={answer} input={task} defaultOpen />);
 		assert.ok(!html.includes('data-testid="answered-code"'));
 		assert.ok(html.includes("Answered “I don&#x27;t know”."));
 	});
@@ -166,11 +170,11 @@ describe("the unrated How sure line", () => {
 
 	it("asks nothing before a pick, then starts with no level picked", async () => {
 		const html = renderToStaticMarkup(<QuestionDock {...noop} toolName="quiz" toolCallId="u1" input={quizInput} />);
-		assert.doesNotMatch(html, /How sure are you/);
+		assert.doesNotMatch(html, /How sure/);
 		await mounted(<QuestionDock {...noop} toolName="quiz" toolCallId="u1" input={quizInput} />, async (host) => {
 			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="question-option"]')!.click());
-			assert.match(host.querySelector('[data-testid="confidence-line"]')!.textContent ?? "", /How sure are you\?/);
-			assert.ok(host.querySelector('[data-testid^="confidence-level-"][aria-checked="true"]') === null, "no square is checked");
+			assert.equal(host.querySelector('[data-testid="confidence-line"]')!.textContent, "How sure?", "no level is named yet");
+			assert.ok(host.querySelector('[data-testid^="confidence-level-"][aria-checked="true"]') === null, "no block is checked");
 		});
 	});
 

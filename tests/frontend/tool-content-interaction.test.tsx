@@ -9,7 +9,7 @@ import { QuestionDock, type QuestionHandle } from "../../src/frontend/components
 import { AnsweredCard } from "../../src/frontend/components/answered-card.tsx";
 import { newAnswerResult, type QuestionAnswerData } from "../../src/shared/core/index.ts";
 
-const noop = { onSubmit: () => {}, onReady: () => {}, boxText: "", onLeaveRows: () => {} };
+const noop = { tag: null, onSkip: () => {}, onSubmit: () => {}, onReady: () => {}, boxText: "", onLeaveRows: () => {} };
 
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, { window: dom.window, document: dom.document, Element: dom.window.Element,

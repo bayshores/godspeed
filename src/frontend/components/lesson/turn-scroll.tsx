@@ -19,18 +19,35 @@ function roomFolded(el: HTMLElement): number | null {
 	return foldRoom(top.parentElement.clientHeight, top.offsetHeight - el.offsetHeight + (row?.offsetHeight ?? 0));
 }
 
+/** Where the part being worked on lies in the box, when the problem's text marks one: its first block to the last
+ *  before the next part's. */
+function partSpan(el: HTMLElement): { top: number; height: number } | null {
+	const start = el.querySelector<HTMLElement>('[data-testid="problem-statement"] [data-part-current]');
+	if (!start) return null;
+	let last: Element = start;
+	for (let next = start.nextElementSibling; next && !next.hasAttribute("data-part-head"); next = next.nextElementSibling) last = next;
+	const top = start.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop;
+	return { top, height: last.getBoundingClientRect().bottom - start.getBoundingClientRect().top + HANG };
+}
+
+/** A last-line fraction's denominator hangs this far below its line box. */
+const HANG = 6;
+
 /**
  * The question or problem in the turn's task: beside the lesson text, or
  * pinned over it, it is the one part that shrinks to fit and scrolls in its own box
  * (.lh-turn-scroll). An end that cuts content off fades, as the tab strip's
  * does, so a long problem never looks finished where the box ends. A problem
  * that can fold (`folded` given) is cut to its folded height while folded,
- * and `onLong` hears whether it is longer than that height.
+ * and `onLong` hears whether it is longer than that height. A long problem
+ * whose text marks the part being worked on shows that part alone while folded.
  */
 export function TurnScroll({ className, folded, onLong, children }: { className?: string; folded?: boolean; onLong?: (long: boolean) => void; children: ReactNode }) {
 	const ref = useRef<HTMLDivElement>(null);
 	const [cut, setCut] = useState({ start: false, end: false });
 	const [foldedRoom, setFoldedRoom] = useState<number | null>(null);
+	// The part shown alone: its height, which the box takes while it rests on the part's first line.
+	const [partRoom, setPartRoom] = useState<number | null>(null);
 	const folds = folded !== undefined;
 	useLayoutEffect(() => {
 		const el = ref.current;
@@ -41,7 +58,11 @@ export function TurnScroll({ className, folded, onLong, children }: { className?
 			setCut((c) => (c.start === start && c.end === end ? c : { start, end }));
 			const room = folds ? roomFolded(el) : null;
 			setFoldedRoom(room);
-			onLong?.(room !== null && el.scrollHeight > room + 1);
+			const long = room !== null && el.scrollHeight > room + 1;
+			onLong?.(long);
+			const part = long && folded ? partSpan(el) : null;
+			setPartRoom(part && room !== null ? Math.min(room, Math.ceil(part.height)) : null);
+			if (part && Math.abs(el.scrollTop - part.top) > 1) el.scrollTop = part.top;
 		};
 		measure();
 		el.addEventListener("scroll", measure, { passive: true });
@@ -60,16 +81,18 @@ export function TurnScroll({ className, folded, onLong, children }: { className?
 			resized.disconnect();
 			changed.disconnect();
 		};
-	}, [folds, onLong]);
+	}, [folds, folded, onLong]);
 	// Folding changes the task's height at once: its glide starts from here, before the frame is drawn.
 	const wasFolded = useRef(folded);
 	useLayoutEffect(() => {
 		if (wasFolded.current !== folded && ref.current) glideSheetAround(ref.current);
 		wasFolded.current = folded;
 	}, [folded]);
-	const fade = cut.start && cut.end ? CUT.both : cut.end ? CUT.end : cut.start ? CUT.start : undefined;
+	// A part shown alone is whole, so nothing of it fades.
+	const fade = partRoom !== null ? undefined : cut.start && cut.end ? CUT.both : cut.end ? CUT.end : cut.start ? CUT.start : undefined;
+	const max = partRoom ?? (folded ? foldedRoom : null);
 	return (
-		<div ref={ref} style={folded && foldedRoom !== null ? { maxHeight: foldedRoom } : undefined} className={cn("lh-turn-scroll flex min-h-0 flex-col gap-7 empty:hidden", fade, className)}>
+		<div ref={ref} data-part-alone={partRoom !== null || undefined} style={max !== null ? { maxHeight: max } : undefined} className={cn("lh-turn-scroll flex min-h-0 flex-col gap-7 empty:hidden", fade, className)}>
 			{children}
 		</div>
 	);

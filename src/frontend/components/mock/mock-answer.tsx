@@ -86,7 +86,6 @@ export function CodeAnswer({
 			<CodeEditor
 				initialCode={code}
 				language={language}
-				fill
 				tools={tools}
 				onChange={(next) => {
 					setTyped(next);

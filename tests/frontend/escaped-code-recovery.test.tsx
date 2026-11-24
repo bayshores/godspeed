@@ -182,7 +182,7 @@ test("pending → exact copy → submit → saved/answered copy never changes so
 	try {
 		const dock = React.createRef<QuestionHandle>();
 		await act(async () => root.render(<QuestionDock ref={dock} toolName="probe" toolCallId="escaped_code" input={input} boxText=""
-			onReady={() => {}} onLeaveRows={() => {}} onSubmit={result => { answer = result; }} />));
+			tag={null} onSkip={() => {}} onReady={() => {}} onLeaveRows={() => {}} onSubmit={result => { answer = result; }} />));
 		const copy = () => host.querySelector<HTMLButtonElement>('[aria-label="Copy code"]')!;
 		assert.ok(copy());
 		await act(async () => copy().click());

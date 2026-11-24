@@ -10,7 +10,7 @@ import { WAITING_TOPIC } from "./layout-seed.mjs";
  * check never runs on a screen still loading. `height` gives it a window higher than the
  * check's own. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
- * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, the lessons that stand at a state of "Your turn" `{explained}`, `{quizAnswered}`, `{concluded}`, `{skipped}`, `{discarded}` and `{lastTopic}`, `{pending}`, `{sheetless}`, `{pathSpace}`, `{vault}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
+ * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, `{codeWrite}`, the lessons that stand at a state of "Your turn" `{explained}`, `{quizAnswered}`, `{concluded}`, `{skipped}`, `{discarded}` and `{lastTopic}`, `{pending}`, `{sheetless}`, `{pathSpace}`, `{vault}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
 const WIDTHS = [1440, 1100, 640];
@@ -428,6 +428,7 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	{ name: "Lesson with two steps beside the teacher's panel", url: "/chat/{twoSheets}", ready: "[data-testid=lesson-sheet] ~ [data-testid=lesson-sheet] [data-testid=sheet-step]", setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
 	{ name: "Lesson with a question of the learner's own before the step's answer", url: "/chat/{askedFirst}", ready: "[data-testid=lesson-sheet] ~ [data-testid=lesson-sheet] [data-testid=user-message]", shows: "[data-testid=question-dock]" },
 	{ name: "Lesson with a question whose choices are code, longer than the window", url: "/chat/{codeChoices}", ready: "[data-testid=question-dock] pre" },
+	{ name: "Lesson with a question answered in the code editor", url: "/chat/{codeWrite}", ready: "[data-testid=code-editor-host] .cm-content" },
 	{ name: "Lesson with a problem longer than the window", url: "/chat/{longProblem}", ready: "[data-testid=open-problem]" },
 	{ name: "Lesson with an open quiz in a tall window, Your turn pinned", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", height: TALL },
 	{ name: "Lesson with a question whose choices are code in a tall window", url: "/chat/{codeChoices}", ready: "[data-testid=question-dock] pre", height: TALL },

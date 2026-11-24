@@ -617,6 +617,13 @@ export function Chat({
 							usage={{ turns, contextTokens, summarizeAt, pricing }}
 							scopeRef={sessionFindScopeRef}
 							scrollContextRef={scrollContextRef}
+							exit={
+								turnPending
+									? { label: "Skip question", testId: "skip-question", onPick: () => setAbortAsk("question") }
+									: turnProblem
+										? { label: "Discard problem", testId: "discard-problem", onPick: () => setAbortAsk("problem") }
+										: null
+							}
 						/>
 						<PluginWindow plugin={openPlugin} context={pluginContext} onClose={closePlugin} />
 						<div className="min-h-0 flex-1">
@@ -674,7 +681,6 @@ export function Chat({
 												problem={turnProblem}
 												problemPicked={problemPicked}
 												onPickProblem={pickProblem}
-												onDiscardProblem={() => setAbortAsk("problem")}
 												next={book.shutting ? null : next}
 												kept={kept}
 												onNext={onNext}

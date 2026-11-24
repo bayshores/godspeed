@@ -164,7 +164,6 @@ describe("the two-day story, as the window draws it", () => {
 		assert.deepEqual(bayes?.appPosed, { kind: "review", ref: { chatId: "chat_old", toolCallId: BAYES_WED.of.toolCallId } });
 		const box = lessonBox({ teacher: "Teacher", busy: true, hasText: false, hasFiles: false, turn: questionTurn("quiz", bayes!.input, true, "review") });
 		assert.equal(box.keys.find((k) => k.action === "submit")?.disabled, false, "Submit answer works while the teacher writes");
-		assert.equal(box.exit, "skip");
 
 		const [card] = cards(projectView(story(start, firstReplyWait)));
 		assert.deepEqual(card!.rows.map((r) => [fromEarlierRow(r).topic, fromEarlierRow(r).word]), [["Bayes' rule", "Wrong"], ["Eigenvalues", "Right"], ["Gradient descent", "Right"]]);

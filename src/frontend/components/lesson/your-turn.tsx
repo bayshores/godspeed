@@ -34,7 +34,7 @@ export interface YourTurnProps {
 	initialQuestionDraft?: QuestionFormDraft;
 	onSaveQuestionDraft: (draft: QuestionFormDraft) => void;
 	onSubmitAnswer: (output: QuestionAnswerData) => void;
-	/** Opens the skip confirm for the waiting question. */
+	/** Opens the skip confirm for the waiting question: the key of one that came through broken. */
 	onSkipQuestion: () => void;
 	/** His answer to a question from earlier was refused: it was no longer due. */
 	reviewRefused: boolean;
@@ -44,8 +44,6 @@ export interface YourTurnProps {
 	/** What is picked among the open problem's choices. */
 	problemPicked: DockSelection;
 	onPickProblem: (picked: DockSelection) => void;
-	/** Opens the discard confirm for the open problem. */
-	onDiscardProblem: () => void;
 	/** The answer box, for the problem row to bring him back to his work. */
 	boxRef: RefObject<{ focus(): void } | null>;
 	/** The task the learner last finished, kept above the box until the lesson goes on. */
@@ -83,11 +81,6 @@ export interface YourTurnProps {
 const HELP_KEY = "lh-btn lh-btn-small lh-btn-quiet";
 const NO_SWITCHES: Readonly<Record<string, boolean>> = {};
 
-const EXIT: Record<NonNullable<BoxView["exit"]>, { label: string; testId: string }> = {
-	skip: { label: "Skip question", testId: "skip-question" },
-	discard: { label: "Discard problem", testId: "discard-problem" },
-};
-
 /**
  * THE LEARNER'S TURN, there for the whole lesson once it has started
  * (turnDrawn), in two parts the lesson page places (LessonScroll).
@@ -118,7 +111,6 @@ export function YourTurn({
 	problem,
 	problemPicked,
 	onPickProblem,
-	onDiscardProblem,
 	boxRef,
 	kept,
 	shown,
@@ -185,9 +177,7 @@ export function YourTurn({
 		? { choices: problem.choices, picked: problemPicked, onPick: onPickProblem, onLeaveRows: () => boxRef.current?.focus(), onEnter: canAct("send") ? onSend : null }
 		: null;
 
-	const exit = view.exit && EXIT[view.exit];
 	const fileShown = pending ? null : (problem?.file ?? null);
-	const onExit = view.exit === "skip" ? onSkipQuestion : onDiscardProblem;
 	const fromEarlier = pending?.appPosed?.kind === "review";
 	const keptProblem = kept?.kind === "problem" ? kept : null;
 	const keptTitle = kept?.kind === "question" ? answeredKindLabel(kept.answer) : keptProblem?.line;
@@ -195,8 +185,9 @@ export function YourTurn({
 	const mode = pending ? "question" : problem ? "practice" : kept ? "kept" : "next";
 	const place = useContext(TurnPlaceContext);
 	const slots = useContext(TurnSlotsContext);
-	// The tag says what waits, in the word its answered card will carry. With nothing asked there is none.
-	const tag = ask ? "My words" : fromEarlier ? "From earlier" : pending ? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type)) : (problem?.line ?? keptTitle ?? null);
+	// The tag says what waits, in the word its answered card will carry. A question carries its own after its text; with nothing asked there is none.
+	const questionTag = fromEarlier ? "From earlier" : pending ? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type)) : null;
+	const tag = pending ? null : ask ? "My words" : (problem?.line ?? keptTitle ?? null);
 	// An open problem pinned over the text folds so the text keeps its window. One with answers to click stays whole, as a question does.
 	const folds = place === "pinned" && !pending && problem !== null && !problem.choices;
 	const folded = folds ? problemFolded(problem.sent, wholeChoice?.of === problem.toolCallId ? wholeChoice.whole : null) : undefined;
@@ -207,6 +198,26 @@ export function YourTurn({
 	if (problem) partRef.current = { of: problem.toolCallId, part: problem.part };
 	const shownPart = shownProblem && partRef.current?.of === shownProblem.toolCallId ? partRef.current.part : null;
 	const pieceShown = !pending && problem?.piece && pieceFailed !== problem.toolCallId;
+	// A problem in words with no tag, pinned over the text, keeps its keys in its corner, so they take no line of their
+	// own. A page's piece keeps the whole width, which is what sets the size of its print.
+	const hasKeys = (folds && long) || fileShown !== null || Boolean(pieceShown);
+	const corner = hasKeys && place === "pinned" && !tag && !pieceShown;
+	const keys = (
+		// In a row with the tag the keys stay on its line while they fit: a file's name shortens before a key drops under it.
+		<div data-testid="turn-keys" className={cn("flex items-center justify-end gap-2", corner ? "flex-wrap" : cn("flex-1 basis-0", fileShown ? "min-w-[min(100%,19rem)]" : "min-w-fit"))}>
+			{folds && long && (
+				<button type="button" data-testid="turn-whole" aria-expanded={!folded} onClick={() => setWholeChoice({ of: problem.toolCallId, whole: folded === true })} className="lh-btn lh-btn-small lh-btn-quiet">
+					{folded ? "Whole problem" : "Less"}
+				</button>
+			)}
+			{fileShown && <ProblemFile file={fileShown} />}
+			{pieceShown && (
+				<button type="button" data-testid="piece-printed" aria-pressed={printed} onClick={() => setPrinted((on) => !on)} className={cn("lh-btn lh-btn-small", printed ? "lh-btn-main" : "lh-btn-quiet")}>
+					As printed
+				</button>
+			)}
+		</div>
+	);
 	const nextLine = next?.next.line ?? null;
 	// With nothing asked, no line to say and no notes, the task takes no room.
 	const empty = !pending && !shownProblem && !kept && !nextLine && !notes && !reviewRefused;
@@ -225,29 +236,11 @@ export function YourTurn({
 				<TurnSwap key={place === "pinned" || place === "under" ? "column" : "page"} swapKey={empty ? "none" : swapKey}>
 					{empty ? null : (
 						<>
-							{(tag || saved || (folds && long) || fileShown || pieceShown || exit) && (
+							{(tag || saved || (hasKeys && !corner)) && (
 								<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
 									{tag && <h2 className="lh-kind">{tag}</h2>}
 									{saved && <div className="ml-auto">{saved}</div>}
-									{/* The keys stay on the tag's line while they fit: a file's name shortens before a key drops under it. */}
-									<div data-testid="turn-keys" className={cn("flex flex-1 basis-0 items-center justify-end gap-x-2 empty:hidden", fileShown ? "min-w-[min(100%,19rem)]" : "min-w-fit")}>
-										{folds && long && (
-											<button type="button" data-testid="turn-whole" aria-expanded={!folded} onClick={() => setWholeChoice({ of: problem.toolCallId, whole: folded === true })} className="lh-btn lh-btn-small lh-btn-quiet">
-												{folded ? "Whole problem" : "Less"}
-											</button>
-										)}
-										{fileShown && <ProblemFile file={fileShown} />}
-										{pieceShown && (
-											<button type="button" data-testid="piece-printed" aria-pressed={printed} onClick={() => setPrinted((on) => !on)} className={cn("lh-btn lh-btn-small", printed ? "lh-btn-main" : "lh-btn-quiet")}>
-												As printed
-											</button>
-										)}
-										{exit && (
-											<button type="button" data-testid={exit.testId} onClick={onExit} className="lh-btn lh-btn-small lh-btn-quiet">
-												{exit.label}
-											</button>
-										)}
-									</div>
+									{!corner && keys}
 								</div>
 							)}
 
@@ -257,12 +250,15 @@ export function YourTurn({
 								</p>
 							)}
 
+							<div className={cn("lh-turn-body", corner && "lh-turn-cornered")}>
 							<TurnScroll folded={folded} onLong={setLong}>
 								{pending && (
 									<QuestionDock
 										ref={questionRef}
 										toolName={pending.tool as QuestionDockProps["toolName"]}
 										toolCallId={pending.toolCallId}
+										tag={questionTag}
+										onSkip={onSkipQuestion}
 										input={pending.input}
 										onSubmit={onSubmitAnswer}
 										initialDraft={initialQuestionDraft}
@@ -288,6 +284,8 @@ export function YourTurn({
 								{!kept && nextRow}
 								{notes && <EndNotes notes={notes} />}
 							</TurnScroll>
+							{corner && keys}
+							</div>
 							{/* Under a kept task the line stays in sight however long the task is. */}
 							{kept && nextRow}
 						</>

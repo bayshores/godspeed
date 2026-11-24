@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { SmallSwitch } from "@/frontend/components/ui/small-switch";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
-import { cn } from "@/frontend/lib/utils";
 import type { CodeEditorHandle } from "./code-editor-view";
 import { VIM_KEY, languageLabel, parseVim } from "./code-editor-model";
 
@@ -13,7 +12,7 @@ function keepKeysInEditor(e: React.KeyboardEvent) {
 }
 
 /**
- * A code editor: the language (or `tools`) over a CodeMirror field, with
+ * A code editor as tall as the box it is given: the language (or `tools`) over a CodeMirror field, with
  * the Vim switch (and Vim's mode while it is on) in the corner. CodeMirror
  * loads on mount, so server rendering shows the empty field.
  */
@@ -22,15 +21,12 @@ export function CodeEditor({
 	language,
 	onChange,
 	tools,
-	fill = false,
 }: {
 	initialCode: string;
 	language: string;
 	onChange: (code: string) => void;
 	/** In place of the language's name (a mock's language pick). */
 	tools?: ReactNode;
-	/** Take the whole height it is given, in place of growing with the code. */
-	fill?: boolean;
 }) {
 	const hostRef = useRef<HTMLDivElement>(null);
 	const handleRef = useRef<CodeEditorHandle | null>(null);
@@ -51,7 +47,6 @@ export function CodeEditor({
 				doc: initialCode,
 				language,
 				vim: vimRef.current,
-				fill,
 				onChange: (code) => onChangeRef.current(code),
 				onVimMode: setMode,
 			});
@@ -71,7 +66,7 @@ export function CodeEditor({
 	};
 
 	return (
-		<div data-testid="code-editor" className={cn("flex flex-col bg-background", fill ? "min-h-0 flex-1" : "shrink-0")}>
+		<div data-testid="code-editor" className="flex min-h-0 flex-1 flex-col lh-well">
 			<div className="flex items-center justify-between gap-3 border-b border-tone-2 px-3.5 py-2">
 				{tools ?? (
 					<span data-testid="code-language" className="font-mono text-[12.5px] text-ink-3">
@@ -88,7 +83,7 @@ export function CodeEditor({
 					<SmallSwitch on={vim} onChange={toggleVim} label="Vim" testId="vim-switch" />
 				</span>
 			</div>
-			<div ref={hostRef} data-testid="code-editor-host" className={fill ? "min-h-0 flex-1" : "min-h-[200px]"} onKeyDown={keepKeysInEditor} />
+			<div ref={hostRef} data-testid="code-editor-host" className="min-h-0 flex-1" onKeyDown={keepKeysInEditor} />
 		</div>
 	);
 }

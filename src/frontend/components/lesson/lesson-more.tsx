@@ -9,15 +9,32 @@ import { LessonStats, type LessonUsage } from "./lesson-stats";
 
 type Lesson = { id: string; title: string; spaceId?: string };
 
+/** The way out of what waits in the lesson. */
+export type LessonExit = { label: string; testId: string; onPick: () => void };
+
 /**
  * More, the open lesson's last word in the top bar: the same lesson menu a
  * Progress row has, hanging from the bar. Rename turns the title into its
  * field; a delete leaves the lesson for its space's Progress page (the
  * lesson's space is the bar's lit tab); a move keeps the lesson open and
  * reads its record again, so the bar marks the new space. Lesson stats opens
- * its pop-up from the same key.
+ * its pop-up from the same key. With a question or a problem waiting, its first line skips or discards it.
  */
-export function LessonMore({ chatId, title, spaceId, usage, onRename }: { chatId: string; title: string; spaceId: string | undefined; usage: LessonUsage; onRename: () => void }) {
+export function LessonMore({
+	chatId,
+	title,
+	spaceId,
+	usage,
+	onRename,
+	exit,
+}: {
+	chatId: string;
+	title: string;
+	spaceId: string | undefined;
+	usage: LessonUsage;
+	onRename: () => void;
+	exit: LessonExit | null;
+}) {
 	const navigate = useNavigate();
 	const revalidator = useRevalidator();
 	const anchorRef = useRef<HTMLButtonElement>(null);
@@ -60,6 +77,7 @@ export function LessonMore({ chatId, title, spaceId, usage, onRename }: { chatId
 				onMove={pick(() => setMoving(lesson))}
 				onStats={pick(() => setStatsOpen(true))}
 				onDelete={pick(() => setDeleting(lesson))}
+				exit={exit ? { ...exit, onPick: pick(exit.onPick) } : undefined}
 				bar
 			/>
 			<LessonStats open={statsOpen} anchorRef={anchorRef} usage={usage} />

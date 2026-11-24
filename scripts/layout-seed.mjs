@@ -173,6 +173,13 @@ const CODE_QUIZ = {
 	correctAnswer: CODE_CHOICES[0],
 	explanation: "Subtract b first, then divide by a.",
 };
+/** A lesson whose question is answered in the code editor, which starts with the teacher's code. */
+const CODE_WRITE_TOPIC = "Writing the solver";
+const CODE_WRITE = {
+	question: "Finish `solveLinear` so it returns the number that solves $ax + b = c$.",
+	language: "javascript",
+	starter: "function solveLinear(a, b, c) {\n\t// undo the adding, then the multiplying\n\t\n}\n\nconsole.log(solveLinear(2, 3, 11)); // 4",
+};
 
 /** Lessons that each stop at one state of "Your turn" with nothing to answer: the teacher
  *  explained and asked nothing; a problem concluded, which ends its topic; a question skipped
@@ -431,6 +438,10 @@ function answerFor(work, ids, lessonTurn) {
 		if (lessonTurn === 0) return shortLessonAnswer(0, false);
 		if (lessonTurn === 1) return { text: "Here is the function from your notes, written four ways.", tool_calls: [{ name: "quiz", arguments: CODE_QUIZ }] };
 	}
+	if (work.lessonId === ids.codeWrite) {
+		if (lessonTurn === 0) return shortLessonAnswer(0, false);
+		if (lessonTurn === 1) return { text: "You picked the right version before. Now write it yourself.", tool_calls: [{ name: "write_code", arguments: CODE_WRITE }] };
+	}
 	if (work.lessonId === ids.problemFirst) {
 		if (lessonTurn === 0) return { tool_calls: [{ name: "plan_init", arguments: { mermaid: "graph TD\n  first-step[First step] --> last-step[Last step]" } }] };
 		if (lessonTurn === 1) return { tool_calls: [{ name: "problem", arguments: { nodeId: "first-step", statement: PROBLEM_FIRST, mode: "recall", modelSolution: "(a) (11 - 2) / (4 - 1) = 3. (b) 2 = 3(1) + b, so b = -1: y = 3x - 1." } }] };
@@ -591,6 +602,7 @@ export async function seed(dataDir, page, log) {
 	const twoSheets = await startLesson(TWO_SHEETS_TOPIC);
 	const askedFirst = await startLesson(ASKED_FIRST_TOPIC);
 	const codeChoices = await startLesson(CODE_CHOICES_TOPIC);
+	const codeWrite = await startLesson(CODE_WRITE_TOPIC);
 	const turnStates = { explained: await startLesson(EXPLAINED_TOPIC), concluded: await startLesson(CONCLUDED_TOPIC), skipped: await startLesson(SKIPPED_TOPIC), discarded: await startLesson(DISCARDED_TOPIC), lastTopic: await startLesson(LAST_TOPIC) };
 
 	// Answer every item until the queue stays empty for two teacher and two helper waits in a row. A respond answers with the
@@ -602,7 +614,7 @@ export async function seed(dataDir, page, log) {
 	const turns = new Map();
 	const asked = new Map();
 	const resent = new Map();
-	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, studied, open, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, ...turnStates };
+	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, studied, open, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, codeWrite, ...turnStates };
 	const drain = async () => {
 		let reply = await wait();
 		for (let idle = 0, tries = 0; idle < 4; tries++) {
@@ -722,5 +734,5 @@ export async function seed(dataDir, page, log) {
 		if (tries > 20) throw new Error("Lab Algebra's facts were never sorted into topics");
 		await drain();
 	}
-	return { vault, ...turnStates, quizAnswered: studied[0], sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
+	return { vault, ...turnStates, quizAnswered: studied[0], sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, codeWrite, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
 }

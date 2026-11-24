@@ -42,8 +42,6 @@ export interface BoxView {
 	keys: BoxButton[];
 	/** What Enter in the box does; null makes a new line. */
 	enter: BoxAction | null;
-	/** The quiet way out at the end of the title row; none with nothing waiting. */
-	exit: "skip" | "discard" | null;
 	/** Whether what the box sends carries attached files, so the Attach button shows. */
 	attach: boolean;
 	/** The "Stuck?" keys; none with nothing waiting. */
@@ -107,7 +105,6 @@ export function lessonBox(s: {
 			placeholder: "Your work or a question",
 			keys: [{ action: "send", label: "Send", filled: canSend, disabled: !canSend }],
 			enter: canSend ? "send" : null,
-			exit: "discard",
 			attach: true,
 			help: { dontKnow: "send", dontKnowDisabled: s.busy, linesDisabled: s.busy },
 		};
@@ -121,7 +118,6 @@ export function lessonBox(s: {
 				{ action: "save", label: "Save", filled: turn.ready, disabled: !turn.ready },
 			],
 			enter: turn.ready ? "save" : null,
-			exit: null,
 			attach: false,
 			help: null,
 		};
@@ -134,7 +130,6 @@ export function lessonBox(s: {
 			placeholder: `Tell ${s.teacher} what to focus on`,
 			keys: [{ action: "send", label: "Send", filled: canSend && !turn.nextKey, disabled: !canSend }],
 			enter: canSend ? "send" : null,
-			exit: null,
 			attach: false,
 			help: null,
 		};
@@ -145,7 +140,6 @@ export function lessonBox(s: {
 			placeholder: "Your question",
 			keys: [ask(canAsk, canAsk && !turn.nextKey)],
 			enter: canAsk ? "send" : null,
-			exit: null,
 			attach: true,
 			help: null,
 		};
@@ -163,7 +157,6 @@ export function lessonBox(s: {
 		// The bright key is the one Enter presses.
 		keys: [ask(canAsk, asksOnEnter), { action: "submit", label: "Submit answer", filled: !asksOnEnter, disabled: !canSubmit }],
 		enter: canSubmit ? "submit" : asksOnEnter ? "send" : null,
-		exit: "skip",
 		attach: turn.kind === "written" ? turn.takesFiles : turn.ownAnswer === true && !turn.appPosed,
 		help: { dontKnow: "answer", dontKnowDisabled: !canAnswer, linesDisabled: s.busy },
 	};

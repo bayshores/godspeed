@@ -11,7 +11,6 @@ export function sheetBox(s: { teacher: string; made: boolean; blocked: boolean; 
 		placeholder: s.made ? "A question or a change" : "Your request",
 		keys: [{ action: "send", label: `Ask ${s.teacher}`, filled: canAsk, disabled: !canAsk }],
 		enter: canAsk ? "send" : null,
-		exit: null,
 		attach: true,
 		help: null,
 	};
