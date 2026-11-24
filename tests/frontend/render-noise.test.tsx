@@ -119,7 +119,7 @@ describe("Noise", () => {
 		draw(true);
 		click();
 		assert.deepEqual(pressed(), ["true", "true"]);
-		assert.deepEqual(asked, ["made", "buffer 2x800", "loop started", "fade to 0.16 in 0.4", "resume"]);
+		assert.deepEqual(asked, ["made", "buffer 2x800", "loop started", "fade to 0.08 in 0.4", "resume"]);
 		click();
 		assert.deepEqual(pressed(), ["false", "false"]);
 		assert.deepEqual(asked.slice(5), ["fade to 0 in 0.4"]);

@@ -3,7 +3,7 @@ import { brownNoise } from "@/shared/core";
 /** The loop's length: long enough that no ear finds the repeat. */
 const LOOP_SECONDS = 8;
 /** How loud the noise plays, of full scale: under a voice, over a room's hum. */
-const LOUDNESS = 0.16;
+const LOUDNESS = 0.08;
 
 export interface NoiseAudio {
 	/** Fades the noise in or out over `seconds`. */
