@@ -1032,14 +1032,14 @@ describe("the lesson page's pair", () => {
 
 	it("draws Your turn alone, in the middle at its width in the pair, while the lesson text draws nothing", () => {
 		const alone = page(<aside data-testid="turn-sheet" />, null);
-		assert.match(alone, /data-testid="lesson-column" class="[^"]*@min-\[1280px\]\/room:max-w-\(--lh-turn\)/);
+		assert.match(alone, /data-testid="lesson-column" class="[^"]*@min-\[1000px\]\/room:max-w-\(--lh-turn\)/);
 		assert.match(alone, /lh-lesson-alone/);
 		assert.doesNotMatch(alone, /lesson-reading|room:grid|lh-lesson-pair/);
 	});
 
 	it("open, Your turn is beside the text; in a narrow room it is under it", () => {
 		const started = page(<aside data-testid="turn-sheet" />);
-		assert.match(started, /data-testid="lesson-column" class="[^"]*@min-\[1280px\]\/room:grid/, "the pair");
+		assert.match(started, /data-testid="lesson-column" class="[^"]*@min-\[1000px\]\/room:grid/, "the pair");
 		assert.match(started, /lh-lesson-pair/);
 		assert.match(started, /class="lh-turn-fit min-w-0[^"]*"[^>]*><aside data-testid="turn-sheet"/, "drawn in the page when there is no window to move its parts in");
 		assert.match(started, /class="lh-turn-top[^"]*"[\s\S]*class="lh-lesson-window[\s\S]*class="lh-turn-fit[\s\S]*class="lh-turn-foot/, "a top pin, the page and a pinned foot");
@@ -1049,12 +1049,12 @@ describe("the lesson page's pair", () => {
 	it("shut, the text is one page as wide as the open book's left page, from before the lesson starts", () => {
 		const shut = page(<aside data-testid="turn-sheet" />, undefined, false, "pinned");
 		assert.match(shut, /lh-lesson-closed/);
-		assert.match(shut, /data-testid="lesson-column" class="[^"]*@min-\[1280px\]\/room:max-w-none/, "the column keeps the pair's width, so the text's inset never changes");
-		assert.doesNotMatch(shut, /@min-\[1280px\]\/room:grid|lh-lesson-pair/);
+		assert.match(shut, /data-testid="lesson-column" class="[^"]*@min-\[1000px\]\/room:max-w-none/, "the column keeps the pair's width, so the text's inset never changes");
+		assert.doesNotMatch(shut, /@min-\[1000px\]\/room:grid|lh-lesson-pair/);
 		assert.match(shut, /room:max-w-\(--lh-text\)/, "the pinned Your turn is as wide as the page");
 		const before = page(null, undefined, false, "under");
 		assert.match(before, /lh-lesson-closed/);
-		assert.doesNotMatch(before, /turn-sheet|@min-\[1280px\]\/room:grid/);
+		assert.doesNotMatch(before, /turn-sheet|@min-\[1000px\]\/room:grid/);
 	});
 });
 

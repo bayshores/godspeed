@@ -135,7 +135,7 @@ export function ReadingPane({
 				const newest = si === sheets.length - 1;
 				const first = sheet.rows[0];
 				return (
-					<section key={first ? `${shown[first.index]!.id || first.index}:${first.from}` : "empty"} ref={newest ? sheetRef : undefined} data-testid="lesson-sheet" className={cn("flex min-w-0 flex-col gap-4", newest && "lh-text-fit")}>
+					<section key={first ? `${shown[first.index]!.id || first.index}:${first.from}` : "empty"} ref={newest ? sheetRef : undefined} data-testid="lesson-sheet" className="flex min-w-0 flex-col gap-4">
 						{/* With one step on the page the step line already says which it is. */}
 						{sheet.label && sheets.length > 1 && (
 							<h3 data-testid="sheet-step" className="flex items-center gap-3 text-[18px] leading-7 text-ink-2">

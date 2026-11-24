@@ -69,10 +69,8 @@ describe("the lesson text as sheets", () => {
 		assert.match(two!, /Now exec\.[\s\S]*What is exec\?[\s\S]*It starts a new program\./);
 	});
 
-	it("only the newest sheet fills the window and holds Stop", () => {
+	it("only the newest section holds Stop", () => {
 		const [one, two] = sheets(pane(twoSteps, { busy: true, status: "submitted" }));
-		assert.doesNotMatch(one!.slice(0, 200), /lh-text-fit/);
-		assert.match(two!.slice(0, 200), /lh-text-fit/);
 		assert.doesNotMatch(one!, /data-testid="stop-turn"/);
 		assert.match(two!, /data-testid="stop-turn"/);
 	});

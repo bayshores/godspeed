@@ -201,7 +201,9 @@ export function YourTurn({
 	// A problem in words with no tag, pinned over the text, keeps its keys in its corner, so they take no line of their
 	// own. A page's piece keeps the whole width, which is what sets the size of its print.
 	const hasKeys = (folds && long) || fileShown !== null || Boolean(pieceShown);
-	const corner = hasKeys && place === "pinned" && !tag && !pieceShown;
+	// Outside the page's own text a problem lies on a plate, its keys in the plate's corner.
+	const plated = !pending && shownProblem !== null && place !== "under";
+	const corner = hasKeys && plated && !tag && !pieceShown;
 	const keys = (
 		// In a row with the tag the keys stay on its line while they fit: a file's name shortens before a key drops under it.
 		<div data-testid="turn-keys" className={cn("flex items-center justify-end gap-2", corner ? "flex-wrap" : cn("flex-1 basis-0", fileShown ? "min-w-[min(100%,19rem)]" : "min-w-fit"))}>
@@ -231,7 +233,7 @@ export function YourTurn({
 	const stood = { "data-state": slots.closing ? "closed" : "open", inert: slots.closing, style: { "--lh-block-delay": "240ms", "--lh-pale": pale } as CSSProperties };
 
 	const task = (
-		<aside ref={sheetRef} data-testid="turn-sheet" aria-label="Your turn" {...stood} className={cn("lh-turn-task flex min-h-0 min-w-0 flex-col", stand, empty && "hidden")}>
+		<aside ref={sheetRef} data-testid="turn-sheet" aria-label="Your turn" data-plate={plated || undefined} {...stood} className={cn("lh-turn-task flex min-h-0 min-w-0 flex-col", stand, empty && "hidden")}>
 			<div data-testid="your-turn" data-mode={mode} className="flex min-h-0 flex-1 flex-col gap-5">
 				<TurnSwap key={place === "pinned" || place === "under" ? "column" : "page"} swapKey={empty ? "none" : swapKey}>
 					{empty ? null : (

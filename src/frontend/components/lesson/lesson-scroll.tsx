@@ -11,28 +11,28 @@ import { usePageRest } from "./use-page-rest";
 
 /**
  * The lesson text's reading measure: the page's one width of its own. Everything else takes
- * the shared page width and sides (`.lh-page`). With room for both (1280 = the text's 632, the
- * gap, the task's 560 and two page sides; a container query cannot read the tokens), the lesson
+ * the shared page width and sides (`.lh-page`). With room for both (1000 points: two pages of 444
+ * with their gap and the page's sides; a container query cannot read the tokens), the lesson
  * is a book: open, the lesson text and the task sit side by side across the page's width, sized
  * by `.lh-lesson-room`; shut, the text is one page in the middle, as wide as the open book's left
  * page (`.lh-lesson-closed`). With less room the text is one column.
  */
 const READING_MEASURE = "mx-auto w-full max-w-[760px]";
-const PAIR = "@min-[1280px]/room:max-w-none";
-const PAIR_GRID = "@min-[1280px]/room:grid @min-[1280px]/room:grid-cols-[minmax(0,1fr)_var(--lh-turn)] @min-[1280px]/room:items-start";
+const PAIR = "@min-[1000px]/room:max-w-none";
+const PAIR_GRID = "@min-[1000px]/room:grid @min-[1000px]/room:grid-cols-[minmax(0,1fr)_var(--lh-turn)] @min-[1000px]/room:items-start @min-[1000px]/room:gap-x-(--lh-pair-gap)";
 /** The task with no lesson text yet: in the middle, at the width it keeps in the pair. */
-const ALONE = "@min-[1280px]/room:max-w-(--lh-turn)";
+const ALONE = "@min-[1000px]/room:max-w-(--lh-turn)";
 /** The task moving over as the lesson text arrives beside it. */
 const MAKE_ROOM = { duration: 240, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" };
 
 /** The jump key: in the gutter beside one column where the window leaves room, else at the text's side; in a pair, at the lesson text's. */
 const KEY = "@min-[688px]/room:right-[max(34px,calc((100%-760px)/2-48px))]";
-const PAIR_KEY = "@min-[1280px]/room:right-[calc((100%-var(--lh-pair))/2+var(--lh-turn)+38px)]";
-const SHUT_KEY = "@min-[1280px]/room:right-[calc((100%-var(--lh-text))/2-48px)]";
+const PAIR_KEY = "@min-[1000px]/room:right-[calc((100%-var(--lh-pair))/2+var(--lh-turn)+38px)]";
+const SHUT_KEY = "@min-[1000px]/room:right-[calc((100%-var(--lh-text))/2-48px)]";
 /** The writing row under the shut book's one page: as wide as that page. */
-const SHUT_FOOT = "@min-[1280px]/room:max-w-(--lh-text)";
+const SHUT_FOOT = "@min-[1000px]/room:max-w-(--lh-text)";
 /** Marks the room as wide enough for the book, for the layout to read. */
-const WIDE_MARK = "@min-[1280px]/room:[--lh-wide:1]";
+const WIDE_MARK = "@min-[1000px]/room:[--lh-wide:1]";
 
 /** The glide to a new resting place: firm enough to arrive in about a third of a second, with no
  *  long creep at its end, which reads as the page shaking. */

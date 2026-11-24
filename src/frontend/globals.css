@@ -804,27 +804,25 @@ body {
 	mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 24px), transparent);
 }
 
-/* The lesson text and "Your turn" side by side (LessonScroll), measured on the page's room:
-   the pair is the page's column, and "Your turn" is 688 where there is room, giving way first
-   down to 560 so the text keeps at least 632 and is never narrower. The text's page is as wide
-   shut as it is open, so its lines never wrap anew when the book opens or shuts. */
+/* The lesson text and the turn side by side (LessonScroll), measured on the page's room: the pair
+   is the page's column, in two pages of one width with a gap between them, and the turn's page
+   stops growing at 688. The text's page is as wide shut as it is open, so its lines never wrap
+   anew when the book opens or shuts. */
 .lh-lesson-room {
 	--lh-pair: min(100cqw - 2 * var(--lh-page-side), var(--lh-page-w));
+	--lh-pair-gap: 48px;
 }
 .lh-lesson-room,
 .lh-lesson-closed :is(.lh-text-sheets, .lh-turn-fit) {
-	--lh-turn: clamp(560px, min((var(--lh-pair) - var(--lh-gap)) / 2, var(--lh-pair) - var(--lh-gap) - 632px), 688px);
-	--lh-text: calc(var(--lh-pair) - var(--lh-gap) - var(--lh-turn));
+	--lh-turn: clamp(420px, (var(--lh-pair) - var(--lh-pair-gap)) / 2, 688px);
+	--lh-text: calc(var(--lh-pair) - var(--lh-pair-gap) - var(--lh-turn));
 }
-/* Side by side, the two sheets are the pages of an open book: both fill the page's window (the
-   scroller is a size container, so 100cqh is its height), and the text's grows past it. "Your
-   turn" (.lh-turn-fit) holds still while the text scrolls. Its question or problem
-   (.lh-turn-scroll) takes the room that is left, so the box and the keys under it rest at the
-   sheet's foot, and scrolls in its own box when it is longer than that room. */
-@container room (width >= 1280px) {
-	.lh-text-fit {
-		min-height: calc(100cqh - 48px);
-	}
+/* Side by side, the text and the turn are the pages of an open book, both starting under the step
+   line. The turn (.lh-turn-fit) is as tall as the page's window (the scroller is a size container,
+   so 100cqh is its height) and holds still while the text scrolls. Its question or problem
+   (.lh-turn-scroll) scrolls in its own box when it is longer than the room over the writing row,
+   which rests at the window's foot. */
+@container room (width >= 1000px) {
 	/* The page's own padding (24px over and under) stays clear, so the pair never scrolls by it. */
 	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit {
 		position: sticky;
@@ -837,21 +835,13 @@ body {
 		flex: 1 1 auto;
 		overflow-y: auto;
 	}
-	/* The shut book: one page in the middle of the pair's width, with "Your turn" pinned under
-	   its window. With "Your turn" in the page instead (or none yet), the text fills what is left
-	   of the window, as in the one column of a narrow room. */
+	/* The shut book: one page in the middle of the pair's width, with the writing row pinned under
+	   its window. */
 	.lh-lesson-closed :is(.lh-text-sheets, .lh-turn-fit) {
 		/* Inside the column 100cqw is the column's own width, so the pair is the column's whole width here. */
 		--lh-pair: 100%;
 		width: var(--lh-text);
 		margin-inline: auto;
-	}
-	.lh-lesson-closed:not(.lh-lesson-pinned) .lh-lesson-column {
-		min-height: calc(100cqh - 48px);
-	}
-	.lh-lesson-closed:not(.lh-lesson-pinned) :is(.lh-text-sheets, .lh-text-fit) {
-		flex: 1 1 auto;
-		min-height: 0;
 	}
 }
 /* The turn's task (YourTurn). In the page under the text it keeps a step's distance from it. As the
@@ -860,14 +850,23 @@ body {
 .lh-lesson-column > .lh-turn-fit .lh-turn-task {
 	padding-top: 40px;
 }
-@container room (width >= 1280px) {
+@container room (width >= 1000px) {
 	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit {
-		justify-content: flex-end;
 		gap: 20px;
 	}
 	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit .lh-turn-task {
 		flex: 0 1 auto;
 		padding-top: 0;
+	}
+	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit .lh-turn-row {
+		margin-top: auto;
+	}
+}
+/* On a page of its own at least 584 wide, a short question is a headline. */
+@container room (width >= 1280px) {
+	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit {
+		--lh-question-size: 34px;
+		--lh-question-leading: 1.3;
 	}
 }
 /* A question answered in the code editor: the editor takes the room left over the writing row, under the
@@ -913,8 +912,9 @@ body {
 	align-items: start;
 	column-gap: 16px;
 }
-/* Pinned, the problem lies on a plate, so the text scrolls under something that is plainly not text. */
-.lh-turn-top .lh-turn-task {
+/* A problem lies on a plate, so the lesson's text is never read as part of it. */
+.lh-lesson-room .lh-turn-fit .lh-turn-task[data-plate],
+.lh-turn-top .lh-turn-task[data-plate] {
 	background: var(--lh-well);
 	padding: 16px 20px 20px;
 }
