@@ -1,5 +1,5 @@
 //! The pdf job's agent. It reads a PDF on
-//! the teacher's behalf. The loop is hand-rolled like the visual maker's, because rendered pages
+//! the teacher's behalf. The loop is hand-rolled, because rendered pages
 //! are shown to this agent's eyes, never delivered onward.
 //!
 //! The prompt is the pdf-reader reading doctrine: triage with pdf_info first, then by size: short

@@ -1720,13 +1720,15 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	transition-duration: var(--lh-dur-fast);
 }
 
+/* minmax(0, …) and not a bare fr: WebKit keeps a bare 1fr row at its first height when the window
+   narrows and the text inside wraps onto more lines, which cuts the new lines off. */
 .lh-collapse {
 	display: grid;
-	grid-template-rows: 0fr;
+	grid-template-rows: minmax(0, 0fr);
 	transition: grid-template-rows var(--lh-dur) var(--lh-ease-out);
 }
 .lh-collapse[data-state="open"] {
-	grid-template-rows: 1fr;
+	grid-template-rows: minmax(0, 1fr);
 }
 .lh-collapse > * {
 	overflow: hidden;

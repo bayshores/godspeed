@@ -53,8 +53,8 @@ export interface BoxView {
 	help: HelpKeys | null;
 }
 
-/** What the teacher can be asked for in any lesson, and the background job each needs
- *  (Settings switches a job off). */
+/** What the teacher can be asked for in any lesson, and the tool each needs (Settings switches
+ *  a tool off). */
 const LESSON_IDEAS: readonly { line: string; tool: ToggleableTool | null }[] = [
 	{ line: "Draw it", tool: "visual" },
 	{ line: "Show a demo", tool: "demo" },
@@ -63,7 +63,7 @@ const LESSON_IDEAS: readonly { line: string; tool: ToggleableTool | null }[] = [
 ];
 
 /** The "Try asking" lines under the box while nothing waits, each sent as if typed in it.
- *  `tools`: the background jobs' switches from Settings; one not named is on. */
+ *  `tools`: the tools' switches from Settings; one not named is on. */
 export function lessonIdeas(tools: Readonly<Record<string, boolean>>): string[] {
 	return LESSON_IDEAS.filter((i) => i.tool === null || (tools[i.tool] ?? true)).map((i) => i.line);
 }

@@ -6,7 +6,10 @@ import type { CallUsage } from "./chat.ts";
 
 // ─── Async sub-agent jobs (vision §2.5) ─────────────────────────────────────
 
-export type JobKind = "research" | "demo" | "visual" | "pdf";
+export type JobKind = "research" | "demo" | "pdf";
+
+/** What a delivered result can be: a job's, or a figure from before the teacher drew them itself. */
+type ArtifactKind = JobKind | "visual";
 type JobStatus = "running" | "done" | "error";
 
 export interface JobRecord {
@@ -80,7 +83,7 @@ export interface DemoResult {
 }
 
 export interface VisualResult {
-	/** Complete SVG markup (verified by the maker looking at the render). */
+	/** Complete SVG markup. */
 	svg: string;
 	notes?: string;
 }
@@ -124,7 +127,7 @@ export interface SubagentResultMeta {
 
 /** The data-subagent-artifact part payload: what the UI renders. */
 export interface SubagentArtifactData {
-	kind: JobKind;
+	kind: ArtifactKind;
 	result: ResearchResult | DemoResult | VisualResult | PdfResult;
 	/** The learner's pinned UI state (invert switch) riding the record. */
 	ui?: { inverted?: boolean };
@@ -132,7 +135,7 @@ export interface SubagentArtifactData {
 
 /** Whether a result is the failure shape (html/svg empty, failure brief). */
 export function isSubagentFailure(
-	kind: JobKind,
+	kind: ArtifactKind,
 	result: ResearchResult | DemoResult | VisualResult | PdfResult,
 ): boolean {
 	if (kind === "research") {

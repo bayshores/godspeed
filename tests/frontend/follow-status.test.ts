@@ -43,13 +43,13 @@ describe("agentDoing", () => {
 	it("a lesson's facts, topic grouping, a background job, other work", () => {
 		assert.equal(agentDoing({ ...none, agent: teaching, extractions: [{ kind: "chat", phase: "extracting", title: "Counting" }] })?.text, "Saving facts from “Counting”");
 		assert.equal(agentDoing({ ...none, agent: teaching, extractions: [{ kind: "topics", phase: "grouping", title: "CSE 21" }] })?.text, "Grouping topics");
-		assert.equal(agentDoing({ ...none, agent: teaching, jobs: [{ kind: "visual" }] })?.text, "Drawing a figure");
+		assert.equal(agentDoing({ ...none, agent: teaching, jobs: [{ kind: "demo" }] })?.text, "Building a demo");
 		assert.deepEqual(agentDoing({ ...none, agent: { ...teaching, pendingWork: 1 } }), { text: "Working", working: true });
 	});
 	it("leaves the background work to an open helper", () => {
 		const withHelper = { ...teaching, helperHere: true, pendingWork: 2 };
 		const extractions = [{ kind: "notes" as const, phase: "extracting", title: "a.pdf" }];
-		assert.deepEqual(agentDoing({ ...none, agent: withHelper, extractions, jobs: [{ kind: "visual" }] }), { text: "Idle", working: false });
+		assert.deepEqual(agentDoing({ ...none, agent: withHelper, extractions, jobs: [{ kind: "demo" }] }), { text: "Idle", working: false });
 		assert.deepEqual(agentDoing({ ...none, agent: { ...withHelper, pendingTurns: 1 }, extractions }), { text: "Working", working: true });
 	});
 });

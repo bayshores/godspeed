@@ -31,7 +31,7 @@ pub enum StepFile {
 }
 
 /// The tools a lesson reply sends that the lesson text shows by itself.
-const QUIET_TOOLS: [&str; 21] = [
+const QUIET_TOOLS: [&str; 22] = [
 	"quiz",
 	"probe",
 	"ask_user_question",
@@ -43,6 +43,7 @@ const QUIET_TOOLS: [&str; 21] = [
 	"part",
 	"post_problems",
 	"plot",
+	"visual",
 	"topic_done",
 	"plan_init",
 	"probe_done",
@@ -79,7 +80,6 @@ pub fn lesson_call(tool: &str, args: &Json, space_id: Option<&str>, names: &dyn 
 		"pdf" => step(path.map_or_else(|| "Reading a PDF".to_owned(), |name| format!("Reading {name}"))),
 		"research" => step("Checking the web".to_owned()),
 		"demo" => step("Building a demo".to_owned()),
-		"visual" => step("Drawing a figure".to_owned()),
 		"list_spaces" | "read_space" | "search_space_files" | "read_passage" | "search_graph" => {
 			let mut args = args.clone();
 			if let (Some(space_id), Some(obj)) = (space_id, args.as_obj_mut()) {
@@ -221,7 +221,6 @@ mod tests {
 		assert_eq!(words("pdf", json!({ "path": "/a/HW7.pdf", "question": "q" })), "Reading HW7.pdf");
 		assert_eq!(words("research", json!({ "question": "q" })), "Checking the web");
 		assert_eq!(words("demo", json!({ "title": "t", "brief": "b" })), "Building a demo");
-		assert_eq!(words("visual", json!({ "brief": "b" })), "Drawing a figure");
 	}
 
 	#[test]

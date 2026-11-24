@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use gs_base::re::Re;
 use resvg::{tiny_skia, usvg};
@@ -36,7 +36,8 @@ pub fn svg_viewport(svg: &str, opts: RenderSvgOptions) -> (f64, f64) {
 }
 
 /// Fonts for text in the figure: the machine's, with every generic family on the first one found.
-fn font_database() -> Arc<usvg::fontdb::Database> {
+/// Read once: listing the machine's fonts is the slow part of drawing a figure.
+static FONTS: LazyLock<Arc<usvg::fontdb::Database>> = LazyLock::new(|| {
 	let mut db = usvg::fontdb::Database::new();
 	db.load_system_fonts();
 	let first_family = db.faces().next().and_then(|face| face.families.first()).map(|(name, _)| name.clone());
@@ -48,21 +49,33 @@ fn font_database() -> Arc<usvg::fontdb::Database> {
 		db.set_monospace_family(family);
 	}
 	Arc::new(db)
+});
+
+fn tree(svg: &str) -> Result<usvg::Tree, String> {
+	let options = usvg::Options {
+		font_family: String::new(),
+		font_size: 12.0,
+		languages: vec!["en".to_owned()],
+		default_size: usvg::Size::from_wh(100.0, 100.0).expect("fixed size"),
+		fontdb: FONTS.clone(),
+		..usvg::Options::default()
+	};
+	usvg::Tree::from_str(svg, &options).map_err(|e| e.to_string())
+}
+
+/// The box an SVG's drawing takes, strokes included, as left, top, width and height from its
+/// viewport's corner; None when it draws nothing. An Err means this renderer cannot read it.
+pub fn drawn_box(svg: &str) -> Result<Option<[f64; 4]>, String> {
+	let drawn = tree(svg)?.root().abs_stroke_bounding_box();
+	let seen = drawn.width() > 0.0 || drawn.height() > 0.0;
+	Ok(seen.then(|| [drawn.x(), drawn.y(), drawn.width(), drawn.height()].map(f64::from)))
 }
 
 /// An SVG as a PNG on white, scaled to the viewport's width. An Err means this renderer
 /// could not draw it, and the caller falls back to a browser.
 pub fn render_svg(svg: &str, opts: RenderSvgOptions) -> Result<Vec<u8>, String> {
 	let (target_width, _) = svg_viewport(svg, opts);
-	let options = usvg::Options {
-		font_family: String::new(),
-		font_size: 12.0,
-		languages: vec!["en".to_owned()],
-		default_size: usvg::Size::from_wh(100.0, 100.0).expect("fixed size"),
-		fontdb: font_database(),
-		..usvg::Options::default()
-	};
-	let tree = usvg::Tree::from_str(svg, &options).map_err(|e| e.to_string())?;
+	let tree = tree(svg)?;
 
 	let size = tree.size();
 	let scale = target_width as f32 / size.width();

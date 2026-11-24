@@ -21,9 +21,10 @@ import { VisualOutputCard } from "@/frontend/components/artifacts/visual-card";
  *     too long to inline by default and the teacher's wake turn weaves it
  *     into the lesson anyway. Failures keep the failure card (the brief
  *     explains what went wrong).
- *   demo / visual — the artifact itself (sandboxed iframe / sanitized SVG).
- *     The sub-agent's verification notes are model-facing glue and do NOT
- *     render; only a failure note does.
+ *   demo — the artifact itself (a sandboxed iframe). The sub-agent's
+ *     verification notes are model-facing glue and do NOT render; only a
+ *     failure note does.
+ *   visual — a figure from before the teacher drew them itself.
  */
 export function SubagentSteerCard({ message }: { message: LhViewMessage }) {
 	const artifactPart = message.parts.find((p) => p.type === "data-subagent-artifact");
@@ -58,7 +59,7 @@ export function SubagentSteerCard({ message }: { message: LhViewMessage }) {
 		case "demo":
 			return <DemoOutputCard output={data.result} messageId={message.id} initialInverted={data.ui?.inverted ?? false} />;
 		case "visual":
-			return <VisualOutputCard output={data.result} messageId={message.id} initialInverted={data.ui?.inverted ?? false} />;
+			return <VisualOutputCard output={data.result} />;
 	}
 }
 

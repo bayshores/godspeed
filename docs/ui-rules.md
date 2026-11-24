@@ -152,7 +152,7 @@ The app moves in one register, quick and quiet, like an e-ink page redrawing. Th
 
 - Motion is part of every UI change, built in the same change without being asked: for each new or changed thing, decide how it arrives, leaves, changes size, swaps what it holds, and answers the pointer and a press. Nothing pops in, vanishes or snaps. A UI change is finished only when its motion has been filmed and watched frame by frame; pictures of it at rest are not enough.
 - Things enter in `--lh-dur` (160 ms) and leave in `--lh-dur-fast` (110 ms). A leaving thing is held on screen by presence (`usePresence`, `useLastWhileClosing`) until its exit has played; nothing pops away.
-- Anything that replaces part of a page appears stepped (`.lh-block-in`, `.lh-set`), top to bottom, one thing moving at a time. A teacher's reply prints line by line (`usePrintIn`).
+- Anything that replaces part of a page appears stepped (`.lh-block-in`, `.lh-set`), top to bottom, one thing moving at a time. A teacher's reply prints line by line, and what follows its text (a figure, a card) arrives once the text has printed (`usePrintIn`).
 - A page change is the one large move (`--lh-dur-page`, 420 ms): the pages are sheets lying side by side (`Travel`, `components/travel/`). A still copy of the old page leaves while the new one arrives.
 
   | From, to | The window travels |

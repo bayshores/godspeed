@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use gs_agent::extraction::ledgers;
+use gs_agent::subagents::headless::get_headless;
 use gs_agent::teacher::teacher_agent::{AgentBuildOptions, create_homework_agent, create_practice_agent, create_prober_agent, create_study_agent, create_teacher_agent};
 use gs_agent::tools::space::SpaceToolContext;
 use gs_agent::tools::graph::SearchGraph;
@@ -24,7 +25,8 @@ use gs_core::spaces::space_tools::ToolOutcome;
 use gs_core::graph::ports::GraphStore;
 use gs_core::records::settings_resolution::graph_tools_enabled;
 use gs_core::records::teaching_areas::{every_turn_rules, learner_rules_section};
-use gs_core::session::tool_switches::switched_off;
+use gs_core::messages::native_messages::has_probe_done;
+use gs_core::session::tool_switches::{VISUAL_TOOL, switched_off};
 use gs_engine::turn::agent::Agent;
 use gs_engine::turn::faux::Engine;
 use gs_json::{Json, json};
@@ -69,13 +71,16 @@ fn with_lesson_rules<T>(app: &App, effective: &Json, space_id: Option<&str>, tex
 	text(&effective["agent"]["rules"], space_rules.as_ref().map(|(name, rules)| (name.as_str(), rules.as_slice())))
 }
 
-/// The rules block a lesson's later work items end with (`every_turn_rules`).
+/// The rules block a lesson's later work items end with (`every_turn_rules`). It names the
+/// figure tool while the lesson's teacher has it: the switch is on and its prober is done.
 pub fn every_turn_rules_for(app: &App, lesson: &Json) -> String {
 	let effective = app.stores.settings.effective_settings().unwrap_or_else(|err| {
 		eprintln!("[work item] reading the settings for the learner's rules failed: {err}");
 		Json::Null
 	});
-	with_lesson_rules(app, &effective, lesson["spaceId"].as_str(), every_turn_rules)
+	let probing = !matches!(lesson["kind"].as_str(), Some("practice" | "homework" | "study")) && !has_probe_done(lesson["messages"].items());
+	let figures = !probing && !switched_off(Some(&effective["agent"]["tools"]), VISUAL_TOOL);
+	with_lesson_rules(app, &effective, lesson["spaceId"].as_str(), |rules, space| every_turn_rules(rules, space, figures))
 }
 
 /// search_graph over the lesson's own graph only, a few facts and chains at a time.
@@ -172,6 +177,7 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 		space_actions: Some(agent_space_actions(app)),
 		open_page: Some(agent_open_page(app)),
 		write_vault_note: lesson_vault_tool(app, &chat_id, record),
+		visual: Some(get_headless(&app.pdf, app.shell.as_ref())),
 	};
 	let teacher = || TeacherToolContext { plan: PlanContext { chat_id: chat_id.clone(), chat_store: chats.clone() }, jobs: jobs.clone(), side: side.clone() };
 
@@ -197,7 +203,7 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 		_ => {
 			let deliver_app = app.clone();
 			let probe = ProbeDoneContext { chat_id: chat_id.clone(), chat_store: chats.clone(), deliver: Arc::new(move |steer| deliver_job_result(&deliver_app, steer)) };
-			create_prober_agent(&ProberToolContext { probe, jobs, side }, opts)
+			create_prober_agent(&ProberToolContext { probe, jobs, side: LessonSide { visual: None, ..side } }, opts)
 		}
 	}
 }
@@ -237,7 +243,7 @@ mod tests {
 		let mut names: Vec<String> = ["study", "practice", "lesson"].iter().flat_map(|kind| names_for(&app, &lesson(kind), &effective)).collect();
 		names.extend(names_of(&app, &lesson("lesson"), &effective, true));
 		names.extend(names_for(&app, &homework, &effective));
-		for tool in ["post_problems", "part", "read", "pdf", "work_plan", "read_passage", "demo"] {
+		for tool in ["post_problems", "part", "read", "pdf", "work_plan", "read_passage", "demo", "visual"] {
 			assert!(names.iter().any(|n| n == tool), "{tool} is among the lesson tools: {names:?}");
 		}
 		for name in &names {

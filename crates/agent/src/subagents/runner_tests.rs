@@ -115,21 +115,21 @@ fn no_demo() -> Result<DemoRunResult, String> {
 }
 
 #[tokio::test]
-async fn a_visual_job_saves_its_result_usage_and_pending_delivery() {
+async fn a_demo_job_saves_its_result_usage_and_pending_delivery() {
 	let script = Scripted::new();
-	script.reply(calls(&[("write_svg", json!({ "svg": "<svg/>" })), ("render_svg", json!({}))]));
+	script.reply(calls(&[("write_demo", json!({ "html": "<p/>" })), ("run_demo", json!({}))]));
 	script.reply(says("A dot."));
-	let host = setup("visual", Some(faux_engine(&script)), no_demo());
-	let id = job(&host, "visual", Some(json!({ "brief": "A dot." })));
+	let host = setup("demo-done", Some(faux_engine(&script)), Ok(DemoRunResult { ok: true, ..Default::default() }));
+	let id = job(&host, "demo", Some(json!({ "title": "Dot", "brief": "A dot." })));
 	let record = run(&host, &id).await;
 	assert_eq!(record["status"], Json::from("done"));
 	assert_eq!(record["activity"], Json::from("finished"));
-	assert_eq!(record["result"], json!({ "svg": "<svg/>", "notes": "A dot." }));
+	assert_eq!(record["result"], json!({ "title": "Dot", "html": "<p/>", "tested": true, "notes": "A dot." }));
 	assert_eq!(record["delivery"], json!({ "kind": "result", "status": "pending" }));
 	assert_eq!(record["usage"]["model"], Json::from("agent:outside-agent"));
 	assert_eq!(record["usage"]["steps"], Json::from(2));
 	assert!(record.get("error").is_none());
-	assert_eq!(host.activity.lock().first().map(String::as_str), Some("write_svg: 0.0 KB"), "the host hears each activity line");
+	assert_eq!(host.activity.lock().first().map(String::as_str), Some("write_demo"), "the host hears each activity line");
 	let delivered = host.delivered.lock();
 	assert_eq!(delivered.len(), 1);
 	assert_eq!(delivered[0]["id"], Json::from(format!("steer_{id}")));
@@ -221,7 +221,7 @@ async fn unknown_kinds_missing_lessons_and_finished_jobs() {
 	let record = run(&host, &id).await;
 	assert_eq!((record["status"].clone(), record["error"].clone()), (Json::from("error"), Json::from("unknown kind poem")));
 
-	let init = CreateJobInit { kind: "visual", chat_id: "chat_gone", tool_call_id: "c", activity: None, input: None };
+	let init = CreateJobInit { kind: "demo", chat_id: "chat_gone", tool_call_id: "c", activity: None, input: None };
 	let id = host.jobs.create_job(&init).unwrap()["id"].as_str().unwrap().to_owned();
 	let record = run(&host, &id).await;
 	assert_eq!(record["error"], Json::from("Chat not found: chat_gone"));
@@ -236,9 +236,9 @@ async fn the_input_falls_back_to_the_transcript() {
 	let script = Scripted::new();
 	script.reply(says("No svg."));
 	let host = setup("transcript", Some(faux_engine(&script)), no_demo());
-	let id = job(&host, "visual", None);
+	let id = job(&host, "demo", None);
 	let chat_id = host.jobs.get_job(&id).unwrap()["chatId"].as_str().unwrap().to_owned();
-	let call = json!({ "type": "toolCall", "id": "call_job", "name": "visual", "arguments": { "brief": "From the record." } });
+	let call = json!({ "type": "toolCall", "id": "call_job", "name": "demo", "arguments": { "brief": "From the record." } });
 	host.chats.save_messages(&chat_id, &[json!({ "role": "assistant", "content": [call] })]).unwrap();
 	let runner = create_job_runner(host.clone());
 	let job_record = host.jobs.get_job(&id).unwrap();
@@ -256,7 +256,7 @@ async fn an_aborted_job_unwinds_without_writing_an_outcome() {
 		})
 	});
 	let host = setup("abort", Some(faux_engine(&script)), no_demo());
-	let id = job(&host, "visual", Some(json!({ "brief": "x" })));
+	let id = job(&host, "demo", Some(json!({ "brief": "x" })));
 	let task = gs_base::tasks::spawn("test", create_job_runner(host.clone()).run_job(id.clone(), None));
 	while !is_job_live(&host.aborts, &id) {
 		tokio::task::yield_now().await;
@@ -307,7 +307,6 @@ fn sources_come_from_cited_links_then_fetched_urls() {
 fn failure_shapes_per_kind() {
 	assert_eq!(failure_result("demo", Some(&json!({ "title": "  " })), "r"), json!({ "title": "Interactive demo", "html": "", "tested": true, "notes": "FAILED: r" }));
 	assert_eq!(failure_result("demo", Some(&json!({ "title": " T " })), "r")["title"], Json::from(" T "));
-	assert_eq!(failure_result("visual", None, "r"), json!({ "svg": "", "notes": "FAILED: r" }));
 	assert_eq!(failure_result("research", None, "r"), json!({ "brief": "Research failed: r", "sources": [] }));
 }
 
