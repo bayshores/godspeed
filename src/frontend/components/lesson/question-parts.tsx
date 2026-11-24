@@ -27,6 +27,5 @@ export function QuestionText({ children, quiet = false, tag = null }: { children
 	);
 }
 
-/** A row of the answer list; a picked one sits on the space's pale color. */
+/** A row of the answer list. */
 export const ANSWER_ROW = "lh-press flex w-full gap-3 text-left outline-none transition-colors duration-(--lh-dur) ease-(--lh-ease-out)";
-export const PICKED = "bg-(--lh-pale)";

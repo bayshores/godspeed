@@ -30,24 +30,28 @@ export function SelectAllHint() {
 /**
  * The lettered rows of a quiz, an ask and a problem with choices, each a plate (short ones side by side): a pick or several
  * (`multi`), the row the keyboard walked on a ring. Which rows are picked and where the
- * keyboard is belong to the caller.
+ * keyboard is belong to the caller. Once answered (no `onToggle`) the rows stay as they stood, quiet and
+ * not pressable, with a graded answer's `verdict` on the first picked one.
  */
 export function ChoiceRows({
 	options,
 	selected,
 	multi,
-	walked,
+	walked = null,
 	onToggle,
+	verdict,
 }: {
 	options: readonly { label: string; description?: string }[];
 	selected: ReadonlySet<number>;
 	multi: boolean;
-	walked: number | null;
-	onToggle: (index: number) => void;
+	walked?: number | null;
+	onToggle?: (index: number) => void;
+	verdict?: React.ReactNode;
 }) {
+	const firstPicked = options.findIndex((_, i) => selected.has(i));
 	const sideBySide = options.length <= SIDE_BY_SIDE && options.every((opt) => opt.label.length <= SHORT_LABEL && !opt.description);
 	return (
-		<div className={cn("gap-2", sideBySide ? "grid auto-cols-fr grid-flow-col" : "flex flex-col")} role={multi ? "group" : "radiogroup"}>
+		<div inert={!onToggle} className={cn("gap-2", sideBySide ? "grid auto-cols-fr grid-flow-col" : "flex flex-col")} role={multi ? "group" : "radiogroup"}>
 			{options.map((opt, i) => {
 				const isSel = selected.has(i);
 				return (
@@ -58,11 +62,11 @@ export function ChoiceRows({
 						aria-checked={isSel}
 						data-kbdrow={i}
 						data-testid="question-option"
-						onClick={() => onToggle(i)}
+						onClick={() => onToggle?.(i)}
 						className={cn(OPTION_ROW, isSel ? "bg-ink text-background" : "lh-well hover:bg-tone", i === walked && !isSel && "ring-2 ring-inset ring-ink-3")}
 					>
 						<OptionMark picked={isSel}>{choiceLetter(i)}</OptionMark>
-						<span className="min-w-0 flex-1" style={{ ...proseVars(18, 28), ...(isSel && ON_INK) }}>
+						<span className="min-w-0 flex-1" style={{ ...proseVars(18, 28, !onToggle), ...(isSel && ON_INK) }}>
 							<ToolContentResponse>{opt.label}</ToolContentResponse>
 							{opt.description && (
 								<span className="block" style={proseVars(15, 22, true)}>
@@ -70,6 +74,7 @@ export function ChoiceRows({
 								</span>
 							)}
 						</span>
+						{i === firstPicked && verdict}
 					</button>
 				);
 			})}

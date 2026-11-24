@@ -24,6 +24,7 @@ import { LessonScroll } from "../../src/frontend/components/lesson/lesson-scroll
 import type { QuestionHandle } from "../../src/frontend/components/question-dock.tsx";
 import { practiceProgress } from "../../src/frontend/components/lesson/practice-progress.ts";
 import { ReadingPane } from "../../src/frontend/components/lesson/reading-pane.tsx";
+import { AgentStatusContext, type AgentStatus } from "../../src/frontend/components/agent-status.tsx";
 import { TeacherContext, type TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 import { SpaceProvider } from "../../src/frontend/components/space-context.tsx";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
@@ -120,6 +121,8 @@ function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 		swapKey: "",
 		onNext: () => {},
 		busy: false,
+		onStop: null,
+		waitingForAgent: false,
 		value: "",
 		onChange: () => {},
 		onSend: () => {},
@@ -514,16 +517,21 @@ describe("Your turn in each state", () => {
 		assert.match(out, /Find E\[N\]\./);
 	});
 
-	it("a homework problem's page key leads its own row in the page and sits in the problem's corner when pinned, and shows that page in the Document panel", async () => {
+	it("a homework problem lies on a plate with its page key in the corner, beside the text and pinned over it, and the key shows that page in the Document panel", async () => {
 		let shown = 0;
 		const pdf = { id: "f_hw", name: "HW6", path: "/tmp/HW6.pdf", pdf: true, pages: 4, aspect: 0.77 };
 		const file = { document: pdf, page: 2, first: true, onShow: () => void shown++ };
 		const homework = { ...problem, line: null, part: "b", file };
-		assert.match(html({ problem: homework }), /data-testid="turn-swap"[^>]*><div[^>]*><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="lesson-assignment"[^>]*title="Page 2"/);
 		assert.doesNotMatch(html({ problem: homework }), /<h2/, "a homework problem has no tag");
-		const pinned = html({ problem: homework }, (n) => <TurnPlaceContext.Provider value="pinned">{n}</TurnPlaceContext.Provider>);
-		assert.match(pinned, /<div class="lh-turn-body lh-turn-cornered">[\s\S]*<\/div><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="lesson-assignment"[^>]*title="Page 2"/, "in the corner beside the problem");
-		assert.doesNotMatch(pinned, /gap-x-4 gap-y-2"><div data-testid="turn-keys"/, "not in a head row");
+		for (const place of ["beside", "pinned"] as const) {
+			const plated = html({ problem: homework }, (n) => <TurnPlaceContext.Provider value={place}>{n}</TurnPlaceContext.Provider>);
+			assert.match(plated, /data-testid="turn-sheet"[^>]*data-plate="true"/, place);
+			assert.match(plated, /<div class="lh-turn-body lh-turn-cornered">[\s\S]*<\/div><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="lesson-assignment"[^>]*title="Page 2"/, "in the corner beside the problem");
+			assert.doesNotMatch(plated, /gap-x-4 gap-y-2"><div data-testid="turn-keys"/, "not in a head row");
+		}
+		const under = html({ problem: homework }, (n) => <TurnPlaceContext.Provider value="under">{n}</TurnPlaceContext.Provider>);
+		assert.match(under, /data-testid="turn-swap"[^>]*><div[^>]*><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="lesson-assignment"[^>]*title="Page 2"/, "in the page's own text the key leads its own row");
+		assert.doesNotMatch(under, /data-plate/);
 		assert.doesNotMatch(html({ pending: quiz, problem: { ...problem, file } }), /lesson-assignment/, "not over a question asked while it is open");
 		assert.match(html({ problem: { ...problem, file: { ...file, document: { ...pdf, name: "HW6 key" }, first: false } } }), /title="HW6 key, page 2"/, "another file is named");
 		assert.doesNotMatch(html({ problem: { ...problem, file: { ...file, page: undefined } } }), /lesson-assignment/, "no page, no key");
@@ -948,7 +956,7 @@ describe("the turn sheet", () => {
 
 	const keptQuestion = (answer: QuestionAnswerData) => ({ kind: "question" as const, toolCallId: "q1", answer });
 	const pickedVenus = keptQuestion(buildAnswer(quizQD, { values: ["Venus"] }));
-	const optionRows = (host: HTMLElement) => [...host.querySelectorAll('[data-testid="answered-turn-option"]')];
+	const optionRows = (host: HTMLElement) => [...host.querySelectorAll('[data-testid="answered-turn"] [data-testid="question-option"]')];
 
 	it("after an answer the question is kept, dimmed with the pick and its verdict, until the next thing swaps in", async () => {
 		await mounted(named(column({ pending: quiz })), async (host, show) => {
@@ -959,7 +967,7 @@ describe("the turn sheet", () => {
 			assert.match(host.querySelector("h2")!.textContent!, /Quiz/, "titled as the question was");
 			assert.ok(pane.hasAttribute("inert"), "nothing in it can be pressed");
 			assert.match(pane.textContent!, /Which planet is closest to the sun\?/);
-			const picked = optionRows(host).filter((r) => r.hasAttribute("data-picked"));
+			const picked = optionRows(host).filter((r) => r.getAttribute("aria-checked") === "true");
 			assert.equal(picked.length, 1);
 			assert.match(picked[0]!.textContent!, /Venus[\s\S]*Wrong/, "the verdict sits beside the pick");
 			assert.equal(host.querySelectorAll('[data-testid="answer-result"]').length, 1);
@@ -1011,17 +1019,17 @@ describe("the turn sheet", () => {
 	it("a skipped question says Skipped instead of a pick; I don't know is its verdict alone", () => {
 		const skipped = renderToStaticMarkup(named(column({ busy: true, next: null, kept: keptQuestion({ ...dismissedAnswer("quiz", quizInput.question), answeredAt: "2026-11-19T10:00:00Z" }) })));
 		assert.match(skipped, /data-testid="answered-turn-skipped"[^>]*>Skipped</);
-		assert.doesNotMatch(skipped, /answered-turn-option|answer-result/);
+		assert.doesNotMatch(skipped, /question-option|answer-result/);
 		const unsure = renderToStaticMarkup(named(column({ busy: true, next: null, kept: keptQuestion(buildAnswer(quizQD, { dontKnow: true })) })));
 		assert.match(unsure, /data-testid="answer-result"[^>]*>Didn(?:'|&#x27;)t know</);
-		assert.doesNotMatch(unsure, /answered-turn-option|answered-turn-skipped/);
+		assert.doesNotMatch(unsure, /question-option|answered-turn-skipped/);
 	});
 
 	it("a right pick reads Right; a prediction shows the pick with no verdict", () => {
 		const right = renderToStaticMarkup(named(column({ busy: true, next: null, kept: keptQuestion(buildAnswer(quizQD, { values: ["Mercury"] })) })));
-		assert.match(right, /data-picked="true"[\s\S]*?Mercury[\s\S]*?data-testid="answer-result"[^>]*>Right</);
+		assert.match(right, /aria-checked="true"[\s\S]*?Mercury[\s\S]*?data-testid="answer-result"[^>]*>Right</);
 		const guess = renderToStaticMarkup(named(column({ busy: true, next: null, kept: keptQuestion(buildAnswer({ ...quizQD, questionType: "predict" }, { values: ["Venus"] })) })));
-		assert.match(guess, /data-picked="true"/);
+		assert.match(guess, /aria-checked="true"/);
 		assert.doesNotMatch(guess, /answer-result/, "a guess is never marked");
 	});
 });
@@ -1071,7 +1079,6 @@ describe("the reading pane", () => {
 		stoppedEmpty: false,
 		waitingForAgent: false,
 		work: NO_LESSON_WORK,
-		onStop: () => {},
 		queuedSteers: [],
 		arrivalsLive: false,
 		pageMarks: new Map(),
@@ -1089,11 +1096,28 @@ describe("the reading pane", () => {
 		assert.doesNotMatch(pane({ busy: false, status: "ready" }), /data-testid="agent-at-work"/);
 	});
 
-	it("while the teacher writes: Stop and the lines waiting for it under the desk; none when idle or at a stop", () => {
+	it("while the teacher writes: the lines waiting for it under the desk, and Stop in the writing row after Send; none when idle or at a stop", () => {
 		const out = pane({ messages: planned, queuedSteers: [{ id: "s1", text: "and the variance?" }] });
-		assert.match(out, /data-testid="agent-at-work"[\s\S]*data-testid="queued-steers"[\s\S]*?and the variance\?[\s\S]*data-testid="stop-turn"[^>]*>Stop</);
-		assert.doesNotMatch(pane({ busy: false, status: "ready" }), /stop-turn/);
-		assert.doesNotMatch(pane({ onStop: null }), /stop-turn/, "the teacher reading ahead at a stop is not stopped");
+		assert.match(out, /data-testid="agent-at-work"[\s\S]*data-testid="queued-steers"[\s\S]*?and the variance\?/);
+		assert.doesNotMatch(out, /stop-turn/, "Stop is not in the text");
+		assert.match(html({ busy: true, onStop: () => {} }), /data-testid="composer-keys"[^>]*>[\s\S]*data-testid="composer-send"[\s\S]*data-testid="stop-turn"[^>]*lh-btn-quiet[^>]*>Stop</);
+		assert.doesNotMatch(html(), /stop-turn/);
+		assert.doesNotMatch(html({ busy: true }), /stop-turn/, "the teacher reading ahead at a stop is not stopped");
+	});
+
+	it("the key that turns the teacher on leads Stop only while the turn waits for an agent", () => {
+		const off = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 1, pendingTurns: 1, helperWork: 0, claimedLessons: [] } as AgentStatus;
+		const row = (waitingForAgent: boolean) => html({ busy: true, onStop: () => {}, waitingForAgent }, (n) => <AgentStatusContext.Provider value={off}>{named(n)}</AgentStatusContext.Provider>);
+		assert.match(row(true), /lh-btn-main[^>]*>Turn on marco<\/button><button[^>]*data-testid="stop-turn"/);
+		assert.doesNotMatch(row(false), /Turn on/);
+	});
+
+	it("Stop sends the stop once", async () => {
+		let stops = 0;
+		await mounted(turn({ busy: true, onStop: () => void stops++ }), async (host) => {
+			await click(host, "stop-turn");
+		});
+		assert.equal(stops, 1);
 	});
 
 	it("no key that moves the lesson on at the foot of the text: those are in Your turn", () => {

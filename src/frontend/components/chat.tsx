@@ -654,7 +654,6 @@ export function Chat({
 											stoppedEmpty={stoppedEmpty}
 											waitingForAgent={waitingForAgent}
 											work={work}
-											onStop={atStop ? null : abortInFlightTurn}
 											queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
 											arrivalsLive={arrivalsLive}
 											pageMarks={pageMarks}
@@ -685,6 +684,8 @@ export function Chat({
 												kept={kept}
 												onNext={onNext}
 												busy={busy}
+												onStop={busy && !atStop ? abortInFlightTurn : null}
+												waitingForAgent={waitingForAgent}
 												boxRef={workBoxRef}
 												value={text}
 												onChange={editText}

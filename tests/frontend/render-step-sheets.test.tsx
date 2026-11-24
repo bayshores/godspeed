@@ -39,7 +39,6 @@ function pane(messages: LhViewMessage[], over: Partial<Props> = {}): string {
 			stoppedEmpty={false}
 			waitingForAgent={false}
 			work={NO_LESSON_WORK}
-			onStop={() => {}}
 			queuedSteers={[]}
 			arrivalsLive={false}
 			pageMarks={new Map()}
@@ -69,10 +68,10 @@ describe("the lesson text as sheets", () => {
 		assert.match(two!, /Now exec\.[\s\S]*What is exec\?[\s\S]*It starts a new program\./);
 	});
 
-	it("only the newest section holds Stop", () => {
-		const [one, two] = sheets(pane(twoSteps, { busy: true, status: "submitted" }));
-		assert.doesNotMatch(one!, /data-testid="stop-turn"/);
-		assert.match(two!, /data-testid="stop-turn"/);
+	it("only the newest section holds the lines that wait for the teacher", () => {
+		const [one, two] = sheets(pane(twoSteps, { busy: true, status: "submitted", queuedSteers: [{ id: "s1", text: "and after that?" }] }));
+		assert.doesNotMatch(one!, /data-testid="queued-steers"/);
+		assert.match(two!, /data-testid="queued-steers"/);
 	});
 
 	it("a step whose first question still waits has no section yet, and one section alone has no heading", () => {

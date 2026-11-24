@@ -78,7 +78,7 @@ export function QuizWhy({ answer }: { answer: QuestionAnswerData }) {
 }
 
 /** Text squeezed onto one line that ends in an ellipsis; its math and code still draw. */
-const ONE_LINE = "max-h-7 min-w-0 truncate [&_p]:m-0 [&_p]:inline [&_pre]:inline [&_pre]:whitespace-pre";
+const ONE_LINE = "max-h-7 min-w-0 truncate [&>div]:inline [&>div]:whitespace-nowrap [&_p]:m-0 [&_p]:inline [&_pre]:inline [&_pre]:whitespace-pre";
 
 /**
  * An answered question in the lesson, shrunk to one line: the verdict, the

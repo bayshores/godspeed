@@ -143,10 +143,10 @@ const waitingRequest = `await fetch("/api/spaces/{space}/deadlines/{deadline}/re
 /** The lesson made and never sent: opened at this address, the window sends its first message once,
  *  as Study does, and with no agent connected its reply waits. */
 const waitingLesson = `/chat/{pending}?prompt=${encodeURIComponent(WAITING_TOPIC)}`;
-/** A lesson turn running: Stop at the lesson's foot. */
+/** A lesson turn running: Stop in the writing row. */
 const turnRuns = "[data-testid=stop-turn]";
 /** The desk in that lesson's text, still while no agent takes the reply, at work once one does. */
-const deskUp = "[data-testid=agent-at-work] [data-testid=stop-turn]";
+const deskUp = "[data-testid=agent-at-work]";
 /** That lesson's reply stopped (a screen before may have stopped it already) and the lesson deleted, so the screens after it are as before. A
  *  lesson can't be deleted while its turn runs, so the delete is tried until the stop has ended it. */
 const dropWaitingLesson = `await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: "{pending}" }) });
@@ -560,7 +560,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		url: "/chat/{pending}",
 		ready: turnRuns,
 		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent]").click()`,
-		shows: ".lh-reading:not(:has([data-testid=work-frame-open])) [data-testid=stop-turn]",
+		shows: "[data-testid=turn-row]:not(:has([data-testid=work-frame-open])) [data-testid=stop-turn]",
 	},
 	// The stand-in, holding that reply, reads a file of its own and a passage of the space's: the desk lists the steps and lifts the file.
 	{

@@ -19,6 +19,7 @@ import { TurnScroll } from "./turn-scroll";
 import { TurnPlaceContext, TurnSlotsContext } from "./turn-place";
 import { TurnSwap } from "./turn-swap";
 import { AnsweredTurn } from "./answered-turn";
+import { StartKey } from "./start-key";
 import type { NextAction, TurnShown } from "./turn-next-model";
 
 type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
@@ -54,6 +55,10 @@ export interface YourTurnProps {
 	swapKey: string;
 	onNext: (action: NextAction) => void;
 	busy: boolean;
+	/** Stops the running turn; null with none running, and while the teacher reads ahead at a stop, which is not stopped. */
+	onStop: (() => void) | null;
+	/** No agent runs the turn yet: the key that turns the teacher on may show. */
+	waitingForAgent: boolean;
 	/** The answer box's text. */
 	value: string;
 	onChange: (v: string) => void;
@@ -117,6 +122,8 @@ export function YourTurn({
 	swapKey,
 	onNext,
 	busy,
+	onStop,
+	waitingForAgent,
 	value,
 	onChange,
 	onSend,
@@ -180,18 +187,17 @@ export function YourTurn({
 	const fileShown = pending ? null : (problem?.file ?? null);
 	const fromEarlier = pending?.appPosed?.kind === "review";
 	const keptProblem = kept?.kind === "problem" ? kept : null;
-	const keptTitle = kept?.kind === "question" ? answeredKindLabel(kept.answer) : keptProblem?.line;
+	const keptTag = kept?.kind === "question" ? answeredKindLabel(kept.answer) : null;
 
 	const mode = pending ? "question" : problem ? "practice" : kept ? "kept" : "next";
 	const place = useContext(TurnPlaceContext);
 	const slots = useContext(TurnSlotsContext);
 	// The tag says what waits, in the word its answered card will carry. A question carries its own after its text; with nothing asked there is none.
 	const questionTag = fromEarlier ? "From earlier" : pending ? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type)) : null;
-	const tag = pending ? null : ask ? "My words" : (problem?.line ?? keptTitle ?? null);
+	const tag = pending ? null : ask ? "My words" : (problem?.line ?? keptProblem?.line ?? null);
 	// An open problem pinned over the text folds so the text keeps its window. One with answers to click stays whole, as a question does.
 	const folds = place === "pinned" && !pending && problem !== null && !problem.choices;
 	const folded = folds ? problemFolded(problem.sent, wholeChoice?.of === problem.toolCallId ? wholeChoice.whole : null) : undefined;
-	const saved = notes && <NotesSaved notes={notes} />;
 	const shownProblem = problem ?? keptProblem;
 	// The part that was open when the problem closed stays open, so the kept problem holds its height.
 	const partRef = useRef<{ of: string; part: string | null } | null>(null);
@@ -238,10 +244,9 @@ export function YourTurn({
 				<TurnSwap key={place === "pinned" || place === "under" ? "column" : "page"} swapKey={empty ? "none" : swapKey}>
 					{empty ? null : (
 						<>
-							{(tag || saved || (hasKeys && !corner)) && (
+							{(tag || (hasKeys && !corner)) && (
 								<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
 									{tag && <h2 className="lh-kind">{tag}</h2>}
-									{saved && <div className="ml-auto">{saved}</div>}
 									{hasKeys && !corner && keys}
 								</div>
 							)}
@@ -282,9 +287,10 @@ export function YourTurn({
 											)}
 										</div>
 									)}
-									{kept?.kind === "question" && <AnsweredTurn answer={kept.answer} />}
+									{kept?.kind === "question" && <AnsweredTurn answer={kept.answer} tag={keptTag} />}
 									{!kept && nextRow}
 									{notes && <EndNotes notes={notes} />}
+									{notes && <NotesSaved notes={notes} />}
 								</TurnScroll>
 								{corner && keys}
 							</div>
@@ -354,12 +360,19 @@ export function YourTurn({
 				boxRef={boxRef}
 				// With a "My words" ask, the key that ends the day sits among the box's own keys.
 				end={
-					nextKey &&
-					ask === null && (
-						<button type="button" data-testid="next-problem-button" data-action={nextKey.action} onClick={() => onNext(nextKey.action)} className="lh-btn lh-btn-main shrink-0">
-							{nextKey.label}
-						</button>
-					)
+					<>
+						{onStop && waitingForAgent && <StartKey />}
+						{onStop && (
+							<button type="button" data-testid="stop-turn" onClick={onStop} className="lh-btn lh-btn-quiet shrink-0">
+								Stop
+							</button>
+						)}
+						{nextKey && ask === null && (
+							<button type="button" data-testid="next-problem-button" data-action={nextKey.action} onClick={() => onNext(nextKey.action)} className="lh-btn lh-btn-main shrink-0">
+								{nextKey.label}
+							</button>
+						)}
+					</>
 				}
 			/>
 		</div>

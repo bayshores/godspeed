@@ -1,15 +1,12 @@
 import { useContext, useLayoutEffect, useMemo, type Ref } from "react";
-import { useAgentStatus } from "@/frontend/components/agent-status";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { ConversationEmptyState } from "@/frontend/components/ai-elements/conversation";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/frontend/components/queued-steers";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaceColor } from "@/frontend/components/space-context";
-import { StartAgentAction } from "@/frontend/components/work/start-agent-action";
 import { cn } from "@/frontend/lib/utils";
 import { DEFAULT_TEACHER_NAME, type LessonWork, type LhViewMessage, type Phase3 } from "@/shared/core";
 import { AgentAtWork } from "./agent-at-work";
@@ -26,8 +23,8 @@ import { deskCalls, deskHead, deskMark, heldBack, replyArrived, type DeskState }
  * its left edge. A sheet is as tall as its text and the newest fills the
  * window; the page around them scrolls (LessonScroll).
  * While the teacher works, the newest sheet holds the desk (AgentAtWork): what the teacher does,
- * its steps and the files it reads, grown to the sheet's foot, with Stop under it; the keys that
- * move the lesson on are in "Your turn". A reply's words wait under the desk for their turn to end
+ * its steps and the files it reads, with the lines typed to it that wait under it; Stop and the keys
+ * that move the lesson on are in "Your turn". A reply's words wait under the desk for their turn to end
  * (useReplyHold), then the desk fades out and the reply is held back until it has gone, so the
  * two never stack and the words take the desk's place in one step.
  * Each message is a memoized row, so streaming redraws only the message
@@ -45,7 +42,6 @@ export function ReadingPane({
 	stoppedEmpty,
 	waitingForAgent,
 	work,
-	onStop,
 	queuedSteers,
 	arrivalsLive,
 	pageMarks,
@@ -73,8 +69,6 @@ export function ReadingPane({
 	waitingForAgent: boolean;
 	/** What the teacher does in the running turn (useLessonWork). */
 	work: LessonWork;
-	/** Stops the running turn; null while the teacher reads ahead at a stop, which is not stopped. */
-	onStop: (() => void) | null;
 	/** Lines typed to the teacher that wait for its reply to end. */
 	queuedSteers: QueuedSteerLine[];
 	arrivalsLive: boolean;
@@ -104,17 +98,7 @@ export function ReadingPane({
 	const shown = mark ? heldBack(messages, mark) : messages;
 	const deskUp = shownDesk !== null;
 	useLayoutEffect(() => onDesk(deskUp), [deskUp, onDesk]);
-	const foot = (busy || closing) && onStop && (
-		<div className="flex flex-col gap-2 font-ui">
-			<QueuedSteersBody steers={queuedSteers} />
-			<div className="flex flex-wrap items-center justify-end gap-3">
-				{waitingForAgent && <StartKey />}
-				<button type="button" data-testid="stop-turn" onClick={onStop} className="lh-btn lh-btn-quiet">
-					Stop
-				</button>
-			</div>
-		</div>
-	);
+	const foot = (busy || closing) && <QueuedSteersBody steers={queuedSteers} />;
 	const inTurn = useContext(ChatActionsContext)?.inTurn ?? null;
 	const spaceColor = useSpaceColor(spaceId);
 	// A row or a sheet with nothing drawn on it is left out; with no sheet drawn, the newest still stands for the desk.
@@ -196,12 +180,3 @@ function teachSeam(messages: readonly LhViewMessage[], phases: readonly Phase3[]
 /** The step's number on a block of the space's color, before its name. */
 const STEP_TAB = "grid h-7 min-w-9 shrink-0 place-items-center px-2 font-count text-[18px] leading-none text-on-space";
 
-/** While the turn waits for an agent: the key that turns the teacher on, when none is here and
- *  godspeed is not starting one by itself, and the teacher's panel does not show its own. */
-function StartKey() {
-	const status = useAgentStatus();
-	const terminals = useTerminals();
-	const panelStarts = useTeacher()?.panelStarts ?? false;
-	if (!noAgentHere(status, terminals) || terminals?.waking || panelStarts) return null;
-	return <StartAgentAction />;
-}

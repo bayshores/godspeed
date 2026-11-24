@@ -12,7 +12,7 @@ import { deskReading, deskRows, deskStack, type DeskRow, type DeskState } from "
  * THE DESK: the lesson text's newest sheet while the teacher works on a reply. One sentence says
  * what the teacher does; under it, its plan or its steps in the server's words, the current one on
  * a tile where the pencil writes; beside them, the files it works from as a stack of paper, the
- * one it reads in front. `foot` rests under it: Stop and the lines typed to the teacher that wait
+ * one it reads in front. `foot` rests under it: the lines typed to the teacher that wait
  * for it. With no files the rows stand alone in the middle of the sheet.
  */
 export function AgentAtWork({ state, head, work, arrive, foot }: { state: DeskState; head: string | null; work: LessonWork; arrive: Arrive; foot: ReactNode }) {
