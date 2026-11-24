@@ -16,13 +16,13 @@ describe("problemFolded", () => {
 });
 
 describe("foldRoom", () => {
-	it("leaves the text's window half the room", () => {
-		assert.equal(foldRoom(1000, 300), 200);
-		assert.equal(foldRoom(901, 300), 150);
+	it("gives the problem half of what the rest leaves, so the text's window gets the other half", () => {
+		assert.equal(foldRoom(1000, 300), 350);
+		assert.equal(foldRoom(809, 228), 290);
 	});
 
 	it("never gives the problem under three lines", () => {
-		assert.equal(foldRoom(800, 380), 96);
-		assert.equal(foldRoom(640, 400), 96);
+		assert.equal(foldRoom(466, 300), 96);
+		assert.equal(foldRoom(300, 400), 96);
 	});
 });

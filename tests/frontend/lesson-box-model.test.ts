@@ -1,4 +1,4 @@
-/** The lesson's box: its size, keys, Enter, the way out and the Stuck? keys per state. */
+/** The lesson's box: its keys, Enter, the way out and the Stuck? keys per state. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { lessonBox, lessonIdeas, questionTurn, type BoxTurn } from "../../src/frontend/components/lesson/lesson-box-model.ts";
@@ -72,7 +72,6 @@ describe("lessonBox, nothing waiting", () => {
 	it("one key that asks the teacher, by its name; no way out and no Stuck? keys", () => {
 		const empty = box({ kind: "ask", nextKey: false });
 		assert.equal(empty.placeholder, "Your question");
-		assert.equal(empty.size, "line");
 		assert.deepEqual(empty.keys, [{ action: "send", label: "Ask Teacher", filled: false, disabled: true }]);
 		assert.equal(empty.enter, null);
 		assert.equal(empty.exit, null);
@@ -185,22 +184,6 @@ describe("lessonBox, a question", () => {
 		assert.equal(send(view).disabled, true);
 		assert.equal(view.enter, null);
 		assert.equal(view.exit, "skip");
-	});
-});
-
-describe("lessonBox, the box's size", () => {
-	const quiz = { question: "q", options: [{ label: "a" }, { label: "b" }], correctAnswer: "a", explanation: "e" };
-
-	it("one line where the text is optional: choices and code", () => {
-		assert.equal(box(questionTurn("quiz", quiz, false)).size, "line");
-		assert.equal(box(questionTurn("ask_user_question", { question: "q", options: [{ label: "a" }, { label: "b" }] }, false)).size, "line", "an ask's own answer");
-		assert.equal(box(questionTurn("write_code", { question: "q" }, true)).size, "line");
-	});
-
-	it("three lines where the text is the answer or the work", () => {
-		assert.equal(box(questionTurn("explain", { question: "why?", correctAnswer: "because" }, false)).size, "lines");
-		assert.equal(box(questionTurn("ask_user_question", { question: "what next?" }, false)).size, "lines", "an open ask");
-		assert.equal(box({ kind: "problem", picked: false }).size, "lines");
 	});
 });
 

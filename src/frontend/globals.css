@@ -749,6 +749,8 @@ body {
    and, when docked, the panel beside it (the cheat sheet or the Document panel) at the width the
    learner dragged it. */
 .lh-lesson-body {
+	/* An open page: plain, over the app's dotted ground. */
+	background: var(--background);
 	display: grid;
 	grid-template: "main" minmax(0, 1fr) / minmax(0, 1fr);
 }
@@ -821,14 +823,15 @@ body {
    sheet's foot, and scrolls in its own box when it is longer than that room. */
 @container room (width >= 1280px) {
 	.lh-text-fit {
-		min-height: 100cqh;
+		min-height: calc(100cqh - 48px);
 	}
+	/* The page's own padding (24px over and under) stays clear, so the pair never scrolls by it. */
 	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit {
 		position: sticky;
-		top: 0;
+		top: 24px;
 		display: flex;
 		flex-direction: column;
-		height: 100cqh;
+		height: calc(100cqh - 48px);
 	}
 	.lh-turn-scroll {
 		flex: 1 1 auto;
@@ -872,10 +875,9 @@ body {
 	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit {
 		justify-content: flex-end;
 		gap: 20px;
-		padding-block: 24px;
 	}
 	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit .lh-turn-task {
-		flex: 1 1 auto;
+		flex: 0 1 auto;
 		padding-top: 0;
 	}
 }
@@ -884,11 +886,12 @@ body {
 .lh-turn-top {
 	max-height: 60%;
 }
-.lh-turn-top .lh-turn-task {
+/* Each box down to the problem is as tall as what it holds and may shrink: a box that grew to fill
+   (flex: 1) would size the pin by the whole problem, though the problem is cut to its folded height. */
+.lh-turn-top :is(.lh-turn-task, [data-testid="your-turn"], [data-testid="turn-swap"], .lh-turn-scroll) {
 	flex: 0 1 auto;
 }
 .lh-turn-top .lh-turn-scroll {
-	flex: 1 1 auto;
 	overflow-y: auto;
 }
 /* The tag that names what waits: a question's kind, a problem's number. */
@@ -900,33 +903,22 @@ body {
 	color: var(--color-ink);
 }
 
-/* The answer box is as tall as its text, up to five lines, then scrolls. One line is as tall
-   as a key; three lines when the text is the answer or the work. */
-:is(.lh-answer-line, .lh-answer-lines) .cm-editor {
+/* The writing row's field is one line tall, as a key is, and as tall as its text up to five
+   lines, then scrolls. */
+.lh-answer-box .cm-editor {
 	height: auto;
 }
-.lh-answer-line .cm-editor .cm-content,
-.lh-answer-line [data-testid="math-box"] > div[aria-hidden] {
+.lh-answer-box .cm-editor .cm-content,
+.lh-answer-box [data-testid="math-box"] > div[aria-hidden] {
 	padding-block: 8px;
 }
-.lh-answer-line .cm-editor .cm-scroller {
+.lh-answer-box .cm-editor .cm-scroller {
 	max-height: 136px;
 }
-.lh-answer-lines .cm-editor .cm-scroller {
-	max-height: 144px;
-}
-.lh-answer-lines .cm-editor .cm-content,
-.lh-answer-lines [data-testid="math-box"] > div[aria-hidden] {
-	min-height: 96px;
-}
-/* The box keeps its lowest height itself as well. While its editor is put in, one layout pass
-   sees the box with nothing in it; a problem scrolled to its part beside it (.lh-turn-scroll)
-   would grow for that pass and lose its place. */
-.lh-answer-line [data-testid="math-box"] {
+/* The field keeps its lowest height itself as well. While its editor is put in, one layout pass
+   sees the field with nothing in it, and the row would jump for that pass. */
+.lh-answer-box [data-testid="math-box"] {
 	min-height: 40px;
-}
-.lh-answer-lines [data-testid="math-box"] {
-	min-height: 96px;
 }
 
 /* The block cursor at the end of the text the teacher is writing. */

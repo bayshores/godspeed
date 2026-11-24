@@ -62,10 +62,10 @@ export function LessonBox({
 		/>
 	);
 	return (
-		<div data-testid="composer" data-size={view.size} className="flex shrink-0 flex-col gap-2" {...attachmentInputProps(taken)}>
+		<div data-testid="composer" className="flex shrink-0 flex-col gap-2" {...attachmentInputProps(taken)}>
 			<AttachmentTray draft={attachments} />
 			<div className="flex flex-wrap items-end justify-end gap-x-3 gap-y-2">
-				<div className={cn(view.size === "line" ? "lh-answer-line" : "lh-answer-lines", "flex min-w-[min(100%,15rem)] flex-1 items-end lh-well")}>
+				<div className="lh-answer-box flex min-w-[min(100%,15rem)] flex-1 items-end lh-well">
 					{attach.mounted && (
 						<span data-state={attach.state} className={cn("flex shrink-0 py-1 pl-1", attachMoved && "lh-fade")}>
 							<AttachButton draft={attachments} glyph />

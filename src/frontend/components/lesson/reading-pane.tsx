@@ -36,6 +36,7 @@ import { deskCalls, deskHead, deskMark, heldBack, replyArrived, type DeskState }
 export function ReadingPane({
 	spaceId,
 	stepNumbers,
+	stepNames,
 	echo,
 	messages,
 	phases,
@@ -57,6 +58,8 @@ export function ReadingPane({
 	spaceId: string | undefined;
 	/** The plan's step numbers by plan node, for the sheets' tabs. */
 	stepNumbers: ReadonlyMap<string, number>;
+	/** Each plan step's name, by its id. */
+	stepNames: ReadonlyMap<string, string>;
 	/** The index of the learner's first message when it only repeats the lesson's title (titleEcho): it shows no bubble. */
 	echo: number;
 	messages: readonly LhViewMessage[];
@@ -133,11 +136,14 @@ export function ReadingPane({
 				const first = sheet.rows[0];
 				return (
 					<section key={first ? `${shown[first.index]!.id || first.index}:${first.from}` : "empty"} ref={newest ? sheetRef : undefined} data-testid="lesson-sheet" className={cn("flex min-w-0 flex-col gap-4", newest && "lh-text-fit")}>
-						{sheet.label && (
-							<span data-testid="sheet-step" className={STEP_TAB} style={{ background: spaceColor ? spaceColorVar(spaceColor) : "var(--color-ink-2)" }}>
-								<span className="sr-only">{sheet.counts} </span>
-								{sheet.label}
-							</span>
+						{/* With one step on the page the step line already says which it is. */}
+						{sheet.label && sheets.length > 1 && (
+							<h3 data-testid="sheet-step" className="flex items-center gap-3 text-[18px] leading-7 text-ink-2">
+								<span className={STEP_TAB} style={{ background: spaceColor ? spaceColorVar(spaceColor) : "var(--color-ink-2)" }}>
+									{sheet.counts === "Problem" ? `Problem ${sheet.label}` : <><span className="sr-only">Step </span>{sheet.label}</>}
+								</span>
+								{sheet.step !== null && stepNames.get(sheet.step)}
+							</h3>
 						)}
 						<div className="lh-reading flex flex-1 flex-col gap-4">
 							{newest && messages.length === 0 && !busy && <ConversationEmptyState title="New lesson" description="" />}
@@ -187,8 +193,8 @@ function teachSeam(messages: readonly LhViewMessage[], phases: readonly Phase3[]
 	return messages[index]!.role === "assistant" && index > 0 && phases[index] === "teach" && phases[index - 1] !== "teach";
 }
 
-/** The step's number on a block of the space's color, over the step's first line. */
-const STEP_TAB = "grid h-7 w-9 shrink-0 place-items-center self-start font-count text-[18px] leading-none text-on-space";
+/** The step's number on a block of the space's color, before its name. */
+const STEP_TAB = "grid h-7 min-w-9 shrink-0 place-items-center px-2 font-count text-[18px] leading-none text-on-space";
 
 /** While the turn waits for an agent: the key that turns the teacher on, when none is here and
  *  godspeed is not starting one by itself, and the teacher's panel does not show its own. */

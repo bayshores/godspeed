@@ -417,6 +417,7 @@ export function Chat({
 	const planEdges = useStableValue(planTree?.edges ?? null);
 	const stepIdsKey = stepBar ? stepBar.steps.map((s) => s.id).join("\n") : "";
 	const stepNumbers = useMemo(() => new Map(stepBar?.steps.map((s, i) => [s.id, i + 1]) ?? []), [stepIdsKey]);
+	const stepNames = useMemo(() => new Map(stepBar?.steps.map((s) => [s.id, s.title]) ?? []), [stepBar]);
 	// Problem numbers (and practice's plan row blocks).
 	const practice = useMemo(() => (kind === "teach" ? null : practiceProgress(messages, activeProblem !== null)), [kind, messages, activeProblem]);
 	const stablePractice = useStableValue(practice);
@@ -637,6 +638,7 @@ export function Chat({
 										<ReadingPane
 											spaceId={spaceId}
 											stepNumbers={stepNumbers}
+											stepNames={stepNames}
 											echo={echo}
 											messages={messages}
 											phases={phases}

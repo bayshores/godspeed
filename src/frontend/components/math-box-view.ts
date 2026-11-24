@@ -217,7 +217,8 @@ const typingRules = EditorView.inputHandler.of((view, from, to, text) => {
 /** The app's writing field: prose font, square edges, quiet list. */
 const theme = EditorView.theme(
 	{
-		"&": { height: "100%", backgroundColor: "var(--background)", color: "var(--foreground)" },
+		// The well's color: the page's own inside a sheet, a soft plate on an open page.
+		"&": { height: "100%", backgroundColor: "var(--lh-well)", color: "var(--foreground)" },
 		"&.cm-focused": { outline: "none" },
 		".cm-scroller": { fontFamily: "var(--font-prose)", fontSize: "16px", lineHeight: "24px", overflow: "auto" },
 		".cm-content": { padding: "12px 14px", caretColor: "var(--lh-ink-max)" },

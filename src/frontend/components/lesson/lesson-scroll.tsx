@@ -224,7 +224,7 @@ export function LessonScroll({
 					<ConversationScrollButton className={cn(KEY, shut && SHUT_KEY, (beside || alone) && PAIR_KEY)} />
 				</Conversation>
 				{/* The writing row, pinned for the whole lesson. */}
-				<div ref={footRef} hidden className="lh-turn-foot lh-page shrink-0 pb-5">
+				<div ref={footRef} hidden className="lh-turn-foot lh-page shrink-0 pt-1 pb-5">
 					<div ref={footSlot} className={cn("@container/foot", READING_MEASURE, SHUT_FOOT)} />
 				</div>
 			</div>

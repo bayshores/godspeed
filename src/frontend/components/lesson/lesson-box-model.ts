@@ -38,9 +38,6 @@ export interface BoxButton {
 
 export interface BoxView {
 	placeholder: string;
-	/** "line": optional text, one line. "lines": text that is the
-	 *  answer or the work, three lines. The keys sit inside the box; both grow to five. */
-	size: "line" | "lines";
 	/** The ask key, then the answer key; a problem and the ask state have one. At most one is filled. */
 	keys: BoxButton[];
 	/** What Enter in the box does; null makes a new line. */
@@ -108,7 +105,6 @@ export function lessonBox(s: {
 		const canSend = (s.hasText || s.hasFiles || turn.picked) && steers;
 		return {
 			placeholder: "Your work or a question",
-			size: "lines",
 			keys: [{ action: "send", label: "Send", filled: canSend, disabled: !canSend }],
 			enter: canSend ? "send" : null,
 			exit: "discard",
@@ -119,7 +115,6 @@ export function lessonBox(s: {
 	if (turn.kind === "words") {
 		return {
 			placeholder: "One or two sentences",
-			size: "line",
 			keys: [
 				...(turn.leave ? [{ action: "leave" as const, label: turn.leave, filled: false, disabled: false }] : []),
 				{ action: "skip", label: "Skip", filled: false, disabled: false },
@@ -137,7 +132,6 @@ export function lessonBox(s: {
 		const canSend = s.hasText && steers;
 		return {
 			placeholder: `Tell ${s.teacher} what to focus on`,
-			size: "line",
 			keys: [{ action: "send", label: "Send", filled: canSend && !turn.nextKey, disabled: !canSend }],
 			enter: canSend ? "send" : null,
 			exit: null,
@@ -149,7 +143,6 @@ export function lessonBox(s: {
 		const canAsk = (s.hasText || s.hasFiles) && steers;
 		return {
 			placeholder: "Your question",
-			size: "line",
 			keys: [ask(canAsk, canAsk && !turn.nextKey)],
 			enter: canAsk ? "send" : null,
 			exit: null,
@@ -167,7 +160,6 @@ export function lessonBox(s: {
 	const asksOnEnter = turn.kind === "choice" && !turn.ownAnswer && !turn.picked && canAsk;
 	return {
 		placeholder: turn.kind === "written" || (turn.ownAnswer && !turn.picked) ? "An answer or a question" : "Your reasoning or a question",
-		size: turn.kind === "written" ? "lines" : "line",
 		// The bright key is the one Enter presses.
 		keys: [ask(canAsk, asksOnEnter), { action: "submit", label: "Submit answer", filled: !asksOnEnter, disabled: !canSubmit }],
 		enter: canSubmit ? "submit" : asksOnEnter ? "send" : null,

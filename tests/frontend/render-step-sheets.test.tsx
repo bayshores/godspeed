@@ -22,6 +22,7 @@ const quiz = (id: string, nodeId: string, answered: boolean): LhViewPart => ({
 	...(answered ? { output: answer } : {}),
 });
 const PLAN = new Map([["fork", 1], ["exec", 2]]);
+const NAMES = new Map([["fork", "Fork"], ["exec", "Exec"]]);
 
 type Props = React.ComponentProps<typeof ReadingPane>;
 function pane(messages: LhViewMessage[], over: Partial<Props> = {}): string {
@@ -29,6 +30,7 @@ function pane(messages: LhViewMessage[], over: Partial<Props> = {}): string {
 		<ReadingPane
 			spaceId={undefined}
 			stepNumbers={PLAN}
+			stepNames={NAMES}
 			echo={-1}
 			messages={messages}
 			phases={[]}
