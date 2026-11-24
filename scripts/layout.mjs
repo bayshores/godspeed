@@ -15,7 +15,9 @@
  *
  * A finding prints the screen (", opening" for the first pass), the width, the check and the
  * elements, and saves a picture beside the report in target/layout/. With `LAYOUT_STATES` set to
- * a folder, every lesson screen is also photographed there as it opens, at each width. Mac only:
+ * a folder, every lesson screen is also photographed there as it opens, at each width. With
+ * `LAYOUT_ONLY` set to words, only the screens whose name holds them are walked (several, split by
+ * commas): for a second look at a fix, never in place of the whole run. Mac only:
  * elsewhere it passes at once. Two runs in one worktree share that folder, so run one at a time.
  */
 import { execFileSync, spawn } from "node:child_process";
@@ -395,10 +397,13 @@ async function main() {
 	const opened = new Set();
 	const states = process.env.LAYOUT_STATES;
 	if (states) fs.mkdirSync(states, { recursive: true });
+	const only = (process.env.LAYOUT_ONLY ?? "").toLowerCase().split(",").map((word) => word.trim()).filter(Boolean);
+	const screens = only.length > 0 ? SCREENS.filter((screen) => only.some((word) => screen.name.toLowerCase().includes(word))) : SCREENS;
+	if (screens.length === 0) throw new Error(`LAYOUT_ONLY="${process.env.LAYOUT_ONLY}" names no screen`);
 	app = await startApp(port, "walk");
 	try {
 		await app.ready();
-		for (const screen of SCREENS) {
+		for (const screen of screens) {
 			const widths = widthsOf(screen);
 			try {
 				if (screen.before) await app.run(fill(screen.before, ids));
@@ -457,7 +462,7 @@ async function main() {
 	}
 
 	const report = path.join(RUN, "report.txt");
-	const checked = `${SCREENS.length} screens at 1440, 1100 and 640 points (lessons at 1320 and 800 too), each as it opens, ${SCROLL_TO.slice(1).map(scrolledWords).join(" and ")}, and ${opened.size} openings watched, in ${Math.round((Date.now() - built) / 1000)} s (${Math.round((built - started) / 1000)} s to build)`;
+	const checked = `${only.length > 0 ? `ONLY ${screens.length} of ${SCREENS.length}` : SCREENS.length} screens at 1440, 1100 and 640 points (lessons at 1320 and 800 too), each as it opens, ${SCROLL_TO.slice(1).map(scrolledWords).join(" and ")}, and ${opened.size} openings watched, in ${Math.round((Date.now() - built) / 1000)} s (${Math.round((built - started) / 1000)} s to build)`;
 	fs.writeFileSync(report, `${[...failures, ...warnings, checked].join("\n")}\n`);
 	if (failures.length > 0) {
 		console.error(`${failures.join("\n")}\nlayout: broken layout found; ${checked}. Report: ${report}`);
