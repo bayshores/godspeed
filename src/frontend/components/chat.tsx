@@ -169,9 +169,12 @@ export function Chat({
 
 	const sessionFindScopeRef = useRef<HTMLDivElement | null>(null);
 	const scrollContextRef = useRef<StickToBottomContext | null>(null);
-	const arrive = useArrivals();
+	// A lesson that sends its first message as it opens draws that turn's desk at rest, as part of
+	// its opening: arrivals start once the desk is up, or the send has failed.
+	const [opened, setOpened] = useState(() => !(initialPromptOwed(initialMessages, initialPrompt) && new URLSearchParams(window.location.search).has("prompt")));
+	const arrive = useArrivals(opened);
 	const [arrivalsLive, setArrivalsLive] = useState(false);
-	useEffect(() => setArrivalsLive(true), []);
+	useEffect(() => setArrivalsLive(opened), [opened]);
 
 	// A new lesson with a topic sends its first message exactly once, with
 	// any files added on the start page. The topic then leaves the address,
@@ -552,6 +555,9 @@ export function Chat({
 	const opens = bookOpen({ question: pending ? (pending.appPosed?.kind === "review" ? "review" : "teacher") : null, problem: problem !== null, held: held !== null });
 	// The desk in the lesson text, also while it leaves: the book waits for it.
 	const [deskUp, setDeskUp] = useState(false);
+	useEffect(() => {
+		if (deskUp || error !== null) setOpened(true);
+	}, [deskUp, error]);
 	const book = useBook(opens, heldTurn, busy, deskUp);
 	const { open } = book;
 	const sheetGlide = useSheetGlide(book.turning);
