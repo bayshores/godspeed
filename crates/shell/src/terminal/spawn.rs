@@ -2,10 +2,11 @@
 //! command line and environment for each OS, and stopping everything it started. The page names
 //! only a role and an agent; the program and its arguments are built here.
 
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
+use gs_base::child_env::{app_variable, login_shell};
 use portable_pty::{Child, CommandBuilder, MasterPty, PtySize};
 
 /// The size a terminal starts at; the page that shows it then sizes it to its screen.
@@ -77,21 +78,6 @@ pub fn script(folder: &str, role: Role, agent: Agent, os: &str) -> Option<PathBu
 	(plain(&dir) && dir.is_dir() && plain(&script) && script.is_file()).then_some(script)
 }
 
-/// The shells that read the learner's profile the way `-l -i -c` expects; any other `$SHELL`
-/// (fish, nu) runs the script through the system's own.
-const KNOWN_SHELLS: [&str; 5] = ["zsh", "bash", "sh", "dash", "ksh"];
-
-fn login_shell(shell: &str, os: &str) -> String {
-	let known = Path::new(shell).file_name().and_then(OsStr::to_str).is_some_and(|name| KNOWN_SHELLS.contains(&name));
-	if known {
-		shell.to_owned()
-	} else if os == "macos" {
-		"/bin/zsh".to_owned()
-	} else {
-		"/bin/bash".to_owned()
-	}
-}
-
 /// The learner's shell as the environment names it (`ComSpec` on Windows), else the account's.
 pub fn shell(env: &[(OsString, OsString)], os: &str) -> String {
 	let key = if os == "windows" { "ComSpec" } else { "SHELL" };
@@ -100,8 +86,8 @@ pub fn shell(env: &[(OsString, OsString)], os: &str) -> String {
 }
 
 /// The command line: the learner's login shell runs the script, as Terminal does with a
-/// `.command` file, so PATH from `.zprofile` and `.zshrc` both count. `shell` is `$SHELL`, or
-/// `ComSpec` on Windows.
+/// `.command` file, so PATH from `.zprofile` and `.zshrc` both count; a shell that reads neither
+/// (fish, nu) gives way to the system's own. `shell` is `$SHELL`, or `ComSpec` on Windows.
 pub fn argv(script: &Path, shell: &str, os: &str) -> Vec<OsString> {
 	if os == "windows" {
 		// Relative to the folder, the working directory: portable-pty quotes only a space, a tab
@@ -112,17 +98,11 @@ pub fn argv(script: &Path, shell: &str, os: &str) -> Vec<OsString> {
 	vec![login_shell(shell, os).into(), "-l".into(), "-i".into(), "-c".into(), "exec \"$0\"".into(), script.into()]
 }
 
-/// What an AppImage sets for itself; a program started from it must not inherit them.
-const APPIMAGE_VARIABLES: [&str; 12] = ["APPDIR", "APPIMAGE", "ARGV0", "OWD", "LD_LIBRARY_PATH", "LD_PRELOAD", "GDK_PIXBUF_MODULE_FILE", "GIO_EXTRA_MODULES", "GSETTINGS_SCHEMA_DIR", "GTK_PATH", "GTK_EXE_PREFIX", "GTK_DATA_PREFIX"];
-
 /// The agent's environment: the app's own, less what belongs to the app, plus the terminal's id,
 /// this app's data folder (the folder's connector finds the app through it) and the chat to go
 /// back to, which the caller checked is a session id (the script passes it on unquoted on Windows).
 pub fn environment(base: impl IntoIterator<Item = (OsString, OsString)>, id: &str, data: &Path, os: &str, resume: Option<&str>) -> Vec<(OsString, OsString)> {
-	let dropped = |key: &str| {
-		let upper = key.to_ascii_uppercase();
-		upper.starts_with("LH_") || upper.starts_with("TAURI_") || ["GODSPEED_TERMINAL", "GODSPEED_DATA_DIR", "GODSPEED_RESUME"].contains(&upper.as_str()) || (os == "linux" && APPIMAGE_VARIABLES.contains(&key))
-	};
+	let dropped = |key: &str| app_variable(key, os) || ["GODSPEED_TERMINAL", "GODSPEED_DATA_DIR", "GODSPEED_RESUME"].contains(&key.to_ascii_uppercase().as_str());
 	let mut env: Vec<(OsString, OsString)> = base.into_iter().filter(|(key, _)| !key.to_str().is_some_and(dropped)).collect();
 	let has = |env: &[(OsString, OsString)], key: &str| env.iter().any(|(k, _)| k == key);
 	for (key, value) in [("TERM", "xterm-256color"), ("COLORTERM", "truecolor"), ("LANG", "en_US.UTF-8")] {

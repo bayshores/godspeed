@@ -9,7 +9,7 @@ All Rust lives in `crates/`, a Cargo workspace (`Cargo.toml` at repo root, toolc
 | Crate | Holds |
 |---|---|
 | `json` (gs-json) | `Json`: JSON with JS key order, JS number text, lone surrogates |
-| `base` (gs-base) | JS-compatible text, numbers, dates, regex, sorting, ids, hashes, app clock, paths, events, locks, atomic writes, shutdown |
+| `base` (gs-base) | JS-compatible text, numbers, dates, regex, sorting, ids, hashes, app clock, paths, events, locks, atomic writes, shutdown, the environment of started programs |
 | `core` (gs-core) | pure logic: `contracts`, `records`, `messages`, `session`, `graph`, `spaces`, `study`, `vault`, `mocks` |
 | `shell-rpc` (gs-shell-rpc) | line protocol between server and desktop shell |
 | `store` (gs-store) | every data file, read and written byte for byte as earlier versions did |
@@ -19,6 +19,7 @@ All Rust lives in `crates/`, a Cargo workspace (`Cargo.toml` at repo root, toolc
 | `search` | embedding model (ort), MiniSearch BM25+, fusion, index tables |
 | `web` | web page to markdown, PDF downloads, plugin zips, godspeed's plugin list from GitHub |
 | `transcribe` | recordings to captions with brew's ffmpeg and whisper |
+| `runtime` | the learner's Claude Code and Codex as child processes: environment and login-shell PATH, process groups and job objects, `codex app-server`'s JSON-RPC (in godspeed's own Codex settings folder, with its own ChatGPT sign-in), the bundled Claude helper's JSON lines, one event stream for both, health checks; knows nothing about lessons |
 | `engine` | turn loop, work bridge to the outside agent |
 | `agent` | prompts, lesson tools, file tools, background jobs, extraction |
 | `services` | `App` (all server state) and the services |

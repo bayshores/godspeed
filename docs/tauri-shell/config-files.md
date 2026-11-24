@@ -5,7 +5,7 @@ tauri-build copies `bundle.externalBin`, `bundle.resources` and `bundle.macOS.fr
 | File | Read by | Holds |
 |---|---|---|
 | `crates/shell/tauri.conf.json` | every cargo build, test and clippy, and `tauri build` | Names, identifier `com.bayshores.godspeed`, `frontendDist: "boot"`, bundle targets, icons, `minimumSystemVersion: "14.0"`, DMG layout, NSIS settings, the updater block. |
-| `tauri.bundle.conf.json` | the release build | `externalBin`, the `ui/`, `models/` and `pdfjs-dist/` resources, `libpdfium.dylib` in Frameworks. |
+| `tauri.bundle.conf.json` | the release build | `externalBin`, the `ui/`, `models/` and `pdfjs-dist/` resources and `agent/claude-helper.mjs`, `libpdfium.dylib` in Frameworks. |
 | `tauri.bundle.macos.conf.json` | the release build on the Mac | The icon list with the compiled `../../.stage/Assets.car`. |
 | `tauri.bundle.macos-intel.conf.json` | the release build on Intel Macs | Frameworks `libpdfium.dylib` and `libonnxruntime.dylib`. |
 | `tauri.bundle.windows.conf.json` | the release build on Windows | The `pdfium.dll` resource. |

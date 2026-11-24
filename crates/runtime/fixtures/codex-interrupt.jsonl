@@ -1,0 +1,6 @@
+{"method":"turn/started","params":{"threadId":"thr_1","turn":{"id":"turn_3","rootTurnId":null,"items":[],"itemsView":"notLoaded","status":"inProgress","error":null,"startedAtMs":null,"completedAt":null,"durationMs":null}}}
+{"method":"item/started","params":{"threadId":"thr_1","turnId":"turn_3","startedAtMs":1038,"item":{"type":"reasoning","id":"item_8","summary":[],"content":[]}}}
+{"method":"item/completed","params":{"threadId":"thr_1","turnId":"turn_3","completedAtMs":3838,"item":{"type":"reasoning","id":"item_8","summary":[],"content":[]}}}
+{"method":"item/started","params":{"threadId":"thr_1","turnId":"turn_3","startedAtMs":3882,"item":{"type":"agentMessage","id":"item_9","text":"","phase":null,"moderation":null,"memoryCitation":null,"delivery":null,"questions":null}}}
+{"method":"item/agentMessage/delta","params":{"threadId":"thr_1","turnId":"turn_3","itemId":"item_9","delta":"# The History of Calculus: From Archimedes to Cauchy\n\n"}}
+{"method":"item/agentMessage/delta","params":{"threadId":"thr_1","turnId":"turn_3","itemId":"item_9","delta":"Calculus is the mathematics of change and accumulation."}}

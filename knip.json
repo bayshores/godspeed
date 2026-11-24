@@ -3,6 +3,7 @@
 	"entry": [
 		"scripts/*.{ts,mjs,cjs}",
 		"crates/services/folder-files/*.mjs",
+		"crates/runtime/src/claude/claude-helper.mjs",
 		"tests/**/*.test.{ts,tsx}",
 		"tests/perf/*.{ts,tsx}"
 	],

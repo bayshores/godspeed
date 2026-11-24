@@ -3,7 +3,8 @@
  *
  * Builds the UI (dist-ui/) and the release server, copies the server to
  * crates/shell/binaries/godspeed-server-<target triple> (where the bundle's externalBin looks),
- * copies the pdf.js files the server serves to .stage/pdfjs-dist/, and checks that the search model
+ * copies the pdf.js files the server serves to .stage/pdfjs-dist/, bundles the Claude helper into
+ * .stage/agent/ (scripts/build-claude-helper.mjs), and checks that the search model
  * (scripts/fetch-model.mjs), pdfium's library (scripts/fetch-pdfium.mjs) and, on Linux and Intel
  * Macs, ONNX Runtime's library (scripts/fetch-onnxruntime.mjs) are there and that nothing private
  * rides along in the UI. Apple silicon Macs and Windows link ONNX Runtime into the server.
@@ -20,6 +21,7 @@ import { execFileSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { buildClaudeHelper } from "./build-claude-helper.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const STAGE = path.join(ROOT, ".stage");
@@ -74,6 +76,8 @@ for (const file of fs.readdirSync(pdfjs, { recursive: true })) {
 	copied += 1;
 }
 if (!fs.existsSync(path.join(pdfjsOut, "legacy", "build", "pdf.worker.min.mjs"))) fail("pdf.js's worker is missing, run `npm ci` first.");
+
+await buildClaudeHelper(path.join(STAGE, "agent", "claude-helper.mjs"));
 
 const triple = execFileSync("rustc", ["--print", "host-tuple"], { encoding: "utf8" }).trim();
 const together = os.totalmem() >= 12 * 2 ** 30;

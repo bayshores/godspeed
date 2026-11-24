@@ -1,7 +1,7 @@
 {
   "bundle": {
     "externalBin": ["binaries/godspeed-server"],
-    "resources": { "../../dist-ui/": "ui/", "../../models/": "models/", "../../.stage/pdfjs-dist/": "pdfjs-dist/" },
+    "resources": { "../../dist-ui/": "ui/", "../../models/": "models/", "../../.stage/pdfjs-dist/": "pdfjs-dist/", "../../.stage/agent/claude-helper.mjs": "agent/claude-helper.mjs" },
     "macOS": { "frameworks": ["../../.stage/libpdfium.dylib"] }
   }
 }

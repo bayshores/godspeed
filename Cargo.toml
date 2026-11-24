@@ -19,6 +19,7 @@ gs-search = { path = "crates/search" }
 gs-media = { path = "crates/media" }
 gs-web = { path = "crates/web" }
 gs-transcribe = { path = "crates/transcribe" }
+gs-runtime = { path = "crates/runtime" }
 gs-engine = { path = "crates/engine" }
 gs-agent = { path = "crates/agent" }
 gs-services = { path = "crates/services" }
@@ -76,6 +77,7 @@ vt100 = "=0.18.1"
 tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "time", "sync", "signal", "io-util", "io-std", "net", "process", "fs"] }
 webkit2gtk = { version = "=2.0.2", features = ["v2_38"] }
 webview2-com = "=0.39.1"
+win32job = "2.1.0"
 windows = "=0.62.2"
 
 [workspace.lints.rust]

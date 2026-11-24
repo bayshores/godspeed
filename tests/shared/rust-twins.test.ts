@@ -225,3 +225,11 @@ describe("the teacher's step words", () => {
 		}
 	});
 });
+
+describe("the Claude helper's tool server", () => {
+	it("is the name godspeed's tools are told apart by", () => {
+		const helper = read("crates/runtime/src/claude/claude-helper.mjs");
+		const protocol = read("crates/runtime/src/claude/protocol.rs");
+		assert.deepEqual(strings(helper, "TOOL_SERVER"), strings(protocol, "TOOL_SERVER"));
+	});
+});

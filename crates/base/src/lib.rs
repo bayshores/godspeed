@@ -1,7 +1,9 @@
 //! What every part of the server shares: JavaScript-compatible text, number, date and regex
-//! behavior, the app clock, ids, hashes, paths, the event bus, file helpers and locks.
+//! behavior, the app clock, ids, hashes, paths, the event bus, file helpers, locks, and the
+//! environment of the programs it starts.
 
 pub mod base64;
+pub mod child_env;
 pub mod clock;
 pub mod config;
 pub mod events;

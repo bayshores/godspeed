@@ -2003,6 +2003,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "gs-runtime"
+version = "0.0.0"
+dependencies = [
+ "gs-base",
+ "gs-core",
+ "gs-json",
+ "gs-transcribe",
+ "parking_lot",
+ "rustix",
+ "tokio",
+ "win32job",
+]
+
+[[package]]
 name = "gs-search"
 version = "0.0.0"
 dependencies = [
@@ -6893,6 +6907,16 @@ name = "weezl"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a28ac98ddc8b9274cb41bb4d9d4d5c425b6020c50c46f25559911905610b4a88"
+
+[[package]]
+name = "win32job"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21b25acac91041257d64f5625690b626133e0ca9e4e17814552b5803b1a82f7c"
+dependencies = [
+ "thiserror 1.0.69",
+ "windows",
+]
 
 [[package]]
 name = "winapi"
