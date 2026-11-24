@@ -96,7 +96,7 @@ pub fn learner_rules_section(rules: &Json, lesson_space: Option<(&str, &[String]
 }
 
 /// The reply's shape, said again on every lesson item: a line read once in long instructions fades.
-const EVERY_TURN_SHAPE: &str = "One idea per reply, at most four short lines, then his move.";
+const EVERY_TURN_SHAPE: &str = "One idea per reply, at most four short lines, then his move. A worked example: one short line per step.";
 
 /// The block a lesson's later work items repeat: the same rules as `learner_rules_section`, one
 /// line each, then the reply's shape; the shape alone when there are no rules.
@@ -141,8 +141,8 @@ mod tests {
 		let space_rules = ["Use Python.".to_owned()];
 		assert_eq!(
 			every_turn_rules(&rules, Some(("CSE 21", &space_rules))),
-			"His rules, every turn (they win):\n- Short.\n- No tables.\n- Use Python.\nOne idea per reply, at most four short lines, then his move."
+			"His rules, every turn (they win):\n- Short.\n- No tables.\n- Use Python.\nOne idea per reply, at most four short lines, then his move. A worked example: one short line per step."
 		);
-		assert_eq!(every_turn_rules(&json!({}), Some(("CSE 21", &[]))), "One idea per reply, at most four short lines, then his move.");
+		assert_eq!(every_turn_rules(&json!({}), Some(("CSE 21", &[]))), "One idea per reply, at most four short lines, then his move. A worked example: one short line per step.");
 	}
 }

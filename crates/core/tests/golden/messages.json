@@ -4750,13 +4750,13 @@
 						}
 					]
 				},
-				"text": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Math\n\nSpace files: 2 study material, 1 space info. Find what's in them with search_space_files; read_space lists them with their paths.\n\nTopics in the space's knowledge graph (facts in each):\nLimits (4), Series (0)",
+				"text": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Math\n\nSpace files: 2 study material, 1 space info. Find what's in them with search_space_files; read_space with files: true lists them with their paths.\n\nTopics in the space's knowledge graph (facts in each):\nLimits (4), Series (0)",
 				"files": "Space files (study material = turned into the space's knowledge graph; space info = a syllabus, a schedule, logistics):\n- [study material] notes.pdf (98 pages) — /f/notes.pdf\n- [space info] syllabus.pdf (reading) — /f/syllabus.pdf\n- [study material] talk.mp4 (52 min, failed) — /f/talk.txt",
 				"message": {
 					"id": "<id>",
 					"role": "custom",
 					"customType": "space-context",
-					"content": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Math\n\nSpace files: 2 study material, 1 space info. Find what's in them with search_space_files; read_space lists them with their paths.\n\nTopics in the space's knowledge graph (facts in each):\nLimits (4), Series (0)",
+					"content": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Math\n\nSpace files: 2 study material, 1 space info. Find what's in them with search_space_files; read_space with files: true lists them with their paths.\n\nTopics in the space's knowledge graph (facts in each):\nLimits (4), Series (0)",
 					"display": true,
 					"details": {
 						"spaceId": "c2",

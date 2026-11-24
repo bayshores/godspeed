@@ -4,10 +4,11 @@
 
 use std::sync::Arc;
 
+use gs_base::clock;
 use gs_base::locks::LockKey;
 use gs_core::messages::native_messages::{new_space_context_message, new_study_context_message};
 use gs_core::spaces::problem_list::problem_list;
-use gs_core::study::homework::{has_problems, homework_context_text};
+use gs_core::study::homework::{due_today_line, has_problems, homework_context_text};
 use gs_json::{Json, json};
 
 use super::lessons::{Created, NotFound};
@@ -22,6 +23,16 @@ pub(super) fn deadline_of<'a>(space: &'a Json, deadline_id: &str) -> Option<&'a 
 pub(super) fn file_of<'a>(space: &'a Json, deadline: &Json) -> Option<&'a Json> {
 	let file_id = deadline["assignmentFileId"].as_str().filter(|id| !id.is_empty())?;
 	space["files"].as_arr()?.iter().find(|f| f["id"].as_str() == Some(file_id))
+}
+
+/// The clock a homework lesson's work items end with on the day its deadline is due
+/// (`due_today_line`); None for any other lesson.
+pub fn due_today_line_for(app: &App, lesson: &Json) -> Option<String> {
+	if lesson["kind"].as_str() != Some("homework") {
+		return None;
+	}
+	let space = app.stores.spaces.get_space(lesson["spaceId"].as_str()?)?;
+	due_today_line(deadline_of(&space, lesson["deadlineId"].as_str()?)?, clock::now_ms())
 }
 
 /// Starts a homework session on one homework or project deadline. Its title is the learner's

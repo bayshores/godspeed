@@ -115,10 +115,16 @@ fn claimable(state: &State, item: &WorkItem, now: i64, taker: &WaitOptions) -> b
 	item.claimed_at.is_none_or(|at| now - at > CLAIM_TIMEOUT_MS)
 }
 
+/// godspeed's own job: no learner waits on it.
+fn own(state: &State, item: &WorkItem) -> bool {
+	is_background(&item.conversation) && !state.asked.contains(&item.conversation) && !state.awaited.contains(&item.conversation)
+}
+
 /// The oldest claimable item that `keep` accepts, so jobs are answered in the order asked.
+/// godspeed's own jobs come after everything a learner waits on.
 fn oldest(state: &State, now: i64, opts: &WaitOptions, keep: impl Fn(&WorkItem) -> bool) -> Option<usize> {
 	let mut order: Vec<usize> = (0..state.items.len()).collect();
-	order.sort_by_key(|&i| state.items[i].created_at);
+	order.sort_by_key(|&i| (own(state, &state.items[i]), state.items[i].created_at));
 	order.into_iter().find(|&i| {
 		let item = &state.items[i];
 		keep(item) && claimable(state, item, now, opts)
