@@ -8,6 +8,7 @@ import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useMinute } from "@/frontend/components/countdown";
 import { DeadlineBlock } from "@/frontend/components/deadline/deadline-block";
+import { BLOCK_ROW, BLOCK_ROW_BOX, BLOCK_ROW_KEYS, BLOCK_ROW_WORDS } from "@/frontend/components/ui/count-block";
 import { useSpaceRecord } from "@/frontend/components/files/space-record";
 import { dueThisWeek } from "@/frontend/components/home-page/home-page-model";
 import { useArrivals } from "@/frontend/components/lesson/arrivals";
@@ -171,26 +172,28 @@ function DeadlineRow({
 	onUndo: () => void;
 }) {
 	return (
-		<li data-testid={`deadline-row-${d.id}`} className={className}>
-			<Pane data-teacher-target={`deadline:${d.id}`} className="flex h-full min-h-[84px] items-center overflow-hidden hover:[--lh-sheet:var(--color-tone)]">
+		<li data-testid={`deadline-row-${d.id}`} className={cn(BLOCK_ROW_BOX, className)}>
+			<Pane data-teacher-target={`deadline:${d.id}`} className="flex h-full min-h-[84px] overflow-hidden hover:[--lh-sheet:var(--color-tone)]">
 				<DeadlineBlock deadline={d} color={color} nowMs={nowMs} size="list" pale={!dueThisWeek(d, nowMs)} />
-				<span className="flex min-w-0 flex-1 flex-col gap-[3px] px-(--lh-inset) py-3">
-					{/* Stretched over the row, so a click anywhere opens the page. */}
-					<Link to={deadlineHref(d.id)} data-testid="deadline-open" title={d.name} className={cn("text-xl leading-tight break-words after:absolute after:inset-0", d.done ? "text-ink-3" : "text-ink")}>
-						{d.name}
-					</Link>
-					<span className="text-base leading-snug text-ink-2">{deadlineLine(d, progress, nowMs)}</span>
-				</span>
-				<span className="flex shrink-0 items-center gap-2.5 pr-(--lh-inset)">
-					{sheet && (
-						<Link to={studioPath(d.id)} data-testid="deadline-sheet" className="lh-btn lh-btn-small lh-btn-quiet relative">
-							{sheet.status === "none" ? "Make cheat sheet" : "Cheat sheet"}
+				<span className={BLOCK_ROW}>
+					<span className={cn(BLOCK_ROW_WORDS, "gap-[3px]")}>
+						{/* Stretched over the row, so a click anywhere opens the page. */}
+						<Link to={deadlineHref(d.id)} data-testid="deadline-open" title={d.name} className={cn("text-xl leading-tight break-words after:absolute after:inset-0", d.done ? "text-ink-3" : "text-ink")}>
+							{d.name}
 						</Link>
-					)}
-					<button type="button" data-testid={d.done ? "deadline-undo" : "deadline-done"} onClick={d.done ? onUndo : onDone} className="lh-btn lh-btn-small lh-btn-quiet relative">
-						{d.done ? "Undo" : "Mark done"}
-					</button>
-					<PixelIcon name="chevron" className="h-3.5 text-ink" />
+						<span className="text-base leading-snug text-ink-2">{deadlineLine(d, progress, nowMs)}</span>
+					</span>
+					<span className={BLOCK_ROW_KEYS}>
+						{sheet && (
+							<Link to={studioPath(d.id)} data-testid="deadline-sheet" className="lh-btn lh-btn-small lh-btn-quiet relative">
+								{sheet.status === "none" ? "Make cheat sheet" : "Cheat sheet"}
+							</Link>
+						)}
+						<button type="button" data-testid={d.done ? "deadline-undo" : "deadline-done"} onClick={d.done ? onUndo : onDone} className="lh-btn lh-btn-small lh-btn-quiet relative">
+							{d.done ? "Undo" : "Mark done"}
+						</button>
+						<PixelIcon name="chevron" className="h-3.5 text-ink" />
+					</span>
 				</span>
 			</Pane>
 		</li>

@@ -7,7 +7,8 @@ import { DeadlineMarks } from "@/frontend/components/overview/deadline-marks";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { deadlineLine } from "@/frontend/components/space-page/deadlines-tab-model";
 import { homeworkStartId } from "@/frontend/components/study-page/use-lesson-start";
-import { CountBlock } from "@/frontend/components/ui/count-block";
+import { cn } from "@/frontend/lib/utils";
+import { BLOCK_ROW, BLOCK_ROW_BOX, BLOCK_ROW_KEYS, BLOCK_ROW_WORDS, CountBlock } from "@/frontend/components/ui/count-block";
 import { Key } from "@/frontend/components/ui/key";
 import { Pane } from "@/frontend/components/ui/pane";
 
@@ -50,27 +51,29 @@ export function DeadlineRows({
 			</div>
 			<ul data-testid="home-deadlines" className="flex flex-1 flex-col gap-(--lh-gap)">
 				{deadlines.slice(0, COMING_UP_ROWS).map((d) => (
-					<li key={d.id} className="flex flex-1">
-						<Pane data-teacher-target={`deadline:${d.id}`} className="flex min-h-[84px] w-full items-center overflow-hidden">
+					<li key={d.id} className={cn("flex flex-1", BLOCK_ROW_BOX)}>
+						<Pane data-teacher-target={`deadline:${d.id}`} className="flex min-h-[84px] w-full overflow-hidden">
 							<CountBlock size="list" color={color} pale={!dueThisWeek(d, nowMs)} {...countLeft(dueAtMs(d), nowMs)} />
-							<span className="flex min-w-0 flex-1 flex-col gap-1.5 px-(--lh-inset) py-3">
-								<Link to={deadlineHref(d.id)} title={d.name} className="truncate text-xl leading-tight text-ink hover:underline">
-									{d.name}
-								</Link>
-								<span className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-base leading-snug text-ink-2">
-									{deadlineLine(d, d, nowMs)}
-									<DeadlineMarks deadline={d} />
+							<span className={BLOCK_ROW}>
+								<span className={cn(BLOCK_ROW_WORDS, "gap-1.5")}>
+									<Link to={deadlineHref(d.id)} title={d.name} className="truncate text-xl leading-tight text-ink hover:underline">
+										{d.name}
+									</Link>
+									<span className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-base leading-snug text-ink-2">
+										{deadlineLine(d, d, nowMs)}
+										<DeadlineMarks deadline={d} />
+									</span>
 								</span>
-							</span>
-							<span className="flex shrink-0 items-center gap-2.5 pr-(--lh-inset)">
-								<Key data-testid="home-study-deadline" title={deadlineStudyLabel(d.continueStudy, d.name)} busy={busyOn === d.id} disabled={busyOn !== null} onClick={() => onStudy(d)} className="text-[15px]">
-									{studyLabel(d.continueStudy)}
-								</Key>
-								{hasProblems(d.kind) && (
-									<Key data-testid="home-work-deadline" title={workLabel(d.name)} busy={busyOn === homeworkStartId(d.id)} disabled={busyOn !== null} onClick={() => onWork(d)} className="text-[15px]">
-										{WORK_ON_IT}
+								<span className={BLOCK_ROW_KEYS}>
+									<Key data-testid="home-study-deadline" title={deadlineStudyLabel(d.continueStudy, d.name)} busy={busyOn === d.id} disabled={busyOn !== null} onClick={() => onStudy(d)} className="text-[15px]">
+										{studyLabel(d.continueStudy)}
 									</Key>
-								)}
+									{hasProblems(d.kind) && (
+										<Key data-testid="home-work-deadline" title={workLabel(d.name)} busy={busyOn === homeworkStartId(d.id)} disabled={busyOn !== null} onClick={() => onWork(d)} className="text-[15px]">
+											{WORK_ON_IT}
+										</Key>
+									)}
+								</span>
 							</span>
 						</Pane>
 					</li>

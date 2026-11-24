@@ -533,6 +533,7 @@ export function Chat({
 		line: !openProblem && practice ? `Problem ${practice.blocks.length}` : null,
 		part: openProblem ? (problems?.part ?? null) : null,
 		file: placeDoc ? { document: placeDoc, page: place?.page, first: placeDoc.id === listFileId, onShow: showProblem } : null,
+		sent: activeProblem.sent,
 	};
 
 	// The task he last finished stays beside the text until the lesson goes on from it.
@@ -693,7 +694,7 @@ export function Chat({
 									}
 								/>
 								{dock.mounted && (
-									<div data-state={dock.state} className={cn("flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap) [grid-area:dock]", !dockThere && "lh-fade")}>
+									<div data-state={dock.state} className={cn("lh-lesson-dock-cell flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap)", !dockThere && "lh-fade")}>
 										{lastPanel.current === "document" && shownDoc ? (
 											<DocumentPanel
 												choices={docChoices}

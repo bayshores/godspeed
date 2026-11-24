@@ -242,9 +242,10 @@ describe("the walk", () => {
 		assert.equal(scrolledWords("end"), "scrolled to the end");
 	});
 
-	it("checks lessons at 1320 too, where the lesson's reading inset changes", () => {
-		assert.deepEqual(widthsOf({ url: "/chat/{lesson}" }), [1440, 1320, 1100, 800]);
-		assert.deepEqual(widthsOf({ url: "/space" }), [1440, 1100, 800]);
+	it("checks every screen down to 640, the narrowest window, lessons at 1320 and 800 too, and a screen with widths of its own only at those", () => {
+		assert.deepEqual(widthsOf({ url: "/chat/{lesson}" }), [1440, 1320, 1100, 800, 640]);
+		assert.deepEqual(widthsOf({ url: "/space" }), [1440, 1100, 640]);
+		assert.deepEqual(widthsOf({ url: "/chat/{lesson}", widths: [800, 640] }), [800, 640]);
 	});
 
 	it("every screen has a name, an address and a selector to wait for", () => {

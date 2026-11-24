@@ -7,9 +7,11 @@
 import { useEffect, useRef, useState } from "react";
 import { LoadingLine } from "@/frontend/components/loading";
 import { useLitMarker } from "@/frontend/components/lit-marker";
+import { STRIP, useTabStrip, wheelSideways } from "@/frontend/components/tab-strip";
 import { Travel } from "@/frontend/components/travel/travel";
 import type { AppearanceSettings } from "@/shared/core";
 import type { WriteResult } from "@/frontend/lib/api";
+import { cn } from "@/frontend/lib/utils";
 import { useAppearance } from "./appearance.tsx";
 import { SettingsSection } from "./controls.tsx";
 import { TeachingSection } from "./teaching-section.tsx";
@@ -80,6 +82,7 @@ export function SettingsPage({ section }: { section?: string }) {
 	const [active, setActive] = useState<SectionId>(initialSection);
 	const navRef = useRef<HTMLElement>(null);
 	const underline = useLitMarker(navRef, '[aria-current="true"]', active);
+	const strip = useTabStrip('[aria-current="true"]', active);
 	// Teaching's full instructions fill the page, heading and tabs included.
 	const [fullPage, setFullPage] = useState(false);
 	const current = SECTIONS.find((s) => s.id === active) ?? SECTIONS[0];
@@ -115,21 +118,23 @@ export function SettingsPage({ section }: { section?: string }) {
 				{!fullPage && <h1 className="lh-page-title">Settings</h1>}
 				<nav ref={navRef} hidden={fullPage} aria-label="Settings sections" data-testid="settings-nav" className="lh-tabs relative isolate mt-(--lh-head-gap) mb-(--lh-gap)">
 					<div ref={underline} hidden aria-hidden className="lh-lit-marker lh-tab-line" />
-					{SECTIONS.map((s) => {
-						const on = active === s.id;
-						return (
-							<button
-								key={s.id}
-								type="button"
-								data-testid={`settings-nav-${s.id}`}
-								aria-current={on}
-								onClick={() => setActive(s.id)}
-								className="lh-press lh-tab"
-							>
-								{s.label}
-							</button>
-						);
-					})}
+					<div ref={strip.ref} onScroll={strip.measure} onWheel={wheelSideways} className={cn("flex gap-x-1.5", STRIP)}>
+						{SECTIONS.map((s) => {
+							const on = active === s.id;
+							return (
+								<button
+									key={s.id}
+									type="button"
+									data-testid={`settings-nav-${s.id}`}
+									aria-current={on}
+									onClick={() => setActive(s.id)}
+									className="lh-press lh-tab"
+								>
+									{s.label}
+								</button>
+							);
+						})}
+					</div>
 				</nav>
 				<div data-testid="settings-content">
 					{error && (

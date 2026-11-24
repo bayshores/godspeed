@@ -475,7 +475,6 @@ body {
 	/* A row of tabs on its 2-point line: a space's pages, Settings' sections. */
 	.lh-tabs {
 		display: flex;
-		flex-wrap: wrap;
 		column-gap: 6px;
 		box-shadow: inset 0 -2px 0 var(--border);
 	}
@@ -756,6 +755,9 @@ body {
 .lh-lesson-body[data-dock] {
 	grid-template: "main dock" minmax(0, 1fr) / minmax(0, 1fr) auto;
 }
+.lh-lesson-dock-cell {
+	grid-area: dock;
+}
 .lh-lesson-dock {
 	width: var(--lh-dock-w);
 }
@@ -768,6 +770,28 @@ body {
 	}
 	.lh-lesson-body[data-dock] .lh-dock-resize {
 		display: none;
+	}
+}
+/* Where the page would keep under 480 points beside the panel, the panel covers the page until it is closed. The page keeps
+   its layout under it, so it is there as it was when the panel fades out. */
+@container lesson (max-width: 779px) {
+	.lh-lesson-body[data-dock] {
+		grid-template: "main" minmax(0, 1fr) / minmax(0, 1fr);
+	}
+	.lh-lesson-dock-cell {
+		position: relative;
+		z-index: 1;
+		grid-area: main;
+		padding-left: var(--lh-page-side);
+	}
+	.lh-lesson-dock-cell .lh-lesson-dock {
+		width: 100%;
+	}
+	.lh-lesson-dock-cell .lh-dock-resize {
+		display: none;
+	}
+	.lh-lesson-body[data-dock] .lh-lesson-room {
+		visibility: hidden;
 	}
 }
 
@@ -894,6 +918,14 @@ body {
 }
 .lh-turn-foot .lh-reading {
 	padding-block: 28px;
+}
+/* Under one column the pinned sheet has the text's sides (.lh-reading), so their edges line up. */
+@container room (width < 1280px) {
+	@container foot (width < 640px) {
+		.lh-turn-foot .lh-reading {
+			padding-inline: var(--lh-reading-inset-narrow);
+		}
+	}
 }
 .lh-turn-foot .lh-reading,
 .lh-turn-foot [data-testid="turn-swap"] {
@@ -1756,16 +1788,16 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 
 /* The mark of the lit one of a row of tabs (lit-marker.ts): one box under
    the tabs, moved to the lit one. It slides only when another tab lights. */
-/* The tab strip (SpaceTabs) fades out at an end that cuts tabs off. Its lit tab is never wider
+/* A tab strip (tab-strip.ts) fades out at an end that cuts tabs off. The top bar's lit tab is never wider
    than the strip, and while tabs are cut off, the strip less the fades' overhang past its padding
    (2 × (24 − 16) px), so centered its dot and name are clear of both fades. */
-.lh-tab-strip[data-cut="end"] {
+.lh-cut[data-cut="end"] {
 	mask-image: linear-gradient(to right, black calc(100% - 24px), transparent);
 }
-.lh-tab-strip[data-cut="start"] {
+.lh-cut[data-cut="start"] {
 	mask-image: linear-gradient(to left, black calc(100% - 24px), transparent);
 }
-.lh-tab-strip[data-cut="both"] {
+.lh-cut[data-cut="both"] {
 	mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
 }
 .lh-tab-strip[data-cut] > [data-lit] {

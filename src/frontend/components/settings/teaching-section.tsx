@@ -68,8 +68,8 @@ export function TeachingSection({
 	return (
 		<>
 			{segments === null && segmentsFailed && <LoadFailed message="Couldn't load the instructions." onRetry={readSegments} className="pb-6" />}
-			<div className="flex items-start gap-(--lh-gap)">
-				<Pane aria-label="Teaching areas" className="flex w-[260px] shrink-0 flex-col p-2">
+			<div className="flex flex-col gap-(--lh-gap) @[760px]/page:flex-row @[760px]/page:items-start">
+				<Pane aria-label="Teaching areas" className="flex shrink-0 flex-col p-2 @[760px]/page:w-[260px]">
 					{TEACHING_AREAS.map((a) => (
 						<AreaButton key={a.id} id={a.id} label={a.label} on={pick === a.id} onPick={() => setPick(a.id)} />
 					))}

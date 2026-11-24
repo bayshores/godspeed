@@ -457,7 +457,7 @@ async function main() {
 	}
 
 	const report = path.join(RUN, "report.txt");
-	const checked = `${SCREENS.length} screens at 1440, 1100 and 800 points (lessons at 1320 too), each as it opens, ${SCROLL_TO.slice(1).map(scrolledWords).join(" and ")}, and ${opened.size} openings watched, in ${Math.round((Date.now() - built) / 1000)} s (${Math.round((built - started) / 1000)} s to build)`;
+	const checked = `${SCREENS.length} screens at 1440, 1100 and 640 points (lessons at 1320 and 800 too), each as it opens, ${SCROLL_TO.slice(1).map(scrolledWords).join(" and ")}, and ${opened.size} openings watched, in ${Math.round((Date.now() - built) / 1000)} s (${Math.round((built - started) / 1000)} s to build)`;
 	fs.writeFileSync(report, `${[...failures, ...warnings, checked].join("\n")}\n`);
 	if (failures.length > 0) {
 		console.error(`${failures.join("\n")}\nlayout: broken layout found; ${checked}. Report: ${report}`);

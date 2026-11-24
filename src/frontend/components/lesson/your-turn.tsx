@@ -13,6 +13,7 @@ import { LessonBox } from "./lesson-box";
 import { HELP_LINES, lessonBox, lessonIdeas, questionTurn, type BoxAction, type BoxView } from "./lesson-box-model";
 import { OpenProblemPane, type ProblemPicks } from "./open-problem-pane";
 import { ProblemFile, type ProblemFileRef } from "./problem-file";
+import { problemFolded } from "./turn-fold-model";
 import { TurnScroll } from "./turn-scroll";
 import { TurnPlaceContext } from "./turn-place";
 import { TurnSwap } from "./turn-swap";
@@ -36,9 +37,9 @@ export interface YourTurnProps {
 	onSkipQuestion: () => void;
 	/** His answer to a question from earlier was refused: it was no longer due. */
 	reviewRefused: boolean;
-	/** The open problem, with its line ("Problem 2", practice only) and, for
-	 *  a listed problem, the part the learner is on and the file it is from. */
-	problem: { toolCallId: string; statement: string; piece: ProblemPieceText | null; choices: ProblemChoices | null; line: string | null; part: string | null; file: ProblemFileRef | null } | null;
+	/** The open problem, with its line ("Problem 2", practice only), for a listed problem the part
+	 *  the learner is on and the file it is from, and whether he has sent something since it opened. */
+	problem: { toolCallId: string; statement: string; piece: ProblemPieceText | null; choices: ProblemChoices | null; line: string | null; part: string | null; file: ProblemFileRef | null; sent: boolean } | null;
 	/** What is picked among the open problem's choices. */
 	problemPicked: DockSelection;
 	onPickProblem: (picked: DockSelection) => void;
@@ -138,6 +139,10 @@ export function YourTurn({
 	const [printed, setPrinted] = useState(false);
 	// The problem whose page did not load: its words show, so there is no page to turn white.
 	const [pieceFailed, setPieceFailed] = useState<string | null>(null);
+	// The problem the learner asked to see whole, or folded, with the key in the title's row.
+	const [wholeChoice, setWholeChoice] = useState<{ of: string; whole: boolean } | null>(null);
+	// The open problem is longer than the room it gets folded.
+	const [long, setLong] = useState(false);
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 
 	const next = !pending && !problem ? shown : null;
@@ -195,6 +200,9 @@ export function YourTurn({
 	const place = useContext(TurnPlaceContext);
 	const quiet = (place === "pinned" || place === "under") && !pending && !problem && !ask;
 	const boxAlone = quiet && (busy || !next?.next.line);
+	// Pinned, a long problem folds so the text keeps its window. One with answers to click stays whole, as a question does.
+	const folds = place === "pinned" && !pending && problem !== null && !problem.choices;
+	const folded = folds ? problemFolded(problem.sent, wholeChoice?.of === problem.toolCallId ? wholeChoice.whole : null) : undefined;
 	// With a "My words" ask, the key that ends the day sits in the box beside Skip and Save.
 	const rowKey = ask === null && !quiet;
 	// On the title's row, set right, where there is a title, so the sheet needs no row of its own for it.
@@ -234,6 +242,11 @@ export function YourTurn({
 				{saved && <div className="ml-auto">{saved}</div>}
 				{/* The keys stay on the title's line while they fit: a file's name shortens before a key drops under the title. */}
 				<div data-testid="turn-keys" className={cn("flex flex-1 basis-0 items-center justify-end gap-x-2 empty:hidden", fileShown ? "min-w-[min(100%,19rem)]" : "min-w-fit")}>
+					{folds && long && (
+						<button type="button" data-testid="turn-whole" aria-expanded={!folded} onClick={() => setWholeChoice({ of: problem.toolCallId, whole: folded === true })} className="lh-btn lh-btn-small lh-btn-quiet">
+							{folded ? "Whole problem" : "Less"}
+						</button>
+					)}
 					{fileShown && <ProblemFile file={fileShown} />}
 					{!pending && problem?.piece && pieceFailed !== problem.toolCallId && (
 						<button type="button" data-testid="piece-printed" aria-pressed={printed} onClick={() => setPrinted((on) => !on)} className={cn("lh-btn lh-btn-small", printed ? "lh-btn-main" : "lh-btn-quiet")}>
@@ -255,7 +268,7 @@ export function YourTurn({
 				</p>
 			)}
 
-			<TurnScroll>
+			<TurnScroll folded={folded} onLong={setLong}>
 				{pending && (
 					<QuestionDock
 						ref={questionRef}

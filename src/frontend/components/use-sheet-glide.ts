@@ -3,12 +3,25 @@ import { EASE_OUT, prefersReducedMotion } from "@/frontend/components/presence";
 import { glideMs, type Box } from "./sheet-glide-model";
 
 const boxOf = (el: HTMLElement): Box => ({ width: el.offsetWidth, height: el.offsetHeight });
-/** The window a sheet is laid out in: the app's, and the lesson's own window when the sheet scrolls in it (it changes size as the pinned
- *  "Your turn" does, and is laid out for a pinned one a moment after that one left). */
-const roomOf = (el: HTMLElement) => {
-	const lesson = el.closest(".lh-lesson-window");
-	return `${window.innerWidth} ${window.innerHeight} ${lesson?.clientHeight ?? ""} ${lesson?.classList.contains("lh-lesson-pinned") ?? ""}`;
-};
+/** The window a sheet is laid out in: the app's, and whether the lesson's "Your turn" is pinned under the lesson's own window (that
+ *  window is laid out for a pinned one a moment after that one left). */
+const roomOf = (el: HTMLElement) => `${window.innerWidth} ${window.innerHeight} ${el.closest(".lh-lesson-window")?.classList.contains("lh-lesson-pinned") ?? ""}`;
+/** The height of the lesson's own window, for a sheet that scrolls in it. */
+const windowOf = (el: HTMLElement) => el.closest(".lh-lesson-window")?.clientHeight ?? null;
+
+/** The sheets being watched, each with its glide's reading of them. */
+const watched = new WeakMap<Element, () => void>();
+
+/**
+ * Reads the sheet around `el` now, before the frame is drawn: for a change that lands whole (a problem folding), which WebKit would
+ * draw at its new size for a frame before the resize watch starts the glide.
+ */
+export function glideSheetAround(el: Element): void {
+	for (let at: Element | null = el; at; at = at.parentElement) {
+		const read = watched.get(at);
+		if (read) return read();
+	}
+}
 
 /**
  * Watches the sheets it is given and glides each to its new height; `hold` says whether they take their sizes at once from now.
@@ -17,7 +30,7 @@ const roomOf = (el: HTMLElement) => {
  */
 function sheetGlide(early: boolean): { ref: RefCallback<HTMLElement>; hold: (still: boolean) => void } {
 	// Null until a sheet's size is first seen: where it stood before the page was laid out around it is no size to glide from.
-	const seen = new Map<HTMLElement, { box: Box; room: string } | null>();
+	const seen = new Map<HTMLElement, { box: Box; room: string; window: number | null } | null>();
 	const gliding = new Map<HTMLElement, Animation>();
 	let watch: ResizeObserver | null = null;
 	let still = false;
@@ -38,10 +51,12 @@ function sheetGlide(early: boolean): { ref: RefCallback<HTMLElement>; hold: (sti
 		for (const [el, was] of seen) {
 			// The sizes a glide passes through are its own.
 			if (gliding.has(el)) continue;
-			const now = { box: boxOf(el), room: roomOf(el) };
+			const now = { box: boxOf(el), room: roomOf(el), window: windowOf(el) };
 			seen.set(el, now);
 			if (!was) continue;
 			if (was.room !== now.room) laidOutAnew();
+			// The lesson's window follows the pinned "Your turn", which glides: a sheet in that window is carried along.
+			if (was.window !== now.window) continue;
 			const ms = glideMs(was.box, now.box, !anew);
 			if (ms !== null) moves.push({ el, from: was.box.height, to: now.box.height, ms });
 		}
@@ -65,11 +80,13 @@ function sheetGlide(early: boolean): { ref: RefCallback<HTMLElement>; hold: (sti
 		watch ??= new ResizeObserver(resized);
 		seen.set(el, null);
 		watch.observe(el);
+		watched.set(el, resized);
 		const edits = early ? new MutationObserver(resized) : null;
 		edits?.observe(el, { childList: true, subtree: true, characterData: true, attributes: true });
 		return () => {
 			edits?.disconnect();
 			watch?.unobserve(el);
+			watched.delete(el);
 			seen.delete(el);
 			const glide = gliding.get(el);
 			gliding.delete(el);

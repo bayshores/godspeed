@@ -46,7 +46,10 @@ export function BarFind({
 			<Hint label={label} side="bottom">
 				<button ref={keyRef} type="button" data-testid={testIds.key} aria-label={label} {...keyShortcutProps("find")} onClick={onOpen} className={barWord(false)}>
 					<PixelIcon name="search" />
-					<KeyHint action="find" />
+					{/* The narrowest windows keep the glass alone, so the page's words clear the clock. */}
+					<span className="contents max-[699px]:hidden">
+						<KeyHint action="find" />
+					</span>
 				</button>
 			</Hint>
 		);

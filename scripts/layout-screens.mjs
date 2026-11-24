@@ -3,8 +3,8 @@ import { WAITING_TOPIC } from "./layout-seed.mjs";
 /**
  * layout-screens.mjs — the screens `npm run layout` checks, in order.
  *
- * Every screen is checked at 1440, 1100 and 800 points wide, a lesson ("/chat/") at 1320 too
- * (widthsOf). A screen opens at `url`, waits for `ready`, runs `setup` in the page (clicks), then waits for
+ * Every screen is checked at 1440, 1100 and 640 points wide (640 is the narrowest window), a lesson ("/chat/")
+ * at 1320 and 800 too, and a screen with `widths` only at those (widthsOf). A screen opens at `url`, waits for `ready`, runs `setup` in the page (clicks), then waits for
  * `shows`; a `teacher` line is handed to the stand-in teacher before `shows`, as if typed in its terminal
  * (layout-agent.mjs). `ready` and `shows` name something drawn from the screen's data, not its frame, so the
  * check never runs on a screen still loading. `height` gives it a window higher than the
@@ -13,13 +13,16 @@ import { WAITING_TOPIC } from "./layout-seed.mjs";
  * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, the lessons that stand at a state of "Your turn" `{explained}`, `{quizAnswered}`, `{concluded}`, `{skipped}`, `{discarded}` and `{lastTopic}`, `{pending}`, `{sheetless}`, `{pathSpace}`, `{vault}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
-const WIDTHS = [1440, 1100, 800];
-/** A lesson is also checked at 1320: between 1280 and about 1367 its reading inset changes. */
-const LESSON_WIDTHS = [1440, 1320, 1100, 800];
+const WIDTHS = [1440, 1100, 640];
+/** A lesson is also checked at 1320, where between 1280 and about 1367 its reading inset changes, and at 800, where its one
+ *  column is not yet at its narrowest. */
+const LESSON_WIDTHS = [1440, 1320, 1100, 800, 640];
+/** The widths at which "Your turn" is pinned under one column of lesson text. */
+const ONE_COLUMN = [800, 640];
 
 /** The widths a screen is checked at, widest first. */
 export function widthsOf(screen) {
-	return screen.url.startsWith("/chat/") ? LESSON_WIDTHS : WIDTHS;
+	return screen.widths ?? (screen.url.startsWith("/chat/") ? LESSON_WIDTHS : WIDTHS);
 }
 /** A window high enough for "Your turn" pinned under the lesson text (`height` on a screen). A screen too
  *  low for it, as GitHub's Mac runner has, leaves that screen unchecked with a warning. */
@@ -429,6 +432,15 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	{ name: "Lesson with an open quiz in a tall window, Your turn pinned", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", height: TALL },
 	{ name: "Lesson with a question whose choices are code in a tall window", url: "/chat/{codeChoices}", ready: "[data-testid=question-dock] pre", height: TALL },
 	{ name: "Lesson with a problem longer than a tall window", url: "/chat/{longProblem}", ready: "[data-testid=open-problem]", height: TALL },
+	{
+		name: "Lesson with a long problem folded under the text",
+		url: "/chat/{longProblem}",
+		ready: "[data-testid=turn-whole][aria-expanded=true]",
+		setup: `document.querySelector("[data-testid=turn-whole]").click()`,
+		shows: "[data-testid=turn-whole][aria-expanded=false]",
+		height: TALL,
+		widths: ONE_COLUMN,
+	},
 	{ name: "Homework lesson before a problem opens, in a tall window", url: "/chat/{homeworkFirst}", ready: "[data-testid=next-problem-button]", height: TALL },
 	// "Your turn" with nothing to answer, after each way a step can end.
 	{ name: "Lesson where the teacher explained and asked nothing, Your turn holds Continue", url: "/chat/{explained}", ready: "[data-testid=next-problem-button][data-action=next]" },

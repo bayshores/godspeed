@@ -236,7 +236,7 @@ export function LessonScroll({
 				</Conversation>
 				{/* "Your turn" pinned (its height: .lh-turn-foot). */}
 				<div ref={footRef} hidden className="lh-turn-foot lh-page flex min-h-0 shrink-0 flex-col pb-(--lh-gap)">
-					<div ref={footSlot} className={cn("flex min-h-0 flex-col", READING_MEASURE, SHUT_FOOT)} />
+					<div ref={footSlot} className={cn("@container/foot flex min-h-0 flex-col", READING_MEASURE, SHUT_FOOT)} />
 				</div>
 			</div>
 			{hasTurn && turnBox && createPortal(turnSheet, turnBox)}

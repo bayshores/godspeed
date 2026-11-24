@@ -2,6 +2,7 @@ import type { RefObject } from "react";
 import { useSessionFind } from "@/frontend/components/session-find";
 import type { SessionScrollContext } from "@/frontend/components/session-navigation";
 import { BarFind } from "@/frontend/components/top-bar/bar-find";
+import { cn } from "@/frontend/lib/utils";
 import { barWord } from "@/frontend/components/top-bar/bar-look";
 import { BarActions, BarCrumb, CrumbName } from "@/frontend/components/top-bar/bar-slots";
 import { LessonMore } from "./lesson-more";
@@ -71,8 +72,9 @@ export function LessonBar({
 				) : (
 					<>
 						{plugins.words.map((w) => (
-							<button key={w.id} type="button" data-testid={pluginWordTestId(w.id)} aria-pressed={plugins.open === w.id} onClick={() => plugins.onToggle(w.id)} className={barWord(plugins.open === w.id)}>
-								{w.label}
+							<button key={w.id} type="button" data-testid={pluginWordTestId(w.id)} aria-pressed={plugins.open === w.id} onClick={() => plugins.onToggle(w.id)} className={cn(barWord(plugins.open === w.id), "min-w-[5ch] shrink")}>
+								{/* A plugin's name gives way before the words after it reach the clock. */}
+								<span className="truncate">{w.label}</span>
 							</button>
 						))}
 						{findBar}

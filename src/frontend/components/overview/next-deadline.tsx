@@ -94,8 +94,9 @@ export const NextDeadline = memo(function NextDeadline({
 				) : (
 					<CountBlock size="band" color={color} {...countLeft(dueAtMs(d), nowMs)} className="h-24 w-auto @[480px]:h-auto @[480px]:w-[116px]" />
 				)}
-				<div className="lh-card min-w-0 flex-1 gap-4 @[480px]:flex-row @[480px]:items-end @[480px]:gap-6">
-					<div className="flex min-w-0 flex-1 flex-col gap-4">
+				{/* Beside the band the keys end the words' row, and drop under them where the name would be squeezed. */}
+				<div className="lh-card min-w-0 flex-1 gap-4 @[480px]:flex-row @[480px]:flex-wrap @[480px]:items-end @[480px]:justify-end @[480px]:gap-x-6">
+					<div className="flex min-w-0 flex-1 flex-col gap-4 @[480px]:basis-[260px]">
 						<div className="flex flex-col gap-1">
 							<Link to={deadlineHref(d.id)} data-testid="next-deadline-open" title={d.name} className={cn("line-clamp-2 text-[28px] leading-[1.3] text-ink hover:underline", d.done && "line-through")}>
 								{d.name}
