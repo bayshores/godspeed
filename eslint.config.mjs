@@ -40,7 +40,7 @@ const FETCH_ALLOWED = [
 ];
 
 export default defineConfig([
-	globalIgnores(["node_modules/**", "data/**", "scripts/**", "dist/**", "dist-ui/**", ".claude/**", "crates/**", "target/**"]),
+	globalIgnores(["node_modules/**", "data/**", "scripts/**", "dist/**", "dist-ui/**", ".claude/**", "crates/**", "target/**", ".stage/**", ".dev-resources/**"]),
 	{
 		files: ["**/*.{js,mjs,ts,tsx}"],
 		languageOptions: {
