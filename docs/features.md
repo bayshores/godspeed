@@ -78,7 +78,7 @@ To add a row:
 | Write to the teacher in a lesson, in the writing row at the window's foot: a question, or while it writes, what to focus on, with Stop at the row's end | Lesson | `composer` | | learner | |
 | The desk: while the teacher writes, in the lesson text with no box, one sentence on what it does, its steps (its own web searches and file reads too) and the files it works from as a stack of paper | Lesson | `agent-at-work` | Lesson whose first reply waits for an agent | learner | |
 | Stuck keys, over the writing row while a question or problem waits | Lesson | `help-hint` | | learner | |
-| Whole problem: a long problem pinned over the lesson text in a narrow window folds, and one key on its plate opens it and folds it again | Lesson | `turn-whole` | Lesson with a long problem folded under the text | learner | |
+| Whole problem: a long problem pinned over the lesson text in a narrow window folds, and one key on its plate opens it and folds it again | Lesson | `turn-whole` | Lesson with a long problem folded over the text | learner | |
 | A figure the teacher draws under its reply, in the theme's colors ("Draw it" asks for one) | Lesson | `lesson-idea` | Homework lesson with a figure under the method | teacher | |
 | Answer a question with the keyboard | Lesson | `question-option` | | learner | `question-focus`, `question-next-row`, `question-prev-row`, `question-pick-row`, `question-submit`, `question-pick-number` |
 | Rename a lesson | Lesson | `lesson-title` | Lesson with a 40-letter title among five open spaces | learner | `rename-session` |

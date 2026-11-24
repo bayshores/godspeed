@@ -434,7 +434,7 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	{ name: "Lesson with a question whose choices are code in a tall window", url: "/chat/{codeChoices}", ready: "[data-testid=question-dock] pre", height: TALL },
 	{ name: "Lesson with a problem longer than a tall window", url: "/chat/{longProblem}", ready: "[data-testid=open-problem]", height: TALL },
 	{
-		name: "Lesson with a long problem folded under the text",
+		name: "Lesson with a long problem folded over the text",
 		url: "/chat/{longProblem}",
 		ready: "[data-testid=turn-whole][aria-expanded=true]",
 		setup: `document.querySelector("[data-testid=turn-whole]").click()`,
