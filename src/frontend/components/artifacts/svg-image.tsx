@@ -42,10 +42,12 @@ export function SvgImage({
 	svg,
 	className,
 	width,
+	height,
 }: {
 	svg: string;
 	className?: string;
 	width?: number;
+	height?: number;
 }) {
-	return <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgImageSource(svg))}`} alt={svgAltText(svg)} className={className} width={width} draggable={false} />;
+	return <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgImageSource(svg))}`} alt={svgAltText(svg)} className={className} width={width} height={height} draggable={false} />;
 }

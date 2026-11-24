@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import { VisualCard, VisualOutputCard } from "../../src/frontend/components/artifacts/visual-card.tsx";
-import { FIGURE_COLORS, figureWidth, themedFigure } from "../../src/frontend/components/artifacts/figure-model.ts";
+import { FIGURE_COLORS, figureSize, themedFigure } from "../../src/frontend/components/artifacts/figure-model.ts";
 import { GRAPHITE, PAPER, figureInksOf, resolveAppearance } from "../../src/frontend/components/settings/appearance-model.ts";
 import { svgAltText, svgImageSource } from "../../src/frontend/components/artifacts/svg-image.tsx";
 import { MermaidOverlay, SessionMermaidContext } from "../../src/frontend/components/session-overlay.tsx";
@@ -111,6 +111,7 @@ describe("generated SVG image boundary", () => {
 		const { document } = parseHTML(renderToStaticMarkup(<VisualOutputCard output={{ svg: FIGURE }} />));
 		const image = assertImageBoundary(document.querySelector('[data-testid="visual-svg"]')!, FIGURE);
 		assert.equal(image.getAttribute("width"), "320");
+		assert.equal(image.getAttribute("height"), "160", "the page keeps the figure's room before the image loads");
 		assert.equal(image.className, "block h-auto max-w-full");
 		assert.ok(document.querySelector('[data-testid="visual-svg"]')!.classList.contains("w-fit"));
 	});
@@ -238,10 +239,11 @@ describe("a figure's colors", () => {
 		assert.equal(themedFigure(FIGURE, ["#000000", "#111111", "#222222", "#333333"]), null);
 	});
 
-	it("come with the width the figure declares in px", () => {
-		assert.equal(figureWidth(THEMED), 320);
-		assert.equal(figureWidth('<svg width="100%" viewBox="0 0 1 1"></svg>'), null);
-		assert.equal(figureWidth('<svg viewBox="0 0 1 1"></svg>'), null);
+	it("come with the size the figure declares in px", () => {
+		assert.deepEqual(figureSize(THEMED), { width: 320, height: 160 });
+		assert.deepEqual(figureSize('<svg stroke-width="2" width="300" viewBox="0 0 1 1"></svg>'), { width: 300, height: undefined });
+		assert.equal(figureSize('<svg width="100%" viewBox="0 0 1 1"></svg>'), null);
+		assert.equal(figureSize('<svg viewBox="0 0 1 1"></svg>'), null);
 	});
 });
 
