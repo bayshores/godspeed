@@ -352,6 +352,10 @@ body {
 [data-part-head][aria-expanded="false"]:hover {
 	color: var(--color-ink);
 }
+/* Math in a line cut to one line stays inline: as a box of its own it makes WebKit cut the line lower than its letters. */
+[data-part-head][aria-expanded="false"] .katex {
+	display: inline;
+}
 [data-part-fold] {
 	display: none;
 }

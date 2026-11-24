@@ -25,8 +25,8 @@ const ALONE = "@min-[1000px]/room:max-w-(--lh-turn)";
 /** The task moving over as the lesson text arrives beside it. */
 const MAKE_ROOM = { duration: 240, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" };
 
-/** The jump key: in the gutter beside one column where the room leaves one, else a slim tab in the page's side, so it never lies on words; in a pair, at the lesson text's side. */
-const KEY = "@max-[855px]/room:right-0.5 @max-[855px]/room:w-5 @min-[856px]/room:right-[calc((100%-760px)/2-44px)]";
+/** The jump key: in the gutter beside one column where the room leaves one, else a slim tab in the page's side, clear of a docked panel's edge, so it never lies on words; in a pair, at the lesson text's side. */
+const KEY = "@max-[855px]/room:right-[calc(var(--lh-page-side)-18px)] @max-[855px]/room:w-4 @max-[855px]/room:[&_svg:not([class*='size-'])]:size-2.5 @min-[856px]/room:right-[calc((100%-760px)/2-44px)]";
 const PAIR_KEY = "@min-[1000px]/room:right-[calc((100%-var(--lh-pair))/2+var(--lh-turn)+38px)]";
 const SHUT_KEY = "@min-[1000px]/room:right-[calc((100%-var(--lh-text))/2-48px)]";
 /** The writing row under the shut book's one page: as wide as that page. */
