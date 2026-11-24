@@ -23,6 +23,7 @@ struct Host {
 	headless: Arc<dyn HeadlessApi>,
 	engine: Option<Engine>,
 	delivered: Mutex<Vec<Json>>,
+	activity: Mutex<Vec<String>>,
 }
 
 impl JobHost for Host {
@@ -63,6 +64,10 @@ impl JobHost for Host {
 	fn keep_page(&self, _file: &KeptPages, _page: u32, _markdown: &str) -> Result<(), String> {
 		Err("no space in this test".to_owned())
 	}
+	fn job_activity(&self, job_id: &str, line: &str) {
+		assert_eq!(self.jobs.get_job(job_id).unwrap()["activity"], Json::from(line), "told once the line is saved");
+		self.activity.lock().push(line.to_owned());
+	}
 }
 
 impl Drop for Host {
@@ -88,6 +93,7 @@ fn setup(name: &str, engine: Option<Engine>, demo: Result<DemoRunResult, String>
 		headless: FakeHeadless::new(demo),
 		engine,
 		delivered: Mutex::new(Vec::new()),
+		activity: Mutex::new(Vec::new()),
 		dir,
 	})
 }
@@ -123,6 +129,7 @@ async fn a_visual_job_saves_its_result_usage_and_pending_delivery() {
 	assert_eq!(record["usage"]["model"], Json::from("agent:outside-agent"));
 	assert_eq!(record["usage"]["steps"], Json::from(2));
 	assert!(record.get("error").is_none());
+	assert_eq!(host.activity.lock().first().map(String::as_str), Some("write_svg: 0.0 KB"), "the host hears each activity line");
 	let delivered = host.delivered.lock();
 	assert_eq!(delivered.len(), 1);
 	assert_eq!(delivered[0]["id"], Json::from(format!("steer_{id}")));

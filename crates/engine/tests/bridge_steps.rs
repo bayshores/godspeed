@@ -9,8 +9,8 @@ use std::sync::Arc;
 
 use gs_base::clock;
 use gs_base::events::{EventKind, Events};
-use gs_core::session::teacher_steps::TeacherStep;
-use gs_engine::bridge::{AgentReply, Bridge, OUTSIDE_QUIET_MS, ROUND_STALE_MS, ROUND_STEPS_MAX, WaitOptions};
+use gs_core::session::teacher_steps::{STEPS_MAX, TeacherStep};
+use gs_engine::bridge::{AgentReply, Bridge, OUTSIDE_QUIET_MS, ROUND_STALE_MS, WaitOptions};
 use gs_engine::turn::abort::Abort;
 use gs_json::{Json, json};
 use tokio::sync::mpsc::UnboundedReceiver;
@@ -144,12 +144,12 @@ async fn a_round_keeps_its_last_forty_steps() {
 	let (bridge, _rx) = bridge();
 	let now = clock::now_ms();
 	bridge.chat_line(TEACHER, now);
-	for n in 0..ROUND_STEPS_MAX + 5 {
+	for n in 0..STEPS_MAX + 5 {
 		bridge.teacher_call(Some(TEACHER), step(&format!("Step {n}")), now + n as i64);
 	}
 	let kept = steps(&bridge, now + 100).unwrap();
-	assert_eq!(kept.len(), ROUND_STEPS_MAX);
-	assert_eq!((kept[0].as_str(), kept[ROUND_STEPS_MAX - 1].as_str()), ("Step 5", "Step 44"));
+	assert_eq!(kept.len(), STEPS_MAX);
+	assert_eq!((kept[0].as_str(), kept[STEPS_MAX - 1].as_str()), ("Step 5", "Step 44"));
 }
 
 #[tokio::test]

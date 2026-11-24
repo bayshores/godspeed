@@ -19,6 +19,7 @@ use gs_core::messages::native_messages::{dangling_question_of, has_probe_done, i
 use gs_core::messages::role::Role;
 use gs_core::session::jobs::steer_delivered;
 use gs_core::session::prices::CallUsage;
+use gs_core::session::turn_cause::turn_cause;
 use gs_engine::turn::agent::Agent;
 use gs_engine::turn::call_ids::collect_tool_call_ids;
 use gs_engine::turn::events::AgentEvent;
@@ -37,6 +38,7 @@ use super::review::askable;
 use super::turn_liveness::{begin_turn, end_turn, turn_started};
 use super::turn_runs::{register_turn, remember_turn_failure, unregister_turn};
 use super::turn_service::{persist_turn, trigger_extraction};
+use super::turn_work;
 use crate::App;
 use crate::app::agent_actions::record_answer;
 use crate::app::today_note::today_note_for;
@@ -271,6 +273,7 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 		eprintln!("[chat {chat_id}] turn already in flight — request rejected");
 		return Err(ChatReply::error(409, "A turn is already running for this session"));
 	}
+	turn_work::begin(app, chat_id, turn_cause(input, &messages));
 	if let Err(err) = app.stores.chats.save_messages(chat_id, &merged) {
 		eprintln!("[chat {chat_id}] write-ahead persist failed: {err}");
 		// The begun turn is announced and settled, as Node's begin and end did.
@@ -297,6 +300,8 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 	let model_id = model_id_of(&engine.model);
 	let teaching = has_probe_done(&merged);
 	let agent = build_lesson_agent(app, &record, effective, TurnAgent { chat_id: chat_id.to_owned(), messages: context, teaching, side_turn, engine: engine.clone() });
+
+	agent.subscribe(turn_work::listener(app, chat_id, record["spaceId"].as_str()));
 
 	// One collector per turn, fed by the agent's finished assistant messages.
 	let steps: Arc<Mutex<Vec<Json>>> = Arc::default();

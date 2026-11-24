@@ -9,15 +9,13 @@ use std::sync::Arc;
 
 use gs_base::events::EventKind;
 use gs_base::tasks::detach;
-use gs_base::{clock, ids, time};
-use gs_core::session::teacher_steps::TeacherStep;
-use gs_json::{Json, Obj, json};
+use gs_base::{clock, time};
+use gs_core::session::teacher_steps::{TeacherStep, keep_step, step_head};
+use gs_json::{Json, json};
 
 use super::work::CLAIM_TIMEOUT_MS;
 use super::{Bridge, Inner, State};
 
-/// A round keeps this many steps; the oldest go first.
-pub const ROUND_STEPS_MAX: usize = 40;
 /// An agent outside godspeed's terminal has no Stop hook: its round ends this long after its last
 /// counted call.
 pub const OUTSIDE_QUIET_MS: i64 = 20_000;
@@ -81,10 +79,7 @@ pub(super) fn end_round(s: &mut State) -> bool {
 }
 
 fn step_json(step: TeacherStep, now: i64) -> Json {
-	let mut out = Obj::new();
-	out.insert("id", ids::uuid_hex("step", 12));
-	out.insert("at", time::iso(now));
-	out.insert("text", step.text);
+	let mut out = step_head(step.text, now);
 	if let Some(link) = step.link {
 		out.insert("link", link);
 	}
@@ -177,10 +172,7 @@ impl Bridge {
 		let stepped = step.is_some();
 		if let Some(step) = step {
 			round.last_step = now;
-			round.steps.push_back(step_json(step, now));
-			if round.steps.len() > ROUND_STEPS_MAX {
-				round.steps.pop_front();
-			}
+			keep_step(&mut round.steps, step_json(step, now));
 		}
 		drop(s);
 		if began {

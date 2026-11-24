@@ -31,7 +31,7 @@ interface DoingInputs {
 	/** What the teacher's live round says it does (its newest step or change, or "Working"); null with no live round. */
 	round: string | null;
 	/** The lesson on screen, if one is. */
-	lesson: { streaming: boolean; working: boolean } | null;
+	lesson: { working: boolean } | null;
 	/** Oldest first, as the activity feed lists them. */
 	extractions: readonly Extraction[];
 	jobs: readonly { kind: JobKind }[];
@@ -70,8 +70,8 @@ export function agentDoing(i: DoingInputs): AgentDoing | null {
 	if (i.round) return { text: i.round, working: true };
 	// Connected but not running the work loop: queued work isn't being done.
 	if (!agent.teaching) return { text: "Not teaching yet", working: false };
-	if (i.lesson?.streaming) return { text: "Writing the lesson", working: true };
-	if (i.lesson?.working) return { text: "Working on the lesson", working: true };
+	// The lesson's desk says what the teacher does there, so the line says it once.
+	if (i.lesson?.working) return { text: "Working", working: true };
 	// A helper does the background work, so the teacher's line leaves it out.
 	const background = agent.helperHere ? null : backgroundLine(i.extractions, i.jobs);
 	if (background) return { ...background, working: true };

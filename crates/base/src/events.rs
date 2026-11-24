@@ -32,6 +32,7 @@ pub enum EventKind {
 	TeacherChatsChanged,
 	VaultNotesChanged,
 	TeacherWork,
+	LessonWork,
 }
 
 impl EventKind {
@@ -58,6 +59,7 @@ impl EventKind {
 			EventKind::TeacherChatsChanged => "teacher-chats-changed",
 			EventKind::VaultNotesChanged => "vault-notes-changed",
 			EventKind::TeacherWork => "teacher-work",
+			EventKind::LessonWork => "lesson-work",
 		}
 	}
 }

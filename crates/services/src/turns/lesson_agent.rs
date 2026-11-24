@@ -210,9 +210,39 @@ mod tests {
 	use crate::app::test_support::{scratch_dir, test_app};
 
 	fn names_for(app: &Arc<App>, record: &Json, effective: &Json) -> Vec<String> {
-		let turn = TurnAgent { chat_id: "chat_a".to_owned(), messages: Vec::new(), teaching: false, side_turn: false, engine: agent_engine(&app.bridge) };
+		names_of(app, record, effective, false)
+	}
+
+	fn names_of(app: &Arc<App>, record: &Json, effective: &Json, teaching: bool) -> Vec<String> {
+		let turn = TurnAgent { chat_id: "chat_a".to_owned(), messages: Vec::new(), teaching, side_turn: false, engine: agent_engine(&app.bridge) };
 		let agent = build_lesson_agent(app, record, effective, turn);
 		agent.messages()[0]["toolsAdded"].as_arr().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_owned()).collect()
+	}
+
+	/// A new lesson tool fails here until lesson_steps.rs says what it is on the lesson's desk: a
+	/// step, the plan, or nothing.
+	#[test]
+	fn every_lesson_tool_is_decided_for_the_desk() {
+		use gs_core::session::lesson_steps::lesson_call;
+
+		use crate::turns::step_names::AppStepNames;
+
+		let root = scratch_dir("lesson-agent-desk");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "CSE 29" })).unwrap()["id"].as_str().unwrap().to_owned();
+		let deadline_id = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "PA4", "kind": "homework", "date": "2099-01-15" })).unwrap()["id"].as_str().unwrap().to_owned();
+		let homework = app.stores.chats.create_chat("PA4", Some("homework"), Some(&space_id), Some(&deadline_id), &[]).unwrap();
+		let effective = app.stores.settings.effective_settings().unwrap();
+		let lesson = |kind: &str| json!({ "id": "chat_a", "kind": kind, "spaceId": space_id, "messages": [] });
+		let mut names: Vec<String> = ["study", "practice", "lesson"].iter().flat_map(|kind| names_for(&app, &lesson(kind), &effective)).collect();
+		names.extend(names_of(&app, &lesson("lesson"), &effective, true));
+		names.extend(names_for(&app, &homework, &effective));
+		for tool in ["post_problems", "part", "read", "pdf", "work_plan", "read_passage", "demo"] {
+			assert!(names.iter().any(|n| n == tool), "{tool} is among the lesson tools: {names:?}");
+		}
+		for name in &names {
+			assert!(lesson_call(name, &json!({}), Some(&space_id), &AppStepNames(&app)).is_some(), "{name}");
+		}
 	}
 
 	fn tool_names(app: &Arc<App>, kind: &str) -> Vec<String> {

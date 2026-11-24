@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { MathBox } from "@/frontend/components/math-box";
+import { usePresence } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
 import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "./attachment-tray";
 import type { BoxAction, BoxButton, BoxView } from "./lesson-box-model";
@@ -37,6 +39,11 @@ export function LessonBox({
 }) {
 	// A box whose answer carries no files takes none by paste or drop either.
 	const taken: AttachmentDraft = view.attach ? attachments : { ...attachments, add: () => {} };
+	// The attach key fades out while the teacher works and back in after; at first drawing it is simply there.
+	const attach = usePresence(view.attach);
+	const [attachFirst] = useState(view.attach);
+	const [attachMoved, setAttachMoved] = useState(false);
+	if (!attachMoved && view.attach !== attachFirst) setAttachMoved(true);
 	const box = (
 		<MathBox
 			ref={boxRef}
@@ -54,7 +61,11 @@ export function LessonBox({
 	);
 	const keys = (
 		<>
-			{view.attach && <AttachButton draft={attachments} />}
+			{attach.mounted && (
+				<span data-state={attach.state} className={cn("flex", attachMoved && "lh-fade")}>
+					<AttachButton draft={attachments} />
+				</span>
+			)}
 			{/* Attach keeps the row's start; the keys that send keep its end, on a row of their own in a narrow column. */}
 			<div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
 				{view.keys.map((b) => (

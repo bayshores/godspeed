@@ -91,6 +91,10 @@ describe("lessonBox, nothing waiting", () => {
 	});
 
 	it("while the teacher writes, words steer the reply; files wait", () => {
+		const steer = box({ kind: "ask", nextKey: false }, { teacher: "Claude", busy: true });
+		assert.equal(steer.placeholder, "Tell Claude what to focus on");
+		assert.deepEqual(send(steer), { action: "send", label: "Send", filled: false, disabled: true });
+		assert.equal(steer.attach, false, "a steer carries no files, so none can be added");
 		assert.equal(send(box({ kind: "ask", nextKey: false }, { hasText: true, busy: true })).disabled, false);
 		assert.equal(box({ kind: "ask", nextKey: false }, { hasText: true, busy: true }).enter, "send");
 		assert.equal(send(box({ kind: "ask", nextKey: false }, { hasText: true, hasFiles: true, busy: true })).disabled, true, "a steer carries no files");

@@ -136,6 +136,8 @@ fn describe(app: &App, view: &WorkView) -> Vec<String> {
 /// A work item as a tool result: its text blocks, then its images as real MCP images (the
 /// "[image N]" markers point at them in order). A long item sends page 1 after a short header.
 fn work_result(app: &App, view: &WorkView) -> Json {
+	// The agent has the item now: a lesson's desk says its turn is taken.
+	gs_services::turns::turn_work::taken(app, &view.conversation);
 	let images = view.images.iter().flatten().map(|image| json!({ "type": "image", "data": image["data"], "mimeType": image["mimeType"] }));
 	let pages = page_blocks(&describe(app, view), WORK_PAGE_BYTES);
 	app.bridge.set_work_pages(&view.work_id, pages.clone());

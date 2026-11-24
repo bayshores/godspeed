@@ -60,6 +60,9 @@ pub trait JobHost: Send + Sync {
 	fn kept_pages(&self, path: &Path) -> BoxFuture<'static, Option<KeptPages>>;
 	/// Keeps one page of that file as Markdown, which search then gets.
 	fn keep_page(&self, file: &KeptPages, page: u32, markdown: &str) -> Result<(), String>;
+	/// A demo, visual or PDF job's new activity line, after it is saved: the PDF reader's lines
+	/// are steps on its lesson's desk.
+	fn job_activity(&self, job_id: &str, line: &str);
 }
 
 /// A space PDF the reader may keep pages of: which file and version, and its pages kept so far.
@@ -256,6 +259,7 @@ impl JobRunner {
 		let on_activity: OnActivity = Arc::new(move |line: &str| {
 			if let Some(runner) = runner.upgrade() {
 				runner.update(&id, json!({ "activity": line }));
+				runner.host.job_activity(&id, line);
 			}
 		});
 		JobAgentOptions {

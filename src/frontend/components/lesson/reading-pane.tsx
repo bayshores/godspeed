@@ -4,7 +4,6 @@ import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { ConversationEmptyState } from "@/frontend/components/ai-elements/conversation";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/frontend/components/queued-steers";
-import { JobsContext } from "@/frontend/components/jobs-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
@@ -13,28 +12,25 @@ import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaceColor } from "@/frontend/components/space-context";
 import { StartAgentAction } from "@/frontend/components/work/start-agent-action";
 import { cn } from "@/frontend/lib/utils";
-import type { LhViewMessage, Phase3 } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, type LessonWork, type LhViewMessage, type Phase3 } from "@/shared/core";
 import { AgentAtWork } from "./agent-at-work";
-import { agentWork } from "./agent-at-work-model";
 import { ArrivalRow, type Arrive } from "./arrivals";
 import { MessageRow, messageShows } from "./message-row";
-import { PencilLine } from "./pencil-line";
 import { stepSheets, type SheetRow } from "./step-sheets-model";
 import { PrintWaitContext } from "./use-print-in";
 import { useReplyHold } from "./use-reply-hold";
-import { cardFiles, deskMark, deskState, heldBack } from "./wait-model";
+import { deskCalls, deskHead, deskMark, heldBack, replyArrived, type DeskState } from "./wait-model";
 
 /**
  * THE READING PANE: the lesson text in the reading type, answered cards
  * inline, one sheet per step (stepSheets) with the step's number on a tab at
  * its left edge. A sheet is as tall as its text and the newest fills the
  * window; the page around them scrolls (LessonScroll).
- * While the teacher works the newest sheet's foot holds the pencil (PencilLine) with Stop at
- * the row's end, then, once the teacher plans or takes a step, the desk
- * (AgentAtWork), which grows to the sheet's foot, with Stop under it; the
- * keys that move the lesson on are in "Your turn". When the reply lands the desk fades out first and the
- * reply is held back until it has gone, so the two never stack; under the pencil it is held until
- * its turn ends (useReplyHold), so its words take the pencil's place in one step.
+ * While the teacher works, the newest sheet holds the desk (AgentAtWork): what the teacher does,
+ * its steps and the files it reads, grown to the sheet's foot, with Stop under it; the keys that
+ * move the lesson on are in "Your turn". A reply's words wait under the desk for their turn to end
+ * (useReplyHold), then the desk fades out and the reply is held back until it has gone, so the
+ * two never stack and the words take the desk's place in one step.
  * Each message is a memoized row, so streaming redraws only the message
  * being written.
  */
@@ -48,6 +44,7 @@ export function ReadingPane({
 	busy,
 	stoppedEmpty,
 	waitingForAgent,
+	work,
 	onStop,
 	queuedSteers,
 	arrivalsLive,
@@ -70,8 +67,10 @@ export function ReadingPane({
 	busy: boolean;
 	/** The first reply was stopped with nothing written, and no turn or error line is up. */
 	stoppedEmpty: boolean;
-	/** The turn waits for an agent to take it: the strip says so, and the desk lies still. */
+	/** No agent runs the work loop: the desk lies still and the start key may show. */
 	waitingForAgent: boolean;
+	/** What the teacher does in the running turn (useLessonWork). */
+	work: LessonWork;
 	/** Stops the running turn; null while the teacher reads ahead at a stop, which is not stopped. */
 	onStop: (() => void) | null;
 	/** Lines typed to the teacher that wait for its reply to end. */
@@ -88,29 +87,25 @@ export function ReadingPane({
 	sheetRef?: Ref<HTMLElement>;
 }) {
 	const last = messages.length - 1;
-	const jobs = useContext(JobsContext);
-	// The reply being worked on: its plan, steps and file, until its text lands.
+	// The reply being worked on, until its words land.
 	const replying = busy && messages[last]?.role === "assistant" ? messages[last] : undefined;
-	const work = useMemo(() => (replying ? agentWork(replying, jobs, cardFiles(messages)) : null), [replying, jobs, messages]);
-	const state = deskState({ busy, waitingForAgent, work });
-	const open = useMemo(() => state && work && { state, work, mark: deskMark(messages) }, [state, work, messages]);
+	const arrived = replyArrived(replying);
+	// Its words wait a moment under the desk for the turn to end.
+	const held = useReplyHold(busy && arrived, deskMark(messages));
+	const state: DeskState = waitingForAgent ? "waiting" : "working";
+	const head = deskHead({ name: useTeacher()?.name ?? DEFAULT_TEACHER_NAME, waiting: waitingForAgent, work });
+	const open = useMemo(() => (busy && (!arrived || held) ? { state, head, work, calls: deskCalls(work), mark: held ?? deskMark(messages) } : null), [busy, arrived, held, state, head, work, messages]);
 	const desk = useLastWhileClosing(open);
 	const closing = desk.mounted && desk.state === "closed" && !prefersReducedMotion();
 	const shownDesk = open || (closing ? desk.shown : null);
-	// The reply's first part or its words are here and the pencil is still up: they wait a moment for the turn to end.
-	const arriving = !!work?.replied || replying?.parts.at(-1)?.type === "reasoning";
-	const early = useReplyHold(busy && !shownDesk && arriving, deskMark(messages));
-	const mark = closing && desk.shown ? desk.shown.mark : early;
+	const mark = held ?? (closing && desk.shown ? desk.shown.mark : null);
 	const shown = mark ? heldBack(messages, mark) : messages;
 	const deskUp = shownDesk !== null;
 	useLayoutEffect(() => onDesk(deskUp), [deskUp, onDesk]);
-	// Until the desk has something to show, the pencil stands where the reply will begin.
 	const foot = (busy || closing) && onStop && (
 		<div className="flex flex-col gap-2 font-ui">
 			<QueuedSteersBody steers={queuedSteers} />
 			<div className="flex flex-wrap items-center justify-end gap-3">
-				{busy && !shownDesk && <PencilLine state={waitingForAgent ? "waiting" : "working"} />}
-				<span className="flex-1" />
 				{waitingForAgent && <StartKey />}
 				<button type="button" data-testid="stop-turn" onClick={onStop} className="lh-btn lh-btn-quiet">
 					Stop
@@ -158,7 +153,7 @@ export function ReadingPane({
 										echo={mi === echo}
 										teachSeam={teachSeam(shown, phases, mi)}
 										streamingLast={status === "streaming" && mi === last}
-										hideSteps={!!shownDesk && mi === shown.length - 1}
+										hiddenCalls={shownDesk && mi === shown.length - 1 ? shownDesk.calls : null}
 										pageMarks={pageMarks}
 										arrive={arrive}
 										from={from}
@@ -169,7 +164,7 @@ export function ReadingPane({
 							{newest && shownDesk && (
 								<ArrivalRow live={arrivalsLive} className="flex flex-1 flex-col">
 									<div data-state={closing ? "closed" : "open"} data-desk-closing={closing || undefined} inert={closing} className={cn("flex flex-1 flex-col", closing && "lh-fade")}>
-										<AgentAtWork state={shownDesk.state} work={shownDesk.work} arrive={arrive} foot={foot} />
+										<AgentAtWork state={shownDesk.state} head={shownDesk.head} work={shownDesk.work} arrive={arrive} foot={foot} />
 									</div>
 								</ArrivalRow>
 							)}

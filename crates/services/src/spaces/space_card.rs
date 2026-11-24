@@ -28,15 +28,29 @@ pub fn space_file_path(app: &App, record: &Json, file: &Json) -> Option<String> 
 	Some(abs.to_string_lossy().into_owned())
 }
 
+/// Where a space file's text is on this computer: a recording's is its transcript (its lecture's
+/// transcript file, or the one made from it). None when there is none to read.
+pub fn readable_path(app: &App, record: &Json, file: &Json) -> Option<String> {
+	let covering = file["transcriptId"].as_str().filter(|t| !t.is_empty()).and_then(|t| record["files"].items().iter().find(|f| f["id"].as_str() == Some(t)));
+	if let Some(covering) = covering {
+		return space_file_path(app, record, covering);
+	}
+	let path = space_file_path(app, record, file)?;
+	if !is_recording_file(file["name"].str_or_empty()) {
+		return Some(path);
+	}
+	transcript_path_of(app, record["id"].as_str()?, file["id"].str_or_empty()).filter(|t| t.exists()).map(|t| t.to_string_lossy().into_owned())
+}
+
 /// Where a recording's transcript is kept (inside the app's own space folder: a linked folder is
 /// never written to).
 pub fn transcript_path_of(app: &App, space_id: &str, file_id: &str) -> Option<PathBuf> {
 	Some(app.stores.spaces.files_dir(space_id).ok()?.join("transcripts").join(format!("{file_id}.txt")))
 }
 
-/// The card's data for a space as it stands now. A recording is listed by its transcript (its
-/// lecture's transcript file, or the one made from it); unreadable files are listed without a
-/// path. Err when the space's graph cannot be read.
+/// The card's data for a space as it stands now. A recording is listed by its transcript
+/// (`readable_path`); unreadable files are listed without a path. Err when the space's graph
+/// cannot be read.
 pub fn space_card_for(app: &App, record: &Json) -> Result<Json, String> {
 	let id = record["id"].str_or_empty();
 	let sizes = app.search.file_extents(id);
@@ -45,13 +59,7 @@ pub fn space_card_for(app: &App, record: &Json) -> Result<Json, String> {
 	let listed: Vec<Json> = files
 		.iter()
 		.map(|file| {
-			let mut p = space_file_path(app, record, file);
-			let covering = file["transcriptId"].as_str().filter(|t| !t.is_empty()).and_then(|t| files.iter().find(|f| f["id"].as_str() == Some(t)));
-			if let Some(covering) = covering {
-				p = space_file_path(app, record, covering);
-			} else if p.is_some() && is_recording_file(file["name"].str_or_empty()) {
-				p = transcript_path_of(app, id, file["id"].str_or_empty()).filter(|t| t.exists()).map(|t| t.to_string_lossy().into_owned());
-			}
+			let p = readable_path(app, record, file);
 			let mut entry = Obj::new();
 			entry.insert("name", file["name"].clone());
 			entry.insert("kind", file["kind"].clone());

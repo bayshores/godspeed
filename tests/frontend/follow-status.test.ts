@@ -22,12 +22,11 @@ describe("agentDoing", () => {
 		});
 	});
 	it("the teacher's live round comes first, also before it runs its work loop", () => {
-		assert.deepEqual(agentDoing({ ...none, agent: teaching, round: "Reading HW7_F26.pdf", lesson: { streaming: true, working: true } }), { text: "Reading HW7_F26.pdf", working: true });
+		assert.deepEqual(agentDoing({ ...none, agent: teaching, round: "Reading HW7_F26.pdf", lesson: { working: true } }), { text: "Reading HW7_F26.pdf", working: true });
 		assert.deepEqual(agentDoing({ ...none, agent: { ...teaching, teaching: false }, round: "Working" }), { text: "Working", working: true });
 	});
-	it("the lesson on screen", () => {
-		assert.equal(agentDoing({ ...none, agent: teaching, lesson: { streaming: true, working: true } })?.text, "Writing the lesson");
-		assert.equal(agentDoing({ ...none, agent: teaching, lesson: { streaming: false, working: true } })?.text, "Working on the lesson");
+	it("the lesson on screen: one word, since its desk says what the teacher does", () => {
+		assert.equal(agentDoing({ ...none, agent: teaching, lesson: { working: true } })?.text, "Working");
 	});
 	it("a file read in parts names the file and the part", () => {
 		const extractions = [

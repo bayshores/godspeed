@@ -9,7 +9,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { ReadingPane } from "../../src/frontend/components/lesson/reading-pane.tsx";
-import type { LhViewMessage, LhViewPart } from "../../src/shared/core/index.ts";
+import { NO_LESSON_WORK, type LhViewMessage, type LhViewPart } from "../../src/shared/core/index.ts";
 
 const step: LhViewPart = { type: "step-start" };
 const text = (id: string, words: string, extra: Partial<LhViewPart> = {}): LhViewPart => ({ type: "text", id, text: words, state: "done", ...extra });
@@ -36,6 +36,7 @@ function pane(messages: LhViewMessage[], over: Partial<Props> = {}): string {
 			busy={false}
 			stoppedEmpty={false}
 			waitingForAgent={false}
+			work={NO_LESSON_WORK}
 			onStop={() => {}}
 			queuedSteers={[]}
 			arrivalsLive={false}

@@ -91,13 +91,7 @@ impl SpaceActions {
 	pub fn read_passage(&self, args: &Json) -> ToolOutcome {
 		let space_id = args["space_id"].str_or_empty();
 		let Some(record) = self.app.stores.spaces.get_space(space_id) else { return no_space(space_id) };
-		let at = if args["passage_id"].truthy() {
-			PassageRef::Passage(args["passage_id"].str_or_empty().to_owned())
-		} else if args["file_id"].truthy() && args["range"].truthy() {
-			PassageRef::Place { file_id: args["file_id"].str_or_empty().to_owned(), range: args["range"].str_or_empty().to_owned() }
-		} else {
-			return ToolOutcome::Err("Give passage_id, or file_id with range.".to_owned());
-		};
+		let Some(at) = PassageRef::of_args(args) else { return ToolOutcome::Err("Give passage_id, or file_id with range.".to_owned()) };
 		self.done(Json::from(self.app.search.read_passage(space_id, record["files"].items(), &at)), Vec::new())
 	}
 

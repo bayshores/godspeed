@@ -36,6 +36,18 @@ pub enum PassageRef {
 	Place { file_id: String, range: String },
 }
 
+impl PassageRef {
+	/// What read_passage's arguments name: `passage_id`, else `file_id` with `range`.
+	pub fn of_args(args: &Json) -> Option<PassageRef> {
+		let text = |key: &str| args[key].as_str().filter(|s| !s.is_empty()).map(str::to_owned);
+		match (text("passage_id"), text("file_id"), text("range")) {
+			(Some(passage_id), ..) => Some(PassageRef::Passage(passage_id)),
+			(None, Some(file_id), Some(range)) => Some(PassageRef::Place { file_id, range }),
+			_ => None,
+		}
+	}
+}
+
 /// The search model and the per-scope index tables. Keep this constructor's signature. The space
 /// files' methods are in passages.rs, the facts' in facts.rs.
 pub struct Search {

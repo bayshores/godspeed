@@ -2,9 +2,11 @@
 //! is a step in plain words. The work loop is none, and neither is a godspeed change: every change
 //! already writes the activity log, which the window shows beside the steps. The agent's own
 //! tools (web search, file reads, commands) are steps too. Pure: the names a step uses come from
-//! the caller.
+//! the caller. A lesson's desk keeps steps the same way (`lesson_steps`).
 
-use gs_base::text;
+use std::collections::VecDeque;
+
+use gs_base::{ids, text, time};
 use gs_json::{Json, Obj};
 
 use crate::records::agent_actions::short_label;
@@ -110,8 +112,28 @@ pub fn own_tool_step(tool: &str, subject: Option<&str>) -> Option<TeacherStep> {
 	Some(TeacherStep { text: short_label(&words), link: None })
 }
 
+/// A list of steps keeps this many; the oldest go first.
+pub const STEPS_MAX: usize = 40;
+
+/// A step as the window reads it: its own id, its time and its words. The caller adds the rest.
+pub fn step_head(text: String, now: i64) -> Obj {
+	let mut out = Obj::new();
+	out.insert("id", ids::uuid_hex("step", 12));
+	out.insert("at", time::iso(now));
+	out.insert("text", text);
+	out
+}
+
+/// Adds `step` after the others, dropping the oldest past `STEPS_MAX`.
+pub fn keep_step(steps: &mut VecDeque<Json>, step: Json) {
+	steps.push_back(step);
+	if steps.len() > STEPS_MAX {
+		steps.pop_front();
+	}
+}
+
 /// Words the learner or the agent wrote, in the quotes the window's lines use.
-fn quoted(words: &str) -> String {
+pub(crate) fn quoted(words: &str) -> String {
 	format!("“{words}”")
 }
 

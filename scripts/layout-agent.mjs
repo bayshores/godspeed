@@ -16,6 +16,10 @@
  * "change" adds a homework to the space in that round;
  * "done" takes the homework away and stops as the Stop hook says, which ends the round. It waits
  * for no work while its round lasts, since its next wait would end the round.
+ *
+ * For the lesson's desk, "desk <space id>", typed while it holds the waiting lesson's reply, reads a
+ * file of its own, told as the folder's tool hook tells it, then finds a passage of the space's
+ * files and reads it: the desk lists the steps and lifts that file to the front of its stack.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -70,6 +74,11 @@ async function typed(line) {
 		const passage = /f_[0-9a-f]{12}:\d+/.exec(found)?.[0];
 		if (passage) await tool("read_passage", { space_id: space, passage_id: passage });
 		await tell("/api/mcp/agent-event", { event: "tool", tool: "WebSearch", subject: "lab algebra homework 7" });
+	} else if (word === "desk" && arg) {
+		await tell("/api/mcp/agent-event", { event: "tool", tool: "Read", subject: "notes.md" });
+		const found = await tool("search_space_files", { space_id: arg, query: "graphing" });
+		const passage = /f_[0-9a-f]{12}:\d+/.exec(found)?.[0];
+		if (passage) await tool("read_passage", { space_id: arg, passage_id: passage });
 	} else if (word === "change") {
 		await tool("add_space_deadline", { space_id: space, deadlines: [{ kind: "homework", name: HOMEWORK, date: inDays(6) }] });
 		const { deadlines = [] } = JSON.parse((await tool("read_space", { space_id: space })) || "{}");
