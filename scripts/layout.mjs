@@ -17,7 +17,9 @@
  * elements, and saves a picture beside the report in target/layout/. With `LAYOUT_STATES` set to
  * a folder, every lesson screen is also photographed there as it opens, at each width. With
  * `LAYOUT_ONLY` set to words, only the screens whose name holds them are walked (several, split by
- * commas): for a second look at a fix, never in place of the whole run. Mac only:
+ * commas): for a second look at a fix, never in place of the whole run. An opening is still watched
+ * only on the first screen of the whole list at its address, as in the whole run; what a skipped
+ * screen's `before` or `setup` leaves behind is missing. Mac only:
  * elsewhere it passes at once. Two runs in one worktree share that folder, so run one at a time.
  */
 import { execFileSync, spawn } from "node:child_process";
@@ -393,17 +395,23 @@ async function main() {
 
 	const failures = [];
 	const warnings = [];
-	/** The addresses whose opening was watched. */
+	/** The addresses whose first screen is behind the walk, and how many of their openings were watched. */
 	const opened = new Set();
+	let watched = 0;
 	const states = process.env.LAYOUT_STATES;
 	if (states) fs.mkdirSync(states, { recursive: true });
 	const only = (process.env.LAYOUT_ONLY ?? "").toLowerCase().split(",").map((word) => word.trim()).filter(Boolean);
-	const screens = only.length > 0 ? SCREENS.filter((screen) => only.some((word) => screen.name.toLowerCase().includes(word))) : SCREENS;
-	if (screens.length === 0) throw new Error(`LAYOUT_ONLY="${process.env.LAYOUT_ONLY}" names no screen`);
+	const walked = (screen) => only.length === 0 || only.some((word) => screen.name.toLowerCase().includes(word));
+	const count = SCREENS.filter(walked).length;
+	if (count === 0) throw new Error(`LAYOUT_ONLY="${process.env.LAYOUT_ONLY}" names no screen`);
 	app = await startApp(port, "walk");
 	try {
 		await app.ready();
-		for (const screen of screens) {
+		for (const screen of SCREENS) {
+			if (!walked(screen)) {
+				opened.add(fill(screen.url, ids));
+				continue;
+			}
 			const widths = widthsOf(screen);
 			try {
 				if (screen.before) await app.run(fill(screen.before, ids));
@@ -411,6 +419,7 @@ async function main() {
 				// The terminal's page opens only in a window of its own, by a full load.
 				if (!opened.has(url) && url !== "/terminal-window") {
 					opened.add(url);
+					watched += 1;
 					const opening = await watchOpenings(app, screen, url, ids, pageSource);
 					failures.push(...opening.lines);
 					warnings.push(...opening.warnings);
@@ -462,7 +471,7 @@ async function main() {
 	}
 
 	const report = path.join(RUN, "report.txt");
-	const checked = `${only.length > 0 ? `ONLY ${screens.length} of ${SCREENS.length}` : SCREENS.length} screens at 1440, 1100 and 640 points (lessons at 1320 and 800 too), each as it opens, ${SCROLL_TO.slice(1).map(scrolledWords).join(" and ")}, and ${opened.size} openings watched, in ${Math.round((Date.now() - built) / 1000)} s (${Math.round((built - started) / 1000)} s to build)`;
+	const checked = `${only.length > 0 ? `ONLY ${count} of ${SCREENS.length}` : SCREENS.length} screens at 1440, 1100 and 640 points (lessons at 1320 and 800 too), each as it opens, ${SCROLL_TO.slice(1).map(scrolledWords).join(" and ")}, and ${watched} openings watched, in ${Math.round((Date.now() - built) / 1000)} s (${Math.round((built - started) / 1000)} s to build)`;
 	fs.writeFileSync(report, `${[...failures, ...warnings, checked].join("\n")}\n`);
 	if (failures.length > 0) {
 		console.error(`${failures.join("\n")}\nlayout: broken layout found; ${checked}. Report: ${report}`);
