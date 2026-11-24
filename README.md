@@ -91,6 +91,7 @@ It isn't noticeably faster to use, it's just a lot smaller and lighter on your c
 | Mocks | Take a mock on any exam, quiz or interview deadline, timed or not. |
 | Cheat sheets | Your agent makes a PDF cheat sheet for a deadline, and you tell it what to change. |
 | Plugins | Small add-ons for a lesson or a space, like one that turns the question you're on into a meme. A plugin can't open your files. Add one in Settings or [make your own](docs/plugins/README.md). They're new, so how they work can still change. |
+| Noise | Click Noise in the top bar for soft brown noise while you study. Your computer makes it, so there's no audio to download. |
 | Calculator | End a calculation with `=` in any box and the answer shows up in grey. It does algebra, derivatives and integrals too. |
 | Your agent's screen | Click your teacher's strip on the window's right edge to open it. You can ask your agent to set up spaces or add deadlines there. |
 

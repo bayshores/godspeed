@@ -91,6 +91,7 @@ The top bar is the one place for a page's own actions and for where the learner 
 | Where the learner is inside a space | After the lit space tab, on its paper, after a "›" | `BarCrumb`: a lesson's title, a deadline's name, "Cheat sheet" |
 | Find | A magnifying glass in the bar, on every page that can find; open, its field takes the place of that page's own words only, so on Files and Graph the space's Edit space stays, and on a lesson every word gives way | `BarFind` |
 | The app's size while it is not 100%, or the page's while a pinch magnifies it | Before Menu, on Menu's line when the bar is two lines | `BarZoom`: the number ("125%"), there only while zoomed or magnified; a click goes back to 100% |
+| Noise | Before Menu, on Menu's line when the bar is two lines, and at the right end of the mock's own bar | `NoiseWord` (`noise.tsx`): a flat word, a block of the bar's ink while the noise plays; gone while Sounds is off. The noise is made in the window (`lib/noise-audio.ts`), fades in and out over 0.4 s, plays on across pages, is off at every launch and is saved nowhere |
 | A shortcut | Inside the button whose action it is, read from the key registry | `KeyHint` and `keyShortcutProps` |
 
 - No key (`.lh-btn`) in the top bar or in a page's own bar (the mock's): every word there is flat like the tabs. `npm run layout` fails a key in a bar. A pop-up that hangs from the bar keeps its keys.

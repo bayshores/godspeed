@@ -105,6 +105,7 @@ To add a row:
 | Add a remembered note | Settings, Teaching | none: only the teacher adds one; you can only delete | | teacher | `remember` |
 | Settings | Menu | `settings-entry` | | learner | `settings`, `open-settings` |
 | Teacher name and sounds | Settings, General | `teacher-name-row` | Settings, General | learner | |
+| Noise: soft brown noise to study to, on and off with one word, hidden while Sounds is off | Top bar | `noise-word` | Home with Sounds on, Noise in the top bar | learner | |
 | Deadline reminders | Settings, General | `deadline-reminders-row` | | learner | |
 | Menu bar countdown | Settings, General | `menu-bar-countdown-row` | | learner | |
 | Updates | Settings, General | `update-check` | | learner | |

@@ -245,6 +245,10 @@ for (const mock of mocks) await fetch("/api/spaces/{space}/mocks/" + mock.id, { 
 const sheetDrawn = (page) => `[data-testid=cheat-sheet-page]:nth-child(${page}) canvas`;
 const sheetPage = (deadline) => `/space/deadline/${deadline}/cheat-sheet`;
 const mockPage = (mock) => `/space/mock/{space}/${mock}`;
+/** The Sounds switch, which the run opens with off (layout.mjs); Noise's word shows only with it on. */
+const sounds = (on) => `await fetch("/api/settings/general", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ sounds: ${on} }) })${HTTP_OK}`;
+/** The window's sound goes nowhere, so Noise plays unheard. */
+const unheard = `window.AudioContext = class extends AudioContext { get destination() { return (this.sink ??= this.createMediaStreamDestination()); } }`;
 
 export const SCREENS = [
 	{ name: "Home with a deadline", url: "/", ready: deadlineCard },
@@ -540,8 +544,17 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	{ name: "Mock paused", url: mockPage("{mockPaused}"), ready: "[data-testid=mock-paused] [data-testid=mock-resume]" },
 	{ name: "Mock graded", url: mockPage("{mockGraded}"), ready: "[data-testid=mock-results] [data-testid=mock-feedback]" },
 	{ name: "Mock graded, an answer opened", url: mockPage("{mockGraded}"), ready: "[data-testid=mock-results] button[aria-expanded]", setup: `document.querySelector("[data-testid=mock-results] button[aria-expanded]").click()`, shows: "[data-testid=mock-results] .lh-collapse[data-state=open]" },
+	{ name: "Home with Sounds on, Noise in the top bar", before: sounds(true), url: "/", ready: "[data-testid=app-bar] [data-testid=noise-word]" },
+	{ name: "Mock ready to start, Noise in its bar", url: mockPage("{mockReady}"), ready: "[data-testid=mock-bar] [data-testid=noise-word]" },
+	{
+		name: "Home with Noise playing",
+		url: "/",
+		ready: "[data-testid=noise-word]",
+		setup: `${unheard}; document.querySelector("[data-testid=noise-word]").click()`,
+		shows: "[data-testid=noise-word][aria-pressed=true]",
+	},
 	// The two screens below leave requests waiting for an agent; the lesson that follows them ends them.
-	{ name: "Cheat sheet while no agent is on it", before: askSheet, url: sheetPage("{waitingDeadline}"), ready: "[data-testid=sheet-working]" },
+	{ name: "Cheat sheet while no agent is on it", before: `${sounds(false)}; ${askSheet}`, url: sheetPage("{waitingDeadline}"), ready: "[data-testid=sheet-working]" },
 	{ name: "Mock being written", before: askMock, url: "/space/deadline/{waitingDeadline}", ready: "[data-testid=deadline-mock-continue]", setup: `document.querySelector("[data-testid=deadline-mock-continue]").click()`, shows: "[data-testid=mock-writing]" },
 	{ name: "Lesson whose first reply waits for an agent", before: dropAskedRequests, url: waitingLesson, ready: deskUp },
 	{

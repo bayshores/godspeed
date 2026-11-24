@@ -39,7 +39,7 @@ export function GeneralSection({
 						onChange={(on) => onGeneralChange({ startupSound: on })}
 					/>
 				</SettingsRow>
-				<SettingsRow label="Sounds" hint="Setup and right or wrong answers" testid="sounds-row">
+				<SettingsRow label="Sounds" hint="Setup, right or wrong answers and Noise" testid="sounds-row">
 					<Toggle checked={effective.general.sounds} label="Sounds" onChange={(on) => onGeneralChange({ sounds: on })} />
 				</SettingsRow>
 			</SettingsGroup>

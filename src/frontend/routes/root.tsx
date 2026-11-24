@@ -6,6 +6,7 @@ import { ActivityProvider } from "@/frontend/components/activity-dock";
 import UpdateBanner from "@/frontend/components/update-banner";
 import { UpdateStateProvider } from "@/frontend/components/settings/update-settings";
 import { SoundProvider } from "@/frontend/components/sounds";
+import { NoiseProvider } from "@/frontend/components/noise";
 import { Onboarding } from "@/frontend/components/onboarding/onboarding";
 import { RestartNotice } from "@/frontend/components/restart-notice";
 import { PeekSheet } from "@/frontend/components/strip/peek-sheet";
@@ -36,9 +37,11 @@ export function Root() {
 									<Onboarding />
 								</>
 							) : (
-								<AppShell welcome={welcome} whatsNewSince={welcome ? boot.whatsNewSince : null}>
-									<Outlet />
-								</AppShell>
+								<NoiseProvider>
+									<AppShell welcome={welcome} whatsNewSince={welcome ? boot.whatsNewSince : null}>
+										<Outlet />
+									</AppShell>
+								</NoiseProvider>
 							)}
 						</SoundProvider>
 					</ActivityProvider>
