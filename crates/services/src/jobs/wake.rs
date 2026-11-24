@@ -15,7 +15,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use gs_core::messages::role::{Role, is_custom};
-use gs_engine::turn::agent::Agent;
+use gs_engine::turn::session_turn::SessionTurn;
 use gs_json::Json;
 
 use super::lifecycle::{finalize_job, restore_pending_deliveries};
@@ -36,17 +36,17 @@ pub(super) struct QueuedSteer {
 	/// Wake cargo: still owned here, but never steered into its own run.
 	pub(super) waking: bool,
 	/// The wake's agent, once its turn registered it. Until then only the pump frees `waking`.
-	pub(super) wake_agent: Option<Arc<Agent>>,
+	pub(super) wake_agent: Option<Arc<SessionTurn>>,
 	/// A failed start waits for a learner run or a restart, not a timer.
 	pub(super) deferred: bool,
 	/// The live agent this marker was steered into; cleared at settlement if it never landed.
-	pub(super) handed_to: Option<Arc<Agent>>,
+	pub(super) handed_to: Option<Arc<SessionTurn>>,
 }
 
 /// A learner steer parked until a run persists it.
 pub(super) struct UserSteer {
 	message: Json,
-	pub(super) handed_to: Option<Arc<Agent>>,
+	pub(super) handed_to: Option<Arc<SessionTurn>>,
 }
 
 #[derive(Default)]
@@ -58,7 +58,7 @@ pub struct Wake {
 	/// chat id → learner steers awaiting a run that persists them.
 	pub(super) user_steers: HashMap<String, Vec<UserSteer>>,
 	/// chat id → the agent of the turn streaming now.
-	pub(super) live_agents: HashMap<String, Arc<Agent>>,
+	pub(super) live_agents: HashMap<String, Arc<SessionTurn>>,
 	/// Chats whose pump runs (one per chat).
 	pub(super) pumping: HashSet<String>,
 	pub(super) last_sweep_at: i64,
@@ -85,7 +85,7 @@ impl Wake {
 	}
 }
 
-pub(super) fn held_by(handed: &Option<Arc<Agent>>, agent: &Arc<Agent>) -> bool {
+pub(super) fn held_by(handed: &Option<Arc<SessionTurn>>, agent: &Arc<SessionTurn>) -> bool {
 	handed.as_ref().is_some_and(|h| Arc::ptr_eq(h, agent))
 }
 
@@ -166,7 +166,7 @@ pub(super) fn queue_steer(app: &App, chat_id: &str, steer: Json) {
 
 /// Steers every eligible pending marker, then every parked learner steer, into a live agent
 /// (once per agent). Probe handoffs never ride a live run: they must start the teacher's run.
-pub(super) fn hand_off_eligible(app: &App, chat_id: &str, agent: &Arc<Agent>) {
+pub(super) fn hand_off_eligible(app: &App, chat_id: &str, agent: &Arc<SessionTurn>) {
 	let mut wake = app.jobs.wake.lock();
 	if let Some(queue) = wake.queues.get_mut(chat_id) {
 		for entry in queue.iter_mut().filter(|e| !e.waking && !e.deferred && !held_by(&e.handed_to, agent) && !is_probe_handoff(&e.steer)) {
@@ -185,7 +185,7 @@ pub(super) fn hand_off_eligible(app: &App, chat_id: &str, agent: &Arc<Agent>) {
 /// Registers the agent of the turn about to stream (before it starts, so its first steering
 /// poll sees the markers) and steers pending markers into it. `allow_deferred` frees markers
 /// a failed wake left waiting; `wake_steer_ids` names the cargo this turn itself carries.
-pub fn register_live_agent(app: &App, chat_id: &str, agent: &Arc<Agent>, allow_deferred: bool, wake_steer_ids: Option<&HashSet<String>>) -> Result<(), String> {
+pub fn register_live_agent(app: &App, chat_id: &str, agent: &Arc<SessionTurn>, allow_deferred: bool, wake_steer_ids: Option<&HashSet<String>>) -> Result<(), String> {
 	app.jobs.wake.lock().live_agents.insert(chat_id.to_owned(), agent.clone());
 	restore_pending_deliveries(app, chat_id)?;
 	if let Some(queue) = app.jobs.wake.lock().queues.get_mut(chat_id) {
@@ -203,7 +203,7 @@ pub fn register_live_agent(app: &App, chat_id: &str, agent: &Arc<Agent>, allow_d
 }
 
 /// The agent of the chat's turn, while one is registered.
-pub fn live_agent(app: &App, chat_id: &str) -> Option<Arc<Agent>> {
+pub fn live_agent(app: &App, chat_id: &str) -> Option<Arc<SessionTurn>> {
 	app.jobs.wake.lock().live_agents.get(chat_id).cloned()
 }
 
@@ -237,7 +237,7 @@ pub fn unregister_live_agent(app: &App, chat_id: &str) {
 /// At settlement, with the run's persisted messages: markers it delivered are acknowledged;
 /// markers handed to it (or carried by it) that never landed return to pending, deferred when
 /// the run failed, and the pump restarts.
-pub fn settle_steers(app: &Arc<App>, chat_id: &str, persisted: &[Json], failed: bool, settled_agent: Option<&Arc<Agent>>) {
+pub fn settle_steers(app: &Arc<App>, chat_id: &str, persisted: &[Json], failed: bool, settled_agent: Option<&Arc<SessionTurn>>) {
 	let delivered_ids: HashSet<&str> = persisted.iter().filter_map(|m| m["id"].as_str()).filter(|id| !id.is_empty()).collect();
 	let (delivered, any_left) = {
 		let mut wake = app.jobs.wake.lock();

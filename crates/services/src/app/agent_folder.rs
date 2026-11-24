@@ -2,8 +2,8 @@
 //! the agent's instructions, its connection and its start scripts there, plus spaces/ with
 //! shortcuts to the space files; the app refreshes them once per start, so an update reaches
 //! them. Which folder is used, the learner's own start commands, whether the one-time
-//! "godspeed has its own folder now" notice was seen, and whether the old Talk chat was exported
-//! there, live in <data>/agent-folder.json.
+//! "godspeed has its own folder now" notice was seen, whether the old Talk chat was exported
+//! there, and which agent runs the lessons live in <data>/agent-folder.json.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -51,7 +51,7 @@ fn state_file(app: &App) -> PathBuf {
 }
 
 /// The usable parts of the state file, in this order: `folder`, `noticeSeen`, `startCommands`,
-/// `talkExported`.
+/// `talkExported`, `agent`.
 /// Writes spread it and set keys on top, so the file keeps that order with new keys last.
 fn read_state(app: &App) -> Obj {
 	let mut state = Obj::new();
@@ -69,6 +69,9 @@ fn read_state(app: &App) -> Obj {
 	if raw["talkExported"] == Json::Bool(true) {
 		state.insert("talkExported", true);
 	}
+	if let Some(agent) = raw["agent"].as_str().and_then(FolderAgent::from_name) {
+		state.insert("agent", agent.name());
+	}
 	state
 }
 
@@ -82,6 +85,27 @@ fn folder_of(state: &Obj) -> Option<String> {
 
 fn start_commands(app: &App) -> StartCommands {
 	saved_start_commands(&read_state(app).get("startCommands").cloned().unwrap_or(Json::Null))
+}
+
+/// The learner's own start command for `agent`, if they set one.
+pub(crate) fn start_command(app: &App, agent: FolderAgent) -> Option<String> {
+	start_commands(app).get(agent).map(str::to_owned)
+}
+
+/// The agent that runs the lessons: Claude Code until the learner picks Codex.
+pub fn folder_agent(app: &App) -> FolderAgent {
+	read_state(app).get("agent").and_then(Json::as_str).and_then(FolderAgent::from_name).unwrap_or(FolderAgent::Claude)
+}
+
+/// The learner picked the agent that runs the lessons; the folder as it is now.
+pub fn set_folder_agent(app: &App, agent: FolderAgent) -> Result<Json, String> {
+	{
+		let _held = app.locks.lock(STATE);
+		let mut state = read_state(app);
+		state.insert("agent", agent.name());
+		write_state(app, state)?;
+	}
+	Ok(agent_folder_view(app))
 }
 
 pub(crate) fn agent_folder(app: &App) -> String {
@@ -141,6 +165,7 @@ fn view_of(app: &App, folder: &str) -> Json {
 		"commands": { "claude": command(FolderAgent::Claude), "codex": command(FolderAgent::Codex) },
 		"startCommands": start_commands.to_json(),
 		"oldSetup": old.to_json(),
+		"agent": folder_agent(app).name(),
 	})
 }
 
@@ -348,6 +373,17 @@ mod tests {
 		assert_eq!(remember_folder(&app, "/x/y"), Ok(None));
 		assert_eq!(std::fs::read_to_string(state_file(&app)).unwrap(), "{\n\t\"noticeSeen\": true,\n\t\"folder\": \"/x/y\"\n}\n");
 		assert_eq!(remember_folder(&app, "/x/z"), Ok(Some("/x/y".to_owned())));
+	}
+
+	#[test]
+	fn the_lesson_agent_is_claude_code_until_codex_is_picked() {
+		let root = scratch_dir("folder-agent");
+		let app = test_app(&root);
+		write_file_atomic(&state_file(&app), r#"{"agent":"gemini","noticeSeen":true}"#).unwrap();
+		assert_eq!((folder_agent(&app), agent_folder_view(&app)["agent"].as_str()), (FolderAgent::Claude, Some("claude")), "an agent godspeed can't run is Claude Code");
+		let view = set_folder_agent(&app, FolderAgent::Codex).unwrap();
+		assert_eq!((folder_agent(&app), view["agent"].as_str()), (FolderAgent::Codex, Some("codex")));
+		assert_eq!(std::fs::read_to_string(state_file(&app)).unwrap(), "{\n\t\"noticeSeen\": true,\n\t\"agent\": \"codex\"\n}\n");
 	}
 
 	#[test]

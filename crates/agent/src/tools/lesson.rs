@@ -147,11 +147,11 @@ pub fn study_tools(ctx: &StudyToolContext, enabled: Option<&Json>, parts: &Arc<L
 	let gate = TurnGate::new(problem_is_active(&record.chat_store, &record.chat_id));
 	let order = PlanOrder::new(&record);
 	let recall = free_recall(enabled);
-	let question = if recall { study_explain_tool(&ctx.teacher.plan, &order) } else { study_quiz_tool(&ctx.teacher.plan, &order) };
+	let question = if recall { study_explain_tool(&ctx.teacher.plan, &order) } else { parts.guessing(study_quiz_tool(&ctx.teacher.plan, &order)) };
 	let mut tools = teacher_tools_asking(&ctx.teacher, enabled, question, ctx.writes_plan);
 	tools.extend(study_problem_tools(&gate, record.clone(), ctx.graph_nodes.clone(), (plan_nodes.clone(), order), &ctx.pages, ctx.problems.as_ref()));
 	if !recall {
-		tools.push(plot_tool(record.clone(), parts));
+		tools.push(plot_tool(parts));
 	}
 	tools.push(topic_done_tool(record, &gate, ctx.check_marks.clone(), plan_nodes, !recall));
 	heal_tool_record(tools)

@@ -4,19 +4,16 @@
 
 use std::future::{Future, poll_fn};
 use std::pin::pin;
-use std::sync::Arc;
 use std::task::Poll;
 
 use gs_base::clock;
 use gs_base::text::len16;
-use gs_core::messages::citations::CheckedMarks;
 use gs_core::session::work_pages::{WORK_PAGE_BYTES, page_blocks};
 use gs_engine::bridge::{AgentReply, ReplyCall, UNNAMED_HELPER, WaitOptions, WorkView};
 use gs_json::{Json, Obj, json, stringify};
 use gs_services::App;
-use gs_services::spaces::citations::check_cites;
+use gs_services::spaces::citations::{check_cites, mark_notes};
 use gs_services::turns::every_turn_rules_for;
-use gs_services::turns::reply_nudges::reply_refusal;
 
 use super::TERMINAL_CLOSED;
 use super::reply::{failure, result, text_block};
@@ -136,8 +133,6 @@ fn describe(app: &App, view: &WorkView) -> Vec<String> {
 /// A work item as a tool result: its text blocks, then its images as real MCP images (the
 /// "[image N]" markers point at them in order). A long item sends page 1 after a short header.
 fn work_result(app: &App, view: &WorkView) -> Json {
-	// The agent has the item now: a lesson's desk says its turn is taken.
-	gs_services::turns::turn_work::taken(app, &view.conversation);
 	let images = view.images.iter().flatten().map(|image| json!({ "type": "image", "data": image["data"], "mimeType": image["mimeType"] }));
 	let pages = page_blocks(&describe(app, view), WORK_PAGE_BYTES);
 	app.bridge.set_work_pages(&view.work_id, pages.clone());
@@ -235,17 +230,10 @@ pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 	let with_removed = |note: String| if removed_marks.is_empty() { note } else { format!("{removed_marks} {note}") };
 	let reply = AgentReply { text, tool_calls: tool_calls.collect() };
 	let work_id = args["work_id"].as_str().unwrap_or_default();
-	// A Study reply's words are checked before it is stored; one sent back is never stored.
-	if let Some(refusal) = app.bridge.work_conversation(work_id).and_then(|chat| reply_refusal(app, &chat, reply.text.as_deref(), &reply.tool_calls)) {
-		return failure(&with_removed(refusal));
-	}
 	let answered = match app.bridge.respond_to_work(work_id, reply, follow_up_ms) {
 		Ok(answered) => answered,
 		Err(error) => return failure(&with_removed(error)),
 	};
-	if let Some(lesson) = app.stores.chats.get_chat(&answered.conversation) {
-		note_replying(app, call.caller, &lesson);
-	}
 	gs_services::app::teacher_chats::taught(app, call.terminal, &answered.conversation);
 	let helper = app.bridge.is_helper_agent(answered.agent.as_deref());
 	let next = {
@@ -262,52 +250,13 @@ pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 		}
 		return work;
 	}
+	// Lessons run on their own agent sessions, so every work item here is a background task's.
 	let note = if app.bridge.take_typed(call.terminal, clock::now_ms()) {
-		typed_turn_note(app, call.woken(), &answered.conversation, helper)
+		format!("Task step done. {}", typed_note(call.woken(), helper))
 	} else {
-		turn_complete_note(app, call.woken(), &answered.conversation, helper)
+		format!("Task step done. {}", if call.woken() { END_TURN.to_owned() } else { format!("{} for more.", call_again(helper)) })
 	};
 	result(&json!({ "status": "turn_complete", "note": with_removed(note) }))
-}
-
-/// The note when the learner's typing ended respond's wait for a follow-up.
-fn typed_turn_note(app: &App, woken: bool, conversation: &str, helper: bool) -> String {
-	let done = if app.stores.chats.get_chat(conversation).is_some() { "Turn done." } else { "Task step done." };
-	format!("{done} {}", typed_note(woken, helper))
-}
-
-/// What the agent is told about the marks its reply lost: removed marks, then dropped quotes.
-fn mark_notes(checked: &CheckedMarks) -> String {
-	let removed = (!checked.removed.is_empty()).then(|| format!("Removed source marks that don't point at a passage of a space file: {}. Use ids from search_space_files.", checked.removed.join(", ")));
-	let dropped = checked.dropped.iter().map(|d| format!("Dropped quote \"{}\" from {}: {}", d.quote, d.mark, d.miss.reason()));
-	removed.into_iter().chain(dropped).collect::<Vec<_>>().join(" ")
-}
-
-fn note_replying(app: &Arc<App>, caller: Option<&str>, lesson: &Json) {
-	let id = lesson["id"].as_str().unwrap_or_default();
-	let action = json!({
-		"label": format!("Replying in {}", lesson["title"].as_str().unwrap_or_default()),
-		"spaceId": lesson["spaceId"],
-		"target": { "kind": "lesson", "id": id },
-		"page": format!("/chat/{id}"),
-	});
-	gs_services::app::agent_actions::note_agent_action(app, caller, &action);
-}
-
-/// The note when no follow-up came: where the agent goes next. The helper stays on no lesson.
-fn turn_complete_note(app: &App, woken: bool, conversation: &str, helper: bool) -> String {
-	let chat = app.stores.chats.get_chat(conversation);
-	let lesson_id = chat.as_ref().and_then(|c| c["id"].as_str()).filter(|l| !l.is_empty());
-	let wait = if woken {
-		END_TURN.to_owned()
-	} else {
-		let stay = lesson_id.filter(|_| !helper).map(|l| format!(" (lesson_id \"{l}\" to stay on this lesson)")).unwrap_or_default();
-		format!("{} to continue{stay}.", call_again(helper))
-	};
-	match &chat {
-		None => format!("Task step done. {}", if woken { END_TURN.to_owned() } else { format!("{} for more.", call_again(helper)) }),
-		Some(_) => format!("Turn done. Learner is reading, will answer in the godspeed window. {wait}"),
-	}
 }
 
 pub fn read_work(call: &ToolCall<'_>, args: &Json) -> Json {
@@ -333,32 +282,7 @@ pub fn read_work(call: &ToolCall<'_>, args: &Json) -> Json {
 
 #[cfg(test)]
 mod tests {
-	use gs_core::messages::citations::DroppedQuote;
-	use gs_core::messages::quote_find::QuoteMiss;
-
 	use super::*;
-
-	#[test]
-	fn the_reply_note_names_removed_marks_then_each_dropped_quote() {
-		let drop = |quote: &str, miss| DroppedQuote { mark: "f_1a2b3c4d5e6f:7".to_owned(), quote: quote.to_owned(), miss };
-		let checked = CheckedMarks {
-			text: String::new(),
-			removed: vec!["f_000000000000:9".to_owned()],
-			dropped: vec![drop("degree 12", QuoteMiss::Absent), drop("p + 1", QuoteMiss::Twice), drop("a[i]", QuoteMiss::Unsafe), drop("degree", QuoteMiss::Shape)],
-		};
-		assert_eq!(
-			mark_notes(&checked),
-			[
-				"Removed source marks that don't point at a passage of a space file: f_000000000000:9. Use ids from search_space_files.",
-				"Dropped quote \"degree 12\" from f_1a2b3c4d5e6f:7: not in that passage. Copy the words exactly.",
-				"Dropped quote \"p + 1\" from f_1a2b3c4d5e6f:7: found twice in that passage; quote a few more words.",
-				"Dropped quote \"a[i]\" from f_1a2b3c4d5e6f:7: no [ ] backtick or $ in a quote; quote nearby plain words.",
-				"Dropped quote \"degree\" from f_1a2b3c4d5e6f:7: a quote is 2 or more words, or one code expression, at most 80 characters.",
-			]
-			.join(" ")
-		);
-		assert_eq!(mark_notes(&CheckedMarks::default()), "");
-	}
 
 	#[test]
 	fn waits_are_clamped_like_the_ts() {

@@ -1,8 +1,11 @@
-//! The plot, end to end against a stand-in agent on the bridge: a reply with a plot and its guess
-//! ends the turn with no extra agent step and stores both calls as sent, the plot's result naming
-//! it, its guess and the drawn value; a refused pair comes back to the agent as short lines, with
-//! no echo of the calls, and the agent fixes it in the same turn. A plot with no guess in a side
-//! turn ends that turn too: the next work is his answer to the open question.
+//! The plot, end to end against a stand-in agent (gs-runtime's FakeAgent): a reply with a plot and
+//! its guess ends the turn with no extra agent step and stores both calls as sent, the plot's
+//! result naming it, its guess and the drawn value; a refused pair comes back to the agent as short
+//! lines, with no echo of the calls, and the agent fixes it in the same turn. Codex sends the two
+//! one at a time, in either order: the first waits, and the record is the one a single reply makes.
+//! A half still waiting when the turn ends is never shown, and the next turn's input says so. A
+//! plot with no guess in a side turn ends that turn too: the next turn is his answer to the open
+//! question.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -11,25 +14,79 @@ use gs_base::clock;
 use gs_base::config::Paths;
 use gs_base::ids;
 use gs_core::messages::input_events::{ChatInput, TurnInput};
-use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions};
+use gs_core::messages::native_messages::SIDE_ANSWER_LEAD;
+use gs_core::messages::role::Role;
+use gs_core::study::topic_parts::{GUESS_HELD, PLOT_DROPPED, PLOT_HELD};
 use gs_json::{Json, json};
+use gs_runtime::Runtime;
+use gs_runtime::fake::{FakeAgent, FakeStep};
 use gs_services::App;
+use gs_services::app::agent_folder::set_folder_agent;
+use gs_services::app::agents::use_runtime;
 use gs_services::turns::{handle_chat_input, is_turn_running};
 
-/// An app over a fresh folder, removed when dropped.
+/// An app over a fresh folder whose lessons run on a stand-in agent, removed when dropped.
 struct Fixture {
 	app: Arc<App>,
+	agent: FakeAgent,
 	dir: PathBuf,
 }
 
 impl Fixture {
 	fn new() -> Fixture {
+		Fixture::on(FakeAgent::runtime)
+	}
+
+	/// The stand-in plays the agent `runtime` runs, picked as the learner picks it.
+	fn on(runtime: fn(&FakeAgent) -> Runtime) -> Fixture {
 		let dir = std::env::temp_dir().join(format!("gs-plot-flow-{}", ids::uuid()));
 		for name in ["data", "home", "tmp", "res"] {
 			std::fs::create_dir_all(dir.join(name)).unwrap();
 		}
 		let app = App::new(Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir.join("res")), None);
-		Fixture { app, dir }
+		let agent = FakeAgent::default();
+		let runtime = runtime(&agent);
+		set_folder_agent(&app, runtime.agent()).unwrap();
+		use_runtime(&app, runtime);
+		Fixture { app, agent, dir }
+	}
+
+	/// His input; the turn it starts plays `turn` to its end.
+	async fn turn(&self, chat_id: &str, input: ChatInput, turn: Vec<FakeStep>) {
+		self.agent.push(turn);
+		let reply = handle_chat_input(&self.app, chat_id, TurnInput::Chat(input)).await;
+		assert_eq!(reply.status, 200, "{}", reply.text());
+		for _ in 0..2000 {
+			if !is_turn_running(&self.app, chat_id) {
+				return;
+			}
+			clock::sleep(5).await;
+		}
+		panic!("the turn never settled");
+	}
+
+	fn messages(&self, chat_id: &str) -> Vec<Json> {
+		self.app.stores.chats.get_chat(chat_id).unwrap()["messages"].as_arr().unwrap().clone()
+	}
+
+	/// The words of the lesson's assistant messages, in order.
+	fn replies(&self, chat_id: &str) -> Vec<String> {
+		let messages = self.messages(chat_id);
+		messages.iter().filter(|m| Role::Assistant.is(m)).flat_map(|m| m["content"].items().iter().filter_map(|b| b["text"].as_str().map(str::to_owned)).collect::<Vec<_>>()).collect()
+	}
+
+	/// The text of each tool result the agent was sent, in order: Claude Code's helper takes a
+	/// `tool_result`, Codex an answer with `contentItems`.
+	fn results(&self) -> Vec<String> {
+		let text = |m: &Json| if m["type"].as_str() == Some("tool_result") { m["content"][0]["text"].clone() } else { m["result"]["contentItems"][0]["text"].clone() };
+		self.agent.sent().iter().filter_map(|m| text(m).as_str().map(str::to_owned)).collect()
+	}
+
+	/// The text parts of the last turn the agent was sent.
+	fn input(&self) -> Vec<String> {
+		let sent = self.agent.sent().into_iter().rfind(|m| m["type"].as_str() == Some("send") || m["method"].as_str() == Some("turn/start")).expect("a turn was sent");
+		let parts = if sent["type"].as_str() == Some("send") { &sent["content"] } else { &sent["params"]["input"] };
+		parts.items().iter().filter_map(|p| p["text"].as_str().map(str::to_owned)).collect()
 	}
 }
 
@@ -62,43 +119,46 @@ fn guess(right: &str) -> Json {
 	})
 }
 
-/// The reply: its words, the guess, then the plot.
-fn pair(plot: Json, right: &str) -> AgentReply {
-	let calls = vec![ReplyCall { name: "quiz".to_owned(), arguments: guess(right) }, ReplyCall { name: "plot".to_owned(), arguments: plot }];
-	AgentReply { text: Some("A common picture is a leash on the weights.".to_owned()), tool_calls: calls }
+fn says(words: &str) -> FakeStep {
+	FakeStep::Text(words.to_owned())
 }
 
-/// Answers the lesson's next work item with `reply`; the whole transcript it was sent.
-async fn answer(app: &App, chat_id: &str, reply: AgentReply) -> Vec<Json> {
-	let opts = WaitOptions { conversation: Some(chat_id.to_owned()), full: true, ..WaitOptions::default() };
-	let view = app.bridge.wait_for_work(10_000, opts).await.expect("a work item");
-	app.bridge.respond_to_work(&view.work_id, reply, 0).unwrap();
-	view.messages
+/// The reply: its words, then the plot and its guess in one message, the plot first, since the
+/// guess ends the turn.
+fn pair(plot: Json, right: &str) -> Vec<FakeStep> {
+	vec![says("A common picture is a leash on the weights."), FakeStep::Calls(vec![("plot".to_owned(), plot), ("quiz".to_owned(), guess(right))])]
 }
 
-async fn settled(app: &App, chat_id: &str) {
-	for _ in 0..2000 {
-		if !is_turn_running(app, chat_id) {
-			return;
-		}
-		clock::sleep(5).await;
-	}
-	panic!("the turn never settled");
+fn text(words: &str) -> ChatInput {
+	ChatInput::Text { text: words.to_owned(), attachments: None, about: None }
 }
 
-/// A Study lesson on Regularization whose learner asked to start.
-async fn study_lesson(app: &Arc<App>) -> String {
-	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
+/// A Study lesson on Regularization whose learner asked to start; the teacher plays `first`.
+async fn study_lesson(fx: &Fixture, first: Vec<FakeStep>) -> String {
+	let chat_id = fx.app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 	let tree = json!({ "nodes": [{ "id": "reg", "title": "Regularization" }], "edges": [] });
-	app.stores.chats.save_tree(&chat_id, &tree).unwrap();
-	let input = ChatInput::Text { text: "Teach me Regularization.".to_owned(), attachments: None, about: None };
-	let reply = handle_chat_input(app, &chat_id, TurnInput::Chat(input)).await;
-	assert_eq!(reply.status, 200, "{}", reply.text());
+	fx.app.stores.chats.save_tree(&chat_id, &tree).unwrap();
+	fx.turn(&chat_id, text("Teach me Regularization."), first).await;
 	chat_id
 }
 
-fn messages(app: &App, chat_id: &str) -> Vec<Json> {
-	app.stores.chats.get_chat(chat_id).unwrap()["messages"].as_arr().unwrap().clone()
+fn call(name: &str, args: Json) -> FakeStep {
+	FakeStep::Tool { name: name.to_owned(), args }
+}
+
+/// Each stored message as its role and its parts: text, or a call's tool name.
+fn shape(record: &[Json]) -> Vec<String> {
+	record
+		.iter()
+		.filter(|m| m["role"].as_str() != Some("custom"))
+		.map(|m| {
+			let parts: Vec<&str> = match m["content"].as_str() {
+				Some(words) => vec![words],
+				None => m["content"].items().iter().map(|b| b["name"].as_str().or(b["text"].as_str()).unwrap_or_default()).collect(),
+			};
+			format!("{} {}{}", m["role"].str_or_empty(), m["toolName"].str_or_empty(), parts.join(", "))
+		})
+		.collect()
 }
 
 fn results(record: &[Json], name: &str) -> Vec<Json> {
@@ -112,12 +172,10 @@ fn call_of<'a>(record: &'a [Json], name: &str) -> &'a Json {
 #[tokio::test(flavor = "multi_thread")]
 async fn a_valid_pair_ends_the_turn_with_no_extra_step() {
 	let fx = Fixture::new();
-	let chat_id = study_lesson(&fx.app).await;
-	answer(&fx.app, &chat_id, pair(plot(), "B")).await;
-	// A turn that needed another step would wait for a work item that never comes.
-	settled(&fx.app, &chat_id).await;
+	let chat_id = study_lesson(&fx, [pair(plot(), "B"), vec![says("never played")]].concat()).await;
+	assert_eq!(fx.replies(&chat_id), ["A common picture is a leash on the weights."], "the pair ended the turn");
 
-	let record = messages(&fx.app, &chat_id);
+	let record = fx.messages(&chat_id);
 	assert_eq!(call_of(&record, "plot")["arguments"], plot(), "the plot is stored as sent");
 	assert_eq!(call_of(&record, "quiz")["arguments"], guess("B"), "the guess is stored as sent");
 	let quiz_id = call_of(&record, "quiz")["id"].clone();
@@ -131,18 +189,14 @@ async fn a_valid_pair_ends_the_turn_with_no_extra_step() {
 #[tokio::test(flavor = "multi_thread")]
 async fn a_refused_pair_is_fixed_in_the_same_turn() {
 	let fx = Fixture::new();
-	let chat_id = study_lesson(&fx.app).await;
 	let mut broken = plot();
 	if let Some(lines) = broken.as_obj_mut().and_then(|p| p.get_mut("lines")).and_then(Json::as_arr_mut) {
 		lines[1] = json!({ "label": "leash", "expr": "min(a, 4/(1+lamda))" });
 	}
-	answer(&fx.app, &chat_id, pair(broken, "B")).await;
-	let seen = answer(&fx.app, &chat_id, pair(plot(), "B")).await;
-	let told: Vec<&str> = seen.iter().filter(|m| m["role"].as_str() == Some("toolResult")).filter_map(|m| m["text"].as_str()).collect();
-	assert_eq!(told, ["quiz: refused with the plot above. Re-send both, or the guess alone without onPlot.", "lines[1].expr: unknown name \"lamda\". Use only a, lambda, pi, e."]);
-	settled(&fx.app, &chat_id).await;
+	let chat_id = study_lesson(&fx, [pair(broken, "B"), pair(plot(), "B")].concat()).await;
+	assert_eq!(fx.results()[..2], ["lines[1].expr: unknown name \"lamda\". Use only a, lambda, pi, e.", "quiz: refused with the plot above. Re-send both, or the guess alone without onPlot."]);
 
-	let record = messages(&fx.app, &chat_id);
+	let record = fx.messages(&chat_id);
 	let plots = results(&record, "plot");
 	assert_eq!(plots.iter().map(|r| r["isError"].as_bool()).collect::<Vec<_>>(), [Some(true), Some(false)]);
 	assert_eq!(plots[1]["details"]["id"], json!("p1"), "a refused plot takes no id");
@@ -150,32 +204,65 @@ async fn a_refused_pair_is_fixed_in_the_same_turn() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn a_plot_with_no_guess_ends_its_side_turn_and_the_next_work_is_his_answer() {
+async fn a_plot_with_no_guess_ends_its_side_turn_and_the_next_turn_is_his_answer() {
 	let fx = Fixture::new();
-	let chat_id = study_lesson(&fx.app).await;
 	let mut quiz = guess("B");
 	if let Some(q) = quiz.as_obj_mut() {
 		q.remove("onPlot");
 	}
-	answer(&fx.app, &chat_id, AgentReply { text: Some("A leash on the weights.".to_owned()), tool_calls: vec![ReplyCall { name: "quiz".to_owned(), arguments: quiz }] }).await;
-	settled(&fx.app, &chat_id).await;
+	let chat_id = study_lesson(&fx, vec![says("A leash on the weights."), FakeStep::Tool { name: "quiz".to_owned(), args: quiz }]).await;
 
-	let side = ChatInput::Side { text: "Can I see it on a plot?".to_owned(), attachments: None };
-	assert_eq!(handle_chat_input(&fx.app, &chat_id, TurnInput::Chat(side)).await.status, 200);
 	let mut open = plot();
 	if let Some(lines) = open.as_obj_mut().and_then(|p| p.get_mut("lines")).and_then(Json::as_arr_mut) {
 		lines[0] = json!({ "label": "penalty", "expr": "a/(1+lambda)" });
 	}
-	answer(&fx.app, &chat_id, AgentReply { text: Some("Here it is.".to_owned()), tool_calls: vec![ReplyCall { name: "plot".to_owned(), arguments: open }] }).await;
-	settled(&fx.app, &chat_id).await;
-	assert_eq!(fx.app.bridge.pending_turn_count(), 0, "no work waits for the agent");
-	assert!(results(&messages(&fx.app, &chat_id), "plot")[0]["details"].get("onPlot").is_none());
+	let side = ChatInput::Side { text: "Can I see it on a plot?".to_owned(), attachments: None };
+	fx.turn(&chat_id, side, vec![says("Here it is."), FakeStep::Tool { name: "plot".to_owned(), args: open }, says("never played")]).await;
+	assert_eq!(fx.replies(&chat_id), ["A leash on the weights.", "Here it is."], "the plot ended the side turn");
+	assert!(results(&fx.messages(&chat_id), "plot")[0]["details"].get("onPlot").is_none());
 
-	let quiz_id = call_of(&messages(&fx.app, &chat_id), "quiz")["id"].as_str().unwrap().to_owned();
+	let quiz_id = call_of(&fx.messages(&chat_id), "quiz")["id"].as_str().unwrap().to_owned();
 	let picked = json!({ "kind": "quiz", "dontKnow": false, "correct": true, "answers": [{ "index": 2, "label": "At 4.", "value": "B" }], "confidence": 80 });
-	let answered = ChatInput::Answer { tool_call_id: quiz_id.clone(), answer: picked, attachments: None };
-	assert_eq!(handle_chat_input(&fx.app, &chat_id, TurnInput::Chat(answered)).await.status, 200);
-	let seen = answer(&fx.app, &chat_id, AgentReply { text: Some("Right.".to_owned()), tool_calls: Vec::new() }).await;
-	let last = seen.last().unwrap();
-	assert!(last["text"].as_str().is_some_and(|t| t.starts_with("The learner answered your open question:")), "the next work is his answer: {last:?}");
+	fx.turn(&chat_id, ChatInput::Answer { tool_call_id: quiz_id, answer: picked, attachments: None }, vec![says("Right.")]).await;
+	let input = fx.input();
+	assert!(input[0].starts_with(SIDE_ANSWER_LEAD), "the next turn is his answer: {input:?}");
+}
+
+/// Codex sends the plot first and its guess in a later step: the plot waits, the guess completes
+/// it, and the lesson stores what a single reply with both stores.
+#[tokio::test(flavor = "multi_thread")]
+async fn over_codex_a_plot_first_waits_for_its_guess_and_lands_as_one_reply() {
+	let fx = Fixture::on(FakeAgent::codex_runtime);
+	let chat_id = study_lesson(&fx, vec![says("A common picture is a leash on the weights."), call("plot", plot()), says("Before you move it:"), call("quiz", guess("B")), says("never played")]).await;
+	assert_eq!(fx.results(), [PLOT_HELD, "p1 drawn. At lambda 1, a = 0, 5, 10: penalty 0, 2.5, 5. leash 0, 2, 2."]);
+
+	let record = fx.messages(&chat_id);
+	assert_eq!(shape(&record), ["user Teach me Regularization.", "assistant A common picture is a leash on the weights., Before you move it:, plot, quiz", "toolResult plotp1 drawn. At lambda 1, a = 0, 5, 10: penalty 0, 2.5, 5. leash 0, 2, 2."]);
+	let quiz_id = call_of(&record, "quiz")["id"].clone();
+	assert_eq!(results(&record, "plot")[0]["details"]["onPlot"], json!({ "toolCallId": quiz_id, "value": 4.0 }));
+	assert!(results(&record, "quiz").is_empty(), "the guess waits for his answer");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn over_codex_a_guess_first_waits_for_its_plot_and_lands_as_one_reply() {
+	let fx = Fixture::on(FakeAgent::codex_runtime);
+	let chat_id = study_lesson(&fx, vec![says("A common picture is a leash on the weights."), call("quiz", guess("B")), call("plot", plot()), says("never played")]).await;
+	assert_eq!(fx.results(), [GUESS_HELD, "p1 drawn. At lambda 1, a = 0, 5, 10: penalty 0, 2.5, 5. leash 0, 2, 2."]);
+
+	let record = fx.messages(&chat_id);
+	assert_eq!(shape(&record), ["user Teach me Regularization.", "assistant A common picture is a leash on the weights., quiz, plot", "toolResult plotp1 drawn. At lambda 1, a = 0, 5, 10: penalty 0, 2.5, 5. leash 0, 2, 2."]);
+	let quiz_id = call_of(&record, "quiz")["id"].clone();
+	assert_eq!(results(&record, "plot")[0]["details"]["onPlot"], json!({ "toolCallId": quiz_id, "value": 4.0 }));
+	assert!(results(&record, "quiz").is_empty(), "the guess waits for his answer");
+}
+
+/// A plot whose guess never comes is never shown, and the teacher's next turn starts with a note.
+#[tokio::test(flavor = "multi_thread")]
+async fn over_codex_a_half_still_waiting_at_the_end_is_dropped_and_noted() {
+	let fx = Fixture::on(FakeAgent::codex_runtime);
+	let chat_id = study_lesson(&fx, vec![says("Here is the picture."), call("plot", plot()), says("Look at it.")]).await;
+	assert_eq!(shape(&fx.messages(&chat_id)), ["user Teach me Regularization.", "assistant Here is the picture., Look at it."], "no plot shown");
+
+	fx.turn(&chat_id, text("Where is it?"), vec![says("Here.")]).await;
+	assert_eq!(fx.input()[0], format!("About your last reply:\n{PLOT_DROPPED}"));
 }

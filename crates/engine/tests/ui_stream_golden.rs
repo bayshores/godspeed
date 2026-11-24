@@ -1,17 +1,25 @@
-//! Replays tests/golden/ui_stream.json (the real runPiTurn, recorded from the Node server): the frames a
-//! view gets, what `on_finish` receives, and the settle-failure report.
+//! Replays tests/golden/ui_stream.json: a lesson turn on a stand-in agent session (gs-runtime's
+//! FakeAgent), the frames a view gets, what `on_finish` receives, and the settle-failure report.
+//! `GS_RECORD_GOLDEN=1 cargo test -p gs-engine --test ui_stream_golden` records the cases again,
+//! which is right only when the wire is meant to change.
 
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
-use gs_engine::turn::agent::{Agent, AgentOptions};
-use gs_engine::turn::faux::{Engine, Scripted, faux_model};
-use gs_engine::turn::messages::{faux_assistant_message, text_block};
+use gs_engine::bridge::agent_model;
+use gs_engine::turn::messages::text_block;
+use gs_engine::turn::session_turn::{Opened, SessionTurn, SessionTurnSpec};
 use gs_engine::turn::tool::{Tool, ToolContext};
+use gs_engine::turn::tool_host::ToolHost;
 use gs_engine::turn::ui_stream::{SettleError, TurnSpec, run_pi_turn};
 use gs_json::{Json, Obj, json, parse, stringify_pretty};
+use gs_runtime::fake::{FakeAgent, FakeStep};
+use gs_runtime::{Part, SessionSpec};
 use parking_lot::Mutex;
 use tokio::sync::mpsc::UnboundedReceiver;
+
+const GOLDEN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/ui_stream.json");
 
 struct Echo(Json);
 
@@ -36,9 +44,6 @@ fn mask(v: &Json) -> Json {
 		Json::Obj(o) => {
 			let mut out = Obj::new();
 			for (k, val) in o {
-				if k == "durationMs" && o.get("role") == Some(&Json::from("assistant")) {
-					continue;
-				}
 				let masked = match (k.as_str(), val) {
 					("timestamp", Json::Num(_)) => Json::from("<ts>"),
 					("durationMs", _) => Json::from("<ms>"),
@@ -60,24 +65,54 @@ async fn frames(mut rx: UnboundedReceiver<String>) -> Vec<String> {
 	out
 }
 
-async fn play(s: &Json) -> Json {
-	let scripted = Scripted::new();
-	for r in s["responses"].as_arr().unwrap() {
-		let mut m = faux_assistant_message(r["content"].as_arr().unwrap().clone(), r["stopReason"].as_str().unwrap());
-		m.as_obj_mut().unwrap().insert("timestamp", 1);
-		scripted.reply(m);
-	}
-	let mut options = AgentOptions::new(Engine { model: faux_model("godspeed-agent", "agent", "outside-agent", "Outside agent (MCP)", 200_000.0, 32_000.0), respond: scripted });
-	options.system_prompt = "P".to_owned();
-	options.tools = vec![Arc::new(Echo(json!({ "type": "object", "required": ["text"], "properties": { "text": { "type": "string" } } })))];
-	options.messages = s["messages"].as_arr().unwrap().clone();
-	options.session_id = Some("chat_golden".to_owned());
-	let agent = Agent::new(options);
+fn echo(text: &str) -> FakeStep {
+	FakeStep::Tool { name: "echo".into(), args: json!({ "text": text }) }
+}
+
+struct Case {
+	name: &'static str,
+	steps: Vec<FakeStep>,
+	used_ids: Vec<&'static str>,
+	opens: bool,
+	finish_fails: bool,
+}
+
+fn cases() -> Vec<Case> {
+	vec![
+		Case { name: "reused ids get fresh ones", steps: vec![echo("a"), echo("b"), FakeStep::Text("done".into())], used_ids: vec!["toolu_1", "toolu_1~2"], opens: true, finish_fails: false },
+		Case { name: "fresh ids stay", steps: vec![FakeStep::Text("Look at this.".into()), echo("c"), FakeStep::Text("ok".into())], used_ids: vec!["call_0"], opens: true, finish_fails: false },
+		Case { name: "run cannot start", steps: Vec::new(), used_ids: Vec::new(), opens: false, finish_fails: false },
+		Case { name: "finish fails", steps: vec![FakeStep::Text("hello there".into())], used_ids: Vec::new(), opens: true, finish_fails: true },
+	]
+}
+
+async fn play(case: &Case) -> Json {
+	let agent = FakeAgent::new(vec![case.steps.clone()]);
+	let runtime = Arc::new(agent.runtime());
+	let opens = case.opens;
+	let schema = json!({ "type": "object", "required": ["text"], "properties": { "text": { "type": "string" } } });
+	let turn = SessionTurn::new(SessionTurnSpec {
+		open: Box::new(move |_| {
+			let runtime = runtime.clone();
+			Box::pin(async move {
+				if !opens {
+					return Err("godspeed couldn't find Claude Code on this computer.".to_owned());
+				}
+				let spec = SessionSpec { cwd: std::env::temp_dir(), model: None, instructions: "P".to_owned(), tools: Vec::new(), resume: None, persist: false };
+				Ok(Opened { session: Arc::new(runtime.open(spec).await?), input: vec![Part::Text("again".to_owned())], knew: false })
+			})
+		}),
+		host: ToolHost::new(vec![Arc::new(Echo(schema))], None, HashSet::new()),
+		check_text: Box::new(str::to_owned),
+		before: Vec::new(),
+		model: agent_model(),
+		folds_steers: false,
+	});
 	let finished = Arc::new(Mutex::new(Json::Null));
 	let failures = Arc::new(Mutex::new(Vec::new()));
-	let (fin, fails, finish_fails) = (finished.clone(), failures.clone(), s["finishFails"] == Json::Bool(true));
+	let (fin, fails, finish_fails) = (finished.clone(), failures.clone(), case.finish_fails);
 	let handle = run_pi_turn(TurnSpec {
-		agent,
+		turn,
 		on_error: Box::new(|err| format!("loop: {err}")),
 		on_settle_error: Box::new(|err| format!("settle: {err}")),
 		on_settle_failure: Box::new(move |err, reported| fails.lock().push(json!({ "error": err.to_string(), "reported": reported }))),
@@ -85,7 +120,7 @@ async fn play(s: &Json) -> Json {
 			*fin.lock() = Json::Arr(messages);
 			if finish_fails { Err(SettleError::Other("disk full".to_owned())) } else { Ok(()) }
 		}),
-		used_tool_call_ids: s["usedIds"].as_arr().unwrap().iter().map(|id| id.as_str().unwrap().to_owned()).collect(),
+		used_tool_call_ids: case.used_ids.iter().map(|id| (*id).to_owned()).collect(),
 		update_flush_ms: 100,
 	});
 	let view = handle.subscribe();
@@ -103,14 +138,21 @@ async fn play(s: &Json) -> Json {
 	mask(&json!({ "frames": frames, "finished": finished.lock().clone(), "failures": failures, "late": late }))
 }
 
-#[tokio::test]
-async fn the_turn_wire_matches_pi() {
-	let golden = parse(&std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/ui_stream.json")).unwrap()).unwrap();
-	for case in golden.as_arr().unwrap() {
-		let want = &case["output"];
-		let got = play(&want["scenario"]).await;
+#[tokio::test(flavor = "multi_thread")]
+async fn the_turn_wire_matches_the_recording() {
+	let mut got = Vec::new();
+	for case in cases() {
+		got.push(json!({ "name": case.name, "output": play(&case).await }));
+	}
+	if std::env::var_os("GS_RECORD_GOLDEN").is_some() {
+		gs_base::fsx::write_text_atomic(std::path::Path::new(GOLDEN), &format!("{}\n", stringify_pretty(&Json::Arr(got), "\t"))).unwrap();
+		return;
+	}
+	let golden = parse(&std::fs::read_to_string(GOLDEN).unwrap()).unwrap();
+	assert_eq!(golden.items().len(), got.len());
+	for (want, got) in golden.items().iter().zip(&got) {
 		for key in ["frames", "finished", "failures", "late"] {
-			assert_eq!(stringify_pretty(&got[key], " "), stringify_pretty(&mask(&want[key]), " "), "{}: {key}", case["name"].as_str().unwrap());
+			assert_eq!(stringify_pretty(&got["output"][key], " "), stringify_pretty(&want["output"][key], " "), "{}: {key}", want["name"].str_or_empty());
 		}
 	}
 }

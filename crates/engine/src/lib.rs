@@ -2,16 +2,18 @@
 //! call to the outside agent.
 //!
 //! How a lesson turn runs:
-//! 1. Build an [`turn::agent::Agent`] from [`turn::agent::AgentOptions`] with the engine from
-//!    [`turn::models::agent_engine`], the system prompt, the [`turn::tool::Tool`]s and the record.
-//! 2. Wrap it in [`turn::ui_stream::run_pi_turn`] (runPiTurn). The handle does not run yet:
-//!    register the turn (so a Stop or a second view finds it), then call `start()`.
-//! 3. Each model request parks on the [`bridge::Bridge`] as a work item until the agent takes it
-//!    with `wait_for_work` and answers with `respond_to_work`; the answer becomes the assistant
-//!    message, its tool calls run, and the loop asks again until the reply has no tool calls.
+//! 1. Build a [`turn::session_turn::SessionTurn`] with an opener for the lesson's agent session
+//!    (gs-runtime), its [`turn::tool_host::ToolHost`] and its text check.
+//! 2. Wrap it in [`turn::ui_stream::run_pi_turn`]. The handle does not run yet: register the
+//!    turn (so a Stop, a steer or a second view finds it), then call `start()`.
+//! 3. The session streams the agent's words, its godspeed tool calls (each run by the host) and
+//!    its permission questions; [`turn::record::TranscriptBuilder`] turns them into the record's
+//!    messages and the stream's events.
 //!
-//! Background jobs call [`turn::faux::stream`] (pi's streamSimple) or run an `Agent` directly,
-//! naming their conversation with `Bridge::label_conversation` so the agent sees what it is.
+//! Background jobs park their model requests on the [`bridge::Bridge`] as work items until the
+//! outside agent takes them with `wait_for_work` and answers with `respond_to_work`: they call
+//! [`turn::faux::stream`] (pi's streamSimple) or run an [`turn::agent::Agent`], naming their
+//! conversation with `Bridge::label_conversation` so the agent sees what it is.
 //!
 //! Names follow the TypeScript: `prompt`/`continue_run` (prompt/continue), `steer`/`follow_up`,
 //! `respond_to_work`, `read_work_page`, `claimed_lessons`. Times and timers use the app clock

@@ -6,7 +6,7 @@ use std::sync::Arc;
 use gs_services::App;
 
 mod common;
-use common::{TERMINAL, app, call, own_tool, read_pages, round, send, work_id};
+use common::{TERMINAL, app, call, own_tool, round, send, work_id};
 
 const CLOSED: &str = "This terminal was closed in godspeed.";
 
@@ -112,22 +112,29 @@ async fn a_woken_session_that_waits_itself_is_answered_at_once() {
 }
 
 #[tokio::test]
-async fn typing_while_respond_waits_for_a_follow_up_ends_the_turn_with_a_note() {
+async fn typing_while_respond_waits_for_a_follow_up_ends_the_step_with_a_note() {
 	let app = app();
 	app.bridge.set_live_terminals(vec![TERMINAL.to_owned()], Some(TERMINAL.to_owned()));
-	call(&app, Some(TERMINAL), Some("sess-1"), "start_lesson", r#"{"topic":"Cells"}"#).await;
+	// Background work, asked, so the teacher takes it at once rather than after the helper's grace.
+	app.bridge.mark_asked("job_ask");
+	let engine = gs_engine::turn::models::agent_engine(&app.bridge);
+	let job = gs_base::tasks::spawn("test", async move {
+		let ask = vec![gs_json::json!({ "role": "user", "content": "what does HW6 cover", "timestamp": 1 })];
+		gs_engine::turn::faux::stream(&engine, ask, Some("job_ask".to_owned()), &gs_engine::turn::abort::Abort::new(), &mut |_| {}).await
+	});
+	gs_base::clock::sleep(20).await;
 	let (_, body) = call(&app, Some(TERMINAL), Some("sess-1"), "wait_for_work", r#"{"timeout_seconds":5}"#).await;
 	let work_id = work_id(&body);
-	read_pages(&app, Some(TERMINAL), Some("sess-1"), &work_id).await;
 	let responding = gs_base::tasks::spawn("test", {
 		let app = app.clone();
-		async move { woken(&app, Some(TERMINAL), "sess-1", "respond", &format!(r#"{{"work_id":"{work_id}","text":"Cells are small.","wait_seconds":5}}"#)).await }
+		async move { woken(&app, Some(TERMINAL), "sess-1", "respond", &format!(r#"{{"work_id":"{work_id}","text":"Limits.","wait_seconds":5}}"#)).await }
 	});
 	gs_base::clock::sleep(50).await;
 	app.bridge.typed(TERMINAL, gs_base::clock::now_ms());
 	let (status, body) = responding.await.unwrap();
 	assert_eq!(status, 200);
-	assert!(body.contains(r#"{\"status\":\"turn_complete\",\"note\":\"Turn done. The learner typed to you in your terminal. Answer them there, then end your turn; godspeed wakes you when work arrives.\"}"#), "{body}");
+	assert!(body.contains(r#"{\"status\":\"turn_complete\",\"note\":\"Task step done. The learner typed to you in your terminal. Answer them there, then end your turn; godspeed wakes you when work arrives.\"}"#), "{body}");
+	job.await.unwrap();
 }
 
 /// The text of a tool result.

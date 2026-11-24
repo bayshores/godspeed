@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
 use gs_agent::teacher::prompt_segments::{AgentKind, all_segment_paths};
-use gs_agent::teacher::teacher_agent::{AgentBuildOptions, compose_instructions, create_homework_agent, create_practice_agent, create_prober_agent, create_study_agent, create_teacher_agent};
+use gs_agent::teacher::teacher_agent::{AgentBuildOptions, LessonSetup, compose_instructions, homework_setup, practice_setup, prober_setup, study_setup, teacher_setup};
 use gs_agent::tools::space::{SpaceSearch, SpaceToolContext};
 use gs_agent::tools::fn_tool::FnTool;
 use gs_agent::tools::space_actions::SpaceActions;
@@ -32,8 +32,6 @@ use gs_core::messages::citations::CheckedMarks;
 use gs_core::spaces::space_tools::{SpaceChange, ToolOutcome};
 use gs_core::contracts::space::SPACE_ICONS;
 use gs_engine::turn::abort::Abort;
-use gs_engine::turn::agent::Agent;
-use gs_engine::turn::faux::{Engine, Scripted, faux_model};
 use gs_engine::turn::tool::{ExecutionMode, Tool, ToolContext};
 use gs_json::{Json, Obj, json, parse, stringify};
 use gs_search::index::PassageRef;
@@ -450,16 +448,14 @@ fn plan_result(mermaid: &str) -> Json {
 	}
 }
 
-fn agent_facts(agent: &Agent) -> Json {
-	let messages = agent.messages();
-	let tools: Vec<String> = messages[0]["toolsAdded"].items().iter().map(|t| t["name"].as_str().unwrap().to_owned()).collect();
-	json!({ "systemPrompt": messages[0]["content"].clone(), "tools": tools, "messages": messages.len() })
+fn agent_facts(setup: &LessonSetup) -> Json {
+	let tools: Vec<&str> = setup.host.tool_names().collect();
+	json!({ "systemPrompt": setup.prompt.as_str(), "tools": tools })
 }
 
 fn agents(prompts: &PromptOverrides) -> Json {
 	let w = world();
-	let engine = || Engine { model: faux_model("godspeed-agent", "agent", "outside-agent", "Outside agent (MCP)", 200_000.0, 32_000.0), respond: Scripted::new() };
-	let opts = || AgentBuildOptions::new(engine(), prompts);
+	let opts = || AgentBuildOptions::new(prompts);
 	let toggled = |toggles: Json| AgentBuildOptions { tool_toggles: Some(toggles), ..opts() };
 	let rules = || Some("The learner's rules:\n- Use Python.".to_owned());
 	let off = || json!({ "research": false, "pdf": false });
@@ -468,15 +464,15 @@ fn agents(prompts: &PromptOverrides) -> Json {
 	let deadline = Deadline::new(Vec::new());
 	let explicit: Vec<Arc<dyn Tool>> = bare_question_tools().into_iter().map(FnTool::into_arc).collect();
 	json!({
-		"prober": agent_facts(&create_prober_agent(&w.prober("lesson"), opts())),
-		"prober with rules and toggles": agent_facts(&create_prober_agent(&w.prober("lesson"), AgentBuildOptions { learner_rules: rules(), ..toggled(off()) })),
-		"teacher": agent_facts(&create_teacher_agent(Some(&teacher()), opts())),
-		"teacher with toggles": agent_facts(&create_teacher_agent(Some(&teacher()), AgentBuildOptions { learner_rules: rules(), ..toggled(json!({ "demo": false, "visual": false, "research": false, "pdf": false })) })),
-		"teacher bare": agent_facts(&create_teacher_agent(None, opts())),
-		"practice": agent_facts(&create_practice_agent(&w.practice("lesson"), toggled(off()))),
-		"study": agent_facts(&create_study_agent(&study, toggled(json!({ "demo": false })))),
-		"homework": agent_facts(&create_homework_agent(&w.homework("lesson", deadline), AgentBuildOptions { learner_rules: rules(), ..opts() })),
-		"explicit tools": agent_facts(&create_teacher_agent(Some(&teacher()), AgentBuildOptions { tools: Some(explicit), ..toggled(json!({ "quiz": false })) })),
+		"prober": agent_facts(&prober_setup(&w.prober("lesson"), opts())),
+		"prober with rules and toggles": agent_facts(&prober_setup(&w.prober("lesson"), AgentBuildOptions { learner_rules: rules(), ..toggled(off()) })),
+		"teacher": agent_facts(&teacher_setup(Some(&teacher()), opts())),
+		"teacher with toggles": agent_facts(&teacher_setup(Some(&teacher()), AgentBuildOptions { learner_rules: rules(), ..toggled(json!({ "demo": false, "visual": false, "research": false, "pdf": false })) })),
+		"teacher bare": agent_facts(&teacher_setup(None, opts())),
+		"practice": agent_facts(&practice_setup(&w.practice("lesson"), toggled(off()))),
+		"study": agent_facts(&study_setup(&study, toggled(json!({ "demo": false })))),
+		"homework": agent_facts(&homework_setup(&w.homework("lesson", deadline), AgentBuildOptions { learner_rules: rules(), ..opts() })),
+		"explicit tools": agent_facts(&teacher_setup(Some(&teacher()), AgentBuildOptions { tools: Some(explicit), ..toggled(json!({ "quiz": false })) })),
 	})
 }
 

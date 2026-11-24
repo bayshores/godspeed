@@ -94,6 +94,7 @@ pub enum Seen {
 	Delta(String),
 	Done(String),
 	Own(String, bool),
+	Calls(Vec<ToolCall>),
 	Tool(ToolCall),
 	Asked(Ask),
 	Usage(Usage),
@@ -108,6 +109,7 @@ fn seen(event: SessionEvent, reply: &ToolReply) -> Seen {
 		SessionEvent::TextDelta(text) => Seen::Delta(text),
 		SessionEvent::TextDone(text) => Seen::Done(text),
 		SessionEvent::OwnTool { name, done, .. } => Seen::Own(name, done),
+		SessionEvent::Calls(calls) => Seen::Calls(calls),
 		SessionEvent::ToolCall { call, reply: answer } => {
 			let _ = answer.send(reply.clone());
 			Seen::Tool(call)

@@ -1,8 +1,9 @@
 //! One chat turn over the server-owned record (chat-handler.ts). POST /api/chat carries one input
 //! event (text, answer, side, next, continue, opener-answer), never a client transcript; the wake
 //! pipeline's steers come through here too. The event becomes record appends (written ahead, before
-//! the turn runs), the agent is built from the record, and the turn runs as a background object
-//! that views attach to through GET /api/chats/{id}/stream. The POST only acknowledges.
+//! the turn runs), the turn's instructions and tools are built from the record, and the turn runs
+//! on the lesson's agent session as a background object that views attach to through GET
+//! /api/chats/{id}/stream. The POST only acknowledges.
 
 use std::future::Future;
 use std::pin::Pin;
@@ -20,10 +21,13 @@ use gs_core::messages::role::Role;
 use gs_core::session::jobs::steer_delivered;
 use gs_core::session::prices::CallUsage;
 use gs_core::session::turn_cause::turn_cause;
-use gs_engine::turn::agent::Agent;
+use gs_core::spaces::agent_folder::FolderAgent;
+use gs_engine::bridge::agent_model;
+use gs_engine::turn::agent::{BeforeToolCall, BeforeToolCallFn};
 use gs_engine::turn::call_ids::collect_tool_call_ids;
 use gs_engine::turn::events::AgentEvent;
 use gs_engine::turn::models::agent_engine;
+use gs_engine::turn::session_turn::{SessionTurn, SessionTurnSpec, TextCheck};
 use gs_engine::turn::ui_stream::{SettleError, TurnSpec, run_pi_turn};
 use gs_json::{Json, json, stringify};
 use parking_lot::Mutex;
@@ -33,7 +37,9 @@ use super::compaction::{CompactionDeps, ensure_compacted, kick_compaction, summa
 use super::dismissal_park::apply_parked_dismissal;
 use super::lesson_problems::problems_view;
 use super::job_host::run_job;
-use super::lesson_agent::{TurnAgent, build_lesson_agent};
+use super::lesson_session::{SessionPlan, SessionPlanFacts, agent_cwd, opener, settle_session};
+use super::lesson_setup::{LessonTurn, every_turn_rules_for, lesson_setup};
+use super::reply_nudges::{add_notes, call_refusal, reply_notes, take_notes};
 use super::review::askable;
 use super::turn_liveness::{begin_turn, end_turn, turn_started};
 use super::turn_runs::{register_turn, remember_turn_failure, unregister_turn};
@@ -41,8 +47,10 @@ use super::turn_service::{persist_turn, trigger_extraction};
 use super::turn_work;
 use crate::App;
 use crate::app::agent_actions::record_answer;
+use crate::app::agents;
 use crate::app::today_note::today_note_for;
 use crate::graph::progress::lesson_ended;
+use crate::spaces::citations::{check_cites, mark_notes};
 use crate::spaces::space_actions::SendFirstMessage;
 use crate::jobs::{note_steers_durable, reconcile_user_steers, register_live_agent, settle_steers, unregister_live_agent};
 
@@ -289,30 +297,74 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 	Ok(Accepted { record, appends, merged })
 }
 
-/// Builds the turn's agent and starts the turn as a background object.
+/// A Study call whose words read as a curve is refused once a topic.
+fn study_call_check(app: &Arc<App>, chat_id: &str) -> BeforeToolCallFn {
+	let (app, chat_id) = (Arc::downgrade(app), chat_id.to_owned());
+	Box::new(move |ctx: &BeforeToolCall| -> Option<String> {
+		let app = app.upgrade()?;
+		call_refusal(&app, &chat_id, ctx.message, ctx.call["name"].str_or_empty(), ctx.args)
+	})
+}
+
+/// Each finished text has its source marks checked; what it lost is noted for the next reply.
+fn cites_check(app: &Arc<App>, chat_id: &str) -> TextCheck {
+	let (app, chat_id) = (Arc::downgrade(app), chat_id.to_owned());
+	Box::new(move |text: &str| {
+		let Some(app) = app.upgrade() else { return text.to_owned() };
+		let checked = check_cites(&app, text);
+		add_notes(&app, &chat_id, [mark_notes(&checked)]);
+		checked.text
+	})
+}
+
+/// Builds the turn on the lesson's agent session and starts it as a background object.
 fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json, accepted: Accepted) -> Result<(), String> {
 	let Accepted { record, appends, merged } = accepted;
-	// A continue (Try again) runs again from before a failed or stopped reply.
-	let context: Vec<Json> = if matches!(input, TurnInput::Chat(ChatInput::Continue)) { retry_context(&merged).to_vec() } else { merged.clone() };
-	let persist_base = context.len();
+	// Try again runs again from before a failed or stopped reply, on a new session.
+	let fresh = matches!(input, TurnInput::Chat(ChatInput::Continue));
+	let context: Vec<Json> = if fresh { retry_context(&merged).to_vec() } else { merged.clone() };
 	let side_turn = is_side_turn(&context);
-	let engine = agent_engine(&app.bridge);
-	let model_id = model_id_of(&engine.model);
+	let model = agent_model();
+	let model_id = model_id_of(&model);
 	let teaching = has_probe_done(&merged);
-	let agent = build_lesson_agent(app, &record, effective, TurnAgent { chat_id: chat_id.to_owned(), messages: context, teaching, side_turn, engine: engine.clone() });
+	let setup = lesson_setup(app, &record, effective, LessonTurn { chat_id: chat_id.to_owned(), teaching, side_turn, call_check: Some(study_call_check(app, chat_id)) });
+	let runtime = agents::runtime(app);
+	let agent = runtime.agent();
+	let plan = SessionPlan {
+		chat_id: chat_id.to_owned(),
+		runtime,
+		cwd: agent_cwd(app)?,
+		tools: setup.host.specs(),
+		prompt: setup.prompt,
+		stored: record["agentSession"].clone(),
+		messages: context.clone(),
+		fresh,
+		notes: take_notes(app, chat_id),
+		rules: every_turn_rules_for(app, &record),
+	};
+	let facts = plan.facts();
+	let parts = setup.parts;
+	let turn = SessionTurn::new(SessionTurnSpec { open: opener(app, plan), host: setup.host, check_text: cites_check(app, chat_id), before: context, model, folds_steers: agent == FolderAgent::Codex });
 
-	agent.subscribe(turn_work::listener(app, chat_id, record["spaceId"].as_str()));
+	turn.subscribe(turn_work::listener(app, chat_id, record["spaceId"].as_str()));
+	turn.on_desk(turn_work::desk_listener(app, chat_id));
 
-	// One collector per turn, fed by the agent's finished assistant messages.
+	// One collector per turn, fed by the finished assistant messages; a reply's words are
+	// checked for the notes before the next one.
 	let steps: Arc<Mutex<Vec<Json>>> = Arc::default();
 	let sink = steps.clone();
-	agent.subscribe(Arc::new(move |event: &AgentEvent| {
-		if let AgentEvent::MessageEnd(message) = event
-			&& Role::Assistant.is(message)
-			&& message.get("usage").is_some()
-			&& message["stopReason"].as_str() != Some("aborted")
-		{
+	let (notes_app, notes_chat) = (Arc::downgrade(app), chat_id.to_owned());
+	turn.subscribe(Arc::new(move |event: &AgentEvent| {
+		let AgentEvent::MessageEnd(message) = event else { return };
+		if !Role::Assistant.is(message) {
+			return;
+		}
+		if message.get("usage").is_some() && message["stopReason"].as_str() != Some("aborted") {
 			sink.lock().push(CallUsage::from_model_usage(&message["usage"]).to_json());
+		}
+		let text: String = message["content"].items().iter().filter(|b| b["type"].as_str() == Some("text")).map(|b| b["text"].str_or_empty()).collect();
+		if let Some(app) = notes_app.upgrade().filter(|_| !text.trim().is_empty()) {
+			add_notes(&app, &notes_chat, reply_notes(&app, &notes_chat, message, &text));
 		}
 	}));
 
@@ -321,10 +373,10 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 	if !side_turn {
 		let wake_ids = matches!(input, TurnInput::Steers(_)).then(|| appends.iter().filter_map(|m| m["id"].as_str().map(str::to_owned)).collect());
 		let allow_deferred = !matches!(input, TurnInput::Steers(_) | TurnInput::Chat(ChatInput::Continue));
-		register_live_agent(app, chat_id, &agent, allow_deferred, wake_ids.as_ref())?;
+		register_live_agent(app, chat_id, &turn, allow_deferred, wake_ids.as_ref())?;
 	}
 
-	let settle = Settle { app: Arc::downgrade(app), chat_id: chat_id.to_owned(), agent: Arc::downgrade(&agent) };
+	let settle = Settle { app: Arc::downgrade(app), chat_id: chat_id.to_owned(), turn: Arc::downgrade(&turn), session: Arc::new(facts) };
 	let failure = settle.clone();
 	let finish = settle.clone();
 	let kind = record["kind"].as_str().map(str::to_owned);
@@ -333,7 +385,7 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 	let chunk_tokens = effective["graph"]["extractionChunkTokens"].as_f64().unwrap_or_default();
 	let turn_usage_id = ids::uuid();
 	let handle = run_pi_turn(TurnSpec {
-		agent: agent.clone(),
+		turn,
 		on_error: Box::new({
 			let chat_id = chat_id.to_owned();
 			move |err| {
@@ -345,9 +397,11 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 		on_settle_failure: Box::new(move |err, reported| failure.failed(err, reported)),
 		on_finish: Box::new(move |turn_messages| {
 			let Some(app) = finish.app.upgrade() else { return Ok(()) };
+			// A plot or guess still held for its other half is dropped; the next reply hears so.
+			add_notes(&app, &finish.chat_id, parts.as_ref().and_then(|parts| parts.dropped_note()));
 			let steps = steps.lock().clone();
 			let usage = Usage { id: &turn_usage_id, model: &model_id, steps: &steps };
-			finish.finished(&app, persist_base, &turn_messages, usage, extracts.then_some((scope.as_deref(), chunk_tokens)))
+			finish.finished(&app, &turn_messages, usage, extracts.then_some((scope.as_deref(), chunk_tokens)))
 		}),
 		used_tool_call_ids: collect_tool_call_ids(&merged),
 		update_flush_ms: UPDATE_FLUSH_MS,
@@ -375,22 +429,26 @@ struct Usage<'a> {
 	steps: &'a [Json],
 }
 
-/// The turn's settle paths. Weak links: the running turn must not keep the app or its own agent
-/// alive.
+/// The turn's settle paths. Weak links: the running turn must not keep the app or itself alive.
 #[derive(Clone)]
 struct Settle {
 	app: Weak<App>,
 	chat_id: String,
-	agent: Weak<Agent>,
+	turn: Weak<SessionTurn>,
+	session: Arc<SessionPlanFacts>,
 }
 
 impl Settle {
 	/// Persist and finish, in the order that makes "turn-settled" imply durable truth: persist,
 	/// usage, extraction, the parked dismissal, then end_turn and unregister, then the steers, then
 	/// the compaction kick.
-	fn finished(&self, app: &Arc<App>, base: usize, turn_messages: &[Json], usage: Usage, extraction: Option<(Option<&str>, f64)>) -> Result<(), SettleError> {
+	fn finished(&self, app: &Arc<App>, turn_messages: &[Json], usage: Usage, extraction: Option<(Option<&str>, f64)>) -> Result<(), SettleError> {
 		let chat_id = self.chat_id.as_str();
-		let stamped = persist_turn(app, chat_id, base, turn_messages)?;
+		let stamped = persist_turn(app, chat_id, 0, turn_messages)?;
+		let turn = self.turn.upgrade();
+		// The session saw the turn's own messages, up to its last.
+		let seen = stamped.last().and_then(|m| m["id"].as_str());
+		settle_session(app, chat_id, &self.session, turn.as_ref().and_then(|t| t.native_id()), seen, turn.as_ref().is_some_and(|t| t.compacted()));
 		let durable = app.stores.chats.get_chat(chat_id).and_then(|r| r["messages"].as_arr().cloned());
 		note_steers_durable(app, chat_id, durable.as_deref().unwrap_or(&stamped));
 		// The provenance message is the turn's first new assistant message.
@@ -410,8 +468,7 @@ impl Settle {
 		end_turn(app, chat_id);
 		unregister_turn(app, chat_id);
 		unregister_live_agent(app, chat_id);
-		let agent = self.agent.upgrade();
-		settle_steers(app, chat_id, &stamped, false, agent.as_ref());
+		settle_steers(app, chat_id, &stamped, false, turn.as_ref());
 		reconcile_user_steers(app, chat_id, &stamped);
 		kick(app, chat_id);
 		Ok(())
@@ -425,14 +482,15 @@ impl Settle {
 			eprintln!("[chat {chat_id}] parked dismissal failed: {park}");
 		}
 		remember_turn_failure(&app, chat_id, reported.map_or_else(|| settlement_error_text(err), str::to_owned).as_str());
+		settle_session(&app, chat_id, &self.session, None, None, false);
 		end_turn(&app, chat_id);
 		unregister_turn(&app, chat_id);
 		unregister_live_agent(&app, chat_id);
 		// The save may have landed before later bookkeeping failed: reconcile against what is on disk.
 		let persisted = app.stores.chats.get_chat(chat_id).and_then(|r| r["messages"].as_arr().cloned()).unwrap_or_default();
 		reconcile_user_steers(&app, chat_id, &persisted);
-		let agent = self.agent.upgrade();
-		settle_steers(&app, chat_id, &persisted, true, agent.as_ref());
+		let turn = self.turn.upgrade();
+		settle_steers(&app, chat_id, &persisted, true, turn.as_ref());
 	}
 }
 

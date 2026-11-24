@@ -1,13 +1,14 @@
 //! One work item as the MCP layer presents it: only the unseen tail when its agent already
 //! holds the conversation, and only the instructions and tools it does not already have.
 
+use gs_core::messages::native_messages::render_message;
 use gs_core::messages::role::Role;
 use gs_core::contracts::chat::CHAT_ID_PREFIX;
 use gs_core::records::agent_seen::{SeenMark, SeenStore, print_hash, resume_at};
 use gs_json::{Json, stringify};
 
 use super::helper::UNNAMED_HELPER;
-use super::render::{instructions_and_tools, prints_of, render_message};
+use super::render::{instructions_and_tools, prints_of};
 use super::{Bridge, State, WorkItem};
 
 #[derive(Clone, Debug, PartialEq)]

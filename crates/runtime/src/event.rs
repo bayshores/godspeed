@@ -79,6 +79,9 @@ pub enum SessionEvent {
 	/// when it is done. `name` and `input` are the agent's own: Claude Code's tool name and input,
 	/// or Codex's item type and item.
 	OwnTool { id: String, name: String, input: Json, done: bool },
+	/// Every godspeed call of one model step, before any of them runs, so godspeed can check them
+	/// together. Claude Code says a step's calls first; Codex never does.
+	Calls(Vec<ToolCall>),
 	/// A godspeed tool call; the turn waits until `reply` is answered.
 	ToolCall { call: ToolCall, reply: oneshot::Sender<ToolReply> },
 	/// A permission question; the agent waits until `reply` is answered.

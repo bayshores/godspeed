@@ -1,25 +1,27 @@
-//! Questions from earlier, end to end: which lessons and moments may show one, three a local day
-//! per space across lessons, the same question after a reload, a skip that stores nothing, an
-//! answer written during a turn that lands before the reply and reaches the agent once as a
-//! [From earlier] line, Ask Teacher on one, the refusals, and the kept sentence a row brings back.
-//! The app clock is moved, so this file's tests run one at a time.
+//! Questions from earlier, end to end against a stand-in agent (gs-runtime's FakeAgent): which
+//! lessons and moments may show one, three a local day per space across lessons, the same question
+//! after a reload, a skip that stores nothing, an answer written during a turn that lands before
+//! the reply and reaches the agent once as a [From earlier] line, Ask Teacher on one, the
+//! refusals, and the kept sentence a row brings back. The app clock is moved, so this file's tests
+//! run one at a time.
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use gs_base::config::Paths;
 use gs_base::{clock, ids, time};
-use gs_core::messages::role::is_custom;
 use gs_core::messages::input_events::{About, ChatInput, TurnInput};
 use gs_core::messages::native_messages::dangling_question_of;
-use gs_engine::bridge::{AgentReply, WaitOptions};
+use gs_core::messages::role::is_custom;
 use gs_json::{Json, json, stringify};
+use gs_runtime::fake::{FakeAgent, FakeStep};
 use gs_services::App;
 use gs_services::app::agent_actions::recent_agent_actions;
+use gs_services::app::agents::use_runtime;
 use gs_services::turns::chat_handler::REVIEW_NOT_OPEN;
-use gs_services::turns::handle_chat_input;
-use gs_services::turns::is_turn_running;
-use gs_services::turns::review::{ReviewReply, answer_review, next_review, open_question, skip_review};
+use gs_services::turns::review::{ReviewReply, answer_review, next_review, skip_review};
+use gs_services::turns::turn_work::lesson_work;
+use gs_services::turns::{answer_approval, every_turn_rules_for, handle_chat_input, is_turn_running};
 use gs_store::graph::Ledger;
 
 const DAY_MS: i64 = 86_400_000;
@@ -29,9 +31,10 @@ const EARLIER: [(&str, &str); 4] = [("bayes", "Bayes' rule"), ("eig", "Eigenvalu
 static ONE_AT_A_TIME: Mutex<()> = Mutex::new(());
 
 /// An app over a fresh folder with one space whose earlier lesson holds four questions from
-/// earlier, removed when dropped.
+/// earlier, its lessons run on a stand-in agent, removed when dropped.
 struct Fixture {
 	app: Arc<App>,
+	agent: FakeAgent,
 	dir: PathBuf,
 	space_id: String,
 	_one: MutexGuard<'static, ()>,
@@ -45,8 +48,10 @@ impl Fixture {
 			std::fs::create_dir_all(dir.join(name)).unwrap();
 		}
 		let app = App::new(Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir.join("res")), None);
+		let agent = FakeAgent::default();
+		use_runtime(&app, agent.runtime());
 		let space_id = app.stores.spaces.create_space(&json!({ "name": "Machine Learning Foundations" })).unwrap()["id"].as_str().unwrap().to_owned();
-		let fx = Fixture { app, dir, space_id, _one: one };
+		let fx = Fixture { app, agent, dir, space_id, _one: one };
 		let earlier = fx.lesson(&[]);
 		let then = clock::now_ms() - 10 * DAY_MS;
 		let mut messages = Vec::new();
@@ -94,6 +99,34 @@ impl Fixture {
 		assert_eq!(answer_review(&self.app, chat_id, &question["of"], &graded()).unwrap(), ReviewReply::Done);
 		question
 	}
+
+	/// The permission question the turn waits on.
+	async fn approval(&self, chat_id: &str) -> String {
+		for _ in 0..2000 {
+			if let Some(id) = lesson_work(&self.app, chat_id).and_then(|w| w["approvals"][0]["id"].as_str().map(str::to_owned)) {
+				return id;
+			}
+			clock::sleep(5).await;
+		}
+		panic!("no permission question came");
+	}
+
+	/// The text parts of each turn the agent was sent.
+	fn sends(&self) -> Vec<Vec<String>> {
+		let sends = self.agent.sent().into_iter().filter(|m| m["type"].as_str() == Some("send"));
+		sends.map(|m| m["content"].items().iter().filter_map(|p| p["text"].as_str().map(str::to_owned)).collect()).collect()
+	}
+
+	/// The text parts of the last turn the agent was sent, without the learner's rules that close
+	/// every turn of a session that goes on.
+	fn input(&self, chat_id: &str) -> Vec<String> {
+		let mut parts = self.sends().pop().expect("a turn was sent");
+		let rules = every_turn_rules_for(&self.app, &self.app.stores.chats.get_chat(chat_id).unwrap());
+		if parts.last() == Some(&rules) {
+			parts.pop();
+		}
+		parts
+	}
 }
 
 impl Drop for Fixture {
@@ -132,12 +165,13 @@ async fn settled(app: &App, chat_id: &str) {
 	panic!("the turn never settled");
 }
 
-/// Answers the lesson's next work item with plain words; the whole transcript it was sent.
-async fn agent_says(app: &App, chat_id: &str, words: &str) -> Vec<Json> {
-	let opts = WaitOptions { conversation: Some(chat_id.to_owned()), full: true, ..WaitOptions::default() };
-	let view = app.bridge.wait_for_work(10_000, opts).await.expect("a work item");
-	app.bridge.respond_to_work(&view.work_id, AgentReply { text: Some(words.to_owned()), tool_calls: Vec::new() }, 0).unwrap();
-	view.messages
+fn says(words: &str) -> FakeStep {
+	FakeStep::Text(words.to_owned())
+}
+
+/// A permission question: the turn waits there until the test answers it.
+fn pause() -> FakeStep {
+	FakeStep::Approval { tool: "Bash".to_owned(), input: json!({ "command": "ls" }) }
 }
 
 async fn send(app: &Arc<App>, chat_id: &str, input: ChatInput) -> (u16, String) {
@@ -240,9 +274,11 @@ fn the_refusals() {
 async fn an_answer_during_a_turn_lands_before_the_reply_and_reaches_the_agent_once() {
 	let fx = Fixture::new();
 	let id = fx.lesson(&[]);
+	fx.agent.push(vec![pause(), says("A penalty makes large weights cost something.")]);
 	assert_eq!(send(&fx.app, &id, text("Teach me Regularization.", None)).await.0, 200);
+	let approval = fx.approval(&id).await;
 	let question = fx.answer(&id);
-	agent_says(&fx.app, &id, "A penalty makes large weights cost something.").await;
+	assert!(answer_approval(&fx.app, &id, &approval, true));
 	settled(&fx.app, &id).await;
 	let record = fx.messages(&id);
 	let marker = record.iter().position(|m| is_custom(m, "review")).unwrap();
@@ -251,17 +287,15 @@ async fn an_answer_during_a_turn_lands_before_the_reply_and_reaches_the_agent_on
 	assert_eq!(question["nodeId"], json!("bayes"));
 	assert_eq!(fx.next(&id), None, "the reply landed");
 
+	fx.agent.push(vec![says("Because the loss adds it.")]);
 	assert_eq!(send(&fx.app, &id, text("Why does it cost something?", None)).await.0, 200);
-	let seen = agent_says(&fx.app, &id, "Because the loss adds it.").await;
 	settled(&fx.app, &id).await;
-	let lines: Vec<String> = seen.iter().filter(|m| m["role"].as_str() == Some("user")).filter_map(|m| m["text"].as_str()).flat_map(|t| t.lines().map(str::to_owned).collect::<Vec<_>>()).filter(|l| l.starts_with("[From earlier]")).collect();
-	assert_eq!(lines, ["[From earlier] Bayes' rule right, sure 4 of 5."]);
-	assert!(seen.iter().all(|m| !stringify(m).contains("\"review\"")), "the marker itself never reaches the agent");
+	assert_eq!(fx.input(&id), ["[From earlier] Bayes' rule right, sure 4 of 5.", "Why does it cost something?"], "the line and his words; the marker itself never reaches the agent");
 
+	fx.agent.push(vec![says("Then we split the data.")]);
 	assert_eq!(send(&fx.app, &id, text("And then?", None)).await.0, 200);
-	let seen = agent_says(&fx.app, &id, "Then we split the data.").await;
 	settled(&fx.app, &id).await;
-	let told = seen.iter().filter(|m| m["text"].as_str().is_some_and(|t| t.contains("[From earlier]"))).count();
+	let told = fx.sends().concat().iter().filter(|p| p.contains("[From earlier]")).count();
 	assert_eq!(told, 1, "told once");
 }
 
@@ -273,10 +307,11 @@ async fn ask_teacher_sends_the_open_question_whole_and_refuses_another() {
 	let not_open = About::Review { of: json!({ "chatId": open["of"]["chatId"], "toolCallId": "t-none" }), picked: vec![] };
 	assert_eq!(send(&fx.app, &id, text("Is it A?", Some(not_open))).await, (400, stringify(&json!({ "error": REVIEW_NOT_OPEN }))));
 	let ask = About::Review { of: json!({ "chatId": open["of"]["chatId"], "toolCallId": open["of"]["toolCallId"] }), picked: vec!["B".into()] };
+	fx.agent.push(vec![says("Think about what the question asks.")]);
 	assert_eq!(send(&fx.app, &id, text("Is it A?", Some(ask))).await.0, 200);
-	let seen = agent_says(&fx.app, &id, "Think about what the question asks.").await;
 	settled(&fx.app, &id).await;
-	let note = seen.iter().filter_map(|m| m["text"].as_str()).find(|t| t.starts_with("[From earlier] He asked")).expect("the note");
+	let input = fx.input(&id);
+	let note = input.iter().find(|t| t.starts_with("[From earlier] He asked")).expect("the note");
 	assert_eq!(note, "[From earlier] He asked about this question from earlier before answering; it stays open and godspeed grades his answer. Bayes' rule: A question on bayes? Options: A; B. He picked B so far. Explanation: Because A. Answer his question without giving the answer away, and end your turn.");
 	assert_eq!(fx.next(&id), Some(open.clone()), "the reply landed, and a reload still shows the question it asked about");
 	assert_eq!(answer_review(&fx.app, &id, &open["of"], &graded()).unwrap(), ReviewReply::Done, "it stays open to answer");
@@ -286,19 +321,25 @@ async fn ask_teacher_sends_the_open_question_whole_and_refuses_another() {
 #[tokio::test(flavor = "multi_thread")]
 async fn ask_teacher_while_the_teachers_question_waits_behind_it_keeps_that_question_open() {
 	let fx = Fixture::new();
-	let now = clock::now_ms();
-	let teacher = json!({ "role": "assistant", "id": "m-teach", "content": [{ "type": "toolCall", "id": "q-teacher", "name": "quiz", "arguments": quiz("reg") }], "timestamp": now });
-	let id = fx.lesson(&[user("Study", now - 60_000), teacher]);
-	// The question from earlier showed while the turn ran; the teacher's quiz then landed behind it.
-	let open = open_question(&fx.app, &id, &fx.app.stores.chats.get_chat(&id).unwrap()).unwrap().expect("a question from earlier");
-	let ask = About::Review { of: json!({ "chatId": open["of"]["chatId"], "toolCallId": open["of"]["toolCallId"] }), picked: vec![] };
-	assert_eq!(send(&fx.app, &id, text("Why?", Some(ask))).await.0, 200);
-	let seen = agent_says(&fx.app, &id, "Think about what the question asks.").await;
+	let id = fx.lesson(&[]);
+	// The question from earlier shows while the turn runs; the teacher's quiz then lands behind it.
+	fx.agent.push(vec![pause(), FakeStep::Tool { name: "quiz".to_owned(), args: quiz("reg") }]);
+	assert_eq!(send(&fx.app, &id, text("Study", None)).await.0, 200);
+	let approval = fx.approval(&id).await;
+	let open = fx.next(&id).expect("a question from earlier");
+	assert!(answer_approval(&fx.app, &id, &approval, true));
 	settled(&fx.app, &id).await;
-	assert_eq!(dangling_question_of(&fx.messages(&id)).map(|d| d.tool_call_id).as_deref(), Some("q-teacher"), "the teacher's question still waits");
-	let seen = stringify(&Json::Arr(seen));
-	assert!(seen.contains("The learner asked a side question first") && !seen.contains("interrupted"), "the agent reads it as held, not interrupted: {seen}");
-	assert!(seen.contains("[From earlier] He asked about this question from earlier"), "the note still rides with it");
+	let teacher = dangling_question_of(&fx.messages(&id)).expect("the teacher's question").tool_call_id;
+
+	let ask = About::Review { of: json!({ "chatId": open["of"]["chatId"], "toolCallId": open["of"]["toolCallId"] }), picked: vec![] };
+	fx.agent.push(vec![says("Think about what the question asks.")]);
+	assert_eq!(send(&fx.app, &id, text("Why?", Some(ask))).await.0, 200);
+	settled(&fx.app, &id).await;
+	assert_eq!(dangling_question_of(&fx.messages(&id)).map(|d| d.tool_call_id), Some(teacher), "the teacher's question still waits");
+	let input = fx.input(&id);
+	assert_eq!(input.len(), 2, "the session that asked goes on with only the note and his words, nothing about its question: {input:?}");
+	assert!(input[0].starts_with("[From earlier] He asked about this question from earlier"), "the note still rides with it");
+	assert_eq!(input[1], "Why?");
 }
 
 /// A lesson where he kept two sentences on Bayes' rule, the first an hour before the second.

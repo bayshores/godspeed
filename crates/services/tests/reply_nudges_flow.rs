@@ -1,18 +1,18 @@
-//! Study's reply nudges against a stored lesson: each is sent once a topic, so the same reply sent
-//! again goes through; a new topic gets its own, an opener's curve too, and a curve in a quiz's
-//! question or a problem's statement; only a Study lesson gets any. A wall of prose after his own
-//! message or a miss is sent back once a learner input.
+//! Study's reply nudges against a stored lesson. A reply's words are shown as they come, so their
+//! nudges become notes for the next reply, each once a topic: a new topic gets its own, an
+//! opener's topic too. A curve in a quiz's question, a problem's statement or an opener's lead
+//! refuses that call, once a topic. Only a Study lesson gets any. A wall of prose after his own
+//! message or a miss is noted once a learner input.
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use gs_base::config::Paths;
 use gs_base::ids;
-use gs_core::study::reply_nudges::{Nudge, OPEN_PROBLEM_NOTE, wall_refusal};
-use gs_engine::bridge::ReplyCall;
+use gs_core::study::reply_nudges::{Nudge, OPEN_PROBLEM_NOTE, curve_refusal, wall_note};
 use gs_json::{Json, json};
 use gs_services::App;
-use gs_services::turns::reply_nudges::reply_refusal;
+use gs_services::turns::reply_nudges::{call_refusal, reply_notes};
 
 struct Fixture {
 	app: Arc<App>,
@@ -50,19 +50,40 @@ impl Drop for Fixture {
 const CURVE: &str = "| lambda | error |\n|---|---|\n| 0.1 | 9 |\n| 1 | 4 |\n| 10 | 6 |";
 const QUESTIONS: &str = "1. What is the score?\n2. Which lambda wins?";
 
+
+/// An assistant message with these words and calls.
+fn reply(text: Option<&str>, calls: &[(&str, Json)]) -> Json {
+	let words = text.map(|t| json!({ "type": "text", "text": t }));
+	let calls = calls.iter().enumerate().map(|(i, (name, arguments))| json!({ "type": "toolCall", "id": format!("c{i}"), "name": name, "arguments": arguments }));
+	json!({ "role": "assistant", "content": words.into_iter().chain(calls).collect::<Vec<_>>() })
+}
+
+/// The notes a reply's words leave for the next one.
+fn notes(fx: &Fixture, chat_id: &str, text: &str, calls: &[(&str, Json)]) -> Vec<String> {
+	reply_notes(&fx.app, chat_id, &reply(Some(text), calls), text)
+}
+
+/// Why the reply's first call is refused, or none.
+fn refusal(fx: &Fixture, chat_id: &str, text: Option<&str>, calls: &[(&str, Json)]) -> Option<String> {
+	let (name, args) = &calls[0];
+	call_refusal(&fx.app, chat_id, &reply(text, calls), name, args)
+}
+
+fn note(n: Nudge) -> String {
+	n.note().to_owned()
+}
+
 #[test]
-fn each_nudge_is_sent_once_a_topic() {
+fn each_nudge_is_noted_once_a_topic() {
 	let fx = Fixture::new();
 	let chat_id = fx.lesson(Some("study"));
 	let both = format!("{CURVE}\n\n{QUESTIONS}");
-	let refusal = reply_refusal(&fx.app, &chat_id, Some(&both), &[]);
-	assert_eq!(refusal.as_deref(), Some(format!("{}\n{}", Nudge::CurveTable.refusal(), Nudge::QuestionList.refusal()).as_str()));
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&both), &[]), None, "the same reply sent again goes through");
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(QUESTIONS), &[]), None, "this topic had its question nudge");
-
-	let next = ReplyCall { name: "quiz".to_owned(), arguments: json!({ "nodeId": "cv" }) };
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(QUESTIONS), &[next]).as_deref(), Some(Nudge::QuestionList.refusal()), "the next topic gets its own");
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some("Plain words."), &[]), None);
+	assert_eq!(notes(&fx, &chat_id, &both, &[]), [note(Nudge::CurveTable), note(Nudge::QuestionList)]);
+	assert!(notes(&fx, &chat_id, &both, &[]).is_empty(), "the same words again are not noted again");
+	assert!(notes(&fx, &chat_id, QUESTIONS, &[]).is_empty(), "this topic had its question nudge");
+	let next = [("quiz", json!({ "nodeId": "cv" }))];
+	assert_eq!(notes(&fx, &chat_id, QUESTIONS, &next), [note(Nudge::QuestionList)], "the next topic gets its own");
+	assert!(notes(&fx, &chat_id, "Plain words.", &[]).is_empty());
 }
 
 #[test]
@@ -70,34 +91,35 @@ fn an_opener_lead_is_checked_for_a_curve_on_the_topic_it_opens() {
 	let fx = Fixture::new();
 	let chat_id = fx.lesson(Some("study"));
 	let lines = "Here is one data set:\n\n- training error: 9.1, 6.0, 4.2, 3.1\n- validation error: 9.5, 7.0, 5.1, 6.8";
-	let done = |lead: &str| ReplyCall { name: "topic_done".to_owned(), arguments: json!({ "nodeId": "reg", "opener": { "lead": lead, "quiz": { "nodeId": "cv" } } }) };
-	assert_eq!(reply_refusal(&fx.app, &chat_id, None, &[done(lines)]).as_deref(), Some(Nudge::CurveTable.refusal()));
-	assert_eq!(reply_refusal(&fx.app, &chat_id, None, &[done(lines)]), None, "the same opener sent again goes through");
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(CURVE), &[ReplyCall { name: "quiz".to_owned(), arguments: json!({ "nodeId": "cv" }) }]), None, "the opened topic had its curve nudge");
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(CURVE), &[done("Next: folds.")]).as_deref(), Some(Nudge::CurveTable.refusal()), "the reply's own topic has its own");
+	let done = |lead: &str| ("topic_done", json!({ "nodeId": "reg", "opener": { "lead": lead, "quiz": { "nodeId": "cv" } } }));
+	assert_eq!(refusal(&fx, &chat_id, None, &[done(lines)]), Some(curve_refusal()));
+	assert_eq!(refusal(&fx, &chat_id, None, &[done(lines)]), None, "the same opener sent again goes through");
+	assert!(notes(&fx, &chat_id, CURVE, &[("quiz", json!({ "nodeId": "cv" }))]).is_empty(), "the opened topic had its curve nudge");
+	assert_eq!(notes(&fx, &chat_id, CURVE, &[done("Next: folds.")]), [note(Nudge::CurveTable)], "the reply's own topic has its own");
 }
 
 #[test]
 fn a_quiz_question_or_a_problem_statement_is_read_for_a_curve_on_the_replys_topic() {
 	let fx = Fixture::new();
 	let chat_id = fx.lesson(Some("study"));
-	let quiz = ReplyCall { name: "quiz".to_owned(), arguments: json!({ "nodeId": "reg", "question": format!("Which lambda wins?\n\n{CURVE}") }) };
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some("Look."), std::slice::from_ref(&quiz)).as_deref(), Some(Nudge::CurveTable.refusal()));
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some("Look."), &[quiz]), None, "the same reply sent again goes through");
-	let problem = ReplyCall { name: "problem".to_owned(), arguments: json!({ "nodeId": "cv", "statement": CURVE }) };
-	assert_eq!(reply_refusal(&fx.app, &chat_id, None, &[problem]).as_deref(), Some(Nudge::CurveTable.refusal()), "the next topic gets its own");
+	let quiz = ("quiz", json!({ "nodeId": "reg", "question": format!("Which lambda wins?\n\n{CURVE}") }));
+	assert_eq!(refusal(&fx, &chat_id, Some("Look."), std::slice::from_ref(&quiz)), Some(curve_refusal()));
+	assert_eq!(refusal(&fx, &chat_id, Some("Look."), &[quiz]), None, "the same call sent again goes through");
+	let problem = ("problem", json!({ "nodeId": "cv", "statement": CURVE }));
+	assert_eq!(refusal(&fx, &chat_id, None, &[problem]), Some(curve_refusal()), "the next topic gets its own");
 }
 
 #[test]
 fn a_reply_that_sends_a_plot_gets_no_curve_nudge() {
 	let fx = Fixture::new();
 	let chat_id = fx.lesson(Some("study"));
-	let plot = ReplyCall { name: "plot".to_owned(), arguments: json!({ "title": "t" }) };
-	let quiz = ReplyCall { name: "quiz".to_owned(), arguments: json!({ "nodeId": "reg", "question": CURVE }) };
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(CURVE), &[quiz, plot.clone()]), None);
+	let plot = ("plot", json!({ "title": "t" }));
+	let quiz = ("quiz", json!({ "nodeId": "reg", "question": CURVE }));
+	assert_eq!(refusal(&fx, &chat_id, Some(CURVE), &[quiz.clone(), plot.clone()]), None);
+	assert!(notes(&fx, &chat_id, CURVE, &[quiz, plot.clone()]).is_empty());
 	let both = format!("{CURVE}\n\n{QUESTIONS}");
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&both), &[plot]).as_deref(), Some(Nudge::QuestionList.refusal()), "the question nudge still stands");
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(CURVE), &[]).as_deref(), Some(Nudge::CurveTable.refusal()), "the topic's curve nudge is still due");
+	assert_eq!(notes(&fx, &chat_id, &both, &[plot]), [note(Nudge::QuestionList)], "the question nudge still stands");
+	assert_eq!(notes(&fx, &chat_id, CURVE, &[]), [note(Nudge::CurveTable)], "the topic's curve nudge is still due");
 }
 
 #[test]
@@ -105,9 +127,10 @@ fn only_a_study_lesson_is_nudged() {
 	let fx = Fixture::new();
 	for kind in [None, Some("practice")] {
 		let chat_id = fx.lesson(kind);
-		assert_eq!(reply_refusal(&fx.app, &chat_id, Some(CURVE), &[]), None, "{kind:?}");
+		assert!(notes(&fx, &chat_id, CURVE, &[]).is_empty(), "{kind:?}");
+		assert_eq!(refusal(&fx, &chat_id, None, &[("quiz", json!({ "nodeId": "reg", "question": CURVE }))]), None, "{kind:?}");
 	}
-	assert_eq!(reply_refusal(&fx.app, "chat_missing", Some(CURVE), &[]), None);
+	assert!(notes(&fx, "chat_missing", CURVE, &[]).is_empty());
 }
 
 #[test]
@@ -119,7 +142,7 @@ fn with_a_problem_open_the_question_list_says_its_parts_are_asked() {
 		json!({ "id": "r1", "role": "toolResult", "toolCallId": "p1", "toolName": "problem", "content": [], "details": {}, "isError": false }),
 	];
 	fx.record(&chat_id, &posed);
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(QUESTIONS), &[]), Some(format!("{} {OPEN_PROBLEM_NOTE}", Nudge::QuestionList.refusal())));
+	assert_eq!(notes(&fx, &chat_id, QUESTIONS, &[]), [format!("{} {OPEN_PROBLEM_NOTE}", Nudge::QuestionList.note())]);
 }
 
 /// A reply of `n` words of prose, then a table and code that are not counted.
@@ -128,27 +151,26 @@ fn wall(n: usize) -> String {
 }
 
 #[test]
-fn a_wall_after_his_own_message_is_sent_back_once_that_input() {
+fn a_wall_after_his_own_message_is_noted_once_that_input() {
 	let fx = Fixture::new();
 	let chat_id = fx.lesson(Some("study"));
 	let typed = |id: &str| json!({ "id": id, "role": "user", "content": "Why?", "timestamp": 1 });
 	let said = |id: &str| json!({ "id": id, "role": "assistant", "content": [{ "type": "text", "text": "Because." }] });
 	fx.record(&chat_id, &[typed("m0")]);
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(300)), &[]), None, "the first reply to the lesson's goal may be long");
+	assert!(notes(&fx, &chat_id, &wall(300), &[]).is_empty(), "the first reply to the lesson's goal may be long");
 	fx.record(&chat_id, &[typed("m0"), said("a0"), typed("m1")]);
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(150)), &[]), None, "150 words is not over");
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(151)), &[]), Some(wall_refusal(151)));
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(151)), &[]), None, "the same reply sent again goes through");
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(300)), &[]), None, "once that input");
+	assert!(notes(&fx, &chat_id, &wall(150), &[]).is_empty(), "150 words is not over");
+	assert_eq!(notes(&fx, &chat_id, &wall(151), &[]), [wall_note(151)]);
+	assert!(notes(&fx, &chat_id, &wall(300), &[]).is_empty(), "once that input");
 
 	fx.record(&chat_id, &[typed("m0"), said("a0"), typed("m1"), said("a1"), typed("m2")]);
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(200)), &[]), Some(wall_refusal(200)), "his next message gets its own");
+	assert_eq!(notes(&fx, &chat_id, &wall(200), &[]), [wall_note(200)], "his next message gets its own");
 	let both = format!("{}\n\n{QUESTIONS}", wall(200));
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&both), &[]), Some(Nudge::QuestionList.refusal().to_owned()), "the next reply for that input passes the wall; the question list still stands");
+	assert_eq!(notes(&fx, &chat_id, &both, &[]), [note(Nudge::QuestionList)], "the next reply for that input passes the wall; the question list still stands");
 }
 
 #[test]
-fn a_wall_after_a_right_card_answer_is_stored() {
+fn a_wall_after_a_right_card_answer_is_not_noted() {
 	let fx = Fixture::new();
 	let chat_id = fx.lesson(Some("study"));
 	let answered = |details: Json| {
@@ -158,7 +180,7 @@ fn a_wall_after_a_right_card_answer_is_stored() {
 		]
 	};
 	fx.record(&chat_id, &answered(json!({ "kind": "quiz", "correct": true })));
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(200)), &[]), None);
+	assert!(notes(&fx, &chat_id, &wall(200), &[]).is_empty());
 	fx.record(&chat_id, &answered(json!({ "kind": "quiz", "correct": false })));
-	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&wall(200)), &[]), Some(wall_refusal(200)), "a miss wants a short reply");
+	assert_eq!(notes(&fx, &chat_id, &wall(200), &[]), [wall_note(200)], "a miss wants a short reply");
 }

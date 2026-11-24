@@ -13,7 +13,7 @@ use gs_json::js_text::js_string;
 
 /// The wording for an aborted turn's unanswered calls. Kept verbatim so the model's view never
 /// drifts.
-const INTERRUPTED_TEXT: &str = "The question was interrupted — the learner never answered; continue without holding a result for it.";
+pub(super) const INTERRUPTED_TEXT: &str = "The question was interrupted — the learner never answered; continue without holding a result for it.";
 
 /// A one-text-part content array.
 fn text_content(text: impl Into<Json>) -> Json {

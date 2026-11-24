@@ -241,14 +241,14 @@ pub fn quiz_input_object() -> Json {
 
 /// The Study quiz input: the teach quiz plus `standalone`, which marks a quiz godspeed may ask
 /// again weeks later as a question from earlier, `onPlot`, which makes it the guess on the plot
-/// sent in the same reply, and `keep`, the sentence he keeps when he answers it right.
+/// sent in the same turn, and `keep`, the sentence he keeps when he answers it right.
 pub fn study_quiz_input_object() -> Json {
 	let mut schema = quiz_input_object();
 	if let Some(properties) = schema.get_mut("properties").and_then(Json::as_obj_mut) {
 		properties.insert("standalone", boolean("True when it makes sense weeks later with no lesson around it."));
 		let number = |description: &str| json!({ "type": "number", "description": description });
 		let on_plot = object(&["line", "x"], vec![("line", string("A line's label.")), ("x", number("The x the guess asks about.")), ("slider", number("The slider value; start if left out."))]);
-		properties.insert("onPlot", described(on_plot, "For the plot in this reply: the right option must name this line's value there."));
+		properties.insert("onPlot", described(on_plot, "For the plot in this turn: the right option must name this line's value there."));
 		properties.insert("keep", keep_schema());
 	}
 	schema
@@ -537,7 +537,7 @@ mod tests {
 		assert_eq!(study["properties"].as_obj().unwrap().keys().rev().take(3).map(String::as_str).collect::<Vec<_>>(), ["keep", "onPlot", "standalone"]);
 		assert_eq!(
 			stringify(&study["properties"]["onPlot"]),
-			r#"{"type":"object","required":["line","x"],"properties":{"line":{"type":"string","description":"A line's label."},"x":{"type":"number","description":"The x the guess asks about."},"slider":{"type":"number","description":"The slider value; start if left out."}},"description":"For the plot in this reply: the right option must name this line's value there."}"#
+			r#"{"type":"object","required":["line","x"],"properties":{"line":{"type":"string","description":"A line's label."},"x":{"type":"number","description":"The x the guess asks about."},"slider":{"type":"number","description":"The slider value; start if left out."}},"description":"For the plot in this turn: the right option must name this line's value there."}"#
 		);
 		assert_eq!(stringify(&study["properties"]["standalone"]), r#"{"type":"boolean","description":"True when it makes sense weeks later with no lesson around it."}"#);
 		assert_eq!(study["properties"]["keep"]["required"], json!(["text"]));

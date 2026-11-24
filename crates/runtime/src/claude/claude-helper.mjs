@@ -176,8 +176,7 @@ export function serve({ input, output, query = sdkQuery }) {
 		if (!session) return write({ type: "error", session: message.session ?? null, message: `no open session ${message.session}` });
 		switch (message.type) {
 			case "send":
-				// A steer joins the running turn after its current step; a send waits for the next turn.
-				return session.queue.push({ type: "user", message: { role: "user", content: message.content }, parent_tool_use_id: null, session_id: "", ...(message.steer ? { priority: "next" } : {}) });
+				return session.queue.push({ type: "user", message: { role: "user", content: message.content }, parent_tool_use_id: null, session_id: "" });
 			case "interrupt":
 				return control(session, (query) => query.interrupt());
 			case "model":

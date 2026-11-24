@@ -112,6 +112,29 @@ pub fn own_tool_step(tool: &str, subject: Option<&str>) -> Option<TeacherStep> {
 	Some(TeacherStep { text: short_label(&words), link: None })
 }
 
+/// A subject is cut to this many characters, as the folder's hook cuts it.
+const SUBJECT_MAX: usize = 80;
+
+/// One of the agent's own tools as its session names it: Claude Code's tool and input, or Codex's
+/// item type and item. The subject is cut so no folder, page address, query or command shows: a
+/// file's name, a site's name, the web search's words, or a search's words when they are plain.
+pub fn own_tool_input_step(name: &str, input: &Json) -> Option<TeacherStep> {
+	let field = |key: &str| input[key].str_or_empty();
+	let (tool, subject) = match name {
+		"WebSearch" => ("WebSearch", field("query").to_owned()),
+		"Read" => ("Read", field("file_path").rsplit(['/', '\\']).next().unwrap_or_default().to_owned()),
+		"Grep" if field("pattern").chars().all(|c| c.is_alphanumeric() || c == ' ') => ("Grep", field("pattern").to_owned()),
+		"WebFetch" => ("WebFetch", url::Url::parse(field("url")).ok().and_then(|u| u.host_str().map(str::to_owned)).unwrap_or_default()),
+		"commandExecution" => ("Bash", String::new()),
+		"fileChange" => ("apply_patch", String::new()),
+		"webSearch" => ("WebSearch", field("query").to_owned()),
+		other => (other, String::new()),
+	};
+	let one = subject.split_whitespace().collect::<Vec<_>>().join(" ");
+	let cut: String = one.chars().take(SUBJECT_MAX).collect();
+	own_tool_step(tool, Some(&cut))
+}
+
 /// A list of steps keeps this many; the oldest go first.
 pub const STEPS_MAX: usize = 40;
 
@@ -311,6 +334,20 @@ mod tests {
 		}
 		let long = words("WebSearch", Some(&"how to find the inverse of a matrix ".repeat(4))).unwrap_or_default();
 		assert_eq!(text::len16(&long), LABEL_MAX);
+	}
+
+	#[test]
+	fn a_session_s_own_tool_shows_only_its_subject() {
+		let words = |name: &str, input: Json| own_tool_input_step(name, &input).map(|step| step.text);
+		assert_eq!(words("Read", json!({ "file_path": "/Users/a/godspeed/spaces/CSE 29/HW7.pdf" })).as_deref(), Some("Reading HW7.pdf"));
+		assert_eq!(words("WebFetch", json!({ "url": "https://cse29.site/hw/7?x=1" })).as_deref(), Some("Reading cse29.site"));
+		assert_eq!(words("WebSearch", json!({ "query": "  cse 21\nhw7 " })).as_deref(), Some("Searching the web for “cse 21 hw7”"));
+		assert_eq!(words("Grep", json!({ "pattern": "due date" })).as_deref(), Some("Searching files for “due date”"));
+		assert_eq!(words("Grep", json!({ "pattern": "due.*date" })).as_deref(), Some("Searching files"), "a pattern that is not plain words is not shown");
+		assert_eq!(words("commandExecution", json!({ "command": "rm -rf ~" })).as_deref(), Some("Running a command"));
+		assert_eq!(words("fileChange", json!({ "changes": [] })).as_deref(), Some("Changing files"));
+		assert_eq!(words("webSearch", json!({ "query": "eigenvalues" })).as_deref(), Some("Searching the web for “eigenvalues”"));
+		assert_eq!(words("mcpToolCall", json!({})), None);
 	}
 
 	#[test]

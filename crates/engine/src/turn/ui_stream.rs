@@ -1,11 +1,11 @@
-//! One lesson turn as a background object whose views are SSE streams
-//!. The wire is the agent's own events:
+//! One lesson turn as a background object whose views are SSE streams. The wire is the turn's
+//! events, as the agent loop named them (the lesson's `SessionTurn` sends the same):
 //!
 //! ```text
 //! data: {"type":"agent_start"}\n\n … data: {"type":"agent_end","messages":[…]}\n\n data: [DONE]\n\n
 //! ```
 //!
-//! plus `{"type":"error","errorText"}` when the run could not start. Call ids are made unique
+//! plus `{"type":"error","errorText"}` when the turn could not start. Call ids are made unique
 //! first (call_ids.rs). The turn keeps a compact log for views that attach later: settled events
 //! as they are and only the latest `message_update`; live updates go out at most once per flush
 //! window, and anything pending goes out before the next settled event.
@@ -18,11 +18,9 @@ use gs_json::{Json, json, stringify};
 use parking_lot::Mutex;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
-use gs_core::messages::role::Role;
-use super::abort::Abort;
-use super::agent::Agent;
 use super::call_ids::ToolCallIdUniquifier;
 use super::events::AgentEvent;
+use super::session_turn::SessionTurn;
 
 /// The headers of a turn's SSE response (GET /api/chats/{id}/stream).
 pub const SSE_HEADERS: [(&str, &str); 3] = [("Content-Type", "text/event-stream"), ("Cache-Control", "no-cache, no-transform"), ("X-Accel-Buffering", "no")];
@@ -56,16 +54,15 @@ impl From<String> for SettleError {
 pub type SettleFailureFn = Box<dyn Fn(&SettleError, Option<&str>) + Send + Sync>;
 
 pub struct TurnSpec {
-	/// The turn's agent, built from the record for this turn.
-	pub agent: Arc<Agent>,
-	/// The error text views see when the run could not start (TS `onError`).
+	/// The turn, built from the record.
+	pub turn: Arc<SessionTurn>,
+	/// The error text views see when the turn could not start (TS `onError`).
 	pub on_error: Box<dyn Fn(&str) -> String + Send + Sync>,
 	/// The error text views see when `on_finish` failed.
 	pub on_settle_error: Box<dyn Fn(&SettleError) -> String + Send + Sync>,
 	/// Clean-up after a failed `on_finish`, with the error text already reported, if any.
 	pub on_settle_failure: SettleFailureFn,
-	/// Persist and finish: gets the agent's final transcript without system messages (ids as
-	/// the wire showed them); the caller saves the part past its own base.
+	/// Persist and finish: gets the turn's new messages (ids as the wire showed them).
 	pub on_finish: Box<dyn Fn(Vec<Json>) -> Result<(), SettleError> + Send + Sync>,
 	/// Every tool-call id the chat record already holds.
 	pub used_tool_call_ids: Vec<String>,
@@ -73,15 +70,13 @@ pub struct TurnSpec {
 	pub update_flush_ms: i64,
 }
 
-/// The running turn: `subscribe` for a view, `abort` for the remote kill.
+/// The running turn: `subscribe` for a view, `abort` for the remote kill, `turn` for steers and
+/// answers to permission questions.
 #[derive(Clone)]
 pub struct TurnHandle(Arc<Turn>);
 
 struct Turn {
 	spec: TurnSpec,
-	abort: Abort,
-	/// Messages in the agent before this run (history: their ids never change).
-	base: usize,
 	uniquifier: Mutex<ToolCallIdUniquifier>,
 	wire: Mutex<Wire>,
 }
@@ -122,11 +117,10 @@ impl Wire {
 /// Builds the turn without starting it: register the handle, then `start` it, so a turn that
 /// settles at once cannot settle before it is registered.
 pub fn run_pi_turn(spec: TurnSpec) -> TurnHandle {
-	let base = spec.agent.messages().len();
 	let uniquifier = Mutex::new(ToolCallIdUniquifier::new(spec.used_tool_call_ids.clone()));
-	let turn = Arc::new(Turn { spec, abort: Abort::new(), base, uniquifier, wire: Mutex::new(Wire::default()) });
+	let turn = Arc::new(Turn { spec, uniquifier, wire: Mutex::new(Wire::default()) });
 	let listener = Arc::downgrade(&turn);
-	turn.spec.agent.subscribe(Arc::new(move |event: &AgentEvent| {
+	turn.spec.turn.subscribe(Arc::new(move |event: &AgentEvent| {
 		if let Some(turn) = listener.upgrade() {
 			turn.handle(event.clone());
 		}
@@ -135,16 +129,16 @@ pub fn run_pi_turn(spec: TurnSpec) -> TurnHandle {
 }
 
 impl TurnHandle {
-	/// Runs the agent on from its transcript, in the background.
+	/// Runs the turn in the background.
 	pub fn start(&self) {
 		let turn = self.0.clone();
 		detach("turn", async move {
-			let Err(err) = turn.spec.agent.continue_run(turn.abort.clone()).await else { return };
+			let Err(err) = turn.spec.turn.run().await else { return };
 			if turn.wire.lock().settled {
 				eprintln!("[turn] error after settlement: {err}");
 				return;
 			}
-			eprintln!("[turn] agent loop failed: {err}");
+			eprintln!("[turn] the turn could not start: {err}");
 			let text = (turn.spec.on_error)(&err);
 			turn.wire.lock().reported_error = Some(text.clone());
 			turn.send(json!({ "type": "error", "errorText": text }));
@@ -169,11 +163,15 @@ impl TurnHandle {
 		rx
 	}
 
-	/// The remote kill: the loop's `agent_end` settles the turn as usual.
+	/// The remote kill: the turn's `agent_end` settles it as usual.
 	pub fn abort(&self) {
 		if !self.0.wire.lock().settled {
-			self.0.abort.abort();
+			self.0.spec.turn.abort();
 		}
+	}
+
+	pub fn turn(&self) -> &Arc<SessionTurn> {
+		&self.0.spec.turn
 	}
 }
 
@@ -237,10 +235,10 @@ impl Turn {
 		});
 	}
 
-	/// The settle seam: `on_finish` gets the agent's own final transcript.
+	/// The settle seam: `on_finish` gets the turn's own messages.
 	fn settle(self: &Arc<Self>) {
-		let all = self.spec.agent.messages();
-		let settled: Vec<Json> = self.uniquifier.lock().remap_settled(&all, self.base).into_iter().filter(|m| !Role::System.is(m)).collect();
+		let all = self.spec.turn.messages();
+		let settled: Vec<Json> = self.uniquifier.lock().remap_settled(&all, 0);
 		let Err(err) = (self.spec.on_finish)(settled) else { return };
 		eprintln!("[turn] settlement failed: {err}");
 		let reported = self.wire.lock().reported_error.clone();

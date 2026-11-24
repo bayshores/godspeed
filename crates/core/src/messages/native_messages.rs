@@ -1,7 +1,8 @@
 //! The lesson record's message shapes and what
 //! builds them. A message is the pi message plus our `id`; markers are `role: "custom"`. The
 //! scans, the side-question rules, the context cards and the model-facing projection live in the
-//! folder beside this file and are re-exported here under their TypeScript module's name.
+//! folder beside this file and are re-exported here under their TypeScript module's name, with
+//! the flat form an outside reader gets and what a lesson's agent session is sent each turn.
 
 use std::collections::HashSet;
 
@@ -16,16 +17,20 @@ use crate::session::question_core::compact_answer_for_model;
 use super::tool_calls;
 
 mod context_cards;
+mod flat;
 mod scans;
 mod side_questions;
 mod summary_guard;
 mod to_llm;
+mod turn_input;
 
+pub use flat::render_message;
 pub use context_cards::{space_card_text, space_files_text, new_space_context_message, new_graph_context_message, new_study_context_message};
 pub use scans::{ActiveProblem, DanglingQuestion, active_problem_of, dangling_question_of, has_probe_done, pending_problem_dismissal_of, problem_input_for_conclude, retry_context};
 pub use side_questions::{HeldQuestion, SIDE_ANSWER_LEAD, SIDE_PENDING_TEXT, is_side_turn, open_question_held, side_held_questions};
 pub use summary_guard::summary_folds_throw;
 pub use to_llm::to_llm_messages;
+pub use turn_input::turn_input;
 
 pub const SEND_TO_USER_TOOL: &str = "send_to_user";
 

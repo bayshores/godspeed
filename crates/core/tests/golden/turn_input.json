@@ -1,0 +1,688 @@
+[
+	{
+		"name": "a new lesson's first turn",
+		"messages": [
+			{
+				"id": "m_card",
+				"role": "custom",
+				"customType": "study-context",
+				"content": "[Study context] Sets and functions.",
+				"display": true,
+				"details": {},
+				"timestamp": 1
+			},
+			{
+				"id": "m_goal",
+				"role": "user",
+				"content": "Teach me injective functions",
+				"timestamp": 1
+			}
+		],
+		"seen": null,
+		"output": [
+			{
+				"type": "text",
+				"text": "[Study context] Sets and functions."
+			},
+			{
+				"type": "text",
+				"text": "Teach me injective functions"
+			}
+		]
+	},
+	{
+		"name": "an answer to the session's own question",
+		"messages": [
+			{
+				"id": "m_card",
+				"role": "custom",
+				"customType": "study-context",
+				"content": "[Study context] Sets and functions.",
+				"display": true,
+				"details": {},
+				"timestamp": 1
+			},
+			{
+				"id": "m_goal",
+				"role": "user",
+				"content": "Teach me injective functions",
+				"timestamp": 1
+			},
+			{
+				"id": "m_quiz",
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "One check first."
+					},
+					{
+						"type": "toolCall",
+						"id": "q1",
+						"name": "quiz",
+						"arguments": {
+							"question": "Is x² injective on ℝ?"
+						}
+					}
+				],
+				"api": "godspeed-agent",
+				"provider": "agent",
+				"model": "outside-agent",
+				"usage": {},
+				"stopReason": "toolUse",
+				"timestamp": 1
+			},
+			{
+				"id": "m_today",
+				"role": "custom",
+				"customType": "today-context",
+				"content": "[Today] Monday.",
+				"display": true,
+				"details": {},
+				"timestamp": 1
+			},
+			{
+				"id": "m_answer",
+				"role": "toolResult",
+				"toolCallId": "q1",
+				"toolName": "quiz",
+				"content": [
+					{
+						"type": "text",
+						"text": "{\"pick\":\"no\",\"correct\":true}"
+					}
+				],
+				"details": {},
+				"isError": false,
+				"timestamp": 1
+			}
+		],
+		"seen": "m_quiz",
+		"output": [
+			{
+				"type": "text",
+				"text": "[Today] Monday."
+			},
+			{
+				"type": "text",
+				"text": "The learner answered your open question: {\"pick\":\"no\",\"correct\":true}"
+			}
+		]
+	},
+	{
+		"name": "an answer among several names its question",
+		"messages": [
+			{
+				"id": "m_goal",
+				"role": "user",
+				"content": "Teach me injective functions",
+				"timestamp": 1
+			},
+			{
+				"id": "m_two",
+				"role": "assistant",
+				"content": [
+					{
+						"type": "toolCall",
+						"id": "q2",
+						"name": "quiz",
+						"arguments": {
+							"question": "What is f(2)?"
+						}
+					},
+					{
+						"type": "toolCall",
+						"id": "q3",
+						"name": "quiz",
+						"arguments": {
+							"question": "What is f(3)?"
+						}
+					}
+				],
+				"api": "godspeed-agent",
+				"provider": "agent",
+				"model": "outside-agent",
+				"usage": {},
+				"stopReason": "toolUse",
+				"timestamp": 1
+			},
+			{
+				"id": "m_side",
+				"role": "user",
+				"content": "why 3?",
+				"side": true,
+				"timestamp": 1
+			},
+			{
+				"id": "m_r3",
+				"role": "toolResult",
+				"toolCallId": "q3",
+				"toolName": "quiz",
+				"content": [
+					{
+						"type": "text",
+						"text": "{\"value\":9}"
+					},
+					{
+						"type": "image",
+						"data": "iVBORw0KGgo=",
+						"mimeType": "image/png"
+					}
+				],
+				"details": {},
+				"isError": false,
+				"timestamp": 1
+			}
+		],
+		"seen": "m_side",
+		"output": [
+			{
+				"type": "text",
+				"text": "The learner answered your open question (\"What is f(3)?\"): {\"value\":9}"
+			},
+			{
+				"type": "image",
+				"data": "iVBORw0KGgo=",
+				"mimeType": "image/png"
+			}
+		]
+	},
+	{
+		"name": "a typed message with a picture and a steer",
+		"messages": [
+			{
+				"id": "m_goal",
+				"role": "user",
+				"content": "Teach me injective functions",
+				"timestamp": 1
+			},
+			{
+				"id": "m_quiz",
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "One check first."
+					},
+					{
+						"type": "toolCall",
+						"id": "q1",
+						"name": "quiz",
+						"arguments": {
+							"question": "Is x² injective on ℝ?"
+						}
+					}
+				],
+				"api": "godspeed-agent",
+				"provider": "agent",
+				"model": "outside-agent",
+				"usage": {},
+				"stopReason": "toolUse",
+				"timestamp": 1
+			},
+			{
+				"id": "m_answer",
+				"role": "toolResult",
+				"toolCallId": "q1",
+				"toolName": "quiz",
+				"content": [
+					{
+						"type": "text",
+						"text": "{\"pick\":\"no\",\"correct\":true}"
+					}
+				],
+				"details": {},
+				"isError": false,
+				"timestamp": 1
+			},
+			{
+				"id": "m_typed",
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Here is my work"
+					},
+					{
+						"type": "image",
+						"data": "iVBORw0KGgo=",
+						"mimeType": "image/png"
+					}
+				],
+				"timestamp": 1
+			},
+			{
+				"id": "steer_1",
+				"role": "user",
+				"content": "also this",
+				"timestamp": 1
+			}
+		],
+		"seen": "m_answer",
+		"output": [
+			{
+				"type": "text",
+				"text": "Here is my work"
+			},
+			{
+				"type": "image",
+				"data": "iVBORw0KGgo=",
+				"mimeType": "image/png"
+			},
+			{
+				"type": "text",
+				"text": "also this"
+			}
+		]
+	},
+	{
+		"name": "markers go as text, view-only ones not at all",
+		"messages": [
+			{
+				"id": "m_goal",
+				"role": "user",
+				"content": "Teach me injective functions",
+				"timestamp": 1
+			},
+			{
+				"id": "m_keep",
+				"role": "custom",
+				"customType": "keep-going",
+				"content": "",
+				"display": true,
+				"details": {},
+				"timestamp": 1
+			},
+			{
+				"id": "m_next",
+				"role": "custom",
+				"customType": "practice-next",
+				"content": "[NEXT PROBLEM]",
+				"display": true,
+				"details": {},
+				"timestamp": 1
+			},
+			{
+				"id": "m_job",
+				"role": "custom",
+				"customType": "subagent-steer",
+				"content": "The figure is drawn.",
+				"attachments": [
+					{
+						"type": "image",
+						"data": "iVBORw0KGgo=",
+						"mimeType": "image/png"
+					}
+				],
+				"timestamp": 1
+			}
+		],
+		"seen": "m_goal",
+		"output": [
+			{
+				"type": "text",
+				"text": "[NEXT PROBLEM]"
+			},
+			{
+				"type": "text",
+				"text": "The figure is drawn."
+			},
+			{
+				"type": "image",
+				"data": "iVBORw0KGgo=",
+				"mimeType": "image/png"
+			}
+		]
+	},
+	{
+		"name": "a new session after a cut opens with the summary and the kept tail",
+		"messages": [
+			{
+				"id": "m_card",
+				"role": "custom",
+				"customType": "study-context",
+				"content": "[Study context] Sets and functions.",
+				"display": true,
+				"details": {},
+				"timestamp": 1
+			},
+			{
+				"id": "m_goal",
+				"role": "user",
+				"content": "Teach me injective functions",
+				"timestamp": 1
+			},
+			{
+				"id": "m_quiz",
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "One check first."
+					},
+					{
+						"type": "toolCall",
+						"id": "q1",
+						"name": "quiz",
+						"arguments": {
+							"question": "Is x² injective on ℝ?"
+						}
+					}
+				],
+				"api": "godspeed-agent",
+				"provider": "agent",
+				"model": "outside-agent",
+				"usage": {},
+				"stopReason": "toolUse",
+				"timestamp": 1
+			},
+			{
+				"id": "m_answer",
+				"role": "toolResult",
+				"toolCallId": "q1",
+				"toolName": "quiz",
+				"content": [
+					{
+						"type": "text",
+						"text": "{\"pick\":\"no\",\"correct\":true}"
+					}
+				],
+				"details": {},
+				"isError": false,
+				"timestamp": 1
+			},
+			{
+				"id": "m_cut",
+				"role": "custom",
+				"customType": "compaction",
+				"content": "[Summary] He knows injective maps.",
+				"details": {
+					"firstKeptMessageId": "m_quiz"
+				},
+				"timestamp": 1
+			},
+			{
+				"id": "m_more",
+				"role": "user",
+				"content": "Next?",
+				"timestamp": 1
+			}
+		],
+		"seen": null,
+		"output": [
+			{
+				"type": "text",
+				"text": "[Summary] He knows injective maps."
+			},
+			{
+				"type": "text",
+				"text": "{\"role\":\"assistant\",\"text\":\"One check first.\",\"toolCalls\":[{\"id\":\"q1\",\"name\":\"quiz\",\"arguments\":{\"question\":\"Is x² injective on ℝ?\"}}]}"
+			},
+			{
+				"type": "text",
+				"text": "{\"role\":\"toolResult\",\"toolCallId\":\"q1\",\"toolName\":\"quiz\",\"isError\":false,\"text\":\"{\\\"pick\\\":\\\"no\\\",\\\"correct\\\":true}\"}"
+			},
+			{
+				"type": "text",
+				"text": "Next?"
+			}
+		]
+	},
+	{
+		"name": "a new session with no cut gets the whole record",
+		"messages": [
+			{
+				"id": "m_card",
+				"role": "custom",
+				"customType": "study-context",
+				"content": "[Study context] Sets and functions.",
+				"display": true,
+				"details": {},
+				"timestamp": 1
+			},
+			{
+				"id": "m_goal",
+				"role": "user",
+				"content": "Teach me injective functions",
+				"timestamp": 1
+			},
+			{
+				"id": "m_quiz",
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "One check first."
+					},
+					{
+						"type": "toolCall",
+						"id": "q1",
+						"name": "quiz",
+						"arguments": {
+							"question": "Is x² injective on ℝ?"
+						}
+					}
+				],
+				"api": "godspeed-agent",
+				"provider": "agent",
+				"model": "outside-agent",
+				"usage": {},
+				"stopReason": "toolUse",
+				"timestamp": 1
+			},
+			{
+				"id": "m_answer",
+				"role": "toolResult",
+				"toolCallId": "q1",
+				"toolName": "quiz",
+				"content": [
+					{
+						"type": "text",
+						"text": "{\"pick\":\"no\",\"correct\":true}"
+					}
+				],
+				"details": {},
+				"isError": false,
+				"timestamp": 1
+			},
+			{
+				"id": "m_more",
+				"role": "user",
+				"content": "Next?",
+				"timestamp": 1
+			}
+		],
+		"seen": null,
+		"output": [
+			{
+				"type": "text",
+				"text": "[Study context] Sets and functions."
+			},
+			{
+				"type": "text",
+				"text": "Teach me injective functions"
+			},
+			{
+				"type": "text",
+				"text": "{\"role\":\"assistant\",\"text\":\"One check first.\",\"toolCalls\":[{\"id\":\"q1\",\"name\":\"quiz\",\"arguments\":{\"question\":\"Is x² injective on ℝ?\"}}]}"
+			},
+			{
+				"type": "text",
+				"text": "{\"role\":\"toolResult\",\"toolCallId\":\"q1\",\"toolName\":\"quiz\",\"isError\":false,\"text\":\"{\\\"pick\\\":\\\"no\\\",\\\"correct\\\":true}\"}"
+			},
+			{
+				"type": "text",
+				"text": "Next?"
+			}
+		]
+	},
+	{
+		"name": "a new session sees an unanswered question as interrupted and one behind a side question as open",
+		"messages": [
+			{
+				"id": "m_goal",
+				"role": "user",
+				"content": "Teach me injective functions",
+				"timestamp": 1
+			},
+			{
+				"id": "m_old",
+				"role": "assistant",
+				"content": [
+					{
+						"type": "toolCall",
+						"id": "q0",
+						"name": "quiz",
+						"arguments": {
+							"question": "Is ∅ a set?"
+						}
+					}
+				],
+				"api": "godspeed-agent",
+				"provider": "agent",
+				"model": "outside-agent",
+				"usage": {},
+				"stopReason": "toolUse",
+				"timestamp": 1
+			},
+			{
+				"id": "m_more",
+				"role": "user",
+				"content": "Next?",
+				"timestamp": 1
+			},
+			{
+				"id": "m_quiz",
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "One check first."
+					},
+					{
+						"type": "toolCall",
+						"id": "q1",
+						"name": "quiz",
+						"arguments": {
+							"question": "Is x² injective on ℝ?"
+						}
+					}
+				],
+				"api": "godspeed-agent",
+				"provider": "agent",
+				"model": "outside-agent",
+				"usage": {},
+				"stopReason": "toolUse",
+				"timestamp": 1
+			},
+			{
+				"id": "m_side",
+				"role": "user",
+				"content": "why 3?",
+				"side": true,
+				"timestamp": 1
+			}
+		],
+		"seen": null,
+		"output": [
+			{
+				"type": "text",
+				"text": "Teach me injective functions"
+			},
+			{
+				"type": "text",
+				"text": "{\"role\":\"assistant\",\"toolCalls\":[{\"id\":\"q0\",\"name\":\"quiz\",\"arguments\":{\"question\":\"Is ∅ a set?\"}}]}"
+			},
+			{
+				"type": "text",
+				"text": "{\"role\":\"toolResult\",\"toolCallId\":\"q0\",\"toolName\":\"quiz\",\"isError\":false,\"text\":\"The question was interrupted — the learner never answered; continue without holding a result for it.\"}"
+			},
+			{
+				"type": "text",
+				"text": "Next?"
+			},
+			{
+				"type": "text",
+				"text": "{\"role\":\"assistant\",\"text\":\"One check first.\",\"toolCalls\":[{\"id\":\"q1\",\"name\":\"quiz\",\"arguments\":{\"question\":\"Is x² injective on ℝ?\"}}]}"
+			},
+			{
+				"type": "text",
+				"text": "{\"role\":\"toolResult\",\"toolCallId\":\"q1\",\"toolName\":\"quiz\",\"isError\":false,\"text\":\"Not answered yet. The learner asked a side question first. Answer it. The question stays open in their window, so don't repeat it or ask another.\"}"
+			},
+			{
+				"type": "text",
+				"text": "why 3?"
+			}
+		]
+	},
+	{
+		"name": "a call godspeed wrote itself goes flat",
+		"messages": [
+			{
+				"id": "m_goal",
+				"role": "user",
+				"content": "Teach me injective functions",
+				"timestamp": 1
+			},
+			{
+				"id": "m_conc",
+				"role": "assistant",
+				"content": [
+					{
+						"type": "toolCall",
+						"id": "call_conc_p1",
+						"name": "conclude",
+						"arguments": {
+							"outcome": "dismissed"
+						}
+					}
+				],
+				"api": "godspeed-agent",
+				"provider": "agent",
+				"model": "outside-agent",
+				"usage": {},
+				"stopReason": "toolUse",
+				"timestamp": 1
+			},
+			{
+				"id": "m_ack",
+				"role": "toolResult",
+				"toolCallId": "call_conc_p1",
+				"toolName": "conclude",
+				"content": [
+					{
+						"type": "text",
+						"text": "Problem concluded."
+					}
+				],
+				"details": {},
+				"isError": false,
+				"timestamp": 1
+			},
+			{
+				"id": "m_next",
+				"role": "custom",
+				"customType": "practice-next",
+				"content": "[NEXT PROBLEM]",
+				"display": true,
+				"details": {},
+				"timestamp": 1
+			}
+		],
+		"seen": "m_goal",
+		"output": [
+			{
+				"type": "text",
+				"text": "{\"role\":\"assistant\",\"toolCalls\":[{\"id\":\"call_conc_p1\",\"name\":\"conclude\",\"arguments\":{\"outcome\":\"dismissed\"}}]}"
+			},
+			{
+				"type": "text",
+				"text": "{\"role\":\"toolResult\",\"toolCallId\":\"call_conc_p1\",\"toolName\":\"conclude\",\"isError\":false,\"text\":\"Problem concluded.\"}"
+			},
+			{
+				"type": "text",
+				"text": "[NEXT PROBLEM]"
+			}
+		]
+	}
+]

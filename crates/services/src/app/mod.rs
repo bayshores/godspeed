@@ -13,6 +13,7 @@ pub mod agent_actions;
 pub mod agent_folder;
 pub mod agent_memory;
 pub mod agent_rules;
+pub mod agents;
 pub mod boot;
 pub mod deadline_reminder;
 pub mod menu_bar_countdown;

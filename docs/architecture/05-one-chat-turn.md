@@ -1,16 +1,20 @@
 ## 5. One chat turn
 
-`handle_chat_input` (`services::turns::chat_handler`) is plain Rust over `App`. `AgentBuildOptions` is its test seam (scripted engines).
+`handle_chat_input` (`services::turns::chat_handler`) is plain Rust over `App`. Tests run lessons on gs-runtime's `FakeAgent` (`services::app::agents::use_runtime`, the `stand-in` feature).
 
 1. Window posts `{chatId, input}` to `POST /api/chat`. Input is one event: `text`, `answer`, `continue`, `side`, `next` (practice, study or homework), `open` (a homework problem picked by number) or `opener-answer` (`core::messages::input_events`). `dismiss-problem` is the only dismissal: it discards an open problem and never starts a turn.
 2. Handler turns input, or queued steers, into record appends.
 3. `begin_turn(chatId)` registers turn in `turn_liveness` (in memory). A turn already running gives 409; window waits for it to end and posts same input again, giving up after 30 s.
 4. `save_messages` writes input before anything streams (write-ahead).
-5. Handler builds lesson agent from record.
-6. Agent's events stream to window as SSE (`ui_stream`).
+5. Handler builds the turn's instructions and tools from the record (`lesson_setup`) and runs the turn on the lesson's agent session (`SessionTurn`, see below).
+6. The turn's events stream to window as SSE (`ui_stream`): each piece of the reply as it is written, at most every 100 ms.
 7. At turn end, `persist_turn` saves reply and `append_turn_usage` logs usage.
 8. `trigger_extraction` checks coverage and starts background extraction if enough teacher prose is uncovered (§6).
 9. `end_turn` runs last, on every path, so registry never stays locked.
+
+### The agent session
+
+Each lesson runs on its own session of the learner's agent: §5.3, [05.3-the-agent-session.md](05.3-the-agent-session.md).
 
 ### Question tools
 
@@ -44,7 +48,7 @@ One key is bright, the one Enter presses: Submit answer, or the ask key under ch
 - It posts a `side` input event, refused unless a question waits. The server saves it as a user message with `side: true` (`new_side_question`, `core::messages::native_messages`). Pictures and PDFs are stored like any message's.
 - Question stays open: `dangling_question_of` looks past side questions and their replies.
 - `is_side_turn` marks reply turn. A job result arriving after side question ends it.
-- A side turn keeps same tool list, so outside agent gets a small delta. Question tools, `problem` and `conclude` refuse (`side_turn_tools` in `agent::teacher::teacher_agent`). `plot` still draws, with no guess (see Plots).
+- A side turn keeps same tool list, so the agent's session keeps its tools. Question tools, `problem` and `conclude` refuse (`ToolHost::refuse`, set in `agent::teacher::teacher_agent`). `plot` still draws, with no guess (see Plots).
 - A side turn gets no `today-context` note and no job results (`services::turns::chat_handler`).
 - A figure or demo finishing while a side question holds open question is written into lesson at once, with no turn (`show_held_artifacts` in `services::jobs`). The question stays open; teacher reads it with answer.
 - In model's view question call gets a placeholder result at once, side question follows as a plain user message, and learner's later answer (or skip) arrives where it happened. Earlier model views stay a prefix of later ones.

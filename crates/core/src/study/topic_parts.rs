@@ -161,6 +161,12 @@ fn first_quoted(text: &str, message_id: Json, lead_of: Json) -> Json {
 const NO_PLOT: &str = "onPlot: no plot in this reply. Send the plot with it, or the guess alone without onPlot.";
 const WITH_THE_PLOT: &str = "quiz: refused with the plot above. Re-send both, or the guess alone without onPlot.";
 const AFTER_A_KEEP: &str = "plot: send it after one reply with no keep.";
+/// What the agent reads when the half of a pair it sent first waits for the other half.
+pub const PLOT_HELD: &str = "plot: held until its guess. Send quiz with onPlot next.";
+pub const GUESS_HELD: &str = "quiz: held until its plot. Send plot next.";
+/// The note before the next reply when a held half was dropped at the turn's end.
+pub const PLOT_DROPPED: &str = "plot: dropped, never shown. Its guess (quiz with onPlot) did not come in the same turn.";
+pub const GUESS_DROPPED: &str = "quiz: dropped, never shown. Its plot did not come in the same turn.";
 
 /// What the lesson-parts hook decides for one reply.
 #[derive(Default, Debug, PartialEq)]
@@ -171,6 +177,9 @@ pub struct PartsVerdict {
 	/// guess's call id and the drawn value it asks about (4 significant figures), or null for a
 	/// plot sent with no guess while a question is open.
 	pub on_plot: Option<(String, Json)>,
+	/// The half of a pair that passes alone and waits for its other half in the same turn: a
+	/// plot with nothing open, or a guess with no plot.
+	pub held: Option<String>,
 }
 
 /// Whether a question or problem waits for the learner in the stored record, other than one the
@@ -181,7 +190,8 @@ pub fn question_open(stored: &[Json], reply: &Json) -> bool {
 }
 
 /// The check on a reply's plot and its guess (`quiz.onPlot`), which pass or are refused as a pair,
-/// whatever order the reply lists them in: one plot and one guess, the guess a prediction whose
+/// whatever order the reply lists them in (the lesson-parts hook adds a half held from earlier in
+/// the turn to the reply). A half alone passes as held, to wait for the other: one plot and one guess, the guess a prediction whose
 /// right option names the drawn value, one plot a topic, and no kept sentence he saw in the topic's
 /// reply before it. While a question is open (`question_open`), the plot comes with no guess and
 /// no hidden line, and opens at once. `quiz_call` gives a quiz call's arguments as the quiz tool
@@ -204,6 +214,12 @@ pub fn reply_parts_problems(lesson_messages: &[Json], first_topic: Option<&str>,
 	let refuse_guesses = |verdict: &mut PartsVerdict, line: &str| verdict.refused.extend(guesses.iter().filter(|g| g.2).map(|g| (g.0.clone(), line.to_owned())));
 	let mut verdict = PartsVerdict::default();
 	let [plot_call] = plots.as_slice() else {
+		if let ([], [(guess_id, _, true)]) = (plots.as_slice(), guesses.as_slice())
+			&& !question_open
+		{
+			verdict.held = Some(guess_id.clone());
+			return verdict;
+		}
 		verdict.refused.extend(plots.iter().map(|p| (id(p), "plot: send one plot a reply.".to_owned())));
 		refuse_guesses(&mut verdict, if plots.is_empty() { NO_PLOT } else { WITH_THE_PLOT });
 		return verdict;
@@ -211,7 +227,7 @@ pub fn reply_parts_problems(lesson_messages: &[Json], first_topic: Option<&str>,
 	let checked = check_plot(&plot_call["arguments"]);
 	let mut problems = match guesses.len() {
 		0 if question_open => no_guess_problems(&plot_call["arguments"]),
-		0 => vec!["plot: needs a quiz with onPlot in the same reply.".to_owned()],
+		0 => Vec::new(),
 		_ if question_open => vec!["onPlot: a question is already open for him. Send the plot without a guess.".to_owned()],
 		1 => Vec::new(),
 		_ => vec!["plot: one guess per plot; give onPlot to one quiz.".to_owned()],
@@ -225,7 +241,11 @@ pub fn reply_parts_problems(lesson_messages: &[Json], first_topic: Option<&str>,
 	}
 	problems.extend(spacing_problems(lesson_messages, first_topic, reply));
 	if problems.is_empty() && checked.is_ok() && guesses.is_empty() {
-		verdict.on_plot = Some((id(plot_call), Json::Null));
+		if question_open {
+			verdict.on_plot = Some((id(plot_call), Json::Null));
+		} else {
+			verdict.held = Some(id(plot_call));
+		}
 		return verdict;
 	}
 	if problems.is_empty()
@@ -409,7 +429,7 @@ mod tests {
 	fn a_valid_pair_passes_in_either_order_with_the_drawn_value() {
 		for quiz_first in [true, false] {
 			let verdict = reply_parts_problems(&lesson(), PLAN, &pair(quiz_first, penalty_at_8(), "B"), false, &passes);
-			assert_eq!(verdict, PartsVerdict { refused: Vec::new(), on_plot: Some(("p3".to_owned(), json!({ "toolCallId": "q3", "value": 4.0 }))) });
+			assert_eq!(verdict, PartsVerdict { on_plot: Some(("p3".to_owned(), json!({ "toolCallId": "q3", "value": 4.0 }))), ..PartsVerdict::default() });
 		}
 		let at_slider = reply_parts_problems(&lesson(), PLAN, &pair(true, json!({ "line": "penalty", "x": 8, "slider": 3 }), "A"), false, &passes);
 		assert_eq!(at_slider.on_plot.unwrap().1["value"], json!(2.0));
@@ -458,7 +478,7 @@ mod tests {
 			reply_parts_problems(&lesson(), PLAN, &reply("r3", "", vec![call("q3", "quiz", quiz), call("p3", "plot", cv.clone())]), false, &passes)
 		};
 		let passed = ask("A", json!({ "line": "cv_error", "x": 5 }));
-		assert_eq!(passed, PartsVerdict { refused: Vec::new(), on_plot: Some(("p3".to_owned(), json!({ "toolCallId": "q3", "value": 0.3 }))) });
+		assert_eq!(passed, PartsVerdict { on_plot: Some(("p3".to_owned(), json!({ "toolCallId": "q3", "value": 0.3 }))), ..PartsVerdict::default() });
 		assert_eq!(ask("B", json!({ "line": "cv_error", "x": 5 })).refused[0].1, "correctAnswer: option B reads \"About 0.9.\" but cv_error at degree = 5 is 0.3. Fix the option or onPlot.");
 		assert_eq!(ask("A", json!({ "line": "cv_error", "x": 4 })).refused[0].1, "onPlot.x: cv_error has no point at degree = 4. Ask at one of its x values: 1, 3, 5, 9.");
 		assert_eq!(ask("A", json!({ "line": "cv_error", "x": 5, "slider": 1 })).refused[0].1, "onPlot.slider: the plot has no slider. Leave it out.");
@@ -476,7 +496,7 @@ mod tests {
 		let options = json!([{ "label": "About 500.", "value": "A" }, { "label": "About 0.", "value": "B" }]);
 		let quiz = json!({ "type": "predict", "nodeId": "reg", "question": "Where is it at 3?", "options": options, "explanation": "e", "correctAnswer": "A", "onPlot": { "line": "err", "x": 3 } });
 		let verdict = reply_parts_problems(&lesson(), PLAN, &reply("r3", "", vec![call("q3", "quiz", quiz), call("p3", "plot", wide)]), false, &passes);
-		assert_eq!(verdict, PartsVerdict { refused: Vec::new(), on_plot: Some(("p3".to_owned(), json!({ "toolCallId": "q3", "value": 500.0 }))) });
+		assert_eq!(verdict, PartsVerdict { on_plot: Some(("p3".to_owned(), json!({ "toolCallId": "q3", "value": 500.0 }))), ..PartsVerdict::default() });
 	}
 
 	/// The learner's open check quiz, then his side question.
@@ -498,8 +518,8 @@ mod tests {
 	fn while_a_question_is_open_a_plot_comes_with_no_guess_and_no_hidden_line() {
 		let shown = with_lines(json!([{ "label": "leash", "expr": "min(a, 4/(1+lambda))" }]));
 		let lone = reply("r3", "Here it is.", vec![call("p3", "plot", shown)]);
-		assert_eq!(reply_parts_problems(&lesson(), PLAN, &lone, true, &passes), PartsVerdict { refused: Vec::new(), on_plot: Some(("p3".to_owned(), Json::Null)) });
-		assert_eq!(reply_parts_problems(&lesson(), PLAN, &lone, false, &passes).refused[0].1, "plot: needs a quiz with onPlot in the same reply.", "nothing open: the refusal as before");
+		assert_eq!(reply_parts_problems(&lesson(), PLAN, &lone, true, &passes), PartsVerdict { on_plot: Some(("p3".to_owned(), Json::Null)), ..PartsVerdict::default() });
+		assert_eq!(reply_parts_problems(&lesson(), PLAN, &lone, false, &passes).held.as_deref(), Some("p3"), "nothing open: it waits for its guess");
 		let hidden = reply("r3", "Here it is.", vec![call("p3", "plot", plot_args())]);
 		assert_eq!(reply_parts_problems(&lesson(), PLAN, &hidden, true, &passes).refused, [("p3".to_owned(), "lines[0].hidden: needs a guess on the plot. Leave hidden out.".to_owned())]);
 		let guessed = reply_parts_problems(&lesson(), PLAN, &pair(true, penalty_at_8(), "B"), true, &passes);
@@ -519,11 +539,13 @@ mod tests {
 	}
 
 	#[test]
-	fn a_plot_needs_its_guess_and_a_guess_needs_its_plot() {
+	fn a_half_alone_waits_for_the_other_half() {
 		let lone_plot = reply("r3", "Look.", vec![call("p3", "plot", plot_args()), call("q3", "quiz", guess("B", Json::Null))]);
-		assert_eq!(reply_parts_problems(&lesson(), PLAN, &lone_plot, false, &passes).refused, [("p3".to_owned(), "plot: needs a quiz with onPlot in the same reply.".to_owned())], "the plain quiz stands");
+		assert_eq!(reply_parts_problems(&lesson(), PLAN, &lone_plot, false, &passes), PartsVerdict { held: Some("p3".to_owned()), ..PartsVerdict::default() }, "the plain quiz stands");
 		let lone_guess = reply("r3", "Guess.", vec![call("q3", "quiz", guess("B", penalty_at_8()))]);
-		assert_eq!(reply_parts_problems(&lesson(), PLAN, &lone_guess, false, &passes).refused, [("q3".to_owned(), NO_PLOT.to_owned())]);
+		assert_eq!(reply_parts_problems(&lesson(), PLAN, &lone_guess, false, &passes).held.as_deref(), Some("q3"));
+		assert_eq!(reply_parts_problems(&lesson(), PLAN, &lone_guess, true, &passes).refused, [("q3".to_owned(), NO_PLOT.to_owned())], "a question is open: no guess");
+		assert_eq!(reply_parts_problems(&lesson(), PLAN, &lone_guess, false, &|quiz| (quiz.clone(), false)), PartsVerdict::default(), "a guess that fails its own checks is theirs");
 		let plain = reply("r3", "Plain.", vec![call("q3", "quiz", guess("B", Json::Null))]);
 		assert_eq!(reply_parts_problems(&lesson(), PLAN, &plain, false, &passes), PartsVerdict::default());
 		let broken = json!({ "title": "t" });

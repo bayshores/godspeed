@@ -12,6 +12,7 @@ Read only the files your task touches. A "§N" in any doc is the file that start
 | [04-how-the-systems-talk.md](04-how-the-systems-talk.md) | You touch a protocol between window, server, shell or agent. |
 | [05-one-chat-turn.md](05-one-chat-turn.md) | You change a chat turn, question tools, side questions, attachments, the plan tree, jobs, compaction or the wake pipeline (§5.1). |
 | [05.2-the-lesson-page.md](05.2-the-lesson-page.md) | You change the lesson page's layout: its sheets, "Your turn" beside the text or pinned under it, where the page rests, the writing box. |
+| [05.3-the-agent-session.md](05.3-the-agent-session.md) | You change how a lesson's turn runs on the learner's agent: its session, what each turn sends, rollover, the reply checks, Stop, permission questions. |
 | [06-the-knowledge-graph.md](06-the-knowledge-graph.md) | You change extraction, merging, the graph read side or the Graph page. |
 | [06.1-spaces.md](06.1-spaces.md) | You change spaces, linked folders, deadlines, deadline requests, space checks or picking files on the Files page. |
 | [06.2-interviews-and-mocks.md](06.2-interviews-and-mocks.md) | You change interview, online assessment or test prep. |

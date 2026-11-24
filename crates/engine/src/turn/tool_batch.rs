@@ -1,55 +1,21 @@
 //! Running one assistant message's tool calls (pi-agent-core agent-loop.ts
 //! `executeToolCalls`): in parallel unless a called tool is sequential, each validated first,
-//! with pi's events and result messages.
+//! with pi's events and result messages. Each call is prepared and run as `tool_host` does it.
 
-use std::panic::AssertUnwindSafe;
-use std::sync::Arc;
-use std::time::Instant;
-
-use futures_util::FutureExt;
 use futures_util::future::join_all;
-use gs_base::num;
 use gs_json::Json;
 
 use super::abort::Abort;
-use super::agent::{Agent, BeforeToolCall};
+use super::agent::Agent;
 use super::events::AgentEvent;
-use super::messages::{error_tool_result, tool_result_message};
-use super::tool::{ExecutionMode, Tool, ToolContext};
-use super::validate::validate_tool_arguments;
+use super::messages::tool_result_message;
+use super::tool::ExecutionMode;
+use super::tool_host::{self, Finalized, Prepared, Reply, refused, run, text};
 
 /// The batch's result messages; `terminate` when every result asked to end the run.
 pub(super) struct Batch {
 	pub messages: Vec<Json>,
 	pub terminate: bool,
-}
-
-/// The assistant message whose calls run, and the transcript before it.
-#[derive(Clone, Copy)]
-pub(super) struct Reply<'a> {
-	pub before: &'a [Json],
-	pub message: &'a Json,
-}
-
-struct Finalized {
-	call: Json,
-	result: Json,
-	is_error: bool,
-	duration_ms: Option<f64>,
-}
-
-enum Prepared {
-	/// Refused before running: unknown tool, bad arguments, or aborted.
-	Immediate(Finalized),
-	Ready(Arc<dyn Tool>, Json),
-}
-
-fn text(v: &Json) -> String {
-	v.as_str().unwrap_or("undefined").to_owned()
-}
-
-fn refused(call: &Json, message: &str) -> Finalized {
-	Finalized { call: call.clone(), result: error_tool_result(message), is_error: true, duration_ms: None }
 }
 
 fn start(agent: &Agent, call: &Json) {
@@ -73,47 +39,8 @@ fn result_message(agent: &Agent, f: &Finalized) -> Json {
 	message
 }
 
-/// `prepareToolCall`: find the tool, prepare and validate its arguments, then ask the
-/// `before_tool_call` hook.
 fn prepare(agent: &Agent, reply: Reply, call: &Json, abort: &Abort) -> Prepared {
-	let name = text(&call["name"]);
-	let Some(tool) = agent.tools.iter().find(|t| t.name() == name) else {
-		return Prepared::Immediate(refused(call, &format!("Tool {name} not found")));
-	};
-	let args = match tool.prepare_arguments(call["arguments"].clone()) {
-		Ok(args) => args,
-		Err(message) => return Prepared::Immediate(refused(call, &message)),
-	};
-	let validated = match validate_tool_arguments(&name, tool.parameters(), &args) {
-		Ok(validated) => validated,
-		Err(message) => return Prepared::Immediate(refused(call, &message)),
-	};
-	let blocked = agent.before_tool_call.as_ref().and_then(|hook| hook(&BeforeToolCall { messages: reply.before, message: reply.message, call, args: &validated }));
-	match blocked {
-		Some(reason) => Prepared::Immediate(refused(call, &reason)),
-		None if abort.is_aborted() => Prepared::Immediate(refused(call, "Operation aborted")),
-		None => Prepared::Ready(tool.clone(), validated),
-	}
-}
-
-/// `executePreparedToolCall`: a failed call (or a panic in the tool) becomes an error result.
-async fn run(tool: &dyn Tool, call: &Json, args: Json, abort: &Abort) -> Finalized {
-	let started = Instant::now();
-	let ctx = ToolContext { tool_call_id: text(&call["id"]), abort: abort.clone() };
-	let outcome = AssertUnwindSafe(tool.execute(args, ctx)).catch_unwind().await;
-	let duration_ms = Some(num::math_round(started.elapsed().as_secs_f64() * 1000.0));
-	let (result, is_error) = match outcome {
-		Ok(Ok(result)) => {
-			let is_error = result["isError"] == Json::Bool(true);
-			(result, is_error)
-		}
-		Ok(Err(message)) => (error_tool_result(&message), true),
-		Err(panic) => {
-			let message = panic.downcast_ref::<&str>().map(|s| (*s).to_owned()).or_else(|| panic.downcast_ref::<String>().cloned()).unwrap_or_else(|| "The tool failed.".to_owned());
-			(error_tool_result(&message), true)
-		}
-	};
-	Finalized { call: call.clone(), result, is_error, duration_ms }
+	tool_host::prepare(&agent.tools, agent.before_tool_call.as_ref(), reply, call, abort)
 }
 
 fn terminates(calls: &[Finalized]) -> bool {
@@ -197,11 +124,14 @@ pub(super) fn fail_truncated_calls(agent: &Agent, calls: &[Json]) -> Batch {
 
 #[cfg(test)]
 mod tests {
+	use std::sync::Arc;
+
 	use futures_util::future::BoxFuture;
 	use gs_json::{Json, json};
 
 	use super::*;
 	use crate::turn::agent::AgentOptions;
+	use crate::turn::tool::{Tool, ToolContext};
 	use crate::turn::faux::{Engine, Scripted, faux_model};
 
 	struct Refusing(Json);

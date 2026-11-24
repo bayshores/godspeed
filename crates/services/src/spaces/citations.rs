@@ -116,6 +116,13 @@ pub async fn cited_passage(app: &App, file_id: &str, range: &str, quote: Option<
 	Ok(json!({ "name": file["name"], "range": range, "page": page.map_or(Json::Null, Json::from), "text": text, "marks": marks.unwrap_or(Json::Null) }))
 }
 
+/// What the teacher is told about the marks its text lost: removed marks, then dropped quotes.
+pub fn mark_notes(checked: &CheckedMarks) -> String {
+	let removed = (!checked.removed.is_empty()).then(|| format!("Removed source marks that don't point at a passage of a space file: {}. Use ids from search_space_files.", checked.removed.join(", ")));
+	let dropped = checked.dropped.iter().map(|d| format!("Dropped quote \"{}\" from {}: {}", d.quote, d.mark, d.miss.reason()));
+	removed.into_iter().chain(dropped).collect::<Vec<_>>().join(" ")
+}
+
 /// The place of passage `n` of a space file (its id is `<file_id>:<n>`), as `cited_passage`
 /// takes it; None when there is no such passage.
 pub fn passage_range(app: &App, file_id: &str, n: &str) -> Option<String> {
@@ -259,6 +266,28 @@ mod tests {
 
 	use super::*;
 	use crate::app::test_support::{scratch_dir, test_app};
+
+	#[test]
+	fn the_note_names_removed_marks_then_each_dropped_quote() {
+		let drop = |quote: &str, miss| DroppedQuote { mark: "f_1a2b3c4d5e6f:7".to_owned(), quote: quote.to_owned(), miss };
+		let checked = CheckedMarks {
+			text: String::new(),
+			removed: vec!["f_000000000000:9".to_owned()],
+			dropped: vec![drop("degree 12", QuoteMiss::Absent), drop("p + 1", QuoteMiss::Twice), drop("a[i]", QuoteMiss::Unsafe), drop("degree", QuoteMiss::Shape)],
+		};
+		assert_eq!(
+			mark_notes(&checked),
+			[
+				"Removed source marks that don't point at a passage of a space file: f_000000000000:9. Use ids from search_space_files.",
+				"Dropped quote \"degree 12\" from f_1a2b3c4d5e6f:7: not in that passage. Copy the words exactly.",
+				"Dropped quote \"p + 1\" from f_1a2b3c4d5e6f:7: found twice in that passage; quote a few more words.",
+				"Dropped quote \"a[i]\" from f_1a2b3c4d5e6f:7: no [ ] backtick or $ in a quote; quote nearby plain words.",
+				"Dropped quote \"degree\" from f_1a2b3c4d5e6f:7: a quote is 2 or more words, or one code expression, at most 80 characters.",
+			]
+			.join(" ")
+		);
+		assert_eq!(mark_notes(&CheckedMarks::default()), "");
+	}
 
 	const NOTES: &str = "f_aaaaaaaaaaaa";
 	const SLIDES: &str = "f_bbbbbbbbbbbb";

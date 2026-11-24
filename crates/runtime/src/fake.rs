@@ -1,6 +1,8 @@
-//! A stand-in agent that plays scripted turns. It speaks the Claude helper's protocol, so
-//! godspeed's own code runs as it does with Claude Code. For other crates' tests and
-//! `npm run layout`.
+//! A stand-in agent that plays scripted turns. It speaks the Claude helper's JSON-lines protocol
+//! or `codex app-server`'s JSON-RPC, so godspeed's own code runs as it does with either agent. For
+//! other crates' tests and `npm run layout`.
+
+mod codex;
 
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
@@ -11,6 +13,7 @@ use gs_json::{Json, json, stringify};
 use parking_lot::Mutex;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, WriteHalf};
 
+use crate::claude::protocol::TOOL_SERVER;
 use crate::pipes::Started;
 use crate::session::Runtime;
 
@@ -20,11 +23,16 @@ pub enum FakeStep {
 	/// Reply text, streamed a word at a time, then whole.
 	Text(String),
 	/// A godspeed tool call. The turn waits for godspeed's answer, and ends there if the answer
-	/// ends the turn.
+	/// ends the turn (as interrupted, over Codex, where godspeed does the interrupting).
 	Tool { name: String, args: Json },
-	/// A permission question. The turn waits for the answer.
+	/// Several godspeed calls in one message, as Claude Code sends a step's calls: the message
+	/// first, then each call in turn, each waiting for godspeed's answer like `Tool`. Codex has no
+	/// such message, so there they are only a run of `Tool` steps.
+	Calls(Vec<(String, Json)>),
+	/// A permission question. The turn waits for the answer. Over Codex it asks to run the
+	/// command in `input`, or one named `tool`.
 	Approval { tool: String, input: Json },
-	/// One of the agent's own tools, started and done.
+	/// One of the agent's own tools, started and done. Over Codex it is a command execution.
 	OwnTool { name: String, input: Json },
 	/// The turn fails with this text.
 	Fail(String),
@@ -48,19 +56,37 @@ impl FakeAgent {
 		FakeAgent { script: Arc::new(Mutex::new(Script { turns: turns.into(), sent: Vec::new() })) }
 	}
 
-	/// Every message godspeed sent the agent, in order, as the Claude helper reads them.
+	/// Adds a turn after the ones already scripted.
+	pub fn push(&self, turn: Vec<FakeStep>) {
+		self.script.lock().turns.push_back(turn);
+	}
+
+	/// Every message godspeed sent the agent, in order, as the agent reads them: helper lines or
+	/// JSON-RPC messages.
 	pub fn sent(&self) -> Vec<Json> {
 		self.script.lock().sent.clone()
 	}
 
-	/// A runtime on this agent. It starts a new stand-in after the last one stopped, as a real
-	/// runtime starts the agent again.
+	/// A runtime on this agent, as Claude Code. It starts a new stand-in after the last one
+	/// stopped, as a real runtime starts the agent again.
 	pub fn runtime(&self) -> Runtime {
+		self.runtime_on(FolderAgent::Claude)
+	}
+
+	/// A runtime on this agent, as Codex.
+	pub fn codex_runtime(&self) -> Runtime {
+		self.runtime_on(FolderAgent::Codex)
+	}
+
+	fn runtime_on(&self, folder_agent: FolderAgent) -> Runtime {
 		let agent = self.clone();
-		Runtime::from_pipes(FolderAgent::Claude, move || {
+		Runtime::from_pipes(folder_agent, move || {
 			let (ours, theirs) = tokio::io::duplex(1 << 16);
 			let (reader, writer) = tokio::io::split(ours);
-			tasks::detach("fake agent", agent.clone().play(theirs));
+			match folder_agent {
+				FolderAgent::Claude => tasks::detach("fake agent", agent.clone().play(theirs)),
+				FolderAgent::Codex => tasks::detach("fake agent", codex::play(agent.clone(), theirs)),
+			}
 			Started { reader: Box::new(reader), writer: Box::new(writer), process: None }
 		})
 	}
@@ -79,9 +105,11 @@ impl FakeAgent {
 	}
 }
 
-/// A session's turn under way: the steps left, and the call or question it waits on.
+/// A session's turn under way: the steps left, the calls of a `Calls` step not yet made (id,
+/// name, arguments), and the call or question it waits on.
 struct Playing {
 	steps: VecDeque<FakeStep>,
+	calls: VecDeque<(String, String, Json)>,
 	waiting: Option<String>,
 }
 
@@ -110,9 +138,9 @@ impl Player {
 				let native = message["resume"].as_str().map_or_else(|| format!("fake-{session}"), str::to_owned);
 				self.write(json!({ "type": "opened", "session": session, "nativeId": native })).await
 			}
-			Some("send") if !message["steer"].truthy() => {
+			Some("send") => {
 				let steps = self.agent.script.lock().turns.pop_front().unwrap_or_default();
-				self.turns.insert(session.clone(), Playing { steps: steps.into(), waiting: None });
+				self.turns.insert(session.clone(), Playing { steps: steps.into(), calls: VecDeque::new(), waiting: None });
 				self.sdk(&session, json!({ "type": "system", "subtype": "init" })).await?;
 				self.advance(&session).await
 			}
@@ -139,6 +167,10 @@ impl Player {
 	/// Plays steps until one waits for godspeed, or the turn is over.
 	async fn advance(&mut self, session: &str) -> std::io::Result<()> {
 		loop {
+			if let Some((id, name, args)) = self.turns.get_mut(session).and_then(|playing| playing.calls.pop_front()) {
+				self.write(json!({ "type": "tool_call", "id": id, "session": session, "toolUseId": format!("toolu_{id}"), "name": name, "args": args })).await?;
+				return self.wait(session, id);
+			}
 			let Some(step) = self.turns.get_mut(session).and_then(|playing| playing.steps.pop_front()) else { return self.finish(session, None).await };
 			let id = self.next_id.to_string();
 			self.next_id += 1;
@@ -157,6 +189,14 @@ impl Player {
 				FakeStep::Tool { name, args } => {
 					self.write(json!({ "type": "tool_call", "id": id, "session": session, "toolUseId": format!("toolu_{id}"), "name": name, "args": args })).await?;
 					return self.wait(session, id);
+				}
+				FakeStep::Calls(calls) => {
+					let calls: Vec<(String, String, Json)> = calls.into_iter().enumerate().map(|(i, (name, args))| (format!("{id}.{i}"), name, args)).collect();
+					let blocks: Vec<Json> = calls.iter().map(|(id, name, args)| json!({ "type": "tool_use", "id": format!("toolu_{id}"), "name": format!("mcp__{TOOL_SERVER}__{name}"), "input": args })).collect();
+					self.sdk(session, json!({ "type": "assistant", "message": { "content": blocks } })).await?;
+					if let Some(playing) = self.turns.get_mut(session) {
+						playing.calls = calls.into();
+					}
 				}
 				FakeStep::Approval { tool, input } => {
 					self.write(json!({ "type": "approval", "id": id, "session": session, "tool": tool, "input": input, "toolUseId": format!("toolu_{id}") })).await?;
@@ -247,6 +287,68 @@ mod tests {
 			}
 		};
 		assert_eq!(events_until_end(&session).await.1, End::Interrupted);
+		session.send(&[Part::Text("again".into())]).await.unwrap();
+		assert_eq!(events_until_end(&session).await.1, End::Failed("overloaded".into()));
+	}
+
+	#[tokio::test]
+	async fn a_scripted_turn_plays_over_codex_as_app_server_messages() {
+		let agent = FakeAgent::new(vec![vec![
+			FakeStep::OwnTool { name: "Read".into(), input: json!({ "file_path": "notes.md" }) },
+			FakeStep::Approval { tool: "Bash".into(), input: json!({ "command": "ls" }) },
+			FakeStep::Text("Here is a question.".into()),
+			FakeStep::Tool { name: "ask_question".into(), args: json!({ "question": "2 + 2?" }) },
+			FakeStep::Text("never played".into()),
+		]]);
+		let runtime = agent.codex_runtime();
+		assert_eq!(runtime.agent(), FolderAgent::Codex);
+		let session = runtime.open(spec(None)).await.unwrap();
+		assert_eq!(session.native_id(), "fake-thread-1");
+		session.send(&[Part::Text("Teach me".into())]).await.unwrap();
+		let mut text = String::new();
+		let mut own = Vec::new();
+		let end = loop {
+			match session.next().await.unwrap() {
+				SessionEvent::TextDelta(delta) => text.push_str(&delta),
+				SessionEvent::OwnTool { name, done, .. } => own.push((name, done)),
+				SessionEvent::Approval { ask, reply } => {
+					assert_eq!(ask, Ask::Command { command: "ls".into(), cwd: "/work".into(), reason: None });
+					reply.send(Verdict { allow: true, message: None }).unwrap();
+				}
+				SessionEvent::ToolCall { call, reply } => {
+					assert_eq!((call.name.as_str(), &call.args), ("ask_question", &json!({ "question": "2 + 2?" })));
+					reply.send(ToolReply { content: vec![Part::Text("Shown.".into())], is_error: false, ends_turn: true }).unwrap();
+				}
+				SessionEvent::Ended(end) => break end,
+				_ => {}
+			}
+		};
+		assert_eq!(end, End::Completed);
+		assert_eq!(text, "Here is a question.");
+		let command = |done| ("commandExecution".to_owned(), done);
+		assert_eq!(own, [command(false), command(true), command(false), command(true)]);
+		let sent: Vec<String> = agent.sent().iter().map(|m| m["method"].as_str().unwrap_or("answer").to_owned()).collect();
+		assert_eq!(sent, ["initialize", "initialized", "thread/start", "turn/start", "answer", "answer", "turn/interrupt"]);
+	}
+
+	#[tokio::test]
+	async fn a_steer_during_a_waiting_approval_reaches_codex_and_a_failing_turn_ends_failed() {
+		let agent = FakeAgent::new(vec![vec![FakeStep::Approval { tool: "Bash".into(), input: json!({ "command": "ls" }) }, FakeStep::Text("done".into())], vec![FakeStep::Fail("overloaded".into())]]);
+		let runtime = agent.codex_runtime();
+		let session = runtime.open(spec(Some("old-thread"))).await.unwrap();
+		assert_eq!(session.native_id(), "old-thread", "a resumed thread keeps its id");
+		session.send(&[Part::Text("go".into())]).await.unwrap();
+		let reply = loop {
+			if let SessionEvent::Approval { reply, .. } = session.next().await.unwrap() {
+				break reply;
+			}
+		};
+		session.steer(&[Part::Text("also this".into())]).await.unwrap();
+		let steers: Vec<Json> = agent.sent().into_iter().filter(|m| m["method"].as_str() == Some("turn/steer")).collect();
+		assert_eq!(steers.len(), 1);
+		assert_eq!(steers[0]["params"]["input"][0]["text"].as_str(), Some("also this"));
+		reply.send(Verdict { allow: true, message: None }).unwrap();
+		assert_eq!(events_until_end(&session).await.1, End::Completed);
 		session.send(&[Part::Text("again".into())]).await.unwrap();
 		assert_eq!(events_until_end(&session).await.1, End::Failed("overloaded".into()));
 	}

@@ -1,4 +1,4 @@
-//! /api/boot, /api/settings, /api/settings/{section} (PUT and PATCH), /api/settings/prompts, /api/settings/prompts/{*segment}, /api/agent-folder, /api/agent-notes, /api/agent-actions, /api/teacher-chats, /api/rules, /api/reading, /api/cited/{file_id}, /api/cited/{file_id}/page/{n}.
+//! /api/boot, /api/settings, /api/settings/{section} (PUT and PATCH), /api/settings/prompts, /api/settings/prompts/{*segment}, /api/agent-folder (GET, POST and PATCH), /api/agent-notes, /api/agent-actions, /api/teacher-chats, /api/rules, /api/reading, /api/cited/{file_id}, /api/cited/{file_id}/page/{n}.
 
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ use gs_core::records::agent_rules::parse_where;
 use gs_json::{Json, json};
 use gs_services::App;
 use gs_core::spaces::agent_folder::FolderAgent;
-use gs_services::app::agent_folder::{SetUpError, agent_folder_view, dismiss_folder_notice, set_start_command, set_up_agent_folder};
+use gs_services::app::agent_folder::{SetUpError, agent_folder_view, dismiss_folder_notice, set_folder_agent, set_start_command, set_up_agent_folder};
 use gs_services::app::agent_memory::agent_notes_view;
 use gs_services::app::agent_rules::{RuleFailure, agent_saved_rules, edit_rule, remove_rule};
 use gs_services::app::boot::boot_info;
@@ -33,7 +33,7 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/settings/prompts", ApiRoute::new().get(prompts).into_route())
 		.route("/api/settings/prompts/{*segment}", ApiRoute::new().put(save_prompt).delete(reset_prompt).into_route())
 		.route("/api/settings/{section}", ApiRoute::new().put(put_section).patch(patch_section).into_route())
-		.route("/api/agent-folder", ApiRoute::new().get(agent_folder).post(change_agent_folder).into_route())
+		.route("/api/agent-folder", ApiRoute::new().get(agent_folder).post(change_agent_folder).patch(pick_agent).into_route())
 		.route("/api/agent-notes", ApiRoute::new().get(notes).delete(remove_note).into_route())
 		.route("/api/agent-actions", ApiRoute::new().get(actions).into_route())
 		.route("/api/teacher-chats", ApiRoute::new().get(teacher_chats).delete(forget_teacher_chat).into_route())
@@ -95,11 +95,7 @@ async fn change_agent_folder(State(app): State<Arc<App>>, body: Body) -> Result<
 			Err(message) => error(500, &format!("Couldn't remove it: {message}")),
 		}),
 		Some("set-start-command") => {
-			let agent = match body["agent"].as_str() {
-				Some("claude") => Some(FolderAgent::Claude),
-				Some("codex") => Some(FolderAgent::Codex),
-				_ => None,
-			};
+			let agent = body["agent"].as_str().and_then(FolderAgent::from_name);
 			match (agent, body["command"].as_str()) {
 				(Some(agent), Some(command)) => changed(set_start_command(&app, agent, command)),
 				_ => Ok(error(400, "agent must be \"claude\" or \"codex\", and command a string")),
@@ -115,6 +111,13 @@ async fn change_agent_folder(State(app): State<Arc<App>>, body: Body) -> Result<
 		}
 		_ => Ok(error(400, "action must be \"setup\", \"set-start-command\", \"dismiss-notice\" or \"remove-old-setup\"")),
 	}
+}
+
+/// PATCH /api/agent-folder `{agent}`: the agent that runs the lessons, "claude" or "codex".
+async fn pick_agent(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhandled> {
+	let body = fields(body).await?;
+	let Some(agent) = body["agent"].as_str().and_then(FolderAgent::from_name) else { return Ok(error(400, "agent must be \"claude\" or \"codex\"")) };
+	Ok(reply::json_no_store(200, &set_folder_agent(&app, agent)?))
 }
 
 /// The folder after a change, or why it couldn't be made.

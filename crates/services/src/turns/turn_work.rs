@@ -1,7 +1,7 @@
 //! What the teacher does in a lesson's running turn, for the lesson's desk (GET
-//! /api/chats/{id}/work): why the turn runs, whether an agent took it, its plan and its steps. A
-//! step comes from a tool call in the teacher's reply, a godspeed call or one of its own tools
-//! while it holds the turn, or the PDF reader's progress. Made when the turn begins and dropped
+//! /api/chats/{id}/work): why the turn runs, whether the agent took it, its plan, its steps and
+//! the permission questions waiting for the learner. A step comes from a godspeed tool call, one
+//! of the agent's own tools, or the PDF reader's progress. Made when the turn begins and dropped
 //! when it ends, so a restart loses it with the turn. Every change goes out as "lesson-work".
 
 use std::collections::VecDeque;
@@ -10,10 +10,11 @@ use std::sync::Arc;
 use gs_base::clock;
 use gs_base::events::EventKind;
 use gs_core::session::lesson_steps::{LessonCall, base_name, lesson_call, pdf_progress};
-use gs_core::session::teacher_steps::{TeacherStep, keep_step, step_head};
+use gs_core::session::teacher_steps::{TeacherStep, keep_step, own_tool_input_step, step_head};
 use gs_core::session::turn_cause::TurnCause;
 use gs_engine::turn::agent::Listener;
 use gs_engine::turn::events::AgentEvent;
+use gs_engine::turn::session_turn::{DeskEvent, DeskListener};
 use gs_json::{Json, json};
 
 use super::desk_files::{desk_files, path_reading, step_reading};
@@ -26,6 +27,8 @@ pub(super) struct TurnWork {
 	plan: Option<Json>,
 	/// Oldest first.
 	steps: VecDeque<Json>,
+	/// `{id, ask}`, oldest first.
+	approvals: Vec<Json>,
 }
 
 fn changed(app: &App, chat_id: &str) {
@@ -42,7 +45,7 @@ fn update(app: &App, chat_id: &str, change: impl FnOnce(&mut TurnWork) -> bool) 
 
 /// The turn began, for `cause`.
 pub(super) fn begin(app: &App, chat_id: &str, cause: TurnCause) {
-	app.turns.work.lock().insert(chat_id.to_owned(), TurnWork { cause, taken: false, plan: None, steps: VecDeque::new() });
+	app.turns.work.lock().insert(chat_id.to_owned(), TurnWork { cause, taken: false, plan: None, steps: VecDeque::new(), approvals: Vec::new() });
 	changed(app, chat_id);
 }
 
@@ -53,8 +56,8 @@ pub(super) fn end(app: &App, chat_id: &str) {
 	}
 }
 
-/// An agent took the lesson's turn.
-pub fn taken(app: &App, chat_id: &str) {
+/// The agent took the lesson's turn.
+fn taken(app: &App, chat_id: &str) {
 	update(app, chat_id, |work| !std::mem::replace(&mut work.taken, true));
 }
 
@@ -69,14 +72,8 @@ pub fn note_step(app: &App, chat_id: &str, step: TeacherStep, call: Option<&str>
 	});
 }
 
-/// A godspeed tool the teacher called itself while it holds the turn, with its step's words.
-pub fn note_own_call(app: &App, chat_id: &str, tool: &str, args: &Json, step: TeacherStep) {
-	let reads = step_reading(app, tool, args, args["space_id"].as_str());
-	note_step(app, chat_id, step, None, reads);
-}
-
-/// Hears the turn's agent run the tools of the teacher's reply: a step per tool call (its call id
-/// with it, so the lesson text leaves out that call's card), or the plan.
+/// Hears the turn run godspeed's tools: a step per tool call (its call id with it, so the lesson
+/// text leaves out that call's card), or the plan.
 pub(super) fn listener(app: &Arc<App>, chat_id: &str, space_id: Option<&str>) -> Listener {
 	let (app, chat_id, space_id) = (Arc::downgrade(app), chat_id.to_owned(), space_id.map(str::to_owned));
 	Arc::new(move |event: &AgentEvent| {
@@ -96,6 +93,33 @@ pub(super) fn listener(app: &Arc<App>, chat_id: &str, space_id: Option<&str>) ->
 	})
 }
 
+/// Hears what the turn's agent does besides godspeed's tools: it took the turn, it runs one of its
+/// own tools (a step; a file it reads shows on the desk), a permission question waits or was
+/// answered.
+pub(super) fn desk_listener(app: &Arc<App>, chat_id: &str) -> DeskListener {
+	let (app, chat_id) = (Arc::downgrade(app), chat_id.to_owned());
+	Arc::new(move |event: &DeskEvent| {
+		let Some(app) = app.upgrade() else { return };
+		match event {
+			DeskEvent::Taken => taken(&app, &chat_id),
+			DeskEvent::OwnTool { name, input } => {
+				let Some(step) = own_tool_input_step(name, input) else { return };
+				let reads = (name == "Read").then(|| input["file_path"].as_str().and_then(|path| path_reading(path, None, None, None))).flatten();
+				note_step(&app, &chat_id, step, None, reads);
+			}
+			DeskEvent::Approval { id, ask } => update(&app, &chat_id, |work| {
+				work.approvals.push(json!({ "id": id, "ask": ask }));
+				true
+			}),
+			DeskEvent::ApprovalDone { id } => update(&app, &chat_id, |work| {
+				let before = work.approvals.len();
+				work.approvals.retain(|a| a["id"].as_str() != Some(id.as_str()));
+				work.approvals.len() != before
+			}),
+		}
+	})
+}
+
 /// A job's new activity line: the PDF reader's progress is a step on its lesson's desk, at the
 /// page it reads.
 pub(super) fn job_activity(app: &App, job_id: &str, line: &str) {
@@ -105,15 +129,15 @@ pub(super) fn job_activity(app: &App, job_id: &str, line: &str) {
 	note_step(app, job["chatId"].str_or_empty(), step, None, path_reading(path, None, None, page));
 }
 
-/// GET /api/chats/{id}/work: `{live, cause, taken, plan, steps, files}`; the files go out with no
-/// turn too. None for an unknown lesson.
+/// GET /api/chats/{id}/work: `{live, cause, taken, plan, steps, approvals, files}`; the files go
+/// out with no turn too. None for an unknown lesson.
 pub fn lesson_work(app: &App, chat_id: &str) -> Option<Json> {
 	let lesson = app.stores.chats.get_chat(chat_id)?;
 	let files = desk_files(app, &lesson);
 	let turns = app.turns.work.lock();
 	Some(match turns.get(chat_id) {
-		Some(work) => json!({ "live": true, "cause": work.cause.name(), "taken": work.taken, "plan": work.plan.clone(), "steps": work.steps.iter().cloned().collect::<Vec<_>>(), "files": files }),
-		None => json!({ "live": false, "cause": null, "taken": false, "plan": null, "steps": [], "files": files }),
+		Some(work) => json!({ "live": true, "cause": work.cause.name(), "taken": work.taken, "plan": work.plan.clone(), "steps": work.steps.iter().cloned().collect::<Vec<_>>(), "approvals": work.approvals.clone(), "files": files }),
+		None => json!({ "live": false, "cause": null, "taken": false, "plan": null, "steps": [], "approvals": [], "files": files }),
 	})
 }
 
@@ -140,7 +164,7 @@ mod tests {
 		let lesson = |title: &str| app.stores.chats.create_chat(title, Some("study"), None, None, &[]).unwrap()["id"].str_or_empty().to_owned();
 		let (a, b) = (lesson("Pointers"), lesson("Sets"));
 		let mut events = app.events.subscribe();
-		assert_eq!(lesson_work(&app, &a), Some(json!({ "live": false, "cause": null, "taken": false, "plan": null, "steps": [], "files": [] })));
+		assert_eq!(lesson_work(&app, &a), Some(json!({ "live": false, "cause": null, "taken": false, "plan": null, "steps": [], "approvals": [], "files": [] })));
 		assert_eq!(lesson_work(&app, "chat_gone"), None);
 
 		for chat in [&a, &b] {

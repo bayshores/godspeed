@@ -9,7 +9,8 @@ use super::agent::{Agent, FinishedTurn};
 use super::events::AgentEvent;
 use super::faux::{self, Partial};
 use super::messages::tool_calls;
-use super::tool_batch::{Batch, Reply, execute_tool_calls, fail_truncated_calls};
+use super::tool_batch::{Batch, execute_tool_calls, fail_truncated_calls};
+use super::tool_host::Reply;
 use super::transcript::{declare_tool_changes, tool_declaration};
 
 impl Agent {

@@ -1,27 +1,22 @@
 //! plot, Study's plot: one or two lines over x, each a formula with one slider or measured points,
-//! sent with a guess on it in the same reply. Every rule is checked before validation, so a refused
+//! sent with a guess on it in the same turn. Every rule is checked before validation, so a refused
 //! call lists all its problems at once with no echo; its guess is checked with it by the lesson-
-//! parts hook. A drawn plot is named p1, p2 in lesson order, tells the agent its values, and ends
-//! the turn. The window recomputes the lines from the stored call; the result's details hold only
-//! its id, its guess and the y range.
+//! parts hook, which also holds whichever of the two comes first. A drawn plot is named p1, p2 in
+//! lesson order, tells the agent its values, and ends the turn. The window recomputes the lines
+//! from the stored call; the result's details hold only its id, its guess and the y range.
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 use futures_util::future::BoxFuture;
-use gs_core::messages::role::is_ok_tool_result;
-use gs_core::session::plot::{PLOT_TOOL, check_plot, plot_details};
+use gs_core::session::plot::{PLOT_TOOL, check_plot};
 use gs_core::session::schema::{described, object};
-use gs_engine::turn::messages::text_block;
 use gs_engine::turn::tool::{ExecutionMode, Tool, ToolContext};
 use gs_json::{Json, json};
 
 use super::fn_tool::FnTool;
 use super::lesson_parts::LessonParts;
-use super::plan::PlanContext;
-use super::practice::record_messages;
 
-const DESCRIPTION: &str = "Draws one or two lines over x, instead of demo, when the idea is a curve: a formula with one slider, or measured points. Send it with a prediction on it (quiz.onPlot) in the same reply; it stays locked until he answers. While a question is open, send it with no prediction. Leave one plain reply after a keep.";
+const DESCRIPTION: &str = "Draws one or two lines over x, instead of demo, when the idea is a curve: a formula with one slider, or measured points. Send it with a prediction on it (quiz.onPlot) in the same turn; it stays locked until he answers. While a question is open, send it with no prediction. Leave one plain reply after a keep.";
 
 fn parameters() -> Json {
 	let name = |description: &str| json!({ "type": "string", "pattern": "^[a-z][a-z0-9_]{0,11}$", "description": description });
@@ -60,24 +55,7 @@ fn parameters() -> Json {
 
 struct Plot {
 	parameters: Json,
-	record: PlanContext,
 	parts: Arc<LessonParts>,
-	/// Plots drawn in this turn, for the next one's id.
-	drawn: AtomicUsize,
-}
-
-impl Plot {
-	fn run(&self, args: &Json, call_id: &str) -> Result<Json, String> {
-		let plot = check_plot(args).map_err(|problems| problems.join("\n"))?;
-		let guess = self.parts.guess_of(call_id).ok_or("plot: needs a quiz with onPlot in the same reply.")?;
-		let stored = record_messages(&self.record.chat_store, &self.record.chat_id)
-			.iter()
-			.filter(|m| is_ok_tool_result(m) && m["toolName"].as_str() == Some(PLOT_TOOL))
-			.count();
-		let id = format!("p{}", stored + self.drawn.fetch_add(1, Ordering::SeqCst) + 1);
-		let details = plot_details(&id, guess, plot.y);
-		Ok(json!({ "content": [text_block(&plot.result_line(&id))], "details": details, "terminate": true }))
-	}
 }
 
 impl Tool for Plot {
@@ -104,26 +82,28 @@ impl Tool for Plot {
 	}
 
 	fn execute(&self, args: Json, ctx: ToolContext) -> BoxFuture<'_, Result<Json, String>> {
-		Box::pin(async move { self.run(&args, &ctx.tool_call_id) })
+		Box::pin(async move { self.parts.plot(&args, &ctx.tool_call_id) })
 	}
 }
 
-/// The tool for one Study turn, sharing the hook's passed guesses.
-pub fn plot_tool(record: PlanContext, parts: &Arc<LessonParts>) -> FnTool {
-	FnTool::from_tool(Arc::new(Plot { parameters: parameters(), record, parts: parts.clone(), drawn: AtomicUsize::new(0) }))
+/// The tool for one Study turn, drawn as its hook decides.
+pub fn plot_tool(parts: &Arc<LessonParts>) -> FnTool {
+	FnTool::from_tool(Arc::new(Plot { parameters: parameters(), parts: parts.clone() }))
 }
 
 #[cfg(test)]
 mod tests {
-	use gs_core::messages::role::Role;
+	use std::collections::HashSet;
+
+	use gs_core::study::topic_parts::{GUESS_DROPPED, GUESS_HELD, PLOT_DROPPED, PLOT_HELD};
 	use gs_engine::turn::abort::Abort;
-	use gs_engine::turn::agent::{Agent, AgentOptions};
-	use gs_engine::turn::faux::{Engine, Scripted, faux_model};
-	use gs_engine::turn::messages::faux_assistant_message;
+	use gs_engine::turn::messages::tool_result_message;
+	use gs_engine::turn::tool_host::{Reply, ToolHost};
 	use gs_json::stringify;
 
 	use super::*;
 	use crate::tools::heal::heal_tool_record;
+	use crate::tools::plan::PlanContext;
 	use crate::tools::test_record::record;
 
 	fn leash() -> Json {
@@ -150,27 +130,56 @@ mod tests {
 		record([stored, after].concat())
 	}
 
-	/// The quiz and plot of the Study registry under the hook, healed as the registry heals them,
-	/// running one scripted reply.
+	/// One Study turn: the quiz and plot of the Study registry under the hook, healed as the
+	/// registry heals them, run as a lesson's session runs them.
+	struct Turn {
+		parts: Arc<LessonParts>,
+		host: ToolHost,
+	}
+
+	impl Turn {
+		fn new(record: PlanContext, hooked: bool) -> Turn {
+			let plan = PlanContext { chat_id: record.chat_id.clone(), chat_store: Arc::new(Planned(record.chat_store.clone())) };
+			let parts = LessonParts::new(&plan);
+			let quiz = parts.guessing(crate::tools::questions::study_quiz_tool(&plan, &crate::tools::questions::PlanOrder::new(&plan)));
+			let tools = heal_tool_record(vec![quiz, plot_tool(&parts)]).into_iter().map(FnTool::into_arc).collect();
+			let host = ToolHost::new(tools, hooked.then(|| parts.hook()), HashSet::from(["quiz".to_owned()]));
+			Turn { parts, host }
+		}
+
+		/// One reply's calls in order, a held one taken out of the reply, until one ends the turn:
+		/// each one's result record, with `held`, `endsTurn` and `releases` beside it.
+		async fn reply(&self, calls: Vec<Json>) -> Vec<Json> {
+			let mut message = json!({ "role": "assistant", "content": calls.clone() });
+			let mut out = Vec::new();
+			for call in calls {
+				let reply = self.host.call(&call, Reply { before: &[], message: &message }, &Abort::new()).await;
+				if reply.held
+					&& let Some(content) = message.get_mut("content").and_then(Json::as_arr_mut)
+				{
+					content.retain(|b| b["id"] != call["id"]);
+				}
+				let mut result = tool_result_message(&call, &reply.result, reply.is_error, None);
+				result.set("held", reply.held);
+				result.set("endsTurn", reply.ends_turn);
+				if let Some(release) = &reply.releases {
+					result.set("releases", json!({ "toolCallId": release.id.clone(), "result": release.result.clone().unwrap_or(Json::Null) }));
+				}
+				out.push(result);
+				if reply.ends_turn {
+					break;
+				}
+			}
+			out
+		}
+	}
+
 	async fn run_reply(calls: Vec<Json>) -> Vec<Json> {
-		run_with(calls, true).await
+		run_in(lesson(Vec::new()), calls).await
 	}
 
-	async fn run_with(calls: Vec<Json>, hooked: bool) -> Vec<Json> {
-		run_in(lesson(Vec::new()), calls, hooked).await
-	}
-
-	async fn run_in(record: PlanContext, calls: Vec<Json>, hooked: bool) -> Vec<Json> {
-		let plan = PlanContext { chat_id: record.chat_id.clone(), chat_store: Arc::new(Planned(record.chat_store.clone())) };
-		let parts = LessonParts::new(&plan);
-		let scripted = Scripted::new();
-		scripted.reply(faux_assistant_message(calls, "toolUse"));
-		let mut options = AgentOptions::new(Engine { model: faux_model("m", "p", "faux", "Faux", 1000.0, 100.0), respond: scripted });
-		options.tools = heal_tool_record(vec![crate::tools::questions::study_quiz_tool(&plan, &crate::tools::questions::PlanOrder::new(&plan)), plot_tool(record, &parts)]).into_iter().map(FnTool::into_arc).collect();
-		options.before_tool_call = hooked.then(|| parts.hook());
-		let agent = Agent::new(options);
-		agent.prompt(vec![json!({ "role": "user", "content": "go", "timestamp": 1 })], Abort::new()).await.unwrap();
-		agent.messages().into_iter().filter(|m| Role::ToolResult.is(m)).collect()
+	async fn run_in(record: PlanContext, calls: Vec<Json>) -> Vec<Json> {
+		Turn::new(record, true).reply(calls).await
 	}
 
 	/// The test record with a plan holding `reg`.
@@ -194,11 +203,60 @@ mod tests {
 	#[tokio::test]
 	async fn a_valid_pair_draws_the_next_plot_with_its_guess_and_ends_the_turn() {
 		let results = run_reply(vec![call("q1", "quiz", guess("B")), call("p9", "plot", leash())]).await;
-		let plot = results.iter().find(|r| r["toolCallId"] == json!("p9")).unwrap();
+		assert_eq!((results[0]["content"][0]["text"].as_str(), &results[0]["held"]), (Some(GUESS_HELD), &json!(true)), "the guess waits for its plot");
+		let plot = &results[1];
 		assert_eq!(plot["isError"], json!(false));
 		assert_eq!(plot["content"][0]["text"], json!("p2 drawn. At lambda 1, a = 0, 5, 10: penalty 0, 2.5, 5. leash 0, 2, 2."), "named after the one stored plot");
 		assert_eq!(stringify(&plot["details"]), r#"{"part":"plot","v":1,"id":"p2","onPlot":{"toolCallId":"q1","value":4},"y":{"min":0,"max":6}}"#);
-		assert_eq!(results.len(), 2, "no step after the pair");
+		assert_eq!((&plot["releases"], &plot["endsTurn"]), (&json!({ "toolCallId": "q1", "result": null }), &json!(true)), "the guess goes back unanswered, his question");
+		let first = run_reply(vec![call("p9", "plot", leash()), call("q1", "quiz", guess("B"))]).await;
+		assert_eq!((first.len(), first[0]["releases"].is_null(), &first[0]["endsTurn"]), (1, true, &json!(true)), "a plot first draws at once with the guess after it");
+	}
+
+	/// Codex sends one call at a time: the first half waits, the second completes the pair, and
+	/// the guess that completes a plot draws it and tells the agent its values.
+	#[tokio::test]
+	async fn a_pair_sent_one_call_at_a_time_lands_whole_in_either_order() {
+		let turn = Turn::new(lesson(Vec::new()), true);
+		let held = turn.reply(vec![call("p9", "plot", leash())]).await;
+		assert_eq!((held[0]["content"][0]["text"].as_str(), &held[0]["endsTurn"]), (Some(PLOT_HELD), &json!(false)));
+		let guessed = turn.reply(vec![call("q1", "quiz", guess("B"))]).await;
+		assert_eq!(guessed[0]["content"][0]["text"], json!("p2 drawn. At lambda 1, a = 0, 5, 10: penalty 0, 2.5, 5. leash 0, 2, 2."));
+		assert_eq!(guessed[0]["endsTurn"], json!(true), "the turn ends on his question");
+		assert_eq!(guessed[0]["releases"]["toolCallId"], json!("p9"));
+		assert_eq!(stringify(&guessed[0]["releases"]["result"]["details"]), r#"{"part":"plot","v":1,"id":"p2","onPlot":{"toolCallId":"q1","value":4},"y":{"min":0,"max":6}}"#);
+		assert_eq!(turn.parts.dropped_note(), None);
+
+		let turn = Turn::new(lesson(Vec::new()), true);
+		assert_eq!(turn.reply(vec![call("q1", "quiz", guess("B"))]).await[0]["content"][0]["text"].as_str(), Some(GUESS_HELD));
+		let drawn = turn.reply(vec![call("p9", "plot", leash())]).await;
+		assert_eq!((&drawn[0]["releases"], &drawn[0]["endsTurn"]), (&json!({ "toolCallId": "q1", "result": null }), &json!(true)));
+	}
+
+	#[tokio::test]
+	async fn a_half_still_held_at_the_end_is_noted_and_a_refused_pair_takes_it_along() {
+		let turn = Turn::new(lesson(Vec::new()), true);
+		turn.reply(vec![call("p9", "plot", leash())]).await;
+		assert_eq!(turn.parts.dropped_note().as_deref(), Some(PLOT_DROPPED));
+		let turn = Turn::new(lesson(Vec::new()), true);
+		turn.reply(vec![call("q1", "quiz", guess("B"))]).await;
+		assert_eq!(turn.parts.dropped_note().as_deref(), Some(GUESS_DROPPED));
+		turn.reply(vec![call("q2", "quiz", guess("B"))]).await;
+		assert_eq!(turn.parts.dropped_note().as_deref(), Some(GUESS_DROPPED), "a guess sent again replaces the held one");
+
+		let turn = Turn::new(lesson(Vec::new()), true);
+		turn.reply(vec![call("p9", "plot", leash())]).await;
+		let refused = turn.reply(vec![call("q1", "quiz", guess("C"))]).await;
+		assert_eq!(
+			refused[0]["content"][0]["text"],
+			json!("correctAnswer: option C reads \"At 3.\" but penalty at a = 8, lambda = 1 is 4. Fix the option or onPlot.\nquiz: refused with the plot above. Re-send both, or the guess alone without onPlot.")
+		);
+		assert_eq!(turn.parts.dropped_note(), None, "the refusal said so");
+		let mut off_plan = guess("B");
+		off_plan.as_obj_mut().unwrap().insert("nodeId", Json::from("cv"));
+		turn.reply(vec![call("p8", "plot", leash())]).await;
+		assert!(turn.reply(vec![call("q2", "quiz", off_plan)]).await[0]["content"][0]["text"].as_str().unwrap().starts_with("Invalid tool input for tool \"quiz\""));
+		assert_eq!(turn.parts.dropped_note().as_deref(), Some(PLOT_DROPPED), "a guess refused by its own checks leaves the plot waiting");
 	}
 
 	#[tokio::test]
@@ -227,21 +285,21 @@ mod tests {
 	}
 
 	/// While a check quiz or a problem waits for him, a plot sent alone draws at once with no
-	/// guess; with nothing open it is refused as before, and a hidden line needs a guess.
+	/// guess; with nothing open it waits for its guess, and a hidden line needs a guess.
 	#[tokio::test]
 	async fn a_plot_sent_while_a_question_is_open_draws_with_no_guess() {
 		let quiz = vec![json!({ "role": "assistant", "content": [call("q0", "quiz", guess("B"))] }), json!({ "role": "user", "content": "Plot it?", "side": true })];
 		let problem = vec![json!({ "role": "assistant", "content": [call("pr0", "problem", json!({ "statement": "s" }))] }), json!({ "role": "toolResult", "toolCallId": "pr0", "toolName": "problem", "isError": false, "details": null })];
 		for open in [quiz, problem] {
-			let results = run_in(lesson(open), vec![call("p9", "plot", cv_points())], true).await;
+			let results = run_in(lesson(open), vec![call("p9", "plot", cv_points())]).await;
 			assert_eq!(results[0]["isError"], json!(false), "{results:?}");
 			assert_eq!(results[0]["content"][0]["text"], json!("p2 drawn. degree = 1, 3, 5, 9: cv_error 0.8, 0.4, 0.3, 0.9."));
 			assert_eq!(stringify(&results[0]["details"]), r#"{"part":"plot","v":1,"id":"p2","y":{"min":0.2,"max":1}}"#);
 		}
 		let closed = run_reply(vec![call("p9", "plot", cv_points())]).await;
-		assert_eq!(closed[0]["content"][0]["text"], json!("plot: needs a quiz with onPlot in the same reply."), "nothing open");
+		assert_eq!(closed[0]["content"][0]["text"].as_str(), Some(PLOT_HELD), "nothing open: it waits for its guess");
 		let open = vec![json!({ "role": "assistant", "content": [call("q0", "quiz", guess("B"))] })];
-		let hidden = run_in(lesson(open), vec![call("p9", "plot", leash())], true).await;
+		let hidden = run_in(lesson(open), vec![call("p9", "plot", leash())]).await;
 		assert_eq!(hidden[0]["content"][0]["text"], json!("lines[0].hidden: needs a guess on the plot. Leave hidden out."));
 	}
 
@@ -306,7 +364,7 @@ mod tests {
 
 	/// The guess is read as the quiz tool takes it, after its own preparation: a field it heals
 	/// passes with the plot instead of refusing the plot while the quiz goes through, and one it
-	/// cannot take refuses both.
+	/// cannot take refuses the quiz while the plot waits for a guess it can take.
 	#[tokio::test]
 	async fn a_guess_is_read_as_the_quiz_takes_it_so_the_pair_lands_whole_or_not_at_all() {
 		let mut typed = guess("B");
@@ -319,15 +377,13 @@ mod tests {
 		let mut on_plot = guess("B");
 		on_plot.as_obj_mut().unwrap().insert("onPlot", Json::from(r#"{"line":"penalty","x":8}"#));
 		let results = run_reply(vec![call("q1", "quiz", on_plot), call("p9", "plot", leash())]).await;
-		assert!(results.iter().all(|r| r["isError"] == json!(true)), "{results:?}");
+		assert_eq!(results.iter().map(|r| (r["isError"].clone(), r["held"].clone())).collect::<Vec<_>>(), [(json!(true), json!(false)), (json!(false), json!(true))], "{results:?}");
 	}
 
 	#[tokio::test]
-	async fn a_plot_with_no_passed_guess_is_never_drawn() {
-		let results = run_with(vec![call("q1", "quiz", guess("B")), call("p9", "plot", leash())], false).await;
-		let plot = results.iter().find(|r| r["toolCallId"] == json!("p9")).unwrap();
-		assert_eq!(plot["isError"], json!(true));
-		assert_eq!(plot["content"][0]["text"], json!("plot: needs a quiz with onPlot in the same reply."));
+	async fn a_plot_its_hook_never_checked_is_never_drawn() {
+		let plot = Turn::new(lesson(Vec::new()), false).reply(vec![call("p9", "plot", leash())]).await;
+		assert_eq!((&plot[0]["isError"], plot[0]["content"][0]["text"].as_str()), (&json!(true), Some("plot: its guess was never checked, so it is not drawn.")));
 	}
 
 	#[test]

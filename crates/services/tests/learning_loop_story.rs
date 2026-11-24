@@ -1,35 +1,36 @@
-//! The two-day story of a Study session, end to end against a stand-in agent on the bridge and the
-//! app clock. Wednesday evening: three questions from earlier while the first reply is written, a
-//! reply opening on his lecture page with quoted words, the plot and his guess, a kept sentence
-//! with its analogy and memory phrase, Drop this analogy, a problem with one hint, the topic's stop
-//! and Stop here. Saturday: Continue shows the stored opener with no agent, three questions from
-//! earlier (one bringing back his sentence), the [Resumed], [Opener] and [From earlier] lines in
-//! that order, a topic ended by a conclude, Keep going, and the last topic ended by a right quiz.
-//! At every step it checks the stored record and what the agent was sent. The window's half of the
-//! story (what the screen draws from this record) is the TypeScript side's. The app clock is
-//! moved, so this file holds one test and no other file shares its process.
+//! The two-day story of a Study session, end to end against a stand-in agent (gs-runtime's
+//! FakeAgent) and the app clock. Wednesday evening: three questions from earlier while the first
+//! reply is written, a reply opening on his lecture page with quoted words, the plot and his guess,
+//! a kept sentence with its analogy and memory phrase, Drop this analogy, a problem with one hint,
+//! the topic's stop and Stop here. Saturday: Continue shows the stored opener with no agent, three
+//! questions from earlier (one bringing back his sentence), the [Resumed], [Opener] and [From
+//! earlier] lines in that order, a topic ended by a conclude, Keep going, and the last topic ended
+//! by a right quiz. At every step it checks the stored record and what the agent was sent. The
+//! window's half of the story (what the screen draws from this record) is the TypeScript side's.
+//! The app clock is moved, so this file holds one test and no other file shares its process.
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use gs_base::config::Paths;
 use gs_base::{clock, fsx, ids, time};
-use gs_core::messages::role::is_custom;
 use gs_core::contracts::chat::{STUDY_TOPIC_END_ACK_TEXT, TOPIC_DONE_NO_OPENER_TEXT, TOPIC_DONE_STORED_TEXT};
 use gs_core::messages::input_events::{ChatInput, TurnInput};
+use gs_core::messages::role::is_custom;
 use gs_core::spaces::today_note::local_day;
 use gs_core::study::kept::KeptPart;
 use gs_core::study::topic_end::{lesson_stop, shown_openers};
 use gs_core::study::topic_parts::{NO_PLOT_YET, first_topic, topic_parts};
-use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions};
 use gs_json::{Json, json, stringify};
+use gs_runtime::fake::{FakeAgent, FakeStep};
 use gs_services::App;
+use gs_services::app::agents::use_runtime;
 use gs_services::graph::progress::progress_for;
-use gs_services::spaces::citations::check_cites;
 use gs_services::spaces::source_id_for;
 use gs_services::turns::lesson_events::{KeepGoing, KeptDrop, drop_kept_part, keep_going};
 use gs_services::turns::review::{ReviewReply, answer_review, next_review};
-use gs_services::turns::{handle_chat_input, is_turn_running};
+use gs_services::turns::turn_work::lesson_work;
+use gs_services::turns::{answer_approval, every_turn_rules_for, handle_chat_input, is_turn_running};
 use gs_store::graph::Ledger;
 
 const MINUTE_MS: i64 = 60_000;
@@ -49,15 +50,88 @@ const TOPICS: [(&str, &str); 6] = [("bayes", "Bayes' rule"), ("eig", "Eigenvalue
 const LECTURE_6: &str = "f_000000000006";
 const LECTURE_7: &str = "f_000000000007";
 
-/// An app over a fresh folder, removed when dropped.
+/// An app over a fresh folder whose lessons run on a stand-in agent, removed when dropped.
 struct Fixture {
 	app: Arc<App>,
+	agent: FakeAgent,
 	dir: PathBuf,
 }
 
 impl Drop for Fixture {
 	fn drop(&mut self) {
 		let _ = std::fs::remove_dir_all(&self.dir);
+	}
+}
+
+impl Fixture {
+	/// His input. The teacher's turn for it works until `writes`, then plays `teacher`.
+	async fn send(&self, chat_id: &str, input: ChatInput, teacher: Vec<FakeStep>) {
+		self.agent.push([vec![FakeStep::Approval { tool: "Bash".to_owned(), input: json!({ "command": "ls" }) }], teacher].concat());
+		let reply = handle_chat_input(&self.app, chat_id, TurnInput::Chat(input)).await;
+		assert_eq!(reply.status, 200, "{}", reply.text());
+	}
+
+	/// The teacher takes 2 minutes to answer, then its turn plays to its end. No turn it was sent
+	/// holds an empty input or one of the lesson's UI-only markers.
+	async fn writes(&self, chat_id: &str) {
+		let at_work = loop {
+			if let Some(id) = lesson_work(&self.app, chat_id).and_then(|w| w["approvals"][0]["id"].as_str().map(str::to_owned)) {
+				break id;
+			}
+			clock::sleep(5).await;
+		};
+		clock::advance(2 * MINUTE_MS);
+		assert!(answer_approval(&self.app, chat_id, &at_work, true));
+		for _ in 0..2000 {
+			if !is_turn_running(&self.app, chat_id) {
+				break;
+			}
+			clock::sleep(5).await;
+		}
+		assert!(!is_turn_running(&self.app, chat_id), "the turn never settled");
+		let sent = stringify(&Json::Arr(self.agent.sent()));
+		for marker in ["keep-going", "keep-check", "analogy-drop", "phrase-drop", "opener-answer", "customType"] {
+			assert!(!sent.contains(marker), "{marker} reached the agent: {sent}");
+		}
+		for part in self.sends().concat() {
+			assert!(!part.trim().is_empty(), "an empty input reached the agent: {sent}");
+		}
+	}
+
+	fn messages(&self, chat_id: &str) -> Vec<Json> {
+		self.app.stores.chats.get_chat(chat_id).unwrap()["messages"].as_arr().unwrap().clone()
+	}
+
+	/// The text parts of each turn the agent was sent.
+	fn sends(&self) -> Vec<Vec<String>> {
+		let sends = self.agent.sent().into_iter().filter(|m| m["type"].as_str() == Some("send"));
+		sends.map(|m| m["content"].items().iter().filter_map(|p| p["text"].as_str().map(str::to_owned)).collect()).collect()
+	}
+
+	/// The text parts of the last turn the agent was sent, without the learner's rules that close
+	/// every turn of a session that goes on.
+	fn input(&self, chat_id: &str) -> Vec<String> {
+		let mut parts = self.sends().pop().expect("a turn was sent");
+		let rules = every_turn_rules_for(&self.app, &self.app.stores.chats.get_chat(chat_id).unwrap());
+		if parts.last() == Some(&rules) {
+			parts.pop();
+		}
+		parts
+	}
+
+	/// Every line of the last turn the agent was sent.
+	fn input_lines(&self, chat_id: &str) -> Vec<String> {
+		self.input(chat_id).iter().flat_map(|p| p.lines()).map(str::to_owned).collect()
+	}
+
+	/// Every line of every turn the agent was sent, in order.
+	fn lines_sent(&self) -> Vec<String> {
+		self.sends().concat().iter().flat_map(|p| p.lines()).map(str::to_owned).collect()
+	}
+
+	/// The text of each tool result the agent was sent, in order.
+	fn results(&self) -> Vec<String> {
+		self.agent.sent().iter().filter(|m| m["type"].as_str() == Some("tool_result")).map(|m| m["content"][0]["text"].str_or_empty().to_owned()).collect()
 	}
 }
 
@@ -135,47 +209,12 @@ fn machine_learning_space(app: &App, wednesday: &str) -> (String, String) {
 	(space_id, deadline_id)
 }
 
-/// The lesson's next work item, answered the way respond does (its words' marks checked first);
-/// the whole transcript the agent was sent, checked to hold none of the lesson's UI-only markers.
-async fn agent(app: &App, chat_id: &str, text: Option<&str>, calls: Vec<(&str, Json)>) -> Vec<Json> {
-	let opts = WaitOptions { conversation: Some(chat_id.to_owned()), full: true, ..WaitOptions::default() };
-	let view = app.bridge.wait_for_work(10_000, opts).await.expect("a work item");
-	let text = text.map(|t| check_cites(app, t).text);
-	let tool_calls = calls.into_iter().map(|(name, arguments)| ReplyCall { name: name.to_owned(), arguments }).collect();
-	app.bridge.respond_to_work(&view.work_id, AgentReply { text, tool_calls }, 0).unwrap();
-	let sent = stringify(&Json::Arr(view.messages.clone()));
-	for marker in ["keep-going", "keep-check", "analogy-drop", "phrase-drop", "opener-answer", "customType"] {
-		assert!(!sent.contains(marker), "{marker} reached the agent: {sent}");
-	}
-	for m in &view.messages {
-		assert!(matches!(m["role"].as_str(), Some("user" | "assistant" | "toolResult")), "{m:?}");
-		assert!(m["role"].as_str() != Some("user") || m["text"].as_str().is_some_and(|t| !t.trim().is_empty()), "an empty input reached the agent: {m:?}");
-	}
-	view.messages
+fn says(words: &str) -> FakeStep {
+	FakeStep::Text(words.to_owned())
 }
 
-async fn says(app: &App, chat_id: &str, text: &str) -> Vec<Json> {
-	agent(app, chat_id, Some(text), Vec::new()).await
-}
-
-async fn calls(app: &App, chat_id: &str, calls: Vec<(&str, Json)>) -> Vec<Json> {
-	agent(app, chat_id, None, calls).await
-}
-
-async fn settled(app: &App, chat_id: &str) {
-	for _ in 0..2000 {
-		if !is_turn_running(app, chat_id) {
-			return;
-		}
-		clock::sleep(5).await;
-	}
-	panic!("the turn never settled");
-}
-
-/// His input; its turn starts and runs in the background.
-async fn send(app: &Arc<App>, chat_id: &str, input: ChatInput) {
-	let reply = handle_chat_input(app, chat_id, TurnInput::Chat(input)).await;
-	assert_eq!(reply.status, 200, "{}", reply.text());
+fn call(name: &str, args: Json) -> FakeStep {
+	FakeStep::Tool { name: name.to_owned(), args }
 }
 
 fn text(words: &str) -> ChatInput {
@@ -189,10 +228,6 @@ fn picked(index: usize, label: &str, value: &str, correct: bool, confidence: i64
 
 fn answered(tool_call_id: &str, answer: Json) -> ChatInput {
 	ChatInput::Answer { tool_call_id: tool_call_id.to_owned(), answer, attachments: None }
-}
-
-fn messages(app: &App, chat_id: &str) -> Vec<Json> {
-	app.stores.chats.get_chat(chat_id).unwrap()["messages"].as_arr().unwrap().clone()
 }
 
 /// The newest call named `name` in the record.
@@ -210,16 +245,6 @@ fn result_of<'a>(record: &'a [Json], call_id: &str) -> &'a Json {
 
 fn marker<'a>(record: &'a [Json], custom_type: &str, key: &str, of: &str) -> &'a Json {
 	record.iter().rfind(|m| m["customType"].as_str() == Some(custom_type) && m["details"][key].as_str() == Some(of)).unwrap()
-}
-
-/// Every line of his inputs the agent was sent, in order.
-fn input_lines(seen: &[Json]) -> Vec<String> {
-	seen.iter().filter(|m| m["role"].as_str() == Some("user")).filter_map(|m| m["text"].as_str()).flat_map(str::lines).map(str::to_owned).collect()
-}
-
-/// The last input the agent was sent.
-fn last_input(seen: &[Json]) -> String {
-	seen.iter().rev().find(|m| m["role"].as_str() == Some("user")).unwrap()["text"].as_str().unwrap().to_owned()
 }
 
 /// The Midterm as Home reads it.
@@ -277,7 +302,8 @@ async fn two_days_of_study_for_the_midterm() {
 	for name in ["data", "home", "tmp", "res"] {
 		std::fs::create_dir_all(dir.join(name)).unwrap();
 	}
-	let fx = Fixture { app: App::new(Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir.join("res")), None), dir };
+	let fx = Fixture { app: App::new(Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir.join("res")), None), agent: FakeAgent::default(), dir };
+	use_runtime(&fx.app, fx.agent.runtime());
 	let app = &fx.app;
 	// The first Wednesday at least a week away: the story only moves the clock forward.
 	let wednesday = (7..14).map(|days| clock::now_ms() + days * DAY_MS).find(|ms| time::local(*ms).weekday().to_monday_one_offset() == 3).map(local_day).unwrap();
@@ -287,23 +313,20 @@ async fn two_days_of_study_for_the_midterm() {
 	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), Some(&deadline_id), &[]).unwrap()["id"].as_str().unwrap().to_owned();
 	app.stores.chats.save_tree(&chat_id, &plan).unwrap();
 	let chat = chat_id.as_str();
-	// He thinks for 3 minutes 45 before each input, and the agent takes 2 minutes to answer.
+	// He thinks for 3 minutes 45 before each input; the agent takes 2 minutes to answer (writes).
 	let thinks = || clock::advance(15 * MINUTE_MS / 4);
-	let writes = || clock::advance(2 * MINUTE_MS);
 
 	// Wednesday 21:00. Start, and three questions from earlier while the first reply is written.
+	// The opening reply has words alone; the plan's first topic takes its quoted page at once.
 	clock_to(local(&wednesday, "21:00"));
-	send(app, chat, text("Study for Midterm")).await;
+	let page = format!("Picture fitting a curve of degree 12 to ten points [[{LECTURE_6}:1 \"degree 12\"]]. It hits every point.");
+	fx.send(chat, text("Study for Midterm"), vec![says(&page)]).await;
 	let bayes_wed = from_earlier(app, chat, "Bayes' rule", picked(2, "Wrong", "Wrong", false, 60));
 	from_earlier(app, chat, "Eigenvalues", picked(1, "Right", "Right", true, 80));
 	let gd_wed = from_earlier(app, chat, "Gradient descent", picked(1, "Right", "Right", true, 80));
 	assert_eq!(next_review(app, chat).unwrap(), ReviewReply::Next(None), "three a day");
-	writes();
-	// The opening reply has words alone; the plan's first topic takes its quoted page at once.
-	let page = format!("Picture fitting a curve of degree 12 to ten points [[{LECTURE_6}:1 \"degree 12\"]]. It hits every point.");
-	says(app, chat, &page).await;
-	settled(app, chat).await;
-	let record = messages(app, chat);
+	fx.writes(chat).await;
+	let record = fx.messages(chat);
 	let stored_page = format!("[[{LECTURE_6}/p. 14/Lecture 6.pdf|degree 12]]");
 	let opening = record.iter().find(|m| m["role"].as_str() == Some("assistant") && stringify(&m["content"]).contains(&stored_page)).expect("the quoted mark is stored checked");
 	let opening_id = opening["id"].clone();
@@ -313,43 +336,33 @@ async fn two_days_of_study_for_the_midterm() {
 	assert_eq!(next_review(app, chat).unwrap(), ReviewReply::Next(None), "the reply landed");
 
 	thinks();
-	send(app, chat, text("It swings wildly between them?")).await;
-	writes();
-	let seen = says(app, chat, "A penalty on the weights: the loss grows with them.").await;
-	settled(app, chat).await;
-	assert_eq!(input_lines(&seen).iter().filter(|l| l.starts_with("[From earlier]")).collect::<Vec<_>>(), ["[From earlier] Bayes' rule wrong, sure 3 of 5, picked Wrong. Eigenvalues right, sure 4 of 5. Gradient descent right, sure 4 of 5."]);
-	assert!(stringify(&Json::Arr(seen.clone())).contains(&stored_page), "the agent reads its mark as stored");
+	fx.send(chat, text("It swings wildly between them?"), vec![says("A penalty on the weights: the loss grows with them.")]).await;
+	fx.writes(chat).await;
+	assert_eq!(fx.input_lines(chat).iter().filter(|l| l.starts_with("[From earlier]")).collect::<Vec<_>>(), ["[From earlier] Bayes' rule wrong, sure 3 of 5, picked Wrong. Eigenvalues right, sure 4 of 5. Gradient descent right, sure 4 of 5."]);
 
-	// The plot and its guess; his guess at A opens it.
+	// The plot and its guess in one message, the plot first: the guess ends the turn. His guess
+	// at A opens it.
 	thinks();
-	send(app, chat, text("How much does it shrink them?")).await;
-	writes();
-	calls(app, chat, vec![("quiz", guess()), ("plot", plot())]).await;
-	settled(app, chat).await;
-	let record = messages(app, chat);
+	fx.send(chat, text("How much does it shrink them?"), vec![FakeStep::Calls(vec![("plot".to_owned(), plot()), ("quiz".to_owned(), guess())])]).await;
+	fx.writes(chat).await;
+	let record = fx.messages(chat);
 	let (plot_call, guess_call) = (last_call(&record, "plot"), last_call(&record, "quiz"));
 	assert_eq!((&plot_call["arguments"], &guess_call["arguments"]), (&plot(), &guess()), "both stored as sent");
 	let drawn = result_of(&record, &id_of(&plot_call));
 	assert_eq!(drawn["details"], json!({ "part": "plot", "v": 1, "id": "p1", "onPlot": { "toolCallId": guess_call["id"], "value": 4.0 }, "y": { "min": 0, "max": 5 } }));
+	assert!(fx.results().iter().any(|r| r == "p1 drawn. At lambda 1, a = 0, 5, 10: penalty 0, 2.5, 5. leash 0, 2, 2."), "the agent reads what was drawn");
 	thinks();
-	send(app, chat, answered(&id_of(&guess_call), picked(1, "At 2, the leash's length.", "A", false, 60))).await;
-	writes();
-	let seen = says(app, chat, "Not quite: the penalty puts it at 4. The leash is a picture, and here it breaks.").await;
-	settled(app, chat).await;
-	assert!(stringify(&Json::Arr(seen)).contains("p1 drawn. At lambda 1, a = 0, 5, 10: penalty 0, 2.5, 5. leash 0, 2, 2."));
+	fx.send(chat, answered(&id_of(&guess_call), picked(1, "At 2, the leash's length.", "A", false, 60)), vec![says("Not quite: the penalty puts it at 4. The leash is a picture, and here it breaks.")]).await;
+	fx.writes(chat).await;
 
 	// A quiz that carries a kept sentence, right; then Drop this analogy while the teacher writes.
 	thinks();
-	send(app, chat, text("So the penalty scales with the data?")).await;
-	writes();
-	says(app, chat, "Yes. The fit is linear in y, so the penalty only prices the weights.").await;
-	settled(app, chat).await;
+	fx.send(chat, text("So the penalty scales with the data?"), vec![says("Yes. The fit is linear in y, so the penalty only prices the weights.")]).await;
+	fx.writes(chat).await;
 	thinks();
-	send(app, chat, text("Ok, test me.")).await;
-	writes();
-	calls(app, chat, vec![("quiz", kept_quiz())]).await;
-	settled(app, chat).await;
-	let record = messages(app, chat);
+	fx.send(chat, text("Ok, test me."), vec![call("quiz", kept_quiz())]).await;
+	fx.writes(chat).await;
+	let record = fx.messages(chat);
 	let keep_call = last_call(&record, "quiz");
 	let keep_id = id_of(&keep_call);
 	assert_eq!(keep_call["arguments"], kept_quiz(), "stored as sent, its source mark unchecked");
@@ -359,36 +372,33 @@ async fn two_days_of_study_for_the_midterm() {
 		"its verdict, stored when the turn was saved"
 	);
 	thinks();
-	send(app, chat, answered(&keep_id, picked(2, "6", "B", true, 80))).await;
+	fx.send(chat, answered(&keep_id, picked(2, "6", "B", true, 80)), vec![call("problem", problem("reg", "Why does an L2 penalty shrink the weights, and when does it stop helping?"))]).await;
 	assert_eq!(drop_kept_part(app, chat, &keep_id, KeptPart::Analogy, false), Ok(KeptDrop::Done), "Drop this analogy during the turn");
-	writes();
-	let seen = calls(app, chat, vec![("problem", problem("reg", "Why does an L2 penalty shrink the weights, and when does it stop helping?"))]).await;
-	settled(app, chat).await;
-	assert!(input_lines(&seen).iter().all(|l| !l.starts_with("[Analogy dropped]") && !l.starts_with("keep")), "the drop came after this input, and the keep holds");
+	fx.writes(chat).await;
+	assert!(fx.input_lines(chat).iter().all(|l| !l.starts_with("[Analogy dropped]") && !l.starts_with("keep")), "the drop came after this input, and the keep holds");
 
 	// The problem, one hint, then the conclude that ends the topic, with no other prose.
 	thinks();
-	send(app, chat, text("Because big weights cost more.")).await;
-	writes();
-	let seen = says(app, chat, "Half of it. What happens to the cost as lambda grows?").await;
-	settled(app, chat).await;
-	assert_eq!(input_lines(&seen).iter().filter(|l| l.starts_with("[Analogy dropped]")).collect::<Vec<_>>(), ["[Analogy dropped] Regularization: \"The leash fits one part\""]);
+	fx.send(chat, text("Because big weights cost more."), vec![says("Half of it. What happens to the cost as lambda grows?")]).await;
+	fx.writes(chat).await;
+	assert_eq!(fx.input_lines(chat).iter().filter(|l| l.starts_with("[Analogy dropped]")).collect::<Vec<_>>(), ["[Analogy dropped] Regularization: \"The leash fits one part\""]);
 	thinks();
-	send(app, chat, text("A bigger lambda makes them cost more, so the fit trades accuracy for smaller weights.")).await;
-	writes();
-	calls(app, chat, vec![("conclude", conclude("solvedWithHints", Some("R1"), "You said how lambda trades fit for small weights, after one hint."))]).await;
-	let seen = calls(app, chat, vec![("ls", json!({ "path": app.paths.home.to_string_lossy() }))]).await;
-	let ended = seen.iter().rev().find(|m| m["toolName"].as_str() == Some("conclude")).unwrap();
-	assert_eq!(ended["text"], json!(STUDY_TOPIC_END_ACK_TEXT));
-	let conclude_reg = ended["toolCallId"].as_str().unwrap().to_owned();
 	let opener_cv = json!({
 		"nodeId": "reg",
 		"review": quiz("check", "reg", "What does a larger lambda do to the weights of a fit?", &["Prices them higher", "Caps them", "Leaves them"]),
 		"opener": { "lead": format!("One split of the data can mislead you [[{LECTURE_7}:1 \"a different 12\"]]."), "quiz": quiz("predict", "cv", "If you split the data again, how much can the test score move?", &["It can move a lot", "It barely moves", "It always drops"]) },
 	});
-	calls(app, chat, vec![("topic_done", opener_cv.clone())]).await;
-	settled(app, chat).await;
-	let record = messages(app, chat);
+	let ends_reg = vec![
+		call("conclude", conclude("solvedWithHints", Some("R1"), "You said how lambda trades fit for small weights, after one hint.")),
+		call("ls", json!({ "path": app.paths.home.to_string_lossy() })),
+		call("topic_done", opener_cv.clone()),
+	];
+	fx.send(chat, text("A bigger lambda makes them cost more, so the fit trades accuracy for smaller weights."), ends_reg).await;
+	fx.writes(chat).await;
+	let read = fx.results();
+	assert_eq!(read[read.len() - 3], STUDY_TOPIC_END_ACK_TEXT, "the conclude's result the agent read, before its read and topic_done");
+	let record = fx.messages(chat);
+	let conclude_reg = id_of(&last_call(&record, "conclude"));
 	let stop = &result_of(&record, &conclude_reg)["details"]["stop"];
 	assert_eq!((stop["kind"].as_str(), stop["nodeId"].as_str(), stop["activeMinutes"].as_i64()), (Some("topic"), Some("reg"), Some(48)), "Stop here is the dark button at 48 minutes");
 	let done_reg = last_call(&record, "topic_done");
@@ -408,7 +418,7 @@ async fn two_days_of_study_for_the_midterm() {
 	clock_to(local(&saturday, "20:40"));
 	assert!(!app.bridge.agent_teaching(clock::now_ms()), "the head says Waiting for Teacher");
 	assert_eq!(keep_going(app, chat, &conclude_reg), Ok(KeepGoing::Kept { opener: true, running: false }));
-	let record = messages(app, chat);
+	let record = fx.messages(chat);
 	let done_reg_id = id_of(&done_reg);
 	assert!(shown_openers(&record).contains_key(&done_reg_id));
 	let pages = topic_parts(&record, first_topic(Some(&plan)));
@@ -419,7 +429,8 @@ async fn two_days_of_study_for_the_midterm() {
 
 	// His answer to the opener, then three questions from earlier while the teacher writes.
 	thinks();
-	send(app, chat, ChatInput::OpenerAnswer { topic_done_call_id: done_reg_id.clone(), answer: Some(picked(1, "It can move a lot", "It can move a lot", true, 60)) }).await;
+	let opener_answer = ChatInput::OpenerAnswer { topic_done_call_id: done_reg_id.clone(), answer: Some(picked(1, "It can move a lot", "It can move a lot", true, 60)) };
+	fx.send(chat, opener_answer, vec![call("problem", problem("cv", "Why can one train and test split give a misleading score?"))]).await;
 	let bayes_sat = from_earlier(app, chat, "Bayes' rule", picked(1, "Right", "Right", true, 80));
 	let gd_sat = from_earlier(app, chat, "Gradient descent", picked(1, "Right", "Right", true, 80));
 	let reg_sat = from_earlier(app, chat, "Regularization", picked(1, "Prices them higher", "Prices them higher", true, 80));
@@ -427,53 +438,46 @@ async fn two_days_of_study_for_the_midterm() {
 	assert_ne!(bayes_sat["of"], bayes_wed["of"], "never the question he missed last time");
 	assert_ne!(gd_sat["of"], gd_wed["of"], "never one shown in the last 7 days");
 	assert_eq!(reg_sat["of"]["toolCallId"], json!(done_reg_id), "the question topic_done stored");
-	let record = messages(app, chat);
+	let record = fx.messages(chat);
 	let row = marker(&record, "review", "nodeId", "reg");
 	assert_eq!(row["details"]["kept"], json!({ "of": { "chatId": chat, "messageId": keep_call_message(&record, &keep_id), "toolCallId": keep_id }, "text": "Lambda prices large weights; it does not cap them.", "source": stored_page, "phrase": "Price, not cap" }), "his sentence comes back, never the analogy");
-	writes();
-	let seen = calls(app, chat, vec![("problem", problem("cv", "Why can one train and test split give a misleading score?"))]).await;
-	settled(app, chat).await;
-	assert_eq!(last_input(&seen), format!("[Resumed] He came back to this session after a stop.\n[Opener] Cross-validation: he picked A, It can move a lot, sure 3 of 5.\n{NO_PLOT_YET}"));
+	fx.writes(chat).await;
+	assert_eq!(fx.input(chat), [format!("[Resumed] He came back to this session after a stop.\n[Opener] Cross-validation: he picked A, It can move a lot, sure 3 of 5.\n{NO_PLOT_YET}")]);
 
 	// Cross-validation ends on a conclude; Keep going in the same sitting.
 	thinks();
-	send(app, chat, text("Each split tests on different points, so the score depends on which points.")).await;
-	writes();
-	let seen = calls(app, chat, vec![("conclude", conclude("solved", None, "You named why the score moves: each split tests different points."))]).await;
-	let lines = input_lines(&seen);
-	let order = ["[Resumed]", "[Opener]", "[From earlier]"].map(|tag| lines.iter().rposition(|l| l.starts_with(tag)).unwrap_or_else(|| panic!("{tag} in {lines:?}")));
-	assert!(order[0] < order[1] && order[1] < order[2], "{lines:?}");
-	assert_eq!(lines[order[2]], "[From earlier] Bayes' rule right, sure 4 of 5. Gradient descent right, sure 4 of 5. Regularization right, sure 4 of 5.");
 	let opener_ms = json!({
 		"nodeId": "cv",
 		"review": quiz("check", "cv", "Why average the score over several splits?", &["One split can mislead", "It is faster", "It uses less data"]),
 		"opener": { "lead": "Now pick between models with those scores.", "quiz": quiz("predict", "ms", "A model wins on one split and loses on four. Which do you keep?", &["The one that wins on average", "The one that won once", "Either"]) },
 	});
-	calls(app, chat, vec![("topic_done", opener_ms)]).await;
-	settled(app, chat).await;
-	let record = messages(app, chat);
+	let ends_cv = vec![call("conclude", conclude("solved", None, "You named why the score moves: each split tests different points.")), call("topic_done", opener_ms)];
+	fx.send(chat, text("Each split tests on different points, so the score depends on which points."), ends_cv).await;
+	fx.writes(chat).await;
+	let lines = fx.lines_sent();
+	let order = ["[Resumed]", "[Opener]", "[From earlier]"].map(|tag| lines.iter().rposition(|l| l.starts_with(tag)).unwrap_or_else(|| panic!("{tag} in {lines:?}")));
+	assert!(order[0] < order[1] && order[1] < order[2], "{lines:?}");
+	assert_eq!(lines[order[2]], "[From earlier] Bayes' rule right, sure 4 of 5. Gradient descent right, sure 4 of 5. Regularization right, sure 4 of 5.");
+	let record = fx.messages(chat);
 	let conclude_cv = id_of(&last_call(&record, "conclude"));
 	let done_cv = id_of(&last_call(&record, "topic_done"));
 	assert_eq!(result_of(&record, &done_cv)["content"], json!([{ "type": "text", "text": TOPIC_DONE_STORED_TEXT }]));
 	thinks();
 	assert_eq!(keep_going(app, chat, &conclude_cv), Ok(KeepGoing::Kept { opener: true, running: false }));
 	thinks();
-	send(app, chat, ChatInput::OpenerAnswer { topic_done_call_id: done_cv, answer: Some(picked(1, "The one that wins on average", "The one that wins on average", true, 80)) }).await;
+	let ms_check = quiz("check", "ms", "Two models score 0.81 and 0.80 averaged over five splits. What decides between them?", &["The spread over the splits", "The first split", "The training score"]);
+	fx.send(chat, ChatInput::OpenerAnswer { topic_done_call_id: done_cv, answer: Some(picked(1, "The one that wins on average", "The one that wins on average", true, 80)) }, vec![call("quiz", ms_check)]).await;
 	assert_eq!(next_review(app, chat).unwrap(), ReviewReply::Next(None), "three today already");
-	writes();
-	let seen = calls(app, chat, vec![("quiz", quiz("check", "ms", "Two models score 0.81 and 0.80 averaged over five splits. What decides between them?", &["The spread over the splits", "The first split", "The training score"]))]).await;
-	settled(app, chat).await;
-	assert_eq!(last_input(&seen), format!("[Opener] Model selection: he picked A, The one that wins on average, sure 4 of 5.\n{NO_PLOT_YET}"), "no [Resumed] in the same sitting");
+	fx.writes(chat).await;
+	assert_eq!(fx.input(chat), [format!("[Opener] Model selection: he picked A, The one that wins on average, sure 4 of 5.\n{NO_PLOT_YET}")], "no [Resumed] in the same sitting");
 
 	// Model selection ends on a right quiz: the stop comes with topic_done, after the teacher's turn.
-	let ms_quiz = id_of(&last_call(&messages(app, chat), "quiz"));
+	let ms_quiz = id_of(&last_call(&fx.messages(chat), "quiz"));
 	thinks();
-	send(app, chat, answered(&ms_quiz, picked(1, "The spread over the splits", "The spread over the splits", true, 80))).await;
-	writes();
 	let last = json!({ "nodeId": "ms", "review": quiz("check", "ms", "What should decide between two models with nearly equal averaged scores?", &["Their spread", "Their names", "Their size"]) });
-	calls(app, chat, vec![("topic_done", last)]).await;
-	settled(app, chat).await;
-	let record = messages(app, chat);
+	fx.send(chat, answered(&ms_quiz, picked(1, "The spread over the splits", "The spread over the splits", true, 80)), vec![call("topic_done", last)]).await;
+	fx.writes(chat).await;
+	let record = fx.messages(chat);
 	let done_ms = result_of(&record, &id_of(&last_call(&record, "topic_done")));
 	assert_eq!(done_ms["content"], json!([{ "type": "text", "text": TOPIC_DONE_NO_OPENER_TEXT }]), "no opener comes after the last topic");
 	let stop = &done_ms["details"]["stop"];

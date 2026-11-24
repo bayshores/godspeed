@@ -25,7 +25,7 @@ async fn open(runtime: &Runtime, peer: &mut Option<Peer>, peers: &mut UnboundedR
 
 async fn send(session: &Session, peer: &mut Peer) {
 	session.send(&[Part::Text("Explain what a derivative is.".into())]).await.unwrap();
-	assert_eq!(peer.recv().await, json!({ "type": "send", "session": "s1", "content": [{ "type": "text", "text": "Explain what a derivative is." }], "steer": false }));
+	assert_eq!(peer.recv().await, json!({ "type": "send", "session": "s1", "content": [{ "type": "text", "text": "Explain what a derivative is." }] }));
 }
 
 #[tokio::test]
@@ -55,8 +55,8 @@ async fn a_session_opens_with_godspeeds_tools_on_the_learners_own_claude() {
 	assert_eq!(session.native_id(), "sess-1");
 	session.set_model("claude-opus-5-5").unwrap();
 	assert_eq!(peer.recv().await, json!({ "type": "model", "session": "s1", "model": "claude-opus-5-5" }));
-	session.steer(&[Part::Image { mime: "image/png".into(), base64: "iVBO".into() }]).await.unwrap();
-	assert_eq!(peer.recv().await, json!({ "type": "send", "session": "s1", "content": [{ "type": "image", "source": { "type": "base64", "media_type": "image/png", "data": "iVBO" } }], "steer": true }));
+	session.send(&[Part::Image { mime: "image/png".into(), base64: "iVBO".into() }]).await.unwrap();
+	assert_eq!(peer.recv().await, json!({ "type": "send", "session": "s1", "content": [{ "type": "image", "source": { "type": "base64", "media_type": "image/png", "data": "iVBO" } }] }));
 	drop(session);
 	assert_eq!(peer.recv().await, json!({ "type": "close", "session": "s1" }), "a dropped session closes its query");
 }
@@ -77,6 +77,8 @@ async fn a_recorded_lesson_turn_answers_godspeeds_tool_and_streams_the_reply() {
 		seen,
 		[
 			Seen::Started,
+			// The step's calls come before the call itself, so godspeed can check them together.
+			Seen::Calls(vec![ToolCall { id: "toolu_1".into(), name: "list_spaces".into(), args: json!({}) }]),
 			Seen::Usage(Usage { input: 23616, cached: 0, output: 37 }),
 			Seen::Tool(ToolCall { id: "toolu_1".into(), name: "list_spaces".into(), args: json!({}) }),
 			Seen::Delta("A derivative measures how fast something is changing at one exact moment. ".into()),
@@ -203,24 +205,3 @@ async fn when_the_helper_stops_its_sessions_end_and_the_next_open_starts_it_agai
 	assert_eq!(again.native_id(), "sess-1");
 }
 
-#[tokio::test]
-async fn a_steer_after_the_last_step_runs_as_the_next_turn() {
-	let (runtime, mut peers) = runtime(FolderAgent::Claude);
-	let mut peer = None;
-	let session = open(&runtime, &mut peer, &mut peers, None).await;
-	let peer = peer.as_mut().unwrap();
-	send(&session, peer).await;
-	let sdk = |message: gs_json::Json| json!({ "type": "sdk", "session": "s1", "message": message });
-	let words = |text: &str| sdk(json!({ "type": "stream_event", "event": { "type": "content_block_delta", "index": 0, "delta": { "type": "text_delta", "text": text } }, "parent_tool_use_id": null }));
-	let result = sdk(json!({ "type": "result", "subtype": "success", "is_error": false, "num_turns": 1, "parent_tool_use_id": null }));
-	peer.send(&words("one, two, three")).await;
-	session.steer(&[Part::Text("Stop the list and write DONE.".into())]).await.unwrap();
-	assert_eq!(peer.recv().await["steer"], json!(true));
-	peer.send(&result).await;
-	assert_eq!(seen_until_end(&session).await, [Seen::Started, Seen::Delta("one, two, three".into()), Seen::Ended(End::Completed)]);
-	// What Claude Code sends when it then runs the steer by itself, as recorded on the real CLI.
-	peer.send(&sdk(json!({ "type": "system", "subtype": "status", "status": null }))).await;
-	peer.send(&words("DONE")).await;
-	peer.send(&result).await;
-	assert_eq!(seen_until_end(&session).await, [Seen::Started, Seen::Delta("DONE".into()), Seen::Ended(End::Completed)]);
-}

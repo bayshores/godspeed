@@ -1,11 +1,11 @@
-//! The turn's agent, built from the record (the agent-construction branch of chat-handler.ts):
-//! practice, homework, study, or a lesson's prober until its probe is done and its teacher
-//! after. Every kind shares the turn composition; only the agent differs.
+//! The turn's instructions and tools, built from the record: practice, homework, study, or a
+//! lesson's prober until its probe is done and its teacher after. Every kind shares the turn
+//! composition; only the setup differs.
 
 use std::sync::Arc;
 
 use gs_agent::extraction::ledgers;
-use gs_agent::teacher::teacher_agent::{AgentBuildOptions, create_homework_agent, create_practice_agent, create_prober_agent, create_study_agent, create_teacher_agent};
+use gs_agent::teacher::teacher_agent::{AgentBuildOptions, LessonSetup, homework_setup, practice_setup, prober_setup, study_setup, teacher_setup};
 use gs_agent::tools::space::SpaceToolContext;
 use gs_agent::tools::graph::SearchGraph;
 use gs_agent::tools::homework::HomeworkToolContext;
@@ -18,15 +18,14 @@ use gs_agent::tools::probe::ProbeDoneContext;
 use gs_agent::tools::rules::SaveRule;
 use gs_agent::tools::side::LessonSide;
 use gs_agent::tools::space_actions::SpaceActions;
-use gs_base::{clock, text, time};
+use gs_base::{text, time};
 use gs_core::session::plan::agent_writes_plan;
 use gs_core::spaces::space_tools::ToolOutcome;
 use gs_core::graph::ports::GraphStore;
 use gs_core::records::settings_resolution::graph_tools_enabled;
 use gs_core::records::teaching_areas::{every_turn_rules, learner_rules_section};
 use gs_core::session::tool_switches::switched_off;
-use gs_engine::turn::agent::Agent;
-use gs_engine::turn::faux::Engine;
+use gs_engine::turn::agent::BeforeToolCallFn;
 use gs_json::{Json, json};
 
 use super::chat_handler::send_first_message;
@@ -34,6 +33,7 @@ use super::lesson_problems::lesson_problem_list;
 use super::job_host::run_job;
 use super::problem_pages::problem_pages;
 use crate::App;
+use crate::app::agent_folder::folder_agent;
 use crate::graph::graph::search_graph;
 use crate::app::agent_rules::save_rule_by_agent;
 use crate::app::open_page::agent_open_page;
@@ -45,15 +45,14 @@ use crate::spaces::space_search::space_search;
 use crate::jobs::deliver_job_result;
 use crate::vault::lesson_vault_tool;
 
-/// What one turn's agent is built from.
-pub(super) struct TurnAgent {
+/// What one turn's setup is built from, besides the record.
+pub(super) struct LessonTurn {
 	pub chat_id: String,
-	/// The transcript the turn runs on (the record is the agent's state).
-	pub messages: Vec<Json>,
 	/// A successful probe_done is in the transcript: the teacher, not the prober.
 	pub teaching: bool,
 	pub side_turn: bool,
-	pub engine: Engine,
+	/// The turn's own check of each call, after the agent's.
+	pub call_check: Option<BeforeToolCallFn>,
 }
 
 /// The lesson's space name and rules, for the learner's-rules section.
@@ -134,29 +133,25 @@ fn save_rule(app: &Arc<App>, lesson_scope: Option<&str>) -> SaveRule {
 
 /// The space actions a lesson's deadline changes run, named for the agent.
 fn agent_space_actions(app: &Arc<App>) -> SpaceActions {
-	let agent = app.bridge.agent_name(clock::now_ms());
-	let actions = Arc::new(space_actions(app, agent.as_deref(), send_first_message(app), Mark::Started));
+	let actions = Arc::new(space_actions(app, Some(folder_agent(app).label()), send_first_message(app), Mark::Started));
 	Arc::new(move |name: &str, args: Json| {
 		let (actions, name) = (actions.clone(), name.to_owned());
 		Box::pin(async move { actions.run(&name, &args).await.unwrap_or_else(|| ToolOutcome::Err(format!("{name} is not a space tool."))) })
 	})
 }
 
-/// Builds this turn's agent from the record.
-pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json, turn: TurnAgent) -> Arc<Agent> {
-	let TurnAgent { chat_id, messages, teaching, side_turn, engine } = turn;
+/// This turn's instructions and tools, from the record.
+pub(super) fn lesson_setup(app: &Arc<App>, record: &Json, effective: &Json, turn: LessonTurn) -> LessonSetup {
+	let LessonTurn { chat_id, teaching, side_turn, call_check } = turn;
 	let lesson_scope = record["spaceId"].as_str();
 	let toggles = Some(&effective["agent"]["tools"]).filter(|t| !t.is_null()).cloned();
 	let pdf_on = !switched_off(toggles.as_ref(), "pdf");
 	let opts = AgentBuildOptions {
-		messages,
-		on_usage: None,
-		tools: None,
 		tool_toggles: toggles,
 		learner_rules: Some(with_lesson_rules(app, effective, lesson_scope, learner_rules_section)),
-		chat_id: Some(chat_id.clone()),
 		side_turn,
-		..AgentBuildOptions::new(engine, &app.stores.prompt_overrides)
+		call_check,
+		..AgentBuildOptions::new(&app.stores.prompt_overrides)
 	};
 
 	let chats: Arc<dyn ChatPort> = app.stores.chats.clone();
@@ -180,32 +175,30 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 	match (kind, lesson_problem_list(app, record)) {
 		(Some("practice"), _) => {
 			let ctx = PracticeToolContext { chat_id, chat_store: chats, graph_nodes: Some(graph_nodes(app, lesson_scope)), jobs: Some(jobs), side, pages };
-			create_practice_agent(&ctx, opts)
+			practice_setup(&ctx, opts)
 		}
 		(Some("homework"), Some(homework)) => {
 			let ctx = HomeworkToolContext { chat_id, chat_store: chats, homework, jobs: Some(jobs), side, pages: problem_pages(app, lesson_scope, record["deadlineId"].as_str()) };
-			create_homework_agent(&ctx, opts)
+			homework_setup(&ctx, opts)
 		}
 		(Some("study"), problems) => {
 			let marks_app = app.clone();
 			let check_marks = Arc::new(move |text: &str| check_cites(&marks_app, text));
 			// Study sends deadline changes outside lessons, so it has no deadline tools.
 			let teacher = TeacherToolContext { side: LessonSide { space_actions: None, ..side.clone() }, ..teacher() };
-			create_study_agent(&StudyToolContext { teacher, graph_nodes: Some(graph_nodes(app, lesson_scope)), check_marks, pages, writes_plan: agent_writes_plan(record), problems }, opts)
+			study_setup(&StudyToolContext { teacher, graph_nodes: Some(graph_nodes(app, lesson_scope)), check_marks, pages, writes_plan: agent_writes_plan(record), problems }, opts)
 		}
-		_ if teaching => create_teacher_agent(Some(&teacher()), opts),
+		_ if teaching => teacher_setup(Some(&teacher()), opts),
 		_ => {
 			let deliver_app = app.clone();
 			let probe = ProbeDoneContext { chat_id: chat_id.clone(), chat_store: chats.clone(), deliver: Arc::new(move |steer| deliver_job_result(&deliver_app, steer)) };
-			create_prober_agent(&ProberToolContext { probe, jobs, side }, opts)
+			prober_setup(&ProberToolContext { probe, jobs, side }, opts)
 		}
 	}
 }
 
 #[cfg(test)]
 mod tests {
-	use gs_engine::turn::models::agent_engine;
-
 	use super::*;
 	use crate::app::test_support::{scratch_dir, test_app};
 
@@ -214,9 +207,8 @@ mod tests {
 	}
 
 	fn names_of(app: &Arc<App>, record: &Json, effective: &Json, teaching: bool) -> Vec<String> {
-		let turn = TurnAgent { chat_id: "chat_a".to_owned(), messages: Vec::new(), teaching, side_turn: false, engine: agent_engine(&app.bridge) };
-		let agent = build_lesson_agent(app, record, effective, turn);
-		agent.messages()[0]["toolsAdded"].as_arr().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_owned()).collect()
+		let turn = LessonTurn { chat_id: "chat_a".to_owned(), teaching, side_turn: false, call_check: None };
+		lesson_setup(app, record, effective, turn).host.tool_names().map(str::to_owned).collect()
 	}
 
 	/// A new lesson tool fails here until lesson_steps.rs says what it is on the lesson's desk: a

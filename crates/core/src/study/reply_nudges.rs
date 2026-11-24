@@ -1,8 +1,10 @@
-//! The checks on a Study reply's own words before it is stored. Two are sent back once a topic: a
-//! curve written out as a table or as lines of numbers (a plot's job) and a list of questions (a
-//! reply asks one). Code is never read. Of the tool calls, only a quiz's question, a problem's
-//! statement and an opener's lead are read, for a curve (`services::turns::reply_nudges`). The
-//! third, a wall of prose right after his own message or a miss, is sent back once a learner input.
+//! The checks on a Study reply's own words. Two are raised once a topic: a curve written out as a
+//! table or as lines of numbers (a plot's job) and a list of questions (a reply asks one). Code is
+//! never read. A reply's text has already been shown, so its checks become a note the teacher
+//! reads before its next reply. Of the tool calls, only a quiz's question, a problem's statement
+//! and an opener's lead are read, for a curve, and such a call is refused
+//! (`services::turns::reply_nudges`). The third, a wall of prose right after his own message or a
+//! miss, is raised once a learner input.
 
 use gs_json::Json;
 use markdown::mdast::Node;
@@ -21,27 +23,33 @@ pub enum Nudge {
 }
 
 impl Nudge {
-	/// What the teacher reads when the reply is sent back.
-	pub fn refusal(self) -> &'static str {
+	/// What the teacher reads before its next reply.
+	pub fn note(self) -> &'static str {
 		match self {
-			Nudge::CurveTable => "not sent: these rows read as points of one curve. Send `plot` with the rows as `points` and a prediction instead. If the table is not a curve, send the reply again as it is.",
-			Nudge::QuestionList => "not sent: a reply holds one question. Keep one, cut the rest; never answer one to make the list shorter. If these are not questions for the learner, send the reply again as it is.",
+			Nudge::CurveTable => "these rows read as points of one curve. Send `plot` with the rows as `points` and a prediction instead.",
+			Nudge::QuestionList => "a reply holds one question. Keep one, cut the rest; never answer one to make the list shorter.",
 		}
 	}
 }
 
-/// Added to the question list's refusal while a problem is open.
+/// What the teacher reads when a call whose words read as a curve is refused.
+pub fn curve_refusal() -> String {
+	format!("not sent: {} If the table is not a curve, send the reply again as it is.", Nudge::CurveTable.note())
+}
+
+/// What the teacher reads before its next reply when its notes are about its last one.
+pub const LAST_REPLY_LEAD: &str = "About your last reply:";
+
+/// Added to the question list's note while a problem is open.
 pub const OPEN_PROBLEM_NOTE: &str = "A problem is open: its parts are already asked; don't list them again.";
 
 /// More plain prose than this after the learner's own message or a miss is sent back once
 /// (docs/teaching-methodology.md says why 150).
 pub const WALL_WORDS: usize = 150;
 
-/// What the teacher reads when a reply of `words` words of prose is sent back.
-pub fn wall_refusal(words: usize) -> String {
-	format!(
-		"not sent: {words} words right after his own message or a miss. One idea in at most four short lines, then his move; give away no more than before. He asked for the full rule or a worked example and it needs the length: send it again as it is."
-	)
+/// What the teacher reads before its next reply after one of `words` words of prose.
+pub fn wall_note(words: usize) -> String {
+	format!("{words} words right after his own message or a miss. One idea in at most four short lines, then his move; give away no more than before.")
 }
 
 /// The words of plain prose in a reply: fenced code, display math (`$$`, `\[`) and table rows

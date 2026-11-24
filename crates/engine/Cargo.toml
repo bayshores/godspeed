@@ -10,9 +10,13 @@ publish.workspace = true
 gs-json.workspace = true
 gs-base.workspace = true
 gs-core.workspace = true
+gs-runtime.workspace = true
 tokio.workspace = true
 parking_lot.workspace = true
 futures-util.workspace = true
+
+[dev-dependencies]
+gs-runtime = { workspace = true, features = ["fake"] }
 
 [lints]
 workspace = true

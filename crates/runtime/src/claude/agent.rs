@@ -44,9 +44,6 @@ struct Turn {
 	started: bool,
 	interrupting: bool,
 	reading: Reading,
-	/// Steers sent since the learner's last message. Claude Code runs one that comes after the
-	/// turn's last step as a turn of its own, so these outlive the turn they were sent in.
-	steers: usize,
 }
 
 impl Connection {
@@ -99,13 +96,7 @@ impl SessionLink {
 
 	pub fn send(&self, parts: &[Part]) -> Result<(), String> {
 		*self.open()?.turn.lock() = Turn { running: true, ..Turn::default() };
-		self.connection.state.write(&protocol::send(&self.key, parts, false));
-		Ok(())
-	}
-
-	pub fn steer(&self, parts: &[Part]) -> Result<(), String> {
-		self.open()?.turn.lock().steers += 1;
-		self.connection.state.write(&protocol::send(&self.key, parts, true));
+		self.connection.state.write(&protocol::send(&self.key, parts));
 		Ok(())
 	}
 
@@ -154,13 +145,9 @@ impl State {
 			FromHelper::Sdk { session, message } => {
 				let Some(open) = self.session(&session) else { return };
 				let mut turn = open.turn.lock();
+				// Outside a turn (the session's start-up) is not the reply.
 				if !turn.running {
-					// A steer's own turn starts with the model at work; anything else outside a turn
-					// (the session's start-up) is not the reply.
-					if turn.steers == 0 || !protocol::model_at_work(&message) {
-						return;
-					}
-					*turn = Turn { running: true, steers: turn.steers - 1, ..Turn::default() };
+					return;
 				}
 				if !turn.started {
 					turn.started = true;
@@ -172,7 +159,7 @@ impl State {
 				}
 				if let Some(finish) = finish {
 					let end = finish.end(turn.interrupting);
-					*turn = Turn { steers: turn.steers, ..Turn::default() };
+					*turn = Turn::default();
 					let _ = open.events.send(SessionEvent::Ended(end));
 				}
 			}

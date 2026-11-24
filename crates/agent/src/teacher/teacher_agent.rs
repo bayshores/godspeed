@@ -1,27 +1,25 @@
-//! The agents: study (every new session), the prober and the
-//! teacher (older teach lessons), practice (older practice sessions) and homework. A prober and a teacher share one transcript with different
-//! prompts and tools. Each turn builds its agent fresh from the record and drops it at turn end.
+//! The lesson agents: study (every new session), the prober and the teacher (older teach
+//! lessons), practice (older practice sessions) and homework. A prober and a teacher share one
+//! record with different prompts and tools. Each turn builds its agent's instructions and tools
+//! fresh from the record.
 
 use std::collections::HashSet;
 use std::sync::Arc;
 
 use gs_base::text::trim;
-use gs_core::messages::role::Role;
 use gs_core::contracts::chat::TOPIC_DONE_TOOL;
-use gs_core::messages::native_messages::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, to_llm_messages};
+use gs_core::messages::native_messages::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL};
 use gs_core::messages::pending::is_question_tool;
 use gs_core::session::tool_switches::{TOGGLEABLE_TOOLS, switched_off_tools_note};
-use gs_engine::turn::agent::{Agent, AgentOptions, BeforeToolCallFn, FinishFn, QueueMode};
-use gs_engine::turn::events::AgentEvent;
-use gs_engine::turn::faux::Engine;
+use gs_engine::turn::agent::BeforeToolCallFn;
 use gs_engine::turn::tool::Tool;
-use gs_json::{Json, json};
+use gs_engine::turn::tool_host::ToolHost;
+use gs_json::Json;
 use gs_store::prompt_overrides::PromptOverrides;
 
-use crate::subagents::pi_run::OnUsage;
 use crate::tools::fn_tool::FnTool;
 use crate::tools::homework::{HomeworkToolContext, homework_tools};
-use crate::tools::lesson_parts::LessonParts;
+use crate::tools::lesson_parts::{HOLDS, LessonParts};
 use crate::tools::lesson::{ProberToolContext, StudyToolContext, TeacherToolContext, prober_tools, study_tools, teacher_tools};
 use crate::tools::practice::{PracticeToolContext, practice_tools};
 use crate::tools::questions::bare_question_tools;
@@ -49,11 +47,7 @@ pub fn compose_instructions(kind: AgentKind, prompts: &PromptOverrides) -> Strin
 }
 
 pub struct AgentBuildOptions<'a> {
-	pub engine: Engine,
 	pub prompts: &'a PromptOverrides,
-	/// The transcript so far, as pi messages (the record is the agent's state).
-	pub messages: Vec<Json>,
-	pub on_usage: Option<OnUsage>,
 	/// A bare registry for tests. It is never switch-filtered: the caller owns it.
 	pub tools: Option<Vec<Arc<dyn Tool>>>,
 	/// The resolved per-user tool switches: the registries drop any tool explicitly off, and the
@@ -61,88 +55,62 @@ pub struct AgentBuildOptions<'a> {
 	pub tool_toggles: Option<Json>,
 	/// The learner's rules section, appended after the instructions.
 	pub learner_rules: Option<String>,
-	/// The chat id, kept across the prober, teacher and practice agents of one conversation.
-	pub chat_id: Option<String>,
 	/// The turn answers a side question: a question is already waiting, so the question and
 	/// problem tools refuse.
 	pub side_turn: bool,
+	/// The caller's own check of a call, after the agent's: Some(reason) refuses it.
+	pub call_check: Option<BeforeToolCallFn>,
 }
 
 impl<'a> AgentBuildOptions<'a> {
-	pub fn new(engine: Engine, prompts: &'a PromptOverrides) -> AgentBuildOptions<'a> {
-		AgentBuildOptions { engine, prompts, messages: Vec::new(), on_usage: None, tools: None, tool_toggles: None, learner_rules: None, chat_id: None, side_turn: false }
+	pub fn new(prompts: &'a PromptOverrides) -> AgentBuildOptions<'a> {
+		AgentBuildOptions { prompts, tools: None, tool_toggles: None, learner_rules: None, side_turn: false, call_check: None }
 	}
 }
 
-/// The turn's question-stop rule: a question call that resolved cleanly ends the run, and the
-/// learner's answer arrives as the next request. A call that failed its authoring checks must not
-/// stop the run, so the model can retry within the turn. Results of a lone question already stop
-/// the run; this covers a question mixed with other calls. Practice-like agents wait on a pose too,
-/// and Study on a stored topic_done.
-fn question_stopper(kind: AgentKind) -> FinishFn {
+/// A lesson agent: its instructions, and its tools with the rules for their calls.
+pub struct LessonSetup {
+	pub prompt: String,
+	pub host: ToolHost,
+	/// Study's plot and guess, which can hold a half until the turn's end.
+	pub parts: Option<Arc<LessonParts>>,
+}
+
+/// The tools whose clean result ends the turn, so the learner's answer starts the next one: a
+/// question, for practice-like agents a pose, and for Study a stored topic_done. A call that
+/// failed its authoring checks does not, so the agent can try again.
+fn stop_tools(kind: AgentKind, tools: &[FnTool]) -> HashSet<String> {
 	let poses_problems = matches!(kind, AgentKind::Practice | AgentKind::Study | AgentKind::StudyFiles | AgentKind::Homework);
 	let ends_topics = matches!(kind, AgentKind::Study | AgentKind::StudyFiles);
-	Box::new(move |turn| {
-		let stops = |name: &str| is_question_tool(name) || (poses_problems && name == PRACTICE_PROBLEM_TOOL) || (ends_topics && name == TOPIC_DONE_TOOL);
-		let called: HashSet<&str> = turn.message["content"]
-			.as_arr()
-			.into_iter()
-			.flatten()
-			.filter(|c| c["type"].as_str() == Some("toolCall") && c["name"].as_str().is_some_and(stops))
-			.filter_map(|c| c["id"].as_str())
-			.collect();
-		!called.is_empty() && !turn.tool_results.iter().any(|r| r["toolCallId"].as_str().is_some_and(|id| called.contains(id)) && r["isError"].truthy())
-	})
+	let stops = |name: &str| is_question_tool(name) || (poses_problems && name == PRACTICE_PROBLEM_TOOL) || (ends_topics && name == TOPIC_DONE_TOOL);
+	tools.iter().map(|t| t.name()).filter(|name| stops(name)).map(str::to_owned).collect()
 }
 
-/// A side turn keeps the question tools, problem and conclude but refuses them: an unchanged tool
-/// list keeps the outside agent's conversation a cheap delta instead of a full resend. A plot
-/// still draws, with no guess (the lesson-parts hook).
-fn side_turn_tools(tools: Vec<FnTool>) -> Vec<FnTool> {
-	tools
-		.into_iter()
-		.map(|tool| {
-			if is_question_tool(tool.name()) || [PRACTICE_PROBLEM_TOOL, PRACTICE_CONCLUDE_TOOL].contains(&tool.name()) {
-				tool.with_run(|_| Arc::new(|_, _| Box::pin(async { Ok(json!({ "content": [{ "type": "text", "text": SIDE_TURN_REFUSAL }], "isError": true })) })))
-			} else {
-				tool
-			}
-		})
-		.collect()
+/// A side turn keeps the question tools, problem and conclude in the list but refuses them: an
+/// unchanged tool list keeps the agent's session as it is. A plot still draws, with no guess
+/// (the lesson-parts hook).
+fn side_turn_refused(tools: &[FnTool]) -> Vec<String> {
+	tools.iter().map(|t| t.name()).filter(|name| is_question_tool(name) || [PRACTICE_PROBLEM_TOOL, PRACTICE_CONCLUDE_TOOL].contains(name)).map(str::to_owned).collect()
 }
 
-fn build_agent(kind: AgentKind, opts: AgentBuildOptions, tools: Vec<FnTool>, before_tool_call: Option<BeforeToolCallFn>) -> Arc<Agent> {
-	let tools = if opts.side_turn { side_turn_tools(tools) } else { tools };
+/// The agent's own check first, then the caller's.
+fn both_checks(first: Option<BeforeToolCallFn>, second: Option<BeforeToolCallFn>) -> Option<BeforeToolCallFn> {
+	match (first, second) {
+		(Some(first), Some(second)) => Some(Box::new(move |ctx| first(ctx).or_else(|| second(ctx)))),
+		(first, second) => first.or(second),
+	}
+}
+
+fn build_setup(kind: AgentKind, opts: AgentBuildOptions, tools: Vec<FnTool>, lesson_parts: Option<Arc<LessonParts>>) -> LessonSetup {
 	// The doctrine still mentions switched-off tools; the note tells the model they are gone.
 	let note = switched_off_tools_note(opts.tool_toggles.as_ref(), switches(kind));
 	let parts = [compose_instructions(kind, opts.prompts), note, opts.learner_rules.unwrap_or_default()];
-	let system_prompt = parts.into_iter().filter(|part| !part.is_empty()).collect::<Vec<_>>().join(SEPARATOR);
-	let agent = Agent::new(AgentOptions {
-		engine: opts.engine,
-		system_prompt,
-		tools: tools.into_iter().map(FnTool::into_arc).collect(),
-		messages: opts.messages,
-		session_id: opts.chat_id,
-		// A lesson is one continuous teach, quiz, teach run, so markers handed to a live run join
-		// at one turn boundary instead of costing a teacher turn each.
-		steering_mode: QueueMode::All,
-		convert_to_llm: Some(Box::new(to_llm_messages)),
-		finish_turn: Some(question_stopper(kind)),
-		before_tool_call,
-	});
-	if let Some(on_usage) = opts.on_usage {
-		agent.subscribe(Arc::new(move |event| {
-			if let AgentEvent::MessageEnd(message) = event
-				&& Role::Assistant.is(message)
-				&& message.get("usage").is_some()
-				// A cancelled call's usage is only partial or estimated.
-				&& message["stopReason"].as_str() != Some("aborted")
-			{
-				on_usage(&message["usage"]);
-			}
-		}));
-	}
-	agent
+	let prompt = parts.into_iter().filter(|part| !part.is_empty()).collect::<Vec<_>>().join(SEPARATOR);
+	let stops = stop_tools(kind, &tools);
+	let refused = if opts.side_turn { side_turn_refused(&tools) } else { Vec::new() };
+	let holds = lesson_parts.iter().flat_map(|_| HOLDS.map(str::to_owned));
+	let host = ToolHost::new(tools.into_iter().map(FnTool::into_arc).collect(), both_checks(lesson_parts.as_ref().map(LessonParts::hook), opts.call_check), stops).refuse(refused, SIDE_TURN_REFUSAL).holding(holds);
+	LessonSetup { prompt, host, parts: lesson_parts }
 }
 
 /// The explicit registry when the caller passed one, else the built one.
@@ -156,37 +124,37 @@ fn registry(opts: &mut AgentBuildOptions, build: impl FnOnce(Option<&Json>) -> V
 /// The prober: one quizzing tool plus ask and probe_done, lean on probing doctrine. Its whole job
 /// is bracketing the learner's edge and concluding with the assessment, which also queues the
 /// handoff wake and is the transcript seam the teacher's construction keys on.
-pub fn create_prober_agent(ctx: &ProberToolContext, opts: AgentBuildOptions) -> Arc<Agent> {
+pub fn prober_setup(ctx: &ProberToolContext, opts: AgentBuildOptions) -> LessonSetup {
 	let tools = prober_tools(ctx, opts.tool_toggles.as_ref());
-	build_agent(AgentKind::Prober, opts, tools, None)
+	build_setup(AgentKind::Prober, opts, tools, None)
 }
 
 /// The teacher: enters at planning (the probe is already concluded, its assessment is in the
 /// transcript) and owns plan_init and the full toolset. Without a context the tools fall back to
 /// the validation-free question set.
-pub fn create_teacher_agent(ctx: Option<&TeacherToolContext>, mut opts: AgentBuildOptions) -> Arc<Agent> {
+pub fn teacher_setup(ctx: Option<&TeacherToolContext>, mut opts: AgentBuildOptions) -> LessonSetup {
 	let tools = registry(&mut opts, |enabled| ctx.map_or_else(bare_question_tools, |ctx| teacher_tools(ctx, enabled)));
-	build_agent(AgentKind::Teacher, opts, tools, None)
+	build_setup(AgentKind::Teacher, opts, tools, None)
 }
 
 /// Practice sessions, built from turn 1 with no prober and teacher split. The session runs on
 /// problem and conclude plus the rarely used extras; no plan or question tools.
-pub fn create_practice_agent(ctx: &PracticeToolContext, mut opts: AgentBuildOptions) -> Arc<Agent> {
+pub fn practice_setup(ctx: &PracticeToolContext, mut opts: AgentBuildOptions) -> LessonSetup {
 	let tools = registry(&mut opts, |enabled| practice_tools(ctx, enabled));
-	build_agent(AgentKind::Practice, opts, tools, None)
+	build_setup(AgentKind::Practice, opts, tools, None)
 }
 
 /// Study (every new session): the teacher from turn 1, with no prober, plus practice's problem and
-/// conclude. The tool list is the same every turn, so the outside agent keeps getting small deltas.
-pub fn create_study_agent(ctx: &StudyToolContext, mut opts: AgentBuildOptions) -> Arc<Agent> {
+/// conclude. The tool list is the same every turn, so the agent's session keeps its tools.
+pub fn study_setup(ctx: &StudyToolContext, mut opts: AgentBuildOptions) -> LessonSetup {
 	let parts = LessonParts::new(&ctx.teacher.plan);
 	let tools = registry(&mut opts, |enabled| study_tools(ctx, enabled, &parts));
 	let kind = if ctx.problems.is_some() { AgentKind::StudyFiles } else { AgentKind::Study };
-	build_agent(kind, opts, tools, Some(parts.hook()))
+	build_setup(kind, opts, tools, Some(parts))
 }
 
 /// Homework: one deadline's problems, one at a time, hints only.
-pub fn create_homework_agent(ctx: &HomeworkToolContext, mut opts: AgentBuildOptions) -> Arc<Agent> {
+pub fn homework_setup(ctx: &HomeworkToolContext, mut opts: AgentBuildOptions) -> LessonSetup {
 	let tools = registry(&mut opts, |enabled| homework_tools(ctx, enabled));
-	build_agent(AgentKind::Homework, opts, tools, None)
+	build_setup(AgentKind::Homework, opts, tools, None)
 }

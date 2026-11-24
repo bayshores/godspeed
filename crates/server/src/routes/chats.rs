@@ -41,7 +41,7 @@ use gs_services::turns::lesson_events::{KeepGoing, KeptDrop, drop_kept_part, kee
 use gs_services::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
 use gs_services::turns::review::{ReviewReply, answer_review, next_review, skip_review};
 use gs_services::turns::turn_liveness::is_turn_running;
-use gs_services::turns::turn_runs::{attach_turn, settled_turn_frames, turn_failure};
+use gs_services::turns::turn_runs::{answer_approval, attach_turn, settled_turn_frames, turn_failure};
 use gs_services::turns::turn_work::lesson_work;
 
 use crate::http::paths::{param, query};
@@ -53,6 +53,7 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/chat", ApiRoute::new().post(chat).into_route())
 		.route("/api/chats", ApiRoute::new().get(list).post(create).into_route())
 		.route("/api/chats/{id}", ApiRoute::new().get(read).put(rename).delete(remove).into_route())
+		.route("/api/chats/{id}/approvals/{approval_id}", ApiRoute::new().post(approval).into_route())
 		.route("/api/chats/{id}/artifact-ui", ApiRoute::new().post(artifact_ui).into_route())
 		.route("/api/chats/{id}/space", ApiRoute::new().put(move_space).into_route())
 		.route("/api/chats/{id}/dismiss", ApiRoute::new().post(dismiss).into_route())
@@ -381,6 +382,18 @@ async fn steer(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) 
 	};
 	if !steer_live_chat(&app, &id, new_user_steer(&input.text, &input.id)) {
 		return error(409, "no live turn to steer");
+	}
+	reply::ok()
+}
+
+/// POST /api/chats/{id}/approvals/{approvalId} `{allow}`: the learner's answer to a permission
+/// question the lesson's agent waits on. 404 when none waits by that id (Stop or the turn's end
+/// already denied it).
+async fn approval(State(app): State<Arc<App>>, Path((id, approval_id)): Path<(String, String)>, body: Body) -> Response {
+	let Some(body) = json_body(body).await else { return error(400, "Invalid JSON body") };
+	let Some(allow) = body["allow"].as_bool() else { return error(400, "allow must be true or false") };
+	if !answer_approval(&app, &id, &approval_id, allow) {
+		return error(404, "no permission question waits by that id");
 	}
 	reply::ok()
 }

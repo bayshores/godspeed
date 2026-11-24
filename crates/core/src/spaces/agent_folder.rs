@@ -24,6 +24,19 @@ impl FolderAgent {
 			FolderAgent::Codex => "codex",
 		}
 	}
+
+	/// The agent its `name` names.
+	pub fn from_name(name: &str) -> Option<FolderAgent> {
+		[FolderAgent::Claude, FolderAgent::Codex].into_iter().find(|agent| agent.name() == name)
+	}
+
+	/// The agent's name as the learner reads it.
+	pub fn label(self) -> &'static str {
+		match self {
+			FolderAgent::Claude => "Claude Code",
+			FolderAgent::Codex => "Codex",
+		}
+	}
 }
 
 /// What a start script starts: an agent as the teacher, or as the helper, which does the

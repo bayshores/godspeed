@@ -1,14 +1,16 @@
-//! What the MCP tests share: an app with an MCP token, tool calls sent as an agent's client sends
-//! them, the folder's hook telling an agent's own tool, and the teacher's round as the window reads
-//! it.
+//! What the MCP tests share: an app with an MCP token whose lessons run on a stand-in agent, tool
+//! calls sent as an agent's client sends them, the folder's hook telling an agent's own tool, and
+//! the teacher's round as the window reads it.
 
 use std::sync::Arc;
 
 use axum::http::{HeaderMap, HeaderValue, Method};
 use gs_base::config::Paths;
 use gs_base::{fsx, ids};
+use gs_runtime::fake::FakeAgent;
 use gs_server::mcp::handle_mcp_request;
 use gs_services::App;
+use gs_services::app::agents::use_runtime;
 use http_body_util::BodyExt;
 
 const TOKEN: &str = "abababababababababababababababababababababababababababababababab";
@@ -20,7 +22,10 @@ pub fn app() -> Arc<App> {
 	let data = dir.join("data");
 	std::fs::create_dir_all(&data).unwrap();
 	fsx::write_atomic(&data.join("mcp-token"), TOKEN.as_bytes(), Some(0o600)).unwrap();
-	App::new(Paths::new(data, dir.join("home"), dir.join("tmp"), dir), None)
+	let app = App::new(Paths::new(data, dir.join("home"), dir.join("tmp"), dir), None);
+	// A lesson start_lesson opens plays an empty turn, never the learner's real agent.
+	use_runtime(&app, FakeAgent::default().runtime());
+	app
 }
 
 /// A tools/call from `terminal` and the agent session `agent`, when given.
@@ -53,17 +58,6 @@ pub async fn send(app: &Arc<App>, terminal: Option<&str>, meta: Option<String>, 
 /// The workId of the work item an answer holds.
 pub fn work_id(body: &str) -> String {
 	body.split(r#"workId\":\""#).nth(1).and_then(|rest| rest.split('\\').next()).unwrap_or_else(|| panic!("no work: {body}")).to_owned()
-}
-
-/// Reads the rest of a long work item (a lesson's first turn comes in pages), since respond waits
-/// until all are read.
-pub async fn read_pages(app: &Arc<App>, terminal: Option<&str>, agent: Option<&str>, work_id: &str) {
-	for page in 2..=8 {
-		let (_, body) = call(app, terminal, agent, "read_work", &format!(r#"{{"work_id":"{work_id}","page":{page}}}"#)).await;
-		if body.contains(r#""isError":true"#) {
-			break;
-		}
-	}
 }
 
 /// The teacher's round of work as GET /api/teacher-work sends it: its step words, or None.

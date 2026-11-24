@@ -26,13 +26,12 @@ interface Options {
 }
 interface UserMessage {
 	message: { content: { type: string; text: string }[] };
-	priority?: string;
 }
 
 const signal = () => new AbortController().signal;
 
 /** A stand-in for the SDK's `query`: each user message plays a short turn named by its text. */
-function stubQuery(seen: { options: Options[]; messages: UserMessage[]; calls: string[] }) {
+function stubQuery(seen: { options: Options[]; calls: string[] }) {
 	return ({ prompt, options }: { prompt: AsyncIterable<UserMessage>; options: Options }) => {
 		seen.options.push(options);
 		let client: Client | undefined;
@@ -47,7 +46,6 @@ function stubQuery(seen: { options: Options[]; messages: UserMessage[]; calls: s
 		}
 		const turns = (async function* () {
 			for await (const user of prompt) {
-				seen.messages.push(user);
 				const text = user.message.content[0]?.text;
 				yield { type: "system", subtype: "init", session_id: options.sessionId ?? options.resume };
 				if (text === "quiz") {
@@ -78,7 +76,7 @@ function stubQuery(seen: { options: Options[]; messages: UserMessage[]; calls: s
 
 /** The helper on in-memory pipes: `send` writes a line to it, `next` reads its next line. */
 function helper() {
-	const seen = { options: [] as Options[], messages: [] as UserMessage[], calls: [] as string[] };
+	const seen = { options: [] as Options[], calls: [] as string[] };
 	const input = new PassThrough();
 	const output = new PassThrough();
 	// The stand-in plays only what the helper uses of the SDK's query.
@@ -129,16 +127,13 @@ test("two sessions open at once, one new and one resumed, each with its own opti
 	assert.equal(typeof resumed!.spawnClaudeCodeProcess, "function");
 
 	// Each session's turns come back under its own name.
-	send({ type: "send", session: "s1", content: [{ type: "text", text: "one" }], steer: false });
-	send({ type: "send", session: "s2", content: [{ type: "text", text: "two" }], steer: false });
+	send({ type: "send", session: "s1", content: [{ type: "text", text: "one" }] });
+	send({ type: "send", session: "s2", content: [{ type: "text", text: "two" }] });
 	const replies = await Promise.all(Array.from({ length: 6 }, next));
 	const texts = replies.map((line) => [line.session, (line.message as Json).type]);
 	assert.deepEqual(texts.filter(([session]) => session === "s1"), [["s1", "system"], ["s1", "stream_event"], ["s1", "result"]]);
 	assert.deepEqual(texts.filter(([session]) => session === "s2"), [["s2", "system"], ["s2", "stream_event"], ["s2", "result"]]);
 
-	send({ type: "send", session: "s2", content: [{ type: "text", text: "and" }], steer: true });
-	await Promise.all(Array.from({ length: 3 }, next));
-	assert.equal(seen.messages.at(-1)!.priority, "next", "a steer joins the running turn");
 	send({ type: "interrupt", session: "s1" });
 	send({ type: "model", session: "s2", model: "claude-opus-5-5" });
 	send({ type: "close", session: "s1" });
@@ -152,7 +147,7 @@ test("a godspeed tool call goes to the server, and its answer can end the turn",
 	const { send, next } = helper();
 	send(open("s1", { claudePath: "/bin/claude" }));
 	await next();
-	send({ type: "send", session: "s1", content: [{ type: "text", text: "quiz" }], steer: false });
+	send({ type: "send", session: "s1", content: [{ type: "text", text: "quiz" }] });
 	assert.equal(((await next()).message as Json).subtype, "init");
 	const call = await next();
 	assert.deepEqual(call, { type: "tool_call", session: "s1", toolUseId: "toolu_q", name: "quiz", args: { question: "2 + 2?" }, id: call.id });
@@ -168,7 +163,7 @@ test("a permission question waits for the learner's answer, and godspeed's own t
 	const { send, next } = helper();
 	send(open("s1", { claudePath: "/bin/claude" }));
 	await next();
-	send({ type: "send", session: "s1", content: [{ type: "text", text: "bash" }], steer: false });
+	send({ type: "send", session: "s1", content: [{ type: "text", text: "bash" }] });
 	await next();
 	const asked = await next();
 	assert.deepEqual(asked, { type: "approval", session: "s1", tool: "Bash", input: { command: "ls" }, toolUseId: "toolu_b", id: asked.id });

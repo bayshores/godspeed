@@ -49,9 +49,8 @@ fn content(parts: &[Part]) -> Json {
 		.collect()
 }
 
-/// A steer goes into the running turn; a send starts the next one.
-pub fn send(session: &str, parts: &[Part], steer: bool) -> Json {
-	json!({ "type": "send", "session": session, "content": content(parts), "steer": steer })
+pub fn send(session: &str, parts: &[Part]) -> Json {
+	json!({ "type": "send", "session": session, "content": content(parts) })
 }
 
 pub fn interrupt(session: &str) -> Json {
@@ -138,17 +137,13 @@ impl Finish {
 	}
 }
 
-fn godspeed_tool(name: &str) -> bool {
-	name.strip_prefix("mcp__").and_then(|rest| rest.strip_prefix(TOOL_SERVER)).is_some_and(|rest| rest.starts_with("__"))
+/// The godspeed tool a Claude Code tool name names (`mcp__godspeed__quiz` is quiz).
+fn godspeed_tool(name: &str) -> Option<&str> {
+	name.strip_prefix("mcp__")?.strip_prefix(TOOL_SERVER)?.strip_prefix("__")
 }
 
 fn count(value: &Json) -> u64 {
 	value.as_f64().map_or(0, |n| n.max(0.0) as u64)
-}
-
-/// Whether an SDK message is the model at work, which every turn starts with.
-pub fn model_at_work(message: &Json) -> bool {
-	message["type"].as_str() == Some("stream_event")
 }
 
 /// The events one SDK message makes, and the turn's end when it is the result. Messages from a
@@ -178,16 +173,23 @@ pub fn read_sdk(message: &Json, reading: &mut Reading) -> (Vec<SessionEvent>, Op
 			}
 		}
 		Some("assistant") => {
+			let mut calls = Vec::new();
 			for block in message["message"]["content"].items() {
+				let (id, name, input) = (block["id"].str_or_empty().to_owned(), block["name"].str_or_empty(), block["input"].clone());
 				match block["type"].as_str() {
 					Some("text") if !block["text"].str_or_empty().is_empty() => events.push(SessionEvent::TextDone(block["text"].str_or_empty().to_owned())),
-					Some("tool_use") if !godspeed_tool(block["name"].str_or_empty()) => {
-						let (id, name, input) = (block["id"].str_or_empty().to_owned(), block["name"].str_or_empty().to_owned(), block["input"].clone());
-						reading.own.insert(id.clone(), (name.clone(), input.clone()));
-						events.push(SessionEvent::OwnTool { id, name, input, done: false });
-					}
+					Some("tool_use") => match godspeed_tool(name) {
+						Some(name) => calls.push(ToolCall { id, name: name.to_owned(), args: input }),
+						None => {
+							reading.own.insert(id.clone(), (name.to_owned(), input.clone()));
+							events.push(SessionEvent::OwnTool { id, name: name.to_owned(), input, done: false });
+						}
+					},
 					_ => {}
 				}
+			}
+			if !calls.is_empty() {
+				events.push(SessionEvent::Calls(calls));
 			}
 		}
 		Some("user") => {

@@ -1,5 +1,6 @@
 //! The running-turn registry (turn-runs.ts): chat id to the live turn handle. GET
-//! /api/chats/{id}/stream attaches through it and the remote abort kills through it. A turn whose
+//! /api/chats/{id}/stream attaches through it, the remote abort stops through it and the
+//! learner's answers to permission questions reach the turn through it. A turn whose
 //! settlement failed leaves a small notice here for a view that attaches late.
 
 use gs_engine::turn::ui_stream::TurnHandle;
@@ -56,6 +57,12 @@ pub fn abort_turn(app: &App, chat_id: &str) -> bool {
 	let Some(handle) = running_turn(app, chat_id) else { return false };
 	handle.abort();
 	true
+}
+
+/// The learner's answer to a permission question in the chat's running turn; false when none
+/// waits by that id.
+pub fn answer_approval(app: &App, chat_id: &str, approval_id: &str, allow: bool) -> bool {
+	running_turn(app, chat_id).is_some_and(|handle| handle.turn().answer_approval(approval_id, allow))
 }
 
 /// The stream body when no turn runs: a kept failure notice first, then "turn-settled" and the

@@ -28,6 +28,8 @@ pub struct App {
 	pub pdf: gs_pdf::worker::Pdf,
 	pub search: gs_search::index::Search,
 	pub bridge: gs_engine::bridge::Bridge,
+	/// The learner's agent program, which runs the lessons.
+	pub agents: app::agents::AgentsState,
 	pub turns: turns::TurnsState,
 	pub jobs: jobs::JobsState,
 	pub spaces: spaces::SpacesState,
@@ -51,6 +53,7 @@ impl App {
 			stores,
 			pdf: gs_pdf::worker::Pdf::from_env(&paths.resources),
 			search: gs_search::index::Search::new(&paths),
+			agents: Default::default(),
 			turns: Default::default(),
 			jobs: Default::default(),
 			spaces: Default::default(),

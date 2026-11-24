@@ -8,8 +8,8 @@ use gs_base::locks::LockKey;
 use gs_base::{clock, fsx};
 use gs_core::messages::native_messages::{dangling_question_of, open_question_held};
 use gs_core::session::jobs::build_subagent_steer;
-use gs_engine::turn::agent::{Agent, AgentOptions};
-use gs_engine::turn::models::agent_engine;
+use gs_engine::turn::session_turn::{SessionTurn, SessionTurnSpec};
+use gs_engine::turn::tool_host::ToolHost;
 use gs_json::{Json, json, stringify_pretty};
 use parking_lot::Mutex;
 
@@ -44,8 +44,16 @@ fn finished_job(app: &App, id: &str) {
 	write_job(app, id, json!({ "status": "done", "activity": "finished", "result": { "brief": "ok", "sources": [] }, "delivery": { "kind": "result", "status": "pending" } }));
 }
 
-fn agent(app: &App) -> Arc<Agent> {
-	Agent::new(AgentOptions::new(agent_engine(&app.bridge)))
+/// A lesson turn that never runs: what is steered into it waits there.
+fn agent(_app: &App) -> Arc<SessionTurn> {
+	SessionTurn::new(SessionTurnSpec {
+		open: Box::new(|_| Box::pin(async { Err("no agent in this test".to_owned()) })),
+		host: ToolHost::new(Vec::new(), None, Default::default()),
+		check_text: Box::new(str::to_owned),
+		before: Vec::new(),
+		model: Json::Null,
+		folds_steers: false,
+	})
 }
 
 fn steer_for(app: &App, job_id: &str) -> Json {
@@ -54,7 +62,7 @@ fn steer_for(app: &App, job_id: &str) -> Json {
 }
 
 /// Each queued marker: (id, waking, deferred, handed to `to`).
-fn queued(app: &App, to: Option<&Arc<Agent>>) -> Vec<(String, bool, bool, bool)> {
+fn queued(app: &App, to: Option<&Arc<SessionTurn>>) -> Vec<(String, bool, bool, bool)> {
 	let wake = app.jobs.wake.lock();
 	wake.queue(CHAT).iter().map(|e| (steer_id(&e.steer).to_owned(), e.waking, e.deferred, to.is_some_and(|a| held_by(&e.handed_to, a)))).collect()
 }
@@ -149,7 +157,7 @@ async fn learner_steers_stay_parked_until_a_run_persists_them() {
 	reconcile_user_steers(&app, CHAT, &[]);
 	let second = agent(&app);
 	register_live_agent(&app, CHAT, &second, true, None).unwrap();
-	let handed = |a: &Arc<Agent>| app.jobs.wake.lock().user_steers[CHAT].iter().map(|e| held_by(&e.handed_to, a)).collect::<Vec<_>>();
+	let handed = |a: &Arc<SessionTurn>| app.jobs.wake.lock().user_steers[CHAT].iter().map(|e| held_by(&e.handed_to, a)).collect::<Vec<_>>();
 	assert_eq!(handed(&second), [true]);
 	reconcile_user_steers(&app, CHAT, &[message]);
 	assert!(!app.jobs.wake.lock().user_steers.contains_key(CHAT));

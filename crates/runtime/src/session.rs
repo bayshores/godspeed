@@ -251,13 +251,12 @@ impl Session {
 		}
 	}
 
-	/// Adds input to the running turn. Codex folds it into that turn (`turn/steer`). Claude Code
-	/// folds it in after the turn's current step; one that comes after the last step runs as the
-	/// next turn, with its own `TurnStarted` and `Ended`.
+	/// Adds input to the running turn: Codex folds it into that turn (`turn/steer`). Claude Code
+	/// takes new input only as its next turn, so godspeed sends it then.
 	pub async fn steer(&self, input: &[Part]) -> Result<(), String> {
 		match &self.link {
 			Link::Codex(thread) => thread.steer(input).await,
-			Link::Claude(session) => session.steer(input),
+			Link::Claude(_) => Err("Claude Code takes new input only as its next turn".to_owned()),
 		}
 	}
 

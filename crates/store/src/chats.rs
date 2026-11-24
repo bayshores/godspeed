@@ -187,6 +187,12 @@ impl ChatStore {
 		self.update(id, |record| set_field(record, "tree", tree.clone())).map(drop)
 	}
 
+	/// Saves which agent session holds the lesson (`{agent, id, promptHash, seen}`, null for none).
+	/// Quiet like a plan save.
+	pub fn set_agent_session(&self, id: &str, session: &Json) -> Result<(), String> {
+		self.update(id, |record| set_field(record, "agentSession", session.clone())).map(drop)
+	}
+
 	/// Stamps whether a vault was picked when the lesson began, so its tool list never changes.
 	/// Quiet like a plan save.
 	pub fn set_vault_picked(&self, id: &str, picked: bool) -> Result<(), String> {

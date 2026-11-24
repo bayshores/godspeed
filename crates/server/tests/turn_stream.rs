@@ -4,16 +4,20 @@
 
 use gs_base::config::Paths;
 use gs_base::{clock, ids};
-use gs_json::parse;
+use gs_json::{json, parse};
+use gs_runtime::fake::{FakeAgent, FakeStep};
 use gs_server::http::access::Access;
 use gs_services::App;
+use gs_services::app::agents::use_runtime;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
-async fn serve() -> u16 {
+/// The app's server, its lessons on `agent`.
+async fn serve(agent: &FakeAgent) -> u16 {
 	let dir = std::env::temp_dir().join(format!("gs-turn-stream-{}", ids::uuid()));
 	std::fs::create_dir_all(dir.join("data")).unwrap();
 	let app = App::new(Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir), None);
+	use_runtime(&app, agent.runtime());
 	let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
 	let port = listener.local_addr().unwrap().port();
 	gs_base::tasks::spawn("test", axum::serve(listener, gs_server::http::server(app, &Access::default())).into_future());
@@ -56,10 +60,12 @@ async fn read_until(conn: &mut TcpStream, text: &str) -> String {
 
 #[tokio::test]
 async fn a_quiet_turn_stream_pings() {
-	let port = serve().await;
+	let agent = FakeAgent::default();
+	let port = serve(&agent).await;
 	let chat = post_json(port, "/api/chats", r#"{"title":"Binary search"}"#).await;
 	let id = chat["id"].as_str().unwrap();
-	// The turn now waits for an outside agent, so its stream goes quiet after turn_start.
+	// The turn waits on a permission question, so its stream goes quiet after turn_start.
+	agent.push(vec![FakeStep::Approval { tool: "Bash".to_owned(), input: json!({ "command": "ls" }) }]);
 	let sent = post_json(port, "/api/chat", &format!(r#"{{"chatId":"{id}","input":{{"type":"text","text":"Teach me."}}}}"#)).await;
 	assert_eq!(sent["ok"].as_bool(), Some(true), "{sent:?}");
 

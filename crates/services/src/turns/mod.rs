@@ -12,13 +12,16 @@ pub mod dismissal_park;
 pub mod files_lesson;
 pub mod homework;
 mod job_host;
-mod lesson_agent;
+mod lesson_session;
+mod lesson_setup;
 pub mod lesson_events;
 pub mod lesson_problems;
 pub mod lessons;
 mod problem_pages;
 pub mod reply_nudges;
 pub mod review;
+#[cfg(test)]
+mod session_tests;
 pub mod step_names;
 pub mod turn_liveness;
 pub mod turn_runs;
@@ -37,10 +40,10 @@ pub use agent_catch_up::{ask_about_new_deadlines, catch_up_for_agent};
 pub use attachments::{AttachmentError, store_attachments};
 pub use chat_handler::{ChatReply, handle_chat_input, send_first_message};
 pub use chats::{Refusal, quiesce_chat_for_rewrite, running_work_blocker};
-pub use lesson_agent::every_turn_rules_for;
+pub use lesson_setup::every_turn_rules_for;
 pub use lessons::create_lesson;
 pub use turn_liveness::is_turn_running;
-pub use turn_runs::{abort_turn, clear_turn_failure};
+pub use turn_runs::{abort_turn, answer_approval, clear_turn_failure};
 
 /// The turn registries inside `App`.
 #[derive(Default)]
@@ -71,11 +74,15 @@ pub struct TurnsState {
 	lessons_caught_up: Mutex<HashSet<String>>,
 	/// The questions from earlier skipped in each lesson's sitting (review).
 	review_skips: Mutex<HashMap<String, review::Skips>>,
-	/// The reply nudges each Study lesson was sent, by chat and topic (reply-nudges).
+	/// The reply nudges each Study lesson was given, by chat and topic (reply-nudges).
 	nudged: Mutex<HashSet<(String, String, Nudge)>>,
 	/// The new topic lessons sent back once for a near deadline's unfinished lesson, by deadline
 	/// and topic (start_lesson).
 	pub(crate) near_deadline_asked: Mutex<HashSet<(String, String)>>,
-	/// Each Study lesson's latest wall send-back, by chat (reply-nudges).
+	/// Each Study lesson's latest wall note, by chat (reply-nudges).
 	walls: Mutex<HashMap<String, reply_nudges::Wall>>,
+	/// What the teacher reads before its next reply in each lesson (reply-nudges).
+	notes: Mutex<HashMap<String, Vec<String>>>,
+	/// Each lesson's open agent session (lesson-session).
+	sessions: Mutex<HashMap<String, lesson_session::Kept>>,
 }
