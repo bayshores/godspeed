@@ -71,6 +71,8 @@ pub struct SubagentRunOptions {
 	pub task_label: Option<String>,
 	/// The learner asked for this run (a page's Ask): the teacher takes it before a helper.
 	pub asked: bool,
+	/// An open lesson waits on this run: taken before godspeed's own jobs.
+	pub awaited: bool,
 }
 
 impl SubagentRunOptions {
@@ -87,6 +89,7 @@ impl SubagentRunOptions {
 			should_stop: None,
 			task_label: None,
 			asked: false,
+			awaited: false,
 		}
 	}
 }
@@ -178,6 +181,9 @@ pub async fn run_subagent(bridge: &Bridge, tools: Vec<Arc<dyn Tool>>, opts: Suba
 	}
 	if opts.asked {
 		bridge.mark_asked(&session_id);
+	}
+	if opts.awaited {
+		bridge.mark_awaited(&session_id);
 	}
 	let max_turns = opts.max_turns;
 	let should_stop = opts.should_stop;

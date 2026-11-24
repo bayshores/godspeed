@@ -1,7 +1,7 @@
 //! Who takes a background job, on the app clock: one the learner asked for goes to the teacher,
 //! and to a helper only once it waited untaken 20 s; godspeed's own goes to a helper, and to a
-//! teacher alone only once it waited 60 s. One test, because the clock is shared by the whole
-//! binary.
+//! teacher alone only once it waited 60 s; one an open lesson waits on goes before godspeed's
+//! own. One test, because the clock is shared by the whole binary.
 
 use std::sync::Arc;
 
@@ -81,5 +81,21 @@ async fn asked_jobs_go_to_the_teacher_and_godspeeds_own_to_the_helper() {
 	let work = bridge.wait_for_work(0, helper()).await.unwrap();
 	assert_eq!(work.conversation, "job_topics");
 	bridge.respond_to_work(&work.work_id, reply("Grouped."), 0).unwrap();
+	own.await.unwrap();
+
+	// A job an open lesson waits on is taken before godspeed's own, however long that one waited.
+	let own = park(&bridge, vec![user("check this space")], "job_check", &Abort::new());
+	settle().await;
+	clock::advance(30_000);
+	bridge.mark_awaited("job_pdf");
+	let awaited = park(&bridge, vec![user("read HW7.pdf")], "job_pdf", &Abort::new());
+	settle().await;
+	let work = bridge.wait_for_work(0, helper()).await.unwrap();
+	assert_eq!(work.conversation, "job_pdf");
+	bridge.respond_to_work(&work.work_id, reply("Read."), 0).unwrap();
+	awaited.await.unwrap();
+	let work = bridge.wait_for_work(0, helper()).await.unwrap();
+	assert_eq!(work.conversation, "job_check");
+	bridge.respond_to_work(&work.work_id, reply("Checked."), 0).unwrap();
 	own.await.unwrap();
 }

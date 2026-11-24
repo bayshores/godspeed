@@ -10,7 +10,7 @@ use gs_json::{Json, json};
 use gs_search::index::PassageRef;
 
 use super::fn_tool::FnTool;
-use gs_core::session::schema::{no_arguments, object, string, string_min};
+use gs_core::session::schema::{boolean, object, string, string_min};
 
 /// Saves the space note and gives the tool's reply.
 pub type SetNote = Arc<dyn Fn(&str) -> String + Send + Sync>;
@@ -51,16 +51,18 @@ pub fn space_tools(ctx: &SpaceToolContext) -> Vec<FnTool> {
 
 fn read_space_tool(ctx: &SpaceToolContext) -> FnTool {
 	let (space_card, today_note) = (ctx.space_card.clone(), ctx.today_note.clone());
-	let description = "Read the current card of this lesson's space: the space name, the learner's description of the space, its files (study material and space info) with the paths to open them, and the topics of its knowledge graph. \
-		Use it when you need a file's path (the opening [Space context] card only counts the files) or space details that changed since the lesson started. To find something inside the files, use search_space_files instead. \
+	let description = "Read the current card of this lesson's space: the space name, the learner's description of the space, how many files it has, and the topics of its knowledge graph. \
+		Use it for space details that changed since the lesson started. To find something inside the files, use search_space_files instead. \
 		It also returns today's date and time and the space's open deadlines (the [Today] note).";
-	FnTool::server("read_space", description, no_arguments(), move |_args, _ctx| {
+	let files = boolean("true also lists every file (study material and space info) with the path to open it. Ask only when you need a file's path: the list is long and stays in the lesson.");
+	FnTool::server("read_space", description, object(&[], vec![("files", files)]), move |args, _ctx| {
 		let (space_card, today_note) = (space_card.clone(), today_note.clone());
 		async move {
 			let Some(card) = space_card()? else {
 				return Ok(Json::from("This lesson's space no longer exists."));
 			};
-			let parts = [space_card_text(&card), space_files_text(&card), today_note.map(|note| note()).unwrap_or_default()];
+			let files = if args["files"].as_bool() == Some(true) { space_files_text(&card) } else { String::new() };
+			let parts = [space_card_text(&card), files, today_note.map(|note| note()).unwrap_or_default()];
 			Ok(Json::from(parts.into_iter().filter(|part| !part.is_empty()).collect::<Vec<_>>().join("\n\n")))
 		}
 	})
@@ -118,4 +120,32 @@ fn search_fn_tools(search: Arc<SpaceSearch>) -> Vec<FnTool> {
 		async move { Ok(Json::from(PassageRef::of_args(&args).map_or_else(|| "Give passage_id, or file_id with range.".to_owned(), |at| (search.read_passage)(at)))) }
 	});
 	vec![search_tool, read_tool]
+}
+
+#[cfg(test)]
+mod tests {
+	use gs_engine::turn::abort::Abort;
+	use gs_engine::turn::tool::{Tool, ToolContext};
+
+	use super::*;
+
+	/// A space with 250 files: the list is what once filled a lesson's record.
+	fn big_space() -> SpaceToolContext {
+		let files: Vec<Json> = (0..250).map(|i| json!({ "id": format!("f_{i}"), "name": format!("Lecture {i}.pdf"), "kind": "study", "status": "ready", "path": format!("/space/files/Lecture {i}.pdf") })).collect();
+		let card = json!({ "spaceId": "spc_1", "name": "CSE 21", "description": "", "files": files });
+		SpaceToolContext { space_card: Arc::new(move || Ok(Some(card.clone()))), today_note: None, search: None, set_note: None }
+	}
+
+	#[tokio::test]
+	async fn read_space_lists_the_files_only_when_asked() {
+		let tool = read_space_tool(&big_space());
+		let read = |args: Json| async {
+			let result = tool.execute(args, ToolContext { tool_call_id: "c1".to_owned(), abort: Abort::new() }).await.unwrap();
+			result["content"][0]["text"].as_str().unwrap().to_owned()
+		};
+		let card = read(json!({})).await;
+		assert!(card.len() < 4_000, "the card alone is {} characters", card.len());
+		assert!(card.contains("250 study material") && !card.contains("Lecture 249.pdf"), "{card}");
+		assert!(read(json!({ "files": true })).await.contains("Lecture 249.pdf"));
+	}
 }

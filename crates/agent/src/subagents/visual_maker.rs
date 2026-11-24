@@ -111,6 +111,7 @@ pub async fn run_visual_maker(brief: &str, opts: &JobAgentOptions) -> Json {
 	let abort = opts.abort();
 	let session_id = ids::uuid();
 	opts.bridge.label_conversation(&session_id, &format!("Visual: {}", brief.split('\n').next().unwrap_or_default()));
+	opts.bridge.mark_awaited(&session_id);
 	let prompt = ["Brief for ONE precise figure (from the teacher, verbatim — it is everything you know):", brief, "", "Author the SVG, render it, look at it, iterate until correct, then finish with your notes."].join("\n");
 
 	let mut state = Figure { messages: vec![user_text(&prompt)], current: None, rendered: None, looked: None, final_text: String::new() };

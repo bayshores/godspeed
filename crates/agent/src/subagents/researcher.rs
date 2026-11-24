@@ -110,6 +110,7 @@ pub async fn run_researcher_agent(bridge: &Bridge, prompt: &str, opts: Researche
 	run.on_usage = opts.on_usage;
 	run.on_tool_start = opts.on_tool_start;
 	run.task_label = opts.task_label;
+	run.awaited = true;
 	Ok(run_subagent(bridge, tools, run).await?.text)
 }
 

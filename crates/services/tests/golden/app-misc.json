@@ -560,12 +560,12 @@
 				{
 					"path": "shared/11-learner-first.md",
 					"shared": true,
-					"sourceSha": "50035fee316bb1af3da3eb417c08aa22958c2d83701d7f74c90b9c3aae82a405"
+					"sourceSha": "872d375c27c1e1caa39aa09c66681d7083f9225304311dec320e745a685c3b6d"
 				},
 				{
 					"path": "shared/12-space-context.md",
 					"shared": true,
-					"sourceSha": "3cd2c48fd975402b1753b2cced23c5ad8c3ed5df160099e0e7bd0a1f32777c0e"
+					"sourceSha": "e5ebc9b17cff5803c4ae5a85c5ced448878b27c487db86a50df70217e337d9db"
 				},
 				{
 					"path": "shared/13-source-marks.md",

@@ -156,6 +156,7 @@ pub async fn run_pdf_reader_agent(path: &str, question: &str, pdf: &Pdf, keeper:
 	let session_id = ids::uuid();
 	let name = pdf_path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
 	opts.bridge.label_conversation(&session_id, &format!("PDF reading: {name}"));
+	opts.bridge.mark_awaited(&session_id);
 	let asked = if question.is_empty() { "(no question — give a structural overview)" } else { question };
 	let prompt = [&format!("PDF path: {shown}"), &format!("Question (what the teacher needs from this document): {asked}"), "", "Read the document per your doctrine, then produce your final brief in the required format."].join("\n");
 	reader.messages.push(user_text(&prompt));

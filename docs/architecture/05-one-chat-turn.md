@@ -95,7 +95,7 @@ An answer's files go into the question call's tool result (`new_answer_result`),
 
 ### Space and date context
 
-A space lesson starts with a `space-context` marker holding the space card (`services::spaces::space_card`). The lesson text does not draw it: the desk reads its files, and so does the model. A hidden `today-context` marker gives the model today's date, time, time zone and the space's open deadlines. A new one is added before the learner's message when the day or deadlines changed, or compaction cut the last one out of view (`core::spaces::today_note`, `services::app::today_note`).
+A space lesson starts with a `space-context` marker holding the space card (`services::spaces::space_card`). The lesson text does not draw it: the desk reads its files, and so does the model. The card counts the space's files; the lesson's `read_space` lists them only with `files: true`, so a long list stays out of the lesson's record unless the teacher needs a path. A hidden `today-context` marker gives the model today's date, time, time zone and the space's open deadlines. A new one is added before the learner's message when the day or deadlines changed, or compaction cut the last one out of view (`core::spaces::today_note`, `services::app::today_note`).
 
 ### Compaction
 

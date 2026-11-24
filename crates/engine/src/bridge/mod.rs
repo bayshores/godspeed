@@ -108,6 +108,9 @@ struct State {
 	labels: HashMap<String, String>,
 	/// Background conversations the learner asked for (a page's Ask): the teacher takes them first.
 	asked: HashSet<String>,
+	/// Background conversations an open lesson waits on (its PDF, research, demo): taken before
+	/// godspeed's own jobs.
+	awaited: HashSet<String>,
 	/// conversation → until when its next item is held for the agent that just answered it.
 	held: HashMap<String, i64>,
 	/// Background conversations whose run has not ended.
@@ -188,11 +191,17 @@ impl Bridge {
 		self.0.state.lock().asked.insert(conversation.to_owned());
 	}
 
+	/// An open lesson waits on this background conversation, so it is taken before godspeed's own jobs.
+	pub fn mark_awaited(&self, conversation: &str) {
+		self.0.state.lock().awaited.insert(conversation.to_owned());
+	}
+
 	/// Drops a finished background run's state; a reply still waiting for its next item stops.
 	pub fn forget_conversation(&self, conversation: &str) {
 		let mut s = self.0.state.lock();
 		s.labels.remove(conversation);
 		s.asked.remove(conversation);
+		s.awaited.remove(conversation);
 		s.seen_by.remove(conversation);
 		s.held.remove(conversation);
 		let ended = s.background_runs.remove(conversation);

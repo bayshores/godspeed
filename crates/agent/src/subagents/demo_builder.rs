@@ -220,6 +220,7 @@ pub async fn run_demo_builder(title: &str, brief: &str, opts: &JobAgentOptions) 
 		})
 	});
 	run.task_label = Some(format!("Demo: {title}"));
+	run.awaited = true;
 	let final_text = match run_subagent(&opts.bridge, demo_tools(&state, &opts.headless, &opts.on_activity), run).await {
 		Ok(result) => result.text,
 		Err(e) => return failed(title, &format!("the builder crashed: {e}")),

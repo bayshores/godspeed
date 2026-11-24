@@ -38,7 +38,7 @@ pub fn new_study_context_message(text: &str, custom_type: &str) -> Json {
 }
 
 /// The model-facing space card text. `card` is `{spaceId, name, description, files, topics?}`.
-/// It counts the files; read_space lists them (`space_files_text`).
+/// It counts the files; read_space lists them when asked (`space_files_text`).
 pub fn space_card_text(card: &Json) -> String {
 	let mut lines = vec!["[Space context] — this lesson belongs to one of the learner's spaces:".to_owned(), String::new(), format!("Space: {}", js_string(card.get("name")))];
 	let description = text::trim(card["description"].str_or_empty());
@@ -49,7 +49,7 @@ pub fn space_card_text(card: &Json) -> String {
 	if !readable.is_empty() {
 		let study = readable.iter().filter(|f| FileKind::of(f) == Some(FileKind::Study)).count();
 		lines.push(String::new());
-		lines.push(format!("Space files: {study} study material, {} space info. Find what's in them with search_space_files; read_space lists them with their paths.", readable.len() - study));
+		lines.push(format!("Space files: {study} study material, {} space info. Find what's in them with search_space_files; read_space with files: true lists them with their paths.", readable.len() - study));
 	}
 	let topics = card["topics"].as_arr().filter(|t| !t.is_empty());
 	if let Some(topics) = topics {
@@ -65,8 +65,8 @@ fn readable_files(card: &Json) -> Vec<&Json> {
 	card["files"].items().iter().filter(|f| !matches!(f.get("path"), Some(Json::Null))).collect()
 }
 
-/// The space's readable files, one line each with its path. Only read_space shows it: the card
-/// just counts them, so lessons don't carry the list.
+/// The space's readable files, one line each with its path. Only read_space with `files: true` shows it:
+/// the card just counts them, so lessons don't carry the list.
 pub fn space_files_text(card: &Json) -> String {
 	let readable = readable_files(card);
 	if readable.is_empty() {
@@ -119,7 +119,7 @@ mod tests {
 		});
 		assert_eq!(
 			space_card_text(&card),
-			"[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Algebra 1\n\nAbout the space (the learner's own words):\nmy words\n\nSpace files: 1 study material, 1 space info. Find what's in them with search_space_files; read_space lists them with their paths.\n\nTopics in the space's knowledge graph (facts in each):\nSums (4), Logs (2)"
+			"[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Algebra 1\n\nAbout the space (the learner's own words):\nmy words\n\nSpace files: 1 study material, 1 space info. Find what's in them with search_space_files; read_space with files: true lists them with their paths.\n\nTopics in the space's knowledge graph (facts in each):\nSums (4), Logs (2)"
 		);
 		assert_eq!(
 			space_files_text(&card),
