@@ -1,7 +1,6 @@
 /**
  * The lesson's box, there for the whole lesson: for each state of "Your
- * turn", the box's size and keys, what Enter does in it, the way out at the
- * end of the title row and the "Stuck?" keys under it.
+ * turn", the box's keys, what Enter does in it and the "Stuck?" keys over it.
  * The learner talks to the teacher here: beside an answer key, the ask key
  * sends the box's words as a question and leaves what waits open. A
  * problem's box takes work and questions alike, plain messages the teacher

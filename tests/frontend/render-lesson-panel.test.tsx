@@ -1,10 +1,10 @@
 /**
- * The lesson's turn sheet: Your turn in each of its states (with the
- * answer box, its size, the question above it and the foot row, or what is
- * next and its key), how its contents swap, where it shows, the box's Enter
- * rules, the question's keys, folding and saved drafts, the question just
- * answered while the teacher writes, the reading pane's desk and Stop, the practice
- * progress, and the view's message reuse.
+ * The lesson's turn: Your turn in each of its states (the task with the
+ * question or problem, the writing row with its help strip and keys, what
+ * is next and its key), how its contents swap, where it shows, the box's
+ * Enter rules, the question's keys, folding and saved drafts, the question
+ * just answered while the teacher writes, the reading pane's desk and Stop,
+ * the practice progress, and the view's message reuse.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -160,14 +160,16 @@ const optionNamed = (host: HTMLElement, label: string) => options(host).find((b)
 const submitDisabled = (host: HTMLElement) => host.querySelector<HTMLButtonElement>('[data-testid="question-submit"]')!.disabled;
 
 describe("Your turn in each state", () => {
-	it("next: the title, what is next and one main key at the row's end, then the box that asks, with no way out", () => {
+	it("next: what is next in the task, then the box that asks with one main key at the end of its keys, and no way out", () => {
 		for (const busy of [false, true]) {
 			const out = html({ busy, shown: shown(atStop) });
 			assert.match(out, /data-mode="next"/);
-			assert.match(out, /<h2[^>]*>Your turn<\/h2>[\s\S]*data-testid="turn-next"[\s\S]*data-testid="turn-next-line" class="[^"]*text-ink"[^>]*>Cross-validation is next\.<[\s\S]*data-testid="next-problem-button"/);
-			assert.match(out, /data-testid="next-problem-button" data-action="keep-going" class="lh-btn lh-btn-main ml-auto shrink-0">Continue</);
+			assert.doesNotMatch(out, /<h2/, "nothing asked, so no tag");
+			assert.match(out, /data-testid="turn-sheet"[\s\S]*data-testid="turn-next-line" class="[^"]*text-ink"[^>]*>Cross-validation is next\.<[\s\S]*data-testid="turn-row"[\s\S]*data-testid="composer-keys"[\s\S]*data-testid="next-problem-button"/);
+			assert.match(out, /data-testid="next-problem-button" data-action="keep-going" class="lh-btn lh-btn-main shrink-0">Continue</);
+			assert.doesNotMatch(out.split('data-testid="turn-row"')[0]!, /next-problem-button/, "the key is in the box's row, not the task");
 			assert.equal(out.split("lh-btn-main").length - 1, 1, "one bright key");
-			assert.match(out, busy ? /data-testid="turn-next"[\s\S]*Tell Teacher what to focus on[\s\S]*data-testid="composer-send"[^>]*disabled[^>]*>Send</ : /data-testid="turn-next"[\s\S]*data-testid="composer"[\s\S]*data-testid="composer-send"[^>]*disabled[^>]*>Ask Teacher</);
+			assert.match(out, busy ? /data-testid="turn-row"[\s\S]*Tell Teacher what to focus on[\s\S]*data-testid="composer-send"[^>]*disabled[^>]*>Send</ : /data-testid="turn-row"[\s\S]*data-testid="composer"[\s\S]*data-testid="composer-send"[^>]*disabled[^>]*>Ask Teacher</);
 			assert.doesNotMatch(out, /skip-question|discard-problem|stop-turn|Stop here|Keep going/);
 		}
 		const plain = html({ shown: shown(between) });
@@ -189,21 +191,19 @@ describe("Your turn in each state", () => {
 		assert.deepEqual(pressed, ["keep-going", "next", "next"]);
 	});
 
-	it("under the text with nothing to answer, pinned or in the page: no head, the key that goes on at the end of the Try asking keys, and the box alone while the teacher works", () => {
+	it("pinned or in the page with nothing to answer: no tag, the key that goes on ends the box's keys under Try asking, and the box alone while the teacher works", () => {
 		for (const place of ["pinned", "under"] as const) {
 			const there = (n: React.ReactNode) => <TurnPlaceContext.Provider value={place}>{n}</TurnPlaceContext.Provider>;
 			const out = html({ shown: shown(atStop) }, there);
-			assert.match(out, /data-testid="your-turn"[^>]*class="[^"]*lh-turn-quiet/);
 			assert.doesNotMatch(out, /<h2/);
-			assert.match(out, /turn-next-line[^>]*>Cross-validation is next\.<\/p><\/div>[\s\S]*data-testid="composer"[\s\S]*data-testid="turn-foot"[\s\S]*Try asking[\s\S]*Quiz me<\/button><\/div><button[^>]*data-testid="next-problem-button"[^>]*>Continue</);
-			const busy = html({ busy: true, shown: shown({ line: "Cross-validation is next.", key: null }, true) }, there);
-			assert.match(busy, /data-testid="turn-swap"[^>]*class="[^"]*hidden[^"]*"><\/div>/);
-			assert.match(busy, /data-testid="composer"/);
-			assert.doesNotMatch(busy, /turn-next|turn-foot|<h2/);
+			assert.match(out, /turn-next-line[^>]*>Cross-validation is next\.<\/p>[\s\S]*data-testid="turn-row"[\s\S]*data-testid="turn-foot"[\s\S]*Try asking[\s\S]*Quiz me<\/button><\/div><\/div><div data-testid="composer"[\s\S]*data-testid="composer-keys"[\s\S]*data-testid="next-problem-button"[^>]*>Continue</);
+			const busy = html({ busy: true, shown: shown({ line: null, key: null }, true) }, there);
+			assert.match(busy, /data-testid="turn-sheet"[^>]*class="[^"]*hidden/, "nothing to say, so the task takes no room");
+			assert.match(busy, /data-testid="turn-row"[\s\S]*data-testid="composer"/);
+			assert.doesNotMatch(busy, /turn-next|turn-foot|next-problem-button|<h2/);
 			for (const over of [{ pending: quiz }, { problem }]) {
 				const asked = html(over, there);
-				assert.match(asked, /<h2/, "a question or a problem keeps its head");
-				assert.doesNotMatch(asked, /lh-turn-quiet/);
+				assert.doesNotMatch(asked, /turn-sheet"[^>]*class="[^"]*hidden/, "a question or a problem is drawn");
 			}
 		}
 	});
@@ -267,21 +267,21 @@ describe("Your turn in each state", () => {
 		for (const over of [{ pending: quiz }, { problem }]) assert.doesNotMatch(html({ ...over, shown: shown(atStop) }), /turn-next|next-problem-button/);
 	});
 
-	it("an app-posed opener keeps Skip question while a turn runs", () => {
+	it("an app-posed opener has no Skip question in the task while a turn runs: the top bar's More holds it", () => {
 		const opener = { ...quiz, input: { ...quizInput, type: "predict" }, appPosed: { kind: "opener" as const, ref: "t1" } };
 		const out = html({ pending: opener, busy: true });
-		assert.match(out, /data-testid="skip-question"[^>]*>Skip question</);
-		assert.match(out, /<h2[^>]*>Prediction</, "the title says what waits");
+		assert.doesNotMatch(out, /skip-question|Skip question/);
+		assert.match(out, /<h2 class="lh-kind">Prediction</, "the tag says what waits");
 		assert.doesNotMatch(out, /question-kind/, "no small label over the question");
 	});
 
-	it("the title says what waits: a question's kind, or that it is from earlier", () => {
+	it("the tag says what waits, drawn by the question after its text: its kind, or that it is from earlier", () => {
 		const fromEarlier = { ...quiz, appPosed: { kind: "review" as const, ref: { chatId: "c_old", toolCallId: "rv1" } } };
 		assert.match(html({ pending: fromEarlier }), /<h2[^>]*>From earlier</);
-		assert.match(html({ pending: quiz }), /<h2[^>]*>Quiz</);
+		assert.match(html({ pending: quiz }), /Which planet is closest to the sun\?[\s\S]*<h2 class="lh-kind">Quiz</);
 		assert.match(html({ pending: { ...quiz, input: { ...quizInput, type: "predict" } } }), /<h2[^>]*>Prediction</);
 		assert.match(html({ pending: written }), /<h2[^>]*>Question</);
-		assert.match(html({}), /<h2[^>]*>Your turn</, "with nothing asked");
+		assert.doesNotMatch(html({}), /<h2/, "with nothing asked there is no tag");
 	});
 
 	it("a refused answer from earlier says so in one quiet line", () => {
@@ -291,11 +291,12 @@ describe("Your turn in each state", () => {
 
 	it("with nothing waiting the box asks the teacher, by its name", () => {
 		const out = html();
-		assert.match(out, /data-testid="composer" data-size="line"[\s\S]*Your question[\s\S]*data-testid="composer-send"[^>]*disabled[^>]*>Ask Teacher</);
+		assert.match(out, /data-testid="composer"[\s\S]*Your question[\s\S]*data-testid="composer-send"[^>]*disabled[^>]*>Ask Teacher</);
+		assert.doesNotMatch(out, /data-size|lh-answer-line/);
 		assert.equal(out.split('data-testid="math-box"').length - 1, 1, "one writing box");
 		assert.match(html({}, named), />Ask marco</);
 		assert.match(html({ value: "why?" }), /data-testid="composer-send"(?![^>]*disabled)[^>]*class="[^"]*lh-btn-main[^"]*"[^>]*>Ask Teacher</, "bright once there is something to ask");
-		assert.match(html({ value: "why?", shown: shown(atStop) }), /data-testid="composer-send"(?![^>]*disabled)[^>]*class="lh-btn shrink-0"[^>]*>Ask Teacher</, "the next key stays the bright one");
+		assert.match(html({ value: "why?", shown: shown(atStop) }), /data-testid="composer-send"(?![^>]*disabled)[^>]*class="lh-btn shrink-0 lh-btn-quiet"[^>]*>Ask Teacher</, "the next key stays the bright one");
 	});
 
 	it("the ask key sends the box's words, and steers while the teacher writes", async () => {
@@ -341,14 +342,15 @@ describe("Your turn in each state", () => {
 		});
 	});
 
-	it("Stuck? leads the foot row under the box while a question or a problem waits; with nothing waiting the row is Try asking", () => {
-		const keys = /data-testid="composer"[\s\S]*data-testid="turn-foot"[^>]*><span[^>]*>Stuck\?<\/span>[\s\S]*?>I don(?:'|&#x27;)t know<[\s\S]*?>Give me a hint<[\s\S]*?>Explain it simpler</;
+	it("Stuck? leads the foot row above the box while a question or a problem waits; with nothing waiting and the teacher not busy the row is Try asking", () => {
+		const keys = /data-testid="turn-foot"[^>]*><span[^>]*>Stuck\?<\/span>[\s\S]*?>I don(?:'|&#x27;)t know<[\s\S]*?>Give me a hint<[\s\S]*?>Explain it simpler<[\s\S]*data-testid="composer"/;
 		for (const over of [{ pending: quiz }, { pending: written }, { pending: choice }, { problem }]) assert.match(html(over), keys, JSON.stringify(Object.keys(over)));
-		const ideas = /data-testid="composer"[\s\S]*data-testid="turn-foot"[^>]*><span[^>]*>Try asking<\/span>[\s\S]*?>Draw it<[\s\S]*?>Show a demo<[\s\S]*?>Look it up<[\s\S]*?>Quiz me</;
-		for (const over of [{}, { shown: shown(atStop) }, { busy: true }]) {
+		const ideas = /data-testid="turn-foot"[^>]*><span[^>]*>Try asking<\/span>[\s\S]*?>Draw it<[\s\S]*?>Show a demo<[\s\S]*?>Look it up<[\s\S]*?>Quiz me<[\s\S]*data-testid="composer"/;
+		for (const over of [{}, { shown: shown(atStop) }]) {
 			assert.match(html(over), ideas, JSON.stringify(Object.keys(over)));
 			assert.doesNotMatch(html(over), /Stuck\?/);
 		}
+		assert.doesNotMatch(html({ busy: true }), /turn-foot|Try asking|Stuck\?/, "the teacher is busy, so the box has no foot row");
 		for (const over of [{ pending: quiz }, { problem }]) assert.doesNotMatch(html(over), /Try asking/, "never both");
 	});
 
@@ -470,7 +472,7 @@ describe("Your turn in each state", () => {
 		assert.doesNotMatch(out, />Your turn</);
 		assert.match(out, /data-testid="open-problem"[\s\S]*data-testid="problem-statement"[\s\S]*Find E\[N\]\./);
 		assert.match(out, /Your work or a question/);
-		assert.match(out, /data-testid="discard-problem"[^>]*>Discard problem</);
+		assert.doesNotMatch(out, /discard-problem|Discard problem|skip-question/, "the way out is in the top bar's More");
 		assert.doesNotMatch(out, /question-dock/);
 		assert.equal(out.split('data-testid="math-box"').length - 1, 1);
 	});
@@ -512,11 +514,16 @@ describe("Your turn in each state", () => {
 		assert.match(out, /Find E\[N\]\./);
 	});
 
-	it("a homework problem's page sits at the end of the title line and shows that page in the Document panel", async () => {
+	it("a homework problem's page key leads its own row in the page and sits in the problem's corner when pinned, and shows that page in the Document panel", async () => {
 		let shown = 0;
 		const pdf = { id: "f_hw", name: "HW6", path: "/tmp/HW6.pdf", pdf: true, pages: 4, aspect: 0.77 };
 		const file = { document: pdf, page: 2, first: true, onShow: () => void shown++ };
-		assert.match(html({ problem: { ...problem, line: null, part: "b", file } }), /<h2[^>]*>Your turn<\/h2><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="lesson-assignment"[^>]*title="Page 2"/);
+		const homework = { ...problem, line: null, part: "b", file };
+		assert.match(html({ problem: homework }), /data-testid="turn-swap"[^>]*><div[^>]*><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="lesson-assignment"[^>]*title="Page 2"/);
+		assert.doesNotMatch(html({ problem: homework }), /<h2/, "a homework problem has no tag");
+		const pinned = html({ problem: homework }, (n) => <TurnPlaceContext.Provider value="pinned">{n}</TurnPlaceContext.Provider>);
+		assert.match(pinned, /<div class="lh-turn-body lh-turn-cornered">[\s\S]*<\/div><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="lesson-assignment"[^>]*title="Page 2"/, "in the corner beside the problem");
+		assert.doesNotMatch(pinned, /gap-x-4 gap-y-2"><div data-testid="turn-keys"/, "not in a head row");
 		assert.doesNotMatch(html({ pending: quiz, problem: { ...problem, file } }), /lesson-assignment/, "not over a question asked while it is open");
 		assert.match(html({ problem: { ...problem, file: { ...file, document: { ...pdf, name: "HW6 key" }, first: false } } }), /title="HW6 key, page 2"/, "another file is named");
 		assert.doesNotMatch(html({ problem: { ...problem, file: { ...file, page: undefined } } }), /lesson-assignment/, "no page, no key");
@@ -576,8 +583,7 @@ describe("Your turn in each state", () => {
 		const out = html({ pending: asked, problem });
 		assert.match(out, /data-mode="question"/);
 		assert.match(out, /data-testid="question-dock"[\s\S]*Which planet is closest[\s\S]*Submit answer/);
-		assert.match(out, /data-testid="skip-question"[^>]*>Skip question</, "he may skip it");
-		assert.doesNotMatch(out, /open-problem|discard-problem/);
+		assert.doesNotMatch(out, /open-problem|skip-question|discard-problem/, "the way out is in the top bar's More");
 
 		const answers: QuestionAnswerData[] = [];
 		await mounted(turn({ pending: asked, problem, onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
@@ -589,29 +595,24 @@ describe("Your turn in each state", () => {
 		const answered = [...posed, result("q1", "quiz", answers[0], 34)];
 		assert.equal(findPendingToolCall(projectView(answered)), null);
 		assert.equal(activeProblemOf(answered)?.toolCallId, "p1");
-		assert.match(html({ problem }), /data-mode="practice"[\s\S]*data-testid="discard-problem"/);
+		assert.match(html({ problem }), /data-mode="practice"[\s\S]*data-testid="open-problem"/);
 		const concluded = [...answered, call("c1", "conclude", CONCLUDE_SOLVED, 35), result("c1", "conclude", null, 35)];
 		assert.equal(activeProblemOf(concluded), null);
 	});
 
-	it("Skip question and Discard problem are the way out of each state, at the end of the title row", async () => {
-		const skip = /<h2[^>]*>(Quiz|Code|Question)<\/h2><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="skip-question"[^>]*>Skip question<\/button><\/div><\/div>[\s\S]*data-testid="composer"/;
-		assert.match(html({ pending: quiz }), skip);
-		assert.match(html({ pending: { tool: "write_code", toolCallId: "w1", input: { question: "Write add.", language: "python" } } }), skip);
-		assert.match(html({ pending: written }), skip);
-		assert.match(html({ pending: quiz, busy: true }), skip, "Stop sits in the lesson text, not here");
-		assert.match(html({ problem, busy: true }), /<\/h2><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="discard-problem"[\s\S]*data-testid="turn-foot"/);
-		assert.doesNotMatch(html({ pending: quiz, busy: true }), /stop-turn/);
+	it("the task holds neither Skip question nor Discard problem in any state (the top bar's More has them); only a question that came through broken keeps its own skip", async () => {
+		const code = { tool: "write_code", toolCallId: "w1", input: { question: "Write add.", language: "python" } };
+		for (const over of [{ pending: quiz }, { pending: code }, { pending: written }, { pending: quiz, busy: true }, { problem }, { problem, busy: true }, { shown: shown(atStop) }]) {
+			assert.doesNotMatch(html(over), /skip-question|discard-problem|Skip question|Discard problem|stop-turn/, JSON.stringify(Object.keys(over)));
+		}
 
-
-		const asked: string[] = [];
-		const handlers = { onSkipQuestion: () => asked.push("question"), onDiscardProblem: () => asked.push("problem") };
-		await mounted(turn({ pending: quiz, ...handlers }), async (host, show) => {
-			await click(host, "skip-question");
-			await show(turn({ problem, ...handlers }));
-			await click(host, "discard-problem");
-			assert.deepEqual(asked, ["question", "problem"]);
+		const broken = { tool: "quiz", toolCallId: "bad", input: {} };
+		assert.match(html({ pending: broken }), /data-testid="malformed-question"[\s\S]*data-testid="skip-broken-question"[^>]*>Skip question</);
+		let skipped = 0;
+		await mounted(turn({ pending: broken, onSkipQuestion: () => void skipped++ }), async (host) => {
+			await click(host, "skip-broken-question");
 		});
+		assert.equal(skipped, 1);
 	});
 
 	it("a turn an agent took and went quiet on says how long, and Stop runs it again", async () => {
@@ -640,7 +641,7 @@ describe("Your turn in each state", () => {
 		});
 	});
 
-	it("takes pictures and PDFs: the tray above the field, the button in the box's row of keys", () => {
+	it("takes pictures and PDFs: the tray above the field, an icon-only plus inside the field", () => {
 		const files = {
 			...attachments,
 			files: [
@@ -650,10 +651,11 @@ describe("Your turn in each state", () => {
 		};
 		const out = html({ problem, attachments: files });
 		assert.match(out, /data-testid="attachment-tray"[\s\S]*data-testid="draft-image"[\s\S]*data-testid="draft-pdf"[\s\S]*data-testid="math-box"/);
-		assert.match(out, /class="lh-answer-lines[\s\S]*data-testid="math-box"[\s\S]*data-testid="attach-button"[^>]*>[\s\S]*?Add pictures or PDFs<\/button><\/span><div[^>]*><button[^>]*data-testid="composer-send"/);
+		assert.match(out, /data-testid="attachment-tray"[\s\S]*class="lh-answer-box[^"]*lh-well"[\s\S]*data-testid="attach-button"[^>]*aria-label="Add pictures or PDFs" title="Add pictures or PDFs"[\s\S]*data-testid="math-box"[\s\S]*data-testid="composer-keys"[\s\S]*data-testid="composer-send"/);
+		assert.equal(out.match(/<button[^>]*data-testid="attach-button"[^>]*>([\s\S]*?)<\/button>/)![1]!.replace(/<[^>]*>/g, ""), "", "an icon, no words");
 		assert.equal(out.split('data-testid="attach-button"').length - 1, 1, "one attach button");
 		const ask = html({ pending: choice });
-		assert.match(ask, /class="lh-answer-line [\s\S]*data-testid="attach-button"[\s\S]*data-testid="question-submit"/, "beside Submit when the box is one line");
+		assert.match(ask, /class="lh-answer-box[\s\S]*data-testid="attach-button"[\s\S]*data-testid="composer-keys"[\s\S]*data-testid="question-submit"/, "in the field, before Submit answer");
 		assert.match(out, /type="file"[^>]*accept="image\/png,image\/jpeg,image\/gif,image\/webp,application\/pdf"/);
 		assert.doesNotMatch(out, /data-testid="composer-send"[^>]*disabled=""/, "files alone can be sent");
 		assert.match(html({ problem, attachments: { ...attachments, error: "You can add up to 5 files to one message." } }), /data-testid="attachment-error"[^>]*>You can add up to 5 files to one message\.</);
@@ -766,20 +768,22 @@ describe("the question's keys", () => {
 		});
 	});
 
-	it("How sure shows only after a pick, as one line under the answers, and comes into view", async () => {
+	it("How sure shows only after a pick, as one line under the answers with the level in words, and comes into view", async () => {
 		await mounted(turn({ pending: quiz }), async (host) => {
 			assert.ok(host.querySelector('[data-testid="confidence-line"]') === null, "nothing before a pick");
 			scrolledTo.length = 0;
 			await act(async () => options(host)[1]!.click());
 			const line = host.querySelector('[data-testid="confidence-line"]')!;
 			assert.ok(scrolledTo.includes(line));
-			assert.match(line.textContent ?? "", /^How sure are you\?/);
+			assert.match(line.textContent ?? "", /^How sure\?/);
 			assert.ok(options(host)[1]!.closest("[role=radiogroup]")!.nextElementSibling === line, "right under the answers");
 			assert.equal(line.querySelector('[data-testid="confidence-level-1"]')!.getAttribute("title"), "1, Guessing");
 			assert.equal(line.querySelector('[data-testid="confidence-level-5"]')!.getAttribute("title"), "5, Certain");
-			assert.equal(line.textContent, "How sure are you?GuessingCertain", "the end words show at any width");
-			const group = line.querySelector('[role="radiogroup"]')!.parentElement!;
-			assert.equal(group.textContent, "GuessingCertain", "the end words and the squares are one group, so a narrow line wraps before it");
+			assert.equal(line.textContent, "How sure?", "the end words are only in the titles, and no level is in words until one is picked");
+			assert.equal(line.querySelectorAll('[role="radiogroup"] > button').length, 5, "five blocks");
+			assert.equal(line.querySelector('[data-testid="confidence-word"]')!.textContent, "");
+			await click(host, "confidence-level-4");
+			assert.equal(line.querySelector('[data-testid="confidence-word"]')!.textContent, "Fairly sure", "the picked level in words");
 			assert.ok(!line.className.includes("@container"));
 		});
 	});
@@ -936,8 +940,9 @@ describe("the turn sheet", () => {
 			await exitPlays();
 			await show(named(column({ busy: true, next: null })));
 			await exitPlays();
-			assert.ok(host.querySelector('[data-testid="turn-next"]') === null);
-			assert.match(host.querySelector("h2")!.textContent!, /Your turn/);
+			assert.ok(host.querySelector('[data-testid="turn-next-line"]') === null, "no line after a question");
+			assert.ok(host.querySelector("h2") === null, "and nothing asked, so no tag");
+			assert.match(host.querySelector('[data-testid="turn-sheet"]')!.className, /hidden/, "the task takes no room");
 		});
 	});
 
@@ -959,8 +964,8 @@ describe("the turn sheet", () => {
 			assert.match(picked[0]!.textContent!, /Venus[\s\S]*Wrong/, "the verdict sits beside the pick");
 			assert.equal(host.querySelectorAll('[data-testid="answer-result"]').length, 1);
 			assert.equal(host.querySelector('[data-testid="composer-send"]')!.textContent, "Send", "the box stays, to steer what the teacher writes");
-			assert.match(host.querySelector('[data-testid="turn-foot"]')!.textContent!, /^Try asking/, "no Stuck? keys with nothing to answer");
-			assert.ok(host.querySelector('[data-testid="turn-next"]') === null);
+			assert.ok(host.querySelector('[data-testid="turn-foot"]') === null, "no help keys while the teacher writes");
+			assert.ok(host.querySelector('[data-testid="turn-next-line"]') === null);
 			await show(named(column({ pending: { ...quiz, toolCallId: "q2" } })));
 			assert.equal(swap(host).getAttribute("data-state"), "closed", "the next question swaps in with the fade");
 			await exitPlays();
@@ -977,7 +982,7 @@ describe("the turn sheet", () => {
 			assert.equal(host.querySelector('[data-testid="answered-turn"]'), pane);
 			assert.equal(host.querySelector('[data-testid="turn-next-line"]')!.textContent, "Cross-validation is next.");
 			assert.equal(host.querySelector('[data-testid="next-problem-button"]')!.textContent, "Continue");
-			assert.ok(!host.querySelector('.lh-turn-scroll')!.contains(host.querySelector('[data-testid="turn-next"]')), "the key stays in sight under a long task");
+			assert.ok(!host.querySelector('.lh-turn-scroll')!.contains(host.querySelector('[data-testid="next-problem-button"]')), "the key stays in sight under a long task");
 			await show(named(column({ next: between })));
 			await exitPlays();
 			assert.ok(host.querySelector('[data-testid="answered-turn"]') === null);
@@ -996,7 +1001,7 @@ describe("the turn sheet", () => {
 			assert.match(host.querySelector("h2")!.textContent!, /Practice, problem 2/);
 			assert.ok(host.querySelector('[data-testid="discard-problem"]') === null);
 			assert.ok(host.querySelector('[data-testid="kept-problem-discarded"]') === null);
-			assert.match(host.querySelector('[data-testid="turn-foot"]')!.textContent!, /^Try asking/, "no Stuck? keys once it is closed");
+			assert.ok(host.querySelector('[data-testid="turn-foot"]') === null, "no help keys while the teacher writes");
 			await show(named(column({ next: between, kept: { ...keptProblem, discarded: true } })));
 			assert.equal(host.querySelector('[data-testid="kept-problem-discarded"]')!.textContent, "Discarded");
 			assert.equal(host.querySelector('[data-testid="next-problem-button"]')!.textContent, "Next problem");
@@ -1036,7 +1041,8 @@ describe("the lesson page's pair", () => {
 		const started = page(<aside data-testid="turn-sheet" />);
 		assert.match(started, /data-testid="lesson-column" class="[^"]*@min-\[1280px\]\/room:grid/, "the pair");
 		assert.match(started, /lh-lesson-pair/);
-		assert.match(started, /class="lh-turn-fit min-w-0"[^>]*><aside data-testid="turn-sheet"/);
+		assert.match(started, /class="lh-turn-fit min-w-0[^"]*"[^>]*><aside data-testid="turn-sheet"/, "drawn in the page when there is no window to move its parts in");
+		assert.match(started, /class="lh-turn-top[^"]*"[\s\S]*class="lh-lesson-window[\s\S]*class="lh-turn-fit[\s\S]*class="lh-turn-foot/, "a top pin, the page and a pinned foot");
 		assert.doesNotMatch(started, /room:hidden|lh-lesson-closed/, "never hidden: the box is always there");
 	});
 
@@ -1113,7 +1119,7 @@ describe("the reading pane", () => {
 		assert.doesNotMatch(pane({ busy: false, status: "ready" }), /overflow|lh-scroll-fade|role="log"/);
 	});
 
-	it("the learner's bubbles wear the lesson's space color, as the turn sheet does, not the open space's", () => {
+	it("the learner's line is a plain plate with no space color, while the turn sheet wears the lesson's space color", () => {
 		const spaces = [
 			{ id: "spc_open", name: "Open space", color: 3 },
 			{ id: "spc_lesson", name: "Lesson space", color: 5 },
@@ -1130,10 +1136,9 @@ describe("the reading pane", () => {
 		const bubble = inSpaces(
 			<ReadingPane {...readingProps({ spaceId: "spc_lesson", messages, status: "ready", busy: false })} />,
 		);
-		assert.match(bubble, /data-testid="user-message"[^>]*style="[^"]*var\(--lh-space-5\)/);
-		assert.doesNotMatch(bubble, /--lh-space-3/);
+		assert.match(bubble, /data-testid="user-message" class="[^"]*lh-well/);
+		assert.doesNotMatch(bubble, /data-testid="user-message"[^>]*style=|--lh-space-/);
 		assert.match(inSpaces(named(<TurnSheet {...turnProps()} spaceId="spc_lesson" next={null} />)), /--lh-pale:[^"]*var\(--lh-space-5\)/);
-		assert.doesNotMatch(pane({ messages, busy: false, status: "ready" }), /data-testid="user-message"[^>]*style=/, "a lesson with no space keeps the plain bubble");
 	});
 });
 

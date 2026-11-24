@@ -12,7 +12,7 @@ export const TurnPlaceContext = createContext<TurnPlace>("beside");
 
 /** The boxes the lesson page moves the turn's two parts in (the task, the writing row), and how
  *  the turn stands: leaving (a lesson reset) or stepping in after a reply. */
-export type TurnSlots = { task?: HTMLElement; row?: HTMLElement; closing: boolean; stepIn: boolean };
+type TurnSlots = { task?: HTMLElement; row?: HTMLElement; closing: boolean; stepIn: boolean };
 
 /** With no page around it, the turn draws its parts where it stands. */
 export const TurnSlotsContext = createContext<TurnSlots>({ closing: false, stepIn: false });

@@ -240,7 +240,7 @@ export function YourTurn({
 								<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
 									{tag && <h2 className="lh-kind">{tag}</h2>}
 									{saved && <div className="ml-auto">{saved}</div>}
-									{!corner && keys}
+									{hasKeys && !corner && keys}
 								</div>
 							)}
 
