@@ -60,10 +60,6 @@
 	--lh-gap: 24px;
 	--lh-inset: 24px;
 	--lh-page-end: 64px;
-	/* Lesson text and "Your turn" are read like a page of a book, so their sheets keep a wider
-	   margin than a card's inset: 56, or 28 in a column under 640 (.lh-reading). */
-	--lh-reading-inset: 56px;
-	--lh-reading-inset-narrow: 28px;
 	/* The longest line of a sentence or paragraph outside lesson text. */
 	--lh-measure: 75ch;
 	--lh-title: clamp(34px, (100vw - var(--lh-strip) - var(--lh-dock-push, 0px) - 899px) * 999, 44px);
@@ -817,11 +813,10 @@ body {
 	--lh-turn: clamp(420px, (var(--lh-pair) - var(--lh-pair-gap)) / 2, 688px);
 	--lh-text: calc(var(--lh-pair) - var(--lh-pair-gap) - var(--lh-turn));
 }
-/* Side by side, the text and the turn are the pages of an open book, both starting under the step
-   line. The turn (.lh-turn-fit) is as tall as the page's window (the scroller is a size container,
-   so 100cqh is its height) and holds still while the text scrolls. Its question or problem
-   (.lh-turn-scroll) scrolls in its own box when it is longer than the room over the writing row,
-   which rests at the window's foot. */
+/* Side by side, the text and the turn are the pages of an open book. The turn (.lh-turn-fit) is as
+   tall as the page's window (the scroller is a size container, so 100cqh is its height) and holds
+   still while the text scrolls. Its question or problem (.lh-turn-scroll) scrolls in its own box
+   when it is longer than the room over the writing row, which rests at the window's foot. */
 @container room (width >= 1000px) {
 	/* The page's own padding (24px over and under) stays clear, so the pair never scrolls by it. */
 	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit {
@@ -844,22 +839,28 @@ body {
 		margin-inline: auto;
 	}
 }
-/* The turn's task (YourTurn). In the page under the text it keeps a step's distance from it. As the
-   right page of the open book it takes the room over the writing row, which rests at the page's
-   foot; with no task the row rests there alone. */
+/* The turn's task (YourTurn) rests on the writing row, so what is asked, its help keys and the field are
+   read as one thing; the text starts under the step line and blank room falls between the two. Under the
+   text the page is at least as tall as its window and the task keeps a step's distance from the text. As the
+   right page of the open book the task lies at the page's foot, over the row. */
+.lh-lesson-column {
+	min-height: calc(100cqh - 48px);
+}
+.lh-lesson-column > .lh-turn-fit {
+	margin-top: auto;
+}
 .lh-lesson-column > .lh-turn-fit .lh-turn-task {
 	padding-top: 40px;
 }
 @container room (width >= 1000px) {
 	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit {
+		justify-content: flex-end;
 		gap: 20px;
+		margin-top: 0;
 	}
 	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit .lh-turn-task {
 		flex: 0 1 auto;
 		padding-top: 0;
-	}
-	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit .lh-turn-row {
-		margin-top: auto;
 	}
 }
 /* On a page of its own at least 584 wide, a short question is a headline. */
@@ -870,10 +871,7 @@ body {
 	}
 }
 /* A question answered in the code editor: the editor takes the room left over the writing row, under the
-   text and beside it, so a short lesson leaves no blank band under the code. */
-.lh-lesson-column:has(> .lh-turn-fit [data-kind="code"]) {
-	min-height: calc(100cqh - 48px);
-}
+   text and beside it, so a short lesson leaves no blank band over the code. */
 .lh-lesson-column > .lh-turn-fit:has([data-kind="code"]) {
 	display: flex;
 	flex: 1 1 auto;
@@ -1008,6 +1006,12 @@ body {
 .katex-display {
 	overflow-x: auto;
 	overflow-y: hidden;
+}
+
+/* Inline math stays whole on one line where it fits, so no equation is cut at its "=" while the line has room. */
+:not(.katex-display) > .katex {
+	display: inline-block;
+	max-width: 100%;
 }
 
 /* Inline math: a piece too wide to break scrolls too, since message
@@ -1712,6 +1716,11 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 .lh-rise {
 	animation: lh-rise-in var(--lh-dur) var(--lh-ease-out) both;
 }
+/* A question that arrives sets its choices down one after another (--lh-choice-at: the choice's place). */
+.lh-rise .lh-choice {
+	animation: lh-rise-in var(--lh-dur) var(--lh-ease-out) backwards;
+	animation-delay: calc(var(--lh-dur-fast) + var(--lh-choice-at) * 45ms);
+}
 
 /* The open problem's box on its page in the Document panel: one that comes after the lesson
    opened closes in on it once. */
@@ -1891,6 +1900,7 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	.lh-dialog,
 	.lh-fade,
 	.lh-rise,
+	.lh-rise .lh-choice,
 	.lh-doc-box,
 	.lh-draw-in,
 	.lh-hang::before,

@@ -91,10 +91,10 @@ const NO_PAGES: ReadonlyMap<string, string> = new Map();
 
 /**
  * THE LESSON: its title and words in the top bar (LessonBar), then one page that scrolls (LessonScroll):
- * the step line, the lesson text's sheet and "Your turn" beside it for the
- * whole lesson (or under it in a small room), with the panel beside both
+ * the step line, the lesson text and the learner's turn (what is asked over
+ * the writing row, beside the text in a wide room), with the panel beside both
  * when one is open: the lesson's document or the cheat sheet. The learner
- * talks to the teacher in "Your turn"'s box; a line typed in the teacher's
+ * talks to the teacher in the writing row's field; a line typed in the teacher's
  * terminal comes here the same way
  * (useTerminalLines). This component owns the lesson's state and
  * wiring; the pieces live in src/frontend/components/lesson/.

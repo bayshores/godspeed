@@ -96,10 +96,10 @@ describe("the folded line", () => {
 
 	const named = (html: string) => html.match(/data-testid="plan-fold"[^>]*aria-label="([^"]*)"/)![1];
 
-	it("is folded by default: a thin block per step across the page with the step's place at their end, its name for a reader, and no list", () => {
+	it("is folded by default: a thin block per step across the page with the step's name and place at their end, and no list", () => {
 		const html = renderToStaticMarkup(<PlanRow {...base} />);
 		assert.match(html, /data-testid="plan-fold" aria-expanded="false"/);
-		assert.equal(line(html), "Step 2 of 3");
+		assert.equal(line(html), "Gradient as an expectation Step 2 of 3");
 		assert.equal(named(html), "Step 2 of 3, Gradient as an expectation");
 		assert.match(html, /class="shrink-0 font-count[^"]*">Step 2 of 3</, "the count keeps the count font");
 		assert.equal([...html.matchAll(/class="block h-\[5px\] min-w-0 flex-1/g)].length, 3, "one block per step");
@@ -108,7 +108,7 @@ describe("the folded line", () => {
 
 	it("homework: the open problem and its title, the title dropped when it is only the number, and a done count with nothing open", () => {
 		const titled = renderToStaticMarkup(<PlanRow {...homework} />);
-		assert.deepEqual([line(titled), named(titled)], ["Problem 2", "Problem 2, Step size"]);
+		assert.deepEqual([line(titled), named(titled)], ["Step size Problem 2", "Problem 2, Step size"]);
 		const untitled = [...problems, { number: "4", title: "4", text: "…", done: false }];
 		assert.equal(named(renderToStaticMarkup(<PlanRow {...homework} problemList={{ problems: untitled, open: "4", blocked: null }} />)), "Problem 4");
 		assert.equal(line(renderToStaticMarkup(<PlanRow {...homework} problemList={{ problems, open: null, blocked: null }} />)), "1 of 3 done");

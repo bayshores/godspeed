@@ -6,7 +6,7 @@ import { ANSWER_ROW, proseVars } from "./question-parts";
 /** A row is a plate 56 tall for one line, as wide as the text. */
 const OPTION_ROW = cn(ANSWER_ROW, "lh-choice items-baseline px-4 py-3.5");
 
-/** The picked row is the brightest thing on the page: ink for its plate, the page's color for its words. */
+/** The picked row is the brightest thing on the page while it can still change: ink for its plate, the page's color for its words. */
 const ON_INK = { "--lh-ink-body": "var(--background)", "--lh-ink-strong": "var(--background)", "--lh-ink-italic": "var(--background)" } as React.CSSProperties;
 
 /** Choices this short, and no more than this many, stand side by side. */
@@ -63,10 +63,11 @@ export function ChoiceRows({
 						data-kbdrow={i}
 						data-testid="question-option"
 						onClick={() => onToggle?.(i)}
-						className={cn(OPTION_ROW, isSel ? "bg-ink text-background" : "lh-well hover:bg-tone", i === walked && !isSel && "ring-2 ring-inset ring-ink-3")}
+						style={{ "--lh-choice-at": i } as React.CSSProperties}
+						className={cn(OPTION_ROW, isSel ? (onToggle ? "bg-ink text-background" : "bg-tone-2") : "lh-well hover:bg-tone", i === walked && !isSel && "ring-2 ring-inset ring-ink-3")}
 					>
-						<OptionMark picked={isSel}>{choiceLetter(i)}</OptionMark>
-						<span className="min-w-0 flex-1" style={{ ...proseVars(18, 28, !onToggle), ...(isSel && ON_INK) }}>
+						<OptionMark picked={isSel && !!onToggle}>{choiceLetter(i)}</OptionMark>
+						<span className="min-w-0 flex-1" style={{ ...proseVars(18, 28, !onToggle), ...(isSel && onToggle && ON_INK) }}>
 							<ToolContentResponse>{opt.label}</ToolContentResponse>
 							{opt.description && (
 								<span className="block" style={proseVars(15, 22, true)}>

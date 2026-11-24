@@ -14,7 +14,7 @@ import { WAITING_TOPIC } from "./layout-seed.mjs";
  */
 
 const WIDTHS = [1440, 1100, 640];
-/** A lesson is also checked at 1320, where between 1280 and about 1367 its reading inset changes, and at 800, where its one
+/** A lesson is also checked at 1320, just past the room where a short question is set larger, and at 800, where its one
  *  column is not yet at its narrowest. */
 const LESSON_WIDTHS = [1440, 1320, 1100, 800, 640];
 /** The widths at which "Your turn" is pinned under one column of lesson text. */
@@ -450,7 +450,7 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	{ name: "Lesson with a question skipped and the teacher's reply landed", url: "/chat/{skipped}", ready: "[data-testid=next-problem-button][data-action=next]" },
 	{ name: "Lesson with a problem discarded", url: "/chat/{discarded}", ready: "[data-testid=next-problem-button]" },
 	{ name: "Lesson at the end of its last topic, Done for today", url: "/chat/{lastTopic}", ready: "[data-testid=next-problem-button][data-action=done-for-today]" },
-	{ name: "Lesson that opens with a problem, Your turn alone", url: "/chat/{problemFirst}", ready: ".lh-lesson-alone [data-testid=open-problem]" },
+	{ name: "Lesson that opens with a problem, Your turn alone", url: "/chat/{problemFirst}", ready: "[data-testid=open-problem]" },
 	{ name: "Homework lesson before a problem opens", url: "/chat/{homeworkFirst}", ready: "[data-testid=next-problem-button]" },
 	// The method is taught first with a figure the teacher drew; "Try asking" has the key that asks for one.
 	{ name: "Homework lesson with a figure under the method", url: "/chat/{homeworkFirst}", ready: "[data-testid=visual-svg] img", shows: "[data-testid=lesson-idea]" },

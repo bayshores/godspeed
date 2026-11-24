@@ -129,7 +129,7 @@ export function ReadingPane({
 								{sheet.step !== null && stepNames.get(sheet.step)}
 							</h3>
 						)}
-						<div className="lh-reading flex flex-1 flex-col gap-4">
+						<div className="flex flex-1 flex-col gap-4">
 							{newest && messages.length === 0 && !busy && <ConversationEmptyState title="New lesson" description="" />}
 							{sheet.rows.map(({ index: mi, from, to }) => {
 								const m = shown[mi]!;

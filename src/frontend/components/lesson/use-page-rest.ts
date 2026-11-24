@@ -80,7 +80,7 @@ export function usePageRest({
 	turnRef: RefObject<HTMLElement | null>;
 	footRef: RefObject<HTMLElement | null>;
 	busy: boolean;
-	/** "Your turn" is pinned under the text's window, not in the page. */
+	/** The open problem is pinned over the text's window, not in the page. */
 	pinned: boolean;
 	restKey: string;
 	/** The book lies open in a room wide enough for both pages. */

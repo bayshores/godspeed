@@ -77,6 +77,7 @@ export function messageShows(m: LhViewMessage, echo: boolean, inTurn: string | n
  * its previous message object (reuseUnchangedMessages) and skips.
  */
 export const MessageRow = memo(function MessageRow({ message: m, index: mi, echo, teachSeam, streamingLast, hiddenCalls, pageMarks, arrive, from = 0, to = m.parts.length }: MessageRowProps) {
+	const inTurn = useContext(ChatActionsContext)?.inTurn ?? null;
 	if (m.role === "user" && isSubagentSteer(m)) {
 		// Sub-agent delivery: no bubble — the artifact card sits in the column.
 		return (
@@ -116,7 +117,8 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, echo
 	// A native message lives in exactly one view group, so the row can pick
 	// its anchors alone.
 	const anchors = new Set(firstSourceTextParts([m]).values());
-	const separators = drawnSeparators(m.parts, (part) => partShows(part, hiddenCalls));
+	// A task "Your turn" still shows is not drawn here, so it leaves no room either.
+	const separators = drawnSeparators(m.parts, (part) => partShows(part, hiddenCalls) && (inTurn === null || part.toolCallId !== inTurn));
 	const pages = excerptParts(m.parts, pageMarks);
 	return (
 		<Fragment>

@@ -54,11 +54,9 @@ describe("spacing", () => {
 		assert.equal(roomUnder(500, 584), 0, "what it holds may reach past it");
 	});
 
-	it("a box's sides are off unless all of them match one of the allowed insets", () => {
-		assert.ok(!offInset([24, 24, 24.4], [24]));
-		assert.ok(offInset([24, 20, 24], [24]));
-		assert.ok(!offInset([28, 28], [56, 28]), "a reading surface in a narrow column");
-		assert.ok(offInset([56, 28], [56, 28]), "both sides take the same step");
+	it("a box's sides are off unless every one is the inset", () => {
+		assert.ok(!offInset([24, 24, 24.4], 24));
+		assert.ok(offInset([24, 20, 24], 24));
 	});
 });
 

@@ -19,7 +19,7 @@ export function QuestionText({ children, quiet = false, tag = null }: { children
 	const big = children.length <= SHORT_QUESTION;
 	return (
 		<div className="flex flex-col items-start gap-3">
-			<div data-session-find-root="" style={big ? { ...proseVars(28, 38, quiet), ...HEADLINE } : proseVars(22, 31, quiet)}>
+			<div data-session-find-root="" className={big ? "text-balance" : undefined} style={big ? { ...proseVars(28, 38, quiet), ...HEADLINE } : proseVars(22, 31, quiet)}>
 				<ToolContentResponse>{children}</ToolContentResponse>
 			</div>
 			{tag && <h2 className="lh-kind">{tag}</h2>}

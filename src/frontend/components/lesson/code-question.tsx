@@ -72,7 +72,7 @@ export function CodeQuestion({
 	}));
 
 	return (
-		<div data-testid="question-dock" data-kind="code" className="flex min-h-0 flex-1 flex-col gap-6">
+		<div data-testid="question-dock" data-kind="code" className="flex flex-1 flex-col gap-6">
 			<QuestionText tag={tag}>{input.question}</QuestionText>
 			{/* The editor takes the room the page has left (globals.css), and never less than a few lines. */}
 			<div className="flex min-h-[260px] flex-1 flex-col">
