@@ -87,8 +87,8 @@ export function DeadlinesTab() {
 			color={spaceColorVar(activeSpace.color)}
 			nowMs={nowMs!}
 			className={arrive(d.id) && JOINED}
-			onDone={() => markDone({ ...d, spaceId: active, spaceName: activeSpace.name })}
-			onUndo={() => undo({ ...d, spaceId: active, spaceName: activeSpace.name })}
+			onDone={() => markDone({ spaceId: active, id: d.id })}
+			onUndo={() => undo({ spaceId: active, id: d.id })}
 		/>
 	);
 	return (

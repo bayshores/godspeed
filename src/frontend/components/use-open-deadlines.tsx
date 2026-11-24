@@ -26,6 +26,9 @@ interface Fetched {
 	gaps: SpaceGap[];
 }
 
+/** The deadline a save names. */
+type DeadlineRef = Pick<OpenDeadline, "spaceId" | "id">;
+
 interface SharedDeadlines {
 	/** null until the first response. */
 	fetched: Fetched | null;
@@ -33,11 +36,11 @@ interface SharedDeadlines {
 	error: string | null;
 	load: () => Promise<void>;
 	/** Save a deadline's done and read the lists again; `failed` is the
-	 *  notice when the save doesn't work. */
-	setDone: (d: OpenDeadline, done: boolean, failed: string) => void;
+	 *  notice when the save doesn't work. Settles once the lists are read. */
+	setDone: (d: DeadlineRef, done: boolean, failed: string) => Promise<void>;
 }
 
-const OpenDeadlinesContext = createContext<SharedDeadlines>({ fetched: null, error: null, load: async () => {}, setDone: () => {} });
+const OpenDeadlinesContext = createContext<SharedDeadlines>({ fetched: null, error: null, load: async () => {}, setDone: async () => {} });
 
 export function OpenDeadlinesProvider({ children }: { children: React.ReactNode }) {
 	// A failed read keeps what we have; the error only matters before a first list.
@@ -69,13 +72,11 @@ export function OpenDeadlinesProvider({ children }: { children: React.ReactNode 
 	const [notice, setNotice] = useState<string | null>(null);
 	const clearNotice = useCallback(() => setNotice(null), []);
 	const setDone = useCallback(
-		(d: OpenDeadline, done: boolean, failed: string) => {
+		async (d: DeadlineRef, done: boolean, failed: string) => {
 			setNotice(null);
-			void (async () => {
-				const { error } = await send(`/api/spaces/${encodeURIComponent(d.spaceId)}/deadlines/${encodeURIComponent(d.id)}`, jsonInit("PUT", { done }));
-				if (error) setNotice(failed);
-				else await load();
-			})();
+			const { error } = await send(`/api/spaces/${encodeURIComponent(d.spaceId)}/deadlines/${encodeURIComponent(d.id)}`, jsonInit("PUT", { done }));
+			if (error) setNotice(failed);
+			else await load();
 		},
 		[load],
 	);
@@ -100,8 +101,9 @@ interface OpenDeadlinesState {
 	gaps: SpaceGap[];
 	/** Why the last read failed; null once one succeeds. */
 	error: string | null;
-	markDone: (d: OpenDeadline) => void;
-	undo: (d: OpenDeadline) => void;
+	/** Both settle once the save is read back. */
+	markDone: (d: DeadlineRef) => Promise<void>;
+	undo: (d: DeadlineRef) => Promise<void>;
 	/** Wave a space's gap off (its key), then read the lists again; the error line, or null. */
 	answerGap: (spaceId: string, key: string) => Promise<WriteResult>;
 	/** Read the lists again now (Try again). */
@@ -114,8 +116,8 @@ const NO_GAPS: SpaceGap[] = [];
 
 export function useOpenDeadlines(): OpenDeadlinesState {
 	const { fetched, error, load, setDone } = useContext(OpenDeadlinesContext);
-	const markDone = useCallback((d: OpenDeadline) => setDone(d, true, "Couldn't mark it done. Try again."), [setDone]);
-	const undo = useCallback((d: OpenDeadline) => setDone(d, false, "Couldn't undo that. Try again."), [setDone]);
+	const markDone = useCallback((d: DeadlineRef) => setDone(d, true, "Couldn't mark it done. Try again."), [setDone]);
+	const undo = useCallback((d: DeadlineRef) => setDone(d, false, "Couldn't undo that. Try again."), [setDone]);
 	const answerGap = useCallback(
 		async (spaceId: string, key: string): Promise<WriteResult> => {
 			const { error: failed } = await send(`/api/deadlines/${encodeURIComponent(spaceId)}/nothing-new`, jsonInit("POST", { key }));

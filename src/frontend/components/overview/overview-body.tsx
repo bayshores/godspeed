@@ -1,5 +1,6 @@
-import { memo, useMemo, type ReactNode } from "react";
+import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
 import { useWaited } from "@/frontend/components/loading";
+import { useSheetGlide } from "@/frontend/components/use-sheet-glide";
 import { cn } from "@/frontend/lib/utils";
 import type { SpaceNote, DeadlineProgress, ProgressPayload } from "@/shared/core";
 import { SpaceFacts } from "./space-facts";
@@ -11,7 +12,7 @@ import { MostNeeded } from "./most-needed";
 import { NextDeadline } from "./next-deadline";
 import { PathBlock } from "./path-block";
 import { StartCard, StartTiles } from "./start-tiles";
-import { hasCalibration, mostNeeded, upcomingDeadlines } from "./overview-model";
+import { deadlineAfter, hasCalibration, mostNeeded, shownDeadline, upcomingDeadlines } from "./overview-model";
 import { NotesCard } from "./notes-card";
 import { TeacherNote } from "./teacher-note";
 import { LessonCard } from "./lesson-card";
@@ -20,8 +21,9 @@ import { useStickyTop } from "./use-sticky-top";
 
 /**
  * The Progress tab under the space head (pure view, the render-test seam).
- * What to do sits in a narrow side column: the next deadline (or, with none
- * ahead, the path), an interview waiting for its date, the unfinished
+ * What to do sits in a narrow side column: the next deadline (the one its
+ * "Next" turned to, or one just ticked done; with none, the path), an
+ * interview waiting for its date, the unfinished
  * lessons, the path beside a deadline, and "Most needed". The record sits in
  * the wide column: the teacher's note, the finished lessons, the fact grid
  * and the confidence chart. Each shows only once it has something to show,
@@ -45,6 +47,8 @@ export const OverviewBody = memo(function OverviewBody({
 	onStudyPath,
 	onStudyDeadline,
 	onWorkDeadline,
+	onDeadlineDone,
+	onDeadlineUndo,
 	onAddDeadline,
 	waiting,
 	pickSpace,
@@ -68,6 +72,9 @@ export const OverviewBody = memo(function OverviewBody({
 	onStudyDeadline: (d: DeadlineProgress) => void;
 	/** The next homework's or project's Work on. */
 	onWorkDeadline: (d: DeadlineProgress) => void;
+	/** The next deadline's Mark done and Undo. */
+	onDeadlineDone: (d: DeadlineProgress) => void;
+	onDeadlineUndo: (d: DeadlineProgress) => void;
 	/** "Add a deadline" (opens the Deadlines tab). */
 	onAddDeadline: () => void;
 	/** An interview waiting for its date (waiting-deadline.tsx). */
@@ -82,7 +89,20 @@ export const OverviewBody = memo(function OverviewBody({
 	const { unfinished, finished } = useMemo(() => splitLessons(actions.shown ?? []), [actions.shown]);
 
 	const spaceData = hasSpace && data && nowMs !== null ? data : null;
-	const next = upcoming[0] ?? null;
+	// The deadline "Next" turned the card to, or the one ticked done on it; back to the soonest on a new visit.
+	const [pickedId, setPickedId] = useState<string | null>(null);
+	const next = data ? shownDeadline(data.deadlines, upcoming, pickedId) : null;
+	const afterId = next && deadlineAfter(upcoming, next)?.id;
+	const turnToNext = useCallback(() => setPickedId(afterId ?? null), [afterId]);
+	// A ticked one leaves the ones ahead, so it is picked to stay on the card with its Undo.
+	const markDone = useCallback(
+		(d: DeadlineProgress) => {
+			setPickedId(d.id);
+			onDeadlineDone(d);
+		},
+		[onDeadlineDone],
+	);
+	const cardGlide = useSheetGlide(false, true);
 	// With no deadline ahead the path takes the deadline card's place, and its key.
 	const pathFirst = !!spaceData?.path && next === null;
 	const side = spaceData !== null || unfinished.length > 0 || startError !== null;
@@ -109,17 +129,23 @@ export const OverviewBody = memo(function OverviewBody({
 							(pathFirst ? (
 								<PathBlock path={spaceData.path!} main busyOn={busyOn} onStudy={onStudyPath} />
 							) : (
-								<NextDeadline
-									deadline={next}
-									none={spaceData.deadlines.length === 0 ? "No deadlines yet" : "Nothing is coming up."}
-									color={color}
-									nowMs={nowMs!}
-									busyOn={busyOn}
-									onStudy={onStudyDeadline}
-									onWork={onWorkDeadline}
-									onAddDeadline={onAddDeadline}
-									starts={spaceData.deadlines.length === 0 ? <StartTiles ways={["deadline", "path"]} color={color} onAddDeadline={onAddDeadline} /> : undefined}
-								/>
+								// The card glides to the height of another deadline, or of its done form, so the column below moves once.
+								<div ref={cardGlide}>
+									<NextDeadline
+										deadline={next}
+										none={spaceData.deadlines.length === 0 ? "No deadlines yet" : "Nothing is coming up."}
+										color={color}
+										nowMs={nowMs!}
+										busyOn={busyOn}
+										onStudy={onStudyDeadline}
+										onWork={onWorkDeadline}
+										onDone={markDone}
+										onUndo={onDeadlineUndo}
+										onNext={afterId ? turnToNext : undefined}
+										onAddDeadline={onAddDeadline}
+										starts={spaceData.deadlines.length === 0 ? <StartTiles ways={["deadline", "path"]} color={color} onAddDeadline={onAddDeadline} /> : undefined}
+									/>
+								</div>
 							))}
 						{hasSpace && waiting}
 						{startError && (
