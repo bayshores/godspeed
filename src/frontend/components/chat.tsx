@@ -565,7 +565,6 @@ export function Chat({
 	// While it is shut and the teacher works, a task that streams in waits for the reply to land.
 	const turnPending = open || pending?.appPosed?.kind === "review" ? pending : null;
 	const turnProblem = open ? problem : null;
-	const slim = turnPending === null && stuckLine === null && errorLine === null && !reviewRefused && attachments.files.length === 0;
 	// Where the page last laid "Your turn" out: only beside the text or alone does it keep the finished task,
 	// and the lesson's notes take its place there when they come.
 	const [turnPlace, setTurnPlace] = useState<TurnPlace>("under");
@@ -620,7 +619,7 @@ export function Chat({
 						/>
 						<PluginWindow plugin={openPlugin} context={pluginContext} onClose={closePlugin} />
 						<div className="min-h-0 flex-1">
-							<div ref={sessionFindScopeRef} data-dock={panel ? "" : undefined} className="lh-dots lh-lesson-body relative h-full">
+							<div ref={sessionFindScopeRef} data-dock={panel ? "" : undefined} className="lh-lesson-body relative h-full">
 								<LessonScroll
 									steps={<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} problemList={planProblems} practice={stablePractice} onJump={jumpToAnswer} onPick={openPick} onOpenPlan={overlays.openPlan} />}
 									restKey={[pending?.toolCallId, problem?.toolCallId, problem?.part, atStop?.stopOf].join(" ")}
@@ -630,7 +629,7 @@ export function Chat({
 									shutting={book.shutting}
 									onShut={book.shut}
 									onRest={book.rest}
-									slim={slim}
+									pin={turnProblem !== null && turnPending === null}
 									place={turnPlace}
 									onPlace={setTurnPlace}
 									reading={

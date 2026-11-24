@@ -1,8 +1,6 @@
 import { Fragment, memo, useContext } from "react";
 import { FiledCard } from "@/frontend/components/filed-card";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
-import { paleSpaceColor } from "@/frontend/components/space-color";
-import { useSpaceColor } from "@/frontend/components/space-context";
 import { Message, MessageContent } from "@/frontend/components/ai-elements/message";
 import { excerptParts } from "@/frontend/components/citations/page-excerpt-model";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/frontend/components/ai-elements/reasoning";
@@ -39,8 +37,6 @@ import { ReplyPassage } from "./reply-passage";
 
 interface MessageRowProps {
 	message: LhViewMessage;
-	/** The lesson's space: the learner's bubbles wear its color. */
-	spaceId: string | undefined;
 	/** The message's position — arrival slots and the step-boundary rule. */
 	index: number;
 	/** The learner's first message only repeats the lesson's title: its words show no bubble. */
@@ -80,7 +76,7 @@ export function messageShows(m: LhViewMessage, echo: boolean, inTurn: string | n
  * streams only the message being written redraws — every other row keeps
  * its previous message object (reuseUnchangedMessages) and skips.
  */
-export const MessageRow = memo(function MessageRow({ message: m, spaceId, index: mi, echo, teachSeam, streamingLast, hiddenCalls, pageMarks, arrive, from = 0, to = m.parts.length }: MessageRowProps) {
+export const MessageRow = memo(function MessageRow({ message: m, index: mi, echo, teachSeam, streamingLast, hiddenCalls, pageMarks, arrive, from = 0, to = m.parts.length }: MessageRowProps) {
 	if (m.role === "user" && isSubagentSteer(m)) {
 		// Sub-agent delivery: no bubble — the artifact card sits in the column.
 		return (
@@ -112,7 +108,7 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 		);
 	}
 	if (m.role === "user") {
-		return <UserMessage message={m} spaceId={spaceId} echo={echo} className={arrive(`${mi}`)} />;
+		return <UserMessage message={m} echo={echo} className={arrive(`${mi}`)} />;
 	}
 	// The teach seam's step: -1 = before the whole group; a later index =
 	// at that step boundary, in place of its room.
@@ -147,22 +143,17 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 	);
 });
 
-/** The learner's message: a bubble on the right in the lesson's space color.
+/** The learner's message: a soft plate at the right, as wide as its words.
  *  Plain text, since learner text never goes through the model's LaTeX
  *  pipeline; the learner's files sit under it. An `echo` of the title shows
  *  only its files. */
-function UserMessage({ message, spaceId, echo, className }: { message: LhViewMessage; spaceId: string | undefined; echo: boolean; className?: string }) {
-	const color = useSpaceColor(spaceId);
+function UserMessage({ message, echo, className }: { message: LhViewMessage; echo: boolean; className?: string }) {
 	const text = echo ? "" : message.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n");
 	if (echo && !message.parts.some(isAttachmentPart)) return null;
 	return (
 		<div className={cn("my-2 flex w-full justify-end", className)}>
-			<div
-				data-testid="user-message"
-				className="flex w-[520px] max-w-full flex-col gap-2 rounded-sm bg-tone px-3.5 py-2.5"
-				style={color ? { background: paleSpaceColor(color) } : undefined}
-			>
-				{text && <div className="whitespace-pre-wrap font-prose text-ink" style={{ fontSize: "calc(var(--lh-prose-size) - 2px)" }}>{text}</div>}
+			<div data-testid="user-message" className="flex w-fit max-w-[82%] flex-col gap-2 lh-well px-4 py-2.5">
+				{text && <div className="whitespace-pre-wrap font-prose text-ink" style={{ fontSize: "var(--lh-prose-size)" }}>{text}</div>}
 				<MessageAttachments parts={message.parts} />
 			</div>
 		</div>

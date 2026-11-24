@@ -7,7 +7,6 @@ import { QueuedSteersBody, type QueuedSteerLine } from "@/frontend/components/qu
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
-import { Pane } from "@/frontend/components/ui/pane";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaceColor } from "@/frontend/components/space-context";
 import { StartAgentAction } from "@/frontend/components/work/start-agent-action";
@@ -128,12 +127,12 @@ export function ReadingPane({
 	}, [shown, stepNumbers, phases, echo, inTurn]);
 	return (
 		<PrintWaitContext.Provider value={bookTurns}>
-		<div data-testid="lesson-reading" data-session-find-root="" className="lh-text-sheets flex min-w-0 flex-col gap-(--lh-gap)">
+		<div data-testid="lesson-reading" data-session-find-root="" className="lh-text-sheets flex min-w-0 flex-col gap-10">
 			{sheets.map((sheet, si) => {
 				const newest = si === sheets.length - 1;
 				const first = sheet.rows[0];
 				return (
-					<Pane key={first ? `${shown[first.index]!.id || first.index}:${first.from}` : "empty"} ref={newest ? sheetRef : undefined} data-testid="lesson-sheet" className={cn("flex min-w-0 flex-col", newest && "lh-text-fit")}>
+					<section key={first ? `${shown[first.index]!.id || first.index}:${first.from}` : "empty"} ref={newest ? sheetRef : undefined} data-testid="lesson-sheet" className={cn("flex min-w-0 flex-col gap-4", newest && "lh-text-fit")}>
 						{sheet.label && (
 							<span data-testid="sheet-step" className={STEP_TAB} style={{ background: spaceColor ? spaceColorVar(spaceColor) : "var(--color-ink-2)" }}>
 								<span className="sr-only">{sheet.counts} </span>
@@ -148,7 +147,6 @@ export function ReadingPane({
 									<MessageRow
 										key={m.id || `m-${mi}`}
 										message={m}
-										spaceId={spaceId}
 										index={mi}
 										echo={mi === echo}
 										teachSeam={teachSeam(shown, phases, mi)}
@@ -175,7 +173,7 @@ export function ReadingPane({
 							)}
 							{newest && !shownDesk && foot}
 						</div>
-					</Pane>
+					</section>
 				);
 			})}
 		</div>
@@ -189,9 +187,8 @@ function teachSeam(messages: readonly LhViewMessage[], phases: readonly Phase3[]
 	return messages[index]!.role === "assistant" && index > 0 && phases[index] === "teach" && phases[index - 1] !== "teach";
 }
 
-/** The step's number on a tab at the sheet's left edge, in the margin beside its first line. */
-const STEP_TAB =
-	"absolute left-0 top-10 grid h-8 w-10 place-items-center font-count text-[20px] leading-none text-on-space @max-[640px]/column:top-7 @max-[640px]/column:h-6 @max-[640px]/column:w-[22px] @max-[640px]/column:text-[15px]";
+/** The step's number on a block of the space's color, over the step's first line. */
+const STEP_TAB = "grid h-7 w-9 shrink-0 place-items-center self-start font-count text-[18px] leading-none text-on-space";
 
 /** While the turn waits for an agent: the key that turns the teacher on, when none is here and
  *  godspeed is not starting one by itself, and the teacher's panel does not show its own. */

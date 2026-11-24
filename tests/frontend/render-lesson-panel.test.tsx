@@ -106,6 +106,7 @@ type TurnProps = React.ComponentProps<typeof YourTurn>;
 
 function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 	return {
+		pale: "var(--color-tone)",
 		pending: null,
 		onSaveQuestionDraft: () => {},
 		onSubmitAnswer: () => {},
@@ -1023,7 +1024,7 @@ describe("the turn sheet", () => {
 
 describe("the lesson page's pair", () => {
 	const page = (turn: React.ReactNode | null, reading: React.ReactNode | null = <div data-testid="lesson-reading" />, open = true, place: TurnPlace = "beside") =>
-		renderToStaticMarkup(<LessonScroll steps={null} restKey="" busy={false} contextRef={{ current: null }} reading={reading} turn={turn} open={open} shutting={false} onShut={() => {}} onRest={() => {}} slim place={place} onPlace={() => {}} />);
+		renderToStaticMarkup(<LessonScroll steps={null} restKey="" busy={false} contextRef={{ current: null }} reading={reading} turn={turn} open={open} shutting={false} onShut={() => {}} onRest={() => {}} pin={false} place={place} onPlace={() => {}} />);
 
 	it("draws Your turn alone, in the middle at its width in the pair, while the lesson text draws nothing", () => {
 		const alone = page(<aside data-testid="turn-sheet" />, null);

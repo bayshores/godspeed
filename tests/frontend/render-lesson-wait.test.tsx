@@ -205,7 +205,7 @@ describe("whether the lesson text draws anything", () => {
 
 	it("nothing for the space's card, the title, a go-ahead and the open problem", () => {
 		assert.equal(shows([card(1), first, ...goAhead, teacher(problem)], "p1"), false);
-		const row = goAhead.map((m, i) => <MessageRow key={i} message={m} spaceId={undefined} index={i} echo={false} teachSeam={false} streamingLast={false} hiddenCalls={null} pageMarks={new Map()} arrive={() => undefined} />);
+		const row = goAhead.map((m, i) => <MessageRow key={i} message={m} index={i} echo={false} teachSeam={false} streamingLast={false} hiddenCalls={null} pageMarks={new Map()} arrive={() => undefined} />);
 		assert.equal(renderToStaticMarkup(<>{row}</>), '<div data-testid="go-ahead-mark" class="-mb-4"></div>', "a go-ahead's row is an empty mark");
 	});
 

@@ -1,4 +1,5 @@
-import { useContext, useRef, useState, type RefObject } from "react";
+import { useContext, useRef, useState, type CSSProperties, type Ref, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { answeredKindLabel } from "@/frontend/components/answered-card-model";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
@@ -15,7 +16,7 @@ import { OpenProblemPane, type ProblemPicks } from "./open-problem-pane";
 import { ProblemFile, type ProblemFileRef } from "./problem-file";
 import { problemFolded } from "./turn-fold-model";
 import { TurnScroll } from "./turn-scroll";
-import { TurnPlaceContext } from "./turn-place";
+import { TurnPlaceContext, TurnSlotsContext } from "./turn-place";
 import { TurnSwap } from "./turn-swap";
 import { AnsweredTurn } from "./answered-turn";
 import type { NextAction, TurnShown } from "./turn-next-model";
@@ -73,9 +74,13 @@ export interface YourTurnProps {
 	onAnswerAsk: (topicId: string, reply: { words: string } | { skip: true }) => void;
 	/** Why the last answer to the ask was refused. */
 	askError: string | null;
+	/** The lesson page's glide (useSheetGlide), for the task. */
+	sheetRef?: Ref<HTMLElement>;
+	/** The space's pale color, for what is picked. */
+	pale: string;
 }
 
-const HELP_KEY = "lh-btn lh-btn-small";
+const HELP_KEY = "lh-btn lh-btn-small lh-btn-quiet";
 const NO_SWITCHES: Readonly<Record<string, boolean>> = {};
 
 const EXIT: Record<NonNullable<BoxView["exit"]>, { label: string; testId: string }> = {
@@ -84,26 +89,24 @@ const EXIT: Record<NonNullable<BoxView["exit"]>, { label: string; testId: string
 };
 
 /**
- * YOUR TURN, the sheet beside the lesson's text (or under it), there for the
- * whole lesson once it has started (turnDrawn). Above its box it holds one of:
+ * THE LEARNER'S TURN, there for the whole lesson once it has started
+ * (turnDrawn), in two parts the lesson page places (LessonScroll).
+ *
+ * The task holds one of:
  * - a waiting question (QuestionDock);
  * - the open problem;
  * - the task the learner last finished, dimmed and not pressable (the
- *   question with his answer, AnsweredTurn, or the problem as it stood),
- *   with what is next and its key under it, over the box;
- * - the next state: what is next and the one key that goes on (turnNext),
- *   or, while the teacher writes, the last next line, dimmed (turnShown);
- * Its title is the problem's number when one is open ("Problem 3"), with the
- * way out of that state at the title row's end. The box at its foot is
- * there in every state and stays still while the rest swaps: the learner
- * answers in it, works in it and asks the teacher in it (lessonBox). Under
- * it one row of keys sends a line in one click: "Stuck?" with a question
- * or a problem waiting, "Try asking" with nothing waiting. Beside the lesson text
- * only the question or problem shrinks to fit the window, scrolling in its
- * own box (LessonScroll). Under the text, pinned at the window's foot or in the page
- * (TurnPlaceContext), it is only as tall as what the learner can do now: with
- * nothing to answer it has no title and the key that goes on ends the foot
- * row's keys, and while the teacher works it is the box alone.
+ *   question with his answer, AnsweredTurn, or the problem as it stood);
+ * - the line that says what is next (turnNext), dimmed while the teacher
+ *   writes (turnShown), and the lesson's notes at its end.
+ * A small tag names what waits ("Quiz", "Problem 3"), with the task's own
+ * keys at the row's end. With nothing to show it takes no room.
+ *
+ * The writing row is there in every state and stays still while the task
+ * swaps: the learner answers in it, works in it and asks the teacher in it
+ * (lessonBox), and the key that goes on ends its keys. Over it one row of
+ * keys sends a line in one click: "Stuck?" with a question or a problem
+ * waiting, "Try asking" with nothing waiting.
  */
 export function YourTurn({
 	pending,
@@ -132,6 +135,8 @@ export function YourTurn({
 	error,
 	onAnswerAsk,
 	askError,
+	sheetRef,
+	pale,
 }: YourTurnProps) {
 	// Whether the question above the box has an answer picked.
 	const [picked, setPicked] = useState(false);
@@ -184,147 +189,134 @@ export function YourTurn({
 	const fileShown = pending ? null : (problem?.file ?? null);
 	const onExit = view.exit === "skip" ? onSkipQuestion : onDiscardProblem;
 	const fromEarlier = pending?.appPosed?.kind === "review";
-	// The title says what waits, in the word its answered card will carry.
 	const keptProblem = kept?.kind === "problem" ? kept : null;
 	const keptTitle = kept?.kind === "question" ? answeredKindLabel(kept.answer) : keptProblem?.line;
-	const title = ask
-		? "My words"
-		: fromEarlier
-			? "From earlier"
-			: pending
-				? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type))
-				: (problem?.line ?? keptTitle ?? "Your turn");
 
 	const mode = pending ? "question" : problem ? "practice" : kept ? "kept" : "next";
-	// Under the text with nothing to answer: no title, the next key ends the foot row, and only a line saying what is next stands over the box.
 	const place = useContext(TurnPlaceContext);
-	const quiet = (place === "pinned" || place === "under") && !pending && !problem && !ask;
-	const boxAlone = quiet && (busy || !next?.next.line);
-	// Pinned, a long problem folds so the text keeps its window. One with answers to click stays whole, as a question does.
+	const slots = useContext(TurnSlotsContext);
+	// The tag says what waits, in the word its answered card will carry. With nothing asked there is none.
+	const tag = ask ? "My words" : fromEarlier ? "From earlier" : pending ? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type)) : (problem?.line ?? keptTitle ?? null);
+	// An open problem pinned over the text folds so the text keeps its window. One with answers to click stays whole, as a question does.
 	const folds = place === "pinned" && !pending && problem !== null && !problem.choices;
 	const folded = folds ? problemFolded(problem.sent, wholeChoice?.of === problem.toolCallId ? wholeChoice.whole : null) : undefined;
-	// With a "My words" ask, the key that ends the day sits in the box beside Skip and Save.
-	const rowKey = ask === null && !quiet;
-	// On the title's row, set right, where there is a title, so the sheet needs no row of its own for it.
 	const saved = notes && <NotesSaved notes={notes} />;
 	const shownProblem = problem ?? keptProblem;
 	// The part that was open when the problem closed stays open, so the kept problem holds its height.
 	const partRef = useRef<{ of: string; part: string | null } | null>(null);
 	if (problem) partRef.current = { of: problem.toolCallId, part: problem.part };
 	const shownPart = shownProblem && partRef.current?.of === shownProblem.toolCallId ? partRef.current.part : null;
-	const nextButton = nextKey && (
-		<button type="button" data-testid="next-problem-button" data-action={nextKey.action} onClick={() => onNext(nextKey.action)} className="lh-btn lh-btn-main ml-auto shrink-0">
-			{nextKey.label}
-		</button>
-	);
+	const pieceShown = !pending && problem?.piece && pieceFailed !== problem.toolCallId;
+	const nextLine = next?.next.line ?? null;
+	// With nothing asked, no line to say and no notes, the task takes no room.
+	const empty = !pending && !shownProblem && !kept && !nextLine && !notes && !reviewRefused;
 
-	const nextRow = next && (next.next.line || (nextKey && rowKey)) && (
-		<div data-testid="turn-next" className="flex flex-wrap items-center gap-x-4 gap-y-2">
-			{next.next.line && (
-				<p data-testid="turn-next-line" className={cn("text-[18px] leading-[28px]", next.dim ? "text-ink-2" : "text-ink")}>
-					{next.next.line}
-				</p>
-			)}
-			{rowKey && nextButton}
-		</div>
+	const nextRow = nextLine && (
+		<p data-testid="turn-next-line" className={cn("font-prose text-[18px] leading-[28px]", next?.dim ? "text-ink-2" : "text-ink")}>
+			{nextLine}
+		</p>
 	);
+	const stand = slots.closing ? "lh-fade" : slots.stepIn && "lh-block-in";
+	const stood = { "data-state": slots.closing ? "closed" : "open", inert: slots.closing, style: { "--lh-block-delay": "240ms", "--lh-pale": pale } as CSSProperties };
 
-	return (
-		// The lesson text's inset, so both sheets share their edges.
-		<div data-testid="your-turn" data-mode={mode} className={cn("lh-reading flex min-h-0 flex-1 flex-col gap-7", quiet && "lh-turn-quiet")}>
-			{/* Moved between the page and the window's foot, it holds at once what it holds there. */}
-			<TurnSwap key={place === "pinned" || place === "under" ? "foot" : "page"} swapKey={boxAlone ? "box" : swapKey}>
-			{boxAlone ? null : (
-			<>
-			{!quiet && (
-			<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-				<h2 className="text-[28px] leading-tight text-ink">{title}</h2>
-				{saved && <div className="ml-auto">{saved}</div>}
-				{/* The keys stay on the title's line while they fit: a file's name shortens before a key drops under the title. */}
-				<div data-testid="turn-keys" className={cn("flex flex-1 basis-0 items-center justify-end gap-x-2 empty:hidden", fileShown ? "min-w-[min(100%,19rem)]" : "min-w-fit")}>
-					{folds && long && (
-						<button type="button" data-testid="turn-whole" aria-expanded={!folded} onClick={() => setWholeChoice({ of: problem.toolCallId, whole: folded === true })} className="lh-btn lh-btn-small lh-btn-quiet">
-							{folded ? "Whole problem" : "Less"}
-						</button>
+	const task = (
+		<aside ref={sheetRef} data-testid="turn-sheet" aria-label="Your turn" {...stood} className={cn("lh-turn-task flex min-h-0 min-w-0 flex-col", stand, empty && "hidden")}>
+			<div data-testid="your-turn" data-mode={mode} className="flex min-h-0 flex-1 flex-col gap-5">
+				<TurnSwap key={place === "pinned" || place === "under" ? "column" : "page"} swapKey={empty ? "none" : swapKey}>
+					{empty ? null : (
+						<>
+							{(tag || saved || (folds && long) || fileShown || pieceShown || exit) && (
+								<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+									{tag && <h2 className="lh-kind">{tag}</h2>}
+									{saved && <div className="ml-auto">{saved}</div>}
+									{/* The keys stay on the tag's line while they fit: a file's name shortens before a key drops under it. */}
+									<div data-testid="turn-keys" className={cn("flex flex-1 basis-0 items-center justify-end gap-x-2 empty:hidden", fileShown ? "min-w-[min(100%,19rem)]" : "min-w-fit")}>
+										{folds && long && (
+											<button type="button" data-testid="turn-whole" aria-expanded={!folded} onClick={() => setWholeChoice({ of: problem.toolCallId, whole: folded === true })} className="lh-btn lh-btn-small lh-btn-quiet">
+												{folded ? "Whole problem" : "Less"}
+											</button>
+										)}
+										{fileShown && <ProblemFile file={fileShown} />}
+										{pieceShown && (
+											<button type="button" data-testid="piece-printed" aria-pressed={printed} onClick={() => setPrinted((on) => !on)} className={cn("lh-btn lh-btn-small", printed ? "lh-btn-main" : "lh-btn-quiet")}>
+												As printed
+											</button>
+										)}
+										{exit && (
+											<button type="button" data-testid={exit.testId} onClick={onExit} className="lh-btn lh-btn-small lh-btn-quiet">
+												{exit.label}
+											</button>
+										)}
+									</div>
+								</div>
+							)}
+
+							{reviewRefused && (
+								<p data-testid="review-refused" className="text-base text-ink-2">
+									That question is no longer due, so nothing was saved.
+								</p>
+							)}
+
+							<TurnScroll folded={folded} onLong={setLong}>
+								{pending && (
+									<QuestionDock
+										ref={questionRef}
+										toolName={pending.tool as QuestionDockProps["toolName"]}
+										toolCallId={pending.toolCallId}
+										input={pending.input}
+										onSubmit={onSubmitAnswer}
+										initialDraft={initialQuestionDraft}
+										onSaveDraft={onSaveQuestionDraft}
+										onReady={setPicked}
+										boxText={value}
+										onLeaveRows={() => boxRef.current?.focus()}
+										busy={busy && !fromEarlier}
+									/>
+								)}
+								{/* One element while the problem is open and after it closes, so its page is not drawn anew. */}
+								{!pending && shownProblem && (
+									<div data-testid={keptProblem ? "kept-problem" : undefined} inert={keptProblem !== null} className={cn("flex flex-col gap-7", keptProblem && "opacity-60")}>
+										<OpenProblemPane statement={shownProblem.statement} piece={shownProblem.piece} printed={printed} onPieceFail={() => setPieceFailed(shownProblem.toolCallId)} part={shownPart} picks={problem ? picks : null} />
+										{keptProblem?.discarded && (
+											<p data-testid="kept-problem-discarded" className="text-[18px] leading-[28px]">
+												Discarded
+											</p>
+										)}
+									</div>
+								)}
+								{kept?.kind === "question" && <AnsweredTurn answer={kept.answer} />}
+								{!kept && nextRow}
+								{notes && <EndNotes notes={notes} />}
+							</TurnScroll>
+							{/* Under a kept task the line stays in sight however long the task is. */}
+							{kept && nextRow}
+						</>
 					)}
-					{fileShown && <ProblemFile file={fileShown} />}
-					{!pending && problem?.piece && pieceFailed !== problem.toolCallId && (
-						<button type="button" data-testid="piece-printed" aria-pressed={printed} onClick={() => setPrinted((on) => !on)} className={cn("lh-btn lh-btn-small", printed ? "lh-btn-main" : "lh-btn-quiet")}>
-							As printed
-						</button>
-					)}
-					{exit && (
-						<button type="button" data-testid={exit.testId} onClick={onExit} className="lh-btn lh-btn-small lh-btn-quiet">
-							{exit.label}
-						</button>
-					)}
-				</div>
+				</TurnSwap>
 			</div>
-			)}
+		</aside>
+	);
 
-			{reviewRefused && (
-				<p data-testid="review-refused" className="text-base text-ink-2">
-					That question is no longer due, so nothing was saved.
-				</p>
-			)}
-
-			<TurnScroll folded={folded} onLong={setLong}>
-				{pending && (
-					<QuestionDock
-						ref={questionRef}
-						toolName={pending.tool as QuestionDockProps["toolName"]}
-						toolCallId={pending.toolCallId}
-						input={pending.input}
-						onSubmit={onSubmitAnswer}
-						initialDraft={initialQuestionDraft}
-						onSaveDraft={onSaveQuestionDraft}
-						onReady={setPicked}
-						boxText={value}
-						onLeaveRows={() => boxRef.current?.focus()}
-						busy={busy && !fromEarlier}
-					/>
-				)}
-				{/* One element while the problem is open and after it closes, so its page is not drawn anew. */}
-				{!pending && shownProblem && (
-					<div data-testid={keptProblem ? "kept-problem" : undefined} inert={keptProblem !== null} className={cn("flex flex-col gap-7", keptProblem && "opacity-60")}>
-						<OpenProblemPane statement={shownProblem.statement} piece={shownProblem.piece} printed={printed} onPieceFail={() => setPieceFailed(shownProblem.toolCallId)} part={shownPart} picks={problem ? picks : null} />
-						{keptProblem?.discarded && (
-							<p data-testid="kept-problem-discarded" className="text-[18px] leading-[28px]">
-								Discarded
-							</p>
-						)}
-					</div>
-				)}
-				{kept?.kind === "question" && <AnsweredTurn answer={kept.answer} />}
-				{!kept && nextRow}
-				{notes && <EndNotes notes={notes} />}
-			</TurnScroll>
-			{/* Under a kept task the key stays in sight however long the task is. */}
-			{kept && nextRow}
-			{quiet && saved}
-			</>
-			)}
-			</TurnSwap>
-
+	const row = (
+		<div data-testid="turn-row" {...stood} className={cn("lh-turn-row flex min-w-0 shrink-0 flex-col gap-3", stand)}>
 			{stuck && (
-				<div data-testid="turn-stuck" className="flex flex-col items-start gap-2.5 bg-highlight px-3.5 py-3 text-base text-ink">
+				<div data-testid="turn-stuck" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 bg-highlight px-4 py-3 text-base text-ink">
 					{teacher} took this {stuck.minutes} minutes ago and hasn't answered.
-					<button type="button" data-testid="turn-stuck-stop" onClick={stuck.onStop} className="lh-btn">
+					<button type="button" data-testid="turn-stuck-stop" onClick={stuck.onStop} className="lh-btn lh-btn-small shrink-0">
 						{stuck.label}
 					</button>
 				</div>
 			)}
 			{error && (
-				<div className="flex flex-col items-start gap-2.5 lh-sheet px-3.5 py-3 text-base">
+				<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well px-4 py-3 text-base">
 					<span data-testid="lesson-error" title={error.detail} className="text-ans-wrong">
 						{error.text}
 					</span>
-					<button type="button" data-testid="lesson-error-retry" onClick={error.onRetry} className="lh-btn">
+					<button type="button" data-testid="lesson-error-retry" onClick={error.onRetry} className="lh-btn lh-btn-main lh-btn-small shrink-0">
 						Try again
 					</button>
 				</div>
 			)}
-
 			{askError && (
 				<p role="alert" data-testid="notes-ask-error" className="text-[15px] text-ans-wrong">
 					{askError}
@@ -335,28 +327,56 @@ export function YourTurn({
 					Shorten it by {over} characters.
 				</p>
 			)}
-			<LessonBox view={view} value={value} onChange={onChange} onAct={act} onFocus={() => questionRef.current?.fold()} attachments={attachments} boxRef={boxRef} />
-			{(view.help || (turn.kind === "ask" && !(quiet && busy))) && (
-				// Keys that wrap line up under the first key, not under the label. The next key, no line of theirs, ends their last row.
+			{(view.help || (turn.kind === "ask" && !busy)) && (
+				// Keys that wrap line up under the first key, not under the label.
 				<div data-testid="turn-foot" className="flex items-baseline gap-2.5">
 					<span className="mr-1 shrink-0 text-base text-ink-2">{view.help ? "Stuck?" : "Try asking"}</span>
 					<div className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
-						<div className="contents">
-							{view.help ? (
-								<HelpKeys help={view.help} questionRef={questionRef} onHelpLine={onHelpLine} />
-							) : (
-								ideas.map((line) => (
-									<button key={line} type="button" data-testid="lesson-idea" onClick={() => onHelpLine(line)} className={HELP_KEY}>
-										{line}
-									</button>
-								))
-							)}
-						</div>
-						{quiet && nextButton}
+						{view.help ? (
+							<HelpKeys help={view.help} questionRef={questionRef} onHelpLine={onHelpLine} />
+						) : (
+							ideas.map((line) => (
+								<button key={line} type="button" data-testid="lesson-idea" onClick={() => onHelpLine(line)} className={HELP_KEY}>
+									{line}
+								</button>
+							))
+						)}
 					</div>
 				</div>
 			)}
+			<LessonBox
+				view={view}
+				value={value}
+				onChange={onChange}
+				onAct={act}
+				onFocus={() => questionRef.current?.fold()}
+				attachments={attachments}
+				boxRef={boxRef}
+				// With a "My words" ask, the key that ends the day sits among the box's own keys.
+				end={
+					nextKey &&
+					ask === null && (
+						<button type="button" data-testid="next-problem-button" data-action={nextKey.action} onClick={() => onNext(nextKey.action)} className="lh-btn lh-btn-main shrink-0">
+							{nextKey.label}
+						</button>
+					)
+				}
+			/>
 		</div>
+	);
+
+	if (slots.task && slots.row)
+		return (
+			<>
+				{createPortal(task, slots.task)}
+				{createPortal(row, slots.row)}
+			</>
+		);
+	return (
+		<>
+			{task}
+			{row}
+		</>
 	);
 }
 

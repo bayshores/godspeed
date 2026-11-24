@@ -795,39 +795,11 @@ body {
 	}
 }
 
-/* The lesson's window (LessonScroll's scroller): it begins a gap under the step line and ends a
-   gap above the window's foot, and a sheet it cuts keeps its stepped corners at both edges, as
-   a whole sheet has them. The corners are cut at the column's sides, and side by side at the
-   lesson text's sides only, since "Your turn" fits the window whole. */
+/* The lesson's window (LessonScroll's scroller): text that scrolls past its top or foot dissolves,
+   so no edge cuts a line through its letters. The page's own padding is as tall as the fade, so
+   at rest nothing is faded. */
 .lh-lesson-window {
-	--lh-col: min(var(--lh-pair), 872px);
-	--lh-cut-l: calc((100cqw - var(--lh-col)) / 2);
-	--lh-cut-r: calc(var(--lh-cut-l) + var(--lh-col));
-	--lh-px: linear-gradient(#000, #000);
-	mask:
-		var(--lh-px) left var(--lh-cut-l) top 0 / 8px 4px no-repeat,
-		var(--lh-px) left var(--lh-cut-l) top 4px / 4px 4px no-repeat,
-		var(--lh-px) left calc(var(--lh-cut-r) - 8px) top 0 / 8px 4px no-repeat,
-		var(--lh-px) left calc(var(--lh-cut-r) - 4px) top 4px / 4px 4px no-repeat,
-		var(--lh-px) left var(--lh-cut-l) bottom 0 / 8px 4px no-repeat,
-		var(--lh-px) left var(--lh-cut-l) bottom 4px / 4px 4px no-repeat,
-		var(--lh-px) left calc(var(--lh-cut-r) - 8px) bottom 0 / 8px 4px no-repeat,
-		var(--lh-px) left calc(var(--lh-cut-r) - 4px) bottom 4px / 4px 4px no-repeat,
-		var(--lh-px) 0 0 / 100% 100% no-repeat;
-	mask-composite: exclude;
-}
-@container room (width >= 1280px) {
-	.lh-lesson-window.lh-lesson-closed {
-		--lh-col: var(--lh-text);
-	}
-	.lh-lesson-window.lh-lesson-pair {
-		--lh-col: var(--lh-pair);
-		--lh-cut-r: calc(var(--lh-cut-l) + var(--lh-pair) - var(--lh-gap) - var(--lh-turn));
-	}
-	/* "Your turn" alone fits the window whole, so nothing is cut. */
-	.lh-lesson-window.lh-lesson-alone {
-		mask: none;
-	}
+	mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 24px), transparent);
 }
 
 /* The lesson text and "Your turn" side by side (LessonScroll), measured on the page's room:
@@ -872,78 +844,60 @@ body {
 		margin-inline: auto;
 	}
 	.lh-lesson-closed:not(.lh-lesson-pinned) .lh-lesson-column {
-		min-height: calc(100cqh - var(--lh-page-end));
+		min-height: calc(100cqh - 48px);
 	}
 	.lh-lesson-closed:not(.lh-lesson-pinned) :is(.lh-text-sheets, .lh-text-fit) {
 		flex: 1 1 auto;
 		min-height: 0;
 	}
 }
-/* In one column the lesson text's newest sheet fills what is left of its window as well, so a short lesson, or one
-   whose first reply is still written, shows no bare page under it. In a room high enough
-   (PIN_ROOM in LessonScroll) "Your turn" is pinned under
-   that window (.lh-turn-foot) and closer set, so the text keeps more of the room. A question is
-   shown whole before the text is: the text keeps a few lines, and only past that does the
-   question or problem scroll in its own box. */
+/* In one column the lesson text fills what is left of its window, so a question under a short
+   text stands just over the writing row. */
 @container room (width < 1280px) {
 	.lh-lesson-column:has(> .lh-text-sheets) {
-		min-height: calc(100cqh - var(--lh-page-end));
-	}
-	.lh-lesson-pinned .lh-lesson-column:has(> .lh-text-sheets) {
-		min-height: 100cqh;
+		min-height: calc(100cqh - 48px);
 	}
 	.lh-text-sheets,
 	.lh-text-fit {
 		flex: 1 1 auto;
 	}
 }
-.lh-turn-foot .lh-turn-fit {
-	display: flex;
-	flex-direction: column;
-	min-height: 0;
+/* The turn's task (YourTurn). In the page under the text it keeps a step's distance from it. As the
+   right page of the open book it takes the room over the writing row, which rests at the page's
+   foot; with no task the row rests there alone. */
+.lh-lesson-column > .lh-turn-fit .lh-turn-task {
+	padding-top: 40px;
 }
-/* Pinned, the sheet is as tall as what it holds and only gets lower to fit. */
-.lh-turn-foot [data-testid="turn-sheet"],
-.lh-turn-foot [data-testid="turn-sheet"] > .lh-sheet,
-.lh-turn-foot .lh-reading {
+@container room (width >= 1280px) {
+	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit {
+		justify-content: flex-end;
+		gap: 20px;
+		padding-block: 24px;
+	}
+	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit .lh-turn-task {
+		flex: 1 1 auto;
+		padding-top: 0;
+	}
+}
+/* An open problem pinned over the text in one column: as tall as what it holds, up to three
+   fifths of the room under the step line, where its problem scrolls in its own box. */
+.lh-turn-top {
+	max-height: 60%;
+}
+.lh-turn-top .lh-turn-task {
 	flex: 0 1 auto;
 }
-.lh-turn-foot .lh-turn-scroll {
+.lh-turn-top .lh-turn-scroll {
 	flex: 1 1 auto;
 	overflow-y: auto;
 }
-/* Of the room under the step line; the text's window keeps 88 points between its two gaps. */
-.lh-turn-foot {
-	max-height: calc(100% - 136px);
-}
-.lh-turn-foot .lh-reading {
-	padding-block: 28px;
-}
-/* Under one column the pinned sheet has the text's sides (.lh-reading), so their edges line up. */
-@container room (width < 1280px) {
-	@container foot (width < 640px) {
-		.lh-turn-foot .lh-reading {
-			padding-inline: var(--lh-reading-inset-narrow);
-		}
-	}
-}
-.lh-turn-foot .lh-reading,
-.lh-turn-foot [data-testid="turn-swap"] {
-	gap: 20px;
-}
-
-/* A reading surface: the lesson text's sheet and "Your turn". */
-.lh-reading {
-	padding: 40px var(--lh-reading-inset);
-}
-@container column (width < 640px) {
-	.lh-reading {
-		padding: 28px var(--lh-reading-inset-narrow) 32px;
-	}
-}
-/* "Your turn" under the text with nothing to answer: a low sheet, so the lesson text keeps the window. */
-.lh-reading.lh-turn-quiet {
-	padding-block: 20px;
+/* The tag that names what waits: a question's kind, a problem's number. */
+.lh-kind {
+	background: var(--color-highlight);
+	padding: 2px 8px;
+	font-size: 15px;
+	line-height: 1.4;
+	color: var(--color-ink);
 }
 
 /* The answer box is as tall as its text, up to five lines, then scrolls. One line is as tall

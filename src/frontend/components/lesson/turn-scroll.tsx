@@ -9,19 +9,19 @@ const CUT = {
 	both: "[mask-image:linear-gradient(to_bottom,transparent,black_24px,black_calc(100%-24px),transparent)]",
 };
 
-/** The height the problem gets folded in the pinned "Your turn" (foldRoom), read from the page: the room under the step
- *  line, less the sheet's other parts and the three gaps around the text's window and under the sheet. */
+/** The height the problem gets folded, pinned over the text (foldRoom), read from the page: the room under the step
+ *  line, less the task's other parts, the pin's own padding and the writing row. */
 function roomFolded(el: HTMLElement): number | null {
-	const foot = el.closest<HTMLElement>(".lh-turn-foot");
-	const sheet = el.closest<HTMLElement>(".lh-reading");
-	if (!foot?.parentElement || !sheet) return null;
-	const gap = parseFloat(getComputedStyle(foot).paddingBottom) || 0;
-	return foldRoom(foot.parentElement.clientHeight, sheet.offsetHeight - el.offsetHeight + 3 * gap);
+	const top = el.closest<HTMLElement>(".lh-turn-top");
+	const task = el.closest<HTMLElement>(".lh-turn-task");
+	if (!top?.parentElement || !task) return null;
+	const row = top.parentElement.querySelector<HTMLElement>(":scope > .lh-turn-foot");
+	return foldRoom(top.parentElement.clientHeight, top.offsetHeight - el.offsetHeight + (row?.offsetHeight ?? 0));
 }
 
 /**
- * The question or problem in "Your turn": beside the lesson text it is the
- * one part that shrinks to fit the window and scrolls in its own box
+ * The question or problem in the turn's task: beside the lesson text, or
+ * pinned over it, it is the one part that shrinks to fit and scrolls in its own box
  * (.lh-turn-scroll). An end that cuts content off fades, as the tab strip's
  * does, so a long problem never looks finished where the box ends. A problem
  * that can fold (`folded` given) is cut to its folded height while folded,
@@ -47,9 +47,9 @@ export function TurnScroll({ className, folded, onLong, children }: { className?
 		el.addEventListener("scroll", measure, { passive: true });
 		const resized = new ResizeObserver(measure);
 		resized.observe(el);
-		// The folded height follows the room and the sheet's other parts, which change while the cut box holds its size.
-		const sheet = folds ? el.closest(".lh-reading") : null;
-		const room = folds ? el.closest(".lh-turn-foot")?.parentElement : null;
+		// The folded height follows the room and the task's other parts, which change while the cut box holds its size.
+		const sheet = folds ? el.closest(".lh-turn-task") : null;
+		const room = folds ? el.closest(".lh-turn-top")?.parentElement : null;
 		if (sheet) resized.observe(sheet);
 		if (room) resized.observe(room);
 		// A part that opens or math that draws late changes the height inside, not the box's.
@@ -61,7 +61,7 @@ export function TurnScroll({ className, folded, onLong, children }: { className?
 			changed.disconnect();
 		};
 	}, [folds, onLong]);
-	// Folding changes the sheet's height at once: its glide starts from here, before the frame is drawn.
+	// Folding changes the task's height at once: its glide starts from here, before the frame is drawn.
 	const wasFolded = useRef(folded);
 	useLayoutEffect(() => {
 		if (wasFolded.current !== folded && ref.current) glideSheetAround(ref.current);
