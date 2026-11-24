@@ -1,4 +1,4 @@
-//! Parity with the TypeScript visual maker and demo builder (tests/golden/subagents.json, recorded from the Node server): each case's `config` (a model script and the
+//! Parity with the TypeScript demo builder (tests/golden/subagents.json, recorded from the Node server): each case's `config` (a model script and the
 //! stand-in headless engine's answers) is replayed on the Rust loops, which must give the same
 //! result, show the model the same tool answers and messages, and write the same activity lines.
 
@@ -9,7 +9,6 @@ use futures_util::future::BoxFuture;
 use gs_agent::subagents::demo_builder::run_demo_builder;
 use gs_agent::subagents::headless::{DemoRunResult, HeadlessApi};
 use gs_agent::subagents::pi_run::JobAgentOptions;
-use gs_agent::subagents::visual_maker::run_visual_maker;
 use gs_base::events::Events;
 use gs_core::records::agent_seen::{SeenMark, SeenStore};
 use gs_engine::bridge::Bridge;
@@ -29,7 +28,7 @@ impl SeenStore for NoMarks {
 	fn forget_agent(&self, _agent: &str) {}
 }
 
-/// The golden's stand-in: renders fail for SVGs with "broken" in them, demo runs answer in turn.
+/// The golden's stand-in: demo runs answer in turn.
 struct Stand {
 	unavailable: Option<String>,
 	demo: Vec<Json>,
@@ -65,8 +64,8 @@ impl HeadlessApi for Stand {
 			})
 		})
 	}
-	fn render_svg<'a>(&'a self, svg: &'a str) -> BoxFuture<'a, Result<Vec<u8>, String>> {
-		Box::pin(async move { if svg.contains("broken") { Err("bad svg".to_owned()) } else { Ok(b"png".to_vec()) } })
+	fn render_svg<'a>(&'a self, _svg: &'a str) -> BoxFuture<'a, Result<Vec<u8>, String>> {
+		Box::pin(async { Ok(b"png".to_vec()) })
 	}
 	fn render_pdf_pages<'a>(&'a self, _pdf_path: &'a Path, _pages: &'a [i64], _dpi: Option<f64>) -> BoxFuture<'a, Result<Vec<RenderedPdfPage>, String>> {
 		Box::pin(async { Ok(Vec::new()) })
@@ -128,10 +127,7 @@ async fn the_loops_match_the_typescript() {
 			})),
 		};
 		let brief = config["brief"].as_str().unwrap();
-		let result = match config["kind"].as_str().unwrap() {
-			"visual" => run_visual_maker(brief, &opts).await,
-			_ => run_demo_builder(config["title"].str_or_empty(), brief, &opts).await,
-		};
+		let result = run_demo_builder(config["title"].str_or_empty(), brief, &opts).await;
 		assert_eq!(result, want["result"], "{name}: result");
 		assert_eq!(shown(&last.lock()), want["shown"], "{name}: what the model was shown");
 		let activity = Json::Arr(activity.lock().iter().map(|l| Json::from(l.as_str())).collect());

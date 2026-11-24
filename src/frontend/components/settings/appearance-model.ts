@@ -118,9 +118,24 @@ function surfacesOf(background: string) {
 	};
 }
 
+/** The surfaces and text of a resolved appearance. */
+function surfacesFor(a: EffectiveAppearance) {
+	return surfacesOf(a.background === null ? GRAPHITE : readableBackground(a.background));
+}
+
 /** The body text color of a resolved appearance: what `--lh-ink-body` is on the page. */
 export function bodyInkOf(a: EffectiveAppearance): string {
-	return surfacesOf(a.background === null ? GRAPHITE : readableBackground(a.background)).body;
+	return surfacesFor(a).body;
+}
+
+/** The one color a teacher's figure points with, before it is made readable on the sheet. */
+const FIGURE_ACCENT = "#6f8da6";
+
+/** What a teacher's figure is drawn in, in the order of `FIGURE_COLORS`: the text's ink, the
+ *  quiet ink, the accent, and the sheet the lesson's text lies on. */
+export function figureInksOf(a: EffectiveAppearance): string[] {
+	const s = surfacesFor(a);
+	return [s.fg, s.quiet, readableAccent(FIGURE_ACCENT, s.sheet), s.sheet];
 }
 
 /** The palette a background implies. Text must read on the background and

@@ -1,4 +1,4 @@
-//! The background job tools: research, demo, visual and pdf.
+//! The background job tools: research, demo and pdf.
 //! Each call creates the job record, starts the runner and answers at once; the result arrives
 //! later as a steer message that wakes the teacher.
 
@@ -83,29 +83,6 @@ pub fn demo_tool(ctx: &JobToolContext) -> FnTool {
 			],
 		),
 		format!("{FIRE_AND_FORGET}The tested demo arrives as a new message when ready and is rendered in the lesson; teach with it then."),
-	)
-}
-
-pub fn visual_tool(ctx: &JobToolContext) -> FnTool {
-	job_tool(
-		ctx,
-		"visual",
-		"Dispatch a background sub-agent that hand-authors ONE precise SVG figure, renders it, LOOKS at the render, and iterates \
-		until correct. Use it for exact spatial pictures auto-layout diagrams can't do: coordinate geometry, number lines, vectors, \
-		function plots, physical layouts. For flows/relations/taxonomies write mermaid inline instead. \
-		The call is ASYNC and fire-and-forget \u{2014} it resolves immediately and your turn continues; the verified figure arrives later \
-		as a new message.",
-		object(
-			&["brief"],
-			vec![(
-				"brief",
-				string(
-					"Precise brief for ONE static figure: exactly what it must show \u{2014} coordinates, labels, proportions, orientation. \
-					The maker sees NOTHING else of the lesson; a wrong or vague brief produces a wrong figure.",
-				),
-			)],
-		),
-		format!("{FIRE_AND_FORGET}The verified figure arrives as a new message when ready and is rendered in the lesson; reference it then."),
 	)
 }
 

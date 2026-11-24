@@ -65,6 +65,18 @@ const BACKEND_FACTS = [
 	["Status codes", "A 4xx status means the request was wrong; a 5xx status means the server failed."],
 	["Idempotent methods", "Sending a PUT or DELETE twice leaves the server as sending it once does."],
 ];
+/** The figure under the method the second homework lesson teaches first: 19 back to 15, then to 5. */
+const METHOD_FIGURE = `<svg viewBox="0 0 640 200"><title>Undoing 3x + 4 = 19 on a number line</title>
+<line x1="40" y1="130" x2="600" y2="130" stroke="var(--soft)" stroke-width="2"/>
+${[0, 5, 10, 15, 20].map((n) => `<line x1="${60 + n * 26}" y1="122" x2="${60 + n * 26}" y2="138" stroke="var(--soft)" stroke-width="2"/><text x="${60 + n * 26}" y="162" text-anchor="middle" font-size="15" fill="var(--soft)">${n}</text>`).join("")}
+<path d="M554 118 Q502 60 454 114" fill="none" stroke="var(--ink)" stroke-width="2"/><path d="M454 114 l2 -12 M454 114 l11 -5" fill="none" stroke="var(--ink)" stroke-width="2"/>
+<text x="504" y="62" text-anchor="middle" font-size="16">1. subtract 4</text>
+<path d="M446 118 Q318 20 194 114" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M194 114 l3 -12 M194 114 l12 -4" fill="none" stroke="var(--accent)" stroke-width="2"/>
+<text x="300" y="40" text-anchor="middle" font-size="16" fill="var(--accent)">2. divide by 3</text>
+<circle cx="554" cy="130" r="5"/><circle cx="450" cy="130" r="5"/><circle cx="190" cy="130" r="6" fill="var(--accent)"/>
+<text x="554" y="186" text-anchor="middle" font-size="15">3x + 4</text><text x="450" y="186" text-anchor="middle" font-size="15">3x</text><text x="190" y="186" text-anchor="middle" font-size="15" fill="var(--accent)">x</text>
+</svg>`;
+
 /** Three homework deadlines, each worked in its own lesson ("Work on <name>"). */
 const HOMEWORK_OPEN = "Homework 3: graphing lines";
 const HOMEWORK_FIRST = "Homework 4: solving equations";
@@ -288,7 +300,7 @@ function inDays(days) {
 /** The homework lessons' replies; a tool that does not end the turn is followed by a turn with its
  *  result. The first lesson posts its problems and opens problem 1; after the learner says which
  *  part they start, it marks part (b) and says so. The second posts its problems, then teaches the
- *  method first, with no problem open. */
+ *  method first with a figure, with no problem open. */
 function homeworkAnswer(work, ids, lessonTurn) {
 	if (work.lessonId === ids.homeworkOpen) {
 		if (lessonTurn === 0) {
@@ -304,7 +316,10 @@ function homeworkAnswer(work, ids, lessonTurn) {
 	}
 	if (work.lessonId === ids.homeworkFirst) {
 		if (lessonTurn === 0) return { tool_calls: [{ name: "post_problems", arguments: { problems: HOMEWORK_PROBLEMS[HOMEWORK_FIRST] } }] };
-		return { text: "Before problem 1, here is the method. To solve $3x + 4 = 19$, undo each step in reverse: subtract 4 from both sides to get $3x = 15$, then divide both sides by 3 to get $x = 5$." };
+		return {
+			text: "Before problem 1, here is the method. To solve $3x + 4 = 19$, undo each step in reverse: subtract 4 from both sides to get $3x = 15$, then divide both sides by 3 to get $x = 5$. The figure shows both steps on a number line.",
+			tool_calls: [{ name: "visual", arguments: { svg: METHOD_FIGURE } }],
+		};
 	}
 	// Posts the worksheet's problems by where they are printed and opens the second; after the
 	// learner says which part they start, marks part (b).

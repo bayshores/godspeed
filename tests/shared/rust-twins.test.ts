@@ -13,6 +13,7 @@ import { RAMP_COLORS, rampColor, tally, topicStatus } from "../../src/shared/cor
 import { FACTORY_SETTINGS } from "../../src/shared/core/settings.ts";
 import { TOOL_SWITCH_LABELS } from "../../src/shared/core/tool-switches.ts";
 import { APP_ICONS } from "../../src/frontend/components/settings/appearance-model.ts";
+import { FIGURE_COLORS } from "../../src/frontend/components/artifacts/figure-model.ts";
 import { PIECE_WIDTHS } from "../../src/frontend/components/citations/page-piece-model.ts";
 import { MAX_LESSON_FILES } from "../../src/frontend/components/files/files-pick-model.ts";
 import { VAULT_WORDS } from "../../src/frontend/components/vault/vault-model.ts";
@@ -82,6 +83,12 @@ describe("tool switches", () => {
 		const pairs = Object.fromEntries([...match.matchAll(/"(\w+)" => "([^"]+)"/g)].map((m) => [m[1]!, m[2]!]));
 		assert.ok(Object.keys(pairs).length > 0);
 		assert.deepEqual(TOOL_SWITCH_LABELS, pairs);
+	});
+});
+
+describe("a figure's colors", () => {
+	it("are the same names, in order", () => {
+		assert.deepEqual([...FIGURE_COLORS], strings(read("crates/agent/src/tools/visual.rs"), "FIGURE_COLORS"));
 	});
 });
 

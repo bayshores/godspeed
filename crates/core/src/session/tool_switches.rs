@@ -1,4 +1,4 @@
-//! The sub-agent tools a learner may switch off.
+//! The tools a learner may switch off: the sub-agent jobs and the teacher's figures.
 //! Not toggleable on purpose: quiz and ask_user_question (teaching is built on graded checks),
 //! the learner-filesystem set, the plan tools and probe_done (a prober that can never conclude
 //! is a lockout). Names are the model-facing tool names.
@@ -6,6 +6,9 @@
 use gs_json::Json;
 
 pub const TOGGLEABLE_TOOLS: [&str; 4] = ["research", "demo", "visual", "pdf"];
+
+/// The figure tool. Its result carries the render for the teacher to look at once.
+pub const VISUAL_TOOL: &str = "visual";
 
 /// The keys the settings write side accepts in agent.tools: the toggleables plus the quizzing
 /// switch (`explain: true` arms free-recall quizzing and drops the multiple-choice quiz).

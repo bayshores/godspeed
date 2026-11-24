@@ -1,6 +1,8 @@
 //! The tools every lesson-like session may add beside its own: the space card and search, the
-//! graph search, the learner's rules, the deadline changes, opening a page and writing a vault note. Each is present only when the
-//! composition root passes its reader.
+//! graph search, the learner's rules, the deadline changes, opening a page, writing a vault note and drawing a figure. Each is
+//! present only when the composition root passes its reader.
+
+use std::sync::Arc;
 
 use gs_core::session::tool_switches::filter_enabled_tools;
 use gs_engine::turn::tool::Tool;
@@ -18,6 +20,8 @@ use super::open_page::{OpenPage, open_page_tool};
 use super::rules::{SaveRule, save_rule_tool};
 use super::space_actions::{SpaceActions, lesson_space_change_tools};
 use super::vault_note::{WriteVaultNote, write_vault_note_tool};
+use super::visual::visual_tool;
+use crate::subagents::headless::HeadlessApi;
 
 #[derive(Clone, Default)]
 pub struct LessonSide {
@@ -32,6 +36,8 @@ pub struct LessonSide {
 	pub open_page: Option<OpenPage>,
 	/// "Note this", and the notes a lesson writes; only in a lesson started with a vault picked.
 	pub write_vault_note: Option<WriteVaultNote>,
+	/// What draws the teacher's figures, in a lesson that teaches.
+	pub visual: Option<Arc<dyn HeadlessApi>>,
 }
 
 impl LessonSide {
@@ -54,6 +60,9 @@ impl LessonSide {
 		}
 		if let Some(write) = &self.write_vault_note {
 			tools.push(write_vault_note_tool(write.clone()));
+		}
+		if let Some(headless) = &self.visual {
+			tools.push(visual_tool(headless));
 		}
 		tools
 	}

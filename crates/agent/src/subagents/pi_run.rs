@@ -97,7 +97,7 @@ impl SubagentRunOptions {
 /// Called with each new activity line (the job record's progress).
 pub type OnActivity = Arc<dyn Fn(&str) + Send + Sync>;
 
-/// What the runner hands the demo builder, the visual maker and the pdf reader.
+/// What the runner hands the demo builder and the pdf reader.
 #[derive(Clone)]
 pub struct JobAgentOptions {
 	/// Names the job's conversation for the outside agent and runs it when `engine` is None.

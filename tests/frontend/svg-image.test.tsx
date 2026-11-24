@@ -6,7 +6,9 @@ import { describe, it, mock } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import { VisualOutputCard } from "../../src/frontend/components/artifacts/visual-card.tsx";
+import { VisualCard, VisualOutputCard } from "../../src/frontend/components/artifacts/visual-card.tsx";
+import { FIGURE_COLORS, figureWidth, themedFigure } from "../../src/frontend/components/artifacts/figure-model.ts";
+import { GRAPHITE, PAPER, figureInksOf, resolveAppearance } from "../../src/frontend/components/settings/appearance-model.ts";
 import { svgAltText, svgImageSource } from "../../src/frontend/components/artifacts/svg-image.tsx";
 import { MermaidOverlay, SessionMermaidContext } from "../../src/frontend/components/session-overlay.tsx";
 
@@ -14,14 +16,15 @@ import { MermaidOverlay, SessionMermaidContext } from "../../src/frontend/compon
 // No fixture script, link, or external reference is executed by these tests.
 const FIGURE = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="160" viewBox="0 0 320 160"><style>text{font-family:Arial,Helvetica,sans-serif;fill:#202830}</style><defs><marker id="arrow"><path d="M0 0L5 5"/></marker></defs><path marker-end="url(#arrow)" d="M0 0L20 20"/><text>θ &amp; φ: 50% #1</text></svg>`;
 const ACTIVE_MARKUP = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" onload="example()"><script>example()</script><foreignObject><div xmlns="http://www.w3.org/1999/xhtml" onclick="example()">Example</div></foreignObject><a href="javascript:example()"><text>Link</text></a><image href="https://example.invalid/image.png"/></svg>`;
+const THEMED = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="160" viewBox="0 0 320 160" fill="var(--ink)"><title>A grid</title><path stroke="var(--soft)" d="M0 0L20 20"/><circle r="4" fill="var(--accent)"/><rect width="9" height="9" fill="var(--paper)"/></svg>`;
 const PREFIX = "data:image/svg+xml;charset=utf-8,";
 
-function assertImageBoundary(holder: Element, source: string) {
+function assertImageBoundary(holder: Element, source: string, name = "Figure") {
 	const image = holder.querySelector("img");
 	assert.ok(image, "figure is an image");
 	assert.equal(holder.children.length, 1, "no figure markup alongside the image");
 	assert.ok(holder.querySelector("svg, style, script, foreignObject, a, [onload], [onclick]") === null, "generated elements and CSS never enter the app document");
-	assert.equal(image.getAttribute("alt"), "Figure");
+	assert.equal(image.getAttribute("alt"), name);
 	assert.equal(image.getAttribute("draggable"), "false", "native image dragging must not interfere with panning");
 	const src = image.getAttribute("src")!;
 	assert.ok(src.startsWith(PREFIX));
@@ -63,11 +66,11 @@ describe("generated SVG image boundary", () => {
 			it(`${mode}: isolates ${name} inside the image URL`, () => {
 				const html = renderToStaticMarkup(mode === "inline"
 					? <VisualOutputCard output={{ svg: source }} />
-					: <MermaidOverlay svg={source} onClose={() => {}} />);
+					: <MermaidOverlay svg={source} onWhite onClose={() => {}} />);
 				const { document } = parseHTML(html);
 				const holder = document.querySelector(mode === "inline" ? '[data-testid="visual-svg"]' : "[data-lh-overlay-chart]")!;
 				assertImageBoundary(holder, source);
-				assert.ok(holder.classList.contains("bg-white"), "white backing retained");
+				assert.ok(holder.classList.contains("bg-white"), "a figure with its own colors lies on white");
 			});
 		}
 
@@ -87,24 +90,29 @@ describe("generated SVG image boundary", () => {
 			});
 		}
 
-		it(`${mode}: retains inversion on the white backing`, () => {
+		it(`${mode}: a figure in the theme's colors has no white under it`, () => {
+			const inks = figureInksOf(resolveAppearance(undefined));
+			const shown = themedFigure(THEMED, inks)!;
 			const html = renderToStaticMarkup(mode === "inline"
-				? <VisualOutputCard output={{ svg: FIGURE }} initialInverted />
-				: <MermaidOverlay svg={FIGURE} inverted onClose={() => {}} />);
+				? <VisualCard part={{ type: "tool-visual", toolCallId: "v", state: "output-available", input: {}, output: { svg: THEMED } }} />
+				: <MermaidOverlay svg={shown} onClose={() => {}} />);
 			const { document } = parseHTML(html);
 			const holder = document.querySelector(mode === "inline" ? '[data-testid="visual-svg"]' : "[data-lh-overlay-chart]")!;
-			assert.match(holder.getAttribute("style")!, /invert\(1\) hue-rotate\(180deg\)/);
-			assert.ok(holder.classList.contains("bg-white"));
-			assertImageBoundary(holder, FIGURE);
+			assert.ok(!holder.classList.contains("bg-white"));
+			assertImageBoundary(holder, shown, "A grid");
 		});
 	}
+
+	it("a call from before the teacher drew figures itself draws nothing: its figure is the message under it", () => {
+		assert.equal(renderToStaticMarkup(<VisualCard part={{ type: "tool-visual", toolCallId: "v", state: "output-available", input: {}, output: "Dispatched." }} />), "");
+	});
 
 	it("inline: retains natural width and only shrinks oversized figures", () => {
 		const { document } = parseHTML(renderToStaticMarkup(<VisualOutputCard output={{ svg: FIGURE }} />));
 		const image = assertImageBoundary(document.querySelector('[data-testid="visual-svg"]')!, FIGURE);
 		assert.equal(image.getAttribute("width"), "320");
 		assert.equal(image.className, "block h-auto max-w-full");
-		assert.ok(document.querySelector('[data-testid="visual-card"]')!.classList.contains("w-fit"));
+		assert.ok(document.querySelector('[data-testid="visual-svg"]')!.classList.contains("w-fit"));
 	});
 
 	for (const width of ["", ' width="100%"']) {
@@ -114,7 +122,7 @@ describe("generated SVG image boundary", () => {
 			const image = assertImageBoundary(document.querySelector('[data-testid="visual-svg"]')!, source);
 			assert.equal(image.getAttribute("width"), null);
 			assert.equal(image.className, "block h-auto w-full");
-			assert.ok(document.querySelector('[data-testid="visual-card"]')!.classList.contains("w-full"));
+			assert.ok(document.querySelector('[data-testid="visual-svg"]')!.classList.contains("w-full"));
 		});
 	}
 
@@ -130,7 +138,7 @@ describe("generated SVG image boundary", () => {
 	});
 });
 
-it("the fullscreen button opens the same SVG image and inversion; download keeps original bytes", async () => {
+it("the fullscreen button opens the same SVG image on the same backing; download keeps original bytes", async () => {
 	const originalSvg = FIGURE.replace(' xmlns="http://www.w3.org/2000/svg"', '').replace("θ &amp; φ", "θ&nbsp;&amp; φ");
 	const displaySvg = FIGURE.replace("θ &amp; φ", "θ&#160;&amp; φ");
 	const dom = parseHTML("<html><body></body></html>");
@@ -161,11 +169,11 @@ it("the fullscreen button opens the same SVG image and inversion; download keeps
 	};
 	URL.revokeObjectURL = (url) => { revoked = url; };
 	function Harness() {
-		const [focus, setFocus] = useState<{ svg: string; inverted: boolean } | null>(null);
+		const [focus, setFocus] = useState<{ svg: string; onWhite: boolean } | null>(null);
 		return (
-			<SessionMermaidContext.Provider value={{ openMermaid: () => {}, openFigure: (svg, inverted) => setFocus({ svg, inverted }) }}>
-				<VisualOutputCard output={{ svg: originalSvg }} initialInverted />
-				{focus && <MermaidOverlay svg={focus.svg} inverted={focus.inverted} onClose={() => setFocus(null)} />}
+			<SessionMermaidContext.Provider value={{ openMermaid: () => {}, openFigure: (svg, onWhite) => setFocus({ svg, onWhite }) }}>
+				<VisualOutputCard output={{ svg: originalSvg }} />
+				{focus && <MermaidOverlay svg={focus.svg} onWhite={focus.onWhite} onClose={() => setFocus(null)} />}
 			</SessionMermaidContext.Provider>
 		);
 	}
@@ -176,7 +184,7 @@ it("the fullscreen button opens the same SVG image and inversion; download keeps
 		const overlayHolder = host.querySelector("[data-lh-overlay-chart]")!;
 		const fullscreen = assertImageBoundary(overlayHolder, displaySvg);
 		assert.equal(fullscreen.getAttribute("src"), inline.getAttribute("src"));
-		assert.match(overlayHolder.getAttribute("style")!, /invert\(1\) hue-rotate\(180deg\)/);
+		assert.ok(overlayHolder.classList.contains("bg-white"));
 
 		// Intercept only the download anchor; never navigate or write a real file.
 		dom.document.createElement = ((...args: Parameters<typeof originalCreateElement>) => {
@@ -210,6 +218,31 @@ it("the fullscreen button opens the same SVG image and inversion; download keeps
 			}
 		}
 	}
+});
+
+describe("a figure's colors", () => {
+	it("are the theme's, on Graphite and on Paper", () => {
+		for (const background of [GRAPHITE, PAPER]) {
+			const inks = figureInksOf(resolveAppearance({ background }));
+			const shown = themedFigure(THEMED, inks)!;
+			for (const [i, name] of FIGURE_COLORS.entries()) {
+				assert.ok(!shown.includes(name), name);
+				assert.ok(shown.includes(inks[i]!), `${name} on ${background}`);
+			}
+			assert.equal(new Set(inks).size, 4, "four different colors");
+		}
+		assert.notDeepEqual(figureInksOf(resolveAppearance({ background: GRAPHITE })), figureInksOf(resolveAppearance({ background: PAPER })));
+	});
+
+	it("are left alone in a figure that names none", () => {
+		assert.equal(themedFigure(FIGURE, ["#000000", "#111111", "#222222", "#333333"]), null);
+	});
+
+	it("come with the width the figure declares in px", () => {
+		assert.equal(figureWidth(THEMED), 320);
+		assert.equal(figureWidth('<svg width="100%" viewBox="0 0 1 1"></svg>'), null);
+		assert.equal(figureWidth('<svg viewBox="0 0 1 1"></svg>'), null);
+	});
 });
 
 describe("svgAltText (the figure's name for screen readers)", () => {

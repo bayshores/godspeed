@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
+use gs_agent::subagents::headless::{DemoRunResult, HeadlessApi};
 use gs_agent::teacher::prompt_segments::{AgentKind, all_segment_paths};
 use gs_agent::teacher::teacher_agent::{AgentBuildOptions, compose_instructions, create_homework_agent, create_practice_agent, create_prober_agent, create_study_agent, create_teacher_agent};
 use gs_agent::tools::space::{SpaceSearch, SpaceToolContext};
@@ -36,6 +37,7 @@ use gs_engine::turn::agent::Agent;
 use gs_engine::turn::faux::{Engine, Scripted, faux_model};
 use gs_engine::turn::tool::{ExecutionMode, Tool, ToolContext};
 use gs_json::{Json, Obj, json, parse, stringify};
+use gs_pdf::RenderedPdfPage;
 use gs_search::index::PassageRef;
 use gs_store::prompt_overrides::PromptOverrides;
 use parking_lot::Mutex;
@@ -51,6 +53,29 @@ impl ProblemPages for NoPages {
 
 fn no_pages() -> Arc<dyn ProblemPages> {
 	Arc::new(NoPages)
+}
+
+/// What draws a figure: every SVG renders, nothing else is asked of it.
+struct Drawing;
+
+impl HeadlessApi for Drawing {
+	fn unavailable_reason(&self) -> Option<String> {
+		None
+	}
+	fn run_demo<'a>(&'a self, _html: &'a str, _probe: Option<&'a str>) -> BoxFuture<'a, Result<DemoRunResult, String>> {
+		Box::pin(async { Err("no demos here".to_owned()) })
+	}
+	fn render_svg<'a>(&'a self, _svg: &'a str) -> BoxFuture<'a, Result<Vec<u8>, String>> {
+		Box::pin(async { Ok(b"png".to_vec()) })
+	}
+	fn render_pdf_pages<'a>(&'a self, _pdf_path: &'a Path, _pages: &'a [i64], _dpi: Option<f64>) -> BoxFuture<'a, Result<Vec<RenderedPdfPage>, String>> {
+		Box::pin(async { Ok(Vec::new()) })
+	}
+}
+
+/// A side that only draws figures.
+fn drawing_side() -> LessonSide {
+	LessonSide { visual: Some(Arc::new(Drawing)), ..LessonSide::default() }
 }
 
 const FILE_TOOLS: [&str; 4] = ["read", "ls", "find", "grep"];
@@ -320,6 +345,7 @@ impl World {
 			// Recorded before open_page; its tool is checked beside its code.
 			open_page: None,
 			write_vault_note: None,
+			visual: drawing_side().visual,
 		}
 	}
 
@@ -473,9 +499,9 @@ fn agents(prompts: &PromptOverrides) -> Json {
 		"teacher": agent_facts(&create_teacher_agent(Some(&teacher()), opts())),
 		"teacher with toggles": agent_facts(&create_teacher_agent(Some(&teacher()), AgentBuildOptions { learner_rules: rules(), ..toggled(json!({ "demo": false, "visual": false, "research": false, "pdf": false })) })),
 		"teacher bare": agent_facts(&create_teacher_agent(None, opts())),
-		"practice": agent_facts(&create_practice_agent(&w.practice("lesson"), toggled(off()))),
+		"practice": agent_facts(&create_practice_agent(&PracticeToolContext { side: drawing_side(), ..w.practice("lesson") }, toggled(off()))),
 		"study": agent_facts(&create_study_agent(&study, toggled(json!({ "demo": false })))),
-		"homework": agent_facts(&create_homework_agent(&w.homework("lesson", deadline), AgentBuildOptions { learner_rules: rules(), ..opts() })),
+		"homework": agent_facts(&create_homework_agent(&HomeworkToolContext { side: drawing_side(), ..w.homework("lesson", deadline) }, AgentBuildOptions { learner_rules: rules(), ..opts() })),
 		"explicit tools": agent_facts(&create_teacher_agent(Some(&teacher()), AgentBuildOptions { tools: Some(explicit), ..toggled(json!({ "quiz": false })) })),
 	})
 }
@@ -508,7 +534,7 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	let mut prober_minimal = w.prober("lesson");
 	prober_minimal.side = LessonSide::default();
 	let mut prober_full = w.prober("lesson");
-	prober_full.side = w.side();
+	prober_full.side = LessonSide { visual: None, ..w.side() };
 	let teacher_full = TeacherToolContext { side: w.side(), ..w.teacher("lesson") };
 	let study_ctx = StudyToolContext { teacher: teacher_full.clone(), graph_nodes: Some(nodes_of(vec![json!({ "id": "n_a", "name": "Alpha" })])), check_marks: marks_kept(), pages: no_pages(), writes_plan: false, problems: None };
 	let study_planning = StudyToolContext { writes_plan: true, ..study_ctx.clone() };
@@ -629,13 +655,13 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	case("work plan", script(&reg, vec![("work_plan", json!({ "items": ["a", "b", "c"], "done": 1 })), ("work_plan", json!({ "items": ["a", "b", "c"], "done": 4 }))]).await);
 
 	let w = world();
-	let reg = teacher_tools(&w.teacher("lesson"), None);
+	let reg = teacher_tools(&TeacherToolContext { side: drawing_side(), ..w.teacher("lesson") }, None);
 	let out = script(
 		&reg,
 		vec![
 			("research", json!({ "question": "Why?", "context": "For the lesson." })),
 			("demo", json!({ "title": "Osc", "brief": "A spring." })),
-			("visual", json!({ "brief": "A triangle." })),
+			("visual", json!({ "svg": "<svg viewBox=\"0 0 100 100\"><title>Triangle</title><path d=\"M10 90 L50 10 L90 90 Z\" fill=\"none\" stroke=\"var(--ink)\"/></svg>" })),
 			("pdf", json!({ "path": "/a.pdf", "question": "Summarize." })),
 		],
 	)

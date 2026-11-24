@@ -10,18 +10,21 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { AppearanceSettings } from "@/shared/core";
-import { PAPER, appearanceVars, bodyInkOf, resolveAppearance, staleVarNames } from "./appearance-model.ts";
+import { PAPER, appearanceVars, bodyInkOf, figureInksOf, resolveAppearance, staleVarNames } from "./appearance-model.ts";
 
 interface AppearanceContextValue {
 	/** Called by the settings dialog after a successful section PUT. */
 	onAppearanceChange: (delta: AppearanceSettings | undefined) => void;
 	/** The body text color the theme resolves to, "#rrggbb". */
 	bodyInk: string;
+	/** The colors a teacher's figure is drawn in, in the order of `FIGURE_COLORS`. */
+	figureInks: readonly string[];
 }
 
 const AppearanceContext = createContext<AppearanceContextValue>({
 	onAppearanceChange: () => {},
 	bodyInk: bodyInkOf(resolveAppearance(undefined)),
+	figureInks: figureInksOf(resolveAppearance(undefined)),
 });
 
 export function useAppearance() {
@@ -55,6 +58,7 @@ export function AppearanceProvider({ initial, children }: { initial: AppearanceS
 	}, [key, vars, appearance]);
 
 	const bodyInk = useMemo(() => bodyInkOf(appearance), [appearance]);
-	const value = useMemo(() => ({ onAppearanceChange: setDelta, bodyInk }), [bodyInk]);
+	const figureInks = useMemo(() => figureInksOf(appearance), [appearance]);
+	const value = useMemo(() => ({ onAppearanceChange: setDelta, bodyInk, figureInks }), [bodyInk, figureInks]);
 	return <AppearanceContext.Provider value={value}>{children}</AppearanceContext.Provider>;
 }

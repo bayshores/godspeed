@@ -98,14 +98,20 @@ pub fn learner_rules_section(rules: &Json, lesson_space: Option<(&str, &[String]
 /// The reply's shape, said again on every lesson item: a line read once in long instructions fades.
 const EVERY_TURN_SHAPE: &str = "One idea per reply, at most four short lines, then his move. A worked example: one short line per step.";
 
+/// Said with the shape while the lesson's teacher can draw: a teacher that read the figure
+/// tool's description once draws once and then goes back to words.
+const EVERY_TURN_FIGURE: &str = "Your answer has a layout (a grid, a graph, a curve, forces, a structure, a tree): this reply carries a `visual`. Never describe what a figure would show.";
+
 /// The block a lesson's later work items repeat: the same rules as `learner_rules_section`, one
-/// line each, then the reply's shape; the shape alone when there are no rules.
-pub fn every_turn_rules(rules: &Json, lesson_space: Option<(&str, &[String])>) -> String {
+/// line each, then the reply's shape and, with `figures`, the line on drawing; no rules, no
+/// rules head.
+pub fn every_turn_rules(rules: &Json, lesson_space: Option<(&str, &[String])>, figures: bool) -> String {
 	let lines: Vec<&str> = rule_lists(rules, lesson_space).into_iter().flat_map(|(_, list)| list).collect();
+	let shape = if figures { format!("{EVERY_TURN_SHAPE}\n{EVERY_TURN_FIGURE}") } else { EVERY_TURN_SHAPE.to_owned() };
 	if lines.is_empty() {
-		return EVERY_TURN_SHAPE.to_owned();
+		return shape;
 	}
-	format!("{}\n{EVERY_TURN_SHAPE}", block("His rules, every turn (they win):", lines.into_iter()))
+	format!("{}\n{shape}", block("His rules, every turn (they win):", lines.into_iter()))
 }
 
 #[cfg(test)]
@@ -140,9 +146,14 @@ mod tests {
 		let rules = json!({ "voice": ["Short."], "files": ["No tables."] });
 		let space_rules = ["Use Python.".to_owned()];
 		assert_eq!(
-			every_turn_rules(&rules, Some(("CSE 21", &space_rules))),
+			every_turn_rules(&rules, Some(("CSE 21", &space_rules)), false),
 			"His rules, every turn (they win):\n- Short.\n- No tables.\n- Use Python.\nOne idea per reply, at most four short lines, then his move. A worked example: one short line per step."
 		);
-		assert_eq!(every_turn_rules(&json!({}), Some(("CSE 21", &[]))), "One idea per reply, at most four short lines, then his move. A worked example: one short line per step.");
+		assert_eq!(every_turn_rules(&json!({}), Some(("CSE 21", &[])), false), "One idea per reply, at most four short lines, then his move. A worked example: one short line per step.");
+		assert_eq!(
+			every_turn_rules(&rules, None, true).lines().last(),
+			Some("Your answer has a layout (a grid, a graph, a curve, forces, a structure, a tree): this reply carries a `visual`. Never describe what a figure would show."),
+			"a lesson whose teacher can draw is told so last"
+		);
 	}
 }

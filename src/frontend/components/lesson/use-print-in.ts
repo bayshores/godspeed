@@ -14,8 +14,9 @@ export const PrintWaitContext = createContext(false);
  * Prints a reply that just `landed`: each block under the element that takes the returned ref is
  * uncovered line by line, top to bottom, one block after the other (printSchedule). It runs once, on the first
  * render that has blocks, and outlives the short time `landed` is true. While PrintWaitContext
- * says so the reply stays covered, and prints once it no longer does. Nothing moves or changes
- * size, and with reduced motion nothing is covered.
+ * says so the reply stays covered, and prints once it no longer does. What follows the text in its
+ * reply (a figure, a card) arrives once the text has printed. Nothing moves or changes size, and
+ * with reduced motion nothing is covered.
  */
 export function usePrintIn(landed: boolean): RefObject<HTMLDivElement | null> {
 	const ref = useRef<HTMLDivElement>(null);
@@ -29,19 +30,30 @@ export function usePrintIn(landed: boolean): RefObject<HTMLDivElement | null> {
 		if (blocks.length === 0) return;
 		printed.current = true;
 		const lines = blocks.map((block) => (TEXT_TAGS.has(block.tagName) ? linesOf(block.getBoundingClientRect().height, parseFloat(getComputedStyle(block).lineHeight)) : 1));
-		printSchedule(lines).forEach((step, i) => {
+		const hold = (animation: Animation) => {
+			if (!wait) return;
+			animation.pause();
+			waiting.current.push(animation);
+		};
+		const schedule = printSchedule(lines);
+		schedule.forEach((step, i) => {
 			// The sides stay open, so nothing that hangs out of a block (a list's marks) is cut.
-			const print = blocks[i]!.animate([{ clipPath: "inset(0 -100vw 100% -100vw)" }, { clipPath: "inset(0 -100vw 0% -100vw)" }], {
-				duration: step.ms,
-				delay: step.at,
-				easing: `steps(${step.lines}, jump-start)`,
-				fill: "backwards",
-			});
-			if (wait) {
-				print.pause();
-				waiting.current.push(print);
-			}
+			hold(
+				blocks[i]!.animate([{ clipPath: "inset(0 -100vw 100% -100vw)" }, { clipPath: "inset(0 -100vw 0% -100vw)" }], {
+					duration: step.ms,
+					delay: step.at,
+					easing: `steps(${step.lines}, jump-start)`,
+					fill: "backwards",
+				}),
+			);
 		});
+		const last = schedule[schedule.length - 1]!;
+		for (let next = root.nextElementSibling; next; next = next.nextElementSibling) {
+			for (const arrival of typeof next.getAnimations === "function" ? next.getAnimations() : []) {
+				arrival.effect?.updateTiming({ delay: last.at + last.ms });
+				hold(arrival);
+			}
+		}
 	});
 	useLayoutEffect(() => {
 		if (wait) return;

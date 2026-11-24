@@ -13,7 +13,7 @@ import { cn } from "@/frontend/lib/utils";
 // The plan popup (and dagre, its layout engine) loads on first open.
 const PlanPopup = lazyComponent(() => import("@/frontend/components/plan-block").then((m) => m.PlanPopup));
 
-type Figure = { svg: string; inverted: boolean };
+type Figure = { svg: string; onWhite: boolean };
 
 /** Which overlay is open, and the openers the lesson text calls. */
 export function useLessonOverlays() {
@@ -22,7 +22,7 @@ export function useLessonOverlays() {
 	const [mermaid, setMermaid] = useState<string | null>(null);
 	const [figure, setFigure] = useState<Figure | null>(null);
 	const closeMermaid = useCallback(() => setMermaid(null), []);
-	const mermaidActions = useMemo(() => ({ openMermaid: setMermaid, openFigure: (svg: string, inverted: boolean) => setFigure({ svg, inverted }) }), []);
+	const mermaidActions = useMemo(() => ({ openMermaid: setMermaid, openFigure: (svg: string, onWhite: boolean) => setFigure({ svg, onWhite }) }), []);
 	return {
 		planOpen,
 		openPlan,
@@ -67,7 +67,7 @@ export function LessonOverlays({
 			)}
 			{figurePresence.mounted && lastFigureRef.current !== null && (
 				<div className={cn("absolute inset-0 z-40", figurePresence.state === "closed" && "lh-fade")} data-state={figurePresence.state}>
-					<MermaidOverlay svg={lastFigureRef.current.svg} inverted={lastFigureRef.current.inverted} onClose={overlays.closeFigure} />
+					<MermaidOverlay svg={lastFigureRef.current.svg} onWhite={lastFigureRef.current.onWhite} onClose={overlays.closeFigure} />
 				</div>
 			)}
 			{planPresence.mounted && <PlanPopup tree={planTree} messages={messages} onClose={overlays.closePlan} state={planPresence.state} />}

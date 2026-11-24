@@ -1,5 +1,5 @@
 /** The tools a user may toggle off in settings: the sub-agent JOB tools
- *  only. Deliberately NOT toggleable: quiz + ask_user_question (assessment
+ *  and the teacher's figures. Deliberately NOT toggleable: quiz + ask_user_question (assessment
  *  and teaching are built on graded verification), the learner-filesystem
  *  set, plan tools, and probe_done (a prober that can never conclude is a
  *  lockout). The names are the MODEL-FACING tool names. */

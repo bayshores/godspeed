@@ -186,6 +186,8 @@ export function needsContinuation(record: readonly LhMessage[]): boolean {
 	// terminate:true ended that turn DELIBERATELY (the learner's next input
 	// is the next turn), and unlike a question's placeholder the result
 	// PERSISTS. Without this fold a reload would wake a phantom turn.
+	// A figure that was drawn ended its turn on purpose too, when it is all the batch held.
+	if (results.every((m) => m.toolName === "visual" && !m.isError && typeof (m.details as { svg?: unknown } | null)?.svg === "string")) return false;
 	const endedTurn = results.some(
 		(m) => !m.isError && ((m.toolName === PRACTICE_PROBLEM_TOOL && (m.details == null || problemPieceOf(m.details) !== null)) || m.toolName === TOPIC_DONE_TOOL),
 	);

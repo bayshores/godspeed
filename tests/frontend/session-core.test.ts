@@ -1670,6 +1670,17 @@ describe("needsContinuation (the native lastAssistantMessageIsCompleteWithToolCa
 		assert.equal(needsContinuation([...asked, resultMsg("call-q1", "quiz")]), true, "his answer is owed its reaction");
 	});
 
+	it("a figure the teacher drew ended its turn, and a refused or an old job's receipt did not", () => {
+		const figure = (details: unknown, isError = false) => [userText("u1", "topic"), assistantWithCall("a1", "call-v1", "visual"), { ...resultMsg("call-v1", "visual"), details, isError } as unknown as LhMessage];
+		assert.equal(needsContinuation(figure({ svg: "<svg/>" })), false);
+		assert.equal(needsContinuation(figure({ problems: ["svg: the root needs a view box."] }, true)), true, "the teacher is owed the refusal");
+		assert.equal(needsContinuation(figure({ jobId: "job_1" })), true, "a receipt from before the teacher drew figures itself");
+		const quiz = assistantWithCall("a0", "call-q1", "quiz");
+		const asked = [userText("u1", "topic"), quiz, newSideQuestion("Draw it"), ...figure({ svg: "<svg/>" }).slice(1)];
+		assert.equal(needsContinuation(asked), false);
+		assert.equal(needsContinuation([...asked, resultMsg("call-q1", "quiz")]), true, "his answer is owed its reaction");
+	});
+
 	it("an orphan result (no asking assistant) never continues", () => {
 		assert.equal(needsContinuation([userText("u1", "topic"), resultMsg("call-x")]), false);
 	});
