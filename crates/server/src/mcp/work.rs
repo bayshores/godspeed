@@ -408,9 +408,10 @@ mod tests {
 		let app = App::new(gs_base::config::Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir.clone()), None);
 		let lesson = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		let shape = "One idea per reply, at most four short lines, then his move. A worked example: one short line per step.";
-		assert_eq!(describe(&app, &view(&lesson, None)).last().map(String::as_str), Some(shape), "no rules: the shape alone");
-		app.stores.settings.write_settings(&json!({ "agent": { "rules": { "voice": ["Short."] } } })).unwrap();
-		assert_eq!(describe(&app, &view(&lesson, None)).last().map(String::as_str), Some(format!("His rules, every turn (they win):\n- Short.\n{shape}").as_str()));
+		let figure = "Your answer has a layout (a grid, a graph, a curve, forces, a structure, a tree): this reply carries a `visual`. Never describe what a figure would show.";
+		assert_eq!(describe(&app, &view(&lesson, None)).last().map(String::as_str), Some(format!("{shape}\n{figure}").as_str()), "no rules: the shape and the line on drawing");
+		app.stores.settings.write_settings(&json!({ "agent": { "rules": { "voice": ["Short."] }, "tools": { "visual": false } } })).unwrap();
+		assert_eq!(describe(&app, &view(&lesson, None)).last().map(String::as_str), Some(format!("His rules, every turn (they win):\n- Short.\n{shape}").as_str()), "figures switched off: no line on drawing");
 		let first = describe(&app, &view(&lesson, Some("The instructions.")));
 		assert!(first.last().unwrap().starts_with("Instructions"), "the instructions already end with the rules");
 		assert_eq!(describe(&app, &view("job_1", None)).len(), 1, "a background task gets none");

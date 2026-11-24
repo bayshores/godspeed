@@ -110,7 +110,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
 	grep: "Searching file contents…",
 	research: "Dispatching research…",
 	demo: "Building a demo…",
-	visual: "Making a visual…",
+	visual: "Drawing a figure…",
 	pdf: "Reading a PDF…",
 	plan_init: "Drawing up the plan…",
 	probe_done: "Concluding the assessment…",

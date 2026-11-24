@@ -23,7 +23,7 @@ flowchart TB
     end
 
     subgraph WORKBENCH["Workbench: writes data/jobs"]
-        RUNNER["job runner: researcher, demo-builder, visual-maker, pdf-reader"]
+        RUNNER["job runner: researcher, demo-builder, pdf-reader"]
         WAKE["wake pipeline: one queue per lesson, in memory"]
     end
 

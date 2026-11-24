@@ -1,5 +1,5 @@
 //! One raw model call for the hand-rolled
-//! loops (pdf reader, visual maker). They feed rendered images back between calls, which the
+//! loops (the pdf reader). They feed rendered images back between calls, which the
 //! agent loop's tool plumbing cannot express. A failed call still reports its usage (it may have
 //! cost tokens); an aborted one does not, the same as `run_subagent`.
 

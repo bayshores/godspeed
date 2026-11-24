@@ -46,7 +46,7 @@ One key is bright, the one Enter presses: Submit answer, or the ask key under ch
 - `is_side_turn` marks reply turn. A job result arriving after side question ends it.
 - A side turn keeps same tool list, so outside agent gets a small delta. Question tools, `problem` and `conclude` refuse (`side_turn_tools` in `agent::teacher::teacher_agent`). `plot` still draws, with no guess (see Plots).
 - A side turn gets no `today-context` note and no job results (`services::turns::chat_handler`).
-- A figure or demo finishing while a side question holds open question is written into lesson at once, with no turn (`show_held_artifacts` in `services::jobs`). The question stays open; teacher reads it with answer.
+- A demo finishing while a side question holds open question is written into lesson at once, with no turn (`show_held_artifacts` in `services::jobs`). The question stays open; teacher reads it with answer.
 - In model's view question call gets a placeholder result at once, side question follows as a plain user message, and learner's later answer (or skip) arrives where it happened. Earlier model views stay a prefix of later ones.
 
 ### Open problems
@@ -79,7 +79,19 @@ Older teach lessons start with a prober: `probe_done` files the assessment and q
 
 ### Job tools
 
-`research`, `demo`, `visual` and `pdf` run on the server. Each acks at once so the teacher keeps teaching; the job runs in the background (`agent::tools::jobs`, `agent::subagents`) and its result returns through the wake pipeline (§5.1).
+`research`, `demo` and `pdf` run on the server. Each acks at once so the teacher keeps teaching; the job runs in the background (`agent::tools::jobs`, `agent::subagents`) and its result returns through the wake pipeline (§5.1).
+
+### Figures
+
+The teacher draws a figure itself: `visual` takes the finished SVG, in every lesson kind (`agent::tools::visual`; the prober has none). When to draw and the drawing rules are in the tool's description.
+
+| Step | What happens |
+|---|---|
+| Check | Root `viewBox`, at most 24,000 characters, and only the four color names `var(--ink)`, `var(--soft)`, `var(--accent)`, `var(--paper)` (plus `none`). A figure that breaks a rule, or draws nothing, is refused with every problem listed, and the teacher draws again in the same turn |
+| Store | The view box is cut to the drawing plus 16 units of room (`gs_media::svg::drawn_box`), so a figure brings no empty band into the lesson. The root gains a size from that view box (at most 720 wide) and its defaults (ink fill, system font, round line ends). The result's `details.svg` is what the lesson shows |
+| Render | The server draws it once, dark on white (`HeadlessApi::render_svg`). A figure that cannot be drawn is refused with the reason |
+| Look | The result carries the render as an image and ends the turn, so the window never asks for a continuation after a drawn figure (`needsContinuation`). The teacher gets it with the learner's next message, and once it has replied after it only the mark `[image]` is sent again (`engine::bridge::view`) |
+| Show | The window swaps the four names for the theme's colors (`figureInksOf`, `themedFigure`) and shows the figure bare under the reply, as an image document. It arrives once the reply's text has printed (`usePrintIn`). A figure from an older lesson names none and lies on white |
 
 ### Attachments
 
@@ -128,7 +140,7 @@ Delivery:
 
 1. Per-lesson queue holds one entry per steer id.
 2. If a turn streams, markers are steered into live agent at its next turn boundary.
-3. Otherwise pipeline waits until no turn runs and no question waits, then fires one wake turn carrying every pending marker through normal turn path. While it waits, a figure or demo is saved into lesson with no turn when a side question holds open question (`open_question_held`): answer then reaches model as a message, so nothing comes between a call and its result. A question open with no side question still holds it for answer.
+3. Otherwise pipeline waits until no turn runs and no question waits, then fires one wake turn carrying every pending marker through normal turn path. While it waits, a demo is saved into lesson with no turn when a side question holds open question (`open_question_held`): answer then reaches model as a message, so nothing comes between a call and its result. A question open with no side question still holds it for answer.
 4. A wake turn getting 409 retries with backoff 500, 1000, 2000, 5000 ms.
 5. A wake turn failing to start otherwise leaves markers pending, with no error and no timer; they go out with learner's next turn or after a restart.
 6. Delivery is complete only when marker is in saved conversation; seeing it stream is not enough.
@@ -143,4 +155,4 @@ Rules:
 
 In the window, a wake turn is adopted like a turn in progress (`turnInFlight`); steers render as artifact cards, never chat bubbles.
 
-Sub-agents check their work before delivering. The demo-builder runs its HTML in the shell's hidden web view. The visual-maker renders each SVG (resvg, or the shell's web view for SVGs resvg cannot draw) and looks at it, so the outside agent must accept images.
+Sub-agents check their work before delivering. The demo-builder runs its HTML in the shell's hidden web view. A figure's render (resvg, or the shell's web view for an SVG resvg cannot draw) goes back to the teacher as an image, so the outside agent must accept images.

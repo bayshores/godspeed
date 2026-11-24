@@ -16736,44 +16736,6 @@
 				},
 				{
 					"input": [
-						"visual",
-						{
-							"svg": "<svg/>",
-							"notes": "labels"
-						}
-					],
-					"output": false
-				},
-				{
-					"input": [
-						"visual",
-						{
-							"svg": "<svg/>"
-						}
-					],
-					"output": false
-				},
-				{
-					"input": [
-						"visual",
-						{
-							"svg": "",
-							"notes": "blank"
-						}
-					],
-					"output": true
-				},
-				{
-					"input": [
-						"visual",
-						{
-							"svg": ""
-						}
-					],
-					"output": true
-				},
-				{
-					"input": [
 						"pdf",
 						{
 							"path": "a.pdf",
@@ -18148,574 +18110,6 @@
 					"input": {
 						"job": {
 							"id": "job_1",
-							"kind": "visual",
-							"toolCallId": "call_1",
-							"extra": "dropped"
-						},
-						"result": {
-							"svg": "<svg/>",
-							"notes": "labels"
-						}
-					},
-					"output": {
-						"id": "steer_job_1",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure is drawn, verified by inspection, and rendered in the lesson. Maker notes: labels.\nReference its elements as you teach.",
-						"display": true,
-						"details": {
-							"jobId": "job_1",
-							"kind": "visual",
-							"toolCallId": "call_1",
-							"result": {
-								"svg": "<svg/>",
-								"notes": "labels"
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "job_2",
-							"kind": "visual",
-							"toolCallId": "call_2"
-						},
-						"result": {
-							"svg": "<svg/>",
-							"notes": "labels"
-						}
-					},
-					"output": {
-						"id": "steer_job_2",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure is drawn, verified by inspection, and rendered in the lesson. Maker notes: labels.\nReference its elements as you teach.",
-						"display": true,
-						"details": {
-							"jobId": "job_2",
-							"kind": "visual",
-							"toolCallId": "call_2",
-							"result": {
-								"svg": "<svg/>",
-								"notes": "labels"
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "j😀",
-							"kind": "visual"
-						},
-						"result": {
-							"svg": "<svg/>",
-							"notes": "labels"
-						}
-					},
-					"output": {
-						"id": "steer_j😀",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure is drawn, verified by inspection, and rendered in the lesson. Maker notes: labels.\nReference its elements as you teach.",
-						"display": true,
-						"details": {
-							"jobId": "j😀",
-							"kind": "visual",
-							"result": {
-								"svg": "<svg/>",
-								"notes": "labels"
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "job_4",
-							"kind": "visual",
-							"toolCallId": "call_4"
-						},
-						"result": {
-							"svg": "<svg/>",
-							"notes": "labels"
-						}
-					},
-					"output": {
-						"id": "steer_job_4",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure is drawn, verified by inspection, and rendered in the lesson. Maker notes: labels.\nReference its elements as you teach.",
-						"display": true,
-						"details": {
-							"jobId": "job_4",
-							"kind": "visual",
-							"toolCallId": "call_4",
-							"result": {
-								"svg": "<svg/>",
-								"notes": "labels"
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"kind": "visual",
-							"toolCallId": "call_5"
-						},
-						"result": {
-							"svg": "<svg/>",
-							"notes": "labels"
-						}
-					},
-					"output": {
-						"id": "steer_undefined",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure is drawn, verified by inspection, and rendered in the lesson. Maker notes: labels.\nReference its elements as you teach.",
-						"display": true,
-						"details": {
-							"kind": "visual",
-							"toolCallId": "call_5",
-							"result": {
-								"svg": "<svg/>",
-								"notes": "labels"
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "job_1",
-							"kind": "visual",
-							"toolCallId": "call_1",
-							"extra": "dropped"
-						},
-						"result": {
-							"svg": "<svg/>"
-						}
-					},
-					"output": {
-						"id": "steer_job_1",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure is drawn, verified by inspection, and rendered in the lesson. Maker notes: (none).\nReference its elements as you teach.",
-						"display": true,
-						"details": {
-							"jobId": "job_1",
-							"kind": "visual",
-							"toolCallId": "call_1",
-							"result": {
-								"svg": "<svg/>"
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "job_2",
-							"kind": "visual",
-							"toolCallId": "call_2"
-						},
-						"result": {
-							"svg": "<svg/>"
-						}
-					},
-					"output": {
-						"id": "steer_job_2",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure is drawn, verified by inspection, and rendered in the lesson. Maker notes: (none).\nReference its elements as you teach.",
-						"display": true,
-						"details": {
-							"jobId": "job_2",
-							"kind": "visual",
-							"toolCallId": "call_2",
-							"result": {
-								"svg": "<svg/>"
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "j😀",
-							"kind": "visual"
-						},
-						"result": {
-							"svg": "<svg/>"
-						}
-					},
-					"output": {
-						"id": "steer_j😀",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure is drawn, verified by inspection, and rendered in the lesson. Maker notes: (none).\nReference its elements as you teach.",
-						"display": true,
-						"details": {
-							"jobId": "j😀",
-							"kind": "visual",
-							"result": {
-								"svg": "<svg/>"
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "job_4",
-							"kind": "visual",
-							"toolCallId": "call_4"
-						},
-						"result": {
-							"svg": "<svg/>"
-						}
-					},
-					"output": {
-						"id": "steer_job_4",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure is drawn, verified by inspection, and rendered in the lesson. Maker notes: (none).\nReference its elements as you teach.",
-						"display": true,
-						"details": {
-							"jobId": "job_4",
-							"kind": "visual",
-							"toolCallId": "call_4",
-							"result": {
-								"svg": "<svg/>"
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"kind": "visual",
-							"toolCallId": "call_5"
-						},
-						"result": {
-							"svg": "<svg/>"
-						}
-					},
-					"output": {
-						"id": "steer_undefined",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure is drawn, verified by inspection, and rendered in the lesson. Maker notes: (none).\nReference its elements as you teach.",
-						"display": true,
-						"details": {
-							"kind": "visual",
-							"toolCallId": "call_5",
-							"result": {
-								"svg": "<svg/>"
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "job_1",
-							"kind": "visual",
-							"toolCallId": "call_1",
-							"extra": "dropped"
-						},
-						"result": {
-							"svg": "",
-							"notes": "blank"
-						}
-					},
-					"output": {
-						"id": "steer_job_1",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure could not be made: blank. Fall back to prose or mermaid, or re-call visual with a tighter brief.",
-						"display": true,
-						"details": {
-							"jobId": "job_1",
-							"kind": "visual",
-							"toolCallId": "call_1",
-							"result": {
-								"svg": "",
-								"notes": "blank"
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "job_2",
-							"kind": "visual",
-							"toolCallId": "call_2"
-						},
-						"result": {
-							"svg": "",
-							"notes": "blank"
-						}
-					},
-					"output": {
-						"id": "steer_job_2",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure could not be made: blank. Fall back to prose or mermaid, or re-call visual with a tighter brief.",
-						"display": true,
-						"details": {
-							"jobId": "job_2",
-							"kind": "visual",
-							"toolCallId": "call_2",
-							"result": {
-								"svg": "",
-								"notes": "blank"
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "j😀",
-							"kind": "visual"
-						},
-						"result": {
-							"svg": "",
-							"notes": "blank"
-						}
-					},
-					"output": {
-						"id": "steer_j😀",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure could not be made: blank. Fall back to prose or mermaid, or re-call visual with a tighter brief.",
-						"display": true,
-						"details": {
-							"jobId": "j😀",
-							"kind": "visual",
-							"result": {
-								"svg": "",
-								"notes": "blank"
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "job_4",
-							"kind": "visual",
-							"toolCallId": "call_4"
-						},
-						"result": {
-							"svg": "",
-							"notes": "blank"
-						}
-					},
-					"output": {
-						"id": "steer_job_4",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure could not be made: blank. Fall back to prose or mermaid, or re-call visual with a tighter brief.",
-						"display": true,
-						"details": {
-							"jobId": "job_4",
-							"kind": "visual",
-							"toolCallId": "call_4",
-							"result": {
-								"svg": "",
-								"notes": "blank"
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"kind": "visual",
-							"toolCallId": "call_5"
-						},
-						"result": {
-							"svg": "",
-							"notes": "blank"
-						}
-					},
-					"output": {
-						"id": "steer_undefined",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure could not be made: blank. Fall back to prose or mermaid, or re-call visual with a tighter brief.",
-						"display": true,
-						"details": {
-							"kind": "visual",
-							"toolCallId": "call_5",
-							"result": {
-								"svg": "",
-								"notes": "blank"
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "job_1",
-							"kind": "visual",
-							"toolCallId": "call_1",
-							"extra": "dropped"
-						},
-						"result": {
-							"svg": ""
-						}
-					},
-					"output": {
-						"id": "steer_job_1",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure could not be made: unknown reason. Fall back to prose or mermaid, or re-call visual with a tighter brief.",
-						"display": true,
-						"details": {
-							"jobId": "job_1",
-							"kind": "visual",
-							"toolCallId": "call_1",
-							"result": {
-								"svg": ""
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "job_2",
-							"kind": "visual",
-							"toolCallId": "call_2"
-						},
-						"result": {
-							"svg": ""
-						}
-					},
-					"output": {
-						"id": "steer_job_2",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure could not be made: unknown reason. Fall back to prose or mermaid, or re-call visual with a tighter brief.",
-						"display": true,
-						"details": {
-							"jobId": "job_2",
-							"kind": "visual",
-							"toolCallId": "call_2",
-							"result": {
-								"svg": ""
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "j😀",
-							"kind": "visual"
-						},
-						"result": {
-							"svg": ""
-						}
-					},
-					"output": {
-						"id": "steer_j😀",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure could not be made: unknown reason. Fall back to prose or mermaid, or re-call visual with a tighter brief.",
-						"display": true,
-						"details": {
-							"jobId": "j😀",
-							"kind": "visual",
-							"result": {
-								"svg": ""
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "job_4",
-							"kind": "visual",
-							"toolCallId": "call_4"
-						},
-						"result": {
-							"svg": ""
-						}
-					},
-					"output": {
-						"id": "steer_job_4",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure could not be made: unknown reason. Fall back to prose or mermaid, or re-call visual with a tighter brief.",
-						"display": true,
-						"details": {
-							"jobId": "job_4",
-							"kind": "visual",
-							"toolCallId": "call_4",
-							"result": {
-								"svg": ""
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"kind": "visual",
-							"toolCallId": "call_5"
-						},
-						"result": {
-							"svg": ""
-						}
-					},
-					"output": {
-						"id": "steer_undefined",
-						"role": "custom",
-						"customType": "subagent-steer",
-						"content": "The figure could not be made: unknown reason. Fall back to prose or mermaid, or re-call visual with a tighter brief.",
-						"display": true,
-						"details": {
-							"kind": "visual",
-							"toolCallId": "call_5",
-							"result": {
-								"svg": ""
-							}
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"job": {
-							"id": "job_1",
 							"kind": "pdf",
 							"toolCallId": "call_1",
 							"extra": "dropped"
@@ -19342,28 +18736,6 @@
 				{
 					"input": {
 						"id": "job_1",
-						"kind": "visual",
-						"toolCallId": "call_1",
-						"extra": "dropped"
-					},
-					"output": {
-						"id": "steer_job_1",
-						"role": "custom",
-						"customType": "subagent-abort",
-						"content": "The figure job was aborted by the learner — no figure is coming. Acknowledge it in one line and teach without it (a re-dispatch is fine if the learner wants it).",
-						"display": true,
-						"details": {
-							"jobId": "job_1",
-							"kind": "visual",
-							"toolCallId": "call_1",
-							"aborted": true
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"id": "job_1",
 						"kind": "pdf",
 						"toolCallId": "call_1",
 						"extra": "dropped"
@@ -19428,27 +18800,6 @@
 				{
 					"input": {
 						"id": "job_2",
-						"kind": "visual",
-						"toolCallId": "call_2"
-					},
-					"output": {
-						"id": "steer_job_2",
-						"role": "custom",
-						"customType": "subagent-abort",
-						"content": "The figure job was aborted by the learner — no figure is coming. Acknowledge it in one line and teach without it (a re-dispatch is fine if the learner wants it).",
-						"display": true,
-						"details": {
-							"jobId": "job_2",
-							"kind": "visual",
-							"toolCallId": "call_2",
-							"aborted": true
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"id": "job_2",
 						"kind": "pdf",
 						"toolCallId": "call_2"
 					},
@@ -19500,25 +18851,6 @@
 						"details": {
 							"jobId": "j😀",
 							"kind": "demo",
-							"aborted": true
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"id": "j😀",
-						"kind": "visual"
-					},
-					"output": {
-						"id": "steer_j😀",
-						"role": "custom",
-						"customType": "subagent-abort",
-						"content": "The figure job was aborted by the learner — no figure is coming. Acknowledge it in one line and teach without it (a re-dispatch is fine if the learner wants it).",
-						"display": true,
-						"details": {
-							"jobId": "j😀",
-							"kind": "visual",
 							"aborted": true
 						},
 						"timestamp": "<now>"
@@ -19588,27 +18920,6 @@
 				{
 					"input": {
 						"id": "job_4",
-						"kind": "visual",
-						"toolCallId": "call_4"
-					},
-					"output": {
-						"id": "steer_job_4",
-						"role": "custom",
-						"customType": "subagent-abort",
-						"content": "The figure job was aborted by the learner — no figure is coming. Acknowledge it in one line and teach without it (a re-dispatch is fine if the learner wants it).",
-						"display": true,
-						"details": {
-							"jobId": "job_4",
-							"kind": "visual",
-							"toolCallId": "call_4",
-							"aborted": true
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
-						"id": "job_4",
 						"kind": "pdf",
 						"toolCallId": "call_4"
 					},
@@ -19667,25 +18978,6 @@
 				},
 				{
 					"input": {
-						"kind": "visual",
-						"toolCallId": "call_5"
-					},
-					"output": {
-						"id": "steer_undefined",
-						"role": "custom",
-						"customType": "subagent-abort",
-						"content": "The figure job was aborted by the learner — no figure is coming. Acknowledge it in one line and teach without it (a re-dispatch is fine if the learner wants it).",
-						"display": true,
-						"details": {
-							"kind": "visual",
-							"toolCallId": "call_5",
-							"aborted": true
-						},
-						"timestamp": "<now>"
-					}
-				},
-				{
-					"input": {
 						"kind": "pdf",
 						"toolCallId": "call_5"
 					},
@@ -19725,7 +19017,7 @@
 								"role": "custom",
 								"customType": "subagent-steer",
 								"details": {
-									"kind": "visual"
+									"kind": "demo"
 								}
 							},
 							{
@@ -19780,7 +19072,7 @@
 							"role": "custom",
 							"customType": "subagent-steer",
 							"details": {
-								"kind": "visual"
+								"kind": "demo"
 							}
 						},
 						{
@@ -19835,7 +19127,7 @@
 								"role": "custom",
 								"customType": "subagent-steer",
 								"details": {
-									"kind": "visual"
+									"kind": "demo"
 								}
 							},
 							{
@@ -19890,7 +19182,7 @@
 							"role": "custom",
 							"customType": "subagent-steer",
 							"details": {
-								"kind": "visual"
+								"kind": "demo"
 							}
 						},
 						{
@@ -19945,7 +19237,7 @@
 								"role": "custom",
 								"customType": "subagent-steer",
 								"details": {
-									"kind": "visual"
+									"kind": "demo"
 								}
 							},
 							{
@@ -20000,7 +19292,7 @@
 							"role": "custom",
 							"customType": "subagent-steer",
 							"details": {
-								"kind": "visual",
+								"kind": "demo",
 								"ui": {
 									"inverted": true
 								}
@@ -20058,7 +19350,7 @@
 								"role": "custom",
 								"customType": "subagent-steer",
 								"details": {
-									"kind": "visual"
+									"kind": "demo"
 								}
 							},
 							{
@@ -20113,7 +19405,7 @@
 							"role": "custom",
 							"customType": "subagent-steer",
 							"details": {
-								"kind": "visual"
+								"kind": "demo"
 							}
 						},
 						{
@@ -20168,7 +19460,7 @@
 								"role": "custom",
 								"customType": "subagent-steer",
 								"details": {
-									"kind": "visual"
+									"kind": "demo"
 								}
 							},
 							{
@@ -20223,7 +19515,7 @@
 							"role": "custom",
 							"customType": "subagent-steer",
 							"details": {
-								"kind": "visual"
+								"kind": "demo"
 							}
 						},
 						{
@@ -20278,7 +19570,7 @@
 								"role": "custom",
 								"customType": "subagent-steer",
 								"details": {
-									"kind": "visual"
+									"kind": "demo"
 								}
 							},
 							{
@@ -20333,7 +19625,7 @@
 							"role": "custom",
 							"customType": "subagent-steer",
 							"details": {
-								"kind": "visual"
+								"kind": "demo"
 							}
 						},
 						{
@@ -20390,7 +19682,7 @@
 								"role": "custom",
 								"customType": "subagent-steer",
 								"details": {
-									"kind": "visual"
+									"kind": "demo"
 								}
 							},
 							{
@@ -20445,7 +19737,7 @@
 							"role": "custom",
 							"customType": "subagent-steer",
 							"details": {
-								"kind": "visual"
+								"kind": "demo"
 							}
 						},
 						{
@@ -20500,7 +19792,7 @@
 								"role": "custom",
 								"customType": "subagent-steer",
 								"details": {
-									"kind": "visual"
+									"kind": "demo"
 								}
 							},
 							{
@@ -20555,7 +19847,7 @@
 							"role": "custom",
 							"customType": "subagent-steer",
 							"details": {
-								"kind": "visual"
+								"kind": "demo"
 							}
 						},
 						{

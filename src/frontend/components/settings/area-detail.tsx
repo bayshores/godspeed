@@ -82,7 +82,7 @@ export function AreaDetail({
 			{area.id === "demos" && (
 				<>
 					{switchRow("demo", "Builds things you can play with")}
-					{switchRow("visual", "Draws precise diagrams")}
+					{switchRow("visual", "Draws what it explains")}
 				</>
 			)}
 			{area.id === "files" && switchRow("pdf", "Reads your PDFs page by page")}

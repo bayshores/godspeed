@@ -22,13 +22,13 @@ import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
  */
 
 /** The expand seam: md-blocks' mermaid hover button calls openMermaid with
- *  the chart source; the figure card's fullscreen button calls openFigure
- *  with the raw svg (+ its invert state). The chat page (which provides
+ *  the chart source; a figure's fullscreen button calls openFigure with
+ *  the svg as shown, and whether it is drawn on white. The chat page (which provides
  *  this context) opens the overlay. Null when no chat page is mounted
  *  (outside a chat page), the buttons simply don't render there. */
 export const SessionMermaidContext = createContext<{
 	openMermaid: (chart: string) => void;
-	openFigure: (svg: string, inverted: boolean) => void;
+	openFigure: (svg: string, onWhite: boolean) => void;
 } | null>(null);
 
 export function useSessionMermaid() {
@@ -64,18 +64,17 @@ export function chartSize(svg: string): { w: number; h: number } {
  *  pan-zoom.ts), Esc/X close. Renders its own copy of the chart (mermaid
  *  ids are per-render), not the injected inline svg. FIGURE MODE: pass a
  *  raw `svg` instead of a mermaid `chart` — the same
- *  shell then focuses a figure card's svg on a white stage, with the
- *  caller's invert state carried over (the filter rides the white stage,
- *  exactly like the in-card holder). */
+ *  shell then focuses a figure's svg, on white when it brings its own
+ *  colors (`onWhite`), exactly like the figure in the text. */
 export function MermaidOverlay({
 	chart,
 	svg: rawSvg,
-	inverted = false,
+	onWhite = false,
 	onClose,
 }: {
 	chart?: string;
 	svg?: string;
-	inverted?: boolean;
+	onWhite?: boolean;
 	onClose: () => void;
 }) {
 	// ── chart render (own instance, own ids); figure mode uses the raw svg ──
@@ -133,10 +132,10 @@ export function MermaidOverlay({
 			className="absolute inset-0 z-40 flex flex-col bg-background/95 p-4 lh-fade"
 			role="dialog"
 			aria-modal="true"
-			aria-label="Diagram focus"
+			aria-label={`${rawSvg === undefined ? "Diagram" : "Figure"} focus`}
 		>
 			<div className="mb-2 flex items-center gap-2">
-				<span className="text-[15px] font-medium text-ink">Diagram</span>
+				<span className="text-[15px] font-medium text-ink">{rawSvg === undefined ? "Diagram" : "Figure"}</span>
 				<span className="text-sm text-ink-2">from this lesson</span>
 				<button
 					type="button"
@@ -182,15 +181,11 @@ export function MermaidOverlay({
 										: "transform 180ms ease-out, opacity 160ms ease-out",
 							}}
 						>
-							{/* Figures share the card's image boundary and white backing.
-							    Mermaid keeps its inline renderer; globals.css removes
-							    its max-width cap so it fills the natural-size box. */}
+							{/* A figure stays in its image document here too. Mermaid keeps
+							    its inline renderer; globals.css removes its max-width cap
+							    so it fills the natural-size box. */}
 							{rawSvg !== undefined ? (
-								<div
-									data-lh-overlay-chart
-									className="bg-white"
-									style={inverted ? { filter: "invert(1) hue-rotate(180deg)" } : undefined}
-								>
+								<div data-lh-overlay-chart className={onWhite ? "bg-white" : undefined}>
 									<SvgImage svg={svg} className="block h-auto w-full" />
 								</div>
 							) : (

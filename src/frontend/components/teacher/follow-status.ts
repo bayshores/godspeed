@@ -40,7 +40,6 @@ interface DoingInputs {
 const JOB_TEXT: Record<JobKind, string> = {
 	research: "Looking things up for a lesson",
 	demo: "Building a demo",
-	visual: "Drawing a figure",
 	pdf: "Reading a PDF",
 };
 

@@ -439,6 +439,8 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	{ name: "Lesson at the end of its last topic, Done for today", url: "/chat/{lastTopic}", ready: "[data-testid=next-problem-button][data-action=done-for-today]" },
 	{ name: "Lesson that opens with a problem, Your turn alone", url: "/chat/{problemFirst}", ready: ".lh-lesson-alone [data-testid=open-problem]" },
 	{ name: "Homework lesson before a problem opens", url: "/chat/{homeworkFirst}", ready: "[data-testid=next-problem-button]" },
+	// The method is taught first with a figure the teacher drew; "Try asking" has the key that asks for one.
+	{ name: "Homework lesson with a figure under the method", url: "/chat/{homeworkFirst}", ready: "[data-testid=visual-svg] img", shows: "[data-testid=lesson-idea]" },
 	{ name: "Homework lesson with fourteen problems, the first done", url: "/chat/{homeworkMany}", ready: "[data-testid=plan-fold]" },
 	{ name: "Homework with fourteen problems, unfolded", url: "/chat/{homeworkMany}", ready: "[data-testid=plan-fold]", setup: unfoldSteps, shows: "[data-testid=plan-step][data-status=done] [data-testid=problem-pick]" },
 	{ name: "Lesson with the steps unfolded", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: unfoldSteps, shows: "[data-testid=plan-step]" },

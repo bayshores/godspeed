@@ -450,3 +450,32 @@ async fn only_the_agent_that_took_a_background_item_holds_it_until_it_answers() 
 	job.await.unwrap();
 	assert!(!bridge.holds_background_work(Some("agent-A")), "an answered item is let go");
 }
+
+#[tokio::test]
+async fn a_figures_render_is_sent_until_the_teacher_has_replied_after_it() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	let call = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "v1", "name": "visual", "arguments": {} }] });
+	let image = json!({ "type": "image", "data": "AAAA", "mimeType": "image/png" });
+	let drawn = json!({ "role": "toolResult", "toolCallId": "v1", "toolName": "visual", "content": [{ "type": "text", "text": "Shown." }, image] });
+	let texts = |view: &gs_engine::bridge::WorkView| view.messages.iter().map(|m| m["text"].str_or_empty().to_owned()).collect::<Vec<_>>();
+
+	// With the learner's next message the teacher gets the render.
+	let first = vec![user("draw it"), call, drawn, user("ok")];
+	let turn = park(&bridge, first.clone(), "chat_a", &Abort::new());
+	clock::sleep(5).await;
+	let view = bridge.wait_for_work(0, agent_a()).await.unwrap();
+	assert_eq!(view.images.as_ref().map(Vec::len), Some(1));
+	assert_eq!(texts(&view)[2], "Shown.\n[image 1]");
+	bridge.respond_to_work(&view.work_id, reply("Good."), 0).unwrap();
+	turn.await.unwrap();
+
+	// Once it has replied, an agent that reads the lesson from the start gets only the mark.
+	let later: Vec<Json> = first.into_iter().chain([json!({ "role": "assistant", "content": [{ "type": "text", "text": "Good." }] }), user("next")]).collect();
+	let turn = park(&bridge, later, "chat_a", &Abort::new());
+	clock::sleep(5).await;
+	let view = bridge.wait_for_work(0, WaitOptions { agent: Some("agent-B".to_owned()), ..WaitOptions::default() }).await.unwrap();
+	assert!(!view.continued && view.images.is_none());
+	assert_eq!(texts(&view)[2], "Shown.\n[image]");
+	bridge.respond_to_work(&view.work_id, reply("Next."), 0).unwrap();
+	turn.await.unwrap();
+}
